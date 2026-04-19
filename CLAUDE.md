@@ -36,6 +36,18 @@ For now, keep it minimal.
 MyNclex is the first QAcademy product on this stack. MyNMCLicensure and
 MyTeacher will migrate to the same stack later, one at a time.
 
+## Folder Structure
+
+- `app/` — pages (Next.js App Router). Each folder is a URL path.
+- `components/` — reusable UI pieces (React components).
+- `lib/` — helpers, data access, Supabase client setup.
+- `public/` — static assets (images, favicon).
+- `db/` — MyNclex-specific database schema, RLS, migrations.
+- `workers/` — separate Cloudflare Workers (e.g. email) — not the main app.
+
+Layout is **flat** (no `src/` wrapper). This matches Next.js default and
+the sibling products' philosophy.
+
 ## Non-Negotiable Rules
 
 1. **Table prefix: `nclex_`** on every MyNclex database object (tables,
@@ -65,6 +77,9 @@ MyTeacher will migrate to the same stack later, one at a time.
 5. **Never expose the Supabase service role key to the browser.** Anon /
    publishable key only in client code. Service role lives in Worker
    secrets.
+
+6. **Project layout is flat — no `src/` wrapper.** Do not suggest
+   reorganising into `src/` without an explicit decision.
 
 ## Working With Sam
 
