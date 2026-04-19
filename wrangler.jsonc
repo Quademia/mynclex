@@ -1,7 +1,7 @@
 {
   // This file tells Cloudflare Workers how to run our Next.js app.
   // The "main" points to the OpenNext worker entry point.
-  "name": "mynclex",
+  "name": "qacademy-dev-mynclex",
   "main": ".open-next/worker.js",
   "compatibility_date": "2024-09-23",
   "compatibility_flags": ["nodejs_compat"],
