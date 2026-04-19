@@ -17,9 +17,10 @@ Open to anyone internationally.
 
 ## Current Status
 
-**Design phase.** Sam is designing MyNclex visually using Claude artefacts
-before any code is written. No application code exists yet. Do not generate
-scaffolding, pages, or features unless explicitly asked.
+**Planning + design phase. The landing page and Cloudflare Workers
+pipeline are live (see README). No application code written yet
+beyond the landing page. Do not generate further scaffolding,
+pages, or features unless explicitly asked.**
 
 When the design phase completes and build begins, this file gets expanded.
 For now, keep it minimal.
@@ -103,7 +104,7 @@ the sibling products' philosophy.
 ## Files To Read at Session Start
 
 - This file (`mynclex/CLAUDE.md`)
-- `mynclex/SESSIONS.md` — once it exists, running log of work done
+- `mynclex/SESSIONS.md` — running log of work done
 - `mynclex/BUILD_LIST.md` — once it exists, current priorities
 - Recent commits (`git log --oneline -10`)
 
