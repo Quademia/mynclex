@@ -146,6 +146,7 @@ h1 {
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 1;
+  white-space: nowrap;
   background: linear-gradient(180deg, #ffffff 0%, #c9d4e1 100%);
   -webkit-background-clip: text;
   background-clip: text;
