@@ -54,6 +54,9 @@ These decisions are open. Fill in as they get made:
 - **Content sourcing** — initial NCLEX question bank authoring plan
 - **Curriculum authoring UX** — how tutors design pre/post tasks and
   schedule
+- **Production build**: using `--webpack` flag as workaround for OpenNext
+  incompatibility with Turbopack in Next.js 16. Switch back when OpenNext
+  adds Turbopack support.
 
 ## Related Files
 

@@ -1,0 +1,31 @@
+{
+  "name": "mynclex",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint",
+    "cf:build": "npx @opennextjs/cloudflare build -- --webpack",
+    "cf:dev": "npx @opennextjs/cloudflare build -- --webpack && wrangler dev",
+    "cf:deploy": "npx @opennextjs/cloudflare build -- --webpack && wrangler deploy"
+  },
+  "dependencies": {
+    "@opennextjs/cloudflare": "^1.19.1",
+    "next": "16.2.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "wrangler": "^4.83.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

@@ -81,6 +81,17 @@ the sibling products' philosophy.
 6. **Project layout is flat — no `src/` wrapper.** Do not suggest
    reorganising into `src/` without an explicit decision.
 
+## Known Workarounds
+
+- **Production builds use webpack, not Turbopack.** The `build` and
+  `cf:build` scripts pass `--webpack` to `next build`. Reason: Next.js 16
+  defaults to Turbopack for production builds, but
+  `@opennextjs/cloudflare` 1.19.x does not yet support Turbopack's chunk
+  layout — the Worker boots but the first SSR request fails with
+  `ChunkLoadError: Failed to load chunk server/chunks/ssr/[root-of-the-server]__*.js`.
+  Dev (`next dev`) still uses Turbopack (it is mature for dev).
+  Revisit and drop `--webpack` once OpenNext adds Turbopack support.
+
 ## Working With Sam
 
 - Sam has no coding background. Explain rationale before code. No assumed
