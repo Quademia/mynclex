@@ -1,7 +1,7 @@
 # MyNclex — Product Plan
 
 *Living document. Filled in as decisions get made.*
-Last updated: 2026-04-19 (roles + programme structure settled)
+Last updated: 2026-04-19 (pricing settled)
 
 ---
 
@@ -160,11 +160,290 @@ late enrolment off; tutor toggles it on with a cut-off if desired.
 
 ### Revenue model
 
-**Deferred to the Pricing topic.** How QAcademy earns from a tutor's
-programme (per-enrolment commission, flat cohort fee, per-seat fee,
-tutor subscription) has significant product and technical
-implications and is parked here until the Pricing discussion.
-Existing v1 deferral stands: no automated payment splits in v1.
+Settled in the Pricing section. In brief: tutors pay a flat monthly
+platform subscription; students pay QAcademy directly for a
+subsidised, duration-matched bank bundle at enrolment; tutor
+programme fees stay off-platform between tutor and student. No
+automated payment splits in v1.
+
+### Student progression
+
+- **Progress model:** time-gated. Weeks unlock by date in cohort mode
+  or by days-since-enrolment in rolling mode. Past weeks always remain
+  accessible for revision.
+- **"Done" logic:** mixed. Quiz blocks and mock assessments
+  auto-complete from their score. Passive content (text, PDF, external
+  video link) is student-ticked. Live session is student-ticked (or
+  auto-complete when the tutor posts the recording — refined in build).
+
+### Student dashboard (v1)
+
+Minimum set:
+- Current week number and week progress bar
+- Overall programme progress %
+- Next live session (date + join link)
+- Most recent mock assessment score
+- Journey tracker snapshot (current phase, % through it)
+
+Accepted as a starting set; may be refined during build.
+
+### Tutor actions (v1)
+
+A tutor can, for each programme they own or co-run:
+
+1. Create and edit the programme (title, description, length in weeks,
+   cohort vs rolling mode, start date, max cohort size, late-enrolment
+   toggle).
+2. Build weeks — add, edit, delete, and reorder blocks in any week.
+3. Post live session links and recording URLs.
+4. View the list of enrolled students.
+5. View a single student's detail (week-by-week completion, mock
+   scores, current journey-tracker phase).
+6. Message one student, or the whole cohort.
+7. Clone an existing programme (to run the next cohort without
+   rebuilding).
+8. Archive a programme.
+
+### Co-tutors
+
+A programme can have one or more tutors. In v1, all tutors on a
+programme have identical powers — no owner/assistant split. If abuse
+or coordination issues appear, a permissions split can be introduced
+in v2.
+
+### Bank usage inside a programme
+
+Programme question sets can draw from two sources:
+
+1. **QAcademy bank** — shared, QAcademy-owned. Tutors can assign bank
+   questions into question-set blocks. Tutors cannot edit bank
+   questions or add to the shared bank. (The QAcademy bank is itself
+   a standalone product sold to self-study students, so its integrity
+   is protected.)
+2. **Tutor's own questions** — tutor-authored. Private to the tutor.
+   Reusable across that tutor's programmes. Not visible to any other
+   tutor, and not added to the shared bank.
+
+### Student access to questions
+
+- **QAcademy bank questions** are visible to a student if the student
+  has any active QAcademy bank pack — either purchased standalone
+  (self-study) or purchased as the subsidised bundle at programme
+  enrolment.
+- **Tutor-authored questions** are visible only to students enrolled
+  in that tutor's programme, and only inside that programme's
+  assignments.
+
+### Open items within programme structure
+
+- Journey-tracker phase content (rich text + checklist per destination
+  country) is an admin-authored content task, handled during build,
+  not in planning.
+- Revenue model is parked in the Pricing topic.
+
+## Tutor Onboarding
+
+MyNclex is a vetted marketplace, not an open tool. No public
+self-serve tutor signup in v1 — every tutor account is created by
+admin after an off-platform vetting conversation. Students enrolling
+in a tutor's programme are trusting QAcademy's vouch for that tutor,
+so the bar is deliberately high.
+
+### Application intake
+
+A public "Become a Tutor" page on the MyNclex site serves two
+purposes: collecting prospective-tutor applications, and acting as
+marketing for the programme model.
+
+- Applications submitted via the public form are stored in a
+  `nclex_tutor_applications` table, with status values:
+  `NEW`, `CONTACTED`, `APPROVED`, `REJECTED`.
+- Admin can view a list of applications with their status — a simple
+  funnel view, not a full vetting dashboard.
+- No approve-and-auto-provision flow. Approval is recorded as a
+  status change; account creation is a separate, explicit admin
+  action (below).
+
+### Vetting
+
+Vetting itself happens off-platform — email, WhatsApp, calls,
+sometimes a trial session. Criteria (qualification, experience,
+teaching style, cultural fit) are judged case-by-case by admin; no
+on-platform checklist in v1. If volume increases, a structured
+vetting workflow may be introduced in v2.
+
+### Account creation
+
+Once admin decides to approve an applicant:
+
+1. Admin clicks "Create tutor" in the admin area and enters the
+   tutor's name and email.
+2. The new account is created in a `PENDING_SETUP` state.
+3. The tutor receives a setup-link email.
+4. The tutor follows the link, sets their own password, and logs in.
+5. The account becomes `ACTIVE` on first successful login.
+
+No admin-generated temporary passwords shared over insecure channels.
+
+### Required tutor profile
+
+Before a tutor can publish their first programme, the following
+profile fields must be filled in:
+
+1. Display name (shown on programme listing)
+2. Photo / avatar
+3. Short bio (1–2 paragraphs, shown on programme listing)
+4. Credentials (e.g. "BSN, RN, 8 years ICU experience")
+5. Country / region
+
+Optional fields (not required to publish):
+- Longer "about me" page
+- External links (LinkedIn, personal site)
+- Languages spoken
+
+### Tutor dashboard (v1 first view)
+
+When a tutor logs in, the default view shows:
+- Programmes they own or co-run (cards: title, status, student count,
+  next live session)
+- Quick actions: Create programme, Create question, Message cohort
+- Platform announcements from admin
+
+### Deactivation
+
+An active tutor may be deactivated by admin (e.g. they quit,
+underperform, or are removed). Deactivation is a **soft stop**:
+
+- The tutor is hidden from the public tutor list and programme
+  listings — no new enrolments accepted for their programmes.
+- Existing active cohorts continue to their scheduled end date;
+  students who paid for a cohort finish it.
+- Urgent reassignments (e.g. tutor vanishes mid-cohort) are handled
+  off-platform in v1 — admin coordinates with the co-tutor, or
+  issues refunds manually.
+- A cohort-reassign flow may be added in v2 if this becomes common.
+
+### Self-deletion
+
+Tutors cannot delete their own accounts in v1. Tutors are a curated
+group; removal requires a conversation about data retention and
+cohort handover. A tutor wishing to leave contacts admin by email;
+admin then follows the deactivation flow above.
+
+## Pricing
+
+QAcademy is a content company with a tutor marketplace attached. The
+bank is the main revenue product; tutor subscriptions are a low-cost
+supply-side loss leader; bundled bank access to tutored students
+scales with tutor success.
+
+### Currency
+
+- Dual currency in v1.
+- Users registering from Ghana see and pay in **GHS**.
+- All other users see and pay in **USD**.
+- Region is captured via a "Where are you registering from?" question
+  at signup, stored on the user profile. No IP-based detection
+  (unreliable: VPNs, diaspora, mobile carrier routing).
+- Every product has two price fields: `price_ghs` and `price_usd`.
+  Both are required at product creation — neither is derived from
+  the other. This preserves price psychology (round numbers in each
+  currency) and avoids FX drift changing prices silently.
+- Paystack is the processor for both currencies; settlement to the
+  QAcademy bank account is in GHS regardless of charge currency.
+
+### Bank (QAcademy-owned)
+
+- Sold as duration-tier packs: **30 / 90 / 180 days**.
+- A short free trial (duration TBD in build) is offered as a marketing
+  taster, not a paid tier.
+- 365-day packs and freemium-tier-style unlimited access are deferred
+  to v2.
+
+### Readiness packs
+
+- Separate QAcademy-owned product, distinct from the bank subscription.
+- Full-length, exam-simulating mock tests (provisionally 5 in v1).
+- Sold as: single pack, three-pack bundle, all-packs bundle.
+- Independent of bank access — can be purchased with or without the
+  bank.
+
+### Tutor revenue model
+
+Tutors pay QAcademy a **flat monthly subscription** to use the
+platform. They run unlimited cohorts and keep 100% of their student
+revenue, which they collect and manage off-platform.
+
+- No per-enrolment commission.
+- No automated payment splits between QAcademy and tutors (matches
+  the v1 deferral in CLAUDE.md).
+- No per-seat fees.
+- Single subscription tier in v1. Tiered subscriptions are a v2
+  candidate.
+
+This model matches the dominant industry pattern (Teachable,
+Thinkific, Kajabi, Podia, FreshLearn) and positions QAcademy as a
+platform tutors rent, not a commission-taking middleman.
+
+### Tutored students and the bank
+
+Programme enrolment **bundles** bank access for the programme's
+duration — but at a subsidised price, not free.
+
+- When a student enrols in a tutor's programme, they pay QAcademy
+  directly for a programme-matched bank pack, at a discounted rate.
+- The discount is QAcademy's contribution to the programme's value.
+- Tutor has no variable cost tied to their cohort size — their
+  subscription stays flat.
+- Student sees a clean enrolment flow: tutor fee paid to the tutor
+  (off-platform, in the tutor's currency), bank access paid to
+  QAcademy (on-platform, in the student's registered currency).
+- Subsidy level: **50% of the standalone bank price** for the closest
+  matching duration, rounded up so no student is ever mid-week with
+  expired bank access.
+- Subsidy price is set globally by admin. Tutors do not control it.
+
+### Provisional numbers
+
+These numbers are anchors for planning only. All must be
+market-validated before public launch.
+
+| Product | Price (USD) | Price (GHS) |
+|--|--|--|
+| Tutor monthly subscription | $29 | ~350 |
+| Self-study bank, 30-day | TBD | TBD |
+| Self-study bank, 90-day | $40 | ~480 |
+| Self-study bank, 180-day | TBD | TBD |
+| Tutored-student bank bundle (matched duration) | ~$20 (50% of 90-day) | ~240 |
+| Readiness pack, single | TBD | TBD |
+| Readiness pack, three | TBD | TBD |
+| Readiness pack, all | TBD | TBD |
+| Tutor's programme price to students | tutor's own choice; 3,000 GHS / ~£200 / ~$250 is a sensible anchor for a 12-week programme |  |
+
+### Revenue model strategic read
+
+Based on rough scenario modelling:
+
+- In year 1 (pilot), QAcademy revenue is small and roughly split
+  across tutor subs, self-study bank sales, and tutored bundles.
+- By year 2–3, **self-study bank sales dominate** revenue, followed
+  by tutored bundles, with tutor subscriptions the smallest slice.
+- **Revenue scales with student volume, not tutor count.** Marketing
+  the bank directly to self-study students is the bigger revenue
+  lever than growing the tutor base.
+- Tutors remain valuable as (a) a vetted-marketplace brand signal
+  that helps sell the bank, and (b) a customer-acquisition channel.
+- This reinforces the vetted-marketplace choice: a diluted tutor
+  brand would damage bank sales, which are the largest revenue
+  source.
+
+### Pricing-related items deferred to v2+
+
+- Tiered tutor subscriptions (basic / pro with different feature sets)
+- Annual discounts on tutor subscription
+- Group / institutional licences for the bank
+- Automated payment splits between QAcademy and tutors
+- 365-day bank packs
 
 ## Deferred (v2 or later)
 
@@ -179,9 +458,6 @@ Existing v1 deferral stands: no automated payment splits in v1.
 
 These decisions are open. Fill in as they get made:
 
-- **Pricing** — bank-only tier, programme enrolment tier, currencies,
-  trial structure
-- **Tutor onboarding flow** — how a new tutor is vetted and activated
 - **Content sourcing** — initial NCLEX question bank authoring plan
 - **Curriculum authoring UX** — how tutors design pre/post tasks and
   schedule
