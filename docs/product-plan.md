@@ -1,7 +1,7 @@
 # MyNclex — Product Plan
 
 *Living document. Filled in as decisions get made.*
-Last updated: 2026-04-19 (pricing settled)
+Last updated: 2026-04-20 (bank settled)
 
 ---
 
@@ -20,7 +20,8 @@ Canada. Open to anyone internationally.
 
 ## In Scope for v1
 
-- NCLEX-RN question bank (QAcademy-owned content, MCQ + SATA)
+- NCLEX-RN question bank (QAcademy-owned content, all 9 question types
+  including NGN items — see **The Bank** section)
 - Vetted tutors (Sam + approved others, manual onboarding — no public
   self-signup)
 - Tutor-owned curriculum: week-by-week schedule, pre-tutorial tasks,
@@ -445,11 +446,53 @@ Based on rough scenario modelling:
 - Automated payment splits between QAcademy and tutors
 - 365-day bank packs
 
+## The Bank (Question Bank)
+
+The NCLEX-RN question bank is the content layer that feeds both
+self-study students (standalone access) and tutored programmes
+(assigned inside Practice quiz and Mock activities). **Settled
+2026-04-20.** Full schema, JSONB shapes, scoring functions, and
+case-study details live in [product-plan/bank.md](product-plan/bank.md).
+
+Headline decisions:
+
+- **Parallel ownership model.** Identical-shape tables in two sets:
+  QAcademy-owned (`nclex_bank_*`, `nclex_case_studies`,
+  `nclex_readiness_packs`) — shared across all tutors and students.
+  Tutor-private (`nclex_tutor_*`) — owned by each tutor, visible
+  only in their programmes.
+- **Seven core tables** — 4 QAcademy-owned + 3 tutor-private. No
+  `nclex_tutor_readiness_packs` (readiness packs are a QAcademy-only
+  product; tutors use Mock activities instead).
+- **All 9 question types ship in v1** — MCQ, TF, SATA, Select N,
+  Matrix, Highlight, Cloze, Drag-drop, Bow-tie. Trend items deferred
+  to v2.
+- **JSONB `content` + `correct` columns** on every question. `content`
+  (pre-submit, safe for browser) holds the question structure.
+  `correct` (post-submit only) holds the answer key **and**
+  per-option / per-cell / per-slot feedback.
+- **Five scoring functions** cover all 9 types, dispatched by
+  `question_type`. NCSBN-exact logic, versioned separately from
+  schema.
+- **Case studies** = one row per scenario with 6 JSONB chart tabs
+  (nurses' notes, vitals, labs, orders, history, diagnostics). Each
+  entry has `visible_from` (1–6) for progressive chart unfolding as
+  the student moves through the 6 CJMM questions.
+- **Readiness packs** = curated QAcademy assessments with reserved
+  questions. `is_builder_visible = FALSE` hides pack questions from
+  the custom quiz builder; the pack runner loads them by ID directly.
+- **10 classification axes** are all filterable at student build
+  time (`question_type`, two client-needs fields, subject, system,
+  topic, subtopic, difficulty, bloom level, tags).
+
+Cross-topic effect: **Curriculum authoring UX is now unblocked** —
+Practice quiz and Mock activity editors had "blocked on bank"
+placeholders and can now proceed.
+
 ## Deferred (v2 or later)
 
 - CAT (Computer Adaptive Testing) adaptive difficulty logic
-- NGN item types (case studies, bow-tie, drag-and-drop, extended
-  multi-response)
+- Trend items (NGN variant of matrix/cloze/highlight)
 - Public self-serve tutor signup / tutor marketplace UI
 - Automated payment splits between QAcademy and tutors
 - Migration of MyNMCLicensure or MyTeacher onto this stack
@@ -459,11 +502,16 @@ Based on rough scenario modelling:
 These decisions are open. Fill in as they get made:
 
 - **Content sourcing** — initial NCLEX question bank authoring plan
-- **Curriculum authoring UX** — how tutors design pre/post tasks and
-  schedule
+- **Student enrolment flow** — signup, programme enrolment, bundled
+  bank purchase, and Journey Tracker handoff
 
 ## Related Files
 
 - `mynclex/CLAUDE.md` — stack, conventions, non-negotiables
+- `mynclex/docs/product-plan/` — deep-dive plans per topic (one file
+  per major feature area)
+  - `product-plan/bank.md` — full question-bank schema and scoring
+  - (future) `product-plan/payments.md`, `product-plan/registration.md`,
+    etc.
 - `mynclex/db/` — database schema, RLS, migrations (to be populated)
 - `qacademy-gamma/SESSIONS.md` — running log of work across the repo
