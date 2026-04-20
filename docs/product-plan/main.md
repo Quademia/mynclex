@@ -592,8 +592,10 @@ report.
 
 These decisions are open. Fill in as they get made:
 
-- **Student enrolment flow** — signup, programme enrolment, bundled
-  bank purchase, and Journey Tracker handoff
+- **Tutored enrolment** — how a student joins a specific tutor's
+  programme, the bundled bank+programme transaction, cohort-start
+  mechanics. Self-study enrolment settled 2026-04-20; see
+  [payments-and-enrolment.md](payments-and-enrolment.md).
 
 ## Related Files
 
@@ -603,6 +605,8 @@ These decisions are open. Fill in as they get made:
   - `bank.md` — full question-bank schema and scoring
   - `curriculum-authoring-ux.md` — tutor-side authoring screens and
     editors
+  - `payments-and-enrolment.md` — student payment flows, product
+    catalogue, and enrolment (both self-study and tutored)
   - `mockups/` — visual mockups (HTML reference files)
   - (future) `payments.md`, `registration.md`, etc.
 - `mynclex/db/` — database schema, RLS, migrations (to be populated)
