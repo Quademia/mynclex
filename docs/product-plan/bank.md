@@ -90,6 +90,7 @@ tags                        TEXT[]
 -- Visibility and packaging
 is_free_sample              BOOLEAN  DEFAULT FALSE
 is_builder_visible          BOOLEAN  DEFAULT TRUE
+is_published                BOOLEAN  DEFAULT FALSE   -- draft vs live
 
 -- Housekeeping
 marks                       NUMERIC
@@ -434,6 +435,16 @@ Full mockups deferred to when each feature is built.
   but the bank pricing (30/90/180-day packs) connects to enrolment.
 
 ---
+
+## Related topics — content sourcing
+
+Content sourcing (authoring strategy, editorial process, QA) is
+settled. See [main.md — Content Sourcing](main.md#content-sourcing).
+Two small schema additions result from that topic:
+
+- `is_published` boolean on `nclex_bank_items` and
+  `nclex_tutor_questions`.
+- New table `nclex_question_reports` (student-reported questions).
 
 ## Decisions not yet settled
 

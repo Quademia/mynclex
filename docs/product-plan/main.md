@@ -1,7 +1,7 @@
 # MyNclex — Product Plan
 
 *Living document. Filled in as decisions get made.*
-Last updated: 2026-04-20 (bank + curriculum authoring UX settled)
+Last updated: 2026-04-20 (bank + curriculum UX + content sourcing settled)
 
 ---
 
@@ -492,6 +492,94 @@ placeholders and were settled the same day
 mockups at
 [mockups/curriculum-authoring-ux.html](mockups/curriculum-authoring-ux.html)).
 
+## Content Sourcing
+
+**Settled 2026-04-20.**
+
+Content sourcing — producing the actual NCLEX-quality questions
+that fill the bank — is an **editorial and business problem, not a
+product-build problem**. It is explicitly out of scope for the
+product-build plan.
+
+### For development and testing
+
+The bank will be seeded with synthetic sample questions covering
+every question type, every chart structure, and a representative
+spread of classification axes. These sample questions exist only to
+exercise the schema, scoring functions, renderers, and admin/tutor/
+student UIs end-to-end. They are not publication-quality NCLEX
+items and are not intended for paying students.
+
+### For launch
+
+Sam (a nurse himself) will run a separate editorial process off-
+platform with vetted nurse educators to produce the real bank. The
+working model:
+
+- **Authoring** happens wherever is most comfortable for the
+  educators — Google Docs, Word, shared spreadsheets, WhatsApp.
+- **Sam reviews and restructures** draft content as a nurse, in
+  collaboration with the educators.
+- **Final questions are typed into the admin** by Sam or a small
+  internal team. By the time a question reaches the admin, it has
+  already passed editorial review.
+- **The admin is the publishing step, not the reviewing step.** No
+  in-platform review workflow is built (see Decision A below).
+
+This process runs on Sam's timeline, independently of product
+development.
+
+### Two small system decisions taken during this planning
+
+**Decision A — No in-platform review workflow.**
+Reviewing happens off-platform. The admin exposes a single
+`is_published` boolean on every question. Draft questions
+(`is_published = false`) are visible in the admin only. Published
+questions (`is_published = true`) are visible to students and
+tutors. No reviewer role, no approval queue. If a richer workflow
+is ever needed, it is a small addition (two columns: `reviewed_by`,
+`reviewed_at`) — easy to bolt on.
+
+**Decision B — "Report this question" feature ships in v1
+(minimum version).**
+Students can flag any question they think is wrong. This is the
+single best mechanism for improving bank quality over time and is
+industry-standard for NCLEX prep (UWorld, Kaplan, Archer all have
+it). Minimum version only:
+
+- New table `nclex_question_reports` — columns: `id`, `item_id`,
+  `student_id`, `reason` (free text), `status`, `created_at`.
+- One button on the post-submission view of any question: "Report
+  this question" → small text box → submits.
+- One admin page: list of reports with question preview and two
+  actions — "Dismiss" and "Mark for fix."
+
+Explicitly **not** in v1: report categories (free text only, to
+learn what matters), response-to-student flow (reports are one-way),
+automatic retirement (admin decides), separate fix workflow (admin
+edits in-place; reports stay for audit).
+
+Both students in tutored programmes and self-study students can
+report.
+
+### Schema consequences (for the Bank build)
+
+- `nclex_bank_items` gains a column: `is_published BOOLEAN DEFAULT FALSE`.
+- `nclex_tutor_questions` gains the same column (parallel ownership
+  model — see [bank.md](bank.md)).
+- New table: `nclex_question_reports` (covers both QAcademy-owned
+  and tutor questions via `item_id` + a source indicator, or via
+  two separate tables if that is cleaner when building). Shape
+  finalised in build, not planning.
+
+### Deferred
+
+- Reviewer workflow in admin (draft → reviewed → published).
+- Report categories, auto-retirement thresholds, response-to-student
+  notifications — all v2+ if they turn out to matter.
+- Tutors contributing questions up into the main bank (mentioned in
+  `bank.md` parallel ownership model — no UI for this in v1).
+
 ## Deferred (v2 or later)
 
 - CAT (Computer Adaptive Testing) adaptive difficulty logic
@@ -504,7 +592,6 @@ mockups at
 
 These decisions are open. Fill in as they get made:
 
-- **Content sourcing** — initial NCLEX question bank authoring plan
 - **Student enrolment flow** — signup, programme enrolment, bundled
   bank purchase, and Journey Tracker handoff
 

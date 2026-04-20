@@ -6,6 +6,84 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-20 (Planning continued — Claude Web + Claude Code)
+
+Three topics settled in one day, with visual reference artefacts for
+two of them. Still no code — planning docs only.
+
+### The Bank (Question Bank) — SETTLED
+
+Parallel ownership model (QAcademy-owned + tutor-private, identical
+shapes). Seven core tables. All 9 question types ship in v1 (MCQ,
+TF, SATA, Select N, Matrix, Highlight, Cloze, Drag-drop, Bow-tie;
+Trend deferred to v2). Polymorphic JSONB `content` + `correct`
+columns. Per-option feedback in `correct`. Case studies with 6
+JSONB chart tabs and `visible_from` unfolding. Readiness packs as a
+QAcademy-only product with reserved questions. Five scoring
+functions cover all 9 types, NCSBN-exact. 10 classification axes,
+all filterable.
+
+Full spec in `product-plan/bank.md`. NGN visual primer saved at
+`product-plan/mockups/ngn-primer.html`.
+
+### Curriculum Authoring UX — SETTLED
+
+Unblocked by the bank settlement the same day. Structure hierarchy:
+Programme → Week → Module → Activity. Screens: My Programmes
+landing, single-screen New Programme form (7 fields), Weeks
+Overview with Weeks-view + Calendar-view toggle, Week Builder with
+module cards and activity rows, inline 3×2 add-activity picker, six
+activity editors (Text, PDF, External link, Live session, Mock,
+Practice quiz). Reorder via up/down arrows (drag-and-drop deferred
+to v2). Dual publish status (module + week both carry Live/Draft
+pills).
+
+Full spec in `product-plan/curriculum-authoring-ux.md`; mockups at
+`product-plan/mockups/curriculum-authoring-ux.html`.
+
+### Repo reshuffle
+
+`mynclex/docs/product-plan.md` rebuilt into a `product-plan/`
+folder: `main.md` (overview + index), `bank.md`, and
+`curriculum-authoring-ux.md` as siblings. Visual HTML references
+live in `product-plan/mockups/`. Future topic docs (payments,
+registration, etc) slot in as siblings.
+
+### Also settled this session — Content sourcing
+
+Late addition to the planning day. Content sourcing reframed as an
+**editorial/business problem, out of scope for product build**. The
+bank will be seeded with synthetic sample questions for development
+and testing; real content comes later via off-platform editorial
+work with vetted nurse educators, led by Sam as a nurse himself.
+
+Two small system decisions taken:
+- **No in-platform review workflow.** Single `is_published` boolean
+  on questions; reviewing happens off-platform.
+- **"Report this question" ships in v1** (minimum version). New
+  table `nclex_question_reports`; simple "Dismiss" / "Mark for fix"
+  admin queue.
+
+Schema consequences: `is_published` column added to
+`nclex_bank_items` and `nclex_tutor_questions`;
+`nclex_question_reports` table added.
+
+Documented in `product-plan/main.md` (new "Content Sourcing"
+section). `bank.md` cross-references this section.
+
+### MyNclex planning status — end of day
+
+- **8 of 9 topics settled.** Only **Student enrolment flow** remains
+  open.
+
+### Next session
+
+- Settle **Student enrolment flow** (signup → programme enrolment →
+  bundled bank purchase → Journey Tracker handoff).
+- Once that lands, planning is complete and build can begin.
+
+---
+
 ## Session — 2026-04-19 (Product planning — Claude Web)
 
 Long planning session to flesh out `docs/product-plan.md` from
