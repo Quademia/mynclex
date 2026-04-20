@@ -1,8 +1,8 @@
 # MyNclex — The Bank (Question Bank)
 
-*Living document. Extracted from `product-plan.md` on 2026-04-20 when
-that file grew too heavy. Section headings here correspond 1:1 with
-the Bank subsections originally planned.*
+*Living document. Extracted on 2026-04-20 when the overall product
+plan grew too heavy. Part of the `mynclex/docs/product-plan/` set —
+see [main.md](main.md) for the overall product plan.*
 Last updated: 2026-04-20 (bank settled)
 
 ---

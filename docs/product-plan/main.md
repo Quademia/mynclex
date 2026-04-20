@@ -452,7 +452,7 @@ The NCLEX-RN question bank is the content layer that feeds both
 self-study students (standalone access) and tutored programmes
 (assigned inside Practice quiz and Mock activities). **Settled
 2026-04-20.** Full schema, JSONB shapes, scoring functions, and
-case-study details live in [product-plan/bank.md](product-plan/bank.md).
+case-study details live in [bank.md](bank.md).
 
 Headline decisions:
 
@@ -508,10 +508,9 @@ These decisions are open. Fill in as they get made:
 ## Related Files
 
 - `mynclex/CLAUDE.md` — stack, conventions, non-negotiables
-- `mynclex/docs/product-plan/` — deep-dive plans per topic (one file
-  per major feature area)
-  - `product-plan/bank.md` — full question-bank schema and scoring
-  - (future) `product-plan/payments.md`, `product-plan/registration.md`,
-    etc.
+- `mynclex/docs/product-plan/` — all product-plan docs live here:
+  - `main.md` — this file, the overall product plan and index
+  - `bank.md` — full question-bank schema and scoring
+  - (future) `payments.md`, `registration.md`, etc.
 - `mynclex/db/` — database schema, RLS, migrations (to be populated)
 - `qacademy-gamma/SESSIONS.md` — running log of work across the repo
