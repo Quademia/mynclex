@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyNclex — Curriculum Authoring UX · Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fraunces:wght@500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy: #1e3a5f;
+  --navy-light: #27496b;
+  --teal: #2d7d72;
+  --teal-light: #3ca295;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-soft: #f0f2f5;
+  --border: rgba(30, 58, 95, 0.12);
+  --border-strong: rgba(30, 58, 95, 0.25);
+  --text: #1e3a5f;
+  --text-muted: rgba(30, 58, 95, 0.62);
+  --text-dim: rgba(30, 58, 95, 0.40);
+  --info-bg: rgba(45, 125, 114, 0.08);
+  --info-border: rgba(45, 125, 114, 0.4);
+  --warn-bg: #faeeda;
+  --warn-border: #fac775;
+  --warn-text: #633806;
+  --success-bg: rgba(45, 125, 114, 0.14);
+  --success-text: #085041;
+  --draft-bg: #faeeda;
+  --draft-text: #633806;
+  --coral-bg: #faece7;
+  --coral-border: #f5c4b3;
+  --coral-text: #712b13;
+  --purple-bg: #eeedfe;
+  --purple-text: #3c3489;
+  --amber-bg: #faeeda;
+  --amber-text: #633806;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  padding: 32px 24px 80px;
+}
+
+.page-wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.doc-title {
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--navy);
+}
+
+.doc-sub {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.doc-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 40px;
+}
+
+.toc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 48px;
+  font-size: 13px;
+}
+
+.toc h2 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.toc ol {
+  padding-left: 20px;
+  color: var(--text);
+}
+
+.toc li { margin-bottom: 4px; }
+
+.toc a { color: var(--text); text-decoration: none; border-bottom: 1px dotted var(--border-strong); }
+.toc a:hover { color: var(--teal); }
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin: 48px 0 10px;
+}
+
+.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--navy);
+}
+
+.section-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  max-width: 680px;
+}
+
+.mockup-frame {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 40px;
+}
+
+.mockup-caption {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* Common inside-mockup components */
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+.crumbs .sep { color: var(--text-dim); }
+.crumbs .here { color: var(--text); font-weight: 500; }
+
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+  gap: 16px;
+}
+
+.page-head h3 {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+
+.page-head .hsub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.btn {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.btn-sm { font-size: 11px; padding: 4px 10px; }
+.btn-xs { font-size: 11px; padding: 3px 9px; }
+
+.btn-primary {
+  background: var(--teal);
+  color: #fff;
+  border-color: var(--teal);
+}
+
+.btn-info {
+  background: var(--info-bg);
+  color: var(--success-text);
+  border-color: var(--info-border);
+}
+
+.pill {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pill-live { background: var(--success-bg); color: var(--success-text); }
+.pill-draft { background: var(--draft-bg); color: var(--draft-text); }
+.pill-empty { background: var(--surface-soft); color: var(--text-dim); }
+.pill-co { background: var(--surface-soft); color: var(--text-muted); font-size: 10px; padding: 2px 6px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+}
+
+.row-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Programmes list */
+.programme-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.programme-row .title { font-size: 14px; font-weight: 500; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+.programme-row .sub { font-size: 12px; color: var(--text-muted); }
+
+.top-bar-inline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.top-bar-inline h3 { font-size: 18px; font-weight: 500; color: var(--navy); }
+
+/* Form */
+.form-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+}
+
+.form-card h4 {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--navy);
+  margin-bottom: 16px;
+}
+
+.field { margin-bottom: 14px; }
+.field-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.field-label .opt { color: var(--text-dim); font-weight: 400; }
+.field-input {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--surface);
+}
+.field-input.placeholder { color: var(--text-dim); }
+
+.field-row { display: flex; gap: 12px; }
+.field-row > * { flex: 1; }
+
+.radio-group { display: flex; gap: 8px; }
+.radio-opt {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.radio-opt.active {
+  border-color: var(--info-border);
+  background: var(--info-bg);
+  color: var(--success-text);
+  font-weight: 500;
+}
+
+.form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* Weeks grid */
+.weeks-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.week-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.week-card.current { border: 2px solid var(--info-border); }
+.week-card.empty { border: 1px dashed var(--border-strong); }
+
+.week-card .wc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.week-card .wc-n { font-size: 14px; font-weight: 500; }
+.week-card.current .wc-n { color: var(--teal); }
+.week-card.empty .wc-n { color: var(--text-dim); }
+.week-card .wc-title { font-size: 12px; font-weight: 500; margin-bottom: 2px; }
+.week-card.empty .wc-title { color: var(--text-dim); }
+.week-card .wc-sub { font-size: 11px; color: var(--text-muted); }
+.week-card.empty .wc-sub { color: var(--text-dim); }
+
+/* View toggle */
+.view-toggle {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  gap: 0;
+}
+.view-toggle button {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.view-toggle button.active {
+  background: var(--info-bg);
+  color: var(--success-text);
+  font-weight: 500;
+}
+
+/* Calendar */
+.cal-head {
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-dim);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.cal-head > div { text-align: center; }
+
+.cal-row {
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.cal-week-label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.cal-week-label.current {
+  background: var(--info-bg);
+  border-color: var(--info-border);
+}
+.cal-week-label .ln { font-size: 11px; font-weight: 500; }
+.cal-week-label .ld { font-size: 10px; color: var(--text-muted); }
+.cal-week-label.current .ln,
+.cal-week-label.current .ld { color: var(--success-text); }
+
+.cal-day {
+  min-height: 76px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 6px;
+}
+.cal-day .daynum { font-size: 10px; color: var(--text-dim); margin-bottom: 3px; }
+.cal-day.dashed { border-style: dashed; }
+
+.cal-chip {
+  font-size: 10px;
+  padding: 4px 5px;
+  border-radius: 4px;
+  border: 1px solid;
+}
+.cal-chip .ct { font-weight: 500; }
+.cal-chip .cs { font-size: 9px; opacity: 0.75; }
+
+.cal-chip.live { background: var(--coral-bg); border-color: var(--coral-border); color: var(--coral-text); }
+.cal-chip.mock { background: var(--amber-bg); border-color: var(--warn-border); color: var(--amber-text); }
+.cal-chip.practice { background: #e1f5ee; border-color: #9fe1cb; color: #085041; }
+
+.cal-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.cal-legend .sw {
+  width: 10px; height: 10px; border-radius: 3px; border: 1px solid;
+}
+.cal-legend .sw.live { background: var(--coral-bg); border-color: var(--coral-border); }
+.cal-legend .sw.mock { background: var(--amber-bg); border-color: var(--warn-border); }
+.cal-legend .sw.practice { background: #e1f5ee; border-color: #9fe1cb; }
+
+/* Module / activities */
+.week-header-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 22px;
+  margin-bottom: 14px;
+}
+
+.module-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+}
+
+.module-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.module-head .mk { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+.module-head .mt { font-size: 14px; font-weight: 500; }
+
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.activity-icon {
+  flex-shrink: 0;
+  width: 20px; height: 20px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 500;
+}
+.activity-icon.t { background: var(--info-bg); color: var(--success-text); }
+.activity-icon.p { background: var(--surface-soft); color: var(--navy); }
+.activity-icon.v { background: var(--purple-bg); color: var(--purple-text); }
+.activity-icon.q { background: #e1f5ee; color: #085041; }
+.activity-icon.l { background: var(--coral-bg); color: var(--coral-text); }
+.activity-icon.m { background: var(--amber-bg); color: var(--amber-text); }
+
+.activity-main { flex: 1; min-width: 0; }
+.activity-title { font-size: 12px; font-weight: 500; }
+.activity-meta { font-size: 11px; color: var(--text-muted); }
+
+.activity-reorder {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.activity-reorder button {
+  width: 18px; height: 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 10px;
+  cursor: pointer;
+  line-height: 1;
+}
+.activity-reorder button:hover { color: var(--teal); }
+
+.add-btn {
+  width: 100%;
+  padding: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.add-btn-prominent {
+  width: 100%;
+  padding: 11px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--navy);
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+/* Picker grid */
+.picker-panel {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.picker-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.picker-head .title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.picker-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+.picker-opt:hover { border-color: var(--info-border); }
+.picker-opt .pt { font-size: 12px; font-weight: 500; }
+.picker-opt .ps { font-size: 10px; color: var(--text-muted); line-height: 1.3; }
+
+/* Editor panels */
+.editor-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.editor-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.editor-head .etype {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.editor-head .etitle { font-size: 14px; font-weight: 500; }
+
+.editor-head-actions { display: flex; gap: 6px; }
+
+.editors-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 820px) {
+  .editors-grid { grid-template-columns: 1fr; }
+  .weeks-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* RTE preview */
+.rte {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.rte-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.rte-toolbar .sep { color: var(--text-dim); }
+.rte-body {
+  padding: 10px 12px;
+  font-size: 12px;
+  min-height: 70px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.rte-body strong { color: var(--text); }
+
+/* File upload tile */
+.file-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-soft);
+}
+.file-icon {
+  width: 32px; height: 40px;
+  background: var(--info-bg);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--success-text);
+}
+
+/* Notice */
+.notice-warn {
+  padding: 10px 12px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--warn-text);
+  margin-bottom: 10px;
+}
+
+.hint {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.dashed-field {
+  padding: 7px 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+hr.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 56px 0 0;
+}
+
+.footer-note {
+  margin-top: 64px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.footer-note p { margin-bottom: 8px; }
+.footer-note p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+<div class="doc-title">MyNclex — Curriculum Authoring UX</div>
+<div class="doc-sub">Working mockups from the 2026-04-20 planning session</div>
+<div class="doc-meta">Companion to <code>mynclex/docs/product-plan/curriculum-authoring-ux.md</code> · Reference only, not final design</div>
+
+<div class="toc">
+<h2>Contents</h2>
+<ol>
+<li><a href="#s1">My Programmes — the tutor's landing list</a></li>
+<li><a href="#s2">New Programme — single-screen form</a></li>
+<li><a href="#s3">Weeks Overview — Week view</a></li>
+<li><a href="#s4">Weeks Overview — Calendar view (scheduled activities)</a></li>
+<li><a href="#s5">Week Builder — modules and activities with reorder arrows</a></li>
+<li><a href="#s6">Add-activity inline picker</a></li>
+<li><a href="#s7">Activity editors — all six types</a></li>
+</ol>
+</div>
+
+<div class="section-label" id="s1">Screen 1</div>
+<div class="section-title">My Programmes</div>
+<div class="section-desc">The tutor's landing list. One unified list of owned and co-tutored programmes. Co-tutored rows are tagged.</div>
+
+<div class="mockup-frame">
+<div class="top-bar-inline">
+<h3>My programmes</h3>
+<button class="btn btn-primary">+ New programme</button>
+</div>
+
+<div class="card">
+<div class="programme-row">
+<div style="flex:1; min-width: 0;">
+<div class="title">8-Week NCLEX Bootcamp</div>
+<div class="sub">Live · Cohort · 14 students</div>
+</div>
+<span class="pill pill-live">Live</span>
+<button class="btn btn-xs">Open</button>
+</div>
+</div>
+
+<div class="card">
+<div class="programme-row">
+<div style="flex:1; min-width: 0;">
+<div class="title">Weekend Cram Plan <span class="pill pill-co">Co-tutor</span></div>
+<div class="sub">Live · Rolling · 6 students</div>
+</div>
+<span class="pill pill-live">Live</span>
+<button class="btn btn-xs">Open</button>
+</div>
+</div>
+
+<div class="card">
+<div class="programme-row">
+<div style="flex:1; min-width: 0;">
+<div class="title">Extended 12-Week Deep Prep</div>
+<div class="sub">Draft · Cohort · Not started</div>
+</div>
+<span class="pill pill-draft">Draft</span>
+<button class="btn btn-xs">Open</button>
+</div>
+</div>
+</div>
+
+<div class="section-label" id="s2">Screen 2</div>
+<div class="section-title">New Programme form</div>
+<div class="section-desc">Single-screen form (not a wizard). Seven fields. Submit creates a Draft programme and drops the tutor into the Weeks Overview.</div>
+
+<div class="mockup-frame">
+<div class="crumbs">
+<span>← My programmes</span>
+<span class="sep">/</span>
+<span class="here">New programme</span>
+</div>
+
+<div class="form-card">
+<h4>Create a programme</h4>
+
+<div class="field">
+<div class="field-label">Title *</div>
+<div class="field-input placeholder">e.g. 8-Week NCLEX Bootcamp</div>
+</div>
+
+<div class="field">
+<div class="field-label">Description</div>
+<div class="field-input placeholder" style="min-height: 48px;">Short paragraph for students browsing</div>
+</div>
+
+<div class="field-row field">
+<div>
+<div class="field-label">Length in weeks *</div>
+<div class="field-input">8</div>
+</div>
+<div>
+<div class="field-label">Max students <span class="opt">— optional</span></div>
+<div class="field-input placeholder">No cap</div>
+</div>
+</div>
+
+<div class="field">
+<div class="field-label">Mode *</div>
+<div class="radio-group">
+<div class="radio-opt active">● Cohort</div>
+<div class="radio-opt">○ Rolling</div>
+</div>
+</div>
+
+<div class="field-row field">
+<div>
+<div class="field-label">Start date</div>
+<div class="field-input placeholder">Select date</div>
+</div>
+<div style="display:flex; align-items: flex-end;">
+<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 9px 0; color: var(--text-muted);">
+<span style="width: 32px; height: 18px; background: var(--surface-soft); border-radius: 999px; display: inline-block; position: relative; border: 1px solid var(--border);">
+<span style="position: absolute; left: 2px; top: 1px; width: 14px; height: 14px; background: var(--surface); border-radius: 50%; border: 1px solid var(--border);"></span>
+</span>
+Allow late enrolment
+</label>
+</div>
+</div>
+
+<div class="form-footer">
+<button class="btn">Cancel</button>
+<button class="btn btn-primary">Create programme</button>
+</div>
+</div>
+</div>
+
+<div class="section-label" id="s3">Screen 3</div>
+<div class="section-title">Weeks Overview — Week view (default)</div>
+<div class="section-desc">A grid of week cards. Empty weeks are shown dashed so the tutor always sees N cards for an N-week programme. Segmented toggle at top-right switches to the Calendar view.</div>
+
+<div class="mockup-frame">
+<div class="crumbs">
+<span>← My programmes</span>
+<span class="sep">/</span>
+<span class="here">8-Week NCLEX Bootcamp</span>
+</div>
+
+<div class="page-head">
+<div>
+<h3>8-Week NCLEX Bootcamp</h3>
+<div class="hsub">Cohort · Starts 1 May · 14 students</div>
+</div>
+<div style="display:flex; gap: 10px; align-items: center;">
+<div class="view-toggle">
+<button class="active">Weeks</button>
+<button>Calendar</button>
+</div>
+<button class="btn btn-sm">Settings</button>
+</div>
+</div>
+
+<div class="weeks-grid">
+
+<div class="week-card">
+<div class="wc-top"><span class="wc-n">W1</span><span class="pill pill-live">Live</span></div>
+<div class="wc-title">Orientation</div>
+<div class="wc-sub">1–7 May · 3 modules</div>
+</div>
+
+<div class="week-card">
+<div class="wc-top"><span class="wc-n">W2</span><span class="pill pill-live">Live</span></div>
+<div class="wc-title">Fundamentals</div>
+<div class="wc-sub">8–14 May · 2 modules</div>
+</div>
+
+<div class="week-card current">
+<div class="wc-top"><span class="wc-n">W3</span><span class="pill pill-draft">Draft</span></div>
+<div class="wc-title">Cardiovascular</div>
+<div class="wc-sub">15–21 May · 2 modules</div>
+</div>
+
+<div class="week-card empty">
+<div class="wc-top"><span class="wc-n">W4</span><span class="pill pill-empty">Empty</span></div>
+<div class="wc-title">Untitled</div>
+<div class="wc-sub">22–28 May · 0 modules</div>
+</div>
+
+<div class="week-card empty">
+<div class="wc-top"><span class="wc-n">W5</span><span class="pill pill-empty">Empty</span></div>
+<div class="wc-title">Untitled</div>
+<div class="wc-sub">29 May–4 Jun</div>
+</div>
+
+<div class="week-card empty">
+<div class="wc-top"><span class="wc-n">W6</span><span class="pill pill-empty">Empty</span></div>
+<div class="wc-title">Untitled</div>
+<div class="wc-sub">5–11 Jun</div>
+</div>
+
+<div class="week-card empty">
+<div class="wc-top"><span class="wc-n">W7</span><span class="pill pill-empty">Empty</span></div>
+<div class="wc-title">Untitled</div>
+<div class="wc-sub">12–18 Jun</div>
+</div>
+
+<div class="week-card empty">
+<div class="wc-top"><span class="wc-n">W8</span><span class="pill pill-empty">Empty</span></div>
+<div class="wc-title">Untitled</div>
+<div class="wc-sub">19–25 Jun</div>
+</div>
+
+</div>
+</div>
+
+<div class="section-label" id="s4">Screen 3 (alternative view)</div>
+<div class="section-title">Weeks Overview — Calendar view</div>
+<div class="section-desc">Same programme, different projection. Rows are weeks, columns are days. The calendar shows <strong>scheduled activities</strong> (not modules), so modules can span days naturally. Text, PDF, and External link activities are "anytime" work and don't appear here.</div>
+
+<div class="mockup-frame">
+<div class="crumbs">
+<span>← My programmes</span>
+<span class="sep">/</span>
+<span class="here">8-Week NCLEX Bootcamp</span>
+</div>
+
+<div class="page-head">
+<div>
+<h3>8-Week NCLEX Bootcamp</h3>
+<div class="hsub">Cohort · Starts 1 May · 14 students</div>
+</div>
+<div style="display:flex; gap: 10px; align-items: center;">
+<div class="view-toggle">
+<button>Weeks</button>
+<button class="active">Calendar</button>
+</div>
+<button class="btn btn-sm">Settings</button>
+</div>
+</div>
+
+<div class="cal-legend">
+<div style="display: flex; align-items: center; gap: 5px;"><span class="sw live"></span>Live session</div>
+<div style="display: flex; align-items: center; gap: 5px;"><span class="sw mock"></span>Mock</div>
+<div style="display: flex; align-items: center; gap: 5px;"><span class="sw practice"></span>Practice quiz</div>
+<div style="color: var(--text-dim); margin-left: auto;">Text, PDF, link activities are anytime — not shown</div>
+</div>
+
+<div class="cal-head">
+<div></div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+</div>
+
+<div class="cal-row">
+<div class="cal-week-label"><div class="ln">W1</div><div class="ld">1–7 May</div></div>
+<div class="cal-day"><div class="daynum">1</div></div>
+<div class="cal-day"><div class="daynum">2</div></div>
+<div class="cal-day"><div class="daynum">3</div>
+<div class="cal-chip live"><div class="ct">Kick-off call</div><div class="cs">M1 · 6pm</div></div>
+</div>
+<div class="cal-day"><div class="daynum">4</div></div>
+<div class="cal-day"><div class="daynum">5</div>
+<div class="cal-chip practice"><div class="ct">Diagnostic quiz</div><div class="cs">M1 · 20 Qs</div></div>
+</div>
+<div class="cal-day"><div class="daynum">6</div></div>
+<div class="cal-day"><div class="daynum">7</div></div>
+</div>
+
+<div class="cal-row">
+<div class="cal-week-label current"><div class="ln">W3</div><div class="ld">15–21 May</div></div>
+<div class="cal-day"><div class="daynum">15</div>
+<div class="cal-chip live"><div class="ct">Cardiac intro</div><div class="cs">M2 · 6pm</div></div>
+</div>
+<div class="cal-day"><div class="daynum">16</div></div>
+<div class="cal-day"><div class="daynum">17</div>
+<div class="cal-chip live"><div class="ct">ECG workshop</div><div class="cs">M2 · 6pm</div></div>
+</div>
+<div class="cal-day"><div class="daynum">18</div>
+<div class="cal-chip practice"><div class="ct">Cardiac Qs</div><div class="cs">M2 · 30 Qs</div></div>
+</div>
+<div class="cal-day"><div class="daynum">19</div></div>
+<div class="cal-day"><div class="daynum">20</div></div>
+<div class="cal-day"><div class="daynum">21</div>
+<div class="cal-chip mock"><div class="ct">Cardiac mock</div><div class="cs">M2 · 75 Qs</div></div>
+</div>
+</div>
+
+<div style="margin-top: 12px; font-size: 11px; color: var(--text-dim);">Showing Weeks 1 &amp; 3 (abbreviated for mockup) · other weeks collapsed</div>
+
+<div style="margin-top: 16px; padding: 12px 14px; background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 6px; font-size: 12px; color: var(--text); line-height: 1.6;">
+<strong>Module 2 (Cardiovascular) spans three days.</strong> Mon intro, Wed workshop, Thu practice, Sun mock. Each block's chip carries the same "M2" reference so the tutor can see the module thread across days.
+</div>
+</div>
+
+<div class="section-label" id="s5">Screen 4</div>
+<div class="section-title">Week Builder — modules and activities</div>
+<div class="section-desc">Inside one week. Each module is a card containing a flat list of activity rows. Up/down arrow buttons on each row for reordering (drag-and-drop deferred to v2). Each module has its own "+ Add activity" button; a full-width "+ Add module" sits at the bottom.</div>
+
+<div class="mockup-frame">
+<div class="crumbs">
+<span>← All weeks</span>
+<span class="sep">/</span>
+<span>8-Week NCLEX Bootcamp</span>
+<span class="sep">/</span>
+<span class="here">Week 3</span>
+</div>
+
+<div class="week-header-card">
+<div class="row-between">
+<div>
+<div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Week 3 · Draft</div>
+<div style="font-size: 17px; font-weight: 500; margin-bottom: 4px; color: var(--navy);">Cardiovascular system</div>
+<div style="font-size: 12px; color: var(--text-muted);">Unlocks day 15 · 2 modules · 5 activities</div>
+</div>
+<button class="btn btn-sm">Edit week</button>
+</div>
+</div>
+
+<div class="module-card">
+<div class="module-head">
+<div>
+<div class="mk">Module 1 <span class="pill pill-live" style="margin-left: 6px;">Live</span></div>
+<div class="mt">Cardiac anatomy primer</div>
+</div>
+<div style="display: flex; gap: 6px; align-items: center;">
+<div style="display:flex; flex-direction: column; gap: 1px; margin-right: 4px;">
+<button class="btn btn-xs" style="padding: 1px 6px; font-size: 10px;">↑</button>
+<button class="btn btn-xs" style="padding: 1px 6px; font-size: 10px;">↓</button>
+</div>
+<button class="btn btn-xs">Edit</button>
+<button class="btn btn-xs">Delete</button>
+</div>
+</div>
+
+<div class="activity-row">
+<span class="activity-icon t">T</span>
+<div class="activity-main">
+<div class="activity-title">Cardiac anatomy &amp; conduction</div>
+<div class="activity-meta">Text · ~12 min</div>
+</div>
+<div class="activity-reorder">
+<button>↑</button>
+<button>↓</button>
+</div>
+</div>
+
+<div class="activity-row">
+<span class="activity-icon v">L</span>
+<div class="activity-main">
+<div class="activity-title">Heart anatomy primer</div>
+<div class="activity-meta">External link · YouTube · 14 min</div>
+</div>
+<div class="activity-reorder">
+<button>↑</button>
+<button>↓</button>
+</div>
+</div>
+
+<button class="add-btn">+ Add activity</button>
+</div>
+
+<div class="module-card">
+<div class="module-head">
+<div>
+<div class="mk">Module 2 <span class="pill pill-draft" style="margin-left: 6px;">Draft</span></div>
+<div class="mt">ECG workshop &amp; mock</div>
+</div>
+<div style="display: flex; gap: 6px; align-items: center;">
+<div style="display:flex; flex-direction: column; gap: 1px; margin-right: 4px;">
+<button class="btn btn-xs" style="padding: 1px 6px; font-size: 10px;">↑</button>
+<button class="btn btn-xs" style="padding: 1px 6px; font-size: 10px;">↓</button>
+</div>
+<button class="btn btn-xs">Edit</button>
+<button class="btn btn-xs">Delete</button>
+</div>
+</div>
+
+<div class="activity-row">
+<span class="activity-icon q">Q</span>
+<div class="activity-main">
+<div class="activity-title">Cardiovascular fundamentals</div>
+<div class="activity-meta">Practice quiz · 30 Qs · bank</div>
+</div>
+<div class="activity-reorder">
+<button>↑</button>
+<button>↓</button>
+</div>
+</div>
+
+<div class="activity-row">
+<span class="activity-icon l">L</span>
+<div class="activity-main">
+<div class="activity-title">ECG workshop</div>
+<div class="activity-meta">Live · Wed 6pm GMT · 90 min</div>
+</div>
+<div class="activity-reorder">
+<button>↑</button>
+<button>↓</button>
+</div>
+</div>
+
+<div class="activity-row">
+<span class="activity-icon p">P</span>
+<div class="activity-main">
+<div class="activity-title">ECG strips worksheet</div>
+<div class="activity-meta">PDF · 8 pages</div>
+</div>
+<div class="activity-reorder">
+<button>↑</button>
+<button>↓</button>
+</div>
+</div>
+
+<div class="activity-row">
+<span class="activity-icon m">M</span>
+<div class="activity-main">
+<div class="activity-title">Cardiac mini-mock</div>
+<div class="activity-meta">Mock · 75 Qs · 90 min</div>
+</div>
+<div class="activity-reorder">
+<button>↑</button>
+<button>↓</button>
+</div>
+</div>
+
+<button class="add-btn">+ Add activity</button>
+</div>
+
+<button class="add-btn-prominent">+ Add module</button>
+</div>
+
+<div class="section-label" id="s6">Interaction</div>
+<div class="section-title">Add-activity inline picker</div>
+<div class="section-desc">When the tutor clicks "+ Add activity" inside a module, the button is replaced in place with this 3×2 picker. After selection, the picker closes and the editor panel slides in from the right.</div>
+
+<div class="mockup-frame">
+<div class="module-card" style="margin-bottom: 0;">
+<div class="module-head">
+<div>
+<div class="mk">Module 2</div>
+<div class="mt">ECG workshop &amp; mock</div>
+</div>
+<div style="display: flex; gap: 6px;">
+<button class="btn btn-xs">Edit</button>
+<button class="btn btn-xs">Delete</button>
+</div>
+</div>
+
+<div class="activity-row">
+<span class="activity-icon q">Q</span>
+<div class="activity-main">
+<div class="activity-title">Cardiovascular fundamentals</div>
+<div class="activity-meta">Practice quiz · 30 Qs · bank</div>
+</div>
+</div>
+
+<div class="activity-row" style="margin-bottom: 12px;">
+<span class="activity-icon l">L</span>
+<div class="activity-main">
+<div class="activity-title">ECG workshop</div>
+<div class="activity-meta">Live · Wed 6pm GMT · 90 min</div>
+</div>
+</div>
+
+<div class="picker-panel">
+<div class="picker-head">
+<span class="title">What kind of activity?</span>
+<button class="btn btn-xs" style="color: var(--text-dim); border-color: transparent;">Cancel</button>
+</div>
+
+<div class="picker-grid">
+
+<button class="picker-opt">
+<span class="activity-icon t" style="width: 24px; height: 24px; font-size: 11px;">T</span>
+<div>
+<div class="pt">Text content</div>
+<div class="ps">Notes &amp; reading</div>
+</div>
+</button>
+
+<button class="picker-opt">
+<span class="activity-icon p" style="width: 24px; height: 24px; font-size: 11px;">P</span>
+<div>
+<div class="pt">PDF upload</div>
+<div class="ps">Worksheets, handouts</div>
+</div>
+</button>
+
+<button class="picker-opt">
+<span class="activity-icon v" style="width: 24px; height: 24px; font-size: 11px;">L</span>
+<div>
+<div class="pt">External link</div>
+<div class="ps">YouTube, article, doc</div>
+</div>
+</button>
+
+<button class="picker-opt">
+<span class="activity-icon q" style="width: 24px; height: 24px; font-size: 11px;">Q</span>
+<div>
+<div class="pt">Practice quiz</div>
+<div class="ps">Bank or own Qs</div>
+</div>
+</button>
+
+<button class="picker-opt">
+<span class="activity-icon l" style="width: 24px; height: 24px; font-size: 11px;">L</span>
+<div>
+<div class="pt">Live session</div>
+<div class="ps">Scheduled tutorial</div>
+</div>
+</button>
+
+<button class="picker-opt">
+<span class="activity-icon m" style="width: 24px; height: 24px; font-size: 11px;">M</span>
+<div>
+<div class="pt">Mock assessment</div>
+<div class="ps">Timed test</div>
+</div>
+</button>
+
+</div>
+</div>
+</div>
+</div>
+
+<div class="section-label" id="s7">Editor panels</div>
+<div class="section-title">Activity editors — all six types</div>
+<div class="section-desc">Each editor follows the same shape: type label and Cancel/Save at the top, title, note to student, then type-specific fields. Mock and Practice quiz include a warning notice flagging that question-selection UI is blocked on the bank topic.</div>
+
+<div class="editors-grid">
+
+<!-- Text -->
+<div class="mockup-frame" style="margin-bottom: 0;">
+<div class="mockup-caption">Text content</div>
+<div class="editor-panel">
+
+<div class="editor-head">
+<div>
+<div class="etype">Text content</div>
+<div class="etitle">New activity</div>
+</div>
+<div class="editor-head-actions">
+<button class="btn btn-xs">Cancel</button>
+<button class="btn btn-xs btn-primary">Save</button>
+</div>
+</div>
+
+<div class="field">
+<div class="field-label">Title *</div>
+<div class="field-input">Cardiac anatomy &amp; electrical conduction</div>
+</div>
+
+<div class="field">
+<div class="field-label">Note to student</div>
+<div class="field-input" style="color: var(--text-muted); min-height: 32px;">Read this before the Wednesday live session.</div>
+</div>
+
+<div class="field">
+<div class="field-label">Content</div>
+<div class="rte">
+<div class="rte-toolbar">
+<span style="font-weight: 500;">H2</span>
+<span>H3</span>
+<span class="sep">|</span>
+<span style="font-weight: 500;">B</span>
+<span style="font-style: italic;">I</span>
+<span class="sep">|</span>
+<span>• List</span>
+<span>1. List</span>
+<span class="sep">|</span>
+<span>Link</span>
+<span>Image</span>
+<span>Quote</span>
+</div>
+<div class="rte-body">
+<strong>The heart's electrical system</strong><br>
+The sinoatrial (SA) node serves as the heart's natural pacemaker...
+</div>
+</div>
+</div>
+
+<div class="field">
+<div class="field-label">Estimated reading time</div>
+<div class="field-input" style="width: 120px;">12 min</div>
+</div>
+</div>
+</div>
+
+<!-- PDF -->
+<div class="mockup-frame" style="margin-bottom: 0;">
+<div class="mockup-caption">PDF upload</div>
+<div class="editor-panel">
+
+<div class="editor-head">
+<div>
+<div class="etype">PDF upload</div>
+<div class="etitle">New activity</div>
+</div>
+<div class="editor-head-actions">
+<button class="btn btn-xs">Cancel</button>
+<button class="btn btn-xs btn-primary">Save</button>
+</div>
+</div>
+
+<div class="field">
+<div class="field-label">Title *</div>
+<div class="field-input">ECG strips worksheet</div>
+</div>
+
+<div class="field">
+<div class="field-label">Note to student</div>
+<div class="field-input" style="color: var(--text-muted); min-height: 32px;">Print and complete before Thursday.</div>
+</div>
+
+<div class="field">
+<div class="field-label">PDF file *</div>
+<div class="file-tile">
+<div class="file-icon">PDF</div>
+<div style="flex: 1; min-width: 0;">
+<div style="font-size: 12px; font-weight: 500;">ecg-worksheet.pdf</div>
+<div style="font-size: 11px; color: var(--text-muted);">8 pages · 412 KB</div>
+</div>
+<button class="btn btn-xs">Replace</button>
+</div>
+</div>
+
+<div class="field">
+<div class="field-label">Estimated time</div>
+<div class="field-input" style="width: 120px;">20 min</div>
+</div>
+</div>
+</div>
+
+<!-- External link -->
+<div class="mockup-frame" style="margin-bottom: 0;">
+<div class="mockup-caption">External link</div>
+<div class="editor-panel">
+
+<div class="editor-head">
+<div>
+<div class="etype">External link</div>
+<div class="etitle">New activity</div>
+</div>
+<div class="editor-head-actions">
+<button class="btn btn-xs">Cancel</button>
+<button class="btn btn-xs btn-primary">Save</button>
+</div>
+</div>
+
+<div class="field">
+<div class="field-label">Title *</div>
+<div class="field-input">Khan Academy — Heart anatomy primer</div>
+</div>
+
+<div class="field">
+<div class="field-label">URL *</div>
+<div class="field-input" style="color: var(--teal);">https://youtube.com/watch?v=...</div>
+<div class="hint">YouTube and Vimeo links show an inline preview to students. Other links open in a new tab.</div>
+</div>
+
+<div class="field">
+<div class="field-label">Note to student</div>
+<div class="field-input" style="color: var(--text-muted); min-height: 32px;">Optional primer. Skip if you already know basic cardiac anatomy.</div>
+</div>
+
+<div class="field">
+<div class="field-label">Estimated time</div>
+<div class="field-input" style="width: 120px;">14 min</div>
+</div>
+</div>
+</div>
+
+<!-- Live session -->
+<div class="mockup-frame" style="margin-bottom: 0;">
+<div class="mockup-caption">Live session</div>
+<div class="editor-panel">
+
+<div class="editor-head">
+<div>
+<div class="etype">Live session</div>
+<div class="etitle">New activity</div>
+</div>
+<div class="editor-head-actions">
+<button class="btn btn-xs">Cancel</button>
+<button class="btn btn-xs btn-primary">Save</button>
+</div>
+</div>
+
+<div class="field">
+<div class="field-label">Title *</div>
+<div class="field-input">ECG interpretation workshop</div>
+</div>
+
+<div class="field">
+<div class="field-label">Note to student</div>
+<div class="field-input" style="color: var(--text-muted); min-height: 32px;">Come with the pre-read complete. We'll jump into ECG cases.</div>
+</div>
+
+<div class="field-row field">
+<div>
+<div class="field-label">Date *</div>
+<div class="field-input">Wed 17 May 2026</div>
+</div>
+<div>
+<div class="field-label">Time *</div>
+<div class="field-input">18:00</div>
+</div>
+<div>
+<div class="field-label">Duration *</div>
+<div class="field-input">90 min</div>
+</div>
+</div>
+
+<div class="field">
+<div class="field-label">Join link (Zoom/Meet) *</div>
+<div class="field-input" style="color: var(--teal);">https://zoom.us/j/84729...</div>
+</div>
+
+<div class="field">
+<div class="field-label">Recording URL <span class="opt">— add after the session</span></div>
+<div class="dashed-field">Paste link here after the live session ends</div>
+</div>
+</div>
+</div>
+
+<!-- Mock -->
+<div class="mockup-frame" style="margin-bottom: 0;">
+<div class="mockup-caption">Mock assessment</div>
+<div class="editor-panel">
+
+<div class="editor-head">
+<div>
+<div class="etype">Mock assessment</div>
+<div class="etitle">New activity</div>
+</div>
+<div class="editor-head-actions">
+<button class="btn btn-xs">Cancel</button>
+<button class="btn btn-xs btn-primary">Save</button>
+</div>
+</div>
+
+<div class="field">
+<div class="field-label">Title *</div>
+<div class="field-input">Cardiac mini-mock</div>
+</div>
+
+<div class="field">
+<div class="field-label">Note to student</div>
+<div class="field-input" style="color: var(--text-muted); min-height: 32px;">End-of-module check. Do your best under timed conditions.</div>
+</div>
+
+<div class="notice-warn"><strong>Questions — from the bank.</strong> Question-selection UI is designed with the bank topic. Placeholder fields shown below.</div>
+
+<div class="field-row field">
+<div>
+<div class="field-label">Count *</div>
+<div class="field-input">75</div>
+</div>
+<div>
+<div class="field-label">Time limit *</div>
+<div class="field-input">90 min</div>
+</div>
+<div>
+<div class="field-label">Pass score</div>
+<div class="field-input">75%</div>
+</div>
+</div>
+
+<div class="field-row field">
+<div>
+<div class="field-label">Due date</div>
+<div class="field-input">Sun 21 May 2026</div>
+</div>
+<div>
+<div class="field-label">Attempts</div>
+<div class="field-input">1</div>
+</div>
+</div>
+
+<div class="field">
+<div class="field-label">Release results</div>
+<div class="radio-group">
+<div class="radio-opt active">● Immediately</div>
+<div class="radio-opt">○ After due date</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Practice quiz -->
+<div class="mockup-frame" style="margin-bottom: 0;">
+<div class="mockup-caption">Practice quiz</div>
+<div class="editor-panel">
+
+<div class="editor-head">
+<div>
+<div class="etype">Practice quiz</div>
+<div class="etitle">New activity</div>
+</div>
+<div class="editor-head-actions">
+<button class="btn btn-xs">Cancel</button>
+<button class="btn btn-xs btn-primary">Save</button>
+</div>
+</div>
+
+<div class="field">
+<div class="field-label">Title *</div>
+<div class="field-input">Cardiovascular fundamentals — practice</div>
+</div>
+
+<div class="field">
+<div class="field-label">Note to student</div>
+<div class="field-input" style="color: var(--text-muted); min-height: 32px;">Practice before Wednesday's workshop. Untimed — take your time.</div>
+</div>
+
+<div class="notice-warn"><strong>Questions — from the bank.</strong> Question-selection UI is designed with the bank topic. Placeholder fields shown below.</div>
+
+<div class="field-row field">
+<div>
+<div class="field-label">Count *</div>
+<div class="field-input">30</div>
+</div>
+<div>
+<div class="field-label">Due date <span class="opt">— optional</span></div>
+<div class="field-input">Wed 17 May</div>
+</div>
+<div>
+<div class="field-label">Pass score <span class="opt">— optional</span></div>
+<div class="field-input placeholder">—</div>
+</div>
+</div>
+
+<div class="field">
+<div class="field-label">Release results</div>
+<div class="radio-group">
+<div class="radio-opt active">● Immediately</div>
+<div class="radio-opt">○ After due date</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+
+<div class="footer-note">
+<p><strong>About this file.</strong> These are planning-stage mockups, not final UI designs. They capture the decisions from the 2026-04-20 curriculum authoring UX session in a single place for later reference.</p>
+<p>Real UI will be built against the QAcademy brand and can refine layout, spacing, and typography. The structural decisions (hierarchy, views, flows, fields per activity type, reordering model, publish model) are what matter here.</p>
+<p>See <code>mynclex/docs/product-plan/curriculum-authoring-ux.md</code> for the full written plan.</p>
+</div>
+
+</div>
+</body>
+</html>

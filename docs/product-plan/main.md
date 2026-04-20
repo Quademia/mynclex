@@ -1,7 +1,7 @@
 # MyNclex — Product Plan
 
 *Living document. Filled in as decisions get made.*
-Last updated: 2026-04-20 (bank settled)
+Last updated: 2026-04-20 (bank + curriculum authoring UX settled)
 
 ---
 
@@ -487,7 +487,10 @@ Headline decisions:
 
 Cross-topic effect: **Curriculum authoring UX is now unblocked** —
 Practice quiz and Mock activity editors had "blocked on bank"
-placeholders and can now proceed.
+placeholders and were settled the same day
+(see [curriculum-authoring-ux.md](curriculum-authoring-ux.md) and
+mockups at
+[mockups/curriculum-authoring-ux.html](mockups/curriculum-authoring-ux.html)).
 
 ## Deferred (v2 or later)
 
@@ -511,6 +514,9 @@ These decisions are open. Fill in as they get made:
 - `mynclex/docs/product-plan/` — all product-plan docs live here:
   - `main.md` — this file, the overall product plan and index
   - `bank.md` — full question-bank schema and scoring
+  - `curriculum-authoring-ux.md` — tutor-side authoring screens and
+    editors
+  - `mockups/` — visual mockups (HTML reference files)
   - (future) `payments.md`, `registration.md`, etc.
 - `mynclex/db/` — database schema, RLS, migrations (to be populated)
 - `qacademy-gamma/SESSIONS.md` — running log of work across the repo
