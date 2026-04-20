@@ -2,7 +2,7 @@
 
 *Living document. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
-Last updated: 2026-04-20 (self-study enrolment settled)
+Last updated: 2026-04-20 (self-study + tutored enrolment settled)
 
 ---
 
@@ -19,10 +19,7 @@ this file.
 ## Settled / open status
 
 - **Self-study enrolment — SETTLED 2026-04-20.**
-- **Tutored enrolment** — open. Covers how a student joins a
-  specific tutor's programme, the subsidised-bank bundling, and
-  cohort-start mechanics. Pricing commercials already settled
-  (see [main.md](main.md) Pricing section).
+- **Tutored enrolment — SETTLED 2026-04-20.**
 
 ---
 
@@ -231,24 +228,154 @@ status. Low-frills, reference-and-trust-building.
 
 ## Tutored enrolment
 
-**Open topic.** To be settled in a follow-up planning session.
+**Settled 2026-04-20.**
 
-Scope will cover:
+A student joining a specific tutor's programme, outside or alongside
+self-study bank access.
 
-- Student discovery of tutored programmes (how they find a specific
-  tutor's programme).
-- The bundled transaction — programme fee + subsidised bank access
-  (50% per Pricing) as one payment.
-- Cohort-start waiting room (students enrolled before cohort start
-  date).
-- Rolling-mode immediate start.
-- Late enrolment handling (tutor-configurable per programme).
-- Programme-specific onboarding if any.
+### Discovery — public programmes list
 
-Pricing commercials already settled (see
-[main.md](main.md) Pricing section): dual currency, tutored
-students pay tutor fee + 50% bank to QAcademy directly, no payment
-splits.
+A single public page lists all active tutored programmes. No
+marketplace bells — just a directory.
+
+- Card per programme: title, tutor name, brief description, price
+  (or contact button — see below), key details (duration, start
+  date if set, spots remaining if capped).
+- Only programmes from vetted, active tutors appear.
+- Programmes with closed enrolment or full cohorts still appear
+  (for tutor visibility) but are not purchasable — see edge cases
+  below.
+
+### Programme detail page
+
+Clicking a card opens a dedicated detail page with the full
+programme description, syllabus shape, tutor bio, pricing, and
+either a "Pay and enrol" button or a "Contact" button depending on
+tutor preference.
+
+### Price visibility — tutor choice
+
+Each programme carries a boolean `show_price_publicly` (default
+`TRUE`).
+
+- `TRUE` — card and detail page show the price and a "Pay and
+  enrol" button leading to the bundled checkout.
+- `FALSE` — card and detail page show a "Contact" button leading
+  to the enquiry form (below). No price visible.
+
+### Contact-first flow — pass-through enquiry
+
+When `show_price_publicly = FALSE`, students don't contact the
+tutor directly. Enquiries route through QAcademy.
+
+**Student experience:**
+
+1. Click "Contact" → simple enquiry form (name, email, phone,
+   message).
+2. Submit → stored in `nclex_programme_enquiries` → "Thanks,
+   we'll be in touch" confirmation.
+3. No account creation required.
+
+**Platform experience:**
+
+- Enquiry logged with status `NEW`.
+- Auto-forwarded to the tutor via email (platform pass-through).
+- Status transitions to `FORWARDED`.
+- If the student later enrols (matched by email), status becomes
+  `CONVERTED`.
+- Admin can view all enquiries in a lightweight queue; can mark
+  stale ones `CLOSED`.
+
+**`nclex_programme_enquiries` schema (planning shape; finalised in
+build):**
+
+```
+enquiry_id    TEXT PRIMARY KEY
+programme_id  TEXT FK -> nclex_programmes
+name          TEXT
+email         TEXT
+phone         TEXT   -- nullable
+message       TEXT
+status        TEXT   -- NEW | FORWARDED | CONVERTED | CLOSED
+created_at    TIMESTAMPTZ DEFAULT NOW()
+forwarded_at  TIMESTAMPTZ   -- nullable
+notes         TEXT          -- admin notes, nullable
+```
+
+### Bundled transaction — single Paystack checkout
+
+When a student pays for a tutored programme, they pay **one
+bundled price** covering:
+
+- Tutor's programme fee (set by tutor).
+- QAcademy's subsidised bank access (50% of the standalone bank
+  price for the matching duration — per the Pricing commercials
+  in [main.md](main.md)).
+
+**Student sees one total price. Student pays once.** The split is
+internal:
+
+- Paystack charges the full amount to QAcademy.
+- Internal accounting records the tutor's share and QAcademy's
+  share separately.
+- Tutor payouts are manual for v1 (per Pricing — automated splits
+  deferred).
+
+This keeps the checkout simple and avoids the dropoff risk of
+two-step payment flows.
+
+### Auto-enrolment on successful payment
+
+When the bundled payment activates, the system creates:
+
+- A new row in `nclex_enrolments` linking the student to the
+  programme.
+- A new row in `nclex_subscriptions` for the bundled bank access
+  (same duration as the programme).
+- An `ACTIVATED` entry in `nclex_payments`.
+
+All three in one atomic step. Student is immediately enrolled and
+lands on dashboard.
+
+### No waiting room
+
+Regardless of programme start dates, an enrolled student's
+dashboard goes live immediately after payment. The programme
+appears on their dashboard from moment one. What content is
+visible *inside* the programme is governed by the tutor's
+Live/Draft settings on activities — see the Programme Structure
+revision in [main.md](main.md).
+
+There is no dedicated "waiting room" page.
+
+### Edge cases
+
+| Scenario | System behaviour |
+|---|---|
+| Enrolment closed (`allow_late_enrolment = FALSE` past `start_date`) | Programme visible on list with "Enrolment closed" pill. Not purchasable. |
+| Programme full (`max_students` cap reached) | Programme visible with "Fully subscribed" pill. Not purchasable. Shows contact button for future interest. No waitlist in v1. |
+| Tutor soft-stopped (per Tutor Onboarding) | Programmes hidden from public list. Existing enrolled students retain access until programme end. |
+| Programme cancelled by admin | Admin flips status to `CANCELLED`. Programme hidden. Refunds handled manually, off-platform. |
+| Student already enrolled | Detection on enrolment attempt → "You're already enrolled — go to programme." |
+| Student enrolled in multiple programmes | Allowed. Each is a separate enrolment row with its own payment and own bundled bank subscription. |
+
+### Parallel tables (MyNclex-prefixed)
+
+New tables needed for tutored enrolment:
+
+- `nclex_enrolments` — student ↔ programme link, with status and
+  timestamps. Schema finalised in build.
+- `nclex_programme_enquiries` — contact-first enquiry audit trail.
+
+### Out of scope for this section
+
+- Programme content visibility / drip-release (handled via
+  Live/Draft on activities — see Programme Structure revision in
+  [main.md](main.md)).
+- Automated tutor payout splits (deferred — see Pricing).
+- Waitlists when a cohort is full (deferred).
+- Refund workflow in admin (manual for v1).
+- Student-initiated cancellation or programme transfer (deferred).
 
 ---
 

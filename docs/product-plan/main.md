@@ -1,7 +1,7 @@
 # MyNclex — Product Plan
 
 *Living document. Filled in as decisions get made.*
-Last updated: 2026-04-20 (bank + curriculum UX + content sourcing settled)
+Last updated: 2026-04-20 (planning complete — all 9 topics settled)
 
 ---
 
@@ -107,6 +107,14 @@ the full picture.
 
 ## Programme Structure
 
+> **Revised 2026-04-20.** Cohort/rolling mode distinction removed.
+> Time-gated weekly progress is no longer a platform-enforced
+> behaviour. Content visibility is now controlled per-activity via
+> the Live/Draft status (from Curriculum Authoring UX) — tutors
+> publish activities when they want them visible. See below for the
+> revised shape. Original 2026-04-19 decision preserved in session
+> log.
+
 A tutor's programme is a paid, tutor-owned NCLEX prep offering that
 plugs into Phase 4 of the Journey Tracker. One or more tutors can
 co-run the same programme.
@@ -140,15 +148,6 @@ suggestion, not a constraint.
 - Written assignments with tutor grading (requires submission and
   feedback workflow)
 
-### Cohort model
-
-Both supported — tutor picks per programme:
-
-- **Cohort mode** — fixed start/end dates; students progress through
-  the weeks together. Enables live sessions at shared times.
-- **Rolling mode** — students enrol any time; each student's Week 1
-  begins on their own enrolment date.
-
 ### Cohort size
 
 Tutor sets the maximum. No platform-imposed cap in v1. Platform-wide
@@ -167,11 +166,11 @@ subsidised, duration-matched bank bundle at enrolment; tutor
 programme fees stay off-platform between tutor and student. No
 automated payment splits in v1.
 
-### Student progression
+### Content visibility
 
-- **Progress model:** time-gated. Weeks unlock by date in cohort mode
-  or by days-since-enrolment in rolling mode. Past weeks always remain
-  accessible for revision.
+- Content visibility: tutor-controlled per-activity via Live/Draft
+  status. No platform-enforced drip rules. Tutors publish activities
+  when ready.
 - **"Done" logic:** mixed. Quiz blocks and mock assessments
   auto-complete from their score. Passive content (text, PDF, external
   video link) is student-ticked. Live session is student-ticked (or
@@ -193,8 +192,7 @@ Accepted as a starting set; may be refined during build.
 A tutor can, for each programme they own or co-run:
 
 1. Create and edit the programme (title, description, length in weeks,
-   cohort vs rolling mode, start date, max cohort size, late-enrolment
-   toggle).
+   start date, max cohort size, late-enrolment toggle).
 2. Build weeks — add, edit, delete, and reorder blocks in any week.
 3. Post live session links and recording URLs.
 4. View the list of enrolled students.
@@ -590,12 +588,8 @@ report.
 
 ## TBD (Not Yet Decided)
 
-These decisions are open. Fill in as they get made:
-
-- **Tutored enrolment** — how a student joins a specific tutor's
-  programme, the bundled bank+programme transaction, cohort-start
-  mechanics. Self-study enrolment settled 2026-04-20; see
-  [payments-and-enrolment.md](payments-and-enrolment.md).
+All planning topics settled as of 2026-04-20. Future topics will be
+added here as they emerge.
 
 ## Related Files
 
