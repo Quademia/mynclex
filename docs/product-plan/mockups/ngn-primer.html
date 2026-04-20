@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NGN NCLEX — Visual Primer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fraunces:wght@500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy: #1e3a5f;
+  --teal: #2d7d72;
+  --teal-light: #3ca295;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-soft: #f0f2f5;
+  --border: rgba(30, 58, 95, 0.12);
+  --border-strong: rgba(30, 58, 95, 0.25);
+  --text: #1e3a5f;
+  --text-muted: rgba(30, 58, 95, 0.62);
+  --text-dim: rgba(30, 58, 95, 0.40);
+  --text-faint: rgba(30, 58, 95, 0.22);
+  --info-bg: rgba(45, 125, 114, 0.08);
+  --info-border: rgba(45, 125, 114, 0.4);
+  --info-text: #085041;
+  --coral-bg: #faece7;
+  --coral-border: #f5c4b3;
+  --coral-text: #712b13;
+  --amber-bg: #faeeda;
+  --amber-border: #fac775;
+  --amber-text: #633806;
+  --teal-chip-bg: #e1f5ee;
+  --teal-chip-border: #9fe1cb;
+  --teal-chip-text: #085041;
+  --purple-bg: #eeedfe;
+  --purple-border: #afa9ec;
+  --purple-text: #3c3489;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+  padding: 32px 24px 80px;
+}
+
+.page-wrap {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.doc-title {
+  font-family: 'Fraunces', serif;
+  font-size: 30px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+}
+
+.doc-sub {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.doc-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 36px;
+}
+
+.toc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 22px;
+  margin-bottom: 48px;
+  font-size: 13px;
+}
+
+.toc h2 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.toc ol {
+  padding-left: 22px;
+  color: var(--text);
+}
+
+.toc li { margin-bottom: 5px; }
+.toc a { color: var(--text); text-decoration: none; border-bottom: 1px dotted var(--border-strong); }
+.toc a:hover { color: var(--teal); }
+
+h2.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--navy);
+  margin: 56px 0 12px;
+  letter-spacing: -0.01em;
+}
+
+h3.sub-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--navy);
+  margin: 24px 0 10px;
+}
+
+p {
+  font-size: 14.5px;
+  color: var(--text);
+  margin-bottom: 14px;
+  max-width: 700px;
+}
+
+p.caption {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 10px 0 28px;
+}
+
+strong { font-weight: 500; color: var(--navy); }
+
+ul, ol { padding-left: 22px; margin-bottom: 14px; }
+li { font-size: 14.5px; color: var(--text); margin-bottom: 6px; }
+
+/* Layout for mock screens */
+.mockup-frame {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  margin: 18px 0 10px;
+}
+
+.mockup-caption {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* Exam screen layout */
+.exam-screen {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .exam-screen { grid-template-columns: 1fr; }
+}
+
+.chart-panel, .question-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.chart-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+
+.chart-tabs .tab {
+  padding: 4px 10px;
+  color: var(--text-muted);
+  border-radius: 4px;
+}
+
+.chart-tabs .tab.active {
+  background: var(--info-bg);
+  color: var(--info-text);
+  font-weight: 500;
+}
+
+.chart-body { font-size: 12px; line-height: 1.7; }
+.chart-body .time { font-weight: 500; margin-bottom: 4px; }
+.chart-body .note { color: var(--text-muted); margin-bottom: 12px; }
+
+.vs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+  font-size: 12px;
+}
+.vs-grid .k { color: var(--text-muted); }
+
+.labs-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 6px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.labs-row:last-child { border-bottom: none; }
+.labs-row .k { color: var(--text-muted); font-weight: 500; }
+
+.q-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+
+.q-head .step-pill {
+  padding: 2px 8px;
+  background: var(--surface-soft);
+  color: var(--text-muted);
+  border-radius: 4px;
+}
+
+.q-stem {
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin-bottom: 14px;
+}
+
+.q-opts { font-size: 12px; }
+.q-opts .opt { padding: 5px 0; }
+.q-opts .opt.unchecked { color: var(--text-muted); }
+
+.q-footer {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-next {
+  font-size: 11px;
+  padding: 5px 14px;
+  background: var(--info-bg);
+  color: var(--info-text);
+  border: 1px solid var(--info-border);
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+.hint {
+  margin-top: 10px;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+/* Matrix */
+.matrix {
+  font-size: 11px;
+}
+.matrix .row-head {
+  display: grid;
+  grid-template-columns: 1.2fr 0.7fr 0.7fr;
+  gap: 4px;
+  padding: 5px 8px;
+  background: var(--surface-soft);
+  border-radius: 4px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.matrix .row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.7fr 0.7fr;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 0.5px solid var(--border);
+}
+.matrix .row:last-child { border-bottom: none; }
+.matrix .row > span:nth-child(n+2) { text-align: center; }
+.matrix .unchecked { color: var(--text-faint); }
+
+/* Cloze */
+.cloze-sentence {
+  font-size: 13px;
+  line-height: 2.2;
+  padding: 12px;
+  background: var(--surface-soft);
+  border-radius: 8px;
+}
+.cloze-blank {
+  background: var(--surface);
+  border: 1px solid var(--info-border);
+  color: var(--info-text);
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Highlight */
+.highlight-passage {
+  font-size: 12px;
+  line-height: 1.9;
+  padding: 12px;
+  background: var(--surface-soft);
+  border-radius: 8px;
+}
+.highlight-yes {
+  background: var(--amber-border);
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: var(--amber-text);
+  font-weight: 500;
+}
+.highlight-no {
+  background: var(--surface);
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 0.5px solid var(--border);
+  color: var(--text-muted);
+}
+
+/* Bow-tie */
+.bowtie-scenario {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.bowtie-scenario .label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.bowtie-scenario .body {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.bowtie-board {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.bowtie-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 10px;
+  background: var(--surface-soft);
+  border-radius: 6px;
+}
+
+.bowtie-drawer .drawer-label {
+  font-size: 10px;
+  color: var(--text-faint);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bowtie-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.bowtie-token {
+  padding: 5px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.bowtie-diagram {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.bowtie-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bowtie-col .col-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.bowtie-chip {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  text-align: center;
+  font-weight: 500;
+}
+.bowtie-chip.action {
+  background: var(--teal-chip-bg);
+  border: 1px solid var(--teal-chip-border);
+  color: var(--teal-chip-text);
+}
+.bowtie-chip.condition {
+  background: var(--amber-border);
+  border: 1px solid #EF9F27;
+  color: var(--amber-text);
+  padding: 10px 16px;
+  font-size: 12px;
+}
+.bowtie-chip.monitor {
+  background: var(--coral-bg);
+  border: 1px solid var(--coral-border);
+  color: var(--coral-text);
+}
+
+/* CJMM diagram */
+.cjmm-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 22px;
+  margin: 14px 0 18px;
+}
+
+.cjmm-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 680px) {
+  .cjmm-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.cjmm-step {
+  padding: 12px 14px;
+  border-radius: 8px;
+}
+
+.cjmm-step.cognitive {
+  background: var(--teal-chip-bg);
+  border: 1px solid var(--teal-chip-border);
+  color: var(--teal-chip-text);
+}
+
+.cjmm-step.action {
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-border);
+  color: var(--amber-text);
+}
+
+.cjmm-step .n {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  opacity: 0.75;
+}
+.cjmm-step .t {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.cjmm-step .q {
+  font-size: 11.5px;
+  opacity: 0.8;
+}
+
+/* Formats comparison */
+.formats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 18px 0 24px;
+}
+
+@media (max-width: 720px) {
+  .formats-grid { grid-template-columns: 1fr; }
+}
+
+.format-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.format-card.case { border-left: 3px solid var(--purple-border); padding-left: 15px; }
+.format-card.standalone { border-left: 3px solid var(--coral-border); padding-left: 15px; }
+
+.format-card h4 {
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--navy);
+}
+
+.format-card p.desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.q-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.q-list li {
+  padding: 6px 10px;
+  background: var(--surface-soft);
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.standalone-type {
+  background: var(--coral-bg);
+  border: 1px solid var(--coral-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.standalone-type strong { color: var(--coral-text); }
+.standalone-type .d { color: var(--coral-text); opacity: 0.78; margin-top: 4px; font-size: 11px; }
+
+/* Item type grid */
+.itemtype-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .itemtype-grid { grid-template-columns: 1fr; }
+}
+
+.itemtype-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.itemtype-card .label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.itemtype-card .name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+
+.itemtype-card .desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  line-height: 1.45;
+}
+
+.itemtype-card .preview {
+  background: var(--surface-soft);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 11.5px;
+}
+
+/* Summary box */
+.summary-box {
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  border-radius: 10px;
+  padding: 18px 22px;
+  margin-top: 36px;
+}
+
+.summary-box h3 {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--info-text);
+  margin-bottom: 12px;
+}
+
+.summary-box p, .summary-box li {
+  font-size: 13px;
+  color: var(--info-text);
+  line-height: 1.6;
+}
+
+.footer {
+  margin-top: 56px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+<div class="doc-title">NGN NCLEX — A visual primer</div>
+<div class="doc-sub">How the Next Generation NCLEX actually works, with concrete examples</div>
+<div class="doc-meta">Reference document · Created 2026-04-20 · Companion to <code>mynclex/docs/product-plan/bank.md</code></div>
+
+<div class="toc">
+<h2>Contents</h2>
+<ol>
+<li><a href="#why">Why NGN exists: the Clinical Judgment Measurement Model</a></li>
+<li><a href="#formats">Two structural formats: case studies &amp; stand-alones</a></li>
+<li><a href="#case-study">Walking through a full case study (6 questions)</a></li>
+<li><a href="#bowtie">The stand-alone bow-tie</a></li>
+<li><a href="#item-types">The seven core item types</a></li>
+<li><a href="#summary">What this means for building MyNclex</a></li>
+</ol>
+</div>
+
+<h2 id="why" class="section-title">1. Why NGN exists</h2>
+
+<p>The NCLEX exam used to be mostly multiple-choice: read a scenario, pick the right answer. But real nursing isn't a multiple-choice task — it's a sequence of decisions made under pressure, with incomplete information. The old exam tested knowledge. The new exam tests <strong>clinical judgment</strong>.</p>
+
+<p>NCSBN built a framework called the <strong>Clinical Judgment Measurement Model (CJMM)</strong> — six cognitive steps a nurse goes through when caring for a patient. Every NGN case study walks through these six steps in order.</p>
+
+<div class="cjmm-wrap">
+<div class="cjmm-grid">
+
+<div class="cjmm-step cognitive">
+<div class="n">Step 1</div>
+<div class="t">Recognise cues</div>
+<div class="q">What matters in this picture?</div>
+</div>
+
+<div class="cjmm-step cognitive">
+<div class="n">Step 2</div>
+<div class="t">Analyse cues</div>
+<div class="q">What could it mean?</div>
+</div>
+
+<div class="cjmm-step cognitive">
+<div class="n">Step 3</div>
+<div class="t">Prioritise hypotheses</div>
+<div class="q">Where do I start?</div>
+</div>
+
+<div class="cjmm-step action">
+<div class="n">Step 4</div>
+<div class="t">Generate solutions</div>
+<div class="q">What can I do?</div>
+</div>
+
+<div class="cjmm-step action">
+<div class="n">Step 5</div>
+<div class="t">Take action</div>
+<div class="q">What will I do?</div>
+</div>
+
+<div class="cjmm-step action">
+<div class="n">Step 6</div>
+<div class="t">Evaluate outcomes</div>
+<div class="q">Did it help?</div>
+</div>
+
+</div>
+</div>
+
+<p class="caption">Steps 1–3 are cognitive (teal). Steps 4–6 are action-oriented (amber). Every NGN case study hits all six steps in order.</p>
+
+<h2 id="formats" class="section-title">2. Two structural formats</h2>
+
+<p>NGN questions come in two shapes on the exam:</p>
+
+<div class="formats-grid">
+
+<div class="format-card case">
+<h4>Unfolding case study</h4>
+<p class="desc">One patient scenario, <strong>six</strong> questions. Each question tests one of the six CJMM steps, in order. As the student progresses, new information may appear in the patient's chart.</p>
+<ul class="q-list">
+<li>Q1 — Recognise cues</li>
+<li>Q2 — Analyse cues</li>
+<li>Q3 — Prioritise hypotheses</li>
+<li>Q4 — Generate solutions</li>
+<li>Q5 — Take action</li>
+<li>Q6 — Evaluate outcomes</li>
+</ul>
+</div>
+
+<div class="format-card standalone">
+<h4>Stand-alone items</h4>
+<p class="desc">A single question with its own mini-scenario. Two types exist:</p>
+<div class="standalone-type">
+<strong>Bow-tie</strong>
+<div class="d">Drag 5 tokens into a bow-tie diagram: 2 actions, 1 condition, 2 parameters to monitor.</div>
+</div>
+<div class="standalone-type">
+<strong>Trend</strong>
+<div class="d">Data changing over time (vitals, labs). Recognise the pattern, answer using any other NGN item type.</div>
+</div>
+</div>
+
+</div>
+
+<h2 id="case-study" class="section-title">3. Walking through a full case study</h2>
+
+<p>Let's follow one patient — a 68-year-old man admitted with shortness of breath — through the six questions of a case study. On the real exam, the screen splits in two: the patient's chart on the left (with tabs you can switch between), and the current question on the right.</p>
+
+<h3 class="sub-title">Question 1 — Recognise cues (SATA)</h3>
+
+<div class="mockup-frame">
+<div class="mockup-caption">Q1: the student identifies concerning findings in the notes</div>
+<div class="exam-screen">
+
+<div class="chart-panel">
+<div class="chart-tabs">
+<span class="tab active">Nurses' Notes</span>
+<span class="tab">Vital Signs</span>
+<span class="tab">Labs</span>
+<span class="tab">Orders</span>
+</div>
+<div class="chart-body">
+<div class="time">0800</div>
+<div class="note">68-year-old male admitted with shortness of breath. Reports worsening over the past 3 days. Has history of heart failure and hypertension.</div>
+<div class="time">0815</div>
+<div class="note">Client appears anxious, sitting upright in bed. Dyspnoea on minimal exertion. Bilateral crackles on auscultation. Pitting oedema to mid-calf bilaterally.</div>
+</div>
+</div>
+
+<div class="question-panel">
+<div class="q-head">
+<span style="color: var(--text-muted);">Question 1 of 6</span>
+<span class="step-pill">Recognise cues</span>
+</div>
+<div class="q-stem">
+The nurse is reviewing the client's notes.<br><br>
+<strong>Which findings require follow-up?</strong><br>
+<span style="color: var(--text-muted);">Select all that apply.</span>
+</div>
+<div class="q-opts">
+<div class="opt unchecked">☐ History of heart failure</div>
+<div class="opt">☑ Bilateral crackles</div>
+<div class="opt">☑ Dyspnoea on exertion</div>
+<div class="opt unchecked">☐ Sitting upright in bed</div>
+<div class="opt">☑ Pitting oedema</div>
+</div>
+<div class="q-footer"><button class="btn-next">Next →</button></div>
+</div>
+
+</div>
+</div>
+
+<p class="caption">This is a <strong>SATA</strong> item — Select All That Apply. The simplest NGN item type, identical to the SATA we already know.</p>
+
+<h3 class="sub-title">Question 2 — Analyse cues (Matrix)</h3>
+
+<div class="mockup-frame">
+<div class="mockup-caption">Q2: the student evaluates vital signs (chart switches to Vital Signs tab)</div>
+<div class="exam-screen">
+
+<div class="chart-panel">
+<div class="chart-tabs">
+<span class="tab">Nurses' Notes</span>
+<span class="tab active">Vital Signs</span>
+<span class="tab">Labs</span>
+<span class="tab">Orders</span>
+</div>
+<div class="vs-grid">
+<span class="k">BP:</span><span>168/92 mmHg</span>
+<span class="k">HR:</span><span>102 bpm</span>
+<span class="k">RR:</span><span>26 breaths/min</span>
+<span class="k">SpO₂:</span><span>89% on room air</span>
+<span class="k">Temp:</span><span>37.2°C</span>
+<span class="k">Weight:</span><span>82 kg (↑ 3 kg)</span>
+</div>
+</div>
+
+<div class="question-panel">
+<div class="q-head">
+<span style="color: var(--text-muted);">Question 2 of 6</span>
+<span class="step-pill">Analyse cues</span>
+</div>
+<div class="q-stem">
+For each finding, indicate whether it is <strong>consistent</strong> with heart failure exacerbation.
+</div>
+<div class="matrix">
+<div class="row-head">
+<span>Finding</span><span>Yes</span><span>No</span>
+</div>
+<div class="row">
+<span>SpO₂ 89%</span><span>●</span><span class="unchecked">○</span>
+</div>
+<div class="row">
+<span>Weight gain</span><span>●</span><span class="unchecked">○</span>
+</div>
+<div class="row">
+<span>Temp 37.2°C</span><span class="unchecked">○</span><span>●</span>
+</div>
+<div class="row">
+<span>HR 102 bpm</span><span>●</span><span class="unchecked">○</span>
+</div>
+</div>
+<div class="q-footer"><button class="btn-next">Next →</button></div>
+</div>
+
+</div>
+</div>
+
+<p class="caption">This is a <strong>Matrix</strong> item. For each row, the student picks one column. Scoring is partial: 3 rows right and 1 wrong earns 3 points, not zero.</p>
+
+<h3 class="sub-title">Question 3 — Prioritise (Cloze/drop-down)</h3>
+
+<div class="mockup-frame">
+<div class="mockup-caption">Q3: the student makes a clinical judgment by filling in the blanks</div>
+<div class="exam-screen">
+
+<div class="chart-panel">
+<div class="chart-tabs">
+<span class="tab">Nurses' Notes</span>
+<span class="tab">Vital Signs</span>
+<span class="tab active">Labs</span>
+<span class="tab">Orders</span>
+</div>
+<div>
+<div class="labs-row"><span class="k">BNP</span><span>842 pg/mL (high)</span></div>
+<div class="labs-row"><span class="k">Troponin</span><span>0.02 ng/mL (normal)</span></div>
+<div class="labs-row"><span class="k">K+</span><span>3.8 mmol/L (normal)</span></div>
+<div class="labs-row"><span class="k">Creatinine</span><span>1.4 mg/dL</span></div>
+</div>
+</div>
+
+<div class="question-panel">
+<div class="q-head">
+<span style="color: var(--text-muted);">Question 3 of 6</span>
+<span class="step-pill">Prioritise</span>
+</div>
+<div class="q-stem" style="color: var(--text-muted);">
+Complete the following sentence by choosing the most appropriate options.
+</div>
+<div class="cloze-sentence">
+The client is most likely experiencing
+<span class="cloze-blank">heart failure ▾</span>
+as evidenced by
+<span class="cloze-blank">elevated BNP ▾</span>
+and
+<span class="cloze-blank">crackles ▾</span>.
+</div>
+<div class="hint">Each dropdown has 3–5 choices. Student picks one per blank.</div>
+<div class="q-footer"><button class="btn-next">Next →</button></div>
+</div>
+
+</div>
+</div>
+
+<p class="caption">This is a <strong>Cloze</strong> (drop-down) item. The student completes a clinical sentence by selecting options from drop-downs.</p>
+
+<h3 class="sub-title">Question 5 — Take action (Highlighting)</h3>
+
+<p>We've skipped Q4 for brevity (Generate Solutions — typically another SATA or Select N). Let's look at Q5 — an interesting item type because it changes the interaction pattern completely.</p>
+
+<div class="mockup-frame">
+<div class="mockup-caption">Q5: the student highlights findings that need immediate action</div>
+<div class="exam-screen">
+
+<div class="chart-panel">
+<div class="chart-tabs">
+<span class="tab active">Nurses' Notes</span>
+<span class="tab">Vital Signs</span>
+<span class="tab">Labs</span>
+<span class="tab">Orders</span>
+</div>
+<div class="chart-body">
+<div class="time">1100</div>
+<div class="note">Client given furosemide 40 mg IV. Oxygen applied at 4L via nasal cannula.</div>
+<div class="time">1130</div>
+<div class="note">Follow-up assessment done.</div>
+</div>
+</div>
+
+<div class="question-panel">
+<div class="q-head">
+<span style="color: var(--text-muted);">Question 5 of 6</span>
+<span class="step-pill">Take action</span>
+</div>
+<div class="q-stem">
+The nurse reassesses the client at 1130.<br><br>
+<strong>Highlight the findings that require immediate action.</strong>
+</div>
+<div class="highlight-passage">
+Client reports feeling "a little better." RR 22. SpO₂
+<span class="highlight-no">93%</span>
+on 4L. BP
+<span class="highlight-yes">184/96</span>.
+HR
+<span class="highlight-yes">118</span>.
+Urine output
+<span class="highlight-no">250 mL</span>
+in past 2 hours. Complains of
+<span class="highlight-yes">new-onset chest pressure</span>.
+</div>
+<div class="hint">Tap or click words/phrases to highlight. Wrong highlights lose points.</div>
+<div class="q-footer"><button class="btn-next">Next →</button></div>
+</div>
+
+</div>
+</div>
+
+<p class="caption">This is a <strong>Highlighting</strong> item. The passage has pre-defined selectable chunks (not free-form text selection). The author marks which chunks are correct and which are wrong. Partial credit with penalty for wrong picks.</p>
+
+<h2 id="bowtie" class="section-title">4. The stand-alone bow-tie</h2>
+
+<p>Bow-tie is the signature NGN stand-alone item — a single question (no 6-question unfolding), but structurally the most elaborate single item. The student drags 5 tokens into three slots: two actions to take, one condition, and two parameters to monitor.</p>
+
+<div class="mockup-frame">
+<div class="mockup-caption">A stand-alone bow-tie item</div>
+
+<div class="bowtie-scenario">
+<div class="label">Scenario</div>
+<div class="body">72-year-old female with chest pain radiating to left jaw. Diaphoretic. BP 90/58. HR 108. ECG shows ST elevation in leads II, III, aVF.</div>
+</div>
+
+<div class="bowtie-board">
+
+<div class="q-stem">Drag the correct options into the bow-tie below. Complete the condition, two actions, and two parameters to monitor.</div>
+
+<div class="bowtie-drawer">
+<div class="drawer-label">Drag tokens from here:</div>
+<div class="bowtie-tokens">
+<span class="bowtie-token">Pulmonary embolism</span>
+<span class="bowtie-token">Inferior wall MI</span>
+<span class="bowtie-token">Give aspirin 325 mg</span>
+<span class="bowtie-token">Apply oxygen</span>
+<span class="bowtie-token">Start NG tube</span>
+<span class="bowtie-token">Temperature</span>
+<span class="bowtie-token">Cardiac rhythm</span>
+<span class="bowtie-token">Pain level</span>
+<span class="bowtie-token">Bowel sounds</span>
+</div>
+</div>
+
+<div class="bowtie-diagram">
+
+<div class="bowtie-col">
+<div class="col-label">Actions to take</div>
+<div class="bowtie-chip action">Give aspirin 325 mg</div>
+<div class="bowtie-chip action">Apply oxygen</div>
+</div>
+
+<div class="bowtie-col">
+<div class="col-label">Condition</div>
+<div class="bowtie-chip condition">Inferior wall MI</div>
+</div>
+
+<div class="bowtie-col">
+<div class="col-label">Parameters to monitor</div>
+<div class="bowtie-chip monitor">Cardiac rhythm</div>
+<div class="bowtie-chip monitor">Pain level</div>
+</div>
+
+</div>
+
+<div class="hint" style="text-align: center; margin-top: 14px;">5 correct placements out of 9 possible tokens. Partial credit per slot.</div>
+
+</div>
+</div>
+
+<p class="caption">Bow-tie asks the student to demonstrate clinical judgment in a single elaborate interaction. The student has to synthesise cognitive steps 3, 4, and 6 in one item.</p>
+
+<h2 id="item-types" class="section-title">5. The seven core item types</h2>
+
+<p>Case studies are the <em>wrapper</em>. Inside them (and in stand-alone items), questions use these interaction patterns:</p>
+
+<div class="itemtype-grid">
+
+<div class="itemtype-card">
+<div class="label">Item type 1</div>
+<div class="name">SATA (Select All That Apply)</div>
+<div class="desc">Check every option that applies. Already supported by our existing schema.</div>
+<div class="preview">
+☑ Shortness of breath<br>
+<span style="color: var(--text-muted);">☐ Warm, dry skin</span><br>
+☑ Bilateral crackles<br>
+<span style="color: var(--text-muted);">☐ Clear urine output</span>
+</div>
+</div>
+
+<div class="itemtype-card">
+<div class="label">Item type 2</div>
+<div class="name">Select N</div>
+<div class="desc">Pick exactly N options — told upfront how many to choose.</div>
+<div class="preview">
+<div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px; font-weight: 500;">Choose 2 priority actions:</div>
+☑ Administer oxygen<br>
+<span style="color: var(--text-muted);">☐ Start IV line</span><br>
+☑ Position upright
+</div>
+</div>
+
+<div class="itemtype-card">
+<div class="label">Item type 3</div>
+<div class="name">Matrix / Grid</div>
+<div class="desc">For each row, pick the right column (Yes/No/Maybe, indicated/contraindicated, etc.).</div>
+<div class="preview">
+<div style="display: grid; grid-template-columns: 1.3fr 0.6fr 0.6fr 0.6fr; gap: 4px; font-weight: 500; color: var(--text-muted); padding-bottom: 3px; border-bottom: 0.5px solid var(--border); font-size: 10px;">
+<span>Action</span><span style="text-align: center;">Yes</span><span style="text-align: center;">Maybe</span><span style="text-align: center;">No</span>
+</div>
+<div style="display: grid; grid-template-columns: 1.3fr 0.6fr 0.6fr 0.6fr; gap: 4px; padding: 3px 0; font-size: 10px;">
+<span>Give furosemide</span><span style="text-align: center;">●</span><span style="text-align: center; color: var(--text-faint);">○</span><span style="text-align: center; color: var(--text-faint);">○</span>
+</div>
+<div style="display: grid; grid-template-columns: 1.3fr 0.6fr 0.6fr 0.6fr; gap: 4px; padding: 3px 0; font-size: 10px;">
+<span>Restrict fluids</span><span style="text-align: center; color: var(--text-faint);">○</span><span style="text-align: center;">●</span><span style="text-align: center; color: var(--text-faint);">○</span>
+</div>
+</div>
+</div>
+
+<div class="itemtype-card">
+<div class="label">Item type 4</div>
+<div class="name">Highlighting</div>
+<div class="desc">Click to highlight concerning findings in a clinical note or passage.</div>
+<div class="preview" style="line-height: 1.7;">
+Client reports <span class="highlight-yes">severe chest pain</span> radiating to the arm. Skin <span class="highlight-yes">diaphoretic</span>. BP 88/52.
+</div>
+</div>
+
+<div class="itemtype-card">
+<div class="label">Item type 5</div>
+<div class="name">Cloze (drop-down)</div>
+<div class="desc">Complete a sentence by choosing options from drop-down menus embedded in the text.</div>
+<div class="preview" style="line-height: 1.9;">
+Most likely <span class="cloze-blank" style="font-size: 10px;">heart failure ▾</span> due to <span class="cloze-blank" style="font-size: 10px;">crackles ▾</span>.
+</div>
+</div>
+
+<div class="itemtype-card">
+<div class="label">Item type 6</div>
+<div class="name">Drag-and-drop</div>
+<div class="desc">Drag tokens from a bank into labelled target slots. Can be cloze (into a sentence) or list (into ordered slots).</div>
+<div class="preview">
+<div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px;">
+<span style="padding: 2px 6px; background: var(--purple-bg); color: var(--purple-text); border-radius: 3px; font-size: 10px;">O2</span>
+<span style="padding: 2px 6px; background: var(--surface); color: var(--text-faint); border-radius: 3px; font-size: 10px; border: 0.5px solid var(--border);">IV fluids</span>
+<span style="padding: 2px 6px; background: var(--purple-bg); color: var(--purple-text); border-radius: 3px; font-size: 10px;">Sit upright</span>
+</div>
+<div style="padding: 5px; border: 0.5px dashed var(--border-strong); border-radius: 3px; font-size: 10px; color: var(--text-muted);">Drop priority actions here ↑</div>
+</div>
+</div>
+
+<div class="itemtype-card">
+<div class="label">Item type 7</div>
+<div class="name">Bow-tie (stand-alone)</div>
+<div class="desc">5 tokens dragged into a bow-tie diagram: 2 actions, 1 condition, 2 parameters to monitor.</div>
+<div class="preview">
+<div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center;">
+<div style="display: flex; flex-direction: column; gap: 3px;">
+<div style="padding: 3px 5px; background: var(--teal-chip-bg); color: var(--teal-chip-text); border-radius: 3px; font-size: 9px; text-align: center;">Give O2</div>
+<div style="padding: 3px 5px; background: var(--teal-chip-bg); color: var(--teal-chip-text); border-radius: 3px; font-size: 9px; text-align: center;">Sit up</div>
+</div>
+<div style="padding: 4px 8px; background: var(--amber-border); color: var(--amber-text); border-radius: 3px; font-size: 10px; font-weight: 500; text-align: center;">HF</div>
+<div style="display: flex; flex-direction: column; gap: 3px;">
+<div style="padding: 3px 5px; background: var(--coral-bg); color: var(--coral-text); border-radius: 3px; font-size: 9px; text-align: center;">Lungs</div>
+<div style="padding: 3px 5px; background: var(--coral-bg); color: var(--coral-text); border-radius: 3px; font-size: 9px; text-align: center;">Weight</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+
+<p class="caption" style="margin-top: 20px;">Plus the classic <strong>MCQ</strong> (single correct answer) and <strong>TF</strong> — these continue to exist, though MCQ and SATA together make up the bulk of traditional items on the exam.</p>
+
+<h2 id="summary" class="section-title">6. What this means for building MyNclex</h2>
+
+<p>Taking this apart:</p>
+
+<ul>
+<li><strong>Every NGN item type has the same metadata shell</strong> — stem, rationale, classifications, difficulty, tags. What differs is the <em>content structure</em> (options, rows, tokens, text-spans, etc.) and the <em>correct-answer shape</em>.</li>
+<li><strong>Case studies are a separate wrapper</strong> — they group 6 regular questions around a shared scenario and chart data. Each question inside is just a regular item with a <code>case_study_id</code> and an order.</li>
+<li><strong>Scoring changes</strong> — NGN uses partial credit on most item types. The old all-or-nothing model doesn't apply to Matrix, Highlight, Bow-tie, etc.</li>
+<li><strong>Charts are a new first-class thing</strong> — case studies need a "patient chart" concept with multiple tabs (Nurses' Notes, Vital Signs, Labs, Orders) and the ability to unfold (new data appearing between questions).</li>
+</ul>
+
+<div class="summary-box">
+<h3>The schema question this drives</h3>
+<p>Every item type needs a different data shape. Three ways to store this:</p>
+<ol>
+<li><strong>Wide table</strong> — add columns for every possible field across every type. Most are NULL. Ugly.</li>
+<li><strong>Child tables per type</strong> — base + type-specific child. Clean but many tables.</li>
+<li><strong>JSONB content column</strong> — one base table with a JSON payload per type. Flexible, Postgres-native, no migrations for new types.</li>
+</ol>
+<p style="margin-top: 10px;">Option 3 (JSONB) is probably the answer for MyNclex — this is exactly the kind of polymorphic content Postgres/Supabase handles well.</p>
+</div>
+
+<div class="footer">
+<p>This document is a reference primer explaining how NGN works. It is not a design document. See <code>mynclex/docs/product-plan/bank.md</code> for the MyNclex schema plan.</p>
+</div>
+
+</div>
+</body>
+</html>
