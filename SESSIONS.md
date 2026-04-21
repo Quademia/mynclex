@@ -122,16 +122,83 @@ page that's already ready for it.
   earlier listing layout remain in the CSS but are
   unreferenced. Out of this slice's scope to delete.
 
-### Next session
+### Next session — **Bank Slice 1.5: Family B authoring (Matrix first)**
 
-- **Bank Slice 1.5 — Family B, first type.** Per the build
-  order in `bank.md`, Matrix is the most bounded Family B
-  editor (rows × columns grid, per-row correct selection).
-  Good candidate to prove the new architecture scales
-  through an editor with a fundamentally different UI shape
-  than Family A's option list.
-- Student-view preview still deferred — will come with the
-  student runner.
+Family B is the set of NGN-style question types that don't
+fit the Family A "option list + correct toggle" mould:
+
+| Type        | Shape                                              |
+|-------------|----------------------------------------------------|
+| `MATRIX`    | rows × columns grid, each row picks one column     |
+| `HIGHLIGHT` | select tokens (words/phrases) inside a passage     |
+| `CLOZE`     | passage with inline blanks, each a dropdown        |
+| `DRAG_DROP` | drag tokens into ordered slots                     |
+| `BOWTIE`    | signature NGN layout — causes / actions / problems |
+
+**Slice 1.5 scope = Matrix only.** Single type, end-to-end.
+Most-bounded Family B shape, so it's the right candidate to
+prove the Slice 1.3 architecture (shell + per-type editor +
+per-type parser) scales through an editor with a
+fundamentally different UI than Family A. Other Family B
+types come in their own slices (1.6, 1.7, …).
+
+#### Work items for Slice 1.5
+
+1. **JSON shape decision (align with Sam before coding).**
+   Proposed:
+   - `content`: `{ rows: [{ id, text }], columns: [{ id, text }] }`
+   - `correct`: `{ cell_map: { [rowId]: columnId }, feedback?: { [rowId]: string } }`
+   - Bounded 2–6 rows × 2–6 columns to start.
+2. **Extend classifications.ts** — add `MATRIX` to
+   `QUESTION_TYPES` + `ITEM_ID_PREFIX` (`NCLEX_MAT_`).
+3. **Extend types.ts** — add `MatrixContent` /
+   `MatrixCorrect` interfaces and union them into
+   `BankItemContent` / `BankItemCorrect`.
+4. **Extend form-shape.ts** — decide whether Matrix lives
+   alongside Family A fields on `BankFormInitial` (adds
+   `rows`, `columns`, `cell_map`) or if Family B gets a
+   disjoint initial type. Probably additive fields with
+   sensible empty defaults — keeps `rowToInitial` simple.
+5. **Create `lib/bank/parsers/matrix.ts`** — validates
+   row/column bounds, every row has exactly one correct
+   column, all referenced column IDs exist.
+6. **Update `parseByType` dispatcher** — route `MATRIX` to
+   the new parser.
+7. **Create `lib/bank/editors/matrix-editor.tsx`** — grid
+   UI: rows × columns, one radio per cell grouped by
+   `name="matrix_correct_${rowId}"`. Add/remove row + add/
+   remove column controls. Hidden inputs for row IDs +
+   texts, column IDs + texts, so the FormData carries the
+   whole shape without any manual marshalling (same
+   pattern as Family A editors).
+8. **Wire `renderEditor()` in `editor-shell.tsx`** to the
+   new `MatrixEditor`.
+9. **Update `rowToInitial` in `page.tsx`** to map the
+   Matrix JSONB back into `BankFormInitial` fields.
+10. **Add a Matrix seed row** so the list/focus view has
+    something to render. Stays in the dev Supabase project.
+
+#### Known risks / watch-outs
+
+- Matrix FormData shape uses per-row correct IDs — the
+  dispatcher's current `correctIds: string[]` doesn't fit.
+  `parseByType` may need to accept a `matrix` branch with
+  its own param shape, or the parser pulls directly from
+  FormData. Settle this before coding the editor.
+- Several pre-existing unstyled class names noted in the
+  1.4 entry (`bank-grid-2`, `bank-grid-3`, etc.) will
+  become more visible once Matrix adds grid UI of its own.
+  Consider fixing in a side slice, not mid-Family-B.
+- Student-view preview for Matrix still deferred — will
+  come with the student runner.
+
+#### Out of scope for 1.5
+
+- Other Family B types (Highlight, Cloze, Drag-drop,
+  Bow-tie) — each gets its own slice.
+- Tutor-side authoring (reuses same editors against
+  `nclex_tutor_questions` — separate slice).
+- Student runner (separate track).
 
 ---
 
