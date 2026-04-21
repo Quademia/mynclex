@@ -11,7 +11,15 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 // Paths that require an authenticated session.
-const AUTH_REQUIRED_PREFIXES = ['/dashboard', '/router', '/no-access', '/logout'];
+const AUTH_REQUIRED_PREFIXES = [
+  '/router',
+  '/pick-role',
+  '/student',
+  '/tutor',
+  '/admin',
+  '/no-access',
+  '/logout',
+];
 
 // Paths that should redirect to /router if the user IS already signed in.
 const AUTH_FORBIDDEN_PATHS = ['/login', '/register'];

@@ -2,7 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import '../dashboard/dashboard.css';
+import '../landing.css';
+import '../dashboards.css';
 
 export const dynamic = 'force-dynamic';
 

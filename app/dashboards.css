@@ -1,0 +1,199 @@
+/* mynclex/app/dashboards.css
+ *
+ * Shared shell styles for role-specific dashboards (/student, /tutor, /admin),
+ * /no-access, and /pick-role. Relies on CSS variables defined in landing.css.
+ */
+
+.dash-main {
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 64px 24px;
+  box-sizing: border-box;
+}
+
+.dash-card {
+  width: 100%;
+  max-width: 560px;
+  padding: 40px 32px;
+  background: rgba(232, 238, 245, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dash-header {
+  margin-bottom: 28px;
+}
+
+.dash-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.dash-subtitle {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.dash-role-badge {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 4px 10px;
+  background: rgba(45, 125, 114, 0.12);
+  border: 1px solid rgba(45, 125, 114, 0.35);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal-bright);
+}
+
+.dash-signout {
+  width: 100%;
+  padding: 12px 20px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.dash-signout:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+  color: #f87171;
+}
+
+.dash-note {
+  margin-top: 8px;
+  padding: 14px 16px;
+  background: rgba(45, 125, 114, 0.06);
+  border: 1px solid rgba(45, 125, 114, 0.2);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.dash-note strong {
+  color: var(--teal-bright);
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Role switcher (appears on a dashboard when the user
+ * holds more than one role).
+ * ───────────────────────────────────────────────────── */
+
+.role-switcher {
+  margin-top: 24px;
+  padding: 16px;
+  background: rgba(232, 238, 245, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.role-switcher-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+.role-switcher-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.role-switcher-form {
+  margin: 0;
+}
+
+.role-switcher-btn {
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.role-switcher-btn:hover {
+  border-color: rgba(60, 162, 149, 0.5);
+  background: rgba(45, 125, 114, 0.08);
+  color: var(--teal-bright);
+}
+
+.dash-signout-wrap {
+  margin-top: 20px;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Pick-role page (shown after login for users who hold
+ * more than one role).
+ * ───────────────────────────────────────────────────── */
+
+.pick-role-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pick-role-form {
+  margin: 0;
+}
+
+.pick-role-item {
+  width: 100%;
+  text-align: left;
+  padding: 16px 18px;
+  background: rgba(232, 238, 245, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.1s ease;
+}
+
+.pick-role-item:hover {
+  border-color: rgba(60, 162, 149, 0.5);
+  background: rgba(45, 125, 114, 0.06);
+  transform: translateY(-1px);
+}
+
+.pick-role-item-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pick-role-item-desc {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 480px) {
+  .dash-card { padding: 32px 24px; }
+  .role-switcher-buttons { flex-direction: column; }
+  .role-switcher-btn { width: 100%; }
+}

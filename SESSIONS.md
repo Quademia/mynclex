@@ -6,6 +6,112 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-21 (Auth flow — Slice 2 — role-specific dashboards)
+
+Slice 2 built end-to-end with Claude Desktop (no Claude Web prompt).
+Role-specific dashboards now live with per-role server-side guards,
+multi-role pick-role page, and an in-dashboard role switcher.
+
+### Decisions (from discussion with Sam)
+
+- **URL shape — Pattern 2 (feature URLs, role-only for authoring areas).**
+  Dashboards are role-prefixed (`/student`, `/tutor`, `/admin`) but the
+  shared feature pages that arrive later (e.g. `/bank`, `/profile`,
+  `/programmes`) will be top-level and render role-adaptive content.
+  Tutor/admin authoring pages will still live under `/tutor/*` and
+  `/admin/*`. Avoids URL duplication for things that are conceptually
+  shared.
+- **Multi-role UX — picker + switcher.** First-time multi-role users hit
+  `/pick-role`. Subsequent visits honour an `nclex_active_role` cookie.
+  A role switcher lives inside every dashboard for cross-over (Sam =
+  SUPER_ADMIN + TUTOR).
+- **ADMIN and SUPER_ADMIN share `/admin`.** SUPER_ADMIN sees an extra
+  section via conditional render — no separate `/super-admin` route.
+- **Placeholder dashboard content (Decision 3A).** Each dashboard shows
+  welcome + "Coming next:" card for now. Real feature UI lands as
+  features arrive.
+- **`nclex_active_role` cookie** — HttpOnly, SameSite=Lax, path=/,
+  30-day max-age. Read only by server code; never touched by browser JS.
+  Per-request validation: the cookie's value must match a role the user
+  still holds, otherwise they get bounced to `/pick-role`.
+
+### Files created
+
+- `mynclex/app/dashboards.css` — shared shell styles for all role
+  dashboards, `/no-access`, `/pick-role`, plus `.role-switcher*` and
+  `.pick-role-*` rules. Replaces the old `dashboard/dashboard.css`.
+- `mynclex/components/role-switcher.tsx` — Server Component. Small
+  "Switch to" block shown only when the user holds >1 role. Each
+  button is its own `<form>` posting to `switchRoleAction`.
+- `mynclex/app/pick-role/page.tsx` — the picker screen for multi-role
+  users. Single-role visitors are bounced back to `/router`.
+- `mynclex/app/pick-role/actions.ts` — Server Action used by both
+  `/pick-role` and the role switcher. Validates that the user actually
+  holds the requested role before setting the cookie.
+- `mynclex/app/student/page.tsx` — student dashboard.
+- `mynclex/app/tutor/page.tsx` — tutor dashboard.
+- `mynclex/app/admin/page.tsx` — admin dashboard (ADMIN + SUPER_ADMIN).
+
+### Files modified
+
+- `mynclex/app/router/page.tsx` — new dispatch logic: 0 roles →
+  `/no-access`; 1 role → that dashboard; ≥2 roles → cookie or
+  `/pick-role`.
+- `mynclex/app/no-access/page.tsx` — import path updated to
+  `../dashboards.css`.
+- `mynclex/middleware.ts` — `AUTH_REQUIRED_PREFIXES` updated. `/dashboard`
+  removed (route deleted); `/pick-role`, `/student`, `/tutor`, `/admin`
+  added.
+
+### Files deleted
+
+- `mynclex/app/dashboard/page.tsx`
+- `mynclex/app/dashboard/dashboard.css`
+- `mynclex/app/dashboard/` folder
+
+### Security posture (Pattern 2 / server-first)
+
+- Every role page fetches the user's roles server-side and `redirect`s
+  to `/no-access` if the required role isn't present — guard runs
+  before any HTML is rendered.
+- The `switchRoleAction` re-checks `nclex_user_roles` before trusting
+  whatever role came in from the form — the cookie is never set for a
+  role the user doesn't currently hold.
+- No business logic in the browser. Forms post straight to Server
+  Actions. Cookies are `httpOnly` so browser JS can't read or forge
+  them.
+
+### Deferred to future sessions
+
+- **Feature pages** (bank, programmes, profile, classes, curriculum,
+  user management) — not in Slice 2's scope.
+- **Per-permission gates** on SUPER_ADMIN features via
+  `nclex_user_has_permission()` — added as real admin tasks land.
+- **"View as student" / impersonation** for admins — future.
+- **Role revocation UI** — admins still edit roles via SQL for now.
+- **Cookie writeback on direct URL access.** If a user navigates to
+  `/tutor` directly while their cookie says `SUPER_ADMIN`, the cookie
+  is not updated. Works fine, just a tiny drift. Revisit if it causes
+  confusion.
+
+### Manual step Sam will perform
+
+- After testing, grant SUPER_ADMIN + TUTOR to his account via SQL so
+  the multi-role flow can be exercised:
+  ```sql
+  INSERT INTO nclex_user_roles (user_id, role)
+  SELECT id, 'SUPER_ADMIN' FROM nclex_users WHERE email = 'mybackpacc@gmail.com';
+  INSERT INTO nclex_user_roles (user_id, role)
+  SELECT id, 'TUTOR' FROM nclex_users WHERE email = 'mybackpacc@gmail.com';
+  ```
+
+### Next session
+
+Slice 3 (password reset + email confirmation), or pivot to first real
+feature slice (likely the bank or programmes), at Sam's discretion.
+
+---
+
 ## Session — 2026-04-21 (Auth flow — Slice 1 — Claude Web + Desktop)
 
 First Next.js code written for MyNclex. Auth flow Slice 1 complete:
