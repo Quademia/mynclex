@@ -305,3 +305,21 @@
   background: rgba(239, 68, 68, 0.06);
   color: #fca5a5;
 }
+
+/* ─────────────────────────────────────────────────────
+ * Placeholder list inside .dash-note blocks
+ * (used by /admin/payments today; reusable for future
+ * coming-soon pages).
+ * ───────────────────────────────────────────────────── */
+
+.payments-placeholder-list {
+  margin: 10px 0 0 20px;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.payments-placeholder-list li {
+  margin-bottom: 4px;
+}

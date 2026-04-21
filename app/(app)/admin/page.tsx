@@ -44,6 +44,13 @@ const SECTIONS: SectionCard[] = [
     href: '/admin/bank',
     permission: 'BANK_CURATE',
   },
+  {
+    key: 'payments',
+    label: 'Payments',
+    desc: 'Review transactions, process refunds, track tutor payouts.',
+    href: '/admin/payments',
+    permission: 'PAYMENTS_MANAGE',
+  },
 ];
 
 export default async function AdminDashboard() {
