@@ -6,6 +6,74 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-21 (First build — auth schema, Claude Web + Desktop)
+
+First code written for MyNclex. Auth + roles schema laid down and
+applied to the dev Supabase project.
+
+### Decisions
+
+- `nclex_users.id` = `auth.users.id` (UUID PK, standard Supabase pattern).
+  Greenfield choice — Licensure/MyTeacher use a separate TEXT user_id +
+  auth_id UUID for historical reasons; MyNclex skips that layer.
+- Roles stored as rows in `nclex_user_roles` (one row per user-role pair),
+  not as an array column. First QAcademy product with real multi-role
+  design requirement (Sam = SUPER_ADMIN + TUTOR).
+- Permissions stored as rows in `nclex_admin_permissions`. No CHECK
+  constraint on permission values yet — deferred until real admin tasks
+  surface (per `main.md`).
+- Profile creation happens client-side on signup (matches MyTeacher
+  pattern). No `auth.users` trigger — avoids cross-product contamination.
+- No anon SELECT policy on `nclex_users` — deliberate departure from
+  MyTeacher's email-enumeration trade-off.
+- Dropped `destination_country` / `destination_region` from the users
+  table; will land with Journey Tracker build.
+
+### Columns kept from Licensure/MyTeacher pattern
+
+`forename`, `surname`, `name`, `phone_number`, `avatar_url`,
+`must_change_password`, `signup_source`, `last_login_utc`.
+
+### Columns deliberately NOT copied
+
+`username` (unused), `program_id` / `cohort` / `level` (NMC-specific),
+`role` as a column (replaced by the separate `nclex_user_roles` table),
+`user_id TEXT + auth_id UUID` split (greenfield uses UUID PK directly).
+
+### Files created
+
+- `mynclex/db/schema.sql` — 3 tables, 1 index.
+- `mynclex/db/rls.sql` — 3 helper functions, 3 × ENABLE RLS, 10 policies.
+- `mynclex/db/README.md` — short entry-point doc.
+
+### Migrations applied
+
+- `mynclex_initial_auth_schema` — tables + index.
+- `mynclex_initial_auth_rls` — helpers + RLS policies.
+
+### Helper functions
+
+- `nclex_user_id()` → `auth.uid()`.
+- `nclex_user_has_role(role)` → bool.
+- `nclex_user_has_permission(perm)` → bool (SUPER_ADMIN passes implicitly).
+
+### Deferred to future sessions
+
+- `nclex_sessions` (concurrent session control) — auth build.
+- `nclex_reset_requests` — forgot-password flow.
+- `nclex_auth_events` — audit log.
+- `nclex_tutor_applications` — "Become a Tutor" public form.
+- `nclex_tutor_profiles` — tutor-specific extra fields.
+- Manual SUPER_ADMIN seed for Sam's account (runs after register flow exists).
+
+### Next session (continues today)
+
+Sam is driving from Claude web. After this report, he will decide what
+to tackle next — likely either the auth flow (register / login /
+router / guard) or the basic dashboard placeholders.
+
+---
+
 ## Session — 2026-04-20 (Product planning — Claude Web, second long session)
 
 Marathon session. **All 9 MyNclex planning topics now settled.**
