@@ -26,6 +26,13 @@ export interface BankFormInitial {
   matrix_rows: { id: string; text: string; feedback: string }[];
   matrix_columns: { id: string; text: string }[];
   matrix_correct: Record<string, string>;   // rowId -> columnId
+  // Bow-tie-specific fields — empty/default for non-BOWTIE types
+  bowtie_left_label:   string;
+  bowtie_left_tokens:  { id: string; text: string; feedback: string; correct: boolean }[];
+  bowtie_centre_label: string;
+  bowtie_centre_tokens:{ id: string; text: string; feedback: string; correct: boolean }[];
+  bowtie_right_label:  string;
+  bowtie_right_tokens: { id: string; text: string; feedback: string; correct: boolean }[];
   client_needs_category: string;
   client_needs_subcategory: string;
   nursing_subject: string;
@@ -80,6 +87,26 @@ export function emptyInitial(): BankFormInitial {
       { id: 'c3', text: '' },
     ],
     matrix_correct: {},
+    // Bow-tie defaults: each wing pre-fills with the minimum correct count
+    // of empty tokens, plus one extra distractor slot so there's something
+    // to see. Curator fills in text, ticks correct, adds or removes rows.
+    bowtie_left_label: 'Actions to take',
+    bowtie_left_tokens: [
+      { id: 'lt1', text: '', feedback: '', correct: false },
+      { id: 'lt2', text: '', feedback: '', correct: false },
+      { id: 'lt3', text: '', feedback: '', correct: false },
+    ],
+    bowtie_centre_label: 'Condition',
+    bowtie_centre_tokens: [
+      { id: 'ct1', text: '', feedback: '', correct: false },
+      { id: 'ct2', text: '', feedback: '', correct: false },
+    ],
+    bowtie_right_label: 'Parameters to monitor',
+    bowtie_right_tokens: [
+      { id: 'rt1', text: '', feedback: '', correct: false },
+      { id: 'rt2', text: '', feedback: '', correct: false },
+      { id: 'rt3', text: '', feedback: '', correct: false },
+    ],
     question_ref: '',
     batch_id: '',
   };

@@ -440,6 +440,57 @@ function rowToInitial(row: FullBankRow): BankFormInitial {
     matrix_correct = { ...(mk.cells ?? {}) };
   }
 
+  // Bow-tie fields
+  let bowtie_left_label   = '';
+  let bowtie_left_tokens: { id: string; text: string; feedback: string; correct: boolean }[] = [];
+  let bowtie_centre_label = '';
+  let bowtie_centre_tokens: { id: string; text: string; feedback: string; correct: boolean }[] = [];
+  let bowtie_right_label  = '';
+  let bowtie_right_tokens: { id: string; text: string; feedback: string; correct: boolean }[] = [];
+
+  if (qtype === 'BOWTIE') {
+    const bc = row.content as {
+      left?:   { label?: string; tokens?: { id: string; text: string }[] };
+      centre?: { label?: string; tokens?: { id: string; text: string }[] };
+      right?:  { label?: string; tokens?: { id: string; text: string }[] };
+    };
+    const bk = row.correct as {
+      left?: string[];
+      centre?: string;
+      right?: string[];
+      feedback?: Record<string, string>;
+    };
+
+    const fbMap = bk.feedback ?? {};
+    const leftCorrect   = new Set(bk.left ?? []);
+    const centreCorrect = bk.centre ?? '';
+    const rightCorrect  = new Set(bk.right ?? []);
+
+    bowtie_left_label = bc.left?.label ?? '';
+    bowtie_left_tokens = (bc.left?.tokens ?? []).map((t) => ({
+      id: t.id,
+      text: t.text,
+      feedback: fbMap[t.id] ?? '',
+      correct: leftCorrect.has(t.id),
+    }));
+
+    bowtie_centre_label = bc.centre?.label ?? '';
+    bowtie_centre_tokens = (bc.centre?.tokens ?? []).map((t) => ({
+      id: t.id,
+      text: t.text,
+      feedback: fbMap[t.id] ?? '',
+      correct: t.id === centreCorrect,
+    }));
+
+    bowtie_right_label = bc.right?.label ?? '';
+    bowtie_right_tokens = (bc.right?.tokens ?? []).map((t) => ({
+      id: t.id,
+      text: t.text,
+      feedback: fbMap[t.id] ?? '',
+      correct: rightCorrect.has(t.id),
+    }));
+  }
+
   return {
     item_id: row.item_id,
     question_type: qtype,
@@ -453,6 +504,12 @@ function rowToInitial(row: FullBankRow): BankFormInitial {
     matrix_rows,
     matrix_columns,
     matrix_correct,
+    bowtie_left_label,
+    bowtie_left_tokens,
+    bowtie_centre_label,
+    bowtie_centre_tokens,
+    bowtie_right_label,
+    bowtie_right_tokens,
     client_needs_category: row.client_needs_category ?? '',
     client_needs_subcategory: row.client_needs_subcategory ?? '',
     nursing_subject: row.nursing_subject ?? '',

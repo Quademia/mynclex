@@ -28,7 +28,7 @@ import type {
 } from '@/lib/bank/types';
 import { parseByType } from '@/lib/bank/parsers';
 
-const VALID_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N', 'MATRIX']);
+const VALID_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N', 'MATRIX', 'BOWTIE']);
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
 
@@ -147,6 +147,30 @@ function parseFormData(formData: FormData): ParsedItem | { error: string } {
     if (val) matrixCorrectByRow[rowId] = String(val);
   }
 
+  // Bow-tie-specific FormData extraction (only populated when type is BOWTIE)
+  // Each wing's tokens arrive as parallel arrays. Correct picks arrive
+  // via wing-specific field names.
+  const bowtieLeftLabel   = String(formData.get('bowtie_left_label') ?? '');
+  const bowtieCentreLabel = String(formData.get('bowtie_centre_label') ?? '');
+  const bowtieRightLabel  = String(formData.get('bowtie_right_label') ?? '');
+
+  const bowtieLeftTokenIds       = formData.getAll('bowtie_left_token_id').map(String);
+  const bowtieLeftTokenTexts     = formData.getAll('bowtie_left_token_text').map(String);
+  const bowtieLeftTokenFeedbacks = formData.getAll('bowtie_left_token_feedback').map(String);
+  const bowtieLeftCorrectIds     = formData.getAll('bowtie_left_correct').map(String);
+
+  const bowtieCentreTokenIds       = formData.getAll('bowtie_centre_token_id').map(String);
+  const bowtieCentreTokenTexts     = formData.getAll('bowtie_centre_token_text').map(String);
+  const bowtieCentreTokenFeedbacks = formData.getAll('bowtie_centre_token_feedback').map(String);
+  // Centre uses a radio (single value, one key)
+  const bowtieCentreCorrectRaw = String(formData.get('bowtie_centre_correct') ?? '');
+  const bowtieCentreCorrectIds = bowtieCentreCorrectRaw ? [bowtieCentreCorrectRaw] : [];
+
+  const bowtieRightTokenIds       = formData.getAll('bowtie_right_token_id').map(String);
+  const bowtieRightTokenTexts     = formData.getAll('bowtie_right_token_text').map(String);
+  const bowtieRightTokenFeedbacks = formData.getAll('bowtie_right_token_feedback').map(String);
+  const bowtieRightCorrectIds     = formData.getAll('bowtie_right_correct').map(String);
+
   const parsed = parseByType(question_type, {
     optionIds,
     optionTexts,
@@ -161,6 +185,29 @@ function parseFormData(formData: FormData): ParsedItem | { error: string } {
       colIds: matrixColIds,
       colTexts: matrixColTexts,
       correctByRow: matrixCorrectByRow,
+    },
+    bowtie: {
+      left: {
+        label: bowtieLeftLabel,
+        tokenIds: bowtieLeftTokenIds,
+        tokenTexts: bowtieLeftTokenTexts,
+        tokenFeedbacks: bowtieLeftTokenFeedbacks,
+        correctIds: bowtieLeftCorrectIds,
+      },
+      centre: {
+        label: bowtieCentreLabel,
+        tokenIds: bowtieCentreTokenIds,
+        tokenTexts: bowtieCentreTokenTexts,
+        tokenFeedbacks: bowtieCentreTokenFeedbacks,
+        correctIds: bowtieCentreCorrectIds,
+      },
+      right: {
+        label: bowtieRightLabel,
+        tokenIds: bowtieRightTokenIds,
+        tokenTexts: bowtieRightTokenTexts,
+        tokenFeedbacks: bowtieRightTokenFeedbacks,
+        correctIds: bowtieRightCorrectIds,
+      },
     },
   });
 

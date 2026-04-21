@@ -17,6 +17,7 @@ import { parseTf } from './tf';
 import { parseSata } from './sata';
 import { parseSelectN } from './select-n';
 import { parseMatrix, type MatrixParseInput } from './matrix';
+import { parseBowtie, type BowtieParseInput } from './bowtie';
 
 export type ParseResult =
   | { ok: true; content: BankItemContent; correct: BankItemCorrect }
@@ -31,6 +32,7 @@ export function parseByType(
     correctIds: string[];
     selectCount?: number;
     matrix?: MatrixParseInput;
+    bowtie?: BowtieParseInput;
   },
 ): ParseResult {
   switch (question_type) {
@@ -68,6 +70,12 @@ export function parseByType(
         return { ok: false, error: 'Missing matrix payload.' };
       }
       return parseMatrix(params.matrix);
+    }
+    case 'BOWTIE': {
+      if (!params.bowtie) {
+        return { ok: false, error: 'Missing bow-tie payload.' };
+      }
+      return parseBowtie(params.bowtie);
     }
   }
 }

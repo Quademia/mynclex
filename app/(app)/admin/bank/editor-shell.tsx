@@ -36,6 +36,7 @@ import { TfEditor } from '@/lib/bank/editors/tf-editor';
 import { SataEditor } from '@/lib/bank/editors/sata-editor';
 import { SelectNEditor } from '@/lib/bank/editors/select-n-editor';
 import { MatrixEditor } from '@/lib/bank/editors/matrix-editor';
+import { BowtieEditor } from '@/lib/bank/editors/bowtie-editor';
 import {
   createBankItemAction,
   updateBankItemAction,
@@ -165,6 +166,18 @@ export function EditorShell({
             initialRows={editorInheritsInitial ? initial.matrix_rows : []}
             initialColumns={editorInheritsInitial ? initial.matrix_columns : []}
             initialCorrect={editorInheritsInitial ? initial.matrix_correct : {}}
+          />
+        );
+      case 'BOWTIE':
+        return (
+          <BowtieEditor
+            key="bowtie"
+            initialLeftLabel={editorInheritsInitial ? initial.bowtie_left_label : 'Actions to take'}
+            initialLeftTokens={editorInheritsInitial ? initial.bowtie_left_tokens : []}
+            initialCentreLabel={editorInheritsInitial ? initial.bowtie_centre_label : 'Condition'}
+            initialCentreTokens={editorInheritsInitial ? initial.bowtie_centre_tokens : []}
+            initialRightLabel={editorInheritsInitial ? initial.bowtie_right_label : 'Parameters to monitor'}
+            initialRightTokens={editorInheritsInitial ? initial.bowtie_right_tokens : []}
           />
         );
     }

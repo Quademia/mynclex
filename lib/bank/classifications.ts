@@ -12,9 +12,9 @@
 // is trivial.
 
 // ─────────────────────────────────────────────────────────────
-// Question types — Family A (MCQ/TF/SATA/SELECT_N) complete;
-// Matrix added in Slice 1.5. HIGHLIGHT, CLOZE, DRAG_DROP, BOWTIE
-// land in later slices, each as its own bespoke editor.
+// Question types — Family A complete; Matrix (1.5) and Bow-tie
+// (1.6) added in Family B. HIGHLIGHT, CLOZE, DRAG_DROP land in
+// later slices, each as its own bespoke editor.
 // ─────────────────────────────────────────────────────────────
 
 export const QUESTION_TYPES = [
@@ -23,6 +23,7 @@ export const QUESTION_TYPES = [
   { value: 'SATA', label: 'SATA — Select All That Apply' },
   { value: 'SELECT_N', label: 'Select N — Select exactly N options' },
   { value: 'MATRIX', label: 'Matrix — Grid, one correct per row' },
+  { value: 'BOWTIE', label: 'Bow-tie — 5-slot NGN (2 Left · 1 Centre · 2 Right)' },
 ] as const;
 
 export type QuestionType = (typeof QUESTION_TYPES)[number]['value'];
@@ -35,6 +36,7 @@ export const ITEM_ID_PREFIX: Record<QuestionType, string> = {
   SATA: 'NCLEX_SATA_',
   SELECT_N: 'NCLEX_SELN_',
   MATRIX: 'NCLEX_MAT_',
+  BOWTIE: 'NCLEX_BT_',
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -133,3 +135,33 @@ export const MIN_MATRIX_COLS = 2;
 export const MAX_MATRIX_COLS = 6;
 export const DEFAULT_MATRIX_ROWS = 3;
 export const DEFAULT_MATRIX_COLS = 3;
+
+// Bow-tie bounds (Family B — Slice 1.6)
+// Structural: each wing has a fixed correct-count. Tokens >= correct-count.
+export const BT_LEFT_CORRECT   = 2;
+export const BT_CENTRE_CORRECT = 1;
+export const BT_RIGHT_CORRECT  = 2;
+export const BT_WING_MAX_TOKENS = 8;  // applies to all three wings
+
+// Preset label suggestions (curator can override with custom text)
+export const BT_LEFT_PRESETS = [
+  'Actions to take',
+  'Interventions',
+  'Evidence / Supporting findings',
+  'Contributing factors',
+] as const;
+
+export const BT_CENTRE_PRESETS = [
+  'Condition',
+  'Potential condition',
+  'Problem',
+  'Priority concern',
+  'Diagnosis',
+] as const;
+
+export const BT_RIGHT_PRESETS = [
+  'Parameters to monitor',
+  'Assessments',
+  'Evaluation criteria',
+  'Expected outcomes',
+] as const;

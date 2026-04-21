@@ -124,7 +124,14 @@ Example `content` shapes:
     "columns": [{ "id": "c1", "text": "..." }, ...]
   }
   ```
-- **Bow-tie:** `{ "tokens": [...], "slots": { "actions": 2, "condition": 1, "parameters": 2 } }`
+- **Bow-tie:**
+  ```
+  {
+    "left":   { "label": "Actions to take",       "tokens": [{"id":"lt1","text":"Give aspirin"}, ...] },
+    "centre": { "label": "Condition",             "tokens": [{"id":"ct1","text":"Inferior wall MI"}, ...] },
+    "right":  { "label": "Parameters to monitor", "tokens": [{"id":"rt1","text":"Cardiac rhythm"}, ...] }
+  }
+  ```
 - **Highlight:** `{ "passage": "...", "selectable_chunks": [...] }`
 - **Cloze:** `{ "template": "Most likely {0} due to {1}", "blanks": [{ "options": [...] }, ...] }`
 
@@ -175,15 +182,17 @@ Example `correct` shapes (with feedback):
 - **Bow-tie:**
   ```
   {
-    "condition": "Inferior wall MI",
-    "actions": ["Give aspirin", "Apply oxygen"],
-    "parameters": ["Cardiac rhythm", "Pain level"],
-    "feedback": {
-      "Give aspirin": "Antiplatelet reduces clot extension",
-      "Start NG tube": "Not indicated for MI"
-    }
+    "left":     ["lt1", "lt2"],
+    "centre":   "ct1",
+    "right":    ["rt1", "rt2"],
+    "feedback": { "lt1": "...", "ct1": "...", "rt1": "..." }
   }
   ```
+
+  Bow-tie uses three self-contained wings with curator-defined labels
+  (preset dropdown + typeable custom). Wing-scoped correctness: 2 / 1 /
+  2. Token IDs prefixed `lt` / `ct` / `rt` so the flat feedback map
+  works across all three wings without collisions.
 
 ### Per-option feedback
 

@@ -6,6 +6,153 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-22 (Bank Slice 1.6 — Bow-tie authoring)
+
+Second Family B question type live. End-to-end create / edit / delete
+for BOWTIE. Introduced the tabbed-wing switcher pattern with live
+answer-key preview — the first use of tabs anywhere in `/admin/bank`.
+Plan drafted in Claude Web; executed from a pre-written handoff file.
+
+### Decisions (from discussion with Sam, via Claude Web)
+
+- **Strict NCLEX correctness** — exactly 2 Left + 1 Centre + 2 Right.
+  No "any of these would count" flexibility in this slice.
+- **Three self-contained wings** — rejected the global token pool
+  approach mid-design; each wing owns its label, tokens, and
+  correctness independently. Matches how NCSBN writes bow-ties.
+- **Curator-defined wing labels** — preset dropdown per wing +
+  typeable custom. Text field is source of truth; dropdown fills
+  the field but doesn't lock it. Supports both standard bow-ties
+  ("Actions / Condition / Parameters") and NCSBN variants
+  ("Evidence / Problem / Actions").
+- **Tabbed editing with live preview** — only one wing visible at
+  a time to keep form focused. Top-of-panel preview + status dots
+  on tabs keep the whole picture in view while zoomed in.
+- **Coloured tab + wing pairing** — green Left, amber Centre, red
+  Right. Matches NGN primer visual conventions and makes the three
+  wings instantly distinguishable.
+- **Token ID prefixes lt / ct / rt** — wing-local uniqueness via
+  prefix is sufficient; feedback map is flat and keyed by token ID
+  across the whole question.
+- **Soft-cap UX for the 3rd checkbox** in Left/Right wings: ticking a
+  3rd auto-unticks the oldest picked. Avoids a confirmation modal
+  while still enforcing "exactly 2 correct."
+
+### Drift caught and fixed during execution
+
+- **`VALID_TYPES` in `actions.ts`** — the handoff flagged this
+  specifically (lesson from Slice 1.5's drift). Added `'BOWTIE'`; no
+  surprise drift beyond the flagged surface.
+- **`HiddenSerialisers` wrapper swap** — the handoff wrapped each
+  token's hidden inputs in a `<span>`. Switched to `<Fragment
+  key=...>` to match the pattern Slice 1.5's Matrix editor uses —
+  same React key semantics, no stray inline elements in the DOM,
+  still works the same inside a `<form>`.
+- **`BowtiePreview` `chip`/`emptyChip`** — the handoff called these
+  as plain functions without passing keys. Harmless visually but
+  React would have warned about missing keys in the sibling list.
+  Added explicit `key` props (`'l0'`, `'l1'`, `'c0'`, `'r0'`, `'r1'`)
+  at the call sites — same output, no warning.
+- **Removed unused `validity` prop on `WingPanel`** — the handoff
+  defined it but the component only reads `correctCount`. ESLint
+  `no-unused-vars` would have caught it; dropped to keep the file
+  clean.
+
+### Files created
+
+- `mynclex/lib/bank/parsers/bowtie.ts` — strict NCLEX parser.
+- `mynclex/lib/bank/editors/bowtie-editor.tsx` — three-wing tabbed UI
+  with live preview + status dots + hidden FormData serialisers.
+
+### Files modified
+
+- `mynclex/lib/bank/classifications.ts` — BOWTIE in QUESTION_TYPES +
+  ITEM_ID_PREFIX (`NCLEX_BT_`); BT_*_CORRECT + BT_WING_MAX_TOKENS
+  constants; BT_{LEFT,CENTRE,RIGHT}_PRESETS label lists.
+- `mynclex/lib/bank/types.ts` — BowtieToken / BowtieWing /
+  BowtieContent / BowtieCorrect + union extensions.
+- `mynclex/lib/bank/form-shape.ts` — 6 new `bowtie_*` fields on
+  `BankFormInitial` (one label + one token list per wing);
+  `emptyInitial()` defaults: preset labels + 3/2/3 empty tokens.
+- `mynclex/lib/bank/parsers/index.ts` — import + `bowtie?` in params
+  + BOWTIE branch in `parseByType`.
+- `mynclex/app/(app)/admin/bank/actions.ts` — `'BOWTIE'` added to
+  VALID_TYPES; per-wing FormData extraction (label + parallel id /
+  text / feedback / correct arrays); payload passed to dispatcher.
+- `mynclex/app/(app)/admin/bank/editor-shell.tsx` — BowtieEditor
+  import + BOWTIE case in `renderEditor()`.
+- `mynclex/app/(app)/admin/bank/page.tsx` — `rowToInitial` BOWTIE
+  branch; 6 new `bowtie_*` fields on the returned `BankFormInitial`.
+- `mynclex/app/dashboards.css` — `.bt-*` block appended (preview
+  grid, tab bar with coloured active-tab borders, wing cards,
+  counter pills, token rows). Family A + Matrix styles untouched.
+- `mynclex/db/seed-bank-dev.sql` — one Bow-tie seed row
+  (`NCLEX_BT_00001`, "Inferior wall MI"). Prior row 9's closing `;`
+  became `,`.
+- `mynclex/docs/product-plan/bank.md` — `content` example gains the
+  three-wing shape with `label` + `tokens`; `correct` example swaps
+  the old condition/actions/parameters shape for
+  `left`/`centre`/`right` + flat feedback map; paragraph explaining
+  wing-scoped correctness and the lt/ct/rt prefix convention.
+
+### Migrations applied to dev (`zrakjibtxyzoqcdtvpmq`)
+
+- `mynclex_bank_bowtie_seed_slice_1_6` — the single INSERT. Applied
+  via Supabase MCP; returned `{"success":true}`.
+
+### Verified locally
+
+- `npx tsc --noEmit` — clean (no output).
+- `npx eslint app/(app)/admin/bank lib/bank` — clean (no output).
+- `npm run build` (webpack) — clean. Every route still compiles:
+  `/`, `/admin`, `/admin/bank`, `/admin/payments`, `/login`,
+  `/logout`, `/no-access`, `/pick-role`, `/register`, `/router`,
+  `/student`, `/tutor` + proxy middleware.
+
+### Not yet verified (Sam's session, on dev Worker)
+
+- Create flow end-to-end as `+mynclexsuperadmin` and `+mynclexadmin`.
+- Tab switching preserves state across left/centre/right.
+- Label-picker preset → tab text + preview column header updates.
+- Ticking / unticking correct tokens updates preview chips live.
+- Soft-cap: ticking a 3rd checkbox auto-unticks the oldest.
+- Counter pill colour transitions (warn / ok / err).
+- Edit flow — reopen a saved Bow-tie row; all three wings pre-fill
+  including labels, tokens, ticks, feedback.
+- Rejection cases via tampered submit: blank wing label; wrong
+  correct count; empty wing.
+
+### Deferred to future sessions / out of scope here
+
+- **CLONING.md update** — file still doesn't exist. Same deferral as
+  Slice 1.5.
+- **Cloze, Highlight, Drag-drop** — each as its own slice.
+- **Student runner** — consumes all per-type editors in display mode;
+  unblocks preview for every authored type.
+- **Tutor-private BOWTIE authoring** — same editor against
+  `nclex_tutor_questions` once tutor workflows arrive.
+- **Tab keyboard navigation (arrow-key)** — today tabs are reachable
+  via click and Tab focus but arrow-key tab-list semantics aren't
+  wired. Accessible enough for v1; revisit if curators ask.
+- **Token drag-to-reorder within a wing** — not needed for v1; string
+  IDs keep it safe whenever it's added.
+- **Pre-existing `.bank-grid-2` / `.bank-grid-3` / `.bank-link-btn`
+  gaps from Slice 1.4** — still open; not introduced here.
+
+### Next session
+
+Options:
+- (a) Cloze (Slice 1.7) — sentence with inline dropdown blanks.
+  Bounded, template-parse pattern.
+- (b) Highlight — passage with selectable chunks.
+- (c) Drag-drop — ordered slot filling. Most interactive.
+- (d) Student runner — start consuming the 6 live types end-to-end.
+
+Per handoff's recommendation: finish Family B before the runner.
+Cloze is the natural next.
+
+---
+
 ## Session — 2026-04-21 (Bank Slice 1.5 — Matrix authoring)
 
 First Family B question type live. End-to-end create / edit / delete

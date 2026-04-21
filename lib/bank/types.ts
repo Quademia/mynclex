@@ -97,6 +97,36 @@ export interface MatrixCorrect {
 }
 
 // ─────────────────────────────────────────────────────────────
+// BOWTIE — fixed NGN bow-tie: 2 Left + 1 Centre + 2 Right = 5 correct.
+// Three self-contained wings, each with its own label, tokens, and
+// per-wing correctness rule. Token IDs are globally unique across all
+// three wings (prefixed lt/ct/rt) so the flat feedback map just works.
+// ─────────────────────────────────────────────────────────────
+
+export interface BowtieToken {
+  id: string;       // 'lt1' | 'ct1' | 'rt1' etc.
+  text: string;
+}
+
+export interface BowtieWing {
+  label: string;                 // student-facing column heading
+  tokens: BowtieToken[];
+}
+
+export interface BowtieContent {
+  left:   BowtieWing;
+  centre: BowtieWing;
+  right:  BowtieWing;
+}
+
+export interface BowtieCorrect {
+  left:     string[];            // exactly 2 token IDs (from left.tokens)
+  centre:   string;              // exactly 1 token ID (from centre.tokens)
+  right:    string[];            // exactly 2 token IDs (from right.tokens)
+  feedback: Record<string, string>;  // keyed by token ID (any wing)
+}
+
+// ─────────────────────────────────────────────────────────────
 // Discriminated union — narrow on question_type to get the right shape.
 // ─────────────────────────────────────────────────────────────
 
@@ -105,11 +135,13 @@ export type BankItemContent =
   | TfContent
   | SataContent
   | SelectNContent
-  | MatrixContent;
+  | MatrixContent
+  | BowtieContent;
 
 export type BankItemCorrect =
   | McqCorrect
   | TfCorrect
   | SataCorrect
   | SelectNCorrect
-  | MatrixCorrect;
+  | MatrixCorrect
+  | BowtieCorrect;

@@ -118,4 +118,15 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Medical-Surgical', 'Cardiovascular', 'Shock recognition', 'Prioritisation',
  'Medium', 'Analyze', ARRAY['NGN','matrix','prioritisation'],
+ TRUE, FALSE, 1, 'DEV_SEED_001'),
+
+-- 10. Bow-tie — Inferior wall MI (Cardiac, Medium)
+('NCLEX_BT_00001', 'BOWTIE',
+ 'A 72-year-old female presents with chest pain radiating to the left jaw, diaphoresis, BP 90/58, HR 108. ECG shows ST elevation in leads II, III, aVF. Complete the bow-tie.',
+ 'ST elevation in II, III, aVF diagnoses inferior wall MI. Immediate priorities are antiplatelet therapy and oxygen delivery. Continuous rhythm and pain monitoring guide management.',
+ '{"left":{"label":"Actions to take","tokens":[{"id":"lt1","text":"Give aspirin 325 mg"},{"id":"lt2","text":"Apply oxygen"},{"id":"lt3","text":"Start NG tube"},{"id":"lt4","text":"Administer warfarin"}]},"centre":{"label":"Condition","tokens":[{"id":"ct1","text":"Inferior wall MI"},{"id":"ct2","text":"Pulmonary embolism"},{"id":"ct3","text":"Anxiety attack"}]},"right":{"label":"Parameters to monitor","tokens":[{"id":"rt1","text":"Cardiac rhythm"},{"id":"rt2","text":"Pain level"},{"id":"rt3","text":"Temperature"},{"id":"rt4","text":"Bowel sounds"}]}}'::jsonb,
+ '{"left":["lt1","lt2"],"centre":"ct1","right":["rt1","rt2"],"feedback":{"lt1":"Antiplatelet therapy reduces clot extension in acute MI.","lt2":"Maintains oxygenation to ischaemic myocardium.","lt3":"Not indicated in acute MI without GI bleed.","ct1":"ST elevation in II, III, aVF indicates RCA territory ischaemia.","ct2":"PE causes pleuritic pain, not ST elevation in inferior leads.","rt1":"Arrhythmias common post-MI; continuous monitoring essential.","rt2":"Guides analgesia and indicates ischaemia reduction."}}'::jsonb,
+ 'Physiological Integrity', 'Physiological Adaptation',
+ 'Medical-Surgical', 'Cardiovascular', 'Acute coronary syndrome', 'STEMI recognition',
+ 'Medium', 'Analyze', ARRAY['NGN','bowtie','cardiac','STEMI'],
  TRUE, FALSE, 1, 'DEV_SEED_001');
