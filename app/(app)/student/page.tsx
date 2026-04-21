@@ -1,13 +1,11 @@
-// mynclex/app/student/page.tsx
+// mynclex/app/(app)/student/page.tsx
 //
-// Student dashboard. Server-side role check: user must hold the STUDENT
-// role or they're bounced to /no-access.
+// Student dashboard body. The topbar + footer live in the (app) shell
+// layout — this page only renders its own content. Server-side role
+// check: user must hold STUDENT or they're bounced to /no-access.
 
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { RoleSwitcher, type Role } from '@/components/role-switcher';
-import '../landing.css';
-import '../dashboards.css';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +30,7 @@ export default async function StudentDashboard() {
   ]);
 
   const profile = profileRes.data;
-  const roles = (rolesRes.data ?? []).map((r) => r.role as Role);
+  const roles = (rolesRes.data ?? []).map((r) => r.role as string);
 
   if (!roles.includes('STUDENT')) {
     redirect('/no-access');
@@ -48,21 +46,12 @@ export default async function StudentDashboard() {
         <div className="dash-header">
           <h1 className="dash-title">Welcome, {displayName}</h1>
           <p className="dash-subtitle">Student workspace — MyNclex.</p>
-          <span className="dash-role-badge">Student</span>
         </div>
 
         <div className="dash-note">
           <strong>Coming next:</strong> NCLEX-RN question bank, readiness
           packs, programmes you&apos;re enrolled in, and your progress
           journey.
-        </div>
-
-        <RoleSwitcher currentRole="STUDENT" availableRoles={roles} />
-
-        <div className="dash-signout-wrap">
-          <form method="POST" action="/logout">
-            <button type="submit" className="dash-signout">Sign out</button>
-          </form>
         </div>
       </section>
     </main>

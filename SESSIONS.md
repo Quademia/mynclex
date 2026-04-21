@@ -6,6 +6,92 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-21 (App shell — Slice 2.5)
+
+Shared app chrome introduced. Each authenticated workspace page
+(`/student`, `/tutor`, `/admin`) now renders inside one shell
+layout: sticky topbar, footer, and cleaner page bodies.
+
+### Decisions (from discussion with Sam)
+
+- **Single-tier topbar, not topbar+sidebar.** Same pattern MyTeacher
+  uses: sticky topbar with logo on the left, middle nav links, user
+  controls on the right. Different roles will see different nav
+  links when feature pages land. Mobile: hamburger → drawer (scaffold
+  only today — nothing to put in it yet).
+- **Sidebars are per-feature, opt-in later.** The Bank or Programmes
+  may grow sub-navigation sidebars (nested `layout.tsx` under their
+  route). Not built today, no plumbing needed now.
+- **Topbar mostly empty in the middle today.** No feature pages
+  exist yet to link to. As Bank / Programmes / Profile / admin
+  sub-routes arrive, links get added here and vary per role.
+- **Role switcher moved from inline (bottom of each dashboard) to
+  topbar** — now a chip showing the current role that opens a
+  dropdown of other roles held. Only rendered for multi-role users.
+- **User menu: initials circle** on the far right. Click opens a
+  dropdown with name, email, and Sign out (form POST to `/logout`).
+  Sign-out button removed from each dashboard body.
+- **Route group `(app)`** wraps only the workspace pages. Auth pages
+  (`/login`, `/register`), transitions (`/pick-role`, `/router`),
+  and dead-ends (`/no-access`) deliberately skip the shell.
+
+### URL impact
+
+None. Route group parens in the folder name don't appear in URLs.
+`/student` is still `/student` from the user's perspective.
+
+### Files created
+
+- `mynclex/app/(app)/layout.tsx` — shared shell layout. Fetches
+  user, profile, roles, and active-role cookie; passes to topbar.
+  Redirects to `/login` if no user.
+- `mynclex/app/shell.css` — topbar, dropdown, footer styles.
+- `mynclex/components/topbar.tsx` — Server Component, renders the
+  topbar skeleton and delegates interactive bits to children.
+- `mynclex/components/role-chip.tsx` — Client Component (dropdown
+  toggle). Replaces the old bottom-of-page role switcher.
+- `mynclex/components/user-menu.tsx` — Client Component (dropdown
+  toggle) with sign-out.
+- `mynclex/components/footer.tsx` — static footer.
+
+### Files moved
+
+- `mynclex/app/student/` → `mynclex/app/(app)/student/`
+- `mynclex/app/tutor/`   → `mynclex/app/(app)/tutor/`
+- `mynclex/app/admin/`   → `mynclex/app/(app)/admin/`
+
+### Files modified
+
+- Each role page (`student`, `tutor`, `admin`): stripped the inline
+  role badge, inline role switcher, and inline sign-out form. CSS
+  imports dropped from page files — layout imports them now. Each
+  page keeps its own server-side role check.
+- `mynclex/app/dashboards.css`: removed dead `.role-switcher*` and
+  `.dash-role-badge` / `.dash-signout-wrap` classes now that the
+  topbar owns those concerns.
+- `mynclex/app/pick-role/actions.ts`: comment updated to reference
+  the topbar role-chip instead of the retired role-switcher.
+
+### Files deleted
+
+- `mynclex/components/role-switcher.tsx` — replaced by the topbar
+  role-chip.
+
+### Deferred to future sessions
+
+- **Feature nav links in the topbar** — added per-role as Bank,
+  Programmes, Profile, admin sub-sections land.
+- **Mobile drawer contents** — scaffolding only today; fills in
+  when nav links exist.
+- **Active-link highlighting** in the topbar — wire up once there
+  are links to highlight.
+- **Per-feature sidebars** (e.g. `/bank/*` might get one) — decide
+  when the feature is built.
+- **Profile link** in user menu — points at `/profile` once that
+  page exists.
+
+---
+
 ## Session — 2026-04-21 (Auth flow — Slice 2 — role-specific dashboards)
 
 Slice 2 built end-to-end with Claude Desktop (no Claude Web prompt).

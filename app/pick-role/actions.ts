@@ -1,8 +1,8 @@
 // mynclex/app/pick-role/actions.ts
 //
-// Server Action used by both /pick-role and the role-switcher component
-// on every dashboard. Sets the `nclex_active_role` cookie and redirects
-// to the chosen role's dashboard.
+// Server Action used by both /pick-role and the topbar role-chip.
+// Sets the `nclex_active_role` cookie and redirects to the chosen
+// role's dashboard.
 
 'use server';
 

@@ -41,20 +41,6 @@
   color: var(--text-muted);
 }
 
-.dash-role-badge {
-  display: inline-block;
-  margin-top: 12px;
-  padding: 4px 10px;
-  background: rgba(45, 125, 114, 0.12);
-  border: 1px solid rgba(45, 125, 114, 0.35);
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--teal-bright);
-}
-
 .dash-signout {
   width: 100%;
   padding: 12px 20px;
@@ -89,61 +75,6 @@
 .dash-note strong {
   color: var(--teal-bright);
   font-weight: 600;
-}
-
-/* ─────────────────────────────────────────────────────
- * Role switcher (appears on a dashboard when the user
- * holds more than one role).
- * ───────────────────────────────────────────────────── */
-
-.role-switcher {
-  margin-top: 24px;
-  padding: 16px;
-  background: rgba(232, 238, 245, 0.02);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-
-.role-switcher-label {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin-bottom: 10px;
-}
-
-.role-switcher-buttons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.role-switcher-form {
-  margin: 0;
-}
-
-.role-switcher-btn {
-  padding: 8px 14px;
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-.role-switcher-btn:hover {
-  border-color: rgba(60, 162, 149, 0.5);
-  background: rgba(45, 125, 114, 0.08);
-  color: var(--teal-bright);
-}
-
-.dash-signout-wrap {
-  margin-top: 20px;
 }
 
 /* ─────────────────────────────────────────────────────
@@ -194,6 +125,4 @@
 
 @media (max-width: 480px) {
   .dash-card { padding: 32px 24px; }
-  .role-switcher-buttons { flex-direction: column; }
-  .role-switcher-btn { width: 100%; }
 }

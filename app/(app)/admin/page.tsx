@@ -1,4 +1,4 @@
-// mynclex/app/admin/page.tsx
+// mynclex/app/(app)/admin/page.tsx
 //
 // Admin section menu. Serves both ADMIN and SUPER_ADMIN roles.
 //
@@ -16,13 +16,12 @@
 //
 // Today this is a placeholder: no real admin sections exist yet, so the
 // menu is empty. Cards will appear here as real admin features land.
+//
+// Topbar + footer live in the (app) shell layout.
 
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { RoleSwitcher, type Role } from '@/components/role-switcher';
-import '../landing.css';
-import '../dashboards.css';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +46,7 @@ export default async function AdminDashboard() {
   ]);
 
   const profile = profileRes.data;
-  const roles = (rolesRes.data ?? []).map((r) => r.role as Role);
+  const roles = (rolesRes.data ?? []).map((r) => r.role as string);
 
   const holdsSuperAdmin = roles.includes('SUPER_ADMIN');
   const holdsAdmin = roles.includes('ADMIN');
@@ -56,11 +55,9 @@ export default async function AdminDashboard() {
     redirect('/no-access');
   }
 
-  // Which admin-level role is the user currently "viewing as"?
-  // Drives the badge and the role-switcher label. Source of truth:
-  // the `nclex_active_role` cookie set at /pick-role or via the switcher.
-  // Falls back to the higher-priority role the user actually holds if
-  // the cookie is missing or points somewhere else.
+  // Which admin-level view: drives the empty-state copy. Source of truth:
+  // the `nclex_active_role` cookie. Falls back to the higher-priority
+  // role the user actually holds.
   const cookieStore = await cookies();
   const activeRoleCookie = cookieStore.get('nclex_active_role')?.value;
 
@@ -85,9 +82,6 @@ export default async function AdminDashboard() {
         <div className="dash-header">
           <h1 className="dash-title">Welcome, {displayName}</h1>
           <p className="dash-subtitle">Admin workspace — MyNclex.</p>
-          <span className="dash-role-badge">
-            {isSuperAdmin ? 'Super Admin' : 'Admin'}
-          </span>
         </div>
 
         {isSuperAdmin ? (
@@ -104,14 +98,6 @@ export default async function AdminDashboard() {
             Contact your super admin to request access.
           </div>
         )}
-
-        <RoleSwitcher currentRole={viewingAs} availableRoles={roles} />
-
-        <div className="dash-signout-wrap">
-          <form method="POST" action="/logout">
-            <button type="submit" className="dash-signout">Sign out</button>
-          </form>
-        </div>
       </section>
     </main>
   );

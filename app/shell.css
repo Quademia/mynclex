@@ -1,0 +1,305 @@
+/* mynclex/app/shell.css
+ *
+ * Shared app shell: topbar + footer + their dropdowns. Applied via
+ * app/(app)/layout.tsx, which wraps /student, /tutor, /admin and any
+ * future authenticated workspace pages.
+ *
+ * CSS variables come from landing.css (must be imported alongside).
+ */
+
+/* ─────────────────────────────────────────────────────
+ * Shell layout skeleton
+ * ───────────────────────────────────────────────────── */
+
+.shell-root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Topbar
+ * ───────────────────────────────────────────────────── */
+
+.shell-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(9, 21, 36, 0.82);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.shell-topbar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Brand (left) */
+
+.shell-brand {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.shell-brand-name {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  background: linear-gradient(180deg, #ffffff 0%, #c9d4e1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.shell-brand-accent {
+  background: linear-gradient(180deg, #ffffff 0%, var(--teal-bright) 140%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+/* Middle nav (empty today; future feature links) */
+
+.shell-nav {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shell-nav-link {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.shell-nav-link:hover {
+  background: rgba(232, 238, 245, 0.06);
+  color: var(--text);
+}
+
+.shell-nav-link[aria-current="page"] {
+  background: rgba(45, 125, 114, 0.12);
+  color: var(--teal-bright);
+}
+
+/* Right cluster */
+
+.shell-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Role chip (shown only when user holds >1 role)
+ * ───────────────────────────────────────────────────── */
+
+.role-chip-wrap {
+  position: relative;
+}
+
+.role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 12px;
+  background: rgba(45, 125, 114, 0.12);
+  border: 1px solid rgba(45, 125, 114, 0.35);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal-bright);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.role-chip:hover {
+  background: rgba(45, 125, 114, 0.2);
+  border-color: rgba(60, 162, 149, 0.6);
+}
+
+.role-chip-caret {
+  opacity: 0.75;
+  transition: transform 0.15s ease;
+}
+
+.role-chip[aria-expanded="true"] .role-chip-caret {
+  transform: rotate(180deg);
+}
+
+/* ─────────────────────────────────────────────────────
+ * User menu trigger (initials circle)
+ * ───────────────────────────────────────────────────── */
+
+.user-menu-wrap {
+  position: relative;
+}
+
+.user-menu-trigger {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(45, 125, 114, 0.18);
+  border: 1px solid rgba(45, 125, 114, 0.4);
+  color: var(--teal-bright);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-menu-trigger:hover {
+  background: rgba(45, 125, 114, 0.28);
+  border-color: rgba(60, 162, 149, 0.6);
+}
+
+/* ─────────────────────────────────────────────────────
+ * Dropdown menu (shared by role-chip and user-menu)
+ * ───────────────────────────────────────────────────── */
+
+.shell-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 240px;
+  background: rgba(9, 21, 36, 0.96);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 8px;
+  z-index: 50;
+}
+
+.shell-dropdown-header {
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.shell-dropdown-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.shell-dropdown-email {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.shell-dropdown-label {
+  padding: 4px 10px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.shell-dropdown-item-form {
+  margin: 0;
+}
+
+.shell-dropdown-item {
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.shell-dropdown-item:hover {
+  background: rgba(232, 238, 245, 0.06);
+}
+
+.shell-dropdown-item-current {
+  cursor: default;
+  color: var(--teal-bright);
+  background: rgba(45, 125, 114, 0.08);
+}
+
+.shell-dropdown-item-current:hover {
+  background: rgba(45, 125, 114, 0.08);
+}
+
+.shell-dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+
+.shell-dropdown-item-signout {
+  color: #f87171;
+}
+
+.shell-dropdown-item-signout:hover {
+  background: rgba(239, 68, 68, 0.08);
+  color: #fca5a5;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Footer
+ * ───────────────────────────────────────────────────── */
+
+.shell-footer {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border);
+  background: rgba(9, 21, 36, 0.5);
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* ─────────────────────────────────────────────────────
+ * Responsive
+ * ───────────────────────────────────────────────────── */
+
+@media (max-width: 560px) {
+  .shell-topbar-inner { padding: 0 16px; gap: 10px; }
+  .shell-dropdown { min-width: 200px; }
+}
