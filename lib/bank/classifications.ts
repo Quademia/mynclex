@@ -12,9 +12,9 @@
 // is trivial.
 
 // ─────────────────────────────────────────────────────────────
-// Question types — Family A only for Slice 1.2.
-// MATRIX, HIGHLIGHT, CLOZE, DRAG_DROP, BOWTIE land in later slices,
-// each as its own bespoke editor.
+// Question types — Family A (MCQ/TF/SATA/SELECT_N) complete;
+// Matrix added in Slice 1.5. HIGHLIGHT, CLOZE, DRAG_DROP, BOWTIE
+// land in later slices, each as its own bespoke editor.
 // ─────────────────────────────────────────────────────────────
 
 export const QUESTION_TYPES = [
@@ -22,6 +22,7 @@ export const QUESTION_TYPES = [
   { value: 'TF', label: 'TF — True / False' },
   { value: 'SATA', label: 'SATA — Select All That Apply' },
   { value: 'SELECT_N', label: 'Select N — Select exactly N options' },
+  { value: 'MATRIX', label: 'Matrix — Grid, one correct per row' },
 ] as const;
 
 export type QuestionType = (typeof QUESTION_TYPES)[number]['value'];
@@ -33,6 +34,7 @@ export const ITEM_ID_PREFIX: Record<QuestionType, string> = {
   TF: 'NCLEX_TF_',
   SATA: 'NCLEX_SATA_',
   SELECT_N: 'NCLEX_SELN_',
+  MATRIX: 'NCLEX_MAT_',
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -123,3 +125,11 @@ export const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
 export const MIN_OPTIONS = 2;
 export const MAX_OPTIONS = 6;
 export const DEFAULT_OPTIONS = 4;
+
+// Matrix bounds (Family B — Slice 1.5)
+export const MIN_MATRIX_ROWS = 2;
+export const MAX_MATRIX_ROWS = 6;
+export const MIN_MATRIX_COLS = 2;
+export const MAX_MATRIX_COLS = 6;
+export const DEFAULT_MATRIX_ROWS = 3;
+export const DEFAULT_MATRIX_COLS = 3;

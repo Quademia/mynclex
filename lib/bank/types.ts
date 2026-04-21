@@ -71,6 +71,32 @@ export interface SelectNCorrect {
 }
 
 // ─────────────────────────────────────────────────────────────
+// MATRIX — rows × columns grid; each row picks exactly one column.
+// row_label is the editable top-left header (e.g. "Finding", "Medication").
+// ─────────────────────────────────────────────────────────────
+
+export interface MatrixRow {
+  id: string;     // 'r1', 'r2', ...
+  text: string;
+}
+
+export interface MatrixColumn {
+  id: string;     // 'c1', 'c2', ...
+  text: string;
+}
+
+export interface MatrixContent {
+  row_label: string;
+  rows: MatrixRow[];
+  columns: MatrixColumn[];
+}
+
+export interface MatrixCorrect {
+  cells: Record<string, string>;              // rowId -> columnId
+  feedback: Record<string, string>;           // rowId -> per-row feedback
+}
+
+// ─────────────────────────────────────────────────────────────
 // Discriminated union — narrow on question_type to get the right shape.
 // ─────────────────────────────────────────────────────────────
 
@@ -78,10 +104,12 @@ export type BankItemContent =
   | McqContent
   | TfContent
   | SataContent
-  | SelectNContent;
+  | SelectNContent
+  | MatrixContent;
 
 export type BankItemCorrect =
   | McqCorrect
   | TfCorrect
   | SataCorrect
-  | SelectNCorrect;
+  | SelectNCorrect
+  | MatrixCorrect;

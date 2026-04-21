@@ -116,7 +116,14 @@ until after submission.
 Example `content` shapes:
 
 - **MCQ:** `{ "options": [{ "id": "A", "text": "..." }, ...] }`
-- **Matrix:** `{ "rows": [...], "columns": [...] }`
+- **Matrix:**
+  ```
+  {
+    "row_label": "Finding",
+    "rows":    [{ "id": "r1", "text": "..." }, ...],
+    "columns": [{ "id": "c1", "text": "..." }, ...]
+  }
+  ```
 - **Bow-tie:** `{ "tokens": [...], "slots": { "actions": 2, "condition": 1, "parameters": 2 } }`
 - **Highlight:** `{ "passage": "...", "selectable_chunks": [...] }`
 - **Cloze:** `{ "template": "Most likely {0} due to {1}", "blanks": [{ "options": [...] }, ...] }`
@@ -146,10 +153,15 @@ Example `correct` shapes (with feedback):
 - **Matrix:**
   ```
   {
-    "cells": { "0": 0, "1": 1, "2": 2 },   -- row -> correct column index
-    "feedback": { "0": "Row 0 explanation...", "1": "...", "2": "..." }
+    "cells": { "r1": "c1", "r2": "c2", "r3": "c3" },   -- rowId -> correct columnId
+    "feedback": { "r1": "Row 1 explanation...", "r2": "...", "r3": "..." }
   }
   ```
+
+  Matrix uses string IDs (`r1`/`c1` style) rather than positional
+  indices. This keeps correct-answer references stable when rows or
+  columns are reordered or shuffled — consistent with Family A option
+  IDs (A/B/C).
 - **Highlight:**
   ```
   {

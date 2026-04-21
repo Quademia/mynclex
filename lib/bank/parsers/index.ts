@@ -16,6 +16,7 @@ import { parseMcq } from './mcq';
 import { parseTf } from './tf';
 import { parseSata } from './sata';
 import { parseSelectN } from './select-n';
+import { parseMatrix, type MatrixParseInput } from './matrix';
 
 export type ParseResult =
   | { ok: true; content: BankItemContent; correct: BankItemCorrect }
@@ -29,6 +30,7 @@ export function parseByType(
     optionFeedbacks: string[];
     correctIds: string[];
     selectCount?: number;
+    matrix?: MatrixParseInput;
   },
 ): ParseResult {
   switch (question_type) {
@@ -61,5 +63,11 @@ export function parseByType(
         params.correctIds,
         params.selectCount ?? 0,
       );
+    case 'MATRIX': {
+      if (!params.matrix) {
+        return { ok: false, error: 'Missing matrix payload.' };
+      }
+      return parseMatrix(params.matrix);
+    }
   }
 }

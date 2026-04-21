@@ -35,6 +35,7 @@ import { McqEditor } from '@/lib/bank/editors/mcq-editor';
 import { TfEditor } from '@/lib/bank/editors/tf-editor';
 import { SataEditor } from '@/lib/bank/editors/sata-editor';
 import { SelectNEditor } from '@/lib/bank/editors/select-n-editor';
+import { MatrixEditor } from '@/lib/bank/editors/matrix-editor';
 import {
   createBankItemAction,
   updateBankItemAction,
@@ -154,6 +155,16 @@ export function EditorShell({
             initialSelectCount={
               editorInheritsInitial ? initial.select_count : 2
             }
+          />
+        );
+      case 'MATRIX':
+        return (
+          <MatrixEditor
+            key="matrix"
+            initialRowLabel={editorInheritsInitial ? initial.matrix_row_label : ''}
+            initialRows={editorInheritsInitial ? initial.matrix_rows : []}
+            initialColumns={editorInheritsInitial ? initial.matrix_columns : []}
+            initialCorrect={editorInheritsInitial ? initial.matrix_correct : {}}
           />
         );
     }

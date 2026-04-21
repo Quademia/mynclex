@@ -419,6 +419,27 @@ function rowToInitial(row: FullBankRow): BankFormInitial {
     ? Number((row.content as { select_count?: number })?.select_count ?? correct_ids.length ?? 2)
     : 2;
 
+  // Matrix fields
+  let matrix_row_label = '';
+  let matrix_rows: { id: string; text: string; feedback: string }[] = [];
+  let matrix_columns: { id: string; text: string }[] = [];
+  let matrix_correct: Record<string, string> = {};
+
+  if (qtype === 'MATRIX') {
+    const mc = row.content as { row_label?: string; rows?: { id: string; text: string }[]; columns?: { id: string; text: string }[] };
+    const mk = row.correct as { cells?: Record<string, string>; feedback?: Record<string, string> };
+
+    matrix_row_label = mc.row_label ?? '';
+    const fbMap = mk.feedback ?? {};
+    matrix_rows = (mc.rows ?? []).map((r) => ({
+      id: r.id,
+      text: r.text,
+      feedback: fbMap[r.id] ?? '',
+    }));
+    matrix_columns = (mc.columns ?? []).map((c) => ({ id: c.id, text: c.text }));
+    matrix_correct = { ...(mk.cells ?? {}) };
+  }
+
   return {
     item_id: row.item_id,
     question_type: qtype,
@@ -428,6 +449,10 @@ function rowToInitial(row: FullBankRow): BankFormInitial {
     options,
     correct_ids,
     select_count,
+    matrix_row_label,
+    matrix_rows,
+    matrix_columns,
+    matrix_correct,
     client_needs_category: row.client_needs_category ?? '',
     client_needs_subcategory: row.client_needs_subcategory ?? '',
     nursing_subject: row.nursing_subject ?? '',

@@ -6,6 +6,129 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-21 (Bank Slice 1.5 — Matrix authoring)
+
+First Family B question type live. End-to-end create / edit / delete
+for MATRIX, using the Slice 1.3 shell + per-type editor architecture.
+Plan drafted end-to-end in Claude Web; executed from a pre-written
+handoff file.
+
+### Decisions (from discussion with Sam, via Claude Web)
+
+- **String IDs for cell_map keys** — `r1 → c1` rather than positional
+  indices. Reorder-safe and shuffle-safe. Matches Family A option IDs.
+- **parseByType dispatcher extended** with a `matrix` branch; parsers
+  stay pure (no FormData reading inside parsers). Symmetric with
+  Family A's flat-array params.
+- **Per-row feedback ships in this slice.** Matches Family A; matches
+  bank.md spec.
+- **Editable row-axis label** at the top-left of the grid — stored in
+  `content.row_label`. Lets curators use "Finding", "Medication",
+  "Screening test", or whatever fits the question.
+- **Editor mirrors student view** — curator builds on the same grid
+  the student answers on. Same rule will apply to Highlight, Cloze,
+  Drag-drop, Bow-tie in future slices.
+- **Bounds: 2–6 rows × 2–6 columns.** Default 3×3 on new.
+
+### Drift caught and fixed during execution
+
+- **`VALID_TYPES` in `actions.ts` was a hardcoded
+  `Set<QuestionType>(['MCQ','TF','SATA','SELECT_N'])`** — the handoff
+  did not flag it. Added `'MATRIX'` to the set; without this every
+  Matrix submit would be rejected at the first gate with "Invalid
+  question type" regardless of payload.
+- **Matrix editor's per-row `<>...</>` fragment inside `.map()`** would
+  have triggered a React missing-key warning. Replaced with
+  `<Fragment key={row.id}>` — same runtime shape, React happy.
+
+### Files created
+
+- `mynclex/lib/bank/parsers/matrix.ts`
+- `mynclex/lib/bank/editors/matrix-editor.tsx`
+
+### Files modified
+
+- `mynclex/lib/bank/classifications.ts` — MATRIX added to
+  QUESTION_TYPES + ITEM_ID_PREFIX; new MIN/MAX/DEFAULT_MATRIX_ROWS/
+  COLS constants; Family A header comment refreshed.
+- `mynclex/lib/bank/types.ts` — MatrixRow, MatrixColumn,
+  MatrixContent, MatrixCorrect + union extensions.
+- `mynclex/lib/bank/form-shape.ts` — matrix_row_label, matrix_rows,
+  matrix_columns, matrix_correct on BankFormInitial; defaults in
+  emptyInitial() (3 rows × 3 columns, empty strings).
+- `mynclex/lib/bank/parsers/index.ts` — import + MatrixParseInput in
+  params + MATRIX branch in parseByType.
+- `mynclex/app/(app)/admin/bank/actions.ts` — VALID_TYPES drift fix;
+  Matrix FormData extraction; parseByType call passes matrix payload.
+- `mynclex/app/(app)/admin/bank/editor-shell.tsx` — MatrixEditor
+  import; MATRIX case in renderEditor().
+- `mynclex/app/(app)/admin/bank/page.tsx` — rowToInitial's Matrix
+  branch reads content.row_label / rows / columns and correct.cells /
+  feedback; four new fields on the returned BankFormInitial.
+- `mynclex/app/dashboards.css` — appended `.bank-matrix-*` block
+  (wrap, table, corner, col-head, row-head, cell, bounds, feedback
+  row). Family A styles untouched.
+- `mynclex/db/seed-bank-dev.sql` — one Matrix seed row
+  (`NCLEX_MAT_00001`, "Finding triage"). Prior row 8's closing `;`
+  became `,`; new row closes the INSERT.
+- `mynclex/docs/product-plan/bank.md` — Matrix `content` example
+  gained `row_label`; `correct` example replaced numeric indices with
+  string IDs; added paragraph explaining the ID choice.
+
+### Migrations applied to dev (`zrakjibtxyzoqcdtvpmq`)
+
+- `mynclex_bank_matrix_seed_slice_1_5` — the single INSERT. Applied
+  via Supabase MCP; returned `{"success":true}`.
+
+### Verified locally
+
+- `npx tsc --noEmit` — clean (no output).
+- `npx eslint app/(app)/admin/bank lib/bank` — clean (no output).
+- `npm run build` (webpack) — clean. Every route still compiles:
+  `/`, `/admin`, `/admin/bank`, `/admin/payments`, `/login`,
+  `/logout`, `/no-access`, `/pick-role`, `/register`, `/router`,
+  `/student`, `/tutor` + proxy middleware.
+
+### Not yet verified (Sam's session, on dev Worker)
+
+- Create flow for MATRIX end-to-end as `+mynclexsuperadmin` and
+  `+mynclexadmin` (BANK_CURATE granted).
+- Edit flow — reopen a saved Matrix row; confirm row_label, rows,
+  columns, radio picks, feedback all pre-fill.
+- Delete flow — confirm removes from listing.
+- Rejection cases via tampered submit: blank row_label; row with no
+  correct pick; submit with fewer than `MIN_MATRIX_ROWS` rows.
+- Type-switching in create mode: MCQ → MATRIX → MCQ preserves
+  non-editor fields.
+- Type dropdown disabled in edit mode.
+
+### Deferred to future sessions / out of scope here
+
+- **CLONING.md update** — the handoff asked for this, but the file
+  doesn't exist yet (listed as "future" in `mynclex/CLAUDE.md`). Skip
+  now; fold Matrix note in when CLONING.md is created.
+- **Highlight, Cloze, Drag-drop, Bow-tie** — each as its own slice.
+- **Student runner** — needed before Matrix can be previewed in-form.
+- **Tutor-private Matrix authoring** — same editor against
+  `nclex_tutor_questions`; comes with tutor-side workflows.
+- **Shuffle labelling** — the "Shuffle options" checkbox is labelled
+  Family A-centric; for Matrix it would shuffle rows and columns.
+  Revisit when the student runner lands.
+- **Pre-existing `.bank-grid-2` / `.bank-grid-3` / `.bank-link-btn`
+  class gaps noted in Slice 1.4** — still open; not introduced here.
+
+### Next session
+
+Options:
+- (a) Family B — next type. Bow-tie is the most NGN-signature (fixed
+  5-slot). Cloze and Highlight both require a richer text-input UI.
+- (b) Student runner — consume the same per-type split for display.
+  Unblocks preview mode for all authored types.
+- (c) RLS on the remaining 6 bank tables (tutor questions, case
+  studies, readiness packs).
+
+---
+
 ## Session — 2026-04-21 (Bank Slice 1.4 — filters + two-pane focus mode)
 
 Restructured the /admin/bank page into two distinct modes

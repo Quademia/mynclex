@@ -921,3 +921,167 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ─────────────────────────────────────────────────────
+ * Matrix editor (Bank Slice 1.5)
+ * ───────────────────────────────────────────────────── */
+
+.bank-matrix-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--white);
+  margin-top: 8px;
+}
+
+.bank-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bank-matrix-table th,
+.bank-matrix-table td {
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  padding: 0;
+  vertical-align: middle;
+}
+.bank-matrix-table th:last-child,
+.bank-matrix-table td:last-child { border-right: none; }
+.bank-matrix-table tr:last-child td { border-bottom: none; }
+
+.bank-matrix-corner {
+  background: var(--bg);
+  padding: 8px 10px;
+  min-width: 200px;
+  position: relative;
+}
+.bank-matrix-corner-input {
+  width: 100%;
+  border: 1px dashed var(--border);
+  background: var(--white);
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-radius: 4px;
+  font-family: inherit;
+}
+.bank-matrix-corner-input:hover,
+.bank-matrix-corner-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  color: var(--primary);
+}
+
+.bank-matrix-col-head {
+  background: var(--primary-light);
+  padding: 10px 12px;
+  position: relative;
+  min-width: 120px;
+}
+.bank-matrix-col-input {
+  background: transparent;
+  border: 1px dashed transparent;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: center;
+  width: 100%;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-family: inherit;
+}
+.bank-matrix-col-input:hover,
+.bank-matrix-col-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--white);
+}
+
+.bank-matrix-col-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.bank-matrix-col-head:hover .bank-matrix-col-remove { opacity: 1; }
+.bank-matrix-col-remove:hover { background: #fef2f2; color: var(--danger); }
+.bank-matrix-col-remove:disabled { opacity: 0; cursor: not-allowed; }
+
+.bank-matrix-row-head {
+  background: var(--white);
+  padding: 10px 12px;
+}
+.bank-matrix-row-input {
+  width: 100%;
+  border: 1px dashed transparent;
+  padding: 4px 6px;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  border-radius: 4px;
+  font-family: inherit;
+}
+.bank-matrix-row-input:hover,
+.bank-matrix-row-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg);
+}
+
+.bank-matrix-cell {
+  text-align: center;
+  padding: 12px 8px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.bank-matrix-cell:hover { background: var(--primary-light); }
+.bank-matrix-cell input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.bank-matrix-row-actions {
+  padding: 6px;
+  text-align: center;
+  background: var(--bg);
+  width: 44px;
+}
+
+.bank-matrix-feedback-row td {
+  background: #fafcfc;
+  padding: 8px 12px 10px;
+}
+.bank-matrix-feedback-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+.bank-matrix-bounds {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 10px;
+  padding: 0 4px;
+}
+.bank-matrix-bounds strong { color: var(--text); font-weight: 700; }

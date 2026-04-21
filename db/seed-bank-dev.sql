@@ -107,4 +107,15 @@ INSERT INTO nclex_bank_items (
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Medical-Surgical', 'Endocrine', 'Diabetes mellitus', 'Insulin self-administration',
  'Medium', 'Evaluate', ARRAY['endocrine','diabetes','patient-teaching'],
+ TRUE, FALSE, 1, 'DEV_SEED_001'),
+
+-- 9. Matrix — Finding triage (Clinical judgement, Medium)
+('NCLEX_MAT_00001', 'MATRIX',
+ 'For each assessment finding below, indicate whether the nurse should Report to the provider, Monitor, or Ignore.',
+ 'Prioritisation requires separating shock (unstable vitals) from minor findings. Escalate unstable vitals; monitor borderline values; take no action on resolving findings.',
+ '{"row_label":"Finding","rows":[{"id":"r1","text":"BP 88/52, HR 122, diaphoretic"},{"id":"r2","text":"Temp 37.4°C orally, otherwise stable"},{"id":"r3","text":"Bruise on elbow, resolving, non-tender"}],"columns":[{"id":"c1","text":"Report"},{"id":"c2","text":"Monitor"},{"id":"c3","text":"Ignore"}]}'::jsonb,
+ '{"cells":{"r1":"c1","r2":"c2","r3":"c3"},"feedback":{"r1":"Hypotension with tachycardia and diaphoresis suggests shock — escalate immediately.","r2":"Borderline temp; continue to monitor but no immediate action.","r3":"Resolving, non-tender — no intervention needed."}}'::jsonb,
+ 'Physiological Integrity', 'Reduction of Risk Potential',
+ 'Medical-Surgical', 'Cardiovascular', 'Shock recognition', 'Prioritisation',
+ 'Medium', 'Analyze', ARRAY['NGN','matrix','prioritisation'],
  TRUE, FALSE, 1, 'DEV_SEED_001');

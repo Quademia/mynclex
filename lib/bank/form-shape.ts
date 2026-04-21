@@ -21,6 +21,11 @@ export interface BankFormInitial {
   options: { id: string; text: string; feedback: string }[];
   correct_ids: string[];
   select_count: number;
+  // Matrix-specific fields — empty/default for all other types
+  matrix_row_label: string;
+  matrix_rows: { id: string; text: string; feedback: string }[];
+  matrix_columns: { id: string; text: string }[];
+  matrix_correct: Record<string, string>;   // rowId -> columnId
   client_needs_category: string;
   client_needs_subcategory: string;
   nursing_subject: string;
@@ -63,6 +68,18 @@ export function emptyInitial(): BankFormInitial {
     is_builder_visible: true,
     marks: 1,
     shuffle_options: true,
+    matrix_row_label: '',
+    matrix_rows: [
+      { id: 'r1', text: '', feedback: '' },
+      { id: 'r2', text: '', feedback: '' },
+      { id: 'r3', text: '', feedback: '' },
+    ],
+    matrix_columns: [
+      { id: 'c1', text: '' },
+      { id: 'c2', text: '' },
+      { id: 'c3', text: '' },
+    ],
+    matrix_correct: {},
     question_ref: '',
     batch_id: '',
   };

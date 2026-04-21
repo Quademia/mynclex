@@ -28,7 +28,7 @@ import type {
 } from '@/lib/bank/types';
 import { parseByType } from '@/lib/bank/parsers';
 
-const VALID_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N']);
+const VALID_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N', 'MATRIX']);
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
 
@@ -131,12 +131,37 @@ function parseFormData(formData: FormData): ParsedItem | { error: string } {
   const correctIds = formData.getAll('correct_id').map((v) => String(v).trim()).filter(Boolean);
   const selectCountRaw = parseInt(String(formData.get('select_count') ?? ''), 10);
 
+  // Matrix-specific FormData extraction (only populated when type is MATRIX)
+  const matrixRowLabel = String(formData.get('matrix_row_label') ?? '');
+  const matrixRowIds = formData.getAll('matrix_row_id').map(String);
+  const matrixRowTexts = formData.getAll('matrix_row_text').map(String);
+  const matrixRowFeedbacks = formData.getAll('matrix_row_feedback').map(String);
+  const matrixColIds = formData.getAll('matrix_col_id').map(String);
+  const matrixColTexts = formData.getAll('matrix_col_text').map(String);
+
+  // Build correctByRow map: each row's correct column arrives as
+  // a field named `matrix_correct_<rowId>` with the chosen columnId.
+  const matrixCorrectByRow: Record<string, string> = {};
+  for (const rowId of matrixRowIds) {
+    const val = formData.get(`matrix_correct_${rowId}`);
+    if (val) matrixCorrectByRow[rowId] = String(val);
+  }
+
   const parsed = parseByType(question_type, {
     optionIds,
     optionTexts,
     optionFeedbacks,
     correctIds,
     selectCount: selectCountRaw,
+    matrix: {
+      row_label: matrixRowLabel,
+      rowIds: matrixRowIds,
+      rowTexts: matrixRowTexts,
+      rowFeedbacks: matrixRowFeedbacks,
+      colIds: matrixColIds,
+      colTexts: matrixColTexts,
+      correctByRow: matrixCorrectByRow,
+    },
   });
 
   if (!parsed.ok) {
