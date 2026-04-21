@@ -8,5 +8,13 @@
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
+  },
+  // Public Supabase values — safe to commit. They ship to every browser
+  // anyway (RLS is what protects the data, not these keys). The service
+  // role key is NOT here — it's a Cloudflare Worker secret set via
+  // `wrangler secret put SUPABASE_SERVICE_ROLE_KEY`.
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://zrakjibtxyzoqcdtvpmq.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYWtqaWJ0eHl6b3FjZHR2cG1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MDcyODAsImV4cCI6MjA4ODk4MzI4MH0.saSEaK1IkbP03rfVvuwFpXQlLtAdKLIg9V7UwO7a2po"
   }
 }
