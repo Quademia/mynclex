@@ -5,8 +5,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { loginAction } from './actions';
-import '../landing.css';
-import '../register/auth.css';
+import '../tokens.css';
+import '../auth.css';
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);

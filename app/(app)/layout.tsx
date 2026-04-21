@@ -18,7 +18,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Topbar } from '@/components/topbar';
 import { Footer } from '@/components/footer';
 import { type Role } from '@/components/role-chip';
-import '../landing.css';
+import '../tokens.css';
 import '../dashboards.css';
 import '../shell.css';
 

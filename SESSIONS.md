@@ -6,6 +6,71 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-21 (UI Slice 1 — light theme migration)
+
+Moved MyNclex off the dark landing-page palette for every
+authenticated and auth page. Landing page untouched.
+
+### Decisions (from discussion with Sam)
+
+- **Landing stays dark; everything else goes light.** Long-dwell
+  product pages (bank, future rationales, programme content) need
+  to read like documents, not marketing.
+- **Copy the QAcademy palette from MyTeacher/Licensure exactly.**
+  Same navy `#1e3a5f`, teal `#2d7d72`, `#f9fafb` bg, white cards.
+  Three-product consistency beats a bespoke MyNclex theme.
+- **System font stack** (`-apple-system, ...`) instead of Inter —
+  matches siblings. Inter removed from body font chain.
+- **Same class names everywhere.** No component code changes; only
+  CSS files and import lines edited. `landing.css` keeps its dark
+  palette scoped to itself.
+- **Kept `.shell-dropdown-item-current`** in the new light
+  shell.css (teal text on `--primary-light`, no hover change) so
+  the role-switcher dropdown still marks the active workspace.
+  Dropping it would have been a silent UX regression.
+
+### Files created
+- `mynclex/app/tokens.css` — QAcademy light palette + shared
+  primitives (`.btn-*`, `.form-group`, `.alert-*`).
+- `mynclex/app/auth.css` — light auth-card styling for /login
+  and /register. Replaces `app/register/auth.css`.
+
+### Files rewritten
+- `mynclex/app/shell.css` — white topbar, navy brand, teal chip.
+- `mynclex/app/dashboards.css` — light dashboards, section-cards,
+  pick-role, no-access, `/admin/bank` split-panel + table + form.
+
+### Files modified (import swaps only)
+- `mynclex/app/login/page.tsx`
+- `mynclex/app/register/page.tsx`
+- `mynclex/app/pick-role/page.tsx`
+- `mynclex/app/no-access/page.tsx`
+- `mynclex/app/(app)/layout.tsx`
+
+### Files deleted
+- `mynclex/app/register/auth.css` (moved to `app/auth.css`).
+
+### Untouched
+- `mynclex/app/page.tsx` — landing.
+- `mynclex/app/landing.css` — landing palette + visuals.
+- Every component file (topbar, role-chip, user-menu, footer,
+  bank form, admin page, etc.).
+- Middleware, Supabase clients, Server Actions, DB schema, RLS.
+
+### Verified
+- `tsc --noEmit` clean.
+- `eslint app components` clean.
+- No stray dark-palette `rgba(232, 238, 245, ...)` or
+  `rgba(9, 21, 36, ...)` values outside `app/landing.css`.
+- Only `app/page.tsx` still imports `landing.css`.
+
+### Next session
+- Return to bank work — Family B authoring (Matrix first is
+  most-bounded; Bow-tie is highest-profile NGN), RLS on the
+  remaining 6 bank tables, or student-side practice runner.
+
+---
+
 ## Session — 2026-04-21 (Bank Slice 1.2 — MCQ/TF/SATA/Select N authoring)
 
 First real curator workflow on top of Slice 1's read-only listing.

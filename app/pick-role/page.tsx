@@ -7,7 +7,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { switchRoleAction } from './actions';
-import '../landing.css';
+import '../tokens.css';
 import '../dashboards.css';
 
 export const dynamic = 'force-dynamic';

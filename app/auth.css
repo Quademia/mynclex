@@ -1,7 +1,7 @@
-/* mynclex/app/register/auth.css
+/* mynclex/app/auth.css
  *
- * Styling for /register and /login pages.
- * Relies on CSS variables defined in landing.css (must be imported alongside).
+ * Styling for /login and /register pages.
+ * Relies on design tokens from tokens.css (must be imported alongside).
  */
 
 .auth-main {
@@ -10,18 +10,17 @@
   align-items: center;
   justify-content: center;
   padding: 48px 24px;
-  box-sizing: border-box;
+  background: var(--bg);
 }
 
 .auth-card {
   width: 100%;
   max-width: 440px;
   padding: 40px 32px;
-  background: rgba(232, 238, 245, 0.03);
+  background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
 }
 
 .auth-header {
@@ -30,9 +29,9 @@
 }
 
 .auth-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  color: var(--text);
+  color: var(--primary);
   margin: 0;
 }
 
@@ -62,63 +61,58 @@
 
 .auth-field label {
   font-size: 13px;
-  font-weight: 500;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: var(--text);
 }
 
 .auth-field input {
-  padding: 12px 14px;
-  background: rgba(232, 238, 245, 0.04);
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
+  padding: 10px 14px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   color: var(--text);
   font-family: inherit;
-  font-size: 15px;
+  font-size: 14px;
   outline: none;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: border-color 0.15s ease;
 }
 
 .auth-field input:focus {
-  border-color: rgba(60, 162, 149, 0.5);
-  background: rgba(232, 238, 245, 0.06);
+  border-color: var(--accent);
 }
 
 .auth-hint {
   font-size: 12px;
-  color: var(--text-dim);
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
 .auth-error {
-  padding: 12px 14px;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  border-radius: 10px;
-  color: #f87171;
-  font-size: 14px;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  color: var(--danger);
+  font-size: 13px;
 }
 
 .auth-submit {
-  padding: 13px 20px;
-  background: var(--teal);
-  color: white;
-  border: none;
-  border-radius: 10px;
+  padding: 11px 20px;
+  background: var(--primary);
+  color: var(--white);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
   font-family: inherit;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
   margin-top: 8px;
 }
 
 .auth-submit:hover:not(:disabled) {
-  background: var(--teal-bright);
-  transform: translateY(-1px);
-}
-
-.auth-submit:active {
-  transform: translateY(0);
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
 }
 
 .auth-submit:disabled {
@@ -134,9 +128,9 @@
 }
 
 .auth-footer a {
-  color: var(--teal-bright);
+  color: var(--accent);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .auth-footer a:hover {
