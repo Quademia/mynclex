@@ -1,28 +1,61 @@
 // mynclex/app/(app)/admin/bank/page.tsx
 //
-// Admin Question Bank — read-only listing (Bank Slice 1).
+// Admin Question Bank — split-panel layout.
 //
-// Gated on BANK_CURATE permission (SUPER_ADMIN bypasses via the
-// nclex_user_has_permission() helper's short-circuit). Users without
-// that permission won't see the section card on /admin and will be
-// bounced from this URL if they land here directly.
+// Left:  list of every bank item (read access scoped by RLS).
+// Right: authoring form (create by default; edit when ?edit=ID is set).
 //
-// Reads from nclex_bank_items under the `nclex_bank_items_curate_all`
-// RLS policy — i.e. we see every row, drafts included. A plain
-// authenticated user hitting the raw table would only see published
-// rows (the read-published policy).
-//
-// Today: read-only table. Authoring (create/edit/delete), drill-down
-// to a question detail page, filter chips, and pagination are all
-// explicitly deferred to later slices.
+// Auth: gated on BANK_CURATE / SUPER_ADMIN. The page gate is a UX
+// nicety — Server Actions in actions.ts re-check independently.
 
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { BankForm, emptyInitial, type BankFormInitial } from './form';
+import type { QuestionType } from '@/lib/bank/classifications';
+import type {
+  BankItemContent,
+  BankItemCorrect,
+  BankOption,
+} from '@/lib/bank/types';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminBankPage() {
+interface BankRow {
+  item_id: string;
+  question_type: string;
+  difficulty: string | null;
+  stem: string;
+  is_published: boolean;
+  is_free_sample: boolean;
+  client_needs_category: string | null;
+  tags: string[] | null;
+  created_at: string;
+}
+
+interface FullBankRow extends BankRow {
+  rationale: string | null;
+  rationale_img: string | null;
+  content: BankItemContent;
+  correct: BankItemCorrect;
+  client_needs_subcategory: string | null;
+  nursing_subject: string | null;
+  body_system: string | null;
+  topic: string | null;
+  subtopic: string | null;
+  bloom_level: string | null;
+  is_builder_visible: boolean;
+  marks: number;
+  shuffle_options: boolean;
+  question_ref: string | null;
+  batch_id: string | null;
+}
+
+export default async function AdminBankPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ edit?: string; saved?: string; deleted?: string }>;
+}) {
   const supabase = await createClient();
 
   const {
@@ -51,18 +84,38 @@ export default async function AdminBankPage() {
     redirect('/admin');
   }
 
+  const params = await searchParams;
+  const editId = params.edit ?? null;
+  const savedFlash = params.saved === '1';
+
   const { data: items, error } = await supabase
     .from('nclex_bank_items')
     .select(
       'item_id, question_type, difficulty, stem, is_published, is_free_sample, client_needs_category, tags, created_at',
     )
     .order('item_id', { ascending: true })
-    .limit(200);
+    .limit(500);
 
-  const rows = items ?? [];
+  const rows: BankRow[] = items ?? [];
   const total = rows.length;
   const published = rows.filter((r) => r.is_published).length;
   const drafts = total - published;
+
+  // If editing, load that single row in full.
+  let initial: BankFormInitial = emptyInitial();
+  let editLoadError: string | null = null;
+  if (editId) {
+    const { data: full, error: fullErr } = await supabase
+      .from('nclex_bank_items')
+      .select('*')
+      .eq('item_id', editId)
+      .maybeSingle<FullBankRow>();
+    if (fullErr || !full) {
+      editLoadError = `Could not load ${editId}.`;
+    } else {
+      initial = rowToInitial(full);
+    }
+  }
 
   return (
     <main className="dash-main">
@@ -80,75 +133,133 @@ export default async function AdminBankPage() {
           </p>
         </div>
 
-        {error ? (
+        {error && (
           <div className="dash-note bank-error">
             <strong>Could not load questions.</strong> {error.message}
           </div>
-        ) : rows.length === 0 ? (
+        )}
+
+        {params.deleted === '1' && (
           <div className="dash-note">
-            <strong>No questions in the bank yet.</strong> Seeded content
-            appears here once the dev seed has been applied.
-          </div>
-        ) : (
-          <div className="bank-table-wrap">
-            <table className="bank-table">
-              <thead>
-                <tr>
-                  <th>Item ID</th>
-                  <th>Type</th>
-                  <th>Difficulty</th>
-                  <th>Stem</th>
-                  <th>Category</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.item_id}>
-                    <td className="bank-cell-id">{r.item_id}</td>
-                    <td>
-                      <span className="bank-badge bank-badge-type">
-                        {r.question_type}
-                      </span>
-                    </td>
-                    <td className="bank-cell-difficulty">
-                      {r.difficulty ?? '—'}
-                    </td>
-                    <td className="bank-cell-stem" title={r.stem ?? ''}>
-                      {r.stem}
-                    </td>
-                    <td className="bank-cell-category">
-                      {r.client_needs_category ?? '—'}
-                    </td>
-                    <td>
-                      {r.is_published ? (
-                        <span className="bank-badge bank-badge-published">
-                          Published
-                        </span>
-                      ) : (
-                        <span className="bank-badge bank-badge-draft">
-                          Draft
-                        </span>
-                      )}
-                      {r.is_free_sample && (
-                        <span className="bank-badge bank-badge-free">
-                          Free sample
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <strong>Deleted.</strong> The question has been removed.
           </div>
         )}
 
-        <div className="dash-note bank-footnote">
-          <strong>Read-only for now.</strong> Authoring (create, edit,
-          delete), question detail view, filter chips, and pagination
-          land in later slices.
+        {editLoadError && (
+          <div className="dash-note bank-error">
+            <strong>{editLoadError}</strong> It may have been deleted.{' '}
+            <Link href="/admin/bank">Start fresh</Link>.
+          </div>
+        )}
+
+        <div className="bank-split">
+          {/* LEFT: list */}
+          <div className="bank-split-list">
+            {rows.length === 0 ? (
+              <div className="dash-note">
+                <strong>No questions yet.</strong> Use the form on the right to
+                add the first one.
+              </div>
+            ) : (
+              <div className="bank-list">
+                {rows.map((r) => {
+                  const isActive = r.item_id === editId;
+                  return (
+                    <Link
+                      key={r.item_id}
+                      href={`/admin/bank?edit=${r.item_id}`}
+                      className={`bank-list-item${isActive ? ' bank-list-item--active' : ''}`}
+                    >
+                      <div className="bank-list-item-top">
+                        <span className="bank-list-id">{r.item_id}</span>
+                        <span className="bank-badge bank-badge-type">
+                          {r.question_type}
+                        </span>
+                        {r.is_published ? (
+                          <span className="bank-badge bank-badge-published">
+                            Published
+                          </span>
+                        ) : (
+                          <span className="bank-badge bank-badge-draft">Draft</span>
+                        )}
+                      </div>
+                      <div className="bank-list-stem">{r.stem}</div>
+                      <div className="bank-list-meta">
+                        {r.client_needs_category ?? '—'}
+                        {r.difficulty ? ` · ${r.difficulty}` : ''}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT: form */}
+          <div className="bank-split-form">
+            <BankForm initial={initial} savedFlash={savedFlash} />
+          </div>
         </div>
       </section>
     </main>
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Map a DB row into the form's initial-values shape.
+// Pulls option list + correct-ids out of the polymorphic JSONB.
+// ─────────────────────────────────────────────────────────────
+
+function rowToInitial(row: FullBankRow): BankFormInitial {
+  const qtype = row.question_type as QuestionType;
+
+  const rawOptions: BankOption[] = Array.isArray((row.content as { options?: BankOption[] })?.options)
+    ? ((row.content as { options: BankOption[] }).options ?? [])
+    : [];
+  const feedbackMap: Record<string, string> = (row.correct as { feedback?: Record<string, string> })?.feedback ?? {};
+
+  const options = rawOptions.map((o) => ({
+    id: o.id,
+    text: o.text,
+    feedback: feedbackMap[o.id] ?? '',
+  }));
+
+  let correct_ids: string[] = [];
+  if (qtype === 'MCQ' || qtype === 'TF') {
+    const ans = (row.correct as { answer?: string })?.answer;
+    if (ans) correct_ids = [ans];
+  } else {
+    correct_ids = (row.correct as { answers?: string[] })?.answers ?? [];
+  }
+
+  const select_count = qtype === 'SELECT_N'
+    ? Number((row.content as { select_count?: number })?.select_count ?? correct_ids.length ?? 2)
+    : 2;
+
+  return {
+    item_id: row.item_id,
+    question_type: qtype,
+    stem: row.stem,
+    rationale: row.rationale ?? '',
+    rationale_img: row.rationale_img ?? '',
+    options,
+    correct_ids,
+    select_count,
+    client_needs_category: row.client_needs_category ?? '',
+    client_needs_subcategory: row.client_needs_subcategory ?? '',
+    nursing_subject: row.nursing_subject ?? '',
+    body_system: row.body_system ?? '',
+    topic: row.topic ?? '',
+    subtopic: row.subtopic ?? '',
+    difficulty: row.difficulty ?? '',
+    bloom_level: row.bloom_level ?? '',
+    tags: (row.tags ?? []).join(', '),
+    is_published: !!row.is_published,
+    is_free_sample: !!row.is_free_sample,
+    is_builder_visible: row.is_builder_visible !== false,
+    marks: Number(row.marks) || 1,
+    shuffle_options: row.shuffle_options !== false,
+    question_ref: row.question_ref ?? '',
+    batch_id: row.batch_id ?? '',
+  };
 }
