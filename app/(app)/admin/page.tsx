@@ -19,11 +19,32 @@
 //
 // Topbar + footer live in the (app) shell layout.
 
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
+
+// Section cards are declared here. A card is shown if the user has the
+// listed permission OR is SUPER_ADMIN. Add new cards as admin features land.
+type SectionCard = {
+  key: string;
+  label: string;
+  desc: string;
+  href: string;
+  permission: string;
+};
+
+const SECTIONS: SectionCard[] = [
+  {
+    key: 'bank',
+    label: 'Question Bank',
+    desc: 'Browse, author, and manage NCLEX-RN questions.',
+    href: '/admin/bank',
+    permission: 'BANK_CURATE',
+  },
+];
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
@@ -36,17 +57,22 @@ export default async function AdminDashboard() {
     redirect('/login');
   }
 
-  const [profileRes, rolesRes] = await Promise.all([
+  const [profileRes, rolesRes, permsRes] = await Promise.all([
     supabase
       .from('nclex_users')
       .select('forename, surname')
       .eq('id', user.id)
       .maybeSingle(),
     supabase.from('nclex_user_roles').select('role').eq('user_id', user.id),
+    supabase
+      .from('nclex_admin_permissions')
+      .select('permission')
+      .eq('user_id', user.id),
   ]);
 
   const profile = profileRes.data;
   const roles = (rolesRes.data ?? []).map((r) => r.role as string);
+  const permissions = (permsRes.data ?? []).map((p) => p.permission as string);
 
   const holdsSuperAdmin = roles.includes('SUPER_ADMIN');
   const holdsAdmin = roles.includes('ADMIN');
@@ -76,6 +102,11 @@ export default async function AdminDashboard() {
 
   const isSuperAdmin = viewingAs === 'SUPER_ADMIN';
 
+  // Visible section cards: SUPER_ADMIN sees all; ADMIN sees only granted ones.
+  const visibleSections = SECTIONS.filter(
+    (s) => holdsSuperAdmin || permissions.includes(s.permission),
+  );
+
   return (
     <main className="dash-main">
       <section className="dash-card">
@@ -84,7 +115,16 @@ export default async function AdminDashboard() {
           <p className="dash-subtitle">Admin workspace — MyNclex.</p>
         </div>
 
-        {isSuperAdmin ? (
+        {visibleSections.length > 0 ? (
+          <div className="section-grid">
+            {visibleSections.map((s) => (
+              <Link key={s.key} href={s.href} className="section-card">
+                <div className="section-card-label">{s.label}</div>
+                <div className="section-card-desc">{s.desc}</div>
+              </Link>
+            ))}
+          </div>
+        ) : isSuperAdmin ? (
           <div className="dash-note">
             <strong>No admin sections defined yet.</strong> This menu will
             list every admin section — payments, question bank, tutor

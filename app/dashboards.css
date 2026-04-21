@@ -126,3 +126,182 @@
 @media (max-width: 480px) {
   .dash-card { padding: 32px 24px; }
 }
+
+/* ─────────────────────────────────────────────────────
+ * Wide card variant — for admin sub-pages that need
+ * more horizontal room than the narrow 560px auth layout.
+ * ───────────────────────────────────────────────────── */
+
+.dash-card--wide {
+  max-width: 1100px;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Admin section-menu cards (/admin landing).
+ * ───────────────────────────────────────────────────── */
+
+.section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.section-card {
+  display: block;
+  padding: 18px 20px;
+  background: rgba(232, 238, 245, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.1s ease;
+}
+
+.section-card:hover {
+  border-color: rgba(60, 162, 149, 0.5);
+  background: rgba(45, 125, 114, 0.06);
+  transform: translateY(-1px);
+}
+
+.section-card-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.section-card-desc {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Admin Question Bank table (/admin/bank).
+ * ───────────────────────────────────────────────────── */
+
+.bank-header-row {
+  margin-bottom: 8px;
+}
+
+.bank-back-link {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.bank-back-link:hover {
+  color: var(--teal-bright);
+}
+
+.bank-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.bank-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.bank-table thead {
+  background: rgba(232, 238, 245, 0.04);
+}
+
+.bank-table th,
+.bank-table td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.bank-table th {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.bank-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.bank-table tbody tr:hover {
+  background: rgba(232, 238, 245, 0.02);
+}
+
+.bank-cell-id {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.bank-cell-difficulty {
+  white-space: nowrap;
+}
+
+.bank-cell-stem {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  color: var(--text);
+}
+
+.bank-cell-category {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.bank-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-right: 4px;
+}
+
+.bank-badge-type {
+  background: rgba(60, 162, 149, 0.12);
+  color: var(--teal-bright);
+  border: 1px solid rgba(60, 162, 149, 0.3);
+}
+
+.bank-badge-published {
+  background: rgba(34, 197, 94, 0.1);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.bank-badge-draft {
+  background: rgba(232, 238, 245, 0.04);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.bank-badge-free {
+  background: rgba(250, 204, 21, 0.08);
+  color: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.3);
+}
+
+.bank-footnote {
+  margin-top: 16px;
+}
+
+.bank-error {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.06);
+  color: #fca5a5;
+}
