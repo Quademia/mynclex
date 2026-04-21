@@ -6,6 +6,7 @@
 // will land as real admin tasks surface.
 
 import { createClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { RoleSwitcher, type Role } from '@/components/role-switcher';
 import '../landing.css';
@@ -36,19 +37,35 @@ export default async function AdminDashboard() {
   const profile = profileRes.data;
   const roles = (rolesRes.data ?? []).map((r) => r.role as Role);
 
-  const isSuperAdmin = roles.includes('SUPER_ADMIN');
-  const isAdmin = roles.includes('ADMIN') || isSuperAdmin;
+  const holdsSuperAdmin = roles.includes('SUPER_ADMIN');
+  const holdsAdmin = roles.includes('ADMIN');
 
-  if (!isAdmin) {
+  if (!holdsAdmin && !holdsSuperAdmin) {
     redirect('/no-access');
+  }
+
+  // Which admin-level role is the user currently "viewing as"?
+  // Drives the badge, the extras section, and the role-switcher label.
+  // Source of truth: the `nclex_active_role` cookie set at /pick-role or
+  // via the switcher. Falls back to the higher-priority role the user
+  // actually holds if the cookie is missing or points somewhere else.
+  const cookieStore = await cookies();
+  const activeRoleCookie = cookieStore.get('nclex_active_role')?.value;
+
+  let viewingAs: 'SUPER_ADMIN' | 'ADMIN';
+  if (activeRoleCookie === 'ADMIN' && holdsAdmin) {
+    viewingAs = 'ADMIN';
+  } else if (activeRoleCookie === 'SUPER_ADMIN' && holdsSuperAdmin) {
+    viewingAs = 'SUPER_ADMIN';
+  } else {
+    viewingAs = holdsSuperAdmin ? 'SUPER_ADMIN' : 'ADMIN';
   }
 
   const displayName = profile
     ? `${profile.forename} ${profile.surname}`
     : user.email ?? 'there';
 
-  // SUPER_ADMIN takes precedence when both ADMIN and SUPER_ADMIN are held.
-  const currentRole: Role = isSuperAdmin ? 'SUPER_ADMIN' : 'ADMIN';
+  const isSuperAdmin = viewingAs === 'SUPER_ADMIN';
 
   return (
     <main className="dash-main">
@@ -74,7 +91,7 @@ export default async function AdminDashboard() {
           </div>
         )}
 
-        <RoleSwitcher currentRole={currentRole} availableRoles={roles} />
+        <RoleSwitcher currentRole={viewingAs} availableRoles={roles} />
 
         <div className="dash-signout-wrap">
           <form method="POST" action="/logout">
