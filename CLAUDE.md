@@ -118,3 +118,22 @@ the sibling products' philosophy.
 
 These are valid v2+ ideas. Do not build them in v1 unless Sam explicitly
 re-opens the scope.
+
+## Environment variables
+
+Local dev requires `mynclex/.env.local` (git-ignored):
+
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+The first two are safe for the browser (RLS protects data).
+The service role key **never leaves the server** (per rule #5).
+It's used only by the registration rollback path — see
+`app/register/actions.ts`.
+
+Production values live as Cloudflare Worker secrets set via
+`wrangler secret put`. See `mynclex/CLONING.md` (future) for the
+full setup runbook.

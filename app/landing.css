@@ -375,3 +375,61 @@ footer a:hover {
   main { animation: none; opacity: 1; transform: none; }
   .status-pulse::before { animation: none; }
 }
+
+/* ─────────────────────────────────────────────────────
+ * CTA button pair — replaces the old .capture block.
+ * Added 2026-04-21 with auth Slice 1.
+ * ───────────────────────────────────────────────────── */
+.cta {
+  margin-top: 44px;
+  max-width: 440px;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cta-primary,
+.cta-secondary {
+  flex: 1;
+  min-width: 160px;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.cta-primary {
+  background: var(--teal);
+  color: white;
+  border: 1px solid var(--teal);
+}
+
+.cta-primary:hover {
+  background: var(--teal-bright);
+  transform: translateY(-1px);
+}
+
+.cta-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+}
+
+.cta-secondary:hover {
+  border-color: rgba(60, 162, 149, 0.5);
+  background: rgba(232, 238, 245, 0.04);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 480px) {
+  .cta { flex-direction: column; }
+  .cta-primary, .cta-secondary { flex: initial; width: 100%; }
+}

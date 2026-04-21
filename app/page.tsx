@@ -1,5 +1,4 @@
-"use client";
-
+import Link from "next/link";
 import "./landing.css";
 
 export default function Home() {
@@ -61,14 +60,13 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="capture">
-            <div className="capture-label">Get notified when we launch</div>
-            <form className="capture-form" onSubmit={(e) => e.preventDefault()}>
-              <label htmlFor="email" style={{ position: "absolute", left: "-9999px" }}>Email address</label>
-              <input id="email" type="email" placeholder="you@example.com" autoComplete="email" />
-              <button type="submit">Notify me</button>
-            </form>
-            <div className="capture-note">We&apos;ll only use your email to announce the launch.</div>
+          <div className="cta">
+            <Link href="/register" className="cta-primary">
+              Create account
+            </Link>
+            <Link href="/login" className="cta-secondary">
+              Sign in
+            </Link>
           </div>
         </section>
       </main>

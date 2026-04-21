@@ -6,6 +6,89 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-21 (Auth flow — Slice 1 — Claude Web + Desktop)
+
+First Next.js code written for MyNclex. Auth flow Slice 1 complete:
+students can register, log in, reach a placeholder dashboard, and
+sign out.
+
+### Decisions
+
+- **Server Actions** for register and login (not client-side Supabase
+  calls). Idiomatic Next.js, atomic rollback on failure, password
+  never exposed beyond the worker runtime.
+- **`@supabase/ssr`** wired in with browser / server / middleware clients.
+  Clients are functions, not module-scoped instances, per CLAUDE.md rule #4.
+- **`getUser()` over `getSession()`** everywhere on the server. Revalidates
+  against Supabase's auth server (rule #4).
+- **`export const dynamic = 'force-dynamic'`** on all authenticated pages
+  (/router, /dashboard, /no-access).
+- **Auth rollback:** if profile or role insert fails post-signup, the
+  Server Action deletes the auth.users row via service role key.
+  Prevents orphan rows blocking re-registration.
+- **No email confirmation** — Supabase setting stays off (matches
+  Licensure). Flip on before go-live.
+- **No-roles → /no-access dead-end.** Safer than auto-assigning a role;
+  surfaces bugs rather than masking them.
+- **Landing page** swapped from email-capture form to Sign in / Create
+  account buttons. Everything else preserved.
+- **Single /dashboard placeholder** catches all roles in Slice 1;
+  role-specific dashboards come in Slice 2.
+
+### Files created
+
+- `mynclex/lib/supabase/client.ts` — browser client.
+- `mynclex/lib/supabase/server.ts` — server client (reads cookies).
+- `mynclex/middleware.ts` — session refresh + route guards.
+- `mynclex/app/register/page.tsx` — register form.
+- `mynclex/app/register/actions.ts` — signup Server Action with rollback.
+- `mynclex/app/register/auth.css` — shared auth-page styles.
+- `mynclex/app/login/page.tsx` — login form.
+- `mynclex/app/login/actions.ts` — login Server Action.
+- `mynclex/app/router/page.tsx` — post-login traffic controller.
+- `mynclex/app/dashboard/page.tsx` — placeholder dashboard.
+- `mynclex/app/dashboard/dashboard.css` — dashboard styles.
+- `mynclex/app/no-access/page.tsx` — no-roles dead-end.
+- `mynclex/app/logout/route.ts` — POST-only sign-out handler.
+
+### Files modified
+
+- `mynclex/app/page.tsx` — landing swap.
+- `mynclex/app/landing.css` — added `.cta` button styles.
+- `mynclex/package.json` — added `@supabase/ssr`.
+- `mynclex/CLAUDE.md` — added Environment variables section.
+
+### Manual steps Sam will perform after Claude Desktop finishes
+
+- Create `mynclex/.env.local` with `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+- Add redirect URLs in Supabase dashboard:
+  - `http://localhost:3000/**`
+  - `https://qacademy-dev-mynclex.mybackpacc.workers.dev/**`
+- Register a test account, then run SUPER_ADMIN seed SQL (Claude Web
+  will provide).
+
+### Known followups / deferred
+
+- SUPER_ADMIN seed for Sam's account — manual SQL after first signup.
+- Email confirmation — flip on in Supabase before real users.
+- Password reset flow (`/forgot-password`, `/reset-password`) — Slice 3.
+- Role-specific dashboards — Slice 2.
+- Role-picker UI for multi-role users — Slice 2.
+- `nclex_sessions` table for concurrent session control — Slice 3.
+- `nclex_auth_events` audit log — Slice 3.
+- Wrangler env vars for prod deployment — not yet set.
+- Google OAuth — deferred.
+- `must_change_password` enforcement flow — deferred.
+
+### Next session
+
+Sam will test the flow end-to-end on dev. Once confirmed working,
+next session picks up Slice 2 (role-specific dashboards) or jumps
+to another priority at Sam's discretion.
+
+---
+
 ## Session — 2026-04-21 (First build — auth schema, Claude Web + Desktop)
 
 First code written for MyNclex. Auth + roles schema laid down and

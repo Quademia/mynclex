@@ -1,0 +1,122 @@
+/* mynclex/app/dashboard/dashboard.css
+ *
+ * Styling for /dashboard and /no-access.
+ * Relies on CSS variables defined in landing.css.
+ */
+
+.dash-main {
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 64px 24px;
+  box-sizing: border-box;
+}
+
+.dash-card {
+  width: 100%;
+  max-width: 560px;
+  padding: 40px 32px;
+  background: rgba(232, 238, 245, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dash-header {
+  margin-bottom: 28px;
+}
+
+.dash-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.dash-subtitle {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.dash-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.dash-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: rgba(232, 238, 245, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.dash-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.dash-value {
+  font-size: 14px;
+  color: var(--text);
+  text-align: right;
+  word-break: break-all;
+}
+
+.dash-mono {
+  font-family: ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.dash-signout {
+  width: 100%;
+  padding: 12px 20px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.dash-signout:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+  color: #f87171;
+}
+
+.dash-note {
+  margin-top: 24px;
+  padding: 14px 16px;
+  background: rgba(45, 125, 114, 0.06);
+  border: 1px solid rgba(45, 125, 114, 0.2);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.dash-note strong {
+  color: var(--teal-bright);
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .dash-card { padding: 32px 24px; }
+  .dash-row { flex-direction: column; align-items: flex-start; }
+  .dash-value { text-align: left; }
+}
