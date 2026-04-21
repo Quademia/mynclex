@@ -6,6 +6,135 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-21 (Bank Slice 1.4 — filters + two-pane focus mode)
+
+Restructured the /admin/bank page into two distinct modes
+driven entirely by URL state. Eliminates the old split-panel
+layout that crowded both the list and the form.
+
+### Why
+
+With only Family A live and 8 seed rows the split-panel was
+already cramped. Once Family B lands (5 more types) and real
+content arrives, the list becomes unusable without filters,
+and the form becomes unusable at its current width. Fixing
+both before Family B means every new editor drops into a
+page that's already ready for it.
+
+### Decisions (from discussion with Sam)
+
+- **Two-pane focus mode, not drawer/modal.** When editing,
+  the list collapses to a compact left-hand navigator; the
+  form takes the rest. Curators edit questions back-to-back
+  without popping in and out of a modal — Gmail-inbox /
+  Notion-database / Linear-issue pattern.
+- **URL drives everything.** No client state, no mode flag.
+  Bare `/admin/bank` = browse. `?edit=ID` or `?new=1` =
+  focus. Filter params live alongside. Bookmarkable,
+  shareable, back-button-safe.
+- **5 filters in scope:** type, client-needs category,
+  difficulty, status, free-text search. Remaining axes
+  (subcat, subject, body system, topic, subtopic, bloom,
+  tags) deferred — when curators hit the limit we add more.
+  Start lean, scale on need.
+- **Native `<details>`/`<summary>` accordions** for the
+  three form sections (Content open by default;
+  Classification + Housekeeping collapsed). Zero JS, fully
+  accessible, keyboard-navigable.
+- **Sticky Save bar at the TOP of the form**, not bottom.
+  Long forms + bottom buttons = scroll-fatigue. Sticking to
+  top keeps the action available regardless of scroll
+  position.
+- **Filters persist through focus mode via URL.** If user
+  narrows to "all hard SATA" then edits one, the left
+  navigator only shows hard SATA. Preserves their context.
+- **Browse-mode rows show `[Edit]` only, no `[Delete]`.**
+  Mockup hinted at row-level delete, but verification only
+  covers delete in focus mode — and keeping destructive
+  actions behind the focus view (where the curator sees
+  the full question) reduces accidental bulk deletion.
+  Saves a client-component file too. Can add later if
+  curators ask.
+- **Preview deferred** — reuses the student runner in a
+  preview mode when the runner exists. Building a bespoke
+  preview now would be duplicated work.
+
+### Files created
+
+- `mynclex/app/(app)/admin/bank/filters.tsx` — filter bar
+  component. 5 controls, GET-form submission.
+- `mynclex/app/(app)/admin/bank/navigator.tsx` — compact
+  left-pane list for focus mode.
+
+### Files modified
+
+- `mynclex/app/(app)/admin/bank/page.tsx` — split into
+  browse-mode and focus-mode render branches; applies
+  filters to the Supabase query (`.eq` for type/category/
+  difficulty/status, `.ilike` for search); loads the full
+  row for edit mode; builds `preservedFilterQuery` so
+  navigation between modes keeps filter context.
+- `mynclex/app/(app)/admin/bank/editor-shell.tsx` — wrapped
+  Content / Classification / Housekeeping sections in
+  collapsible `<details>`; moved Save/Delete/Cancel to a
+  sticky top bar; added optional `cancelHref` prop so
+  Cancel lands back on the filtered browse view. `form.tsx`
+  remains a thin re-export; `cancelHref` defaults to
+  `/admin/bank` so the old signature still works.
+- `mynclex/app/dashboards.css` — added `.bank-browse-*`,
+  `.bank-filters*`, `.bank-row-*`, `.bank-focus-*`,
+  `.bank-nav-*`, `.bank-section-*`, `.bank-form-topbar*`,
+  `.bank-btn-sm` classes. Removed dead `.bank-split`,
+  `.bank-list-*`, `.bank-form-title`, `.bank-form-cancel*`,
+  and the old `position: sticky` on `.bank-form`.
+
+### Files unchanged
+
+- `mynclex/app/(app)/admin/bank/form.tsx` (thin re-export).
+- `mynclex/app/(app)/admin/bank/actions.ts`.
+- `mynclex/lib/bank/editors/*`.
+- `mynclex/lib/bank/parsers/*`.
+- `mynclex/lib/bank/{types,classifications,form-shape}.ts`.
+- DB schema, RLS, seeds.
+
+### Verified
+- `tsc --noEmit` clean.
+- `eslint app/(app)/admin/bank lib/bank` clean.
+- `npm run build` clean — every route still compiles,
+  including /admin/bank.
+- No references to retired `.bank-split` / `.bank-list-*`
+  classes outside the CSS file itself (or the historical
+  entry for them in this log).
+- Slice 1.3's hidden `item_id` input still rendered by the
+  shell in edit mode; Save-changes flow intact.
+
+### Notes / pre-existing gaps (out of scope)
+
+- Several class names referenced by editors/shell have no
+  matching CSS rules: `.bank-grid-2`, `.bank-grid-3`,
+  `.bank-link-btn`, `.bank-row-remove`, `.bank-input--sm`,
+  `.bank-input--num`, `.bank-option-fields`, `.bank-checks`,
+  `.bank-check`. These gaps existed before this slice —
+  the form renders with default stacked flex fallbacks —
+  and were not introduced by Slice 1.4. Worth a follow-up
+  tidy once curators feel the form's visual rhythm is off.
+- `.bank-table-*` / `.bank-cell-*` classes from an even
+  earlier listing layout remain in the CSS but are
+  unreferenced. Out of this slice's scope to delete.
+
+### Next session
+
+- **Bank Slice 1.5 — Family B, first type.** Per the build
+  order in `bank.md`, Matrix is the most bounded Family B
+  editor (rows × columns grid, per-row correct selection).
+  Good candidate to prove the new architecture scales
+  through an editor with a fundamentally different UI shape
+  than Family A's option list.
+- Student-view preview still deferred — will come with the
+  student runner.
+
+---
+
 ## Session — 2026-04-21 (Bank Slice 1.3 — editor architecture refactor)
 
 Restructured the Family A authoring form from one monolithic

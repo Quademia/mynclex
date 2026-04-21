@@ -307,32 +307,199 @@
 }
 
 /* ─────────────────────────────────────────────────────
- * /admin/bank split-panel layout (Slice 1.2 authoring)
+ * /admin/bank — Slice 1.4 two-mode layout
  *
- * Desktop: list left, sticky form right.
- * Narrow:  stack (list above, form below).
+ * Browse mode: filter bar + full-width card list.
+ * Focus mode:  compact navigator (left) + editor form (right).
+ * Mode is chosen by the URL: ?edit / ?new → focus; otherwise browse.
  * ───────────────────────────────────────────────────── */
 
-.bank-split {
+/* Browse mode ─────────────────────────────────────── */
+
+.bank-browse-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.bank-filters {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bank-filter-row {
   display: grid;
-  grid-template-columns: 1fr 460px;
+  grid-template-columns: repeat(4, minmax(120px, 1fr)) minmax(180px, 2fr);
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .bank-filter-row { grid-template-columns: 1fr 1fr; }
+}
+
+.bank-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bank-filter-group--wide {
+  grid-column: span 1;
+}
+
+.bank-filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.bank-filter-input {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.bank-filter-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.bank-filter-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.bank-row-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.bank-row-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.bank-row-card:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.bank-row-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bank-row-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.bank-row-diff {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.bank-row-stem {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.bank-row-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.bank-row-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bank-row-tag {
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--primary-light);
+  border: 1px solid rgba(45, 125, 114, 0.18);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.bank-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+/* Focus mode ─────────────────────────────────────── */
+
+.bank-focus {
+  display: grid;
+  grid-template-columns: 280px 1fr;
   gap: 20px;
   align-items: start;
 }
 
 @media (max-width: 900px) {
-  .bank-split { grid-template-columns: 1fr; }
+  .bank-focus { grid-template-columns: 1fr; }
 }
 
-.bank-list {
+.bank-focus-nav {
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  position: sticky;
+  top: 72px;
+  max-height: calc(100vh - 88px);
+  display: flex;
+  flex-direction: column;
 }
 
-.bank-list-header {
-  padding: 12px 14px;
+@media (max-width: 900px) {
+  .bank-focus-nav { position: static; max-height: none; }
+}
+
+.bank-focus-nav-header {
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border);
   background: var(--primary-light);
   display: flex;
@@ -342,14 +509,26 @@
   color: var(--text-muted);
 }
 
-.bank-list-items {
-  max-height: 70vh;
-  overflow-y: auto;
+.bank-focus-nav-count {
+  font-size: 11px;
+  font-weight: 600;
 }
 
-.bank-list-item {
+.bank-focus-nav-list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.bank-focus-nav-empty {
+  padding: 16px 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.bank-nav-item {
   display: block;
-  padding: 12px 14px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border);
   text-decoration: none;
   color: inherit;
@@ -357,86 +536,158 @@
   transition: background 0.12s ease;
 }
 
-.bank-list-item:last-child {
+.bank-nav-item:last-child {
   border-bottom: none;
 }
 
-.bank-list-item:hover {
+.bank-nav-item:hover {
   background: rgba(237, 246, 245, 0.45);
+  text-decoration: none;
 }
 
-.bank-list-item[aria-current="true"] {
+.bank-nav-item--active {
   background: var(--primary-light);
   border-left: 3px solid var(--accent);
   padding-left: 11px;
 }
 
-.bank-list-id {
+.bank-nav-item-id {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   color: var(--text-muted);
   margin-bottom: 4px;
 }
 
-.bank-list-stem {
-  font-size: 13px;
+.bank-nav-item-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.bank-nav-item-diff {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.bank-nav-item-stem {
+  font-size: 12px;
   color: var(--text);
+  line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   line-clamp: 2;
   overflow: hidden;
-  line-height: 1.45;
 }
 
-.bank-list-meta {
-  margin-top: 4px;
-  font-size: 11px;
-  color: var(--text-muted);
+.bank-focus-main {
+  min-width: 0; /* let the form shrink below its natural width in grids */
 }
 
-/* Form (right pane) */
+/* Accordion sections (native <details>) ──────────── */
 
-.bank-form {
+.bank-section {
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 18px;
+  overflow: hidden;
+}
+
+.bank-section-summary {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+  background: var(--white);
+  transition: background 0.12s ease;
+}
+
+.bank-section-summary::-webkit-details-marker {
+  display: none;
+}
+
+.bank-section-summary:hover {
+  background: var(--bg);
+}
+
+.bank-section-icon {
+  display: inline-block;
+  color: var(--text-muted);
+  font-size: 10px;
+  transition: transform 0.15s ease;
+}
+
+.bank-section[open] .bank-section-icon {
+  transform: rotate(90deg);
+}
+
+.bank-section-body {
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* Form & sticky action bar ───────────────────────── */
+
+.bank-form {
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bank-form-topbar {
   position: sticky;
-  top: 72px;
-}
-
-@media (max-width: 900px) {
-  .bank-form { position: static; }
-}
-
-.bank-form-header {
+  top: 56px;
+  z-index: 10;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 10px;
-  margin-bottom: 2px;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow);
 }
 
-.bank-form-title {
-  font-size: 16px;
+.bank-form-topbar-title {
+  font-size: 15px;
   font-weight: 700;
   color: var(--primary);
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.bank-form-cancel {
-  font-size: 13px;
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 600;
+.bank-form-topbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-.bank-form-cancel:hover { text-decoration: underline; }
+.bank-btn-sm {
+  padding: 5px 12px;
+  font-size: 12px;
+}
 
 .bank-form-flash {
   padding: 10px 12px;
