@@ -87,3 +87,24 @@ CREATE POLICY nclex_perms_self_read ON nclex_admin_permissions FOR SELECT
 CREATE POLICY nclex_perms_admin_write ON nclex_admin_permissions FOR ALL
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- ─────────────────────────────────────────────────────────
+-- nclex_bank_items
+-- QAcademy-owned question bank. Two reader audiences:
+--   • any authenticated user → published items only
+--   • BANK_CURATE holders (and SUPER_ADMIN via the helper
+--     short-circuit) → all items, including drafts + writes
+-- Entitlement gating (paid access) happens at the app layer later.
+-- ─────────────────────────────────────────────────────────
+
+ALTER TABLE nclex_bank_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_bank_items_read_published ON nclex_bank_items FOR SELECT
+  TO authenticated
+  USING (is_published = TRUE);
+
+CREATE POLICY nclex_bank_items_curate_all ON nclex_bank_items FOR ALL
+  TO authenticated
+  USING (nclex_user_has_permission('BANK_CURATE'))
+  WITH CHECK (nclex_user_has_permission('BANK_CURATE'));
