@@ -36,35 +36,7 @@ import {
   deleteBankItemAction,
   type ActionResult,
 } from './actions';
-
-// Initial values shape — matches what page.tsx loads from the DB row
-// when ?edit=ID, or empty defaults for create mode.
-export interface BankFormInitial {
-  item_id: string | null;            // null = create mode
-  question_type: QuestionType;
-  stem: string;
-  rationale: string;
-  rationale_img: string;
-  options: { id: string; text: string; feedback: string }[];
-  correct_ids: string[];
-  select_count: number;
-  client_needs_category: string;
-  client_needs_subcategory: string;
-  nursing_subject: string;
-  body_system: string;
-  topic: string;
-  subtopic: string;
-  difficulty: string;
-  bloom_level: string;
-  tags: string;                      // comma-separated
-  is_published: boolean;
-  is_free_sample: boolean;
-  is_builder_visible: boolean;
-  marks: number;
-  shuffle_options: boolean;
-  question_ref: string;
-  batch_id: string;
-}
+import type { BankFormInitial } from '@/lib/bank/form-shape';
 
 interface OptionRow {
   id: string;
@@ -560,32 +532,3 @@ function defaultOptionsFor(type: QuestionType): OptionRow[] {
   }));
 }
 
-// Empty initial state — used by the page when in create mode.
-export function emptyInitial(): BankFormInitial {
-  return {
-    item_id: null,
-    question_type: 'MCQ',
-    stem: '',
-    rationale: '',
-    rationale_img: '',
-    options: [],
-    correct_ids: [],
-    select_count: 2,
-    client_needs_category: '',
-    client_needs_subcategory: '',
-    nursing_subject: '',
-    body_system: '',
-    topic: '',
-    subtopic: '',
-    difficulty: '',
-    bloom_level: '',
-    tags: '',
-    is_published: false,
-    is_free_sample: false,
-    is_builder_visible: true,
-    marks: 1,
-    shuffle_options: true,
-    question_ref: '',
-    batch_id: '',
-  };
-}

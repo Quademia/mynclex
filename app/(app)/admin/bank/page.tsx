@@ -11,7 +11,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { BankForm, emptyInitial, type BankFormInitial } from './form';
+import { BankForm } from './form';
+import { emptyInitial, type BankFormInitial } from '@/lib/bank/form-shape';
 import type { QuestionType } from '@/lib/bank/classifications';
 import type {
   BankItemContent,
