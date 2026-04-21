@@ -6,6 +6,121 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-21 (Bank Slice 1 — schema + RLS + seed + admin view)
+
+First build work on The Bank. Scope deliberately narrow: QAcademy-owned
+tables only, no tutor-private authoring yet; RLS only on
+`nclex_bank_items`; a read-only `/admin/bank` listing page to confirm
+RLS and data are wired up end-to-end. No authoring UI, no student
+runner yet.
+
+### Decisions (from discussion with Sam)
+
+- **Narrow slice instead of "schema for everything."** All 7 bank
+  tables landed in one migration (mechanical copy from `bank.md`), but
+  RLS + UI start with `nclex_bank_items` only. Tutor-private tables,
+  case studies, and readiness packs are structurally present but RLS-
+  disabled; policies come per-table in later slices.
+- **Question type scope — MCQ only for Slice 1.** TF is effectively MCQ
+  with 2 options; it lands alongside SATA later (SATA forces a second
+  scoring function anyway — that's when TF earns its keep).
+- **Seed strategy — synthetic placeholders, clearly tagged.** 8 rows
+  with `batch_id = 'DEV_SEED_001'` for clean removal. Seed file header
+  explicitly flags this as NOT real NCLEX content; real editorial work
+  is off-platform per the Content Sourcing decision.
+- **QAcademy-owned tables first; tutor-private later.** Tutor tables
+  are mechanical duplication once the shape works (same columns plus a
+  `tutor_id` FK). Building QAcademy-owned first keeps RLS simpler and
+  aligns with the higher-value path (the bank students pay for).
+- **Judgment call — added `is_published` to both case-study tables** even
+  though `bank.md` only lists it on the two item tables. A case study
+  needs a draft/live gate too; without it, cases can't be held back
+  mid-authoring. Can drop if Sam wants spec-exact.
+- **Judgment call — CHECK constraints on enumerated values**
+  (`question_type`, `difficulty`, `cjmm_step`, readiness-pack `status`,
+  join-table `position`). Prevents author typos; trivial to ALTER if
+  new values arise later.
+- **RLS shape for `nclex_bank_items`:**
+  - Any authenticated user can SELECT where `is_published = TRUE`.
+  - `BANK_CURATE` holders (SUPER_ADMIN bypasses via the helper's
+    short-circuit) get full access — read drafts + INSERT/UPDATE/DELETE.
+  - Entitlement gating (paid bank access for self-study students) is
+    deliberately NOT in RLS. Belongs to the app layer once payments ship.
+- **`/admin/bank` follows the hide-what-you-can't-access pattern.**
+  Section card only appears on `/admin` for users with `BANK_CURATE` (or
+  SUPER_ADMIN). The page itself also gates server-side, so direct URL
+  navigation without the permission bounces to `/admin`.
+- **Read-only for now.** Authoring (create/edit/delete), question
+  detail view, filter chips, and pagination are all deferred.
+
+### Files created
+
+- `mynclex/db/seed-bank-dev.sql` — 8 synthetic MCQ rows.
+- `mynclex/app/(app)/admin/bank/page.tsx` — read-only listing.
+
+### Files modified
+
+- `mynclex/db/schema.sql` — 7 bank tables appended.
+- `mynclex/db/rls.sql` — RLS block for `nclex_bank_items`.
+- `mynclex/app/(app)/admin/page.tsx` — now fetches
+  `nclex_admin_permissions`; renders a section-card grid when at least
+  one card is visible. First card: Question Bank → `/admin/bank`.
+- `mynclex/app/dashboards.css` — `.dash-card--wide` variant,
+  `.section-grid` / `.section-card` styles, focused `.bank-table` /
+  `.bank-badge` block.
+
+### Migrations applied to dev (`zrakjibtxyzoqcdtvpmq`)
+
+- `mynclex_bank_tables` — the 7 tables.
+- `mynclex_bank_items_rls` — RLS enable + 2 policies.
+- `mynclex_bank_dev_seed` — 8 INSERT rows.
+
+### Verified locally
+
+- `npx tsc --noEmit` clean.
+- `npx eslint` clean on the admin tree.
+- Dev server boots without compile errors.
+- Unauthenticated `GET /admin/bank` → redirect to `/login` (auth gate
+  intact).
+
+### Not yet verified (requires Sam's session)
+
+- Visual rendering for `+mynclexsuperadmin` — should see all 8 rows.
+- Section-card hiding for `+mynclexadmin` (no BANK_CURATE granted).
+- Redirect for TUTOR/STUDENT attempting to visit `/admin/bank`.
+
+### Deferred to future sessions
+
+- RLS on the other 6 bank tables (per-table as features land).
+- Authoring UI for MCQ (create + edit).
+- Question detail view.
+- Filter chips + pagination on the admin listing.
+- SATA + TF (next question-type wave; adds a second scoring function).
+- Tutor-private bank view + authoring.
+- `BANK_CURATE` CHECK constraint on `nclex_admin_permissions` (still no
+  CHECK per main.md's deferral policy).
+- `nclex_question_reports` table (separate, from Content Sourcing).
+
+### Manual step Sam may run (optional)
+
+To exercise the non-SUPER_ADMIN curator path on dev:
+
+```sql
+INSERT INTO nclex_admin_permissions (user_id, permission)
+SELECT id, 'BANK_CURATE' FROM nclex_users
+WHERE email = 'mybackpacc+mynclexadmin@gmail.com'
+ON CONFLICT DO NOTHING;
+```
+
+Or leave it ungranted to test the hide-the-card path for plain ADMIN.
+
+### Next session
+
+Likely options: (a) MCQ authoring UI (create/edit), (b) RLS on the
+remaining 6 bank tables, (c) student-side practice runner. Sam's pick.
+
+---
+
 ## Session — 2026-04-21 (App shell — Slice 2.5)
 
 Shared app chrome introduced. Each authenticated workspace page
