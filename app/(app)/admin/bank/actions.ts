@@ -20,15 +20,13 @@ import {
   CLIENT_NEEDS_CATEGORIES,
   DIFFICULTY_LEVELS,
   ITEM_ID_PREFIX,
-  MAX_OPTIONS,
-  MIN_OPTIONS,
   type QuestionType,
 } from '@/lib/bank/classifications';
 import type {
   BankItemContent,
   BankItemCorrect,
-  BankOption,
 } from '@/lib/bank/types';
+import { parseByType } from '@/lib/bank/parsers';
 
 const VALID_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N']);
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
@@ -124,76 +122,29 @@ function parseFormData(formData: FormData): ParsedItem | { error: string } {
     return { error: 'Client Needs category is required.' };
   }
 
-  // Build option list from parallel arrays. Empty rows are dropped.
+  // Per-type validation + content/correct construction lives in the
+  // lib/bank/parsers/ dispatcher. It handles option-building, MIN/MAX
+  // bounds, correct-id membership, and the type-specific rules.
   const optionIds = formData.getAll('option_id').map(String);
   const optionTexts = formData.getAll('option_text').map(String);
   const optionFeedbacks = formData.getAll('option_feedback').map(String);
-
-  if (optionIds.length !== optionTexts.length || optionIds.length !== optionFeedbacks.length) {
-    return { error: 'Option arrays out of sync.' };
-  }
-
-  const options: BankOption[] = [];
-  const feedback: Record<string, string> = {};
-  for (let i = 0; i < optionIds.length; i++) {
-    const id = optionIds[i].trim();
-    const text = optionTexts[i].trim();
-    if (!id || !text) continue;
-    options.push({ id, text });
-    const fb = optionFeedbacks[i].trim();
-    if (fb) feedback[id] = fb;
-  }
-
-  if (options.length < MIN_OPTIONS) {
-    return { error: `At least ${MIN_OPTIONS} non-empty options are required.` };
-  }
-  if (options.length > MAX_OPTIONS) {
-    return { error: `At most ${MAX_OPTIONS} options are allowed.` };
-  }
-
-  // For TF, enforce locked True/False shape.
-  if (question_type === 'TF') {
-    if (options.length !== 2 || options[0].text !== 'True' || options[1].text !== 'False') {
-      return { error: 'True/False questions must have exactly two options: True and False.' };
-    }
-  }
-
-  // Correct answer(s) — interpretation varies by type.
   const correctIds = formData.getAll('correct_id').map((v) => String(v).trim()).filter(Boolean);
-  const validIds = new Set(options.map((o) => o.id));
-  for (const cid of correctIds) {
-    if (!validIds.has(cid)) {
-      return { error: `Correct answer "${cid}" does not match any option.` };
-    }
+  const selectCountRaw = parseInt(String(formData.get('select_count') ?? ''), 10);
+
+  const parsed = parseByType(question_type, {
+    optionIds,
+    optionTexts,
+    optionFeedbacks,
+    correctIds,
+    selectCount: selectCountRaw,
+  });
+
+  if (!parsed.ok) {
+    return { error: parsed.error };
   }
 
-  let content: BankItemContent;
-  let correct: BankItemCorrect;
-
-  if (question_type === 'MCQ' || question_type === 'TF') {
-    if (correctIds.length !== 1) {
-      return { error: 'Exactly one correct answer is required.' };
-    }
-    content = { options };
-    correct = { answer: correctIds[0], feedback };
-  } else if (question_type === 'SATA') {
-    if (correctIds.length < 1) {
-      return { error: 'At least one correct answer is required for SATA.' };
-    }
-    content = { options };
-    correct = { answers: correctIds, feedback };
-  } else {
-    // SELECT_N
-    const selectCount = parseInt(String(formData.get('select_count') ?? ''), 10);
-    if (!Number.isFinite(selectCount) || selectCount < 1 || selectCount > options.length) {
-      return { error: 'Select N: choose a valid count (1 to number of options).' };
-    }
-    if (correctIds.length !== selectCount) {
-      return { error: `Select N: exactly ${selectCount} correct answer(s) must be marked.` };
-    }
-    content = { options, select_count: selectCount };
-    correct = { answers: correctIds, feedback };
-  }
+  const content: BankItemContent = parsed.content;
+  const correct: BankItemCorrect = parsed.correct;
 
   // Optional fields.
   const subcategory = String(formData.get('client_needs_subcategory') ?? '').trim();

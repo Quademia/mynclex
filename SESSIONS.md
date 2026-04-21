@@ -6,6 +6,116 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-21 (Bank Slice 1.3 — editor architecture refactor)
+
+Restructured the Family A authoring form from one monolithic
+client component into a shell + per-type editor pattern.
+Zero UI changes; zero behaviour changes beyond a pre-existing
+edit-save bug fix (see below).
+
+### Why now
+
+Family B (Matrix, Highlight, Cloze, Drag-drop, Bow-tie) are
+structurally different UIs, not just variations of an option
+list. Adding them to the existing `if (type === 'X')` branches
+in a single `form.tsx` would produce a 1500-line tangle.
+Refactoring while Family A is still the only thing live keeps
+the diff small and reviewable. The new shape also sets up
+reuse for (a) tutor-side authoring (parallel ownership model
+in bank.md — same UI points at `nclex_tutor_questions`), and
+(b) the future student-side question runner (same per-type
+component split, display-only).
+
+### Decisions (from discussion with Sam)
+
+- **Shell + per-type editor, not type-branches.** Shell owns
+  the ~80% shared (stem, rationale, classification axes,
+  housekeeping, actions). Editors own the ~20% unique per
+  type. `form.tsx` becomes a thin re-export dispatcher.
+- **Editors live in `lib/bank/editors/`, not route-local.**
+  Same reason as `lib/bank/types.ts` — tutors will need
+  these. `lib/bank/` is the bank's shared machinery.
+- **Parsers extracted per-type too.** `lib/bank/parsers/` with
+  one file per type + a dispatcher index. `actions.ts` calls
+  `parseByType(question_type, payload)`. Same pattern as the
+  editors — Family B parsers will be bespoke per type.
+- **`types.ts` stays Family A only.** Each future type
+  extends the discriminated union in its own slice, when
+  the shape is actually settled. No speculative types.
+- **Name-based form fields instead of manual FormData
+  appendage.** Editors render inputs with `name=` attrs so
+  their values flow directly into the outer FormData. The
+  shell's onSubmit no longer marshals editor state — there's
+  no editor state to marshal from its perspective. Server
+  payload is byte-identical to Slice 1.2.
+- **Sam authorised one bug fix alongside the refactor
+  (Option B).** Slice 1.2's `form.tsx` never posted
+  `item_id`, so Save-changes on an existing row would have
+  returned "Missing item_id." The new shell renders a hidden
+  `<input name="item_id">` in edit mode. One-line fix; the
+  refactor's verification checklist ("Edit saves updates")
+  wouldn't have passed without it.
+
+### Files created
+
+- `mynclex/lib/bank/parsers/mcq.ts` — MCQ content/correct builder.
+- `mynclex/lib/bank/parsers/tf.ts`
+- `mynclex/lib/bank/parsers/sata.ts`
+- `mynclex/lib/bank/parsers/select-n.ts`
+- `mynclex/lib/bank/parsers/index.ts` — `parseByType()` dispatcher.
+- `mynclex/lib/bank/editors/mcq-editor.tsx` — option list + radio.
+- `mynclex/lib/bank/editors/tf-editor.tsx` — locked True/False.
+- `mynclex/lib/bank/editors/sata-editor.tsx` — option list + checkboxes.
+- `mynclex/lib/bank/editors/select-n-editor.tsx` — option list + count field.
+- `mynclex/app/(app)/admin/bank/editor-shell.tsx` — shared frame.
+
+### Files modified
+
+- `mynclex/app/(app)/admin/bank/form.tsx` — now a ~15-line
+  re-export that wraps `EditorShell` (page.tsx still imports
+  `BankForm` from the same path).
+- `mynclex/app/(app)/admin/bank/actions.ts` — internal
+  `parseFormData()` now delegates the type-specific branches
+  to `parseByType()`. Auth gate, `nextItemId()`, DB write,
+  `revalidatePath`, `redirect` — all unchanged.
+
+### Files unchanged
+
+- `mynclex/app/(app)/admin/bank/page.tsx`
+- `mynclex/lib/bank/types.ts`
+- `mynclex/lib/bank/classifications.ts`
+- `mynclex/lib/bank/form-shape.ts`
+- `mynclex/app/dashboards.css` and every other CSS file.
+- DB schema, RLS, seeds.
+
+### Verified
+- `tsc --noEmit` clean.
+- `eslint app/(app)/admin/bank lib/bank` clean.
+- `npm run build` clean — every route still compiles.
+- `CLIENT_NEEDS_CATEGORIES` referenced only in
+  `editor-shell.tsx` (UI) + `classifications.ts` (source) +
+  `actions.ts` (server validation). Not duplicated across
+  editors — the shell owns classification dropdowns once.
+- `MIN_OPTIONS` / `MAX_OPTIONS` appear in each of the 3
+  add/remove-capable editors + the 3 add/remove-bound
+  parsers. This is by design: editors gate the Add/Remove
+  buttons, parsers enforce server-side bounds. Neither is
+  a classification dropdown.
+- Server/client directives correct on every file: parsers
+  have none (server-safe), editors all `'use client'`,
+  shell + form `'use client'`, actions `'use server'`,
+  page has no directive (server component).
+
+### Next session
+- **Bank Slice 1.4 — Family B, first type.** Matrix is the
+  most bounded of Family B (grid of rows × columns, each cell
+  a radio). Good candidate to prove the new architecture
+  scales. Alternatives: Bow-tie (signature NGN but fixed 5-
+  slot shape), student runner (reverse direction — consume
+  the same per-type split for display).
+
+---
+
 ## Session — 2026-04-21 (UI Slice 1 — light theme migration)
 
 Moved MyNclex off the dark landing-page palette for every
