@@ -6,6 +6,183 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-21 (Bank Slice 1.2 — MCQ/TF/SATA/Select N authoring)
+
+First real curator workflow on top of Slice 1's read-only listing.
+Create + edit + delete for the four "Family A" question types:
+MCQ, TF, SATA, SELECT_N. These four share ~80% of the authoring UI
+(option list + per-option correct toggle + per-option feedback)
+and only differ in the correct-answer control — radio for MCQ/TF,
+checkbox for SATA/SELECT_N, plus a count field for SELECT_N.
+
+### Decisions (from discussion with Sam)
+
+- **Bundle CRUD into one slice, not split.** Original lean was
+  create-only first, edit/delete as a separate 1.3. Sam pushed back:
+  edit reuses ~90% of the create form, and splitting was artificial.
+  Single slice for all three ops.
+- **Family A only this slice.** Of the 9 v1 question types, four
+  share an option-list shape (MCQ/TF/SATA/SELECT_N). The other five
+  (Matrix, Highlight, Cloze, Drag-drop, Bow-tie) each need a bespoke
+  editor — each lands as its own slice (1.3 → 1.7).
+- **Keep every field; nothing dropped.** Sam was firm on this even
+  for fields not yet wired (`rationale_img`, `marks`, `is_free_sample`,
+  `is_builder_visible`, `shuffle_options`, `question_ref`, `batch_id`,
+  `nursing_subject`). Form ships with all of them; image upload
+  accepts a pasted URL for now (direct upload deferred until
+  Supabase Storage is wired in a later slice).
+- **Architecture: beta-b pattern, not MyTeacher.** Server component
+  page does data + auth gate; thin `'use client'` form component
+  handles option-list state + type-driven control swap; plain
+  `<form>` submission to Server Actions. Same shape as auth Slices
+  1–2 (`actions.ts` next to `page.tsx`). Reviewed both
+  `myteacher/teacher/bank.html` (closest in field set, distant in
+  stack) and `qacademy-beta-b/src/app/(exams)/question-bank/`
+  (native Next.js + Server Actions); beta-b pattern translated 1:1.
+- **Split-panel layout (list left, sticky form right).** Sam's call
+  over the originally-proposed "list above, form below" — a long
+  list would push the form off-screen. Stacks to one column below
+  900px so mobile still works.
+- **URL-driven edit mode (`?edit={item_id}`).** No separate
+  `/new` or `/edit/:id` route. Click a row → URL gains `?edit=ID`
+  → form pre-fills. Click "+ New" → URL clears → blank form.
+  Bookmarkable, deep-linkable.
+- **Auto sequential item IDs per type.** `NCLEX_MCQ_00009`,
+  `NCLEX_TF_00001`, `NCLEX_SATA_00001`, `NCLEX_SELN_00001`.
+  Computed in the create action via `MAX(item_id) LIKE prefix + 1`,
+  fixed-width zero-padded. Type readable at a glance in the
+  listing and in error logs. Matches the existing seed.
+- **Question type locked on edit.** Changing type would invalidate
+  both the JSONB shape (`content` / `correct`) and the ID prefix.
+  Enforced server-side; the dropdown is `disabled` in edit mode.
+- **Hard delete, not archive.** No FK references to bank items in
+  v1 (case-study and readiness-pack join tables aren't populated),
+  so nothing cascades. Revisit if/when they are.
+- **Server Actions re-check auth + BANK_CURATE/SUPER_ADMIN
+  independently.** Page-level gate is UX polish; the action-level
+  gate is the real security boundary — defends against tampered
+  hidden inputs and direct action invocation.
+- **Classifications hardcoded.** `lib/bank/classifications.ts` —
+  TS constants for question types, NCLEX client-needs categories
+  + subcategories, nursing subjects, body systems, difficulty,
+  Bloom's, option letters, ID prefixes. Promotable to a DB lookup
+  table later if non-engineers need to edit values without a
+  deploy. Topic / subtopic stay free-text inputs (open-ended in
+  real authoring).
+- **JSONB shapes typed in `lib/bank/types.ts`.** Discriminated
+  union on `question_type` so future types (Family B) just add
+  their branch — editor, future renderer, and scoring functions
+  all narrow the same way.
+
+### Files created
+
+- `mynclex/lib/bank/classifications.ts` — hardcoded enums.
+- `mynclex/lib/bank/types.ts` — TS shapes for `content` /
+  `correct` JSONB (Family A only; Family B added per-slice).
+- `mynclex/lib/bank/form-shape.ts` — `BankFormInitial` interface
+  + `emptyInitial()` factory. Lives outside the form component
+  for the RSC-boundary reason described under "Bug fixed mid-
+  session" below.
+- `mynclex/app/(app)/admin/bank/actions.ts` — three Server Actions
+  (`createBankItemAction`, `updateBankItemAction`,
+  `deleteBankItemAction`). Each gates auth + permission, parses
+  + validates the form payload into `content` / `correct` JSONB,
+  performs the DB write, then `revalidatePath` + `redirect`.
+  Auto item-ID computation via `nextItemId()`.
+- `mynclex/app/(app)/admin/bank/form.tsx` — `'use client'`
+  component. Manages: type selector, variable-length option list
+  (A–F, min 2, max 6, default 4 / locked 2 for TF), per-row
+  correct toggle (radio or checkbox), SELECT_N count field, all
+  classification + housekeeping fields. Submits via Server Action.
+
+### Files modified
+
+- `mynclex/app/(app)/admin/bank/page.tsx` — split-panel layout;
+  reads `?edit={id}` searchParam; loads single row in full when
+  editing and maps JSONB back into the form's initial-values
+  shape; preserves the existing auth gate + listing query.
+- `mynclex/app/dashboards.css` — added `bank-split`, `bank-list`,
+  `bank-form`, option-row, checkbox group, and button styles.
+  Sticky right pane on desktop; stacks below 900px.
+
+### Bug fixed mid-session
+
+After the first push, `/admin/bank` 500'd on the dev Worker:
+
+> Attempted to call emptyInitial() from the server but emptyInitial
+> is on the client.
+
+`emptyInitial()` was originally exported from `form.tsx` (which
+carries `'use client'`) and called by the server component page.
+Next.js blocks any server→client *function call* across the RSC
+boundary; only components and props can cross. Type-only imports
+work, but runtime helpers don't. Fixed by extracting
+`BankFormInitial` + `emptyInitial()` into the new neutral
+`lib/bank/form-shape.ts` module (no directive). Both sides import
+from there — no boundary crossed. Filed as commit 862a26b.
+
+### Verified locally + on dev Worker
+
+- `tsc --noEmit` clean (mynclex root).
+- `eslint app/(app)/admin/bank lib/bank` clean.
+- Dev server boots without compile errors locally; the only
+  runtime errors in this worktree are the pre-existing missing-
+  `.env.local` crash in middleware (no Supabase creds in the
+  worktree).
+- Sam confirmed `/admin/bank` loads on the dev Worker after the
+  fix push (commit 862a26b). Workers Builds auto-deploy picked
+  up both pushes within minutes.
+
+### Not yet verified (Sam's session)
+
+- Full create-edit-delete flow end-to-end as both
+  `+mynclexsuperadmin` and `+mynclexadmin` (BANK_CURATE granted).
+- Type-switching in create mode — TF locking True/False;
+  SATA / SELECT_N swapping correct controls; SELECT_N count field
+  enforcing exactly N.
+- Plain TUTOR / STUDENT direct hit on `/admin/bank` → bounce
+  to `/admin`.
+
+### Deferred to future sessions
+
+- **Family B authoring** — each in its own slice (Matrix,
+  Highlight, Cloze, Drag-drop, Bow-tie). Each adds a new editor
+  branch, a new JSONB shape in `lib/bank/types.ts`, and a new
+  scoring function later.
+- **Direct image upload** — `rationale_img` accepts a pasted URL
+  today. Real Supabase Storage upload + bucket policies land in a
+  separate slice that can also wire option-image support.
+- **Filter chips + pagination on the listing** — fine at 8 rows
+  + a 500-row limit; revisit when the list gets long.
+- **Student-view preview** — meaningful only once the student
+  quiz runner exists. Reuse the runner in author-preview mode
+  rather than building it twice.
+- **Tutor-private bank** (`nclex_tutor_questions` and friends) —
+  duplicate the same authoring UI with a `tutor_id` filter once
+  tutor-side workflows arrive.
+- **Soft archive** — current delete is hard. Consider archiving
+  if/when bank items are referenced by case studies or readiness
+  packs (deferred FK pressure).
+- **Toast / status-line feedback polish** — today's feedback is a
+  single in-form flash ("Saved ✓") plus inline error banner. A
+  page-level toast can wait until other admin sections need one.
+
+### Commits
+
+- `11adceb` — `mynclex: MCQ/TF/SATA/Select N authoring UI — Bank Slice 1.2`
+- `862a26b` — `mynclex: fix /admin/bank crash — move shared form shape out of client file`
+
+### Next session
+
+Likely options: (a) Family B authoring — pick one type to do
+first (Matrix is the most-bounded; Bow-tie is the highest-
+profile NGN signature), (b) RLS on the remaining 6 bank tables,
+(c) student-side practice runner so the Bank starts producing
+value end-to-end, (d) Supabase Storage wiring so rationale +
+option images can be uploaded from the form.
+
+---
+
 ## Session — 2026-04-21 (Bank Slice 1 — schema + RLS + seed + admin view)
 
 First build work on The Bank. Scope deliberately narrow: QAcademy-owned
