@@ -25,11 +25,28 @@ multi-role pick-role page, and an in-dashboard role switcher.
   `/pick-role`. Subsequent visits honour an `nclex_active_role` cookie.
   A role switcher lives inside every dashboard for cross-over (Sam =
   SUPER_ADMIN + TUTOR).
-- **ADMIN and SUPER_ADMIN share `/admin`.** SUPER_ADMIN sees an extra
-  section via conditional render — no separate `/super-admin` route.
-- **Placeholder dashboard content (Decision 3A).** Each dashboard shows
-  welcome + "Coming next:" card for now. Real feature UI lands as
-  features arrive.
+- **ADMIN and SUPER_ADMIN share `/admin` — single route, section-menu
+  model (refined 2026-04-21 same-day).** `/admin` is a menu of admin
+  sections (sub-routes like `/admin/payments`, `/admin/bank`, etc.).
+  SUPER_ADMIN is NOT "ADMIN with a special extras card" — it's a role
+  that bypasses the permission engine entirely via
+  `nclex_user_has_permission()`'s SUPER_ADMIN short-circuit. ADMIN is
+  a trust gate; real capability is governed per-user by rows in
+  `nclex_admin_permissions`.
+  - **Hide pattern (A1):** ADMIN only sees section cards for permissions
+    they hold. SUPER_ADMIN sees every card. Server-side permission gate
+    on every sub-route; UI hide is cosmetic, the gate is the real
+    security. No separate `/super-admin` route.
+  - **SUPER_ADMIN-only sections** (role assignment, config) are
+    implemented as permissions that simply never get granted to plain
+    admins — no hard-coded super-admin checks in page code.
+  - **Empty state:** an ADMIN with zero permissions lands on `/admin`
+    with a "No admin sections granted yet — contact your super admin"
+    message.
+- **Placeholder dashboard content (Decision 3A).** Student and tutor
+  dashboards show welcome + "Coming next:" card. `/admin` shows the
+  section-menu placeholder described above. Real UI lands as features
+  arrive.
 - **`nclex_active_role` cookie** — HttpOnly, SameSite=Lax, path=/,
   30-day max-age. Read only by server code; never touched by browser JS.
   Per-request validation: the cookie's value must match a role the user
@@ -50,7 +67,8 @@ multi-role pick-role page, and an in-dashboard role switcher.
   holds the requested role before setting the cookie.
 - `mynclex/app/student/page.tsx` — student dashboard.
 - `mynclex/app/tutor/page.tsx` — tutor dashboard.
-- `mynclex/app/admin/page.tsx` — admin dashboard (ADMIN + SUPER_ADMIN).
+- `mynclex/app/admin/page.tsx` — admin section menu (ADMIN + SUPER_ADMIN).
+  Badge + view driven by `nclex_active_role` cookie, not role holdings.
 
 ### Files modified
 
@@ -85,8 +103,13 @@ multi-role pick-role page, and an in-dashboard role switcher.
 
 - **Feature pages** (bank, programmes, profile, classes, curriculum,
   user management) — not in Slice 2's scope.
-- **Per-permission gates** on SUPER_ADMIN features via
-  `nclex_user_has_permission()` — added as real admin tasks land.
+- **Per-permission gates on admin sub-routes** via
+  `nclex_user_has_permission()` — added as each real admin section
+  lands (e.g. `/admin/payments` checks `PAYMENTS_REVIEW`).
+- **Draft permission list** (not yet a CHECK constraint):
+  `PAYMENTS_REVIEW`, `BANK_CURATE`, `TUTOR_VET`, `REPORTS_REVIEW`,
+  `USERS_MANAGE`, `CONFIG_EDIT`. Expand as features land. Some
+  (`USERS_MANAGE`, `CONFIG_EDIT`) stay SUPER_ADMIN-only by policy.
 - **"View as student" / impersonation** for admins — future.
 - **Role revocation UI** — admins still edit roles via SQL for now.
 - **Cookie writeback on direct URL access.** If a user navigates to

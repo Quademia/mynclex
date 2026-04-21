@@ -1,9 +1,21 @@
 // mynclex/app/admin/page.tsx
 //
-// Admin dashboard — serves both ADMIN and SUPER_ADMIN roles.
-// SUPER_ADMIN users see an extra "super-admin" section via a simple
-// conditional render. Per-permission gates (via nclex_user_has_permission)
-// will land as real admin tasks surface.
+// Admin section menu. Serves both ADMIN and SUPER_ADMIN roles.
+//
+// Model:
+//   - /admin is a MENU. Each card links to a sub-route like /admin/payments,
+//     /admin/bank, /admin/users — each gated by a specific permission.
+//   - SUPER_ADMIN sees every card because `nclex_user_has_permission()`
+//     short-circuits to true for SUPER_ADMIN on any permission check
+//     (see db/rls.sql).
+//   - ADMIN sees only the cards for permissions they've been granted
+//     (hide-what-you-can't-access pattern).
+//   - SUPER_ADMIN-only sections (role assignment, config) are implemented
+//     as permissions that simply never get granted to plain admins — no
+//     hard-coded super-admin checks in the page code.
+//
+// Today this is a placeholder: no real admin sections exist yet, so the
+// menu is empty. Cards will appear here as real admin features land.
 
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
@@ -45,10 +57,10 @@ export default async function AdminDashboard() {
   }
 
   // Which admin-level role is the user currently "viewing as"?
-  // Drives the badge, the extras section, and the role-switcher label.
-  // Source of truth: the `nclex_active_role` cookie set at /pick-role or
-  // via the switcher. Falls back to the higher-priority role the user
-  // actually holds if the cookie is missing or points somewhere else.
+  // Drives the badge and the role-switcher label. Source of truth:
+  // the `nclex_active_role` cookie set at /pick-role or via the switcher.
+  // Falls back to the higher-priority role the user actually holds if
+  // the cookie is missing or points somewhere else.
   const cookieStore = await cookies();
   const activeRoleCookie = cookieStore.get('nclex_active_role')?.value;
 
@@ -78,16 +90,18 @@ export default async function AdminDashboard() {
           </span>
         </div>
 
-        <div className="dash-note">
-          <strong>Coming next:</strong> user management, reported-question
-          moderation, and platform configuration.
-        </div>
-
-        {isSuperAdmin && (
+        {isSuperAdmin ? (
           <div className="dash-note">
-            <strong>Super Admin extras:</strong> role assignment, tutor
-            application review, and system health — appear here as those
-            features land.
+            <strong>No admin sections defined yet.</strong> This menu will
+            list every admin section — payments, question bank, tutor
+            vetting, user management, and so on — as each feature lands.
+            As Super Admin you&apos;ll see every section here.
+          </div>
+        ) : (
+          <div className="dash-note">
+            <strong>No admin sections granted yet.</strong> Sections
+            appear here only when you&apos;re granted permission for them.
+            Contact your super admin to request access.
           </div>
         )}
 
