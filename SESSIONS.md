@@ -6,6 +6,190 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-22 (Slice 1.9 — Highlight authoring)
+
+Fourth Family B question type. `[[double-bracket]]` chunk syntax on
+top of the stem, with per-chunk correctness toggles. Simpler than
+Cloze — brackets carry their own text so no stem renumbering is
+needed; the parser produces a byte-identical stem and only
+normalises chunk metadata. Plan drafted in Claude Web; executed
+from a pre-written handoff file.
+
+### Decisions (from Claude Web discussion)
+
+- **Storage.** Passage stored in top-level `stem` column with
+  `[[chunk]]` syntax intact; `content.chunks` lists one entry per
+  bracket pair in passage order; `correct.correct_ids` is a flat
+  list; `correct.feedback` is flat (unlike Cloze's nested per-blank
+  map — Highlight chunks don't restart IDs per anything).
+- **Double brackets** distinguish markers from literal single-bracket
+  notation. Medical text like `[K⁺] = 3.2` or `[diagnosis TBD]` is
+  safe passage content. Inner single brackets allowed inside a chunk
+  (`[[low Hgb [<10 g/dL]]]`) — handled by the non-greedy regex
+  `/\[\[(.+?)\]\]/g`.
+- **Non-greedy matching is non-negotiable.** A greedy pattern would
+  span `[[foo]]bar[[baz]]` as one match and break the type.
+- **Stable positional IDs.** `h1`, `h2`, … assigned in passage order
+  at save time. Independent of chunk text — curator can edit the
+  text inside `[[...]]` without breaking feedback references.
+- **Smart Wrap / Insert button** — dual-behaviour toolbar button.
+  With a selection it wraps (`[[ ]]` around selected text, cursor
+  after `]]`); without selection it inserts empty `[[]]` at cursor
+  and places the caret between the inner brackets so the curator
+  types the chunk text directly.
+- **Orphan preservation (Option II, same as Cloze).** Removing
+  `[[...]]` from the passage greys out the card as "will be dropped
+  on save" but keeps the correctness + feedback; re-bracketing the
+  same text reconnects it. Parser drops `in_passage=false` cards at
+  save time.
+- **Colour-coded preview** — author-facing answer key with green
+  (correct) / grey (wrong) / dashed-amber (undecided) pills, plus a
+  legend below the passage.
+- **Bounds summary bar** — four pills showing chunk / correct /
+  wrong / undecided counts, each flipping green when its constraint
+  is met.
+- **Bounds.** 3–12 chunks, ≥1 correct, ≥1 wrong. The wrong-chunk
+  floor enforces distractors so "click everything = 100%" is
+  impossible.
+- **Duplicate-text handling.** If the curator has `[[118]]` twice
+  (e.g. HR at two timestamps), both spans get the same decision +
+  feedback — the parser keys by text. Truly independent dupes are
+  out of scope (would need per-position FormData IDs); flagged in
+  deferrals.
+
+### Files created
+
+- `mynclex/lib/bank/parsers/highlight.ts` — non-greedy bracket
+  extraction, positional ID assignment, bounds validation, orphan
+  drop. Stem passes through byte-identical (no renumber needed).
+- `mynclex/lib/bank/editors/highlight-editor.tsx` — toolbar (Wrap /
+  Insert + Clear all + chunk-count pill), smart-tip, preview with
+  legend, bounds summary, per-chunk cards with ✓/✗ toggle + feedback
+  textarea, orphan state, hidden serialisers.
+
+### Files modified
+
+- `mynclex/lib/bank/classifications.ts` — HIGHLIGHT added to
+  `QUESTION_TYPES` + `ITEM_ID_PREFIX`; `HIGHLIGHT_MIN_CHUNKS` /
+  `HIGHLIGHT_MAX_CHUNKS` / `HIGHLIGHT_MIN_CORRECT` /
+  `HIGHLIGHT_MIN_WRONG` constants.
+- `mynclex/lib/bank/types.ts` — `HighlightChunk` /
+  `HighlightContent` / `HighlightCorrect`; union extensions.
+- `mynclex/lib/bank/form-shape.ts` — `highlight_chunks` array on
+  `BankFormInitial`; default `[]` in `emptyInitial()` (empty
+  scaffold — chunks are extracted from bracketing, not pre-seeded).
+- `mynclex/lib/bank/parsers/index.ts` — `HighlightChunkInput`
+  import, `highlight?: { stem; chunks }` on dispatcher params,
+  HIGHLIGHT branch.
+- `mynclex/app/(app)/admin/bank/actions.ts` — `'HIGHLIGHT'` added
+  to `VALID_TYPES` (drift-point streak kept — caught on first pass);
+  `HighlightChunkInput` import; 5-array FormData extraction block
+  with decision narrowed to the string union.
+- `mynclex/app/(app)/admin/bank/editor-shell.tsx` — `HighlightEditor`
+  import + HIGHLIGHT case in `renderEditor()`. Stem textarea already
+  had `id="bank-stem"` from Slice 1.8; no shell change needed.
+- `mynclex/app/(app)/admin/bank/page.tsx` — `highlight_chunks`
+  local + HIGHLIGHT branch in `rowToInitial()` (decision = `correct`
+  iff chunk ID is in `correct_ids`, else `wrong` — persisted rows
+  never have `'undecided'` because the parser rejects that at save
+  time); `highlight_chunks` included in returned `BankFormInitial`.
+- `mynclex/app/dashboards.css` — `bank-hl-*` block appended:
+  toolbar, smart-tip, preview with colour-coded chunks + legend,
+  bounds summary, chunk cards with correct / wrong / warn / orphan
+  variants, toggle button group, feedback textarea. Family A +
+  Matrix + Bow-tie + Cloze CSS untouched.
+- `mynclex/db/seed-bank-dev.sql` — one HIGHLIGHT seed row
+  (`NCLEX_HL_00001`, "Post-op vitals", 5 chunks / 3 correct).
+  Added as a separate standalone INSERT rather than extending the
+  main multi-row batch, so the `instruction` column can be
+  populated without touching the shared header — **first seed to
+  use the `instruction` column** landed in Slice 1.7.
+- `mynclex/docs/product-plan/bank.md` — Highlight `content` /
+  `correct` examples rewritten to the new `chunks` + `correct_ids`
+  + flat-feedback shape; paragraphs explain the double-bracket
+  syntax, non-greedy regex, positional IDs, and distractor floor.
+
+### Migrations applied to dev (`zrakjibtxyzoqcdtvpmq`)
+
+- `mynclex_bank_highlight_seed_slice_1_9` — standalone INSERT.
+  Returned `{"success":true}`. Verified: 5 chunks, 3 correct_ids,
+  instruction populated with "Highlight the findings that require
+  immediate action."
+
+### Drift caught during execution
+
+- **`VALID_TYPES`** — flagged in the handoff as a known drift
+  point. Added `'HIGHLIGHT'` on first pass; streak kept.
+- **Non-greedy regex** — defined once as `const BRACKET_RE =
+  /\[\[(.+?)\]\]/g` in both `parsers/highlight.ts` and
+  `editors/highlight-editor.tsx`. Both use `value.matchAll(...)` so
+  no `lastIndex` mutation inside a React component (same lesson
+  from Slice 1.8's ESLint `react-hooks/immutability` catch).
+- **Separate INSERT for seed.** The existing seed batch uses a
+  shared 19-column header that predates `instruction`. Extending
+  the header would have required adding `NULL` to every existing
+  row (churn). Chose a separate INSERT with a wider column list for
+  the new row — keeps the slice diff small and sets the pattern
+  for future seeds that need new columns.
+
+### Verified
+
+- Migration applied successfully to dev Supabase.
+- `npx tsc --noEmit` — clean.
+- `npx eslint app/(app)/admin/bank lib/bank` — clean.
+- `npm run build` (webpack) — clean. Every route still compiles:
+  `/`, `/admin`, `/admin/bank`, `/admin/payments`, `/login`,
+  `/logout`, `/no-access`, `/pick-role`, `/register`, `/router`,
+  `/student`, `/tutor` + proxy middleware.
+
+### Not yet verified (Sam's session, on dev Worker)
+
+Per the handoff, browser verification is a separate 5-phase pass:
+
+1. Smoke + list — `NCLEX_HL_00001` appears with HIGHLIGHT pill.
+2. Edit round-trip — all 5 chunks pre-fill with correct decisions
+   (h2 / h3 / h5 = green, h1 / h4 = grey); instruction shows the
+   saved text; preview renders colour-coded.
+3. Create flow — smart button with and without selection; add 3+
+   chunks; toggle decisions; save → `NCLEX_HL_00002`.
+4. Orphan preservation — delete `[[184/96]]` brackets; card h2
+   greys out; re-wrap `184/96`; card reconnects.
+5. Rejection cases — <3 chunks; all correct; all wrong; undecided.
+
+### Deferred to future sessions / out of scope here
+
+- **CLONING.md update** — file still doesn't exist; same deferral
+  as Slices 1.5–1.8.
+- **Drag-drop (Slice 1.10)** — ordered slot filling; last
+  stand-alone Family B type.
+- **Case-study wrapper (Slice 1.11)** — 6 questions + chart tabs
+  under a shared scenario.
+- **Student runner** — now unblocked for all 8 standalone types
+  (MCQ, TF, SATA, SELECT_N, MATRIX, BOWTIE, CLOZE, HIGHLIGHT) once
+  Drag-drop lands.
+- **Truly independent duplicate-text chunks** — currently two
+  `[[118]]` spans share a decision + feedback. Making them
+  independent requires per-position FormData IDs and a parser
+  change; flagged here for when a curator actually hits the case.
+- **Lift stem into shared shell state** — the `getElementById`
+  pattern is now used by both Cloze and Highlight. If a third
+  type needs it, time to refactor.
+
+### Next session
+
+Options:
+- (a) Drag-drop (Slice 1.10) — finishes the stand-alone Family B
+  set, unblocks the student runner.
+- (b) Case-study wrapper (Slice 1.11) — more architectural;
+  requires the `nclex_case_studies` + join tables work too.
+- (c) Student runner — start consuming the 8 live types
+  end-to-end; still needs Drag-drop to cover Family B completely.
+
+Per the handoff's trajectory, Drag-drop is the natural next — the
+last editor before the runner.
+
+---
+
 ## Session — 2026-04-22 (Slice 1.8 — Cloze authoring + Instruction wiring)
 
 Two tightly-coupled pieces shipped as one commit: Slice 1.7's orphan

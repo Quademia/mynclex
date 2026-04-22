@@ -28,8 +28,9 @@ import type {
 } from '@/lib/bank/types';
 import { parseByType } from '@/lib/bank/parsers';
 import type { ClozeBlankInput } from '@/lib/bank/parsers/cloze';
+import type { HighlightChunkInput } from '@/lib/bank/parsers/highlight';
 
-const VALID_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N', 'MATRIX', 'BOWTIE', 'CLOZE']);
+const VALID_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N', 'MATRIX', 'BOWTIE', 'CLOZE', 'HIGHLIGHT']);
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
 
@@ -209,6 +210,30 @@ function parseFormData(formData: FormData): ParsedItem | { error: string } {
     clozeBlanks.push({ id: bid, choices, correct_id: correctId });
   }
 
+  // Highlight-specific FormData extraction (only populated when type is
+  // HIGHLIGHT). One entry per chunk card (including orphans) via five
+  // parallel arrays. Unlike Cloze, there's no per-card keyed subfield —
+  // the card holds a single text, decision, feedback triple.
+  const hlChunkIds       = formData.getAll('hl_chunk_id').map(String);
+  const hlChunkTexts     = formData.getAll('hl_chunk_text').map(String);
+  const hlChunkDecisions = formData.getAll('hl_chunk_decision').map(String);
+  const hlChunkFeedbacks = formData.getAll('hl_chunk_feedback').map(String);
+  const hlChunkInPassage = formData.getAll('hl_chunk_in_passage').map(String);
+  const hlChunks: HighlightChunkInput[] = hlChunkIds.map((id, i) => {
+    const raw = hlChunkDecisions[i];
+    const decision: 'correct' | 'wrong' | 'undecided' =
+      raw === 'correct' ? 'correct'
+      : raw === 'wrong'   ? 'wrong'
+      : 'undecided';
+    return {
+      id,
+      text: hlChunkTexts[i] ?? '',
+      decision,
+      feedback: hlChunkFeedbacks[i] ?? '',
+      in_passage: hlChunkInPassage[i] === 'true',
+    };
+  });
+
   const parsed = parseByType(question_type, {
     optionIds,
     optionTexts,
@@ -248,6 +273,7 @@ function parseFormData(formData: FormData): ParsedItem | { error: string } {
       },
     },
     cloze: { stem, blanks: clozeBlanks },
+    highlight: { stem, chunks: hlChunks },
   });
 
   if (!parsed.ok) {

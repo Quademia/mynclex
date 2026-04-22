@@ -25,6 +25,7 @@ export const QUESTION_TYPES = [
   { value: 'MATRIX', label: 'Matrix — Grid, one correct per row' },
   { value: 'BOWTIE', label: 'Bow-tie — 5-slot NGN (2 Left · 1 Centre · 2 Right)' },
   { value: 'CLOZE', label: 'Cloze — Fill-in-the-blank sentence' },
+  { value: 'HIGHLIGHT', label: 'Highlight — Click correct findings in a passage' },
 ] as const;
 
 export type QuestionType = (typeof QUESTION_TYPES)[number]['value'];
@@ -39,6 +40,7 @@ export const ITEM_ID_PREFIX: Record<QuestionType, string> = {
   MATRIX: 'NCLEX_MAT_',
   BOWTIE: 'NCLEX_BT_',
   CLOZE: 'NCLEX_CLZ_',
+  HIGHLIGHT: 'NCLEX_HL_',
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -175,3 +177,12 @@ export const CLOZE_MIN_BLANKS  = 2;
 export const CLOZE_MAX_BLANKS  = 6;
 export const CLOZE_MIN_CHOICES = 2;
 export const CLOZE_MAX_CHOICES = 5;
+
+// Highlight bounds (Family B — Slice 1.9)
+// Passage contains [[chunk]] double-bracket spans. Each span is a
+// chunk card. At least one correct AND one wrong (distractor) chunk
+// required so students can't "click everything = 100%".
+export const HIGHLIGHT_MIN_CHUNKS  = 3;
+export const HIGHLIGHT_MAX_CHUNKS  = 12;
+export const HIGHLIGHT_MIN_CORRECT = 1;
+export const HIGHLIGHT_MIN_WRONG   = 1;

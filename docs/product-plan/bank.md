@@ -132,7 +132,22 @@ Example `content` shapes:
     "right":  { "label": "Parameters to monitor", "tokens": [{"id":"rt1","text":"Cardiac rhythm"}, ...] }
   }
   ```
-- **Highlight:** `{ "passage": "...", "selectable_chunks": [...] }`
+- **Highlight:**
+  ```
+  {
+    "chunks": [
+      { "id": "h1", "text": "93%" },
+      { "id": "h2", "text": "184/96" },
+      { "id": "h3", "text": "118" }
+    ]
+  }
+  ```
+  The passage lives on `stem` with `[[chunk text]]` double-bracket
+  syntax intact — single brackets like `[K⁺] = 3.2` are literal
+  passage text (medical notation safe). Inner single brackets are
+  permitted inside chunks (`[[low Hgb [<10 g/dL]]]`); the parser uses
+  the non-greedy pattern `/\[\[(.+?)\]\]/g`. Chunk IDs `h1`, `h2`, …
+  are stable positional, assigned in passage order at save time.
 - **Cloze:**
   ```
   {
@@ -187,13 +202,22 @@ Example `correct` shapes (with feedback):
 - **Highlight:**
   ```
   {
-    "correct_chunks": ["severe chest pain", "BP 88/52"],
+    "correct_ids": ["h2", "h3", "h5"],
     "feedback": {
-      "severe chest pain": "Indicates possible MI",
-      "clear lungs": "Not concerning — no action needed"
+      "h1": "SpO₂ 93% on 4L is acceptable.",
+      "h2": "BP 184/96 is hypertensive crisis range — escalate immediately.",
+      "h3": "HR 118 with chest pressure is a red flag."
     }
   }
   ```
+
+  Flat feedback map keyed by chunk ID (unlike Cloze's nested per-blank
+  map). Chunk IDs are stable positional — `h1`, `h2`, … assigned in
+  passage order — so a curator can edit the text inside `[[...]]`
+  without breaking the existing feedback reference. Scoring is
+  plus-minus per chunk with `HIGHLIGHT_MIN_CORRECT=1` and
+  `HIGHLIGHT_MIN_WRONG=1` enforced so students can't "click everything
+  = 100%".
 - **Bow-tie:**
   ```
   {

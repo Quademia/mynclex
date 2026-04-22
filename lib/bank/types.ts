@@ -157,6 +157,30 @@ export interface ClozeCorrect {
 }
 
 // ─────────────────────────────────────────────────────────────
+// HIGHLIGHT — passage with [[bracketed]] clickable chunks.
+// The stem (on nclex_bank_items.stem) holds the passage with the
+// double brackets intact — single brackets `[anything]` are literal
+// passage text (medical notation like `[K⁺] = 3.2` is safe).
+// content.chunks lists one entry per bracketed span, in passage order.
+// Chunk IDs (h1, h2, ...) are stable positional. correct_ids is a
+// flat list; feedback is flat (unlike Cloze, which nests per-blank).
+// ─────────────────────────────────────────────────────────────
+
+export interface HighlightChunk {
+  id: string;       // 'h1', 'h2', ... (stable positional)
+  text: string;     // the text between [[ and ]]
+}
+
+export interface HighlightContent {
+  chunks: HighlightChunk[];
+}
+
+export interface HighlightCorrect {
+  correct_ids: string[];              // IDs of chunks marked correct
+  feedback: Record<string, string>;   // chunkId -> feedback text
+}
+
+// ─────────────────────────────────────────────────────────────
 // Discriminated union — narrow on question_type to get the right shape.
 // ─────────────────────────────────────────────────────────────
 
@@ -167,7 +191,8 @@ export type BankItemContent =
   | SelectNContent
   | MatrixContent
   | BowtieContent
-  | ClozeContent;
+  | ClozeContent
+  | HighlightContent;
 
 export type BankItemCorrect =
   | McqCorrect
@@ -176,4 +201,5 @@ export type BankItemCorrect =
   | SelectNCorrect
   | MatrixCorrect
   | BowtieCorrect
-  | ClozeCorrect;
+  | ClozeCorrect
+  | HighlightCorrect;

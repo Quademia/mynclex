@@ -141,3 +141,26 @@ INSERT INTO nclex_bank_items (
  'Medical-Surgical', 'Cardiovascular', 'Heart failure', 'Clinical presentation',
  'Medium', 'Analyze', ARRAY['NGN','cloze','cardiac','HF'],
  TRUE, FALSE, 1, 'DEV_SEED_001');
+
+-- 12. Highlight — Post-op vitals (Cardiac, Medium)
+-- First seed to populate the `instruction` column (Slice 1.7 wiring
+-- exercised by Slice 1.9's authoring UI).
+INSERT INTO nclex_bank_items (
+  item_id, question_type, stem, rationale,
+  content, correct,
+  client_needs_category, client_needs_subcategory,
+  nursing_subject, body_system, topic, subtopic,
+  difficulty, bloom_level, tags,
+  is_published, is_free_sample, marks, batch_id,
+  instruction
+) VALUES
+('NCLEX_HL_00001', 'HIGHLIGHT',
+ 'Client reports feeling "a little better." RR 22. SpO2 [[93%]] on 4L. BP [[184/96]]. HR [[118]]. Urine output [[250 mL]] in past 2 hours. Complains of [[new-onset chest pressure]].',
+ 'Priority findings: elevated BP, tachycardia, and new chest pressure — together suggest a possible cardiac event or hypertensive emergency. SpO2 and urine output are within acceptable ranges.',
+ '{"chunks":[{"id":"h1","text":"93%"},{"id":"h2","text":"184/96"},{"id":"h3","text":"118"},{"id":"h4","text":"250 mL"},{"id":"h5","text":"new-onset chest pressure"}]}'::jsonb,
+ '{"correct_ids":["h2","h3","h5"],"feedback":{"h1":"SpO2 93% on 4L O2 is acceptable — above the 92% threshold.","h2":"BP 184/96 is hypertensive crisis range — immediate provider notification and intervention required.","h3":"HR 118 = tachycardia; in the context of chest pressure and hypertension, a red flag.","h4":"Urine output 250 mL over 2 hours = 125 mL/hr — adequate.","h5":"New chest pressure in a client with these haemodynamics is a possible ACS — requires immediate escalation."}}'::jsonb,
+ 'Physiological Integrity', 'Physiological Adaptation',
+ 'Medical-Surgical', 'Cardiovascular', 'Post-op monitoring', 'Red-flag findings',
+ 'Medium', 'Analyze', ARRAY['NGN','highlight','cardiac','post-op'],
+ TRUE, FALSE, 1, 'DEV_SEED_001',
+ 'Highlight the findings that require immediate action.');

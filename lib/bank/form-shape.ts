@@ -44,6 +44,18 @@ export interface BankFormInitial {
     correct_id: string;
     in_stem: boolean;
   }[];
+  // Highlight-specific fields — empty for non-HIGHLIGHT types.
+  // Each card mirrors one [[bracketed]] span in the passage. decision
+  // starts 'undecided' for freshly detected chunks; curator picks
+  // correct/wrong before save. in_passage=false = orphan (parser
+  // drops on save). Persisted rows load with in_passage=true.
+  highlight_chunks: {
+    id: string;
+    text: string;
+    decision: 'correct' | 'wrong' | 'undecided';
+    feedback: string;
+    in_passage: boolean;
+  }[];
   client_needs_category: string;
   client_needs_subcategory: string;
   nursing_subject: string;
@@ -143,6 +155,11 @@ export function emptyInitial(): BankFormInitial {
         in_stem: true,
       },
     ],
+    // Highlight default: empty. The curator writes the passage first,
+    // then wraps [[chunks]] — the editor auto-creates a card for each.
+    // Unlike Cloze, there's no natural scaffold — chunks are extracted
+    // from user bracketing, not inserted via a button that creates pairs.
+    highlight_chunks: [],
     question_ref: '',
     batch_id: '',
   };

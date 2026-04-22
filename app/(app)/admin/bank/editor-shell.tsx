@@ -38,6 +38,7 @@ import { SelectNEditor } from '@/lib/bank/editors/select-n-editor';
 import { MatrixEditor } from '@/lib/bank/editors/matrix-editor';
 import { BowtieEditor } from '@/lib/bank/editors/bowtie-editor';
 import { ClozeEditor } from '@/lib/bank/editors/cloze-editor';
+import { HighlightEditor } from '@/lib/bank/editors/highlight-editor';
 import {
   createBankItemAction,
   updateBankItemAction,
@@ -186,6 +187,14 @@ export function EditorShell({
           <ClozeEditor
             key="cloze"
             initialBlanks={editorInheritsInitial ? initial.cloze_blanks : []}
+            initialStem={editorInheritsInitial ? initial.stem : ''}
+          />
+        );
+      case 'HIGHLIGHT':
+        return (
+          <HighlightEditor
+            key="highlight"
+            initialChunks={editorInheritsInitial ? initial.highlight_chunks : []}
             initialStem={editorInheritsInitial ? initial.stem : ''}
           />
         );

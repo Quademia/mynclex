@@ -458,6 +458,18 @@ function rowToInitial(row: FullBankRow): BankFormInitial {
     in_stem: boolean;
   }[] = [];
 
+  // Highlight fields — persisted chunks always reload with
+  // in_passage=true. Decision is 'correct' if the chunk ID is in
+  // correct_ids, otherwise 'wrong' — a saved HIGHLIGHT can never
+  // have an 'undecided' chunk (the parser rejects that at save time).
+  let highlight_chunks: {
+    id: string;
+    text: string;
+    decision: 'correct' | 'wrong' | 'undecided';
+    feedback: string;
+    in_passage: boolean;
+  }[] = [];
+
   if (qtype === 'BOWTIE') {
     const bc = row.content as {
       left?:   { label?: string; tokens?: { id: string; text: string }[] };
@@ -524,6 +536,23 @@ function rowToInitial(row: FullBankRow): BankFormInitial {
     });
   }
 
+  if (qtype === 'HIGHLIGHT') {
+    const hc = row.content as { chunks?: { id: string; text: string }[] };
+    const hk = row.correct as {
+      correct_ids?: string[];
+      feedback?: Record<string, string>;
+    };
+    const correctSet = new Set(hk.correct_ids ?? []);
+    const fbMap = hk.feedback ?? {};
+    highlight_chunks = (hc.chunks ?? []).map((ch) => ({
+      id: ch.id,
+      text: ch.text,
+      decision: correctSet.has(ch.id) ? 'correct' : 'wrong',
+      feedback: fbMap[ch.id] ?? '',
+      in_passage: true,
+    }));
+  }
+
   return {
     item_id: row.item_id,
     instruction: row.instruction ?? '',
@@ -545,6 +574,7 @@ function rowToInitial(row: FullBankRow): BankFormInitial {
     bowtie_right_label,
     bowtie_right_tokens,
     cloze_blanks,
+    highlight_chunks,
     client_needs_category: row.client_needs_category ?? '',
     client_needs_subcategory: row.client_needs_subcategory ?? '',
     nursing_subject: row.nursing_subject ?? '',

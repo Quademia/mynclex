@@ -24,6 +24,7 @@ import { parseSelectN } from './select-n';
 import { parseMatrix, type MatrixParseInput } from './matrix';
 import { parseBowtie, type BowtieParseInput } from './bowtie';
 import { parseCloze, type ClozeBlankInput } from './cloze';
+import { parseHighlight, type HighlightChunkInput } from './highlight';
 
 export type ParseResult =
   | { ok: true; content: BankItemContent; correct: BankItemCorrect; stem?: string }
@@ -40,6 +41,7 @@ export function parseByType(
     matrix?: MatrixParseInput;
     bowtie?: BowtieParseInput;
     cloze?: { stem: string; blanks: ClozeBlankInput[] };
+    highlight?: { stem: string; chunks: HighlightChunkInput[] };
   },
 ): ParseResult {
   switch (question_type) {
@@ -89,6 +91,12 @@ export function parseByType(
         return { ok: false, error: 'Missing cloze payload.' };
       }
       return parseCloze(params.cloze);
+    }
+    case 'HIGHLIGHT': {
+      if (!params.highlight) {
+        return { ok: false, error: 'Missing highlight payload.' };
+      }
+      return parseHighlight(params.highlight);
     }
   }
 }
