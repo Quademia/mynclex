@@ -438,8 +438,8 @@ hr.divider {
   different response question type.
 </p>
 <p class="doc-meta">
-  Reference mockup · deferred to v2 · shape: single question + time-series data
-  panel
+  Reference mockup · promoted to v1 on 2026-04-22 · shape: single
+  question + time-series data panel
 </p>
 
 <!-- ─────────────────────────────────────────────────────────
@@ -929,7 +929,7 @@ hr.divider {
   WHY V2 — the call-out
 ───────────────────────────────────────────────────────── -->
 
-<h2 class="section-title">Why this is deferred to v2</h2>
+<h2 class="section-title">Why this was originally deferred (and why we're building it now)</h2>
 
 <div class="callout">
   <h4>Reading between the mockups</h4>
@@ -941,11 +941,16 @@ hr.divider {
     widget</em> that renders the time-series panel cleanly.
   </p>
   <p style="margin-bottom: 0;">
-    That's why Trend is v2: the schema already supports it (JSONB <code style="background: rgba(255,255,255,0.5); padding: 1px 4px; border-radius: 3px;">content</code>
+    That's why Trend was originally deferred: the schema already supports it (JSONB <code style="background: rgba(255,255,255,0.5); padding: 1px 4px; border-radius: 3px;">content</code>
     is polymorphic), and the question-type architecture already supports adding one
     more branch. Building it is a matter of adding a <code style="background: rgba(255,255,255,0.5); padding: 1px 4px; border-radius: 3px;">content.trend_data</code>
     field any host type can render above its stem, plus a trend-aware editor UI.
-    Good v1 shipped without it; great v2 adds it.
+  </p>
+  <p style="margin-top: 14px;">
+    <strong>Update 2026-04-22:</strong> promoted to v1. Case Study
+    (Slice 1.11) will land first — it's architecturally harder and
+    establishes the wrapper pattern. Trend (Slice 1.12) follows,
+    reusing Case Study's nullable-FK attachment mechanism.
   </p>
 </div>
 
@@ -978,9 +983,10 @@ hr.divider {
 </p>
 
 <div class="footer">
-  Reference mockup. Companion to <code>mockups/ngn-primer.html</code>. No
-  corresponding code in <code>lib/bank/</code> — Trend is a v2 item per
-  <code>docs/product-plan/main.md</code> and <code>bank.md</code>.
+  Reference mockup. Companion to <code>mockups/ngn-primer.html</code>
+  and <code>mockups/drag-drop-editor-mockup.html</code>. Promoted from
+  v2 to v1 on 2026-04-22; build will follow Case Study (Slice 1.11).
+  No corresponding code in <code>lib/bank/</code> yet.
 </div>
 
 </div>

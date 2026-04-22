@@ -581,7 +581,6 @@ report.
 ## Deferred (v2 or later)
 
 - CAT (Computer Adaptive Testing) adaptive difficulty logic
-- Trend items (NGN variant of matrix/cloze/highlight)
 - Public self-serve tutor signup / tutor marketplace UI
 - Automated payment splits between QAcademy and tutors
 - Migration of MyNMCLicensure or MyTeacher onto this stack

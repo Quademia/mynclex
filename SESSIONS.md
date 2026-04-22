@@ -6,6 +6,61 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-22 (Planning — Trend promoted to v1)
+
+No code written. Single-decision entry: Trend items promoted from
+v2 (deferred) to v1 (queued for build after Case Study).
+
+### Decision
+
+Sam reviewed the Case Study vs Trend scope during close-out of the
+Slice 1.10 session. Reasoning:
+
+- Case Study is architecturally harder than Trend (new table + join
+  table + 6 JSONB chart tabs + progressive-unfold rendering vs
+  Trend's single new table + nullable FK).
+- Trend reuses the wrapper pattern Case Study will establish.
+- The Trend shape is already fully spec'd from the 22 April planning
+  session (`bank.md § Trend items — planned shape`, plus the
+  `mockups/trend-visualisation.html` mockup).
+- Marginal build cost for Trend on top of Case Study is smaller
+  than building it as an isolated v2 project later.
+
+### Files modified
+
+- `mynclex/docs/product-plan/main.md` — removed Trend from the
+  "Deferred (v2 or later)" list.
+- `mynclex/docs/product-plan/bank.md` — updated the question-types
+  table note ("TREND is a wrapper, not a standalone type"), renamed
+  the Trend section (dropped `(v2)` qualifier), added a promotion
+  paragraph, and updated the "Decisions not yet settled" cross-
+  reference to drop the v2 wording.
+- `mynclex/docs/product-plan/mockups/trend-visualisation.html` —
+  doc-meta, "Why deferred" section heading, callout update paragraph,
+  and footer all updated to reflect v1 promotion.
+
+### Files NOT modified
+
+- `mynclex/db/schema.sql` — no schema changes; Trend schema comes
+  with Slice 1.12.
+- `mynclex/db/rls.sql` — no RLS changes.
+- Every file under `mynclex/lib/bank/` and `mynclex/app/(app)/` —
+  zero code changes.
+
+### Verified
+
+- Nothing to run. Documentation-only session.
+
+### Next session
+
+Start Slice 1.11 — Case Study wrapper planning. Open question at
+that session's start: do we split Slice 1.11 into 1.11a/1.11b/1.11c
+(schema + editor shell / item picker / chart tabs) or attempt as
+one slice? Sam + Claude decide based on scope read after first
+round of discussion.
+
+---
+
 ## Session — 2026-04-22 (Slice 1.10 — Drag-drop authoring)
 
 Ninth and last standalone question type lands. With DRAG_DROP live,
@@ -125,9 +180,12 @@ Standing conventions:
   `--border`, `--white`, `--bg`, `--text-muted`) + inline hex for
   state colours (teal-chip, amber, warn, danger) — matches the
   convention established by `.bt-*` / `.bank-cz-*` / `.bank-hl-*`.
-- `mynclex/db/seed-bank-dev.sql` — appended seed row 13
-  (`NCLEX_DD_00001`, Post-op deteriorating client, 5 slots / 6
-  tokens / 1 distractor, instruction populated).
+- `mynclex/db/seed-bank-dev.sql` — appended seed rows 13 + 14.
+  Row 13 (`NCLEX_DD_00001`, ORDERED, Post-op deteriorating client,
+  5 slots / 6 tokens / 1 distractor, instruction populated) landed
+  in the main commit; row 14 (`NCLEX_DD_00002`, SENTENCE, stroke
+  recognition, 3 slots / 6 tokens / 3 distractors) was appended in
+  a follow-up commit so both subtypes ship in dev.
 - `mynclex/docs/product-plan/bank.md` — build-order step 7 unparked;
   Drag-drop `content` and `correct` example blocks added to the
   JSONB shape list alongside MCQ / Matrix / Bow-tie / Cloze /
@@ -156,33 +214,37 @@ Standing conventions:
 - `npm run build` (webpack) — clean. All 14 routes compile
   including the unchanged `/tutor/bank`.
 
-### Not yet verified (Sam's session, on dev Worker)
+### Verified by Sam on dev Worker
 
-1. **Smoke + list** — `NCLEX_DD_00001` appears in `/admin/bank` with
-   the DRAG_DROP type pill.
-2. **Edit round-trip (ORDERED)** — open `NCLEX_DD_00001`; subtype
-   shows ORDERED; 5 slot cards pre-fill with correct token
-   assignments (t2→s1, t5→s2, t1→s3, t4→s4, t6→s5); token pool
-   shows 6 tokens with correct text; s1 feedback "Oxygen first…"
-   populates; instruction populates; bounds meter shows "5 of 8
-   slots · 6 tokens · 1 distractor" in ok state.
-3. **Create flow — ORDERED** — `/admin/bank?new=1` → DRAG_DROP.
-   Stem + 3 slots + 4 tokens + assign correct tokens → save →
-   `NCLEX_DD_00002`.
-4. **Create flow — SENTENCE** — flip subtype; confirm prompt
-   appears; accept. Type stem with `[1]`, `[2]`, `[3]` markers
-   (use + Slot marker). Assign tokens. Save → `NCLEX_DD_00003`.
-5. **Rejection cases** —
-   - 2 slots (below MIN_DD_SLOTS).
-   - 3 slots, 2 tokens (tokens < slots).
-   - 3 slots, 8 tokens (tokens > slots+4).
-   - Active slot with no assigned token.
-   - SENTENCE with `[9]` in stem (N > MAX_DD_SLOTS).
-   - Subtype switch with data: Cancel preserves; OK clears slots +
-     tokens, keeps stem.
-6. **Tutor-side smoke** — log in as tutor (mynclextutor). Create a
-   drag-drop → ID `NCLEX_TUT_DD_00001`. Saves with zero tutor-side
-   code changes (Slice 2.1 reuse claim).
+1. Smoke + list — PASS. `NCLEX_DD_00001` and `NCLEX_DD_00002`
+   visible in `/admin/bank` with DRAG_DROP type pill; filter option
+   works.
+2. Edit round-trip ORDERED — PASS. All fields pre-fill correctly
+   on `NCLEX_DD_00001`; bounds meter shows the expected counter.
+3. Create ORDERED — PASS. New row saves with correct `NCLEX_DD_*`
+   prefix.
+4. Create SENTENCE — PASS. `+ Slot marker` button inserts `[N]` at
+   cursor; subtype warn-dialog fires on switch; save round-trips.
+5. Rejection cases — PASS. All 6 failure modes correctly blocked
+   by editor or parser with clear messages.
+6. Tutor-side smoke — PASS. `mynclextutor` authored a DRAG_DROP
+   with `NCLEX_TUT_DD_*` prefix; zero tutor-side code changes
+   needed. Slice 2.1's reuse architecture holds for drag-drop.
+
+### UX observations (deferred, not blocking)
+
+- **Drag-drop editor feels less polished than other Family B
+  editors.** Sam noted during verification that the subtype toggle
+  is not as conspicuous as it could be, and that the editor lacks a
+  preview mode that Bow-tie, Matrix, and similar types have. The
+  editor is functional — every verification phase passed — but it's
+  the roughest Family B interface. Revisit after real curator use
+  surfaces concrete pain points.
+- **Shared-shell stem-state refactor now triples as a cost.** Three
+  editors (Cloze, Highlight, Drag-drop) use
+  `document.getElementById('bank-stem')` to reach the stem textarea.
+  Flagged on prior slices; tripled now. Lift into shared shell
+  state the next time any editor needs stem access.
 
 ### Deferred to future sessions / out of scope here
 

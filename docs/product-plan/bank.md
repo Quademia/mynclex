@@ -329,9 +329,12 @@ validates. Standard trade-off for polymorphic content in Postgres.
 | `DRAG_DROP` | Drag tokens into target slots | Per-slot, summed |
 | `BOWTIE` | 5-slot bow-tie (stand-alone structural) | Per-slot (5), summed |
 
-`TREND` deferred to v2 — trend items are a variant-of-other-types
-pattern (a trend question uses matrix, cloze, or highlight for
-response) rather than a distinct type.
+**TREND is a wrapper, not a standalone type.** Trend items attach a
+time-series panel (vitals, labs, I&O, assessments across timepoints)
+to an existing bank item via a nullable FK. The host item remains
+one of the 9 question types above; the trend panel renders alongside
+the stem. Same mechanism idea as Case Study, but with a one-to-one
+FK instead of a join table. Promoted from v2 to v1 on 2026-04-22.
 
 ### Build order
 
@@ -562,17 +565,20 @@ Two small schema additions result from that topic:
 - Exact readiness-pack purchase flow and pricing tiers (connects to
   student enrolment flow topic).
 
-See `## Trend items (v2) — planned shape` below for the Trend
-decisions that are now settled (shape only; implementation deferred
-to v2).
+See `## Trend items — planned shape` below for the Trend decisions
+that are now settled and queued for build.
 
 ---
 
-## Trend items (v2) — planned shape
+## Trend items — planned shape
 
-`TREND` is the 10th NGN question type. Deferred to v2. This section
-records what we've agreed about its shape so that when v2 planning
-starts, the decisions don't need to be re-litigated.
+Promoted from v2 to v1 on 2026-04-22. Decisions settled during the
+22 April planning session remain valid; this section is now an active
+v1 spec, not a deferred one.
+
+`TREND` is the 10th NGN question type. This section records what
+we've agreed about its shape so that when Slice 1.12 starts, the
+decisions don't need to be re-litigated.
 
 ### What a Trend item is
 
