@@ -1,12 +1,30 @@
 // mynclex/app/(app)/tutor/page.tsx
 //
 // Tutor dashboard body. Topbar + footer live in the (app) shell
-// layout. Server-side role check: user must hold TUTOR.
+// layout. The TUTOR role gate lives in (app)/tutor/layout.tsx; this
+// page trusts that gate.
 
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
+
+type SectionCard = {
+  key: string;
+  label: string;
+  desc: string;
+  href: string;
+};
+
+const SECTIONS: SectionCard[] = [
+  {
+    key: 'bank',
+    label: 'My Questions',
+    desc: 'Browse, author, and manage your private question bank.',
+    href: '/tutor/bank',
+  },
+];
 
 export default async function TutorDashboard() {
   const supabase = await createClient();
@@ -19,21 +37,11 @@ export default async function TutorDashboard() {
     redirect('/login');
   }
 
-  const [profileRes, rolesRes] = await Promise.all([
-    supabase
-      .from('nclex_users')
-      .select('forename, surname')
-      .eq('id', user.id)
-      .maybeSingle(),
-    supabase.from('nclex_user_roles').select('role').eq('user_id', user.id),
-  ]);
-
-  const profile = profileRes.data;
-  const roles = (rolesRes.data ?? []).map((r) => r.role as string);
-
-  if (!roles.includes('TUTOR')) {
-    redirect('/no-access');
-  }
+  const { data: profile } = await supabase
+    .from('nclex_users')
+    .select('forename, surname')
+    .eq('id', user.id)
+    .maybeSingle();
 
   const displayName = profile
     ? `${profile.forename} ${profile.surname}`
@@ -47,10 +55,19 @@ export default async function TutorDashboard() {
           <p className="dash-subtitle">Tutor workspace — MyNclex.</p>
         </div>
 
+        <div className="section-grid">
+          {SECTIONS.map((s) => (
+            <Link key={s.key} href={s.href} className="section-card">
+              <div className="section-card-label">{s.label}</div>
+              <div className="section-card-desc">{s.desc}</div>
+            </Link>
+          ))}
+        </div>
+
         <div className="dash-note">
           <strong>Coming next:</strong> your programmes and cohorts,
-          week-by-week curriculum editor, private bank items, student
-          roster, and your public tutor profile.
+          week-by-week curriculum editor, student roster, and your
+          public tutor profile.
         </div>
       </section>
     </main>
