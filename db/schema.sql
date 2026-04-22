@@ -97,6 +97,7 @@ CREATE TABLE nclex_bank_items (
   shuffle_options           BOOLEAN NOT NULL DEFAULT TRUE,
   question_ref              TEXT,
   batch_id                  TEXT,
+  instruction               TEXT,
   created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -202,6 +203,7 @@ CREATE TABLE nclex_tutor_questions (
   shuffle_options           BOOLEAN NOT NULL DEFAULT TRUE,
   question_ref              TEXT,
   batch_id                  TEXT,
+  instruction               TEXT,
   created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

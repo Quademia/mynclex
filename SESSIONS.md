@@ -6,6 +6,82 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-22 (Slice 1.7 — add `instruction` column)
+
+Tiny preventive schema change. Adds a nullable `instruction TEXT` column
+to both `nclex_bank_items` and `nclex_tutor_questions`. No editor
+changes; the column sits unused until a future slice wires it in.
+
+### Decisions (prior-session context)
+
+- **Instruction is conceptually distinct from stem.** Stem holds the
+  scenario and overall prompt; instruction holds the task directive
+  ("Which action should the nurse take FIRST?", "Complete the bow-tie",
+  "Select all that apply"). On the real NCLEX, these are often
+  separable, and splitting them later enables better case-study UX,
+  better search/filtering, and possible future localisation.
+- **Add now, wire later.** Real content volume is near zero (only
+  dev seeds), so the migration cost is trivial right now and grows
+  with content volume later.
+- **Both tables get the column.** Parallel ownership model convention
+  — tutor-private table stays structurally identical to QAcademy-owned.
+- **Nullable, no backfill.** Existing seeds have NULL for `instruction`.
+  Future editor slice will let curators populate it for new questions.
+
+### Files modified
+- `mynclex/db/schema.sql` — added `instruction TEXT` in both
+  `nclex_bank_items` and `nclex_tutor_questions` (placed right before
+  `created_at` in each block, matching the Postgres column order after
+  `ALTER TABLE ADD COLUMN`).
+- `mynclex/SESSIONS.md` — this entry.
+
+### Migrations applied to dev (`zrakjibtxyzoqcdtvpmq`)
+- `mynclex_bank_add_instruction_column_slice_1_7` — two `ALTER TABLE
+  … ADD COLUMN instruction TEXT` + two `COMMENT ON COLUMN`. Applied
+  via Supabase MCP; returned `{"success":true}`. Verified present via
+  `information_schema.columns` (both `text`, `is_nullable=YES`).
+
+### Files unchanged (explicitly)
+- Every TS file in `lib/bank/` and `app/(app)/admin/bank/` — we
+  deliberately did NOT surface the column to the editor in this slice.
+  That's a future slice.
+- `db/rls.sql` — column inherits existing policies; no changes needed.
+
+### Verified
+- Migration applied successfully to dev Supabase.
+- `npx tsc --noEmit` — clean (no output).
+- `npx eslint app/(app)/admin/bank lib/bank` — clean (no output).
+- `npm run build` (webpack) — clean. Every route still compiles.
+- Editor code is untouched and uses column-explicit SELECTs, so
+  `/admin/bank` is invisibly unchanged. Browser re-check of an existing
+  MCQ / Matrix / Bow-tie row deferred to Sam's next dev-Worker session.
+
+### Deferred to future sessions
+- **Wiring `instruction` into the editor shell** — add a textarea above
+  the stem in `editor-shell.tsx`, add `instruction: string` to
+  `BankFormInitial`, read it in `parseFormData()`, map it in
+  `rowToInitial()`. Small slice when we're ready.
+- **Backfilling existing seeds** — if we want existing seeds to use
+  `instruction` meaningfully, manually split each stem. Also a future
+  slice.
+- **Student-runner rendering** — decide whether instruction appears
+  above or below the stem. Punted to when the runner is built.
+
+### Next session
+
+Return to **Slice 1.8: Cloze authoring**. Planning mostly complete in
+the prior session log — decisions on click-based add/remove, unified
+stem with `{N}` pills, content shape, and bounds are all settled.
+Remaining design questions to confirm before build:
+1. Bounds: 2–6 blanks per question, 2–5 choices per blank, exactly 1
+   correct per blank
+2. Blank ID convention: `b1`, `b2`, `b3` stable IDs
+3. Live preview behaviour when a blank has no correct pick yet
+4. Whether the same `{N}` can appear twice in the sentence (Claude Web
+   recommended no)
+
+---
+
 ## Session — 2026-04-22 (Bank Slice 1.6 — Bow-tie authoring)
 
 Second Family B question type live. End-to-end create / edit / delete
