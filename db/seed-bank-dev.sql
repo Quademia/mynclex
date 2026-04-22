@@ -210,3 +210,51 @@ INSERT INTO nclex_bank_items (
   '{}',
   FALSE, TRUE, FALSE, 1, FALSE
 );
+
+-- 14. Drag-drop (SENTENCE) — Stroke recognition (Slice 1.10)
+-- Second drag-drop seed so both subtypes exist in dev. Exercises the
+-- inline [N] marker syntax, the SENTENCE parser path, and the
+-- hint-style target_text.
+INSERT INTO nclex_bank_items (
+  item_id, question_type, stem, rationale, rationale_img,
+  content, correct,
+  instruction,
+  client_needs_category, client_needs_subcategory, nursing_subject,
+  body_system, topic, subtopic, difficulty, bloom_level, tags,
+  is_free_sample, is_builder_visible, is_published, marks, shuffle_options
+) VALUES (
+  'NCLEX_DD_00002',
+  'DRAG_DROP',
+  'The nurse suspects [1] when a client presents at 08:40 with sudden facial droop, left arm weakness, and slurred speech. The priority is to [2] and obtain a [3] to rule out haemorrhagic causes before any antiplatelet is given.',
+  'Acute ischaemic stroke presents with sudden focal deficits (facial droop, arm weakness, dysarthria). Priority is time-to-imaging: activate the stroke team and obtain a non-contrast head CT first — haemorrhage must be excluded before any antiplatelet. A 12-lead ECG supports workup but does not gate treatment.',
+  NULL,
+  '{
+    "subtype": "SENTENCE",
+    "slots": [
+      {"id": "s1", "target_text": "most likely condition"},
+      {"id": "s2", "target_text": "priority action"},
+      {"id": "s3", "target_text": "gatekeeper investigation"}
+    ],
+    "tokens": [
+      {"id": "t1", "text": "acute ischaemic stroke"},
+      {"id": "t2", "text": "transient ischaemic attack"},
+      {"id": "t3", "text": "activate the stroke team"},
+      {"id": "t4", "text": "administer aspirin 325 mg"},
+      {"id": "t5", "text": "non-contrast head CT"},
+      {"id": "t6", "text": "12-lead ECG"}
+    ]
+  }'::jsonb,
+  '{
+    "slots": {"s1": "t1", "s2": "t3", "s3": "t5"},
+    "feedback": {
+      "s1": "Ischaemic stroke fits the triad; TIA implies transient resolution, which these deficits do not show.",
+      "s2": "Stroke-team activation triggers the time-sensitive pathway; aspirin is contraindicated until haemorrhage is excluded.",
+      "s3": "Non-contrast CT is the gatekeeper imaging — it excludes haemorrhage so thrombolytic or antiplatelet therapy can start."
+    }
+  }'::jsonb,
+  'Fill each slot by choosing the best token from the pool.',
+  'Physiological Integrity', 'Physiological Adaptation', 'Med-Surg',
+  'Neurological', 'Stroke recognition', 'Acute stroke workflow', 'Hard', 'Apply',
+  '{}',
+  FALSE, TRUE, FALSE, 1, FALSE
+);
