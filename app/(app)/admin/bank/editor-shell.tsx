@@ -37,6 +37,7 @@ import { SataEditor } from '@/lib/bank/editors/sata-editor';
 import { SelectNEditor } from '@/lib/bank/editors/select-n-editor';
 import { MatrixEditor } from '@/lib/bank/editors/matrix-editor';
 import { BowtieEditor } from '@/lib/bank/editors/bowtie-editor';
+import { ClozeEditor } from '@/lib/bank/editors/cloze-editor';
 import {
   createBankItemAction,
   updateBankItemAction,
@@ -180,6 +181,14 @@ export function EditorShell({
             initialRightTokens={editorInheritsInitial ? initial.bowtie_right_tokens : []}
           />
         );
+      case 'CLOZE':
+        return (
+          <ClozeEditor
+            key="cloze"
+            initialBlanks={editorInheritsInitial ? initial.cloze_blanks : []}
+            initialStem={editorInheritsInitial ? initial.stem : ''}
+          />
+        );
     }
   }
 
@@ -252,11 +261,33 @@ export function EditorShell({
             )}
           </div>
 
+          {/* Instruction — optional, shell-level (Slice 1.8). Shown above
+              the stem on every type. DB column is nullable; empty input
+              stores as NULL. The cloze editor reads from the stem DOM
+              node by id, so we expose the stem with id="bank-stem". */}
+          <div className="bank-fg bank-instruction-wrap">
+            <div className="bank-instruction-label">
+              <span className="bank-instruction-icon">!</span>
+              Instruction
+              <span className="bank-instruction-optional">— optional</span>
+            </div>
+            <textarea
+              name="instruction"
+              defaultValue={initial.instruction}
+              className="bank-instruction-input"
+              rows={2}
+              placeholder="Optional directive the student sees above the stem, e.g. 'Complete the sentence' or 'Select ALL that apply'. Leave blank if the stem is self-sufficient."
+            />
+            <p className="bank-instruction-hint">
+              Optional. When blank, the student sees only the stem. Available on every question type.
+            </p>
+          </div>
+
           {/* Stem */}
           <div className="bank-fg">
-            <label htmlFor="stem" className="bank-label">Stem *</label>
+            <label htmlFor="bank-stem" className="bank-label">Stem *</label>
             <textarea
-              id="stem"
+              id="bank-stem"
               name="stem"
               rows={4}
               required

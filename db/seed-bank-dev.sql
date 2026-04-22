@@ -129,4 +129,15 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Physiological Adaptation',
  'Medical-Surgical', 'Cardiovascular', 'Acute coronary syndrome', 'STEMI recognition',
  'Medium', 'Analyze', ARRAY['NGN','bowtie','cardiac','STEMI'],
+ TRUE, FALSE, 1, 'DEV_SEED_001'),
+
+-- 11. Cloze — Heart failure presentation (Cardiac, Medium)
+('NCLEX_CLZ_00001', 'CLOZE',
+ 'The client is most likely experiencing {1} as evidenced by {2} and {3}.',
+ 'Classic HF picture — elevated BNP plus bilateral crackles plus dyspnoea. PE and pneumonia can mimic individual findings but not the full combination.',
+ '{"blanks":[{"id":"b1","choices":[{"id":"c1","text":"heart failure"},{"id":"c2","text":"pulmonary embolism"},{"id":"c3","text":"pneumonia"}]},{"id":"b2","choices":[{"id":"c1","text":"elevated BNP"},{"id":"c2","text":"elevated troponin"},{"id":"c3","text":"elevated WBC"}]},{"id":"b3","choices":[{"id":"c1","text":"crackles"},{"id":"c2","text":"wheezing"},{"id":"c3","text":"stridor"}]}]}'::jsonb,
+ '{"answers":{"b1":"c1","b2":"c1","b3":"c1"},"feedback":{"b1":{"c1":"Elevated BNP plus bilateral crackles strongly suggests HF exacerbation.","c2":"PE typically presents with pleuritic chest pain and hypoxia; BNP rarely elevated enough to mislead.","c3":"Pneumonia can cause crackles but BNP elevation is atypical."},"b2":{"c1":"BNP above 400 suggests ventricular stretch from volume overload.","c2":"Troponin indicates myocardial injury, not HF specifically.","c3":"WBC elevation suggests infection, not HF."},"b3":{"c1":"Bilateral crackles reflect pulmonary oedema from elevated left-sided pressures.","c2":"Wheezing is more typical of bronchospasm or asthma.","c3":"Stridor indicates upper airway obstruction."}}}'::jsonb,
+ 'Physiological Integrity', 'Physiological Adaptation',
+ 'Medical-Surgical', 'Cardiovascular', 'Heart failure', 'Clinical presentation',
+ 'Medium', 'Analyze', ARRAY['NGN','cloze','cardiac','HF'],
  TRUE, FALSE, 1, 'DEV_SEED_001');

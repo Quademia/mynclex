@@ -4,6 +4,11 @@
 // parser. Returns a normalized { content, correct } pair (typed as the
 // broad BankItem* union) or an error message.
 //
+// CLOZE additionally returns a normalised `stem` — the parser rewrites
+// {N} markers to close gaps (e.g. "{1} {3}" → "{1} {2}"). Callers use
+// `parsed.stem ?? originalStem` so Matrix / Bow-tie / Family A code is
+// unaffected.
+//
 // Each parser file handles its own option-building, MIN/MAX bounds,
 // correct-id validation, and type-specific rules. This file just
 // forwards the raw arrays and narrows the return type.
@@ -18,9 +23,10 @@ import { parseSata } from './sata';
 import { parseSelectN } from './select-n';
 import { parseMatrix, type MatrixParseInput } from './matrix';
 import { parseBowtie, type BowtieParseInput } from './bowtie';
+import { parseCloze, type ClozeBlankInput } from './cloze';
 
 export type ParseResult =
-  | { ok: true; content: BankItemContent; correct: BankItemCorrect }
+  | { ok: true; content: BankItemContent; correct: BankItemCorrect; stem?: string }
   | { ok: false; error: string };
 
 export function parseByType(
@@ -33,6 +39,7 @@ export function parseByType(
     selectCount?: number;
     matrix?: MatrixParseInput;
     bowtie?: BowtieParseInput;
+    cloze?: { stem: string; blanks: ClozeBlankInput[] };
   },
 ): ParseResult {
   switch (question_type) {
@@ -76,6 +83,12 @@ export function parseByType(
         return { ok: false, error: 'Missing bow-tie payload.' };
       }
       return parseBowtie(params.bowtie);
+    }
+    case 'CLOZE': {
+      if (!params.cloze) {
+        return { ok: false, error: 'Missing cloze payload.' };
+      }
+      return parseCloze(params.cloze);
     }
   }
 }

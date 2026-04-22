@@ -6,6 +6,177 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-22 (Slice 1.8 — Cloze authoring + Instruction wiring)
+
+Two tightly-coupled pieces shipped as one commit: Slice 1.7's orphan
+`instruction` column is now surfaced in the shell, and CLOZE — the
+third Family B question type — has end-to-end authoring (create / edit
+/ delete, plus a seeded Heart-Failure example). Plan drafted in Claude
+Web; executed from a pre-written handoff file.
+
+### Decisions (from Claude Web discussion)
+
+**Instruction wiring**
+- Shell-level field, not per-type — one textarea at the top of Content,
+  inherited by every editor.
+- Optional on every type; empty input stores as `NULL` (DB column
+  distinguishes "never set" from "explicitly blank").
+- Amber-accented card with `!` icon to distinguish from the stem.
+- Student-runner rendering deferred to when the runner is built.
+
+**Cloze authoring**
+- **Item-ID prefix** `NCLEX_CLZ_`; bounds 2–6 blanks × 2–5 choices ×
+  exactly 1 correct per blank.
+- **Stem holds the sentence** with inline `{N}` markers. Blank IDs
+  `b1`, `b2`, … are stable across reorders; choice IDs `c1`, `c2`, …
+  restart per blank. Nested `correct.feedback[bid][cid]` avoids the
+  collision that a flat map would produce.
+- **Click-to-insert** — `+ Add blank` finds the lowest free `N` in
+  1–6, inserts `{N}` at the cursor (with a leading space if needed),
+  and reuses an existing orphan card with that ID if one exists.
+- **Orphan preservation** — removing a marker from the stem greys out
+  the matching card with a "will be dropped on save" badge; retyping
+  the marker reconnects it. Orphans auto-drop at save time.
+- **Silent renumber** — gaps like `{1} {3}` are rewritten to
+  `{1} {2}` by the parser, with blank IDs remapped in lockstep across
+  stem / `content.blanks` / `correct.answers` / `correct.feedback`.
+  Two-phase placeholder substitution prevents the mid-rewrite
+  collision (`{3} → {2}` mustn't then rewrite an existing `{2}`).
+- **Stem-to-editor sync via `document.getElementById('bank-stem')`** —
+  deliberately dirty. Lifting the stem into shared shell state would
+  mean restructuring the shell for one editor's edge case. Scoped to
+  the mounted-Cloze case; documented in a code comment.
+- **Default scaffold** — 2 blank cards × 2 empty choices. On an empty
+  stem both flip to orphan on mount; the first two `+ Add blank`
+  clicks reuse them by ID rather than stacking.
+
+**Parser design drift from handoff**
+- Handoff sketch used `throw` for validation errors; I matched the
+  existing `{ ok, ... } | { ok: false, error }` pattern used by
+  bowtie.ts / matrix.ts so the dispatcher doesn't need a try/catch
+  branch for one type.
+- Handoff suggested passing `stem` through the top-level dispatcher
+  params; I kept it scoped to `cloze: { stem, blanks }` so Family A
+  call sites stay unchanged. Return type gains `stem?: string` on the
+  success branch — only CLOZE populates it, others leave it undefined.
+
+### Files created
+
+- `mynclex/lib/bank/parsers/cloze.ts` — marker extraction, gap
+  renumber, orphan drop, per-blank validation.
+- `mynclex/lib/bank/editors/cloze-editor.tsx` — three-section UI
+  (toolbar + live preview + per-blank cards), stem DOM listener,
+  per-choice radio/text/feedback, hidden-input serialisers.
+
+### Files modified
+
+- `mynclex/lib/bank/classifications.ts` — CLOZE added to
+  `QUESTION_TYPES` + `ITEM_ID_PREFIX`; `CLOZE_MIN_BLANKS` /
+  `CLOZE_MAX_BLANKS` / `CLOZE_MIN_CHOICES` / `CLOZE_MAX_CHOICES`
+  constants.
+- `mynclex/lib/bank/types.ts` — `ClozeChoice` / `ClozeBlank` /
+  `ClozeContent` / `ClozeCorrect`; union extensions in
+  `BankItemContent` + `BankItemCorrect`.
+- `mynclex/lib/bank/form-shape.ts` — `instruction: string` (Part A)
+  + `cloze_blanks` array (Part B); defaults in `emptyInitial()`.
+- `mynclex/lib/bank/parsers/index.ts` — `ClozeBlankInput` import,
+  `cloze` key on `params`, CLOZE branch, `stem?` on `ParseResult`.
+- `mynclex/app/(app)/admin/bank/actions.ts` — `'CLOZE'` added to
+  `VALID_TYPES` (the known drift point — flagged in the handoff and
+  caught on first read); `instruction` extracted and persisted as
+  `NULL` when blank; CLOZE FormData extraction block (orphan-filtered
+  early); `finalStem = parsed.stem ?? stem` so CLOZE's renumbered
+  stem overwrites the curator input.
+- `mynclex/app/(app)/admin/bank/editor-shell.tsx` — instruction
+  textarea block above the stem, stem textarea renamed to
+  `id="bank-stem"` (the Cloze editor reads from this), `ClozeEditor`
+  import + CLOZE case in `renderEditor()`.
+- `mynclex/app/(app)/admin/bank/page.tsx` — `instruction: string |
+  null` on `FullBankRow`; `instruction: row.instruction ?? ''` +
+  `cloze_blanks` branch in `rowToInitial()`; `cloze_blanks` included
+  in the returned `BankFormInitial`.
+- `mynclex/app/dashboards.css` — `bank-instruction-*` block (amber
+  card) + `bank-cz-*` block (toolbar, preview, per-blank cards,
+  choice rows, orphan state) appended; Family A + Matrix + Bow-tie
+  CSS untouched.
+- `mynclex/db/seed-bank-dev.sql` — one CLOZE seed row
+  (`NCLEX_CLZ_00001`, "Heart Failure presentation"). Prior row 10's
+  closing `;` became `,`.
+- `mynclex/docs/product-plan/bank.md` — Cloze `content` and
+  `correct` examples rewritten to the new stem-plus-markers +
+  nested-feedback shape; paragraph explaining blank-ID stability,
+  per-blank choice-ID restart, and silent renumber.
+
+### Migrations applied to dev (`zrakjibtxyzoqcdtvpmq`)
+
+- `mynclex_bank_cloze_seed_slice_1_8` — single INSERT. Returned
+  `{"success":true}`. Verified via `SELECT ... jsonb_array_length` —
+  3 blanks on the row, stem has 3 markers.
+
+### Drift caught during execution
+
+- **ESLint `react-hooks/immutability`** — first pass used
+  `MARKER_RE.lastIndex = 0` + `exec` inside `ClozePreview` (a React
+  component), which mutates a module-level value. Fixed by switching
+  to `stemText.matchAll(MARKER_RE)`, which is iterator-based and
+  doesn't touch `lastIndex`. The module-level helper
+  `parseStemMarkers()` still uses `exec` (fine — it's not a
+  component).
+
+### Verified
+
+- Migration applied successfully to dev Supabase; seed row queries
+  clean.
+- `npx tsc --noEmit` — clean.
+- `npx eslint app/(app)/admin/bank lib/bank` — clean.
+- `npm run build` (webpack) — clean. Every route still compiles:
+  `/`, `/admin`, `/admin/bank`, `/admin/payments`, `/login`,
+  `/logout`, `/no-access`, `/pick-role`, `/register`, `/router`,
+  `/student`, `/tutor` + proxy middleware.
+
+### Not yet verified (Sam's session, on dev Worker)
+
+Per the handoff, in-browser verification is deferred to the next
+session as its own 5-phase pass:
+
+1. Instruction round-trip (open a Matrix row, add instruction, save,
+   reopen).
+2. Cloze create — 3 blanks, 3 choices each, happy path → saves with
+   `NCLEX_CLZ_00002`.
+3. Cloze edit — reopen `NCLEX_CLZ_00001`, verify all 3 blanks
+   pre-fill with correct picks + feedback.
+4. Gap renumber — edit `NCLEX_CLZ_00001`, delete `{2}`, orphan card
+   appears; save; reopen — stem is now `{1} {2}` clean and cards
+   rebind to `b1` / `b2`.
+5. Rejection cases — blank missing correct pick, <2 blanks, <2
+   choices.
+
+### Deferred to future sessions / out of scope here
+
+- **CLONING.md update** — file still doesn't exist; same deferral as
+  Slices 1.5 / 1.6 / 1.7.
+- **Highlight, Drag-drop** — each as its own slice.
+- **Student runner** — now unblocked for all 7 authored types (MCQ,
+  TF, SATA, SELECT_N, MATRIX, BOWTIE, CLOZE) after Highlight and
+  Drag-drop land.
+- **Tutor-private CLOZE authoring** — same editor against
+  `nclex_tutor_questions` once tutor workflows arrive.
+- **Lift stem into shared shell state** — the `getElementById`
+  approach is scoped to CLOZE and works, but if the editor grows or
+  a second type needs stem access we should refactor. Flagged.
+
+### Next session
+
+Options:
+- (a) Highlight (Slice 1.9) — passage with selectable chunks.
+- (b) Drag-drop — ordered slot filling; most interactive type.
+- (c) Student runner — start consuming the 7 live types end-to-end.
+
+Per the handoff's trajectory, Highlight is the natural next — it
+finishes Family B before the runner.
+
+---
+
 ## Session — 2026-04-22 (Slice 1.7 — add `instruction` column)
 
 Tiny preventive schema change. Adds a nullable `instruction TEXT` column

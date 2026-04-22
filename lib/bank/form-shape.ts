@@ -14,6 +14,7 @@ import type { QuestionType } from './classifications';
 
 export interface BankFormInitial {
   item_id: string | null;            // null = create mode
+  instruction: string;               // optional task directive shown above stem
   question_type: QuestionType;
   stem: string;
   rationale: string;
@@ -33,6 +34,16 @@ export interface BankFormInitial {
   bowtie_centre_tokens:{ id: string; text: string; feedback: string; correct: boolean }[];
   bowtie_right_label:  string;
   bowtie_right_tokens: { id: string; text: string; feedback: string; correct: boolean }[];
+  // Cloze-specific fields — empty/default for non-CLOZE types
+  // in_stem is a UI-only flag: true = card's marker is present in the
+  // stem, false = orphan (parser drops orphans on save). Persisted
+  // rows always load with in_stem=true for every card.
+  cloze_blanks: {
+    id: string;
+    choices: { id: string; text: string; feedback: string }[];
+    correct_id: string;
+    in_stem: boolean;
+  }[];
   client_needs_category: string;
   client_needs_subcategory: string;
   nursing_subject: string;
@@ -54,6 +65,7 @@ export interface BankFormInitial {
 export function emptyInitial(): BankFormInitial {
   return {
     item_id: null,
+    instruction: '',
     question_type: 'MCQ',
     stem: '',
     rationale: '',
@@ -106,6 +118,30 @@ export function emptyInitial(): BankFormInitial {
       { id: 'rt1', text: '', feedback: '', correct: false },
       { id: 'rt2', text: '', feedback: '', correct: false },
       { id: 'rt3', text: '', feedback: '', correct: false },
+    ],
+    // Cloze default: two scaffold blank cards with two empty choices each.
+    // in_stem starts true; the editor's sync effect flips them to orphan
+    // on mount when the stem is empty, and flips them back once the
+    // curator inserts the matching {1} / {2} markers via "+ Add blank".
+    cloze_blanks: [
+      {
+        id: 'b1',
+        choices: [
+          { id: 'c1', text: '', feedback: '' },
+          { id: 'c2', text: '', feedback: '' },
+        ],
+        correct_id: 'c1',
+        in_stem: true,
+      },
+      {
+        id: 'b2',
+        choices: [
+          { id: 'c1', text: '', feedback: '' },
+          { id: 'c2', text: '', feedback: '' },
+        ],
+        correct_id: 'c1',
+        in_stem: true,
+      },
     ],
     question_ref: '',
     batch_id: '',

@@ -133,7 +133,22 @@ Example `content` shapes:
   }
   ```
 - **Highlight:** `{ "passage": "...", "selectable_chunks": [...] }`
-- **Cloze:** `{ "template": "Most likely {0} due to {1}", "blanks": [{ "options": [...] }, ...] }`
+- **Cloze:**
+  ```
+  {
+    "blanks": [
+      { "id": "b1", "choices": [{ "id": "c1", "text": "heart failure" }, ...] },
+      { "id": "b2", "choices": [{ "id": "c1", "text": "elevated BNP" },   ...] }
+    ]
+  }
+  ```
+  The sentence lives on `stem` with inline `{N}` markers (e.g.
+  `"The client is most likely experiencing {1} as evidenced by {2}."`).
+  Blank IDs `b1`, `b2`, … are stable across reorders; choice IDs `c1`,
+  `c2`, … restart per blank — the nested `correct.feedback` map
+  disambiguates by nesting under the blank ID. Markers are auto-renumbered
+  on save when gaps are detected (`{1} {3}` → `{1} {2}`), with blank IDs
+  remapped in lockstep.
 
 `correct` holds the correct-answer shape **and** per-option /
 per-cell / per-slot feedback. Everything the student sees **after**
@@ -193,6 +208,21 @@ Example `correct` shapes (with feedback):
   (preset dropdown + typeable custom). Wing-scoped correctness: 2 / 1 /
   2. Token IDs prefixed `lt` / `ct` / `rt` so the flat feedback map
   works across all three wings without collisions.
+- **Cloze:**
+  ```
+  {
+    "answers":  { "b1": "c1", "b2": "c1" },
+    "feedback": {
+      "b1": { "c1": "...", "c2": "..." },
+      "b2": { "c1": "..." }
+    }
+  }
+  ```
+
+  Cloze feedback is nested — keyed first by blank ID, then by choice
+  ID. Choice IDs (`c1`, `c2`) restart per blank; nesting avoids the
+  collision that a flat map would produce. Feedback for any choice is
+  optional.
 
 ### Per-option feedback
 

@@ -24,6 +24,7 @@ export const QUESTION_TYPES = [
   { value: 'SELECT_N', label: 'Select N — Select exactly N options' },
   { value: 'MATRIX', label: 'Matrix — Grid, one correct per row' },
   { value: 'BOWTIE', label: 'Bow-tie — 5-slot NGN (2 Left · 1 Centre · 2 Right)' },
+  { value: 'CLOZE', label: 'Cloze — Fill-in-the-blank sentence' },
 ] as const;
 
 export type QuestionType = (typeof QUESTION_TYPES)[number]['value'];
@@ -37,6 +38,7 @@ export const ITEM_ID_PREFIX: Record<QuestionType, string> = {
   SELECT_N: 'NCLEX_SELN_',
   MATRIX: 'NCLEX_MAT_',
   BOWTIE: 'NCLEX_BT_',
+  CLOZE: 'NCLEX_CLZ_',
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -165,3 +167,11 @@ export const BT_RIGHT_PRESETS = [
   'Evaluation criteria',
   'Expected outcomes',
 ] as const;
+
+// Cloze bounds (Family B — Slice 1.8)
+// Stem contains {N} markers; each marker maps to a blank card with
+// 2–5 choices, exactly one correct.
+export const CLOZE_MIN_BLANKS  = 2;
+export const CLOZE_MAX_BLANKS  = 6;
+export const CLOZE_MIN_CHOICES = 2;
+export const CLOZE_MAX_CHOICES = 5;

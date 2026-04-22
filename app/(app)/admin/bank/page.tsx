@@ -44,6 +44,7 @@ interface BankRow {
 }
 
 interface FullBankRow extends BankRow {
+  instruction: string | null;
   rationale: string | null;
   rationale_img: string | null;
   content: BankItemContent;
@@ -448,6 +449,15 @@ function rowToInitial(row: FullBankRow): BankFormInitial {
   let bowtie_right_label  = '';
   let bowtie_right_tokens: { id: string; text: string; feedback: string; correct: boolean }[] = [];
 
+  // Cloze fields — persisted cards always reload with in_stem=true
+  // (the parser guarantees only active cards are saved).
+  let cloze_blanks: {
+    id: string;
+    choices: { id: string; text: string; feedback: string }[];
+    correct_id: string;
+    in_stem: boolean;
+  }[] = [];
+
   if (qtype === 'BOWTIE') {
     const bc = row.content as {
       left?:   { label?: string; tokens?: { id: string; text: string }[] };
@@ -491,8 +501,32 @@ function rowToInitial(row: FullBankRow): BankFormInitial {
     }));
   }
 
+  if (qtype === 'CLOZE') {
+    const cc = row.content as { blanks?: { id: string; choices: { id: string; text: string }[] }[] };
+    const ck = row.correct as {
+      answers?: Record<string, string>;
+      feedback?: Record<string, Record<string, string>>;
+    };
+    const answers = ck.answers ?? {};
+    const fbNested = ck.feedback ?? {};
+    cloze_blanks = (cc.blanks ?? []).map((b) => {
+      const fbForBlank = fbNested[b.id] ?? {};
+      return {
+        id: b.id,
+        choices: b.choices.map((c) => ({
+          id: c.id,
+          text: c.text,
+          feedback: fbForBlank[c.id] ?? '',
+        })),
+        correct_id: answers[b.id] ?? (b.choices[0]?.id ?? 'c1'),
+        in_stem: true,
+      };
+    });
+  }
+
   return {
     item_id: row.item_id,
+    instruction: row.instruction ?? '',
     question_type: qtype,
     stem: row.stem,
     rationale: row.rationale ?? '',
@@ -510,6 +544,7 @@ function rowToInitial(row: FullBankRow): BankFormInitial {
     bowtie_centre_tokens,
     bowtie_right_label,
     bowtie_right_tokens,
+    cloze_blanks,
     client_needs_category: row.client_needs_category ?? '',
     client_needs_subcategory: row.client_needs_subcategory ?? '',
     nursing_subject: row.nursing_subject ?? '',

@@ -127,6 +127,36 @@ export interface BowtieCorrect {
 }
 
 // ─────────────────────────────────────────────────────────────
+// CLOZE — sentence with inline {N} markers, one dropdown per blank.
+// The stem (on nclex_bank_items.stem) holds the sentence including
+// the markers. content.blanks lists choices for each blank. Blank
+// IDs (b1, b2, ...) are stable across reorders; choice IDs (c1, c2)
+// restart per blank — the nested feedback map disambiguates by
+// nesting under the blank ID.
+// Markers are silently renumbered on save: gaps like "{1} {3}" are
+// rewritten as "{1} {2}" and blank IDs are remapped to match.
+// ─────────────────────────────────────────────────────────────
+
+export interface ClozeChoice {
+  id: string;      // 'c1', 'c2', ... (restarts per blank)
+  text: string;
+}
+
+export interface ClozeBlank {
+  id: string;      // 'b1', 'b2', ... (stable across reorders)
+  choices: ClozeChoice[];
+}
+
+export interface ClozeContent {
+  blanks: ClozeBlank[];
+}
+
+export interface ClozeCorrect {
+  answers:  Record<string, string>;                   // blankId -> correct choiceId
+  feedback: Record<string, Record<string, string>>;   // blankId -> choiceId -> text
+}
+
+// ─────────────────────────────────────────────────────────────
 // Discriminated union — narrow on question_type to get the right shape.
 // ─────────────────────────────────────────────────────────────
 
@@ -136,7 +166,8 @@ export type BankItemContent =
   | SataContent
   | SelectNContent
   | MatrixContent
-  | BowtieContent;
+  | BowtieContent
+  | ClozeContent;
 
 export type BankItemCorrect =
   | McqCorrect
@@ -144,4 +175,5 @@ export type BankItemCorrect =
   | SataCorrect
   | SelectNCorrect
   | MatrixCorrect
-  | BowtieCorrect;
+  | BowtieCorrect
+  | ClozeCorrect;

@@ -27,8 +27,9 @@ import type {
   BankItemCorrect,
 } from '@/lib/bank/types';
 import { parseByType } from '@/lib/bank/parsers';
+import type { ClozeBlankInput } from '@/lib/bank/parsers/cloze';
 
-const VALID_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N', 'MATRIX', 'BOWTIE']);
+const VALID_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N', 'MATRIX', 'BOWTIE', 'CLOZE']);
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
 
@@ -82,6 +83,7 @@ async function requireBankCurator() {
 
 interface ParsedItem {
   question_type: QuestionType;
+  instruction: string | null;
   stem: string;
   rationale: string | null;
   rationale_img: string | null;
@@ -115,6 +117,12 @@ function parseFormData(formData: FormData): ParsedItem | { error: string } {
   if (!stem) {
     return { error: 'Stem is required.' };
   }
+
+  // Instruction is optional on every type. Empty / whitespace-only input
+  // stores as NULL so the DB column distinguishes "never set" from
+  // "explicitly blank" — the editor uses that distinction when rendering.
+  const instructionRaw = String(formData.get('instruction') ?? '').trim();
+  const instruction = instructionRaw || null;
 
   // Required: NCLEX category (per scope decision).
   const client_needs_category = String(formData.get('client_needs_category') ?? '').trim();
@@ -171,6 +179,36 @@ function parseFormData(formData: FormData): ParsedItem | { error: string } {
   const bowtieRightTokenFeedbacks = formData.getAll('bowtie_right_token_feedback').map(String);
   const bowtieRightCorrectIds     = formData.getAll('bowtie_right_correct').map(String);
 
+  // Cloze-specific FormData extraction (only populated when type is CLOZE).
+  // Blank cards arrive as parallel arrays:
+  //   cloze_blank_id       — one entry per card (b1, b2, ...), incl. orphans
+  //   cloze_blank_in_stem  — "true" | "false" flag parallel to cloze_blank_id
+  // Each blank's choices arrive keyed by blank id:
+  //   cloze_choice_id_<bid>        (one per choice)
+  //   cloze_choice_text_<bid>      (parallel)
+  //   cloze_choice_feedback_<bid>  (parallel)
+  //   cloze_correct_<bid>          (single — correct choice ID)
+  // Orphan cards (in_stem=false) are skipped here; the parser would also
+  // drop them, but skipping early keeps the parse payload smaller.
+  const clozeBlankIds       = formData.getAll('cloze_blank_id').map(String);
+  const clozeBlankInStemRaw = formData.getAll('cloze_blank_in_stem').map(String);
+  const clozeBlanks: ClozeBlankInput[] = [];
+  for (let i = 0; i < clozeBlankIds.length; i++) {
+    const bid = clozeBlankIds[i];
+    const inStem = clozeBlankInStemRaw[i] === 'true';
+    if (!inStem) continue;
+    const cIds  = formData.getAll(`cloze_choice_id_${bid}`).map(String);
+    const cTxts = formData.getAll(`cloze_choice_text_${bid}`).map(String);
+    const cFbs  = formData.getAll(`cloze_choice_feedback_${bid}`).map(String);
+    const correctId = String(formData.get(`cloze_correct_${bid}`) ?? '');
+    const choices = cIds.map((cid, j) => ({
+      id: cid,
+      text: cTxts[j] ?? '',
+      feedback: cFbs[j] ?? '',
+    }));
+    clozeBlanks.push({ id: bid, choices, correct_id: correctId });
+  }
+
   const parsed = parseByType(question_type, {
     optionIds,
     optionTexts,
@@ -209,6 +247,7 @@ function parseFormData(formData: FormData): ParsedItem | { error: string } {
         correctIds: bowtieRightCorrectIds,
       },
     },
+    cloze: { stem, blanks: clozeBlanks },
   });
 
   if (!parsed.ok) {
@@ -232,9 +271,14 @@ function parseFormData(formData: FormData): ParsedItem | { error: string } {
   const marksRaw = parseFloat(String(formData.get('marks') ?? '1'));
   const marks = Number.isFinite(marksRaw) && marksRaw > 0 ? marksRaw : 1;
 
+  // CLOZE's parser rewrites the stem (silent renumber of {N} gaps).
+  // Other parsers don't touch stem, so fall back to the curator input.
+  const finalStem = parsed.stem ?? stem;
+
   return {
     question_type,
-    stem,
+    instruction,
+    stem: finalStem,
     rationale: (String(formData.get('rationale') ?? '').trim() || null),
     rationale_img: (String(formData.get('rationale_img') ?? '').trim() || null),
     content,
