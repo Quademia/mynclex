@@ -6,6 +6,222 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-22 (Slice 1.11a — Case Study case shell + tab authoring)
+
+First of three Case Study sub-slices lands. A curator can now create
+a named case study, add tabs (built-in or custom), fill entries with
+`visible_from`, save, and list cases on both `/admin/bank/cases` and
+`/tutor/bank/cases`. The 6 question slots on the right half of the
+desktop split are a 1.11b placeholder — dashed-border pane, no
+interactions.
+
+Planning + handoff docs (`slice-1.11-plan.md`, `slice-1.11a-build-handoff.md`,
+`mockups/case-study-editor-mockup.html`) landed in the repo at the
+start of the session so Phase 0 had authoritative references to work
+from.
+
+### Decisions (locked before execution)
+
+From the handoff doc, plus one clarification:
+
+1. Custom tabs use `tab_key` = `'custom_narrative'` | `'custom_grid'`.
+   Resolves a minor conflict between the handoff (two-key convention)
+   and the mockup edge-case 6 (single `'custom'`). Two keys make the
+   editor's renderer lookup one-step.
+2. Flexible tab schema replaces the 6 hardcoded JSONB tab columns on
+   both case tables.
+3. Built-in tab types hardcoded in `lib/bank/case-study/tab-types.ts`
+   — no DB registry.
+4. Split-pane layout ≥ 900px, single-column below. Draggable divider,
+   localStorage persists last width.
+5. Case editor mounts its OWN shell (`lib/bank/case-study/editor.tsx`)
+   — does NOT route through the bank's `EditorShell`.
+6. Tab edits fire per-tab `upsertTabAction` / `deleteTabAction` calls,
+   independent of case-header dirty state. Header saves via
+   `updateCaseAction`.
+
+### Phase 0 discrepancies found
+
+- `slice-1.11-plan.md`, `slice-1.11a-build-handoff.md`, and the
+  mockup HTML were NOT in the repo at session start. Sam pasted all
+  three via the Downloads folder; Claude copied them into
+  `mynclex/docs/product-plan/` (mockup into `mockups/`).
+- `is_published` already present on both `nclex_case_studies` and
+  `nclex_tutor_case_studies` from Slice 1 — handoff said "add if
+  missing", confirmed already there, skipped the `ADD COLUMN`.
+- No TS/TSX references to the 6 JSONB columns being dropped. Grep
+  found them only in schema/docs. Safe to drop.
+- `/admin/bank` has no existing section-card strip (unlike `/admin`).
+  Handoff said "Match the section-card pattern already used on /admin
+  and /admin/bank" — resolved by adding a `headerExtra` prop to
+  `BankListView` and plugging a "Case Studies →" link into the
+  browse-mode header on both `/admin/bank` and `/tutor/bank`.
+
+### Files created
+
+- `mynclex/db/migrations/mynclex_case_study_tabs_slice_1_11a.sql`
+  — first tracked migration file in `mynclex/db/migrations/`. Drops
+  6 columns × 2 tables, creates 2 child tab tables + 2 indexes.
+- `mynclex/lib/bank/case-study/tab-types.ts` — hardcoded registry
+  of the 6 built-ins + custom-tab discriminator helpers.
+- `mynclex/lib/bank/case-study/types.ts` — `CaseStudyRow`,
+  `CaseStudyTabRow`, `CaseStudyEntry`, `CaseStudyEditorInitial`, VF
+  + grid-column bounds.
+- `mynclex/lib/bank/case-study/actions.ts` — surface-aware server
+  actions. Shape mirrors `app/(app)/admin/bank/actions.ts`:
+  `surfaceConfig()`, `readSurface()`, `requireCaseCurator()`,
+  `nextCaseId()`, `nextTabId()`, `createCaseAction`,
+  `updateCaseAction`, `deleteCaseAction`, `upsertTabAction`,
+  `deleteTabAction`, `reorderTabsAction`. Reorder uses a two-pass
+  negate-then-set shift to dodge the UNIQUE (case_id, display_order)
+  constraint mid-swap.
+- `mynclex/lib/bank/case-study/vf-segmented.tsx` — visible-from
+  1-6 segmented control, shared by both tab editors.
+- `mynclex/lib/bank/case-study/narrative-tab.tsx` — stacked-cards
+  editor used by built-in narrative tabs (nurses_notes / orders /
+  history / diagnostics) and custom_narrative.
+- `mynclex/lib/bank/case-study/structured-tab.tsx` — table editor
+  used by built-in structured tabs (vital_signs / lab_results) and
+  custom_grid. Embeds the ColumnBuilder pill row when rendering
+  custom_grid.
+- `mynclex/lib/bank/case-study/tab-rail.tsx` — left rail +
+  AddTabPopover (built-ins with "Already added" disabled state;
+  custom flow with name + Free text / Rows & columns shape picker).
+- `mynclex/lib/bank/case-study/editor.tsx` — top-level
+  `CaseStudyEditor` shell: sticky topbar, three `<details>`
+  accordions (Content open, Classification, Housekeeping), split
+  layout with draggable divider (localStorage persist), tab rail +
+  active-tab editor, right-pane Q1-Q6 placeholder for 1.11b.
+- `mynclex/app/(app)/admin/bank/cases/page.tsx` — admin cases list.
+- `mynclex/app/(app)/admin/bank/cases/[case_id]/page.tsx` — admin
+  case editor server wrapper.
+- `mynclex/app/(app)/tutor/bank/cases/page.tsx` — tutor cases list.
+- `mynclex/app/(app)/tutor/bank/cases/[case_id]/page.tsx` — tutor
+  case editor server wrapper.
+- `mynclex/db/seed-cases-dev.sql` — `NCLEX_CS_00001` demo case with
+  three tabs (nurses_notes × 2 entries, vital_signs × 3 entries,
+  custom_grid "Intake & Output" × 2 entries + 5 curator columns).
+- `mynclex/docs/product-plan/slice-1.11-plan.md`,
+  `mynclex/docs/product-plan/slice-1.11a-build-handoff.md`,
+  `mynclex/docs/product-plan/mockups/case-study-editor-mockup.html`
+  — reference docs pasted in at session start.
+
+### Files modified
+
+- `mynclex/db/schema.sql` — dropped 6 JSONB tab columns from both
+  case tables; inserted `nclex_case_study_tabs` (as 6b, after the
+  admin items join) and `nclex_tutor_case_study_tabs` (as 10b,
+  after the tutor items join). Each table + its btree index.
+- `mynclex/db/rls.sql` — enabled RLS + 8 policies across the 4
+  case-related tables. Admin cases + tabs: published-visibility for
+  any authenticated user; `BANK_CURATE` (which short-circuits on
+  `SUPER_ADMIN` via the existing helper) for full CRUD. Tutor cases
+  + tabs: `tutor_id = auth.uid()` for full CRUD; `SUPER_ADMIN`
+  bypass. Tutor tab policy chases parent case's tutor_id via
+  EXISTS.
+- `mynclex/lib/bank/classifications.ts` — added `CASE_ID_PREFIX` =
+  `'NCLEX_CS_'` and `TUTOR_CASE_ID_PREFIX` = `'NCLEX_TUT_CS_'`
+  constants alongside the question-type prefix maps.
+- `mynclex/lib/bank/list-view.tsx` — new optional
+  `headerExtra?: ReactNode` prop rendered inline in the browse-mode
+  header. Zero behaviour change when the prop is absent.
+- `mynclex/app/(app)/admin/bank/page.tsx` — `headerExtra` plugged
+  with "Case Studies →" link to `/admin/bank/cases`.
+- `mynclex/app/(app)/tutor/bank/page.tsx` — same link to
+  `/tutor/bank/cases`.
+- `mynclex/app/dashboards.css` — appended `.cs-*` block (~650
+  lines) for every case-study class: editor frame, sticky topbar,
+  split frame + draggable divider, three accordions, chart section,
+  tab rail with reorder arrows + custom badge, entries pane,
+  structured table, narrative cards, VF segmented control, column
+  builder pills, add-tab popover + shape picker, 1.11b right-pane
+  placeholder, list page table + pills + banner, and a small
+  header-extra wrapper for the bank browse header.
+
+### Files NOT modified (explicitly)
+
+- Every file under `mynclex/lib/bank/editors/` — the 9 per-type
+  editors are untouched. Case Study wraps them in 1.11b.
+- Every file under `mynclex/lib/bank/parsers/`.
+- `mynclex/lib/bank/types.ts` — case-study types stay in
+  `lib/bank/case-study/types.ts`.
+- `mynclex/lib/bank/form-shape.ts` — that's bank-item form shape,
+  not the case shape.
+- `mynclex/app/(app)/admin/bank/editor-shell.tsx` and `actions.ts`
+  — unchanged. Case Study does NOT mount through the bank's shell.
+- `mynclex/app/landing.css` — landing page untouched.
+
+### Migrations + data applied to dev (`zrakjibtxyzoqcdtvpmq`)
+
+- `mynclex_case_study_tabs_slice_1_11a` — `{"success":true}`. 6
+  `DROP COLUMN`s × 2 tables clean; both tab tables + both indexes
+  present; defaults + nullability match.
+- `mynclex_case_study_rls_slice_1_11a` — `{"success":true}`. 8
+  policies present across the 4 case tables, verified via
+  `pg_policies` query.
+- `seed-cases-dev.sql` applied inline — `NCLEX_CS_00001` + 3 tabs
+  (entry_count 2/3/2, column_count 0/0/5) verified via SELECT.
+
+### Verified locally
+
+- `npx tsc --noEmit` — clean.
+- `npx eslint app lib` — clean after two fix rounds. First pass
+  surfaced 12 errors from React 19 / compiler lint rules:
+  setState-in-effect (×5), ref mutation during render (×1),
+  access-before-declared (×1), unescaped-entities (×3), plus 2
+  narrow-tab setState-in-effect. Fixes:
+  - Narrative/structured tab error clear: moved into each mutator
+    inline (no effect).
+  - Editor draft sync: replaced mount-effect + tabsSorted sync
+    with a derived `drafts` map from `tabsSorted` + an
+    `draftOverrides` state.
+  - Editor active-tab reset: moved from effect to during-render
+    conditional setState (React-documented pattern).
+  - Editor header-dirty reset: folded into `onSaveCase`'s success
+    branch.
+  - Editor category cascade: replaced effect-based sync with
+    during-render compare-prev-prop pattern.
+  - Editor split drag: removed `useCallback` handlers + ref
+    mutation. Replaced with inline closures created per-drag, so
+    `onMove` / `onUp` share closure state (startX, startPct,
+    lastPct) directly.
+  - Editor localStorage init: kept in effect with a single
+    `eslint-disable-next-line react-hooks/set-state-in-effect`
+    (intentional external-state sync; the only alternative is to
+    risk a hydration mismatch).
+- `npm run build` (webpack) — clean. 19 routes total, 4 new:
+  `/admin/bank/cases`, `/admin/bank/cases/[case_id]`, tutor twins.
+  All existing routes still compile.
+- Did NOT browser-test end-to-end. Sam runs dev worker.
+
+### Deferred to future sessions / out of scope here
+
+- **Slice 1.11b — 6 question slots.** Right-half navigator +
+  nested per-type editor + `parent_case_id` column on bank_items
+  and tutor_questions + transactional save of header + children.
+- **Slice 1.11c — Preview-as-position + validation polish.** The
+  editor has a disabled "Preview as student · position 1" stub
+  button reserved for this.
+- **Reorder tabs via drag-and-drop.** Up/down arrows only in v1,
+  matches curriculum editor convention.
+- **Image attachments on chart entries.** Same deferral as bank
+  items — image upload pipeline isn't wired yet.
+- **Typed flag column for Lab Results.** Currently free text so
+  non-numeric lab values work ("positive", "sinus rhythm").
+- **Tutor cross-linking.** Tutor case studies link only tutor
+  questions, not admin. Confirmed in plan decision 11.
+
+### Next session
+
+Options:
+- **Slice 1.11b** — the 6 question slots, now unblocked.
+- **Student runner** — still unblocked from Slice 1.10; case
+  runner is blocked on 1.11b.
+- **UX polish pass** — Sam's verification on dev may surface
+  small pain points in the tab authoring surface.
+
+---
+
 ## Session — 2026-04-22 (Planning — Trend promoted to v1)
 
 No code written. Single-decision entry: Trend items promoted from

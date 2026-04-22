@@ -1,0 +1,2711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Case Study editor — Visual Mockup (Slice 1.11a)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy: #1e3a5f;
+  --teal: #2d7d72;
+  --teal-light: #3ca295;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-soft: #f0f2f5;
+  --border: rgba(30, 58, 95, 0.12);
+  --border-strong: rgba(30, 58, 95, 0.25);
+  --text: #1e3a5f;
+  --text-muted: rgba(30, 58, 95, 0.62);
+  --text-dim: rgba(30, 58, 95, 0.40);
+  --text-faint: rgba(30, 58, 95, 0.22);
+  --info-bg: rgba(45, 125, 114, 0.08);
+  --info-border: rgba(45, 125, 114, 0.4);
+  --info-text: #085041;
+  --coral-bg: #faece7;
+  --coral-border: #f5c4b3;
+  --coral-text: #712b13;
+  --amber-bg: #faeeda;
+  --amber-border: #fac775;
+  --amber-text: #633806;
+  --teal-chip-bg: #e1f5ee;
+  --teal-chip-border: #9fe1cb;
+  --teal-chip-text: #085041;
+  --purple-bg: #eeedfe;
+  --purple-border: #afa9ec;
+  --purple-text: #3c3489;
+  --danger-bg: #fdecec;
+  --danger-border: #f4b5b5;
+  --danger-text: #8a1a1a;
+  --warn-bg: #fff7e0;
+  --warn-border: #f4d97a;
+  --warn-text: #705200;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+  padding: 32px 24px 80px;
+}
+
+.page-wrap { max-width: 1180px; margin: 0 auto; }
+
+.doc-title {
+  font-family: 'Fraunces', serif;
+  font-size: 30px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+}
+.doc-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; max-width: 800px; }
+.doc-meta { font-size: 12px; color: var(--text-dim); margin-bottom: 32px; }
+
+h2.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--navy);
+  margin: 48px 0 10px;
+  letter-spacing: -0.01em;
+}
+h3.sub-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--navy);
+  margin: 24px 0 8px;
+}
+
+p { font-size: 14px; color: var(--text); margin-bottom: 12px; max-width: 800px; }
+p.caption { font-size: 12.5px; color: var(--text-muted); margin: 6px 0 14px; max-width: 760px; }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  background: var(--surface-soft);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--teal);
+}
+
+hr.divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+/* ──────────────────────────────────────────────
+   EDITOR FRAME — the mocked-up screen itself
+   ────────────────────────────────────────────── */
+
+.editor-frame {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02), 0 4px 16px rgba(30, 58, 95, 0.05);
+}
+
+/* Top action bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.topbar-back {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.topbar-back:hover { color: var(--teal); }
+.topbar-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  background: var(--surface-soft);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+.topbar-dirty {
+  font-size: 11px;
+  color: var(--amber-text);
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-border);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.topbar-right { display: flex; gap: 8px; }
+.btn {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.btn:hover { background: var(--surface-soft); }
+.btn.primary {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+.btn.primary:hover { background: var(--teal-light); }
+.btn.danger {
+  color: var(--danger-text);
+  border-color: var(--danger-border);
+}
+.btn.danger:hover { background: var(--danger-bg); }
+
+/* Accordion metadata blocks */
+.accordion {
+  border-bottom: 1px solid var(--border);
+}
+.accordion:last-of-type { border-bottom: none; }
+.acc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+.acc-head:hover { background: var(--surface-soft); }
+.acc-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+  letter-spacing: 0.01em;
+}
+.acc-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.acc-chev {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+.acc-body { padding: 4px 18px 18px; }
+.acc-closed .acc-body { display: none; }
+
+/* Form grid inside accordions */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  margin-top: 6px;
+}
+.form-grid.single { grid-template-columns: 1fr; }
+.field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.field input[type="text"],
+.field select,
+.field textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 7px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+}
+.field textarea { resize: vertical; min-height: 64px; line-height: 1.5; }
+.field-hint { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+
+.flag-row {
+  display: flex;
+  gap: 18px;
+  font-size: 12.5px;
+  color: var(--text);
+  margin-top: 4px;
+}
+.flag-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* ──────────────────────────────────────────────
+   TAB AUTHORING AREA — the main event
+   ────────────────────────────────────────────── */
+
+.chart-section {
+  padding: 18px 0;
+}
+.chart-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.chart-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+}
+.chart-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.chart-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 420px;
+}
+
+/* Left tab rail */
+.tab-rail {
+  background: var(--surface-soft);
+  border-right: 1px solid var(--border);
+  padding: 10px 0 10px;
+}
+.tab-rail-head {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 4px 16px 8px;
+}
+.tab-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 16px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  font-size: 13px;
+  color: var(--text);
+  gap: 8px;
+}
+.tab-item:hover { background: var(--surface); }
+.tab-item.active {
+  background: var(--surface);
+  border-left-color: var(--teal);
+  font-weight: 600;
+  color: var(--navy);
+}
+.tab-item-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.tab-item-count {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.tab-item.active .tab-item-count {
+  background: var(--info-bg);
+  color: var(--info-text);
+  border-color: var(--info-border);
+}
+.tab-item-custom-badge {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--purple-text);
+  background: var(--purple-bg);
+  border: 1px solid var(--purple-border);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.tab-reorder {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.tab-reorder span { line-height: 1; cursor: pointer; padding: 0 2px; }
+.tab-reorder span:hover { color: var(--navy); }
+
+.tab-rail-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+.tab-add-btn {
+  width: 100%;
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  padding: 7px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.tab-add-btn:hover { background: var(--surface); color: var(--teal); border-color: var(--teal); }
+
+/* Right entries pane */
+.entries-pane {
+  padding: 16px 20px 20px;
+}
+.entries-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+.entries-title-group { flex: 1; min-width: 0; }
+.entries-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--navy);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.entries-title input.rename {
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--navy);
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 2px 4px;
+  border-radius: 3px;
+  width: 100%;
+  max-width: 320px;
+}
+.entries-title input.rename:hover,
+.entries-title input.rename:focus {
+  border-color: var(--border);
+  background: var(--surface);
+  outline: none;
+}
+.entries-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.entries-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* Structured entries table (built-in data tabs like vitals, labs) */
+.entries-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.entries-table thead th {
+  background: var(--surface-soft);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.entries-table tbody td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.entries-table tbody tr:last-child td { border-bottom: none; }
+.entries-table input {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  border-radius: 3px;
+}
+.entries-table input:hover { border-color: var(--border); }
+.entries-table input:focus { border-color: var(--teal); background: var(--surface); outline: none; }
+.entries-table .col-vf { width: 180px; }
+.entries-table .col-del { width: 34px; text-align: center; }
+.row-del-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 15px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+.row-del-btn:hover { color: var(--danger-text); background: var(--danger-bg); }
+
+/* Segmented visible_from control */
+.vf-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.vf-seg button {
+  width: 22px;
+  height: 22px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.vf-seg button:hover { background: var(--surface); }
+.vf-seg button.active {
+  background: var(--teal);
+  color: #fff;
+}
+.vf-seg .vf-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  padding: 4px 6px 4px 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Narrative entries (stacked cards — nurses' notes, orders, custom) */
+.entry-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.entry-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 10px;
+}
+.entry-card-head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+.entry-card .time-input {
+  width: 110px;
+  border: 1px solid var(--border);
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-family: inherit;
+}
+.entry-card .time-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.entry-card textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.55;
+  resize: vertical;
+  min-height: 60px;
+}
+.entry-card textarea:focus { outline: none; border-color: var(--teal); }
+
+.entry-add-row {
+  margin-top: 10px;
+}
+.add-entry-btn {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-muted);
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.add-entry-btn:hover { color: var(--teal); border-color: var(--teal); background: var(--surface); }
+
+/* Empty-tab state */
+.entries-empty {
+  border: 1px dashed var(--border-strong);
+  border-radius: 6px;
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+}
+.entries-empty h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.entries-empty p { font-size: 12.5px; color: var(--text-muted); margin: 0 auto; max-width: 380px; }
+
+/* Question-slot placeholder (Slice 1.11b stub) */
+.q-stub {
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  margin: 18px;
+  padding: 18px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: space-between;
+}
+.q-stub-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.q-stub-desc { font-size: 12px; color: var(--text-muted); max-width: 540px; }
+.q-stub-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.q-stub-pill {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  font-size: 10.5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.02em;
+}
+
+/* ──────────────────────────────────────────────
+   Popovers / modals for add-tab
+   ────────────────────────────────────────────── */
+
+.popover {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  box-shadow: 0 8px 24px rgba(30, 58, 95, 0.12);
+  max-width: 320px;
+}
+.popover h4 {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 10px;
+}
+.popover-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.popover-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+.popover-item:hover { background: var(--surface-soft); }
+.popover-item.used {
+  color: var(--text-dim);
+  cursor: not-allowed;
+}
+.popover-item.used:hover { background: transparent; }
+.popover-item small {
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+.popover-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 8px 0;
+}
+.popover-custom {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.popover-custom input {
+  flex: 1;
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  font-family: inherit;
+}
+.popover-custom button {
+  background: var(--teal);
+  color: #fff;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* ──────────────────────────────────────────────
+   Side-by-side option compare blocks
+   ────────────────────────────────────────────── */
+
+.pane-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 16px 0 8px;
+}
+.pane {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.pane-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.pane-label .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--teal);
+  display: inline-block;
+}
+
+/* ──────────────────────────────────────────────
+   Edge-case cards
+   ────────────────────────────────────────────── */
+
+.edge-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.edge-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 12px 14px;
+}
+.edge-card h4 {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+.edge-card .behaviour {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+.outcome {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.outcome.warn { background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn-border); }
+.outcome.block { background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-border); }
+.outcome.ok { background: var(--teal-chip-bg); color: var(--teal-chip-text); border: 1px solid var(--teal-chip-border); }
+
+/* ──────────────────────────────────────────────
+   Split-screen layout (1.11b preview)
+   Left pane: everything 1.11a builds.
+   Right pane: question navigator + active editor.
+   Divider between is draggable in the real build.
+   ────────────────────────────────────────────── */
+
+.split-frame {
+  display: grid;
+  grid-template-columns: 1fr 6px 1fr;
+  min-height: 600px;
+}
+@media (max-width: 900px) {
+  .split-frame {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+}
+
+.split-left, .split-right {
+  min-width: 0;          /* lets both halves actually shrink */
+  display: flex;
+  flex-direction: column;
+}
+.split-left  { border-right: 1px solid var(--border); }
+@media (max-width: 900px) {
+  .split-left  { border-right: none; border-bottom: 1px solid var(--border); }
+}
+
+.split-divider {
+  background: var(--surface-soft);
+  cursor: col-resize;
+  position: relative;
+  transition: background 0.15s ease;
+}
+.split-divider:hover { background: var(--teal-chip-bg); }
+.split-divider::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 30px;
+  background: var(--border-strong);
+  border-radius: 1px;
+}
+@media (max-width: 900px) {
+  .split-divider { display: none; }
+}
+
+/* Question navigator strip — top of right pane */
+.q-nav {
+  display: flex;
+  gap: 6px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-soft);
+  flex-wrap: wrap;
+}
+.q-nav-pill {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1.3;
+  min-width: 94px;
+}
+.q-nav-pill:hover {
+  border-color: var(--teal);
+}
+.q-nav-pill.active {
+  background: var(--info-bg);
+  border-color: var(--teal);
+  color: var(--teal-chip-text);
+}
+.q-nav-pill.empty {
+  background: transparent;
+  border-style: dashed;
+  color: var(--text-dim);
+  align-items: center;
+  justify-content: center;
+}
+.q-nav-pill .q-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--navy);
+}
+.q-nav-pill.active .q-num { color: var(--teal-chip-text); }
+.q-nav-pill .q-cjmm {
+  font-size: 9.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+.q-nav-pill .q-type {
+  font-size: 10px;
+  color: var(--text);
+  font-weight: 500;
+}
+.q-nav-pill.active .q-type { color: var(--navy); }
+
+/* Right-pane body — where the editor mounts in 1.11b, placeholder in 1.11a */
+.q-body {
+  flex: 1;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+}
+.q-placeholder {
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  padding: 36px 24px;
+  text-align: center;
+  background: var(--surface);
+  color: var(--text-muted);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.q-placeholder h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+.q-placeholder p {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  max-width: 360px;
+  margin: 0 auto 4px;
+}
+.q-placeholder .q-placeholder-tag {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--amber-bg);
+  color: var(--amber-text);
+  border: 1px solid var(--amber-border);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.q-meta-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  align-items: center;
+  font-size: 12px;
+}
+.q-meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.q-meta-row select {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface);
+}
+
+/* Reduce chart-layout heights so they fit inside half-width */
+.split-left .chart-layout { min-height: 360px; }
+.split-left .chart-layout { grid-template-columns: 180px 1fr; }
+@media (max-width: 1100px) {
+  .split-left .chart-layout { grid-template-columns: 160px 1fr; }
+}
+
+/* ──────────────────────────────────────────────
+   Custom Rows & columns — column builder row
+   Sits pinned at top of the entries pane when the
+   tab is a custom structured tab. Compact pill-shaped
+   editable column labels; drag/reorder via arrows.
+   ────────────────────────────────────────────── */
+
+.col-builder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.col-builder-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.col-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 4px 3px 10px;
+  font-size: 12px;
+}
+.col-pill input {
+  width: 88px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text);
+  padding: 2px 2px;
+}
+.col-pill input:focus { outline: none; color: var(--teal); }
+.col-pill .col-reorder {
+  display: inline-flex;
+  flex-direction: column;
+  font-size: 9px;
+  color: var(--text-dim);
+  line-height: 1;
+  margin-left: 2px;
+}
+.col-pill .col-reorder span { cursor: pointer; padding: 0 1px; }
+.col-pill .col-reorder span:hover { color: var(--navy); }
+.col-pill .col-del {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 4px 0 2px;
+  line-height: 1;
+}
+.col-pill .col-del:hover { color: var(--danger-text); }
+.col-pill.locked {
+  background: var(--info-bg);
+  border-color: var(--info-border);
+  color: var(--info-text);
+  font-weight: 600;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+.col-pill.locked small {
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-left: 4px;
+  opacity: 0.7;
+}
+.col-add-btn {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-family: inherit;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.col-add-btn:hover { color: var(--teal); border-color: var(--teal); }
+
+.col-bounds {
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+.col-bounds.warn { color: var(--warn-text); }
+
+/* Shape-choice radio in add-tab popover */
+.shape-choice {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-top: 6px;
+  margin-bottom: 4px;
+}
+.shape-choice label {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+.shape-choice label:hover { border-color: var(--teal); }
+.shape-choice label.active {
+  border-color: var(--teal);
+  background: var(--info-bg);
+}
+.shape-choice .shape-choice-title {
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 1px;
+}
+.shape-choice .shape-choice-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.shape-choice input[type="radio"] { margin-top: 3px; }
+
+/* ──────────────────────────────────────────────
+   Extra bits for worked-example tabs
+   ────────────────────────────────────────────── */
+
+/* Lab flag chips (H / L / HH / LL / normal) inside the lab table */
+.lab-flag {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-align: center;
+  min-width: 28px;
+}
+.lab-flag.normal { background: var(--surface-soft); color: var(--text-muted); border: 1px solid var(--border); }
+.lab-flag.high   { background: var(--danger-bg);    color: var(--danger-text); border: 1px solid var(--danger-border); }
+.lab-flag.low    { background: var(--warn-bg);      color: var(--warn-text);   border: 1px solid var(--warn-border); }
+.lab-flag.critical {
+  background: var(--danger-text);
+  color: #fff;
+  border: 1px solid var(--danger-text);
+}
+
+/* Compact select used inside table cells and stacked cards */
+.cell-select,
+.card-select {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface);
+}
+.cell-select { width: 100%; }
+.card-select { min-width: 170px; }
+
+/* Order-status pill */
+.order-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.order-status.active       { background: var(--teal-chip-bg); color: var(--teal-chip-text); border: 1px solid var(--teal-chip-border); }
+.order-status.completed    { background: var(--surface-soft); color: var(--text-muted);    border: 1px solid var(--border); }
+.order-status.discontinued { background: var(--danger-bg);    color: var(--danger-text);   border: 1px solid var(--danger-border); }
+.order-status.held         { background: var(--warn-bg);      color: var(--warn-text);     border: 1px solid var(--warn-border); }
+
+/* History card — section dropdown row */
+.hp-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.hp-section-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Tab-shape row — compact visual summary of what each built-in shape looks like */
+.shape-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin: 12px 0 20px;
+}
+.shape-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.shape-card h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.shape-card .shape-meta {
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.shape-card .shape-fields {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+.shape-card .shape-fields strong { color: var(--text); font-weight: 600; }
+.shape-badge {
+  display: inline-block;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.shape-badge.table {
+  background: var(--info-bg);
+  color: var(--info-text);
+  border: 1px solid var(--info-border);
+}
+.shape-badge.card {
+  background: var(--amber-bg);
+  color: var(--amber-text);
+  border: 1px solid var(--amber-border);
+}
+
+/* ──────────────────────────────────────────────
+   Footer
+   ────────────────────────────────────────────── */
+
+.footer {
+  margin-top: 48px;
+  padding: 18px 22px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+<!-- ─────────────────────────────────────────────────────────
+  HEADER
+───────────────────────────────────────────────────────── -->
+
+<h1 class="doc-title">Case Study editor — visual mockup</h1>
+<p class="doc-sub">
+  Visual reference for Slice 1.11a — the case header, metadata, and chart-tab
+  authoring surface. The 6 question slots (Slice 1.11b) and the preview-as-position
+  toggle (Slice 1.11c) are shown as placeholders only, with space reserved in the
+  layout for when those slices land.
+</p>
+<p class="doc-meta">
+  Companion to <code>docs/product-plan/slice-1.11-plan.md</code>.
+  Mockup only — no CSS from this file ships into the app.
+</p>
+
+<!-- ─────────────────────────────────────────────────────────
+  1. THE FULL EDITOR SCREEN
+───────────────────────────────────────────────────────── -->
+
+<h2 class="section-title">1. Full editor screen</h2>
+
+<p>
+  A single page at <code>/admin/bank/cases/[case_id]</code> (or the tutor twin).
+  On desktop (≥ 900px) the layout is a <strong>split pane</strong>: chart
+  authoring on the left, question authoring on the right. The divider between
+  them is draggable (default 50/50, last position persists). On mobile or
+  narrow viewports the two panes stack vertically — chart on top, questions
+  below. The top bar is sticky across both panes.
+</p>
+
+<p>
+  The right pane in this mockup shows a <em>Slice 1.11b placeholder</em> — the
+  question navigator pills and a reserved body area. 1.11a ships the left pane
+  only; 1.11b lands the right. Designing for the split now means 1.11b is
+  additive, not a layout rebuild. The student-facing runner uses the same
+  chart-left / question-right shape, so curator authoring mirrors what
+  students see.
+</p>
+
+<div class="editor-frame">
+
+  <!-- ── Top action bar ── -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="#" class="topbar-back">← All case studies</a>
+      <span class="topbar-id">NCLEX_CS_00001</span>
+      <span class="topbar-dirty">● Unsaved changes</span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn danger">Delete</button>
+      <button class="btn">Cancel</button>
+      <button class="btn primary">Save case</button>
+    </div>
+  </div>
+
+  <!-- ── Split begins: chart on left, questions on right ── -->
+  <div class="split-frame">
+  <div class="split-left">
+
+  <!-- ── Accordion: Content (open) ── -->
+  <div class="accordion">
+    <div class="acc-head">
+      <div>
+        <span class="acc-title">Content</span>
+        <span class="acc-meta"> · case title + scenario summary</span>
+      </div>
+      <span class="acc-chev">▾</span>
+    </div>
+    <div class="acc-body">
+      <div class="form-grid single">
+        <div class="field">
+          <label for="case-title">Case title</label>
+          <input id="case-title" type="text" value="72-year-old post-op day 1, deteriorating">
+          <div class="field-hint">Curator-facing only. Not shown to students.</div>
+        </div>
+        <div class="field">
+          <label for="case-summary">Scenario summary</label>
+          <textarea id="case-summary">A 72-year-old male client is on post-op day 1 following open abdominal surgery for diverticulitis. The nurse enters the room at 0800 to perform a focused assessment before handover.</textarea>
+          <div class="field-hint">Shown above the chart when the student opens the case. Keep to 2–4 sentences.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Accordion: Classification (closed) ── -->
+  <div class="accordion acc-closed">
+    <div class="acc-head">
+      <div>
+        <span class="acc-title">Classification</span>
+        <span class="acc-meta"> · client needs · subject · system · topic · difficulty · tags</span>
+      </div>
+      <span class="acc-chev">▸</span>
+    </div>
+    <div class="acc-body">
+      <!-- collapsed in mockup; same grid pattern as EditorShell -->
+    </div>
+  </div>
+
+  <!-- ── Accordion: Housekeeping (closed) ── -->
+  <div class="accordion acc-closed">
+    <div class="acc-head">
+      <div>
+        <span class="acc-title">Housekeeping</span>
+        <span class="acc-meta"> · free-sample · builder-visible · published · timestamps</span>
+      </div>
+      <span class="acc-chev">▸</span>
+    </div>
+    <div class="acc-body">
+      <!-- collapsed in mockup -->
+    </div>
+  </div>
+
+  <!-- ── Chart-tab authoring section ── -->
+  <div class="chart-section">
+    <div class="chart-section-head">
+      <div>
+        <div class="chart-title">Patient chart</div>
+        <div class="chart-sub">
+          6 tabs authored. Each entry's <strong>visible-from</strong> value controls when
+          students see it — entries appear on question N only if visible-from ≤ N.
+        </div>
+      </div>
+      <button class="btn">Preview as student · position 1</button>
+    </div>
+
+    <div class="chart-layout">
+
+      <!-- Left rail -->
+      <nav class="tab-rail">
+        <div class="tab-rail-head">Chart tabs</div>
+
+        <div class="tab-item">
+          <span class="tab-reorder"><span>▴</span><span>▾</span></span>
+          <span class="tab-item-label">Nurses' Notes</span>
+          <span class="tab-item-count">3</span>
+        </div>
+
+        <div class="tab-item active">
+          <span class="tab-reorder"><span>▴</span><span>▾</span></span>
+          <span class="tab-item-label">Vital Signs</span>
+          <span class="tab-item-count">4</span>
+        </div>
+
+        <div class="tab-item">
+          <span class="tab-reorder"><span>▴</span><span>▾</span></span>
+          <span class="tab-item-label">Lab Results</span>
+          <span class="tab-item-count">6</span>
+        </div>
+
+        <div class="tab-item">
+          <span class="tab-reorder"><span>▴</span><span>▾</span></span>
+          <span class="tab-item-label">Orders</span>
+          <span class="tab-item-count">2</span>
+        </div>
+
+        <div class="tab-item">
+          <span class="tab-reorder"><span>▴</span><span>▾</span></span>
+          <span class="tab-item-label">History &amp; Physical</span>
+          <span class="tab-item-count">1</span>
+        </div>
+
+        <div class="tab-item">
+          <span class="tab-reorder"><span>▴</span><span>▾</span></span>
+          <span class="tab-item-label" title="Medication Administration Record">Medication Admin Record</span>
+          <span class="tab-item-custom-badge">Custom</span>
+          <span class="tab-item-count">2</span>
+        </div>
+
+        <div class="tab-rail-footer">
+          <button class="tab-add-btn">+ Add chart tab</button>
+        </div>
+      </nav>
+
+      <!-- Right entries pane — Vital Signs (structured/table) -->
+      <div class="entries-pane">
+        <div class="entries-head">
+          <div class="entries-title-group">
+            <div class="entries-title">
+              <input class="rename" type="text" value="Vital Signs">
+            </div>
+            <div class="entries-desc">
+              Built-in tab <code>vital_signs</code> · structured entries · 4 rows
+            </div>
+          </div>
+          <div class="entries-actions">
+            <button class="btn">Duplicate last row</button>
+          </div>
+        </div>
+
+        <table class="entries-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>BP</th>
+              <th>HR</th>
+              <th>RR</th>
+              <th>SpO₂</th>
+              <th>Temp</th>
+              <th>Pain</th>
+              <th class="col-vf">Visible from</th>
+              <th class="col-del"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="text" value="0800"></td>
+              <td><input type="text" value="132/88"></td>
+              <td><input type="text" value="92"></td>
+              <td><input type="text" value="18"></td>
+              <td><input type="text" value="96%"></td>
+              <td><input type="text" value="37.2"></td>
+              <td><input type="text" value="3/10"></td>
+              <td>
+                <div class="vf-seg">
+                  <span class="vf-label">Q</span>
+                  <button class="active">1</button>
+                  <button>2</button>
+                  <button>3</button>
+                  <button>4</button>
+                  <button>5</button>
+                  <button>6</button>
+                </div>
+              </td>
+              <td class="col-del"><button class="row-del-btn">×</button></td>
+            </tr>
+            <tr>
+              <td><input type="text" value="1000"></td>
+              <td><input type="text" value="118/72"></td>
+              <td><input type="text" value="108"></td>
+              <td><input type="text" value="22"></td>
+              <td><input type="text" value="93%"></td>
+              <td><input type="text" value="37.8"></td>
+              <td><input type="text" value="5/10"></td>
+              <td>
+                <div class="vf-seg">
+                  <span class="vf-label">Q</span>
+                  <button>1</button>
+                  <button class="active">2</button>
+                  <button>3</button>
+                  <button>4</button>
+                  <button>5</button>
+                  <button>6</button>
+                </div>
+              </td>
+              <td class="col-del"><button class="row-del-btn">×</button></td>
+            </tr>
+            <tr>
+              <td><input type="text" value="1200"></td>
+              <td><input type="text" value="104/64"></td>
+              <td><input type="text" value="118"></td>
+              <td><input type="text" value="26"></td>
+              <td><input type="text" value="89%"></td>
+              <td><input type="text" value="38.4"></td>
+              <td><input type="text" value="7/10"></td>
+              <td>
+                <div class="vf-seg">
+                  <span class="vf-label">Q</span>
+                  <button>1</button>
+                  <button>2</button>
+                  <button class="active">3</button>
+                  <button>4</button>
+                  <button>5</button>
+                  <button>6</button>
+                </div>
+              </td>
+              <td class="col-del"><button class="row-del-btn">×</button></td>
+            </tr>
+            <tr>
+              <td><input type="text" value="1400"></td>
+              <td><input type="text" value="88/52"></td>
+              <td><input type="text" value="128"></td>
+              <td><input type="text" value="28"></td>
+              <td><input type="text" value="85%"></td>
+              <td><input type="text" value="38.9"></td>
+              <td><input type="text" value="8/10"></td>
+              <td>
+                <div class="vf-seg">
+                  <span class="vf-label">Q</span>
+                  <button>1</button>
+                  <button>2</button>
+                  <button>3</button>
+                  <button class="active">4</button>
+                  <button>5</button>
+                  <button>6</button>
+                </div>
+              </td>
+              <td class="col-del"><button class="row-del-btn">×</button></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="entry-add-row">
+          <button class="add-entry-btn">+ Add row</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Question slots (Slice 1.11b stub) ── -->
+  </div><!-- /.split-left -->
+
+  <div class="split-divider" title="Drag to resize (1.11b)"></div>
+
+  <div class="split-right">
+    <!-- Question navigator pill strip -->
+    <div class="q-nav">
+      <div class="q-nav-pill active">
+        <span class="q-num">Q1</span>
+        <span class="q-cjmm">Recognise cues</span>
+        <span class="q-type">SATA</span>
+      </div>
+      <div class="q-nav-pill">
+        <span class="q-num">Q2</span>
+        <span class="q-cjmm">Analyse cues</span>
+        <span class="q-type">Matrix</span>
+      </div>
+      <div class="q-nav-pill">
+        <span class="q-num">Q3</span>
+        <span class="q-cjmm">Prioritise</span>
+        <span class="q-type">Select N</span>
+      </div>
+      <div class="q-nav-pill empty">
+        <span class="q-num">Q4 +</span>
+      </div>
+      <div class="q-nav-pill empty">
+        <span class="q-num">Q5 +</span>
+      </div>
+      <div class="q-nav-pill empty">
+        <span class="q-num">Q6 +</span>
+      </div>
+    </div>
+
+    <div class="q-body">
+      <div class="q-placeholder">
+        <span class="q-placeholder-tag">Slice 1.11b — placeholder</span>
+        <h4>The active question's editor lives here</h4>
+        <p>
+          Each Q1–Q6 pill selects which question is active. The selected question
+          mounts the existing per-type editor (MCQ / SATA / Matrix / Bow-tie /
+          Cloze / Highlight / Drag-drop / TF / Select N) in nested mode inside
+          this pane.
+        </p>
+        <p style="margin-top: 10px;">
+          Above the editor: CJMM step dropdown + question-type picker.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /.split-frame -->
+
+</div>
+
+<p class="caption">
+  On desktop (≥ 900px) the editor is a split pane — chart left, questions right.
+  Below 900px the panes stack vertically: chart on top, questions below. The
+  divider between panes is draggable; default 50/50; last position persists in
+  localStorage. Top bar stays sticky across the full width so Save is always
+  reachable.
+</p>
+
+<!-- ─────────────────────────────────────────────────────────
+  2. BUILT-IN vs CUSTOM TAB — HOW THE RIGHT PANE CHANGES
+───────────────────────────────────────────────────────── -->
+
+<h2 class="section-title">2. Structured built-in vs narrative vs custom</h2>
+
+<p>
+  The right pane adapts to the selected tab's type. Three rendering modes drawn
+  from the hardcoded registry in <code>lib/bank/case-study/tab-types.ts</code>.
+</p>
+
+<div class="pane-pair">
+
+  <!-- Narrative pane: Nurses' Notes ── stacked cards -->
+  <div class="pane">
+    <div class="pane-label"><span class="dot"></span> Built-in narrative · Nurses' Notes</div>
+
+    <div class="entry-card">
+      <div class="entry-card-head">
+        <div class="entry-card-head-left">
+          <span class="time-label">Time</span>
+          <input class="time-input" type="text" value="0800">
+        </div>
+        <div class="vf-seg">
+          <span class="vf-label">Q</span>
+          <button class="active">1</button>
+          <button>2</button>
+          <button>3</button>
+          <button>4</button>
+          <button>5</button>
+          <button>6</button>
+        </div>
+      </div>
+      <textarea>Client alert and oriented x3. Post-op day 1. Abdominal dressing dry and intact. No acute distress. Rates incisional pain 3/10.</textarea>
+    </div>
+
+    <div class="entry-card">
+      <div class="entry-card-head">
+        <div class="entry-card-head-left">
+          <span class="time-label">Time</span>
+          <input class="time-input" type="text" value="1200">
+        </div>
+        <div class="vf-seg">
+          <span class="vf-label">Q</span>
+          <button>1</button>
+          <button>2</button>
+          <button class="active">3</button>
+          <button>4</button>
+          <button>5</button>
+          <button>6</button>
+        </div>
+      </div>
+      <textarea>Increased restlessness. Client reports "something's not right." Skin warm, flushed. Abdomen firmer on palpation compared to 0800 exam.</textarea>
+    </div>
+
+    <button class="add-entry-btn">+ Add note</button>
+  </div>
+
+  <!-- Custom pane: Medication Administration Record -->
+  <div class="pane">
+    <div class="pane-label"><span class="dot"></span> Custom tab · MAR</div>
+
+    <div class="entry-card">
+      <div class="entry-card-head">
+        <div class="entry-card-head-left">
+          <span class="time-label">Time</span>
+          <input class="time-input" type="text" value="0900">
+        </div>
+        <div class="vf-seg">
+          <span class="vf-label">Q</span>
+          <button class="active">1</button>
+          <button>2</button>
+          <button>3</button>
+          <button>4</button>
+          <button>5</button>
+          <button>6</button>
+        </div>
+      </div>
+      <textarea>Cefazolin 1 g IV given. Morphine 2 mg IV PRN — not given (client declined).</textarea>
+    </div>
+
+    <button class="add-entry-btn">+ Add entry</button>
+  </div>
+
+</div>
+
+<p class="caption">
+  Built-in narrative tabs (Nurses' Notes, Orders) and Free-text custom tabs use
+  the same stacked-card shape: one time field + one free-text body + one
+  visible-from segmented control per entry. Built-in structured tabs (Vital Signs,
+  Lab Results) and Rows &amp; columns custom tabs use a table with typed columns
+  — curators define their own columns for the custom variant. The curator picks
+  the shape once at tab-creation time; the editor adapts.
+</p>
+
+<!-- ─────────────────────────────────────────────────────────
+  3. TAB-BY-TAB WORKED EXAMPLES
+───────────────────────────────────────────────────────── -->
+
+<h2 class="section-title">3. Tab-by-tab worked examples</h2>
+
+<p>
+  Six built-in tab types ship in the hardcoded registry
+  (<code>lib/bank/case-study/tab-types.ts</code>). Each either renders as a
+  structured table (typed columns) or as stacked cards (free-text body + a
+  handful of fields). Curator never picks the rendering mode — the tab type
+  decides. Section 2 covered Nurses' Notes, Vital Signs, and a custom MAR tab.
+  This section walks through the other four plus two custom examples.
+</p>
+
+<h3 class="sub-title">Shape overview</h3>
+
+<p>
+  Before the worked examples, a one-glance summary of every built-in shape so
+  you can see the whole registry at once.
+</p>
+
+<div class="shape-grid">
+
+  <div class="shape-card">
+    <h4>Nurses' Notes <span class="shape-badge card">Cards</span></h4>
+    <div class="shape-meta">tab_key = nurses_notes</div>
+    <div class="shape-fields">
+      <strong>Time</strong> · <strong>Body</strong> (free text) ·
+      <strong>Visible from</strong>
+    </div>
+  </div>
+
+  <div class="shape-card">
+    <h4>Vital Signs <span class="shape-badge table">Table</span></h4>
+    <div class="shape-meta">tab_key = vital_signs</div>
+    <div class="shape-fields">
+      <strong>Time</strong> · <strong>BP</strong> · <strong>HR</strong> ·
+      <strong>RR</strong> · <strong>SpO₂</strong> · <strong>Temp</strong> ·
+      <strong>Pain</strong> · <strong>Visible from</strong>
+    </div>
+  </div>
+
+  <div class="shape-card">
+    <h4>Lab Results <span class="shape-badge table">Table</span></h4>
+    <div class="shape-meta">tab_key = lab_results</div>
+    <div class="shape-fields">
+      <strong>Time</strong> · <strong>Test</strong> · <strong>Value</strong> ·
+      <strong>Unit</strong> · <strong>Reference range</strong> ·
+      <strong>Flag</strong> (normal / H / L / HH / LL) ·
+      <strong>Visible from</strong>
+    </div>
+  </div>
+
+  <div class="shape-card">
+    <h4>Orders <span class="shape-badge card">Cards</span></h4>
+    <div class="shape-meta">tab_key = orders</div>
+    <div class="shape-fields">
+      <strong>Time</strong> · <strong>Order text</strong> (free text) ·
+      <strong>Status</strong> (Active / Completed / Discontinued / Held) ·
+      <strong>Visible from</strong>
+    </div>
+  </div>
+
+  <div class="shape-card">
+    <h4>History &amp; Physical <span class="shape-badge card">Cards</span></h4>
+    <div class="shape-meta">tab_key = history</div>
+    <div class="shape-fields">
+      <strong>Section</strong> (Past medical · Past surgical · Social · Family ·
+      Allergies · Medications · ROS) · <strong>Body</strong> (free text) ·
+      <strong>Visible from</strong> (defaults to 1)
+    </div>
+  </div>
+
+  <div class="shape-card">
+    <h4>Diagnostics <span class="shape-badge card">Cards</span></h4>
+    <div class="shape-meta">tab_key = diagnostics</div>
+    <div class="shape-fields">
+      <strong>Time</strong> · <strong>Test type</strong> (free text, e.g.
+      "CT abdomen with contrast") · <strong>Findings</strong> (free text) ·
+      <strong>Visible from</strong>
+    </div>
+  </div>
+
+</div>
+
+<p class="caption">
+  Custom tabs come in two shapes the curator picks at creation time.
+  <strong>Free text</strong> uses the generic Cards shape (Time · Body · Visible
+  from — same as Nurses' Notes). <strong>Rows &amp; columns</strong> lets the
+  curator define their own column set — same editing pattern as Vitals or Labs
+  (see 3.6). Visible-from is 1–6 everywhere — even History &amp; Physical, which
+  typically defaults to 1 but can be unfolded mid-case if the curator wants.
+</p>
+
+<!-- ── 3.1 Lab Results (structured table) ── -->
+
+<h3 class="sub-title">3.1 Lab Results — structured table with flag chips</h3>
+
+<p>
+  Same table shape as Vital Signs but different columns. The <em>Flag</em>
+  column is a compact dropdown rendered as a coloured chip — H (high), L (low),
+  HH / LL (critical), normal.
+</p>
+
+<div class="pane">
+  <div class="pane-label"><span class="dot"></span> Built-in structured · Lab Results</div>
+
+  <table class="entries-table">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Test</th>
+        <th>Value</th>
+        <th>Unit</th>
+        <th>Reference</th>
+        <th>Flag</th>
+        <th class="col-vf">Visible from</th>
+        <th class="col-del"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><input type="text" value="0800"></td>
+        <td><input type="text" value="WBC"></td>
+        <td><input type="text" value="11.2"></td>
+        <td><input type="text" value="×10⁹/L"></td>
+        <td><input type="text" value="4.0–11.0"></td>
+        <td><span class="lab-flag high">H</span></td>
+        <td>
+          <div class="vf-seg">
+            <span class="vf-label">Q</span>
+            <button class="active">1</button>
+            <button>2</button>
+            <button>3</button>
+            <button>4</button>
+            <button>5</button>
+            <button>6</button>
+          </div>
+        </td>
+        <td class="col-del"><button class="row-del-btn">×</button></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="0800"></td>
+        <td><input type="text" value="Lactate"></td>
+        <td><input type="text" value="2.4"></td>
+        <td><input type="text" value="mmol/L"></td>
+        <td><input type="text" value="0.5–2.2"></td>
+        <td><span class="lab-flag high">H</span></td>
+        <td>
+          <div class="vf-seg">
+            <span class="vf-label">Q</span>
+            <button class="active">1</button>
+            <button>2</button>
+            <button>3</button>
+            <button>4</button>
+            <button>5</button>
+            <button>6</button>
+          </div>
+        </td>
+        <td class="col-del"><button class="row-del-btn">×</button></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="1200"></td>
+        <td><input type="text" value="WBC"></td>
+        <td><input type="text" value="14.8"></td>
+        <td><input type="text" value="×10⁹/L"></td>
+        <td><input type="text" value="4.0–11.0"></td>
+        <td><span class="lab-flag high">H</span></td>
+        <td>
+          <div class="vf-seg">
+            <span class="vf-label">Q</span>
+            <button>1</button>
+            <button>2</button>
+            <button class="active">3</button>
+            <button>4</button>
+            <button>5</button>
+            <button>6</button>
+          </div>
+        </td>
+        <td class="col-del"><button class="row-del-btn">×</button></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="1200"></td>
+        <td><input type="text" value="Lactate"></td>
+        <td><input type="text" value="4.1"></td>
+        <td><input type="text" value="mmol/L"></td>
+        <td><input type="text" value="0.5–2.2"></td>
+        <td><span class="lab-flag critical">HH</span></td>
+        <td>
+          <div class="vf-seg">
+            <span class="vf-label">Q</span>
+            <button>1</button>
+            <button>2</button>
+            <button class="active">3</button>
+            <button>4</button>
+            <button>5</button>
+            <button>6</button>
+          </div>
+        </td>
+        <td class="col-del"><button class="row-del-btn">×</button></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="1200"></td>
+        <td><input type="text" value="Hgb"></td>
+        <td><input type="text" value="9.8"></td>
+        <td><input type="text" value="g/dL"></td>
+        <td><input type="text" value="13.5–17.5"></td>
+        <td><span class="lab-flag low">L</span></td>
+        <td>
+          <div class="vf-seg">
+            <span class="vf-label">Q</span>
+            <button>1</button>
+            <button>2</button>
+            <button class="active">3</button>
+            <button>4</button>
+            <button>5</button>
+            <button>6</button>
+          </div>
+        </td>
+        <td class="col-del"><button class="row-del-btn">×</button></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="entry-add-row">
+    <button class="add-entry-btn">+ Add lab result</button>
+  </div>
+</div>
+
+<p class="caption">
+  The student runner renders these flag chips identically. Curator enters numeric
+  values as free text — parsing them into a typed format was considered and
+  rejected for v1 because NCLEX labs legitimately include non-numeric values
+  ("positive", "gram-positive cocci", "sinus rhythm") that a numeric field would
+  reject.
+</p>
+
+<!-- ── 3.2 Orders (cards + status pill) ── -->
+
+<h3 class="sub-title">3.2 Orders — cards with status pill</h3>
+
+<p>
+  Orders are narrative rather than tabular — each order line is a full sentence
+  ("administer ceftriaxone 1 g IV q24h for 7 days"). Stacked cards give it
+  breathing room. The status dropdown drives a coloured pill so the curator
+  can scan the timeline at a glance.
+</p>
+
+<div class="pane">
+  <div class="pane-label"><span class="dot"></span> Built-in narrative · Orders</div>
+
+  <div class="entry-card">
+    <div class="entry-card-head">
+      <div class="entry-card-head-left">
+        <span class="time-label">Time</span>
+        <input class="time-input" type="text" value="0800">
+        <select class="card-select">
+          <option>Active</option>
+          <option>Completed</option>
+          <option>Discontinued</option>
+          <option>Held</option>
+        </select>
+        <span class="order-status active">Active</span>
+      </div>
+      <div class="vf-seg">
+        <span class="vf-label">Q</span>
+        <button class="active">1</button>
+        <button>2</button>
+        <button>3</button>
+        <button>4</button>
+        <button>5</button>
+        <button>6</button>
+      </div>
+    </div>
+    <textarea>Ceftriaxone 1 g IV q24h × 7 days. Start today. Hold for rash or fever &gt; 39 °C.</textarea>
+  </div>
+
+  <div class="entry-card">
+    <div class="entry-card-head">
+      <div class="entry-card-head-left">
+        <span class="time-label">Time</span>
+        <input class="time-input" type="text" value="0800">
+        <select class="card-select">
+          <option>Active</option>
+          <option>Completed</option>
+          <option>Discontinued</option>
+          <option>Held</option>
+        </select>
+        <span class="order-status active">Active</span>
+      </div>
+      <div class="vf-seg">
+        <span class="vf-label">Q</span>
+        <button class="active">1</button>
+        <button>2</button>
+        <button>3</button>
+        <button>4</button>
+        <button>5</button>
+        <button>6</button>
+      </div>
+    </div>
+    <textarea>Vital signs q4h. Notify provider for HR &gt; 120, SBP &lt; 90, Temp &gt; 38.5 °C, or SpO₂ &lt; 92%.</textarea>
+  </div>
+
+  <div class="entry-card">
+    <div class="entry-card-head">
+      <div class="entry-card-head-left">
+        <span class="time-label">Time</span>
+        <input class="time-input" type="text" value="1300">
+        <select class="card-select">
+          <option>Active</option>
+          <option>Completed</option>
+          <option selected>Discontinued</option>
+          <option>Held</option>
+        </select>
+        <span class="order-status discontinued">Discontinued</span>
+      </div>
+      <div class="vf-seg">
+        <span class="vf-label">Q</span>
+        <button>1</button>
+        <button>2</button>
+        <button class="active">3</button>
+        <button>4</button>
+        <button>5</button>
+        <button>6</button>
+      </div>
+    </div>
+    <textarea>D/C morphine 2 mg IV PRN — client hypotensive. Switch to acetaminophen 1 g PO q6h PRN pain.</textarea>
+  </div>
+
+  <button class="add-entry-btn">+ Add order</button>
+</div>
+
+<p class="caption">
+  Both the <code>&lt;select&gt;</code> and the pill are shown above side-by-side for
+  the mockup — in the real editor the pill <em>is</em> the control; clicking it
+  opens an inline dropdown. Redundant shown here so you can see the colour
+  mapping.
+</p>
+
+<!-- ── 3.3 History & Physical (cards with section selector) ── -->
+
+<h3 class="sub-title">3.3 History &amp; Physical — cards grouped by section</h3>
+
+<p>
+  Different shape again — H&amp;P entries carry a <em>section</em> from a fixed
+  7-item list rather than a time. Sections: Past medical, Past surgical,
+  Social, Family, Allergies, Medications, Review of systems (ROS). Visible from
+  is still present — defaults to 1 (visible from Q1 onwards) so H&amp;P behaves
+  like standing context. Curator can unfold mid-case if a scenario calls for it
+  ("allergy information disclosed at Q4 when client is awake").
+</p>
+
+<div class="pane">
+  <div class="pane-label"><span class="dot"></span> Built-in narrative · History &amp; Physical</div>
+
+  <div class="entry-card">
+    <div class="hp-card-head">
+      <span class="hp-section-label">Section</span>
+      <select class="card-select" style="min-width: 200px;">
+        <option>Past medical</option>
+        <option>Past surgical</option>
+        <option>Social</option>
+        <option>Family</option>
+        <option>Allergies</option>
+        <option>Medications</option>
+        <option>Review of systems</option>
+      </select>
+      <div style="margin-left: auto;">
+        <div class="vf-seg">
+          <span class="vf-label">Q</span>
+          <button class="active">1</button>
+          <button>2</button>
+          <button>3</button>
+          <button>4</button>
+          <button>5</button>
+          <button>6</button>
+        </div>
+      </div>
+    </div>
+    <textarea>Type 2 diabetes (10 years, A1c 7.8% 3 months ago). Hypertension on lisinopril 10 mg daily. Hyperlipidaemia. No prior cardiac events.</textarea>
+  </div>
+
+  <div class="entry-card">
+    <div class="hp-card-head">
+      <span class="hp-section-label">Section</span>
+      <select class="card-select" style="min-width: 200px;">
+        <option>Past medical</option>
+        <option selected>Past surgical</option>
+        <option>Social</option>
+        <option>Family</option>
+        <option>Allergies</option>
+        <option>Medications</option>
+        <option>Review of systems</option>
+      </select>
+      <div style="margin-left: auto;">
+        <div class="vf-seg">
+          <span class="vf-label">Q</span>
+          <button class="active">1</button>
+          <button>2</button>
+          <button>3</button>
+          <button>4</button>
+          <button>5</button>
+          <button>6</button>
+        </div>
+      </div>
+    </div>
+    <textarea>Cholecystectomy 2019 (laparoscopic, uncomplicated). Appendectomy age 14.</textarea>
+  </div>
+
+  <div class="entry-card">
+    <div class="hp-card-head">
+      <span class="hp-section-label">Section</span>
+      <select class="card-select" style="min-width: 200px;">
+        <option>Past medical</option>
+        <option>Past surgical</option>
+        <option>Social</option>
+        <option>Family</option>
+        <option selected>Allergies</option>
+        <option>Medications</option>
+        <option>Review of systems</option>
+      </select>
+      <div style="margin-left: auto;">
+        <div class="vf-seg">
+          <span class="vf-label">Q</span>
+          <button class="active">1</button>
+          <button>2</button>
+          <button>3</button>
+          <button>4</button>
+          <button>5</button>
+          <button>6</button>
+        </div>
+      </div>
+    </div>
+    <textarea>Penicillin — documented rash age 8, no anaphylaxis. No known food allergies.</textarea>
+  </div>
+
+  <button class="add-entry-btn">+ Add H&amp;P entry</button>
+</div>
+
+<p class="caption">
+  Student-side, the runner groups H&amp;P entries by section visually under
+  coloured headings; authoring side stays as a flat list ordered by insertion.
+  Curator can drag / arrow-reorder if section grouping matters to them.
+</p>
+
+<!-- ── 3.4 Diagnostics (cards with test type + findings) ── -->
+
+<h3 class="sub-title">3.4 Diagnostics — cards with test type and findings</h3>
+
+<p>
+  Imaging, ECGs, endoscopy, any point-of-care test. Two free-text fields (test
+  type and findings) plus time and visible-from. The findings text is where
+  the clinically-relevant information sits — often several lines.
+</p>
+
+<div class="pane">
+  <div class="pane-label"><span class="dot"></span> Built-in narrative · Diagnostics</div>
+
+  <div class="entry-card">
+    <div class="entry-card-head">
+      <div class="entry-card-head-left">
+        <span class="time-label">Time</span>
+        <input class="time-input" type="text" value="0830">
+        <span class="hp-section-label" style="margin-left: 8px;">Test</span>
+        <input class="time-input" style="width: 220px;" type="text" value="12-lead ECG">
+      </div>
+      <div class="vf-seg">
+        <span class="vf-label">Q</span>
+        <button class="active">1</button>
+        <button>2</button>
+        <button>3</button>
+        <button>4</button>
+        <button>5</button>
+        <button>6</button>
+      </div>
+    </div>
+    <textarea>Sinus tachycardia, rate 112. No ST-segment changes. No ectopy. Normal intervals.</textarea>
+  </div>
+
+  <div class="entry-card">
+    <div class="entry-card-head">
+      <div class="entry-card-head-left">
+        <span class="time-label">Time</span>
+        <input class="time-input" type="text" value="1215">
+        <span class="hp-section-label" style="margin-left: 8px;">Test</span>
+        <input class="time-input" style="width: 220px;" type="text" value="CT abdomen with contrast">
+      </div>
+      <div class="vf-seg">
+        <span class="vf-label">Q</span>
+        <button>1</button>
+        <button>2</button>
+        <button class="active">3</button>
+        <button>4</button>
+        <button>5</button>
+        <button>6</button>
+      </div>
+    </div>
+    <textarea>Free fluid in pelvis. Diffuse bowel wall thickening. No pneumoperitoneum. Surgical site without abscess. Findings concerning for evolving peritonitis.</textarea>
+  </div>
+
+  <button class="add-entry-btn">+ Add diagnostic</button>
+</div>
+
+<!-- ── 3.5 Custom tab — curator names it ── -->
+
+<h3 class="sub-title">3.5 Custom tab — Imaging (curator-named)</h3>
+
+<p>
+  When a curator adds a custom tab, they type the label. The rendering is the
+  generic stacked-card shape — one time field, one free-text body, one visible
+  from. Same shape as Nurses' Notes. A small <em>Custom</em> badge in the tab
+  rail identifies it.
+</p>
+
+<div class="pane">
+  <div class="pane-label"><span class="dot"></span> Custom tab · Imaging</div>
+
+  <div class="entry-card">
+    <div class="entry-card-head">
+      <div class="entry-card-head-left">
+        <span class="time-label">Time</span>
+        <input class="time-input" type="text" value="1030">
+      </div>
+      <div class="vf-seg">
+        <span class="vf-label">Q</span>
+        <button>1</button>
+        <button class="active">2</button>
+        <button>3</button>
+        <button>4</button>
+        <button>5</button>
+        <button>6</button>
+      </div>
+    </div>
+    <textarea>Chest X-ray — bilateral lower-lobe infiltrates consistent with aspiration. No pneumothorax. Heart size normal. Endotracheal tube appropriately positioned.</textarea>
+  </div>
+
+  <button class="add-entry-btn">+ Add imaging entry</button>
+</div>
+
+<!-- ── 3.6 Custom — Rows & columns (curator-defined table) ── -->
+
+<h3 class="sub-title">3.6 Custom Rows &amp; columns — Intake &amp; Output</h3>
+
+<p>
+  When a built-in doesn't exist for what the curator needs — and the data is
+  structured rather than narrative — they can create a <strong>Rows &amp;
+  columns</strong> custom tab. The curator defines the columns; rows follow the
+  same editing pattern as every other structured tab. Columns are plain text
+  in v1 (no numeric-only or date validation) so curators can freely enter
+  "positive", "+2", "trace", or anything real clinical data requires.
+</p>
+
+<p>
+  The column definitions sit pinned at the top of the entries pane. Editable
+  anytime — rename, reorder with the arrows, delete with <code>×</code>.
+  Visible-from is a locked column that sits at the far right on every Rows
+  &amp; columns tab, same as built-in structured tabs.
+</p>
+
+<div class="pane">
+  <div class="pane-label"><span class="dot"></span> Custom · Rows &amp; columns · Intake &amp; Output</div>
+
+  <!-- Pinned column-builder row -->
+  <div class="col-builder">
+    <span class="col-builder-label">Columns</span>
+
+    <span class="col-pill">
+      <input type="text" value="Time">
+      <span class="col-reorder"><span>◂</span><span>▸</span></span>
+      <button class="col-del">×</button>
+    </span>
+
+    <span class="col-pill">
+      <input type="text" value="Intake (mL)">
+      <span class="col-reorder"><span>◂</span><span>▸</span></span>
+      <button class="col-del">×</button>
+    </span>
+
+    <span class="col-pill">
+      <input type="text" value="Output (mL)">
+      <span class="col-reorder"><span>◂</span><span>▸</span></span>
+      <button class="col-del">×</button>
+    </span>
+
+    <span class="col-pill">
+      <input type="text" value="Net">
+      <span class="col-reorder"><span>◂</span><span>▸</span></span>
+      <button class="col-del">×</button>
+    </span>
+
+    <span class="col-pill">
+      <input type="text" value="Urine colour">
+      <span class="col-reorder"><span>◂</span><span>▸</span></span>
+      <button class="col-del">×</button>
+    </span>
+
+    <span class="col-pill locked">
+      Visible from <small>· fixed</small>
+    </span>
+
+    <button class="col-add-btn">+ Add column</button>
+
+    <span class="col-bounds">5 of 10 columns</span>
+  </div>
+
+  <!-- Entries table using the curator's columns -->
+  <table class="entries-table">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Intake (mL)</th>
+        <th>Output (mL)</th>
+        <th>Net</th>
+        <th>Urine colour</th>
+        <th class="col-vf">Visible from</th>
+        <th class="col-del"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><input type="text" value="0800"></td>
+        <td><input type="text" value="400 (PO)"></td>
+        <td><input type="text" value="60"></td>
+        <td><input type="text" value="+340"></td>
+        <td><input type="text" value="Yellow, clear"></td>
+        <td>
+          <div class="vf-seg">
+            <span class="vf-label">Q</span>
+            <button class="active">1</button>
+            <button>2</button>
+            <button>3</button>
+            <button>4</button>
+            <button>5</button>
+            <button>6</button>
+          </div>
+        </td>
+        <td class="col-del"><button class="row-del-btn">×</button></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="1000"></td>
+        <td><input type="text" value="200 (IV NS)"></td>
+        <td><input type="text" value="45"></td>
+        <td><input type="text" value="+155"></td>
+        <td><input type="text" value="Dark yellow"></td>
+        <td>
+          <div class="vf-seg">
+            <span class="vf-label">Q</span>
+            <button>1</button>
+            <button class="active">2</button>
+            <button>3</button>
+            <button>4</button>
+            <button>5</button>
+            <button>6</button>
+          </div>
+        </td>
+        <td class="col-del"><button class="row-del-btn">×</button></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="1200"></td>
+        <td><input type="text" value="200 (IV NS)"></td>
+        <td><input type="text" value="30"></td>
+        <td><input type="text" value="+170"></td>
+        <td><input type="text" value="Amber, concentrated"></td>
+        <td>
+          <div class="vf-seg">
+            <span class="vf-label">Q</span>
+            <button>1</button>
+            <button>2</button>
+            <button class="active">3</button>
+            <button>4</button>
+            <button>5</button>
+            <button>6</button>
+          </div>
+        </td>
+        <td class="col-del"><button class="row-del-btn">×</button></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="1400"></td>
+        <td><input type="text" value="500 (IV LR bolus)"></td>
+        <td><input type="text" value="20"></td>
+        <td><input type="text" value="+480"></td>
+        <td><input type="text" value="Scant, amber"></td>
+        <td>
+          <div class="vf-seg">
+            <span class="vf-label">Q</span>
+            <button>1</button>
+            <button>2</button>
+            <button>3</button>
+            <button class="active">4</button>
+            <button>5</button>
+            <button>6</button>
+          </div>
+        </td>
+        <td class="col-del"><button class="row-del-btn">×</button></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="entry-add-row">
+    <button class="add-entry-btn">+ Add row</button>
+  </div>
+</div>
+
+<p class="caption">
+  Bounds — 2 columns minimum (1 column is just a list), 10 maximum (wider
+  becomes unreadable). The Visible-from column is always present and can't be
+  renamed or deleted. Renaming a column updates the header live. Deleting a
+  column prompts a <code>window.confirm()</code> warning if any row has data
+  in that column.
+</p>
+
+<h3 class="sub-title">3.7 What the choice looks like at add-tab time</h3>
+
+<p>
+  When the curator adds a custom tab, the popover now asks for the shape. Two
+  radio options. <strong>Free text</strong> is the default (simpler, covers
+  most cases); <strong>Rows &amp; columns</strong> is for when the data is
+  structured and deserves a grid.
+</p>
+
+<div style="display: flex; justify-content: center; margin: 12px 0 6px;">
+  <div class="popover">
+    <h4>Add a custom tab</h4>
+
+    <div class="popover-custom" style="margin-bottom: 10px;">
+      <input type="text" placeholder="Tab name, e.g. Intake & Output">
+    </div>
+
+    <h4 style="margin-bottom: 4px;">Shape</h4>
+    <div class="shape-choice">
+      <label>
+        <input type="radio" name="custom-shape">
+        <span>
+          <div class="shape-choice-title">Free text</div>
+          <div class="shape-choice-desc">
+            Stacked cards with Time, a body, and visible-from. Same as
+            Nurses' Notes.
+          </div>
+        </span>
+      </label>
+      <label class="active">
+        <input type="radio" name="custom-shape" checked>
+        <span>
+          <div class="shape-choice-title">Rows &amp; columns</div>
+          <div class="shape-choice-desc">
+            Curator-defined columns, plus a locked Visible-from. Like Vitals
+            or Labs but with your own column names.
+          </div>
+        </span>
+      </label>
+    </div>
+
+    <button style="margin-top: 8px; background: var(--teal); color: #fff; border: none; font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: 5px; cursor: pointer; font-family: inherit; width: 100%;">
+      Add tab
+    </button>
+  </div>
+</div>
+
+<p class="caption">
+  Shape choice is locked at creation time. A curator who picks Free text then
+  decides they wanted Rows &amp; columns must delete the tab and recreate it —
+  a conversion would mean asking the curator how to map free-text bodies into
+  columns, which isn't worth the UX in v1. The add-tab friction is small.
+</p>
+
+<!-- ─────────────────────────────────────────────────────────
+  4. ADD-TAB POPOVER
+───────────────────────────────────────────────────────── -->
+
+<h2 class="section-title">4. Adding a tab</h2>
+
+<p>
+  Clicking <em>+ Add chart tab</em> in the rail opens a popover. Built-in types
+  come first with a small caption showing the entry shape. Already-added
+  built-ins are disabled (each can appear at most once). Below the divider, a
+  custom tab — curator types a name and picks between Free text and Rows &amp;
+  columns (see Section 3.7 for the expanded shape picker).
+</p>
+
+<div style="display: flex; justify-content: center; margin: 12px 0 6px;">
+  <div class="popover">
+    <h4>Add a chart tab</h4>
+    <div class="popover-list">
+      <div class="popover-item used">
+        <span>Nurses' Notes</span>
+        <small>Already added</small>
+      </div>
+      <div class="popover-item used">
+        <span>Vital Signs</span>
+        <small>Already added</small>
+      </div>
+      <div class="popover-item used">
+        <span>Lab Results</span>
+        <small>Already added</small>
+      </div>
+      <div class="popover-item used">
+        <span>Orders</span>
+        <small>Already added</small>
+      </div>
+      <div class="popover-item used">
+        <span>History &amp; Physical</span>
+        <small>Already added</small>
+      </div>
+      <div class="popover-item">
+        <span>Diagnostics</span>
+        <small>Time · test · findings</small>
+      </div>
+    </div>
+    <hr class="popover-divider">
+    <h4 style="margin-bottom: 6px;">Or a custom tab</h4>
+    <div class="popover-custom">
+      <input type="text" placeholder="Tab name, e.g. Imaging">
+      <button>Next →</button>
+    </div>
+    <p style="font-size: 10.5px; color: var(--text-dim); margin-top: 6px; margin-bottom: 0; font-style: italic;">
+      Next step: pick Free text or Rows &amp; columns.
+    </p>
+  </div>
+</div>
+
+<p class="caption">
+  Custom tabs come in two shapes. <strong>Free text</strong> uses the stacked-card
+  layout (Time + body + visible-from), same as Nurses' Notes. <strong>Rows &amp;
+  columns</strong> lets the curator define their own column set, same editing
+  pattern as Vitals or Labs. Progressive unfold works identically across all
+  tab types — built-in and custom.
+</p>
+
+<!-- ─────────────────────────────────────────────────────────
+  5. EMPTY STATE — FIRST-TIME CREATE
+───────────────────────────────────────────────────────── -->
+
+<h2 class="section-title">5. Empty state</h2>
+
+<p>
+  When a curator creates a brand-new case (<code>?new=1</code>) there are no tabs
+  yet. The right pane encourages them to add the first tab. The metadata
+  accordions above remain normal.
+</p>
+
+<div class="editor-frame" style="max-width: 980px;">
+  <div class="chart-layout" style="min-height: 300px;">
+    <nav class="tab-rail">
+      <div class="tab-rail-head">Chart tabs</div>
+      <div style="padding: 20px 16px; font-size: 12.5px; color: var(--text-muted); font-style: italic; line-height: 1.5;">
+        No tabs yet.<br>Add the first to start building the chart.
+      </div>
+      <div class="tab-rail-footer">
+        <button class="tab-add-btn">+ Add chart tab</button>
+      </div>
+    </nav>
+    <div class="entries-pane">
+      <div class="entries-empty">
+        <h4>This chart has no tabs yet</h4>
+        <p>
+          Start with Nurses' Notes or Vital Signs. Each tab can have its own
+          entries and each entry controls when students see it.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────
+  6. EDGE CASES
+───────────────────────────────────────────────────────── -->
+
+<h2 class="section-title">6. Edge cases worth noticing</h2>
+
+<p>
+  Behaviours worth pinning down before build so the parser, editor, and
+  server action agree.
+</p>
+
+<div class="edge-strip">
+
+  <div class="edge-card">
+    <h4>Renaming a built-in tab</h4>
+    <div class="behaviour">
+      Curator changes <strong>Vital Signs</strong> to <strong>Vitals (0800–1400)</strong>.
+      The label shown to students changes. The underlying <code>tab_key</code>
+      stays <code>vital_signs</code> so the renderer still knows it's a structured
+      tab.
+    </div>
+    <span class="outcome ok">Allowed — label ≠ tab_key</span>
+  </div>
+
+  <div class="edge-card">
+    <h4>Duplicate built-in tab</h4>
+    <div class="behaviour">
+      Curator tries to add <strong>Orders</strong> twice. The add-tab popover
+      disables the second attempt — each built-in can appear at most once per case.
+      Custom tabs have no such limit.
+    </div>
+    <span class="outcome block">Blocked in the picker</span>
+  </div>
+
+  <div class="edge-card">
+    <h4>Tab with zero entries</h4>
+    <div class="behaviour">
+      Curator adds a tab then leaves it empty. Allowed while drafting
+      (<code>is_published = false</code>). On publish, empty tabs are flagged by
+      the validate-case check (Slice 1.11c) but not blocked at the DB layer.
+    </div>
+    <span class="outcome warn">Allowed in drafts; flagged on publish</span>
+  </div>
+
+  <div class="edge-card">
+    <h4>Deleting a tab with entries</h4>
+    <div class="behaviour">
+      Curator deletes <strong>Diagnostics</strong> after filling 3 entries.
+      <code>window.confirm()</code> warns that entries will be lost. Confirmed
+      deletes remove the tab row (cascade removes entries).
+    </div>
+    <span class="outcome warn">Confirm dialog before delete</span>
+  </div>
+
+  <div class="edge-card">
+    <h4>Custom tab with built-in name</h4>
+    <div class="behaviour">
+      Curator types <strong>Vital Signs</strong> in the custom-tab input when the
+      built-in is already added. Accepted — the name is just a label. Stored as a
+      custom tab with <code>tab_key = 'custom'</code>. Curator can rename to
+      disambiguate.
+    </div>
+    <span class="outcome ok">Allowed — name collisions tolerated</span>
+  </div>
+
+  <div class="edge-card">
+    <h4>Reordering tabs</h4>
+    <div class="behaviour">
+      Up / down arrows on each tab shift <code>display_order</code> by ±1. No
+      drag-and-drop in v1 (deferred — matches the curriculum editor's convention).
+    </div>
+    <span class="outcome ok">Arrows, not drag</span>
+  </div>
+
+  <div class="edge-card">
+    <h4>Visible-from default</h4>
+    <div class="behaviour">
+      New entries default to <code>visible_from = 1</code> (visible from Q1
+      onward). Curator changes per entry. No empty / null visible-from state —
+      every entry has one of 1..6.
+    </div>
+    <span class="outcome ok">Defaults to 1</span>
+  </div>
+
+  <div class="edge-card">
+    <h4>Unsaved-changes guard</h4>
+    <div class="behaviour">
+      Curator edits an entry then navigates away. Sticky top bar shows
+      <strong>Unsaved changes</strong>. A beforeunload listener asks for
+      confirmation. Same pattern as other editors.
+    </div>
+    <span class="outcome warn">Confirm on navigate away</span>
+  </div>
+
+</div>
+
+<!-- ─────────────────────────────────────────────────────────
+  7. SUMMARY
+───────────────────────────────────────────────────────── -->
+
+<h2 class="section-title">7. Summary — what 1.11a ships</h2>
+
+<ul style="padding-left: 24px; font-size: 13px; color: var(--text); max-width: 820px;">
+  <li style="margin-bottom: 6px;">Sub-routes <code>/admin/bank/cases</code>,
+    <code>/admin/bank/cases/[case_id]</code>, and tutor twins.</li>
+  <li style="margin-bottom: 6px;">Shared reusable component
+    <code>lib/bank/case-study/editor.tsx</code> with a <code>surface</code>
+    prop.</li>
+  <li style="margin-bottom: 6px;">Three-accordion metadata shell — Content (open),
+    Classification, Housekeeping. Same mental model as <code>EditorShell</code>.</li>
+  <li style="margin-bottom: 6px;">Chart tabs via new child table
+    <code>nclex_case_study_tabs</code> (plus tutor twin). Six hardcoded built-ins
+    plus free-form custom tabs.</li>
+  <li style="margin-bottom: 6px;">Left tab rail with per-tab entry count and
+    up/down reorder arrows. Active tab border-left accent.</li>
+  <li style="margin-bottom: 6px;">Right pane adapts to tab type — table for
+    structured, stacked cards for narrative and custom.</li>
+  <li style="margin-bottom: 6px;">Per-entry visible-from as a 1–6 segmented
+    control. Default 1. No null state.</li>
+  <li style="margin-bottom: 6px;">RLS on both new tab tables.</li>
+  <li style="margin-bottom: 6px;">Seed: one demo case with 2–3 tab types and
+    realistic entries; no questions attached.</li>
+  <li style="margin-bottom: 6px;">Question slots below the chart — placeholder
+    only, buildable in Slice 1.11b.</li>
+  <li style="margin-bottom: 6px;">Preview-as-position toggle visible on the
+    section head — non-functional in 1.11a, functional in 1.11c.</li>
+</ul>
+
+<!-- ─────────────────────────────────────────────────────────
+  FOOTER
+───────────────────────────────────────────────────────── -->
+
+<hr class="divider">
+
+<div class="footer">
+  Reference mockup for Slice 1.11a. Companion to
+  <code>docs/product-plan/slice-1.11-plan.md</code>,
+  <code>mockups/drag-drop-editor-mockup.html</code>, and
+  <code>mockups/ngn-primer.html</code>. No code from this file ships into the app
+  — it's a visual target only. Once approved, this doc becomes the spec for the
+  Claude Desktop handoff that builds the migration, the editor component,
+  <code>lib/bank/case-study/tab-types.ts</code>, and the two sub-route pages.
+</div>
+
+</div>
+</body>
+</html>

@@ -109,13 +109,7 @@ CREATE TABLE nclex_case_studies (
   title                     TEXT NOT NULL,
   scenario_summary          TEXT,
 
-  -- Chart tabs (JSONB arrays of entries; each entry carries visible_from)
-  nurses_notes              JSONB NOT NULL DEFAULT '[]'::jsonb,
-  vital_signs               JSONB NOT NULL DEFAULT '[]'::jsonb,
-  lab_results               JSONB NOT NULL DEFAULT '[]'::jsonb,
-  orders                    JSONB NOT NULL DEFAULT '[]'::jsonb,
-  history                   JSONB NOT NULL DEFAULT '[]'::jsonb,
-  diagnostics               JSONB NOT NULL DEFAULT '[]'::jsonb,
+  -- Chart tabs live in nclex_case_study_tabs (child table, added in Slice 1.11a).
 
   -- Classification (subset — no bloom_level on case studies per bank.md)
   client_needs_category     TEXT,
@@ -149,6 +143,35 @@ CREATE TABLE nclex_case_study_items (
   created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (case_id, position)
 );
+
+
+-- 6b. Chart tabs for QAcademy case studies (Slice 1.11a).
+-- One row per tab per case. Built-in tabs (tab_key in nurses_notes,
+-- vital_signs, lab_results, orders, history, diagnostics) and custom
+-- tabs (tab_key = custom_narrative or custom_grid) share this table.
+CREATE TABLE nclex_case_study_tabs (
+  tab_id        TEXT PRIMARY KEY,
+  case_id       TEXT NOT NULL REFERENCES nclex_case_studies(case_id) ON DELETE CASCADE,
+  tab_key       TEXT NOT NULL,
+  title         TEXT NOT NULL,
+  display_order INTEGER NOT NULL,
+  is_custom     BOOLEAN NOT NULL DEFAULT FALSE,
+  custom_shape  TEXT,
+  columns_def   JSONB NOT NULL DEFAULT '[]'::jsonb,
+  entries       JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (case_id, display_order),
+  CHECK (tab_key <> ''),
+  CHECK (display_order >= 0),
+  CHECK (
+    (is_custom = FALSE AND custom_shape IS NULL)
+    OR
+    (is_custom = TRUE  AND custom_shape IN ('free_text', 'rows_cols'))
+  )
+);
+
+CREATE INDEX idx_nclex_case_study_tabs_case ON nclex_case_study_tabs(case_id);
 
 
 -- 7. QAcademy-owned readiness packs (curated assessments, sold separately)
@@ -218,12 +241,7 @@ CREATE TABLE nclex_tutor_case_studies (
   title                     TEXT NOT NULL,
   scenario_summary          TEXT,
 
-  nurses_notes              JSONB NOT NULL DEFAULT '[]'::jsonb,
-  vital_signs               JSONB NOT NULL DEFAULT '[]'::jsonb,
-  lab_results               JSONB NOT NULL DEFAULT '[]'::jsonb,
-  orders                    JSONB NOT NULL DEFAULT '[]'::jsonb,
-  history                   JSONB NOT NULL DEFAULT '[]'::jsonb,
-  diagnostics               JSONB NOT NULL DEFAULT '[]'::jsonb,
+  -- Chart tabs live in nclex_tutor_case_study_tabs (child table, added in Slice 1.11a).
 
   client_needs_category     TEXT,
   client_needs_subcategory  TEXT,
@@ -257,3 +275,30 @@ CREATE TABLE nclex_tutor_case_study_items (
   created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (case_id, position)
 );
+
+
+-- 10b. Chart tabs for tutor-private case studies (Slice 1.11a).
+-- Same shape as nclex_case_study_tabs; FK points at the tutor parent table.
+CREATE TABLE nclex_tutor_case_study_tabs (
+  tab_id        TEXT PRIMARY KEY,
+  case_id       TEXT NOT NULL REFERENCES nclex_tutor_case_studies(case_id) ON DELETE CASCADE,
+  tab_key       TEXT NOT NULL,
+  title         TEXT NOT NULL,
+  display_order INTEGER NOT NULL,
+  is_custom     BOOLEAN NOT NULL DEFAULT FALSE,
+  custom_shape  TEXT,
+  columns_def   JSONB NOT NULL DEFAULT '[]'::jsonb,
+  entries       JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (case_id, display_order),
+  CHECK (tab_key <> ''),
+  CHECK (display_order >= 0),
+  CHECK (
+    (is_custom = FALSE AND custom_shape IS NULL)
+    OR
+    (is_custom = TRUE  AND custom_shape IN ('free_text', 'rows_cols'))
+  )
+);
+
+CREATE INDEX idx_nclex_tutor_case_study_tabs_case ON nclex_tutor_case_study_tabs(case_id);

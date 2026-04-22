@@ -132,3 +132,89 @@ CREATE POLICY nclex_tutor_questions_superadmin ON nclex_tutor_questions FOR ALL
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- ─────────────────────────────────────────────────────────
+-- nclex_case_studies + nclex_case_study_tabs
+-- QAcademy-owned case studies and their chart tabs.
+-- Read audiences:
+--   • any authenticated user → published cases only (plus their
+--     tabs — students need the chart once the runner lands).
+--   • BANK_CURATE holders (and SUPER_ADMIN via the helper
+--     short-circuit) → full CRUD on cases + tabs.
+-- Added 2026-04-22 in Slice 1.11a.
+-- ─────────────────────────────────────────────────────────
+
+ALTER TABLE nclex_case_studies    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE nclex_case_study_tabs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_case_studies_read_published ON nclex_case_studies FOR SELECT
+  TO authenticated
+  USING (is_published = TRUE);
+
+CREATE POLICY nclex_case_studies_curate_all ON nclex_case_studies FOR ALL
+  TO authenticated
+  USING (nclex_user_has_permission('BANK_CURATE'))
+  WITH CHECK (nclex_user_has_permission('BANK_CURATE'));
+
+CREATE POLICY nclex_case_study_tabs_read_published ON nclex_case_study_tabs FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_case_studies cs
+      WHERE cs.case_id = nclex_case_study_tabs.case_id
+        AND cs.is_published = TRUE
+    )
+  );
+
+CREATE POLICY nclex_case_study_tabs_curate_all ON nclex_case_study_tabs FOR ALL
+  TO authenticated
+  USING (nclex_user_has_permission('BANK_CURATE'))
+  WITH CHECK (nclex_user_has_permission('BANK_CURATE'));
+
+
+-- ─────────────────────────────────────────────────────────
+-- nclex_tutor_case_studies + nclex_tutor_case_study_tabs
+-- Tutor-private case studies and their chart tabs.
+-- One writer audience per table:
+--   • the owning tutor (tutor_id = auth.uid()) — full CRUD.
+-- SUPER_ADMIN bypasses for moderation / support.
+-- No public-read policy: tutor cases stay private until the student
+-- runner introduces enrolment-scoped visibility (future slice).
+-- Added 2026-04-22 in Slice 1.11a.
+-- ─────────────────────────────────────────────────────────
+
+ALTER TABLE nclex_tutor_case_studies    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE nclex_tutor_case_study_tabs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_tutor_case_studies_tutor_own ON nclex_tutor_case_studies FOR ALL
+  TO authenticated
+  USING (tutor_id = auth.uid())
+  WITH CHECK (tutor_id = auth.uid());
+
+CREATE POLICY nclex_tutor_case_studies_superadmin ON nclex_tutor_case_studies FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+CREATE POLICY nclex_tutor_case_study_tabs_tutor_own ON nclex_tutor_case_study_tabs FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_tutor_case_studies cs
+      WHERE cs.case_id = nclex_tutor_case_study_tabs.case_id
+        AND cs.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_tutor_case_studies cs
+      WHERE cs.case_id = nclex_tutor_case_study_tabs.case_id
+        AND cs.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_tutor_case_study_tabs_superadmin ON nclex_tutor_case_study_tabs FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));

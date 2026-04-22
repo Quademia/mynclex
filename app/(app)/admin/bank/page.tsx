@@ -17,6 +17,7 @@
 // Surface-specific writes still happen in ./actions — the surface
 // is carried through FormData on submit.
 
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { EditorShell } from './editor-shell';
@@ -158,6 +159,11 @@ export default async function AdminBankPage({
       titleLabel="Question Bank"
       backHref="/admin"
       backLabel="Admin"
+      headerExtra={
+        <Link href="/admin/bank/cases" className="bank-btn cs-bank-nav-link">
+          Case Studies →
+        </Link>
+      }
     />
   );
 }

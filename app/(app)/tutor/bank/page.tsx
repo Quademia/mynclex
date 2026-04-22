@@ -14,6 +14,7 @@
 // stack: the 8 per-type editors, the 8 parsers, form-shape.ts, and the
 // shell + actions are all shared with /admin/bank.
 
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 // Import EditorShell from the admin path — it's the shared shell for
@@ -146,6 +147,11 @@ export default async function TutorBankPage({
       titleLabel="My Questions"
       backHref="/tutor"
       backLabel="Tutor"
+      headerExtra={
+        <Link href="/tutor/bank/cases" className="bank-btn cs-bank-nav-link">
+          Case Studies →
+        </Link>
+      }
     />
   );
 }

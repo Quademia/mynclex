@@ -60,6 +60,15 @@ export const TUTOR_ITEM_ID_PREFIX: Record<QuestionType, string> = {
   DRAG_DROP: 'NCLEX_TUT_DD_',
 };
 
+// Case Study ID prefixes (Slice 1.11a).
+// A case study wraps 1-6 child questions under a shared scenario + chart
+// tabs. Cases are NOT rows in nclex_bank_items — they live at
+// /admin/bank/cases (NCLEX_CS_NNNNN) and /tutor/bank/cases
+// (NCLEX_TUT_CS_NNNNN). Kept as separate constants so the question-type
+// prefix maps stay untouched.
+export const CASE_ID_PREFIX       = 'NCLEX_CS_';
+export const TUTOR_CASE_ID_PREFIX = 'NCLEX_TUT_CS_';
+
 // ─────────────────────────────────────────────────────────────
 // NCLEX Client Needs categories + subcategories.
 // Source: NCSBN 2023 NCLEX-RN Test Plan.

@@ -95,6 +95,10 @@ export interface BankListViewProps {
   titleLabel?: string;   // "Question Bank" (admin) or "My Questions" (tutor)
   backHref?: string;     // the chrome back-link destination
   backLabel?: string;    // the chrome back-link label
+  // Optional surface-specific extra, rendered inline in the browse-mode
+  // header next to the title. Slice 1.11a uses it to slot in a
+  // "Case Studies" link on both /admin/bank and /tutor/bank.
+  headerExtra?: ReactNode;
 }
 
 export function BankListView(props: BankListViewProps) {
@@ -120,6 +124,7 @@ function renderBrowseMode(props: BankListViewProps) {
     titleLabel = 'Question Bank',
     backHref,
     backLabel,
+    headerExtra,
   } = props;
 
   const newHref = preservedFilterQuery
@@ -144,9 +149,12 @@ function renderBrowseMode(props: BankListViewProps) {
               {rows.length} of {total} question{total === 1 ? '' : 's'}
             </p>
           </div>
-          <Link href={newHref} className="bank-btn bank-btn-primary">
-            + New
-          </Link>
+          <div className="bank-browse-header-actions">
+            {headerExtra}
+            <Link href={newHref} className="bank-btn bank-btn-primary">
+              + New
+            </Link>
+          </div>
         </div>
 
         {queryError && (
