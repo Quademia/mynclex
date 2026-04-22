@@ -6,6 +6,207 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-22 (Slice 2.1 — Tutor-side bank authoring / reusability proof)
+
+First slice of Bank v2 work — stand up tutor-side authoring on
+`nclex_tutor_questions` without touching the 8 per-type editors, 8
+parsers, `types.ts`, or `form-shape.ts`. The reusability claim made
+across Slices 1.3–1.9 either lands or doesn't here. It landed.
+
+### Decisions (locked before execution)
+
+1. **Dual-table approach:** shared `actions.ts` with a `surface`
+   parameter (Approach A). No parallel tutor actions file.
+2. **ID prefix:** `NCLEX_TUT_<TYPE>_NNNNN` — e.g. `NCLEX_TUT_MCQ_00001`.
+3. **Seed:** four Family A tutor rows (MCQ, TF, SATA, SELECT_N) bound
+   to Sam's dev tutor account
+   (`mybackpacc+mynclextutor@gmail.com`, UUID
+   `4ed777d7-e4f7-403b-88f4-63ce5432d65e`).
+4. **List-view:** extracted into a shared component
+   (`lib/bank/list-view.tsx`) that both `/admin/bank` and
+   `/tutor/bank` mount.
+5. **Two-pass extraction:** Pass A — extract without behaviour change,
+   admin still works identically. Pass B — mount on tutor page.
+   Verified the build was clean after each pass before moving on.
+
+### Files created
+
+- `mynclex/lib/bank/list-view.tsx` — shared `BankListView` component
+  (browse + focus mode) plus `rowToInitial()` + `buildFilterQueryString()`
+  helpers and the `BankRow` / `FullBankRow` / `BankSearchParams`
+  types. `editor` arrives as a `ReactNode` prop so the list-view has
+  zero dependency on `@/app/...`.
+- `mynclex/lib/bank/filters.tsx` — moved from
+  `app/(app)/admin/bank/filters.tsx`. Gained a `baseUrl` prop so the
+  GET form posts back to the owning surface; behaviour otherwise
+  identical.
+- `mynclex/lib/bank/navigator.tsx` — moved from
+  `app/(app)/admin/bank/navigator.tsx`. Gained a `baseUrl` prop for
+  the back-link + per-row `edit=` hrefs.
+- `mynclex/app/(app)/tutor/layout.tsx` — TUTOR role gate for the
+  entire `/tutor` tree. The (app) layout already enforces
+  authenticated access and renders chrome; this layer just adds the
+  role requirement. Defensive `if (!user) redirect('/login')` kept.
+- `mynclex/app/(app)/tutor/bank/page.tsx` — tutor Question Bank page.
+  Mirrors `/admin/bank/page.tsx`: same filter+limit query shape, same
+  `rowToInitial()` call, same render; only the table
+  (`nclex_tutor_questions`) and the explicit
+  `.eq('tutor_id', user.id)` differ. Mounts
+  `<EditorShell surface="tutor" … />` so writes route correctly.
+- `mynclex/db/seed-tutor-bank-dev.sql` — four seed rows with the
+  correct JSONB shapes for MCQ / TF / SATA / SELECT_N. Only
+  `NCLEX_TUT_SATA_00001` carries an `instruction` (round-trip
+  coverage for the 1.8 column). All rows `is_published=false`.
+
+### Files modified
+
+- `mynclex/lib/bank/classifications.ts` — added
+  `TUTOR_ITEM_ID_PREFIX` map (one entry per QuestionType). Existing
+  `ITEM_ID_PREFIX` left unchanged.
+- `mynclex/db/rls.sql` — enabled RLS on `nclex_tutor_questions` +
+  two policies: `nclex_tutor_questions_tutor_own` (FOR ALL,
+  `tutor_id = auth.uid()`) and `nclex_tutor_questions_superadmin`
+  (FOR ALL, `nclex_user_has_role('SUPER_ADMIN')`). Placed directly
+  below the existing `nclex_bank_items` section so related tables
+  stay together in the file.
+- `mynclex/app/(app)/admin/bank/actions.ts` — surface-aware rewrite:
+  - New `Surface = 'admin' | 'tutor'` type + `surfaceConfig()` helper
+    that maps surface → table name, ID-prefix map, redirect base URL.
+  - `readSurface(formData)` reads the hidden field; defaults to
+    `'admin'` on anything unexpected (belt-and-braces).
+  - `requireBankCurator()` → `requireSurfaceAuth(surface)`. Admin
+    path unchanged (BANK_CURATE / SUPER_ADMIN → `/admin`). Tutor
+    path: require TUTOR role → `/no-access`.
+  - `nextItemId(supabase, surface, type)` — third arg picks prefix
+    map + table to scan.
+  - CREATE / UPDATE / DELETE each read surface, pick the table via
+    `surfaceConfig(surface).table`, and CREATE also sets
+    `tutor_id = user.id` when surface is tutor. RLS enforces the same
+    invariant at the DB layer regardless.
+  - `redirect()` + `revalidatePath()` use `surfaceConfig.baseUrl` so
+    the caller lands back on the owning surface.
+- `mynclex/app/(app)/admin/bank/editor-shell.tsx` — the ONLY edit
+  here is what Phase 4 explicitly required:
+  - New optional `surface?: 'admin' | 'tutor'` prop, default `'admin'`
+    so the existing admin callsite keeps working.
+  - `<input type="hidden" name="surface" value={surface} />` so the
+    server action can read it on submit.
+  - Synthetic FormData in `onDelete()` now also sets `surface` so
+    delete picks the right table.
+  - Total diff: ~5 lines. Editor renderers, section layout, type
+    select, and the per-type editor wiring all byte-identical.
+- `mynclex/app/(app)/admin/bank/page.tsx` — collapsed from ~595
+  lines to ~155. Role gate + nclex_bank_items fetch + initial-row
+  load stay here (surface-specific). Everything else delegated to
+  `<BankListView surface="admin" baseUrl="/admin/bank" … />` with
+  `<EditorShell surface="admin" …/>` passed as the focus-mode
+  `editor` ReactNode.
+
+### Files NOT modified (reuse proven)
+
+- `mynclex/lib/bank/editors/mcq-editor.tsx`
+- `mynclex/lib/bank/editors/tf-editor.tsx`
+- `mynclex/lib/bank/editors/sata-editor.tsx`
+- `mynclex/lib/bank/editors/select-n-editor.tsx`
+- `mynclex/lib/bank/editors/matrix-editor.tsx`
+- `mynclex/lib/bank/editors/bowtie-editor.tsx`
+- `mynclex/lib/bank/editors/cloze-editor.tsx`
+- `mynclex/lib/bank/editors/highlight-editor.tsx`
+- All 8 parsers in `mynclex/lib/bank/parsers/`
+- `mynclex/lib/bank/types.ts`
+- `mynclex/lib/bank/form-shape.ts`
+
+### Files deleted
+
+- `mynclex/app/(app)/admin/bank/filters.tsx` (moved to
+  `lib/bank/filters.tsx`).
+- `mynclex/app/(app)/admin/bank/navigator.tsx` (moved to
+  `lib/bank/navigator.tsx`).
+
+### Migrations applied to dev (`zrakjibtxyzoqcdtvpmq`)
+
+- `mynclex_bank_tutor_rls_slice_2_1` — `{"success":true}`.
+  Enables RLS on `nclex_tutor_questions`, adds the two policies.
+- `mynclex_bank_tutor_seed_slice_2_1` — `{"success":true}` on the
+  second attempt. First attempt failed on a stray `isn't` apostrophe
+  inside a single-quoted SQL literal; fixed by doubling to `isn''t`.
+  Backported the same fix to `seed-tutor-bank-dev.sql`.
+
+Verified post-seed with SELECT: 4 rows, all bound to the right
+`tutor_id`, `is_published=false` across the board,
+`instruction='Select ALL that apply.'` on the SATA row only.
+
+### Verified locally
+
+- `npx tsc --noEmit` — clean after Pass A; clean again after Phase 5.
+- `npx eslint app/(app)/admin/bank app/(app)/tutor lib/bank` —
+  clean both runs.
+- `npm run build` (webpack) — clean both runs. Final route listing
+  includes the new `/tutor/bank` entry alongside the existing
+  `/admin/bank` and the rest of the app tree.
+
+### Findings
+
+- **Editor-shell edit was unavoidable, but minimal.** Phase 4.1
+  offered two ways to pass surface: first action arg, or hidden
+  FormData field. FormData field matches the existing pattern
+  (question_type, item_id are all hidden fields already), so the
+  shell gained a single hidden input + a 5-line type widening on
+  its props. No logic changes. Documented per the handoff's "if
+  it does, treat that as a finding" rule.
+- **`admin/bank/form.tsx` is now dead code.** It was a thin
+  `BankForm` wrapper around `EditorShell`. Nothing imports it
+  anymore after the page refactor. Left untouched this slice per
+  the repo rule *"Don't clean up surrounding code"*; logged here
+  for a future cleanup pass.
+- **Option (ii) taken for Phase 5.3.** No second `tutor/bank/actions.ts`
+  wrapper file. The tutor page imports `EditorShell` directly from
+  `@/app/(app)/admin/bank/editor-shell` and passes `surface='tutor'`;
+  the shared action reads that from FormData. Cross-import is
+  deliberate.
+
+### Not yet verified (Sam's session, on dev Worker)
+
+Per the handoff, browser verification is Sam's job:
+
+1. Log in as admin — `/admin/bank` still works exactly as before.
+   Create one MCQ, edit it, delete it. No regressions.
+2. Log in as tutor (`mybackpacc+mynclextutor@gmail.com`) — go to
+   `/tutor/bank`. Confirm the 4 seeded rows appear.
+   Confirm admin rows do **not** appear (RLS isolation).
+3. Create one of each 8 types as tutor. Confirm all save with
+   `NCLEX_TUT_*` IDs.
+4. Edit one of each 8. Confirm round-trip.
+5. Delete one. Confirm removal.
+6. Log in as a second tutor (you may need to create one) — confirm
+   the first tutor's rows are invisible.
+7. Log in as STUDENT — confirm `/tutor/bank` redirects to `/no-access`.
+
+### Deferred to future sessions / out of scope here
+
+- **Drag-drop (Slice 1.10)** — still parked, to resume soon.
+  Eight of nine types are authorable on both admin and tutor
+  surfaces now; Drag-drop will land on both simultaneously via the
+  surface plumbing shipped here.
+- **CLONING.md update** — still doesn't exist; same deferral as
+  Slices 1.5–1.9.
+- **Student runner** — unblocked by the full Family B set once
+  Drag-drop lands.
+- **Case-study wrapper (Slice 1.11)** — the `nclex_tutor_case_studies`
+  + join tables already exist per schema.sql; will need a parallel
+  surface-aware treatment when the case-study surface is built.
+- **Dead code cleanup** — `admin/bank/form.tsx` (no callers).
+
+### Next session
+
+Options:
+- Resume Drag-drop (Slice 1.10) with the 3 already-locked decisions.
+- Keep proving surface symmetry by adding Family B authoring to the
+  tutor surface (should be zero-cost — same reusability proof).
+- Start the student runner on the 8 live types.
+
+---
+
 ## Session — 2026-04-22 (Planning — Trend items v2 + Drag-drop park)
 
 No code written. Planning-only session covering two things:

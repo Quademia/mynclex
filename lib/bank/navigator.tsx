@@ -1,4 +1,4 @@
-// mynclex/app/(app)/admin/bank/navigator.tsx
+// mynclex/lib/bank/navigator.tsx
 //
 // Compact left-pane list shown in focus mode. Each row is a <Link>
 // that swaps focus to a different item while preserving any active
@@ -7,6 +7,10 @@
 //
 // Stateless — receives already-filtered rows and the active id from
 // the server page.
+//
+// Moved from app/(app)/admin/bank/navigator.tsx in Slice 2.1 so both
+// admin and tutor surfaces share the navigator. `baseUrl` carries the
+// surface-specific path (e.g. /admin/bank, /tutor/bank).
 
 'use client';
 
@@ -23,14 +27,16 @@ export function BankNavigator({
   rows,
   activeId,
   preservedFilterQuery,
+  baseUrl,
 }: {
   rows: BankNavRow[];
   activeId: string | null;
   preservedFilterQuery: string;
+  baseUrl: string;
 }) {
   const backHref = preservedFilterQuery
-    ? `/admin/bank?${preservedFilterQuery}`
-    : '/admin/bank';
+    ? `${baseUrl}?${preservedFilterQuery}`
+    : baseUrl;
 
   return (
     <aside className="bank-focus-nav">
@@ -52,8 +58,8 @@ export function BankNavigator({
           rows.map((r) => {
             const isActive = r.item_id === activeId;
             const editHref = preservedFilterQuery
-              ? `/admin/bank?edit=${r.item_id}&${preservedFilterQuery}`
-              : `/admin/bank?edit=${r.item_id}`;
+              ? `${baseUrl}?edit=${r.item_id}&${preservedFilterQuery}`
+              : `${baseUrl}?edit=${r.item_id}`;
             return (
               <Link
                 key={r.item_id}

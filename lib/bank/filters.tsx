@@ -1,13 +1,14 @@
-// mynclex/app/(app)/admin/bank/filters.tsx
+// mynclex/lib/bank/filters.tsx
 //
 // Filter bar shown in browse mode. Renders a GET form that submits
-// back to /admin/bank with the chosen params; the server page
-// re-queries with those params applied. No client state — inputs
-// pre-fill from props and the browser does the navigation.
+// back to the current surface (admin or tutor) with the chosen params;
+// the server page re-queries with those params applied. No client
+// state — inputs pre-fill from props and the browser does the
+// navigation.
 //
-// Five filters in scope for this slice: type, client-needs category,
-// difficulty, status, free-text search on stem. More axes land in
-// future slices when curators actually need them.
+// Moved from app/(app)/admin/bank/filters.tsx in Slice 2.1 so both
+// admin and tutor surfaces can share the same filter bar. `baseUrl`
+// carries the surface-specific path; behaviour is otherwise identical.
 
 'use client';
 
@@ -26,9 +27,15 @@ export interface BankFilterValues {
   q: string;
 }
 
-export function BankFilters({ values }: { values: BankFilterValues }) {
+export function BankFilters({
+  values,
+  baseUrl,
+}: {
+  values: BankFilterValues;
+  baseUrl: string;
+}) {
   return (
-    <form method="GET" action="/admin/bank" className="bank-filters">
+    <form method="GET" action={baseUrl} className="bank-filters">
       <div className="bank-filter-row">
         <div className="bank-filter-group">
           <label htmlFor="ftype" className="bank-filter-label">Type</label>
@@ -106,7 +113,7 @@ export function BankFilters({ values }: { values: BankFilterValues }) {
         <button type="submit" className="bank-btn bank-btn-primary">
           Apply
         </button>
-        <Link href="/admin/bank" className="bank-btn bank-btn-ghost">
+        <Link href={baseUrl} className="bank-btn bank-btn-ghost">
           Reset
         </Link>
       </div>

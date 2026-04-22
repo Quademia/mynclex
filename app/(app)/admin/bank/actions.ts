@@ -1,15 +1,22 @@
 // mynclex/app/(app)/admin/bank/actions.ts
 //
-// Server Actions for the Question Bank authoring UI (Slice 1.2).
+// Server Actions for the Question Bank authoring UI — shared by the
+// admin (/admin/bank → nclex_bank_items) and tutor (/tutor/bank →
+// nclex_tutor_questions) surfaces.
+//
+// Each action reads a `surface` hidden field from FormData:
+//   - 'admin' → QAcademy-owned bank; requires BANK_CURATE permission
+//     (SUPER_ADMIN bypasses); writes to nclex_bank_items with the
+//     NCLEX_<TYPE>_NNNNN ID prefix.
+//   - 'tutor' → tutor-private bank; requires TUTOR role; writes to
+//     nclex_tutor_questions with NCLEX_TUT_<TYPE>_NNNNN + tutor_id
+//     = auth.uid(). RLS on the tutor table enforces ownership at the
+//     DB layer regardless of what this code does.
 //
 // Three actions: create, update, delete. Each runs on the Cloudflare
 // Worker, never the browser. Each performs its OWN auth + permission
 // re-check — the page's gate is a UX nicety, the Server Action is the
 // real security boundary.
-//
-// Family A only (MCQ, TF, SATA, SELECT_N). Other types come in later
-// slices and will get their own validation branches here (or sibling
-// files if this grows too large).
 
 'use server';
 
@@ -20,6 +27,7 @@ import {
   CLIENT_NEEDS_CATEGORIES,
   DIFFICULTY_LEVELS,
   ITEM_ID_PREFIX,
+  TUTOR_ITEM_ID_PREFIX,
   type QuestionType,
 } from '@/lib/bank/classifications';
 import type {
@@ -34,17 +42,47 @@ const VALID_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N', 'MAT
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
 
+type Surface = 'admin' | 'tutor';
+
 // Result type — the form reads this to render errors inline.
 export type ActionResult =
   | { ok: true }
   | { ok: false; error: string };
 
 // ─────────────────────────────────────────────────────────────
-// Auth + permission gate. Used at the top of every action.
-// Returns the user id on success; throws (via redirect) on failure.
+// Surface plumbing: table name, ID prefix map, redirect base URL.
 // ─────────────────────────────────────────────────────────────
 
-async function requireBankCurator() {
+function surfaceConfig(surface: Surface) {
+  if (surface === 'tutor') {
+    return {
+      table: 'nclex_tutor_questions' as const,
+      prefix: TUTOR_ITEM_ID_PREFIX,
+      baseUrl: '/tutor/bank',
+    };
+  }
+  return {
+    table: 'nclex_bank_items' as const,
+    prefix: ITEM_ID_PREFIX,
+    baseUrl: '/admin/bank',
+  };
+}
+
+function readSurface(formData: FormData): Surface {
+  const raw = String(formData.get('surface') ?? '');
+  return raw === 'tutor' ? 'tutor' : 'admin';
+}
+
+// ─────────────────────────────────────────────────────────────
+// Auth + permission gate. One helper, two surfaces.
+//
+// Returns { supabase, user } on success. Redirects on failure:
+//   - unauthenticated → /login (either surface)
+//   - admin without BANK_CURATE/SUPER_ADMIN → /admin
+//   - tutor without TUTOR role → /no-access
+// ─────────────────────────────────────────────────────────────
+
+async function requireSurfaceAuth(surface: Surface) {
   const supabase = await createClient();
 
   const {
@@ -53,6 +91,21 @@ async function requireBankCurator() {
 
   if (!user) {
     redirect('/login');
+  }
+
+  if (surface === 'tutor') {
+    const { data: rolesData } = await supabase
+      .from('nclex_user_roles')
+      .select('role')
+      .eq('user_id', user.id);
+
+    const roles = (rolesData ?? []).map((r) => r.role as string);
+
+    if (!roles.includes('TUTOR')) {
+      redirect('/no-access');
+    }
+
+    return { supabase, user };
   }
 
   const [rolesRes, permsRes] = await Promise.all([
@@ -329,18 +382,21 @@ function parseFormData(formData: FormData): ParsedItem | { error: string } {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Compute the next sequential item_id for a given question_type.
-// e.g. MCQ → SELECT MAX(item_id) WHERE prefix → parse suffix → +1.
+// Compute the next sequential item_id for a given question_type on
+// the given surface. e.g. admin+MCQ → NCLEX_MCQ_00009;
+// tutor+MCQ → NCLEX_TUT_MCQ_00009.
 // Lexical sort works because the suffix is fixed-width zero-padded.
 // ─────────────────────────────────────────────────────────────
 
 async function nextItemId(
   supabase: Awaited<ReturnType<typeof createClient>>,
+  surface: Surface,
   type: QuestionType,
 ): Promise<string> {
-  const prefix = ITEM_ID_PREFIX[type];
+  const cfg = surfaceConfig(surface);
+  const prefix = cfg.prefix[type];
   const { data, error } = await supabase
-    .from('nclex_bank_items')
+    .from(cfg.table)
     .select('item_id')
     .like('item_id', `${prefix}%`)
     .order('item_id', { ascending: false })
@@ -364,26 +420,33 @@ async function nextItemId(
 // ─────────────────────────────────────────────────────────────
 
 export async function createBankItemAction(formData: FormData): Promise<ActionResult> {
-  const { supabase } = await requireBankCurator();
+  const surface = readSurface(formData);
+  const { supabase, user } = await requireSurfaceAuth(surface);
 
   const parsed = parseFormData(formData);
   if ('error' in parsed) {
     return { ok: false, error: parsed.error };
   }
 
-  const item_id = await nextItemId(supabase, parsed.question_type);
+  const cfg = surfaceConfig(surface);
+  const item_id = await nextItemId(supabase, surface, parsed.question_type);
 
-  const { error } = await supabase.from('nclex_bank_items').insert({
+  const row: Record<string, unknown> = {
     item_id,
     ...parsed,
-  });
+  };
+  if (surface === 'tutor') {
+    row.tutor_id = user.id;
+  }
+
+  const { error } = await supabase.from(cfg.table).insert(row);
 
   if (error) {
     return { ok: false, error: `Insert failed: ${error.message}` };
   }
 
-  revalidatePath('/admin/bank');
-  redirect(`/admin/bank?edit=${item_id}&saved=1`);
+  revalidatePath(cfg.baseUrl);
+  redirect(`${cfg.baseUrl}?edit=${item_id}&saved=1`);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -391,7 +454,8 @@ export async function createBankItemAction(formData: FormData): Promise<ActionRe
 // ─────────────────────────────────────────────────────────────
 
 export async function updateBankItemAction(formData: FormData): Promise<ActionResult> {
-  const { supabase } = await requireBankCurator();
+  const surface = readSurface(formData);
+  const { supabase } = await requireSurfaceAuth(surface);
 
   const item_id = String(formData.get('item_id') ?? '').trim();
   if (!item_id) {
@@ -403,11 +467,13 @@ export async function updateBankItemAction(formData: FormData): Promise<ActionRe
     return { ok: false, error: parsed.error };
   }
 
+  const cfg = surfaceConfig(surface);
+
   // question_type is locked on edit — type changes would invalidate the
   // existing JSONB shape and the item_id prefix. Force-overwrite from
   // the existing row for safety.
   const { data: existing, error: fetchErr } = await supabase
-    .from('nclex_bank_items')
+    .from(cfg.table)
     .select('question_type')
     .eq('item_id', item_id)
     .maybeSingle();
@@ -421,7 +487,7 @@ export async function updateBankItemAction(formData: FormData): Promise<ActionRe
   }
 
   const { error } = await supabase
-    .from('nclex_bank_items')
+    .from(cfg.table)
     .update({
       ...parsed,
       updated_at: new Date().toISOString(),
@@ -432,8 +498,8 @@ export async function updateBankItemAction(formData: FormData): Promise<ActionRe
     return { ok: false, error: `Update failed: ${error.message}` };
   }
 
-  revalidatePath('/admin/bank');
-  redirect(`/admin/bank?edit=${item_id}&saved=1`);
+  revalidatePath(cfg.baseUrl);
+  redirect(`${cfg.baseUrl}?edit=${item_id}&saved=1`);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -443,15 +509,18 @@ export async function updateBankItemAction(formData: FormData): Promise<ActionRe
 // ─────────────────────────────────────────────────────────────
 
 export async function deleteBankItemAction(formData: FormData): Promise<ActionResult> {
-  const { supabase } = await requireBankCurator();
+  const surface = readSurface(formData);
+  const { supabase } = await requireSurfaceAuth(surface);
 
   const item_id = String(formData.get('item_id') ?? '').trim();
   if (!item_id) {
     return { ok: false, error: 'Missing item_id.' };
   }
 
+  const cfg = surfaceConfig(surface);
+
   const { error } = await supabase
-    .from('nclex_bank_items')
+    .from(cfg.table)
     .delete()
     .eq('item_id', item_id);
 
@@ -459,6 +528,6 @@ export async function deleteBankItemAction(formData: FormData): Promise<ActionRe
     return { ok: false, error: `Delete failed: ${error.message}` };
   }
 
-  revalidatePath('/admin/bank');
-  redirect('/admin/bank?deleted=1');
+  revalidatePath(cfg.baseUrl);
+  redirect(`${cfg.baseUrl}?deleted=1`);
 }

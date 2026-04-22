@@ -43,6 +43,20 @@ export const ITEM_ID_PREFIX: Record<QuestionType, string> = {
   HIGHLIGHT: 'NCLEX_HL_',
 };
 
+// Tutor-side prefix: all tutor questions use NCLEX_TUT_<TYPE>_NNNNN.
+// Added in Slice 2.1 as part of the reusability proof — same editors,
+// same parsers, same shell, different table + prefix.
+export const TUTOR_ITEM_ID_PREFIX: Record<QuestionType, string> = {
+  MCQ:       'NCLEX_TUT_MCQ_',
+  TF:        'NCLEX_TUT_TF_',
+  SATA:      'NCLEX_TUT_SATA_',
+  SELECT_N:  'NCLEX_TUT_SN_',
+  MATRIX:    'NCLEX_TUT_MAT_',
+  BOWTIE:    'NCLEX_TUT_BT_',
+  CLOZE:     'NCLEX_TUT_CLZ_',
+  HIGHLIGHT: 'NCLEX_TUT_HL_',
+};
+
 // ─────────────────────────────────────────────────────────────
 // NCLEX Client Needs categories + subcategories.
 // Source: NCSBN 2023 NCLEX-RN Test Plan.

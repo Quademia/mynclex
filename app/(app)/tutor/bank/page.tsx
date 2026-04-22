@@ -1,25 +1,26 @@
-// mynclex/app/(app)/admin/bank/page.tsx
+// mynclex/app/(app)/tutor/bank/page.tsx
 //
-// Admin Question Bank — thin server wrapper around the shared
-// <BankListView> component.
+// Tutor Question Bank — thin server wrapper around the shared
+// <BankListView> component. Mirrors /admin/bank but reads from
+// nclex_tutor_questions instead of nclex_bank_items, and mounts the
+// <EditorShell> with surface='tutor' so writes go to the tutor table.
 //
-// This page owns three surface-specific responsibilities:
-//   1. The role gate (BANK_CURATE / SUPER_ADMIN — redirects to /admin
-//      on failure).
-//   2. The data fetch (nclex_bank_items, filtered + paginated).
-//   3. Mounting the <EditorShell> with surface='admin' when in focus
-//      mode.
+// Role gating lives in the parent /tutor/layout.tsx. This page trusts
+// that gate — but the Server Actions (./admin/bank/actions.ts) re-check
+// TUTOR independently, and RLS on nclex_tutor_questions enforces
+// tutor_id = auth.uid() at the database layer regardless.
 //
-// Everything else (browse layout, focus layout, filter bar, navigator,
-// row card, URL builders, row → form-initial mapping) lives in
-// mynclex/lib/bank/list-view.tsx and is shared with /tutor/bank.
-//
-// Surface-specific writes still happen in ./actions — the surface
-// is carried through FormData on submit.
+// Added in Slice 2.1 as the reusability proof for the bank authoring
+// stack: the 8 per-type editors, the 8 parsers, form-shape.ts, and the
+// shell + actions are all shared with /admin/bank.
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { EditorShell } from './editor-shell';
+// Import EditorShell from the admin path — it's the shared shell for
+// both surfaces. Cross-import is deliberate: the shell ships with
+// actions.ts alongside it, and those actions are surface-aware via the
+// FormData 'surface' field. See Slice 2.1 SESSIONS entry.
+import { EditorShell } from '@/app/(app)/admin/bank/editor-shell';
 import {
   BankListView,
   buildFilterQueryString,
@@ -34,9 +35,9 @@ import type { BankFormInitial } from '@/lib/bank/form-shape';
 
 export const dynamic = 'force-dynamic';
 
-const BASE_URL = '/admin/bank';
+const BASE_URL = '/tutor/bank';
 
-export default async function AdminBankPage({
+export default async function TutorBankPage({
   searchParams,
 }: {
   searchParams: Promise<BankSearchParams>;
@@ -47,26 +48,9 @@ export default async function AdminBankPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // (app) layout + tutor layout already gate. Defensive fallback.
   if (!user) {
     redirect('/login');
-  }
-
-  const [rolesRes, permsRes] = await Promise.all([
-    supabase.from('nclex_user_roles').select('role').eq('user_id', user.id),
-    supabase
-      .from('nclex_admin_permissions')
-      .select('permission')
-      .eq('user_id', user.id),
-  ]);
-
-  const roles = (rolesRes.data ?? []).map((r) => r.role as string);
-  const permissions = (permsRes.data ?? []).map((p) => p.permission as string);
-
-  const canCurate =
-    roles.includes('SUPER_ADMIN') || permissions.includes('BANK_CURATE');
-
-  if (!canCurate) {
-    redirect('/admin');
   }
 
   const params = await searchParams;
@@ -83,12 +67,15 @@ export default async function AdminBankPage({
   };
   const preservedFilterQuery = buildFilterQueryString(filters);
 
-  // Build Supabase query with any active filters.
+  // RLS on nclex_tutor_questions enforces tutor_id = auth.uid(), but
+  // the explicit .eq() is belt-and-braces and makes the scope obvious
+  // to the reader.
   let query = supabase
-    .from('nclex_bank_items')
+    .from('nclex_tutor_questions')
     .select(
       'item_id, question_type, difficulty, stem, is_published, is_free_sample, client_needs_category, nursing_subject, body_system, tags, created_at',
     )
+    .eq('tutor_id', user.id)
     .order('item_id', { ascending: true })
     .limit(500);
 
@@ -102,22 +89,23 @@ export default async function AdminBankPage({
   const [itemsRes, totalRes] = await Promise.all([
     query,
     supabase
-      .from('nclex_bank_items')
-      .select('*', { count: 'exact', head: true }),
+      .from('nclex_tutor_questions')
+      .select('*', { count: 'exact', head: true })
+      .eq('tutor_id', user.id),
   ]);
 
   const rows: BankRow[] = itemsRes.data ?? [];
   const queryError = itemsRes.error;
   const total = totalRes.count ?? rows.length;
 
-  // Load single full row when editing.
   let initial: BankFormInitial = emptyInitial();
   let editLoadError: string | null = null;
   if (editId) {
     const { data: full, error: fullErr } = await supabase
-      .from('nclex_bank_items')
+      .from('nclex_tutor_questions')
       .select('*')
       .eq('item_id', editId)
+      .eq('tutor_id', user.id)
       .maybeSingle<FullBankRow>();
     if (fullErr || !full) {
       editLoadError = `Could not load ${editId}.`;
@@ -135,7 +123,7 @@ export default async function AdminBankPage({
 
   return (
     <BankListView
-      surface="admin"
+      surface="tutor"
       baseUrl={BASE_URL}
       rows={rows}
       total={total}
@@ -145,7 +133,7 @@ export default async function AdminBankPage({
       activeId={editId}
       editor={
         <EditorShell
-          surface="admin"
+          surface="tutor"
           initial={initial}
           savedFlash={savedFlash}
           cancelHref={cancelHref}
@@ -155,9 +143,9 @@ export default async function AdminBankPage({
       deletedFlash={deletedFlash}
       editLoadError={editLoadError}
       queryError={queryError?.message ?? null}
-      titleLabel="Question Bank"
-      backHref="/admin"
-      backLabel="Admin"
+      titleLabel="My Questions"
+      backHref="/tutor"
+      backLabel="Tutor"
     />
   );
 }

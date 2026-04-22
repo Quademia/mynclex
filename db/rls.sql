@@ -108,3 +108,27 @@ CREATE POLICY nclex_bank_items_curate_all ON nclex_bank_items FOR ALL
   TO authenticated
   USING (nclex_user_has_permission('BANK_CURATE'))
   WITH CHECK (nclex_user_has_permission('BANK_CURATE'));
+
+
+-- ─────────────────────────────────────────────────────────
+-- nclex_tutor_questions
+-- Tutor-private question bank. One writer audience:
+--   • the owning tutor (tutor_id = auth.uid()) — full CRUD on own rows.
+-- SUPER_ADMIN bypasses for moderation / support.
+-- No public-read policy: tutor questions stay private until the student
+-- runner introduces enrolment-scoped visibility (future slice).
+-- No BANK_CURATE access: BANK_CURATE owns QAcademy content only.
+-- Added 2026-04-22 in Slice 2.1 (tutor-side bank authoring).
+-- ─────────────────────────────────────────────────────────
+
+ALTER TABLE nclex_tutor_questions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_tutor_questions_tutor_own ON nclex_tutor_questions FOR ALL
+  TO authenticated
+  USING (tutor_id = auth.uid())
+  WITH CHECK (tutor_id = auth.uid());
+
+CREATE POLICY nclex_tutor_questions_superadmin ON nclex_tutor_questions FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));

@@ -51,10 +51,15 @@ export function EditorShell({
   initial,
   savedFlash,
   cancelHref = '/admin/bank',
+  surface = 'admin',
 }: {
   initial: BankFormInitial;
   savedFlash: boolean;
   cancelHref?: string;
+  // Slice 2.1: which bank surface owns this row. Passed through to the
+  // server actions via a hidden input so create/update/delete can pick
+  // the right table and role gate.
+  surface?: 'admin' | 'tutor';
 }) {
   const isEdit = initial.item_id !== null;
 
@@ -96,6 +101,7 @@ export function EditorShell({
     if (!confirm(`Delete ${initial.item_id}? This cannot be undone.`)) return;
     const fd = new FormData();
     fd.set('item_id', initial.item_id);
+    fd.set('surface', surface);
     startTransition(async () => {
       const result: ActionResult | void = await deleteBankItemAction(fd);
       if (result && result.ok === false) {
@@ -205,8 +211,11 @@ export function EditorShell({
     <form className="bank-form" onSubmit={onSubmit}>
       {/* question_type is posted via a hidden input so it survives the
           disabled <select> in edit mode. item_id is required by the
-          update + delete actions. */}
+          update + delete actions. surface tells the action which table
+          to write to (admin → nclex_bank_items, tutor →
+          nclex_tutor_questions). */}
       <input type="hidden" name="question_type" value={type} />
+      <input type="hidden" name="surface" value={surface} />
       {isEdit && initial.item_id && (
         <input type="hidden" name="item_id" value={initial.item_id} />
       )}
