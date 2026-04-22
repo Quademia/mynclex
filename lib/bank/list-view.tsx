@@ -385,6 +385,18 @@ export function rowToInitial(row: FullBankRow): BankFormInitial {
     in_passage: boolean;
   }[] = [];
 
+  // Drag-drop fields — defaults mirror emptyInitial(). Persisted rows
+  // only store active slots (parser drops orphans), so reloading them
+  // is a direct content.slots + correct.slots + correct.feedback merge.
+  let dd_subtype: 'ORDERED' | 'SENTENCE' = 'ORDERED';
+  let dd_slots: {
+    id: string;
+    target_text: string;
+    assigned_token_id: string;
+    feedback: string;
+  }[] = [];
+  let dd_tokens: { id: string; text: string }[] = [];
+
   if (qtype === 'BOWTIE') {
     const bc = row.content as {
       left?:   { label?: string; tokens?: { id: string; text: string }[] };
@@ -468,6 +480,28 @@ export function rowToInitial(row: FullBankRow): BankFormInitial {
     }));
   }
 
+  if (qtype === 'DRAG_DROP') {
+    const dc = row.content as {
+      subtype?: 'ORDERED' | 'SENTENCE';
+      slots?: { id: string; target_text?: string }[];
+      tokens?: { id: string; text: string }[];
+    };
+    const dk = row.correct as {
+      slots?: Record<string, string>;
+      feedback?: Record<string, string>;
+    };
+    dd_subtype = dc.subtype === 'SENTENCE' ? 'SENTENCE' : 'ORDERED';
+    dd_tokens = (dc.tokens ?? []).map((t) => ({ id: t.id, text: t.text }));
+    const answers = dk.slots ?? {};
+    const fbMap = dk.feedback ?? {};
+    dd_slots = (dc.slots ?? []).map((s) => ({
+      id: s.id,
+      target_text: s.target_text ?? '',
+      assigned_token_id: answers[s.id] ?? '',
+      feedback: fbMap[s.id] ?? '',
+    }));
+  }
+
   return {
     item_id: row.item_id,
     instruction: row.instruction ?? '',
@@ -490,6 +524,9 @@ export function rowToInitial(row: FullBankRow): BankFormInitial {
     bowtie_right_tokens,
     cloze_blanks,
     highlight_chunks,
+    dd_subtype,
+    dd_slots,
+    dd_tokens,
     client_needs_category: row.client_needs_category ?? '',
     client_needs_subcategory: row.client_needs_subcategory ?? '',
     nursing_subject: row.nursing_subject ?? '',

@@ -1968,3 +1968,198 @@
   font-style: italic;
 }
 .bank-hl-chunk-feedback:focus { outline: none; border-color: var(--accent); }
+
+/* ─────────────────────────────────────────────────────────────
+   Drag-drop authoring (Slice 1.10)
+   Visual style derives from mockups/drag-drop-editor-mockup.html:
+   navy slot-IDs, teal-chip assigned-token visuals, amber sentence
+   markers, dashed-border token pool, danger/warn bounds states.
+   Uses the project's existing tokens (--primary, --accent, --border,
+   --text-muted, --white, --bg) + inline hex accents, matching the
+   convention established by .bt-*, .bank-cz-*, .bank-hl-*.
+   ───────────────────────────────────────────────────────────── */
+
+/* Subtype picker — pill bar with active-segment highlight. */
+.bank-dd-subtype-bar {
+  display: flex;
+  gap: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px;
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+.bank-dd-subtype-opt {
+  flex: 1;
+  padding: 6px 10px;
+  text-align: center;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.bank-dd-subtype-opt:hover { color: var(--primary); }
+.bank-dd-subtype-opt.active {
+  background: var(--white);
+  color: var(--primary);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* SENTENCE-only toolbar row above the slot list. */
+.bank-dd-stem-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 8px 0 12px;
+  flex-wrap: wrap;
+}
+
+/* Section heading row (Slots / Token pool). */
+.bank-dd-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 14px 0 6px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* Slot cards wrapper + individual card. */
+.bank-dd-slots-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.bank-dd-slot-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bank-dd-slot-card.orphan {
+  border-style: dashed;
+  border-color: #cbd5e1;
+  background: #f9fafb;
+  opacity: 0.65;
+}
+
+/* Slot card header row: id chip + optional orphan tag + Remove button. */
+.bank-dd-slot-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Slot / token ID chip — navy monospace badge. */
+.bank-dd-slot-id {
+  background: var(--primary);
+  color: var(--white);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+/* "orphan — will drop on save" small tag. */
+.bank-dd-slot-orphan-tag {
+  font-size: 10.5px;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-style: italic;
+}
+
+/* Slot assignment select — monospace for the tN prefix readability. */
+.bank-dd-slot-select {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+/* Slot feedback textarea — smaller, muted. */
+.bank-dd-slot-feedback {
+  font-size: 12px;
+  min-height: 48px;
+  resize: vertical;
+}
+
+/* Sentence-subtype rendered marker (reserved for a future student
+   runner preview; declared here so the class name stays stable). */
+.bank-dd-stem-marker {
+  background: #faeeda;
+  border: 1px solid #fac775;
+  color: #633806;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin: 0 2px;
+}
+
+/* Token pool — dashed-border list + row per token. */
+.bank-dd-token-pool {
+  background: var(--bg);
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bank-dd-token-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.bank-dd-token-row input[type="text"] { font-size: 12px; }
+
+/* Bounds meter — three pills + a hint. Colour flips per state. */
+.bank-dd-bounds-meter {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  margin-top: 4px;
+}
+.bank-dd-bounds-item {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  font-size: 11px;
+}
+.bank-dd-bounds-item.ok {
+  background: #ecfdf5;
+  border-color: #9fe1cb;
+  color: #085041;
+}
+.bank-dd-bounds-item.warn {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+.bank-dd-bounds-item.err {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #8a1a1a;
+}

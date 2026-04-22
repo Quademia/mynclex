@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drag-drop editor — Visual Mockup (Slice 1.10)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fraunces:wght@500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy: #1e3a5f;
+  --teal: #2d7d72;
+  --teal-light: #3ca295;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-soft: #f0f2f5;
+  --border: rgba(30, 58, 95, 0.12);
+  --border-strong: rgba(30, 58, 95, 0.25);
+  --text: #1e3a5f;
+  --text-muted: rgba(30, 58, 95, 0.62);
+  --text-dim: rgba(30, 58, 95, 0.40);
+  --text-faint: rgba(30, 58, 95, 0.22);
+  --info-bg: rgba(45, 125, 114, 0.08);
+  --info-border: rgba(45, 125, 114, 0.4);
+  --info-text: #085041;
+  --coral-bg: #faece7;
+  --coral-border: #f5c4b3;
+  --coral-text: #712b13;
+  --amber-bg: #faeeda;
+  --amber-border: #fac775;
+  --amber-text: #633806;
+  --teal-chip-bg: #e1f5ee;
+  --teal-chip-border: #9fe1cb;
+  --teal-chip-text: #085041;
+  --purple-bg: #eeedfe;
+  --purple-border: #afa9ec;
+  --purple-text: #3c3489;
+  --danger-bg: #fdecec;
+  --danger-border: #f4b5b5;
+  --danger-text: #8a1a1a;
+  --warn-bg: #fff7e0;
+  --warn-border: #f4d97a;
+  --warn-text: #705200;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+  padding: 32px 24px 80px;
+}
+
+.page-wrap { max-width: 1080px; margin: 0 auto; }
+
+.doc-title {
+  font-family: 'Fraunces', serif;
+  font-size: 30px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+}
+.doc-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; max-width: 760px; }
+.doc-meta { font-size: 12px; color: var(--text-dim); margin-bottom: 32px; }
+
+h2.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--navy);
+  margin: 48px 0 10px;
+  letter-spacing: -0.01em;
+}
+h3.sub-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--navy);
+  margin: 24px 0 8px;
+}
+
+p { font-size: 14px; color: var(--text); margin-bottom: 12px; max-width: 760px; }
+p.caption { font-size: 12.5px; color: var(--text-muted); font-style: italic; margin: 10px 0 24px; }
+strong { font-weight: 500; color: var(--navy); }
+code { background: var(--surface-soft); padding: 1px 5px; border-radius: 3px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--navy); }
+
+/* ── Intro callout ── */
+.callout {
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 18px 0 24px;
+  font-size: 13px;
+  color: var(--info-text);
+  max-width: 760px;
+}
+.callout strong { color: var(--info-text); }
+.callout h4 {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+.callout ul { padding-left: 20px; margin-top: 4px; }
+.callout li { margin-bottom: 4px; }
+
+/* ── Mockup frame ── */
+.mockup-frame {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  margin: 14px 0 8px;
+}
+.mockup-caption {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* Two-pane layout: curator left, student right */
+.pane-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 900px) {
+  .pane-grid { grid-template-columns: 1fr; }
+}
+
+.pane {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.pane-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pane-label .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--teal); display: inline-block;
+}
+.pane-label.curator .dot { background: var(--navy); }
+
+/* ── Instruction strip + stem box (mirrors editor-shell) ── */
+.instr-strip {
+  background: #fffaf0;
+  border: 1px solid #fde9b7;
+  border-left: 3px solid var(--amber-border);
+  border-radius: 6px;
+  padding: 8px 11px;
+  margin-bottom: 10px;
+  font-size: 11.5px;
+  color: var(--amber-text);
+}
+.instr-strip .label {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+  opacity: 0.85;
+}
+.stem-box {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.6;
+}
+.stem-box .label {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+}
+
+/* ── Subtype switcher (radio bar at top of editor) ── */
+.subtype-bar {
+  display: flex;
+  gap: 0;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px;
+  margin-bottom: 12px;
+  font-size: 11.5px;
+}
+.subtype-opt {
+  flex: 1;
+  padding: 6px 10px;
+  text-align: center;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.subtype-opt.active {
+  background: var(--surface);
+  color: var(--navy);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* ── Section heading inside pane ── */
+.section-head {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 10px 0 6px;
+}
+.section-head-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0 6px;
+}
+.section-head-row .bounds {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+}
+
+/* ── Ordered-list slot cards (curator) ── */
+.slot-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+.slot-card .slot-id {
+  background: var(--navy);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-align: center;
+  padding: 2px 0;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.slot-card .slot-target-text {
+  font-size: 11.5px;
+  color: var(--text);
+}
+.slot-card .slot-assign-chip {
+  background: var(--teal-chip-bg);
+  color: var(--teal-chip-text);
+  border: 1px solid var(--teal-chip-border);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+}
+.slot-card .slot-assign-none {
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-style: italic;
+}
+
+/* ── Token pool ── */
+.token-pool {
+  background: var(--surface-soft);
+  border: 1px dashed var(--border-strong);
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 38px;
+}
+.token {
+  background: var(--purple-bg);
+  border: 1px solid var(--purple-border);
+  color: var(--purple-text);
+  padding: 4px 9px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  cursor: grab;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+}
+.token .tid {
+  font-size: 9px;
+  color: var(--purple-text);
+  opacity: 0.55;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin-right: 2px;
+}
+.token.used {
+  opacity: 0.35;
+  background: var(--surface);
+  color: var(--text-dim);
+  border-color: var(--border);
+  text-decoration: line-through;
+  cursor: default;
+}
+.token.distractor {
+  background: var(--surface);
+  border-style: dashed;
+  border-color: var(--border-strong);
+  color: var(--text-muted);
+}
+
+/* ── Curator "assign correct" micro-control ── */
+.token-inline-input {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.token-inline-input input[type="text"] {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text);
+}
+.btn-mini {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+/* ── Per-slot feedback strip ── */
+.slot-feedback {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 4px 8px;
+  background: var(--surface-soft);
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+/* ── Student view: slot row ── */
+.stu-slot {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.stu-slot .slot-label {
+  background: var(--surface-soft);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  padding: 6px 0;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.stu-slot .slot-drop {
+  background: var(--teal-chip-bg);
+  border: 1px solid var(--teal-chip-border);
+  color: var(--teal-chip-text);
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  min-height: 28px;
+}
+.stu-slot .slot-drop.empty {
+  background: var(--surface);
+  border-style: dashed;
+  color: var(--text-dim);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* ── Sentence subtype: stem with inline slot markers ── */
+.sentence-stem {
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--text);
+  padding: 10px 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+.sentence-slot-marker {
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-border);
+  color: var(--amber-text);
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin: 0 2px;
+}
+.sentence-slot-drop {
+  background: var(--teal-chip-bg);
+  border: 1px solid var(--teal-chip-border);
+  color: var(--teal-chip-text);
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-weight: 500;
+  margin: 0 2px;
+}
+.sentence-slot-drop.empty {
+  background: var(--surface);
+  border-style: dashed;
+  color: var(--text-dim);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* ── Toolbar for sentence mode ── */
+.stem-toolbar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+.toolbar-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.toolbar-btn:hover { background: var(--surface-soft); }
+
+/* ── Decision panel (Q1 + Q3 side-by-sides) ── */
+.decision-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--amber-border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin: 14px 0;
+}
+.decision-section h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.decision-section .q-tag {
+  display: inline-block;
+  background: var(--amber-bg);
+  color: var(--amber-text);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.decision-section p.ctx {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  max-width: 720px;
+}
+
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.option-card {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.option-card .opt-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.option-card .opt-sample {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  color: var(--navy);
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+.option-card .opt-trade {
+  font-size: 11.5px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.option-card .opt-trade strong { color: var(--navy); }
+.option-card.recommended {
+  border-left: 3px solid var(--teal);
+  background: var(--info-bg);
+}
+.option-card.recommended .opt-label::after {
+  content: "· recommended";
+  margin-left: 4px;
+  color: var(--info-text);
+  font-weight: 500;
+}
+
+/* ── Edge-case strip ── */
+.edge-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin: 14px 0 24px;
+}
+.edge-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.edge-card h4 {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.edge-card .behaviour {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin-bottom: 6px;
+}
+.edge-card .outcome {
+  font-size: 10.5px;
+  padding: 3px 7px;
+  border-radius: 3px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  display: inline-block;
+}
+.outcome.warn  { background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn-border); }
+.outcome.block { background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-border); }
+.outcome.ok    { background: var(--teal-chip-bg); color: var(--teal-chip-text); border: 1px solid var(--teal-chip-border); }
+
+hr.divider {
+  border: none;
+  height: 1px;
+  background: var(--border);
+  margin: 40px 0;
+}
+
+.footer {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 760px;
+}
+.footer code {
+  background: var(--surface-soft);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+
+<h1 class="doc-title">Drag-drop editor — Visual Mockup</h1>
+<p class="doc-sub">
+  Authoring + student views for <code>DRAG_DROP</code>, the ninth and last standalone
+  NGN question type. Two subtypes: <strong>Ordered list</strong> and
+  <strong>Sentence slots</strong>, selected via a <code>content.subtype</code> radio.
+</p>
+<p class="doc-meta">
+  Slice 1.10 planning reference · companion to <code>ngn-primer.html</code> ·
+  resolves Q1 (sentence marker syntax) and Q3 (pool-size rule)
+</p>
+
+<!-- ─────────────────────────────────────────────────────────
+  CONTEXT
+───────────────────────────────────────────────────────── -->
+
+<div class="callout">
+  <h4>What's already locked</h4>
+  <ul>
+    <li><strong>Both subtypes ship</strong> — Ordered list + Sentence slots, via a <code>content.subtype</code> radio at the top of the editor.</li>
+    <li><strong>Curator picks pool size per question</strong> — tokens may include distractors (pool ≥ slot count).</li>
+    <li><strong>Each token fills one slot maximum</strong> — no reuse across slots (universal NCLEX behaviour).</li>
+    <li><strong>Slot bounds:</strong> 3–8 slots. <strong>Feedback granularity:</strong> per-slot. <strong>Answer shape:</strong> <code>correct.slots = { s1: "t3", s2: "t1", … }</code>.</li>
+  </ul>
+  <h4 style="margin-top:10px">What this mockup settles</h4>
+  <ul>
+    <li><strong>Q1 —</strong> how do sentence slots appear in the stem? (see §4)</li>
+    <li><strong>Q3 —</strong> what's the rule on pool size vs slot count? (see §5)</li>
+  </ul>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────
+  SUBTYPE 1 — ORDERED LIST
+───────────────────────────────────────────────────────── -->
+
+<h2 class="section-title">1. Subtype: Ordered list</h2>
+
+<p>
+  Curator defines a list of <em>positions</em> (the slots). The student drags tokens
+  from a shared pool into those positions in order. Typical use: priority, sequence,
+  severity, stepwise procedure.
+</p>
+
+<p class="caption">
+  Clinical example: Prioritising actions for a deteriorating post-operative client.
+  Five actions to sequence; six tokens in the pool (one distractor).
+</p>
+
+<div class="mockup-frame">
+  <div class="mockup-caption">Ordered-list — curator vs student</div>
+
+  <div class="pane-grid">
+
+    <!-- ── Curator pane ── -->
+    <div class="pane">
+      <div class="pane-label curator"><span class="dot"></span> Curator view — <code>/admin/bank?new=1</code></div>
+
+      <div class="subtype-bar">
+        <div class="subtype-opt active">◉ Ordered list</div>
+        <div class="subtype-opt">○ Sentence slots</div>
+      </div>
+
+      <div class="instr-strip">
+        <div class="label">! Instruction</div>
+        Rank these actions from first (highest priority) to last.
+      </div>
+
+      <div class="stem-box">
+        <div class="label">Stem</div>
+        A 72-year-old client on post-operative day 1 after an open cholecystectomy
+        suddenly reports shortness of breath. The nurse finds the client pale and
+        diaphoretic. <strong>BP 88/52 · HR 128 · SpO₂ 85% · RR 28.</strong>
+      </div>
+
+      <div class="section-head-row">
+        <div class="section-head">Slots (3–8)</div>
+        <div class="bounds">5 of 8 used</div>
+      </div>
+
+      <div class="slot-card">
+        <div class="slot-id">s1</div>
+        <div class="slot-target-text">1st action</div>
+        <div class="slot-assign-chip">t2 · Apply O₂</div>
+      </div>
+      <div class="slot-card">
+        <div class="slot-id">s2</div>
+        <div class="slot-target-text">2nd action</div>
+        <div class="slot-assign-chip">t5 · Elevate HOB</div>
+      </div>
+      <div class="slot-card">
+        <div class="slot-id">s3</div>
+        <div class="slot-target-text">3rd action</div>
+        <div class="slot-assign-chip">t1 · Call provider</div>
+      </div>
+      <div class="slot-card">
+        <div class="slot-id">s4</div>
+        <div class="slot-target-text">4th action</div>
+        <div class="slot-assign-chip">t4 · Obtain ECG</div>
+      </div>
+      <div class="slot-card">
+        <div class="slot-id">s5</div>
+        <div class="slot-target-text">5th action</div>
+        <div class="slot-assign-chip">t6 · Draw labs</div>
+      </div>
+
+      <div class="slot-feedback">
+        Per-slot feedback (optional): s1 → "Oxygen first — airway before circulation."
+      </div>
+
+      <div class="section-head-row">
+        <div class="section-head">Token pool (3–12)</div>
+        <div class="bounds">6 tokens · 1 distractor</div>
+      </div>
+      <div class="token-pool">
+        <span class="token"><span class="tid">t1</span>Call provider</span>
+        <span class="token"><span class="tid">t2</span>Apply O₂</span>
+        <span class="token distractor"><span class="tid">t3</span>Offer oral fluids</span>
+        <span class="token"><span class="tid">t4</span>Obtain ECG</span>
+        <span class="token"><span class="tid">t5</span>Elevate HOB</span>
+        <span class="token"><span class="tid">t6</span>Draw labs</span>
+      </div>
+      <p style="font-size: 10.5px; color: var(--text-dim); margin-top: 6px; font-style: italic;">
+        Tokens can be correct (used in a slot) or distractors (unused). Curator assigns
+        by clicking a slot and picking a token. Dashed border = unused / distractor.
+      </p>
+    </div>
+
+    <!-- ── Student pane ── -->
+    <div class="pane">
+      <div class="pane-label"><span class="dot"></span> Student view — during attempt</div>
+
+      <div style="font-size: 11px; color: var(--text-muted); font-weight: 500; margin-bottom: 8px;">
+        <span style="background: var(--purple-bg); color: var(--purple-text); border: 1px solid var(--purple-border); padding: 2px 7px; border-radius: 4px; font-size: 10px; letter-spacing: 0.04em; font-weight: 600;">DRAG_DROP</span>
+        &nbsp;· Ordered list
+      </div>
+
+      <div class="instr-strip">
+        <div class="label">! Instruction</div>
+        Rank these actions from first (highest priority) to last.
+      </div>
+
+      <div class="stem-box">
+        A 72-year-old client on post-op day 1 … <strong>BP 88/52 · HR 128 · SpO₂ 85% · RR 28.</strong>
+      </div>
+
+      <div class="section-head">Drop actions in order</div>
+
+      <div class="stu-slot">
+        <div class="slot-label">1st</div>
+        <div class="slot-drop">Apply O₂</div>
+      </div>
+      <div class="stu-slot">
+        <div class="slot-label">2nd</div>
+        <div class="slot-drop">Elevate HOB</div>
+      </div>
+      <div class="stu-slot">
+        <div class="slot-label">3rd</div>
+        <div class="slot-drop empty">drop here…</div>
+      </div>
+      <div class="stu-slot">
+        <div class="slot-label">4th</div>
+        <div class="slot-drop empty">drop here…</div>
+      </div>
+      <div class="stu-slot">
+        <div class="slot-label">5th</div>
+        <div class="slot-drop empty">drop here…</div>
+      </div>
+
+      <div class="section-head" style="margin-top:14px">Token pool</div>
+      <div class="token-pool">
+        <span class="token">Call provider</span>
+        <span class="token used">Apply O₂</span>
+        <span class="token">Offer oral fluids</span>
+        <span class="token">Obtain ECG</span>
+        <span class="token used">Elevate HOB</span>
+        <span class="token">Draw labs</span>
+      </div>
+      <p style="font-size: 10.5px; color: var(--text-dim); margin-top: 6px; font-style: italic;">
+        Used tokens grey out; student sees no token IDs (only in curator view).
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────
+  SUBTYPE 2 — SENTENCE SLOTS
+───────────────────────────────────────────────────────── -->
+
+<h2 class="section-title">2. Subtype: Sentence slots</h2>
+
+<p>
+  Curator writes a sentence containing inline slot markers. The student drags tokens
+  from a shared pool into those positions. Typical use: completing a clinical
+  decision sentence, filling in a rationale.
+</p>
+
+<p class="caption">
+  Clinical example: Treating an alert adult client with a blood glucose of 58 mg/dL.
+  Three slots in one sentence; five tokens in the pool (two distractors).
+</p>
+
+<div class="mockup-frame">
+  <div class="mockup-caption">Sentence-slots — curator vs student</div>
+
+  <div class="pane-grid">
+
+    <!-- ── Curator pane ── -->
+    <div class="pane">
+      <div class="pane-label curator"><span class="dot"></span> Curator view — <code>/admin/bank?new=1</code></div>
+
+      <div class="subtype-bar">
+        <div class="subtype-opt">○ Ordered list</div>
+        <div class="subtype-opt active">◉ Sentence slots</div>
+      </div>
+
+      <div class="instr-strip">
+        <div class="label">! Instruction</div>
+        Complete the sentence by dragging tokens into each slot.
+      </div>
+
+      <div class="section-head-row">
+        <div class="section-head">Stem (insert slots with <code>+ Slot</code>)</div>
+        <div class="bounds">3 of 8 slots used</div>
+      </div>
+      <div class="stem-toolbar">
+        <button class="toolbar-btn">+ Slot</button>
+        <button class="toolbar-btn">Preview</button>
+      </div>
+      <div class="sentence-stem">
+        The client's most likely condition is <span class="sentence-slot-marker">[1]</span>.
+        The nurse should administer <span class="sentence-slot-marker">[2]</span> and then
+        reassess using <span class="sentence-slot-marker">[3]</span>.
+      </div>
+
+      <div class="section-head">Slot assignments</div>
+      <div class="slot-card">
+        <div class="slot-id">[1]</div>
+        <div class="slot-target-text">most likely condition</div>
+        <div class="slot-assign-chip">t2 · hypoglycaemia</div>
+      </div>
+      <div class="slot-card">
+        <div class="slot-id">[2]</div>
+        <div class="slot-target-text">administer</div>
+        <div class="slot-assign-chip">t4 · 15 g oral glucose</div>
+      </div>
+      <div class="slot-card">
+        <div class="slot-id">[3]</div>
+        <div class="slot-target-text">reassess using</div>
+        <div class="slot-assign-chip">t5 · capillary blood glucose</div>
+      </div>
+
+      <div class="section-head-row">
+        <div class="section-head">Token pool (3–12)</div>
+        <div class="bounds">5 tokens · 2 distractors</div>
+      </div>
+      <div class="token-pool">
+        <span class="token distractor"><span class="tid">t1</span>hyperglycaemia</span>
+        <span class="token"><span class="tid">t2</span>hypoglycaemia</span>
+        <span class="token distractor"><span class="tid">t3</span>1 L normal saline</span>
+        <span class="token"><span class="tid">t4</span>15 g oral glucose</span>
+        <span class="token"><span class="tid">t5</span>capillary blood glucose</span>
+      </div>
+    </div>
+
+    <!-- ── Student pane ── -->
+    <div class="pane">
+      <div class="pane-label"><span class="dot"></span> Student view — during attempt</div>
+
+      <div style="font-size: 11px; color: var(--text-muted); font-weight: 500; margin-bottom: 8px;">
+        <span style="background: var(--purple-bg); color: var(--purple-text); border: 1px solid var(--purple-border); padding: 2px 7px; border-radius: 4px; font-size: 10px; letter-spacing: 0.04em; font-weight: 600;">DRAG_DROP</span>
+        &nbsp;· Sentence slots
+      </div>
+
+      <div class="instr-strip">
+        <div class="label">! Instruction</div>
+        Complete the sentence by dragging tokens into each slot.
+      </div>
+
+      <div class="stem-box">
+        An alert adult client reports feeling shaky and sweaty. Capillary blood glucose
+        is <strong>58 mg/dL</strong>.
+      </div>
+
+      <div class="sentence-stem">
+        The client's most likely condition is
+        <span class="sentence-slot-drop">hypoglycaemia</span>. The nurse should administer
+        <span class="sentence-slot-drop empty">drop…</span> and then reassess using
+        <span class="sentence-slot-drop empty">drop…</span>.
+      </div>
+
+      <div class="section-head" style="margin-top:14px">Token pool</div>
+      <div class="token-pool">
+        <span class="token">hyperglycaemia</span>
+        <span class="token used">hypoglycaemia</span>
+        <span class="token">1 L normal saline</span>
+        <span class="token">15 g oral glucose</span>
+        <span class="token">capillary blood glucose</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────
+  Q1 — SENTENCE MARKER SYNTAX
+───────────────────────────────────────────────────────── -->
+
+<h2 class="section-title">3. Decision to close: Q1</h2>
+
+<div class="decision-section">
+  <h3><span class="q-tag">Q1</span>Sentence slot-marker syntax</h3>
+  <p class="ctx">
+    What token does the curator type into the stem to create a slot? Cloze already
+    uses <code>{1}</code> for its blanks. Drag-drop's sentence subtype is structurally
+    similar, but confusing the two would be costly. The marker needs to be
+    <strong>visually distinct from Cloze</strong>, <strong>easy to type</strong>, and
+    <strong>safe vs. real medical text</strong> (nothing that naturally appears in
+    clinical passages).
+  </p>
+
+  <div class="option-grid">
+
+    <div class="option-card recommended">
+      <div class="opt-label">Option A · square brackets</div>
+      <div class="opt-sample">[1] [2] [3]</div>
+      <div class="opt-trade">
+        <strong>Distinct from Cloze's <code>{1}</code>.</strong> Easy to type. Visual
+        signature matches Highlight's <code>[[…]]</code> but not confusable (single
+        vs. double bracket, and numerals vs. text inside). Clean on student render.
+      </div>
+    </div>
+
+    <div class="option-card">
+      <div class="opt-label">Option B · double curly</div>
+      <div class="opt-sample">{{1}} {{2}}</div>
+      <div class="opt-trade">
+        Distinct from Cloze's single-curly. But typing <code>{{</code> <code>}}</code>
+        is awkward and visually heavy. Adds friction for no real gain over square brackets.
+      </div>
+    </div>
+
+    <div class="option-card">
+      <div class="opt-label">Option C · underscore-wrapped</div>
+      <div class="opt-sample">__1__ __2__</div>
+      <div class="opt-trade">
+        Visually resembles a blank line. Unfortunately clashes with Markdown italic
+        <code>_x_</code> and bold <code>__x__</code>, which matters if curators later
+        paste rich text. Avoid.
+      </div>
+    </div>
+
+    <div class="option-card">
+      <div class="opt-label">Option D · angle quotes</div>
+      <div class="opt-sample">⟨1⟩ ⟨2⟩</div>
+      <div class="opt-trade">
+        Visually elegant and unambiguous, but requires a special-character picker to
+        type. Accessibility concern for curators using basic keyboards.
+      </div>
+    </div>
+
+  </div>
+
+  <p style="margin-top:16px; font-size: 13px;">
+    <strong>Recommendation: Option A — <code>[1]</code> <code>[2]</code></strong>.
+    Parser regex: <code>/\[(\d+)\]/g</code>. Marker IDs in
+    <code>content.slots</code> map 1:1 to the numerals (s1, s2, …). Re-uses the
+    same <code>+ Add slot</code> toolbar pattern Cloze established — find lowest
+    free N in 1–8, insert at cursor.
+  </p>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────
+  Q3 — POOL SIZE RULE
+───────────────────────────────────────────────────────── -->
+
+<h2 class="section-title">4. Decision to close: Q3</h2>
+
+<div class="decision-section">
+  <h3><span class="q-tag">Q3</span>Pool size vs. slot count</h3>
+  <p class="ctx">
+    How many tokens can a curator put in the pool, given N slots? Too many and the
+    student faces a needle-in-haystack; too few and there are no distractors. This
+    matters because it constrains the parser's validation, the editor's bounds-meter,
+    and the student's experience.
+  </p>
+
+  <div class="option-grid">
+
+    <div class="option-card recommended">
+      <div class="opt-label">Option A · N to N + 4</div>
+      <div class="opt-sample">4 slots → 4–8 tokens</div>
+      <div class="opt-trade">
+        <strong>Structured bound.</strong> Author can use the pool exactly (no
+        distractors) or add up to four. Matches NCSBN sample drag-drop items where
+        distractor count is almost always 0–4. Easy to explain in tooltip.
+      </div>
+    </div>
+
+    <div class="option-card">
+      <div class="opt-label">Option B · N to 12</div>
+      <div class="opt-sample">4 slots → 4–12 tokens</div>
+      <div class="opt-trade">
+        Single global ceiling. Simpler rule. But a 3-slot item with 12 tokens is a
+        bad exam experience — nine tokens are distractors. Curators will need
+        discipline the rule doesn't enforce.
+      </div>
+    </div>
+
+    <div class="option-card">
+      <div class="opt-label">Option C · no upper limit</div>
+      <div class="opt-sample">4 slots → 4–∞ tokens</div>
+      <div class="opt-trade">
+        Maximum flexibility. Zero structural guardrails. In practice we'd still cap
+        at 12 to keep the pool renderable on mobile, so this collapses into Option B
+        with a hidden ceiling.
+      </div>
+    </div>
+
+    <div class="option-card">
+      <div class="opt-label">Option D · exactly N</div>
+      <div class="opt-sample">4 slots → 4 tokens</div>
+      <div class="opt-trade">
+        No distractors. The student's strategy becomes "eliminate what's placed and
+        drop the rest" — which defeats the point of drag-drop. NCSBN items routinely
+        include distractors. Do not choose.
+      </div>
+    </div>
+
+  </div>
+
+  <p style="margin-top:16px; font-size: 13px;">
+    <strong>Recommendation: Option A — N to N + 4</strong>. Parser asserts
+    <code>tokens.length ≥ slots.length</code> (fewer tokens than slots is
+    structurally invalid) and <code>tokens.length ≤ slots.length + 4</code>.
+    Bounds-meter shows "<em>5 tokens · 1 distractor</em>" so the curator always
+    sees the distractor count.
+  </p>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────
+  EDGE CASES
+───────────────────────────────────────────────────────── -->
+
+<h2 class="section-title">5. Edge cases worth noticing</h2>
+
+<p>
+  Five behaviours worth thinking through during implementation. Each affects
+  parser logic or editor UX.
+</p>
+
+<div class="edge-strip">
+
+  <div class="edge-card">
+    <h4>Curator deletes a slot marker mid-edit</h4>
+    <div class="behaviour">
+      In sentence mode, curator types <code>[1] [2]</code>, assigns tokens, then
+      edits the stem and deletes <code>[2]</code>. The s2 card still holds a token
+      assignment.
+    </div>
+    <span class="outcome warn">Orphan — preserve card, dim it, drop on save</span>
+  </div>
+
+  <div class="edge-card">
+    <h4>Pool smaller than slot count</h4>
+    <div class="behaviour">
+      Curator adds 5 slots but only 3 tokens. Clearly unfinished but we don't want
+      to reject mid-authoring.
+    </div>
+    <span class="outcome warn">Bounds-meter turns amber; save is blocked</span>
+  </div>
+
+  <div class="edge-card">
+    <h4>Pool bigger than N + 4</h4>
+    <div class="behaviour">
+      Curator adds 4 slots and 9 tokens (5 distractors). Exceeds the recommended rule.
+    </div>
+    <span class="outcome block">Reject on save with a clear message</span>
+  </div>
+
+  <div class="edge-card">
+    <h4>Same token in two slots</h4>
+    <div class="behaviour">
+      Curator accidentally assigns <code>t3</code> to both s1 and s2. Our locked
+      rule says one use max.
+    </div>
+    <span class="outcome block">Editor prevents double-assign on click</span>
+  </div>
+
+  <div class="edge-card">
+    <h4>Slot with no assigned token</h4>
+    <div class="behaviour">
+      Curator adds s5 but forgets to pick a correct token for it.
+    </div>
+    <span class="outcome block">Reject on save — "every slot needs a correct token"</span>
+  </div>
+
+</div>
+
+<!-- ─────────────────────────────────────────────────────────
+  FOOTER
+───────────────────────────────────────────────────────── -->
+
+<hr class="divider">
+
+<h2 class="section-title">6. Summary</h2>
+
+<p>
+  Once Q1 and Q3 are confirmed, the full decision set for Slice 1.10 is:
+</p>
+
+<ul style="padding-left: 24px; font-size: 13px; color: var(--text); max-width: 760px;">
+  <li style="margin-bottom: 6px;">Two subtypes — <code>content.subtype</code> = <code>'ORDERED'</code> or <code>'SENTENCE'</code>.</li>
+  <li style="margin-bottom: 6px;">Ordered subtype: position-based slot IDs <code>s1, s2, …</code>.</li>
+  <li style="margin-bottom: 6px;">Sentence subtype: inline markers <code>[1]</code> <code>[2]</code>, mapped to slot IDs <code>s1, s2, …</code>.</li>
+  <li style="margin-bottom: 6px;">Token IDs <code>t1, t2, …</code>.</li>
+  <li style="margin-bottom: 6px;">Slot bounds 3–8. Token bounds N to N + 4, absolute max 12.</li>
+  <li style="margin-bottom: 6px;">Each token fills one slot max.</li>
+  <li style="margin-bottom: 6px;">Per-slot feedback, optional.</li>
+  <li style="margin-bottom: 6px;">Answer shape: <code>correct.slots = { s1: "t3", s2: "t1", … }</code>.</li>
+  <li style="margin-bottom: 6px;">Item-ID prefix <code>NCLEX_DD_</code> (admin) / <code>NCLEX_TUT_DD_</code> (tutor).</li>
+  <li style="margin-bottom: 6px;">Auto-inherits the <code>instruction</code> field from the shell (Slice 1.8).</li>
+  <li style="margin-bottom: 6px;">Auto-inherits tutor-surface reuse from Slice 2.1 — zero extra wiring.</li>
+</ul>
+
+<div class="footer">
+  Reference mockup. Companion to <code>mockups/ngn-primer.html</code> and
+  <code>mockups/trend-visualisation.html</code>. Once Q1 + Q3 approved,
+  this doc becomes the spec for the Claude Desktop handoff that builds
+  the editor, parser, classifications update, and seed row.
+</div>
+
+</div>
+
+</body>
+</html>

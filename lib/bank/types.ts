@@ -181,6 +181,39 @@ export interface HighlightCorrect {
 }
 
 // ─────────────────────────────────────────────────────────────
+// DRAG_DROP — two subtypes in one shape.
+//   ORDERED : student drags tokens to ranked positions (1st, 2nd, ...).
+//   SENTENCE: student drags tokens into [N] markers in the stem.
+//
+// Slots hold position + optional target_text (display hint shown next
+// to the slot in the student runner). Tokens are the draggable pool;
+// the pool may contain distractors so tokens.length >= slots.length.
+// correct.slots is the rubric (slotId → tokenId, 1:1 for active slots).
+// feedback is sparse — only slots with non-empty feedback appear.
+// ─────────────────────────────────────────────────────────────
+
+export interface DragDropSlot {
+  id: string;             // 's1', 's2', ... — for SENTENCE, s1 ↔ [1]
+  target_text: string;    // ORDERED: "1st action" | SENTENCE: optional hint
+}
+
+export interface DragDropToken {
+  id: string;             // 't1', 't2', ...
+  text: string;
+}
+
+export interface DragDropContent {
+  subtype: 'ORDERED' | 'SENTENCE';
+  slots: DragDropSlot[];
+  tokens: DragDropToken[];
+}
+
+export interface DragDropCorrect {
+  slots: Record<string, string>;              // slotId -> correct tokenId
+  feedback?: Record<string, string>;          // sparse — slotId -> feedback
+}
+
+// ─────────────────────────────────────────────────────────────
 // Discriminated union — narrow on question_type to get the right shape.
 // ─────────────────────────────────────────────────────────────
 
@@ -192,7 +225,8 @@ export type BankItemContent =
   | MatrixContent
   | BowtieContent
   | ClozeContent
-  | HighlightContent;
+  | HighlightContent
+  | DragDropContent;
 
 export type BankItemCorrect =
   | McqCorrect
@@ -202,4 +236,5 @@ export type BankItemCorrect =
   | MatrixCorrect
   | BowtieCorrect
   | ClozeCorrect
-  | HighlightCorrect;
+  | HighlightCorrect
+  | DragDropCorrect;

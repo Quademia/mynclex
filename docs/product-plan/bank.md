@@ -164,6 +164,26 @@ Example `content` shapes:
   disambiguates by nesting under the blank ID. Markers are auto-renumbered
   on save when gaps are detected (`{1} {3}` → `{1} {2}`), with blank IDs
   remapped in lockstep.
+- **Drag-drop:**
+  ```
+  {
+    "subtype": "ORDERED" | "SENTENCE",
+    "slots":  [{ "id": "s1", "target_text": "1st action" }, ...],
+    "tokens": [{ "id": "t1", "text": "Apply O₂" }, ...]
+  }
+  ```
+  One shape, two subtypes via the `subtype` discriminator. **ORDERED**
+  has all form slots active (ranked positions like "1st", "2nd"); the
+  slot card's `target_text` is the position label. **SENTENCE** has
+  inline `[N]` markers in `stem` (single-bracket positive integers);
+  a slot `sN` is active iff `[N]` appears in the stem, and
+  `target_text` is an optional hint ("most likely condition"). The
+  token pool may contain distractors (`tokens.length >=
+  slots.length`, capped at `min(slots + 4, 12)`). Each token can
+  fill at most one slot — no reuse. Unlike Cloze, `stem` is preserved
+  byte-identically (no silent renumber); v1 bounds (3–8 slots, unique
+  markers) make renumbering unnecessary. Reference mockup:
+  `mockups/drag-drop-editor-mockup.html`.
 
 `correct` holds the correct-answer shape **and** per-option /
 per-cell / per-slot feedback. Everything the student sees **after**
@@ -247,6 +267,19 @@ Example `correct` shapes (with feedback):
   ID. Choice IDs (`c1`, `c2`) restart per blank; nesting avoids the
   collision that a flat map would produce. Feedback for any choice is
   optional.
+- **Drag-drop:**
+  ```
+  {
+    "slots": { "s1": "t2", "s2": "t5", "s3": "t1" },   -- slotId -> correct tokenId
+    "feedback": { "s1": "Oxygen first — airway before circulation." }
+  }
+  ```
+  Flat `slots` map covers only active slots (ORDERED: every form
+  slot; SENTENCE: every slot whose `[N]` is in the stem — orphans
+  are dropped at save). `feedback` is sparse — only non-empty
+  per-slot feedback survives. Token IDs in the rubric must all be
+  present in `content.tokens`; no token may appear as correct for
+  more than one slot (the parser rejects reuse).
 
 ### Per-option feedback
 
@@ -310,7 +343,7 @@ For when implementation starts:
 4. Matrix (structured grid)
 5. Cloze (sentence with drop-downs)
 6. Highlight (text-with-selectable-chunks)
-7. Drag-drop (most interactive) — **PARKED 2026-04-22, to resume soon**
+7. Drag-drop (most interactive) — shipped 2026-04-22 (Slice 1.10)
 8. Case studies wrapper (groups existing types + chart tabs)
 
 ---

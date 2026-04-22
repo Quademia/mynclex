@@ -164,3 +164,49 @@ INSERT INTO nclex_bank_items (
  'Medium', 'Analyze', ARRAY['NGN','highlight','cardiac','post-op'],
  TRUE, FALSE, 1, 'DEV_SEED_001',
  'Highlight the findings that require immediate action.');
+
+-- 13. Drag-drop (ORDERED) — Post-op deteriorating client (Slice 1.10)
+-- Standalone INSERT with full column list. Only example ships in the
+-- dev seed; the SENTENCE subtype is exercised via curator-created rows
+-- during browser verification.
+INSERT INTO nclex_bank_items (
+  item_id, question_type, stem, rationale, rationale_img,
+  content, correct,
+  instruction,
+  client_needs_category, client_needs_subcategory, nursing_subject,
+  body_system, topic, subtopic, difficulty, bloom_level, tags,
+  is_free_sample, is_builder_visible, is_published, marks, shuffle_options
+) VALUES (
+  'NCLEX_DD_00001',
+  'DRAG_DROP',
+  'A 72-year-old client on post-operative day 1 after an open cholecystectomy suddenly reports shortness of breath. The nurse finds the client pale and diaphoretic. BP 88/52, HR 128, SpO₂ 85%, RR 28.',
+  'In a deteriorating post-operative client, the priority is airway and oxygenation (apply O₂), then optimise breathing (elevate HOB), then activate provider support, then diagnostic workup (ECG, labs).',
+  NULL,
+  '{
+    "subtype": "ORDERED",
+    "slots": [
+      {"id": "s1", "target_text": "1st action"},
+      {"id": "s2", "target_text": "2nd action"},
+      {"id": "s3", "target_text": "3rd action"},
+      {"id": "s4", "target_text": "4th action"},
+      {"id": "s5", "target_text": "5th action"}
+    ],
+    "tokens": [
+      {"id": "t1", "text": "Call provider"},
+      {"id": "t2", "text": "Apply O₂"},
+      {"id": "t3", "text": "Offer oral fluids"},
+      {"id": "t4", "text": "Obtain ECG"},
+      {"id": "t5", "text": "Elevate HOB"},
+      {"id": "t6", "text": "Draw labs"}
+    ]
+  }'::jsonb,
+  '{
+    "slots": {"s1": "t2", "s2": "t5", "s3": "t1", "s4": "t4", "s5": "t6"},
+    "feedback": {"s1": "Oxygen first — airway before circulation."}
+  }'::jsonb,
+  'Rank these actions from first (highest priority) to last.',
+  'Physiological Integrity', 'Physiological Adaptation', 'Med-Surg',
+  'Respiratory', 'Post-operative care', 'Deteriorating client', 'Hard', 'Apply',
+  '{}',
+  FALSE, TRUE, FALSE, 1, FALSE
+);

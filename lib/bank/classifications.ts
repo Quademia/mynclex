@@ -26,6 +26,7 @@ export const QUESTION_TYPES = [
   { value: 'BOWTIE', label: 'Bow-tie — 5-slot NGN (2 Left · 1 Centre · 2 Right)' },
   { value: 'CLOZE', label: 'Cloze — Fill-in-the-blank sentence' },
   { value: 'HIGHLIGHT', label: 'Highlight — Click correct findings in a passage' },
+  { value: 'DRAG_DROP', label: 'Drag-drop — Ordered list or Sentence slots' },
 ] as const;
 
 export type QuestionType = (typeof QUESTION_TYPES)[number]['value'];
@@ -41,6 +42,7 @@ export const ITEM_ID_PREFIX: Record<QuestionType, string> = {
   BOWTIE: 'NCLEX_BT_',
   CLOZE: 'NCLEX_CLZ_',
   HIGHLIGHT: 'NCLEX_HL_',
+  DRAG_DROP: 'NCLEX_DD_',
 };
 
 // Tutor-side prefix: all tutor questions use NCLEX_TUT_<TYPE>_NNNNN.
@@ -55,6 +57,7 @@ export const TUTOR_ITEM_ID_PREFIX: Record<QuestionType, string> = {
   BOWTIE:    'NCLEX_TUT_BT_',
   CLOZE:     'NCLEX_TUT_CLZ_',
   HIGHLIGHT: 'NCLEX_TUT_HL_',
+  DRAG_DROP: 'NCLEX_TUT_DD_',
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -200,3 +203,15 @@ export const HIGHLIGHT_MIN_CHUNKS  = 3;
 export const HIGHLIGHT_MAX_CHUNKS  = 12;
 export const HIGHLIGHT_MIN_CORRECT = 1;
 export const HIGHLIGHT_MIN_WRONG   = 1;
+
+// Drag-drop bounds (Family B — Slice 1.10)
+// Two subtypes: ORDERED (ranked positions) and SENTENCE ([N] markers
+// in the stem). Both use the same slot + token shape.
+// Token pool ceiling = min(slots + 4, 12) — gives the curator room
+// for distractors but caps the difficulty + visual noise.
+export const MIN_DD_SLOTS                 = 3;
+export const MAX_DD_SLOTS                 = 8;
+export const DEFAULT_DD_SLOTS             = 3;
+export const DD_TOKEN_POOL_MAX_OVER_SLOTS = 4;   // pool cap = slots + this
+export const DD_TOKEN_POOL_ABSOLUTE_MAX   = 12;  // but never more than this
+export const DD_TOKEN_POOL_MIN_EXTRA      = 0;   // pool >= slots required

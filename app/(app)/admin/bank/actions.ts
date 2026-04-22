@@ -37,8 +37,12 @@ import type {
 import { parseByType } from '@/lib/bank/parsers';
 import type { ClozeBlankInput } from '@/lib/bank/parsers/cloze';
 import type { HighlightChunkInput } from '@/lib/bank/parsers/highlight';
+import type {
+  DragDropSlotInput,
+  DragDropTokenInput,
+} from '@/lib/bank/parsers/drag-drop';
 
-const VALID_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N', 'MATRIX', 'BOWTIE', 'CLOZE', 'HIGHLIGHT']);
+const VALID_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N', 'MATRIX', 'BOWTIE', 'CLOZE', 'HIGHLIGHT', 'DRAG_DROP']);
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
 
@@ -287,6 +291,30 @@ function parseFormData(formData: FormData): ParsedItem | { error: string } {
     };
   });
 
+  // Drag-drop-specific FormData extraction (only populated when type is
+  // DRAG_DROP). Slots + tokens arrive as parallel arrays. For SENTENCE
+  // subtype, form slots may include orphans (card present, marker
+  // removed from stem) — the parser filters those against the active
+  // marker set derived from the stem.
+  const ddSubtype                  = String(formData.get('dd_subtype') ?? 'ORDERED');
+  const ddSlotIds                  = formData.getAll('dd_slot_id').map(String);
+  const ddSlotTargetTexts          = formData.getAll('dd_slot_target_text').map(String);
+  const ddSlotAssignedTokenIds     = formData.getAll('dd_slot_assigned_token_id').map(String);
+  const ddSlotFeedbacks            = formData.getAll('dd_slot_feedback').map(String);
+  const ddSlots: DragDropSlotInput[] = ddSlotIds.map((id, i) => ({
+    id,
+    target_text: ddSlotTargetTexts[i] ?? '',
+    assigned_token_id: ddSlotAssignedTokenIds[i] ?? '',
+    feedback: ddSlotFeedbacks[i] ?? '',
+  }));
+
+  const ddTokenIds   = formData.getAll('dd_token_id').map(String);
+  const ddTokenTexts = formData.getAll('dd_token_text').map(String);
+  const ddTokens: DragDropTokenInput[] = ddTokenIds.map((id, i) => ({
+    id,
+    text: ddTokenTexts[i] ?? '',
+  }));
+
   const parsed = parseByType(question_type, {
     optionIds,
     optionTexts,
@@ -327,6 +355,7 @@ function parseFormData(formData: FormData): ParsedItem | { error: string } {
     },
     cloze: { stem, blanks: clozeBlanks },
     highlight: { stem, chunks: hlChunks },
+    dragDrop: { stem, subtype: ddSubtype, slots: ddSlots, tokens: ddTokens },
   });
 
   if (!parsed.ok) {

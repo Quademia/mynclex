@@ -56,6 +56,25 @@ export interface BankFormInitial {
     feedback: string;
     in_passage: boolean;
   }[];
+  // Drag-drop-specific fields — empty/default for non-DRAG_DROP types.
+  // subtype picks the variant:
+  //   ORDERED : ranked positions (1st, 2nd, ...). All slots always active.
+  //   SENTENCE: stem has inline [N] markers; slot sN is active iff [N]
+  //             is in the stem. Orphan slots (in state but not in stem)
+  //             are dropped by the parser on save.
+  // assigned_token_id is '' while the slot is unassigned. Each token_id
+  // may appear on at most one slot (no reuse).
+  dd_subtype: 'ORDERED' | 'SENTENCE';
+  dd_slots: {
+    id: string;                  // s1, s2, ...
+    target_text: string;         // ORDERED position label or SENTENCE hint
+    assigned_token_id: string;   // t3, or '' if unassigned
+    feedback: string;            // sparse — '' when omitted
+  }[];
+  dd_tokens: {
+    id: string;                  // t1, t2, ...
+    text: string;
+  }[];
   client_needs_category: string;
   client_needs_subcategory: string;
   nursing_subject: string;
@@ -160,6 +179,21 @@ export function emptyInitial(): BankFormInitial {
     // Unlike Cloze, there's no natural scaffold — chunks are extracted
     // from user bracketing, not inserted via a button that creates pairs.
     highlight_chunks: [],
+    // Drag-drop default: 3 empty slots + 3 empty tokens, ORDERED subtype.
+    // The curator fills in target labels (1st/2nd/3rd) and token text,
+    // then assigns tokens to slots via dropdowns. Switching subtype
+    // resets both arrays (with window.confirm) — stem is preserved.
+    dd_subtype: 'ORDERED',
+    dd_slots: [
+      { id: 's1', target_text: '1st', assigned_token_id: '', feedback: '' },
+      { id: 's2', target_text: '2nd', assigned_token_id: '', feedback: '' },
+      { id: 's3', target_text: '3rd', assigned_token_id: '', feedback: '' },
+    ],
+    dd_tokens: [
+      { id: 't1', text: '' },
+      { id: 't2', text: '' },
+      { id: 't3', text: '' },
+    ],
     question_ref: '',
     batch_id: '',
   };

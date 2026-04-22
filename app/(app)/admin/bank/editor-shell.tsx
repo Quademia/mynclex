@@ -39,6 +39,7 @@ import { MatrixEditor } from '@/lib/bank/editors/matrix-editor';
 import { BowtieEditor } from '@/lib/bank/editors/bowtie-editor';
 import { ClozeEditor } from '@/lib/bank/editors/cloze-editor';
 import { HighlightEditor } from '@/lib/bank/editors/highlight-editor';
+import { DragDropEditor } from '@/lib/bank/editors/drag-drop-editor';
 import {
   createBankItemAction,
   updateBankItemAction,
@@ -201,6 +202,24 @@ export function EditorShell({
           <HighlightEditor
             key="highlight"
             initialChunks={editorInheritsInitial ? initial.highlight_chunks : []}
+            initialStem={editorInheritsInitial ? initial.stem : ''}
+          />
+        );
+      case 'DRAG_DROP':
+        return (
+          <DragDropEditor
+            key="drag_drop"
+            initialSubtype={editorInheritsInitial ? initial.dd_subtype : 'ORDERED'}
+            initialSlots={editorInheritsInitial ? initial.dd_slots : []}
+            initialTokens={
+              editorInheritsInitial
+                ? initial.dd_tokens
+                : [
+                    { id: 't1', text: '' },
+                    { id: 't2', text: '' },
+                    { id: 't3', text: '' },
+                  ]
+            }
             initialStem={editorInheritsInitial ? initial.stem : ''}
           />
         );

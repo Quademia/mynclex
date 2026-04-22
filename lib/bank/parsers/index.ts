@@ -25,6 +25,11 @@ import { parseMatrix, type MatrixParseInput } from './matrix';
 import { parseBowtie, type BowtieParseInput } from './bowtie';
 import { parseCloze, type ClozeBlankInput } from './cloze';
 import { parseHighlight, type HighlightChunkInput } from './highlight';
+import {
+  parseDragDrop,
+  type DragDropSlotInput,
+  type DragDropTokenInput,
+} from './drag-drop';
 
 export type ParseResult =
   | { ok: true; content: BankItemContent; correct: BankItemCorrect; stem?: string }
@@ -42,6 +47,12 @@ export function parseByType(
     bowtie?: BowtieParseInput;
     cloze?: { stem: string; blanks: ClozeBlankInput[] };
     highlight?: { stem: string; chunks: HighlightChunkInput[] };
+    dragDrop?: {
+      stem: string;
+      subtype: string;
+      slots: DragDropSlotInput[];
+      tokens: DragDropTokenInput[];
+    };
   },
 ): ParseResult {
   switch (question_type) {
@@ -97,6 +108,12 @@ export function parseByType(
         return { ok: false, error: 'Missing highlight payload.' };
       }
       return parseHighlight(params.highlight);
+    }
+    case 'DRAG_DROP': {
+      if (!params.dragDrop) {
+        return { ok: false, error: 'Missing drag-drop payload.' };
+      }
+      return parseDragDrop(params.dragDrop);
     }
   }
 }

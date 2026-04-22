@@ -6,6 +6,212 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-22 (Slice 1.10 — Drag-drop authoring)
+
+Ninth and last standalone question type lands. With DRAG_DROP live,
+all 9 types are authorable end-to-end on both `/admin/bank` and
+`/tutor/bank` — only the case-study wrapper (Slice 1.11) and the
+student runner remain before Family B is complete.
+
+Both subtypes — ORDERED (ranked positions) and SENTENCE (inline `[N]`
+markers in the stem) — share one JSONB shape discriminated by
+`content.subtype`. Slice 2.1's surface plumbing carried the tutor
+side for free: zero files touched under `/tutor/bank`, and the tutor
+prefix `NCLEX_TUT_DD_` is wired via `TUTOR_ITEM_ID_PREFIX`.
+
+### Decisions (locked before execution)
+
+Structural (locked in earlier planning):
+1. Two subtypes via `content.subtype` = `'ORDERED'` | `'SENTENCE'`.
+2. Curator picks pool size per question; distractors allowed.
+3. Each token fills at most one slot — no reuse.
+4. Slot bounds 3–8.
+5. Token bounds N to min(N+4, 12) where N = active slot count.
+6. Feedback granularity: per-slot, optional (sparse map).
+7. Slot IDs `s1, s2, …` (position-based).
+8. Token IDs `t1, t2, …`.
+9. Answer shape `correct.slots = { s1: "t3", ... }`.
+
+Locked via mockup on 2026-04-22:
+
+10. Sentence marker syntax `[N]` — positive integer in single square
+    brackets. Shared regex `/\[(\d+)\]/g` in editor + parser.
+11. Pool size rule: `tokens.length >= slots.length AND tokens.length
+    <= min(slots.length + 4, 12)`.
+
+Implementation calls:
+
+12. Curator slot-assignment via `<select>` per slot (dropdown + `—
+    none —` default). No DnD inside the curator; student runner
+    will handle drag interactivity.
+13. Subtype switch mid-edit: `window.confirm()` prompt, then reset
+    slots + tokens. Stem text is preserved (curator may want to keep
+    the sentence), but orphan slot cards would be meaningless after
+    a subtype flip so they go.
+
+Standing conventions:
+
+14. Item-ID prefixes: `NCLEX_DD_` (admin), `NCLEX_TUT_DD_` (tutor) —
+    added to both `ITEM_ID_PREFIX` and `TUTOR_ITEM_ID_PREFIX`.
+15. Instruction field inherited via shell (Slice 1.8). No per-editor
+    handling.
+16. Tutor surface inherits automatically via Slice 2.1 plumbing.
+17. `VALID_TYPES` drift point — added `'DRAG_DROP'` first before any
+    other actions.ts change.
+
+### Phase 0 discrepancies found
+
+- Drag-drop mockup wasn't in-repo (Sam provided on desktop). Copied
+  into `mynclex/docs/product-plan/mockups/drag-drop-editor-mockup.html`
+  so bank.md + CSS references resolve.
+- `rowToInitial()` now lives in `mynclex/lib/bank/list-view.tsx`
+  (moved by Slice 2.1). Handoff said `app/(app)/admin/bank/page.tsx`;
+  added the DRAG_DROP branch + `dd_*` fields in list-view.tsx
+  instead.
+- `types.ts` was missing the DragDrop shapes — added
+  `DragDropContent` + `DragDropCorrect` and extended `BankItemContent`
+  / `BankItemCorrect` unions. Parent interfaces `DragDropSlot` +
+  `DragDropToken` added for reuse.
+- `parsers/index.ts` switch is exhaustive — the DRAG_DROP case was
+  mandatory, not optional.
+
+### Files created
+
+- `mynclex/lib/bank/parsers/drag-drop.ts` — pure parser. 6 phases:
+  subtype validation, SENTENCE `[N]` extraction (1..8, unique), slot
+  bounds, token bounds + non-empty text, assignment validity (every
+  active slot has a pool-resident token, no reuse), final shape
+  build. Stem is byte-preserved.
+- `mynclex/lib/bank/editors/drag-drop-editor.tsx` — client editor.
+  `SubtypeRadio`, SENTENCE-only `Stem toolbar` with `+ Slot marker`
+  (finds lowest free N in 1..8 and inserts at cursor via
+  `document.getElementById('bank-stem')`), `SlotsEditor` + `SlotCard`
+  (active vs orphan rendering, add/remove on ORDERED), `TokenPoolEditor`
+  (+ Add / × Remove, min 1, hard max 12), `BoundsMeter` (ok / warn /
+  err), hidden serialisers for every field. Subtype switch calls
+  `window.confirm` then resets slots + tokens. Stem stays.
+- `mynclex/docs/product-plan/mockups/drag-drop-editor-mockup.html` —
+  copied from Sam's desktop into the repo.
+
+### Files modified
+
+- `mynclex/lib/bank/classifications.ts` — `QUESTION_TYPES` + both
+  prefix maps + new bounds constants (`MIN_DD_SLOTS`, `MAX_DD_SLOTS`,
+  `DEFAULT_DD_SLOTS`, `DD_TOKEN_POOL_MAX_OVER_SLOTS`,
+  `DD_TOKEN_POOL_ABSOLUTE_MAX`, `DD_TOKEN_POOL_MIN_EXTRA`).
+- `mynclex/lib/bank/types.ts` — `DragDropSlot` / `DragDropToken` /
+  `DragDropContent` / `DragDropCorrect`; both unions extended.
+- `mynclex/lib/bank/form-shape.ts` — `dd_subtype` / `dd_slots` /
+  `dd_tokens` on `BankFormInitial`; defaults on `emptyInitial()`
+  (ORDERED, 3 scaffold slots, 3 empty tokens).
+- `mynclex/lib/bank/parsers/index.ts` — `DragDropSlotInput` /
+  `DragDropTokenInput` imports, `dragDrop` param on dispatcher,
+  `DRAG_DROP` case.
+- `mynclex/app/(app)/admin/bank/actions.ts` — `'DRAG_DROP'` added
+  to `VALID_TYPES` first (drift point discipline kept); 6 new
+  FormData extraction lines + one `dragDrop` key passed into
+  `parseByType`. Surface + role gate untouched.
+- `mynclex/app/(app)/admin/bank/editor-shell.tsx` — `DragDropEditor`
+  import + DRAG_DROP case in `renderEditor()`. No other changes to
+  the shell.
+- `mynclex/lib/bank/list-view.tsx` — new `dd_subtype` / `dd_slots` /
+  `dd_tokens` locals with matching defaults; DRAG_DROP branch in
+  `rowToInitial()` that reads `content.subtype` / `content.slots` /
+  `content.tokens` and merges `correct.slots` + `correct.feedback`
+  back into the flat card shape. Returned `BankFormInitial` now
+  includes the 3 new dd_* fields.
+- `mynclex/app/dashboards.css` — appended `.bank-dd-*` block (~180
+  lines). Uses the project's actual tokens (`--primary`, `--accent`,
+  `--border`, `--white`, `--bg`, `--text-muted`) + inline hex for
+  state colours (teal-chip, amber, warn, danger) — matches the
+  convention established by `.bt-*` / `.bank-cz-*` / `.bank-hl-*`.
+- `mynclex/db/seed-bank-dev.sql` — appended seed row 13
+  (`NCLEX_DD_00001`, Post-op deteriorating client, 5 slots / 6
+  tokens / 1 distractor, instruction populated).
+- `mynclex/docs/product-plan/bank.md` — build-order step 7 unparked;
+  Drag-drop `content` and `correct` example blocks added to the
+  JSONB shape list alongside MCQ / Matrix / Bow-tie / Cloze /
+  Highlight, with paragraphs explaining the two-subtype
+  discriminator, pool-size rule, and no-renumber decision.
+
+### Files NOT modified (reuse inheritance from Slice 2.1)
+
+- All 8 existing editors in `mynclex/lib/bank/editors/`.
+- All 8 existing parsers in `mynclex/lib/bank/parsers/`.
+- `mynclex/app/(app)/tutor/bank/page.tsx` — zero changes. Tutor
+  surface picks up DRAG_DROP via `TUTOR_ITEM_ID_PREFIX` + the
+  shared actions.ts branching.
+- `mynclex/app/(app)/tutor/layout.tsx`, `mynclex/app/(app)/tutor/page.tsx`.
+
+### Migration applied to dev (`zrakjibtxyzoqcdtvpmq`)
+
+- `mynclex_bank_dragdrop_seed_slice_1_10` — `{"success":true}`.
+  Verified: subtype=ORDERED, 5 slots, 6 tokens, 5 correct mappings,
+  instruction populated.
+
+### Verified locally
+
+- `npx tsc --noEmit` — clean.
+- `npx eslint app/(app)/admin/bank lib/bank` — clean.
+- `npm run build` (webpack) — clean. All 14 routes compile
+  including the unchanged `/tutor/bank`.
+
+### Not yet verified (Sam's session, on dev Worker)
+
+1. **Smoke + list** — `NCLEX_DD_00001` appears in `/admin/bank` with
+   the DRAG_DROP type pill.
+2. **Edit round-trip (ORDERED)** — open `NCLEX_DD_00001`; subtype
+   shows ORDERED; 5 slot cards pre-fill with correct token
+   assignments (t2→s1, t5→s2, t1→s3, t4→s4, t6→s5); token pool
+   shows 6 tokens with correct text; s1 feedback "Oxygen first…"
+   populates; instruction populates; bounds meter shows "5 of 8
+   slots · 6 tokens · 1 distractor" in ok state.
+3. **Create flow — ORDERED** — `/admin/bank?new=1` → DRAG_DROP.
+   Stem + 3 slots + 4 tokens + assign correct tokens → save →
+   `NCLEX_DD_00002`.
+4. **Create flow — SENTENCE** — flip subtype; confirm prompt
+   appears; accept. Type stem with `[1]`, `[2]`, `[3]` markers
+   (use + Slot marker). Assign tokens. Save → `NCLEX_DD_00003`.
+5. **Rejection cases** —
+   - 2 slots (below MIN_DD_SLOTS).
+   - 3 slots, 2 tokens (tokens < slots).
+   - 3 slots, 8 tokens (tokens > slots+4).
+   - Active slot with no assigned token.
+   - SENTENCE with `[9]` in stem (N > MAX_DD_SLOTS).
+   - Subtype switch with data: Cancel preserves; OK clears slots +
+     tokens, keeps stem.
+6. **Tutor-side smoke** — log in as tutor (mynclextutor). Create a
+   drag-drop → ID `NCLEX_TUT_DD_00001`. Saves with zero tutor-side
+   code changes (Slice 2.1 reuse claim).
+
+### Deferred to future sessions / out of scope here
+
+- **Slice 1.11 — case-study wrapper.** Groups 6 questions under
+  shared scenario + chart tabs. Needs `nclex_case_studies` +
+  `nclex_case_study_items` to be wired; tutor parallels already in
+  schema.
+- **Student runner** — now unblocked for all 9 types.
+- **CLONING.md update** — still doesn't exist; same deferral as
+  Slices 1.5–2.1.
+- **Lift stem into shared shell state** — third editor to use the
+  `document.getElementById('bank-stem')` pattern (Cloze / Highlight /
+  Drag-drop). Worth refactoring in a standalone cleanup slice.
+- **Duplicate-text-token independence** — the parser rejects two
+  slots with the same assigned_token_id; if two *different* slot
+  positions need independent same-text tokens, the curator must add
+  two separate pool entries (`t3: "Call provider"`, `t4: "Call
+  provider"`). Acceptable v1 trade-off — flagged if it bites.
+
+### Next session
+
+Options:
+- **Slice 1.11** — case-study wrapper.
+- **Student runner** — now unblocked.
+- **Lift stem into shared shell state** — cleanup slice, one
+  refactor touches Cloze + Highlight + Drag-drop.
+
+---
+
 ## Session — 2026-04-22 (Slice 2.1 — Tutor-side bank authoring / reusability proof)
 
 First slice of Bank v2 work — stand up tutor-side authoring on
