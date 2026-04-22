@@ -310,7 +310,7 @@ For when implementation starts:
 4. Matrix (structured grid)
 5. Cloze (sentence with drop-downs)
 6. Highlight (text-with-selectable-chunks)
-7. Drag-drop (most interactive)
+7. Drag-drop (most interactive) — **PARKED 2026-04-22, to resume soon**
 8. Case studies wrapper (groups existing types + chart tabs)
 
 ---
@@ -525,7 +525,138 @@ Two small schema additions result from that topic:
 
 - `computed_difficulty` column (v2 — difficulty computed from
   student performance).
-- Trend items (v2).
 - Paired-scoring Cloze authoring UI details.
 - Exact readiness-pack purchase flow and pricing tiers (connects to
   student enrolment flow topic).
+
+See `## Trend items (v2) — planned shape` below for the Trend
+decisions that are now settled (shape only; implementation deferred
+to v2).
+
+---
+
+## Trend items (v2) — planned shape
+
+`TREND` is the 10th NGN question type. Deferred to v2. This section
+records what we've agreed about its shape so that when v2 planning
+starts, the decisions don't need to be re-litigated.
+
+### What a Trend item is
+
+One question item with a **time-series data panel** shown alongside
+the stem. The "trend" is data across timepoints — vitals over 3 hours,
+labs over 3 days, I&O across shifts, assessments at 0800/1000/1200.
+The student reads the pattern and answers using one of the existing
+question types (Matrix, Cloze, Highlight, or SATA — the four best
+suited to trend-style reasoning).
+
+Reference mockup: `mockups/trend-visualisation.html` — shows four
+concrete examples, each pairing a different host question type with
+a trend panel.
+
+### Relationship to Case Study
+
+Trend and Case Study are **structurally the same family** but at
+different scales:
+
+|                         | Trend                       | Case Study                             |
+|-------------------------|-----------------------------|----------------------------------------|
+| Question items          | 1                           | 6                                      |
+| Question types used     | 1 (any existing)            | Up to 6 (one per item, can all differ) |
+| Shared context          | Time-series data table      | Multi-tab patient chart                |
+| Progression             | None (one snapshot)         | Chart unfolds across the 6 items       |
+| Schema home             | Own table + FK on bank item | Own table + join table                 |
+
+The shared principle: **clinical context data is separate from the
+question item itself, and joined to it.** Neither type stuffs the
+context into the stem text.
+
+### Why context can't live in the stem
+
+1. **Stem is prose, not structured data.** A trend table has rows,
+   columns, timepoints, flags — structured. Jamming it into stem text
+   means no consistent rendering, no colour-coding, no filtering
+   ("find me all trend items using labs"), no reuse.
+2. **Reusability.** One trend dataset (e.g. "post-op vitals
+   deteriorating over 3 hours") can legitimately pair with a Matrix
+   question *or* a Cloze *or* a SATA — same data, different response.
+   In the stem you'd copy-paste three times; in its own row you
+   reference three times.
+3. **Consistency with Case Study.** Case-study chart data lives in
+   `nclex_case_studies`, joined via `nclex_case_study_items`. Trend
+   following the same pattern keeps the architecture coherent.
+
+### Proposed schema (v2 — not yet built)
+
+```sql
+-- New table (v2):
+CREATE TABLE nclex_trend_datasets (
+  trend_id          TEXT PRIMARY KEY,       -- e.g. NCLEX_TRD_00001
+  title             TEXT NOT NULL,          -- "Post-op vitals deteriorating"
+  scenario          TEXT,                   -- short intro shown above the table
+  kind              TEXT NOT NULL CHECK (kind IN
+                      ('vitals','labs','io','neuro','assessment')),
+  timepoints        JSONB NOT NULL,         -- ["0800","0900","1000"]
+  rows              JSONB NOT NULL,         -- [{metric, values[], flags[]}, ...]
+  -- Classification (mirrors bank_items subset)
+  client_needs_category     TEXT,
+  client_needs_subcategory  TEXT,
+  nursing_subject           TEXT,
+  body_system               TEXT,
+  topic                     TEXT,
+  subtopic                  TEXT,
+  difficulty                TEXT,
+  tags                      TEXT[] NOT NULL DEFAULT '{}',
+  is_published              BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Existing table gets one new nullable column:
+ALTER TABLE nclex_bank_items
+  ADD COLUMN trend_id TEXT REFERENCES nclex_trend_datasets(trend_id);
+```
+
+Parallel `nclex_tutor_trend_datasets` + `trend_id` column on
+`nclex_tutor_questions` mirrors the QAcademy-owned / tutor-private
+pattern used everywhere else.
+
+### Key properties of this shape
+
+- **Nullable FK** — 99% of bank items don't have a trend; only trend
+  items do. No impact on non-trend items.
+- **One trend → many items allowed.** A well-designed trend dataset
+  can feed multiple questions (same data, different response type).
+  Same pattern as Case Study.
+- **No new question type.** Items stay MCQ / SATA / Matrix / Cloze /
+  Highlight / etc. The presence of `trend_id` is what tells the
+  renderer to show the trend panel above the stem.
+- **No schema migration cost for v1.** The column doesn't exist yet;
+  adding it later is one `ALTER TABLE ADD COLUMN` with a NULL default.
+- **Simpler than Case Study's join.** Case Study needs a join table
+  because it has position (1–6) and CJMM step per item. Trend is a
+  one-to-one attachment from the item's perspective, so a plain
+  nullable FK on the item row is enough.
+
+### What we'd build when v2 starts
+
+1. Migration: create `nclex_trend_datasets` + `trend_id` column on
+   `nclex_bank_items`. Parallel for tutor tables.
+2. Admin page `/admin/trends` — listing + editor (similar in shape to
+   `/admin/bank`).
+3. Trend editor UI — table authoring (add/remove rows, add/remove
+   timepoints, flag cells as abnormal/borderline).
+4. On bank-item editor: an optional "Attach trend" field. Dropdown of
+   available trend datasets, or inline-create.
+5. Student runner: when rendering any question with a non-null
+   `trend_id`, fetch the dataset and render the trend panel above the
+   stem (left-pane in the two-column layout).
+
+### Why v2, not v1
+
+Every mockup example could be authored today as a regular Matrix /
+Cloze / Highlight / SATA — by putting the trend table into the stem
+text or the new `instruction` field. The clinical content lands;
+what's missing is the dedicated widget that renders the time-series
+panel cleanly. That's a polish/UX win, not a correctness win, so it
+sits behind the v1 launch.

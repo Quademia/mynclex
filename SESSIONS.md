@@ -6,6 +6,97 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-22 (Planning — Trend items v2 + Drag-drop park)
+
+No code written. Planning-only session covering two things:
+
+1. **Slice 1.10 (Drag-drop) formally parked.** Earlier this session we
+   had started Slice 1.10 planning and captured 3 decisions (both
+   Ordered-list + Sentence-slots subtypes via `content.subtype` radio;
+   curator picks pool size per question including distractors; each
+   token fills one slot max). Sam chose to park and pivot before
+   writing the mockup. Outstanding decisions when we resume: sentence
+   slot-marker syntax (leaning `[1]` `[2]`), slot bounds (3–8
+   confirmed), feedback granularity (per-slot confirmed), pool-size
+   rule (recommended slot-count up to slot-count + 4), correct-answer
+   shape (recommended `correct.slots = { s1: "t3", ... }`). **To
+   resume very soon — this is the next in-flight build item.**
+
+2. **Trend items (v2) planned shape settled.** Sam asked to visualise
+   what a Trend item would look like; built a 4-example mockup
+   (`mockups/trend-visualisation.html`) showing vitals-over-time +
+   Matrix, labs-over-days + Cloze, I&O-over-shifts + Highlight, and
+   neuro-progression + SATA. Through that mockup, the shape settled:
+   Trend is structurally similar to Case Study — its clinical context
+   (the time-series table) lives in its own table and joins to one
+   bank item via a nullable FK. Documented in `bank.md` under new
+   section "Trend items (v2) — planned shape".
+
+### Decisions (Trend v2)
+
+- **Own table:** `nclex_trend_datasets` — `trend_id` PK, title,
+  scenario, kind (vitals/labs/io/neuro/assessment), timepoints JSONB
+  array, rows JSONB array of `{metric, values, flags}`, plus
+  classification subset.
+- **Attachment mechanism:** nullable `trend_id TEXT FK` column on
+  `nclex_bank_items` (and parallel on `nclex_tutor_questions` via
+  `nclex_tutor_trend_datasets`).
+- **No new question type.** Trend items re-use the existing 9 types;
+  the presence of `trend_id` is the render switch.
+- **One trend → many items allowed.** Same trend dataset can pair
+  with a Matrix, a Cloze, and a SATA — reuse without copy-paste.
+- **Simpler than Case Study's join.** Trend is a one-to-one
+  attachment from the item's side, so a plain FK suffices; no join
+  table needed (unlike Case Study's position + cjmm_step pair).
+- **Build cost when v2 starts:** one ALTER TABLE, new `/admin/trends`
+  page, new trend editor, dropdown on bank-item editor, runner
+  enhancement to render the panel.
+
+### Files modified
+
+- `mynclex/docs/product-plan/bank.md` — replaced one-line
+  "Trend items (v2)." entry under "Decisions not yet settled" with
+  a full `## Trend items (v2) — planned shape` section (~150 lines,
+  incl. schema sketch and mockup reference). Also updated build-
+  order step 7 to flag drag-drop as parked.
+- `mynclex/docs/product-plan/mockups/trend-visualisation.html` —
+  new file. 989-line static mockup matching `ngn-primer.html`'s
+  style tokens (Fraunces + Inter, navy/teal palette). 4 trend
+  examples + conceptual framing + future-shape sketch.
+- `mynclex/SESSIONS.md` — this entry.
+
+### Files unchanged (explicitly)
+
+- Every file under `mynclex/lib/bank/` — planning only.
+- Every file under `mynclex/app/(app)/admin/bank/` — planning only.
+- `mynclex/db/schema.sql` — no schema changes this session.
+- `mynclex/db/rls.sql` — no RLS changes this session.
+- `mynclex/docs/product-plan/main.md` — already lists "Trend items
+  (NGN variant...)" under "Deferred (v2 or later)"; no update needed
+  there (main.md is the index, bank.md is the detail).
+
+### Verified
+
+- Nothing to run — planning-only session, no TS, no SQL, no routes
+  touched.
+
+### Deferred to future sessions
+
+- **Drag-drop (Slice 1.10)** — to resume very soon. 3 decisions
+  locked, 2 still open (sentence marker syntax, pool-size rule).
+- **CLONING.md update** — still doesn't exist; deferred since Slice
+  1.5.
+- **Student runner** — unblocks after all Family B editors are live.
+- **Case-study wrapper (Slice 1.11).**
+
+### Next session
+
+Resume Slice 1.10 (Drag-drop). Start with the mockup, using the 3
+already-locked decisions and closing the 2 open ones (Q1 sentence
+marker syntax + Q3 pool-size rule).
+
+---
+
 ## Session — 2026-04-22 (Slice 1.9 — Highlight authoring)
 
 Fourth Family B question type. `[[double-bracket]]` chunk syntax on
