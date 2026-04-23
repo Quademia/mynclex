@@ -6,6 +6,40 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-23 (Slice 1.11a fix — reorder CHECK constraint)
+
+One-line: dropped `CHECK (display_order >= 0)` from both case-study
+tab tables to unblock reorderTabsAction's negate-then-set swap.
+
+Triggered by Sam's browser verification of 1.11a on dev — reorder
+button hit `violates check constraint`.
+
+### Files created
+- `mynclex/db/migrations/mynclex_case_study_tabs_display_order_fix.sql`
+
+### Files modified
+- `mynclex/db/schema.sql` — removed `CHECK (display_order >= 0)`
+  from `nclex_case_study_tabs` and `nclex_tutor_case_study_tabs`
+  definitions.
+
+### Database
+- Dropped `nclex_case_study_tabs_display_order_check` from
+  `nclex_case_study_tabs` (dev).
+- Dropped `nclex_tutor_case_study_tabs_display_order_check` from
+  `nclex_tutor_case_study_tabs` (dev).
+- Prod catches up when the new migration is applied.
+
+### Not done
+- Prod is untouched. Sam runs the migration there when 1.11 lands
+  as a whole.
+- reorderTabsAction itself unchanged — the fix is at the schema
+  layer, not the code layer.
+
+### Next
+- Sam resumes 1.11a verification checklist (Section G onwards).
+
+---
+
 ## Session — 2026-04-22 (Slice 1.11a — Case Study case shell + tab authoring)
 
 First of three Case Study sub-slices lands. A curator can now create

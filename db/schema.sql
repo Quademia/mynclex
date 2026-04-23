@@ -163,7 +163,6 @@ CREATE TABLE nclex_case_study_tabs (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (case_id, display_order),
   CHECK (tab_key <> ''),
-  CHECK (display_order >= 0),
   CHECK (
     (is_custom = FALSE AND custom_shape IS NULL)
     OR
@@ -293,7 +292,6 @@ CREATE TABLE nclex_tutor_case_study_tabs (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (case_id, display_order),
   CHECK (tab_key <> ''),
-  CHECK (display_order >= 0),
   CHECK (
     (is_custom = FALSE AND custom_shape IS NULL)
     OR
