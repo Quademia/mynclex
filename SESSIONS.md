@@ -6,6 +6,49 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-24 (Slice 1.12 wrap + bank-list polish — Claude Web + Desktop)
+
+Shipped the Trend wrapper (NGN 10th type) end-to-end across
+three sub-slices plus a bank-list polish follow-up. MyNclex
+authoring is now complete — every NGN question type family
+ships in v1.
+
+### What shipped today
+
+- Slice 1.12a (commit 229287d) — nclex_trend_datasets schema +
+  dataset editor. Kind-template picker (5 presets + Custom),
+  data-table authoring (rows × timepoints, per-cell flags,
+  optional ref-range column).
+- Slice 1.12b (commit edd01e3) — trend_id FK on
+  nclex_bank_items, attached questions on the right pane with
+  variable pill count, transactional save RPC
+  nclex_save_trend_with_children.
+- Slice 1.12c (commits a6d883b + bcd1423) — delete flow
+  (detach-and-delete / delete-everything with typed DELETE),
+  validation panel (8 errors + 4 warnings), bank.md revised
+  to as-built shape.
+- Bank-list polish (commit 1ed5a8d) — case-children visible
+  in bank list (stance reversal from 1.11b), context-aware
+  Edit labels, clickable wrapper badges, Membership filter,
+  composition counts (filtered/total format).
+
+### What's unblocked
+
+Student runner. Every authoring surface is done. The runner
+can now consume standalone questions, case studies, and
+trend items without waiting on any authoring work.
+
+### Next session
+
+Planning discussion — not building. The layer between bank
+and runner needs architecture settled before any build
+starts: quiz builder mechanics, quiz session storage,
+runner modes (Learning / Timed / Mock / Readiness / CAT),
+results and history, analytics capture strategy. Likely 2-3
+planning sessions before any build handoff.
+
+---
+
 ## Session — 2026-04-24 (Bank-list polish — wrapper visibility + context edit + membership filter)
 
 Six changes to the shared bank list surface. Both admin and tutor
