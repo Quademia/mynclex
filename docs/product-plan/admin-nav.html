@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MyNclex — Admin & Super_admin Navigation Spec</title>
+<style>
+  :root {
+    --primary: #1e3a5f;
+    --accent: #2d7d72;
+    --bg: #f8fafc;
+    --white: #ffffff;
+    --border: #e5e7eb;
+    --border-strong: #d1d5db;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --info-bg: #eef4fa;
+    --info-accent: #2d6fc0;
+    --info-text: #0c447c;
+    --warn-bg: #fef7e6;
+    --warn-text: #854f0b;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 32px 24px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .doc { max-width: 860px; margin: 0 auto; }
+
+  .doc-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h1 { font-size: 26px; font-weight: 600; color: var(--primary); margin: 0 0 4px; }
+  h2 { font-size: 19px; font-weight: 600; color: var(--primary); margin: 32px 0 10px; padding-top: 8px; border-top: 1px solid var(--border); }
+  h2:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+  h3 { font-size: 15px; font-weight: 600; color: var(--primary); margin: 20px 0 6px; }
+
+  p { margin: 8px 0 14px; }
+  ul, ol { margin: 8px 0 14px; padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  code { background: var(--bg); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; font-size: 90%; font-family: ui-monospace, Menlo, monospace; }
+
+  pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    font-size: 12.5px;
+    font-family: ui-monospace, Menlo, monospace;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 13.5px; }
+  th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: var(--bg); font-weight: 600; color: var(--primary); }
+
+  .callout {
+    background: var(--info-bg);
+    border: 1px solid var(--info-accent);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    margin: 14px 0;
+    font-size: 13.5px;
+    color: var(--info-text);
+  }
+
+  .mockup-header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+    margin: 24px 0 12px;
+  }
+  .mockup-header h2 { margin: 0; border-top: none; padding-top: 0; }
+  .mockup-sub { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+  .controls {
+    display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .controls-label { font-size: 12px; color: var(--text-muted); margin-right: 4px; }
+
+  button {
+    font-family: inherit; font-size: 13px;
+    padding: 6px 12px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text);
+  }
+  button:hover { border-color: var(--border-strong); }
+
+  .who-btn { padding: 4px 10px; font-size: 12px; }
+  .who-btn.active {
+    background: var(--info-bg);
+    color: var(--info-text);
+    border-color: var(--info-accent);
+  }
+
+  .stage { background: var(--border); border-radius: var(--radius-lg); padding: 12px; }
+
+  .frame {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    min-height: 580px;
+    position: relative;
+  }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0; border: none; background: none; cursor: pointer;
+    color: inherit;
+  }
+  .brand-logo { width: 26px; height: 26px; border-radius: 6px; background: var(--primary); }
+  .brand-name { font-weight: 600; font-size: 14px; }
+  .brand-product { font-size: 12px; color: var(--text-muted); }
+
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+  .role-pill {
+    font-size: 11px; padding: 3px 8px; border-radius: 999px;
+    font-weight: 500;
+  }
+  .role-pill.super { background: var(--warn-bg); color: var(--warn-text); }
+  .role-pill.admin { background: var(--info-bg); color: var(--info-text); }
+
+  .avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--info-bg);
+    color: var(--info-text);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+  }
+
+  .body { display: grid; grid-template-columns: 240px 1fr; min-height: 520px; }
+
+  .sidebar {
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    padding: 12px 0;
+  }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    color: var(--text-muted);
+  }
+  .nav-item:hover { background: rgba(0,0,0,0.02); }
+  .nav-item.active {
+    background: var(--white);
+    border-left-color: var(--accent);
+    color: var(--primary);
+    font-weight: 600;
+  }
+  .nav-item svg { flex-shrink: 0; }
+  .nav-item .nav-label { flex: 1; }
+  .nav-item .caret { transition: transform 0.15s; }
+  .nav-item.open .caret { transform: rotate(180deg); }
+
+  .nav-sub {
+    padding: 7px 14px 7px 43px;
+    font-size: 12.5px;
+    cursor: pointer;
+    color: var(--text-muted);
+    border-left: 3px solid transparent;
+  }
+  .nav-sub:hover { background: rgba(0,0,0,0.02); }
+  .nav-sub.active {
+    background: var(--white);
+    color: var(--primary);
+    font-weight: 600;
+    border-left-color: var(--accent);
+  }
+
+  .sidebar-footer {
+    margin-top: 16px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+  }
+  .sidebar-footer-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  .sidebar-footer-value {
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .page { padding: 20px; }
+  .page-title { font-size: 17px; font-weight: 600; margin: 0 0 4px; color: var(--primary); }
+  .page-sub { font-size: 13px; color: var(--text-muted); margin: 0 0 16px; }
+  .page-body {
+    padding: 14px;
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .stat-card {
+    background: var(--bg);
+    padding: 14px;
+    border-radius: var(--radius-md);
+  }
+  .stat-card-label { font-size: 11px; color: var(--text-muted); }
+  .stat-card-value { font-size: 20px; font-weight: 600; margin-top: 4px; color: var(--primary); }
+
+  .hint {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 720px) {
+    .body { grid-template-columns: 1fr; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<div class="doc">
+
+  <h1>MyNclex — Admin &amp; Super_admin Navigation</h1>
+  <div class="doc-meta">
+    Living document. Locked in session 2026-04-24 (Claude Web).
+    Part of <code>mynclex/docs/product-plan/</code> set — sibling to
+    <code>main.md</code>, <code>bank.md</code>,
+    <code>student-nav.md</code>, <code>tutor-nav.html</code>.
+  </div>
+
+  <h2>What this covers</h2>
+  <p>The navigation shape for ADMIN and SUPER_ADMIN role users on MyNclex. Covers the shared sidebar, permission-driven visibility, the one super-only item, and the Bank sub-navigation pattern inherited from the tutor spec.</p>
+  <p>This does NOT cover student or tutor navigation — those are separate specs in the same series.</p>
+
+  <h2>Core model</h2>
+
+  <p>Admin and super_admin use the <strong>same sidebar</strong>. What differs is <strong>which items each person sees</strong>, driven by the permissions granted to them.</p>
+
+  <ul>
+    <li><strong>SUPER_ADMIN</strong> — Sam and any future platform owners. Implicitly holds every permission. Sees every sidebar item including the super-only <em>Admin Permissions</em> page.</li>
+    <li><strong>ADMIN</strong> — trusted helpers. No default powers. A super_admin grants specific permission buckets per admin, so two admins can have non-overlapping responsibilities (e.g. one handles payments, another manages the bank).</li>
+  </ul>
+
+  <div class="callout">
+    <strong>Design principle:</strong> an admin sees only the items they can actually use. No greyed-out links. This makes the nav scannable for each admin's actual job, and avoids tempting anyone to click something they'll just bounce off.
+  </div>
+
+  <h2>Why flat (for now)</h2>
+
+  <p>The sidebar has 15 items. Borderline long, but flat is easier to scan than grouped until we know which items a typical admin uses together. If it ever grows beyond ~18 we group by function (Content / People / Business / System).</p>
+
+  <h2>Sidebar items</h2>
+
+  <p>Listed in order. The <em>Permission</em> column is the bucket the admin must hold for the item to render. <code>—</code> means everyone with any admin role sees it.</p>
+
+  <table>
+    <thead><tr><th>Key</th><th>Label</th><th>Permission</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>dashboard</code></td><td>Dashboard</td><td>—</td><td>Admin landing. Summary cards for pending tutor apps, open reports, active students, etc. — scoped to the admin's permissions.</td></tr>
+      <tr><td><code>bank</code></td><td>Bank ▾</td><td><code>bank.manage</code></td><td>QAcademy-owned question bank. Expands to sub-items (All questions / Case Studies / Trends).</td></tr>
+      <tr><td><code>packs</code></td><td>Readiness Packs</td><td><code>bank.manage</code></td><td>Curated assessment sets with reserved questions.</td></tr>
+      <tr><td><code>users</code></td><td>Users</td><td><code>users.manage</code></td><td>All user accounts (students, tutors, admins). Search, suspend, grant, delete.</td></tr>
+      <tr><td><code>tutors</code></td><td>Tutors</td><td><code>tutors.manage</code></td><td>Active tutor roster. Deactivate, edit profile, view their programmes.</td></tr>
+      <tr><td><code>applications</code></td><td>Tutor Applications</td><td><code>tutors.manage</code></td><td>Pending + decided tutor applications. Approve + trigger setup-link email, reject.</td></tr>
+      <tr><td><code>programmes</code></td><td>Programmes</td><td><code>programmes.view</code></td><td>Read-only oversight across all tutors. Audit content, suspend if needed.</td></tr>
+      <tr><td><code>enrolments</code></td><td>Enrolments</td><td><code>programmes.view</code></td><td>Student-to-programme links. Active + expired. Grant manually, revoke.</td></tr>
+      <tr><td><code>payments</code></td><td>Payments</td><td><code>payments.manage</code></td><td>Student payments to QAcademy. Transactions, refunds, Paystack reconciliation.</td></tr>
+      <tr><td><code>products</code></td><td>Products &amp; Pricing</td><td><code>payments.manage</code></td><td>Bank duration packs. Dual-currency pricing (GHS + USD), activate / retire.</td></tr>
+      <tr><td><code>reports</code></td><td>Question Reports</td><td><code>bank.manage</code></td><td>Student-reported questions. Dismiss / Mark for fix queue.</td></tr>
+      <tr><td><code>enquiries</code></td><td>Programme Enquiries</td><td><code>programmes.view</code></td><td>Contact-first public enquiries. Follow up with prospective students.</td></tr>
+      <tr><td><code>announcements</code></td><td>Announcements</td><td><code>comms.manage</code></td><td>Platform-wide messaging. Target by audience, schedule, publish.</td></tr>
+      <tr><td><code>permissions</code></td><td>Admin Permissions</td><td><strong>SUPER_ADMIN only</strong></td><td>Create admin accounts, grant permission buckets, revoke. Feeds the whole permission model.</td></tr>
+      <tr><td><code>config</code></td><td>System Config</td><td><code>system.manage</code></td><td>Platform settings. Key/value table — read-only keys, editable values.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Bank sub-navigation</h3>
+  <p>Bank works the same way as the tutor's My Bank: click the top-level <em>Bank</em> item to expand an inline dropdown; each sub-item routes to its own editor page. All three sub-items gate on <code>bank.manage</code>.</p>
+  <table>
+    <thead><tr><th>Key</th><th>Label</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>bank-all</code></td><td>All questions</td><td>Full list of the 9 standalone types. Default sub-item.</td></tr>
+      <tr><td><code>bank-case</code></td><td>Case Studies</td><td>Case Study wrappers. Reuses the shared editor shell.</td></tr>
+      <tr><td><code>bank-trend</code></td><td>Trends</td><td>Trend datasets. Reuses the shared editor shell.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Permission buckets (initial set)</h2>
+
+  <p>These are the starting buckets used in the spec. They are NOT final — buckets are a database-driven list, so we add or merge as real admin work surfaces during build.</p>
+
+  <table>
+    <thead><tr><th>Bucket</th><th>Covers</th></tr></thead>
+    <tbody>
+      <tr><td><code>bank.manage</code></td><td>Bank (all), Readiness Packs, Question Reports</td></tr>
+      <tr><td><code>users.manage</code></td><td>Users</td></tr>
+      <tr><td><code>tutors.manage</code></td><td>Tutors, Tutor Applications</td></tr>
+      <tr><td><code>programmes.view</code></td><td>Programmes, Enrolments, Programme Enquiries</td></tr>
+      <tr><td><code>payments.manage</code></td><td>Payments, Products &amp; Pricing</td></tr>
+      <tr><td><code>comms.manage</code></td><td>Announcements</td></tr>
+      <tr><td><code>system.manage</code></td><td>System Config</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Permission model (light touch)</h2>
+
+  <p>Permissions are data, not code. The nav renders off the database — the UI itself holds no rules about who sees what, only <em>how</em> to render based on a given permission set.</p>
+
+  <ul>
+    <li>Admin permissions live in a database table (schema deferred to the auth / admin sprint — out of scope here).</li>
+    <li>Super_admin status comes from <code>nclex_user_roles</code>; the permission check treats it as an implicit wildcard.</li>
+    <li>The sidebar component takes the current user's permission set and filters items. Adding a new permission bucket to the database makes it available in the <em>Admin Permissions</em> UI for super_admin to grant.</li>
+    <li>Each page also checks permission on load. Sidebar filtering prevents showing the link; page-level check prevents access via pasted URL.</li>
+    <li>Automation (rule 4): adding a new admin area = add its page, add its sidebar entry tagged with a permission key, and (if new) add the permission bucket as a row. No hardcoded lists to keep in sync.</li>
+  </ul>
+
+  <div class="callout">
+    Full schema — table shape, RLS policies, permission-check helpers — is out of scope for this nav spec. It lands in the admin / auth sprint documentation at build time.
+  </div>
+
+  <h2>Topbar</h2>
+
+  <h3>Left side</h3>
+  <ul>
+    <li>QAcademy logo + wordmark — clicking returns the admin to their <strong>Dashboard</strong>. Works from any admin page.</li>
+    <li>Product label: <code>· Admin</code>.</li>
+  </ul>
+
+  <h3>Right side</h3>
+  <ul>
+    <li>Role pill — shows <code>Super_admin</code> (warning-tone) or <code>Admin</code> (info-tone). If the user has other roles too (e.g. Sam is Super_admin + Tutor), the pill becomes a dropdown for role switching.</li>
+    <li>User menu avatar: click opens dropdown → name, email, Sign out.</li>
+  </ul>
+
+  <h2>Implementation notes (for build phase)</h2>
+
+  <h3>Route shape</h3>
+<pre>app/(app)/
+  admin/
+    layout.tsx               — admin sidebar + topbar chrome; reads user's permissions
+    dashboard/page.tsx
+    bank/
+      page.tsx               — redirect to /bank/all
+      all/page.tsx
+      case-studies/page.tsx
+      trends/page.tsx
+    packs/page.tsx
+    users/page.tsx
+    tutors/page.tsx
+    applications/page.tsx
+    programmes/page.tsx
+    enrolments/page.tsx
+    payments/page.tsx
+    products/page.tsx
+    reports/page.tsx
+    enquiries/page.tsx
+    announcements/page.tsx
+    permissions/page.tsx     — super_admin only
+    config/page.tsx</pre>
+
+  <h3>Build order</h3>
+  <ol>
+    <li>Admin global layout + sidebar + Dashboard page (with permission filtering).</li>
+    <li><em>Admin Permissions</em> page (super_admin only) — must come early, it's what grants every other bucket.</li>
+    <li>Bank sub-nav wiring. Point Case Studies / Trends at existing admin list components directly (no surface parameter needed — this <em>is</em> the admin surface).</li>
+    <li>Remaining pages in whatever order matches build priority. Nav slots exist; each page arrives when ready.</li>
+  </ol>
+
+  <h2>Out of scope for this spec</h2>
+  <ul>
+    <li>Permission table schema, RLS, RPCs — defer to admin / auth sprint.</li>
+    <li>The exact permission bucket list at launch — this doc shows an initial set; real buckets surface during build.</li>
+    <li>Cross-role UI for users holding multiple roles (e.g. Sam as Super_admin + Tutor) — role switching handled by the shared topbar pattern from Slice 2.5.</li>
+    <li>Mobile drawer behaviour — companion spec after desktop lands.</li>
+  </ul>
+
+  <h2>Related</h2>
+  <ul>
+    <li><code>main.md</code> — overall MyNclex product plan.</li>
+    <li><code>student-nav.md</code> — student counterpart.</li>
+    <li><code>tutor-nav.html</code> — tutor counterpart.</li>
+    <li><code>bank.md</code> — Bank spec (admin + tutor are parallel surfaces).</li>
+  </ul>
+
+  <div class="mockup-header">
+    <div>
+      <h2 style="margin-bottom: 2px;">Interactive mockup</h2>
+      <p class="mockup-sub">Click each admin type to see the sidebar reshape. Counter at the bottom shows how many items are visible vs total.</p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <span class="controls-label">Admin type:</span>
+    <button data-who="super"    class="who-btn">Super_admin (all)</button>
+    <button data-who="full"     class="who-btn">Full admin</button>
+    <button data-who="content"  class="who-btn">Content admin</button>
+    <button data-who="payments" class="who-btn">Payments admin</button>
+  </div>
+
+  <div class="stage">
+    <div id="frame" class="frame"></div>
+  </div>
+
+  <div id="hint" class="hint"></div>
+
+</div>
+
+<script>
+(function(){
+  const icons = {
+    home:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+    book:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+    pack:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+    users:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    tutor:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>',
+    apply:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+    calendar:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    card:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
+    tag:     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
+    alert:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+    flag:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>',
+    mail:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+    shield:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+    settings:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+    caret:   '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'
+  };
+
+  const bankSubNav = [
+    { key: 'bank-all',   label: 'All questions', perm: 'bank.manage' },
+    { key: 'bank-case',  label: 'Case Studies',  perm: 'bank.manage' },
+    { key: 'bank-trend', label: 'Trends',        perm: 'bank.manage' }
+  ];
+
+  const adminNav = [
+    { key: 'dashboard',    label: 'Dashboard',            icon: 'home',     perm: null },
+    { key: 'bank',         label: 'Bank',                 icon: 'book',     perm: 'bank.manage', dropdown: bankSubNav },
+    { key: 'packs',        label: 'Readiness Packs',      icon: 'pack',     perm: 'bank.manage' },
+    { key: 'users',        label: 'Users',                icon: 'users',    perm: 'users.manage' },
+    { key: 'tutors',       label: 'Tutors',               icon: 'tutor',    perm: 'tutors.manage' },
+    { key: 'applications', label: 'Tutor Applications',   icon: 'apply',    perm: 'tutors.manage' },
+    { key: 'programmes',   label: 'Programmes',           icon: 'calendar', perm: 'programmes.view' },
+    { key: 'enrolments',   label: 'Enrolments',           icon: 'apply',    perm: 'programmes.view' },
+    { key: 'payments',     label: 'Payments',             icon: 'card',     perm: 'payments.manage' },
+    { key: 'products',     label: 'Products & Pricing',   icon: 'tag',      perm: 'payments.manage' },
+    { key: 'reports',      label: 'Question Reports',     icon: 'flag',     perm: 'bank.manage' },
+    { key: 'enquiries',    label: 'Programme Enquiries',  icon: 'mail',     perm: 'programmes.view' },
+    { key: 'announcements',label: 'Announcements',        icon: 'alert',    perm: 'comms.manage' },
+    { key: 'permissions',  label: 'Admin Permissions',    icon: 'shield',   perm: '__super_admin_only__' },
+    { key: 'config',       label: 'System Config',        icon: 'settings', perm: 'system.manage' }
+  ];
+
+  const roleProfiles = {
+    super:    { label: 'Super_admin',    initials: 'SA', perms: ['*'],              tone: 'super' },
+    full:     { label: 'Full admin',     initials: 'FA', perms: ['bank.manage','users.manage','tutors.manage','programmes.view','payments.manage','comms.manage','system.manage'], tone: 'admin' },
+    content:  { label: 'Content admin',  initials: 'CA', perms: ['bank.manage','comms.manage'], tone: 'admin' },
+    payments: { label: 'Payments admin', initials: 'PA', perms: ['payments.manage','users.manage'], tone: 'admin' }
+  };
+
+  let who = 'super';
+  let activeKey = 'dashboard';
+  let activeBankSub = 'bank-all';
+  let bankOpen = false;
+
+  function hasPerm(perm, profile) {
+    if (perm === null) return true;
+    if (profile.perms.includes('*')) return true;
+    if (perm === '__super_admin_only__') return profile.perms.includes('*');
+    return profile.perms.includes(perm);
+  }
+
+  function topbar(profile) {
+    return `
+      <div class="topbar">
+        <div class="brand">
+          <button data-home="1" class="brand-btn">
+            <div class="brand-logo"></div>
+            <span class="brand-name">QAcademy</span>
+          </button>
+          <span class="brand-product">· Admin</span>
+        </div>
+        <div class="topbar-right">
+          <span class="role-pill ${profile.tone}">${profile.label}</span>
+          <div class="avatar">${profile.initials}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function sidebar(profile) {
+    let html = '<div class="sidebar">';
+    const visible = adminNav.filter(item => hasPerm(item.perm, profile));
+
+    visible.forEach(item => {
+      const isActive = item.key === activeKey;
+      const hasDropdown = !!item.dropdown;
+      const isOpen = hasDropdown && (bankOpen || isActive);
+      html += `
+        <div class="nav-item ${isActive ? 'active' : ''} ${isOpen ? 'open' : ''}" data-key="${item.key}">
+          ${icons[item.icon]}
+          <span class="nav-label">${item.label}</span>
+          ${hasDropdown ? `<span class="caret">${icons.caret}</span>` : ''}
+        </div>
+      `;
+      if (hasDropdown && isOpen) {
+        item.dropdown.filter(s => hasPerm(s.perm, profile)).forEach(sub => {
+          const subActive = sub.key === activeBankSub && activeKey === 'bank';
+          html += `<div class="nav-sub ${subActive ? 'active' : ''}" data-banksub="${sub.key}">${sub.label}</div>`;
+        });
+      }
+    });
+
+    html += `
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-label">Visible items</div>
+        <div class="sidebar-footer-value">${visible.length} of ${adminNav.length}</div>
+      </div>
+    </div>`;
+
+    return html;
+  }
+
+  function simplePage(title, sub, body) {
+    return `
+      <div class="page">
+        <div class="page-title">${title}</div>
+        <div class="page-sub">${sub}</div>
+        <div class="page-body">${body}</div>
+      </div>
+    `;
+  }
+
+  function dashboardPage(profile) {
+    return `
+      <div class="page">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Admin overview — signed in as ${profile.label}</div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-card-label">Pending tutor apps</div><div class="stat-card-value">3</div></div>
+          <div class="stat-card"><div class="stat-card-label">Open reports</div><div class="stat-card-value">8</div></div>
+          <div class="stat-card"><div class="stat-card-label">Active students</div><div class="stat-card-value">127</div></div>
+        </div>
+      </div>
+    `;
+  }
+
+  const pageMap = {
+    'bank-all':    ['Bank — All questions',   'QAcademy-owned bank',                  'All 9 standalone types. Same list view as admin uses today.'],
+    'bank-case':   ['Bank — Case Studies',    'Case Study wrappers',                  'Case studies. Editor matches tutor surface.'],
+    'bank-trend':  ['Bank — Trends',          'Trend datasets',                       'Trend datasets with attached questions.'],
+    packs:         ['Readiness Packs',        'Curated assessment sets',              'Create and publish readiness packs with reserved questions.'],
+    users:         ['Users',                  'All student, tutor, admin accounts',   'Search, filter by role, suspend, grant, delete.'],
+    tutors:        ['Tutors',                 'Active tutor accounts',                'Approved tutor roster. Deactivate, edit profile, view their programmes.'],
+    applications:  ['Tutor Applications',     'Pending + decided',                    'Review applicants, approve + trigger setup-link email, reject.'],
+    programmes:    ['Programmes',             'All programmes across all tutors',     'Read-only oversight. Suspend, audit content if needed.'],
+    enrolments:    ['Enrolments',             'Student-to-programme links',           'Active + expired. Grant manually, revoke, audit.'],
+    payments:      ['Payments',               'Student payments to QAcademy',         'Transactions, refunds, Paystack reconciliation.'],
+    products:      ['Products & Pricing',     'Bank duration packs + prices',         'GHS + USD dual pricing, activate / retire products.'],
+    reports:       ['Question Reports',       'Student-reported questions',           'Dismiss / Mark for fix queue.'],
+    enquiries:     ['Programme Enquiries',    'Contact-first public enquiries',       'Follow up with prospective programme students.'],
+    announcements: ['Announcements',          'Platform-wide messaging',              'Target by audience, schedule, publish.'],
+    permissions:   ['Admin Permissions',      'Super_admin only',                     'Create admin accounts, grant permission buckets, revoke.'],
+    config:        ['System Config',          'Platform settings',                    'Key/value system config. Read-only keys, editable values.']
+  };
+
+  function pageFor(key, profile) {
+    if (key === 'dashboard') return dashboardPage(profile);
+    if (key === 'bank') return pageFor(activeBankSub, profile);
+    const p = pageMap[key];
+    if (!p) return simplePage('Not found', '', '');
+    return simplePage(p[0], p[1], p[2]);
+  }
+
+  function render() {
+    const frame = document.getElementById('frame');
+    const hint  = document.getElementById('hint');
+    const profile = roleProfiles[who];
+
+    if (!adminNav.some(n => n.key === activeKey && hasPerm(n.perm, profile))) {
+      activeKey = 'dashboard';
+      bankOpen = false;
+    }
+
+    frame.innerHTML = topbar(profile) + `<div class="body">${sidebar(profile)}${pageFor(activeKey, profile)}</div>`;
+
+    frame.querySelectorAll('[data-key]').forEach(el => {
+      el.addEventListener('click', () => {
+        const key = el.dataset.key;
+        if (key === 'bank') {
+          bankOpen = !bankOpen;
+          activeKey = 'bank';
+          render();
+          return;
+        }
+        activeKey = key;
+        bankOpen = false;
+        render();
+      });
+    });
+    frame.querySelectorAll('[data-banksub]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        activeBankSub = el.dataset.banksub;
+        activeKey = 'bank';
+        bankOpen = true;
+        render();
+      });
+    });
+    frame.querySelectorAll('[data-home]').forEach(el => {
+      el.addEventListener('click', () => { activeKey = 'dashboard'; bankOpen = false; render(); });
+    });
+
+    const visible = adminNav.filter(item => hasPerm(item.perm, profile));
+    const hidden = adminNav.length - visible.length;
+
+    const hints = {
+      super:    `<b>Super_admin.</b> All 15 items visible. Only role that sees <b>Admin Permissions</b> — used to grant buckets to other admins.`,
+      full:     `<b>Full admin.</b> Most buckets granted. <b>${hidden} items hidden</b> (e.g. Admin Permissions — super-only).`,
+      content:  `<b>Content admin.</b> Only <code>bank.manage</code> + <code>comms.manage</code> granted. <b>${hidden} items hidden.</b> Bank, Packs, Reports, Announcements visible — nothing else.`,
+      payments: `<b>Payments admin.</b> Only <code>payments.manage</code> + <code>users.manage</code> granted. <b>${hidden} items hidden.</b> Users, Payments, Products visible.`
+    };
+    hint.innerHTML = hints[who];
+
+    document.querySelectorAll('[data-who]').forEach(b => {
+      b.classList.toggle('active', b.dataset.who === who);
+    });
+  }
+
+  document.querySelectorAll('[data-who]').forEach(b => {
+    b.addEventListener('click', () => { who = b.dataset.who; activeKey = 'dashboard'; bankOpen = false; render(); });
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
