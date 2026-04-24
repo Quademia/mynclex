@@ -39,6 +39,7 @@ import {
 } from '@/lib/bank/classifications';
 import type { BankFormInitial } from '@/lib/bank/form-shape';
 import { initialToParsedItem } from '@/app/(app)/admin/bank/initial-to-parsed';
+import { isSlotPopulated } from '@/app/(app)/admin/bank/slot-parser';
 import {
   isBuiltIn,
   isCustomTabKey,
@@ -299,9 +300,15 @@ export async function updateCaseAction(formData: FormData): Promise<ActionResult
   }
 
   // Validate each populated slot via initialToParsedItem — same
-  // rules as standalone bank create/update.
+  // rules as standalone bank create/update. Un-populated drafts
+  // (clicked but empty) are coerced to null here as defence-in-depth;
+  // the client already filters in onSaveCase, but a stale or forged
+  // payload could still carry an empty BankFormInitial. Dropping it
+  // server-side means curators never hit "Stem is required" for a
+  // slot they didn't intend to author. See isSlotPopulated's
+  // drift-trap block in slot-parser.ts for the rule definition.
   const slotsForRpc = slotsPayload.map((s) => {
-    if (s.initial === null) {
+    if (s.initial === null || !isSlotPopulated(s.initial)) {
       return {
         position:  s.position,
         cjmm_step: s.cjmm_step,

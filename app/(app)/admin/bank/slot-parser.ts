@@ -303,3 +303,37 @@ function parseMarks(raw: string, fallback: number): number {
   const n = parseFloat(raw);
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
+
+// ─────────────────────────────────────────────────────────────
+// isSlotPopulated — does this draft represent authoring intent?
+// ─────────────────────────────────────────────────────────────
+// The Case Study editor lazy-seeds `emptyInitial()` into slotDrafts[N]
+// the moment a curator clicks an empty pill. That's a UI concession
+// (the panel needs a non-null `initial` prop to mount) but without
+// this helper the save path can't tell "clicked to look at Q4" from
+// "authored Q4 with blank defaults" — both show up as a non-null
+// BankFormInitial with empty content.
+//
+// Current rule: a slot is populated iff its stem has non-whitespace
+// text. Stem is the first required field in every question type's
+// validator chain, and it's the first thing a curator types, so
+// stem-trimmed-non-empty is a clean proxy for "the curator intended
+// this to save."
+//
+// ─── Drift trap ──────────────────────────────────────────────
+// If "populated" ever needs to mean more — e.g. "has a stem image
+// even without stem text", or "Bow-tie with wing labels filled but
+// no centre text counts as work-in-progress" — update only this
+// helper. The two call sites live in:
+//   * mynclex/lib/bank/case-study/editor.tsx       (client filter
+//     on onSaveCase; coerces un-populated drafts to null in the
+//     payload so they hit the server's "empty slot" branch).
+//   * mynclex/lib/bank/case-study/actions.ts       (server
+//     defence-in-depth inside updateCaseAction's slotsPayload
+//     map, sitting next to the s.initial === null short-circuit).
+// Both import from this file so there's one source of truth.
+// ─────────────────────────────────────────────────────────────
+
+export function isSlotPopulated(initial: BankFormInitial): boolean {
+  return initial.stem.trim() !== '';
+}

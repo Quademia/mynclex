@@ -50,7 +50,10 @@ import {
 } from '@/lib/bank/classifications';
 import { emptyInitial, type BankFormInitial } from '@/lib/bank/form-shape';
 import { QuestionAuthoringPanel } from '@/lib/bank/question-authoring-panel';
-import { parseSlotFormData } from '@/app/(app)/admin/bank/slot-parser';
+import {
+  parseSlotFormData,
+  isSlotPopulated,
+} from '@/app/(app)/admin/bank/slot-parser';
 import {
   deleteCaseAction,
   updateCaseAction,
@@ -176,10 +179,18 @@ export function CaseStudyEditor({ surface, initial }: Props) {
     // Serialise the six slot drafts into slots_json so the server
     // action can feed them to the transactional RPC. Every position
     // 1..6 is present in the array; empty slots carry initial=null.
+    //
+    // Un-populated drafts (clicked-but-never-typed — see the lazy
+    // seed in onSelectSlot) are coerced to null in the payload only.
+    // The client's slotDrafts state is left intact so the curator's
+    // in-memory context (CJMM selection, panel history) survives; we
+    // just don't ask the server to validate a draft that doesn't
+    // represent intent. See isSlotPopulated's drift-trap block for
+    // the rule.
     const slotsPayload = drafts.map((draft, i) => ({
       position:  i + 1,
       cjmm_step: slotCjmm[i],
-      initial:   draft,
+      initial:   draft && isSlotPopulated(draft) ? draft : null,
     }));
     fd.set('slots_json', JSON.stringify(slotsPayload));
 
