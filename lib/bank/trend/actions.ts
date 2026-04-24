@@ -33,6 +33,11 @@ import {
   TREND_ID_PREFIX,
   TUTOR_TREND_ID_PREFIX,
 } from '@/lib/bank/classifications';
+import type { BankFormInitial } from '@/lib/bank/form-shape';
+import {
+  initialToParsedItem,
+  type ParsedSlotInitial,
+} from '@/app/(app)/admin/bank/initial-to-parsed';
 import { kindSeedData } from './kind-templates';
 import type { Surface, TrendFlag, TrendRow } from './types';
 
@@ -257,6 +262,20 @@ export async function createTrendAction(formData: FormData): Promise<ActionResul
   redirect(`${cfg.baseUrl}/${trend_id}`);
 }
 
+// Slice 1.12b: full-payload save via the new transactional RPC.
+// Reads the dataset header + attached child drafts + pending
+// deletions from FormData, validates each child via
+// initialToParsedItem, then calls nclex_save_trend_with_children
+// (admin) or nclex_tutor_save_trend_with_children (tutor) for an
+// atomic write.
+//
+// Pre-RPC validation rationale (mirrors Case Study):
+//   • FormData parsing + shape validation happens in TS so we can
+//     return user-friendly errors per-question without unwinding
+//     the RPC transaction.
+//   • parseByType (via initialToParsedItem) does per-type content
+//     checks that PL/pgSQL is poorly suited for. The RPC then just
+//     persists valid rows atomically.
 export async function updateTrendAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
   const { supabase } = await requireTrendCurator(surface);
@@ -299,29 +318,92 @@ export async function updateTrendAction(formData: FormData): Promise<ActionResul
 
   const is_published = formData.get('is_published') === 'on';
 
-  const cfg = surfaceConfig(surface);
+  // Child drafts: array of BankFormInitial objects the editor
+  // serialised. Each gets run through initialToParsedItem to
+  // produce the RPC-ready shape. A missing field surfaces as an
+  // error before we touch the RPC, so nothing is half-written.
+  //
+  // Empty-slot filter (handoff decision 6): a draft with no stem
+  // AND no question_type beyond the MCQ default is dropped here
+  // as defence-in-depth. The editor already filters, but a stale
+  // payload or a curator who clicked Add and then saved without
+  // typing shouldn't end up with a garbage row. BankFormInitial's
+  // question_type is non-nullable, so we filter on stem only —
+  // mirrors isSlotPopulated in the case-study save path.
+  const questionsJsonRaw = String(formData.get('questions_json') ?? '[]');
+  let questionsRaw: unknown;
+  try {
+    questionsRaw = JSON.parse(questionsJsonRaw);
+  } catch {
+    return { ok: false, error: 'Invalid questions_json.' };
+  }
+  if (!Array.isArray(questionsRaw)) {
+    return { ok: false, error: 'questions_json must be an array.' };
+  }
 
-  // updated_at set explicitly — see the migration's divergence note.
-  // No trigger function exists in this repo; every write path sets
-  // updated_at itself, mirroring upsertTabAction in
-  // lib/bank/case-study/actions.ts.
-  const { error } = await supabase
-    .from(cfg.table)
-    .update({
+  const parsedQuestions: ParsedSlotInitial[] = [];
+  for (let i = 0; i < questionsRaw.length; i++) {
+    const raw = questionsRaw[i] as BankFormInitial | undefined;
+    if (!raw) continue;
+    // Empty-slot filter: no stem → drop. Curator clicked Add but
+    // never typed. Consistent with the RPC's own skip-filter.
+    if (typeof raw.stem !== 'string' || raw.stem.trim() === '') {
+      continue;
+    }
+    const parsed = initialToParsedItem(raw);
+    if (!parsed.ok) {
+      return {
+        ok:    false,
+        error: `Question ${i + 1}: ${parsed.error}`,
+      };
+    }
+    parsedQuestions.push(parsed.item);
+  }
+
+  // Deleted item IDs: JSON array of strings. Empty by default.
+  const deletedRaw = String(formData.get('deleted_item_ids') ?? '[]');
+  let deletedIds: string[];
+  try {
+    const parsed: unknown = JSON.parse(deletedRaw);
+    if (!Array.isArray(parsed)) throw new Error('not array');
+    deletedIds = parsed
+      .map((v) => (typeof v === 'string' ? v : String(v)))
+      .filter(Boolean);
+  } catch {
+    return { ok: false, error: 'Invalid deleted_item_ids JSON.' };
+  }
+
+  // Build the RPC payload. Shape documented in
+  // mynclex_trend_save_rpc_slice_1_12b.sql's header block.
+  const payload = {
+    trend: {
+      trend_id,
       title,
       scenario,
       kind,
       timepoints,
-      rows:       parsedRows.rows,
+      rows: parsedRows.rows,
       is_published,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('trend_id', trend_id);
+    },
+    questions: parsedQuestions,
+    deleted_item_ids: deletedIds,
+  };
+
+  const rpcName =
+    surface === 'tutor'
+      ? 'nclex_tutor_save_trend_with_children'
+      : 'nclex_save_trend_with_children';
+
+  const { data, error } = await supabase.rpc(rpcName, { payload });
 
   if (error) {
-    return { ok: false, error: `Update failed: ${error.message}` };
+    return { ok: false, error: `Save failed: ${error.message}` };
+  }
+  if (!data || typeof data !== 'object' || !('ok' in data)) {
+    return { ok: false, error: 'RPC returned an unexpected shape.' };
   }
 
+  const cfg = surfaceConfig(surface);
   revalidatePath(`${cfg.baseUrl}/${trend_id}`);
   redirect(`${cfg.baseUrl}/${trend_id}?saved=1`);
 }

@@ -3831,3 +3831,167 @@
   padding: 18px;
   margin-top: 18px;
 }
+
+
+/* ─────────────────────────────────────────────────────────────
+   Slice 1.12b — Trend attached questions: pill strip + pane
+   Mirrors the .cs-q-nav conventions but scoped under .tr-q-nav-*,
+   variable pill count, horizontal scroll overflow.
+   ───────────────────────────────────────────────────────────── */
+
+/* Pill strip — horizontal row of pills along the top of the
+   right pane. Scrolls horizontally when the set overflows. */
+.tr-q-nav-strip {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 6px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+  white-space: nowrap;
+}
+
+.tr-q-nav-pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 6px 10px;
+  min-width: 96px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  line-height: 1.25;
+  text-align: left;
+  position: relative;
+}
+.tr-q-nav-pill:hover:not(.is-active):not(.is-todelete) {
+  background: var(--bg);
+}
+.tr-q-nav-pill.is-active {
+  border-color: var(--accent);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  box-shadow: 0 0 0 2px rgba(45, 125, 114, 0.18);
+}
+.tr-q-nav-pill.is-empty {
+  color: var(--text-muted);
+  border-style: dashed;
+}
+.tr-q-nav-pill.is-todelete {
+  opacity: 0.55;
+  text-decoration: line-through;
+  cursor: not-allowed;
+  background: var(--bg);
+}
+
+.tr-q-nav-num {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.tr-q-nav-pill.is-active .tr-q-nav-num {
+  color: var(--primary-dark);
+}
+.tr-q-nav-type {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text);
+}
+.tr-q-nav-pill.is-active .tr-q-nav-type {
+  color: var(--primary-dark);
+}
+
+.tr-q-nav-unsaved {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  color: var(--warning);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.tr-q-nav-delbadge {
+  margin-top: 2px;
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--danger);
+  text-decoration: none;
+}
+
+.tr-q-nav-add-btn {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border: 1px dashed var(--accent);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.tr-q-nav-add-btn:hover {
+  background: var(--primary-light);
+}
+
+/* Active-question pane body — toolbar + QuestionAuthoringPanel */
+.tr-q-pane-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.tr-q-pane-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.tr-q-pane-toolbar-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.tr-q-pane-toolbar-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+.tr-q-pane-empty {
+  padding: 24px 18px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  background: var(--white);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+.tr-q-pane-empty h4 {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+.tr-q-pane-empty p { margin: 0; max-width: 400px; margin-inline: auto; }
+
+/* Bank-list badge for trend-linked rows (Phase 7). Shown after the
+   question-type pill in list-view.tsx. Teal chip matching the
+   mockup's Trend palette. */
+.bank-badge-trend {
+  background: #e1f5ee;
+  color: #085041;
+  border: 1px solid #9fe1cb;
+}

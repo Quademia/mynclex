@@ -58,3 +58,56 @@ INSERT INTO nclex_trend_datasets (
   ]'::jsonb,
   FALSE
 );
+
+
+-- =========================================================
+-- Slice 1.12b extension — two attached questions on the
+-- demo dataset NCLEX_TRD_00001, one MCQ + one MATRIX. Both
+-- are drafts (is_published = FALSE) so they only appear to
+-- curators. is_builder_visible defaults TRUE (trend-linked
+-- items are pickable from the student quiz builder — this
+-- is the key difference from case-study children).
+-- =========================================================
+
+INSERT INTO nclex_bank_items (
+  item_id, question_type, stem, instruction,
+  content, correct,
+  client_needs_category, nursing_subject, body_system,
+  difficulty, tags,
+  is_published, is_free_sample, is_builder_visible,
+  marks, shuffle_options,
+  trend_id
+) VALUES
+(
+  'NCLEX_MCQ_91001',
+  'MCQ',
+  'Based on the trend data above, what is the priority concern at the 1000 timepoint?',
+  NULL,
+  '{"options":[{"id":"A","text":"Improving pain control"},{"id":"B","text":"Developing shock"},{"id":"C","text":"Resolving atelectasis"},{"id":"D","text":"Stable post-op recovery"}]}'::jsonb,
+  '{"correct_id":"B"}'::jsonb,
+  'Physiological Integrity',
+  'Medical-Surgical',
+  'Cardiovascular',
+  'Medium',
+  ARRAY['trend','post-op','shock'],
+  FALSE, FALSE, TRUE,
+  1, TRUE,
+  'NCLEX_TRD_00001'
+),
+(
+  'NCLEX_MAT_91001',
+  'MATRIX',
+  'For each vital sign trend shown above, classify the change.',
+  NULL,
+  '{"row_label":"Vital sign","rows":[{"id":"bp","text":"Blood pressure","feedback":""},{"id":"hr","text":"Heart rate","feedback":""},{"id":"rr","text":"Respiratory rate","feedback":""},{"id":"spo2","text":"Oxygen saturation","feedback":""}],"columns":[{"id":"improving","text":"Improving"},{"id":"stable","text":"Stable"},{"id":"deteriorating","text":"Deteriorating"}]}'::jsonb,
+  '{"row_to_column":{"bp":"deteriorating","hr":"deteriorating","rr":"deteriorating","spo2":"deteriorating"}}'::jsonb,
+  'Physiological Integrity',
+  'Medical-Surgical',
+  'Cardiovascular',
+  'Medium',
+  ARRAY['trend','post-op','matrix'],
+  FALSE, FALSE, TRUE,
+  1, TRUE,
+  'NCLEX_TRD_00001'
+)
+ON CONFLICT (item_id) DO NOTHING;

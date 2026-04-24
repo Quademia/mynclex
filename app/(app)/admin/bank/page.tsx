@@ -89,10 +89,14 @@ export default async function AdminBankPage({
   // standalone browse pool — they're editable only via the case
   // editor so listing them here would dead-end the curator's edit
   // click.
+  // Slice 1.12b — FK-join to nclex_trend_datasets so the bank list
+  // can render a "Trend · {title}" badge on linked rows. Supabase
+  // returns the nested relation as `trend: {title} | null` because
+  // trend_id is a nullable single FK. Non-trend rows get `trend: null`.
   let query = supabase
     .from('nclex_bank_items')
     .select(
-      'item_id, question_type, difficulty, stem, is_published, is_free_sample, client_needs_category, nursing_subject, body_system, tags, created_at',
+      'item_id, question_type, difficulty, stem, is_published, is_free_sample, client_needs_category, nursing_subject, body_system, tags, created_at, trend_id, trend:nclex_trend_datasets(title)',
     )
     .is('parent_case_id', null)
     .order('item_id', { ascending: true })
@@ -113,7 +117,27 @@ export default async function AdminBankPage({
       .is('parent_case_id', null),
   ]);
 
-  const rows: BankRow[] = itemsRes.data ?? [];
+  // Supabase's FK-join row shape: the nested `trend` is either
+  // a single object { title } or null. Map into the flat
+  // `trend_title` the UI expects.
+  type RawRow = Omit<BankRow, 'trend_title'> & {
+    trend: { title: string } | null;
+  };
+  const rawRows = (itemsRes.data ?? []) as unknown as RawRow[];
+  const rows: BankRow[] = rawRows.map((r) => ({
+    item_id:                r.item_id,
+    question_type:          r.question_type,
+    difficulty:             r.difficulty,
+    stem:                   r.stem,
+    is_published:           r.is_published,
+    is_free_sample:         r.is_free_sample,
+    client_needs_category:  r.client_needs_category,
+    nursing_subject:        r.nursing_subject,
+    body_system:            r.body_system,
+    tags:                   r.tags,
+    created_at:             r.created_at,
+    trend_title:            r.trend?.title ?? null,
+  }));
   const queryError = itemsRes.error;
   const total = totalRes.count ?? rows.length;
 

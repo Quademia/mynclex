@@ -2,7 +2,7 @@
 //
 // Top-level Trend dataset editor component — mounted from both
 // /admin/trends/[trend_id] and /tutor/trends/[trend_id]. Takes
-// `surface` + `initial` (the dataset row).
+// `surface` + `initial` (dataset row + attached bank items).
 //
 // Layout on desktop (≥ 900px):
 //
@@ -10,24 +10,36 @@
 //   │ ← back   trend_id   ● Unsaved   buttons │
 //   ├─────────── split-frame (grid) ────────┤
 //   │ split-left          │D│ split-right   │
-//   │  • metadata accordions│I│  • "Slice 1.12b"
-//   │  • data table       │V│    placeholder
-//   │                     │ │               │
+//   │  • metadata acc.   │I│  • pill strip │
+//   │  • data table       │V│  • active q.  │
+//   │                     │ │    panel      │
 //   └─────────────────────┴─┴───────────────┘
 //
-// Below 900px the split collapses to a single column (dataset above,
-// right-pane placeholder below). Divider is a draggable splitter
-// that persists its position in localStorage. Pattern is lifted from
-// case-study/editor.tsx and simplified — no tab rail, no active
-// question state, no per-entry visible_from filtering.
+// Slice 1.12b additions:
+//   • Right pane hosts variable-count attached questions.
+//   • Pill strip + `+ Add question` mounts `QuestionAuthoringPanel`
+//     in `standalone` mode per active pill.
+//   • State snapshotting on pill switch (mirrors the case-study 1.11b
+//     pattern via `parseSlotFormData`).
+//   • Save serialises dataset + non-deleted child drafts + pending
+//     deletions into one payload; the server action validates and
+//     calls `nclex_save_trend_with_children` RPC for an atomic write.
 
 'use client';
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { parseSlotFormData } from '@/app/(app)/admin/bank/slot-parser';
+import { QuestionAuthoringPanel } from '@/lib/bank/question-authoring-panel';
 import { deleteTrendAction, updateTrendAction } from './actions';
 import { MetadataAccordions } from './metadata-accordions';
 import { TrendDataTable } from './data-table';
+import { QuestionNav } from './question-nav';
+import {
+  emptyChildDraft,
+  loadChildDraft,
+  type TrendChildDraft,
+} from './child-draft';
 import type { Surface, TrendEditorInitial, TrendRow } from './types';
 
 const SPLIT_STORAGE_KEY = 'mynclex:tr-split:left-pct';
@@ -45,22 +57,136 @@ export function TrendEditor({ surface, initial }: Props) {
   const baseUrl = surface === 'tutor' ? '/tutor/trends' : '/admin/trends';
 
   // ── Controlled state (data table) ────────────────────────────────
-  // timepoints + rows live in state because the data-table mutates
-  // them constantly. Everything else (title, scenario, kind checkbox,
-  // is_published) stays uncontrolled — we read them from the form at
-  // submit time.
   const [timepoints, setTimepoints] = useState<string[]>(datasetRow.timepoints);
   const [rows, setRows] = useState<TrendRow[]>(datasetRow.rows);
 
+  // ── Child-question drafts (Slice 1.12b) ──────────────────────────
+  // One entry per non-removed attached question. Seeded from
+  // initial.attachedItems via loadChildDraft. Curator additions push
+  // an emptyChildDraft; deletions flip toDelete (preserved in state
+  // until Save so curator can undo via Cancel).
+  const [childDrafts, setChildDrafts] = useState<TrendChildDraft[]>(() =>
+    initial.attachedItems.map(loadChildDraft),
+  );
+  // Active pill index — `null` when no pill is focused (empty state
+  // or after deleting the last remaining pill).
+  const [activeIndex, setActiveIndex] = useState<number | null>(
+    initial.attachedItems.length > 0 ? 0 : null,
+  );
+
+  // Ref to the active question's form. On pill-switch (and on Save)
+  // `new FormData(slotFormRef.current)` snapshots the DOM so in-flight
+  // edits survive remounts. Mirrors the 1.11b snapshot pattern.
+  const slotFormRef = useRef<HTMLFormElement | null>(null);
+
   // ── Dirty tracking ──────────────────────────────────────────────
-  // A coarse flag — any change to the data table, any onChange in
-  // the outer form, flips this. Save resets it via redirect; Cancel
-  // leans on the beforeunload guard.
   const [dirty, setDirty] = useState(false);
 
   function onDataChange(next: { timepoints: string[]; rows: TrendRow[] }) {
     setTimepoints(next.timepoints);
     setRows(next.rows);
+    setDirty(true);
+  }
+
+  // Snapshot the currently-active question's DOM into
+  // childDrafts[activeIndex]. Used before pill-switch and before
+  // Save. Returns the (possibly-updated) drafts array. Callers pass
+  // this array into their follow-up setState to avoid stale reads.
+  function snapshotActiveDraft(drafts: TrendChildDraft[]): TrendChildDraft[] {
+    if (activeIndex === null) return drafts;
+    const current = drafts[activeIndex];
+    if (!current || current.toDelete) return drafts;
+    const form = slotFormRef.current;
+    if (!form) return drafts;
+    const fd = new FormData(form);
+    const snapshot = parseSlotFormData(fd, '', current.initial);
+    const next = drafts.slice();
+    next[activeIndex] = { ...current, initial: snapshot, isDirty: true };
+    return next;
+  }
+
+  function onSelectPill(idx: number) {
+    setChildDrafts((prev) => {
+      const snapped = snapshotActiveDraft(prev);
+      return snapped;
+    });
+    setActiveIndex(idx);
+    setDirty(true);
+  }
+
+  function onAddQuestion() {
+    setChildDrafts((prev) => {
+      const snapped = snapshotActiveDraft(prev);
+      return [...snapped, emptyChildDraft()];
+    });
+    // Focus the newly-added pill. It sits at the array tail after
+    // the setChildDrafts push above, so its new index is the
+    // current childDrafts.length (pre-update). We don't need the
+    // previous activeIndex here — just point at the appended pill.
+    setActiveIndex(childDrafts.length);
+    setDirty(true);
+  }
+
+  function onDeleteActive() {
+    if (activeIndex === null) return;
+    const current = childDrafts[activeIndex];
+    if (!current) return;
+    const ok = window.confirm(
+      current.item_id
+        ? `Delete Q${activeIndex + 1}? Removal is applied when you save. Cancel to undo.`
+        : `Discard Q${activeIndex + 1}? It hasn't been saved yet.`,
+    );
+    if (!ok) return;
+
+    setChildDrafts((prev) => {
+      // Snapshot other fields first in case the curator typed something
+      // into the active form before clicking delete. Unusual but cheap.
+      const snapped = snapshotActiveDraft(prev);
+      const current2 = snapped[activeIndex];
+      if (!current2) return snapped;
+      if (current2.item_id === null) {
+        // Never persisted — just remove outright.
+        const next = snapped.slice();
+        next.splice(activeIndex, 1);
+        return next;
+      }
+      // Persisted — mark for deletion, keep in array for the pill.
+      const next = snapped.slice();
+      next[activeIndex] = { ...current2, toDelete: true };
+      return next;
+    });
+
+    // Pick the next non-deleted index to focus, or null if none.
+    // Deferred via setState callback so the drafts array is already
+    // updated when we compute.
+    setActiveIndex((prev) => {
+      // Rebuild using the array we just set — but React hasn't applied
+      // our setChildDrafts yet inside this closure. Simplest: compute
+      // against childDrafts + the delete intent.
+      const after = childDrafts.slice();
+      if (prev === null) return null;
+      const wasPersisted = childDrafts[prev]?.item_id !== null;
+      if (!wasPersisted) {
+        // Row gets spliced out; next pill to focus is:
+        //   same index (successor shifts left) if one exists,
+        //   else previous index if any exist,
+        //   else null.
+        after.splice(prev, 1);
+        if (after.length === 0) return null;
+        if (prev < after.length) return prev;
+        return after.length - 1;
+      }
+      // Persisted deletion: pill stays visible (is-todelete). Focus
+      // the next non-todelete pill to keep the curator editing;
+      // falls back to the deletion target if none exist.
+      for (let i = prev + 1; i < after.length; i++) {
+        if (!after[i]?.toDelete && i !== prev) return i;
+      }
+      for (let i = prev - 1; i >= 0; i--) {
+        if (!after[i]?.toDelete) return i;
+      }
+      return prev;
+    });
     setDirty(true);
   }
 
@@ -71,8 +197,30 @@ export function TrendEditor({ surface, initial }: Props) {
   async function onSave(fd: FormData) {
     setPending(true);
     setErr(null);
-    fd.set('timepoints', JSON.stringify(timepoints));
-    fd.set('rows',       JSON.stringify(rows));
+
+    // Snapshot the active pill's DOM so its latest edits ride along.
+    // Do this synchronously so the payload we build uses the newest
+    // state even before React re-renders.
+    const snappedDrafts = snapshotActiveDraft(childDrafts);
+    if (snappedDrafts !== childDrafts) {
+      setChildDrafts(snappedDrafts);
+    }
+
+    // Serialise: questions → the live drafts (non-deleted), and
+    // deleted_item_ids → every draft flagged toDelete that had a
+    // persisted item_id.
+    const questionsPayload = snappedDrafts
+      .filter((d) => !d.toDelete)
+      .map((d) => d.initial);
+    const deletedIds = snappedDrafts
+      .filter((d) => d.toDelete && d.item_id !== null)
+      .map((d) => d.item_id as string);
+
+    fd.set('timepoints',        JSON.stringify(timepoints));
+    fd.set('rows',              JSON.stringify(rows));
+    fd.set('questions_json',    JSON.stringify(questionsPayload));
+    fd.set('deleted_item_ids',  JSON.stringify(deletedIds));
+
     try {
       const res = await updateTrendAction(fd);
       if (res && !res.ok) {
@@ -82,13 +230,19 @@ export function TrendEditor({ surface, initial }: Props) {
         setDirty(false);
       }
     } catch (e) {
-      // Next's redirect throws a special value to unwind the action —
-      // not a real error. Let it propagate so the navigation happens.
+      // Next's redirect throws to unwind; let it propagate.
       throw e;
     }
   }
 
   async function onDelete(fd: FormData) {
+    if (childDrafts.some((d) => d.item_id !== null && !d.toDelete)) {
+      setErr(
+        'Cannot delete: dataset has attached questions. ' +
+        'Detach or delete them first (Slice 1.12c will add a guided flow).',
+      );
+      return;
+    }
     const ok = window.confirm(
       `Delete "${datasetRow.title}"? This can't be undone.`,
     );
@@ -162,6 +316,16 @@ export function TrendEditor({ surface, initial }: Props) {
     document.addEventListener('pointerup',   onUp);
   }
 
+  // ── Active child helpers ────────────────────────────────────────
+  const activeDraft = activeIndex !== null ? childDrafts[activeIndex] : null;
+  // When the active pill is toDelete, render a short pane that
+  // confirms the pending deletion instead of remounting the panel
+  // (editing a deleted row is wasted effort).
+  const activeIsDeletable =
+    activeDraft !== null &&
+    !activeDraft.toDelete &&
+    childDrafts.filter((d) => !d.toDelete).length > 0;
+
   // ── Render ──────────────────────────────────────────────────────
   return (
     <div className="tr-editor-frame">
@@ -221,11 +385,10 @@ export function TrendEditor({ surface, initial }: Props) {
             <MetadataAccordions datasetRow={datasetRow} />
           </form>
 
-          {/* Data table sits outside the form — it manages its own
-              controlled state + mirrors into hidden form fields we
-              set at submit time in onSave(). Keeping it outside the
-              form avoids an implicit submit on every cell keystroke
-              (browser would otherwise post the form on Enter). */}
+          {/* Data table sits outside the dataset form — controlled
+              state that the onSave handler mirrors into hidden fields
+              at submit time. Keeping it outside avoids an implicit
+              submit on Enter in cell inputs. */}
           <TrendDataTable
             timepoints={timepoints}
             rows={rows}
@@ -243,14 +406,71 @@ export function TrendEditor({ surface, initial }: Props) {
         />
 
         <div className="tr-split-right">
-          <div className="tr-right-placeholder">
-            <h4>Questions — Slice 1.12b</h4>
-            <p>
-              Attached questions land here once Slice 1.12b ships. For
-              now this pane is reserved so the split layout is stable
-              when 1.12b activates it.
-            </p>
-          </div>
+          <QuestionNav
+            drafts={childDrafts}
+            activeIndex={activeIndex}
+            onSelect={onSelectPill}
+            onAdd={onAddQuestion}
+          />
+
+          {activeDraft === null ? (
+            <div className="tr-q-pane-empty">
+              <h4>No attached questions yet</h4>
+              <p>
+                Click <strong>+ Add question</strong> above to author the
+                first question against this trend dataset. Attached
+                questions use the standard bank editor and are reachable
+                from the student quiz builder by default.
+              </p>
+            </div>
+          ) : activeDraft.toDelete ? (
+            <div className="tr-q-pane-empty">
+              <h4>Q{activeIndex! + 1} is marked for deletion</h4>
+              <p>
+                Save the dataset to commit the delete, or click Cancel
+                in the topbar to discard all pending changes.
+              </p>
+            </div>
+          ) : (
+            <div className="tr-q-pane-body">
+              <div className="tr-q-pane-toolbar">
+                <div>
+                  <span className="tr-q-pane-toolbar-title">
+                    Q{activeIndex! + 1}
+                  </span>
+                  <span className="tr-q-pane-toolbar-meta">
+                    {activeDraft.item_id ?? '(not saved yet)'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="tr-btn danger"
+                  onClick={onDeleteActive}
+                  disabled={!activeIsDeletable || pending}
+                >
+                  Delete question
+                </button>
+              </div>
+
+              {/* key={activeIndex} forces a clean remount when
+                  switching pills so `defaultValue` inputs inside the
+                  panel pick up the newly-loaded draft. The panel
+                  runs in `standalone` mode — all four Housekeeping
+                  flags visible (is_published, is_free_sample,
+                  is_builder_visible, shuffle_options). */}
+              <form
+                ref={slotFormRef}
+                id="tr-child-form"
+                onSubmit={(e) => e.preventDefault()}
+              >
+                <QuestionAuthoringPanel
+                  key={activeIndex ?? -1}
+                  mode="standalone"
+                  initial={activeDraft.initial}
+                />
+              </form>
+            </div>
+          )}
         </div>
       </div>
     </div>

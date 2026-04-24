@@ -7,6 +7,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { TrendEditor } from '@/lib/bank/trend/editor';
+import type { FullBankRow } from '@/lib/bank/list-view';
 import type {
   TrendDatasetRow,
   TrendEditorInitial,
@@ -37,25 +38,42 @@ export default async function TutorTrendEditorPage({ params }: PageProps) {
 
   if (!roles.includes('TUTOR')) redirect('/no-access');
 
-  const { data, error } = await supabase
-    .from('nclex_tutor_trend_datasets')
-    .select('*')
-    .eq('trend_id', trend_id)
-    .eq('tutor_id', user.id)
-    .maybeSingle();
+  const [datasetRes, itemsRes] = await Promise.all([
+    supabase
+      .from('nclex_tutor_trend_datasets')
+      .select('*')
+      .eq('trend_id', trend_id)
+      .eq('tutor_id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('nclex_tutor_questions')
+      .select('*')
+      .eq('trend_id', trend_id)
+      .eq('tutor_id', user.id)
+      .order('created_at', { ascending: true }),
+  ]);
 
-  if (error) {
+  if (datasetRes.error) {
     return (
       <main className="bank-page">
-        <p className="bank-error">Error loading trend dataset: {error.message}</p>
+        <p className="bank-error">Error loading trend dataset: {datasetRes.error.message}</p>
       </main>
     );
   }
 
-  if (!data) notFound();
+  if (itemsRes.error) {
+    return (
+      <main className="bank-page">
+        <p className="bank-error">Error loading attached questions: {itemsRes.error.message}</p>
+      </main>
+    );
+  }
+
+  if (!datasetRes.data) notFound();
 
   const initial: TrendEditorInitial = {
-    datasetRow: data as TrendDatasetRow,
+    datasetRow:    datasetRes.data as TrendDatasetRow,
+    attachedItems: (itemsRes.data ?? []) as FullBankRow[],
   };
 
   return <TrendEditor surface="tutor" initial={initial} />;

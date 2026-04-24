@@ -6,6 +6,193 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-24 (Slice 1.12b — Trend attached questions + save RPC)
+
+Slice 1.12b fills the right half of the Trend editor — datasets
+now attach variable-N bank questions via the new nullable FK
+`trend_id` on `nclex_bank_items` (plus the tutor twin). The editor
+mounts a pill strip + `QuestionAuthoringPanel` in `standalone`
+mode per active pill; Save serialises dataset header + live child
+drafts + pending deletions into a single JSONB payload that the
+new `nclex_save_trend_with_children` RPC writes atomically.
+
+### Schema (applied to dev)
+
+- **New FK column**: `trend_id TEXT NULL REFERENCES
+  nclex_trend_datasets(trend_id) ON DELETE RESTRICT` on
+  `nclex_bank_items`; parallel FK to `nclex_tutor_trend_datasets`
+  on `nclex_tutor_questions`.
+- **Partial indexes**: `nclex_bank_items_trend_id_idx` +
+  `nclex_tutor_questions_trend_id_idx`, both `WHERE trend_id IS
+  NOT NULL`. 99% of bank items stay NULL so the partial index
+  keeps cost off non-trend rows.
+- **RPC**: `nclex_save_trend_with_children(payload jsonb)` +
+  `nclex_tutor_save_trend_with_children(payload jsonb)`. Two
+  parallel entry points, one per surface, as specified in the
+  handoff (case-study's RPC took surface as an arg and branched
+  internally; Trend follows the handoff's explicit two-function
+  shape). `GRANT EXECUTE … TO authenticated` on both.
+- **RLS**: no new policies. Existing `nclex_bank_items` and
+  `nclex_tutor_questions` policies cover trend-linked rows
+  identically to standalone rows. Audit comment added to
+  `rls.sql` so the trail is complete.
+
+### Locked state-matrix rules (from handoff + plan doc)
+
+- **Dataset `is_published` is independent of per-question
+  `is_published`.** RPC enforces no consistency between them.
+- **Type picker optional at draft, required at publish.** Empty
+  slots (no `question_type` AND empty stem) are dropped by both
+  the client filter and the RPC's skip-filter. A published
+  dataset validates that every surviving question has a type +
+  non-empty stem; otherwise the whole save rolls back.
+- **`is_builder_visible` stays TRUE by default** on trend-linked
+  questions — unlike case-study children which forced it to
+  FALSE. Trend questions ARE pickable from the student custom
+  builder.
+- **Empty-slot semantics**: consistent at client (editor filter),
+  server action (same filter pre-RPC), and RPC (skip-continue).
+
+### Files created
+
+- `mynclex/db/migrations/mynclex_trend_id_column_slice_1_12b.sql`
+  — two ALTER TABLEs + two partial indexes.
+- `mynclex/db/migrations/mynclex_trend_save_rpc_slice_1_12b.sql`
+  — the two RPC functions + GRANT EXECUTE. ~380 lines total.
+- `mynclex/lib/bank/trend/child-draft.ts` — `TrendChildDraft`
+  shape (`item_id`, `initial`, `isDirty`, `toDelete`),
+  `emptyChildDraft()`, `loadChildDraft(row)`.
+- `mynclex/lib/bank/trend/question-nav.tsx` — pill strip with
+  `+ Add question` trailing button, horizontal scroll on
+  overflow. Variable count; no CJMM step; pending-delete pill
+  rendered with strikethrough.
+
+### Files modified
+
+- `mynclex/lib/bank/trend/types.ts` — `TrendEditorInitial`
+  extended with `attachedItems: FullBankRow[]`. Re-exports
+  `TrendChildDraft`.
+- `mynclex/lib/bank/trend/editor.tsx` — rewrote right pane.
+  Added child-draft state + active-index state +
+  `slotFormRef` (mirrors case-study 1.11b snapshot pattern).
+  New handlers: `onSelectPill`, `onAddQuestion`,
+  `onDeleteActive`. `onSave` snapshots the active draft's DOM
+  + serialises non-deleted drafts → `questions_json` + persisted
+  toDelete ids → `deleted_item_ids`. `onDelete` pre-checks for
+  attached children and refuses bare delete with a friendly
+  error (1.12c will replace with the guided detach flow).
+- `mynclex/lib/bank/trend/actions.ts` — `updateTrendAction`
+  rewritten to parse `questions_json` + `deleted_item_ids`,
+  validate each child via `initialToParsedItem` (reused from
+  admin/bank), build the RPC payload, and call
+  `nclex_{,tutor_}save_trend_with_children`. Empty-slot filter
+  (no stem) applied as defence-in-depth.
+- `mynclex/app/(app)/admin/trends/[trend_id]/page.tsx` +
+  tutor twin — now fetch attached items in parallel with the
+  dataset (`ORDER BY created_at ASC`); pass them via
+  `initial.attachedItems`.
+- `mynclex/lib/bank/list-view.tsx` — `BankRow` gains
+  `trend_title: string | null`. `BrowseRow` renders a
+  `bank-badge bank-badge-trend` chip showing `Trend · {title}`
+  on linked rows.
+- `mynclex/app/(app)/admin/bank/page.tsx` + tutor twin —
+  select-query extended with the FK-join
+  `trend:nclex_trend_datasets(title)` (admin) /
+  `trend:nclex_tutor_trend_datasets(title)` (tutor); flat
+  `trend_title` computed in the mapping before passing to
+  `BankListView`.
+- `mynclex/db/schema.sql` — appended ALTER TABLE + indexes in
+  a dated 2026-04-24 section. Function bodies are NOT mirrored
+  into schema.sql; the migration file is the authoritative
+  source for PL/pgSQL definitions.
+- `mynclex/db/rls.sql` — dated comment block noting no new
+  policies needed.
+- `mynclex/db/seed-trends-dev.sql` — appended `NCLEX_MCQ_91001`
+  + `NCLEX_MAT_91001` attached to the demo dataset
+  `NCLEX_TRD_00001`.
+- `mynclex/app/dashboards.css` — appended `.tr-q-nav-*` +
+  `.tr-q-pane-*` + `.bank-badge-trend` block (~150 lines).
+
+### Files NOT modified (explicitly)
+
+- `mynclex/lib/bank/editors/` + `mynclex/lib/bank/parsers/` —
+  the 9 per-type editors and their parsers reused verbatim.
+- `mynclex/lib/bank/question-authoring-panel.tsx` — stays as-is;
+  Trend uses existing `standalone` mode.
+- `mynclex/lib/bank/case-study/**` — reference pattern only.
+- The standalone bank editor pages (`/admin/bank` focus mode,
+  `/admin/bank/new`) — "Attach trend" dropdown is deferred to
+  1.12c per the handoff.
+- `mynclex/docs/product-plan/bank.md` — trend section still
+  reflects the pre-revision shape. 1.12c will revise.
+
+### Architectural notes worth remembering
+
+- **Reused `initialToParsedItem` across three slices now.**
+  Standalone bank (parser in actions.ts), case-child save
+  (1.11b), trend-child save (1.12b). The helper's three-way
+  drift-trap comment at the top of the file still holds — any
+  per-type shape change needs checking against all three paths.
+- **Cross-boundary import.** `lib/bank/trend/actions.ts` imports
+  `initialToParsedItem` from `app/(app)/admin/bank/initial-to-parsed.ts`
+  — the same backwards-dependency case-study/actions.ts
+  established in 1.11b. Accepted; a future lift to a neutral
+  `lib/bank/` module would clean this up across both wrappers at
+  once.
+- **FK-join on Supabase** for the bank-list badge uses the alias
+  syntax `trend:nclex_trend_datasets(title)`. Shape at runtime:
+  `{trend: {title} | null}`. Row mapping extracts to flat
+  `trend_title` before passing into the shared `BankListView`.
+
+### Divergences / drift points encountered
+
+1. **Handoff mentions `lib/bank/case-study/question-nav.tsx` as
+   the component to mirror.** That file doesn't exist — case-study's
+   `QuestionNavigator` is an inline function at
+   `lib/bank/case-study/editor.tsx:1072`. Mirrored that shape
+   into `lib/bank/trend/question-nav.tsx` (new standalone file).
+2. **`QuestionAuthoringPanel` key management.** Case-study uses
+   `key={activeSlot}` to force remount when switching slots;
+   Trend does the same with `key={activeIndex ?? -1}` for
+   identical reasons — defaultValue-driven inputs inside the
+   panel pick up the active draft's fields on mount only.
+3. **Type-change inside an existing question.** Per the 1.11b
+   pattern, the panel disables the type select in edit mode so
+   content/correct shape can't drift. Trend inherits this — same
+   edit-mode gate. If the curator wants to change type, they
+   delete the question and add a new one.
+
+### Verified locally
+
+- `npx tsc --noEmit` — clean.
+- `npx eslint app lib` — clean (one warning fixed mid-slice:
+  unused `prev` in a `setActiveIndex` callback).
+- `npm run build` — clean. **25 routes**, same as 1.12a.
+  1.12b wires functionality into existing routes; no new ones.
+- Dev Supabase state: 2 columns + 2 indexes + 2 functions
+  added; seed dataset `NCLEX_TRD_00001` now has 2 attached
+  items (`NCLEX_MCQ_91001`, `NCLEX_MAT_91001`).
+- No browser test this session; Sam runs the dev worker.
+
+### Next session
+
+- **Slice 1.12c** — three pieces: (a) delete-with-attached-
+  questions confirmation dialog + two RPCs (detach-and-delete,
+  delete-everything), (b) validation panel mirroring 1.11c,
+  (c) bank-editor "Attach trend" dropdown (secondary authoring
+  path) + inline "Create new" link.
+- **Browser verification** — Sam's verification focus per the
+  handoff: add questions of varying types, switch pills to
+  confirm state preservation, delete a question, save, reload,
+  check persistence. Publish a dataset with a draft question
+  attached — should succeed (dataset-independent). Publish with
+  an attached question that has no stem — RPC should raise.
+- **`docs/product-plan/bank.md` sweep** — still reflects the
+  pre-revision trend shape. Revise during 1.12c after the
+  build has validated the schema.
+
+---
+
 ## Session — 2026-04-24 (Slice 1.12a — Trend dataset schema + editor)
 
 Slice 1.12a lands the dataset layer of the Trend wrapper. A curator

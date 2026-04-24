@@ -320,3 +320,13 @@ CREATE POLICY nclex_tutor_trend_datasets_superadmin ON nclex_tutor_trend_dataset
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- ─────────────────────────────────────────────────────────
+-- Slice 1.12b (2026-04-24) — trend-linked bank items
+-- Added nullable trend_id FK on nclex_bank_items and
+-- nclex_tutor_questions. No new RLS policies: the existing
+-- bank-item and tutor-question policies apply to trend-linked
+-- rows the same way they apply to standalone rows. This
+-- comment block exists to keep the audit trail complete.
+-- ─────────────────────────────────────────────────────────

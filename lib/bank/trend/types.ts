@@ -3,6 +3,13 @@
 // Shared type shapes for the Trend dataset editor + actions + list
 // page (Slice 1.12a). Trend-specific so lib/bank/types.ts stays
 // focused on item shapes.
+//
+// Slice 1.12b: TrendEditorInitial now carries `attachedItems` —
+// the full bank-item rows linked via `trend_id`. Child drafts for
+// the authoring pane derive from these via `loadChildDraft` in
+// `./child-draft.ts`.
+
+import type { FullBankRow } from '../list-view';
 
 // Surface discriminator. Duplicated from the bank actions file rather
 // than imported so this module stays standalone (the bank module
@@ -43,9 +50,14 @@ export interface TrendDatasetRow {
   updated_at:   string;
 }
 
-// Convenience bundle for the editor page: the dataset row alone in
-// 1.12a. Attached-question shapes ship in 1.12b and will extend this
-// interface with a `questions: ...` field.
+// Convenience bundle for the editor page: the dataset row + its
+// attached bank-item rows. `attachedItems` is always sorted by
+// `created_at ASC` so pill order is stable across reloads.
+// Extended in Slice 1.12b from the 1.12a shape (dataset only).
 export interface TrendEditorInitial {
-  datasetRow: TrendDatasetRow;
+  datasetRow:    TrendDatasetRow;
+  attachedItems: FullBankRow[];
 }
+
+// Re-export for ergonomic imports from editor components.
+export type { TrendChildDraft } from './child-draft';

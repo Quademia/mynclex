@@ -371,3 +371,39 @@ CREATE TABLE nclex_tutor_trend_datasets (
 
 CREATE INDEX idx_nclex_tutor_trend_datasets_tutor
   ON nclex_tutor_trend_datasets(tutor_id);
+
+
+-- =========================================================
+-- Added 2026-04-24 in Slice 1.12b — trend_id FK on bank items
+-- =========================================================
+-- Nullable FK on both question tables pointing at the matching
+-- trend dataset tables. ON DELETE RESTRICT prevents bare deletes of
+-- datasets with attached questions (the 1.12c delete-confirmation
+-- flow handles the user-facing path). 99% of items stay NULL, so
+-- each column takes a partial index scoped to non-null rows.
+--
+-- No new RLS policies — the existing nclex_bank_items and
+-- nclex_tutor_questions policies already cover trend-linked rows.
+
+ALTER TABLE nclex_bank_items
+  ADD COLUMN trend_id TEXT
+  REFERENCES nclex_trend_datasets(trend_id) ON DELETE RESTRICT;
+
+ALTER TABLE nclex_tutor_questions
+  ADD COLUMN trend_id TEXT
+  REFERENCES nclex_tutor_trend_datasets(trend_id) ON DELETE RESTRICT;
+
+CREATE INDEX nclex_bank_items_trend_id_idx
+  ON nclex_bank_items(trend_id)
+  WHERE trend_id IS NOT NULL;
+
+CREATE INDEX nclex_tutor_questions_trend_id_idx
+  ON nclex_tutor_questions(trend_id)
+  WHERE trend_id IS NOT NULL;
+
+-- RPC functions are large and tracked by their migration files
+-- (mynclex/db/migrations/mynclex_trend_save_rpc_slice_1_12b.sql).
+-- The function bodies are NOT mirrored into schema.sql to keep the
+-- schema file's focus on tables + indexes + constraints. The
+-- migrations folder is the authoritative source for PL/pgSQL
+-- definitions; schema.sql is a shape reference.

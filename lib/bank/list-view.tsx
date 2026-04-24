@@ -47,6 +47,10 @@ export interface BankRow {
   body_system: string | null;
   tags: string[] | null;
   created_at: string;
+  // Slice 1.12b — trend-linked badge. Populated by the admin/tutor
+  // bank page via an FK join on nclex_bank_items.trend_id →
+  // nclex_trend_datasets.title. Null for standalone items.
+  trend_title: string | null;
 }
 
 export interface FullBankRow extends BankRow {
@@ -231,6 +235,14 @@ function BrowseRow({
         )}
         {row.is_free_sample && (
           <span className="bank-badge bank-badge-free">Free</span>
+        )}
+        {row.trend_title && (
+          <span
+            className="bank-badge bank-badge-trend"
+            title="Linked to a trend dataset"
+          >
+            Trend · {row.trend_title}
+          </span>
         )}
       </div>
       <div className="bank-row-stem">{row.stem}</div>
