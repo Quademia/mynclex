@@ -70,6 +70,24 @@ export const CASE_ID_PREFIX       = 'NCLEX_CS_';
 export const TUTOR_CASE_ID_PREFIX = 'NCLEX_TUT_CS_';
 
 // ─────────────────────────────────────────────────────────────
+// NGN Case Study — Clinical Judgment Measurement Model steps.
+// Each of the six slots in a case study targets one step.
+// Values must stay in sync with the CHECK constraint on
+// nclex_case_study_items.cjmm_step (schema.sql).
+// ─────────────────────────────────────────────────────────────
+
+export const CJMM_STEPS = [
+  'Recognise cues',
+  'Analyse cues',
+  'Prioritise',
+  'Generate solutions',
+  'Take action',
+  'Evaluate outcomes',
+] as const;
+
+export type CjmmStep = (typeof CJMM_STEPS)[number];
+
+// ─────────────────────────────────────────────────────────────
 // NCLEX Client Needs categories + subcategories.
 // Source: NCSBN 2023 NCLEX-RN Test Plan.
 // ─────────────────────────────────────────────────────────────

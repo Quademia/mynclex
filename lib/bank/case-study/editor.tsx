@@ -40,12 +40,17 @@ import {
 import {
   BLOOM_LEVELS,
   BODY_SYSTEMS,
+  CJMM_STEPS,
   CLIENT_NEEDS_CATEGORIES,
   CLIENT_NEEDS_SUBCATEGORIES,
   DIFFICULTY_LEVELS,
   NURSING_SUBJECTS,
+  type CjmmStep,
   type ClientNeedsCategory,
 } from '@/lib/bank/classifications';
+import { emptyInitial, type BankFormInitial } from '@/lib/bank/form-shape';
+import { QuestionAuthoringPanel } from '@/lib/bank/question-authoring-panel';
+import { parseSlotFormData } from '@/app/(app)/admin/bank/slot-parser';
 import {
   deleteCaseAction,
   updateCaseAction,
@@ -150,6 +155,34 @@ export function CaseStudyEditor({ surface, initial }: Props) {
   const [casePending, startCaseTransition] = useTransition();
 
   function onSaveCase(fd: FormData) {
+    // Snapshot the active slot's in-flight edits before submitting
+    // so the save captures what the curator was typing. Inactive
+    // slots are already cached in slotDrafts from previous slot-switch
+    // snapshots (or from initial load).
+    let drafts = slotDrafts;
+    const prevActive = activeSlot;
+    if (prevActive !== null && slotFormRef.current && slotDrafts[prevActive]) {
+      const slotFd = new FormData(slotFormRef.current);
+      const snapshot = parseSlotFormData(
+        slotFd,
+        `q${prevActive + 1}_`,
+        slotDrafts[prevActive]!,
+      );
+      drafts = [...slotDrafts];
+      drafts[prevActive] = snapshot;
+      setSlotDrafts(drafts);
+    }
+
+    // Serialise the six slot drafts into slots_json so the server
+    // action can feed them to the transactional RPC. Every position
+    // 1..6 is present in the array; empty slots carry initial=null.
+    const slotsPayload = drafts.map((draft, i) => ({
+      position:  i + 1,
+      cjmm_step: slotCjmm[i],
+      initial:   draft,
+    }));
+    fd.set('slots_json', JSON.stringify(slotsPayload));
+
     startCaseTransition(async () => {
       const res = await updateCaseAction(fd);
       // Action either redirected (res === undefined) or returned an
@@ -269,6 +302,74 @@ export function CaseStudyEditor({ surface, initial }: Props) {
     category && (CLIENT_NEEDS_CATEGORIES as readonly string[]).includes(category)
       ? CLIENT_NEEDS_SUBCATEGORIES[category as ClientNeedsCategory]
       : [];
+
+  // ── Slot state (Slice 1.11b) ───────────────────────────────────
+  // Six parallel arrays indexed 0-5 for Q1-Q6. An empty slot has a
+  // null draft + null cjmm_step + null item_id. When the curator
+  // clicks an empty pill we lazily seed a fresh `emptyInitial()`
+  // draft and open it. Phase 3.8 adds snapshot-on-switch so edits
+  // survive slot changes; until then switching slots discards
+  // in-flight edits (acceptable for the internal checkpoint, not
+  // for the committed slice).
+  const [slotDrafts, setSlotDrafts] = useState<(BankFormInitial | null)[]>(() =>
+    initial.slots.map((s) => s.initial),
+  );
+  const [slotCjmm, setSlotCjmm] = useState<(CjmmStep | null)[]>(() =>
+    initial.slots.map((s) => s.cjmm_step),
+  );
+  const [activeSlot, setActiveSlot] = useState<number | null>(null);
+
+  // Ref to the right-pane slot form. `new FormData(slotFormRef.current)`
+  // on slot-switch snapshots the active panel's prefixed fields so
+  // parseSlotFormData can rebuild a BankFormInitial draft. The form
+  // never submits natively — onSubmit is preventDefault'd; the case
+  // editor's save flow (Phase 4) will orchestrate slots separately.
+  const slotFormRef = useRef<HTMLFormElement | null>(null);
+
+  function onSelectSlot(idx: number) {
+    const prevActive = activeSlot;
+    // Snapshot the outgoing slot's in-flight edits + seed the incoming
+    // slot's empty draft in one state update so React's batching sees
+    // both mutations atomically.
+    setSlotDrafts((prev) => {
+      let next = prev;
+
+      // Snapshot outgoing slot (if any). Read formRef here rather
+      // than at the call site so the updater is idempotent if React
+      // retries it under concurrent mode.
+      if (prevActive !== null && prev[prevActive] && slotFormRef.current) {
+        const fd = new FormData(slotFormRef.current);
+        const snapshot = parseSlotFormData(
+          fd,
+          `q${prevActive + 1}_`,
+          prev[prevActive]!,
+        );
+        next = [...next];
+        next[prevActive] = snapshot;
+      }
+
+      // Lazy-seed the incoming slot if the curator clicked "+" on an
+      // unauthored slot.
+      if (next[idx] === null) {
+        if (next === prev) next = [...next];
+        next[idx] = emptyInitial();
+      }
+
+      return next;
+    });
+    setActiveSlot(idx);
+  }
+
+  function onCjmmChange(idx: number, step: CjmmStep | null) {
+    setSlotCjmm((prev) => {
+      const next = [...prev];
+      next[idx] = step;
+      return next;
+    });
+  }
+
+  const activeSlotDraft = activeSlot !== null ? slotDrafts[activeSlot] : null;
+  const activeCjmm      = activeSlot !== null ? slotCjmm[activeSlot]   : null;
 
   // ── Render ──────────────────────────────────────────────────────
   return (
@@ -574,22 +675,70 @@ export function CaseStudyEditor({ surface, initial }: Props) {
         />
 
         <div className="cs-split-right">
-          <QuestionNavigatorPlaceholder />
-          <div className="cs-q-body">
-            <div className="cs-q-placeholder">
-              <span className="cs-q-placeholder-tag">Slice 1.11b — placeholder</span>
-              <h4>The active question&apos;s editor lives here</h4>
-              <p>
-                Each Q1–Q6 pill selects which question is active. The selected
-                question mounts the existing per-type editor (MCQ / SATA /
-                Matrix / Bow-tie / Cloze / Highlight / Drag-drop / TF / Select N)
-                in nested mode inside this pane.
-              </p>
-              <p style={{ marginTop: 10 }}>
-                Above the editor: CJMM step dropdown + question-type picker.
-              </p>
+          <QuestionNavigator
+            drafts={slotDrafts}
+            cjmm={slotCjmm}
+            activeSlot={activeSlot}
+            onSelect={onSelectSlot}
+          />
+          {activeSlot !== null && activeSlotDraft ? (
+            // Right-pane slot form. Wraps the CJMM dropdown + the
+            // QuestionAuthoringPanel so `new FormData(slotFormRef.current)`
+            // captures every prefixed field on slot-switch. Native submit
+            // is prevented — the case editor save flow (Phase 4) will
+            // orchestrate slot persistence separately.
+            <form
+              ref={slotFormRef}
+              id="cs-slot-form"
+              className="cs-q-body"
+              onSubmit={(e) => e.preventDefault()}
+            >
+              <div className="cs-q-meta">
+                <label htmlFor={`cs-q-cjmm-${activeSlot}`}>
+                  CJMM step for Q{activeSlot + 1}
+                </label>
+                <select
+                  id={`cs-q-cjmm-${activeSlot}`}
+                  name={`q${activeSlot + 1}_cjmm_step`}
+                  value={activeCjmm ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    onCjmmChange(
+                      activeSlot,
+                      v ? (v as CjmmStep) : null,
+                    );
+                  }}
+                >
+                  <option value="">— Select CJMM step —</option>
+                  {CJMM_STEPS.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* `key={activeSlot}` forces remount when switching slots —
+                  the previous slot's live edits have been snapshotted
+                  into slotDrafts[prev] by onSelectSlot, so the remount
+                  is seeded from the latest draft for the incoming slot. */}
+              <QuestionAuthoringPanel
+                key={activeSlot}
+                mode="case-child"
+                fieldPrefix={`q${activeSlot + 1}_`}
+                initial={activeSlotDraft}
+              />
+            </form>
+          ) : (
+            <div className="cs-q-body">
+              <div className="cs-q-empty">
+                <h4>Pick a slot above to start authoring</h4>
+                <p>
+                  Each case study carries up to six questions. Click Q1…Q6 to
+                  open its editor in this pane. Q1 usually tests <em>Recognise
+                  cues</em>; later positions follow the CJMM sequence.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -675,19 +824,56 @@ function ActiveTabEditor({ surface, case_id, tab, draft, onDraftChange }: Active
 }
 
 // ─────────────────────────────────────────────────────────────
-// QuestionNavigatorPlaceholder — visual stub for Slice 1.11b.
-// Renders the Q1-Q6 pill strip with all pills in the empty state so
-// curators see the shape of what's coming next. All non-interactive.
+// QuestionNavigator — Q1-Q6 pill strip (Slice 1.11b).
+// Empty pills show a "+" affordance; filled pills show the question
+// type and CJMM step on two lines. The active pill is highlighted.
+// Clicking a pill selects that slot — for empty pills the parent
+// seeds a fresh draft before activating.
 // ─────────────────────────────────────────────────────────────
 
-function QuestionNavigatorPlaceholder() {
+function QuestionNavigator({
+  drafts,
+  cjmm,
+  activeSlot,
+  onSelect,
+}: {
+  drafts:     (BankFormInitial | null)[];
+  cjmm:       (CjmmStep | null)[];
+  activeSlot: number | null;
+  onSelect:   (idx: number) => void;
+}) {
   return (
-    <div className="cs-q-nav" aria-label="Question navigator (Slice 1.11b placeholder)">
-      {[1, 2, 3, 4, 5, 6].map((n) => (
-        <div key={n} className="cs-q-nav-pill empty">
-          <span className="cs-q-num">Q{n} +</span>
-        </div>
-      ))}
+    <div className="cs-q-nav" aria-label="Case question navigator">
+      {[0, 1, 2, 3, 4, 5].map((idx) => {
+        const draft  = drafts[idx];
+        const step   = cjmm[idx];
+        const filled = draft !== null;
+        const active = activeSlot === idx;
+        const cls = [
+          'cs-q-nav-pill',
+          filled ? 'filled' : 'empty',
+          active ? 'active' : '',
+        ].filter(Boolean).join(' ');
+        return (
+          <button
+            key={idx}
+            type="button"
+            className={cls}
+            onClick={() => onSelect(idx)}
+            aria-pressed={active}
+          >
+            <span className="cs-q-num">Q{idx + 1}</span>
+            {filled ? (
+              <span className="cs-q-meta-line">
+                <span className="cs-q-type">{draft!.question_type}</span>
+                {step && <span className="cs-q-cjmm">· {step}</span>}
+              </span>
+            ) : (
+              <span className="cs-q-plus">+</span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

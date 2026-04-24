@@ -11,6 +11,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { CaseStudyEditor } from '@/lib/bank/case-study/editor';
+import { loadCaseSlots } from '@/lib/bank/case-study/slot-loader';
 import type {
   CaseStudyEditorInitial,
   CaseStudyRow,
@@ -42,7 +43,7 @@ export default async function TutorCaseEditorPage({ params }: PageProps) {
 
   if (!roles.includes('TUTOR')) redirect('/no-access');
 
-  const [caseRes, tabsRes] = await Promise.all([
+  const [caseRes, tabsRes, slots] = await Promise.all([
     supabase
       .from('nclex_tutor_case_studies')
       .select('*')
@@ -54,6 +55,7 @@ export default async function TutorCaseEditorPage({ params }: PageProps) {
       .select('*')
       .eq('case_id', case_id)
       .order('display_order', { ascending: true }),
+    loadCaseSlots(supabase, case_id, 'tutor'),
   ]);
 
   if (caseRes.error) {
@@ -69,6 +71,7 @@ export default async function TutorCaseEditorPage({ params }: PageProps) {
   const initial: CaseStudyEditorInitial = {
     caseRow: caseRes.data as CaseStudyRow,
     tabs: (tabsRes.data ?? []) as CaseStudyTabRow[],
+    slots,
   };
 
   return <CaseStudyEditor surface="tutor" initial={initial} />;

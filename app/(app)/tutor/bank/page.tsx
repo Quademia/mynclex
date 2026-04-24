@@ -70,13 +70,15 @@ export default async function TutorBankPage({
 
   // RLS on nclex_tutor_questions enforces tutor_id = auth.uid(), but
   // the explicit .eq() is belt-and-braces and makes the scope obvious
-  // to the reader.
+  // to the reader. parent_case_id IS NULL excludes case-linked child
+  // questions (Slice 1.11b) from the standalone browse pool.
   let query = supabase
     .from('nclex_tutor_questions')
     .select(
       'item_id, question_type, difficulty, stem, is_published, is_free_sample, client_needs_category, nursing_subject, body_system, tags, created_at',
     )
     .eq('tutor_id', user.id)
+    .is('parent_case_id', null)
     .order('item_id', { ascending: true })
     .limit(500);
 
@@ -92,7 +94,8 @@ export default async function TutorBankPage({
     supabase
       .from('nclex_tutor_questions')
       .select('*', { count: 'exact', head: true })
-      .eq('tutor_id', user.id),
+      .eq('tutor_id', user.id)
+      .is('parent_case_id', null),
   ]);
 
   const rows: BankRow[] = itemsRes.data ?? [];
@@ -110,6 +113,10 @@ export default async function TutorBankPage({
       .maybeSingle<FullBankRow>();
     if (fullErr || !full) {
       editLoadError = `Could not load ${editId}.`;
+    } else if (full.parent_case_id) {
+      // Case-linked child question: route to the case editor instead
+      // of opening the standalone form. Slice 1.11b non-negotiable.
+      redirect(`/tutor/bank/cases/${full.parent_case_id}?focus=${editId}`);
     } else {
       initial = rowToInitial(full);
     }

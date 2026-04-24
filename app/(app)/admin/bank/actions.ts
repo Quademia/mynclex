@@ -137,6 +137,13 @@ async function requireSurfaceAuth(surface: Surface) {
 // Parse the form payload into a normalized shape.
 // Validates required fields. Builds content + correct JSONB for the
 // chosen question type. Returns { ok:false, error } on bad input.
+//
+// DRIFT TRAP. This function has two sibling helpers in this folder
+// that must stay in lockstep:
+//   * ./slot-parser.ts       (parseSlotFormData — FormData → BankFormInitial)
+//   * ./initial-to-parsed.ts (initialToParsedItem — BankFormInitial → ParsedSlotInitial)
+// Adding a new per-type field here without updating the other two
+// silently drops it through the case editor's slot-switch and save.
 // ─────────────────────────────────────────────────────────────
 
 interface ParsedItem {

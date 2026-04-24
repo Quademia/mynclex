@@ -27,6 +27,7 @@ import {
   BT_CENTRE_PRESETS,
   BT_RIGHT_PRESETS,
 } from '../classifications';
+import { makePrefixer } from '../field-prefix';
 
 type WingKey = 'left' | 'centre' | 'right';
 
@@ -44,6 +45,7 @@ export function BowtieEditor({
   initialCentreTokens,
   initialRightLabel,
   initialRightTokens,
+  fieldPrefix = '',
 }: {
   initialLeftLabel: string;
   initialLeftTokens: TokenRow[];
@@ -51,7 +53,11 @@ export function BowtieEditor({
   initialCentreTokens: TokenRow[];
   initialRightLabel: string;
   initialRightTokens: TokenRow[];
+  fieldPrefix?: string;
 }) {
+  // The top-level BowtieEditor doesn't emit any name= attributes of
+  // its own — WingPanel and HiddenSerialisers receive fieldPrefix and
+  // create their own prefixers.
   const [activeTab, setActiveTab] = useState<WingKey>('left');
 
   const [leftLabel, setLeftLabel]   = useState<string>(initialLeftLabel || 'Actions to take');
@@ -135,6 +141,7 @@ export function BowtieEditor({
           tokens={leftTokens}
           setTokens={setLeftTokens}
           useRadio={false}
+          fieldPrefix={fieldPrefix}
         />
 
         <WingPanel
@@ -149,6 +156,7 @@ export function BowtieEditor({
           tokens={centreTokens}
           setTokens={setCentreTokens}
           useRadio={true}
+          fieldPrefix={fieldPrefix}
         />
 
         <WingPanel
@@ -163,6 +171,7 @@ export function BowtieEditor({
           tokens={rightTokens}
           setTokens={setRightTokens}
           useRadio={false}
+          fieldPrefix={fieldPrefix}
         />
       </div>
 
@@ -172,6 +181,7 @@ export function BowtieEditor({
         leftLabel={leftLabel} leftTokens={leftTokens}
         centreLabel={centreLabel} centreTokens={centreTokens}
         rightLabel={rightLabel} rightTokens={rightTokens}
+        fieldPrefix={fieldPrefix}
       />
     </div>
   );
@@ -183,7 +193,7 @@ export function BowtieEditor({
 
 function WingPanel({
   wingKey, active, title, subtitle, presets, requiredCorrect,
-  label, setLabel, tokens, setTokens, useRadio,
+  label, setLabel, tokens, setTokens, useRadio, fieldPrefix,
 }: {
   wingKey: WingKey;
   active: boolean;
@@ -196,9 +206,11 @@ function WingPanel({
   tokens: TokenRow[];
   setTokens: (next: TokenRow[]) => void;
   useRadio: boolean;
+  fieldPrefix: string;
 }) {
   if (!active) return null;
 
+  const wingFn = makePrefixer(fieldPrefix);
   const tokenIdPrefix = wingKey === 'left' ? 'lt' : wingKey === 'centre' ? 'ct' : 'rt';
 
   function nextId(): string {
@@ -292,7 +304,7 @@ function WingPanel({
             <div className="bt-wing-token-correct">
               <input
                 type={useRadio ? 'radio' : 'checkbox'}
-                name={useRadio ? `bt_${wingKey}_correct_radio` : undefined}
+                name={useRadio ? wingFn(`bt_${wingKey}_correct_radio`) : undefined}
                 checked={tk.correct}
                 onChange={() => toggleCorrect(idx)}
                 title="Mark as correct"
@@ -391,43 +403,46 @@ function HiddenSerialisers({
   leftLabel, leftTokens,
   centreLabel, centreTokens,
   rightLabel, rightTokens,
+  fieldPrefix,
 }: {
   leftLabel: string; leftTokens: TokenRow[];
   centreLabel: string; centreTokens: TokenRow[];
   rightLabel: string; rightTokens: TokenRow[];
+  fieldPrefix: string;
 }) {
+  const fn = makePrefixer(fieldPrefix);
   // Centre uses a single radio value; wings use repeated checkbox values.
   const centreCorrect = centreTokens.find((t) => t.correct)?.id ?? '';
 
   return (
     <>
-      <input type="hidden" name="bowtie_left_label" value={leftLabel} />
+      <input type="hidden" name={fn('bowtie_left_label')} value={leftLabel} />
       {leftTokens.map((t) => (
         <Fragment key={`lhid-${t.id}`}>
-          <input type="hidden" name="bowtie_left_token_id" value={t.id} />
-          <input type="hidden" name="bowtie_left_token_text" value={t.text} />
-          <input type="hidden" name="bowtie_left_token_feedback" value={t.feedback} />
-          {t.correct && <input type="hidden" name="bowtie_left_correct" value={t.id} />}
+          <input type="hidden" name={fn('bowtie_left_token_id')} value={t.id} />
+          <input type="hidden" name={fn('bowtie_left_token_text')} value={t.text} />
+          <input type="hidden" name={fn('bowtie_left_token_feedback')} value={t.feedback} />
+          {t.correct && <input type="hidden" name={fn('bowtie_left_correct')} value={t.id} />}
         </Fragment>
       ))}
 
-      <input type="hidden" name="bowtie_centre_label" value={centreLabel} />
+      <input type="hidden" name={fn('bowtie_centre_label')} value={centreLabel} />
       {centreTokens.map((t) => (
         <Fragment key={`chid-${t.id}`}>
-          <input type="hidden" name="bowtie_centre_token_id" value={t.id} />
-          <input type="hidden" name="bowtie_centre_token_text" value={t.text} />
-          <input type="hidden" name="bowtie_centre_token_feedback" value={t.feedback} />
+          <input type="hidden" name={fn('bowtie_centre_token_id')} value={t.id} />
+          <input type="hidden" name={fn('bowtie_centre_token_text')} value={t.text} />
+          <input type="hidden" name={fn('bowtie_centre_token_feedback')} value={t.feedback} />
         </Fragment>
       ))}
-      <input type="hidden" name="bowtie_centre_correct" value={centreCorrect} />
+      <input type="hidden" name={fn('bowtie_centre_correct')} value={centreCorrect} />
 
-      <input type="hidden" name="bowtie_right_label" value={rightLabel} />
+      <input type="hidden" name={fn('bowtie_right_label')} value={rightLabel} />
       {rightTokens.map((t) => (
         <Fragment key={`rhid-${t.id}`}>
-          <input type="hidden" name="bowtie_right_token_id" value={t.id} />
-          <input type="hidden" name="bowtie_right_token_text" value={t.text} />
-          <input type="hidden" name="bowtie_right_token_feedback" value={t.feedback} />
-          {t.correct && <input type="hidden" name="bowtie_right_correct" value={t.id} />}
+          <input type="hidden" name={fn('bowtie_right_token_id')} value={t.id} />
+          <input type="hidden" name={fn('bowtie_right_token_text')} value={t.text} />
+          <input type="hidden" name={fn('bowtie_right_token_feedback')} value={t.feedback} />
+          {t.correct && <input type="hidden" name={fn('bowtie_right_correct')} value={t.id} />}
         </Fragment>
       ))}
     </>

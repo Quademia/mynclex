@@ -34,7 +34,11 @@ import {
   DIFFICULTY_LEVELS,
   CASE_ID_PREFIX,
   TUTOR_CASE_ID_PREFIX,
+  CJMM_STEPS,
+  type CjmmStep,
 } from '@/lib/bank/classifications';
+import type { BankFormInitial } from '@/lib/bank/form-shape';
+import { initialToParsedItem } from '@/app/(app)/admin/bank/initial-to-parsed';
 import {
   isBuiltIn,
   isCustomTabKey,
@@ -218,6 +222,15 @@ export async function createCaseAction(formData: FormData): Promise<ActionResult
   redirect(`${cfg.baseUrl}/${case_id}`);
 }
 
+// Shape of each entry in the client-sent slots_json array. The editor
+// serialises its slotDrafts (one BankFormInitial per slot, or null
+// for empty) + slotCjmm into this structure before submit.
+interface SlotPayloadFromClient {
+  position:  number;                  // 1-6
+  cjmm_step: string | null;
+  initial:   BankFormInitial | null;  // null = empty slot
+}
+
 export async function updateCaseAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
   const { supabase } = await requireCaseCurator(surface);
@@ -225,16 +238,14 @@ export async function updateCaseAction(formData: FormData): Promise<ActionResult
   const case_id = String(formData.get('case_id') ?? '').trim();
   if (!case_id) return { ok: false, error: 'Missing case_id.' };
 
+  // ── Build case_patch JSONB from the left-hand form fields ────
   const title = String(formData.get('title') ?? '').trim();
   if (!title) return { ok: false, error: 'Title is required.' };
-
-  const scenario_summary = String(formData.get('scenario_summary') ?? '').trim() || null;
 
   const client_needs_category_raw = String(formData.get('client_needs_category') ?? '').trim();
   if (client_needs_category_raw && !VALID_CATEGORIES.has(client_needs_category_raw)) {
     return { ok: false, error: 'Invalid client needs category.' };
   }
-  const client_needs_category = client_needs_category_raw || null;
 
   const difficultyRaw = String(formData.get('difficulty') ?? '').trim();
   const difficulty = difficultyRaw && VALID_DIFFICULTIES.has(difficultyRaw) ? difficultyRaw : null;
@@ -242,37 +253,115 @@ export async function updateCaseAction(formData: FormData): Promise<ActionResult
   const tagsRaw = String(formData.get('tags') ?? '');
   const tags = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean);
 
-  const cfg = surfaceConfig(surface);
+  const casePatch = {
+    title,
+    scenario_summary:         String(formData.get('scenario_summary') ?? '').trim() || null,
+    client_needs_category:    client_needs_category_raw || null,
+    client_needs_subcategory: String(formData.get('client_needs_subcategory') ?? '').trim() || null,
+    nursing_subject:          String(formData.get('nursing_subject') ?? '').trim() || null,
+    body_system:              String(formData.get('body_system') ?? '').trim() || null,
+    topic:                    String(formData.get('topic') ?? '').trim() || null,
+    subtopic:                 String(formData.get('subtopic') ?? '').trim() || null,
+    difficulty,
+    tags,
+    is_free_sample:     formData.get('is_free_sample') === 'on',
+    is_builder_visible: formData.get('is_builder_visible') !== 'off',
+    is_published:       formData.get('is_published') === 'on',
+  };
 
-  const { error } = await supabase
-    .from(cfg.caseTable)
-    .update({
-      title,
-      scenario_summary,
-      client_needs_category,
-      client_needs_subcategory:
-        String(formData.get('client_needs_subcategory') ?? '').trim() || null,
-      nursing_subject:
-        String(formData.get('nursing_subject') ?? '').trim() || null,
-      body_system:
-        String(formData.get('body_system') ?? '').trim() || null,
-      topic:
-        String(formData.get('topic') ?? '').trim() || null,
-      subtopic:
-        String(formData.get('subtopic') ?? '').trim() || null,
-      difficulty,
-      tags,
-      is_free_sample:     formData.get('is_free_sample') === 'on',
-      is_builder_visible: formData.get('is_builder_visible') !== 'off', // default true
-      is_published:       formData.get('is_published') === 'on',
-      updated_at:         new Date().toISOString(),
-    })
-    .eq('case_id', case_id);
-
-  if (error) {
-    return { ok: false, error: `Update failed: ${error.message}` };
+  // ── Parse the slots payload the editor stashed as slots_json ─
+  // Empty cases (no Q slots ever opened) still submit a 6-element
+  // array with every `initial` null — keeps the RPC's iteration
+  // uniform. Missing field → treat as empty case.
+  const slotsJsonRaw = String(formData.get('slots_json') ?? '[]');
+  let slotsPayload: SlotPayloadFromClient[];
+  try {
+    const parsed = JSON.parse(slotsJsonRaw);
+    if (!Array.isArray(parsed)) throw new Error('slots_json is not an array');
+    slotsPayload = parsed as SlotPayloadFromClient[];
+  } catch (e) {
+    return {
+      ok: false,
+      error: `Invalid slots_json: ${e instanceof Error ? e.message : String(e)}`,
+    };
   }
 
+  // Validate cjmm_step values. Null is allowed (editor shows
+  // placeholder); any non-null must be one of the CJMM steps.
+  const validCjmm = new Set<string>(CJMM_STEPS);
+  for (const s of slotsPayload) {
+    if (s.cjmm_step !== null && !validCjmm.has(s.cjmm_step)) {
+      return { ok: false, error: `Invalid CJMM step at position ${s.position}: ${s.cjmm_step}` };
+    }
+    if (typeof s.position !== 'number' || s.position < 1 || s.position > 6) {
+      return { ok: false, error: `Invalid slot position: ${s.position}` };
+    }
+  }
+
+  // Validate each populated slot via initialToParsedItem — same
+  // rules as standalone bank create/update.
+  const slotsForRpc = slotsPayload.map((s) => {
+    if (s.initial === null) {
+      return {
+        position:  s.position,
+        cjmm_step: s.cjmm_step,
+        initial:   null,
+      };
+    }
+    const parsed = initialToParsedItem(s.initial);
+    if (!parsed.ok) {
+      return { __error: `Q${s.position}: ${parsed.error}` };
+    }
+    return {
+      position:  s.position,
+      cjmm_step: s.cjmm_step as CjmmStep | null,
+      initial:   parsed.item,
+    };
+  });
+
+  const firstError = slotsForRpc.find(
+    (s): s is { __error: string } => '__error' in s,
+  );
+  if (firstError) {
+    return { ok: false, error: firstError.__error };
+  }
+
+  // Guard: if the case is being published, all 6 slots must be
+  // populated. The RPC re-validates this server-side — the early
+  // check here just produces a friendlier error for the curator.
+  if (casePatch.is_published) {
+    const missing = slotsForRpc.filter(
+      (s) => !('__error' in s) && (s as { initial: unknown }).initial === null,
+    );
+    if (missing.length > 0) {
+      return {
+        ok: false,
+        error:
+          `Cannot publish: ${missing.length} of 6 slots still empty. ` +
+          `Fill all six questions before ticking Published.`,
+      };
+    }
+  }
+
+  // ── Call the transactional RPC ──────────────────────────────
+  const { data, error } = await supabase.rpc('nclex_save_case_with_children', {
+    p_surface:    surface,
+    p_case_id:    case_id,
+    p_case_patch: casePatch,
+    p_slots:      slotsForRpc,
+  });
+
+  if (error) {
+    return { ok: false, error: `Save failed: ${error.message}` };
+  }
+  // The RPC returns { ok: true, case_id, slots_saved } on success.
+  // Any failure path inside the function RAISEs, which surfaces via
+  // `error` above and triggers a transaction rollback.
+  if (!data || typeof data !== 'object' || !('ok' in data)) {
+    return { ok: false, error: 'RPC returned an unexpected shape.' };
+  }
+
+  const cfg = surfaceConfig(surface);
   revalidatePath(`${cfg.baseUrl}/${case_id}`);
   redirect(`${cfg.baseUrl}/${case_id}?saved=1`);
 }

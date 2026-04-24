@@ -84,12 +84,17 @@ export default async function AdminBankPage({
   };
   const preservedFilterQuery = buildFilterQueryString(filters);
 
-  // Build Supabase query with any active filters.
+  // Build Supabase query with any active filters. parent_case_id IS
+  // NULL excludes case-linked child questions (Slice 1.11b) from the
+  // standalone browse pool — they're editable only via the case
+  // editor so listing them here would dead-end the curator's edit
+  // click.
   let query = supabase
     .from('nclex_bank_items')
     .select(
       'item_id, question_type, difficulty, stem, is_published, is_free_sample, client_needs_category, nursing_subject, body_system, tags, created_at',
     )
+    .is('parent_case_id', null)
     .order('item_id', { ascending: true })
     .limit(500);
 
@@ -104,7 +109,8 @@ export default async function AdminBankPage({
     query,
     supabase
       .from('nclex_bank_items')
-      .select('*', { count: 'exact', head: true }),
+      .select('*', { count: 'exact', head: true })
+      .is('parent_case_id', null),
   ]);
 
   const rows: BankRow[] = itemsRes.data ?? [];
@@ -122,6 +128,10 @@ export default async function AdminBankPage({
       .maybeSingle<FullBankRow>();
     if (fullErr || !full) {
       editLoadError = `Could not load ${editId}.`;
+    } else if (full.parent_case_id) {
+      // Case-linked child question: route to the case editor instead
+      // of opening the standalone form. Slice 1.11b non-negotiable.
+      redirect(`/admin/bank/cases/${full.parent_case_id}?focus=${editId}`);
     } else {
       initial = rowToInitial(full);
     }

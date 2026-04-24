@@ -38,6 +38,7 @@ import {
   DD_TOKEN_POOL_MAX_OVER_SLOTS,
   DD_TOKEN_POOL_ABSOLUTE_MAX,
 } from '../classifications';
+import { makePrefixer } from '../field-prefix';
 
 type Subtype = 'ORDERED' | 'SENTENCE';
 
@@ -113,6 +114,7 @@ interface DragDropEditorProps {
   initialSlots: SlotRow[];
   initialTokens: TokenRow[];
   initialStem: string;
+  fieldPrefix?: string;
 }
 
 export function DragDropEditor({
@@ -120,7 +122,9 @@ export function DragDropEditor({
   initialSlots,
   initialTokens,
   initialStem,
+  fieldPrefix = '',
 }: DragDropEditorProps) {
+  const fn = makePrefixer(fieldPrefix);
   const [subtype, setSubtype] = useState<Subtype>(initialSubtype);
   const [slots, setSlots]     = useState<SlotRow[]>(() => initialSlots);
   const [tokens, setTokens]   = useState<TokenRow[]>(() => initialTokens);
@@ -453,10 +457,10 @@ export function DragDropEditor({
                 </div>
 
                 {/* Hidden serialisers for this slot — all slots, incl. orphans */}
-                <input type="hidden" name="dd_slot_id" value={slot.id} />
-                <input type="hidden" name="dd_slot_target_text" value={slot.target_text} />
-                <input type="hidden" name="dd_slot_assigned_token_id" value={slot.assigned_token_id} />
-                <input type="hidden" name="dd_slot_feedback" value={slot.feedback} />
+                <input type="hidden" name={fn('dd_slot_id')} value={slot.id} />
+                <input type="hidden" name={fn('dd_slot_target_text')} value={slot.target_text} />
+                <input type="hidden" name={fn('dd_slot_assigned_token_id')} value={slot.assigned_token_id} />
+                <input type="hidden" name={fn('dd_slot_feedback')} value={slot.feedback} />
               </Fragment>
             );
           })
@@ -498,8 +502,8 @@ export function DragDropEditor({
                 ×
               </button>
             </div>
-            <input type="hidden" name="dd_token_id" value={token.id} />
-            <input type="hidden" name="dd_token_text" value={token.text} />
+            <input type="hidden" name={fn('dd_token_id')} value={token.id} />
+            <input type="hidden" name={fn('dd_token_text')} value={token.text} />
           </Fragment>
         ))}
       </div>
@@ -521,7 +525,7 @@ export function DragDropEditor({
       </div>
 
       {/* Subtype serialiser */}
-      <input type="hidden" name="dd_subtype" value={subtype} />
+      <input type="hidden" name={fn('dd_subtype')} value={subtype} />
     </div>
   );
 }

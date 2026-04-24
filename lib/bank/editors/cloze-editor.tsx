@@ -29,6 +29,7 @@ import {
   CLOZE_MIN_CHOICES,
   CLOZE_MAX_CHOICES,
 } from '../classifications';
+import { makePrefixer } from '../field-prefix';
 
 interface ChoiceRow {
   id: string;
@@ -64,10 +65,15 @@ function parseStemMarkers(value: string): number[] {
 export function ClozeEditor({
   initialBlanks,
   initialStem,
+  fieldPrefix = '',
 }: {
   initialBlanks: BlankRow[];
   initialStem: string;
+  fieldPrefix?: string;
 }) {
+  // The top-level ClozeEditor doesn't emit any name= attributes of
+  // its own — BlankCard and HiddenSerialisers receive fieldPrefix and
+  // create their own prefixers.
   const [blanks, setBlanks] = useState<BlankRow[]>(() =>
     initialBlanks.length > 0
       ? initialBlanks
@@ -289,6 +295,7 @@ export function ClozeEditor({
               onChoiceText={(cid, text) => setChoiceText(b.id, cid, text)}
               onChoiceFeedback={(cid, fb) => setChoiceFeedback(b.id, cid, fb)}
               onCorrect={(cid) => setCorrect(b.id, cid)}
+              fieldPrefix={fieldPrefix}
             />
           );
         })}
@@ -304,6 +311,7 @@ export function ClozeEditor({
             onChoiceText={(cid, text) => setChoiceText(b.id, cid, text)}
             onChoiceFeedback={(cid, fb) => setChoiceFeedback(b.id, cid, fb)}
             onCorrect={(cid) => setCorrect(b.id, cid)}
+            fieldPrefix={fieldPrefix}
           />
         ))}
       </div>
@@ -311,7 +319,7 @@ export function ClozeEditor({
       {/* Hidden serialisers — every card (incl. orphans) so FormData
           round-trips if the user toggles orphan/active during editing.
           actions.ts filters out in_stem=false before calling the parser. */}
-      <HiddenSerialisers blanks={blanks} />
+      <HiddenSerialisers blanks={blanks} fieldPrefix={fieldPrefix} />
     </div>
   );
 }
@@ -381,6 +389,7 @@ function BlankCard({
   onChoiceText,
   onChoiceFeedback,
   onCorrect,
+  fieldPrefix,
 }: {
   blank: BlankRow;
   displayNumber: number | null;
@@ -390,7 +399,9 @@ function BlankCard({
   onChoiceText: (cid: string, text: string) => void;
   onChoiceFeedback: (cid: string, fb: string) => void;
   onCorrect: (cid: string) => void;
+  fieldPrefix: string;
 }) {
+  const fn = makePrefixer(fieldPrefix);
   const n = parseInt(blank.id.slice(1), 10);
   const title = isOrphan ? `Blank {${n}} — not in stem` : `Blank ${displayNumber ?? n}`;
   const choiceCounter = `${blank.choices.length} choice${blank.choices.length === 1 ? '' : 's'}`;
@@ -430,7 +441,7 @@ function BlankCard({
             <div className="bank-cz-choice-correct">
               <input
                 type="radio"
-                name={`cloze_correct_radio_${blank.id}`}
+                name={fn(`cloze_correct_radio_${blank.id}`)}
                 checked={c.id === blank.correct_id}
                 onChange={() => onCorrect(c.id)}
                 title="Mark as correct"
@@ -478,19 +489,20 @@ function BlankCard({
   );
 }
 
-function HiddenSerialisers({ blanks }: { blanks: BlankRow[] }) {
+function HiddenSerialisers({ blanks, fieldPrefix }: { blanks: BlankRow[]; fieldPrefix: string }) {
+  const fn = makePrefixer(fieldPrefix);
   return (
     <>
       {blanks.map((b) => (
         <Fragment key={`hid-${b.id}`}>
-          <input type="hidden" name="cloze_blank_id" value={b.id} />
-          <input type="hidden" name="cloze_blank_in_stem" value={String(b.in_stem)} />
-          <input type="hidden" name={`cloze_correct_${b.id}`} value={b.correct_id} />
+          <input type="hidden" name={fn('cloze_blank_id')} value={b.id} />
+          <input type="hidden" name={fn('cloze_blank_in_stem')} value={String(b.in_stem)} />
+          <input type="hidden" name={fn(`cloze_correct_${b.id}`)} value={b.correct_id} />
           {b.choices.map((c) => (
             <Fragment key={`hid-${b.id}-${c.id}`}>
-              <input type="hidden" name={`cloze_choice_id_${b.id}`} value={c.id} />
-              <input type="hidden" name={`cloze_choice_text_${b.id}`} value={c.text} />
-              <input type="hidden" name={`cloze_choice_feedback_${b.id}`} value={c.feedback} />
+              <input type="hidden" name={fn(`cloze_choice_id_${b.id}`)} value={c.id} />
+              <input type="hidden" name={fn(`cloze_choice_text_${b.id}`)} value={c.text} />
+              <input type="hidden" name={fn(`cloze_choice_feedback_${b.id}`)} value={c.feedback} />
             </Fragment>
           ))}
         </Fragment>

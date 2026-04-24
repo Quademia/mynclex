@@ -13,6 +13,7 @@ import {
   MAX_OPTIONS,
   DEFAULT_OPTIONS,
 } from '../classifications';
+import { makePrefixer } from '../field-prefix';
 
 interface OptionRow {
   id: string;
@@ -23,10 +24,13 @@ interface OptionRow {
 export function SataEditor({
   initialOptions,
   initialCorrectIds,
+  fieldPrefix = '',
 }: {
   initialOptions: OptionRow[];
   initialCorrectIds: string[];
+  fieldPrefix?: string;
 }) {
+  const fn = makePrefixer(fieldPrefix);
   const [options, setOptions] = useState<OptionRow[]>(() =>
     initialOptions.length > 0 ? initialOptions : defaultRows(),
   );
@@ -86,7 +90,7 @@ export function SataEditor({
           <div className="bank-option-correct">
             <input
               type="checkbox"
-              name="correct_id"
+              name={fn('correct_id')}
               value={opt.id}
               checked={correctIds.has(opt.id)}
               onChange={() => toggleCorrect(opt.id)}
@@ -97,7 +101,7 @@ export function SataEditor({
           <div className="bank-option-fields">
             <input
               type="text"
-              name="option_text"
+              name={fn('option_text')}
               value={opt.text}
               onChange={(e) => updateText(idx, e.target.value)}
               placeholder={`Option ${opt.id} text…`}
@@ -105,13 +109,13 @@ export function SataEditor({
             />
             <input
               type="text"
-              name="option_feedback"
+              name={fn('option_feedback')}
               value={opt.feedback}
               onChange={(e) => updateFeedback(idx, e.target.value)}
               placeholder="Per-option feedback (optional)…"
               className="bank-input bank-input--sm"
             />
-            <input type="hidden" name="option_id" value={opt.id} />
+            <input type="hidden" name={fn('option_id')} value={opt.id} />
           </div>
           <button
             type="button"

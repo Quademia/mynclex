@@ -64,6 +64,7 @@ import { BowtieEditor } from './editors/bowtie-editor';
 import { ClozeEditor } from './editors/cloze-editor';
 import { HighlightEditor } from './editors/highlight-editor';
 import { DragDropEditor } from './editors/drag-drop-editor';
+import { makePrefixer } from './field-prefix';
 import type { BankFormInitial } from './form-shape';
 
 export type PanelMode = 'standalone' | 'case-child';
@@ -84,11 +85,9 @@ export function QuestionAuthoringPanel({
   const [type, setType] = useState<QuestionType>(initial.question_type);
   const [category, setCategory] = useState<string>(initial.client_needs_category);
 
-  // Name-prefixing helper. Placed next to state so the rendering code
-  // stays a thin wrapper: `name={fn('stem')}` reads as `name="stem"`.
-  // Returns the original name when fieldPrefix is '' — zero behaviour
-  // change for standalone callers.
-  const fn = (name: string) => `${fieldPrefix}${name}`;
+  // Single canonical prefix helper (see lib/bank/field-prefix.ts).
+  // Standalone callers pass '' and `fn` is identity.
+  const fn = makePrefixer(fieldPrefix);
 
   const subcatOptions =
     category && (CLIENT_NEEDS_CATEGORIES as readonly string[]).includes(category)
@@ -117,6 +116,7 @@ export function QuestionAuthoringPanel({
             initialCorrectId={
               editorInheritsInitial ? initial.correct_ids[0] ?? '' : ''
             }
+            fieldPrefix={fieldPrefix}
           />
         );
       case 'TF':
@@ -133,6 +133,7 @@ export function QuestionAuthoringPanel({
             initialCorrectId={
               editorInheritsInitial ? initial.correct_ids[0] ?? '' : ''
             }
+            fieldPrefix={fieldPrefix}
           />
         );
       case 'SATA':
@@ -143,6 +144,7 @@ export function QuestionAuthoringPanel({
             initialCorrectIds={
               editorInheritsInitial ? initial.correct_ids : []
             }
+            fieldPrefix={fieldPrefix}
           />
         );
       case 'SELECT_N':
@@ -156,6 +158,7 @@ export function QuestionAuthoringPanel({
             initialSelectCount={
               editorInheritsInitial ? initial.select_count : 2
             }
+            fieldPrefix={fieldPrefix}
           />
         );
       case 'MATRIX':
@@ -166,6 +169,7 @@ export function QuestionAuthoringPanel({
             initialRows={editorInheritsInitial ? initial.matrix_rows : []}
             initialColumns={editorInheritsInitial ? initial.matrix_columns : []}
             initialCorrect={editorInheritsInitial ? initial.matrix_correct : {}}
+            fieldPrefix={fieldPrefix}
           />
         );
       case 'BOWTIE':
@@ -178,6 +182,7 @@ export function QuestionAuthoringPanel({
             initialCentreTokens={editorInheritsInitial ? initial.bowtie_centre_tokens : []}
             initialRightLabel={editorInheritsInitial ? initial.bowtie_right_label : 'Parameters to monitor'}
             initialRightTokens={editorInheritsInitial ? initial.bowtie_right_tokens : []}
+            fieldPrefix={fieldPrefix}
           />
         );
       case 'CLOZE':
@@ -186,6 +191,7 @@ export function QuestionAuthoringPanel({
             key="cloze"
             initialBlanks={editorInheritsInitial ? initial.cloze_blanks : []}
             initialStem={editorInheritsInitial ? initial.stem : ''}
+            fieldPrefix={fieldPrefix}
           />
         );
       case 'HIGHLIGHT':
@@ -194,6 +200,7 @@ export function QuestionAuthoringPanel({
             key="highlight"
             initialChunks={editorInheritsInitial ? initial.highlight_chunks : []}
             initialStem={editorInheritsInitial ? initial.stem : ''}
+            fieldPrefix={fieldPrefix}
           />
         );
       case 'DRAG_DROP':
@@ -212,6 +219,7 @@ export function QuestionAuthoringPanel({
                   ]
             }
             initialStem={editorInheritsInitial ? initial.stem : ''}
+            fieldPrefix={fieldPrefix}
           />
         );
     }

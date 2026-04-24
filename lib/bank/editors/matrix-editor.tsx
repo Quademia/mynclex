@@ -21,6 +21,7 @@ import {
   MIN_MATRIX_COLS,
   MAX_MATRIX_COLS,
 } from '../classifications';
+import { makePrefixer } from '../field-prefix';
 
 interface RowRow {
   id: string;
@@ -38,12 +39,15 @@ export function MatrixEditor({
   initialRows,
   initialColumns,
   initialCorrect,
+  fieldPrefix = '',
 }: {
   initialRowLabel: string;
   initialRows: RowRow[];
   initialColumns: ColRow[];
   initialCorrect: Record<string, string>;
+  fieldPrefix?: string;
 }) {
+  const fn = makePrefixer(fieldPrefix);
   const [rowLabel, setRowLabel] = useState<string>(
     initialRowLabel || '',
   );
@@ -150,7 +154,7 @@ export function MatrixEditor({
       </p>
 
       {/* Hidden input for the row-axis label */}
-      <input type="hidden" name="matrix_row_label" value={rowLabel} />
+      <input type="hidden" name={fn('matrix_row_label')} value={rowLabel} />
 
       <div className="bank-matrix-wrap">
         <table className="bank-matrix-table">
@@ -174,8 +178,8 @@ export function MatrixEditor({
                     placeholder={`Col ${cIdx + 1}`}
                     className="bank-matrix-col-input"
                   />
-                  <input type="hidden" name="matrix_col_id" value={col.id} />
-                  <input type="hidden" name="matrix_col_text" value={col.text} />
+                  <input type="hidden" name={fn('matrix_col_id')} value={col.id} />
+                  <input type="hidden" name={fn('matrix_col_text')} value={col.text} />
                   <button
                     type="button"
                     className="bank-matrix-col-remove"
@@ -202,8 +206,8 @@ export function MatrixEditor({
                       placeholder={`Row ${rIdx + 1} text…`}
                       className="bank-matrix-row-input"
                     />
-                    <input type="hidden" name="matrix_row_id" value={row.id} />
-                    <input type="hidden" name="matrix_row_text" value={row.text} />
+                    <input type="hidden" name={fn('matrix_row_id')} value={row.id} />
+                    <input type="hidden" name={fn('matrix_row_text')} value={row.text} />
                   </td>
                   {columns.map((col) => (
                     <td
@@ -212,7 +216,7 @@ export function MatrixEditor({
                     >
                       <input
                         type="radio"
-                        name={`matrix_correct_${row.id}`}
+                        name={fn(`matrix_correct_${row.id}`)}
                         value={col.id}
                         checked={correct[row.id] === col.id}
                         onChange={() => pickCorrect(row.id, col.id)}
@@ -239,7 +243,7 @@ export function MatrixEditor({
                     </label>
                     <input
                       type="text"
-                      name="matrix_row_feedback"
+                      name={fn('matrix_row_feedback')}
                       value={row.feedback}
                       onChange={(e) => updateRowFeedback(rIdx, e.target.value)}
                       placeholder="Leave blank to fall back to the overall rationale…"

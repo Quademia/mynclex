@@ -13,6 +13,7 @@ import {
   MAX_OPTIONS,
   DEFAULT_OPTIONS,
 } from '../classifications';
+import { makePrefixer } from '../field-prefix';
 
 interface OptionRow {
   id: string;
@@ -24,11 +25,14 @@ export function SelectNEditor({
   initialOptions,
   initialCorrectIds,
   initialSelectCount,
+  fieldPrefix = '',
 }: {
   initialOptions: OptionRow[];
   initialCorrectIds: string[];
   initialSelectCount: number;
+  fieldPrefix?: string;
 }) {
+  const fn = makePrefixer(fieldPrefix);
   const [options, setOptions] = useState<OptionRow[]>(() =>
     initialOptions.length > 0 ? initialOptions : defaultRows(),
   );
@@ -90,7 +94,7 @@ export function SelectNEditor({
             <div className="bank-option-correct">
               <input
                 type="checkbox"
-                name="correct_id"
+                name={fn('correct_id')}
                 value={opt.id}
                 checked={correctIds.has(opt.id)}
                 onChange={() => toggleCorrect(opt.id)}
@@ -101,7 +105,7 @@ export function SelectNEditor({
             <div className="bank-option-fields">
               <input
                 type="text"
-                name="option_text"
+                name={fn('option_text')}
                 value={opt.text}
                 onChange={(e) => updateText(idx, e.target.value)}
                 placeholder={`Option ${opt.id} text…`}
@@ -109,13 +113,13 @@ export function SelectNEditor({
               />
               <input
                 type="text"
-                name="option_feedback"
+                name={fn('option_feedback')}
                 value={opt.feedback}
                 onChange={(e) => updateFeedback(idx, e.target.value)}
                 placeholder="Per-option feedback (optional)…"
                 className="bank-input bank-input--sm"
               />
-              <input type="hidden" name="option_id" value={opt.id} />
+              <input type="hidden" name={fn('option_id')} value={opt.id} />
             </div>
             <button
               type="button"
@@ -134,7 +138,7 @@ export function SelectNEditor({
         <label htmlFor="select_count" className="bank-label">Select exactly *</label>
         <input
           id="select_count"
-          name="select_count"
+          name={fn('select_count')}
           type="number"
           min={1}
           max={options.length}

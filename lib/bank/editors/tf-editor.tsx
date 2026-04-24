@@ -8,6 +8,7 @@
 'use client';
 
 import { useState } from 'react';
+import { makePrefixer } from '../field-prefix';
 
 const TF_OPTIONS = [
   { id: 'A', text: 'True' },
@@ -17,10 +18,13 @@ const TF_OPTIONS = [
 export function TfEditor({
   initialFeedback,
   initialCorrectId,
+  fieldPrefix = '',
 }: {
   initialFeedback: Record<string, string>;
   initialCorrectId: string;
+  fieldPrefix?: string;
 }) {
+  const fn = makePrefixer(fieldPrefix);
   const [feedback, setFeedback] = useState<Record<string, string>>(() => ({
     A: initialFeedback.A ?? '',
     B: initialFeedback.B ?? '',
@@ -39,7 +43,7 @@ export function TfEditor({
           <div className="bank-option-correct">
             <input
               type="radio"
-              name="correct_id"
+              name={fn('correct_id')}
               value={opt.id}
               checked={correctId === opt.id}
               onChange={() => setCorrectId(opt.id)}
@@ -50,14 +54,14 @@ export function TfEditor({
           <div className="bank-option-fields">
             <input
               type="text"
-              name="option_text"
+              name={fn('option_text')}
               value={opt.text}
               readOnly
               className="bank-input"
             />
             <input
               type="text"
-              name="option_feedback"
+              name={fn('option_feedback')}
               value={feedback[opt.id] ?? ''}
               onChange={(e) =>
                 setFeedback({ ...feedback, [opt.id]: e.target.value })
@@ -65,7 +69,7 @@ export function TfEditor({
               placeholder="Per-option feedback (optional)…"
               className="bank-input bank-input--sm"
             />
-            <input type="hidden" name="option_id" value={opt.id} />
+            <input type="hidden" name={fn('option_id')} value={opt.id} />
           </div>
         </div>
       ))}

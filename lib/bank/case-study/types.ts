@@ -5,6 +5,8 @@
 // on bank-item shapes.
 
 import type { CustomShape } from './tab-types';
+import type { CjmmStep } from '../classifications';
+import type { BankFormInitial } from '../form-shape';
 
 // Surface discriminator. Duplicated from the bank actions file rather
 // than imported so this module stays standalone (the bank module
@@ -77,11 +79,25 @@ export interface CaseStudyTabRow {
   updated_at:    string;
 }
 
-// Convenience bundle for the editor page: the case + its tabs already
-// joined. The editor's `initial` prop uses this shape.
+// One of the six question slots on a case study (Slice 1.11b).
+// Position is fixed 1-6. An empty slot has item_id=null, cjmm_step=null,
+// initial=null. A filled slot has all three set — initial is the
+// BankFormInitial draft derived from the linked nclex_bank_items row
+// via rowToInitial().
+export interface CaseStudySlotRow {
+  position:  number;                // 1-6
+  item_id:   string | null;         // null until a child question is authored
+  cjmm_step: CjmmStep | null;
+  initial:   BankFormInitial | null;
+}
+
+// Convenience bundle for the editor page: the case + its tabs + its
+// six slot drafts already joined. The editor's `initial` prop uses
+// this shape. `slots` is always length 6, ordered by position ascending.
 export interface CaseStudyEditorInitial {
   caseRow: CaseStudyRow;
   tabs:    CaseStudyTabRow[];
+  slots:   CaseStudySlotRow[];
 }
 
 // visible_from bounds — 1..6 maps to the 6 question positions.

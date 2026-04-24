@@ -6,6 +6,211 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-24 (Slice 1.11b — Case Study child-question authoring)
+
+Slice 1.11b lands the right-half of the Case Study editor. A curator
+can now open a case at `/admin/bank/cases/[case_id]` (or the tutor
+twin), pick a Q1-Q6 pill to open a slot, assign its CJMM step, and
+author the full question via the shared `QuestionAuthoringPanel`.
+Save case runs as a single transaction via a new Postgres function —
+case header + six slot rows + six join rows land together or none
+do. Clicking "Save case" rolls up all six slot drafts, snapshots the
+active slot's in-flight FormData, and submits one payload.
+
+**Plan-doc decision 9 reversed.** `mynclex/docs/product-plan/slice-1.11-plan.md`
+still says case-linked items should carry `is_builder_visible = FALSE`.
+This slice inverts that — case-linked children are now
+`is_builder_visible = TRUE` and the standalone vs case-package split
+is drawn via `parent_case_id IS NULL` instead. Rationale: the old
+flag was conflating "is this content valid" with "can the student
+select it stand-alone" — two different questions. Future readers of
+the plan doc should trust this SESSIONS entry + the 1.11b handoff,
+not the plan doc line. Plan-doc cleanup deferred to next plan-doc
+pass.
+
+### Architectural decisions (confirmed before execution)
+
+1. **Prefix prop on per-type editors.** All nine editors in
+   `lib/bank/editors/` accept `fieldPrefix?: string = ''` and
+   produce prefixed `name=` attributes via a single canonical
+   helper — `mynclex/lib/bank/field-prefix.ts`'s `makePrefixer()`.
+   No prefix logic duplicated into individual editors. Standalone
+   callers pass `''` → identity function, zero behaviour change.
+2. **Typed drafts via parseSlotFormData.** New file at
+   `mynclex/app/(app)/admin/bank/slot-parser.ts` (adjacent to
+   `parseFormData` in `actions.ts` as an anti-drift measure).
+   Reads prefixed FormData → returns a `BankFormInitial`. Used by
+   the case editor to snapshot the active slot on slot-switch and
+   on save so in-flight edits survive unmount / remount.
+3. **Transactional save via single Postgres RPC.** First
+   multi-row atomic pattern in the repo — flagged as a new
+   pattern in the migration's header comment.
+4. **Case wrapper accordions untouched.** Left-half labels still
+   read "Content / Classification / Housekeeping" — same labels
+   as the new right-half panel's accordions. Accepted temporary;
+   rename pass is a later slice.
+5. **Per-type editors' stem DOM-ID kept.** Only one slot panel
+   mounts at a time, so `document.getElementById('bank-stem')` in
+   Cloze / Highlight / Drag-drop doesn't collide. If a future
+   slice needs multiple panels on-screen simultaneously, the rule
+   stays: stop and flag rather than silently rewrite stem access.
+
+### Files created
+
+- `mynclex/lib/bank/field-prefix.ts` — `makePrefixer()`, the one
+  prefix helper shared by panel + all nine editors.
+- `mynclex/lib/bank/question-authoring-panel.tsx` — (already in
+  Phase 2, now accepts mode + fieldPrefix as live props).
+- `mynclex/app/(app)/admin/bank/slot-parser.ts` — `parseSlotFormData`.
+  Marked as the inverse of `parseFormData`; drift-trap comment at
+  top of the file.
+- `mynclex/app/(app)/admin/bank/initial-to-parsed.ts` —
+  `initialToParsedItem`, converts a `BankFormInitial` draft to the
+  JSONB shape the RPC expects. Shares `parseByType` with
+  `parseFormData`, so validation stays consistent between
+  standalone bank saves and case-linked saves.
+- `mynclex/lib/bank/case-study/slot-loader.ts` — server-side loader
+  that reads the six join rows + the linked bank items for a case
+  and builds a `CaseStudySlotRow[]` via `rowToInitial`.
+- `mynclex/db/migrations/mynclex_parent_case_id_slice_1_11b.sql`
+  — Phase 1; adds `parent_case_id` + partial index to
+  `nclex_bank_items` and `nclex_tutor_questions`.
+- `mynclex/db/migrations/mynclex_case_save_rpc_slice_1_11b.sql`
+  — Phase 4; creates `nclex_save_case_with_children(surface, case_id,
+  case_patch, slots)` RPC. ~360 lines; branches admin / tutor
+  internally; generates item_ids for new slots; upserts case header
+  + question rows + join rows atomically; validates publish gate.
+- `mynclex/db/migrations/mynclex_case_study_items_rls_slice_1_11b.sql`
+  — Phase 5; enables RLS on both join tables and adds the four
+  policies (admin read-published + BANK_CURATE curate; tutor
+  owner-own + SUPER_ADMIN bypass).
+
+### Files modified
+
+- All nine per-type editors in `mynclex/lib/bank/editors/` — added
+  `fieldPrefix?: string = ''` prop, use `makePrefixer` helper.
+  Sub-components (WingPanel, HiddenSerialisers, BlankCard) pass
+  prefix through and create their own prefixer local.
+- `mynclex/lib/bank/question-authoring-panel.tsx` — uses
+  `makePrefixer` (dropped inline fn declaration); passes
+  `fieldPrefix` to every per-type editor it mounts.
+- `mynclex/lib/bank/classifications.ts` — added `CJMM_STEPS` + the
+  `CjmmStep` string-literal union. Kept in sync with the CHECK
+  constraint on `nclex_case_study_items.cjmm_step`.
+- `mynclex/lib/bank/case-study/types.ts` — added
+  `CaseStudySlotRow`; extended `CaseStudyEditorInitial` with a
+  `slots: CaseStudySlotRow[]` field (always length 6, indexed by
+  position 1-6).
+- `mynclex/lib/bank/case-study/editor.tsx` — replaced the 1.11a
+  placeholder right-half with a live `QuestionNavigator` +
+  CJMM-step `<select>` + `<QuestionAuthoringPanel mode="case-child"
+  fieldPrefix="q{N}_">`. Added `slotDrafts` / `slotCjmm` /
+  `activeSlot` state + `slotFormRef` for snapshot capture. Save
+  handler snapshots the active slot + serialises the 6-element
+  payload as `slots_json` before calling `updateCaseAction`.
+- `mynclex/lib/bank/case-study/actions.ts` — `updateCaseAction`
+  now builds a `case_patch` JSONB + validates + parses each slot
+  via `initialToParsedItem`, then invokes the RPC. Early-rejects
+  a publish attempt if any slot is empty.
+- `mynclex/lib/bank/list-view.tsx` — `FullBankRow` gains
+  `parent_case_id: string | null`.
+- `mynclex/app/(app)/admin/bank/cases/[case_id]/page.tsx`
+  + `mynclex/app/(app)/tutor/bank/cases/[case_id]/page.tsx` —
+  fetch slots via `loadCaseSlots` and pass through to the editor.
+- `mynclex/app/(app)/admin/bank/page.tsx`
+  + `mynclex/app/(app)/tutor/bank/page.tsx` — bank browse list
+  excludes case-linked items via `.is('parent_case_id', null)`.
+  Edit-mode load detects `parent_case_id` on the row and redirects
+  to `/admin/bank/cases/[case_id]?focus=[item_id]` (or tutor twin).
+  Satisfies the 1.11b non-negotiable that a case-linked item
+  cannot open in the standalone editor.
+- `mynclex/app/(app)/admin/bank/editor-shell.tsx` — Phase 2 only
+  (unchanged in Phase 3+); keeps the page-level form + topbar +
+  server-action wiring and delegates the body to
+  `QuestionAuthoringPanel`.
+- `mynclex/db/schema.sql` — `parent_case_id` column + partial
+  index back-ported to both `CREATE TABLE` blocks.
+- `mynclex/db/rls.sql` — case-study-items policies back-ported.
+- `mynclex/db/seed-cases-dev.sql` — appended three child questions
+  on `NCLEX_CS_00001` at positions 1 / 2 / 3 (MCQ, MCQ, SATA) +
+  the matching join rows. Positions 4-6 left empty so the
+  empty-slot "+" pills are visible in the editor.
+- `mynclex/app/dashboards.css` — updated `.cs-q-*` block for the
+  interactive pill strip (active highlight, filled vs empty
+  states, hover) and added `.cs-q-meta` (CJMM dropdown) +
+  `.cs-q-empty` (no-slot-open panel). Dropped the old
+  placeholder-specific styles.
+
+### Files NOT modified (explicitly)
+
+- `mynclex/lib/bank/parsers/` — per-type parser files untouched.
+  `parseByType` stays the canonical validator for both
+  `parseFormData` (standalone bank) and `initialToParsedItem`
+  (case-child).
+- Case wrapper's three accordions on the left half — left as-is;
+  rename is deferred.
+- `mynclex/lib/bank/case-study/tab-rail.tsx`,
+  `narrative-tab.tsx`, `structured-tab.tsx`, `vf-segmented.tsx` —
+  all 1.11a work, unchanged.
+- `mynclex/docs/product-plan/slice-1.11-plan.md` — the stale
+  decision 9 stays in the doc. See plan-doc reversal note above.
+
+### Migrations + data applied to dev (`zrakjibtxyzoqcdtvpmq`)
+
+- `mynclex_parent_case_id_slice_1_11b` — Phase 1. `parent_case_id`
+  TEXT NULL + partial index on each of `nclex_bank_items` and
+  `nclex_tutor_questions`.
+- `mynclex_case_save_rpc_slice_1_11b` — Phase 4. The RPC. Verified
+  via `pg_proc`: `pronargs = 4`.
+- `mynclex_case_study_items_rls_slice_1_11b` — Phase 5. RLS
+  enabled on both join tables, 2 policies each. Verified via
+  `pg_class.relrowsecurity` + `pg_policies`.
+- Seed rows: `NCLEX_MCQ_90001` / `NCLEX_MCQ_90002` /
+  `NCLEX_SATA_90001` in `nclex_bank_items` (all with
+  `parent_case_id = 'NCLEX_CS_00001'`, `is_builder_visible = TRUE`)
+  + three matching rows in `nclex_case_study_items` at positions
+  1 / 2 / 3 with the expected CJMM steps.
+
+### Verified locally
+
+- `npx tsc --noEmit` — clean.
+- `npx eslint app lib` — clean.
+- `npm run build` — clean. 19 routes, same as pre-slice.
+- No browser test this session; Sam runs the dev worker.
+
+### Known temporaries / deferrals
+
+- **Accordion-label duplication** — "Content / Classification /
+  Housekeeping" appears twice on the case editor (left: case
+  wrapper, right: active slot). Cleanup scoped to a later slice.
+- **Per-type editors stay FormData-driven** — the long-deferred
+  conversion to controlled `value` / `onChange` components is
+  still parked. Will likely surface when the student runner
+  starts consuming bank items.
+- **Preview-as-position button** — the disabled stub in the chart
+  section still says "Slice 1.11c". That slice ships the in-editor
+  student-view preview.
+- **`?focus=` query param** — the admin/tutor bank list redirects
+  case-linked edits to `/admin/bank/cases/[case_id]?focus=[item_id]`
+  but the case editor doesn't yet open that slot on mount. Polish
+  item for a follow-up.
+- **Plan-doc hygiene** — `slice-1.11-plan.md` decision 9 still
+  says `is_builder_visible = FALSE` on case-linked items. See the
+  reversal note above. Plan doc gets refreshed in a later pass.
+
+### Next session
+
+- **Slice 1.11c** — preview-as-position, student-view in-editor.
+- **Student runner** — unblocked by 1.11b; case runner now has
+  real slots + join rows to consume.
+- **`?focus=` slot auto-open** — small polish item; the link
+  exists but the target page doesn't yet honour it.
+- **Plan-doc sweep** — reconcile slice-1.11-plan.md with what
+  1.11b actually shipped (decision 9 reversal + any others we
+  encounter).
+
+---
+
 ## Session — 2026-04-23 (Slice 1.11a fix — reorder CHECK constraint)
 
 One-line: dropped `CHECK (display_order >= 0)` from both case-study

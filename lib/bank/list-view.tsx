@@ -64,6 +64,11 @@ export interface FullBankRow extends BankRow {
   shuffle_options: boolean;
   question_ref: string | null;
   batch_id: string | null;
+  // Added in Slice 1.11b. Non-null = this row is authored as a Q1-Q6
+  // slot on the named case study; the bank list excludes these rows
+  // from browse mode and routes ?edit={item_id} on one back to the
+  // case editor.
+  parent_case_id: string | null;
 }
 
 export interface BankSearchParams {

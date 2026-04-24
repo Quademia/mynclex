@@ -27,6 +27,7 @@ import {
   HIGHLIGHT_MIN_CORRECT,
   HIGHLIGHT_MIN_WRONG,
 } from '../classifications';
+import { makePrefixer } from '../field-prefix';
 
 type Decision = 'correct' | 'wrong' | 'undecided';
 
@@ -52,9 +53,11 @@ function extractPassageTexts(value: string): string[] {
 export function HighlightEditor({
   initialChunks,
   initialStem,
+  fieldPrefix = '',
 }: {
   initialChunks: ChunkRow[];
   initialStem: string;
+  fieldPrefix?: string;
 }) {
   const [chunks, setChunks] = useState<ChunkRow[]>(() => initialChunks);
 
@@ -286,7 +289,7 @@ export function HighlightEditor({
         ))}
       </div>
 
-      <HiddenSerialisers chunks={chunks} />
+      <HiddenSerialisers chunks={chunks} fieldPrefix={fieldPrefix} />
     </div>
   );
 }
@@ -421,16 +424,17 @@ function ChunkCard({
   );
 }
 
-function HiddenSerialisers({ chunks }: { chunks: ChunkRow[] }) {
+function HiddenSerialisers({ chunks, fieldPrefix }: { chunks: ChunkRow[]; fieldPrefix: string }) {
+  const fn = makePrefixer(fieldPrefix);
   return (
     <>
       {chunks.map((c) => (
         <Fragment key={`hid-${c.id}`}>
-          <input type="hidden" name="hl_chunk_id" value={c.id} />
-          <input type="hidden" name="hl_chunk_text" value={c.text} />
-          <input type="hidden" name="hl_chunk_decision" value={c.decision} />
-          <input type="hidden" name="hl_chunk_feedback" value={c.feedback} />
-          <input type="hidden" name="hl_chunk_in_passage" value={String(c.in_passage)} />
+          <input type="hidden" name={fn('hl_chunk_id')} value={c.id} />
+          <input type="hidden" name={fn('hl_chunk_text')} value={c.text} />
+          <input type="hidden" name={fn('hl_chunk_decision')} value={c.decision} />
+          <input type="hidden" name={fn('hl_chunk_feedback')} value={c.feedback} />
+          <input type="hidden" name={fn('hl_chunk_in_passage')} value={String(c.in_passage)} />
         </Fragment>
       ))}
     </>

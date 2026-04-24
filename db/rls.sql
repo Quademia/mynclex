@@ -218,3 +218,58 @@ CREATE POLICY nclex_tutor_case_study_tabs_superadmin ON nclex_tutor_case_study_t
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- ─────────────────────────────────────────────────────────
+-- nclex_case_study_items + nclex_tutor_case_study_items
+-- The 6-slot join tables — one row per populated Q1-Q6 slot on a
+-- case study. Added 2026-04-24 in Slice 1.11b when the transactional
+-- save started writing them.
+-- Admin: authenticated readers can SELECT rows whose parent case is
+-- published; BANK_CURATE holders (SUPER_ADMIN via the helper
+-- short-circuit) get full CRUD.
+-- Tutor: only the owning tutor of the parent case gets access, with
+-- a SUPER_ADMIN bypass for moderation. No public-read policy —
+-- tutor content stays private until the runner lands enrolment-
+-- scoped visibility.
+-- ─────────────────────────────────────────────────────────
+
+ALTER TABLE nclex_case_study_items       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE nclex_tutor_case_study_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_case_study_items_read_published ON nclex_case_study_items FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_case_studies cs
+      WHERE cs.case_id = nclex_case_study_items.case_id
+        AND cs.is_published = TRUE
+    )
+  );
+
+CREATE POLICY nclex_case_study_items_curate_all ON nclex_case_study_items FOR ALL
+  TO authenticated
+  USING (nclex_user_has_permission('BANK_CURATE'))
+  WITH CHECK (nclex_user_has_permission('BANK_CURATE'));
+
+CREATE POLICY nclex_tutor_case_study_items_tutor_own ON nclex_tutor_case_study_items FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_tutor_case_studies cs
+      WHERE cs.case_id = nclex_tutor_case_study_items.case_id
+        AND cs.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_tutor_case_studies cs
+      WHERE cs.case_id = nclex_tutor_case_study_items.case_id
+        AND cs.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_tutor_case_study_items_superadmin ON nclex_tutor_case_study_items FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
