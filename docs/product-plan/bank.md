@@ -570,15 +570,13 @@ that are now settled and queued for build.
 
 ---
 
-## Trend items — planned shape
+## Trend items — as built
 
-Promoted from v2 to v1 on 2026-04-22. Decisions settled during the
-22 April planning session remain valid; this section is now an active
-v1 spec, not a deferred one.
-
-`TREND` is the 10th NGN question type. This section records what
-we've agreed about its shape so that when Slice 1.12 starts, the
-decisions don't need to be re-litigated.
+Shipped across Slices 1.12a / 1.12b / 1.12c (April 2026). This
+section describes the shape that was actually built, superseding
+the pre-build "planned shape" text. The mockup at
+`mockups/trend-visualisation.html` is still the authoritative
+student-side reference for panel layout.
 
 ### What a Trend item is
 
@@ -586,116 +584,201 @@ One question item with a **time-series data panel** shown alongside
 the stem. The "trend" is data across timepoints — vitals over 3 hours,
 labs over 3 days, I&O across shifts, assessments at 0800/1000/1200.
 The student reads the pattern and answers using one of the existing
-question types (Matrix, Cloze, Highlight, or SATA — the four best
-suited to trend-style reasoning).
-
-Reference mockup: `mockups/trend-visualisation.html` — shows four
-concrete examples, each pairing a different host question type with
-a trend panel.
+question types. Matrix / Cloze / Highlight / SATA are the best-fitting
+hosts; the schema doesn't restrict the set.
 
 ### Relationship to Case Study
 
 Trend and Case Study are **structurally the same family** but at
 different scales:
 
-|                         | Trend                       | Case Study                             |
-|-------------------------|-----------------------------|----------------------------------------|
-| Question items          | 1                           | 6                                      |
-| Question types used     | 1 (any existing)            | Up to 6 (one per item, can all differ) |
-| Shared context          | Time-series data table      | Multi-tab patient chart                |
-| Progression             | None (one snapshot)         | Chart unfolds across the 6 items       |
-| Schema home             | Own table + FK on bank item | Own table + join table                 |
+|                         | Trend                                | Case Study                             |
+|-------------------------|--------------------------------------|----------------------------------------|
+| Question items          | Variable N (0..)                     | 6 (fixed)                              |
+| Question types used     | Any existing, mixed                  | Up to 6 (one per item, can all differ) |
+| Shared context          | Time-series data table               | Multi-tab patient chart                |
+| Progression             | None (one snapshot)                  | Chart unfolds across the 6 items       |
+| Schema home             | Own table + nullable FK on bank item | Own table + join table                 |
+| Curator UI              | `/admin/trends/[trend_id]` split     | `/admin/bank/cases/[case_id]` split    |
 
 The shared principle: **clinical context data is separate from the
 question item itself, and joined to it.** Neither type stuffs the
 context into the stem text.
 
-### Why context can't live in the stem
+### Schema — as built
 
-1. **Stem is prose, not structured data.** A trend table has rows,
-   columns, timepoints, flags — structured. Jamming it into stem text
-   means no consistent rendering, no colour-coding, no filtering
-   ("find me all trend items using labs"), no reuse.
-2. **Reusability.** One trend dataset (e.g. "post-op vitals
-   deteriorating over 3 hours") can legitimately pair with a Matrix
-   question *or* a Cloze *or* a SATA — same data, different response.
-   In the stem you'd copy-paste three times; in its own row you
-   reference three times.
-3. **Consistency with Case Study.** Case-study chart data lives in
-   `nclex_case_studies`, joined via `nclex_case_study_items`. Trend
-   following the same pattern keeps the architecture coherent.
-
-### Proposed schema (v2 — not yet built)
+Two dataset tables, one nullable FK column on each question table, no
+join table (the 1:N link is cheap enough on the item side alone).
 
 ```sql
--- New table (v2):
+-- Slice 1.12a — admin-owned dataset table
 CREATE TABLE nclex_trend_datasets (
-  trend_id          TEXT PRIMARY KEY,       -- e.g. NCLEX_TRD_00001
-  title             TEXT NOT NULL,          -- "Post-op vitals deteriorating"
-  scenario          TEXT,                   -- short intro shown above the table
-  kind              TEXT NOT NULL CHECK (kind IN
-                      ('vitals','labs','io','neuro','assessment')),
-  timepoints        JSONB NOT NULL,         -- ["0800","0900","1000"]
-  rows              JSONB NOT NULL,         -- [{metric, values[], flags[]}, ...]
-  -- Classification (mirrors bank_items subset)
-  client_needs_category     TEXT,
-  client_needs_subcategory  TEXT,
-  nursing_subject           TEXT,
-  body_system               TEXT,
-  topic                     TEXT,
-  subtopic                  TEXT,
-  difficulty                TEXT,
-  tags                      TEXT[] NOT NULL DEFAULT '{}',
-  is_published              BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  trend_id      TEXT PRIMARY KEY,      -- NCLEX_TRD_NNNNN
+  title         TEXT NOT NULL,
+  scenario      TEXT,
+  kind          TEXT NOT NULL,         -- freeform; no CHECK constraint
+  timepoints    JSONB NOT NULL DEFAULT '[]'::jsonb,
+  rows          JSONB NOT NULL DEFAULT '[]'::jsonb,
+  is_published  BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Existing table gets one new nullable column:
+-- Slice 1.12a — tutor-private twin (NCLEX_TUT_TRD_NNNNN)
+-- Identical columns + tutor_id UUID REFERENCES nclex_users(id) ON DELETE CASCADE.
+
+-- Slice 1.12b — nullable FK on the two question tables
 ALTER TABLE nclex_bank_items
-  ADD COLUMN trend_id TEXT REFERENCES nclex_trend_datasets(trend_id);
+  ADD COLUMN trend_id TEXT REFERENCES nclex_trend_datasets(trend_id)
+  ON DELETE RESTRICT;
+ALTER TABLE nclex_tutor_questions
+  ADD COLUMN trend_id TEXT REFERENCES nclex_tutor_trend_datasets(trend_id)
+  ON DELETE RESTRICT;
+
+-- Partial indexes — 99% of items have trend_id = NULL; only linked
+-- rows carry the index cost.
+CREATE INDEX nclex_bank_items_trend_id_idx
+  ON nclex_bank_items(trend_id) WHERE trend_id IS NOT NULL;
+CREATE INDEX nclex_tutor_questions_trend_id_idx
+  ON nclex_tutor_questions(trend_id) WHERE trend_id IS NOT NULL;
 ```
 
-Parallel `nclex_tutor_trend_datasets` + `trend_id` column on
-`nclex_tutor_questions` mirrors the QAcademy-owned / tutor-private
-pattern used everywhere else.
+**No classification columns on the dataset.** Client-needs category,
+subcategory, nursing subject, body system, topic, subtopic,
+difficulty, Bloom level, and tags all live on the attached question
+rows — `nclex_bank_items` has them, datasets don't. Rationale: one
+dataset can legitimately host questions of different difficulties or
+subcategories (same trend data, different reasoning target), and
+duplicating classification on the wrapper would re-create the
+wrapper-vs-child-drift problem that tripped Case Study in 1.11b.
 
-### Key properties of this shape
+### `kind` — freeform with UI template sugar
 
-- **Nullable FK** — 99% of bank items don't have a trend; only trend
-  items do. No impact on non-trend items.
-- **One trend → many items allowed.** A well-designed trend dataset
-  can feed multiple questions (same data, different response type).
-  Same pattern as Case Study.
-- **No new question type.** Items stay MCQ / SATA / Matrix / Cloze /
-  Highlight / etc. The presence of `trend_id` is what tells the
-  renderer to show the trend panel above the stem.
-- **No schema migration cost for v1.** The column doesn't exist yet;
-  adding it later is one `ALTER TABLE ADD COLUMN` with a NULL default.
-- **Simpler than Case Study's join.** Case Study needs a join table
-  because it has position (1–6) and CJMM step per item. Trend is a
-  one-to-one attachment from the item's perspective, so a plain
-  nullable FK on the item row is enough.
+`kind` is `TEXT NOT NULL` with no CHECK constraint. The UI offers five
+presets (`vitals`, `labs`, `io`, `neuro`, `assessment`) plus a
+"Custom…" option that accepts any string. Picking a preset at
+creation seeds starter rows (and, for `labs`, pre-populates reference
+ranges + defaults the ref-range column on). **The template is pure UI
+sugar** — only `kind` persists on the DB row; the "template" itself is
+the seed rows the editor inserted on create.
 
-### What we'd build when v2 starts
+### `rows` shape
 
-1. Migration: create `nclex_trend_datasets` + `trend_id` column on
-   `nclex_bank_items`. Parallel for tutor tables.
-2. Admin page `/admin/trends` — listing + editor (similar in shape to
-   `/admin/bank`).
-3. Trend editor UI — table authoring (add/remove rows, add/remove
-   timepoints, flag cells as abnormal/borderline).
-4. On bank-item editor: an optional "Attach trend" field. Dropdown of
-   available trend datasets, or inline-create.
-5. Student runner: when rendering any question with a non-null
-   `trend_id`, fetch the dataset and render the trend panel above the
-   stem (left-pane in the two-column layout).
+```
+{
+  "metric":    "K⁺ (mmol/L)",
+  "values":    ["3.8", "3.4", "2.9"],
+  "flags":     [null, null, "abnormal"],
+  "ref_range": "3.5–5.0"
+}
+```
 
-### Why v2, not v1
+- `values[]` and `flags[]` are aligned with the parent dataset's
+  `timepoints[]` (same length; index i lines up). Mis-aligned rows are
+  rejected by the server action.
+- `flags[i]` ∈ `null | "abnormal" | "borderline"`.
+  **Author-side only** — the student runner does NOT render flag
+  colouring on the pre-submit view. Flags surface (a) in the authoring
+  UI so curators can see which cells they're testing, and (b) in the
+  post-submit rationale panel (future runner slice).
+- `ref_range` is optional per row. The column renders in the authoring
+  UI (and in the student runner) if ANY row in the dataset has a
+  `ref_range`. Curator can toggle the column on for any dataset via the
+  data-table header; `labs` defaults it on. Ref-ranges ARE shown to
+  students pre-submit (NCSBN convention for numeric labs).
 
-Every mockup example could be authored today as a regular Matrix /
-Cloze / Highlight / SATA — by putting the trend table into the stem
-text or the new `instruction` field. The clinical content lands;
-what's missing is the dedicated widget that renders the time-series
-panel cleanly. That's a polish/UX win, not a correctness win, so it
-sits behind the v1 launch.
+### Attachment — nullable FK, one-to-many
+
+- `nclex_bank_items.trend_id` (and the tutor twin) is nullable.
+  99% of items stay NULL.
+- **One-to-many** from the dataset perspective — a single dataset can
+  be referenced by many questions (same data, Matrix + Cloze + SATA
+  variants against one vitals panel). Core authoring pattern.
+- `ON DELETE RESTRICT` at the DB level. The UI never triggers a bare
+  FK-violating delete because the two-path confirmation dialog (see
+  Delete semantics below) handles the real user flow; RESTRICT is the
+  belt-and-braces safety net.
+- **Per-question publishing is independent** of dataset publishing.
+  Legal states include: published dataset + draft question (hidden
+  from students); published dataset + published question + builder-
+  invisible question (reachable only via direct link / readiness pack
+  in future slices); draft dataset + any question state (curator-only
+  regardless). The save RPC does NOT enforce consistency between these
+  flags — the curator has full control.
+
+### Delete semantics
+
+Attached questions mean deleting the dataset is no longer trivial.
+Shipped shape (Slice 1.12c):
+
+- Bare `deleteTrendAction` server-action refuses when the dataset has
+  ≥1 attached questions. Defence-in-depth against direct-API calls.
+- The editor's Delete button opens a **confirmation dialog** with two
+  explicit paths when attached items exist:
+  - **Detach and delete dataset** — sets every attached item's
+    `trend_id = NULL`, then deletes the dataset. Questions survive as
+    standalone items. Transactional via
+    `nclex_detach_and_delete_trend()` RPC.
+  - **Delete everything** — deletes all attached items AND the dataset
+    atomically. Transactional via `nclex_delete_trend_and_children()`
+    RPC.
+- Both destructive paths require the curator to type `DELETE` before
+  the confirm button enables. Zero-attached datasets get a simpler
+  single-path confirmation (still typed DELETE).
+- Tutor twin RPCs (`nclex_tutor_detach_and_delete_trend`,
+  `nclex_tutor_delete_trend_and_children`) operate against the
+  tutor-private tables with the same shape.
+
+### Authoring — primary path only
+
+Authoring happens at `/admin/trends/[trend_id]` (and tutor twin).
+Split-pane editor: dataset on the left (metadata accordions +
+data-table), attached questions on the right (pill strip +
+`QuestionAuthoringPanel` in `standalone` mode). Pattern matches Case
+Study's `/admin/bank/cases/[case_id]`.
+
+**Bank-editor "Attach trend" dropdown is NOT built.** Deferred
+indefinitely — the same call the Case Study family made. The editor
+is the canonical authoring surface; no secondary path.
+
+### Validation — client-side, manual
+
+Slice 1.12c ships a Validate button in the trend-editor topbar that
+opens a dismissible panel with:
+
+- **8 errors** (block publish when `is_published = TRUE`):
+  missing title, zero rows, zero timepoints, values/timepoints length
+  mismatch, zero attached questions on publish, slot stem missing,
+  slot type missing, slot content fails `parseByType()`.
+- **4 warnings** (advisory, don't block): scenario missing, zero
+  attached on draft, low question-type diversity (3+ sharing the same
+  type), no flags set on any cell.
+
+The panel is **manual-only** — it never auto-runs on Save. The save
+RPC retains its own publish-gate (every attached question must have a
+type + non-empty stem if the dataset is being published).
+
+### Scoring + filter surface
+
+- **Scoring** — inherited from each attached question's host type.
+  Trend adds no new scoring logic. A Matrix question attached to a
+  trend dataset scores exactly as a standalone Matrix question would;
+  the panel is context, not a scored element.
+- **Filter surface** — the admin bank list shows a `Trend · {title}`
+  badge on trend-linked rows via an FK-join. Admin filtering by `kind`
+  isn't wired yet (pending `kind` values stabilising in practice);
+  for now admin filters datasets by title. Student-side `kind` filter
+  on the custom-quiz builder is deferred to a later slice for the same
+  reason.
+
+### Where the code lives
+
+- `mynclex/lib/bank/trend/` — types, `kind-templates.ts`,
+  `actions.ts`, `editor.tsx`, `data-table.tsx`,
+  `metadata-accordions.tsx`, `question-nav.tsx`, `child-draft.ts`,
+  `validation.ts`, `validation-panel.tsx`, `delete-dialog.tsx`.
+- `mynclex/app/(app)/admin/trends/` + `mynclex/app/(app)/tutor/trends/`
+  — routes (list / new / `[trend_id]` editor).
+- `mynclex/db/migrations/mynclex_trend_*_slice_1_12*.sql` — the four
+  migration files across the three sub-slices (schema,
+  `trend_id` column, save RPC, delete RPCs).
