@@ -45,6 +45,10 @@ interface Props {
     entries:     CaseStudyEntry[];
     columns_def: CaseStudyTabColumn[];
   }) => void;
+  // Slice 1.11c — preview-as-position. null = Off; 1-6 = rows with
+  // visible_from > N render with cs-entry--hidden + a "hidden until
+  // Qx" label in the visible-from cell.
+  previewPosition: number | null;
 }
 
 type EffectiveColumn = BuiltInColumn | CaseStudyTabColumn;
@@ -52,6 +56,7 @@ type EffectiveColumn = BuiltInColumn | CaseStudyTabColumn;
 export function StructuredTabEditor({
   surface, case_id, tab, builtIn,
   draftTitle, draftEntries, draftColumns, onDraftChange,
+  previewPosition,
 }: Props) {
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -306,8 +311,12 @@ export function StructuredTabEditor({
             </tr>
           </thead>
           <tbody>
-            {draftEntries.map((entry, idx) => (
-              <tr key={idx}>
+            {draftEntries.map((entry, idx) => {
+              const vf = Number(entry.visible_from) || VF_DEFAULT;
+              const entryHidden =
+                previewPosition !== null && vf > previewPosition;
+              return (
+              <tr key={idx} className={entryHidden ? 'cs-entry--hidden' : ''}>
                 {columns.map((c) => (
                   <td key={c.id}>
                     <input
@@ -319,8 +328,13 @@ export function StructuredTabEditor({
                   </td>
                 ))}
                 <td>
+                  {entryHidden && (
+                    <span className="cs-entry-hidden-label">
+                      hidden until Q{vf}
+                    </span>
+                  )}
                   <VisibleFromSegmented
-                    value={Number(entry.visible_from) || VF_DEFAULT}
+                    value={vf}
                     onChange={(v) => updateVF(idx, v)}
                   />
                 </td>
@@ -334,7 +348,8 @@ export function StructuredTabEditor({
                   >×</button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       )}

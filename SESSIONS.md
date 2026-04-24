@@ -6,6 +6,185 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-24 (Slice 1.11c — Preview-as-position + validation panel)
+
+Slice 1.11c lands the last piece of the Case Study authoring
+trilogy. A curator working in the case editor can now (a) preview
+the chart as a student would see it at any of the six question
+positions via a segmented `[Off][1][2][3][4][5][6]` control in the
+chart header, and (b) run a client-side validation check via a new
+topbar `Validate` button that opens a dismissible panel listing
+errors and warnings with a summary header.
+
+Zero schema changes. Zero server-action changes. The server-side
+RPC from 1.11b remains the enforcement layer — the panel is early
+feedback for the curator, not a replacement.
+
+### Locked decisions (settled 2026-04-24 via Claude Web)
+
+1. **Filtered-out entries render greyed-out with a label** —
+   `"hidden until Q{visible_from}"` — rather than disappearing.
+   The curator still needs to see what they authored during
+   preview.
+2. **Two severities — Errors and Warnings.** Errors block publish;
+   warnings are advisory. Each rule carries a `'error' | 'warning'`
+   tag and renders in the same panel with distinct styling.
+3. **Manual Validate only.** Never auto-runs on Save. Save behaves
+   exactly as before.
+4. **Preview state is per-session.** React state only. No URL, no
+   localStorage. Reloading resets to Off.
+5. **Preview affects the chart only.** Tab rail, right-hand slot
+   pane, metadata accordions, and topbar are unaffected.
+
+### Validation rules shipped
+
+*Errors (block publish when `is_published = TRUE`):*
+
+- `case.title.missing` — case title empty.
+- `case.summary.missing` — scenario summary empty.
+- `case.tabs.zero` — zero tabs on the case.
+- `case.slots.underfilled_on_publish` — publishing but fewer than
+  6 slots populated (`isSlotPopulated` = stem-based, mirrors the
+  server's definition).
+- `slot.stem.missing` — populated slot (by intent: stem OR cjmm
+  set) has empty stem.
+- `slot.type.missing` — populated slot has no `question_type`.
+- `slot.cjmm.missing` — populated slot has no CJMM step.
+
+*Warnings (advisory):*
+
+- `tab.no_entries` — tab has zero entries.
+- `tab.no_q1_entry` — tab has entries but none with
+  `visible_from = 1` (empty tab at Q1).
+- `case.slots.underfilled_on_draft` — draft with fewer than 6
+  populated slots; suppressed when `is_published = TRUE`
+  (promoted to the matching error).
+
+*Panel header logic:*
+
+- `is_published = TRUE` + 0 errors → `Ready to publish` (green).
+- `is_published = TRUE` + >0 errors → `N errors, M warnings — not
+  ready` (red).
+- `is_published = FALSE` → `Draft — N errors, M warnings`
+  (neutral).
+
+### Architectural notes
+
+- **Two definitions of "populated" in the validator.** Tight =
+  `isSlotPopulated(draft)` (stem-based, matches server). Loose =
+  `slotHasIntent(draft, cjmm)` (stem OR cjmm set). The publish-
+  count gate uses the tight definition so the client warning
+  matches what the server actually rejects. The slot-level error
+  rules use the loose definition so `slot.stem.missing` fires
+  meaningfully — "curator clicked Q3, picked CJMM, forgot stem"
+  is exactly the kind of authoring slip this panel should catch.
+  Both helpers documented in `validation.ts` header.
+- **Case header fields are DOM-read at Validate time.** The case
+  header form is uncontrolled (defaultValue-driven), so title /
+  summary / is_published live in the DOM until Save. The Validate
+  click reads them via `new FormData(document.getElementById
+  ('cs-case-form'))` so unsaved edits show up in validation
+  immediately.
+- **Active slot snapshot same pattern as onSaveCase.** Validate
+  snapshots the active slot's in-flight edits via
+  `parseSlotFormData` + `slotFormRef` before running. Without
+  this, the curator who types a stem, clicks Validate (never
+  clicked another slot first) would see stale
+  `slotDrafts[activeSlot]` and a misleading
+  `slot.stem.missing`. Anti-drift rule: any future client-side
+  read of slot state across state hooks must reuse this
+  snapshot pattern.
+- **Panel is anchored to `.cs-editor-frame`.** `position: absolute`
+  under the topbar, `top: 56px; right: 16px`. Max-width 440px.
+  Frame gets `position: relative` so this anchors correctly.
+- **`cs-chart-section` is NOT `position: relative`** (earlier
+  draft had it; reverted — the panel overlays the whole editor,
+  not the chart). No regressions expected since nothing else
+  anchored to `cs-chart-section`.
+
+### Files created
+
+- `mynclex/lib/bank/case-study/validation.ts` — all types (`Severity`,
+  `ValidationIssue`, `CaseEditorState` + sub-shapes), the `RULES`
+  array, `validateCase()` runner, `summarise()` panel-header helper.
+  Pure module — no React, no DOM, no fetch. Grep-friendly flat rule
+  array.
+
+### Files modified
+
+- `mynclex/lib/bank/case-study/editor.tsx` — adds `previewPosition`
+  state + segmented control in chart header + banner above chart
+  when preview active. Adds `validationIssues` state +
+  `buildValidatorState()` DOM-snapshot helper + `onValidateClick`
+  toggler + `ValidationPanel` component at file bottom + topbar
+  Validate button between Cancel and Save. Disabled stub button
+  from 1.11a fully removed.
+- `mynclex/lib/bank/case-study/narrative-tab.tsx` — accepts
+  `previewPosition: number | null`; entry cards gain
+  `cs-entry--hidden` class + inline "hidden until Qx" label when
+  `visible_from > previewPosition`.
+- `mynclex/lib/bank/case-study/structured-tab.tsx` — same treatment
+  for table rows.
+- `mynclex/app/dashboards.css` — appends a Slice 1.11c block:
+  `.cs-preview-toggle` + `.is-active` variant, `.cs-preview-bar`,
+  `.cs-entry--hidden` + `.cs-entry-hidden-label`, and the
+  `.cs-validate-panel*` family (summary variants is-ready /
+  is-blocked / is-draft, issue variants is-error / is-warning,
+  close button, list layout). Frame receives `position: relative`
+  for the panel anchor.
+- `mynclex/docs/product-plan/slice-1.11-plan.md` — the 1.11c
+  section was replaced with the locked-decisions version in the
+  plan-doc commit that preceded the code commit.
+
+### Files NOT modified (explicitly)
+
+- `mynclex/db/**` — zero schema changes. No migration, no
+  `schema.sql`, no `rls.sql`, no seed file touched.
+- `mynclex/lib/bank/case-study/actions.ts` — server-action
+  surface unchanged. The RPC already enforces publish-gating.
+- `mynclex/lib/bank/editors/` — per-type editors untouched.
+- `mynclex/lib/bank/question-authoring-panel.tsx` — unchanged.
+  The validator reads slot state from the case editor's state,
+  not from the panel.
+- `mynclex/app/(app)/admin/bank/slot-parser.ts` —
+  `parseSlotFormData` and `isSlotPopulated` reused; no changes.
+
+### Verified locally
+
+- `npx tsc --noEmit` — clean.
+- `npx eslint app lib` — clean.
+- `npm run build` — clean. 19 routes (same as 1.11b).
+- No browser test this session; Sam runs the dev worker to verify.
+
+### Known deferrals / non-goals (unchanged from plan)
+
+- Server-side validation changes. RPC from 1.11b remains the
+  enforcement layer.
+- Auto-running validation on Save. Save never calls `validateCase`.
+- The "Clear slot" button (1.11b loose end) — still out of scope.
+- The case-wrapper accordion rename (1.11b loose end) — still
+  out of scope.
+- Plan-doc decision 9 reversal reconciliation elsewhere in the
+  plan doc — the 1.11c section is updated; sweep across other
+  sections still deferred.
+
+### Next session
+
+- **Student runner** — fully unblocked now that Case Study
+  authoring is production-ready. Case runner can consume real
+  case shells + tabs + slot rows + per-slot CJMM.
+- **Slice 1.12 Trend wrapper** — the next authoring slice;
+  reuses the wrapper pattern 1.11a-c established.
+- **`?focus=` slot auto-open** — small polish; admin/tutor bank
+  list redirects case-linked edits to
+  `/admin/bank/cases/[case_id]?focus=[item_id]` but the editor
+  doesn't honour it on mount.
+- **Plan-doc sweep** — reconcile `slice-1.11-plan.md` decision 9
+  reversal across any other sections that still say
+  `is_builder_visible = FALSE` on case-linked items.
+
+---
+
 ## Session — 2026-04-24 (Slice 1.11b — Case Study child-question authoring)
 
 Slice 1.11b lands the right-half of the Case Study editor. A curator

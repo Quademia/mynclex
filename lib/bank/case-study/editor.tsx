@@ -59,6 +59,12 @@ import {
   updateCaseAction,
 } from './actions';
 import { getTabType } from './tab-types';
+import {
+  summarise,
+  validateCase,
+  type CaseEditorState,
+  type ValidationIssue,
+} from './validation';
 import type {
   CaseStudyEditorInitial,
   CaseStudyEntry,
@@ -382,6 +388,92 @@ export function CaseStudyEditor({ surface, initial }: Props) {
   const activeSlotDraft = activeSlot !== null ? slotDrafts[activeSlot] : null;
   const activeCjmm      = activeSlot !== null ? slotCjmm[activeSlot]   : null;
 
+  // ── Preview-as-position state (Slice 1.11c) ─────────────────────
+  // `null` = Off (no preview). 1-6 = the student's view at that
+  // question position. Per-session only — reloading the editor
+  // resets to Off. No URL param, no localStorage. Preview affects
+  // only the chart's tab entries (greyed + label); topbar, tab rail,
+  // right pane, accordions are untouched.
+  const [previewPosition, setPreviewPosition] = useState<number | null>(null);
+
+  // ── Validation panel state (Slice 1.11c) ────────────────────────
+  // `null` = panel closed. An array (even empty) = panel open with
+  // those issues. Re-clicking Validate closes the panel; clicking it
+  // while closed re-runs validateCase() against current state.
+  const [validationIssues, setValidationIssues] =
+    useState<ValidationIssue[] | null>(null);
+
+  // Build the snapshot the validator reads. The case-header form is
+  // uncontrolled (defaultValue-driven), so title / summary / is_published
+  // must be read from the live DOM to catch unsaved edits. The active
+  // slot's in-flight edits are snapshotted the same way onSaveCase does
+  // it — so Validate sees the curator's latest typing without needing
+  // them to click another slot first.
+  function buildValidatorState(): CaseEditorState {
+    // Snapshot active slot's DOM if any.
+    let slots = slotDrafts;
+    if (
+      activeSlot !== null &&
+      slotFormRef.current &&
+      slotDrafts[activeSlot]
+    ) {
+      const fd = new FormData(slotFormRef.current);
+      const snapshot = parseSlotFormData(
+        fd,
+        `q${activeSlot + 1}_`,
+        slotDrafts[activeSlot]!,
+      );
+      slots = [...slots];
+      slots[activeSlot] = snapshot;
+    }
+
+    // Snapshot case-header form DOM for title / summary / is_published.
+    // Fall back to caseRow if the form element is unreachable (defensive;
+    // the form id is set on the same render path as the component).
+    let title = caseRow.title;
+    let scenario_summary = caseRow.scenario_summary ?? '';
+    let is_published = caseRow.is_published;
+    const caseForm =
+      typeof document !== 'undefined'
+        ? (document.getElementById('cs-case-form') as HTMLFormElement | null)
+        : null;
+    if (caseForm) {
+      const fd = new FormData(caseForm);
+      title            = String(fd.get('title') ?? '');
+      scenario_summary = String(fd.get('scenario_summary') ?? '');
+      is_published     = fd.get('is_published') === 'on';
+    }
+
+    return {
+      title,
+      scenario_summary,
+      is_published,
+      tabs: tabsSorted.map((t) => {
+        const d = drafts[t.tab_id];
+        return {
+          tab_id:  t.tab_id,
+          title:   d?.title   ?? t.title,
+          entries: d?.entries ?? t.entries,
+        };
+      }),
+      slots: slots.map((draft, i) => ({
+        position:  i + 1,
+        draft,
+        cjmm_step: slotCjmm[i],
+      })),
+    };
+  }
+
+  function onValidateClick() {
+    // Re-clicking Validate while panel is open closes it (per decision
+    // 3 in the plan doc — manual open/close, no auto-run).
+    if (validationIssues !== null) {
+      setValidationIssues(null);
+      return;
+    }
+    setValidationIssues(validateCase(buildValidatorState()));
+  }
+
   // ── Render ──────────────────────────────────────────────────────
   return (
     <div className="cs-editor-frame">
@@ -406,6 +498,16 @@ export function CaseStudyEditor({ surface, initial }: Props) {
           </form>
           <Link href={baseUrl} className="cs-btn">Cancel</Link>
           <button
+            type="button"
+            className="cs-btn"
+            onClick={onValidateClick}
+            aria-pressed={validationIssues !== null}
+            aria-expanded={validationIssues !== null}
+            aria-controls="cs-validate-panel"
+          >
+            Validate
+          </button>
+          <button
             type="submit"
             form="cs-case-form"
             className="cs-btn primary"
@@ -418,6 +520,26 @@ export function CaseStudyEditor({ surface, initial }: Props) {
 
       {headerErr && (
         <div className="cs-error cs-topbar-error">{headerErr}</div>
+      )}
+
+      {validationIssues !== null && (
+        <ValidationPanel
+          issues={validationIssues}
+          isPublished={
+            // Prefer the live form state so the summary matches what
+            // the curator just typed. Fall back to caseRow if the form
+            // is somehow unreachable.
+            (() => {
+              const f =
+                typeof document !== 'undefined'
+                  ? (document.getElementById('cs-case-form') as HTMLFormElement | null)
+                  : null;
+              if (!f) return caseRow.is_published;
+              return new FormData(f).get('is_published') === 'on';
+            })()
+          }
+          onClose={() => setValidationIssues(null)}
+        />
       )}
 
       <div
@@ -643,11 +765,50 @@ export function CaseStudyEditor({ surface, initial }: Props) {
                       </>}
                 </div>
               </div>
-              {/* 1.11a stub — button present but non-functional; 1.11c wires it. */}
-              <button type="button" className="cs-btn" disabled title="Preview lands in Slice 1.11c">
-                Preview as student · position 1
-              </button>
+              {/* Preview-as-position segmented control (Slice 1.11c).
+                  Off = editor works normally. 1-6 = chart entries with
+                  visible_from > N render greyed with a "hidden until Qx"
+                  label. Per-session only; no URL or storage persistence. */}
+              <div
+                className="cs-preview-toggle"
+                role="group"
+                aria-label="Preview as student at question position"
+              >
+                <span className="cs-preview-toggle-label">Preview:</span>
+                <button
+                  type="button"
+                  className={previewPosition === null ? 'is-active' : ''}
+                  onClick={() => setPreviewPosition(null)}
+                  aria-pressed={previewPosition === null}
+                >
+                  Off
+                </button>
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    className={previewPosition === n ? 'is-active' : ''}
+                    onClick={() => setPreviewPosition(n)}
+                    aria-pressed={previewPosition === n}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {previewPosition !== null && (
+              <div className="cs-preview-bar" role="status">
+                <span>Preview: question {previewPosition} of 6</span>
+                <button
+                  type="button"
+                  className="cs-btn"
+                  onClick={() => setPreviewPosition(null)}
+                >
+                  Back to editing
+                </button>
+              </div>
+            )}
 
             <div className="cs-chart-layout">
               <TabRail
@@ -665,6 +826,7 @@ export function CaseStudyEditor({ surface, initial }: Props) {
                     tab={activeTab}
                     draft={activeDraft}
                     onDraftChange={(next) => updateDraft(activeTab.tab_id, next)}
+                    previewPosition={previewPosition}
                   />
                 : <div className="cs-entries-pane">
                     <div className="cs-entries-empty">
@@ -764,14 +926,17 @@ export function CaseStudyEditor({ surface, initial }: Props) {
 // ─────────────────────────────────────────────────────────────
 
 interface ActiveTabProps {
-  surface:        Surface;
-  case_id:        string;
-  tab:            CaseStudyTabRow;
-  draft:          TabDraft;
-  onDraftChange:  (next: TabDraft) => void;
+  surface:         Surface;
+  case_id:         string;
+  tab:             CaseStudyTabRow;
+  draft:           TabDraft;
+  onDraftChange:   (next: TabDraft) => void;
+  previewPosition: number | null;
 }
 
-function ActiveTabEditor({ surface, case_id, tab, draft, onDraftChange }: ActiveTabProps) {
+function ActiveTabEditor({
+  surface, case_id, tab, draft, onDraftChange, previewPosition,
+}: ActiveTabProps) {
   const builtIn = getTabType(tab.tab_key);
 
   // Custom_narrative tabs: narrative editor, no registry.
@@ -799,6 +964,7 @@ function ActiveTabEditor({ surface, case_id, tab, draft, onDraftChange }: Active
           entries:     p.entries,
           columns_def: draft.columns_def,
         })}
+        previewPosition={previewPosition}
       />
     );
   }
@@ -818,6 +984,7 @@ function ActiveTabEditor({ surface, case_id, tab, draft, onDraftChange }: Active
           entries:     p.entries,
           columns_def: p.columns_def,
         })}
+        previewPosition={previewPosition}
       />
     );
   }
@@ -830,6 +997,66 @@ function ActiveTabEditor({ surface, case_id, tab, draft, onDraftChange }: Active
         <h4>Unknown tab type</h4>
         <p>This tab uses tab_key <code>{tab.tab_key}</code> which the editor doesn&apos;t recognise. Delete the tab and add a new one.</p>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// ValidationPanel — Slice 1.11c.
+// Dismissible floating panel anchored to the editor frame. Opens
+// when the curator clicks Validate, closes via × or re-clicking
+// Validate. Rules + summary come from lib/bank/case-study/validation.ts;
+// this component is pure presentation.
+// ─────────────────────────────────────────────────────────────
+
+function ValidationPanel({
+  issues,
+  isPublished,
+  onClose,
+}: {
+  issues:      ValidationIssue[];
+  isPublished: boolean;
+  onClose:     () => void;
+}) {
+  const summary = summarise(issues, isPublished);
+  return (
+    <div
+      id="cs-validate-panel"
+      className="cs-validate-panel"
+      role="dialog"
+      aria-label="Validation results"
+    >
+      <div className={`cs-validate-panel__summary is-${summary.kind}`}>
+        <span>{summary.text}</span>
+        <button
+          type="button"
+          className="cs-validate-panel__close"
+          onClick={onClose}
+          aria-label="Close validation panel"
+        >
+          ×
+        </button>
+      </div>
+      {issues.length === 0 ? (
+        <div className="cs-validate-panel__empty">
+          No issues found.
+        </div>
+      ) : (
+        <div className="cs-validate-panel__list">
+          {issues.map((iss, idx) => (
+            <div
+              key={`${iss.id}-${idx}`}
+              className={`cs-validate-panel__issue is-${iss.severity}`}
+            >
+              <span className="cs-validate-panel__sev">{iss.severity}</span>
+              <span className="cs-validate-panel__msg">
+                {iss.message}
+                <code className="cs-validate-panel__rule-id">{iss.id}</code>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

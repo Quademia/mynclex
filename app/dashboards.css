@@ -3218,3 +3218,203 @@
   /* bank-btn provides base styling; this hook reserves a CSS handle
      for future refinement without needing to touch bank-btn itself. */
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Slice 1.11c — Preview-as-position + Validation summary
+   ───────────────────────────────────────────────────────────── */
+
+/* Segmented toggle in the chart header — [Off][1][2][3][4][5][6] */
+.cs-preview-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+}
+.cs-preview-toggle-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-right: 4px;
+  padding-left: 4px;
+}
+.cs-preview-toggle button {
+  min-width: 28px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+}
+.cs-preview-toggle button:hover:not(.is-active) {
+  background: var(--bg);
+  color: var(--text);
+}
+.cs-preview-toggle button.is-active {
+  background: var(--accent);
+  color: var(--white);
+  border-color: var(--accent);
+}
+
+/* Banner above the chart while preview is active */
+.cs-preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  margin: 12px 0 14px;
+  background: var(--primary-light);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--primary-dark);
+}
+
+/* Greyed-out entry treatment — applied to the entry card (narrative)
+   OR the table row (structured) when visible_from > previewPosition.
+   Opacity plus muted text makes the row still readable but visibly
+   filtered; inputs stay interactive so the curator can still edit. */
+.cs-entry--hidden {
+  opacity: 0.5;
+}
+.cs-entry--hidden input,
+.cs-entry--hidden textarea,
+.cs-entry--hidden select {
+  color: var(--text-muted);
+}
+
+/* Inline "hidden until Qx" pill shown next to VisibleFromSegmented */
+.cs-entry-hidden-label {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-right: 8px;
+  background: var(--bg);
+  border: 1px dashed var(--text-muted);
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Validation panel — dismissible surface rendered next to the chart
+   header when the curator clicks Validate. Absolutely positioned so
+   it floats over the chart without shifting the layout. */
+.cs-validate-panel {
+  position: absolute;
+  top: 56px;
+  right: 16px;
+  width: min(440px, calc(100% - 32px));
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 40;
+}
+.cs-validate-panel__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+.cs-validate-panel__summary.is-ready {
+  background: #e1f5ee;
+  color: #085041;
+  border-bottom-color: #9fe1cb;
+}
+.cs-validate-panel__summary.is-blocked {
+  background: #fdecec;
+  color: var(--danger);
+  border-bottom-color: #f5b5b5;
+}
+.cs-validate-panel__summary.is-draft {
+  background: var(--bg);
+  color: var(--text);
+}
+.cs-validate-panel__close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.cs-validate-panel__close:hover { background: rgba(0, 0, 0, 0.06); }
+.cs-validate-panel__list {
+  padding: 8px 0;
+}
+.cs-validate-panel__empty {
+  padding: 14px 16px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.cs-validate-panel__issue {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  border-left: 3px solid transparent;
+}
+.cs-validate-panel__issue + .cs-validate-panel__issue {
+  border-top: 1px solid var(--border);
+}
+.cs-validate-panel__issue.is-error {
+  border-left-color: var(--danger);
+}
+.cs-validate-panel__issue.is-warning {
+  border-left-color: var(--warning);
+}
+.cs-validate-panel__sev {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.cs-validate-panel__issue.is-error .cs-validate-panel__sev {
+  background: #fdecec;
+  color: var(--danger);
+}
+.cs-validate-panel__issue.is-warning .cs-validate-panel__sev {
+  background: #fff4e5;
+  color: var(--warning);
+}
+.cs-validate-panel__msg {
+  flex: 1 1 auto;
+  color: var(--text);
+}
+.cs-validate-panel__rule-id {
+  display: block;
+  margin-top: 2px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+/* Editor frame anchors the Validate panel (position: absolute) */
+.cs-editor-frame { position: relative; }

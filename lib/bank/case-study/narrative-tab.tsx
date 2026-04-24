@@ -33,6 +33,11 @@ interface Props {
   draftEntries: CaseStudyEntry[];
   // Updates the parent's draft map on every keystroke.
   onDraftChange: (next: { title: string; entries: CaseStudyEntry[] }) => void;
+  // Slice 1.11c — preview-as-position. null = Off; 1-6 = render
+  // entries with visible_from > N as greyed-out with a "hidden until
+  // Qx" label. Filtering only, never removal, so the curator keeps
+  // seeing what they authored.
+  previewPosition: number | null;
 }
 
 // Produce a fresh entry for this tab shape. Narrative cards always
@@ -51,6 +56,7 @@ function emptyEntry(builtIn: BuiltInTabType | null): CaseStudyEntry {
 export function NarrativeTabEditor({
   surface, case_id, tab, builtIn,
   draftTitle, draftEntries, onDraftChange,
+  previewPosition,
 }: Props) {
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -178,8 +184,17 @@ export function NarrativeTabEditor({
           <p>Add the first entry to start populating this tab.</p>
         </div>
       ) : (
-        draftEntries.map((entry, idx) => (
-          <div key={idx} className="cs-entry-card">
+        draftEntries.map((entry, idx) => {
+          const vf = Number(entry.visible_from) || VF_DEFAULT;
+          const entryHidden =
+            previewPosition !== null && vf > previewPosition;
+          return (
+          <div
+            key={idx}
+            className={
+              entryHidden ? 'cs-entry-card cs-entry--hidden' : 'cs-entry-card'
+            }
+          >
             <div className="cs-entry-card-head">
               <div className="cs-entry-card-head-left">
                 {!omitTime && (
@@ -224,8 +239,13 @@ export function NarrativeTabEditor({
                 ))}
               </div>
               <div className="cs-entry-card-head-right">
+                {entryHidden && (
+                  <span className="cs-entry-hidden-label">
+                    hidden until Q{vf}
+                  </span>
+                )}
                 <VisibleFromSegmented
-                  value={Number(entry.visible_from) || VF_DEFAULT}
+                  value={vf}
                   onChange={(v) => updateEntry(idx, { visible_from: v })}
                 />
                 <button
@@ -247,7 +267,8 @@ export function NarrativeTabEditor({
               aria-label="Entry body"
             />
           </div>
-        ))
+          );
+        })
       )}
 
       <div className="cs-entry-add-row">
