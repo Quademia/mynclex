@@ -24,6 +24,9 @@ export interface BankFilterValues {
   category: string;
   difficulty: string;
   status: string;
+  // Bank-list polish slice — '' | 'standalone' | 'case' | 'trend'.
+  // '' = All; absent from URL.
+  membership: string;
   q: string;
 }
 
@@ -93,6 +96,21 @@ export function BankFilters({
             <option value="">All</option>
             <option value="published">Published</option>
             <option value="draft">Draft</option>
+          </select>
+        </div>
+
+        <div className="bank-filter-group">
+          <label htmlFor="fmembership" className="bank-filter-label">Membership</label>
+          <select
+            id="fmembership"
+            name="membership"
+            defaultValue={values.membership}
+            className="bank-filter-input"
+          >
+            <option value="">All</option>
+            <option value="standalone">Standalone</option>
+            <option value="case">Case-linked</option>
+            <option value="trend">Trend-linked</option>
           </select>
         </div>
 

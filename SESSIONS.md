@@ -6,6 +6,199 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-24 (Bank-list polish — wrapper visibility + context edit + membership filter)
+
+Six changes to the shared bank list surface. Both admin and tutor
+banks now show every authored question — standalone, case-linked,
+trend-linked — in the same list, with wrapper-aware affordances:
+
+1. **Case exclusion removed.** `.is('parent_case_id', null)` was
+   dropped from both main + count queries on both surfaces.
+   Case-children now render alongside standalones and trend-
+   children. This is a **stance reversal** from 1.11b — not a
+   bug fix. 1.11b *chose* to hide case-children because the edit
+   path hadn't been hardened; now that protection exists (the
+   `?edit=` redirect to the case editor), hiding them is
+   over-strict.
+2. **Trend-child Edit redirect added.** The server page's
+   focus-mode load grew a parallel `if (full.trend_id)` branch
+   mirroring the 1.11b case redirect. Clicking Edit on a
+   trend-linked row routes to
+   `/admin/trends/[trend_id]?focus=[item_id]` instead of opening
+   the standalone editor. Pre-1.12c only case had this; trend
+   was falling through to the standalone editor (real bug
+   silently shipped).
+3. **Context-aware Edit label.** The Edit button text varies:
+   `Edit` / `Edit in case editor` / `Edit in trend editor`. The
+   href stays uniform `?edit=ID`; only the button copy changes.
+4. **Composition-counts row.** Four buckets displayed as
+   `filtered/total` under the page title — Total, Standalone,
+   Case-linked, Trend-linked. Replaces the old
+   `{rows.length} of {total} questions` subtitle (dropped this
+   slice — two stacked totals would be redundant).
+5. **Membership filter.** Sixth dropdown on the filter bar,
+   sitting between Status and Search. Options:
+   `All / Standalone / Case-linked / Trend-linked`. Threaded
+   through `BankFilterValues` + `BankSearchParams` +
+   `buildFilterQueryString` identically to the existing 5
+   filters.
+6. **Clickable wrapper badges.** The `In case · {title}` and
+   `Trend · {title}` chips are now `<Link>` elements that jump
+   straight to the wrapper editor focused on that question —
+   same destination as Edit, faster to click.
+
+### Locked decisions (from handoff + two Q&A disambiguations)
+
+Handoff-locked:
+- **Show every question by default.** Hide-and-redirect is stricter
+  than necessary now that both wrappers have edit-redirect coverage.
+- **Protect wrapper edits.** Both case and trend children bounce to
+  the wrapper editor. Redirect-check order: **trend_id first, then
+  parent_case_id.** Rationale beyond "arbitrary": parent_case_id
+  has `ON DELETE SET NULL`, trend_id has `ON DELETE RESTRICT`, so
+  a row that was once both can legitimately end up with only
+  `trend_id` set post-cascade — trend-first correctly catches it.
+- **Three Edit-label variants** — `Edit` / `Edit in case editor`
+  / `Edit in trend editor`.
+- **Counts format** `filtered/total`. Total scoped to surface
+  (admin counts don't include tutor items).
+- **One new filter, four values.** Membership: All / Standalone /
+  Case-linked / Trend-linked. Default All (absent URL param).
+- **Clickable badges, no row colour.** Badges carry enough signal.
+
+Disambiguated before build (my two Qs, Sam accepted both):
+- **`filtered` counts exclude the membership filter.** Otherwise
+  3 of 4 counts would collapse to 0 whenever a membership is
+  picked (the main query applies membership; the count queries
+  deliberately skip it).
+- **Drop the `{rows.length} of {total} questions` subtitle.**
+  Composition-row's `Total N/M` replaces it cleanly.
+
+### Schema
+
+No schema changes. All four relevant FK constraints already exist
+with Supabase-default naming (verified against dev `pg_catalog`):
+
+- `nclex_bank_items_parent_case_id_fkey` → `nclex_case_studies(case_id)`
+- `nclex_bank_items_trend_id_fkey`       → `nclex_trend_datasets(trend_id)`
+- `nclex_tutor_questions_parent_case_id_fkey` → `nclex_tutor_case_studies(case_id)`
+- `nclex_tutor_questions_trend_id_fkey`       → `nclex_tutor_trend_datasets(trend_id)`
+
+The Supabase FK-join aliases (`case:nclex_case_studies(title)` etc.)
+resolve automatically — no `!constraint_name` hint needed.
+
+### Architectural notes
+
+- **Nine queries per list load.** One main rows query + eight
+  COUNTs (4 surface-totals + 4 filtered-bucket). All 9 go through
+  `Promise.all`, so wall-time is dominated by the slowest. At dev
+  scale (29 rows total) this is well under 100ms. Worth
+  revisiting if the bank grows past ~100k rows; `count: 'exact'`
+  isn't free at that scale.
+- **`countQuery` helper lives locally in each page.** Tutor
+  version scopes every count to `.eq('tutor_id', user!.id)` —
+  RLS handles this too, but belt-and-braces makes the scope
+  visible in the source. The `user!` non-null assertion is safe
+  because the `redirect('/login')` earlier in the function
+  short-circuits on anon.
+- **FullBankRow `trend_id` drift-fix.** Pre-slice, `FullBankRow`
+  declared `parent_case_id` but not `trend_id` — the `SELECT *`
+  returned `trend_id` at runtime but the type didn't know. Fixed
+  by promoting both `parent_case_id` and `trend_id` onto the
+  shared `BankRow` interface (they belong there now that the
+  list renderer needs them). `FullBankRow` carries them via
+  inheritance; its own field list got shorter.
+- **Row-map fallback for missing joined titles.** If the FK join
+  returns null (dataset deleted mid-query, race condition), the
+  server falls back to showing the raw ID (`In case · NCLEX_CS_00001`)
+  rather than hiding the badge. The curator needs to see the
+  membership; a missing title is an "unknown dataset" state, not
+  an "unlinked question" state.
+- **Focus-mode navigator stays as-is.** The compact nav in
+  `/admin/bank?edit=X` now lists every row including wrapper
+  children. Clicking a wrapper-child nav link mid-edit fires the
+  server redirect → bank editor unmounts → curator lands in
+  the wrapper editor. Coherent but a UX surprise worth noting.
+  Could be hardened later by hiding wrapper children in the nav;
+  deliberately deferred.
+
+### Files created
+
+- None. Every change modifies existing files.
+
+### Files modified
+
+- `mynclex/lib/bank/list-view.tsx` — `BankRow` gains
+  `parent_case_id`, `trend_id`, `case_title`. `BankSearchParams`
+  + `BankListViewProps` gain `membership` and `counts`. New
+  `BankCompositionCounts` type. New `CompositionCounts`
+  component rendering the four buckets. New `wrapperBaseUrl`
+  helper mapping baseUrl × kind to editor root. `BrowseRow`
+  computes `editLabel` + `caseBadgeHref` + `trendBadgeHref`;
+  both wrapper badges are `<Link>` elements with
+  `.bank-badge-link`. `renderBrowseMode` drops the subtitle and
+  mounts `<CompositionCounts>` above the filter bar.
+  `buildFilterQueryString` preserves `membership`.
+- `mynclex/lib/bank/filters.tsx` — `BankFilterValues` gains
+  `membership`. New `<select>` labelled Membership between
+  Status and Search.
+- `mynclex/app/(app)/admin/bank/page.tsx` — case exclusion
+  removed; select extends with `parent_case_id, trend_id,
+  case:nclex_case_studies(title)`; membership filter applied
+  to main query only; local `countQuery` helper drives 8
+  COUNT queries; `trend_id` redirect branch added ahead of the
+  case branch.
+- `mynclex/app/(app)/tutor/bank/page.tsx` — same changes
+  against tutor tables (joins point at
+  `nclex_tutor_case_studies` / `nclex_tutor_trend_datasets`;
+  redirects go to `/tutor/bank/cases/...` /
+  `/tutor/trends/...`; counts scope to
+  `.eq('tutor_id', user.id)`).
+- `mynclex/app/dashboards.css` — appended `.bank-counts-row` +
+  `.bank-count-item` + `.bank-count-label` + `.bank-count-value`
+  + `.bank-badge-case` + `.bank-badge-link` block. Purple
+  palette (`#eeedfe / #3c3489 / #afa9ec`) matches existing
+  `.cs-pill.info` + `.tr-delete-dialog__attached-type` chips.
+
+### Files NOT modified (explicitly)
+
+- `mynclex/lib/bank/navigator.tsx` — focus-mode nav shape
+  unchanged; see the architectural note above.
+- `mynclex/lib/bank/case-study/`, `mynclex/lib/bank/trend/` —
+  not touched. Pure list-surface slice.
+- No schema, no RLS, no migrations.
+- No editor components.
+
+### Verified locally
+
+- `npx tsc --noEmit` — clean.
+- `npx eslint app lib` — clean.
+- `npm run build` — clean. **25 routes**, unchanged.
+- Pre-slice dev counts (from investigation): 29 total / 22
+  standalone / 4 case-linked / 3 trend-linked. Same count
+  helper on the page should produce the same numbers on page
+  load.
+- No browser test this session; Sam verifies.
+
+### Known temporaries / deferrals
+
+- **Focus-mode navigator.** Lists wrapper children alongside
+  standalones now. Clicking one mid-edit triggers the server
+  redirect, unmounting the bank editor. Acceptable for now;
+  could be hidden in a follow-up if it trips curators.
+- **Count query cost at scale.** 8 COUNTs per load is fine at
+  dev scale but not free at 10k+ rows. Revisit if/when.
+
+### Next session
+
+- **Sam's browser-side verification** per the handoff's
+  11-step script (admin list showing all three kinds, badge
+  click, Edit click, membership filter, tutor twin).
+- **Student runner** — still the only unbuilt piece of the
+  MyNclex authoring/consumption loop.
+
+---
+
 ## Session — 2026-04-24 (Slice 1.12c — Trend delete flow + validation + bank.md revision)
 
 Slice 1.12c closes out Trend authoring. Three independent pieces:

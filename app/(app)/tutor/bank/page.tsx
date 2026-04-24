@@ -13,6 +13,11 @@
 // Added in Slice 2.1 as the reusability proof for the bank authoring
 // stack: the 8 per-type editors, the 8 parsers, form-shape.ts, and the
 // shell + actions are all shared with /admin/bank.
+//
+// Bank-list polish slice (post-1.12c): case-children and trend-
+// children both appear in the list now. See the admin twin for the
+// full rationale; this file mirrors every change against the tutor
+// tables.
 
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -27,6 +32,7 @@ import {
   buildFilterQueryString,
   emptyInitial,
   rowToInitial,
+  type BankCompositionCounts,
   type BankRow,
   type BankSearchParams,
   type FullBankRow,
@@ -64,24 +70,26 @@ export default async function TutorBankPage({
     category: params.category ?? '',
     difficulty: params.difficulty ?? '',
     status: params.status ?? '',
+    membership: params.membership ?? '',
     q: (params.q ?? '').trim(),
   };
   const preservedFilterQuery = buildFilterQueryString(filters);
 
+  // ── Main query ──────────────────────────────────────────────────
   // RLS on nclex_tutor_questions enforces tutor_id = auth.uid(), but
   // the explicit .eq() is belt-and-braces and makes the scope obvious
-  // to the reader. parent_case_id IS NULL excludes case-linked child
-  // questions (Slice 1.11b) from the standalone browse pool.
-  // Slice 1.12b — FK-join to nclex_tutor_trend_datasets for the
-  // trend-linked badge. Same pattern as the admin twin; tutor
-  // side points at the tutor-private datasets table.
+  // to the reader. Case exclusion removed; case-children now appear
+  // in the list, protected by the ?edit= redirect below.
   let query = supabase
     .from('nclex_tutor_questions')
     .select(
-      'item_id, question_type, difficulty, stem, is_published, is_free_sample, client_needs_category, nursing_subject, body_system, tags, created_at, trend_id, trend:nclex_tutor_trend_datasets(title)',
+      'item_id, question_type, difficulty, stem, is_published, is_free_sample, ' +
+      'client_needs_category, nursing_subject, body_system, tags, created_at, ' +
+      'parent_case_id, trend_id, ' +
+      'trend:nclex_tutor_trend_datasets(title), ' +
+      'case:nclex_tutor_case_studies(title)',
     )
     .eq('tutor_id', user.id)
-    .is('parent_case_id', null)
     .order('item_id', { ascending: true })
     .limit(500);
 
@@ -92,18 +100,76 @@ export default async function TutorBankPage({
   if (filters.status === 'draft') query = query.eq('is_published', false);
   if (filters.q) query = query.ilike('stem', `%${filters.q}%`);
 
-  const [itemsRes, totalRes] = await Promise.all([
-    query,
-    supabase
+  if (filters.membership === 'standalone') {
+    query = query.is('parent_case_id', null).is('trend_id', null);
+  } else if (filters.membership === 'case') {
+    query = query.not('parent_case_id', 'is', null);
+  } else if (filters.membership === 'trend') {
+    query = query.not('trend_id', 'is', null);
+  }
+
+  // ── Composition counts ─────────────────────────────────────────
+  // Mirror of the admin helper; scoped to this tutor's rows.
+  type MembershipBucket = 'total' | 'standalone' | 'case' | 'trend';
+
+  function countQuery(bucket: MembershipBucket, withFilters: boolean) {
+    let q = supabase
       .from('nclex_tutor_questions')
       .select('*', { count: 'exact', head: true })
-      .eq('tutor_id', user.id)
-      .is('parent_case_id', null),
+      .eq('tutor_id', user!.id);
+
+    if (bucket === 'standalone') {
+      q = q.is('parent_case_id', null).is('trend_id', null);
+    } else if (bucket === 'case') {
+      q = q.not('parent_case_id', 'is', null);
+    } else if (bucket === 'trend') {
+      q = q.not('trend_id', 'is', null);
+    }
+
+    if (withFilters) {
+      if (filters.type) q = q.eq('question_type', filters.type);
+      if (filters.category) q = q.eq('client_needs_category', filters.category);
+      if (filters.difficulty) q = q.eq('difficulty', filters.difficulty);
+      if (filters.status === 'published') q = q.eq('is_published', true);
+      if (filters.status === 'draft') q = q.eq('is_published', false);
+      if (filters.q) q = q.ilike('stem', `%${filters.q}%`);
+    }
+    return q;
+  }
+
+  const [
+    itemsRes,
+    totalTotal,
+    totalStandalone,
+    totalCase,
+    totalTrend,
+    filteredTotal,
+    filteredStandalone,
+    filteredCase,
+    filteredTrend,
+  ] = await Promise.all([
+    query,
+    countQuery('total',      false),
+    countQuery('standalone', false),
+    countQuery('case',       false),
+    countQuery('trend',      false),
+    countQuery('total',      true),
+    countQuery('standalone', true),
+    countQuery('case',       true),
+    countQuery('trend',      true),
   ]);
 
-  // Supabase FK-join shape — same as the admin twin.
-  type RawRow = Omit<BankRow, 'trend_title'> & {
+  const counts: BankCompositionCounts = {
+    total:       { filtered: filteredTotal.count      ?? 0, total: totalTotal.count      ?? 0 },
+    standalone:  { filtered: filteredStandalone.count ?? 0, total: totalStandalone.count ?? 0 },
+    caseLinked:  { filtered: filteredCase.count       ?? 0, total: totalCase.count       ?? 0 },
+    trendLinked: { filtered: filteredTrend.count      ?? 0, total: totalTrend.count      ?? 0 },
+  };
+
+  // ── Row mapping (FK-join fallback as admin twin) ───────────────
+  type RawRow = Omit<BankRow, 'trend_title' | 'case_title'> & {
     trend: { title: string } | null;
+    case:  { title: string } | null;
   };
   const rawRows = (itemsRes.data ?? []) as unknown as RawRow[];
   const rows: BankRow[] = rawRows.map((r) => ({
@@ -118,11 +184,19 @@ export default async function TutorBankPage({
     body_system:            r.body_system,
     tags:                   r.tags,
     created_at:             r.created_at,
-    trend_title:            r.trend?.title ?? null,
+    parent_case_id:         r.parent_case_id,
+    trend_id:               r.trend_id,
+    trend_title:
+      r.trend?.title ??
+      (r.trend_id ? r.trend_id : null),
+    case_title:
+      r.case?.title ??
+      (r.parent_case_id ? r.parent_case_id : null),
   }));
   const queryError = itemsRes.error;
-  const total = totalRes.count ?? rows.length;
+  const total = counts.total.filtered;
 
+  // ── Focus-mode load + wrapper redirects ────────────────────────
   let initial: BankFormInitial = emptyInitial();
   let editLoadError: string | null = null;
   if (editId) {
@@ -134,9 +208,9 @@ export default async function TutorBankPage({
       .maybeSingle<FullBankRow>();
     if (fullErr || !full) {
       editLoadError = `Could not load ${editId}.`;
+    } else if (full.trend_id) {
+      redirect(`/tutor/trends/${full.trend_id}?focus=${editId}`);
     } else if (full.parent_case_id) {
-      // Case-linked child question: route to the case editor instead
-      // of opening the standalone form. Slice 1.11b non-negotiable.
       redirect(`/tutor/bank/cases/${full.parent_case_id}?focus=${editId}`);
     } else {
       initial = rowToInitial(full);
@@ -156,6 +230,7 @@ export default async function TutorBankPage({
       baseUrl={BASE_URL}
       rows={rows}
       total={total}
+      counts={counts}
       filters={filters}
       preservedFilterQuery={preservedFilterQuery}
       inFocusMode={inFocusMode}

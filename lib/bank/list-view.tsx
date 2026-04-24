@@ -51,6 +51,14 @@ export interface BankRow {
   // bank page via an FK join on nclex_bank_items.trend_id →
   // nclex_trend_datasets.title. Null for standalone items.
   trend_title: string | null;
+  // Bank-list polish (post-1.12c) — wrapper-linked rows now appear
+  // in the list. The renderer needs the wrapper IDs to build
+  // clickable badges + pick the right Edit-button label.
+  parent_case_id: string | null;
+  trend_id: string | null;
+  // Joined from nclex_case_studies.title — the case-badge mirror
+  // of trend_title. Null on standalone and trend-linked rows.
+  case_title: string | null;
 }
 
 export interface FullBankRow extends BankRow {
@@ -68,11 +76,12 @@ export interface FullBankRow extends BankRow {
   shuffle_options: boolean;
   question_ref: string | null;
   batch_id: string | null;
-  // Added in Slice 1.11b. Non-null = this row is authored as a Q1-Q6
-  // slot on the named case study; the bank list excludes these rows
-  // from browse mode and routes ?edit={item_id} on one back to the
-  // case editor.
-  parent_case_id: string | null;
+  // parent_case_id + trend_id are already on the BankRow shape now
+  // (bank-list polish slice). They're re-declared on the extended
+  // BankRow by being carried through inheritance — no explicit
+  // field needed here. Present in the DB row as returned by
+  // SELECT *; the server page inspects them for wrapper-edit
+  // redirects.
 }
 
 export interface BankSearchParams {
@@ -85,6 +94,22 @@ export interface BankSearchParams {
   difficulty?: string;
   status?: string;
   q?: string;
+  // Bank-list polish slice — "" | 'standalone' | 'case' | 'trend'.
+  // "" / absent = All.
+  membership?: string;
+}
+
+// Composition-counts shape for the four-bucket row above the filter
+// bar. "filtered" values apply the NON-membership filters
+// (type/category/difficulty/status/q) — never the membership filter
+// itself — so all four counts stay meaningful when the curator picks
+// a membership. "total" values are surface-scoped (admin OR tutor)
+// with no filters applied at all.
+export interface BankCompositionCounts {
+  total:       { filtered: number; total: number };
+  standalone:  { filtered: number; total: number };
+  caseLinked:  { filtered: number; total: number };
+  trendLinked: { filtered: number; total: number };
 }
 
 export interface BankListViewProps {
@@ -92,6 +117,7 @@ export interface BankListViewProps {
   baseUrl: string;
   rows: BankRow[];
   total: number;
+  counts: BankCompositionCounts;
   filters: BankFilterValues;
   preservedFilterQuery: string;
   inFocusMode: boolean;
@@ -125,7 +151,7 @@ function renderBrowseMode(props: BankListViewProps) {
   const {
     baseUrl,
     rows,
-    total,
+    counts,
     filters,
     preservedFilterQuery,
     deletedFlash,
@@ -154,9 +180,6 @@ function renderBrowseMode(props: BankListViewProps) {
         <div className="bank-browse-header">
           <div>
             <h1 className="dash-title">{titleLabel}</h1>
-            <p className="dash-subtitle">
-              {rows.length} of {total} question{total === 1 ? '' : 's'}
-            </p>
           </div>
           <div className="bank-browse-header-actions">
             {headerExtra}
@@ -165,6 +188,14 @@ function renderBrowseMode(props: BankListViewProps) {
             </Link>
           </div>
         </div>
+
+        {/* Composition counts — four buckets as filtered/total.
+            "Filtered" applies non-membership filters only (see the
+            server page's composition-count builder), so all four
+            values stay informative when a membership is picked.
+            Replaces the old "{rows.length} of {total} questions"
+            subtitle. */}
+        <CompositionCounts counts={counts} />
 
         {queryError && (
           <div className="dash-note bank-error">
@@ -202,6 +233,58 @@ function renderBrowseMode(props: BankListViewProps) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+// Composition-counts row — four buckets under the page title.
+// ─────────────────────────────────────────────────────────────
+
+function CompositionCounts({ counts }: { counts: BankCompositionCounts }) {
+  return (
+    <div className="bank-counts-row">
+      <span className="bank-count-item">
+        <span className="bank-count-label">Total</span>
+        <span className="bank-count-value">
+          {counts.total.filtered}/{counts.total.total}
+        </span>
+      </span>
+      <span className="bank-count-item">
+        <span className="bank-count-label">Standalone</span>
+        <span className="bank-count-value">
+          {counts.standalone.filtered}/{counts.standalone.total}
+        </span>
+      </span>
+      <span className="bank-count-item">
+        <span className="bank-count-label">Case-linked</span>
+        <span className="bank-count-value">
+          {counts.caseLinked.filtered}/{counts.caseLinked.total}
+        </span>
+      </span>
+      <span className="bank-count-item">
+        <span className="bank-count-label">Trend-linked</span>
+        <span className="bank-count-value">
+          {counts.trendLinked.filtered}/{counts.trendLinked.total}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Wrapper-URL helper — maps a bank baseUrl + wrapper kind to the
+// matching editor's base path. Consolidates the 4 admin/tutor ×
+// case/trend combinations in one place so the list renderer and
+// any future caller stay aligned. Uses baseUrl as the authority
+// for which surface we're on so the renderer doesn't need a
+// separate `surface` argument threaded through.
+// ─────────────────────────────────────────────────────────────
+
+function wrapperBaseUrl(kind: 'case' | 'trend', baseUrl: string): string {
+  const isTutor = baseUrl.startsWith('/tutor');
+  if (kind === 'case') {
+    return isTutor ? '/tutor/bank/cases' : '/admin/bank/cases';
+  }
+  return isTutor ? '/tutor/trends' : '/admin/trends';
+}
+
 function BrowseRow({
   row,
   baseUrl,
@@ -211,14 +294,36 @@ function BrowseRow({
   baseUrl: string;
   preservedFilterQuery: string;
 }) {
+  // Edit href stays uniform — the server page inspects trend_id
+  // + parent_case_id on the full row and redirects to the wrapper
+  // editor. The label below tells the curator where they're going
+  // before they click.
   const editHref = preservedFilterQuery
     ? `${baseUrl}?edit=${row.item_id}&${preservedFilterQuery}`
     : `${baseUrl}?edit=${row.item_id}`;
+
+  const editLabel = row.trend_id
+    ? 'Edit in trend editor'
+    : row.parent_case_id
+      ? 'Edit in case editor'
+      : 'Edit';
 
   const metaParts: string[] = [];
   if (row.client_needs_category) metaParts.push(row.client_needs_category);
   if (row.body_system) metaParts.push(row.body_system);
   if (row.nursing_subject) metaParts.push(row.nursing_subject);
+
+  // Wrapper badge destinations. Same URL the server redirect lands
+  // on when the curator clicks Edit — lets the curator skip the
+  // action area and jump straight from the badge.
+  const caseBadgeHref =
+    row.parent_case_id
+      ? `${wrapperBaseUrl('case', baseUrl)}/${row.parent_case_id}?focus=${row.item_id}`
+      : null;
+  const trendBadgeHref =
+    row.trend_id
+      ? `${wrapperBaseUrl('trend', baseUrl)}/${row.trend_id}?focus=${row.item_id}`
+      : null;
 
   return (
     <article className="bank-row-card">
@@ -236,13 +341,29 @@ function BrowseRow({
         {row.is_free_sample && (
           <span className="bank-badge bank-badge-free">Free</span>
         )}
-        {row.trend_title && (
-          <span
-            className="bank-badge bank-badge-trend"
-            title="Linked to a trend dataset"
+        {/* Wrapper badges. Both rendered if a row carries both IDs
+            (shouldn't happen in practice, but two badges is a
+            clearer signal than silently picking one). Title falls
+            back to the raw ID on the server side when the FK join
+            returns null, so `case_title` / `trend_title` are
+            always present when the corresponding *_id is set. */}
+        {caseBadgeHref && row.case_title && (
+          <Link
+            href={caseBadgeHref}
+            className="bank-badge bank-badge-case bank-badge-link"
+            title="Open in case editor"
+          >
+            In case · {row.case_title}
+          </Link>
+        )}
+        {trendBadgeHref && row.trend_title && (
+          <Link
+            href={trendBadgeHref}
+            className="bank-badge bank-badge-trend bank-badge-link"
+            title="Open in trend editor"
           >
             Trend · {row.trend_title}
-          </span>
+          </Link>
         )}
       </div>
       <div className="bank-row-stem">{row.stem}</div>
@@ -258,7 +379,7 @@ function BrowseRow({
       )}
       <div className="bank-row-actions">
         <Link href={editHref} className="bank-btn bank-btn-ghost bank-btn-sm">
-          Edit
+          {editLabel}
         </Link>
       </div>
     </article>
@@ -323,6 +444,7 @@ export function buildFilterQueryString(filters: BankFilterValues): string {
   if (filters.category) params.set('category', filters.category);
   if (filters.difficulty) params.set('difficulty', filters.difficulty);
   if (filters.status) params.set('status', filters.status);
+  if (filters.membership) params.set('membership', filters.membership);
   if (filters.q) params.set('q', filters.q);
   return params.toString();
 }
