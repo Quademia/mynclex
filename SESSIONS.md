@@ -6,6 +6,37 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-24 (Slice 1.12 planning — Claude Web)
+
+Planning session for Slice 1.12 (Trend wrapper). All decisions
+settled and captured in `mynclex/docs/product-plan/slice-1.12-plan.md`.
+
+Headline shape:
+- Own route `/admin/trends` + tutor twin. New table
+  `nclex_trend_datasets` + nullable FK `trend_id` on
+  `nclex_bank_items`. Parallel tutor tables.
+- Classification lives on the question, NOT the dataset —
+  avoids the Case Study wrapper-vs-child duplication.
+- `kind` is freeform TEXT, doubles as template picker (5
+  presets + Custom). Template is pure UI, only `kind`
+  persists.
+- Questions authored inside the trend editor (primary path),
+  reusing all existing per-type editors and
+  `QuestionAuthoringPanel`. Bank editor "Attach trend"
+  dropdown is secondary path.
+- Two-pane editor layout: dataset left, active question right,
+  variable pill strip along the top of the right pane.
+- Delete semantics: `ON DELETE RESTRICT` FK + two explicit UI
+  paths (Detach-and-delete / Delete-everything) with
+  typed-confirm.
+- Three sub-slices: 1.12a schema + dataset editor, 1.12b
+  attached questions, 1.12c delete + polish.
+
+### Next session
+- Slice 1.12a build handoff.
+
+---
+
 ## Session — 2026-04-24 (Slice 1.11c — Preview-as-position + validation panel)
 
 Slice 1.11c lands the last piece of the Case Study authoring
