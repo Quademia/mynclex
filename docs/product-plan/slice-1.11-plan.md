@@ -211,30 +211,97 @@ already proven by the previous nine slices.
 
 ---
 
-### Slice 1.11c — Preview + polish
+### Slice 1.11c — Preview-as-position + Validation summary
 
-**Goal.** Curator can preview the unfolding chart as the student
-will see it at each question position. Catch unfold errors before
-publishing.
+*Revised 2026-04-24 via Claude Web; supersedes the original
+"Preview + polish" sketch.*
+
+**Goal.** A curator working in the case editor can (a) preview the
+chart as the student will see it at each of the six question
+positions, and (b) run a client-side validation check that surfaces
+authoring errors before attempting to publish.
+
+**Locked decisions (settled 2026-04-24).**
+
+1. **Filtered-out entries render greyed-out with a label** —
+   `"hidden until Q{visible_from}"` — rather than disappearing.
+   Rationale: the curator still needs to see what they authored
+   during preview.
+2. **Two severities — Errors and Warnings.** Errors block publish;
+   warnings are advisory. Each rule carries a `'error' | 'warning'`
+   tag and renders in the same panel with distinct styling.
+3. **Manual Validate only.** The Validate button is a UI-only
+   affordance; it never auto-runs on Save. Save continues to behave
+   exactly as today, and the server-side RPC from 1.11b remains the
+   enforcement layer. This panel is early feedback, not a
+   replacement.
+4. **Preview state is per-session.** React state in the editor
+   component. Reloading resets to `Off`. No URL param, no
+   localStorage.
+5. **Preview affects the chart only.** Tab rail, right-hand
+   question pane, metadata accordions, and topbar are unaffected.
 
 **Scope.**
 
-- "Preview as position: [1][2][3][4][5][6]" toggle in the case
-  editor. Applies the `visible_from <= N` filter to every tab's
-  entries at the chosen position.
-- Validation summary button: "This case has 4/6 questions; 2
-  questions have empty stems; tab 'Lab Results' has no entries
-  with `visible_from = 1`." Optional — can defer if 1.11a and
-  1.11b ship clean.
-- Polish passes on the 1.11a tab editors based on real-use pain
-  points surfaced during 1.11a verification.
-- Any small UX gaps from earlier sub-slices that didn't warrant
-  blocking those commits.
+- Chart-header segmented control `[Off][1][2][3][4][5][6]` replaces
+  the 1.11a disabled preview stub. When a position is active, every
+  entry in the active tab with `visible_from > N` renders with a
+  `cs-entry--hidden` treatment and a `"hidden until Q{visible_from}"`
+  label. Entries with `visible_from <= N` render normally.
+- Small banner above the chart when preview is active:
+  `Preview: question N of 6   [Back to editing]`.
+- `Validate` button in the case topbar next to `Save case`. Clicking
+  opens a dismissible panel listing errors and warnings with a
+  summary header.
 
-**End state.** Case Study authoring is production-ready. Curator
-has confidence in what students will experience.
+**Validation rules (full list).**
 
-**Risk.** Low. Pure refinement.
+*Errors (block publish when `is_published = TRUE`):*
+
+- `case.title.missing` — case title is empty/whitespace.
+- `case.summary.missing` — `scenario_summary` is empty.
+- `case.tabs.zero` — zero tabs on the case.
+- `case.slots.underfilled_on_publish` — publishing but fewer than
+  6 slots populated.
+- `slot.stem.missing` — populated slot has empty stem.
+- `slot.type.missing` — populated slot has no `question_type`.
+- `slot.cjmm.missing` — populated slot has no CJMM step.
+
+*Warnings (advisory):*
+
+- `tab.no_entries` — tab has zero entries.
+- `tab.no_q1_entry` — tab has entries but none with
+  `visible_from = 1`. Student will see an empty tab at Q1.
+- `case.slots.underfilled_on_draft` — draft case with fewer than
+  6 slots populated. Suppressed when `is_published = TRUE`
+  (promoted to the matching error instead).
+
+*Panel header logic:*
+
+- `is_published = TRUE` + 0 errors → `Ready to publish` (green).
+- `is_published = TRUE` + >0 errors → `N errors, M warnings — not
+  ready` (red).
+- `is_published = FALSE` → `Draft — N errors, M warnings`
+  (neutral). Errors shown but without the "not ready" framing —
+  the curator hasn't asked to publish yet.
+
+**Out of scope.**
+
+- Server-side validation changes. The RPC from 1.11b stays as the
+  enforcement layer.
+- Auto-running validation on Save.
+- Any UI outside the case editor.
+- The "Clear slot" button and the case-wrapper accordion rename
+  from the 1.11b loose-ends block.
+
+**End state.** Case Study authoring has two pieces of in-editor
+feedback the curator previously had to learn about only by trial —
+what students see at each position, and what blocks publish. The
+student runner is unblocked without polish debt.
+
+**Risk.** Low. Pure UI + a pure client-side validator over state
+the editor already holds. No schema changes. No server-action
+changes.
 
 ---
 
