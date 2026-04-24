@@ -273,3 +273,50 @@ CREATE POLICY nclex_tutor_case_study_items_superadmin ON nclex_tutor_case_study_
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- ─────────────────────────────────────────────────────────
+-- nclex_trend_datasets
+-- Admin-owned trend datasets (Slice 1.12a).
+-- Read audiences:
+--   • any authenticated user → published rows only.
+--   • BANK_CURATE holders (and SUPER_ADMIN via the helper
+--     short-circuit) → full CRUD.
+-- Added 2026-04-24 in Slice 1.12a.
+-- ─────────────────────────────────────────────────────────
+
+ALTER TABLE nclex_trend_datasets ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_trend_datasets_read_published ON nclex_trend_datasets FOR SELECT
+  TO authenticated
+  USING (is_published = TRUE);
+
+CREATE POLICY nclex_trend_datasets_curate_all ON nclex_trend_datasets FOR ALL
+  TO authenticated
+  USING (nclex_user_has_permission('BANK_CURATE'))
+  WITH CHECK (nclex_user_has_permission('BANK_CURATE'));
+
+
+-- ─────────────────────────────────────────────────────────
+-- nclex_tutor_trend_datasets
+-- Tutor-private trend datasets (Slice 1.12a).
+-- One writer audience:
+--   • the owning tutor (tutor_id = auth.uid()) — full CRUD.
+-- SUPER_ADMIN bypasses for moderation / support.
+-- No public-read policy: tutor datasets stay private until the
+-- student runner introduces enrolment-scoped visibility (future
+-- slice).
+-- Added 2026-04-24 in Slice 1.12a.
+-- ─────────────────────────────────────────────────────────
+
+ALTER TABLE nclex_tutor_trend_datasets ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_tutor_trend_datasets_tutor_own ON nclex_tutor_trend_datasets FOR ALL
+  TO authenticated
+  USING (tutor_id = auth.uid())
+  WITH CHECK (tutor_id = auth.uid());
+
+CREATE POLICY nclex_tutor_trend_datasets_superadmin ON nclex_tutor_trend_datasets FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));

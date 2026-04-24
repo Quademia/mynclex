@@ -155,9 +155,14 @@ export default async function TutorBankPage({
       backHref="/tutor"
       backLabel="Tutor"
       headerExtra={
-        <Link href="/tutor/bank/cases" className="bank-btn cs-bank-nav-link">
-          Case Studies →
-        </Link>
+        <>
+          <Link href="/tutor/bank/cases" className="bank-btn cs-bank-nav-link">
+            Case Studies →
+          </Link>
+          <Link href="/tutor/trends" className="bank-btn cs-bank-nav-link">
+            Trend datasets →
+          </Link>
+        </>
       }
     />
   );

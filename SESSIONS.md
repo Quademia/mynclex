@@ -6,6 +6,172 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-24 (Slice 1.12a — Trend dataset schema + editor)
+
+Slice 1.12a lands the dataset layer of the Trend wrapper. A curator
+can create a named trend dataset end-to-end from both `/admin/trends`
+and `/tutor/trends`: pick a kind (5 presets + Custom), fill in title +
+scenario, build the data table (rows × timepoints with per-cell flags
+and an optional ref-range column), save, and see it listed. No
+attached questions yet — the right half of the split is a "Questions
+— Slice 1.12b" placeholder, mirroring how 1.11a reserved the right
+half of the case editor.
+
+### Schema
+
+Two new tables on dev (`zrakjibtxyzoqcdtvpmq`):
+
+- `nclex_trend_datasets` — admin-owned. Columns: `trend_id` TEXT PK,
+  `title`, `scenario`, `kind`, `timepoints` JSONB, `rows` JSONB,
+  `is_published`, timestamps.
+- `nclex_tutor_trend_datasets` — tutor-private twin. Same shape plus
+  `tutor_id UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE`
+  and an index on `tutor_id`.
+
+RLS enabled on both. Four policies total:
+
+- Admin: `*_read_published` (any authenticated, is_published=TRUE) +
+  `*_curate_all` (BANK_CURATE via `nclex_user_has_permission`,
+  SUPER_ADMIN via the helper's short-circuit).
+- Tutor: `*_tutor_own` (tutor_id = auth.uid()) +
+  `*_superadmin` (SUPER_ADMIN bypass).
+
+No `trend_id` FK on `nclex_bank_items` or `nclex_tutor_questions` —
+that lands in 1.12b. Keeping the schema minimal until attachment
+becomes a real feature.
+
+### Divergences from handoff (flagged)
+
+1. **No `set_updated_at()` trigger function.** Handoff asserted the
+   helper already existed and said to just attach `CREATE TRIGGER …
+   EXECUTE FUNCTION set_updated_at()` on both new tables. It does
+   NOT exist — grep across `mynclex/db/**` turns up zero CREATE
+   TRIGGER and zero CREATE FUNCTION for updated_at. The repo's
+   convention is explicit `updated_at = NOW()` in every write path
+   (see `upsertTabAction` in case-study/actions.ts and the
+   `nclex_save_case_with_children` RPC). Following that convention:
+   no triggers this slice; `updateTrendAction` sets `updated_at`
+   explicitly. Migration header documents this. If a project-wide
+   trigger pattern arrives later, it can attach to these tables
+   without breaking anything.
+
+2. **`tutor_id` FK target.** Handoff SQL named `auth.users(id)`;
+   every existing tutor-scoped table in mynclex references
+   `nclex_users(id) ON DELETE CASCADE` instead. Followed the repo
+   convention. Same practical semantics (nclex_users cascades from
+   auth.users), uniform schema reads.
+
+### Files created
+
+- `mynclex/db/migrations/mynclex_trend_datasets_slice_1_12a.sql`
+  — the two CREATE TABLEs + RLS. Applied to dev.
+- `mynclex/db/seed-trends-dev.sql` — one demo dataset
+  (`NCLEX_TRD_00001`, post-op vitals, matches the mockup's Example 1).
+  Three timepoints, five rows, flags + ref-range populated on every
+  row so every authoring affordance renders during dev testing.
+- `mynclex/lib/bank/trend/types.ts` — `Surface`, `TrendFlag`,
+  `TrendRow`, `TrendDatasetRow`, `TrendEditorInitial`.
+- `mynclex/lib/bank/trend/kind-templates.ts` — `KIND_PRESETS`
+  (`'vitals' | 'labs' | 'io' | 'neuro' | 'assessment'`),
+  `kindDefaultLabel`, `kindEnablesRefRange`, `kindSeedData` with
+  realistic row templates per preset.
+- `mynclex/lib/bank/trend/actions.ts` — `createTrendAction`,
+  `updateTrendAction`, `deleteTrendAction`, `surfaceConfig` /
+  `readSurface` / `requireTrendCurator` / `nextTrendId`. Mirrors
+  the Case Study pattern; `parseRows()` validates alignment between
+  `values[]` / `flags[]` and the dataset's timepoint count.
+- `mynclex/lib/bank/trend/editor.tsx` — top-level editor (split-pane,
+  topbar, save/delete/cancel, divider with localStorage persist,
+  `?saved=1` redirect).
+- `mynclex/lib/bank/trend/metadata-accordions.tsx` — two `<details>`
+  accordions (Trend setup / Trend publishing). Kind picker has 5
+  presets + "Custom…" with a reveal-on-select text input; a single
+  hidden `name="kind"` reflects current state.
+- `mynclex/lib/bank/trend/data-table.tsx` — controlled data-table
+  with add/remove row, add/remove timepoint, in-place rename of
+  metric labels + timepoint headers, per-cell text input, per-cell
+  flag cycle button (null → abnormal → borderline → null), ref-range
+  column toggle + per-row ref-range input.
+- `mynclex/app/(app)/admin/trends/page.tsx` — list view.
+- `mynclex/app/(app)/admin/trends/new/page.tsx` — minimal create form
+  (kind + title); redirects to editor on success.
+- `mynclex/app/(app)/admin/trends/[trend_id]/page.tsx` — server
+  component that gates + fetches + mounts `<TrendEditor surface=
+  'admin'>`.
+- Three tutor twin pages under `app/(app)/tutor/trends/`.
+
+### Files modified
+
+- `mynclex/lib/bank/classifications.ts` — added `TREND_ID_PREFIX =
+  'NCLEX_TRD_'` and `TUTOR_TREND_ID_PREFIX = 'NCLEX_TUT_TRD_'`
+  alongside the existing case prefixes.
+- `mynclex/db/schema.sql` — appended a dated "Added 2026-04-24 in
+  Slice 1.12a" section with both CREATE TABLEs.
+- `mynclex/db/rls.sql` — appended parallel dated section with RLS
+  enables + policies.
+- `mynclex/app/dashboards.css` — appended a new `.tr-*` block
+  (~410 lines) mirroring the `.cs-*` block's conventions.
+- `mynclex/app/(app)/admin/bank/page.tsx` +
+  `mynclex/app/(app)/tutor/bank/page.tsx` — added a "Trend datasets →"
+  card alongside the existing "Case Studies →" card.
+
+### Files NOT modified (explicitly)
+
+- `mynclex/lib/bank/editors/`, `mynclex/lib/bank/parsers/`,
+  `mynclex/lib/bank/question-authoring-panel.tsx` — no attached
+  questions in 1.12a.
+- `mynclex/lib/bank/case-study/**` — reference pattern to mirror, not
+  to modify.
+- `mynclex/docs/product-plan/bank.md` — still reflects the pre-
+  revision "classification on dataset" shape. Deferred to 1.12c
+  per handoff.
+- `mynclex/app/landing.css`, `mynclex/db/seed_data.sql`.
+
+### CSS hazard avoided
+
+Initial `.tr-*` block had a comment line containing
+`--danger-*/--warn-*` which the postcss parser tokenised as `*/`
+prematurely closing the `/* … */` block and flooding stray
+apostrophes into CSS syntax. Fixed by rewording the comment to
+avoid `*/` inside comment bodies. Build failed once, then cleared.
+
+### Verified locally
+
+- `npx tsc --noEmit` — clean.
+- `npx eslint app lib` — clean.
+- `npm run build` — clean. **25 routes** (19 → 25, +6 as expected:
+  `/admin/trends`, `/admin/trends/new`, `/admin/trends/[trend_id]`
+  + 3 tutor twins).
+- Dev Supabase state verified post-migration: 2 tables created, RLS
+  enabled on both, 4 policies live, seed `NCLEX_TRD_00001` present.
+- No browser test this session; Sam runs the dev worker.
+
+### Known temporaries / deferrals
+
+- **No `trend_id` FK on bank items** — lands in 1.12b.
+- **No attached questions** — right-pane placeholder only.
+- **No delete-with-attached-questions confirmation** — lands in 1.12c.
+- **No transactional save RPC** — single-table update in 1.12a;
+  multi-row atomic save ships with 1.12b's attached-question flow.
+- **No validation panel** — lands in 1.12c.
+- **Bank editor "Attach trend" dropdown** — lands in 1.12b.
+- **Trend flags are author-side only** — rendered in the authoring
+  UI, not intended for student runner rendering. Runner will
+  suppress them (separate track).
+
+### Next session
+
+- **Slice 1.12b** — attached questions. Add `trend_id` FK column
+  on `nclex_bank_items` + `nclex_tutor_questions`. Wire the right
+  pane to a `QuestionAuthoringPanel` with a new `trend-child` mode.
+  Variable pill count (unlike Case Study's fixed 6) + overflow
+  scroll. Transactional save RPC `nclex_save_trend_with_children`.
+  Bank editor "Attach trend" dropdown (secondary path).
+- **Browser verification** — Sam to exercise dataset create / list /
+  edit / delete against `NCLEX_TRD_00001` before 1.12b planning.
+
+---
+
 ## Session — 2026-04-24 (Slice 1.12 planning — Claude Web)
 
 Planning session for Slice 1.12 (Trend wrapper). All decisions

@@ -170,9 +170,14 @@ export default async function AdminBankPage({
       backHref="/admin"
       backLabel="Admin"
       headerExtra={
-        <Link href="/admin/bank/cases" className="bank-btn cs-bank-nav-link">
-          Case Studies →
-        </Link>
+        <>
+          <Link href="/admin/bank/cases" className="bank-btn cs-bank-nav-link">
+            Case Studies →
+          </Link>
+          <Link href="/admin/trends" className="bank-btn cs-bank-nav-link">
+            Trend datasets →
+          </Link>
+        </>
       }
     />
   );

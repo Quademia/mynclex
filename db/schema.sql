@@ -324,3 +324,50 @@ CREATE TABLE nclex_tutor_case_study_tabs (
 );
 
 CREATE INDEX idx_nclex_tutor_case_study_tabs_case ON nclex_tutor_case_study_tabs(case_id);
+
+
+-- =========================================================
+-- Added 2026-04-24 in Slice 1.12a — Trend datasets
+-- =========================================================
+-- The Trend wrapper's dataset layer. Two parallel tables:
+--   • nclex_trend_datasets       — admin-owned, QAcademy bank.
+--   • nclex_tutor_trend_datasets — tutor-private, one row per
+--     tutor-authored dataset.
+-- In 1.12a datasets stand alone; the trend_id FK on bank items
+-- lands in Slice 1.12b when attachment becomes a real feature.
+-- See `mynclex/docs/product-plan/slice-1.12-plan.md` for the
+-- three-sub-slice shape.
+
+-- 11. Admin-owned trend datasets
+CREATE TABLE nclex_trend_datasets (
+  trend_id      TEXT PRIMARY KEY,
+  title         TEXT NOT NULL,
+  scenario      TEXT,
+  kind          TEXT NOT NULL,
+  timepoints    JSONB NOT NULL DEFAULT '[]'::jsonb,
+  rows          JSONB NOT NULL DEFAULT '[]'::jsonb,
+  is_published  BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
+-- 12. Tutor-private trend datasets
+-- tutor_id follows the repo's existing tutor-table convention
+-- (FK to nclex_users with ON DELETE CASCADE) rather than
+-- referencing auth.users directly.
+CREATE TABLE nclex_tutor_trend_datasets (
+  trend_id      TEXT PRIMARY KEY,
+  tutor_id      UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
+  title         TEXT NOT NULL,
+  scenario      TEXT,
+  kind          TEXT NOT NULL,
+  timepoints    JSONB NOT NULL DEFAULT '[]'::jsonb,
+  rows          JSONB NOT NULL DEFAULT '[]'::jsonb,
+  is_published  BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_nclex_tutor_trend_datasets_tutor
+  ON nclex_tutor_trend_datasets(tutor_id);

@@ -69,6 +69,15 @@ export const TUTOR_ITEM_ID_PREFIX: Record<QuestionType, string> = {
 export const CASE_ID_PREFIX       = 'NCLEX_CS_';
 export const TUTOR_CASE_ID_PREFIX = 'NCLEX_TUT_CS_';
 
+// Trend dataset ID prefixes (Slice 1.12a).
+// A trend dataset carries a time-series table (rows × timepoints) that
+// one or more bank items attach to. Datasets live at
+// /admin/trends (NCLEX_TRD_NNNNN) and /tutor/trends
+// (NCLEX_TUT_TRD_NNNNN). Same separation rationale as the case-study
+// prefixes above.
+export const TREND_ID_PREFIX       = 'NCLEX_TRD_';
+export const TUTOR_TREND_ID_PREFIX = 'NCLEX_TUT_TRD_';
+
 // ─────────────────────────────────────────────────────────────
 // NGN Case Study — Clinical Judgment Measurement Model steps.
 // Each of the six slots in a case study targets one step.
