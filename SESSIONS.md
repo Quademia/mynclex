@@ -2983,3 +2983,46 @@ topics settled in one sitting.
   (authoring UX, enrolment flow, session UX) depends on the bank
   being understood first.
 - Still no code. Design + plan phase continues.
+
+
+## Loose ends — deferred from Slice 1.11b (2026-04-23)
+
+Items surfaced during Sam's verification of 1.11b on dev that
+aren't shipped but shouldn't be forgotten.
+
+### Clear slot button (UX affordance, deferred)
+
+Currently, removing a question from a case requires clearing the
+stem manually and saving — the empty-slot filter (commit
+`67d656a`) then treats the slot as empty and the server drops the
+row. This works but is not discoverable. A dedicated "Clear slot"
+button was discussed and deferred. Open UX question: where the
+affordance should live (topbar of the right pane, Housekeeping
+accordion, or hover-× on the pill were all considered).
+
+### Case wrapper accordion label clash (known temporary)
+
+The left-half case wrapper uses accordion labels Content /
+Classification / Housekeeping (from 1.11a). The right-half
+`QuestionAuthoringPanel` uses the same three labels for each
+child question (from 1.11b). A curator opening a case sees two
+sets of identically-named accordions with different meanings on
+the same page. This was flagged as a known temporary in the
+1.11b handoff; cleanup is a later slice. Likely rename target
+for the case wrapper: Case Setup / Case Metadata / Case
+Publishing (or similar), so the wrapper accordions read as
+case-level rather than question-level.
+
+### Slice 1.11c — next planned focus
+
+Wires up the "Preview as student · position N" button that
+already exists as a disabled stub in the case editor's chart
+header. When functional, clicking the button toggles the chart
+to show only entries where `visible_from <= N` for the chosen
+position — letting the curator see what a student on question N
+will actually see during the case. Also brings in
+validation-summary-style warnings ("Tab X has no entries visible
+at position 1", "This case has 4/6 questions; publish requires
+all six", "Q3 has no CJMM step selected") that catch authoring
+errors before publish. Unblocks clean authoring before the
+student runner is built.
