@@ -3995,3 +3995,326 @@
   color: #085041;
   border: 1px solid #9fe1cb;
 }
+
+
+/* ─────────────────────────────────────────────────────────────
+   Slice 1.12c — Validation panel + Delete dialog
+   Mirrors .cs-validate panel structure from 1.11c, scoped under
+   .tr-validate, plus the new .tr-delete-dialog modal family.
+   ───────────────────────────────────────────────────────────── */
+
+/* Validation panel — anchored to .tr-editor-frame (already has
+   position: relative from 1.12a). Floats under the topbar on the
+   right; width capped so it never pushes the right pane. */
+.tr-validate-panel {
+  position: absolute;
+  top: 56px;
+  right: 16px;
+  width: min(440px, calc(100% - 32px));
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 40;
+}
+.tr-validate-panel__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+.tr-validate-panel__summary.is-ready {
+  background: #e1f5ee;
+  color: #085041;
+  border-bottom-color: #9fe1cb;
+}
+.tr-validate-panel__summary.is-blocked {
+  background: #fdecec;
+  color: var(--danger);
+  border-bottom-color: #f5b5b5;
+}
+.tr-validate-panel__summary.is-draft {
+  background: var(--bg);
+  color: var(--text);
+}
+.tr-validate-panel__close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.tr-validate-panel__close:hover { background: rgba(0, 0, 0, 0.06); }
+.tr-validate-panel__list { padding: 8px 0; }
+.tr-validate-panel__empty {
+  padding: 14px 16px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.tr-validate-panel__issue {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  border-left: 3px solid transparent;
+}
+.tr-validate-panel__issue + .tr-validate-panel__issue {
+  border-top: 1px solid var(--border);
+}
+.tr-validate-panel__issue.is-error   { border-left-color: var(--danger); }
+.tr-validate-panel__issue.is-warning { border-left-color: var(--warning); }
+.tr-validate-panel__sev {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.tr-validate-panel__issue.is-error .tr-validate-panel__sev {
+  background: #fdecec;
+  color: var(--danger);
+}
+.tr-validate-panel__issue.is-warning .tr-validate-panel__sev {
+  background: #fff4e5;
+  color: var(--warning);
+}
+.tr-validate-panel__msg {
+  flex: 1 1 auto;
+  color: var(--text);
+}
+.tr-validate-panel__rule-id {
+  display: block;
+  margin-top: 2px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+/* Validate topbar button — filled look while the panel is open,
+   matches the 1.11c Validate toggle pattern. */
+.tr-btn.is-open {
+  background: var(--primary-light);
+  border-color: var(--accent);
+  color: var(--primary-dark);
+}
+
+/* ── Delete dialog ── */
+
+.tr-delete-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.48);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.tr-delete-dialog {
+  background: var(--white);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  max-width: 640px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tr-delete-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.tr-delete-dialog__head h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+.tr-delete-dialog__close {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.tr-delete-dialog__close:hover:not(:disabled) {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.tr-delete-dialog__body {
+  padding: 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.tr-delete-dialog__msg {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.tr-delete-dialog__attached {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.tr-delete-dialog__attached li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.tr-delete-dialog__attached li:last-child { border-bottom: none; }
+.tr-delete-dialog__attached code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  flex: 0 0 auto;
+}
+.tr-delete-dialog__attached-type {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  background: #eeedfe;
+  color: #3c3489;
+  border: 1px solid #afa9ec;
+  border-radius: 4px;
+}
+.tr-delete-dialog__attached-stem {
+  flex: 1 1 auto;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tr-delete-dialog__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tr-delete-dialog__choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  background: var(--white);
+}
+.tr-delete-dialog__choice:hover { background: var(--bg); }
+.tr-delete-dialog__choice.is-active {
+  border-color: var(--accent);
+  background: var(--primary-light);
+  box-shadow: 0 0 0 2px rgba(45, 125, 114, 0.18);
+}
+.tr-delete-dialog__choice.is-danger.is-active {
+  border-color: var(--danger);
+  background: #fdecec;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.16);
+}
+.tr-delete-dialog__choice input[type="radio"] {
+  margin-top: 3px;
+  flex: 0 0 auto;
+}
+.tr-delete-dialog__choice strong {
+  display: block;
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.tr-delete-dialog__choice p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.tr-delete-dialog__choice code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  padding: 1px 4px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+.tr-delete-dialog__confirm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tr-delete-dialog__confirm-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+.tr-delete-dialog__confirm-field code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  padding: 1px 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+.tr-delete-dialog__confirm-field input {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  background: var(--white);
+  color: var(--text);
+}
+.tr-delete-dialog__confirm-field input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.tr-delete-dialog__hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.tr-delete-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}

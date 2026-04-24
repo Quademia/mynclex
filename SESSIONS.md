@@ -6,6 +6,200 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-24 (Slice 1.12c — Trend delete flow + validation + bank.md revision)
+
+Slice 1.12c closes out Trend authoring. Three independent pieces:
+
+1. **Delete-with-confirmation dialog** handles datasets with and
+   without attached questions, with a typed `DELETE` confirmation
+   and two explicit destructive paths backed by four new RPCs.
+2. **Validation panel** mirrors the 1.11c Case Study pattern with 8
+   errors + 4 warnings. Manual-only; never auto-runs on Save.
+3. **`bank.md` Trend section revised** from "planned shape" to
+   "as built". Shipped as a solo commit (`a6d883b`) before any
+   code so the doc fix was insulated from later build risk.
+
+The student runner is now unblocked on the Trend family; the only
+remaining MyNclex authoring slice is done. Case Study + Trend are
+both production-ready.
+
+### Schema (applied to dev `zrakjibtxyzoqcdtvpmq`)
+
+- Four new RPC functions, matching the 1.12b two-per-surface
+  convention:
+  - `nclex_detach_and_delete_trend(p_trend_id TEXT)` — NULLs the
+    `trend_id` on every attached `nclex_bank_items` row, then
+    deletes the dataset. Questions survive as standalone.
+  - `nclex_delete_trend_and_children(p_trend_id TEXT)` — deletes
+    attached items + the dataset in one transaction.
+  - Parallel tutor twins: `nclex_tutor_detach_and_delete_trend`,
+    `nclex_tutor_delete_trend_and_children`. All four
+    `GRANT EXECUTE TO authenticated`.
+- No new tables, no new columns, no new RLS policies. All four
+  RPCs operate on tables that already have RLS enabled.
+- `ON DELETE RESTRICT` on the `trend_id` FK remains — the
+  belt-and-braces safety net against anyone bypassing the server
+  action entirely. Neither new RPC relies on it: detach first
+  NULLs the FK; delete-everything removes child items before the
+  parent row, which doesn't trigger RESTRICT either way.
+
+### Locked decisions (from handoff)
+
+- **Typed confirmation text:** `DELETE`. Case-sensitive.
+- **Single Delete button in the topbar, two paths in the dialog.**
+  Topbar stays clean; dialog picks Detach vs Delete-everything
+  via radio-ish choice cards.
+- **Validation severity:** errors + warnings (2-level, same as 1.11c).
+- **Validate is manual only.** Save behaviour is untouched.
+- **Bank-editor "Attach trend" dropdown deferred indefinitely.**
+  Same posture Case Study took — authoring canonically lives in
+  the wrapper's editor.
+
+### Validation rules shipped
+
+*Errors (block publish when `is_published = TRUE`):*
+- `trend.title.missing`
+- `trend.rows.zero`
+- `trend.timepoints.zero`
+- `trend.row_values_mismatch` — per-row integrity check
+- `trend.question.zero_on_publish`
+- `slot.stem.missing`
+- `slot.type.missing`
+- `slot.content.invalid` — runs `initialToParsedItem` per child;
+  surfaces the parser's own error text so the curator sees
+  (for example) "Option 2 text is required".
+
+*Warnings (advisory):*
+- `trend.scenario.missing`
+- `trend.question.zero_on_draft`
+- `trend.question.type_diversity` — 3+ children all sharing one
+  host type
+- `trend.flags.none` — no cells flagged anywhere
+
+Panel header logic same as 1.11c: `Ready to publish` (green) /
+`N errors, M warnings — not ready` (red) /
+`Draft — N errors, M warnings` (neutral).
+
+### Architectural notes
+
+- **`slot.content.invalid` reuses `initialToParsedItem`.** The same
+  helper the save action uses is imported directly into the
+  client-side validator. Confirmed client-safe (no `'use server'`,
+  no server-only imports in `initial-to-parsed.ts` or any parser).
+  Saves reimplementing the parametric-object construction and
+  guarantees the validator + save RPC caller agree on what counts
+  as valid content.
+- **Defense-in-depth on bare delete.** `deleteTrendAction` now
+  checks for attached children before calling DELETE. If ≥1
+  found → refuses with a friendly message pointing at the dialog
+  flow. `ON DELETE RESTRICT` on the FK is the last line of
+  defence if someone sidesteps the server action.
+- **Unsaved child drafts excluded from the delete dialog's
+  attached-items list.** Drafts where `item_id === null` haven't
+  been persisted, so they don't count as "dataset has attached
+  questions". Filter happens in the editor before passing
+  `attachedItems` into `DeleteDialog`.
+- **Validate button toggles via `.tr-btn.is-open` class.** Clicking
+  while open closes the panel (matches 1.11c).
+- **Backdrop click closes the dialog, but only when not pending.**
+  Avoids accidentally dismissing an in-flight destructive call.
+
+### Files created
+
+- `mynclex/db/migrations/mynclex_trend_delete_rpcs_slice_1_12c.sql`
+  — four RPC function definitions + GRANT EXECUTE. ~180 lines.
+- `mynclex/lib/bank/trend/validation.ts` — types
+  (`TrendEditorState`, `TrendEditorChildSnapshot`,
+  `ValidationIssue`, `Severity`, `PanelSummary`),
+  `TREND_VALIDATION_RULES` flat rule array, `validateTrend()` +
+  `summarise()` helpers.
+- `mynclex/lib/bank/trend/validation-panel.tsx` — pure-
+  presentation floating panel mirroring
+  `cs-validate-panel` visual conventions.
+- `mynclex/lib/bank/trend/delete-dialog.tsx` — modal with
+  zero-vs-≥1 attached branching, radio-ish choice cards,
+  typed-`DELETE` confirm.
+
+### Files modified
+
+- `mynclex/docs/product-plan/bank.md` — solo-committed in
+  `a6d883b`. Replaced the old "planned shape" Trend section with
+  an "as built" description: no classification on the dataset,
+  `kind` is freeform TEXT with UI template sugar, delete
+  semantics via the two RPC-backed paths. Removed the
+  `Why v2, not v1` footnote.
+- `mynclex/lib/bank/trend/actions.ts`:
+  - Tightened `deleteTrendAction` — pre-check for attached
+    children; refuse with a pointer to the dialog flow if any.
+  - Added `detachAndDeleteTrendAction` and
+    `deleteTrendAndChildrenAction`, each selecting the admin
+    vs tutor RPC based on surface and handling the RPC's
+    error / unexpected-shape responses.
+- `mynclex/lib/bank/trend/editor.tsx`:
+  - Topbar Delete button now opens the modal (was calling
+    `deleteTrendAction` directly via a form).
+  - New Validate topbar button between Cancel and Save; toggles
+    the floating validation panel.
+  - `buildValidatorState()` assembles the snapshot from the
+    uncontrolled dataset form DOM + the active child's DOM
+    snapshot + current child drafts. Mirrors 1.11c's
+    `buildValidatorState` pattern.
+  - Three new delete handlers (`onDeleteEmpty`,
+    `onDetachAndDelete`, `onDeleteEverything`) routed via a
+    shared `runDeleteAction` helper so the pending/error state
+    stays consistent across paths.
+- `mynclex/lib/bank/trend/types.ts` — re-exports the validator's
+  public types (`TrendEditorState`, `ValidationIssue`, etc.) so
+  the editor can barrel-import from `./types`.
+- `mynclex/app/dashboards.css` — appended `.tr-validate-panel*`,
+  `.tr-btn.is-open`, and `.tr-delete-dialog*` blocks (~300 lines).
+
+### Files NOT modified (explicitly)
+
+- `mynclex/db/schema.sql` — RPC definitions stay in the migration
+  file only; schema.sql remains a tables-and-indexes reference.
+- `mynclex/db/rls.sql` — no policy changes.
+- `mynclex/lib/bank/editors/`, `parsers/`,
+  `question-authoring-panel.tsx` — unchanged.
+- `mynclex/lib/bank/case-study/**` — pattern source, not modified.
+- The standalone bank-editor pages (`/admin/bank/new`,
+  `/admin/bank/[item_id]`) — no "Attach trend" dropdown per
+  handoff decision 6.
+
+### Verified locally
+
+- `npx tsc --noEmit` — clean.
+- `npx eslint app lib` — clean.
+- `npm run build` — clean. **25 routes**, unchanged from 1.12b
+  (this slice wires into existing routes).
+- Dev Supabase: `SELECT proname FROM pg_proc WHERE proname LIKE
+  '%trend%'` returns 6 functions (2 save + 4 delete).
+- No browser test this session. Sam verifies per the handoff
+  script.
+
+### Known temporaries / deferrals
+
+- **Bank-editor "Attach trend" dropdown** — deferred indefinitely.
+  Curator authoring stays in the trend editor.
+- **Drag-to-reorder** — still not in v1 for rows, timepoints, or
+  attached questions.
+- **Student runner** — separate track; now unblocked by 1.12b/c.
+- **Admin filter by `kind`** — wait until `kind` values stabilise
+  in practice.
+
+### Next session
+
+- **Student runner** — the Case Study + Trend families are now
+  fully authorable end-to-end. Runner can consume real datasets,
+  attached questions, and the flags / ref-range metadata the
+  authoring editor writes.
+- **Browser verification (Sam)** — the 7-step script in the
+  1.12c handoff (`When done` section). Key flows: validate clean,
+  validate with issues, delete empty dataset, delete with
+  detach, delete everything, direct-API bypass attempt.
+
+---
+
 ## Session — 2026-04-24 (Slice 1.12b — Trend attached questions + save RPC)
 
 Slice 1.12b fills the right half of the Trend editor — datasets

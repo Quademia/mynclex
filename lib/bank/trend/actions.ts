@@ -408,6 +408,12 @@ export async function updateTrendAction(formData: FormData): Promise<ActionResul
   redirect(`${cfg.baseUrl}/${trend_id}?saved=1`);
 }
 
+// Bare delete, tightened in Slice 1.12c.
+// Refuses when the dataset has ≥1 attached questions — the curator
+// must use the dialog flow (detachAndDeleteTrendAction or
+// deleteTrendAndChildrenAction). Defence-in-depth: the editor's UI
+// already gates this, but a direct-API caller bypasses the editor.
+// The DB's ON DELETE RESTRICT on trend_id is the final fence.
 export async function deleteTrendAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
   const { supabase } = await requireTrendCurator(surface);
@@ -417,9 +423,35 @@ export async function deleteTrendAction(formData: FormData): Promise<ActionResul
 
   const cfg = surfaceConfig(surface);
 
-  // No attached questions exist in 1.12a — trend_id FK lands in
-  // 1.12b. Bare delete is safe here. 1.12c will replace this with
-  // the detach / delete-everything confirmation flow.
+  // Check for attached children first. The tutor surface filters by
+  // tutor_id so cross-tutor snooping can't see other tutors' items;
+  // RLS enforces the same at the DB layer. Admin surface sees all
+  // attached items under BANK_CURATE.
+  const childTable =
+    surface === 'tutor' ? 'nclex_tutor_questions' : 'nclex_bank_items';
+  let childQuery = supabase
+    .from(childTable)
+    .select('item_id', { count: 'exact', head: true })
+    .eq('trend_id', trend_id);
+  if (surface === 'tutor') {
+    // Belt-and-braces — RLS already enforces this.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) childQuery = childQuery.eq('tutor_id', user.id);
+  }
+  const { count, error: countErr } = await childQuery;
+  if (countErr) {
+    return { ok: false, error: `Check failed: ${countErr.message}` };
+  }
+  if ((count ?? 0) > 0) {
+    return {
+      ok:    false,
+      error:
+        `Cannot delete: dataset has ${count} attached ` +
+        `${count === 1 ? 'question' : 'questions'}. Use the delete dialog ` +
+        `to detach or delete them together.`,
+    };
+  }
+
   const { error } = await supabase
     .from(cfg.table)
     .delete()
@@ -429,6 +461,67 @@ export async function deleteTrendAction(formData: FormData): Promise<ActionResul
     return { ok: false, error: `Delete failed: ${error.message}` };
   }
 
+  revalidatePath(cfg.baseUrl);
+  redirect(`${cfg.baseUrl}?deleted=1`);
+}
+
+// Slice 1.12c — detach all attached questions (set trend_id = NULL),
+// then delete the dataset. One transactional RPC. Attached questions
+// survive as standalone items editable at /admin/bank.
+export async function detachAndDeleteTrendAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const surface = readSurface(formData);
+  const { supabase } = await requireTrendCurator(surface);
+
+  const trend_id = String(formData.get('trend_id') ?? '').trim();
+  if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
+
+  const rpcName =
+    surface === 'tutor'
+      ? 'nclex_tutor_detach_and_delete_trend'
+      : 'nclex_detach_and_delete_trend';
+
+  const { data, error } = await supabase.rpc(rpcName, { p_trend_id: trend_id });
+
+  if (error) {
+    return { ok: false, error: `Detach-and-delete failed: ${error.message}` };
+  }
+  if (!data || typeof data !== 'object' || !('ok' in data)) {
+    return { ok: false, error: 'RPC returned an unexpected shape.' };
+  }
+
+  const cfg = surfaceConfig(surface);
+  revalidatePath(cfg.baseUrl);
+  redirect(`${cfg.baseUrl}?deleted=1`);
+}
+
+// Slice 1.12c — delete every attached question AND the dataset in
+// one transaction. Destructive.
+export async function deleteTrendAndChildrenAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const surface = readSurface(formData);
+  const { supabase } = await requireTrendCurator(surface);
+
+  const trend_id = String(formData.get('trend_id') ?? '').trim();
+  if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
+
+  const rpcName =
+    surface === 'tutor'
+      ? 'nclex_tutor_delete_trend_and_children'
+      : 'nclex_delete_trend_and_children';
+
+  const { data, error } = await supabase.rpc(rpcName, { p_trend_id: trend_id });
+
+  if (error) {
+    return { ok: false, error: `Delete-everything failed: ${error.message}` };
+  }
+  if (!data || typeof data !== 'object' || !('ok' in data)) {
+    return { ok: false, error: 'RPC returned an unexpected shape.' };
+  }
+
+  const cfg = surfaceConfig(surface);
   revalidatePath(cfg.baseUrl);
   redirect(`${cfg.baseUrl}?deleted=1`);
 }

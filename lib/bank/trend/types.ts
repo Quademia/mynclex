@@ -61,3 +61,15 @@ export interface TrendEditorInitial {
 
 // Re-export for ergonomic imports from editor components.
 export type { TrendChildDraft } from './child-draft';
+
+// Slice 1.12c — re-export the validator's snapshot shape so the
+// editor can import a single barrel (`./types`) for both the RPC-
+// facing types and the validator-facing state.
+export type {
+  TrendEditorState,
+  TrendEditorChildSnapshot,
+  ValidationIssue,
+  Severity,
+  PanelSummary,
+  PanelSummaryKind,
+} from './validation';
