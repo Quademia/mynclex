@@ -7,8 +7,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { registerAction } from './actions';
-import '../tokens.css';
-import '../auth.css';
+import '@/styles/tokens.css';
+import '@/styles/auth.css';
 
 export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);

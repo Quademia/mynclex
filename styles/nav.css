@@ -1,0 +1,332 @@
+/* mynclex/styles/nav.css
+ *
+ * Styles for the student nav scaffold. Adopted 2026-04-25.
+ *
+ * Sections:
+ *   - Product layout (sidebar + content grid)
+ *   - Sidebar + nav rows
+ *   - Picker landing
+ *   - Topbar product label + product switcher
+ *   - Upsell modal
+ *   - Placeholder ("Coming soon") page body
+ *
+ * Visual reference: docs/product-plan/mockups/student-nav.html
+ * All colours/spacings come from styles/tokens.css. A few mockup-only
+ * dimensions (radius-sm 6px, radius-lg 12px, border-strong #d1d5db)
+ * are inlined since they aren't in tokens.css and don't yet need to be.
+ */
+
+/* ─────────────────────────────────────────────────────
+ * Topbar product label
+ * ───────────────────────────────────────────────────── */
+
+.shell-brand-product {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Product layout (sidebar + main content)
+ * ───────────────────────────────────────────────────── */
+
+.product-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: calc(100vh - 56px);
+}
+
+@media (max-width: 640px) {
+  .product-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.product-content {
+  padding: 20px;
+  background: var(--white);
+}
+
+/* ─────────────────────────────────────────────────────
+ * Sidebar
+ * ───────────────────────────────────────────────────── */
+
+.sidebar {
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  padding: 12px 0;
+}
+
+@media (max-width: 640px) {
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-item:hover {
+  background: rgba(0, 0, 0, 0.02);
+  text-decoration: none;
+}
+
+.nav-item.active {
+  background: var(--white);
+  border-left-color: var(--accent);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.nav-item svg {
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Picker landing
+ * ───────────────────────────────────────────────────── */
+
+.picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 56px);
+  padding: 40px 20px;
+  background: var(--bg);
+}
+
+.picker-inner {
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+}
+
+.picker-greeting {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--primary);
+}
+
+.picker-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .picker-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.picker-card {
+  display: block;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 16px;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
+.picker-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+
+.picker-card.empty {
+  border-style: dashed;
+  border-color: #d1d5db;
+}
+
+.picker-card-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.picker-card.empty .picker-card-title {
+  color: var(--text-muted);
+}
+
+.picker-card-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Product switcher (topbar pills)
+ * ───────────────────────────────────────────────────── */
+
+.product-switcher {
+  display: flex;
+  gap: 4px;
+  background: var(--bg);
+  padding: 3px;
+  border-radius: 6px;
+}
+
+.switcher-pill {
+  padding: 4px 12px;
+  font-size: 11px;
+  font-family: inherit;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.switcher-pill:hover {
+  color: var(--text);
+}
+
+.switcher-pill.active {
+  background: var(--white);
+  color: var(--primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Upsell modal
+ * ───────────────────────────────────────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 380px;
+  width: 100%;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: var(--text-muted);
+}
+
+.modal-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.modal-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.modal-body {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.modal-actions button {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.modal-actions button:hover {
+  border-color: #d1d5db;
+}
+
+.modal-actions button.primary {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--accent);
+}
+
+.modal-actions button.primary:hover {
+  background: #d8ebe9;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Placeholder ("Coming soon") page body
+ * ───────────────────────────────────────────────────── */
+
+.placeholder {
+  max-width: 720px;
+}
+
+.placeholder-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+
+.placeholder-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.placeholder-body {
+  padding: 14px;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.placeholder-body strong {
+  color: var(--text);
+  font-weight: 600;
+}

@@ -19,7 +19,7 @@ const ROLE_TO_PATH: Record<string, string> = {
   SUPER_ADMIN: '/admin',
   ADMIN: '/admin',
   TUTOR: '/tutor',
-  STUDENT: '/student',
+  STUDENT: '/student/picker',
 };
 
 export default async function RouterPage() {

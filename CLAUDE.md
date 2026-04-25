@@ -39,15 +39,55 @@ MyTeacher will migrate to the same stack later, one at a time.
 
 ## Folder Structure
 
-- `app/` — pages (Next.js App Router). Each folder is a URL path.
-- `components/` — reusable UI pieces (React components).
-- `lib/` — helpers, data access, Supabase client setup.
-- `public/` — static assets (images, favicon).
+- `app/` — routes only (Next.js App Router). Each folder is a URL path.
+- `components/` — visual pieces, grouped by domain (`shell/`, `nav/<audience>/`).
+- `lib/` — logic, grouped by domain (`bank/`, `nav/`, `shell/`, `supabase/`).
+- `styles/` — all CSS files (top-level sibling of `app/`, not nested under it).
 - `db/` — MyNclex-specific database schema, RLS, migrations.
+- `public/` — static assets (images, favicon).
 - `workers/` — separate Cloudflare Workers (e.g. email) — not the main app.
+- `docs/` — planning and product specs.
 
 Layout is **flat** (no `src/` wrapper). This matches Next.js default and
 the sibling products' philosophy.
+
+## Folder Conventions
+
+Adopted in the 2026-04-25 student-nav scaffold. Apply to every future
+slice.
+
+1. **Routes grouped by audience under `app/(app)/`.** Three audience
+   folders: `student/`, `tutor/`, `admin/`. URLs become `/student/...`,
+   `/tutor/...`, `/admin/...`. Total symmetry — no audience is "the
+   default."
+
+2. **Components grouped by domain.**
+   - `components/shell/` — chrome every audience shares (topbar, footer,
+     role-chip, user-menu, app-shell).
+   - `components/nav/<audience>/` — audience-specific nav pieces (e.g.
+     `components/nav/student/sidebar.tsx`).
+   - `components/nav/shared/` — genuinely shared nav pieces (e.g. the
+     `Placeholder` component used by every "Coming soon" route).
+
+3. **Single-use components live next to their caller.** A component
+   used by exactly one page sits in that page's folder. Cross-audience
+   reusable chrome lives in `components/<domain>/`.
+
+4. **`lib/nav/` is data-driven.** Each audience exports its sidebar
+   config as a `NavItem[]` array. Adding/removing/reordering a sidebar
+   item = one-line edit in one file. No hunting through layouts.
+
+5. **`styles/` is top-level.** All CSS lives here as a sibling of
+   `app/`, not nested inside it. New domains get a new file (`nav.css`,
+   `shell.css`, etc.) — don't keep appending to `dashboards.css`.
+
+6. **Each audience renders its own chrome.** `(app)/layout.tsx` is a
+   slim auth boundary (redirect if no user, import workspace CSS) — it
+   does NOT render the topbar or footer. Each audience layout calls
+   `loadChromeData()` and wraps its tree in `<AppShell>`, passing its
+   own `productLabel` and `rightSlot` (e.g. `<ProductSwitcher />` for
+   student product spaces). This avoids middleware-pathname tricks and
+   keeps each audience's chrome self-contained.
 
 ## Non-Negotiable Rules
 

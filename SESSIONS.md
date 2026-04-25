@@ -6,6 +6,120 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-25 (Slice 2.6 — Student nav scaffold + folder convention — Claude Web + Desktop)
+
+Two things landed in one slice:
+
+1. **Folder convention** adopted repo-wide: components grouped by
+   domain (`shell/`, `nav/<audience>/`), CSS promoted to top-level
+   `styles/`, audiences live under `app/(app)/{student,tutor,admin}/`.
+2. **Student nav scaffold** end-to-end: picker landing, bank product
+   space (6 pages), programme product space (5 pages), product
+   switcher with upsell modal, post-login redirect to picker.
+
+### Architectural shift
+
+`(app)/layout.tsx` is now a slim auth boundary — it redirects to
+/login if no user, imports the workspace CSS (`tokens`, `dashboards`,
+`shell`, `nav`), and renders children. **It no longer renders the
+topbar or footer.** Each audience layout calls a new
+`loadChromeData()` helper and wraps children in `<AppShell>`,
+passing its own `productLabel` and `rightSlot` (e.g.
+`<ProductSwitcher />`). This avoids middleware-pathname tricks
+that the original handoff prescribed (the `x-pathname` snippet had
+a real bug — sets header on response not next request).
+
+Collateral: tutor and admin layouts were updated to render their
+own `<AppShell>` so they didn't lose chrome when the parent stopped
+rendering it. Tutor layout: now does its own AppShell wrap with no
+productLabel/rightSlot. Admin layout: created (didn't exist) with
+ADMIN/SUPER_ADMIN gate + AppShell wrap. Both are minimal — full
+admin and tutor nav scaffolds land in their own slices later.
+
+### Files moved (Phase 1 tidy)
+
+- `components/{topbar,footer,role-chip,user-menu}.tsx` →
+  `components/shell/{...}.tsx`
+- `app/{tokens,shell,dashboards,auth,landing}.css` →
+  `styles/{...}.css`
+- 8 import sites updated to the new paths.
+
+### Files created
+
+- **lib/**
+  - `lib/nav/types.ts` — `NavItem` + `NavIcon` union (9 icons)
+  - `lib/nav/student.ts` — `STUDENT_BANK_NAV` (6 items, `practice`
+    key replaces `bank`) + `STUDENT_PROGRAMME_NAV` (5 items)
+  - `lib/shell/load-chrome-data.ts` — fetches user/profile/roles +
+    resolves `viewingAs` from cookie
+
+- **components/**
+  - `components/shell/app-shell.tsx` — chrome wrapper (shell-root +
+    topbar + body + footer)
+  - `components/nav/shared/placeholder.tsx` — "Coming soon" body
+  - `components/nav/student/sidebar.tsx` — generic sidebar driven
+    by `NavItem[]`, active-state via `usePathname` + `startsWith`
+  - `components/nav/student/nav-icon.tsx` — switch-on-name returning
+    inline SVG, paths copied verbatim from the mockup
+  - `components/nav/student/product-switcher.tsx` — topbar pill
+    toggle, opens upsell modal for bank-only students
+  - `components/nav/student/upsell-modal.tsx` — modal with click-
+    outside + Escape dismissal
+
+- **app/**
+  - `app/(app)/admin/layout.tsx` — new admin role gate + AppShell
+  - `app/(app)/student/picker/page.tsx` — picker landing
+  - `app/(app)/student/bank/layout.tsx` + `page.tsx` (redirect) +
+    `dashboard/`, `practice/`, `packs/`, `journey/`, `history/`,
+    `profile/page.tsx`
+  - `app/(app)/student/programme/layout.tsx` + `page.tsx` (redirect)
+    + `overview/`, `weeks/`, `sessions/`, `tasks/`, `profile/page.tsx`
+  - `app/programmes/page.tsx` — public placeholder, sits outside
+    `(app)`, styled with the existing landing tokens
+  - `styles/nav.css` — sidebar, picker, switcher, modal, placeholder
+
+### Files edited
+
+- `app/(app)/layout.tsx` — stripped to auth + CSS imports + children
+- `app/(app)/tutor/layout.tsx` — now renders its own AppShell
+- `app/(app)/student/page.tsx` — was the dashboard, now redirects to
+  `/student/picker`
+- `app/router/page.tsx` — `STUDENT: '/student' → '/student/picker'`
+- `components/shell/topbar.tsx` — added optional `productLabel` +
+  `rightSlot` props
+- `mynclex/CLAUDE.md` — new "Folder Conventions" section
+- `mynclex/docs/product-plan/student-nav.md` — URL prefix note +
+  `bank → practice` route key rename
+
+### Known placeholder data
+
+`hasBankSubscription`, `bankDaysLeft`, `hasProgrammeEnrolment`,
+`programmeTitle`, `programmeWeek`, `programmeTotalWeeks` are all
+hard-coded in the picker page and audience layouts. The real
+`nclex_subscriptions` and `nclex_enrolments` tables don't exist
+yet — placeholders get replaced when those tables ship.
+
+The bank layout passes `hasProgrammeEnrolment={false}` to the
+ProductSwitcher today (so clicking Programme opens the upsell
+modal). The programme layout passes `true` (so a programme student
+can switch back to bank). Both flips happen for free when the
+enrolment table lands.
+
+### What's unblocked
+
+- Tutor nav scaffold (Slice 2.7)
+- Admin nav scaffold (Slice 2.8)
+
+### Next session
+
+Tutor nav scaffold per `docs/product-plan/tutor-nav.html`.
+Architecture is the same as student: `(app)/tutor/{programmes,
+my-bank, my-students, payments, profile}/...` plus nested
+`(app)/tutor/programmes/[id]/*` with its own programme-scoped
+sidebar and back pill.
+
+---
+
 ## Session — 2026-04-24 (Slice 1.12 wrap + bank-list polish — Claude Web + Desktop)
 
 Shipped the Trend wrapper (NGN 10th type) end-to-end across

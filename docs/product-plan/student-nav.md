@@ -8,6 +8,15 @@
 browser — it renders the picker, Bank product, Programme product,
 and the upsell modal across both student sub-types.
 
+> **URLs are prefixed `/student/...`** for symmetry with the tutor and
+> admin nav specs. The original spec drafted unprefixed URLs (`/picker`,
+> `/bank/...`, `/programme/...`); revised during the nav scaffold
+> planning session (2026-04-25) to match the cross-audience pattern.
+>
+> The bank-product practice surface uses the route key `practice` (not
+> `bank`) to avoid the collision `/student/bank/bank`. The sidebar
+> label remains "Question Bank".
+
 ---
 
 ## What this covers
@@ -89,7 +98,7 @@ inside a product (not on the picker).
 | Key | Label | Page purpose |
 |---|---|---|
 | dashboard | Dashboard | Subscription status, recent practice, readiness snapshot |
-| bank | Question Bank | Main practice surface (filters, start a set) |
+| practice | Question Bank | Main practice surface (filters, start a set) |
 | packs | Readiness Packs | Curated QAcademy-authored assessment sets |
 | journey | Journey Tracker | 7-phase migration prep tool |
 | history | History | Past attempts and scores |
@@ -191,19 +200,21 @@ Three screens × two student sub-types = six distinct views:
 ### Route shape (Next.js, inside the `(app)` route group)
 
 ```
-app/(app)/
+app/(app)/student/
   picker/              — the landing page
     page.tsx
   bank/                — Bank product space
-    layout.tsx         — injects Bank sidebar + "Bank" topbar label
+    layout.tsx         — injects Bank sidebar + "· Bank" topbar label + ProductSwitcher
+    page.tsx           — redirects to /student/bank/dashboard
     dashboard/page.tsx
-    bank/page.tsx
+    practice/page.tsx  — main practice surface (key 'practice', label "Question Bank")
     packs/page.tsx
     journey/page.tsx
     history/page.tsx
     profile/page.tsx
   programme/           — Programme product space
-    layout.tsx         — injects Programme sidebar + "Programme" topbar label
+    layout.tsx         — injects Programme sidebar + "· Programme" topbar label + ProductSwitcher
+    page.tsx           — redirects to /student/programme/overview
     overview/page.tsx
     weeks/page.tsx
     sessions/page.tsx
