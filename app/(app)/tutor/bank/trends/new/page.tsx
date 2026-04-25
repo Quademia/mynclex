@@ -1,4 +1,4 @@
-// mynclex/app/(app)/tutor/trends/new/page.tsx
+// mynclex/app/(app)/tutor/bank/trends/new/page.tsx
 //
 // Tutor trend-dataset create form (Slice 1.12a). Tutor-scoped twin
 // of the admin create page. Same shape, surface hidden input set
@@ -42,7 +42,7 @@ export default async function TutorTrendCreatePage() {
           </p>
         </div>
         <div className="cs-list-actions">
-          <Link href="/tutor/trends" className="cs-btn">← Cancel</Link>
+          <Link href="/tutor/bank/trends" className="cs-btn">← Cancel</Link>
         </div>
       </div>
 

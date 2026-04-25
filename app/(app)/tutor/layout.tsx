@@ -1,16 +1,18 @@
 // mynclex/app/(app)/tutor/layout.tsx
 //
-// Role gate + chrome for the entire /tutor tree. The (app) layout
-// upstream only does the auth redirect now (each audience renders
-// its own chrome since 2026-04-25 student nav scaffold) so this
-// layout loads its chrome data and wraps children in <AppShell>.
+// TUTOR role gate for the entire /tutor tree. Renders no chrome —
+// each tutor sub-folder owns its own chrome via <TutorGlobalShell>
+// (programmes, bank, students, payments, profile) or
+// <TutorProgrammeShell> (programmes/[programme_id]/...). This shape
+// lets the programme context replace the global sidebar with the
+// programme sidebar without double-rendering the topbar/footer.
 //
-// No productLabel or rightSlot today — the dedicated tutor nav
-// scaffold slice will add them.
+// History: slice 2.6 briefly had this layout render <AppShell>; the
+// tutor nav scaffold (slice 2.7) reverted that so each context can
+// own its chrome.
 
 import { redirect } from 'next/navigation';
-import { loadChromeData } from '@/lib/shell/load-chrome-data';
-import { AppShell } from '@/components/shell/app-shell';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,20 +21,18 @@ export default async function TutorLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const chrome = await loadChromeData();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
 
-  if (!chrome.roles.includes('TUTOR')) {
-    redirect('/no-access');
-  }
+  const { data: rolesData } = await supabase
+    .from('nclex_user_roles')
+    .select('role')
+    .eq('user_id', user.id);
+  const roles = (rolesData ?? []).map((r) => r.role as string);
+  if (!roles.includes('TUTOR')) redirect('/no-access');
 
-  return (
-    <AppShell
-      displayName={chrome.displayName}
-      email={chrome.email}
-      viewingAs={chrome.viewingAs}
-      availableRoles={chrome.roles}
-    >
-      {children}
-    </AppShell>
-  );
+  return <>{children}</>;
 }

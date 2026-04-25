@@ -346,6 +346,19 @@
     <code>main.md</code>, <code>bank.md</code>, <code>student-nav.md</code>, etc.
   </div>
 
+  <div class="callout">
+    <strong>Build note (2026-04-25 — tutor nav scaffold).</strong>
+    Trend routes moved from <code>/tutor/trends/*</code> to
+    <code>/tutor/bank/trends/*</code> to match the spec's route shape.
+    Case Study routes were already at <code>/tutor/bank/cases/*</code>
+    from slice 1.11a — kept that shorter slug rather than renaming to
+    <code>case-studies</code>; only the sidebar label uses the longer
+    name. The bank list page moved from <code>/tutor/bank</code> to
+    <code>/tutor/bank/all</code> so "All questions" is a real sub-route
+    and <code>/tutor/bank</code> redirects to it. Old URLs are not
+    redirected — clean break, only Sam used them.
+  </div>
+
   <!-- ─── Overview ─────────────────────────────────────────── -->
 
   <h2>What this covers</h2>

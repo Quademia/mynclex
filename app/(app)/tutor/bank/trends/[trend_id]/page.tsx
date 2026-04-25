@@ -1,4 +1,4 @@
-// mynclex/app/(app)/tutor/trends/[trend_id]/page.tsx
+// mynclex/app/(app)/tutor/bank/trends/[trend_id]/page.tsx
 //
 // Tutor Trend dataset editor (Slice 1.12a). Tutor-scoped twin of the
 // admin editor page. Gates on TUTOR role + filters to tutor_id =

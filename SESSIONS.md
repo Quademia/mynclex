@@ -6,6 +6,134 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-25 (Slice 2.7 — Tutor nav scaffold — Claude Web + Desktop)
+
+Tutor navigation end-to-end: global sidebar (Programmes / My Bank ▾ /
+My Students / Payments / Profile), programme-scoped sidebar with back
+pill (Overview / Weeks / Sessions / Mocks / Assignments / Students /
+Results), collapsible "My Bank" dropdown wired to the existing tutor
+bank list + case-study list + trend list pages. Two hardcoded demo
+programme cards make the programme context reachable for browser
+verification.
+
+### Architecture
+
+`(app)/tutor/layout.tsx` reverted from slice 2.6's AppShell-rendering
+shape back to a **slim TUTOR role gate**. Each tutor sub-folder owns
+its own chrome via two new Server Component helpers:
+
+- `<TutorGlobalShell>` — wraps the 5 global sub-folders (programmes,
+  bank, students, payments, profile). Renders AppShell with
+  `productLabel="· Tutor"` + the global sidebar.
+- `<TutorProgrammeShell>` — wraps `programmes/[programme_id]/*`.
+  Renders AppShell with `productLabel="· Tutor"` + the programme
+  sidebar + a back pill in the topbar's right slot.
+
+Both helpers call `loadChromeData()` (one PostgREST round-trip per
+request) and pass the same shape into `<AppShell>`. Per-folder layout
+files stay 3 lines each — the shells are the single source of chrome
+composition.
+
+### Route moves (Phase 1 — clean break, no redirects)
+
+- `tutor/trends/page.tsx` → `tutor/bank/trends/page.tsx`
+- `tutor/trends/[trend_id]/page.tsx` → `tutor/bank/trends/[trend_id]/page.tsx`
+- `tutor/trends/new/page.tsx` → `tutor/bank/trends/new/page.tsx`
+- `tutor/bank/page.tsx` → `tutor/bank/all/page.tsx` (and a new
+  `tutor/bank/page.tsx` redirect lands users at `/tutor/bank/all`)
+
+Reference updates:
+- `BASE_URL` in moved files
+- `redirect()` and `<Link href>` in tutor bank list (focus-mode
+  redirect for trend children, "Trend datasets →" header card)
+- "← Back to bank" link in tutor cases list page now points to
+  `/tutor/bank/all`
+- `lib/bank/list-view.tsx` `wrapperBaseUrl()` for trends
+- `lib/bank/trend/editor.tsx` surface URL builder
+- `lib/bank/trend/actions.ts` surface config (drives revalidatePath)
+
+Case Study routes were NOT moved — already at `/tutor/bank/cases/*`
+from slice 1.11a. The nav config uses the existing slug; sidebar
+label is "Case Studies".
+
+### Files created (Phases 2–6)
+
+- `lib/nav/tutor.ts` — `TUTOR_GLOBAL_NAV` + `TUTOR_PROGRAMME_NAV`.
+  Global config has `children` on the bank entry. Programme hrefs
+  use `:programmeId` placeholder substituted by the layout.
+- `components/nav/shared/nav-icon.tsx` — moved from
+  `components/nav/student/`. Now shared across audiences. Added 7
+  new icons: `users`, `card`, `layers`, `chart`, `edit`,
+  `arrow-left`, `chevron-down`. Paths copied verbatim from
+  `tutor-nav.html`'s mockup.
+- `components/nav/tutor/global-sidebar.tsx` — collapsible-parent
+  client sidebar. Default-expanded if any child href is a prefix of
+  current pathname. Click parent → toggle only (sub-items navigate).
+- `components/nav/tutor/programme-sidebar.tsx` — flat list, mirrors
+  the student sidebar's pattern with a "This programme" header.
+- `components/nav/tutor/back-pill.tsx` — server component, renders
+  in the topbar `rightSlot` only inside programme context.
+- `components/nav/tutor/global-shell.tsx` + `programme-shell.tsx` —
+  the two reusable chrome helpers.
+- `app/(app)/tutor/programmes/page.tsx` — Home (list) with two
+  hardcoded demo cards.
+- `app/(app)/tutor/programmes/[programme_id]/{layout,page,overview,weeks,sessions,mocks,assignments,students,results}` — programme context: 1 layout + redirect + 7 placeholders.
+- `app/(app)/tutor/{programmes,bank,students,payments,profile}/layout.tsx` — 5 thin global-shell layout files.
+- `app/(app)/tutor/{students,payments,profile}/page.tsx` — 3 global placeholder pages.
+- `app/(app)/tutor/bank/page.tsx` — redirect to `/tutor/bank/all`.
+
+### Files edited
+
+- `lib/nav/types.ts` — `NavIcon` union grew by 7. `NavItem` gained
+  optional `children?: NavItem[]`.
+- `components/nav/student/sidebar.tsx` — nav-icon import path
+  updated to `@/components/nav/shared/nav-icon`.
+- `app/(app)/tutor/layout.tsx` — reverted to slim role gate.
+- `app/(app)/tutor/page.tsx` — was placeholder dashboard, now
+  redirects to `/tutor/programmes`.
+- `app/(app)/tutor/bank/cases/page.tsx` — back link now targets
+  `/tutor/bank/all`.
+- `lib/bank/list-view.tsx`, `lib/bank/trend/editor.tsx`,
+  `lib/bank/trend/actions.ts` — trend baseUrls updated.
+- `styles/nav.css` — appended sections for collapsible sidebar
+  parents, sidebar header, back pill, programmes list page,
+  programme cards.
+- `mynclex/docs/product-plan/tutor-nav.html` — added build note
+  callout at the top.
+
+### Decisions captured
+
+- **Cases keep short slug.** `/tutor/bank/cases/` (existing) over
+  the spec's `/tutor/bank/case-studies/`. URL slug is internal;
+  sidebar label remains "Case Studies".
+- **Tutor layout reverts to role gate.** Slice 2.6's AppShell wrap
+  is unwound — programme context can't replace the sidebar without
+  this revert because nested AppShells double-render.
+- **Programme shell 404s on unknown programme id.** With no DB to
+  consult yet, an unknown `[programme_id]` triggers `notFound()`
+  rather than rendering a fake-titled chrome.
+- **No placeholder badges in the sidebar.** The mockup shows
+  "placeholder" pills next to Payments / Mocks / Assignments;
+  skipped for v1 since every page is a placeholder anyway. Add
+  back when only some pages are placeholders.
+
+### Verification
+
+- `npx tsc --noEmit` — clean
+- `npx eslint app components lib` — clean
+- `npm run build` — clean (route count grew, see route list below)
+- Browser preview spot-check pending in the verification step.
+
+### What's unblocked
+
+- Admin nav scaffold (slice 2.8 — last of the three).
+
+### Next session
+
+Admin nav scaffold per `docs/product-plan/admin-nav.html`.
+
+---
+
 ## Session — 2026-04-25 (Slice 2.6 — Student nav scaffold + folder convention — Claude Web + Desktop)
 
 Two things landed in one slice:

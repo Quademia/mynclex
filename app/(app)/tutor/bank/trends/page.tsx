@@ -1,4 +1,4 @@
-// mynclex/app/(app)/tutor/trends/page.tsx
+// mynclex/app/(app)/tutor/bank/trends/page.tsx
 //
 // Tutor Trend datasets list (Slice 1.12a). Tutor-scoped twin of the
 // admin trends list — same shape, gated on the TUTOR role and
@@ -13,7 +13,7 @@ import { kindDefaultLabel } from '@/lib/bank/trend/kind-templates';
 
 export const dynamic = 'force-dynamic';
 
-const BASE_URL = '/tutor/trends';
+const BASE_URL = '/tutor/bank/trends';
 
 export default async function TutorTrendsListPage({
   searchParams,
@@ -70,7 +70,7 @@ export default async function TutorTrendsListPage({
           </p>
         </div>
         <div className="cs-list-actions">
-          <Link href="/tutor/bank" className="cs-btn">← Back to bank</Link>
+          <Link href="/tutor/bank/all" className="cs-btn">← Back to bank</Link>
           <Link href={`${BASE_URL}/new`} className="cs-btn primary">+ New trend</Link>
         </div>
       </div>

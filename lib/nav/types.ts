@@ -12,9 +12,16 @@ export type NavIcon =
   | 'map'
   | 'clock'
   | 'user'
+  | 'users'
   | 'calendar'
   | 'video'
-  | 'check';
+  | 'check'
+  | 'card'
+  | 'layers'
+  | 'chart'
+  | 'edit'
+  | 'arrow-left'
+  | 'chevron-down';
 
 export type NavItem = {
   /** Stable key — used for active-state matching and React keys. */
@@ -25,4 +32,9 @@ export type NavItem = {
   icon: NavIcon;
   /** Full route path (including audience prefix, e.g. /student/bank/...). */
   href: string;
+  /**
+   * Optional sub-items for collapsible parent rows (e.g. Tutor "My Bank ▾").
+   * Sidebars that don't support nesting render these flat or ignore them.
+   */
+  children?: NavItem[];
 };

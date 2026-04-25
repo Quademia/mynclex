@@ -53,7 +53,7 @@ function surfaceConfig(surface: Surface) {
   if (surface === 'tutor') {
     return {
       table:    'nclex_tutor_trend_datasets' as const,
-      baseUrl:  '/tutor/trends',
+      baseUrl:  '/tutor/bank/trends',
       idPrefix: TUTOR_TREND_ID_PREFIX,
     };
   }

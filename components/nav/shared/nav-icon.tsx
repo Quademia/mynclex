@@ -1,8 +1,11 @@
-// mynclex/components/nav/student/nav-icon.tsx
+// mynclex/components/nav/shared/nav-icon.tsx
 //
-// Maps NavIcon names to inline SVG. Icon paths copied verbatim from
-// docs/product-plan/mockups/student-nav.html so the rendered sidebar
-// matches the approved visual.
+// Maps NavIcon names to inline SVG. Shared across audiences — the
+// student sidebar, the tutor global + programme sidebars, and the
+// tutor back pill all read from this single source. Icon paths come
+// verbatim from the mockup HTMLs in docs/product-plan/mockups/ and
+// docs/product-plan/tutor-nav.html so rendered chrome matches the
+// approved visuals.
 //
 // To add a new icon: add to the NavIcon union in lib/nav/types.ts, then
 // add a `case` here returning its inner SVG markup. All shapes share the
@@ -79,6 +82,54 @@ function inner(name: NavIconName) {
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
         </>
       );
+    case 'users':
+      return (
+        <>
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </>
+      );
+    case 'card':
+      return (
+        <>
+          <rect x="1" y="4" width="22" height="16" rx="2" />
+          <line x1="1" y1="10" x2="23" y2="10" />
+        </>
+      );
+    case 'layers':
+      return (
+        <>
+          <polygon points="12 2 2 7 12 12 22 7 12 2" />
+          <polyline points="2 17 12 22 22 17" />
+          <polyline points="2 12 12 17 22 12" />
+        </>
+      );
+    case 'chart':
+      return (
+        <>
+          <line x1="12" y1="20" x2="12" y2="10" />
+          <line x1="18" y1="20" x2="18" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="16" />
+        </>
+      );
+    case 'edit':
+      return (
+        <>
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </>
+      );
+    case 'arrow-left':
+      return (
+        <>
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
+        </>
+      );
+    case 'chevron-down':
+      return <polyline points="6 9 12 15 18 9" />;
   }
 }
 

@@ -70,7 +70,7 @@ export default async function TutorCasesListPage({
           </p>
         </div>
         <div className="cs-list-actions">
-          <Link href="/tutor/bank" className="cs-btn">← Back to bank</Link>
+          <Link href="/tutor/bank/all" className="cs-btn">← Back to bank</Link>
           <form
             action={async (fd: FormData) => {
               'use server';
