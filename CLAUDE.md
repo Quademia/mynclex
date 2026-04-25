@@ -89,6 +89,17 @@ slice.
    student product spaces). This avoids middleware-pathname tricks and
    keeps each audience's chrome self-contained.
 
+7. **List and detail are sibling worlds when each has its own chrome.**
+   When entering a detail view changes the surrounding chrome (different
+   sidebar, different topbar slots), put the list and the detail in
+   sibling folders, not parent-and-child. Use plural for the list and
+   singular for the detail subtree:
+   - `/tutor/programmes/` (list) + `/tutor/programme/[id]/...` (detail)
+   - `/admin/users/` (list) + `/admin/user/[id]/...` (detail)
+   Nesting them (`programmes/[id]/`) makes Next.js render BOTH layouts
+   on a detail URL, which double-renders the topbar/footer. Sibling
+   routes don't share a layout chain, so each owns its frame entirely.
+
 ## Non-Negotiable Rules
 
 1. **Table prefix: `nclex_`** on every MyNclex database object (tables,

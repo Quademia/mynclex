@@ -5,7 +5,7 @@
 // :programmeId in each href with the actual route param.
 //
 // Mirrors the student sidebar's active-matching rule (startsWith) so
-// deep routes like /tutor/programmes/[id]/weeks/[week_id] still
+// deep routes like /tutor/programme/[id]/weeks/[week_id] still
 // highlight "Weeks".
 
 'use client';

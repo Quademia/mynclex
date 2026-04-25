@@ -41,7 +41,7 @@ export default function TutorProgrammesPage() {
         {DEMO_PROGRAMMES.map((p) => (
           <Link
             key={p.id}
-            href={`/tutor/programmes/${p.id}/overview`}
+            href={`/tutor/programme/${p.id}/overview`}
             className="programme-card"
           >
             <div>

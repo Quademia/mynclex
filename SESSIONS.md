@@ -6,6 +6,65 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-26 (Slice 2.7 fix — programme route split — Claude Web + Desktop)
+
+Bug shipped yesterday: visiting any programme detail URL
+(`/tutor/programmes/[id]/overview` etc.) rendered TWO topbars and
+TWO footers stacked. Root cause: the file tree had
+`programmes/layout.tsx` wrap the list AND
+`programmes/[programme_id]/layout.tsx` wrap the detail, both nested
+under the same parent — Next.js layouts always nest, so both
+`<AppShell>` instances rendered on a detail URL.
+
+The structural fix: list and detail are conceptually sibling worlds
+(entering a programme is a context switch, not a drill-down), so the
+file tree needs to express that. Split into singular vs plural:
+- `tutor/programmes/` (plural) — list, global chrome, no children.
+- `tutor/programme/[programme_id]/` (singular) — detail subtree,
+  programme chrome.
+
+### Changes
+
+- 9 files moved: `tutor/programmes/[programme_id]/{layout,page,
+  overview,weeks,sessions,mocks,assignments,students,results}` →
+  `tutor/programme/[programme_id]/{...}`
+- `lib/nav/tutor.ts` `TUTOR_PROGRAMME_NAV` — 7 hrefs flipped from
+  `/tutor/programmes/:programmeId/...` to
+  `/tutor/programme/:programmeId/...`
+- `tutor/programmes/page.tsx` — demo card hrefs now point at
+  `/tutor/programme/${id}/overview`
+- `tutor/programme/[programme_id]/page.tsx` — internal redirect now
+  targets `/tutor/programme/${id}/overview`
+- Stale comments updated in `programme-sidebar.tsx`,
+  `tutor/programmes/layout.tsx`, `tutor/layout.tsx`, and the
+  `tutor-nav.html` route-shape block
+- `tutor-nav.html` — added a second build-note callout explaining
+  the singular/plural decision
+- `CLAUDE.md` — added a 7th folder-conventions rule documenting the
+  list-vs-detail sibling pattern, so the admin scaffold inherits it
+
+Old URLs `/tutor/programmes/[id]/...` 404 — clean break, only Sam
+used them.
+
+### Verification
+
+- `npx tsc --noEmit` — clean
+- `npx eslint app components lib` — clean
+- `npm run build` — clean
+- Dev preview: `/tutor/programmes` renders single global chrome,
+  `/tutor/programme/demo-bootcamp/overview` renders single
+  programme chrome (no double topbar).
+
+### Implication for the admin slice
+
+The `(app)/admin/layout.tsx` from slice 2.6 still renders an
+`<AppShell>` directly. The admin scaffold needs to (a) revert it to
+a slim role gate, and (b) follow the list-vs-detail sibling pattern
+established here for any admin surface where entering a detail
+changes the chrome.
+
+---
+
 ## Session — 2026-04-25 (Slice 2.7 — Tutor nav scaffold — Claude Web + Desktop)
 
 Tutor navigation end-to-end: global sidebar (Programmes / My Bank ▾ /

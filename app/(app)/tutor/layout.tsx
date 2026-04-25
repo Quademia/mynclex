@@ -3,7 +3,7 @@
 // TUTOR role gate for the entire /tutor tree. Renders no chrome —
 // each tutor sub-folder owns its own chrome via <TutorGlobalShell>
 // (programmes, bank, students, payments, profile) or
-// <TutorProgrammeShell> (programmes/[programme_id]/...). This shape
+// <TutorProgrammeShell> (programme/[programme_id]/...). This shape
 // lets the programme context replace the global sidebar with the
 // programme sidebar without double-rendering the topbar/footer.
 //

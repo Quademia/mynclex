@@ -45,11 +45,11 @@ export const TUTOR_GLOBAL_NAV: NavItem[] = [
  * param before passing items into the sidebar component.
  */
 export const TUTOR_PROGRAMME_NAV: NavItem[] = [
-  { key: 'overview',    label: 'Overview',      icon: 'home',     href: '/tutor/programmes/:programmeId/overview' },
-  { key: 'weeks',       label: 'Weeks',         icon: 'layers',   href: '/tutor/programmes/:programmeId/weeks' },
-  { key: 'sessions',    label: 'Live Sessions', icon: 'video',    href: '/tutor/programmes/:programmeId/sessions' },
-  { key: 'mocks',       label: 'Mocks',         icon: 'target',   href: '/tutor/programmes/:programmeId/mocks' },
-  { key: 'assignments', label: 'Assignments',   icon: 'edit',     href: '/tutor/programmes/:programmeId/assignments' },
-  { key: 'students',    label: 'Students',      icon: 'users',    href: '/tutor/programmes/:programmeId/students' },
-  { key: 'results',     label: 'Results',       icon: 'chart',    href: '/tutor/programmes/:programmeId/results' },
+  { key: 'overview',    label: 'Overview',      icon: 'home',     href: '/tutor/programme/:programmeId/overview' },
+  { key: 'weeks',       label: 'Weeks',         icon: 'layers',   href: '/tutor/programme/:programmeId/weeks' },
+  { key: 'sessions',    label: 'Live Sessions', icon: 'video',    href: '/tutor/programme/:programmeId/sessions' },
+  { key: 'mocks',       label: 'Mocks',         icon: 'target',   href: '/tutor/programme/:programmeId/mocks' },
+  { key: 'assignments', label: 'Assignments',   icon: 'edit',     href: '/tutor/programme/:programmeId/assignments' },
+  { key: 'students',    label: 'Students',      icon: 'users',    href: '/tutor/programme/:programmeId/students' },
+  { key: 'results',     label: 'Results',       icon: 'chart',    href: '/tutor/programme/:programmeId/results' },
 ];

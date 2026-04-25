@@ -359,6 +359,22 @@
     redirected — clean break, only Sam used them.
   </div>
 
+  <div class="callout">
+    <strong>Build note (2026-04-26 — programme route split).</strong>
+    The programme list and programme detail are sibling worlds, not
+    parent-and-child: <code>/tutor/programmes</code> (plural) is the
+    list, <code>/tutor/programme/[programme_id]/*</code> (singular)
+    is the detail subtree. Initial scaffold nested them as
+    <code>programmes/[programme_id]/</code>, which made Next.js
+    render both layouts on a programme route — double topbar, double
+    footer. Splitting the file tree into siblings means each world
+    owns its frame entirely. The pattern generalises: list and detail
+    that each have their own chrome should be siblings (e.g.
+    <code>/admin/users</code> + <code>/admin/user/[id]/...</code>).
+    Old nested URLs <code>/tutor/programmes/[id]/...</code> 404 —
+    clean break, only Sam used them.
+  </div>
+
   <!-- ─── Overview ─────────────────────────────────────────── -->
 
   <h2>What this covers</h2>
@@ -483,7 +499,7 @@
     payments/page.tsx         — placeholder
     profile/page.tsx
 
-    programmes/[programme_id]/
+    programme/[programme_id]/   — sibling to programmes/ (singular vs plural)
       layout.tsx              — programme sidebar + back pill in topbar
       overview/page.tsx
       weeks/page.tsx

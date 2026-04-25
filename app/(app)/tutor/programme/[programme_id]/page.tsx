@@ -1,4 +1,4 @@
-// mynclex/app/(app)/tutor/programmes/[programme_id]/page.tsx
+// mynclex/app/(app)/tutor/programme/[programme_id]/page.tsx
 //
 // Landing on a programme without a sub-route sends the tutor to the
 // overview page.
@@ -11,5 +11,5 @@ export default async function ProgrammeIndexPage({
   params: Promise<{ programme_id: string }>;
 }) {
   const { programme_id } = await params;
-  redirect(`/tutor/programmes/${programme_id}/overview`);
+  redirect(`/tutor/programme/${programme_id}/overview`);
 }
