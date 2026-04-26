@@ -6,6 +6,130 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-26 / 2026-04-27 (Database split: MyNclex onto its own Supabase project — Sam + Claude Desktop)
+
+MyNclex's Supabase backend split off from the shared `qacademy-gamma`
+project (`zrakjibtxyzoqcdtvpmq`) into a dedicated dev project
+`qacademy-mynclex-dev` (`xkqxfzfsllxyxpdtcrja`). End-to-end verified:
+the dev Worker at `https://qacademy-dev-mynclex.mybackpacc.workers.dev`
+now hits the new project on every request; gamma sees no MyNclex
+auth or data traffic.
+
+### What was done
+
+- **Repo prep — back-port + bootstrap-bug fix.** Lifted all 7 transactional
+  RPCs (Slice 1.11b case-save, 1.12b trend-save admin+tutor, 1.12c trend-
+  delete ×4) out of the migration files into a new `db/rpcs.sql`, so
+  fresh projects bootstrap from `{schema, rls, rpcs}` without replaying
+  history. Added `rpcs.sql` to `db/README.md` and updated the back-port
+  rule to name all three SoT files. Commit `e91368c`.
+
+  Found and fixed a forward-FK bug in `db/schema.sql`: `parent_case_id`
+  was placed inside the `CREATE TABLE` for `nclex_bank_items` and
+  `nclex_tutor_questions`, but referenced case-studies tables that come
+  later in the same file. Postgres rejects that on a fresh DB. Mirrored
+  the existing `trend_id` pattern — defer the column to an `ALTER TABLE
+  ADD COLUMN` block at the bottom. Same column, same FK, same partial
+  index, just sequenced correctly. No effect on gamma (which was built
+  via incremental migrations, not from `schema.sql`). Commit `1593215`.
+
+- **Bootstrap.** Applied `schema.sql` (14 tables) → `rls.sql` (3 helper
+  functions + 29 policies) → `rpcs.sql` (7 RPCs + 6 grants) to the empty
+  new project. Counts verified equal to gamma: 14 tables, 10 functions,
+  29 policies, 13 RLS-enabled tables (`nclex_readiness_packs` stays off
+  by design — not yet authored).
+
+- **Schema parity check.** Column-by-column compare of all 14 `nclex_*`
+  tables: 177 columns total on both sides, identical names, types, and
+  ordinals. No drift between gamma's live schema and the repo files.
+
+- **Auth copy.** 6 dev users + their email-provider identities ported
+  via direct SQL (`auth.users` and `auth.identities`) using
+  `jsonb_populate_record` against an embedded JSONB extract from
+  gamma. `confirmed_at` / `email` are GENERATED columns on the auth
+  tables so they were excluded from the insert column list. bcrypt
+  password hashes ported as-is — the same passwords work on the new
+  project (verified: superadmin login lands successfully). All 6 users
+  are email/password only, no MFA, no OAuth.
+
+- **Data copy — 76 nclex rows total.** Round-tripped through MCP using a
+  base64-encoded `INSERT ... SELECT (jsonb_populate_record(...)).*`
+  pattern for the larger tables, since raw JSONB strings ran into
+  escape-level issues with the response wrapper. Tables with rows:
+  - `nclex_users` (6), `nclex_user_roles` (15), `nclex_admin_permissions` (3)
+  - `nclex_case_studies` (2), `nclex_case_study_items` (3),
+    `nclex_case_study_tabs` (4), `nclex_trend_datasets` (1)
+  - `nclex_bank_items` (29), `nclex_tutor_questions` (13)
+
+  The two remaining tables (`nclex_case_study_items` final pass,
+  `nclex_tutor_questions`) were imported by Sam via Studio's CSV
+  download/upload after I paused the Claude-driven copy. FK integrity
+  verified: zero orphans across all reference relations.
+
+- **`.env.local` updated** — new URL + new anon key (I wrote both),
+  Sam pasted the service role key. `.env.local` stays gitignored
+  (rule on line 34 of `.gitignore`).
+
+- **`wrangler.jsonc` updated.** Both public Supabase values (URL +
+  anon key) are committed to this file because they bake into the
+  client-side bundle at Workers Build time. Without updating this,
+  the next auto-deploy would have rebuilt the Worker with gamma's
+  URL still embedded for browser-side calls. Commit `c5347e6`.
+
+- **Cloudflare Worker secrets rotated** — Sam updated all three
+  (URL, anon key, service role key) in the dashboard for
+  `qacademy-dev-mynclex` and triggered a redeploy off `c5347e6`.
+
+- **Auth → URL Configuration set on the new project** — Site URL
+  `https://qacademy-dev-mynclex.mybackpacc.workers.dev` and
+  redirect-URL allowlist (localhost + dev Worker wildcards). New
+  project has its own values, not gamma's, since the Worker URL
+  differs.
+
+- **End-to-end smoke test passed.** Sam logged in as superadmin via
+  the dev Worker URL. New project's `auth.users.last_sign_in_at`
+  ticked from `2026-04-26 16:24:32` → `2026-04-26 23:24:11`; gamma's
+  value for the same email stayed frozen at the baseline. Cutover
+  is real and complete.
+
+### What did NOT change
+
+- Gamma's `nclex_*` tables remain in place (Sam's call: keep them
+  as a confidence-period fallback). Auth users for MyNclex still
+  exist in both projects; the duplication is fine since they're
+  functionally separate JWT environments now.
+- Production cutover. MyNclex isn't launched yet ("Launching 2026"
+  per the landing page) so there's no prod environment to split.
+- Gamma's `qacademy-gamma` Supabase project still serves
+  MyNMCLicensure and MyTeacher.
+
+### Compliance gaps preserved (deliberately, for parity with gamma)
+
+- None of the 7 RPCs in `rpcs.sql` carry an explicit `SECURITY` clause
+  — they rely on Postgres's default (= `SECURITY INVOKER`). Future
+  RPCs SHOULD spell this out per the `feedback_mynclex_security_explicit`
+  memory.
+- `nclex_save_case_with_children` lacks an explicit
+  `GRANT EXECUTE … TO authenticated` (relies on Postgres default of
+  granting to PUBLIC). The other six RPCs grant explicitly.
+- Both can be fixed in a small follow-up commit later.
+
+### Outstanding
+
+- Drop `nclex_*` tables from gamma after a confidence period.
+- Eventually retire MyNclex's dev users from gamma's `auth.users`
+  (after the gamma `nclex_*` drop above).
+- Launch-time: split MyNclex prod onto its own Supabase project
+  (mirror this dev split). Not blocking until launch.
+
+### Next session
+
+- Continue MyNclex feature work on Slice 2.x. All slices going forward
+  target only `xkqxfzfsllxyxpdtcrja`; nothing about MyNclex should
+  touch gamma's database again.
+
+---
+
 ## Session — 2026-04-26 (Repo decoupled from qacademy-gamma — Claude Web + Desktop)
 
 MyNclex extracted from the qacademy-gamma monorepo into its own
