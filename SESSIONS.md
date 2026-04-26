@@ -6,6 +6,162 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-26 (Slice 2.10 — CSS leak fix: faded text on workspace pages — Sam-reported, Desktop-diagnosed)
+
+User-reported visual bug: text on workspace pages — "Welcome back"
+on /login, "Dashboard" placeholder content on
+/student/bank/dashboard, others — appeared faded/ghosted on first
+load and especially after browser-back. Reload "fixed" it.
+
+Two fixes shipped this slice. The first was a real cleanup but
+turned out NOT to address the visible bug. The second was the
+actual cause.
+
+### Fix #1 (commit c88cf10) — globals.css cleanup
+
+`app/globals.css` defined a competing `body { color; background; }`
+rule that referenced `--foreground`, with a `@media
+(prefers-color-scheme: dark)` branch flipping `--foreground` to
+`#ededed`. `styles/tokens.css` had its OWN body rule using
+`--text` (always near-black). Two body rules, same specificity,
+last-loaded wins. The dark-mode branch + cascade order made the
+outcome unstable on soft navigation.
+
+Cleaned the file from 27 lines down to 4 lines of code:
+
+```css
+@import "tailwindcss";
+html { color-scheme: light; }
+```
+
+Removed: `:root` --background/--foreground vars, `@theme inline`
+block (mapped unused Geist fonts), the prefers-color-scheme:dark
+branch, the competing body rule. Added explicit `color-scheme:
+light` to opt out of OS-driven theming for form controls /
+scrollbars.
+
+Was the bug. **Did not actually fix Sam's visible problem.**
+A real cleanup, but solving a different (theoretical) issue.
+
+### Fix #2 (commit 35e5201) — landing.css scoping (the actual cause)
+
+`styles/landing.css` defined GLOBAL element selectors for the
+public landing-page hero design:
+  - `body { color; background: var(--navy-dark); display: flex }`
+  - `main { opacity: 0; animation: rise 0.9s ease-out 0.1s
+    forwards }`
+  - `h1 { background: linear-gradient(white→pale);
+    -webkit-text-fill-color: transparent }`
+  - `footer { background: rgba(9,21,36,0.5) }`
+  - `:root { --text: #e8eef5; --text-muted: rgba(232,238,245,
+    0.62); ... }`
+
+Next.js App Router keeps page-level CSS imports in the document
+head across soft navigations. Once a user visits `/`,
+landing.css stays loaded for the rest of the session. So:
+
+1. User lands on `/` (homepage with landing.css).
+2. Clicks "Sign in" → Link soft-nav to `/login` → landing.css
+   still active.
+3. /login's `<h1 className="auth-title">Welcome back</h1>` gets
+   matched by landing's `h1` rule. White-on-white gradient text
+   = invisible against the white form card.
+4. Workspace `<main className="product-content">` gets matched
+   by landing's `main` rule. opacity 0 → 1 fade-in animation
+   plays on every navigation.
+5. Reload directly to /login or /student/* skips landing.css
+   entirely → no leak → "fixed."
+
+Fix: scope every selector in landing.css under a `.landing`
+wrapper. Bare element selectors (body/main/h1/footer/* reset)
+become `.landing { ... }`, `.landing main { ... }`, `.landing
+h1 { ... }`, etc. `:root` token overrides become `.landing
+{ --text: ...; --text-muted: ...; }` — variables only cascade
+to landing-page descendants. Class selectors got the prefix
+too for belt-and-braces.
+
+`app/page.tsx` and `app/programmes/page.tsx` now wrap content
+in `<div className="landing">…</div>` instead of a fragment.
+
+### Verification
+
+- `tsc + eslint + npm run build` clean both fixes
+- Landing page (`/`) still renders correctly: navy-dark bg,
+  gradient h1, fade-in animation
+- `/login` h1 "Welcome back" now renders with `color: rgb(30,
+  58, 95)` (#1e3a5f, --primary) and NON-transparent text fill
+  (was `transparent` before fix #2). Font size 22px (was being
+  forced to clamp(56px, 12vw, 112px) by landing's h1 rule)
+- Body bg on `/login`: `rgb(249, 250, 251)` = `--bg` from
+  tokens.css (was being hijacked by landing's `--navy-dark`)
+- User confirmed visually: "looks like its fixed"
+
+### Diagnostic notes (worth remembering)
+
+- **First diagnosis was wrong.** Cascade-fight theory in
+  globals.css fit the symptom on paper but didn't survive the
+  user's first test. Pushed a fix that didn't help. Lesson:
+  when a CSS bug "disappears on reload but appears on
+  navigation", the most likely cause is a stylesheet that
+  loads on one page persisting into another, not a cascade
+  ordering issue between files that always coexist.
+- **The screenshot was the proof.** "Welcome back" was lighter
+  than the muted subtitle right next to it. That's
+  inconsistent with both rules being from token-defined dark
+  colors — a token-color theory can't make a heading lighter
+  than a muted subtitle. That mismatch should have been a
+  flag earlier.
+- **Pattern on which elements faded was the smoking gun:**
+  - `<h1>` faded, `<div>` headings not faded → bare-element
+    selector hijacking <h1>
+  - `<main>` content faded, content NOT inside `<main>` not
+    faded → bare-element selector hijacking <main>
+  - Topbar / sidebar chrome (chrome-class elements) NOT
+    affected → confirmed it wasn't a body color cascade
+
+### Convention to remember
+
+**Page-level CSS imports with bare element selectors are
+dangerous.** Next.js App Router doesn't unmount page CSS on
+soft nav. Any global selector (`body`, `main`, `h1`, `footer`,
+`a`, `*`) in a page-imported stylesheet will leak into every
+other page in the session.
+
+Going forward: any new CSS file imported by a page (not a
+layout, and not via the workspace token chain) MUST scope its
+rules under a wrapper class. Either:
+  - Wrap content in `<div className="page-x">` and prefix
+    every rule with `.page-x` (this slice's approach)
+  - Or rewrite to use only class selectors with audience-
+    specific prefixes
+
+Adding this to CLAUDE.md as a future folder-conventions rule
+is worth considering when the next page-level stylesheet
+lands.
+
+### What's still imperfect
+
+- The `.landing` wrapper now hosts both the CSS variable
+  overrides AND the body-equivalent layout (flex, min-height,
+  bg). Slightly more responsibility on one class than ideal.
+  Acceptable; no action needed.
+- The fix relied on belt-and-braces scoping (every class
+  selector got `.landing` prefix even when its name was
+  unique). Defensible but increases specificity by one level
+  across the file. No call sites broken.
+- Unrelated: globals.css cleanup (fix #1) is good on its own
+  merits but its commit message frames it as a fix for the
+  user-reported bug, which it wasn't. History is honest in
+  this entry.
+
+### What's unblocked
+
+CSS leakage between landing and workspace is closed off. Next
+slice can be feature work without worrying about more
+landing-page styles bleeding across.
+
+---
+
 ## Session — 2026-04-26 (Slice 2.9b — Rename lib/auth to lib/access — Claude Web + Desktop)
 
 Pure rename slice. No logic changes, no behaviour changes, no new
