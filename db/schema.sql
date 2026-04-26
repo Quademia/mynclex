@@ -99,21 +99,12 @@ CREATE TABLE nclex_bank_items (
   batch_id                  TEXT,
   instruction               TEXT,
 
-  -- Case-study back-pointer (Slice 1.11b). NULL for standalone items;
-  -- set to the owning case_id for items authored as part of a case study's
-  -- Q1-Q6 slots. ON DELETE SET NULL preserves authored content if the case
-  -- is deleted (children become orphans, re-linkable via the bank list).
-  parent_case_id            TEXT REFERENCES nclex_case_studies(case_id) ON DELETE SET NULL,
+  -- parent_case_id (Slice 1.11b) is added via ALTER TABLE at the bottom
+  -- of this file because it forward-references nclex_case_studies.
 
   created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- Partial index keeps lookups on case-linked items fast without bloating
--- the table-wide index (most rows will have parent_case_id IS NULL).
-CREATE INDEX idx_nclex_bank_items_parent_case
-  ON nclex_bank_items(parent_case_id)
-  WHERE parent_case_id IS NOT NULL;
 
 
 -- 5. QAcademy-owned case studies (scenario + 6 chart tabs as JSONB)
@@ -240,21 +231,14 @@ CREATE TABLE nclex_tutor_questions (
   batch_id                  TEXT,
   instruction               TEXT,
 
-  -- Case-study back-pointer (Slice 1.11b). NULL for standalone items;
-  -- set to the owning case_id for items authored as part of a tutor
-  -- case study's Q1-Q6 slots. ON DELETE SET NULL preserves authored
-  -- content if the case is deleted.
-  parent_case_id            TEXT REFERENCES nclex_tutor_case_studies(case_id) ON DELETE SET NULL,
+  -- parent_case_id (Slice 1.11b) is added via ALTER TABLE at the bottom
+  -- of this file because it forward-references nclex_tutor_case_studies.
 
   created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_nclex_tutor_questions_tutor ON nclex_tutor_questions(tutor_id);
-
-CREATE INDEX idx_nclex_tutor_questions_parent_case
-  ON nclex_tutor_questions(parent_case_id)
-  WHERE parent_case_id IS NOT NULL;
 
 
 -- 9. Tutor-private case studies (same shape as nclex_case_studies + tutor_id)
@@ -371,6 +355,34 @@ CREATE TABLE nclex_tutor_trend_datasets (
 
 CREATE INDEX idx_nclex_tutor_trend_datasets_tutor
   ON nclex_tutor_trend_datasets(tutor_id);
+
+
+-- =========================================================
+-- Added 2026-04-23 in Slice 1.11b — parent_case_id FK on question tables
+-- =========================================================
+-- Deferred to the bottom of schema.sql because each FK forward-references
+-- a case-studies table defined later in the file. Origin migration:
+-- mynclex/db/migrations/mynclex_parent_case_id_slice_1_11b.sql.
+-- ON DELETE SET NULL preserves authored content if the parent case is
+-- deleted (children become orphans, re-linkable via the bank list).
+-- Partial indexes keep lookups on case-linked items fast without bloating
+-- the table-wide index (most rows will have parent_case_id IS NULL).
+
+ALTER TABLE nclex_bank_items
+  ADD COLUMN parent_case_id TEXT
+  REFERENCES nclex_case_studies(case_id) ON DELETE SET NULL;
+
+CREATE INDEX idx_nclex_bank_items_parent_case
+  ON nclex_bank_items(parent_case_id)
+  WHERE parent_case_id IS NOT NULL;
+
+ALTER TABLE nclex_tutor_questions
+  ADD COLUMN parent_case_id TEXT
+  REFERENCES nclex_tutor_case_studies(case_id) ON DELETE SET NULL;
+
+CREATE INDEX idx_nclex_tutor_questions_parent_case
+  ON nclex_tutor_questions(parent_case_id)
+  WHERE parent_case_id IS NOT NULL;
 
 
 -- =========================================================
