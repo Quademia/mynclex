@@ -1,26 +1,23 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* mynclex/app/globals.css
+ *
+ * Workspace-wide globals. Kept intentionally tiny — body styling
+ * lives in styles/tokens.css, not here.
+ *
+ * History: this file used to define `--background` / `--foreground`
+ * tokens, a `@theme inline` block (mapping unused Geist fonts), a
+ * `@media (prefers-color-scheme: dark)` branch, and a competing
+ * `body { background; color; }` rule. That setup raced
+ * styles/tokens.css's body rule on soft navigation and bfcache
+ * restoration — text on light pages briefly inherited the dark-mode
+ * foreground (#ededed) and read as faded/blurred. The competing
+ * rule and the dead Geist-font theme mapping were removed in
+ * slice 2.10. The product is light-mode by design; `color-scheme`
+ * tells the browser explicitly so we don't auto-inherit OS theme
+ * preferences for things like form-control rendering or scrollbars.
+ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+html {
+  color-scheme: light;
 }
