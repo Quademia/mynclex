@@ -1,6 +1,30 @@
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* mynclex/styles/landing.css
+ *
+ * Public-landing styles. Scoped under `.landing` so the global
+ * selectors in this file (body, main, h1, footer, * reset, :root
+ * vars) DON'T leak into the workspace when Next.js's App Router
+ * keeps this stylesheet in the document head across navigations.
+ *
+ * Apply by wrapping the landing page's outer markup in
+ *   <div className="landing">…</div>
+ *
+ * History: before the scoping, navigating from / to /login or
+ * /student/* via Link would carry these rules over. The login
+ * page's <h1>Welcome back</h1> got hijacked by the gradient
+ * `-webkit-text-fill-color: transparent` rule (white-on-white →
+ * invisible), and every <main> in the workspace started at
+ * opacity:0 with a 0.9s fade-in animation. Reload "fixed" it only
+ * because reloading directly to the workspace page never imports
+ * landing.css in the first place. Fixed in slice 2.10 by scoping.
+ */
 
-:root {
+/* ─────────────────────────────────────────────────────
+ * Wrapper — landing-page tokens + body-equivalent layout.
+ * Replaces the old `:root { --vars }` and `body { ... }` blocks.
+ * ───────────────────────────────────────────────────── */
+
+.landing {
+  /* Landing-only token overrides (scoped — don't bleed) */
   --navy: #1e3a5f;
   --navy-deep: #0f1f33;
   --navy-dark: #091524;
@@ -11,11 +35,8 @@
   --text-dim: rgba(232, 238, 245, 0.38);
   --border: rgba(232, 238, 245, 0.10);
   --border-strong: rgba(232, 238, 245, 0.18);
-}
 
-html, body { height: 100%; }
-
-body {
+  /* Body-equivalent layout (used to live on `body`) */
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: var(--text);
   background: var(--navy-dark);
@@ -28,8 +49,20 @@ body {
   overflow-x: hidden;
 }
 
-/* Layered background: radial teal/navy glows over deep navy canvas */
-.canvas {
+/* Reset (used to live on the bare `*` selector — global) */
+.landing *,
+.landing *::before,
+.landing *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Layered background: radial teal/navy glows over deep navy canvas
+ * ───────────────────────────────────────────────────── */
+
+.landing .canvas {
   position: fixed;
   inset: 0;
   z-index: -1;
@@ -40,7 +73,7 @@ body {
     linear-gradient(180deg, var(--navy-dark) 0%, #060f1c 100%);
 }
 
-.canvas::after {
+.landing .canvas::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -52,7 +85,7 @@ body {
   -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 75%);
 }
 
-main {
+.landing main {
   flex: 1;
   display: flex;
   align-items: center;
@@ -67,14 +100,14 @@ main {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.hero {
+.landing .hero {
   width: 100%;
   max-width: 620px;
   text-align: center;
 }
 
 /* Family indicator */
-.family {
+.landing .family {
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -91,7 +124,7 @@ main {
   -webkit-backdrop-filter: blur(8px);
 }
 
-.family-dot {
+.landing .family-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -100,7 +133,7 @@ main {
 }
 
 /* Status pill */
-.status {
+.landing .status {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -116,7 +149,7 @@ main {
   color: var(--teal-bright);
 }
 
-.status-pulse {
+.landing .status-pulse {
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -124,7 +157,7 @@ main {
   position: relative;
 }
 
-.status-pulse::before {
+.landing .status-pulse::before {
   content: '';
   position: absolute;
   inset: -3px;
@@ -140,7 +173,7 @@ main {
 }
 
 /* Product name */
-h1 {
+.landing h1 {
   margin-top: 24px;
   font-size: clamp(56px, 12vw, 112px);
   font-weight: 800;
@@ -153,14 +186,14 @@ h1 {
   -webkit-text-fill-color: transparent;
 }
 
-h1 .my { font-weight: 400; opacity: 0.7; }
-h1 .nclex {
+.landing h1 .my { font-weight: 400; opacity: 0.7; }
+.landing h1 .nclex {
   background: linear-gradient(180deg, #ffffff 0%, var(--teal-bright) 140%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-h1 .rn {
+.landing h1 .rn {
   font-weight: 500;
   opacity: 0.75;
   background: linear-gradient(180deg, #ffffff 0%, #c9d4e1 100%);
@@ -169,7 +202,7 @@ h1 .rn {
   -webkit-text-fill-color: transparent;
 }
 
-.tagline {
+.landing .tagline {
   margin-top: 20px;
   font-size: clamp(16px, 2.2vw, 19px);
   font-weight: 400;
@@ -179,7 +212,7 @@ h1 .rn {
   margin-right: auto;
 }
 
-.brand-tag {
+.landing .brand-tag {
   margin-top: 36px;
   font-size: 11px;
   font-weight: 600;
@@ -187,14 +220,14 @@ h1 .rn {
   color: var(--text-dim);
 }
 
-.brand-tag .sep {
+.landing .brand-tag .sep {
   display: inline-block;
   margin: 0 6px;
   color: var(--teal);
 }
 
 /* What's coming preview */
-.preview {
+.landing .preview {
   margin-top: 40px;
   max-width: 520px;
   margin-left: auto;
@@ -202,7 +235,7 @@ h1 .rn {
   text-align: left;
 }
 
-.preview-label {
+.landing .preview-label {
   display: block;
   text-align: center;
   font-size: 11px;
@@ -213,7 +246,7 @@ h1 .rn {
   margin-bottom: 18px;
 }
 
-.preview-item {
+.landing .preview-item {
   display: flex;
   align-items: flex-start;
   gap: 14px;
@@ -225,11 +258,11 @@ h1 .rn {
   -webkit-backdrop-filter: blur(8px);
 }
 
-.preview-item + .preview-item {
+.landing .preview-item + .preview-item {
   margin-top: 10px;
 }
 
-.preview-icon {
+.landing .preview-icon {
   flex-shrink: 0;
   width: 36px;
   height: 36px;
@@ -242,7 +275,7 @@ h1 .rn {
   color: var(--teal-bright);
 }
 
-.preview-text {
+.landing .preview-text {
   flex: 1;
   font-size: 14px;
   color: var(--text-muted);
@@ -250,29 +283,29 @@ h1 .rn {
   padding-top: 8px;
 }
 
-.preview-text strong {
+.landing .preview-text strong {
   display: block;
   color: var(--text);
   font-weight: 600;
   margin-bottom: 2px;
 }
 
-/* Email capture */
-.capture {
+/* Email capture (legacy — kept in case any branch still uses it) */
+.landing .capture {
   margin-top: 44px;
   max-width: 440px;
   margin-left: auto;
   margin-right: auto;
 }
 
-.capture-label {
+.landing .capture-label {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
   margin-bottom: 12px;
 }
 
-.capture-form {
+.landing .capture-form {
   display: flex;
   gap: 8px;
   padding: 6px;
@@ -284,12 +317,12 @@ h1 .rn {
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 
-.capture-form:focus-within {
+.landing .capture-form:focus-within {
   border-color: rgba(60, 162, 149, 0.5);
   background: rgba(232, 238, 245, 0.06);
 }
 
-.capture-form input {
+.landing .capture-form input {
   flex: 1;
   min-width: 0;
   padding: 12px 14px;
@@ -301,11 +334,11 @@ h1 .rn {
   color: var(--text);
 }
 
-.capture-form input::placeholder {
+.landing .capture-form input::placeholder {
   color: var(--text-dim);
 }
 
-.capture-form button {
+.landing .capture-form button {
   padding: 12px 20px;
   background: var(--teal);
   color: white;
@@ -319,23 +352,23 @@ h1 .rn {
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
-.capture-form button:hover {
+.landing .capture-form button:hover {
   background: var(--teal-bright);
   transform: translateY(-1px);
 }
 
-.capture-form button:active {
+.landing .capture-form button:active {
   transform: translateY(0);
 }
 
-.capture-note {
+.landing .capture-note {
   margin-top: 12px;
   font-size: 12px;
   color: var(--text-dim);
 }
 
 /* Footer */
-footer {
+.landing footer {
   padding: 32px 24px;
   border-top: 1px solid var(--border);
   text-align: center;
@@ -344,7 +377,7 @@ footer {
   background: rgba(9, 21, 36, 0.5);
 }
 
-footer a {
+.landing footer a {
   color: var(--text);
   text-decoration: none;
   font-weight: 500;
@@ -352,12 +385,12 @@ footer a {
   transition: border-color 0.2s ease, color 0.2s ease;
 }
 
-footer a:hover {
+.landing footer a:hover {
   color: var(--teal-bright);
   border-bottom-color: var(--teal-bright);
 }
 
-.footer-copy {
+.landing .footer-copy {
   margin-top: 6px;
   font-size: 12px;
   color: var(--text-dim);
@@ -365,22 +398,22 @@ footer a:hover {
 
 /* Responsive tweaks */
 @media (max-width: 480px) {
-  main { padding: 48px 20px 32px; }
-  .capture-form { flex-direction: column; padding: 8px; }
-  .capture-form button { width: 100%; padding: 13px 20px; }
-  .brand-tag { letter-spacing: 0.24em; }
+  .landing main { padding: 48px 20px 32px; }
+  .landing .capture-form { flex-direction: column; padding: 8px; }
+  .landing .capture-form button { width: 100%; padding: 13px 20px; }
+  .landing .brand-tag { letter-spacing: 0.24em; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  main { animation: none; opacity: 1; transform: none; }
-  .status-pulse::before { animation: none; }
+  .landing main { animation: none; opacity: 1; transform: none; }
+  .landing .status-pulse::before { animation: none; }
 }
 
 /* ─────────────────────────────────────────────────────
  * CTA button pair — replaces the old .capture block.
  * Added 2026-04-21 with auth Slice 1.
  * ───────────────────────────────────────────────────── */
-.cta {
+.landing .cta {
   margin-top: 44px;
   max-width: 440px;
   margin-left: auto;
@@ -391,8 +424,8 @@ footer a:hover {
   justify-content: center;
 }
 
-.cta-primary,
-.cta-secondary {
+.landing .cta-primary,
+.landing .cta-secondary {
   flex: 1;
   min-width: 160px;
   padding: 14px 24px;
@@ -406,30 +439,31 @@ footer a:hover {
   transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
 
-.cta-primary {
+.landing .cta-primary {
   background: var(--teal);
   color: white;
   border: 1px solid var(--teal);
 }
 
-.cta-primary:hover {
+.landing .cta-primary:hover {
   background: var(--teal-bright);
   transform: translateY(-1px);
 }
 
-.cta-secondary {
+.landing .cta-secondary {
   background: transparent;
   color: var(--text);
   border: 1px solid var(--border-strong);
 }
 
-.cta-secondary:hover {
+.landing .cta-secondary:hover {
   border-color: rgba(60, 162, 149, 0.5);
   background: rgba(232, 238, 245, 0.04);
   transform: translateY(-1px);
 }
 
 @media (max-width: 480px) {
-  .cta { flex-direction: column; }
-  .cta-primary, .cta-secondary { flex: initial; width: 100%; }
+  .landing .cta { flex-direction: column; }
+  .landing .cta-primary,
+  .landing .cta-secondary { flex: initial; width: 100%; }
 }

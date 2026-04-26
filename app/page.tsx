@@ -3,7 +3,7 @@ import "@/styles/landing.css";
 
 export default function Home() {
   return (
-    <>
+    <div className="landing">
       <div className="canvas" aria-hidden="true"></div>
 
       <main>
@@ -75,6 +75,6 @@ export default function Home() {
         <div>QAcademy Educational Consult</div>
         <div className="footer-copy">© 2026 QAcademy Educational Consult. All rights reserved.</div>
       </footer>
-    </>
+    </div>
   );
 }

@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic';
 
 export default function ProgrammesPage() {
   return (
-    <>
+    <div className="landing">
       <div className="canvas" aria-hidden="true"></div>
 
       <main>
@@ -49,6 +49,6 @@ export default function ProgrammesPage() {
           © 2026 QAcademy Educational Consult. All rights reserved.
         </div>
       </footer>
-    </>
+    </div>
   );
 }
