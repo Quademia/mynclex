@@ -9,8 +9,7 @@
 // short-circuit. Failure redirects to /admin.
 
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/auth';
 import { createCaseAction } from '@/lib/bank/case-study/actions';
 import type { CaseStudyRow } from '@/lib/bank/case-study/types';
 
@@ -23,29 +22,7 @@ export default async function AdminCasesListPage({
 }: {
   searchParams: Promise<{ saved?: string; deleted?: string }>;
 }) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect('/login');
-
-  const [rolesRes, permsRes] = await Promise.all([
-    supabase.from('nclex_user_roles').select('role').eq('user_id', user.id),
-    supabase
-      .from('nclex_admin_permissions')
-      .select('permission')
-      .eq('user_id', user.id),
-  ]);
-
-  const roles = (rolesRes.data ?? []).map((r) => r.role as string);
-  const permissions = (permsRes.data ?? []).map((p) => p.permission as string);
-
-  const canCurate =
-    roles.includes('SUPER_ADMIN') || permissions.includes('BANK_CURATE');
-
-  if (!canCurate) redirect('/admin/dashboard');
+  const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
 
   const params = await searchParams;
 

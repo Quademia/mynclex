@@ -22,7 +22,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { requireBankCurator, type ServerSupabaseClient } from '@/lib/auth';
 import {
   CLIENT_NEEDS_CATEGORIES,
   DIFFICULTY_LEVELS,
@@ -77,61 +77,9 @@ function readSurface(formData: FormData): Surface {
   return raw === 'tutor' ? 'tutor' : 'admin';
 }
 
-// ─────────────────────────────────────────────────────────────
-// Auth + permission gate. One helper, two surfaces.
-//
-// Returns { supabase, user } on success. Redirects on failure:
-//   - unauthenticated → /login (either surface)
-//   - admin without BANK_CURATE/SUPER_ADMIN → /admin
-//   - tutor without TUTOR role → /no-access
-// ─────────────────────────────────────────────────────────────
-
-async function requireSurfaceAuth(surface: Surface) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login');
-  }
-
-  if (surface === 'tutor') {
-    const { data: rolesData } = await supabase
-      .from('nclex_user_roles')
-      .select('role')
-      .eq('user_id', user.id);
-
-    const roles = (rolesData ?? []).map((r) => r.role as string);
-
-    if (!roles.includes('TUTOR')) {
-      redirect('/no-access');
-    }
-
-    return { supabase, user };
-  }
-
-  const [rolesRes, permsRes] = await Promise.all([
-    supabase.from('nclex_user_roles').select('role').eq('user_id', user.id),
-    supabase
-      .from('nclex_admin_permissions')
-      .select('permission')
-      .eq('user_id', user.id),
-  ]);
-
-  const roles = (rolesRes.data ?? []).map((r) => r.role as string);
-  const perms = (permsRes.data ?? []).map((p) => p.permission as string);
-
-  const canCurate =
-    roles.includes('SUPER_ADMIN') || perms.includes('BANK_CURATE');
-
-  if (!canCurate) {
-    redirect('/admin/dashboard');
-  }
-
-  return { supabase, user };
-}
+// Auth + permission gate is in @/lib/auth — call requireBankCurator
+// (surface) directly from each action. The local helper that used to
+// live here was removed in slice 2.9 (lib/auth foundation).
 
 // ─────────────────────────────────────────────────────────────
 // Parse the form payload into a normalized shape.
@@ -425,7 +373,7 @@ function parseFormData(formData: FormData): ParsedItem | { error: string } {
 // ─────────────────────────────────────────────────────────────
 
 async function nextItemId(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ServerSupabaseClient,
   surface: Surface,
   type: QuestionType,
 ): Promise<string> {
@@ -457,7 +405,7 @@ async function nextItemId(
 
 export async function createBankItemAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
-  const { supabase, user } = await requireSurfaceAuth(surface);
+  const { supabase, user } = await requireBankCurator(surface);
 
   const parsed = parseFormData(formData);
   if ('error' in parsed) {
@@ -491,7 +439,7 @@ export async function createBankItemAction(formData: FormData): Promise<ActionRe
 
 export async function updateBankItemAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
-  const { supabase } = await requireSurfaceAuth(surface);
+  const { supabase } = await requireBankCurator(surface);
 
   const item_id = String(formData.get('item_id') ?? '').trim();
   if (!item_id) {
@@ -546,7 +494,7 @@ export async function updateBankItemAction(formData: FormData): Promise<ActionRe
 
 export async function deleteBankItemAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
-  const { supabase } = await requireSurfaceAuth(surface);
+  const { supabase } = await requireBankCurator(surface);
 
   const item_id = String(formData.get('item_id') ?? '').trim();
   if (!item_id) {

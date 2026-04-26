@@ -6,6 +6,182 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-26 (Slice 2.9 — lib/auth foundation + initial migration — Claude Web + Desktop)
+
+Pure refactor + foundation slice. No behaviour change, no UI change,
+no schema change. Three goals:
+
+1. Establish `lib/auth/` as the central module for every access
+   decision in the product, with audience-grouped subfolders so
+   future feature slices have a clear home for new helpers.
+2. Migrate the inline 13-line role+permission boilerplate from 19
+   admin pages plus the admin layout into one-line helper calls.
+3. Consolidate three near-duplicate inline action helpers
+   (`requireSurfaceAuth`, `requireCaseCurator`, `requireTrendCurator`)
+   into a single shared `requireBankCurator(surface)`.
+
+### Architecture
+
+`lib/auth/` follows the audience-grouped convention already used by
+`app/(app)/` (routes) and `components/nav/` (sidebars):
+
+```
+lib/auth/
+├── README.md            ← convention doc
+├── index.ts             ← public barrel
+├── types.ts             ← AuthGateResult + ServerSupabaseClient
+├── internal.ts          ← loadAuthContext, loadRolesOnly (NOT exported)
+├── constants.ts         ← PERM_* constants + AdminPermission union
+├── admin/
+│   ├── require-permission.ts    ← bucket gate, SUPER_ADMIN bypass
+│   ├── require-super-admin.ts   ← role-only check
+│   └── require-any-admin.ts     ← any admin role
+├── tutor/
+│   └── require-tutor.ts         ← TUTOR role (SUPER_ADMIN bypasses)
+├── student/                     ← empty today (.gitkeep placeholder)
+└── shared/
+    └── require-bank-curator.ts  ← admin/tutor surface-aware
+```
+
+Two internal loaders power every public helper. `loadAuthContext()`
+fetches roles + permissions in parallel; `loadRolesOnly()` fetches
+roles only (saves one DB round-trip when permissions aren't needed).
+Both bounce anonymous callers to `/login`. Helpers that return
+`AuthGateResult` always include `permissions: []` even when the lean
+loader is used — keeps the return shape uniform across the public API.
+
+The TS helpers mirror SQL `nclex_user_has_permission()` in
+`db/rls.sql` — same SUPER_ADMIN short-circuit. The two layers are
+deliberately mirrored: TS for UX (clean redirects), SQL for security
+(RLS prevents row leaks regardless).
+
+### Decisions captured
+
+- **`AdminPermission` is strict, no `| string` escape hatch.** Bare
+  string literals don't compile — typos surface at TS-check time.
+  Adding a new bucket = edit `lib/auth/constants.ts`, the one place
+  that has to stay in sync.
+- **`requireSuperAdmin` uses the lean loader.** Saves one DB query
+  per Permissions-page render. Same shape as `requireAnyAdmin` so
+  the role-only helpers are consistent.
+- **`requireBankCurator(tutor)` branches on surface** — uses
+  `loadRolesOnly` for tutor (no permissions needed), `loadAuthContext`
+  for admin. Matches what the original `requireSurfaceAuth` did
+  per surface.
+- **Dashboard page gains `requireAnyAdmin()`** — belt-and-braces
+  with the parent layout's gate. Adds one DB round-trip per dashboard
+  render but keeps the consistent "every page self-gates" pattern.
+  Flagging here because this IS a behaviour addition (the gate
+  didn't exist before this slice).
+- **Two redirect targets converged to `/admin/dashboard`.**
+  `requireCaseCurator` and `requireTrendCurator` previously
+  redirected admin failures to `/admin` (2-hop via the
+  `/admin → /admin/dashboard` redirect). After consolidation, all
+  three flow through `requireBankCurator`, which redirects to
+  `/admin/dashboard` directly. Same final destination, fewer hops.
+
+### Pre-flight findings (handoff verification)
+
+- Student layouts (`picker/page.tsx`, `bank/layout.tsx`,
+  `programme/layout.tsx`) — use `loadChromeData()` + 1-line role
+  check. Not the 13-line pattern. Skip confirmed correct.
+- Tutor layout — has its own ~10-line inline gate (different shape).
+  `requireTutor()` was created and is exported but NOT yet wired
+  into `tutor/layout.tsx`. Migrating tutor layout would add a
+  SUPER_ADMIN bypass (current layout bounces SUPER_ADMINs without
+  TUTOR role). Deferred to a slice where the policy is explicit.
+- `app/router/page.tsx` — multi-role dispatcher, doesn't fit the
+  helper shapes. Skip correct.
+- Other inline `nclex_user_roles` + `nclex_admin_permissions`
+  parallel fetch — only `requireTrendCurator` in
+  `lib/bank/trend/actions.ts`. Caught and consolidated this slice
+  (handoff originally listed only two helpers; the third was
+  surfaced by the pre-flight grep).
+
+### Files created (Phase 1)
+
+- `lib/auth/README.md` — convention doc covering folder structure,
+  naming, public API discipline, defence-in-depth principle, and
+  where future helpers go.
+- `lib/auth/types.ts` — `AuthGateResult`, `ServerSupabaseClient`.
+- `lib/auth/internal.ts` — `loadAuthContext`, `loadRolesOnly`.
+- `lib/auth/constants.ts` — 7 `PERM_*` constants + `AdminPermission` union.
+- `lib/auth/admin/{require-permission,require-super-admin,require-any-admin}.ts`
+- `lib/auth/tutor/require-tutor.ts`
+- `lib/auth/shared/require-bank-curator.ts`
+- `lib/auth/index.ts` — public barrel.
+- `lib/auth/student/.gitkeep` — placeholder for future student helpers.
+
+### Files migrated (Phase 2 + Bonus A)
+
+20 page-level migrations across 4 batches plus the admin layout:
+
+- Batch 1 (5 bank pages): `bank/all`, `bank/cases`, `bank/cases/[case_id]`,
+  `bank/trends`, `bank/trends/new`
+- Batch 2 (3 pages): `bank/trends/[trend_id]`, `payments`, `dashboard`
+- Batch 3 (5 people pages): `users`, `tutors`, `applications`,
+  `programmes`, `enrolments`
+- Batch 4 (7 pages): `products`, `reports`, `enquiries`, `announcements`,
+  `packs`, `config`, `permissions`
+- Bonus A: `app/(app)/admin/layout.tsx` — pure refactor (zero
+  behaviour change, just collapses the 12-line inline gate to
+  `await requireAnyAdmin()`).
+
+Each migration removed 12–14 lines of inline boilerplate and replaced
+them with one helper call. Imports cleaned up in tandem.
+
+### Files migrated (Phase 3)
+
+Three near-duplicate action-file helpers all deleted; callers updated
+to call `requireBankCurator(surface)` directly:
+
+- `app/(app)/admin/bank/actions.ts` — removed `requireSurfaceAuth`
+  (3 callers updated). Local `Surface` type kept; `createClient`
+  type-reference replaced with `ServerSupabaseClient` from
+  `@/lib/auth`.
+- `lib/bank/case-study/actions.ts` — removed `requireCaseCurator`
+  (6 callers). Same pattern as above.
+- `lib/bank/trend/actions.ts` — removed `requireTrendCurator`
+  (5 callers). Same pattern.
+
+### Verification
+
+- `npx tsc --noEmit` — clean
+- `npx eslint app components lib` — clean
+- `npm run build` — clean. Route count unchanged (refactor only).
+- Dev preview boots without errors. Authed walks (SUPER_ADMIN +
+  partial-ADMIN) need Sam's session — see manual verification list
+  in the slice handoff.
+
+### Approximate footprint
+
+- ~21 inline gates removed × ~13 lines each = ~270 lines of
+  boilerplate replaced by single helper calls.
+- ~150 lines of inline action-helper definitions consolidated into
+  one ~30-line shared `requireBankCurator`.
+- 12 new files in `lib/auth/`, 1 new convention doc (`README.md`).
+
+### What's deliberately left for future slices
+
+- `tutor/layout.tsx` migration — adds a SUPER_ADMIN bypass; defer
+  until that policy decision is explicit.
+- Resource-ownership gates (`requireTutorOwnsProgramme`, etc.) —
+  land with their features as new helpers in `lib/auth/tutor/`.
+- Student gates (`requireActiveBankSubscription`, etc.) — land with
+  the subscription/enrolment tables in `lib/auth/student/`.
+- Audit logging (`recordPermissionDenial`) — future, not on the
+  immediate roadmap.
+
+### What's unblocked
+
+- Future feature slices use `@/lib/auth` from day one — no new
+  inline boilerplate accumulating.
+- The `lib/auth/student/` folder is the natural home for the
+  subscription / enrolment / pack-ownership gates that land with
+  the runner and payments features.
+
+---
+
 ## Session — 2026-04-26 (Slice 2.8 — Admin nav scaffold — Claude Web + Desktop)
 
 Final nav scaffold slice. Admin sidebar with 15 permission-gated

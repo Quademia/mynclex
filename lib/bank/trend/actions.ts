@@ -28,7 +28,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { requireBankCurator, type ServerSupabaseClient } from '@/lib/auth';
 import {
   TREND_ID_PREFIX,
   TUTOR_TREND_ID_PREFIX,
@@ -69,58 +69,12 @@ function readSurface(formData: FormData): Surface {
   return raw === 'tutor' ? 'tutor' : 'admin';
 }
 
-// ─────────────────────────────────────────────────────────────
-// Auth + permission gate. Mirrors requireCaseCurator in
-// lib/bank/case-study/actions.ts so the two wrapper surfaces
-// share identical failure modes.
-// ─────────────────────────────────────────────────────────────
-
-async function requireTrendCurator(surface: Surface) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login');
-  }
-
-  if (surface === 'tutor') {
-    const { data: rolesData } = await supabase
-      .from('nclex_user_roles')
-      .select('role')
-      .eq('user_id', user.id);
-
-    const roles = (rolesData ?? []).map((r) => r.role as string);
-
-    if (!roles.includes('TUTOR')) {
-      redirect('/no-access');
-    }
-
-    return { supabase, user };
-  }
-
-  const [rolesRes, permsRes] = await Promise.all([
-    supabase.from('nclex_user_roles').select('role').eq('user_id', user.id),
-    supabase
-      .from('nclex_admin_permissions')
-      .select('permission')
-      .eq('user_id', user.id),
-  ]);
-
-  const roles = (rolesRes.data ?? []).map((r) => r.role as string);
-  const perms = (permsRes.data ?? []).map((p) => p.permission as string);
-
-  const canCurate =
-    roles.includes('SUPER_ADMIN') || perms.includes('BANK_CURATE');
-
-  if (!canCurate) {
-    redirect('/admin');
-  }
-
-  return { supabase, user };
-}
+// Auth + permission gate is in @/lib/auth — call requireBankCurator
+// (surface) directly from each action. The local helper that used to
+// live here was removed in slice 2.9 (lib/auth foundation). Note:
+// the consolidation also flipped the admin failure target from
+// /admin (2-hop via the /admin → /admin/dashboard redirect) to
+// /admin/dashboard (single-hop). Same final destination.
 
 // ─────────────────────────────────────────────────────────────
 // ID minting. Lexical sort works because the suffix is fixed-width
@@ -128,7 +82,7 @@ async function requireTrendCurator(surface: Surface) {
 // ─────────────────────────────────────────────────────────────
 
 async function nextTrendId(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ServerSupabaseClient,
   surface: Surface,
 ): Promise<string> {
   const cfg = surfaceConfig(surface);
@@ -232,7 +186,7 @@ function parseRows(raw: unknown, timepointCount: number): {
 
 export async function createTrendAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
-  const { supabase, user } = await requireTrendCurator(surface);
+  const { supabase, user } = await requireBankCurator(surface);
   const cfg = surfaceConfig(surface);
 
   const title = String(formData.get('title') ?? '').trim() || 'Untitled trend dataset';
@@ -278,7 +232,7 @@ export async function createTrendAction(formData: FormData): Promise<ActionResul
 //     persists valid rows atomically.
 export async function updateTrendAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
-  const { supabase } = await requireTrendCurator(surface);
+  const { supabase } = await requireBankCurator(surface);
 
   const trend_id = String(formData.get('trend_id') ?? '').trim();
   if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
@@ -416,7 +370,7 @@ export async function updateTrendAction(formData: FormData): Promise<ActionResul
 // The DB's ON DELETE RESTRICT on trend_id is the final fence.
 export async function deleteTrendAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
-  const { supabase } = await requireTrendCurator(surface);
+  const { supabase } = await requireBankCurator(surface);
 
   const trend_id = String(formData.get('trend_id') ?? '').trim();
   if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
@@ -472,7 +426,7 @@ export async function detachAndDeleteTrendAction(
   formData: FormData,
 ): Promise<ActionResult> {
   const surface = readSurface(formData);
-  const { supabase } = await requireTrendCurator(surface);
+  const { supabase } = await requireBankCurator(surface);
 
   const trend_id = String(formData.get('trend_id') ?? '').trim();
   if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
@@ -502,7 +456,7 @@ export async function deleteTrendAndChildrenAction(
   formData: FormData,
 ): Promise<ActionResult> {
   const surface = readSurface(formData);
-  const { supabase } = await requireTrendCurator(surface);
+  const { supabase } = await requireBankCurator(surface);
 
   const trend_id = String(formData.get('trend_id') ?? '').trim();
   if (!trend_id) return { ok: false, error: 'Missing trend_id.' };

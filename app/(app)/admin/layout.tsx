@@ -6,12 +6,14 @@
 // wraps in <AppShell> with productLabel="· Admin"). This mirrors the
 // tutor pattern from slice 2.7.
 //
-// History: slice 2.6 had this layout render <AppShell> directly; slice
-// 2.8 (admin nav scaffold) reverts that so each context can own its
-// chrome without double-rendering.
+// History:
+//   - Slice 2.6 had this layout render <AppShell> directly.
+//   - Slice 2.8 (admin nav scaffold) reverted that so each context
+//     can own its chrome without double-rendering.
+//   - Slice 2.9 (lib/auth foundation) replaced the inline 12-line
+//     role gate with a single requireAnyAdmin() call.
 
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { requireAnyAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,19 +22,6 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: rolesData } = await supabase
-    .from('nclex_user_roles')
-    .select('role')
-    .eq('user_id', user.id);
-  const roles = (rolesData ?? []).map((r) => r.role as string);
-  const isAdmin = roles.includes('ADMIN') || roles.includes('SUPER_ADMIN');
-  if (!isAdmin) redirect('/no-access');
-
+  await requireAnyAdmin();
   return <>{children}</>;
 }

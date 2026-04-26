@@ -28,7 +28,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { requireBankCurator, type ServerSupabaseClient } from '@/lib/auth';
 import {
   CLIENT_NEEDS_CATEGORIES,
   DIFFICULTY_LEVELS,
@@ -81,59 +81,12 @@ function readSurface(formData: FormData): Surface {
   return raw === 'tutor' ? 'tutor' : 'admin';
 }
 
-// ─────────────────────────────────────────────────────────────
-// Auth + permission gate. Mirrors requireSurfaceAuth in
-// app/(app)/admin/bank/actions.ts so the two surfaces have the
-// same failure modes (anon → /login; wrong admin → /admin; wrong
-// tutor → /no-access).
-// ─────────────────────────────────────────────────────────────
-
-async function requireCaseCurator(surface: Surface) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login');
-  }
-
-  if (surface === 'tutor') {
-    const { data: rolesData } = await supabase
-      .from('nclex_user_roles')
-      .select('role')
-      .eq('user_id', user.id);
-
-    const roles = (rolesData ?? []).map((r) => r.role as string);
-
-    if (!roles.includes('TUTOR')) {
-      redirect('/no-access');
-    }
-
-    return { supabase, user };
-  }
-
-  const [rolesRes, permsRes] = await Promise.all([
-    supabase.from('nclex_user_roles').select('role').eq('user_id', user.id),
-    supabase
-      .from('nclex_admin_permissions')
-      .select('permission')
-      .eq('user_id', user.id),
-  ]);
-
-  const roles = (rolesRes.data ?? []).map((r) => r.role as string);
-  const perms = (permsRes.data ?? []).map((p) => p.permission as string);
-
-  const canCurate =
-    roles.includes('SUPER_ADMIN') || perms.includes('BANK_CURATE');
-
-  if (!canCurate) {
-    redirect('/admin');
-  }
-
-  return { supabase, user };
-}
+// Auth + permission gate is in @/lib/auth — call requireBankCurator
+// (surface) directly from each action. The local helper that used to
+// live here was removed in slice 2.9 (lib/auth foundation). Note:
+// the consolidation also flipped the admin failure target from
+// /admin (2-hop via the /admin → /admin/dashboard redirect) to
+// /admin/dashboard (single-hop). Same final destination.
 
 // ─────────────────────────────────────────────────────────────
 // ID minting
@@ -142,7 +95,7 @@ async function requireCaseCurator(surface: Surface) {
 // Next 5-digit case_id for the given surface.
 // Lexical sort works because the suffix is fixed-width zero-padded.
 async function nextCaseId(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ServerSupabaseClient,
   surface: Surface,
 ): Promise<string> {
   const cfg = surfaceConfig(surface);
@@ -170,7 +123,7 @@ async function nextCaseId(
 // zero-padded, so lexical sort is unreliable — compute max in TS.
 // Skips reuse of N for deleted tabs so tab_ids stay monotonic.
 async function nextTabId(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ServerSupabaseClient,
   surface: Surface,
   case_id: string,
 ): Promise<string> {
@@ -201,7 +154,7 @@ async function nextTabId(
 
 export async function createCaseAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
-  const { supabase, user } = await requireCaseCurator(surface);
+  const { supabase, user } = await requireBankCurator(surface);
   const cfg = surfaceConfig(surface);
   const case_id = await nextCaseId(supabase, surface);
 
@@ -234,7 +187,7 @@ interface SlotPayloadFromClient {
 
 export async function updateCaseAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
-  const { supabase } = await requireCaseCurator(surface);
+  const { supabase } = await requireBankCurator(surface);
 
   const case_id = String(formData.get('case_id') ?? '').trim();
   if (!case_id) return { ok: false, error: 'Missing case_id.' };
@@ -375,7 +328,7 @@ export async function updateCaseAction(formData: FormData): Promise<ActionResult
 
 export async function deleteCaseAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
-  const { supabase } = await requireCaseCurator(surface);
+  const { supabase } = await requireBankCurator(surface);
 
   const case_id = String(formData.get('case_id') ?? '').trim();
   if (!case_id) return { ok: false, error: 'Missing case_id.' };
@@ -402,7 +355,7 @@ export async function deleteCaseAction(formData: FormData): Promise<ActionResult
 
 export async function upsertTabAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
-  const { supabase } = await requireCaseCurator(surface);
+  const { supabase } = await requireBankCurator(surface);
 
   const case_id = String(formData.get('case_id') ?? '').trim();
   if (!case_id) return { ok: false, error: 'Missing case_id.' };
@@ -499,7 +452,7 @@ export async function upsertTabAction(formData: FormData): Promise<ActionResult>
 
 export async function deleteTabAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
-  const { supabase } = await requireCaseCurator(surface);
+  const { supabase } = await requireBankCurator(surface);
 
   const case_id = String(formData.get('case_id') ?? '').trim();
   const tab_id  = String(formData.get('tab_id') ?? '').trim();
@@ -528,7 +481,7 @@ export async function deleteTabAction(formData: FormData): Promise<ActionResult>
 // the handful of tabs a case will ever have.
 export async function reorderTabsAction(formData: FormData): Promise<ActionResult> {
   const surface = readSurface(formData);
-  const { supabase } = await requireCaseCurator(surface);
+  const { supabase } = await requireBankCurator(surface);
 
   const case_id = String(formData.get('case_id') ?? '').trim();
   if (!case_id) return { ok: false, error: 'Missing case_id.' };

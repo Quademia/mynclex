@@ -41,7 +41,7 @@ MyTeacher will migrate to the same stack later, one at a time.
 
 - `app/` — routes only (Next.js App Router). Each folder is a URL path.
 - `components/` — visual pieces, grouped by domain (`shell/`, `nav/<audience>/`).
-- `lib/` — logic, grouped by domain (`bank/`, `nav/`, `shell/`, `supabase/`).
+- `lib/` — logic, grouped by domain (`auth/`, `bank/`, `nav/`, `shell/`, `supabase/`).
 - `styles/` — all CSS files (top-level sibling of `app/`, not nested under it).
 - `db/` — MyNclex-specific database schema, RLS, migrations.
 - `public/` — static assets (images, favicon).
@@ -103,9 +103,27 @@ slice.
 8. **Permission keys use SCREAMING_SNAKE_CASE.** `BANK_CURATE`,
    `USERS_MANAGE`, etc. — not `bank.manage` or `users:manage`. Specs
    sometimes use a dotted-lowercase form for readability; the canonical
-   mapping to code keys lives in `lib/nav/admin.ts`. Sentinel
-   `'SUPER_ADMIN'` on `NavItem.permission` is a role check, not a
-   permission lookup.
+   mapping to code keys lives in `lib/auth/constants.ts` (re-exported
+   as `PERM_*` constants from `@/lib/auth`). Sentinel `'SUPER_ADMIN'`
+   on `NavItem.permission` is a role check, not a permission lookup.
+
+9. **Audience-grouped code organisation.** Where a folder will contain
+   work for multiple audiences (admin, tutor, student), group by
+   audience as subfolders rather than mixing files. Already applied
+   to `app/(app)/` (routes), `components/nav/` (sidebars + audience
+   chrome), and `lib/auth/` (gate helpers). New audience-aware modules
+   should follow the same pattern.
+
+10. **Auth gates go through `@/lib/auth`.** Pages and Server Actions
+    call `requireAdminPermission(PERM_X)`, `requireSuperAdmin()`,
+    `requireAnyAdmin()`, `requireTutor()`, or `requireBankCurator(surface)`
+    instead of inlining the role/permission boilerplate. The helpers
+    live in `lib/auth/<audience>/require-<thing>.ts` and are
+    re-exported through the `@/lib/auth` barrel — call sites import
+    from the barrel, not the deep paths. TS-layer gates mirror SQL
+    RLS policies in `db/rls.sql` — UX is in TS, security is in SQL.
+    See `lib/auth/README.md` for the full convention including where
+    new helpers go.
 
 ## Non-Negotiable Rules
 

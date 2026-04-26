@@ -7,8 +7,8 @@
 //
 // Tutor twin lives at (app)/tutor/bank/cases/[case_id]/page.tsx.
 
-import { notFound, redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { notFound } from 'next/navigation';
+import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/auth';
 import { CaseStudyEditor } from '@/lib/bank/case-study/editor';
 import { loadCaseSlots } from '@/lib/bank/case-study/slot-loader';
 import type {
@@ -25,29 +25,7 @@ interface PageProps {
 
 export default async function AdminCaseEditorPage({ params }: PageProps) {
   const { case_id } = await params;
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect('/login');
-
-  const [rolesRes, permsRes] = await Promise.all([
-    supabase.from('nclex_user_roles').select('role').eq('user_id', user.id),
-    supabase
-      .from('nclex_admin_permissions')
-      .select('permission')
-      .eq('user_id', user.id),
-  ]);
-
-  const roles = (rolesRes.data ?? []).map((r) => r.role as string);
-  const perms = (permsRes.data ?? []).map((p) => p.permission as string);
-
-  const canCurate =
-    roles.includes('SUPER_ADMIN') || perms.includes('BANK_CURATE');
-
-  if (!canCurate) redirect('/admin/dashboard');
+  const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
 
   const [caseRes, tabsRes, slots] = await Promise.all([
     supabase
