@@ -100,6 +100,13 @@ slice.
    on a detail URL, which double-renders the topbar/footer. Sibling
    routes don't share a layout chain, so each owns its frame entirely.
 
+8. **Permission keys use SCREAMING_SNAKE_CASE.** `BANK_CURATE`,
+   `USERS_MANAGE`, etc. — not `bank.manage` or `users:manage`. Specs
+   sometimes use a dotted-lowercase form for readability; the canonical
+   mapping to code keys lives in `lib/nav/admin.ts`. Sentinel
+   `'SUPER_ADMIN'` on `NavItem.permission` is a role check, not a
+   permission lookup.
+
 ## Non-Negotiable Rules
 
 1. **Table prefix: `nclex_`** on every MyNclex database object (tables,

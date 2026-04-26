@@ -1,13 +1,13 @@
-// mynclex/app/(app)/admin/trends/page.tsx
+// mynclex/app/(app)/admin/bank/trends/page.tsx
 //
 // Admin Trend datasets list (Slice 1.12a). Table of dataset rows
 // sorted by updated_at DESC. Header has "Trend datasets" title +
-// a "+ New trend" button linking to /admin/trends/new (which is
-// itself a minimal create form — keeping the first save simple
+// a "+ New trend" button linking to /admin/bank/trends/new (which
+// is itself a minimal create form — keeping the first save simple
 // so all heavy editing happens in the full editor).
 //
 // Role gate mirrors /admin/bank/cases: BANK_CURATE permission OR
-// SUPER_ADMIN short-circuit. Failure redirects to /admin.
+// SUPER_ADMIN short-circuit. Failure redirects to /admin/dashboard.
 
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -17,7 +17,7 @@ import { kindDefaultLabel } from '@/lib/bank/trend/kind-templates';
 
 export const dynamic = 'force-dynamic';
 
-const BASE_URL = '/admin/trends';
+const BASE_URL = '/admin/bank/trends';
 
 export default async function AdminTrendsListPage({
   searchParams,
@@ -46,7 +46,7 @@ export default async function AdminTrendsListPage({
   const canCurate =
     roles.includes('SUPER_ADMIN') || perms.includes('BANK_CURATE');
 
-  if (!canCurate) redirect('/admin');
+  if (!canCurate) redirect('/admin/dashboard');
 
   const params = await searchParams;
 
@@ -81,7 +81,7 @@ export default async function AdminTrendsListPage({
           </p>
         </div>
         <div className="cs-list-actions">
-          <Link href="/admin/bank" className="cs-btn">← Back to bank</Link>
+          <Link href="/admin/bank/all" className="cs-btn">← Back to bank</Link>
           <Link href={`${BASE_URL}/new`} className="cs-btn primary">+ New trend</Link>
         </div>
       </div>

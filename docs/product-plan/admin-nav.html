@@ -271,6 +271,25 @@
     <code>student-nav.md</code>, <code>tutor-nav.html</code>.
   </div>
 
+  <div class="callout">
+    <strong>Build note (2026-04-26 — admin nav scaffold).</strong>
+    Permission keys in code use SCREAMING_SNAKE_CASE
+    (<code>BANK_CURATE</code>, <code>USERS_MANAGE</code>, etc.) rather
+    than the spec's dotted-lowercase form
+    (<code>bank.manage</code>). The spec was authored before the
+    codebase locked in SCREAMING_SNAKE for the existing
+    <code>BANK_CURATE</code> and <code>PAYMENTS_MANAGE</code> rows;
+    this slice extended that convention to the new buckets. Canonical
+    mapping lives in <code>lib/nav/admin.ts</code>. Trend admin routes
+    moved from <code>/admin/trends/*</code> into
+    <code>/admin/bank/trends/*</code> to mirror the bank sub-nav
+    (matches the tutor pattern from slice 2.7). The bank list page
+    moved from <code>/admin/bank</code> to <code>/admin/bank/all</code>
+    so "All questions" is a real sub-route and <code>/admin/bank</code>
+    redirects to it. Old URLs are not redirected — clean break, only
+    Sam used them.
+  </div>
+
   <h2>What this covers</h2>
   <p>The navigation shape for ADMIN and SUPER_ADMIN role users on MyNclex. Covers the shared sidebar, permission-driven visibility, the one super-only item, and the Bank sub-navigation pattern inherited from the tutor spec.</p>
   <p>This does NOT cover student or tutor navigation — those are separate specs in the same series.</p>

@@ -47,7 +47,7 @@ export default async function AdminCaseEditorPage({ params }: PageProps) {
   const canCurate =
     roles.includes('SUPER_ADMIN') || perms.includes('BANK_CURATE');
 
-  if (!canCurate) redirect('/admin');
+  if (!canCurate) redirect('/admin/dashboard');
 
   const [caseRes, tabsRes, slots] = await Promise.all([
     supabase

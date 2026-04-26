@@ -45,7 +45,7 @@ export default async function AdminPaymentsPage() {
     roles.includes('SUPER_ADMIN') || permissions.includes('PAYMENTS_MANAGE');
 
   if (!canManagePayments) {
-    redirect('/admin');
+    redirect('/admin/dashboard');
   }
 
   return (
@@ -53,7 +53,7 @@ export default async function AdminPaymentsPage() {
       <section className="dash-card">
         <div className="dash-header">
           <div className="bank-header-row">
-            <Link href="/admin" className="bank-back-link">
+            <Link href="/admin/dashboard" className="bank-back-link">
               ← Admin
             </Link>
           </div>

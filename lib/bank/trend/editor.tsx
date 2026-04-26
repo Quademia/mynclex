@@ -67,7 +67,7 @@ interface Props {
 
 export function TrendEditor({ surface, initial }: Props) {
   const datasetRow = initial.datasetRow;
-  const baseUrl = surface === 'tutor' ? '/tutor/bank/trends' : '/admin/trends';
+  const baseUrl = surface === 'tutor' ? '/tutor/bank/trends' : '/admin/bank/trends';
 
   // ── Controlled state (data table) ────────────────────────────────
   const [timepoints, setTimepoints] = useState<string[]>(datasetRow.timepoints);

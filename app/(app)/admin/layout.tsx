@@ -1,15 +1,17 @@
 // mynclex/app/(app)/admin/layout.tsx
 //
-// Role gate + chrome for the entire /admin tree. Created 2026-04-25
-// when (app)/layout.tsx stopped rendering shared chrome. ADMIN or
-// SUPER_ADMIN can pass; everyone else is bounced to /no-access.
+// ADMIN/SUPER_ADMIN role gate for the entire /admin tree. Renders no
+// chrome — each admin sub-folder owns its own chrome via <AdminShell>
+// (which loads chrome data, filters the sidebar by permissions, and
+// wraps in <AppShell> with productLabel="· Admin"). This mirrors the
+// tutor pattern from slice 2.7.
 //
-// No productLabel or rightSlot — the dedicated admin nav scaffold
-// slice will add them.
+// History: slice 2.6 had this layout render <AppShell> directly; slice
+// 2.8 (admin nav scaffold) reverts that so each context can own its
+// chrome without double-rendering.
 
 import { redirect } from 'next/navigation';
-import { loadChromeData } from '@/lib/shell/load-chrome-data';
-import { AppShell } from '@/components/shell/app-shell';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,20 +20,19 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const chrome = await loadChromeData();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
 
-  const isAdmin =
-    chrome.roles.includes('ADMIN') || chrome.roles.includes('SUPER_ADMIN');
+  const { data: rolesData } = await supabase
+    .from('nclex_user_roles')
+    .select('role')
+    .eq('user_id', user.id);
+  const roles = (rolesData ?? []).map((r) => r.role as string);
+  const isAdmin = roles.includes('ADMIN') || roles.includes('SUPER_ADMIN');
   if (!isAdmin) redirect('/no-access');
 
-  return (
-    <AppShell
-      displayName={chrome.displayName}
-      email={chrome.email}
-      viewingAs={chrome.viewingAs}
-      availableRoles={chrome.roles}
-    >
-      {children}
-    </AppShell>
-  );
+  return <>{children}</>;
 }

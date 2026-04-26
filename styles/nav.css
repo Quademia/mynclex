@@ -55,6 +55,42 @@
   background: var(--bg);
   border-right: 1px solid var(--border);
   padding: 12px 0;
+  /* Flex column so the admin sidebar's footer pins at the bottom.
+     Student + tutor sidebars don't render a .sidebar-content wrapper —
+     their nav rows are direct flex children and stack identically to
+     the previous block layout. */
+  display: flex;
+  flex-direction: column;
+}
+
+/* The admin sidebar wraps its scrollable nav rows in .sidebar-content
+ * so .sidebar-footer can pin to the bottom of the column. Other
+ * audience sidebars don't render this wrapper — they don't need a
+ * footer. */
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--white);
+}
+
+.sidebar-footer-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.sidebar-footer-value {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 500;
 }
 
 @media (max-width: 640px) {

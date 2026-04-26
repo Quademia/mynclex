@@ -1,11 +1,11 @@
-// mynclex/app/(app)/admin/trends/[trend_id]/page.tsx
+// mynclex/app/(app)/admin/bank/trends/[trend_id]/page.tsx
 //
 // Admin Trend dataset editor (Slice 1.12a). Server component that:
 //   1. Gates on BANK_CURATE / SUPER_ADMIN.
 //   2. Fetches the dataset row.
 //   3. Mounts <TrendEditor surface='admin' initial={...} />.
 //
-// Tutor twin lives at (app)/tutor/trends/[trend_id]/page.tsx.
+// Tutor twin lives at (app)/tutor/bank/trends/[trend_id]/page.tsx.
 
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
@@ -46,7 +46,7 @@ export default async function AdminTrendEditorPage({ params }: PageProps) {
   const canCurate =
     roles.includes('SUPER_ADMIN') || perms.includes('BANK_CURATE');
 
-  if (!canCurate) redirect('/admin');
+  if (!canCurate) redirect('/admin/dashboard');
 
   const [datasetRes, itemsRes] = await Promise.all([
     supabase

@@ -21,7 +21,15 @@ export type NavIcon =
   | 'chart'
   | 'edit'
   | 'arrow-left'
-  | 'chevron-down';
+  | 'chevron-down'
+  | 'tutor'
+  | 'apply'
+  | 'tag'
+  | 'flag'
+  | 'mail'
+  | 'alert'
+  | 'shield'
+  | 'settings';
 
 export type NavItem = {
   /** Stable key — used for active-state matching and React keys. */
@@ -37,4 +45,20 @@ export type NavItem = {
    * Sidebars that don't support nesting render these flat or ignore them.
    */
   children?: NavItem[];
+  /**
+   * Optional permission key required to see this item. Used by the admin
+   * sidebar; ignored by audience configs that don't gate (student, tutor).
+   *
+   *   - `undefined` / `null`: visible to anyone with the audience role.
+   *   - `'SUPER_ADMIN'` (sentinel): visible only when the user holds the
+   *     SUPER_ADMIN role — not a permission lookup.
+   *   - any other string: a permission bucket key (e.g. `'BANK_CURATE'`)
+   *     looked up in `nclex_admin_permissions`. SUPER_ADMIN bypasses.
+   *
+   * Permission keys use SCREAMING_SNAKE_CASE in code, matching what the
+   * existing `BANK_CURATE` and `PAYMENTS_MANAGE` rows seed. The admin
+   * spec uses dotted-lowercase form (e.g. `bank.manage`) — see
+   * lib/nav/admin.ts for the canonical mapping.
+   */
+  permission?: string | null;
 };

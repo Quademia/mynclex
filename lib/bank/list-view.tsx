@@ -282,7 +282,7 @@ function wrapperBaseUrl(kind: 'case' | 'trend', baseUrl: string): string {
   if (kind === 'case') {
     return isTutor ? '/tutor/bank/cases' : '/admin/bank/cases';
   }
-  return isTutor ? '/tutor/bank/trends' : '/admin/trends';
+  return isTutor ? '/tutor/bank/trends' : '/admin/bank/trends';
 }
 
 function BrowseRow({

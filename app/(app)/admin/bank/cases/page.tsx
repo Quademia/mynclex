@@ -45,7 +45,7 @@ export default async function AdminCasesListPage({
   const canCurate =
     roles.includes('SUPER_ADMIN') || permissions.includes('BANK_CURATE');
 
-  if (!canCurate) redirect('/admin');
+  if (!canCurate) redirect('/admin/dashboard');
 
   const params = await searchParams;
 
@@ -80,7 +80,7 @@ export default async function AdminCasesListPage({
           </p>
         </div>
         <div className="cs-list-actions">
-          <Link href="/admin/bank" className="cs-btn">← Back to bank</Link>
+          <Link href="/admin/bank/all" className="cs-btn">← Back to bank</Link>
           <form
             action={async (fd: FormData) => {
               'use server';

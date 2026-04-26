@@ -33,7 +33,7 @@ import { QuestionAuthoringPanel } from '@/lib/bank/question-authoring-panel';
 export function EditorShell({
   initial,
   savedFlash,
-  cancelHref = '/admin/bank',
+  cancelHref = '/admin/bank/all',
   surface = 'admin',
 }: {
   initial: BankFormInitial;

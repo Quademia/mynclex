@@ -1,4 +1,4 @@
-// mynclex/app/(app)/admin/trends/new/page.tsx
+// mynclex/app/(app)/admin/bank/trends/new/page.tsx
 //
 // Admin trend-dataset create form (Slice 1.12a). Minimal surface:
 //   - kind picker (5 presets + Custom)
@@ -40,7 +40,7 @@ export default async function AdminTrendCreatePage() {
   const canCurate =
     roles.includes('SUPER_ADMIN') || perms.includes('BANK_CURATE');
 
-  if (!canCurate) redirect('/admin');
+  if (!canCurate) redirect('/admin/dashboard');
 
   return (
     <main className="bank-page">
@@ -53,7 +53,7 @@ export default async function AdminTrendCreatePage() {
           </p>
         </div>
         <div className="cs-list-actions">
-          <Link href="/admin/trends" className="cs-btn">← Cancel</Link>
+          <Link href="/admin/bank/trends" className="cs-btn">← Cancel</Link>
         </div>
       </div>
 

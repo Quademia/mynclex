@@ -59,7 +59,7 @@ function surfaceConfig(surface: Surface) {
   }
   return {
     table:    'nclex_trend_datasets' as const,
-    baseUrl:  '/admin/trends',
+    baseUrl:  '/admin/bank/trends',
     idPrefix: TREND_ID_PREFIX,
   };
 }

@@ -6,6 +6,134 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-26 (Slice 2.8 — Admin nav scaffold — Claude Web + Desktop)
+
+Final nav scaffold slice. Admin sidebar with 15 permission-gated
+items, collapsible "Bank ▾" sub-nav, "Visible items" footer counter,
+list pages only (detail subtrees follow list-vs-detail-as-siblings
+when their feature work lands).
+
+### Architecture
+
+`(app)/admin/layout.tsx` reverted from slice 2.6's AppShell wrap to
+a slim ADMIN/SUPER_ADMIN role gate (mirrors slice 2.7 tutor revert).
+Each admin sub-folder owns its chrome via `<AdminShell>` — a Server
+Component that calls `loadChromeData()`, fetches the user's
+`nclex_admin_permissions` rows, filters `ADMIN_NAV` via
+`filterAdminNav()`, and renders `<AppShell productLabel="· Admin">`
+with the filtered sidebar.
+
+The sidebar component is its own file (`components/nav/admin/sidebar.tsx`)
+mirroring the tutor global sidebar pattern (FlatRow + ParentRow split
+to keep React-hook order stable). Adds `.sidebar-content` wrapper +
+`.sidebar-footer` for the "Visible items: N of 15" counter; tutor and
+student sidebars unchanged because they don't render the wrapper.
+
+### Route moves
+
+- `admin/bank/page.tsx` → `admin/bank/all/page.tsx` (bank list); new
+  `admin/bank/page.tsx` redirects to `/admin/bank/all`
+- `admin/trends/{page, new/page, [trend_id]/page}.tsx` →
+  `admin/bank/trends/{...}` (mirrors slice 2.7 tutor move)
+- `admin/page.tsx` was a ~150-line section-menu page; replaced with a
+  4-line redirect to `/admin/dashboard`. The old SECTIONS array,
+  viewingAs derivation, and section-card filter all die — the sidebar
+  IS the section menu now
+
+Reference updates: `BASE_URL`s, focus-mode redirect for trend
+children, "Trend datasets →" header card href, "Back to bank" links,
+`lib/bank/list-view.tsx` admin URL builder, `lib/bank/trend/editor.tsx`
+admin baseUrl, `lib/bank/trend/actions.ts` admin surfaceConfig
+baseUrl, `admin/bank/actions.ts` baseUrl (admin surface), and
+`admin/bank/editor-shell.tsx` cancelHref default — all flipped to
+`/admin/bank/all` or `/admin/bank/trends`. Permission-fail redirects
+across 7 existing admin pages (`/admin` → `/admin/dashboard`) — single-
+hop to skip the redirect chain.
+
+### Files created (Phases 2–5)
+
+- `lib/nav/admin.ts` — `ADMIN_NAV` (15 items, dropdown on Bank) +
+  `filterAdminNav` helper. Spec-to-code permission mapping (dotted
+  spec form → SCREAMING_SNAKE code keys) documented at the top.
+- 8 new icons added to `components/nav/shared/nav-icon.tsx`: `tutor`,
+  `apply`, `tag`, `flag`, `mail`, `alert`, `shield`, `settings`. Paths
+  copied verbatim from `admin-nav.html`'s mockup. Spec icon for
+  Programmes (`calendar`) and Readiness Packs (`target`) reuse
+  existing entries — no new icon needed.
+- `lib/nav/types.ts` — `NavItem` gained optional `permission?: string | null`
+  (with sentinel `'SUPER_ADMIN'` for role-only gating).
+- `components/nav/admin/sidebar.tsx` — admin sidebar with footer
+  counter (FlatRow + ParentRow split, same pattern as
+  `components/nav/tutor/global-sidebar.tsx`).
+- `components/nav/admin/admin-shell.tsx` — Server Component shell
+  helper.
+- `app/(app)/admin/{dashboard, packs, users, tutors, applications,
+  programmes, enrolments, products, reports, enquiries,
+  announcements, permissions, config}/page.tsx` — 13 placeholder
+  pages, each with its own permission gate.
+- `app/(app)/admin/{dashboard, bank, packs, users, tutors,
+  applications, programmes, enrolments, payments, products, reports,
+  enquiries, announcements, permissions, config}/layout.tsx` — 15
+  thin layout files, each renders `<AdminShell>{children}</AdminShell>`.
+- `styles/nav.css` — `.sidebar` refactored to flex column (so admin
+  footer pins at bottom; tutor + student sidebars look unchanged
+  since they don't render `.sidebar-content`); added
+  `.sidebar-content`, `.sidebar-footer`, `.sidebar-footer-label`,
+  `.sidebar-footer-value`.
+
+### Files edited
+
+- `app/(app)/admin/layout.tsx` — reverted to slim role gate
+- `app/(app)/admin/page.tsx` — section-menu page replaced with redirect
+- 7 existing admin pages — perm-fail redirects flipped to
+  `/admin/dashboard` (single-hop after the `/admin` redirect change)
+- `mynclex/CLAUDE.md` — new 8th folder-conventions rule documenting
+  SCREAMING_SNAKE for permission keys
+- `mynclex/docs/product-plan/admin-nav.html` — build-note callout
+  explaining the SCREAMING_SNAKE convention + the route moves
+
+### Decisions captured
+
+- **Cases keep short slug at `/admin/bank/cases/`**, mirroring tutor.
+  Sidebar label is "Case Studies"; URL slug is `cases`.
+- **Sidebar code stays audience-isolated.** Admin gets its own
+  `components/nav/admin/sidebar.tsx` rather than generalising the
+  tutor sidebar. Generalisation can land after a 4th audience
+  consumer proves the abstraction is stable.
+- **Net-new icons = 8** (handoff said 11). Spec uses `calendar` for
+  Programmes (not `briefcase`), `apply` for Enrolments (not `link`),
+  and the `pack` SVG is identical to existing `target` — kept
+  `target` and skipped the alias.
+- **Detail subtrees deferred.** `/admin/user/[id]/...` and friends
+  land per-feature when the real pages need them; the list-vs-detail
+  sibling rule from slice 2.7 fix applies.
+- **Permissions page = SUPER_ADMIN role only**, not a permission
+  bucket. The page that grants other admins their buckets isn't a
+  bucket itself.
+
+### Verification
+
+- `npx tsc --noEmit` — clean
+- `npx eslint app components lib` — clean
+- `npm run build` — clean (route count grew significantly, see
+  build output)
+- Browser preview: dev server boots, middleware bounces unauthed
+  `/admin/dashboard` to `/login`. Authed flow needs Sam's session.
+
+### What's unblocked
+
+- Three audience nav scaffolds complete (student, tutor, admin).
+- Each admin section (Users, Tutors, etc.) can build out its real
+  page + detail subtree following the established pattern.
+- Real admin permissions UI (the dropping placeholder under
+  `/admin/permissions`) is the natural next admin work.
+
+### Next session
+
+Sam-driven — pick the next admin feature or unrelated work.
+
+---
+
 ## Session — 2026-04-26 (Slice 2.7 fix — programme route split — Claude Web + Desktop)
 
 Bug shipped yesterday: visiting any programme detail URL

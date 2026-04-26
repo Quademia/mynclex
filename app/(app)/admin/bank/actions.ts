@@ -68,7 +68,7 @@ function surfaceConfig(surface: Surface) {
   return {
     table: 'nclex_bank_items' as const,
     prefix: ITEM_ID_PREFIX,
-    baseUrl: '/admin/bank',
+    baseUrl: '/admin/bank/all',
   };
 }
 
@@ -127,7 +127,7 @@ async function requireSurfaceAuth(surface: Surface) {
     roles.includes('SUPER_ADMIN') || perms.includes('BANK_CURATE');
 
   if (!canCurate) {
-    redirect('/admin');
+    redirect('/admin/dashboard');
   }
 
   return { supabase, user };
