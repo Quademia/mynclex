@@ -8,7 +8,7 @@
 // Tutor twin lives at (app)/tutor/bank/trends/[trend_id]/page.tsx.
 
 import { notFound } from 'next/navigation';
-import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/auth';
+import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { TrendEditor } from '@/lib/bank/trend/editor';
 import type { FullBankRow } from '@/lib/bank/list-view';
 import type {

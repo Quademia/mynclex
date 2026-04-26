@@ -1,4 +1,4 @@
-// mynclex/lib/auth/shared/require-bank-curator.ts
+// mynclex/lib/access/shared/require-bank-curator.ts
 //
 // Surface-aware gate for bank authoring. Used by Server Actions in
 // the bank, case-study, and trend folders that serve both /admin and

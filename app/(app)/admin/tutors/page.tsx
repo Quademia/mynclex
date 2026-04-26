@@ -2,7 +2,7 @@
 //
 // Tutors — placeholder. Gated on TUTORS_MANAGE.
 
-import { requireAdminPermission, PERM_TUTORS_MANAGE } from '@/lib/auth';
+import { requireAdminPermission, PERM_TUTORS_MANAGE } from '@/lib/access';
 import { Placeholder } from '@/components/nav/shared/placeholder';
 
 export const dynamic = 'force-dynamic';

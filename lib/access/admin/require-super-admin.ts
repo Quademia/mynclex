@@ -1,4 +1,4 @@
-// mynclex/lib/auth/admin/require-super-admin.ts
+// mynclex/lib/access/admin/require-super-admin.ts
 //
 // Gate on the SUPER_ADMIN role specifically (NOT a permission
 // bucket). The Permissions page is the canonical caller — it grants

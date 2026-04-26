@@ -10,7 +10,7 @@
 // flags) happens in the full editor where the data-table lives.
 
 import Link from 'next/link';
-import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/auth';
+import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { createTrendAction } from '@/lib/bank/trend/actions';
 import { KIND_PRESETS, kindDefaultLabel } from '@/lib/bank/trend/kind-templates';
 

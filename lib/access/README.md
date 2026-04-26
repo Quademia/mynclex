@@ -1,4 +1,4 @@
-# `lib/auth/`
+# `lib/access/`
 
 Central module for every access decision in the product. Pages,
 Server Actions, and (eventually) middleware import gate helpers from
@@ -22,7 +22,7 @@ Three reasons:
 ## Folder structure
 
 ```
-lib/auth/
+lib/access/
 ├── README.md            ← this file
 ├── index.ts             ← public barrel
 ├── types.ts             ← shared types (AuthGateResult, ServerSupabaseClient)
@@ -68,12 +68,12 @@ their audience subfolder too.
 ## Public API
 
 Every helper that pages or actions should call must be re-exported
-through `index.ts`. Call sites import from `@/lib/auth`, not from
+through `index.ts`. Call sites import from `@/lib/access`, not from
 the deep paths. This lets the implementation paths move without
 breaking call sites.
 
 `internal.ts` and the audience-folder files are NOT meant for
-direct import outside `lib/auth/`. ESLint can be configured to
+direct import outside `lib/access/`. ESLint can be configured to
 enforce this if the convention slips.
 
 ## Loaders (internal)

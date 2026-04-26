@@ -2,7 +2,7 @@
 //
 // System Config — placeholder. Gated on SYSTEM_MANAGE.
 
-import { requireAdminPermission, PERM_SYSTEM_MANAGE } from '@/lib/auth';
+import { requireAdminPermission, PERM_SYSTEM_MANAGE } from '@/lib/access';
 import { Placeholder } from '@/components/nav/shared/placeholder';
 
 export const dynamic = 'force-dynamic';

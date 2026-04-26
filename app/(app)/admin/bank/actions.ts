@@ -22,7 +22,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { requireBankCurator, type ServerSupabaseClient } from '@/lib/auth';
+import { requireBankCurator, type ServerSupabaseClient } from '@/lib/access';
 import {
   CLIENT_NEEDS_CATEGORIES,
   DIFFICULTY_LEVELS,
@@ -77,9 +77,9 @@ function readSurface(formData: FormData): Surface {
   return raw === 'tutor' ? 'tutor' : 'admin';
 }
 
-// Auth + permission gate is in @/lib/auth — call requireBankCurator
+// Auth + permission gate is in @/lib/access — call requireBankCurator
 // (surface) directly from each action. The local helper that used to
-// live here was removed in slice 2.9 (lib/auth foundation).
+// live here was removed in slice 2.9 (lib/access foundation).
 
 // ─────────────────────────────────────────────────────────────
 // Parse the form payload into a normalized shape.

@@ -8,7 +8,7 @@
 // Tutor twin lives at (app)/tutor/bank/cases/[case_id]/page.tsx.
 
 import { notFound } from 'next/navigation';
-import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/auth';
+import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { CaseStudyEditor } from '@/lib/bank/case-study/editor';
 import { loadCaseSlots } from '@/lib/bank/case-study/slot-loader';
 import type {

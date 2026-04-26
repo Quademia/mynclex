@@ -1,9 +1,0 @@
-# lib/auth/student/
-#
-# Reserved for student-audience auth helpers — placeholder for now
-# because git doesn't track empty directories. Helpers like
-# require-active-bank-subscription, require-programme-enrolment,
-# and require-pack-ownership land here when the subscription /
-# enrolment tables ship.
-#
-# See lib/auth/README.md for the folder convention.

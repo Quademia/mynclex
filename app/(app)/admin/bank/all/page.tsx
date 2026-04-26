@@ -25,7 +25,7 @@
 
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/auth';
+import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { EditorShell } from '../editor-shell';
 import {
   BankListView,

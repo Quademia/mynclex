@@ -10,10 +10,10 @@
 //   - Slice 2.6 had this layout render <AppShell> directly.
 //   - Slice 2.8 (admin nav scaffold) reverted that so each context
 //     can own its chrome without double-rendering.
-//   - Slice 2.9 (lib/auth foundation) replaced the inline 12-line
+//   - Slice 2.9 (lib/access foundation) replaced the inline 12-line
 //     role gate with a single requireAnyAdmin() call.
 
-import { requireAnyAdmin } from '@/lib/auth';
+import { requireAnyAdmin } from '@/lib/access';
 
 export const dynamic = 'force-dynamic';
 

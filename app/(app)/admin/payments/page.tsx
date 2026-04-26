@@ -14,7 +14,7 @@
 // in place.
 
 import Link from 'next/link';
-import { requireAdminPermission, PERM_PAYMENTS_MANAGE } from '@/lib/auth';
+import { requireAdminPermission, PERM_PAYMENTS_MANAGE } from '@/lib/access';
 
 export const dynamic = 'force-dynamic';
 

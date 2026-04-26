@@ -1,7 +1,7 @@
-// mynclex/lib/auth/index.ts
+// mynclex/lib/access/index.ts
 //
-// Public API of lib/auth. Pages and Server Actions should import from
-// '@/lib/auth' (not the deep sub-paths) so the helper set is
+// Public API of lib/access. Pages and Server Actions should import from
+// '@/lib/access' (not the deep sub-paths) so the helper set is
 // rediscoverable and the implementation paths can move without
 // breaking call sites.
 //

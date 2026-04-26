@@ -28,7 +28,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { requireBankCurator, type ServerSupabaseClient } from '@/lib/auth';
+import { requireBankCurator, type ServerSupabaseClient } from '@/lib/access';
 import {
   TREND_ID_PREFIX,
   TUTOR_TREND_ID_PREFIX,
@@ -69,9 +69,9 @@ function readSurface(formData: FormData): Surface {
   return raw === 'tutor' ? 'tutor' : 'admin';
 }
 
-// Auth + permission gate is in @/lib/auth — call requireBankCurator
+// Auth + permission gate is in @/lib/access — call requireBankCurator
 // (surface) directly from each action. The local helper that used to
-// live here was removed in slice 2.9 (lib/auth foundation). Note:
+// live here was removed in slice 2.9 (lib/access foundation). Note:
 // the consolidation also flipped the admin failure target from
 // /admin (2-hop via the /admin → /admin/dashboard redirect) to
 // /admin/dashboard (single-hop). Same final destination.

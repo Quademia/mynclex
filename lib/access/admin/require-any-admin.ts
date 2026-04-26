@@ -1,4 +1,4 @@
-// mynclex/lib/auth/admin/require-any-admin.ts
+// mynclex/lib/access/admin/require-any-admin.ts
 //
 // Gate on ADMIN or SUPER_ADMIN role. No specific permission required.
 // Used by /admin/dashboard, the parent /admin/layout.tsx role gate,

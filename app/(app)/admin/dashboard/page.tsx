@@ -6,7 +6,7 @@
 // drop the protection.
 
 import { Placeholder } from '@/components/nav/shared/placeholder';
-import { requireAnyAdmin } from '@/lib/auth';
+import { requireAnyAdmin } from '@/lib/access';
 
 export const dynamic = 'force-dynamic';
 

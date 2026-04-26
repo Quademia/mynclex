@@ -1,4 +1,4 @@
-// mynclex/lib/auth/internal.ts
+// mynclex/lib/access/internal.ts
 //
 // Module-internal loaders. NOT re-exported through the barrel — pages
 // and actions should never call these directly. They power the public

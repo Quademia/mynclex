@@ -1,6 +1,6 @@
-// mynclex/lib/auth/types.ts
+// mynclex/lib/access/types.ts
 //
-// Shared types for the lib/auth gate helpers.
+// Shared types for the lib/access gate helpers.
 //
 // Every public helper that succeeds returns a context payload with:
 //   - supabase: the per-request Supabase server client (so callers can

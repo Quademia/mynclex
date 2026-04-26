@@ -2,7 +2,7 @@
 //
 // Programmes — placeholder. Gated on PROGRAMMES_VIEW.
 
-import { requireAdminPermission, PERM_PROGRAMMES_VIEW } from '@/lib/auth';
+import { requireAdminPermission, PERM_PROGRAMMES_VIEW } from '@/lib/access';
 import { Placeholder } from '@/components/nav/shared/placeholder';
 
 export const dynamic = 'force-dynamic';

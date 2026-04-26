@@ -5,7 +5,7 @@
 // admins their buckets, and the page used to do it isn't a
 // permission to itself).
 
-import { requireSuperAdmin } from '@/lib/auth';
+import { requireSuperAdmin } from '@/lib/access';
 import { Placeholder } from '@/components/nav/shared/placeholder';
 
 export const dynamic = 'force-dynamic';

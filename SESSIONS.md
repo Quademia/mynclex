@@ -6,12 +6,99 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
-## Session — 2026-04-26 (Slice 2.9 — lib/auth foundation + initial migration — Claude Web + Desktop)
+## Session — 2026-04-26 (Slice 2.9b — Rename lib/auth to lib/access — Claude Web + Desktop)
+
+Pure rename slice. No logic changes, no behaviour changes, no new
+files, no deleted files. The folder slice 2.9 just landed was
+named `lib/auth/`, but "auth" conventionally refers to authentication
+(login, sessions, password resets) — what we built is authorisation
+(gates, permissions, role checks, future ownership/subscription/
+enrolment checks). `lib/access/` is plain English and scales to
+every check the product will ever need.
+
+### Why now
+
+12 files plus ~21 import sites today; significantly more after the
+next 3-4 feature slices land. Renaming while the convention is
+fresh and the surface is small was the cheapest moment.
+
+### Decisions captured
+
+- **Pure rename, no logic changes.** Helper signatures, redirect
+  targets, type names (`AuthGateResult`, `BankSurface`, etc.) all
+  unchanged. Only the folder name was awkward; only the folder name
+  was renamed.
+- **Type names with "Auth" stay.** `AuthGateResult` is exported
+  through the barrel; call sites see the type, not its history.
+  Renaming to `AccessGateResult` would be ~15 sites of churn for a
+  marginal naming win. Skipped.
+- **SESSIONS.md slice 2.9 entry edited in place.** Modifying a
+  historical record is a small breach of "history is history," but
+  leaving stale `lib/auth` references would confuse future readers
+  trying to learn the convention. Kept the audit trail with a note
+  at the top of slice 2.9's entry explaining the rename happened.
+
+### Files moved (git mv, history preserved)
+
+`mynclex/lib/auth/` → `mynclex/lib/access/` (11 files: README,
+index, types, internal, constants, plus the 4 audience subfolders
+admin/, tutor/, student/, shared/).
+
+### Files modified
+
+- 21 source files: every `@/lib/auth` import flipped to `@/lib/access`
+  (admin pages × 17, admin/layout.tsx, 3 action files, plus 2
+  comment/docstring mentions inside lib/access/ itself).
+- File-header comments inside lib/access/* updated to reflect the
+  new path (8 files: admin/*, tutor/*, shared/*, internal.ts,
+  constants.ts, types.ts, index.ts, plus the require-permission.ts
+  JSDoc example).
+- Inline `// (lib/auth foundation)` history references in 3 action
+  files updated to `// (lib/access foundation)`.
+- `mynclex/lib/access/README.md` — heading, folder tree, prose
+  references updated.
+- `mynclex/CLAUDE.md` — folder enumeration, two folder-conventions
+  rules updated to `lib/access/` and `@/lib/access`.
+- `mynclex/SESSIONS.md` — slice 2.9 entry updated for naming
+  consistency, with a follow-up note prefix explaining the rename.
+
+### Verification
+
+- `git grep '@/lib/auth'` returns zero
+- `git grep 'lib/auth'` (without `@` prefix) returns zero in source
+  and tracked docs (node_modules and prior git log messages
+  legitimately retain the old name)
+- `npx tsc --noEmit` clean
+- `npx eslint app components lib` clean
+- `npm run build` clean — route count unchanged
+
+### Out of scope
+
+- Any logic, redirect-target, helper-signature, or type changes.
+- Renaming `AuthGateResult`, `BankSurface`, or other type aliases
+  (per the decision above).
+- Mobile drawer, audit logging, or any other feature work.
+
+### What's unblocked
+
+Future feature slices (runner, payments, enrolment) add their gate
+helpers to `lib/access/<audience>/` from day one with the correct
+folder name. No follow-on rename slice ever needed.
+
+---
+
+## Session — 2026-04-26 (Slice 2.9 — lib/access foundation + initial migration — Claude Web + Desktop)
+
+> *Note (2026-04-26): folder originally landed as `lib/access/` and
+> was renamed to `lib/access/` in a follow-up slice (2.9b) the
+> same day. References in this entry have been updated to reflect
+> the final name. Authorisation gates fit "access" better than
+> "auth" — the latter conventionally means authentication.*
 
 Pure refactor + foundation slice. No behaviour change, no UI change,
 no schema change. Three goals:
 
-1. Establish `lib/auth/` as the central module for every access
+1. Establish `lib/access/` as the central module for every access
    decision in the product, with audience-grouped subfolders so
    future feature slices have a clear home for new helpers.
 2. Migrate the inline 13-line role+permission boilerplate from 19
@@ -22,11 +109,11 @@ no schema change. Three goals:
 
 ### Architecture
 
-`lib/auth/` follows the audience-grouped convention already used by
+`lib/access/` follows the audience-grouped convention already used by
 `app/(app)/` (routes) and `components/nav/` (sidebars):
 
 ```
-lib/auth/
+lib/access/
 ├── README.md            ← convention doc
 ├── index.ts             ← public barrel
 ├── types.ts             ← AuthGateResult + ServerSupabaseClient
@@ -59,7 +146,7 @@ deliberately mirrored: TS for UX (clean redirects), SQL for security
 
 - **`AdminPermission` is strict, no `| string` escape hatch.** Bare
   string literals don't compile — typos surface at TS-check time.
-  Adding a new bucket = edit `lib/auth/constants.ts`, the one place
+  Adding a new bucket = edit `lib/access/constants.ts`, the one place
   that has to stay in sync.
 - **`requireSuperAdmin` uses the lean loader.** Saves one DB query
   per Permissions-page render. Same shape as `requireAnyAdmin` so
@@ -100,17 +187,17 @@ deliberately mirrored: TS for UX (clean redirects), SQL for security
 
 ### Files created (Phase 1)
 
-- `lib/auth/README.md` — convention doc covering folder structure,
+- `lib/access/README.md` — convention doc covering folder structure,
   naming, public API discipline, defence-in-depth principle, and
   where future helpers go.
-- `lib/auth/types.ts` — `AuthGateResult`, `ServerSupabaseClient`.
-- `lib/auth/internal.ts` — `loadAuthContext`, `loadRolesOnly`.
-- `lib/auth/constants.ts` — 7 `PERM_*` constants + `AdminPermission` union.
-- `lib/auth/admin/{require-permission,require-super-admin,require-any-admin}.ts`
-- `lib/auth/tutor/require-tutor.ts`
-- `lib/auth/shared/require-bank-curator.ts`
-- `lib/auth/index.ts` — public barrel.
-- `lib/auth/student/.gitkeep` — placeholder for future student helpers.
+- `lib/access/types.ts` — `AuthGateResult`, `ServerSupabaseClient`.
+- `lib/access/internal.ts` — `loadAuthContext`, `loadRolesOnly`.
+- `lib/access/constants.ts` — 7 `PERM_*` constants + `AdminPermission` union.
+- `lib/access/admin/{require-permission,require-super-admin,require-any-admin}.ts`
+- `lib/access/tutor/require-tutor.ts`
+- `lib/access/shared/require-bank-curator.ts`
+- `lib/access/index.ts` — public barrel.
+- `lib/access/student/.gitkeep` — placeholder for future student helpers.
 
 ### Files migrated (Phase 2 + Bonus A)
 
@@ -138,7 +225,7 @@ to call `requireBankCurator(surface)` directly:
 - `app/(app)/admin/bank/actions.ts` — removed `requireSurfaceAuth`
   (3 callers updated). Local `Surface` type kept; `createClient`
   type-reference replaced with `ServerSupabaseClient` from
-  `@/lib/auth`.
+  `@/lib/access`.
 - `lib/bank/case-study/actions.ts` — removed `requireCaseCurator`
   (6 callers). Same pattern as above.
 - `lib/bank/trend/actions.ts` — removed `requireTrendCurator`
@@ -159,24 +246,24 @@ to call `requireBankCurator(surface)` directly:
   boilerplate replaced by single helper calls.
 - ~150 lines of inline action-helper definitions consolidated into
   one ~30-line shared `requireBankCurator`.
-- 12 new files in `lib/auth/`, 1 new convention doc (`README.md`).
+- 12 new files in `lib/access/`, 1 new convention doc (`README.md`).
 
 ### What's deliberately left for future slices
 
 - `tutor/layout.tsx` migration — adds a SUPER_ADMIN bypass; defer
   until that policy decision is explicit.
 - Resource-ownership gates (`requireTutorOwnsProgramme`, etc.) —
-  land with their features as new helpers in `lib/auth/tutor/`.
+  land with their features as new helpers in `lib/access/tutor/`.
 - Student gates (`requireActiveBankSubscription`, etc.) — land with
-  the subscription/enrolment tables in `lib/auth/student/`.
+  the subscription/enrolment tables in `lib/access/student/`.
 - Audit logging (`recordPermissionDenial`) — future, not on the
   immediate roadmap.
 
 ### What's unblocked
 
-- Future feature slices use `@/lib/auth` from day one — no new
+- Future feature slices use `@/lib/access` from day one — no new
   inline boilerplate accumulating.
-- The `lib/auth/student/` folder is the natural home for the
+- The `lib/access/student/` folder is the natural home for the
   subscription / enrolment / pack-ownership gates that land with
   the runner and payments features.
 

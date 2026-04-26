@@ -10,7 +10,7 @@
 // SUPER_ADMIN short-circuit. Failure redirects to /admin/dashboard.
 
 import Link from 'next/link';
-import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/auth';
+import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import type { TrendDatasetRow } from '@/lib/bank/trend/types';
 import { kindDefaultLabel } from '@/lib/bank/trend/kind-templates';
 

@@ -1,4 +1,4 @@
-// mynclex/lib/auth/tutor/require-tutor.ts
+// mynclex/lib/access/tutor/require-tutor.ts
 //
 // Gate on the TUTOR role. SUPER_ADMIN bypasses (consistent with the
 // product's design intent: tutor support and moderation by

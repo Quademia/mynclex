@@ -2,7 +2,7 @@
 //
 // Readiness Packs — placeholder. Gated on BANK_CURATE.
 
-import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/auth';
+import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { Placeholder } from '@/components/nav/shared/placeholder';
 
 export const dynamic = 'force-dynamic';

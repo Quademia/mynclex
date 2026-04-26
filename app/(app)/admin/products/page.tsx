@@ -2,7 +2,7 @@
 //
 // Products & Pricing — placeholder. Gated on PAYMENTS_MANAGE.
 
-import { requireAdminPermission, PERM_PAYMENTS_MANAGE } from '@/lib/auth';
+import { requireAdminPermission, PERM_PAYMENTS_MANAGE } from '@/lib/access';
 import { Placeholder } from '@/components/nav/shared/placeholder';
 
 export const dynamic = 'force-dynamic';

@@ -1,4 +1,4 @@
-// mynclex/lib/auth/constants.ts
+// mynclex/lib/access/constants.ts
 //
 // Permission-bucket constants. Use these (not bare string literals)
 // when calling requireAdminPermission so typos surface as TS errors

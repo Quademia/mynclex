@@ -9,7 +9,7 @@
 // short-circuit. Failure redirects to /admin.
 
 import Link from 'next/link';
-import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/auth';
+import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { createCaseAction } from '@/lib/bank/case-study/actions';
 import type { CaseStudyRow } from '@/lib/bank/case-study/types';
 

@@ -1,4 +1,4 @@
-// mynclex/lib/auth/admin/require-permission.ts
+// mynclex/lib/access/admin/require-permission.ts
 //
 // Gate a Server Component or Server Action on a specific admin
 // permission bucket. SUPER_ADMIN bypasses the check (mirrors the
@@ -11,7 +11,7 @@
 // the one place to change.
 //
 // Usage:
-//   import { requireAdminPermission, PERM_USERS_MANAGE } from '@/lib/auth';
+//   import { requireAdminPermission, PERM_USERS_MANAGE } from '@/lib/access';
 //   const { user, supabase } = await requireAdminPermission(PERM_USERS_MANAGE);
 
 import { redirect } from 'next/navigation';
