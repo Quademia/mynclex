@@ -14,7 +14,7 @@
   // role key is NOT here — it's a Cloudflare Worker secret set via
   // `wrangler secret put SUPABASE_SERVICE_ROLE_KEY`.
   "vars": {
-    "NEXT_PUBLIC_SUPABASE_URL": "https://zrakjibtxyzoqcdtvpmq.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYWtqaWJ0eHl6b3FjZHR2cG1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MDcyODAsImV4cCI6MjA4ODk4MzI4MH0.saSEaK1IkbP03rfVvuwFpXQlLtAdKLIg9V7UwO7a2po"
+    "NEXT_PUBLIC_SUPABASE_URL": "https://xkqxfzfsllxyxpdtcrja.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrcXhmemZzbGx4eXhwZHRjcmphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMjk4ODYsImV4cCI6MjA5MjgwNTg4Nn0.yRC-HClidhjdUELZETOo9ndyKzzkV7k6Dn_QlyCjx9E"
   }
 }
