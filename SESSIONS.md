@@ -6,6 +6,48 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-26 (Repo decoupled from qacademy-gamma — Claude Web + Desktop)
+
+MyNclex extracted from the qacademy-gamma monorepo into its own
+standalone GitHub repo at `mybackpacc-byte/qacademy-mynclex`.
+
+### What was done
+
+- **History preserved.** Used `git subtree split --prefix=mynclex`
+  on a temp clone of gamma to extract only the commits touching
+  `mynclex/`, with paths flattened to root. 76 commits preserved,
+  full message history intact (note: SHAs were rewritten — same
+  commit content, different fingerprints, expected behaviour of
+  subtree split).
+- New local repo at `C:\Users\confi\qacademy-mynclex`.
+- New GitHub repo at `mybackpacc-byte/qacademy-mynclex`.
+- **Verified standalone build** — `npm install` (672 packages),
+  `npm run build` (53 routes, webpack), `tsc --noEmit` clean,
+  `eslint app components lib` clean, `npm run dev` serves the
+  landing page on `localhost:3000`.
+- Cloudflare Worker `qacademy-dev-mynclex` repointed via
+  dashboard from gamma's `mynclex/` subdirectory to the new repo's
+  root. Same Worker name, same URL, build settings preserved.
+- **Gamma left untouched.** `mynclex/` still exists in gamma but
+  is no longer the source of truth — to be deleted in a future
+  cleanup phase only after the new repo is confirmed stable in
+  production deploys.
+
+### Outstanding
+
+- Delete `mynclex/` from gamma (after confidence period).
+- Update gamma's `CLONING.md`, root `README.md`, root `.gitignore`
+  to remove MyNclex references.
+- Supabase project still shared with gamma — separation is a
+  future session decision.
+
+### Next session
+
+- Confirm Cloudflare auto-deploy from this repo works end-to-end
+  (this commit is the test).
+
+---
+
 ## Session — 2026-04-26 (Slice 2.10 — CSS leak fix: faded text on workspace pages — Sam-reported, Desktop-diagnosed)
 
 User-reported visual bug: text on workspace pages — "Welcome back"
