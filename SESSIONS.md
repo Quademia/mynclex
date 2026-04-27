@@ -5033,3 +5033,10 @@ at position 1", "This case has 4/6 questions; publish requires
 all six", "Q3 has no CJMM step selected") that catch authoring
 errors before publish. Unblocks clean authoring before the
 student runner is built.
+
+## 2026-04-27 — Stage 3 prod bootstrap (placeholder)
+
+Prod Supabase (`dehspjcfmhoshcdtsmjq`) bootstrapped via MCP.
+Verification counts match dev: 14 tables, 13 RLS-enabled,
+29 policies, 10 `nclex_*` functions. Full end-of-session log
+to be expanded once Stages 4–10 are complete.
