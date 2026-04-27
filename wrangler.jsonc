@@ -13,8 +13,21 @@
   // anyway (RLS is what protects the data, not these keys). The service
   // role key is NOT here — it's a Cloudflare Worker secret set via
   // `wrangler secret put SUPABASE_SERVICE_ROLE_KEY`.
+  //
+  // Top-level vars are the dev defaults. Prod values live in env.prod
+  // below and are selected when the prod CF Worker deploys with the
+  // wrangler environment set to `prod`.
   "vars": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://xkqxfzfsllxyxpdtcrja.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrcXhmemZzbGx4eXhwZHRjcmphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMjk4ODYsImV4cCI6MjA5MjgwNTg4Nn0.yRC-HClidhjdUELZETOo9ndyKzzkV7k6Dn_QlyCjx9E"
+  },
+  "env": {
+    "prod": {
+      "name": "mynclex",
+      "vars": {
+        "NEXT_PUBLIC_SUPABASE_URL": "https://dehspjcfmhoshcdtsmjq.supabase.co",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHNwamNmbWhvc2hjZHRzbWpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzQ2MjEsImV4cCI6MjA5MjgxMDYyMX0.whd-VAiJLdsYT0VDfU1HhaxVvt1oeiHKxhhb7Vc1QbY"
+      }
+    }
   }
 }
