@@ -1,0 +1,47 @@
+name: Apply Supabase migrations to prod
+
+on:
+  push:
+    branches:
+      - prod
+
+# Ensures only one migration job runs at a time. If a second push
+# lands while one is in flight, the new one waits rather than racing.
+concurrency:
+  group: prod-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Apply migrations to prod Supabase
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Stage migrations for the CLI
+        # Supabase CLI looks for migrations under supabase/migrations/.
+        # Repo keeps them at db/migrations/. Symlink at runtime so the
+        # on-disk layout is unchanged.
+        run: |
+          mkdir -p supabase
+          ln -s ../db/migrations supabase/migrations
+
+      - name: Link CLI to prod project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase link --project-ref dehspjcfmhoshcdtsmjq
+
+      - name: Apply pending migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase db push --include-all
