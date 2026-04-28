@@ -1,10 +1,10 @@
 // mynclex/lib/authoring/actions/save-question.ts
 //
 // Server action for the new authoring tree. Branches on question_type
-// and dispatches to the matching legacy parser
-// (lib/bank/parsers/<type>.ts) to build content + correct JSONB.
-// Currently supports MCQ (slice 2) and TF (slice 3); the remaining
-// 7 types land slice-by-slice (3-10).
+// and dispatches to the matching parser (lib/authoring/parsers/<type>.ts)
+// to build content + correct JSONB. Currently supports MCQ (slice 2),
+// TF (slice 3), and SATA (slice 4); the remaining 6 types land
+// slice-by-slice (5-10).
 //
 // Surface-aware: reads the `surface` hidden input on the form and
 // branches between admin (nclex_bank_items, NCLEX_<TYPE>_NNNNN) and
@@ -34,6 +34,7 @@ import type {
 } from '@/lib/authoring/types';
 import { parseMcq } from '@/lib/authoring/parsers/mcq';
 import { parseTf } from '@/lib/authoring/parsers/tf';
+import { parseSata } from '@/lib/authoring/parsers/sata';
 
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
@@ -106,7 +107,7 @@ async function nextItemId(
 // case per slice (3-10) until every editor is wired in.
 // ─────────────────────────────────────────────────────────────
 
-const SUPPORTED_TYPES = new Set<QuestionType>(['MCQ', 'TF']);
+const SUPPORTED_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA']);
 
 interface ParsedQuestion {
   question_type: QuestionType;
@@ -163,10 +164,16 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
 
   // Per-type content/correct construction. Each branch returns the
   // matching parser's { content, correct } pair (or an error).
-  const parsed =
-    question_type === 'TF'
-      ? parseTf(optionIds, optionTexts, optionFeedbacks, correctIds)
-      : parseMcq(optionIds, optionTexts, optionFeedbacks, correctIds);
+  const parsed = (() => {
+    switch (question_type) {
+      case 'TF':
+        return parseTf(optionIds, optionTexts, optionFeedbacks, correctIds);
+      case 'SATA':
+        return parseSata(optionIds, optionTexts, optionFeedbacks, correctIds);
+      default:
+        return parseMcq(optionIds, optionTexts, optionFeedbacks, correctIds);
+    }
+  })();
   if (!parsed.ok) return { error: parsed.error };
 
   const subcategory = String(formData.get('client_needs_subcategory') ?? '').trim();

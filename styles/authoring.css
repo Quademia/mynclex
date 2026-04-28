@@ -700,6 +700,14 @@
   background: var(--white);
 }
 
+.auth-preview-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  background: var(--white);
+}
+
 .auth-preview-letter {
   font-weight: 700;
   color: var(--primary);

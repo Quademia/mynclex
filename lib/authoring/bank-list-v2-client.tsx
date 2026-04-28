@@ -16,7 +16,7 @@
 // revalidatePath; this component then triggers a soft refresh of
 // the page so the list reflects the change without a full reload.
 //
-// Currently MCQ + TF are wired (slices 2-3). Filters / search /
+// Currently MCQ + TF + SATA are wired (slices 2-4). Filters / search /
 // pagination still deferred.
 
 'use client';
@@ -25,11 +25,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { McqEditor, type McqEditorInitial } from '@/lib/authoring/editors/mcq-editor';
 import { TfEditor, type TfEditorInitial } from '@/lib/authoring/editors/tf-editor';
+import { SataEditor, type SataEditorInitial } from '@/lib/authoring/editors/sata-editor';
 import { QuestionTypePicker } from '@/lib/authoring/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/authoring/classifications';
 
 /** Question types whose editors are wired into bank-list-v2 today. */
-const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set(['MCQ', 'TF']);
+const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set(['MCQ', 'TF', 'SATA']);
 
 export interface BankListV2RowSummary {
   item_id: string;
@@ -51,6 +52,10 @@ export interface BankListV2ClientProps {
   tfInitialsById: Record<string, TfEditorInitial>;
   /** Empty initial used when the curator picks TF in create mode. */
   emptyTfInitial: TfEditorInitial;
+  /** Map of item_id → full editor initial, SATA rows. */
+  sataInitialsById: Record<string, SataEditorInitial>;
+  /** Empty initial used when the curator picks SATA in create mode. */
+  emptySataInitial: SataEditorInitial;
 }
 
 type ModalState =
@@ -66,6 +71,8 @@ export function BankListV2Client({
   emptyMcqInitial,
   tfInitialsById,
   emptyTfInitial,
+  sataInitialsById,
+  emptySataInitial,
 }: BankListV2ClientProps) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' });
@@ -219,6 +226,13 @@ export function BankListV2Client({
           onSaved={handleSaved}
         />
       )}
+      {modal.kind === 'editor-create' && modal.type === 'SATA' && (
+        <SataEditor
+          initial={emptySataInitial}
+          onClose={handleClose}
+          onSaved={handleSaved}
+        />
+      )}
 
       {/* Edit-mode dispatch — one branch per editable type, gated on
           the matching initials map having a row for the current id. */}
@@ -237,6 +251,16 @@ export function BankListV2Client({
         tfInitialsById[modal.itemId] && (
           <TfEditor
             initial={tfInitialsById[modal.itemId]}
+            onClose={handleClose}
+            onSaved={handleSaved}
+            onDeleted={handleDeleted}
+          />
+        )}
+      {modal.kind === 'editor-edit' &&
+        modal.type === 'SATA' &&
+        sataInitialsById[modal.itemId] && (
+          <SataEditor
+            initial={sataInitialsById[modal.itemId]}
             onClose={handleClose}
             onSaved={handleSaved}
             onDeleted={handleDeleted}

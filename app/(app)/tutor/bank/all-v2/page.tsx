@@ -24,6 +24,12 @@ import {
   tfRowToInitial,
   type TfEditorInitial,
 } from '@/lib/authoring/editors/tf-row-mapper';
+import {
+  emptySataInitial,
+  sataRowToInitial,
+  type SataDbRow,
+  type SataEditorInitial,
+} from '@/lib/authoring/editors/sata-row-mapper';
 import type { QuestionType } from '@/lib/authoring/classifications';
 
 export const dynamic = 'force-dynamic';
@@ -76,11 +82,17 @@ export default async function TutorBankAllV2Page() {
 
   const mcqInitialsById: Record<string, McqEditorInitial> = {};
   const tfInitialsById: Record<string, TfEditorInitial> = {};
+  const sataInitialsById: Record<string, SataEditorInitial> = {};
   for (const row of fullRows) {
     if (row.question_type === 'MCQ') {
       mcqInitialsById[row.item_id] = mcqRowToInitial(row, 'tutor');
     } else if (row.question_type === 'TF') {
       tfInitialsById[row.item_id] = tfRowToInitial(row, 'tutor');
+    } else if (row.question_type === 'SATA') {
+      sataInitialsById[row.item_id] = sataRowToInitial(
+        row as unknown as SataDbRow,
+        'tutor',
+      );
     }
   }
 
@@ -90,7 +102,7 @@ export default async function TutorBankAllV2Page() {
         <header className="auth-list-page-header">
           <h1 className="auth-list-page-title">My Bank (v2)</h1>
           <p className="auth-list-page-subtitle">
-            Questions-and-wrappers rebuild · tutor surface · MCQ + TF create/edit/delete
+            Questions-and-wrappers rebuild · tutor surface · MCQ + TF + SATA create/edit/delete
           </p>
         </header>
 
@@ -101,6 +113,8 @@ export default async function TutorBankAllV2Page() {
           emptyMcqInitial={emptyMcqInitial('tutor')}
           tfInitialsById={tfInitialsById}
           emptyTfInitial={emptyTfInitial('tutor')}
+          sataInitialsById={sataInitialsById}
+          emptySataInitial={emptySataInitial('tutor')}
         />
       </div>
     </main>

@@ -4,9 +4,9 @@
 // types they want to author. Used by the bank-list "+ New question"
 // flow and by the wrapper-page "+ Add question" flow (slices 11–12).
 //
-// Slice 2: only MCQ is enabled. The other 8 types render disabled
-// with a subtle "coming soon" hint — they become clickable as their
-// editors land in slices 3–10.
+// Slices 2-4 enable MCQ, TF, and SATA. The remaining 6 types render
+// disabled with a subtle "coming soon" hint — they become clickable
+// as their editors land in slices 5-10.
 
 'use client';
 
@@ -14,7 +14,7 @@ import { useEffect } from 'react';
 import { QUESTION_TYPES, type QuestionType } from '@/lib/authoring/classifications';
 
 /** Types that have a working editor in lib/authoring/editors/. */
-const ENABLED_TYPES: ReadonlySet<QuestionType> = new Set(['MCQ', 'TF']);
+const ENABLED_TYPES: ReadonlySet<QuestionType> = new Set(['MCQ', 'TF', 'SATA']);
 
 interface QuestionTypePickerProps {
   /** Closes the picker without choosing a type. */
