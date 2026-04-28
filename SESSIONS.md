@@ -6,6 +6,96 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-28 (Planning — Questions & wrappers rebuild plan adopted — Claude Web + Desktop)
+
+Planning artifact landed in `docs/product-plan/`: a full rebuild
+plan for the question and wrapper authoring layer
+(`questions-and-wrappers-rebuild.html`). No code touched this
+slice — purely captures an architectural conversation that produced
+the rebuild direction, plus the cross-doc pointers so future
+sessions read the new plan early.
+
+### What the plan calls for
+
+- Three controlled React components: `QuestionEditor`,
+  `CaseStudyEditor`, `TrendEditor`. Each takes `value + onChange`
+  and owns its own two-view (editor + preview) layout. The same
+  `QuestionEditor` instance renders standalone (full modal) and
+  inside wrappers (bottom half).
+- Vertical accordions inside the question editor become top tabs
+  (Content / Classification / Housekeeping). The active tab fills
+  the editor body; preview pane never moves.
+- Wrapper modals are two stacked components: wrapper component on
+  top, `QuestionEditor` on the bottom — each its own paired
+  editor + preview.
+- Save, Publish, and Session-Integrity become four separate concerns.
+  Each thing saves independently with its own button. Publishing is
+  a separate action with a validity check. Session snapshots the
+  question on attempt start, so curators can edit published things
+  freely without disrupting in-flight students.
+- Schema untouched; additive nullable columns only when new wrapper-
+  level fields emerge. Old code keeps using its existing columns;
+  new code reads its own column mix. Two systems share tables
+  without conflict.
+- Build new beside old, swap routes, delete the old code in a
+  cleanup slice. No in-place migration.
+
+### Scope: authoring only
+
+The rebuild covers curator-facing authoring (the modals and
+components that build questions and wrappers). The student runner
+is a separate concern with its own state model and persistence flow,
+and will be built independently. The "preview pane" inside each
+authoring component is a curator tool — not the runner. Any visual
+primitive sharing between authoring and the runner is deferred until
+both exist and a clear pattern emerges.
+
+### Five things deliberately left open
+
+1. Folder name for the new code
+2. Modal opening pattern (URL-driven `?edit=ID` vs local React state
+   vs portal)
+3. What visual primitives (if any) get shared with the future runner
+4. What wrapper-level sections (if any) replace
+   Classification/Housekeeping
+5. Fate of the atomic save-everything RPC
+
+These are intentionally postponed — they're better decided when the
+shape is concrete than guessed at now.
+
+### Cross-doc pointers added alongside
+
+- `docs/product-plan/bank.md` — banner near the top of the doc
+  points at the rebuild plan and clarifies that
+  schema/JSONB/scoring/classification stay authoritative while the
+  authoring URL and code-path paragraphs describe the *current*
+  pre-swap system.
+- `docs/product-plan/main.md` — `Related Files` index now lists the
+  rebuild plan.
+- `CLAUDE.md` — `Files To Read at Session Start` list now flags
+  the rebuild doc for any session touching bank authoring.
+
+### Out of scope this session
+
+- Slice plan for the rebuild itself — to be drafted in a follow-up
+  doc, separate from this strategic plan, when build is ready to
+  start.
+- Edits to existing slice plans (`slice-1.11-plan.md`,
+  `slice-1.11a-build-handoff.md`, `slice-1.12-plan.md`) — those are
+  historical records of already-shipped work and stay untouched.
+- Edits to the curriculum, payments, or nav docs — orthogonal
+  domains.
+- Any code changes. Existing shipped authoring stays in production
+  and keeps shipping until the swap.
+
+### What's unblocked
+
+The slice plan for the rebuild itself can now be drafted whenever
+Sam wants to start. The strategic shape is locked; sequencing and
+scaffolding decisions become a separate planning conversation.
+
+---
+
 ## Session — 2026-04-26 / 2026-04-27 (Database split: MyNclex onto its own Supabase project — Sam + Claude Desktop)
 
 MyNclex's Supabase backend split off from the shared `qacademy-gamma`

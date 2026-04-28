@@ -600,6 +600,8 @@ added here as they emerge.
     editors
   - `payments-and-enrolment.md` — student payment flows, product
     catalogue, and enrolment (both self-study and tutored)
+  - `questions-and-wrappers-rebuild.html` — architectural rebuild
+    plan for the question and wrapper authoring layer (April 2026)
   - `mockups/` — visual mockups (HTML reference files)
   - (future) `payments.md`, `registration.md`, etc.
 - `mynclex/db/` — database schema, RLS, migrations (to be populated)

@@ -5,6 +5,19 @@ plan grew too heavy. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
 Last updated: 2026-04-20 (bank settled)
 
+> **Authoring UI rebuild — April 2026.** The authoring layer (curator
+> editors, modal vs page hosts, save/publish flows, where editor code
+> lives) is being rebuilt — see
+> [questions-and-wrappers-rebuild.html](questions-and-wrappers-rebuild.html)
+> for the new direction. **Schema, JSONB shapes, scoring,
+> classification, chart-tab structure, and trend dataset shape in this
+> doc remain authoritative.** Paragraphs that mention specific URLs
+> (`/admin/bank/cases/[case_id]`, `/admin/trends/[trend_id]`),
+> components (`QuestionAuthoringPanel`, `lib/bank/...`), or "Where the
+> code lives" describe the *current* shipped system that the rebuild
+> will replace beside, then swap. Treat those as historical until the
+> swap lands.
+
 ---
 
 ## What this covers

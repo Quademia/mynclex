@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Questions & Wrappers — Rebuild Plan</title>
+<style>
+  :root {
+    --navy: #1e3a5f;
+    --teal: #2d7d72;
+    --bg: #FAFAF7;
+    --surface: #FFFFFF;
+    --surface-2: #F4F2EC;
+    --surface-3: #EDEAE2;
+    --text: #1A1A1A;
+    --text-2: #555;
+    --text-3: #888;
+    --border: rgba(0,0,0,0.1);
+    --border-strong: rgba(0,0,0,0.2);
+    --info-bg: #E6F1FB;
+    --info-text: #0C447C;
+    --success-bg: #E1F5EE;
+    --success-text: #085041;
+    --warning-bg: #FAEEDA;
+    --warning-text: #854F0B;
+    --danger-text: #A32D2D;
+    --purple-50: #EEEDFE;
+    --purple-200: #AFA9EC;
+    --purple-400: #7F77DD;
+    --purple-800: #3C3489;
+    --teal-50: #E1F5EE;
+    --teal-400: #1D9E75;
+    --teal-800: #085041;
+    --amber-50: #FAEEDA;
+    --amber-800: #854F0B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .container { max-width: 920px; margin: 0 auto; padding: 48px 24px 96px; }
+  header.doc-header {
+    border-bottom: 0.5px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+  header.doc-header .eyebrow {
+    font-size: 12px;
+    color: var(--teal);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  header.doc-header h1 {
+    font-size: 28px;
+    font-weight: 500;
+    margin: 0 0 8px;
+    color: var(--navy);
+  }
+  header.doc-header .meta {
+    font-size: 13px;
+    color: var(--text-3);
+  }
+  h2 {
+    font-size: 20px;
+    font-weight: 500;
+    margin: 56px 0 16px;
+    color: var(--navy);
+    padding-top: 8px;
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 500;
+    margin: 28px 0 10px;
+    color: var(--text);
+  }
+  h4 {
+    font-size: 14px;
+    font-weight: 500;
+    margin: 20px 0 6px;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    font-size: 13px;
+    background: var(--surface-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+  .callout {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-left: 3px solid var(--teal);
+    padding: 14px 18px;
+    border-radius: 4px;
+    margin: 16px 0 24px;
+  }
+  .callout.principle {
+    border-left-color: var(--navy);
+    background: var(--surface-2);
+  }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout strong { font-weight: 500; color: var(--navy); }
+
+  /* TOC */
+  nav.toc {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 0 0 40px;
+  }
+  nav.toc h2 { font-size: 13px; margin: 0 0 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; padding: 0; }
+  nav.toc ol { margin: 0; padding-left: 20px; }
+  nav.toc ol li { margin: 4px 0; font-size: 14px; }
+  nav.toc a { color: var(--navy); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  /* Visual blocks */
+  figure.visual {
+    margin: 24px 0 32px;
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  figure.visual figcaption {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-bottom: 10px;
+  }
+  figure.visual .frame {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  figure.visual .desktop-bg {
+    background: #2C3E5A;
+    padding: 16px;
+    border-radius: 0 0 8px 8px;
+  }
+  figure.visual .desktop-chrome {
+    background: #1A1A1A;
+    padding: 8px 12px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  figure.visual .desktop-chrome span.dot {
+    width: 9px; height: 9px; border-radius: 50%; display: inline-block;
+  }
+  figure.visual .desktop-chrome .url {
+    margin-left: 10px; background: #2A2A2A; color: rgba(255,255,255,0.7);
+    padding: 3px 12px; border-radius: 4px; font-size: 10px;
+    font-family: ui-monospace, monospace;
+  }
+
+  .modal-shell {
+    background: var(--surface);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    overflow: hidden;
+    max-width: 880px;
+    margin: 14px auto;
+  }
+  .modal-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .modal-topbar .title { font-size: 13px; font-weight: 500; }
+  .modal-topbar .id-pill { font-size: 11px; color: var(--text-3); background: var(--surface-2); padding: 2px 8px; border-radius: 4px; margin-left: 8px; }
+  .modal-topbar .actions { display: flex; gap: 8px; align-items: center; }
+  .modal-topbar .save-btn {
+    font-size: 11px; font-weight: 500;
+    background: var(--info-bg); color: var(--info-text);
+    padding: 4px 12px; border-radius: 4px;
+  }
+  .modal-topbar .ghost-btn { font-size: 11px; color: var(--text-3); }
+
+  .pill-strip {
+    padding: 6px 16px;
+    border-bottom: 0.5px solid var(--border);
+    background: var(--surface-3);
+    display: flex; gap: 6px; align-items: center;
+  }
+  .pill-strip .label { font-size: 10px; color: var(--text-3); font-weight: 500; }
+  .pill { background: var(--surface-2); border-radius: 4px; padding: 2px 7px; font-size: 10px; }
+  .pill.active { background: var(--info-bg); color: var(--info-text); font-weight: 500; }
+  .pill.empty { color: var(--text-3); }
+
+  .component-box {
+    margin: 12px;
+    border: 1.5px dashed var(--purple-400);
+    border-radius: 8px;
+    position: relative;
+  }
+  .component-box.case { border-color: var(--teal-400); }
+  .component-box .label {
+    position: absolute; top: -10px; left: 12px;
+    background: var(--surface); padding: 0 6px;
+    font-size: 10px; font-weight: 500;
+    color: var(--purple-800); letter-spacing: 0.3px;
+  }
+  .component-box.case .label { color: var(--teal-800); }
+
+  .two-view {
+    display: grid; grid-template-columns: 1fr 1fr;
+    min-height: 240px;
+  }
+  .editor-pane {
+    background: var(--purple-50);
+    border-right: 0.5px solid var(--border);
+    padding: 12px 14px;
+  }
+  .editor-pane.case-pane {
+    background: var(--teal-50);
+  }
+  .preview-pane {
+    background: var(--surface-3);
+    padding: 12px 14px;
+  }
+  .pane-label {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.3px;
+    margin-bottom: 6px; color: var(--purple-800);
+  }
+  .case-pane .pane-label { color: var(--teal-800); }
+  .preview-pane .pane-label { color: var(--text-3); }
+
+  .field-label { font-size: 10px; font-weight: 500; margin-bottom: 2px; color: var(--purple-800); }
+  .case-pane .field-label { color: var(--teal-800); }
+
+  .input-shadow {
+    background: var(--surface);
+    border-radius: 3px;
+    padding: 5px 8px;
+    font-size: 11px;
+    line-height: 1.4;
+    margin-bottom: 8px;
+  }
+
+  .preview-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+  }
+  .preview-card .opt {
+    border: 0.5px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+  .preview-card .opt:last-child { margin-bottom: 0; }
+
+  .top-tabs {
+    display: flex;
+    padding: 6px 8px 0;
+    gap: 2px;
+    border-bottom: 0.5px solid rgba(60, 52, 137, 0.15);
+  }
+  .top-tabs .tab {
+    padding: 5px 11px;
+    font-size: 11px;
+    color: rgba(60, 52, 137, 0.6);
+  }
+  .top-tabs .tab.active {
+    background: var(--surface);
+    color: var(--purple-800);
+    font-weight: 500;
+    border-radius: 4px 4px 0 0;
+    border: 0.5px solid rgba(60, 52, 137, 0.15);
+    border-bottom: none;
+  }
+  .top-tabs .type-select {
+    margin-left: auto;
+    align-self: center;
+    padding: 0 8px;
+    font-size: 10px;
+    color: rgba(60, 52, 137, 0.7);
+  }
+
+  /* Decision table */
+  table.decisions {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 24px;
+    font-size: 14px;
+  }
+  table.decisions th, table.decisions td {
+    padding: 10px 12px;
+    border-bottom: 0.5px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+  }
+  table.decisions th {
+    background: var(--surface-2);
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-2);
+  }
+  table.decisions td:first-child { font-weight: 500; width: 30%; }
+
+  /* Interactive widget area */
+  .interactive-widget {
+    margin: 24px 0 32px;
+  }
+  .iw-controls {
+    display: flex; gap: 14px; align-items: center;
+    flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .iw-group {
+    display: flex; gap: 3px;
+    background: var(--surface-2);
+    padding: 3px;
+    border-radius: 6px;
+  }
+  .iw-btn {
+    padding: 5px 12px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: var(--text-2);
+    cursor: pointer;
+  }
+  .iw-btn.active {
+    background: var(--surface);
+    color: var(--text);
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .iw-btn:hover:not(.active) { background: rgba(0,0,0,0.04); }
+
+  .iw-stage {
+    background: #2C3E5A;
+    border-radius: 12px;
+    padding: 18px;
+    min-height: 540px;
+  }
+
+  .ed-grid { background: var(--surface); border-radius: 4px; overflow: hidden; border: 0.5px solid rgba(60,52,137,0.2); font-size: 10px; margin-bottom: 6px; }
+  .ed-grid .row { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+  .ed-grid .row.head { background: rgba(60,52,137,0.08); }
+  .ed-grid .row + .row { border-top: 0.5px solid rgba(60,52,137,0.15); }
+  .ed-grid .cell { padding: 4px 6px; }
+  .ed-grid .cell.center { text-align: center; }
+  .dot-correct { display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: #5DCAA5; vertical-align: middle; }
+  .dot-empty { color: rgba(0,0,0,0.2); }
+
+  .marker-correct { background: #C0DD97; padding: 1px 4px; border-radius: 3px; }
+  .marker-distract { background: #FAC775; padding: 1px 4px; border-radius: 3px; }
+
+  .blank-pill {
+    background: var(--surface-2);
+    border: 0.5px dashed var(--border-strong);
+    border-radius: 4px;
+    padding: 1px 8px;
+    font-size: 11px;
+    display: inline-block;
+    min-width: 60px;
+    text-align: center;
+  }
+
+  .token {
+    background: var(--surface);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 4px;
+    padding: 3px 7px;
+    font-size: 10px;
+    display: inline-block;
+  }
+  .token.correct { background: var(--teal-50); border-color: #5DCAA5; color: var(--teal-800); }
+
+  .wing-slot {
+    background: var(--surface-3);
+    border: 0.5px dashed var(--border-strong);
+    border-radius: 4px;
+    padding: 5px;
+    font-size: 10px;
+    min-height: 22px;
+    text-align: center;
+    color: var(--text-3);
+    margin-bottom: 4px;
+  }
+
+  .footer-note {
+    margin-top: 56px;
+    padding-top: 18px;
+    border-top: 0.5px solid var(--border);
+    font-size: 12px;
+    color: var(--text-3);
+    line-height: 1.6;
+  }
+
+  .pillar-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 16px 0 24px;
+  }
+  .pillar {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .pillar h4 {
+    margin: 0 0 6px;
+    color: var(--navy);
+    font-size: 13px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .pillar p { font-size: 13px; margin: 0; color: var(--text-2); line-height: 1.5; }
+
+  @media (max-width: 700px) {
+    .container { padding: 24px 14px 60px; }
+    h1 { font-size: 22px; }
+    .pillar-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="doc-header">
+    <div class="eyebrow">MyNclex · Planning Document</div>
+    <h1>Questions and wrappers — rebuild plan</h1>
+    <div class="meta">Architecture, design decisions, and visual references for the editor rebuild · April 2026</div>
+  </header>
+
+  <nav class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#why">Why we're rebuilding</a></li>
+      <li><a href="#principles">Architectural principles</a></li>
+      <li><a href="#components">The three components</a></li>
+      <li><a href="#layout">Layout: standalone vs wrapper</a></li>
+      <li><a href="#tabs">Inside the question editor: top tabs</a></li>
+      <li><a href="#bespoke">Question types — interactive reference</a></li>
+      <li><a href="#save">Saving, publishing, and integrity</a></li>
+      <li><a href="#schema">Schema posture</a></li>
+      <li><a href="#build">Build approach</a></li>
+      <li><a href="#open">Open questions for later</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============================================================ -->
+  <h2 id="why">1. Why we're rebuilding</h2>
+
+  <p>The current authoring system works. It ships nine question types and two wrappers (case study and trend), with atomic transactional saves and full RLS coverage. It's a successful build — but it has architectural limits that get in the way of what we want to do next.</p>
+
+  <p>The editors today are partially component-shaped. They render inputs with <code>name=</code> attributes and rely on an outer <code>&lt;form&gt;</code> to collect their values via FormData on submit. Three of them reach into the DOM directly (<code>document.getElementById('bank-stem')</code>) to read the stem. The wrappers had to bolt on a snapshot-and-remount dance to bridge between FormData-uncontrolled editors and atomic saves. None of this is broken, but all of it makes the editors hard to mount anywhere except the contexts they were designed for.</p>
+
+  <p>This rebuild is scoped to authoring only. The student runner — the component tree that students use to actually answer questions in a session — is a separate concern with its own state model, persistence flow, and interaction logic. It will be built independently. Authoring and answering share the visual shape of a question (an MCQ has options, a Matrix has rows × columns, etc.) but they are different jobs and will be different code. Any sharing between them happens at a much lower level than the editor — small visual primitives at most.</p>
+
+  <p>This rebuild also gives us freedom to redesign UX choices that were locked in by the original build's constraints — like vertical accordions in narrow editor columns, like wrapper-level fields that mirror question-level fields without justification, like wrappers that own their own URLs and pages instead of being mountable anywhere.</p>
+
+  <div class="callout principle">
+    <p><strong>The goal:</strong> a foundation where the question editor and the wrapper editors are genuine, independently mountable React components for authoring. The bank pages become navigators. Modals become thin hosts. The student runner is a separate concern, built separately.</p>
+  </div>
+
+  <h3>Scope: authoring only</h3>
+
+  <p>This rebuild covers <strong>authoring</strong>: the components and modals curators use to create, edit, save, and publish questions and wrappers. It does <em>not</em> cover the <strong>student runner</strong> — the component tree students will use to answer questions in a quiz or attempt session.</p>
+
+  <p>Authoring and answering look visually similar (both render an MCQ as a question with four options, both render a Matrix as a grid, etc.) but they are fundamentally different code:</p>
+
+  <ul>
+    <li><strong>Authoring</strong> manages curator state — stem text being typed, correct answers being marked, classification dropdowns, dirty tracking, save flows to the bank tables.</li>
+    <li><strong>Answering</strong> manages student state — the question is frozen at session start, the student picks answers, those answers are persisted to attempt tables, scoring runs, rationale reveals at the right moment, attempt history accumulates.</li>
+  </ul>
+
+  <p>The "preview pane" inside each authoring component is a <strong>curator-facing tool</strong> — a rough rendering of how the question will look so the curator can see what they're building. It is not the runner. It runs no scoring, has no session, has no answer persistence. Its job is to help the curator see the shape of their work.</p>
+
+  <p>If, when the runner is eventually built, certain visual primitives (e.g. the layout of an MCQ option list, the structure of a Bow-tie's three wings) turn out to be worth sharing between authoring preview and runner display, those primitives can be extracted at that time. They are not designed for in advance. The QuestionEditor / CaseStudyEditor / TrendEditor components themselves stay scoped to authoring.</p>
+
+  <!-- ============================================================ -->
+  <h2 id="principles">2. Architectural principles</h2>
+
+  <div class="pillar-grid">
+    <div class="pillar">
+      <h4>Components own their shape</h4>
+      <p>Each editor renders its own two-view layout (editor + preview). Containers control sizing, never internal structure.</p>
+    </div>
+    <div class="pillar">
+      <h4>Containers control space</h4>
+      <p>Modals decide how much room a component gets. The component renders into whatever space it's given, gracefully.</p>
+    </div>
+    <div class="pillar">
+      <h4>State lives in JavaScript</h4>
+      <p>No DOM scraping, no FormData submission for state collection, no <code>getElementById</code>. Every component takes value + onChange.</p>
+    </div>
+    <div class="pillar">
+      <h4>One save per thing</h4>
+      <p>Questions save independently. Wrappers save independently. Publishing is a separate action with its own check.</p>
+    </div>
+    <div class="pillar">
+      <h4>Integrity at the session layer</h4>
+      <p>Student session snapshots questions on start. Curators edit freely; students answer from frozen copies.</p>
+    </div>
+    <div class="pillar">
+      <h4>Build new beside old</h4>
+      <p>Don't migrate the existing system in place. Build the new components from scratch, swap when complete, delete the old.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="components">3. The three components</h2>
+
+  <p>The new system is built around three independent React components, each one a controlled component (takes a value, reports changes via onChange):</p>
+
+  <table class="decisions">
+    <thead>
+      <tr><th>Component</th><th>What it edits</th><th>Where it's used</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>QuestionEditor</td>
+        <td>One question of any of the 9 types</td>
+        <td>Standalone modal, inside CaseStudyEditor, inside TrendEditor</td>
+      </tr>
+      <tr>
+        <td>CaseStudyEditor</td>
+        <td>One case study (header + chart tabs + question list)</td>
+        <td>Case study modal; potentially future programme tools</td>
+      </tr>
+      <tr>
+        <td>TrendEditor</td>
+        <td>One trend (header + dataset + question list)</td>
+        <td>Trend modal; potentially future programme tools</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Each component follows the same internal pattern: a <strong>two-view layout</strong>, with editor controls on the left and a live student-perspective preview on the right. The two views update together as the curator types.</p>
+
+  <div class="callout">
+    <p>The QuestionEditor inside a wrapper is the <strong>same component</strong> as the QuestionEditor in the standalone modal. Same code, same props, same behaviour. The only thing that differs is how much space the host gives it.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="layout">4. Layout: standalone vs wrapper</h2>
+
+  <p>The same QuestionEditor renders differently depending on the space it's given. The standalone modal gives it the full modal body. The wrapper modal gives it only the bottom half — the wrapper component takes the top half.</p>
+
+  <h3>Standalone modal</h3>
+
+  <p>QuestionEditor takes the entire modal. Editor view on the left, preview on the right, both with comfortable padding. The component breathes. This is the normal authoring experience for individual questions.</p>
+
+  <figure class="visual">
+    <figcaption>Standalone modal — QuestionEditor fills the modal</figcaption>
+    <div class="frame">
+      <div class="desktop-chrome">
+        <span class="dot" style="background:#FF5F57;"></span>
+        <span class="dot" style="background:#FEBC2E;"></span>
+        <span class="dot" style="background:#28C840;"></span>
+        <span class="url">qacademynurses.com/admin/bank?edit=NCLEX_MCQ_00012</span>
+      </div>
+      <div class="desktop-bg">
+        <div class="modal-shell">
+          <div class="modal-topbar">
+            <div><span class="title">Edit question</span><span class="id-pill">NCLEX_MCQ_00012</span></div>
+            <div class="actions">
+              <span class="ghost-btn">Cancel</span>
+              <span class="save-btn">Save</span>
+              <span class="ghost-btn">×</span>
+            </div>
+          </div>
+          <div class="component-box">
+            <div class="label">QUESTIONEDITOR · full modal</div>
+            <div class="two-view">
+              <div class="editor-pane">
+                <div class="top-tabs">
+                  <div class="tab active">Content</div>
+                  <div class="tab">Classification</div>
+                  <div class="tab">Housekeeping</div>
+                  <div class="type-select">MCQ ▾</div>
+                </div>
+                <div style="padding-top: 12px;">
+                  <div class="field-label">Stem</div>
+                  <div class="input-shadow">A 68-year-old client with heart failure presents to the ED with shortness of breath...</div>
+                  <div class="field-label">Options</div>
+                  <div class="input-shadow"><span style="color:#888;">○</span> A. Administer oxygen</div>
+                  <div class="input-shadow"><span style="color:#1D9E75;">●</span> B. Elevate head of bed</div>
+                  <div class="input-shadow"><span style="color:#888;">○</span> C. Encourage fluids</div>
+                  <div class="input-shadow" style="margin-bottom: 0;"><span style="color:#888;">○</span> D. Notify provider</div>
+                </div>
+              </div>
+              <div class="preview-pane">
+                <div class="pane-label">PREVIEW · STUDENT VIEW</div>
+                <div class="preview-card">
+                  <div style="font-size: 11px; line-height: 1.6; margin-bottom: 10px;">A 68-year-old client with heart failure presents to the ED with shortness of breath...</div>
+                  <div class="opt">A. Administer oxygen</div>
+                  <div class="opt">B. Elevate head of bed</div>
+                  <div class="opt">C. Encourage fluids</div>
+                  <div class="opt">D. Notify provider</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </figure>
+
+  <h3>Wrapper modal — case study and trend</h3>
+
+  <p>Two components stacked: the wrapper component takes the top half, the QuestionEditor takes the bottom half. Each component is independently a two-view block. The modal itself is just topbar + pill-strip + two stacked components.</p>
+
+  <p><strong>Top row</strong> is the wrapper (case-study or trend) — its own editor on the left, its own preview on the right. <strong>Bottom row</strong> is the active question — same paired layout. A curator scans horizontally to compare authoring with student view, vertically to move between case-level and question-level concerns.</p>
+
+  <figure class="visual">
+    <figcaption>Case study wrapper modal — two components stacked, each renders its own two views</figcaption>
+    <div class="frame">
+      <div class="desktop-chrome">
+        <span class="dot" style="background:#FF5F57;"></span>
+        <span class="dot" style="background:#FEBC2E;"></span>
+        <span class="dot" style="background:#28C840;"></span>
+        <span class="url">qacademynurses.com/admin/bank/cases?edit=NCLEX_CS_00001</span>
+      </div>
+      <div class="desktop-bg">
+        <div class="modal-shell">
+          <div class="modal-topbar">
+            <div><span class="title">Edit case study</span><span class="id-pill">NCLEX_CS_00001</span></div>
+            <div class="actions">
+              <span class="ghost-btn">Cancel</span>
+              <span class="save-btn">Save case</span>
+              <span class="ghost-btn">×</span>
+            </div>
+          </div>
+          <div class="pill-strip">
+            <span class="label">QUESTIONS:</span>
+            <span class="pill">Q1</span>
+            <span class="pill">Q2</span>
+            <span class="pill active">Q3</span>
+            <span class="pill empty">+ Q4</span>
+            <span class="pill empty">+ Q5</span>
+            <span class="pill empty">+ Q6</span>
+            <span style="margin-left:auto; font-size: 10px; color: var(--text-3);">CJMM: <strong>Prioritise</strong></span>
+          </div>
+
+          <div class="component-box case">
+            <div class="label">CASESTUDYEDITOR · top half</div>
+            <div class="two-view">
+              <div class="editor-pane case-pane">
+                <div class="pane-label">EDITOR VIEW</div>
+                <div class="input-shadow">▾ Setup &nbsp;<span style="color:#5DCAA5;">title, summary</span></div>
+                <div class="input-shadow">▸ Publishing</div>
+                <div class="field-label" style="margin-top: 8px;">CHART</div>
+                <div style="display: flex; gap: 6px;">
+                  <div style="display: flex; flex-direction: column; gap: 2px; min-width: 90px;">
+                    <div style="background: var(--info-bg); color: var(--info-text); border-radius: 3px; padding: 2px 6px; font-size: 10px; font-weight: 500;">Nurses' notes</div>
+                    <div style="background: rgba(255,255,255,0.7); border-radius: 3px; padding: 2px 6px; font-size: 10px;">Vital signs</div>
+                    <div style="background: rgba(255,255,255,0.7); border-radius: 3px; padding: 2px 6px; font-size: 10px;">Lab results</div>
+                    <div style="background: rgba(255,255,255,0.7); border-radius: 3px; padding: 2px 6px; font-size: 10px;">Orders</div>
+                  </div>
+                  <div style="flex: 1;">
+                    <div class="input-shadow" style="margin-bottom: 3px;"><span style="color:#888; font-size: 9px;">Q1+</span> 0800 — Client awake, alert and oriented...</div>
+                    <div class="input-shadow"><span style="color:#888; font-size: 9px;">Q3+</span> 1200 — Reports increasing dyspnoea...</div>
+                  </div>
+                </div>
+              </div>
+              <div class="preview-pane">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <span class="pane-label" style="margin: 0;">PREVIEW · STUDENT AT Q3</span>
+                  <span style="font-size: 10px; color: var(--text-3);">Position: <strong>3 ▾</strong></span>
+                </div>
+                <div class="preview-card">
+                  <div style="font-size: 10px; line-height: 1.5; margin-bottom: 6px;">A 68-year-old client admitted post-op day 1...</div>
+                  <div style="display: flex; gap: 4px; margin-bottom: 5px;">
+                    <span style="background: var(--info-bg); color: var(--info-text); border-radius: 3px; padding: 1px 5px; font-size: 9px;">Nurses' notes</span>
+                    <span style="background: var(--surface-2); border-radius: 3px; padding: 1px 5px; font-size: 9px;">Vitals</span>
+                    <span style="background: var(--surface-2); border-radius: 3px; padding: 1px 5px; font-size: 9px;">Labs</span>
+                    <span style="background: var(--surface-2); border-radius: 3px; padding: 1px 5px; font-size: 9px;">Orders</span>
+                  </div>
+                  <div style="background: var(--surface-2); border-radius: 3px; padding: 4px 6px; font-size: 9px; margin-bottom: 2px;">0800 — Client awake, alert and oriented.</div>
+                  <div style="background: var(--surface-2); border-radius: 3px; padding: 4px 6px; font-size: 9px;">1200 — Reports increasing dyspnoea.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="component-box">
+            <div class="label">QUESTIONEDITOR · bottom half (same code as standalone)</div>
+            <div class="two-view">
+              <div class="editor-pane">
+                <div class="top-tabs">
+                  <div class="tab active">Content</div>
+                  <div class="tab">Classification</div>
+                  <div class="tab">Housekeeping</div>
+                  <div class="type-select">MCQ ▾</div>
+                </div>
+                <div style="padding-top: 10px;">
+                  <div class="field-label">Stem</div>
+                  <div class="input-shadow">Which action should the nurse take first?</div>
+                  <div class="field-label">Options</div>
+                  <div class="input-shadow"><span style="color:#888;">○</span> A. Reposition the client</div>
+                  <div class="input-shadow"><span style="color:#1D9E75;">●</span> B. Apply oxygen</div>
+                  <div class="input-shadow"><span style="color:#888;">○</span> C. Notify the provider</div>
+                  <div class="input-shadow" style="margin-bottom: 0;"><span style="color:#888;">○</span> D. Document the finding</div>
+                </div>
+              </div>
+              <div class="preview-pane">
+                <div class="pane-label">PREVIEW · Q3</div>
+                <div class="preview-card">
+                  <div style="font-size: 11px; line-height: 1.5; margin-bottom: 8px;">Which action should the nurse take first?</div>
+                  <div class="opt">A. Reposition the client</div>
+                  <div class="opt">B. Apply oxygen</div>
+                  <div class="opt">C. Notify the provider</div>
+                  <div class="opt">D. Document the finding</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </figure>
+
+  <p>The trend modal follows the exact same pattern — TrendEditor on top with its dataset and timepoints, QuestionEditor on the bottom for the active attached question.</p>
+
+  <h3>Behaviour notes</h3>
+  <ul>
+    <li><strong>Wrapper preview position.</strong> The case-study preview can auto-follow the active question pill (click Q3 → preview shows the case at position 3), with a manual override so the curator can preview any position independently of authoring.</li>
+    <li><strong>Trend preview is simpler.</strong> Trends don't unfold per position — students see the whole chart. So the trend preview just shows the dataset as a student would see it (no flags, no ref-range column).</li>
+    <li><strong>Modal sizing.</strong> Wrapper modals are near-fullscreen (~1100px wide × ~85vh tall) so each component has comfortable space.</li>
+  </ul>
+
+  <!-- ============================================================ -->
+  <h2 id="tabs">5. Inside the question editor: top tabs</h2>
+
+  <p>Today the question editor stacks Content, Classification, and Housekeeping as <strong>vertical accordions</strong>. Curators expand one, edit, collapse, expand the next. In a narrow editor column (especially in the wrapper context), this becomes a long scroll.</p>
+
+  <p>The new design replaces the vertical accordions with <strong>top tabs</strong>. The active tab fills the editor body. Most authoring happens in Content; Classification and Housekeeping are infrequent. Tabs eliminate scroll for the common case.</p>
+
+  <figure class="visual">
+    <figcaption>Top tabs replace vertical accordions in the question editor</figcaption>
+    <div class="frame" style="background: var(--surface);">
+      <div class="component-box" style="margin: 14px;">
+        <div class="label">QUESTIONEDITOR · MCQ</div>
+        <div class="two-view">
+          <div class="editor-pane">
+            <div class="top-tabs">
+              <div class="tab active">Content</div>
+              <div class="tab">Classification</div>
+              <div class="tab">Housekeeping</div>
+              <div class="type-select">MCQ ▾</div>
+            </div>
+            <div style="padding-top: 12px;">
+              <div class="field-label">Stem</div>
+              <div class="input-shadow">A 68-year-old client with heart failure...</div>
+              <div class="field-label">Options</div>
+              <div class="input-shadow"><span style="color:#888;">○</span> A. Administer oxygen</div>
+              <div class="input-shadow"><span style="color:#1D9E75;">●</span> B. Elevate head of bed</div>
+              <div class="input-shadow"><span style="color:#888;">○</span> C. Encourage fluids</div>
+              <div class="input-shadow"><span style="color:#888;">○</span> D. Notify provider</div>
+              <div class="field-label">Rationale</div>
+              <div class="input-shadow" style="margin-bottom: 0;">Elevating the head of the bed reduces preload and eases the work of breathing...</div>
+            </div>
+          </div>
+          <div class="preview-pane">
+            <div class="pane-label">PREVIEW</div>
+            <div class="preview-card">
+              <div style="font-size: 11px; line-height: 1.5; margin-bottom: 8px;">A 68-year-old client with heart failure presents to the ED...</div>
+              <div class="opt">A. Administer oxygen</div>
+              <div class="opt">B. Elevate head of bed</div>
+              <div class="opt">C. Encourage fluids</div>
+              <div class="opt">D. Notify provider</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </figure>
+
+  <p>The preview pane never moves. It's about "what does this question look like to a student" and that's independent of which authoring tab the curator is on. The type selector (MCQ ▾) sits at the right end of the tab bar — it's question-level metadata, not Content-section metadata.</p>
+
+  <h3>Per-type body adapts within Content</h3>
+
+  <p>The Content tab's body changes shape based on the question type:</p>
+  <ul>
+    <li><strong>Option-list types</strong> (MCQ, TF, SATA, SELECT_N): stem, options list, rationale</li>
+    <li><strong>MATRIX</strong>: stem, rows × columns grid, rationale</li>
+    <li><strong>HIGHLIGHT</strong>: instruction, passage with marked chunks (correct vs distractor)</li>
+    <li><strong>CLOZE</strong>: stem with inline numbered blanks, per-blank option lists</li>
+    <li><strong>DRAG_DROP</strong>: subtype picker (Ordered / Sentence), stem, ordered tokens, distractors</li>
+    <li><strong>BOWTIE</strong>: stem, three-wing token panel (Actions / Condition / Monitor) with 2/1/2 correctness</li>
+  </ul>
+
+  <p>Classification and Housekeeping have the same shape regardless of type — six classification axes in a 2-column grid; ID, status, marks, batch, author, last-edited, internal notes in Housekeeping.</p>
+
+  <!-- ============================================================ -->
+  <h2 id="bespoke">6. Question types — interactive reference</h2>
+
+  <p>The five bespoke types (Matrix, Highlight, Cloze, Drag-drop, Bow-tie) shown below in both standalone and wrapper context. Click the type buttons to switch between them; click the context toggle to compare standalone breathing room vs. wrapper compression.</p>
+
+  <p>The option-list family (MCQ, TF, SATA, SELECT_N) is omitted because they all follow the same structure as MCQ shown above — the bespoke types are where the design has to flex.</p>
+
+  <div class="interactive-widget">
+    <div class="iw-controls">
+      <div class="iw-group">
+        <button class="iw-btn ctx active" data-ctx="standalone">Standalone</button>
+        <button class="iw-btn ctx" data-ctx="wrapper">In wrapper</button>
+      </div>
+      <div class="iw-group">
+        <button class="iw-btn type active" data-type="matrix">Matrix</button>
+        <button class="iw-btn type" data-type="highlight">Highlight</button>
+        <button class="iw-btn type" data-type="cloze">Cloze</button>
+        <button class="iw-btn type" data-type="dragdrop">Drag-drop</button>
+        <button class="iw-btn type" data-type="bowtie">Bow-tie</button>
+      </div>
+    </div>
+    <div id="iw-stage" class="iw-stage"></div>
+    <div id="iw-caption" style="font-size: 12px; color: var(--text-2); margin-top: 12px; line-height: 1.5;"></div>
+  </div>
+
+  <h3>Honest observations under stress</h3>
+  <ul>
+    <li><strong>Matrix and Bow-tie hold up well in both contexts.</strong> The grid shape and three-wing shape compress cleanly without losing structure.</li>
+    <li><strong>Highlight gets visibly cramped in the wrapper.</strong> Long passages with marked chunks need vertical room. The Content tab will need internal scroll in the wrapper case.</li>
+    <li><strong>Cloze with ≤3 blanks works in both;</strong> 5+ blanks would need scroll in wrapper.</li>
+    <li><strong>Drag-drop is naturally compact</strong> — list-shaped tokens fit in either context.</li>
+  </ul>
+
+  <!-- ============================================================ -->
+  <h2 id="save">7. Saving, publishing, and integrity</h2>
+
+  <p>The new system separates three concepts that the current build conflates: <strong>saving</strong> (persisting to DB), <strong>publishing</strong> (making visible to students), and <strong>session integrity</strong> (protecting in-flight student attempts).</p>
+
+  <h3>Saving — per-thing, independent</h3>
+  <ul>
+    <li>Each <strong>QuestionEditor</strong> has its own Save button. A question saves alone, regardless of whether it's standalone or inside a wrapper. Saving requires only minimum-shape validity (e.g. a stem).</li>
+    <li>Each <strong>wrapper editor</strong> has its own Save button on the topbar. A wrapper saves its own header fields independently of its child questions.</li>
+    <li>The atomic save-everything RPC may still exist as a convenience, but it's no longer the only path.</li>
+  </ul>
+
+  <h3>Publishing — separate action with check</h3>
+  <ul>
+    <li>Wrappers have a separate <strong>Publish</strong> action (alongside Save) on their topbar.</li>
+    <li>Publishing a wrapper checks that all linked questions are saved and individually valid. If any are missing or invalid, the system tells the curator what's blocking and refuses to publish.</li>
+    <li>Publishing a wrapper publishes its child questions as part of the action — questions inside a published wrapper become published.</li>
+    <li>Standalone questions have their own <code>is_published</code> flag and can be published individually.</li>
+  </ul>
+
+  <h3>Editing published things — always allowed</h3>
+  <p>Once published, questions and wrappers remain freely editable. There's no unpublish-edit-republish ceremony. The curator can fix a typo on a published case study without taking it offline.</p>
+
+  <h3>Session integrity — snapshot at start</h3>
+  <p>Student session stability is solved at the session layer, not the editor layer. When a student starts a quiz, the system copies each question's full content (stem, options, correct, rationale, etc.) into a session-scoped row. The student answers from those copies. Any subsequent curator edit affects future sessions only — in-flight sessions are unaffected.</p>
+
+  <div class="callout">
+    <p>This means: <strong>editors edit, saving persists, publishing makes visible, session snapshots protect students.</strong> Four jobs, four layers, no conflation. A typo fix on a published question doesn't disrupt the student answering it right now; their session has its own copy.</p>
+  </div>
+
+  <h3>Unsaved changes warning</h3>
+  <p>Universal pattern: any unsaved edit triggers a confirm-on-close, confirm-on-navigate dialog. The dirty-tracking is local to each editor — the wrapper modal aggregates dirty flags from itself and its open child editor to decide whether to warn.</p>
+
+  <!-- ============================================================ -->
+  <h2 id="schema">8. Schema posture</h2>
+
+  <p>The existing database schema is good and stays untouched during the rebuild.</p>
+
+  <h3>What stays exactly as it is</h3>
+  <ul>
+    <li>All nine question types' JSONB shapes on disk</li>
+    <li><code>nclex_bank_items</code>, <code>nclex_case_studies</code>, <code>nclex_trends</code>, all their columns, all their RLS</li>
+    <li>The seven RPCs — <code>nclex_save_case_with_children</code>, <code>nclex_save_trend_with_children</code>, etc. (the new system may use them less, but they don't break)</li>
+    <li>The classification axes, difficulty enums, CJMM steps</li>
+    <li>The ID prefixes (<code>NCLEX_MCQ_</code>, <code>NCLEX_CS_</code>, <code>NCLEX_TRD_</code>)</li>
+  </ul>
+
+  <h3>What may be added</h3>
+  <p>The new wrapper editors will likely have different section structures than the current Content / Classification / Housekeeping at the wrapper level. Section names and their contents are not predetermined — they'll be designed around what case-study and trend authoring genuinely need.</p>
+
+  <p>If new wrapper-level fields emerge during the build that don't have a column yet, we'll <strong>add nullable columns alongside the existing schema</strong>. The old wrapper code is untouched and continues using its old columns. The new wrapper code reads its mix of relevant existing columns plus any new ones it needs. The two systems share tables without conflict because they touch different columns.</p>
+
+  <div class="callout">
+    <p><strong>Principle:</strong> the new wrapper editors include only the sections their content actually needs. Don't carry forward Classification or Housekeeping at the wrapper level by default — add wrapper-level metadata only if it genuinely benefits both case-study and trend.</p>
+  </div>
+
+  <h3>The question editor keeps its three sections</h3>
+  <p>The QuestionEditor's three tabs (Content / Classification / Housekeeping) are locked. They map to existing columns and existing JSONB shapes that the new editor will read and write directly — same data, different UI shell.</p>
+
+  <!-- ============================================================ -->
+  <h2 id="build">9. Build approach</h2>
+
+  <h3>Parallel build, no in-place migration</h3>
+  <p>The current authoring system stays in place and keeps shipping. The new components are built from scratch in a separate folder. Once the new system is feature-complete and verified, the routes flip to point at the new code, then the old code is deleted.</p>
+
+  <h3>Use the current build as a reference, not a template</h3>
+  <p>The current build is a teacher — its parsers, its JSONB shapes, its validation rules, its tab editors (narrative-tab, structured-tab, vf-segmented), its RPCs. All of these are good and worth copying when needed. But the new build is not obligated to mirror the current UI structure. Where the current design was constrained by FormData-driven editors or page-level routing, the new design is free to redesign.</p>
+
+  <h3>What stays untouched in the current build</h3>
+  <ul>
+    <li>Database schema, RLS, RPCs (we may add columns; we don't change existing ones)</li>
+    <li>The current <code>lib/bank/</code> code remains in place until the swap</li>
+    <li>The current routes (<code>/admin/bank</code>, <code>/admin/bank/cases/[id]</code>, <code>/admin/trends/[id]</code>) keep working</li>
+  </ul>
+
+  <h3>What's new</h3>
+  <ul>
+    <li>A new folder for the new components (folder name to be decided when build starts)</li>
+    <li>Fresh QuestionEditor, CaseStudyEditor, TrendEditor as controlled components</li>
+    <li>New modal hosts (StandaloneQuestionModal, CaseStudyModal, TrendModal)</li>
+    <li>New per-thing save server actions; existing RPCs reused where appropriate</li>
+    <li>New routes, or modified existing routes that launch modals instead of navigating to editor pages</li>
+  </ul>
+
+  <h3>Cutover and cleanup</h3>
+  <p>Once the new system is verified end-to-end, the routes get pointed at the new code. The old <code>lib/bank/</code> folder stays in place briefly as insurance. After a short grace period, it's deleted in a cleanup slice.</p>
+
+  <p>The slice plan itself isn't part of this document — it'll be drafted separately when we're ready to start building.</p>
+
+  <!-- ============================================================ -->
+  <h2 id="open">10. Open questions for later</h2>
+
+  <p>These were noted but deliberately left open. They'll be settled when the build starts, not now.</p>
+
+  <table class="decisions">
+    <thead>
+      <tr><th>Question</th><th>Why deferred</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>New folder name for the new code</td>
+        <td>Naming locks meaning; better decided when the shape is concrete</td>
+      </tr>
+      <tr>
+        <td>Modal opening pattern (URL-driven <code>?edit=ID</code> vs local React state vs portal)</td>
+        <td>Depends on how deep-linking, back-button, and bookmarkability matter; can be picked when the first modal lands</td>
+      </tr>
+      <tr>
+        <td>What visual primitives (if any) are worth extracting for sharing between the authoring previews and the future runner</td>
+        <td>The runner is its own build. Any shared visual primitives can be extracted retroactively if a clear pattern emerges; not designed for in advance.</td>
+      </tr>
+      <tr>
+        <td>What new wrapper-level sections (if any) replace Classification and Housekeeping</td>
+        <td>Designed around real authoring needs once new wrappers are being built</td>
+      </tr>
+      <tr>
+        <td>Whether to keep the atomic save-everything RPC as a convenience, or retire it</td>
+        <td>Decide after the new per-thing save flow is working</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer-note">
+    Captured from the architectural conversation that produced this rebuild plan. Visuals and prose match the agreements reached. Slice plan to be drafted in a follow-up document when build is ready to start.
+  </div>
+
+</div>
+
+<script>
+(function() {
+  const stage = document.getElementById('iw-stage');
+  const caption = document.getElementById('iw-caption');
+  let ctx = 'standalone';
+  let type = 'matrix';
+
+  document.querySelectorAll('.iw-btn.ctx').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.iw-btn.ctx').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      ctx = b.dataset.ctx;
+      render();
+    });
+  });
+  document.querySelectorAll('.iw-btn.type').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.iw-btn.type').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      type = b.dataset.type;
+      render();
+    });
+  });
+
+  // ============ Per-type bodies ============
+
+  function matrixEditor(small) {
+    const fs = small ? 10 : 11;
+    const c = (m) => m
+      ? `<div class="cell center"><span class="dot-correct"></span></div>`
+      : `<div class="cell center dot-empty">○</div>`;
+    const row = (label, marks) => `<div class="row" style="font-size:${fs}px;"><div class="cell">${label}</div>${c(marks[0])}${c(marks[1])}${c(marks[2])}</div>`;
+    return `
+      <div class="field-label">Stem</div>
+      <div class="input-shadow" style="font-size:${fs}px;">For each finding, indicate whether the action is <em>indicated</em>, <em>contraindicated</em>, or <em>non-essential</em>.</div>
+      <div class="field-label">Matrix grid</div>
+      <div class="ed-grid">
+        <div class="row head">
+          <div class="cell">Finding / Action</div>
+          <div class="cell center">Indicated</div>
+          <div class="cell center">Contraind.</div>
+          <div class="cell center">Non-ess.</div>
+        </div>
+        ${row('Apply oxygen', [1,0,0])}
+        ${row('Encourage fluids', [0,1,0])}
+        ${row('Document findings', [0,0,1])}
+        ${row('Notify provider', [1,0,0])}
+      </div>
+      <div style="font-size:${fs-1}px; color:rgba(60,52,137,0.6);">+ Add row &nbsp;·&nbsp; + Add column</div>
+    `;
+  }
+  function matrixPreview(small) {
+    const fs = small ? 10 : 11;
+    const r = `<div class="cell center"><span style="display:inline-block; width:9px; height:9px; border:0.5px solid var(--border-strong); border-radius:50%;"></span></div>`;
+    const row = (label) => `<div class="row" style="font-size:${fs-1}px;"><div class="cell">${label}</div>${r}${r}${r}</div>`;
+    return `
+      <div style="font-size:${fs}px; line-height:1.5; margin-bottom:8px;">For each finding, indicate whether the action is <em>indicated</em>, <em>contraindicated</em>, or <em>non-essential</em>.</div>
+      <div class="ed-grid" style="border-color: var(--border);">
+        <div class="row head" style="background: var(--surface-2);">
+          <div class="cell">Finding</div>
+          <div class="cell center">Ind.</div>
+          <div class="cell center">Cont.</div>
+          <div class="cell center">N/E</div>
+        </div>
+        ${row('Apply oxygen')}
+        ${row('Encourage fluids')}
+        ${row('Document findings')}
+        ${row('Notify provider')}
+      </div>
+    `;
+  }
+
+  function highlightEditor(small) {
+    const fs = small ? 10 : 11;
+    return `
+      <div class="field-label">Instruction</div>
+      <div class="input-shadow" style="font-size:${fs}px;">Click on the findings that require <strong>immediate</strong> follow-up.</div>
+      <div class="field-label">Passage with selectable chunks</div>
+      <div class="input-shadow" style="font-size:${fs}px; line-height:1.9;">
+        The client is a 68-year-old male admitted with shortness of breath. Vital signs:
+        <span class="marker-correct">BP 92/58</span>,
+        <span class="marker-distract">HR 86</span>,
+        <span class="marker-correct">SpO₂ 88% on room air</span>,
+        <span class="marker-distract">temp 37.1°C</span>.
+        Lungs reveal <span class="marker-correct">bilateral crackles</span>.
+        Skin is <span class="marker-distract">warm and dry</span>.
+      </div>
+      <div style="display:flex; gap:10px; font-size:${fs-1}px; color:rgba(60,52,137,0.7);">
+        <span><span style="display:inline-block; width:9px; height:9px; background:#C0DD97; border-radius:2px; vertical-align:middle;"></span> correct</span>
+        <span><span style="display:inline-block; width:9px; height:9px; background:#FAC775; border-radius:2px; vertical-align:middle;"></span> distractor</span>
+      </div>
+    `;
+  }
+  function highlightPreview(small) {
+    const fs = small ? 10 : 11;
+    const chunk = (txt) => `<span style="border:0.5px solid var(--border-strong); border-radius:3px; padding:1px 5px; cursor:pointer;">${txt}</span>`;
+    return `
+      <div style="font-size:${fs}px; color:var(--text-2); margin-bottom:6px;">Click on the findings that require <strong>immediate</strong> follow-up.</div>
+      <div style="font-size:${fs}px; line-height:1.9;">
+        The client is a 68-year-old male admitted with shortness of breath. Vital signs:
+        ${chunk('BP 92/58')}, ${chunk('HR 86')}, ${chunk('SpO₂ 88% on room air')}, ${chunk('temp 37.1°C')}.
+        Lungs reveal ${chunk('bilateral crackles')}.
+        Skin is ${chunk('warm and dry')}.
+      </div>
+    `;
+  }
+
+  function clozeEditor(small) {
+    const fs = small ? 10 : 11;
+    return `
+      <div class="field-label">Stem with inline blanks</div>
+      <div class="input-shadow" style="font-size:${fs}px; line-height:1.9;">
+        The client is most likely experiencing
+        <span class="blank-pill">{1} ▾</span>
+        and the priority intervention is to
+        <span class="blank-pill">{2} ▾</span>
+        before
+        <span class="blank-pill">{3} ▾</span>.
+      </div>
+      <div class="field-label">Blank options</div>
+      <div class="input-shadow" style="font-size:${fs}px; margin-bottom:4px;"><strong>{1}</strong> ▸ flash pulmonary oedema · pneumonia · MI · sepsis &nbsp; <span style="color:var(--teal-800);">✓ flash pulmonary oedema</span></div>
+      <div class="input-shadow" style="font-size:${fs}px; margin-bottom:4px;"><strong>{2}</strong> ▸ apply oxygen · give fluids · obtain ECG &nbsp; <span style="color:var(--teal-800);">✓ apply oxygen</span></div>
+      <div class="input-shadow" style="font-size:${fs}px; margin-bottom:0;"><strong>{3}</strong> ▸ notifying the provider · documenting · reassessing &nbsp; <span style="color:var(--teal-800);">✓ notifying the provider</span></div>
+    `;
+  }
+  function clozePreview(small) {
+    const fs = small ? 10 : 11;
+    return `
+      <div style="font-size:${fs}px; line-height:2;">
+        The client is most likely experiencing
+        <select style="font-size:${fs}px; padding:1px 3px; border-radius:3px; border:0.5px solid var(--border-strong);"><option>—</option><option>flash pulmonary oedema</option></select>
+        and the priority intervention is to
+        <select style="font-size:${fs}px; padding:1px 3px; border-radius:3px; border:0.5px solid var(--border-strong);"><option>—</option><option>apply oxygen</option></select>
+        before
+        <select style="font-size:${fs}px; padding:1px 3px; border-radius:3px; border:0.5px solid var(--border-strong);"><option>—</option><option>notifying the provider</option></select>.
+      </div>
+    `;
+  }
+
+  function dragdropEditor(small) {
+    const fs = small ? 10 : 11;
+    const dragRow = (n, txt) => `<div style="display:flex; gap:5px; align-items:center; font-size:${fs}px; margin-bottom:3px;"><span style="background:rgba(60,52,137,0.1); color:var(--purple-800); border-radius:3px; padding:1px 6px; font-weight:500; min-width:16px; text-align:center;">${n}</span><div class="input-shadow" style="margin-bottom:0; flex:1; padding:3px 7px;">${txt}</div></div>`;
+    return `
+      <div style="font-size:${fs}px; color:var(--purple-800); margin-bottom:4px;">Subtype: <span class="input-shadow" style="display:inline-block; padding:2px 8px; margin-bottom:0; font-size:${fs}px;">Ordered ▾</span></div>
+      <div class="field-label">Stem</div>
+      <div class="input-shadow" style="font-size:${fs}px;">Place the steps for tracheostomy suctioning in the correct order.</div>
+      <div class="field-label">Tokens (correct order)</div>
+      ${dragRow(1, 'Hyper-oxygenate the client')}
+      ${dragRow(2, 'Insert catheter without suction')}
+      ${dragRow(3, 'Apply intermittent suction while withdrawing')}
+      ${dragRow(4, 'Reassess vital signs')}
+      <div class="field-label" style="margin-top: 6px;">Distractor tokens</div>
+      <div style="display:flex; gap:4px; flex-wrap:wrap;">
+        <span class="token">Suction continuously for 30s</span>
+        <span class="token">Lower head of bed</span>
+      </div>
+    `;
+  }
+  function dragdropPreview(small) {
+    const fs = small ? 10 : 11;
+    const slot = (n) => `<div style="display:flex; gap:5px; align-items:center; margin-bottom:3px;"><span style="color:var(--text-3); font-size:${fs-1}px; min-width:16px; text-align:center;">${n}</span><div style="background:var(--surface-2); flex:1; padding:4px 7px; border-radius:3px; font-size:${fs}px; color:var(--text-3); border:0.5px dashed var(--border-strong);">drop here</div></div>`;
+    return `
+      <div style="font-size:${fs}px; margin-bottom:6px;">Place the steps for tracheostomy suctioning in the correct order.</div>
+      ${slot(1)}${slot(2)}${slot(3)}${slot(4)}
+      <div style="border-top:0.5px solid var(--border); margin-top:6px; padding-top:6px;">
+        <div style="font-size:${fs-1}px; color:var(--text-3); margin-bottom:4px;">Token bank</div>
+        <div style="display:flex; gap:3px; flex-wrap:wrap;">
+          <span class="token">Reassess vital signs</span>
+          <span class="token">Suction 30s</span>
+          <span class="token">Insert catheter</span>
+          <span class="token">Hyper-oxygenate</span>
+          <span class="token">Lower bed</span>
+          <span class="token">Apply suction</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function bowtieEditor(small) {
+    const fs = small ? 10 : 11;
+    return `
+      <div class="field-label">Stem</div>
+      <div class="input-shadow" style="font-size:${fs}px;">Identify the most likely condition, the actions to take, and the parameters to monitor.</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+        <div>
+          <div class="field-label">Actions (pick 2)</div>
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <span class="token correct">High Fowler's</span>
+            <span class="token correct">Apply oxygen</span>
+            <span class="token">Trendelenburg</span>
+            <span class="token">Cool blanket</span>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Condition (pick 1)</div>
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <span class="token correct">Pulmonary oedema</span>
+            <span class="token">Hypovolaemia</span>
+            <span class="token">Sepsis</span>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Monitor (pick 2)</div>
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <span class="token correct">SpO₂ trend</span>
+            <span class="token correct">Lung sounds</span>
+            <span class="token">Pupil size</span>
+            <span class="token">Bowel sounds</span>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:${fs-1}px; color:rgba(60,52,137,0.7); margin-top:6px;">Teal tokens are correct picks (NCLEX 2/1/2 enforced).</div>
+    `;
+  }
+  function bowtiePreview(small) {
+    const fs = small ? 10 : 11;
+    return `
+      <div style="font-size:${fs}px; margin-bottom:8px;">Identify the most likely condition, the actions to take, and the parameters to monitor.</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; align-items:center;">
+        <div>
+          <div style="font-size:${fs-1}px; color:var(--text-3); text-align:center; margin-bottom:2px;">Actions</div>
+          <div class="wing-slot">drop</div>
+          <div class="wing-slot">drop</div>
+        </div>
+        <div>
+          <div style="font-size:${fs-1}px; color:var(--text-3); text-align:center; margin-bottom:2px;">Condition</div>
+          <div class="wing-slot" style="min-height:40px;">drop</div>
+        </div>
+        <div>
+          <div style="font-size:${fs-1}px; color:var(--text-3); text-align:center; margin-bottom:2px;">Monitor</div>
+          <div class="wing-slot">drop</div>
+          <div class="wing-slot">drop</div>
+        </div>
+      </div>
+      <div style="border-top:0.5px solid var(--border); margin-top:6px; padding-top:6px;">
+        <div style="font-size:${fs-1}px; color:var(--text-3); margin-bottom:3px;">Token bank</div>
+        <div style="display:flex; gap:3px; flex-wrap:wrap;">
+          <span class="token">High Fowler's</span><span class="token">Apply oxygen</span><span class="token">Trendelenburg</span>
+          <span class="token">Pulmonary oedema</span><span class="token">Hypovolaemia</span>
+          <span class="token">SpO₂ trend</span><span class="token">Lung sounds</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // ============ Layout ============
+
+  function questionEditorBlock(typeKey, small, label) {
+    const editor = ({matrix:matrixEditor, highlight:highlightEditor, cloze:clozeEditor, dragdrop:dragdropEditor, bowtie:bowtieEditor})[typeKey](small);
+    const preview = ({matrix:matrixPreview, highlight:highlightPreview, cloze:clozePreview, dragdrop:dragdropPreview, bowtie:bowtiePreview})[typeKey](small);
+    const labelMap = { matrix:'Matrix', highlight:'Highlight', cloze:'Cloze', dragdrop:'Drag-drop', bowtie:'Bow-tie' };
+
+    return `
+      <div class="component-box" style="margin: ${small ? '8px 12px 12px' : '14px'};">
+        <div class="label">${label}</div>
+        <div class="two-view" style="min-height: ${small ? 240 : 360}px;">
+          <div class="editor-pane">
+            <div class="top-tabs">
+              <div class="tab active">Content</div>
+              <div class="tab">Classification</div>
+              <div class="tab">Housekeeping</div>
+              <div class="type-select">${labelMap[typeKey].toUpperCase()} ▾</div>
+            </div>
+            <div style="padding-top: 10px;">${editor}</div>
+          </div>
+          <div class="preview-pane">
+            <div class="pane-label">PREVIEW · STUDENT VIEW</div>
+            <div class="preview-card">${preview}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function caseEditorBlock() {
+    return `
+      <div class="component-box case" style="margin: 12px 12px 6px;">
+        <div class="label">CASESTUDYEDITOR · top half</div>
+        <div class="two-view" style="min-height: 240px;">
+          <div class="editor-pane case-pane">
+            <div class="pane-label">EDITOR VIEW</div>
+            <div class="input-shadow">▾ Setup</div>
+            <div class="input-shadow">▸ Publishing</div>
+            <div class="field-label" style="margin-top: 6px;">CHART</div>
+            <div style="display: flex; gap: 6px;">
+              <div style="display: flex; flex-direction: column; gap: 2px; min-width: 90px;">
+                <div style="background: var(--info-bg); color: var(--info-text); border-radius: 3px; padding: 2px 6px; font-size: 10px; font-weight: 500;">Nurses' notes</div>
+                <div style="background: rgba(255,255,255,0.7); border-radius: 3px; padding: 2px 6px; font-size: 10px;">Vital signs</div>
+                <div style="background: rgba(255,255,255,0.7); border-radius: 3px; padding: 2px 6px; font-size: 10px;">Lab results</div>
+                <div style="background: rgba(255,255,255,0.7); border-radius: 3px; padding: 2px 6px; font-size: 10px;">Orders</div>
+              </div>
+              <div style="flex: 1;">
+                <div class="input-shadow" style="margin-bottom: 3px;"><span style="color:#888; font-size: 9px;">Q1+</span> 0800 — Client awake, alert and oriented...</div>
+                <div class="input-shadow"><span style="color:#888; font-size: 9px;">Q3+</span> 1200 — Reports increasing dyspnoea...</div>
+              </div>
+            </div>
+          </div>
+          <div class="preview-pane">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;">
+              <span class="pane-label" style="margin: 0;">PREVIEW · AT Q3</span>
+              <span style="font-size: 10px; color: var(--text-3);">Position: <strong>3 ▾</strong></span>
+            </div>
+            <div class="preview-card">
+              <div style="font-size: 10px; line-height: 1.5; margin-bottom: 6px;">A 68-year-old client admitted post-op day 1...</div>
+              <div style="display: flex; gap: 4px; margin-bottom: 5px;">
+                <span style="background: var(--info-bg); color: var(--info-text); border-radius: 3px; padding: 1px 5px; font-size: 9px;">Nurses' notes</span>
+                <span style="background: var(--surface-2); border-radius: 3px; padding: 1px 5px; font-size: 9px;">Vitals</span>
+                <span style="background: var(--surface-2); border-radius: 3px; padding: 1px 5px; font-size: 9px;">Labs</span>
+              </div>
+              <div style="background: var(--surface-2); border-radius: 3px; padding: 4px 6px; font-size: 9px; margin-bottom: 2px;">0800 — Client awake, alert.</div>
+              <div style="background: var(--surface-2); border-radius: 3px; padding: 4px 6px; font-size: 9px;">1200 — Reports dyspnoea.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function modalChrome(idLabel, ctxKind, body) {
+    const isCase = ctxKind === 'wrapper';
+    const subtitle = isCase ? 'Edit case study' : 'Edit question';
+    const finalId = isCase ? 'NCLEX_CS_00001' : idLabel;
+    const saveLabel = isCase ? 'Save case' : 'Save';
+    const url = isCase ? `qacademynurses.com/admin/bank/cases?edit=${finalId}` : `qacademynurses.com/admin/bank?edit=${finalId}`;
+    const pillStrip = isCase ? `
+      <div class="pill-strip">
+        <span class="label">QUESTIONS:</span>
+        <span class="pill">Q1</span><span class="pill">Q2</span>
+        <span class="pill active">Q3</span>
+        <span class="pill empty">+ Q4</span>
+      </div>` : '';
+
+    return `
+      <div style="background:#1A1A1A; border-radius:8px 8px 0 0; padding:8px 12px; display:flex; align-items:center; gap:6px;">
+        <span style="width:9px; height:9px; border-radius:50%; background:#FF5F57; display:inline-block;"></span>
+        <span style="width:9px; height:9px; border-radius:50%; background:#FEBC2E; display:inline-block;"></span>
+        <span style="width:9px; height:9px; border-radius:50%; background:#28C840; display:inline-block;"></span>
+        <span style="margin-left:10px; background:#2A2A2A; color:rgba(255,255,255,0.7); padding:3px 12px; border-radius:4px; font-size:10px; font-family:ui-monospace,monospace;">${url}</span>
+      </div>
+      <div style="background:#2C3E5A; padding:14px; min-height:${isCase ? 540 : 420}px; border-radius:0 0 8px 8px;">
+        <div class="modal-shell" style="margin: 8px auto;">
+          <div class="modal-topbar">
+            <div><span class="title">${subtitle}</span><span class="id-pill">${finalId}</span></div>
+            <div class="actions">
+              <span class="ghost-btn">Cancel</span>
+              <span class="save-btn">${saveLabel}</span>
+              <span class="ghost-btn">×</span>
+            </div>
+          </div>
+          ${pillStrip}
+          ${body}
+        </div>
+      </div>
+    `;
+  }
+
+  function render() {
+    const small = ctx === 'wrapper';
+    const idMap = { matrix:'NCLEX_MATRIX_00003', highlight:'NCLEX_HIGHLIGHT_00002', cloze:'NCLEX_CLOZE_00005', dragdrop:'NCLEX_DRAGDROP_00004', bowtie:'NCLEX_BOWTIE_00001' };
+    const labelMap = { matrix:'QUESTIONEDITOR · Matrix', highlight:'QUESTIONEDITOR · Highlight', cloze:'QUESTIONEDITOR · Cloze', dragdrop:'QUESTIONEDITOR · Drag-drop', bowtie:'QUESTIONEDITOR · Bow-tie' };
+
+    const editorLabel = labelMap[type] + (small ? ' · bottom half' : ' · full modal');
+    let body;
+    if (small) {
+      body = caseEditorBlock() + questionEditorBlock(type, true, editorLabel);
+    } else {
+      body = questionEditorBlock(type, false, editorLabel);
+    }
+
+    stage.innerHTML = modalChrome(idMap[type], ctx, body);
+
+    const captions = {
+      matrix: 'Matrix is a row × column grid. Curator marks the correct cell per row. Compresses cleanly in both contexts.',
+      highlight: 'Highlight wraps a passage with selectable chunks. Green = correct, amber = distractor (curator only). Long passages get cramped in the wrapper context — Content tab will need internal scroll.',
+      cloze: 'Cloze is a sentence with inline numbered blanks. Each blank has its own option list with one marked correct. Works comfortably with ≤3 blanks; 5+ blanks would need scroll in wrapper.',
+      dragdrop: 'Drag-drop has two subtypes (Ordered shown). Curator lists tokens in correct order plus distractors. Naturally compact — fits in either context.',
+      bowtie: 'Bow-tie has three wings — Actions (2 correct), Condition (1 correct), Monitor (2 correct). NCLEX 2/1/2 rule enforced. Holds shape well in both contexts.'
+    };
+    caption.textContent = (small ? 'Inside a case-study wrapper modal — same component, half the height. ' : 'Standalone modal — full breathing room. ') + captions[type];
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
