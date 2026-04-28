@@ -35,9 +35,10 @@ export const ADMIN_NAV: NavItem[] = [
     href: '/admin/bank/all',
     permission: 'BANK_CURATE',
     children: [
-      { key: 'bank-all',   label: 'All questions', icon: 'book', href: '/admin/bank/all',    permission: 'BANK_CURATE' },
-      { key: 'bank-cases', label: 'Case Studies',  icon: 'book', href: '/admin/bank/cases',  permission: 'BANK_CURATE' },
-      { key: 'bank-trends',label: 'Trends',        icon: 'book', href: '/admin/bank/trends', permission: 'BANK_CURATE' },
+      { key: 'bank-all',    label: 'All questions',     icon: 'book', href: '/admin/bank/all',    permission: 'BANK_CURATE' },
+      { key: 'bank-all-v2', label: 'All questions (v2)', icon: 'edit', href: '/admin/bank/all-v2', permission: 'BANK_CURATE' },
+      { key: 'bank-cases',  label: 'Case Studies',      icon: 'book', href: '/admin/bank/cases',  permission: 'BANK_CURATE' },
+      { key: 'bank-trends', label: 'Trends',            icon: 'book', href: '/admin/bank/trends', permission: 'BANK_CURATE' },
     ],
   },
   { key: 'packs',         label: 'Readiness Packs',     icon: 'target',   href: '/admin/packs',         permission: 'BANK_CURATE' },

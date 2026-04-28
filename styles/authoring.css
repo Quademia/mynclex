@@ -714,3 +714,302 @@
   color: var(--text-muted);
   font-style: italic;
 }
+
+/* ─────────────────────────────────────────────────────
+ * Bank list v2 page
+ * ───────────────────────────────────────────────────── */
+
+.auth-list-page {
+  min-height: 100%;
+  padding: 28px 24px 48px;
+  background: var(--bg);
+}
+
+.auth-list-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.auth-list-page-header {
+  margin-bottom: 20px;
+}
+
+.auth-list-page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.auth-list-page-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.auth-flash {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+.auth-list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 14px;
+}
+
+.auth-list-count {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.auth-list-empty {
+  background: var(--white);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 36px 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.auth-list-empty p {
+  margin-bottom: 8px;
+}
+.auth-list-empty p:last-child {
+  margin-bottom: 0;
+}
+
+.auth-list-table {
+  width: 100%;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  font-size: 13px;
+}
+.auth-list-table thead th {
+  text-align: left;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.auth-list-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.auth-list-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.auth-list-table tbody tr:hover {
+  background: var(--bg);
+}
+
+.auth-list-item-id {
+  white-space: nowrap;
+  width: 1%;
+}
+.auth-list-item-id code {
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: 12px;
+  background: var(--primary-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--primary-dark);
+}
+.auth-list-stem {
+  color: var(--text);
+  max-width: 480px;
+}
+.auth-list-row-actions {
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+}
+.auth-list-row-disabled {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.auth-list-footnote {
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+.auth-list-footnote code {
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: 11px;
+  padding: 1px 5px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
+}
+
+/* Pills (type chip + status chip in the list) */
+
+.auth-pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+.auth-pill--type {
+  color: var(--primary-dark);
+  background: var(--primary-light);
+}
+.auth-pill--published {
+  color: #166534;
+  background: #dcfce7;
+}
+.auth-pill--draft {
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.auth-btn-sm {
+  padding: 5px 11px;
+  font-size: 12px;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Question type picker (small modal)
+ * ───────────────────────────────────────────────────── */
+
+.auth-modal--sm {
+  max-width: 560px;
+  height: auto;
+  max-height: min(85vh, 720px);
+}
+
+.auth-type-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.auth-type-btn {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 84px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.auth-type-btn:hover:not(:disabled) {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+.auth-type-btn--disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.auth-type-btn-code {
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+}
+.auth-type-btn-label {
+  font-size: 13px;
+  color: var(--text);
+}
+.auth-type-btn-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--warning);
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Error banner (used by editor body)
+ * ───────────────────────────────────────────────────── */
+
+.auth-error {
+  background: #fef2f2;
+  color: var(--danger);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Typed-DELETE confirmation panel inside the modal body
+ * ───────────────────────────────────────────────────── */
+
+.auth-delete-confirm {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.auth-delete-confirm-title {
+  font-weight: 700;
+  color: var(--danger);
+  font-size: 14px;
+}
+.auth-delete-confirm-title code {
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.auth-delete-confirm-hint {
+  font-size: 12px;
+  color: #991b1b;
+}
+
+.auth-delete-confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
