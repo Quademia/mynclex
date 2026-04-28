@@ -25,7 +25,7 @@ import {
 } from '@/lib/bank/classifications';
 import { ModalFrame } from '@/lib/authoring/atoms/modal-frame';
 import { EditorActions } from '@/lib/authoring/atoms/editor-actions';
-import { Section } from '@/lib/authoring/atoms/section';
+import { EditorTabs, TabPanel } from '@/lib/authoring/atoms/editor-tabs';
 import { StemField } from '@/lib/authoring/atoms/stem-field';
 import { InstructionField } from '@/lib/authoring/atoms/instruction-field';
 import { RationaleFields } from '@/lib/authoring/atoms/rationale-fields';
@@ -238,14 +238,25 @@ export interface McqEditorBodyProps {
 }
 
 export function McqEditorBody({ initial }: McqEditorBodyProps) {
+  const [tab, setTab] = useState<'content' | 'classification' | 'housekeeping'>('content');
+
   const [stem, setStem] = useState(initial.stem);
   const [instruction, setInstruction] = useState(initial.instruction);
   const [options, setOptions] = useState<OptionRow[]>(() =>
     initial.options.length > 0 ? initial.options : defaultOptionRows(),
   );
   const [correctId, setCorrectId] = useState<string>(initial.correct_id);
+  // Lifted out of <ClassificationFields> so the tab strip can show a
+  // red-dot indicator when the required Client Needs category is unset.
+  const [category, setCategory] = useState(initial.client_needs_category);
 
   const isEdit = initial.itemId !== null;
+
+  // Per-tab incompleteness — drives the red-dot indicator.
+  const optionsWithText = options.filter((o) => o.text.trim().length > 0).length;
+  const contentIncomplete =
+    !stem.trim() || !correctId || optionsWithText < MIN_OPTIONS;
+  const classificationIncomplete = !category;
 
   return (
     <form id={FORM_ID} className="auth-form" onSubmit={(e) => e.preventDefault()}>
@@ -253,53 +264,64 @@ export function McqEditorBody({ initial }: McqEditorBodyProps) {
 
       <div className="auth-split">
         <div className="auth-edit">
-          <Section title="Content" open>
-            <InstructionField value={instruction} onChange={setInstruction} />
-            <StemField value={stem} onChange={setStem} />
-            <McqOptionList
-              options={options}
-              correctId={correctId}
-              onChange={(opts, cid) => {
-                setOptions(opts);
-                setCorrectId(cid);
-              }}
-            />
-            <RationaleFields
-              defaultRationale={initial.rationale}
-              defaultRationaleImg={initial.rationale_img}
-            />
-          </Section>
+          <EditorTabs
+            tabs={[
+              { id: 'content',        label: 'Content',        incomplete: contentIncomplete },
+              { id: 'classification', label: 'Classification', incomplete: classificationIncomplete },
+              { id: 'housekeeping',   label: 'Housekeeping' },
+            ]}
+            active={tab}
+            onChange={(id) => setTab(id as typeof tab)}
+          >
+            <TabPanel id="content">
+              <InstructionField value={instruction} onChange={setInstruction} />
+              <StemField value={stem} onChange={setStem} />
+              <McqOptionList
+                options={options}
+                correctId={correctId}
+                onChange={(opts, cid) => {
+                  setOptions(opts);
+                  setCorrectId(cid);
+                }}
+              />
+              <RationaleFields
+                defaultRationale={initial.rationale}
+                defaultRationaleImg={initial.rationale_img}
+              />
+            </TabPanel>
 
-          <Section title="Classification">
-            <ClassificationFields
-              defaults={{
-                client_needs_category: initial.client_needs_category,
-                client_needs_subcategory: initial.client_needs_subcategory,
-                nursing_subject: initial.nursing_subject,
-                body_system: initial.body_system,
-                topic: initial.topic,
-                subtopic: initial.subtopic,
-                difficulty: initial.difficulty,
-                bloom_level: initial.bloom_level,
-                tags: initial.tags,
-              }}
-            />
-          </Section>
+            <TabPanel id="classification">
+              <ClassificationFields
+                category={category}
+                onCategoryChange={setCategory}
+                defaults={{
+                  client_needs_subcategory: initial.client_needs_subcategory,
+                  nursing_subject: initial.nursing_subject,
+                  body_system: initial.body_system,
+                  topic: initial.topic,
+                  subtopic: initial.subtopic,
+                  difficulty: initial.difficulty,
+                  bloom_level: initial.bloom_level,
+                  tags: initial.tags,
+                }}
+              />
+            </TabPanel>
 
-          <Section title="Housekeeping">
-            <HousekeepingFields
-              mode={initial.mode}
-              defaults={{
-                marks: initial.marks,
-                question_ref: initial.question_ref,
-                batch_id: initial.batch_id,
-                is_published: initial.is_published,
-                is_free_sample: initial.is_free_sample,
-                is_builder_visible: initial.is_builder_visible,
-                shuffle_options: initial.shuffle_options,
-              }}
-            />
-          </Section>
+            <TabPanel id="housekeeping">
+              <HousekeepingFields
+                mode={initial.mode}
+                defaults={{
+                  marks: initial.marks,
+                  question_ref: initial.question_ref,
+                  batch_id: initial.batch_id,
+                  is_published: initial.is_published,
+                  is_free_sample: initial.is_free_sample,
+                  is_builder_visible: initial.is_builder_visible,
+                  shuffle_options: initial.shuffle_options,
+                }}
+              />
+            </TabPanel>
+          </EditorTabs>
         </div>
 
         <div className="auth-preview">

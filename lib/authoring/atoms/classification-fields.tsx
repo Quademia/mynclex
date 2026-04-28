@@ -1,13 +1,16 @@
 // mynclex/lib/authoring/atoms/classification-fields.tsx
 //
 // The 8 classification fields shared by every editor type. The
-// category → subcategory cascade is controlled internally because
-// the subcategory option list depends on the chosen category. All
-// other fields are uncontrolled (form-data on submit).
+// category → subcategory cascade is controlled FROM THE PARENT so
+// the parent can detect when the required category is unset (used
+// to drive the red-dot incompleteness indicator on the Classification
+// tab — see lib/authoring/atoms/editor-tabs.tsx).
+//
+// Other fields stay uncontrolled (form-data on submit) — they're
+// optional, so the parent doesn't need to track them.
 
 'use client';
 
-import { useState } from 'react';
 import {
   CLIENT_NEEDS_CATEGORIES,
   CLIENT_NEEDS_SUBCATEGORIES,
@@ -19,8 +22,11 @@ import {
 } from '@/lib/bank/classifications';
 
 interface ClassificationFieldsProps {
+  /** Controlled — picks the subcategory option list and exposes the
+   *  empty-state to the parent for required-field indicators. */
+  category: string;
+  onCategoryChange: (next: string) => void;
   defaults: {
-    client_needs_category: string;
     client_needs_subcategory: string;
     nursing_subject: string;
     body_system: string;
@@ -32,9 +38,11 @@ interface ClassificationFieldsProps {
   };
 }
 
-export function ClassificationFields({ defaults }: ClassificationFieldsProps) {
-  const [category, setCategory] = useState<string>(defaults.client_needs_category);
-
+export function ClassificationFields({
+  category,
+  onCategoryChange,
+  defaults,
+}: ClassificationFieldsProps) {
   const subcatOptions =
     category && (CLIENT_NEEDS_CATEGORIES as readonly string[]).includes(category)
       ? CLIENT_NEEDS_SUBCATEGORIES[category as ClientNeedsCategory]
@@ -49,7 +57,7 @@ export function ClassificationFields({ defaults }: ClassificationFieldsProps) {
             id="cnc"
             name="client_needs_category"
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(e) => onCategoryChange(e.target.value)}
             required
             className="auth-input"
           >

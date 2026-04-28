@@ -81,7 +81,12 @@ that all atoms compose cleanly. **Read-only — no save.**
   - `modal-frame.tsx`
   - `editor-actions.tsx` (Save / Cancel / Delete row at top — buttons
     are visible but disabled in this slice)
-  - `section.tsx`
+  - `editor-tabs.tsx` (`<EditorTabs>` + `<TabPanel>` — replaces the
+    accordion stack with a top-tab strip. Red-dot indicator on
+    incomplete required fields, automatic "Next →" button between
+    panels.)
+  - `section.tsx` (kept for stacked-group needs in wrappers; not
+    used by the editor body)
   - `stem-field.tsx`
   - `instruction-field.tsx`
   - `rationale-fields.tsx`
@@ -111,9 +116,17 @@ that all atoms compose cleanly. **Read-only — no save.**
 - "/admin/sandbox/authoring" opens, shows the MCQ editor as a modal.
 - Modal title shows "Edit MCQ question".
 - Save / Cancel / Delete buttons render at the top, disabled.
-- Three accordions render (Content open, others collapsed).
-- Stem / Instruction / OptionList / Rationale visible in left pane.
-- Classification + Housekeeping fields render.
+- Tab strip renders three tabs (Content active, Classification +
+  Housekeeping inactive). Red dot shows on a tab when its required
+  fields are unfilled (clear the stem to see Content's dot;
+  clear the Client Needs category to see Classification's).
+- Stem / Instruction / OptionList / Rationale visible inside the
+  Content panel.
+- Classification fields visible after switching tab.
+- Housekeeping fields visible after switching tab.
+- "Next: Classification →" button at the bottom of Content; "Next:
+  Housekeeping →" at the bottom of Classification; no Next on the
+  last panel.
 - Right pane shows pre-submit MCQ preview.
 - Typing into stem updates the preview live.
 - Closing the modal returns to the sandbox page underneath.

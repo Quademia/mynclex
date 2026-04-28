@@ -128,7 +128,8 @@ The complete list of pieces shared across all 9 editors. Live under
 |---|---|
 | `<ModalFrame>` | Modal chrome — header (title + actions slot), scrollable body slot. Used as the default host for each editor. |
 | `<EditorActions>` | Save / Cancel / Delete button row. Lives at the **top** of the modal (in `<ModalFrame>`'s actions slot), not the footer. Reachable without scrolling on tall forms. |
-| `<Section>` | Accordion container chrome — `<details>` + summary + body. Used to wrap Content / Classification / Housekeeping sections. |
+| `<EditorTabs>` + `<TabPanel>` | Tab strip + panel switcher used inside an editor's left pane to break Content / Classification / Housekeeping into three side-by-side tabs instead of one long vertical scroll. Hidden panels stay in the DOM (HTML `hidden` attribute) so form fields still submit. Tabs carry an `incomplete` flag for the red-dot indicator on missing required fields. An automatic "Next: <label> →" button at the bottom of each non-final panel guides first-time curators through the sequence. |
+| `<Section>` | Accordion container chrome — `<details>` + summary + body. Not used by the editor body anymore (the editor uses `<EditorTabs>`); reserved for stacked-group needs in wrappers (e.g. case-study chart-tab editors). |
 | `<StemField>` | The "Stem *" textarea. Same id, same label, same hint on every type. The cloze editor reads from it by id, so the atom emits `id="bank-stem"` once. |
 | `<InstructionField>` | Optional 2-row instruction textarea above the stem. |
 | `<RationaleFields>` | Overall rationale textarea + rationale image URL input. Always paired. |
@@ -197,21 +198,32 @@ export function McqEditorBody({ initial, onSave }) {
 
       <div className="auth-split">
         <div className="auth-edit">
-          <Section title="Content" open>
-            <InstructionField     value={instruction} onChange={setInstruction} />
-            <StemField            value={stem}        onChange={setStem} />
-            <McqOptionList        options={options}   correctId={correctId}
-                                  onChange={(o, id) => { setOptions(o); setCorrectId(id); }} />
-            <RationaleFields      defaults={initial} />
-          </Section>
+          <EditorTabs
+            tabs={[
+              { id: 'content',        label: 'Content',        incomplete: contentIncomplete },
+              { id: 'classification', label: 'Classification', incomplete: !category },
+              { id: 'housekeeping',   label: 'Housekeeping' },
+            ]}
+            active={tab}
+            onChange={setTab}
+          >
+            <TabPanel id="content">
+              <InstructionField     value={instruction} onChange={setInstruction} />
+              <StemField            value={stem}        onChange={setStem} />
+              <McqOptionList        options={options}   correctId={correctId}
+                                    onChange={(o, id) => { setOptions(o); setCorrectId(id); }} />
+              <RationaleFields      defaults={initial} />
+            </TabPanel>
 
-          <Section title="Classification">
-            <ClassificationFields defaults={initial} />
-          </Section>
+            <TabPanel id="classification">
+              <ClassificationFields category={category} onCategoryChange={setCategory}
+                                    defaults={initial} />
+            </TabPanel>
 
-          <Section title="Housekeeping">
-            <HousekeepingFields   mode={initial.mode} defaults={initial} />
-          </Section>
+            <TabPanel id="housekeeping">
+              <HousekeepingFields   mode={initial.mode} defaults={initial} />
+            </TabPanel>
+          </EditorTabs>
         </div>
 
         <div className="auth-preview">
@@ -241,10 +253,13 @@ export function McqEditor({ initial, onSave, onClose }) {
 
 ### What this means in plain English
 
-- Stem, instruction, options, and correct-id are **controlled state**
-  (`useState`) because the live preview needs to re-render on every
-  keystroke. Classification and housekeeping fields stay uncontrolled
-  (form-data) because they don't appear in the preview.
+- Stem, instruction, options, correct-id, and the active tab are
+  **controlled state** (`useState`) because the live preview re-renders
+  on every keystroke and the tab strip needs to know which panel to
+  show. The Client Needs **category** is also lifted up so the tab
+  strip can show a red-dot indicator when it's empty. Other
+  classification fields and housekeeping fields stay uncontrolled
+  (form-data) — they're optional and don't appear in the preview.
 - The body owns the form. The host (`<McqEditor>`) is just modal
   chrome around the body.
 - Bank list mounts `<McqEditor>`. Wrappers mount `<McqEditorBody>`

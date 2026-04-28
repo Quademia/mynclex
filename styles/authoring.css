@@ -243,7 +243,112 @@
 }
 
 /* ─────────────────────────────────────────────────────
+ * Editor tabs (replaces the stacked accordions inside an
+ * editor's left pane). Three tabs side-by-side at the top,
+ * only the active panel renders visibly; hidden panels keep
+ * their form fields in the DOM via the `hidden` attribute
+ * so values still submit on Save.
+ * ───────────────────────────────────────────────────── */
+
+.auth-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.auth-tabs-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.auth-tab {
+  background: transparent;
+  border: none;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: inherit;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.auth-tab:hover {
+  color: var(--text);
+  background: var(--bg);
+}
+.auth-tab--active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.auth-tab-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--danger);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.auth-tabs-panels {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: 18px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* TabPanel uses the HTML `hidden` attribute (= display:none) so we
+ * don't need our own visibility CSS — but force flex layout on the
+ * panel that IS visible so its children stack consistently. */
+.auth-tabs-panels > [role='tabpanel']:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-tabs-next {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 18px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--white);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  margin-top: -1px;
+}
+
+/* Visually-hidden text used to announce tab incompleteness to screen
+ * readers without exposing the dot's text to sighted users. */
+.auth-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ─────────────────────────────────────────────────────
  * Section accordion
+ * (no longer used by the editor body — kept for wrapper
+ * pages and any future stacked-section needs.)
  * ───────────────────────────────────────────────────── */
 
 .auth-section {
