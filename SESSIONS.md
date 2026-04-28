@@ -6,6 +6,216 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-29 (Questions-and-wrappers rebuild — slices 4, 5, 6, 7 + dual-mode preview infrastructure + slice plan re-org)
+
+Continued the rebuild from the slice 1-3 foundation. Family A
+completed (SATA, SELECT_N) and Family B started (MATRIX, BOWTIE).
+Slice 7 also introduced the dual-mode preview pattern
+(`<PreviewToggle>` Student / Answer key) and wired it into BOWTIE.
+The slice plan was re-organised at end of day to fold the dual-mode
+preview migration into the build order as its own slice (now
+slice 11), bumping the wrappers and swap to 12 / 13 / 14.
+
+Four commits on `origin/main` over the day:
+
+```
+e7bba70 authoring: slice 7 — BOWTIE editor + dual-mode preview
+f0b3f5a authoring: slice 6 — MATRIX editor
+484f80a authoring: slice 5 — SELECT_N editor
+18b03b0 authoring: slice 4 — SATA editor
+```
+
+Plus a closing doc commit (this session log + slice plan re-org).
+
+### Slice 4 — SATA editor (commit `18b03b0`)
+
+Multi-select variant of MCQ. Three new files + dispatch wiring:
+
+- `lib/authoring/parsers/sata.ts` — vendored from
+  `lib/bank/parsers/sata.ts`. `correct.answers` is a string array
+  (vs MCQ's scalar `correct.answer`).
+- `lib/authoring/editors/sata-row-mapper.ts` — `SataEditorInitial`
+  has `correct_ids: string[]`. `SataDbRow = Omit<McqDbRow,'correct'>`
+  + sata-shaped JSONB. Same DB table as MCQ; only JSONB differs.
+- `lib/authoring/editors/sata-editor.tsx` — body + host + private
+  `SataOptionList` (checkboxes, name="correct_id" emits one value
+  per ticked box) + private `SataPreview` (square checkboxes
+  pre-submit, hint reads "Tick all correct").
+
+Dispatch: `parseQuestionFormData` switch promoted from MCQ/TF
+ternary to a switch with a SATA case. SUPPORTED_TYPES set widened.
+Picker + bank-list-v2-client + both v2 pages all gain SATA. New
+CSS rule `.auth-preview-checkbox` (square sibling of the existing
+`.auth-preview-radio`).
+
+Slice plan §13 ticked. Browser-tested on admin + tutor surfaces.
+
+### Slice 5 — SELECT_N editor (commit `484f80a`)
+
+SATA + a curator-picked count. Same template as slice 4:
+
+- `lib/authoring/parsers/select-n.ts` — vendored. Takes a
+  `selectCount` argument; rejects a save where
+  `correctIds.length !== selectCount` or count is out of bounds.
+- `lib/authoring/editors/select-n-row-mapper.ts` —
+  `SelectNEditorInitial` adds `select_count: number` (default 2).
+  `SelectNDbRow` overrides BOTH `content` and `correct` because
+  `content.select_count` lives in the JSONB.
+- `lib/authoring/editors/select-n-editor.tsx` — `SataOptionList`
+  shape but the hint reads "Tick exactly N". A new private
+  `SelectNCountField` (number input, name="select_count") sits
+  below the option list; clamped client-side to
+  `[1, optionsWithText]`, re-validated server-side. Preview adds
+  a "Select exactly **N**." line above the option list.
+
+Dispatch reads `select_count` from form data and passes it to
+`parseSelectN`. Picker + client + pages updated. CSS adds
+`.auth-input--num` (90px width modifier) + `.auth-preview-select-n`.
+Browser-tested.
+
+### Slice 6 — MATRIX editor (commit `f0b3f5a`)
+
+First non-list-shape editor. Custom HTML `<table>` grid with
+editable corner (row label), editable column headers, editable
+row headers, a radio per cell, per-row feedback strip beneath.
+Form-data contract is more elaborate:
+
+- `matrix_row_label` — single value
+- `matrix_row_id[]` / `matrix_row_text[]` / `matrix_row_feedback[]`
+- `matrix_col_id[]` / `matrix_col_text[]`
+- `matrix_correct_<rowId>` — radio name with **dynamic per-row
+  name**. The save action loops over `matrix_row_id` to know
+  which row IDs to read picks for.
+
+Files: parser vendored, `matrix-row-mapper.ts` with
+`MatrixEditorInitial` carrying rows/columns/correct + per-row
+feedback inlined into rows, `matrix-editor.tsx` with private
+`MatrixGrid` + private `MatrixPreview`. Auto-numbered IDs
+(r1/r2…, c1/c2…) scan for the lowest unused. Removing a column
+that has correct picks cleans them up.
+
+CSS block ~150 lines: wrap, table cells, corner/col/row inputs,
+cell radios, feedback row, bounds footer, plus
+`.auth-matrix-preview-*` read-only twins. **Horizontal-scroll
+fix**: wrap uses `overflow-x: auto` instead of the legacy's
+`overflow: hidden`. Sam caught the bug while testing — added
+columns past 4 were getting clipped invisibly. Fix scoped to
+the new tree per the slice-13-deletes-it rule.
+
+Browser-tested. Slice 6 includes a follow-up CSS tweak that
+better-grounded the preview cell radio (18×18 with a halo).
+
+### Slice 7 — BOWTIE editor + dual-mode preview (commit `e7bba70`)
+
+The big one — the most elaborate single editor and the
+introduction of the dual-mode preview pattern.
+
+**BOWTIE editor.** Three independent wings (Left / Centre /
+Right), each with its own label and own token pool. Tab-based
+wing switching (only one wing's panel renders at a time). Tabs
+carry status dots (green / amber / red) based on per-wing
+validity. Capacity rules:
+
+- Left: pick exactly 2 (checkbox semantics, soft cap auto-unticks
+  the oldest when ticking a 3rd).
+- Centre: pick exactly 1 (radio semantics).
+- Right: pick exactly 2 (same as left).
+
+Token IDs prefixed `lt`/`ct`/`rt` for global uniqueness. The
+parser re-validates capacity strictly. A `HiddenSerialisers`
+component renders hidden inputs for ALL three wings regardless
+of which tab is active so inactive wings' state survives a save.
+
+Wing-label input is a preset-`<select>` + free-text-`<input>`
+combo: selecting a preset fills the input; typing a custom value
+flips the select to "Custom…".
+
+Form-data contract (per wing):
+
+- `bowtie_<wing>_label` — single value
+- `bowtie_<wing>_token_id[]` / `..._text[]` / `..._feedback[]`
+- `bowtie_left_correct[]` / `bowtie_right_correct[]` — repeated
+  checkbox values, only emitted for ticked tokens
+- `bowtie_centre_correct` — single radio value
+
+Save dispatch uses a small `readWing(wing)` helper to assemble
+the per-wing `BowtieWingInput` payload and calls `parseBowtie`.
+
+**Dual-mode preview pattern.** New shared atom
+`<PreviewToggle>` — two pills (Student / Answer key) at the top-
+right of an `auth-preview-card-header`. Arrow-key navigation
+supported. Wired only into BOWTIE this slice; the other five
+already-built editors get the toggle in slice 11.
+
+BOWTIE's two preview modes:
+
+- **Answer-key (default for BOWTIE)** — chips view, 3 columns,
+  filled coloured chips for correct picks, "(not yet picked)"
+  placeholders for empty slots.
+- **Student** — matches `docs/product-plan/mockups/ngn-primer.html`
+  §4. Drawer of all tokens jumbled at the top (neutral chip
+  styling, label "Drag tokens from here"), bow-tie diagram below
+  with empty dashed-border slot placeholders (2 / 1 / 2). The
+  curator sees what the student starts with pre-submit.
+
+A schema clarification surfaced in design discussion: the wing
+prefix in token IDs is unique-id hygiene only, NOT runtime wing-
+routing. Per-slot scoring is identity-based: slot S is correct
+iff the placed token-id is in `correct[S]`. Cross-wing
+misplacement is always wrong by construction (left correct
+tokens never appear in `correct.right`). This means the future
+runner can render the canonical NGN unified-pool drag UI without
+any schema change — captured as a permanent note in the slice 7
+commit message.
+
+CSS additions ~280 lines: tabs, wing cards (green/amber/red
+inline because they're semantic to NCLEX bow-tie), token rows,
+label-picker preset+custom combo, answer-key chip grid, and the
+new student-view drawer + empty-slot layout. Plus the toggle
+infrastructure (`auth-preview-card-header`,
+`auth-preview-toggle-pill`).
+
+### Slice plan re-organisation (closing doc commit)
+
+End of day, with the dual-mode preview now an established pattern
+on BOWTIE, the slice plan was re-organised:
+
+- Slices 8 (CLOZE), 9 (HIGHLIGHT), 10 (DRAG_DROP) acceptance
+  criteria each gained a bullet: "preview ships with the dual-
+  mode toggle from day one". They get both views from the start.
+- A new **slice 11 — Dual-mode preview migration** was inserted
+  between slice 10 and the wrappers. Its scope: back-fill the
+  toggle into MCQ, TF, SATA, SELECT_N, MATRIX so every editor
+  has the same shape. Pure mechanical change, no editor-logic
+  risk.
+- Old slices 11 / 12 / 13 (Case Study / Trend / Swap) renumbered
+  to 12 / 13 / 14 to preserve the swap-is-last invariant. 14
+  slices total now.
+
+Status: 7 of 14 done.
+
+### Sandbox testing flow during the day
+
+The dev server (`npm run dev`) ran on `localhost:3000` for the
+whole session. Slice 4 first hit a Supabase-credentials error
+because `.env.local` was missing in the worktree (gitignored, so
+`git worktree add` doesn't carry it). One-time fix: copied
+`.env.local` from the main checkout into the worktree path.
+Subsequent slices used the same dev server with auto-recompile.
+
+### What's queued for next session
+
+- **Slice 8 — CLOZE editor.** Sentence-with-blanks (`{N}` markers
+  in the stem) with per-blank choice lists. Markers auto-renumber
+  on save (`{1} {3}` → `{1} {2}`). Per-choice feedback is nested
+  by blank then by choice. Ships with the dual-mode toggle from
+  day one.
+- After CLOZE: HIGHLIGHT (slice 9), DRAG_DROP (slice 10),
+  Dual-mode migration (slice 11), wrappers (slices 12-13), Swap
+  (slice 14).
+
+---
+
 ## Session — 2026-04-28 (Questions-and-wrappers rebuild — slices 1, 2, 3 + foundations + lib/bank decouple)
 
 Started from scratch after the prior rebuild attempt was reverted at the

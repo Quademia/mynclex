@@ -36,7 +36,7 @@ Last updated: 2026-04-28 (initial draft)
    (e.g. "Question Bank (v2)") so it's obvious which is which.
 5. **Old code is untouched until the swap.** Production curation
    keeps using the existing `/admin/bank/all`, `/admin/bank/cases/...`,
-   `/admin/bank/trends/...` until slice 13 flips the switch.
+   `/admin/bank/trends/...` until slice 14 flips the switch.
 6. **One slice = one mergeable commit (or two).** If a slice gets
    too fat in practice, split it inline — don't try to ship a
    half-functional one.
@@ -62,9 +62,10 @@ Last updated: 2026-04-28 (initial draft)
 | 8 | CLOZE editor | Admin + Tutor | M |
 | 9 | HIGHLIGHT editor | Admin + Tutor | M |
 | 10 | DRAG_DROP editor | Admin + Tutor | M |
-| 11 | Case Study wrapper-v2 | Admin + Tutor | **L** |
-| 12 | Trend wrapper-v2 | Admin + Tutor | **L** |
-| 13 | Swap — delete old, drop `-v2` suffix | Both | M |
+| 11 | Dual-mode preview migration (MCQ/TF/SATA/SELECT_N/MATRIX) | Admin + Tutor | M |
+| 12 | Case Study wrapper-v2 | Admin + Tutor | **L** |
+| 13 | Trend wrapper-v2 | Admin + Tutor | **L** |
+| 14 | Swap — delete old, drop `-v2` suffix | Both | M |
 
 Size key: S = small (one editor file, no new atoms); M = moderate
 (new editor with non-trivial structure or first introduction of a
@@ -170,7 +171,7 @@ down all foundational pieces subsequent editor slices reuse.
 
 - Other 8 question types (still disabled in picker).
 - Wrappers (case-linked / trend-linked rows are filtered out of the
-  v2 bank list for now — they're wrapper-only until slices 11–12).
+  v2 bank list for now — they're wrapper-only until slices 12–13).
 - Swap.
 
 **Acceptance.**
@@ -376,6 +377,10 @@ v2 per `bank.md`). Same as slice 2.
 - Marker gaps auto-renumber on save.
 - Edit prefills blanks, choices, correct map.
 - Preview renders the sentence with `<select>` placeholders inline.
+- Preview ships with the dual-mode toggle (Student / Answer key)
+  using the shared `<PreviewToggle>` atom from slice 7. Default
+  view: student. Answer-key view highlights the correct choice in
+  each blank's dropdown.
 
 ---
 
@@ -409,6 +414,10 @@ to mark findings.
 - Multi-select correct works.
 - Preview renders the passage with chunks visually distinguished
   but not interactive in the preview.
+- Preview ships with the dual-mode toggle (Student / Answer key)
+  using the shared `<PreviewToggle>` atom from slice 7. Default
+  view: student. Answer-key view highlights the correct chunks in
+  the passage.
 
 ---
 
@@ -443,10 +452,90 @@ pre-submit; no actual dragging required). Same as slice 2.
 - Token reuse rejected (one token can't fill two slots).
 - Edit prefills subtype, slots, tokens, correct map.
 - Preview renders slots and a token pool pre-submit (no drag).
+- Preview ships with the dual-mode toggle (Student / Answer key)
+  using the shared `<PreviewToggle>` atom from slice 7. Default
+  view: student (empty slots + token pool). Answer-key view fills
+  each slot with its correct token.
 
 ---
 
-## Slice 11 — Case Study wrapper-v2
+## Slice 11 — Dual-mode preview migration
+
+**Goal.** Back-fill the Student / Answer-key preview toggle into the
+five editors built before the dual-mode pattern landed: MCQ, TF,
+SATA, SELECT_N, MATRIX. Slices 8-10 ship with the toggle from day
+one; this slice catches up the older editors so every editor has
+the same shape.
+
+**Why a separate slice.** Slice 7 introduced the toggle
+infrastructure (`<PreviewToggle>` atom + `auth-preview-card-header`
+CSS) and wired it into BOWTIE. Doing the back-fill in its own slice
+keeps the diff focused — five editors, all the same mechanical
+change, no editor-logic risk.
+
+**Scope.**
+
+For each of MCQ, TF, SATA, SELECT_N, MATRIX:
+
+- Editor body adds `const [viewMode, setViewMode] = useState<PreviewViewMode>('student')`.
+- The editor's private `<XPreview>` component:
+  - Accepts `viewMode` + `onViewModeChange` props.
+  - Renders an `auth-preview-card-header` containing the existing
+    tag (label flips between "Pre-submit · student view" and
+    "Answer key · curator view") and a `<PreviewToggle>`.
+  - Branches its option/cell rendering on `viewMode`.
+
+Per-editor answer-key rendering:
+
+- **MCQ / TF**: the option `<li>` whose id matches `correct_id` gets
+  an `auth-preview-option-correct` class — green-tinted background,
+  the empty radio is replaced by a filled green radio with a centre
+  dot, and a small "✓ Correct" pill on the right.
+- **SATA / SELECT_N**: same treatment for every option in the
+  `correctIds` set, but with a filled green checkbox (square + ✓)
+  instead of a radio.
+- **MATRIX**: the cell that matches `correct[rowId]` for each row
+  gets `auth-matrix-preview-cell-correct` — green-tinted background
+  with a filled green radio inside; other cells stay empty.
+
+CSS additions in `styles/authoring.css`:
+
+- `.auth-preview-option-correct` — green-tinted option row.
+- `.auth-preview-radio-correct` — filled radio with centre dot.
+- `.auth-preview-checkbox-correct` — filled square with ✓.
+- `.auth-preview-correct-pill` — the "✓ Correct" pill.
+- `.auth-matrix-preview-cell-correct` — matrix answer-key cell.
+
+**Out of scope.**
+
+- Default view per editor: keep `'student'` for all five (matches
+  current pre-submit behaviour and is the most common authoring
+  case). BOWTIE's `'answer-key'` default stays as-is.
+- BOWTIE — already done in slice 7.
+- CLOZE / HIGHLIGHT / DRAG_DROP — already shipped with the toggle
+  (slices 8-10), no work here.
+- Schema or parser changes — none. View mode is local UI state.
+- Wrappers — untouched.
+
+**Acceptance.**
+
+- All six editor types now show the `<PreviewToggle>` at the top-
+  right of the preview card.
+- For each of MCQ/TF/SATA/SELECT_N/MATRIX:
+  - Default view is "Student" (pill highlighted, tag reads
+    "Pre-submit · student view").
+  - Clicking "Answer key" flips the pill, the tag updates, and
+    the correct option(s) / cell(s) become highlighted.
+  - Clicking back to "Student" clears the highlights.
+- Keyboard arrow-key navigation between pills works (via the
+  existing toggle atom).
+- BOWTIE behaviour unchanged from slice 7.
+- Save / edit / delete flows untouched on every editor.
+- `tsc --noEmit`, `eslint`, and `npm run build` all clean.
+
+---
+
+## Slice 12 — Case Study wrapper-v2
 
 **Goal.** Three-pane wrapper page at
 `/admin/bank/cases-v2/[case_id]` and `/tutor/bank/cases-v2/[case_id]`,
@@ -516,7 +605,7 @@ Reuses every editor body built in slices 2–10.
 
 ---
 
-## Slice 12 — Trend wrapper-v2
+## Slice 13 — Trend wrapper-v2
 
 **Goal.** Three-pane wrapper page for trend datasets at
 `/admin/bank/trends-v2/[trend_id]` and tutor twin. Same shape as
@@ -571,7 +660,7 @@ N attached questions.
 
 ---
 
-## Slice 13 — Swap
+## Slice 14 — Swap
 
 **Goal.** Replace old surfaces with the new ones, delete the
 parallel implementation, drop the `-v2` suffix everywhere.
@@ -631,7 +720,7 @@ parallel implementation, drop the `-v2` suffix everywhere.
 
 ---
 
-## §13 Status tracking
+## Slice status tracking
 
 Mark slices complete as we ship them.
 
@@ -641,10 +730,11 @@ Mark slices complete as we ship them.
 - [x] Slice 4 — SATA editor
 - [x] Slice 5 — SELECT_N editor
 - [x] Slice 6 — MATRIX editor
-- [x] Slice 7 — BOWTIE editor
-- [ ] Slice 8 — CLOZE editor
-- [ ] Slice 9 — HIGHLIGHT editor
-- [ ] Slice 10 — DRAG_DROP editor
-- [ ] Slice 11 — Case Study wrapper-v2
-- [ ] Slice 12 — Trend wrapper-v2
-- [ ] Slice 13 — Swap
+- [x] Slice 7 — BOWTIE editor + dual-mode preview infrastructure
+- [ ] Slice 8 — CLOZE editor (with dual-mode preview from day 1)
+- [ ] Slice 9 — HIGHLIGHT editor (with dual-mode preview from day 1)
+- [ ] Slice 10 — DRAG_DROP editor (with dual-mode preview from day 1)
+- [ ] Slice 11 — Dual-mode preview migration (MCQ/TF/SATA/SELECT_N/MATRIX)
+- [ ] Slice 12 — Case Study wrapper-v2
+- [ ] Slice 13 — Trend wrapper-v2
+- [ ] Slice 14 — Swap
