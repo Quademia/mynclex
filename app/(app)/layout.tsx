@@ -19,6 +19,7 @@ import '@/styles/tokens.css';
 import '@/styles/dashboards.css';
 import '@/styles/shell.css';
 import '@/styles/nav.css';
+import '@/styles/authoring.css';
 
 export const dynamic = 'force-dynamic';
 

@@ -53,6 +53,9 @@ export const ADMIN_NAV: NavItem[] = [
   { key: 'announcements', label: 'Announcements',       icon: 'alert',    href: '/admin/announcements', permission: 'COMMS_MANAGE' },
   { key: 'permissions',   label: 'Admin Permissions',   icon: 'shield',   href: '/admin/permissions',   permission: 'SUPER_ADMIN' },
   { key: 'config',        label: 'System Config',       icon: 'settings', href: '/admin/config',        permission: 'SYSTEM_MANAGE' },
+  // Temporary entry for the questions-and-wrappers rebuild sandbox.
+  // Removed in Slice 13 (the swap) along with /admin/sandbox/.
+  { key: 'authoring-sandbox', label: 'Authoring sandbox', icon: 'edit', href: '/admin/sandbox/authoring', permission: 'BANK_CURATE' },
 ];
 
 /**
