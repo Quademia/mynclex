@@ -1238,6 +1238,328 @@
 }
 .auth-matrix-bounds strong { color: var(--text); font-weight: 700; }
 
+/* ─────────────────────────────────────────────────────
+ * Preview-card header + toggle (Slice 7)
+ *
+ * The toggle sits at the top-right of the preview card. Currently
+ * only BOWTIE renders it; the other editors will gain it in a
+ * follow-up slice.
+ * ───────────────────────────────────────────────────── */
+
+.auth-preview-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.auth-preview-toggle {
+  display: inline-flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px;
+}
+
+.auth-preview-toggle-pill {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 4px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+.auth-preview-toggle-pill:hover { color: var(--text); }
+.auth-preview-toggle-pill-active {
+  background: var(--white);
+  color: var(--primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.auth-preview-toggle-pill-active:hover { color: var(--primary); }
+
+/* ─────────────────────────────────────────────────────
+ * Bow-tie editor (Slice 7)
+ *
+ * Wing colour palette (kept inline because they're semantic to
+ * NCLEX bow-tie scoring, not generic UI colours):
+ *   Left   = green  (#10b981 / #ecfdf5 / #065f46)
+ *   Centre = amber  (#f59e0b / #fef3c7 / #92400e)
+ *   Right  = red    (#ef4444 / #fee2e2 / #991b1b)
+ * ───────────────────────────────────────────────────── */
+
+/* Tabs */
+.auth-bt-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 0;
+  margin: 8px 0 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.auth-bt-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-bottom: -1px;
+  position: relative;
+  top: 1px;
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.auth-bt-tab:hover { background: var(--white); color: var(--text); }
+.auth-bt-tab:disabled { opacity: 0.55; cursor: not-allowed; }
+.auth-bt-tab-active {
+  background: var(--white);
+  color: var(--primary);
+  border-bottom: 1px solid var(--white);
+  z-index: 1;
+}
+.auth-bt-tab-active.auth-bt-tab-left   { border-top: 3px solid #10b981; }
+.auth-bt-tab-active.auth-bt-tab-centre { border-top: 3px solid #f59e0b; }
+.auth-bt-tab-active.auth-bt-tab-right  { border-top: 3px solid #ef4444; }
+
+.auth-bt-tab-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.auth-bt-tab-dot.auth-bt-ok   { background: var(--success); }
+.auth-bt-tab-dot.auth-bt-warn { background: var(--warning); }
+.auth-bt-tab-dot.auth-bt-err  { background: var(--danger); }
+
+/* Wing panel wrapper */
+.auth-bt-wings-wrap {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  background: var(--white);
+  padding: 18px;
+}
+
+/* Wing card */
+.auth-bt-wing-card {
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+  overflow: hidden;
+}
+.auth-bt-wing-card.auth-bt-wing-left   { border-color: #10b981; }
+.auth-bt-wing-card.auth-bt-wing-centre { border-color: #f59e0b; }
+.auth-bt-wing-card.auth-bt-wing-right  { border-color: #ef4444; }
+
+.auth-bt-wing-head {
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.auth-bt-wing-card.auth-bt-wing-left   .auth-bt-wing-head { background: #ecfdf5; }
+.auth-bt-wing-card.auth-bt-wing-centre .auth-bt-wing-head { background: #fef3c7; }
+.auth-bt-wing-card.auth-bt-wing-right  .auth-bt-wing-head { background: #fee2e2; }
+
+.auth-bt-wing-title { display: flex; flex-direction: column; gap: 2px; }
+.auth-bt-wing-title-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.auth-bt-wing-card.auth-bt-wing-left   .auth-bt-wing-title-label { color: #065f46; }
+.auth-bt-wing-card.auth-bt-wing-centre .auth-bt-wing-title-label { color: #92400e; }
+.auth-bt-wing-card.auth-bt-wing-right  .auth-bt-wing-title-label { color: #991b1b; }
+.auth-bt-wing-title-sub { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+
+.auth-bt-wing-label-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 280px;
+}
+.auth-bt-label-sm {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.auth-bt-label-picker-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px;
+  align-items: center;
+}
+.auth-bt-label-picker-row select,
+.auth-bt-label-picker-row input[type="text"] {
+  padding: 6px 9px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-family: inherit;
+  background: var(--white);
+  color: var(--text);
+}
+.auth-bt-label-picker-row select { font-weight: 600; color: var(--primary); }
+.auth-bt-label-picker-row select:focus,
+.auth-bt-label-picker-row input:focus { outline: none; border-color: var(--accent); }
+
+.auth-bt-wing-counter {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.auth-bt-wing-counter.auth-bt-ok   { color: var(--success); border-color: #bbf7d0; background: #f0fdf4; }
+.auth-bt-wing-counter.auth-bt-warn { color: var(--warning); border-color: #fde68a; background: #fffbeb; }
+.auth-bt-wing-counter.auth-bt-err  { color: var(--danger);  border-color: #fecaca; background: #fef2f2; }
+
+/* Token rows inside a wing */
+.auth-bt-wing-body { padding: 14px 18px 16px; }
+
+.auth-bt-wing-token {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  padding: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  align-items: start;
+}
+.auth-bt-wing-token-correct {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 10px;
+  min-width: 30px;
+}
+.auth-bt-wing-token-correct input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.auth-bt-wing-token-fields { display: flex; flex-direction: column; gap: 6px; }
+
+.auth-bt-wing-add { margin-top: 4px; padding: 0 2px; }
+
+/* Right-pane answer-key preview */
+.auth-bt-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 16px;
+  align-items: center;
+  margin-top: 12px;
+}
+.auth-bt-preview-col { display: flex; flex-direction: column; gap: 8px; }
+.auth-bt-preview-col-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 2px;
+}
+.auth-bt-preview-chip {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  text-align: center;
+  font-weight: 600;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.auth-bt-preview-chip-empty {
+  border: 1.5px dashed var(--border);
+  background: var(--white);
+  color: var(--text-muted);
+  font-style: italic;
+  font-weight: 500;
+}
+.auth-bt-preview-chip-left   { background: #ecfdf5; border: 1.5px solid #10b981; color: #065f46; }
+.auth-bt-preview-chip-centre { background: #fef3c7; border: 1.5px solid #f59e0b; color: #92400e; padding: 10px 14px; }
+.auth-bt-preview-chip-right  { background: #fee2e2; border: 1.5px solid #ef4444; color: #991b1b; }
+
+/* Bow-tie student-view (pre-submit): matches docs/product-plan/
+ * mockups/ngn-primer.html §4. A drawer at the top holds all tokens
+ * in a single neutral pool; the bow-tie diagram below shows the
+ * three column labels with empty slot placeholders (2 / 1 / 2).
+ * No chip colours, no per-token correctness cues — pre-submit. */
+
+.auth-bt-student-drawer {
+  margin-top: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.auth-bt-student-drawer-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.auth-bt-student-drawer-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.auth-bt-student-drawer-empty {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.auth-bt-student-token {
+  display: inline-block;
+  padding: 6px 12px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.auth-bt-student-slot {
+  min-height: 36px;
+  border: 1.5px dashed var(--border);
+  border-radius: 6px;
+  background: var(--white);
+}
+
 /* Read-only preview grid (right pane) */
 .auth-matrix-preview-wrap {
   border: 1px solid var(--border);

@@ -16,8 +16,8 @@
 // revalidatePath; this component then triggers a soft refresh of
 // the page so the list reflects the change without a full reload.
 //
-// Currently MCQ + TF + SATA + SELECT_N + MATRIX are wired
-// (slices 2-6). Filters / search / pagination still deferred.
+// Currently MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE are wired
+// (slices 2-7). Filters / search / pagination still deferred.
 
 'use client';
 
@@ -28,6 +28,7 @@ import { TfEditor, type TfEditorInitial } from '@/lib/authoring/editors/tf-edito
 import { SataEditor, type SataEditorInitial } from '@/lib/authoring/editors/sata-editor';
 import { SelectNEditor, type SelectNEditorInitial } from '@/lib/authoring/editors/select-n-editor';
 import { MatrixEditor, type MatrixEditorInitial } from '@/lib/authoring/editors/matrix-editor';
+import { BowtieEditor, type BowtieEditorInitial } from '@/lib/authoring/editors/bowtie-editor';
 import { QuestionTypePicker } from '@/lib/authoring/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/authoring/classifications';
 
@@ -38,6 +39,7 @@ const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set([
   'SATA',
   'SELECT_N',
   'MATRIX',
+  'BOWTIE',
 ]);
 
 export interface BankListV2RowSummary {
@@ -72,6 +74,10 @@ export interface BankListV2ClientProps {
   matrixInitialsById: Record<string, MatrixEditorInitial>;
   /** Empty initial used when the curator picks MATRIX in create mode. */
   emptyMatrixInitial: MatrixEditorInitial;
+  /** Map of item_id → full editor initial, BOWTIE rows. */
+  bowtieInitialsById: Record<string, BowtieEditorInitial>;
+  /** Empty initial used when the curator picks BOWTIE in create mode. */
+  emptyBowtieInitial: BowtieEditorInitial;
 }
 
 type ModalState =
@@ -93,6 +99,8 @@ export function BankListV2Client({
   emptySelectNInitial,
   matrixInitialsById,
   emptyMatrixInitial,
+  bowtieInitialsById,
+  emptyBowtieInitial,
 }: BankListV2ClientProps) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' });
@@ -267,6 +275,13 @@ export function BankListV2Client({
           onSaved={handleSaved}
         />
       )}
+      {modal.kind === 'editor-create' && modal.type === 'BOWTIE' && (
+        <BowtieEditor
+          initial={emptyBowtieInitial}
+          onClose={handleClose}
+          onSaved={handleSaved}
+        />
+      )}
 
       {/* Edit-mode dispatch — one branch per editable type, gated on
           the matching initials map having a row for the current id. */}
@@ -315,6 +330,16 @@ export function BankListV2Client({
         matrixInitialsById[modal.itemId] && (
           <MatrixEditor
             initial={matrixInitialsById[modal.itemId]}
+            onClose={handleClose}
+            onSaved={handleSaved}
+            onDeleted={handleDeleted}
+          />
+        )}
+      {modal.kind === 'editor-edit' &&
+        modal.type === 'BOWTIE' &&
+        bowtieInitialsById[modal.itemId] && (
+          <BowtieEditor
+            initial={bowtieInitialsById[modal.itemId]}
             onClose={handleClose}
             onSaved={handleSaved}
             onDeleted={handleDeleted}

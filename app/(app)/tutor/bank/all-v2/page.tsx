@@ -42,6 +42,12 @@ import {
   type MatrixDbRow,
   type MatrixEditorInitial,
 } from '@/lib/authoring/editors/matrix-row-mapper';
+import {
+  emptyBowtieInitial,
+  bowtieRowToInitial,
+  type BowtieDbRow,
+  type BowtieEditorInitial,
+} from '@/lib/authoring/editors/bowtie-row-mapper';
 import type { QuestionType } from '@/lib/authoring/classifications';
 
 export const dynamic = 'force-dynamic';
@@ -97,6 +103,7 @@ export default async function TutorBankAllV2Page() {
   const sataInitialsById: Record<string, SataEditorInitial> = {};
   const selectNInitialsById: Record<string, SelectNEditorInitial> = {};
   const matrixInitialsById: Record<string, MatrixEditorInitial> = {};
+  const bowtieInitialsById: Record<string, BowtieEditorInitial> = {};
   for (const row of fullRows) {
     if (row.question_type === 'MCQ') {
       mcqInitialsById[row.item_id] = mcqRowToInitial(row, 'tutor');
@@ -117,6 +124,11 @@ export default async function TutorBankAllV2Page() {
         row as unknown as MatrixDbRow,
         'tutor',
       );
+    } else if (row.question_type === 'BOWTIE') {
+      bowtieInitialsById[row.item_id] = bowtieRowToInitial(
+        row as unknown as BowtieDbRow,
+        'tutor',
+      );
     }
   }
 
@@ -126,7 +138,7 @@ export default async function TutorBankAllV2Page() {
         <header className="auth-list-page-header">
           <h1 className="auth-list-page-title">My Bank (v2)</h1>
           <p className="auth-list-page-subtitle">
-            Questions-and-wrappers rebuild · tutor surface · MCQ + TF + SATA + SELECT_N + MATRIX create/edit/delete
+            Questions-and-wrappers rebuild · tutor surface · MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE create/edit/delete
           </p>
         </header>
 
@@ -143,6 +155,8 @@ export default async function TutorBankAllV2Page() {
           emptySelectNInitial={emptySelectNInitial('tutor')}
           matrixInitialsById={matrixInitialsById}
           emptyMatrixInitial={emptyMatrixInitial('tutor')}
+          bowtieInitialsById={bowtieInitialsById}
+          emptyBowtieInitial={emptyBowtieInitial('tutor')}
         />
       </div>
     </main>

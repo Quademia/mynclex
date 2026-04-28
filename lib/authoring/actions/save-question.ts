@@ -3,8 +3,8 @@
 // Server action for the new authoring tree. Branches on question_type
 // and dispatches to the matching parser (lib/authoring/parsers/<type>.ts)
 // to build content + correct JSONB. Currently supports MCQ (slice 2),
-// TF (slice 3), SATA (slice 4), SELECT_N (slice 5), and MATRIX
-// (slice 6); the remaining 4 types land slice-by-slice (7-10).
+// TF (slice 3), SATA (slice 4), SELECT_N (slice 5), MATRIX (slice 6),
+// and BOWTIE (slice 7); the remaining 3 types land slice-by-slice (8-10).
 //
 // Surface-aware: reads the `surface` hidden input on the form and
 // branches between admin (nclex_bank_items, NCLEX_<TYPE>_NNNNN) and
@@ -37,6 +37,10 @@ import { parseTf } from '@/lib/authoring/parsers/tf';
 import { parseSata } from '@/lib/authoring/parsers/sata';
 import { parseSelectN } from '@/lib/authoring/parsers/select-n';
 import { parseMatrix } from '@/lib/authoring/parsers/matrix';
+import {
+  parseBowtie,
+  type BowtieWingInput,
+} from '@/lib/authoring/parsers/bowtie';
 
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
@@ -109,7 +113,14 @@ async function nextItemId(
 // case per slice (3-10) until every editor is wired in.
 // ─────────────────────────────────────────────────────────────
 
-const SUPPORTED_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N', 'MATRIX']);
+const SUPPORTED_TYPES = new Set<QuestionType>([
+  'MCQ',
+  'TF',
+  'SATA',
+  'SELECT_N',
+  'MATRIX',
+  'BOWTIE',
+]);
 
 interface ParsedQuestion {
   question_type: QuestionType;
@@ -204,6 +215,26 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
           colIds,
           colTexts,
           correctByRow,
+        });
+      }
+      case 'BOWTIE': {
+        const readWing = (
+          wing: 'left' | 'centre' | 'right',
+        ): BowtieWingInput => ({
+          label: String(formData.get(`bowtie_${wing}_label`) ?? ''),
+          tokenIds:       formData.getAll(`bowtie_${wing}_token_id`).map(String),
+          tokenTexts:     formData.getAll(`bowtie_${wing}_token_text`).map(String),
+          tokenFeedbacks: formData.getAll(`bowtie_${wing}_token_feedback`).map(String),
+          // Centre uses a single radio value; left/right post repeated checkbox values.
+          correctIds:
+            wing === 'centre'
+              ? [String(formData.get('bowtie_centre_correct') ?? '')]
+              : formData.getAll(`bowtie_${wing}_correct`).map(String),
+        });
+        return parseBowtie({
+          left:   readWing('left'),
+          centre: readWing('centre'),
+          right:  readWing('right'),
         });
       }
       default:

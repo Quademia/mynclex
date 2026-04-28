@@ -641,7 +641,7 @@ Mark slices complete as we ship them.
 - [x] Slice 4 — SATA editor
 - [x] Slice 5 — SELECT_N editor
 - [x] Slice 6 — MATRIX editor
-- [ ] Slice 7 — BOWTIE editor
+- [x] Slice 7 — BOWTIE editor
 - [ ] Slice 8 — CLOZE editor
 - [ ] Slice 9 — HIGHLIGHT editor
 - [ ] Slice 10 — DRAG_DROP editor
