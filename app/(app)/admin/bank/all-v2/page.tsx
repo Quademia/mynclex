@@ -19,12 +19,10 @@ import {
 } from '@/lib/authoring/bank-list-v2-client';
 import {
   emptyMcqInitial,
-  type McqEditorInitial,
-} from '@/lib/authoring/editors/mcq-editor';
-import {
   mcqRowToInitial,
   MCQ_ROW_COLUMNS,
   type McqDbRow,
+  type McqEditorInitial,
 } from '@/lib/authoring/editors/mcq-row-mapper';
 import type { QuestionType } from '@/lib/bank/classifications';
 

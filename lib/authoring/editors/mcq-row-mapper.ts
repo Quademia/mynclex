@@ -1,15 +1,57 @@
 // mynclex/lib/authoring/editors/mcq-row-mapper.ts
 //
-// Maps a DB row from nclex_bank_items / nclex_tutor_questions into
-// McqEditorInitial. Lives in its own file (not in mcq-editor.tsx)
-// because the editor is a 'use client' module — putting plain
-// server-side helpers there would force any caller into a client
-// context.
+// MCQ DB-row helpers for the new authoring tree. Server pages and
+// server actions import from here; the editor file (mcq-editor.tsx,
+// 'use client') re-exports the type for client-side use.
+//
+// Why this file isn't 'use client':
+//   Server Components that import a non-component (function or
+//   constant) from a 'use client' module trigger Next.js's
+//   client-reference machinery — calling that "function" from a
+//   server render fails at runtime in production builds. Keeping
+//   the row mapper, the empty-initial helper, and the type in a
+//   neutral module means server pages can call them directly
+//   without dragging in the client boundary.
 //
 // Slice 2 ships only MCQ. Subsequent slices add per-type mappers
 // alongside their editors.
 
-import type { McqEditorInitial } from './mcq-editor';
+import { OPTION_LETTERS, DEFAULT_OPTIONS } from '@/lib/bank/classifications';
+import type { HousekeepingMode } from '@/lib/authoring/atoms/housekeeping-fields';
+
+// ─────────────────────────────────────────────────────────────
+// Initial-value shape the MCQ editor accepts. Defined here (not
+// in mcq-editor.tsx) so server-side callers can construct one
+// without crossing the 'use client' boundary.
+// ─────────────────────────────────────────────────────────────
+
+export interface McqEditorInitial {
+  itemId: string | null;
+  surface: 'admin' | 'tutor';
+  mode: HousekeepingMode;
+  instruction: string;
+  stem: string;
+  rationale: string;
+  rationale_img: string;
+  options: { id: string; text: string; feedback: string }[];
+  correct_id: string;
+  client_needs_category: string;
+  client_needs_subcategory: string;
+  nursing_subject: string;
+  body_system: string;
+  topic: string;
+  subtopic: string;
+  difficulty: string;
+  bloom_level: string;
+  tags: string;
+  is_published: boolean;
+  is_free_sample: boolean;
+  is_builder_visible: boolean;
+  marks: number;
+  shuffle_options: boolean;
+  question_ref: string;
+  batch_id: string;
+}
 
 export interface McqDbRow {
   item_id: string;
@@ -45,6 +87,45 @@ export const MCQ_ROW_COLUMNS =
   'nursing_subject, body_system, topic, subtopic, difficulty, bloom_level, ' +
   'tags, is_published, is_free_sample, is_builder_visible, marks, ' +
   'shuffle_options, question_ref, batch_id';
+
+/** Empty initial for a fresh MCQ. Used by the bank-list-v2 "+ New question" flow. */
+export function emptyMcqInitial(surface: 'admin' | 'tutor'): McqEditorInitial {
+  return {
+    itemId: null,
+    surface,
+    mode: 'standalone',
+    instruction: '',
+    stem: '',
+    rationale: '',
+    rationale_img: '',
+    options: defaultOptionRows(),
+    correct_id: '',
+    client_needs_category: '',
+    client_needs_subcategory: '',
+    nursing_subject: '',
+    body_system: '',
+    topic: '',
+    subtopic: '',
+    difficulty: '',
+    bloom_level: '',
+    tags: '',
+    is_published: false,
+    is_free_sample: false,
+    is_builder_visible: true,
+    marks: 1,
+    shuffle_options: true,
+    question_ref: '',
+    batch_id: '',
+  };
+}
+
+function defaultOptionRows(): { id: string; text: string; feedback: string }[] {
+  return Array.from({ length: DEFAULT_OPTIONS }, (_, i) => ({
+    id: OPTION_LETTERS[i],
+    text: '',
+    feedback: '',
+  }));
+}
 
 export function mcqRowToInitial(
   row: McqDbRow,

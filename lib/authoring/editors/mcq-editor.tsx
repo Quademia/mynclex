@@ -38,10 +38,7 @@ import { StemField } from '@/lib/authoring/atoms/stem-field';
 import { InstructionField } from '@/lib/authoring/atoms/instruction-field';
 import { RationaleFields } from '@/lib/authoring/atoms/rationale-fields';
 import { ClassificationFields } from '@/lib/authoring/atoms/classification-fields';
-import {
-  HousekeepingFields,
-  type HousekeepingMode,
-} from '@/lib/authoring/atoms/housekeeping-fields';
+import { HousekeepingFields } from '@/lib/authoring/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/authoring/atoms/hidden-item-inputs';
 import { useSaveAction } from '@/lib/authoring/hooks/use-save-action';
 import {
@@ -52,38 +49,13 @@ import {
   deleteQuestionAction,
   type DeleteResult,
 } from '@/lib/authoring/actions/delete-question';
+import type { McqEditorInitial } from './mcq-row-mapper';
 
-// ─────────────────────────────────────────────────────────────
-// Initial-value shape this editor accepts.
-// ─────────────────────────────────────────────────────────────
-
-export interface McqEditorInitial {
-  itemId: string | null;
-  surface: 'admin' | 'tutor';
-  mode: HousekeepingMode;
-  instruction: string;
-  stem: string;
-  rationale: string;
-  rationale_img: string;
-  options: { id: string; text: string; feedback: string }[];
-  correct_id: string;
-  client_needs_category: string;
-  client_needs_subcategory: string;
-  nursing_subject: string;
-  body_system: string;
-  topic: string;
-  subtopic: string;
-  difficulty: string;
-  bloom_level: string;
-  tags: string;
-  is_published: boolean;
-  is_free_sample: boolean;
-  is_builder_visible: boolean;
-  marks: number;
-  shuffle_options: boolean;
-  question_ref: string;
-  batch_id: string;
-}
+// Re-export the shape so existing client callers can keep importing
+// it from this file. The canonical definition (and the empty-initial
+// constructor) live in mcq-row-mapper.ts so server pages can build
+// one without crossing the 'use client' boundary.
+export type { McqEditorInitial };
 
 // ─────────────────────────────────────────────────────────────
 // McqOptionList — option-list editor (private to this file).
@@ -499,35 +471,4 @@ function defaultOptionRows(): OptionRow[] {
     text: '',
     feedback: '',
   }));
-}
-
-/** Empty initial for a fresh MCQ. Used by the bank-list-v2 "+ New question" flow. */
-export function emptyMcqInitial(surface: 'admin' | 'tutor'): McqEditorInitial {
-  return {
-    itemId: null,
-    surface,
-    mode: 'standalone',
-    instruction: '',
-    stem: '',
-    rationale: '',
-    rationale_img: '',
-    options: defaultOptionRows(),
-    correct_id: '',
-    client_needs_category: '',
-    client_needs_subcategory: '',
-    nursing_subject: '',
-    body_system: '',
-    topic: '',
-    subtopic: '',
-    difficulty: '',
-    bloom_level: '',
-    tags: '',
-    is_published: false,
-    is_free_sample: false,
-    is_builder_visible: true,
-    marks: 1,
-    shuffle_options: true,
-    question_ref: '',
-    batch_id: '',
-  };
 }
