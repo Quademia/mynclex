@@ -1,8 +1,10 @@
 // mynclex/lib/authoring/actions/save-question.ts
 //
-// Server action for the new authoring tree. MCQ-only in slice 2 —
-// subsequent slices add a switch on question_type to handle the other
-// 8 types.
+// Server action for the new authoring tree. Branches on question_type
+// and dispatches to the matching legacy parser
+// (lib/bank/parsers/<type>.ts) to build content + correct JSONB.
+// Currently supports MCQ (slice 2) and TF (slice 3); the remaining
+// 7 types land slice-by-slice (3-10).
 //
 // Surface-aware: reads the `surface` hidden input on the form and
 // branches between admin (nclex_bank_items, NCLEX_<TYPE>_NNNNN) and
@@ -31,6 +33,7 @@ import type {
   BankItemCorrect,
 } from '@/lib/bank/types';
 import { parseMcq } from '@/lib/bank/parsers/mcq';
+import { parseTf } from '@/lib/bank/parsers/tf';
 
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
@@ -99,12 +102,14 @@ async function nextItemId(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Form parsing — MCQ-specific. Mirrors the relevant subset of the
-// legacy parseFormData() in app/(app)/admin/bank/actions.ts.
+// Form parsing — branches per supported question type. Adds one
+// case per slice (3-10) until every editor is wired in.
 // ─────────────────────────────────────────────────────────────
 
-interface ParsedMcq {
-  question_type: 'MCQ';
+const SUPPORTED_TYPES = new Set<QuestionType>(['MCQ', 'TF']);
+
+interface ParsedQuestion {
+  question_type: QuestionType;
   instruction: string | null;
   stem: string;
   rationale: string | null;
@@ -129,10 +134,12 @@ interface ParsedMcq {
   batch_id: string | null;
 }
 
-function parseMcqFormData(formData: FormData): ParsedMcq | { error: string } {
-  const question_type = String(formData.get('question_type') ?? '');
-  if (question_type !== 'MCQ') {
-    return { error: `Unsupported question type "${question_type}" — slice 2 ships MCQ only.` };
+function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: string } {
+  const question_type = String(formData.get('question_type') ?? '') as QuestionType;
+  if (!SUPPORTED_TYPES.has(question_type)) {
+    return {
+      error: `Unsupported question type "${question_type}" — current support: ${[...SUPPORTED_TYPES].join(', ')}.`,
+    };
   }
 
   const stem = String(formData.get('stem') ?? '').trim();
@@ -154,7 +161,12 @@ function parseMcqFormData(formData: FormData): ParsedMcq | { error: string } {
     .map((v) => String(v).trim())
     .filter(Boolean);
 
-  const parsed = parseMcq(optionIds, optionTexts, optionFeedbacks, correctIds);
+  // Per-type content/correct construction. Each branch returns the
+  // matching parser's { content, correct } pair (or an error).
+  const parsed =
+    question_type === 'TF'
+      ? parseTf(optionIds, optionTexts, optionFeedbacks, correctIds)
+      : parseMcq(optionIds, optionTexts, optionFeedbacks, correctIds);
   if (!parsed.ok) return { error: parsed.error };
 
   const subcategory = String(formData.get('client_needs_subcategory') ?? '').trim();
@@ -169,7 +181,7 @@ function parseMcqFormData(formData: FormData): ParsedMcq | { error: string } {
   const marks = Number.isFinite(marksRaw) && marksRaw > 0 ? marksRaw : 1;
 
   return {
-    question_type: 'MCQ',
+    question_type,
     instruction,
     stem,
     rationale: String(formData.get('rationale') ?? '').trim() || null,
@@ -208,7 +220,7 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
   const surface = readSurface(formData);
   const { supabase, user } = await requireBankCurator(surface);
 
-  const parsed = parseMcqFormData(formData);
+  const parsed = parseQuestionFormData(formData);
   if ('error' in parsed) return { ok: false, error: parsed.error };
 
   const cfg = surfaceConfig(surface);

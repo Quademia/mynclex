@@ -637,7 +637,7 @@ Mark slices complete as we ship them.
 
 - [x] Slice 1 — MCQ read-only sandbox
 - [x] Slice 2 — MCQ end-to-end on bank-list-v2
-- [ ] Slice 3 — TF editor
+- [x] Slice 3 — TF editor
 - [ ] Slice 4 — SATA editor
 - [ ] Slice 5 — SELECT_N editor
 - [ ] Slice 6 — MATRIX editor

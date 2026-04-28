@@ -14,7 +14,7 @@ import { useEffect } from 'react';
 import { QUESTION_TYPES, type QuestionType } from '@/lib/bank/classifications';
 
 /** Types that have a working editor in lib/authoring/editors/. */
-const ENABLED_TYPES: ReadonlySet<QuestionType> = new Set(['MCQ']);
+const ENABLED_TYPES: ReadonlySet<QuestionType> = new Set(['MCQ', 'TF']);
 
 interface QuestionTypePickerProps {
   /** Closes the picker without choosing a type. */

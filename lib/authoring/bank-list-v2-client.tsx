@@ -4,25 +4,32 @@
 // twin. Owns the modal stack:
 //
 //   - "+ New question" → opens <QuestionTypePicker>.
-//   - Pick a type → opens the matching editor in create mode (only
-//                   MCQ enabled in slice 2).
+//   - Pick a type → opens the matching editor in create mode.
 //   - "Edit" on a row → opens the matching editor in edit mode with
 //                       the row's full data preloaded.
 //
-// On save / delete, the corresponding server action calls
-// revalidatePath; this component then triggers a soft refresh of the
-// page so the list reflects the change without a full reload.
+// Each new editor adds its own initials map to the props (mcq, tf,
+// …) and a small switch case in the modal stack. No dispatcher —
+// each editor is imported by name; the switch picks which one.
 //
-// Slice 2 ships with no filters, no search, no pagination — just the
-// rows and the CRUD modal flow. Polish lands in a follow-up.
+// On save / delete, the corresponding server action calls
+// revalidatePath; this component then triggers a soft refresh of
+// the page so the list reflects the change without a full reload.
+//
+// Currently MCQ + TF are wired (slices 2-3). Filters / search /
+// pagination still deferred.
 
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { McqEditor, type McqEditorInitial } from '@/lib/authoring/editors/mcq-editor';
+import { TfEditor, type TfEditorInitial } from '@/lib/authoring/editors/tf-editor';
 import { QuestionTypePicker } from '@/lib/authoring/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/bank/classifications';
+
+/** Question types whose editors are wired into bank-list-v2 today. */
+const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set(['MCQ', 'TF']);
 
 export interface BankListV2RowSummary {
   item_id: string;
@@ -36,23 +43,29 @@ export interface BankListV2RowSummary {
 export interface BankListV2ClientProps {
   surface: 'admin' | 'tutor';
   rows: BankListV2RowSummary[];
-  /** Map of item_id → full editor initial. Only MCQ rows populated in slice 2. */
+  /** Map of item_id → full editor initial, MCQ rows. */
   mcqInitialsById: Record<string, McqEditorInitial>;
   /** Empty initial used when the curator picks MCQ in create mode. */
   emptyMcqInitial: McqEditorInitial;
+  /** Map of item_id → full editor initial, TF rows. */
+  tfInitialsById: Record<string, TfEditorInitial>;
+  /** Empty initial used when the curator picks TF in create mode. */
+  emptyTfInitial: TfEditorInitial;
 }
 
 type ModalState =
   | { kind: 'closed' }
   | { kind: 'picker' }
   | { kind: 'editor-create'; type: QuestionType }
-  | { kind: 'editor-edit'; itemId: string };
+  | { kind: 'editor-edit'; itemId: string; type: QuestionType };
 
 export function BankListV2Client({
   surface,
   rows,
   mcqInitialsById,
   emptyMcqInitial,
+  tfInitialsById,
+  emptyTfInitial,
 }: BankListV2ClientProps) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' });
@@ -67,15 +80,15 @@ export function BankListV2Client({
   }
 
   function handlePickType(type: QuestionType) {
-    if (type === 'MCQ') {
-      setModal({ kind: 'editor-create', type: 'MCQ' });
+    if (EDITABLE_TYPES.has(type)) {
+      setModal({ kind: 'editor-create', type });
     }
     // Other types are disabled in the picker — fall through to no-op.
   }
 
-  function handleEditRow(itemId: string) {
+  function handleEditRow(row: BankListV2RowSummary) {
     setFlash(null);
-    setModal({ kind: 'editor-edit', itemId });
+    setModal({ kind: 'editor-edit', itemId: row.item_id, type: row.question_type });
   }
 
   function handleClose() {
@@ -98,12 +111,12 @@ export function BankListV2Client({
     router.refresh();
   }
 
-  // Slice 2 surfaces only MCQ in the picker, but the list shows
-  // every standalone question type that already exists in the bank.
-  // Edit on a non-MCQ row will not open an editor yet — show a
-  // notice instead. Slices 3-10 add the other editors.
+  // Each slice (3-10) flips one type from "uneditable" to "editable"
+  // by adding it to EDITABLE_TYPES + wiring its editor + initials map.
+  // The list still shows rows of every type so the curator sees what's
+  // there; the Edit button just renders disabled for unsupported types.
   function rowEditable(row: BankListV2RowSummary): boolean {
-    return row.question_type === 'MCQ';
+    return EDITABLE_TYPES.has(row.question_type);
   }
 
   return (
@@ -168,7 +181,7 @@ export function BankListV2Client({
                     <button
                       type="button"
                       className="auth-btn auth-btn-ghost auth-btn-sm"
-                      onClick={() => handleEditRow(row.item_id)}
+                      onClick={() => handleEditRow(row)}
                     >
                       Edit
                     </button>
@@ -191,6 +204,7 @@ export function BankListV2Client({
         <QuestionTypePicker onClose={handleClose} onPick={handlePickType} />
       )}
 
+      {/* Create-mode dispatch — one branch per type-picker entry. */}
       {modal.kind === 'editor-create' && modal.type === 'MCQ' && (
         <McqEditor
           initial={emptyMcqInitial}
@@ -198,21 +212,43 @@ export function BankListV2Client({
           onSaved={handleSaved}
         />
       )}
-
-      {modal.kind === 'editor-edit' && mcqInitialsById[modal.itemId] && (
-        <McqEditor
-          initial={mcqInitialsById[modal.itemId]}
+      {modal.kind === 'editor-create' && modal.type === 'TF' && (
+        <TfEditor
+          initial={emptyTfInitial}
           onClose={handleClose}
           onSaved={handleSaved}
-          onDeleted={handleDeleted}
         />
       )}
 
-      {/* Surface noted at the bottom for slice-2 transparency.
-          Removed when -v2 is renamed to canonical at swap time. */}
+      {/* Edit-mode dispatch — one branch per editable type, gated on
+          the matching initials map having a row for the current id. */}
+      {modal.kind === 'editor-edit' &&
+        modal.type === 'MCQ' &&
+        mcqInitialsById[modal.itemId] && (
+          <McqEditor
+            initial={mcqInitialsById[modal.itemId]}
+            onClose={handleClose}
+            onSaved={handleSaved}
+            onDeleted={handleDeleted}
+          />
+        )}
+      {modal.kind === 'editor-edit' &&
+        modal.type === 'TF' &&
+        tfInitialsById[modal.itemId] && (
+          <TfEditor
+            initial={tfInitialsById[modal.itemId]}
+            onClose={handleClose}
+            onSaved={handleSaved}
+            onDeleted={handleDeleted}
+          />
+        )}
+
+      {/* Surface + supported-types note. Removed when -v2 is renamed
+          to canonical at swap time. */}
       <p className="auth-list-footnote">
-        Surface: <code>{surface}</code>. Bank-list-v2 ships with MCQ create/edit/delete.
-        Other types and wrapper rows arrive in slices 3–12.
+        Surface: <code>{surface}</code>. Bank-list-v2 supports{' '}
+        {[...EDITABLE_TYPES].join(' / ')} create/edit/delete. Other
+        types and wrapper rows arrive in later slices.
       </p>
     </>
   );

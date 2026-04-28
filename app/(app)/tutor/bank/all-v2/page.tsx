@@ -19,6 +19,11 @@ import {
   type McqDbRow,
   type McqEditorInitial,
 } from '@/lib/authoring/editors/mcq-row-mapper';
+import {
+  emptyTfInitial,
+  tfRowToInitial,
+  type TfEditorInitial,
+} from '@/lib/authoring/editors/tf-row-mapper';
 import type { QuestionType } from '@/lib/bank/classifications';
 
 export const dynamic = 'force-dynamic';
@@ -70,9 +75,12 @@ export default async function TutorBankAllV2Page() {
   }));
 
   const mcqInitialsById: Record<string, McqEditorInitial> = {};
+  const tfInitialsById: Record<string, TfEditorInitial> = {};
   for (const row of fullRows) {
     if (row.question_type === 'MCQ') {
       mcqInitialsById[row.item_id] = mcqRowToInitial(row, 'tutor');
+    } else if (row.question_type === 'TF') {
+      tfInitialsById[row.item_id] = tfRowToInitial(row, 'tutor');
     }
   }
 
@@ -82,7 +90,7 @@ export default async function TutorBankAllV2Page() {
         <header className="auth-list-page-header">
           <h1 className="auth-list-page-title">My Bank (v2)</h1>
           <p className="auth-list-page-subtitle">
-            Slice 2 of the questions-and-wrappers rebuild · tutor surface · MCQ create/edit/delete
+            Questions-and-wrappers rebuild · tutor surface · MCQ + TF create/edit/delete
           </p>
         </header>
 
@@ -91,6 +99,8 @@ export default async function TutorBankAllV2Page() {
           rows={summaryRows}
           mcqInitialsById={mcqInitialsById}
           emptyMcqInitial={emptyMcqInitial('tutor')}
+          tfInitialsById={tfInitialsById}
+          emptyTfInitial={emptyTfInitial('tutor')}
         />
       </div>
     </main>
