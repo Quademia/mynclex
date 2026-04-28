@@ -136,12 +136,14 @@ The complete list of pieces shared across all 9 editors. Live under
 | `<ClassificationFields>` | The 8 metadata fields — Client Needs category/subcategory cascade, nursing subject, body system, difficulty, topic, subtopic, Bloom level, tags. |
 | `<HousekeepingFields>` | Marks, question ref, batch ID, plus checkboxes (`is_published`, `is_free_sample`, `is_builder_visible`, `shuffle_options`). Mode-aware: standalone shows all four checkboxes; case-child / trend-child contexts hide `is_published` and `is_builder_visible`. |
 | `<HiddenItemInputs>` | The boring hidden inputs — `question_type`, `item_id` (in edit mode), `surface` (admin / tutor). |
+| `<DiscardConfirm>` | Inline confirmation panel rendered at the top of an editor's modal body when the curator tries to close with unsaved edits. Three buttons — Keep editing, Discard changes, Save and close. Driven by `useDirtyGuard`. |
 
 ### Hook
 
 | Atom | What it is |
 |---|---|
 | `useSaveAction()` | Receives the server-action result, displays flash on success, surfaces validation errors. One hook so 9 editors don't each reinvent flash/error handling. |
+| `useDirtyGuard()` | Tracks whether the editor's form has unsaved edits and intercepts close attempts (backdrop click, Escape, ✕ button, Cancel button) so the curator is asked to save / discard / keep editing before losing work. Pairs with `<DiscardConfirm>`. Each editor wires it in with two lines: `onInput={guard.markDirty}` on the form, and `<ModalFrame onClose={guard.requestClose}>`. |
 
 ### Things deliberately NOT shared
 

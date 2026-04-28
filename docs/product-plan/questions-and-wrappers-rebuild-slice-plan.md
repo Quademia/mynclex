@@ -40,6 +40,11 @@ Last updated: 2026-04-28 (initial draft)
 6. **One slice = one mergeable commit (or two).** If a slice gets
    too fat in practice, split it inline — don't try to ship a
    half-functional one.
+7. **Every editor wires the dirty guard.** Each slice 3–10 editor
+   adds two lines: `onInput={guard.markDirty}` on its form, and
+   `onClose={guard.requestClose}` on its modal frame. The hook
+   (`useDirtyGuard`) and confirm panel (`<DiscardConfirm>`) are
+   built once in slice 2's foundation and reused as-is.
 
 ---
 

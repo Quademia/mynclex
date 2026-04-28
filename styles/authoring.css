@@ -1013,3 +1013,38 @@
   gap: 8px;
   justify-content: flex-end;
 }
+
+/* ─────────────────────────────────────────────────────
+ * Discard-changes confirmation panel — fired by the
+ * dirty guard when the curator tries to close with
+ * unsaved edits.
+ * ───────────────────────────────────────────────────── */
+
+.auth-discard-confirm {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.auth-discard-confirm-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #92400e;
+}
+
+.auth-discard-confirm-hint {
+  font-size: 13px;
+  color: #92400e;
+}
+
+.auth-discard-confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}

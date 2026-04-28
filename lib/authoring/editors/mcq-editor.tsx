@@ -40,7 +40,9 @@ import { RationaleFields } from '@/lib/authoring/atoms/rationale-fields';
 import { ClassificationFields } from '@/lib/authoring/atoms/classification-fields';
 import { HousekeepingFields } from '@/lib/authoring/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/authoring/atoms/hidden-item-inputs';
+import { DiscardConfirm } from '@/lib/authoring/atoms/discard-confirm';
 import { useSaveAction } from '@/lib/authoring/hooks/use-save-action';
+import { useDirtyGuard } from '@/lib/authoring/hooks/use-dirty-guard';
 import {
   saveQuestionAction,
   type SaveResult,
@@ -226,6 +228,13 @@ export interface McqEditorBodyProps {
   error: string | null;
   pending: boolean;
   onSubmit: (formData: FormData) => void;
+  /**
+   * Optional. Called from the form's onInput on every keystroke
+   * or input event so the host's dirty guard can flip dirty=true.
+   * No-op when omitted (e.g. when embedded somewhere that doesn't
+   * track dirty state).
+   */
+  onDirty?: () => void;
 }
 
 export function McqEditorBody({
@@ -233,6 +242,7 @@ export function McqEditorBody({
   error,
   pending,
   onSubmit,
+  onDirty,
 }: McqEditorBodyProps) {
   const [tab, setTab] = useState<'content' | 'classification' | 'housekeeping'>('content');
 
@@ -259,7 +269,12 @@ export function McqEditorBody({
   }
 
   return (
-    <form id={FORM_ID} className="auth-form" onSubmit={handleSubmit}>
+    <form
+      id={FORM_ID}
+      className="auth-form"
+      onSubmit={handleSubmit}
+      onInput={onDirty}
+    >
       <HiddenItemInputs type="MCQ" itemId={initial.itemId} surface={initial.surface} />
 
       {error && (
@@ -358,9 +373,24 @@ export function McqEditor({ initial, onClose, onSaved, onDeleted }: McqEditorPro
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteText, setDeleteText] = useState('');
 
+  // Dirty guard — intercepts close attempts when the form has
+  // unsaved edits. Defined first so the save / delete onSuccess
+  // handlers below can call clearDirty() before onClose().
+  const guard = useDirtyGuard({
+    onClose,
+    onSaveAndClose: () => {
+      // Programmatic submit. The form's own onSubmit then fires
+      // useSaveAction.submit which goes through the same path as
+      // clicking Save in the modal header.
+      const form = document.getElementById(FORM_ID);
+      if (form instanceof HTMLFormElement) form.requestSubmit();
+    },
+  });
+
   const save = useSaveAction<SaveResult>(saveQuestionAction, {
     onSuccess: (result) => {
       if (result.ok) {
+        guard.clearDirty();
         onSaved?.({ item_id: result.item_id, created: result.created });
         onClose();
       }
@@ -370,6 +400,9 @@ export function McqEditor({ initial, onClose, onSaved, onDeleted }: McqEditorPro
   const del = useSaveAction<DeleteResult>(deleteQuestionAction, {
     onSuccess: (result) => {
       if (result.ok) {
+        // Delete throws away the row entirely; no point keeping
+        // dirty state alive past this point.
+        guard.clearDirty();
         onDeleted?.(result.item_id);
         onClose();
       }
@@ -405,17 +438,25 @@ export function McqEditor({ initial, onClose, onSaved, onDeleted }: McqEditorPro
   return (
     <ModalFrame
       title={isEdit ? `Edit MCQ — ${initial.itemId}` : 'New MCQ question'}
-      onClose={pending ? () => undefined : onClose}
+      onClose={pending ? () => undefined : guard.requestClose}
       actions={
         <EditorActions
           canDelete={isEdit}
-          pending={pending || confirmingDelete}
-          onCancel={onClose}
+          pending={pending || confirmingDelete || guard.confirming}
+          onCancel={guard.requestClose}
           onDelete={isEdit ? startDelete : undefined}
           formId={FORM_ID}
         />
       }
     >
+      {guard.confirming && (
+        <DiscardConfirm
+          onKeepEditing={guard.keepEditing}
+          onDiscard={guard.discardAndClose}
+          onSaveAndClose={guard.saveAndClose}
+          pending={save.pending}
+        />
+      )}
       {confirmingDelete && (
         <div className="auth-delete-confirm" role="alertdialog" aria-label="Confirm delete">
           <p className="auth-delete-confirm-title">Delete <code>{initial.itemId}</code>?</p>
@@ -456,6 +497,7 @@ export function McqEditor({ initial, onClose, onSaved, onDeleted }: McqEditorPro
         error={error}
         pending={pending}
         onSubmit={save.submit}
+        onDirty={guard.markDirty}
       />
     </ModalFrame>
   );
