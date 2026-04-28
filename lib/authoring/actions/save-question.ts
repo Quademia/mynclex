@@ -3,8 +3,8 @@
 // Server action for the new authoring tree. Branches on question_type
 // and dispatches to the matching parser (lib/authoring/parsers/<type>.ts)
 // to build content + correct JSONB. Currently supports MCQ (slice 2),
-// TF (slice 3), SATA (slice 4), and SELECT_N (slice 5); the remaining
-// 5 types land slice-by-slice (6-10).
+// TF (slice 3), SATA (slice 4), SELECT_N (slice 5), and MATRIX
+// (slice 6); the remaining 4 types land slice-by-slice (7-10).
 //
 // Surface-aware: reads the `surface` hidden input on the form and
 // branches between admin (nclex_bank_items, NCLEX_<TYPE>_NNNNN) and
@@ -36,6 +36,7 @@ import { parseMcq } from '@/lib/authoring/parsers/mcq';
 import { parseTf } from '@/lib/authoring/parsers/tf';
 import { parseSata } from '@/lib/authoring/parsers/sata';
 import { parseSelectN } from '@/lib/authoring/parsers/select-n';
+import { parseMatrix } from '@/lib/authoring/parsers/matrix';
 
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
@@ -108,7 +109,7 @@ async function nextItemId(
 // case per slice (3-10) until every editor is wired in.
 // ─────────────────────────────────────────────────────────────
 
-const SUPPORTED_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N']);
+const SUPPORTED_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N', 'MATRIX']);
 
 interface ParsedQuestion {
   question_type: QuestionType;
@@ -165,6 +166,9 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
 
   // Per-type content/correct construction. Each branch returns the
   // matching parser's { content, correct } pair (or an error).
+  // MATRIX uses a different form-data contract (rows × columns +
+  // dynamic per-row correct radios) so it builds its own input
+  // payload instead of consuming the option arrays.
   const parsed = (() => {
     switch (question_type) {
       case 'TF':
@@ -180,6 +184,27 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
           correctIds,
           selectCount,
         );
+      }
+      case 'MATRIX': {
+        const rowIds = formData.getAll('matrix_row_id').map(String);
+        const rowTexts = formData.getAll('matrix_row_text').map(String);
+        const rowFeedbacks = formData.getAll('matrix_row_feedback').map(String);
+        const colIds = formData.getAll('matrix_col_id').map(String);
+        const colTexts = formData.getAll('matrix_col_text').map(String);
+        const correctByRow: Record<string, string> = {};
+        for (const rid of rowIds) {
+          const picked = String(formData.get(`matrix_correct_${rid}`) ?? '').trim();
+          if (picked) correctByRow[rid] = picked;
+        }
+        return parseMatrix({
+          row_label: String(formData.get('matrix_row_label') ?? ''),
+          rowIds,
+          rowTexts,
+          rowFeedbacks,
+          colIds,
+          colTexts,
+          correctByRow,
+        });
       }
       default:
         return parseMcq(optionIds, optionTexts, optionFeedbacks, correctIds);

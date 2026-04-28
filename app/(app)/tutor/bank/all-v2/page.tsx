@@ -36,6 +36,12 @@ import {
   type SelectNDbRow,
   type SelectNEditorInitial,
 } from '@/lib/authoring/editors/select-n-row-mapper';
+import {
+  emptyMatrixInitial,
+  matrixRowToInitial,
+  type MatrixDbRow,
+  type MatrixEditorInitial,
+} from '@/lib/authoring/editors/matrix-row-mapper';
 import type { QuestionType } from '@/lib/authoring/classifications';
 
 export const dynamic = 'force-dynamic';
@@ -90,6 +96,7 @@ export default async function TutorBankAllV2Page() {
   const tfInitialsById: Record<string, TfEditorInitial> = {};
   const sataInitialsById: Record<string, SataEditorInitial> = {};
   const selectNInitialsById: Record<string, SelectNEditorInitial> = {};
+  const matrixInitialsById: Record<string, MatrixEditorInitial> = {};
   for (const row of fullRows) {
     if (row.question_type === 'MCQ') {
       mcqInitialsById[row.item_id] = mcqRowToInitial(row, 'tutor');
@@ -105,6 +112,11 @@ export default async function TutorBankAllV2Page() {
         row as unknown as SelectNDbRow,
         'tutor',
       );
+    } else if (row.question_type === 'MATRIX') {
+      matrixInitialsById[row.item_id] = matrixRowToInitial(
+        row as unknown as MatrixDbRow,
+        'tutor',
+      );
     }
   }
 
@@ -114,7 +126,7 @@ export default async function TutorBankAllV2Page() {
         <header className="auth-list-page-header">
           <h1 className="auth-list-page-title">My Bank (v2)</h1>
           <p className="auth-list-page-subtitle">
-            Questions-and-wrappers rebuild · tutor surface · MCQ + TF + SATA + SELECT_N create/edit/delete
+            Questions-and-wrappers rebuild · tutor surface · MCQ + TF + SATA + SELECT_N + MATRIX create/edit/delete
           </p>
         </header>
 
@@ -129,6 +141,8 @@ export default async function TutorBankAllV2Page() {
           emptySataInitial={emptySataInitial('tutor')}
           selectNInitialsById={selectNInitialsById}
           emptySelectNInitial={emptySelectNInitial('tutor')}
+          matrixInitialsById={matrixInitialsById}
+          emptyMatrixInitial={emptyMatrixInitial('tutor')}
         />
       </div>
     </main>

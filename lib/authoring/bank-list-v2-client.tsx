@@ -16,8 +16,8 @@
 // revalidatePath; this component then triggers a soft refresh of
 // the page so the list reflects the change without a full reload.
 //
-// Currently MCQ + TF + SATA + SELECT_N are wired (slices 2-5).
-// Filters / search / pagination still deferred.
+// Currently MCQ + TF + SATA + SELECT_N + MATRIX are wired
+// (slices 2-6). Filters / search / pagination still deferred.
 
 'use client';
 
@@ -27,11 +27,18 @@ import { McqEditor, type McqEditorInitial } from '@/lib/authoring/editors/mcq-ed
 import { TfEditor, type TfEditorInitial } from '@/lib/authoring/editors/tf-editor';
 import { SataEditor, type SataEditorInitial } from '@/lib/authoring/editors/sata-editor';
 import { SelectNEditor, type SelectNEditorInitial } from '@/lib/authoring/editors/select-n-editor';
+import { MatrixEditor, type MatrixEditorInitial } from '@/lib/authoring/editors/matrix-editor';
 import { QuestionTypePicker } from '@/lib/authoring/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/authoring/classifications';
 
 /** Question types whose editors are wired into bank-list-v2 today. */
-const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set(['MCQ', 'TF', 'SATA', 'SELECT_N']);
+const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set([
+  'MCQ',
+  'TF',
+  'SATA',
+  'SELECT_N',
+  'MATRIX',
+]);
 
 export interface BankListV2RowSummary {
   item_id: string;
@@ -61,6 +68,10 @@ export interface BankListV2ClientProps {
   selectNInitialsById: Record<string, SelectNEditorInitial>;
   /** Empty initial used when the curator picks SELECT_N in create mode. */
   emptySelectNInitial: SelectNEditorInitial;
+  /** Map of item_id → full editor initial, MATRIX rows. */
+  matrixInitialsById: Record<string, MatrixEditorInitial>;
+  /** Empty initial used when the curator picks MATRIX in create mode. */
+  emptyMatrixInitial: MatrixEditorInitial;
 }
 
 type ModalState =
@@ -80,6 +91,8 @@ export function BankListV2Client({
   emptySataInitial,
   selectNInitialsById,
   emptySelectNInitial,
+  matrixInitialsById,
+  emptyMatrixInitial,
 }: BankListV2ClientProps) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' });
@@ -247,6 +260,13 @@ export function BankListV2Client({
           onSaved={handleSaved}
         />
       )}
+      {modal.kind === 'editor-create' && modal.type === 'MATRIX' && (
+        <MatrixEditor
+          initial={emptyMatrixInitial}
+          onClose={handleClose}
+          onSaved={handleSaved}
+        />
+      )}
 
       {/* Edit-mode dispatch — one branch per editable type, gated on
           the matching initials map having a row for the current id. */}
@@ -285,6 +305,16 @@ export function BankListV2Client({
         selectNInitialsById[modal.itemId] && (
           <SelectNEditor
             initial={selectNInitialsById[modal.itemId]}
+            onClose={handleClose}
+            onSaved={handleSaved}
+            onDeleted={handleDeleted}
+          />
+        )}
+      {modal.kind === 'editor-edit' &&
+        modal.type === 'MATRIX' &&
+        matrixInitialsById[modal.itemId] && (
+          <MatrixEditor
+            initial={matrixInitialsById[modal.itemId]}
             onClose={handleClose}
             onSaved={handleSaved}
             onDeleted={handleDeleted}

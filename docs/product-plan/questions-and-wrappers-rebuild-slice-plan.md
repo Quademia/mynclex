@@ -640,7 +640,7 @@ Mark slices complete as we ship them.
 - [x] Slice 3 — TF editor
 - [x] Slice 4 — SATA editor
 - [x] Slice 5 — SELECT_N editor
-- [ ] Slice 6 — MATRIX editor
+- [x] Slice 6 — MATRIX editor
 - [ ] Slice 7 — BOWTIE editor
 - [ ] Slice 8 — CLOZE editor
 - [ ] Slice 9 — HIGHLIGHT editor
