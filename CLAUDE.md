@@ -183,10 +183,6 @@ slice.
 - `mynclex/SESSIONS.md` — running log of work done
 - `mynclex/BUILD_LIST.md` — once it exists, current priorities
 - Recent commits (`git log --oneline -10`)
-- If working on bank authoring (questions, case studies, trends):
-  `docs/product-plan/questions-and-wrappers-rebuild.html` — the
-  rebuild plan that supersedes the current authoring UI (schema,
-  scoring, and data shapes still come from `bank.md`)
 
 ## Explicit Deferrals (Not v1)
 
