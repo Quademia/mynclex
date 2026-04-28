@@ -6,6 +6,306 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-28 (Questions-and-wrappers rebuild — slices 1, 2, 3 + foundations + lib/bank decouple)
+
+Started from scratch after the prior rebuild attempt was reverted at the
+top of the day (`fde8db3`). Architecture re-settled in conversation,
+plan + slice plan drafted, then slices 1, 2, and 3 shipped end-to-end on
+`-v2` URLs alongside the (untouched) legacy `/admin/bank/all` and
+`/tutor/bank/all`. The new authoring tree at `lib/authoring/` is now
+fully self-contained — zero imports from `lib/bank/`.
+
+Eight commits on `origin/main` over the day:
+
+```
+5826978 authoring: vendor classifications, types, parsers from lib/bank/
+effe7ff authoring: slice 3 — TF editor
+e6a26bc authoring: dirty-form guard for editors (slice 2 polish)
+97d11b4 authoring: fix slice 2 SSR crash on -v2 pages
+7035a8a authoring: slice 2 — MCQ end-to-end on bank-list-v2 (admin + tutor)
+50efb3e authoring: switch editor sections from accordions to tabs (slice 1 polish)
+bb4dfa9 authoring: slice 1 — MCQ editor sandbox (read-only)
+eabe7f2 docs: questions-and-wrappers rebuild plan + slice plan
+```
+
+### Architecture re-settled (commit `eabe7f2`)
+
+After the rejected dispatcher pattern, the new architecture locked in
+through conversation. Two docs landed at
+`docs/product-plan/questions-and-wrappers-rebuild.md` (strategic) and
+`questions-and-wrappers-rebuild-slice-plan.md` (build order). Core
+non-negotiables:
+
+- **No dispatcher.** Hosts open editors by name; no shared modal that
+  switches on `question_type`.
+- **Each editor is a true self-contained component.** Body + default
+  modal host. Mountable anywhere; deletable in isolation.
+- **Two-pane edit + pre-submit preview in one file** per editor type.
+- **Wrappers stay as pages**, not modals — three-pane layout (wrapper
+  edit / question edit / combined preview = student view).
+- **Shared atoms, not chooser.** A bank of dumb building blocks
+  (`<ModalFrame>`, `<EditorTabs>`, `<StemField>`, etc.) composed by
+  each editor. No atom decides what type of editor to render.
+- **Parallel build under `lib/authoring/` + `-v2` URLs.** Real surfaces
+  from slice 2; integrate-as-you-go.
+- **Both audiences in lockstep.** Every slice ships admin + tutor.
+- **Swap at slice 13.** Delete the legacy folder cleanly; new tree
+  takes over the canonical URLs.
+
+Slice plan: 13 slices total. Slices 1–3 done; 4–13 outstanding.
+
+### Slice 1 — MCQ read-only sandbox (commit `bb4dfa9`)
+
+First proof of the file shape. Built 9 shared atoms in
+`lib/authoring/atoms/` (modal-frame, editor-actions, section,
+stem-field, instruction-field, rationale-fields, classification-fields,
+housekeeping-fields, hidden-item-inputs) plus the MCQ editor
+(`lib/authoring/editors/mcq-editor.tsx`) — body + private option list +
+private pre-submit preview + default modal host. Sandbox page at
+`/admin/sandbox/authoring` opens the modal against an existing MCQ row,
+read-only (Save / Cancel / Delete buttons render disabled). New
+stylesheet `styles/authoring.css` using the `auth-` prefix. Imported
+once in `app/(app)/layout.tsx`.
+
+### Slice 1 polish — accordions to tabs (commit `50efb3e`)
+
+Sam noticed the three vertically-stacked accordions (Content /
+Classification / Housekeeping) led to a long scroll. Replaced with a
+top tab strip + panel switcher. New atom `<EditorTabs>` + `<TabPanel>`
+(context-driven) under `lib/authoring/atoms/editor-tabs.tsx`. Hidden
+panels stay in the DOM via the HTML `hidden` attribute so form fields
+still submit on Save. Red-dot indicator per tab when its required
+fields are unfilled. Auto "Next: <label> →" button at the bottom of
+each non-final panel. Lifted the Client Needs `category` state out of
+`<ClassificationFields>` up to the editor body so the tab strip can
+flag classification incompleteness.
+
+### Slice 2 — MCQ end-to-end on bank-list-v2 (commit `7035a8a`)
+
+Foundation slice. Built:
+
+- `lib/authoring/actions/save-question.ts` (surface-aware,
+  auto-numbers IDs via `ITEM_ID_PREFIX` / `TUTOR_ITEM_ID_PREFIX`,
+  returns `SaveResult` instead of redirecting because the new path is
+  modal-based, not focus-mode).
+- `lib/authoring/actions/delete-question.ts` (surface-aware hard
+  delete).
+- `lib/authoring/hooks/use-save-action.ts` — generic
+  `useTransition` + error wrapper used by every editor.
+- `lib/authoring/atoms/question-type-picker.tsx` — small modal listing
+  all 9 types; only MCQ enabled in slice 2.
+- `lib/authoring/bank-list-v2-client.tsx` — shared client component
+  that owns the modal stack (closed / picker / editor-create /
+  editor-edit).
+- `app/(app)/admin/bank/all-v2/page.tsx` and tutor twin — server
+  components, fetch standalone rows (`parent_case_id IS NULL AND
+  trend_id IS NULL`), build initials maps, hand off to the client.
+- "All questions (v2)" entries appended under the Bank dropdown in
+  both `lib/nav/admin.ts` and `lib/nav/tutor.ts`.
+- Bank-list, type-picker, and typed-DELETE styles added to
+  `styles/authoring.css`.
+
+MCQ editor refactored: body now receives `error` / `pending` /
+`onSubmit` from its host; host owns the action wiring + the typed-DELETE
+confirmation flow (must type `DELETE` to enable the destructive button).
+`emptyMcqInitial(surface)` helper added.
+
+### Slice 2 SSR crash fix (commit `97d11b4`)
+
+After deploy, both v2 pages errored with "An error occurred in the
+Server Components render" while the slice 1 sandbox still loaded fine.
+
+**Diagnosis path:** schema parity + Supabase API logs both showed the
+data fetches returned 200, so the failure was strictly post-fetch in
+the render phase.
+
+**Root cause:** the v2 pages imported `emptyMcqInitial` (a function)
+from `mcq-editor.tsx`, which carries `'use client'`. Next.js's RSC
+machinery treats every export of a `'use client'` module as a client
+reference. Calling a non-component function from a Server Component
+during RSC render wraps it as a client reference at build time and
+throws at runtime in production. The slice 1 sandbox didn't trip it
+because it only imported the `McqEditorInitial` *type* (erased at
+compile time).
+
+**Fix:** moved the canonical `McqEditorInitial` interface and the
+`emptyMcqInitial` constructor into the existing
+`lib/authoring/editors/mcq-row-mapper.ts` (a neutral, non-`'use client'`
+module). The editor file re-exports the type for backwards
+compatibility so existing client callers (the bank-list-v2 client, the
+sandbox client) didn't need import changes. The v2 pages now import the
+function from the mapper directly.
+
+**Lesson for future slices:** non-component exports from `'use client'`
+modules are client references — keep types and helpers in neutral
+modules whenever a server component might call them. Each editor
+slice 4–10 follows this same split (`<type>-editor.tsx` for the
+component, `<type>-row-mapper.ts` for the type + helpers).
+
+### Slice 2 polish — dirty-form guard (commit `e6a26bc`)
+
+Curators editing a question could lose work to an accidental backdrop
+click, Escape, X, or Cancel after typing. Added a save-or-discard
+guard shared across every editor.
+
+- `lib/authoring/hooks/use-dirty-guard.ts` — tracks dirty state,
+  intercepts close attempts via a `requestClose` handler, drives the
+  confirm panel.
+- `lib/authoring/atoms/discard-confirm.tsx` — inline panel rendered at
+  the top of the modal body when the curator tries to close with
+  unsaved edits. Three buttons: **Keep editing / Discard changes /
+  Save and close**. "Save and close" programmatically submits the form
+  via `requestSubmit()`; the existing `useSaveAction` `onSuccess`
+  closes the modal.
+- MCQ editor wired: form gets `onInput={guard.markDirty}`; modal's
+  `onClose` and Cancel button go through `guard.requestClose`; save
+  + delete `onSuccess` call `guard.clearDirty()` before `onClose`.
+
+Per-editor wiring is two lines per editor — slice plan principle 7
+locks this in for slices 4–10.
+
+### Slice 3 — TF editor (commit `effe7ff`)
+
+True/False as the second editor type — same file shape as MCQ, locked
+True/False options with read-only text and no add/remove buttons.
+
+- `lib/authoring/editors/tf-row-mapper.ts` — `TfEditorInitial` type
+  (structurally identical to MCQ's, kept separate for future
+  divergence), `TF_FIXED_OPTIONS` constant, `emptyTfInitial`,
+  `tfRowToInitial`. Re-uses `McqDbRow` + `MCQ_ROW_COLUMNS` since both
+  question types share the same DB columns.
+- `lib/authoring/editors/tf-editor.tsx` — body + private locked
+  option list + private preview + default modal host. Form-data
+  contract identical to MCQ (`option_id` / `option_text` /
+  `option_feedback` / `correct_id`) so the legacy parser
+  (`parseTf`) accepts the payload unchanged.
+- `lib/authoring/actions/save-question.ts` branched on type:
+  promoted `SUPPORTED_TYPES` to a `Set<QuestionType>`, widened
+  `ParsedQuestion.question_type` to the full `QuestionType` union, and
+  the parser switch now picks `parseMcq` vs `parseTf` per the form's
+  `question_type`.
+- `<QuestionTypePicker>` flipped TF from disabled → enabled.
+- `BankListV2Client` modal stack gained TF branches (create + edit).
+  `EDITABLE_TYPES` set replaces the hard-coded MCQ check; modal-state's
+  `editor-edit` shape now carries `question_type` so the right editor
+  mounts without a row-table lookup.
+- Both v2 pages build `tfInitialsById` alongside `mcqInitialsById` and
+  pass both to the client.
+
+### Vendoring — decouple new tree from `lib/bank/` (commit `5826978`)
+
+Audit during the session caught that `lib/authoring/` was silently
+importing classifications, JSONB shape types, and parsers from
+`lib/bank/`. That coupled the new tree to the legacy tree — at swap
+time (slice 13) the legacy folder couldn't be deleted cleanly without
+breaking the new tree.
+
+Vendored 4 files into `lib/authoring/`:
+
+- `lib/authoring/classifications.ts` — whole-file copy of
+  `lib/bank/classifications.ts`.
+- `lib/authoring/types.ts` — whole-file copy of `lib/bank/types.ts`.
+- `lib/authoring/parsers/mcq.ts` — whole-file copy.
+- `lib/authoring/parsers/tf.ts` — whole-file copy.
+
+Each copy gained a header note documenting the vendoring rationale.
+Internal relative imports (`../classifications`, `../types`) inside
+the parsers resolve to the new local copies without code changes.
+
+Re-pointed every `from '@/lib/bank/...'` import inside `lib/authoring/`
+and the v2 pages to the matching `@/lib/authoring/...` copy. Verified
+by grep — **zero `@/lib/bank/` imports remain anywhere in the new
+tree.**
+
+Strategic plan §7 gained a "Vendoring" sub-section; §9 swap inventory
+expanded to list the legacy `lib/bank/` data-layer files
+(`classifications.ts`, `types.ts`, `parsers/`, `list-view.tsx`,
+`filters.tsx`, etc.) for explicit deletion at swap.
+
+**Pattern for slices 4–10:** each editor slice vendors its own parser
+(`parsers/sata.ts`, `parsers/select-n.ts`, etc.) as part of the slice.
+Keeps the work scoped where it belongs.
+
+**Drift rule while both copies exist (slices 3–12):** schema, taxonomy,
+and parsers are stable per strategic plan §7. If anything genuinely
+needs to change in either copy, update both in the same commit. At
+slice 13 the legacy folder is deleted entirely; drift window closes.
+
+### Tabs / atoms inventory at session end
+
+`lib/authoring/atoms/` (12):
+modal-frame · editor-actions · editor-tabs (+ TabPanel) · section ·
+stem-field · instruction-field · rationale-fields · classification-fields ·
+housekeeping-fields · hidden-item-inputs · question-type-picker ·
+discard-confirm.
+
+`lib/authoring/hooks/` (2):
+use-save-action · use-dirty-guard.
+
+`lib/authoring/actions/` (2):
+save-question · delete-question.
+
+`lib/authoring/editors/` (4):
+mcq-editor · mcq-row-mapper · tf-editor · tf-row-mapper.
+
+Vendored (`lib/authoring/`): classifications · types ·
+parsers/mcq · parsers/tf.
+
+`lib/authoring/bank-list-v2-client.tsx` — modal stack + table.
+
+Surfaces:
+- `/admin/sandbox/authoring` (slice 1, still useful as quick-test)
+- `/admin/bank/all-v2` + `/tutor/bank/all-v2` (slices 2 + 3)
+
+### What's not changing — re-confirmed
+
+- DB schema, RLS policies, scoring functions, `parent_case_id` /
+  `trend_id` linking, classification taxonomy, the 9 question types,
+  the JSONB content/correct shapes — none of it changes per strategic
+  plan §7.
+- The legacy `/admin/bank/all`, `/tutor/bank/all`, `/admin/bank/cases`,
+  `/admin/bank/trends` (and tutor twins) continue serving the old code
+  unchanged — Sam can still curate via the legacy surfaces.
+- `lib/bank/` is untouched apart from being read at start (for the
+  parser shape we vendored).
+
+### Resolved during the session
+
+- **CF dev auto-deploy.** The morning's flag
+  (`memory/project_cf_dev_deploy_broken.md`) noted that pushes to
+  `origin/main` had stopped triggering Workers Build. During the
+  session, every push (8 of them) triggered a build that deployed in
+  minutes; Sam confirmed visually. Flag cleared.
+
+### Outstanding / Next session
+
+**Build order:** slices 4 → 13. Each slice 4–10 follows the same
+template (one editor + its row-mapper + a parser vendor + a one-line
+add to the picker's `ENABLED_TYPES` and the bank list's
+`EDITABLE_TYPES` + an initials map in both pages):
+
+- **Slice 4** — SATA editor (multi-select). Vendor `parsers/sata.ts`.
+- **Slice 5** — SELECT_N (variant of SATA with a count field). Vendor
+  `parsers/select-n.ts`.
+- **Slice 6** — MATRIX (rows × columns grid). Vendor `parsers/matrix.ts`.
+- **Slice 7** — BOWTIE (three-wing). Vendor `parsers/bowtie.ts`.
+- **Slice 8** — CLOZE (sentence with `{N}` blanks). Vendor `parsers/cloze.ts`.
+- **Slice 9** — HIGHLIGHT (passage with `[[chunks]]`). Vendor `parsers/highlight.ts`.
+- **Slice 10** — DRAG_DROP (two subtypes). Vendor `parsers/drag-drop.ts`.
+
+Then:
+- **Slice 11** — Case Study wrapper-v2 (three-pane page; reuses every
+  editor body).
+- **Slice 12** — Trend wrapper-v2 (three-pane page).
+- **Slice 13** — Swap (delete legacy code, drop `-v2` suffix from URLs
+  and nav entries).
+
+Slice plan status tracker is in
+`docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md` §13.
+Slices 1, 2, 3 ticked.
+
+---
+
 ## Session — 2026-04-26 / 2026-04-27 (Database split: MyNclex onto its own Supabase project — Sam + Claude Desktop)
 
 MyNclex's Supabase backend split off from the shared `qacademy-gamma`
