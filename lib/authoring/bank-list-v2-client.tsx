@@ -26,7 +26,7 @@ import { useRouter } from 'next/navigation';
 import { McqEditor, type McqEditorInitial } from '@/lib/authoring/editors/mcq-editor';
 import { TfEditor, type TfEditorInitial } from '@/lib/authoring/editors/tf-editor';
 import { QuestionTypePicker } from '@/lib/authoring/atoms/question-type-picker';
-import type { QuestionType } from '@/lib/bank/classifications';
+import type { QuestionType } from '@/lib/authoring/classifications';
 
 /** Question types whose editors are wired into bank-list-v2 today. */
 const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set(['MCQ', 'TF']);

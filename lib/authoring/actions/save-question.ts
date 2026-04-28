@@ -27,13 +27,13 @@ import {
   ITEM_ID_PREFIX,
   TUTOR_ITEM_ID_PREFIX,
   type QuestionType,
-} from '@/lib/bank/classifications';
+} from '@/lib/authoring/classifications';
 import type {
   BankItemContent,
   BankItemCorrect,
-} from '@/lib/bank/types';
-import { parseMcq } from '@/lib/bank/parsers/mcq';
-import { parseTf } from '@/lib/bank/parsers/tf';
+} from '@/lib/authoring/types';
+import { parseMcq } from '@/lib/authoring/parsers/mcq';
+import { parseTf } from '@/lib/authoring/parsers/tf';
 
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);

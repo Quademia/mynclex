@@ -11,7 +11,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { QUESTION_TYPES, type QuestionType } from '@/lib/bank/classifications';
+import { QUESTION_TYPES, type QuestionType } from '@/lib/authoring/classifications';
 
 /** Types that have a working editor in lib/authoring/editors/. */
 const ENABLED_TYPES: ReadonlySet<QuestionType> = new Set(['MCQ', 'TF']);

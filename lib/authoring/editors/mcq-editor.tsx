@@ -30,7 +30,7 @@ import {
   MIN_OPTIONS,
   MAX_OPTIONS,
   DEFAULT_OPTIONS,
-} from '@/lib/bank/classifications';
+} from '@/lib/authoring/classifications';
 import { ModalFrame } from '@/lib/authoring/atoms/modal-frame';
 import { EditorActions } from '@/lib/authoring/atoms/editor-actions';
 import { EditorTabs, TabPanel } from '@/lib/authoring/atoms/editor-tabs';

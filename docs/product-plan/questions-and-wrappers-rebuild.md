@@ -414,6 +414,28 @@ only**. Everything below stays as built:
   applies. Nothing about cookies, `getClaims()`, per-request
   Supabase clients changes.
 
+### Vendoring (added in slice 3)
+
+The rebuild's data-layer code (classifications, JSONB shape types,
+per-type parsers) is duplicated into `lib/authoring/` rather than
+imported from `lib/bank/`. The new tree must not depend on the
+legacy tree, so that at swap time (slice 13) the legacy folders
+delete cleanly without breaking the new tree.
+
+Vendored copies live at:
+
+- `lib/authoring/classifications.ts` (mirrors `lib/bank/classifications.ts`)
+- `lib/authoring/types.ts` (mirrors `lib/bank/types.ts`)
+- `lib/authoring/parsers/<type>.ts` (mirrors `lib/bank/parsers/<type>.ts`)
+
+Slice 3 vendored only what slices 2 + 3 needed (classifications,
+types, parsers/mcq.ts, parsers/tf.ts). Each subsequent editor slice
+(4–10) vendors its own parser as part of the slice.
+
+While both copies exist (slices 3–12), the data-layer files don't
+change in either copy. If anything genuinely needs to change
+(unlikely per scope above), update both copies in the same commit.
+
 ---
 
 ## 8. Build strategy
@@ -501,16 +523,28 @@ slice. Captured here so future-us doesn't have to hunt:
 
 ### Folders to delete
 
+The new tree is fully self-contained (per §7 Vendoring), so the
+entire `lib/bank/` folder can be deleted at swap time. Listed here
+explicitly so the audit isn't open-ended:
+
 - `lib/bank/editors/` — 9 old type-specific editor files.
+- `lib/bank/parsers/` — 9 old per-type parsers. The new tree owns
+  vendored copies in `lib/authoring/parsers/`.
 - `lib/bank/case-study/` — old case-study wrapper code (8 files).
 - `lib/bank/trend/` — old trend wrapper code (12 files).
 
 ### Files to delete
 
+- `lib/bank/classifications.ts` — the new tree owns
+  `lib/authoring/classifications.ts`.
+- `lib/bank/types.ts` — the new tree owns `lib/authoring/types.ts`.
 - `lib/bank/question-authoring-panel.tsx` — the old shared panel.
+- `lib/bank/list-view.tsx`, `filters.tsx`, `navigator.tsx`,
+  `field-prefix.ts`, `form-shape.ts` — legacy list/UI helpers and
+  combined initial type. The new tree replaces them.
+- `app/(app)/admin/bank/actions.ts` — legacy server actions
+  (the new tree has `lib/authoring/actions/`).
 - `app/(app)/admin/bank/editor-shell.tsx` — old standalone shell.
-- Any old action files only the old editors used (audit at swap
-  time — some may still be needed for historical linking).
 - Old CSS — `styles/bank.css` partials specific to the old
   authoring surface (audit at swap time; bank-list CSS likely
   stays).

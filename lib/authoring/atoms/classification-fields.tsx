@@ -19,7 +19,7 @@ import {
   DIFFICULTY_LEVELS,
   BLOOM_LEVELS,
   type ClientNeedsCategory,
-} from '@/lib/bank/classifications';
+} from '@/lib/authoring/classifications';
 
 interface ClassificationFieldsProps {
   /** Controlled — picks the subcategory option list and exposes the

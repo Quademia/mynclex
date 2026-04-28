@@ -16,7 +16,7 @@
 // Slice 2 ships only MCQ. Subsequent slices add per-type mappers
 // alongside their editors.
 
-import { OPTION_LETTERS, DEFAULT_OPTIONS } from '@/lib/bank/classifications';
+import { OPTION_LETTERS, DEFAULT_OPTIONS } from '@/lib/authoring/classifications';
 import type { HousekeepingMode } from '@/lib/authoring/atoms/housekeeping-fields';
 
 // ─────────────────────────────────────────────────────────────

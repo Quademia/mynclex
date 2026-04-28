@@ -24,7 +24,7 @@ import {
   tfRowToInitial,
   type TfEditorInitial,
 } from '@/lib/authoring/editors/tf-row-mapper';
-import type { QuestionType } from '@/lib/bank/classifications';
+import type { QuestionType } from '@/lib/authoring/classifications';
 
 export const dynamic = 'force-dynamic';
 

@@ -4,7 +4,7 @@
 // (in edit mode only), and surface (admin / tutor). Pulled out so the
 // editor file doesn't restate them.
 
-import type { QuestionType } from '@/lib/bank/classifications';
+import type { QuestionType } from '@/lib/authoring/classifications';
 
 interface HiddenItemInputsProps {
   type: QuestionType;
