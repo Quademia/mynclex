@@ -708,6 +708,16 @@
   background: var(--white);
 }
 
+.auth-preview-select-n {
+  font-size: 13px;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+.auth-input--num {
+  width: 90px;
+}
+
 .auth-preview-letter {
   font-weight: 700;
   color: var(--primary);

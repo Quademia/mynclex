@@ -3,8 +3,8 @@
 // Server action for the new authoring tree. Branches on question_type
 // and dispatches to the matching parser (lib/authoring/parsers/<type>.ts)
 // to build content + correct JSONB. Currently supports MCQ (slice 2),
-// TF (slice 3), and SATA (slice 4); the remaining 6 types land
-// slice-by-slice (5-10).
+// TF (slice 3), SATA (slice 4), and SELECT_N (slice 5); the remaining
+// 5 types land slice-by-slice (6-10).
 //
 // Surface-aware: reads the `surface` hidden input on the form and
 // branches between admin (nclex_bank_items, NCLEX_<TYPE>_NNNNN) and
@@ -35,6 +35,7 @@ import type {
 import { parseMcq } from '@/lib/authoring/parsers/mcq';
 import { parseTf } from '@/lib/authoring/parsers/tf';
 import { parseSata } from '@/lib/authoring/parsers/sata';
+import { parseSelectN } from '@/lib/authoring/parsers/select-n';
 
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
@@ -107,7 +108,7 @@ async function nextItemId(
 // case per slice (3-10) until every editor is wired in.
 // ─────────────────────────────────────────────────────────────
 
-const SUPPORTED_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA']);
+const SUPPORTED_TYPES = new Set<QuestionType>(['MCQ', 'TF', 'SATA', 'SELECT_N']);
 
 interface ParsedQuestion {
   question_type: QuestionType;
@@ -170,6 +171,16 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
         return parseTf(optionIds, optionTexts, optionFeedbacks, correctIds);
       case 'SATA':
         return parseSata(optionIds, optionTexts, optionFeedbacks, correctIds);
+      case 'SELECT_N': {
+        const selectCount = parseInt(String(formData.get('select_count') ?? ''), 10);
+        return parseSelectN(
+          optionIds,
+          optionTexts,
+          optionFeedbacks,
+          correctIds,
+          selectCount,
+        );
+      }
       default:
         return parseMcq(optionIds, optionTexts, optionFeedbacks, correctIds);
     }

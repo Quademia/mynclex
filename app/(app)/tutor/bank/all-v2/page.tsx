@@ -30,6 +30,12 @@ import {
   type SataDbRow,
   type SataEditorInitial,
 } from '@/lib/authoring/editors/sata-row-mapper';
+import {
+  emptySelectNInitial,
+  selectNRowToInitial,
+  type SelectNDbRow,
+  type SelectNEditorInitial,
+} from '@/lib/authoring/editors/select-n-row-mapper';
 import type { QuestionType } from '@/lib/authoring/classifications';
 
 export const dynamic = 'force-dynamic';
@@ -83,6 +89,7 @@ export default async function TutorBankAllV2Page() {
   const mcqInitialsById: Record<string, McqEditorInitial> = {};
   const tfInitialsById: Record<string, TfEditorInitial> = {};
   const sataInitialsById: Record<string, SataEditorInitial> = {};
+  const selectNInitialsById: Record<string, SelectNEditorInitial> = {};
   for (const row of fullRows) {
     if (row.question_type === 'MCQ') {
       mcqInitialsById[row.item_id] = mcqRowToInitial(row, 'tutor');
@@ -91,6 +98,11 @@ export default async function TutorBankAllV2Page() {
     } else if (row.question_type === 'SATA') {
       sataInitialsById[row.item_id] = sataRowToInitial(
         row as unknown as SataDbRow,
+        'tutor',
+      );
+    } else if (row.question_type === 'SELECT_N') {
+      selectNInitialsById[row.item_id] = selectNRowToInitial(
+        row as unknown as SelectNDbRow,
         'tutor',
       );
     }
@@ -102,7 +114,7 @@ export default async function TutorBankAllV2Page() {
         <header className="auth-list-page-header">
           <h1 className="auth-list-page-title">My Bank (v2)</h1>
           <p className="auth-list-page-subtitle">
-            Questions-and-wrappers rebuild · tutor surface · MCQ + TF + SATA create/edit/delete
+            Questions-and-wrappers rebuild · tutor surface · MCQ + TF + SATA + SELECT_N create/edit/delete
           </p>
         </header>
 
@@ -115,6 +127,8 @@ export default async function TutorBankAllV2Page() {
           emptyTfInitial={emptyTfInitial('tutor')}
           sataInitialsById={sataInitialsById}
           emptySataInitial={emptySataInitial('tutor')}
+          selectNInitialsById={selectNInitialsById}
+          emptySelectNInitial={emptySelectNInitial('tutor')}
         />
       </div>
     </main>
