@@ -5034,9 +5034,165 @@ all six", "Q3 has no CJMM step selected") that catch authoring
 errors before publish. Unblocks clean authoring before the
 student runner is built.
 
-## 2026-04-27 — Stage 3 prod bootstrap (placeholder)
+## 2026-04-27 → 2026-04-28 — Prod environment + automated migration pipeline
 
-Prod Supabase (`dehspjcfmhoshcdtsmjq`) bootstrapped via MCP.
-Verification counts match dev: 14 tables, 13 RLS-enabled,
-29 policies, 10 `nclex_*` functions. Full end-of-session log
-to be expanded once Stages 4–10 are complete.
+Closed out the prod-setup plan that had been paused mid-execution.
+By the end of the session prod is fully wired, isolated from dev,
+and reachable at `mynclex.qacademynurses.workers.dev` with its own
+Supabase project (`dehspjcfmhoshcdtsmjq`). Future releases are now
+a one-step `merge main → prod, push` operation that auto-deploys
+the Cloudflare Worker and applies any new database migrations in
+parallel.
+
+### MCP wiring across all 6 Supabase projects
+
+Before any prod work could happen, the session connected Claude to
+all six Supabase projects (3 accounts × 2 products) via the hosted
+MCP gateway. Each `.mcp.json` entry carries a `project_ref` URL
+parameter; each Cloudflare/Supabase account requires its own OAuth
+flow against the owning identity. The dev account was already
+authenticated; the security and prod accounts each needed their
+own browser sign-in. Two prod redirects timed out the local
+listener on the first attempt and we regenerated the auth URLs.
+Final state: `supabase-{gamma,mynclex}-{dev,sec,prod}` namespaces
+all live with read+write tools.
+
+### Stage 3 — bootstrap prod schema via MCP
+
+Empty prod database. Two SoT files (`db/schema.sql`, `db/rls.sql`)
+plus the three RPC migration files were applied directly via
+`apply_migration` against the prod project. Pre-flight discovered
+two issues with `schema.sql`: forward foreign-key references on
+`nclex_bank_items.parent_case_id` and `nclex_tutor_questions.parent_case_id`
+that wouldn't run as a single shot, and the deliberate exclusion of
+RPC bodies that meant `schema.sql + rls.sql` alone would not match
+dev's final state. The schema.sql FK fix already existed in the
+prod-bound repo (commit `1593215`); a duplicate edit landed in the
+gamma worktree's `mynclex/` subfolder and is dead weight (revert
+follow-up). Applied the 3 RPC migrations after schema + rls.
+Verification counts matched dev exactly: 14 tables, 13 RLS-enabled
+tables, 29 policies, 10 `nclex_*` functions.
+
+### GitHub org migration + repo rename
+
+The repo lived on a personal GitHub account (`mybackpacc-byte`),
+which couldn't cleanly accommodate a second Cloudflare account
+(prod). Created GitHub organisation `QAcademy-Nurses`, transferred
+`qacademy-mynclex` into it, invited the prod GitHub user as Member,
+installed the Cloudflare Workers and Pages App on the new org with
+access to the repo. The dev CF Worker still worked through GitHub's
+URL redirect; we disconnected and reconnected the dev Worker's Git
+source to point directly at the new owner. Tested the auto-deploy
+with a real (non-empty) commit since the Worker has a path filter
+that skips empty-commit pushes. Sam later renamed the repo from
+`qacademy-mynclex` to just `mynclex`. Local remote URLs updated
+twice to track these moves.
+
+### Stage 4 — prod Cloudflare Worker
+
+Created a new Worker `mynclex` on the prod CF account
+(`qacademynurses` handle) connected to the prod branch. First
+attempt blocked by GitHub's "This action must be performed by an
+organization owner" check — the prod GitHub user was a Member, not
+Owner. Resolved by signing into Cloudflare's GitHub OAuth flow
+with the Owner credentials in an incognito window; one-time
+authorization sufficed. Production branch defaulted to `main`
+during the wizard; corrected to `prod` post-setup. Worker URL is
+`https://mynclex.qacademynurses.workers.dev`.
+
+### Stage 5 — env wiring (wrangler.jsonc + Supabase Auth)
+
+Cloudflare Workers Builds runs `wrangler deploy` on every push,
+which overwrites any dashboard-set env vars from `wrangler.jsonc`.
+Dashboard-only vars therefore don't survive deploys. Added an
+`env.prod` block to `wrangler.jsonc` with the prod Supabase URL +
+prod legacy anon JWT; the prod Worker's build configuration was
+changed to call `npx wrangler deploy --env prod` so the
+env-specific block is selected at deploy time. Top-level vars stay
+as the dev defaults — dev's Workers Builds still uses them when it
+deploys without `--env`. Disconnected and reconnected the prod
+Worker's Git source after the repo rename to drop the redirect
+dependency. Set the prod Supabase project's Auth URL Configuration
+with site URL + redirect URLs pointing at the prod Worker domain.
+
+### Stage 6 — historical migrations renamed to timestamp format
+
+The Supabase CLI only recognises migration files whose names match
+`<14-digit-timestamp>_<name>.sql` and applies them in timestamp
+order. Renamed the 9 historical migration files in `db/migrations/`
+accordingly, picking pseudo-timestamps based on the slice dates
+from each file's comments. Pure git rename — no SQL content
+changes. Stage 8 depended on these exact filenames being final.
+
+### Stage 7 — `migrate-prod.yml` GitHub Action
+
+Workflow at `.github/workflows/migrate-prod.yml` triggers on push
+to the `prod` branch. Installs the Supabase CLI, symlinks
+`db/migrations/` to `supabase/migrations/` (the path the CLI
+expects), links to the prod project via project_ref, and runs
+`supabase db push --include-all`. Uses GitHub secrets
+`SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` for auth. A
+`concurrency: { group: prod-migrations, cancel-in-progress: false }`
+guard prevents two migration runs racing. The action runs in
+parallel with the Cloudflare deploy and neither blocks the other
+(per the locked-in additive-migrations-only rule).
+
+### Stage 8 — seed prod's `schema_migrations` tracker
+
+Inserted 9 rows into `supabase_migrations.schema_migrations` on
+prod, with `version` values exactly matching the renamed file
+timestamps, so the action's first run on prod would see "all
+historical migrations already applied" and skip them. Removed the
+3 RPC marker rows that Stage 3's `apply_migration` calls had
+written with wall-clock timestamps. Initially also kept 2 bootstrap
+markers (`initial_schema_bootstrap`, `initial_rls_bootstrap`) — see
+Stage 9 for why those had to come out.
+
+### Stage 9 — end-to-end pipeline check
+
+Added a no-op migration `20260428000000_pipeline_check.sql`
+containing only `SELECT 1`, committed to main, fast-forwarded prod
+from main, and pushed. The CF deploy fired and succeeded. The
+GitHub Action fired and **failed** on the first run with "Remote
+migration versions not found in local migrations directory" — the
+Supabase CLI does a strict consistency check that errors when any
+tracker rows lack on-disk files. The 2 bootstrap markers from
+Stage 8 were the offending rows. Deleted them via MCP and re-ran
+the failed action; the second run applied the pipeline_check
+migration and recorded its `20260428000000` row. End state: 10
+tracker rows, all matching files. Both halves of the pipeline (CF
+deploy, DB migration apply) verified working end-to-end.
+
+### Steady-state release process
+
+For every future MyNclex change:
+
+1. Schema/RLS/RPC change: write a new file in `db/migrations/`
+   named `<timestamp>_<descriptive>.sql`. Apply to dev via MCP.
+   Test. Back-port the change to `db/schema.sql` or `db/rls.sql`
+   per the established convention so a fresh bootstrap of a new
+   environment would produce the same final state.
+2. App code change: as before — commit on main.
+3. When ready to release: merge `main` → `prod` and push. The
+   Cloudflare Worker redeploys with prod env vars; the GitHub
+   Action applies any new migrations to prod Supabase. Both run
+   in parallel; neither blocks the other.
+
+The additive-only rule is the safety guarantee that makes the
+parallel deploys safe. Never drop columns, rename, change types
+incompatibly, drop policies, or tighten RLS without a multi-step
+pattern (add new → backfill → switch code → drop old) coordinated
+across multiple releases.
+
+### Cleanup follow-ups (deferred)
+
+- The Cloudflare auto-PR branch `update_worker_name_to_qacademy-mynclex`
+  on GitHub can be closed; the env.prod name override already
+  handles the worker name correctly.
+- The duplicate `schema.sql` deferred-FK edit in the gamma
+  worktree's `mynclex/` subfolder is dead weight (the prod-bound
+  `qacademy-mynclex` repo already had the equivalent fix). Should
+  be reverted in the gamma worktree at next opportunity.
+- Migrate `wrangler.jsonc` from the legacy anon JWT to the modern
+  `sb_publishable_*` key for both top-level (dev) and env.prod
+  blocks. Cosmetic; not blocking.
