@@ -48,6 +48,12 @@ import {
   type BowtieDbRow,
   type BowtieEditorInitial,
 } from '@/lib/authoring/editors/bowtie-row-mapper';
+import {
+  emptyClozeInitial,
+  clozeRowToInitial,
+  type ClozeDbRow,
+  type ClozeEditorInitial,
+} from '@/lib/authoring/editors/cloze-row-mapper';
 import type { QuestionType } from '@/lib/authoring/classifications';
 
 export const dynamic = 'force-dynamic';
@@ -104,6 +110,7 @@ export default async function TutorBankAllV2Page() {
   const selectNInitialsById: Record<string, SelectNEditorInitial> = {};
   const matrixInitialsById: Record<string, MatrixEditorInitial> = {};
   const bowtieInitialsById: Record<string, BowtieEditorInitial> = {};
+  const clozeInitialsById: Record<string, ClozeEditorInitial> = {};
   for (const row of fullRows) {
     if (row.question_type === 'MCQ') {
       mcqInitialsById[row.item_id] = mcqRowToInitial(row, 'tutor');
@@ -129,6 +136,11 @@ export default async function TutorBankAllV2Page() {
         row as unknown as BowtieDbRow,
         'tutor',
       );
+    } else if (row.question_type === 'CLOZE') {
+      clozeInitialsById[row.item_id] = clozeRowToInitial(
+        row as unknown as ClozeDbRow,
+        'tutor',
+      );
     }
   }
 
@@ -138,7 +150,7 @@ export default async function TutorBankAllV2Page() {
         <header className="auth-list-page-header">
           <h1 className="auth-list-page-title">My Bank (v2)</h1>
           <p className="auth-list-page-subtitle">
-            Questions-and-wrappers rebuild · tutor surface · MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE create/edit/delete
+            Questions-and-wrappers rebuild · tutor surface · MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE + CLOZE create/edit/delete
           </p>
         </header>
 
@@ -157,6 +169,8 @@ export default async function TutorBankAllV2Page() {
           emptyMatrixInitial={emptyMatrixInitial('tutor')}
           bowtieInitialsById={bowtieInitialsById}
           emptyBowtieInitial={emptyBowtieInitial('tutor')}
+          clozeInitialsById={clozeInitialsById}
+          emptyClozeInitial={emptyClozeInitial('tutor')}
         />
       </div>
     </main>

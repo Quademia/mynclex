@@ -41,6 +41,10 @@ import {
   parseBowtie,
   type BowtieWingInput,
 } from '@/lib/authoring/parsers/bowtie';
+import {
+  parseCloze,
+  type ClozeBlankInput,
+} from '@/lib/authoring/parsers/cloze';
 
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
@@ -120,6 +124,7 @@ const SUPPORTED_TYPES = new Set<QuestionType>([
   'SELECT_N',
   'MATRIX',
   'BOWTIE',
+  'CLOZE',
 ]);
 
 interface ParsedQuestion {
@@ -237,6 +242,34 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
           right:  readWing('right'),
         });
       }
+      case 'CLOZE': {
+        // Read the parallel arrays of blank cards (every card the
+        // editor holds, including orphans). For each one, read its
+        // per-blank choice arrays via dynamic field names keyed on
+        // the blank ID. Filter out orphans (in_stem !== 'true')
+        // before handing to the parser.
+        const blankIds = formData.getAll('cloze_blank_id').map(String);
+        const inStemFlags = formData.getAll('cloze_blank_in_stem').map(String);
+        const blanks: ClozeBlankInput[] = [];
+        for (let i = 0; i < blankIds.length; i++) {
+          const bid = blankIds[i];
+          if (inStemFlags[i] !== 'true') continue;
+          const choiceIds  = formData.getAll(`cloze_choice_id_${bid}`).map(String);
+          const choiceTexts = formData.getAll(`cloze_choice_text_${bid}`).map(String);
+          const choiceFbs   = formData.getAll(`cloze_choice_feedback_${bid}`).map(String);
+          const choices = choiceIds.map((cid, j) => ({
+            id: cid,
+            text: choiceTexts[j] ?? '',
+            feedback: choiceFbs[j] ?? '',
+          }));
+          blanks.push({
+            id: bid,
+            choices,
+            correct_id: String(formData.get(`cloze_correct_${bid}`) ?? ''),
+          });
+        }
+        return parseCloze({ stem, blanks });
+      }
       default:
         return parseMcq(optionIds, optionTexts, optionFeedbacks, correctIds);
     }
@@ -254,10 +287,14 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
   const marksRaw = parseFloat(String(formData.get('marks') ?? '1'));
   const marks = Number.isFinite(marksRaw) && marksRaw > 0 ? marksRaw : 1;
 
+  // CLOZE rewrites the stem on save (gap-closing renumber). Other
+  // parsers don't touch it, so we fall back to the curator-typed stem.
+  const finalStem = 'stem' in parsed ? parsed.stem : stem;
+
   return {
     question_type,
     instruction,
-    stem,
+    stem: finalStem,
     rationale: String(formData.get('rationale') ?? '').trim() || null,
     rationale_img: String(formData.get('rationale_img') ?? '').trim() || null,
     content: parsed.content,
