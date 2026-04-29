@@ -1,0 +1,39 @@
+name: Deploy prod Worker (workspace CF)
+
+on:
+  push:
+    branches:
+      - prod
+
+# One deploy at a time. If a second push lands while one is in flight,
+# the new one waits rather than racing.
+concurrency:
+  group: prod-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy mynclex to workspace CF
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm clean-install
+
+      - name: Build OpenNext bundle
+        run: npm run cf:build
+
+      - name: Deploy to workspace CF
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN_PROD }}
+          command: deploy --env prod
