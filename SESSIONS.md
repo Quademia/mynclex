@@ -6,6 +6,129 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-29 (later — prod deploy cleanup + GHA-based CD migration)
+
+A second session on 2026-04-29 after a break following slice 7. Started
+with the open thread from the previous session — phantom Worker on
+personal CF, real prod still on pre-slice-1 code, no `account_id`
+pinning in `wrangler.jsonc`. Ended several pivots later with CD fully
+migrated off Cloudflare Workers Builds and onto GitHub Actions.
+
+Three new commits authored this session:
+
+```
+5538449 docs: add CD architecture reference
+0031e44 infra: add GitHub Actions workflows for dev + prod Worker deploys
+31221ab infra: pin Cloudflare account_id for dev (personal) and prod (workspace)
+```
+
+Plus PR #4 (`main` → `prod`) to advance prod and exercise the new
+prod workflow on a real merge.
+
+### Discovery 1 — Two CF accounts is by design, not by accident
+
+Opening framing was that the personal-vs-workspace CF split needed
+consolidation. Sam clarified it's intentional: personal CF hosts
+non-prod / front-page surfaces; workspace CF (qacademynurses) hosts
+paid prod. The 2026-04-29 phantom wasn't a "you set it up wrong" bug —
+it was a "nothing enforced the boundary you'd already chosen" bug.
+
+Pivot: don't consolidate accounts, **enforce the boundary**.
+
+### Discovery 2 — Direct push to `prod` doesn't trigger workspace CF
+
+While diagnosing why slice 7 hadn't reached real prod, found that
+workspace CF Workers Builds had no record of the 2026-04-29 push at
+all. Empirically, direct `git push origin prod` doesn't fire
+workspace CF; PR-merge via GitHub UI does. GitHub fires the same
+`push` webhook in both cases in theory; CF filters on something extra
+in practice. Mechanism unknown.
+
+Saved at the time as a feedback memory; later deleted (see Discovery 4)
+once GHA replaced CF Workers Builds and the quirk no longer applied.
+
+### Discovery 3 — CF dashboard config silently drifted
+
+PR-merged `main` → `prod` to test whether a merge would fire workspace
+CF. It did — the build started, then **failed**. The error was the
+`account_id` pinning catching config drift: the deploy command on
+workspace CF Workers Builds had silently changed from
+`npx wrangler deploy --env prod` (working, 2026-04-28 successful build)
+to bare `npx wrangler deploy` (broken, today). Cause unknown. Without
+the pinning, the broken command would have shipped dev Supabase config
+to the prod Worker — a much worse outcome than today's failure.
+
+Fixed the dashboard setting, retried, build went green. Slice 7 +
+dual-mode preview reached real prod for the first time.
+
+### Discovery 4 — GHA is the structural fix
+
+Long discussion with Sam about whether the current setup (one repo,
+two CF Workers Builds connections) is "best." Considered alternatives
+including a two-repo split with the prod branch mirrored to a separate
+workspace-owned repo. Settled on:
+
+- **One repo stays one repo.** Single source of truth.
+- **Move CD off CF Workers Builds and onto GitHub Actions.** Mirrors
+  the existing `migrate-prod.yml` pattern. Build/deploy commands now
+  live in YAML in git instead of in the CF dashboard — drift becomes
+  impossible without a visible commit.
+- **Scoped CF API tokens stored as GitHub Secrets** become the hard
+  isolation boundary. Each token can only act on its own account.
+
+### What landed
+
+`31221ab` — `wrangler.jsonc` now pins `account_id` for both envs
+(top-level = personal `e745e37…`, `env.prod` = workspace `38efec1…`).
+This is the lock that caught Discovery 3 before it shipped.
+
+`0031e44` — `.github/workflows/deploy-dev.yml` and `deploy-prod.yml`.
+Each runs on push to its branch, builds via `npm run cf:build`, deploys
+via `cloudflare/wrangler-action@v3` using a per-account API token from
+GitHub Secrets. Dev workflow proven green on push; prod workflow proven
+green on the PR #4 merge.
+
+`5538449` — `docs/product-plan/cd-architecture.md`. Living-document
+reference covering the deploy topology, where every piece of config
+lives, the three layers of locks (token scope / account_id pinning /
+branch-to-workflow mapping), common operations (rotating tokens,
+adding a new env, investigating failed deploys), and a history note
+explaining why GHA replaced CF Workers Builds.
+
+### Cleanup actions (off-git)
+
+- Phantom `mynclex` Worker on personal CF deleted
+- Workspace CF deploy command corrected (added `--env prod` back)
+- Legacy CF Workers Builds GitHub integrations disconnected on both
+  accounts. CF accounts are now hosts only — they run the deployed
+  Workers and hold env vars/secrets but build/deploy nothing.
+- Two CF API tokens created via the "Edit Cloudflare Workers" template,
+  scoped to one account each, stored as `CLOUDFLARE_API_TOKEN_DEV` and
+  `CLOUDFLARE_API_TOKEN_PROD` GitHub Secrets
+- Verified post-disconnect push fires only GHA, no parallel CF build
+
+### Memory state changes
+
+- Deleted: `project_prod_deploy_account_mismatch.md` (open thread
+  resolved)
+- Deleted: `feedback_prod_merge_via_pr.md` (technical reason gone with
+  the move to GHA)
+- Rewritten: `project_cd_setup.md` — captures the GHA-based topology
+- Updated: `MEMORY.md` index
+
+### Queued for next session
+
+- **Slice 8 — CLOZE editor.** Next in the questions-and-wrappers
+  rebuild. Sentence with inline `{N}` markers in the stem, one
+  dropdown per blank, per-blank feedback nested by choice. Markers
+  auto-renumber on save. Ships with the dual-mode `<PreviewToggle>`
+  from day one (per slice plan §11; slices 8–10 build with the toggle,
+  slice 11 back-fills the older five). Architecture and atom inventory
+  in `docs/product-plan/questions-and-wrappers-rebuild.md` and
+  `questions-and-wrappers-rebuild-slice-plan.md` §8.
+
+---
+
 ## Session — 2026-04-29 (Questions-and-wrappers rebuild — slices 4, 5, 6, 7 + dual-mode preview infrastructure + slice plan re-org)
 
 Continued the rebuild from the slice 1-3 foundation. Family A
