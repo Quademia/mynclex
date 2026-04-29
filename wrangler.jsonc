@@ -5,6 +5,17 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2024-09-23",
   "compatibility_flags": ["nodejs_compat"],
+  // Account pinning — by design, dev and prod live on different
+  // Cloudflare accounts. Top-level account_id is the personal CF
+  // account that owns mynclex-dev (and any other QAcademy front-
+  // facing / non-prod things). env.prod.account_id is the workspace
+  // CF account (qacademynurses) that owns paid prod Workers.
+  //
+  // Pinning these means wrangler refuses to deploy if the logged-in
+  // CLI account doesn't match — it's the lock that prevents another
+  // accidental "wrong account" deploy like 2026-04-29. The IDs are
+  // identifiers, not secrets, so they're safe to commit.
+  "account_id": "e745e37017141bd5dfa1183b5dc1aa48",
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
@@ -24,6 +35,7 @@
   "env": {
     "prod": {
       "name": "mynclex",
+      "account_id": "38efec172a6a35b1928ffbd96003c21d",
       "vars": {
         "NEXT_PUBLIC_SUPABASE_URL": "https://dehspjcfmhoshcdtsmjq.supabase.co",
         "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHNwamNmbWhvc2hjZHRzbWpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzQ2MjEsImV4cCI6MjA5MjgxMDYyMX0.whd-VAiJLdsYT0VDfU1HhaxVvt1oeiHKxhhb7Vc1QbY"
