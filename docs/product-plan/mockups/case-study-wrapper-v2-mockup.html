@@ -1,0 +1,1919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Case-study wrapper v2 — Visual Mockup (Slice 12)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fraunces:wght@500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy: #1e3a5f;
+  --teal: #2d7d72;
+  --teal-light: #3ca295;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-soft: #f0f2f5;
+  --surface-softer: #f8f9fb;
+  --border: rgba(30, 58, 95, 0.12);
+  --border-strong: rgba(30, 58, 95, 0.25);
+  --text: #1e3a5f;
+  --text-muted: rgba(30, 58, 95, 0.62);
+  --text-dim: rgba(30, 58, 95, 0.40);
+  --text-faint: rgba(30, 58, 95, 0.22);
+  --info-bg: rgba(45, 125, 114, 0.08);
+  --info-border: rgba(45, 125, 114, 0.4);
+  --info-text: #085041;
+  --coral-bg: #faece7;
+  --coral-border: #f5c4b3;
+  --coral-text: #712b13;
+  --amber-bg: #faeeda;
+  --amber-border: #fac775;
+  --amber-text: #633806;
+  --teal-chip-bg: #e1f5ee;
+  --teal-chip-border: #9fe1cb;
+  --teal-chip-text: #085041;
+  --purple-bg: #eeedfe;
+  --purple-border: #afa9ec;
+  --purple-text: #3c3489;
+  --danger-bg: #fdecec;
+  --danger-border: #f4b5b5;
+  --danger-text: #8a1a1a;
+  --warn-bg: #fff7e0;
+  --warn-border: #f4d97a;
+  --warn-text: #705200;
+  --slate-bg: #eef0f4;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+  padding: 32px 24px 80px;
+}
+
+.page-wrap { max-width: 1180px; margin: 0 auto; }
+
+.doc-title {
+  font-family: 'Fraunces', serif;
+  font-size: 30px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+}
+.doc-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; max-width: 820px; }
+.doc-meta { font-size: 12px; color: var(--text-dim); margin-bottom: 32px; }
+
+h2.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--navy);
+  margin: 56px 0 10px;
+  letter-spacing: -0.01em;
+}
+h3.sub-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--navy);
+  margin: 24px 0 8px;
+}
+
+p { font-size: 14px; color: var(--text); margin-bottom: 12px; max-width: 820px; }
+p.caption { font-size: 12.5px; color: var(--text-muted); font-style: italic; margin: 10px 0 24px; }
+strong { font-weight: 500; color: var(--navy); }
+code { background: var(--surface-soft); padding: 1px 5px; border-radius: 3px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--navy); }
+
+/* ── Doc map ── */
+.doc-map {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 18px 0 8px;
+  max-width: 760px;
+  font-size: 13px;
+}
+.doc-map h4 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.doc-map ol { padding-left: 22px; }
+.doc-map li { margin-bottom: 3px; color: var(--text); }
+.doc-map a { color: var(--teal); text-decoration: none; }
+.doc-map a:hover { text-decoration: underline; }
+
+/* ── Intro callout ── */
+.callout {
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 18px 0 24px;
+  font-size: 13px;
+  color: var(--info-text);
+  max-width: 820px;
+}
+.callout strong { color: var(--info-text); }
+.callout h4 {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+.callout ul { padding-left: 20px; margin-top: 4px; }
+.callout li { margin-bottom: 4px; }
+
+/* ── Mockup frame ── */
+.mockup-frame {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  margin: 14px 0 8px;
+}
+.mockup-caption {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.mockup-caption.with-state {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mockup-state {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--teal);
+  background: var(--teal-chip-bg);
+  border: 1px solid var(--teal-chip-border);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* ── Wrapper page surface (browser frame) ── */
+.page-surface {
+  background: var(--surface);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.page-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.page-topbar .crumb-current { color: var(--navy); font-weight: 500; }
+.page-topbar .crumb-sep { color: var(--text-dim); }
+
+/* ── Two-column wrapper grid (left toggles between modes) ── */
+.wrapper-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  grid-template-rows: 1fr;
+  gap: 14px;
+  padding: 16px;
+  align-items: start;
+}
+.pane {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+.wrapper-grid > .pane-wrapper-edit     { grid-column: 1; grid-row: 1; }
+.wrapper-grid > .pane-editor-mode      { grid-column: 1; grid-row: 1; }
+.wrapper-grid > .pane-combined-preview { grid-column: 2; grid-row: 1; }
+
+/* ── Editor mode chrome ── */
+.editor-mode-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.editor-mode-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 14px;
+}
+
+/* Compact slot strip — slot navigator inside editor mode */
+.slot-strip {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px;
+  flex: 1 1 auto;
+  justify-content: center;
+}
+.slot-pip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+}
+.slot-pip.active {
+  background: var(--navy);
+  color: white;
+  border-color: var(--navy);
+}
+.slot-pip.empty {
+  color: var(--text-faint);
+  border-style: dashed;
+  border-color: var(--border);
+}
+.slot-pip.active.empty {
+  background: var(--text-muted);
+  color: white;
+  border-style: solid;
+}
+.slot-pip.dirty::before {
+  content: "•";
+  color: var(--amber-text);
+  position: absolute;
+  top: -2px;
+  right: 1px;
+  font-size: 14px;
+  line-height: 1;
+}
+.slot-pip-status {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.slot-pip-add {
+  color: var(--teal);
+  border-style: dashed;
+  border-color: var(--teal-chip-border);
+}
+
+.pane-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.btn.primary { background: var(--teal); color: white; border-color: var(--teal); }
+.btn.danger  { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-border); }
+.btn.subtle  { background: transparent; border-color: transparent; color: var(--text-muted); }
+.btn.tiny    { padding: 3px 8px; font-size: 11.5px; }
+.btn.disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Wrapper-edit pane top-level tabs (Content | Chart) */
+.pane-tabs {
+  display: flex;
+  gap: 0;
+  margin: -14px -14px 14px;
+  padding: 0 6px;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--border);
+}
+.pane-tab {
+  padding: 10px 16px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+.pane-tab.active {
+  color: var(--navy);
+  border-bottom-color: var(--teal);
+}
+.pane-tab .tab-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber-text);
+  margin-left: 6px;
+  opacity: 0.85;
+}
+
+/* Visibility section — always visible, between tab body and slot rail */
+.visibility-section {
+  margin: 14px -14px;
+  padding: 10px 14px;
+  background: var(--surface-softer);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.visibility-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.visibility-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 12.5px;
+}
+.visibility-row .vrow-label { color: var(--text); }
+.visibility-row .vrow-help {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+.vswitch {
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  position: relative;
+  flex-shrink: 0;
+}
+.vswitch::after {
+  content: "";
+  position: absolute;
+  top: 1px; left: 1px;
+  width: 13px; height: 13px;
+  background: var(--text-faint);
+  border-radius: 50%;
+  transition: left 0.15s, background 0.15s;
+}
+.vswitch.on {
+  background: var(--teal);
+  border-color: var(--teal);
+}
+.vswitch.on::after {
+  left: 14px;
+  background: white;
+}
+
+/* Wrapper-edit pane internals */
+.field { margin-bottom: 10px; }
+.field-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  display: block;
+}
+.field-input,
+.field-textarea {
+  background: var(--surface-softer);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--text);
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+}
+.field-textarea { min-height: 50px; line-height: 1.4; }
+
+/* Chart tab strip */
+.chart-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+.chart-tab {
+  padding: 6px 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 5px 5px 0 0;
+  cursor: pointer;
+  position: relative;
+  bottom: -1px;
+}
+.chart-tab.active {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--navy);
+}
+
+.chart-content {
+  background: var(--surface-softer);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+}
+
+/* Vital-signs table */
+.vs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.vs-table th, .vs-table td {
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.vs-table th {
+  font-weight: 500;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.vs-table td.flag-low {
+  background: var(--coral-bg);
+  color: var(--coral-text);
+  font-weight: 500;
+}
+.vs-table td.flag-high {
+  background: var(--amber-bg);
+  color: var(--amber-text);
+  font-weight: 500;
+}
+
+/* Slot rail */
+.slot-rail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 14px 0 8px;
+}
+.slot-rail-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--navy);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.slot-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.slot-card {
+  display: grid;
+  grid-template-columns: 22px 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--surface-softer);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.slot-card.active {
+  border-color: var(--teal);
+  background: var(--teal-chip-bg);
+  box-shadow: 0 0 0 2px rgba(45, 125, 114, 0.15);
+}
+.slot-card.dirty .slot-num::after {
+  content: "•";
+  color: var(--amber-text);
+  margin-left: 2px;
+}
+.slot-num {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
+.slot-card.active .slot-num { color: var(--teal); }
+.slot-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.slot-summary .type-chip {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--purple-bg);
+  color: var(--purple-text);
+  border: 1px solid var(--purple-border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-right: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.slot-cjmm {
+  font-size: 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 7px;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.slot-cjmm::after {
+  content: "▾";
+  font-size: 9px;
+  opacity: 0.6;
+}
+.slot-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.slot-status.ok      { background: #3ca295; }
+.slot-status.warn    { background: #d99826; }
+.slot-status.error   { background: #b9483b; }
+.slot-status.draft   { background: var(--text-faint); }
+.slot-remove {
+  font-size: 13px;
+  color: var(--text-faint);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.slot-remove:hover { color: var(--danger-text); }
+
+.slot-add-btn {
+  margin-top: 4px;
+  width: 100%;
+  border: 1px dashed var(--border-strong);
+  background: var(--surface-softer);
+  color: var(--teal);
+  padding: 9px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* Question-edit pane (active editor body) */
+.editor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.editor-mounted-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--purple-bg);
+  border: 1px solid var(--purple-border);
+  border-radius: 4px;
+  padding: 2px 7px;
+  align-self: flex-start;
+  font-weight: 500;
+  color: var(--purple-text);
+}
+
+.option-row {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 6px 8px;
+  background: var(--surface-softer);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 12.5px;
+}
+.option-row.correct {
+  background: var(--teal-chip-bg);
+  border-color: var(--teal-chip-border);
+}
+.option-row .checkbox {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1.5px solid var(--border-strong);
+  margin-top: 3px;
+  display: inline-block;
+}
+.option-row.correct .checkbox {
+  background: var(--teal);
+  border-color: var(--teal);
+  position: relative;
+}
+.option-row.correct .checkbox::after {
+  content: "✓";
+  color: white;
+  position: absolute;
+  top: -3px;
+  left: 1px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.option-text { font-size: 12.5px; line-height: 1.45; }
+.option-feedback {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 3px;
+}
+
+/* Combined-preview pane */
+.preview-toggle {
+  display: inline-flex;
+  background: var(--surface-softer);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px;
+}
+.preview-toggle .pill {
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border-radius: 999px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.preview-toggle .pill.active {
+  background: var(--surface);
+  color: var(--navy);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Editing-side preview-position selector */
+.preview-pos {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px;
+  background: var(--surface-softer);
+}
+.preview-pos-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+}
+.preview-pos-btn {
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 22px;
+}
+.preview-pos-btn.active {
+  background: var(--navy);
+  color: white;
+}
+.preview-pos-banner {
+  font-size: 11.5px;
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  color: var(--info-text);
+  border-radius: 5px;
+  padding: 4px 10px;
+  margin: 6px 0 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.preview-pos-banner .clear {
+  background: none;
+  border: none;
+  color: var(--info-text);
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Visibility flag column on chart rows */
+.vf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.vf-chip::after {
+  content: "▾";
+  font-size: 9px;
+  opacity: 0.6;
+}
+.vs-table tr.vf-hidden {
+  opacity: 0.45;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 4px,
+    rgba(30, 58, 95, 0.04) 4px 8px
+  );
+}
+.vs-table tr.vf-hidden td {
+  color: var(--text-muted);
+}
+.vf-hidden-tag {
+  font-size: 10px;
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-border);
+  color: var(--amber-text);
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-left: 6px;
+  font-weight: 500;
+}
+
+.preview-section {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-softer);
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.preview-section + .preview-section { margin-top: 0; }
+.preview-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.student-stem {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.student-option {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 12.5px;
+}
+.student-option .check-empty {
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 3px;
+  margin-top: 2px;
+}
+.student-option.key-correct {
+  background: var(--teal-chip-bg);
+  padding: 5px 8px;
+  border-radius: 5px;
+  margin: 2px -2px;
+}
+.student-option.key-correct .check-empty {
+  background: var(--teal);
+  border-color: var(--teal);
+  position: relative;
+}
+.student-option.key-correct .check-empty::after {
+  content: "✓"; color: white; position: absolute;
+  top: -3px; left: 1px; font-size: 11px; font-weight: 700;
+}
+
+/* ── Modal/dialog overlay ── */
+.overlay-frame {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.overlay-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 58, 95, 0.42);
+  pointer-events: none;
+}
+.overlay-frame .dimmed-page {
+  filter: blur(0.5px);
+  opacity: 0.85;
+}
+.dialog {
+  position: absolute;
+  z-index: 2;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(30, 58, 95, 0.25);
+  padding: 22px 24px;
+}
+.dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 6px;
+  font-family: 'Fraunces', serif;
+}
+.dialog-body {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+.dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* Type picker grid */
+.type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 6px 0 18px;
+}
+.type-tile {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--surface-softer);
+  cursor: pointer;
+}
+.type-tile:hover { border-color: var(--teal); }
+.type-tile-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 2px;
+}
+.type-tile-desc {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Two-path delete cards */
+.path-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 12px 0 14px;
+}
+.path-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--surface-softer);
+}
+.path-card.danger {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+.path-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.path-card.danger .path-card-title { color: var(--danger-text); }
+.path-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+.path-card.danger .path-card-desc { color: var(--danger-text); opacity: 0.85; }
+.delete-gate {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.delete-gate-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.delete-gate-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  color: var(--navy);
+}
+
+/* Empty state */
+.empty-rail {
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  padding: 26px 16px;
+  text-align: center;
+  background: var(--surface-softer);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.empty-rail h5 {
+  color: var(--navy);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-family: 'Fraunces', serif;
+}
+
+/* Spec table for acceptance criteria */
+.spec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin: 12px 0;
+  max-width: 820px;
+}
+.spec-table th, .spec-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.spec-table th {
+  font-weight: 500;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--surface-soft);
+}
+
+/* Footer note */
+.footer-note {
+  margin-top: 56px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-dim);
+  max-width: 820px;
+}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+<h1 class="doc-title">Case-study wrapper v2 — visual mockup</h1>
+<p class="doc-sub">Three-pane wrapper page that hosts case-study scenarios and their attached questions. Defines the geometry, slot mechanics, save semantics, and destructive flows for slice 12 of the questions-and-wrappers rebuild.</p>
+<p class="doc-meta">Last updated 2026-04-30 · Companion to <code>docs/product-plan/questions-and-wrappers-rebuild.md § 5</code> and slice 12 in the slice plan.</p>
+
+<div class="callout">
+  <h4>What this is</h4>
+  <p style="margin:0 0 8px; color: inherit;">A pre-build mockup of the three-pane case-study wrapper. The chart-tab editors themselves (Vital Signs, Lab Results, Orders, History &amp; Physical, Diagnostics, Nurses Notes), <strong>plus all add/remove/reorder affordances for tabs, rows, columns, and narrative entries, and the "Add tab" popover with custom-narrative + custom-grid options</strong>, are <strong>ported as-is from legacy</strong>. What is new is the surrounding wrapper shell: layout, slot rail, combined preview, two-button save, and the add/detach/delete-question flows. For per-tab editor visuals (and the add-tab popover) see the older <code>case-study-editor-mockup.html</code> — those frames remain canonical for v2.</p>
+</div>
+
+<div class="doc-map">
+  <h4>Document map</h4>
+  <ol>
+    <li><a href="#why-two">Why two columns with two modes</a></li>
+    <li><a href="#hero">Wrapper mode — left column shows the case</a></li>
+    <li><a href="#editor-mode">Editor mode — left column shows the active question</a></li>
+    <li><a href="#slot-rail">Slot rail close-up (wrapper mode)</a></li>
+    <li><a href="#type-picker">Add question — type picker</a></li>
+    <li><a href="#discard">Switch slot with unsaved changes</a></li>
+    <li><a href="#delete">Delete case — two-path confirm</a></li>
+    <li><a href="#empty">Empty state — newly created case</a></li>
+    <li><a href="#decisions">Design decisions captured (seven questions)</a></li>
+    <li><a href="#impl">Implementation watch-outs + sub-slice plan</a></li>
+  </ol>
+</div>
+
+<!-- ─────────────────── 1. Why two columns ─────────────────── -->
+<h2 class="section-title" id="why-two">1. Why two columns with two modes</h2>
+
+<p>The student never sees a wrapper alone — chart tabs are always shown next to a question, never as their own student page. So a "wrapper-only preview" pane would represent a state that doesn't exist for students. The page settles on <strong>two columns, never three</strong>: the right column is always the combined preview; the left column hosts the curator's work and toggles between two focused modes.</p>
+
+<table class="spec-table">
+  <thead><tr><th>Mode</th><th>Left column</th><th>Right column</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Wrapper mode</strong> (default)</td>
+      <td>Wrapper-edit pane: Content / Chart tabs, visibility section, slot rail, Save case study + Validate + Delete + Cancel.</td>
+      <td>Combined preview — always.</td>
+    </tr>
+    <tr>
+      <td><strong>Editor mode</strong> (slot active)</td>
+      <td>Editor body for the active slot, full vertical height. Slot strip at the top for switching slots; <strong>← Wrapper view</strong> button returns to wrapper mode. Save question + Discard buttons in header. <em>Wrapper-edit pane is hidden — Save case study, Validate, Delete, Cancel are not reachable until the editor closes.</em></td>
+      <td>Combined preview — same component, still tracking the active slot.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Clicking a slot card in the wrapper mode's slot rail enters editor mode. Pressing the <strong>← Wrapper view</strong> button (or Save question / Discard) returns to wrapper mode. The right-column preview never moves — it's the curator's continuous reference for what the student sees while authoring at any layer.</p>
+
+<p>Why this and not three panes (wrapper top-left, editor bottom-left, preview right): editors are tall (stem, options, feedback, classification + housekeeping tabs) and were ending up in a cramped bottom-half pane that scrolled badly. A focused mode that takes the full left column avoids the scroll, and the wrapper context is always one click away — the curator doesn't lose orientation because the right column's preview keeps the chart visible.</p>
+
+<div class="callout" style="background: var(--surface-soft); border-color: var(--border); color: var(--text);">
+  <h4 style="color: var(--text-muted);">Save semantics — three independent saves (legacy parity + per-question)</h4>
+  <p style="margin: 0 0 6px; color: var(--text);">Each save is a draft commit at its own level. None requires "completeness" — the publish gate is what enforces that, server-side, when <code>is_published</code> is toggled to true on Save case study.</p>
+  <ul style="color: var(--text);">
+    <li><strong>Save case study</strong> — wrapper-edit pane header. Saves case header (title, scenario, visibility, slot ordering, <code>cjmm_step</code>) + all 6 question drafts atomically via the legacy <code>nclex_save_case_with_children</code> RPC. Reads in-flight editor DOM for the active slot so unsaved typing is captured.</li>
+    <li><strong>Save tab</strong> — inside each chart-tab editor (ported as-is from legacy). Saves just that one tab via <code>upsertTabAction</code>.</li>
+    <li><strong>Save question</strong> — question-edit pane header. Saves just the active question; in case-study context, also sets <code>parent_case_id</code> and writes the <code>nclex_case_study_items</code> join row.</li>
+  </ul>
+  <p style="margin: 8px 0 0; color: var(--text); font-size: 12.5px;"><em>Why redundant Save case + Save question both touching questions:</em> the curator picks the affordance that fits the moment — single-question polish or whole-case sweep. The build-time risk (overwriting per-question saves with stale wrapper sweep) is mitigated by re-reading the active editor's DOM at Save-case time, same as legacy does today.</p>
+</div>
+
+<div class="callout">
+  <h4>Two preview lenses, not one</h4>
+  <p style="margin:0 0 6px; color: inherit;">Each chart row has a <code>visible_from</code> (1-6) that tells the student "this entry appears starting at Q&lt;n&gt;." Two distinct controls expose this:</p>
+  <ul>
+    <li><strong>Editing-side preview selector</strong> — sits on the wrapper-edit pane (top-left). A small <em>Off / 1 / 2 / 3 / 4 / 5 / 6</em> strip lets the curator flip the chart's editing view to any position without changing the active slot. Rows with <code>visible_from</code> &gt; chosen position go greyed with a <em>"hidden until Qx"</em> tag. Per-session only — reloads reset to <em>Off</em>.</li>
+    <li><strong>Combined preview (right column)</strong> — automatic. The chart subsection always reflects what the student sees <em>at the active slot's position</em>. No toggle. The question subsection has a Student / Answer-key toggle that affects only itself, since charts have no answer key.</li>
+  </ul>
+  <p style="margin:6px 0 0; color: inherit;">Independent: flipping the editing-side selector to Q4 doesn't change what the right pane shows. Switching the active slot to Q4 does.</p>
+</div>
+
+<!-- ─────────────────── 2. Wrapper mode ─────────────────── -->
+<h2 class="section-title" id="hero">2. Wrapper mode — left column shows the case</h2>
+<p>Default state on landing. Q2 is the most recent active slot — the right-column preview tracks it (chart hides the 14:00 row whose <code>visible_from = Q3</code>; question subsection shows Q2's stem). Curator is mid-edit on the Vital Signs tab in the wrapper-edit pane. Clicking any slot card in the rail will enter editor mode (next frame).</p>
+
+<div class="mockup-frame">
+  <div class="mockup-caption with-state">
+    <span>Admin · /admin/bank/cases-v2/cs_pph_001</span>
+    <span class="mockup-state">Wrapper mode · Q2 last active</span>
+  </div>
+
+  <div class="page-surface">
+    <div class="page-topbar">
+      <span>Bank</span><span class="crumb-sep">›</span>
+      <span>Case Studies (v2)</span><span class="crumb-sep">›</span>
+      <span class="crumb-current">Postpartum hemorrhage assessment</span>
+    </div>
+
+    <div class="wrapper-grid">
+      <!-- TOP-LEFT — wrapper edit -->
+      <div class="pane pane-wrapper-edit">
+        <div class="pane-label">
+          <span>Wrapper edit</span>
+          <span style="display:inline-flex; gap: 6px;">
+            <button class="btn subtle tiny">Cancel</button>
+            <button class="btn danger tiny">Delete</button>
+            <button class="btn tiny">Validate</button>
+            <button class="btn primary tiny">Save case study</button>
+          </span>
+        </div>
+
+        <div class="pane-tabs" role="tablist">
+          <button class="pane-tab" role="tab">Content</button>
+          <button class="pane-tab active" role="tab" aria-selected="true">Chart<span class="tab-dot" title="Unsaved changes on this tab"></span></button>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin: 0 0 6px;">
+          <span class="field-label" style="margin: 0;">Vital signs</span>
+          <span class="preview-pos" role="group" aria-label="Preview chart as student at position">
+            <span class="preview-pos-label">Preview at</span>
+            <button class="preview-pos-btn active">Off</button>
+            <button class="preview-pos-btn">1</button>
+            <button class="preview-pos-btn">2</button>
+            <button class="preview-pos-btn">3</button>
+            <button class="preview-pos-btn">4</button>
+            <button class="preview-pos-btn">5</button>
+            <button class="preview-pos-btn">6</button>
+          </span>
+        </div>
+
+        <div class="chart-tabs">
+          <div class="chart-tab">Nurses notes</div>
+          <div class="chart-tab active">Vital signs</div>
+          <div class="chart-tab">Lab results</div>
+          <div class="chart-tab">Orders</div>
+          <div class="chart-tab">History &amp; physical</div>
+          <div class="chart-tab">Diagnostics</div>
+          <div class="chart-tab" title="Add tab" style="color: var(--teal); font-weight: 600;">+</div>
+        </div>
+        <div class="chart-content">
+          <table class="vs-table">
+            <thead>
+              <tr><th>Visible</th><th>Time</th><th>BP</th><th>HR</th><th>RR</th><th>SpO₂</th><th>Temp</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="vf-chip">Q1</span></td><td>13:00</td><td>124/80</td><td>78</td><td>16</td><td>98%</td><td>98.6 °F</td></tr>
+              <tr><td><span class="vf-chip">Q2</span></td><td>13:30</td><td>110/72</td><td>92</td><td>18</td><td>97%</td><td>98.4 °F</td></tr>
+              <tr><td><span class="vf-chip">Q3</span></td><td>14:00</td><td class="flag-low">96/64</td><td class="flag-high">110</td><td class="flag-high">22</td><td>96%</td><td>98.6 °F</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="slot-rail-header">
+          <span class="slot-rail-title">Question slots · 3 of 6</span>
+          <button class="btn subtle tiny">Reorder</button>
+        </div>
+        <div class="slot-rail">
+          <div class="slot-card">
+            <span class="slot-num">Q1</span>
+            <span class="slot-summary"><span class="type-chip">MCQ</span>Which finding at 14:00 is most concerning?</span>
+            <span class="slot-cjmm">RC</span>
+            <span class="slot-status ok"></span>
+          </div>
+          <div class="slot-card active dirty">
+            <span class="slot-num">Q2</span>
+            <span class="slot-summary"><span class="type-chip">SATA</span>Select all priority nursing actions…</span>
+            <span class="slot-cjmm">TA</span>
+            <span class="slot-status warn"></span>
+          </div>
+          <div class="slot-card">
+            <span class="slot-num">Q3</span>
+            <span class="slot-summary"><span class="type-chip">MATRIX</span>Categorize each finding as expected or unexpected</span>
+            <span class="slot-cjmm">AC</span>
+            <span class="slot-status ok"></span>
+          </div>
+        </div>
+        <button class="slot-add-btn">+ Add question</button>
+      </div>
+
+      <!-- RIGHT — combined preview -->
+      <div class="pane pane-combined-preview">
+        <div class="pane-label">
+          <span>Combined preview</span>
+          <span style="font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: none; letter-spacing: 0;">As student at <strong style="color: var(--navy);">Q2</strong> · tracks active slot</span>
+        </div>
+
+        <div class="preview-section">
+          <div class="preview-section-label">Chart context · what the student sees at Q2</div>
+          <p style="font-size:13px; line-height:1.5; margin-bottom:10px;">A 28-year-old G3P3 patient is 2 hours postpartum following a vaginal delivery. The patient is alert and oriented. You are conducting your shift assessment and review the chart below.</p>
+          <div class="chart-tabs" style="margin: 0 0 0;">
+            <div class="chart-tab">Nurses notes</div>
+            <div class="chart-tab active">Vital signs</div>
+            <div class="chart-tab">Lab results</div>
+            <div class="chart-tab">Orders</div>
+            <div class="chart-tab">H&amp;P</div>
+            <div class="chart-tab">Diagnostics</div>
+          </div>
+          <div class="chart-content" style="border-top: none; border-radius: 0 0 6px 6px;">
+            <table class="vs-table">
+              <thead>
+                <tr><th>Time</th><th>BP</th><th>HR</th><th>RR</th><th>SpO₂</th><th>Temp</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>13:00</td><td>124/80</td><td>78</td><td>16</td><td>98%</td><td>98.6 °F</td></tr>
+                <tr><td>13:30</td><td>110/72</td><td>92</td><td>18</td><td>97%</td><td>98.4 °F</td></tr>
+              </tbody>
+            </table>
+            <p style="font-size: 11.5px; color: var(--text-dim); margin-top: 6px; font-style: italic;">14:00 row hidden — visible_from = Q3</p>
+          </div>
+        </div>
+
+        <div class="preview-section">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+            <div class="preview-section-label" style="margin-bottom: 0;">Active question · Q2 (SATA)</div>
+            <span class="preview-toggle">
+              <span class="pill active">Student</span>
+              <span class="pill">Answer key</span>
+            </span>
+          </div>
+          <div class="student-stem">Select <strong>all</strong> the priority nursing actions for this patient at 14:00.</div>
+          <div class="student-option"><span class="check-empty"></span><span>Initiate large-bore IV access for fluid resuscitation</span></div>
+          <div class="student-option"><span class="check-empty"></span><span>Notify the obstetric provider of the changing vitals</span></div>
+          <div class="student-option"><span class="check-empty"></span><span>Assess fundal tone and lochia</span></div>
+          <div class="student-option"><span class="check-empty"></span><span>Document findings and reassess in 4 hours</span></div>
+          <div class="student-option"><span class="check-empty"></span><span>Apply a warming blanket for comfort</span></div>
+          <div class="student-option"><span class="check-empty"></span><span>Encourage ambulation to the bathroom</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="caption">Reading the geometry: two columns, left is the wrapper-edit pane in this mode, right is the combined preview. The slot rail's active card (Q2) is teal with a dot; the dirty marker (•) means there are unsaved changes in Q2's editor (preserved in memory across mode toggles). The wrapper-edit pane's <strong>Preview at</strong> selector controls the editing-side view of the chart only; the combined preview on the right tracks the active slot independently — Q2 here, so the 14:00 row (<code>visible_from = Q3</code>) is hidden in the chart context. Click any slot card to enter editor mode (next frame).</p>
+
+<!-- ─────────────────── 3. Editor mode ─────────────────── -->
+<h2 class="section-title" id="editor-mode">3. Editor mode — left column shows the active question</h2>
+<p>Curator clicked Q2 in the slot rail. The wrapper-edit pane is hidden; the SATA editor body fills the left column at full vertical height. The <strong>slot strip</strong> at the top lets the curator switch slots without leaving editor mode (a discard / save-first prompt fires if the active question is dirty). The <strong>← Wrapper view</strong> button returns to wrapper mode. The right column's combined preview is unchanged — same component, still tracking Q2.</p>
+
+<div class="mockup-frame">
+  <div class="mockup-caption with-state">
+    <span>Admin · /admin/bank/cases-v2/cs_pph_001</span>
+    <span class="mockup-state">Editor mode · Q2 active</span>
+  </div>
+
+  <div class="page-surface">
+    <div class="page-topbar">
+      <span>Bank</span><span class="crumb-sep">›</span>
+      <span>Case Studies (v2)</span><span class="crumb-sep">›</span>
+      <span class="crumb-current">Postpartum hemorrhage assessment</span>
+    </div>
+
+    <div class="wrapper-grid">
+      <!-- LEFT — editor mode -->
+      <div class="pane pane-editor-mode">
+        <div class="editor-mode-header">
+          <button class="btn subtle tiny">← Wrapper view</button>
+          <span class="slot-strip" role="tablist" aria-label="Switch question slot">
+            <button class="slot-pip"><span>Q1</span><span class="slot-pip-status slot-status ok" style="width:6px;height:6px;"></span></button>
+            <button class="slot-pip active dirty"><span>Q2</span><span class="slot-pip-status slot-status warn" style="width:6px;height:6px;"></span></button>
+            <button class="slot-pip"><span>Q3</span><span class="slot-pip-status slot-status ok" style="width:6px;height:6px;"></span></button>
+            <button class="slot-pip empty"><span>Q4</span><span class="slot-pip-status slot-status draft" style="width:6px;height:6px;"></span></button>
+            <button class="slot-pip empty"><span>Q5</span><span class="slot-pip-status slot-status draft" style="width:6px;height:6px;"></span></button>
+            <button class="slot-pip empty"><span>Q6</span><span class="slot-pip-status slot-status draft" style="width:6px;height:6px;"></span></button>
+            <button class="slot-pip slot-pip-add" title="Add question">+</button>
+          </span>
+          <span style="display:inline-flex; gap: 6px;">
+            <button class="btn tiny">Discard</button>
+            <button class="btn primary tiny">Save question</button>
+          </span>
+        </div>
+
+        <div class="editor-mode-title">
+          Q2 <span class="editor-mounted-label">SATA editor</span>
+        </div>
+
+        <div class="editor-body">
+          <div class="field">
+            <label class="field-label">Stem</label>
+            <div class="field-textarea">Select all the priority nursing actions for this patient at 14:00.</div>
+          </div>
+
+          <label class="field-label">Options · 6 (≥3 correct)</label>
+          <div class="option-row correct">
+            <span class="checkbox"></span>
+            <div>
+              <div class="option-text">Initiate large-bore IV access for fluid resuscitation</div>
+              <div class="option-feedback">Hypotension + tachycardia warrants rapid IV access for volume.</div>
+            </div>
+          </div>
+          <div class="option-row correct">
+            <span class="checkbox"></span>
+            <div>
+              <div class="option-text">Notify the obstetric provider of the changing vitals</div>
+              <div class="option-feedback">Trends indicate possible postpartum hemorrhage — provider must be alerted.</div>
+            </div>
+          </div>
+          <div class="option-row correct">
+            <span class="checkbox"></span>
+            <div>
+              <div class="option-text">Assess fundal tone and lochia</div>
+              <div class="option-feedback">Source assessment for postpartum hemorrhage.</div>
+            </div>
+          </div>
+          <div class="option-row">
+            <span class="checkbox"></span>
+            <div>
+              <div class="option-text">Document findings and reassess in 4 hours</div>
+              <div class="option-feedback">Wrong — 4-hour gap is unsafe with deteriorating vitals.</div>
+            </div>
+          </div>
+          <div class="option-row">
+            <span class="checkbox"></span>
+            <div>
+              <div class="option-text">Apply a warming blanket for comfort</div>
+              <div class="option-feedback">Comfort measure, not a priority.</div>
+            </div>
+          </div>
+          <div class="option-row">
+            <span class="checkbox"></span>
+            <div>
+              <div class="option-text">Encourage ambulation to the bathroom</div>
+              <div class="option-feedback">Unsafe given hypotension.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT — combined preview (same as wrapper mode) -->
+      <div class="pane pane-combined-preview">
+        <div class="pane-label">
+          <span>Combined preview</span>
+          <span style="font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: none; letter-spacing: 0;">As student at <strong style="color: var(--navy);">Q2</strong> · tracks active slot</span>
+        </div>
+
+        <div class="preview-section">
+          <div class="preview-section-label">Chart context · what the student sees at Q2</div>
+          <p style="font-size:13px; line-height:1.5; margin-bottom:10px;">A 28-year-old G3P3 patient is 2 hours postpartum following a vaginal delivery. The patient is alert and oriented. You are conducting your shift assessment and review the chart below.</p>
+          <div class="chart-tabs" style="margin: 0 0 0;">
+            <div class="chart-tab">Nurses notes</div>
+            <div class="chart-tab active">Vital signs</div>
+            <div class="chart-tab">Lab results</div>
+            <div class="chart-tab">Orders</div>
+            <div class="chart-tab">H&amp;P</div>
+            <div class="chart-tab">Diagnostics</div>
+          </div>
+          <div class="chart-content" style="border-top: none; border-radius: 0 0 6px 6px;">
+            <table class="vs-table">
+              <thead><tr><th>Time</th><th>BP</th><th>HR</th><th>RR</th><th>SpO₂</th><th>Temp</th></tr></thead>
+              <tbody>
+                <tr><td>13:00</td><td>124/80</td><td>78</td><td>16</td><td>98%</td><td>98.6 °F</td></tr>
+                <tr><td>13:30</td><td>110/72</td><td>92</td><td>18</td><td>97%</td><td>98.4 °F</td></tr>
+              </tbody>
+            </table>
+            <p style="font-size: 11.5px; color: var(--text-dim); margin-top: 6px; font-style: italic;">14:00 row hidden — visible_from = Q3</p>
+          </div>
+        </div>
+
+        <div class="preview-section">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+            <div class="preview-section-label" style="margin-bottom: 0;">Active question · Q2 (SATA)</div>
+            <span class="preview-toggle">
+              <span class="pill active">Student</span>
+              <span class="pill">Answer key</span>
+            </span>
+          </div>
+          <div class="student-stem">Select <strong>all</strong> the priority nursing actions for this patient at 14:00.</div>
+          <div class="student-option"><span class="check-empty"></span><span>Initiate large-bore IV access for fluid resuscitation</span></div>
+          <div class="student-option"><span class="check-empty"></span><span>Notify the obstetric provider of the changing vitals</span></div>
+          <div class="student-option"><span class="check-empty"></span><span>Assess fundal tone and lochia</span></div>
+          <div class="student-option"><span class="check-empty"></span><span>Document findings and reassess in 4 hours</span></div>
+          <div class="student-option"><span class="check-empty"></span><span>Apply a warming blanket for comfort</span></div>
+          <div class="student-option"><span class="check-empty"></span><span>Encourage ambulation to the bathroom</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="caption">Slot strip pip states: <strong>Q2 active + dirty</strong> (dark fill, amber dot), Q1 / Q3 saved (open + green dot), Q4–Q6 empty (dashed border). Clicking another pip when Q2 is dirty fires the discard/save-first dialog (frame 6 below). The "+" pip launches the type picker (frame 5).</p>
+
+<!-- ─────────────────── 3. Slot rail close-up ─────────────────── -->
+<h2 class="section-title" id="slot-rail">4. Slot rail close-up (wrapper mode)</h2>
+<p>The slot rail is the wrapper's primary navigation device. Each card carries enough information for the curator to know what's there and how it stands without opening it.</p>
+
+<div class="mockup-frame" style="max-width: 540px;">
+  <div class="mockup-caption">Slot rail · 4 questions, Q2 active and dirty</div>
+  <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px;">
+    <div class="slot-rail-header">
+      <span class="slot-rail-title">Question slots · 4 of 6</span>
+      <button class="btn subtle tiny">Reorder</button>
+    </div>
+    <div class="slot-rail">
+      <div class="slot-card">
+        <span class="slot-num">Q1</span>
+        <span class="slot-summary"><span class="type-chip">MCQ</span>Which finding at 14:00 is most concerning?</span>
+        <span class="slot-cjmm">RC</span>
+        <span class="slot-status ok" title="Valid"></span>
+        <button class="slot-remove" title="Detach question from this case">×</button>
+      </div>
+      <div class="slot-card active dirty">
+        <span class="slot-num">Q2</span>
+        <span class="slot-summary"><span class="type-chip">SATA</span>Select all the priority nursing actions…</span>
+        <span class="slot-cjmm">TA</span>
+        <span class="slot-status warn" title="Unsaved changes"></span>
+        <button class="slot-remove">×</button>
+      </div>
+      <div class="slot-card">
+        <span class="slot-num">Q3</span>
+        <span class="slot-summary"><span class="type-chip">MATRIX</span>Categorize each finding as expected or unexpected</span>
+        <span class="slot-cjmm">AC</span>
+        <span class="slot-status ok"></span>
+        <button class="slot-remove">×</button>
+      </div>
+      <div class="slot-card">
+        <span class="slot-num">Q4</span>
+        <span class="slot-summary"><span class="type-chip">CLOZE</span>The most likely cause of the patient's symptoms is &lcub;1&rcub;…</span>
+        <span class="slot-cjmm">PH</span>
+        <span class="slot-status error" title="Validation errors"></span>
+        <button class="slot-remove">×</button>
+      </div>
+    </div>
+    <button class="slot-add-btn">+ Add question</button>
+  </div>
+</div>
+
+<table class="spec-table">
+  <thead><tr><th>Element</th><th>Behaviour</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Slot summary</strong></td><td>Type chip + first ~60 chars of stem. Truncates with ellipsis. Empty for slots whose question has no stem yet.</td></tr>
+    <tr><td><strong>CJMM dropdown</strong></td><td>Edited <em>here on the slot card</em>, never inside the editor body. Six values: RC / AC / PH / GS / TA / EO. Saved with "Save case study", not "Save question".</td></tr>
+    <tr><td><strong>Status dot</strong></td><td>Green = valid + saved. Amber = unsaved changes. Red = validation errors. Grey = draft / never validated.</td></tr>
+    <tr><td><strong>× Remove</strong></td><td>Detach only. Clears <code>parent_case_id</code> on the question and removes the join row in <code>nclex_case_study_items</code>. The question survives in the bank as standalone. Does <em>not</em> delete the question.</td></tr>
+    <tr><td><strong>Reorder</strong></td><td>Toggles a drag-handle affordance on each card. Saves new ordinals on next "Save case study".</td></tr>
+    <tr><td><strong>Click slot</strong></td><td>Makes that slot active. If the currently active slot has unsaved question changes, opens the discard / save-first dialog (§5) before switching.</td></tr>
+  </tbody>
+</table>
+
+<!-- ─────────────────── 4. Type picker ─────────────────── -->
+<h2 class="section-title" id="type-picker">5. Add question — type picker</h2>
+<p>"+ Add question" opens a small modal with all 9 question types. Choosing a type opens the matching editor body in the bottom-left pane in <em>create</em> mode. The save action atomically creates the question row, sets <code>parent_case_id</code>, and writes the join row in <code>nclex_case_study_items</code>.</p>
+
+<div class="mockup-frame">
+  <div class="mockup-caption">Type picker · floating dialog over the wrapper page</div>
+  <div class="overlay-frame" style="height: 360px;">
+    <div class="dimmed-page" style="position: absolute; inset: 0; background: var(--surface-soft); padding: 16px;">
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; height: 100%;">
+        <div class="pane-label"><span>Wrapper edit · Postpartum hemorrhage assessment</span></div>
+        <div style="opacity: 0.6;">— wrapper page underneath —</div>
+      </div>
+    </div>
+    <div class="dialog" style="top: 30px; left: 50%; transform: translateX(-50%); width: 560px; z-index: 5;">
+      <div class="dialog-title">Add question to case</div>
+      <div class="dialog-body">Pick a question type. The editor opens in the bottom-left pane in create mode. Saving creates the question and links it to this case in one step.</div>
+      <div class="type-grid">
+        <div class="type-tile">
+          <div class="type-tile-name">MCQ</div>
+          <div class="type-tile-desc">Single best answer, 4 options.</div>
+        </div>
+        <div class="type-tile">
+          <div class="type-tile-name">True / False</div>
+          <div class="type-tile-desc">Binary with rationale.</div>
+        </div>
+        <div class="type-tile">
+          <div class="type-tile-name">SATA</div>
+          <div class="type-tile-desc">Select all that apply, 3+ correct.</div>
+        </div>
+        <div class="type-tile">
+          <div class="type-tile-name">SELECT_N</div>
+          <div class="type-tile-desc">Pick exactly N of M choices.</div>
+        </div>
+        <div class="type-tile">
+          <div class="type-tile-name">MATRIX</div>
+          <div class="type-tile-desc">Rows × columns grid of decisions.</div>
+        </div>
+        <div class="type-tile">
+          <div class="type-tile-name">BOWTIE</div>
+          <div class="type-tile-desc">Cause / action / monitor wings.</div>
+        </div>
+        <div class="type-tile">
+          <div class="type-tile-name">CLOZE</div>
+          <div class="type-tile-desc">Sentence with dropdown blanks.</div>
+        </div>
+        <div class="type-tile">
+          <div class="type-tile-name">HIGHLIGHT</div>
+          <div class="type-tile-desc">Click bracketed chunks in passage.</div>
+        </div>
+        <div class="type-tile">
+          <div class="type-tile-name">DRAG_DROP</div>
+          <div class="type-tile-desc">Tokens dragged into categories.</div>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="caption">Backdrop click and Esc both map to Cancel. Selecting a tile dismisses the modal and mounts the chosen editor body with empty initial state.</p>
+
+<!-- ─────────────────── 5. Discard ─────────────────── -->
+<h2 class="section-title" id="discard">6. Switch slot with unsaved changes</h2>
+<p>Switching slots while the active question has unsaved edits opens a centred floating dialog. Three explicit options — no automatic data loss, no automatic save. Backdrop click maps to <strong>Cancel</strong>, the safe default per the UI conventions in <code>CLAUDE.md</code>.</p>
+
+<div class="mockup-frame">
+  <div class="mockup-caption">Discard / save-first dialog · click on Q3 while Q2 is dirty</div>
+  <div class="overlay-frame" style="height: 320px;">
+    <div class="dimmed-page" style="position: absolute; inset: 0; background: var(--surface-soft); padding: 16px;">
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; height: 100%;">
+        <div class="pane-label"><span>Question edit · Q2 SATA · unsaved changes</span></div>
+        <div style="opacity: 0.6;">— editor body underneath —</div>
+      </div>
+    </div>
+    <div class="dialog" style="top: 50%; left: 50%; transform: translate(-50%, -50%); width: 460px; z-index: 5;">
+      <div class="dialog-title">Unsaved changes in Q2</div>
+      <div class="dialog-body">You've made changes to the SATA question in slot 2 but haven't saved them. What do you want to do before switching to Q3?</div>
+      <div class="dialog-actions" style="justify-content: space-between;">
+        <button class="btn subtle">Cancel</button>
+        <span style="display:inline-flex; gap: 8px;">
+          <button class="btn danger">Discard changes</button>
+          <button class="btn primary">Save Q2 first</button>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<table class="spec-table">
+  <thead><tr><th>Action</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Save Q2 first</strong></td><td>Runs the standard save-question action. On success → switches to Q3. On error → toast surfaces, dialog stays open, slot unchanged.</td></tr>
+    <tr><td><strong>Discard changes</strong></td><td>Drops in-memory edits to Q2's editor state. Switches to Q3. Status dot on Q2 returns to green/grey.</td></tr>
+    <tr><td><strong>Cancel</strong></td><td>Stays on Q2. Editor state preserved.</td></tr>
+    <tr><td><strong>Backdrop click / Esc</strong></td><td>Same as Cancel — never auto-save, never auto-discard.</td></tr>
+  </tbody>
+</table>
+
+<!-- ─────────────────── 6. Delete two-path ─────────────────── -->
+<h2 class="section-title" id="delete">7. Delete case — two-path confirm</h2>
+<p>Deleting a case study with attached questions is the only place in the wrapper where the curator can lose work irreversibly. The dialog forces an explicit choice between two paths and gates both behind typed-DELETE.</p>
+
+<div class="mockup-frame">
+  <div class="mockup-caption">Two-path delete · 3 questions attached</div>
+  <div class="overlay-frame" style="height: 460px;">
+    <div class="dimmed-page" style="position: absolute; inset: 0; background: var(--surface-soft); padding: 16px;"></div>
+    <div class="dialog" style="top: 30px; left: 50%; transform: translateX(-50%); width: 600px; z-index: 5;">
+      <div class="dialog-title">Delete this case study?</div>
+      <div class="dialog-body"><strong>Postpartum hemorrhage assessment</strong> has 3 attached questions. Pick how to handle them. This cannot be undone.</div>
+
+      <div class="path-grid">
+        <div class="path-card">
+          <div class="path-card-title">Detach &amp; keep questions</div>
+          <div class="path-card-desc">Q1, Q2, Q3 are unlinked from the case and remain in the bank as standalone questions. Only the case wrapper is deleted.</div>
+          <div class="delete-gate">
+            <span class="delete-gate-label">Type <code>DETACH</code> to confirm</span>
+            <input class="delete-gate-input" type="text" value="" placeholder="DETACH"/>
+            <button class="btn disabled" style="margin-top: 4px;">Detach &amp; delete case</button>
+          </div>
+        </div>
+
+        <div class="path-card danger">
+          <div class="path-card-title">Delete everything</div>
+          <div class="path-card-desc">The case <strong>and</strong> all 3 attached questions are permanently deleted from the bank. This will affect any tutor programmes that reference these questions.</div>
+          <div class="delete-gate">
+            <span class="delete-gate-label">Type <code>DELETE</code> to confirm</span>
+            <input class="delete-gate-input" type="text" value="DELETE"/>
+            <button class="btn danger" style="margin-top: 4px;">Delete case + 3 questions</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="btn subtle">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="caption">Zero-attached cases skip this dialog — they go straight to a single typed-<code>DELETE</code> confirm. The two-path version only appears when at least one question is linked.</p>
+
+<table class="spec-table">
+  <thead><tr><th>Path</th><th>RPC / behaviour</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Detach &amp; keep</strong></td><td>For each attached question: clear <code>parent_case_id</code> + remove join row. Then delete the case wrapper. Questions remain in <code>nclex_questions</code>.</td></tr>
+    <tr><td><strong>Delete everything</strong></td><td>Cascade delete via existing RPC (mirrors the legacy two-path delete). Hard-deletes case + all linked questions.</td></tr>
+    <tr><td><strong>Cancel / Backdrop / Esc</strong></td><td>Dismiss with no change.</td></tr>
+  </tbody>
+</table>
+
+<!-- ─────────────────── 7. Empty state ─────────────────── -->
+<h2 class="section-title" id="empty">8. Empty state — newly created case</h2>
+<p>A case can exist with zero questions. The slot rail collapses to a prominent empty-state card. The wrapper-edit fields and chart tabs remain fully functional — a curator can build out the scenario before adding any questions.</p>
+
+<div class="mockup-frame">
+  <div class="mockup-caption with-state">
+    <span>Admin · /admin/bank/cases-v2/cs_new_002</span>
+    <span class="mockup-state">Empty · 0 of 6 slots</span>
+  </div>
+  <div class="page-surface">
+    <div class="page-topbar">
+      <span>Bank</span><span class="crumb-sep">›</span>
+      <span>Case Studies (v2)</span><span class="crumb-sep">›</span>
+      <span class="crumb-current">Untitled case study</span>
+    </div>
+    <div class="wrapper-grid">
+      <div class="pane pane-wrapper-edit">
+        <div class="pane-label">
+          <span>Wrapper edit</span>
+          <span style="display:inline-flex; gap: 6px;">
+            <button class="btn subtle tiny">Cancel</button>
+            <button class="btn danger tiny">Delete</button>
+            <button class="btn tiny disabled">Validate</button>
+            <button class="btn primary tiny disabled">Save case study</button>
+          </span>
+        </div>
+
+        <div class="pane-tabs" role="tablist">
+          <button class="pane-tab active" role="tab" aria-selected="true">Content</button>
+          <button class="pane-tab" role="tab">Chart</button>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Title</label>
+          <div class="field-input" style="color: var(--text-faint); font-style: italic;">Untitled case study</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Scenario</label>
+          <div class="field-textarea" style="color: var(--text-faint); font-style: italic;">Describe the patient and the clinical situation the student is stepping into…</div>
+        </div>
+
+        <div class="visibility-section" role="group" aria-label="Visibility flags" style="margin: 14px 0; border-radius: 6px; background: var(--surface-soft);">
+          <div class="visibility-section-title">Visibility</div>
+          <div class="visibility-row">
+            <span class="vrow-label">Published<span class="vrow-help">Live to students. Requires all 6 slots populated.</span></span>
+            <span class="vswitch" role="switch" aria-checked="false"></span>
+          </div>
+          <div class="visibility-row">
+            <span class="vrow-label">Free sample<span class="vrow-help">Available without subscription.</span></span>
+            <span class="vswitch" role="switch" aria-checked="false"></span>
+          </div>
+          <div class="visibility-row">
+            <span class="vrow-label">Visible in builder<span class="vrow-help">Show in tutor programme builders.</span></span>
+            <span class="vswitch on" role="switch" aria-checked="true"></span>
+          </div>
+        </div>
+
+        <div class="slot-rail-header">
+          <span class="slot-rail-title">Question slots · 0 of 6</span>
+        </div>
+        <div class="empty-rail">
+          <h5>No questions yet</h5>
+          <p style="margin: 0 0 12px; color: inherit;">Add a question to start building this case.</p>
+          <button class="btn primary">+ Add question</button>
+        </div>
+      </div>
+      <div class="pane pane-combined-preview" style="opacity: 0.55;">
+        <div class="pane-label">
+          <span>Combined preview</span>
+          <span style="font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: none; letter-spacing: 0;">No active slot</span>
+        </div>
+        <div class="preview-section">
+          <div class="preview-section-label">Chart context</div>
+          <p style="font-size:13px; color: var(--text-muted); font-style: italic;">Add a scenario and chart-tab content to see what the student will see.</p>
+        </div>
+        <div class="preview-section">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+            <div class="preview-section-label" style="margin-bottom: 0;">Active question</div>
+            <span class="preview-toggle"><span class="pill active">Student</span><span class="pill">Answer key</span></span>
+          </div>
+          <p style="font-size:13px; color: var(--text-muted); font-style: italic;">No question selected.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="caption">Save case study is disabled until the title field has content. The right-column preview greys out until a slot is active — there's no useful student-eye view of an empty case.</p>
+
+<!-- ─────────────────── 8. Design decisions captured ─────────────────── -->
+<h2 class="section-title" id="decisions">9. Design decisions captured</h2>
+<p>Seven open questions were settled during the slice-12 design pass. Each subsection records what was on the table, what was chosen, and why — so a future reader (or a next-slice author asking "why does it work this way?") can reconstruct the reasoning without re-doing the audit.</p>
+
+<h3 class="sub-title">9.1 — <code>visible_from</code> preview model</h3>
+
+<p><strong>Question.</strong> Each chart row carries a <code>visible_from</code> (1-6) value — the row stays hidden from the student until question position N. How should that mechanic surface to the curator while editing, and to the curator while previewing?</p>
+
+<p><strong>Considered.</strong> (a) Keep the legacy "Preview as student at Q1..Q6" toggle on the case header. (b) Use the active slot's position as the implicit preview lens (no separate toggle). (c) Both — independent editing-side toggle for chart preview, plus the active slot driving the combined preview.</p>
+
+<p><strong>Decided.</strong> (c) — two independent preview lenses:</p>
+<ul>
+  <li><strong>Editing-side selector</strong> — the wrapper-edit pane (Chart tab) carries its own <em>Off / 1 / 2 / 3 / 4 / 5 / 6</em> strip. Lets the curator flip the chart's editing view to any position <em>without changing the active slot</em> (which would trigger a discard prompt on the active question's draft).</li>
+  <li><strong>Combined preview (right column)</strong> — automatic. Chart subsection always reflects what the student sees at the active slot's position. No toggle. The question subsection has a Student / Answer-key toggle that affects only itself, since charts have no answer key.</li>
+</ul>
+
+<p><strong>Why.</strong> The legacy single toggle was conflating two needs (editing-time chart preview + student-eye-view of the case). Splitting them lets the curator be on Q2 in the question editor while previewing the chart at Q5 — useful when authoring a "what if I add a row at Q5" question without losing Q2 draft state. The combined preview's automatic tracking means it always answers the same question: "what does the student see right now at this question?"</p>
+
+<h3 class="sub-title">9.2 — Classifications + visibility flags</h3>
+
+<p><strong>Question.</strong> Where on the wrapper page do classification fields (client needs, nursing subject, body system, topic, subtopic, difficulty, tags, bloom level) and visibility flags (<code>is_published</code>, <code>is_free_sample</code>, <code>is_builder_visible</code>) live?</p>
+
+<p><strong>Considered.</strong> Putting both groups together inside (a) a collapsible accordion at the bottom of the wrapper-edit pane, (b) a side drawer behind a "Settings" button, or (c) a "Metadata" tab on the wrapper-edit pane.</p>
+
+<p><strong>Decided.</strong> Split the two concerns rather than co-locate:</p>
+<ul>
+  <li><strong>Classifications</strong> — <em>none</em> on the wrapper. They live on each child question only, in the question editor's existing Classification tab.</li>
+  <li><strong>Visibility flags</strong> — three switches as a "Visibility" subsection <strong>inside the Content tab body</strong>, below the title + scenario fields. Visible only when the Content tab is active.</li>
+</ul>
+
+<p><strong>Why classifications.</strong> <code>bank.md</code> already documented the rationale for trends ("no classification columns on the dataset"): one wrapper can host questions of different difficulties or subcategories, and duplicating classification on the wrapper recreates the wrapper-vs-child-drift problem from 1.11b. Same applies to case studies — drop the wrapper-level classification UI even though the legacy DB columns still exist (column cleanup is a separate concern).</p>
+
+<p><strong>Why visibility inside Content (not always-visible).</strong> An earlier iteration placed the Visibility section <em>between</em> the tab body and the slot rail, so it was always visible regardless of which top tab was active. That created the optical impression of the section "appearing under both tabs" — the curator saw it once on Content and once on Chart, even though it was the same component. Moving it inside the Content tab gives it one stable home, and the placement is semantically right: visibility flags are case-identity metadata (publishing, sample, builder visibility) that belong with title and scenario. When the curator is on the Chart tab, visibility isn't visible — one click to switch back when they need it.</p>
+
+<h3 class="sub-title">9.3 — Custom tabs + add/reorder affordances</h3>
+
+<p><strong>Question.</strong> Should v2 keep custom tabs (curator-named narrative + grid)? How should the curator add/remove/reorder tabs, rows, and columns?</p>
+
+<p><strong>Decided.</strong> Keep custom tabs (very important — losing them would be a regression). Port every editing affordance from legacy unchanged:</p>
+<ul>
+  <li>Tab rail with up/down reorder arrows + an "Add tab" popover listing built-ins (greyed if already used) plus "+ Custom narrative" / "+ Custom grid".</li>
+  <li>Structured tabs: add/remove/reorder rows + add/remove/reorder columns.</li>
+  <li>Narrative tabs: add/remove/reorder entry cards with the per-row <code>visible_from</code> selector (<code>vf-segmented</code>).</li>
+  <li>All wired to legacy's <code>upsertTabAction</code> / <code>reorderTabsAction</code> / <code>deleteTabAction</code>.</li>
+</ul>
+
+<p><strong>Why.</strong> These low-level editing affordances are designed and tested in production today. Reinventing them would burn time and risk regressions. The architecture rebuild plan already calls for vendoring <code>lib/bank/case-study/{tab-rail,structured-tab,narrative-tab,vf-segmented}.tsx</code> into <code>lib/authoring/wrappers/case-study/</code> for v2. For the per-tab editor visuals (popover, custom-grid column editor, etc.) see the legacy <code>case-study-editor-mockup.html</code> — those frames remain canonical.</p>
+
+<h3 class="sub-title">9.4 — Save granularity (Position 3)</h3>
+
+<p><strong>Question.</strong> What save buttons does the curator see, and what does each one cover?</p>
+
+<p><strong>Considered.</strong> Three positions:</p>
+<ul>
+  <li><strong>Position 1</strong> — two buttons (Save case study, Save question), with chart-tab content folded into the wrapper save (architecture doc as written, line 323-337).</li>
+  <li><strong>Position 2</strong> — three independent saves (Save case study covers wrapper-metadata only, Save tab per-tab, Save question per-question).</li>
+  <li><strong>Position 3</strong> — legacy parity (Save case batches case header + 6 questions atomically) PLUS per-question saves added on top.</li>
+</ul>
+
+<p><strong>Decided.</strong> Position 3.</p>
+
+<table class="spec-table">
+  <thead><tr><th>Button</th><th>Where</th><th>Saves</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Save case study</strong></td>
+      <td>Wrapper-edit pane header</td>
+      <td>Case header (title, scenario, visibility, slot ordering, <code>cjmm_step</code>) <em>plus</em> all 6 question drafts atomically via legacy <code>nclex_save_case_with_children</code> RPC.</td>
+    </tr>
+    <tr>
+      <td><strong>Save tab</strong></td>
+      <td>Inside each chart-tab editor (legacy)</td>
+      <td>Just that tab via <code>upsertTabAction</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>Save question</strong></td>
+      <td>Question-edit pane header (new from slices 2-10)</td>
+      <td>Just the active question. In case-study context, also sets <code>parent_case_id</code> and writes the <code>nclex_case_study_items</code> join row.</td>
+    </tr>
+    <tr>
+      <td><strong>Validate</strong></td>
+      <td>Wrapper-edit pane header</td>
+      <td>Nothing — opens the validation panel (see 8.5).</td>
+    </tr>
+    <tr>
+      <td><strong>Delete tab</strong></td>
+      <td>Inside each chart-tab editor (legacy)</td>
+      <td>Removes that tab.</td>
+    </tr>
+    <tr>
+      <td><strong>Delete</strong></td>
+      <td>Wrapper-edit pane header</td>
+      <td>Removes the case (see 8.6 for the two-path confirm).</td>
+    </tr>
+    <tr>
+      <td><strong>Cancel</strong></td>
+      <td>Wrapper-edit pane header</td>
+      <td>Navigates back to the case-study list. No save.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>All saves are <strong>draft saves</strong> — none requires "completeness". The publish gate is separate: when <code>is_published</code> is toggled to true on Save case study, server-side validation refuses unless every requirement is met. Save anytime; publish only when ready.</p>
+
+<p><strong>Why.</strong> Position 1 is the architecture doc's original intent and is theoretically cleaner, but loses an affordance — the one-click "save everything" sweep — that legacy curators rely on. Position 3 gives the curator both worlds: granular per-question saves AND a single sweep. Costs: redundancy (questions can be saved by either path) and the drift risk that bit 1.11b. Mitigations are baked into 9.1 below.</p>
+
+<p>This decision is an explicit override of the architecture doc's two-button decision. <code>questions-and-wrappers-rebuild.md § 5 "Save semantics"</code> will be updated in slice-12 prep to reflect this.</p>
+
+<h3 class="sub-title">9.5 — Validate button</h3>
+
+<p><strong>Decided.</strong> Include in slice 12. Port the rules from <code>lib/bank/case-study/validation.ts</code> unchanged; build a new panel atom in <code>lib/authoring/wrappers/case-study/</code>. Button lives in the wrapper-edit pane header (between Delete and Save case study); opens a floating panel that lists errors first, warnings second.</p>
+
+<p>Rules covered (from the legacy validator):</p>
+<ul>
+  <li><strong>Case-level errors</strong> — title missing, scenario missing, no tabs, publish-gate underfill (<code>is_published</code> set with fewer than 6 populated slots).</li>
+  <li><strong>Tab-level warnings</strong> — empty tab, tab with no <code>visible_from = 1</code> entry (student sees an empty tab at Q1).</li>
+  <li><strong>Slot-level errors</strong> — stem missing, type missing, CJMM missing (only checked for slots with intent — i.e. stem set OR cjmm picked; truly empty slots are ignored).</li>
+</ul>
+
+<p>Three panel summary states: <strong>Ready to publish</strong> (published + zero errors), <strong>N errors / M warnings — not ready</strong> (published + has errors), <strong>Draft — N errors / M warnings</strong> (not published).</p>
+
+<p><strong>Why.</strong> Validate is heavily used by curators preparing to publish. Slot/tab status dots cover at-a-glance feedback, but the panel is the canonical "is this case ready?" answer and surfaces warnings (which dots can't easily express). Removing it would be a regression for curators who currently use it.</p>
+
+<h3 class="sub-title">9.6 — Two-path delete confirm</h3>
+
+<p><strong>Decided.</strong> Zero-attached cases: single typed-<code>DELETE</code> confirm. Cases with ≥1 attached question: two-path confirm dialog (frame 6 above):</p>
+<ul>
+  <li><strong>Detach &amp; keep questions</strong> — typed-<code>DETACH</code> gate. Unlinks the join rows + clears <code>parent_case_id</code>; questions survive in the bank as standalone. The case wrapper is deleted.</li>
+  <li><strong>Delete everything</strong> — typed-<code>DELETE</code> gate. Cascades to delete the case + all attached questions.</li>
+</ul>
+<p>Backdrop click and Esc map to Cancel (the safe option, per <code>CLAUDE.md § UI Conventions</code>).</p>
+
+<p><strong>Why.</strong> The schema today (<code>parent_case_id</code> is <code>ON DELETE SET NULL</code>) means a naïve "delete case" already auto-orphans questions to standalone — that's the de-facto safe path. The two-path UI makes both intentions explicit instead of forcing the curator to remember which schema behaviour applies. Distinct typed words (<code>DETACH</code> vs <code>DELETE</code>) protect against muscle-memory mistakes when toggling between the two cards.</p>
+
+<h3 class="sub-title">9.7 — Two modes on the left column (post-design refinement)</h3>
+
+<p><strong>Question.</strong> Where does the question editor body live when a slot is active? The original architecture-doc layout had three panes — wrapper-edit top-left, question-edit bottom-left, combined preview right. The bottom-left pane turned out cramped: editor bodies are tall (stem, options, feedback, classification + housekeeping tabs) and ended up scrolling the curator's working area badly.</p>
+
+<p><strong>Considered.</strong> (a) Stay with the three-pane geometry; live with the scroll. (b) Move the editor body to a full-screen modal overlay (like the standalone bank-list editors). (c) Replace the bottom-left pane with a focused "editor mode" that takes the full left column, leaving the right-column preview untouched.</p>
+
+<p><strong>Decided.</strong> (c). The page is two columns; the left column toggles between two modes:</p>
+<ul>
+  <li><strong>Wrapper mode</strong> (default) — wrapper-edit pane fills the left column. Slot rail visible. Save case study + Validate + Delete + Cancel in pane header.</li>
+  <li><strong>Editor mode</strong> (slot active) — editor body fills the left column at full vertical height. <strong>Slot strip</strong> at the top for switching slots without leaving editor mode. <strong>← Wrapper view</strong> button returns to wrapper mode. Save question + Discard buttons in pane header. Wrapper-level buttons (Save case study, Validate, Delete, Cancel) are hidden — must close editor first to reach them.</li>
+</ul>
+
+<p><strong>Why.</strong> The right-column preview is the curator's continuous reference for what the student sees — it should never move. Splitting the left column between wrapper context and editor body gave too little space to either; promoting the editor to a focused mode gives it the room it needs without losing wrapper context (the slot strip keeps slot navigation tight; the right-column preview keeps the chart visible). Hiding wrapper buttons in editor mode is an explicit focus boundary — the curator is editing one thing at a time, not toggling between scopes.</p>
+
+<p>Open considerations baked into 10.1: in-memory wrapper state persists across mode toggles (no DB read on Wrapper view return); slot-strip click on a dirty slot fires the discard/save-first dialog (frame 6).</p>
+
+<!-- ─────────────────── 10. Implementation watch-outs ─────────────────── -->
+<h2 class="section-title" id="impl">10. Implementation watch-outs + sub-slice plan</h2>
+
+<h3 class="sub-title">10.1 — Build-time concerns flagged during planning</h3>
+
+<ol>
+  <li><strong>Save-order interaction (Position 3 hazard).</strong> If the curator clicks Save question, then later clicks Save case study, the case sweep could read stale form state for that slot and overwrite the just-saved question. Mitigation: Save case study reads the active editor body's DOM at submit time (legacy already does this via <code>slotFormRef.current</code> in <code>editor.tsx:412-428</code>) — same pattern survives for v2.</li>
+
+  <li><strong>Wrapper-vs-child drift trap.</strong> Position 3 reintroduces the redundancy that 1.11b was burned by. Concrete rule: the per-question save action's case-context branch only sets <code>parent_case_id</code> + writes the join row. It does NOT touch wrapper-level fields (title, scenario, visibility, classifications). Save case study is the only path that writes those.</li>
+
+  <li><strong>Publish gate stays server-side.</strong> The legacy RPC <code>nclex_save_case_with_children</code> enforces "all 6 slots populated" when <code>is_published = true</code>. Don't move that check to the client — defence-in-depth. Client-side checks (Validate panel, friendly error in the action) are advisory only.</li>
+
+  <li><strong>Validate is manual-only.</strong> Per <code>validation.ts</code> design: panel only opens on click; never auto-runs on save or load. Re-clicking Validate while the panel is open closes it.</li>
+
+  <li><strong>Two preview lenses are independent state.</strong> The editing-side <em>Preview at</em> selector lives in the wrapper-edit pane's local state. The combined preview's chart tracks <code>activeSlot</code>. Switching slots updates the combined preview but does NOT change <em>Preview at</em>. Reloading the page resets both — per-session only, no URL or storage persistence.</li>
+
+  <li><strong>Slot rail always shows 6 slots.</strong> Schema fixes positions 1-6 (<code>CHECK position BETWEEN 1 AND 6</code> + <code>UNIQUE (case_id, position)</code>). Empty slots have <code>item_id = NULL</code>; they still occupy a slot card (greyed) so the curator can see "Q4 is the next blank" without re-counting. "+ Add question" fills the lowest-numbered empty slot.</li>
+
+  <li><strong>Wrapper state persists across mode toggles.</strong> When the curator enters editor mode (clicks a slot card), the wrapper-edit pane's in-flight state (typed-but-unsaved title, scenario edits, chart entry edits, visibility toggles) lives in React state — the wrapper-edit pane unmounts visually but the state holds. Returning via <strong>← Wrapper view</strong> re-renders the pane with edits intact. No DB round-trip, no URL param. Same applies to editor-mode state when toggling back: the active editor's draft survives a return-to-wrapper-and-back cycle. The only thing that drops state is a hard reload.</li>
+
+  <li><strong>Slot strip dirty indicator must reflect editor-body state.</strong> The amber dot on a slot pip in editor mode means that slot's editor draft has unsaved changes (compared to its DB row). Drives the discard/save-first dialog when the curator clicks a different pip. Implementation: the wrapper page tracks one <code>dirty: boolean</code> per slot in its local state, set by each mounted editor body via a callback prop. Drops on successful Save question.</li>
+
+  <li><strong>Sticky topbar + scrolling left column + sticky right column.</strong> The breadcrumb topbar (with the case title) is <code>position: sticky; top: 0;</code> so it pins at the top of the viewport while the curator scrolls. The right-column combined preview is also sticky (with a top offset matching the topbar height) so it stays in view as a continuous reference while the left column — which can be tall (chart entries, editor body) — scrolls naturally. Mirrors the standalone-editor pattern: fixed chrome, scrollable working area. Implementation note: <code>position: sticky</code> requires no <code>overflow</code> on intermediate ancestors — verify the AdminShell wrapper doesn't break it before slice 12c lands.</li>
+</ol>
+
+<h3 class="sub-title">10.2 — Sub-slice breakdown</h3>
+
+<p>Slice 12 lands as five sub-commits, each browser-tested on admin + tutor surfaces:</p>
+
+<table class="spec-table">
+  <thead><tr><th>Sub</th><th>Scope</th><th>Size</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>12a</strong></td>
+      <td>List page (<code>/admin/bank/cases-v2/</code> + tutor twin) + sidebar entry "Case Studies (v2)" — reads existing cases via <code>nclex_case_studies</code>. The throwaway sandbox at <code>/cases-v2/sandbox</code> stays for review and is removed at slice-13 swap.</td>
+      <td>small</td>
+    </tr>
+    <tr>
+      <td><strong>12b</strong></td>
+      <td>Three-pane shell wired to a real <code>[case_id]</code> (read-only — clicking slots Q1..Q6 swaps the editor body in the bottom-left pane). Sandbox component is renamed and rewired to real data here, not abandoned.</td>
+      <td>medium</td>
+    </tr>
+    <tr>
+      <td><strong>12c</strong></td>
+      <td>Wrapper-edit pane: Content + Chart tabs, visibility section, chart-tab editors ported from legacy unchanged, Save case study (legacy RPC), Save tab (legacy <code>upsertTabAction</code>), Validate panel, discard prompt on slot switch with <code>cjmm_step</code> on the slot card.</td>
+      <td>large</td>
+    </tr>
+    <tr>
+      <td><strong>12d</strong></td>
+      <td>Combined-preview right column with <code>visible_from</code> filtering of chart rows + Student / Answer-key toggle on the question subsection.</td>
+      <td>small-medium</td>
+    </tr>
+    <tr>
+      <td><strong>12e</strong></td>
+      <td>"+ Add question" type picker, "× Remove" detach, two-path delete confirm (<code>DETACH</code> / <code>DELETE</code>).</td>
+      <td>medium</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The mockup hero remains valid for 12b onward; this file does not change unless a settled decision changes. Open questions or geometry tweaks discovered during build go back into <code>questions-and-wrappers-rebuild.md § 5</code>.</p>
+
+<div class="footer-note">
+  Mockup is intentionally non-interactive — frames are static visual references for slice 12 implementation. The live working sandbox at <code>/admin/bank/cases-v2/sandbox</code> is the interactive companion (hardcoded data, no DB writes); the design source-of-truth is this file + the architecture doc.
+</div>
+
+</div>
+</body>
+</html>
