@@ -6,6 +6,158 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-04-30 (Family B continued — slices 8 CLOZE + 9 HIGHLIGHT)
+
+Both stem-with-markers editors landed in one session. Editor count
+jumped from 6 → 8. Eight of the nine question types now have
+working editors in `lib/authoring/`; only DRAG_DROP remains for
+slice 10. Both slices ship with the dual-mode `<PreviewToggle>` from
+slice 7 (per the slice plan: slices 8-10 build with the toggle from
+day one, slice 11 back-fills the older five).
+
+Two commits on `origin/main`:
+
+```
+f4b442d authoring: slice 9 — HIGHLIGHT editor (stacked chunks + dual-mode preview)
+e033b7f authoring: slice 8 — CLOZE editor (paned per-blank + dual-mode preview)
+```
+
+### Slice 8 — CLOZE editor (commit `e033b7f`)
+
+Sentence with inline `{N}` markers in the stem, one dropdown per
+blank, per-blank choice list (2-5 choices each), per-choice feedback
+nested by blank. Markers auto-renumber on save (`{1}{3}` → `{1}{2}`)
+via two-phase NUL-sentinel substitution in the parser.
+
+Three new files + the usual wiring:
+
+- `lib/authoring/parsers/cloze.ts` — vendored from
+  `lib/bank/parsers/cloze.ts`. Marker extraction, gap renumbering,
+  per-blank validation (2-5 choices, exactly one correct, no dup
+  text), nested feedback map keyed `blankId → choiceId → text`.
+- `lib/authoring/editors/cloze-row-mapper.ts` — `ClozeEditorInitial`
+  + `emptyClozeInitial` (after Sam's review, seeds `{1} {2}` into
+  the stem and matching active blanks so the min-2 rule is visible
+  in the tab strip from open) + `clozeRowToInitial`.
+- `lib/authoring/editors/cloze-editor.tsx` — host (modal frame,
+  save/delete/dirty hooks) + body with paned blank tabs + private
+  `BlankCard`, `ClozePreview`, `HiddenSerialisers`. ClozePreview's
+  student view shows `<select>` placeholders inline; answer-key
+  view selects + highlights the correct choice in each dropdown.
+
+**Paned blank pattern (new this slice).** The blanks editor
+introduces a tab strip — one tab per blank — with the choice card
+rendering only for the active tab. Status dots (green/amber/red)
+on each tab show per-blank validity at a glance. Orphan tabs (blank
+whose marker was removed from the stem) appear after the active
+ones with a dashed warning style; clicking still shows the orphan's
+panel so the curator can re-bracket the marker or accept the drop
+on save. `+ Add blank` auto-switches to the new tab. The pattern
+will be reused by future editors with complex per-card content.
+
+Form-data contract for save:
+- `cloze_blank_id` (one per card, includes orphans)
+- `cloze_blank_in_stem` (parallel: 'true' | 'false')
+- `cloze_choice_id_<bid>` / `_text_<bid>` / `_feedback_<bid>` (per
+  choice within a blank)
+- `cloze_correct_<bid>` (single value per blank)
+
+Save-question dispatch reads them, filters orphans (`in_stem !==
+'true'`), and calls `parseCloze`. The renumbered stem from the
+parser overwrites the curator-typed stem on save.
+
+CSS adds `.auth-cz-*` block (~280 lines): tab strip + status dots,
+blank cards (active + orphan modifiers), choice rows, preview
+`<select>` styling per view-mode.
+
+Slice plan §8 ticked. Browser-tested on admin + tutor surfaces.
+
+### Slice 9 — HIGHLIGHT editor (commit `f4b442d`)
+
+Passage with `[[bracketed]]` clickable chunks. Curator marks each
+chunk Correct ✓ or Wrong ✗ + adds optional per-chunk feedback. 3-12
+chunks total, ≥1 correct, ≥1 wrong. Stem returned by parser is
+byte-identical (brackets carry their own text — no renumbering vs
+CLOZE).
+
+Three new files + the wiring:
+
+- `lib/authoring/parsers/highlight.ts` — vendored from
+  `lib/bank/parsers/highlight.ts`. Non-greedy `[[…]]` extraction,
+  positional ID assignment (`h1`, `h2`, …), validation, text-keyed
+  duplicate handling (acceptable v1 trade-off; per-position
+  independence flagged out-of-scope).
+- `lib/authoring/editors/highlight-row-mapper.ts` —
+  `HighlightEditorInitial` + `emptyHighlightInitial` (seeds
+  `'[[finding 1]] [[finding 2]] [[finding 3]]'` into the stem so
+  the bracket syntax + min-3 rule are visible from open) +
+  `highlightRowToInitial`.
+- `lib/authoring/editors/highlight-editor.tsx` — host + body with
+  **stacked** chunk cards (deliberately not paned — see UX call
+  below) + private `ChunkCard`, `HighlightPreview`,
+  `HiddenSerialisers`. Toolbar includes a "[[ ]] Wrap / Insert"
+  button that wraps a text selection in `[[…]]` or inserts an
+  empty `[[]]` at the cursor.
+
+**UX call: stacked, not paned.** CLOZE's per-blank cards each carry
+a nested choice list; paning prevents long scrolling there. HIGHLIGHT
+chunk cards are simpler — one decision toggle + one feedback
+textarea per chunk — so 3-12 stacked cards remain readable. Going
+stacked also lets the curator scan all decisions at a glance,
+which is valuable when banging through "Correct, Wrong, Correct,
+Wrong" rapidly.
+
+**Dual-mode preview wiring.** Student view: chunks rendered as
+outlined "click me" spans, all looking identical (no decision
+colours leak the answer). Answer-key view: correct chunks green,
+wrong chunks red strikethrough + dimmed, undecided chunks yellow
+italic. A legend at the foot of the answer-key view explains the
+colours.
+
+**Mid-edit fix: orphan number badges.** First pass mirrored the
+legacy editor and showed the raw internal id (`h1`, `h2`) on orphan
+chunk cards. Sam noticed the inconsistency mid-test — active cards
+display `1`, `2`, `3` (positional) while orphans showed `h1`, `h2`,
+`h3` (raw IDs). Fixed by hiding the position-number badge on
+orphans entirely; the bracketed text + "will be dropped on save"
+badge identify the card without leaking the internal ID. Matches
+the CLOZE orphan pattern.
+
+Form-data contract for save: 5 parallel arrays (`hl_chunk_id`,
+`_text`, `_decision`, `_feedback`, `_in_passage`). Save-question
+dispatch builds `HighlightChunkInput[]` and calls `parseHighlight`,
+which filters orphans before validating.
+
+CSS adds `.auth-hl-*` block (~280 lines): toolbar, chunk count
+pill, bounds summary strip, chunk cards (correct/wrong/undecided/
+orphan modifiers), decision toggle (solid green/red when active,
+neutral grey otherwise), preview chunk styles per view-mode.
+
+Slice plan §9 ticked. Browser-tested on admin + tutor surfaces.
+
+### Memory state changes
+
+- Updated `project_authoring_rebuild_in_flight.md` to reflect 9/14
+  slices done, with notes on the slice 8 paned pattern and slice 9
+  stacked decision. Next-session pointer rewritten to slice 10.
+
+### Queued for next session
+
+- **Slice 10 — DRAG_DROP editor.** Last new question type. Categories
+  with labels + target capacities; flat token pool with per-token
+  correct-category. Ships with the dual-mode toggle from day one.
+  Likely paned (one category panel at a time) per slice 8's pattern,
+  given each category lists multiple tokens.
+- After slice 10: slice 11 (dual-mode back-fill to MCQ/TF/SATA/
+  SELECT_N/MATRIX), slice 12 (Case Study v2), slice 13 (Trend v2),
+  slice 14 (swap — delete legacy `lib/bank/`, rename `-v2` URLs to
+  canonical).
+- `prod` branch is two slices behind `main` at end of this session;
+  Sam will merge `main` → `prod` via GitHub PR himself, which
+  triggers `deploy-prod.yml` to ship slices 8 + 9 to real users.
+
+---
+
 ## Session — 2026-04-29 (later — prod deploy cleanup + GHA-based CD migration)
 
 A second session on 2026-04-29 after a break following slice 7. Started

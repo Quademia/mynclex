@@ -1619,3 +1619,664 @@
   box-shadow: 0 0 0 3px var(--bg);
   vertical-align: middle;
 }
+
+/* ─────────────────────────────────────────────────────
+ * CLOZE editor — slice 8.
+ * Sentence with {N} markers, per-blank choice list, dual-mode preview.
+ * ───────────────────────────────────────────────────── */
+
+/* Toolbar above the blank cards. */
+.auth-cz-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 8px 0 14px;
+}
+
+.auth-cz-marker-count {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+.auth-cz-marker-count.auth-cz-ok   { color: var(--success); border-color: #bbf7d0; background: #f0fdf4; }
+.auth-cz-marker-count.auth-cz-warn { color: var(--warning); border-color: #fde68a; background: #fffbeb; }
+.auth-cz-marker-count.auth-cz-err  { color: var(--danger);  border-color: #fecaca; background: #fef2f2; }
+
+/* Tab strip — one tab per blank (active first, then orphans).
+   Mirrors the BOWTIE wing tabs pattern but with dynamic count. */
+.auth-cz-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 0;
+  margin: 8px 0 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.auth-cz-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-bottom: -1px;
+  position: relative;
+  top: 1px;
+  white-space: nowrap;
+}
+.auth-cz-tab:hover { background: var(--white); color: var(--text); }
+.auth-cz-tab:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.auth-cz-tab-active {
+  background: var(--white);
+  color: var(--primary);
+  border-bottom: 1px solid var(--white);
+  z-index: 1;
+  border-top: 3px solid var(--primary);
+}
+
+.auth-cz-tab-orphan {
+  border-style: dashed;
+  color: var(--warning);
+}
+.auth-cz-tab-orphan.auth-cz-tab-active {
+  border-style: dashed;
+  border-bottom-style: solid;
+  border-bottom-color: var(--white);
+  border-top: 3px dashed var(--warning);
+  color: var(--warning);
+}
+
+.auth-cz-tab-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.auth-cz-tab-dot.auth-cz-ok   { background: var(--success); }
+.auth-cz-tab-dot.auth-cz-warn { background: var(--warning); }
+.auth-cz-tab-dot.auth-cz-err  { background: var(--danger); }
+
+/* Wraps the single visible blank's panel (or empty state).
+   Default = standalone box. When the tab strip is present
+   (sibling immediately above), drop the top border + top radius
+   so the panel flows visually out of the active tab. */
+.auth-cz-blank-panel-wrap {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+  padding: 14px;
+}
+.auth-cz-tabs + .auth-cz-blank-panel-wrap {
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+}
+
+.auth-cz-blank-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+
+/* Blank card. */
+.auth-cz-blank-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  overflow: hidden;
+}
+.auth-cz-blank-card-orphan {
+  background: #fafafa;
+  border-style: dashed;
+  opacity: 0.85;
+}
+.auth-cz-blank-card-warn { border-left: 3px solid var(--warning); }
+.auth-cz-blank-card-err  { border-left: 3px solid var(--danger); }
+.auth-cz-blank-card-ok   { border-left: 3px solid var(--success); }
+.auth-cz-blank-card-orphan.auth-cz-blank-card-warn,
+.auth-cz-blank-card-orphan.auth-cz-blank-card-err,
+.auth-cz-blank-card-orphan.auth-cz-blank-card-ok {
+  border-left-style: dashed;
+}
+
+.auth-cz-blank-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.auth-cz-blank-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.auth-cz-blank-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.auth-cz-blank-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.auth-cz-orphan-badge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--warning);
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.auth-cz-orphan-tip {
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+}
+.auth-cz-orphan-tip code {
+  background: var(--white);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid #fde68a;
+  font-size: 11px;
+}
+
+.auth-cz-blank-counter {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.auth-cz-blank-counter.auth-cz-ok   { color: var(--success); border-color: #bbf7d0; background: #f0fdf4; }
+.auth-cz-blank-counter.auth-cz-warn { color: var(--warning); border-color: #fde68a; background: #fffbeb; }
+.auth-cz-blank-counter.auth-cz-err  { color: var(--danger);  border-color: #fecaca; background: #fef2f2; }
+
+.auth-cz-blank-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Choice row inside a blank. */
+.auth-cz-choice {
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  gap: 10px;
+  align-items: start;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+.auth-cz-choice-correct {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.auth-cz-choice-correct-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+}
+
+.auth-cz-choice-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.auth-cz-choice-text {
+  font-size: 14px;
+}
+.auth-cz-choice-feedback {
+  font-size: 12px;
+  background: var(--bg);
+}
+
+.auth-cz-choice-remove {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.auth-cz-choice-remove:hover:not(:disabled) {
+  background: #fef2f2;
+  color: var(--danger);
+  border-color: #fecaca;
+}
+.auth-cz-choice-remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.auth-cz-blank-add-choice {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--primary);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.auth-cz-blank-add-choice:hover:not(:disabled) {
+  border-style: solid;
+  background: var(--primary-light);
+}
+.auth-cz-blank-add-choice:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Preview pane — sentence with inline <select>s. */
+.auth-cz-preview-instruction {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.auth-cz-preview-sentence {
+  font-size: 15px;
+  line-height: 2.2;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.auth-cz-preview-placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 14px;
+  display: block;
+  padding: 16px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 1px dashed var(--border);
+  text-align: center;
+}
+
+.auth-cz-preview-blank {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 2px;
+  vertical-align: middle;
+}
+
+.auth-cz-preview-blank-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.auth-cz-preview-select {
+  font-size: 13px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text);
+  cursor: default;
+  max-width: 220px;
+}
+.auth-cz-preview-blank-answer .auth-cz-preview-select {
+  border-color: var(--success);
+  background: #f0fdf4;
+  font-weight: 600;
+  color: var(--success);
+  box-shadow: 0 0 0 1px #bbf7d0;
+}
+
+/* ─────────────────────────────────────────────────────
+ * HIGHLIGHT editor — slice 9.
+ * Passage with [[bracketed]] chunks; per-chunk Correct/Wrong
+ * decision + feedback. Stacked cards (no paning).
+ * ───────────────────────────────────────────────────── */
+
+/* Status colour modifiers (shared by counter, bounds bar, dots). */
+.auth-hl-ok   { color: var(--success); border-color: #bbf7d0; background: #f0fdf4; }
+.auth-hl-warn { color: var(--warning); border-color: #fde68a; background: #fffbeb; }
+.auth-hl-err  { color: var(--danger);  border-color: #fecaca; background: #fef2f2; }
+
+/* Toolbar */
+.auth-hl-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 8px 0 10px;
+}
+
+.auth-hl-chunk-count {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+
+/* Bounds summary strip */
+.auth-hl-bounds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.auth-hl-bounds-item {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid;
+}
+
+/* Chunk cards container */
+.auth-hl-chunks-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-hl-chunks-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+.auth-hl-chunks-empty code {
+  background: var(--white);
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+
+/* Single chunk card */
+.auth-hl-chunk-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  overflow: hidden;
+}
+.auth-hl-chunk-card-orphan {
+  background: #fafafa;
+  border-style: dashed;
+  border-left: 3px dashed var(--warning);
+  opacity: 0.85;
+}
+.auth-hl-chunk-card-correct   { border-left: 3px solid var(--success); }
+.auth-hl-chunk-card-wrong     { border-left: 3px solid var(--danger); }
+.auth-hl-chunk-card-undecided { border-left: 3px solid var(--warning); }
+
+.auth-hl-chunk-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.auth-hl-chunk-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.auth-hl-chunk-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.auth-hl-chunk-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  color: var(--text);
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.auth-hl-orphan-badge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--warning);
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* Decision toggle */
+.auth-hl-chunk-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.auth-hl-chunk-toggle-btn {
+  background: var(--white);
+  color: var(--text-muted);
+  border: none;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.auth-hl-chunk-toggle-btn + .auth-hl-chunk-toggle-btn {
+  border-left: 1px solid var(--border);
+}
+.auth-hl-chunk-toggle-btn:hover:not(:disabled):not(.auth-hl-chunk-toggle-btn-active-correct):not(.auth-hl-chunk-toggle-btn-active-wrong) {
+  background: var(--bg);
+  color: var(--text);
+}
+.auth-hl-chunk-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.auth-hl-chunk-toggle-btn-active-correct {
+  background: var(--success);
+  color: var(--white);
+}
+.auth-hl-chunk-toggle-btn-active-wrong {
+  background: var(--danger);
+  color: var(--white);
+}
+
+/* Inline tips */
+.auth-hl-orphan-tip,
+.auth-hl-undecided-tip {
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 12px;
+  border-bottom: 1px solid;
+}
+.auth-hl-orphan-tip {
+  background: #fffbeb;
+  color: var(--text-muted);
+  border-bottom-color: #fde68a;
+}
+.auth-hl-orphan-tip code {
+  background: var(--white);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid #fde68a;
+  font-size: 11px;
+}
+.auth-hl-undecided-tip {
+  background: #fffbeb;
+  color: var(--warning);
+  border-bottom-color: #fde68a;
+}
+
+.auth-hl-chunk-body {
+  padding: 10px 14px;
+}
+
+.auth-hl-chunk-feedback {
+  width: 100%;
+  font-size: 13px;
+  background: var(--bg);
+  resize: vertical;
+}
+
+/* Preview pane — passage with chunks rendered as styled spans. */
+.auth-hl-preview-instruction {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.auth-hl-preview-passage {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.auth-hl-preview-placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 14px;
+  display: block;
+  padding: 16px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 1px dashed var(--border);
+  text-align: center;
+}
+.auth-hl-preview-placeholder code {
+  background: var(--white);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.auth-hl-preview-chunk {
+  display: inline;
+  padding: 2px 6px;
+  margin: 0 1px;
+  border-radius: 4px;
+  font-weight: 500;
+  border: 1px solid;
+}
+/* Student-mode: chunks all look identically clickable. */
+.auth-hl-preview-chunk-neutral {
+  background: #eff6ff;
+  color: #1e40af;
+  border-color: #bfdbfe;
+  border-bottom: 2px dashed #1e40af;
+}
+/* Answer-key mode: decisions revealed. */
+.auth-hl-preview-chunk-correct {
+  background: #f0fdf4;
+  color: var(--success);
+  border-color: #bbf7d0;
+  font-weight: 700;
+}
+.auth-hl-preview-chunk-wrong {
+  background: #fef2f2;
+  color: var(--danger);
+  border-color: #fecaca;
+  text-decoration: line-through;
+  text-decoration-color: var(--danger);
+  text-decoration-thickness: 1px;
+  opacity: 0.85;
+}
+.auth-hl-preview-chunk-undecided {
+  background: #fffbeb;
+  color: var(--warning);
+  border-color: #fde68a;
+  font-style: italic;
+}
+
+.auth-hl-preview-legend {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  flex-wrap: wrap;
+  font-size: 11px;
+}

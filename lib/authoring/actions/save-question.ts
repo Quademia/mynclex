@@ -41,6 +41,14 @@ import {
   parseBowtie,
   type BowtieWingInput,
 } from '@/lib/authoring/parsers/bowtie';
+import {
+  parseCloze,
+  type ClozeBlankInput,
+} from '@/lib/authoring/parsers/cloze';
+import {
+  parseHighlight,
+  type HighlightChunkInput,
+} from '@/lib/authoring/parsers/highlight';
 
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
@@ -120,6 +128,8 @@ const SUPPORTED_TYPES = new Set<QuestionType>([
   'SELECT_N',
   'MATRIX',
   'BOWTIE',
+  'CLOZE',
+  'HIGHLIGHT',
 ]);
 
 interface ParsedQuestion {
@@ -237,6 +247,56 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
           right:  readWing('right'),
         });
       }
+      case 'CLOZE': {
+        // Read the parallel arrays of blank cards (every card the
+        // editor holds, including orphans). For each one, read its
+        // per-blank choice arrays via dynamic field names keyed on
+        // the blank ID. Filter out orphans (in_stem !== 'true')
+        // before handing to the parser.
+        const blankIds = formData.getAll('cloze_blank_id').map(String);
+        const inStemFlags = formData.getAll('cloze_blank_in_stem').map(String);
+        const blanks: ClozeBlankInput[] = [];
+        for (let i = 0; i < blankIds.length; i++) {
+          const bid = blankIds[i];
+          if (inStemFlags[i] !== 'true') continue;
+          const choiceIds  = formData.getAll(`cloze_choice_id_${bid}`).map(String);
+          const choiceTexts = formData.getAll(`cloze_choice_text_${bid}`).map(String);
+          const choiceFbs   = formData.getAll(`cloze_choice_feedback_${bid}`).map(String);
+          const choices = choiceIds.map((cid, j) => ({
+            id: cid,
+            text: choiceTexts[j] ?? '',
+            feedback: choiceFbs[j] ?? '',
+          }));
+          blanks.push({
+            id: bid,
+            choices,
+            correct_id: String(formData.get(`cloze_correct_${bid}`) ?? ''),
+          });
+        }
+        return parseCloze({ stem, blanks });
+      }
+      case 'HIGHLIGHT': {
+        // Five parallel arrays per chunk card. Orphans (in_passage !==
+        // 'true') get passed through to the parser, which filters them.
+        const chunkIds        = formData.getAll('hl_chunk_id').map(String);
+        const chunkTexts      = formData.getAll('hl_chunk_text').map(String);
+        const chunkDecisions  = formData.getAll('hl_chunk_decision').map(String);
+        const chunkFeedbacks  = formData.getAll('hl_chunk_feedback').map(String);
+        const chunkInPassages = formData.getAll('hl_chunk_in_passage').map(String);
+        const hlChunks: HighlightChunkInput[] = chunkIds.map((id, i) => ({
+          id,
+          text: chunkTexts[i] ?? '',
+          decision:
+            chunkDecisions[i] === 'correct'
+              ? 'correct'
+              : chunkDecisions[i] === 'wrong'
+                ? 'wrong'
+                : 'undecided',
+          feedback: chunkFeedbacks[i] ?? '',
+          in_passage: chunkInPassages[i] === 'true',
+        }));
+        return parseHighlight({ stem, chunks: hlChunks });
+      }
       default:
         return parseMcq(optionIds, optionTexts, optionFeedbacks, correctIds);
     }
@@ -254,10 +314,14 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
   const marksRaw = parseFloat(String(formData.get('marks') ?? '1'));
   const marks = Number.isFinite(marksRaw) && marksRaw > 0 ? marksRaw : 1;
 
+  // CLOZE rewrites the stem on save (gap-closing renumber). Other
+  // parsers don't touch it, so we fall back to the curator-typed stem.
+  const finalStem = 'stem' in parsed ? parsed.stem : stem;
+
   return {
     question_type,
     instruction,
-    stem,
+    stem: finalStem,
     rationale: String(formData.get('rationale') ?? '').trim() || null,
     rationale_img: String(formData.get('rationale_img') ?? '').trim() || null,
     content: parsed.content,
