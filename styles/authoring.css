@@ -2280,3 +2280,475 @@
   flex-wrap: wrap;
   font-size: 11px;
 }
+
+/* ─────────────────────────────────────────────────────
+ * DRAG_DROP editor — slice 10 (last new editor)
+ *
+ * Stacked slot cards + token pool. Subtype radio bar at top of
+ * Content tab. SENTENCE marker toolbar mirrors HIGHLIGHT's wrap/
+ * insert pattern. Dual-mode preview (slot list / inline boxes +
+ * token pool, with answer-key fill).
+ * ───────────────────────────────────────────────────── */
+
+/* Status colour modifiers (shared by bounds meter pills). */
+.auth-dd-ok   { color: var(--success); border-color: #bbf7d0; background: #f0fdf4; }
+.auth-dd-warn { color: var(--warning); border-color: #fde68a; background: #fffbeb; }
+.auth-dd-err  { color: var(--danger);  border-color: #fecaca; background: #fef2f2; }
+
+/* Subtype radio bar */
+.auth-dd-subtype-bar {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--white);
+}
+.auth-dd-subtype-opt {
+  background: var(--white);
+  color: var(--text-muted);
+  border: none;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.auth-dd-subtype-opt + .auth-dd-subtype-opt {
+  border-left: 1px solid var(--border);
+}
+.auth-dd-subtype-opt:hover:not(:disabled):not(.auth-dd-subtype-opt-active) {
+  background: var(--bg);
+  color: var(--text);
+}
+.auth-dd-subtype-opt-active {
+  background: var(--primary);
+  color: var(--white);
+}
+.auth-dd-subtype-opt:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Marker insertion toolbar */
+.auth-dd-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 8px 0 4px;
+}
+
+/* Bounds meter strip */
+.auth-dd-bounds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+.auth-dd-bounds-item {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid;
+}
+
+/* Slot tab strip — paned per slot, mirrors auth-cz-tabs from CLOZE.
+   Tabs sit on top of the slot panel, sharing its bottom border. */
+.auth-dd-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 0;
+  margin: 8px 0 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.auth-dd-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  margin-bottom: -1px;
+}
+.auth-dd-tab:hover { background: var(--white); color: var(--text); }
+.auth-dd-tab:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.auth-dd-tab-active {
+  background: var(--white);
+  color: var(--primary);
+  border-bottom: 1px solid var(--white);
+  z-index: 1;
+  border-top: 3px solid var(--primary);
+}
+
+.auth-dd-tab-orphan {
+  border-style: dashed;
+  color: var(--warning);
+}
+.auth-dd-tab-orphan.auth-dd-tab-active {
+  border-style: dashed;
+  border-bottom-style: solid;
+  border-bottom-color: var(--white);
+  border-top: 3px dashed var(--warning);
+  color: var(--warning);
+}
+
+.auth-dd-tab-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.auth-dd-tab-dot.auth-dd-ok   { background: var(--success); }
+.auth-dd-tab-dot.auth-dd-warn { background: var(--warning); }
+.auth-dd-tab-dot.auth-dd-err  { background: var(--danger); }
+
+/* Wraps the single visible slot's card (or empty state). When the
+   tab strip is present, lose the top border + top radius so the
+   panel flows out of the active tab. */
+.auth-dd-slot-panel-wrap {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+  padding: 14px;
+}
+.auth-dd-tabs + .auth-dd-slot-panel-wrap {
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+}
+
+.auth-dd-slots-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+.auth-dd-slots-empty code {
+  background: var(--white);
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+
+/* Single slot card */
+.auth-dd-slot-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  overflow: hidden;
+}
+.auth-dd-slot-card-orphan {
+  background: #fafafa;
+  border-style: dashed;
+  border-left: 3px dashed var(--warning);
+  opacity: 0.85;
+}
+.auth-dd-slot-card-empty  { border-left: 3px solid var(--warning); }
+.auth-dd-slot-card-filled { border-left: 3px solid var(--success); }
+
+.auth-dd-slot-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.auth-dd-slot-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.auth-dd-slot-id {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: var(--primary);
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.auth-dd-orphan-badge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--warning);
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.auth-dd-orphan-tip {
+  font-size: 12px;
+  color: var(--warning);
+  margin: 0;
+  padding: 8px 14px;
+  background: #fffbeb;
+  border-bottom: 1px dashed #fde68a;
+}
+.auth-dd-orphan-tip code {
+  background: var(--white);
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid #fde68a;
+  font-size: 11px;
+}
+
+.auth-dd-slot-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-dd-slot-select {
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.auth-dd-slot-feedback {
+  font-family: inherit;
+  resize: vertical;
+}
+
+/* Token pool */
+.auth-dd-tokens-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.auth-dd-token-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.auth-dd-token-id {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  border: 1px solid #c7d2fe;
+}
+
+/* ─────────────────────────────────────────────────────
+ * DRAG_DROP preview
+ * ───────────────────────────────────────────────────── */
+
+.auth-dd-preview-instruction {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0 0 10px;
+}
+
+.auth-dd-preview-passage {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text);
+  margin: 0 0 14px;
+  white-space: pre-wrap;
+}
+
+.auth-dd-preview-placeholder {
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.auth-dd-preview-placeholder code {
+  background: var(--white);
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-style: normal;
+}
+
+/* ORDERED — stacked slot rows */
+.auth-dd-preview-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.auth-dd-preview-slot {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.auth-dd-preview-slot-filled {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.auth-dd-preview-slot-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--bg);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  min-width: 50px;
+  text-align: center;
+}
+.auth-dd-preview-slot-filled .auth-dd-preview-slot-label {
+  color: var(--success);
+  background: var(--white);
+  border-color: #bbf7d0;
+}
+
+.auth-dd-preview-slot-target {
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+}
+
+.auth-dd-preview-slot-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  background: var(--bg);
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px dashed var(--border);
+}
+
+.auth-dd-preview-slot-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* SENTENCE — inline filled boxes inside the passage */
+.auth-dd-preview-inline-box {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  padding: 1px 8px;
+  border-radius: 4px;
+  margin: 0 2px;
+  vertical-align: baseline;
+}
+.auth-dd-preview-inline-box-filled {
+  background: #f0fdf4;
+  border-style: solid;
+  border-color: #bbf7d0;
+  color: var(--success);
+}
+.auth-dd-preview-inline-box-bad {
+  background: #fef2f2;
+  border-style: solid;
+  border-color: #fecaca;
+  color: var(--danger);
+}
+
+/* Token pool in preview */
+.auth-dd-preview-pool {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.auth-dd-preview-pool-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.auth-dd-preview-pool-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.auth-dd-preview-token {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: default;
+}
+.auth-dd-preview-token-used {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+.auth-dd-preview-token-distractor {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: var(--danger);
+}
+
+.auth-dd-preview-distractor-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--white);
+  border: 1px solid #fecaca;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: var(--danger);
+}

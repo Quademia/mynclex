@@ -16,9 +16,9 @@
 // revalidatePath; this component then triggers a soft refresh of
 // the page so the list reflects the change without a full reload.
 //
-// Currently MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE + CLOZE +
-// HIGHLIGHT are wired (slices 2-9). Filters / search / pagination
-// still deferred.
+// As of slice 10, all nine question types are wired
+// (MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE + CLOZE + HIGHLIGHT
+// + DRAG_DROP). Filters / search / pagination still deferred.
 
 'use client';
 
@@ -32,6 +32,7 @@ import { MatrixEditor, type MatrixEditorInitial } from '@/lib/authoring/editors/
 import { BowtieEditor, type BowtieEditorInitial } from '@/lib/authoring/editors/bowtie-editor';
 import { ClozeEditor, type ClozeEditorInitial } from '@/lib/authoring/editors/cloze-editor';
 import { HighlightEditor, type HighlightEditorInitial } from '@/lib/authoring/editors/highlight-editor';
+import { DragDropEditor, type DragDropEditorInitial } from '@/lib/authoring/editors/drag-drop-editor';
 import { QuestionTypePicker } from '@/lib/authoring/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/authoring/classifications';
 
@@ -45,6 +46,7 @@ const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set([
   'BOWTIE',
   'CLOZE',
   'HIGHLIGHT',
+  'DRAG_DROP',
 ]);
 
 export interface BankListV2RowSummary {
@@ -91,6 +93,10 @@ export interface BankListV2ClientProps {
   highlightInitialsById: Record<string, HighlightEditorInitial>;
   /** Empty initial used when the curator picks HIGHLIGHT in create mode. */
   emptyHighlightInitial: HighlightEditorInitial;
+  /** Map of item_id → full editor initial, DRAG_DROP rows. */
+  dragDropInitialsById: Record<string, DragDropEditorInitial>;
+  /** Empty initial used when the curator picks DRAG_DROP in create mode. */
+  emptyDragDropInitial: DragDropEditorInitial;
 }
 
 type ModalState =
@@ -118,6 +124,8 @@ export function BankListV2Client({
   emptyClozeInitial,
   highlightInitialsById,
   emptyHighlightInitial,
+  dragDropInitialsById,
+  emptyDragDropInitial,
 }: BankListV2ClientProps) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' });
@@ -313,6 +321,13 @@ export function BankListV2Client({
           onSaved={handleSaved}
         />
       )}
+      {modal.kind === 'editor-create' && modal.type === 'DRAG_DROP' && (
+        <DragDropEditor
+          initial={emptyDragDropInitial}
+          onClose={handleClose}
+          onSaved={handleSaved}
+        />
+      )}
 
       {/* Edit-mode dispatch — one branch per editable type, gated on
           the matching initials map having a row for the current id. */}
@@ -391,6 +406,16 @@ export function BankListV2Client({
         highlightInitialsById[modal.itemId] && (
           <HighlightEditor
             initial={highlightInitialsById[modal.itemId]}
+            onClose={handleClose}
+            onSaved={handleSaved}
+            onDeleted={handleDeleted}
+          />
+        )}
+      {modal.kind === 'editor-edit' &&
+        modal.type === 'DRAG_DROP' &&
+        dragDropInitialsById[modal.itemId] && (
+          <DragDropEditor
+            initial={dragDropInitialsById[modal.itemId]}
             onClose={handleClose}
             onSaved={handleSaved}
             onDeleted={handleDeleted}

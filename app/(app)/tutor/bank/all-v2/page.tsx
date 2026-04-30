@@ -60,6 +60,12 @@ import {
   type HighlightDbRow,
   type HighlightEditorInitial,
 } from '@/lib/authoring/editors/highlight-row-mapper';
+import {
+  emptyDragDropInitial,
+  dragDropRowToInitial,
+  type DragDropDbRow,
+  type DragDropEditorInitial,
+} from '@/lib/authoring/editors/drag-drop-row-mapper';
 import type { QuestionType } from '@/lib/authoring/classifications';
 
 export const dynamic = 'force-dynamic';
@@ -118,6 +124,7 @@ export default async function TutorBankAllV2Page() {
   const bowtieInitialsById: Record<string, BowtieEditorInitial> = {};
   const clozeInitialsById: Record<string, ClozeEditorInitial> = {};
   const highlightInitialsById: Record<string, HighlightEditorInitial> = {};
+  const dragDropInitialsById: Record<string, DragDropEditorInitial> = {};
   for (const row of fullRows) {
     if (row.question_type === 'MCQ') {
       mcqInitialsById[row.item_id] = mcqRowToInitial(row, 'tutor');
@@ -153,6 +160,11 @@ export default async function TutorBankAllV2Page() {
         row as unknown as HighlightDbRow,
         'tutor',
       );
+    } else if (row.question_type === 'DRAG_DROP') {
+      dragDropInitialsById[row.item_id] = dragDropRowToInitial(
+        row as unknown as DragDropDbRow,
+        'tutor',
+      );
     }
   }
 
@@ -162,7 +174,7 @@ export default async function TutorBankAllV2Page() {
         <header className="auth-list-page-header">
           <h1 className="auth-list-page-title">My Bank (v2)</h1>
           <p className="auth-list-page-subtitle">
-            Questions-and-wrappers rebuild · tutor surface · MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE + CLOZE + HIGHLIGHT create/edit/delete
+            Questions-and-wrappers rebuild · tutor surface · all 9 question types: MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE + CLOZE + HIGHLIGHT + DRAG_DROP
           </p>
         </header>
 
@@ -185,6 +197,8 @@ export default async function TutorBankAllV2Page() {
           emptyClozeInitial={emptyClozeInitial('tutor')}
           highlightInitialsById={highlightInitialsById}
           emptyHighlightInitial={emptyHighlightInitial('tutor')}
+          dragDropInitialsById={dragDropInitialsById}
+          emptyDragDropInitial={emptyDragDropInitial('tutor')}
         />
       </div>
     </main>

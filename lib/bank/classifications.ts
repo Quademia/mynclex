@@ -243,11 +243,20 @@ export const HIGHLIGHT_MIN_WRONG   = 1;
 // Drag-drop bounds (Family B — Slice 1.10)
 // Two subtypes: ORDERED (ranked positions) and SENTENCE ([N] markers
 // in the stem). Both use the same slot + token shape.
-// Token pool ceiling = min(slots + 4, 12) — gives the curator room
-// for distractors but caps the difficulty + visual noise.
+//
+// Pool sizing matches the actual NCLEX NGN Extended Drag-and-Drop spec:
+// "between 4 and 10 items to drag and drop" with "more response options
+// than answer spaces" (i.e. ≥1 distractor). Slot count itself isn't
+// fixed by NCSBN; we keep 3-8 to give curators flexibility while staying
+// in NGN-shaped territory.
+//
+// Soft target (recommended, not enforced): pool ≈ 2 × slots, capped by
+// DD_TOKEN_POOL_ABSOLUTE_MAX. The bounds meter colours flag pools below
+// the recommendation but valid as 'warn', and below the floor as 'err'.
 export const MIN_DD_SLOTS                 = 3;
 export const MAX_DD_SLOTS                 = 8;
 export const DEFAULT_DD_SLOTS             = 3;
 export const DD_TOKEN_POOL_MAX_OVER_SLOTS = 4;   // pool cap = slots + this
-export const DD_TOKEN_POOL_ABSOLUTE_MAX   = 12;  // but never more than this
-export const DD_TOKEN_POOL_MIN_EXTRA      = 0;   // pool >= slots required
+export const DD_TOKEN_POOL_ABSOLUTE_MIN   = 4;   // NCLEX floor — never fewer than 4 tokens
+export const DD_TOKEN_POOL_ABSOLUTE_MAX   = 10;  // NCLEX ceiling — never more than 10
+export const DD_TOKEN_POOL_MIN_EXTRA      = 1;   // ≥1 distractor — pool > slots
