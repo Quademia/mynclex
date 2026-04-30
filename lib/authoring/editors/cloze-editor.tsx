@@ -206,8 +206,8 @@ function ClozePreview({
 
   const headerText =
     viewMode === 'answer-key'
-      ? 'Curator preview · correct choices selected'
-      : 'Student preview · pick from each dropdown';
+      ? 'Answer key · curator view'
+      : 'Pre-submit · student view';
 
   return (
     <div className="auth-preview-card">

@@ -682,7 +682,7 @@
 
 .auth-preview-option {
   display: grid;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: auto auto 1fr auto;
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
@@ -1366,6 +1366,131 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 .auth-preview-toggle-pill-active:hover { color: var(--primary); }
+
+/* Header text label inside the preview-card header. Matches the
+   visual weight of the old standalone `.auth-preview-tag` chip but
+   sits inline with the toggle. */
+.auth-preview-card-header-text {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+  background: var(--primary-light);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+/* Body wrapper for the dual-mode card pattern. Inherits the same
+   stacked-flex layout the card itself uses so children (instruction,
+   stem, options, etc.) get consistent vertical spacing. */
+.auth-preview-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Dual-mode answer-key highlights (Slice 11)
+ *
+ * Applied to option/cell elements when viewMode === 'answer-key'.
+ * Mirrors the green-tinted treatment used by the legacy editors
+ * but lives behind a class so editors can opt in without changing
+ * their student-view styling.
+ * ───────────────────────────────────────────────────── */
+
+.auth-preview-option-correct {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+/* Filled radio with a centre dot — replaces the empty .auth-preview-radio
+   when the option is the correct one in answer-key view. */
+.auth-preview-radio-correct {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--success);
+  border-radius: 50%;
+  background: var(--white);
+  position: relative;
+  flex-shrink: 0;
+}
+.auth-preview-radio-correct::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  transform: translate(-50%, -50%);
+}
+
+/* Filled checkbox with a ✓ — replaces the empty .auth-preview-checkbox
+   for SATA / SELECT_N answer-key view. */
+.auth-preview-checkbox-correct {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--success);
+  border-radius: 3px;
+  background: var(--success);
+  position: relative;
+  flex-shrink: 0;
+}
+.auth-preview-checkbox-correct::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 8px;
+  border: solid var(--white);
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -65%) rotate(45deg);
+}
+
+/* Small "✓ Correct" pill on the right side of a correct option. */
+.auth-preview-correct-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--success);
+  background: var(--white);
+  border: 1px solid #bbf7d0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-left: auto;
+}
+
+/* MATRIX cell — answer-key view fills the correct cell with a
+   green-tinted background + filled green radio. */
+.auth-matrix-preview-cell-correct {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.auth-matrix-preview-cell-correct .auth-matrix-preview-radio,
+.auth-matrix-preview-radio-correct {
+  border-color: var(--success);
+  background: var(--white);
+  position: relative;
+}
+.auth-matrix-preview-cell-correct .auth-matrix-preview-radio::after,
+.auth-matrix-preview-radio-correct::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  transform: translate(-50%, -50%);
+}
 
 /* ─────────────────────────────────────────────────────
  * Bow-tie editor (Slice 7)

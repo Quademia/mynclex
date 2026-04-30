@@ -26,6 +26,10 @@ import { HousekeepingFields } from '@/lib/authoring/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/authoring/atoms/hidden-item-inputs';
 import { DiscardConfirm } from '@/lib/authoring/atoms/discard-confirm';
 import { ErrorToast } from '@/lib/authoring/atoms/error-toast';
+import {
+  PreviewToggle,
+  type PreviewViewMode,
+} from '@/lib/authoring/atoms/preview-toggle';
 import { useSaveAction } from '@/lib/authoring/hooks/use-save-action';
 import { useDirtyGuard } from '@/lib/authoring/hooks/use-dirty-guard';
 import {
@@ -120,35 +124,73 @@ function TfOptionList({ options, correctId, onChange, disabled }: TfOptionListPr
 }
 
 // ─────────────────────────────────────────────────────────────
-// TfPreview — pre-submit student view (private). Renders the locked
-// True/False option list as student-facing radios.
+// TfPreview — dual-mode preview (private). Renders the locked
+// True/False option list as student-facing radios. Answer-key view
+// highlights the option matching `correctId`.
 // ─────────────────────────────────────────────────────────────
 
 interface TfPreviewProps {
   instruction: string;
   stem: string;
   options: TfRow[];
+  correctId: string;
+  viewMode: PreviewViewMode;
+  onViewModeChange: (next: PreviewViewMode) => void;
 }
 
-function TfPreview({ instruction, stem, options }: TfPreviewProps) {
+function TfPreview({
+  instruction,
+  stem,
+  options,
+  correctId,
+  viewMode,
+  onViewModeChange,
+}: TfPreviewProps) {
+  const headerText =
+    viewMode === 'answer-key'
+      ? 'Answer key · curator view'
+      : 'Pre-submit · student view';
+
   return (
     <div className="auth-preview-card">
-      <div className="auth-preview-tag">Pre-submit · student view</div>
-      {instruction.trim() && (
-        <p className="auth-preview-instruction">{instruction}</p>
-      )}
-      <div className="auth-preview-stem">
-        {stem.trim() || <span className="auth-preview-placeholder">Stem appears here…</span>}
+      <div className="auth-preview-card-header">
+        <div className="auth-preview-card-header-text">{headerText}</div>
+        <PreviewToggle value={viewMode} onChange={onViewModeChange} />
       </div>
-      <ol className="auth-preview-options">
-        {options.map((opt) => (
-          <li key={opt.id} className="auth-preview-option">
-            <span className="auth-preview-radio" aria-hidden="true" />
-            <span className="auth-preview-letter">{opt.id}.</span>
-            <span className="auth-preview-text">{opt.text}</span>
-          </li>
-        ))}
-      </ol>
+      <div className="auth-preview-card-body">
+        {instruction.trim() && (
+          <p className="auth-preview-instruction">{instruction}</p>
+        )}
+        <div className="auth-preview-stem">
+          {stem.trim() || <span className="auth-preview-placeholder">Stem appears here…</span>}
+        </div>
+        <ol className="auth-preview-options">
+          {options.map((opt) => {
+            const isCorrect = viewMode === 'answer-key' && opt.id === correctId;
+            return (
+              <li
+                key={opt.id}
+                className={
+                  'auth-preview-option' +
+                  (isCorrect ? ' auth-preview-option-correct' : '')
+                }
+              >
+                <span
+                  className={
+                    isCorrect ? 'auth-preview-radio-correct' : 'auth-preview-radio'
+                  }
+                  aria-hidden="true"
+                />
+                <span className="auth-preview-letter">{opt.id}.</span>
+                <span className="auth-preview-text">{opt.text}</span>
+                {isCorrect && (
+                  <span className="auth-preview-correct-pill">✓ Correct</span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </div>
   );
 }
@@ -178,6 +220,7 @@ export function TfEditorBody({
 }: TfEditorBodyProps) {
   const [tab, setTab] = useState<'content' | 'classification' | 'housekeeping'>('content');
   const [clientError, setClientError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
 
   const [stem, setStem] = useState(initial.stem);
   const [instruction, setInstruction] = useState(initial.instruction);
@@ -289,7 +332,14 @@ export function TfEditorBody({
         </div>
 
         <div className="auth-preview">
-          <TfPreview instruction={instruction} stem={stem} options={options} />
+          <TfPreview
+            instruction={instruction}
+            stem={stem}
+            options={options}
+            correctId={correctId}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
         </div>
       </div>
     </form>

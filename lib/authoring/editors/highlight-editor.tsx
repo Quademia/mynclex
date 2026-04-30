@@ -188,8 +188,8 @@ function HighlightPreview({
 
   const headerText =
     viewMode === 'answer-key'
-      ? 'Curator preview · correct chunks highlighted'
-      : 'Student preview · click the correct findings';
+      ? 'Answer key · curator view'
+      : 'Pre-submit · student view';
 
   return (
     <div className="auth-preview-card">

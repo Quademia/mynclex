@@ -34,6 +34,10 @@ import { HousekeepingFields } from '@/lib/authoring/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/authoring/atoms/hidden-item-inputs';
 import { DiscardConfirm } from '@/lib/authoring/atoms/discard-confirm';
 import { ErrorToast } from '@/lib/authoring/atoms/error-toast';
+import {
+  PreviewToggle,
+  type PreviewViewMode,
+} from '@/lib/authoring/atoms/preview-toggle';
 import { useSaveAction } from '@/lib/authoring/hooks/use-save-action';
 import { useDirtyGuard } from '@/lib/authoring/hooks/use-dirty-guard';
 import {
@@ -310,9 +314,11 @@ function MatrixGrid({
 }
 
 // ─────────────────────────────────────────────────────────────
-// MatrixPreview — pre-submit student view (private). Renders the
-// grid as the student will see it: row labels down, column headers
-// across, an empty radio per cell. No correct-answer reveal.
+// MatrixPreview — dual-mode preview (private). Renders the grid as
+// the student will see it: row labels down, column headers across,
+// an empty radio per cell. Answer-key view fills the cell that
+// matches `correct[rowId]` for each row with a green tint + filled
+// green radio.
 // ─────────────────────────────────────────────────────────────
 
 interface MatrixPreviewProps {
@@ -321,6 +327,9 @@ interface MatrixPreviewProps {
   rowLabel: string;
   rows: MatrixEditorRow[];
   columns: MatrixEditorColumn[];
+  correct: Record<string, string>;
+  viewMode: PreviewViewMode;
+  onViewModeChange: (next: PreviewViewMode) => void;
 }
 
 function MatrixPreview({
@@ -329,51 +338,81 @@ function MatrixPreview({
   rowLabel,
   rows,
   columns,
+  correct,
+  viewMode,
+  onViewModeChange,
 }: MatrixPreviewProps) {
+  const headerText =
+    viewMode === 'answer-key'
+      ? 'Answer key · curator view'
+      : 'Pre-submit · student view';
+
   return (
     <div className="auth-preview-card">
-      <div className="auth-preview-tag">Pre-submit · student view</div>
-      {instruction.trim() && (
-        <p className="auth-preview-instruction">{instruction}</p>
-      )}
-      <div className="auth-preview-stem">
-        {stem.trim() || <span className="auth-preview-placeholder">Stem appears here…</span>}
+      <div className="auth-preview-card-header">
+        <div className="auth-preview-card-header-text">{headerText}</div>
+        <PreviewToggle value={viewMode} onChange={onViewModeChange} />
       </div>
-      <div className="auth-matrix-preview-wrap">
-        <table className="auth-matrix-preview-table">
-          <thead>
-            <tr>
-              <th className="auth-matrix-preview-corner">
-                {rowLabel.trim() || (
-                  <span className="auth-preview-placeholder">Row label…</span>
-                )}
-              </th>
-              {columns.map((col, cIdx) => (
-                <th key={col.id} className="auth-matrix-preview-col-head">
-                  {col.text.trim() || (
-                    <span className="auth-preview-placeholder">Col {cIdx + 1}</span>
+      <div className="auth-preview-card-body">
+        {instruction.trim() && (
+          <p className="auth-preview-instruction">{instruction}</p>
+        )}
+        <div className="auth-preview-stem">
+          {stem.trim() || <span className="auth-preview-placeholder">Stem appears here…</span>}
+        </div>
+        <div className="auth-matrix-preview-wrap">
+          <table className="auth-matrix-preview-table">
+            <thead>
+              <tr>
+                <th className="auth-matrix-preview-corner">
+                  {rowLabel.trim() || (
+                    <span className="auth-preview-placeholder">Row label…</span>
                   )}
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, rIdx) => (
-              <tr key={row.id}>
-                <td className="auth-matrix-preview-row-head">
-                  {row.text.trim() || (
-                    <span className="auth-preview-placeholder">Row {rIdx + 1}…</span>
-                  )}
-                </td>
-                {columns.map((col) => (
-                  <td key={col.id} className="auth-matrix-preview-cell">
-                    <span className="auth-matrix-preview-radio" aria-hidden="true" />
-                  </td>
+                {columns.map((col, cIdx) => (
+                  <th key={col.id} className="auth-matrix-preview-col-head">
+                    {col.text.trim() || (
+                      <span className="auth-preview-placeholder">Col {cIdx + 1}</span>
+                    )}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((row, rIdx) => (
+                <tr key={row.id}>
+                  <td className="auth-matrix-preview-row-head">
+                    {row.text.trim() || (
+                      <span className="auth-preview-placeholder">Row {rIdx + 1}…</span>
+                    )}
+                  </td>
+                  {columns.map((col) => {
+                    const isCorrect =
+                      viewMode === 'answer-key' && correct[row.id] === col.id;
+                    return (
+                      <td
+                        key={col.id}
+                        className={
+                          'auth-matrix-preview-cell' +
+                          (isCorrect ? ' auth-matrix-preview-cell-correct' : '')
+                        }
+                      >
+                        <span
+                          className={
+                            isCorrect
+                              ? 'auth-matrix-preview-radio auth-matrix-preview-radio-correct'
+                              : 'auth-matrix-preview-radio'
+                          }
+                          aria-hidden="true"
+                        />
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -404,6 +443,7 @@ export function MatrixEditorBody({
 }: MatrixEditorBodyProps) {
   const [tab, setTab] = useState<'content' | 'classification' | 'housekeeping'>('content');
   const [clientError, setClientError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
 
   const [stem, setStem] = useState(initial.stem);
   const [instruction, setInstruction] = useState(initial.instruction);
@@ -541,6 +581,9 @@ export function MatrixEditorBody({
             rowLabel={rowLabel}
             rows={rows}
             columns={columns}
+            correct={correct}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
           />
         </div>
       </div>

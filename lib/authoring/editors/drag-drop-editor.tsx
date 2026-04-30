@@ -338,8 +338,8 @@ function DragDropPreview({
 
   const headerText =
     viewMode === 'answer-key'
-      ? 'Curator preview · slots filled with correct tokens'
-      : 'Student preview · empty slots + token pool';
+      ? 'Answer key · curator view'
+      : 'Pre-submit · student view';
 
   return (
     <div className="auth-preview-card">
