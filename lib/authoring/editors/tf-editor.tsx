@@ -25,6 +25,7 @@ import { ClassificationFields } from '@/lib/authoring/atoms/classification-field
 import { HousekeepingFields } from '@/lib/authoring/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/authoring/atoms/hidden-item-inputs';
 import { DiscardConfirm } from '@/lib/authoring/atoms/discard-confirm';
+import { DeleteConfirm } from '@/lib/authoring/atoms/delete-confirm';
 import { ErrorToast } from '@/lib/authoring/atoms/error-toast';
 import {
   PreviewToggle,
@@ -436,40 +437,15 @@ export function TfEditor({ initial, onClose, onSaved, onDeleted }: TfEditorProps
           pending={save.pending}
         />
       )}
-      {confirmingDelete && (
-        <div className="auth-delete-confirm" role="alertdialog" aria-label="Confirm delete">
-          <p className="auth-delete-confirm-title">Delete <code>{initial.itemId}</code>?</p>
-          <p className="auth-delete-confirm-hint">
-            This is irreversible. Type <strong>DELETE</strong> to confirm.
-          </p>
-          <input
-            type="text"
-            className="auth-input"
-            value={deleteText}
-            onChange={(e) => setDeleteText(e.target.value)}
-            placeholder="Type DELETE"
-            autoFocus
-            disabled={del.pending}
-          />
-          <div className="auth-delete-confirm-actions">
-            <button
-              type="button"
-              className="auth-btn auth-btn-ghost"
-              onClick={cancelDelete}
-              disabled={del.pending}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="auth-btn auth-btn-danger"
-              onClick={confirmDelete}
-              disabled={deleteText !== 'DELETE' || del.pending}
-            >
-              {del.pending ? 'Deleting…' : 'Confirm delete'}
-            </button>
-          </div>
-        </div>
+      {confirmingDelete && initial.itemId && (
+        <DeleteConfirm
+          itemId={initial.itemId}
+          deleteText={deleteText}
+          pending={del.pending}
+          onTextChange={setDeleteText}
+          onCancel={cancelDelete}
+          onConfirm={confirmDelete}
+        />
       )}
       <TfEditorBody
         initial={initial}

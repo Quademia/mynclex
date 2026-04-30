@@ -1,6 +1,6 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-04-19 (initial skeleton)
+Last updated: 2026-04-30 (added UI Conventions — toasts + confirmation dialogs)
 
 ## What This Is
 
@@ -124,6 +124,31 @@ slice.
     RLS policies in `db/rls.sql` — UX is in TS, security is in SQL.
     See `lib/access/README.md` for the full convention including where
     new helpers go.
+
+## UI Conventions
+
+1. **Toasts for messages, not inline banners.** Server errors,
+   client-side validation messages, and "action completed"
+   confirmations surface through a fixed-position toast at the
+   top-right of the viewport — see `<ErrorToast>` in
+   `lib/authoring/atoms/error-toast.tsx` for the reference
+   implementation. Auto-dismiss after ~5 s with a click-× escape.
+   Reason: an inline banner at the top of a scrollable form is
+   invisible the moment the user scrolls past it; toasts stay
+   visible regardless of scroll. Apply to any new editor or
+   form-driven action.
+
+2. **Confirmation dialogs for destructive or irreversible actions.**
+   Anything that loses work or can't be undone (delete, discard
+   unsaved changes, override a record) goes through a centred
+   floating dialog with a dimmed backdrop — see
+   `<DiscardConfirm>` and `<DeleteConfirm>` in
+   `lib/authoring/atoms/`. For dangerous actions add a *type-to-
+   confirm* gate (curator types `DELETE` or the item name before
+   the destructive button activates). Inline confirmation panels at
+   the top of a scrollable body suffer the same visibility bug as
+   inline banners; silent destruction is unrecoverable. Backdrop
+   click should map to the safe option (Cancel / Keep editing).
 
 ## Non-Negotiable Rules
 
