@@ -16,8 +16,9 @@
 // revalidatePath; this component then triggers a soft refresh of
 // the page so the list reflects the change without a full reload.
 //
-// Currently MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE + CLOZE are
-// wired (slices 2-8). Filters / search / pagination still deferred.
+// Currently MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE + CLOZE +
+// HIGHLIGHT are wired (slices 2-9). Filters / search / pagination
+// still deferred.
 
 'use client';
 
@@ -30,6 +31,7 @@ import { SelectNEditor, type SelectNEditorInitial } from '@/lib/authoring/editor
 import { MatrixEditor, type MatrixEditorInitial } from '@/lib/authoring/editors/matrix-editor';
 import { BowtieEditor, type BowtieEditorInitial } from '@/lib/authoring/editors/bowtie-editor';
 import { ClozeEditor, type ClozeEditorInitial } from '@/lib/authoring/editors/cloze-editor';
+import { HighlightEditor, type HighlightEditorInitial } from '@/lib/authoring/editors/highlight-editor';
 import { QuestionTypePicker } from '@/lib/authoring/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/authoring/classifications';
 
@@ -42,6 +44,7 @@ const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set([
   'MATRIX',
   'BOWTIE',
   'CLOZE',
+  'HIGHLIGHT',
 ]);
 
 export interface BankListV2RowSummary {
@@ -84,6 +87,10 @@ export interface BankListV2ClientProps {
   clozeInitialsById: Record<string, ClozeEditorInitial>;
   /** Empty initial used when the curator picks CLOZE in create mode. */
   emptyClozeInitial: ClozeEditorInitial;
+  /** Map of item_id → full editor initial, HIGHLIGHT rows. */
+  highlightInitialsById: Record<string, HighlightEditorInitial>;
+  /** Empty initial used when the curator picks HIGHLIGHT in create mode. */
+  emptyHighlightInitial: HighlightEditorInitial;
 }
 
 type ModalState =
@@ -109,6 +116,8 @@ export function BankListV2Client({
   emptyBowtieInitial,
   clozeInitialsById,
   emptyClozeInitial,
+  highlightInitialsById,
+  emptyHighlightInitial,
 }: BankListV2ClientProps) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' });
@@ -297,6 +306,13 @@ export function BankListV2Client({
           onSaved={handleSaved}
         />
       )}
+      {modal.kind === 'editor-create' && modal.type === 'HIGHLIGHT' && (
+        <HighlightEditor
+          initial={emptyHighlightInitial}
+          onClose={handleClose}
+          onSaved={handleSaved}
+        />
+      )}
 
       {/* Edit-mode dispatch — one branch per editable type, gated on
           the matching initials map having a row for the current id. */}
@@ -365,6 +381,16 @@ export function BankListV2Client({
         clozeInitialsById[modal.itemId] && (
           <ClozeEditor
             initial={clozeInitialsById[modal.itemId]}
+            onClose={handleClose}
+            onSaved={handleSaved}
+            onDeleted={handleDeleted}
+          />
+        )}
+      {modal.kind === 'editor-edit' &&
+        modal.type === 'HIGHLIGHT' &&
+        highlightInitialsById[modal.itemId] && (
+          <HighlightEditor
+            initial={highlightInitialsById[modal.itemId]}
             onClose={handleClose}
             onSaved={handleSaved}
             onDeleted={handleDeleted}

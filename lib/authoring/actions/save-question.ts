@@ -45,6 +45,10 @@ import {
   parseCloze,
   type ClozeBlankInput,
 } from '@/lib/authoring/parsers/cloze';
+import {
+  parseHighlight,
+  type HighlightChunkInput,
+} from '@/lib/authoring/parsers/highlight';
 
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
@@ -125,6 +129,7 @@ const SUPPORTED_TYPES = new Set<QuestionType>([
   'MATRIX',
   'BOWTIE',
   'CLOZE',
+  'HIGHLIGHT',
 ]);
 
 interface ParsedQuestion {
@@ -269,6 +274,28 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
           });
         }
         return parseCloze({ stem, blanks });
+      }
+      case 'HIGHLIGHT': {
+        // Five parallel arrays per chunk card. Orphans (in_passage !==
+        // 'true') get passed through to the parser, which filters them.
+        const chunkIds        = formData.getAll('hl_chunk_id').map(String);
+        const chunkTexts      = formData.getAll('hl_chunk_text').map(String);
+        const chunkDecisions  = formData.getAll('hl_chunk_decision').map(String);
+        const chunkFeedbacks  = formData.getAll('hl_chunk_feedback').map(String);
+        const chunkInPassages = formData.getAll('hl_chunk_in_passage').map(String);
+        const hlChunks: HighlightChunkInput[] = chunkIds.map((id, i) => ({
+          id,
+          text: chunkTexts[i] ?? '',
+          decision:
+            chunkDecisions[i] === 'correct'
+              ? 'correct'
+              : chunkDecisions[i] === 'wrong'
+                ? 'wrong'
+                : 'undecided',
+          feedback: chunkFeedbacks[i] ?? '',
+          in_passage: chunkInPassages[i] === 'true',
+        }));
+        return parseHighlight({ stem, chunks: hlChunks });
       }
       default:
         return parseMcq(optionIds, optionTexts, optionFeedbacks, correctIds);

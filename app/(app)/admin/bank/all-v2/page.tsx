@@ -59,6 +59,12 @@ import {
   type ClozeDbRow,
   type ClozeEditorInitial,
 } from '@/lib/authoring/editors/cloze-row-mapper';
+import {
+  emptyHighlightInitial,
+  highlightRowToInitial,
+  type HighlightDbRow,
+  type HighlightEditorInitial,
+} from '@/lib/authoring/editors/highlight-row-mapper';
 import type { QuestionType } from '@/lib/authoring/classifications';
 
 export const dynamic = 'force-dynamic';
@@ -114,6 +120,7 @@ export default async function AdminBankAllV2Page() {
   const matrixInitialsById: Record<string, MatrixEditorInitial> = {};
   const bowtieInitialsById: Record<string, BowtieEditorInitial> = {};
   const clozeInitialsById: Record<string, ClozeEditorInitial> = {};
+  const highlightInitialsById: Record<string, HighlightEditorInitial> = {};
   for (const row of fullRows) {
     if (row.question_type === 'MCQ') {
       mcqInitialsById[row.item_id] = mcqRowToInitial(row, 'admin');
@@ -144,6 +151,11 @@ export default async function AdminBankAllV2Page() {
         row as unknown as ClozeDbRow,
         'admin',
       );
+    } else if (row.question_type === 'HIGHLIGHT') {
+      highlightInitialsById[row.item_id] = highlightRowToInitial(
+        row as unknown as HighlightDbRow,
+        'admin',
+      );
     }
   }
 
@@ -153,7 +165,7 @@ export default async function AdminBankAllV2Page() {
         <header className="auth-list-page-header">
           <h1 className="auth-list-page-title">Question Bank (v2)</h1>
           <p className="auth-list-page-subtitle">
-            Questions-and-wrappers rebuild · admin surface · MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE + CLOZE create/edit/delete
+            Questions-and-wrappers rebuild · admin surface · MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE + CLOZE + HIGHLIGHT create/edit/delete
           </p>
         </header>
 
@@ -174,6 +186,8 @@ export default async function AdminBankAllV2Page() {
           emptyBowtieInitial={emptyBowtieInitial('admin')}
           clozeInitialsById={clozeInitialsById}
           emptyClozeInitial={emptyClozeInitial('admin')}
+          highlightInitialsById={highlightInitialsById}
+          emptyHighlightInitial={emptyHighlightInitial('admin')}
         />
       </div>
     </main>

@@ -54,6 +54,12 @@ import {
   type ClozeDbRow,
   type ClozeEditorInitial,
 } from '@/lib/authoring/editors/cloze-row-mapper';
+import {
+  emptyHighlightInitial,
+  highlightRowToInitial,
+  type HighlightDbRow,
+  type HighlightEditorInitial,
+} from '@/lib/authoring/editors/highlight-row-mapper';
 import type { QuestionType } from '@/lib/authoring/classifications';
 
 export const dynamic = 'force-dynamic';
@@ -111,6 +117,7 @@ export default async function TutorBankAllV2Page() {
   const matrixInitialsById: Record<string, MatrixEditorInitial> = {};
   const bowtieInitialsById: Record<string, BowtieEditorInitial> = {};
   const clozeInitialsById: Record<string, ClozeEditorInitial> = {};
+  const highlightInitialsById: Record<string, HighlightEditorInitial> = {};
   for (const row of fullRows) {
     if (row.question_type === 'MCQ') {
       mcqInitialsById[row.item_id] = mcqRowToInitial(row, 'tutor');
@@ -141,6 +148,11 @@ export default async function TutorBankAllV2Page() {
         row as unknown as ClozeDbRow,
         'tutor',
       );
+    } else if (row.question_type === 'HIGHLIGHT') {
+      highlightInitialsById[row.item_id] = highlightRowToInitial(
+        row as unknown as HighlightDbRow,
+        'tutor',
+      );
     }
   }
 
@@ -150,7 +162,7 @@ export default async function TutorBankAllV2Page() {
         <header className="auth-list-page-header">
           <h1 className="auth-list-page-title">My Bank (v2)</h1>
           <p className="auth-list-page-subtitle">
-            Questions-and-wrappers rebuild · tutor surface · MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE + CLOZE create/edit/delete
+            Questions-and-wrappers rebuild · tutor surface · MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE + CLOZE + HIGHLIGHT create/edit/delete
           </p>
         </header>
 
@@ -171,6 +183,8 @@ export default async function TutorBankAllV2Page() {
           emptyBowtieInitial={emptyBowtieInitial('tutor')}
           clozeInitialsById={clozeInitialsById}
           emptyClozeInitial={emptyClozeInitial('tutor')}
+          highlightInitialsById={highlightInitialsById}
+          emptyHighlightInitial={emptyHighlightInitial('tutor')}
         />
       </div>
     </main>
