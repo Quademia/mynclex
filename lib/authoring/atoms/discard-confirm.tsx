@@ -1,8 +1,9 @@
 // mynclex/lib/authoring/atoms/discard-confirm.tsx
 //
-// Inline confirmation panel shown at the top of an editor's modal
-// body when the curator tries to close with unsaved edits. Three
-// buttons:
+// Floating confirmation dialog shown when the curator tries to close
+// an editor with unsaved edits. Renders as a centred overlay above
+// the editor modal so it stays visible regardless of how far the
+// curator has scrolled. Three buttons:
 //
 //   - Keep editing      : dismiss the panel, return to the editor.
 //   - Discard changes   : close the modal, throw away edits.
@@ -10,6 +11,7 @@
 //                         the editor closes itself.
 //
 // Wired up by useDirtyGuard from lib/authoring/hooks/use-dirty-guard.
+// Used by all 9 editors via their hosts.
 
 interface DiscardConfirmProps {
   onKeepEditing: () => void;
@@ -32,38 +34,50 @@ export function DiscardConfirm({
 }: DiscardConfirmProps) {
   return (
     <div
-      className="auth-discard-confirm"
-      role="alertdialog"
-      aria-label="Unsaved changes"
+      className="auth-discard-overlay"
+      onClick={(e) => {
+        // Click on backdrop = same as Keep editing. Lets the curator
+        // tap outside to dismiss without forcing a destructive choice.
+        if (e.target === e.currentTarget && !pending) {
+          onKeepEditing();
+        }
+      }}
     >
-      <p className="auth-discard-confirm-title">Unsaved changes</p>
-      <p className="auth-discard-confirm-hint">
-        You&apos;ve made edits that haven&apos;t been saved. What would you like to do?
-      </p>
-      <div className="auth-discard-confirm-actions">
-        <button
-          type="button"
-          className="auth-btn auth-btn-ghost"
-          onClick={onKeepEditing}
-        >
-          Keep editing
-        </button>
-        <button
-          type="button"
-          className="auth-btn auth-btn-danger"
-          onClick={onDiscard}
-          disabled={pending}
-        >
-          Discard changes
-        </button>
-        <button
-          type="button"
-          className="auth-btn auth-btn-primary"
-          onClick={onSaveAndClose}
-          disabled={pending}
-        >
-          {pending ? 'Saving…' : 'Save and close'}
-        </button>
+      <div
+        className="auth-discard-confirm"
+        role="alertdialog"
+        aria-label="Unsaved changes"
+        aria-modal="true"
+      >
+        <p className="auth-discard-confirm-title">Unsaved changes</p>
+        <p className="auth-discard-confirm-hint">
+          You&apos;ve made edits that haven&apos;t been saved. What would you like to do?
+        </p>
+        <div className="auth-discard-confirm-actions">
+          <button
+            type="button"
+            className="auth-btn auth-btn-ghost"
+            onClick={onKeepEditing}
+          >
+            Keep editing
+          </button>
+          <button
+            type="button"
+            className="auth-btn auth-btn-danger"
+            onClick={onDiscard}
+            disabled={pending}
+          >
+            Discard changes
+          </button>
+          <button
+            type="button"
+            className="auth-btn auth-btn-primary"
+            onClick={onSaveAndClose}
+            disabled={pending}
+          >
+            {pending ? 'Saving…' : 'Save and close'}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -4,10 +4,8 @@
 // types they want to author. Used by the bank-list "+ New question"
 // flow and by the wrapper-page "+ Add question" flow (slices 11–12).
 //
-// Slices 2-9 enable MCQ, TF, SATA, SELECT_N, MATRIX, BOWTIE, CLOZE,
-// and HIGHLIGHT. The remaining type (DRAG_DROP) renders disabled with
-// a subtle "coming soon" hint — it becomes clickable when its editor
-// lands in slice 10.
+// As of slice 10, all nine question types have working editors and
+// the picker is fully enabled.
 
 'use client';
 
@@ -24,6 +22,7 @@ const ENABLED_TYPES: ReadonlySet<QuestionType> = new Set([
   'BOWTIE',
   'CLOZE',
   'HIGHLIGHT',
+  'DRAG_DROP',
 ]);
 
 interface QuestionTypePickerProps {
@@ -68,8 +67,7 @@ export function QuestionTypePicker({ onClose, onPick }: QuestionTypePickerProps)
         </header>
         <div className="auth-modal-body">
           <p className="auth-hint">
-            Choose the type of question you want to author. More types
-            land slice-by-slice; disabled types are coming soon.
+            Choose the type of question you want to author.
           </p>
           <ul className="auth-type-list">
             {QUESTION_TYPES.map((t) => {

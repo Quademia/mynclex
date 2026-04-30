@@ -34,6 +34,12 @@ import { ClassificationFields } from '@/lib/authoring/atoms/classification-field
 import { HousekeepingFields } from '@/lib/authoring/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/authoring/atoms/hidden-item-inputs';
 import { DiscardConfirm } from '@/lib/authoring/atoms/discard-confirm';
+import { DeleteConfirm } from '@/lib/authoring/atoms/delete-confirm';
+import { ErrorToast } from '@/lib/authoring/atoms/error-toast';
+import {
+  PreviewToggle,
+  type PreviewViewMode,
+} from '@/lib/authoring/atoms/preview-toggle';
 import { useSaveAction } from '@/lib/authoring/hooks/use-save-action';
 import { useDirtyGuard } from '@/lib/authoring/hooks/use-dirty-guard';
 import {
@@ -174,42 +180,80 @@ function SataOptionList({ options, correctIds, onChange, disabled }: SataOptionL
 }
 
 // ─────────────────────────────────────────────────────────────
-// SataPreview — pre-submit student view (private). Renders option
-// list with square checkboxes instead of radios.
+// SataPreview — dual-mode preview (private). Renders option list
+// with square checkboxes. Answer-key view highlights every option
+// in `correctIds` with a filled green checkbox + "✓ Correct" pill.
 // ─────────────────────────────────────────────────────────────
 
 interface SataPreviewProps {
   instruction: string;
   stem: string;
   options: OptionRow[];
+  correctIds: Set<string>;
+  viewMode: PreviewViewMode;
+  onViewModeChange: (next: PreviewViewMode) => void;
 }
 
-function SataPreview({ instruction, stem, options }: SataPreviewProps) {
+function SataPreview({
+  instruction,
+  stem,
+  options,
+  correctIds,
+  viewMode,
+  onViewModeChange,
+}: SataPreviewProps) {
+  const headerText =
+    viewMode === 'answer-key'
+      ? 'Answer key · curator view'
+      : 'Pre-submit · student view';
+
   return (
     <div className="auth-preview-card">
-      <div className="auth-preview-tag">Pre-submit · student view</div>
-      {instruction.trim() && (
-        <p className="auth-preview-instruction">{instruction}</p>
-      )}
-      <div className="auth-preview-stem">
-        {stem.trim() || <span className="auth-preview-placeholder">Stem appears here…</span>}
+      <div className="auth-preview-card-header">
+        <div className="auth-preview-card-header-text">{headerText}</div>
+        <PreviewToggle value={viewMode} onChange={onViewModeChange} />
       </div>
-      <ol className="auth-preview-options">
-        {options.length === 0 && (
-          <li className="auth-preview-placeholder">Options appear here as you add them.</li>
+      <div className="auth-preview-card-body">
+        {instruction.trim() && (
+          <p className="auth-preview-instruction">{instruction}</p>
         )}
-        {options.map((opt) => (
-          <li key={opt.id} className="auth-preview-option">
-            <span className="auth-preview-checkbox" aria-hidden="true" />
-            <span className="auth-preview-letter">{opt.id}.</span>
-            <span className="auth-preview-text">
-              {opt.text.trim() || (
-                <span className="auth-preview-placeholder">Option {opt.id} text…</span>
-              )}
-            </span>
-          </li>
-        ))}
-      </ol>
+        <div className="auth-preview-stem">
+          {stem.trim() || <span className="auth-preview-placeholder">Stem appears here…</span>}
+        </div>
+        <ol className="auth-preview-options">
+          {options.length === 0 && (
+            <li className="auth-preview-placeholder">Options appear here as you add them.</li>
+          )}
+          {options.map((opt) => {
+            const isCorrect = viewMode === 'answer-key' && correctIds.has(opt.id);
+            return (
+              <li
+                key={opt.id}
+                className={
+                  'auth-preview-option' +
+                  (isCorrect ? ' auth-preview-option-correct' : '')
+                }
+              >
+                <span
+                  className={
+                    isCorrect ? 'auth-preview-checkbox-correct' : 'auth-preview-checkbox'
+                  }
+                  aria-hidden="true"
+                />
+                <span className="auth-preview-letter">{opt.id}.</span>
+                <span className="auth-preview-text">
+                  {opt.text.trim() || (
+                    <span className="auth-preview-placeholder">Option {opt.id} text…</span>
+                  )}
+                </span>
+                {isCorrect && (
+                  <span className="auth-preview-correct-pill">✓ Correct</span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </div>
   );
 }
@@ -226,6 +270,7 @@ export interface SataEditorBodyProps {
   pending: boolean;
   onSubmit: (formData: FormData) => void;
   onDirty?: () => void;
+  onErrorDismiss?: () => void;
 }
 
 export function SataEditorBody({
@@ -234,8 +279,11 @@ export function SataEditorBody({
   pending,
   onSubmit,
   onDirty,
+  onErrorDismiss,
 }: SataEditorBodyProps) {
   const [tab, setTab] = useState<'content' | 'classification' | 'housekeeping'>('content');
+  const [clientError, setClientError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
 
   const [stem, setStem] = useState(initial.stem);
   const [instruction, setInstruction] = useState(initial.instruction);
@@ -255,21 +303,36 @@ export function SataEditorBody({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
+    if (contentIncomplete) {
+      setTab('content');
+      setClientError('Fill in the required fields on Content to continue.');
+      return;
+    }
+    if (classificationIncomplete) {
+      setTab('classification');
+      setClientError('Pick a Client Needs category to continue.');
+      return;
+    }
+    setClientError(null);
     onSubmit(new FormData(e.currentTarget));
+  }
+
+  function dismissError() {
+    setClientError(null);
+    onErrorDismiss?.();
   }
 
   return (
     <form
       id={FORM_ID}
       className="auth-form"
+      noValidate
       onSubmit={handleSubmit}
       onInput={onDirty}
     >
       <HiddenItemInputs type="SATA" itemId={initial.itemId} surface={initial.surface} />
 
-      {error && (
-        <div className="auth-error" role="alert">{error}</div>
-      )}
+      <ErrorToast error={error ?? clientError} onDismiss={dismissError} />
 
       <div className="auth-split">
         <div className="auth-edit">
@@ -335,7 +398,14 @@ export function SataEditorBody({
         </div>
 
         <div className="auth-preview">
-          <SataPreview instruction={instruction} stem={stem} options={options} />
+          <SataPreview
+            instruction={instruction}
+            stem={stem}
+            options={options}
+            correctIds={correctIds}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
         </div>
       </div>
     </form>
@@ -432,40 +502,15 @@ export function SataEditor({ initial, onClose, onSaved, onDeleted }: SataEditorP
           pending={save.pending}
         />
       )}
-      {confirmingDelete && (
-        <div className="auth-delete-confirm" role="alertdialog" aria-label="Confirm delete">
-          <p className="auth-delete-confirm-title">Delete <code>{initial.itemId}</code>?</p>
-          <p className="auth-delete-confirm-hint">
-            This is irreversible. Type <strong>DELETE</strong> to confirm.
-          </p>
-          <input
-            type="text"
-            className="auth-input"
-            value={deleteText}
-            onChange={(e) => setDeleteText(e.target.value)}
-            placeholder="Type DELETE"
-            autoFocus
-            disabled={del.pending}
-          />
-          <div className="auth-delete-confirm-actions">
-            <button
-              type="button"
-              className="auth-btn auth-btn-ghost"
-              onClick={cancelDelete}
-              disabled={del.pending}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="auth-btn auth-btn-danger"
-              onClick={confirmDelete}
-              disabled={deleteText !== 'DELETE' || del.pending}
-            >
-              {del.pending ? 'Deleting…' : 'Confirm delete'}
-            </button>
-          </div>
-        </div>
+      {confirmingDelete && initial.itemId && (
+        <DeleteConfirm
+          itemId={initial.itemId}
+          deleteText={deleteText}
+          pending={del.pending}
+          onTextChange={setDeleteText}
+          onCancel={cancelDelete}
+          onConfirm={confirmDelete}
+        />
       )}
       <SataEditorBody
         initial={initial}
@@ -473,6 +518,10 @@ export function SataEditor({ initial, onClose, onSaved, onDeleted }: SataEditorP
         pending={pending}
         onSubmit={save.submit}
         onDirty={guard.markDirty}
+        onErrorDismiss={() => {
+          save.clearError();
+          del.clearError();
+        }}
       />
     </ModalFrame>
   );

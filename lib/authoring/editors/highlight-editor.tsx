@@ -45,6 +45,8 @@ import { ClassificationFields } from '@/lib/authoring/atoms/classification-field
 import { HousekeepingFields } from '@/lib/authoring/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/authoring/atoms/hidden-item-inputs';
 import { DiscardConfirm } from '@/lib/authoring/atoms/discard-confirm';
+import { DeleteConfirm } from '@/lib/authoring/atoms/delete-confirm';
+import { ErrorToast } from '@/lib/authoring/atoms/error-toast';
 import {
   PreviewToggle,
   type PreviewViewMode,
@@ -187,8 +189,8 @@ function HighlightPreview({
 
   const headerText =
     viewMode === 'answer-key'
-      ? 'Curator preview · correct chunks highlighted'
-      : 'Student preview · click the correct findings';
+      ? 'Answer key · curator view'
+      : 'Pre-submit · student view';
 
   return (
     <div className="auth-preview-card">
@@ -376,6 +378,7 @@ export interface HighlightEditorBodyProps {
   pending: boolean;
   onSubmit: (formData: FormData) => void;
   onDirty?: () => void;
+  onErrorDismiss?: () => void;
 }
 
 export function HighlightEditorBody({
@@ -384,10 +387,12 @@ export function HighlightEditorBody({
   pending,
   onSubmit,
   onDirty,
+  onErrorDismiss,
 }: HighlightEditorBodyProps) {
   const [tab, setTab] = useState<
     'content' | 'classification' | 'housekeeping'
   >('content');
+  const [clientError, setClientError] = useState<string | null>(null);
   // HIGHLIGHT defaults to 'student' — curator usually sanity-checks
   // "does the passage read normally with these brackets" first.
   const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
@@ -555,13 +560,30 @@ export function HighlightEditorBody({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
+    if (contentIncomplete) {
+      setTab('content');
+      setClientError('Fill in the required fields on Content to continue.');
+      return;
+    }
+    if (classificationIncomplete) {
+      setTab('classification');
+      setClientError('Pick a Client Needs category to continue.');
+      return;
+    }
+    setClientError(null);
     onSubmit(new FormData(e.currentTarget));
+  }
+
+  function dismissError() {
+    setClientError(null);
+    onErrorDismiss?.();
   }
 
   return (
     <form
       id={FORM_ID}
       className="auth-form"
+      noValidate
       onSubmit={handleSubmit}
       onInput={onDirty}
     >
@@ -571,11 +593,7 @@ export function HighlightEditorBody({
         surface={initial.surface}
       />
 
-      {error && (
-        <div className="auth-error" role="alert">
-          {error}
-        </div>
-      )}
+      <ErrorToast error={error ?? clientError} onDismiss={dismissError} />
 
       <div className="auth-split">
         <div className="auth-edit">
@@ -873,46 +891,15 @@ export function HighlightEditor({
           pending={save.pending}
         />
       )}
-      {confirmingDelete && (
-        <div
-          className="auth-delete-confirm"
-          role="alertdialog"
-          aria-label="Confirm delete"
-        >
-          <p className="auth-delete-confirm-title">
-            Delete <code>{initial.itemId}</code>?
-          </p>
-          <p className="auth-delete-confirm-hint">
-            This is irreversible. Type <strong>DELETE</strong> to confirm.
-          </p>
-          <input
-            type="text"
-            className="auth-input"
-            value={deleteText}
-            onChange={(e) => setDeleteText(e.target.value)}
-            placeholder="Type DELETE"
-            autoFocus
-            disabled={del.pending}
-          />
-          <div className="auth-delete-confirm-actions">
-            <button
-              type="button"
-              className="auth-btn auth-btn-ghost"
-              onClick={cancelDelete}
-              disabled={del.pending}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="auth-btn auth-btn-danger"
-              onClick={confirmDelete}
-              disabled={deleteText !== 'DELETE' || del.pending}
-            >
-              {del.pending ? 'Deleting…' : 'Confirm delete'}
-            </button>
-          </div>
-        </div>
+      {confirmingDelete && initial.itemId && (
+        <DeleteConfirm
+          itemId={initial.itemId}
+          deleteText={deleteText}
+          pending={del.pending}
+          onTextChange={setDeleteText}
+          onCancel={cancelDelete}
+          onConfirm={confirmDelete}
+        />
       )}
       <HighlightEditorBody
         initial={initial}
@@ -920,6 +907,10 @@ export function HighlightEditor({
         pending={pending}
         onSubmit={save.submit}
         onDirty={guard.markDirty}
+        onErrorDismiss={() => {
+          save.clearError();
+          del.clearError();
+        }}
       />
     </ModalFrame>
   );

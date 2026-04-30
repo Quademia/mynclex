@@ -1,7 +1,11 @@
-// mynclex/lib/bank/parsers/drag-drop.ts
+// mynclex/lib/authoring/parsers/drag-drop.ts
 //
-// Drag-drop parser. Takes the curator's slot + token arrays from
-// FormData and produces a normalised (stem, content, correct) trio.
+// Drag-drop parser — vendored from lib/bank/parsers/drag-drop.ts under
+// the active vendoring rule. Unchanged in shape; only the import paths
+// point at the authoring classifications + types.
+//
+// Takes the curator's slot + token arrays from FormData and produces a
+// normalised (stem, content, correct) trio.
 //
 // Two subtypes:
 //   ORDERED  : student drags tokens to ranked positions. All form
@@ -38,8 +42,8 @@ import {
   DD_TOKEN_POOL_ABSOLUTE_MIN,
   DD_TOKEN_POOL_ABSOLUTE_MAX,
   DD_TOKEN_POOL_MIN_EXTRA,
-} from '../classifications';
-import type { DragDropContent, DragDropCorrect } from '../types';
+} from '@/lib/authoring/classifications';
+import type { DragDropContent, DragDropCorrect } from '@/lib/authoring/types';
 
 export interface DragDropSlotInput {
   id: string;

@@ -41,6 +41,12 @@ import { ClassificationFields } from '@/lib/authoring/atoms/classification-field
 import { HousekeepingFields } from '@/lib/authoring/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/authoring/atoms/hidden-item-inputs';
 import { DiscardConfirm } from '@/lib/authoring/atoms/discard-confirm';
+import { DeleteConfirm } from '@/lib/authoring/atoms/delete-confirm';
+import { ErrorToast } from '@/lib/authoring/atoms/error-toast';
+import {
+  PreviewToggle,
+  type PreviewViewMode,
+} from '@/lib/authoring/atoms/preview-toggle';
 import { useSaveAction } from '@/lib/authoring/hooks/use-save-action';
 import { useDirtyGuard } from '@/lib/authoring/hooks/use-dirty-guard';
 import {
@@ -176,41 +182,81 @@ function McqOptionList({ options, correctId, onChange, disabled }: McqOptionList
 }
 
 // ─────────────────────────────────────────────────────────────
-// McqPreview — pre-submit student view (private).
+// McqPreview — dual-mode preview (private).
+// Student view: empty radios.
+// Answer-key view: option matching `correctId` highlighted with a
+// filled green radio + "✓ Correct" pill.
 // ─────────────────────────────────────────────────────────────
 
 interface McqPreviewProps {
   instruction: string;
   stem: string;
   options: OptionRow[];
+  correctId: string;
+  viewMode: PreviewViewMode;
+  onViewModeChange: (next: PreviewViewMode) => void;
 }
 
-function McqPreview({ instruction, stem, options }: McqPreviewProps) {
+function McqPreview({
+  instruction,
+  stem,
+  options,
+  correctId,
+  viewMode,
+  onViewModeChange,
+}: McqPreviewProps) {
+  const headerText =
+    viewMode === 'answer-key'
+      ? 'Answer key · curator view'
+      : 'Pre-submit · student view';
+
   return (
     <div className="auth-preview-card">
-      <div className="auth-preview-tag">Pre-submit · student view</div>
-      {instruction.trim() && (
-        <p className="auth-preview-instruction">{instruction}</p>
-      )}
-      <div className="auth-preview-stem">
-        {stem.trim() || <span className="auth-preview-placeholder">Stem appears here…</span>}
+      <div className="auth-preview-card-header">
+        <div className="auth-preview-card-header-text">{headerText}</div>
+        <PreviewToggle value={viewMode} onChange={onViewModeChange} />
       </div>
-      <ol className="auth-preview-options">
-        {options.length === 0 && (
-          <li className="auth-preview-placeholder">Options appear here as you add them.</li>
+      <div className="auth-preview-card-body">
+        {instruction.trim() && (
+          <p className="auth-preview-instruction">{instruction}</p>
         )}
-        {options.map((opt) => (
-          <li key={opt.id} className="auth-preview-option">
-            <span className="auth-preview-radio" aria-hidden="true" />
-            <span className="auth-preview-letter">{opt.id}.</span>
-            <span className="auth-preview-text">
-              {opt.text.trim() || (
-                <span className="auth-preview-placeholder">Option {opt.id} text…</span>
-              )}
-            </span>
-          </li>
-        ))}
-      </ol>
+        <div className="auth-preview-stem">
+          {stem.trim() || <span className="auth-preview-placeholder">Stem appears here…</span>}
+        </div>
+        <ol className="auth-preview-options">
+          {options.length === 0 && (
+            <li className="auth-preview-placeholder">Options appear here as you add them.</li>
+          )}
+          {options.map((opt) => {
+            const isCorrect = viewMode === 'answer-key' && opt.id === correctId;
+            return (
+              <li
+                key={opt.id}
+                className={
+                  'auth-preview-option' +
+                  (isCorrect ? ' auth-preview-option-correct' : '')
+                }
+              >
+                <span
+                  className={
+                    isCorrect ? 'auth-preview-radio-correct' : 'auth-preview-radio'
+                  }
+                  aria-hidden="true"
+                />
+                <span className="auth-preview-letter">{opt.id}.</span>
+                <span className="auth-preview-text">
+                  {opt.text.trim() || (
+                    <span className="auth-preview-placeholder">Option {opt.id} text…</span>
+                  )}
+                </span>
+                {isCorrect && (
+                  <span className="auth-preview-correct-pill">✓ Correct</span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </div>
   );
 }
@@ -235,6 +281,12 @@ export interface McqEditorBodyProps {
    * track dirty state).
    */
   onDirty?: () => void;
+  /**
+   * Optional. Called when the toast is dismissed (auto or click) so
+   * the host can clear any server-side error it owns. Body still
+   * clears its own client validation error regardless.
+   */
+  onErrorDismiss?: () => void;
 }
 
 export function McqEditorBody({
@@ -243,8 +295,18 @@ export function McqEditorBody({
   pending,
   onSubmit,
   onDirty,
+  onErrorDismiss,
 }: McqEditorBodyProps) {
   const [tab, setTab] = useState<'content' | 'classification' | 'housekeeping'>('content');
+  // Client-side validation surfaces through the same toast that shows
+  // server errors. Pre-submit guard checks each tab; if anything's
+  // missing we jump to the offending tab and raise a toast instead of
+  // letting the server reject blind.
+  const [clientError, setClientError] = useState<string | null>(null);
+  // Dual-mode preview — defaults to 'student' (matches the prior
+  // single-mode behaviour). Curator can flip to 'answer-key' to verify
+  // the correct option highlights as expected.
+  const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
 
   const [stem, setStem] = useState(initial.stem);
   const [instruction, setInstruction] = useState(initial.instruction);
@@ -265,21 +327,36 @@ export function McqEditorBody({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
+    if (contentIncomplete) {
+      setTab('content');
+      setClientError('Fill in the required fields on Content to continue.');
+      return;
+    }
+    if (classificationIncomplete) {
+      setTab('classification');
+      setClientError('Pick a Client Needs category to continue.');
+      return;
+    }
+    setClientError(null);
     onSubmit(new FormData(e.currentTarget));
+  }
+
+  function dismissError() {
+    setClientError(null);
+    onErrorDismiss?.();
   }
 
   return (
     <form
       id={FORM_ID}
       className="auth-form"
+      noValidate
       onSubmit={handleSubmit}
       onInput={onDirty}
     >
       <HiddenItemInputs type="MCQ" itemId={initial.itemId} surface={initial.surface} />
 
-      {error && (
-        <div className="auth-error" role="alert">{error}</div>
-      )}
+      <ErrorToast error={error ?? clientError} onDismiss={dismissError} />
 
       <div className="auth-split">
         <div className="auth-edit">
@@ -345,7 +422,14 @@ export function McqEditorBody({
         </div>
 
         <div className="auth-preview">
-          <McqPreview instruction={instruction} stem={stem} options={options} />
+          <McqPreview
+            instruction={instruction}
+            stem={stem}
+            options={options}
+            correctId={correctId}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
         </div>
       </div>
     </form>
@@ -457,40 +541,15 @@ export function McqEditor({ initial, onClose, onSaved, onDeleted }: McqEditorPro
           pending={save.pending}
         />
       )}
-      {confirmingDelete && (
-        <div className="auth-delete-confirm" role="alertdialog" aria-label="Confirm delete">
-          <p className="auth-delete-confirm-title">Delete <code>{initial.itemId}</code>?</p>
-          <p className="auth-delete-confirm-hint">
-            This is irreversible. Type <strong>DELETE</strong> to confirm.
-          </p>
-          <input
-            type="text"
-            className="auth-input"
-            value={deleteText}
-            onChange={(e) => setDeleteText(e.target.value)}
-            placeholder="Type DELETE"
-            autoFocus
-            disabled={del.pending}
-          />
-          <div className="auth-delete-confirm-actions">
-            <button
-              type="button"
-              className="auth-btn auth-btn-ghost"
-              onClick={cancelDelete}
-              disabled={del.pending}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="auth-btn auth-btn-danger"
-              onClick={confirmDelete}
-              disabled={deleteText !== 'DELETE' || del.pending}
-            >
-              {del.pending ? 'Deleting…' : 'Confirm delete'}
-            </button>
-          </div>
-        </div>
+      {confirmingDelete && initial.itemId && (
+        <DeleteConfirm
+          itemId={initial.itemId}
+          deleteText={deleteText}
+          pending={del.pending}
+          onTextChange={setDeleteText}
+          onCancel={cancelDelete}
+          onConfirm={confirmDelete}
+        />
       )}
       <McqEditorBody
         initial={initial}
@@ -498,6 +557,10 @@ export function McqEditor({ initial, onClose, onSaved, onDeleted }: McqEditorPro
         pending={pending}
         onSubmit={save.submit}
         onDirty={guard.markDirty}
+        onErrorDismiss={() => {
+          save.clearError();
+          del.clearError();
+        }}
       />
     </ModalFrame>
   );

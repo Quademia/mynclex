@@ -2,9 +2,10 @@
 //
 // Server action for the new authoring tree. Branches on question_type
 // and dispatches to the matching parser (lib/authoring/parsers/<type>.ts)
-// to build content + correct JSONB. Currently supports MCQ (slice 2),
-// TF (slice 3), SATA (slice 4), SELECT_N (slice 5), MATRIX (slice 6),
-// and BOWTIE (slice 7); the remaining 3 types land slice-by-slice (8-10).
+// to build content + correct JSONB. Supports all nine question types as
+// of slice 10: MCQ (slice 2), TF (slice 3), SATA (slice 4), SELECT_N
+// (slice 5), MATRIX (slice 6), BOWTIE (slice 7), CLOZE (slice 8),
+// HIGHLIGHT (slice 9), and DRAG_DROP (slice 10).
 //
 // Surface-aware: reads the `surface` hidden input on the form and
 // branches between admin (nclex_bank_items, NCLEX_<TYPE>_NNNNN) and
@@ -49,6 +50,11 @@ import {
   parseHighlight,
   type HighlightChunkInput,
 } from '@/lib/authoring/parsers/highlight';
+import {
+  parseDragDrop,
+  type DragDropSlotInput,
+  type DragDropTokenInput,
+} from '@/lib/authoring/parsers/drag-drop';
 
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
@@ -130,6 +136,7 @@ const SUPPORTED_TYPES = new Set<QuestionType>([
   'BOWTIE',
   'CLOZE',
   'HIGHLIGHT',
+  'DRAG_DROP',
 ]);
 
 interface ParsedQuestion {
@@ -296,6 +303,35 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
           in_passage: chunkInPassages[i] === 'true',
         }));
         return parseHighlight({ stem, chunks: hlChunks });
+      }
+      case 'DRAG_DROP': {
+        // Parallel slot + token arrays. The parser re-derives "active"
+        // slots from the stem's [N] markers (SENTENCE) or from the
+        // form slot list (ORDERED), so we send every slot row as-is —
+        // no in_stem flag needed.
+        const subtype = String(formData.get('dd_subtype') ?? '');
+        const slotIds        = formData.getAll('dd_slot_id').map(String);
+        const slotTargets    = formData.getAll('dd_slot_target_text').map(String);
+        const slotAssigned   = formData.getAll('dd_slot_assigned_token_id').map(String);
+        const slotFeedbacks  = formData.getAll('dd_slot_feedback').map(String);
+        const tokenIds       = formData.getAll('dd_token_id').map(String);
+        const tokenTexts     = formData.getAll('dd_token_text').map(String);
+        const ddSlots: DragDropSlotInput[] = slotIds.map((id, i) => ({
+          id,
+          target_text: slotTargets[i] ?? '',
+          assigned_token_id: slotAssigned[i] ?? '',
+          feedback: slotFeedbacks[i] ?? '',
+        }));
+        const ddTokens: DragDropTokenInput[] = tokenIds.map((id, i) => ({
+          id,
+          text: tokenTexts[i] ?? '',
+        }));
+        return parseDragDrop({
+          stem,
+          subtype,
+          slots: ddSlots,
+          tokens: ddTokens,
+        });
       }
       default:
         return parseMcq(optionIds, optionTexts, optionFeedbacks, correctIds);
