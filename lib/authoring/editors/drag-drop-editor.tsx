@@ -60,6 +60,7 @@ import { ClassificationFields } from '@/lib/authoring/atoms/classification-field
 import { HousekeepingFields } from '@/lib/authoring/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/authoring/atoms/hidden-item-inputs';
 import { DiscardConfirm } from '@/lib/authoring/atoms/discard-confirm';
+import { ErrorToast } from '@/lib/authoring/atoms/error-toast';
 import {
   PreviewToggle,
   type PreviewViewMode,
@@ -602,6 +603,7 @@ export interface DragDropEditorBodyProps {
   pending: boolean;
   onSubmit: (formData: FormData) => void;
   onDirty?: () => void;
+  onErrorDismiss?: () => void;
 }
 
 export function DragDropEditorBody({
@@ -610,10 +612,12 @@ export function DragDropEditorBody({
   pending,
   onSubmit,
   onDirty,
+  onErrorDismiss,
 }: DragDropEditorBodyProps) {
   const [tab, setTab] = useState<
     'content' | 'classification' | 'housekeeping'
   >('content');
+  const [clientError, setClientError] = useState<string | null>(null);
   // DRAG_DROP defaults to 'student' — curator usually previews the
   // pool + empty slots first, then flips to answer-key to verify the
   // assignment.
@@ -891,7 +895,23 @@ export function DragDropEditorBody({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
+    if (contentIncomplete) {
+      setTab('content');
+      setClientError('Fill in the required fields on Content to continue.');
+      return;
+    }
+    if (classificationIncomplete) {
+      setTab('classification');
+      setClientError('Pick a Client Needs category to continue.');
+      return;
+    }
+    setClientError(null);
     onSubmit(new FormData(e.currentTarget));
+  }
+
+  function dismissError() {
+    setClientError(null);
+    onErrorDismiss?.();
   }
 
   // Split slots for tab-strip rendering — actives first, orphans tail.
@@ -946,6 +966,7 @@ export function DragDropEditorBody({
     <form
       id={FORM_ID}
       className="auth-form"
+      noValidate
       onSubmit={handleSubmit}
       onInput={onDirty}
     >
@@ -955,11 +976,7 @@ export function DragDropEditorBody({
         surface={initial.surface}
       />
 
-      {error && (
-        <div className="auth-error" role="alert">
-          {error}
-        </div>
-      )}
+      <ErrorToast error={error ?? clientError} onDismiss={dismissError} />
 
       <div className="auth-split">
         <div className="auth-edit">
@@ -1456,6 +1473,10 @@ export function DragDropEditor({
         pending={pending}
         onSubmit={save.submit}
         onDirty={guard.markDirty}
+        onErrorDismiss={() => {
+          save.clearError();
+          del.clearError();
+        }}
       />
     </ModalFrame>
   );

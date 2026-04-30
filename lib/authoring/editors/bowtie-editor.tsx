@@ -48,6 +48,7 @@ import { ClassificationFields } from '@/lib/authoring/atoms/classification-field
 import { HousekeepingFields } from '@/lib/authoring/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/authoring/atoms/hidden-item-inputs';
 import { DiscardConfirm } from '@/lib/authoring/atoms/discard-confirm';
+import { ErrorToast } from '@/lib/authoring/atoms/error-toast';
 import {
   PreviewToggle,
   type PreviewViewMode,
@@ -561,6 +562,7 @@ export interface BowtieEditorBodyProps {
   pending: boolean;
   onSubmit: (formData: FormData) => void;
   onDirty?: () => void;
+  onErrorDismiss?: () => void;
 }
 
 export function BowtieEditorBody({
@@ -569,8 +571,10 @@ export function BowtieEditorBody({
   pending,
   onSubmit,
   onDirty,
+  onErrorDismiss,
 }: BowtieEditorBodyProps) {
   const [tab, setTab] = useState<'content' | 'classification' | 'housekeeping'>('content');
+  const [clientError, setClientError] = useState<string | null>(null);
   const [activeWing, setActiveWing] = useState<WingKey>('left');
   // BOWTIE defaults to answer-key — the curator usually checks "did
   // I pick the right 5?" before "does the student see this clearly?".
@@ -609,21 +613,36 @@ export function BowtieEditorBody({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
+    if (contentIncomplete) {
+      setTab('content');
+      setClientError('Fill in the required fields on Content to continue.');
+      return;
+    }
+    if (classificationIncomplete) {
+      setTab('classification');
+      setClientError('Pick a Client Needs category to continue.');
+      return;
+    }
+    setClientError(null);
     onSubmit(new FormData(e.currentTarget));
+  }
+
+  function dismissError() {
+    setClientError(null);
+    onErrorDismiss?.();
   }
 
   return (
     <form
       id={FORM_ID}
       className="auth-form"
+      noValidate
       onSubmit={handleSubmit}
       onInput={onDirty}
     >
       <HiddenItemInputs type="BOWTIE" itemId={initial.itemId} surface={initial.surface} />
 
-      {error && (
-        <div className="auth-error" role="alert">{error}</div>
-      )}
+      <ErrorToast error={error ?? clientError} onDismiss={dismissError} />
 
       <div className="auth-split">
         <div className="auth-edit">
@@ -929,6 +948,10 @@ export function BowtieEditor({ initial, onClose, onSaved, onDeleted }: BowtieEdi
         pending={pending}
         onSubmit={save.submit}
         onDirty={guard.markDirty}
+        onErrorDismiss={() => {
+          save.clearError();
+          del.clearError();
+        }}
       />
     </ModalFrame>
   );

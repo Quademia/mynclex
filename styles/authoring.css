@@ -981,7 +981,8 @@
 }
 
 /* ─────────────────────────────────────────────────────
- * Error banner (used by editor body)
+ * Error banner (legacy — kept for any non-toast call sites;
+ * editors now use <ErrorToast> instead)
  * ───────────────────────────────────────────────────── */
 
 .auth-error {
@@ -991,6 +992,89 @@
   border-radius: var(--radius);
   padding: 10px 14px;
   font-size: 13px;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Floating error toast — surfaces server + client validation
+ * errors in every editor. Pinned to the top-right of the
+ * viewport so it sits above whatever the curator is looking at
+ * regardless of scroll position. Rendered inside the editor
+ * body but positioned `fixed`, so the modal overlay's dim layer
+ * is behind it but the toast itself is on top.
+ * ───────────────────────────────────────────────────── */
+
+.auth-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: min(440px, calc(100vw - 48px));
+  padding: 12px 14px;
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  font-size: 13px;
+  line-height: 1.45;
+  animation: auth-toast-in 180ms ease-out;
+}
+
+@keyframes auth-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-toast-error {
+  background: var(--white);
+  color: var(--danger);
+  border: 1px solid #fecaca;
+  border-left: 4px solid var(--danger);
+}
+
+.auth-toast-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: var(--white);
+  font-weight: 700;
+  font-size: 13px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.auth-toast-message {
+  flex: 1;
+  color: #7f1d1d;
+  font-weight: 500;
+  word-wrap: break-word;
+}
+
+.auth-toast-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+.auth-toast-close:hover {
+  background: #fef2f2;
+  color: var(--danger);
 }
 
 /* ─────────────────────────────────────────────────────

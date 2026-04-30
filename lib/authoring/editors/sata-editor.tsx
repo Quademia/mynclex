@@ -34,6 +34,7 @@ import { ClassificationFields } from '@/lib/authoring/atoms/classification-field
 import { HousekeepingFields } from '@/lib/authoring/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/authoring/atoms/hidden-item-inputs';
 import { DiscardConfirm } from '@/lib/authoring/atoms/discard-confirm';
+import { ErrorToast } from '@/lib/authoring/atoms/error-toast';
 import { useSaveAction } from '@/lib/authoring/hooks/use-save-action';
 import { useDirtyGuard } from '@/lib/authoring/hooks/use-dirty-guard';
 import {
@@ -226,6 +227,7 @@ export interface SataEditorBodyProps {
   pending: boolean;
   onSubmit: (formData: FormData) => void;
   onDirty?: () => void;
+  onErrorDismiss?: () => void;
 }
 
 export function SataEditorBody({
@@ -234,8 +236,10 @@ export function SataEditorBody({
   pending,
   onSubmit,
   onDirty,
+  onErrorDismiss,
 }: SataEditorBodyProps) {
   const [tab, setTab] = useState<'content' | 'classification' | 'housekeeping'>('content');
+  const [clientError, setClientError] = useState<string | null>(null);
 
   const [stem, setStem] = useState(initial.stem);
   const [instruction, setInstruction] = useState(initial.instruction);
@@ -255,21 +259,36 @@ export function SataEditorBody({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
+    if (contentIncomplete) {
+      setTab('content');
+      setClientError('Fill in the required fields on Content to continue.');
+      return;
+    }
+    if (classificationIncomplete) {
+      setTab('classification');
+      setClientError('Pick a Client Needs category to continue.');
+      return;
+    }
+    setClientError(null);
     onSubmit(new FormData(e.currentTarget));
+  }
+
+  function dismissError() {
+    setClientError(null);
+    onErrorDismiss?.();
   }
 
   return (
     <form
       id={FORM_ID}
       className="auth-form"
+      noValidate
       onSubmit={handleSubmit}
       onInput={onDirty}
     >
       <HiddenItemInputs type="SATA" itemId={initial.itemId} surface={initial.surface} />
 
-      {error && (
-        <div className="auth-error" role="alert">{error}</div>
-      )}
+      <ErrorToast error={error ?? clientError} onDismiss={dismissError} />
 
       <div className="auth-split">
         <div className="auth-edit">
@@ -473,6 +492,10 @@ export function SataEditor({ initial, onClose, onSaved, onDeleted }: SataEditorP
         pending={pending}
         onSubmit={save.submit}
         onDirty={guard.markDirty}
+        onErrorDismiss={() => {
+          save.clearError();
+          del.clearError();
+        }}
       />
     </ModalFrame>
   );
