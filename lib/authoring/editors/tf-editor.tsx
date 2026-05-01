@@ -43,7 +43,7 @@ import {
 } from '@/lib/authoring/actions/delete-question';
 import type { TfEditorInitial } from './tf-row-mapper';
 
-// Re-export so client callers (bank-list-v2-client) can keep imports
+// Re-export so client callers (bank-list-client) can keep imports
 // short.
 export type { TfEditorInitial };
 

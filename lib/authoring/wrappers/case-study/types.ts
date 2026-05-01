@@ -1,13 +1,6 @@
 // mynclex/lib/authoring/wrappers/case-study/types.ts
 //
-// Wrapper-page row shapes for slice 12b. Vendored from
-// lib/bank/case-study/types.ts so the new tree stays decoupled from
-// the legacy folder, per the rebuild's vendoring rule (active until
-// slice 13).
-//
-// Field-for-field identical to the legacy types — schema is shared.
-// If anything in the legacy types genuinely changes while both trees
-// coexist, update both copies in the same commit.
+// Wrapper-page row shapes for the case-study editor.
 
 import type { CjmmStep } from '../../classifications';
 import type { McqEditorInitial }      from '../../editors/mcq-row-mapper';
@@ -38,7 +31,7 @@ export type SlotEditorInitial =
 export type Surface = 'admin' | 'tutor';
 
 // nclex_case_studies / nclex_tutor_case_studies row shape used by
-// the wrapper page. is_published is plumbed through but the v2
+// the wrapper page. is_published is plumbed through but the
 // publish gate fires only when set true via Save case study (slice 12c).
 export interface CaseRow {
   case_id:                   string;
@@ -46,7 +39,7 @@ export interface CaseRow {
   title:                     string;
   scenario_summary:          string | null;
 
-  // Classifications retained on the DB row but NOT surfaced in v2 UI
+  // Classifications retained on the DB row but NOT surfaced in UI
   // (decision 9.2 — they live on questions only). Loaded for
   // legacy-edit fallback only.
   client_needs_category:     string | null;
@@ -122,12 +115,9 @@ export interface WrapperData {
 }
 
 // ───────────────────────────────────────────────────────────
-// Legacy-name aliases for the vendored chart-tab components
-// (12c-2). The chart-tabs/* files were copied from
-// lib/bank/case-study/* and import these legacy names; rather
-// than touching every reference, we alias them to our local
-// names. Schema is identical — these are field-for-field the
-// same shape.
+// CaseStudy-prefixed type aliases used by the chart-tab components
+// (alternative names for the same shapes, kept for readability at
+// call sites).
 // ───────────────────────────────────────────────────────────
 
 export type CaseStudyTabRow    = TabRow;

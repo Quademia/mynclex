@@ -1,14 +1,11 @@
 // mynclex/lib/authoring/wrappers/trend/types.ts
 //
-// Type shapes for the trend wrapper-v2 build (slice 13). 13a used
-// only TrendDatasetRow + TrendRow; 13b adds WrapperData + SlotRow +
-// SlotEditorInitial for the wrapper page.
+// Type shapes for the trend wrapper. TrendDatasetRow + TrendRow
+// model the dataset row + its data rows; WrapperData + SlotRow +
+// SlotEditorInitial model the wrapper-page bundle.
 //
-// Vendored from lib/bank/trend/types.ts per slice 13's vendoring
-// rule (active until slice 14). Includes the two new visibility
-// flag columns added in the slice-13 migration (decision 16):
-// is_free_sample + is_builder_visible. Defaults match
-// nclex_bank_items: FALSE / TRUE.
+// is_free_sample + is_builder_visible defaults match nclex_bank_items:
+// FALSE / TRUE.
 
 import type { McqEditorInitial }      from '../../editors/mcq-row-mapper';
 import type { TfEditorInitial }       from '../../editors/tf-row-mapper';

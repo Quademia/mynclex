@@ -1,9 +1,5 @@
 // mynclex/lib/authoring/parsers/tf.ts
 //
-// Vendored from lib/bank/parsers/tf.ts in slice 3. See
-// lib/authoring/classifications.ts header for the vendoring
-// rationale.
-//
 // True/False parser — same shape as MCQ but with a locked True/False
 // option list. The form prevents editing the text, but the server
 // re-enforces it independently.

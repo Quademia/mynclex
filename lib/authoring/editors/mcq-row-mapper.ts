@@ -88,7 +88,7 @@ export const MCQ_ROW_COLUMNS =
   'tags, is_published, is_free_sample, is_builder_visible, marks, ' +
   'shuffle_options, question_ref, batch_id';
 
-/** Empty initial for a fresh MCQ. Used by the bank-list-v2 "+ New question" flow. */
+/** Empty initial for a fresh MCQ. Used by the bank-list "+ New question" flow. */
 export function emptyMcqInitial(surface: 'admin' | 'tutor'): McqEditorInitial {
   return {
     itemId: null,

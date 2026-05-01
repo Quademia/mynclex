@@ -1,25 +1,17 @@
 // mynclex/lib/authoring/wrappers/trend/validation.ts
 //
-// Slice 13 polish — client-side validation for the trend wrapper.
-// Manual-only; fires on Validate-button click.
+// Client-side validation for the trend wrapper. Manual-only; fires
+// on Validate-button click.
 //
 // Pure module: no React, no DOM, no fetch. The wrapper page assembles
 // a TrendValidationState snapshot at click time and this module
 // returns a list of ValidationIssue rows to render.
 //
-// Vendored / adapted from lib/bank/trend/validation.ts. Same rule
-// shape, same severity model. Two simplifications vs the legacy:
-//
-//   1. Per-question content-shape check (parser-based) is dropped.
-//      The save-question action runs the same parser on every save,
-//      so an invalid question fails at save with a clear error. The
-//      panel doesn't add value over that for v2 polish.
-//
-//   2. Snapshot reads SlotRow shapes from the v2 wrapper instead of
-//      BankFormInitial. SlotRow is post-load, so we don't see the
-//      curator's in-flight typing in question editors — the wrapper
-//      page rebuilds the snapshot from the loaded slots, not from
-//      mid-edit form state. Same constraint CS's validation has.
+// Snapshot reads SlotRow shapes (post-load) — the wrapper rebuilds
+// the snapshot from the loaded slots, not from mid-edit form state.
+// Per-question content-shape checks happen at save time (the
+// save-question action runs the same parser); the panel surfaces
+// wrapper-level shape issues that those per-save errors don't see.
 
 import type { SlotRow, TrendRow } from './types';
 

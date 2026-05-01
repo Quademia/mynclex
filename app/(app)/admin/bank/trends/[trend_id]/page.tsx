@@ -19,7 +19,7 @@ interface PageParams {
   searchParams?: Promise<{ focus?: string }>;
 }
 
-export default async function AdminTrendV2Page({ params, searchParams }: PageParams) {
+export default async function AdminTrendPage({ params, searchParams }: PageParams) {
   const { trend_id } = await params;
   const sp = await searchParams;
   const focusItemId = sp?.focus ?? null;

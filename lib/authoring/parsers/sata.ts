@@ -1,9 +1,5 @@
 // mynclex/lib/authoring/parsers/sata.ts
 //
-// Vendored from lib/bank/parsers/sata.ts in slice 4. See
-// lib/authoring/classifications.ts header for the vendoring
-// rationale.
-//
 // Select-All-That-Apply parser — at least one correct answer; no upper
 // bound on how many. Curators mark any subset as correct.
 

@@ -1,4 +1,4 @@
-// mynclex/lib/authoring/bank-filters-v2.tsx
+// mynclex/lib/authoring/bank-filters.tsx
 //
 // Filter bar shown above the bank list (server-rendered topbar zone).
 // Renders a GET form that submits back to the current surface (admin
@@ -6,11 +6,7 @@
 // those params applied. No client state — inputs pre-fill from props
 // and the browser does the navigation.
 //
-// Vendored from lib/bank/filters.tsx per slice 13's vendoring rule
-// (active until slice 14). Identical UX + class names so the styles
-// in styles/dashboards.css carry over verbatim. Imports the
-// classifications from lib/authoring/classifications instead of the
-// legacy lib/bank/classifications — same data, cleaner dependency.
+// Reuses the .bank-filter-* class names from styles/dashboards.css.
 
 'use client';
 
@@ -21,7 +17,7 @@ import {
   DIFFICULTY_LEVELS,
 } from '@/lib/authoring/classifications';
 
-export interface BankFilterValuesV2 {
+export interface BankFilterValues {
   type:       string;
   category:   string;
   difficulty: string;
@@ -31,11 +27,11 @@ export interface BankFilterValuesV2 {
   q:          string;
 }
 
-export function BankFiltersV2({
+export function BankFilters({
   values,
   baseUrl,
 }: {
-  values:  BankFilterValuesV2;
+  values:  BankFilterValues;
   baseUrl: string;
 }) {
   return (

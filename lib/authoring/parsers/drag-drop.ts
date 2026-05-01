@@ -1,10 +1,6 @@
 // mynclex/lib/authoring/parsers/drag-drop.ts
 //
-// Drag-drop parser — vendored from lib/bank/parsers/drag-drop.ts under
-// the active vendoring rule. Unchanged in shape; only the import paths
-// point at the authoring classifications + types.
-//
-// Takes the curator's slot + token arrays from FormData and produces a
+// Drag-drop parser. Takes the curator's slot + token arrays from FormData and produces a
 // normalised (stem, content, correct) trio.
 //
 // Two subtypes:

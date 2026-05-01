@@ -1,9 +1,5 @@
 // mynclex/lib/authoring/parsers/matrix.ts
 //
-// Vendored from lib/bank/parsers/matrix.ts in slice 6. See
-// lib/authoring/classifications.ts header for the vendoring
-// rationale.
-//
 // Matrix parser — builds a validated { content, correct } pair from the
 // raw row/column/correct arrays posted by the authoring form. Runs on
 // the server (no 'use client'); invoked by the save-question dispatch.

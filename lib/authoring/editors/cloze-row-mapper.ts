@@ -83,7 +83,7 @@ export interface ClozeDbRow extends Omit<McqDbRow, 'content' | 'correct'> {
 export const CLOZE_ROW_COLUMNS = MCQ_ROW_COLUMNS;
 
 // ─────────────────────────────────────────────────────────────
-// Empty initial — used by the bank-list-v2 "+ New question" flow.
+// Empty initial — used by the bank-list "+ New question" flow.
 // Pre-seeds CLOZE_MIN_BLANKS markers in the stem AND matching blank
 // cards in state, both active. This communicates the "minimum 2
 // blanks" rule visibly through the tab strip (two active tabs

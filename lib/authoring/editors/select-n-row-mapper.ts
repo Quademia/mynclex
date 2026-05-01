@@ -65,7 +65,7 @@ export interface SelectNDbRow extends Omit<McqDbRow, 'content' | 'correct'> {
 export const SELECT_N_ROW_COLUMNS = MCQ_ROW_COLUMNS;
 
 // ─────────────────────────────────────────────────────────────
-// Empty initial — used by the bank-list-v2 "+ New question" flow.
+// Empty initial — used by the bank-list "+ New question" flow.
 // Defaults select_count to 2.
 // ─────────────────────────────────────────────────────────────
 

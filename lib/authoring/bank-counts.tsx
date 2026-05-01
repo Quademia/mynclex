@@ -1,4 +1,4 @@
-// mynclex/lib/authoring/bank-counts-v2.tsx
+// mynclex/lib/authoring/bank-counts.tsx
 //
 // Composition-counts strip shown above the filter bar — four chips
 // (Total / Standalone / Case-linked / Trend-linked) as filtered/total.
@@ -9,21 +9,19 @@
 // picks a membership — they tell you what each bucket would be like
 // without the membership clamp.
 //
-// Vendored from the inline CompositionCounts in
-// lib/bank/list-view.tsx. Reuses the legacy CSS classes
-// (.bank-counts-row, .bank-count-item, .bank-count-label,
-// .bank-count-value) from styles/dashboards.css.
+// Reuses the .bank-counts-row, .bank-count-item, .bank-count-label,
+// .bank-count-value CSS classes from styles/dashboards.css.
 
 import type { ReactNode } from 'react';
 
-export interface BankCompositionCountsV2 {
+export interface BankCompositionCounts {
   total:       { filtered: number; total: number };
   standalone:  { filtered: number; total: number };
   caseLinked:  { filtered: number; total: number };
   trendLinked: { filtered: number; total: number };
 }
 
-export function BankCountsV2({ counts }: { counts: BankCompositionCountsV2 }) {
+export function BankCounts({ counts }: { counts: BankCompositionCounts }) {
   return (
     <div className="bank-counts-row">
       <CountItem label="Total"        bucket={counts.total} />

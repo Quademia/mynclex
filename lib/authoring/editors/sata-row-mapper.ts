@@ -57,7 +57,7 @@ export interface SataDbRow extends Omit<McqDbRow, 'correct'> {
 export const SATA_ROW_COLUMNS = MCQ_ROW_COLUMNS;
 
 // ─────────────────────────────────────────────────────────────
-// Empty initial — used by the bank-list-v2 "+ New question" flow.
+// Empty initial — used by the bank-list "+ New question" flow.
 // ─────────────────────────────────────────────────────────────
 
 export function emptySataInitial(surface: 'admin' | 'tutor'): SataEditorInitial {

@@ -1,22 +1,19 @@
 // mynclex/lib/authoring/wrappers/trend/actions.ts
 //
-// Server actions for the trend wrapper-v2 build (slice 13).
+// Server actions for the trend wrapper.
 //
-// 13a — createTrendAction (kind-picker create flow).
-// 13c — saveTrendMetadataAction + parseRows helper (direct CRUD
-//       update on the dataset row).
-// 13e — detachQuestionAction (clears trend_id on the question row),
-//       deleteTrendAction with three modes (simple / detach-and-delete /
-//       delete-everything).
+//   - createTrendAction        (kind-picker create flow)
+//   - saveTrendMetadataAction  (direct CRUD update on the dataset row)
+//   - detachQuestionAction     (clears trend_id on a question row)
+//   - deleteTrendAction        (three modes: simple / detach-and-delete /
+//                               delete-everything)
 //
-// Per decision 4, all save + delete are direct CRUD. The legacy
+// All save + delete are direct CRUD — no transactional RPC. The legacy
 // nclex_save_trend_with_children + nclex_detach_and_delete_trend +
-// nclex_delete_trend_and_children RPCs go unused by v2 code (slated
-// for cleanup post slice 14).
+// nclex_delete_trend_and_children RPCs are unused; cleanup pass deferred.
 //
 // Surface-aware: branches between admin (nclex_trend_datasets) and
-// tutor (nclex_tutor_trend_datasets). Same readSurface convention as
-// case-study v2 actions.
+// tutor (nclex_tutor_trend_datasets) via the surface form field.
 
 'use server';
 
@@ -68,10 +65,6 @@ function readSurface(formData: FormData): Surface {
 // NCLEX_TRD_TEST_06). Lex DESC puts those above genuine numeric IDs
 // because 'T' (0x54) > '0' (0x30); without the walk, parseInt("TEST_06")
 // is NaN and `next` falls back to 1, generating a colliding NCLEX_TRD_00001.
-//
-// Vendored from the legacy nextTrendId in lib/bank/trend/actions.ts
-// (slice 14 collapses the duplication). Per the vendoring rule, the
-// legacy copy gets the same fix in this commit.
 async function nextTrendId(
   supabase: ServerSupabaseClient,
   surface:  Surface,
@@ -101,7 +94,7 @@ async function nextTrendId(
 }
 
 // Insert a new trend dataset row seeded from the chosen kind preset
-// (or empty for 'custom'). Redirects to the v2 wrapper page so the
+// (or empty for 'custom'). Redirects to the wrapper page so the
 // curator lands directly in the editor for renaming + filling out.
 //
 // Form fields:
@@ -357,7 +350,7 @@ export async function detachQuestionAction(formData: FormData): Promise<SaveResu
 // trusts the mode value.
 //
 // Direct CRUD (decision 4); the legacy RPCs (nclex_detach_and_delete_trend
-// and nclex_delete_trend_and_children) stay unused by v2 code.
+// and nclex_delete_trend_and_children) stay unused by this code.
 // ─────────────────────────────────────────────────────────────
 
 export type DeleteTrendMode = 'simple' | 'detach-and-delete' | 'delete-everything';

@@ -1,9 +1,5 @@
 // mynclex/lib/authoring/parsers/select-n.ts
 //
-// Vendored from lib/bank/parsers/select-n.ts in slice 5. See
-// lib/authoring/classifications.ts header for the vendoring
-// rationale.
-//
 // Select-N parser — students must pick exactly N correct options, where
 // N is chosen by the curator (1..options.length). The form UI renders
 // checkboxes + a numeric "Select exactly" field.

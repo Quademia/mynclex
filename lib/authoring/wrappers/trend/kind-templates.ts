@@ -5,12 +5,6 @@
 // (and enables the ref-range column for Labs). Everything seeded is
 // editable afterwards — the template is pure UI sugar. Only `kind`
 // persists on the DB row.
-//
-// Vendored from lib/bank/trend/kind-templates.ts per slice 13's
-// vendoring rule (active until slice 14). Field-for-field identical
-// to the legacy registry — if anything in the legacy version
-// genuinely changes while both trees coexist, update both copies in
-// the same commit.
 
 import type { TrendRow } from './types';
 

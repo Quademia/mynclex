@@ -1,16 +1,5 @@
 // mynclex/lib/authoring/classifications.ts
 //
-// Vendored from lib/bank/classifications.ts in slice 3 of the
-// questions-and-wrappers rebuild. Same content as the legacy file —
-// the purpose of the copy is to break the new authoring tree's
-// dependency on lib/bank/ so that at swap time (slice 13) the legacy
-// folder can be deleted cleanly.
-//
-// While both copies exist (slices 3-12), the rebuild does not change
-// classification data — schema, taxonomy, ID prefixes, and bounds are
-// stable per strategic plan §7. If anything here genuinely needs to
-// change, update both copies in the same commit.
-//
 // Hardcoded classification constants for the Question Bank authoring UI.
 //
 // Why hardcoded (not a DB lookup table):

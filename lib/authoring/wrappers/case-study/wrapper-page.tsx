@@ -220,7 +220,7 @@ interface Props {
   /**
    * Optional `?focus=<item_id>` query-param value. When set and a
    * matching slot exists, the wrapper opens in editor mode with that
-   * slot active. Used by the v2 bank-list to deep-link from a
+   * slot active. Used by the bank-list to deep-link from a
    * wrapper-attached row directly into the right pill.
    */
   focusItemId?: string | null;
@@ -484,7 +484,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
   }, [title, scenario, isPublished, isFreeSample, isBuilderVisible, cjmmBySlot, caseRow, slots]);
 
   // Combined dirty signal — used by the leave-page guard on the
-  // ← Back link and the Case Studies (v2) breadcrumb. True if any
+  // ← Back link and the Case Studies breadcrumb. True if any
   // editable region of the page has unsaved changes.
   const hasAnyDirty = useMemo(() => {
     if (dirty) return true;
@@ -743,7 +743,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
                 className="auth-cs-crumb-link"
                 onClick={(e) => onBackLinkClick(e, listHref)}
               >
-                Case Studies (v2)
+                Case Studies
               </Link>
             </>
           );

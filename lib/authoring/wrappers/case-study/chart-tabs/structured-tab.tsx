@@ -11,8 +11,6 @@
 // the segmented control. For custom_grid it also appears as a locked
 // pill in the ColumnBuilder row, since curators can't rename or delete it.
 //
-// Slice 12c-2: vendored from lib/bank/case-study/structured-tab.tsx
-// unchanged except local import paths.
 
 'use client';
 

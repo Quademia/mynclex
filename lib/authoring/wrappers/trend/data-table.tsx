@@ -1,8 +1,6 @@
 // mynclex/lib/authoring/wrappers/trend/data-table.tsx
 //
-// Editable trend data-table — vendored from lib/bank/trend/data-table.tsx
-// per slice 13's vendoring rule (active until slice 14). Renders the
-// rows × timepoints grid with:
+// Editable trend data-table. Renders the rows × timepoints grid with:
 //   - per-cell text input
 //   - per-cell flag cycle button (null → 'abnormal' → 'borderline' → null)
 //   - row add/remove; column (timepoint) add/remove
@@ -13,11 +11,8 @@
 // The wrapper mirrors state to hidden <input name="…" value={JSON.stringify(…)}>
 // fields on the form for submit.
 //
-// Field-for-field identical to the legacy version. Class names stay
-// `tr-*` (not `auth-tr-*`) because the existing styles in
-// styles/dashboards.css already provide all the visual treatment —
-// no CSS work needed during vendoring. Slice 14 collapses this with
-// the legacy file.
+// Class names use the `tr-*` prefix (not `auth-tr-*`); the matching
+// styles live in styles/dashboards.css.
 
 'use client';
 

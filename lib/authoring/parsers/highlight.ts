@@ -1,10 +1,6 @@
 // mynclex/lib/authoring/parsers/highlight.ts
 //
-// Highlight parser — vendored from lib/bank/parsers/highlight.ts under
-// the active vendoring rule. Unchanged in shape; only the import
-// paths point at the authoring classifications + types.
-//
-// Takes the passage (with [[chunk]] markers) and the curator's
+// Highlight parser. Takes the passage (with [[chunk]] markers) and the curator's
 // per-chunk decisions from FormData, and produces a normalised
 // (stem, content, correct) trio.
 //

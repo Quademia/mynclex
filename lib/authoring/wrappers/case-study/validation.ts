@@ -1,6 +1,6 @@
 // mynclex/lib/authoring/wrappers/case-study/validation.ts
 //
-// Slice 12c-4a — client-side validation for the v2 case-study wrapper.
+// Slice 12c-4a — client-side validation for the case-study wrapper.
 // Pure: no React, no DOM, no fetch. Takes a CaseEditorState snapshot
 // (assembled by wrapper-page.tsx at Validate-time) and returns a list
 // of ValidationIssue rows. The wrapper page renders those in a
@@ -24,7 +24,7 @@ export interface ValidationIssue {
 }
 
 // State snapshot the validator operates on. The wrapper page
-// assembles this at click-time. v2-simplified vs the legacy validator:
+// assembles this at click-time. simplified vs the legacy validator:
 // no BankFormInitial dependency — slots carry just the loaded
 // summary fields (item_id presence, question_type, stem, cjmm).
 // Enough for the rules below.

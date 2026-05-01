@@ -93,7 +93,7 @@ const DEFAULT_CENTRE_LABEL = 'Condition';
 const DEFAULT_RIGHT_LABEL  = 'Parameters to monitor';
 
 // ─────────────────────────────────────────────────────────────
-// Empty initial — used by the bank-list-v2 "+ New question" flow.
+// Empty initial — used by the bank-list "+ New question" flow.
 // Default tokens: 3 / 2 / 3 (left / centre / right), all blank,
 // none marked correct. Curator fills text + ticks correct picks.
 // ─────────────────────────────────────────────────────────────

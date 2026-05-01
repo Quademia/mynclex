@@ -7,9 +7,6 @@
 // Used by both StructuredTabEditor and NarrativeTabEditor — shared
 // here so the visual + keyboard behaviour stays identical.
 //
-// Slice 12c-2: vendored from lib/bank/case-study/vf-segmented.tsx
-// unchanged except the `./types` import path now resolves to the
-// authoring tree's parent types.ts.
 
 'use client';
 

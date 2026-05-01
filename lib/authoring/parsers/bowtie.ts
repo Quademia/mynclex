@@ -1,9 +1,5 @@
 // mynclex/lib/authoring/parsers/bowtie.ts
 //
-// Vendored from lib/bank/parsers/bowtie.ts in slice 7. See
-// lib/authoring/classifications.ts header for the vendoring
-// rationale.
-//
 // Bow-tie parser — builds a validated { content, correct } pair from the
 // three wings posted by the authoring form. Runs on the server.
 //

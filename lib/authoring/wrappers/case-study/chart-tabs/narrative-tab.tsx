@@ -13,8 +13,6 @@
 // via FormData. Delete posts to deleteTabAction with a window.confirm
 // gate when the tab has entries.
 //
-// Slice 12c-2: vendored from lib/bank/case-study/narrative-tab.tsx
-// unchanged except local import paths.
 
 'use client';
 

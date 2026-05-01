@@ -85,7 +85,7 @@ export interface MatrixDbRow extends Omit<McqDbRow, 'content' | 'correct'> {
 export const MATRIX_ROW_COLUMNS = MCQ_ROW_COLUMNS;
 
 // ─────────────────────────────────────────────────────────────
-// Empty initial — used by the bank-list-v2 "+ New question" flow.
+// Empty initial — used by the bank-list "+ New question" flow.
 // Default is a 3×3 grid with no row label and no picks.
 // ─────────────────────────────────────────────────────────────
 

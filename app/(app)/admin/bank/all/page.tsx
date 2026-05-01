@@ -14,17 +14,17 @@
 import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import {
-  BankListV2Client,
-  type BankListV2RowSummary,
-} from '@/lib/authoring/bank-list-v2-client';
+  BankListClient,
+  type BankListRowSummary,
+} from '@/lib/authoring/bank-list-client';
 import {
-  BankFiltersV2,
-  type BankFilterValuesV2,
-} from '@/lib/authoring/bank-filters-v2';
+  BankFilters,
+  type BankFilterValues,
+} from '@/lib/authoring/bank-filters';
 import {
-  BankCountsV2,
-  type BankCompositionCountsV2,
-} from '@/lib/authoring/bank-counts-v2';
+  BankCounts,
+  type BankCompositionCounts,
+} from '@/lib/authoring/bank-counts';
 import {
   emptyMcqInitial,
   mcqRowToInitial,
@@ -103,9 +103,9 @@ interface PageProps {
   }>;
 }
 
-export default async function AdminBankAllV2Page({ searchParams }: PageProps) {
+export default async function AdminBankAllPage({ searchParams }: PageProps) {
   const sp = (await searchParams) ?? {};
-  const filters: BankFilterValuesV2 = {
+  const filters: BankFilterValues = {
     type:       sp.type       ?? '',
     category:   sp.category   ?? '',
     difficulty: sp.difficulty ?? '',
@@ -197,7 +197,7 @@ export default async function AdminBankAllV2Page({ searchParams }: PageProps) {
     buildCountQuery('trend',      true),
   ]);
 
-  const counts: BankCompositionCountsV2 = {
+  const counts: BankCompositionCounts = {
     total:       { filtered: filteredAll.count        ?? 0, total: totalAll.count        ?? 0 },
     standalone:  { filtered: filteredStandalone.count ?? 0, total: totalStandalone.count ?? 0 },
     caseLinked:  { filtered: filteredCase.count       ?? 0, total: totalCase.count       ?? 0 },
@@ -207,7 +207,7 @@ export default async function AdminBankAllV2Page({ searchParams }: PageProps) {
   // ── Row mapping + per-type initials ────────────────────────
   const fullRows = data ?? [];
 
-  const summaryRows: BankListV2RowSummary[] = fullRows.map((r) => ({
+  const summaryRows: BankListRowSummary[] = fullRows.map((r) => ({
     item_id:        r.item_id,
     question_type:  r.question_type as QuestionType,
     stem:           r.stem ?? '',
@@ -275,7 +275,7 @@ export default async function AdminBankAllV2Page({ searchParams }: PageProps) {
           </div>
         </header>
 
-        <BankCountsV2 counts={counts} />
+        <BankCounts counts={counts} />
 
         {error && (
           <p className="auth-sandbox-error">
@@ -283,9 +283,9 @@ export default async function AdminBankAllV2Page({ searchParams }: PageProps) {
           </p>
         )}
 
-        <BankFiltersV2 values={filters} baseUrl={BASE_URL} />
+        <BankFilters values={filters} baseUrl={BASE_URL} />
 
-        <BankListV2Client
+        <BankListClient
           surface="admin"
           rows={summaryRows}
           hasAnyFilter={hasAnyFilter}

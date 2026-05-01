@@ -1,6 +1,6 @@
 // mynclex/lib/authoring/wrappers/case-study/validation-panel.tsx
 //
-// Slice 12c-4a — floating validation panel for the v2 case-study
+// Slice 12c-4a — floating validation panel for the case-study
 // wrapper. Anchored top-right of the viewport (out of the way of
 // the wrapper-edit pane's scrollable content but still visible).
 // Errors first, warnings second; click × or Esc to dismiss.

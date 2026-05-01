@@ -1,4 +1,4 @@
-// mynclex/lib/authoring/bank-list-v2-client.tsx
+// mynclex/lib/authoring/bank-list-client.tsx
 //
 // Shared client component used by /admin/bank/all and the tutor
 // twin. Owns the modal stack:
@@ -37,7 +37,7 @@ import { DragDropEditor, type DragDropEditorInitial } from '@/lib/authoring/edit
 import { QuestionTypePicker } from '@/lib/authoring/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/authoring/classifications';
 
-/** Question types whose editors are wired into bank-list-v2 today. */
+/** Question types whose editors are wired into bank-list today. */
 const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set([
   'MCQ',
   'TF',
@@ -50,7 +50,7 @@ const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set([
   'DRAG_DROP',
 ]);
 
-export interface BankListV2RowSummary {
+export interface BankListRowSummary {
   item_id:        string;
   question_type:  QuestionType;
   stem:           string;
@@ -68,9 +68,9 @@ export interface BankListV2RowSummary {
   trend_title:    string | null;
 }
 
-export interface BankListV2ClientProps {
+export interface BankListClientProps {
   surface: 'admin' | 'tutor';
-  rows: BankListV2RowSummary[];
+  rows: BankListRowSummary[];
   /**
    * Whether any filter (search/type/category/difficulty/status/membership)
    * is currently applied. Drives the empty-state copy: "No questions yet"
@@ -127,7 +127,7 @@ type ModalState =
   | { kind: 'editor-create'; type: QuestionType }
   | { kind: 'editor-edit'; itemId: string; type: QuestionType };
 
-export function BankListV2Client({
+export function BankListClient({
   surface,
   rows,
   hasAnyFilter,
@@ -150,7 +150,7 @@ export function BankListV2Client({
   emptyHighlightInitial,
   dragDropInitialsById,
   emptyDragDropInitial,
-}: BankListV2ClientProps) {
+}: BankListClientProps) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' });
   // Brief flash after a successful save/delete — useful confirmation
@@ -170,7 +170,7 @@ export function BankListV2Client({
     // Other types are disabled in the picker — fall through to no-op.
   }
 
-  function handleEditRow(row: BankListV2RowSummary) {
+  function handleEditRow(row: BankListRowSummary) {
     setFlash(null);
     setModal({ kind: 'editor-edit', itemId: row.item_id, type: row.question_type });
   }
@@ -199,14 +199,14 @@ export function BankListV2Client({
   // by adding it to EDITABLE_TYPES + wiring its editor + initials map.
   // All 9 types are wired now; the gate stays as documentation +
   // safety against future additions.
-  function rowEditable(row: BankListV2RowSummary): boolean {
+  function rowEditable(row: BankListRowSummary): boolean {
     return EDITABLE_TYPES.has(row.question_type);
   }
 
   // Wrapper href for an attached row. Routes to the wrapper page with
   // ?focus=<item_id> so the wrapper opens with the matching pill
   // pre-selected (CS + trend wrapper pages parse the focus param).
-  function wrapperHrefFor(row: BankListV2RowSummary): string | null {
+  function wrapperHrefFor(row: BankListRowSummary): string | null {
     const baseAdmin = surface === 'admin' ? '/admin/bank' : '/tutor/bank';
     if (row.parent_case_id) {
       return `${baseAdmin}/cases/${row.parent_case_id}?focus=${row.item_id}`;
@@ -516,13 +516,6 @@ export function BankListV2Client({
           />
         )}
 
-      {/* Surface + supported-types note. Removed when -v2 is renamed
-          to canonical at swap time. */}
-      <p className="auth-list-footnote">
-        Surface: <code>{surface}</code>. Bank-list-v2 supports{' '}
-        {[...EDITABLE_TYPES].join(' / ')} create/edit/delete. Other
-        types and wrapper rows arrive in later slices.
-      </p>
     </>
   );
 }

@@ -82,7 +82,7 @@ interface Props {
   /**
    * Optional `?focus=<item_id>` query-param value. When set and a
    * matching slot exists, the wrapper opens with that question's
-   * pill active. Used by the v2 bank-list to deep-link from a
+   * pill active. Used by the bank-list to deep-link from a
    * trend-attached row directly into the right pill.
    */
   focusItemId?: string | null;
@@ -522,7 +522,7 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
               className="auth-tr-crumb"
               onClick={(ev) => tryLeavePage(baseUrl, ev)}
             >
-              Trend datasets (v2)
+              Trend datasets
             </Link>
             <span className="auth-tr-crumb-sep">/</span>
             <code className="auth-tr-crumb-id">{datasetRow.trend_id}</code>

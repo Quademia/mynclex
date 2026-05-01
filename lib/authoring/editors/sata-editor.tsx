@@ -52,7 +52,7 @@ import {
 } from '@/lib/authoring/actions/delete-question';
 import type { SataEditorInitial } from './sata-row-mapper';
 
-// Re-export so client callers (bank-list-v2-client) can keep imports
+// Re-export so client callers (bank-list-client) can keep imports
 // short.
 export type { SataEditorInitial };
 

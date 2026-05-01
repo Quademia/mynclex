@@ -1,9 +1,5 @@
 // mynclex/lib/authoring/parsers/mcq.ts
 //
-// Vendored from lib/bank/parsers/mcq.ts in slice 3. See
-// lib/authoring/classifications.ts header for the vendoring
-// rationale.
-//
 // MCQ parser — builds a validated { content, correct } pair from the
 // raw option/correct arrays posted by the authoring form. Runs on the
 // server (no 'use client'); invoked by the new authoring tree's

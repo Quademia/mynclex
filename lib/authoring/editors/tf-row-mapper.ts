@@ -68,7 +68,7 @@ export type TfDbRow = McqDbRow;
 export const TF_ROW_COLUMNS = MCQ_ROW_COLUMNS;
 
 // ─────────────────────────────────────────────────────────────
-// Empty initial — used by the bank-list-v2 "+ New question" flow
+// Empty initial — used by the bank-list "+ New question" flow
 // when TF is picked. Defaults the correct answer to True.
 // ─────────────────────────────────────────────────────────────
 

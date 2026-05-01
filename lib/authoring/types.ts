@@ -1,11 +1,5 @@
 // mynclex/lib/authoring/types.ts
 //
-// Vendored from lib/bank/types.ts in slice 3. See
-// lib/authoring/classifications.ts header for the vendoring
-// rationale; the rule of thumb is the same — schema and JSONB shapes
-// are stable per strategic plan §7, but if anything genuinely needs
-// to change while both copies exist, update both in one commit.
-//
 // Shared TypeScript types for the Bank.
 //
 // The two JSONB columns on nclex_bank_items (content, correct) are

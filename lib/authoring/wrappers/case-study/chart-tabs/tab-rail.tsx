@@ -14,10 +14,6 @@
 // steps into a Free text / Rows & columns shape picker before firing
 // upsertTabAction to insert the row.
 //
-// Slice 12c-2: vendored from lib/bank/case-study/tab-rail.tsx
-// unchanged except the local imports now resolve into the authoring
-// tree (./tab-types stays in chart-tabs/, ../actions and ../types
-// reach up one level).
 
 'use client';
 

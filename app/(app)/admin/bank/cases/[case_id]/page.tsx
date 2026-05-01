@@ -20,7 +20,7 @@ interface PageParams {
   searchParams?: Promise<{ focus?: string }>;
 }
 
-export default async function AdminCaseStudyV2Page({ params, searchParams }: PageParams) {
+export default async function AdminCaseStudyPage({ params, searchParams }: PageParams) {
   const { case_id } = await params;
   const sp = await searchParams;
   const focusItemId = sp?.focus ?? null;

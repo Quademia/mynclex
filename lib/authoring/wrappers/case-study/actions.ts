@@ -1,33 +1,22 @@
 // mynclex/lib/authoring/wrappers/case-study/actions.ts
 //
-// Server actions for the case-study wrapper page (slice 12c-onwards).
+// Server actions for the case-study wrapper page.
 // Surface-aware: branches between admin (nclex_case_studies +
 // nclex_case_study_items) and tutor (nclex_tutor_case_studies +
 // nclex_tutor_case_study_items).
 //
-// 12c-1 ships saveCaseMetadataAction — the wrapper-metadata half of
-// the larger Save case study button. Updates:
+// saveCaseMetadataAction — wrapper-metadata save. Updates:
 //   - Case row: title, scenario_summary, is_free_sample,
 //     is_builder_visible, is_published.
 //   - Existing slot join rows: cjmm_step (per position).
 //
-// Does NOT touch chart tabs or sweep questions (12c-4). The publish
-// gate (refusing is_published=true when slots underfilled) also lives
-// in 12c-4 alongside the question sweep — for now, is_published can
-// flip true freely; that loophole is closed when the atomic legacy
-// RPC arrives.
+// upsertTabAction / deleteTabAction / reorderTabsAction — chart-tab
+// CRUD. reorderTabsAction uses a two-pass shift to dodge the
+// UNIQUE (case_id, display_order) constraint mid-reorder.
 //
-// 12c-2 adds three vendored tab actions:
-//   - upsertTabAction — create or update one chart tab (entries +
-//     columns + title). Called from each tab editor's "Save tab"
-//     button.
-//   - deleteTabAction — remove one chart tab.
-//   - reorderTabsAction — batch display_order update; uses a
-//     two-pass shift to dodge the UNIQUE (case_id, display_order)
-//     constraint mid-reorder.
-// All three are field-for-field copies of the legacy versions in
-// lib/bank/case-study/actions.ts, just rewired to write to the same
-// schema via the new authoring tree.
+// Does NOT touch the underlying nclex_bank_items / nclex_tutor_questions
+// content of attached questions — that's saveQuestionAction's job.
+// Per-question publish gating happens at the question-save layer.
 
 'use server';
 
@@ -84,9 +73,7 @@ function readSurface(formData: FormData): Surface {
 }
 
 // Next 5-digit case_id for the given surface. Lexical sort works
-// because the suffix is fixed-width zero-padded. Vendored from the
-// legacy nextCaseId in lib/bank/case-study/actions.ts (slice 14 will
-// collapse the duplication).
+// because the suffix is fixed-width zero-padded.
 async function nextCaseId(
   supabase: ServerSupabaseClient,
   surface: Surface,
@@ -114,7 +101,7 @@ async function nextCaseId(
 }
 
 // Insert a new case row with title 'Untitled case' and redirect to
-// the v2 wrapper page so the curator lands directly in Wrapper mode
+// the wrapper page so the curator lands directly in Wrapper mode
 // to rename. Tutor surface stamps tutor_id; admin doesn't.
 export async function createCaseAction(formData: FormData): Promise<SaveResult> {
   const surface = readSurface(formData);
@@ -212,8 +199,7 @@ export async function saveCaseMetadataAction(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Tab actions (12c-2) — vendored from lib/bank/case-study/actions.ts.
-// Same shape, just routed through the authoring tree's surface config.
+// Chart-tab actions (upsert / delete / reorder)
 // ─────────────────────────────────────────────────────────────
 
 // Next tab_id for a case. Shape: {case_id}_TAB_{N}. Computes max in TS
