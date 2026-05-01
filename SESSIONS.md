@@ -6,6 +6,167 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-01 (Slice 14 — the swap)
+
+The 14-slice questions-and-wrappers rebuild closed today. Legacy
+`lib/bank/` + every legacy app route now lives under `_archive/`;
+the v2 routes have taken over the canonical URLs; nav, vendoring
+headers, and v2-suffixed identifiers are all gone. Three commits,
+shipped end-to-end in one session.
+
+### Commit 1 — phase 1a: archive legacy bank code (commit `21adc2c`)
+
+70-file `git mv` pass into a new `_archive/` folder at repo root.
+History preserved (every move is an `R` rename). `_archive/` excluded
+from TypeScript compilation via `tsconfig.json` so its now-broken
+`@/lib/bank/*` imports don't emit errors.
+
+Archived:
+
+- `lib/bank/` (whole tree — editors, parsers, classifications,
+  case-study + trend wrappers, list/filter views, panel)
+- `app/(app)/admin/bank/{all,cases,trends}/` legacy route folders
+- `app/(app)/admin/bank/{actions,form,editor-shell,
+  initial-to-parsed,slot-parser}.ts(x)` orphan shared files
+- `app/(app)/tutor/bank/{all,cases,trends}/` tutor twins
+- `app/(app)/admin/sandbox/` slice-1 leftover
+
+Sam's "no deletes" call meant even the slice-1 sandbox + the
+explicitly-marked-for-removal `cases-v2/sandbox/` got archived rather
+than deleted. `_archive/README.md` documents the rules:
+do-not-import, do-not-modify, mirror original paths, underscore-prefix
+sorts to top.
+
+**Intermediate state after 1a:** v2 URLs still served (canonical
+URLs 404'd), sidebar still had "(v2)" labels — that was deliberate,
+the rename pass came in 1b.
+
+### Commit 2 — phase 1b commit 1: -v2 → canonical rename (commit `4ca4fb2`)
+
+The user-visible swap. 6 route folder renames (admin + tutor ×
+{all, cases, trends}) plus an exhaustive sweep of every URL
+construction that built a `-v2` href:
+
+- `BASE_URL` constants in admin/bank/all/page.tsx + tutor twin
+- Inter-page Link hrefs (Case Studies / Trend datasets nav, per-row
+  Open buttons)
+- redirect targets in `lib/authoring/actions/{save,delete}-question.ts`
+- `baseUrl` in case-study + trend wrapper actions
+- `baseUrl` in case-study + trend wrapper-page.tsx
+- `wrapperHrefFor()` builder in bank-list-client.tsx
+- "(v2)" labels dropped from page titles + breadcrumbs + outdated
+  "stub until 12b/13b" subtitles
+- Self-referencing "← Legacy list" links removed (the legacy list
+  is in `_archive/`, the link was self-pointing post-rename)
+
+Nav cleanup in `lib/nav/{admin,tutor}.ts`:
+
+- Dropped the 6 transitional "(v2)" child entries
+- One entry per surface for All questions / Case Studies / Trend
+  datasets remains, all pointing at the canonical URLs
+- Removed the slice-1 "Authoring sandbox" entry (route already in
+  `_archive/`; nav entry was now broken)
+
+**Trap that nearly bit:** when stopping the dev server, the
+`taskkill` of the npm wrapper left an orphan Next.js node process
+holding port 3000 (PID 17192). Same gotcha as the earlier dev-server
+restart episode in this session. `netstat -ano | grep ":3000"` to
+find it, `taskkill //PID … //F` to clear. Worth remembering — Next
+on Windows leaves orphans on signal kill rather than cascading SIGTERM.
+
+### Commit 3 — phase 1b commit 2: file/symbol rename + vendoring cleanup (commit `368e4d3`)
+
+The interior cleanup. Three file renames:
+
+- `bank-list-v2-client.tsx → bank-list-client.tsx`
+- `bank-filters-v2.tsx     → bank-filters.tsx`
+- `bank-counts-v2.tsx      → bank-counts.tsx`
+
+Twelve V2-suffixed exported symbols renamed (BankListV2Client →
+BankListClient, BankFiltersV2 → BankFilters, etc.).
+
+17 files lost their vendoring-rule headers — replaced with concise
+descriptive comments. The most heavily vendored files
+(classifications.ts, types.ts, parsers/*) had their 4–10-line "Vendored
+from lib/bank/... per slice N's vendoring rule" preambles dropped
+entirely. The wrappers/case-study/actions.ts and trend/actions.ts
+top blocks got rewritten to drop the "vendored from legacy" framing.
+
+Plus a final cosmetic v2 sweep: "v2 wrapper" → "wrapper" in code
+comments, debug surface footnote in bank-list-client removed (was
+transitional aid only), etc. After the dust settled,
+`grep -rn "\bv2\b" lib/authoring lib/nav app components` returns
+zero hits in live code.
+
+Slice tracker:
+[questions-and-wrappers-rebuild-slice-plan.md §status](docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md)
+— slices 13 + 14 marked `[x]` with land dates.
+
+### Memory
+
+`project_authoring_rebuild_in_flight.md` removed from the memory
+store — the rebuild is no longer in flight. `MEMORY.md` index
+updated.
+
+### Decisions still open
+
+- **`lib/authoring/` → `lib/bank/` rename.** Sam deferred this
+  separately. The legacy `lib/bank/` is now in `_archive/`, so
+  the namespace is free. Renaming would update ~90+ import paths.
+  Optional polish — not blocking.
+
+### Resume next time
+
+1. **Eyeball the swap in browser** — confirm the canonical URLs
+   serve everything they should.
+2. **Decide on `lib/authoring/` rename.** If yes, single mechanical
+   sweep. If no, drop the open decision and move on.
+3. **Move to the next product epic.** Per the broader plan
+   ([docs/product-plan/main.md](docs/product-plan/main.md)):
+   - Student enrolment flow ([payments-and-enrolment.md](docs/product-plan/payments-and-enrolment.md))
+   - Curriculum authoring UX ([curriculum-authoring-ux.md](docs/product-plan/curriculum-authoring-ux.md))
+   - Tutorial session UX
+   - Student-side runner — the actual exam-taking surface
+     (currently only the curator side exists)
+
+### Files touched this session
+
+**New:**
+
+- `_archive/README.md`
+- `_archive/lib/bank/` (whole tree)
+- `_archive/app/(app)/admin/bank/{all,cases,trends,...}/`
+- `_archive/app/(app)/admin/sandbox/`
+- `_archive/app/(app)/tutor/bank/{all,cases,trends}/`
+
+**Renamed:**
+
+- `app/(app)/admin/bank/{all,cases,trends}-v2 → {all,cases,trends}`
+- Tutor twins of all three
+- `lib/authoring/bank-{list-v2-client,filters-v2,counts-v2}.tsx`
+  → `lib/authoring/bank-{list-client,filters,counts}.tsx`
+
+**Modified (slice 14 phase 1b):**
+
+- `tsconfig.json` (`_archive` added to `exclude`)
+- `lib/nav/{admin,tutor}.ts` (collapsed v2 entries)
+- `lib/authoring/actions/{save,delete}-question.ts` (URL refs)
+- `lib/authoring/wrappers/case-study/{actions,types,wrapper-page,validation,validation-panel}.ts(x)`
+- `lib/authoring/wrappers/case-study/chart-tabs/{narrative-tab,structured-tab,tab-rail,vf-segmented}.tsx`
+- `lib/authoring/wrappers/trend/{actions,types,data-table,kind-templates,validation,wrapper-page}.ts(x)`
+- `lib/authoring/{classifications,types}.ts`
+- `lib/authoring/parsers/*.ts` (all 9)
+- `lib/authoring/editors/*-row-mapper.ts` + `{sata,tf}-editor.tsx`
+- All 6 list/detail page files in `app/(app)/{admin,tutor}/bank/`
+- `docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md`
+
+**Memory:**
+
+- `project_authoring_rebuild_in_flight.md` deleted
+- `MEMORY.md` index trimmed
+
+---
+
 ## Session — 2026-05-01 (Trend wrapper testing — Dataset landing, editable row-axis label, nextTrendId fix)
 
 Driven by Sam's first hands-on testing pass through the slice 13 trend
