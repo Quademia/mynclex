@@ -6,8 +6,8 @@
 
 import { notFound } from 'next/navigation';
 import { requireBankCurator } from '@/lib/access';
-import { loadTrend } from '@/lib/authoring/wrappers/trend/load-trend';
-import { TrendWrapperPage } from '@/lib/authoring/wrappers/trend/wrapper-page';
+import { loadTrend } from '@/lib/bank/wrappers/trend/load-trend';
+import { TrendWrapperPage } from '@/lib/bank/wrappers/trend/wrapper-page';
 
 export const dynamic = 'force-dynamic';
 

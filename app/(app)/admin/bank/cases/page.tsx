@@ -11,7 +11,7 @@
 
 import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
-import { createCaseAction } from '@/lib/authoring/wrappers/case-study/actions';
+import { createCaseAction } from '@/lib/bank/wrappers/case-study/actions';
 
 export const dynamic = 'force-dynamic';
 

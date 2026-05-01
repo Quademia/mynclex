@@ -11,8 +11,8 @@
 
 import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
-import { kindDefaultLabel } from '@/lib/authoring/wrappers/trend/kind-templates';
-import { KindPickerLauncher } from '@/lib/authoring/wrappers/trend/kind-picker-modal';
+import { kindDefaultLabel } from '@/lib/bank/wrappers/trend/kind-templates';
+import { KindPickerLauncher } from '@/lib/bank/wrappers/trend/kind-picker-modal';
 
 export const dynamic = 'force-dynamic';
 

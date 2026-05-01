@@ -12,70 +12,70 @@ import { createClient } from '@/lib/supabase/server';
 import {
   BankListClient,
   type BankListRowSummary,
-} from '@/lib/authoring/bank-list-client';
+} from '@/lib/bank/bank-list-client';
 import {
   BankFilters,
   type BankFilterValues,
-} from '@/lib/authoring/bank-filters';
+} from '@/lib/bank/bank-filters';
 import {
   BankCounts,
   type BankCompositionCounts,
-} from '@/lib/authoring/bank-counts';
+} from '@/lib/bank/bank-counts';
 import {
   emptyMcqInitial,
   mcqRowToInitial,
   MCQ_ROW_COLUMNS,
   type McqDbRow,
   type McqEditorInitial,
-} from '@/lib/authoring/editors/mcq-row-mapper';
+} from '@/lib/bank/editors/mcq-row-mapper';
 import {
   emptyTfInitial,
   tfRowToInitial,
   type TfEditorInitial,
-} from '@/lib/authoring/editors/tf-row-mapper';
+} from '@/lib/bank/editors/tf-row-mapper';
 import {
   emptySataInitial,
   sataRowToInitial,
   type SataDbRow,
   type SataEditorInitial,
-} from '@/lib/authoring/editors/sata-row-mapper';
+} from '@/lib/bank/editors/sata-row-mapper';
 import {
   emptySelectNInitial,
   selectNRowToInitial,
   type SelectNDbRow,
   type SelectNEditorInitial,
-} from '@/lib/authoring/editors/select-n-row-mapper';
+} from '@/lib/bank/editors/select-n-row-mapper';
 import {
   emptyMatrixInitial,
   matrixRowToInitial,
   type MatrixDbRow,
   type MatrixEditorInitial,
-} from '@/lib/authoring/editors/matrix-row-mapper';
+} from '@/lib/bank/editors/matrix-row-mapper';
 import {
   emptyBowtieInitial,
   bowtieRowToInitial,
   type BowtieDbRow,
   type BowtieEditorInitial,
-} from '@/lib/authoring/editors/bowtie-row-mapper';
+} from '@/lib/bank/editors/bowtie-row-mapper';
 import {
   emptyClozeInitial,
   clozeRowToInitial,
   type ClozeDbRow,
   type ClozeEditorInitial,
-} from '@/lib/authoring/editors/cloze-row-mapper';
+} from '@/lib/bank/editors/cloze-row-mapper';
 import {
   emptyHighlightInitial,
   highlightRowToInitial,
   type HighlightDbRow,
   type HighlightEditorInitial,
-} from '@/lib/authoring/editors/highlight-row-mapper';
+} from '@/lib/bank/editors/highlight-row-mapper';
 import {
   emptyDragDropInitial,
   dragDropRowToInitial,
   type DragDropDbRow,
   type DragDropEditorInitial,
-} from '@/lib/authoring/editors/drag-drop-row-mapper';
-import type { QuestionType } from '@/lib/authoring/classifications';
+} from '@/lib/bank/editors/drag-drop-row-mapper';
+import type { QuestionType } from '@/lib/bank/classifications';
 
 export const dynamic = 'force-dynamic';
 

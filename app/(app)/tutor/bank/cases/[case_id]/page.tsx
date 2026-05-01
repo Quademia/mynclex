@@ -7,8 +7,8 @@
 
 import { notFound } from 'next/navigation';
 import { requireBankCurator } from '@/lib/access';
-import { loadCase } from '@/lib/authoring/wrappers/case-study/load-case';
-import { CaseStudyWrapperPage } from '@/lib/authoring/wrappers/case-study/wrapper-page';
+import { loadCase } from '@/lib/bank/wrappers/case-study/load-case';
+import { CaseStudyWrapperPage } from '@/lib/bank/wrappers/case-study/wrapper-page';
 
 export const dynamic = 'force-dynamic';
 

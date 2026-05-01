@@ -7,7 +7,7 @@
 
 import Link from 'next/link';
 import { requireBankCurator } from '@/lib/access';
-import { createCaseAction } from '@/lib/authoring/wrappers/case-study/actions';
+import { createCaseAction } from '@/lib/bank/wrappers/case-study/actions';
 
 export const dynamic = 'force-dynamic';
 
