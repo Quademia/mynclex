@@ -98,7 +98,7 @@ type ValidityState = 'ok' | 'warn' | 'err';
 // Helpers (private).
 // ─────────────────────────────────────────────────────────────
 
-function extractActiveMarkers(stem: string): Set<number> {
+export function extractActiveMarkers(stem: string): Set<number> {
   const out = new Set<number>();
   for (const m of stem.matchAll(MARKER_RE)) {
     const n = parseInt(m[1], 10);
@@ -206,7 +206,7 @@ interface DragDropPreviewProps {
   onViewModeChange: (next: PreviewViewMode) => void;
 }
 
-function DragDropPreview({
+export function DragDropPreview({
   instruction,
   stem,
   subtype,

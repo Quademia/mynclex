@@ -238,7 +238,7 @@ interface SelectNPreviewProps {
   onViewModeChange: (next: PreviewViewMode) => void;
 }
 
-function SelectNPreview({
+export function SelectNPreview({
   instruction,
   stem,
   options,

@@ -1,17 +1,21 @@
 // mynclex/app/(app)/admin/bank/cases-v2/sandbox/page.tsx
 //
-// Slice 12 working sandbox — visual-only three-pane case-study wrapper.
-// Hardcoded data, no DB reads, no DB writes. The sandbox lives here
-// while we agree the shape; once finalised, the same component (renamed
-// and rewired to real data) becomes the body of the real `[case_id]`
-// page in slice 12b.
+// Slice 12 sandbox route — passes hardcoded SAMPLE_DATA into the real
+// CaseStudyWrapperPage component so curators can preview the geometry
+// without needing an actual case row in the DB.
+//
+// Same component as the real /cases-v2/[case_id] page; only the data
+// source differs. Removed at slice 14 swap.
 
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
-import { CaseStudyWrapperSandbox } from '@/lib/authoring/wrappers/case-study/sandbox-page';
+import {
+  CaseStudyWrapperPage,
+  SAMPLE_DATA,
+} from '@/lib/authoring/wrappers/case-study/wrapper-page';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CaseStudyWrapperSandboxPage() {
   await requireAdminPermission(PERM_BANK_CURATE);
-  return <CaseStudyWrapperSandbox />;
+  return <CaseStudyWrapperPage data={SAMPLE_DATA} sandboxMode />;
 }

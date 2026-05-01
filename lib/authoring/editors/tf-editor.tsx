@@ -139,7 +139,7 @@ interface TfPreviewProps {
   onViewModeChange: (next: PreviewViewMode) => void;
 }
 
-function TfPreview({
+export function TfPreview({
   instruction,
   stem,
   options,

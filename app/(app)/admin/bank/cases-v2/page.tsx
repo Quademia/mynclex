@@ -1,0 +1,137 @@
+// mynclex/app/(app)/admin/bank/cases-v2/page.tsx
+//
+// Slice 12a — admin Case Studies list (v2). Reads nclex_case_studies
+// and renders a simple table. Each row links to the [case_id] page
+// (currently a stub; the real wrapper page lands in slice 12b).
+//
+// Companion to /admin/bank/cases-v2/sandbox (the visual-only design
+// scratchpad). Both routes coexist until the slice-14 swap.
+//
+// Reuses .auth-list-* styles from styles/authoring.css.
+
+import Link from 'next/link';
+import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
+
+export const dynamic = 'force-dynamic';
+
+interface CaseRow {
+  case_id:        string;
+  title:          string;
+  is_published:   boolean;
+  is_free_sample: boolean;
+  difficulty:     string | null;
+  updated_at:     string;
+}
+
+interface SlotCount {
+  case_id: string;
+  count:   number;
+}
+
+export default async function AdminCasesV2ListPage() {
+  const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
+
+  const { data: caseRows, error: caseErr } = await supabase
+    .from('nclex_case_studies')
+    .select('case_id, title, is_published, is_free_sample, difficulty, updated_at')
+    .order('updated_at', { ascending: false });
+
+  if (caseErr) {
+    return (
+      <main className="auth-list-page">
+        <div className="auth-list-inner">
+          <h1 className="auth-list-page-title">Case Studies (v2)</h1>
+          <p className="auth-sandbox-error">Could not load cases: {caseErr.message}</p>
+        </div>
+      </main>
+    );
+  }
+
+  const cases = (caseRows ?? []) as CaseRow[];
+
+  // Populated-slot counts. Pull join-row case_ids for the cases on
+  // this page and bucket them in JS — small N, simpler than an RPC.
+  let slotCounts: Record<string, number> = {};
+  if (cases.length > 0) {
+    const ids = cases.map((c) => c.case_id);
+    const { data: slotRows } = await supabase
+      .from('nclex_case_study_items')
+      .select('case_id')
+      .in('case_id', ids);
+    for (const row of (slotRows ?? []) as SlotCount[]) {
+      slotCounts[row.case_id] = (slotCounts[row.case_id] ?? 0) + 1;
+    }
+  }
+
+  return (
+    <main className="auth-list-page">
+      <div className="auth-list-inner">
+        <header className="auth-list-page-header">
+          <div>
+            <h1 className="auth-list-page-title">Case Studies (v2)</h1>
+            <p className="auth-list-page-subtitle">
+              Multi-question NCLEX scenarios with a shared patient chart. Each
+              case groups up to 6 questions under one scenario plus its chart
+              tabs. The wrapper page is rebuilt from scratch in slice 12 —
+              click a row to open the v2 wrapper (stub until 12b).
+            </p>
+          </div>
+          <div className="auth-list-toolbar">
+            <Link href="/admin/bank/cases" className="auth-cs-btn subtle">← Legacy list</Link>
+            <Link href="/admin/bank/cases-v2/sandbox" className="auth-cs-btn">Sandbox</Link>
+          </div>
+        </header>
+
+        <p className="auth-list-count">{cases.length} case{cases.length === 1 ? '' : 's'}</p>
+
+        {cases.length === 0 ? (
+          <div className="auth-list-empty">
+            <h3>No case studies yet</h3>
+            <p>Create one from the legacy list page — the v2 create flow lands in slice 12c.</p>
+            <p>
+              <Link href="/admin/bank/cases">Open the legacy list →</Link>
+            </p>
+          </div>
+        ) : (
+          <table className="auth-list-table">
+            <thead>
+              <tr>
+                <th>Case ID</th>
+                <th>Title</th>
+                <th>Slots</th>
+                <th>Status</th>
+                <th>Difficulty</th>
+                <th>Updated</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {cases.map((c) => (
+                <tr key={c.case_id}>
+                  <td className="auth-list-item-id"><code>{c.case_id}</code></td>
+                  <td>{c.title}</td>
+                  <td>{slotCounts[c.case_id] ?? 0} of 6</td>
+                  <td>
+                    {c.is_published
+                      ? <span className="auth-cs-tag ok">Published</span>
+                      : <span className="auth-cs-tag muted">Draft</span>}
+                    {c.is_free_sample && (
+                      <span className="auth-cs-tag info" style={{ marginLeft: 6 }}>Free sample</span>
+                    )}
+                  </td>
+                  <td>{c.difficulty ?? '—'}</td>
+                  <td>{new Date(c.updated_at).toLocaleDateString()}</td>
+                  <td className="auth-list-row-actions">
+                    <Link href={`/admin/bank/cases-v2/${c.case_id}`} className="auth-cs-btn tiny">
+                      Open →
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </main>
+  );
+}

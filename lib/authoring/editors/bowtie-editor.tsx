@@ -374,7 +374,7 @@ interface BowtiePreviewProps {
   onViewModeChange: (next: PreviewViewMode) => void;
 }
 
-function BowtiePreview({
+export function BowtiePreview({
   instruction,
   stem,
   leftLabel,

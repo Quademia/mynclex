@@ -197,7 +197,7 @@ interface McqPreviewProps {
   onViewModeChange: (next: PreviewViewMode) => void;
 }
 
-function McqPreview({
+export function McqPreview({
   instruction,
   stem,
   options,

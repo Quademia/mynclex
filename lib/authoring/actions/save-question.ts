@@ -432,13 +432,56 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
   // ── CREATE ─────────────────────────────────────────────────
   const item_id = await nextItemId(supabase, surface, parsed.question_type);
 
+  // Case-context: when invoked from the case-study wrapper's "+ Add
+  // question" flow, formData carries parent_case_id + case_position
+  // (1-6) + case_cjmm_step. We set parent_case_id directly on the
+  // new question row, then write the nclex_case_study_items join
+  // row right after the question insert succeeds. (Schema's
+  // cjmm_step is NOT NULL on the join, so a valid value is required.)
+  const parentCaseId = String(formData.get('parent_case_id') ?? '').trim();
+
   const row: Record<string, unknown> = { item_id, ...parsed };
   if (surface === 'tutor') {
     row.tutor_id = user.id;
   }
+  if (parentCaseId) {
+    row.parent_case_id = parentCaseId;
+  }
 
   const { error } = await supabase.from(cfg.table).insert(row);
   if (error) return { ok: false, error: `Insert failed: ${error.message}` };
+
+  if (parentCaseId) {
+    const positionRaw = String(formData.get('case_position') ?? '').trim();
+    const position = parseInt(positionRaw, 10);
+    if (!Number.isFinite(position) || position < 1 || position > 6) {
+      return { ok: false, error: 'Invalid case_position for case-attached question.' };
+    }
+    const cjmmStep = String(formData.get('case_cjmm_step') ?? '').trim() || 'Recognise cues';
+
+    const itemsTable =
+      surface === 'tutor' ? 'nclex_tutor_case_study_items' : 'nclex_case_study_items';
+    const joinId = `${parentCaseId}_ITEM_${position}`;
+
+    const { error: joinErr } = await supabase.from(itemsTable).insert({
+      id:        joinId,
+      case_id:   parentCaseId,
+      item_id,
+      position,
+      cjmm_step: cjmmStep,
+    });
+    if (joinErr) {
+      // Question is now orphaned (parent_case_id pointing at a case
+      // but no join row). Curator's case page won't show it; they
+      // can detach via the bank list. Surfacing the underlying error
+      // gives the curator a chance to retry without manual cleanup.
+      return { ok: false, error: `Question created but link failed: ${joinErr.message}` };
+    }
+
+    const wrapperBaseUrl =
+      surface === 'tutor' ? '/tutor/bank/cases-v2' : '/admin/bank/cases-v2';
+    revalidatePath(`${wrapperBaseUrl}/${parentCaseId}`);
+  }
 
   revalidatePath(cfg.revalidate);
   return { ok: true, item_id, created: true };

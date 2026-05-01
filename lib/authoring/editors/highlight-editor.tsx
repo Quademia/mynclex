@@ -130,7 +130,7 @@ interface HighlightPreviewProps {
   onViewModeChange: (next: PreviewViewMode) => void;
 }
 
-function HighlightPreview({
+export function HighlightPreview({
   instruction,
   stem,
   chunks,
