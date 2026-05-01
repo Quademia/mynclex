@@ -6,6 +6,278 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-01 (Slice 12 polish + prod release)
+
+Continuation of the slice 12 build session earlier the same day.
+Started with a broken dev deploy, ended with slice 12 fully polished
+and released to prod. Eleven distinct improvements landed across two
+commits to main and one PR to prod.
+
+### Stage 1 — unblock the dev deploy
+
+Pulled the previous push and discovered the dev CF Worker deploy
+on commit `2f80084` had failed with a TypeScript narrowing error in
+`lib/authoring/wrappers/case-study/load-case.ts:176` —
+`Property 'tab_id' does not exist on type 'GenericStringError'`.
+Root cause: `cfg.tabTable`, `cfg.itemsTable`, and `cfg.questionTable`
+are union string literals, so Supabase's typed inference couldn't
+pin a single table at compile time and `data` stayed unioned with
+`GenericStringError` even after the error throw. Three spots cast
+each `.data` array to `Array<Record<string, unknown>>` via
+`as unknown as`, matching the existing pattern in the same file.
+Local `npm run build` clean; pushed as commit `c4fe827`.
+
+The lesson here is **`next dev` doesn't typecheck**, only
+`next build` does — a typecheck pass before pushing to main is
+worth the 30 seconds.
+
+### Stage 2 — pull `.env.local` into the worktree
+
+This session ran in a fresh worktree which doesn't carry git-ignored
+files. `npm run dev` started without env vars and any auth-bound
+page would have failed. Copied `.env.local` from the main repo
+clone (`C:/Users/confi/qacademy-mynclex/.env.local`) into the
+worktree before the next dev-server run. A previous `npm run dev`
+PID was orphaned on port 3000 after `task_id` stop didn't fully
+kill the Node process — had to `taskkill /F` it before the new
+server could bind. Worth knowing for future worktree sessions.
+
+### Stage 3 — polish pass (commit `ffa78ea`)
+
+Eleven distinct improvements bundled into one polish commit after
+each was browser-tested on dev. None of these are new features —
+all address friction discovered while exercising the slice 12
+wrapper end-to-end against the "Test case study sample" case
+(`NCLEX_CS_00004`) on dev Supabase.
+
+#### Wrapper page
+
+- **Back-to-list affordance.** `← Back to list` link + clickable
+  Case Studies (v2) breadcrumb in the topbar. Both intercept clicks
+  via a `hasAnyDirty` memo (combines wrapper-edit dirty + dirty
+  chart tabs + any dirty editor body) — when something is unsaved,
+  opens `<DiscardConfirm>` instead of navigating. Made the
+  `onSaveAndClose` prop on `DiscardConfirm` optional so the
+  leave-page variant renders as a 2-button dialog (Keep editing /
+  Discard) — there's no single coherent thing to "Save and close"
+  when wrapper-edit, a chart tab, and an editor body could all be
+  dirty at once.
+
+- **Save question button restored in editor mode for new slots.**
+  The button gating used `activeSlotData?.editor` to find the form
+  ID, but for *newly-created* questions the slot's loaded `.editor`
+  is `null` (the slot was empty pre-create) and the picked editor
+  lives in the `creating` state instead. Added a derived
+  `activeEditorKind` that pulls from either source and re-routed
+  the form ID lookup through it.
+
+- **Toolbar revamp.** Cancel renamed to **Cancel changes** (Sam
+  preferred this over "Reset" because the scope is narrow —
+  metadata fields only — and "Reset" implies whole-form clear).
+  Added a strong `:disabled` rule on `.auth-cs-btn` (opacity 0.42,
+  grayscale 0.35, `not-allowed` cursor) so the dirty→enabled
+  transition is dramatic. Added a `.dirty-glow` accent-coloured
+  pulsing ring on Cancel changes / Save case study (when wrapper
+  is dirty) and Save question (when the body is dirty). Native
+  `title=` tooltips on every action button. New `<HelpBulb>` 💡
+  atom in `lib/authoring/atoms/help-bulb.tsx` opens an anchored
+  hint card listing each toolbar's button purposes — one for the
+  wrapper toolbar, one for the editor toolbar.
+
+  Sam validated the bulb pattern as something to apply to other
+  toolbars going forward; saved as a feedback memory
+  (`feedback_help_bulb_pattern.md`).
+
+- **Slot rail in its own bordered section.** The slot rail header
+  + 6 slot cards + "+ Add question" button were rendered outside
+  both the Content and Chart tab bodies, with no visual separation.
+  Under Content the Visibility section gave incidental separation;
+  under Chart it looked like part of the chart layout. Wrapped in
+  `.auth-cs-slot-section` with a top border + edge-to-edge layout
+  (margin -14px) matching the Visibility section's break.
+
+#### Create flow
+
+- **`+ New case study` button on both list pages.** Added
+  `createCaseAction` in
+  `lib/authoring/wrappers/case-study/actions.ts` — vendored
+  `nextCaseId` (the legacy private function depended on legacy
+  `surfaceConfig`; cheaper to copy than to refactor) + idPrefix
+  lookup from `lib/authoring/classifications`. Inserts an
+  `'Untitled case'` row, redirects to
+  `/admin|tutor/bank/cases-v2/<id>` so the curator lands directly
+  in Wrapper mode for renaming. Replaced the empty-state copy that
+  pointed at the legacy list.
+
+#### Add-tab popover
+
+- **z-index + height cap.** Bumped `.cs-popover` from `z-index: 10`
+  to `z-index: 30` (above the wrapper-page sticky topbar at
+  `z-index: 20`) so the × close and the top items aren't hidden
+  when the popover grows upward into the topbar's region. Added
+  `max-height: 70vh` + `overflow-y: auto` so very tall popovers
+  scroll inside themselves rather than off-screen.
+
+- **Custom-flow restructure.** Step 1 was mixing two mental
+  models — a list of pre-defined options *and* a creation form
+  (name input + Next button). Restructured: Step 1 is now a pure
+  pick-an-option screen (6 built-ins + a single
+  `+ Create custom tab` button); Step 2 (only via that click)
+  combines name input + shape picker on one screen with autofocus
+  on the name input and `Add tab` disabled until name is non-empty.
+  Net click count: built-in still 1 click, custom went from 4 to
+  2.
+
+#### Tab rail
+
+- **Add button repositioned.** `.cs-tab-rail-footer` had
+  `margin-top: auto` which floated the button to the bottom of
+  the rail's full height; replaced with `margin-top: 8px` so it
+  sits directly under the last tab.
+
+- **Custom badge stacked under the title.** Tab item layout was
+  flex-row `[arrows] [name] [Custom badge] [count]` which truncated
+  long custom names like "Nursing Assessment". Wrapped name + badge
+  in a `.cs-tab-item-text` flex column so the name has full row-width
+  and the Custom badge sits underneath as a left-aligned chip.
+
+#### Chart preview (right pane)
+
+- **Built-in structured tabs render properly.** The big bug. Vital
+  Signs and Lab Results stored `columns_def: []` in the DB because
+  their columns live in the `BuiltInTabType` registry, not the row.
+  `PreviewChartView` was checking `tab.columns_def.length > 0`
+  to decide structured vs narrative — built-ins fell through to
+  the narrative branch and rendered nothing recognisable. Fix:
+  derive `effectiveColumns` from the registry for built-ins, from
+  `tab.columns_def` for custom grids. Same effective-column list
+  drives both the table headers and the per-row cells.
+
+- **Lab flag colour-coding.** When `flag` is `H` / `L` /
+  `High` / `Low`, the row gets an amber tint; `Critical` /
+  `Crit` / `!!` get red + bolded. Subtle, doesn't shout.
+
+- **Narrative extras render.** Orders shows a coloured `status`
+  chip (Active=green, Completed=indigo, Discontinued=red,
+  Held=amber). H&P shows `section` as the card header in place of
+  time (matches the editor's `omit_time` flag). Diagnostics shows
+  `test_type` as an italic muted label.
+
+- **Multi-line scenarios + bodies.** Both the wrapper-edit
+  scenario and narrative tab bodies were collapsing newlines.
+  Added `white-space: pre-wrap` to `.auth-cs-preview-scenario` and
+  `.auth-cs-preview-narrative-body` — curator-typed line breaks
+  now survive into the preview.
+
+- **No auto-sort.** First pass sorted entries chronologically
+  (lexical sort on the `time` field). Sam pointed out time is
+  free text — curators type "0800", "8am", "Day 2 morning" —
+  no sort produces correct order across that variation. Reverted
+  to array order. Saved as a feedback memory
+  (`feedback_chart_entries_no_auto_sort.md`).
+
+- **Tab title no longer truncated.** The chart-preview tab strip
+  had `t.title.length > 14 ? t.title.split(' ')[0] : t.title` —
+  for "Nursing Assessment" (18 chars) this rendered as just
+  "Nursing". Replaced with full title + CSS `max-width: 200px;
+  text-overflow: ellipsis` and `title={t.title}` for the hover
+  tooltip — full information preserved.
+
+#### Structured cell editor
+
+- **Cells visibly look editable.** The `.cs-entries-table input`
+  had `border: 1px solid transparent; background: transparent;`
+  which made the table read as static text until hover. Now: thin
+  `var(--border)` border + `#fafbfc` off-white fill, hover lifts
+  to white + darker border, focus gets the accent border + soft
+  glow.
+
+- **Content-driven cell width.** Added `field-sizing: content`
+  so modern browsers (Chrome 123+, Safari 17.4+, Firefox 122+)
+  auto-grow the input to its content — long lab values like
+  `"pH 7.32, PaCO₂ 52 mmHg, PaO₂ 68 mmHg, HCO₃ 26 mEq/L"` widen
+  the column instead of being clipped. Older browsers fall back
+  to width 100% inside the cell.
+
+- **Horizontal scroll wrapper.** Wrapped the table in
+  `.cs-entries-table-scroll { overflow-x: auto }` so rows that
+  outgrow the pane scroll inside the table container, not pushing
+  the whole layout sideways.
+
+- **min-width tuning.** First pass had `min-width: 110px` on
+  inputs; Sam noticed Time columns (with values like "0800") were
+  forced wider than needed. Dropped to 50px — empty cells stay
+  clickable, short-content columns shrink to fit.
+
+### Stage 4 — release to prod
+
+Two commits on main this session: `c4fe827` (typecheck fix) and
+`ffa78ea` (polish bundle). Dev CF Worker auto-deployed on each;
+both green.
+
+For the prod release, `origin/prod` had a merge commit (`ac3638b`
+from PR #8) that wasn't reachable from `origin/main`, so a strict
+fast-forward wasn't possible. Continued the established PR pattern
+(PRs #7, #8 before this) — opened
+[mynclex#10](https://github.com/QAcademy-Nurses/mynclex/pull/10),
+merged via `gh pr merge 10 --merge --admin`. Both halves of the
+prod pipeline succeeded:
+
+- **Deploy prod Worker (workspace CF)** ✅ — slice 12 polish live
+  at `https://mynclex.qacademynurses.workers.dev`.
+- **Apply Supabase migrations to prod** ✅ — no-op, no DB changes
+  this batch.
+
+### Memory writes
+
+- New `feedback_help_bulb_pattern.md` — `<HelpBulb>` + dirty-glow
+  + strong `:disabled` is the standard treatment for any toolbar
+  with 3+ buttons of non-obvious scope.
+- New `feedback_chart_entries_no_auto_sort.md` — never auto-sort
+  case-study chart-tab entries by `time`; the column is free text
+  and curator's array order is authoritative.
+- Updated `project_authoring_rebuild_in_flight.md` — slice 12
+  ticked, 12 of 14 done.
+- Slice plan tracker (§13 of `questions-and-wrappers-rebuild-slice-plan.md`)
+  ticks slice 12.
+
+### Resume next time
+
+Slice 12 is fully done — both functionality (earlier session) and
+polish (this session). Live on dev and prod.
+
+Next priorities, in order:
+
+1. **Slice 13 — Trend wrapper-v2.** Same shape as Case Study
+   (three-pane wrapper, slot rail, combined preview) but with a
+   data table where Case Study has chart tabs, and variable-N
+   slots rather than fixed 6. Plan stub at
+   `docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md`
+   §13.
+2. **Slice 14 — the swap.** Rename `-v2` → canonical, delete
+   `lib/bank/`, drop the vendoring rule. The
+   `project_authoring_rebuild_in_flight.md` memory should be
+   removed at this point.
+3. Optional: live-while-typing preview in the case-study right
+   pane (deferred from earlier session). Atomic-RPC sweep on Save
+   case study (also deferred).
+
+### Files touched this session
+
+- Modified: `lib/authoring/wrappers/case-study/load-case.ts`
+- Modified: `lib/authoring/wrappers/case-study/wrapper-page.tsx`
+- Modified: `lib/authoring/wrappers/case-study/actions.ts`
+- Modified: `lib/authoring/wrappers/case-study/chart-tabs/tab-rail.tsx`
+- Modified: `lib/authoring/wrappers/case-study/chart-tabs/structured-tab.tsx`
+- Modified: `lib/authoring/atoms/discard-confirm.tsx`
+- New:      `lib/authoring/atoms/help-bulb.tsx`
+- Modified: `app/(app)/admin/bank/cases-v2/page.tsx`
+- Modified: `app/(app)/tutor/bank/cases-v2/page.tsx`
+- Modified: `styles/authoring.css`
+- Modified: `styles/dashboards.css`
+
+---
+
 ## Session — 2026-05-01 (Slice 12 — case-study wrapper v2: 12a → 12e)
 
 Slice 12 (case-study wrapper rebuild) landed end-to-end across one
