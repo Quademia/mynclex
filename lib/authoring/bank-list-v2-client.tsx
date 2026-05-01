@@ -71,6 +71,18 @@ export interface BankListV2RowSummary {
 export interface BankListV2ClientProps {
   surface: 'admin' | 'tutor';
   rows: BankListV2RowSummary[];
+  /**
+   * Whether any filter (search/type/category/difficulty/status/membership)
+   * is currently applied. Drives the empty-state copy: "No questions yet"
+   * when the bank is genuinely empty, "No questions match these filters"
+   * + Reset link when filters are clearing the view.
+   */
+  hasAnyFilter: boolean;
+  /**
+   * The list page's URL — used by the "Reset" link in the filtered-empty
+   * state to drop all params and return to the full view.
+   */
+  baseUrl: string;
   /** Map of item_id → full editor initial, MCQ rows. */
   mcqInitialsById: Record<string, McqEditorInitial>;
   /** Empty initial used when the curator picks MCQ in create mode. */
@@ -118,6 +130,8 @@ type ModalState =
 export function BankListV2Client({
   surface,
   rows,
+  hasAnyFilter,
+  baseUrl,
   mcqInitialsById,
   emptyMcqInitial,
   tfInitialsById,
@@ -226,8 +240,22 @@ export function BankListV2Client({
 
       {rows.length === 0 ? (
         <div className="auth-list-empty">
-          <p>No questions yet.</p>
-          <p>Click <strong>+ New question</strong> above to create your first one.</p>
+          {hasAnyFilter ? (
+            <>
+              <p>No questions match these filters.</p>
+              <p>
+                <Link href={baseUrl} className="auth-list-reset-link">
+                  Reset
+                </Link>
+                {' '}to see everything.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>No questions yet.</p>
+              <p>Click <strong>+ New question</strong> above to create your first one.</p>
+            </>
+          )}
         </div>
       ) : (
         <table className="auth-list-table">

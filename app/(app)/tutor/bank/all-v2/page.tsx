@@ -6,12 +6,21 @@
 // server actions re-check independently and RLS enforces
 // tutor_id = auth.uid() at the DB layer regardless.
 
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import {
   BankListV2Client,
   type BankListV2RowSummary,
 } from '@/lib/authoring/bank-list-v2-client';
+import {
+  BankFiltersV2,
+  type BankFilterValuesV2,
+} from '@/lib/authoring/bank-filters-v2';
+import {
+  BankCountsV2,
+  type BankCompositionCountsV2,
+} from '@/lib/authoring/bank-counts-v2';
 import {
   emptyMcqInitial,
   mcqRowToInitial,
@@ -70,27 +79,53 @@ import type { QuestionType } from '@/lib/authoring/classifications';
 
 export const dynamic = 'force-dynamic';
 
+const BASE_URL = '/tutor/bank/all-v2';
+
 interface FullTutorBankRow extends McqDbRow {
   parent_case_id: string | null;
   trend_id:       string | null;
-  // FK joins to the tutor-private wrapper tables for badge titles.
   case:  { title: string } | null;
   trend: { title: string } | null;
 }
 
-export default async function TutorBankAllV2Page() {
+interface PageProps {
+  searchParams?: Promise<{
+    type?:       string;
+    category?:   string;
+    difficulty?: string;
+    status?:     string;
+    membership?: string;
+    q?:          string;
+  }>;
+}
+
+export default async function TutorBankAllV2Page({ searchParams }: PageProps) {
+  const sp = (await searchParams) ?? {};
+  const filters: BankFilterValuesV2 = {
+    type:       sp.type       ?? '',
+    category:   sp.category   ?? '',
+    difficulty: sp.difficulty ?? '',
+    status:     sp.status     ?? '',
+    membership: sp.membership ?? '',
+    q:          sp.q          ?? '',
+  };
+  const hasAnyFilter =
+    filters.type !== '' ||
+    filters.category !== '' ||
+    filters.difficulty !== '' ||
+    filters.status !== '' ||
+    filters.membership !== '' ||
+    filters.q !== '';
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  // (app) + /tutor layouts already gate. Defensive fallback.
   if (!user) redirect('/login');
 
+  // ── Main row query ─────────────────────────────────────────
   // RLS on nclex_tutor_questions filters to tutor_id = auth.uid().
-  // Wrapper-attached rows (parent_case_id / trend_id set) are
-  // included; the client renders badges and routes Edit clicks to
-  // the wrapper page with ?focus=<item_id>.
-  const { data, error } = await supabase
+  let query = supabase
     .from('nclex_tutor_questions')
     .select(
       MCQ_ROW_COLUMNS +
@@ -99,21 +134,74 @@ export default async function TutorBankAllV2Page() {
       'case:nclex_tutor_case_studies(title)',
     )
     .order('item_id', { ascending: true })
-    .returns<FullTutorBankRow[]>();
+    .limit(500);
 
-  if (error) {
-    return (
-      <main className="auth-list-page">
-        <div className="auth-list-inner">
-          <h1 className="auth-list-page-title">My Bank (v2)</h1>
-          <p className="auth-sandbox-error">
-            Could not load your bank: {error.message}
-          </p>
-        </div>
-      </main>
-    );
+  if (filters.type)       query = query.eq('question_type', filters.type);
+  if (filters.category)   query = query.eq('client_needs_category', filters.category);
+  if (filters.difficulty) query = query.eq('difficulty', filters.difficulty);
+  if (filters.status === 'published') query = query.eq('is_published', true);
+  if (filters.status === 'draft')     query = query.eq('is_published', false);
+  if (filters.q) query = query.ilike('stem', `%${filters.q}%`);
+
+  if (filters.membership === 'standalone') {
+    query = query.is('parent_case_id', null).is('trend_id', null);
+  } else if (filters.membership === 'case') {
+    query = query.not('parent_case_id', 'is', null);
+  } else if (filters.membership === 'trend') {
+    query = query.not('trend_id', 'is', null);
   }
 
+  const { data, error } = await query.returns<FullTutorBankRow[]>();
+
+  // ── Composition counts ─────────────────────────────────────
+  type MembershipBucket = 'total' | 'standalone' | 'case' | 'trend';
+  const buildCountQuery = (
+    bucket: MembershipBucket,
+    applyNonMembership: boolean,
+  ) => {
+    let q = supabase
+      .from('nclex_tutor_questions')
+      .select('*', { count: 'exact', head: true });
+    if (bucket === 'standalone') {
+      q = q.is('parent_case_id', null).is('trend_id', null);
+    } else if (bucket === 'case') {
+      q = q.not('parent_case_id', 'is', null);
+    } else if (bucket === 'trend') {
+      q = q.not('trend_id', 'is', null);
+    }
+    if (applyNonMembership) {
+      if (filters.type)       q = q.eq('question_type', filters.type);
+      if (filters.category)   q = q.eq('client_needs_category', filters.category);
+      if (filters.difficulty) q = q.eq('difficulty', filters.difficulty);
+      if (filters.status === 'published') q = q.eq('is_published', true);
+      if (filters.status === 'draft')     q = q.eq('is_published', false);
+      if (filters.q) q = q.ilike('stem', `%${filters.q}%`);
+    }
+    return q;
+  };
+
+  const [
+    totalAll, totalStandalone, totalCase, totalTrend,
+    filteredAll, filteredStandalone, filteredCase, filteredTrend,
+  ] = await Promise.all([
+    buildCountQuery('total',      false),
+    buildCountQuery('standalone', false),
+    buildCountQuery('case',       false),
+    buildCountQuery('trend',      false),
+    buildCountQuery('total',      true),
+    buildCountQuery('standalone', true),
+    buildCountQuery('case',       true),
+    buildCountQuery('trend',      true),
+  ]);
+
+  const counts: BankCompositionCountsV2 = {
+    total:       { filtered: filteredAll.count        ?? 0, total: totalAll.count        ?? 0 },
+    standalone:  { filtered: filteredStandalone.count ?? 0, total: totalStandalone.count ?? 0 },
+    caseLinked:  { filtered: filteredCase.count       ?? 0, total: totalCase.count       ?? 0 },
+    trendLinked: { filtered: filteredTrend.count      ?? 0, total: totalTrend.count      ?? 0 },
+  };
+
+  // ── Row mapping + per-type initials ────────────────────────
   const fullRows = data ?? [];
 
   const summaryRows: BankListV2RowSummary[] = fullRows.map((r) => ({
@@ -129,71 +217,75 @@ export default async function TutorBankAllV2Page() {
     trend_title:    r.trend?.title ?? null,
   }));
 
-  const mcqInitialsById: Record<string, McqEditorInitial> = {};
-  const tfInitialsById: Record<string, TfEditorInitial> = {};
-  const sataInitialsById: Record<string, SataEditorInitial> = {};
-  const selectNInitialsById: Record<string, SelectNEditorInitial> = {};
-  const matrixInitialsById: Record<string, MatrixEditorInitial> = {};
-  const bowtieInitialsById: Record<string, BowtieEditorInitial> = {};
-  const clozeInitialsById: Record<string, ClozeEditorInitial> = {};
+  const mcqInitialsById:       Record<string, McqEditorInitial>       = {};
+  const tfInitialsById:        Record<string, TfEditorInitial>        = {};
+  const sataInitialsById:      Record<string, SataEditorInitial>      = {};
+  const selectNInitialsById:   Record<string, SelectNEditorInitial>   = {};
+  const matrixInitialsById:    Record<string, MatrixEditorInitial>    = {};
+  const bowtieInitialsById:    Record<string, BowtieEditorInitial>    = {};
+  const clozeInitialsById:     Record<string, ClozeEditorInitial>     = {};
   const highlightInitialsById: Record<string, HighlightEditorInitial> = {};
-  const dragDropInitialsById: Record<string, DragDropEditorInitial> = {};
+  const dragDropInitialsById:  Record<string, DragDropEditorInitial>  = {};
   for (const row of fullRows) {
     if (row.question_type === 'MCQ') {
       mcqInitialsById[row.item_id] = mcqRowToInitial(row, 'tutor');
     } else if (row.question_type === 'TF') {
       tfInitialsById[row.item_id] = tfRowToInitial(row, 'tutor');
     } else if (row.question_type === 'SATA') {
-      sataInitialsById[row.item_id] = sataRowToInitial(
-        row as unknown as SataDbRow,
-        'tutor',
-      );
+      sataInitialsById[row.item_id] = sataRowToInitial(row as unknown as SataDbRow, 'tutor');
     } else if (row.question_type === 'SELECT_N') {
-      selectNInitialsById[row.item_id] = selectNRowToInitial(
-        row as unknown as SelectNDbRow,
-        'tutor',
-      );
+      selectNInitialsById[row.item_id] = selectNRowToInitial(row as unknown as SelectNDbRow, 'tutor');
     } else if (row.question_type === 'MATRIX') {
-      matrixInitialsById[row.item_id] = matrixRowToInitial(
-        row as unknown as MatrixDbRow,
-        'tutor',
-      );
+      matrixInitialsById[row.item_id] = matrixRowToInitial(row as unknown as MatrixDbRow, 'tutor');
     } else if (row.question_type === 'BOWTIE') {
-      bowtieInitialsById[row.item_id] = bowtieRowToInitial(
-        row as unknown as BowtieDbRow,
-        'tutor',
-      );
+      bowtieInitialsById[row.item_id] = bowtieRowToInitial(row as unknown as BowtieDbRow, 'tutor');
     } else if (row.question_type === 'CLOZE') {
-      clozeInitialsById[row.item_id] = clozeRowToInitial(
-        row as unknown as ClozeDbRow,
-        'tutor',
-      );
+      clozeInitialsById[row.item_id] = clozeRowToInitial(row as unknown as ClozeDbRow, 'tutor');
     } else if (row.question_type === 'HIGHLIGHT') {
-      highlightInitialsById[row.item_id] = highlightRowToInitial(
-        row as unknown as HighlightDbRow,
-        'tutor',
-      );
+      highlightInitialsById[row.item_id] = highlightRowToInitial(row as unknown as HighlightDbRow, 'tutor');
     } else if (row.question_type === 'DRAG_DROP') {
-      dragDropInitialsById[row.item_id] = dragDropRowToInitial(
-        row as unknown as DragDropDbRow,
-        'tutor',
-      );
+      dragDropInitialsById[row.item_id] = dragDropRowToInitial(row as unknown as DragDropDbRow, 'tutor');
     }
   }
 
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner">
+        <div className="bank-header-row">
+          <Link href="/tutor" className="bank-back-link">
+            ← Tutor
+          </Link>
+        </div>
+
         <header className="auth-list-page-header">
-          <h1 className="auth-list-page-title">My Bank (v2)</h1>
-          <p className="auth-list-page-subtitle">
-            Questions-and-wrappers rebuild · tutor surface · all 9 question types: MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE + CLOZE + HIGHLIGHT + DRAG_DROP
-          </p>
+          <div>
+            <h1 className="auth-list-page-title">My Bank (v2)</h1>
+          </div>
+          <div className="auth-list-toolbar">
+            <Link href="/tutor/bank/cases-v2" className="auth-cs-btn subtle">
+              Case Studies →
+            </Link>
+            <Link href="/tutor/bank/trends-v2" className="auth-cs-btn subtle">
+              Trend datasets →
+            </Link>
+          </div>
         </header>
+
+        <BankCountsV2 counts={counts} />
+
+        {error && (
+          <p className="auth-sandbox-error">
+            Could not load your bank: {error.message}
+          </p>
+        )}
+
+        <BankFiltersV2 values={filters} baseUrl={BASE_URL} />
 
         <BankListV2Client
           surface="tutor"
           rows={summaryRows}
+          hasAnyFilter={hasAnyFilter}
+          baseUrl={BASE_URL}
           mcqInitialsById={mcqInitialsById}
           emptyMcqInitial={emptyMcqInitial('tutor')}
           tfInitialsById={tfInitialsById}
