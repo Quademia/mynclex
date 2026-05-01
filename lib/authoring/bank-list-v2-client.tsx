@@ -1,6 +1,6 @@
 // mynclex/lib/authoring/bank-list-v2-client.tsx
 //
-// Shared client component used by /admin/bank/all-v2 and the tutor
+// Shared client component used by /admin/bank/all and the tutor
 // twin. Owns the modal stack:
 //
 //   - "+ New question" → opens <QuestionTypePicker>.
@@ -203,16 +203,16 @@ export function BankListV2Client({
     return EDITABLE_TYPES.has(row.question_type);
   }
 
-  // Wrapper href for an attached row. Routes to the v2 wrapper page
-  // with ?focus=<item_id> so the wrapper opens with the matching pill
-  // pre-selected (CS + trend v2 wrapper pages parse the focus param).
+  // Wrapper href for an attached row. Routes to the wrapper page with
+  // ?focus=<item_id> so the wrapper opens with the matching pill
+  // pre-selected (CS + trend wrapper pages parse the focus param).
   function wrapperHrefFor(row: BankListV2RowSummary): string | null {
     const baseAdmin = surface === 'admin' ? '/admin/bank' : '/tutor/bank';
     if (row.parent_case_id) {
-      return `${baseAdmin}/cases-v2/${row.parent_case_id}?focus=${row.item_id}`;
+      return `${baseAdmin}/cases/${row.parent_case_id}?focus=${row.item_id}`;
     }
     if (row.trend_id) {
-      return `${baseAdmin}/trends-v2/${row.trend_id}?focus=${row.item_id}`;
+      return `${baseAdmin}/trends/${row.trend_id}?focus=${row.item_id}`;
     }
     return null;
   }

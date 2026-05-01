@@ -74,13 +74,13 @@ function surfaceConfig(surface: Surface) {
     return {
       table: 'nclex_tutor_questions' as const,
       prefix: TUTOR_ITEM_ID_PREFIX,
-      revalidate: '/tutor/bank/all-v2',
+      revalidate: '/tutor/bank/all',
     };
   }
   return {
     table: 'nclex_bank_items' as const,
     prefix: ITEM_ID_PREFIX,
-    revalidate: '/admin/bank/all-v2',
+    revalidate: '/admin/bank/all',
   };
 }
 
@@ -489,13 +489,13 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
     }
 
     const wrapperBaseUrl =
-      surface === 'tutor' ? '/tutor/bank/cases-v2' : '/admin/bank/cases-v2';
+      surface === 'tutor' ? '/tutor/bank/cases' : '/admin/bank/cases';
     revalidatePath(`${wrapperBaseUrl}/${parentCaseId}`);
   }
 
   if (trendId) {
     const wrapperBaseUrl =
-      surface === 'tutor' ? '/tutor/bank/trends-v2' : '/admin/bank/trends-v2';
+      surface === 'tutor' ? '/tutor/bank/trends' : '/admin/bank/trends';
     revalidatePath(`${wrapperBaseUrl}/${trendId}`);
   }
 

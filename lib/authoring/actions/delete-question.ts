@@ -4,9 +4,9 @@
 // authoring tree. Surface-aware (admin / tutor) — branches table
 // and revalidate path on the `surface` form field.
 //
-// Hard delete. The new bank-list-v2 filters out wrapper-linked rows,
-// so this action only ever runs against rows with parent_case_id
-// AND trend_id both NULL. Wrapper detach + delete flows live in the
+// Hard delete. The bank list filters out wrapper-linked rows, so
+// this action only ever runs against rows with parent_case_id AND
+// trend_id both NULL. Wrapper detach + delete flows live in the
 // wrapper actions (slices 11–12).
 
 'use server';
@@ -24,12 +24,12 @@ function surfaceConfig(surface: Surface) {
   if (surface === 'tutor') {
     return {
       table: 'nclex_tutor_questions' as const,
-      revalidate: '/tutor/bank/all-v2',
+      revalidate: '/tutor/bank/all',
     };
   }
   return {
     table: 'nclex_bank_items' as const,
-    revalidate: '/admin/bank/all-v2',
+    revalidate: '/admin/bank/all',
   };
 }
 

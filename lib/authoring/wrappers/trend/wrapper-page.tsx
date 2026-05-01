@@ -123,7 +123,7 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
   const router = useRouter();
 
   const baseUrl =
-    surface === 'tutor' ? '/tutor/bank/trends-v2' : '/admin/bank/trends-v2';
+    surface === 'tutor' ? '/tutor/bank/trends' : '/admin/bank/trends';
 
   // ── Wrapper-edit state (the curator's in-flight edits) ─────
   const [title, setTitle] = useState(datasetRow.title);

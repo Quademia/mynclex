@@ -56,7 +56,7 @@ interface SurfaceConfig {
   caseTable:  'nclex_case_studies' | 'nclex_tutor_case_studies';
   itemsTable: 'nclex_case_study_items' | 'nclex_tutor_case_study_items';
   tabTable:   'nclex_case_study_tabs' | 'nclex_tutor_case_study_tabs';
-  baseUrl:    '/admin/bank/cases-v2' | '/tutor/bank/cases-v2';
+  baseUrl:    '/admin/bank/cases' | '/tutor/bank/cases';
 }
 
 function configFor(surface: Surface): SurfaceConfig {
@@ -65,14 +65,14 @@ function configFor(surface: Surface): SurfaceConfig {
       caseTable:  'nclex_tutor_case_studies',
       itemsTable: 'nclex_tutor_case_study_items',
       tabTable:   'nclex_tutor_case_study_tabs',
-      baseUrl:    '/tutor/bank/cases-v2',
+      baseUrl:    '/tutor/bank/cases',
     };
   }
   return {
     caseTable:  'nclex_case_studies',
     itemsTable: 'nclex_case_study_items',
     tabTable:   'nclex_case_study_tabs',
-    baseUrl:    '/admin/bank/cases-v2',
+    baseUrl:    '/admin/bank/cases',
   };
 }
 

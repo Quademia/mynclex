@@ -1,4 +1,4 @@
-// mynclex/app/(app)/tutor/bank/cases-v2/[case_id]/page.tsx
+// mynclex/app/(app)/tutor/bank/cases/[case_id]/page.tsx
 //
 // Slice 12b — tutor twin of the admin wrapper page. Loads from the
 // tutor tables (nclex_tutor_case_studies + nclex_tutor_case_study_tabs

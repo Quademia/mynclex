@@ -1,16 +1,12 @@
-// mynclex/app/(app)/admin/bank/cases-v2/page.tsx
+// mynclex/app/(app)/tutor/bank/cases/page.tsx
 //
-// Slice 12a — admin Case Studies list (v2). Reads nclex_case_studies
-// and renders a simple table. Each row links to the [case_id] page
-// (currently a stub; the real wrapper page lands in slice 12b).
-//
-// Companion to /admin/bank/cases-v2/sandbox (the visual-only design
-// scratchpad). Both routes coexist until the slice-14 swap.
-//
-// Reuses .auth-list-* styles from styles/authoring.css.
+// Slice 12a — tutor twin of /admin/bank/cases. Reads
+// nclex_tutor_case_studies filtered by tutor_id (RLS also enforces
+// this at the DB layer, but the client filter is belt-and-braces).
+// Each row links to the [case_id] stub (real wrapper lands in 12b).
 
 import Link from 'next/link';
-import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
+import { requireBankCurator } from '@/lib/access';
 import { createCaseAction } from '@/lib/authoring/wrappers/case-study/actions';
 
 export const dynamic = 'force-dynamic';
@@ -29,19 +25,20 @@ interface SlotCount {
   count:   number;
 }
 
-export default async function AdminCasesV2ListPage() {
-  const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
+export default async function TutorCasesV2ListPage() {
+  const { supabase, user } = await requireBankCurator('tutor');
 
   const { data: caseRows, error: caseErr } = await supabase
-    .from('nclex_case_studies')
+    .from('nclex_tutor_case_studies')
     .select('case_id, title, is_published, is_free_sample, difficulty, updated_at')
+    .eq('tutor_id', user.id)
     .order('updated_at', { ascending: false });
 
   if (caseErr) {
     return (
       <main className="auth-list-page">
         <div className="auth-list-inner">
-          <h1 className="auth-list-page-title">Case Studies (v2)</h1>
+          <h1 className="auth-list-page-title">Case Studies</h1>
           <p className="auth-sandbox-error">Could not load cases: {caseErr.message}</p>
         </div>
       </main>
@@ -50,13 +47,11 @@ export default async function AdminCasesV2ListPage() {
 
   const cases = (caseRows ?? []) as CaseRow[];
 
-  // Populated-slot counts. Pull join-row case_ids for the cases on
-  // this page and bucket them in JS — small N, simpler than an RPC.
   let slotCounts: Record<string, number> = {};
   if (cases.length > 0) {
     const ids = cases.map((c) => c.case_id);
     const { data: slotRows } = await supabase
-      .from('nclex_case_study_items')
+      .from('nclex_tutor_case_study_items')
       .select('case_id')
       .in('case_id', ids);
     for (const row of (slotRows ?? []) as SlotCount[]) {
@@ -69,28 +64,21 @@ export default async function AdminCasesV2ListPage() {
       <div className="auth-list-inner">
         <header className="auth-list-page-header">
           <div>
-            <h1 className="auth-list-page-title">Case Studies (v2)</h1>
+            <h1 className="auth-list-page-title">Case Studies</h1>
             <p className="auth-list-page-subtitle">
-              Multi-question NCLEX scenarios with a shared patient chart. Each
-              case groups up to 6 questions under one scenario plus its chart
-              tabs. The wrapper page is rebuilt from scratch in slice 12 —
-              click a row to open the v2 wrapper (stub until 12b).
+              Your private NCLEX case studies. Each groups up to 6 questions
+              under a shared patient chart. Click a row to open the wrapper editor.
             </p>
           </div>
           <div className="auth-list-toolbar">
-            <Link href="/admin/bank/cases" className="auth-cs-btn subtle">← Legacy list</Link>
-            <Link href="/admin/bank/cases-v2/sandbox" className="auth-cs-btn">Sandbox</Link>
             <form
               action={async (fd: FormData) => {
                 'use server';
-                // createCaseAction redirects on success; the SaveResult
-                // return type is only for the failure branch. The form
-                // action slot wants void | Promise<void>, so swallow.
                 await createCaseAction(fd);
               }}
               style={{ display: 'inline' }}
             >
-              <input type="hidden" name="surface" value="admin" />
+              <input type="hidden" name="surface" value="tutor" />
               <button type="submit" className="auth-cs-btn primary">+ New case study</button>
             </form>
           </div>
@@ -109,7 +97,7 @@ export default async function AdminCasesV2ListPage() {
               }}
               style={{ marginTop: 12 }}
             >
-              <input type="hidden" name="surface" value="admin" />
+              <input type="hidden" name="surface" value="tutor" />
               <button type="submit" className="auth-cs-btn primary">+ New case study</button>
             </form>
           </div>
@@ -143,7 +131,7 @@ export default async function AdminCasesV2ListPage() {
                   <td>{c.difficulty ?? '—'}</td>
                   <td>{new Date(c.updated_at).toLocaleDateString()}</td>
                   <td className="auth-list-row-actions">
-                    <Link href={`/admin/bank/cases-v2/${c.case_id}`} className="auth-cs-btn tiny">
+                    <Link href={`/tutor/bank/cases/${c.case_id}`} className="auth-cs-btn tiny">
                       Open →
                     </Link>
                   </td>

@@ -35,12 +35,9 @@ export const ADMIN_NAV: NavItem[] = [
     href: '/admin/bank/all',
     permission: 'BANK_CURATE',
     children: [
-      { key: 'bank-all',    label: 'All questions',     icon: 'book', href: '/admin/bank/all',    permission: 'BANK_CURATE' },
-      { key: 'bank-all-v2', label: 'All questions (v2)', icon: 'edit', href: '/admin/bank/all-v2', permission: 'BANK_CURATE' },
-      { key: 'bank-cases',  label: 'Case Studies',      icon: 'book', href: '/admin/bank/cases',  permission: 'BANK_CURATE' },
-      { key: 'bank-cases-v2', label: 'Case Studies (v2)', icon: 'edit', href: '/admin/bank/cases-v2', permission: 'BANK_CURATE' },
-      { key: 'bank-trends', label: 'Trends',            icon: 'book', href: '/admin/bank/trends', permission: 'BANK_CURATE' },
-      { key: 'bank-trends-v2', label: 'Trend datasets (v2)', icon: 'edit', href: '/admin/bank/trends-v2', permission: 'BANK_CURATE' },
+      { key: 'bank-all',    label: 'All questions', icon: 'book', href: '/admin/bank/all',    permission: 'BANK_CURATE' },
+      { key: 'bank-cases',  label: 'Case Studies',  icon: 'book', href: '/admin/bank/cases',  permission: 'BANK_CURATE' },
+      { key: 'bank-trends', label: 'Trend datasets', icon: 'book', href: '/admin/bank/trends', permission: 'BANK_CURATE' },
     ],
   },
   { key: 'packs',         label: 'Readiness Packs',     icon: 'target',   href: '/admin/packs',         permission: 'BANK_CURATE' },
@@ -56,9 +53,6 @@ export const ADMIN_NAV: NavItem[] = [
   { key: 'announcements', label: 'Announcements',       icon: 'alert',    href: '/admin/announcements', permission: 'COMMS_MANAGE' },
   { key: 'permissions',   label: 'Admin Permissions',   icon: 'shield',   href: '/admin/permissions',   permission: 'SUPER_ADMIN' },
   { key: 'config',        label: 'System Config',       icon: 'settings', href: '/admin/config',        permission: 'SYSTEM_MANAGE' },
-  // Temporary entry for the questions-and-wrappers rebuild sandbox.
-  // Removed in Slice 13 (the swap) along with /admin/sandbox/.
-  { key: 'authoring-sandbox', label: 'Authoring sandbox', icon: 'edit', href: '/admin/sandbox/authoring', permission: 'BANK_CURATE' },
 ];
 
 /**

@@ -1,4 +1,4 @@
-// mynclex/app/(app)/tutor/bank/trends-v2/[trend_id]/page.tsx
+// mynclex/app/(app)/tutor/bank/trends/[trend_id]/page.tsx
 //
 // Slice 13b — tutor twin of the trend wrapper page. RLS enforces
 // tutor-only access at the DB layer; loadTrend returns null and

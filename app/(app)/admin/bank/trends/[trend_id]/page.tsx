@@ -1,4 +1,4 @@
-// mynclex/app/(app)/admin/bank/trends-v2/[trend_id]/page.tsx
+// mynclex/app/(app)/admin/bank/trends/[trend_id]/page.tsx
 //
 // Slice 13b — admin trend wrapper page. Loads dataset row + attached
 // questions via load-trend.ts, mounts the read-only wrapper UI.

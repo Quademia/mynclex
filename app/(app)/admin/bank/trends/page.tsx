@@ -1,12 +1,16 @@
-// mynclex/app/(app)/tutor/bank/trends-v2/page.tsx
+// mynclex/app/(app)/admin/bank/trends/page.tsx
 //
-// Slice 13a — tutor twin of /admin/bank/trends-v2. Reads
-// nclex_tutor_trend_datasets filtered by tutor_id (RLS also enforces
-// at the DB layer; client filter is belt-and-braces). Each row
-// links to the [trend_id] stub (real wrapper lands in 13b).
+// Slice 13a — admin Trend datasets list. Reads
+// nclex_trend_datasets and renders a simple table. Each row links
+// to the [trend_id] page (currently a stub; the real wrapper page
+// lands in slice 13b).
+//
+// Companion to /admin/bank/trends/ (legacy list, kept working until
+// the slice-14 swap). Reuses .auth-list-* styles from
+// styles/authoring.css.
 
 import Link from 'next/link';
-import { requireBankCurator } from '@/lib/access';
+import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { kindDefaultLabel } from '@/lib/authoring/wrappers/trend/kind-templates';
 import { KindPickerLauncher } from '@/lib/authoring/wrappers/trend/kind-picker-modal';
 
@@ -25,20 +29,19 @@ interface AttachedCount {
   count:    number;
 }
 
-export default async function TutorTrendsV2ListPage() {
-  const { supabase, user } = await requireBankCurator('tutor');
+export default async function AdminTrendsV2ListPage() {
+  const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
 
   const { data: trendRows, error: trendErr } = await supabase
-    .from('nclex_tutor_trend_datasets')
+    .from('nclex_trend_datasets')
     .select('trend_id, title, kind, is_published, updated_at')
-    .eq('tutor_id', user.id)
     .order('updated_at', { ascending: false });
 
   if (trendErr) {
     return (
       <main className="auth-list-page">
         <div className="auth-list-inner">
-          <h1 className="auth-list-page-title">Trend datasets (v2)</h1>
+          <h1 className="auth-list-page-title">Trend datasets</h1>
           <p className="auth-sandbox-error">Could not load trends: {trendErr.message}</p>
         </div>
       </main>
@@ -47,11 +50,13 @@ export default async function TutorTrendsV2ListPage() {
 
   const trends = (trendRows ?? []) as TrendRow[];
 
+  // Attached-question counts per dataset. Pull bank items where
+  // trend_id matches any in this page and bucket in JS — small N.
   const attachedCounts: Record<string, number> = {};
   if (trends.length > 0) {
     const ids = trends.map((t) => t.trend_id);
     const { data: itemRows } = await supabase
-      .from('nclex_tutor_questions')
+      .from('nclex_bank_items')
       .select('trend_id')
       .in('trend_id', ids);
     for (const row of (itemRows ?? []) as AttachedCount[]) {
@@ -66,16 +71,14 @@ export default async function TutorTrendsV2ListPage() {
       <div className="auth-list-inner">
         <header className="auth-list-page-header">
           <div>
-            <h1 className="auth-list-page-title">Trend datasets (v2)</h1>
+            <h1 className="auth-list-page-title">Trend datasets</h1>
             <p className="auth-list-page-subtitle">
-              Your private time-series data panels (rows × timepoints) that
-              attach to bank questions. The wrapper page is being rebuilt in
-              slice 13 — click a row to open the v2 wrapper (stub until 13b).
+              Time-series data panels (rows × timepoints) that attach to bank
+              questions. Click a row to open the wrapper editor.
             </p>
           </div>
           <div className="auth-list-toolbar">
-            <Link href="/tutor/bank/trends" className="auth-cs-btn subtle">← Legacy list</Link>
-            <KindPickerLauncher surface="tutor" />
+            <KindPickerLauncher surface="admin" />
           </div>
         </header>
 
@@ -86,7 +89,7 @@ export default async function TutorTrendsV2ListPage() {
             <h3>No trend datasets yet</h3>
             <p>Click <strong>+ New trend dataset</strong> to create the first one.</p>
             <div style={{ marginTop: 12 }}>
-              <KindPickerLauncher surface="tutor" />
+              <KindPickerLauncher surface="admin" />
             </div>
           </div>
         ) : (
@@ -116,7 +119,7 @@ export default async function TutorTrendsV2ListPage() {
                   </td>
                   <td>{new Date(t.updated_at).toLocaleDateString()}</td>
                   <td className="auth-list-row-actions">
-                    <Link href={`/tutor/bank/trends-v2/${t.trend_id}`} className="auth-cs-btn tiny">
+                    <Link href={`/admin/bank/trends/${t.trend_id}`} className="auth-cs-btn tiny">
                       Open →
                     </Link>
                   </td>

@@ -467,7 +467,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     // Action's revalidatePath revalidates the list page; navigate
     // there with a deleted=1 hint (list page can render a banner
     // later if we want).
-    const baseUrl = surface === 'tutor' ? '/tutor/bank/cases-v2' : '/admin/bank/cases-v2';
+    const baseUrl = surface === 'tutor' ? '/tutor/bank/cases' : '/admin/bank/cases';
     router.push(baseUrl);
   }
 
@@ -726,7 +726,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
 
       <div className="auth-cs-page-topbar">
         {(() => {
-          const listHref = surface === 'tutor' ? '/tutor/bank/cases-v2' : '/admin/bank/cases-v2';
+          const listHref = surface === 'tutor' ? '/tutor/bank/cases' : '/admin/bank/cases';
           return (
             <>
               <Link

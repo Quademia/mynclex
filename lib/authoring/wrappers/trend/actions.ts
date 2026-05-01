@@ -36,7 +36,7 @@ export type SaveResult =
 
 interface SurfaceConfig {
   table:    'nclex_trend_datasets' | 'nclex_tutor_trend_datasets';
-  baseUrl:  '/admin/bank/trends-v2' | '/tutor/bank/trends-v2';
+  baseUrl:  '/admin/bank/trends' | '/tutor/bank/trends';
   idPrefix: string;
 }
 
@@ -44,13 +44,13 @@ function configFor(surface: Surface): SurfaceConfig {
   if (surface === 'tutor') {
     return {
       table:    'nclex_tutor_trend_datasets',
-      baseUrl:  '/tutor/bank/trends-v2',
+      baseUrl:  '/tutor/bank/trends',
       idPrefix: TUTOR_TREND_ID_PREFIX,
     };
   }
   return {
     table:    'nclex_trend_datasets',
-    baseUrl:  '/admin/bank/trends-v2',
+    baseUrl:  '/admin/bank/trends',
     idPrefix: TREND_ID_PREFIX,
   };
 }

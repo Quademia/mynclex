@@ -1,4 +1,4 @@
-// mynclex/app/(app)/admin/bank/cases-v2/[case_id]/page.tsx
+// mynclex/app/(app)/admin/bank/cases/[case_id]/page.tsx
 //
 // Slice 12b — admin case-study wrapper page. Loads the case row +
 // chart tabs + slot join rows + linked-question summary via

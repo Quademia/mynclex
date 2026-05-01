@@ -1,6 +1,6 @@
-// mynclex/app/(app)/tutor/bank/all-v2/page.tsx
+// mynclex/app/(app)/tutor/bank/all/page.tsx
 //
-// Tutor twin of /admin/bank/all-v2. Same component tree, different
+// Tutor twin of /admin/bank/all. Same component tree, different
 // table (nclex_tutor_questions) and surface ('tutor'). Auth is gated
 // by /tutor/layout.tsx via requireTutor() above this page; the
 // server actions re-check independently and RLS enforces
@@ -79,7 +79,7 @@ import type { QuestionType } from '@/lib/authoring/classifications';
 
 export const dynamic = 'force-dynamic';
 
-const BASE_URL = '/tutor/bank/all-v2';
+const BASE_URL = '/tutor/bank/all';
 
 interface FullTutorBankRow extends McqDbRow {
   parent_case_id: string | null;
@@ -259,13 +259,13 @@ export default async function TutorBankAllV2Page({ searchParams }: PageProps) {
 
         <header className="auth-list-page-header">
           <div>
-            <h1 className="auth-list-page-title">My Bank (v2)</h1>
+            <h1 className="auth-list-page-title">My Bank</h1>
           </div>
           <div className="auth-list-toolbar">
-            <Link href="/tutor/bank/cases-v2" className="auth-cs-btn subtle">
+            <Link href="/tutor/bank/cases" className="auth-cs-btn subtle">
               Case Studies →
             </Link>
-            <Link href="/tutor/bank/trends-v2" className="auth-cs-btn subtle">
+            <Link href="/tutor/bank/trends" className="auth-cs-btn subtle">
               Trend datasets →
             </Link>
           </div>

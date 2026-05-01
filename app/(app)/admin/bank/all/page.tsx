@@ -1,18 +1,15 @@
-// mynclex/app/(app)/admin/bank/all-v2/page.tsx
+// mynclex/app/(app)/admin/bank/all/page.tsx
 //
-// Admin Question Bank list — v2. Lives alongside the legacy
-// /admin/bank/all (which keeps working unchanged) until slice 14
-// swaps them.
+// Admin Question Bank list. Reads nclex_bank_items, renders the
+// authoring list with filters / composition counts / per-row actions.
 //
-// Differences vs legacy:
-//   - Modal-based editor (no `?edit=` focus mode) for standalone rows.
+//   - Modal-based editor for standalone rows (no `?edit=` focus mode).
 //   - "+ New question" → type picker → matching editor in create mode.
 //   - Wrapper-linked rows show with badges ("In case · {title}" /
 //     "Trend · {title}") and link to the wrapper page with
 //     ?focus=<item_id>; standalone modal never opens for them.
-//   - Top section ports the legacy filter bar, composition counts,
-//     and nav links — mirrors the legacy page's UX 1:1.
-//   - No pagination yet. Hard-cap at 500 rows like legacy.
+//   - Top section: filter bar, composition counts, nav links.
+//   - No pagination yet. Hard-cap at 500 rows.
 
 import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
@@ -86,7 +83,7 @@ import type { QuestionType } from '@/lib/authoring/classifications';
 
 export const dynamic = 'force-dynamic';
 
-const BASE_URL = '/admin/bank/all-v2';
+const BASE_URL = '/admin/bank/all';
 
 interface FullBankRow extends McqDbRow {
   parent_case_id: string | null;
@@ -266,13 +263,13 @@ export default async function AdminBankAllV2Page({ searchParams }: PageProps) {
 
         <header className="auth-list-page-header">
           <div>
-            <h1 className="auth-list-page-title">Question Bank (v2)</h1>
+            <h1 className="auth-list-page-title">Question Bank</h1>
           </div>
           <div className="auth-list-toolbar">
-            <Link href="/admin/bank/cases-v2" className="auth-cs-btn subtle">
+            <Link href="/admin/bank/cases" className="auth-cs-btn subtle">
               Case Studies →
             </Link>
-            <Link href="/admin/bank/trends-v2" className="auth-cs-btn subtle">
+            <Link href="/admin/bank/trends" className="auth-cs-btn subtle">
               Trend datasets →
             </Link>
           </div>
