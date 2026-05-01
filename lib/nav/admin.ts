@@ -40,6 +40,7 @@ export const ADMIN_NAV: NavItem[] = [
       { key: 'bank-cases',  label: 'Case Studies',      icon: 'book', href: '/admin/bank/cases',  permission: 'BANK_CURATE' },
       { key: 'bank-cases-v2', label: 'Case Studies (v2)', icon: 'edit', href: '/admin/bank/cases-v2', permission: 'BANK_CURATE' },
       { key: 'bank-trends', label: 'Trends',            icon: 'book', href: '/admin/bank/trends', permission: 'BANK_CURATE' },
+      { key: 'bank-trends-v2', label: 'Trend datasets (v2)', icon: 'edit', href: '/admin/bank/trends-v2', permission: 'BANK_CURATE' },
     ],
   },
   { key: 'packs',         label: 'Readiness Packs',     icon: 'target',   href: '/admin/packs',         permission: 'BANK_CURATE' },

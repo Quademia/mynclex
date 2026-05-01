@@ -4417,3 +4417,104 @@
   color: #1e40af;
   border-color: #bfdbfe;
 }
+
+/* ─────────────────────────────────────────────────────────
+ * Slice 13a — Kind preset picker (trend dataset create flow)
+ *
+ * Six cards in a responsive grid. Each preset card is a single
+ * <button> wrapped in its own <form>; the Custom card has an
+ * inline name input + Create button.
+ * ───────────────────────────────────────────────────────── */
+.auth-kind-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+.auth-kind-card-form {
+  margin: 0;
+  display: contents;
+}
+.auth-kind-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  min-height: 110px;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.06s ease;
+}
+.auth-kind-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 1px 4px rgba(45, 125, 114, 0.12);
+}
+.auth-kind-card:active {
+  transform: translateY(1px);
+}
+.auth-kind-card-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-dark);
+}
+.auth-kind-card-desc {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+/* The custom card is not itself a button — it's a div containing
+ * the name input + an explicit Create button — so styles override
+ * cursor + revert the button reset. */
+.auth-kind-card-custom {
+  cursor: default;
+  border-style: dashed;
+  background: #fafbfc;
+}
+.auth-kind-card-custom:hover {
+  border-color: var(--accent);
+  border-style: dashed;
+  box-shadow: none;
+}
+.auth-kind-card-input {
+  margin-top: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #ffffff;
+  font: inherit;
+  color: inherit;
+}
+.auth-kind-card-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(45, 125, 114, 0.12);
+}
+.auth-kind-card-create {
+  margin-top: 8px;
+  align-self: flex-start;
+  padding: 6px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.auth-kind-card-create:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+.auth-kind-card-create:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
