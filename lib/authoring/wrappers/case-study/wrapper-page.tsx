@@ -360,17 +360,20 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false }: Props) {
 
   // ── 12e handlers — add / detach / delete ────────────────
 
+  // Empty editor for + Add. Uses the row mappers' default 'standalone'
+  // mode (post-2026-05-01 CS-retrofit) so the new question's editor
+  // body shows all three visibility flag checkboxes — same as trend.
   function emptyEditorOf(type: QuestionType): SlotEditorInitial {
     switch (type) {
-      case 'MCQ':       return { kind: 'MCQ',       initial: { ...emptyMcqInitial(surface),       mode: 'wrapper-child' } };
-      case 'TF':        return { kind: 'TF',        initial: { ...emptyTfInitial(surface),        mode: 'wrapper-child' } };
-      case 'SATA':      return { kind: 'SATA',      initial: { ...emptySataInitial(surface),      mode: 'wrapper-child' } };
-      case 'SELECT_N':  return { kind: 'SELECT_N',  initial: { ...emptySelectNInitial(surface),   mode: 'wrapper-child' } };
-      case 'MATRIX':    return { kind: 'MATRIX',    initial: { ...emptyMatrixInitial(surface),    mode: 'wrapper-child' } };
-      case 'BOWTIE':    return { kind: 'BOWTIE',    initial: { ...emptyBowtieInitial(surface),    mode: 'wrapper-child' } };
-      case 'CLOZE':     return { kind: 'CLOZE',     initial: { ...emptyClozeInitial(surface),     mode: 'wrapper-child' } };
-      case 'HIGHLIGHT': return { kind: 'HIGHLIGHT', initial: { ...emptyHighlightInitial(surface), mode: 'wrapper-child' } };
-      case 'DRAG_DROP': return { kind: 'DRAG_DROP', initial: { ...emptyDragDropInitial(surface),  mode: 'wrapper-child' } };
+      case 'MCQ':       return { kind: 'MCQ',       initial: emptyMcqInitial(surface)       };
+      case 'TF':        return { kind: 'TF',        initial: emptyTfInitial(surface)        };
+      case 'SATA':      return { kind: 'SATA',      initial: emptySataInitial(surface)      };
+      case 'SELECT_N':  return { kind: 'SELECT_N',  initial: emptySelectNInitial(surface)   };
+      case 'MATRIX':    return { kind: 'MATRIX',    initial: emptyMatrixInitial(surface)    };
+      case 'BOWTIE':    return { kind: 'BOWTIE',    initial: emptyBowtieInitial(surface)    };
+      case 'CLOZE':     return { kind: 'CLOZE',     initial: emptyClozeInitial(surface)     };
+      case 'HIGHLIGHT': return { kind: 'HIGHLIGHT', initial: emptyHighlightInitial(surface) };
+      case 'DRAG_DROP': return { kind: 'DRAG_DROP', initial: emptyDragDropInitial(surface)  };
     }
   }
 

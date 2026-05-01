@@ -103,9 +103,15 @@ const ITEMS_COLUMNS = 'case_id, item_id, position, cjmm_step';
 
 // ─────────────────────────────────────────────────────────────
 // Row-mapper dispatch — converts a bank-item row to the matching
-// editor's initial shape, then wraps in SlotEditorInitial. Sets
-// mode='wrapper-child' inside each mapper call by overriding the
-// returned initial's mode field (mappers default to 'standalone').
+// editor's initial shape, then wraps in SlotEditorInitial.
+//
+// Uses the row mapper's default 'standalone' mode (post-2026-05-01
+// CS-retrofit) so the editor body shows all three visibility flag
+// checkboxes in housekeeping. Curator can edit each child question's
+// is_published / is_free_sample / is_builder_visible independently —
+// matching trend's behaviour and lifting the historical brittleness
+// where 'wrapper-child' mode silently force-cleared two of the three
+// flags on every save.
 // ─────────────────────────────────────────────────────────────
 
 function rowToSlotEditor(
@@ -116,23 +122,23 @@ function rowToSlotEditor(
   const sf = surface;
   switch (r.question_type) {
     case 'MCQ':
-      return { kind: 'MCQ', initial: { ...mcqRowToInitial(row as McqDbRow, sf), mode: 'wrapper-child' } };
+      return { kind: 'MCQ', initial: mcqRowToInitial(row as McqDbRow, sf) };
     case 'TF':
-      return { kind: 'TF', initial: { ...tfRowToInitial(row as McqDbRow, sf), mode: 'wrapper-child' } };
+      return { kind: 'TF', initial: tfRowToInitial(row as McqDbRow, sf) };
     case 'SATA':
-      return { kind: 'SATA', initial: { ...sataRowToInitial(row as SataDbRow, sf), mode: 'wrapper-child' } };
+      return { kind: 'SATA', initial: sataRowToInitial(row as SataDbRow, sf) };
     case 'SELECT_N':
-      return { kind: 'SELECT_N', initial: { ...selectNRowToInitial(row as SelectNDbRow, sf), mode: 'wrapper-child' } };
+      return { kind: 'SELECT_N', initial: selectNRowToInitial(row as SelectNDbRow, sf) };
     case 'MATRIX':
-      return { kind: 'MATRIX', initial: { ...matrixRowToInitial(row as MatrixDbRow, sf), mode: 'wrapper-child' } };
+      return { kind: 'MATRIX', initial: matrixRowToInitial(row as MatrixDbRow, sf) };
     case 'BOWTIE':
-      return { kind: 'BOWTIE', initial: { ...bowtieRowToInitial(row as BowtieDbRow, sf), mode: 'wrapper-child' } };
+      return { kind: 'BOWTIE', initial: bowtieRowToInitial(row as BowtieDbRow, sf) };
     case 'CLOZE':
-      return { kind: 'CLOZE', initial: { ...clozeRowToInitial(row as ClozeDbRow, sf), mode: 'wrapper-child' } };
+      return { kind: 'CLOZE', initial: clozeRowToInitial(row as ClozeDbRow, sf) };
     case 'HIGHLIGHT':
-      return { kind: 'HIGHLIGHT', initial: { ...highlightRowToInitial(row as HighlightDbRow, sf), mode: 'wrapper-child' } };
+      return { kind: 'HIGHLIGHT', initial: highlightRowToInitial(row as HighlightDbRow, sf) };
     case 'DRAG_DROP':
-      return { kind: 'DRAG_DROP', initial: { ...dragDropRowToInitial(row as DragDropDbRow, sf), mode: 'wrapper-child' } };
+      return { kind: 'DRAG_DROP', initial: dragDropRowToInitial(row as DragDropDbRow, sf) };
     default:
       return null;
   }
