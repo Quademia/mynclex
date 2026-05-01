@@ -4,40 +4,29 @@
 //
 // Slice progression:
 //   - 13b — read-only shell.
-//   - 13c (this slice) — Dataset view is writable: title / scenario /
-//     kind / visibility / data table all editable. saveTrendMetadataAction
-//     wires up. Right pane shows in-flight edits live (curator's
-//     unsaved typing). Discard guard fires when curator tries to leave
-//     with dirty edits. ErrorToast surfaces save failures.
-//   - 13d — editor-mode question mounting (real editor bodies in
-//     question pills, saveQuestionAction, dirty-guard, type picker
-//     on + Add).
+//   - 13c — Dataset view writable + saveTrendMetadataAction.
+//   - 13d (this slice) — editor-mode question mounting:
+//       • clicking a question pill mounts the real editor body for
+//         that question's type (MCQ/SATA/Cloze/etc.) in the left pane;
+//       • Save question button in the topbar submits the editor's form;
+//       • per-question dirty tracking + discard-confirm dialog when
+//         switching pills with unsaved edits;
+//       • + Add question opens QuestionTypePicker → creates a fresh
+//         editor in a "creating" pill; saving fires saveQuestionAction
+//         with trend_id (decision 10), router.refresh promotes the
+//         new row into a real pill on the next render.
 //   - 13e — detach + two-path delete.
-//
-// Layout (decision 6, two-pane with persistent pill strip on left):
-//
-//   ┌─────────── sticky topbar ──────────────────┐
-//   │  ← Back · breadcrumb · save / cancel / del │
-//   ├──────────────────────┬─────────────────────┤
-//   │ left pane            │ right pane          │
-//   │ ┌─ pill strip ─────┐ │ (combined preview,  │
-//   │ │ [Dataset][Q1][+] │ │  always on)         │
-//   │ └──────────────────┘ │                     │
-//   │ active = Dataset:    │  scenario           │
-//   │  title/scenario/kind │  data table render  │
-//   │  visibility / table  │  (no flags)         │
-//   │ active = Q1..Qn:     │  active question    │
-//   │  editor body (13d)   │  preview            │
-//   └──────────────────────┴─────────────────────┘
-//
-// Per decision 5 the activePill state doubles as the mode indicator —
-// 'dataset' is wrapper-mode, integer is editor-mode.
 
 'use client';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, useTransition, type MouseEvent } from 'react';
+import {
+  useMemo,
+  useState,
+  useTransition,
+  type MouseEvent,
+} from 'react';
 import { kindDefaultLabel } from './kind-templates';
 import { saveTrendMetadataAction } from './actions';
 import { TrendDataTable } from './data-table';
@@ -50,35 +39,70 @@ import type {
 import type { PreviewViewMode } from '@/lib/authoring/atoms/preview-toggle';
 import { ErrorToast } from '@/lib/authoring/atoms/error-toast';
 import { DiscardConfirm } from '@/lib/authoring/atoms/discard-confirm';
+import { QuestionTypePicker } from '@/lib/authoring/atoms/question-type-picker';
+import { saveQuestionAction } from '@/lib/authoring/actions/save-question';
+import type { QuestionType } from '@/lib/authoring/classifications';
 
-import { McqPreview }       from '@/lib/authoring/editors/mcq-editor';
-import { TfPreview }        from '@/lib/authoring/editors/tf-editor';
-import { SataPreview }      from '@/lib/authoring/editors/sata-editor';
-import { SelectNPreview }   from '@/lib/authoring/editors/select-n-editor';
-import { MatrixPreview }    from '@/lib/authoring/editors/matrix-editor';
-import { BowtiePreview }    from '@/lib/authoring/editors/bowtie-editor';
+import { McqEditorBody, McqPreview }             from '@/lib/authoring/editors/mcq-editor';
+import { TfEditorBody, TfPreview }               from '@/lib/authoring/editors/tf-editor';
+import { SataEditorBody, SataPreview }           from '@/lib/authoring/editors/sata-editor';
+import { SelectNEditorBody, SelectNPreview }     from '@/lib/authoring/editors/select-n-editor';
+import { MatrixEditorBody, MatrixPreview }       from '@/lib/authoring/editors/matrix-editor';
+import { BowtieEditorBody, BowtiePreview }       from '@/lib/authoring/editors/bowtie-editor';
 import {
+  ClozeEditorBody,
   ClozePreview,
   parseStemMarkers,
 } from '@/lib/authoring/editors/cloze-editor';
-import { HighlightPreview } from '@/lib/authoring/editors/highlight-editor';
+import { HighlightEditorBody, HighlightPreview } from '@/lib/authoring/editors/highlight-editor';
 import {
+  DragDropEditorBody,
   DragDropPreview,
   extractActiveMarkers,
 } from '@/lib/authoring/editors/drag-drop-editor';
+import { emptyMcqInitial }       from '@/lib/authoring/editors/mcq-row-mapper';
+import { emptyTfInitial }        from '@/lib/authoring/editors/tf-row-mapper';
+import { emptySataInitial }      from '@/lib/authoring/editors/sata-row-mapper';
+import { emptySelectNInitial }   from '@/lib/authoring/editors/select-n-row-mapper';
+import { emptyMatrixInitial }    from '@/lib/authoring/editors/matrix-row-mapper';
+import { emptyBowtieInitial }    from '@/lib/authoring/editors/bowtie-row-mapper';
+import { emptyClozeInitial }     from '@/lib/authoring/editors/cloze-row-mapper';
+import { emptyHighlightInitial } from '@/lib/authoring/editors/highlight-row-mapper';
+import { emptyDragDropInitial }  from '@/lib/authoring/editors/drag-drop-row-mapper';
 
 interface Props {
   data: WrapperData;
 }
 
-type ActivePill = 'dataset' | number;  // integer = slot.position
+type ActivePill = 'dataset' | number;  // integer = slot.position OR creating sentinel
 
-// Pending navigation while the discard dialog is open. The wrapper
-// can be left via several paths (back link, breadcrumb, Dataset pill
-// from a question pill, etc.). Each carries the eventual action.
+// FORM_IDs match each editor body's `<form id={FORM_ID}>` so the
+// external Save question button can submit it via `form="..."`.
+const FORM_ID_BY_TYPE: Record<string, string> = {
+  MCQ:       'auth-mcq-form',
+  TF:        'auth-tf-form',
+  SATA:      'auth-sata-form',
+  SELECT_N:  'auth-select-n-form',
+  MATRIX:    'auth-matrix-form',
+  BOWTIE:    'auth-bowtie-form',
+  CLOZE:     'auth-cloze-form',
+  HIGHLIGHT: 'auth-highlight-form',
+  DRAG_DROP: 'auth-drag-drop-form',
+};
+
+// Pending navigation while a discard dialog is open.
 type PendingNav =
-  | { kind: 'leave-page'; href: string }
-  | { kind: 'switch-pill'; to: ActivePill };
+  | { kind: 'leave-page';   href: string }
+  | { kind: 'switch-pill';  to: ActivePill }
+  | { kind: 'cancel-creating' };  // user clicked away from a creating pill
+
+// "Creating" state — set when curator clicked + Add and picked a type.
+// Holds the position the new pill takes (slots.length + 1) and the
+// chosen empty editor initial.
+interface CreatingState {
+  position: number;
+  editor:   SlotEditorInitial;
+}
 
 export function TrendWrapperPage({ data }: Props) {
   const { surface, datasetRow, slots } = data;
@@ -97,6 +121,10 @@ export function TrendWrapperPage({ data }: Props) {
   const [timepoints, setTimepoints] = useState<string[]>(datasetRow.timepoints);
   const [rows, setRows] = useState<TrendRow[]>(datasetRow.rows);
 
+  // ── "Creating" state for + Add question flow ──────────────
+  const [creating, setCreating] = useState<CreatingState | null>(null);
+  const [showTypePicker, setShowTypePicker] = useState(false);
+
   // ── Active pill ─────────────────────────────────────────────
   const [activePill, setActivePill] = useState<ActivePill>(
     slots.length > 0 ? 1 : 'dataset',
@@ -107,19 +135,37 @@ export function TrendWrapperPage({ data }: Props) {
       ? slots.find((s) => s.position === activePill) ?? null
       : null;
 
+  const isCreatingActive =
+    creating !== null && activePill === creating.position;
+
+  // The editor mounted in the left pane (when on a question pill or
+  // creating pill). Either an existing slot's editor or the creating
+  // sentinel's editor.
+  const activeEditor: SlotEditorInitial | null =
+    isCreatingActive
+      ? creating.editor
+      : activeSlot?.editor ?? null;
+
+  const activeEditorKind: string | null = activeEditor?.kind ?? null;
+
   // ── Right-pane preview toggle (Student / Answer-key) ───────
   const [questionMode, setQuestionMode] = useState<PreviewViewMode>('student');
 
   // ── Save / cancel state ─────────────────────────────────────
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [isWrapperPending, startWrapperTransition] = useTransition();
+  const [isQuestionPending, startQuestionTransition] = useTransition();
+  const [wrapperError, setWrapperError] = useState<string | null>(null);
+  const [questionError, setQuestionError] = useState<string | null>(null);
   const [pendingNav, setPendingNav] = useState<PendingNav | null>(null);
 
-  // ── Dirty tracking ──────────────────────────────────────────
-  // Compare current controlled state vs the loaded snapshot. JSON-
-  // stringify the array fields to dodge reference-identity false
-  // positives (legacy trend editor pattern).
-  const dirty = useMemo(() => {
+  // ── Per-active-question dirty flag ──────────────────────────
+  // Reset to false on every pill switch (we unmount the editor body
+  // on switch, so dirty state never crosses pills). Editor body fires
+  // onDirty when curator first types.
+  const [editorDirty, setEditorDirty] = useState(false);
+
+  // ── Wrapper-edit dirty tracking ─────────────────────────────
+  const wrapperDirty = useMemo(() => {
     if (title !== datasetRow.title) return true;
     if ((scenario || null) !== (datasetRow.scenario || null)) return true;
     if (kind !== datasetRow.kind) return true;
@@ -136,10 +182,10 @@ export function TrendWrapperPage({ data }: Props) {
     datasetRow,
   ]);
 
-  // ── Save / cancel handlers ──────────────────────────────────
+  // ── Handlers ────────────────────────────────────────────────
 
   function onCancelChanges() {
-    if (!dirty) return;
+    if (!wrapperDirty) return;
     setTitle(datasetRow.title);
     setScenario(datasetRow.scenario ?? '');
     setKind(datasetRow.kind);
@@ -148,40 +194,82 @@ export function TrendWrapperPage({ data }: Props) {
     setIsBuilderVisible(datasetRow.is_builder_visible);
     setTimepoints(datasetRow.timepoints);
     setRows(datasetRow.rows);
-    setError(null);
+    setWrapperError(null);
   }
 
-  function onSave() {
-    if (!dirty || isPending) return;
-    setError(null);
-    startTransition(async () => {
-      const fd = new FormData();
-      fd.set('surface', surface);
-      fd.set('trend_id', datasetRow.trend_id);
-      fd.set('title', title);
-      fd.set('scenario', scenario);
-      fd.set('kind', kind);
-      if (isPublished)      fd.set('is_published', 'on');
-      if (isFreeSample)     fd.set('is_free_sample', 'on');
-      if (isBuilderVisible) fd.set('is_builder_visible', 'on');
-      fd.set('timepoints', JSON.stringify(timepoints));
-      fd.set('rows',       JSON.stringify(rows));
+  function buildWrapperFormData(): FormData {
+    const fd = new FormData();
+    fd.set('surface', surface);
+    fd.set('trend_id', datasetRow.trend_id);
+    fd.set('title', title);
+    fd.set('scenario', scenario);
+    fd.set('kind', kind);
+    if (isPublished)      fd.set('is_published', 'on');
+    if (isFreeSample)     fd.set('is_free_sample', 'on');
+    if (isBuilderVisible) fd.set('is_builder_visible', 'on');
+    fd.set('timepoints', JSON.stringify(timepoints));
+    fd.set('rows',       JSON.stringify(rows));
+    return fd;
+  }
 
-      const result = await saveTrendMetadataAction(fd);
+  function onSaveTrend() {
+    if (!wrapperDirty || isWrapperPending) return;
+    setWrapperError(null);
+    startWrapperTransition(async () => {
+      const result = await saveTrendMetadataAction(buildWrapperFormData());
       if (!result.ok) {
-        setError(result.error);
+        setWrapperError(result.error);
       } else {
-        setError(null);
-        // revalidatePath in the action causes Next to re-render with
-        // the fresh snapshot. router.refresh() makes it deterministic.
+        setWrapperError(null);
         router.refresh();
       }
     });
   }
 
+  // Editor body's onSubmit emits FormData. We forward to
+  // saveQuestionAction. When creating, append trend_id so the new row
+  // gets linked (decision 10). On success, refresh — the loader picks
+  // up the new pill on the next render.
+  function onEditorBodySubmit(formData: FormData) {
+    if (isCreatingActive) {
+      formData.set('trend_id', datasetRow.trend_id);
+    }
+    setQuestionError(null);
+    startQuestionTransition(async () => {
+      const result = await saveQuestionAction(formData);
+      if (!result.ok) {
+        setQuestionError(result.error);
+      } else {
+        setEditorDirty(false);
+        if (isCreatingActive) {
+          // Promote the creating pill into a real one. After refresh
+          // the loader returns slots with the new question; we set
+          // activePill to the new question's position (which equals
+          // creating.position). The creating sentinel goes away.
+          setCreating(null);
+        }
+        router.refresh();
+      }
+    });
+  }
+
+  function onEditorBodyDirty() {
+    if (!editorDirty) setEditorDirty(true);
+  }
+
+  // External Save question button: triggers the active editor's form
+  // submit programmatically.
+  function onSaveQuestion() {
+    if (!activeEditorKind) return;
+    const formId = FORM_ID_BY_TYPE[activeEditorKind];
+    const formEl = document.getElementById(formId) as HTMLFormElement | null;
+    if (formEl) formEl.requestSubmit();
+  }
+
   // ── Navigation guards ───────────────────────────────────────
 
   function tryLeavePage(href: string, ev?: MouseEvent) {
+    const dirty = wrapperDirty || editorDirty;
     if (!dirty) return;
     if (ev) {
       ev.preventDefault();
@@ -191,22 +279,42 @@ export function TrendWrapperPage({ data }: Props) {
   }
 
   function tryPickPill(to: ActivePill) {
-    // Switching between question pills doesn't lose dataset edits —
-    // dataset state stays around. Only block when leaving 'dataset'
-    // mid-edit AND wrapper is dirty AND target is also a pill change
-    // that visually hides the dataset edits. For 13c we just allow
-    // free pill switches; the dataset state is preserved across them.
+    // Switching pills while the active editor is dirty: confirm.
+    // Switching while wrapper is dirty (editing dataset and clicking
+    // a question pill) is fine — wrapper state is preserved. Only
+    // editor-body dirty matters for the per-pill switch.
+    if (editorDirty) {
+      setPendingNav({ kind: 'switch-pill', to });
+      return;
+    }
+    // Leaving a creating pill without saving = throw away the empty
+    // editor. Confirm only if there's been a typed edit (editorDirty).
+    if (isCreatingActive && to !== activePill) {
+      // No dirty edits — safe to discard the creating editor.
+      setCreating(null);
+    }
     setActivePill(to);
+    // Clear the editor error toast when leaving the active pill.
+    setQuestionError(null);
   }
 
   function onConfirmDiscard() {
     const nav = pendingNav;
     setPendingNav(null);
     if (!nav) return;
+    setEditorDirty(false);
+    setQuestionError(null);
     if (nav.kind === 'leave-page') {
       router.push(nav.href);
     } else if (nav.kind === 'switch-pill') {
+      // If we're leaving the creating pill mid-edit, drop it.
+      if (isCreatingActive && nav.to !== activePill) {
+        setCreating(null);
+      }
       setActivePill(nav.to);
+    } else if (nav.kind === 'cancel-creating') {
+      setCreating(null);
+      setActivePill(slots.length > 0 ? 1 : 'dataset');
     }
   }
 
@@ -215,52 +323,93 @@ export function TrendWrapperPage({ data }: Props) {
   }
 
   function onSaveAndClose() {
-    // Run the save first; if it succeeds, fall through to the pending
-    // nav. If it fails, leave the pending nav set so the curator can
-    // retry or pick a different action.
-    if (!dirty) {
-      // Shouldn't be possible (dirty is what opened the dialog) — but
-      // defend anyway.
-      onConfirmDiscard();
+    const nav = pendingNav;
+    if (!nav) return;
+    // Decide what's dirty. If wrapper dirty and we're leaving the
+    // page, save the wrapper. If editor dirty (typical case for
+    // switch-pill), save the question via its form.
+    if (wrapperDirty && nav.kind === 'leave-page') {
+      setWrapperError(null);
+      startWrapperTransition(async () => {
+        const result = await saveTrendMetadataAction(buildWrapperFormData());
+        if (!result.ok) {
+          setWrapperError(result.error);
+          // Leave pendingNav set — curator can retry or cancel.
+        } else {
+          setWrapperError(null);
+          setPendingNav(null);
+          router.push(nav.href);
+        }
+      });
       return;
     }
-    setError(null);
-    startTransition(async () => {
-      const fd = new FormData();
-      fd.set('surface', surface);
-      fd.set('trend_id', datasetRow.trend_id);
-      fd.set('title', title);
-      fd.set('scenario', scenario);
-      fd.set('kind', kind);
-      if (isPublished)      fd.set('is_published', 'on');
-      if (isFreeSample)     fd.set('is_free_sample', 'on');
-      if (isBuilderVisible) fd.set('is_builder_visible', 'on');
-      fd.set('timepoints', JSON.stringify(timepoints));
-      fd.set('rows',       JSON.stringify(rows));
+    if (editorDirty && activeEditorKind) {
+      // Submit the editor's form. We don't have a synchronous handle
+      // to "did it succeed?" — optimistically dismiss the dialog so
+      // the curator sees the toast on error and can retry.
+      const formId = FORM_ID_BY_TYPE[activeEditorKind];
+      const formEl = document.getElementById(formId) as HTMLFormElement | null;
+      if (formEl) formEl.requestSubmit();
+      setPendingNav(null);
+      return;
+    }
+    // Nothing dirty — should not be reachable but defend.
+    onConfirmDiscard();
+  }
 
-      const result = await saveTrendMetadataAction(fd);
-      if (!result.ok) {
-        setError(result.error);
-        // Leave pendingNav set — curator can retry or cancel.
-      } else {
-        setError(null);
-        const nav = pendingNav;
-        setPendingNav(null);
-        if (nav?.kind === 'leave-page') router.push(nav.href);
-        else if (nav?.kind === 'switch-pill') setActivePill(nav.to);
-        else router.refresh();
-      }
-    });
+  // ── + Add question flow ─────────────────────────────────────
+
+  function emptyEditorOf(type: QuestionType): SlotEditorInitial {
+    switch (type) {
+      case 'MCQ':       return { kind: 'MCQ',       initial: emptyMcqInitial(surface)       };
+      case 'TF':        return { kind: 'TF',        initial: emptyTfInitial(surface)        };
+      case 'SATA':      return { kind: 'SATA',      initial: emptySataInitial(surface)      };
+      case 'SELECT_N':  return { kind: 'SELECT_N',  initial: emptySelectNInitial(surface)   };
+      case 'MATRIX':    return { kind: 'MATRIX',    initial: emptyMatrixInitial(surface)    };
+      case 'BOWTIE':    return { kind: 'BOWTIE',    initial: emptyBowtieInitial(surface)    };
+      case 'CLOZE':     return { kind: 'CLOZE',     initial: emptyClozeInitial(surface)     };
+      case 'HIGHLIGHT': return { kind: 'HIGHLIGHT', initial: emptyHighlightInitial(surface) };
+      case 'DRAG_DROP': return { kind: 'DRAG_DROP', initial: emptyDragDropInitial(surface)  };
+    }
+  }
+
+  function onClickAdd() {
+    if (editorDirty) {
+      // Curator was editing — confirm discard before opening picker.
+      // If they save & close, after save we don't auto-open the
+      // picker — they'd click + Add again. Simpler.
+      setPendingNav({ kind: 'switch-pill', to: 'dataset' });
+      return;
+    }
+    if (isCreatingActive) {
+      // Already in a creating pill (no dirty edits per the check
+      // above) — close it and open the picker fresh.
+      setCreating(null);
+    }
+    setShowTypePicker(true);
+  }
+
+  function onTypePicked(type: QuestionType) {
+    setShowTypePicker(false);
+    const newPos = slots.length + 1;
+    setCreating({ position: newPos, editor: emptyEditorOf(type) });
+    setActivePill(newPos);
+    setEditorDirty(false);
+    setQuestionError(null);
+  }
+
+  function onCancelTypePicker() {
+    setShowTypePicker(false);
   }
 
   // ── Right-pane in-flight values ─────────────────────────────
-  // Right pane reads from controlled state so curator's typing shows
-  // up live (decision 6 + slice-13c spec). Falls back to dataset
-  // values for fields not on the wrapper page.
   const previewScenario = scenario;
   const previewKind     = kind;
   const previewRows     = rows;
   const previewTps      = timepoints;
+
+  // Save-question button visibility + state
+  const onQuestionPill = activePill !== 'dataset';
 
   return (
     <div className="auth-tr-page">
@@ -284,28 +433,45 @@ export function TrendWrapperPage({ data }: Props) {
             </Link>
             <span className="auth-tr-crumb-sep">/</span>
             <code className="auth-tr-crumb-id">{datasetRow.trend_id}</code>
-            {dirty && <span className="auth-cs-dirty-dot" title="Unsaved metadata">●</span>}
+            {(wrapperDirty || editorDirty) && (
+              <span className="auth-cs-dirty-dot" title="Unsaved changes">●</span>
+            )}
           </span>
         </div>
         <div className="auth-tr-topbar-right">
-          <button
-            type="button"
-            className={`auth-cs-btn subtle tiny${dirty ? ' dirty-glow' : ''}`}
-            onClick={onCancelChanges}
-            disabled={!dirty || isPending}
-            title="Discard unsaved title / scenario / kind / visibility / data table edits."
-          >
-            Cancel changes
-          </button>
-          <button
-            type="button"
-            className={`auth-cs-btn primary tiny${dirty ? ' dirty-glow' : ''}`}
-            onClick={onSave}
-            disabled={!dirty || isPending}
-            title="Save dataset metadata + data table."
-          >
-            {isPending ? 'Saving…' : 'Save trend'}
-          </button>
+          {onQuestionPill ? (
+            <button
+              type="button"
+              className={`auth-cs-btn primary tiny${editorDirty ? ' dirty-glow' : ''}`}
+              onClick={onSaveQuestion}
+              disabled={!editorDirty || isQuestionPending}
+              title="Save the active question."
+              form={activeEditorKind ? FORM_ID_BY_TYPE[activeEditorKind] : undefined}
+            >
+              {isQuestionPending ? 'Saving…' : 'Save question'}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className={`auth-cs-btn subtle tiny${wrapperDirty ? ' dirty-glow' : ''}`}
+                onClick={onCancelChanges}
+                disabled={!wrapperDirty || isWrapperPending}
+                title="Discard unsaved title / scenario / kind / visibility / data table edits."
+              >
+                Cancel changes
+              </button>
+              <button
+                type="button"
+                className={`auth-cs-btn primary tiny${wrapperDirty ? ' dirty-glow' : ''}`}
+                onClick={onSaveTrend}
+                disabled={!wrapperDirty || isWrapperPending}
+                title="Save dataset metadata + data table."
+              >
+                {isWrapperPending ? 'Saving…' : 'Save trend'}
+              </button>
+            </>
+          )}
           <button
             type="button"
             className="auth-cs-btn subtle tiny"
@@ -322,8 +488,10 @@ export function TrendWrapperPage({ data }: Props) {
           <PillStrip
             activePill={activePill}
             slots={slots}
+            creating={creating}
             onPickDataset={() => tryPickPill('dataset')}
             onPickSlot={(pos) => tryPickPill(pos)}
+            onClickAdd={onClickAdd}
           />
 
           <div className="auth-tr-pane-body">
@@ -348,8 +516,19 @@ export function TrendWrapperPage({ data }: Props) {
                   setRows(rs);
                 }}
               />
+            ) : activeEditor ? (
+              <EditorBodyForKind
+                editor={activeEditor}
+                error={questionError}
+                pending={isQuestionPending}
+                onSubmit={onEditorBodySubmit}
+                onDirty={onEditorBodyDirty}
+                onErrorDismiss={() => setQuestionError(null)}
+              />
             ) : (
-              <ActiveSlotPlaceholder slot={activeSlot} />
+              <p className="auth-tr-empty-msg" style={{ padding: 22, textAlign: 'center' }}>
+                Could not load the editor for the active pill.
+              </p>
             )}
           </div>
         </div>
@@ -359,8 +538,8 @@ export function TrendWrapperPage({ data }: Props) {
           <div className="auth-tr-pane-label">
             <span>Combined preview</span>
             <span className="auth-tr-preview-meta">
-              {activeSlot
-                ? <>As student on Q{activeSlot.position}</>
+              {onQuestionPill
+                ? <>As student on Q{activePill}</>
                 : <>Dataset preview · pick a question pill to preview</>}
             </span>
           </div>
@@ -389,13 +568,13 @@ export function TrendWrapperPage({ data }: Props) {
 
           <div className="auth-tr-preview-section">
             <div className="auth-tr-preview-section-label">
-              {activeSlot
-                ? <>Active question · Q{activeSlot.position} ({activeSlot.question_type})</>
+              {onQuestionPill && activeEditor
+                ? <>Active question · Q{activePill} ({activeEditor.kind})</>
                 : 'Active question'}
             </div>
-            {activeSlot ? (
+            {activeEditor ? (
               <ActiveQuestionPreview
-                editor={activeSlot.editor}
+                editor={activeEditor}
                 viewMode={questionMode}
                 onViewModeChange={setQuestionMode}
               />
@@ -409,14 +588,30 @@ export function TrendWrapperPage({ data }: Props) {
       </div>
 
       {/* ── Floating overlays ───────────────────────────────── */}
-      <ErrorToast error={error} onDismiss={() => setError(null)} />
+      <ErrorToast error={wrapperError} onDismiss={() => setWrapperError(null)} />
+      {/* Editor errors are surfaced inside each editor body's own
+          ErrorToast (passed via props), so no second toast here. */}
 
       {pendingNav && (
         <DiscardConfirm
           onKeepEditing={onKeepEditing}
           onDiscard={onConfirmDiscard}
-          onSaveAndClose={onSaveAndClose}
-          pending={isPending}
+          onSaveAndClose={
+            // Show Save and close only when there's something
+            // coherent to save.
+            (pendingNav.kind === 'leave-page' && wrapperDirty) ||
+            (pendingNav.kind === 'switch-pill' && editorDirty)
+              ? onSaveAndClose
+              : undefined
+          }
+          pending={isWrapperPending || isQuestionPending}
+        />
+      )}
+
+      {showTypePicker && (
+        <QuestionTypePicker
+          onClose={onCancelTypePicker}
+          onPick={onTypePicked}
         />
       )}
     </div>
@@ -426,20 +621,24 @@ export function TrendWrapperPage({ data }: Props) {
 // ───────────────────────────────────────────────────────────
 // PillStrip — persistent navigator at the top of the left pane.
 // One pill per attached question + a leading [Dataset] pill +
-// a trailing [+ Add question] pill (disabled stub in 13c — wires
-// up in 13d).
+// an optional creating pill (when curator is mid-add) + a
+// trailing [+ Add question] pill.
 // ───────────────────────────────────────────────────────────
 
 function PillStrip({
   activePill,
   slots,
+  creating,
   onPickDataset,
   onPickSlot,
+  onClickAdd,
 }: {
   activePill:    ActivePill;
   slots:         SlotRow[];
+  creating:      CreatingState | null;
   onPickDataset: () => void;
   onPickSlot:    (position: number) => void;
+  onClickAdd:    () => void;
 }) {
   return (
     <div className="auth-tr-pill-strip" role="tablist" aria-label="Trend dataset navigator">
@@ -476,11 +675,26 @@ function PillStrip({
         );
       })}
 
+      {creating && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activePill === creating.position}
+          className={`auth-tr-pill auth-tr-pill-creating${activePill === creating.position ? ' active' : ''}`}
+          onClick={() => onPickSlot(creating.position)}
+          title="New question (unsaved)"
+        >
+          <span className="auth-tr-pill-pos">Q{creating.position}</span>
+          <span className="auth-tr-pill-type">{creating.editor.kind}</span>
+          <span className="auth-tr-pill-status" aria-label="Draft (new)" />
+        </button>
+      )}
+
       <button
         type="button"
         className="auth-tr-pill auth-tr-pill-add"
-        disabled
-        title="Add question (13d)"
+        onClick={onClickAdd}
+        title="Add a new question to this dataset"
       >
         + Add
       </button>
@@ -490,8 +704,7 @@ function PillStrip({
 
 // ───────────────────────────────────────────────────────────
 // DatasetView — controlled component for editing dataset
-// metadata + data table. State + handlers come from the parent
-// wrapper page (single source of truth, dirty tracking, save).
+// metadata + data table.
 // ───────────────────────────────────────────────────────────
 
 function DatasetView({
@@ -575,17 +788,17 @@ function DatasetView({
       <section className="auth-tr-section">
         <div className="auth-tr-section-label">Visibility</div>
         <div className="auth-tr-visibility">
-          <ReadonlyFlag
+          <VisibilityFlag
             label="Published (live to students)"
             on={isPublished}
             onChange={onIsPublishedChange}
           />
-          <ReadonlyFlag
+          <VisibilityFlag
             label="Free sample (available without subscription)"
             on={isFreeSample}
             onChange={onIsFreeSampleChange}
           />
-          <ReadonlyFlag
+          <VisibilityFlag
             label="Visible in student quiz builder"
             on={isBuilderVisible}
             onChange={onIsBuilderVisibleChange}
@@ -604,10 +817,7 @@ function DatasetView({
   );
 }
 
-// Visibility checkbox row. In 13b this was disabled; 13c makes the
-// onChange wire-up live (the prop name kept "Readonly" historically
-// but now drives the state — slice 14 will rename when collapsing).
-function ReadonlyFlag({
+function VisibilityFlag({
   label,
   on,
   onChange,
@@ -629,34 +839,43 @@ function ReadonlyFlag({
 }
 
 // ───────────────────────────────────────────────────────────
-// ActiveSlotPlaceholder — left-pane content when a question
-// pill is active. Real editor body lands in 13d.
+// EditorBodyForKind — mounts the matching editor body for the
+// active question (or creating pill). Uses 'standalone' mode
+// (decision 12) so all three visibility flags render in
+// housekeeping; questions own their flags genuinely.
 // ───────────────────────────────────────────────────────────
 
-function ActiveSlotPlaceholder({ slot }: { slot: SlotRow | null }) {
-  if (!slot) {
-    return <p className="auth-tr-empty-msg">No slot selected.</p>;
+function EditorBodyForKind({
+  editor,
+  error,
+  pending,
+  onSubmit,
+  onDirty,
+  onErrorDismiss,
+}: {
+  editor:         SlotEditorInitial;
+  error:          string | null;
+  pending:        boolean;
+  onSubmit:       (formData: FormData) => void;
+  onDirty:        () => void;
+  onErrorDismiss: () => void;
+}) {
+  switch (editor.kind) {
+    case 'MCQ':       return <McqEditorBody       initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
+    case 'TF':        return <TfEditorBody        initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
+    case 'SATA':      return <SataEditorBody      initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
+    case 'SELECT_N':  return <SelectNEditorBody   initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
+    case 'MATRIX':    return <MatrixEditorBody    initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
+    case 'BOWTIE':    return <BowtieEditorBody    initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
+    case 'CLOZE':     return <ClozeEditorBody     initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
+    case 'HIGHLIGHT': return <HighlightEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
+    case 'DRAG_DROP': return <DragDropEditorBody  initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
   }
-  return (
-    <div className="auth-tr-slot-placeholder">
-      <h2 className="auth-tr-dataset-title">Q{slot.position} · {slot.question_type}</h2>
-      {slot.stem
-        ? <p className="auth-tr-dataset-scenario">{slot.stem}</p>
-        : <p className="auth-tr-empty-msg">No stem yet.</p>}
-      <p className="auth-tr-empty-msg" style={{ marginTop: 16 }}>
-        Editor mode arrives in slice 13d. For now, this pill confirms
-        the question loads and the right pane shows the live preview.
-        Item ID: <code>{slot.item_id}</code>.
-      </p>
-    </div>
-  );
 }
 
 // ───────────────────────────────────────────────────────────
 // DataTableReadonly — read-only render of the dataset's data
-// table for the right pane. `showFlags` is always false from
-// the wrapper today (student view); kept as a prop for future
-// reuse if a curator-view variant ever appears.
+// table for the right pane.
 // ───────────────────────────────────────────────────────────
 
 function DataTableReadonly({
@@ -715,9 +934,7 @@ function DataTableReadonly({
 
 // ───────────────────────────────────────────────────────────
 // ActiveQuestionPreview — mirrors CS's dispatch (case-study/
-// wrapper-page.tsx:1177). Reads from slot.editor.initial directly:
-// post-save snapshot. The preview's own internal toggle handles
-// Student / Answer-key view switching.
+// wrapper-page.tsx:1177).
 // ───────────────────────────────────────────────────────────
 
 function ActiveQuestionPreview({

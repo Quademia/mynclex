@@ -440,12 +440,22 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
   // cjmm_step is NOT NULL on the join, so a valid value is required.)
   const parentCaseId = String(formData.get('parent_case_id') ?? '').trim();
 
+  // Trend-context (slice 13d, decision 10): when invoked from the
+  // trend wrapper's "+ Add question" flow, formData carries trend_id.
+  // Simpler than the CS path — no join table; the link is one column
+  // on the question row. UPDATE branch above doesn't touch trend_id,
+  // so the column survives untouched on subsequent saves.
+  const trendId = String(formData.get('trend_id') ?? '').trim();
+
   const row: Record<string, unknown> = { item_id, ...parsed };
   if (surface === 'tutor') {
     row.tutor_id = user.id;
   }
   if (parentCaseId) {
     row.parent_case_id = parentCaseId;
+  }
+  if (trendId) {
+    row.trend_id = trendId;
   }
 
   const { error } = await supabase.from(cfg.table).insert(row);
@@ -481,6 +491,12 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
     const wrapperBaseUrl =
       surface === 'tutor' ? '/tutor/bank/cases-v2' : '/admin/bank/cases-v2';
     revalidatePath(`${wrapperBaseUrl}/${parentCaseId}`);
+  }
+
+  if (trendId) {
+    const wrapperBaseUrl =
+      surface === 'tutor' ? '/tutor/bank/trends-v2' : '/admin/bank/trends-v2';
+    revalidatePath(`${wrapperBaseUrl}/${trendId}`);
   }
 
   revalidatePath(cfg.revalidate);

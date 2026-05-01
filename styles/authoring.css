@@ -4822,6 +4822,42 @@
   color: var(--accent-dark);
 }
 
+/* Creating pill — visually distinct from real pills (dashed border,
+ * accent-coloured) so the curator sees their unsaved new question
+ * stands apart from saved ones. */
+.auth-tr-pill-creating {
+  border-style: dashed;
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+.auth-tr-pill-creating.active {
+  background: var(--accent);
+  border-style: solid;
+  color: #ffffff;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Slice 13d — collapse the editor body's internal preview when
+ * mounted inside the trend wrapper.
+ *
+ * The standalone editor (e.g. /admin/bank/all-v2 modal) is built
+ * as a two-pane <div class="auth-split"> with edit form on the
+ * left and McqPreview / SataPreview / etc. on the right. The
+ * trend wrapper provides its own combined preview in the right
+ * pane, so the editor's internal preview is duplication.
+ *
+ * Same fix CS uses (.auth-cs-pane-left → .auth-preview hidden,
+ * .auth-split collapsed to single column) — see the rules near
+ * line 3788. Scoped to .auth-tr-pane-left so the standalone
+ * modal is unaffected.
+ * ───────────────────────────────────────────────────── */
+.auth-tr-pane-left .auth-preview {
+  display: none;
+}
+.auth-tr-pane-left .auth-split {
+  grid-template-columns: 1fr;
+}
+
 /* Dataset view (left pane when active = Dataset) */
 .auth-tr-dataset-view {
   display: flex;
