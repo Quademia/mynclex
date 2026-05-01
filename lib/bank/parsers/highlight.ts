@@ -1,7 +1,7 @@
 // mynclex/lib/bank/parsers/highlight.ts
 //
-// Highlight parser — takes the passage (with [[chunk]] markers) and the
-// curator's per-chunk decisions from FormData, and produces a normalised
+// Highlight parser. Takes the passage (with [[chunk]] markers) and the curator's
+// per-chunk decisions from FormData, and produces a normalised
 // (stem, content, correct) trio.
 //
 // Jobs:
@@ -21,15 +21,18 @@
 // Duplicate text handling: if the passage has two identical bracketed
 // spans (e.g. [[118]] twice for HR at two timestamps), both get the
 // same decision + feedback, keyed by text. Acceptable v1 trade-off —
-// per-position independence is flagged out-of-scope in the handoff.
+// per-position independence is flagged out-of-scope.
 
 import {
   HIGHLIGHT_MIN_CHUNKS,
   HIGHLIGHT_MAX_CHUNKS,
   HIGHLIGHT_MIN_CORRECT,
   HIGHLIGHT_MIN_WRONG,
-} from '../classifications';
-import type { HighlightContent, HighlightCorrect } from '../types';
+} from '@/lib/bank/classifications';
+import type {
+  HighlightContent,
+  HighlightCorrect,
+} from '@/lib/bank/types';
 
 export interface HighlightChunkInput {
   id: string;

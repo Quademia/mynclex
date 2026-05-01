@@ -4417,3 +4417,664 @@
   color: #1e40af;
   border-color: #bfdbfe;
 }
+
+/* ─────────────────────────────────────────────────────────
+ * Slice 13a — Kind preset picker (trend dataset create flow)
+ *
+ * Six cards in a responsive grid. Each preset card is a single
+ * <button> wrapped in its own <form>; the Custom card has an
+ * inline name input + Create button.
+ * ───────────────────────────────────────────────────────── */
+.auth-kind-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+.auth-kind-card-form {
+  margin: 0;
+  display: contents;
+}
+.auth-kind-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  min-height: 110px;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.06s ease;
+}
+.auth-kind-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 1px 4px rgba(45, 125, 114, 0.12);
+}
+.auth-kind-card:active {
+  transform: translateY(1px);
+}
+.auth-kind-card-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-dark);
+}
+.auth-kind-card-desc {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+/* The custom card is not itself a button — it's a div containing
+ * the name input + an explicit Create button — so styles override
+ * cursor + revert the button reset. */
+.auth-kind-card-custom {
+  cursor: default;
+  border-style: dashed;
+  background: #fafbfc;
+}
+.auth-kind-card-custom:hover {
+  border-color: var(--accent);
+  border-style: dashed;
+  box-shadow: none;
+}
+.auth-kind-card-input {
+  margin-top: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #ffffff;
+  font: inherit;
+  color: inherit;
+}
+.auth-kind-card-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(45, 125, 114, 0.12);
+}
+.auth-kind-card-create {
+  margin-top: 8px;
+  align-self: flex-start;
+  padding: 6px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.auth-kind-card-create:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+.auth-kind-card-create:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────────────────────
+ * Slice 13a — Kind picker modal (option B from 2026-05-01).
+ *
+ * Replaces the routed /new page. Centred floating dialog with
+ * dimmed backdrop, ESC + backdrop-click close. Scrolls inside
+ * the dialog if 6 cards exceed viewport height.
+ * ───────────────────────────────────────────────────────── */
+.auth-kind-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 70;
+  animation: auth-kind-modal-overlay-in 140ms ease-out;
+}
+
+@keyframes auth-kind-modal-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.auth-kind-modal-dialog {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  width: 100%;
+  max-width: 880px;
+  max-height: 80vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow-lg);
+  animation: auth-kind-modal-dialog-in 180ms ease-out;
+}
+
+@keyframes auth-kind-modal-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.auth-kind-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-kind-modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+.auth-kind-modal-close {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.auth-kind-modal-close:hover {
+  background: #f3f4f6;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.auth-kind-modal-hint {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Tighten the grid inside the modal: smaller min card width than the
+ * standalone-page version (which used 260px). The dialog has fixed
+ * max-width so denser cards keep the 6 visible without scrolling on
+ * a typical laptop viewport. */
+.auth-kind-modal-dialog .auth-kind-grid {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  margin-top: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────
+ * Slice 13b — Trend wrapper page (read-only shell)
+ *
+ * Two-pane layout (decision 6) — left pane swaps content based
+ * on which pill is active; right pane is always-on combined
+ * preview. Pill strip persists at the top of the left pane.
+ * ───────────────────────────────────────────────────────── */
+.auth-tr-page {
+  padding: 14px 18px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-tr-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.auth-tr-topbar-left,
+.auth-tr-topbar-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.auth-tr-back {
+  font-size: 13px;
+  color: var(--accent-dark);
+  text-decoration: none;
+}
+.auth-tr-back:hover {
+  text-decoration: underline;
+}
+.auth-tr-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.auth-tr-crumb {
+  color: var(--accent-dark);
+  text-decoration: none;
+}
+.auth-tr-crumb:hover {
+  text-decoration: underline;
+}
+.auth-tr-crumb-sep {
+  color: var(--border);
+}
+.auth-tr-crumb-id {
+  font-size: 12px;
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.auth-tr-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.auth-tr-pane {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.auth-tr-pane-left {
+  grid-column: 1;
+  grid-row: 1;
+}
+.auth-tr-pane-preview {
+  grid-column: 2;
+  grid-row: 1;
+  /* Stick below the topbar so it stays as the curator's reference
+   * while the left column scrolls long. Mirrors CS's .auth-cs-pane-preview. */
+  position: sticky;
+  top: 68px;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+}
+.auth-tr-pane-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.auth-tr-preview-meta {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-muted);
+}
+.auth-tr-pane-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Pill strip — horizontal navigator at the top of the left pane.
+ * One pill per attached question + leading [Dataset] + trailing [+ Add].
+ * Overflow scrolls horizontally. */
+.auth-tr-pill-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: thin;
+}
+.auth-tr-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+}
+.auth-tr-pill:hover:not(.active):not(:disabled) {
+  background: var(--primary-light);
+  border-color: #cfe5e1;
+}
+.auth-tr-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+.auth-tr-pill:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.auth-tr-pill-dataset {
+  font-weight: 600;
+}
+.auth-tr-pill-pos {
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.auth-tr-pill-type {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.auth-tr-pill-status {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--text-muted);
+  background: transparent;
+}
+.auth-tr-pill-status.published {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.auth-tr-pill.active .auth-tr-pill-status {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+.auth-tr-pill.active .auth-tr-pill-status.published {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+.auth-tr-pill-add {
+  border-style: dashed;
+  color: var(--accent-dark);
+}
+
+/* Creating pill — visually distinct from real pills (dashed border,
+ * accent-coloured) so the curator sees their unsaved new question
+ * stands apart from saved ones. */
+.auth-tr-pill-creating {
+  border-style: dashed;
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+.auth-tr-pill-creating.active {
+  background: var(--accent);
+  border-style: solid;
+  color: #ffffff;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Slice 13d — collapse the editor body's internal preview when
+ * mounted inside the trend wrapper.
+ *
+ * The standalone editor (e.g. /admin/bank/all-v2 modal) is built
+ * as a two-pane <div class="auth-split"> with edit form on the
+ * left and McqPreview / SataPreview / etc. on the right. The
+ * trend wrapper provides its own combined preview in the right
+ * pane, so the editor's internal preview is duplication.
+ *
+ * Same fix CS uses (.auth-cs-pane-left → .auth-preview hidden,
+ * .auth-split collapsed to single column) — see the rules near
+ * line 3788. Scoped to .auth-tr-pane-left so the standalone
+ * modal is unaffected.
+ * ───────────────────────────────────────────────────── */
+.auth-tr-pane-left .auth-preview {
+  display: none;
+}
+.auth-tr-pane-left .auth-split {
+  grid-template-columns: 1fr;
+}
+
+/* Dataset view (left pane when active = Dataset) */
+.auth-tr-dataset-view {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.auth-tr-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.auth-tr-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.auth-tr-dataset-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+.auth-tr-dataset-scenario {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+.auth-tr-dataset-kind {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+.auth-tr-visibility {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.auth-tr-visibility-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+}
+.auth-tr-empty-msg {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Slot placeholder (left pane when on a question pill, before
+ * 13d wires up real editor mounting) */
+.auth-tr-slot-placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+/* Right pane preview sections */
+.auth-tr-preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px dashed var(--border);
+}
+.auth-tr-preview-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+.auth-tr-preview-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.auth-tr-preview-scenario {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+/* Read-only data table (used in both panes — left tints flags,
+ * right hides them per decision 9 of the legacy 1.12 plan: pre-submit
+ * student view does NOT show flag tints). */
+.auth-tr-table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.auth-tr-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12.5px;
+}
+.auth-tr-table th,
+.auth-tr-table td {
+  padding: 6px 10px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.auth-tr-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  text-align: left;
+  color: var(--text);
+}
+.auth-tr-table th:last-child,
+.auth-tr-table td:last-child {
+  border-right: none;
+}
+.auth-tr-table tr:last-child td {
+  border-bottom: none;
+}
+.auth-tr-col-metric {
+  font-weight: 600;
+  color: var(--text);
+  position: sticky;
+  left: 0;
+  background: #ffffff;
+  z-index: 1;
+}
+.auth-tr-table th.auth-tr-col-metric {
+  background: #f9fafb;
+}
+.auth-tr-cell-abnormal {
+  background: #fef3c7;
+}
+.auth-tr-cell-borderline {
+  background: #fef9c3;
+}
+.auth-tr-refrange-cell {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Mobile / narrow: stack panes vertically (mirrors CS @media rule) */
+@media (max-width: 1100px) {
+  .auth-tr-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+  .auth-tr-pane-left    { grid-column: 1; grid-row: 1; }
+  .auth-tr-pane-preview {
+    grid-column: 1;
+    grid-row: 2;
+    position: static;
+    max-height: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+ * Slice 13c — Editable dataset view inputs
+ * ───────────────────────────────────────────────────────── */
+.auth-tr-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+}
+.auth-tr-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(45, 125, 114, 0.12);
+}
+.auth-tr-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+  resize: vertical;
+  min-height: 80px;
+  white-space: pre-wrap;
+}
+.auth-tr-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(45, 125, 114, 0.12);
+}
+.auth-tr-kind-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.auth-tr-kind-hint strong {
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
+/* Visibility row in 13c is now a clickable label (curator can tick
+ * the box). Cursor + spacing mirror CS's .auth-cs-visibility row. */
+.auth-tr-visibility-row {
+  cursor: pointer;
+  user-select: none;
+}
+.auth-tr-visibility-row input[type="checkbox"] {
+  cursor: pointer;
+}

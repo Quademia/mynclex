@@ -735,6 +735,8 @@ Mark slices complete as we ship them.
 - [x] Slice 9 — HIGHLIGHT editor (with dual-mode preview from day 1)
 - [x] Slice 10 — DRAG_DROP editor (with dual-mode preview from day 1)
 - [x] Slice 11 — Dual-mode preview migration (MCQ/TF/SATA/SELECT_N/MATRIX)
-- [ ] Slice 12 — Case Study wrapper-v2
-- [ ] Slice 13 — Trend wrapper-v2
-- [ ] Slice 14 — Swap
+- [x] Slice 12 — Case Study wrapper-v2 (functionality + polish; live on prod via PR #10, 2026-05-01)
+- [x] Slice 13 — Trend wrapper-v2 (shipped 2026-05-01)
+- [x] Slice 14 — Swap (shipped 2026-05-01: phase 1a archived legacy
+      lib/bank/ + app routes; phase 1b renamed -v2 URLs to canonical,
+      cleaned nav, dropped vendoring headers)

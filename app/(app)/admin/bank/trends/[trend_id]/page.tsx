@@ -1,66 +1,32 @@
 // mynclex/app/(app)/admin/bank/trends/[trend_id]/page.tsx
 //
-// Admin Trend dataset editor (Slice 1.12a). Server component that:
-//   1. Gates on BANK_CURATE / SUPER_ADMIN.
-//   2. Fetches the dataset row.
-//   3. Mounts <TrendEditor surface='admin' initial={...} />.
+// Slice 13b — admin trend wrapper page. Loads dataset row + attached
+// questions via load-trend.ts, mounts the read-only wrapper UI.
 //
-// Tutor twin lives at (app)/tutor/bank/trends/[trend_id]/page.tsx.
+// Read-only for 13b: data displays, pill navigation works, but Save /
+// Cancel / Delete buttons are stubs. Real editor mounting + save
+// plumbing wires up in 13c–13e.
 
 import { notFound } from 'next/navigation';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
-import { TrendEditor } from '@/lib/bank/trend/editor';
-import type { FullBankRow } from '@/lib/bank/list-view';
-import type {
-  TrendDatasetRow,
-  TrendEditorInitial,
-} from '@/lib/bank/trend/types';
+import { loadTrend } from '@/lib/bank/wrappers/trend/load-trend';
+import { TrendWrapperPage } from '@/lib/bank/wrappers/trend/wrapper-page';
 
 export const dynamic = 'force-dynamic';
 
-interface PageProps {
-  params: Promise<{ trend_id: string }>;
+interface PageParams {
+  params:        Promise<{ trend_id: string }>;
+  searchParams?: Promise<{ focus?: string }>;
 }
 
-export default async function AdminTrendEditorPage({ params }: PageProps) {
+export default async function AdminTrendPage({ params, searchParams }: PageParams) {
   const { trend_id } = await params;
+  const sp = await searchParams;
+  const focusItemId = sp?.focus ?? null;
   const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
 
-  const [datasetRes, itemsRes] = await Promise.all([
-    supabase
-      .from('nclex_trend_datasets')
-      .select('*')
-      .eq('trend_id', trend_id)
-      .maybeSingle(),
-    supabase
-      .from('nclex_bank_items')
-      .select('*')
-      .eq('trend_id', trend_id)
-      .order('created_at', { ascending: true }),
-  ]);
+  const data = await loadTrend(supabase, 'admin', trend_id);
+  if (!data) notFound();
 
-  if (datasetRes.error) {
-    return (
-      <main className="bank-page">
-        <p className="bank-error">Error loading trend dataset: {datasetRes.error.message}</p>
-      </main>
-    );
-  }
-
-  if (itemsRes.error) {
-    return (
-      <main className="bank-page">
-        <p className="bank-error">Error loading attached questions: {itemsRes.error.message}</p>
-      </main>
-    );
-  }
-
-  if (!datasetRes.data) notFound();
-
-  const initial: TrendEditorInitial = {
-    datasetRow:    datasetRes.data as TrendDatasetRow,
-    attachedItems: (itemsRes.data ?? []) as FullBankRow[],
-  };
-
-  return <TrendEditor surface="admin" initial={initial} />;
+  return <TrendWrapperPage data={data} focusItemId={focusItemId} />;
 }

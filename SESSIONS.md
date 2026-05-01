@@ -6,6 +6,1265 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-01 (Slice 14 — the swap)
+
+The 14-slice questions-and-wrappers rebuild closed today. Legacy
+`lib/bank/` + every legacy app route now lives under `_archive/`;
+the v2 routes have taken over the canonical URLs; nav, vendoring
+headers, and v2-suffixed identifiers are all gone. Three commits,
+shipped end-to-end in one session.
+
+### Commit 1 — phase 1a: archive legacy bank code (commit `21adc2c`)
+
+70-file `git mv` pass into a new `_archive/` folder at repo root.
+History preserved (every move is an `R` rename). `_archive/` excluded
+from TypeScript compilation via `tsconfig.json` so its now-broken
+`@/lib/bank/*` imports don't emit errors.
+
+Archived:
+
+- `lib/bank/` (whole tree — editors, parsers, classifications,
+  case-study + trend wrappers, list/filter views, panel)
+- `app/(app)/admin/bank/{all,cases,trends}/` legacy route folders
+- `app/(app)/admin/bank/{actions,form,editor-shell,
+  initial-to-parsed,slot-parser}.ts(x)` orphan shared files
+- `app/(app)/tutor/bank/{all,cases,trends}/` tutor twins
+- `app/(app)/admin/sandbox/` slice-1 leftover
+
+Sam's "no deletes" call meant even the slice-1 sandbox + the
+explicitly-marked-for-removal `cases-v2/sandbox/` got archived rather
+than deleted. `_archive/README.md` documents the rules:
+do-not-import, do-not-modify, mirror original paths, underscore-prefix
+sorts to top.
+
+**Intermediate state after 1a:** v2 URLs still served (canonical
+URLs 404'd), sidebar still had "(v2)" labels — that was deliberate,
+the rename pass came in 1b.
+
+### Commit 2 — phase 1b commit 1: -v2 → canonical rename (commit `4ca4fb2`)
+
+The user-visible swap. 6 route folder renames (admin + tutor ×
+{all, cases, trends}) plus an exhaustive sweep of every URL
+construction that built a `-v2` href:
+
+- `BASE_URL` constants in admin/bank/all/page.tsx + tutor twin
+- Inter-page Link hrefs (Case Studies / Trend datasets nav, per-row
+  Open buttons)
+- redirect targets in `lib/authoring/actions/{save,delete}-question.ts`
+- `baseUrl` in case-study + trend wrapper actions
+- `baseUrl` in case-study + trend wrapper-page.tsx
+- `wrapperHrefFor()` builder in bank-list-client.tsx
+- "(v2)" labels dropped from page titles + breadcrumbs + outdated
+  "stub until 12b/13b" subtitles
+- Self-referencing "← Legacy list" links removed (the legacy list
+  is in `_archive/`, the link was self-pointing post-rename)
+
+Nav cleanup in `lib/nav/{admin,tutor}.ts`:
+
+- Dropped the 6 transitional "(v2)" child entries
+- One entry per surface for All questions / Case Studies / Trend
+  datasets remains, all pointing at the canonical URLs
+- Removed the slice-1 "Authoring sandbox" entry (route already in
+  `_archive/`; nav entry was now broken)
+
+**Trap that nearly bit:** when stopping the dev server, the
+`taskkill` of the npm wrapper left an orphan Next.js node process
+holding port 3000 (PID 17192). Same gotcha as the earlier dev-server
+restart episode in this session. `netstat -ano | grep ":3000"` to
+find it, `taskkill //PID … //F` to clear. Worth remembering — Next
+on Windows leaves orphans on signal kill rather than cascading SIGTERM.
+
+### Commit 3 — phase 1b commit 2: file/symbol rename + vendoring cleanup (commit `368e4d3`)
+
+The interior cleanup. Three file renames:
+
+- `bank-list-v2-client.tsx → bank-list-client.tsx`
+- `bank-filters-v2.tsx     → bank-filters.tsx`
+- `bank-counts-v2.tsx      → bank-counts.tsx`
+
+Twelve V2-suffixed exported symbols renamed (BankListV2Client →
+BankListClient, BankFiltersV2 → BankFilters, etc.).
+
+17 files lost their vendoring-rule headers — replaced with concise
+descriptive comments. The most heavily vendored files
+(classifications.ts, types.ts, parsers/*) had their 4–10-line "Vendored
+from lib/bank/... per slice N's vendoring rule" preambles dropped
+entirely. The wrappers/case-study/actions.ts and trend/actions.ts
+top blocks got rewritten to drop the "vendored from legacy" framing.
+
+Plus a final cosmetic v2 sweep: "v2 wrapper" → "wrapper" in code
+comments, debug surface footnote in bank-list-client removed (was
+transitional aid only), etc. After the dust settled,
+`grep -rn "\bv2\b" lib/authoring lib/nav app components` returns
+zero hits in live code.
+
+Slice tracker:
+[questions-and-wrappers-rebuild-slice-plan.md §status](docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md)
+— slices 13 + 14 marked `[x]` with land dates.
+
+### Memory
+
+`project_authoring_rebuild_in_flight.md` removed from the memory
+store — the rebuild is no longer in flight. `MEMORY.md` index
+updated.
+
+### Commit 4 — phase 2: lib/authoring → lib/bank rename (commit `803ce40`, 2026-05-02)
+
+Closed the rename decision Sam had deferred. The `lib/authoring/`
+folder name was contextual to the parallel-build phase
+(`lib/authoring/` was the new tree alongside the legacy `lib/bank/`).
+With the legacy now in `_archive/`, the prefix lost its purpose —
+`lib/bank/` is the natural domain name for the bank authoring code.
+
+Mechanics:
+
+- `git mv lib/authoring lib/bank` — 74 files, history preserved
+  (every file shows as a git rename).
+- `sed @/lib/authoring/ → @/lib/bank/` across `app/ + lib/ +
+  components/` — 297 import-line occurrences across 39 importing
+  files updated.
+- `sed lib/authoring/ → lib/bank/` inside the moved files for the
+  self-referential file-header path comments (e.g.
+  `// mynclex/lib/authoring/parsers/mcq.ts` →
+  `// mynclex/lib/bank/parsers/mcq.ts`).
+- `CLAUDE.md` atom-path mentions updated
+  (`lib/authoring/atoms/` → `lib/bank/atoms/`).
+
+Verification before commit:
+
+- `grep -rn "lib/authoring" lib app components --include=*.ts(x)`
+  returns zero hits in live code (`_archive/` deliberately excluded
+  from the audit).
+- `tsc --noEmit` clean (with `_archive` excluded in tsconfig).
+- Dev server boots clean.
+- `/admin/bank/{all,cases,trends}` smoke-tested → HTTP 307 (auth
+  redirect to login, expected for unauthenticated request — routes
+  resolve correctly).
+
+The `_archive/lib/bank/` folder is unaffected — it's frozen reference
+code excluded from compilation. Its contents still reference each
+other and the (now-archived) legacy `@/lib/bank/...` paths, which is
+fine because nothing live imports it.
+
+### Decisions resolved this session
+
+All open decisions from the slice-14 plan are now closed:
+
+- ✅ Archive vs delete legacy code — **archive**, into `_archive/`
+- ✅ Archive scope — **everything** (lib/bank + legacy app routes +
+  sandboxes) per Sam's "no deletes" call
+- ✅ `lib/authoring/` → `lib/bank/` rename — **done in phase 2**
+
+### Resume next time
+
+The 14-slice questions-and-wrappers rebuild epic is **fully closed**.
+Next-session candidates from the broader plan:
+
+1. **Eyeball the swap in browser** — quick smoke test of the
+   canonical URLs end-to-end (still untested by a human).
+2. **Pick the next product epic.** Per
+   [docs/product-plan/main.md](docs/product-plan/main.md):
+   - Student-side runner — the actual exam-taking surface
+     (currently only the curator side exists; nothing for students
+     to do yet)
+   - Student enrolment flow ([payments-and-enrolment.md](docs/product-plan/payments-and-enrolment.md))
+   - Curriculum authoring UX ([curriculum-authoring-ux.md](docs/product-plan/curriculum-authoring-ux.md))
+   - Tutorial session UX
+3. **(Backlog from this session)** Possible v2 trend gaps —
+   non-table renderings (graphs, narrative notes, MAR-shaped),
+   preset-list refinement (drop `neuro`, add `medications` /
+   `pain_sedation` / `glucose`).
+
+### Files touched this session
+
+**New:**
+
+- `_archive/README.md`
+- `_archive/lib/bank/` (whole tree)
+- `_archive/app/(app)/admin/bank/{all,cases,trends,...}/`
+- `_archive/app/(app)/admin/sandbox/`
+- `_archive/app/(app)/tutor/bank/{all,cases,trends}/`
+
+**Renamed:**
+
+- `app/(app)/admin/bank/{all,cases,trends}-v2 → {all,cases,trends}`
+- Tutor twins of all three
+- `lib/authoring/bank-{list-v2-client,filters-v2,counts-v2}.tsx`
+  → `lib/authoring/bank-{list-client,filters,counts}.tsx`
+
+**Modified (slice 14 phase 1b):**
+
+- `tsconfig.json` (`_archive` added to `exclude`)
+- `lib/nav/{admin,tutor}.ts` (collapsed v2 entries)
+- `lib/authoring/actions/{save,delete}-question.ts` (URL refs)
+- `lib/authoring/wrappers/case-study/{actions,types,wrapper-page,validation,validation-panel}.ts(x)`
+- `lib/authoring/wrappers/case-study/chart-tabs/{narrative-tab,structured-tab,tab-rail,vf-segmented}.tsx`
+- `lib/authoring/wrappers/trend/{actions,types,data-table,kind-templates,validation,wrapper-page}.ts(x)`
+- `lib/authoring/{classifications,types}.ts`
+- `lib/authoring/parsers/*.ts` (all 9)
+- `lib/authoring/editors/*-row-mapper.ts` + `{sata,tf}-editor.tsx`
+- All 6 list/detail page files in `app/(app)/{admin,tutor}/bank/`
+- `docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md`
+
+**Renamed in phase 2 (2026-05-02):**
+
+- `lib/authoring/` → `lib/bank/` (74 files moved as a unit, history
+  preserved per-file)
+- All `@/lib/authoring/*` import paths across app/ + lib/ + components/
+  → `@/lib/bank/*`
+- File-header path comments inside the moved files
+- `CLAUDE.md` atom paths
+
+**Memory:**
+
+- `project_authoring_rebuild_in_flight.md` deleted
+- `MEMORY.md` index trimmed
+
+---
+
+## Session — 2026-05-01 (Trend wrapper testing — Dataset landing, editable row-axis label, nextTrendId fix)
+
+Driven by Sam's first hands-on testing pass through the slice 13 trend
+wrapper. Three concrete polish items landed before the session paused.
+No slice 14 progress — the swap is still queued for a separate session.
+
+### Test fixtures — admin + tutor seed data
+
+Two new SQL seed files under `db/`:
+
+- `seed-trend-tests-dev.sql` — admin tables, 6 datasets (one per
+  preset kind + one custom "Pain & Sedation"), 5 attached questions
+  per dataset = 30 questions total. Distribution covers all 9 question
+  types: MCQ×6, SATA×6, TF×3, SELECT_N×3, MATRIX×3, BOWTIE×3, CLOZE×2,
+  HIGHLIGHT×2, DRAG_DROP×2 (one ORDERED, one SENTENCE). Wrapped in
+  `BEGIN/COMMIT` for atomic load. `batch_id = 'TREND_TEST_2026_05_01'`
+  for cleanup. IDs `NCLEX_TRD_TEST_01..06` and
+  `NCLEX_<TYPE>_T01..T30`.
+- `seed-tutor-trend-tests-dev.sql` — tutor twin owned by
+  `mybackpacc+mynclextutor` (`4ed777d7-...`). Mechanically generated
+  from the admin file via a one-shot Node script (table swaps, ID
+  shifts to `NCLEX_TRD_TEST_T01..T06` + `NCLEX_<TYPE>_TT01..TT30`,
+  `tutor_id` injection). Distinct IDs so admin + tutor seeds coexist
+  on dev without collision.
+
+Both files have header-block cleanup snippets. Sam loaded both via the
+Supabase SQL Editor on dev. The earlier "doctor notes" placeholder
+trends he'd built by hand (`NCLEX_TRD_00002..00007`) were deleted in
+the same pass — left only the original dev seed (`NCLEX_TRD_00001`)
+and the new test data.
+
+### Polish 1 — default landing on Dataset, not Q1 (commit `be645a0`)
+
+Discovered by Sam on first open: clicking through to a trend silently
+took the curator into Q1's editor instead of the dataset view, because
+`activePill` defaulted to `1` whenever attached questions existed.
+Inconsistent with case study (which lands on the wrapper view) and
+with the curator mental model — opening *the trend* should show *the
+trend*, not Q1's stem.
+
+Fix at [wrapper-page.tsx:149](lib/authoring/wrappers/trend/wrapper-page.tsx:149):
+default to `'dataset'`. The `?focus=<item_id>` deep-link still takes
+precedence so bank-list "Edit" → wrapper still lands on the right
+question.
+
+### Polish 2 — editable row-axis label (commit `be645a0`)
+
+Sam noticed every column in the data table is curator-editable
+(timepoints, cells, ref-range) **except** the first column header,
+which was hard-coded to `<th>Metric</th>`. Fine for vitals/labs but
+awkward for assessments, narrative kinds (custom datasets like "Pain &
+Sedation"), and especially for the kinds NCSBN actually uses but our
+presets don't cover (medications, nurses' notes, etc.).
+
+Followed by a research detour into the actual NCSBN trend-item shape.
+Surfaced two findings:
+
+- Real NCLEX Trend items are timepoint-conceptual but visually flexible
+  (tables / charts / line graphs / narrative prose). Our timepoint-
+  table is one valid rendering; non-table renderings are out of scope
+  for v1.
+- The 5 presets aren't an NCSBN-mandated taxonomy — they're our
+  design choice. Real archetypes our presets miss include
+  medications/MAR, glucose-only, pain & sedation scores, and nurses'
+  notes. Captured as a v2 gap; out of scope for this patch.
+
+Implementation: nullable `row_label TEXT` on both
+`nclex_trend_datasets` and `nclex_tutor_trend_datasets`. Migration at
+`db/migrations/20260501010000_trend_row_label.sql`, additive-only,
+applied to dev via MCP and back-ported to `db/schema.sql`. Wired
+through `TrendDatasetRow` type, `loadTrend`, the editable
+`<TrendDataTable>` (new `rowLabel` + `onRowLabelChange` props), the
+right-pane `DataTableReadonly` preview, and `saveTrendMetadataAction`.
+Empty/null falls back to "Metric" placeholder so existing rows render
+identically until edited. Per-row metric input placeholder follows the
+curator's typed value.
+
+Decision: do **not** seed kind-aware row_label defaults at create
+time. Three reasons — adds another `kind→X` hardcoded map (we already
+have `kindDefaultLabel` and `kindSeedData`); creates a stale-default
+edge case if curator changes kind after create; the "Metric"
+placeholder is already an OK out-of-box state. The "feels polished"
+upside is small. If curators end up typing the same label on every
+dataset of a given kind, that's the future signal to reconsider.
+
+### Polish 3 — `nextTrendId` collision fix (commit `be645a0`)
+
+Sam asked me to verify the create flow. Tracing it surfaced a real
+bug introduced *by my own test seed naming*. `nextTrendId` did:
+
+> "Sort all trend_ids lex-DESC, take the top one, parseInt the
+> suffix, add 1."
+
+After the seed loaded, the lex-top admin trend was
+`NCLEX_TRD_TEST_06` (because `'T'` (0x54) sorts above `'0'` (0x30)).
+`parseInt("TEST_06", 10) = NaN` → `Number.isFinite(NaN)` false →
+`next` fell back to `1` → generated ID `NCLEX_TRD_00001` already
+existed (original dev seed) → UNIQUE-key violation → **Create button
+would fail on admin** with the seed loaded. (Tutor side was fine —
+seed IDs there don't match the `NCLEX_TUT_TRD_%` LIKE filter.)
+
+Fix in `nextTrendId`: pull the top 100 instead of the top 1, walk
+results, skip any whose suffix isn't pure digits (`/^\d+$/`), take the
+first numeric one. Defensive against any future seed/test/manual data
+with non-numeric suffixes. Applied to both
+[lib/authoring/wrappers/trend/actions.ts:67](lib/authoring/wrappers/trend/actions.ts:67)
+and [lib/bank/trend/actions.ts:84](lib/bank/trend/actions.ts:84) per
+the vendoring rule. Verified against dev: walks past the 6 TEST_*
+rows, lands on `NCLEX_TRD_00001` (suffix "00001", digits-only) →
+`next = 2` → next-issued ID `NCLEX_TRD_00002`.
+
+Will this bite later? Only if there are ever >100 non-numeric trend
+IDs sitting above any numeric one. Implausibly bad input data; if it
+ever happens, bump the limit in one line.
+
+### Memory
+
+No new memory writes this session. Existing memories
+(`feedback_help_bulb_pattern`, `feedback_chart_entries_no_auto_sort`,
+`project_authoring_rebuild_in_flight`, `project_cd_setup`) all still
+apply.
+
+### Resume next time
+
+1. **More trend testing.** Sam paused with "until I find other
+   issues" — the wrapper is hands-on-tested but not exhaustively, so
+   more polish items may surface.
+2. **Slice 14 — the swap.** Still queued from the previous session.
+   Plan stub already in
+   [docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md §14](docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md).
+   Archive over delete; `_archive/` at repo root with a README; `git mv`
+   to preserve history; rename `-v2` URLs to canonical; drop the
+   vendoring rule.
+3. **Tick slice 13 in the slice-plan tracker** alongside the slice 14
+   commit. Currently still `[ ]`.
+4. **(Possible v2)** non-table trend renderings (graphs, narrative
+   notes, MAR-shaped). Captured as a known gap in the bank spec for
+   later; out of scope until v1 ships.
+
+### Files touched this session
+
+**New:**
+
+- `db/migrations/20260501010000_trend_row_label.sql`
+- `db/seed-trend-tests-dev.sql`
+- `db/seed-tutor-trend-tests-dev.sql`
+
+**Modified:**
+
+- `db/schema.sql` (row_label added to both trend dataset tables)
+- `lib/authoring/wrappers/trend/actions.ts` (row_label save + nextTrendId fix)
+- `lib/authoring/wrappers/trend/data-table.tsx` (editable row-axis header + cell placeholder)
+- `lib/authoring/wrappers/trend/load-trend.ts` (row_label in select list)
+- `lib/authoring/wrappers/trend/types.ts` (row_label on TrendDatasetRow)
+- `lib/authoring/wrappers/trend/wrapper-page.tsx` (rowLabel state, dataset-default landing, preview wiring)
+- `lib/bank/trend/actions.ts` (mirrored nextTrendId fix per vendoring rule)
+
+---
+
+## Session — 2026-05-01 (Post-slice-13 cleanup + slice 14 plan stub)
+
+Continuation of the slice 13 session. After polish landed, three
+follow-up pieces shipped in sequence: the CS visibility-flag
+retrofit (closing the loop on Q7's brittleness discussion),
+wrapper-aware visibility on the v2 bank list, and the legacy
+filter / composition-row / nav-link port. Slice 14 (the swap)
+was scoped but deferred to next session per Sam — he wants to
+do further trend-wrapper testing first.
+
+### CS visibility-flag retrofit (commit `c7b9768`)
+
+Q7 of the slice 13 plan surfaced a real bug in CS: `wrapper-child`
+mode hid `is_published` and `is_builder_visible` from the editor's
+housekeeping form. With those fields absent, the save-question
+parser read `null` and the boolean expressions evaluated FALSE,
+which meant **CS child questions had those two flags silently
+force-cleared on every save** — they were locked at FALSE forever
+regardless of curator intent.
+
+Sam's call at the time: "leave CS for now, fix trend the right way,
+solve CS later." This commit is "later." Eighteen lines touched
+across two files:
+
+- [lib/authoring/wrappers/case-study/load-case.ts:117–137](lib/authoring/wrappers/case-study/load-case.ts:117)
+  — drop the `mode: 'wrapper-child'` override on the 9 row-mapper
+  dispatch lines. Row mappers default to `'standalone'`.
+- [lib/authoring/wrappers/case-study/wrapper-page.tsx:363–375](lib/authoring/wrappers/case-study/wrapper-page.tsx:363)
+  — same drop on the 9 `emptyEditorOf()` lines for new question
+  creation.
+
+Net effect: case children's housekeeping section now renders all
+three visibility checkboxes (Published / Free sample / Visible in
+builder) — same treatment trend uses. Curator owns each question's
+flags genuinely. Existing legacy CS children stay locked at
+FALSE/whatever-FreeSample-was/FALSE in the DB until a curator
+explicitly opts in via the now-rendered checkboxes — no backfill
+needed.
+
+The `HousekeepingMode` type itself ('standalone' | 'wrapper-child')
+is left in place. Slice 14 will audit whether anything else still
+uses 'wrapper-child' before removing it; this commit is purely
+about flipping the active values.
+
+### V2 bank list — wrapper-aware visibility + ?focus deep-link (commit `a8cb31d`)
+
+Sam noticed the v2 list was filtering wrapper-attached rows out
+entirely (`.is('parent_case_id', null).is('trend_id', null)` in
+the query). That decision made sense at slice 2 (when wrapper
+pages didn't exist) but had become a real regression that slice 14
+would have shipped without this fix.
+
+Restored the legacy behaviour where the bank list shows ALL
+questions, with badges marking the wrapper-attached ones, and
+clicking through goes straight to the wrapper page with the
+matching pill pre-selected.
+
+Files:
+
+- `app/(app)/{admin,tutor}/bank/all-v2/page.tsx`
+  — drop the filter; extend select with FK joins
+  `'trend:nclex_trend_datasets(title), case:nclex_case_studies(title)'`
+  (admin) / `nclex_tutor_*` (tutor); pass wrapper metadata down on
+  each row summary.
+- `lib/authoring/bank-list-v2-client.tsx` — `BankListV2RowSummary`
+  extended with `parent_case_id` / `case_title` / `trend_id` /
+  `trend_title`; `wrapperHrefFor(row)` helper builds surface-aware
+  `?focus=<item_id>` links; row stem column gets a clickable badge
+  ("In case · {title}" / "Trend · {title}") for attached rows;
+  Action button branches — standalone keeps modal-Edit, attached
+  rows render a "Open in case editor" / "Open in trend editor"
+  Link instead.
+- CS + trend wrapper pages gain a `focusItemId` prop. When set
+  and a matching slot exists, the wrapper opens with that pill
+  pre-selected. CS additionally enters editor mode automatically;
+  trend just sets `activePill` (editor-mode is implicit there).
+- All four detail pages (admin/tutor × cases-v2/trends-v2) parse
+  `?focus=<item_id>` from `searchParams` and forward to the
+  wrapper component.
+
+CSS: zero — reuses `.bank-badge`, `.bank-badge-case`,
+`.bank-badge-trend`, `.bank-badge-link` from
+[styles/dashboards.css](styles/dashboards.css).
+
+### V2 bank list — filters / composition row / nav links (commit `4bd0424`)
+
+The full topbar port from the legacy `/admin/bank/all`. Sam asked
+for 1:1 parity (all 6 filters + composition row + back link + nav
+links) so slice 14 can swap legacy → v2 without UX regression.
+
+Maintained the topbar/list separation Sam called out: filters live
+in the server-rendered topbar zone, table + modals stay in the
+client component below.
+
+New components:
+
+- [lib/authoring/bank-filters-v2.tsx](lib/authoring/bank-filters-v2.tsx)
+  (vendored from `lib/bank/filters.tsx`) — six-control GET form
+  (Type / Category / Difficulty / Status / Membership dropdowns +
+  Search input + Apply / Reset). URL-param shape unchanged so
+  `.bank-filter-*` CSS carries over verbatim.
+- [lib/authoring/bank-counts-v2.tsx](lib/authoring/bank-counts-v2.tsx)
+  (vendored from the inline `CompositionCounts` in
+  `lib/bank/list-view.tsx`) — four chips, each as
+  `<filtered>/<total>`.
+
+Page-level changes:
+
+- Both list pages (admin + tutor) parse `searchParams` →
+  `BankFilterValuesV2`, branch the main row query on six filters,
+  and run **8 count queries in `Promise.all`** — one per
+  (bucket × non-membership-filters-applied|not). Membership clamp
+  deliberately excluded from the counts so all four chips stay
+  informative when curator picks a membership filter (mirrors
+  legacy).
+- Top-of-page chrome ports legacy: back link (`← Admin` /
+  `← Tutor`), title + Case Studies / Trend datasets nav links
+  (pointing at the v2 wrappers, not legacy), composition row,
+  filter bar — all server-rendered.
+- `BankListV2Client` gains `hasAnyFilter` + `baseUrl` props.
+  Empty-state now branches: "No questions yet" when bank is
+  genuinely empty; "No questions match these filters · Reset"
+  with a Link back to `baseUrl` when filters are clearing the
+  view.
+
+Hard-cap stays at `.limit(500)` like legacy — pagination is
+explicitly out of scope.
+
+### Slice 14 — plan stub (deferred to next session)
+
+Sam picked **archive over delete** for the legacy code, with the
+swap happening in the same next session he uses for further
+trend-wrapper testing.
+
+Sketch settled in this session:
+
+- **Folder location:** `_archive/` at repo root, mirroring deleted
+  paths inside (e.g. `_archive/lib/bank/editors/`,
+  `_archive/lib/bank/case-study/`). Underscore prefix sorts to the
+  top of file listings; README inside saying "Frozen legacy code,
+  do not import."
+- **Accidental-import guard:** README + visible folder name. If
+  the trust-the-curator approach turns out insufficient, an eslint
+  rule or `tsconfig.json` `paths` block can land later.
+- **What gets archived:**
+  - `lib/bank/editors/` (all 9 question editors)
+  - `lib/bank/case-study/` (entire folder)
+  - `lib/bank/trend/` (entire folder)
+  - `lib/bank/question-authoring-panel.tsx`
+  - `lib/bank/list-view.tsx` + `lib/bank/filters.tsx`
+  - `app/(app)/admin/bank/editor-shell.tsx`
+  - Plus anything else in `lib/bank/` the v2 tree no longer
+    references — audit pass.
+- **What does NOT get archived:**
+  - DB-side stuff (schema, RLS, RPCs) — stays put.
+  - `lib/bank/classifications.ts` — possibly. Need to check
+    whether anything outside the archive still imports from it
+    after the v1 routes are gone.
+- **Sequence:**
+  1. Create `_archive/` + README.
+  2. `git mv` legacy folders into the archive (preserves history).
+  3. Drop the vendoring rule (per-file headers + any CLAUDE.md
+     mention).
+  4. Rename `-v2` → canonical: delete legacy `app/(app)/admin/bank/all/`,
+     `cases/`, `trends/`; rename the v2 folders to take their
+     place. Same for tutor twins.
+  5. Import audit: `grep -r "lib/bank/editors|lib/bank/case-study|
+     lib/bank/trend" app lib` should return zero.
+  6. Drop the "(v2)" suffix from sidebar nav entries.
+  7. Build + typecheck + lint clean.
+  8. SESSIONS.md entry covering both the swap and Sam's
+     trend-wrapper testing pass.
+
+### Memory
+
+No new memory writes this session. The standing memories
+(`feedback_help_bulb_pattern.md`,
+`feedback_chart_entries_no_auto_sort.md`,
+`project_authoring_rebuild_in_flight.md`) all still apply. The
+authoring-rebuild memory should get its "13 of 14 slices done"
+update next session when slice 14 actually lands.
+
+### Resume next time
+
+1. **Trend-wrapper testing pass.** Sam's exercising the wrapper
+   end-to-end on dev — surface any friction items for a possible
+   polish iteration.
+2. **Slice 14 — the swap.** Per the plan stub above. Archive over
+   delete, `_archive/` at repo root with a README, `git mv` to
+   preserve history, then rename `-v2` URLs to canonical.
+3. **Tick slice 13 in
+   [docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md §13](docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md)
+   tracker.** Currently still `[ ]` — should land alongside the
+   slice 14 swap commit.
+4. **Update `project_authoring_rebuild_in_flight.md` memory** to
+   "14 of 14 done" and drop the vendoring-rule line, since slice
+   14 closes both.
+
+### Files touched this session
+
+**New:**
+
+- `lib/authoring/bank-filters-v2.tsx`
+- `lib/authoring/bank-counts-v2.tsx`
+
+**Modified:**
+
+- `lib/authoring/wrappers/case-study/load-case.ts` (CS retrofit)
+- `lib/authoring/wrappers/case-study/wrapper-page.tsx` (CS retrofit
+  + `focusItemId` prop + auto editor-mode on focus)
+- `lib/authoring/wrappers/trend/wrapper-page.tsx` (`focusItemId`
+  prop + matching-slot active pill)
+- `lib/authoring/bank-list-v2-client.tsx` (wrapper metadata,
+  badges, Edit-click branch, empty-state branch, hasAnyFilter +
+  baseUrl props)
+- `app/(app)/admin/bank/all-v2/page.tsx` (drop filter, FK joins,
+  search-param parsing, filter-aware queries, count queries, top
+  section)
+- `app/(app)/tutor/bank/all-v2/page.tsx` (same as admin, tutor
+  tables)
+- `app/(app)/admin/bank/cases-v2/[case_id]/page.tsx` (focus param)
+- `app/(app)/admin/bank/trends-v2/[trend_id]/page.tsx` (focus param)
+- `app/(app)/tutor/bank/cases-v2/[case_id]/page.tsx` (focus param)
+- `app/(app)/tutor/bank/trends-v2/[trend_id]/page.tsx` (focus param)
+
+---
+
+## Session — 2026-05-01 (Slice 13 — trend wrapper-v2: plan + 13a → polish)
+
+The slice 13 build, end to end. Started with the plan doc (all
+seven open questions worked through in a single back-and-forth pass
+with Sam), continued through 13a–13e + a polish bundle, and ended
+with seven commits live on dev. Slice 13 is functionally complete;
+slice 14 (the swap) remains.
+
+### Stage 0 — plan doc with Q1–Q7 settled
+
+Created [docs/product-plan/slice-13-plan.md](docs/product-plan/slice-13-plan.md)
+as the architecture brief for the trend rebuild, parallel to
+slice 12's case-study v2. Worked through seven open questions
+one at a time before any code:
+
+- **Q1 — `saveQuestionAction` `trend_id` wiring.** Audited the
+  action ([save-question.ts:432–484](lib/authoring/actions/save-question.ts)).
+  Resolution: add a 5-line block in the CREATE branch parallel to
+  the existing `parent_case_id` block; UPDATE branch unchanged.
+- **Q2 — `is_builder_visible` default + Visibility section parity.**
+  Surfaced that the trend dataset schema only had `is_published`,
+  not the three-flag set CS has. Picked **option A**: schema
+  migration adds `is_free_sample` + `is_builder_visible` to both
+  dataset tables (decision 16). Dataset flags drive the wrapper
+  Visibility section; per-question flags remain editable in
+  housekeeping. Crucially, **questions own their flags genuinely**
+  in trend (decision 11) — explicitly avoiding CS's brittle
+  pattern of force-clearing `is_published` and `is_builder_visible`
+  on child saves.
+- **Q3 — Slot rail layout.** Redirected mid-question when Sam
+  pointed out we hadn't actually settled the page-level layout.
+  Locked decision 6 (two-pane, left swaps modes, right is combined
+  preview — same as CS). Then resolved Q3 to **horizontal pill
+  strip** (option B), persistent at the top of the left pane,
+  doubling as both navigator and mode indicator. Reframed the
+  state from `mode: 'wrapper' | 'editor'` to
+  `activePill: 'dataset' | <question_index>` (decision 5).
+- **Q4 — Right pane behaviour when active = Dataset.** Verified
+  CS's actual implementation: preview pane is rendered
+  unconditionally outside the mode conditional (option a). Picked
+  **option a** for trend too: right pane always-on, same content
+  regardless of pill. Mild redundancy on the Dataset pill is
+  informative — the rendered version shows ref-range column
+  behaviour, `pre-wrap` newlines, etc. that the editor's input
+  grid can't.
+- **Q5 — Validation timing.** Defer to a polish pass, matching
+  CS slice 12 (decision 9).
+- **Q6 — Sandbox route.** Skip — CS's chart-tab editors needed
+  visual iteration before the loader was wired; trend has just one
+  data table (vendored from legacy `data-table.tsx`) and the
+  wrapper page CSS is structurally inherited from CS, so the
+  marginal value is low (decision 17).
+- **Q7 — Editor housekeeping mode.** Reuse `'standalone'` mode
+  for trend-attached questions (decision 12). The discussion
+  surfaced a real bug in CS: `'wrapper-child'` mode silently
+  force-writes `is_published` and `is_builder_visible` to FALSE
+  on every save (the form fields aren't rendered, parser reads
+  `null`, boolean expression evaluates false). Sam's call: leave
+  CS as-is for now, fix trend the right way, retrofit CS later
+  as a separate task. Documented in the "Known drift points"
+  section.
+
+Plan committed as [`84715a2`](https://github.com/QAcademy-Nurses/mynclex/commit/84715a2)
+with all seven questions resolved and 17 numbered decisions locked
+end-to-end.
+
+### Stage 1 — 13a: list page + create flow + schema migration
+
+Two commits.
+
+**`c6d633d` — DB migration.** Added `is_free_sample` (default
+FALSE) + `is_builder_visible` (default TRUE) to both
+`nclex_trend_datasets` and `nclex_tutor_trend_datasets`. Pure
+additive — defaults match `nclex_bank_items` so existing rows
+pick up sensible values without backfill. Applied to dev via MCP;
+back-ported into [db/schema.sql](db/schema.sql) and a new file
+in [db/migrations/](db/migrations/). Will auto-apply to prod the
+next time main → prod merges.
+
+**`14cdb07` — list + create + nav + actions + types + vendored
+kind-templates.** New tree under
+`lib/authoring/wrappers/trend/`. Initial bucket:
+
+- `kind-templates.ts` — vendored verbatim from
+  `lib/bank/trend/kind-templates.ts` (5 presets:
+  vitals/labs/io/neuro/assessment). Slice 14 collapses.
+- `types.ts` — Surface, TrendFlag, TrendRow, TrendDatasetRow.
+- `actions.ts` — only `createTrendAction` (kind-picker create
+  flow). Mints next 5-digit ID, seeds rows + timepoints from
+  `kindSeedData(kind)`, redirects.
+
+Routes:
+
+- `app/(app)/admin/bank/trends-v2/page.tsx` — list, mirrors
+  cases-v2/page.tsx.
+- `app/(app)/admin/bank/trends-v2/new/page.tsx` — kind picker
+  (originally a routed page; replaced by a modal in 13a's second
+  commit).
+- `app/(app)/admin/bank/trends-v2/[trend_id]/page.tsx` — stub
+  detail showing the loaded ID + visibility flags.
+- Tutor twins of all three.
+
+Nav: `Trend datasets (v2)` added to admin + tutor sidebars.
+
+CSS: `.auth-kind-grid` + `.auth-kind-card[*]` for the kind
+picker.
+
+### Stage 2 — 13a follow-up: kind picker as modal (option B)
+
+Sam pushed back on the routed `/new` page during browser-test —
+"a whole page for picking 6 cards is heavier than the choice
+deserves." After establishing CS's "lazy picking" precedent
+(CS's `+ New case study` has no picker; chart tabs are picked
+inside the wrapper) and weighing four alternatives, picked
+**option B** — modal on the list page.
+
+`65cf913` swapped the implementation:
+
+- New `lib/authoring/wrappers/trend/kind-picker-modal.tsx`
+  client component. Trigger button + centred floating dialog
+  with dimmed backdrop, ESC + backdrop-click close. Form actions
+  inside still call `createTrendAction`.
+- Both list pages (admin + tutor) replaced the `+ New trend
+  dataset` `<Link>` with `<KindPickerLauncher>`. Two instances
+  per page (toolbar + empty state) coexist via per-instance open
+  state.
+- Deleted both `/new` route files.
+- New `.auth-kind-modal-*` styles in authoring.css.
+
+Bug fix bundled in: `kindDefaultLabel` previously flattened any
+non-preset kind to the literal string "Custom", which meant a
+custom-typed name like "doctor notes" was saved correctly to DB
+but displayed as "Custom" everywhere. Confirmed in DB
+(`NCLEX_TRD_00006.kind = "doctor notes"`); the bug was purely on
+the display side. Vendored helper now returns the raw kind for
+non-presets, with "Custom" still as the empty-/literal-`'custom'`
+fallback.
+
+### Stage 3 — 13b: read-only wrapper shell
+
+`e6e8b09` lands the two-pane wrapper page that 13a's stubs were
+holding the place for. Read-only: pill navigation works, both
+panes render against loaded data, but everything is display-only.
+Save / Cancel / Delete buttons are disabled stubs; clicking a
+question pill shows an "Editor mode arrives in 13d" placeholder
+in the left pane while the right pane mounts the live preview
+component for that question.
+
+Files:
+
+- `lib/authoring/wrappers/trend/types.ts` extended with
+  `SlotEditorInitial` discriminated union, `SlotRow` (with
+  per-question is_published / is_free_sample / is_builder_visible
+  per decision 11), and the `WrapperData` bundle.
+- `lib/authoring/wrappers/trend/load-trend.ts` — surface-aware
+  loader, ~165 lines. Reads dataset row + attached questions
+  where `trend_id` matches, ordered by `created_at ASC` for
+  stable pill positions. Each question goes through its type's
+  row mapper to produce the editor-ready initial. **No join
+  table** — simpler than CS's load-case.
+- `lib/authoring/wrappers/trend/wrapper-page.tsx` — two-pane
+  client component, ~580 lines. Sticky topbar + left pane with
+  persistent pill strip + right pane combined preview.
+  `<DataTableReadonly>` and `<ActiveQuestionPreview>` inline
+  helpers (preview dispatch mirrors CS's
+  `case-study/wrapper-page.tsx:1177`).
+
+CSS: full `.auth-tr-*` family — page / topbar / two-pane grid /
+pill strip / dataset view / preview sections / read-only data
+table / cell flag tints. Mobile @media stacks panes vertically.
+
+### Stage 4 — 13c: wrapper-edit pane writable + save
+
+`c479d6c` makes the Dataset view a controlled editing surface.
+Right-pane preview reflects in-flight curator edits live. Save
+trend persists everything to the dataset row via direct CRUD
+(decision 4 — no RPC).
+
+Files:
+
+- `lib/authoring/wrappers/trend/data-table.tsx` (new, vendored)
+  — verbatim copy of `lib/bank/trend/data-table.tsx`. Class
+  names stay `tr-*` so the existing styles in
+  [styles/dashboards.css](styles/dashboards.css) carry over
+  without CSS work. Slice 14 collapses.
+- `actions.ts` gains `saveTrendMetadataAction` + a vendored
+  `parseRows` helper that validates rows × timepoints alignment
+  before committing to the update.
+- `wrapper-page.tsx` full rewrite of the page component:
+  controlled state for title / scenario / kind / 3 flags /
+  timepoints / rows, useMemo'd dirty computation,
+  `useTransition` + `<ErrorToast>` wiring, controlled
+  `<DatasetView>` owning the editable inputs + `<TrendDataTable>`
+  mount, dirty-glow + dirty-dot in the topbar, `<DiscardConfirm>`
+  guard on back-link / breadcrumb when dirty. Save-and-close
+  routes through the save action then navigates on success.
+  Right pane reads from the in-flight controlled state instead
+  of the loaded snapshot.
+
+CSS: `.auth-tr-input` + `.auth-tr-textarea` + `.auth-tr-kind-hint`,
+visibility row gains pointer cursor.
+
+### Stage 5 — 13d: editor-mode question mounting + + Add
+
+`a8d9987` is the largest sub-slice — clicking a question pill
+mounts the real editor body for that question's type. Save
+question button submits the active editor's form. + Add opens
+the type picker and inserts a new bank-item row with `trend_id`
+set on success.
+
+Key pieces:
+
+- **`saveQuestionAction` extended** per decision 10 (5-line
+  block in the CREATE branch). Reads `trendId` from FormData,
+  sets it on the new row, `revalidatePath`s the trend wrapper
+  URL on success. UPDATE branch unchanged — `trend_id` survives
+  because the action only writes parsed editor fields. Direct
+  edit at [save-question.ts](lib/authoring/actions/save-question.ts).
+- **EditorBodyForKind dispatch** — switch on `editor.kind`,
+  render the matching `<McqEditorBody>` / `<SataEditorBody>` /
+  etc. All 9 types via `'standalone'` mode (decision 12 — no
+  new mode value).
+- **`creating: { position, editor } | null` state** for new
+  questions. + Add → QuestionTypePicker → on pick: set creating
+  + active pill at `slots.length + 1` + empty editor of the
+  chosen type. Save fires `saveQuestionAction(trend_id=...)`;
+  on success, `router.refresh()` promotes the creating pill into
+  a real one.
+- **Per-question dirty tracking** — single `editorDirty: boolean`
+  for the active editor, reset on every pill switch. Editor
+  bodies fire `onDirty()` on first input.
+- **Topbar swaps button set by active pill** — Dataset shows
+  `Cancel changes / Save trend / Delete (stub) / HelpBulb`;
+  question pill shows `Save question / Detach (stub) / Delete
+  (stub) / HelpBulb`.
+- **Pill switch with discard guard** — when `editorDirty`,
+  switching pills opens `<DiscardConfirm>` (Keep editing /
+  Discard / Save and close). Save and close routes through
+  either `saveTrendMetadata` or the editor's form depending on
+  what's dirty.
+
+Sam caught a real issue during browser-test: **standalone editor
+bodies are pre-built two-pane (form left, preview right), so
+mounting them inside the wrapper produced double-preview** (the
+editor's internal preview + the wrapper's right-pane combined
+preview). Confirmed CS handles this with two scoped CSS rules at
+`.auth-cs-pane-left`. Mirrored for trend with two rules scoped
+to `.auth-tr-pane-left`:
+
+```css
+.auth-tr-pane-left .auth-preview { display: none; }
+.auth-tr-pane-left .auth-split   { grid-template-columns: 1fr; }
+```
+
+Standalone editor at `/admin/bank/all-v2` unaffected (scope is
+the wrapper context only).
+
+### Stage 6 — 13e: detach + two-path delete
+
+`3c3e89c` wraps up slice 13's functionality.
+
+- **Detach question** — `detachQuestionAction` clears `trend_id`
+  on the bank-item row. Defensive `.eq('trend_id', trend_id)`
+  predicate so a stale form submission for an already-detached
+  question can't accidentally null another wrapper's link.
+  Triggered from a Detach button in the topbar (visible only on
+  existing question pills). Native `window.confirm()` — no typed
+  gate since detach is reversible.
+- **Delete dataset** — `deleteTrendAction` with three modes:
+  - `'simple'` — zero-attached, drop the dataset row.
+  - `'detach-and-delete'` — clear `trend_id` on each attached
+    question, then drop the dataset. Questions survive.
+  - `'delete-everything'` — drop attached questions + the
+    dataset.
+  All direct CRUD (decision 4); the legacy
+  `nclex_detach_and_delete_trend` /
+  `nclex_delete_trend_and_children` RPCs go unused.
+- **`<DeleteTrendConfirm>` dialog** — vendored from CS's
+  `delete-case-confirm.tsx`. Single-path UI when zero attached
+  (typed DELETE gate); two-path UI when ≥1 (Detach & keep, typed
+  DETACH; vs Delete everything, typed DELETE). Reuses
+  `.auth-cs-delete-*` CSS — visual treatment is wrapper-agnostic.
+
+### Stage 7 — polish (Validate panel + HelpBulb)
+
+`cf45023` adds the two planned polish items per decision 9 and
+the standing HelpBulb pattern. Sam picked option B (start with
+the planned items; iterate later if friction surfaces during
+real use).
+
+- `lib/authoring/wrappers/trend/validation.ts` — eight rules:
+  five errors (title missing, rows zero, timepoints zero,
+  row/timepoint count mismatch, publish-without-questions), one
+  slot-level error (slot stem missing), three warnings (scenario
+  missing, draft with zero questions, no flags set), plus a
+  type-diversity nudge when 3+ slots all share one host type.
+  Drops the legacy per-type content-shape check
+  (`initialToParsedItem`-based) — `saveQuestionAction` runs the
+  same parser on every save, so the panel adds no value over
+  save-time errors.
+- `lib/authoring/wrappers/trend/validation-panel.tsx` — floating
+  top-right panel mirroring CS. Reuses
+  `.auth-cs-validate-panel-*` CSS.
+- Validate button in the topbar between Delete and the HelpBulb;
+  toggles panel open/closed. Snapshot reads in-flight wrapper-
+  edit state so curator can validate uncommitted edits.
+- HelpBulb at the topbar's right end with a six-bullet hint
+  card explaining each topbar button across all states (Cancel
+  changes / Save trend / Save question / Detach / Validate /
+  Delete).
+
+### Push pattern
+
+- `c6d633d` + `14cdb07` + `65cf913` pushed together at end of
+  13a (range `84715a2..65cf913`).
+- `e6e8b09` (13b) pushed at end of 13b (range `65cf913..e6e8b09`).
+- `c479d6c` + `a8d9987` + `3c3e89c` + `cf45023` (13c–polish)
+  held locally per Sam's "no need to push yet" preference, then
+  pushed as one batch at session close (range `e6e8b09..cf45023`).
+
+Each push triggers the dev CF Worker rebuild. Prod migration
+GHA fires only on push to the `prod` branch — this session's
+work is dev-only until the next main → prod merge.
+
+### Memory
+
+No new memory writes this session. The standing memories
+(`feedback_help_bulb_pattern.md`,
+`feedback_chart_entries_no_auto_sort.md`,
+`project_authoring_rebuild_in_flight.md`) all applied; the
+`HelpBulb` pattern got reused on the trend topbar exactly per
+its rule.
+
+### Resume next time
+
+1. **Tick slice 13 in
+   [docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md](docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md)
+   §13 status tracker.** Currently shows `[ ]`.
+2. **Update `project_authoring_rebuild_in_flight.md` memory** —
+   13 of 14 slices done; only slice 14 remains.
+3. **Slice 14 — the swap.** Rename `-v2` URLs to canonical,
+   delete `lib/bank/editors/`, `lib/bank/case-study/`,
+   `lib/bank/trend/`, `lib/bank/question-authoring-panel.tsx`,
+   `app/(app)/admin/bank/editor-shell.tsx`. Drop the vendoring
+   rule. Audit imports; verify no dead references. Per the
+   slice plan §14 acceptance criteria.
+4. **CS visibility-flag retrofit** (deferred from Q7 discussion)
+   — separate task post-slice-14 to make CS questions own their
+   flags genuinely too. Likely a one-line change per editor mount
+   site (`'wrapper-child'` → `'standalone'`) plus a small
+   Visibility-section rename on the case wrapper.
+
+### Files touched this session
+
+**New:**
+
+- `docs/product-plan/slice-13-plan.md`
+- `db/migrations/20260501000000_slice_13_trend_visibility_flags.sql`
+- `lib/authoring/wrappers/trend/types.ts`
+- `lib/authoring/wrappers/trend/kind-templates.ts`
+- `lib/authoring/wrappers/trend/actions.ts`
+- `lib/authoring/wrappers/trend/load-trend.ts`
+- `lib/authoring/wrappers/trend/wrapper-page.tsx`
+- `lib/authoring/wrappers/trend/data-table.tsx`
+- `lib/authoring/wrappers/trend/kind-picker-modal.tsx`
+- `lib/authoring/wrappers/trend/delete-trend-confirm.tsx`
+- `lib/authoring/wrappers/trend/validation.ts`
+- `lib/authoring/wrappers/trend/validation-panel.tsx`
+- `app/(app)/admin/bank/trends-v2/page.tsx`
+- `app/(app)/admin/bank/trends-v2/[trend_id]/page.tsx`
+- `app/(app)/tutor/bank/trends-v2/page.tsx`
+- `app/(app)/tutor/bank/trends-v2/[trend_id]/page.tsx`
+
+**Modified:**
+
+- `db/schema.sql` (back-port of the migration)
+- `lib/authoring/actions/save-question.ts` (`trend_id` block in
+  CREATE branch)
+- `lib/nav/admin.ts` + `lib/nav/tutor.ts` (Trend datasets (v2)
+  entry)
+- `styles/authoring.css` (kind picker + modal + trend wrapper
+  layout + editor-preview override + creating-pill styles)
+
+---
+
+## Session — 2026-05-01 (Slice 12 polish + prod release)
+
+Continuation of the slice 12 build session earlier the same day.
+Started with a broken dev deploy, ended with slice 12 fully polished
+and released to prod. Eleven distinct improvements landed across two
+commits to main and one PR to prod.
+
+### Stage 1 — unblock the dev deploy
+
+Pulled the previous push and discovered the dev CF Worker deploy
+on commit `2f80084` had failed with a TypeScript narrowing error in
+`lib/authoring/wrappers/case-study/load-case.ts:176` —
+`Property 'tab_id' does not exist on type 'GenericStringError'`.
+Root cause: `cfg.tabTable`, `cfg.itemsTable`, and `cfg.questionTable`
+are union string literals, so Supabase's typed inference couldn't
+pin a single table at compile time and `data` stayed unioned with
+`GenericStringError` even after the error throw. Three spots cast
+each `.data` array to `Array<Record<string, unknown>>` via
+`as unknown as`, matching the existing pattern in the same file.
+Local `npm run build` clean; pushed as commit `c4fe827`.
+
+The lesson here is **`next dev` doesn't typecheck**, only
+`next build` does — a typecheck pass before pushing to main is
+worth the 30 seconds.
+
+### Stage 2 — pull `.env.local` into the worktree
+
+This session ran in a fresh worktree which doesn't carry git-ignored
+files. `npm run dev` started without env vars and any auth-bound
+page would have failed. Copied `.env.local` from the main repo
+clone (`C:/Users/confi/qacademy-mynclex/.env.local`) into the
+worktree before the next dev-server run. A previous `npm run dev`
+PID was orphaned on port 3000 after `task_id` stop didn't fully
+kill the Node process — had to `taskkill /F` it before the new
+server could bind. Worth knowing for future worktree sessions.
+
+### Stage 3 — polish pass (commit `ffa78ea`)
+
+Eleven distinct improvements bundled into one polish commit after
+each was browser-tested on dev. None of these are new features —
+all address friction discovered while exercising the slice 12
+wrapper end-to-end against the "Test case study sample" case
+(`NCLEX_CS_00004`) on dev Supabase.
+
+#### Wrapper page
+
+- **Back-to-list affordance.** `← Back to list` link + clickable
+  Case Studies (v2) breadcrumb in the topbar. Both intercept clicks
+  via a `hasAnyDirty` memo (combines wrapper-edit dirty + dirty
+  chart tabs + any dirty editor body) — when something is unsaved,
+  opens `<DiscardConfirm>` instead of navigating. Made the
+  `onSaveAndClose` prop on `DiscardConfirm` optional so the
+  leave-page variant renders as a 2-button dialog (Keep editing /
+  Discard) — there's no single coherent thing to "Save and close"
+  when wrapper-edit, a chart tab, and an editor body could all be
+  dirty at once.
+
+- **Save question button restored in editor mode for new slots.**
+  The button gating used `activeSlotData?.editor` to find the form
+  ID, but for *newly-created* questions the slot's loaded `.editor`
+  is `null` (the slot was empty pre-create) and the picked editor
+  lives in the `creating` state instead. Added a derived
+  `activeEditorKind` that pulls from either source and re-routed
+  the form ID lookup through it.
+
+- **Toolbar revamp.** Cancel renamed to **Cancel changes** (Sam
+  preferred this over "Reset" because the scope is narrow —
+  metadata fields only — and "Reset" implies whole-form clear).
+  Added a strong `:disabled` rule on `.auth-cs-btn` (opacity 0.42,
+  grayscale 0.35, `not-allowed` cursor) so the dirty→enabled
+  transition is dramatic. Added a `.dirty-glow` accent-coloured
+  pulsing ring on Cancel changes / Save case study (when wrapper
+  is dirty) and Save question (when the body is dirty). Native
+  `title=` tooltips on every action button. New `<HelpBulb>` 💡
+  atom in `lib/authoring/atoms/help-bulb.tsx` opens an anchored
+  hint card listing each toolbar's button purposes — one for the
+  wrapper toolbar, one for the editor toolbar.
+
+  Sam validated the bulb pattern as something to apply to other
+  toolbars going forward; saved as a feedback memory
+  (`feedback_help_bulb_pattern.md`).
+
+- **Slot rail in its own bordered section.** The slot rail header
+  + 6 slot cards + "+ Add question" button were rendered outside
+  both the Content and Chart tab bodies, with no visual separation.
+  Under Content the Visibility section gave incidental separation;
+  under Chart it looked like part of the chart layout. Wrapped in
+  `.auth-cs-slot-section` with a top border + edge-to-edge layout
+  (margin -14px) matching the Visibility section's break.
+
+#### Create flow
+
+- **`+ New case study` button on both list pages.** Added
+  `createCaseAction` in
+  `lib/authoring/wrappers/case-study/actions.ts` — vendored
+  `nextCaseId` (the legacy private function depended on legacy
+  `surfaceConfig`; cheaper to copy than to refactor) + idPrefix
+  lookup from `lib/authoring/classifications`. Inserts an
+  `'Untitled case'` row, redirects to
+  `/admin|tutor/bank/cases-v2/<id>` so the curator lands directly
+  in Wrapper mode for renaming. Replaced the empty-state copy that
+  pointed at the legacy list.
+
+#### Add-tab popover
+
+- **z-index + height cap.** Bumped `.cs-popover` from `z-index: 10`
+  to `z-index: 30` (above the wrapper-page sticky topbar at
+  `z-index: 20`) so the × close and the top items aren't hidden
+  when the popover grows upward into the topbar's region. Added
+  `max-height: 70vh` + `overflow-y: auto` so very tall popovers
+  scroll inside themselves rather than off-screen.
+
+- **Custom-flow restructure.** Step 1 was mixing two mental
+  models — a list of pre-defined options *and* a creation form
+  (name input + Next button). Restructured: Step 1 is now a pure
+  pick-an-option screen (6 built-ins + a single
+  `+ Create custom tab` button); Step 2 (only via that click)
+  combines name input + shape picker on one screen with autofocus
+  on the name input and `Add tab` disabled until name is non-empty.
+  Net click count: built-in still 1 click, custom went from 4 to
+  2.
+
+#### Tab rail
+
+- **Add button repositioned.** `.cs-tab-rail-footer` had
+  `margin-top: auto` which floated the button to the bottom of
+  the rail's full height; replaced with `margin-top: 8px` so it
+  sits directly under the last tab.
+
+- **Custom badge stacked under the title.** Tab item layout was
+  flex-row `[arrows] [name] [Custom badge] [count]` which truncated
+  long custom names like "Nursing Assessment". Wrapped name + badge
+  in a `.cs-tab-item-text` flex column so the name has full row-width
+  and the Custom badge sits underneath as a left-aligned chip.
+
+#### Chart preview (right pane)
+
+- **Built-in structured tabs render properly.** The big bug. Vital
+  Signs and Lab Results stored `columns_def: []` in the DB because
+  their columns live in the `BuiltInTabType` registry, not the row.
+  `PreviewChartView` was checking `tab.columns_def.length > 0`
+  to decide structured vs narrative — built-ins fell through to
+  the narrative branch and rendered nothing recognisable. Fix:
+  derive `effectiveColumns` from the registry for built-ins, from
+  `tab.columns_def` for custom grids. Same effective-column list
+  drives both the table headers and the per-row cells.
+
+- **Lab flag colour-coding.** When `flag` is `H` / `L` /
+  `High` / `Low`, the row gets an amber tint; `Critical` /
+  `Crit` / `!!` get red + bolded. Subtle, doesn't shout.
+
+- **Narrative extras render.** Orders shows a coloured `status`
+  chip (Active=green, Completed=indigo, Discontinued=red,
+  Held=amber). H&P shows `section` as the card header in place of
+  time (matches the editor's `omit_time` flag). Diagnostics shows
+  `test_type` as an italic muted label.
+
+- **Multi-line scenarios + bodies.** Both the wrapper-edit
+  scenario and narrative tab bodies were collapsing newlines.
+  Added `white-space: pre-wrap` to `.auth-cs-preview-scenario` and
+  `.auth-cs-preview-narrative-body` — curator-typed line breaks
+  now survive into the preview.
+
+- **No auto-sort.** First pass sorted entries chronologically
+  (lexical sort on the `time` field). Sam pointed out time is
+  free text — curators type "0800", "8am", "Day 2 morning" —
+  no sort produces correct order across that variation. Reverted
+  to array order. Saved as a feedback memory
+  (`feedback_chart_entries_no_auto_sort.md`).
+
+- **Tab title no longer truncated.** The chart-preview tab strip
+  had `t.title.length > 14 ? t.title.split(' ')[0] : t.title` —
+  for "Nursing Assessment" (18 chars) this rendered as just
+  "Nursing". Replaced with full title + CSS `max-width: 200px;
+  text-overflow: ellipsis` and `title={t.title}` for the hover
+  tooltip — full information preserved.
+
+#### Structured cell editor
+
+- **Cells visibly look editable.** The `.cs-entries-table input`
+  had `border: 1px solid transparent; background: transparent;`
+  which made the table read as static text until hover. Now: thin
+  `var(--border)` border + `#fafbfc` off-white fill, hover lifts
+  to white + darker border, focus gets the accent border + soft
+  glow.
+
+- **Content-driven cell width.** Added `field-sizing: content`
+  so modern browsers (Chrome 123+, Safari 17.4+, Firefox 122+)
+  auto-grow the input to its content — long lab values like
+  `"pH 7.32, PaCO₂ 52 mmHg, PaO₂ 68 mmHg, HCO₃ 26 mEq/L"` widen
+  the column instead of being clipped. Older browsers fall back
+  to width 100% inside the cell.
+
+- **Horizontal scroll wrapper.** Wrapped the table in
+  `.cs-entries-table-scroll { overflow-x: auto }` so rows that
+  outgrow the pane scroll inside the table container, not pushing
+  the whole layout sideways.
+
+- **min-width tuning.** First pass had `min-width: 110px` on
+  inputs; Sam noticed Time columns (with values like "0800") were
+  forced wider than needed. Dropped to 50px — empty cells stay
+  clickable, short-content columns shrink to fit.
+
+### Stage 4 — release to prod
+
+Two commits on main this session: `c4fe827` (typecheck fix) and
+`ffa78ea` (polish bundle). Dev CF Worker auto-deployed on each;
+both green.
+
+For the prod release, `origin/prod` had a merge commit (`ac3638b`
+from PR #8) that wasn't reachable from `origin/main`, so a strict
+fast-forward wasn't possible. Continued the established PR pattern
+(PRs #7, #8 before this) — opened
+[mynclex#10](https://github.com/QAcademy-Nurses/mynclex/pull/10),
+merged via `gh pr merge 10 --merge --admin`. Both halves of the
+prod pipeline succeeded:
+
+- **Deploy prod Worker (workspace CF)** ✅ — slice 12 polish live
+  at `https://mynclex.qacademynurses.workers.dev`.
+- **Apply Supabase migrations to prod** ✅ — no-op, no DB changes
+  this batch.
+
+### Memory writes
+
+- New `feedback_help_bulb_pattern.md` — `<HelpBulb>` + dirty-glow
+  + strong `:disabled` is the standard treatment for any toolbar
+  with 3+ buttons of non-obvious scope.
+- New `feedback_chart_entries_no_auto_sort.md` — never auto-sort
+  case-study chart-tab entries by `time`; the column is free text
+  and curator's array order is authoritative.
+- Updated `project_authoring_rebuild_in_flight.md` — slice 12
+  ticked, 12 of 14 done.
+- Slice plan tracker (§13 of `questions-and-wrappers-rebuild-slice-plan.md`)
+  ticks slice 12.
+
+### Resume next time
+
+Slice 12 is fully done — both functionality (earlier session) and
+polish (this session). Live on dev and prod.
+
+Next priorities, in order:
+
+1. **Slice 13 — Trend wrapper-v2.** Same shape as Case Study
+   (three-pane wrapper, slot rail, combined preview) but with a
+   data table where Case Study has chart tabs, and variable-N
+   slots rather than fixed 6. Plan stub at
+   `docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md`
+   §13.
+2. **Slice 14 — the swap.** Rename `-v2` → canonical, delete
+   `lib/bank/`, drop the vendoring rule. The
+   `project_authoring_rebuild_in_flight.md` memory should be
+   removed at this point.
+3. Optional: live-while-typing preview in the case-study right
+   pane (deferred from earlier session). Atomic-RPC sweep on Save
+   case study (also deferred).
+
+### Files touched this session
+
+- Modified: `lib/authoring/wrappers/case-study/load-case.ts`
+- Modified: `lib/authoring/wrappers/case-study/wrapper-page.tsx`
+- Modified: `lib/authoring/wrappers/case-study/actions.ts`
+- Modified: `lib/authoring/wrappers/case-study/chart-tabs/tab-rail.tsx`
+- Modified: `lib/authoring/wrappers/case-study/chart-tabs/structured-tab.tsx`
+- Modified: `lib/authoring/atoms/discard-confirm.tsx`
+- New:      `lib/authoring/atoms/help-bulb.tsx`
+- Modified: `app/(app)/admin/bank/cases-v2/page.tsx`
+- Modified: `app/(app)/tutor/bank/cases-v2/page.tsx`
+- Modified: `styles/authoring.css`
+- Modified: `styles/dashboards.css`
+
+---
+
 ## Session — 2026-05-01 (Slice 12 — case-study wrapper v2: 12a → 12e)
 
 Slice 12 (case-study wrapper rebuild) landed end-to-end across one

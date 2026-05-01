@@ -1,0 +1,66 @@
+// mynclex/app/(app)/admin/bank/trends/[trend_id]/page.tsx
+//
+// Admin Trend dataset editor (Slice 1.12a). Server component that:
+//   1. Gates on BANK_CURATE / SUPER_ADMIN.
+//   2. Fetches the dataset row.
+//   3. Mounts <TrendEditor surface='admin' initial={...} />.
+//
+// Tutor twin lives at (app)/tutor/bank/trends/[trend_id]/page.tsx.
+
+import { notFound } from 'next/navigation';
+import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
+import { TrendEditor } from '@/lib/bank/trend/editor';
+import type { FullBankRow } from '@/lib/bank/list-view';
+import type {
+  TrendDatasetRow,
+  TrendEditorInitial,
+} from '@/lib/bank/trend/types';
+
+export const dynamic = 'force-dynamic';
+
+interface PageProps {
+  params: Promise<{ trend_id: string }>;
+}
+
+export default async function AdminTrendEditorPage({ params }: PageProps) {
+  const { trend_id } = await params;
+  const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
+
+  const [datasetRes, itemsRes] = await Promise.all([
+    supabase
+      .from('nclex_trend_datasets')
+      .select('*')
+      .eq('trend_id', trend_id)
+      .maybeSingle(),
+    supabase
+      .from('nclex_bank_items')
+      .select('*')
+      .eq('trend_id', trend_id)
+      .order('created_at', { ascending: true }),
+  ]);
+
+  if (datasetRes.error) {
+    return (
+      <main className="bank-page">
+        <p className="bank-error">Error loading trend dataset: {datasetRes.error.message}</p>
+      </main>
+    );
+  }
+
+  if (itemsRes.error) {
+    return (
+      <main className="bank-page">
+        <p className="bank-error">Error loading attached questions: {itemsRes.error.message}</p>
+      </main>
+    );
+  }
+
+  if (!datasetRes.data) notFound();
+
+  const initial: TrendEditorInitial = {
+    datasetRow:    datasetRes.data as TrendDatasetRow,
+    attachedItems: (itemsRes.data ?? []) as FullBankRow[],
+  };
+
+  return <TrendEditor surface="admin" initial={initial} />;
+}

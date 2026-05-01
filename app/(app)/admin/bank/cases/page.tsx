@@ -1,125 +1,155 @@
 // mynclex/app/(app)/admin/bank/cases/page.tsx
 //
-// Admin Case Studies list (Slice 1.11a). Simple table — case_id,
-// title, published badge, updated_at, Edit link. "+ New case" button
-// posts to createCaseAction with surface='admin' and redirects to
-// the editor where the curator fills in title + chart tabs.
+// Slice 12a — admin Case Studies list. Reads nclex_case_studies
+// and renders a simple table. Each row links to the [case_id] page
+// (currently a stub; the real wrapper page lands in slice 12b).
 //
-// Role gate mirrors /admin/bank: BANK_CURATE permission OR SUPER_ADMIN
-// short-circuit. Failure redirects to /admin.
+// Companion to /admin/bank/cases/sandbox (the visual-only design
+// scratchpad). Both routes coexist until the slice-14 swap.
+//
+// Reuses .auth-list-* styles from styles/authoring.css.
 
 import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
-import { createCaseAction } from '@/lib/bank/case-study/actions';
-import type { CaseStudyRow } from '@/lib/bank/case-study/types';
+import { createCaseAction } from '@/lib/bank/wrappers/case-study/actions';
 
 export const dynamic = 'force-dynamic';
 
-const BASE_URL = '/admin/bank/cases';
+interface CaseRow {
+  case_id:        string;
+  title:          string;
+  is_published:   boolean;
+  is_free_sample: boolean;
+  difficulty:     string | null;
+  updated_at:     string;
+}
 
-export default async function AdminCasesListPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ saved?: string; deleted?: string }>;
-}) {
+interface SlotCount {
+  case_id: string;
+  count:   number;
+}
+
+export default async function AdminCasesV2ListPage() {
   const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
 
-  const params = await searchParams;
-
-  const { data, error } = await supabase
+  const { data: caseRows, error: caseErr } = await supabase
     .from('nclex_case_studies')
-    .select('case_id, title, is_published, is_free_sample, difficulty, updated_at, created_at')
+    .select('case_id, title, is_published, is_free_sample, difficulty, updated_at')
     .order('updated_at', { ascending: false });
 
-  if (error) {
+  if (caseErr) {
     return (
-      <main className="bank-page">
-        <h1>Case Studies</h1>
-        <p className="bank-error">Error loading cases: {error.message}</p>
+      <main className="auth-list-page">
+        <div className="auth-list-inner">
+          <h1 className="auth-list-page-title">Case Studies</h1>
+          <p className="auth-sandbox-error">Could not load cases: {caseErr.message}</p>
+        </div>
       </main>
     );
   }
 
-  const cases = (data ?? []) as Array<Pick<
-    CaseStudyRow,
-    'case_id' | 'title' | 'is_published' | 'is_free_sample' | 'difficulty' | 'updated_at' | 'created_at'
-  >>;
+  const cases = (caseRows ?? []) as CaseRow[];
+
+  // Populated-slot counts. Pull join-row case_ids for the cases on
+  // this page and bucket them in JS — small N, simpler than an RPC.
+  let slotCounts: Record<string, number> = {};
+  if (cases.length > 0) {
+    const ids = cases.map((c) => c.case_id);
+    const { data: slotRows } = await supabase
+      .from('nclex_case_study_items')
+      .select('case_id')
+      .in('case_id', ids);
+    for (const row of (slotRows ?? []) as SlotCount[]) {
+      slotCounts[row.case_id] = (slotCounts[row.case_id] ?? 0) + 1;
+    }
+  }
 
   return (
-    <main className="bank-page">
-      <div className="cs-list-head">
-        <div>
-          <h1>Case Studies</h1>
-          <p className="cs-list-sub">
-            Multi-question NCLEX scenarios with a shared patient chart.
-            Each case groups 1–6 questions under one scenario plus up to
-            10+ chart tabs.
-          </p>
-        </div>
-        <div className="cs-list-actions">
-          <Link href="/admin/bank/all" className="cs-btn">← Back to bank</Link>
-          <form
-            action={async (fd: FormData) => {
-              'use server';
-              // createCaseAction redirects on success; the ActionResult
-              // return type is only for the failure branch. The
-              // <form action> slot wants void | Promise<void>, so we
-              // swallow the result here.
-              await createCaseAction(fd);
-            }}
-            style={{ display: 'inline' }}
-          >
-            <input type="hidden" name="surface" value="admin" />
-            <button type="submit" className="cs-btn primary">+ New case</button>
-          </form>
-        </div>
-      </div>
+    <main className="auth-list-page">
+      <div className="auth-list-inner">
+        <header className="auth-list-page-header">
+          <div>
+            <h1 className="auth-list-page-title">Case Studies</h1>
+            <p className="auth-list-page-subtitle">
+              Multi-question NCLEX scenarios with a shared patient chart. Each
+              case groups up to 6 questions under one scenario plus its chart
+              tabs. Click a row to open the wrapper editor.
+            </p>
+          </div>
+          <div className="auth-list-toolbar">
+            <form
+              action={async (fd: FormData) => {
+                'use server';
+                // createCaseAction redirects on success; the SaveResult
+                // return type is only for the failure branch. The form
+                // action slot wants void | Promise<void>, so swallow.
+                await createCaseAction(fd);
+              }}
+              style={{ display: 'inline' }}
+            >
+              <input type="hidden" name="surface" value="admin" />
+              <button type="submit" className="auth-cs-btn primary">+ New case study</button>
+            </form>
+          </div>
+        </header>
 
-      {params.saved === '1' && (
-        <div className="cs-banner ok">Case saved.</div>
-      )}
-      {params.deleted === '1' && (
-        <div className="cs-banner ok">Case deleted.</div>
-      )}
+        <p className="auth-list-count">{cases.length} case{cases.length === 1 ? '' : 's'}</p>
 
-      {cases.length === 0 ? (
-        <div className="cs-list-empty">
-          <h3>No case studies yet</h3>
-          <p>Click <strong>+ New case</strong> to create the first one.</p>
-        </div>
-      ) : (
-        <table className="cs-list-table">
-          <thead>
-            <tr>
-              <th>Case ID</th>
-              <th>Title</th>
-              <th>Status</th>
-              <th>Difficulty</th>
-              <th>Updated</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {cases.map((c) => (
-              <tr key={c.case_id}>
-                <td><code>{c.case_id}</code></td>
-                <td>{c.title}</td>
-                <td>
-                  {c.is_published
-                    ? <span className="cs-pill ok">Published</span>
-                    : <span className="cs-pill muted">Draft</span>}
-                  {c.is_free_sample && <span className="cs-pill info" style={{ marginLeft: 6 }}>Free sample</span>}
-                </td>
-                <td>{c.difficulty ?? '—'}</td>
-                <td>{new Date(c.updated_at).toLocaleDateString()}</td>
-                <td>
-                  <Link href={`${BASE_URL}/${c.case_id}`} className="cs-btn">Edit</Link>
-                </td>
+        {cases.length === 0 ? (
+          <div className="auth-list-empty">
+            <h3>No case studies yet</h3>
+            <p>Click <strong>+ New case study</strong> to create the first one.</p>
+            <form
+              action={async (fd: FormData) => {
+                'use server';
+                await createCaseAction(fd);
+              }}
+              style={{ marginTop: 12 }}
+            >
+              <input type="hidden" name="surface" value="admin" />
+              <button type="submit" className="auth-cs-btn primary">+ New case study</button>
+            </form>
+          </div>
+        ) : (
+          <table className="auth-list-table">
+            <thead>
+              <tr>
+                <th>Case ID</th>
+                <th>Title</th>
+                <th>Slots</th>
+                <th>Status</th>
+                <th>Difficulty</th>
+                <th>Updated</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {cases.map((c) => (
+                <tr key={c.case_id}>
+                  <td className="auth-list-item-id"><code>{c.case_id}</code></td>
+                  <td>{c.title}</td>
+                  <td>{slotCounts[c.case_id] ?? 0} of 6</td>
+                  <td>
+                    {c.is_published
+                      ? <span className="auth-cs-tag ok">Published</span>
+                      : <span className="auth-cs-tag muted">Draft</span>}
+                    {c.is_free_sample && (
+                      <span className="auth-cs-tag info" style={{ marginLeft: 6 }}>Free sample</span>
+                    )}
+                  </td>
+                  <td>{c.difficulty ?? '—'}</td>
+                  <td>{new Date(c.updated_at).toLocaleDateString()}</td>
+                  <td className="auth-list-row-actions">
+                    <Link href={`/admin/bank/cases/${c.case_id}`} className="auth-cs-btn tiny">
+                      Open →
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </main>
   );
 }

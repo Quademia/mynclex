@@ -323,16 +323,23 @@ CREATE INDEX idx_nclex_tutor_case_study_tabs_case ON nclex_tutor_case_study_tabs
 -- three-sub-slice shape.
 
 -- 11. Admin-owned trend datasets
+-- is_free_sample + is_builder_visible added in slice 13 so the
+-- trend wrapper-v2 can carry the same three-row Visibility section
+-- as the case-study wrapper. Defaults match nclex_bank_items
+-- (FALSE / TRUE).
 CREATE TABLE nclex_trend_datasets (
-  trend_id      TEXT PRIMARY KEY,
-  title         TEXT NOT NULL,
-  scenario      TEXT,
-  kind          TEXT NOT NULL,
-  timepoints    JSONB NOT NULL DEFAULT '[]'::jsonb,
-  rows          JSONB NOT NULL DEFAULT '[]'::jsonb,
-  is_published  BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  trend_id            TEXT PRIMARY KEY,
+  title               TEXT NOT NULL,
+  scenario            TEXT,
+  kind                TEXT NOT NULL,
+  row_label           TEXT,
+  timepoints          JSONB NOT NULL DEFAULT '[]'::jsonb,
+  rows                JSONB NOT NULL DEFAULT '[]'::jsonb,
+  is_published        BOOLEAN NOT NULL DEFAULT FALSE,
+  is_free_sample      BOOLEAN NOT NULL DEFAULT FALSE,
+  is_builder_visible  BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 
@@ -340,17 +347,22 @@ CREATE TABLE nclex_trend_datasets (
 -- tutor_id follows the repo's existing tutor-table convention
 -- (FK to nclex_users with ON DELETE CASCADE) rather than
 -- referencing auth.users directly.
+-- is_free_sample + is_builder_visible added in slice 13 alongside
+-- the admin twin.
 CREATE TABLE nclex_tutor_trend_datasets (
-  trend_id      TEXT PRIMARY KEY,
-  tutor_id      UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
-  title         TEXT NOT NULL,
-  scenario      TEXT,
-  kind          TEXT NOT NULL,
-  timepoints    JSONB NOT NULL DEFAULT '[]'::jsonb,
-  rows          JSONB NOT NULL DEFAULT '[]'::jsonb,
-  is_published  BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  trend_id            TEXT PRIMARY KEY,
+  tutor_id            UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
+  title               TEXT NOT NULL,
+  scenario            TEXT,
+  kind                TEXT NOT NULL,
+  row_label           TEXT,
+  timepoints          JSONB NOT NULL DEFAULT '[]'::jsonb,
+  rows                JSONB NOT NULL DEFAULT '[]'::jsonb,
+  is_published        BOOLEAN NOT NULL DEFAULT FALSE,
+  is_free_sample      BOOLEAN NOT NULL DEFAULT FALSE,
+  is_builder_visible  BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_nclex_tutor_trend_datasets_tutor

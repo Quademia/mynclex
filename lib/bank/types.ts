@@ -6,10 +6,6 @@
 // polymorphic — their shape varies by question_type. These interfaces
 // document the shapes and let the editor + future renderer + scoring
 // functions speak the same language.
-//
-// Family A only for Slice 1.2 (MCQ, TF, SATA, SELECT_N).
-// Family B types (MATRIX, HIGHLIGHT, CLOZE, DRAG_DROP, BOWTIE) get
-// added here as their respective slices land.
 
 // ─────────────────────────────────────────────────────────────
 // Common — every option carries an ID (A–F) + display text.

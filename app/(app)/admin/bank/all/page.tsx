@@ -1,104 +1,151 @@
 // mynclex/app/(app)/admin/bank/all/page.tsx
 //
-// Admin Question Bank — thin server wrapper around the shared
-// <BankListView> component.
+// Admin Question Bank list. Reads nclex_bank_items, renders the
+// authoring list with filters / composition counts / per-row actions.
 //
-// This page owns three surface-specific responsibilities:
-//   1. The role gate (BANK_CURATE / SUPER_ADMIN — redirects to /admin
-//      on failure).
-//   2. The data fetch (nclex_bank_items, filtered + paginated).
-//   3. Mounting the <EditorShell> with surface='admin' when in focus
-//      mode.
-//
-// Everything else (browse layout, focus layout, filter bar, navigator,
-// row card, URL builders, row → form-initial mapping) lives in
-// mynclex/lib/bank/list-view.tsx and is shared with /tutor/bank.
-//
-// Surface-specific writes still happen in ./actions — the surface
-// is carried through FormData on submit.
-//
-// Bank-list polish slice (post-1.12c): case-children and trend-
-// children both appear in the list now (case exclusion removed).
-// Per-row wrapper badges link to the appropriate wrapper editor;
-// the ?edit= handler redirects wrapper-linked rows server-side so
-// the standalone editor never opens on a wrapper child.
+//   - Modal-based editor for standalone rows (no `?edit=` focus mode).
+//   - "+ New question" → type picker → matching editor in create mode.
+//   - Wrapper-linked rows show with badges ("In case · {title}" /
+//     "Trend · {title}") and link to the wrapper page with
+//     ?focus=<item_id>; standalone modal never opens for them.
+//   - Top section: filter bar, composition counts, nav links.
+//   - No pagination yet. Hard-cap at 500 rows.
 
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
-import { EditorShell } from '../editor-shell';
 import {
-  BankListView,
-  buildFilterQueryString,
-  emptyInitial,
-  rowToInitial,
+  BankListClient,
+  type BankListRowSummary,
+} from '@/lib/bank/bank-list-client';
+import {
+  BankFilters,
+  type BankFilterValues,
+} from '@/lib/bank/bank-filters';
+import {
+  BankCounts,
   type BankCompositionCounts,
-  type BankRow,
-  type BankSearchParams,
-  type FullBankRow,
-} from '@/lib/bank/list-view';
-import type { BankFilterValues } from '@/lib/bank/filters';
-import type { BankFormInitial } from '@/lib/bank/form-shape';
+} from '@/lib/bank/bank-counts';
+import {
+  emptyMcqInitial,
+  mcqRowToInitial,
+  MCQ_ROW_COLUMNS,
+  type McqDbRow,
+  type McqEditorInitial,
+} from '@/lib/bank/editors/mcq-row-mapper';
+import {
+  emptyTfInitial,
+  tfRowToInitial,
+  type TfEditorInitial,
+} from '@/lib/bank/editors/tf-row-mapper';
+import {
+  emptySataInitial,
+  sataRowToInitial,
+  type SataDbRow,
+  type SataEditorInitial,
+} from '@/lib/bank/editors/sata-row-mapper';
+import {
+  emptySelectNInitial,
+  selectNRowToInitial,
+  type SelectNDbRow,
+  type SelectNEditorInitial,
+} from '@/lib/bank/editors/select-n-row-mapper';
+import {
+  emptyMatrixInitial,
+  matrixRowToInitial,
+  type MatrixDbRow,
+  type MatrixEditorInitial,
+} from '@/lib/bank/editors/matrix-row-mapper';
+import {
+  emptyBowtieInitial,
+  bowtieRowToInitial,
+  type BowtieDbRow,
+  type BowtieEditorInitial,
+} from '@/lib/bank/editors/bowtie-row-mapper';
+import {
+  emptyClozeInitial,
+  clozeRowToInitial,
+  type ClozeDbRow,
+  type ClozeEditorInitial,
+} from '@/lib/bank/editors/cloze-row-mapper';
+import {
+  emptyHighlightInitial,
+  highlightRowToInitial,
+  type HighlightDbRow,
+  type HighlightEditorInitial,
+} from '@/lib/bank/editors/highlight-row-mapper';
+import {
+  emptyDragDropInitial,
+  dragDropRowToInitial,
+  type DragDropDbRow,
+  type DragDropEditorInitial,
+} from '@/lib/bank/editors/drag-drop-row-mapper';
+import type { QuestionType } from '@/lib/bank/classifications';
 
 export const dynamic = 'force-dynamic';
 
 const BASE_URL = '/admin/bank/all';
 
-export default async function AdminBankPage({
-  searchParams,
-}: {
-  searchParams: Promise<BankSearchParams>;
-}) {
+interface FullBankRow extends McqDbRow {
+  parent_case_id: string | null;
+  trend_id:       string | null;
+  case:  { title: string } | null;
+  trend: { title: string } | null;
+}
+
+interface PageProps {
+  searchParams?: Promise<{
+    type?:       string;
+    category?:   string;
+    difficulty?: string;
+    status?:     string;
+    membership?: string;
+    q?:          string;
+  }>;
+}
+
+export default async function AdminBankAllPage({ searchParams }: PageProps) {
+  const sp = (await searchParams) ?? {};
+  const filters: BankFilterValues = {
+    type:       sp.type       ?? '',
+    category:   sp.category   ?? '',
+    difficulty: sp.difficulty ?? '',
+    status:     sp.status     ?? '',
+    membership: sp.membership ?? '',
+    q:          sp.q          ?? '',
+  };
+  const hasAnyFilter =
+    filters.type !== '' ||
+    filters.category !== '' ||
+    filters.difficulty !== '' ||
+    filters.status !== '' ||
+    filters.membership !== '' ||
+    filters.q !== '';
+
   const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
 
-  const params = await searchParams;
-  const editId = params.edit ?? null;
-  const newMode = params.new === '1';
-  const inFocusMode = editId !== null || newMode;
-
-  const filters: BankFilterValues = {
-    type: params.type ?? '',
-    category: params.category ?? '',
-    difficulty: params.difficulty ?? '',
-    status: params.status ?? '',
-    membership: params.membership ?? '',
-    q: (params.q ?? '').trim(),
-  };
-  const preservedFilterQuery = buildFilterQueryString(filters);
-
-  // ── Main query ──────────────────────────────────────────────────
-  // Case exclusion removed — case-children now render in the list,
-  // protected by the ?edit= redirect below. Trend join was added in
-  // 1.12b; case join is new this slice.
-  //
-  // FK-join aliases (`case:...` / `trend:...`) work because the
-  // parent_case_id_fkey and trend_id_fkey constraints follow the
-  // Supabase-default naming, so no `!constraint_name` hint is
-  // needed (verified against dev pg_catalog).
+  // ── Main row query ─────────────────────────────────────────
   let query = supabase
     .from('nclex_bank_items')
     .select(
-      'item_id, question_type, difficulty, stem, is_published, is_free_sample, ' +
-      'client_needs_category, nursing_subject, body_system, tags, created_at, ' +
-      'parent_case_id, trend_id, ' +
+      MCQ_ROW_COLUMNS +
+      ', parent_case_id, trend_id, ' +
       'trend:nclex_trend_datasets(title), ' +
       'case:nclex_case_studies(title)',
     )
     .order('item_id', { ascending: true })
     .limit(500);
 
-  // Non-membership filters. Applied to the main row query AND the
-  // four filtered-count queries below (via the helper).
-  if (filters.type) query = query.eq('question_type', filters.type);
-  if (filters.category) query = query.eq('client_needs_category', filters.category);
+  // Non-membership filters.
+  if (filters.type)       query = query.eq('question_type', filters.type);
+  if (filters.category)   query = query.eq('client_needs_category', filters.category);
   if (filters.difficulty) query = query.eq('difficulty', filters.difficulty);
   if (filters.status === 'published') query = query.eq('is_published', true);
-  if (filters.status === 'draft') query = query.eq('is_published', false);
+  if (filters.status === 'draft')     query = query.eq('is_published', false);
   if (filters.q) query = query.ilike('stem', `%${filters.q}%`);
 
-  // Membership filter — applied to the main row query only. The
-  // four filtered counts deliberately exclude this so the
-  // composition row stays informative when a membership is picked.
+  // Membership filter — applied to the main query only. The four
+  // composition-count queries below deliberately exclude this so all
+  // four chips stay informative when a membership is picked.
   if (filters.membership === 'standalone') {
     query = query.is('parent_case_id', null).is('trend_id', null);
   } else if (filters.membership === 'case') {
@@ -107,17 +154,17 @@ export default async function AdminBankPage({
     query = query.not('trend_id', 'is', null);
   }
 
-  // ── Composition counts (8 cheap COUNT queries) ─────────────────
-  // Helper: build a count query with the non-membership filters
-  // applied and an optional membership predicate. Surface-level
-  // totals pass `withFilters=false`; filtered counts pass `true`.
-  type MembershipBucket = 'total' | 'standalone' | 'case' | 'trend';
+  const { data, error } = await query.returns<FullBankRow[]>();
 
-  function countQuery(bucket: MembershipBucket, withFilters: boolean) {
+  // ── Composition counts (4 buckets × 2: total + filtered) ──
+  type MembershipBucket = 'total' | 'standalone' | 'case' | 'trend';
+  const buildCountQuery = (
+    bucket: MembershipBucket,
+    applyNonMembership: boolean,
+  ) => {
     let q = supabase
       .from('nclex_bank_items')
       .select('*', { count: 'exact', head: true });
-
     if (bucket === 'standalone') {
       q = q.is('parent_case_id', null).is('trend_id', null);
     } else if (bucket === 'case') {
@@ -125,154 +172,144 @@ export default async function AdminBankPage({
     } else if (bucket === 'trend') {
       q = q.not('trend_id', 'is', null);
     }
-
-    if (withFilters) {
-      if (filters.type) q = q.eq('question_type', filters.type);
-      if (filters.category) q = q.eq('client_needs_category', filters.category);
+    if (applyNonMembership) {
+      if (filters.type)       q = q.eq('question_type', filters.type);
+      if (filters.category)   q = q.eq('client_needs_category', filters.category);
       if (filters.difficulty) q = q.eq('difficulty', filters.difficulty);
       if (filters.status === 'published') q = q.eq('is_published', true);
-      if (filters.status === 'draft') q = q.eq('is_published', false);
+      if (filters.status === 'draft')     q = q.eq('is_published', false);
       if (filters.q) q = q.ilike('stem', `%${filters.q}%`);
     }
     return q;
-  }
+  };
 
   const [
-    itemsRes,
-    totalTotal,
-    totalStandalone,
-    totalCase,
-    totalTrend,
-    filteredTotal,
-    filteredStandalone,
-    filteredCase,
-    filteredTrend,
+    totalAll, totalStandalone, totalCase, totalTrend,
+    filteredAll, filteredStandalone, filteredCase, filteredTrend,
   ] = await Promise.all([
-    query,
-    countQuery('total',      false),
-    countQuery('standalone', false),
-    countQuery('case',       false),
-    countQuery('trend',      false),
-    countQuery('total',      true),
-    countQuery('standalone', true),
-    countQuery('case',       true),
-    countQuery('trend',      true),
+    buildCountQuery('total',      false),
+    buildCountQuery('standalone', false),
+    buildCountQuery('case',       false),
+    buildCountQuery('trend',      false),
+    buildCountQuery('total',      true),
+    buildCountQuery('standalone', true),
+    buildCountQuery('case',       true),
+    buildCountQuery('trend',      true),
   ]);
 
   const counts: BankCompositionCounts = {
-    total:       { filtered: filteredTotal.count      ?? 0, total: totalTotal.count      ?? 0 },
+    total:       { filtered: filteredAll.count        ?? 0, total: totalAll.count        ?? 0 },
     standalone:  { filtered: filteredStandalone.count ?? 0, total: totalStandalone.count ?? 0 },
     caseLinked:  { filtered: filteredCase.count       ?? 0, total: totalCase.count       ?? 0 },
     trendLinked: { filtered: filteredTrend.count      ?? 0, total: totalTrend.count      ?? 0 },
   };
 
-  // ── Row mapping ─────────────────────────────────────────────────
-  // Supabase's FK-join row shape: `case: {title} | null` and
-  // `trend: {title} | null`. Fall back to the raw ID if the join
-  // returns null (race condition / dataset deleted mid-query) so
-  // the curator still sees the membership; a missing title is a
-  // "dataset unknown" state, not an "unlinked question" state.
-  type RawRow = Omit<BankRow, 'trend_title' | 'case_title'> & {
-    trend: { title: string } | null;
-    case:  { title: string } | null;
-  };
-  const rawRows = (itemsRes.data ?? []) as unknown as RawRow[];
-  const rows: BankRow[] = rawRows.map((r) => ({
-    item_id:                r.item_id,
-    question_type:          r.question_type,
-    difficulty:             r.difficulty,
-    stem:                   r.stem,
-    is_published:           r.is_published,
-    is_free_sample:         r.is_free_sample,
-    client_needs_category:  r.client_needs_category,
-    nursing_subject:        r.nursing_subject,
-    body_system:            r.body_system,
-    tags:                   r.tags,
-    created_at:             r.created_at,
-    parent_case_id:         r.parent_case_id,
-    trend_id:               r.trend_id,
-    trend_title:
-      r.trend?.title ??
-      (r.trend_id ? r.trend_id : null),
-    case_title:
-      r.case?.title ??
-      (r.parent_case_id ? r.parent_case_id : null),
-  }));
-  const queryError = itemsRes.error;
-  const total = counts.total.filtered;
+  // ── Row mapping + per-type initials ────────────────────────
+  const fullRows = data ?? [];
 
-  // ── Focus-mode load + wrapper redirects ────────────────────────
-  // Check trend_id FIRST, then parent_case_id. A row shouldn't
-  // carry both in practice — ON DELETE SET NULL on parent_case_id
-  // and ON DELETE RESTRICT on trend_id means a trend-linked row
-  // that was once also a case-child (now orphaned) still redirects
-  // correctly; flag in SESSIONS.
-  let initial: BankFormInitial = emptyInitial();
-  let editLoadError: string | null = null;
-  if (editId) {
-    const { data: full, error: fullErr } = await supabase
-      .from('nclex_bank_items')
-      .select('*')
-      .eq('item_id', editId)
-      .maybeSingle<FullBankRow>();
-    if (fullErr || !full) {
-      editLoadError = `Could not load ${editId}.`;
-    } else if (full.trend_id) {
-      // Trend-linked child: open the trend editor focused on this
-      // question. Slice added this slice (post-1.12c polish).
-      redirect(`/admin/bank/trends/${full.trend_id}?focus=${editId}`);
-    } else if (full.parent_case_id) {
-      // Case-linked child question: route to the case editor
-      // instead of the standalone form. Slice 1.11b non-negotiable.
-      redirect(`/admin/bank/cases/${full.parent_case_id}?focus=${editId}`);
-    } else {
-      initial = rowToInitial(full);
+  const summaryRows: BankListRowSummary[] = fullRows.map((r) => ({
+    item_id:        r.item_id,
+    question_type:  r.question_type as QuestionType,
+    stem:           r.stem ?? '',
+    difficulty:     r.difficulty,
+    is_published:   r.is_published,
+    is_free_sample: r.is_free_sample,
+    parent_case_id: r.parent_case_id,
+    case_title:     r.case?.title ?? null,
+    trend_id:       r.trend_id,
+    trend_title:    r.trend?.title ?? null,
+  }));
+
+  const mcqInitialsById:       Record<string, McqEditorInitial>       = {};
+  const tfInitialsById:        Record<string, TfEditorInitial>        = {};
+  const sataInitialsById:      Record<string, SataEditorInitial>      = {};
+  const selectNInitialsById:   Record<string, SelectNEditorInitial>   = {};
+  const matrixInitialsById:    Record<string, MatrixEditorInitial>    = {};
+  const bowtieInitialsById:    Record<string, BowtieEditorInitial>    = {};
+  const clozeInitialsById:     Record<string, ClozeEditorInitial>     = {};
+  const highlightInitialsById: Record<string, HighlightEditorInitial> = {};
+  const dragDropInitialsById:  Record<string, DragDropEditorInitial>  = {};
+  for (const row of fullRows) {
+    if (row.question_type === 'MCQ') {
+      mcqInitialsById[row.item_id] = mcqRowToInitial(row, 'admin');
+    } else if (row.question_type === 'TF') {
+      tfInitialsById[row.item_id] = tfRowToInitial(row, 'admin');
+    } else if (row.question_type === 'SATA') {
+      sataInitialsById[row.item_id] = sataRowToInitial(row as unknown as SataDbRow, 'admin');
+    } else if (row.question_type === 'SELECT_N') {
+      selectNInitialsById[row.item_id] = selectNRowToInitial(row as unknown as SelectNDbRow, 'admin');
+    } else if (row.question_type === 'MATRIX') {
+      matrixInitialsById[row.item_id] = matrixRowToInitial(row as unknown as MatrixDbRow, 'admin');
+    } else if (row.question_type === 'BOWTIE') {
+      bowtieInitialsById[row.item_id] = bowtieRowToInitial(row as unknown as BowtieDbRow, 'admin');
+    } else if (row.question_type === 'CLOZE') {
+      clozeInitialsById[row.item_id] = clozeRowToInitial(row as unknown as ClozeDbRow, 'admin');
+    } else if (row.question_type === 'HIGHLIGHT') {
+      highlightInitialsById[row.item_id] = highlightRowToInitial(row as unknown as HighlightDbRow, 'admin');
+    } else if (row.question_type === 'DRAG_DROP') {
+      dragDropInitialsById[row.item_id] = dragDropRowToInitial(row as unknown as DragDropDbRow, 'admin');
     }
   }
 
-  const savedFlash = params.saved === '1';
-  const deletedFlash = params.deleted === '1';
-
-  const cancelHref = preservedFilterQuery
-    ? `${BASE_URL}?${preservedFilterQuery}`
-    : BASE_URL;
-
   return (
-    <BankListView
-      surface="admin"
-      baseUrl={BASE_URL}
-      rows={rows}
-      total={total}
-      counts={counts}
-      filters={filters}
-      preservedFilterQuery={preservedFilterQuery}
-      inFocusMode={inFocusMode}
-      activeId={editId}
-      editor={
-        <EditorShell
+    <main className="auth-list-page">
+      <div className="auth-list-inner">
+        {/* Back-link row — mirrors legacy. */}
+        <div className="bank-header-row">
+          <Link href="/admin/dashboard" className="bank-back-link">
+            ← Admin
+          </Link>
+        </div>
+
+        <header className="auth-list-page-header">
+          <div>
+            <h1 className="auth-list-page-title">Question Bank</h1>
+          </div>
+          <div className="auth-list-toolbar">
+            <Link href="/admin/bank/cases" className="auth-cs-btn subtle">
+              Case Studies →
+            </Link>
+            <Link href="/admin/bank/trends" className="auth-cs-btn subtle">
+              Trend datasets →
+            </Link>
+          </div>
+        </header>
+
+        <BankCounts counts={counts} />
+
+        {error && (
+          <p className="auth-sandbox-error">
+            Could not load the bank: {error.message}
+          </p>
+        )}
+
+        <BankFilters values={filters} baseUrl={BASE_URL} />
+
+        <BankListClient
           surface="admin"
-          initial={initial}
-          savedFlash={savedFlash}
-          cancelHref={cancelHref}
+          rows={summaryRows}
+          hasAnyFilter={hasAnyFilter}
+          baseUrl={BASE_URL}
+          mcqInitialsById={mcqInitialsById}
+          emptyMcqInitial={emptyMcqInitial('admin')}
+          tfInitialsById={tfInitialsById}
+          emptyTfInitial={emptyTfInitial('admin')}
+          sataInitialsById={sataInitialsById}
+          emptySataInitial={emptySataInitial('admin')}
+          selectNInitialsById={selectNInitialsById}
+          emptySelectNInitial={emptySelectNInitial('admin')}
+          matrixInitialsById={matrixInitialsById}
+          emptyMatrixInitial={emptyMatrixInitial('admin')}
+          bowtieInitialsById={bowtieInitialsById}
+          emptyBowtieInitial={emptyBowtieInitial('admin')}
+          clozeInitialsById={clozeInitialsById}
+          emptyClozeInitial={emptyClozeInitial('admin')}
+          highlightInitialsById={highlightInitialsById}
+          emptyHighlightInitial={emptyHighlightInitial('admin')}
+          dragDropInitialsById={dragDropInitialsById}
+          emptyDragDropInitial={emptyDragDropInitial('admin')}
         />
-      }
-      savedFlash={savedFlash}
-      deletedFlash={deletedFlash}
-      editLoadError={editLoadError}
-      queryError={queryError?.message ?? null}
-      titleLabel="Question Bank"
-      backHref="/admin/dashboard"
-      backLabel="Admin"
-      headerExtra={
-        <>
-          <Link href="/admin/bank/cases" className="bank-btn cs-bank-nav-link">
-            Case Studies →
-          </Link>
-          <Link href="/admin/bank/trends" className="bank-btn cs-bank-nav-link">
-            Trend datasets →
-          </Link>
-        </>
-      }
-    />
+      </div>
+    </main>
   );
 }

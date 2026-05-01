@@ -1,134 +1,146 @@
 // mynclex/app/(app)/tutor/bank/cases/page.tsx
 //
-// Tutor Case Studies list (Slice 1.11a). Tutor-scoped twin of the
-// admin cases list — same shape, but gated on the TUTOR role and
-// filtered to tutor_id = auth.uid() (belt-and-braces; RLS also
-// enforces this at the DB layer).
+// Slice 12a — tutor twin of /admin/bank/cases. Reads
+// nclex_tutor_case_studies filtered by tutor_id (RLS also enforces
+// this at the DB layer, but the client filter is belt-and-braces).
+// Each row links to the [case_id] stub (real wrapper lands in 12b).
 
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { createCaseAction } from '@/lib/bank/case-study/actions';
-import type { CaseStudyRow } from '@/lib/bank/case-study/types';
+import { requireBankCurator } from '@/lib/access';
+import { createCaseAction } from '@/lib/bank/wrappers/case-study/actions';
 
 export const dynamic = 'force-dynamic';
 
-const BASE_URL = '/tutor/bank/cases';
+interface CaseRow {
+  case_id:        string;
+  title:          string;
+  is_published:   boolean;
+  is_free_sample: boolean;
+  difficulty:     string | null;
+  updated_at:     string;
+}
 
-export default async function TutorCasesListPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ saved?: string; deleted?: string }>;
-}) {
-  const supabase = await createClient();
+interface SlotCount {
+  case_id: string;
+  count:   number;
+}
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export default async function TutorCasesV2ListPage() {
+  const { supabase, user } = await requireBankCurator('tutor');
 
-  if (!user) redirect('/login');
-
-  const { data: rolesData } = await supabase
-    .from('nclex_user_roles')
-    .select('role')
-    .eq('user_id', user.id);
-
-  const roles = (rolesData ?? []).map((r) => r.role as string);
-
-  if (!roles.includes('TUTOR')) redirect('/no-access');
-
-  const params = await searchParams;
-
-  const { data, error } = await supabase
+  const { data: caseRows, error: caseErr } = await supabase
     .from('nclex_tutor_case_studies')
-    .select('case_id, title, is_published, is_free_sample, difficulty, updated_at, created_at')
+    .select('case_id, title, is_published, is_free_sample, difficulty, updated_at')
     .eq('tutor_id', user.id)
     .order('updated_at', { ascending: false });
 
-  if (error) {
+  if (caseErr) {
     return (
-      <main className="bank-page">
-        <h1>Case Studies</h1>
-        <p className="bank-error">Error loading cases: {error.message}</p>
+      <main className="auth-list-page">
+        <div className="auth-list-inner">
+          <h1 className="auth-list-page-title">Case Studies</h1>
+          <p className="auth-sandbox-error">Could not load cases: {caseErr.message}</p>
+        </div>
       </main>
     );
   }
 
-  const cases = (data ?? []) as Array<Pick<
-    CaseStudyRow,
-    'case_id' | 'title' | 'is_published' | 'is_free_sample' | 'difficulty' | 'updated_at' | 'created_at'
-  >>;
+  const cases = (caseRows ?? []) as CaseRow[];
+
+  let slotCounts: Record<string, number> = {};
+  if (cases.length > 0) {
+    const ids = cases.map((c) => c.case_id);
+    const { data: slotRows } = await supabase
+      .from('nclex_tutor_case_study_items')
+      .select('case_id')
+      .in('case_id', ids);
+    for (const row of (slotRows ?? []) as SlotCount[]) {
+      slotCounts[row.case_id] = (slotCounts[row.case_id] ?? 0) + 1;
+    }
+  }
 
   return (
-    <main className="bank-page">
-      <div className="cs-list-head">
-        <div>
-          <h1>Case Studies</h1>
-          <p className="cs-list-sub">
-            Your private NCLEX case studies. Each groups 1–6 questions
-            under a shared patient chart.
-          </p>
-        </div>
-        <div className="cs-list-actions">
-          <Link href="/tutor/bank/all" className="cs-btn">← Back to bank</Link>
-          <form
-            action={async (fd: FormData) => {
-              'use server';
-              await createCaseAction(fd);
-            }}
-            style={{ display: 'inline' }}
-          >
-            <input type="hidden" name="surface" value="tutor" />
-            <button type="submit" className="cs-btn primary">+ New case</button>
-          </form>
-        </div>
-      </div>
+    <main className="auth-list-page">
+      <div className="auth-list-inner">
+        <header className="auth-list-page-header">
+          <div>
+            <h1 className="auth-list-page-title">Case Studies</h1>
+            <p className="auth-list-page-subtitle">
+              Your private NCLEX case studies. Each groups up to 6 questions
+              under a shared patient chart. Click a row to open the wrapper editor.
+            </p>
+          </div>
+          <div className="auth-list-toolbar">
+            <form
+              action={async (fd: FormData) => {
+                'use server';
+                await createCaseAction(fd);
+              }}
+              style={{ display: 'inline' }}
+            >
+              <input type="hidden" name="surface" value="tutor" />
+              <button type="submit" className="auth-cs-btn primary">+ New case study</button>
+            </form>
+          </div>
+        </header>
 
-      {params.saved === '1' && (
-        <div className="cs-banner ok">Case saved.</div>
-      )}
-      {params.deleted === '1' && (
-        <div className="cs-banner ok">Case deleted.</div>
-      )}
+        <p className="auth-list-count">{cases.length} case{cases.length === 1 ? '' : 's'}</p>
 
-      {cases.length === 0 ? (
-        <div className="cs-list-empty">
-          <h3>No case studies yet</h3>
-          <p>Click <strong>+ New case</strong> to create the first one.</p>
-        </div>
-      ) : (
-        <table className="cs-list-table">
-          <thead>
-            <tr>
-              <th>Case ID</th>
-              <th>Title</th>
-              <th>Status</th>
-              <th>Difficulty</th>
-              <th>Updated</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {cases.map((c) => (
-              <tr key={c.case_id}>
-                <td><code>{c.case_id}</code></td>
-                <td>{c.title}</td>
-                <td>
-                  {c.is_published
-                    ? <span className="cs-pill ok">Published</span>
-                    : <span className="cs-pill muted">Draft</span>}
-                  {c.is_free_sample && <span className="cs-pill info" style={{ marginLeft: 6 }}>Free sample</span>}
-                </td>
-                <td>{c.difficulty ?? '—'}</td>
-                <td>{new Date(c.updated_at).toLocaleDateString()}</td>
-                <td>
-                  <Link href={`${BASE_URL}/${c.case_id}`} className="cs-btn">Edit</Link>
-                </td>
+        {cases.length === 0 ? (
+          <div className="auth-list-empty">
+            <h3>No case studies yet</h3>
+            <p>Click <strong>+ New case study</strong> to create the first one.</p>
+            <form
+              action={async (fd: FormData) => {
+                'use server';
+                await createCaseAction(fd);
+              }}
+              style={{ marginTop: 12 }}
+            >
+              <input type="hidden" name="surface" value="tutor" />
+              <button type="submit" className="auth-cs-btn primary">+ New case study</button>
+            </form>
+          </div>
+        ) : (
+          <table className="auth-list-table">
+            <thead>
+              <tr>
+                <th>Case ID</th>
+                <th>Title</th>
+                <th>Slots</th>
+                <th>Status</th>
+                <th>Difficulty</th>
+                <th>Updated</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {cases.map((c) => (
+                <tr key={c.case_id}>
+                  <td className="auth-list-item-id"><code>{c.case_id}</code></td>
+                  <td>{c.title}</td>
+                  <td>{slotCounts[c.case_id] ?? 0} of 6</td>
+                  <td>
+                    {c.is_published
+                      ? <span className="auth-cs-tag ok">Published</span>
+                      : <span className="auth-cs-tag muted">Draft</span>}
+                    {c.is_free_sample && (
+                      <span className="auth-cs-tag info" style={{ marginLeft: 6 }}>Free sample</span>
+                    )}
+                  </td>
+                  <td>{c.difficulty ?? '—'}</td>
+                  <td>{new Date(c.updated_at).toLocaleDateString()}</td>
+                  <td className="auth-list-row-actions">
+                    <Link href={`/tutor/bank/cases/${c.case_id}`} className="auth-cs-btn tiny">
+                      Open →
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </main>
   );
 }

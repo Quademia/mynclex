@@ -25,7 +25,7 @@ import type {
   BowtieToken,
 } from '../types';
 
-// Payload the parser receives per wing — assembled by actions.ts
+// Payload the parser receives per wing — assembled by save-question.ts
 export interface BowtieWingInput {
   label: string;
   tokenIds:       string[];

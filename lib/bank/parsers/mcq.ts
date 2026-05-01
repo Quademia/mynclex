@@ -2,7 +2,8 @@
 //
 // MCQ parser — builds a validated { content, correct } pair from the
 // raw option/correct arrays posted by the authoring form. Runs on the
-// server (no 'use client'); invoked by the parseByType() dispatcher.
+// server (no 'use client'); invoked by the new authoring tree's
+// save action (lib/bank/actions/save-question.ts).
 
 import { MIN_OPTIONS, MAX_OPTIONS } from '../classifications';
 import type { McqContent, McqCorrect, BankOption } from '../types';
