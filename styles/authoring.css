@@ -4620,3 +4620,368 @@
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   margin-top: 4px;
 }
+
+/* ─────────────────────────────────────────────────────────
+ * Slice 13b — Trend wrapper page (read-only shell)
+ *
+ * Two-pane layout (decision 6) — left pane swaps content based
+ * on which pill is active; right pane is always-on combined
+ * preview. Pill strip persists at the top of the left pane.
+ * ───────────────────────────────────────────────────────── */
+.auth-tr-page {
+  padding: 14px 18px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-tr-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.auth-tr-topbar-left,
+.auth-tr-topbar-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.auth-tr-back {
+  font-size: 13px;
+  color: var(--accent-dark);
+  text-decoration: none;
+}
+.auth-tr-back:hover {
+  text-decoration: underline;
+}
+.auth-tr-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.auth-tr-crumb {
+  color: var(--accent-dark);
+  text-decoration: none;
+}
+.auth-tr-crumb:hover {
+  text-decoration: underline;
+}
+.auth-tr-crumb-sep {
+  color: var(--border);
+}
+.auth-tr-crumb-id {
+  font-size: 12px;
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.auth-tr-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.auth-tr-pane {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.auth-tr-pane-left {
+  grid-column: 1;
+  grid-row: 1;
+}
+.auth-tr-pane-preview {
+  grid-column: 2;
+  grid-row: 1;
+  /* Stick below the topbar so it stays as the curator's reference
+   * while the left column scrolls long. Mirrors CS's .auth-cs-pane-preview. */
+  position: sticky;
+  top: 68px;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+}
+.auth-tr-pane-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.auth-tr-preview-meta {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-muted);
+}
+.auth-tr-pane-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Pill strip — horizontal navigator at the top of the left pane.
+ * One pill per attached question + leading [Dataset] + trailing [+ Add].
+ * Overflow scrolls horizontally. */
+.auth-tr-pill-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: thin;
+}
+.auth-tr-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+}
+.auth-tr-pill:hover:not(.active):not(:disabled) {
+  background: var(--primary-light);
+  border-color: #cfe5e1;
+}
+.auth-tr-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+.auth-tr-pill:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.auth-tr-pill-dataset {
+  font-weight: 600;
+}
+.auth-tr-pill-pos {
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.auth-tr-pill-type {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.auth-tr-pill-status {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--text-muted);
+  background: transparent;
+}
+.auth-tr-pill-status.published {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.auth-tr-pill.active .auth-tr-pill-status {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+.auth-tr-pill.active .auth-tr-pill-status.published {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+.auth-tr-pill-add {
+  border-style: dashed;
+  color: var(--accent-dark);
+}
+
+/* Dataset view (left pane when active = Dataset) */
+.auth-tr-dataset-view {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.auth-tr-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.auth-tr-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.auth-tr-dataset-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+.auth-tr-dataset-scenario {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+.auth-tr-dataset-kind {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+.auth-tr-visibility {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.auth-tr-visibility-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+}
+.auth-tr-empty-msg {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Slot placeholder (left pane when on a question pill, before
+ * 13d wires up real editor mounting) */
+.auth-tr-slot-placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+/* Right pane preview sections */
+.auth-tr-preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px dashed var(--border);
+}
+.auth-tr-preview-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+.auth-tr-preview-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.auth-tr-preview-scenario {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+/* Read-only data table (used in both panes — left tints flags,
+ * right hides them per decision 9 of the legacy 1.12 plan: pre-submit
+ * student view does NOT show flag tints). */
+.auth-tr-table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.auth-tr-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12.5px;
+}
+.auth-tr-table th,
+.auth-tr-table td {
+  padding: 6px 10px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.auth-tr-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  text-align: left;
+  color: var(--text);
+}
+.auth-tr-table th:last-child,
+.auth-tr-table td:last-child {
+  border-right: none;
+}
+.auth-tr-table tr:last-child td {
+  border-bottom: none;
+}
+.auth-tr-col-metric {
+  font-weight: 600;
+  color: var(--text);
+  position: sticky;
+  left: 0;
+  background: #ffffff;
+  z-index: 1;
+}
+.auth-tr-table th.auth-tr-col-metric {
+  background: #f9fafb;
+}
+.auth-tr-cell-abnormal {
+  background: #fef3c7;
+}
+.auth-tr-cell-borderline {
+  background: #fef9c3;
+}
+.auth-tr-refrange-cell {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Mobile / narrow: stack panes vertically (mirrors CS @media rule) */
+@media (max-width: 1100px) {
+  .auth-tr-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+  .auth-tr-pane-left    { grid-column: 1; grid-row: 1; }
+  .auth-tr-pane-preview {
+    grid-column: 1;
+    grid-row: 2;
+    position: static;
+    max-height: none;
+  }
+}

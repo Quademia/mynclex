@@ -1,14 +1,24 @@
 // mynclex/lib/authoring/wrappers/trend/types.ts
 //
-// Type shapes for the trend wrapper-v2 build (slice 13). 13a uses
-// only TrendDatasetRow + TrendRow; the wrapper-page shapes
-// (WrapperData, SlotRow) get added in 13b's loader.
+// Type shapes for the trend wrapper-v2 build (slice 13). 13a used
+// only TrendDatasetRow + TrendRow; 13b adds WrapperData + SlotRow +
+// SlotEditorInitial for the wrapper page.
 //
 // Vendored from lib/bank/trend/types.ts per slice 13's vendoring
 // rule (active until slice 14). Includes the two new visibility
 // flag columns added in the slice-13 migration (decision 16):
 // is_free_sample + is_builder_visible. Defaults match
 // nclex_bank_items: FALSE / TRUE.
+
+import type { McqEditorInitial }      from '../../editors/mcq-row-mapper';
+import type { TfEditorInitial }       from '../../editors/tf-row-mapper';
+import type { SataEditorInitial }     from '../../editors/sata-row-mapper';
+import type { SelectNEditorInitial }  from '../../editors/select-n-row-mapper';
+import type { MatrixEditorInitial }   from '../../editors/matrix-row-mapper';
+import type { BowtieEditorInitial }   from '../../editors/bowtie-row-mapper';
+import type { ClozeEditorInitial }    from '../../editors/cloze-row-mapper';
+import type { HighlightEditorInitial } from '../../editors/highlight-row-mapper';
+import type { DragDropEditorInitial } from '../../editors/drag-drop-row-mapper';
 
 // Surface discriminator. Same convention as case-study/types.ts.
 export type Surface = 'admin' | 'tutor';
@@ -50,4 +60,46 @@ export interface TrendDatasetRow {
   is_builder_visible: boolean;
   created_at:         string;
   updated_at:         string;
+}
+
+// ───────────────────────────────────────────────────────────────
+// Wrapper-page shapes (13b)
+// ───────────────────────────────────────────────────────────────
+
+// Discriminated union of every editor's initial shape. A populated
+// slot carries one of these as its `editor`. Trend has no empty-slot
+// concept (variable N — empty == "no slots"), so `editor` is always
+// non-null per slot.
+export type SlotEditorInitial =
+  | { kind: 'MCQ';        initial: McqEditorInitial       }
+  | { kind: 'TF';         initial: TfEditorInitial        }
+  | { kind: 'SATA';       initial: SataEditorInitial      }
+  | { kind: 'SELECT_N';   initial: SelectNEditorInitial   }
+  | { kind: 'MATRIX';     initial: MatrixEditorInitial    }
+  | { kind: 'BOWTIE';     initial: BowtieEditorInitial    }
+  | { kind: 'CLOZE';      initial: ClozeEditorInitial     }
+  | { kind: 'HIGHLIGHT';  initial: HighlightEditorInitial }
+  | { kind: 'DRAG_DROP';  initial: DragDropEditorInitial  };
+
+// One attached question on a trend dataset. Position is a 1-based
+// display index derived from creation order — there's no `position`
+// column on the DB. Per decision 11, each question carries its own
+// three visibility flags (genuinely owned, not force-cleared by the
+// editor — contrast with CS).
+export interface SlotRow {
+  position:           number;            // 1-based display index
+  item_id:            string;
+  question_type:      string;            // 'MCQ' | 'SATA' | …
+  stem:               string;
+  editor:             SlotEditorInitial;
+  is_published:       boolean;
+  is_free_sample:     boolean;
+  is_builder_visible: boolean;
+}
+
+// Bundle the wrapper page renders against.
+export interface WrapperData {
+  surface:    Surface;
+  datasetRow: TrendDatasetRow;
+  slots:      SlotRow[];                 // variable length, ordered by created_at ASC
 }
