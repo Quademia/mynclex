@@ -28,8 +28,12 @@ import {
   type MouseEvent,
 } from 'react';
 import { kindDefaultLabel } from './kind-templates';
-import { saveTrendMetadataAction } from './actions';
+import {
+  saveTrendMetadataAction,
+  detachQuestionAction,
+} from './actions';
 import { TrendDataTable } from './data-table';
+import { DeleteTrendConfirm } from './delete-trend-confirm';
 import type {
   SlotEditorInitial,
   SlotRow,
@@ -154,9 +158,13 @@ export function TrendWrapperPage({ data }: Props) {
   // ── Save / cancel state ─────────────────────────────────────
   const [isWrapperPending, startWrapperTransition] = useTransition();
   const [isQuestionPending, startQuestionTransition] = useTransition();
+  const [isDetachPending, startDetachTransition] = useTransition();
   const [wrapperError, setWrapperError] = useState<string | null>(null);
   const [questionError, setQuestionError] = useState<string | null>(null);
   const [pendingNav, setPendingNav] = useState<PendingNav | null>(null);
+
+  // ── Delete dialog ───────────────────────────────────────────
+  const [showDelete, setShowDelete] = useState(false);
 
   // ── Per-active-question dirty flag ──────────────────────────
   // Reset to false on every pill switch (we unmount the editor body
@@ -264,6 +272,47 @@ export function TrendWrapperPage({ data }: Props) {
     const formId = FORM_ID_BY_TYPE[activeEditorKind];
     const formEl = document.getElementById(formId) as HTMLFormElement | null;
     if (formEl) formEl.requestSubmit();
+  }
+
+  // Detach: clear trend_id on the active question's row. Question
+  // survives in the bank as standalone. Browser confirm() — no typed
+  // gate since detach is reversible (curator can re-link from the
+  // bank list editor) and the action is non-destructive.
+  function onDetachActive() {
+    if (!activeSlot || isCreatingActive) return;
+    const ok = window.confirm(
+      `Detach Q${activeSlot.position} (${activeSlot.question_type}) from this dataset? The question will remain in the bank as a standalone item.`,
+    );
+    if (!ok) return;
+    setQuestionError(null);
+    startDetachTransition(async () => {
+      const fd = new FormData();
+      fd.set('surface', surface);
+      fd.set('trend_id', datasetRow.trend_id);
+      fd.set('item_id', activeSlot.item_id);
+      const result = await detachQuestionAction(fd);
+      if (!result.ok) {
+        setQuestionError(result.error);
+      } else {
+        // Reset dirty + active pill — after refresh the slot rail
+        // shrinks and we drop back to Dataset (or Q1 if any remain).
+        setEditorDirty(false);
+        setActivePill('dataset');
+        router.refresh();
+      }
+    });
+  }
+
+  // Delete dataset: opens the typed-confirm dialog. Three paths
+  // (simple / detach-and-delete / delete-everything) — see
+  // <DeleteTrendConfirm>.
+  function onDeleteDataset() {
+    setShowDelete(true);
+  }
+
+  function onDatasetDeleted() {
+    setShowDelete(false);
+    router.push(baseUrl);
   }
 
   // ── Navigation guards ───────────────────────────────────────
@@ -440,16 +489,31 @@ export function TrendWrapperPage({ data }: Props) {
         </div>
         <div className="auth-tr-topbar-right">
           {onQuestionPill ? (
-            <button
-              type="button"
-              className={`auth-cs-btn primary tiny${editorDirty ? ' dirty-glow' : ''}`}
-              onClick={onSaveQuestion}
-              disabled={!editorDirty || isQuestionPending}
-              title="Save the active question."
-              form={activeEditorKind ? FORM_ID_BY_TYPE[activeEditorKind] : undefined}
-            >
-              {isQuestionPending ? 'Saving…' : 'Save question'}
-            </button>
+            <>
+              <button
+                type="button"
+                className={`auth-cs-btn primary tiny${editorDirty ? ' dirty-glow' : ''}`}
+                onClick={onSaveQuestion}
+                disabled={!editorDirty || isQuestionPending}
+                title="Save the active question."
+                form={activeEditorKind ? FORM_ID_BY_TYPE[activeEditorKind] : undefined}
+              >
+                {isQuestionPending ? 'Saving…' : 'Save question'}
+              </button>
+              {/* Detach is only meaningful for existing questions —
+                  hide for the creating pill (nothing to detach yet). */}
+              {!isCreatingActive && activeSlot && (
+                <button
+                  type="button"
+                  className="auth-cs-btn subtle tiny"
+                  onClick={onDetachActive}
+                  disabled={isDetachPending}
+                  title="Detach this question from the dataset. The question survives in the bank as standalone."
+                >
+                  {isDetachPending ? 'Detaching…' : 'Detach'}
+                </button>
+              )}
+            </>
           ) : (
             <>
               <button
@@ -475,8 +539,8 @@ export function TrendWrapperPage({ data }: Props) {
           <button
             type="button"
             className="auth-cs-btn subtle tiny"
-            disabled
-            title="Delete dataset (13e)"
+            onClick={onDeleteDataset}
+            title="Delete this trend dataset."
           >
             Delete
           </button>
@@ -612,6 +676,21 @@ export function TrendWrapperPage({ data }: Props) {
         <QuestionTypePicker
           onClose={onCancelTypePicker}
           onPick={onTypePicked}
+        />
+      )}
+
+      {showDelete && (
+        <DeleteTrendConfirm
+          surface={surface}
+          trendId={datasetRow.trend_id}
+          trendTitle={title}
+          attachedCount={slots.length}
+          onCancel={() => setShowDelete(false)}
+          onDeleted={onDatasetDeleted}
+          onError={(msg) => {
+            setShowDelete(false);
+            setWrapperError(msg);
+          }}
         />
       )}
     </div>

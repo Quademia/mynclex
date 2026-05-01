@@ -2,12 +2,17 @@
 //
 // Server actions for the trend wrapper-v2 build (slice 13).
 //
-// 13a ships only createTrendAction — the kind-picker create flow.
-// saveTrendMetadataAction lands in 13c, detachQuestionAction in 13e,
-// deleteTrendAction in 13e. Per decision 4, all of these stay as
-// direct CRUD; the legacy nclex_save_trend_with_children RPC and the
-// two delete RPCs go unused by v2 code (slated for cleanup post
-// slice 14).
+// 13a — createTrendAction (kind-picker create flow).
+// 13c — saveTrendMetadataAction + parseRows helper (direct CRUD
+//       update on the dataset row).
+// 13e — detachQuestionAction (clears trend_id on the question row),
+//       deleteTrendAction with three modes (simple / detach-and-delete /
+//       delete-everything).
+//
+// Per decision 4, all save + delete are direct CRUD. The legacy
+// nclex_save_trend_with_children + nclex_detach_and_delete_trend +
+// nclex_delete_trend_and_children RPCs go unused by v2 code (slated
+// for cleanup post slice 14).
 //
 // Surface-aware: branches between admin (nclex_trend_datasets) and
 // tutor (nclex_tutor_trend_datasets). Same readSurface convention as
@@ -275,5 +280,112 @@ export async function saveTrendMetadataAction(
   if (error) return { ok: false, error: `Save failed: ${error.message}` };
 
   revalidatePath(`${cfg.baseUrl}/${trend_id}`);
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slice 13e — Detach question
+//
+// Clears trend_id on the bank-item row. Question survives in the
+// bank as a standalone item. Simpler than CS's detach (no join
+// table to drop) — the link is one column.
+// ─────────────────────────────────────────────────────────────
+
+interface DetachConfig {
+  questionTable: 'nclex_bank_items' | 'nclex_tutor_questions';
+}
+
+function detachConfigFor(surface: Surface): DetachConfig {
+  if (surface === 'tutor') {
+    return { questionTable: 'nclex_tutor_questions' };
+  }
+  return { questionTable: 'nclex_bank_items' };
+}
+
+export async function detachQuestionAction(formData: FormData): Promise<SaveResult> {
+  const surface = readSurface(formData);
+  const { supabase } = await requireBankCurator(surface);
+  const cfg = configFor(surface);
+  const dcfg = detachConfigFor(surface);
+
+  const trend_id = String(formData.get('trend_id') ?? '').trim();
+  const item_id  = String(formData.get('item_id') ?? '').trim();
+  if (!trend_id || !item_id) {
+    return { ok: false, error: 'Missing trend_id or item_id.' };
+  }
+
+  // Clear trend_id on the question row. We also check that the FK
+  // currently points at the wrapper's trend_id — defends against a
+  // stale form submission for a question that's already been detached
+  // or moved.
+  const { error } = await supabase
+    .from(dcfg.questionTable)
+    .update({ trend_id: null })
+    .eq('item_id', item_id)
+    .eq('trend_id', trend_id);
+
+  if (error) return { ok: false, error: `Detach failed: ${error.message}` };
+
+  revalidatePath(`${cfg.baseUrl}/${trend_id}`);
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slice 13e — Delete trend dataset (three modes)
+//
+// 'simple'             : zero-attached, drop the dataset row.
+// 'detach-and-delete'  : clear trend_id on each attached question,
+//                        then drop the dataset. Questions survive.
+// 'delete-everything'  : drop attached questions + the dataset.
+//
+// Typed-confirm gating lives in the client dialog; the action
+// trusts the mode value.
+//
+// Direct CRUD (decision 4); the legacy RPCs (nclex_detach_and_delete_trend
+// and nclex_delete_trend_and_children) stay unused by v2 code.
+// ─────────────────────────────────────────────────────────────
+
+export type DeleteTrendMode = 'simple' | 'detach-and-delete' | 'delete-everything';
+
+export async function deleteTrendAction(formData: FormData): Promise<SaveResult> {
+  const surface = readSurface(formData);
+  const { supabase } = await requireBankCurator(surface);
+  const cfg = configFor(surface);
+  const dcfg = detachConfigFor(surface);
+
+  const trend_id = String(formData.get('trend_id') ?? '').trim();
+  if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
+
+  const modeRaw = String(formData.get('mode') ?? 'simple');
+  const mode: DeleteTrendMode =
+    modeRaw === 'detach-and-delete' || modeRaw === 'delete-everything'
+      ? modeRaw
+      : 'simple';
+
+  if (mode === 'detach-and-delete') {
+    // Clear trend_id on every linked question. Bare delete on the
+    // dataset row would otherwise hit the ON DELETE RESTRICT FK.
+    const { error: qErr } = await supabase
+      .from(dcfg.questionTable)
+      .update({ trend_id: null })
+      .eq('trend_id', trend_id);
+    if (qErr) return { ok: false, error: `Detach failed: ${qErr.message}` };
+  } else if (mode === 'delete-everything') {
+    // Drop attached questions first (FK constraint blocks dataset
+    // delete otherwise).
+    const { error: qDelErr } = await supabase
+      .from(dcfg.questionTable)
+      .delete()
+      .eq('trend_id', trend_id);
+    if (qDelErr) return { ok: false, error: `Could not delete questions: ${qDelErr.message}` };
+  }
+
+  const { error: dsDelErr } = await supabase
+    .from(cfg.table)
+    .delete()
+    .eq('trend_id', trend_id);
+  if (dsDelErr) return { ok: false, error: `Delete dataset failed: ${dsDelErr.message}` };
+
+  revalidatePath(cfg.baseUrl);
   return { ok: true };
 }
