@@ -23,6 +23,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { McqEditor, type McqEditorInitial } from '@/lib/authoring/editors/mcq-editor';
 import { TfEditor, type TfEditorInitial } from '@/lib/authoring/editors/tf-editor';
@@ -50,12 +51,21 @@ const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set([
 ]);
 
 export interface BankListV2RowSummary {
-  item_id: string;
-  question_type: QuestionType;
-  stem: string;
-  difficulty: string | null;
-  is_published: boolean;
+  item_id:        string;
+  question_type:  QuestionType;
+  stem:           string;
+  difficulty:     string | null;
+  is_published:   boolean;
   is_free_sample: boolean;
+  // Wrapper attachment metadata. Both null on standalone rows. At
+  // most one of {case, trend} is set on attached rows — questions
+  // can belong to one wrapper at a time. Wrapper-attached rows show
+  // a badge and link straight to the wrapper page on Edit click;
+  // they don't open the standalone modal.
+  parent_case_id: string | null;
+  case_title:     string | null;
+  trend_id:       string | null;
+  trend_title:    string | null;
 }
 
 export interface BankListV2ClientProps {
@@ -171,12 +181,26 @@ export function BankListV2Client({
     router.refresh();
   }
 
-  // Each slice (3-10) flips one type from "uneditable" to "editable"
+  // Each slice (3-10) flipped one type from "uneditable" to "editable"
   // by adding it to EDITABLE_TYPES + wiring its editor + initials map.
-  // The list still shows rows of every type so the curator sees what's
-  // there; the Edit button just renders disabled for unsupported types.
+  // All 9 types are wired now; the gate stays as documentation +
+  // safety against future additions.
   function rowEditable(row: BankListV2RowSummary): boolean {
     return EDITABLE_TYPES.has(row.question_type);
+  }
+
+  // Wrapper href for an attached row. Routes to the v2 wrapper page
+  // with ?focus=<item_id> so the wrapper opens with the matching pill
+  // pre-selected (CS + trend v2 wrapper pages parse the focus param).
+  function wrapperHrefFor(row: BankListV2RowSummary): string | null {
+    const baseAdmin = surface === 'admin' ? '/admin/bank' : '/tutor/bank';
+    if (row.parent_case_id) {
+      return `${baseAdmin}/cases-v2/${row.parent_case_id}?focus=${row.item_id}`;
+    }
+    if (row.trend_id) {
+      return `${baseAdmin}/trends-v2/${row.trend_id}?focus=${row.item_id}`;
+    }
+    return null;
   }
 
   return (
@@ -202,7 +226,7 @@ export function BankListV2Client({
 
       {rows.length === 0 ? (
         <div className="auth-list-empty">
-          <p>No standalone questions yet.</p>
+          <p>No questions yet.</p>
           <p>Click <strong>+ New question</strong> above to create your first one.</p>
         </div>
       ) : (
@@ -218,44 +242,86 @@ export function BankListV2Client({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.item_id}>
-                <td className="auth-list-item-id"><code>{row.item_id}</code></td>
-                <td className="auth-list-stem">{stemSnippet(row.stem)}</td>
-                <td>
-                  <span className="auth-pill auth-pill--type">{row.question_type}</span>
-                </td>
-                <td>{row.difficulty ?? '—'}</td>
-                <td>
-                  <span
-                    className={
-                      'auth-pill ' +
-                      (row.is_published ? 'auth-pill--published' : 'auth-pill--draft')
-                    }
-                  >
-                    {row.is_published ? 'Published' : 'Draft'}
-                  </span>
-                </td>
-                <td className="auth-list-row-actions">
-                  {rowEditable(row) ? (
-                    <button
-                      type="button"
-                      className="auth-btn auth-btn-ghost auth-btn-sm"
-                      onClick={() => handleEditRow(row)}
-                    >
-                      Edit
-                    </button>
-                  ) : (
+            {rows.map((row) => {
+              const wrapperHref = wrapperHrefFor(row);
+              return (
+                <tr key={row.item_id}>
+                  <td className="auth-list-item-id"><code>{row.item_id}</code></td>
+                  <td className="auth-list-stem">
+                    {stemSnippet(row.stem)}
+                    {/* Wrapper badges — clickable, link to the wrapper
+                        page with focus=<item_id>. Only ever one of the
+                        two appears (a question can't belong to both
+                        a case and a trend at once). Title falls back
+                        to the raw ID if the FK join returned null. */}
+                    {row.parent_case_id && (
+                      <Link
+                        href={wrapperHref ?? '#'}
+                        className="bank-badge bank-badge-case bank-badge-link"
+                        title="Open in case editor"
+                        style={{ marginLeft: 8 }}
+                      >
+                        In case · {row.case_title ?? row.parent_case_id}
+                      </Link>
+                    )}
+                    {row.trend_id && (
+                      <Link
+                        href={wrapperHref ?? '#'}
+                        className="bank-badge bank-badge-trend bank-badge-link"
+                        title="Open in trend editor"
+                        style={{ marginLeft: 8 }}
+                      >
+                        Trend · {row.trend_title ?? row.trend_id}
+                      </Link>
+                    )}
+                  </td>
+                  <td>
+                    <span className="auth-pill auth-pill--type">{row.question_type}</span>
+                  </td>
+                  <td>{row.difficulty ?? '—'}</td>
+                  <td>
                     <span
-                      className="auth-list-row-disabled"
-                      title={`The ${row.question_type} editor lands in a later slice`}
+                      className={
+                        'auth-pill ' +
+                        (row.is_published ? 'auth-pill--published' : 'auth-pill--draft')
+                      }
                     >
-                      —
+                      {row.is_published ? 'Published' : 'Draft'}
                     </span>
-                  )}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="auth-list-row-actions">
+                    {wrapperHref ? (
+                      <Link
+                        href={wrapperHref}
+                        className="auth-btn auth-btn-ghost auth-btn-sm"
+                        title={
+                          row.parent_case_id
+                            ? 'Open the case wrapper with this question pre-selected'
+                            : 'Open the trend wrapper with this question pre-selected'
+                        }
+                      >
+                        {row.parent_case_id ? 'Open in case editor' : 'Open in trend editor'}
+                      </Link>
+                    ) : rowEditable(row) ? (
+                      <button
+                        type="button"
+                        className="auth-btn auth-btn-ghost auth-btn-sm"
+                        onClick={() => handleEditRow(row)}
+                      >
+                        Edit
+                      </button>
+                    ) : (
+                      <span
+                        className="auth-list-row-disabled"
+                        title={`The ${row.question_type} editor lands in a later slice`}
+                      >
+                        —
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

@@ -15,15 +15,18 @@ import { TrendWrapperPage } from '@/lib/authoring/wrappers/trend/wrapper-page';
 export const dynamic = 'force-dynamic';
 
 interface PageParams {
-  params: Promise<{ trend_id: string }>;
+  params:        Promise<{ trend_id: string }>;
+  searchParams?: Promise<{ focus?: string }>;
 }
 
-export default async function AdminTrendV2Page({ params }: PageParams) {
+export default async function AdminTrendV2Page({ params, searchParams }: PageParams) {
   const { trend_id } = await params;
+  const sp = await searchParams;
+  const focusItemId = sp?.focus ?? null;
   const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
 
   const data = await loadTrend(supabase, 'admin', trend_id);
   if (!data) notFound();
 
-  return <TrendWrapperPage data={data} />;
+  return <TrendWrapperPage data={data} focusItemId={focusItemId} />;
 }

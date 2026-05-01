@@ -16,15 +16,18 @@ import { CaseStudyWrapperPage } from '@/lib/authoring/wrappers/case-study/wrappe
 export const dynamic = 'force-dynamic';
 
 interface PageParams {
-  params: Promise<{ case_id: string }>;
+  params:        Promise<{ case_id: string }>;
+  searchParams?: Promise<{ focus?: string }>;
 }
 
-export default async function AdminCaseStudyV2Page({ params }: PageParams) {
+export default async function AdminCaseStudyV2Page({ params, searchParams }: PageParams) {
   const { case_id } = await params;
+  const sp = await searchParams;
+  const focusItemId = sp?.focus ?? null;
   const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
 
   const data = await loadCase(supabase, 'admin', case_id);
   if (!data) notFound();
 
-  return <CaseStudyWrapperPage data={data} />;
+  return <CaseStudyWrapperPage data={data} focusItemId={focusItemId} />;
 }

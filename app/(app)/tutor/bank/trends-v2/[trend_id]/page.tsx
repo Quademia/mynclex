@@ -12,15 +12,18 @@ import { TrendWrapperPage } from '@/lib/authoring/wrappers/trend/wrapper-page';
 export const dynamic = 'force-dynamic';
 
 interface PageParams {
-  params: Promise<{ trend_id: string }>;
+  params:        Promise<{ trend_id: string }>;
+  searchParams?: Promise<{ focus?: string }>;
 }
 
-export default async function TutorTrendV2Page({ params }: PageParams) {
+export default async function TutorTrendV2Page({ params, searchParams }: PageParams) {
   const { trend_id } = await params;
+  const sp = await searchParams;
+  const focusItemId = sp?.focus ?? null;
   const { supabase } = await requireBankCurator('tutor');
 
   const data = await loadTrend(supabase, 'tutor', trend_id);
   if (!data) notFound();
 
-  return <TrendWrapperPage data={data} />;
+  return <TrendWrapperPage data={data} focusItemId={focusItemId} />;
 }

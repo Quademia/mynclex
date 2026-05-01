@@ -217,9 +217,16 @@ function cjmmShort(step: string | null): string | null {
 interface Props {
   data:        WrapperData;
   sandboxMode?: boolean;
+  /**
+   * Optional `?focus=<item_id>` query-param value. When set and a
+   * matching slot exists, the wrapper opens in editor mode with that
+   * slot active. Used by the v2 bank-list to deep-link from a
+   * wrapper-attached row directly into the right pill.
+   */
+  focusItemId?: string | null;
 }
 
-export function CaseStudyWrapperPage({ data, sandboxMode = false }: Props) {
+export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = null }: Props) {
   const { caseRow, tabs, slots, surface } = data;
   const router = useRouter();
 
@@ -283,8 +290,15 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false }: Props) {
   const [detachPending, setDetachPending] = useState<number | null>(null);
 
   // ── Mode + view state ─────────────────────────────────────
-  const [editorMode, setEditorMode] = useState(false);
+  // If a focusItemId was passed (from ?focus= on the wrapper URL),
+  // start in editor mode with that slot active so the curator deep-
+  // links from the bank list straight into the right pill.
+  const focusedSlot = focusItemId
+    ? slots.find((s) => s.item_id === focusItemId) ?? null
+    : null;
+  const [editorMode, setEditorMode] = useState(focusedSlot !== null);
   const [activeSlot, setActiveSlot] = useState<number>(() => {
+    if (focusedSlot) return focusedSlot.position;
     const firstPopulated = slots.find((s) => s.item_id !== null);
     return firstPopulated?.position ?? 1;
   });

@@ -72,7 +72,10 @@ export const dynamic = 'force-dynamic';
 
 interface FullTutorBankRow extends McqDbRow {
   parent_case_id: string | null;
-  trend_id: string | null;
+  trend_id:       string | null;
+  // FK joins to the tutor-private wrapper tables for badge titles.
+  case:  { title: string } | null;
+  trend: { title: string } | null;
 }
 
 export default async function TutorBankAllV2Page() {
@@ -84,11 +87,17 @@ export default async function TutorBankAllV2Page() {
   if (!user) redirect('/login');
 
   // RLS on nclex_tutor_questions filters to tutor_id = auth.uid().
+  // Wrapper-attached rows (parent_case_id / trend_id set) are
+  // included; the client renders badges and routes Edit clicks to
+  // the wrapper page with ?focus=<item_id>.
   const { data, error } = await supabase
     .from('nclex_tutor_questions')
-    .select(MCQ_ROW_COLUMNS + ', parent_case_id, trend_id')
-    .is('parent_case_id', null)
-    .is('trend_id', null)
+    .select(
+      MCQ_ROW_COLUMNS +
+      ', parent_case_id, trend_id, ' +
+      'trend:nclex_tutor_trend_datasets(title), ' +
+      'case:nclex_tutor_case_studies(title)',
+    )
     .order('item_id', { ascending: true })
     .returns<FullTutorBankRow[]>();
 
@@ -108,12 +117,16 @@ export default async function TutorBankAllV2Page() {
   const fullRows = data ?? [];
 
   const summaryRows: BankListV2RowSummary[] = fullRows.map((r) => ({
-    item_id: r.item_id,
-    question_type: r.question_type as QuestionType,
-    stem: r.stem ?? '',
-    difficulty: r.difficulty,
-    is_published: r.is_published,
+    item_id:        r.item_id,
+    question_type:  r.question_type as QuestionType,
+    stem:           r.stem ?? '',
+    difficulty:     r.difficulty,
+    is_published:   r.is_published,
     is_free_sample: r.is_free_sample,
+    parent_case_id: r.parent_case_id,
+    case_title:     r.case?.title ?? null,
+    trend_id:       r.trend_id,
+    trend_title:    r.trend?.title ?? null,
   }));
 
   const mcqInitialsById: Record<string, McqEditorInitial> = {};

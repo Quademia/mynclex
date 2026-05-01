@@ -2,15 +2,19 @@
 //
 // New admin Question Bank list — slice 2 of the questions-and-wrappers
 // rebuild. Lives alongside the legacy /admin/bank/all (which keeps
-// working unchanged) until slice 13 swaps them.
+// working unchanged) until slice 14 swaps them.
 //
 // Differences vs legacy:
-//   - Modal-based editor (no `?edit=` focus mode).
-//   - "+ New question" → type picker → MCQ editor in create mode.
-//   - Wrapper-linked rows are filtered out — they live in the wrapper
-//     pages (slices 11-12 add the v2 wrapper pages).
+//   - Modal-based editor (no `?edit=` focus mode) for standalone rows.
+//   - "+ New question" → type picker → matching editor in create mode.
+//   - Wrapper-linked rows show with badges ("In case · {title}" /
+//     "Trend · {title}") and link straight to the wrapper page with
+//     ?focus=<item_id> instead of opening the standalone modal. The
+//     wrapper page parses the focus param and pre-selects the matching
+//     pill.
 //   - No filters, no search, no pagination yet — those polish in a
-//     follow-up slice. Slice 2's job is the create/edit/delete loop.
+//     follow-up slice. Slice 2's job was the create/edit/delete loop;
+//     post-slice-13 added the wrapper-aware visibility.
 
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import {
@@ -77,21 +81,31 @@ export const dynamic = 'force-dynamic';
 
 interface FullBankRow extends McqDbRow {
   parent_case_id: string | null;
-  trend_id: string | null;
+  trend_id:       string | null;
+  // FK joins for wrapper badges. Supabase returns null when the FK
+  // is null. Constraint names follow the default
+  // <table>_<column>_fkey pattern, so no `!constraint_name` hint
+  // is needed.
+  case:  { title: string } | null;
+  trend: { title: string } | null;
 }
 
 export default async function AdminBankAllV2Page() {
   const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
 
-  // Pull every standalone bank item — all types, but only standalone
-  // (no wrapper link). MCQ rows get the full editor data; other types
-  // appear in the list with the Edit button disabled (their editors
-  // arrive in slices 3–10).
+  // Pull every bank item — all types, including wrapper-linked. MCQ
+  // rows get the full editor data; other types appear with the modal
+  // editor wired through the type-specific row mapper. Wrapper-linked
+  // rows render with a badge and click through to the wrapper page
+  // instead of opening the standalone modal.
   const { data, error } = await supabase
     .from('nclex_bank_items')
-    .select(MCQ_ROW_COLUMNS + ', parent_case_id, trend_id')
-    .is('parent_case_id', null)
-    .is('trend_id', null)
+    .select(
+      MCQ_ROW_COLUMNS +
+      ', parent_case_id, trend_id, ' +
+      'trend:nclex_trend_datasets(title), ' +
+      'case:nclex_case_studies(title)',
+    )
     .order('item_id', { ascending: true })
     .returns<FullBankRow[]>();
 
@@ -111,12 +125,16 @@ export default async function AdminBankAllV2Page() {
   const fullRows = data ?? [];
 
   const summaryRows: BankListV2RowSummary[] = fullRows.map((r) => ({
-    item_id: r.item_id,
-    question_type: r.question_type as QuestionType,
-    stem: r.stem ?? '',
-    difficulty: r.difficulty,
-    is_published: r.is_published,
+    item_id:        r.item_id,
+    question_type:  r.question_type as QuestionType,
+    stem:           r.stem ?? '',
+    difficulty:     r.difficulty,
+    is_published:   r.is_published,
     is_free_sample: r.is_free_sample,
+    parent_case_id: r.parent_case_id,
+    case_title:     r.case?.title ?? null,
+    trend_id:       r.trend_id,
+    trend_title:    r.trend?.title ?? null,
   }));
 
   const mcqInitialsById: Record<string, McqEditorInitial> = {};

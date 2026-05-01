@@ -79,6 +79,13 @@ import { emptyDragDropInitial }  from '@/lib/authoring/editors/drag-drop-row-map
 
 interface Props {
   data: WrapperData;
+  /**
+   * Optional `?focus=<item_id>` query-param value. When set and a
+   * matching slot exists, the wrapper opens with that question's
+   * pill active. Used by the v2 bank-list to deep-link from a
+   * trend-attached row directly into the right pill.
+   */
+  focusItemId?: string | null;
 }
 
 type ActivePill = 'dataset' | number;  // integer = slot.position OR creating sentinel
@@ -111,7 +118,7 @@ interface CreatingState {
   editor:   SlotEditorInitial;
 }
 
-export function TrendWrapperPage({ data }: Props) {
+export function TrendWrapperPage({ data, focusItemId = null }: Props) {
   const { surface, datasetRow, slots } = data;
   const router = useRouter();
 
@@ -133,9 +140,16 @@ export function TrendWrapperPage({ data }: Props) {
   const [showTypePicker, setShowTypePicker] = useState(false);
 
   // ── Active pill ─────────────────────────────────────────────
-  const [activePill, setActivePill] = useState<ActivePill>(
-    slots.length > 0 ? 1 : 'dataset',
-  );
+  // If a focusItemId was passed (from ?focus= on the URL), start on
+  // that question's pill so the curator deep-links from the bank list
+  // straight into it.
+  const focusedSlot = focusItemId
+    ? slots.find((s) => s.item_id === focusItemId) ?? null
+    : null;
+  const [activePill, setActivePill] = useState<ActivePill>(() => {
+    if (focusedSlot) return focusedSlot.position;
+    return slots.length > 0 ? 1 : 'dataset';
+  });
 
   const activeSlot: SlotRow | null =
     typeof activePill === 'number'
