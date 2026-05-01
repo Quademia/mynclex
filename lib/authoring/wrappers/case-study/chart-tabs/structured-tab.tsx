@@ -305,6 +305,7 @@ export function StructuredTabEditor({
           <p>Add the first row to start populating this tab.</p>
         </div>
       ) : (
+        <div className="cs-entries-table-scroll">
         <table className="cs-entries-table">
           <thead>
             <tr>
@@ -355,6 +356,7 @@ export function StructuredTabEditor({
             })}
           </tbody>
         </table>
+        </div>
       )}
 
       {columns.length > 0 && (

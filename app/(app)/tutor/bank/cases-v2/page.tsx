@@ -7,6 +7,7 @@
 
 import Link from 'next/link';
 import { requireBankCurator } from '@/lib/access';
+import { createCaseAction } from '@/lib/authoring/wrappers/case-study/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,6 +73,16 @@ export default async function TutorCasesV2ListPage() {
           </div>
           <div className="auth-list-toolbar">
             <Link href="/tutor/bank/cases" className="auth-cs-btn subtle">← Legacy list</Link>
+            <form
+              action={async (fd: FormData) => {
+                'use server';
+                await createCaseAction(fd);
+              }}
+              style={{ display: 'inline' }}
+            >
+              <input type="hidden" name="surface" value="tutor" />
+              <button type="submit" className="auth-cs-btn primary">+ New case study</button>
+            </form>
           </div>
         </header>
 
@@ -80,10 +91,17 @@ export default async function TutorCasesV2ListPage() {
         {cases.length === 0 ? (
           <div className="auth-list-empty">
             <h3>No case studies yet</h3>
-            <p>Create one from the legacy list page — the v2 create flow lands in slice 12c.</p>
-            <p>
-              <Link href="/tutor/bank/cases">Open the legacy list →</Link>
-            </p>
+            <p>Click <strong>+ New case study</strong> to create the first one.</p>
+            <form
+              action={async (fd: FormData) => {
+                'use server';
+                await createCaseAction(fd);
+              }}
+              style={{ marginTop: 12 }}
+            >
+              <input type="hidden" name="surface" value="tutor" />
+              <button type="submit" className="auth-cs-btn primary">+ New case study</button>
+            </form>
           </div>
         ) : (
           <table className="auth-list-table">

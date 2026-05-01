@@ -21,7 +21,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useRef, useTransition } from 'react';
 import { BUILT_IN_TABS, customKeyForShape, type CustomShape } from './tab-types';
 import { reorderTabsAction, upsertTabAction } from '../actions';
 import type { CaseStudyTabRow, Surface } from '../types';
@@ -112,13 +112,15 @@ export function TabRail({
                   aria-label="Move tab down"
                 >▾</button>
               </span>
-              <span className="cs-tab-item-label" title={t.title}>
-                {t.title}
-                {isDirty && <span className="cs-tab-item-dirty" aria-label="unsaved"> •</span>}
-              </span>
-              {t.is_custom && (
-                <span className="cs-tab-item-custom-badge">Custom</span>
-              )}
+              <div className="cs-tab-item-text">
+                <span className="cs-tab-item-label" title={t.title}>
+                  {t.title}
+                  {isDirty && <span className="cs-tab-item-dirty" aria-label="unsaved"> •</span>}
+                </span>
+                {t.is_custom && (
+                  <span className="cs-tab-item-custom-badge">Custom</span>
+                )}
+              </div>
               <span className="cs-tab-item-count" aria-label="entry count">
                 {entryCount}
               </span>
@@ -152,11 +154,13 @@ export function TabRail({
 
 // ─────────────────────────────────────────────────────────────
 // AddTabPopover — the dropdown triggered by the footer button.
-// Two flows:
-//   - Built-in: pick from the 6 built-ins (duplicates disabled).
+// Two flows, separated cleanly so the first screen is a pure
+// pick-an-option list (no inline form):
+//   - Built-in: click one of the 6 built-ins (duplicates disabled).
 //     Submits upsertTabAction with tab_key / default_title / is_custom=false.
-//   - Custom:   type a name, then pick Free text / Rows & columns.
-//     Submits upsertTabAction with tab_key = custom_narrative or custom_grid.
+//   - Custom:   click "+ Create custom tab" → step into a single
+//     name + shape form. Submits upsertTabAction with
+//     tab_key = custom_narrative | custom_grid + the curator's name.
 // ─────────────────────────────────────────────────────────────
 
 interface PopoverProps {
@@ -170,21 +174,22 @@ interface PopoverProps {
 function AddTabPopover({
   surface, case_id, alreadyAddedKeys, nextDisplayOrder, onClose,
 }: PopoverProps) {
+  const [customMode, setCustomMode] = useState(false);
   const [customName, setCustomName] = useState('');
-  const [pickingShape, setPickingShape] = useState(false);
   const [shape, setShape] = useState<CustomShape>('free_text');
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
-  // Esc closes the popover (slice 12c-2 polish). If the curator is in
-  // the shape-picking sub-step, Esc steps back to the tab-list step
-  // first; second Esc closes.
+  // Esc closes the popover. If the curator is in the custom-form
+  // sub-step, Esc steps back to the pick-an-option step first;
+  // second Esc closes.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== 'Escape') return;
       e.preventDefault();
-      if (pickingShape) {
-        setPickingShape(false);
+      if (customMode) {
+        setCustomMode(false);
         setErr(null);
       } else {
         onClose();
@@ -192,7 +197,15 @@ function AddTabPopover({
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [pickingShape, onClose]);
+  }, [customMode, onClose]);
+
+  // Autofocus the name input when entering custom mode so the curator
+  // can start typing immediately without an extra click.
+  useEffect(() => {
+    if (customMode) {
+      nameInputRef.current?.focus();
+    }
+  }, [customMode]);
 
   function addBuiltIn(tab_key: string, default_title: string) {
     const fd = new FormData();
@@ -247,9 +260,12 @@ function AddTabPopover({
     });
   }
 
-  if (pickingShape) {
+  // ── Step 2: custom-form sub-screen ──────────────────────────
+  if (customMode) {
+    const nameTrimmed = customName.trim();
+    const canSubmit = nameTrimmed.length > 0 && !pending;
     return (
-      <div className="cs-popover auth-cs-popover-with-close" role="dialog" aria-label="Choose custom tab shape">
+      <div className="cs-popover auth-cs-popover-with-close" role="dialog" aria-label="New custom tab">
         <button
           type="button"
           className="auth-cs-popover-close"
@@ -259,8 +275,26 @@ function AddTabPopover({
         >
           ×
         </button>
-        <h4>Shape for &ldquo;{customName}&rdquo;</h4>
-        <div className="cs-shape-choice">
+        <h4>New custom tab</h4>
+        <div className="cs-popover-custom">
+          <input
+            ref={nameInputRef}
+            type="text"
+            value={customName}
+            placeholder="Tab name, e.g. Imaging"
+            onChange={(e) => {
+              setCustomName(e.target.value);
+              if (err) setErr(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && canSubmit) {
+                e.preventDefault();
+                addCustom();
+              }
+            }}
+          />
+        </div>
+        <div className="cs-shape-choice" style={{ marginTop: 10 }}>
           <label className={shape === 'free_text' ? 'active' : ''}>
             <input
               type="radio"
@@ -295,7 +329,10 @@ function AddTabPopover({
           <button
             type="button"
             className="cs-btn"
-            onClick={() => setPickingShape(false)}
+            onClick={() => {
+              setCustomMode(false);
+              setErr(null);
+            }}
             disabled={pending}
           >
             ← Back
@@ -304,7 +341,7 @@ function AddTabPopover({
             type="button"
             className="cs-btn primary"
             onClick={addCustom}
-            disabled={pending}
+            disabled={!canSubmit}
           >
             {pending ? 'Adding…' : 'Add tab'}
           </button>
@@ -346,35 +383,17 @@ function AddTabPopover({
         })}
       </div>
       <hr className="cs-popover-divider" />
-      <h4>Or a custom tab</h4>
-      <div className="cs-popover-custom">
-        <input
-          type="text"
-          value={customName}
-          placeholder="Tab name, e.g. Imaging"
-          onChange={(e) => setCustomName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && customName.trim()) {
-              setErr(null);
-              setPickingShape(true);
-            }
-          }}
-        />
-        <button
-          type="button"
-          onClick={() => {
-            if (!customName.trim()) {
-              setErr('Tab name is required.');
-              return;
-            }
-            setErr(null);
-            setPickingShape(true);
-          }}
-          disabled={pending}
-        >
-          Next →
-        </button>
-      </div>
+      <button
+        type="button"
+        className="cs-tab-add-custom-btn"
+        onClick={() => {
+          setErr(null);
+          setCustomMode(true);
+        }}
+        disabled={pending}
+      >
+        + Create custom tab
+      </button>
       {err && <div className="cs-error">{err}</div>}
     </div>
   );

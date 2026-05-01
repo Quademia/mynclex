@@ -17,10 +17,12 @@
 
 'use client';
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useTransition, type MouseEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/authoring/atoms/error-toast';
 import { DiscardConfirm } from '@/lib/authoring/atoms/discard-confirm';
+import { HelpBulb } from '@/lib/authoring/atoms/help-bulb';
 import { saveQuestionAction } from '@/lib/authoring/actions/save-question';
 import { CJMM_STEPS } from '../../classifications';
 import type {
@@ -116,7 +118,8 @@ function isTabDirty(t: CaseStudyTabRow, d: TabDraft): boolean {
 // Pending mode-transition state for the discard dialog.
 type PendingNav =
   | { kind: 'switch-slot';  toPos: number }
-  | { kind: 'close-editor' };
+  | { kind: 'close-editor' }
+  | { kind: 'leave-page';   href: string };
 
 // ───────────────────────────────────────────────────────────
 // SAMPLE_DATA — sandbox payload (slot.editor stays null; the
@@ -463,6 +466,24 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false }: Props) {
     return false;
   }, [title, scenario, isPublished, isFreeSample, isBuilderVisible, cjmmBySlot, caseRow, slots]);
 
+  // Combined dirty signal — used by the leave-page guard on the
+  // ← Back link and the Case Studies (v2) breadcrumb. True if any
+  // editable region of the page has unsaved changes.
+  const hasAnyDirty = useMemo(() => {
+    if (dirty) return true;
+    if (dirtyTabIds.size > 0) return true;
+    for (const flag of Object.values(editorDirtyByPos)) {
+      if (flag) return true;
+    }
+    return false;
+  }, [dirty, dirtyTabIds, editorDirtyByPos]);
+
+  function onBackLinkClick(e: MouseEvent<HTMLAnchorElement>, href: string) {
+    if (!hasAnyDirty) return; // let the Link navigate normally
+    e.preventDefault();
+    setPendingNav({ kind: 'leave-page', href });
+  }
+
   function onSaveCase() {
     setError(null);
     if (!title.trim()) {
@@ -510,6 +531,15 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false }: Props) {
   const activeSlotDirty = !!editorDirtyByPos[activeSlot];
   const activeSlotPending = !!editorPendingByPos[activeSlot];
   const activeSlotError = editorErrorByPos[activeSlot] ?? null;
+
+  // Editor kind for the active slot — pulls from `creating` (mid-create
+  // for an empty slot) or the loaded slot data (existing question).
+  // Used by the external Save question button + saveAndProceed to find
+  // the right form ID.
+  const activeEditorKind: string | null =
+    creating && creating.position === activeSlot
+      ? creating.editor.kind
+      : activeSlotData?.editor?.kind ?? null;
 
   function onSlotClick(pos: number) {
     // Wrapper mode: empty slot card → open picker for that position.
@@ -603,8 +633,10 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false }: Props) {
     setEditorErrorByPos((prev) => ({ ...prev, [activeSlot]: null }));
     if (pendingNav.kind === 'switch-slot') {
       setActiveSlot(pendingNav.toPos);
-    } else {
+    } else if (pendingNav.kind === 'close-editor') {
       setEditorMode(false);
+    } else if (pendingNav.kind === 'leave-page') {
+      router.push(pendingNav.href);
     }
     setPendingNav(null);
   }
@@ -616,8 +648,8 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false }: Props) {
     // submit, we don't have an easy synchronous handle to "did it
     // succeed?" — the simplest behaviour is: dismiss the dialog now;
     // if save errored, the toast will surface; the curator can retry.
-    if (activeSlotData?.editor?.kind) {
-      const formId = FORM_ID_BY_TYPE[activeSlotData.editor.kind];
+    if (activeEditorKind) {
+      const formId = FORM_ID_BY_TYPE[activeEditorKind];
       const formEl = document.getElementById(formId) as HTMLFormElement | null;
       if (formEl) formEl.requestSubmit();
     }
@@ -639,7 +671,9 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false }: Props) {
         <DiscardConfirm
           onKeepEditing={cancelNav}
           onDiscard={discardAndProceed}
-          onSaveAndClose={saveAndProceed}
+          onSaveAndClose={
+            pendingNav.kind === 'leave-page' ? undefined : saveAndProceed
+          }
         />
       )}
 
@@ -674,8 +708,30 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false }: Props) {
       )}
 
       <div className="auth-cs-page-topbar">
-        <span>Bank</span><span className="auth-cs-crumb-sep">›</span>
-        <span>Case Studies (v2)</span><span className="auth-cs-crumb-sep">›</span>
+        {(() => {
+          const listHref = surface === 'tutor' ? '/tutor/bank/cases-v2' : '/admin/bank/cases-v2';
+          return (
+            <>
+              <Link
+                href={listHref}
+                className="auth-cs-back-link"
+                onClick={(e) => onBackLinkClick(e, listHref)}
+              >
+                ← Back to list
+              </Link>
+              <span className="auth-cs-crumb-sep auth-cs-back-sep">·</span>
+              <span>Bank</span><span className="auth-cs-crumb-sep">›</span>
+              <Link
+                href={listHref}
+                className="auth-cs-crumb-link"
+                onClick={(e) => onBackLinkClick(e, listHref)}
+              >
+                Case Studies (v2)
+              </Link>
+            </>
+          );
+        })()}
+        <span className="auth-cs-crumb-sep">›</span>
         <span className="auth-cs-crumb-current">{caseRow.title}</span>
         <span className="auth-cs-mode-pill">
           {editorMode ? `Editor mode · Q${activeSlot}` : 'Wrapper mode'}
@@ -689,14 +745,23 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false }: Props) {
           <div className="auth-cs-pane auth-cs-pane-left">
             <div className="auth-cs-pane-label">
               <span>Wrapper edit{dirty && <span className="auth-cs-dirty-dot" title="Unsaved metadata">●</span>}</span>
-              <span style={{ display: 'inline-flex', gap: 6 }}>
-                <button className="auth-cs-btn subtle tiny" type="button" onClick={onCancel} disabled={isPending || !dirty}>Cancel</button>
+              <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                <button
+                  className={`auth-cs-btn subtle tiny${dirty ? ' dirty-glow' : ''}`}
+                  type="button"
+                  onClick={onCancel}
+                  disabled={isPending || !dirty}
+                  title="Discard unsaved title / scenario / visibility / CJMM edits in this pane. Doesn't touch chart tabs or the question editors."
+                >
+                  Cancel changes
+                </button>
                 <button
                   className="auth-cs-btn tiny"
                   type="button"
                   style={{ color: 'var(--danger)', borderColor: '#fecaca', background: '#fef2f2' }}
                   onClick={onDeleteCase}
                   disabled={isPending}
+                  title="Permanently delete this case study. Type-to-confirm gates the destructive paths."
                 >
                   Delete
                 </button>
@@ -705,12 +770,27 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false }: Props) {
                   type="button"
                   onClick={onValidateClick}
                   aria-pressed={validationIssues !== null}
+                  title="Run a manual validation pass. Errors first, warnings second. Manual only — never auto-runs."
                 >
                   Validate
                 </button>
-                <button className="auth-cs-btn primary tiny" type="button" onClick={onSaveCase} disabled={isPending || !dirty}>
+                <button
+                  className={`auth-cs-btn primary tiny${dirty ? ' dirty-glow' : ''}`}
+                  type="button"
+                  onClick={onSaveCase}
+                  disabled={isPending || !dirty}
+                  title="Save the wrapper metadata only — title, scenario, visibility flags, per-slot CJMM. Chart tabs and questions have their own save buttons."
+                >
                   {isPending ? 'Saving…' : 'Save case study'}
                 </button>
+                <HelpBulb title="What do these buttons do?">
+                  <ul className="auth-help-bulb-list">
+                    <li><strong>Cancel changes</strong> — Discard unsaved edits to title / scenario / visibility / CJMM in this pane. Returns those fields to the last saved values. Does not touch chart tabs or question editors.</li>
+                    <li><strong>Delete</strong> — Permanently delete this case study. The dialog auto-detects the right path (simple, detach-and-delete, or delete-everything) based on attached questions, with a type-to-confirm gate.</li>
+                    <li><strong>Validate</strong> — Run a manual validation pass over the case (chart tabs, slots, CJMM, etc.). Errors appear first, warnings second. Manual only; it never auto-runs.</li>
+                    <li><strong>Save case study</strong> — Save the wrapper metadata: title, scenario, visibility flags, per-slot CJMM. Chart tabs save independently from the Chart tab; questions save from inside the editor.</li>
+                  </ul>
+                </HelpBulb>
               </span>
             </div>
 
@@ -780,39 +860,48 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false }: Props) {
               </div>
             )}
 
-            <div className="auth-cs-slot-rail-header">
-              <span className="auth-cs-slot-rail-title">Question slots · {populated} of 6</span>
-              <button className="auth-cs-btn subtle tiny" type="button">Reorder</button>
+            <div className="auth-cs-slot-section">
+              <div className="auth-cs-slot-rail-header">
+                <span className="auth-cs-slot-rail-title">Question slots · {populated} of 6</span>
+                <button className="auth-cs-btn subtle tiny" type="button">Reorder</button>
+              </div>
+              <div className="auth-cs-slot-rail">
+                {slots.map((s) => (
+                  <SlotCard
+                    key={s.position}
+                    slot={s}
+                    active={s.position === activeSlot}
+                    cjmmValue={cjmmBySlot[s.position] ?? ''}
+                    onCjmmChange={(value) => setCjmmBySlot((prev) => ({ ...prev, [s.position]: value }))}
+                    onClick={() => onSlotClick(s.position)}
+                    onDetach={() => onDetachSlot(s)}
+                    detachPending={detachPending === s.position}
+                  />
+                ))}
+              </div>
+              <button
+                className="auth-cs-slot-add"
+                type="button"
+                onClick={openPickerForFirstEmpty}
+                disabled={isPending || populated >= 6}
+              >
+                {populated >= 6 ? 'All 6 slots populated' : '+ Add question (next empty)'}
+              </button>
             </div>
-            <div className="auth-cs-slot-rail">
-              {slots.map((s) => (
-                <SlotCard
-                  key={s.position}
-                  slot={s}
-                  active={s.position === activeSlot}
-                  cjmmValue={cjmmBySlot[s.position] ?? ''}
-                  onCjmmChange={(value) => setCjmmBySlot((prev) => ({ ...prev, [s.position]: value }))}
-                  onClick={() => onSlotClick(s.position)}
-                  onDetach={() => onDetachSlot(s)}
-                  detachPending={detachPending === s.position}
-                />
-              ))}
-            </div>
-            <button
-              className="auth-cs-slot-add"
-              type="button"
-              onClick={openPickerForFirstEmpty}
-              disabled={isPending || populated >= 6}
-            >
-              {populated >= 6 ? 'All 6 slots populated' : '+ Add question (next empty)'}
-            </button>
           </div>
         )}
 
         {editorMode && (
           <div className="auth-cs-pane auth-cs-pane-left auth-cs-editor-pane">
             <div className="auth-cs-editor-header">
-              <button type="button" className="auth-cs-btn subtle tiny" onClick={onCloseEditor}>← Wrapper view</button>
+              <button
+                type="button"
+                className="auth-cs-btn subtle tiny"
+                onClick={onCloseEditor}
+                title="Return to wrapper view. If this question has unsaved edits you'll be prompted to keep editing, discard, or save and close."
+              >
+                ← Wrapper view
+              </button>
               <div className="auth-cs-slot-strip" role="tablist" aria-label="Switch question slot">
                 {slots.map((s) => {
                   const isEmpty = s.item_id === null;
@@ -837,17 +926,25 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false }: Props) {
                   );
                 })}
               </div>
-              <span style={{ display: 'inline-flex', gap: 6 }}>
-                {activeSlotData?.editor && (
+              <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                {activeEditorKind && (
                   <button
                     type="submit"
-                    form={FORM_ID_BY_TYPE[activeSlotData.editor.kind]}
-                    className="auth-cs-btn primary tiny"
+                    form={FORM_ID_BY_TYPE[activeEditorKind]}
+                    className={`auth-cs-btn primary tiny${activeSlotDirty ? ' dirty-glow' : ''}`}
                     disabled={activeSlotPending || !activeSlotDirty}
+                    title="Save this question's body. Separate from Save case study — that one only saves wrapper metadata. Submits the form for the active editor type."
                   >
                     {activeSlotPending ? 'Saving…' : 'Save question'}
                   </button>
                 )}
+                <HelpBulb title="What do these buttons do?">
+                  <ul className="auth-help-bulb-list">
+                    <li><strong>← Wrapper view</strong> — Return to the wrapper view (case title, scenario, visibility flags, slot rail). If this question has unsaved edits you'll be prompted to keep editing, discard, or save and close.</li>
+                    <li><strong>Q1–Q6 slot pips</strong> — Switch to another question slot, or click an empty pip to add a new question at that position. If the active editor is dirty you'll be prompted before switching.</li>
+                    <li><strong>Save question</strong> — Save this question's body. Independent of Save case study (which only saves wrapper metadata) — each question saves itself.</li>
+                  </ul>
+                </HelpBulb>
               </span>
             </div>
 
@@ -909,8 +1006,14 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false }: Props) {
             {scenario && <p className="auth-cs-preview-scenario">{scenario}</p>}
             <div className="auth-cs-chart-tabs">
               {tabs.map((t) => (
-                <button key={t.tab_id} type="button" className={`auth-cs-chart-tab${activeChartTabId === t.tab_id ? ' active' : ''}`} onClick={() => setActiveChartTabId(t.tab_id)}>
-                  {t.title.length > 14 ? t.title.split(' ')[0] : t.title}
+                <button
+                  key={t.tab_id}
+                  type="button"
+                  className={`auth-cs-chart-tab${activeChartTabId === t.tab_id ? ' active' : ''}`}
+                  onClick={() => setActiveChartTabId(t.tab_id)}
+                  title={t.title}
+                >
+                  {t.title}
                 </button>
               ))}
             </div>
@@ -1209,7 +1312,28 @@ function ActiveQuestionPreview({
 
 // ───────────────────────────────────────────────────────────
 // PreviewChartView — read-only render in the right pane.
+//
+// Tier 1 of the chart preview build-out:
+//   - Resolves the BuiltInTabType so we know which extras (status,
+//     section, test_type) to render and whether time is omitted.
+//   - Renders entries in the order the curator entered them. Time
+//     is free text (8am vs 08:00 vs "Day 2 morning") so lexical
+//     sort isn't safe — the curator owns ordering.
+//   - Lab Results: rows where `flag` is H / L / Critical get a
+//     coloured background — amber for H/L, red for Critical.
+//   - Narrative cards: render extras per the tab type. H&P shows
+//     section as the card header in place of time. Orders shows a
+//     status chip on the time row. Diagnostics shows the test_type
+//     as a label between time and body.
 // ───────────────────────────────────────────────────────────
+
+function labFlagClass(flag: unknown): string {
+  if (typeof flag !== 'string') return '';
+  const f = flag.trim().toLowerCase();
+  if (f === 'critical' || f === 'crit' || f === '!!') return 'auth-cs-preview-lab-critical';
+  if (f === 'h' || f === 'l' || f === 'high' || f === 'low') return 'auth-cs-preview-lab-flag';
+  return '';
+}
 
 function PreviewChartView({
   tab,
@@ -1221,28 +1345,92 @@ function PreviewChartView({
   if (entries.length === 0) {
     return <p className="auth-cs-empty-msg">Nothing visible on this tab at this slot yet.</p>;
   }
+
+  const builtIn = getTabType(tab.tab_key);
+  const omitTime = builtIn?.omit_time ?? false;
+  const extraFields = builtIn?.extra_fields ?? [];
+  const isLabResults = tab.tab_key === 'lab_results';
+
+  // Effective columns — built-in structured tabs (Vital Signs, Lab
+  // Results) store columns_def: [] in the DB because the columns are
+  // defined once in the BuiltInTabType registry. Custom grids carry
+  // their columns on the row itself.
+  const effectiveColumns: CaseStudyTabColumn[] =
+    tab.is_custom
+      ? tab.columns_def
+      : (builtIn?.columns ?? []).map((c) => ({ id: c.id, label: c.label }));
+
   const isStructured =
-    (!tab.is_custom && tab.columns_def.length > 0) ||
+    (!tab.is_custom && effectiveColumns.length > 0) ||
     (tab.is_custom && tab.custom_shape === 'rows_cols');
+
   if (isStructured) {
     return (
       <table className="auth-cs-vs-table">
-        <thead><tr>{tab.columns_def.map((c) => <th key={c.id}>{c.label}</th>)}</tr></thead>
-        <tbody>{entries.map((entry, idx) => (
-          <tr key={idx}>{tab.columns_def.map((c) => <td key={c.id}>{String(entry[c.id] ?? '—')}</td>)}</tr>
-        ))}</tbody>
+        <thead><tr>{effectiveColumns.map((c) => <th key={c.id}>{c.label}</th>)}</tr></thead>
+        <tbody>
+          {entries.map((entry, idx) => {
+            const rowClass = isLabResults ? labFlagClass(entry.flag) : '';
+            return (
+              <tr key={idx} className={rowClass}>
+                {effectiveColumns.map((c) => (
+                  <td key={c.id}>{String(entry[c.id] ?? '—')}</td>
+                ))}
+              </tr>
+            );
+          })}
+        </tbody>
       </table>
     );
   }
+
+  // Narrative branch — section / status / test_type extras handled
+  // per tab type. H&P uses section as the card header in place of
+  // time; Orders shows a status chip on the time row; Diagnostics
+  // shows test_type as a label.
+  const sectionField   = extraFields.find((f) => f.id === 'section');
+  const statusField    = extraFields.find((f) => f.id === 'status');
+  const testTypeField  = extraFields.find((f) => f.id === 'test_type');
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="auth-cs-preview-narrative">
       {entries.map((entry, idx) => {
-        const time = (entry.time as string | undefined) ?? '';
-        const body = (entry.body as string | undefined) ?? '';
+        const time = !omitTime && typeof entry.time === 'string' ? entry.time : '';
+        const body = typeof entry.body === 'string' ? entry.body : '';
+        const sectionVal  = sectionField  ? String(entry.section  ?? '').trim() : '';
+        const statusVal   = statusField   ? String(entry.status   ?? '').trim() : '';
+        const testTypeVal = testTypeField ? String(entry.test_type ?? '').trim() : '';
+
+        // Header line — H&P uses section, others use time + extras
+        // inline. Skip the header row entirely if there's nothing to
+        // show (e.g. custom narrative or untimed Nurses' Note).
+        const hasHeader =
+          time.length > 0 ||
+          sectionVal.length > 0 ||
+          statusVal.length > 0 ||
+          testTypeVal.length > 0;
+
         return (
-          <div key={idx} style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--white)', fontSize: 12.5 }}>
-            {time && <div style={{ color: 'var(--text-muted)', fontSize: 11.5, marginBottom: 2 }}>{time}</div>}
-            <div style={{ lineHeight: 1.45 }}>{body}</div>
+          <div key={idx} className="auth-cs-preview-narrative-card">
+            {hasHeader && (
+              <div className="auth-cs-preview-narrative-head">
+                {sectionVal && (
+                  <span className="auth-cs-preview-section">{sectionVal}</span>
+                )}
+                {time && (
+                  <span className="auth-cs-preview-time">{time}</span>
+                )}
+                {testTypeVal && (
+                  <span className="auth-cs-preview-test-type">{testTypeVal}</span>
+                )}
+                {statusVal && (
+                  <span className={`auth-cs-preview-status auth-cs-preview-status-${statusVal.toLowerCase().replace(/\s+/g, '-')}`}>
+                    {statusVal}
+                  </span>
+                )}
+              </div>
+            )}
+            {body && <div className="auth-cs-preview-narrative-body">{body}</div>}
           </div>
         );
       })}

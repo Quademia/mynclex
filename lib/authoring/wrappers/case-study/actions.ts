@@ -31,9 +31,15 @@
 
 'use server';
 
+import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { requireBankCurator, type ServerSupabaseClient } from '@/lib/access';
-import { CJMM_STEPS, type CjmmStep } from '../../classifications';
+import {
+  CJMM_STEPS,
+  CASE_ID_PREFIX,
+  TUTOR_CASE_ID_PREFIX,
+  type CjmmStep,
+} from '../../classifications';
 import type { Surface } from './types';
 import {
   isBuiltIn,
@@ -75,6 +81,61 @@ const VALID_CJMM = new Set<string>(CJMM_STEPS);
 function readSurface(formData: FormData): Surface {
   const raw = String(formData.get('surface') ?? '');
   return raw === 'tutor' ? 'tutor' : 'admin';
+}
+
+// Next 5-digit case_id for the given surface. Lexical sort works
+// because the suffix is fixed-width zero-padded. Vendored from the
+// legacy nextCaseId in lib/bank/case-study/actions.ts (slice 14 will
+// collapse the duplication).
+async function nextCaseId(
+  supabase: ServerSupabaseClient,
+  surface: Surface,
+): Promise<string> {
+  const cfg = configFor(surface);
+  const idPrefix = surface === 'tutor' ? TUTOR_CASE_ID_PREFIX : CASE_ID_PREFIX;
+  const { data, error } = await supabase
+    .from(cfg.caseTable)
+    .select('case_id')
+    .like('case_id', `${idPrefix}%`)
+    .order('case_id', { ascending: false })
+    .limit(1);
+
+  if (error) throw error;
+
+  let next = 1;
+  if (data && data.length > 0) {
+    const last = (data[0] as { case_id: string }).case_id;
+    const suffix = last.slice(idPrefix.length);
+    const n = parseInt(suffix, 10);
+    if (Number.isFinite(n)) next = n + 1;
+  }
+
+  return `${idPrefix}${String(next).padStart(5, '0')}`;
+}
+
+// Insert a new case row with title 'Untitled case' and redirect to
+// the v2 wrapper page so the curator lands directly in Wrapper mode
+// to rename. Tutor surface stamps tutor_id; admin doesn't.
+export async function createCaseAction(formData: FormData): Promise<SaveResult> {
+  const surface = readSurface(formData);
+  const { supabase, user } = await requireBankCurator(surface);
+  const cfg = configFor(surface);
+
+  const case_id = await nextCaseId(supabase, surface);
+
+  const row: Record<string, unknown> = {
+    case_id,
+    title: 'Untitled case',
+  };
+  if (surface === 'tutor') {
+    row.tutor_id = user.id;
+  }
+
+  const { error } = await supabase.from(cfg.caseTable).insert(row);
+  if (error) return { ok: false, error: `Create failed: ${error.message}` };
+
+  revalidatePath(cfg.baseUrl);
+  redirect(`${cfg.baseUrl}/${case_id}`);
 }
 
 export async function saveCaseMetadataAction(

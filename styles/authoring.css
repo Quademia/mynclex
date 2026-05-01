@@ -3058,6 +3058,28 @@
 }
 .auth-cs-crumb-current { color: var(--primary); font-weight: 500; }
 .auth-cs-crumb-sep { color: rgba(17, 24, 39, 0.3); }
+.auth-cs-back-link {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.12s, color 0.12s;
+}
+.auth-cs-back-link:hover {
+  color: var(--accent);
+  background: var(--bg-soft, #f3f4f6);
+}
+.auth-cs-back-sep { margin: 0 2px; }
+.auth-cs-crumb-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  border-radius: 4px;
+}
+.auth-cs-crumb-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
 .auth-cs-sandbox-pill {
   margin-left: auto;
   font-size: 10px;
@@ -3150,6 +3172,115 @@
 .auth-cs-btn.primary:hover { background: var(--accent-dark); }
 .auth-cs-btn.subtle  { background: transparent; border-color: transparent; color: var(--text-muted); }
 .auth-cs-btn.tiny    { padding: 4px 9px; font-size: 11.5px; }
+
+/* Strong disabled state — without this, browsers dim too gently and
+   the dirty→enabled transition is invisible. */
+.auth-cs-btn:disabled,
+.auth-cs-btn[disabled] {
+  opacity: 0.42;
+  cursor: not-allowed;
+  filter: grayscale(0.35);
+}
+.auth-cs-btn:disabled:hover,
+.auth-cs-btn[disabled]:hover {
+  background: var(--white);
+}
+.auth-cs-btn.subtle:disabled:hover,
+.auth-cs-btn.subtle[disabled]:hover {
+  background: transparent;
+}
+.auth-cs-btn.primary:disabled:hover,
+.auth-cs-btn.primary[disabled]:hover {
+  background: var(--accent);
+}
+
+/* Dirty glow — accent-coloured ring on Save / Cancel changes / Save
+   question when the relevant pane has unsaved work. Pulses gently to
+   draw the eye after the strong-disabled state lifts. */
+.auth-cs-btn.dirty-glow:not(:disabled) {
+  box-shadow: 0 0 0 2px rgba(45, 125, 114, 0.22);
+  animation: auth-cs-dirty-pulse 2.4s ease-in-out infinite;
+}
+@keyframes auth-cs-dirty-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(45, 125, 114, 0.22); }
+  50%      { box-shadow: 0 0 0 3px rgba(45, 125, 114, 0.40); }
+}
+
+/* Help bulb — small icon button + anchored hint card. No backdrop;
+   informational, not modal. */
+.auth-help-bulb-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.auth-help-bulb-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 2px 4px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.12s, background 0.12s, border-color 0.12s;
+}
+.auth-help-bulb-btn:hover {
+  opacity: 1;
+  background: #fef3c7;
+  border-color: #fde68a;
+}
+.auth-help-bulb-btn.open {
+  opacity: 1;
+  background: #fef3c7;
+  border-color: #fde68a;
+}
+.auth-help-bulb-card {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 360px;
+  max-width: 92vw;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 12px 14px 14px;
+  z-index: 80;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.auth-help-bulb-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.auth-help-bulb-card-title {
+  font-weight: 600;
+  color: var(--text);
+}
+.auth-help-bulb-card-close {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 4px;
+}
+.auth-help-bulb-card-close:hover { color: var(--text); }
+.auth-help-bulb-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.auth-help-bulb-list li { color: var(--text-muted); }
+.auth-help-bulb-list strong { color: var(--text); }
 
 .auth-cs-pane-tabs {
   display: flex;
@@ -3283,6 +3414,10 @@
   border-radius: 5px 5px 0 0;
   cursor: pointer;
   position: relative;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   bottom: -1px;
   font-family: inherit;
 }
@@ -3411,6 +3546,17 @@
   background: var(--white);
 }
 
+/* Wraps the slot-rail header + 6 slot cards + "Add question" button.
+   Always rendered below either the Content or Chart tab body, so a
+   top divider gives it its own visual section regardless of which
+   tab body is above. Mirrors the .auth-cs-visibility section break
+   so the two read as sibling sections (Visibility / Question slots
+   under Content, Chart tabs / Question slots under Chart). */
+.auth-cs-slot-section {
+  margin: 14px -14px 0;
+  padding: 14px 14px 0;
+  border-top: 1px solid var(--border);
+}
 .auth-cs-slot-rail-header {
   display: flex;
   justify-content: space-between;
@@ -3980,6 +4126,7 @@
   font-size: 13px;
   line-height: 1.5;
   margin-bottom: 10px;
+  white-space: pre-wrap;
 }
 .auth-cs-preview-chart {
   border-top: none;
@@ -3991,6 +4138,97 @@
   color: var(--text-muted);
   margin-top: 6px;
   font-style: italic;
+}
+
+/* Tier 1 chart preview — narrative cards + structured row colours.
+   Used by PreviewChartView. Renders extras (section / status /
+   test_type) per the BuiltInTabType registry. */
+.auth-cs-preview-narrative {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.auth-cs-preview-narrative-card {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+  font-size: 12.5px;
+}
+.auth-cs-preview-narrative-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 11.5px;
+}
+.auth-cs-preview-section {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 12px;
+  letter-spacing: 0.01em;
+}
+.auth-cs-preview-time {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.auth-cs-preview-test-type {
+  color: var(--text-muted);
+  font-style: italic;
+}
+.auth-cs-preview-status {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  background: #f3f4f6;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+.auth-cs-preview-status-active {
+  background: #dcfce7;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+.auth-cs-preview-status-completed {
+  background: #e0e7ff;
+  border-color: #c7d2fe;
+  color: #3730a3;
+}
+.auth-cs-preview-status-discontinued {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+.auth-cs-preview-status-held {
+  background: #fef3c7;
+  border-color: #fde68a;
+  color: #92400e;
+}
+.auth-cs-preview-narrative-body {
+  line-height: 1.45;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+/* Lab Results flag highlighting — applied to the entire <tr>. */
+.auth-cs-vs-table tr.auth-cs-preview-lab-flag {
+  background: #fef3c7;
+}
+.auth-cs-vs-table tr.auth-cs-preview-lab-flag td {
+  color: #92400e;
+}
+.auth-cs-vs-table tr.auth-cs-preview-lab-critical {
+  background: #fee2e2;
+}
+.auth-cs-vs-table tr.auth-cs-preview-lab-critical td {
+  color: #991b1b;
+  font-weight: 600;
 }
 .auth-cs-preview-question-header {
   display: flex;

@@ -11,6 +11,7 @@
 
 import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
+import { createCaseAction } from '@/lib/authoring/wrappers/case-study/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,6 +80,19 @@ export default async function AdminCasesV2ListPage() {
           <div className="auth-list-toolbar">
             <Link href="/admin/bank/cases" className="auth-cs-btn subtle">← Legacy list</Link>
             <Link href="/admin/bank/cases-v2/sandbox" className="auth-cs-btn">Sandbox</Link>
+            <form
+              action={async (fd: FormData) => {
+                'use server';
+                // createCaseAction redirects on success; the SaveResult
+                // return type is only for the failure branch. The form
+                // action slot wants void | Promise<void>, so swallow.
+                await createCaseAction(fd);
+              }}
+              style={{ display: 'inline' }}
+            >
+              <input type="hidden" name="surface" value="admin" />
+              <button type="submit" className="auth-cs-btn primary">+ New case study</button>
+            </form>
           </div>
         </header>
 
@@ -87,10 +101,17 @@ export default async function AdminCasesV2ListPage() {
         {cases.length === 0 ? (
           <div className="auth-list-empty">
             <h3>No case studies yet</h3>
-            <p>Create one from the legacy list page — the v2 create flow lands in slice 12c.</p>
-            <p>
-              <Link href="/admin/bank/cases">Open the legacy list →</Link>
-            </p>
+            <p>Click <strong>+ New case study</strong> to create the first one.</p>
+            <form
+              action={async (fd: FormData) => {
+                'use server';
+                await createCaseAction(fd);
+              }}
+              style={{ marginTop: 12 }}
+            >
+              <input type="hidden" name="surface" value="admin" />
+              <button type="submit" className="auth-cs-btn primary">+ New case study</button>
+            </form>
           </div>
         ) : (
           <table className="auth-list-table">
