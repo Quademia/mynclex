@@ -23,7 +23,7 @@ import {
   TUTOR_TREND_ID_PREFIX,
 } from '../../classifications';
 import { kindSeedData } from './kind-templates';
-import type { Surface } from './types';
+import type { Surface, TrendFlag, TrendRow } from './types';
 
 export type SaveResult =
   | { ok: true }
@@ -131,4 +131,149 @@ export async function createTrendAction(formData: FormData): Promise<SaveResult>
 
   revalidatePath(cfg.baseUrl);
   redirect(`${cfg.baseUrl}/${trend_id}`);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Slice 13c — saveTrendMetadataAction
+//
+// Direct CRUD update on the dataset row (decision 4 — no RPC for
+// save). Reads:
+//   - trend_id, surface
+//   - title, scenario, kind
+//   - is_published, is_free_sample, is_builder_visible
+//   - timepoints (JSON), rows (JSON)
+//
+// Validates rows × timepoints alignment. Returns SaveResult.
+// Does NOT touch attached question rows — those are saved
+// independently via saveQuestionAction in 13d.
+// ─────────────────────────────────────────────────────────────
+
+const VALID_FLAGS = new Set<string>(['abnormal', 'borderline']);
+
+// Normalise + validate rows posted from the data-table editor.
+// Mirrors lib/bank/trend/actions.ts parseRows. Rejects mis-aligned
+// values/flags arrays — the editor always emits aligned arrays, so
+// drift is a real bug worth surfacing rather than silently fixing.
+function parseRows(raw: unknown, timepointCount: number): {
+  ok: true; rows: TrendRow[];
+} | { ok: false; error: string } {
+  if (!Array.isArray(raw)) {
+    return { ok: false, error: 'rows must be an array' };
+  }
+
+  const rows: TrendRow[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const r = raw[i] as unknown;
+    if (typeof r !== 'object' || r === null) {
+      return { ok: false, error: `Row ${i}: expected object` };
+    }
+    const rec = r as Record<string, unknown>;
+    const metric = typeof rec.metric === 'string' ? rec.metric : '';
+
+    if (!Array.isArray(rec.values)) {
+      return { ok: false, error: `Row ${i}: values must be an array` };
+    }
+    if (!Array.isArray(rec.flags)) {
+      return { ok: false, error: `Row ${i}: flags must be an array` };
+    }
+    if (rec.values.length !== timepointCount) {
+      return {
+        ok:    false,
+        error: `Row ${i}: values length ${rec.values.length} doesn't match ${timepointCount} timepoints`,
+      };
+    }
+    if (rec.flags.length !== timepointCount) {
+      return {
+        ok:    false,
+        error: `Row ${i}: flags length ${rec.flags.length} doesn't match ${timepointCount} timepoints`,
+      };
+    }
+
+    const values = (rec.values as unknown[]).map((v) =>
+      typeof v === 'string' ? v : '',
+    );
+
+    const flags: TrendFlag[] = (rec.flags as unknown[]).map((f) => {
+      if (f === null) return null;
+      if (typeof f === 'string' && VALID_FLAGS.has(f)) {
+        return f as TrendFlag;
+      }
+      return null;
+    });
+
+    const row: TrendRow = { metric, values, flags };
+    const refRangeRaw = typeof rec.ref_range === 'string'
+      ? rec.ref_range.trim()
+      : '';
+    if (refRangeRaw) row.ref_range = refRangeRaw;
+
+    rows.push(row);
+  }
+
+  return { ok: true, rows };
+}
+
+export async function saveTrendMetadataAction(
+  formData: FormData,
+): Promise<SaveResult> {
+  const surface = readSurface(formData);
+  const { supabase } = await requireBankCurator(surface);
+  const cfg = configFor(surface);
+
+  const trend_id = String(formData.get('trend_id') ?? '').trim();
+  if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
+
+  const title = String(formData.get('title') ?? '').trim();
+  if (!title) return { ok: false, error: 'Title is required.' };
+
+  const scenarioRaw = String(formData.get('scenario') ?? '').trim();
+  const scenario = scenarioRaw || null;
+
+  const kind = String(formData.get('kind') ?? '').trim() || 'custom';
+
+  const is_published       = formData.get('is_published') === 'on';
+  const is_free_sample     = formData.get('is_free_sample') === 'on';
+  const is_builder_visible = formData.get('is_builder_visible') === 'on';
+
+  // Parse timepoints (JSON array of strings).
+  const timepointsRaw = String(formData.get('timepoints') ?? '[]') || '[]';
+  let timepoints: string[];
+  try {
+    const parsed: unknown = JSON.parse(timepointsRaw);
+    if (!Array.isArray(parsed)) throw new Error('not array');
+    timepoints = parsed.map((v) => (typeof v === 'string' ? v : String(v)));
+  } catch {
+    return { ok: false, error: 'Invalid timepoints JSON.' };
+  }
+
+  // Parse + validate rows against timepoints length.
+  const rowsRaw = String(formData.get('rows') ?? '[]') || '[]';
+  let rowsParsed: unknown;
+  try {
+    rowsParsed = JSON.parse(rowsRaw);
+  } catch {
+    return { ok: false, error: 'Invalid rows JSON.' };
+  }
+  const parsed = parseRows(rowsParsed, timepoints.length);
+  if (!parsed.ok) return { ok: false, error: parsed.error };
+
+  const { error } = await supabase
+    .from(cfg.table)
+    .update({
+      title,
+      scenario,
+      kind,
+      timepoints,
+      rows: parsed.rows,
+      is_published,
+      is_free_sample,
+      is_builder_visible,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('trend_id', trend_id);
+
+  if (error) return { ok: false, error: `Save failed: ${error.message}` };
+
+  revalidatePath(`${cfg.baseUrl}/${trend_id}`);
+  return { ok: true };
 }
