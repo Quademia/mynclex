@@ -12,6 +12,7 @@
 import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { kindDefaultLabel } from '@/lib/authoring/wrappers/trend/kind-templates';
+import { KindPickerLauncher } from '@/lib/authoring/wrappers/trend/kind-picker-modal';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,7 +80,7 @@ export default async function AdminTrendsV2ListPage() {
           </div>
           <div className="auth-list-toolbar">
             <Link href="/admin/bank/trends" className="auth-cs-btn subtle">← Legacy list</Link>
-            <Link href="/admin/bank/trends-v2/new" className="auth-cs-btn primary">+ New trend dataset</Link>
+            <KindPickerLauncher surface="admin" />
           </div>
         </header>
 
@@ -89,9 +90,9 @@ export default async function AdminTrendsV2ListPage() {
           <div className="auth-list-empty">
             <h3>No trend datasets yet</h3>
             <p>Click <strong>+ New trend dataset</strong> to create the first one.</p>
-            <Link href="/admin/bank/trends-v2/new" className="auth-cs-btn primary" style={{ marginTop: 12 }}>
-              + New trend dataset
-            </Link>
+            <div style={{ marginTop: 12 }}>
+              <KindPickerLauncher surface="admin" />
+            </div>
           </div>
         ) : (
           <table className="auth-list-table">

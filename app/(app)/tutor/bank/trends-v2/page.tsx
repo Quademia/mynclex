@@ -8,6 +8,7 @@
 import Link from 'next/link';
 import { requireBankCurator } from '@/lib/access';
 import { kindDefaultLabel } from '@/lib/authoring/wrappers/trend/kind-templates';
+import { KindPickerLauncher } from '@/lib/authoring/wrappers/trend/kind-picker-modal';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,7 +75,7 @@ export default async function TutorTrendsV2ListPage() {
           </div>
           <div className="auth-list-toolbar">
             <Link href="/tutor/bank/trends" className="auth-cs-btn subtle">← Legacy list</Link>
-            <Link href="/tutor/bank/trends-v2/new" className="auth-cs-btn primary">+ New trend dataset</Link>
+            <KindPickerLauncher surface="tutor" />
           </div>
         </header>
 
@@ -84,9 +85,9 @@ export default async function TutorTrendsV2ListPage() {
           <div className="auth-list-empty">
             <h3>No trend datasets yet</h3>
             <p>Click <strong>+ New trend dataset</strong> to create the first one.</p>
-            <Link href="/tutor/bank/trends-v2/new" className="auth-cs-btn primary" style={{ marginTop: 12 }}>
-              + New trend dataset
-            </Link>
+            <div style={{ marginTop: 12 }}>
+              <KindPickerLauncher surface="tutor" />
+            </div>
           </div>
         ) : (
           <table className="auth-list-table">

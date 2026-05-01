@@ -4518,3 +4518,105 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ─────────────────────────────────────────────────────────
+ * Slice 13a — Kind picker modal (option B from 2026-05-01).
+ *
+ * Replaces the routed /new page. Centred floating dialog with
+ * dimmed backdrop, ESC + backdrop-click close. Scrolls inside
+ * the dialog if 6 cards exceed viewport height.
+ * ───────────────────────────────────────────────────────── */
+.auth-kind-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 70;
+  animation: auth-kind-modal-overlay-in 140ms ease-out;
+}
+
+@keyframes auth-kind-modal-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.auth-kind-modal-dialog {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  width: 100%;
+  max-width: 880px;
+  max-height: 80vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow-lg);
+  animation: auth-kind-modal-dialog-in 180ms ease-out;
+}
+
+@keyframes auth-kind-modal-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.auth-kind-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-kind-modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+.auth-kind-modal-close {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.auth-kind-modal-close:hover {
+  background: #f3f4f6;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.auth-kind-modal-hint {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Tighten the grid inside the modal: smaller min card width than the
+ * standalone-page version (which used 260px). The dialog has fixed
+ * max-width so denser cards keep the 6 visible without scrolling on
+ * a typical laptop viewport. */
+.auth-kind-modal-dialog .auth-kind-grid {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  margin-top: 4px;
+}

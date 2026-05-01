@@ -26,9 +26,15 @@ export const KIND_PRESETS = [
 
 export type KindPreset = (typeof KIND_PRESETS)[number];
 
-// Curator-facing label for each kind. "Custom" is the fallback for
-// any kind string that's not a preset — the editor shows this next
-// to the kind picker so the curator recognises what's loaded.
+// Curator-facing label for each kind. Presets render their friendly
+// label; custom kinds render the curator-typed string verbatim
+// (decision: the typed string IS the label — picking Custom and
+// typing "doctor notes" should show "doctor notes" everywhere, not
+// be flattened to a generic "Custom" badge).
+//
+// Empty / literal 'custom' fall back to "Custom" — defensive for
+// legacy rows or any path that bypasses the picker's required-name
+// gate.
 export function kindDefaultLabel(kind: string): string {
   switch (kind) {
     case 'vitals':     return 'Vitals';
@@ -36,7 +42,7 @@ export function kindDefaultLabel(kind: string): string {
     case 'io':         return 'Intake & Output';
     case 'neuro':      return 'Neuro';
     case 'assessment': return 'Assessment';
-    default:           return 'Custom';
+    default:           return kind && kind !== 'custom' ? kind : 'Custom';
   }
 }
 
