@@ -172,7 +172,8 @@ export async function loadCase(
   if (tabsResult.error) throw tabsResult.error;
   if (itemsResult.error) throw itemsResult.error;
 
-  const tabs: TabRow[] = (tabsResult.data ?? []).map((t) => ({
+  const tabRows = (tabsResult.data ?? []) as unknown as Array<Record<string, unknown>>;
+  const tabs: TabRow[] = tabRows.map((t) => ({
     tab_id:        t.tab_id as string,
     case_id:       t.case_id as string,
     tab_key:       t.tab_key as string,
@@ -188,7 +189,8 @@ export async function loadCase(
   // everything it needs. All 9 types share MCQ_ROW_COLUMNS; the JSONB
   // content/correct interpretation differs but the column set is
   // identical.
-  const itemIds = (itemsResult.data ?? [])
+  const itemRows = (itemsResult.data ?? []) as unknown as Array<Record<string, unknown>>;
+  const itemIds = itemRows
     .map((row) => row.item_id as string)
     .filter((id): id is string => typeof id === 'string' && id.length > 0);
 
@@ -201,13 +203,14 @@ export async function loadCase(
 
     if (qErr) throw qErr;
 
-    for (const q of qData ?? []) {
-      questionsById[(q as { item_id: string }).item_id] = q;
+    const qRows = (qData ?? []) as unknown as Array<Record<string, unknown>>;
+    for (const q of qRows) {
+      questionsById[q.item_id as string] = q;
     }
   }
 
   const itemsByPosition: Record<number, { item_id: string; cjmm_step: SlotRow['cjmm_step'] }> = {};
-  for (const row of itemsResult.data ?? []) {
+  for (const row of itemRows) {
     itemsByPosition[row.position as number] = {
       item_id:   row.item_id as string,
       cjmm_step: (row.cjmm_step ?? null) as SlotRow['cjmm_step'],
