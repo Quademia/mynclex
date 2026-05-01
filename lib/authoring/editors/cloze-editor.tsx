@@ -78,7 +78,7 @@ type ValidityState = 'ok' | 'warn' | 'err';
 // Helpers (private).
 // ─────────────────────────────────────────────────────────────
 
-function parseStemMarkers(value: string): number[] {
+export function parseStemMarkers(value: string): number[] {
   const out: number[] = [];
   const seen = new Set<number>();
   MARKER_RE.lastIndex = 0;
@@ -132,7 +132,7 @@ interface ClozePreviewProps {
   onViewModeChange: (next: PreviewViewMode) => void;
 }
 
-function ClozePreview({
+export function ClozePreview({
   instruction,
   stem,
   markerOrder,

@@ -194,7 +194,7 @@ interface SataPreviewProps {
   onViewModeChange: (next: PreviewViewMode) => void;
 }
 
-function SataPreview({
+export function SataPreview({
   instruction,
   stem,
   options,

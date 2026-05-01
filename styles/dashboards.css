@@ -2459,11 +2459,20 @@
   font-weight: 600;
   color: var(--primary);
 }
-.cs-tab-item-label {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* Stacks the tab title above the Custom badge so a long custom name
+   (e.g. "Nursing Assessment") shows in full instead of being
+   truncated by the inline Custom badge. flex: 1 + min-width: 0 lets
+   it occupy the row's free width and wrap rather than overflow. */
+.cs-tab-item-text {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cs-tab-item-label {
+  word-break: break-word;
+  line-height: 1.3;
 }
 .cs-tab-item-dirty { color: #633806; font-weight: 700; }
 .cs-tab-item-count {
@@ -2489,6 +2498,7 @@
   border: 1px solid #afa9ec;
   padding: 1px 5px;
   border-radius: 3px;
+  align-self: flex-start;
 }
 .cs-tab-reorder {
   display: flex;
@@ -2512,7 +2522,7 @@
 .cs-tab-rail-footer {
   padding: 10px 14px;
   border-top: 1px solid var(--border);
-  margin-top: auto;
+  margin-top: 8px;
   position: relative;
 }
 .cs-tab-add-btn {
@@ -2618,19 +2628,43 @@
 .cs-entries-table tbody tr:last-child td { border-bottom: none; }
 .cs-entries-table input {
   width: 100%;
-  border: 1px solid transparent;
-  background: transparent;
+  /* Always-visible cell border + subtle off-white fill so each cell
+     reads as an editable form field even before hover/focus. Without
+     this, the inputs render as plain text and a new curator can't
+     tell the table is editable. */
+  border: 1px solid var(--border);
+  background: #fafbfc;
   padding: 4px 6px;
   font-family: inherit;
   font-size: 12.5px;
   color: var(--text);
-  border-radius: 3px;
+  border-radius: 4px;
+  /* Small min-width keeps empty cells clickable without forcing
+     short-content columns (e.g. Time column with "0800" values) to
+     be wider than their longest value. */
+  min-width: 50px;
+  /* Modern browsers (Chrome 123+, Safari 17.4+, Firefox 122+) auto-size
+     the input to its content, so long values like
+     "pH 7.32, PaCO₂ 52 mmHg, ..." widen the column instead of being
+     clipped. Older browsers fall back to width: 100% inside the cell;
+     long values then scroll horizontally inside the input itself, with
+     the table wrapper's overflow-x catching any row-total overflow. */
+  field-sizing: content;
 }
-.cs-entries-table input:hover { border-color: var(--border); }
+.cs-entries-table input:hover { border-color: #cbd5e1; background: var(--white); }
 .cs-entries-table input:focus {
   border-color: var(--accent);
   background: var(--white);
   outline: none;
+  box-shadow: 0 0 0 2px rgba(45, 125, 114, 0.15);
+}
+/* Scroll wrapper for the structured-table editor — when columns or
+   long values push the row past the pane width, the curator scrolls
+   the table horizontally inside this container instead of the values
+   being clipped. */
+.cs-entries-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .cs-entries-table .cs-col-vf { width: 200px; }
 .cs-entries-table .cs-col-del { width: 34px; text-align: center; }
@@ -2896,7 +2930,17 @@
   border-radius: 8px;
   padding: 14px;
   box-shadow: var(--shadow-lg);
-  z-index: 10;
+  /* z-index 30 sits above the wrapper-page sticky topbar
+     (.auth-cs-page-topbar at z-index 20). Without this, the topbar
+     covered the close × and the first list item whenever the
+     popover grew upward into the topbar's region. */
+  z-index: 30;
+  /* Cap height to ~70% of viewport so very tall content scrolls
+     inside the popover instead of growing past the screen edge.
+     The × close button is position: absolute anchored to the
+     popover's top-right and stays visible while content scrolls. */
+  max-height: 70vh;
+  overflow-y: auto;
 }
 .cs-popover h4 {
   font-size: 12.5px;
@@ -2926,6 +2970,30 @@
   border: none;
   border-top: 1px solid var(--border);
   margin: 8px 0;
+}
+.cs-tab-add-custom-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px dashed #cbd5e1;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.cs-tab-add-custom-btn:hover:not(:disabled) {
+  background: var(--white);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.cs-tab-add-custom-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .cs-popover-custom {
   display: flex;

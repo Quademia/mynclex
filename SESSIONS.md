@@ -6,6 +6,165 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-01 (Slice 12 — case-study wrapper v2: 12a → 12e)
+
+Slice 12 (case-study wrapper rebuild) landed end-to-end across one
+session. Functionally complete: list, three-pane shell, writable
+wrapper edit, ported chart-tab editors, real editor bodies in editor
+mode, combined preview, validate panel, add/detach/delete. Two open
+items deferred (notes at the bottom).
+
+Builds on the design pass committed earlier 2026-04-30 (mockup +
+sandbox at `/admin/bank/cases-v2/sandbox`, commits `eb7a46b` /
+`3d33d2c`).
+
+### Sub-slice trail
+
+- **12a** — admin + tutor list pages at `/admin/bank/cases-v2` and
+  `/tutor/bank/cases-v2`; sidebar entries replaced the v2-sandbox
+  entry with v2-list (sandbox still reachable from the list page's
+  toolbar). Stub `[case_id]/page.tsx` for click-through.
+- **12b** — `lib/authoring/wrappers/case-study/types.ts` + `load-case.ts`.
+  Sandbox component renamed from `sandbox-page.tsx` →
+  `wrapper-page.tsx` and made data-driven: takes `WrapperData` prop;
+  sandbox route passes hardcoded `SAMPLE_DATA`, real `[case_id]`
+  routes pass server-loaded data. Stub replaced with real wrapper.
+  Two-mode geometry (wrapper / editor) wired throughout.
+- **12c-1** — wrapper-edit pane writable: title, scenario, three
+  visibility flags, per-slot CJMM dropdown. New
+  `saveCaseMetadataAction` (case row patch + cjmm UPDATE on existing
+  join rows). Cancel resets local state. Dirty dot indicator. Slot
+  card promoted from `<button>` to `<div role="button">` so the
+  CJMM `<select>` can nest.
+- **12c-2** — chart-tab editors ported from legacy unchanged.
+  Vendored `lib/bank/case-study/{tab-rail,structured-tab,narrative-tab,vf-segmented,tab-types}`
+  into `lib/authoring/wrappers/case-study/chart-tabs/`. Added
+  `upsertTabAction` + `deleteTabAction` + `reorderTabsAction` to
+  `actions.ts`. Reused `.cs-*` styles from `dashboards.css` (already
+  loaded site-wide). Per-tab `draftOverrides` map tracks dirty per
+  tab. Polish pass after Sam review: bigger ▲▼ reorder arrows scoped
+  to the wrapper pane; AddTabPopover gained × close + Esc.
+- **12c-3** — real editor bodies (`<McqEditorBody>`, `<SataEditorBody>`,
+  …) mount in editor mode, replacing the read-only stub. 9-way
+  switch on `slot.editor.kind`. Save question button uses
+  `form="auth-mcq-form"` (etc.) to submit the body's form externally.
+  Per-slot dirty tracking + error display. Discard prompt fires
+  via existing `<DiscardConfirm>` atom when curator switches slots
+  while active editor is dirty. `load-case.ts` upgraded to fetch
+  full bank rows and dispatch row mappers (`mcqRowToInitial`, etc.)
+  with `mode: 'wrapper-child'`.
+- **12d** — combined preview right pane. Exported each `XxxPreview`
+  component from its editor file (one-line edit per file × 9).
+  Added `<ActiveQuestionPreview>` switch in the wrapper page that
+  mounts the matching preview from `slot.editor.initial` (post-save
+  state). Student / Answer-key toggle inside each preview drives
+  `viewMode`. CSS `.auth-cs-pane-left .auth-preview { display: none }`
+  hides the editor body's internal preview pane (scoped — the
+  standalone bank list is unaffected). For CLOZE / DRAG_DROP, also
+  exported `parseStemMarkers` and `extractActiveMarkers` so the
+  wrapper can derive the per-type preview state.
+- **12c-4a** — Validate panel. New
+  `lib/authoring/wrappers/case-study/validation.ts` (port of legacy
+  rules with v2-simplified types — no BankFormInitial dependency)
+  and `validation-panel.tsx` (floating top-right panel, errors first,
+  warnings second, Esc to dismiss). Manual-only, never auto-runs.
+  Wired the existing Validate button.
+- **12e** — add / detach / delete. `<QuestionTypePicker>` reused from
+  the standalone bank list. `+ Add question` (button + empty-slot
+  affordance) opens the picker. `saveQuestionAction` extended:
+  CREATE branch reads `parent_case_id` / `case_position` /
+  `case_cjmm_step` from formData; sets `parent_case_id` on the new
+  row + writes the `nclex_case_study_items` join row + revalidates
+  the wrapper page path. New `detachQuestionAction` (drops join row +
+  clears `parent_case_id`). New `deleteCaseAction` with
+  `mode: 'simple' | 'detach-and-delete' | 'delete-everything'`. New
+  `<DeleteCaseConfirm>` atom — auto-detects path from attached
+  question count; typed `DELETE` / `DETACH` gates per the design
+  mockup § 9.6.
+- **12e polish** (after Sam review) — empty slot pips and slot
+  cards now ARE the add affordance. Click an empty pip / card →
+  picker opens with that position as target; question gets created
+  at THAT slot, not "first empty". Standalone "+" pip in the
+  editor-mode slot strip removed. Visual hint: empty pips show
+  "Q4 +" with accent-coloured glyph; empty slot cards show
+  "+ Add question" with dashed accent border. The "+ Add question
+  (next empty)" button at the bottom of the slot rail kept as a
+  shortcut for curators who don't care about position.
+
+### Decisions made and recorded
+
+- **Two-modes geometry on the left column** — wrapper mode shows
+  wrapper-edit pane; clicking a populated slot enters editor mode
+  which takes the full left column for the question body; right
+  column always shows the combined preview. Captured in mockup
+  § 9.7.
+- **Visibility flags moved inside Content tab** (rather than
+  always-visible below tabs) — visibility is content-identity
+  metadata; lives with title + scenario. Captured in mockup § 9.2.
+- **Save model = Position 3** — per-question save (existing) +
+  per-tab save (legacy ported) + Save case study (case row + cjmm
+  only). Atomic-RPC sweep deferred indefinitely; per-level saves
+  cover curator's needs. Captured in mockup § 9.4.
+- **Combined preview is post-save** — right pane reflects last
+  saved data, not in-flight typing. Live-while-typing flagged as a
+  follow-up via state-emit callback.
+- **Empty slot pips/cards are the add affordance** — standalone
+  "+" pip removed; positional add via clicking the empty slot
+  itself. Visual "+ " hint added.
+
+### Open items (deferred)
+
+1. **Live-while-typing preview** in the right column. Today the
+   preview reflects the SAVED state — curator types in the editor
+   body (left), saves, then sees the new state on the right. To
+   make it character-by-character: add an `onStateChange(state)`
+   callback to each editor body, lift state to the wrapper page,
+   feed the matching preview from cached state. Decided to defer
+   until / unless curators flag it as a real friction point.
+
+2. **Atomic-RPC sweep on Save case study** (was 12c-4b). Would let
+   Save case study sweep all dirty per-question + per-tab edits in
+   one atomic legacy `nclex_save_case_with_children` call. Curator
+   already has per-level saves so this is a UX shortcut, not a
+   correctness need. Deferred indefinitely.
+
+### Files touched this session (high-level)
+
+- New: `lib/authoring/wrappers/case-study/{types,load-case,actions,validation,validation-panel,delete-case-confirm}.ts(x)`
+- New: `lib/authoring/wrappers/case-study/chart-tabs/{tab-rail,structured-tab,narrative-tab,vf-segmented,tab-types}.ts(x)` (vendored from legacy)
+- New: `app/(app)/admin/bank/cases-v2/page.tsx` + `[case_id]/page.tsx` + tutor twins
+- Renamed: `sandbox-page.tsx` → `wrapper-page.tsx` (rewritten data-driven)
+- Modified: `lib/authoring/actions/save-question.ts` (case-context CREATE branch)
+- Modified: 9 editor files (`mcq-editor.tsx` etc.) — `export` keyword added to each `XxxPreview` function; CLOZE + DRAG_DROP also export `parseStemMarkers` / `extractActiveMarkers`
+- Modified: `lib/nav/{admin,tutor}.ts` — Case Studies (v2) sidebar entries
+- Modified: `styles/authoring.css` — `.auth-cs-*` block extended substantially (slot rail, editor mode, validation panel, delete dialog, empty-slot hints, etc.)
+
+### Resume next time
+
+Slice 12 is functionally complete and in this branch but **not yet
+merged to main**. Next session priorities:
+
+1. **Browser-test end-to-end** on a fresh case (tutor surface too) —
+   confirm add → save → detach → delete flows under different
+   attached-count scenarios. Watch for any wrapper-vs-child drift
+   bugs.
+2. If no issues, **commit the work to prod** (push branch → main →
+   prod). Currently this session's work is on
+   `claude/competent-robinson-81032f`.
+3. Optional: live-while-typing preview (open item #1 above).
+4. Optional: atomic-RPC sweep (open item #2 above).
+5. Then **slice 13 — Trend wrapper-v2** (same shape as case study
+   but data-table instead of chart tabs, variable-N slots).
+6. Then **slice 14 — the swap** (rename `-v2` → canonical, delete
+   `lib/bank/`, drop the vendoring rule).
+
+Branch state: `claude/competent-robinson-81032f`, all 12a-12e work
+plus polish committed but not merged. Sandbox at
+`/admin/bank/cases-v2/sandbox` still present (will be removed at
+slice-14 swap).
+
+---
+
 ## Session — 2026-04-30 (Family B continued — slices 8 CLOZE + 9 HIGHLIGHT)
 
 Both stem-with-markers editors landed in one session. Editor count

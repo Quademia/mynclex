@@ -333,7 +333,7 @@ interface MatrixPreviewProps {
   onViewModeChange: (next: PreviewViewMode) => void;
 }
 
-function MatrixPreview({
+export function MatrixPreview({
   instruction,
   stem,
   rowLabel,

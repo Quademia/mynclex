@@ -32,6 +32,7 @@ export const TUTOR_GLOBAL_NAV: NavItem[] = [
       { key: 'bank-all',    label: 'All questions',     icon: 'book', href: '/tutor/bank/all' },
       { key: 'bank-all-v2', label: 'All questions (v2)', icon: 'edit', href: '/tutor/bank/all-v2' },
       { key: 'bank-cases',  label: 'Case Studies',      icon: 'book', href: '/tutor/bank/cases' },
+      { key: 'bank-cases-v2', label: 'Case Studies (v2)', icon: 'edit', href: '/tutor/bank/cases-v2' },
       { key: 'bank-trends', label: 'Trends',            icon: 'book', href: '/tutor/bank/trends' },
     ],
   },

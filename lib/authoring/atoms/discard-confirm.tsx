@@ -16,7 +16,14 @@
 interface DiscardConfirmProps {
   onKeepEditing: () => void;
   onDiscard: () => void;
-  onSaveAndClose: () => void;
+  /**
+   * Optional. When provided, a "Save and close" action button is
+   * shown alongside Keep editing + Discard. Omit when there is no
+   * single coherent save target (e.g. leaving a page that has
+   * several independently-dirty regions) — the dialog renders as
+   * a 2-button Keep / Discard prompt.
+   */
+  onSaveAndClose?: () => void;
   /**
    * True while a save action is in flight. Disables Save and close
    * + Discard so the curator can't fire a second action mid-save.
@@ -69,14 +76,16 @@ export function DiscardConfirm({
           >
             Discard changes
           </button>
-          <button
-            type="button"
-            className="auth-btn auth-btn-primary"
-            onClick={onSaveAndClose}
-            disabled={pending}
-          >
-            {pending ? 'Saving…' : 'Save and close'}
-          </button>
+          {onSaveAndClose && (
+            <button
+              type="button"
+              className="auth-btn auth-btn-primary"
+              onClick={onSaveAndClose}
+              disabled={pending}
+            >
+              {pending ? 'Saving…' : 'Save and close'}
+            </button>
+          )}
         </div>
       </div>
     </div>
