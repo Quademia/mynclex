@@ -6,6 +6,165 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-01 (Trend wrapper testing — Dataset landing, editable row-axis label, nextTrendId fix)
+
+Driven by Sam's first hands-on testing pass through the slice 13 trend
+wrapper. Three concrete polish items landed before the session paused.
+No slice 14 progress — the swap is still queued for a separate session.
+
+### Test fixtures — admin + tutor seed data
+
+Two new SQL seed files under `db/`:
+
+- `seed-trend-tests-dev.sql` — admin tables, 6 datasets (one per
+  preset kind + one custom "Pain & Sedation"), 5 attached questions
+  per dataset = 30 questions total. Distribution covers all 9 question
+  types: MCQ×6, SATA×6, TF×3, SELECT_N×3, MATRIX×3, BOWTIE×3, CLOZE×2,
+  HIGHLIGHT×2, DRAG_DROP×2 (one ORDERED, one SENTENCE). Wrapped in
+  `BEGIN/COMMIT` for atomic load. `batch_id = 'TREND_TEST_2026_05_01'`
+  for cleanup. IDs `NCLEX_TRD_TEST_01..06` and
+  `NCLEX_<TYPE>_T01..T30`.
+- `seed-tutor-trend-tests-dev.sql` — tutor twin owned by
+  `mybackpacc+mynclextutor` (`4ed777d7-...`). Mechanically generated
+  from the admin file via a one-shot Node script (table swaps, ID
+  shifts to `NCLEX_TRD_TEST_T01..T06` + `NCLEX_<TYPE>_TT01..TT30`,
+  `tutor_id` injection). Distinct IDs so admin + tutor seeds coexist
+  on dev without collision.
+
+Both files have header-block cleanup snippets. Sam loaded both via the
+Supabase SQL Editor on dev. The earlier "doctor notes" placeholder
+trends he'd built by hand (`NCLEX_TRD_00002..00007`) were deleted in
+the same pass — left only the original dev seed (`NCLEX_TRD_00001`)
+and the new test data.
+
+### Polish 1 — default landing on Dataset, not Q1 (commit `be645a0`)
+
+Discovered by Sam on first open: clicking through to a trend silently
+took the curator into Q1's editor instead of the dataset view, because
+`activePill` defaulted to `1` whenever attached questions existed.
+Inconsistent with case study (which lands on the wrapper view) and
+with the curator mental model — opening *the trend* should show *the
+trend*, not Q1's stem.
+
+Fix at [wrapper-page.tsx:149](lib/authoring/wrappers/trend/wrapper-page.tsx:149):
+default to `'dataset'`. The `?focus=<item_id>` deep-link still takes
+precedence so bank-list "Edit" → wrapper still lands on the right
+question.
+
+### Polish 2 — editable row-axis label (commit `be645a0`)
+
+Sam noticed every column in the data table is curator-editable
+(timepoints, cells, ref-range) **except** the first column header,
+which was hard-coded to `<th>Metric</th>`. Fine for vitals/labs but
+awkward for assessments, narrative kinds (custom datasets like "Pain &
+Sedation"), and especially for the kinds NCSBN actually uses but our
+presets don't cover (medications, nurses' notes, etc.).
+
+Followed by a research detour into the actual NCSBN trend-item shape.
+Surfaced two findings:
+
+- Real NCLEX Trend items are timepoint-conceptual but visually flexible
+  (tables / charts / line graphs / narrative prose). Our timepoint-
+  table is one valid rendering; non-table renderings are out of scope
+  for v1.
+- The 5 presets aren't an NCSBN-mandated taxonomy — they're our
+  design choice. Real archetypes our presets miss include
+  medications/MAR, glucose-only, pain & sedation scores, and nurses'
+  notes. Captured as a v2 gap; out of scope for this patch.
+
+Implementation: nullable `row_label TEXT` on both
+`nclex_trend_datasets` and `nclex_tutor_trend_datasets`. Migration at
+`db/migrations/20260501010000_trend_row_label.sql`, additive-only,
+applied to dev via MCP and back-ported to `db/schema.sql`. Wired
+through `TrendDatasetRow` type, `loadTrend`, the editable
+`<TrendDataTable>` (new `rowLabel` + `onRowLabelChange` props), the
+right-pane `DataTableReadonly` preview, and `saveTrendMetadataAction`.
+Empty/null falls back to "Metric" placeholder so existing rows render
+identically until edited. Per-row metric input placeholder follows the
+curator's typed value.
+
+Decision: do **not** seed kind-aware row_label defaults at create
+time. Three reasons — adds another `kind→X` hardcoded map (we already
+have `kindDefaultLabel` and `kindSeedData`); creates a stale-default
+edge case if curator changes kind after create; the "Metric"
+placeholder is already an OK out-of-box state. The "feels polished"
+upside is small. If curators end up typing the same label on every
+dataset of a given kind, that's the future signal to reconsider.
+
+### Polish 3 — `nextTrendId` collision fix (commit `be645a0`)
+
+Sam asked me to verify the create flow. Tracing it surfaced a real
+bug introduced *by my own test seed naming*. `nextTrendId` did:
+
+> "Sort all trend_ids lex-DESC, take the top one, parseInt the
+> suffix, add 1."
+
+After the seed loaded, the lex-top admin trend was
+`NCLEX_TRD_TEST_06` (because `'T'` (0x54) sorts above `'0'` (0x30)).
+`parseInt("TEST_06", 10) = NaN` → `Number.isFinite(NaN)` false →
+`next` fell back to `1` → generated ID `NCLEX_TRD_00001` already
+existed (original dev seed) → UNIQUE-key violation → **Create button
+would fail on admin** with the seed loaded. (Tutor side was fine —
+seed IDs there don't match the `NCLEX_TUT_TRD_%` LIKE filter.)
+
+Fix in `nextTrendId`: pull the top 100 instead of the top 1, walk
+results, skip any whose suffix isn't pure digits (`/^\d+$/`), take the
+first numeric one. Defensive against any future seed/test/manual data
+with non-numeric suffixes. Applied to both
+[lib/authoring/wrappers/trend/actions.ts:67](lib/authoring/wrappers/trend/actions.ts:67)
+and [lib/bank/trend/actions.ts:84](lib/bank/trend/actions.ts:84) per
+the vendoring rule. Verified against dev: walks past the 6 TEST_*
+rows, lands on `NCLEX_TRD_00001` (suffix "00001", digits-only) →
+`next = 2` → next-issued ID `NCLEX_TRD_00002`.
+
+Will this bite later? Only if there are ever >100 non-numeric trend
+IDs sitting above any numeric one. Implausibly bad input data; if it
+ever happens, bump the limit in one line.
+
+### Memory
+
+No new memory writes this session. Existing memories
+(`feedback_help_bulb_pattern`, `feedback_chart_entries_no_auto_sort`,
+`project_authoring_rebuild_in_flight`, `project_cd_setup`) all still
+apply.
+
+### Resume next time
+
+1. **More trend testing.** Sam paused with "until I find other
+   issues" — the wrapper is hands-on-tested but not exhaustively, so
+   more polish items may surface.
+2. **Slice 14 — the swap.** Still queued from the previous session.
+   Plan stub already in
+   [docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md §14](docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md).
+   Archive over delete; `_archive/` at repo root with a README; `git mv`
+   to preserve history; rename `-v2` URLs to canonical; drop the
+   vendoring rule.
+3. **Tick slice 13 in the slice-plan tracker** alongside the slice 14
+   commit. Currently still `[ ]`.
+4. **(Possible v2)** non-table trend renderings (graphs, narrative
+   notes, MAR-shaped). Captured as a known gap in the bank spec for
+   later; out of scope until v1 ships.
+
+### Files touched this session
+
+**New:**
+
+- `db/migrations/20260501010000_trend_row_label.sql`
+- `db/seed-trend-tests-dev.sql`
+- `db/seed-tutor-trend-tests-dev.sql`
+
+**Modified:**
+
+- `db/schema.sql` (row_label added to both trend dataset tables)
+- `lib/authoring/wrappers/trend/actions.ts` (row_label save + nextTrendId fix)
+- `lib/authoring/wrappers/trend/data-table.tsx` (editable row-axis header + cell placeholder)
+- `lib/authoring/wrappers/trend/load-trend.ts` (row_label in select list)
+- `lib/authoring/wrappers/trend/types.ts` (row_label on TrendDatasetRow)
+- `lib/authoring/wrappers/trend/wrapper-page.tsx` (rowLabel state, dataset-default landing, preview wiring)
+- `lib/bank/trend/actions.ts` (mirrored nextTrendId fix per vendoring rule)
+
+---
+
 ## Session — 2026-05-01 (Post-slice-13 cleanup + slice 14 plan stub)
 
 Continuation of the slice 13 session. After polish landed, three
