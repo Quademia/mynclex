@@ -129,6 +129,7 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
   const [title, setTitle] = useState(datasetRow.title);
   const [scenario, setScenario] = useState(datasetRow.scenario ?? '');
   const [kind, setKind] = useState(datasetRow.kind);
+  const [rowLabel, setRowLabel] = useState(datasetRow.row_label ?? '');
   const [isPublished, setIsPublished] = useState(datasetRow.is_published);
   const [isFreeSample, setIsFreeSample] = useState(datasetRow.is_free_sample);
   const [isBuilderVisible, setIsBuilderVisible] = useState(datasetRow.is_builder_visible);
@@ -148,7 +149,7 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
     : null;
   const [activePill, setActivePill] = useState<ActivePill>(() => {
     if (focusedSlot) return focusedSlot.position;
-    return slots.length > 0 ? 1 : 'dataset';
+    return 'dataset';
   });
 
   const activeSlot: SlotRow | null =
@@ -216,6 +217,7 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
     if (title !== datasetRow.title) return true;
     if ((scenario || null) !== (datasetRow.scenario || null)) return true;
     if (kind !== datasetRow.kind) return true;
+    if ((rowLabel || null) !== (datasetRow.row_label || null)) return true;
     if (isPublished       !== datasetRow.is_published)       return true;
     if (isFreeSample      !== datasetRow.is_free_sample)     return true;
     if (isBuilderVisible  !== datasetRow.is_builder_visible) return true;
@@ -223,7 +225,7 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
     if (JSON.stringify(rows)       !== JSON.stringify(datasetRow.rows))       return true;
     return false;
   }, [
-    title, scenario, kind,
+    title, scenario, kind, rowLabel,
     isPublished, isFreeSample, isBuilderVisible,
     timepoints, rows,
     datasetRow,
@@ -236,6 +238,7 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
     setTitle(datasetRow.title);
     setScenario(datasetRow.scenario ?? '');
     setKind(datasetRow.kind);
+    setRowLabel(datasetRow.row_label ?? '');
     setIsPublished(datasetRow.is_published);
     setIsFreeSample(datasetRow.is_free_sample);
     setIsBuilderVisible(datasetRow.is_builder_visible);
@@ -251,6 +254,7 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
     fd.set('title', title);
     fd.set('scenario', scenario);
     fd.set('kind', kind);
+    fd.set('row_label', rowLabel);
     if (isPublished)      fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
     if (isBuilderVisible) fd.set('is_builder_visible', 'on');
@@ -493,6 +497,7 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
   // ── Right-pane in-flight values ─────────────────────────────
   const previewScenario = scenario;
   const previewKind     = kind;
+  const previewRowLabel = rowLabel;
   const previewRows     = rows;
   const previewTps      = timepoints;
 
@@ -621,6 +626,7 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
                 title={title}
                 scenario={scenario}
                 kind={kind}
+                rowLabel={rowLabel}
                 isPublished={isPublished}
                 isFreeSample={isFreeSample}
                 isBuilderVisible={isBuilderVisible}
@@ -629,6 +635,7 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
                 onTitleChange={setTitle}
                 onScenarioChange={setScenario}
                 onKindChange={setKind}
+                onRowLabelChange={setRowLabel}
                 onIsPublishedChange={setIsPublished}
                 onIsFreeSampleChange={setIsFreeSample}
                 onIsBuilderVisibleChange={setIsBuilderVisible}
@@ -680,6 +687,7 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
               <DataTableReadonly
                 rows={previewRows}
                 timepoints={previewTps}
+                rowLabel={previewRowLabel}
                 showFlags={false}
               />
             ) : (
@@ -860,9 +868,11 @@ function DatasetView({
   isBuilderVisible,
   timepoints,
   rows,
+  rowLabel,
   onTitleChange,
   onScenarioChange,
   onKindChange,
+  onRowLabelChange,
   onIsPublishedChange,
   onIsFreeSampleChange,
   onIsBuilderVisibleChange,
@@ -871,6 +881,7 @@ function DatasetView({
   title:                    string;
   scenario:                 string;
   kind:                     string;
+  rowLabel:                 string;
   isPublished:              boolean;
   isFreeSample:             boolean;
   isBuilderVisible:         boolean;
@@ -879,6 +890,7 @@ function DatasetView({
   onTitleChange:            (next: string) => void;
   onScenarioChange:         (next: string) => void;
   onKindChange:             (next: string) => void;
+  onRowLabelChange:         (next: string) => void;
   onIsPublishedChange:      (next: boolean) => void;
   onIsFreeSampleChange:     (next: boolean) => void;
   onIsBuilderVisibleChange: (next: boolean) => void;
@@ -954,7 +966,9 @@ function DatasetView({
         <TrendDataTable
           timepoints={timepoints}
           rows={rows}
+          rowLabel={rowLabel}
           onChange={onDataChange}
+          onRowLabelChange={onRowLabelChange}
         />
       </section>
     </div>
@@ -1025,14 +1039,17 @@ function EditorBodyForKind({
 function DataTableReadonly({
   rows,
   timepoints,
+  rowLabel,
   showFlags,
 }: {
   rows:       TrendRow[];
   timepoints: string[];
+  rowLabel:   string;
   showFlags:  boolean;
 }) {
   const hasRefRange = rows.some((r) => r.ref_range !== undefined && r.ref_range !== '');
   const hasCols = timepoints.length > 0;
+  const rowLabelDisplay = rowLabel.trim() || 'Metric';
 
   if (!hasCols && rows.length === 0) {
     return <p className="auth-tr-empty-msg">Empty data table.</p>;
@@ -1043,7 +1060,7 @@ function DataTableReadonly({
       <table className="auth-tr-table">
         <thead>
           <tr>
-            <th className="auth-tr-col-metric">Metric</th>
+            <th className="auth-tr-col-metric">{rowLabelDisplay}</th>
             {timepoints.map((tp, idx) => (
               <th key={idx} className="auth-tr-col-tp">{tp || `TP${idx + 1}`}</th>
             ))}

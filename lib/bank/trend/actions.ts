@@ -77,8 +77,17 @@ function readSurface(formData: FormData): Surface {
 // /admin/dashboard (single-hop). Same final destination.
 
 // ─────────────────────────────────────────────────────────────
-// ID minting. Lexical sort works because the suffix is fixed-width
-// zero-padded (NNNNN). Mirrors nextCaseId.
+// ID minting. Lexical sort works because the canonical suffix is
+// fixed-width zero-padded (NNNNN). Mirrors nextCaseId.
+//
+// Defensive: pull more than one row and walk past any trend_ids whose
+// suffix isn't purely numeric (e.g. seed/test IDs like
+// NCLEX_TRD_TEST_06). Lex DESC puts those above genuine numeric IDs
+// because 'T' (0x54) > '0' (0x30); without the walk, parseInt("TEST_06")
+// is NaN and `next` falls back to 1, generating a colliding NCLEX_TRD_00001.
+// Same defensive walk lives in the v2 copy at
+// lib/authoring/wrappers/trend/actions.ts — keep them in sync until
+// slice 14 retires this file.
 // ─────────────────────────────────────────────────────────────
 
 async function nextTrendId(
@@ -91,16 +100,19 @@ async function nextTrendId(
     .select('trend_id')
     .like('trend_id', `${cfg.idPrefix}%`)
     .order('trend_id', { ascending: false })
-    .limit(1);
+    .limit(100);
 
   if (error) throw error;
 
   let next = 1;
-  if (data && data.length > 0) {
-    const last = data[0].trend_id as string;
-    const suffix = last.slice(cfg.idPrefix.length);
+  for (const row of (data ?? []) as Array<{ trend_id: string }>) {
+    const suffix = row.trend_id.slice(cfg.idPrefix.length);
+    if (!/^\d+$/.test(suffix)) continue;
     const n = parseInt(suffix, 10);
-    if (Number.isFinite(n)) next = n + 1;
+    if (Number.isFinite(n)) {
+      next = n + 1;
+      break;
+    }
   }
 
   return `${cfg.idPrefix}${String(next).padStart(5, '0')}`;

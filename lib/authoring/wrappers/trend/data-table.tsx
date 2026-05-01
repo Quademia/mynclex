@@ -24,10 +24,17 @@
 import type { TrendFlag, TrendRow } from './types';
 
 interface Props {
-  timepoints:       string[];
-  rows:             TrendRow[];
-  onChange:         (next: { timepoints: string[]; rows: TrendRow[] }) => void;
+  timepoints:        string[];
+  rows:              TrendRow[];
+  rowLabel:          string;
+  onChange:          (next: { timepoints: string[]; rows: TrendRow[] }) => void;
+  onRowLabelChange:  (next: string) => void;
 }
+
+// Fallback when the curator hasn't set a row-axis label.
+// "Metric" matches the original hard-coded header so existing
+// datasets render identically until edited.
+const ROW_LABEL_FALLBACK = 'Metric';
 
 // Cycle order for the per-cell flag button. null → abnormal → borderline → null.
 const FLAG_CYCLE: TrendFlag[] = [null, 'abnormal', 'borderline'];
@@ -52,8 +59,15 @@ function flagClass(f: TrendFlag): string {
   return 'tr-flag-btn';
 }
 
-export function TrendDataTable({ timepoints, rows, onChange }: Props) {
+export function TrendDataTable({
+  timepoints,
+  rows,
+  rowLabel,
+  onChange,
+  onRowLabelChange,
+}: Props) {
   const refRangeEnabled = rows.some((r) => r.ref_range !== undefined);
+  const rowLabelDisplay = rowLabel.trim() || ROW_LABEL_FALLBACK;
 
   // ── Mutators ──────────────────────────────────────────────────
 
@@ -227,7 +241,16 @@ export function TrendDataTable({ timepoints, rows, onChange }: Props) {
           <table className="tr-table">
             <thead>
               <tr>
-                <th className="tr-col-metric">Metric</th>
+                <th className="tr-col-metric">
+                  <input
+                    type="text"
+                    value={rowLabel}
+                    onChange={(e) => onRowLabelChange(e.target.value)}
+                    placeholder={ROW_LABEL_FALLBACK}
+                    aria-label="Row-axis label"
+                    maxLength={40}
+                  />
+                </th>
                 {timepoints.map((tp, cIdx) => (
                   <th key={cIdx} className="tr-col-tp">
                     <input
@@ -260,8 +283,8 @@ export function TrendDataTable({ timepoints, rows, onChange }: Props) {
                       type="text"
                       value={r.metric}
                       onChange={(e) => renameMetric(rIdx, e.target.value)}
-                      placeholder="Metric"
-                      aria-label={`Row ${rIdx + 1} metric label`}
+                      placeholder={rowLabelDisplay}
+                      aria-label={`Row ${rIdx + 1} ${rowLabelDisplay.toLowerCase()} label`}
                     />
                   </td>
                   {timepoints.map((_, cIdx) => {

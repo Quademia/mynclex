@@ -61,9 +61,17 @@ function readSurface(formData: FormData): Surface {
 }
 
 // Next 5-digit trend_id for the given surface. Lexical sort works
-// because the suffix is fixed-width zero-padded. Vendored from the
-// legacy nextTrendId in lib/bank/trend/actions.ts (slice 14 collapses
-// the duplication).
+// because the canonical suffix is fixed-width zero-padded.
+//
+// Defensive: pull more than one row and walk past any trend_ids whose
+// suffix isn't purely numeric (e.g. seed/test IDs like
+// NCLEX_TRD_TEST_06). Lex DESC puts those above genuine numeric IDs
+// because 'T' (0x54) > '0' (0x30); without the walk, parseInt("TEST_06")
+// is NaN and `next` falls back to 1, generating a colliding NCLEX_TRD_00001.
+//
+// Vendored from the legacy nextTrendId in lib/bank/trend/actions.ts
+// (slice 14 collapses the duplication). Per the vendoring rule, the
+// legacy copy gets the same fix in this commit.
 async function nextTrendId(
   supabase: ServerSupabaseClient,
   surface:  Surface,
@@ -74,16 +82,19 @@ async function nextTrendId(
     .select('trend_id')
     .like('trend_id', `${cfg.idPrefix}%`)
     .order('trend_id', { ascending: false })
-    .limit(1);
+    .limit(100);
 
   if (error) throw error;
 
   let next = 1;
-  if (data && data.length > 0) {
-    const last = (data[0] as { trend_id: string }).trend_id;
-    const suffix = last.slice(cfg.idPrefix.length);
+  for (const row of (data ?? []) as Array<{ trend_id: string }>) {
+    const suffix = row.trend_id.slice(cfg.idPrefix.length);
+    if (!/^\d+$/.test(suffix)) continue;
     const n = parseInt(suffix, 10);
-    if (Number.isFinite(n)) next = n + 1;
+    if (Number.isFinite(n)) {
+      next = n + 1;
+      break;
+    }
   }
 
   return `${cfg.idPrefix}${String(next).padStart(5, '0')}`;
@@ -236,6 +247,9 @@ export async function saveTrendMetadataAction(
 
   const kind = String(formData.get('kind') ?? '').trim() || 'custom';
 
+  const rowLabelRaw = String(formData.get('row_label') ?? '').trim();
+  const row_label = rowLabelRaw || null;
+
   const is_published       = formData.get('is_published') === 'on';
   const is_free_sample     = formData.get('is_free_sample') === 'on';
   const is_builder_visible = formData.get('is_builder_visible') === 'on';
@@ -268,6 +282,7 @@ export async function saveTrendMetadataAction(
       title,
       scenario,
       kind,
+      row_label,
       timepoints,
       rows: parsed.rows,
       is_published,

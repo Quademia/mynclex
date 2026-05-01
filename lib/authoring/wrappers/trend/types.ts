@@ -53,6 +53,7 @@ export interface TrendDatasetRow {
   title:              string;
   scenario:           string | null;
   kind:               string;
+  row_label:          string | null;
   timepoints:         string[];
   rows:               TrendRow[];
   is_published:       boolean;
