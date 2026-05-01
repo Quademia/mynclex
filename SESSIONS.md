@@ -6,6 +6,233 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-01 (Post-slice-13 cleanup + slice 14 plan stub)
+
+Continuation of the slice 13 session. After polish landed, three
+follow-up pieces shipped in sequence: the CS visibility-flag
+retrofit (closing the loop on Q7's brittleness discussion),
+wrapper-aware visibility on the v2 bank list, and the legacy
+filter / composition-row / nav-link port. Slice 14 (the swap)
+was scoped but deferred to next session per Sam — he wants to
+do further trend-wrapper testing first.
+
+### CS visibility-flag retrofit (commit `c7b9768`)
+
+Q7 of the slice 13 plan surfaced a real bug in CS: `wrapper-child`
+mode hid `is_published` and `is_builder_visible` from the editor's
+housekeeping form. With those fields absent, the save-question
+parser read `null` and the boolean expressions evaluated FALSE,
+which meant **CS child questions had those two flags silently
+force-cleared on every save** — they were locked at FALSE forever
+regardless of curator intent.
+
+Sam's call at the time: "leave CS for now, fix trend the right way,
+solve CS later." This commit is "later." Eighteen lines touched
+across two files:
+
+- [lib/authoring/wrappers/case-study/load-case.ts:117–137](lib/authoring/wrappers/case-study/load-case.ts:117)
+  — drop the `mode: 'wrapper-child'` override on the 9 row-mapper
+  dispatch lines. Row mappers default to `'standalone'`.
+- [lib/authoring/wrappers/case-study/wrapper-page.tsx:363–375](lib/authoring/wrappers/case-study/wrapper-page.tsx:363)
+  — same drop on the 9 `emptyEditorOf()` lines for new question
+  creation.
+
+Net effect: case children's housekeeping section now renders all
+three visibility checkboxes (Published / Free sample / Visible in
+builder) — same treatment trend uses. Curator owns each question's
+flags genuinely. Existing legacy CS children stay locked at
+FALSE/whatever-FreeSample-was/FALSE in the DB until a curator
+explicitly opts in via the now-rendered checkboxes — no backfill
+needed.
+
+The `HousekeepingMode` type itself ('standalone' | 'wrapper-child')
+is left in place. Slice 14 will audit whether anything else still
+uses 'wrapper-child' before removing it; this commit is purely
+about flipping the active values.
+
+### V2 bank list — wrapper-aware visibility + ?focus deep-link (commit `a8cb31d`)
+
+Sam noticed the v2 list was filtering wrapper-attached rows out
+entirely (`.is('parent_case_id', null).is('trend_id', null)` in
+the query). That decision made sense at slice 2 (when wrapper
+pages didn't exist) but had become a real regression that slice 14
+would have shipped without this fix.
+
+Restored the legacy behaviour where the bank list shows ALL
+questions, with badges marking the wrapper-attached ones, and
+clicking through goes straight to the wrapper page with the
+matching pill pre-selected.
+
+Files:
+
+- `app/(app)/{admin,tutor}/bank/all-v2/page.tsx`
+  — drop the filter; extend select with FK joins
+  `'trend:nclex_trend_datasets(title), case:nclex_case_studies(title)'`
+  (admin) / `nclex_tutor_*` (tutor); pass wrapper metadata down on
+  each row summary.
+- `lib/authoring/bank-list-v2-client.tsx` — `BankListV2RowSummary`
+  extended with `parent_case_id` / `case_title` / `trend_id` /
+  `trend_title`; `wrapperHrefFor(row)` helper builds surface-aware
+  `?focus=<item_id>` links; row stem column gets a clickable badge
+  ("In case · {title}" / "Trend · {title}") for attached rows;
+  Action button branches — standalone keeps modal-Edit, attached
+  rows render a "Open in case editor" / "Open in trend editor"
+  Link instead.
+- CS + trend wrapper pages gain a `focusItemId` prop. When set
+  and a matching slot exists, the wrapper opens with that pill
+  pre-selected. CS additionally enters editor mode automatically;
+  trend just sets `activePill` (editor-mode is implicit there).
+- All four detail pages (admin/tutor × cases-v2/trends-v2) parse
+  `?focus=<item_id>` from `searchParams` and forward to the
+  wrapper component.
+
+CSS: zero — reuses `.bank-badge`, `.bank-badge-case`,
+`.bank-badge-trend`, `.bank-badge-link` from
+[styles/dashboards.css](styles/dashboards.css).
+
+### V2 bank list — filters / composition row / nav links (commit `4bd0424`)
+
+The full topbar port from the legacy `/admin/bank/all`. Sam asked
+for 1:1 parity (all 6 filters + composition row + back link + nav
+links) so slice 14 can swap legacy → v2 without UX regression.
+
+Maintained the topbar/list separation Sam called out: filters live
+in the server-rendered topbar zone, table + modals stay in the
+client component below.
+
+New components:
+
+- [lib/authoring/bank-filters-v2.tsx](lib/authoring/bank-filters-v2.tsx)
+  (vendored from `lib/bank/filters.tsx`) — six-control GET form
+  (Type / Category / Difficulty / Status / Membership dropdowns +
+  Search input + Apply / Reset). URL-param shape unchanged so
+  `.bank-filter-*` CSS carries over verbatim.
+- [lib/authoring/bank-counts-v2.tsx](lib/authoring/bank-counts-v2.tsx)
+  (vendored from the inline `CompositionCounts` in
+  `lib/bank/list-view.tsx`) — four chips, each as
+  `<filtered>/<total>`.
+
+Page-level changes:
+
+- Both list pages (admin + tutor) parse `searchParams` →
+  `BankFilterValuesV2`, branch the main row query on six filters,
+  and run **8 count queries in `Promise.all`** — one per
+  (bucket × non-membership-filters-applied|not). Membership clamp
+  deliberately excluded from the counts so all four chips stay
+  informative when curator picks a membership filter (mirrors
+  legacy).
+- Top-of-page chrome ports legacy: back link (`← Admin` /
+  `← Tutor`), title + Case Studies / Trend datasets nav links
+  (pointing at the v2 wrappers, not legacy), composition row,
+  filter bar — all server-rendered.
+- `BankListV2Client` gains `hasAnyFilter` + `baseUrl` props.
+  Empty-state now branches: "No questions yet" when bank is
+  genuinely empty; "No questions match these filters · Reset"
+  with a Link back to `baseUrl` when filters are clearing the
+  view.
+
+Hard-cap stays at `.limit(500)` like legacy — pagination is
+explicitly out of scope.
+
+### Slice 14 — plan stub (deferred to next session)
+
+Sam picked **archive over delete** for the legacy code, with the
+swap happening in the same next session he uses for further
+trend-wrapper testing.
+
+Sketch settled in this session:
+
+- **Folder location:** `_archive/` at repo root, mirroring deleted
+  paths inside (e.g. `_archive/lib/bank/editors/`,
+  `_archive/lib/bank/case-study/`). Underscore prefix sorts to the
+  top of file listings; README inside saying "Frozen legacy code,
+  do not import."
+- **Accidental-import guard:** README + visible folder name. If
+  the trust-the-curator approach turns out insufficient, an eslint
+  rule or `tsconfig.json` `paths` block can land later.
+- **What gets archived:**
+  - `lib/bank/editors/` (all 9 question editors)
+  - `lib/bank/case-study/` (entire folder)
+  - `lib/bank/trend/` (entire folder)
+  - `lib/bank/question-authoring-panel.tsx`
+  - `lib/bank/list-view.tsx` + `lib/bank/filters.tsx`
+  - `app/(app)/admin/bank/editor-shell.tsx`
+  - Plus anything else in `lib/bank/` the v2 tree no longer
+    references — audit pass.
+- **What does NOT get archived:**
+  - DB-side stuff (schema, RLS, RPCs) — stays put.
+  - `lib/bank/classifications.ts` — possibly. Need to check
+    whether anything outside the archive still imports from it
+    after the v1 routes are gone.
+- **Sequence:**
+  1. Create `_archive/` + README.
+  2. `git mv` legacy folders into the archive (preserves history).
+  3. Drop the vendoring rule (per-file headers + any CLAUDE.md
+     mention).
+  4. Rename `-v2` → canonical: delete legacy `app/(app)/admin/bank/all/`,
+     `cases/`, `trends/`; rename the v2 folders to take their
+     place. Same for tutor twins.
+  5. Import audit: `grep -r "lib/bank/editors|lib/bank/case-study|
+     lib/bank/trend" app lib` should return zero.
+  6. Drop the "(v2)" suffix from sidebar nav entries.
+  7. Build + typecheck + lint clean.
+  8. SESSIONS.md entry covering both the swap and Sam's
+     trend-wrapper testing pass.
+
+### Memory
+
+No new memory writes this session. The standing memories
+(`feedback_help_bulb_pattern.md`,
+`feedback_chart_entries_no_auto_sort.md`,
+`project_authoring_rebuild_in_flight.md`) all still apply. The
+authoring-rebuild memory should get its "13 of 14 slices done"
+update next session when slice 14 actually lands.
+
+### Resume next time
+
+1. **Trend-wrapper testing pass.** Sam's exercising the wrapper
+   end-to-end on dev — surface any friction items for a possible
+   polish iteration.
+2. **Slice 14 — the swap.** Per the plan stub above. Archive over
+   delete, `_archive/` at repo root with a README, `git mv` to
+   preserve history, then rename `-v2` URLs to canonical.
+3. **Tick slice 13 in
+   [docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md §13](docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md)
+   tracker.** Currently still `[ ]` — should land alongside the
+   slice 14 swap commit.
+4. **Update `project_authoring_rebuild_in_flight.md` memory** to
+   "14 of 14 done" and drop the vendoring-rule line, since slice
+   14 closes both.
+
+### Files touched this session
+
+**New:**
+
+- `lib/authoring/bank-filters-v2.tsx`
+- `lib/authoring/bank-counts-v2.tsx`
+
+**Modified:**
+
+- `lib/authoring/wrappers/case-study/load-case.ts` (CS retrofit)
+- `lib/authoring/wrappers/case-study/wrapper-page.tsx` (CS retrofit
+  + `focusItemId` prop + auto editor-mode on focus)
+- `lib/authoring/wrappers/trend/wrapper-page.tsx` (`focusItemId`
+  prop + matching-slot active pill)
+- `lib/authoring/bank-list-v2-client.tsx` (wrapper metadata,
+  badges, Edit-click branch, empty-state branch, hasAnyFilter +
+  baseUrl props)
+- `app/(app)/admin/bank/all-v2/page.tsx` (drop filter, FK joins,
+  search-param parsing, filter-aware queries, count queries, top
+  section)
+- `app/(app)/tutor/bank/all-v2/page.tsx` (same as admin, tutor
+  tables)
+- `app/(app)/admin/bank/cases-v2/[case_id]/page.tsx` (focus param)
+- `app/(app)/admin/bank/trends-v2/[trend_id]/page.tsx` (focus param)
+- `app/(app)/tutor/bank/cases-v2/[case_id]/page.tsx` (focus param)
+- `app/(app)/tutor/bank/trends-v2/[trend_id]/page.tsx` (focus param)
+
+---
+
 ## Session — 2026-05-01 (Slice 13 — trend wrapper-v2: plan + 13a → polish)
 
 The slice 13 build, end to end. Started with the plan doc (all
