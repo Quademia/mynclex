@@ -43,9 +43,12 @@ import type {
 import type { PreviewViewMode } from '@/lib/authoring/atoms/preview-toggle';
 import { ErrorToast } from '@/lib/authoring/atoms/error-toast';
 import { DiscardConfirm } from '@/lib/authoring/atoms/discard-confirm';
+import { HelpBulb } from '@/lib/authoring/atoms/help-bulb';
 import { QuestionTypePicker } from '@/lib/authoring/atoms/question-type-picker';
 import { saveQuestionAction } from '@/lib/authoring/actions/save-question';
 import type { QuestionType } from '@/lib/authoring/classifications';
+import { validateTrend, type ValidationIssue } from './validation';
+import { ValidationPanel } from './validation-panel';
 
 import { McqEditorBody, McqPreview }             from '@/lib/authoring/editors/mcq-editor';
 import { TfEditorBody, TfPreview }               from '@/lib/authoring/editors/tf-editor';
@@ -165,6 +168,28 @@ export function TrendWrapperPage({ data }: Props) {
 
   // ── Delete dialog ───────────────────────────────────────────
   const [showDelete, setShowDelete] = useState(false);
+
+  // ── Validation panel ────────────────────────────────────────
+  // null = panel closed. Array = open with these issues. Re-clicking
+  // Validate while open closes the panel.
+  const [validationIssues, setValidationIssues] = useState<ValidationIssue[] | null>(null);
+
+  function onValidateClick() {
+    if (validationIssues !== null) {
+      setValidationIssues(null);
+      return;
+    }
+    setValidationIssues(
+      validateTrend({
+        title,
+        scenario,
+        is_published: isPublished,
+        timepoints,
+        rows,
+        slots,
+      }),
+    );
+  }
 
   // ── Per-active-question dirty flag ──────────────────────────
   // Reset to false on every pill switch (we unmount the editor body
@@ -539,11 +564,29 @@ export function TrendWrapperPage({ data }: Props) {
           <button
             type="button"
             className="auth-cs-btn subtle tiny"
+            onClick={onValidateClick}
+            title="Run a manual validation pass over the dataset (rows, timepoints, attached questions)."
+          >
+            {validationIssues === null ? 'Validate' : 'Hide validation'}
+          </button>
+          <button
+            type="button"
+            className="auth-cs-btn subtle tiny"
             onClick={onDeleteDataset}
             title="Delete this trend dataset."
           >
             Delete
           </button>
+          <HelpBulb title="What do these buttons do?">
+            <ul className="auth-help-bulb-list">
+              <li><strong>Cancel changes</strong> — Discard unsaved title / scenario / kind / visibility / data table edits in the Dataset view. Returns those fields to the last saved values. Visible when on the Dataset pill.</li>
+              <li><strong>Save trend</strong> — Save the dataset row: title, scenario, kind, the three visibility flags, and the data table (rows + timepoints + flags + ref-range). Visible when on the Dataset pill.</li>
+              <li><strong>Save question</strong> — Save the active question. Each attached question keeps its own publishing flags (genuinely owned per question, unlike CS). Visible when on a question pill.</li>
+              <li><strong>Detach</strong> — Remove the active question from the dataset. The question survives in the bank as a standalone item; the dataset just loses its link. Visible only on existing question pills.</li>
+              <li><strong>Validate</strong> — Run a manual validation pass over the dataset (title, rows, timepoints, attached questions). Errors first, warnings second. Manual only — never auto-runs. Click again to dismiss.</li>
+              <li><strong>Delete</strong> — Permanently delete this trend dataset. The dialog auto-detects the right path (simple, detach-and-delete, or delete-everything) based on attached questions, with a type-to-confirm gate.</li>
+            </ul>
+          </HelpBulb>
         </div>
       </header>
 
@@ -691,6 +734,14 @@ export function TrendWrapperPage({ data }: Props) {
             setShowDelete(false);
             setWrapperError(msg);
           }}
+        />
+      )}
+
+      {validationIssues !== null && (
+        <ValidationPanel
+          issues={validationIssues}
+          isPublished={isPublished}
+          onClose={() => setValidationIssues(null)}
         />
       )}
     </div>
