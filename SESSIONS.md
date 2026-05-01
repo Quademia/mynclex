@@ -108,26 +108,72 @@ Slice tracker:
 store — the rebuild is no longer in flight. `MEMORY.md` index
 updated.
 
-### Decisions still open
+### Commit 4 — phase 2: lib/authoring → lib/bank rename (commit `803ce40`, 2026-05-02)
 
-- **`lib/authoring/` → `lib/bank/` rename.** Sam deferred this
-  separately. The legacy `lib/bank/` is now in `_archive/`, so
-  the namespace is free. Renaming would update ~90+ import paths.
-  Optional polish — not blocking.
+Closed the rename decision Sam had deferred. The `lib/authoring/`
+folder name was contextual to the parallel-build phase
+(`lib/authoring/` was the new tree alongside the legacy `lib/bank/`).
+With the legacy now in `_archive/`, the prefix lost its purpose —
+`lib/bank/` is the natural domain name for the bank authoring code.
+
+Mechanics:
+
+- `git mv lib/authoring lib/bank` — 74 files, history preserved
+  (every file shows as a git rename).
+- `sed @/lib/authoring/ → @/lib/bank/` across `app/ + lib/ +
+  components/` — 297 import-line occurrences across 39 importing
+  files updated.
+- `sed lib/authoring/ → lib/bank/` inside the moved files for the
+  self-referential file-header path comments (e.g.
+  `// mynclex/lib/authoring/parsers/mcq.ts` →
+  `// mynclex/lib/bank/parsers/mcq.ts`).
+- `CLAUDE.md` atom-path mentions updated
+  (`lib/authoring/atoms/` → `lib/bank/atoms/`).
+
+Verification before commit:
+
+- `grep -rn "lib/authoring" lib app components --include=*.ts(x)`
+  returns zero hits in live code (`_archive/` deliberately excluded
+  from the audit).
+- `tsc --noEmit` clean (with `_archive` excluded in tsconfig).
+- Dev server boots clean.
+- `/admin/bank/{all,cases,trends}` smoke-tested → HTTP 307 (auth
+  redirect to login, expected for unauthenticated request — routes
+  resolve correctly).
+
+The `_archive/lib/bank/` folder is unaffected — it's frozen reference
+code excluded from compilation. Its contents still reference each
+other and the (now-archived) legacy `@/lib/bank/...` paths, which is
+fine because nothing live imports it.
+
+### Decisions resolved this session
+
+All open decisions from the slice-14 plan are now closed:
+
+- ✅ Archive vs delete legacy code — **archive**, into `_archive/`
+- ✅ Archive scope — **everything** (lib/bank + legacy app routes +
+  sandboxes) per Sam's "no deletes" call
+- ✅ `lib/authoring/` → `lib/bank/` rename — **done in phase 2**
 
 ### Resume next time
 
-1. **Eyeball the swap in browser** — confirm the canonical URLs
-   serve everything they should.
-2. **Decide on `lib/authoring/` rename.** If yes, single mechanical
-   sweep. If no, drop the open decision and move on.
-3. **Move to the next product epic.** Per the broader plan
-   ([docs/product-plan/main.md](docs/product-plan/main.md)):
+The 14-slice questions-and-wrappers rebuild epic is **fully closed**.
+Next-session candidates from the broader plan:
+
+1. **Eyeball the swap in browser** — quick smoke test of the
+   canonical URLs end-to-end (still untested by a human).
+2. **Pick the next product epic.** Per
+   [docs/product-plan/main.md](docs/product-plan/main.md):
+   - Student-side runner — the actual exam-taking surface
+     (currently only the curator side exists; nothing for students
+     to do yet)
    - Student enrolment flow ([payments-and-enrolment.md](docs/product-plan/payments-and-enrolment.md))
    - Curriculum authoring UX ([curriculum-authoring-ux.md](docs/product-plan/curriculum-authoring-ux.md))
    - Tutorial session UX
-   - Student-side runner — the actual exam-taking surface
-     (currently only the curator side exists)
+3. **(Backlog from this session)** Possible v2 trend gaps —
+   non-table renderings (graphs, narrative notes, MAR-shaped),
+   preset-list refinement (drop `neuro`, add `medications` /
+   `pain_sedation` / `glucose`).
 
 ### Files touched this session
 
@@ -159,6 +205,15 @@ updated.
 - `lib/authoring/editors/*-row-mapper.ts` + `{sata,tf}-editor.tsx`
 - All 6 list/detail page files in `app/(app)/{admin,tutor}/bank/`
 - `docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md`
+
+**Renamed in phase 2 (2026-05-02):**
+
+- `lib/authoring/` → `lib/bank/` (74 files moved as a unit, history
+  preserved per-file)
+- All `@/lib/authoring/*` import paths across app/ + lib/ + components/
+  → `@/lib/bank/*`
+- File-header path comments inside the moved files
+- `CLAUDE.md` atom paths
 
 **Memory:**
 
