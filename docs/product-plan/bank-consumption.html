@@ -1,5 +1,5 @@
 MyNclex — Bank Consumption Plan
-Living planning document. Updated each session as decisions land. Last updated: 2026-05-04 (§17 Builder — added Intent picker step (Study vs Exam) before Mode selection; modes filter by chosen intent; Recent Quizzes + Default form state updated. Driven by attempt-creation sub-plan §6.1.2 — see bank-consumption-attempt-creation.html).
+Living planning document. Updated each session as decisions land. Last updated: 2026-05-04 (§10 rule 1 marked SUPERSEDED — mid-case auto-discard no longer applies under STUDY/EXAM intent split. Earlier same day: §17 Builder — added Intent picker step (Study vs Exam) before Mode selection; modes filter by chosen intent; Recent Quizzes + Default form state updated. Driven by attempt-creation sub-plan §6.1.2 + §6.3.1 — see bank-consumption-attempt-creation.html).
 Why this doc exists
 The Bank's authoring surface is complete. Curators can create all 9 question types plus Case Study and Trend wrappers. Nothing yet consumes that content — there is no student-facing surface, no runner, no quiz builder, no results, no history.
 
@@ -221,7 +221,7 @@ Trends — per-question
 Trend children are independent questions that share a dataset. Q3 doesn't depend on Q1 for narrative; the dataset is always available. A student can do Q1, Q3, Q5 in one session and Q2, Q4, Q6 in another — the dataset re-appears with only the unseen children surfaced. History stays per-question.
 
 Three follow-up rules locked
-1. Abandoned mid-case sessions are discarded. If a student starts a case study and quits before finishing all 6 children, the partial attempt is discarded. The case returns to Unseen. This avoids a "started but not finished" third state on cases — cleaner data, matches how the real NCLEX handles incomplete sessions.
+1. [SUPERSEDED 2026-05-04 — see attempt-creation §6.1.2 (intent split) and §6.3.1 (no DISCARDED state).] Original rule was: "Abandoned mid-case sessions are discarded. If a student starts a case study and quits before finishing all 6 children, the partial attempt is discarded. The case returns to Unseen. This avoids a 'started but not finished' third state on cases — cleaner data, matches how the real NCLEX handles incomplete sessions." Now: STUDY mode is resumable so a partial case persists between sessions — children stay answered, student returns to finish the rest. EXAM mode times out to AUTO_SUBMITTED rather than being discarded (timer expiry, not abandonment). The original rule's design goal — avoiding a "started but not finished" third state at the case level — needs a fresh design pass under intent-split semantics. Flagged for follow-up.
 
 2. "Incorrect only" filter on cases — any one wrong = case incorrect. If any child of a case was answered wrong, the whole case appears under the "Incorrect only" builder filter. Reasoning: a student wanting to revisit what they got wrong on a case wants the whole scenario, not just the specific child — the clinical reasoning is the case as a unit.
 
