@@ -137,7 +137,7 @@
 
 <h1>MyNclex — Bank Consumption · Attempt Creation Plan</h1>
 <div class="doc-meta">
-  Living planning document. Updated each session as decisions land. Last updated: 2026-05-04 (§6.2 nclex_attempt_items refinement pass — column list grouped by purpose; <code>item_source</code> discriminator added (BANK / TUTOR); <code>tutor_id</code> column added; <code>rationale_img_snapshot</code> added; redundant <code>shuffle_options</code> dropped (encoded by <code>shuffle_seed</code> nullability); content + correct moved to JSON blobs while classification stays granular; §6.2.1 snapshot-strategy table locked).
+  Living planning document. Updated each session as decisions land. Last updated: 2026-05-04 (§6.1 Result group expanded — <code>final_score</code> NUMERIC 0..1 column added; semantics defined as item-equivalent average across attempt items; supplementary numbers (items-correct, total-points) computed on read, not stored. See <code>bank-marks-and-scoring.html</code> §7 for full reasoning. Also today: §6.3 nclex_attempt_answers full column-list refinement; §10 stale-rule supersession marker. Earlier same day: §6.2 nclex_attempt_items refinement pass — column list grouped by purpose; <code>item_source</code> discriminator added (BANK / TUTOR); <code>tutor_id</code> column added; <code>rationale_img_snapshot</code> added; redundant <code>shuffle_options</code> dropped (encoded by <code>shuffle_seed</code> nullability); content + correct moved to JSON blobs while classification stays granular; §6.2.1 snapshot-strategy table locked).
 </div>
 
 <h2>Why this doc exists</h2>
@@ -350,7 +350,7 @@
 
 <p><strong>Result (non-CAT):</strong></p>
 <ul>
-  <li><code>score</code>, <code>score_percent</code></li>
+  <li><code>final_score</code> — NUMERIC 0..1. The canonical session score, computed as the <strong>item-equivalent average</strong> across all attempt items (each item normalised to <code>score_awarded / marks_snapshot</code>, then averaged). Set when status transitions to COMPLETED or TIMED_OUT; NULL while IN_PROGRESS. Drives Trend (parent §3), Readiness Signal (parent §6), Slice labels (parent §13), and the headline number on the results screen. Display layer multiplies by 100 for percentage rendering. See <code>bank-marks-and-scoring.html</code> §7 for the aggregation reasoning and the two supplementary numbers (items-correct, total-points) that the results screen also displays — those are computed on read from <code>nclex_attempt_answers</code> rows, not stored.</li>
 </ul>
 
 <p><strong>CAT-specific result columns — TBD.</strong> CAT is its own planning topic (§13 of this doc; §16 of parent). Result columns (verdict, ability estimate, standard error, termination reason) will be designed when CAT is planned and added then. Will be NULL for non-CAT attempts; will replace <code>score</code>/<code>score_percent</code> for CAT attempts.</p>

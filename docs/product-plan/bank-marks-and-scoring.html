@@ -138,7 +138,7 @@
 
 <h1>MyNclex — Bank · Marks and Scoring Plan</h1>
 <div class="doc-meta">
-  Living planning document. Updated each session as decisions land. Last updated: 2026-05-04 (per-type rule mapping settled across all 9 types — §4; SELECT_N forces N==count(correct); MATRIX is single-response only; BOWTIE uses 0/1 per correct token, no +/−, max 5; full-credit-only is_correct policy added §5.5; multi-response matrix and cause-effect cloze deferred to v2 in §11; bank.md scorePerSlot framing corrected. Earlier same day: initial scaffold — NCSBN landscape captured, marks-as-derived-system-managed locked in §5, curator-override question parked in §5.4).
+  Living planning document. Updated each session as decisions land. Last updated: 2026-05-04 (§7 session aggregation settled — show all three numbers (items-correct / total-points / item-equivalent); item-equivalent is the canonical headline and stored as <code>nclex_attempts.final_score</code> NUMERIC 0..1; the other two computed on read. Earlier same day: per-type rule mapping settled across all 9 types — §4; SELECT_N forces N==count(correct); MATRIX is single-response only; BOWTIE uses 0/1 per correct token, no +/−, max 5; full-credit-only is_correct policy added §5.5; multi-response matrix and cause-effect cloze deferred to v2 in §11; bank.md scorePerSlot framing corrected. Initial scaffold same day: NCSBN landscape captured, marks-as-derived-system-managed locked in §5, curator-override question parked in §5.4).
 </div>
 
 <h2>Why this doc exists</h2>
@@ -608,28 +608,124 @@
   <li>Auto-submitted (timer expiry) with partial answer — already covered by §6.3.1, but per-type implications worth listing.</li>
 </ul>
 
-<h2 id="s7">7. Session-level scoring (aggregation) <span class="status skeleton">skeleton</span></h2>
+<h2 id="s7">7. Session-level scoring (aggregation) <span class="status settled">settled</span></h2>
 <p>
-  Once each per-question score is computed, what does "you got 78% on this quiz" mean? Three options to
-  consider; settle before the runner's results screen is built.
+  Once each per-question score is computed, what does "you got 78% on this quiz" mean? Partial credit makes
+  this ambiguous — there's no single "correct" rollup.
 </p>
-<ul>
-  <li>
-    <strong>Items-correct ratio:</strong> count of items with <code>is_correct = true</code> ÷ total items.
-    Hides partial credit. Easiest to communicate ("18 of 25 right").
-  </li>
-  <li>
-    <strong>Total points ratio:</strong> sum of <code>score_awarded</code> ÷ sum of <code>marks_snapshot</code>.
-    Honest about partial credit, but mixes scales (a Bow-tie's 5 points outweighs five MCQs' 1 point each).
-  </li>
-  <li>
-    <strong>Item-equivalent average:</strong> each item normalised to 0..1 (<code>score_awarded / marks_snapshot</code>),
-    then averaged across items. Cleanest, most NCSBN-like.
-  </li>
-</ul>
+
+<h3>7.1 The three honest answers</h3>
 <p>
-  Item-equivalent is probably the right input to the Readiness Signal calculation (parent §6) because it's the
-  closest to a "per-item probability of correctness" the IRT-style readiness model would consume.
+  Three different ways to compute a session score from the same data. A worked 5-question example shows the
+  divergence:
+</p>
+
+<table>
+  <thead>
+    <tr><th>#</th><th>Type</th><th>Max</th><th>Student got</th><th>Score</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Q1</td><td>MCQ</td><td>1</td><td>Right</td><td>1 / 1</td></tr>
+    <tr><td>Q2</td><td>SATA (3 correct)</td><td>3</td><td>2 right + 1 wrong</td><td>1 / 3 (after +/− floor)</td></tr>
+    <tr><td>Q3</td><td>BOWTIE</td><td>5</td><td>4 of 5 correct</td><td>4 / 5</td></tr>
+    <tr><td>Q4</td><td>CLOZE (3 blanks)</td><td>3</td><td>All 3 right</td><td>3 / 3</td></tr>
+    <tr><td>Q5</td><td>SATA (4 correct)</td><td>4</td><td>Missed 1, no wrongs</td><td>3 / 4</td></tr>
+  </tbody>
+</table>
+
+<table>
+  <thead>
+    <tr><th>Method</th><th>Computation</th><th>Result</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>(a) Items-correct ratio</strong></td>
+      <td>Count of items with <code>is_correct = true</code> ÷ total items. Only Q1 + Q4 fully right.</td>
+      <td>2 / 5 = <strong>40%</strong></td>
+    </tr>
+    <tr>
+      <td><strong>(b) Total points ratio</strong></td>
+      <td>Sum of <code>score_awarded</code> ÷ sum of <code>marks_snapshot</code>. (1+1+4+3+3) / (1+3+5+3+4).</td>
+      <td>12 / 16 = <strong>75%</strong></td>
+    </tr>
+    <tr>
+      <td><strong>(c) Item-equivalent average</strong></td>
+      <td>Each item normalised to 0..1 (<code>score_awarded / marks_snapshot</code>), then averaged. (1 + 0.333 + 0.8 + 1 + 0.75) / 5.</td>
+      <td>3.883 / 5 = <strong>77.7%</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>7.2 Decision — show all three; (c) is the headline</h3>
+<p>
+  All three numbers are computed and displayed on the results screen. <strong>Item-equivalent (option c) is
+  the headline big number</strong>; items-correct and total-points sit underneath as supporting sub-lines.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Number</th><th>Tells the student</th><th>Storage</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>78% (item-equivalent)</strong> — headline</td>
+      <td>"Overall, you handled most questions reasonably well."</td>
+      <td><strong>Stored</strong> on <code>nclex_attempts.final_score</code> as NUMERIC 0..1. Display ×100.</td>
+    </tr>
+    <tr>
+      <td>12 of 16 points</td>
+      <td>"You earned 12 out of 16 possible points."</td>
+      <td>Computed on read from <code>nclex_attempt_answers</code> + <code>nclex_attempt_items</code> at results-screen render.</td>
+    </tr>
+    <tr>
+      <td>2 of 5 fully correct</td>
+      <td>"You fully nailed 2 questions."</td>
+      <td>Computed on read by counting <code>is_correct = true</code> rows.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>7.3 Why item-equivalent is the canonical headline</h3>
+<ol>
+  <li>
+    <strong>Each question contributes equally.</strong> The student answered 5 questions; they put cognitive
+    effort into each. Why should the bow-tie count 5× more in the rollup just because partial credit is finer
+    on it? "Worth 5 points" is a scoring mechanism (so partial credit can resolve to 0/1/2/3/4/5), not a
+    valuing mechanism. Under (b), point-heavy types dominate the session score; under (c) they don't.
+  </li>
+  <li>
+    <strong>Most NCSBN-aligned.</strong> NCSBN's IRT model treats every item as one observation of student
+    ability, scaled by difficulty (not by max-points). Item-equivalent matches this — each question is one
+    data point of "how well did the student handle this item, on a 0..1 scale."
+  </li>
+  <li>
+    <strong>Cleanest input to Readiness Signal.</strong> Parent §6 wants a 0..100 readiness score across
+    history. Feeding it (b) total-points would force us to undo the point-weighting later for fair item-by-item
+    math; item-equivalent already <em>is</em> the item-by-item picture.
+  </li>
+</ol>
+
+<p>
+  <strong>Why NOT (a) as the headline:</strong> items-correct hides 100% of the partial-credit signal. A
+  student who got 2/3 right on every SATA shows the same number as a student who got 0/3 — which would be
+  misleading. (a) is honest as a supplementary number but wrong as the canonical one.
+</p>
+
+<h3>7.4 Edge cases that fall out cleanly</h3>
+<ul>
+  <li><strong>Skipped / unanswered questions</strong> — <code>score_awarded = 0</code>, contributes 0 / max = 0 to the average. Drags the score down, which is what we want.</li>
+  <li><strong>Case-study children</strong> — each child contributes one data point to the average. A 6-question case in a 25-question quiz contributes 6 / 25 of the weighting, not 1 / 25. Consistent with the data model (one row per child in attempt_items).</li>
+  <li><strong>MCQ-only / dichotomous-only quizzes</strong> — items-correct and item-equivalent give the same number. They only diverge when partial credit is in play.</li>
+  <li><strong>Single-question quiz</strong> — all three methods give the same number.</li>
+</ul>
+
+<h3>7.5 Schema ripple</h3>
+<p>
+  <code>nclex_attempts</code> gains a <code>final_score</code> NUMERIC 0..1 column (settled in
+  <code>bank-consumption-attempt-creation.html</code> §6.1's "Result" group). Set when status transitions to
+  COMPLETED or TIMED_OUT; NULL while IN_PROGRESS. The other two display numbers are <strong>not</strong>
+  stored — they're cheap to compute from <code>nclex_attempt_answers</code> at render time, and storing would
+  be denorm without payoff.
 </p>
 
 <h2 id="s8">8. Where scoring code lives <span class="status skeleton">skeleton</span></h2>
@@ -698,8 +794,7 @@
 <p>Open decisions parked for upcoming sessions:</p>
 <ul>
   <li>§5.4 — Curator override: yes / no / restricted to tutor bank?</li>
-  <li>§6 — All edge cases.</li>
-  <li>§7 — Session-level aggregation: items-correct vs total-points vs item-equivalent.</li>
+  <li>§6 — All edge cases (most already covered inline by §4 per-type passes; needs trimming/consolidating).</li>
   <li>§8 — Code-location settling.</li>
   <li>§9 — Editor UI changes.</li>
   <li>§10 — Migration plan.</li>
@@ -710,6 +805,7 @@
   <li>§4.1 — Select-N uses +/−; editor enforces <code>N == count(correct)</code>.</li>
   <li>§4.2 — Bow-tie uses per-wing 0/1 tally summed (no +/−, no floor); max 5 fixed.</li>
   <li>§5.5 — <code>is_correct</code> requires full credit; cascades to all partial-credit types.</li>
+  <li>§7 — Show all three aggregation numbers; item-equivalent is the headline. <code>final_score</code> NUMERIC 0..1 column added to <code>nclex_attempts</code> (attempt-creation §6.1).</li>
 </ul>
 <p>Deferred to v2+:</p>
 <ul>
