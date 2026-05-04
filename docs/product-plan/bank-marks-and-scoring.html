@@ -138,7 +138,7 @@
 
 <h1>MyNclex — Bank · Marks and Scoring Plan</h1>
 <div class="doc-meta">
-  Living planning document. Updated each session as decisions land. Last updated: 2026-05-04 (§7 session aggregation settled — show all three numbers (items-correct / total-points / item-equivalent); item-equivalent is the canonical headline and stored as <code>nclex_attempts.final_score</code> NUMERIC 0..1; the other two computed on read. Earlier same day: per-type rule mapping settled across all 9 types — §4; SELECT_N forces N==count(correct); MATRIX is single-response only; BOWTIE uses 0/1 per correct token, no +/−, max 5; full-credit-only is_correct policy added §5.5; multi-response matrix and cause-effect cloze deferred to v2 in §11; bank.md scorePerSlot framing corrected. Initial scaffold same day: NCSBN landscape captured, marks-as-derived-system-managed locked in §5, curator-override question parked in §5.4).
+  Living planning document. Updated each session as decisions land. Last updated: 2026-05-04 (final pass — §5.4 curator-override deferred to build (default = no override); §6 edge cases deferred to per-case at build; §8 settled — scoring code lives in <code>lib/scoring/</code> not <code>lib/bank/</code>; §9 editor UI deferred to build, marks display lives under existing Housekeeping section; §10 migration settled — manual backfill for existing rows, editor handles future. §11 reorganised into "Settled" / "Deferred to build" / "Deferred to v2+". No remaining open planning-level decisions — all future decisions are at build time. Earlier same day: §7 aggregation, per-type rules across all 9 types, is_correct policy, scaffold creation).
 </div>
 
 <h2>Why this doc exists</h2>
@@ -513,11 +513,17 @@
   </tbody>
 </table>
 
-<h3>5.4 Curator override — open question <span class="status open">open</span></h3>
+<h3>5.4 Curator override <span class="status deferred">deferred — decide at build</span></h3>
 <p>
   Should curators have the ability to override the system-computed marks for high-weight questions?
 </p>
-<p>The tension:</p>
+<p>
+  <strong>Decision (2026-05-04): defer to build.</strong> The implicit default while building marks-as-system-managed
+  is "no override" — that's the simplest, most NCSBN-authentic starting point and what the editor will produce
+  unless we decide otherwise during build. If a real tutor complaint surfaces, or if a use case becomes
+  concrete, revisit this section then.
+</p>
+<p>The tension was laid out in earlier discussion:</p>
 <ul>
   <li>
     <strong>Authenticity (Pillars 1+2):</strong> the real NCLEX has no curator-set weights. Items contribute
@@ -532,9 +538,7 @@
     incomparable across attempts, Readiness Signal calibration breaks, percentile comparisons distort.
   </li>
 </ul>
-<p>
-  Possible shapes if we allow override:
-</p>
+<p>If the decision later goes "yes, allow override," candidate shapes:</p>
 <ul>
   <li>
     <strong>Multiplier-only:</strong> curator sets a numeric "weight" (default 1.0). Final marks = derived max × weight.
@@ -549,10 +553,6 @@
     meaningful emphasis.
   </li>
 </ul>
-<p>
-  Park for now. Settle when we plan curator workflows in more depth, or when first complaint surfaces from a
-  tutor wanting weighting.
-</p>
 
 <h3>5.5 <code>is_correct</code> policy — full credit only <span class="status settled">settled</span></h3>
 <p>
@@ -594,18 +594,24 @@
   We don't lose the partial signal — we just keep <code>is_correct</code> as the strict verdict.
 </p>
 
-<h2 id="s6">6. Edge cases <span class="status skeleton">skeleton</span></h2>
-<p>To cover when settled:</p>
+<h2 id="s6">6. Edge cases <span class="status deferred">deferred — handle per-case at build</span></h2>
+<p>
+  <strong>Decision (2026-05-04): defer to build, case-by-case.</strong> Most edge cases were already settled
+  inline during the §4 per-type passes (e.g. "SATA with 0 selections scores 0", "drag-drop unplaced tokens
+  don't subtract", "bow-tie partial-wing handled by per-wing tally"). The remaining cases that aren't covered
+  inline are mechanical and best decided when the relevant code is being written, not now.
+</p>
+<p>The list below is kept as a checklist for the build session. Each will be settled at the moment the code touches it:</p>
 <ul>
-  <li>SATA where the student selects 0 options (unanswered SATA → score 0, no negative).</li>
-  <li>SATA where the student selects every option (max wrongs, floor at 0).</li>
-  <li>SATA where the answer key has 0 correct options (shouldn't exist — editor validation).</li>
-  <li>Cloze paired blanks (cause/effect) — the both-must-match rule, exact pairing logic.</li>
-  <li>Matrix where some rows have no correct answer specified (defensive — editor should prevent).</li>
-  <li>Drag-drop with leftover (un-placed) tokens (do they count against the score? Probably no — only placed slots score).</li>
-  <li>Bow-tie where the student leaves a section blank (sectional 0 vs whole-question 0).</li>
-  <li>Highlight where the student selects NO chunks (unanswered → score 0).</li>
-  <li>Auto-submitted (timer expiry) with partial answer — already covered by §6.3.1, but per-type implications worth listing.</li>
+  <li>SATA with 0 options selected → score 0, no negative (settled inline §4 SATA row).</li>
+  <li>SATA with every option selected → corrects − wrongs, floored (settled inline).</li>
+  <li>SATA with 0 correct in answer key → editor validation rejects (settled inline).</li>
+  <li>Matrix with rows missing a correct column → editor validation rejects (settled inline).</li>
+  <li>Drag-drop with un-placed tokens in pool → don't affect score (settled inline §4 DRAG_DROP row).</li>
+  <li>Bow-tie with a wing fully blank → that wing scores 0; other wings unaffected (settled inline §4.2).</li>
+  <li>Highlight with no chunks selected → score 0 (settled inline §4 HIGHLIGHT row).</li>
+  <li>Auto-submitted (timer expiry) with partial answer — covered by attempt-creation §6.3.1; per-type rules apply unchanged.</li>
+  <li>Cloze paired-blanks (cause-effect) — N/A in v1; deferred variant (§11).</li>
 </ul>
 
 <h2 id="s7">7. Session-level scoring (aggregation) <span class="status settled">settled</span></h2>
@@ -728,19 +734,33 @@
   be denorm without payoff.
 </p>
 
-<h2 id="s8">8. Where scoring code lives <span class="status skeleton">skeleton</span></h2>
-<p>To settle:</p>
+<h2 id="s8">8. Where scoring code lives <span class="status settled">settled</span></h2>
+<p>
+  <strong>Decision (2026-05-04): <code>lib/scoring/</code> at the lib root, not nested under
+  <code>lib/bank/</code>.</strong>
+</p>
+<p>
+  Reasoning: scoring isn't bank-specific. The functions are consumed at multiple call sites — the editor (to
+  compute marks at save time), the runner (to score student submissions), session aggregation (to compute
+  <code>final_score</code>), and analytics paths. They're a domain-cross-cutting utility that belongs at the
+  same level as other shared lib folders, not buried inside the authoring tree.
+</p>
+<p>
+  The exact location within <code>lib/</code> can be revisited at build time — the file is small (5 pure TS
+  functions plus a "compute marks" wrapper) and trivially movable. Don't over-plan it.
+</p>
+<p>Settled in principle:</p>
 <ul>
   <li>
-    The 5 scoring functions — pure TS, no DB calls, deterministic. <code>lib/bank/scoring/</code> or
-    <code>lib/scoring/</code>?
+    Pure TS, no DB calls, deterministic. Functions take <code>(question_type, content, correct, answer)</code>
+    and produce <code>{ score_awarded, is_correct }</code>.
   </li>
   <li>
-    The editor-side "compute marks from answer key" function — same file as the scoring functions, or its own
-    module? Probably the same — both functions take <code>(question_type, correct)</code> and produce a number.
+    The editor-side "compute marks from answer key" wrapper sits in the same module — both call sites take
+    <code>(question_type, correct)</code> and need the same per-type dispatch.
   </li>
   <li>
-    Tests live with the functions (each function tested against released NCSBN sample questions).
+    Tests live alongside the functions (each tested against released NCSBN sample questions where available).
   </li>
   <li>
     Versioning: scoring functions versioned separately from schema (per <code>bank.md</code>). When NCSBN updates
@@ -748,64 +768,83 @@
   </li>
 </ul>
 
-<h2 id="s9">9. Curator-facing UI implications <span class="status skeleton">skeleton</span></h2>
-<p>To settle:</p>
+<h2 id="s9">9. Curator-facing UI implications <span class="status deferred">deferred — decide at build</span></h2>
+<p>
+  <strong>Decision (2026-05-04): defer copy and column-list specifics to build.</strong> The architectural
+  approach is settled though:
+</p>
+<p>
+  <strong>Marks display lives in the editor's existing "Housekeeping" section</strong> (alongside other admin
+  metadata like <code>question_ref</code>, <code>shuffle_options</code>, <code>batch_id</code>). Housekeeping
+  detects the question type and applies the per-type rule from §5.2 to produce the displayed value — no new
+  section, no new component category. Curator sees a read-only computed field next to the other housekeeping
+  inputs. Editors are already componentised so the implementation cost is small.
+</p>
+<p>Specifics to settle when the editor change is built:</p>
 <ul>
-  <li>
-    Editor: replace the "Marks" input with a read-only display ("Max score: 4 — derived from 4 correct
-    options"). Wording TBD.
-  </li>
-  <li>
-    Bank list / cards: should "max" appear as a column? Useful for SATA / partial-credit types where it varies;
-    redundant for MCQ.
-  </li>
-  <li>
-    Tooltip / help text explaining why the field is read-only — first-time curator confusion likely.
-  </li>
-  <li>
-    If curator override is later allowed (§5.4), the read-only display becomes editable behind a confirmation.
-  </li>
+  <li>Exact wording of the read-only display ("Max: 4 — from 4 correct options" vs other phrasings).</li>
+  <li>Whether the bank list / question cards show a "Max" column. Useful for partial-credit types where it varies, redundant for MCQ.</li>
+  <li>Tooltip / help text explaining why the field is read-only.</li>
+  <li>If §5.4 later allows curator override, the read-only display becomes editable behind a confirmation.</li>
 </ul>
 
-<h2 id="s10">10. Migration path <span class="status skeleton">skeleton</span></h2>
-<p>To plan when implementation begins:</p>
+<h2 id="s10">10. Migration path <span class="status settled">settled</span></h2>
+<p>
+  <strong>Decision (2026-05-04): manual backfill for existing rows; future rows handled correctly by the
+  editor save handler.</strong>
+</p>
+<p>The plan when the marks-as-system-managed change ships:</p>
 <ul>
   <li>
-    Existing rows in <code>nclex_bank_items</code> have <code>marks</code> values mostly at the default 1
-    (curator-typed values are mostly absent in seed data).
+    <strong>Existing rows</strong> (in <code>nclex_bank_items</code> and <code>nclex_tutor_questions</code>) get
+    their <code>marks</code> manually corrected — either via a one-shot UPDATE that recomputes from
+    <code>question_type</code> + <code>correct</code>, or row-by-row through the editor as curators next touch
+    each question. Either approach reaches the same end state. Volume is small enough that we don't need a
+    fancy migration script.
   </li>
   <li>
-    Backfill SQL: for every existing row, recompute <code>marks</code> from <code>question_type</code> + <code>correct</code>
-    and overwrite. Same for <code>nclex_tutor_questions</code>.
+    <strong>Future rows</strong> are correct by construction — the editor's compute-and-write step ensures
+    every save produces an accurate <code>marks</code> value derived from the answer key. Save validation
+    blocks malformed <code>correct</code> shapes before they can produce a wrong marks value.
   </li>
   <li>
-    Drop <code>DEFAULT 1</code> from the column (no longer meaningful — editor always computes).
-  </li>
-  <li>
-    Editor save handler: ensure compute-and-write step is added. Block save if <code>correct</code> is malformed.
-  </li>
-  <li>
-    Optional belt-and-braces: PL/pgSQL trigger that recomputes on INSERT/UPDATE. Probably v1.5 — soft enforcement
-    via editor discipline is fine for v1.
+    <strong>The <code>DEFAULT 1</code> on the column</strong> can stay or go — practically meaningless once
+    the editor always computes, but harmless to keep. Drop at build time if the surrounding migration is
+    already touching the column; otherwise leave it.
   </li>
 </ul>
+<p>
+  Belt-and-braces enforcement (PL/pgSQL trigger that recomputes on INSERT/UPDATE) is not in v1 — soft
+  enforcement via editor discipline is fine, since the editor is the only write path. Revisit only if a
+  drift incident surfaces.
+</p>
 
 <h2 id="s11">11. Open and deferred <span class="status open">tracking</span></h2>
-<p>Open decisions parked for upcoming sessions:</p>
-<ul>
-  <li>§5.4 — Curator override: yes / no / restricted to tutor bank?</li>
-  <li>§6 — All edge cases (most already covered inline by §4 per-type passes; needs trimming/consolidating).</li>
-  <li>§8 — Code-location settling.</li>
-  <li>§9 — Editor UI changes.</li>
-  <li>§10 — Migration plan.</li>
-</ul>
-<p>Settled in this session (2026-05-04):</p>
+<p>The doc is fully baked at planning level — no remaining "open" sections. All future decisions are deferred to build time per the per-section notes.</p>
+<p>Settled / set in this session (2026-05-04):</p>
 <ul>
   <li>§4 — All 9 question types' scoring functions and max formulas locked.</li>
   <li>§4.1 — Select-N uses +/−; editor enforces <code>N == count(correct)</code>.</li>
   <li>§4.2 — Bow-tie uses per-wing 0/1 tally summed (no +/−, no floor); max 5 fixed.</li>
   <li>§5.5 — <code>is_correct</code> requires full credit; cascades to all partial-credit types.</li>
   <li>§7 — Show all three aggregation numbers; item-equivalent is the headline. <code>final_score</code> NUMERIC 0..1 column added to <code>nclex_attempts</code> (attempt-creation §6.1).</li>
+  <li>§8 — Scoring code lives in <code>lib/scoring/</code> (not <code>lib/bank/scoring/</code>) — domain-cross-cutting, not bank-specific.</li>
+  <li>§10 — Migration: manual backfill for existing rows; future rows correct-by-construction via the editor save handler.</li>
+</ul>
+<p>Deferred to build time (decision postponed, sensible default in place):</p>
+<ul>
+  <li>§5.4 — Curator override. Default during build = no override (system-managed only). Revisit if a real tutor complaint surfaces.</li>
+  <li>§6 — Edge cases. Most settled inline in §4; remainder handled per-case as the relevant code is written.</li>
+  <li>§9 — Editor UI copy and bank-list "Max" column. Architectural approach settled (lives under existing "Housekeeping" section, which detects question type and applies the rule); copy + column-list specifics decided when the editor change is built.</li>
+</ul>
+<p>Deferred to v2+ (real product scope, not just build-time deferral):</p>
+<ul>
+  <li><strong>Multi-response matrix</strong> (any cells correct, +/− per cell). Our v1 matrix is single-response only. Adding the multi-response variant requires a new <code>matrix_subtype</code> field, parser changes, editor changes, and a runner component — its own slice.</li>
+  <li><strong>Cause-effect (paired) cloze.</strong> NCSBN's NGN cause-effect cloze items pair two blanks where both halves must match together (first right + second wrong = 0). Our v1 cloze scores each blank independently. Adding pairs requires a schema extension to flag pair groups in the answer key.</li>
+  <li>IRT-based item difficulty calibration (we don't have enough student data to fit a model in v1).</li>
+  <li>CAT-specific scoring flow (parent §16 — its own design problem).</li>
+  <li>Question-level analytics ("this question discriminates well between strong and weak students") — requires response data we don't yet have.</li>
+  <li>Per-wing bow-tie sub-score storage (recoverable from snapshot — flagged in §4.2 — not stored in v1).</li>
 </ul>
 <p>Deferred to v2+:</p>
 <ul>
