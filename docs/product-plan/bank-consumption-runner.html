@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MyNclex — Bank Consumption · Runner Plan</title>
+<style>
+  :root {
+    --primary: #1e3a5f;
+    --accent: #2d7d72;
+    --bg: #f8fafc;
+    --white: #ffffff;
+    --border: #e5e7eb;
+    --border-strong: #d1d5db;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --info-bg: #eef4fa;
+    --info-accent: #2d6fc0;
+    --info-text: #0c447c;
+    --warn-bg: #fef7e6;
+    --warn-text: #854f0b;
+    --ok-bg: #ecfdf5;
+    --ok-text: #065f46;
+    --neutral-bg: #f1f5f9;
+    --neutral-text: #475569;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 32px 24px 64px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .doc { max-width: 860px; margin: 0 auto; }
+
+  .doc-meta {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h1 { font-size: 26px; font-weight: 600; color: var(--primary); margin: 0 0 6px; }
+  h2 {
+    font-size: 19px; font-weight: 600; color: var(--primary);
+    margin: 36px 0 10px; padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  h2:first-of-type { border-top: none; padding-top: 0; margin-top: 24px; }
+  h3 { font-size: 15px; font-weight: 600; color: var(--primary); margin: 22px 0 6px; }
+
+  p { margin: 8px 0 14px; }
+  ul, ol { margin: 8px 0 14px; padding-left: 22px; }
+  li { margin: 5px 0; }
+  li > p { margin: 4px 0; }
+
+  code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 90%;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+
+  pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    font-size: 12.5px;
+    font-family: ui-monospace, Menlo, monospace;
+    overflow-x: auto;
+    line-height: 1.5;
+    margin: 10px 0 16px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 18px;
+    font-size: 13.5px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--bg); font-weight: 600; color: var(--primary); }
+
+  .status {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .status.settled  { background: var(--ok-bg); color: var(--ok-text); }
+  .status.open     { background: var(--warn-bg); color: var(--warn-text); }
+  .status.deferred { background: var(--info-bg); color: var(--info-text); }
+  .status.skeleton { background: var(--neutral-bg); color: var(--neutral-text); }
+
+  .callout {
+    background: var(--info-bg);
+    border-left: 3px solid var(--info-accent);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin: 14px 0;
+    font-size: 14px;
+    color: var(--info-text);
+  }
+
+  .toc { margin: 8px 0 28px; padding: 14px 18px; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-md); }
+  .toc h2 { border: none; padding: 0; margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc li { margin: 3px 0; font-size: 13.5px; }
+  .toc a { color: var(--primary); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  hr.footer-rule { border: none; border-top: 1px solid var(--border); margin: 40px 0 16px; }
+  .footer-line { font-size: 12.5px; color: var(--text-muted); font-style: italic; }
+</style>
+</head>
+<body>
+<div class="doc">
+
+<h1>MyNclex — Bank Consumption · Runner Plan</h1>
+<div class="doc-meta">
+  Living planning document (skeleton). Last updated: 2026-05-04 (initial skeleton — sections defined, content TBD as decisions land in conversation).
+</div>
+
+<h2>Why this doc exists</h2>
+<p>
+  Sub-plan for the <strong>Runner</strong> — the surface that delivers the quiz to the student once an attempt
+  has been created. Sibling to <code>bank-consumption-attempt-creation.html</code> (which covers everything from
+  Builder Start through preflight to Q1 first render).
+</p>
+<p>
+  Splits off because the Runner has enough surface area — rendering 9 question types, mode-specific UX, scoring,
+  navigation, feedback timing, save-progress, Resume, Review, case-block and trend handling — to deserve its own
+  document. Findings feed back into the parent doc once settled.
+</p>
+<p>
+  This doc is a <strong>skeleton</strong>. Each section below has a placeholder describing what it covers; content
+  fills in as planning conversations land. Sections are tagged with their current status:
+  <span class="status settled">settled</span> = decision locked,
+  <span class="status open">open</span> = decision identified but not yet made,
+  <span class="status skeleton">skeleton</span> = section defined, content not yet started,
+  <span class="status deferred">deferred</span> = own planning topic.
+</p>
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#s1">Scope and what's out of scope</a></li>
+    <li><a href="#s2">Architecture — load from snapshots</a></li>
+    <li><a href="#s3">Page lifecycle</a></li>
+    <li><a href="#s4">Per-mode behaviour matrix</a></li>
+    <li><a href="#s5">Question rendering — per type</a></li>
+    <li><a href="#s6">Case-block UX</a></li>
+    <li><a href="#s7">Trend question rendering</a></li>
+    <li><a href="#s8">Timer behaviour</a></li>
+    <li><a href="#s9">Save-progress and Resume</a></li>
+    <li><a href="#s10">Submission flow</a></li>
+    <li><a href="#s11">Scoring</a></li>
+    <li><a href="#s12">Feedback timing</a></li>
+    <li><a href="#s13">Answer-changes tracking</a></li>
+    <li><a href="#s14">Mark-for-review</a></li>
+    <li><a href="#s15">Navigation rules</a></li>
+    <li><a href="#s16">Discard / abandon</a></li>
+    <li><a href="#s17">Review state</a></li>
+    <li><a href="#s18">CAT-specific runner — deferred</a></li>
+    <li><a href="#s19">Open decisions</a></li>
+    <li><a href="#s20">Related docs</a></li>
+  </ol>
+</div>
+
+<h2 id="s1">1. Scope and what's out of scope <span class="status skeleton">skeleton</span></h2>
+<p>
+  In scope: the runner experience for fixed-length modes (Untimed Learning, Untimed Test, Timed Free Navigation,
+  Timed Sequential) under both intents (STUDY / EXAM where valid — see attempt-creation §6.1.2).
+</p>
+<p>Out of scope here:</p>
+<ul>
+  <li>CAT — separate runner flow (one item at a time, IRT-driven). Noted briefly in §18; full design lives with the CAT plan (parent §16).</li>
+  <li>Builder, attempt creation, preflight — covered in <code>bank-consumption.html</code> §17 and <code>bank-consumption-attempt-creation.html</code>.</li>
+  <li>History page — separate planning task, but feeds off Review state (§17 here).</li>
+  <li>Analytics — covered in parent doc §5–§14.</li>
+  <li>RLS / build-time concerns.</li>
+</ul>
+
+<h2 id="s2">2. Architecture — load from snapshots <span class="status skeleton">skeleton</span></h2>
+<p>
+  Runner is launched with <code>?attempt_id=...</code>. On mount it loads (read-only):
+</p>
+<ul>
+  <li><code>nclex_attempts</code> — the row itself (mode, intent, status, timer state, source, etc.)</li>
+  <li><code>nclex_attempt_items</code> — all delivered items in <code>position</code> order</li>
+  <li><code>nclex_attempt_case_snapshots</code> — case scenarios + chart tabs (one row per case used)</li>
+  <li><code>nclex_attempt_trend_snapshots</code> — trend datasets (one row per dataset used)</li>
+  <li><code>nclex_attempt_answers</code> — any answers already submitted (for Resume / Review)</li>
+</ul>
+<p>
+  Runner reads only from these five tables at runtime. Never from <code>nclex_bank_items</code>,
+  <code>nclex_case_studies</code>, <code>nclex_case_study_tabs</code>, <code>nclex_trend_datasets</code>, or
+  <code>nclex_tutor_*</code>. Writes go only to <code>nclex_attempt_answers</code> (and
+  <code>nclex_attempts.last_activity_at</code> / <code>status</code> on terminal transitions).
+</p>
+<p>
+  TBD: the exact data-fetch shape (single RPC vs multiple SELECTs vs server component). Probably one RPC that
+  returns everything in one round-trip plus a heartbeat for save-progress.
+</p>
+
+<h2 id="s3">3. Page lifecycle <span class="status skeleton">skeleton</span></h2>
+<p>
+  Conceptual lifecycle from runner mount to terminal state:
+</p>
+<ol>
+  <li><strong>Mount</strong> — fetch attempt + items + snapshots + existing answers</li>
+  <li><strong>Preflight</strong> (or skip via localStorage flag — see attempt-creation §10) — student confirms before timer starts</li>
+  <li><strong>Q1 (or Resume position)</strong> — render the current item</li>
+  <li><strong>Per-question loop</strong> — render → student interacts → save-progress / submit → advance</li>
+  <li><strong>End</strong> — student submits the quiz OR timer expires OR student abandons</li>
+  <li><strong>Results screen</strong> — score + breakdown + transition to Review state</li>
+  <li><strong>Review</strong> — read-only post-completion view (§17)</li>
+</ol>
+<p>
+  Specific transitions, what data updates at each step, and which UI element is responsible — TBD.
+</p>
+
+<h2 id="s4">4. Per-mode behaviour matrix <span class="status skeleton">skeleton</span></h2>
+<p>
+  Table showing what each (mode, intent) combination does differently. Axes include: timer (none / engagement-clock /
+  wall-clock), navigation (sequential-only / free), feedback timing (per-question / end-of-quiz / never), submission
+  granularity (per-Q submit / batched submit), Resume allowed.
+</p>
+<p>To be filled in. Planning input from attempt-creation §6.1.2 and parent §15.</p>
+
+<h2 id="s5">5. Question rendering — per type <span class="status skeleton">skeleton</span></h2>
+<p>
+  9 question types from §15 of parent doc, each with its own rendering component, interaction model, and answer
+  shape. Per-type sub-sections to be filled in:
+</p>
+<ul>
+  <li>5.1 MCQ (single-select)</li>
+  <li>5.2 SATA (multi-select with partial credit)</li>
+  <li>5.3 Bow-tie (priority condition + 2 actions + 2 parameters)</li>
+  <li>5.4 Cloze (fill-in-the-blank with dropdowns)</li>
+  <li>5.5 Drag-drop (reorder / categorise)</li>
+  <li>5.6 Highlight (text selection)</li>
+  <li>5.7 Matrix (rows × columns)</li>
+  <li>5.8 Select-N (pick exactly N from list)</li>
+  <li>5.9 TF (true / false)</li>
+</ul>
+<p>
+  Each sub-section will cover: how <code>content_snapshot_json</code> is parsed for this type, the interaction model,
+  how <code>answer_json</code> is shaped, partial-credit rules, shuffle behaviour. Probably reference the existing
+  authoring/preview surface for shape parity.
+</p>
+
+<h2 id="s6">6. Case-block UX <span class="status skeleton">skeleton</span></h2>
+<p>
+  Foreshadowed in attempt-creation §8. The runner needs:
+</p>
+<ul>
+  <li>"You're inside a case" indicator (so the student knows context spans multiple questions)</li>
+  <li>Case scenario summary + chart tabs panel rendered alongside each child question</li>
+  <li>Chart-tab progressive unfolding via <code>visible_from</code> (per parent §10)</li>
+  <li>Visual transition cue when entering and exiting a case block ("Case complete. Continuing…")</li>
+  <li>CJMM step label per child question (Recognise cues / Analyse cues / etc.)</li>
+  <li>Mount / unmount of the chart panel at block boundaries</li>
+</ul>
+<p>Layout, animation, tab interaction details — TBD.</p>
+
+<h2 id="s7">7. Trend question rendering <span class="status skeleton">skeleton</span></h2>
+<p>
+  Per attempt-creation §8.3, trend questions are scattered like standalones. Each trend question renders with its
+  linked dataset snapshot displayed alongside (vital signs trend, lab trend, etc.). The dataset re-displays each
+  time the student lands on a trend question that uses it — they're treated as independent questions that share
+  a display element, not a narrative.
+</p>
+<p>Display position (sidebar / above question / below question), kind-specific rendering — TBD.</p>
+
+<h2 id="s8">8. Timer behaviour <span class="status skeleton">skeleton</span></h2>
+<p>
+  Timer source per (mode, intent) combination — covered partially in attempt-creation §11:
+</p>
+<ul>
+  <li>EXAM-timed: wall-clock from <code>started_at</code></li>
+  <li>STUDY-timed (v2 leaning, kept architecturally open): engagement-clock — pauses on inactive, uses <code>last_activity_at</code> to subtract idle gaps</li>
+  <li>Untimed modes: no countdown</li>
+</ul>
+<p>
+  TBD: timer display position, warning thresholds (e.g. "5 minutes remaining"), behaviour at expiry (auto-submit
+  selected-but-unsubmitted answers per attempt-creation §6.1.3), pause UX for STUDY-engagement-clock.
+</p>
+
+<h2 id="s9">9. Save-progress and Resume <span class="status skeleton">skeleton</span></h2>
+<p>
+  STUDY intent allows Resume (per attempt-creation §6.1.3). Runner needs:
+</p>
+<ul>
+  <li>Periodic save of in-progress answer state (option picked but not submitted) to <code>nclex_attempt_answers</code></li>
+  <li><code>last_activity_at</code> heartbeat on every action</li>
+  <li>Resume detection on mount: load existing answer rows, restore the runner to the position the student left off</li>
+</ul>
+<p>
+  TBD: save cadence (debounced? on every action?), what counts as "Resume position" (last-submitted Q+1 vs last-viewed Q),
+  conflict resolution if save-progress fails, behaviour when answer state exists but doesn't match current item shape
+  (e.g. curator edited the question — but snapshots prevent this, so probably never relevant).
+</p>
+
+<h2 id="s10">10. Submission flow <span class="status skeleton">skeleton</span></h2>
+<p>
+  Two submission models depending on mode:
+</p>
+<ul>
+  <li><strong>Per-question submit</strong> (Untimed Learning): student picks answer → clicks Submit → sees rationale → clicks Next → next question</li>
+  <li><strong>Batched submit</strong> (Untimed Test, Timed Free Nav, Timed Sequential): student answers all questions → clicks final Submit → sees results</li>
+</ul>
+<p>
+  Each submission path writes to <code>nclex_attempt_answers</code> and updates score. TBD: exact RPC shape,
+  optimistic UI vs pessimistic, error handling on submit failure.
+</p>
+
+<h2 id="s11">11. Scoring <span class="status skeleton">skeleton</span></h2>
+<p>
+  Per Pillar 2 (authentic exam mechanics), scoring follows NCSBN rules: partial credit where the real exam allows
+  it, all-or-nothing where it doesn't. Per question type:
+</p>
+<ul>
+  <li>MCQ / TF / Select-N: all-or-nothing</li>
+  <li>SATA: partial credit (NCSBN's "all correct, no incorrect" rule — TBD exact algorithm)</li>
+  <li>Matrix: per-cell partial credit</li>
+  <li>Bow-tie: per-section partial credit (priority + actions + parameters scored separately)</li>
+  <li>Drag-drop / Cloze / Highlight: TBD per type</li>
+</ul>
+<p>
+  Scoring should run from <code>correct_answer_snapshot_json</code> against <code>answer_json</code>, not from
+  live authoring tables. Probably a server-side function per question type.
+</p>
+
+<h2 id="s12">12. Feedback timing <span class="status skeleton">skeleton</span></h2>
+<p>
+  When does the student see whether they got it right + the rationale?
+</p>
+<ul>
+  <li>Untimed Learning — immediately after submit, before advancing</li>
+  <li>Untimed Test — at the end (results screen + Review)</li>
+  <li>Timed Free Navigation — at the end</li>
+  <li>Timed Sequential — at the end</li>
+  <li>CAT — at the end (verdict only, not per-question)</li>
+</ul>
+<p>
+  TBD: results-screen layout, transition to Review state, whether the student can review per-question rationales
+  in any mode (probably yes via Review state, regardless of mode).
+</p>
+
+<h2 id="s13">13. Answer-changes tracking <span class="status skeleton">skeleton</span></h2>
+<p>
+  Per parent §11, the runner tracks intermediate answer changes — Right→Wrong (lost a correct answer to
+  second-guessing) and Wrong→Right (caught a mistake on review). Stored in
+  <code>nclex_attempt_answers.answer_changes_json</code>.
+</p>
+<p>
+  TBD: what counts as a "change" — every option click, or only changes between two committed picks? Surface in
+  results screen + analytics page per parent §11.
+</p>
+
+<h2 id="s14">14. Mark-for-review <span class="status skeleton">skeleton</span></h2>
+<p>
+  Student can mark a question (and a case as a whole — per parent §10). Independent of correct/incorrect.
+  Marks persist across attempts (the marking lives on a separate marking table per attempt-creation §7,
+  not in <code>nclex_attempt_answers</code>).
+</p>
+<p>TBD: marking UI placement, mark-icon design, behaviour across re-attempts.</p>
+
+<h2 id="s15">15. Navigation rules <span class="status skeleton">skeleton</span></h2>
+<p>
+  Per (mode, intent):
+</p>
+<ul>
+  <li>Untimed Learning — sequential, no skip (per-Q submit forces order)</li>
+  <li>Untimed Test — TBD (probably free nav)</li>
+  <li>Timed Free Navigation — skip and return at will</li>
+  <li>Timed Sequential — strict sequential, no going back</li>
+</ul>
+<p>TBD: jump-to-question grid for free-nav modes; visual indicator of answered vs skipped vs marked questions.</p>
+
+<h2 id="s16">16. Discard / abandon <span class="status skeleton">skeleton</span></h2>
+<p>
+  Student-initiated termination. Per attempt-creation §10.2, manual discard flips status to ABANDONED.
+  Mostly relevant for STUDY intent (where Resume otherwise keeps the row alive indefinitely).
+</p>
+<p>TBD: discard UI placement, confirmation pattern, behaviour for partially-answered attempts.</p>
+
+<h2 id="s17">17. Review state <span class="status skeleton">skeleton</span></h2>
+<p>
+  Read-only post-completion view of an attempt. Per parent §15, Review is a session state available for every
+  finished session regardless of source/mode. Shows the student's answers alongside correct answers and rationales,
+  with breakdown analytics (per parent §7's session-scoped breakdown).
+</p>
+<p>
+  Entered from: results screen (immediately after completion), History page (for older attempts).
+</p>
+<p>
+  TBD: layout, navigation between questions in Review, whether timing/answer-change data is shown, exporting/
+  printing.
+</p>
+
+<h2 id="s18">18. CAT-specific runner <span class="status deferred">deferred</span></h2>
+<p>
+  CAT runner has a fundamentally different shape: items arrive one at a time from the IRT engine; no upfront
+  question list; preflight + termination both run differently. Full design lives with the CAT plan (parent §16).
+</p>
+<p>
+  Shared with this doc: snapshot tables (each item snapshotted as it's administered), answer table, attempt row
+  lifecycle (preflight, status transitions, timer).
+</p>
+
+<h2 id="s19">19. Open decisions</h2>
+<p>
+  Will accumulate as planning conversations identify them. For now, the entire runner doc is largely
+  <span class="status skeleton">skeleton</span> — open decisions emerge per section as we work through them.
+</p>
+
+<h2 id="s20">20. Related docs</h2>
+<ul>
+  <li><code>bank-consumption.html</code> — parent plan; this doc's behaviour rules are scoped by §15 (Source/Mode/Session State) and feed §17 (Builder).</li>
+  <li><code>bank-consumption-attempt-creation.html</code> — sibling sub-plan; runner reads from the snapshot tables it defines.</li>
+  <li><code>bank.md</code> — authoring side: schema, JSONB shapes, scoring functions. Per-question-type rendering (§5) mirrors the authoring/preview surfaces.</li>
+  <li><code>main.md</code> — overall MyNclex product plan.</li>
+</ul>
+
+<hr class="footer-rule" />
+<p class="footer-line">MyNclex — Bank Consumption · Runner Plan · Living document (skeleton)</p>
+
+</div>
+</body>
+</html>

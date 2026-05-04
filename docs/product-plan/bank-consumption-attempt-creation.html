@@ -137,7 +137,7 @@
 
 <h1>MyNclex — Bank Consumption · Attempt Creation Plan</h1>
 <div class="doc-meta">
-  Living planning document. Updated each session as decisions land. Last updated: 2026-05-04 (§6.1 column-list refinement pass complete — issues 1–6: source-ref FKs, count-column split, UUID PK format, intent column added, status enum (4 values incl. TIMED_OUT), <code>last_activity_at</code>, <code>ended_at</code>, <code>duration_seconds</code>. CAT result columns deferred to CAT planning. Parent doc §15 + §17 need follow-up edits — see §14).
+  Living planning document. Updated each session as decisions land. Last updated: 2026-05-04 (§6.2 nclex_attempt_items refinement pass — column list grouped by purpose; <code>item_source</code> discriminator added (BANK / TUTOR); <code>tutor_id</code> column added; <code>rationale_img_snapshot</code> added; redundant <code>shuffle_options</code> dropped (encoded by <code>shuffle_seed</code> nullability); content + correct moved to JSON blobs while classification stays granular; §6.2.1 snapshot-strategy table locked).
 </div>
 
 <h2>Why this doc exists</h2>
@@ -437,24 +437,109 @@
 
 <h3>6.2 nclex_attempt_items</h3>
 <p>One row per question delivered. Cases are expanded into 6 rows each, in <code>case_position</code> order.</p>
-<p>Working column list:</p>
+<p>Working column list (finalise at build time):</p>
+
+<p><strong>Identity:</strong></p>
 <ul>
   <li><code>attempt_item_id</code> (pk)</li>
-  <li><code>attempt_id</code> (fk)</li>
-  <li><code>position</code> — order in this attempt</li>
-  <li><code>item_id</code> — fk to <code>nclex_bank_items</code> (kept for reference, not used by the runner)</li>
-  <li><code>question_type</code></li>
-  <li><code>selection_unit_type</code> — QUESTION | CASE</li>
-  <li><code>selection_unit_id</code> — <code>item_id</code> or <code>case_id</code></li>
-  <li><code>parent_case_id</code>, <code>case_position</code>, <code>cjmm_step</code> (case children only)</li>
-  <li><code>trend_id</code> (trend questions only)</li>
-  <li><code>stem_snapshot</code>, <code>content_snapshot</code>, <code>instruction_snapshot</code></li>
-  <li><code>marks_snapshot</code>, <code>classification_snapshot</code></li>
-  <li><code>correct_answer_snapshot</code></li>
-  <li><code>rationale_snapshot</code></li>
-  <li><code>shuffle_seed</code>, <code>option_order_json</code></li>
-  <li><code>created_at</code></li>
+  <li><code>attempt_id</code> (fk to <code>nclex_attempts</code>)</li>
+  <li><code>position</code> — order of this question within the attempt sequence (1, 2, 3…). Cases stay Q1→Q6 within their block per §8.</li>
 </ul>
+
+<p><strong>Source reference:</strong></p>
+<ul>
+  <li><code>item_id</code> — TEXT, no FK constraint. References either <code>nclex_bank_items</code> or <code>nclex_tutor_questions</code> depending on <code>item_source</code>. Polymorphic by design — no DB-level FK because the attempt must survive a source item being deleted (snapshot is the source of truth at runtime).</li>
+  <li><code>item_source</code> — <code>BANK</code> / <code>TUTOR</code>. Discriminator that tells you which table <code>item_id</code> came from. Defaults to BANK. Required because both source tables use TEXT primary keys with no global uniqueness guarantee.</li>
+  <li><code>tutor_id</code> — nullable FK to <code>nclex_users</code>. Populated only when <code>item_source = TUTOR</code>. Useful for tutor reporting ("how are this tutor's questions performing?") and for cascade behaviour if the tutor leaves.</li>
+</ul>
+
+<p><strong>Selection provenance:</strong></p>
+<ul>
+  <li><code>selection_unit_type</code> — <code>QUESTION</code> / <code>CASE</code>. Per §3, the selector picks units; this records which kind of unit produced this row.</li>
+  <li><code>selection_unit_id</code> — the <code>item_id</code> (for QUESTION) or <code>case_id</code> (for CASE) the unit selector picked. Useful for debugging and for grouping case children to their parent unit.</li>
+</ul>
+
+<p><strong>Wrapper references — stable references, NOT snapshots:</strong></p>
+<p>
+  These columns store the wrapper relationships at selection time. They're not "snapshot_*" columns because the
+  values don't represent fields on the source item that could change — they're structural links the runner needs
+  to render the case scenario or load the trend dataset.
+</p>
+<ul>
+  <li><code>parent_case_id</code> (case children only) — joins to the matching row in <code>nclex_attempt_case_snapshots</code> (§6.4) to render scenario + chart tabs alongside the question.</li>
+  <li><code>case_position</code> (case children only) — 1–6, fixes Q1→Q6 internal order.</li>
+  <li><code>cjmm_step</code> (case children only) — Recognise cues / Analyse cues / etc. Drives the CJMM step label in the runner UI.</li>
+  <li><code>trend_id</code> (trend questions only) — joins to <code>nclex_attempt_trend_snapshots</code> (§6.5) to render the dataset alongside the question.</li>
+</ul>
+
+<p><strong>Snapshot — granular columns (queryable / stable shape):</strong></p>
+<ul>
+  <li><code>question_type</code> — drives runner's choice of rendering component (MCQ vs SATA vs Bowtie etc.). Practically immutable per item; stored on the attempt row to avoid an item-table join at runtime.</li>
+  <li><code>stem_snapshot</code> — the question text.</li>
+  <li><code>instruction_snapshot</code> — "Select all that apply" / cloze instructions / etc.</li>
+  <li><code>rationale_snapshot</code> — explanation text. Shown in Untimed Learning after each submit and in Review.</li>
+  <li><code>rationale_img_snapshot</code> — image URL for the rationale (mirrors source <code>rationale_img</code>).</li>
+  <li><code>marks_snapshot</code> — numeric. Frozen at selection so partial credit / total scoring is invariant per attempt.</li>
+  <li><code>classification_snapshot</code> — JSONB blob containing all 9 classification axes: <code>client_needs_category</code>, <code>client_needs_subcategory</code>, <code>nursing_subject</code>, <code>body_system</code>, <code>topic</code>, <code>subtopic</code>, <code>difficulty</code>, <code>bloom_level</code>, <code>tags</code>. Single JSON column rather than 9 columns because the analytics queries already need to <code>jsonb_extract_path</code> across them, and adding a 10th axis later doesn't need a migration. Can still be indexed via expression indexes on the hot paths.</li>
+</ul>
+
+<p><strong>Snapshot — polymorphic blobs (shape varies by question_type):</strong></p>
+<ul>
+  <li><code>content_snapshot_json</code> — mirrors source <code>content</code> JSONB. Polymorphic shape: options for MCQ/SATA, blanks for Cloze, matrix-cells for Matrix, etc. Runner parses by <code>question_type</code>.</li>
+  <li><code>correct_answer_snapshot_json</code> — mirrors source <code>correct</code> JSONB. The answer key. Drives scoring and Review's "right answer was…" rendering. Separate from <code>content_snapshot_json</code> because they're used at different times (rendering vs scoring).</li>
+</ul>
+
+<p><strong>Display state:</strong></p>
+<ul>
+  <li><code>shuffle_seed</code> — nullable. NULL means the source item had <code>shuffle_options = false</code> (no shuffle applied). Non-null means the seed used to produce the rendered order. The boolean <code>shuffle_options</code> from source is NOT stored separately — its state is encoded by the seed's nullability.</li>
+  <li><code>option_order_json</code> — the exact rendered order of options/blanks as the student saw them. Required so Review re-renders the same arrangement and so answer indices align between submission and scoring.</li>
+</ul>
+
+<p><strong>Housekeeping:</strong></p>
+<ul>
+  <li><code>created_at</code> — when the row was inserted (= attempt creation moment for non-CAT; = item-administered moment for CAT).</li>
+</ul>
+
+<h3>6.2.1 Snapshot strategy — what's IN, what's OUT</h3>
+<p>
+  Snapshot at attempt creation, not at scoring time (per §5). The principle: snapshot anything the runner needs
+  to render, score, OR analyse historically. Skip everything else.
+</p>
+
+<p><strong>IN — snapshotted because the runner needs it OR analytics needs it frozen:</strong></p>
+<table>
+  <thead>
+    <tr><th>Source field</th><th>Why snapshot</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>stem</code></td><td>Curator may edit mid-quiz; student must see what they started with</td></tr>
+    <tr><td><code>instruction</code></td><td>Same</td></tr>
+    <tr><td><code>content</code> (jsonb)</td><td>Polymorphic payload — options, blanks, matrix shape. Editable. Runner needs it.</td></tr>
+    <tr><td><code>correct</code> (jsonb)</td><td>Edit mid-session would mark same answer right for student A and wrong for student B</td></tr>
+    <tr><td><code>rationale</code></td><td>Untimed Learning shows it after each submit; consecutive Q's must use consistent rules</td></tr>
+    <tr><td><code>rationale_img</code></td><td>Image URL could be replaced by curator</td></tr>
+    <tr><td><code>marks</code></td><td>Scoring mid-attempt must be invariant</td></tr>
+    <tr><td>Classification (9 axes)</td><td>Re-classifying a question would retroactively break "your Pharm score was X"</td></tr>
+    <tr><td><code>question_type</code></td><td>Practically immutable but stored to avoid a runtime join</td></tr>
+  </tbody>
+</table>
+
+<p><strong>OUT — NOT snapshotted because it's derivable, transient, or not student-facing:</strong></p>
+<table>
+  <thead>
+    <tr><th>Source field</th><th>Why NOT snapshot</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>is_published</code>, <code>is_builder_visible</code>, <code>is_free_sample</code></td><td>Eligibility was already verified at attempt creation; runtime doesn't re-check</td></tr>
+    <tr><td><code>question_ref</code></td><td>Curator/support reference number. Not student-facing rendering. If support needs it, look up via <code>item_id</code>.</td></tr>
+    <tr><td><code>batch_id</code></td><td>Curator's batch tracking, internal admin metadata. Not relevant to the student or scoring.</td></tr>
+    <tr><td><code>shuffle_options</code> (boolean)</td><td>Encoded by the nullability of <code>shuffle_seed</code>. NULL seed = shuffle was off; non-null seed = shuffle was on with that seed.</td></tr>
+    <tr><td>Source <code>created_at</code> / <code>updated_at</code></td><td>Bank-level housekeeping, irrelevant to the attempt</td></tr>
+    <tr><td><code>parent_case_id</code>, <code>trend_id</code></td><td>Stored as direct columns on attempt_items (not under "snapshot" naming) because they're stable structural references the runner uses to join to the case/trend snapshot tables</td></tr>
+  </tbody>
+</table>
+
+<h3>6.3 nclex_attempt_answers</h3>
 
 <h3>6.3 nclex_attempt_answers</h3>
 <p>
