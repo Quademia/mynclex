@@ -140,7 +140,7 @@
 
 <h1>MyNclex — Bank Consumption · Runner Plan</h1>
 <div class="doc-meta">
-  Living planning document (skeleton). Last updated: 2026-05-04 (initial skeleton — sections defined, content TBD as decisions land in conversation).
+  Living planning document. Last updated: 2026-05-04 (§1 Scope and §2 Architecture settled — route is <code>/session/[attempt_id]</code> in a <code>(focused)</code> route group (audience-neutral, not under <code>/student/</code>); mode (live vs review) derived from <code>nclex_attempts.status</code>; six-block component map locked with single-component-per-type using a <code>mode</code> prop; runner reads from 5 snapshot tables and writes only to <code>nclex_attempt_answers</code> + status/activity; no answer-key leakage to live-mode client (Pillar 2). Initial skeleton drafted same day).
 </div>
 
 <h2>Why this doc exists</h2>
@@ -189,7 +189,7 @@
   </ol>
 </div>
 
-<h2 id="s1">1. Scope and what's out of scope <span class="status skeleton">skeleton</span></h2>
+<h2 id="s1">1. Scope and what's out of scope <span class="status settled">settled</span></h2>
 <p>
   In scope: the runner experience for fixed-length modes (Untimed Learning, Untimed Test, Timed Free Navigation,
   Timed Sequential) under both intents (STUDY / EXAM where valid — see attempt-creation §6.1.2).
@@ -203,26 +203,222 @@
   <li>RLS / build-time concerns.</li>
 </ul>
 
-<h2 id="s2">2. Architecture — load from snapshots <span class="status skeleton">skeleton</span></h2>
+<h2 id="s2">2. Architecture <span class="status settled">settled</span></h2>
 <p>
-  Runner is launched with <code>?attempt_id=...</code>. On mount it loads (read-only):
+  Five settled architecture decisions. Each was discussed and locked one at a time. Implementation specifics
+  (exact RPC signatures, debounce timing, optimistic UI patterns) defer to build — those don't change <em>what</em>
+  the runner does, only <em>how</em> the network calls are structured.
+</p>
+
+<h3>2.1 Route path</h3>
+<p>
+  <strong>URL: <code>/session/[attempt_id]</code></strong>. Top-level, audience-neutral — not nested under
+  <code>/student/</code>, <code>/tutor/</code>, or <code>/admin/</code>.
+</p>
+<p>
+  <strong>File location: <code>app/(app)/(focused)/session/[attempt_id]/</code></strong>. The
+  <code>(focused)</code> is a Next.js route group — parentheses mean "use this folder for layout grouping but
+  don't include it in the URL." It defines the focused chrome (minimal topbar, no sidebar, distraction-free)
+  applied to anything inside.
+</p>
+<p>
+  <strong>Why audience-neutral.</strong> The runner is invoked by all three audiences — students take quizzes,
+  tutors preview assigned content, admins QA questions. CLAUDE.md's "audience grouping" rule was set for
+  audience-specific surfaces (dashboards, settings); the runner is a focused tool that doesn't fit any one
+  audience's chrome.
+</p>
+<p>
+  <strong>Why "session" and not "runner" / "quiz" / "attempt".</strong> "Runner" is internal terminology, never
+  visible to users. "Attempt" is schema language, not student-vocabulary. "Session" matches our existing parent
+  doc terminology (parent §15 — Source / Mode / <strong>Session State</strong>) and works naturally for both
+  live AND review variants ("I'm starting a new session" / "I'm reviewing my last session").
+</p>
+<p>
+  <strong>Mode (live vs review) is derived from <code>nclex_attempts.status</code></strong> — same URL for
+  both. The runner reads the attempt row, sees status = IN_PROGRESS → live mode; status = COMPLETED /
+  TIMED_OUT → review mode. The student clicks "Review" in History → lands on the same URL; component tree,
+  data model, and layout are all the same with rationales visible and submit disabled.
+</p>
+
+<h3>2.2 Component shape — six block categories</h3>
+<p>The runner is a page with composed component blocks. Six categories:</p>
+
+<ol>
+  <li>
+    <strong>Page-level container</strong> — one top-level component (e.g. <code>SessionPage</code>). Loads
+    attempt + items + snapshots + answers. Manages overall state (current position, mode). Branches into
+    live or review variant based on <code>status</code>.
+  </li>
+  <li>
+    <strong>Chrome (always-visible UI)</strong> — minimal topbar (session title, exit button, mark-for-review
+    toggle), timer (only for timed modes), progress indicator ("Q3 of 25"), navigation footer / sidebar
+    (shape varies by mode — sequential locks, free-nav allows jumps).
+  </li>
+  <li>
+    <strong>Question rendering</strong> — a <strong>Question Area</strong> component that receives the
+    current <code>attempt_item</code> + snapshot data, then branches by <code>question_type</code> into one
+    of <strong>9 per-type question components</strong> (one each for MCQ / TF / SATA / Select-N / Matrix /
+    Highlight / Cloze / Drag-drop / Bow-tie). Each handles its own UI for that type.
+  </li>
+  <li>
+    <strong>Wrapper panels (the "two-sided" case)</strong> — when the current item has
+    <code>parent_case_id</code> (case child) or <code>trend_id</code> (trend question), the layout splits:
+    <code>[ Wrapper context ] | [ Question Area ]</code>. Two wrapper components — Case panel (scenario + chart
+    tabs; persists across all 6 case children) and Trend panel (time-series dataset). For non-wrapper questions
+    the question takes full width.
+  </li>
+  <li>
+    <strong>Submit / scoring feedback</strong>:
+    <ul>
+      <li>Submit button — chrome, not per-type</li>
+      <li>Per-element feedback decorations — folded <em>into</em> each per-type component (controlled by the <code>mode</code> prop — see §2.2.1)</li>
+      <li>Rationale (text + image) — shared <code>&lt;Rationale&gt;</code> sub-component, rendered by the page container in review mode (and in Untimed Learning per-Q after submit)</li>
+    </ul>
+  </li>
+  <li>
+    <strong>Modals / overlays</strong> — discard confirmation (with type-DELETE-to-confirm per CLAUDE.md UI
+    Conventions), Resume / Start fresh dialog, end-of-quiz confirmation, time-up notification.
+  </li>
+</ol>
+
+<h4>2.2.1 Per-type components: single component, <code>mode</code> prop</h4>
+<p>
+  Each per-type component takes a <code>mode: "answering" | "review"</code> prop and handles both states
+  internally. One component per type; nine total. Three alternatives were considered:
 </p>
 <ul>
-  <li><code>nclex_attempts</code> — the row itself (mode, intent, status, timer state, source, etc.)</li>
+  <li><strong>(α) Single component, internal <code>mode</code> prop</strong> — adopted</li>
+  <li><strong>(β) Two separate components per type</strong> (Answering + Review variants) — 18 total — rejected</li>
+  <li><strong>(γ) Headless logic + thin wrappers</strong> — over-engineered for v1</li>
+</ul>
+<p>
+  Reasoning: the structural shape (option list, row grid, blank list, etc.) is identical between answering
+  and review — only the decorations differ. Single component captures that without duplication. 9 components
+  vs 18 means less drift risk. The component branches internally on render: answering = interactive controls;
+  review = read-only with right/wrong indicators, per-option feedback, and correct-answer reveal.
+</p>
+<p>
+  <strong>Per-element feedback lives inside the type component</strong> because feedback isn't a separate
+  block sitting below the question — it's woven into the question's structure (per-option indicator on MCQ,
+  per-row marker on Matrix, per-blank dropdown reveal on Cloze, etc.). Only the per-type component knows
+  where to put the decorations.
+</p>
+
+<h3>2.3 Data flow</h3>
+<p>
+  By the time the runner page loads, every snapshot row already exists — the create-attempt transaction
+  (covered in <code>bank-consumption-attempt-creation.html</code>) populated all 5 tables in advance. The
+  runner is purely a reader.
+</p>
+<pre><code>Builder: student clicks "Start Quiz"
+         ↓
+[create-attempt transaction]
+  - 1 row in nclex_attempts
+  - N rows in nclex_attempt_items (snapshots of questions)
+  - rows in nclex_attempt_case_snapshots (one per case used)
+  - rows in nclex_attempt_trend_snapshots (one per dataset used)
+  - returns attempt_id
+         ↓
+Frontend routes to /session/[attempt_id]
+         ↓
+Runner mounts → reads from those 5 tables → renders Q1
+</code></pre>
+
+<p><strong>Reads only from the 5 snapshot tables at runtime:</strong></p>
+<ul>
+  <li><code>nclex_attempts</code> — the row itself (mode, intent, status, timer state, source)</li>
   <li><code>nclex_attempt_items</code> — all delivered items in <code>position</code> order</li>
-  <li><code>nclex_attempt_case_snapshots</code> — case scenarios + chart tabs (one row per case used)</li>
-  <li><code>nclex_attempt_trend_snapshots</code> — trend datasets (one row per dataset used)</li>
+  <li><code>nclex_attempt_case_snapshots</code> — case scenarios + chart tabs</li>
+  <li><code>nclex_attempt_trend_snapshots</code> — trend datasets</li>
   <li><code>nclex_attempt_answers</code> — any answers already submitted (for Resume / Review)</li>
 </ul>
 <p>
-  Runner reads only from these five tables at runtime. Never from <code>nclex_bank_items</code>,
-  <code>nclex_case_studies</code>, <code>nclex_case_study_tabs</code>, <code>nclex_trend_datasets</code>, or
-  <code>nclex_tutor_*</code>. Writes go only to <code>nclex_attempt_answers</code> (and
-  <code>nclex_attempts.last_activity_at</code> / <code>status</code> on terminal transitions).
+  Never reads from <code>nclex_bank_items</code>, <code>nclex_case_studies</code>,
+  <code>nclex_case_study_tabs</code>, <code>nclex_trend_datasets</code>, or <code>nclex_tutor_*</code>.
+</p>
+
+<p><strong>Writes only to:</strong></p>
+<ul>
+  <li><code>nclex_attempt_answers</code> — DRAFT rows (STUDY save-progress) and SUBMITTED rows on submit</li>
+  <li><code>nclex_attempts.last_activity_at</code> — heartbeat</li>
+  <li><code>nclex_attempts.status</code> — on terminal transitions (COMPLETED / TIMED_OUT / ABANDONED)</li>
+  <li>The mark-for-review table (settled per attempt-creation §6.3.4) on toggle</li>
+</ul>
+
+<h4>2.3.1 No answer-key leakage to live-mode client (Pillar 2 protection)</h4>
+<p>
+  Pillar 2 (parent §3) says "no answer leakage." If the client receives <code>correct_answer_snapshot_json</code>
+  for upcoming questions in live mode, a student with browser dev tools can read it. So:
+</p>
+<table>
+  <thead>
+    <tr><th>Mode</th><th>Client receives</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Live mode</strong> (<code>status = IN_PROGRESS</code>)</td>
+      <td>Attempt + items <em>without</em> <code>correct_answer_snapshot_json</code>, <code>rationale_snapshot</code>, <code>rationale_img_snapshot</code> — only the question shape (stem, options, etc.). Plus case/trend snapshots, plus existing answers.</td>
+    </tr>
+    <tr>
+      <td><strong>After per-Q submit</strong> (Untimed Learning only)</td>
+      <td>Submit RPC returns <code>score_awarded</code>, <code>is_correct</code>, plus correct answer + rationale + per-option feedback <strong>for that one question only</strong>. Upcoming questions stay sealed.</td>
+    </tr>
+    <tr>
+      <td><strong>Review mode</strong> (<code>status = COMPLETED</code> or <code>TIMED_OUT</code>)</td>
+      <td>Full keys, rationales, and rationale images for every item. The student needs to see what was correct.</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  The exact RPC signatures (single function that branches on status, vs two separate functions) defer to
+  build — the rule is the planning decision.
+</p>
+
+<h3>2.4 Local state shape</h3>
+<p>
+  Most state decisions are inherited from earlier docs; the runner just adopts them.
+</p>
+
+<p><strong>Lives in client memory</strong> (lost on refresh in EXAM, restored from server in STUDY):</p>
+<ul>
+  <li>Which question the student is currently looking at</li>
+  <li>Their in-progress answer for that question (before submit)</li>
+  <li>Mark-for-review toggles for the current session (cached from the marks table)</li>
+  <li>Modal / overlay state (is the discard dialog open?)</li>
+</ul>
+
+<p><strong>Persisted to the server</strong> (designed in earlier docs):</p>
+<ul>
+  <li>Submitted answers → <code>nclex_attempt_answers</code> rows on submit (attempt-creation §6.3)</li>
+  <li>Save-progress drafts → DRAFT rows in same table, STUDY mode only (§6.3.1)</li>
+  <li>Answer-change log → <code>answer_changes_json</code> event log (§6.3.3)</li>
+  <li>Mark-for-review toggles → its own table, written immediately on toggle (§6.3.4)</li>
+  <li>Activity heartbeat → <code>nclex_attempts.last_activity_at</code> (§6.1)</li>
+  <li>Status transitions → <code>nclex_attempts.status</code> on terminal (§6.1.3)</li>
+</ul>
+
+<p>
+  <strong>Core principle:</strong> in STUDY, client memory is a cache of server state — refresh and resume
+  work because everything important hits the server. In EXAM, client memory is authoritative for in-progress
+  answers (no drafts written) — refresh = lose state, but EXAM is single-sitting so it doesn't matter for
+  product flow. Edge case: timer-expiry auto-submit when the client is connected uses whatever client memory
+  has; lost-connection scenarios in timed exams are an edge-case settled at build.
+</p>
+
+<h3>2.5 Reuse from authoring previews</h3>
+<p>
+  Each of the 9 authoring editors (<code>lib/bank/editors/*-editor.tsx</code>) has a working "preview"
+  rendering that draws the question as a student would see it. Same for the case-study editor's chart-tabs
+  preview and the trend editor's dataset preview.
 </p>
 <p>
-  TBD: the exact data-fetch shape (single RPC vs multiple SELECTs vs server component). Probably one RPC that
-  returns everything in one round-trip plus a heartbeat for save-progress.
+  Those become the structural starting point for the runner's per-type question components and the wrapper
+  panels. The lift is "copy the rendering, swap the data source" (form state → snapshot data) and "add a
+  <code>mode</code> prop for review/feedback decorations." No fresh design from scratch.
+</p>
+<p>
+  This is implementation guidance, not a planning decision — but worth recording so build sessions know to
+  start from the existing previews rather than redesigning each component.
 </p>
 
 <h2 id="s3">3. Page lifecycle <span class="status skeleton">skeleton</span></h2>
