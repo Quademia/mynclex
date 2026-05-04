@@ -6,6 +6,177 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-04 (Bank-consumption planning — attempt-creation sub-plan + runner skeleton)
+
+Pure planning session, no application code. Built out the consumption-side
+schema/lifecycle planning around the existing parent doc
+`docs/product-plan/bank-consumption.html`. Three commits, all
+docs-only, pushed direct to main.
+
+### New: `docs/product-plan/bank-consumption-attempt-creation.html`
+
+Full sub-plan covering everything from Builder-Start-click through
+preflight to Q1-first-render. Sibling to the parent. ~870 lines after
+the day's refinements.
+
+**Architecture (§2-§5):**
+
+- Frontend → backend in one transaction → returns `attempt_id`.
+  Frontend never sees the candidate question list.
+- Selection units: standalone-question (slot 1), trend-linked
+  (slot 1), case-study (slot 6, atomic).
+- Count handling: target with drift (±3), no preference for
+  skipping cases late (avoids the "never exceed" rule's bias
+  against case-heavy quizzes).
+- Snapshot at attempt creation, NOT at scoring time. Includes
+  rationales + correct answers (so curator edits mid-session
+  can't change scoring rules).
+
+**Tables shape (§6):** 5 tables — `nclex_attempts`,
+`nclex_attempt_items`, `nclex_attempt_answers`,
+`nclex_attempt_case_snapshots`, `nclex_attempt_trend_snapshots`.
+Runner reads only from these at runtime. Student-state tables
+(`nclex_student_question_state` etc.) deferred to view-first.
+
+**§6.1 `nclex_attempts` column-list refinement pass — issues 1-6:**
+
+1. **Source-ref FKs** (typed nullable: `readiness_pack_id`,
+   `programme_activity_id`); pack-via-activity → only
+   `programme_activity_id` is set; no denormalised `programme_id`.
+2. **Count split** — `requested_question_count` /
+   `actual_question_count` / `actual_unit_count` (cases counted
+   as 1 unit but 6 questions).
+3. **`attempt_id` = UUID, server-generated**; v4 vs v7 = build-time
+   choice based on Supabase Postgres extension support.
+4. CAT result columns deferred to CAT-planning conversation.
+5. Status / cleanup / **intent** — biggest conceptual addition,
+   see below.
+6. **`duration_seconds` + `mode_overrides_json`** (nullable; populated
+   only on tutor/pack overrides like accommodations).
+
+**The intent split (§6.1.2) — biggest conceptual addition of the day:**
+
+Sam pushed back on cleanup logic — *"untimed quizzes shouldn't
+auto-expire — that's why they're untimed, the student can come back
+anytime"* — which surfaced that the real axis is **intent** (STUDY vs
+EXAM), not pacing (timed vs untimed). The existing 5 modes from parent
+§15 map to a `(intent, mode)` tuple — 8 valid combinations of 10:
+
+- Untimed Learning: STUDY only (rationales-each-submit defeats
+  exam framing)
+- CAT: EXAM only (IRT model needs continuous engagement)
+- The other 3 modes (Untimed Test, Timed Free Nav, Timed Sequential)
+  work for either intent — STUDY uses an engagement-clock and is
+  resumable; EXAM uses a wall-clock and is single-sitting
+
+Cleanup rules redrew around intent: **STUDY-with-engagement attempts
+NEVER auto-expire** (the student paid and can return whenever). Only
+orphans (zero-engagement) + EXAM time-outs auto-clean.
+
+Cross-checked the 4-status enum against Moodle / Canvas / edX-proctored
+conventions (web research). Our shape closest to Moodle's
+`quiz_attempts.state` (`inprogress / overdue / finished / abandoned`)
+with clearer naming. NCLEX is pure auto-graded MCQ/SATA so we skip
+Canvas's `pending_review` split.
+
+**§6.2 `nclex_attempt_items` refinement (gap analysis vs source schema):**
+
+Audited `nclex_bank_items` and `nclex_tutor_questions` against the
+proposed snapshot column list. Gaps found:
+
+- Missing `rationale_img_snapshot` (image URL could be edited
+  mid-session)
+- No source-table discriminator — `item_id` could refer to either
+  bank or tutor questions, both use TEXT PKs with no global
+  uniqueness. Added `item_source` (BANK / TUTOR).
+- No `tutor_id` for tutor-authored items in the attempt — needed
+  for tutor reporting analytics. Added as nullable FK.
+- Redundant `shuffle_options` boolean — encoded by
+  `shuffle_seed` nullability. Dropped.
+
+Also restructured: `content_snapshot_json` and
+`correct_answer_snapshot_json` separated (used at different times —
+rendering vs scoring); `classification_snapshot` collapsed into a
+single JSONB blob (9 axes including bloom_level, tags); new
+§6.2.1 IN/OUT snapshot strategy table with reasoning per source field.
+
+**Items vs answers table separation:**
+
+Considered merging `nclex_attempt_answers` into `nclex_attempt_items`
+(1:1 within an attempt; mynmclicensure precedent). Decided keep
+separate. Three reasons: (1) snapshot pattern requires items table
+to be write-once; (2) save-progress writes belong on the slim
+answers row; (3) avoid TOAST overhead from updating fat JSONB rows.
+
+### Updated: parent `docs/product-plan/bank-consumption.html` §17 Builder
+
+Builder gains an Intent picker as a 2-step flow:
+
+- Step 1: pick intent (Study or Exam — 2 cards)
+- Step 2: pick from modes filtered by chosen intent (4 cards each)
+
+Recent Quizzes chip labels now include intent prefix
+("Study · Pharm · Hard · 50 Q"). Default form state requires Intent +
+Mode picked before Start enables. Practise-weak-spots quick-start
+defaults to Study intent (with reasoning: weak-spot practice is
+learning, not exam simulation).
+
+Section 3 renamed "Mode" → "Intent + Mode". Page structure intro
+caught a formatting inconsistency and was fixed.
+
+### New: `docs/product-plan/bank-consumption-runner.html` (skeleton)
+
+Sibling sub-plan for the Runner. 20 sections defined with status pills
+(`skeleton` / `open` / `settled` / `deferred`); content TBD as planning
+lands. Covers: scope, architecture, page lifecycle, per-mode
+behaviour matrix, question rendering per type (9 sub-sections),
+case-block UX, trend rendering, timer, save/resume, submission,
+scoring, feedback timing, answer-changes tracking, mark-for-review,
+navigation, discard, review state, CAT-deferred.
+
+### Reference: how mynmclicensure handles the same patterns
+
+Sam pointed to `qacademy-gamma/mynmclicensure/` mid-session for the
+preflight + attempt-creation reference. Key files read:
+
+- `runner/timed.html` — `preflightCard`, `hasTimedStart`,
+  `markTimedAttemptStarted` flow; `qa_skip_preflight_timed`
+  localStorage opt-out for power users
+- `student/quiz-builder.html` + `js/mynmclicensure-api.js`
+  `spawnBuilderAttempt` — client-side question selection +
+  app-generated attempt ID prefix `ATT_<timestamp>_<random>`
+
+Mynclex improvements over mynmclicensure (without breaking the working
+flow): two timestamps (`created_at` + `started_at`) instead of
+overloading `ts_iso`; server-side question selection; relational items
+table with snapshots instead of comma-separated `item_ids` + JSON
+`answers_json` blob; UUID PK instead of prefixed string.
+
+### Commits
+
+- `85bbe92` — initial sub-plan + parent §17 Builder intent flow
+  (826 insertions, 16 deletions)
+- `b4f5cbf` — §6.2 attempt_items refinement + runner skeleton
+  (555 insertions, 16 deletions)
+
+### Open / queued
+
+- §6.3 `nclex_attempt_answers` column list — next refinement pass
+- §6.4 `nclex_attempt_case_snapshots` + §6.5
+  `nclex_attempt_trend_snapshots` — same treatment as §6.2
+- §9 of attempt-creation doc — Sources beyond Custom-built (settles
+  when pack/programme planning starts)
+- Parent doc §15 follow-up — mode list intent annotations,
+  "Resume restricted to STUDY intent" rewording, ABANDONED can be
+  student-driven note
+- Runner doc — all 20 sections still skeleton; meaty work ahead.
+  Q-type rendering sub-sections (§5.1 - §5.9) will be the largest
+  block.
+- CAT planning (parent §16) — separate big topic
+- Dashboard layout (parent §4) — alternative smaller-win next topic
+
+---
+
 ## Session — 2026-05-01 (Slice 14 — the swap)
 
 The 14-slice questions-and-wrappers rebuild closed today. Legacy
