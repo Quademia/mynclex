@@ -6,6 +6,250 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-04 (continued) — attempt_answers, new scoring sub-plan, runner §1/§2
+
+Pure planning, no application code. Seven commits, all docs-only,
+pushed direct to main. Picked up from the queue left by the earlier
+2026-05-04 session below.
+
+### `nclex_attempt_answers` column-list refinement (§6.3)
+
+Walked Q1–Q6 one at a time against the analytics intent (parent §5),
+the NCSBN scoring functions (`bank.md` §scoring), the runner
+save-progress / submit paths, and the attempt-creation lifecycle.
+
+Six decisions baked in:
+
+- **4-state `submission_status` enum** — DRAFT / SUBMITTED /
+  AUTO_SUBMITTED / SKIPPED. DISCARDED dropped — mid-case
+  auto-discard doesn't apply in the intent-split world; explicit
+  student discard is hard-delete. Parent §10 rule 1 marked
+  SUPERSEDED.
+- **`answer_changes_json` = full event log**, not counts
+  (`{at, from, to}` per material change). Counts derive from log;
+  log unlocks future toggle-timing analytics without losing data.
+- **Single `created_at`** = first-interaction time. No separate
+  `first_interaction_at` — read-time analytics aren't on the v1
+  plan; runner can compute later if needed.
+- **`time_spent_sec` stored explicitly**, runner-computed. Postgres
+  can't derive: STUDY engagement-clock pauses + free-nav multi-visit
+  summation both rule out wall-clock subtraction. Mode caveat: only
+  meaningful for sequential/CAT modes; analytics layer filters.
+- **UUID `answer_id` PK** — matches schema convention; clean
+  cross-table reference target.
+- **`max_score` lives on items snapshot** (`marks_snapshot`), not
+  here. Mark-for-review goes to its own table (cross-attempt
+  persistence per parent §10).
+
+### Parent §10 supersession marker
+
+Mid-case auto-discard rule pre-dated the STUDY/EXAM intent split.
+Now stale: STUDY is resumable (children persist between sessions),
+EXAM times out to AUTO_SUBMITTED rather than abandoning. Original
+rule preserved in git; flagged for a fresh design pass on
+case-level history-state under intent semantics. First marker pass
+was bloated — replaced with a single-line note matching rules 2
+and 3.
+
+### New: `docs/product-plan/bank-marks-and-scoring.html`
+
+Initial sub-plan for marks + scoring. ~700 lines after the day's
+refinements. Sibling to the other bank-consumption-* sub-plans.
+
+**§2 NCSBN scoring landscape captured.** Three NGN rules:
+dichotomous (0/1), +/− polytomous with floor, 0/1-per-element.
+NCSBN does not expose per-item "marks" — items contribute via IRT
+difficulty, not human-set points.
+
+**§5 Marks — derived, system-managed.** Sam pushed back on my
+"drop the column" position with a real architectural insight: the
+column should stay, but the editor computes the value at save
+time. Adopted. Curator visibility preserved (read-only display
+showing "Max: 4 — from 4 correct options"); single write path
+through the editor; runtime never re-derives. Schema column stays;
+semantics shift from curator-settable to editor-computed
+system-managed.
+
+**§4 Per-type rule mapping settled across all 9 types** — walked
+each type against its parser in `lib/bank/parsers/`. Locks:
+
+- MCQ, TF: dichotomous, max 1
+- SATA: +/− with floor, max = count of correct
+- SELECT_N: +/− like SATA; editor enforces `N == count(correct)`
+  so there's no separate "N" curator field
+- MATRIX: 0/1 per row, max = row count. Single-response only;
+  multi-response variant deferred to v2 (matrix-row-mapper.ts +
+  matrix.ts confirm we only support one column per row)
+- HIGHLIGHT: +/− with floor, max = count of correct chunks. Parser
+  already enforces ≥1 distractor
+- CLOZE: 0/1 per blank, max = blank count. Simple drop-down only;
+  cause-effect (paired) variant deferred to v2
+- DRAG_DROP: 0/1 per slot, max = active slot count. Two subtypes
+  (ORDERED, SENTENCE) share scoring math
+- BOWTIE: per-wing 0/1 tally summed; max 5 fixed (parser enforces
+  exactly 2/1/2 correct). No +/−, no floor — UI constraint
+  (2/1/2 picks per wing) already prevents the gaming +/−
+  defends against. Per-wing sub-scores are recoverable from
+  snapshot for future analytics
+
+**§5.5 cross-cutting policy: `is_correct` = full credit only.**
+The student's `score_awarded` is partial; `is_correct` is the
+strict verdict. Drives the 4-state per-question history (parent
+§10) — partial-credit attempts land as Seen-incorrect, not
+Seen-correct. Cascades to all partial-credit types.
+
+**§7 Session aggregation settled — show all three numbers,
+item-equivalent canonical.** Worked-example: a 5-question quiz
+where the three methods give 40% / 75% / 77.7%. Decision:
+- **Items-correct ratio** (count of fully-correct items) — shown
+  as supplementary
+- **Total points ratio** (sum of points / sum of max) — shown as
+  supplementary
+- **Item-equivalent average** (each item normalised to 0..1, then
+  averaged) — **headline**, stored canonically as
+  `nclex_attempts.final_score` NUMERIC 0..1
+
+Item-equivalent wins on (a) each question contributes equally —
+bow-tie's 5 points is a scoring mechanism not a valuing one,
+(b) most NCSBN-aligned (matches IRT's "one observation per item"
+shape), (c) cleanest input to Readiness Signal calculation.
+
+**§5.4 curator override** parked — deferred to build, default
+during build = no override. Real tutor-vs-authenticity tension
+captured but no resolution forced now.
+
+**§8 code location settled** — `lib/scoring/` at the lib root
+(not `lib/bank/scoring/`). Scoring is consumed by editor +
+runner + aggregation + analytics — domain-cross-cutting, not
+bank-specific.
+
+**§10 migration settled** — manual backfill for existing rows
+(one-shot UPDATE recomputing from `correct` + `question_type`);
+future rows correct-by-construction via editor save handler.
+No PL/pgSQL trigger in v1.
+
+**§9 editor UI deferred to build** — but architecturally, marks
+display lives under the editor's existing "Housekeeping" section
+(which already holds admin metadata like shuffle, batch_id,
+question_ref). Housekeeping detects question type and applies
+the per-type rule; curator sees a read-only computed field.
+
+**§6 edge cases deferred to per-case at build.** Most cases
+already settled inline during the §4 per-type passes (SATA with
+0 selections, drag-drop unplaced tokens, bow-tie partial wings,
+etc.); rest decided when the relevant code is written.
+
+**§11 Deferred to v2+:** multi-response matrix, cause-effect
+(paired) cloze, IRT calibration, CAT-specific scoring, per-wing
+bow-tie sub-score storage.
+
+### bank.md cleanup
+
+`scorePerSlot` row in the function-dispatch table was wrong —
+described as "+/− per slot, sum with floor" but our v1 drag-drop
+is single-token-per-slot and bow-tie is 2/1/2-constrained per
+wing. Both are 0/1, no floor needed. Updated to match. Paired
+cloze line annotated as deferred-not-built; multi-response
+matrix called out alongside.
+
+### Runner §1 + §2 settled — `bank-consumption-runner.html`
+
+Picked up the runner doc skeleton (drafted in the earlier
+2026-05-04 session). §1 Scope confirmed; §2 Architecture broken
+into five sub-decisions and locked one at a time.
+
+**§2.1 Route: `/session/[attempt_id]`** in a Next.js
+`(focused)` route group. Audience-neutral — not under
+`/student/` because the runner is invoked by all three
+audiences (student takes quiz, tutor previews, admin QAs).
+"Session" picked over "runner" / "quiz" / "attempt" because
+it matches parent §15 vocabulary (Source / Mode / **Session
+State**) and works for both live AND review variants. Mode
+(live vs review) derived from `nclex_attempts.status`, not URL.
+
+**§2.2 Component shape — six block categories.** Page-level
+container; chrome (topbar / timer / progress / nav); question
+rendering (Question Area + 9 per-type components); wrapper
+panels (case + trend) for the two-sided layout; submit/feedback;
+modals/overlays. Per-type components: **single component per
+type with `mode` prop** ("answering" | "review"); 9 components,
+not 18. Per-element feedback decorations fold INTO each per-type
+component (per-option indicators, per-row markers, per-blank
+reveals) since only the type knows where to render them.
+Rationale (text + image) is a shared sub-component rendered by
+the page container.
+
+**§2.3 Data flow — pure reader of the 5 snapshot tables.** All
+rows already exist by the time the runner page loads (created
+in the create-attempt transaction). Writes only to
+`nclex_attempt_answers` + `nclex_attempts.status` /
+`last_activity_at`. **§2.3.1 Pillar 2 protection:** live-mode
+client never receives `correct_answer_snapshot_json` or
+rationale fields for upcoming questions; submit RPC returns
+those for the just-submitted question only; review-mode RPC
+returns the full keys.
+
+**§2.4 Local state** mostly inherited from earlier docs (DRAFT
+writes in STUDY only per §6.1.2; mark-for-review writes
+immediately to its own table per §6.3.4). Core principle: in
+STUDY client memory is a cache of server state; in EXAM it's
+authoritative for in-progress (no drafts) but doesn't matter
+because EXAM is single-sitting.
+
+**§2.5 Reuse** — each authoring editor's "preview" rendering
+becomes the structural starting point for the runner's per-type
+component. Lift = "copy rendering, swap data source, add mode
+prop." Implementation guidance, not a planning decision.
+
+Implementation specifics (single RPC vs parallel SELECTs,
+debounce timing, exact submit response shape, route-group
+chrome details) deferred to build.
+
+### Schema ripples
+
+- `nclex_attempts.final_score` NUMERIC 0..1 — added to §6.1
+  Result group of attempt-creation doc. Set on COMPLETED /
+  TIMED_OUT, NULL while IN_PROGRESS.
+- `nclex_bank_items.marks` and `nclex_tutor_questions.marks`
+  semantically shift from curator-settable to system-managed
+  (the column stays; the editor save handler computes it from
+  `correct` + `question_type`). Migration plan settled (§10 of
+  scoring doc).
+
+### Commits
+
+- `688ed84` — §6.3 attempt_answers column-list refinement
+- `29fdbce` — §10 supersession marker (bank-consumption.html)
+- `ed41229` — §10 marker formatting fix (single-line)
+- `76946eb` — bank-marks-and-scoring per-type rules + bank.md
+  cleanup
+- `c62e1bb` — §7 aggregation + `final_score` ripple
+- `175893e` — scoring §5.4 / §6 / §8 / §9 / §10 closed out
+- `7177ba1` — runner §1 + §2 settled
+
+### Open / queued
+
+- **Runner §3–§17** — meaty work ahead. Page lifecycle,
+  per-mode matrix, per-type rendering (9 sub-sections), case-block
+  UX, trend rendering, timer, save-progress, submission, scoring
+  cross-ref, feedback timing, answer-changes write path,
+  mark-for-review UI, navigation, discard, review state.
+- **§6.4 / §6.5** of attempt-creation — case + trend snapshot
+  refinement, same treatment as §6.2.
+- **Case-level history-state under intent split** — the parent
+  §10 rule 1 rewrite (flagged when we marked the original as
+  SUPERSEDED).
+- **Parent §15 follow-up** — mode-list intent annotations,
+  "Resume restricted to STUDY" rewording, ABANDONED can be
+  student-driven note.
+- **CAT planning** (parent §16) — separate big topic.
+- **Dashboard layout** (parent §4) — alternative smaller-win.
+- **Scoring doc build-time decisions** — §5.4 curator override,
+  §6 edge cases, §9 editor UI copy. All have sensible defaults
+  in place.
+
+---
+
 ## Session — 2026-05-04 (Bank-consumption planning — attempt-creation sub-plan + runner skeleton)
 
 Pure planning session, no application code. Built out the consumption-side
