@@ -540,22 +540,176 @@
 </table>
 
 <h3>6.3 nclex_attempt_answers</h3>
-
-<h3>6.3 nclex_attempt_answers</h3>
 <p>
-  One row per submitted answer. Separate from <code>attempt_items</code> because items are immutable
-  (the question delivered) and answers are what the student did.
+  One row per question the student touched in the attempt. Created lazily — the row is inserted on first
+  interaction (option click, blank typing, drag), not at attempt creation. Separate from <code>attempt_items</code>
+  because items are immutable (the question delivered) and answers mutate as the student edits, submits, or
+  auto-submits.
 </p>
-<p>Working column list:</p>
+
+<p>Working column list (settled — parent and child sections below cover the reasoning):</p>
+
+<p><strong>Identity:</strong></p>
 <ul>
-  <li><code>answer_id</code> (pk)</li>
-  <li><code>attempt_item_id</code> (fk), <code>attempt_id</code> (fk), <code>student_id</code></li>
-  <li><code>answer_json</code></li>
-  <li><code>is_correct</code>, <code>score_awarded</code>, <code>max_score</code></li>
-  <li><code>time_spent_sec</code></li>
-  <li><code>answer_changes_json</code> — for §11 of parent doc (Right→Wrong / Wrong→Right tracking)</li>
-  <li><code>submitted_at</code>, <code>created_at</code></li>
+  <li><code>answer_id</code> — UUID, server-generated, primary key. Own ID column matches the rest of the schema (<code>attempt_id</code>, <code>attempt_item_id</code>, etc.) and gives future cross-table references a clean single-column FK target.</li>
+  <li><code>attempt_item_id</code> — FK to <code>nclex_attempt_items</code>. The question this is an answer to.</li>
+  <li><code>attempt_id</code> — FK to <code>nclex_attempts</code>. Denormalised for analytics rollups; derivable via <code>attempt_item_id</code> but most queries go directly through it.</li>
+  <li><code>student_id</code> — FK to <code>nclex_users</code>. Denormalised for cross-attempt analytics (Readiness, Trend, Coverage, Per-question history all key by student).</li>
 </ul>
+
+<p><strong>The answer:</strong></p>
+<ul>
+  <li><code>answer_json</code> — JSONB, nullable. Polymorphic shape mirrors <code>correct_answer_snapshot_json</code> by <code>question_type</code>. Null when the row is a DRAFT before the student has selected anything, or a SKIPPED row at finalisation.</li>
+  <li><code>submission_status</code> — DRAFT / SUBMITTED / AUTO_SUBMITTED / SKIPPED. See §6.3.1.</li>
+</ul>
+
+<p><strong>Scoring:</strong></p>
+<ul>
+  <li><code>is_correct</code> — BOOLEAN, nullable until graded. True iff full credit. Drives the 4-state per-question history (parent §10).</li>
+  <li><code>score_awarded</code> — NUMERIC, nullable until graded. Output of the per-type scoring function (NCSBN-exact rules — bank.md §scoring; runner §11). The maximum possible score for the question is <code>marks_snapshot</code> on <code>nclex_attempt_items</code>, not stored on the answer row (it's a property of the question, not the answer).</li>
+</ul>
+
+<p><strong>Time:</strong></p>
+<ul>
+  <li><code>time_spent_sec</code> — INTEGER, runner-computed. See §6.3.2.</li>
+</ul>
+
+<p><strong>Answer-change tracking:</strong></p>
+<ul>
+  <li><code>answer_changes_json</code> — JSONB, default <code>'[]'::jsonb</code>. Append-only event log of selection changes. See §6.3.3.</li>
+</ul>
+
+<p><strong>Housekeeping:</strong></p>
+<ul>
+  <li><code>submitted_at</code> — TIMESTAMPTZ, nullable. Set when status crosses to SUBMITTED or AUTO_SUBMITTED.</li>
+  <li><code>created_at</code> — TIMESTAMPTZ, default NOW(). When the row was first inserted, which by definition is the moment of first interaction with the question (no separate <code>first_interaction_at</code> — they would be the same value).</li>
+  <li><code>updated_at</code> — TIMESTAMPTZ, default NOW(). Bumped on every save-progress write and on submission.</li>
+</ul>
+
+<h3>6.3.1 Lifecycle — submission_status enum</h3>
+<p>Four states. Every row is in exactly one at any time.</p>
+
+<table>
+  <thead>
+    <tr><th>Status</th><th>Meaning</th><th>How it's reached</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>DRAFT</code></td>
+      <td>Save-progress has written the row; student has interacted but not pressed Submit.</td>
+      <td>Insertion path. STUDY intent only — EXAM modes don't draft because they have no save/resume (see §6.1.2 cleanup rules).</td>
+    </tr>
+    <tr>
+      <td><code>SUBMITTED</code></td>
+      <td>Student pressed Submit on the question.</td>
+      <td>From DRAFT (per-Q submit in Untimed Learning) or directly on insert (batched submit in Untimed Test, Timed Free Nav, Timed Sequential, CAT).</td>
+    </tr>
+    <tr>
+      <td><code>AUTO_SUBMITTED</code></td>
+      <td>Timer expired; runner force-finalised whatever was selected.</td>
+      <td>EXAM-timed only. Whatever <code>answer_json</code> held (including null) at expiry is locked in. Visible in honest reporting on timed mocks.</td>
+    </tr>
+    <tr>
+      <td><code>SKIPPED</code></td>
+      <td>Student moved past the question without answering; finalised at quiz end.</td>
+      <td>Free-nav modes (Untimed Test, Timed Free Nav). <code>answer_json</code> is null. Counts toward the "answered fraction" denominator but scores 0.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  <strong>No DISCARDED state.</strong> Mid-case auto-discard from parent §10 doesn't happen anymore in the
+  intent-split world: STUDY can be left and resumed (children persist), EXAM times out to AUTO_SUBMITTED.
+  Explicit student-initiated discard (runner §16) hard-deletes the rows rather than soft-marking — "discard"
+  semantically means "as if it never happened", and we have no audit / compliance reason to keep dead rows
+  around.
+</p>
+
+<div class="callout">
+  <strong>Effect on parent §10:</strong> the "abandoned mid-case sessions are discarded" rule (parent
+  bank-consumption.html §10, line 1 of "Three follow-up rules locked") is superseded by the intent split.
+  Case-level history-state under STUDY/EXAM intent is its own design problem — flagged for a follow-up pass.
+</div>
+
+<h3>6.3.2 Time per question — store explicitly, runner computes</h3>
+<p>
+  The number is stored, not derived from <code>submitted_at − created_at</code>. Two reasons Postgres can't
+  derive it:
+</p>
+<ol>
+  <li><strong>STUDY engagement-clock pauses during inactivity</strong> (per §6.1.2). Wall-clock subtraction would over-count the time a STUDY student spent on a sandwich break.</li>
+  <li><strong>Free-nav modes (Untimed Test, Timed Free Nav) allow re-visits.</strong> "Time on Q1" is the sum of multiple visit durations — Postgres has no concept of these visits.</li>
+</ol>
+
+<p>
+  The runner tracks engagement (STUDY) or wall (EXAM) time per visit and writes the final aggregate to
+  <code>time_spent_sec</code> at submission.
+</p>
+
+<p>
+  <strong>Mode caveat for analytics.</strong> The number is genuinely useful for sequential modes
+  (Timed Sequential, CAT) where one question = one continuous visit. Free-nav modes record a real number,
+  but it sums multiple visits with attention gaps — pacing analytics (parent §14: pacing trends, fast-guess
+  detection, time-vs-correctness) should filter to sequential modes when surfacing the metric. The column is
+  captured for all modes so we don't lose data; the analytics layer owns the filter.
+</p>
+
+<h3>6.3.3 answer_changes_json — full event log, not counts</h3>
+<p>
+  An append-only event log, not a count. Every material change to the student's selection produces an entry.
+  Schema:
+</p>
+<pre><code>[
+  { "at": "2026-05-04T12:30:14Z", "from": null,        "to": ["A"]       },
+  { "at": "2026-05-04T12:30:31Z", "from": ["A"],       "to": ["A","C"]   },
+  { "at": "2026-05-04T12:30:48Z", "from": ["A","C"],   "to": ["B","C"]   }
+]</code></pre>
+
+<p>
+  One entry per material change — not every keystroke. SATA / Bow-tie / Drag-drop fire one event per option
+  toggle; Cloze blanks fire per-blank commit; the runner debounces incremental edits.
+</p>
+
+<p>
+  <strong>Why log, not counts.</strong> Parent §11 surfaces R→W and W→R counts ("you changed 14 correct
+  answers to wrong") — but counts are derivable from the log + the correct-key snapshot. The log additionally
+  unlocks future analytics that need toggle timing (e.g. "students who flip-flop in the last 30 seconds of
+  a timed quiz") without losing historical data. Counts can never be reconstructed back into a log.
+</p>
+
+<h3>6.3.4 What's NOT on this row — and why</h3>
+
+<table>
+  <thead>
+    <tr><th>Field</th><th>Where it lives instead</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>max_score</code> per question</td>
+      <td>Items snapshot — <code>marks_snapshot</code> on <code>nclex_attempt_items</code>. It's a property of the question, not the answer.</td>
+    </tr>
+    <tr>
+      <td>Option-order at submit time (for replay UI)</td>
+      <td>Items snapshot — <code>option_order_json</code> on <code>nclex_attempt_items</code>. The order was fixed at attempt creation, not per answer.</td>
+    </tr>
+    <tr>
+      <td>Mark-for-review state</td>
+      <td>Its own table (settled later). Marking persists across attempts (parent §10) and is independent of any single answer row's state — wrong shape for this table.</td>
+    </tr>
+    <tr>
+      <td>Source / mode / intent</td>
+      <td><code>nclex_attempts</code> — already on the parent attempt row, denormalising would be redundant.</td>
+    </tr>
+    <tr>
+      <td><code>first_interaction_at</code> separate from <code>created_at</code></td>
+      <td>Not captured. Row is inserted on first interaction, so the two timestamps would be identical. Splitting them would only matter if we wanted "stare time before first touch" — not on the v1 analytics plan (parent §14 names total time as the metric). If a future analytic needs it, the runner can compute and store as a single number.</td>
+    </tr>
+    <tr>
+      <td>Pre-discard status (for soft-delete forensics)</td>
+      <td>Not applicable — discard is hard-delete (§6.3.1). No row, no forensics column needed.</td>
+    </tr>
+  </tbody>
+</table>
 
 <h3>6.4 nclex_attempt_case_snapshots</h3>
 <p>
