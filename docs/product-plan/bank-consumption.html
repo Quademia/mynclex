@@ -1,5 +1,5 @@
 MyNclex — Bank Consumption Plan
-Living planning document. Updated each session as decisions land. Last updated: 2026-05-03 (5 builder additions: custom count field, breakdown preview, content filters → checkboxes, Topic search, 'Practise my weak spots' quick-start. All-unchecked default.).
+Living planning document. Updated each session as decisions land. Last updated: 2026-05-04 (§17 Builder — added Intent picker step (Study vs Exam) before Mode selection; modes filter by chosen intent; Recent Quizzes + Default form state updated. Driven by attempt-creation sub-plan §6.1.2 — see bank-consumption-attempt-creation.html).
 Why this doc exists
 The Bank's authoring surface is complete. Curators can create all 9 question types plus Case Study and Trend wrappers. Nothing yet consumes that content — there is no student-facing surface, no runner, no quiz builder, no results, no history.
 
@@ -360,10 +360,10 @@ Three sections in the main column plus a sticky summary panel:
 
 Question pool — history-state filters (Unseen / Seen / Correct / Incorrect / Marked / All)
 Content filters — 8 classification axes
-Mode — how the quiz runs (5 mode cards)
+Intent + Mode — Study vs Exam framing, then mode cards filtered by chosen intent (combined two-step picker)
 Sticky on the right: question count, live recap, "X questions match" estimate, estimated time, Start button. Above the form (when relevant): the Recent Quizzes shortcut row and any Resume / Review banner from §15.
 
-Section numbering is visual only. No enforced sequence — the student configures any section in any order.
+Section numbering is visual only. No enforced sequence — the student configures any section in any order. The only internal coupling is inside Section 3: Intent gates Mode (the Mode cards are hidden until Intent is picked, with a placeholder "Pick Study or Exam to see modes").
 
 Section 1 — Question pool (history-state filters)
 6 multi-select filters. Independent and overlapping; the student picks any combination.
@@ -403,16 +403,36 @@ Within a single filter axis (multiple checkboxes ticked on the same axis) → OR
 Across filter axes (checkboxes ticked on different axes) → AND. "Pharmacology AND Hard."
 Standard search/filter behaviour. Within an axis the student picks which values they want; across axes each new filter narrows the result.
 
-Section 3 — Mode
-5 mode cards with a one-line description on each. Single-select.
+Section 3 — Intent + Mode
+Two-step picker, single-select at each step.
 
+Step 1 — Intent (2 cards)
+🎓 Study — Practise at your own pace. Resume anytime. No time pressure (or only as a pacing aid).
+🎯 Exam — Single sitting, like the real NCLEX. Once you start, finish or it ends.
+
+Picking Intent reveals Step 2 below. Switching Intent collapses Step 2 and clears the previously-picked Mode (if any).
+
+Step 2 — Mode cards (filtered by intent)
+The mode cards shown depend on the chosen Intent. Three modes appear under both intents with different framing — the description tag clarifies the difference. Two modes are intent-locked.
+
+Under STUDY (4 cards):
 Untimed Learning — rationales after each submit. Best for learning.
 Untimed Test — rationales at the end. Self-paced, no clock.
-Timed · Free navigation — clock running. Skip and return.
-Timed · Sequential — clock running. No going back.
-CAT (adaptive) — see §16 for full design.
+Timed · Free navigation — engagement-clock pacing aid. Pause and resume; clock pauses when you're inactive.
+Timed · Sequential — engagement-clock pacing drill. Pause and resume; no going back within the quiz.
+
+Under EXAM (4 cards):
+Untimed Test — self-paced mock. No clock, but single sitting.
+Timed · Free navigation — wall-clock timer. Skip and return within the session.
+Timed · Sequential — wall-clock timer. No going back. Closest to the real NCLEX experience.
+CAT (adaptive) — adaptive, simulates real NCLEX entirely — see §16 for full design.
+
+Why two modes are intent-locked: Untimed Learning's "rationales after each submit" defeats exam framing — an EXAM version would just be Untimed Test. CAT's IRT model needs continuous engagement to be valid; pause/resume invalidates the ability estimate.
+
+The (mode, intent) tuple is validated server-side at attempt creation — defence-in-depth against direct RPC calls (the UI already filters out invalid combinations).
+
 CAT-specific behaviour in the builder
-CAT pulls adaptively from the full bank to simulate the real exam. When CAT is selected, the builder honestly reflects that CAT is a different mode with its own rules:
+CAT only appears under EXAM intent. When CAT is selected, the builder honestly reflects that CAT is a different mode with its own rules:
 
 Content filters collapse with the message "CAT pulls from the full bank to simulate the real exam. Filters don't apply."
 Pool filters also collapse with the same reasoning.
@@ -433,12 +453,12 @@ On page load, the builder checks for any unfinished untimed session for this stu
 If no unfinished session but a recent finished one exists, a smaller informational element offers Review of the last session. Review primarily lives on the History page (§later) — this is just a convenience.
 
 Recent Quizzes shortcut
-Above the builder form, a row showing up to 3 of the student's most recent quiz configurations. Each is a one-tap chip: "Pharm · Hard · Unseen · 50 Q". Tapping restores the full configuration (filters, mode, count) into the form below; the student can hit Start immediately or tweak first.
+Above the builder form, a row showing up to 3 of the student's most recent quiz configurations. Each is a one-tap chip: "Study · Pharm · Hard · Unseen · 50 Q" or "Exam · Timed Sequential · 50 Q". Tapping restores the full configuration (intent, mode, filters, count) into the form below; the student can hit Start immediately or tweak first.
 
 Hidden entirely for first-time students with no quiz history.
-Label format: filter summary, not date. The configuration is what the student is choosing between.
-CAT shortcuts show "CAT" with no filters — tapping restores CAT mode (which collapses filters per above).
-Carries more weight in v1 than it would otherwise, because the form itself defaults to all-unchecked. Recent Quizzes is the primary "give me yesterday's setup" path.
+Label format: intent prefix + filter summary, not date. The configuration is what the student is choosing between. Intent is shown explicitly because it changes how the same filters will run.
+CAT shortcuts show "Exam · CAT" with no filters — tapping restores Exam intent + CAT mode (which collapses filters per above).
+Carries more weight in v1 than it would otherwise, because the form itself defaults to all-unchecked and no-intent-picked. Recent Quizzes is the primary "give me yesterday's setup" path.
 "Practise my weak spots" quick-start v1
 A one-tap button positioned alongside the Recent Quizzes row (or just below the page heading) that automatically configures and starts a quiz on the student's weakest content slices. Skips the rest of the builder UI — straight into the runner.
 
@@ -446,7 +466,7 @@ Behaviour:
 
 System reads the student's analytics — finds slices currently labelled "Needs work" (per §13 slice labels) that pass the thin-slice gate (≥10 attempts).
 Picks the 1–3 weakest qualifying slices and configures filters from them.
-Defaults applied: 25 questions, Untimed Learning mode, the auto-picked filters, Pool = "Incorrect" or "Unseen" depending on what makes most sense for the slice.
+Defaults applied: Study intent, Untimed Learning mode, 25 questions, the auto-picked filters, Pool = "Incorrect" or "Unseen" depending on what makes most sense for the slice. Study intent is the right default here because weak-spot practice is learning, not exam simulation.
 One tap → straight to the runner. No intermediate confirmation. The student is implicitly accepting "yes, practise these weak areas."
 Gating:
 
@@ -455,11 +475,12 @@ Hidden if no qualifying weak slice exists (e.g. the student is broadly strong, o
 Default form state on every visit
 The builder form resets to all-unchecked on every visit — including first visits. There is no implicit "include everything" default. The student composes the quiz consciously from a blank state.
 
+Intent: nothing pre-selected (student must pick Study or Exam)
+Mode: collapsed until Intent is picked, then nothing pre-selected within the filtered list
 Pool: nothing checked
 Content filters: every checkbox unchecked
-Mode: nothing pre-selected (student must pick)
 Count: 25 (the only field with a sensible default — the count is a number, not a selection)
-Start is disabled until enough is checked to yield a viable pool. Recent Quizzes (above) is the primary path for "I want what I had before." A separate help page explains how to use the builder for first-time students; the builder itself is mechanically explicit rather than self-teaching.
+Start is disabled until Intent + Mode are picked AND enough is checked across pool/content to yield a viable pool. Recent Quizzes (above) is the primary path for "I want what I had before." A separate help page explains how to use the builder for first-time students; the builder itself is mechanically explicit rather than self-teaching.
 
 Implications
 Live count RPC — every filter change recomputes the match count. Backend must support a fast count_eligible_items(student_id, filters_json) query. Performance consideration when implemented.
