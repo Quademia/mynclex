@@ -492,12 +492,23 @@ functions cover all nine types:
 |---|---|---|
 | `scoreAllOrNothing` | Full marks if exactly correct, else 0 | MCQ, TF |
 | `scorePlusMinus` | +1 per right, -1 per wrong, floor at 0 | SATA, Select N, Highlight |
-| `scorePerRow` | Apply 0/1 or +/- per row, sum | Matrix |
-| `scorePerBlank` | Apply 0/1 or paired per blank, sum | Cloze |
-| `scorePerSlot` | Apply +/- per slot, sum with floor | Drag-drop, Bow-tie |
+| `scorePerRow` | 0/1 per row, sum (no floor — can't go negative) | Matrix (single-response only in v1) |
+| `scorePerBlank` | 0/1 per blank, sum (no floor) | Cloze (simple drop-down only in v1) |
+| `scorePerSlot` | 0/1 per slot/correct-token, sum (no floor — UI constraint prevents gaming) | Drag-drop (single-token-per-slot), Bow-tie (per-wing 2/1/2 constrained) |
 
-**Paired scoring** (Cloze cause-effect): both halves must be right
-together — first right + second wrong = 0.
+Per-type rule mapping, max formulas, and edge cases live in
+`mynclex/docs/product-plan/bank-marks-and-scoring.html`.
+
+**Cause-effect (paired) Cloze** is deferred to v2 — our v1 cloze
+scores each blank independently. NCSBN's NGN cause-effect items
+require both halves of a pair to match together (first right +
+second wrong = 0 for the pair); supporting this needs a schema
+extension to flag pair groups in the answer key.
+
+**Multi-response matrix** is deferred to v2 — our v1 matrix is
+single-response only (one column per row). The +/− per cell
+variant would require a `matrix_subtype` field and parallel
+parser/editor/runner paths.
 
 Each scoring function is implemented against NCSBN's official rules,
 tested in isolation against real NCLEX-released sample questions,

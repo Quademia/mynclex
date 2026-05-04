@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MyNclex — Bank · Marks and Scoring Plan</title>
+<style>
+  :root {
+    --primary: #1e3a5f;
+    --accent: #2d7d72;
+    --bg: #f8fafc;
+    --white: #ffffff;
+    --border: #e5e7eb;
+    --border-strong: #d1d5db;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --info-bg: #eef4fa;
+    --info-accent: #2d6fc0;
+    --info-text: #0c447c;
+    --warn-bg: #fef7e6;
+    --warn-text: #854f0b;
+    --ok-bg: #ecfdf5;
+    --ok-text: #065f46;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 32px 24px 64px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .doc { max-width: 860px; margin: 0 auto; }
+
+  .doc-meta {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h1 { font-size: 26px; font-weight: 600; color: var(--primary); margin: 0 0 6px; }
+  h2 {
+    font-size: 19px; font-weight: 600; color: var(--primary);
+    margin: 36px 0 10px; padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  h2:first-of-type { border-top: none; padding-top: 0; margin-top: 24px; }
+  h3 { font-size: 15px; font-weight: 600; color: var(--primary); margin: 22px 0 6px; }
+
+  p { margin: 8px 0 14px; }
+  ul, ol { margin: 8px 0 14px; padding-left: 22px; }
+  li { margin: 5px 0; }
+  li > p { margin: 4px 0; }
+
+  code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 90%;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+
+  pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    font-size: 12.5px;
+    font-family: ui-monospace, Menlo, monospace;
+    overflow-x: auto;
+    line-height: 1.5;
+    margin: 10px 0 16px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 18px;
+    font-size: 13.5px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--bg); font-weight: 600; color: var(--primary); }
+
+  .status {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .status.settled  { background: var(--ok-bg);   color: var(--ok-text); }
+  .status.open     { background: var(--warn-bg); color: var(--warn-text); }
+  .status.skeleton { background: var(--warn-bg); color: var(--warn-text); }
+  .status.deferred { background: var(--info-bg); color: var(--info-text); }
+
+  .callout {
+    background: var(--info-bg);
+    border-left: 3px solid var(--info-accent);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin: 14px 0;
+    font-size: 14px;
+    color: var(--info-text);
+  }
+
+  .toc { margin: 8px 0 28px; padding: 14px 18px; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-md); }
+  .toc h2 { border: none; padding: 0; margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc li { margin: 3px 0; font-size: 13.5px; }
+  .toc a { color: var(--primary); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  hr.footer-rule { border: none; border-top: 1px solid var(--border); margin: 40px 0 16px; }
+  .footer-line { font-size: 12.5px; color: var(--text-muted); font-style: italic; }
+</style>
+</head>
+<body>
+<div class="doc">
+
+<h1>MyNclex — Bank · Marks and Scoring Plan</h1>
+<div class="doc-meta">
+  Living planning document. Updated each session as decisions land. Last updated: 2026-05-04 (per-type rule mapping settled across all 9 types — §4; SELECT_N forces N==count(correct); MATRIX is single-response only; BOWTIE uses 0/1 per correct token, no +/−, max 5; full-credit-only is_correct policy added §5.5; multi-response matrix and cause-effect cloze deferred to v2 in §11; bank.md scorePerSlot framing corrected. Earlier same day: initial scaffold — NCSBN landscape captured, marks-as-derived-system-managed locked in §5, curator-override question parked in §5.4).
+</div>
+
+<h2>Why this doc exists</h2>
+<p>
+  Scoring spans authoring (the curator decides what's correct) and consumption (the runner produces a number from
+  what the student picked). The decisions are tangled enough — partial credit, NCSBN-exact rules, what "max score"
+  means, whether curators can override weight — that they need their own planning home rather than living scattered
+  across <code>bank.md</code> §scoring, <code>bank-consumption.html</code> §3 (Pillar 2), and the runner sub-plan
+  §11.
+</p>
+<p>
+  This doc is the consolidating reference. <code>bank.md</code> §scoring keeps its short cheat-sheet of which
+  function applies to which question type — that's a quick reference. This doc explains the decisions, the
+  tradeoffs, the edge cases, the migration path, and where the code lives.
+</p>
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#s1">Scope and what's out of scope</a></li>
+    <li><a href="#s2">The real NCLEX scoring landscape</a></li>
+    <li><a href="#s3">The five scoring functions</a></li>
+    <li><a href="#s4">Per-type rule mapping</a></li>
+    <li><a href="#s5">Marks — derived, system-managed</a></li>
+    <li><a href="#s6">Edge cases</a></li>
+    <li><a href="#s7">Session-level scoring (aggregation)</a></li>
+    <li><a href="#s8">Where scoring code lives</a></li>
+    <li><a href="#s9">Curator-facing UI implications</a></li>
+    <li><a href="#s10">Migration path</a></li>
+    <li><a href="#s11">Open and deferred</a></li>
+  </ol>
+</div>
+
+<h2 id="s1">1. Scope and what's out of scope <span class="status settled">settled</span></h2>
+<p>In scope:</p>
+<ul>
+  <li>How a single question's max-possible score is determined.</li>
+  <li>How the student's answer is graded against that max (the per-type scoring functions).</li>
+  <li>How per-question scores aggregate into a session score the student sees.</li>
+  <li>Who can edit the marks value (curator vs system-managed).</li>
+  <li>Where the scoring code lives in the codebase.</li>
+</ul>
+<p>Out of scope here:</p>
+<ul>
+  <li>CAT's IRT-based ability estimation — separate planning topic, parent §16.</li>
+  <li>Readiness Signal calculation (how session scores roll up across history into a 0–100 number) — covered by parent §6.</li>
+  <li>Cross-cohort comparison / Peer Percentile — parent §14.</li>
+  <li>RLS policies on the marks column — build-time concern.</li>
+</ul>
+
+<h2 id="s2">2. The real NCLEX scoring landscape <span class="status settled">settled — research</span></h2>
+<p>
+  Two eras matter. Our scoring rules track NGN (the current real exam), not the legacy form.
+</p>
+
+<h3>2.1 Pre-NGN (before April 2023)</h3>
+<p>
+  Everything was dichotomous — right or wrong. Even SATA was all-or-nothing: the student had to pick exactly
+  the right combination. Simple to grade, no partial credit anywhere.
+</p>
+
+<h3>2.2 NGN (Next Generation NCLEX, April 2023 onwards) — the current real exam</h3>
+<p>NCSBN introduced three scoring rules to handle the new item types:</p>
+
+<table>
+  <thead>
+    <tr><th>Rule</th><th>How it works</th><th>Used for</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Dichotomous (0/1)</strong></td>
+      <td>Right or wrong. No middle ground.</td>
+      <td>Single-best-answer items: MCQ, TF, traditional single-answer types.</td>
+    </tr>
+    <tr>
+      <td><strong>+/− polytomous (partial credit with floor)</strong></td>
+      <td>Each correct selection = +1, each wrong selection = −1, score floored at 0. Maximum = number of correct options.</td>
+      <td>SATA, multi-response highlight, multi-response matrix cells.</td>
+    </tr>
+    <tr>
+      <td><strong>0/1-per-element (independent per row / blank / slot)</strong></td>
+      <td>Each row, blank, or slot scored independently as 0 or 1, summed.</td>
+      <td>Matrix multiple-choice (one answer per row), bow-tie, cloze drop-down, drag-to-slot.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.3 Crucially — NCSBN does not expose per-item "marks"</h3>
+<p>
+  On the real NCLEX, items don't carry a curator-set point value. Each item produces a raw score per its rule
+  (0/1, 0/3, 0/5, etc.), then <strong>IRT (Item Response Theory)</strong> weights items by difficulty for the
+  pass/fail decision. The student never sees "this question is worth 2 points and that one is worth 5." Items
+  are just items, pre-calibrated at NCSBN's testing labs.
+</p>
+<p>
+  For us — a practice product, not the actual exam — that's a design choice we have to make explicitly:
+  do we mimic this (no curator-settable weight) or let curators emphasise certain questions? See §5.4.
+</p>
+
+<h2 id="s3">3. The five scoring functions <span class="status settled">settled — see bank.md</span></h2>
+<p>
+  Already documented in <code>bank.md</code> §scoring. Reproduced here for cross-reference. These are
+  application-code functions (not database structure), each implemented against NCSBN's official rules and
+  tested in isolation against released sample questions.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Function</th><th>Logic</th><th>Maps to NGN rule</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>scoreAllOrNothing</code></td>
+      <td>Full marks if exactly correct, else 0</td>
+      <td>Dichotomous</td>
+    </tr>
+    <tr>
+      <td><code>scorePlusMinus</code></td>
+      <td>+1 per right, −1 per wrong, floor at 0</td>
+      <td>+/− polytomous</td>
+    </tr>
+    <tr>
+      <td><code>scorePerRow</code></td>
+      <td>0/1 per row, summed (no floor needed — can't go negative)</td>
+      <td>0/1-per-element. v1 supports single-response matrix only; multi-response deferred (§11).</td>
+    </tr>
+    <tr>
+      <td><code>scorePerBlank</code></td>
+      <td>0/1 per blank, summed (no floor needed)</td>
+      <td>0/1-per-element. v1 supports simple drop-down only; cause-effect paired variant deferred (§11).</td>
+    </tr>
+    <tr>
+      <td><code>scorePerSlot</code></td>
+      <td>0/1 per slot/correct-token, summed (no floor needed in v1 — picks are constrained by the runner UI)</td>
+      <td>0/1-per-element. Drag-drop is single-token-per-slot; bow-tie picks are 2/1/2 constrained per wing — neither can be gamed by "select everything", so +/− is unnecessary.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  <strong>Note on +/− framing.</strong> bank.md §scoring originally described <code>scorePerSlot</code> as
+  "+/− per slot, sum with floor." That framing was inherited from a hypothetical multi-token-per-slot model
+  we don't have in v1. Our drag-drop and bow-tie are 0/1 per element. The bank.md table is being updated to
+  match.
+</p>
+<p>
+  <strong>Paired scoring</strong> (Cloze cause-effect): NCSBN's NGN cause-effect cloze items would require
+  both halves of a pair to match together — first right + second wrong = 0 for the pair. Our v1 cloze does
+  not implement this; each blank scores independently. Deferred to v2 (§11).
+</p>
+
+<h2 id="s4">4. Per-type rule mapping <span class="status settled">settled</span></h2>
+<p>
+  Settled per-type by walking each type one at a time against the actual authoring code (parsers in
+  <code>lib/bank/parsers/</code>). Some types had multiple NGN variants in theory; our system implements only
+  one of each. The "deferred" notes in §11 capture the unsupported variants.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Question type</th>
+      <th>Scoring function</th>
+      <th>Max formula</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>MCQ</code></td>
+      <td><code>scoreAllOrNothing</code></td>
+      <td>1 (always)</td>
+      <td>Single-best-answer dichotomous.</td>
+    </tr>
+    <tr>
+      <td><code>TF</code></td>
+      <td><code>scoreAllOrNothing</code></td>
+      <td>1 (always)</td>
+      <td>Functionally a 2-option MCQ; separate type for curator UX.</td>
+    </tr>
+    <tr>
+      <td><code>SATA</code></td>
+      <td><code>scorePlusMinus</code></td>
+      <td>count of correct options in answer key</td>
+      <td>+/− with floor 0. Defends against "select everything" gaming since picks are unconstrained.</td>
+    </tr>
+    <tr>
+      <td><code>SELECT_N</code></td>
+      <td><code>scorePlusMinus</code></td>
+      <td>N (== count of correct in answer key — see §4.1)</td>
+      <td>Same scoring as SATA. Editor enforces <code>N == count(correct)</code> at save time. UI forces "pick exactly N".</td>
+    </tr>
+    <tr>
+      <td><code>MATRIX</code></td>
+      <td><code>scorePerRow</code></td>
+      <td>count of rows (2–6 in practice)</td>
+      <td>Single-response only (one column per row). Multi-response variant deferred (§11).</td>
+    </tr>
+    <tr>
+      <td><code>HIGHLIGHT</code></td>
+      <td><code>scorePlusMinus</code></td>
+      <td>count of correct chunks in answer key</td>
+      <td>+/− with floor 0. Parser requires ≥1 distractor (wrong chunk).</td>
+    </tr>
+    <tr>
+      <td><code>CLOZE</code></td>
+      <td><code>scorePerBlank</code></td>
+      <td>count of blanks (2–6 in practice)</td>
+      <td>Simple drop-down per blank; each independent. Cause-effect (paired) variant deferred (§11).</td>
+    </tr>
+    <tr>
+      <td><code>DRAG_DROP</code></td>
+      <td><code>scorePerSlot</code></td>
+      <td>count of active slots (3–8 in practice)</td>
+      <td>Two subtypes (ORDERED, SENTENCE) share the same scoring math. Single-token-per-slot. Distractors don't affect max.</td>
+    </tr>
+    <tr>
+      <td><code>BOWTIE</code></td>
+      <td><code>scorePerSlot</code></td>
+      <td>5 (fixed: 2 left-wing correct + 1 centre + 2 right-wing)</td>
+      <td>Per-wing tally of correct picks, summed. No +/−, no floor — see §4.2.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>4.1 Select-N — settled: +/− polytomous, force <code>N == count(correct)</code></h3>
+<p>
+  Select-N forces the student to pick exactly N options at runtime. Two scoring interpretations were on the
+  table — dichotomous (any wrong combination = 0) or +/− like SATA. Locked: <strong>+/− like SATA</strong>.
+</p>
+<p>
+  The structural rule that closes the curator-setup ambiguity: <strong>the editor must force
+  <code>N == count(correct)</code></strong>. If the curator marks 3 options as correct, N is 3 — no separate
+  "N field." This means there's only one valid scoring shape: the student picks 3, each correct contributes +1,
+  each wrong contributes −1, floor 0. Max = N = count(correct).
+</p>
+<p>
+  This eliminates the "curator marked 4 correct but set N=3" edge case — it can't happen. Editor save
+  validation must enforce the equality.
+</p>
+
+<h3>4.2 Bow-tie — settled: per-wing tally, no +/−, no floor</h3>
+<p>
+  Our bow-tie has 3 wings (Left = Actions, Centre = Condition, Right = Parameters), each with its own token
+  pool. The parser hard-validates exactly 2 / 1 / 2 correct tokens across the three wings — total always 5.
+  Each wing's pool is isolated; tokens don't cross wings.
+</p>
+<p>
+  At runtime the UI forces the student to pick exactly 2 from the left pool, 1 from the centre pool, 2 from
+  the right pool. Because the picks are constrained, +/− gaming defence isn't needed — the student literally
+  cannot pick "all options" and overflow.
+</p>
+<p>
+  <strong>Scoring rule:</strong> per-wing tally of correct picks, summed. For each correct token in a wing's
+  answer key, +1 if the student picked it, 0 otherwise. No subtraction for wrong picks; no floor needed (can't
+  go negative).
+</p>
+<p>
+  Why simple-count beats +/− here: a student picking 1 of 2 correct + 1 wrong in the left wing has
+  demonstrated partial competence. Under +/− they'd score 0 (1 − 1, floored). Under simple-count they score 1
+  out of 2. Simple-count rewards the partial competence; +/− zeroes it out unnecessarily because the UI
+  constraint already prevents the gaming the +/− rule was designed to prevent.
+</p>
+<p>
+  Per-wing sub-scores are recoverable (each wing's contribution is computed independently before summing).
+  This opens up future analytics — "this student is good at recognising conditions but weak at choosing
+  actions" — without changing the v1 storage shape.
+</p>
+
+<h2 id="s5">5. Marks — derived, system-managed <span class="status settled">settled in principle</span></h2>
+<p>
+  Decision (2026-05-04): keep the <code>marks</code> column on <code>nclex_bank_items</code> and
+  <code>nclex_tutor_questions</code>, but change its semantics from <em>curator-settable free-form</em>
+  to <em>editor-computed, system-managed</em>.
+</p>
+
+<h3>5.1 The decision and why</h3>
+<p>
+  Two alternative positions were considered:
+</p>
+<ul>
+  <li>
+    <strong>Drop the column entirely</strong> and derive max at attempt creation, on every attempt, from
+    the answer key. Cleanest single-source-of-truth.
+  </li>
+  <li>
+    <strong>Keep the column, compute its value in the editor at save time</strong> from the answer key, then
+    treat it as a stored read-only display value the curator can see. (Adopted.)
+  </li>
+</ul>
+
+<p>The "keep + compute in editor" approach won on five points:</p>
+
+<ol>
+  <li>
+    <strong>Curator visibility is real value.</strong> A SATA with 4 correct options is a different question
+    than a SATA with 6 correct — the curator should see "max 4" / "max 6" when reviewing, not have to mentally
+    count answer keys.
+  </li>
+  <li>
+    <strong>Single write path = single derivation point.</strong> The editor is already the gatekeeper for
+    <code>correct</code>. Adding "and compute marks here" is a natural extension. Runtime never derives;
+    it just reads the column.
+  </li>
+  <li>
+    <strong>Performance.</strong> Derive once per question edit, not once per attempt creation. For a popular
+    question seen in 10,000 attempts, that's 10,000 derivations vs 1.
+  </li>
+  <li>
+    <strong>Snapshot path is cleaner.</strong> <code>nclex_attempt_items.marks_snapshot = source_item.marks</code>
+    is a trivial read. The alternative would have meant running the derivation function inside the
+    attempt-creation transaction — more code in a hot path.
+  </li>
+  <li>
+    <strong>Auditability.</strong> The stored value persists. If the curator changes <code>correct</code> later,
+    we can see when marks changed via row history. With pure derivation there's no record to audit.
+  </li>
+</ol>
+
+<h3>5.2 Per-type max formula</h3>
+<p>The editor computes <code>marks</code> at save time using the question_type and the answer key shape:</p>
+
+<table>
+  <thead>
+    <tr><th>Question type</th><th>Max formula</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>MCQ</code></td><td>1 (always)</td></tr>
+    <tr><td><code>TF</code></td><td>1 (always)</td></tr>
+    <tr><td><code>SATA</code></td><td>count of correct options in answer key</td></tr>
+    <tr><td><code>SELECT_N</code></td><td>N (== count of correct in answer key, enforced at editor save)</td></tr>
+    <tr><td><code>MATRIX</code></td><td>count of rows (single-response only in v1)</td></tr>
+    <tr><td><code>HIGHLIGHT</code></td><td>count of correct chunks</td></tr>
+    <tr><td><code>CLOZE</code></td><td>count of blanks (cause-effect paired variant deferred — §11)</td></tr>
+    <tr><td><code>DRAG_DROP</code></td><td>count of target slots</td></tr>
+    <tr><td><code>BOWTIE</code></td><td>5 (fixed)</td></tr>
+  </tbody>
+</table>
+
+<h3>5.3 What concretely changes</h3>
+
+<table>
+  <thead>
+    <tr><th></th><th>Before</th><th>After</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>marks NUMERIC</code></td>
+      <td>Curator-settable, default 1</td>
+      <td>System-managed (column stays). Editor always computes; default removed.</td>
+    </tr>
+    <tr>
+      <td>Editor UI</td>
+      <td>Free-form input field</td>
+      <td>Read-only computed display ("Max: 4 — from 4 correct options")</td>
+    </tr>
+    <tr>
+      <td><code>marks_snapshot</code> source</td>
+      <td><code>source_item.marks</code></td>
+      <td>Same — no change</td>
+    </tr>
+    <tr>
+      <td>Runtime scoring</td>
+      <td>Read column</td>
+      <td>Same — no change</td>
+    </tr>
+    <tr>
+      <td>Curator workflow</td>
+      <td>Set marks manually (mostly forgotten — default 1 wrong for partial-credit types)</td>
+      <td>Tick correct options; marks shows automatically</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>5.4 Curator override — open question <span class="status open">open</span></h3>
+<p>
+  Should curators have the ability to override the system-computed marks for high-weight questions?
+</p>
+<p>The tension:</p>
+<ul>
+  <li>
+    <strong>Authenticity (Pillars 1+2):</strong> the real NCLEX has no curator-set weights. Items contribute
+    via IRT difficulty, not human-tuned points. A pure NCSBN-mirrored product has no override.
+  </li>
+  <li>
+    <strong>Practical reality:</strong> some questions ARE more important. A tutor's "this is THE question
+    for understanding pharmacokinetics" deserves more weight than a routine recall question.
+  </li>
+  <li>
+    <strong>Risk if we allow override:</strong> curators inflate their pet questions, scores become
+    incomparable across attempts, Readiness Signal calibration breaks, percentile comparisons distort.
+  </li>
+</ul>
+<p>
+  Possible shapes if we allow override:
+</p>
+<ul>
+  <li>
+    <strong>Multiplier-only:</strong> curator sets a numeric "weight" (default 1.0). Final marks = derived max × weight.
+    Preserves the per-type rule; just scales the whole question.
+  </li>
+  <li>
+    <strong>Restricted to tutor-private bank:</strong> bank questions stay system-managed (authoritative).
+    Tutor's own bank can have curator-set weights — they're customising their own programme content.
+  </li>
+  <li>
+    <strong>Hard cap on multiplier range:</strong> e.g. 0.5–2.0. Prevents extreme inflation while allowing
+    meaningful emphasis.
+  </li>
+</ul>
+<p>
+  Park for now. Settle when we plan curator workflows in more depth, or when first complaint surfaces from a
+  tutor wanting weighting.
+</p>
+
+<h3>5.5 <code>is_correct</code> policy — full credit only <span class="status settled">settled</span></h3>
+<p>
+  <code>nclex_attempt_answers.is_correct</code> (per attempt-creation §6.3) is the binary "did the student get
+  this question right?" verdict. Separate from <code>score_awarded</code>, which holds the partial number.
+</p>
+<p>
+  <strong>Policy:</strong> <code>is_correct = true</code> only when the student earned the full max score for
+  the question — every correct option / row / blank / slot / token, and no wrong picks. Anything less,
+  including high partial scores, is <code>is_correct = false</code>.
+</p>
+<p>This is a cross-cutting decision that cascades to every partial-credit type:</p>
+<ul>
+  <li>For dichotomous types (MCQ, TF), <code>is_correct</code> and <code>score_awarded > 0</code> carry the same information — no policy decision needed.</li>
+  <li>For SATA, SELECT_N, HIGHLIGHT (+/− types) — <code>is_correct = true</code> only when the student picked exactly the correct set with zero wrongs and zero missing.</li>
+  <li>For MATRIX (0/1 per row) — true only if every row is right.</li>
+  <li>For CLOZE (0/1 per blank) — true only if every blank is right.</li>
+  <li>For DRAG_DROP (0/1 per slot) — true only if every slot has its correct token.</li>
+  <li>For BOWTIE (0/1 per correct token, summed) — true only on all 5 correct.</li>
+</ul>
+<p>Three reasons for full-credit-only over a threshold rule (e.g. "≥ 75% of max"):</p>
+<ol>
+  <li>
+    <strong>Matches NCLEX semantic.</strong> "Did the student get the question right?" In NCLEX speak, partial
+    credit changes the score, not the verdict. Getting 3 of 4 right means you didn't get the question.
+  </li>
+  <li>
+    <strong>4-state per-question history is honest.</strong> A student picking "Practice my wrong answers"
+    (parent §10) wants the questions they didn't fully nail — not just the catastrophes. A 3-of-4 SATA
+    is exactly the question they should re-attempt.
+  </li>
+  <li>
+    <strong>No threshold to argue about.</strong> Threshold-based opens up "why 50% and not 60%?" debates with
+    no clean answer.
+  </li>
+</ol>
+<p>
+  The partial-credit number is preserved on <code>score_awarded</code> and feeds the percentage scoring (§7).
+  We don't lose the partial signal — we just keep <code>is_correct</code> as the strict verdict.
+</p>
+
+<h2 id="s6">6. Edge cases <span class="status skeleton">skeleton</span></h2>
+<p>To cover when settled:</p>
+<ul>
+  <li>SATA where the student selects 0 options (unanswered SATA → score 0, no negative).</li>
+  <li>SATA where the student selects every option (max wrongs, floor at 0).</li>
+  <li>SATA where the answer key has 0 correct options (shouldn't exist — editor validation).</li>
+  <li>Cloze paired blanks (cause/effect) — the both-must-match rule, exact pairing logic.</li>
+  <li>Matrix where some rows have no correct answer specified (defensive — editor should prevent).</li>
+  <li>Drag-drop with leftover (un-placed) tokens (do they count against the score? Probably no — only placed slots score).</li>
+  <li>Bow-tie where the student leaves a section blank (sectional 0 vs whole-question 0).</li>
+  <li>Highlight where the student selects NO chunks (unanswered → score 0).</li>
+  <li>Auto-submitted (timer expiry) with partial answer — already covered by §6.3.1, but per-type implications worth listing.</li>
+</ul>
+
+<h2 id="s7">7. Session-level scoring (aggregation) <span class="status skeleton">skeleton</span></h2>
+<p>
+  Once each per-question score is computed, what does "you got 78% on this quiz" mean? Three options to
+  consider; settle before the runner's results screen is built.
+</p>
+<ul>
+  <li>
+    <strong>Items-correct ratio:</strong> count of items with <code>is_correct = true</code> ÷ total items.
+    Hides partial credit. Easiest to communicate ("18 of 25 right").
+  </li>
+  <li>
+    <strong>Total points ratio:</strong> sum of <code>score_awarded</code> ÷ sum of <code>marks_snapshot</code>.
+    Honest about partial credit, but mixes scales (a Bow-tie's 5 points outweighs five MCQs' 1 point each).
+  </li>
+  <li>
+    <strong>Item-equivalent average:</strong> each item normalised to 0..1 (<code>score_awarded / marks_snapshot</code>),
+    then averaged across items. Cleanest, most NCSBN-like.
+  </li>
+</ul>
+<p>
+  Item-equivalent is probably the right input to the Readiness Signal calculation (parent §6) because it's the
+  closest to a "per-item probability of correctness" the IRT-style readiness model would consume.
+</p>
+
+<h2 id="s8">8. Where scoring code lives <span class="status skeleton">skeleton</span></h2>
+<p>To settle:</p>
+<ul>
+  <li>
+    The 5 scoring functions — pure TS, no DB calls, deterministic. <code>lib/bank/scoring/</code> or
+    <code>lib/scoring/</code>?
+  </li>
+  <li>
+    The editor-side "compute marks from answer key" function — same file as the scoring functions, or its own
+    module? Probably the same — both functions take <code>(question_type, correct)</code> and produce a number.
+  </li>
+  <li>
+    Tests live with the functions (each function tested against released NCSBN sample questions).
+  </li>
+  <li>
+    Versioning: scoring functions versioned separately from schema (per <code>bank.md</code>). When NCSBN updates
+    NGN rules, function signatures stay; internals change.
+  </li>
+</ul>
+
+<h2 id="s9">9. Curator-facing UI implications <span class="status skeleton">skeleton</span></h2>
+<p>To settle:</p>
+<ul>
+  <li>
+    Editor: replace the "Marks" input with a read-only display ("Max score: 4 — derived from 4 correct
+    options"). Wording TBD.
+  </li>
+  <li>
+    Bank list / cards: should "max" appear as a column? Useful for SATA / partial-credit types where it varies;
+    redundant for MCQ.
+  </li>
+  <li>
+    Tooltip / help text explaining why the field is read-only — first-time curator confusion likely.
+  </li>
+  <li>
+    If curator override is later allowed (§5.4), the read-only display becomes editable behind a confirmation.
+  </li>
+</ul>
+
+<h2 id="s10">10. Migration path <span class="status skeleton">skeleton</span></h2>
+<p>To plan when implementation begins:</p>
+<ul>
+  <li>
+    Existing rows in <code>nclex_bank_items</code> have <code>marks</code> values mostly at the default 1
+    (curator-typed values are mostly absent in seed data).
+  </li>
+  <li>
+    Backfill SQL: for every existing row, recompute <code>marks</code> from <code>question_type</code> + <code>correct</code>
+    and overwrite. Same for <code>nclex_tutor_questions</code>.
+  </li>
+  <li>
+    Drop <code>DEFAULT 1</code> from the column (no longer meaningful — editor always computes).
+  </li>
+  <li>
+    Editor save handler: ensure compute-and-write step is added. Block save if <code>correct</code> is malformed.
+  </li>
+  <li>
+    Optional belt-and-braces: PL/pgSQL trigger that recomputes on INSERT/UPDATE. Probably v1.5 — soft enforcement
+    via editor discipline is fine for v1.
+  </li>
+</ul>
+
+<h2 id="s11">11. Open and deferred <span class="status open">tracking</span></h2>
+<p>Open decisions parked for upcoming sessions:</p>
+<ul>
+  <li>§5.4 — Curator override: yes / no / restricted to tutor bank?</li>
+  <li>§6 — All edge cases.</li>
+  <li>§7 — Session-level aggregation: items-correct vs total-points vs item-equivalent.</li>
+  <li>§8 — Code-location settling.</li>
+  <li>§9 — Editor UI changes.</li>
+  <li>§10 — Migration plan.</li>
+</ul>
+<p>Settled in this session (2026-05-04):</p>
+<ul>
+  <li>§4 — All 9 question types' scoring functions and max formulas locked.</li>
+  <li>§4.1 — Select-N uses +/−; editor enforces <code>N == count(correct)</code>.</li>
+  <li>§4.2 — Bow-tie uses per-wing 0/1 tally summed (no +/−, no floor); max 5 fixed.</li>
+  <li>§5.5 — <code>is_correct</code> requires full credit; cascades to all partial-credit types.</li>
+</ul>
+<p>Deferred to v2+:</p>
+<ul>
+  <li><strong>Multi-response matrix</strong> (any cells correct, +/− per cell). Our v1 matrix is single-response only. Adding the multi-response variant requires a new <code>matrix_subtype</code> field, parser changes, editor changes, and a runner component — its own slice.</li>
+  <li><strong>Cause-effect (paired) cloze.</strong> NCSBN's NGN cause-effect cloze items pair two blanks where both halves must match together (first right + second wrong = 0). Our v1 cloze scores each blank independently. Adding pairs requires a schema extension to flag pair groups in the answer key.</li>
+  <li>IRT-based item difficulty calibration (we don't have enough student data to fit a model in v1).</li>
+  <li>CAT-specific scoring flow (parent §16 — its own design problem).</li>
+  <li>Question-level analytics ("this question discriminates well between strong and weak students") — requires response data we don't yet have.</li>
+  <li>Per-wing bow-tie sub-score storage (recoverable from snapshot — flagged in §4.2 — not stored in v1).</li>
+</ul>
+
+<hr class="footer-rule" />
+<p class="footer-line">
+  Cross-references: <code>bank.md</code> §scoring (function dispatch table), <code>bank-consumption.html</code> §3
+  (Pillar 2 — authentic mechanics), <code>bank-consumption-attempt-creation.html</code> §6.2
+  (<code>marks_snapshot</code> on items table) and §6.3 (<code>score_awarded</code> on answers table),
+  <code>bank-consumption-runner.html</code> §11 (scoring at submission time).
+</p>
+
+</div>
+</body>
+</html>
