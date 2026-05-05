@@ -156,16 +156,18 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-05-05 (17 of 20 sections settled across two seed
-  conversations and two extended planning sessions: §1 scope, §2 inheritance, §3 honesty constraints,
-  §4 IRT model (Rasch in TypeScript), §5 calibration plan (separate <code>difficulty_irt</code> column
-  + weekly batch + 70/30 dampened blend), §6 starting difficulty, §7 selection rule with category
-  tiebreaker, §8 content blueprint, §9 termination, §10 architecture (two-RPC flow, pessimistic UI with
-  graceful degradation, atomic transactions, 0–300ms / 3s / 10s latency thresholds), §11 snapshots,
-  §13 CAT summary page (verdict copy, trajectory graph + per-item marker), §14 review (uses shared runner
-  Review surface), §15 re-take rules, §16 runner UX (current-Q-only progress, no back nav, no live
-  mark-for-review, abandoned on browser-close), §17 calibration capture (one new audit table).
-  Remaining: §12 final-detail polish (build-time concern), §18 out-of-scope notes, §20 related docs).
+  Living planning document. Last updated: 2026-05-05 (18 of 20 sections settled across two seed
+  conversations, two extended planning sessions, and one build-handoff session: §1 scope, §2 inheritance,
+  §3 honesty constraints, §4 IRT model (Rasch in TypeScript), §5 calibration plan (separate
+  <code>difficulty_irt</code> column + weekly batch + 70/30 dampened blend), §6 starting difficulty, §7
+  selection rule with category tiebreaker, §8 content blueprint, §9 termination, §10 architecture
+  (two-RPC flow, pessimistic UI with graceful degradation, atomic transactions, 0–300ms / 3s / 10s
+  latency thresholds), §11 snapshots, §12 schema additions (build handoff package: column types, CHECK
+  constraints, RPC stubs, verification queries, rollback plan — see §12.7), §13 CAT summary page
+  (verdict copy, trajectory graph + per-item marker), §14 review (uses shared runner Review surface),
+  §15 re-take rules, §16 runner UX (current-Q-only progress, no back nav, no live mark-for-review,
+  abandoned on browser-close), §17 calibration capture (one new audit table). Remaining: §18
+  out-of-scope notes, §20 related docs.
 </div>
 
 <h2>Why this doc exists</h2>
@@ -947,11 +949,18 @@
   roughly the same order as a 75-item fixed-length quiz. Negligible.
 </p>
 
-<h2 id="s12">12. Schema additions <span class="status skeleton">skeleton</span></h2>
+<h2 id="s12">12. Schema additions <span class="status settled">settled</span></h2>
 <p>
   CAT requires column additions in two places: the bank table (so the engine has a numeric difficulty value to
   read) and the attempt tables (so the runner can record CAT-specific state). All additions are nullable / have
   defaults; existing rows continue to work unchanged.
+</p>
+<p>
+  <strong>§12.1–§12.6 are the planning-level sketch (settled 2026-05-04).</strong>
+  <strong>§12.7 is the canonical build-handoff package (settled 2026-05-05)</strong> — concrete column types,
+  CHECK constraints, FK + ON DELETE behaviour, RPC stub signatures, verification queries, and rollback SQL.
+  Where §12.7 diverges from §12.2 / §17.2 (e.g. final termination-reason values, audit-table column names),
+  §12.7 supersedes — see <a href="#s12-7-11">§12.7.11 alignment notes</a>.
 </p>
 
 <h3>12.1 New columns on <code>nclex_bank_items</code> (bank table)</h3>
@@ -1007,13 +1016,201 @@
 <p>
   Per §5.2, recalibration writes its output to <code>nclex_bank_items.difficulty_irt</code> directly (overwriting
   the previous value with the 70/30 blend). To preserve history of how an item's difficulty has evolved, a
-  separate audit table is needed — designed in §17.
+  separate audit table is needed — designed in §17 (planning-level) and locked concretely in §12.7.5 below.
 </p>
 
+<h3>12.7 Build handoff package — 2026-05-05</h3>
 <p>
-  TBD: final column names (provisional above), exact NUMERIC precision for theta / SE / difficulty, indexing
-  on <code>cat_termination_reason</code> if we plan to filter History by it.
+  Concrete migration spec for applying the CAT schema additions to the dev Supabase project. Settled in a
+  2026-05-05 build-handoff session that turned the §12.1–§12.5 sketch + §17.2 audit-table sketch into a
+  build-ready package — column types, CHECK constraints, FK behaviour, RPC stub signatures, verification
+  queries, and rollback SQL.
 </p>
+<p>
+  <strong>Apply via Supabase MCP to dev only.</strong> Sam signs off after dev verification before prod runs.
+  No engine code in this slice — just columns, the audit table, and function stubs that raise
+  "not yet implemented." The actual Rasch math / engine logic is the next slice.
+</p>
+
+<h4 id="s12-7-1">12.7.1 Step 1 — Add columns to <code>nclex_bank_items</code></h4>
+<p>
+  Two new columns. The existing <code>difficulty</code> TEXT column stays exactly as it is.
+</p>
+<ul>
+  <li><code>difficulty_irt</code> — NUMERIC, nullable, no default.</li>
+  <li><code>difficulty_source</code> — TEXT, NOT NULL, default <code>'CURATOR_LABEL'</code>, CHECK constraint allowing only <code>'CURATOR_LABEL'</code> or <code>'EMPIRICAL'</code>.</li>
+</ul>
+<p>After adding the columns, seed <code>difficulty_irt</code> for every existing row from the existing TEXT value:</p>
+<ul>
+  <li><code>'Easy'</code> → −1.0</li>
+  <li><code>'Medium'</code> → 0.0</li>
+  <li><code>'Hard'</code> → +1.0</li>
+  <li>Any other value or NULL → leave <code>difficulty_irt</code> as NULL.</li>
+</ul>
+<p><code>difficulty_source</code> will be <code>'CURATOR_LABEL'</code> for all existing rows (the column default).</p>
+
+<h4 id="s12-7-2">12.7.2 Step 2 — Mirror the same two columns onto <code>nclex_tutor_questions</code></h4>
+<p>
+  Same column definitions, same seeding logic from the existing <code>difficulty</code> TEXT value. Schema
+  parity is intentional — CAT will eventually be available as a quiz mode for tutors using their own question
+  banks (planned for v2). The recalibration job in v1 will only run against <code>nclex_bank_items</code>;
+  tutor empirical calibration is deferred until tutor CAT exists, but the schema should not preclude it.
+</p>
+
+<h4 id="s12-7-3">12.7.3 Step 3 — Add columns to <code>nclex_attempts</code></h4>
+<p>
+  Five new columns, all nullable, no defaults. They stay NULL for non-CAT attempts and for CAT attempts that
+  are still IN_PROGRESS or got ABANDONED before completion.
+</p>
+<ul>
+  <li><code>cat_verdict</code> — TEXT, nullable, CHECK constraint allowing only <code>'ABOVE_STANDARD'</code>, <code>'BELOW_STANDARD'</code>, <code>'INCONCLUSIVE'</code>, or NULL.</li>
+  <li><code>cat_final_theta</code> — NUMERIC, nullable.</li>
+  <li><code>cat_final_se</code> — NUMERIC, nullable.</li>
+  <li><code>cat_termination_reason</code> — TEXT, nullable, CHECK constraint allowing only <code>'CONFIDENCE_REACHED'</code>, <code>'MAX_ITEMS_HIT'</code>, <code>'TIME_LIMIT_HIT'</code>, <code>'ABANDONED'</code>, or NULL.</li>
+  <li><code>cat_items_administered</code> — INTEGER, nullable.</li>
+</ul>
+<p>
+  Existing <code>final_score</code> NUMERIC column on <code>nclex_attempts</code> stays untouched. It is NULL
+  for CAT attempts (CAT has no raw score) and remains populated for fixed-length modes.
+</p>
+
+<h4 id="s12-7-4">12.7.4 Step 4 — Add columns to <code>nclex_attempt_items</code></h4>
+<p>Four new columns, all nullable. They stay NULL for non-CAT attempts.</p>
+<ul>
+  <li><code>cat_theta_before</code> — NUMERIC, nullable. The student's ability estimate immediately before this question was administered.</li>
+  <li><code>cat_se_before</code> — NUMERIC, nullable. The standard error immediately before this question was administered.</li>
+  <li><code>cat_item_difficulty</code> — NUMERIC, nullable. Snapshot of <code>nclex_bank_items.difficulty_irt</code> at the moment of selection. Copied because recalibration would otherwise rewrite history.</li>
+  <li><code>cat_item_difficulty_source</code> — TEXT, nullable. Snapshot of <code>nclex_bank_items.difficulty_source</code> at the moment of selection.</li>
+</ul>
+
+<h4 id="s12-7-5">12.7.5 Step 5 — Create new table <code>nclex_bank_item_calibration_history</code></h4>
+<p>
+  Audit log for the recalibration job. Bank-only (no tutor mirror — tutor calibration not in v1 or v2 scope yet).
+</p>
+<ul>
+  <li><code>id</code> — primary key (UUID, default <code>gen_random_uuid()</code>).</li>
+  <li><code>bank_item_id</code> — UUID, NOT NULL, FK to <code>nclex_bank_items(id)</code> ON DELETE CASCADE.</li>
+  <li><code>previous_difficulty_irt</code> — NUMERIC, nullable (NULL when transitioning from no value).</li>
+  <li><code>new_difficulty_irt</code> — NUMERIC, NOT NULL.</li>
+  <li><code>previous_source</code> — TEXT, nullable, same CHECK as <code>nclex_bank_items.difficulty_source</code>.</li>
+  <li><code>new_source</code> — TEXT, NOT NULL, same CHECK.</li>
+  <li><code>responses_used</code> — INTEGER, NOT NULL, must be ≥ 0.</li>
+  <li><code>recalibrated_at</code> — TIMESTAMPTZ, NOT NULL, default <code>NOW()</code>.</li>
+  <li><code>recalibration_job_run_id</code> — TEXT, nullable (identifies the batch run, useful for rollback).</li>
+</ul>
+<p>
+  Index on <code>bank_item_id</code> for fast per-question history lookups. Index on <code>recalibrated_at</code>
+  for time-range queries.
+</p>
+
+<h4 id="s12-7-6">12.7.6 Step 6 — Create RPC stubs (signatures only, bodies TODO)</h4>
+<p>
+  Create both functions in the database with proper signatures and a placeholder body that raises an exception
+  saying "not yet implemented." The actual engine logic is a separate build slice.
+</p>
+<p><strong><code>create_cat_attempt(p_student_id UUID, p_intent TEXT, p_mode TEXT)</code></strong></p>
+<ul>
+  <li>Returns: JSONB with shape <code>{ attempt_id: UUID, first_item_payload: JSONB }</code>.</li>
+  <li>Body for now: <code>RAISE EXCEPTION 'create_cat_attempt not yet implemented';</code></li>
+</ul>
+<p><strong><code>cat_next_item(p_attempt_id UUID, p_last_answer_payload JSONB)</code></strong></p>
+<ul>
+  <li>Returns: JSONB with shape either <code>{ status: 'CONTINUE', next_item_payload: JSONB }</code> or <code>{ status: 'COMPLETE', verdict_payload: JSONB }</code>.</li>
+  <li>Body for now: <code>RAISE EXCEPTION 'cat_next_item not yet implemented';</code></li>
+</ul>
+<p>
+  Both functions should be <code>LANGUAGE plpgsql SECURITY DEFINER</code> once implemented; for stubs
+  <code>LANGUAGE plpgsql</code> is fine. Grant <code>EXECUTE</code> to <code>authenticated</code> when the
+  bodies are filled in — not yet, since stubs do nothing.
+</p>
+
+<h4 id="s12-7-7">12.7.7 Step 7 — RLS policies</h4>
+<p>
+  No new RLS policies needed in this migration. The new columns inherit existing policies on their parent
+  tables. For <code>nclex_bank_item_calibration_history</code>, add a basic policy: only the admin role can
+  SELECT or INSERT. Curators don't need to see the audit log directly in v1; relevant slices are surfaced
+  through admin views later.
+</p>
+
+<h4 id="s12-7-8">12.7.8 Step 8 — Verification queries</h4>
+<p>After the migration runs, verify with:</p>
+<pre><code>-- Confirm seeding worked on bank
+SELECT difficulty, difficulty_irt, difficulty_source FROM nclex_bank_items LIMIT 20;
+
+-- Same on tutor side
+SELECT difficulty, difficulty_irt, difficulty_source FROM nclex_tutor_questions LIMIT 20;
+
+-- Confirm 5 new columns on nclex_attempts
+\d nclex_attempts
+
+-- Confirm 4 new columns on nclex_attempt_items
+\d nclex_attempt_items
+
+-- Confirm new audit table exists
+\d nclex_bank_item_calibration_history
+
+-- Confirm both function stubs exist
+SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_item');</code></pre>
+
+<h4 id="s12-7-9">12.7.9 Step 9 — Rollback plan</h4>
+<p>
+  If anything goes wrong on dev, the migration must be reversible. Save the rollback SQL alongside the
+  migration so it's there if needed.
+</p>
+<p>The rollback drops, in this order:</p>
+<ol>
+  <li><code>nclex_bank_item_calibration_history</code> table.</li>
+  <li>The two RPC stubs (<code>create_cat_attempt</code>, <code>cat_next_item</code>).</li>
+  <li>The 5 new columns from <code>nclex_attempts</code>.</li>
+  <li>The 4 new columns from <code>nclex_attempt_items</code>.</li>
+  <li>The 2 new columns from <code>nclex_bank_items</code>.</li>
+  <li>The 2 new columns from <code>nclex_tutor_questions</code>.</li>
+</ol>
+
+<h4 id="s12-7-10">12.7.10 Step 10 — After applying to dev</h4>
+<ul>
+  <li>Spot-check the seeding by manually opening 5 random questions of each difficulty and confirming <code>difficulty_irt</code> is correct.</li>
+  <li>Update <code>mynclex/SESSIONS.md</code> with an entry for the day the migration was applied.</li>
+  <li>Update <code>mynclex/CLONING.md</code> if the new table or any new columns affect the clone-to-prod checklist.</li>
+  <li><strong>Do not apply to prod yet.</strong> Sam signs off after dev verification.</li>
+  <li>Commit with a message like <code>feat(mynclex): apply CAT schema migration (dev only)</code>.</li>
+</ul>
+<p>
+  After this slice lands on dev, the next CAT build slice is filling in <code>create_cat_attempt</code> and
+  <code>cat_next_item</code> with real Rasch math — separate session.
+</p>
+
+<h4 id="s12-7-11">12.7.11 Alignment notes — where §12.7 supersedes earlier sketches</h4>
+<p>
+  Two divergences between the 2026-05-04 planning sketches and the 2026-05-05 build-handoff package. §12.7 is
+  canonical; §12.2 / §17.2 wording stays in the doc for historical traceability of how the names evolved.
+</p>
+<ul>
+  <li>
+    <strong>Termination-reason values (§12.2 vs §12.7.3).</strong> Sketch had 5 values:
+    <code>CONFIDENCE_PASS</code> / <code>CONFIDENCE_FAIL</code> / <code>MAX_ITEMS_INCONCLUSIVE</code> /
+    <code>TIME</code> / <code>ABANDONED</code>. Build handoff collapses to 4:
+    <code>CONFIDENCE_REACHED</code> / <code>MAX_ITEMS_HIT</code> / <code>TIME_LIMIT_HIT</code> /
+    <code>ABANDONED</code>. <em>Why:</em> the pass-vs-fail distinction at termination is recoverable from
+    <code>cat_verdict</code>; storing it twice creates two sources of truth for the same fact. The
+    <code>_HIT</code>/<code>_REACHED</code>/<code>_LIMIT</code> suffixes are also more event-shaped (what
+    triggered termination) and less verdict-shaped (whether the student passed).
+  </li>
+  <li>
+    <strong>Audit-table column names (§17.2 vs §12.7.5).</strong> Sketch used <code>item_id</code> (TEXT),
+    <code>calibrated_at</code>, <code>previous_value</code>, <code>new_value</code>,
+    <code>raw_empirical_value</code>, <code>response_count</code>, <code>job_trigger</code>,
+    <code>job_triggered_by</code>. Build handoff uses <code>bank_item_id</code> (UUID, FK with ON DELETE
+    CASCADE), <code>recalibrated_at</code>, <code>previous_difficulty_irt</code>,
+    <code>new_difficulty_irt</code>, <code>responses_used</code>, <code>recalibration_job_run_id</code>.
+    <em>Why:</em> the FK with ON DELETE CASCADE prevents orphaned audit rows; the <code>_difficulty_irt</code>
+    suffix is self-documenting (the audit is specifically about that column); a single
+    <code>recalibration_job_run_id</code> identifier covers both job triggering and rollback grouping more
+    cleanly than the trigger / triggered_by pair. Build handoff drops <code>raw_empirical_value</code>
+    (recoverable from inputs if ever needed) and explicit <code>job_trigger</code>/<code>job_triggered_by</code>
+    columns (admin-trigger metadata can move to a separate field if needed without churning the audit shape).
+  </li>
+</ul>
 
 
 <h2 id="s13">13. Result presentation — the CAT summary page <span class="status settled">settled</span></h2>
@@ -1415,7 +1612,7 @@
 </ul>
 
 <h2 id="s19">19. Open decisions</h2>
-<p><strong>Settled to date (17 of 20 sections):</strong></p>
+<p><strong>Settled to date (18 of 20 sections):</strong></p>
 <ul>
   <li>§1 — Scope (settled at file creation).</li>
   <li>§2 — Inheritance roundup (settled at file creation).</li>
@@ -1428,6 +1625,7 @@
   <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 75/145, time limit 4 hours, inconclusive framing (settled 2026-05-04).</li>
   <li>§10 — Architecture: two-RPC flow (<code>create_cat_attempt</code> + <code>cat_next_item</code>), both atomic transactions; pessimistic UI with graceful degradation (current Q stays visible dimmed; spinner at 300ms; "still loading" at 3s; error+retry at 10s); 2-retry silent backoff on network failure, immediate error on server-side throw; engine runtime location (Supabase RPC vs Edge Function vs Worker) deferred to build time with PL/pgSQL recommendation (settled 2026-05-05).</li>
   <li>§11 — Snapshot strategy: per-question at administration time (settled at file creation).</li>
+  <li>§12 — Schema additions: build-handoff package locked. Two new columns on <code>nclex_bank_items</code> (<code>difficulty_irt</code> NUMERIC, <code>difficulty_source</code> TEXT with CHECK), mirrored on <code>nclex_tutor_questions</code> for v2 parity. Five new columns on <code>nclex_attempts</code> (<code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>); four new columns on <code>nclex_attempt_items</code> (<code>cat_theta_before</code>, <code>cat_se_before</code>, <code>cat_item_difficulty</code>, <code>cat_item_difficulty_source</code>). One new audit table <code>nclex_bank_item_calibration_history</code> with FK + ON DELETE CASCADE. Two RPC stubs (<code>create_cat_attempt</code>, <code>cat_next_item</code>) raising "not yet implemented." Verification queries + rollback SQL alongside. Termination reasons collapsed from 5 to 4; audit-table column names rationalised — see §12.7.11 (settled 2026-05-05).</li>
   <li>§13 — CAT summary page: verdict copy, layout, trajectory graph + per-item marker, separate Readiness card, INCONCLUSIVE = zero weight (settled 2026-05-04).</li>
   <li>§14 — Review state: uses shared runner Review surface, minimal CAT-specific shape, all CAT-specific content lives on the summary page (§13) (settled 2026-05-04).</li>
   <li>§15 — Re-take rules: unlimited frequency with soft 1-hr warning, last-3-CATs exposure window (CAT-only), fallback relaxes exposure before difficulty (settled 2026-05-04).</li>
@@ -1436,8 +1634,11 @@
 </ul>
 
 <p><strong>Carried forward — settle in subsequent planning sessions:</strong></p>
+<p>None at planning level. All structural and build-handoff decisions are locked. The remaining work is execution:</p>
 <ul>
-  <li>§12 — Final column names + types + precision (build-time polish; structural decisions all locked above).</li>
+  <li><strong>Apply the §12.7 migration to dev.</strong> Sam's sign-off after dev verification gates the prod run.</li>
+  <li><strong>Fill in <code>create_cat_attempt</code> and <code>cat_next_item</code> bodies</strong> with real Rasch math — separate build slice after the schema lands.</li>
+  <li><strong>Empirical recalibration job</strong> — schedule, runtime location (Supabase pg_cron vs Cloudflare Worker), and the actual calibration code. Specced at planning level in §5 / §17 / §10.5; build slice still TBD.</li>
 </ul>
 
 <p><strong>Follow-up edits in sibling docs — done 2026-05-05:</strong></p>

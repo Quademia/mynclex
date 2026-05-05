@@ -6,6 +6,78 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-05 (continued) — CAT schema build-handoff added
+
+Web-Claude build-handoff session, then doc-add pass in repo. Turned the
+§12 / §17 planning sketches into a build-ready migration package. CAT
+plan now at **18 of 20 sections settled**.
+
+### `bank-consumption-cat.html` §12.7 — Build handoff package
+
+New subsection inside §12 covering the concrete migration spec for
+applying CAT schema to dev. Ten steps:
+
+- Step 1: `nclex_bank_items` gets `difficulty_irt` NUMERIC + `difficulty_source` TEXT (CHECK CURATOR_LABEL/EMPIRICAL, default CURATOR_LABEL); seed from existing TEXT difficulty (Easy → −1.0, Medium → 0.0, Hard → +1.0).
+- Step 2: `nclex_tutor_questions` gets the same two columns for v2 parity. Recalibration won't run against the tutor table in v1, but schema parity preserves the option.
+- Step 3: `nclex_attempts` gets 5 nullable CAT columns (`cat_verdict`, `cat_final_theta`, `cat_final_se`, `cat_termination_reason`, `cat_items_administered`). `final_score` stays NULL for CAT.
+- Step 4: `nclex_attempt_items` gets 4 nullable CAT columns (`cat_theta_before`, `cat_se_before`, `cat_item_difficulty`, `cat_item_difficulty_source`). Difficulty + source snapshotted at pick time so recalibration can't rewrite history.
+- Step 5: New audit table `nclex_bank_item_calibration_history` with UUID PK, FK to `nclex_bank_items(id)` ON DELETE CASCADE, indexes on `bank_item_id` and `recalibrated_at`.
+- Step 6: RPC stubs `create_cat_attempt(p_student_id, p_intent, p_mode)` and `cat_next_item(p_attempt_id, p_last_answer_payload)` — signatures locked, bodies just `RAISE EXCEPTION 'not yet implemented'`. SECURITY DEFINER + grants happen when bodies land.
+- Step 7: No new RLS on existing tables (inherit). Audit table gets admin-only SELECT/INSERT.
+- Step 8: Verification queries (psql `\d` + sample SELECT for seeded rows + `pg_proc` lookup for the stubs).
+- Step 9: Rollback SQL alongside the migration — drops in reverse dependency order.
+- Step 10: Post-apply checklist (spot-check seeding on 5 random Q per difficulty, SESSIONS update, CLONING update, **do not apply to prod yet**).
+
+### Two divergences from earlier sketches — §12.7.11 alignment notes
+
+Captured rather than rewritten so the planning-level sketches stay
+traceable:
+
+- **Termination reasons** collapsed from 5 (`CONFIDENCE_PASS` /
+  `CONFIDENCE_FAIL` / `MAX_ITEMS_INCONCLUSIVE` / `TIME` / `ABANDONED`)
+  to 4 (`CONFIDENCE_REACHED` / `MAX_ITEMS_HIT` / `TIME_LIMIT_HIT` /
+  `ABANDONED`). Pass/fail at termination is recoverable from
+  `cat_verdict`; storing it twice creates two sources of truth.
+  Suffixes also shifted from verdict-shaped to event-shaped (what
+  triggered termination, not whether the student passed).
+- **Audit-table column names** rationalised. `bank_item_id` UUID with
+  FK + ON DELETE CASCADE replaces `item_id` TEXT (orphan prevention).
+  `previous_difficulty_irt` / `new_difficulty_irt` replaces generic
+  `previous_value` / `new_value` (self-documenting). Single
+  `recalibration_job_run_id` replaces `job_trigger` +
+  `job_triggered_by` pair. Dropped `raw_empirical_value` (recoverable).
+
+### Doc-meta + §19 housekeeping
+
+Doc-meta date stays 2026-05-05 (same calendar day, second session);
+count bumped to 18 of 20. §19 §12 moved from "Carried forward" to
+"Settled to date". Carried-forward block reframed: nothing remains at
+planning level — only execution work (apply migration to dev, fill RPC
+bodies with Rasch math, build the recalibration job).
+
+### NOT done in this session
+
+- Migration **not yet applied** to dev. The §12.7 spec is the build
+  handoff for a future build slice. SESSIONS will get a separate
+  "applied to dev" entry when the migration actually runs against the
+  Supabase MCP.
+- `CLONING.md` not yet updated — that update belongs with the apply
+  step.
+
+### Carried forward — execution slices
+
+- **CAT schema migration apply** — Supabase MCP to `mynclex-dev`,
+  spot-check seeding, then SESSIONS + CLONING update + commit.
+  Sam-gated before prod runs.
+- **CAT engine build slice** — fill `create_cat_attempt` and
+  `cat_next_item` bodies with real Rasch math (per §10.2 + §4).
+  Separate session.
+- **Empirical recalibration job** — schedule, runtime location,
+  actual calibration code. Specced in §5 / §17 / §10.5; build slice
+  TBD.
+
+---
+
 ## Session — 2026-05-05 — CAT plan §10 architecture settled
 
 Web-Claude planning session, then doc-edit pass in repo. Picks up the
