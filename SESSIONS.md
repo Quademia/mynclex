@@ -250,6 +250,158 @@ chrome details) deferred to build.
 
 ---
 
+## Session — 2026-05-04 — Bank consumption: CAT planning doc
+
+**Where:** Discussion-only session, web Claude (no repo writes).
+
+**Context:** Continuation of bank-consumption planning. Previous work produced
+`bank-consumption.html` (parent), `bank-consumption-attempt-creation.html`,
+`bank-consumption-runner.html`, `bank-marks-and-scoring.html`. CAT was
+mentioned across all four but never had a dedicated plan — it was the
+biggest open piece on the consumption side.
+
+**What we did:**
+
+Created and worked through `bank-consumption-cat.html` — a new planning doc
+sibling to the other three sub-plans. Settled 16 of 20 sections in one
+extended session.
+
+**Settled today (in order of conversation):**
+
+- §11 Snapshot strategy + §2.10 doc-seed framing — snapshots non-negotiable
+  for CAT (per-question at administration), one set of tables shared with
+  fixed-length modes (no separate CAT tables), Review available post-CAT.
+  Three rejected alternatives recorded with reasoning so the decisions
+  survive future questioning.
+- §7 Selection rule — closest difficulty to current ability is the rule.
+  After pushback, settled with category as a *tiebreaker* among
+  equally-good difficulty matches (option E in the conversation, not pure
+  soft / not hard enforcement / not floor-with-override). Difficulty match
+  is sacred; category never overrides difficulty.
+- §8 Content blueprint — same rule as §7. Soft constraint with monitoring
+  logged for curator dashboard. Hard enforcement deferred to v2 with named
+  trigger (>20% of CATs delivering <3 items per category after curation
+  has been balanced).
+- §9 Termination — passing standard theta = 0.0, SE threshold ≤ 0.40, min
+  75 / max 145 (matches real NCLEX), time limit 4 hours, five termination
+  reasons enumerated. Inconclusive framing locked: "your performance was
+  on the boundary," category breakdown does the heavy lifting,
+  INCONCLUSIVE = zero weight in any future blended Readiness Signal.
+- §6 Starting difficulty — always theta = 0.0 fresh, no carry-over from
+  prior CATs (matches real NCLEX; cross-CAT theta still shows in
+  History/Analytics but doesn't seed new CATs).
+- §15 Re-take rules — unlimited frequency with soft 1-hr warning, last-3-
+  CATs exposure window (CAT-only, not cross-mode), fallback relaxes
+  exposure before difficulty.
+- §13 CAT summary page — verdict copy locked for all four states (above /
+  below / inconclusive / abandoned). Layout: verdict → items administered
+  → trajectory graph → category breakdown → cross-CAT comparison →
+  Review CTA. Trajectory graph + per-item marker is the headline visual
+  (Sam's idea, replaces the per-item chip I'd proposed). Two separate
+  dashboard cards for CAT vs Readiness — never blended.
+- §14 Review state — collapsed to short statement after Sam's separation
+  framing: CAT-specific content lives on the summary page (§13); Review
+  itself uses the shared runner Review surface unchanged. No CAT-specific
+  per-question render. This was a clean separation that simplified the
+  doc considerably.
+- §16 Runner UX — six locks: current-question-only progress (no "of N"
+  cap), timer warnings deferred to runner-doc level, no back navigation
+  (matches real NCLEX), no live-run mark-for-review (available in Review
+  afterwards), browser-close = ABANDONED with confirmation prompt, no
+  pause.
+- §4 IRT model — Rasch (1PL) for v1. After conversation about whether we
+  build the math ourselves: TypeScript implementation of Rasch directly in
+  the existing stack (no Python service for live engine). Empirical
+  recalibration uses heavier Python tooling separately (build-time choice).
+- §5 Calibration plan — three locks. (a) Easy/Medium/Hard → −1.0/0.0/+1.0
+  on the IRT logit scale. (b) **Schema correction Sam caught:** existing
+  `nclex_bank_items.difficulty` is a TEXT column with CHECK constraint
+  ('Easy'/'Medium'/'Hard'). Cannot hold numeric values. So we add a
+  separate `difficulty_irt` NUMERIC column alongside, plus
+  `difficulty_source` TEXT for provenance. Curator UI unchanged; engine
+  reads only the numeric column; recalibration writes only the numeric
+  column. (c) Cadence: weekly batch (Sundays 02:00 UTC), not nightly —
+  Sam pushed back on nightly being too aggressive given low day-one
+  response volume; weekly is more honest. 30-response threshold before
+  empirical takes over from curator label. 70/30 dampened blend on each
+  recalibration to avoid student-visible churn between weeks. Manual
+  trigger from admin dashboard supported.
+- §17 Calibration data capture — per-attempt response data already
+  captured by existing schema (no new capture columns needed). One new
+  audit table `nclex_bank_item_calibration_history` (one row per
+  recalibration event per item). After Sam's pushback against my original
+  two-table proposal: dropped the separate job-run table, derive run
+  summaries from the audit table on demand. Also rejected a JSONB-on-bank-
+  row alternative Sam proposed, with three reasons (engine performance,
+  snapshot integrity, query difficulty). Retention forever for v1.
+- §3 Honesty constraints — calibration approximation disclosed via a
+  single "How CAT works" help page (not per-attempt caveats, not omitted).
+  Five-section help page contents specified. Pass-probability statement
+  deferred to v3+ at earliest (needs real outcome data we don't have).
+
+**Schema additions accumulated across the session:**
+
+- New columns on `nclex_bank_items`: `difficulty_irt` (NUMERIC),
+  `difficulty_source` (TEXT, default 'CURATOR_LABEL').
+- New columns on `nclex_attempts`: `cat_verdict` (TEXT),
+  `cat_final_theta` (NUMERIC), `cat_final_se` (NUMERIC),
+  `cat_termination_reason` (TEXT), `cat_items_administered` (INTEGER).
+- New columns on `nclex_attempt_items`: `cat_theta_before` (NUMERIC),
+  `cat_se_before` (NUMERIC), `cat_item_difficulty` (NUMERIC),
+  `cat_item_difficulty_source` (TEXT).
+- One new table: `nclex_bank_item_calibration_history` (audit trail).
+- Existing `nclex_bank_items.difficulty` TEXT column unchanged. Existing
+  `nclex_attempts.final_score` is NULL for CAT attempts (CAT has no raw
+  score).
+- Two new RPCs (sketched in attempt-creation §13, fleshed out here in
+  §10): `create_cat_attempt`, `cat_next_item`.
+
+**Carried forward to next session(s):**
+
+- §10 Architecture — RPC contract details (loading state during
+  next-item fetch, error handling on engine failures, optimistic vs
+  pessimistic UI). Recommendation made today: best settled close to build
+  time when engine implementation details are concrete; planning in the
+  abstract risks decisions that don't survive contact with implementation.
+  High-level shape sketched: pessimistic UI (engine has to score before
+  picking next), brief loading state, retry-with-error pattern.
+- §12 final-detail polish — column names, NUMERIC precision, indexing.
+  Build-time concern; structural decisions all locked.
+
+**Required edits in sibling docs (deferred):**
+
+- `main.md` — currently lists CAT as deferred to v2+. Update to "in
+  scope for v1, see `bank-consumption-cat.html`."
+- `CLAUDE.md` — Explicit Deferrals list still includes "CAT adaptive
+  testing logic." Remove.
+- `bank-consumption-attempt-creation.html` §6.1 + §13 — backreference
+  this doc; result columns now specified in `cat.html` §12.2; two-RPC
+  architecture sketched in §10 (deferred to next session).
+- `bank-consumption-runner.html` §18 — replace skeleton with
+  backreference to this doc (CAT runner UX now settled in §16); also §8
+  cross-mode timer behaviour applies to CAT per §16.2.
+- `bank-marks-and-scoring.html` §11 — backreference this doc for
+  "CAT-specific scoring flow."
+
+**Pattern notes for future sessions:**
+
+- Separation of "CAT summary page" vs "shared Review" was a Sam-driven
+  insight that significantly simplified the doc. Hold this pattern.
+- Sam's pushback on proposals worked well: hard category enforcement
+  → soft tiebreaker, two-table audit → one-table audit, nightly
+  recalibration → weekly. Each pushback found a meaningfully better
+  answer. Continue offering proposals to push back against rather than
+  asking open-ended questions.
+- The schema-correction moment (§5.2) — Sam caught that the existing
+  `difficulty` column is TEXT, not NUMERIC, which I'd glossed over.
+  Worth a search-the-repo-first habit for any column we plan to write to.
+
+**File:** `mynclex/docs/product-plan/bank-consumption-cat.html` —
+generated in web Claude, needs to be dropped into the repo via Claude
+Desktop in the next session.
+
+---
+
 ## Session — 2026-05-04 (Bank-consumption planning — attempt-creation sub-plan + runner skeleton)
 
 Pure planning session, no application code. Built out the consumption-side
