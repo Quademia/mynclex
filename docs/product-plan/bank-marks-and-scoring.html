@@ -842,7 +842,7 @@
   <li><strong>Multi-response matrix</strong> (any cells correct, +/− per cell). Our v1 matrix is single-response only. Adding the multi-response variant requires a new <code>matrix_subtype</code> field, parser changes, editor changes, and a runner component — its own slice.</li>
   <li><strong>Cause-effect (paired) cloze.</strong> NCSBN's NGN cause-effect cloze items pair two blanks where both halves must match together (first right + second wrong = 0). Our v1 cloze scores each blank independently. Adding pairs requires a schema extension to flag pair groups in the answer key.</li>
   <li>IRT-based item difficulty calibration (we don't have enough student data to fit a model in v1).</li>
-  <li>CAT-specific scoring flow (parent §16 — its own design problem).</li>
+  <li>CAT-specific scoring flow — settled in <code>bank-consumption-cat.html</code> (per-question scoring functions defined in this doc are reused unchanged inside <code>cat_next_item</code> per cat.html §10.2; CAT does not introduce new scoring logic, only an IRT layer over the existing per-question scores).</li>
   <li>Question-level analytics ("this question discriminates well between strong and weak students") — requires response data we don't yet have.</li>
   <li>Per-wing bow-tie sub-score storage (recoverable from snapshot — flagged in §4.2 — not stored in v1).</li>
 </ul>
@@ -851,7 +851,7 @@
   <li><strong>Multi-response matrix</strong> (any cells correct, +/− per cell). Our v1 matrix is single-response only. Adding the multi-response variant requires a new <code>matrix_subtype</code> field, parser changes, editor changes, and a runner component — its own slice.</li>
   <li><strong>Cause-effect (paired) cloze.</strong> NCSBN's NGN cause-effect cloze items pair two blanks where both halves must match together (first right + second wrong = 0). Our v1 cloze scores each blank independently. Adding pairs requires a schema extension to flag pair groups in the answer key.</li>
   <li>IRT-based item difficulty calibration (we don't have enough student data to fit a model in v1).</li>
-  <li>CAT-specific scoring flow (parent §16 — its own design problem).</li>
+  <li>CAT-specific scoring flow — settled in <code>bank-consumption-cat.html</code> (per-question scoring functions defined in this doc are reused unchanged inside <code>cat_next_item</code> per cat.html §10.2; CAT does not introduce new scoring logic, only an IRT layer over the existing per-question scores).</li>
   <li>Question-level analytics ("this question discriminates well between strong and weak students") — requires response data we don't yet have.</li>
   <li>Per-wing bow-tie sub-score storage (recoverable from snapshot — flagged in §4.2 — not stored in v1).</li>
 </ul>

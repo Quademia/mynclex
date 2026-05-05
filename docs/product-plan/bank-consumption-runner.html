@@ -183,7 +183,7 @@
     <li><a href="#s15">Navigation rules</a></li>
     <li><a href="#s16">Discard / abandon</a></li>
     <li><a href="#s17">Review state</a></li>
-    <li><a href="#s18">CAT-specific runner — deferred</a></li>
+    <li><a href="#s18">CAT-specific runner — backreference to <code>bank-consumption-cat.html</code></a></li>
     <li><a href="#s19">Open decisions</a></li>
     <li><a href="#s20">Related docs</a></li>
   </ol>
@@ -618,14 +618,21 @@ Runner mounts → reads from those 5 tables → renders Q1
   printing.
 </p>
 
-<h2 id="s18">18. CAT-specific runner <span class="status deferred">deferred</span></h2>
+<h2 id="s18">18. CAT-specific runner <span class="status settled">backreference</span></h2>
 <p>
   CAT runner has a fundamentally different shape: items arrive one at a time from the IRT engine; no upfront
-  question list; preflight + termination both run differently. Full design lives with the CAT plan (parent §16).
+  question list; preflight + termination both run differently.
+</p>
+<p>
+  <strong>Full design lives in <code>bank-consumption-cat.html</code> §16</strong> (runner UX specifics —
+  current-question-only progress, no back navigation, no live-run mark-for-review, browser-close = ABANDONED, no
+  pause) and §10 (runner-server contract — pessimistic UI with graceful degradation, two-RPC flow, error
+  handling). Cross-mode timer behaviour from §8 of this doc applies to CAT per cat.html §16.2.
 </p>
 <p>
   Shared with this doc: snapshot tables (each item snapshotted as it's administered), answer table, attempt row
-  lifecycle (preflight, status transitions, timer).
+  lifecycle (preflight, status transitions, timer). Per-question-type rendering components, case/trend rendering,
+  answer-changes tracking — all reused unchanged from this doc inside the CAT runner.
 </p>
 
 <h2 id="s19">19. Open decisions</h2>

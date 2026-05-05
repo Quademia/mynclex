@@ -171,7 +171,7 @@
     <li><a href="#s10">When does the attempt row get created</a></li>
     <li><a href="#s11">Timer start</a></li>
     <li><a href="#s12">Re-roll behaviour</a></li>
-    <li><a href="#s13">CAT — separate flow, noted only</a></li>
+    <li><a href="#s13">CAT — separate flow, backreference to <code>bank-consumption-cat.html</code></a></li>
     <li><a href="#s14">Open decisions consolidated</a></li>
     <li><a href="#s15">Settling order</a></li>
   </ol>
@@ -353,7 +353,7 @@
   <li><code>final_score</code> — NUMERIC 0..1. The canonical session score, computed as the <strong>item-equivalent average</strong> across all attempt items (each item normalised to <code>score_awarded / marks_snapshot</code>, then averaged). Set when status transitions to COMPLETED or TIMED_OUT; NULL while IN_PROGRESS. Drives Trend (parent §3), Readiness Signal (parent §6), Slice labels (parent §13), and the headline number on the results screen. Display layer multiplies by 100 for percentage rendering. See <code>bank-marks-and-scoring.html</code> §7 for the aggregation reasoning and the two supplementary numbers (items-correct, total-points) that the results screen also displays — those are computed on read from <code>nclex_attempt_answers</code> rows, not stored.</li>
 </ul>
 
-<p><strong>CAT-specific result columns — TBD.</strong> CAT is its own planning topic (§13 of this doc; §16 of parent). Result columns (verdict, ability estimate, standard error, termination reason) will be designed when CAT is planned and added then. Will be NULL for non-CAT attempts; will replace <code>score</code>/<code>score_percent</code> for CAT attempts.</p>
+<p><strong>CAT-specific result columns</strong> are settled in <code>bank-consumption-cat.html</code> (see §13 below for the architecture summary; full column list lives in cat.html §12.2 / accumulated across §9, §10, §17): <code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>. NULL for non-CAT attempts. <code>final_score</code> is NULL for CAT attempts (CAT has no raw score — verdict + theta + SE replace it).</p>
 
 <h3>6.1.1 Source-specific reference columns — rules</h3>
 <p>
@@ -972,23 +972,27 @@
   <em>shape</em>, not a re-run of that exact quiz.
 </p>
 
-<h2 id="s13">13. CAT — separate flow, noted only <span class="status deferred">deferred</span></h2>
-<p>CAT does not use the create-attempt path designed here. CAT needs:</p>
+<h2 id="s13">13. CAT — separate flow, noted only <span class="status settled">backreference</span></h2>
+<p>CAT does not use the create-attempt path designed here. Two RPCs instead, both atomic:</p>
 <ul>
-  <li><code>create_cat_attempt</code> — opens an attempt row with <code>mode = CAT</code>, picks and snapshots the first question only</li>
-  <li><code>cat_next_item(attempt_id, last_answer_payload)</code> — called repeatedly, picks the next item by ability estimate, snapshots it, returns it</li>
+  <li><code>create_cat_attempt</code> — opens an attempt row with <code>mode = CAT</code>, picks and snapshots the first question only.</li>
+  <li><code>cat_next_item(attempt_id, last_answer_payload)</code> — called repeatedly: scores the last answer, updates theta/SE, checks termination, picks and snapshots the next item (or terminates and writes verdict).</li>
 </ul>
 <p>
-  Shared with this plan: the <code>nclex_attempts</code> row, <code>nclex_attempt_answers</code>, the snapshot tables.
-  Items are added one at a time as the IRT engine picks them.
+  Shared with this plan: the <code>nclex_attempts</code> row, <code>nclex_attempt_answers</code>, and the snapshot
+  tables (<code>nclex_attempt_items</code>, plus trend/case snapshot tables when applicable). Items are added one at a
+  time as the IRT engine picks them.
 </p>
-<p>Full CAT design lives in §16 of parent doc, follow-up tagged.</p>
+<p>
+  <strong>Full CAT design lives in <code>bank-consumption-cat.html</code></strong> — RPC contracts in §10.2, runner-server
+  transition pattern (pessimistic UI with graceful degradation) in §10.1, error handling in §10.3, snapshot rules in §11.
+  This section is now a backreference; all CAT-specific decisions are settled there.
+</p>
 
 <h2 id="s14">14. Open decisions consolidated</h2>
 <p>Carried forward inside this doc:</p>
 <ul>
   <li>§9 Sources beyond Custom-built (shared RPC vs separate) — settle with pack/programme planning</li>
-  <li>CAT result columns on <code>nclex_attempts</code> (verdict / ability estimate / standard error / termination reason) — designed when CAT is planned (parent §16); will be NULL for non-CAT attempts and replace <code>score</code>/<code>score_percent</code> for CAT.</li>
   <li>Exact column types and constraints in §6 — build time</li>
   <li><code>attempt_id</code> UUID variant (v4 vs v7) — build time, depends on Supabase Postgres extension support</li>
   <li>RLS policies — build time</li>

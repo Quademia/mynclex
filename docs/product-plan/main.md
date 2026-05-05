@@ -580,7 +580,6 @@ report.
 
 ## Deferred (v2 or later)
 
-- CAT (Computer Adaptive Testing) adaptive difficulty logic
 - Public self-serve tutor signup / tutor marketplace UI
 - Automated payment splits between QAcademy and tutors
 - Migration of MyNMCLicensure or MyTeacher onto this stack

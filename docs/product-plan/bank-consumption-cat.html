@@ -1440,13 +1440,13 @@
   <li>§12 — Final column names + types + precision (build-time polish; structural decisions all locked above).</li>
 </ul>
 
-<p><strong>Follow-up edits required in sibling docs once this doc settles:</strong></p>
+<p><strong>Follow-up edits in sibling docs — done 2026-05-05:</strong></p>
 <ul>
-  <li><code>main.md</code> — currently lists CAT as deferred to v2+. Update to "in scope for v1, see <code>bank-consumption-cat.html</code>."</li>
-  <li><code>CLAUDE.md</code> — Explicit Deferrals list currently includes "CAT adaptive testing logic." Remove or update.</li>
-  <li><code>bank-consumption-attempt-creation.html</code> §6.1 + §13 — backreference this doc; §6.1 result columns now specified in this doc's §12.2; §13 two-RPC architecture sketched here in §10.</li>
-  <li><code>bank-consumption-runner.html</code> §18 — replace skeleton with backreference to this doc (CAT runner UX now settled in §16); also §8 cross-mode timer behaviour applies to CAT per §16.2.</li>
-  <li><code>bank-marks-and-scoring.html</code> §11 — backreference this doc for "CAT-specific scoring flow."</li>
+  <li><code>main.md</code> — CAT removed from Deferred (v2 or later) list. ✓</li>
+  <li><code>CLAUDE.md</code> — "CAT adaptive testing logic" removed from Explicit Deferrals; doc-meta date bumped. ✓</li>
+  <li><code>bank-consumption-attempt-creation.html</code> §6.1 + §13 + §14 + TOC — §6.1 result columns now reference cat.html with explicit column names; §13 status pill flipped to backreference; §14 open-decisions list cleaned up (CAT result columns no longer pending). ✓</li>
+  <li><code>bank-consumption-runner.html</code> §18 + TOC — backreference to cat.html §16 (runner UX) + §10 (runner-server contract); cross-mode timer reference noted. ✓</li>
+  <li><code>bank-marks-and-scoring.html</code> §11 — "CAT-specific scoring flow" line updated: scoring functions reused unchanged inside <code>cat_next_item</code>; CAT does not introduce new scoring logic. ✓</li>
 </ul>
 
 <h2 id="s20">20. Related docs</h2>
