@@ -6,6 +6,103 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-05 (continued, build) — Slice 2.1 attempt tables applied to dev
+
+First build slice of bank consumption. Read all four planning docs end to
+end (`bank-consumption.html`, `-attempt-creation.html`, `-runner.html`,
+`-cat.html`), confirmed the base attempt tables didn't exist yet, then
+applied the foundation migration to `mynclex-dev` via Supabase MCP. CAT
+column additions (§12.7 of cat.html) and the mark-for-review table are
+deferred to their own slices on top of this foundation.
+
+### Migration applied: `20260505120000_slice_2_1_attempt_tables`
+
+Five tables, applied successfully to dev. Verified with `pg_class` (5
+tables, RLS on, 2 policies each) and `pg_constraint` (22 named CHECK
+constraints including the four custom-named ones).
+
+- `nclex_attempts` — one row per quiz session. Columns from
+  attempt-creation §6.1 (identity / source / configuration / lifecycle /
+  counts / final_score). UUID v4 PK. `(intent, mode)` tuple CHECK rejects
+  the 2 invalid combinations server-side. `source_refs` CHECK enforces
+  exactly one source-reference column populated per `source` value.
+- `nclex_attempt_case_snapshots` — composite PK `(attempt_id, case_id)`.
+  Snapshot once per case per attempt. Created BEFORE items because items
+  has a composite FK to it.
+- `nclex_attempt_trend_snapshots` — composite PK `(attempt_id, trend_id)`.
+  Same shape and reasoning.
+- `nclex_attempt_items` — UUID PK + composite FKs to both snapshot tables
+  (nullable parts skip the check, so standalones are fine). Snapshot
+  columns split: granular for queryable fields (stem / instruction /
+  rationale / marks / classification JSONB), polymorphic blobs for
+  `content_snapshot_json` and `correct_answer_snapshot_json`. CHECK
+  constraints enforce tutor_id consistency with item_source and
+  case-wrapper all-or-nothing.
+- `nclex_attempt_answers` — lazy insert on first interaction. Denormalised
+  `student_id` + `attempt_id` for analytics speed. UNIQUE on
+  `attempt_item_id` (one answer row per item). `submission_status` enum
+  has DRAFT / SUBMITTED / AUTO_SUBMITTED / SKIPPED.
+
+### Decisions locked this slice
+
+- **UUID v4** for attempt PKs (`gen_random_uuid()`). v7 deferred — cursor
+  pagination on History isn't a real concern yet, and v4 needs no
+  extension.
+- **`final_score` IS in this slice** (lifecycle column, not CAT-specific).
+  CHECK enforces 0..1 range.
+- **CAT result columns NOT in this slice** — they live with the §12.7
+  CAT package (column types and CHECKs already specced there).
+- **Mark-for-review table NOT in this slice** — its column shape isn't
+  specified in any planning doc. Deferred to its own micro-slice after
+  a 5-min design pass.
+- **`programme_activity_id` is TEXT with no FK** — `nclex_programme_activities`
+  doesn't exist yet. Same forward-ref pattern slice 1.11b used for
+  `parent_case_id`. FK lands when programme tables arrive.
+- **RLS conservative**: SELECT own + SUPER_ADMIN bypass. No student
+  INSERT/UPDATE/DELETE policies — write paths come via the
+  `create_attempt` RPC (SECURITY DEFINER) in slice 2.2.
+
+### Back-port
+
+- `db/schema.sql` — appended Slice 2.1 block with full table definitions,
+  indexes, FKs, CHECK constraints (numbered tables 13–17 in section
+  comments).
+- `db/rls.sql` — appended Slice 2.1 block with all 10 policies (2 per
+  table) and reasoning callout.
+
+### Doc updates
+
+- `docs/product-plan/bank-consumption-cat.html` §3.2 — "How CAT works"
+  help page path moved from `/student/bank/help/cat` to `/help/cat`
+  (top-level, audience-neutral, public — same logic that put the runner
+  at `/session/[attempt_id]`). Help content reads the same regardless of
+  audience; locking it inside the auth boundary blocks support paths
+  like `/help/payments` for users whose payment failed.
+
+### NOT done in this session
+
+- **Not applied to prod** — Sam-gated. dev sign-off required first.
+- **No RPCs yet** — `create_attempt` is slice 2.2.
+- **No client code yet** — UI slices come after RPCs.
+- **CLONING.md not updated** — schema-only change; will batch the
+  CLONING entry with the next slice that touches connection/setup.
+
+### Carried forward — execution slices
+
+- **Slice 2.2** — `create_attempt` RPC (one transaction: validate →
+  build pool → select → expand → snapshot → return attempt_id) +
+  `count_eligible_items` RPC for the builder live count. Per-question
+  scoring functions probably belong here too.
+- **Slice 2.3 (or merge into CAT)** — apply the §12.7 CAT schema package
+  on top of these foundation tables. Sam-gated before prod.
+- **Mark-for-review micro-slice** — design column shape (case-level + child-
+  level marks; what's the unique key when both can mark the same row?),
+  then add the table.
+- **Runner shell** — once the RPCs exist, build the smallest student-
+  visible vertical slice (one MCQ end-to-end).
+
+---
+
 ## Session — 2026-05-05 (continued) — CAT schema build-handoff added
 
 Web-Claude build-handoff session, then doc-add pass in repo. Turned the

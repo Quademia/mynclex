@@ -330,3 +330,102 @@ CREATE POLICY nclex_tutor_trend_datasets_superadmin ON nclex_tutor_trend_dataset
 -- rows the same way they apply to standalone rows. This
 -- comment block exists to keep the audit trail complete.
 -- ─────────────────────────────────────────────────────────
+
+
+-- ─────────────────────────────────────────────────────────
+-- Slice 2.1 (2026-05-05) — Attempt tables
+-- Five new tables: nclex_attempts, nclex_attempt_items,
+-- nclex_attempt_answers, nclex_attempt_case_snapshots,
+-- nclex_attempt_trend_snapshots.
+-- Conservative shape: students SELECT own rows; SUPER_ADMIN
+-- has FOR ALL. No student INSERT/UPDATE/DELETE policies in
+-- this slice — write paths land with the create_attempt RPC
+-- (SECURITY DEFINER) in slice 2.2, bypassing RLS.
+-- Snapshot tables (items, case_snaps, trend_snaps) inherit
+-- ownership via EXISTS-on-parent-attempt, same pattern
+-- nclex_case_study_tabs uses against nclex_case_studies.
+-- attempt_answers has student_id denormalised for fast
+-- direct check (used heavily by analytics).
+-- No tutor read policy yet — tutors getting visibility into
+-- their student's attempts lands with programme assignments
+-- (later slice).
+-- ─────────────────────────────────────────────────────────
+
+ALTER TABLE nclex_attempts                 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE nclex_attempt_items            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE nclex_attempt_answers          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE nclex_attempt_case_snapshots   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE nclex_attempt_trend_snapshots  ENABLE ROW LEVEL SECURITY;
+
+
+-- nclex_attempts: students see own; SUPER_ADMIN sees all
+CREATE POLICY nclex_attempts_self_read ON nclex_attempts FOR SELECT
+  TO authenticated
+  USING (student_id = auth.uid());
+
+CREATE POLICY nclex_attempts_admin_all ON nclex_attempts FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- nclex_attempt_items: visible if the parent attempt is visible
+CREATE POLICY nclex_attempt_items_via_attempt ON nclex_attempt_items FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_attempts a
+      WHERE a.attempt_id = nclex_attempt_items.attempt_id
+        AND a.student_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_attempt_items_admin_all ON nclex_attempt_items FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- nclex_attempt_answers: student_id denormalised for fast direct check
+CREATE POLICY nclex_attempt_answers_self_read ON nclex_attempt_answers FOR SELECT
+  TO authenticated
+  USING (student_id = auth.uid());
+
+CREATE POLICY nclex_attempt_answers_admin_all ON nclex_attempt_answers FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- nclex_attempt_case_snapshots: via parent attempt
+CREATE POLICY nclex_attempt_case_snapshots_via_attempt ON nclex_attempt_case_snapshots FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_attempts a
+      WHERE a.attempt_id = nclex_attempt_case_snapshots.attempt_id
+        AND a.student_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_attempt_case_snapshots_admin_all ON nclex_attempt_case_snapshots FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- nclex_attempt_trend_snapshots: via parent attempt
+CREATE POLICY nclex_attempt_trend_snapshots_via_attempt ON nclex_attempt_trend_snapshots FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_attempts a
+      WHERE a.attempt_id = nclex_attempt_trend_snapshots.attempt_id
+        AND a.student_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_attempt_trend_snapshots_admin_all ON nclex_attempt_trend_snapshots FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));

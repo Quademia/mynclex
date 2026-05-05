@@ -156,7 +156,10 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-05-05 (18 of 20 sections settled across two seed
+  Living planning document. Last updated: 2026-05-05 (§3.2 — "How CAT works" help page path changed from
+  <code>/student/bank/help/cat</code> to <code>/help/cat</code>: top-level, audience-neutral, public. Help is
+  content not workflow; same logic as the runner at <code>/session/[attempt_id]</code>. Earlier same day:
+  18 of 20 sections settled across two seed
   conversations, two extended planning sessions, and one build-handoff session: §1 scope, §2 inheritance,
   §3 honesty constraints, §4 IRT model (Rasch in TypeScript), §5 calibration plan (separate
   <code>difficulty_irt</code> column + weekly batch + 70/30 dampened blend), §6 starting difficulty, §7
@@ -330,8 +333,13 @@
 
 <h3>3.2 The "How CAT works" help page</h3>
 <p>
-  Single page, plain English. Located at <code>/student/bank/help/cat</code> (provisional path; final URL is
-  build-time).
+  Single page, plain English. Located at <code>/help/cat</code> — top-level, audience-neutral, public (no auth
+  gate). Help content reads the same whether a student, tutor, or admin opens it; same logic that put the runner
+  at <code>/session/[attempt_id]</code> rather than nested under an audience folder. Public because help articles
+  are reference material — a subscriber whose payment failed should still be able to reach <code>/help/payments</code>
+  even when they can't reach their dashboard, and a prospective subscriber should be able to read about features
+  before paying. Help articles will live at <code>/help/[slug]</code> as a single audience-neutral surface
+  (<code>/help/cat</code>, <code>/help/payments</code>, etc.) outside the <code>(app)</code> auth boundary.
 </p>
 <p>Five sections:</p>
 <ol>
