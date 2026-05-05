@@ -156,16 +156,16 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-05-04 (16 of 20 sections settled across two seed
-  conversations and one extended planning session: §1 scope, §2 inheritance, §3 honesty constraints,
+  Living planning document. Last updated: 2026-05-05 (17 of 20 sections settled across two seed
+  conversations and two extended planning sessions: §1 scope, §2 inheritance, §3 honesty constraints,
   §4 IRT model (Rasch in TypeScript), §5 calibration plan (separate <code>difficulty_irt</code> column
   + weekly batch + 70/30 dampened blend), §6 starting difficulty, §7 selection rule with category
-  tiebreaker, §8 content blueprint, §9 termination, §11 snapshots, §13 CAT summary page (verdict copy,
-  trajectory graph + per-item marker), §14 review (uses shared runner Review surface), §15 re-take rules,
-  §16 runner UX (current-Q-only progress, no back nav, no live mark-for-review, abandoned on browser-close),
-  §17 calibration capture (one new audit table). Remaining: §10 architecture (deferred — best settled
-  close to build time), §12 final-detail polish (build-time concern), §18 out-of-scope notes,
-  §20 related docs).
+  tiebreaker, §8 content blueprint, §9 termination, §10 architecture (two-RPC flow, pessimistic UI with
+  graceful degradation, atomic transactions, 0–300ms / 3s / 10s latency thresholds), §11 snapshots,
+  §13 CAT summary page (verdict copy, trajectory graph + per-item marker), §14 review (uses shared runner
+  Review surface), §15 re-take rules, §16 runner UX (current-Q-only progress, no back nav, no live
+  mark-for-review, abandoned on browser-close), §17 calibration capture (one new audit table).
+  Remaining: §12 final-detail polish (build-time concern), §18 out-of-scope notes, §20 related docs).
 </div>
 
 <h2>Why this doc exists</h2>
@@ -825,70 +825,74 @@
   as a fail. Captured here for §13.3 when we get there.
 </p>
 
-<h2 id="s10">10. Architecture — the two-RPC flow <span class="status skeleton">skeleton</span></h2>
+<h2 id="s10">10. Architecture — the two-RPC flow <span class="status settled">settled</span></h2>
 <p>
   Per attempt-creation §13 (already settled): CAT does not use the same create-attempt RPC as fixed-length
-  modes. Two RPCs instead.
+  modes. Two RPCs instead. Settled 2026-05-05.
 </p>
 
-<h3>10.1 <code>create_cat_attempt</code></h3>
-<p>Called once, when the student clicks Start Quiz with CAT mode selected.</p>
-<p>Inputs:</p>
-<ul>
-  <li><code>student_id</code> (from session).</li>
-  <li><code>source</code> = CUSTOM_BUILT (CAT is custom-built only in v1; readiness packs and programme activities don't expose CAT).</li>
-  <li>Mode = CAT, Intent = EXAM (validated tuple per attempt-creation §6.1.2).</li>
-</ul>
-<p>The RPC, in one transaction:</p>
-<ol>
-  <li>Validates student access + intent/mode tuple.</li>
-  <li>Inserts a row into <code>nclex_attempts</code> with <code>mode = CAT</code>, status = IN_PROGRESS, intent = EXAM. Initial theta = 0.0 (medium), initial SE = high.</li>
-  <li>Picks the first item by current selection strategy (medium difficulty, eligibility filters per §7).</li>
-  <li>Snapshots that first item into <code>nclex_attempt_items</code>.</li>
-  <li>Returns <code>attempt_id</code> + the first item.</li>
-</ol>
-<p>Frontend hands <code>attempt_id</code> to the runner. Runner mounts at <code>/session/[attempt_id]</code>.</p>
-
-<h3>10.2 <code>cat_next_item</code></h3>
-<p>Called by the runner after each answer submission.</p>
-<p>Inputs:</p>
-<ul>
-  <li><code>attempt_id</code>.</li>
-  <li>Last answer payload (the same payload the runner already writes to <code>nclex_attempt_answers</code>).</li>
-</ul>
-<p>The RPC, in one transaction:</p>
-<ol>
-  <li>Verifies the attempt belongs to the calling student and is still IN_PROGRESS.</li>
-  <li>Scores the just-submitted answer using the existing scoring functions (§3 of <code>bank-marks-and-scoring.html</code>).</li>
-  <li>Updates the running theta and SE estimate based on the new response.</li>
-  <li>Records the per-item theta-at-administration / SE-at-administration on the just-completed <code>nclex_attempt_items</code> row (so we have replay data — §17).</li>
-  <li>Checks termination conditions (§9). If terminating: updates attempt row with verdict / final theta / final SE / termination reason; sets status = COMPLETED or TIMED_OUT; returns the terminate-and-show-result signal.</li>
-  <li>Otherwise: picks the next item per §7 selection strategy, snapshots it into <code>nclex_attempt_items</code>, returns the next item.</li>
-</ol>
-
-<h3>10.3 Where the IRT engine runs</h3>
+<h3>10.1 Transition pattern between questions</h3>
 <p>
-  <strong>Server-side, always.</strong> The engine never runs in the browser. Reasons:
+  <strong>Pessimistic UI with graceful degradation.</strong> The current question stays visible during the wait
+  (dimmed, inputs disabled) — psychologically faster than a blank loading screen even when the wait is identical.
+  Specifically:
 </p>
 <ul>
-  <li>Difficulty parameters are not exposed to the client (preserves test integrity — a student with browser dev tools shouldn't be able to read item difficulties or current theta).</li>
-  <li>Selection logic, eligibility filters, and snapshot writes all live in the same transaction — no round-trips between client and server during item selection.</li>
-  <li>Empirical recalibration (§5) reads response data server-side anyway; keeping the engine server-side means calibration and selection share the same code path.</li>
+  <li><strong>0–300ms after Submit:</strong> current question stays visible, inputs disabled, very subtle fade or shimmer on the question area. No spinner. This is the happy path and will be the experience the vast majority of the time.</li>
+  <li><strong>300ms–3s:</strong> spinner appears in the question area, current question still dimmed underneath.</li>
+  <li><strong>3s+:</strong> "Still loading..." text appears next to the spinner.</li>
+  <li><strong>10s+:</strong> error state with a "Retry" button.</li>
+</ul>
+<p>
+  <strong>Rationale:</strong> pessimistic is the only honest choice for CAT — the engine genuinely has to score
+  before picking the next item, so there's nothing real to optimistically render. Optimistic UI in this context
+  would mean faking content we don't yet have.
+</p>
+
+<h3>10.2 The two RPCs and what each one does</h3>
+
+<p><strong><code>create_cat_attempt(student_id, intent='EXAM', mode='CAT')</code>:</strong></p>
+<ul>
+  <li>Inserts a row into <code>nclex_attempts</code> with starting theta = 0.0, SE at the initial high value, status = IN_PROGRESS.</li>
+  <li>Picks the first item using §7 selection rules (closest to theta = 0.0, category as tiebreaker, eligibility filters).</li>
+  <li>Snapshots the picked item into <code>nclex_attempt_items</code> with <code>cat_theta_before = 0.0</code> and <code>cat_se_before = &lt;initial&gt;</code>.</li>
+  <li>Returns <code>{ attempt_id, first_item_payload }</code>.</li>
 </ul>
 
-<h3>10.4 What the runner sees</h3>
-<p>
-  Runner is mostly the existing fixed-length runner (per <code>bank-consumption-runner.html</code>) — same per-type
-  components, same case/trend rendering (if cases/trends are in scope per §7.4), same answer-changes tracking.
-  The differences are:
-</p>
+<p><strong><code>cat_next_item(attempt_id, last_answer_payload)</code>:</strong></p>
 <ul>
-  <li>No upfront <code>attempt_items</code> list — the runner only knows about the current item plus already-completed items.</li>
-  <li>Submit calls <code>cat_next_item</code> instead of writing directly to <code>nclex_attempt_answers</code> (or it writes to answers AND calls cat_next_item — TBD).</li>
-  <li>No "Q3 of 75" progress indicator (terminating count is unknown). See §16.</li>
-  <li>No per-question feedback during the run (per §2.8).</li>
+  <li>Scores the last answer using the existing per-question scoring functions (reused unchanged from <code>bank-marks-and-scoring.html</code>).</li>
+  <li>Writes the answer into <code>nclex_attempt_answers</code>.</li>
+  <li>Updates theta and SE using Rasch (1PL) update math per §4.</li>
+  <li>Checks termination conditions per §9: if SE ≤ 0.40 and items ≥ 75, OR items = 145, OR time ≥ 4 hours → terminate, write <code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>, return <code>{ status: 'COMPLETE', verdict_payload }</code>.</li>
+  <li>Otherwise: pick next item per §7, snapshot into <code>nclex_attempt_items</code> with the pre-update theta/SE captured in <code>cat_theta_before</code>/<code>cat_se_before</code>, return <code>{ status: 'CONTINUE', next_item_payload }</code>.</li>
 </ul>
-<p>TBD: exact runner-server contract, optimistic-UI vs pessimistic-UI on next-item fetch, error handling on engine failures mid-attempt.</p>
+
+<p>
+  Both RPCs are <strong>atomic</strong> — score + theta update + select + snapshot run in a single transaction.
+  If anything fails, nothing partial gets written.
+</p>
+
+<h3>10.3 Error handling</h3>
+<ul>
+  <li><strong>Network failure on the browser side:</strong> browser auto-retries silently up to 2 times with exponential backoff (1s, 2s) before showing the error UI.</li>
+  <li><strong>RPC throws a server-side error:</strong> browser shows the error UI immediately, no auto-retry (the problem isn't transient).</li>
+  <li>The attempt row is never left in a half-updated state because the RPC is transactional — either the answer is recorded and the next item is snapshotted, or neither happens.</li>
+  <li>If the student gives up after the error UI appears: they can close the browser → status becomes ABANDONED per §16.</li>
+</ul>
+
+<h3>10.4 Why these specific numbers</h3>
+<ul>
+  <li><strong>300ms / 3s / 10s thresholds</strong> sourced from standard UX latency research: under ~400ms feels instantaneous, 1–3s feels like a brief wait, 3s+ requires reassurance, 10s+ requires acknowledgement that something is wrong.</li>
+  <li><strong>2-retry cap</strong> is conservative — fewer than 3 to avoid masking a real outage as a long wait, more than 0 to handle transient Wi-Fi blips.</li>
+</ul>
+
+<h3>10.5 Build-time deferrals (not blocking the plan)</h3>
+<ul>
+  <li>Exact NUMERIC precision on theta/SE columns (lives in §12 polish, not §10).</li>
+  <li><strong>Engine runtime location</strong> — Supabase RPC (PL/pgSQL) vs Edge Function vs Cloudflare Worker. Recommendation: Supabase RPC for v1 because it keeps the transaction atomic and avoids a network hop between scoring, theta update, and item selection. Confirm at build time when we can measure actual Rasch math performance in PL/pgSQL.</li>
+  <li>Exact wording of the error UI ("Connection lost" / "Couldn't load next question" / etc.).</li>
+</ul>
 
 <h2 id="s11">11. Snapshot strategy for CAT <span class="status settled">settled</span></h2>
 <p>
@@ -1411,7 +1415,7 @@
 </ul>
 
 <h2 id="s19">19. Open decisions</h2>
-<p><strong>Settled to date (16 of 20 sections):</strong></p>
+<p><strong>Settled to date (17 of 20 sections):</strong></p>
 <ul>
   <li>§1 — Scope (settled at file creation).</li>
   <li>§2 — Inheritance roundup (settled at file creation).</li>
@@ -1422,6 +1426,7 @@
   <li>§7 — Selection rule: closest difficulty + category as tiebreaker; cases/trends excluded for v1; bank-exhaustion fallback locked (settled 2026-05-04).</li>
   <li>§8 — Content blueprint: tiebreaker only, never overrides difficulty; monitoring logged for curator dashboard (settled 2026-05-04).</li>
   <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 75/145, time limit 4 hours, inconclusive framing (settled 2026-05-04).</li>
+  <li>§10 — Architecture: two-RPC flow (<code>create_cat_attempt</code> + <code>cat_next_item</code>), both atomic transactions; pessimistic UI with graceful degradation (current Q stays visible dimmed; spinner at 300ms; "still loading" at 3s; error+retry at 10s); 2-retry silent backoff on network failure, immediate error on server-side throw; engine runtime location (Supabase RPC vs Edge Function vs Worker) deferred to build time with PL/pgSQL recommendation (settled 2026-05-05).</li>
   <li>§11 — Snapshot strategy: per-question at administration time (settled at file creation).</li>
   <li>§13 — CAT summary page: verdict copy, layout, trajectory graph + per-item marker, separate Readiness card, INCONCLUSIVE = zero weight (settled 2026-05-04).</li>
   <li>§14 — Review state: uses shared runner Review surface, minimal CAT-specific shape, all CAT-specific content lives on the summary page (§13) (settled 2026-05-04).</li>
@@ -1432,7 +1437,6 @@
 
 <p><strong>Carried forward — settle in subsequent planning sessions:</strong></p>
 <ul>
-  <li>§10 — Architecture: runner-server contract details (loading state during next-item fetch, error handling on engine failures, optimistic vs pessimistic UI). Best settled close to build time when engine implementation details are concrete; planning in the abstract risks decisions that don't survive contact with implementation. High-level shape: pessimistic UI (engine has to score before picking next), brief loading state, retry-with-error pattern.</li>
   <li>§12 — Final column names + types + precision (build-time polish; structural decisions all locked above).</li>
 </ul>
 

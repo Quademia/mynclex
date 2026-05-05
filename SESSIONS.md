@@ -6,6 +6,59 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-05 — CAT plan §10 architecture settled
+
+Web-Claude planning session, then doc-edit pass in repo. Picks up the
+last structural section left open from 2026-05-04. CAT plan now at
+**17 of 20 sections settled**.
+
+### `bank-consumption-cat.html` §10 — two-RPC flow
+
+Three settled clusters:
+
+- **Transition pattern (§10.1).** Pessimistic UI with graceful
+  degradation. Current question stays visible dimmed during the wait
+  (psychologically faster than a blank screen even when the wait is
+  identical). Spinner appears at 300ms, "Still loading…" text at 3s,
+  error+retry UI at 10s. Pessimistic is the only honest choice — the
+  engine genuinely has to score before picking the next item, so
+  there's nothing real to optimistically render.
+- **The two RPCs (§10.2).** `create_cat_attempt` and
+  `cat_next_item` both atomic. `cat_next_item` does score → write
+  answer → update theta/SE → check termination → either terminate or
+  pick next item + snapshot, all in one transaction. Pre-update theta
+  and SE are captured in `cat_theta_before` / `cat_se_before` on the
+  newly-snapshotted next item (the row we're about to administer
+  records the ability state at administration time).
+- **Error handling + thresholds (§10.3–§10.4).** Network failure: 2
+  silent retries with exponential backoff (1s, 2s) before showing
+  error UI. Server-side throw: error UI immediately (not transient).
+  Latency thresholds (300ms / 3s / 10s) sourced from standard UX
+  research. Transactional RPC means no half-updated attempt rows on
+  failure.
+
+### Build-time deferrals captured (§10.5)
+
+Three things deliberately left for build time, not blocking the plan:
+NUMERIC precision on theta/SE columns (lives in §12), engine runtime
+location (Supabase RPC recommended for atomic-transaction reasons,
+confirm under measured PL/pgSQL Rasch performance), exact error UI
+copy.
+
+### Doc-meta + §19 housekeeping
+
+Doc-meta date bumped to 2026-05-05 and count bumped to 17 of 20. §19
+moved §10 from "Carried forward" to "Settled to date". Only §12
+final-detail polish remains as a non-build-time open item.
+
+### Remaining deferred sibling-doc edits (unchanged from 2026-05-04)
+
+`main.md`, `CLAUDE.md` Explicit Deferrals, plus backreferences in
+attempt-creation §6.1+§13, runner §18, scoring §11. Listed in
+`bank-consumption-cat.html` §19 footer; not touched in this session.
+
+---
+
 ## Session — 2026-05-04 (continued) — attempt_answers, new scoring sub-plan, runner §1/§2
 
 Pure planning, no application code. Seven commits, all docs-only,
