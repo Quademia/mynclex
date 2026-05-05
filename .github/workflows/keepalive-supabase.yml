@@ -1,0 +1,42 @@
+name: Keep Supabase projects alive
+
+# Supabase pauses free-tier projects after ~7 days of inactivity.
+# This workflow pings each mynclex project's PostgREST root twice a
+# week (Monday + Thursday at 12:00 UTC) so they never reach the
+# threshold. Auth: anon publishable key — no service-role exposure
+# if the GitHub secret ever leaks.
+
+on:
+  schedule:
+    - cron: '0 12 * * 1,4'
+  workflow_dispatch:        # allow manual run from the Actions tab
+
+jobs:
+  ping:
+    name: Ping mynclex Supabase projects
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping all 3 projects
+        env:
+          URL_DEV:  https://xkqxfzfsllxyxpdtcrja.supabase.co
+          URL_PROD: https://dehspjcfmhoshcdtsmjq.supabase.co
+          URL_SEC:  https://csohqkakljdramqauxlq.supabase.co
+          KEY_DEV:  ${{ secrets.SUPABASE_KEEPALIVE_KEY_DEV }}
+          KEY_PROD: ${{ secrets.SUPABASE_KEEPALIVE_KEY_PROD }}
+          KEY_SEC:  ${{ secrets.SUPABASE_KEEPALIVE_KEY_SEC }}
+        run: |
+          set -u
+          fail=0
+          ping_one() {
+            local name=$1 url=$2 key=$3
+            if curl -sSf -H "apikey: $key" "$url/rest/v1/" -o /dev/null; then
+              echo "OK   $name"
+            else
+              echo "FAIL $name"
+              fail=1
+            fi
+          }
+          ping_one dev  "$URL_DEV"  "$KEY_DEV"
+          ping_one prod "$URL_PROD" "$KEY_PROD"
+          ping_one sec  "$URL_SEC"  "$KEY_SEC"
+          exit $fail
