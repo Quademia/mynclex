@@ -876,6 +876,13 @@
   white-space: nowrap;
   width: 1%;
 }
+.auth-list-max {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  width: 1%;
+  white-space: nowrap;
+  padding-right: 16px;
+}
 .auth-list-row-disabled {
   color: var(--text-muted);
   font-size: 12px;
