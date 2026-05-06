@@ -10,12 +10,21 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-06):** slice 2.2 — count + create-attempt RPCs
-> plus the lifecycle pair (mark-started, discard). Five PL/pgSQL functions
-> applied to mynclex-dev across two sub-slices (a + b). Bank-only
-> selection for v1; live count and actual selection share the same
-> eligibility helper so they can never disagree. See `SESSIONS.md` for
-> details. Next pick: `2.3` submit-answer + save-progress RPCs.
+> **Last shipped (2026-05-06):** the entire Builder UI — slice 5.1
+> shipped end-to-end across four sub-slices (a/b/c/d), a tab restructure
+> that moves Intent + Mode in front of Filters, an All-pool-chip
+> semantics fix, and one new RPC `nclex_filter_breakdown` that powers
+> the per-row honest counts on every checkbox + pool chip. Builder is
+> verified end-to-end on standalone-question paths against mynclex-dev:
+> filter → live count → Start → snapshot rows materialise → discard
+> works. Cases + trends will surface naturally once curators publish
+> real content (the helper logic handles them; dev DB has none
+> published yet).
+>
+> **Next pick:** `4.1` runner shell + MCQ vertical slice. Closes the
+> take-the-quiz loop; pulls slices 2.3 (submit-answer) and 2.4
+> (complete-attempt) into the same session — they're best designed
+> alongside their only consumer.
 
 ---
 
@@ -26,8 +35,9 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 - ✅ **2.2** Create-attempt RPCs — applied to mynclex-dev 2026-05-06 in two sub-slices:
   - **2.2a** `_nclex_eligible_unit_pool` (internal helper, single source of truth for "eligible"), `nclex_count_eligible_items` (returns total + by-question-type breakdown JSONB), `nclex_create_attempt` (target-with-drift selection, snapshots into 4 attempt tables, returns attempt_id). Bank source only in v1; tutor support deferred until programme enrolment lands.
   - **2.2b** `nclex_mark_attempt_started` (preflight Start, idempotent), `nclex_discard_attempt` (ABANDONED + hard-delete snapshot rows). Both ownership-checked against auth.uid() with SUPER_ADMIN bypass.
-- ⏭ **2.3** Submit-answer + save-progress — `nclex_submit_answer` RPC (calls the per-type scoring functions already shipped in `lib/scoring/` from slice 2.5), `nclex_save_progress` RPC for STUDY drafts. Scoring math itself lives in `lib/scoring/` and is done; this slice is just the RPC plumbing that calls it.
-- ⬜ **2.4** Complete-attempt + cleanup — `nclex_complete_attempt` (sets `final_score` as item-equivalent average, status COMPLETED), `nclex_timeout_sweep` (flip expired EXAM attempts to TIMED_OUT), `nclex_orphan_cleanup` (flip stale started-NULL rows + zero-engagement STUDY rows). Both sweeps on pg_cron.
+- ⬜ **2.3** Submit-answer + save-progress — `nclex_submit_answer` RPC (calls the per-type scoring functions already shipped in `lib/scoring/` from slice 2.5), `nclex_save_progress` RPC for STUDY drafts. Scoring math itself lives in `lib/scoring/` and is done; this slice is just the RPC plumbing that calls it. **Bundled with 4.1** — designed alongside the runner that calls it, not in isolation.
+- ⬜ **2.4** Complete-attempt + cleanup — `nclex_complete_attempt` (sets `final_score` as item-equivalent average, status COMPLETED), `nclex_timeout_sweep` (flip expired EXAM attempts to TIMED_OUT), `nclex_orphan_cleanup` (flip stale started-NULL rows + zero-engagement STUDY rows). Both sweeps on pg_cron. **`nclex_complete_attempt` bundled with 4.1**; the two sweeps come later as their own small slice.
+- ✅ **2.6** Filter breakdown RPC — `nclex_filter_breakdown(filters)` returning per-axis row counts for the Builder's honest signals. For each of 9 content axes plus the special pool axis, drops that axis's filter from the active set, expands cases to children, groups by the bank-items column. Shipped 2026-05-06 as part of slice 5.1b. Migration `20260506170000_slice_5_1b_filter_breakdown.sql`.
 - ✅ **2.5** Scoring + authoring marks — applied 2026-05-06 in four sub-slices:
   - **2.5a** `lib/scoring/` pure module: 5 scoring functions + `computeMarksFromKey` + `scoreAttempt` + Vitest (40 tests).
   - **2.5b** Marks become system-managed in the editor; backfill migration applied to dev.
@@ -44,7 +54,7 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
 ## Phase C — Runner (smallest visible loop first)
 
-- ⬜ **4.1** Runner shell + MCQ vertical slice — `app/(app)/(focused)/session/[attempt_id]/` route, page container, minimal chrome, MCQ component reading from snapshot tables. End-to-end: seed an attempt manually, render Q1, submit, see right/wrong. **First student-visible thing.**
+- ⏭ **4.1** Runner shell + MCQ vertical slice — `app/(app)/(focused)/session/[attempt_id]/` route (currently a stub from slice 5.1a — replace wholesale), page container, minimal chrome, MCQ component reading from snapshot tables. End-to-end: filter on Builder → Start → preflight → render Q1 → submit → see right/wrong → next. Includes slice 2.3 (`nclex_submit_answer`) and the COMPLETED side of 2.4 (`nclex_complete_attempt`) — those RPCs are designed alongside their consumer here.
 - ⬜ **4.2** Remaining 8 question types — TF, SATA, Select-N, Matrix, Highlight, Cloze, Drag-drop, Bow-tie. Each as a single component with `mode: "answering" | "review"` prop. Reuse the existing authoring-editor previews as the structural starting point.
 - ⬜ **4.3** Case-block UX — case panel (scenario + chart tabs), CJMM step labels, mount/unmount at block boundaries, "Case complete. Continuing…" transition.
 - ⬜ **4.4** Trend question rendering — trend panel (dataset display) alongside each trend question, kind-specific rendering.
@@ -56,11 +66,19 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
 ## Phase D — Builder (the entry point)
 
-- ⬜ **5.1** Builder page UI — `app/(app)/student/bank/practice/`. Intent picker (Study/Exam) → filtered Mode cards, content filters (8 axes, checkboxes), pool filters (6 chips), sticky summary panel with live count + breakdown preview + Start button.
-- ⬜ **5.2** Recent Quizzes — last 3 configurations as one-tap chips above the form.
-- ⬜ **5.3** Weak-spots quick-start — one-tap button that auto-configures + starts a quiz on the student's weakest slices (gated on cold-start threshold).
-- ⬜ **5.4** Unfinished-session banner — "You have an unfinished quiz from [timestamp] — 14 of 25 done" with Resume / Start fresh actions.
-- ⬜ **5.5** Curator tag allowlist — admin UI + table flag marking which tags are student-facing. Only allowlisted tags appear in the builder Tags filter.
+- ✅ **5.1** Builder page UI — `app/(app)/student/bank/practice/` shipped 2026-05-06 across four sub-slices, plus a tab restructure and a bug fix:
+  - **5.1a** Spine — three sections (Pool, Content, Intent+Mode) + sticky summary, wired to `nclex_count_eligible_items` (debounced live count) and `nclex_create_attempt` (Start). Stub `/session/[id]` runner placeholder + Discard button. Smart-link UX for CNC↔Subcategory and Subject↔BodySystem (the Subject↔BodySystem map is hardcoded in `lib/bank/builder/filter-config.ts` — DB doesn't carry it).
+  - **5.1b** Per-row counts — every checkbox row + pool chip carries an honest count of "what you'd get if you ticked this, holding other filters constant." Backed by the new `nclex_filter_breakdown` RPC (slice 2.6).
+  - **5.1d** Tags + Topic + Subtopic axes — the remaining three of the 8 content axes. Server-side fetch of distinct values from the published bank.
+  - **5.1c** Entry helpers — Resume banner, Recent Quizzes shortcut, Practise-my-weak-spots one-tap. Built as shared components in `lib/bank/entry-helpers/` for reuse on the Dashboard later. v1 weak-spots heuristic: `pool=Incorrect`, 25 Q, Study + Untimed Learning. Will be replaced by real weakness analytics in slice 7.x.
+  - **Tab restructure** — Intent + Mode moved to its own tab in front of Filters. Prevents the "fill out filters, then pick CAT, watch them collapse" UX trap.
+  - **All-pool-chip fix** — `All` chip now correctly sends *no pool filter* instead of accidentally AND-restricting to marked items.
+  - Mobile variant **deferred** — desktop-only for now. See 5.1e below.
+- ⬜ **5.1e** Mobile variant — accordion sections + sticky bottom action bar (live count + Start) on ≤720px. Per Claude Design's 390px artboard. Important because audience is phone-first; deferred until the runner exists so we polish a complete pipeline rather than a half one.
+- ✅ **5.2** Recent Quizzes — shipped as part of 5.1c. Top-3 finished attempts as one-tap chips; click restores the saved configuration into the Builder form via `parseFilterPayload`.
+- ✅ **5.3** Weak-spots quick-start — shipped as part of 5.1c. v1 heuristic only (`pool=Incorrect`); replace with real analytics when slice 7.x lands.
+- ✅ **5.4** Unfinished-session banner — shipped as part of 5.1c (Resume banner). Latent until the runner fires `nclex_mark_attempt_started` and writes answers — currently no real students would see it because the runner stub doesn't call those.
+- ⬜ **5.5** Curator tag allowlist — admin UI + table flag marking which tags are student-facing. Only allowlisted tags appear in the builder Tags filter. Currently every distinct published tag surfaces.
 
 ## Phase E — Preflight, results, help
 

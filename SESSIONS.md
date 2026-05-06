@@ -6,6 +6,167 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-06 (build, evening) — Builder UI shipped end-to-end
+
+The big Phase D push. Builder went from a placeholder `<Placeholder/>`
+component to a full working entry point — students can now configure
+a quiz across 6 pool chips + 8 content axes + 5 modes, see honest
+live counts on every row, click Start, and have an attempt with
+fully-snapshotted question rows materialise in the DB.
+
+Shipped slices 5.1a / 5.1b / 5.1d / 5.1c (in that order, not
+alphabetical — 5.1c entry helpers came last because they assume the
+core form is complete), plus a tab restructure that came out of a UX
+discussion mid-build, plus one bug fix on the All-pool-chip semantics.
+Six commits, one new RPC, no schema changes.
+
+### What shipped
+
+- **Slice 5.1a — Practice page spine** (commit `08ee219`). The skeleton:
+  three sections in the main column (Pool / Content / Intent+Mode) +
+  sticky 340px summary panel on the right. Wired to
+  `nclex_count_eligible_items` (debounced 150ms live count) and
+  `nclex_create_attempt` (Start click). Smart-link UX for CNC↔
+  Subcategory and Subject↔BodySystem — rows whose parent isn't
+  selected dim+disable. The Subject↔BodySystem map lives hardcoded
+  in `lib/bank/builder/filter-config.ts` (the DB doesn't carry it).
+  Plus a stub runner page at `(app)/(focused)/session/[id]/` showing
+  attempt details + a Discard button — temporary, gets replaced by
+  the real runner in slice 4.1.
+
+- **Slice 5.1d — Tags / Topic / Subtopic axes** (commit `4c00c31`).
+  Completes the 8-axis content filter set. New server-side fetch
+  `lib/bank/builder/get-filter-options.ts` reads distinct values from
+  the published bank on SSR. No new RPC.
+
+- **Slice 5.1b — per-row counts (honest filter signals)** (commit
+  `3137326`). Every checkbox row in sections 1+2 now shows a small
+  count on the right answering "what would I get if I ticked this,
+  holding my other filters constant." Pool chips get the same
+  treatment. Backed by a new RPC `nclex_filter_breakdown(filters)`
+  that for each of 9 axes drops that axis's filter from the active
+  set and groups the eligible-question count by the axis's value.
+  10 axes total (8 content + by_qtype + by_pool). The drop-self
+  semantics is what makes the count *honest* — sticking
+  Difficulty=Hard doesn't kill the Difficulty row counts (they still
+  report Easy/Medium/Hard), only the OTHER axes narrow.
+
+- **Tab restructure — Intent + Mode in its own tab** (commit
+  `52194b1`). Came out of a UX discussion mid-session: the original
+  page order had Intent+Mode at the bottom, which meant a student
+  could fill out filters, then pick CAT, then watch their work
+  collapse into "doesn't apply in CAT" banners. Reordered into two
+  tabs: `[Intent & Mode]` and `[Filters]`. Default tab on page load
+  is Intent + Mode (the higher-level decision comes first). Pool +
+  Content sections live together in the Filters tab. Sticky summary
+  stays mounted across both tabs. Section number badges (1/2/3) and
+  3a/3b sub-badges removed — non-sequential structure.
+
+- **Bug fix — All pool chip** (commit `7a826f8`). The All shortcut
+  was sending both `pool_history=[UNSEEN,CORRECT,INCORRECT]` AND
+  `pool_marked=true`, which the helper ANDs together — meaning "any
+  state AND marked." With zero marks in dev, count dropped to 0.
+  Fixed `build-filter-payload.ts` to send no pool filter at all when
+  the All chip is on. Individual-chip semantics (Marked + Correct
+  ANDs together) preserved.
+
+- **Slice 5.1c — entry helpers** (commit `84fda9a`). The chrome above
+  the tab strip:
+  - **Resume banner** (warm-amber) — most-recent unfinished STUDY
+    attempt. Resume → `/session/{id}`; Start fresh → discard +
+    dismiss. Currently latent until the runner fires
+    `mark_attempt_started`.
+  - **Recent Quizzes shortcut** — last 3 finished attempts as
+    one-tap chips. Click restores the saved configuration into the
+    Builder form via the new `parseFilterPayload` helper (inverse of
+    `buildFilterPayload`). Latent until quizzes are completed.
+  - **Practise my weak spots** — gradient teal-to-navy 1-tap
+    button. v1 heuristic: `pool=Incorrect`, 25 Q, Study + Untimed
+    Learning. Real weakness analytics arrive in slice 7.x.
+  - All three are presentation-only components in `lib/bank/entry-
+    helpers/`, taking data as props with callbacks for actions.
+    Designed to be reused on the Dashboard later.
+
+### Design decisions locked
+
+1. **Cases sit out when Question Type filter is active.** The other
+   7 content axes apply to cases at the case-level classification.
+   QType filter would either ambush students with mixed-type case
+   blocks or exclude nearly all cases — neither is right.
+2. **Case pool rollups.** Unseen=no child seen, Seen=any child seen,
+   Correct=all 6 most-recent right, Incorrect=any most-recent wrong
+   (per parent §10), Marked=case-level mark OR any child-level mark.
+3. **Pool chip combination semantics.** History chips OR each other;
+   if Marked is on, AND with the history result. The All shortcut
+   means *no pool constraint at all* — distinct from individually
+   ticking the 5 chips.
+4. **Honest row counts via drop-self.** For each axis, the row
+   count is computed by dropping that axis's filter from the active
+   set. Means picking a value never makes its sibling values show 0.
+5. **Components share-first.** Entry helpers built in `lib/bank/
+   entry-helpers/` from day one rather than page-local — they'll be
+   reused on the Dashboard.
+6. **Adopt design as concept not source.** The Claude Design handoff
+   is a hi-fi prototype with mock data and made-up IDs. We adopted
+   the *layout* + interaction patterns + visual language; we use our
+   own DB schema values directly (no translation layer at the RPC
+   seam). The design's "Hot spot" question type became our existing
+   HIGHLIGHT; the design's "Ordered response" + "Chart/Exhibit" types
+   were dropped (we don't have them); TF + SELECT_N (which the
+   design omitted) were added.
+7. **Tabs not stacked.** Intent + Mode lives in its own tab, in
+   front of Filters. Higher-level decision comes first. Prevents
+   the wasted-effort CAT trap.
+8. **Mobile variant deferred.** The Claude Design has a 390px
+   accordion + bottom-action-bar layout. Important (audience is
+   phone-first) but defer-able until we have a complete pipeline
+   to polish.
+
+### Verification
+
+End-to-end smoke tested against mynclex-dev:
+- Land on /student/bank/practice → see Mode tab default with Study
+  + Untimed Learning + Pool=Unseen + count=25.
+- Lower count to 10 (since dev has only 14 standalone items) →
+  Start enables.
+- Click Start → action fires `nclex_create_attempt({pool_history:
+  ['UNSEEN']}, 'UNTIMED_LEARNING', 'STUDY', 10, 'CUSTOM_BUILT')` →
+  receives attempt_id → navigates to `/session/[id]`.
+- DB inspection: 1 attempt row (status IN_PROGRESS, started_at
+  NULL, filters_json present), 10 attempt_items rows (mixed types,
+  all classification + content + correct snapshotted), 0 case
+  snapshots (no eligible cases in dev), 0 trend snapshots, 0
+  answer rows (lazy).
+- Discard via SQL → cascade deleted all child rows.
+
+Tested seeded resumable + recent attempts to verify Resume banner
++ Recent Quizzes row render correctly. Cleaned up after.
+
+Cases + trends couldn't be tested against real eligible content
+(dev DB has none published) but the helper logic was smoke-tested
+on synthetic filter sets back in slice 2.2a.
+
+### What's deferred
+
+- **Mobile variant** (5.1e) — picked up after the runner exists.
+- **Curator tag allowlist** (5.5) — admin-side, separate slice.
+- **Save filter presets** — v2 per planning §17 ("Recent Quizzes
+  covers most v1 use cases").
+- **Per-row counts via materialised view** (slice 7.3) — current
+  inline subquery implementation works, replace later if perf
+  matters.
+
+### Queued for next session
+
+- **Slice 4.1** — runner shell + MCQ vertical slice. Replaces the
+  stub at `(app)/(focused)/session/[attempt_id]/` with: preflight
+  screen → Q1 rendered from snapshot → submit (via
+  `nclex_submit_answer`, slice 2.3) → see right/wrong → next →
+  completion (via `nclex_complete_attempt`, slice 2.4 partial). The
+  biggest "feels like a real product" jump available.
+
+---
+
 ## Session — 2026-05-06 (build, later x2) — Slice 2.2 attempt-creation RPCs
 
 The big slice in Phase A. Five PL/pgSQL functions across two migrations,
