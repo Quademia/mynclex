@@ -1,11 +1,15 @@
-import { Placeholder } from '@/components/nav/shared/placeholder';
+// mynclex/app/(app)/student/bank/practice/page.tsx
+//
+// Practice page — the Builder. Slice 5.1a.
+//
+// Auth boundary is the bank/layout.tsx STUDENT-role check; this page
+// trusts it. The interactive UI lives in <PracticeBuilder/> client
+// component; this server component is just the entry shell.
+
+import { PracticeBuilder } from './practice-builder';
+
+export const dynamic = 'force-dynamic';
 
 export default function BankPracticePage() {
-  return (
-    <Placeholder
-      title="Question Bank"
-      subtitle="Practice NCLEX-RN questions"
-      description="Filters by topic, cognitive level, and NGN type. Start a new set or resume."
-    />
-  );
+  return <PracticeBuilder />;
 }
