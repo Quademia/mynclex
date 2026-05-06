@@ -1,6 +1,6 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-04-30 (added UI Conventions — toasts + confirmation dialogs)
+Last updated: 2026-05-05 (CAT removed from Explicit Deferrals — settled for v1 in `docs/product-plan/bank-consumption-cat.html`)
 
 ## What This Is
 
@@ -211,7 +211,6 @@ slice.
 
 ## Explicit Deferrals (Not v1)
 
-- CAT adaptive testing logic
 - NGN item types (case studies, bow-tie, drag-and-drop, extended multi-response)
 - Public self-serve tutor signup (tutors are manually vetted in v1)
 - Payment splits / marketplace billing between QAcademy and tutors

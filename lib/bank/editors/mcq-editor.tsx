@@ -407,8 +407,10 @@ export function McqEditorBody({
             <TabPanel id="housekeeping">
               <HousekeepingFields
                 mode={initial.mode}
+                questionType="MCQ"
                 defaults={{
-                  marks: initial.marks,
+                  // Per bank-marks-and-scoring §5.2: MCQ max is fixed at 1.
+                  marks: 1,
                   question_ref: initial.question_ref,
                   batch_id: initial.batch_id,
                   is_published: initial.is_published,

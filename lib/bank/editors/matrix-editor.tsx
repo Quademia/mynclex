@@ -467,6 +467,11 @@ export function MatrixEditorBody({
     !allFilledRowsPicked;
   const classificationIncomplete = !category;
 
+  // Live marks for the Housekeeping readout. Per bank-marks-and-scoring §5.2:
+  // MATRIX max = count of rows with an assigned correct column. Mirrors the
+  // parser's `cells` build (only filled rows with a valid pick survive).
+  const liveMarks = filledRows.filter((r) => correct[r.id]).length;
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
@@ -561,8 +566,9 @@ export function MatrixEditorBody({
             <TabPanel id="housekeeping">
               <HousekeepingFields
                 mode={initial.mode}
+                questionType="MATRIX"
                 defaults={{
-                  marks: initial.marks,
+                  marks: liveMarks,
                   question_ref: initial.question_ref,
                   batch_id: initial.batch_id,
                   is_published: initial.is_published,

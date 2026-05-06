@@ -211,6 +211,7 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
     difficulty:     r.difficulty,
     is_published:   r.is_published,
     is_free_sample: r.is_free_sample,
+    marks:          r.marks ?? 1,
     parent_case_id: r.parent_case_id,
     case_title:     r.case?.title ?? null,
     trend_id:       r.trend_id,

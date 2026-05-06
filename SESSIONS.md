@@ -6,6 +6,931 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-06 (build) — Slice 2.5 scoring + marks-in-authoring + dead-RPC cleanup
+
+Continuation of the build phase. Closed the §5/§9 deferred decisions in
+`bank-marks-and-scoring.html`, shipped four sub-slices that turn marks
+into a system-managed value end-to-end, applied the corresponding
+backfill to dev, and ran a separate hygiene pass to drop 7 dead
+case-save / trend-save RPCs that have had no callers since the wrapper
+flows moved to direct CRUD. Six commits plus two dev-DB migrations via
+the Supabase MCP.
+
+### What shipped
+
+- **Slice 2.5a — `lib/scoring/` pure scoring module.** Commit `8f966ef`.
+  Five scoring functions per `bank-marks-and-scoring.html` §3
+  (`scoreAllOrNothing`, `scorePlusMinus`, `scorePerRow`, `scorePerBlank`,
+  `scorePerSlot`). Two dispatchers: `computeMarksFromKey` for the editor
+  side and `scoreAttempt` for the runner side. `BankItemAnswer` wire
+  shapes per question type. Pure TS, no DB calls, deterministic. Lives
+  at `lib/scoring/` (lib root, not under `lib/bank/`) per §8 — scoring
+  is consumed across authoring, runner, aggregation, and analytics, not
+  bank-specific. **Vitest** added as a devDependency; 40 unit tests
+  cover every type and the §6 edge cases settled inline (SATA zero
+  picks, drag-drop unplaced slots, bow-tie blank wing, +/− gaming
+  defence, full-credit-only `is_correct`).
+- **Slice 2.5b — marks become system-managed in the editor.** Commit
+  `0b3d084`. Removed the free-form Marks number input from
+  `lib/bank/atoms/housekeeping-fields.tsx`; replaced with a read-only
+  "Max possible score" readout that takes a new `questionType` prop.
+  Save action `lib/bank/actions/save-question.ts` now derives `marks`
+  via `computeMarksFromKey(question_type, parsed.correct)` instead of
+  reading `formData.get('marks')`. All 9 editors updated to pass
+  `questionType`. `db/schema.sql` comments note the new semantics.
+  New CSS class `.auth-readonly-value`.
+- **Slice 2.5c — live readout.** Commit `86bd41d`. After Sam observed
+  the readout stuck at "Max: 1" while editing a never-saved SATA, each
+  editor now derives `liveMarks` from its in-memory answer-key state
+  and feeds it to Housekeeping. Fixed types pass constants
+  (`MCQ`/`TF`=1, `BOWTIE`=5); variable types compute from state
+  (`correctIds.size`, `filledRows.filter(...).length`,
+  `summary.correct`, `activeBlanks.length`, `summary.activeSlotCount`).
+  Each derivation mirrors `computeMarksFromKey`'s save-time formula;
+  inline comments cite §5.2.
+- **Slice 2.5d — Max column on bank list pages.** Commit `4a6186c`.
+  `BankListRowSummary` gains `marks: number`; admin and tutor
+  `/bank/all` pages pass `r.marks ?? 1`. New `Max` column between
+  Difficulty and Status in `lib/bank/bank-list-client.tsx`,
+  right-aligned with tabular-nums via new `.auth-list-max` class.
+  Closes the §9 deferred decision.
+- **Dead-RPC cleanup.** Commit `fcfd7a9`. `nclex_save_case_with_children`
+  (slice 1.11b), `nclex_save_trend_with_children` /
+  `nclex_tutor_save_trend_with_children` (slice 1.12b),
+  `nclex_detach_and_delete_trend` / `nclex_delete_trend_and_children`
+  and tutor variants (slice 1.12c) — all 7 had no callers since the
+  case-study and trend wrappers moved to direct CRUD. Migration
+  `20260506130000_drop_dead_case_trend_rpcs.sql` DROPs them
+  `IF EXISTS`; `db/rpcs.sql` (823 lines) deleted entirely; `db/README.md`
+  updated to drop the bootstrap step 3 reference and explain when to
+  recreate the file.
+
+### Migrations applied to dev (via Supabase MCP)
+
+- `20260506120000_slice_2_5b_marks_system_managed_backfill.sql` — one
+  CASE-per-question_type UPDATE on `nclex_bank_items` and
+  `nclex_tutor_questions`. Before: every row at `marks = 1` (except 4
+  hand-set SELECT_N rows up to 3). After: BOWTIE=5 across the board,
+  CLOZE/SATA/MATRIX/etc. ranged 2–6 per the answer-key shape.
+- `20260506130000_drop_dead_case_trend_rpcs.sql` — verified all 7
+  function names absent from `pg_proc` post-apply.
+
+Both will run automatically on prod via `migrate-prod.yml` on the next
+push to the `prod` branch. Prod tables are still empty so the marks
+backfill is a no-op there.
+
+### Decisions locked this slice
+
+- **§5.4 curator override** — no override for v1. System-managed only.
+  Doc's three candidate override shapes (multiplier, tutor-only,
+  capped) recorded for v2+ if a real complaint ever surfaces.
+- **§9 wording** — refined slightly from the doc's example. Use
+  "count of correct options ticked" / "count of rows" / etc. instead
+  of "from N correct options" because the rule-describing form stays
+  honest on never-saved questions where the persisted value is still
+  the column default.
+- **§9 bank-list `Max` column** — yes, single column for every type
+  (not partial-credit-only). Header tooltip explains it's
+  system-derived.
+- **§10 backfill** — one-shot UPDATE migration (chosen over
+  lazy-via-editor). Idempotent CASE expression, runs on both bank
+  tables, `WHERE correct IS NOT NULL`.
+- **Test runner** — Vitest. Standard for Next.js apps, friendlier
+  `expect` API than `node:test`. One devDependency.
+- **Scoring function signature** — dropped `content` from the doc's
+  proposed `(question_type, content, correct, answer)`. None of the 9
+  types' scoring math actually needs `content` — `correct` carries
+  the rubric. Cleaner: `(question_type, correct, answer)`.
+- **Bow-tie scoring path** — inlined in `dispatch.ts` rather than a
+  6th public scoring function, since its array+scalar wing shape
+  doesn't fit `scorePerSlot`'s Record signature. Same per-element
+  math conceptually, separate code path.
+
+### Memory + build-list housekeeping
+
+- The previous build-phase memory note claimed `BUILD_LIST.md` exists
+  at the repo root. It didn't — never made it into git history.
+  Sam supplied the original contents; saved as `BUILD_LIST.md` and
+  updated to mark slice 2.5 ✅, move ⏭ to 2.1.5, and trim 2.3's body
+  to "RPC plumbing that calls existing scoring".
+
+### NOT done in this session
+
+- **`scoreAttempt` has no caller yet.** It's ready for the runner
+  build but waits for a runner UI to call it.
+- **Prod migrations not applied at session start.** Both dev migrations
+  (marks backfill, dead-RPC drop) are committed; both will run when
+  main is merged into the `prod` branch.
+- **Seed file values not updated.** Multi-correct rows in
+  `db/seed-bank-dev.sql` etc. still embed `marks: 1`. The dev DB is
+  correct because the backfill ran after seeding. If anyone reseeds
+  a fresh dev DB, re-run the backfill migration to restore correctness.
+
+### Carried forward — execution slices
+
+- **Slice 2.1.5 — marking table.** ⏭ Next per BUILD_LIST.md. Tiny
+  slice; needs a 5-min design pass on column shape (case-level vs
+  child-level marks, unique key when both can mark the same row)
+  before writing the migration.
+- **Slice 2.2 — `create_attempt` RPC + friends.** Plan fully written
+  in `docs/product-plan/bank-consumption-attempt-creation.html`.
+  Builds on slice 2.1 attempt tables; `scoreAttempt` from slice 2.5
+  is one of the consumers downstream once the runner submits answers.
+- **Slice 2.3 — submit-answer RPC.** Now narrower than originally
+  planned: scoring functions already exist in `lib/scoring/`, so this
+  slice is pure RPC plumbing that calls them.
+
+---
+
+## Session — 2026-05-05 (continued, build) — Slice 2.1 attempt tables applied to dev
+
+First build slice of bank consumption. Read all four planning docs end to
+end (`bank-consumption.html`, `-attempt-creation.html`, `-runner.html`,
+`-cat.html`), confirmed the base attempt tables didn't exist yet, then
+applied the foundation migration to `mynclex-dev` via Supabase MCP. CAT
+column additions (§12.7 of cat.html) and the mark-for-review table are
+deferred to their own slices on top of this foundation.
+
+### Migration applied: `20260505120000_slice_2_1_attempt_tables`
+
+Five tables, applied successfully to dev. Verified with `pg_class` (5
+tables, RLS on, 2 policies each) and `pg_constraint` (22 named CHECK
+constraints including the four custom-named ones).
+
+- `nclex_attempts` — one row per quiz session. Columns from
+  attempt-creation §6.1 (identity / source / configuration / lifecycle /
+  counts / final_score). UUID v4 PK. `(intent, mode)` tuple CHECK rejects
+  the 2 invalid combinations server-side. `source_refs` CHECK enforces
+  exactly one source-reference column populated per `source` value.
+- `nclex_attempt_case_snapshots` — composite PK `(attempt_id, case_id)`.
+  Snapshot once per case per attempt. Created BEFORE items because items
+  has a composite FK to it.
+- `nclex_attempt_trend_snapshots` — composite PK `(attempt_id, trend_id)`.
+  Same shape and reasoning.
+- `nclex_attempt_items` — UUID PK + composite FKs to both snapshot tables
+  (nullable parts skip the check, so standalones are fine). Snapshot
+  columns split: granular for queryable fields (stem / instruction /
+  rationale / marks / classification JSONB), polymorphic blobs for
+  `content_snapshot_json` and `correct_answer_snapshot_json`. CHECK
+  constraints enforce tutor_id consistency with item_source and
+  case-wrapper all-or-nothing.
+- `nclex_attempt_answers` — lazy insert on first interaction. Denormalised
+  `student_id` + `attempt_id` for analytics speed. UNIQUE on
+  `attempt_item_id` (one answer row per item). `submission_status` enum
+  has DRAFT / SUBMITTED / AUTO_SUBMITTED / SKIPPED.
+
+### Decisions locked this slice
+
+- **UUID v4** for attempt PKs (`gen_random_uuid()`). v7 deferred — cursor
+  pagination on History isn't a real concern yet, and v4 needs no
+  extension.
+- **`final_score` IS in this slice** (lifecycle column, not CAT-specific).
+  CHECK enforces 0..1 range.
+- **CAT result columns NOT in this slice** — they live with the §12.7
+  CAT package (column types and CHECKs already specced there).
+- **Mark-for-review table NOT in this slice** — its column shape isn't
+  specified in any planning doc. Deferred to its own micro-slice after
+  a 5-min design pass.
+- **`programme_activity_id` is TEXT with no FK** — `nclex_programme_activities`
+  doesn't exist yet. Same forward-ref pattern slice 1.11b used for
+  `parent_case_id`. FK lands when programme tables arrive.
+- **RLS conservative**: SELECT own + SUPER_ADMIN bypass. No student
+  INSERT/UPDATE/DELETE policies — write paths come via the
+  `create_attempt` RPC (SECURITY DEFINER) in slice 2.2.
+
+### Back-port
+
+- `db/schema.sql` — appended Slice 2.1 block with full table definitions,
+  indexes, FKs, CHECK constraints (numbered tables 13–17 in section
+  comments).
+- `db/rls.sql` — appended Slice 2.1 block with all 10 policies (2 per
+  table) and reasoning callout.
+
+### Doc updates
+
+- `docs/product-plan/bank-consumption-cat.html` §3.2 — "How CAT works"
+  help page path moved from `/student/bank/help/cat` to `/help/cat`
+  (top-level, audience-neutral, public — same logic that put the runner
+  at `/session/[attempt_id]`). Help content reads the same regardless of
+  audience; locking it inside the auth boundary blocks support paths
+  like `/help/payments` for users whose payment failed.
+
+### NOT done in this session
+
+- **Not applied to prod** — Sam-gated. dev sign-off required first.
+- **No RPCs yet** — `create_attempt` is slice 2.2.
+- **No client code yet** — UI slices come after RPCs.
+- **CLONING.md not updated** — schema-only change; will batch the
+  CLONING entry with the next slice that touches connection/setup.
+
+### Carried forward — execution slices
+
+- **Slice 2.2** — `create_attempt` RPC (one transaction: validate →
+  build pool → select → expand → snapshot → return attempt_id) +
+  `count_eligible_items` RPC for the builder live count. Per-question
+  scoring functions probably belong here too.
+- **Slice 2.3 (or merge into CAT)** — apply the §12.7 CAT schema package
+  on top of these foundation tables. Sam-gated before prod.
+- **Mark-for-review micro-slice** — design column shape (case-level + child-
+  level marks; what's the unique key when both can mark the same row?),
+  then add the table.
+- **Runner shell** — once the RPCs exist, build the smallest student-
+  visible vertical slice (one MCQ end-to-end).
+
+---
+
+## Session — 2026-05-05 (continued) — CAT schema build-handoff added
+
+Web-Claude build-handoff session, then doc-add pass in repo. Turned the
+§12 / §17 planning sketches into a build-ready migration package. CAT
+plan now at **18 of 20 sections settled**.
+
+### `bank-consumption-cat.html` §12.7 — Build handoff package
+
+New subsection inside §12 covering the concrete migration spec for
+applying CAT schema to dev. Ten steps:
+
+- Step 1: `nclex_bank_items` gets `difficulty_irt` NUMERIC + `difficulty_source` TEXT (CHECK CURATOR_LABEL/EMPIRICAL, default CURATOR_LABEL); seed from existing TEXT difficulty (Easy → −1.0, Medium → 0.0, Hard → +1.0).
+- Step 2: `nclex_tutor_questions` gets the same two columns for v2 parity. Recalibration won't run against the tutor table in v1, but schema parity preserves the option.
+- Step 3: `nclex_attempts` gets 5 nullable CAT columns (`cat_verdict`, `cat_final_theta`, `cat_final_se`, `cat_termination_reason`, `cat_items_administered`). `final_score` stays NULL for CAT.
+- Step 4: `nclex_attempt_items` gets 4 nullable CAT columns (`cat_theta_before`, `cat_se_before`, `cat_item_difficulty`, `cat_item_difficulty_source`). Difficulty + source snapshotted at pick time so recalibration can't rewrite history.
+- Step 5: New audit table `nclex_bank_item_calibration_history` with UUID PK, FK to `nclex_bank_items(id)` ON DELETE CASCADE, indexes on `bank_item_id` and `recalibrated_at`.
+- Step 6: RPC stubs `create_cat_attempt(p_student_id, p_intent, p_mode)` and `cat_next_item(p_attempt_id, p_last_answer_payload)` — signatures locked, bodies just `RAISE EXCEPTION 'not yet implemented'`. SECURITY DEFINER + grants happen when bodies land.
+- Step 7: No new RLS on existing tables (inherit). Audit table gets admin-only SELECT/INSERT.
+- Step 8: Verification queries (psql `\d` + sample SELECT for seeded rows + `pg_proc` lookup for the stubs).
+- Step 9: Rollback SQL alongside the migration — drops in reverse dependency order.
+- Step 10: Post-apply checklist (spot-check seeding on 5 random Q per difficulty, SESSIONS update, CLONING update, **do not apply to prod yet**).
+
+### Two divergences from earlier sketches — §12.7.11 alignment notes
+
+Captured rather than rewritten so the planning-level sketches stay
+traceable:
+
+- **Termination reasons** collapsed from 5 (`CONFIDENCE_PASS` /
+  `CONFIDENCE_FAIL` / `MAX_ITEMS_INCONCLUSIVE` / `TIME` / `ABANDONED`)
+  to 4 (`CONFIDENCE_REACHED` / `MAX_ITEMS_HIT` / `TIME_LIMIT_HIT` /
+  `ABANDONED`). Pass/fail at termination is recoverable from
+  `cat_verdict`; storing it twice creates two sources of truth.
+  Suffixes also shifted from verdict-shaped to event-shaped (what
+  triggered termination, not whether the student passed).
+- **Audit-table column names** rationalised. `bank_item_id` UUID with
+  FK + ON DELETE CASCADE replaces `item_id` TEXT (orphan prevention).
+  `previous_difficulty_irt` / `new_difficulty_irt` replaces generic
+  `previous_value` / `new_value` (self-documenting). Single
+  `recalibration_job_run_id` replaces `job_trigger` +
+  `job_triggered_by` pair. Dropped `raw_empirical_value` (recoverable).
+
+### Doc-meta + §19 housekeeping
+
+Doc-meta date stays 2026-05-05 (same calendar day, second session);
+count bumped to 18 of 20. §19 §12 moved from "Carried forward" to
+"Settled to date". Carried-forward block reframed: nothing remains at
+planning level — only execution work (apply migration to dev, fill RPC
+bodies with Rasch math, build the recalibration job).
+
+### NOT done in this session
+
+- Migration **not yet applied** to dev. The §12.7 spec is the build
+  handoff for a future build slice. SESSIONS will get a separate
+  "applied to dev" entry when the migration actually runs against the
+  Supabase MCP.
+- `CLONING.md` not yet updated — that update belongs with the apply
+  step.
+
+### Carried forward — execution slices
+
+- **CAT schema migration apply** — Supabase MCP to `mynclex-dev`,
+  spot-check seeding, then SESSIONS + CLONING update + commit.
+  Sam-gated before prod runs.
+- **CAT engine build slice** — fill `create_cat_attempt` and
+  `cat_next_item` bodies with real Rasch math (per §10.2 + §4).
+  Separate session.
+- **Empirical recalibration job** — schedule, runtime location,
+  actual calibration code. Specced in §5 / §17 / §10.5; build slice
+  TBD.
+
+---
+
+## Session — 2026-05-05 — CAT plan §10 architecture settled
+
+Web-Claude planning session, then doc-edit pass in repo. Picks up the
+last structural section left open from 2026-05-04. CAT plan now at
+**17 of 20 sections settled**.
+
+### `bank-consumption-cat.html` §10 — two-RPC flow
+
+Three settled clusters:
+
+- **Transition pattern (§10.1).** Pessimistic UI with graceful
+  degradation. Current question stays visible dimmed during the wait
+  (psychologically faster than a blank screen even when the wait is
+  identical). Spinner appears at 300ms, "Still loading…" text at 3s,
+  error+retry UI at 10s. Pessimistic is the only honest choice — the
+  engine genuinely has to score before picking the next item, so
+  there's nothing real to optimistically render.
+- **The two RPCs (§10.2).** `create_cat_attempt` and
+  `cat_next_item` both atomic. `cat_next_item` does score → write
+  answer → update theta/SE → check termination → either terminate or
+  pick next item + snapshot, all in one transaction. Pre-update theta
+  and SE are captured in `cat_theta_before` / `cat_se_before` on the
+  newly-snapshotted next item (the row we're about to administer
+  records the ability state at administration time).
+- **Error handling + thresholds (§10.3–§10.4).** Network failure: 2
+  silent retries with exponential backoff (1s, 2s) before showing
+  error UI. Server-side throw: error UI immediately (not transient).
+  Latency thresholds (300ms / 3s / 10s) sourced from standard UX
+  research. Transactional RPC means no half-updated attempt rows on
+  failure.
+
+### Build-time deferrals captured (§10.5)
+
+Three things deliberately left for build time, not blocking the plan:
+NUMERIC precision on theta/SE columns (lives in §12), engine runtime
+location (Supabase RPC recommended for atomic-transaction reasons,
+confirm under measured PL/pgSQL Rasch performance), exact error UI
+copy.
+
+### Doc-meta + §19 housekeeping
+
+Doc-meta date bumped to 2026-05-05 and count bumped to 17 of 20. §19
+moved §10 from "Carried forward" to "Settled to date". Only §12
+final-detail polish remains as a non-build-time open item.
+
+### Remaining deferred sibling-doc edits (unchanged from 2026-05-04)
+
+`main.md`, `CLAUDE.md` Explicit Deferrals, plus backreferences in
+attempt-creation §6.1+§13, runner §18, scoring §11. Listed in
+`bank-consumption-cat.html` §19 footer; not touched in this session.
+
+---
+
+## Session — 2026-05-04 (continued) — attempt_answers, new scoring sub-plan, runner §1/§2
+
+Pure planning, no application code. Seven commits, all docs-only,
+pushed direct to main. Picked up from the queue left by the earlier
+2026-05-04 session below.
+
+### `nclex_attempt_answers` column-list refinement (§6.3)
+
+Walked Q1–Q6 one at a time against the analytics intent (parent §5),
+the NCSBN scoring functions (`bank.md` §scoring), the runner
+save-progress / submit paths, and the attempt-creation lifecycle.
+
+Six decisions baked in:
+
+- **4-state `submission_status` enum** — DRAFT / SUBMITTED /
+  AUTO_SUBMITTED / SKIPPED. DISCARDED dropped — mid-case
+  auto-discard doesn't apply in the intent-split world; explicit
+  student discard is hard-delete. Parent §10 rule 1 marked
+  SUPERSEDED.
+- **`answer_changes_json` = full event log**, not counts
+  (`{at, from, to}` per material change). Counts derive from log;
+  log unlocks future toggle-timing analytics without losing data.
+- **Single `created_at`** = first-interaction time. No separate
+  `first_interaction_at` — read-time analytics aren't on the v1
+  plan; runner can compute later if needed.
+- **`time_spent_sec` stored explicitly**, runner-computed. Postgres
+  can't derive: STUDY engagement-clock pauses + free-nav multi-visit
+  summation both rule out wall-clock subtraction. Mode caveat: only
+  meaningful for sequential/CAT modes; analytics layer filters.
+- **UUID `answer_id` PK** — matches schema convention; clean
+  cross-table reference target.
+- **`max_score` lives on items snapshot** (`marks_snapshot`), not
+  here. Mark-for-review goes to its own table (cross-attempt
+  persistence per parent §10).
+
+### Parent §10 supersession marker
+
+Mid-case auto-discard rule pre-dated the STUDY/EXAM intent split.
+Now stale: STUDY is resumable (children persist between sessions),
+EXAM times out to AUTO_SUBMITTED rather than abandoning. Original
+rule preserved in git; flagged for a fresh design pass on
+case-level history-state under intent semantics. First marker pass
+was bloated — replaced with a single-line note matching rules 2
+and 3.
+
+### New: `docs/product-plan/bank-marks-and-scoring.html`
+
+Initial sub-plan for marks + scoring. ~700 lines after the day's
+refinements. Sibling to the other bank-consumption-* sub-plans.
+
+**§2 NCSBN scoring landscape captured.** Three NGN rules:
+dichotomous (0/1), +/− polytomous with floor, 0/1-per-element.
+NCSBN does not expose per-item "marks" — items contribute via IRT
+difficulty, not human-set points.
+
+**§5 Marks — derived, system-managed.** Sam pushed back on my
+"drop the column" position with a real architectural insight: the
+column should stay, but the editor computes the value at save
+time. Adopted. Curator visibility preserved (read-only display
+showing "Max: 4 — from 4 correct options"); single write path
+through the editor; runtime never re-derives. Schema column stays;
+semantics shift from curator-settable to editor-computed
+system-managed.
+
+**§4 Per-type rule mapping settled across all 9 types** — walked
+each type against its parser in `lib/bank/parsers/`. Locks:
+
+- MCQ, TF: dichotomous, max 1
+- SATA: +/− with floor, max = count of correct
+- SELECT_N: +/− like SATA; editor enforces `N == count(correct)`
+  so there's no separate "N" curator field
+- MATRIX: 0/1 per row, max = row count. Single-response only;
+  multi-response variant deferred to v2 (matrix-row-mapper.ts +
+  matrix.ts confirm we only support one column per row)
+- HIGHLIGHT: +/− with floor, max = count of correct chunks. Parser
+  already enforces ≥1 distractor
+- CLOZE: 0/1 per blank, max = blank count. Simple drop-down only;
+  cause-effect (paired) variant deferred to v2
+- DRAG_DROP: 0/1 per slot, max = active slot count. Two subtypes
+  (ORDERED, SENTENCE) share scoring math
+- BOWTIE: per-wing 0/1 tally summed; max 5 fixed (parser enforces
+  exactly 2/1/2 correct). No +/−, no floor — UI constraint
+  (2/1/2 picks per wing) already prevents the gaming +/−
+  defends against. Per-wing sub-scores are recoverable from
+  snapshot for future analytics
+
+**§5.5 cross-cutting policy: `is_correct` = full credit only.**
+The student's `score_awarded` is partial; `is_correct` is the
+strict verdict. Drives the 4-state per-question history (parent
+§10) — partial-credit attempts land as Seen-incorrect, not
+Seen-correct. Cascades to all partial-credit types.
+
+**§7 Session aggregation settled — show all three numbers,
+item-equivalent canonical.** Worked-example: a 5-question quiz
+where the three methods give 40% / 75% / 77.7%. Decision:
+- **Items-correct ratio** (count of fully-correct items) — shown
+  as supplementary
+- **Total points ratio** (sum of points / sum of max) — shown as
+  supplementary
+- **Item-equivalent average** (each item normalised to 0..1, then
+  averaged) — **headline**, stored canonically as
+  `nclex_attempts.final_score` NUMERIC 0..1
+
+Item-equivalent wins on (a) each question contributes equally —
+bow-tie's 5 points is a scoring mechanism not a valuing one,
+(b) most NCSBN-aligned (matches IRT's "one observation per item"
+shape), (c) cleanest input to Readiness Signal calculation.
+
+**§5.4 curator override** parked — deferred to build, default
+during build = no override. Real tutor-vs-authenticity tension
+captured but no resolution forced now.
+
+**§8 code location settled** — `lib/scoring/` at the lib root
+(not `lib/bank/scoring/`). Scoring is consumed by editor +
+runner + aggregation + analytics — domain-cross-cutting, not
+bank-specific.
+
+**§10 migration settled** — manual backfill for existing rows
+(one-shot UPDATE recomputing from `correct` + `question_type`);
+future rows correct-by-construction via editor save handler.
+No PL/pgSQL trigger in v1.
+
+**§9 editor UI deferred to build** — but architecturally, marks
+display lives under the editor's existing "Housekeeping" section
+(which already holds admin metadata like shuffle, batch_id,
+question_ref). Housekeeping detects question type and applies
+the per-type rule; curator sees a read-only computed field.
+
+**§6 edge cases deferred to per-case at build.** Most cases
+already settled inline during the §4 per-type passes (SATA with
+0 selections, drag-drop unplaced tokens, bow-tie partial wings,
+etc.); rest decided when the relevant code is written.
+
+**§11 Deferred to v2+:** multi-response matrix, cause-effect
+(paired) cloze, IRT calibration, CAT-specific scoring, per-wing
+bow-tie sub-score storage.
+
+### bank.md cleanup
+
+`scorePerSlot` row in the function-dispatch table was wrong —
+described as "+/− per slot, sum with floor" but our v1 drag-drop
+is single-token-per-slot and bow-tie is 2/1/2-constrained per
+wing. Both are 0/1, no floor needed. Updated to match. Paired
+cloze line annotated as deferred-not-built; multi-response
+matrix called out alongside.
+
+### Runner §1 + §2 settled — `bank-consumption-runner.html`
+
+Picked up the runner doc skeleton (drafted in the earlier
+2026-05-04 session). §1 Scope confirmed; §2 Architecture broken
+into five sub-decisions and locked one at a time.
+
+**§2.1 Route: `/session/[attempt_id]`** in a Next.js
+`(focused)` route group. Audience-neutral — not under
+`/student/` because the runner is invoked by all three
+audiences (student takes quiz, tutor previews, admin QAs).
+"Session" picked over "runner" / "quiz" / "attempt" because
+it matches parent §15 vocabulary (Source / Mode / **Session
+State**) and works for both live AND review variants. Mode
+(live vs review) derived from `nclex_attempts.status`, not URL.
+
+**§2.2 Component shape — six block categories.** Page-level
+container; chrome (topbar / timer / progress / nav); question
+rendering (Question Area + 9 per-type components); wrapper
+panels (case + trend) for the two-sided layout; submit/feedback;
+modals/overlays. Per-type components: **single component per
+type with `mode` prop** ("answering" | "review"); 9 components,
+not 18. Per-element feedback decorations fold INTO each per-type
+component (per-option indicators, per-row markers, per-blank
+reveals) since only the type knows where to render them.
+Rationale (text + image) is a shared sub-component rendered by
+the page container.
+
+**§2.3 Data flow — pure reader of the 5 snapshot tables.** All
+rows already exist by the time the runner page loads (created
+in the create-attempt transaction). Writes only to
+`nclex_attempt_answers` + `nclex_attempts.status` /
+`last_activity_at`. **§2.3.1 Pillar 2 protection:** live-mode
+client never receives `correct_answer_snapshot_json` or
+rationale fields for upcoming questions; submit RPC returns
+those for the just-submitted question only; review-mode RPC
+returns the full keys.
+
+**§2.4 Local state** mostly inherited from earlier docs (DRAFT
+writes in STUDY only per §6.1.2; mark-for-review writes
+immediately to its own table per §6.3.4). Core principle: in
+STUDY client memory is a cache of server state; in EXAM it's
+authoritative for in-progress (no drafts) but doesn't matter
+because EXAM is single-sitting.
+
+**§2.5 Reuse** — each authoring editor's "preview" rendering
+becomes the structural starting point for the runner's per-type
+component. Lift = "copy rendering, swap data source, add mode
+prop." Implementation guidance, not a planning decision.
+
+Implementation specifics (single RPC vs parallel SELECTs,
+debounce timing, exact submit response shape, route-group
+chrome details) deferred to build.
+
+### Schema ripples
+
+- `nclex_attempts.final_score` NUMERIC 0..1 — added to §6.1
+  Result group of attempt-creation doc. Set on COMPLETED /
+  TIMED_OUT, NULL while IN_PROGRESS.
+- `nclex_bank_items.marks` and `nclex_tutor_questions.marks`
+  semantically shift from curator-settable to system-managed
+  (the column stays; the editor save handler computes it from
+  `correct` + `question_type`). Migration plan settled (§10 of
+  scoring doc).
+
+### Commits
+
+- `688ed84` — §6.3 attempt_answers column-list refinement
+- `29fdbce` — §10 supersession marker (bank-consumption.html)
+- `ed41229` — §10 marker formatting fix (single-line)
+- `76946eb` — bank-marks-and-scoring per-type rules + bank.md
+  cleanup
+- `c62e1bb` — §7 aggregation + `final_score` ripple
+- `175893e` — scoring §5.4 / §6 / §8 / §9 / §10 closed out
+- `7177ba1` — runner §1 + §2 settled
+
+### Open / queued
+
+- **Runner §3–§17** — meaty work ahead. Page lifecycle,
+  per-mode matrix, per-type rendering (9 sub-sections), case-block
+  UX, trend rendering, timer, save-progress, submission, scoring
+  cross-ref, feedback timing, answer-changes write path,
+  mark-for-review UI, navigation, discard, review state.
+- **§6.4 / §6.5** of attempt-creation — case + trend snapshot
+  refinement, same treatment as §6.2.
+- **Case-level history-state under intent split** — the parent
+  §10 rule 1 rewrite (flagged when we marked the original as
+  SUPERSEDED).
+- **Parent §15 follow-up** — mode-list intent annotations,
+  "Resume restricted to STUDY" rewording, ABANDONED can be
+  student-driven note.
+- **CAT planning** (parent §16) — separate big topic.
+- **Dashboard layout** (parent §4) — alternative smaller-win.
+- **Scoring doc build-time decisions** — §5.4 curator override,
+  §6 edge cases, §9 editor UI copy. All have sensible defaults
+  in place.
+
+---
+
+## Session — 2026-05-04 — Bank consumption: CAT planning doc
+
+**Where:** Discussion-only session, web Claude (no repo writes).
+
+**Context:** Continuation of bank-consumption planning. Previous work produced
+`bank-consumption.html` (parent), `bank-consumption-attempt-creation.html`,
+`bank-consumption-runner.html`, `bank-marks-and-scoring.html`. CAT was
+mentioned across all four but never had a dedicated plan — it was the
+biggest open piece on the consumption side.
+
+**What we did:**
+
+Created and worked through `bank-consumption-cat.html` — a new planning doc
+sibling to the other three sub-plans. Settled 16 of 20 sections in one
+extended session.
+
+**Settled today (in order of conversation):**
+
+- §11 Snapshot strategy + §2.10 doc-seed framing — snapshots non-negotiable
+  for CAT (per-question at administration), one set of tables shared with
+  fixed-length modes (no separate CAT tables), Review available post-CAT.
+  Three rejected alternatives recorded with reasoning so the decisions
+  survive future questioning.
+- §7 Selection rule — closest difficulty to current ability is the rule.
+  After pushback, settled with category as a *tiebreaker* among
+  equally-good difficulty matches (option E in the conversation, not pure
+  soft / not hard enforcement / not floor-with-override). Difficulty match
+  is sacred; category never overrides difficulty.
+- §8 Content blueprint — same rule as §7. Soft constraint with monitoring
+  logged for curator dashboard. Hard enforcement deferred to v2 with named
+  trigger (>20% of CATs delivering <3 items per category after curation
+  has been balanced).
+- §9 Termination — passing standard theta = 0.0, SE threshold ≤ 0.40, min
+  75 / max 145 (matches real NCLEX), time limit 4 hours, five termination
+  reasons enumerated. Inconclusive framing locked: "your performance was
+  on the boundary," category breakdown does the heavy lifting,
+  INCONCLUSIVE = zero weight in any future blended Readiness Signal.
+- §6 Starting difficulty — always theta = 0.0 fresh, no carry-over from
+  prior CATs (matches real NCLEX; cross-CAT theta still shows in
+  History/Analytics but doesn't seed new CATs).
+- §15 Re-take rules — unlimited frequency with soft 1-hr warning, last-3-
+  CATs exposure window (CAT-only, not cross-mode), fallback relaxes
+  exposure before difficulty.
+- §13 CAT summary page — verdict copy locked for all four states (above /
+  below / inconclusive / abandoned). Layout: verdict → items administered
+  → trajectory graph → category breakdown → cross-CAT comparison →
+  Review CTA. Trajectory graph + per-item marker is the headline visual
+  (Sam's idea, replaces the per-item chip I'd proposed). Two separate
+  dashboard cards for CAT vs Readiness — never blended.
+- §14 Review state — collapsed to short statement after Sam's separation
+  framing: CAT-specific content lives on the summary page (§13); Review
+  itself uses the shared runner Review surface unchanged. No CAT-specific
+  per-question render. This was a clean separation that simplified the
+  doc considerably.
+- §16 Runner UX — six locks: current-question-only progress (no "of N"
+  cap), timer warnings deferred to runner-doc level, no back navigation
+  (matches real NCLEX), no live-run mark-for-review (available in Review
+  afterwards), browser-close = ABANDONED with confirmation prompt, no
+  pause.
+- §4 IRT model — Rasch (1PL) for v1. After conversation about whether we
+  build the math ourselves: TypeScript implementation of Rasch directly in
+  the existing stack (no Python service for live engine). Empirical
+  recalibration uses heavier Python tooling separately (build-time choice).
+- §5 Calibration plan — three locks. (a) Easy/Medium/Hard → −1.0/0.0/+1.0
+  on the IRT logit scale. (b) **Schema correction Sam caught:** existing
+  `nclex_bank_items.difficulty` is a TEXT column with CHECK constraint
+  ('Easy'/'Medium'/'Hard'). Cannot hold numeric values. So we add a
+  separate `difficulty_irt` NUMERIC column alongside, plus
+  `difficulty_source` TEXT for provenance. Curator UI unchanged; engine
+  reads only the numeric column; recalibration writes only the numeric
+  column. (c) Cadence: weekly batch (Sundays 02:00 UTC), not nightly —
+  Sam pushed back on nightly being too aggressive given low day-one
+  response volume; weekly is more honest. 30-response threshold before
+  empirical takes over from curator label. 70/30 dampened blend on each
+  recalibration to avoid student-visible churn between weeks. Manual
+  trigger from admin dashboard supported.
+- §17 Calibration data capture — per-attempt response data already
+  captured by existing schema (no new capture columns needed). One new
+  audit table `nclex_bank_item_calibration_history` (one row per
+  recalibration event per item). After Sam's pushback against my original
+  two-table proposal: dropped the separate job-run table, derive run
+  summaries from the audit table on demand. Also rejected a JSONB-on-bank-
+  row alternative Sam proposed, with three reasons (engine performance,
+  snapshot integrity, query difficulty). Retention forever for v1.
+- §3 Honesty constraints — calibration approximation disclosed via a
+  single "How CAT works" help page (not per-attempt caveats, not omitted).
+  Five-section help page contents specified. Pass-probability statement
+  deferred to v3+ at earliest (needs real outcome data we don't have).
+
+**Schema additions accumulated across the session:**
+
+- New columns on `nclex_bank_items`: `difficulty_irt` (NUMERIC),
+  `difficulty_source` (TEXT, default 'CURATOR_LABEL').
+- New columns on `nclex_attempts`: `cat_verdict` (TEXT),
+  `cat_final_theta` (NUMERIC), `cat_final_se` (NUMERIC),
+  `cat_termination_reason` (TEXT), `cat_items_administered` (INTEGER).
+- New columns on `nclex_attempt_items`: `cat_theta_before` (NUMERIC),
+  `cat_se_before` (NUMERIC), `cat_item_difficulty` (NUMERIC),
+  `cat_item_difficulty_source` (TEXT).
+- One new table: `nclex_bank_item_calibration_history` (audit trail).
+- Existing `nclex_bank_items.difficulty` TEXT column unchanged. Existing
+  `nclex_attempts.final_score` is NULL for CAT attempts (CAT has no raw
+  score).
+- Two new RPCs (sketched in attempt-creation §13, fleshed out here in
+  §10): `create_cat_attempt`, `cat_next_item`.
+
+**Carried forward to next session(s):**
+
+- §10 Architecture — RPC contract details (loading state during
+  next-item fetch, error handling on engine failures, optimistic vs
+  pessimistic UI). Recommendation made today: best settled close to build
+  time when engine implementation details are concrete; planning in the
+  abstract risks decisions that don't survive contact with implementation.
+  High-level shape sketched: pessimistic UI (engine has to score before
+  picking next), brief loading state, retry-with-error pattern.
+- §12 final-detail polish — column names, NUMERIC precision, indexing.
+  Build-time concern; structural decisions all locked.
+
+**Required edits in sibling docs (deferred):**
+
+- `main.md` — currently lists CAT as deferred to v2+. Update to "in
+  scope for v1, see `bank-consumption-cat.html`."
+- `CLAUDE.md` — Explicit Deferrals list still includes "CAT adaptive
+  testing logic." Remove.
+- `bank-consumption-attempt-creation.html` §6.1 + §13 — backreference
+  this doc; result columns now specified in `cat.html` §12.2; two-RPC
+  architecture sketched in §10 (deferred to next session).
+- `bank-consumption-runner.html` §18 — replace skeleton with
+  backreference to this doc (CAT runner UX now settled in §16); also §8
+  cross-mode timer behaviour applies to CAT per §16.2.
+- `bank-marks-and-scoring.html` §11 — backreference this doc for
+  "CAT-specific scoring flow."
+
+**Pattern notes for future sessions:**
+
+- Separation of "CAT summary page" vs "shared Review" was a Sam-driven
+  insight that significantly simplified the doc. Hold this pattern.
+- Sam's pushback on proposals worked well: hard category enforcement
+  → soft tiebreaker, two-table audit → one-table audit, nightly
+  recalibration → weekly. Each pushback found a meaningfully better
+  answer. Continue offering proposals to push back against rather than
+  asking open-ended questions.
+- The schema-correction moment (§5.2) — Sam caught that the existing
+  `difficulty` column is TEXT, not NUMERIC, which I'd glossed over.
+  Worth a search-the-repo-first habit for any column we plan to write to.
+
+**File:** `mynclex/docs/product-plan/bank-consumption-cat.html` —
+generated in web Claude, needs to be dropped into the repo via Claude
+Desktop in the next session.
+
+---
+
+## Session — 2026-05-04 (Bank-consumption planning — attempt-creation sub-plan + runner skeleton)
+
+Pure planning session, no application code. Built out the consumption-side
+schema/lifecycle planning around the existing parent doc
+`docs/product-plan/bank-consumption.html`. Three commits, all
+docs-only, pushed direct to main.
+
+### New: `docs/product-plan/bank-consumption-attempt-creation.html`
+
+Full sub-plan covering everything from Builder-Start-click through
+preflight to Q1-first-render. Sibling to the parent. ~870 lines after
+the day's refinements.
+
+**Architecture (§2-§5):**
+
+- Frontend → backend in one transaction → returns `attempt_id`.
+  Frontend never sees the candidate question list.
+- Selection units: standalone-question (slot 1), trend-linked
+  (slot 1), case-study (slot 6, atomic).
+- Count handling: target with drift (±3), no preference for
+  skipping cases late (avoids the "never exceed" rule's bias
+  against case-heavy quizzes).
+- Snapshot at attempt creation, NOT at scoring time. Includes
+  rationales + correct answers (so curator edits mid-session
+  can't change scoring rules).
+
+**Tables shape (§6):** 5 tables — `nclex_attempts`,
+`nclex_attempt_items`, `nclex_attempt_answers`,
+`nclex_attempt_case_snapshots`, `nclex_attempt_trend_snapshots`.
+Runner reads only from these at runtime. Student-state tables
+(`nclex_student_question_state` etc.) deferred to view-first.
+
+**§6.1 `nclex_attempts` column-list refinement pass — issues 1-6:**
+
+1. **Source-ref FKs** (typed nullable: `readiness_pack_id`,
+   `programme_activity_id`); pack-via-activity → only
+   `programme_activity_id` is set; no denormalised `programme_id`.
+2. **Count split** — `requested_question_count` /
+   `actual_question_count` / `actual_unit_count` (cases counted
+   as 1 unit but 6 questions).
+3. **`attempt_id` = UUID, server-generated**; v4 vs v7 = build-time
+   choice based on Supabase Postgres extension support.
+4. CAT result columns deferred to CAT-planning conversation.
+5. Status / cleanup / **intent** — biggest conceptual addition,
+   see below.
+6. **`duration_seconds` + `mode_overrides_json`** (nullable; populated
+   only on tutor/pack overrides like accommodations).
+
+**The intent split (§6.1.2) — biggest conceptual addition of the day:**
+
+Sam pushed back on cleanup logic — *"untimed quizzes shouldn't
+auto-expire — that's why they're untimed, the student can come back
+anytime"* — which surfaced that the real axis is **intent** (STUDY vs
+EXAM), not pacing (timed vs untimed). The existing 5 modes from parent
+§15 map to a `(intent, mode)` tuple — 8 valid combinations of 10:
+
+- Untimed Learning: STUDY only (rationales-each-submit defeats
+  exam framing)
+- CAT: EXAM only (IRT model needs continuous engagement)
+- The other 3 modes (Untimed Test, Timed Free Nav, Timed Sequential)
+  work for either intent — STUDY uses an engagement-clock and is
+  resumable; EXAM uses a wall-clock and is single-sitting
+
+Cleanup rules redrew around intent: **STUDY-with-engagement attempts
+NEVER auto-expire** (the student paid and can return whenever). Only
+orphans (zero-engagement) + EXAM time-outs auto-clean.
+
+Cross-checked the 4-status enum against Moodle / Canvas / edX-proctored
+conventions (web research). Our shape closest to Moodle's
+`quiz_attempts.state` (`inprogress / overdue / finished / abandoned`)
+with clearer naming. NCLEX is pure auto-graded MCQ/SATA so we skip
+Canvas's `pending_review` split.
+
+**§6.2 `nclex_attempt_items` refinement (gap analysis vs source schema):**
+
+Audited `nclex_bank_items` and `nclex_tutor_questions` against the
+proposed snapshot column list. Gaps found:
+
+- Missing `rationale_img_snapshot` (image URL could be edited
+  mid-session)
+- No source-table discriminator — `item_id` could refer to either
+  bank or tutor questions, both use TEXT PKs with no global
+  uniqueness. Added `item_source` (BANK / TUTOR).
+- No `tutor_id` for tutor-authored items in the attempt — needed
+  for tutor reporting analytics. Added as nullable FK.
+- Redundant `shuffle_options` boolean — encoded by
+  `shuffle_seed` nullability. Dropped.
+
+Also restructured: `content_snapshot_json` and
+`correct_answer_snapshot_json` separated (used at different times —
+rendering vs scoring); `classification_snapshot` collapsed into a
+single JSONB blob (9 axes including bloom_level, tags); new
+§6.2.1 IN/OUT snapshot strategy table with reasoning per source field.
+
+**Items vs answers table separation:**
+
+Considered merging `nclex_attempt_answers` into `nclex_attempt_items`
+(1:1 within an attempt; mynmclicensure precedent). Decided keep
+separate. Three reasons: (1) snapshot pattern requires items table
+to be write-once; (2) save-progress writes belong on the slim
+answers row; (3) avoid TOAST overhead from updating fat JSONB rows.
+
+### Updated: parent `docs/product-plan/bank-consumption.html` §17 Builder
+
+Builder gains an Intent picker as a 2-step flow:
+
+- Step 1: pick intent (Study or Exam — 2 cards)
+- Step 2: pick from modes filtered by chosen intent (4 cards each)
+
+Recent Quizzes chip labels now include intent prefix
+("Study · Pharm · Hard · 50 Q"). Default form state requires Intent +
+Mode picked before Start enables. Practise-weak-spots quick-start
+defaults to Study intent (with reasoning: weak-spot practice is
+learning, not exam simulation).
+
+Section 3 renamed "Mode" → "Intent + Mode". Page structure intro
+caught a formatting inconsistency and was fixed.
+
+### New: `docs/product-plan/bank-consumption-runner.html` (skeleton)
+
+Sibling sub-plan for the Runner. 20 sections defined with status pills
+(`skeleton` / `open` / `settled` / `deferred`); content TBD as planning
+lands. Covers: scope, architecture, page lifecycle, per-mode
+behaviour matrix, question rendering per type (9 sub-sections),
+case-block UX, trend rendering, timer, save/resume, submission,
+scoring, feedback timing, answer-changes tracking, mark-for-review,
+navigation, discard, review state, CAT-deferred.
+
+### Reference: how mynmclicensure handles the same patterns
+
+Sam pointed to `qacademy-gamma/mynmclicensure/` mid-session for the
+preflight + attempt-creation reference. Key files read:
+
+- `runner/timed.html` — `preflightCard`, `hasTimedStart`,
+  `markTimedAttemptStarted` flow; `qa_skip_preflight_timed`
+  localStorage opt-out for power users
+- `student/quiz-builder.html` + `js/mynmclicensure-api.js`
+  `spawnBuilderAttempt` — client-side question selection +
+  app-generated attempt ID prefix `ATT_<timestamp>_<random>`
+
+Mynclex improvements over mynmclicensure (without breaking the working
+flow): two timestamps (`created_at` + `started_at`) instead of
+overloading `ts_iso`; server-side question selection; relational items
+table with snapshots instead of comma-separated `item_ids` + JSON
+`answers_json` blob; UUID PK instead of prefixed string.
+
+### Commits
+
+- `85bbe92` — initial sub-plan + parent §17 Builder intent flow
+  (826 insertions, 16 deletions)
+- `b4f5cbf` — §6.2 attempt_items refinement + runner skeleton
+  (555 insertions, 16 deletions)
+
+### Open / queued
+
+- §6.3 `nclex_attempt_answers` column list — next refinement pass
+- §6.4 `nclex_attempt_case_snapshots` + §6.5
+  `nclex_attempt_trend_snapshots` — same treatment as §6.2
+- §9 of attempt-creation doc — Sources beyond Custom-built (settles
+  when pack/programme planning starts)
+- Parent doc §15 follow-up — mode list intent annotations,
+  "Resume restricted to STUDY intent" rewording, ABANDONED can be
+  student-driven note
+- Runner doc — all 20 sections still skeleton; meaty work ahead.
+  Q-type rendering sub-sections (§5.1 - §5.9) will be the largest
+  block.
+- CAT planning (parent §16) — separate big topic
+- Dashboard layout (parent §4) — alternative smaller-win next topic
+
+---
+
 ## Session — 2026-05-01 (Slice 14 — the swap)
 
 The 14-slice questions-and-wrappers rebuild closed today. Legacy

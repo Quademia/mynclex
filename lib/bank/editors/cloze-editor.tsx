@@ -500,6 +500,11 @@ export function ClozeEditorBody({
   const contentIncomplete = validity !== 'ok';
   const classificationIncomplete = !category;
 
+  // Live marks for the Housekeeping readout. Per bank-marks-and-scoring §5.2:
+  // CLOZE max = count of blanks. Only in-stem (active) blanks survive the
+  // parser's renumbering, so they map 1:1 to correct.answers keys.
+  const liveMarks = activeBlanks.length;
+
   // Marker counter shown on the toolbar.
   const counterText = `${markerOrder.length} blank${markerOrder.length === 1 ? '' : 's'}`;
   const counterClass: ValidityState =
@@ -862,8 +867,9 @@ export function ClozeEditorBody({
             <TabPanel id="housekeeping">
               <HousekeepingFields
                 mode={initial.mode}
+                questionType="CLOZE"
                 defaults={{
-                  marks: initial.marks,
+                  marks: liveMarks,
                   question_ref: initial.question_ref,
                   batch_id: initial.batch_id,
                   is_published: initial.is_published,

@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MyNclex — Bank Consumption · Attempt Creation Plan</title>
+<style>
+  :root {
+    --primary: #1e3a5f;
+    --accent: #2d7d72;
+    --bg: #f8fafc;
+    --white: #ffffff;
+    --border: #e5e7eb;
+    --border-strong: #d1d5db;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --info-bg: #eef4fa;
+    --info-accent: #2d6fc0;
+    --info-text: #0c447c;
+    --warn-bg: #fef7e6;
+    --warn-text: #854f0b;
+    --ok-bg: #ecfdf5;
+    --ok-text: #065f46;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 32px 24px 64px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .doc { max-width: 860px; margin: 0 auto; }
+
+  .doc-meta {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h1 { font-size: 26px; font-weight: 600; color: var(--primary); margin: 0 0 6px; }
+  h2 {
+    font-size: 19px; font-weight: 600; color: var(--primary);
+    margin: 36px 0 10px; padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  h2:first-of-type { border-top: none; padding-top: 0; margin-top: 24px; }
+  h3 { font-size: 15px; font-weight: 600; color: var(--primary); margin: 22px 0 6px; }
+
+  p { margin: 8px 0 14px; }
+  ul, ol { margin: 8px 0 14px; padding-left: 22px; }
+  li { margin: 5px 0; }
+  li > p { margin: 4px 0; }
+
+  code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 90%;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+
+  pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    font-size: 12.5px;
+    font-family: ui-monospace, Menlo, monospace;
+    overflow-x: auto;
+    line-height: 1.5;
+    margin: 10px 0 16px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 18px;
+    font-size: 13.5px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--bg); font-weight: 600; color: var(--primary); }
+
+  .status {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .status.settled { background: var(--ok-bg); color: var(--ok-text); }
+  .status.open    { background: var(--warn-bg); color: var(--warn-text); }
+  .status.deferred { background: var(--info-bg); color: var(--info-text); }
+
+  .callout {
+    background: var(--info-bg);
+    border-left: 3px solid var(--info-accent);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin: 14px 0;
+    font-size: 14px;
+    color: var(--info-text);
+  }
+
+  .toc { margin: 8px 0 28px; padding: 14px 18px; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-md); }
+  .toc h2 { border: none; padding: 0; margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc li { margin: 3px 0; font-size: 13.5px; }
+  .toc a { color: var(--primary); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  hr.footer-rule { border: none; border-top: 1px solid var(--border); margin: 40px 0 16px; }
+  .footer-line { font-size: 12.5px; color: var(--text-muted); font-style: italic; }
+</style>
+</head>
+<body>
+<div class="doc">
+
+<h1>MyNclex — Bank Consumption · Attempt Creation Plan</h1>
+<div class="doc-meta">
+  Living planning document. Updated each session as decisions land. Last updated: 2026-05-04 (§6.1 Result group expanded — <code>final_score</code> NUMERIC 0..1 column added; semantics defined as item-equivalent average across attempt items; supplementary numbers (items-correct, total-points) computed on read, not stored. See <code>bank-marks-and-scoring.html</code> §7 for full reasoning. Also today: §6.3 nclex_attempt_answers full column-list refinement; §10 stale-rule supersession marker. Earlier same day: §6.2 nclex_attempt_items refinement pass — column list grouped by purpose; <code>item_source</code> discriminator added (BANK / TUTOR); <code>tutor_id</code> column added; <code>rationale_img_snapshot</code> added; redundant <code>shuffle_options</code> dropped (encoded by <code>shuffle_seed</code> nullability); content + correct moved to JSON blobs while classification stays granular; §6.2.1 snapshot-strategy table locked).
+</div>
+
+<h2>Why this doc exists</h2>
+<p>
+  This is the sub-plan for what happens between Builder (§17 of <code>bank-consumption.html</code>) and Runner.
+  The student has configured filters and clicked <strong>Start Quiz</strong> — what does the system actually do
+  to turn that into a fixed quiz the runner can render?
+</p>
+<p>
+  Sub-plan rather than a section of the parent doc because it has enough internal structure (architecture, tables,
+  snapshot strategy, several open decisions) to deserve its own document. Findings feed back into the parent doc
+  once settled.
+</p>
+<p>
+  <em>Source material:</em> a stepping-stone proposal was drafted elsewhere ("Attempt Selection &amp; Snapshot Plan").
+  We kept the parts that hold up, pushed back on a few, and added gaps the proposal missed. The discussion is captured here.
+</p>
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#s1">Scope and what's out of scope</a></li>
+    <li><a href="#s2">Architecture</a></li>
+    <li><a href="#s3">Selection units</a></li>
+    <li><a href="#s4">Count handling</a></li>
+    <li><a href="#s5">Snapshotting strategy</a></li>
+    <li><a href="#s6">Tables — the shape</a></li>
+    <li><a href="#s7">Student-state tables — deferred to view-first</a></li>
+    <li><a href="#s8">Order of presentation</a></li>
+    <li><a href="#s9">Sources beyond Custom-built</a></li>
+    <li><a href="#s10">When does the attempt row get created</a></li>
+    <li><a href="#s11">Timer start</a></li>
+    <li><a href="#s12">Re-roll behaviour</a></li>
+    <li><a href="#s13">CAT — separate flow, backreference to <code>bank-consumption-cat.html</code></a></li>
+    <li><a href="#s14">Open decisions consolidated</a></li>
+    <li><a href="#s15">Settling order</a></li>
+  </ol>
+</div>
+
+<h2 id="s1">1. Scope and what's out of scope <span class="status settled">settled</span></h2>
+<p>
+  In scope: the create-attempt path for fixed-length modes (Untimed Learning, Untimed Test, Timed Free Navigation,
+  Timed Sequential) when the source is <strong>Custom-built</strong> (the student configured filters in the builder).
+</p>
+<p>Out of scope here:</p>
+<ul>
+  <li>CAT — fundamentally different selection model (one question at a time). Noted briefly in §13; full design in §16 of parent doc.</li>
+  <li>Programme-assigned and Readiness Pack source paths — flagged in §9, settled separately when those surfaces are planned.</li>
+  <li>Runner rendering, scoring, and review — separate planning tasks.</li>
+  <li>RLS policies, exact column types, exact RPC signatures — build-time concerns, not planning-time.</li>
+</ul>
+
+<h2 id="s2">2. Architecture <span class="status settled">settled</span></h2>
+<p><strong>Frontend sends to backend:</strong></p>
+<ul>
+  <li><code>filters_json</code> — the builder's pool + content + tags + topic state</li>
+  <li><code>mode</code> — one of the 5 mode codes</li>
+  <li><code>requested_count</code> — number</li>
+</ul>
+<p><strong>Backend does, in one transaction:</strong></p>
+<ol>
+  <li>Validate student access</li>
+  <li>Validate filters, mode, count</li>
+  <li>Build the candidate unit pool (the "what's eligible" query)</li>
+  <li>Randomly select units to hit the count target</li>
+  <li>Expand units into per-question attempt items (a case unit becomes 6 items)</li>
+  <li>Snapshot question content, case context, and trend context — everything the runner needs to render and score</li>
+  <li>Return <code>attempt_id</code></li>
+</ol>
+<p>
+  Frontend hands <code>attempt_id</code> to the runner. The runner reads <em>only</em> from the snapshot tables,
+  never from the live authoring tables.
+</p>
+<p><strong>Why this shape:</strong></p>
+<ul>
+  <li>One transaction means the student can't end up with a half-created attempt.</li>
+  <li>The frontend never sees the candidate question list, so it can't be tampered with client-side.</li>
+  <li>Selection logic lives in SQL alongside the count RPC the builder uses for live counts (§17 of parent doc), so the two share their definition of "eligible." Live count and the actual quiz can never disagree.</li>
+  <li>The runner reading from snapshots means a curator editing a question, case, or trend mid-session does not change what the student is seeing.</li>
+</ul>
+
+<h2 id="s3">3. Selection units <span class="status settled">settled</span></h2>
+<p>The selector does not pick raw questions. It picks <em>units</em>, then expands them into per-question attempt items.</p>
+
+<h3>3.1 Standalone question</h3>
+<ul>
+  <li><code>parent_case_id = null</code> AND <code>trend_id = null</code></li>
+  <li>1 unit produces 1 question</li>
+</ul>
+
+<h3>3.2 Trend-linked question</h3>
+<ul>
+  <li><code>trend_id != null</code></li>
+  <li>1 unit produces 1 question (Trends are not atomic — see §10 of parent doc)</li>
+  <li>A single Trend question can be selected on its own; the runner loads the linked Trend dataset snapshot beside it</li>
+</ul>
+
+<h3>3.3 Case Study</h3>
+<ul>
+  <li>1 case unit produces 6 questions, expanded in <code>case_position</code> order (Q1 → Q6)</li>
+  <li>Case Studies are atomic — the builder must never select individual children</li>
+  <li>Only complete, valid cases are eligible (all 6 children present and published)</li>
+</ul>
+
+<p><strong>Candidate pool example</strong> (after filters applied):</p>
+<table>
+  <thead>
+    <tr><th>Unit type</th><th>Unit ID</th><th>Questions produced</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>QUESTION</td><td>NCLEX_MCQ_001</td><td>1</td></tr>
+    <tr><td>QUESTION</td><td>NCLEX_TRD_Q01</td><td>1</td></tr>
+    <tr><td>CASE</td><td>NCLEX_CS_001</td><td>6</td></tr>
+    <tr><td>QUESTION</td><td>NCLEX_SATA_004</td><td>1</td></tr>
+    <tr><td>CASE</td><td>NCLEX_CS_002</td><td>6</td></tr>
+  </tbody>
+</table>
+<p>Random selection happens from this unit pool.</p>
+
+<h2 id="s4">4. Count handling <span class="status settled">settled</span></h2>
+<p><strong>Rule: target with drift.</strong></p>
+<p>
+  The selector aims for <code>requested_count</code> questions. It picks units randomly with no preference for unit
+  type. If the next pick would land within ±3 of target, take it. Stop when within ±3 of target.
+</p>
+<p>
+  If the pool can produce fewer than (<code>requested_count − 3</code>) questions, the create-attempt RPC fails with
+  an actionable error: <em>"Only N questions can be selected with these filters. Reduce count or loosen filters."</em>
+  The same condition disables Start in the builder (§17 of parent doc).
+</p>
+<p><strong>Why drift over the alternative</strong> ("never exceed <code>requested_count</code>, skip any case that doesn't fit"):</p>
+<ul>
+  <li>"Never exceed" systematically skips cases late in the selection because their <code>slot_cost = 6</code> won't fit the remaining slots. Result: the final quiz under-represents cases relative to the matched pool. A pool that's 40% case-derived could end up 15% case-derived in the actual quiz. Misleading.</li>
+  <li>The breakdown preview line in the builder already says <em>"Roughly N MCQ, N SATA…"</em> — the student is trained to expect approximation.</li>
+  <li>Telling the student "27 questions for your 25-question quiz" is honest. The drift is small (±3 = ±12% on a 25-Q quiz).</li>
+</ul>
+<p>
+  The actual count delivered is recorded on the attempt row (column shape in §6). The breakdown preview RPC and the
+  create-attempt RPC use the same selection logic, so what the preview promises is what the attempt delivers.
+</p>
+
+<h2 id="s5">5. Snapshotting strategy <span class="status settled">settled</span></h2>
+<p>Snapshot at attempt creation, <em>not</em> at scoring time. Snapshot everything the runner needs to render <em>and</em> score:</p>
+<ul>
+  <li>Question stem, instruction, content payload (options, blanks, etc.), classification</li>
+  <li>Correct answer key</li>
+  <li>Per-option rationales and overall rationale</li>
+  <li>Marks/scoring config</li>
+  <li>For case-study children: the parent case's title, scenario summary, and all chart tabs (snapshot the case <em>once per attempt</em>, not once per child)</li>
+  <li>For trend questions: the trend dataset's title, scenario, kind, row labels, timepoints, rows (snapshot the dataset <em>once per attempt</em>, not once per question that uses it)</li>
+</ul>
+<p><strong>Why snapshot rationales and correct answers</strong> (not just stems):</p>
+<ul>
+  <li>Untimed Learning shows the rationale immediately after submit. If a curator edits the rationale mid-quiz, two consecutive submissions in the same session would render under different rules.</li>
+  <li>A correct-answer edit mid-session would mark one student right and another (who picked the same option) wrong if the runner re-fetches. Score against the snapshot — invariant per attempt.</li>
+  <li>The size cost of bundling rationales into the snapshot is trivial relative to the integrity benefit.</li>
+</ul>
+<div class="callout">
+  <strong>Resume implication:</strong> a Resume two days later renders exactly what the student started with,
+  regardless of any curator edits in between.
+</div>
+
+<h2 id="s6">6. Tables — the shape <span class="status settled">settled</span> <span class="status open">column lists open</span></h2>
+<p>
+  Three core tables for the attempt itself, two snapshot tables for shared clinical context.
+</p>
+
+<h3>6.1 nclex_attempts</h3>
+<p>One row per quiz session.</p>
+<p>Working column list (finalise at build time):</p>
+
+<p><strong>Identity:</strong></p>
+<ul>
+  <li><code>attempt_id</code> (pk) — UUID, server-generated, opaque. Build-time choice between v4 (native <code>gen_random_uuid()</code>) and v7 (<code>pg_uuidv7</code> extension); v7 preferred for sortable PK / cheaper cursor pagination on the History page.</li>
+  <li><code>student_id</code></li>
+</ul>
+
+<p><strong>Source:</strong></p>
+<ul>
+  <li><code>source</code> — CUSTOM_BUILT / READINESS_PACK / PROGRAMME_ASSIGNED</li>
+  <li><code>readiness_pack_id</code> — nullable FK to <code>nclex_readiness_packs</code>. Set when <code>source = READINESS_PACK</code>; NULL otherwise. See §6.1.1.</li>
+  <li><code>programme_activity_id</code> — nullable FK to <code>nclex_programme_activities</code>. Set when <code>source = PROGRAMME_ASSIGNED</code>; NULL otherwise. See §6.1.1.</li>
+</ul>
+
+<p><strong>Configuration:</strong></p>
+<ul>
+  <li><code>intent</code> — STUDY / EXAM. Set at attempt creation. Drives Resume rules, cleanup rules, and runner timer behaviour. See §6.1.2.</li>
+  <li><code>mode</code> — UNTIMED_LEARNING / UNTIMED_TEST / TIMED_FREE_NAV / TIMED_SEQUENTIAL / CAT. Combined with <code>intent</code> as a validated tuple — see §6.1.2.</li>
+  <li><code>duration_seconds</code> — nullable. Set for timed modes (whether EXAM wall-clock or STUDY engagement-clock). NULL for untimed modes. Stored at attempt creation so per-mode default changes don't break in-flight attempts.</li>
+  <li><code>mode_overrides_json</code> — nullable. NULL by default; populated only when a tutor or pack author overrode the standard rules for this attempt (e.g. extended-time accommodation).</li>
+  <li><code>filters_json</code> — the builder config snapshot.</li>
+</ul>
+
+<p><strong>Status / lifecycle:</strong></p>
+<ul>
+  <li><code>status</code> — IN_PROGRESS / COMPLETED / TIMED_OUT / ABANDONED. See §6.1.3.</li>
+  <li><code>created_at</code> — set automatically at row insert (builder Start click). Never overwritten. See §10.</li>
+  <li><code>started_at</code> — set by the preflight-Start RPC. NULL until the preflight is confirmed. Drives Resume detection and timer-anchor for §11.</li>
+  <li><code>last_activity_at</code> — touched by the runner on every student action (answer submit, save-progress, page navigation). Used by orphan-cleanup and STUDY-engagement-clock pause logic. Distinct from <code>updated_at</code> because admin-driven row changes shouldn't affect cleanup or pause timing.</li>
+  <li><code>ended_at</code> — set when status transitions to a terminal state. Semantics differ by status: submit moment for COMPLETED; <code>started_at + duration_seconds</code> for TIMED_OUT (true expiry, not detection); cleanup-or-discard moment for ABANDONED. The <code>status</code> field differentiates.</li>
+  <li><code>updated_at</code> — auto-bumped on any row change.</li>
+</ul>
+
+<p><strong>Counts:</strong></p>
+<ul>
+  <li><code>requested_question_count</code> — what the student asked for. Always counted in questions (the builder count box says "25 questions").</li>
+  <li><code>actual_question_count</code> — number of <code>nclex_attempt_items</code> rows delivered. What the student actually answers.</li>
+  <li><code>actual_unit_count</code> — number of selection units the selector picked. Cases counted as 1 unit. Differs from <code>actual_question_count</code> when cases are present (1 case unit = 6 question rows).</li>
+</ul>
+
+<p><strong>Result (non-CAT):</strong></p>
+<ul>
+  <li><code>final_score</code> — NUMERIC 0..1. The canonical session score, computed as the <strong>item-equivalent average</strong> across all attempt items (each item normalised to <code>score_awarded / marks_snapshot</code>, then averaged). Set when status transitions to COMPLETED or TIMED_OUT; NULL while IN_PROGRESS. Drives Trend (parent §3), Readiness Signal (parent §6), Slice labels (parent §13), and the headline number on the results screen. Display layer multiplies by 100 for percentage rendering. See <code>bank-marks-and-scoring.html</code> §7 for the aggregation reasoning and the two supplementary numbers (items-correct, total-points) that the results screen also displays — those are computed on read from <code>nclex_attempt_answers</code> rows, not stored.</li>
+</ul>
+
+<p><strong>CAT-specific result columns</strong> are settled in <code>bank-consumption-cat.html</code> (see §13 below for the architecture summary; full column list lives in cat.html §12.2 / accumulated across §9, §10, §17): <code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>. NULL for non-CAT attempts. <code>final_score</code> is NULL for CAT attempts (CAT has no raw score — verdict + theta + SE replace it).</p>
+
+<h3>6.1.1 Source-specific reference columns — rules</h3>
+<p>
+  Two nullable typed FK columns rather than one polymorphic column. Sources are a closed enum of 3 (§15 of parent
+  doc), so we get real FK constraints, clean joins, and a self-documenting schema. NULL columns in Postgres are
+  effectively free.
+</p>
+<p>Two edge cases settled:</p>
+<ul>
+  <li><strong>Pack assigned via a programme activity.</strong> If a tutor's programme activity wraps a Readiness Pack, the attempt sets only <code>programme_activity_id</code> — NOT both. The activity row records which pack it wraps; the attempt knows its activity; the activity knows its content. Avoids representing the same fact twice (which would drift if the activity is later re-pointed).</li>
+  <li><strong>No denormalised <code>programme_id</code> on the attempt.</strong> Tempting for fast "all attempts in Programme X" queries, but adds drift risk if an activity is moved between programmes. Query through the activity. Revisit only if measured perf actually hurts.</li>
+</ul>
+
+<h3>6.1.2 Intent + mode — the validated tuple</h3>
+<p>
+  The <code>intent</code> and <code>mode</code> columns are partially independent: <code>mode</code> says
+  <em>what mechanically happens</em> (timer present? free nav? adaptive?), <code>intent</code> says
+  <em>what frame the student is in</em> (open-ended learning vs single-sitting exam simulation).
+</p>
+<p>
+  <strong>UX flow.</strong> Student picks intent first (<em>"Study"</em> vs <em>"Exam"</em>), then sees the modes
+  available under that intent. Same mechanical mode (e.g. Timed Sequential) can appear under both intents with
+  different framing — STUDY uses an engagement-clock and is resumable; EXAM uses a wall-clock and is single-sitting.
+</p>
+<p>
+  <strong>Valid (mode, intent) tuples — 8 of 10 combinations:</strong>
+</p>
+<table>
+  <thead>
+    <tr><th>Mode</th><th>STUDY</th><th>EXAM</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Untimed Learning</td><td>✅</td><td>❌ — rationales after each submit defeats exam framing; would be Untimed Test instead</td></tr>
+    <tr><td>Untimed Test</td><td>✅</td><td>✅</td></tr>
+    <tr><td>Timed Free Navigation</td><td>✅ engagement-clock</td><td>✅ wall-clock</td></tr>
+    <tr><td>Timed Sequential</td><td>✅ engagement-clock</td><td>✅ wall-clock</td></tr>
+    <tr><td>CAT</td><td>❌ — IRT model needs continuous engagement; pause/resume invalidates the estimate</td><td>✅</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>Validation:</strong> the create-attempt RPC rejects invalid tuples (<code>(UNTIMED_LEARNING, EXAM)</code>
+  and <code>(CAT, STUDY)</code>). The builder UI only surfaces valid combinations under each intent, so the rejection
+  case shouldn't happen at the UI level — defence-in-depth for direct RPC calls.
+</p>
+<p>
+  <strong>Note for parent doc §15.</strong> The mode list needs intent annotations (which intents each mode supports)
+  and the "Resume restricted to untimed modes" rule rewrites to "Resume restricted to STUDY intent." The §17 builder
+  spec also gains an intent-picker step before the mode picker. Both flagged in §14.
+</p>
+
+<h3>6.1.3 Status enum + lifecycle</h3>
+<p>
+  Four status values:
+</p>
+<ul>
+  <li><strong>IN_PROGRESS</strong> — actively in the session, OR (for STUDY intent) paused and resumable.</li>
+  <li><strong>COMPLETED</strong> — student submitted intentionally. Terminal.</li>
+  <li><strong>TIMED_OUT</strong> — timer expired before submission (timed EXAM only). Terminal.</li>
+  <li><strong>ABANDONED</strong> — orphan cleanup OR student-driven discard. Terminal.</li>
+</ul>
+<p>
+  <strong>TIMED_OUT is terminal, not transitional.</strong> No grace period — when the timer expires, any
+  selected-but-unsubmitted answers auto-submit at the moment of expiry, and the row flips to TIMED_OUT immediately.
+  Matches real NCLEX semantics (Pillar 2). Detection is lazy: the cleanup sweep or the runner-on-return notices
+  <code>now() &gt; started_at + duration_seconds</code> and flips the row, with <code>ended_at = started_at +
+  duration_seconds</code> (the true expiry, not the detection moment).
+</p>
+<p>
+  <strong>Convention check.</strong> 4-state model maps closely to Moodle's <code>quiz_attempts.state</code> enum
+  (<code>inprogress</code> / <code>overdue</code> / <code>finished</code> / <code>abandoned</code>) — same shape,
+  clearer naming. Canvas merges time-out into a flag rather than a status; we follow Moodle's separation. NCLEX is
+  pure auto-graded MCQ/SATA so we skip Canvas's <code>pending_review</code> split (no manual grading in v1).
+</p>
+<p>
+  <strong>EXAM re-entry attempt — runner concern, not status concern.</strong> If a student exits a timed EXAM at
+  minute 15 of 60 and tries to come back at minute 30, the row stays IN_PROGRESS until the timer naturally expires
+  to TIMED_OUT. The runner enforces "exams cannot be resumed" as a UX rule — it shows a read-only "this exam ended
+  when you exited; the timer continues" view. Status taxonomy stays clean: TIMED_OUT means "the timer ended this
+  exam," regardless of whether the student was at the screen.
+</p>
+
+<h3>6.2 nclex_attempt_items</h3>
+<p>One row per question delivered. Cases are expanded into 6 rows each, in <code>case_position</code> order.</p>
+<p>Working column list (finalise at build time):</p>
+
+<p><strong>Identity:</strong></p>
+<ul>
+  <li><code>attempt_item_id</code> (pk)</li>
+  <li><code>attempt_id</code> (fk to <code>nclex_attempts</code>)</li>
+  <li><code>position</code> — order of this question within the attempt sequence (1, 2, 3…). Cases stay Q1→Q6 within their block per §8.</li>
+</ul>
+
+<p><strong>Source reference:</strong></p>
+<ul>
+  <li><code>item_id</code> — TEXT, no FK constraint. References either <code>nclex_bank_items</code> or <code>nclex_tutor_questions</code> depending on <code>item_source</code>. Polymorphic by design — no DB-level FK because the attempt must survive a source item being deleted (snapshot is the source of truth at runtime).</li>
+  <li><code>item_source</code> — <code>BANK</code> / <code>TUTOR</code>. Discriminator that tells you which table <code>item_id</code> came from. Defaults to BANK. Required because both source tables use TEXT primary keys with no global uniqueness guarantee.</li>
+  <li><code>tutor_id</code> — nullable FK to <code>nclex_users</code>. Populated only when <code>item_source = TUTOR</code>. Useful for tutor reporting ("how are this tutor's questions performing?") and for cascade behaviour if the tutor leaves.</li>
+</ul>
+
+<p><strong>Selection provenance:</strong></p>
+<ul>
+  <li><code>selection_unit_type</code> — <code>QUESTION</code> / <code>CASE</code>. Per §3, the selector picks units; this records which kind of unit produced this row.</li>
+  <li><code>selection_unit_id</code> — the <code>item_id</code> (for QUESTION) or <code>case_id</code> (for CASE) the unit selector picked. Useful for debugging and for grouping case children to their parent unit.</li>
+</ul>
+
+<p><strong>Wrapper references — stable references, NOT snapshots:</strong></p>
+<p>
+  These columns store the wrapper relationships at selection time. They're not "snapshot_*" columns because the
+  values don't represent fields on the source item that could change — they're structural links the runner needs
+  to render the case scenario or load the trend dataset.
+</p>
+<ul>
+  <li><code>parent_case_id</code> (case children only) — joins to the matching row in <code>nclex_attempt_case_snapshots</code> (§6.4) to render scenario + chart tabs alongside the question.</li>
+  <li><code>case_position</code> (case children only) — 1–6, fixes Q1→Q6 internal order.</li>
+  <li><code>cjmm_step</code> (case children only) — Recognise cues / Analyse cues / etc. Drives the CJMM step label in the runner UI.</li>
+  <li><code>trend_id</code> (trend questions only) — joins to <code>nclex_attempt_trend_snapshots</code> (§6.5) to render the dataset alongside the question.</li>
+</ul>
+
+<p><strong>Snapshot — granular columns (queryable / stable shape):</strong></p>
+<ul>
+  <li><code>question_type</code> — drives runner's choice of rendering component (MCQ vs SATA vs Bowtie etc.). Practically immutable per item; stored on the attempt row to avoid an item-table join at runtime.</li>
+  <li><code>stem_snapshot</code> — the question text.</li>
+  <li><code>instruction_snapshot</code> — "Select all that apply" / cloze instructions / etc.</li>
+  <li><code>rationale_snapshot</code> — explanation text. Shown in Untimed Learning after each submit and in Review.</li>
+  <li><code>rationale_img_snapshot</code> — image URL for the rationale (mirrors source <code>rationale_img</code>).</li>
+  <li><code>marks_snapshot</code> — numeric. Frozen at selection so partial credit / total scoring is invariant per attempt.</li>
+  <li><code>classification_snapshot</code> — JSONB blob containing all 9 classification axes: <code>client_needs_category</code>, <code>client_needs_subcategory</code>, <code>nursing_subject</code>, <code>body_system</code>, <code>topic</code>, <code>subtopic</code>, <code>difficulty</code>, <code>bloom_level</code>, <code>tags</code>. Single JSON column rather than 9 columns because the analytics queries already need to <code>jsonb_extract_path</code> across them, and adding a 10th axis later doesn't need a migration. Can still be indexed via expression indexes on the hot paths.</li>
+</ul>
+
+<p><strong>Snapshot — polymorphic blobs (shape varies by question_type):</strong></p>
+<ul>
+  <li><code>content_snapshot_json</code> — mirrors source <code>content</code> JSONB. Polymorphic shape: options for MCQ/SATA, blanks for Cloze, matrix-cells for Matrix, etc. Runner parses by <code>question_type</code>.</li>
+  <li><code>correct_answer_snapshot_json</code> — mirrors source <code>correct</code> JSONB. The answer key. Drives scoring and Review's "right answer was…" rendering. Separate from <code>content_snapshot_json</code> because they're used at different times (rendering vs scoring).</li>
+</ul>
+
+<p><strong>Display state:</strong></p>
+<ul>
+  <li><code>shuffle_seed</code> — nullable. NULL means the source item had <code>shuffle_options = false</code> (no shuffle applied). Non-null means the seed used to produce the rendered order. The boolean <code>shuffle_options</code> from source is NOT stored separately — its state is encoded by the seed's nullability.</li>
+  <li><code>option_order_json</code> — the exact rendered order of options/blanks as the student saw them. Required so Review re-renders the same arrangement and so answer indices align between submission and scoring.</li>
+</ul>
+
+<p><strong>Housekeeping:</strong></p>
+<ul>
+  <li><code>created_at</code> — when the row was inserted (= attempt creation moment for non-CAT; = item-administered moment for CAT).</li>
+</ul>
+
+<h3>6.2.1 Snapshot strategy — what's IN, what's OUT</h3>
+<p>
+  Snapshot at attempt creation, not at scoring time (per §5). The principle: snapshot anything the runner needs
+  to render, score, OR analyse historically. Skip everything else.
+</p>
+
+<p><strong>IN — snapshotted because the runner needs it OR analytics needs it frozen:</strong></p>
+<table>
+  <thead>
+    <tr><th>Source field</th><th>Why snapshot</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>stem</code></td><td>Curator may edit mid-quiz; student must see what they started with</td></tr>
+    <tr><td><code>instruction</code></td><td>Same</td></tr>
+    <tr><td><code>content</code> (jsonb)</td><td>Polymorphic payload — options, blanks, matrix shape. Editable. Runner needs it.</td></tr>
+    <tr><td><code>correct</code> (jsonb)</td><td>Edit mid-session would mark same answer right for student A and wrong for student B</td></tr>
+    <tr><td><code>rationale</code></td><td>Untimed Learning shows it after each submit; consecutive Q's must use consistent rules</td></tr>
+    <tr><td><code>rationale_img</code></td><td>Image URL could be replaced by curator</td></tr>
+    <tr><td><code>marks</code></td><td>Scoring mid-attempt must be invariant</td></tr>
+    <tr><td>Classification (9 axes)</td><td>Re-classifying a question would retroactively break "your Pharm score was X"</td></tr>
+    <tr><td><code>question_type</code></td><td>Practically immutable but stored to avoid a runtime join</td></tr>
+  </tbody>
+</table>
+
+<p><strong>OUT — NOT snapshotted because it's derivable, transient, or not student-facing:</strong></p>
+<table>
+  <thead>
+    <tr><th>Source field</th><th>Why NOT snapshot</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>is_published</code>, <code>is_builder_visible</code>, <code>is_free_sample</code></td><td>Eligibility was already verified at attempt creation; runtime doesn't re-check</td></tr>
+    <tr><td><code>question_ref</code></td><td>Curator/support reference number. Not student-facing rendering. If support needs it, look up via <code>item_id</code>.</td></tr>
+    <tr><td><code>batch_id</code></td><td>Curator's batch tracking, internal admin metadata. Not relevant to the student or scoring.</td></tr>
+    <tr><td><code>shuffle_options</code> (boolean)</td><td>Encoded by the nullability of <code>shuffle_seed</code>. NULL seed = shuffle was off; non-null seed = shuffle was on with that seed.</td></tr>
+    <tr><td>Source <code>created_at</code> / <code>updated_at</code></td><td>Bank-level housekeeping, irrelevant to the attempt</td></tr>
+    <tr><td><code>parent_case_id</code>, <code>trend_id</code></td><td>Stored as direct columns on attempt_items (not under "snapshot" naming) because they're stable structural references the runner uses to join to the case/trend snapshot tables</td></tr>
+  </tbody>
+</table>
+
+<h3>6.3 nclex_attempt_answers</h3>
+<p>
+  One row per question the student touched in the attempt. Created lazily — the row is inserted on first
+  interaction (option click, blank typing, drag), not at attempt creation. Separate from <code>attempt_items</code>
+  because items are immutable (the question delivered) and answers mutate as the student edits, submits, or
+  auto-submits.
+</p>
+
+<p>Working column list (settled — parent and child sections below cover the reasoning):</p>
+
+<p><strong>Identity:</strong></p>
+<ul>
+  <li><code>answer_id</code> — UUID, server-generated, primary key. Own ID column matches the rest of the schema (<code>attempt_id</code>, <code>attempt_item_id</code>, etc.) and gives future cross-table references a clean single-column FK target.</li>
+  <li><code>attempt_item_id</code> — FK to <code>nclex_attempt_items</code>. The question this is an answer to.</li>
+  <li><code>attempt_id</code> — FK to <code>nclex_attempts</code>. Denormalised for analytics rollups; derivable via <code>attempt_item_id</code> but most queries go directly through it.</li>
+  <li><code>student_id</code> — FK to <code>nclex_users</code>. Denormalised for cross-attempt analytics (Readiness, Trend, Coverage, Per-question history all key by student).</li>
+</ul>
+
+<p><strong>The answer:</strong></p>
+<ul>
+  <li><code>answer_json</code> — JSONB, nullable. Polymorphic shape mirrors <code>correct_answer_snapshot_json</code> by <code>question_type</code>. Null when the row is a DRAFT before the student has selected anything, or a SKIPPED row at finalisation.</li>
+  <li><code>submission_status</code> — DRAFT / SUBMITTED / AUTO_SUBMITTED / SKIPPED. See §6.3.1.</li>
+</ul>
+
+<p><strong>Scoring:</strong></p>
+<ul>
+  <li><code>is_correct</code> — BOOLEAN, nullable until graded. True iff full credit. Drives the 4-state per-question history (parent §10).</li>
+  <li><code>score_awarded</code> — NUMERIC, nullable until graded. Output of the per-type scoring function (NCSBN-exact rules — bank.md §scoring; runner §11). The maximum possible score for the question is <code>marks_snapshot</code> on <code>nclex_attempt_items</code>, not stored on the answer row (it's a property of the question, not the answer).</li>
+</ul>
+
+<p><strong>Time:</strong></p>
+<ul>
+  <li><code>time_spent_sec</code> — INTEGER, runner-computed. See §6.3.2.</li>
+</ul>
+
+<p><strong>Answer-change tracking:</strong></p>
+<ul>
+  <li><code>answer_changes_json</code> — JSONB, default <code>'[]'::jsonb</code>. Append-only event log of selection changes. See §6.3.3.</li>
+</ul>
+
+<p><strong>Housekeeping:</strong></p>
+<ul>
+  <li><code>submitted_at</code> — TIMESTAMPTZ, nullable. Set when status crosses to SUBMITTED or AUTO_SUBMITTED.</li>
+  <li><code>created_at</code> — TIMESTAMPTZ, default NOW(). When the row was first inserted, which by definition is the moment of first interaction with the question (no separate <code>first_interaction_at</code> — they would be the same value).</li>
+  <li><code>updated_at</code> — TIMESTAMPTZ, default NOW(). Bumped on every save-progress write and on submission.</li>
+</ul>
+
+<h3>6.3.1 Lifecycle — submission_status enum</h3>
+<p>Four states. Every row is in exactly one at any time.</p>
+
+<table>
+  <thead>
+    <tr><th>Status</th><th>Meaning</th><th>How it's reached</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>DRAFT</code></td>
+      <td>Save-progress has written the row; student has interacted but not pressed Submit.</td>
+      <td>Insertion path. STUDY intent only — EXAM modes don't draft because they have no save/resume (see §6.1.2 cleanup rules).</td>
+    </tr>
+    <tr>
+      <td><code>SUBMITTED</code></td>
+      <td>Student pressed Submit on the question.</td>
+      <td>From DRAFT (per-Q submit in Untimed Learning) or directly on insert (batched submit in Untimed Test, Timed Free Nav, Timed Sequential, CAT).</td>
+    </tr>
+    <tr>
+      <td><code>AUTO_SUBMITTED</code></td>
+      <td>Timer expired; runner force-finalised whatever was selected.</td>
+      <td>EXAM-timed only. Whatever <code>answer_json</code> held (including null) at expiry is locked in. Visible in honest reporting on timed mocks.</td>
+    </tr>
+    <tr>
+      <td><code>SKIPPED</code></td>
+      <td>Student moved past the question without answering; finalised at quiz end.</td>
+      <td>Free-nav modes (Untimed Test, Timed Free Nav). <code>answer_json</code> is null. Counts toward the "answered fraction" denominator but scores 0.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  <strong>No DISCARDED state.</strong> Mid-case auto-discard from parent §10 doesn't happen anymore in the
+  intent-split world: STUDY can be left and resumed (children persist), EXAM times out to AUTO_SUBMITTED.
+  Explicit student-initiated discard (runner §16) hard-deletes the rows rather than soft-marking — "discard"
+  semantically means "as if it never happened", and we have no audit / compliance reason to keep dead rows
+  around.
+</p>
+
+<div class="callout">
+  <strong>Effect on parent §10:</strong> the "abandoned mid-case sessions are discarded" rule (parent
+  bank-consumption.html §10, line 1 of "Three follow-up rules locked") is superseded by the intent split.
+  Case-level history-state under STUDY/EXAM intent is its own design problem — flagged for a follow-up pass.
+</div>
+
+<h3>6.3.2 Time per question — store explicitly, runner computes</h3>
+<p>
+  The number is stored, not derived from <code>submitted_at − created_at</code>. Two reasons Postgres can't
+  derive it:
+</p>
+<ol>
+  <li><strong>STUDY engagement-clock pauses during inactivity</strong> (per §6.1.2). Wall-clock subtraction would over-count the time a STUDY student spent on a sandwich break.</li>
+  <li><strong>Free-nav modes (Untimed Test, Timed Free Nav) allow re-visits.</strong> "Time on Q1" is the sum of multiple visit durations — Postgres has no concept of these visits.</li>
+</ol>
+
+<p>
+  The runner tracks engagement (STUDY) or wall (EXAM) time per visit and writes the final aggregate to
+  <code>time_spent_sec</code> at submission.
+</p>
+
+<p>
+  <strong>Mode caveat for analytics.</strong> The number is genuinely useful for sequential modes
+  (Timed Sequential, CAT) where one question = one continuous visit. Free-nav modes record a real number,
+  but it sums multiple visits with attention gaps — pacing analytics (parent §14: pacing trends, fast-guess
+  detection, time-vs-correctness) should filter to sequential modes when surfacing the metric. The column is
+  captured for all modes so we don't lose data; the analytics layer owns the filter.
+</p>
+
+<h3>6.3.3 answer_changes_json — full event log, not counts</h3>
+<p>
+  An append-only event log, not a count. Every material change to the student's selection produces an entry.
+  Schema:
+</p>
+<pre><code>[
+  { "at": "2026-05-04T12:30:14Z", "from": null,        "to": ["A"]       },
+  { "at": "2026-05-04T12:30:31Z", "from": ["A"],       "to": ["A","C"]   },
+  { "at": "2026-05-04T12:30:48Z", "from": ["A","C"],   "to": ["B","C"]   }
+]</code></pre>
+
+<p>
+  One entry per material change — not every keystroke. SATA / Bow-tie / Drag-drop fire one event per option
+  toggle; Cloze blanks fire per-blank commit; the runner debounces incremental edits.
+</p>
+
+<p>
+  <strong>Why log, not counts.</strong> Parent §11 surfaces R→W and W→R counts ("you changed 14 correct
+  answers to wrong") — but counts are derivable from the log + the correct-key snapshot. The log additionally
+  unlocks future analytics that need toggle timing (e.g. "students who flip-flop in the last 30 seconds of
+  a timed quiz") without losing historical data. Counts can never be reconstructed back into a log.
+</p>
+
+<h3>6.3.4 What's NOT on this row — and why</h3>
+
+<table>
+  <thead>
+    <tr><th>Field</th><th>Where it lives instead</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>max_score</code> per question</td>
+      <td>Items snapshot — <code>marks_snapshot</code> on <code>nclex_attempt_items</code>. It's a property of the question, not the answer.</td>
+    </tr>
+    <tr>
+      <td>Option-order at submit time (for replay UI)</td>
+      <td>Items snapshot — <code>option_order_json</code> on <code>nclex_attempt_items</code>. The order was fixed at attempt creation, not per answer.</td>
+    </tr>
+    <tr>
+      <td>Mark-for-review state</td>
+      <td>Its own table (settled later). Marking persists across attempts (parent §10) and is independent of any single answer row's state — wrong shape for this table.</td>
+    </tr>
+    <tr>
+      <td>Source / mode / intent</td>
+      <td><code>nclex_attempts</code> — already on the parent attempt row, denormalising would be redundant.</td>
+    </tr>
+    <tr>
+      <td><code>first_interaction_at</code> separate from <code>created_at</code></td>
+      <td>Not captured. Row is inserted on first interaction, so the two timestamps would be identical. Splitting them would only matter if we wanted "stare time before first touch" — not on the v1 analytics plan (parent §14 names total time as the metric). If a future analytic needs it, the runner can compute and store as a single number.</td>
+    </tr>
+    <tr>
+      <td>Pre-discard status (for soft-delete forensics)</td>
+      <td>Not applicable — discard is hard-delete (§6.3.1). No row, no forensics column needed.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>6.4 nclex_attempt_case_snapshots</h3>
+<p>
+  One row per case study used in an attempt. Snapshot each case once, regardless of how many children appear in
+  the attempt.
+</p>
+<p>Working column list:</p>
+<ul>
+  <li><code>attempt_id</code>, <code>case_id</code> (composite pk)</li>
+  <li><code>title_snapshot</code></li>
+  <li><code>scenario_summary_snapshot</code></li>
+  <li><code>tabs_snapshot_json</code></li>
+  <li><code>created_at</code></li>
+</ul>
+
+<h3>6.5 nclex_attempt_trend_snapshots</h3>
+<p>
+  One row per trend dataset used in an attempt. Snapshot each dataset once, regardless of how many questions in
+  the attempt reference it.
+</p>
+<p>Working column list:</p>
+<ul>
+  <li><code>attempt_id</code>, <code>trend_id</code> (composite pk)</li>
+  <li><code>title_snapshot</code>, <code>scenario_snapshot</code>, <code>kind_snapshot</code></li>
+  <li><code>row_label_snapshot</code></li>
+  <li><code>timepoints_snapshot_json</code>, <code>rows_snapshot_json</code></li>
+  <li><code>created_at</code></li>
+</ul>
+
+<div class="callout">
+  <strong>Runner load rule:</strong> the runner reads only from these five tables at runtime. Never from
+  <code>nclex_bank_items</code>, <code>nclex_case_studies</code>, <code>nclex_case_study_tabs</code>,
+  <code>nclex_trend_datasets</code>.
+</div>
+
+<h2 id="s7">7. Student-state tables — deferred to view-first <span class="status settled">settled</span></h2>
+<p>
+  Tables like <code>nclex_student_question_state</code> and <code>nclex_student_case_state</code> would cache
+  per-student-per-question state (last attempt, attempt count, last-correct flag, marked flag) so the builder's pool
+  filters (Unseen / Seen / Correct / Incorrect / Marked) and live counts are fast.
+</p>
+<p>
+  <strong>Plan:</strong> start with <em>materialised views</em> over <code>nclex_attempt_answers</code> (and the
+  marking table). Refresh on attempt completion. Promote to physical tables only if the view becomes a measurable
+  perf bottleneck. Less to keep consistent — fewer write paths to remember to update.
+</p>
+<p>
+  Marking itself (whether a student has flagged a question or case) <em>is</em> a real table from day one — that's
+  user state, not derived data.
+</p>
+
+<h2 id="s8">8. Order of presentation <span class="status settled">settled</span></h2>
+<p>
+  <strong>Cases as contiguous blocks.</strong> The student experiences a case as one connected chunk, then moves on.
+</p>
+<p><strong>Why blocks</strong> (not interleaved, not end-only):</p>
+<ul>
+  <li>Real NCLEX presents cases as blocks. Pillar 2 (authentic exam mechanics) makes this the default.</li>
+  <li>Chart tabs progressively unfold via <code>visible_from</code> (§10 of parent doc). A standalone wedged between Q2 and Q3 of a case would either hide the chart panel (jarring) or leave irrelevant context on screen (confusing). Blocks avoid the issue entirely.</li>
+  <li>Clinical reasoning is continuous — pulling the student out for an unrelated standalone breaks immersion.</li>
+  <li>Cleaner runner UX: clean transitions between "case mode" (chart panel + question) and "standalone mode" (just question) instead of constant context-switching.</li>
+</ul>
+<p><strong>Sub-rules locked:</strong></p>
+
+<h3>8.1 Position of case blocks in the overall sequence — random</h3>
+<p>
+  Case blocks are scattered through the quiz, mixed with standalones. Not "all cases first" and not "all cases last."
+  Matches real NCLEX. In Timed Sequential, a wall of cases at the end would feel punishing; random distribution keeps
+  pacing varied.
+</p>
+
+<h3>8.2 Multiple case blocks — separated where possible</h3>
+<p>
+  When the quiz contains two or more case blocks, the selector inserts at least one standalone between them where
+  possible. Two case blocks back-to-back means 12 questions inside scenario context with no break — too much.
+</p>
+<p>
+  If the quiz has insufficient standalones to honour the separation rule (e.g. 4 cases and 1 standalone), case blocks
+  butt up against each other. Best effort, not strict.
+</p>
+
+<h3>8.3 Trend questions — scattered, not clustered</h3>
+<p>
+  Per §10 of parent doc, trend questions are explicitly per-question-independent. The shared dataset is a display
+  element, not a narrative arc. Clustering trend questions together would make them feel like a mini-case, which is
+  the wrong category. Trend questions are placed like standalones; the dataset snapshot re-displays each time the
+  student lands on a trend question that uses it.
+</p>
+
+<h3>8.4 Within a case, Q1 → Q6 in case_position order</h3>
+<p>Already locked by §10 of parent doc. Confirmed here for completeness.</p>
+
+<h3>8.5 Tutor/curator override for pack and programme sources — out of scope, flagged</h3>
+<p>
+  A tutor configuring a programme activity may want explicit narrative ordering. Custom-built source uses the rules
+  above; pack and programme behaviour is part of §9 when those surfaces are planned.
+</p>
+
+<p><strong>Runner-side implications</strong> (foreshadowing, not deciding now):</p>
+<ul>
+  <li>"You're inside a case" indicator + case summary accessible throughout the block.</li>
+  <li>Visual transition cue when entering and exiting a case block ("Case complete. Continuing with practice questions.").</li>
+  <li>Chart panel mounts at case-block start, unmounts at end.</li>
+</ul>
+
+<h2 id="s9">9. Sources beyond Custom-built <span class="status open">open</span></h2>
+<p>This doc designs the Custom-built source. §15 of the parent doc has two more:</p>
+<ul>
+  <li><strong>Readiness Pack</strong> — pre-curated question list, mode set at pack-authoring time.</li>
+  <li><strong>Programme-assigned</strong> — tutor configured an activity, picked the mode and content.</li>
+</ul>
+<p>
+  <strong>Open:</strong> do these share the create-attempt RPC with different inputs (<code>filters_json</code> holds
+  saved filters, OR a pre-baked item-ID list bypasses unit selection), or are they separate RPCs that share only the
+  snapshot tables?
+</p>
+<p>
+  To settle when we plan the pack and programme surfaces. The snapshot tables and answers table will be shared either
+  way.
+</p>
+
+<h2 id="s10">10. When does the attempt row get created <span class="status settled">settled</span></h2>
+<p>
+  The attempt row is created on the <strong>Start Quiz click in the builder</strong>. From the moment the runner
+  mounts, <code>attempt_id</code> exists for everything (timer state, answer-changes tracking, save progress) to
+  attach to.
+</p>
+<p>
+  But the runner does not jump straight to Q1. A <strong>preflight screen</strong> sits between the builder and the
+  first question. The preflight shows:
+</p>
+<ul>
+  <li>Quiz title / configuration summary (e.g. "Pharm · Hard · Unseen · 25 Q")</li>
+  <li>Question count + duration chip (timed modes)</li>
+  <li>Mode-specific note ("rationales after each submit" for Untimed Learning; "75-second budget per question, no going back" for Timed Sequential; etc.)</li>
+  <li>A Start button (labelled "Start Exam" / "Start Quiz" depending on mode)</li>
+  <li>A "skip preflight next time" checkbox — pattern carried over from mynmclicensure (stored in localStorage per-mode)</li>
+</ul>
+
+<h3>10.1 Two timestamps on the attempt row</h3>
+<table>
+  <thead>
+    <tr><th>Column</th><th>Set when</th><th>Meaning</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>created_at</code></td>
+      <td>Row insert (builder Start click)</td>
+      <td>When the student committed to this quiz. Never overwritten.</td>
+    </tr>
+    <tr>
+      <td><code>started_at</code></td>
+      <td>Preflight Start click (set by RPC)</td>
+      <td>When the timer / answer-tracking officially begins. NULL until the preflight is confirmed.</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  The "is the timer running yet?" check is <code>started_at IS NULL</code>. Resume detection: NULL means
+  "not yet started — show preflight as Start"; non-null means "already started — show preflight as Resume, then
+  re-enter the quiz."
+</p>
+
+<h3>10.2 Cleanup rules — intent-driven (build-time TTLs)</h3>
+<p>
+  Cleanup logic keys off <code>intent</code>, not <code>mode</code>. STUDY-intent attempts with engagement
+  (at least one answer submitted) are <strong>never auto-expired</strong> — the student paid for the bank and can
+  return whenever. Only orphans (zero engagement) and EXAM time-outs get cleaned up automatically.
+</p>
+<table>
+  <thead>
+    <tr><th>Intent</th><th>Condition</th><th>Outcome</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Any</td>
+      <td><code>started_at IS NULL</code>, older than ~24h</td>
+      <td>ABANDONED (orphan: clicked Start in builder, never confirmed preflight)</td>
+    </tr>
+    <tr>
+      <td>STUDY</td>
+      <td>started, zero answers, older than ~24h</td>
+      <td>ABANDONED (orphan: confirmed preflight, never answered Q1)</td>
+    </tr>
+    <tr>
+      <td><strong>STUDY</strong></td>
+      <td><strong>started, with at least one answer</strong></td>
+      <td><strong>Stays IN_PROGRESS indefinitely. Always resumable.</strong></td>
+    </tr>
+    <tr>
+      <td>EXAM (timed)</td>
+      <td>started, <code>now() &gt; started_at + duration_seconds</code></td>
+      <td>TIMED_OUT, with <code>ended_at = started_at + duration_seconds</code></td>
+    </tr>
+    <tr>
+      <td>Any</td>
+      <td>student manually discards from UI</td>
+      <td>ABANDONED, with <code>ended_at = now()</code></td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  <strong>UI-clutter handling.</strong> A student who accumulates many unfinished STUDY attempts over months should
+  not be expired automatically; the Practice page's "unfinished session" check (§17 of parent doc) instead surfaces
+  only the most recent N, with a "see all unfinished" / "discard this quiz" path that lets the student manually
+  flip rows to ABANDONED.
+</p>
+
+<h3>10.3 Reference and improvement</h3>
+<p>
+  This mirrors the existing mynmclicensure pattern (<code>spawnBuilderAttempt</code> at builder Start →
+  <code>markTimedAttemptStarted</code> at preflight Start). Mynmclicensure overloads a single column
+  (<code>ts_iso</code>) for both creation and timer start, overwriting the creation timestamp at preflight
+  confirmation. Mynclex uses two separate columns (<code>created_at</code> and <code>started_at</code>) so the
+  creation moment is preserved for analytics like "how long do students typically sit on the preflight screen?"
+</p>
+
+<h2 id="s11">11. Timer start <span class="status settled">settled</span></h2>
+<p>
+  Timer is anchored to the <strong>preflight Start click</strong>, recorded server-side in <code>started_at</code>.
+  Backend timestamp (not frontend), invariant per attempt. Clock value at any moment =
+  <code>now() − started_at</code>.
+</p>
+<p>
+  This pre-decision came naturally out of §10: the preflight screen sitting between row creation and Q1 means the
+  timer can't start at row creation (would punish the student for reading the preflight) and can't start at Q1 first
+  render (the runner has no preflight-confirmation signal yet). Anchoring to the preflight Start RPC is the only
+  honest answer.
+</p>
+<p>
+  For untimed modes the field is still set — useful as the "answer-tracking officially begins" mark for analytics
+  like time-per-question (§12 of parent doc). No countdown logic uses it.
+</p>
+<p>
+  <strong>EXAM (wall-clock) vs STUDY-timed (engagement-clock).</strong> For timed EXAM, elapsed time =
+  <code>now() − started_at</code> — the clock keeps running whether the student is at the screen or not. For
+  STUDY-timed (a v2-leaning combination kept architecturally open by §6.1.2), the clock only counts active
+  engagement; pause-on-inactive logic uses <code>last_activity_at</code> to subtract idle gaps from the elapsed
+  total. v1 ships only EXAM-timed combinations, so the wall-clock formula is the only one in production.
+</p>
+<p>
+  <strong>Skip-preflight flag</strong> (carry-over from mynmclicensure): a per-mode localStorage flag lets repeat
+  users bypass the preflight screen — Start Quiz in the builder leads straight into Q1, and the timer-start RPC fires
+  automatically. Defaults off (preflight shown). Per-mode so a student can dismiss the routine untimed prompt while
+  still seeing the timed-mode warning every time.
+</p>
+<p>
+  <strong>Hybrid escalation if we ever care about the network-lag (~1–3s) on the timer-start RPC:</strong> the runner
+  could send a <code>preflight_confirmed_at</code> timestamp in the request, and the backend uses the lesser of
+  client-time and server-receive-time. Not for v1 — surface only so we know the door is open.
+</p>
+
+<h2 id="s12">12. Re-roll behaviour <span class="status settled">settled</span></h2>
+<p>
+  Same builder configuration tomorrow → fresh random selection. No question caching tied to filter sets.
+</p>
+<p>
+  <strong>Implication for Recent Quizzes</strong> (§17 of parent doc): restoring a prior config restores the filters /
+  mode / count, NOT the same questions. The label "Pharm · Hard · Unseen · 50 Q" promises a quiz with that
+  <em>shape</em>, not a re-run of that exact quiz.
+</p>
+
+<h2 id="s13">13. CAT — separate flow, noted only <span class="status settled">backreference</span></h2>
+<p>CAT does not use the create-attempt path designed here. Two RPCs instead, both atomic:</p>
+<ul>
+  <li><code>create_cat_attempt</code> — opens an attempt row with <code>mode = CAT</code>, picks and snapshots the first question only.</li>
+  <li><code>cat_next_item(attempt_id, last_answer_payload)</code> — called repeatedly: scores the last answer, updates theta/SE, checks termination, picks and snapshots the next item (or terminates and writes verdict).</li>
+</ul>
+<p>
+  Shared with this plan: the <code>nclex_attempts</code> row, <code>nclex_attempt_answers</code>, and the snapshot
+  tables (<code>nclex_attempt_items</code>, plus trend/case snapshot tables when applicable). Items are added one at a
+  time as the IRT engine picks them.
+</p>
+<p>
+  <strong>Full CAT design lives in <code>bank-consumption-cat.html</code></strong> — RPC contracts in §10.2, runner-server
+  transition pattern (pessimistic UI with graceful degradation) in §10.1, error handling in §10.3, snapshot rules in §11.
+  This section is now a backreference; all CAT-specific decisions are settled there.
+</p>
+
+<h2 id="s14">14. Open decisions consolidated</h2>
+<p>Carried forward inside this doc:</p>
+<ul>
+  <li>§9 Sources beyond Custom-built (shared RPC vs separate) — settle with pack/programme planning</li>
+  <li>Exact column types and constraints in §6 — build time</li>
+  <li><code>attempt_id</code> UUID variant (v4 vs v7) — build time, depends on Supabase Postgres extension support</li>
+  <li>RLS policies — build time</li>
+  <li>Abandoned-session cleanup TTLs — concrete values to pick at build time (sketch in §10.2)</li>
+  <li>Preflight skip-flag scope — per-mode is the lead; revisit if it gets noisy</li>
+</ul>
+
+<p><strong>Follow-up edits required in parent doc <code>bank-consumption.html</code>:</strong></p>
+<ul>
+  <li><strong>§15 Source / Mode / Session State</strong> — mode list needs intent annotations (which intents each mode supports). The "Resume restricted to untimed modes only" rule rewrites to "Resume restricted to STUDY intent." The Session States section may want to note that ABANDONED can be student-driven (manual discard) in addition to system-driven (orphan cleanup).</li>
+  <li><strong>§17 Practice page — the Builder</strong> — gains an intent-picker step before the mode picker. The mode card list dynamically filters by chosen intent. Recent Quizzes shortcut chips need to capture intent in the restored config.</li>
+</ul>
+
+<h2 id="s15">15. Settling order</h2>
+<p>
+  Sources (§9) is the only conceptual decision left in this doc. Settles naturally when we plan the Readiness Pack or
+  Programme surfaces — no need to force it now in isolation.
+</p>
+<p>
+  Everything else is build-time territory: column types, RLS policies, concrete cleanup TTLs.
+</p>
+<p>
+  This sub-plan is essentially complete. Next planning conversation moves on to the Runner itself (rendering, scoring,
+  submission flow, review state) — feeding off the snapshot/items shape locked here.
+</p>
+
+<hr class="footer-rule" />
+<p class="footer-line">
+  Related: <code>bank-consumption.html</code> (parent — extends §15 Source/Mode/Session State and §17 Builder),
+  <code>bank.md</code> (authoring side — schema, JSONB shapes, scoring; snapshot columns mirror authoring shapes),
+  <code>main.md</code> (overall MyNclex product plan).
+</p>
+<p class="footer-line">MyNclex — Bank Consumption · Attempt Creation Plan · Living document</p>
+
+</div>
+</body>
+</html>

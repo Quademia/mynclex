@@ -424,6 +424,20 @@
   color: var(--text-muted);
 }
 
+/* Read-only computed value — used for system-managed fields like the
+ * marks max-score display in Housekeeping. Visually reads as "this is
+ * informational, not editable". */
+.auth-readonly-value {
+  display: block;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-soft, #f9fafb);
+  color: var(--text);
+  font-size: 14px;
+}
+
 .auth-input {
   width: 100%;
   padding: 8px 11px;
@@ -861,6 +875,13 @@
   text-align: right;
   white-space: nowrap;
   width: 1%;
+}
+.auth-list-max {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  width: 1%;
+  white-space: nowrap;
+  padding-right: 16px;
 }
 .auth-list-row-disabled {
   color: var(--text-muted);

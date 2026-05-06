@@ -46,6 +46,7 @@ import {
   parseCloze,
   type ClozeBlankInput,
 } from '@/lib/bank/parsers/cloze';
+import { computeMarksFromKey } from '@/lib/scoring';
 import {
   parseHighlight,
   type HighlightChunkInput,
@@ -347,8 +348,9 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
   const tagsRaw = String(formData.get('tags') ?? '');
   const tags = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean);
 
-  const marksRaw = parseFloat(String(formData.get('marks') ?? '1'));
-  const marks = Number.isFinite(marksRaw) && marksRaw > 0 ? marksRaw : 1;
+  // Marks are system-managed — derived from the answer key by the editor at
+  // save time, not curator-typed. See bank-marks-and-scoring.html §5.
+  const marks = computeMarksFromKey(question_type, parsed.correct);
 
   // CLOZE rewrites the stem on save (gap-closing renumber). Other
   // parsers don't touch it, so we fall back to the curator-typed stem.

@@ -57,6 +57,7 @@ export interface BankListRowSummary {
   difficulty:     string | null;
   is_published:   boolean;
   is_free_sample: boolean;
+  marks:          number;
   // Wrapper attachment metadata. Both null on standalone rows. At
   // most one of {case, trend} is set on attached rows — questions
   // can belong to one wrapper at a time. Wrapper-attached rows show
@@ -265,6 +266,12 @@ export function BankListClient({
               <th>Stem</th>
               <th>Type</th>
               <th>Difficulty</th>
+              <th
+                className="auth-list-max"
+                title="Max possible score for the question (system-derived from the answer key)"
+              >
+                Max
+              </th>
               <th>Status</th>
               <th aria-label="Actions" />
             </tr>
@@ -307,6 +314,7 @@ export function BankListClient({
                     <span className="auth-pill auth-pill--type">{row.question_type}</span>
                   </td>
                   <td>{row.difficulty ?? '—'}</td>
+                  <td className="auth-list-max">{row.marks}</td>
                   <td>
                     <span
                       className={

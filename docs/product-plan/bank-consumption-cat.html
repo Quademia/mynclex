@@ -1,0 +1,1676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>MyNclex — Bank Consumption · CAT Plan</title>
+<style>
+  :root {
+    --primary: #1e3a5f;
+    --accent:  #2d7d72;
+    --text:    #1a1a1a;
+    --text-muted: #5b6470;
+    --border:  #d8dde3;
+    --white:   #ffffff;
+    --bg:      #f7f8fa;
+    --surface: #ffffff;
+    --surface-softer: #f3f5f8;
+
+    --radius-sm: 4px;
+    --radius-md: 6px;
+
+    --ok-bg:    #e6f4ee;
+    --ok-text:  #1f5c45;
+    --warn-bg:  #fff5e3;
+    --warn-text:#8a5a00;
+    --info-bg:  #e7eef7;
+    --info-text:#274a7a;
+    --info-accent: #4a78b8;
+    --info-border: #b9cae5;
+    --neutral-bg:   #ececec;
+    --neutral-text: #555555;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    margin: 0;
+    padding: 0;
+  }
+  .doc {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 36px 28px 80px;
+    background: var(--white);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 26px;
+    margin: 0 0 6px;
+    color: var(--primary);
+    letter-spacing: -0.01em;
+  }
+  .doc-meta {
+    font-size: 13px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 14px;
+    margin-bottom: 24px;
+  }
+  h2 {
+    font-size: 19px;
+    color: var(--primary);
+    margin: 30px 0 10px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-size: 15.5px;
+    color: var(--primary);
+    margin: 20px 0 8px;
+  }
+  h4 {
+    font-size: 14px;
+    color: var(--primary);
+    margin: 16px 0 6px;
+  }
+  p, li { font-size: 14.5px; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    background: var(--surface-softer);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  pre {
+    background: var(--surface-softer);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    overflow-x: auto;
+    font-size: 13px;
+  }
+  pre code { background: none; padding: 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13.5px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--surface-softer);
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  .status {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .status.settled  { background: var(--ok-bg); color: var(--ok-text); }
+  .status.open     { background: var(--warn-bg); color: var(--warn-text); }
+  .status.deferred { background: var(--info-bg); color: var(--info-text); }
+  .status.skeleton { background: var(--neutral-bg); color: var(--neutral-text); }
+
+  .callout {
+    background: var(--info-bg);
+    border-left: 3px solid var(--info-accent);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin: 14px 0;
+    font-size: 14px;
+    color: var(--info-text);
+  }
+
+  .toc { margin: 8px 0 28px; padding: 14px 18px; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-md); }
+  .toc h2 { border: none; padding: 0; margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc li { margin: 3px 0; font-size: 13.5px; }
+  .toc a { color: var(--primary); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  hr.footer-rule { border: none; border-top: 1px solid var(--border); margin: 40px 0 16px; }
+  .footer-line { font-size: 12.5px; color: var(--text-muted); font-style: italic; }
+</style>
+</head>
+<body>
+<div class="doc">
+
+<h1>MyNclex — Bank Consumption · CAT Plan</h1>
+<div class="doc-meta">
+  Living planning document. Last updated: 2026-05-05 (§3.2 — "How CAT works" help page path changed from
+  <code>/student/bank/help/cat</code> to <code>/help/cat</code>: top-level, audience-neutral, public. Help is
+  content not workflow; same logic as the runner at <code>/session/[attempt_id]</code>. Earlier same day:
+  18 of 20 sections settled across two seed
+  conversations, two extended planning sessions, and one build-handoff session: §1 scope, §2 inheritance,
+  §3 honesty constraints, §4 IRT model (Rasch in TypeScript), §5 calibration plan (separate
+  <code>difficulty_irt</code> column + weekly batch + 70/30 dampened blend), §6 starting difficulty, §7
+  selection rule with category tiebreaker, §8 content blueprint, §9 termination, §10 architecture
+  (two-RPC flow, pessimistic UI with graceful degradation, atomic transactions, 0–300ms / 3s / 10s
+  latency thresholds), §11 snapshots, §12 schema additions (build handoff package: column types, CHECK
+  constraints, RPC stubs, verification queries, rollback plan — see §12.7), §13 CAT summary page
+  (verdict copy, trajectory graph + per-item marker), §14 review (uses shared runner Review surface),
+  §15 re-take rules, §16 runner UX (current-Q-only progress, no back nav, no live mark-for-review,
+  abandoned on browser-close), §17 calibration capture (one new audit table). Remaining: §18
+  out-of-scope notes, §20 related docs.
+</div>
+
+<h2>Why this doc exists</h2>
+<p>
+  Sub-plan for the <strong>CAT</strong> (Computer Adaptive Testing) mode — the adaptive, IRT-driven runner that
+  simulates the real NCLEX exam. CAT is in scope for v1 per parent doc <code>bank-consumption.html</code> §16.
+</p>
+<p>
+  Splits off because CAT is structurally different from every other mode in MyNclex: it has no upfront question
+  list, items arrive one at a time from an ability estimator, the test terminates on confidence rather than
+  count, the result is a verdict (not a score), and the runner UX has to handle "we don't know how many questions
+  you'll answer." None of those shapes fit cleanly inside the fixed-length attempt-creation and runner sub-plans.
+</p>
+<p>
+  This doc is mostly a <strong>skeleton</strong> at creation time. Each section below has a placeholder
+  describing what it covers; content fills in as planning conversations land. Status pills:
+  <span class="status settled">settled</span> = decision locked,
+  <span class="status open">open</span> = decision identified, not yet made,
+  <span class="status skeleton">skeleton</span> = section defined, content not yet started,
+  <span class="status deferred">deferred</span> = own planning topic later.
+</p>
+
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#s1">Scope and what's out of scope</a></li>
+    <li><a href="#s2">What's already settled across the existing plan</a></li>
+    <li><a href="#s3">v1 honesty constraints</a></li>
+    <li><a href="#s4">IRT model choice</a></li>
+    <li><a href="#s5">Difficulty calibration plan</a></li>
+    <li><a href="#s6">Starting-difficulty rule</a></li>
+    <li><a href="#s7">Item selection strategy</a></li>
+    <li><a href="#s8">Content-blueprint constraints</a></li>
+    <li><a href="#s9">Termination logic</a></li>
+    <li><a href="#s10">Architecture — the two-RPC flow</a></li>
+    <li><a href="#s11">Snapshot strategy for CAT</a></li>
+    <li><a href="#s12">Schema additions</a></li>
+    <li><a href="#s13">Result presentation</a></li>
+    <li><a href="#s14">Review state for CAT</a></li>
+    <li><a href="#s15">Re-take rules</a></li>
+    <li><a href="#s16">Runner UX specifics</a></li>
+    <li><a href="#s17">Calibration data capture</a></li>
+    <li><a href="#s18">Out of scope for v1 / deferred</a></li>
+    <li><a href="#s19">Open decisions</a></li>
+    <li><a href="#s20">Related docs</a></li>
+  </ol>
+</div>
+
+<h2 id="s1">1. Scope and what's out of scope <span class="status settled">settled</span></h2>
+<p>In scope:</p>
+<ul>
+  <li>The CAT runner experience for v1 — IRT model, item selection, termination, result.</li>
+  <li>Schema additions to the existing <code>nclex_attempts</code> and <code>nclex_attempt_items</code> tables to capture CAT-specific data.</li>
+  <li>Architecture of the two CAT RPCs (<code>create_cat_attempt</code> and <code>cat_next_item</code>) and where the IRT engine runs.</li>
+  <li>Result presentation — what the student sees at the end of a CAT exam.</li>
+  <li>Review state — what reviewing a finished CAT exam looks like (different from fixed-length review by necessity).</li>
+  <li>Calibration data capture — what we log per-item so empirical recalibration is possible later.</li>
+  <li>Re-take rules — how often a student can take CAT, whether prior CAT data influences future CATs.</li>
+</ul>
+<p>Out of scope here:</p>
+<ul>
+  <li>Fixed-length modes (Untimed Learning / Untimed Test / Timed Free Nav / Timed Sequential) — covered in <code>bank-consumption-attempt-creation.html</code> and <code>bank-consumption-runner.html</code>.</li>
+  <li>Builder UI for CAT — already settled in parent <code>bank-consumption.html</code> §17 (filters/pool/count collapse; CAT only under EXAM intent).</li>
+  <li>Per-question rendering of the 9 question types — same components as fixed-length runner, no CAT-specific shapes.</li>
+  <li>RLS policies, exact column types, exact RPC signatures — build-time concerns.</li>
+  <li>Pearson VUE-grade exposure control, content balancing beyond Client Needs Category proportions, or production-grade item pool management — out of v1 scope, see §18.</li>
+</ul>
+
+<h2 id="s2">2. What's already settled across the existing plan <span class="status settled">settled</span></h2>
+<p>
+  Several CAT decisions live in sibling docs already. This section consolidates them so this doc has a single
+  reference for what we're inheriting before we pick up new decisions.
+</p>
+
+<h3>2.1 From parent <code>bank-consumption.html</code> §16</h3>
+<ul>
+  <li><strong>CAT ships in v1.</strong> Not deferred. Justified as the single most important mode for NCLEX fidelity — every prep platform that claims realism has to grapple with it.</li>
+  <li><strong>Concept summary.</strong> Difficulty per question, ability estimate updates after each answer, next item picked by ability match, terminates on confidence (NCLEX terminates at 75–145 questions), pass/fail outcome, no raw score.</li>
+  <li><strong>v1 build components named</strong> (specifics unsettled): IRT-based ability estimator (Rasch or 2PL), question-selection strategy, termination logic, result-presentation language.</li>
+</ul>
+
+<h3>2.2 From parent <code>bank-consumption.html</code> §15</h3>
+<ul>
+  <li>CAT is one of the 5 modes in the Source/Mode/State framework.</li>
+  <li>Provisional rule already locked: "CAT — adaptive, IRT-based, terminates on confidence. In scope for v1."</li>
+</ul>
+
+<h3>2.3 From parent <code>bank-consumption.html</code> §17 — Builder behaviour</h3>
+<ul>
+  <li>CAT only appears under EXAM intent.</li>
+  <li>When CAT is selected: content filters collapse with the message <em>"CAT pulls from the full bank to simulate the real exam. Filters don't apply."</em></li>
+  <li>Pool filters also collapse with the same reasoning.</li>
+  <li>Question count UI hides, replaced with the static label <em>"75–145 questions, terminates when confidence is reached."</em></li>
+  <li>Recent Quizzes CAT chip shows "Exam · CAT" with no filters — tapping restores Exam intent + CAT mode.</li>
+</ul>
+
+<h3>2.4 From <code>bank-consumption-attempt-creation.html</code> §6.1.2</h3>
+<ul>
+  <li><strong><code>(CAT, EXAM)</code> is the only valid CAT tuple.</strong> <code>(CAT, STUDY)</code> is invalid — IRT model needs continuous engagement; pause/resume invalidates the estimate. The create-attempt path must reject the invalid tuple server-side.</li>
+</ul>
+
+<h3>2.5 From <code>bank-consumption-attempt-creation.html</code> §13</h3>
+<ul>
+  <li><strong>CAT does NOT use the same create-attempt RPC as fixed-length modes.</strong> CAT needs two RPCs:
+    <ul>
+      <li><code>create_cat_attempt</code> — opens an attempt row with <code>mode = CAT</code>, picks and snapshots the <em>first question only</em>.</li>
+      <li><code>cat_next_item(attempt_id, last_answer_payload)</code> — called repeatedly, picks the next item by ability estimate, snapshots it, returns it.</li>
+    </ul>
+  </li>
+  <li><strong>Shared with fixed-length plan:</strong> the <code>nclex_attempts</code> row, <code>nclex_attempt_answers</code>, the snapshot tables. Items are added one at a time as the IRT engine picks them.</li>
+</ul>
+
+<h3>2.6 From <code>bank-consumption-attempt-creation.html</code> §6.1 (Result group)</h3>
+<ul>
+  <li><strong>Result columns are deferred to this doc.</strong> Verdict / ability estimate / standard error / termination reason — to be designed here. Will be NULL for non-CAT attempts; will replace <code>final_score</code> for CAT attempts (CAT has no raw score).</li>
+</ul>
+
+<h3>2.7 From <code>bank-consumption-runner.html</code> §18</h3>
+<ul>
+  <li><strong>CAT runner is structurally different.</strong> No upfront question list, items arrive one at a time, preflight + termination both run differently.</li>
+  <li><strong>Shared with fixed-length runner:</strong> snapshot tables, answer table, attempt row lifecycle (preflight, status transitions, timer).</li>
+</ul>
+
+<h3>2.8 From <code>bank-consumption-runner.html</code> §12 (feedback timing)</h3>
+<ul>
+  <li><strong>CAT feedback during the live run: none.</strong> No per-question rationale, no right/wrong indicator, no running score. The student just answers and moves on.</li>
+  <li><strong>Final result at the end:</strong> verdict only, not per-question. Per-question rationales become available in Review state (see §14 below).</li>
+</ul>
+
+<h3>2.9 From <code>bank-marks-and-scoring.html</code> §1 + §11</h3>
+<ul>
+  <li>CAT scoring is explicitly out of scope for the marks-and-scoring doc — IRT-based ability estimation is its own planning topic (this doc).</li>
+  <li>Item-equivalent average (the headline session score for fixed-length modes) does not apply to CAT. CAT has no <code>final_score</code>; it has a verdict + theta + SE.</li>
+</ul>
+
+<h3>2.10 Settled in this doc's seed conversation (2026-05-04)</h3>
+<ul>
+  <li><strong>Snapshots are non-negotiable for CAT.</strong> Per-question snapshot at administration time, identical to the fixed-length snapshot strategy. Skipping snapshots — whether by reading from live tables, or by snapshotting retroactively at end-of-session — was rejected on integrity grounds: a curator editing a question mid-attempt would change the rules under the student's feet, and post-hoc snapshots capture state at end-of-session, not state at administration. See §11 for the full reasoning.</li>
+  <li><strong>One set of attempt tables for all modes.</strong> CAT uses the existing <code>nclex_attempts</code>, <code>nclex_attempt_items</code>, <code>nclex_attempt_answers</code>. CAT-specific columns are nullable additions, NULL for non-CAT attempts. Splitting CAT into separate tables would force every History page query, every analytics rollup, every Review render to UNION across two sets of tables for zero gain. NULL columns in Postgres are effectively free.</li>
+  <li><strong>Review IS available for CAT.</strong> Industry-standard (UWorld, Archer both offer review-after-CAT) and consistent with parent §15 ("Review is a session state available for every finished session regardless of source/mode"). Review surfaces the rationales for the questions the student saw — the educational value is the rationales, not a per-question benchmark against peers (since two CAT-takers see different questions). See §14 for what review looks like specifically.</li>
+</ul>
+
+<h2 id="s3">3. v1 honesty constraints <span class="status settled">settled</span></h2>
+<p>
+  Three constraints commit us to honesty about what we can and can't deliver. Settled 2026-05-04.
+</p>
+
+<h3>3.1 Calibration approximation — disclosed via help page, not per-attempt</h3>
+<p>
+  Day-one difficulty values are curator labels mapped to numbers. Until empirical recalibration kicks in
+  (§5.3), our "Hard" item is a reasoned guess, not a measurement. We're honest about that — but we tell the
+  student <strong>once, in a help page</strong>, not on every CAT result.
+</p>
+<p>Three options were considered:</p>
+<ul>
+  <li><strong>Don't expose it</strong> — UWorld and Archer don't tell students about their calibration internals. Black box. Rejected: dishonest by omission for a product whose Promise is "practise on the real thing" with Pillar 4 being honest feedback.</li>
+  <li><strong>Per-attempt caveat</strong> — small note on every CAT summary page reminding the student that calibration is approximate. Rejected: undermines the verdict every time, makes us look unconfident in our own product, probably confuses more than it informs.</li>
+  <li><strong>One-time help page (chosen).</strong> Honest, but not pestering. Students can know if they want to.</li>
+</ul>
+
+<h3>3.2 The "How CAT works" help page</h3>
+<p>
+  Single page, plain English. Located at <code>/help/cat</code> — top-level, audience-neutral, public (no auth
+  gate). Help content reads the same whether a student, tutor, or admin opens it; same logic that put the runner
+  at <code>/session/[attempt_id]</code> rather than nested under an audience folder. Public because help articles
+  are reference material — a subscriber whose payment failed should still be able to reach <code>/help/payments</code>
+  even when they can't reach their dashboard, and a prospective subscriber should be able to read about features
+  before paying. Help articles will live at <code>/help/[slug]</code> as a single audience-neutral surface
+  (<code>/help/cat</code>, <code>/help/payments</code>, etc.) outside the <code>(app)</code> auth boundary.
+</p>
+<p>Five sections:</p>
+<ol>
+  <li><strong>What CAT does.</strong> Short paragraph: the test adapts to the student's ability, asks 75–145 questions, terminates when confident. Frames CAT as an exam-style measure, not a study tool.</li>
+  <li><strong>Why questions feel hard.</strong> The engine deliberately serves questions at the student's level; getting roughly half wrong is normal and expected, not a sign of weakness.</li>
+  <li><strong>What the verdict means.</strong> Above standard / Below standard / Inconclusive, with the honest framing. We don't predict real-NCLEX outcomes.</li>
+  <li><strong>How calibration works.</strong> Early items use curator-assigned difficulty; over time, real student responses recalibrate. Acknowledges the system improves with use.</li>
+  <li><strong>How to use CAT well.</strong> Single sitting, no pause, no back navigation; review the rationales afterwards; use the category breakdown to direct further practice.</li>
+</ol>
+<p>Linked from:</p>
+<ul>
+  <li>CAT preflight screen — small "How CAT works" link.</li>
+  <li>CAT summary page — small footer link.</li>
+  <li>Dashboard CAT card — small "?" icon.</li>
+</ul>
+
+<h3>3.3 Honest verdict — see §13</h3>
+<p>
+  "Above standard / Below standard / Inconclusive" — never pass probability. Verdict copy fully specified in
+  §13.1; no separate decision needed here.
+</p>
+
+<h3>3.4 Feeds Readiness Signal but doesn't replace it — see §13.4</h3>
+<p>
+  Two separate dashboard cards (CAT card + Readiness Signal card). No blended single number. INCONCLUSIVE
+  weights as zero in any future blended analytics. Fully specified in §13.4; no separate decision needed here.
+</p>
+
+<h3>3.5 When (if ever) we promote to a probability statement — v3+ at earliest</h3>
+<p>
+  Moving from "above/below standard" to a real-NCLEX pass-probability statement requires <strong>real outcome
+  data</strong> we don't have: students who took our CAT and then took the real NCLEX, with their pass/fail
+  outcomes, in volume large enough to fit a predictive model.
+</p>
+<p>
+  <strong>v3+ at earliest.</strong> Listed in §18 (out of scope for v1) so the constraint is explicit. Until we
+  have outcome data, no probability talk in any surface — verdict copy, dashboard cards, Readiness Signal,
+  marketing.
+</p>
+
+
+<h2 id="s4">4. IRT model choice <span class="status settled">settled</span></h2>
+<p>
+  <strong>Rasch (1PL) for v1.</strong> Implemented in TypeScript inside the existing stack (Cloudflare Workers /
+  Supabase edge). Settled 2026-05-04.
+</p>
+
+<h3>4.1 Why Rasch and not 2PL</h3>
+<p>
+  Rasch uses one parameter per item: difficulty. 2PL adds a second parameter, discrimination — "how well does
+  this question separate strong students from weak students." Discrimination can only be calculated from real
+  student response patterns. Day one, all we have is the curator's Easy / Medium / Hard label, which gives us a
+  difficulty proxy but says nothing about discrimination. Picking 2PL on day one would force us to assign a fake
+  discrimination value (probably 1.0 = "average") to every question — which is mathematically equivalent to just
+  using Rasch.
+</p>
+<p>
+  Rasch is also the simplest, most studied, most stable IRT model. Easier to implement, easier to debug, easier
+  to explain to ourselves and others.
+</p>
+
+<h3>4.2 Live engine implementation</h3>
+<p>
+  <strong>TypeScript implementation in our existing stack.</strong> Our backend is Supabase Edge Functions and
+  Cloudflare Workers — neither runs Python natively. Two paths were considered:
+</p>
+<ul>
+  <li><strong>Path A — Python service.</strong> Spin up a small Python service running a library like <code>catsim</code> or <code>pyirt</code>. CAT RPCs call it for ability estimation and item selection. Adds one moving piece to the stack (deployment, monitoring, latency).</li>
+  <li><strong>Path B — TypeScript Rasch directly.</strong> Re-implement the core Rasch math in TypeScript. The math is small (~30 lines for ability estimation, less for selection). No new infrastructure.</li>
+</ul>
+<p>
+  <strong>Path B chosen.</strong> Rasch math is well-documented and one-time work. Adding a Python service for
+  what is fundamentally a small calculation introduces deployment complexity, latency, and error surfaces for
+  little benefit.
+</p>
+
+<h3>4.3 Empirical recalibration uses heavier tooling — separate concern</h3>
+<p>
+  The <em>live</em> CAT engine is the small Rasch implementation in TypeScript. Empirical recalibration (§5.2)
+  is a different beast — fitting Rasch parameters to a corpus of student responses is a heavier statistical job,
+  and that's the place where Python tooling (<code>pyirt</code> or similar) makes sense. The recalibration job
+  is offline, periodic, batch — not in the live CAT path. See §17 for the audit pipeline.
+</p>
+
+<h3>4.4 2PL upgrade — when</h3>
+<p>
+  Once empirical recalibration has been running for some time and we have substantial response data per item,
+  we can revisit fitting 2PL parameters. v2 decision, driven by data — not a v1 commitment.
+</p>
+
+
+<h2 id="s5">5. Difficulty calibration plan <span class="status settled">settled</span></h2>
+<p>
+  How we get from curator-assigned Easy / Medium / Hard labels to numeric IRT difficulty values, and how we
+  improve those values over time as student response data accumulates. Settled 2026-05-04.
+</p>
+
+<h3>5.1 Day-one mapping — curator label → numeric proxy</h3>
+<p>
+  Three numeric values on the IRT logit scale, where 0 = average ability:
+</p>
+<table>
+  <thead>
+    <tr><th>Curator label</th><th>Rasch difficulty</th><th>Plain-English meaning</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Easy</td><td>−1.0</td><td>A 50/50 student gets this right ~73% of the time.</td></tr>
+    <tr><td>Medium</td><td>0.0</td><td>A 50/50 student gets this right ~50% of the time.</td></tr>
+    <tr><td>Hard</td><td>+1.0</td><td>A 50/50 student gets this right ~27% of the time.</td></tr>
+  </tbody>
+</table>
+<p>
+  The middle three values on the standard IRT logit scale. Wide enough that the three labels are meaningfully
+  different (the engine picks differently for a Medium-leaning student vs a Hard-leaning student); tight enough
+  that no question is treated as extreme.
+</p>
+
+<h3>5.2 Where the numeric value lives — schema decision</h3>
+<p>
+  The existing <code>nclex_bank_items.difficulty</code> column is a TEXT column with a CHECK constraint that
+  restricts values to <code>'Easy'</code> / <code>'Medium'</code> / <code>'Hard'</code>. It cannot hold a number
+  like 0.34 — that would violate the constraint. So the numeric value the CAT engine reads must live in a
+  separate column.
+</p>
+<p>
+  <strong>Add a new column: <code>difficulty_irt</code> (NUMERIC).</strong> The text column stays exactly as it
+  is; the numeric column lives in parallel.
+</p>
+<table>
+  <thead>
+    <tr><th>Column on <code>nclex_bank_items</code></th><th>Type</th><th>Purpose</th><th>Source</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>difficulty</code> (existing, unchanged)</td>
+      <td>TEXT</td>
+      <td>Curator's label — displayed in admin UI, edited by curator</td>
+      <td>Curator selects on save</td>
+    </tr>
+    <tr>
+      <td><code>difficulty_irt</code> (new)</td>
+      <td>NUMERIC</td>
+      <td>The number the CAT engine reads for selection</td>
+      <td>Initialised from <code>difficulty</code> via the §5.1 mapping; updated by the recalibration job</td>
+    </tr>
+    <tr>
+      <td><code>difficulty_source</code> (new)</td>
+      <td>TEXT</td>
+      <td>Provenance flag for <code>difficulty_irt</code></td>
+      <td><code>'CURATOR_LABEL'</code> on insert; flipped to <code>'EMPIRICAL'</code> by the recalibration job once the threshold is crossed</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  <strong>Rules of access:</strong>
+</p>
+<ul>
+  <li>Curator UI never touches <code>difficulty_irt</code>. The curator picks Easy / Medium / Hard; the system writes the corresponding number to <code>difficulty_irt</code> automatically on save.</li>
+  <li>CAT engine never touches <code>difficulty</code>. It reads <code>difficulty_irt</code> only.</li>
+  <li>Recalibration job writes only to <code>difficulty_irt</code> and <code>difficulty_source</code>. Never touches the curator's label.</li>
+  <li>This preserves the curator's original judgement as a stable field. Once recalibration runs, we can still see <em>"this question was originally labelled Hard, but the data shows it's actually Medium-difficulty"</em> by comparing the two columns.</li>
+</ul>
+
+<h3>5.3 Empirical recalibration trigger</h3>
+<p>
+  When does an item's <code>difficulty_irt</code> get recomputed from response data instead of staying at its
+  curator-derived starting value?
+</p>
+
+<h4>5.3.1 Threshold — 30 responses per item</h4>
+<p>
+  An item must have accumulated at least 30 student responses before its <code>difficulty_irt</code> can be
+  recalibrated empirically. Below that, the empirical estimate is too noisy — one strong student getting an
+  item wrong (or one weak student guessing right) can swing the difficulty value too far. 30 is the standard
+  industry rule-of-thumb floor; above it, the estimate stabilises meaningfully.
+</p>
+
+<h4>5.3.2 Cadence — weekly batch (v1)</h4>
+<p>
+  <strong>Recalibration runs once a week — Sundays at 02:00 UTC (low-traffic window).</strong> Plus a manual
+  trigger button in the curator dashboard for testing and edge cases.
+</p>
+<p>Why weekly, not nightly:</p>
+<ul>
+  <li>Early on, response volume per item is low. A given item might get 3–5 responses per day. Nightly mostly produces no-op recalculations.</li>
+  <li>Empirical estimates are more stable when computed on a larger window of responses.</li>
+  <li>Weekly is operationally simpler — one scheduled run, easier to monitor.</li>
+  <li>Matches the reality that early-stage recalibration is provisional anyway.</li>
+</ul>
+<p>
+  <strong>Revisit cadence when</strong> the platform has enough volume that items routinely accumulate 20+ new
+  responses between weekly runs. At that point, switch to nightly. v2 decision, data-driven.
+</p>
+
+<h4>5.3.3 Transition smoothing — 70/30 dampened blend</h4>
+<p>
+  When the recalibration job produces a new value for an item, the new <code>difficulty_irt</code> is a weighted
+  blend of the previous value and the freshly computed one — 70% new, 30% previous. So if an item was at
+  difficulty 0.0 last week and the new empirical estimate is 0.7, the stored value becomes 0.49 (≈ 0.7 × 0.7 +
+  0.0 × 0.3).
+</p>
+<p>
+  <strong>Why dampen.</strong> Without smoothing, an item's difficulty can lurch between weekly runs in ways
+  that make consecutive CATs feel arbitrary. A student who took CAT #1 with this item at difficulty 0.0 and CAT
+  #2 with the same item suddenly at 0.7 is exposed to large psychometric shifts mid-prep that have nothing to
+  do with their own ability. Dampening keeps the trajectory smooth across recalibration cycles.
+</p>
+<p>
+  The blend converges to the empirical value over multiple weekly runs — fast enough that calibration moves the
+  needle within a month or two of accumulating data, slow enough that no single week's noise dominates.
+</p>
+
+<h4>5.3.4 First crossover — special case</h4>
+<p>
+  When an item crosses the 30-response threshold for the first time, <code>difficulty_source</code> flips from
+  <code>'CURATOR_LABEL'</code> to <code>'EMPIRICAL'</code>. The 70/30 blend still applies — the previous value
+  is the curator-derived starting number, the new value is the first empirical estimate.
+</p>
+
+<h3>5.4 Confidence display</h3>
+<p>
+  Each item's <code>difficulty_source</code> column tells the curator dashboard whether the value is curator-
+  derived or empirically calibrated. The dashboard can show: "X% of bank items are now empirically calibrated"
+  and per-item flags. <strong>Admin/curator-side only for v1; not surfaced student-facing.</strong>
+</p>
+
+
+<h2 id="s6">6. Starting-difficulty rule <span class="status settled">settled</span></h2>
+<p>
+  <strong>Every CAT starts at theta = 0.0 (Medium), with high SE, for every student, every time.</strong>
+  First question served = Medium. Settled 2026-05-04.
+</p>
+<p>
+  <strong>Why fixed, not personalised:</strong> a returning student who's done 3 prior CATs has a known prior
+  theta — but starting CAT #4 at that prior estimate would <em>bias the test toward confirming the prior result</em>.
+  The engine would spend fewer questions exploring whether the student has actually changed since CAT #3, and
+  more questions confirming what it already thought. That's bad measurement. Real NCLEX doesn't do this;
+  every candidate starts at medium every time. We mirror that.
+</p>
+<p>
+  <strong>What we DO use prior CAT data for:</strong> History / Analytics. The student sees their CAT trajectory
+  across attempts ("you went from theta 0.5 → 0.7 → 0.65"). That's useful information. It just doesn't seed the
+  next CAT's starting position.
+</p>
+
+<h2 id="s7">7. Item selection strategy <span class="status settled">settled</span></h2>
+<p>
+  Given the current ability estimate, the eligibility filters, and the bank pool — how does the engine pick
+  the next item? Settled 2026-05-04.
+</p>
+
+<h3>7.1 The selection rule</h3>
+<p>
+  <strong>Pick the unseen question whose difficulty is closest to the student's current ability, with category as
+  a tiebreaker among equally-good difficulty matches.</strong>
+</p>
+<p>The engine, on each pick:</p>
+<ol>
+  <li>Calculates the student's current ability estimate (theta).</li>
+  <li>Finds the set of unseen, eligible questions within a small difficulty tolerance (provisional: ±0.1) of theta.</li>
+  <li>Within that set, checks if any are in an under-represented Client Needs Category (running count of categories so far in this attempt).</li>
+  <li>If yes → picks one at random from the under-represented-category subset.</li>
+  <li>If no under-represented matches → picks any from the difficulty-tolerance set at random.</li>
+</ol>
+<p>
+  <strong>The engine never goes outside the difficulty tolerance to find an under-represented question.</strong>
+  Difficulty match is sacred. Category is a thoughtful tiebreaker only.
+</p>
+
+<h3>7.2 Why this rule (and why not stronger category enforcement)</h3>
+<p>
+  Three options were considered: (A) pure difficulty match (soft category), (B) hard category enforcement that
+  overrides difficulty when needed, (D) a per-category floor with late-test override. All three were rejected
+  in favour of the locked rule (option E in the planning conversation):
+</p>
+<ul>
+  <li><strong>A (pure difficulty)</strong> — sound on measurement but no protection against severely lopsided category mixes when the bank itself is unbalanced.</li>
+  <li><strong>B (hard enforcement)</strong> — overriding difficulty for category degrades the engine's measurement accuracy, can break entirely on a small bank when no question exists at the right difficulty in the under-represented category, and hides bank-balance signals that should be addressed by curation, not engine compensation.</li>
+  <li><strong>D (floor with override)</strong> — better than B but still pays measurement cost when the floor activates late in the test, and adds engine complexity (running floor checks, fallback logic).</li>
+  <li><strong>E (tiebreaker)</strong> — costs nothing in measurement quality (engine never picks a wrong-difficulty question), gives the engine a small natural lean toward balance when free choices exist, doesn't pretend to enforce what the bank can't deliver.</li>
+</ul>
+
+<h3>7.3 Eligibility filters</h3>
+<p>The next item must be:</p>
+<ul>
+  <li>Not already administered in this attempt (no within-attempt repeats).</li>
+  <li>Not seen in the student's last 3 CAT attempts (cross-CAT exposure window — settled in §15.2).</li>
+  <li><code>is_published = TRUE</code>.</li>
+  <li><code>is_builder_visible = TRUE</code> (keeps readiness-pack reserved questions out of CAT, same rule as everywhere else).</li>
+  <li>Standalone question only — no case-study children, no trend-linked questions in v1 (see §7.4).</li>
+</ul>
+
+<h3>7.4 Cases and trends in CAT — standalone-only for v1</h3>
+<p>
+  Real NCLEX includes case studies in CAT. We don't, in v1. Three reasons:
+</p>
+<ul>
+  <li>Case-study children aren't psychometrically independent — the 6 questions correlate heavily because they're built on the same scenario, which violates IRT's local-independence assumption.</li>
+  <li>A case study takes ~6 questions to deliver as an atomic block, which locks the engine out of difficulty-tracking for that whole block.</li>
+  <li>Simpler selection logic in v1.</li>
+</ul>
+<p>
+  Trend-linked questions are also excluded from v1 CAT — they're not atomic the way cases are, but trends carry
+  shared dataset context that's awkward to drop into an adaptive sequence cleanly.
+</p>
+<p>
+  Adding cases and/or trends is a v2 enhancement once the standalone CAT engine is calibrated and trusted.
+</p>
+
+<h3>7.5 Bank-exhaustion fallback</h3>
+<p>
+  Edge case: student is at ability 0.5, the engine wants a question at difficulty ~0.5, all candidates have been
+  seen in their last 3 CATs.
+</p>
+<p>
+  <strong>Rule: relax exposure before relaxing difficulty.</strong>
+</p>
+<ol>
+  <li>First try: unseen questions within difficulty tolerance, not seen in last 3 CATs → ideal pick.</li>
+  <li>If empty: questions within difficulty tolerance, even if seen in last 3 CATs → fall back to allowing repeat.</li>
+  <li>Never: serve a wrong-difficulty question to avoid a repeat.</li>
+</ol>
+<p>
+  Fallbacks are logged so the curator dashboard can flag "X% of CAT picks fell back to repeats — bank may be too
+  small or too thinly distributed at this difficulty band."
+</p>
+
+<h3>7.6 Day-one effective behaviour with curator-labelled difficulty</h3>
+<p>
+  Until empirical calibration kicks in (§5.2), the bank only has three difficulty values: −1 (Easy), 0 (Medium),
+  +1 (Hard). The student's ability is continuous (could be 0.1, 0.34, −0.62, anything), but every question sits
+  at one of three values. So the rule effectively becomes:
+</p>
+<table>
+  <thead>
+    <tr><th>Student ability</th><th>Question served</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Below −0.5</td><td>Easy</td></tr>
+    <tr><td>−0.5 to +0.5</td><td>Medium</td></tr>
+    <tr><td>Above +0.5</td><td>Hard</td></tr>
+  </tbody>
+</table>
+<p>
+  Coarse, but the math handles it — Rasch doesn't need a question at exactly the student's ability, just
+  questions in roughly the right region. As empirical calibration matures and each question gets its own
+  specific difficulty, the engine gets finer-grained choices automatically.
+</p>
+
+
+<h2 id="s8">8. Content-blueprint constraints <span class="status settled">settled</span></h2>
+<p>
+  Real NCLEX enforces a content blueprint — minimum percentages of each Client Needs Category in the test the
+  candidate sees. The question for us was how strictly to enforce the same. Settled 2026-05-04.
+</p>
+<p>NCLEX-RN's official blueprint (approximate, as of 2023 NGN test plan), for reference:</p>
+<table>
+  <thead>
+    <tr><th>Client Needs Category</th><th>Approx. % of items</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Safe and Effective Care Environment</td><td>26–38%</td></tr>
+    <tr><td>Health Promotion and Maintenance</td><td>6–12%</td></tr>
+    <tr><td>Psychosocial Integrity</td><td>6–12%</td></tr>
+    <tr><td>Physiological Integrity</td><td>49–62%</td></tr>
+  </tbody>
+</table>
+
+<h3>8.1 The rule</h3>
+<p>
+  <strong>Category influences selection only as a tiebreaker among equally-good difficulty matches</strong> —
+  see §7.1 for the full mechanic.
+</p>
+<p>
+  When the engine is choosing between two unseen questions both within the difficulty tolerance of the student's
+  current ability, it prefers the one in an under-represented category. When no equally-good difficulty match
+  exists in an under-represented category, the engine picks by difficulty alone. Category never overrides
+  difficulty; it just decides between equally-good options.
+</p>
+
+<h3>8.2 Why not stronger enforcement</h3>
+<p>
+  Hard enforcement (forcing a pull from any under-represented category regardless of difficulty fit) was
+  considered and rejected. Reasoning lives in §7.2 in full; the short version: hard enforcement degrades
+  measurement quality, can break on a small bank when no question exists at the right difficulty in the
+  under-represented category, and hides bank-balance signals that should be addressed by curating more
+  questions, not by engine compensation.
+</p>
+
+<h3>8.3 Monitoring</h3>
+<p>
+  Each CAT attempt logs the actual category distribution achieved. Specifically, per attempt we record:
+</p>
+<ul>
+  <li>Count of items delivered per category.</li>
+  <li>Percentage of items per category vs total delivered.</li>
+  <li>Gap vs the NCLEX blueprint targets.</li>
+  <li>Tiebreaker activation rate (how often the under-represented preference influenced a pick).</li>
+</ul>
+<p>
+  Aggregated across attempts, this surfaces in a curator dashboard as: average distribution across recent CATs,
+  consistent gaps from blueprint, count of questions per category at each difficulty level. <strong>If a category
+  is consistently underweight in delivered CATs, the fix is to curate more questions in that category</strong>,
+  not to add engine enforcement. The dashboard itself is a separate piece of work; this section just specifies
+  what gets logged so the dashboard has data to read.
+</p>
+
+<h3>8.4 Hard enforcement deferred to v2 — when</h3>
+<p>
+  Revisit if monitoring shows the soft tiebreaker rule produces persistently lopsided category mixes that
+  curation alone cannot fix. Specifically: if after curating to a balanced bank, we still see CATs delivering
+  &lt;3 items in a category 20%+ of the time, that's the signal to consider stronger enforcement. Until then,
+  the tiebreaker rule + bank curation is the v1 answer.
+</p>
+
+
+<h2 id="s9">9. Termination logic <span class="status settled">settled</span></h2>
+<p>
+  Real NCLEX terminates a CAT under one of three conditions: (1) confidence reached, (2) max questions reached
+  (145), (3) time limit reached. We mirror the same shape with our own thresholds. All four sub-decisions locked
+  2026-05-04.
+</p>
+
+<h3>9.1 Confidence threshold</h3>
+<p>The engine terminates when both are true at the same time:</p>
+<ul>
+  <li><strong>Standard error of the ability estimate ≤ 0.40.</strong> The margin of error has shrunk to the point where the engine is confident in the estimate.</li>
+  <li><strong>Ability estimate is clearly above (or clearly below) the passing standard of theta = 0.0.</strong> "Clearly" means the SE band around the estimate doesn't cross zero. If the estimate is 0.5 and the SE is 0.40, the band is 0.1 to 0.9 — entirely above zero, confident pass. If the estimate is 0.2 and the SE is 0.40, the band is −0.2 to +0.6 — crosses zero, keep going.</li>
+</ul>
+<p>
+  <strong>Why theta = 0.0 as the passing standard:</strong> the real NCLEX standard is set by NCSBN's standard-
+  setting committee from outcome data we don't have, so we can't copy them. theta = 0.0 means "measurably above
+  average ability" — honest and defensible without outcome data. Once empirical calibration matures and we
+  have student outcome data, we can revisit.
+</p>
+<p>
+  <strong>Why SE ≤ 0.40:</strong> standard CAT systems use 0.30–0.50. 0.40 sits in the middle — confident enough
+  to give a meaningful verdict, loose enough that we don't push too many students to the 145 ceiling.
+</p>
+
+<h3>9.2 Min and max question counts</h3>
+<ul>
+  <li><strong>Min: 75.</strong> The engine cannot terminate before this even if SE converges fast.</li>
+  <li><strong>Max: 145.</strong> The engine forces termination at this count regardless of SE.</li>
+</ul>
+<p>Both match real NCLEX exactly. No reason to deviate — students practising for NCLEX should experience NCLEX's range.</p>
+
+<h3>9.3 Time limit</h3>
+<p>
+  <strong>4 hours.</strong> Real NCLEX gives 5; 4 hours is enough to feel real and build stamina, short enough
+  not to be punishing for practice. Behaviour at time expiry: auto-terminate, score against current theta + SE,
+  mark termination reason as <code>TIME</code>.
+</p>
+
+<h3>9.4 Termination reasons</h3>
+<p>Each terminated CAT records why it ended. Five values:</p>
+<ul>
+  <li><code>CONFIDENCE_PASS</code> — SE ≤ 0.40 with theta clearly above 0.0. Verdict = ABOVE_STANDARD.</li>
+  <li><code>CONFIDENCE_FAIL</code> — SE ≤ 0.40 with theta clearly below 0.0. Verdict = BELOW_STANDARD.</li>
+  <li><code>MAX_ITEMS_INCONCLUSIVE</code> — 145 questions reached, SE still too wide for a confident verdict. Verdict = INCONCLUSIVE.</li>
+  <li><code>TIME</code> — 4-hour time limit reached. Scored against current theta. Verdict follows the same rule as CONFIDENCE_* (above/below 0.0) if SE is acceptable, otherwise INCONCLUSIVE.</li>
+  <li><code>ABANDONED</code> — student manually discarded mid-CAT, or browser-close. No verdict produced.</li>
+</ul>
+
+<h3>9.5 Inconclusive verdict — framing</h3>
+<p>
+  When the verdict is INCONCLUSIVE, the engine asked 145 questions and still couldn't confidently call it. This
+  isn't a fail and isn't a pass — it's "the data we got doesn't give a clear picture." Three honest causes:
+</p>
+<ol>
+  <li><strong>The student's ability is near the boundary.</strong> Sitting right around theta = 0.0. Most common cause.</li>
+  <li><strong>Inconsistent answering.</strong> Right on hard ones, wrong on easy ones — answers don't track ability, engine can't form a coherent estimate.</li>
+  <li><strong>Test-taking factors:</strong> rushing, fatigue, second-guessing, distracted environment.</li>
+</ol>
+<p>
+  <strong>Result-screen copy (provisional, finalised in §13):</strong>
+  Headline "Inconclusive." Body: <em>"After 145 questions, your performance didn't give us a clear above-or-below
+  standard read. This usually means your ability is sitting right around the boundary, or your answers were
+  inconsistent (mixing strong and weak performance). More practice will help — focus on the categories where
+  you scored lowest, then try another CAT in a few days."</em>
+</p>
+<p>
+  <strong>What we deliberately do NOT say:</strong> not "you failed" (no grounds), not "you might pass" (no
+  grounds), not "the engine couldn't decide" framed as the engine's failure (sounds like a product bug — the
+  honest framing is the student's performance was on the boundary).
+</p>
+<p>
+  <strong>For Inconclusive verdicts, the per-Client-Needs-Category breakdown does most of the work</strong> —
+  when the verdict itself is unclear, the breakdown is what gives the student something actionable.
+</p>
+<p>
+  <strong>Readiness Signal weighting:</strong> INCONCLUSIVE verdicts weight as zero (no evidence either way), not
+  as a fail. Captured here for §13.3 when we get there.
+</p>
+
+<h2 id="s10">10. Architecture — the two-RPC flow <span class="status settled">settled</span></h2>
+<p>
+  Per attempt-creation §13 (already settled): CAT does not use the same create-attempt RPC as fixed-length
+  modes. Two RPCs instead. Settled 2026-05-05.
+</p>
+
+<h3>10.1 Transition pattern between questions</h3>
+<p>
+  <strong>Pessimistic UI with graceful degradation.</strong> The current question stays visible during the wait
+  (dimmed, inputs disabled) — psychologically faster than a blank loading screen even when the wait is identical.
+  Specifically:
+</p>
+<ul>
+  <li><strong>0–300ms after Submit:</strong> current question stays visible, inputs disabled, very subtle fade or shimmer on the question area. No spinner. This is the happy path and will be the experience the vast majority of the time.</li>
+  <li><strong>300ms–3s:</strong> spinner appears in the question area, current question still dimmed underneath.</li>
+  <li><strong>3s+:</strong> "Still loading..." text appears next to the spinner.</li>
+  <li><strong>10s+:</strong> error state with a "Retry" button.</li>
+</ul>
+<p>
+  <strong>Rationale:</strong> pessimistic is the only honest choice for CAT — the engine genuinely has to score
+  before picking the next item, so there's nothing real to optimistically render. Optimistic UI in this context
+  would mean faking content we don't yet have.
+</p>
+
+<h3>10.2 The two RPCs and what each one does</h3>
+
+<p><strong><code>create_cat_attempt(student_id, intent='EXAM', mode='CAT')</code>:</strong></p>
+<ul>
+  <li>Inserts a row into <code>nclex_attempts</code> with starting theta = 0.0, SE at the initial high value, status = IN_PROGRESS.</li>
+  <li>Picks the first item using §7 selection rules (closest to theta = 0.0, category as tiebreaker, eligibility filters).</li>
+  <li>Snapshots the picked item into <code>nclex_attempt_items</code> with <code>cat_theta_before = 0.0</code> and <code>cat_se_before = &lt;initial&gt;</code>.</li>
+  <li>Returns <code>{ attempt_id, first_item_payload }</code>.</li>
+</ul>
+
+<p><strong><code>cat_next_item(attempt_id, last_answer_payload)</code>:</strong></p>
+<ul>
+  <li>Scores the last answer using the existing per-question scoring functions (reused unchanged from <code>bank-marks-and-scoring.html</code>).</li>
+  <li>Writes the answer into <code>nclex_attempt_answers</code>.</li>
+  <li>Updates theta and SE using Rasch (1PL) update math per §4.</li>
+  <li>Checks termination conditions per §9: if SE ≤ 0.40 and items ≥ 75, OR items = 145, OR time ≥ 4 hours → terminate, write <code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>, return <code>{ status: 'COMPLETE', verdict_payload }</code>.</li>
+  <li>Otherwise: pick next item per §7, snapshot into <code>nclex_attempt_items</code> with the pre-update theta/SE captured in <code>cat_theta_before</code>/<code>cat_se_before</code>, return <code>{ status: 'CONTINUE', next_item_payload }</code>.</li>
+</ul>
+
+<p>
+  Both RPCs are <strong>atomic</strong> — score + theta update + select + snapshot run in a single transaction.
+  If anything fails, nothing partial gets written.
+</p>
+
+<h3>10.3 Error handling</h3>
+<ul>
+  <li><strong>Network failure on the browser side:</strong> browser auto-retries silently up to 2 times with exponential backoff (1s, 2s) before showing the error UI.</li>
+  <li><strong>RPC throws a server-side error:</strong> browser shows the error UI immediately, no auto-retry (the problem isn't transient).</li>
+  <li>The attempt row is never left in a half-updated state because the RPC is transactional — either the answer is recorded and the next item is snapshotted, or neither happens.</li>
+  <li>If the student gives up after the error UI appears: they can close the browser → status becomes ABANDONED per §16.</li>
+</ul>
+
+<h3>10.4 Why these specific numbers</h3>
+<ul>
+  <li><strong>300ms / 3s / 10s thresholds</strong> sourced from standard UX latency research: under ~400ms feels instantaneous, 1–3s feels like a brief wait, 3s+ requires reassurance, 10s+ requires acknowledgement that something is wrong.</li>
+  <li><strong>2-retry cap</strong> is conservative — fewer than 3 to avoid masking a real outage as a long wait, more than 0 to handle transient Wi-Fi blips.</li>
+</ul>
+
+<h3>10.5 Build-time deferrals (not blocking the plan)</h3>
+<ul>
+  <li>Exact NUMERIC precision on theta/SE columns (lives in §12 polish, not §10).</li>
+  <li><strong>Engine runtime location</strong> — Supabase RPC (PL/pgSQL) vs Edge Function vs Cloudflare Worker. Recommendation: Supabase RPC for v1 because it keeps the transaction atomic and avoids a network hop between scoring, theta update, and item selection. Confirm at build time when we can measure actual Rasch math performance in PL/pgSQL.</li>
+  <li>Exact wording of the error UI ("Connection lost" / "Couldn't load next question" / etc.).</li>
+</ul>
+
+<h2 id="s11">11. Snapshot strategy for CAT <span class="status settled">settled</span></h2>
+<p>
+  Per-question snapshot at administration time, identical to the fixed-length snapshot strategy.
+</p>
+<p>
+  Specifically:
+</p>
+<ul>
+  <li>Each time <code>create_cat_attempt</code> or <code>cat_next_item</code> picks an item, it inserts a row into <code>nclex_attempt_items</code> with the full snapshot — stem, instruction, content JSONB, correct JSONB, rationale, classification, marks. Same column shape as fixed-length attempts.</li>
+  <li>If the item is trend-linked, the linked dataset is snapshotted into <code>nclex_attempt_trend_snapshots</code> (if not already there for this attempt) at the moment the trend item is picked.</li>
+  <li>If the item is a case-study child (only relevant if §7.4 settles "include cases"), the case is snapshotted into <code>nclex_attempt_case_snapshots</code> at the moment the first child is picked, and all 6 children get queued.</li>
+</ul>
+
+<h3>11.1 Why snapshot, restated for CAT context</h3>
+<p>
+  Three reasons settled in the seed conversation:
+</p>
+<ol>
+  <li>
+    <strong>Integrity.</strong> CAT exams take 75–145 questions. The window during which a curator might edit a
+    question while the student is mid-exam is bigger than for any other mode. CAT's whole legitimacy depends on
+    the ability estimate being a coherent measurement against a fixed answer key — if question 47's <code>correct</code>
+    JSONB changes between when the student answered it and when the engine reads it, the entire ability
+    trajectory is corrupt.
+  </li>
+  <li>
+    <strong>Review depends on it.</strong> Review state (§14) renders rationales for the questions the student
+    saw. Without snapshots, by the time the student opens Review, those rationales might have been edited or
+    deleted. Snapshots are how Review survives curator changes.
+  </li>
+  <li>
+    <strong>Calibration depends on it.</strong> Empirical recalibration (§5) needs to know what the item
+    actually said when the student answered it. If a curator rewrote the stem after the student answered, the
+    response data isn't a valid signal about the new stem's difficulty.
+  </li>
+</ol>
+
+<h3>11.2 Why NOT alternative approaches</h3>
+<p>
+  Two alternatives were considered and rejected in the seed conversation:
+</p>
+<ul>
+  <li><strong>"Pull from live tables, just record IDs"</strong> — fails all three reasons above. Doesn't actually save anything because per-question snapshotting is already cheap.</li>
+  <li><strong>"Snapshot at end-of-session, not per-question"</strong> — captures the wrong thing. State at end-of-session is not state at administration. If the curator edits item 12 after the student answered Q12 but before exam end, the end-of-session snapshot captures the edited version. Worse than skipping snapshots, not better.</li>
+</ul>
+
+<h3>11.3 Cost</h3>
+<p>
+  A typical CAT exam administers ~85 items. Each <code>nclex_attempt_items</code> row carries the snapshot
+  payload (stem, content, correct, classification — already shaped). Per-attempt snapshot storage cost is
+  roughly the same order as a 75-item fixed-length quiz. Negligible.
+</p>
+
+<h2 id="s12">12. Schema additions <span class="status settled">settled</span></h2>
+<p>
+  CAT requires column additions in two places: the bank table (so the engine has a numeric difficulty value to
+  read) and the attempt tables (so the runner can record CAT-specific state). All additions are nullable / have
+  defaults; existing rows continue to work unchanged.
+</p>
+<p>
+  <strong>§12.1–§12.6 are the planning-level sketch (settled 2026-05-04).</strong>
+  <strong>§12.7 is the canonical build-handoff package (settled 2026-05-05)</strong> — concrete column types,
+  CHECK constraints, FK + ON DELETE behaviour, RPC stub signatures, verification queries, and rollback SQL.
+  Where §12.7 diverges from §12.2 / §17.2 (e.g. final termination-reason values, audit-table column names),
+  §12.7 supersedes — see <a href="#s12-7-11">§12.7.11 alignment notes</a>.
+</p>
+
+<h3>12.1 New columns on <code>nclex_bank_items</code> (bank table)</h3>
+<p>Settled in §5.2. Two new columns alongside the existing <code>difficulty</code> TEXT column:</p>
+<ul>
+  <li><code>difficulty_irt</code> — NUMERIC. The number the CAT engine reads. Initialised from <code>difficulty</code> via §5.1 mapping (Easy = −1.0, Medium = 0.0, Hard = +1.0); updated by the §5.3 recalibration job.</li>
+  <li><code>difficulty_source</code> — TEXT. <code>'CURATOR_LABEL'</code> or <code>'EMPIRICAL'</code>. Default <code>'CURATOR_LABEL'</code>; flipped by recalibration job once the 30-response threshold is crossed for an item.</li>
+</ul>
+<p>
+  The existing <code>difficulty</code> TEXT column with its CHECK constraint stays exactly as it is. Curator UI
+  unchanged. See §5.2 for the full access rules between the three columns.
+</p>
+
+<h3>12.2 New columns on <code>nclex_attempts</code> (Result group)</h3>
+<p>Per attempt-creation §6.1, deferred to here:</p>
+<ul>
+  <li><code>cat_verdict</code> — TEXT. <code>ABOVE_STANDARD</code> / <code>BELOW_STANDARD</code> / <code>INCONCLUSIVE</code> / NULL.</li>
+  <li><code>cat_final_theta</code> — NUMERIC. Final ability estimate. NULL for non-CAT.</li>
+  <li><code>cat_final_se</code> — NUMERIC. Final standard error. NULL for non-CAT.</li>
+  <li><code>cat_termination_reason</code> — TEXT. <code>CONFIDENCE_PASS</code> / <code>CONFIDENCE_FAIL</code> / <code>MAX_ITEMS_INCONCLUSIVE</code> / <code>TIME</code> / <code>ABANDONED</code>. NULL for non-CAT.</li>
+  <li><code>cat_items_administered</code> — INTEGER. Count of items the engine actually delivered. NULL for non-CAT.</li>
+</ul>
+<p>
+  Note: <code>final_score</code> (settled in attempt-creation §6.1's Result group as NUMERIC 0..1) is NULL for
+  CAT attempts. CAT does not produce a raw score.
+</p>
+
+<h3>12.3 New columns on <code>nclex_attempt_items</code></h3>
+<p>Per-item engine state at administration (replay + calibration):</p>
+<ul>
+  <li><code>cat_theta_before</code> — NUMERIC. The engine's ability estimate at the moment this item was picked. NULL for non-CAT items.</li>
+  <li><code>cat_se_before</code> — NUMERIC. Standard error at pick time. NULL for non-CAT items.</li>
+  <li><code>cat_item_difficulty</code> — NUMERIC. The <code>difficulty_irt</code> value at the moment this item was picked. Snapshotted so a future recalibration of the bank's <code>difficulty_irt</code> doesn't change historical attempt records. NULL for non-CAT items.</li>
+  <li><code>cat_item_difficulty_source</code> — TEXT. The <code>difficulty_source</code> value at the moment of pick. NULL for non-CAT items.</li>
+</ul>
+
+<h3>12.4 Existing columns that get extra rules under CAT</h3>
+<ul>
+  <li><code>nclex_attempts.filters_json</code> — for CAT, this is set to a known shape like <code>{ "mode": "CAT" }</code> or NULL. The Builder doesn't apply any filters to CAT (per parent §17), so there's nothing meaningful to snapshot.</li>
+  <li><code>nclex_attempts.duration_seconds</code> — populated with the CAT time limit (§9.3) in seconds.</li>
+  <li><code>nclex_attempt_items.position</code> — for CAT, position numbers ascend in the order items were administered (1, 2, 3, …).</li>
+</ul>
+
+<h3>12.5 What's NOT changing</h3>
+<ul>
+  <li><code>nclex_bank_items.difficulty</code> (existing TEXT column) — unchanged. Curator UI unchanged.</li>
+  <li><code>nclex_attempt_answers</code> shape — unchanged. CAT answers look identical to fixed-length answers.</li>
+  <li><code>nclex_attempt_case_snapshots</code> + <code>nclex_attempt_trend_snapshots</code> — unchanged. (CAT pulls standalone-only in v1 per §7.4, so case/trend snapshots aren't generated for CAT attempts; the tables themselves stay as-is.)</li>
+  <li>RLS policies — same shape, just need to be re-checked when the new columns land (build-time concern).</li>
+</ul>
+
+<h3>12.6 Calibration audit table — see §17</h3>
+<p>
+  Per §5.2, recalibration writes its output to <code>nclex_bank_items.difficulty_irt</code> directly (overwriting
+  the previous value with the 70/30 blend). To preserve history of how an item's difficulty has evolved, a
+  separate audit table is needed — designed in §17 (planning-level) and locked concretely in §12.7.5 below.
+</p>
+
+<h3>12.7 Build handoff package — 2026-05-05</h3>
+<p>
+  Concrete migration spec for applying the CAT schema additions to the dev Supabase project. Settled in a
+  2026-05-05 build-handoff session that turned the §12.1–§12.5 sketch + §17.2 audit-table sketch into a
+  build-ready package — column types, CHECK constraints, FK behaviour, RPC stub signatures, verification
+  queries, and rollback SQL.
+</p>
+<p>
+  <strong>Apply via Supabase MCP to dev only.</strong> Sam signs off after dev verification before prod runs.
+  No engine code in this slice — just columns, the audit table, and function stubs that raise
+  "not yet implemented." The actual Rasch math / engine logic is the next slice.
+</p>
+
+<h4 id="s12-7-1">12.7.1 Step 1 — Add columns to <code>nclex_bank_items</code></h4>
+<p>
+  Two new columns. The existing <code>difficulty</code> TEXT column stays exactly as it is.
+</p>
+<ul>
+  <li><code>difficulty_irt</code> — NUMERIC, nullable, no default.</li>
+  <li><code>difficulty_source</code> — TEXT, NOT NULL, default <code>'CURATOR_LABEL'</code>, CHECK constraint allowing only <code>'CURATOR_LABEL'</code> or <code>'EMPIRICAL'</code>.</li>
+</ul>
+<p>After adding the columns, seed <code>difficulty_irt</code> for every existing row from the existing TEXT value:</p>
+<ul>
+  <li><code>'Easy'</code> → −1.0</li>
+  <li><code>'Medium'</code> → 0.0</li>
+  <li><code>'Hard'</code> → +1.0</li>
+  <li>Any other value or NULL → leave <code>difficulty_irt</code> as NULL.</li>
+</ul>
+<p><code>difficulty_source</code> will be <code>'CURATOR_LABEL'</code> for all existing rows (the column default).</p>
+
+<h4 id="s12-7-2">12.7.2 Step 2 — Mirror the same two columns onto <code>nclex_tutor_questions</code></h4>
+<p>
+  Same column definitions, same seeding logic from the existing <code>difficulty</code> TEXT value. Schema
+  parity is intentional — CAT will eventually be available as a quiz mode for tutors using their own question
+  banks (planned for v2). The recalibration job in v1 will only run against <code>nclex_bank_items</code>;
+  tutor empirical calibration is deferred until tutor CAT exists, but the schema should not preclude it.
+</p>
+
+<h4 id="s12-7-3">12.7.3 Step 3 — Add columns to <code>nclex_attempts</code></h4>
+<p>
+  Five new columns, all nullable, no defaults. They stay NULL for non-CAT attempts and for CAT attempts that
+  are still IN_PROGRESS or got ABANDONED before completion.
+</p>
+<ul>
+  <li><code>cat_verdict</code> — TEXT, nullable, CHECK constraint allowing only <code>'ABOVE_STANDARD'</code>, <code>'BELOW_STANDARD'</code>, <code>'INCONCLUSIVE'</code>, or NULL.</li>
+  <li><code>cat_final_theta</code> — NUMERIC, nullable.</li>
+  <li><code>cat_final_se</code> — NUMERIC, nullable.</li>
+  <li><code>cat_termination_reason</code> — TEXT, nullable, CHECK constraint allowing only <code>'CONFIDENCE_REACHED'</code>, <code>'MAX_ITEMS_HIT'</code>, <code>'TIME_LIMIT_HIT'</code>, <code>'ABANDONED'</code>, or NULL.</li>
+  <li><code>cat_items_administered</code> — INTEGER, nullable.</li>
+</ul>
+<p>
+  Existing <code>final_score</code> NUMERIC column on <code>nclex_attempts</code> stays untouched. It is NULL
+  for CAT attempts (CAT has no raw score) and remains populated for fixed-length modes.
+</p>
+
+<h4 id="s12-7-4">12.7.4 Step 4 — Add columns to <code>nclex_attempt_items</code></h4>
+<p>Four new columns, all nullable. They stay NULL for non-CAT attempts.</p>
+<ul>
+  <li><code>cat_theta_before</code> — NUMERIC, nullable. The student's ability estimate immediately before this question was administered.</li>
+  <li><code>cat_se_before</code> — NUMERIC, nullable. The standard error immediately before this question was administered.</li>
+  <li><code>cat_item_difficulty</code> — NUMERIC, nullable. Snapshot of <code>nclex_bank_items.difficulty_irt</code> at the moment of selection. Copied because recalibration would otherwise rewrite history.</li>
+  <li><code>cat_item_difficulty_source</code> — TEXT, nullable. Snapshot of <code>nclex_bank_items.difficulty_source</code> at the moment of selection.</li>
+</ul>
+
+<h4 id="s12-7-5">12.7.5 Step 5 — Create new table <code>nclex_bank_item_calibration_history</code></h4>
+<p>
+  Audit log for the recalibration job. Bank-only (no tutor mirror — tutor calibration not in v1 or v2 scope yet).
+</p>
+<ul>
+  <li><code>id</code> — primary key (UUID, default <code>gen_random_uuid()</code>).</li>
+  <li><code>bank_item_id</code> — UUID, NOT NULL, FK to <code>nclex_bank_items(id)</code> ON DELETE CASCADE.</li>
+  <li><code>previous_difficulty_irt</code> — NUMERIC, nullable (NULL when transitioning from no value).</li>
+  <li><code>new_difficulty_irt</code> — NUMERIC, NOT NULL.</li>
+  <li><code>previous_source</code> — TEXT, nullable, same CHECK as <code>nclex_bank_items.difficulty_source</code>.</li>
+  <li><code>new_source</code> — TEXT, NOT NULL, same CHECK.</li>
+  <li><code>responses_used</code> — INTEGER, NOT NULL, must be ≥ 0.</li>
+  <li><code>recalibrated_at</code> — TIMESTAMPTZ, NOT NULL, default <code>NOW()</code>.</li>
+  <li><code>recalibration_job_run_id</code> — TEXT, nullable (identifies the batch run, useful for rollback).</li>
+</ul>
+<p>
+  Index on <code>bank_item_id</code> for fast per-question history lookups. Index on <code>recalibrated_at</code>
+  for time-range queries.
+</p>
+
+<h4 id="s12-7-6">12.7.6 Step 6 — Create RPC stubs (signatures only, bodies TODO)</h4>
+<p>
+  Create both functions in the database with proper signatures and a placeholder body that raises an exception
+  saying "not yet implemented." The actual engine logic is a separate build slice.
+</p>
+<p><strong><code>create_cat_attempt(p_student_id UUID, p_intent TEXT, p_mode TEXT)</code></strong></p>
+<ul>
+  <li>Returns: JSONB with shape <code>{ attempt_id: UUID, first_item_payload: JSONB }</code>.</li>
+  <li>Body for now: <code>RAISE EXCEPTION 'create_cat_attempt not yet implemented';</code></li>
+</ul>
+<p><strong><code>cat_next_item(p_attempt_id UUID, p_last_answer_payload JSONB)</code></strong></p>
+<ul>
+  <li>Returns: JSONB with shape either <code>{ status: 'CONTINUE', next_item_payload: JSONB }</code> or <code>{ status: 'COMPLETE', verdict_payload: JSONB }</code>.</li>
+  <li>Body for now: <code>RAISE EXCEPTION 'cat_next_item not yet implemented';</code></li>
+</ul>
+<p>
+  Both functions should be <code>LANGUAGE plpgsql SECURITY DEFINER</code> once implemented; for stubs
+  <code>LANGUAGE plpgsql</code> is fine. Grant <code>EXECUTE</code> to <code>authenticated</code> when the
+  bodies are filled in — not yet, since stubs do nothing.
+</p>
+
+<h4 id="s12-7-7">12.7.7 Step 7 — RLS policies</h4>
+<p>
+  No new RLS policies needed in this migration. The new columns inherit existing policies on their parent
+  tables. For <code>nclex_bank_item_calibration_history</code>, add a basic policy: only the admin role can
+  SELECT or INSERT. Curators don't need to see the audit log directly in v1; relevant slices are surfaced
+  through admin views later.
+</p>
+
+<h4 id="s12-7-8">12.7.8 Step 8 — Verification queries</h4>
+<p>After the migration runs, verify with:</p>
+<pre><code>-- Confirm seeding worked on bank
+SELECT difficulty, difficulty_irt, difficulty_source FROM nclex_bank_items LIMIT 20;
+
+-- Same on tutor side
+SELECT difficulty, difficulty_irt, difficulty_source FROM nclex_tutor_questions LIMIT 20;
+
+-- Confirm 5 new columns on nclex_attempts
+\d nclex_attempts
+
+-- Confirm 4 new columns on nclex_attempt_items
+\d nclex_attempt_items
+
+-- Confirm new audit table exists
+\d nclex_bank_item_calibration_history
+
+-- Confirm both function stubs exist
+SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_item');</code></pre>
+
+<h4 id="s12-7-9">12.7.9 Step 9 — Rollback plan</h4>
+<p>
+  If anything goes wrong on dev, the migration must be reversible. Save the rollback SQL alongside the
+  migration so it's there if needed.
+</p>
+<p>The rollback drops, in this order:</p>
+<ol>
+  <li><code>nclex_bank_item_calibration_history</code> table.</li>
+  <li>The two RPC stubs (<code>create_cat_attempt</code>, <code>cat_next_item</code>).</li>
+  <li>The 5 new columns from <code>nclex_attempts</code>.</li>
+  <li>The 4 new columns from <code>nclex_attempt_items</code>.</li>
+  <li>The 2 new columns from <code>nclex_bank_items</code>.</li>
+  <li>The 2 new columns from <code>nclex_tutor_questions</code>.</li>
+</ol>
+
+<h4 id="s12-7-10">12.7.10 Step 10 — After applying to dev</h4>
+<ul>
+  <li>Spot-check the seeding by manually opening 5 random questions of each difficulty and confirming <code>difficulty_irt</code> is correct.</li>
+  <li>Update <code>mynclex/SESSIONS.md</code> with an entry for the day the migration was applied.</li>
+  <li>Update <code>mynclex/CLONING.md</code> if the new table or any new columns affect the clone-to-prod checklist.</li>
+  <li><strong>Do not apply to prod yet.</strong> Sam signs off after dev verification.</li>
+  <li>Commit with a message like <code>feat(mynclex): apply CAT schema migration (dev only)</code>.</li>
+</ul>
+<p>
+  After this slice lands on dev, the next CAT build slice is filling in <code>create_cat_attempt</code> and
+  <code>cat_next_item</code> with real Rasch math — separate session.
+</p>
+
+<h4 id="s12-7-11">12.7.11 Alignment notes — where §12.7 supersedes earlier sketches</h4>
+<p>
+  Two divergences between the 2026-05-04 planning sketches and the 2026-05-05 build-handoff package. §12.7 is
+  canonical; §12.2 / §17.2 wording stays in the doc for historical traceability of how the names evolved.
+</p>
+<ul>
+  <li>
+    <strong>Termination-reason values (§12.2 vs §12.7.3).</strong> Sketch had 5 values:
+    <code>CONFIDENCE_PASS</code> / <code>CONFIDENCE_FAIL</code> / <code>MAX_ITEMS_INCONCLUSIVE</code> /
+    <code>TIME</code> / <code>ABANDONED</code>. Build handoff collapses to 4:
+    <code>CONFIDENCE_REACHED</code> / <code>MAX_ITEMS_HIT</code> / <code>TIME_LIMIT_HIT</code> /
+    <code>ABANDONED</code>. <em>Why:</em> the pass-vs-fail distinction at termination is recoverable from
+    <code>cat_verdict</code>; storing it twice creates two sources of truth for the same fact. The
+    <code>_HIT</code>/<code>_REACHED</code>/<code>_LIMIT</code> suffixes are also more event-shaped (what
+    triggered termination) and less verdict-shaped (whether the student passed).
+  </li>
+  <li>
+    <strong>Audit-table column names (§17.2 vs §12.7.5).</strong> Sketch used <code>item_id</code> (TEXT),
+    <code>calibrated_at</code>, <code>previous_value</code>, <code>new_value</code>,
+    <code>raw_empirical_value</code>, <code>response_count</code>, <code>job_trigger</code>,
+    <code>job_triggered_by</code>. Build handoff uses <code>bank_item_id</code> (UUID, FK with ON DELETE
+    CASCADE), <code>recalibrated_at</code>, <code>previous_difficulty_irt</code>,
+    <code>new_difficulty_irt</code>, <code>responses_used</code>, <code>recalibration_job_run_id</code>.
+    <em>Why:</em> the FK with ON DELETE CASCADE prevents orphaned audit rows; the <code>_difficulty_irt</code>
+    suffix is self-documenting (the audit is specifically about that column); a single
+    <code>recalibration_job_run_id</code> identifier covers both job triggering and rollback grouping more
+    cleanly than the trigger / triggered_by pair. Build handoff drops <code>raw_empirical_value</code>
+    (recoverable from inputs if ever needed) and explicit <code>job_trigger</code>/<code>job_triggered_by</code>
+    columns (admin-trigger metadata can move to a separate field if needed without churning the audit shape).
+  </li>
+</ul>
+
+
+<h2 id="s13">13. Result presentation — the CAT summary page <span class="status settled">settled</span></h2>
+<p>
+  What the student sees when a CAT exam ends, and what they see when they open a finished CAT from History.
+  Settled 2026-05-04. Same surface used in both contexts: the <strong>CAT summary page</strong>. Per the §14
+  separation, this page holds <em>everything CAT-specific</em>; the per-question Review walk-through reuses the
+  shared runner Review surface used by every other quiz type.
+</p>
+
+<h3>13.1 Verdict copy</h3>
+<p><strong>ABOVE_STANDARD</strong></p>
+<ul>
+  <li>Headline: <em>"Above standard"</em></li>
+  <li>Body: <em>"Your performance suggests you're tracking ready. Keep practising to maintain it — consistent CAT performance is what matters most."</em></li>
+</ul>
+<p><strong>BELOW_STANDARD</strong></p>
+<ul>
+  <li>Headline: <em>"Below standard"</em></li>
+  <li>Body: <em>"More practice recommended. Use the category breakdown below to see where to focus, then come back for another CAT in a few days."</em></li>
+</ul>
+<p><strong>INCONCLUSIVE</strong> (also drafted in §9.5)</p>
+<ul>
+  <li>Headline: <em>"Inconclusive"</em></li>
+  <li>Body: <em>"After 145 questions, your performance didn't give us a clear above-or-below standard read. This usually means your ability is sitting right around the boundary, or your answers were inconsistent. More practice will help — focus on the categories where you scored lowest, then try another CAT in a few days."</em></li>
+</ul>
+<p><strong>ABANDONED</strong> (no verdict)</p>
+<ul>
+  <li>Per §16.5 — abandoned CATs never reach a result state. The History page shows them as <em>"CAT — Abandoned"</em>; opening the row goes to a minimal summary that explains the attempt was ended early and offers <em>"Start a new CAT"</em>.</li>
+</ul>
+
+<h3>13.2 Summary page layout</h3>
+<p>In order from most prominent to least:</p>
+<ol>
+  <li><strong>The verdict itself</strong> — top of page, large headline + body copy from §13.1.</li>
+  <li><strong>Items administered</strong> — small fact line under the verdict. Example: <em>"You answered 92 questions. The engine reached confidence at question 92."</em> Honest, factual.</li>
+  <li><strong>Trajectory graph</strong> (see §13.3 below) — the most important visual on the page. Shows how the student's ability estimate moved across the test, plotted against a 0.0 reference line.</li>
+  <li><strong>Per-Client-Needs-Category breakdown</strong> — for each of the four categories: questions seen, questions correct (full credit only — see <code>bank-marks-and-scoring.html</code> §6 for the <code>is_correct</code> definition), per-category percentage. The most actionable text content on the page.</li>
+  <li><strong>Compared to your previous CATs</strong> — only shown if the student has prior CATs. Plots theta + verdict per CAT across attempt history.</li>
+  <li><strong>Primary CTA: "Review answers"</strong> — opens the shared runner Review surface (per §14) for the per-question walk-through.</li>
+</ol>
+
+<h3>13.3 The trajectory graph + per-item marker</h3>
+<p>
+  Single line chart. X-axis = question number (1 → N items administered). Y-axis = theta (ability estimate
+  after that question's answer). A horizontal reference line is drawn at theta = 0.0 (the passing standard).
+</p>
+<p>What the shape tells the student:</p>
+<ul>
+  <li><strong>Steady upward trace settling above 0.0</strong> — consistent strong performance, ability climbed and stabilised above the passing standard.</li>
+  <li><strong>Steady downward trace settling below 0.0</strong> — consistent weak performance, ability climbed down and stabilised below the passing standard.</li>
+  <li><strong>Up-and-down trace not settling</strong> — inconsistent answering, the engine couldn't pin down their ability cleanly. Often what produces an INCONCLUSIVE verdict.</li>
+</ul>
+<p>
+  <strong>Per-item marker.</strong> If the summary page renders a per-question breakdown alongside the graph
+  (e.g. a scrollable list of the questions they answered), the trajectory graph shows a marker indicating which
+  question is currently focused. As the student scrolls or clicks a different question, the marker on the
+  trajectory updates. This lets the student see, for any individual question they answered: <em>where on the
+  ability curve was I when this question was served?</em>
+</p>
+<p>
+  <strong>What this replaces.</strong> An earlier draft proposed a per-item "At your level / Above your level /
+  Below your level" chip. The trajectory + marker delivers the same context more richly — the student can see
+  not just whether one question was at their level, but how their level was moving over time.
+</p>
+
+<h3>13.4 Connection to Readiness Signal</h3>
+<p>
+  <strong>CAT verdict and Readiness Signal stay separate on the dashboard — they are NOT blended into a single
+  number.</strong>
+</p>
+<p>The dashboard surfaces two distinct cards:</p>
+<ul>
+  <li><strong>CAT card.</strong> Shows the latest CAT verdict, a count of CATs taken, the date of the last CAT, and a link to that summary page. Copy: <em>"Latest CAT verdict: Above standard. (CAT #3 of 3 taken)"</em>.</li>
+  <li><strong>Readiness Signal card.</strong> Cross-history practice signal per parent <code>bank-consumption.html</code> §6. Independent of CAT.</li>
+</ul>
+<p>Why separate, not blended:</p>
+<ul>
+  <li>Combining them forces a weighting algorithm we cannot validate without outcome data.</li>
+  <li>Students should see CAT as one snapshot, Readiness as the longer-term cross-history signal. Different products, different cards.</li>
+  <li>If a student takes one CAT, gets ABOVE_STANDARD, and the Readiness Signal still says "Approaching," the honest framing is "one CAT is one data point; cross-history sees more." Two cards make this conversation possible.</li>
+</ul>
+<p>
+  <strong>INCONCLUSIVE verdicts weight as zero in any future blended analytics</strong> — they're "no signal,"
+  not "negative signal." If a future v2 decision blends signals, INCONCLUSIVE never pushes the Readiness Signal
+  down.
+</p>
+
+<h3>13.5 What we deliberately do NOT show</h3>
+<ul>
+  <li><strong>No "pass probability" number.</strong> No "70% chance of passing the NCLEX." We don't have outcome data to back that.</li>
+  <li><strong>No "you would have passed the real NCLEX" framing.</strong> Same reason.</li>
+  <li><strong>No comparison to other students' verdicts.</strong> Different students see different questions; comparison is meaningless.</li>
+  <li><strong>No raw score.</strong> CAT has no raw score by design — it has a verdict + theta + SE.</li>
+  <li><strong>No "you got X out of N right."</strong> Same reason.</li>
+  <li><strong>No verdict restatement on the per-question Review.</strong> Verdict lives on the summary page only — Review is about the questions, not the outcome.</li>
+</ul>
+
+
+
+<h2 id="s14">14. Review state for CAT <span class="status settled">settled</span></h2>
+<p>
+  <strong>CAT review uses the shared Review surface in the runner.</strong> Same component, same mode, same
+  per-question render as every other quiz type — fixed-length quizzes, readiness packs, programme activities.
+  No CAT-specific behaviour at the per-question level. Settled 2026-05-04.
+</p>
+
+<h3>14.1 Why minimal — the separation between summary page and Review</h3>
+<p>
+  CAT-specific content (verdict, trajectory graph + per-item marker, per-category breakdown, items administered,
+  cross-CAT comparison) lives on the <strong>CAT summary page</strong> (§13). The summary page is what the
+  student lands on when a CAT ends, and what opens when they click a CAT row in History.
+</p>
+<p>
+  The shared <strong>Review</strong> surface lives in the runner. It's a per-question walk-through with stem,
+  the student's answer, the correct answer, rationale, per-option/per-element feedback, and classification
+  tags. It's universal — every quiz type's review goes through the same component. CAT inherits it unchanged.
+</p>
+<p>The flow:</p>
+<ul>
+  <li>End of a CAT (or History → click a CAT row) → CAT summary page (§13)</li>
+  <li>Summary page → "Review answers" CTA → shared Review surface in the runner (this section)</li>
+</ul>
+
+<h3>14.2 What CAT inherits unchanged from the shared Review</h3>
+<ul>
+  <li><strong>Per-question rendering</strong> — the 9 question-type renderers used by the live runner, in <code>mode = "review"</code> (per <code>bank-consumption-runner.html</code> §17).</li>
+  <li><strong>List + detail layout</strong> — sidebar with item navigation, main pane shows the focused item. Same pattern as fixed-length review.</li>
+  <li><strong>Filtering on the sidebar</strong> — All / Wrong only / Right only / By category / Marked-for-review. Inherited.</li>
+  <li><strong>Mark-for-review toggle</strong> — student can mark items in Review for later study. The mark is universal across the platform — marked items from CAT mix with marked items from any other quiz type in the personal study list.</li>
+</ul>
+
+<h3>14.3 Entry points</h3>
+<ul>
+  <li>From the CAT summary page — primary CTA "Review answers."</li>
+  <li>From History → click a CAT row → opens the CAT summary page → "Review answers."</li>
+</ul>
+<p>
+  Note: the History row links to the summary page, not directly to Review. Review is a sub-action of the
+  summary page, not a top-level entry point of its own.
+</p>
+
+<h3>14.4 What's deliberately NOT in this section</h3>
+<p>
+  Difficulty annotation framing, the trajectory chart, per-item difficulty markers, verdict copy, the
+  "Compare to your previous CATs" panel — all of these are summary-page concerns, covered in §13. They are
+  <em>not</em> part of the per-question Review.
+</p>
+
+
+<h2 id="s15">15. Re-take rules <span class="status settled">settled</span></h2>
+<p>
+  How often can a student take CAT? What about question exposure across CATs? Does prior CAT data influence
+  the next CAT's selection? Settled 2026-05-04.
+</p>
+
+<h3>15.1 Frequency</h3>
+<p>
+  <strong>Unlimited re-takes within the student's active subscription window.</strong> Matches industry standard
+  — UWorld and Archer both offer unlimited CAT practice. Students under exam pressure want to drill; capping
+  hurts the learning. The engine doesn't degrade with repeated use, so there's no technical cost.
+</p>
+<p>
+  <strong>No hard cooldown.</strong> The student can start another CAT immediately after finishing one. A
+  <strong>soft warning</strong> appears if a student starts a CAT within 1 hour of finishing one:
+  <em>"CAT works best with rest between sessions — continue anyway?"</em> Soft nudge only; not a block.
+</p>
+
+<h3>15.2 Question exposure across CATs</h3>
+<p>
+  <strong>Exclude questions seen in the student's last 3 CAT attempts.</strong> Cross-CAT exposure window only —
+  questions seen in non-CAT modes (Custom builder, Readiness Packs, Programme assignments) do <em>not</em>
+  contribute to the exclusion list.
+</p>
+<p>Why "last 3 CATs":</p>
+<ul>
+  <li><strong>Forever exclusion is too strict for a young bank.</strong> A student doing 6 CATs in their final exam prep would burn through the strongest difficulty-matched questions; by CAT #4 the engine would be picking from increasingly thin pools.</li>
+  <li><strong>No exclusion is too lax.</strong> Memory effects are real — if a student saw a question 3 days ago in CAT #1, they might remember the answer in CAT #2 and contaminate the engine's measurement.</li>
+  <li><strong>Last 3 CATs</strong> is roughly 2–3 weeks of practice for a typical student, which is enough time for memory of a specific question to fade for most.</li>
+</ul>
+<p>Why CAT-only (not other modes):</p>
+<ul>
+  <li>CAT and non-CAT are different contexts — a student who did Q47 in a Pharmacology custom quiz two months ago can still see it in CAT today without strong memory contamination.</li>
+  <li>If we excluded all non-CAT exposure too, the eligible pool for CAT would collapse for any student who's used the platform for a while.</li>
+  <li>Only cross-CAT exposure represents the same psychometric context (timed exam-style adaptive sequence) where memory effects materially degrade measurement.</li>
+</ul>
+
+<h3>15.3 Bank-exhaustion fallback</h3>
+<p>
+  Edge case: student is at ability 0.5, engine wants a Medium-to-Hard question, all of those at the right
+  difficulty have been seen in their last 3 CATs.
+</p>
+<p>
+  <strong>Rule: relax the exposure rule before relaxing the difficulty rule.</strong>
+</p>
+<ol>
+  <li>First try: unseen Medium-to-Hard not seen in last 3 CATs → ideal pick.</li>
+  <li>If empty: Medium-to-Hard seen in last 3 CATs → fall back to allowing repeat.</li>
+  <li>Never: serve a wrong-difficulty question to avoid a repeat.</li>
+</ol>
+<p>
+  Difficulty match is sacred (§7). Exposure is a soft preference, so it's the one that bends. Fallbacks are
+  logged so the curator dashboard can flag <em>"X% of CAT picks fell back to repeats — bank may be too small or
+  too thinly distributed at this difficulty band."</em>
+</p>
+
+<h3>15.4 Theta carry-over — none</h3>
+<p>
+  Each CAT starts at theta = 0.0 regardless of the student's prior CATs. Already settled in §6. Cross-CAT theta
+  IS shown in History / Analytics (<em>"your last 3 CATs landed at theta 0.5, 0.6, 0.65 — improving"</em>) but
+  doesn't seed the next CAT's starting position.
+</p>
+
+
+<h2 id="s16">16. Runner UX specifics <span class="status settled">settled</span></h2>
+<p>
+  Where the CAT runner deliberately diverges from the fixed-length runner. Settled 2026-05-04.
+</p>
+
+<h3>16.1 Progress indicator — current question only</h3>
+<p>
+  <strong>Show only the current question number (e.g. "Question 27"), no "of N" cap.</strong> CAT can't show a
+  count target because the terminating question count is unknown. Students familiar with CAT know the test
+  terminates at 75–145; we don't need to engineer a "Q5 of 75 minimum" display to communicate that.
+</p>
+<p>
+  The runner's existing progress bar (used for fixed-length modes) renders differently in CAT mode: it shows
+  what the student has answered so far, not progress toward a known total. Equivalent of a count-up timer
+  rather than a count-down progress fraction.
+</p>
+
+<h3>16.2 Timer display + warnings — runner-level concern</h3>
+<p>
+  CAT is timed at 4 hours (§9.3). Display, warning thresholds, and expiry behaviour are <strong>not
+  CAT-specific</strong> — they apply to every timed mode (Timed Free Nav, Timed Sequential, CAT). Settled
+  at the runner doc level (<code>bank-consumption-runner.html</code> §8) when timer behaviour is decided
+  cross-mode. CAT inherits whatever the runner doc lands on.
+</p>
+<p>
+  Already settled at principle (§9.3): at expiry, auto-terminate, score against current theta + SE, mark
+  termination reason as <code>TIME</code>.
+</p>
+
+<h3>16.3 No back navigation — strictly sequential</h3>
+<p>
+  <strong>Once a CAT answer is submitted, the student cannot return to the question.</strong> Same shape as
+  the existing Timed Sequential mode in the fixed-length runner — no previous-question button, no answer
+  re-edits.
+</p>
+<p>
+  Required by the engine's design as much as by the test feel: the IRT estimate updates after each answer;
+  allowing answer changes mid-test would corrupt the trajectory. Matches real NCLEX exactly.
+</p>
+
+<h3>16.4 No mark-for-review during the live run</h3>
+<p>
+  No flag button during the live CAT. Matches real NCLEX. The student answers, submits, moves on.
+</p>
+<p>
+  Mark-for-review IS available in the post-attempt shared Review surface (§14) — once the CAT is complete,
+  the student can mark items for later study from inside the Review walk-through. The mark goes to the
+  universal personal study list (mixed with marks from any other quiz type).
+</p>
+
+<h3>16.5 Browser-close mid-CAT — abandoned, no verdict</h3>
+<p>
+  CAT is EXAM-intent and single-sitting by design (per parent §15 + §6 + §15.4). No Resume.
+</p>
+<p>Behaviour:</p>
+<ul>
+  <li><strong>Browser-tab-close attempt</strong> → custom warning prompt: <em>"Closing this tab will abandon your CAT exam. Your progress will not be saved."</em> Confirms before exit.</li>
+  <li><strong>If confirmed</strong> → attempt status flips to <code>ABANDONED</code>, termination reason = <code>ABANDONED</code>, no verdict generated.</li>
+  <li><strong>Accidental refresh</strong> → same warning, same outcome if confirmed.</li>
+  <li><strong>History display</strong> → ABANDONED CATs show as <em>"CAT — Abandoned"</em> with no verdict. Opening the row goes to a minimal summary that explains the attempt was ended early and offers <em>"Start a new CAT"</em> (per §13.1 ABANDONED row).</li>
+</ul>
+
+<h3>16.6 No pause</h3>
+<p>
+  Per parent §15: "CAT — IRT model needs continuous engagement; pause/resume invalidates the estimate." Already
+  settled. <strong>No pause button. The 4-hour timer never stops.</strong> The session is start-to-finish.
+</p>
+<p>
+  Real-world breaks (bathroom, food, etc.) are the student's own choice; the timer keeps running. If the
+  student needs a real break, they abandon and start a new CAT later. Matches real NCLEX (where breaks are
+  permitted but the timer doesn't pause for them).
+</p>
+
+
+<h2 id="s17">17. Calibration data capture <span class="status settled">settled</span></h2>
+<p>
+  What gets logged for empirical recalibration to work, and how the audit history of difficulty changes is
+  preserved. Settled 2026-05-04.
+</p>
+
+<h3>17.1 Per-attempt response data — already captured</h3>
+<p>
+  Empirical recalibration needs to know, for every CAT response: which item, who answered, were they correct,
+  what was the engine's ability estimate at the time. All of this is already captured by the schema we've
+  locked elsewhere — no new columns needed for capture itself.
+</p>
+<p>From §11 (snapshots) + §12.3 (CAT columns on <code>nclex_attempt_items</code>):</p>
+<ul>
+  <li>Item identity → snapshotted into <code>nclex_attempt_items</code> at administration time.</li>
+  <li>Student response (correct / incorrect, plus the actual answer) → <code>nclex_attempt_answers</code>.</li>
+  <li>Engine ability estimate at pick time → <code>nclex_attempt_items.cat_theta_before</code>.</li>
+  <li>Engine SE at pick time → <code>nclex_attempt_items.cat_se_before</code>.</li>
+  <li>Item difficulty used → <code>nclex_attempt_items.cat_item_difficulty</code> (snapshotted from <code>difficulty_irt</code>).</li>
+  <li>Difficulty source at pick time → <code>nclex_attempt_items.cat_item_difficulty_source</code>.</li>
+  <li>Time to respond → <code>nclex_attempt_answers.duration_seconds</code> (existing column).</li>
+</ul>
+<p>
+  This means recalibration has all the inputs it needs without further schema work on the response-capture side.
+  The job just queries existing tables.
+</p>
+
+<h3>17.2 Audit history of difficulty changes — one new table</h3>
+<p>
+  Per §5.3, recalibration overwrites <code>nclex_bank_items.difficulty_irt</code> with the 70/30 blended value
+  on every weekly run. To preserve history of how each item's difficulty has evolved, we add a single new
+  audit table: <code>nclex_bank_item_calibration_history</code>. One row per recalibration event per item.
+</p>
+<p>Columns:</p>
+<table>
+  <thead>
+    <tr><th>Column</th><th>Type</th><th>Purpose</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>UUID</td><td>Primary key</td></tr>
+    <tr><td><code>item_id</code></td><td>TEXT</td><td>The bank item this row records (FK to <code>nclex_bank_items.item_id</code>)</td></tr>
+    <tr><td><code>calibrated_at</code></td><td>TIMESTAMPTZ</td><td>When this recalibration happened</td></tr>
+    <tr><td><code>previous_value</code></td><td>NUMERIC</td><td>The <code>difficulty_irt</code> value before this recalibration</td></tr>
+    <tr><td><code>new_value</code></td><td>NUMERIC</td><td>The <code>difficulty_irt</code> value after the 70/30 blend</td></tr>
+    <tr><td><code>raw_empirical_value</code></td><td>NUMERIC</td><td>The unblended empirical estimate the calibration computed (useful for debugging the blend)</td></tr>
+    <tr><td><code>previous_source</code></td><td>TEXT</td><td><code>'CURATOR_LABEL'</code> or <code>'EMPIRICAL'</code></td></tr>
+    <tr><td><code>new_source</code></td><td>TEXT</td><td>Always <code>'EMPIRICAL'</code> (recalibration never writes back to CURATOR_LABEL)</td></tr>
+    <tr><td><code>response_count</code></td><td>INTEGER</td><td>How many responses the item had at calibration time</td></tr>
+    <tr><td><code>job_trigger</code></td><td>TEXT</td><td><code>'CRON'</code> or <code>'MANUAL'</code> (per §5.3.2 manual trigger)</td></tr>
+    <tr><td><code>job_triggered_by</code></td><td>UUID</td><td>NULL for cron; admin user_id for manual triggers</td></tr>
+  </tbody>
+</table>
+
+<h3>17.3 No separate job-run table</h3>
+<p>
+  An earlier draft proposed a separate <code>nclex_calibration_job_runs</code> table to record each weekly job
+  execution (start/end time, items processed, error count). Rejected: the per-run summary can be derived from
+  the audit table on demand, by grouping rows that share the same <code>calibrated_at</code> timestamp window
+  (all rows from one run share the same timestamp). One new table is enough.
+</p>
+
+<h3>17.4 Why a separate table, not JSONB on the bank row</h3>
+<p>
+  An alternative considered: stuff the calibration history into a JSONB array column on
+  <code>nclex_bank_items</code> itself, with the engine reading the latest entry. Rejected for three reasons:
+</p>
+<ul>
+  <li><strong>Engine performance.</strong> CAT picks an item by querying the bank for the closest-difficulty match. With <code>difficulty_irt</code> as NUMERIC, that's a fast indexed query. With JSONB, the engine has to pull every candidate's array, parse it, and extract the latest entry — per-item work on every single pick. A 92-item CAT does this 92 times per student. We'd turn a fast indexed query into a slow scan.</li>
+  <li><strong>Snapshots break.</strong> §12.3 snapshots <code>difficulty_irt</code> into <code>nclex_attempt_items.cat_item_difficulty</code> at administration time. With NUMERIC that's a clean copy of one number; with JSONB you'd snapshot the whole array (which then grows over time — defeating "frozen at administration"), or you'd extract the latest value at snapshot time (which means the parse-and-extract dance happens on writes too).</li>
+  <li><strong>Querying history is hard.</strong> Questions like "show items whose difficulty changed by &gt;0.5 this month" or "roll back last week's calibration" become nightmare queries against JSONB arrays. Trivial against a separate audit table.</li>
+</ul>
+
+<h3>17.5 Retention — keep forever for v1</h3>
+<p>
+  Both the audit table and the per-attempt response data are kept indefinitely in v1.
+</p>
+<ul>
+  <li>Audit table: small data — one row per item per week. Even at 10,000 items running for 5 years, that's ~2.6M rows. Trivial for Postgres.</li>
+  <li>Trimming defeats the audit's purpose. The whole value is being able to ask "what did this look like in the past."</li>
+  <li>If storage ever becomes a real concern (it won't at v1 scale), revisit then.</li>
+</ul>
+
+<h3>17.6 Where the recalibration job runs</h3>
+<p>
+  Build-time decision. Two viable shapes:
+</p>
+<ul>
+  <li>A scheduled Cloudflare Worker (cron triggers) that calls a small Python service for the actual statistical fit using <code>pyirt</code> or similar.</li>
+  <li>A Supabase scheduled function (pg_cron) that uses simpler in-Postgres math.</li>
+</ul>
+<p>
+  What's locked here regardless of the runtime: the schedule (Sundays 02:00 UTC, per §5.3.2), the manual
+  trigger pathway (admin button calls the same job logic with <code>job_trigger = 'MANUAL'</code>), the audit
+  table that gets written to regardless of where the job runs. The Python-vs-pg_cron choice is a Sam-and-Claude
+  -Desktop call when the build moves forward.
+</p>
+
+
+<h2 id="s18">18. Out of scope for v1 / deferred</h2>
+<p>Explicit non-goals for v1 CAT:</p>
+<ul>
+  <li><strong>2PL or 3PL models</strong> — Rasch only for v1 (§4 default).</li>
+  <li><strong>Statistically-validated pass-probability statement</strong> — needs real outcome data we don't have. v1 says "above/below standard," never a probability.</li>
+  <li><strong>Pearson VUE-grade exposure control</strong> — we use a recency-window exposure filter (§15.2), not the multi-factor exposure-control schemes used in production high-stakes testing.</li>
+  <li><strong>Hard content-blueprint enforcement</strong> — soft constraint only for v1 (§8 default).</li>
+  <li><strong>Multi-stage testing (MST)</strong> — adaptive at the section level, not the item level. Not on the v1 roadmap.</li>
+  <li><strong>Cases / trends in CAT</strong> — standalone-only for v1 (§7.4 default).</li>
+  <li><strong>CAT in tutored programmes or readiness packs</strong> — CAT is custom-built only in v1. Programme activities and readiness packs use fixed-length modes only.</li>
+  <li><strong>Cross-CAT theta carry-over</strong> — every CAT starts at medium; prior CATs don't influence the next CAT's starting point (§15.3 default).</li>
+  <li><strong>Tutor-facing CAT analytics</strong> — tutors don't get to see student CAT results in v1 (CAT is a personal assessment tool). Could surface in v2.</li>
+</ul>
+
+<h2 id="s19">19. Open decisions</h2>
+<p><strong>Settled to date (18 of 20 sections):</strong></p>
+<ul>
+  <li>§1 — Scope (settled at file creation).</li>
+  <li>§2 — Inheritance roundup (settled at file creation).</li>
+  <li>§3 — Honesty constraints: calibration approximation disclosed via "How CAT works" help page (one-time, not per-attempt); five-section help page contents specified; pass-probability statement deferred to v3+ (settled 2026-05-04).</li>
+  <li>§4 — IRT model: Rasch (1PL), TypeScript live engine in existing stack, recalibration uses heavier offline tooling separately (settled 2026-05-04).</li>
+  <li>§5 — Calibration plan: Easy/Medium/Hard → −1.0/0.0/+1.0, separate <code>difficulty_irt</code> NUMERIC column on <code>nclex_bank_items</code>, weekly batch recalibration (Sundays 02:00 UTC) with 30-response threshold and 70/30 dampened blend, plus manual trigger (settled 2026-05-04).</li>
+  <li>§6 — Starting difficulty: always theta = 0.0, no carry-over (settled 2026-05-04).</li>
+  <li>§7 — Selection rule: closest difficulty + category as tiebreaker; cases/trends excluded for v1; bank-exhaustion fallback locked (settled 2026-05-04).</li>
+  <li>§8 — Content blueprint: tiebreaker only, never overrides difficulty; monitoring logged for curator dashboard (settled 2026-05-04).</li>
+  <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 75/145, time limit 4 hours, inconclusive framing (settled 2026-05-04).</li>
+  <li>§10 — Architecture: two-RPC flow (<code>create_cat_attempt</code> + <code>cat_next_item</code>), both atomic transactions; pessimistic UI with graceful degradation (current Q stays visible dimmed; spinner at 300ms; "still loading" at 3s; error+retry at 10s); 2-retry silent backoff on network failure, immediate error on server-side throw; engine runtime location (Supabase RPC vs Edge Function vs Worker) deferred to build time with PL/pgSQL recommendation (settled 2026-05-05).</li>
+  <li>§11 — Snapshot strategy: per-question at administration time (settled at file creation).</li>
+  <li>§12 — Schema additions: build-handoff package locked. Two new columns on <code>nclex_bank_items</code> (<code>difficulty_irt</code> NUMERIC, <code>difficulty_source</code> TEXT with CHECK), mirrored on <code>nclex_tutor_questions</code> for v2 parity. Five new columns on <code>nclex_attempts</code> (<code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>); four new columns on <code>nclex_attempt_items</code> (<code>cat_theta_before</code>, <code>cat_se_before</code>, <code>cat_item_difficulty</code>, <code>cat_item_difficulty_source</code>). One new audit table <code>nclex_bank_item_calibration_history</code> with FK + ON DELETE CASCADE. Two RPC stubs (<code>create_cat_attempt</code>, <code>cat_next_item</code>) raising "not yet implemented." Verification queries + rollback SQL alongside. Termination reasons collapsed from 5 to 4; audit-table column names rationalised — see §12.7.11 (settled 2026-05-05).</li>
+  <li>§13 — CAT summary page: verdict copy, layout, trajectory graph + per-item marker, separate Readiness card, INCONCLUSIVE = zero weight (settled 2026-05-04).</li>
+  <li>§14 — Review state: uses shared runner Review surface, minimal CAT-specific shape, all CAT-specific content lives on the summary page (§13) (settled 2026-05-04).</li>
+  <li>§15 — Re-take rules: unlimited frequency with soft 1-hr warning, last-3-CATs exposure window (CAT-only), fallback relaxes exposure before difficulty (settled 2026-05-04).</li>
+  <li>§16 — Runner UX: current-question-only progress indicator, timer warnings deferred to runner-level, no back navigation, no live-run mark-for-review, browser-close = ABANDONED with confirmation, no pause (settled 2026-05-04).</li>
+  <li>§17 — Calibration data capture: per-attempt response data already captured by existing schema; one new audit table <code>nclex_bank_item_calibration_history</code>; no separate job-run table; retention forever for v1; runtime (worker vs pg_cron) deferred to build (settled 2026-05-04).</li>
+</ul>
+
+<p><strong>Carried forward — settle in subsequent planning sessions:</strong></p>
+<p>None at planning level. All structural and build-handoff decisions are locked. The remaining work is execution:</p>
+<ul>
+  <li><strong>Apply the §12.7 migration to dev.</strong> Sam's sign-off after dev verification gates the prod run.</li>
+  <li><strong>Fill in <code>create_cat_attempt</code> and <code>cat_next_item</code> bodies</strong> with real Rasch math — separate build slice after the schema lands.</li>
+  <li><strong>Empirical recalibration job</strong> — schedule, runtime location (Supabase pg_cron vs Cloudflare Worker), and the actual calibration code. Specced at planning level in §5 / §17 / §10.5; build slice still TBD.</li>
+</ul>
+
+<p><strong>Follow-up edits in sibling docs — done 2026-05-05:</strong></p>
+<ul>
+  <li><code>main.md</code> — CAT removed from Deferred (v2 or later) list. ✓</li>
+  <li><code>CLAUDE.md</code> — "CAT adaptive testing logic" removed from Explicit Deferrals; doc-meta date bumped. ✓</li>
+  <li><code>bank-consumption-attempt-creation.html</code> §6.1 + §13 + §14 + TOC — §6.1 result columns now reference cat.html with explicit column names; §13 status pill flipped to backreference; §14 open-decisions list cleaned up (CAT result columns no longer pending). ✓</li>
+  <li><code>bank-consumption-runner.html</code> §18 + TOC — backreference to cat.html §16 (runner UX) + §10 (runner-server contract); cross-mode timer reference noted. ✓</li>
+  <li><code>bank-marks-and-scoring.html</code> §11 — "CAT-specific scoring flow" line updated: scoring functions reused unchanged inside <code>cat_next_item</code>; CAT does not introduce new scoring logic. ✓</li>
+</ul>
+
+<h2 id="s20">20. Related docs</h2>
+<ul>
+  <li><code>bank-consumption.html</code> — parent plan; §16 is the original CAT scoping note this doc replaces.</li>
+  <li><code>bank-consumption-attempt-creation.html</code> — sibling sub-plan; §13 names the two-RPC architecture this doc fleshes out.</li>
+  <li><code>bank-consumption-runner.html</code> — sibling sub-plan; §18 is the placeholder this doc replaces for CAT runner specifics.</li>
+  <li><code>bank-marks-and-scoring.html</code> — companion doc; per-question scoring functions are reused unchanged inside <code>cat_next_item</code> (§10.2).</li>
+  <li><code>bank.md</code> — authoring side: schema, JSONB shapes. CAT reads from the same authoring tables and snapshots into the same attempt tables.</li>
+  <li><code>main.md</code> — overall MyNclex product plan.</li>
+</ul>
+
+<hr class="footer-rule" />
+<p class="footer-line">MyNclex — Bank Consumption · CAT Plan · Living document (skeleton)</p>
+
+</div>
+</body>
+</html>

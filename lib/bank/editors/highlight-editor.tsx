@@ -471,6 +471,11 @@ export function HighlightEditorBody({
   const contentIncomplete = validity !== 'ok';
   const classificationIncomplete = !category;
 
+  // Live marks for the Housekeeping readout. Per bank-marks-and-scoring §5.2:
+  // HIGHLIGHT max = count of correct chunks. summary.correct already filters
+  // by decision === 'correct', and activeChunks is already in-passage only.
+  const liveMarks = summary.correct;
+
   // Toolbar counter
   const counterClass: ValidityState =
     summary.total === 0
@@ -765,8 +770,9 @@ export function HighlightEditorBody({
             <TabPanel id="housekeeping">
               <HousekeepingFields
                 mode={initial.mode}
+                questionType="HIGHLIGHT"
                 defaults={{
-                  marks: initial.marks,
+                  marks: liveMarks,
                   question_ref: initial.question_ref,
                   batch_id: initial.batch_id,
                   is_published: initial.is_published,

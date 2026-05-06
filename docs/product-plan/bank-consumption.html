@@ -1,0 +1,554 @@
+MyNclex — Bank Consumption Plan
+Living planning document. Updated each session as decisions land. Last updated: 2026-05-04 (§10 rule 1 marked SUPERSEDED — mid-case auto-discard no longer applies under STUDY/EXAM intent split. Earlier same day: §17 Builder — added Intent picker step (Study vs Exam) before Mode selection; modes filter by chosen intent; Recent Quizzes + Default form state updated. Driven by attempt-creation sub-plan §6.1.2 + §6.3.1 — see bank-consumption-attempt-creation.html).
+Why this doc exists
+The Bank's authoring surface is complete. Curators can create all 9 question types plus Case Study and Trend wrappers. Nothing yet consumes that content — there is no student-facing surface, no runner, no quiz builder, no results, no history.
+
+"Consumption" is everything between the authored bank and a student finishing a question and learning from the result. That covers more than just the runner — it includes how students reach the runner (quiz builders, programme activities, readiness packs), what happens during a run (rendering, answering, scoring, feedback timing), what happens after (results, history, analytics), and how curators preview the same material.
+
+This document is the planning home for that whole surface. We fill it in section by section as decisions land. No code in this session — planning only. Build slices come later, in their own sub-plans.
+
+Contents
+The Promise settled
+The Pillars settled
+Surface planning order settled
+Dashboard in progress
+Analytics intent settled
+Analytic — Readiness Signal settled
+Analytic — Performance Breakdowns settled
+Analytic — Trend over time settled
+Analytic — Coverage settled
+Analytic — Per-question History settled
+Analytic — Answer-change tracking settled (principle)
+Analytic — Time per question settled (principle)
+Analytic — Slice labels settled (principle)
+Analytic — Peer percentile settled (principle)
+Source / Mode / Session State framework settled
+CAT — its own section in scope, design pending
+Practice page — the Builder settled
+Engagement mechanics — what we will and won't build settled
+Parked decisions
+Deferred to v2+
+Related docs
+1. The Promise settled
+Tagline
+MyNclex Bank — practise on the real thing.
+
+Working paragraph
+The MyNclex Bank gives a student NCLEX-realistic practice — questions written to NCSBN's actual item types and scoring rules, rationales that explain why each option is right or wrong, and a practice experience that mirrors how the real exam feels. A student who works through the Bank knows they have practised on the real thing, not a cheap imitation. Readiness signals (performance breakdowns, weakness tracking, exam-readiness assessments) are offered alongside, but the headline is the practice itself.
+
+Position
+UWorld-shaped, not Archer-shaped. The headline is practice realism. Readiness signal is a feature we offer; it is not what we sell on. The product is the same whether the student is in Accra, Lagos, or Atlanta — the NCLEX is the NCLEX.
+
+By elimination, MyNclex is not selling "the cheapest NCLEX prep" and not selling "the most data-driven readiness predictor." Those are Archer's lanes.
+
+2. The Pillars settled
+Four pillars deliver the Promise. Every feature, page, and decision later in this doc must trace back to at least one of these.
+
+1. Authentic question content
+Every question matches a real NCLEX item type (one of the 9). Every question carries a clear rationale, with per-option feedback where it matters. No filler, no fake-NCLEX questions, no review-style prose dressed up as MCQs.
+
+2. Authentic exam mechanics
+The runner behaves the way the real NCLEX behaves: NCSBN-exact scoring (partial credit where the real exam gives it, all-or-nothing where it doesn't), no pre-submit hints, no answer leakage, timed mock mode that feels like the real exam.
+
+3. Practice in the shape the student needs
+The student decides what they're practising and how. Custom quizzes filtered by topic, difficulty, type, body system. Short focused sessions or full-length mocks. Untimed learning mode or timed exam mode.
+
+4. Honest feedback after every answer
+After a student submits, they see whether they were right, why each option was right or wrong, and (where it adds value) the curator's per-option commentary. No vague "good job!" — specific, written feedback.
+
+Deliberately not pillars
+Readiness signal / pass-probability prediction — demoted by the Promise. Offered, not headlined.
+Performance analytics / weakness tracking — useful, but a service to the four pillars, not its own pillar.
+Mobile-friendly — table stakes.
+Affordable pricing — business decision, not a product pillar.
+Spaced repetition — different promise. Not what we're building.
+3. Surface planning order settled
+We plan the consumption surfaces in this order, because each one informs the ones that follow:
+
+Dashboard — drives what data the runner must capture.
+Practice page (quiz builder) — informed by what dimensions the dashboard surfaces.
+The Runner — informed by what data the dashboard needs captured.
+History — naturally follows the runner.
+Packs — supplemental.
+Profile — mechanical, last.
+The right chain is: analytics intent → runner data capture → builder filter dimensions. Decide what we promise, then back into what we have to record.
+
+The existing /student/bank/* page slots from the nav scaffold are placeholders, not constraints. The navigation reshapes around what the planning produces. Already known: the Analytics page (§7) adds a new surface to the original six.
+
+4. Dashboard in progress
+Purpose
+The Dashboard is the student's home base inside the Bank. It tells them at a glance: where they stand, what to do next, and whether they're getting better. It is not a control panel for the platform — it is a status report for the student.
+
+Status
+All ten dashboard analytics are settled at principle level (§5–§14). Layout, hierarchy, and the cold-start state for the dashboard as a whole still to come — to be designed once the Practice and Runner surfaces are also planned, since they share visual conventions.
+
+Open questions for this surface
+What is the headline block? (Most-prominent thing on the page.)
+Hierarchy of remaining blocks across the 10 analytics.
+Cold-start state for a brand-new student who hasn't answered anything yet.
+Whether announcements (existing pattern from MyNMC Licensure) appear here.
+5. Analytics intent settled
+We commit to surfacing the following kinds of analytics to the student. Schema, table shapes, and exact column lists are deliberately not decided here — they fall out of the full plan once every consumption surface is settled.
+
+The full analytics list (11 items)
+#	Analytic	One-line purpose
+1	Readiness signal	"Am I ready?" — honest score + band, not pass probability
+2	Performance breakdowns	Slice score across 6 classification axes
+3	Trend over time	Score trajectory across recent sessions
+4	Coverage	How much of the bank the student has touched
+5	Per-question history	Has the student seen this item? What did they answer?
+6	Source/Mode/State awareness	Where sessions came from, how they ran, what state they're in
+7	Answer-change tracking	Right→wrong vs wrong→right answer changes
+8	Time per question	Pace per question vs expected
+9	Slice labels	"On track / Needs work / Strong" tag on each breakdown slice
+10	Peer percentile	Performance vs other MyNclex students
+11	Consistency indicator	Active X of last 7 days — informational, not gamified (see §17)
+What we deliberately don't capture or surface in v1
+Pass probability as a number — needs real outcome data to calibrate honestly. Replaced by Readiness Signal in v1.
+Streaks — never (see §17).
+Badges — deferred to v2+, conditional (see §17).
+Spaced repetition statistics — different product promise; not in v1.
+Faculty/cohort dashboards — institutional product, deferred.
+6. Readiness Signal settled (locked, may revisit)
+What it is
+The student's answer to "am I ready to sit the NCLEX?". Computed from their actual practice on our content. Always labelled "Predicted Readiness" — the word "Predicted" carries the uncertainty.
+
+Inputs
+All attempts in the student's full history across the entire bank. Readiness packs are not specially weighted — packs are a separately-purchasable product, and a bank subscriber may have done zero. Coverage gates the signal (see "Cold-start" below) but is not a direct input.
+
+Form on the dashboard
+A score (0–100) plus a band name plus the band colour, rendered as a single dashboard card.
+
+Example: 72% · Approaching, the whole element coloured amber.
+
+Bands
+Building
+0 – 59
+Approaching
+60 – 74
+Ready
+75 – 84
+Exam-ready
+85 – 100
+Four bands. Thresholds defended by industry consensus: ~75% accuracy on NCLEX-style questions is the rough mark associated with passing the real exam. We place "Ready" at that threshold. "Exam-ready" at 85+ is a deliberate stretch goal.
+
+Cold-start
+Hidden until the student has answered at least 75 questions across at least 2 distinct sessions. Below that threshold the data is too noisy to stand behind.
+
+What the student sees instead:
+
+Predicted Readiness — Building your profile
+Answer 23 more questions to unlock your readiness signal.
+(Progress bar: 52 / 75)
+
+Path to v2
+Once we have ~50–100 students who used the Bank, sat the NCLEX, and reported the outcome, we calibrate the readiness score against real pass/fail data. The v1 Readiness Signal is the foundation for v2's pass-probability, not an alternative to it.
+
+Open
+The exact formula that produces the 0–100 score from attempt history. Will need to handle: recency weighting, difficulty distribution, coverage as a sanity check.
+The "what this means" copy / link on the dashboard card.
+7. Performance Breakdowns settled
+Axes shown (6)
+Client Needs Category (the 4 NCLEX blueprint categories)
+Client Needs Subcategory (8 subcategories)
+Nursing Subject
+Body System
+Question Type
+Difficulty
+Topic and Subtopic are available as drill-downs within these axes (e.g. drill into "Pharmacology" subject to see specific topics). Bloom Level and Tags = v2.
+
+Where breakdowns live (3 surfaces)
+Dashboard card — Client Needs Category breakdown only (compact). Links to the analytics page.
+Dedicated Analytics page — all 6 axes, with topic/subtopic drill-downs. New surface beyond the original nav-scaffold six.
+Post-quiz results screen — session-scoped breakdown across all 6 axes (only for the session just finished).
+Thin-slice handling
+Slices are hidden until they have at least 10 attempts. Below the threshold, the slice shows a "locked" placeholder: "Answer 4 more questions in Mental Health to unlock this breakdown."
+
+Exception: this rule applies to lifetime breakdowns only. The post-quiz session breakdown shows every slice from the session just finished, regardless of count — every slice in a session is "complete for that session" by definition.
+
+8. Trend over time settled
+What it shows
+Score trajectory plotted as a line over recent sessions. Helps the student see whether they're getting better, plateauing, or declining.
+
+Decisions
+Unit: per-session (no rolling-average smoothing).
+Range: student-selectable. Suggested presets: Last 10 / Last 30 / Last 90 / All time. Custom range optional.
+Default range on first land: Last 10 (so the student sees something immediately).
+Plotted value: session score % (single line on the dashboard headline).
+Per-category trends: available as drill-downs on the Analytics page, not the dashboard.
+Source/Mode filter: default all sessions; can narrow by source (Custom-built / Readiness pack / Programme-assigned) or by mode.
+Open
+Whether the range selection persists across visits.
+9. Coverage settled
+What it shows
+How much of the bank the student has touched. Tells the student how representative their performance is — 75% across 50 questions is much weaker evidence of readiness than 75% across 1,500.
+
+Decisions
+Counting rule: first-attempt only. Re-attempts of seen questions don't increase coverage. Coverage measures exposure to new material, not total volume of practice.
+Where it shows:
+Dashboard: small text element or thin progress bar (e.g. "412 / 1,800 — 23%").
+Analytics page: coverage by Client Needs Category (e.g. "Pharm 60%, Mental Health 12%").
+10. Per-question History settled
+State model — 4 states per question per student (the analytic)
+Unseen — student hasn't tried this question.
+Seen-correct — last attempt was right.
+Seen-incorrect — last attempt was wrong.
+Marked — student flagged for review (independent of correct/incorrect; persists across attempts).
+This 4-state model is the underlying classification stored per question per student. It powers analytics, history surfaces, and the builder query underneath. Standard NCLEX-prep model.
+
+Builder pool filters (the UI) — separate from the analytic
+The Practice builder doesn't expose the 4 states one-for-one. It exposes 6 overlapping multi-select filters that each query the underlying state data in a different way. Full spec in the Builder section (§17).
+
+Unseen — never attempted
+Seen — attempted at least once (regardless of correct/incorrect)
+Correct — most recent attempt was right
+Incorrect — most recent attempt was wrong
+Marked — student-flagged
+All — shortcut that selects the other 5
+These filters are independent and combinable. A student ticking "Marked + Correct" gets questions they got right that they also flagged. "Seen" overlaps with both "Correct" and "Incorrect" — that overlap is intentional, the student picks at the granularity they want.
+
+Wrapper-children handling — split rule
+Case Studies — atomic
+A Case Study is a clinical scenario unfolding over time. Chart tabs progressively unfold via visible_from; later questions reference earlier-revealed data; the 6 children form a continuous chain of clinical reasoning (CJMM steps). Splitting a case across sessions breaks the narrative.
+
+History at the case level has two states:
+
+Unseen — none of the 6 children done.
+Done — all 6 children done.
+The builder selects whole cases, never individual children. A student picking "Unseen only" gets unseen cases as units. Per-question data still exists underneath (each child counts toward breakdowns by type, body system, etc.) — it's the selection unit that's atomic, not the data model.
+
+Trends — per-question
+Trend children are independent questions that share a dataset. Q3 doesn't depend on Q1 for narrative; the dataset is always available. A student can do Q1, Q3, Q5 in one session and Q2, Q4, Q6 in another — the dataset re-appears with only the unseen children surfaced. History stays per-question.
+
+Three follow-up rules locked
+1. [SUPERSEDED 2026-05-04 by attempt-creation §6.1.2 + §6.3.1.] Mid-case auto-discard no longer applies — STUDY is resumable (children persist between sessions) and EXAM times out to AUTO_SUBMITTED rather than abandoning. Case-level history-state under intent-split semantics needs a fresh design pass — flagged for follow-up. (Original rule preserved in git: commit 29fdbce.)
+
+2. "Incorrect only" filter on cases — any one wrong = case incorrect. If any child of a case was answered wrong, the whole case appears under the "Incorrect only" builder filter. Reasoning: a student wanting to revisit what they got wrong on a case wants the whole scenario, not just the specific child — the clinical reasoning is the case as a unit.
+
+3. Marking works at both levels. A student can mark a case as a whole (bookmarks the whole scenario) AND mark individual child questions (bookmarks just that question). Both are useful and work independently. Display detail (icon placement on the runner) settles when we design the runner.
+
+11. Answer-change tracking settled (principle)
+What it shows
+During practice, the student often changes their answer before submitting. We track:
+
+Right → Wrong changes (lost a correct answer to second-guessing)
+Wrong → Right changes (caught a mistake on review)
+Surface as a periodic insight (e.g. on the post-quiz screen, or on the analytics page): "This month you changed 14 correct answers to wrong, and 3 wrong answers to correct."
+
+Why it earns a place
+Distinctive learning signal. Helps students confront a real test-taking habit (chronic second-guessing) that loses marks on the real exam. Aligned with Pillar 2 (authentic exam mechanics) and Pillar 3 (practise in the shape the student needs).
+
+Open
+Exact display location and format on the dashboard / analytics page / post-quiz screen.
+12. Time per question settled (principle)
+What it captures
+Per-attempt timing — from the moment a question is shown to the moment the student submits. Used to compute average time per question per session, and to flag pacing patterns ("you took an average of 1m 22s vs the recommended 1m 15s").
+
+Where it surfaces (v1)
+Post-quiz results screen: session-level pacing summary.
+Dashboard: not by default. We don't want another card competing for attention until we know it earns the slot.
+Analytics page: available as a drill-down, e.g. "average time per question by question type."
+Why capture even if surfacing conservatively
+Once captured, time data unlocks several future analytics: pacing trends, time-vs-correctness correlation, fast-guess detection. Not capturing means we can't add those later without losing all the historical data.
+
+13. Slice labels settled (principle)
+What they are
+A small label attached to every breakdown slice, pegged to the Readiness threshold:
+
+Needs work — slice score below ~60%
+On track — slice score 60–74%
+Strong — slice score 75%+
+Why
+Numbers alone make students compare slices to themselves. Labels give them a rough verdict: "Pharmacology — Strong (82%) vs Mental Health — Needs work (54%)." Adds interpretation without adding a new analytic.
+
+Implementation note
+Free addition on top of breakdowns we already plan to show. The thresholds map to the Readiness bands so the language is consistent across the dashboard.
+
+14. Peer percentile settled (principle)
+What it shows
+The student's position relative to other MyNclex students. Standard p-rank model — "you're in the 65th percentile of MyNclex students."
+
+Decisions locked
+We do include peer percentile (reversal of the earlier "no peer comparison" position). Reasoning: even if our early cohort is small, the percentile becomes more useful over time, and capturing it from day one means students get the signal as soon as the cohort allows.
+The cohort definition and minimum-cohort threshold to settle when we design the dashboard layout.
+If the student's cohort is too small to compute a meaningful percentile, the card shows a "Building peer cohort" placeholder — same honest gating pattern as Readiness.
+Open
+Cohort definition (all students with N attempts? Same Readiness band? Same recency window?).
+Minimum cohort threshold below which we show the placeholder.
+15. Source / Mode / Session State framework settled
+Every session has three independent attributes — the source (where the question list came from), the mode (how the quiz runs), and the session state (what the student is doing with it right now). All three combine to determine what the student sees and what the runner does.
+
+Sources (3) — locked
+Custom-built — student used the Practice builder.
+Readiness pack — student bought a curated pack.
+Programme-assigned — tutor set up an activity in a programme week (covers practice quizzes and mocks; the difference is the mode the tutor chose, not the source).
+Modes (5) — provisional v1 list
+Untimed Learning — rationales after each submit.
+Untimed Test — rationales at the end.
+Timed Free navigation — clock running, can skip and return.
+Timed Sequential — clock running, no going back.
+CAT — adaptive, IRT-based, terminates on confidence. In scope for v1. Detailed design in its own section (§16).
+Source × Mode rules — provisional
+Custom-built → student picks any mode.
+Readiness pack → mode set by us when authoring the pack (default Timed Sequential).
+Programme-assigned → tutor picks the mode when configuring the activity. Default for practice activities = Untimed Learning; for mocks = Timed Sequential.
+Dashboard treatment
+Source and mode are tags on each session in Recent Activity.
+Trend filterable by source AND mode.
+No per-source or per-mode dashboard cards. Filter, don't multiply.
+Session States (3) — locked
+A session is in exactly one of three states at any moment. The runner behaves differently in each.
+
+New — fresh start. Builder finished, runner opens at question 1. Always available for any source/mode.
+Resume — student previously started a session and didn't finish (closed browser, lost connection, paused intentionally). They re-open it and pick up where they left off — saved progress restored, answers already given preserved. Restricted to untimed modes only. Timed modes (including CAT) cannot be resumed — if the student exits, the session is abandoned, same rule as case-study mid-session abandonment in §10.
+Review — read-only review of a completed session. Student's answers shown alongside correct answers and rationales; no further submission accepted. Available for every source/mode. CAT review additionally shows the result verdict and confidence band.
+Source × Mode × State — quick rules
+Resume is impossible for any timed mode, regardless of source.
+Resume is impossible for Readiness Packs (always timed-sequential by default).
+Review is available for every finished session, regardless of source or mode.
+Abandoned timed sessions never become Reviewable until they complete — abandoning a timed session is equivalent to discarding it (same rule as abandoned case-study sessions).
+Implications
+Practice page (builder): on entry, must check for any unfinished untimed session for this student. If one exists, branch into "Resume / Start new / Review last."
+History page: opening a finished session opens it in Review state.
+Runner: three rendering branches — New (default), Resume (load saved progress), Review (read-only, rationales visible, no submission).
+Open for runner planning
+Exact rules per mode (timer specifics, navigation specifics, feedback timing).
+Whether the student can switch mode mid-session (probably not).
+Defaults when student doesn't pick a mode.
+Resume UX detail — does the student get a "you have an unfinished session" notification on the dashboard, or only on the Practice page?
+Review UX detail — does the student see their original timing / answer-change tracking when reviewing? Probably yes for learning value.
+16. CAT — its own section in scope, design pending
+The single most important mode for NCLEX fidelity. The real NCLEX is a CAT exam — every prep platform that claims realism has to grapple with it. We commit to building our own CAT-equivalent in v1.
+
+What a CAT actually does
+Each question has a difficulty rating.
+The test starts at medium difficulty.
+After each answer the system updates its estimate of the student's ability (right answer → estimate rises; wrong answer → falls).
+The next question is picked to match the current ability estimate (maximises information).
+The test ends when the system has enough confidence the student is above (pass) or below (fail) the passing standard. NCLEX terminates at 75–150 questions.
+Result: pass or fail. No raw score.
+v1 scope — honest framing
+We will ship a working CAT engine in v1, with the following honest constraints:
+
+Difficulty calibration starts as approximate. Day one we use curator-assigned difficulty (Easy / Medium / Hard) as numeric proxies. Empirical calibration (using actual student-performance data) improves the system over time without rebuilding it.
+Result is honestly labelled. The post-CAT screen says something like "CAT result: above standard" or "below standard" with a confidence note. Never labelled as "pass probability."
+Result feeds Readiness Signal but doesn't replace it.
+v1 build components
+An IRT-based ability estimator (Rasch or 2PL — published academic literature, open-source implementations available to adapt).
+A question-selection strategy that picks the next item by proximity to current ability estimate, weighted by content blueprint (Client Needs Category proportions per NCLEX) and unseen-vs-seen rules.
+Termination logic: standard-error threshold + min/max question counts.
+Result-presentation language (NOT pass probability).
+Open / to design in CAT's own section
+The exact IRT model variant.
+The starting-difficulty rule.
+Termination thresholds (standard-error cutoff, min/max question counts).
+Content-blueprint constraints (how strictly we enforce category proportions).
+Calibration plan — when do we move from curator-assigned to empirical difficulty?
+Result presentation — exact wording, what data accompanies the verdict.
+Re-take rules — can a student take a CAT again? How often?
+These need a dedicated planning session. Tagged for follow-up.
+
+17. Practice page — the Builder settled
+Purpose
+The Practice page is where the student starts a new quiz. It's the entry point for the Custom-built source — the only source the student configures themselves (Readiness Packs and Programme-assigned sessions bypass it). Pillar 3 ("practise in the shape the student needs") is delivered here.
+
+Reference design
+A Claude design (Bank_Consumption_-_Mocks.html, Practice artboard) was used as a visual reference for the layout and interaction patterns. The structural decisions in this section derive from that design, audited against the consumption plan and extended where the design under-captured locked decisions.
+
+Page structure
+Three sections in the main column plus a sticky summary panel:
+
+Question pool — history-state filters (Unseen / Seen / Correct / Incorrect / Marked / All)
+Content filters — 8 classification axes
+Intent + Mode — Study vs Exam framing, then mode cards filtered by chosen intent (combined two-step picker)
+Sticky on the right: question count, live recap, "X questions match" estimate, estimated time, Start button. Above the form (when relevant): the Recent Quizzes shortcut row and any Resume / Review banner from §15.
+
+Section numbering is visual only. No enforced sequence — the student configures any section in any order. The only internal coupling is inside Section 3: Intent gates Mode (the Mode cards are hidden until Intent is picked, with a placeholder "Pick Study or Exam to see modes").
+
+Section 1 — Question pool (history-state filters)
+6 multi-select filters. Independent and overlapping; the student picks any combination.
+
+Filter	Meaning
+Unseen	Never attempted
+Seen	Attempted at least once (regardless of correct/incorrect)
+Correct	Most recent attempt was right
+Incorrect	Most recent attempt was wrong
+Marked	Student-flagged
+All	Shortcut: auto-selects the other 5; deselecting any of the 5 deselects All
+Each option carries a live count showing how many questions currently match for this student (e.g. "Unseen — 1,388 available"). Counts are computed by RPC on page load and when filters change.
+
+Why chips here but checkboxes for content filters? The pool is a primary configuration choice — the student is making a decision about what kind of practice this session is. Chip pattern reinforces that — fewer options, each substantive. Content filters are fine-grained selection across many values per axis, where mechanical "only checked = included" semantics are clearer. Different intents, different UIs.
+
+Note on terminology: the underlying per-question history (§10) has 4 states (Unseen / Seen-correct / Seen-incorrect / Marked). The 6 builder filters are a different presentation of the same data — independent, overlapping selectors. "Seen" overlaps with both "Correct" and "Incorrect"; the overlap is deliberate.
+
+Section 2 — Content filters
+8 classification axes, all checkbox multi-select (not chips). Each axis has a "Check all" toggle at the top — one click to select every value on that axis. Order on the page:
+
+Client Needs Category (4 checkboxes: Safe & Effective Care Environment / Health Promotion & Maintenance / Psychosocial Integrity / Physiological Integrity). Smart-linked to Subcategory — checking a category auto-checks its subcategories; unchecking all subcategories under a category unchecks the category checkbox.
+Client Needs Subcategory (8 checkboxes)
+Nursing Subject (8+ checkboxes)
+Body System (checkboxes, multi-select)
+Question Type (9 checkboxes: MCQ, SATA, Bow-tie, Cloze, Drag-drop, Highlight, Matrix, Select-N, TF)
+Difficulty (4 checkboxes: Easy / Medium / Hard / Mixed). Multi-select — "Easy + Medium" is a real combination.
+Tags (curator-managed allowlist). Curators tag every item; an admin step marks which tags are "student-facing." Only allowlisted tags appear in the builder. Untagged tags still exist on items for analytics — they just don't surface as filters.
+Topic / Subtopic — under a "Show advanced filters" expander. Hidden by default to avoid 100+ checkboxes dominating the page. Includes a search box at the top of the expanded section that filters the visible label list by typed text, with a "Clear search" link to reverse it.
+Behaviour rules
+All checkboxes start unchecked on every visit (including first visit). The student must consciously check what they want — there is no implicit "all" default.
+Only checked options are included. Unchecked options are excluded by definition. The chip-era convention "leave blank for all" no longer applies — checkbox semantics are mechanical, not conventional.
+"Check all" is a shortcut — clicking it checks every option on that axis. Unchecking any individual option afterwards unchecks "Check all" automatically.
+Excluding a value is achieved by Check all + manually unchecking the unwanted values. There is no separate "Exclude" mechanism.
+Reset behaviour: the existing Reset button (when implemented) returns every checkbox to unchecked.
+Filter combination logic
+Within a single filter axis (multiple checkboxes ticked on the same axis) → OR. "Pharmacology OR Mental Health questions."
+Across filter axes (checkboxes ticked on different axes) → AND. "Pharmacology AND Hard."
+Standard search/filter behaviour. Within an axis the student picks which values they want; across axes each new filter narrows the result.
+
+Section 3 — Intent + Mode
+Two-step picker, single-select at each step.
+
+Step 1 — Intent (2 cards)
+🎓 Study — Practise at your own pace. Resume anytime. No time pressure (or only as a pacing aid).
+🎯 Exam — Single sitting, like the real NCLEX. Once you start, finish or it ends.
+
+Picking Intent reveals Step 2 below. Switching Intent collapses Step 2 and clears the previously-picked Mode (if any).
+
+Step 2 — Mode cards (filtered by intent)
+The mode cards shown depend on the chosen Intent. Three modes appear under both intents with different framing — the description tag clarifies the difference. Two modes are intent-locked.
+
+Under STUDY (4 cards):
+Untimed Learning — rationales after each submit. Best for learning.
+Untimed Test — rationales at the end. Self-paced, no clock.
+Timed · Free navigation — engagement-clock pacing aid. Pause and resume; clock pauses when you're inactive.
+Timed · Sequential — engagement-clock pacing drill. Pause and resume; no going back within the quiz.
+
+Under EXAM (4 cards):
+Untimed Test — self-paced mock. No clock, but single sitting.
+Timed · Free navigation — wall-clock timer. Skip and return within the session.
+Timed · Sequential — wall-clock timer. No going back. Closest to the real NCLEX experience.
+CAT (adaptive) — adaptive, simulates real NCLEX entirely — see §16 for full design.
+
+Why two modes are intent-locked: Untimed Learning's "rationales after each submit" defeats exam framing — an EXAM version would just be Untimed Test. CAT's IRT model needs continuous engagement to be valid; pause/resume invalidates the ability estimate.
+
+The (mode, intent) tuple is validated server-side at attempt creation — defence-in-depth against direct RPC calls (the UI already filters out invalid combinations).
+
+CAT-specific behaviour in the builder
+CAT only appears under EXAM intent. When CAT is selected, the builder honestly reflects that CAT is a different mode with its own rules:
+
+Content filters collapse with the message "CAT pulls from the full bank to simulate the real exam. Filters don't apply."
+Pool filters also collapse with the same reasoning.
+Question count UI hides and is replaced with the static label "75–145 questions, terminates when confidence is reached."
+Sticky summary panel
+Right column, persistent while scrolling. Contents:
+
+Question count — preset buttons (10 / 25 / 50 / 75) plus a custom number field with a 5–150 cap. The student can pick a preset or type any number in range. (Hidden for CAT mode per §17.)
+Live recap — Pool · Filters · Mode · Estimated time. Updates as the student configures.
+Breakdown preview — small line showing the proportional Question Type mix the student will get. Example: "Roughly: 14 MCQ · 6 SATA · 3 Bow-tie · 2 Cloze." Computed from the matched pool's Question Type proportions × selected count. Labelled "roughly" because final selection is random within filters.
+Match estimate — "1,388 questions match. We'll pick 25 at random within your filters." (No "weighted" — random within filters is the actual behaviour.)
+Estimated time — count × 75s default. Once a student has 100+ attempts of personal data, switch to their average time per question.
+Start quiz button — disabled when (a) nothing checked across content filters and pool (zero matches) or (b) pool yields fewer questions than requested count. Actionable message in either case: "Check options in the filter sections to build your quiz" or "Only 14 questions match. Reduce count or loosen filters."
+Entry behaviour
+Unfinished session check (from §15)
+On page load, the builder checks for any unfinished untimed session for this student. If one exists, a banner appears above the builder form: "You have an unfinished quiz from [timestamp] — 14 of 25 done." with [Resume] and [Start fresh] actions. The form is de-emphasised below.
+
+If no unfinished session but a recent finished one exists, a smaller informational element offers Review of the last session. Review primarily lives on the History page (§later) — this is just a convenience.
+
+Recent Quizzes shortcut
+Above the builder form, a row showing up to 3 of the student's most recent quiz configurations. Each is a one-tap chip: "Study · Pharm · Hard · Unseen · 50 Q" or "Exam · Timed Sequential · 50 Q". Tapping restores the full configuration (intent, mode, filters, count) into the form below; the student can hit Start immediately or tweak first.
+
+Hidden entirely for first-time students with no quiz history.
+Label format: intent prefix + filter summary, not date. The configuration is what the student is choosing between. Intent is shown explicitly because it changes how the same filters will run.
+CAT shortcuts show "Exam · CAT" with no filters — tapping restores Exam intent + CAT mode (which collapses filters per above).
+Carries more weight in v1 than it would otherwise, because the form itself defaults to all-unchecked and no-intent-picked. Recent Quizzes is the primary "give me yesterday's setup" path.
+"Practise my weak spots" quick-start v1
+A one-tap button positioned alongside the Recent Quizzes row (or just below the page heading) that automatically configures and starts a quiz on the student's weakest content slices. Skips the rest of the builder UI — straight into the runner.
+
+Behaviour:
+
+System reads the student's analytics — finds slices currently labelled "Needs work" (per §13 slice labels) that pass the thin-slice gate (≥10 attempts).
+Picks the 1–3 weakest qualifying slices and configures filters from them.
+Defaults applied: Study intent, Untimed Learning mode, 25 questions, the auto-picked filters, Pool = "Incorrect" or "Unseen" depending on what makes most sense for the slice. Study intent is the right default here because weak-spot practice is learning, not exam simulation.
+One tap → straight to the runner. No intermediate confirmation. The student is implicitly accepting "yes, practise these weak areas."
+Gating:
+
+Hidden until cold-start threshold passed — same threshold as the readiness signal: 75 attempts across 2+ sessions. Below this, no meaningful "weak" can be identified.
+Hidden if no qualifying weak slice exists (e.g. the student is broadly strong, or hasn't accumulated enough attempts in any single slice). No fallback — better to show nothing than something misleading.
+Default form state on every visit
+The builder form resets to all-unchecked on every visit — including first visits. There is no implicit "include everything" default. The student composes the quiz consciously from a blank state.
+
+Intent: nothing pre-selected (student must pick Study or Exam)
+Mode: collapsed until Intent is picked, then nothing pre-selected within the filtered list
+Pool: nothing checked
+Content filters: every checkbox unchecked
+Count: 25 (the only field with a sensible default — the count is a number, not a selection)
+Start is disabled until Intent + Mode are picked AND enough is checked across pool/content to yield a viable pool. Recent Quizzes (above) is the primary path for "I want what I had before." A separate help page explains how to use the builder for first-time students; the builder itself is mechanically explicit rather than self-teaching.
+
+Implications
+Live count RPC — every filter change recomputes the match count. Backend must support a fast count_eligible_items(student_id, filters_json) query. Performance consideration when implemented.
+Type breakdown calculation — same RPC must also return a Question Type proportion split for the breakdown preview line. Cheap to compute alongside the main count.
+Curator allowlist for tags — admin UI to mark which tags are student-facing. Small admin step required when Tags filter is built.
+Recent Quizzes storage — the last 3 configurations per student are stored. Approach TBD at build time (probably the most recent 3 sessions' configurations, derived rather than persisted independently).
+Weak-spots query — needs a function that reads slice labels (§13) for a given student and returns the 1–3 weakest qualifying slices. Reuses analytics infrastructure; cheap once analytics exist.
+Search inside Topic/Subtopic expander — purely client-side filter on already-loaded labels. No backend implication.
+Open / TBD when laying out the page
+Visual hierarchy of "Recent quizzes" vs the builder form.
+Reset button placement and styling.
+"Show advanced filters" expander — closed by default; should it remember its open/closed state per student?
+Whether Recent Quizzes ever shows a 4th option ("Repeat last") more prominently than the rest.
+Visual treatment when filters/count collapse for CAT — animation? Just hide?
+Deferred to v2+
+Save filters as a named preset. The reference design mentions this; the builder doesn't need it for v1. Recent Quizzes covers most use cases.
+Larger question count presets (100+). Most NCLEX prep sessions sit at 25–50. Add later if students ask.
+"See your weak areas" link from the builder — tempting but adds cross-page complexity. Defer.
+18. Engagement mechanics — what we will and won't build settled
+Many learning products use streaks, badges, gamified progress, and consistency indicators to push engagement. NCLEX prep is a serious professional licensure context — the student is already motivated by the exam itself, not by digital rewards. Below is our position on each, deliberately considered rather than lumped into "deferred."
+
+Streaks never
+Counters that increment on consecutive days and reset if the student misses a day. Permanent skip. Not even a v2 candidate.
+
+Reasoning: streaks create a perverse incentive — a student short on time fires off 10 questions while half-asleep to preserve the streak. That's worse than skipping a day. It teaches sloppy practice and pollutes the analytics with noisy token sessions. There's no clean fix; the mechanic itself is the problem.
+
+UWorld, Archer, and Kaplan all explicitly chose not to add streaks. We follow the same logic.
+
+Badges deferred to v2+, conditional
+Visual rewards for hitting milestones. Not in v1. If revisited later, badges must reward meaningful study, not engagement. "Completed your first Readiness Pack" is meaningful (a real milestone with substance). "Answered 100 questions" is engagement-bait (could be 100 random easy questions). Most badge designs fail this test — which is why deferred, not just postponed.
+
+Progress visualisations already covered
+Already in scope through real, substantive analytics:
+
+Coverage progress (questions answered out of total bank, %)
+Readiness band progression (Building → Approaching → Ready → Exam-ready)
+Cold-start progress bar (e.g. 52 / 75 questions to unlock readiness)
+Trend over time (per-session line)
+These aren't gamification because the thing being visualised is real progress on real outcomes. The line between progress visualisation and gamification is whether the underlying metric is substantive (coverage is real) or contrived (streak count is not).
+
+Implication: when we design the dashboard layout, these existing signals must be visually prominent. Students should feel their progress without us having to invent reward mechanics.
+
+Consistency indicator v1, with strict rules
+A small informational element showing "active X of last 7 days." In v1. Reversed from the earlier "deferred" call — on reflection this is informational, not gamified, and useful for a migration audience studying alone over months without a cohort for accountability.
+
+Strict design rules — if we can't hold to these, skip:
+
+Never the headline. Tucked into the Recent Activity area or analytics page, not a hero card.
+Never colour-coded as good or bad. "Active 1 of 7 days" looks the same as "Active 7 of 7 days" — just data. No red dots, no green checkmarks, no congratulatory language.
+Never paired with a notification or reminder. If we ever add reminders, they're a separate feature with their own settings — not driven by this indicator.
+No streak / reset behaviour. Missing days don't reset anything. The indicator is a rolling 7-day count.
+19. Parked decisions
+Journey lives in /student/bank/ for now parked
+The Journey Tracker (7-phase migration aid: credential evaluation → English proficiency → state board → exam prep → ATT → licensure) logically belongs with the Programme product, not the Bank. But the Programme product isn't built yet, and a bank-only student needs somewhere to find it. Journey stays inside /student/bank/ as a sibling tool, not part of the Bank's core experience.
+
+Implication: we don't plan around Journey for the Bank's surfaces. The dashboard and the four pillars do not include it. Revisit when the Programme product is built.
+
+20. Deferred to v2+
+Real (calibrated) pass-probability number. Requires real NCLEX outcome data from past students. Likely year-2 territory.
+Spaced repetition / smart review. Different product promise — not what we're building in v1.
+Pass-rate leaderboards / peer comparison beyond percentile.
+Calendar / study planner. Closer to Journey territory.
+Bloom Level as a breakdown axis. Available on items but not surfaced to students in v1.
+Faculty / cohort dashboards. Institutional product.
+21. Related docs
+main.md — overall MyNclex product plan.
+bank.md — the authoring side: schema, JSONB shapes, scoring functions.
+payments-and-enrolment.md — how students get access to consume.
+curriculum-authoring-ux.md — programme structure that surrounds programme-side consumption.
+student-nav.md — student navigation shell consumption surfaces sit inside.
+MyNclex — Bank Consumption Plan · Living document
