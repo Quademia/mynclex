@@ -6,6 +6,119 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-06 (planning, late evening) — Question grid settled, runner doc rewritten
+
+Pure planning session, no code. Sam wanted the runner-design loop
+clean before handing off to Claude Design for a prototype: settle
+the structural decisions, pass them to design, get back a concrete
+runner shape, then implement (slice 4.1).
+
+The conversation walked the question grid from a TBD line in
+runner.html §15 ("jump-to-question grid for free-nav modes") into
+a fully-settled top-level section. Six dimensions, settled one at
+a time.
+
+### What got settled
+
+- **Where the grid shows.** Active session: free-nav modes only
+  (Untimed Learning, Untimed Test, Timed Free Nav). Sequential and
+  CAT have no grid during the run. Review: every finished attempt
+  regardless of mode. Untimed Learning is the awkward one — it's
+  free-nav AND per-Q submit, so individual cells flip pre→post-submit
+  independently. The §2.3.1 no-leakage rule already supports this
+  (per-Q submit returns the key for that one cell only); the only
+  architectural note that follows is that the `mode: answering | review`
+  prop is per-item in Untimed Learning, not per-attempt.
+
+- **Placement.** Right-edge sticky panel on desktop, flush to
+  viewport edge, ~220px wide, default-open. Push-mode normally,
+  overlay-mode when manually opened during a wrapper (case/trend).
+  Auto-collapses on wrapper entry, sticky-restores on wrapper exit.
+  Mobile: full-screen bottom sheet, default-collapsed, opened from
+  a topbar grid icon (not a hamburger — wrong semantics).
+
+- **Cell content.** Just the number, centred. No glyphs, no icons,
+  no question-type indicators. State encoded purely by colour.
+  Above the grid: filter toggles (`All / Marked / Unanswered / Wrong`)
+  for switching the visible subset. Filtering replaces the need for
+  corner glyphs.
+
+- **State palette — three orthogonal channels.** Fill encodes the
+  5 fill states (unanswered / answered / right / wrong / skipped),
+  border encodes marked, outer-ring encodes current. Composes
+  cleanly: a cell can be right + marked + current and still read.
+  Accessibility: palette pairs differ in brightness as well as hue
+  (light green vs dark red still reads as light vs dark for
+  red-green colour-blind users). Untimed Learning wrong cells are
+  locked (no resubmit) to preserve the learning loop and the
+  answer-changes analytics.
+
+- **Cell layout.** Square cells, ~36–40px desktop / ~44px mobile.
+  Fixed 5 columns desktop, responsive 5–7 mobile. Tight gaps. Case
+  grouping = subtle tinted band behind the 6 case-children, same
+  tint for every case. Trends not grouped (they scatter). Filter
+  toggles in a sticky header at top of the grid panel.
+
+- **Interaction model.** Single click/tap navigates. Filter
+  toggles single-select. v1 skips: hover tooltips, keyboard
+  shortcuts beyond a11y, long-press menus, search box, drag.
+  v1 keeps: tab-focusable cells, Enter/Space to activate,
+  screen-reader announcements (state-by-colour fails screen
+  readers — announcement is mandatory). Grid is navigation-only,
+  not an action surface — student can't mark / unmark / change
+  answer from the grid.
+
+- **Mobile.** Already implied by everything above. Locked the few
+  remaining specifics: full-screen sheet with sticky header carrying
+  filter toggles + close + Q-counter, three dismissal paths (cell tap,
+  close button, backdrop tap), breakpoint floor ~1024px.
+
+Pixel values, exact tones, animation treatments, and final visual
+language all defer to Claude Design.
+
+### Doc updates
+
+- **`docs/product-plan/bank-consumption-runner.html`** — new
+  §16 "Question grid — the navigation surface" inserted between
+  the (now-renamed) §15 Navigation rules and §17 Discard/abandon.
+  TOC and the five subsequent section headings renumbered (§16
+  Discard → §17, §17 Review → §18, §18 CAT → §19, §19 Open
+  decisions → §20, §20 Related docs → §21). The two inline
+  references inside the runner doc that pointed at the old numbers
+  also updated.
+- **§15 Navigation rules** rewritten — the stale Untimed Learning
+  "sequential, no skip" line is superseded (free nav with per-Q
+  submit, per the conversation), the per-mode table now matches
+  the §16 grid matrix, and the section now points at §16 as the
+  navigation surface for free-nav modes + every review.
+- **§18 Review state** points at §16 for navigation; the layout
+  TBD list is narrowed to what's actually still open.
+- **`docs/product-plan/bank-consumption.html`** parent — the
+  "Open for runner planning" subsection annotated to mark
+  navigation specifics as settled (link to runner.html §15 + §16).
+  Timer specifics, mode-switch rules, default-mode picks, and
+  Resume/Review surface details remain open.
+- **`docs/product-plan/bank-consumption-cat.html`** §14.2 — the
+  CAT review section's "list + detail layout" + "filtering on the
+  sidebar" bullets reworded to point at runner.html §16 (the grid)
+  and §16.3 (the four-toggle filter row). The earlier wording mentioned
+  "Right only / By category" filters that aren't in v1; clarified that
+  by-category drill-down lives on the analytics page, not in review
+  navigation. Two stale numeric backrefs to runner.html (§17 and §18)
+  bumped to §18 and §19 to match the renumbering.
+
+### What's queued for next
+
+Claude Design takes the runner brief and produces a prototype.
+That prototype lands here as the input to slice 4.1 — runner
+shell + MCQ vertical slice. Slice 4.1 in turn pulls slices 2.3
+(`nclex_submit_answer`) and the COMPLETED side of 2.4
+(`nclex_complete_attempt`) into the same build. The current
+`app/(app)/(focused)/session/[attempt_id]/` stub from slice 5.1a
+gets replaced wholesale.
+
+---
+
 ## Session — 2026-05-06 (build, evening) — Builder UI shipped end-to-end
 
 The big Phase D push. Builder went from a placeholder `<Placeholder/>`

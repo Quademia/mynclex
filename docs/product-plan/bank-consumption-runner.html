@@ -140,7 +140,7 @@
 
 <h1>MyNclex — Bank Consumption · Runner Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-05-04 (§1 Scope and §2 Architecture settled — route is <code>/session/[attempt_id]</code> in a <code>(focused)</code> route group (audience-neutral, not under <code>/student/</code>); mode (live vs review) derived from <code>nclex_attempts.status</code>; six-block component map locked with single-component-per-type using a <code>mode</code> prop; runner reads from 5 snapshot tables and writes only to <code>nclex_attempt_answers</code> + status/activity; no answer-key leakage to live-mode client (Pillar 2). Initial skeleton drafted same day).
+  Living planning document. Last updated: 2026-05-06 (§16 Question grid added — settled across six structural dimensions: where it shows by mode/state, placement (right-edge sticky panel desktop / full-screen bottom sheet mobile, auto-collapse on wrappers, sticky-restore on exit), cell content (just the number, no glyphs), three-channel state palette (fill / border / outer ring), cell layout (square cells, fixed 5-col desktop, subtle case-grouping band), interaction model (single-tap navigate, single-select filters, no hover/keyboard-shortcut/long-press in v1), mobile (full-screen sheet, grid-icon topbar control). Pixel values, exact tones, and final visual treatment defer to Claude Design. Inserted between former §15 and §16; §16–§20 renumbered to §17–§21. Earlier 2026-05-04: §1 Scope and §2 Architecture settled — route is <code>/session/[attempt_id]</code> in a <code>(focused)</code> route group (audience-neutral, not under <code>/student/</code>); mode (live vs review) derived from <code>nclex_attempts.status</code>; six-block component map locked with single-component-per-type using a <code>mode</code> prop; runner reads from 5 snapshot tables and writes only to <code>nclex_attempt_answers</code> + status/activity; no answer-key leakage to live-mode client (Pillar 2). Initial skeleton drafted same day.
 </div>
 
 <h2>Why this doc exists</h2>
@@ -181,11 +181,12 @@
     <li><a href="#s13">Answer-changes tracking</a></li>
     <li><a href="#s14">Mark-for-review</a></li>
     <li><a href="#s15">Navigation rules</a></li>
-    <li><a href="#s16">Discard / abandon</a></li>
-    <li><a href="#s17">Review state</a></li>
-    <li><a href="#s18">CAT-specific runner — backreference to <code>bank-consumption-cat.html</code></a></li>
-    <li><a href="#s19">Open decisions</a></li>
-    <li><a href="#s20">Related docs</a></li>
+    <li><a href="#s16">Question grid — the navigation surface</a></li>
+    <li><a href="#s17">Discard / abandon</a></li>
+    <li><a href="#s18">Review state</a></li>
+    <li><a href="#s19">CAT-specific runner — backreference to <code>bank-consumption-cat.html</code></a></li>
+    <li><a href="#s20">Open decisions</a></li>
+    <li><a href="#s21">Related docs</a></li>
   </ol>
 </div>
 
@@ -196,9 +197,9 @@
 </p>
 <p>Out of scope here:</p>
 <ul>
-  <li>CAT — separate runner flow (one item at a time, IRT-driven). Noted briefly in §18; full design lives with the CAT plan (parent §16).</li>
+  <li>CAT — separate runner flow (one item at a time, IRT-driven). Noted briefly in §19; full design lives with the CAT plan (parent §16).</li>
   <li>Builder, attempt creation, preflight — covered in <code>bank-consumption.html</code> §17 and <code>bank-consumption-attempt-creation.html</code>.</li>
-  <li>History page — separate planning task, but feeds off Review state (§17 here).</li>
+  <li>History page — separate planning task, but feeds off Review state (§18 here).</li>
   <li>Analytics — covered in parent doc §5–§14.</li>
   <li>RLS / build-time concerns.</li>
 </ul>
@@ -432,7 +433,7 @@ Runner mounts → reads from those 5 tables → renders Q1
   <li><strong>Per-question loop</strong> — render → student interacts → save-progress / submit → advance</li>
   <li><strong>End</strong> — student submits the quiz OR timer expires OR student abandons</li>
   <li><strong>Results screen</strong> — score + breakdown + transition to Review state</li>
-  <li><strong>Review</strong> — read-only post-completion view (§17)</li>
+  <li><strong>Review</strong> — read-only post-completion view (§18)</li>
 </ol>
 <p>
   Specific transitions, what data updates at each step, and which UI element is responsible — TBD.
@@ -585,26 +586,366 @@ Runner mounts → reads from those 5 tables → renders Q1
 </p>
 <p>TBD: marking UI placement, mark-icon design, behaviour across re-attempts.</p>
 
-<h2 id="s15">15. Navigation rules <span class="status skeleton">skeleton</span></h2>
+<h2 id="s15">15. Navigation rules <span class="status settled">settled (high level)</span></h2>
+<p>Per mode (settled 2026-05-06 alongside §16):</p>
+<table>
+  <thead>
+    <tr><th>Mode</th><th>Within-session navigation</th><th>Submit model</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Untimed Learning</td><td>Free — student can jump to any question, in any order</td><td>Per-Q submit; rationale shown immediately for the cell that was just submitted</td></tr>
+    <tr><td>Untimed Test</td><td>Free</td><td>Batched submit at the end</td></tr>
+    <tr><td>Timed Free Navigation</td><td>Free</td><td>Batched submit at the end</td></tr>
+    <tr><td>Timed Sequential</td><td>Strict forward — no going back</td><td>Batched submit at the end</td></tr>
+    <tr><td>CAT</td><td>Strict forward — IRT engine, one item at a time, no back nav</td><td>Per-Q internal scoring; verdict at the end</td></tr>
+  </tbody>
+</table>
 <p>
-  Per (mode, intent):
+  <strong>Untimed Learning was earlier sketched as "sequential, no skip" — that draft is superseded.</strong>
+  Free nav is the v1 design: a student can jump to Q47 from Q5, submit it, see its rationale, then jump back —
+  per-Q submit and free nav co-exist. The hybrid pre-submit / post-submit cell state this creates is detailed in
+  §16.1.1.
+</p>
+<p>
+  The <strong>question grid (§16) is the navigation surface for every free-nav mode plus the review state of
+  every finished attempt regardless of mode.</strong> Sequential modes (Timed Sequential and CAT) have no grid
+  during the run — only a current-Q-only progress indicator (per cat.html §16 for CAT, mirrored for Timed
+  Sequential).
+</p>
+<p>
+  Still TBD at this section level: prev/next button placement and behaviour for sequential modes (where the grid
+  is absent), end-of-quiz "Submit all" affordance for batched-submit modes, and the keyboard-navigation contract
+  beyond the a11y minimums named in §16.6.
+</p>
+
+<h2 id="s16">16. Question grid — the navigation surface <span class="status settled">settled</span></h2>
+<p>
+  The runner's primary navigation surface for any mode that allows free movement between questions, and the
+  default review surface for every finished session regardless of mode. Settled across six structural dimensions
+  (where it shows, placement, cell content, cell state palette, cell layout, interaction model, mobile variant)
+  on 2026-05-06. Pixel values, exact palette tones, and the final visual treatment defer to Claude Design.
+</p>
+
+<h3>16.1 Where the grid shows — by mode and state</h3>
+<p>
+  Two contexts: <strong>active session</strong> (student is taking the quiz) and <strong>review</strong> (student
+  is looking at a finished attempt). The grid has different visibility rules in each.
+</p>
+<table>
+  <thead>
+    <tr><th>Mode</th><th>Active session</th><th>Review</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Untimed Learning (STUDY)</td><td>✅ grid</td><td>✅ grid</td></tr>
+    <tr><td>Untimed Test</td><td>✅ grid</td><td>✅ grid</td></tr>
+    <tr><td>Timed Free Navigation</td><td>✅ grid</td><td>✅ grid</td></tr>
+    <tr><td>Timed Sequential</td><td>❌ no grid</td><td>✅ grid</td></tr>
+    <tr><td>CAT</td><td>❌ no grid</td><td>✅ grid</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>Rule:</strong> active session shows a grid wherever navigation is free; sequential and CAT have no grid
+  during the run. <strong>Every</strong> finished attempt shows a grid in review, regardless of which mode ran —
+  because the answer key is unsealed post-completion and the grid is the natural surface for "show me where I went
+  wrong" navigation.
+</p>
+
+<h4>16.1.1 Untimed Learning's hybrid state</h4>
+<p>
+  Other free-nav modes (Untimed Test, Timed Free Nav) keep every cell uniformly pre-submit until a single batched
+  submit grades everything in one event. Untimed Learning is different: each question gets <em>per-Q submit</em>
+  with immediate feedback. So at any point during an Untimed Learning session, some cells are
+  <em>already-graded post-submit</em> (rationale visible, key unsealed) and some are
+  <em>still-answerable pre-submit</em> (key sealed). Both populations co-exist in the same grid.
+</p>
+<p>Two architectural notes that follow:</p>
+<ol>
+  <li>The "no answer-key leakage" rule (§2.3.1) already accommodates this — there is an explicit "after per-Q submit (Untimed Learning only)" path that returns the key for that one Q only. Each cell's seal flips independently.</li>
+  <li>The <code>mode: "answering" | "review"</code> prop on per-type components is <strong>per-item</strong> in Untimed Learning, not per-attempt. §2.2.1 phrasing implies attempt-wide; Untimed Learning needs item-level granularity.</li>
+</ol>
+
+<h3>16.2 Placement on screen</h3>
+
+<h4>Desktop</h4>
+<ul>
+  <li><strong>Right-edge sticky panel</strong> — flush to the viewport edge (no gutter on the right). Visual continuity is the placement metaphor with the Builder's summary card, not the spacing — runner uses focused chrome (no sidebar nav), so it has the full viewport to work with.</li>
+  <li><strong>Default state: open.</strong> Question (or [Case panel | Question Area] when a wrapper is showing) reflows to fit the remaining width.</li>
+  <li><strong>Width when open: ~220px.</strong> Slim — cells are small numbered squares and don't need Builder's text-heavy 340px column.</li>
+  <li><strong>Toggle on the inner (left) edge</strong> of the panel collapses or reopens.</li>
+  <li><strong>Collapsed = thin handle.</strong> A vertical strip carrying just the reopen toggle. No ambient state strip — the chrome counter (Q 14 of 75) handles glanceable progress.</li>
+</ul>
+
+<h4>Mobile</h4>
+<ul>
+  <li><strong>Default state: collapsed.</strong> No grid card visible.</li>
+  <li><strong>Open shape: full-screen bottom sheet.</strong> Slides up from the bottom, dominates the viewport. The student is navigating — they don't need to see the current question while picking another. Half-sheet wastes pixels; popover can't fit 25–75 cells.</li>
+  <li><strong>Open control: a grid icon</strong> in the topbar (not a hamburger — that traditionally reads as "site nav menu" and would be ambiguous).</li>
+</ul>
+
+<h4>Wrapper interaction (cases + trends) — desktop only</h4>
+<p>
+  When a wrapper renders, the [Case panel | Question Area] split needs the room. The grid auto-collapses on
+  wrapper entry, sticky-restores on wrapper exit. Three modes follow:
 </p>
 <ul>
-  <li>Untimed Learning — sequential, no skip (per-Q submit forces order)</li>
-  <li>Untimed Test — TBD (probably free nav)</li>
-  <li>Timed Free Navigation — skip and return at will</li>
-  <li>Timed Sequential — strict sequential, no going back</li>
+  <li><strong>Push mode (normal)</strong> — grid open, runner area reflows to fit. Used when no wrapper is showing.</li>
+  <li><strong>Auto-collapsed mode (wrapper entry)</strong> — grid collapses to its handle. Sticky behaviour: when the wrapper ends, grid reopens to whatever the student had set (open or closed). The auto-collapse is a temporary accommodation, not a state change.</li>
+  <li><strong>Overlay mode (manual-open during a wrapper)</strong> — student can still open the grid during a wrapper. When they do, it floats <em>over</em> the right edge of the runner instead of pushing — preserves the [Case panel | Question Area] layout. Tapping a cell collapses the overlay back to the handle.</li>
 </ul>
-<p>TBD: jump-to-question grid for free-nav modes; visual indicator of answered vs skipped vs marked questions.</p>
+<p>On mobile the rule doesn't apply — grid is never auto-open on mobile, so there is nothing to auto-collapse.</p>
 
-<h2 id="s16">16. Discard / abandon <span class="status skeleton">skeleton</span></h2>
+<h3>16.3 Cell content</h3>
+<p>
+  <strong>Just the question number</strong>, centred. No glyphs, no icons, no question-type indicators, no time
+  readouts. All state is encoded via colour (§16.4 below).
+</p>
+<p>
+  <strong>Above the grid:</strong> a filter toggle row. Single-select toggles to switch the visible subset:
+</p>
+<ul>
+  <li><code>All</code> — default, every cell visible</li>
+  <li><code>Marked</code> — only flagged cells</li>
+  <li><code>Unanswered</code> — only cells with no answer committed</li>
+  <li><code>Wrong</code> — only cells the student got wrong (review state and Untimed Learning post-submit cells)</li>
+</ul>
+<p>
+  Filtering replaces the need for corner glyphs — students who care about a state filter it down rather than
+  hunting visually.
+</p>
+
+<h3>16.4 Cell state palette</h3>
+
+<h4>The state list</h4>
+<p><strong>Pre-submit fill states</strong> (key sealed):</p>
+<ul>
+  <li><strong>Unanswered</strong> — neutral, default</li>
+  <li><strong>Answered</strong> — student has committed an answer (will be graded at final submit)</li>
+</ul>
+
+<p><strong>Post-submit fill states</strong> (key unsealed):</p>
+<ul>
+  <li><strong>Right</strong> — answer matched the key</li>
+  <li><strong>Wrong</strong> — didn't match</li>
+  <li><strong>Skipped / null</strong> — locked in with no answer (timer expiry only — distinct from unanswered, because the student can no longer act on it)</li>
+</ul>
+
+<p><strong>Cross-cutting</strong> (apply on top of any fill state):</p>
+<ul>
+  <li><strong>Current</strong> — the cell the student is on right now. Exactly one at a time.</li>
+  <li><strong>Marked</strong> — flagged for review. Independent of every other state — a marked Q can be answered, unanswered, right, or wrong.</li>
+</ul>
+
+<h4>Three-channel encoding</h4>
+<p>
+  <code>Current + Marked + (any fill)</code> can all be true on the same cell. Background cannot carry both
+  <em>marked</em> and <em>fill state</em>. The encoding uses three orthogonal channels:
+</p>
+<table>
+  <thead>
+    <tr><th>Channel</th><th>Encodes</th><th>Behaviour</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Fill (background)</strong></td>
+      <td>The 5 fill states (unanswered / answered / right / wrong / skipped)</td>
+      <td>5 distinct tones</td>
+    </tr>
+    <tr>
+      <td><strong>Border</strong></td>
+      <td>Marked (yes/no)</td>
+      <td>Default thin border, or distinct accent colour when marked</td>
+    </tr>
+    <tr>
+      <td><strong>Outer ring / glow</strong></td>
+      <td>Current (yes/no)</td>
+      <td>Off by default. On for the current cell — a coloured outline drawn outside the cell, like a focus ring. Sits on top, doesn't fight fill or border.</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  Composes cleanly: a cell can be <em>right + marked + current</em> and still read distinctly (e.g. green fill +
+  amber border + blue outer ring).
+</p>
+
+<h4>Semantic direction <span class="status open">design picks tones</span></h4>
+<ul>
+  <li>Unanswered → neutral (off-white / pale grey)</li>
+  <li>Answered → soft fill (typically a muted blue or slate) — "you've done something here, but no judgement yet"</li>
+  <li>Right → green family</li>
+  <li>Wrong → red family</li>
+  <li>Skipped → amber / yellow family — distinct from grey unanswered, distinct from red wrong</li>
+</ul>
+
+<h4>Accessibility constraint</h4>
+<p>
+  Palette pairs must differ in <strong>brightness</strong> as well as hue. Right (green) and wrong (red) read
+  as the same grey to red-green colour-blind users if hue is all that distinguishes them — but a <em>light</em>
+  green vs <em>dark</em> red still reads as light vs dark. Cheap, no glyphs, doesn't break the lean look.
+</p>
+
+<h4>Re-submit lock in Untimed Learning</h4>
+<p>
+  An answered-wrong cell in Untimed Learning is <strong>locked at "wrong"</strong> — student cannot resubmit
+  after seeing the rationale. Resubmitting after seeing the key would corrupt both the learning loop (immediate
+  feedback turns into immediate correction) and the answer-changes analytics (parent §11). So there is no
+  "wrong but resubmittable" state to render.
+</p>
+
+<h3>16.5 Cell layout</h3>
+
+<h4>Shape and size</h4>
+<ul>
+  <li><strong>Square cells</strong> (UWorld / Archer / NCSBN convention; 1–2 digit numbers fit cleanly).</li>
+  <li><strong>Desktop:</strong> ~36–40px (fits ~5 across in the 220px sidebar).</li>
+  <li><strong>Mobile:</strong> ~44px (iOS tap-target floor).</li>
+</ul>
+
+<h4>Columns</h4>
+<ul>
+  <li><strong>Desktop: fixed 5 columns.</strong> Sidebar is fixed-width, so the column count is fixed too.</li>
+  <li><strong>Mobile: responsive 5–7 columns.</strong> Sheet is wider; column count adapts to screen width.</li>
+</ul>
+
+<h4>Spacing</h4>
+<p>
+  Tight gaps (~4–6px between cells, slightly larger between rows). Density helps the student see more at once.
+  The grid is a navigation tool, not a layout to admire.
+</p>
+
+<h4>Case grouping</h4>
+<p>
+  Six case-child cells are visually grouped by a <strong>subtle tinted band</strong> behind them — no labels,
+  no dividers. The band can be L-shaped if the case spans two rows (it always will at 5 cells per row).
+  All cases in a session use the <strong>same tint</strong> — answers "where does this case start/end"
+  without trying to answer "are these two cases the same?" (a question students don't ask).
+</p>
+<p>
+  Trend questions are <strong>not</strong> grouped — they scatter individually per attempt-creation §8.3. Each
+  trend question is just a standalone cell.
+</p>
+
+<h4>Filter header + scroll</h4>
+<p>
+  The filter toggle row (§16.3) lives in a sticky header at the top of the grid panel. Cells scroll under that
+  header. The panel itself stays sticky to the viewport edge (desktop) or full-sheet positioning (mobile).
+</p>
+
+<h3>16.6 Interaction model</h3>
+
+<h4>Primary — single click/tap navigates</h4>
+<ul>
+  <li><strong>Desktop sticky panel (push mode)</strong> — click a cell → cell becomes current (gets the outer ring), grid stays open.</li>
+  <li><strong>Desktop overlay mode (manual-opened during a wrapper)</strong> — click → navigate, AND the overlay collapses back to the thin handle. The student opened it for one navigation move; once moved, get it out of the way.</li>
+  <li><strong>Mobile sheet</strong> — tap → sheet closes → question loads. Always.</li>
+</ul>
+
+<h4>Filter toggles — single-select</h4>
+<p>
+  Tap <code>Marked</code> → only marked cells visible. Tap <code>All</code> to reset, or tap the same filter
+  again to deselect. Multi-select (e.g. "marked AND wrong") is a v2 ask. Single-select keeps the toggle row
+  clean.
+</p>
+
+<h4>v1 skips</h4>
+<ul>
+  <li>Hover tooltips (would re-introduce per-cell content we just stripped)</li>
+  <li>Keyboard shortcuts beyond a11y minimums (no number-to-jump, no arrow-key nav)</li>
+  <li>Long-press / right-click context menus</li>
+  <li>Search box ("jump to Q __")</li>
+  <li>Drag to reorder (n/a — order is fixed by the snapshot)</li>
+</ul>
+
+<h4>v1 keeps — accessibility minimums</h4>
+<ul>
+  <li>Cells are tab-focusable; tab moves through cells in order</li>
+  <li>Enter / Space activates a focused cell</li>
+  <li>Filter toggles are keyboard-reachable</li>
+  <li>Each cell announces its state to screen readers (e.g. "Question 47, answered, marked"). State expressed by colour alone fails screen readers — the announcement is required.</li>
+</ul>
+
+<h4>No disabled cells in v1</h4>
+<p>
+  All four grid-eligible modes (Untimed Learning, Untimed Test, Timed Free Nav, plus Review) allow free
+  navigation to any question. Nothing is locked or greyed out. The "can't go forward in Untimed Learning until
+  you submit Q5" flavour was rejected at §16.1 — Untimed Learning is fully free-nav.
+</p>
+
+<h4>Navigation-only — not action</h4>
+<p>
+  The grid is a navigation tool, not an action tool. The student cannot mark, unmark, or change an answer from
+  the grid — only navigate. This rule is what keeps cells uniformly simple.
+</p>
+
+<h3>16.7 Mobile variant</h3>
+<p>Most of the mobile shape is established by the dimensions above. Pulling it together, plus the few mobile-specific decisions:</p>
+
+<h4>Open control</h4>
+<p>
+  Topbar grid icon (e.g. <code>⊞</code> / 9-dot square). Not a hamburger — that traditionally reads as "site
+  nav menu." Final visual is Claude Design's call but the semantic should be "question grid," not "menu."
+</p>
+
+<h4>Sheet dismissal</h4>
+<ul>
+  <li>Tap a cell (primary intent — navigation)</li>
+  <li>Tap the close control / chevron-down at the top of the sheet</li>
+  <li>Tap the backdrop above the sheet</li>
+  <li>(Optional, design's call) Swipe-down gesture — not v1-required</li>
+</ul>
+
+<h4>Sheet shape</h4>
+<p>
+  Full-screen overlay. Covers the topbar entirely. Runner uses focused chrome (already minimal — no sidebar
+  nav, no product switcher), so losing the topbar momentarily during a navigation interaction is fine. The
+  student is task-focused on picking a cell.
+</p>
+
+<h4>Sheet header (sticky at top of sheet)</h4>
+<ul>
+  <li>Filter toggle row (<code>All / Marked / Unanswered / Wrong</code>)</li>
+  <li>Close control on the right</li>
+  <li>"Q 14 of 75" counter on the left to anchor the student</li>
+</ul>
+
+<h4>In-wrapper open behaviour</h4>
+<p>
+  Student on a case-child taps the grid icon → full-screen sheet covers case panel + question + chrome →
+  student taps a cell → sheet closes → returns to runner. If the destination is another child of the same case,
+  the case panel stays mounted; if outside the case, it unmounts. Same outcome as desktop, just with a sheet
+  instead of an overlay.
+</p>
+
+<h4>Breakpoint</h4>
+<p>
+  The sticky sidebar needs ~220px + room for the question + room for the case panel when one is showing.
+  Practical floor: <strong>~1024px</strong> (laptop-class). Below → bottom-sheet. Tablets in portrait probably
+  also bottom-sheet; tablets in landscape might support sidebar. Exact breakpoint is Claude Design's call.
+</p>
+
+<h3>16.8 Open for Claude Design <span class="status open">open</span></h3>
+<p>Pixel values, exact tones, and the final visual treatment of:</p>
+<ul>
+  <li>Cell size, gap sizes, sidebar width, breakpoint pixel</li>
+  <li>Exact palette tones for the 5 fill states + marked border + current ring</li>
+  <li>Whether a high-contrast / colour-blind-friendly palette is a v1 setting in profile or a v2 polish</li>
+  <li>Mobile open icon final visual (grid icon options)</li>
+  <li>Whether the swipe-down dismissal gesture exists on the mobile sheet</li>
+  <li>Animation / transition treatments for: collapse-expand on desktop, sheet open-close on mobile, auto-collapse on wrapper, cell state transitions (e.g. answered → right when key unseals)</li>
+</ul>
+<p>
+  Concept-not-source applies (per the Builder push principle): adopt our locked structural decisions, use our
+  own DB schema state names (<code>UNTIMED_LEARNING</code>, <code>UNTIMED_TEST</code>, etc.), pick the visual
+  language that fits.
+</p>
+
+<h2 id="s17">17. Discard / abandon <span class="status skeleton">skeleton</span></h2>
 <p>
   Student-initiated termination. Per attempt-creation §10.2, manual discard flips status to ABANDONED.
   Mostly relevant for STUDY intent (where Resume otherwise keeps the row alive indefinitely).
 </p>
 <p>TBD: discard UI placement, confirmation pattern, behaviour for partially-answered attempts.</p>
 
-<h2 id="s17">17. Review state <span class="status skeleton">skeleton</span></h2>
+<h2 id="s18">18. Review state <span class="status skeleton">skeleton</span></h2>
 <p>
   Read-only post-completion view of an attempt. Per parent §15, Review is a session state available for every
   finished session regardless of source/mode. Shows the student's answers alongside correct answers and rationales,
@@ -614,11 +955,20 @@ Runner mounts → reads from those 5 tables → renders Q1
   Entered from: results screen (immediately after completion), History page (for older attempts).
 </p>
 <p>
-  TBD: layout, navigation between questions in Review, whether timing/answer-change data is shown, exporting/
-  printing.
+  <strong>Navigation in Review is the question grid (§16).</strong> Every finished attempt — including those
+  whose run had no grid (Timed Sequential, CAT) — surfaces the grid in review, because the answer key is
+  unsealed post-completion and the grid is the natural surface for "show me where I went wrong" navigation.
+  Cells carry the post-submit fill states (right / wrong / skipped) and the marked / current overlays per §16.4.
+  Filter toggles (`All / Marked / Wrong`) per §16.3 apply. The Untimed Learning hybrid case (§16.1.1) reduces
+  to the standard post-submit palette in review — every cell's seal is unsealed.
+</p>
+<p>
+  Still TBD at this section level: layout of the review page (grid placement is settled by §16; rationale panel
+  positioning is not), whether timing / answer-change data from parent §11 + §13 surfaces in review, exporting
+  or printing, the transition from the results screen into review.
 </p>
 
-<h2 id="s18">18. CAT-specific runner <span class="status settled">backreference</span></h2>
+<h2 id="s19">19. CAT-specific runner <span class="status settled">backreference</span></h2>
 <p>
   CAT runner has a fundamentally different shape: items arrive one at a time from the IRT engine; no upfront
   question list; preflight + termination both run differently.
@@ -635,13 +985,13 @@ Runner mounts → reads from those 5 tables → renders Q1
   answer-changes tracking — all reused unchanged from this doc inside the CAT runner.
 </p>
 
-<h2 id="s19">19. Open decisions</h2>
+<h2 id="s20">20. Open decisions</h2>
 <p>
   Will accumulate as planning conversations identify them. For now, the entire runner doc is largely
   <span class="status skeleton">skeleton</span> — open decisions emerge per section as we work through them.
 </p>
 
-<h2 id="s20">20. Related docs</h2>
+<h2 id="s21">21. Related docs</h2>
 <ul>
   <li><code>bank-consumption.html</code> — parent plan; this doc's behaviour rules are scoped by §15 (Source/Mode/Session State) and feed §17 (Builder).</li>
   <li><code>bank-consumption-attempt-creation.html</code> — sibling sub-plan; runner reads from the snapshot tables it defines.</li>
