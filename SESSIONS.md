@@ -6,6 +6,121 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-06 (build, later x2) — Slice 2.2 attempt-creation RPCs
+
+The big slice in Phase A. Five PL/pgSQL functions across two migrations,
+turning the slice 2.1 attempt tables into a working create-attempt path.
+Bank-only for v1.
+
+### What shipped
+
+- **2.2a — count + create-attempt** (commit pending). Migration
+  `db/migrations/20260506150000_slice_2_2a_count_and_create_attempt.sql`.
+  - `_nclex_eligible_unit_pool(student_id, filters)` — internal SQL
+    helper. Returns the (unit_type, unit_id) pairs that pass the 8-axis
+    content filter + the pool-history rollup (with case-rollup rules
+    settled in this session). Single source of truth — both count and
+    create call it, so the live count chip and the actual quiz can't
+    disagree (planning §2). Inline subqueries against
+    `nclex_attempt_answers` + `nclex_question_marks` for v1; replaced
+    with the 7.3 materialised view later.
+  - `nclex_count_eligible_items(filters) → jsonb` — expands cases into
+    their 6 children for the breakdown so the "Roughly: 14 MCQ · 6 SATA
+    ..." line reflects what the student will actually see. Returns
+    `{ total: int, by_question_type: { ... } }`.
+  - `nclex_create_attempt(filters, mode, intent, requested_count, source)
+    → uuid` — validates, picks units random target-with-drift ±3,
+    expands cases into 6-child sequences, snapshots into the 4 attempt
+    tables, returns attempt_id. Single transaction.
+- **2.2b — lifecycle pair** (commit pending). Migration
+  `db/migrations/20260506160000_slice_2_2b_attempt_lifecycle_rpcs.sql`.
+  - `nclex_mark_attempt_started(attempt_id) → timestamptz` — sets
+    `started_at = NOW()` once. Idempotent (re-call returns existing
+    timestamp unchanged). Anchors timer to preflight Start.
+  - `nclex_discard_attempt(attempt_id) → void` — flips status to
+    ABANDONED, hard-deletes snapshot child rows per planning §6.3.1
+    ("discard is hard-delete, no forensics"). Idempotent for client
+    retries (no-op if already terminated).
+
+### Design decisions locked
+
+1. **Cases sit out when Question Type filter is active.** The other 7
+   content filter axes apply at the case-classification level. Question
+   Type filter would require either ambushing students with mixed-type
+   case blocks, or excluding nearly all cases — neither is right.
+2. **Pool filter case rollups.** Unseen = no child seen; Seen = any
+   child seen; Correct = all 6 most-recent right; Incorrect = any
+   most-recent wrong (per parent §10); Marked = case-target mark OR any
+   child-target mark.
+3. **Pool filter combination.** History chips OR each other; if Marked
+   is on, AND with the history result. Marked alone with no history
+   chips = "anything I marked." Reconciles the two conflicting examples
+   in parent §10.
+4. **Pool filter v1 implementation.** Inline subqueries — correct, slow
+   on populated DB. Replaced by the 7.3 materialised view later. Single
+   `LEFT JOIN last_ans` and the marks lookup; the JOIN-against-MV swap
+   is a one-line change in two places.
+5. **Selection algorithm — target-with-drift ±3.** Random shuffle the
+   pool; for each unit, exit if `running >= target`, skip if `running +
+   slot_cost > target + 3`, else take. After natural loop end, error if
+   `running < target - 3` (defensive — pool sanity check at step 2 makes
+   this unreachable in normal cases). Slot cost 1 for QUESTION, 6 for
+   CASE.
+6. **Bank-only for v1.** Tutor items are not in the candidate pool until
+   programme enrolment lands. The helper's `item_source = 'BANK'` filter
+   is the single switch.
+7. **All RPCs SECURITY DEFINER, search path locked.** Public RPCs check
+   `auth.uid() IS NOT NULL` first. Helper trusts caller (only called
+   from sibling SECURITY DEFINER functions). Ownership check on
+   lifecycle RPCs against `auth.uid()` with SUPER_ADMIN bypass.
+
+### Bug squashed mid-implementation
+
+- **Initial total in count was wrong.** Used `COUNT(*)` over the
+  grouped-by-type subquery → returned the number of distinct types
+  (6) instead of summing across types (14). Fixed to `SUM(n)`.
+- **Selection exited too early.** Initial `EXIT` condition was
+  `running >= target - 3`, which let a request for 5 questions
+  finish at 2 (the lower-tolerance bound) when the pool had 14
+  available. Reworked: exit at `running >= target`, fall through to
+  natural loop end + a defensive `< target - 3` check.
+
+### Permission hardening
+
+- Supabase grants EXECUTE to `anon` and `authenticated` by default on
+  every public-schema function. `REVOKE FROM PUBLIC` doesn't undo
+  those direct grants. Explicitly revoked from `anon` on all 4 public
+  RPCs and from both `anon` + `authenticated` on `_nclex_eligible_unit_pool`
+  (it accepts an arbitrary student_id parameter — direct access would
+  let any signed-in user enumerate any other student's pool). Public
+  RPCs reach the helper via SECURITY DEFINER context (postgres role)
+  so the revoke doesn't block them. Advisor confirmed clean on the new
+  functions.
+
+### Verification
+
+- Helper returns expected pool counts: empty filters = 14,
+  `question_type=[MCQ,SATA]` = 8, `difficulty=[Easy]` = 3, all matching
+  the underlying bank state (70 bank items but only 14 standalone +
+  builder-visible + published; 0 cases qualify because no case has
+  all 6 children populated).
+- Three create-attempt smoke tests: `req=5 → got=5`, `req=10 → got=10`,
+  `req=6 with QType=MCQ filter → got=6 all-MCQ`. Counts hit target
+  exactly (slot_cost=1 only — no cases in pool).
+- mark_attempt_started returns the same timestamp on first and second
+  call (idempotent).
+- discard_attempt flips status to ABANDONED, sets ended_at, removes
+  all snapshot child rows.
+
+### Queued for next session
+
+- **Slice 2.3** — `nclex_submit_answer` (calls the per-type scoring
+  functions already shipped in `lib/scoring/` from slice 2.5),
+  `nclex_save_progress` (STUDY drafts). The first slice that actually
+  calls `scoreAttempt` from slice 2.5a — closes the loop on scoring.
+
+---
+
 ## Session — 2026-05-06 (build, later) — Slice 2.1.5 mark-for-review table
 
 Small adjacent slice on top of 2.1's attempt tables — `nclex_question_marks`
