@@ -44,6 +44,7 @@ import {
   createAttemptAction,
 } from '@/lib/bank/builder/actions';
 import type { CountResult } from '@/lib/bank/builder/types';
+import type { FilterOptions } from '@/lib/bank/builder/get-filter-options';
 import { Axis } from './axis';
 import { ModeCard } from './mode-card';
 import { SummaryPanel } from './summary-panel';
@@ -55,7 +56,11 @@ function toggle<T>(s: Set<T>, v: T): Set<T> {
   return n;
 }
 
-export function PracticeBuilder() {
+interface PracticeBuilderProps {
+  filterOptions: FilterOptions;
+}
+
+export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
   const router = useRouter();
 
   // ─── State ────────────────────────────────────────────────────────
@@ -66,10 +71,12 @@ export function PracticeBuilder() {
   const [body,    setBody]    = useState<Set<string>>(new Set());
   const [qtype,   setQtype]   = useState<Set<string>>(new Set());
   const [diff,    setDiff]    = useState<Set<string>>(new Set());
-  const [tags,    setTags]    = useState<Set<string>>(new Set());
-  const [topic]               = useState<Set<string>>(new Set());      // noop in 5.1a
-  const [subtopic]            = useState<Set<string>>(new Set());      // noop in 5.1a
-  const [topicQuery]          = useState<string>('');                  // noop in 5.1a
+  const [tags,     setTags]     = useState<Set<string>>(new Set());
+  const [topic,    setTopic]    = useState<Set<string>>(new Set());
+  const [subtopic, setSubtopic] = useState<Set<string>>(new Set());
+  // topicQuery is currently unused — placeholder for the search-as-you-
+  // type chip-cloud variant (deferred; plain checkbox grid for now).
+  const [topicQuery] = useState<string>('');
 
   const [intent, setIntent] = useState<Intent>('STUDY');
   const [mode,   setMode]   = useState<ModeId>('UNTIMED_LEARNING');
@@ -242,7 +249,7 @@ export function PracticeBuilder() {
 
   const anyContentSelected =
     cnc.size + subcat.size + subject.size + body.size +
-    qtype.size + diff.size + tags.size > 0;
+    qtype.size + diff.size + tags.size + topic.size + subtopic.size > 0;
 
   return (
     <div className="bk-builder">
@@ -321,6 +328,7 @@ export function PracticeBuilder() {
                   onClick={() => {
                     setCnc(new Set()); setSubcat(new Set()); setSubject(new Set()); setBody(new Set());
                     setQtype(new Set()); setDiff(new Set()); setTags(new Set());
+                    setTopic(new Set()); setSubtopic(new Set());
                   }}
                 >
                   Clear all filters
@@ -388,15 +396,46 @@ export function PracticeBuilder() {
                     onToggle={(id) => setDiff((s) => toggle(s, id))}
                     onCheckAll={(on) => setDiff(new Set(on ? DIFFICULTY_VALUES : []))}
                   />
-                  {/* Tags + Topic/Subtopic deferred to 5.1d — placeholder note. */}
-                  <div className="bk-axis">
-                    <div className="bk-axis-head">
-                      <div className="bk-axis-head-l">
-                        <span className="bk-axis-name">Tags · Topic / Subtopic</span>
-                        <span className="bk-axis-meta">coming next</span>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Tags — curator-driven; default closed since the list
+                      can grow long once the bank fills up. */}
+                  {filterOptions.tags.length > 0 && (
+                    <Axis
+                      name="Tags"
+                      items={filterOptions.tags.map((v) => ({ id: v, label: v }))}
+                      selected={tags}
+                      onToggle={(id) => setTags((s) => toggle(s, id))}
+                      onCheckAll={(on) =>
+                        setTags(new Set(on ? filterOptions.tags : []))
+                      }
+                      defaultOpen={false}
+                    />
+                  )}
+                  {/* Topic and Subtopic — independent axes (no enforced
+                      parent-child link in the schema). Default closed. */}
+                  {filterOptions.topics.length > 0 && (
+                    <Axis
+                      name="Topic"
+                      items={filterOptions.topics.map((v) => ({ id: v, label: v }))}
+                      selected={topic}
+                      onToggle={(id) => setTopic((s) => toggle(s, id))}
+                      onCheckAll={(on) =>
+                        setTopic(new Set(on ? filterOptions.topics : []))
+                      }
+                      defaultOpen={false}
+                    />
+                  )}
+                  {filterOptions.subtopics.length > 0 && (
+                    <Axis
+                      name="Subtopic"
+                      items={filterOptions.subtopics.map((v) => ({ id: v, label: v }))}
+                      selected={subtopic}
+                      onToggle={(id) => setSubtopic((s) => toggle(s, id))}
+                      onCheckAll={(on) =>
+                        setSubtopic(new Set(on ? filterOptions.subtopics : []))
+                      }
+                      defaultOpen={false}
+                    />
+                  )}
                 </>
               )}
             </div>
