@@ -1,14 +1,22 @@
 // mynclex/lib/bank/atoms/housekeeping-fields.tsx
 //
-// Marks / question-ref / batch-id + visibility checkboxes. Mode-aware:
-// - 'standalone' shows all four checkboxes.
-// - 'wrapper-child' hides is_published + is_builder_visible (the
-//   wrapper centrally manages those for its children).
+// Question-ref / batch-id + visibility checkboxes + a read-only marks
+// readout. Mode-aware:
+//   - 'standalone' shows all four checkboxes.
+//   - 'wrapper-child' hides is_published + is_builder_visible (the
+//     wrapper centrally manages those for its children).
+//
+// Marks are system-managed per bank-marks-and-scoring.html §5 — the
+// editor computes them from the answer key on save. The curator sees
+// the persisted value here as a read-only readout (no editable input).
+
+import type { QuestionType } from '@/lib/bank/classifications';
 
 export type HousekeepingMode = 'standalone' | 'wrapper-child';
 
 interface HousekeepingFieldsProps {
   mode: HousekeepingMode;
+  questionType: QuestionType;
   defaults: {
     marks: number;
     question_ref: string;
@@ -20,21 +28,18 @@ interface HousekeepingFieldsProps {
   };
 }
 
-export function HousekeepingFields({ mode, defaults }: HousekeepingFieldsProps) {
+export function HousekeepingFields({ mode, questionType, defaults }: HousekeepingFieldsProps) {
   return (
     <>
       <div className="auth-grid-3">
         <div className="auth-fg">
-          <label htmlFor="marks" className="auth-label">Marks</label>
-          <input
-            id="marks"
-            name="marks"
-            type="number"
-            min={0.5}
-            step={0.5}
-            defaultValue={defaults.marks}
-            className="auth-input"
-          />
+          <label className="auth-label">Max possible score</label>
+          <div className="auth-readonly-value">
+            {formatMarksLabel(questionType, defaults.marks)}
+          </div>
+          <p className="auth-hint">
+            Computed automatically from the answer key. Updates on save.
+          </p>
         </div>
         <div className="auth-fg">
           <label htmlFor="qref" className="auth-label">Question ref</label>
@@ -102,4 +107,29 @@ export function HousekeepingFields({ mode, defaults }: HousekeepingFieldsProps) 
       </div>
     </>
   );
+}
+
+// Per-type display string for the marks readout. Suffix describes the
+// rule (e.g. "count of correct options ticked") rather than asserting
+// a specific count, so it stays accurate on never-saved questions
+// where the persisted value is still the column default.
+function formatMarksLabel(questionType: QuestionType, marks: number): string {
+  switch (questionType) {
+    case 'MCQ':
+    case 'TF':
+      return `Max: ${marks}`;
+    case 'SATA':
+    case 'SELECT_N':
+      return `Max: ${marks} — count of correct options ticked`;
+    case 'MATRIX':
+      return `Max: ${marks} — count of rows`;
+    case 'HIGHLIGHT':
+      return `Max: ${marks} — count of correct chunks`;
+    case 'CLOZE':
+      return `Max: ${marks} — count of blanks`;
+    case 'DRAG_DROP':
+      return `Max: ${marks} — count of slots`;
+    case 'BOWTIE':
+      return `Max: 5 — fixed (2 + 1 + 2)`;
+  }
 }

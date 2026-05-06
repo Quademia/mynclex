@@ -784,6 +784,7 @@ export function BowtieEditorBody({
             <TabPanel id="housekeeping">
               <HousekeepingFields
                 mode={initial.mode}
+                questionType="BOWTIE"
                 defaults={{
                   marks: initial.marks,
                   question_ref: initial.question_ref,

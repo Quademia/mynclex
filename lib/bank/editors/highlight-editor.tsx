@@ -765,6 +765,7 @@ export function HighlightEditorBody({
             <TabPanel id="housekeeping">
               <HousekeepingFields
                 mode={initial.mode}
+                questionType="HIGHLIGHT"
                 defaults={{
                   marks: initial.marks,
                   question_ref: initial.question_ref,

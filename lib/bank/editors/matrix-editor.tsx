@@ -561,6 +561,7 @@ export function MatrixEditorBody({
             <TabPanel id="housekeeping">
               <HousekeepingFields
                 mode={initial.mode}
+                questionType="MATRIX"
                 defaults={{
                   marks: initial.marks,
                   question_ref: initial.question_ref,

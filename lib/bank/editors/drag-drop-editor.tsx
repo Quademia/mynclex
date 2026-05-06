@@ -1296,6 +1296,7 @@ export function DragDropEditorBody({
             <TabPanel id="housekeeping">
               <HousekeepingFields
                 mode={initial.mode}
+                questionType="DRAG_DROP"
                 defaults={{
                   marks: initial.marks,
                   question_ref: initial.question_ref,

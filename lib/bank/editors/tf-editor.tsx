@@ -318,6 +318,7 @@ export function TfEditorBody({
             <TabPanel id="housekeeping">
               <HousekeepingFields
                 mode={initial.mode}
+                questionType="TF"
                 defaults={{
                   marks: initial.marks,
                   question_ref: initial.question_ref,

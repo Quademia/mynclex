@@ -407,6 +407,7 @@ export function McqEditorBody({
             <TabPanel id="housekeeping">
               <HousekeepingFields
                 mode={initial.mode}
+                questionType="MCQ"
                 defaults={{
                   marks: initial.marks,
                   question_ref: initial.question_ref,

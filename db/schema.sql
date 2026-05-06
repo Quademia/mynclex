@@ -93,6 +93,10 @@ CREATE TABLE nclex_bank_items (
   is_published              BOOLEAN NOT NULL DEFAULT FALSE,
 
   -- Housekeeping
+  -- marks is system-managed — derived from the answer key by the editor
+  -- save handler (lib/scoring/computeMarksFromKey). The DEFAULT 1 is a
+  -- safety net for rows that bypass the editor; in practice every save
+  -- writes a recomputed value. See bank-marks-and-scoring.html §5.
   marks                     NUMERIC NOT NULL DEFAULT 1,
   shuffle_options           BOOLEAN NOT NULL DEFAULT TRUE,
   question_ref              TEXT,
@@ -225,6 +229,9 @@ CREATE TABLE nclex_tutor_questions (
   is_builder_visible        BOOLEAN NOT NULL DEFAULT TRUE,
   is_published              BOOLEAN NOT NULL DEFAULT FALSE,
 
+  -- marks is system-managed — derived from the answer key by the editor
+  -- save handler (lib/scoring/computeMarksFromKey). See nclex_bank_items
+  -- above for the full note.
   marks                     NUMERIC NOT NULL DEFAULT 1,
   shuffle_options           BOOLEAN NOT NULL DEFAULT TRUE,
   question_ref              TEXT,
