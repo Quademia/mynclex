@@ -42,8 +42,9 @@ import { buildFilterPayload } from '@/lib/bank/builder/build-filter-payload';
 import {
   countEligibleAction,
   createAttemptAction,
+  breakdownAction,
 } from '@/lib/bank/builder/actions';
-import type { CountResult } from '@/lib/bank/builder/types';
+import type { BreakdownResult, CountResult } from '@/lib/bank/builder/types';
 import type { FilterOptions } from '@/lib/bank/builder/get-filter-options';
 import { Axis } from './axis';
 import { ModeCard } from './mode-card';
@@ -85,6 +86,7 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
   // Live-count + start state
   const [countResult, setCountResult] = useState<CountResult | null>(null);
   const [countLoading, setCountLoading] = useState(false);
+  const [breakdown, setBreakdown] = useState<BreakdownResult | null>(null);
   const [error,    setError]    = useState<string | null>(null);
   const [starting, startTransition] = useTransition();
 
@@ -107,21 +109,35 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
   useEffect(() => {
     if (isCAT) {
       // Show a static count tile in CAT mode — bank size is fixed-ish
-      // and not filterable. We don't actually need a number here.
+      // and not filterable. Breakdown also irrelevant; clear it so
+      // axis row counts disappear when the form collapses.
       setCountResult({ total: 0, by_question_type: {} });
+      setBreakdown(null);
       setCountLoading(false);
       return;
     }
     const myReq = ++reqIdRef.current;
     setCountLoading(true);
     const t = window.setTimeout(async () => {
-      const res = await countEligibleAction(filters);
-      // Drop stale results — only the most-recent request wins.
+      // Fire count + breakdown in parallel — same filter set, no point
+      // serialising. Ignore results from any superseded request.
+      const [cnt, brk] = await Promise.all([
+        countEligibleAction(filters),
+        breakdownAction(filters),
+      ]);
       if (myReq !== reqIdRef.current) return;
-      if (res.ok) {
-        setCountResult(res.data);
+      if (cnt.ok) {
+        setCountResult(cnt.data);
       } else {
-        setError(res.error);
+        setError(cnt.error);
+      }
+      if (brk.ok) {
+        setBreakdown(brk.data);
+      } else {
+        // Don't surface breakdown errors as toasts — degrade silently
+        // (rows just don't show counts). Keeps the page usable if the
+        // breakdown RPC is slow or temporarily failing.
+        setBreakdown(null);
       }
       setCountLoading(false);
     }, 150);
@@ -197,9 +213,12 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
     ];
   }, [isCAT, pools, subject, diff, intent, mode]);
 
-  // ─── Breakdown preview ───────────────────────────────────────────
+  // ─── Breakdown preview node ───────────────────────────────────────
   // Use the by_question_type the backend returned. Top 5 by count.
-  const breakdown = useMemo(() => {
+  // Note the variable name — `breakdownPreview` is the JSX node for
+  // the summary panel; `breakdown` (above) is the BreakdownResult
+  // object with per-axis row counts.
+  const breakdownPreview = useMemo(() => {
     if (isCAT || !countResult) return null;
     const entries = Object.entries(countResult.by_question_type)
       .sort((a, b) => b[1] - a[1])
@@ -285,6 +304,7 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
                 <div className="bk-pools">
                   {POOLS.map((p) => {
                     const active = pools.has(p.id);
+                    const cnt = breakdown?.by_pool?.[p.id];
                     return (
                       <button
                         key={p.id}
@@ -302,7 +322,12 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
                           </span>
                           {p.label}
                         </div>
-                        <div className="bk-pool-sub">{p.sub}</div>
+                        <div className="bk-pool-sub">
+                          {p.sub}
+                          {cnt !== undefined && (
+                            <> · <strong style={{ color: 'var(--text-muted)', fontWeight: 600 }}>{cnt.toLocaleString()}</strong> available</>
+                          )}
+                        </div>
                       </button>
                     );
                   })}
@@ -349,6 +374,7 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
                     selected={cnc}
                     onToggle={(id) => setCnc((s) => toggle(s, id))}
                     onCheckAll={(on) => setCnc(new Set(on ? CNC_VALUES : []))}
+                    counts={breakdown?.by_cnc}
                   />
                   <Axis
                     name="Subcategory"
@@ -361,6 +387,7 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
                     linkedTo={(id) => subcatAvailableFor(id, cnc)}
                     hint={cnc.size > 0 ? 'linked to Client Needs' : undefined}
                     indent
+                    counts={breakdown?.by_subcat}
                   />
                   <Axis
                     name="Subject"
@@ -368,6 +395,7 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
                     selected={subject}
                     onToggle={(id) => setSubject((s) => toggle(s, id))}
                     onCheckAll={(on) => setSubject(new Set(on ? SUBJECT_VALUES : []))}
+                    counts={breakdown?.by_subject}
                   />
                   <Axis
                     name="Body System"
@@ -380,6 +408,7 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
                     linkedTo={(id) => bodyAvailableFor(id, subject)}
                     hint={subject.size > 0 ? 'linked to Subject' : undefined}
                     indent
+                    counts={breakdown?.by_body}
                   />
                   <Axis
                     name="Question Type"
@@ -388,6 +417,7 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
                     onToggle={(id) => setQtype((s) => toggle(s, id))}
                     onCheckAll={(on) => setQtype(new Set(on ? QTYPE_OPTIONS.map((q) => q.id) : []))}
                     defaultOpen={false}
+                    counts={breakdown?.by_qtype}
                   />
                   <Axis
                     name="Difficulty"
@@ -395,6 +425,7 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
                     selected={diff}
                     onToggle={(id) => setDiff((s) => toggle(s, id))}
                     onCheckAll={(on) => setDiff(new Set(on ? DIFFICULTY_VALUES : []))}
+                    counts={breakdown?.by_diff}
                   />
                   {/* Tags — curator-driven; default closed since the list
                       can grow long once the bank fills up. */}
@@ -408,6 +439,7 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
                         setTags(new Set(on ? filterOptions.tags : []))
                       }
                       defaultOpen={false}
+                      counts={breakdown?.by_tag}
                     />
                   )}
                   {/* Topic and Subtopic — independent axes (no enforced
@@ -422,6 +454,7 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
                         setTopic(new Set(on ? filterOptions.topics : []))
                       }
                       defaultOpen={false}
+                      counts={breakdown?.by_topic}
                     />
                   )}
                   {filterOptions.subtopics.length > 0 && (
@@ -434,6 +467,7 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
                         setSubtopic(new Set(on ? filterOptions.subtopics : []))
                       }
                       defaultOpen={false}
+                      counts={breakdown?.by_subtopic}
                     />
                   )}
                 </>
@@ -533,7 +567,7 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
           modeLabel={modeLabel}
           isCAT={isCAT}
           recap={recap}
-          breakdown={breakdown}
+          breakdown={breakdownPreview}
           capped={capped}
           disabledReason={disabledReason}
           starting={starting}

@@ -31,6 +31,14 @@ interface AxisProps {
   defaultOpen?: boolean;
   /** Indented child axis (Subcategory under CNC, Body System under Subject). */
   indent?: boolean;
+  /**
+   * Per-row counts from nclex_filter_breakdown. If provided, each row
+   * label gets a faint right-aligned count appended ("· 470"). Counts
+   * are "what you'd get if you ticked this value, holding other
+   * filters constant" — see the breakdown migration for semantics.
+   * Pass `undefined` while the breakdown is loading.
+   */
+  counts?: Record<string, number>;
 }
 
 export function Axis({
@@ -43,6 +51,7 @@ export function Axis({
   hint,
   defaultOpen = true,
   indent = false,
+  counts,
 }: AxisProps) {
   const [open, setOpen] = useState(defaultOpen);
 
@@ -85,6 +94,9 @@ export function Axis({
           {items.map((it) => {
             const isOn = selected.has(it.id);
             const isLinked = linkedTo ? !linkedTo(it.id) : false;
+            // Show count whenever the breakdown has loaded — including
+            // 0, which is informative ("ticking this would yield zero").
+            const cnt = counts ? (counts[it.id] ?? 0) : null;
             return (
               <label
                 key={it.id}
@@ -98,6 +110,9 @@ export function Axis({
                   onChange={() => onToggle(it.id)}
                 />
                 <span className="lbl">{it.label}</span>
+                {cnt !== null && (
+                  <span className="bk-check-count">{cnt.toLocaleString()}</span>
+                )}
               </label>
             );
           })}

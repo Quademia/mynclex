@@ -255,6 +255,16 @@
   cursor: not-allowed;
 }
 .bk-check .lbl { flex: 1; }
+/* Per-row breakdown count — faint, right-aligned, tabular numerals so
+ * digits line up across rows. Stays muted even when the row is
+ * highlighted on hover (the hover bg is var(--bg) — same hue family). */
+.bk-check .bk-check-count {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  flex-shrink: 0;
+}
 
 /* Topic search box + chip cloud */
 .bk-search {

@@ -48,3 +48,27 @@ export interface CountResult {
   total: number;
   by_question_type: Record<string, number>;
 }
+
+/**
+ * Per-axis row counts from nclex_filter_breakdown. For each axis, the
+ * map key is the axis value (the same string the filter payload would
+ * carry) and the value is the count of questions that would result if
+ * that value were the only selection on its axis, holding all other
+ * axis filters constant. See the migration header for "drop self"
+ * semantics.
+ *
+ * by_pool is the special pool-chip breakdown — UNSEEN / SEEN / CORRECT
+ * / INCORRECT / MARKED / ALL counts.
+ */
+export interface BreakdownResult {
+  by_cnc:      Record<string, number>;
+  by_subcat:   Record<string, number>;
+  by_subject:  Record<string, number>;
+  by_body:     Record<string, number>;
+  by_qtype:    Record<string, number>;
+  by_diff:     Record<string, number>;
+  by_tag:      Record<string, number>;
+  by_topic:    Record<string, number>;
+  by_subtopic: Record<string, number>;
+  by_pool:     Record<string, number>;
+}

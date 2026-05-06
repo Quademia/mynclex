@@ -21,7 +21,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import type { CountResult, FilterPayload } from './types';
+import type { BreakdownResult, CountResult, FilterPayload } from './types';
 import type { Intent, ModeId } from './filter-config';
 
 export type ActionResult<T> =
@@ -46,6 +46,27 @@ export async function countEligibleAction(
   if (error) return { ok: false, error: error.message };
   // RPC returns JSONB; supabase-js gives us the parsed object.
   return { ok: true, data: data as CountResult };
+}
+
+/**
+ * Per-axis row counts for every checkbox row + pool chip. Same filter
+ * shape as countEligibleAction; called on the same debounced cadence.
+ * Returns 10 axes worth of per-value counts.
+ */
+export async function breakdownAction(
+  filters: FilterPayload
+): Promise<ActionResult<BreakdownResult>> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data, error } = await supabase.rpc('nclex_filter_breakdown', {
+    p_filters: filters,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: data as BreakdownResult };
 }
 
 /**
