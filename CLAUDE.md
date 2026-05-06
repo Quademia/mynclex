@@ -194,6 +194,45 @@ slice.
   Dev (`next dev`) still uses Turbopack (it is mature for dev).
   Revisit and drop `--webpack` once OpenNext adds Turbopack support.
 
+## Persistent worktree
+
+To avoid the per-session cost of a fresh worktree (`npm install`,
+`.env.local` recreation, merge step), MyNclex sessions operate in a
+**single persistent worktree**:
+
+- **Path:** `C:\Users\confi\qacademy-mynclex\.claude\worktrees\dev`
+- **Branch:** `claude/dev` (long-lived, branched off `main`)
+
+The worktree's `node_modules`, `.env.local`, and Next.js build cache
+survive across sessions, so `npm install` only ran once.
+
+**Launch habit (every session):**
+
+```powershell
+cd C:\Users\confi\qacademy-mynclex\.claude\worktrees\dev
+claude
+```
+
+If a session lands in a fresh `.claude/worktrees/<random>` instead,
+exit and re-launch from the `dev` worktree path above.
+
+**End-of-session merge:**
+
+```powershell
+# from the worktree, after committing on claude/dev:
+cd C:\Users\confi\qacademy-mynclex
+git merge claude/dev --ff-only
+git push origin main
+```
+
+Same flow as before, just with a stable branch name (`claude/dev`)
+instead of a per-session random name.
+
+The persistent worktree is the only operating environment — never
+work directly in the `qacademy-mynclex` main checkout (that's the
+"safety" reason for keeping a worktree at all: mistakes don't pollute
+main until the explicit merge step).
+
 ## Working With Sam
 
 - Sam has no coding background. Explain rationale before code. No assumed
