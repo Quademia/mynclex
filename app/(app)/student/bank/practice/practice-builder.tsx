@@ -44,8 +44,14 @@ import {
   createAttemptAction,
   breakdownAction,
 } from '@/lib/bank/builder/actions';
-import type { BreakdownResult, CountResult } from '@/lib/bank/builder/types';
+import type { BreakdownResult, CountResult, FilterPayload } from '@/lib/bank/builder/types';
 import type { FilterOptions } from '@/lib/bank/builder/get-filter-options';
+import { parseFilterPayload } from '@/lib/bank/builder/parse-filter-payload';
+import type { ResumableAttempt, RecentAttempt } from '@/lib/bank/entry-helpers/types';
+import { ResumeBanner } from '@/lib/bank/entry-helpers/resume-banner';
+import { RecentQuizzesRow } from '@/lib/bank/entry-helpers/recent-quizzes-row';
+import { WeakSpotsButton } from '@/lib/bank/entry-helpers/weak-spots-button';
+import { discardAttemptAction } from '@/lib/bank/builder/actions';
 import { Axis } from './axis';
 import { ModeCard } from './mode-card';
 import { SummaryPanel } from './summary-panel';
@@ -59,9 +65,15 @@ function toggle<T>(s: Set<T>, v: T): Set<T> {
 
 interface PracticeBuilderProps {
   filterOptions: FilterOptions;
+  resumable:    ResumableAttempt | null;
+  recents:      RecentAttempt[];
 }
 
-export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
+export function PracticeBuilder({
+  filterOptions,
+  resumable: initialResumable,
+  recents,
+}: PracticeBuilderProps) {
   const router = useRouter();
 
   // ─── State ────────────────────────────────────────────────────────
@@ -87,6 +99,14 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
   // level decision (Intent+Mode) so the student doesn't fill out
   // filters and then discover their mode (e.g. CAT) doesn't use them.
   const [activeTab, setActiveTab] = useState<'mode' | 'filters'>('mode');
+
+  // Entry-helper local state. Resumable can be cleared client-side
+  // when the student clicks Start fresh (the discard RPC fires and we
+  // hide the banner without a full SSR re-render). Recents are
+  // SSR-only — we don't refetch in the lifetime of this page.
+  const [resumable, setResumable] = useState<ResumableAttempt | null>(initialResumable);
+  const [discardingResume, startDiscardResume] = useTransition();
+  const [weakStarting, startWeakSpots] = useTransition();
 
   // Live-count + start state
   const [countResult, setCountResult] = useState<CountResult | null>(null);
@@ -268,6 +288,69 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
     });
   };
 
+  // ─── Entry-helper handlers ───────────────────────────────────────
+  const onResumeClick = () => {
+    if (!resumable) return;
+    router.push(`/session/${resumable.attempt_id}`);
+  };
+
+  const onStartFresh = () => {
+    if (!resumable) return;
+    const targetId = resumable.attempt_id;
+    startDiscardResume(async () => {
+      const res = await discardAttemptAction(targetId);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setResumable(null); // hide the banner client-side; SSR will agree on next nav
+    });
+  };
+
+  const onRecentSelect = (rec: RecentAttempt) => {
+    // Restore the saved configuration into the form. Sets are
+    // reconstructed from the saved filters_json (lossy on the
+    // 'All' chip — see parse-filter-payload.ts).
+    const parsed = parseFilterPayload(rec.filters_json);
+    setPools(parsed.pools);
+    setCnc(parsed.cnc);
+    setSubcat(parsed.subcat);
+    setSubject(parsed.subject);
+    setBody(parsed.body);
+    setQtype(parsed.qtype);
+    setDiff(parsed.diff);
+    setTags(parsed.tags);
+    setTopic(parsed.topic);
+    setSubtopic(parsed.subtopic);
+    setIntent(rec.intent);
+    setMode(rec.mode);
+    setCount(rec.requested_count);
+    // Switch to the Filters tab so the student sees what was
+    // restored. They can tweak then Start, or Start straight away.
+    setActiveTab('filters');
+  };
+
+  const onWeakSpots = () => {
+    // v1 weak-spots heuristic: items the student last got wrong.
+    // 25 Q, Study + Untimed Learning, no other filters. When real
+    // analytics ship in slice 7.x this gets replaced with a smarter
+    // selector (e.g. lowest-accuracy slice, recent regression).
+    const weakFilters: FilterPayload = { pool_history: ['INCORRECT'] };
+    startWeakSpots(async () => {
+      const res = await createAttemptAction({
+        filters: weakFilters,
+        mode: 'UNTIMED_LEARNING',
+        intent: 'STUDY',
+        count: 25,
+      });
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      router.push(`/session/${res.data.attemptId}`);
+    });
+  };
+
   const modeList = intent === 'STUDY' ? MODES_STUDY : MODES_EXAM;
   const modeLabel = modeList.find((m) => m.id === mode)?.label ?? '—';
 
@@ -288,6 +371,22 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
 
       <div className="bk-grid">
         <div className="bk-stack">
+          {/* Entry helpers — Resume banner, Recent Quizzes shortcut,
+              Weak Spots one-tap. All sit above the tab strip and only
+              render when relevant (Resume hides when there's no
+              unfinished STUDY attempt; Recents hides when the student
+              has no quiz history). */}
+          {resumable && (
+            <ResumeBanner
+              attempt={resumable}
+              onResume={onResumeClick}
+              onStartFresh={onStartFresh}
+              pending={discardingResume}
+            />
+          )}
+          <RecentQuizzesRow recents={recents} onSelect={onRecentSelect} />
+          <WeakSpotsButton onTrigger={onWeakSpots} pending={weakStarting} />
+
           {/* Tab strip — switches between Intent & Mode and Filters.
               The right-rail summary stays mounted across both tabs. */}
           <div className="bk-tabs" role="tablist">
