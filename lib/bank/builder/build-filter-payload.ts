@@ -50,30 +50,35 @@ export function buildFilterPayload(s: BuilderState): FilterPayload {
   }
 
   // Pool — translate chips → (pool_history, pool_marked).
-  const history: ('UNSEEN' | 'SEEN' | 'CORRECT' | 'INCORRECT')[] = [];
   const has = (id: string) => s.pools.has(id as never);
 
-  // 'ALL' shortcut: equivalent to all 5 individual chips ticked.
-  // Note: actually we send only the 4 base history values; CORRECT and
-  // INCORRECT cover SEEN, plus UNSEEN. So all = unseen + correct +
-  // incorrect.
-  const allOn = has('ALL');
+  // 'ALL' shortcut: the user said "every question in scope". This is
+  // semantically different from "every individual chip ticked" — the
+  // latter would AND with Marked (per §10's "Marked + Correct gets
+  // questions they got right that they also flagged" rule). The All
+  // chip means no pool constraint at all. Send nothing.
+  if (has('ALL')) {
+    return out;
+  }
 
-  if (allOn || has('UNSEEN'))    history.push('UNSEEN');
-  if (allOn || has('CORRECT'))   history.push('CORRECT');
-  if (allOn || has('INCORRECT')) history.push('INCORRECT');
-  // 'SEEN' chip = CORRECT ∪ INCORRECT (which we already include if
-  // SEEN is on; dedupe via Set).
+  // No All — translate the individual chips. History chips OR each
+  // other; if Marked is on, AND with the history result.
+  const history: ('UNSEEN' | 'SEEN' | 'CORRECT' | 'INCORRECT')[] = [];
+
+  if (has('UNSEEN'))    history.push('UNSEEN');
+  if (has('CORRECT'))   history.push('CORRECT');
+  if (has('INCORRECT')) history.push('INCORRECT');
+  // 'SEEN' chip is a UI fiction = CORRECT ∪ INCORRECT. Expand and dedupe.
   if (has('SEEN')) {
     if (!history.includes('CORRECT'))   history.push('CORRECT');
     if (!history.includes('INCORRECT')) history.push('INCORRECT');
   }
-  // The RPC's helper uses pool_history as-is. If it's empty, no history
-  // constraint is applied (= every state). That's the correct semantics
-  // when no chip is on.
+  // The RPC's helper uses pool_history as-is. Empty array = no history
+  // constraint (= every state). That's the correct semantics when no
+  // chip is on.
   if (history.length > 0) out.pool_history = history;
 
-  if (allOn || has('MARKED')) out.pool_marked = true;
+  if (has('MARKED')) out.pool_marked = true;
 
   return out;
 }
