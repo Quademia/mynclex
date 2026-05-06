@@ -6,6 +6,142 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-06 (build) — Slice 2.5 scoring + marks-in-authoring + dead-RPC cleanup
+
+Continuation of the build phase. Closed the §5/§9 deferred decisions in
+`bank-marks-and-scoring.html`, shipped four sub-slices that turn marks
+into a system-managed value end-to-end, applied the corresponding
+backfill to dev, and ran a separate hygiene pass to drop 7 dead
+case-save / trend-save RPCs that have had no callers since the wrapper
+flows moved to direct CRUD. Six commits plus two dev-DB migrations via
+the Supabase MCP.
+
+### What shipped
+
+- **Slice 2.5a — `lib/scoring/` pure scoring module.** Commit `8f966ef`.
+  Five scoring functions per `bank-marks-and-scoring.html` §3
+  (`scoreAllOrNothing`, `scorePlusMinus`, `scorePerRow`, `scorePerBlank`,
+  `scorePerSlot`). Two dispatchers: `computeMarksFromKey` for the editor
+  side and `scoreAttempt` for the runner side. `BankItemAnswer` wire
+  shapes per question type. Pure TS, no DB calls, deterministic. Lives
+  at `lib/scoring/` (lib root, not under `lib/bank/`) per §8 — scoring
+  is consumed across authoring, runner, aggregation, and analytics, not
+  bank-specific. **Vitest** added as a devDependency; 40 unit tests
+  cover every type and the §6 edge cases settled inline (SATA zero
+  picks, drag-drop unplaced slots, bow-tie blank wing, +/− gaming
+  defence, full-credit-only `is_correct`).
+- **Slice 2.5b — marks become system-managed in the editor.** Commit
+  `0b3d084`. Removed the free-form Marks number input from
+  `lib/bank/atoms/housekeeping-fields.tsx`; replaced with a read-only
+  "Max possible score" readout that takes a new `questionType` prop.
+  Save action `lib/bank/actions/save-question.ts` now derives `marks`
+  via `computeMarksFromKey(question_type, parsed.correct)` instead of
+  reading `formData.get('marks')`. All 9 editors updated to pass
+  `questionType`. `db/schema.sql` comments note the new semantics.
+  New CSS class `.auth-readonly-value`.
+- **Slice 2.5c — live readout.** Commit `86bd41d`. After Sam observed
+  the readout stuck at "Max: 1" while editing a never-saved SATA, each
+  editor now derives `liveMarks` from its in-memory answer-key state
+  and feeds it to Housekeeping. Fixed types pass constants
+  (`MCQ`/`TF`=1, `BOWTIE`=5); variable types compute from state
+  (`correctIds.size`, `filledRows.filter(...).length`,
+  `summary.correct`, `activeBlanks.length`, `summary.activeSlotCount`).
+  Each derivation mirrors `computeMarksFromKey`'s save-time formula;
+  inline comments cite §5.2.
+- **Slice 2.5d — Max column on bank list pages.** Commit `4a6186c`.
+  `BankListRowSummary` gains `marks: number`; admin and tutor
+  `/bank/all` pages pass `r.marks ?? 1`. New `Max` column between
+  Difficulty and Status in `lib/bank/bank-list-client.tsx`,
+  right-aligned with tabular-nums via new `.auth-list-max` class.
+  Closes the §9 deferred decision.
+- **Dead-RPC cleanup.** Commit `fcfd7a9`. `nclex_save_case_with_children`
+  (slice 1.11b), `nclex_save_trend_with_children` /
+  `nclex_tutor_save_trend_with_children` (slice 1.12b),
+  `nclex_detach_and_delete_trend` / `nclex_delete_trend_and_children`
+  and tutor variants (slice 1.12c) — all 7 had no callers since the
+  case-study and trend wrappers moved to direct CRUD. Migration
+  `20260506130000_drop_dead_case_trend_rpcs.sql` DROPs them
+  `IF EXISTS`; `db/rpcs.sql` (823 lines) deleted entirely; `db/README.md`
+  updated to drop the bootstrap step 3 reference and explain when to
+  recreate the file.
+
+### Migrations applied to dev (via Supabase MCP)
+
+- `20260506120000_slice_2_5b_marks_system_managed_backfill.sql` — one
+  CASE-per-question_type UPDATE on `nclex_bank_items` and
+  `nclex_tutor_questions`. Before: every row at `marks = 1` (except 4
+  hand-set SELECT_N rows up to 3). After: BOWTIE=5 across the board,
+  CLOZE/SATA/MATRIX/etc. ranged 2–6 per the answer-key shape.
+- `20260506130000_drop_dead_case_trend_rpcs.sql` — verified all 7
+  function names absent from `pg_proc` post-apply.
+
+Both will run automatically on prod via `migrate-prod.yml` on the next
+push to the `prod` branch. Prod tables are still empty so the marks
+backfill is a no-op there.
+
+### Decisions locked this slice
+
+- **§5.4 curator override** — no override for v1. System-managed only.
+  Doc's three candidate override shapes (multiplier, tutor-only,
+  capped) recorded for v2+ if a real complaint ever surfaces.
+- **§9 wording** — refined slightly from the doc's example. Use
+  "count of correct options ticked" / "count of rows" / etc. instead
+  of "from N correct options" because the rule-describing form stays
+  honest on never-saved questions where the persisted value is still
+  the column default.
+- **§9 bank-list `Max` column** — yes, single column for every type
+  (not partial-credit-only). Header tooltip explains it's
+  system-derived.
+- **§10 backfill** — one-shot UPDATE migration (chosen over
+  lazy-via-editor). Idempotent CASE expression, runs on both bank
+  tables, `WHERE correct IS NOT NULL`.
+- **Test runner** — Vitest. Standard for Next.js apps, friendlier
+  `expect` API than `node:test`. One devDependency.
+- **Scoring function signature** — dropped `content` from the doc's
+  proposed `(question_type, content, correct, answer)`. None of the 9
+  types' scoring math actually needs `content` — `correct` carries
+  the rubric. Cleaner: `(question_type, correct, answer)`.
+- **Bow-tie scoring path** — inlined in `dispatch.ts` rather than a
+  6th public scoring function, since its array+scalar wing shape
+  doesn't fit `scorePerSlot`'s Record signature. Same per-element
+  math conceptually, separate code path.
+
+### Memory + build-list housekeeping
+
+- The previous build-phase memory note claimed `BUILD_LIST.md` exists
+  at the repo root. It didn't — never made it into git history.
+  Sam supplied the original contents; saved as `BUILD_LIST.md` and
+  updated to mark slice 2.5 ✅, move ⏭ to 2.1.5, and trim 2.3's body
+  to "RPC plumbing that calls existing scoring".
+
+### NOT done in this session
+
+- **`scoreAttempt` has no caller yet.** It's ready for the runner
+  build but waits for a runner UI to call it.
+- **Prod migrations not applied at session start.** Both dev migrations
+  (marks backfill, dead-RPC drop) are committed; both will run when
+  main is merged into the `prod` branch.
+- **Seed file values not updated.** Multi-correct rows in
+  `db/seed-bank-dev.sql` etc. still embed `marks: 1`. The dev DB is
+  correct because the backfill ran after seeding. If anyone reseeds
+  a fresh dev DB, re-run the backfill migration to restore correctness.
+
+### Carried forward — execution slices
+
+- **Slice 2.1.5 — marking table.** ⏭ Next per BUILD_LIST.md. Tiny
+  slice; needs a 5-min design pass on column shape (case-level vs
+  child-level marks, unique key when both can mark the same row)
+  before writing the migration.
+- **Slice 2.2 — `create_attempt` RPC + friends.** Plan fully written
+  in `docs/product-plan/bank-consumption-attempt-creation.html`.
+  Builds on slice 2.1 attempt tables; `scoreAttempt` from slice 2.5
+  is one of the consumers downstream once the runner submits answers.
+- **Slice 2.3 — submit-answer RPC.** Now narrower than originally
+  planned: scoring functions already exist in `lib/scoring/`, so this
+  slice is pure RPC plumbing that calls them.
+
+---
+
 ## Session — 2026-05-05 (continued, build) — Slice 2.1 attempt tables applied to dev
 
 First build slice of bank consumption. Read all four planning docs end to
