@@ -300,6 +300,11 @@ export function SataEditorBody({
     !stem.trim() || correctIds.size === 0 || optionsWithText < MIN_OPTIONS;
   const classificationIncomplete = !category;
 
+  // Live marks for the Housekeeping readout. Per bank-marks-and-scoring §5.2:
+  // SATA max = count of correct options ticked. Mirrors the save-time formula
+  // in computeMarksFromKey().
+  const liveMarks = correctIds.size;
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
@@ -385,7 +390,7 @@ export function SataEditorBody({
                 mode={initial.mode}
                 questionType="SATA"
                 defaults={{
-                  marks: initial.marks,
+                  marks: liveMarks,
                   question_ref: initial.question_ref,
                   batch_id: initial.batch_id,
                   is_published: initial.is_published,

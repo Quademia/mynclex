@@ -698,6 +698,13 @@ export function DragDropEditorBody({
   const contentIncomplete = validity !== 'ok';
   const classificationIncomplete = !category;
 
+  // Live marks for the Housekeeping readout. Per bank-marks-and-scoring §5.2:
+  // DRAG_DROP max = count of active slots. ORDERED counts every form slot;
+  // SENTENCE counts only slots whose [N] marker is in the stem (parser drops
+  // orphans). summary.activeSlotCount matches the parser's `correct.slots`
+  // key count exactly.
+  const liveMarks = summary.activeSlotCount;
+
   // ─────────────────────────────────────────────────────────────
   // Subtype switching — clears slots + tokens (with confirm), keeps
   // stem text. Switching to SENTENCE on an empty stem seeds three [N]
@@ -1298,7 +1305,7 @@ export function DragDropEditorBody({
                 mode={initial.mode}
                 questionType="DRAG_DROP"
                 defaults={{
-                  marks: initial.marks,
+                  marks: liveMarks,
                   question_ref: initial.question_ref,
                   batch_id: initial.batch_id,
                   is_published: initial.is_published,

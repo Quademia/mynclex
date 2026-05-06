@@ -360,6 +360,10 @@ export function SelectNEditorBody({
     correctIds.size !== effectiveCount;
   const classificationIncomplete = !category;
 
+  // Live marks for the Housekeeping readout. Per bank-marks-and-scoring §4.1:
+  // SELECT_N enforces N == count(correct), so max = N = correctIds.size.
+  const liveMarks = correctIds.size;
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
@@ -452,7 +456,7 @@ export function SelectNEditorBody({
                 mode={initial.mode}
                 questionType="SELECT_N"
                 defaults={{
-                  marks: initial.marks,
+                  marks: liveMarks,
                   question_ref: initial.question_ref,
                   batch_id: initial.batch_id,
                   is_published: initial.is_published,

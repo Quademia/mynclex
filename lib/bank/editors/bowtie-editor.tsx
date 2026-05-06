@@ -786,7 +786,8 @@ export function BowtieEditorBody({
                 mode={initial.mode}
                 questionType="BOWTIE"
                 defaults={{
-                  marks: initial.marks,
+                  // Per bank-marks-and-scoring §4.2/§5.2: BOWTIE max is fixed at 5.
+                  marks: 5,
                   question_ref: initial.question_ref,
                   batch_id: initial.batch_id,
                   is_published: initial.is_published,
