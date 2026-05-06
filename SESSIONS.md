@@ -6,6 +6,73 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-06 (build, later) — Slice 2.1.5 mark-for-review table
+
+Small adjacent slice on top of 2.1's attempt tables — `nclex_question_marks`
+applied to mynclex-dev. Drives the runner's mark-for-review toggle and
+the builder's "Marked" pool filter. Settled the 4 deferred design points
+inline before writing the migration.
+
+### What shipped
+
+- **`nclex_question_marks` table.** Migration
+  `db/migrations/20260506140000_slice_2_1_5_question_marks.sql`. One row
+  per `(student, target)`. Columns: `mark_id` (UUID PK),
+  `student_id`, `target_kind` ∈ `QUESTION`/`CASE`, `target_source` ∈
+  `BANK`/`TUTOR`, `target_id` (TEXT), `tutor_id` (nullable, required
+  iff `target_source='TUTOR'`), `marked_at`. No FK on `target_id` — it
+  is polymorphic across 4 source tables (bank items, case studies,
+  tutor questions, tutor case studies); same convention as
+  `nclex_attempt_items`.
+- **Two partial unique indexes** instead of one combined unique.
+  Postgres treats NULL as distinct in unique constraints, so a single
+  unique on `(student_id, target_kind, target_source, target_id, tutor_id)`
+  would let the same bank item be marked twice (both rows with
+  `tutor_id` NULL). Split: `WHERE target_source = 'BANK'` and
+  `WHERE target_source = 'TUTOR'`.
+- **Builder pool-filter index** `(student_id, target_kind)` — matches
+  the dominant query shape ("give me everything this student has
+  marked, filtered by kind").
+- **RLS.** Students get SELECT/INSERT/DELETE on own rows (mark toggle
+  is a direct write — no RPC, parent §6.3.4); SUPER_ADMIN bypass via
+  `nclex_user_has_role()`. UPDATE deliberately not granted: there is
+  no editable column.
+
+### Design decisions locked
+
+1. **Two target kinds, not three.** `QUESTION` + `CASE`. Trends are
+   not standalone scenarios with children — a trend question is a
+   single item with a dataset alongside, marked at the QUESTION level.
+   "Mark this trend dataset" as a separate concept has no v1 use case;
+   skip until one shows up.
+2. **Single polymorphic table, not split per kind.** Mirrors
+   `nclex_attempt_items.selection_unit_type`. Avoids a UNION in the
+   builder pool-filter query.
+3. **Row-exists toggle, not soft-delete.** Mark on = INSERT; mark
+   off = DELETE. No `is_marked` boolean, no audit history. If a future
+   analytic ever needs mark history, add a separate audit table — don't
+   bend this one.
+4. **Bank + tutor in one table.** Distinguished by `target_source` +
+   `tutor_id`. Marking is the student's, not the tutor's — same shape
+   regardless of source. The `tutor_id` consistency check enforces the
+   invariant at the schema level.
+
+### Verification
+
+- `apply_migration` returned success on mynclex-dev.
+- Column inventory matches the spec (7 columns, RLS enabled).
+- `get_advisors security` shows no new warnings — all flagged items
+  are pre-existing (the `nclex_readiness_packs` RLS-disabled note and
+  three `SECURITY DEFINER`-callable helpers from earlier slices).
+
+### Queued for next session
+
+- **Slice 2.2** — create-attempt RPCs (`nclex_count_eligible_items`,
+  `nclex_create_attempt`, `nclex_mark_attempt_started`,
+  `nclex_discard_attempt`). Bigger slice, unblocks the runner.
+
+---
+
 ## Session — 2026-05-06 (build) — Slice 2.5 scoring + marks-in-authoring + dead-RPC cleanup
 
 Continuation of the build phase. Closed the §5/§9 deferred decisions in

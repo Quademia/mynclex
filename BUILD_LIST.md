@@ -10,19 +10,19 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-06):** slice 2.5 — scoring + marks-in-authoring,
-> in four sub-slices (a/b/c/d) plus a dead-RPC cleanup pass. See
-> `SESSIONS.md` for details. Next pick is open — `2.1.5` marking table is
-> the smaller adjacent slice, `2.2` create-attempt RPCs is the bigger
-> one that unblocks the runner. Either is a sensible next session.
+> **Last shipped (2026-05-06):** slice 2.1.5 — `nclex_question_marks` table
+> applied to mynclex-dev. Polymorphic single table covering both bank and
+> tutor sources at QUESTION + CASE granularity, row-exists toggle
+> semantics. See `SESSIONS.md` for details. Next pick: `2.2` create-attempt
+> RPCs — the bigger slice that unblocks the runner.
 
 ---
 
 ## Phase A — Database foundation
 
 - ✅ **2.1** Base attempt tables — `nclex_attempts`, `nclex_attempt_items`, `nclex_attempt_answers`, `nclex_attempt_case_snapshots`, `nclex_attempt_trend_snapshots`. Applied to mynclex-dev 2026-05-05.
-- ⏭ **2.1.5** Marking table — `nclex_question_marks` (or similar). One row per `(student_id, item_or_case_id)`. Drives the "Marked" pool filter and the runner's mark-for-review toggle. Tiny — needs a 5-min design pass first.
-- ⬜ **2.2** Create-attempt RPCs — `nclex_count_eligible_items` (live count + Q-type breakdown), `nclex_create_attempt` (validate, pick units, expand cases, snapshot), `nclex_mark_attempt_started` (preflight Start), `nclex_discard_attempt` (manual ABANDONED).
+- ✅ **2.1.5** Marking table — `nclex_question_marks` applied to mynclex-dev 2026-05-06. Polymorphic single table (`target_kind` ∈ QUESTION/CASE, `target_source` ∈ BANK/TUTOR), row-exists toggle (INSERT/DELETE, no `is_marked` column), partial unique indexes per source to handle nullable `tutor_id`. RLS: students INSERT/SELECT/DELETE own rows, SUPER_ADMIN bypass.
+- ⏭ **2.2** Create-attempt RPCs — `nclex_count_eligible_items` (live count + Q-type breakdown), `nclex_create_attempt` (validate, pick units, expand cases, snapshot), `nclex_mark_attempt_started` (preflight Start), `nclex_discard_attempt` (manual ABANDONED).
 - ⬜ **2.3** Submit-answer + save-progress — `nclex_submit_answer` RPC (calls the per-type scoring functions already shipped in `lib/scoring/` from slice 2.5), `nclex_save_progress` RPC for STUDY drafts. Scoring math itself lives in `lib/scoring/` and is done; this slice is just the RPC plumbing that calls it.
 - ⬜ **2.4** Complete-attempt + cleanup — `nclex_complete_attempt` (sets `final_score` as item-equivalent average, status COMPLETED), `nclex_timeout_sweep` (flip expired EXAM attempts to TIMED_OUT), `nclex_orphan_cleanup` (flip stale started-NULL rows + zero-engagement STUDY rows). Both sweeps on pg_cron.
 - ✅ **2.5** Scoring + authoring marks — applied 2026-05-06 in four sub-slices:
