@@ -83,6 +83,11 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
   const [mode,   setMode]   = useState<ModeId>('UNTIMED_LEARNING');
   const [count,  setCount]  = useState<number>(25);
 
+  // Tab strip — Intent+Mode vs Filters. Default tab is the higher-
+  // level decision (Intent+Mode) so the student doesn't fill out
+  // filters and then discover their mode (e.g. CAT) doesn't use them.
+  const [activeTab, setActiveTab] = useState<'mode' | 'filters'>('mode');
+
   // Live-count + start state
   const [countResult, setCountResult] = useState<CountResult | null>(null);
   const [countLoading, setCountLoading] = useState(false);
@@ -283,10 +288,39 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
 
       <div className="bk-grid">
         <div className="bk-stack">
-          {/* ─── Section 1 — Pool ─── */}
+          {/* Tab strip — switches between Intent & Mode and Filters.
+              The right-rail summary stays mounted across both tabs. */}
+          <div className="bk-tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'mode'}
+              className={'bk-tab' + (activeTab === 'mode' ? ' on' : '')}
+              onClick={() => setActiveTab('mode')}
+            >
+              Intent &amp; Mode
+              <span className="bk-tab-meta">
+                {(intent === 'STUDY' ? MODES_STUDY : MODES_EXAM).find((m) => m.id === mode)?.label ?? ''}
+              </span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'filters'}
+              className={'bk-tab' + (activeTab === 'filters' ? ' on' : '')}
+              onClick={() => setActiveTab('filters')}
+            >
+              Filters
+              <span className="bk-tab-meta">
+                {isCAT ? "doesn't apply in CAT" : (anyContentSelected || pools.size > 0 ? 'configured' : 'any')}
+              </span>
+            </button>
+          </div>
+
+          {/* ─── FILTERS TAB — Pool section ─── */}
+          {activeTab === 'filters' && (
           <section className="bk-section">
             <div className="bk-section-head">
-              <span className={'bk-section-num' + (pools.size > 0 ? ' done' : '')}>1</span>
               <div>
                 <div className="bk-section-title">Question pool</div>
                 <div className="bk-section-sub">
@@ -335,11 +369,12 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
               )}
             </div>
           </section>
+          )}
 
-          {/* ─── Section 2 — Content filters ─── */}
+          {/* ─── FILTERS TAB — Content filters section ─── */}
+          {activeTab === 'filters' && (
           <section className="bk-section">
             <div className="bk-section-head">
-              <span className={'bk-section-num' + (anyContentSelected ? ' done' : ' idle')}>2</span>
               <div>
                 <div className="bk-section-title">Content filters</div>
                 <div className="bk-section-sub">
@@ -474,11 +509,12 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
               )}
             </div>
           </section>
+          )}
 
-          {/* ─── Section 3 — Intent + Mode ─── */}
+          {/* ─── MODE TAB — Intent + Mode section ─── */}
+          {activeTab === 'mode' && (
           <section className="bk-section">
             <div className="bk-section-head">
-              <span className={'bk-section-num' + (intent && mode ? ' done' : '')}>3</span>
               <div>
                 <div className="bk-section-title">Intent &amp; mode</div>
                 <div className="bk-section-sub">
@@ -487,9 +523,8 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
               </div>
             </div>
             <div className="bk-section-body">
-              {/* 3a · Intent */}
+              {/* Intent step */}
               <div className="bk-substep-head">
-                <span className="bk-substep-num">3a</span>
                 <span className="bk-substep-name">Intent</span>
                 <span className="bk-substep-help">Are you learning, or simulating the test?</span>
               </div>
@@ -527,10 +562,9 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
                 </button>
               </div>
 
-              {/* 3b · Mode */}
+              {/* Mode step */}
               <div className="bk-mode-divider">
                 <div className="bk-substep-head">
-                  <span className="bk-substep-num">3b</span>
                   <span className="bk-substep-name">Mode</span>
                   <span className="bk-substep-help">How the runner behaves — clock, feedback, navigation.</span>
                   <span className={'bk-mode-context ' + (intent === 'STUDY' ? 'study' : 'exam')}>
@@ -555,6 +589,7 @@ export function PracticeBuilder({ filterOptions }: PracticeBuilderProps) {
               </div>
             </div>
           </section>
+          )}
         </div>
 
         {/* ─── Right rail ─── */}
