@@ -10,21 +10,24 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-06):** the entire Builder UI — slice 5.1
-> shipped end-to-end across four sub-slices (a/b/c/d), a tab restructure
-> that moves Intent + Mode in front of Filters, an All-pool-chip
-> semantics fix, and one new RPC `nclex_filter_breakdown` that powers
-> the per-row honest counts on every checkbox + pool chip. Builder is
-> verified end-to-end on standalone-question paths against mynclex-dev:
-> filter → live count → Start → snapshot rows materialise → discard
-> works. Cases + trends will surface naturally once curators publish
-> real content (the helper logic handles them; dev DB has none
-> published yet).
+> **Last shipped (2026-05-07):** slice 4.1 runner shell + MCQ vertical
+> slice — closes the take-the-quiz loop end-to-end. Five sub-slices
+> (RPCs → page shell → preflight → MCQ live → Finish + review-from-mount).
+> Pulled slice 2.3 `nclex_submit_answer` and the COMPLETED side of 2.4
+> `nclex_complete_attempt` into the same build — they're plumbing for
+> the runner that calls them. Verified against mynclex-dev: Builder
+> Start → preflight → Q1 → submit → see right/wrong + per-option
+> feedback + rationale (text + image) → Next → Finish → review-mode
+> page reload shows full unsealed projection with score in the topbar.
+> Pillar 2 holds: live-mode SSR projection drops correct/rationale
+> columns; per-Q submit returns the unseal envelope for that one item
+> only.
 >
-> **Next pick:** `4.1` runner shell + MCQ vertical slice. Closes the
-> take-the-quiz loop; pulls slices 2.3 (submit-answer) and 2.4
-> (complete-attempt) into the same session — they're best designed
-> alongside their only consumer.
+> **Next pick:** `4.2` remaining 8 question types (TF, SATA, Select-N,
+> Matrix, Highlight, Cloze, Drag-drop, Bow-tie). Each as a single
+> component with `mode: "answering" | "review"` prop, structurally
+> mirroring the MCQ pattern from 4.1.4. Reuse the existing authoring
+> editor previews as the structural starting point.
 
 ---
 
@@ -35,8 +38,8 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 - ✅ **2.2** Create-attempt RPCs — applied to mynclex-dev 2026-05-06 in two sub-slices:
   - **2.2a** `_nclex_eligible_unit_pool` (internal helper, single source of truth for "eligible"), `nclex_count_eligible_items` (returns total + by-question-type breakdown JSONB), `nclex_create_attempt` (target-with-drift selection, snapshots into 4 attempt tables, returns attempt_id). Bank source only in v1; tutor support deferred until programme enrolment lands.
   - **2.2b** `nclex_mark_attempt_started` (preflight Start, idempotent), `nclex_discard_attempt` (ABANDONED + hard-delete snapshot rows). Both ownership-checked against auth.uid() with SUPER_ADMIN bypass.
-- ⬜ **2.3** Submit-answer + save-progress — `nclex_submit_answer` RPC (calls the per-type scoring functions already shipped in `lib/scoring/` from slice 2.5), `nclex_save_progress` RPC for STUDY drafts. Scoring math itself lives in `lib/scoring/` and is done; this slice is just the RPC plumbing that calls it. **Bundled with 4.1** — designed alongside the runner that calls it, not in isolation.
-- ⬜ **2.4** Complete-attempt + cleanup — `nclex_complete_attempt` (sets `final_score` as item-equivalent average, status COMPLETED), `nclex_timeout_sweep` (flip expired EXAM attempts to TIMED_OUT), `nclex_orphan_cleanup` (flip stale started-NULL rows + zero-engagement STUDY rows). Both sweeps on pg_cron. **`nclex_complete_attempt` bundled with 4.1**; the two sweeps come later as their own small slice.
+- ✅ **2.3** Submit-answer — `nclex_submit_answer` RPC shipped 2026-05-07 with slice 4.1.1. Thin INSERT into `nclex_attempt_answers` with status / ownership / score-bound guards; scoring stays in TS via `lib/scoring/scoreAttempt`. `nclex_save_progress` (STUDY drafts) deferred to slice 4.6 alongside the Resume UI that consumes it.
+- ⬜ **2.4** Complete-attempt + cleanup — `nclex_complete_attempt` ✅ shipped 2026-05-07 with slice 4.1.1 (item-equivalent average, status COMPLETED, idempotent). The two sweeps `nclex_timeout_sweep` (flip expired EXAM attempts to TIMED_OUT) and `nclex_orphan_cleanup` (flip stale started-NULL rows + zero-engagement STUDY rows) ⬜ remain — both on pg_cron, separate slice.
 - ✅ **2.6** Filter breakdown RPC — `nclex_filter_breakdown(filters)` returning per-axis row counts for the Builder's honest signals. For each of 9 content axes plus the special pool axis, drops that axis's filter from the active set, expands cases to children, groups by the bank-items column. Shipped 2026-05-06 as part of slice 5.1b. Migration `20260506170000_slice_5_1b_filter_breakdown.sql`.
 - ✅ **2.5** Scoring + authoring marks — applied 2026-05-06 in four sub-slices:
   - **2.5a** `lib/scoring/` pure module: 5 scoring functions + `computeMarksFromKey` + `scoreAttempt` + Vitest (40 tests).
@@ -54,8 +57,13 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
 ## Phase C — Runner (smallest visible loop first)
 
-- ⏭ **4.1** Runner shell + MCQ vertical slice — `app/(app)/(focused)/session/[attempt_id]/` route (currently a stub from slice 5.1a — replace wholesale), page container, minimal chrome, MCQ component reading from snapshot tables. End-to-end: filter on Builder → Start → preflight → render Q1 → submit → see right/wrong → next. Includes slice 2.3 (`nclex_submit_answer`) and the COMPLETED side of 2.4 (`nclex_complete_attempt`) — those RPCs are designed alongside their consumer here.
-- ⬜ **4.2** Remaining 8 question types — TF, SATA, Select-N, Matrix, Highlight, Cloze, Drag-drop, Bow-tie. Each as a single component with `mode: "answering" | "review"` prop. Reuse the existing authoring-editor previews as the structural starting point.
+- ✅ **4.1** Runner shell + MCQ vertical slice — shipped 2026-05-07. `app/(app)/(focused)/session/[attempt_id]/` route replaced the stub from slice 5.1a wholesale. Pulled slice 2.3 (`nclex_submit_answer`) and the COMPLETED side of 2.4 (`nclex_complete_attempt`) into the same build — designed alongside their only consumer. **Mode policy:** all 5 modes render as Untimed Learning behaviour for now (per-Q submit, immediate feedback, free nav, no timer, no sequential lock); per-mode deltas land in 4.5. Built from the `design_handoff_bank_consumption/` runner-v2 prototype as concept-not-source — three-channel cell encoding (fill / marked border / current ring), CVD-safe palette (light green vs dark red), right-edge sticky 240px grid sidebar. Five sub-slices:
+  - **4.1.1** RPCs — `nclex_submit_answer` (thin: validates ownership + status=IN_PROGRESS, INSERTs `nclex_attempt_answers`, bumps `last_activity_at`; scoring stays in TS via `lib/scoring/scoreAttempt` so the 40-test suite remains the single source of truth) and `nclex_complete_attempt` (aggregates `final_score` as item-equivalent average per `bank-marks-and-scoring.html` §7, sets status=COMPLETED + ended_at, idempotent). Migrations applied to mynclex-dev, smoke-tested across 8 paths (happy / wrong / double-submit lock / score-out-of-bounds / status guard / final score / idempotency / cross-student ownership).
+  - **4.1.2** Page shell — `page.tsx` does sealed-projection load (omits `correct_answer_snapshot_json` / `rationale_snapshot` / `rationale_img_snapshot` while status=IN_PROGRESS — Pillar 2 enforced at the server boundary, not RLS) + status branch. `runner.tsx` top-level container + `runner-topbar.tsx` + `runner-footer.tsx` + `runner-grid.tsx` (cells with filter toggles `All / Marked / Unanswered / Wrong`; no case bands yet — those land with 4.3). `actions.ts` carries `submitAnswerAction`, `completeAttemptAction`, `markStartedAction`. New `styles/runner.css` ports the `--rn-*` token block from the design (drops `.mn` namespace; relies on existing `styles/tokens.css` for `--accent` / `--primary` / etc.).
+  - **4.1.3** Preflight — pre-Q1 confirm screen that calls `nclex_mark_attempt_started`; skipped when `started_at` is already set on mount. Localstorage skip-preflight flag deferred to slice 4.6.
+  - **4.1.4** MCQ live — `<McqRunner mode="answering" | "review">` in `lib/bank/runner/types/mcq.tsx`. Per runner.html §16.1.1, the `mode` prop is **per-item** (UL hybrid). Per-option feedback shows for every option in review mode (no prefixes — role conveyed by border + verdict pill). Shared `<RationaleBlock>` in `lib/bank/runner/rationale.tsx` renders verdict pill + score + rationale prose + image (`max-height: 320px`, `object-fit: contain`). MCQ is the structural starting point for the other 8 types in slice 4.2.
+  - **4.1.5** Finish + MCQ-review-from-mount — Finish CTA (last Q post-submit) calls `completeAttemptAction` → `router.refresh()` → page re-loads in review mode. Topbar timer pill swaps from `Untimed` to `Score · NN%`. Footer status copy swaps to review-mode message. Old stub `session-stub.tsx` removed.
+- ⏭ **4.2** Remaining 8 question types — TF, SATA, Select-N, Matrix, Highlight, Cloze, Drag-drop, Bow-tie. Each as a single component with `mode: "answering" | "review"` prop, structurally mirroring `lib/bank/runner/types/mcq.tsx` from slice 4.1.4. Reuse the existing authoring-editor previews as the structural starting point.
 - ⬜ **4.3** Case-block UX — case panel (scenario + chart tabs), CJMM step labels, mount/unmount at block boundaries, "Case complete. Continuing…" transition.
 - ⬜ **4.4** Trend question rendering — trend panel (dataset display) alongside each trend question, kind-specific rendering.
 - ⬜ **4.5** Per-mode behaviour — timer (wall-clock for EXAM, engagement-clock for STUDY-timed), navigation (sequential vs free-nav), feedback timing (per-Q vs end-of-quiz), warning thresholds.

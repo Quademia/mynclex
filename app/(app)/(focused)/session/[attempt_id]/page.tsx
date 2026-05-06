@@ -1,22 +1,55 @@
 // mynclex/app/(app)/(focused)/session/[attempt_id]/page.tsx
 //
-// Stub for the runner. Slice 5.1a temporarily lands attempts here;
-// slice 4.1 will replace this whole route with the real runner shell
-// (preflight → Q1 → answer → submit → review).
+// Runner entry. Loads attempt + 4 snapshot tables + answers, enforces
+// Pillar 2 (no answer-key leakage) at the server boundary via column-
+// level projection, and routes into <Runner mode="live"> or
+// <Runner mode="review"> based on attempt status.
 //
-// What this stub does:
-//   - Verifies the attempt exists and belongs to the signed-in student
-//     (RLS handles it — a non-owning student gets 0 rows).
-//   - Shows a "Quiz built · runner coming next slice" card with the
-//     attempt id, requested count, mode, intent, and a Discard button
-//     wired to nclex_discard_attempt.
-//   - On Discard, navigates back to /student/bank/practice/.
+// Why projection-at-the-server (vs RLS column-level):
+//   RLS on nclex_attempt_items currently allows the owning student to
+//   SELECT every column, key + rationale included. Review mode
+//   legitimately needs those, so we don't tighten RLS. Instead we
+//   narrow the projection here per status — sealed columns omitted
+//   while live, included while review. The seal becomes explicit and
+//   grep-able at the only place the runner crosses the server/client
+//   boundary in 4.1.
 
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { SessionStub } from './session-stub';
+import type {
+  AttemptHeader,
+  SealedItem,
+  UnsealedItem,
+  AnswerRow,
+  CaseSnapshot,
+  TrendSnapshot,
+  RunnerData,
+} from '@/lib/bank/runner';
+import { Runner } from './runner';
 
 export const dynamic = 'force-dynamic';
+
+const SEALED_ITEM_COLUMNS = [
+  'attempt_item_id',
+  'position',
+  'question_type',
+  'stem_snapshot',
+  'instruction_snapshot',
+  'marks_snapshot',
+  'classification_snapshot',
+  'content_snapshot_json',
+  'parent_case_id',
+  'case_position',
+  'cjmm_step',
+  'trend_id',
+  'shuffle_seed',
+  'option_order_json',
+].join(', ');
+
+const UNSEALED_ITEM_COLUMNS =
+  SEALED_ITEM_COLUMNS +
+  ', correct_answer_snapshot_json, rationale_snapshot, rationale_img_snapshot';
+
 
 interface PageProps {
   params: Promise<{ attempt_id: string }>;
@@ -26,39 +59,74 @@ export default async function SessionPage({ params }: PageProps) {
   const { attempt_id } = await params;
   const supabase = await createClient();
 
-  const { data: attempt, error } = await supabase
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: attempt, error: aErr } = await supabase
     .from('nclex_attempts')
-    .select(
-      'attempt_id, status, intent, mode, requested_question_count, actual_question_count, actual_unit_count, started_at, created_at'
-    )
+    .select('*')
     .eq('attempt_id', attempt_id)
     .maybeSingle();
+  if (aErr || !attempt) notFound();
 
-  if (error || !attempt) notFound();
+  // ABANDONED has no rows underneath (discard hard-deletes per slice 2.2b).
+  // Bounce back to Practice rather than render a broken runner.
+  if (attempt.status === 'ABANDONED') {
+    redirect('/student/bank/practice');
+  }
 
-  // Quick item count for the stub display (not strictly needed but nice
-  // to confirm snapshots materialised).
-  const { count: itemCount } = await supabase
-    .from('nclex_attempt_items')
-    .select('*', { count: 'exact', head: true })
-    .eq('attempt_id', attempt_id);
+  const isLive = attempt.status === 'IN_PROGRESS';
+  const itemColumns = isLive ? SEALED_ITEM_COLUMNS : UNSEALED_ITEM_COLUMNS;
 
-  return (
-    <SessionStub
-      attempt={attempt as Attempt}
-      itemCount={itemCount ?? 0}
-    />
-  );
-}
+  const [items, cases, trends, answers] = await Promise.all([
+    supabase
+      .from('nclex_attempt_items')
+      .select(itemColumns)
+      .eq('attempt_id', attempt_id)
+      .order('position', { ascending: true }),
+    supabase
+      .from('nclex_attempt_case_snapshots')
+      .select('case_id, title_snapshot, scenario_summary_snapshot, tabs_snapshot_json')
+      .eq('attempt_id', attempt_id),
+    supabase
+      .from('nclex_attempt_trend_snapshots')
+      .select(
+        'trend_id, title_snapshot, scenario_snapshot, kind_snapshot, ' +
+        'row_label_snapshot, timepoints_snapshot_json, rows_snapshot_json',
+      )
+      .eq('attempt_id', attempt_id),
+    supabase
+      .from('nclex_attempt_answers')
+      .select(
+        'attempt_item_id, answer_json, submission_status, is_correct, ' +
+        'score_awarded, time_spent_sec, submitted_at',
+      )
+      .eq('attempt_id', attempt_id),
+  ]);
 
-interface Attempt {
-  attempt_id: string;
-  status: string;
-  intent: string;
-  mode: string;
-  requested_question_count: number;
-  actual_question_count: number;
-  actual_unit_count: number;
-  started_at: string | null;
-  created_at: string;
+  if (items.error || cases.error || trends.error || answers.error) {
+    notFound();
+  }
+
+  // Multi-line / concatenated select strings defeat supabase-js's row-
+  // shape inference (returns GenericStringError[]); cast through unknown.
+  const data: RunnerData = isLive
+    ? {
+        mode:    'live',
+        attempt: attempt as AttemptHeader,
+        items:   (items.data   ?? []) as unknown as SealedItem[],
+        cases:   (cases.data   ?? []) as unknown as CaseSnapshot[],
+        trends:  (trends.data  ?? []) as unknown as TrendSnapshot[],
+        answers: (answers.data ?? []) as unknown as AnswerRow[],
+      }
+    : {
+        mode:    'review',
+        attempt: attempt as AttemptHeader,
+        items:   (items.data   ?? []) as unknown as UnsealedItem[],
+        cases:   (cases.data   ?? []) as unknown as CaseSnapshot[],
+        trends:  (trends.data  ?? []) as unknown as TrendSnapshot[],
+        answers: (answers.data ?? []) as unknown as AnswerRow[],
+      };
+
+  return <Runner data={data} />;
 }

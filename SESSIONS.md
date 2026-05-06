@@ -6,6 +6,193 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-07 (build) — Slice 4.1 runner shell + MCQ vertical slice
+
+Closes Phase C's first slice. Five sub-slices, the entire take-the-quiz
+loop end-to-end against mynclex-dev: Builder Start → preflight → Q1 →
+submit → see right/wrong + per-option feedback + rationale (text + image)
+→ Next → Finish → review-from-mount.
+
+### What shipped
+
+- **4.1.1 — RPCs.** Two migrations applied to mynclex-dev:
+  - `nclex_submit_answer(p_attempt_item_id, p_answer_json, p_score_awarded,
+    p_is_correct, p_time_spent_sec, p_submission_status, p_answer_changes_json)`
+    — thin INSERT into `nclex_attempt_answers` with ownership + status +
+    score-bound guards. Existing-row policy: no row → INSERT, DRAFT →
+    UPDATE in place (4.6 promotion path), final → RAISE (UL re-submit
+    lock per runner.html §16.4). Bumps `last_activity_at`.
+  - `nclex_complete_attempt(p_attempt_id)` — aggregates `final_score` as
+    item-equivalent average per `bank-marks-and-scoring.html` §7
+    (`AVG(COALESCE(score_awarded, 0) / marks_snapshot)`, LEFT JOIN over
+    items so unanswered counts as 0), sets status=COMPLETED + ended_at,
+    returns the score. Idempotent.
+  - Smoke-tested across 8 paths: happy submit · wrong-answer · double-
+    submit lock · score out of bounds · status guard · final-score
+    correctness ((1+0+0)/3 = 0.333…) · idempotency · cross-student
+    ownership.
+
+- **4.1.2 — Page shell + chrome.** Two checkpoints (a / b):
+  - `page.tsx` does sealed-projection load. `SEALED_ITEM_COLUMNS` omits
+    `correct_answer_snapshot_json` / `rationale_snapshot` /
+    `rationale_img_snapshot` while status=IN_PROGRESS;
+    `UNSEALED_ITEM_COLUMNS` adds them back when status flips to
+    COMPLETED / TIMED_OUT. Pillar 2 enforced at the server boundary
+    rather than via column-level RLS (review legitimately needs the
+    keys, so RLS stays permissive and the projection narrows).
+  - `runner.tsx` top-level container + `runner-topbar.tsx` +
+    `runner-footer.tsx` + `runner-grid.tsx` + `runner-question-area.tsx`.
+    Three-channel cell encoding: fill (5 states), border (marked, write
+    path lands in 4.7), outer ring (current). CVD-safe palette: light
+    green (#c8ecd1) for `right` vs dark red (#5b1d1d) for `wrong`,
+    brightness-distinguishable not just hue. Right-edge sticky 240px
+    sidebar; collapsed handle at 32px shows a rotated `Q N / T` counter.
+    Filter toggle row (`All / Marked / Unanswered / Wrong`) with live
+    counts; single-select per §16.6.
+  - `actions.ts` wraps three Server Actions: `markStartedAction`,
+    `submitAnswerAction`, `completeAttemptAction`. Submit reads the
+    unsealed snapshot row server-side, calls `scoreAttempt()` from
+    `lib/scoring/`, persists via the RPC, returns the per-Q unseal
+    envelope to the client.
+  - New `styles/runner.css` ports the design's `--rn-*` token block
+    (drops the `.mn` namespace; relies on existing `styles/tokens.css`
+    for `--accent` / `--primary` / etc.). Selectors are bare `.rn-*`
+    to match the repo pattern (`bk-*`, `auth-*`).
+  - Old stub `(focused)/session/[attempt_id]/session-stub.tsx` deleted.
+
+- **4.1.3 — Preflight.** Pre-Q1 confirmation card shown when
+  `attempt.started_at` is null. Summary = mode / intent / question count
+  / source. Start calls `nclex_mark_attempt_started` + `router.refresh()`
+  so the gate evaluates false on the next render. Localstorage skip-
+  preflight flag deferred to slice 4.6. Runner's outer / inner split
+  (`Runner` → `RunnerShell`) keeps rules-of-hooks happy when the gate
+  short-circuits before any useState.
+
+- **4.1.4 — MCQ live.** `<McqRunner mode="answering" | "review">` in
+  `lib/bank/runner/types/mcq.tsx`. Per runner.html §16.1.1, the `mode`
+  prop is **per-item** (UL hybrid: a cell flips to "review" the moment
+  its answer is submitted, while sealed cells stay "answering").
+  Discriminated-union props: answering takes `selected` + `onChange`;
+  review takes `studentAnswer` + `correct`. Per-option feedback shows
+  for every option in review (no prefixes — role conveyed by the
+  `.right` / `.wrong` border + the `Correct` / `Your pick` verdict
+  pill). Shared `<RationaleBlock>` in `lib/bank/runner/rationale.tsx`
+  renders verdict pill + score readout + rationale prose + image
+  (`max-height: 320px`, `object-fit: contain`). RunnerShell owns three
+  client overlays merged on every render: `pendingAnswers` (pre-submit
+  picks per item, persists across navigation), `clientAnswers` (rows
+  submitted in this session), `clientUnseal` (per-Q unseal envelopes).
+  Client wins on conflict.
+
+- **4.1.5 — Finish + MCQ-review-from-mount.** Last-Q post-submit primary
+  CTA becomes `Finish quiz` → calls `completeAttemptAction` +
+  `router.refresh()`. Page re-runs server-side, attempt is now
+  COMPLETED, page fetches with the unsealed projection, `data.mode`
+  flips to `'review'`. Topbar `Untimed` pill swaps to `Score · NN%`.
+  Every cell renders read-only review with full unseal — including
+  items the student didn't submit in this session, because the unseal
+  now flows from the page's projection rather than the per-Q action
+  overlay.
+
+### Design decisions locked
+
+1. **Mode policy for 4.1 — all five modes render as Untimed Learning
+   behaviour.** Per-Q submit, immediate feedback, free nav, no timer
+   countdown, no sequential lock. Builder doesn't know about this — the
+   user can pick TIMED_FREE_NAV in the Builder and the runner will run
+   it as UL. Per-mode deltas (timer, sequential lock, batched submit)
+   layer in slice 4.5. Surfaced in the preflight note.
+
+2. **Scoring stays in TS.** `nclex_submit_answer` is a thin persister —
+   accepts a pre-computed score from the caller. Server Action reads
+   the unsealed item server-side and runs `scoreAttempt()` from
+   `lib/scoring/` (40 Vitest cases) before posting. PL/pgSQL
+   re-implementation would have meant duplicating per-type math with
+   drift risk. Trust boundary: the Server Action runs on the Worker;
+   the key never reaches the browser unless the per-Q unseal returns
+   it for that one item.
+
+3. **Pillar 2 via server-side projection, not column-level RLS.** RLS
+   on `nclex_attempt_items` allows owning students to SELECT every
+   column — review legitimately needs the keys. Tightening RLS would
+   have meant column-level policies + a permissive view for review;
+   more moving parts. Instead the projection narrows at the only place
+   the runner crosses server/client (`page.tsx`): SEALED columns while
+   IN_PROGRESS, UNSEALED while COMPLETED / TIMED_OUT. Per-Q submit
+   returns the unseal envelope for one item via the action response.
+
+4. **Per-option feedback shows for every option in review.** Original
+   gate was "only correct + student-pick"; reverted on Sam's call —
+   distractors carry feedback too because that's how question banks
+   like UWorld / Archer teach option differentiation. Prefixes
+   (`Correct.` / `Why this is wrong.`) dropped — role is already
+   conveyed by border + verdict pill.
+
+5. **Per-type runner is one component with a `mode` prop.** Per
+   runner.html §2.2.1: single component over two-component variants.
+   Half the surface area, no drift risk. The structural shape (option
+   list) is identical between answering and review; only the
+   decorations differ. MCQ is the structural starting point for the
+   other 8 types in slice 4.2.
+
+6. **Runner CSS dropped the `.mn` namespace from the design.** Repo
+   uses bare prefixed selectors (`bk-*`, `auth-*`); `runner.css`
+   follows the same pattern.
+
+7. **Rationale image alt-text deferred.** Schema has only the URL, no
+   alt-text column. v1 ships `alt=""`; a `rationale_img_alt` column +
+   curator field is its own small slice.
+
+### Pillar-2 verification
+
+- Live-mode SSR document response contains zero hits for
+  `correct_answer_snapshot_json`, `rationale_snapshot`,
+  `rationale_img_snapshot` (column-projection-at-load).
+- After per-Q submit, those fields appear ONLY in the action response
+  for that one item.
+- Review-from-mount: when status flips to COMPLETED, the SSR fetches
+  with the unsealed projection — keys + rationale flow for every item
+  with no client overlay required. Reload of a COMPLETED attempt
+  serves the read-only review directly.
+
+### Mid-build polish
+
+- Cloudinary URL injected into all rationale-image columns
+  (`nclex_bank_items.rationale_img`, `nclex_tutor_questions.rationale_img`,
+  `nclex_attempt_items.rationale_img_snapshot`) on dev — temporary
+  placeholder so the rationale image surface can be exercised before
+  curators upload real artwork.
+- One subtle gotcha discovered: per-Q submit captures the unseal
+  envelope at submit time, so items submitted before the URL was added
+  still showed `null` for rationale_img — UL re-submit lock prevents
+  refreshing. Resolution: discard + start a fresh attempt; new submits
+  read the populated snapshot. Documented as inherent to per-Q unseal +
+  re-submit lock; not a bug.
+
+### What's deferred
+
+- `nclex_save_progress` (STUDY drafts) — slice 4.6 alongside Resume UI
+- The two cleanup sweeps from 2.4 (`nclex_timeout_sweep`,
+  `nclex_orphan_cleanup`) — separate slice
+- Per-mode deltas (timer, sequential lock, batched submit) — slice 4.5
+- Mark-for-review toggle wiring — slice 4.7
+- Discard modal with type-DELETE-to-confirm — slice 4.8
+- Case-grouping bands in the grid — slice 4.3
+- Trend dataset panel — slice 4.4
+- Review-state polish (grid CTA, results breakdown) — slice 4.9 / 6.2
+- Mobile bottom-sheet variant of the grid — runs alongside slice 5.1e
+- Rationale-image alt-text — its own small slice
+
+### Queued for next session
+
+- **Slice 4.2** — remaining 8 question types (TF, SATA, Select-N,
+  Matrix, Highlight, Cloze, Drag-drop, Bow-tie). Each as a single
+  component with `mode: "answering" | "review"` prop, structurally
+  mirroring `lib/bank/runner/types/mcq.tsx`. Reuse the existing
+  authoring-editor previews as the structural starting point.
+
+---
+
 ## Session — 2026-05-06 (planning, late evening) — Question grid settled, runner doc rewritten
 
 Pure planning session, no code. Sam wanted the runner-design loop
