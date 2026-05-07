@@ -15,8 +15,8 @@
 //
 // Per-type dispatch: a `switch` on `item.question_type`. TS
 // exhaustiveness — adding a 10th type to QuestionType errors the
-// switch until handled. Only MCQ wired today; the other 8 fall
-// through to the slice-4.2 placeholder.
+// switch until handled. MCQ + TF wired today; the remaining 7
+// fall through to the slice-4.2 placeholder.
 //
 // Wrapper-aware layout (case panel + question, trend dataset + question)
 // lands with slices 4.3 / 4.4. For now we always render `.rn-q-wrap`.
@@ -28,10 +28,12 @@ import type { QuestionType } from '@/lib/bank/classifications';
 import type {
   McqContent,
   McqCorrect,
+  TfContent,
+  TfCorrect,
   BankItemCorrect,
 } from '@/lib/bank/types';
-import type { McqAnswer, BankItemAnswer } from '@/lib/scoring';
-import { McqRunner, RationaleBlock } from '@/lib/bank/runner';
+import type { McqAnswer, TfAnswer, BankItemAnswer } from '@/lib/scoring';
+import { McqRunner, TfRunner, RationaleBlock } from '@/lib/bank/runner';
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   MCQ:       'Multiple choice',
@@ -144,9 +146,32 @@ function PerTypeRunner(props: Props) {
       );
     }
 
+    case 'TF': {
+      const content = item.content_snapshot_json as unknown as TfContent;
+
+      if (props.itemMode === 'answering') {
+        return (
+          <TfRunner
+            mode="answering"
+            content={content}
+            selected={(props.pendingAnswer as TfAnswer | undefined) ?? null}
+            onChange={(id) => props.onAnswerChange(id as BankItemAnswer)}
+          />
+        );
+      }
+
+      return (
+        <TfRunner
+          mode="review"
+          content={content}
+          studentAnswer={(props.answerRow.answer_json as TfAnswer | undefined) ?? null}
+          correct={props.unseal.correct as TfCorrect}
+        />
+      );
+    }
+
     // Slice 4.2 will split each of these into its own case mirroring
-    // the MCQ pattern above. Until then they share the placeholder.
-    case 'TF':
+    // the MCQ / TF pattern above. Until then they share the placeholder.
     case 'SATA':
     case 'SELECT_N':
     case 'MATRIX':

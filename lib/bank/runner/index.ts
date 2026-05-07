@@ -30,4 +30,5 @@ export type {
 } from './cell-state';
 
 export { McqRunner }      from './types/mcq';
+export { TfRunner }       from './types/tf';
 export { RationaleBlock } from './rationale';
