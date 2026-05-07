@@ -1,6 +1,6 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-05-05 (CAT removed from Explicit Deferrals — settled for v1 in `docs/product-plan/bank-consumption-cat.html`)
+Last updated: 2026-05-07 (branching workflow: `work` → `main` → `prod`)
 
 ## What This Is
 
@@ -194,51 +194,62 @@ slice.
   Dev (`next dev`) still uses Turbopack (it is mature for dev).
   Revisit and drop `--webpack` once OpenNext adds Turbopack support.
 
-## Persistent worktree
+## Branching workflow
 
-To avoid the per-session cost of a fresh worktree (`npm install`,
-`.env.local` recreation, merge step), MyNclex sessions operate in a
-**single persistent worktree**:
+Three long-lived branches on the remote:
 
-- **Path:** `C:\Users\confi\qacademy-mynclex\.claude\worktrees\dev`
-- **Branch:** `claude/dev` (long-lived, branched off `main`)
+- **`work`** — where Claude edits code. All session work happens here.
+  Push freely.
+- **`main`** — stable. `work` is merged into `main` once a slice is done
+  and tested locally.
+- **`prod`** — released / deployed. `main` is merged into `prod` when
+  it's time to ship to users.
 
-The worktree's `node_modules`, `.env.local`, and Next.js build cache
-survive across sessions, so `npm install` only ran once.
+Branch names `dev` / `prod` are reserved for environment naming
+(Cloudflare, Supabase) — that's why the working branch is called
+`work` and not `dev`.
 
-**Launch habit (every session):**
+**Every session — first action:**
+
+Each session lands in a fresh `.claude/worktrees/<random>` worktree
+on an auto-created `claude/<random>` branch. Switch to `work`
+immediately:
 
 ```powershell
-cd C:\Users\confi\qacademy-mynclex\.claude\worktrees\dev
-claude
+git checkout work
+git pull origin work
 ```
 
-If a session lands in a fresh `.claude/worktrees/<random>` instead,
-exit and re-launch from the `dev` worktree path above.
+Commit on `work`. Push with `git push origin work`.
 
-**End-of-session merge:**
+**Merging `work` → `main`** (when a slice is done and tested):
 
 ```powershell
-# from the worktree, after committing on claude/dev:
-cd C:\Users\confi\qacademy-mynclex
-git merge claude/dev --ff-only
+git checkout main
+git merge work --ff-only
 git push origin main
+git checkout work
 ```
 
-Same flow as before, just with a stable branch name (`claude/dev`)
-instead of a per-session random name.
+**Releasing `main` → `prod`** (when ready to deploy):
 
-The persistent worktree is the only operating environment — never
-work directly in the `qacademy-mynclex` main checkout (that's the
-"safety" reason for keeping a worktree at all: mistakes don't pollute
-main until the explicit merge step).
+```powershell
+git checkout prod
+git merge main --ff-only
+git push origin prod
+git checkout work
+```
+
+Never work directly in the `qacademy-mynclex` main checkout — always
+operate inside a `.claude/worktrees/<...>` worktree, on the `work`
+branch.
 
 ## Working With Sam
 
 - Sam has no coding background. Explain rationale before code. No assumed
   code literacy.
 - Discuss plans before building. No full rewrites without approval.
-- Always push directly to main. No PRs or branches.
+- Work on the `work` branch; merge to `main` when a slice is done; merge `main` to `prod` when releasing. See **Branching workflow** above.
 - One issue at a time, confirmed before moving on.
 
 ## Files To Read at Session Start
