@@ -15,8 +15,16 @@
 //
 // Per-type dispatch: a `switch` on `item.question_type`. TS
 // exhaustiveness — adding a 10th type to QuestionType errors the
-// switch until handled. MCQ + TF + SATA + SELECT_N + MATRIX wired
-// today; the remaining 4 fall through to the slice-4.2 placeholder.
+// switch until handled. MCQ + TF + SATA + SELECT_N + MATRIX +
+// HIGHLIGHT wired today; the remaining 3 fall through to the
+// slice-4.2 placeholder.
+//
+// HIGHLIGHT is special: the per-type runner takes over stem
+// rendering (the stem itself contains the [[bracketed]] interactive
+// chunks). For HIGHLIGHT we skip the regular `.rn-stem` render in
+// RunnerQuestionArea and the instruction moves to ABOVE the passage
+// (the student needs to know what they're hunting for before they
+// read).
 //
 // Wrapper-aware layout (case panel + question, trend dataset + question)
 // lands with slices 4.3 / 4.4. For now we always render `.rn-q-wrap`.
@@ -36,6 +44,8 @@ import type {
   SelectNCorrect,
   MatrixContent,
   MatrixCorrect,
+  HighlightContent,
+  HighlightCorrect,
   BankItemCorrect,
 } from '@/lib/bank/types';
 import type {
@@ -44,6 +54,7 @@ import type {
   SataAnswer,
   SelectNAnswer,
   MatrixAnswer,
+  HighlightAnswer,
   BankItemAnswer,
 } from '@/lib/scoring';
 import {
@@ -52,6 +63,7 @@ import {
   SataRunner,
   SelectNRunner,
   MatrixRunner,
+  HighlightRunner,
   RationaleBlock,
 } from '@/lib/bank/runner';
 
@@ -116,10 +128,20 @@ export function RunnerQuestionArea(props: Props) {
         {difficulty  && <span className="rn-type-pill">Difficulty · {difficulty}</span>}
       </div>
 
-      <div className="rn-stem">{item.stem_snapshot}</div>
-
-      {item.instruction_snapshot && (
-        <p className="rn-instruction">{item.instruction_snapshot}</p>
+      {/* HIGHLIGHT renders its own stem with chunks; for it, instruction
+       *  moves above the passage so the student knows what to hunt for
+       *  before reading. All other types render stem here, then instruction. */}
+      {item.question_type === 'HIGHLIGHT' ? (
+        item.instruction_snapshot && (
+          <p className="rn-instruction">{item.instruction_snapshot}</p>
+        )
+      ) : (
+        <>
+          <div className="rn-stem">{item.stem_snapshot}</div>
+          {item.instruction_snapshot && (
+            <p className="rn-instruction">{item.instruction_snapshot}</p>
+          )}
+        </>
       )}
 
       <PerTypeRunner {...props} />
@@ -262,10 +284,35 @@ function PerTypeRunner(props: Props) {
       );
     }
 
+    case 'HIGHLIGHT': {
+      const content = item.content_snapshot_json as unknown as HighlightContent;
+
+      if (props.itemMode === 'answering') {
+        return (
+          <HighlightRunner
+            mode="answering"
+            stem={item.stem_snapshot}
+            content={content}
+            selected={(props.pendingAnswer as HighlightAnswer | undefined) ?? []}
+            onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
+          />
+        );
+      }
+
+      return (
+        <HighlightRunner
+          mode="review"
+          stem={item.stem_snapshot}
+          content={content}
+          studentAnswer={(props.answerRow.answer_json as HighlightAnswer | undefined) ?? []}
+          correct={props.unseal.correct as HighlightCorrect}
+        />
+      );
+    }
+
     // Slice 4.2 will split each of these into its own case mirroring
-    // the MCQ / TF / SATA / SELECT_N / MATRIX pattern above. Until
-    // then they share the placeholder.
-    case 'HIGHLIGHT':
+    // the MCQ / TF / SATA / SELECT_N / MATRIX / HIGHLIGHT pattern
+    // above. Until then they share the placeholder.
     case 'CLOZE':
     case 'DRAG_DROP':
     case 'BOWTIE':

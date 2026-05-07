@@ -464,6 +464,116 @@
   line-height: 1.5;
 }
 
+/* HIGHLIGHT — passage with [[bracketed]] clickable chunks.
+ * Each chunk renders as an inline button with a "highlightable"
+ * affordance (blue tint + dashed underline). State styles signal
+ * correctness in review mode. Visual palette mirrors the highlight
+ * editor's preview (auth-hl-preview-chunk) so curators recognise
+ * roughly the same render the student sees. */
+.rn-highlight-stem {
+  font-size: 15.5px;
+  line-height: 1.85;     /* extra leading so chunk padding doesn't crowd */
+  color: var(--text);
+  margin-bottom: 18px;
+}
+.rn-highlight-chunk {
+  display: inline;
+  padding: 2px 6px;
+  margin: 0 1px;
+  border: 1px solid #bfdbfe;
+  border-radius: 3px;
+  background: #eff6ff;
+  color: #1e40af;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 500;
+  line-height: inherit;
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-decoration-color: #1e40af;
+  text-decoration-thickness: 1px;
+  transition: background-color .12s, border-color .12s;
+}
+.rn-highlight-chunk:hover:not(.locked) {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+.rn-highlight-chunk:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.rn-highlight-chunk.sel {
+  background: #fef9c3;       /* highlighter yellow */
+  border-color: #facc15;
+  color: #713f12;
+  text-decoration: none;
+  font-weight: 600;
+}
+.rn-highlight-chunk.locked {
+  cursor: default;
+  text-decoration: none;
+}
+.rn-highlight-chunk.right {
+  background: #dcfce7;
+  border-color: #16a34a;
+  color: #14532d;
+  font-weight: 700;
+}
+.rn-highlight-chunk.wrong {
+  background: #fee2e2;
+  border-color: #b91c1c;
+  color: #7f1d1d;
+  font-weight: 600;
+  text-decoration: line-through;
+  text-decoration-color: #b91c1c;
+  text-decoration-thickness: 1.5px;
+}
+.rn-highlight-chunk.missed {
+  background: transparent;
+  border-color: #d97706;
+  border-style: dashed;
+  color: #b45309;
+  font-weight: 600;
+}
+
+/* Per-chunk feedback list (review mode). Shows only chunks involved
+ * in the student's answer story (picked or should-have-been-picked). */
+.rn-highlight-feedback {
+  margin-top: 16px;
+  background: var(--bg);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+  padding: 6px 14px;
+}
+.rn-highlight-feedback-item {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.rn-highlight-feedback-item:last-child { border-bottom: 0; }
+.rn-highlight-feedback-icon {
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 13px;
+  width: 16px;
+  text-align: center;
+}
+.rn-highlight-feedback-icon.right  { color: #15803d; }
+.rn-highlight-feedback-icon.wrong  { color: #b91c1c; }
+.rn-highlight-feedback-icon.missed { color: #b45309; }
+.rn-highlight-feedback-text {
+  flex: 1;
+  color: var(--text-muted);
+}
+.rn-highlight-feedback-text strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
 /* Per-option feedback (review mode) — italic muted line directly under
  * the option text. No top border, no top padding — keeps the option
  * card compact. */

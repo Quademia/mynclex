@@ -29,9 +29,10 @@ export type {
   GridFilter,
 } from './cell-state';
 
-export { McqRunner,     isMcqComplete }      from './types/mcq';
-export { TfRunner,      isTfComplete }       from './types/tf';
-export { SataRunner,    isSataComplete }     from './types/sata';
-export { SelectNRunner, isSelectNComplete }  from './types/select-n';
-export { MatrixRunner,  isMatrixComplete }   from './types/matrix';
+export { McqRunner,       isMcqComplete }       from './types/mcq';
+export { TfRunner,        isTfComplete }        from './types/tf';
+export { SataRunner,      isSataComplete }      from './types/sata';
+export { SelectNRunner,   isSelectNComplete }   from './types/select-n';
+export { MatrixRunner,    isMatrixComplete }    from './types/matrix';
+export { HighlightRunner, isHighlightComplete } from './types/highlight';
 export { RationaleBlock } from './rationale';

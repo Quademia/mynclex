@@ -39,12 +39,13 @@ import type {
   SelectNAnswer,
 } from '@/lib/scoring';
 import type { SelectNContent, MatrixContent } from '@/lib/bank/types';
-import type { MatrixAnswer } from '@/lib/scoring';
+import type { MatrixAnswer, HighlightAnswer } from '@/lib/scoring';
 import {
   isMcqComplete,
   isSataComplete,
   isSelectNComplete,
   isMatrixComplete,
+  isHighlightComplete,
 } from '@/lib/bank/runner';
 import { ErrorToast } from '@/lib/bank/atoms/error-toast';
 import { RunnerTopbar }       from './runner-topbar';
@@ -409,9 +410,22 @@ function getSubmitGate(
       };
     }
 
-    // HIGHLIGHT / CLOZE / DRAG_DROP / BOWTIE land in slice 4.2. Until
-    // then the per-type runner shows a placeholder and submission is
-    // gated off — there's no scoring path for these types yet.
+    case 'HIGHLIGHT': {
+      // Like SATA: zero highlights is a deliberate "nothing relevant"
+      // answer. isHighlightComplete is `() => true` — kept in the call
+      // chain so the rule visibly belongs to highlight.tsx.
+      const a = (pending as HighlightAnswer | undefined) ?? [];
+      const ok = isHighlightComplete(a);
+      return {
+        canSubmit:   ok,
+        submitValue: a as BankItemAnswer,
+        hint:        undefined,
+      };
+    }
+
+    // CLOZE / DRAG_DROP / BOWTIE land in slice 4.2. Until then the
+    // per-type runner shows a placeholder and submission is gated off
+    // — there's no scoring path for these types yet.
     default:
       return {
         canSubmit:   false,
