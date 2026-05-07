@@ -15,8 +15,8 @@
 //
 // Per-type dispatch: a `switch` on `item.question_type`. TS
 // exhaustiveness — adding a 10th type to QuestionType errors the
-// switch until handled. MCQ + TF + SATA + SELECT_N wired today;
-// the remaining 5 fall through to the slice-4.2 placeholder.
+// switch until handled. MCQ + TF + SATA + SELECT_N + MATRIX wired
+// today; the remaining 4 fall through to the slice-4.2 placeholder.
 //
 // Wrapper-aware layout (case panel + question, trend dataset + question)
 // lands with slices 4.3 / 4.4. For now we always render `.rn-q-wrap`.
@@ -34,6 +34,8 @@ import type {
   SataCorrect,
   SelectNContent,
   SelectNCorrect,
+  MatrixContent,
+  MatrixCorrect,
   BankItemCorrect,
 } from '@/lib/bank/types';
 import type {
@@ -41,6 +43,7 @@ import type {
   TfAnswer,
   SataAnswer,
   SelectNAnswer,
+  MatrixAnswer,
   BankItemAnswer,
 } from '@/lib/scoring';
 import {
@@ -48,6 +51,7 @@ import {
   TfRunner,
   SataRunner,
   SelectNRunner,
+  MatrixRunner,
   RationaleBlock,
 } from '@/lib/bank/runner';
 
@@ -234,10 +238,33 @@ function PerTypeRunner(props: Props) {
       );
     }
 
+    case 'MATRIX': {
+      const content = item.content_snapshot_json as unknown as MatrixContent;
+
+      if (props.itemMode === 'answering') {
+        return (
+          <MatrixRunner
+            mode="answering"
+            content={content}
+            selected={(props.pendingAnswer as MatrixAnswer | undefined) ?? {}}
+            onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
+          />
+        );
+      }
+
+      return (
+        <MatrixRunner
+          mode="review"
+          content={content}
+          studentAnswer={(props.answerRow.answer_json as MatrixAnswer | undefined) ?? {}}
+          correct={props.unseal.correct as MatrixCorrect}
+        />
+      );
+    }
+
     // Slice 4.2 will split each of these into its own case mirroring
-    // the MCQ / TF / SATA / SELECT_N pattern above. Until then they
-    // share the placeholder.
-    case 'MATRIX':
+    // the MCQ / TF / SATA / SELECT_N / MATRIX pattern above. Until
+    // then they share the placeholder.
     case 'HIGHLIGHT':
     case 'CLOZE':
     case 'DRAG_DROP':

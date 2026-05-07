@@ -38,11 +38,13 @@ import type {
   SataAnswer,
   SelectNAnswer,
 } from '@/lib/scoring';
-import type { SelectNContent } from '@/lib/bank/types';
+import type { SelectNContent, MatrixContent } from '@/lib/bank/types';
+import type { MatrixAnswer } from '@/lib/scoring';
 import {
   isMcqComplete,
   isSataComplete,
   isSelectNComplete,
+  isMatrixComplete,
 } from '@/lib/bank/runner';
 import { ErrorToast } from '@/lib/bank/atoms/error-toast';
 import { RunnerTopbar }       from './runner-topbar';
@@ -394,9 +396,22 @@ function getSubmitGate(
       };
     }
 
-    // MATRIX / HIGHLIGHT / CLOZE / DRAG_DROP / BOWTIE land in slice 4.2.
-    // Until then the per-type runner shows a placeholder and submission
-    // is gated off — there's no scoring path for these types yet.
+    case 'MATRIX': {
+      const content = item.content_snapshot_json as unknown as MatrixContent;
+      const a = pending as MatrixAnswer | undefined;
+      const ok = isMatrixComplete(a, content);
+      const answered = a ? Object.keys(a).filter((k) => a[k]).length : 0;
+      const total = content.rows.length;
+      return {
+        canSubmit:   ok,
+        submitValue: ok ? (a as BankItemAnswer) : null,
+        hint:        ok ? undefined : `${answered} of ${total} rows answered — finish all to submit`,
+      };
+    }
+
+    // HIGHLIGHT / CLOZE / DRAG_DROP / BOWTIE land in slice 4.2. Until
+    // then the per-type runner shows a placeholder and submission is
+    // gated off — there's no scoring path for these types yet.
     default:
       return {
         canSubmit:   false,

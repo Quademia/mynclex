@@ -33,4 +33,5 @@ export { McqRunner,     isMcqComplete }      from './types/mcq';
 export { TfRunner,      isTfComplete }       from './types/tf';
 export { SataRunner,    isSataComplete }     from './types/sata';
 export { SelectNRunner, isSelectNComplete }  from './types/select-n';
+export { MatrixRunner,  isMatrixComplete }   from './types/matrix';
 export { RationaleBlock } from './rationale';

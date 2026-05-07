@@ -350,6 +350,100 @@
 
 .rn-opt-body { flex: 1; min-width: 0; }
 
+/* MATRIX — rows × columns grid (one row, one pick).
+ * Each row is its own CSS Grid (template applied inline so the
+ * column count varies per question). Cells are clickable buttons
+ * with a radio-style ○/● glyph. Per-row feedback line in review. */
+.rn-matrix {
+  margin-left: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rn-matrix-row,
+.rn-matrix-row.head {
+  display: grid;
+  gap: 4px;
+}
+.rn-matrix-row.head { margin-bottom: 4px; }
+.rn-matrix-row-label-head,
+.rn-matrix-col-head {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 6px 10px;
+}
+.rn-matrix-col-head {
+  text-align: center;
+  background: var(--bg);
+  border-radius: 3px;
+}
+.rn-matrix-row-label {
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--bg);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+}
+.rn-matrix-cell {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  min-height: 44px;
+  transition: border-color .12s, background .12s;
+}
+.rn-matrix-cell::before {
+  content: '○';
+  color: var(--text-faint);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+.rn-matrix-cell:hover:not(.locked) { border-color: var(--border-strong); }
+.rn-matrix-cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.rn-matrix-cell.sel {
+  background: rgba(45, 125, 114, 0.07);
+  border-color: var(--accent);
+}
+.rn-matrix-cell.sel::before    { content: '●'; color: var(--accent); }
+.rn-matrix-cell.right {
+  background: rgba(22, 163, 74, 0.08);
+  border-color: #16a34a;
+}
+.rn-matrix-cell.right::before  { content: '●'; color: #15803d; }
+.rn-matrix-cell.wrong {
+  background: rgba(185, 28, 28, 0.06);
+  border-color: #b91c1c;
+}
+.rn-matrix-cell.wrong::before  { content: '●'; color: #b91c1c; }
+.rn-matrix-cell.missed {
+  border-color: #d97706;
+  border-style: dashed;
+}
+.rn-matrix-cell.missed::before { content: '✓'; color: #b45309; font-size: 14px; }
+.rn-matrix-cell.locked { cursor: default; }
+
+.rn-matrix-row-foot {
+  padding: 4px 12px 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.5;
+}
+
 /* Per-option feedback (review mode) — italic muted line directly under
  * the option text. No top border, no top padding — keeps the option
  * card compact. */
