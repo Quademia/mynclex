@@ -39,6 +39,12 @@ type McqRunnerProps = {
     }
 );
 
+// Submit gate — true when the student has picked an option. MCQ /
+// TF cannot be submitted with no pick (the answer key requires one).
+export function isMcqComplete(answer: McqAnswer | undefined): boolean {
+  return answer != null;
+}
+
 export function McqRunner(props: McqRunnerProps) {
   const { content } = props;
   const isReview    = props.mode === 'review';

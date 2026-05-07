@@ -29,8 +29,8 @@ export type {
   GridFilter,
 } from './cell-state';
 
-export { McqRunner }      from './types/mcq';
-export { TfRunner }       from './types/tf';
-export { SataRunner }     from './types/sata';
-export { SelectNRunner }  from './types/select-n';
+export { McqRunner,     isMcqComplete }      from './types/mcq';
+export { TfRunner,      isTfComplete }       from './types/tf';
+export { SataRunner,    isSataComplete }     from './types/sata';
+export { SelectNRunner, isSelectNComplete }  from './types/select-n';
 export { RationaleBlock } from './rationale';

@@ -27,10 +27,23 @@ import { useRouter } from 'next/navigation';
 import type {
   RunnerData,
   AnswerRow,
+  SealedItem,
+  UnsealedItem,
   SubmitAnswerResult,
 } from '@/lib/bank/runner';
 import type { GridFilter } from '@/lib/bank/runner';
-import type { BankItemAnswer } from '@/lib/scoring';
+import type {
+  BankItemAnswer,
+  McqAnswer,
+  SataAnswer,
+  SelectNAnswer,
+} from '@/lib/scoring';
+import type { SelectNContent } from '@/lib/bank/types';
+import {
+  isMcqComplete,
+  isSataComplete,
+  isSelectNComplete,
+} from '@/lib/bank/runner';
 import { ErrorToast } from '@/lib/bank/atoms/error-toast';
 import { RunnerTopbar }       from './runner-topbar';
 import { RunnerFooter }       from './runner-footer';
@@ -152,12 +165,20 @@ function RunnerShell({ data }: Props) {
     [currentItem],
   );
 
+  // Per-type submit gate — `canSubmit` controls the button, `submitValue`
+  // is the actual answer to send (SATA coerces undefined → []), and `hint`
+  // is the footer copy when disabled. See getSubmitGate at the bottom.
+  const submitGate = currentItem
+    ? getSubmitGate(currentItem, pendingForCurrent)
+    : null;
+
   const onSubmit = () => {
-    if (!currentItem || pendingForCurrent === undefined) return;
+    if (!currentItem || !submitGate?.canSubmit || submitGate.submitValue === null) return;
+    const submission = submitGate.submitValue;
     startSubmit(async () => {
-      const r = await submitAnswerAction(currentItem.attempt_item_id, pendingForCurrent);
+      const r = await submitAnswerAction(currentItem.attempt_item_id, submission);
       if (!r.ok) { setError(r.error); return; }
-      mergeSubmitResult(r.data, pendingForCurrent, setClientAnswers, setClientUnseal);
+      mergeSubmitResult(r.data, submission, setClientAnswers, setClientUnseal);
     });
   };
 
@@ -174,10 +195,9 @@ function RunnerShell({ data }: Props) {
   };
 
   // Footer label / handler / disabled — derived from per-item mode.
-  const isLastQ        = current >= total - 1;
-  const hasPendingPick = pendingForCurrent !== undefined && pendingForCurrent !== null;
-  const isAnswering    = itemMode === 'answering';
-  const isFinishCta    = isLastQ && itemMode === 'review' && data.mode === 'live';
+  const isLastQ     = current >= total - 1;
+  const isAnswering = itemMode === 'answering';
+  const isFinishCta = isLastQ && itemMode === 'review' && data.mode === 'live';
 
   let primaryLabel:    string;
   let primaryDisabled: boolean;
@@ -185,9 +205,10 @@ function RunnerShell({ data }: Props) {
   let onPrimary:       () => void;
 
   if (isAnswering) {
+    const canSubmit = submitGate?.canSubmit ?? false;
     primaryLabel    = 'Submit answer';
-    primaryDisabled = !hasPendingPick || submitting;
-    primaryHint     = !hasPendingPick ? 'Pick an option to enable Submit' : undefined;
+    primaryDisabled = !canSubmit || submitting;
+    primaryHint     = canSubmit ? undefined : submitGate?.hint;
     onPrimary       = onSubmit;
   } else if (isFinishCta) {
     // Last Q post-submit in live mode → Finish CTA. completeAttemptAction
@@ -308,6 +329,81 @@ function RunnerShell({ data }: Props) {
 // Pretty-print a 0..1 final_score as an integer percentage.
 function formatPercent(score: number): string {
   return `${Math.round(score * 100)}%`;
+}
+
+
+// Per-type submit gate. Each per-type module owns its "is the current
+// pending answer enough to submit?" rule (isMcqComplete / isSataComplete
+// / isSelectNComplete / etc.). This dispatcher reads the right rule per
+// question_type, returning:
+//
+//   • canSubmit:   boolean — controls the Submit button
+//   • submitValue: BankItemAnswer | null — the value to send to
+//     submitAnswerAction (null when the gate fails). For SATA, the
+//     undefined-pending case is coerced to [] since "zero selections"
+//     is a valid answer (per Sam, 2026-05-07).
+//   • hint:        string | undefined — footer copy when canSubmit is
+//     false. Type-aware (e.g. "Select 3 of 3 to submit" for SELECT_N).
+//
+// As slice 4.2 wires MATRIX / HIGHLIGHT / CLOZE / DRAG_DROP / BOWTIE,
+// each adds a case here that consults its own isXxxComplete helper.
+interface SubmitGate {
+  canSubmit:   boolean;
+  submitValue: BankItemAnswer | null;
+  hint:        string | undefined;
+}
+
+function getSubmitGate(
+  item:    SealedItem | UnsealedItem,
+  pending: BankItemAnswer | undefined,
+): SubmitGate {
+  switch (item.question_type) {
+    case 'MCQ':
+    case 'TF': {
+      const a = pending as McqAnswer | undefined;
+      const ok = isMcqComplete(a);
+      return {
+        canSubmit:   ok,
+        submitValue: ok ? (a as BankItemAnswer) : null,
+        hint:        ok ? undefined : 'Pick an option to enable Submit',
+      };
+    }
+
+    case 'SATA': {
+      const a = (pending as SataAnswer | undefined) ?? [];
+      // isSataComplete is `() => true` — kept in the call chain so the
+      // SATA-allows-zero rule visibly belongs to sata.tsx, not buried
+      // here.
+      const ok = isSataComplete(a);
+      return {
+        canSubmit:   ok,
+        submitValue: a as BankItemAnswer,
+        hint:        undefined,
+      };
+    }
+
+    case 'SELECT_N': {
+      const content = item.content_snapshot_json as unknown as SelectNContent;
+      const a = pending as SelectNAnswer | undefined;
+      const n = content.select_count;
+      const ok = isSelectNComplete(a, n);
+      return {
+        canSubmit:   ok,
+        submitValue: ok ? (a as BankItemAnswer) : null,
+        hint:        ok ? undefined : `Select ${n} of ${n} to submit`,
+      };
+    }
+
+    // MATRIX / HIGHLIGHT / CLOZE / DRAG_DROP / BOWTIE land in slice 4.2.
+    // Until then the per-type runner shows a placeholder and submission
+    // is gated off — there's no scoring path for these types yet.
+    default:
+      return {
+        canSubmit:   false,
+        submitValue: null,
+        hint:        'This question type is not yet wired in slice 4.2',
+      };
+  }
 }
 
 

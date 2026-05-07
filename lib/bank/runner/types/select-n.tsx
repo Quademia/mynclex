@@ -38,6 +38,16 @@ type SelectNRunnerProps = {
     }
 );
 
+// Submit gate — SELECT_N requires EXACTLY `select_count` picks. Any
+// fewer (or more — though the toggle handler caps additions) keeps
+// the Submit button disabled with a count-aware hint.
+export function isSelectNComplete(
+  answer: SelectNAnswer | undefined,
+  selectCount: number,
+): boolean {
+  return (answer?.length ?? 0) === selectCount;
+}
+
 export function SelectNRunner(props: SelectNRunnerProps) {
   const { content } = props;
   const isReview = props.mode === 'review';
@@ -69,13 +79,19 @@ export function SelectNRunner(props: SelectNRunnerProps) {
   return (
     <>
       {!isReview && (
-        <div className="rn-opt-count">
-          Select <strong>{N}</strong>
-          <span className="sep">·</span>
-          <span className={atCap ? 'count met' : 'count'}>
-            {studentSet.size} of {N} chosen
-          </span>
-        </div>
+        studentSet.size === 0 ? (
+          <div className="rn-opt-count">
+            Select <strong>{N}</strong>.
+          </div>
+        ) : (
+          <div className="rn-opt-count">
+            <strong>{studentSet.size}</strong> of <strong>{N}</strong> chosen
+            <span className="sep">·</span>
+            <span className={atCap ? 'hint met' : 'hint'}>
+              {atCap ? 'tap a selected option to swap' : 'tap to deselect'}
+            </span>
+          </div>
+        )
       )}
 
       <div className="rn-options" role={isReview ? undefined : 'group'}>

@@ -37,6 +37,14 @@ type SataRunnerProps = {
     }
 );
 
+// Submit gate — SATA always allows submit (per Sam, 2026-05-07).
+// Zero selections is a deliberate "none of these apply" answer, scored
+// the same way any other answer is scored. Untouched answers (Map has
+// no entry → undefined) are coerced to [] at the call site.
+export function isSataComplete(_answer: SataAnswer | undefined): boolean {
+  return true;
+}
+
 export function SataRunner(props: SataRunnerProps) {
   const { content } = props;
   const isReview    = props.mode === 'review';

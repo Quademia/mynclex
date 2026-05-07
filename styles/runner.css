@@ -261,7 +261,8 @@
 }
 .rn-opt-count strong { color: var(--text); font-weight: 700; }
 .rn-opt-count .sep   { color: var(--text-faint); }
-.rn-opt-count .count.met { color: var(--accent); font-weight: 600; }
+.rn-opt-count .hint     { font-style: italic; }
+.rn-opt-count .hint.met { color: var(--accent); font-weight: 600; font-style: normal; }
 
 /* MCQ / SATA / Select-N option list — academic / paper-exam treatment.
  * Settled in mockup review (2026-05-07): plain "A." letter prefixing

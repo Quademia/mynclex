@@ -19,7 +19,12 @@
 
 import type { TfContent, TfCorrect } from '@/lib/bank/types';
 import type { TfAnswer } from '@/lib/scoring';
-import { McqRunner } from './mcq';
+import { McqRunner, isMcqComplete } from './mcq';
+
+// Submit gate — TF reuses MCQ's "must pick one" rule.
+export function isTfComplete(answer: TfAnswer | undefined): boolean {
+  return isMcqComplete(answer);
+}
 
 type TfRunnerProps = {
   content: TfContent;
