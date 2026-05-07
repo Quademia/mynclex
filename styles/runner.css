@@ -353,19 +353,43 @@
 /* MATRIX — rows × columns grid (one row, one pick).
  * Each row is its own CSS Grid (template applied inline so the
  * column count varies per question). Cells are clickable buttons
- * with a radio-style ○/● glyph. Per-row feedback line in review. */
+ * with a radio-style ○/● glyph. Per-row feedback line in review.
+ *
+ * Visual hierarchy (settled in mockup review 2026-05-08):
+ *   • outer 2px border + radius + padding wraps the whole matrix
+ *     as one contained unit
+ *   • each body row sits inside a 1.5px-bordered .row-block, so
+ *     rows read as discrete units the eye can scan
+ *   • header row uses just a bottom divider (no all-sides border)
+ *     so it frames the body rather than competing with them
+ *   • cell radio glyphs are 20px so they read clearly at a glance
+ */
 .rn-matrix {
   margin-left: 32px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  border: 2px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 10px;
+  background: var(--white);
 }
 .rn-matrix-row,
 .rn-matrix-row.head {
   display: grid;
   gap: 4px;
 }
-.rn-matrix-row.head { margin-bottom: 4px; }
+.rn-matrix-row-block {
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--white);
+  padding: 4px;
+}
+.rn-matrix-row.head {
+  border-bottom: 2px solid var(--border-strong);
+  padding: 0 4px 8px;
+  margin-bottom: 6px;
+}
 .rn-matrix-row-label-head,
 .rn-matrix-col-head {
   font-size: 11px;
@@ -375,11 +399,7 @@
   color: var(--text-muted);
   padding: 6px 10px;
 }
-.rn-matrix-col-head {
-  text-align: center;
-  background: var(--bg);
-  border-radius: 3px;
-}
+.rn-matrix-col-head { text-align: center; }
 .rn-matrix-row-label {
   padding: 10px 12px;
   font-size: 14px;
@@ -405,7 +425,7 @@
 .rn-matrix-cell::before {
   content: '○';
   color: var(--text-faint);
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1;
 }
@@ -433,7 +453,7 @@
   border-color: #d97706;
   border-style: dashed;
 }
-.rn-matrix-cell.missed::before { content: '✓'; color: #b45309; font-size: 14px; }
+.rn-matrix-cell.missed::before { content: '✓'; color: #b45309; font-size: 18px; }
 .rn-matrix-cell.locked { cursor: default; }
 
 .rn-matrix-row-foot {
