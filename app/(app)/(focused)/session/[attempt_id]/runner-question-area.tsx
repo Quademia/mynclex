@@ -2,12 +2,21 @@
 //
 // Middle column of the runner. Owns the meta-pill strip, the stem +
 // instruction line, the per-type runner component slot, and the
-// rationale block (rendered when an answer-row + unseal data exist
-// for the current item).
+// rationale block (rendered in review mode).
 //
-// Per-type dispatch: only MCQ wired in 4.1.4. Other types (TF, SATA,
-// SELECT_N, MATRIX, HIGHLIGHT, CLOZE, DRAG_DROP, BOWTIE) fall through
-// to a placeholder pointing at slice 4.2.
+// Props are a discriminated union on `itemMode`:
+//   • answering — pendingAnswer + onAnswerChange
+//   • review    — answerRow + unseal (both required, not optional)
+// This pushes the "review mode but unseal not yet loaded" edge case
+// up to the caller (runner.tsx), so per-type runners stay clean —
+// a single `<XxxRunner mode="review" ... />` call without defensive
+// fallbacks. With 9 question types coming in slice 4.2, removing
+// per-type defensiveness is the difference between 1 guard and 9.
+//
+// Per-type dispatch: a `switch` on `item.question_type`. TS
+// exhaustiveness — adding a 10th type to QuestionType errors the
+// switch until handled. Only MCQ wired today; the other 8 fall
+// through to the slice-4.2 placeholder.
 //
 // Wrapper-aware layout (case panel + question, trend dataset + question)
 // lands with slices 4.3 / 4.4. For now we always render `.rn-q-wrap`.
@@ -51,25 +60,26 @@ export interface PerItemUnseal {
   marksMax:     number;
 }
 
-interface Props {
-  item:           SealedItem | UnsealedItem;
-  itemMode:       'answering' | 'review';
-  // Answering mode:
-  pendingAnswer:  BankItemAnswer | undefined;
-  onAnswerChange: (next: BankItemAnswer) => void;
-  // Review mode (live just-submitted OR review-mode-from-mount):
-  answerRow:      AnswerRow | undefined;
-  unseal:         PerItemUnseal | undefined;
+interface CommonProps {
+  item: SealedItem | UnsealedItem;
 }
 
-export function RunnerQuestionArea({
-  item,
-  itemMode,
-  pendingAnswer,
-  onAnswerChange,
-  answerRow,
-  unseal,
-}: Props) {
+type AnsweringProps = CommonProps & {
+  itemMode:       'answering';
+  pendingAnswer:  BankItemAnswer | undefined;
+  onAnswerChange: (next: BankItemAnswer) => void;
+};
+
+type ReviewProps = CommonProps & {
+  itemMode:  'review';
+  answerRow: AnswerRow;
+  unseal:    PerItemUnseal;
+};
+
+type Props = AnsweringProps | ReviewProps;
+
+export function RunnerQuestionArea(props: Props) {
+  const { item } = props;
   const cls = (item.classification_snapshot ?? {}) as Classification;
   const subjectPill = cls.nursing_subject || cls.body_system;
   const difficulty  = cls.difficulty;
@@ -90,22 +100,15 @@ export function RunnerQuestionArea({
         <p className="rn-instruction">{item.instruction_snapshot}</p>
       )}
 
-      <PerTypeRunner
-        item={item}
-        itemMode={itemMode}
-        pendingAnswer={pendingAnswer}
-        onAnswerChange={onAnswerChange}
-        answerRow={answerRow}
-        unseal={unseal}
-      />
+      <PerTypeRunner {...props} />
 
-      {itemMode === 'review' && unseal && answerRow && (
+      {props.itemMode === 'review' && (
         <RationaleBlock
-          isCorrect={answerRow.is_correct ?? false}
-          scoreAwarded={answerRow.score_awarded ?? 0}
-          marksMax={unseal.marksMax}
-          rationale={unseal.rationale}
-          rationaleImg={unseal.rationaleImg}
+          isCorrect={props.answerRow.is_correct ?? false}
+          scoreAwarded={props.answerRow.score_awarded ?? 0}
+          marksMax={props.unseal.marksMax}
+          rationale={props.unseal.rationale}
+          rationaleImg={props.unseal.rationaleImg}
         />
       )}
     </div>
@@ -113,60 +116,55 @@ export function RunnerQuestionArea({
 }
 
 
-function PerTypeRunner({
-  item,
-  itemMode,
-  pendingAnswer,
-  onAnswerChange,
-  answerRow,
-  unseal,
-}: Props) {
-  if (item.question_type === 'MCQ') {
-    const content = item.content_snapshot_json as unknown as McqContent;
+function PerTypeRunner(props: Props) {
+  const { item } = props;
 
-    if (itemMode === 'answering') {
-      return (
-        <McqRunner
-          mode="answering"
-          content={content}
-          selected={(pendingAnswer as McqAnswer | undefined) ?? null}
-          onChange={(id) => onAnswerChange(id as BankItemAnswer)}
-        />
-      );
-    }
+  switch (item.question_type) {
+    case 'MCQ': {
+      const content = item.content_snapshot_json as unknown as McqContent;
 
-    // Review — need the unseal data (correct key) and the student answer.
-    const correct       = unseal?.correct as McqCorrect | undefined;
-    const studentAnswer = (answerRow?.answer_json as McqAnswer | undefined) ?? null;
-    if (!correct) {
-      // Defensive — shouldn't happen if itemMode === 'review' is derived
-      // correctly. Render the locked options without verdict so the
-      // student at least sees their pick.
+      if (props.itemMode === 'answering') {
+        return (
+          <McqRunner
+            mode="answering"
+            content={content}
+            selected={(props.pendingAnswer as McqAnswer | undefined) ?? null}
+            onChange={(id) => props.onAnswerChange(id as BankItemAnswer)}
+          />
+        );
+      }
+
       return (
         <McqRunner
           mode="review"
           content={content}
-          studentAnswer={studentAnswer}
-          correct={{ answer: '', feedback: {} }}
+          studentAnswer={(props.answerRow.answer_json as McqAnswer | undefined) ?? null}
+          correct={props.unseal.correct as McqCorrect}
         />
       );
     }
-    return (
-      <McqRunner
-        mode="review"
-        content={content}
-        studentAnswer={studentAnswer}
-        correct={correct}
-      />
-    );
+
+    // Slice 4.2 will split each of these into its own case mirroring
+    // the MCQ pattern above. Until then they share the placeholder.
+    case 'TF':
+    case 'SATA':
+    case 'SELECT_N':
+    case 'MATRIX':
+    case 'HIGHLIGHT':
+    case 'CLOZE':
+    case 'DRAG_DROP':
+    case 'BOWTIE':
+      return (
+        <div className="rn-stub">
+          The {QUESTION_TYPE_LABELS[item.question_type]} runner lands in slice 4.2.
+          {' '}For now this question can't be answered or scored.
+        </div>
+      );
   }
 
-  // Slice 4.2 wires TF / SATA / SELECT_N / MATRIX / HIGHLIGHT / CLOZE /
-  // DRAG_DROP / BOWTIE. Until then any non-MCQ item is a placeholder.
-  return (
-    <div className="rn-stub">
-      The {QUESTION_TYPE_LABELS[item.question_type]} runner lands in slice 4.2.
-      {' '}For now this question can't be answered or scored.
-    </div>
-  );
+  // Exhaustiveness — adding a 10th QuestionType makes item.question_type
+  // not be `never` here and breaks the build until the new type is
+  // handled in the switch.
+  const _exhaustive: never = item.question_type;
+  return _exhaustive;
 }

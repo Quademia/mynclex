@@ -36,9 +36,16 @@ export interface BowtieAnswer {
   right: string[];
 }
 
+// Union of every per-type answer shape. Order matches the QuestionType
+// classification list. TfAnswer/SelectNAnswer are structurally identical
+// to McqAnswer/SataAnswer respectively (TS dedupes them in the union),
+// but they're listed by name so a reader can see all 9 types accounted
+// for at a glance.
 export type BankItemAnswer =
   | McqAnswer
+  | TfAnswer
   | SataAnswer
+  | SelectNAnswer
   | MatrixAnswer
   | HighlightAnswer
   | ClozeAnswer

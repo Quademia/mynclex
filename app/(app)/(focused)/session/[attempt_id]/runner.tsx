@@ -211,6 +211,46 @@ function RunnerShell({ data }: Props) {
       ? `Score · ${formatPercent(data.attempt.final_score)}`
       : 'Untimed';
 
+  // Branch the RunnerQuestionArea props at the call site so the child
+  // gets clean discriminated-union props (review carries answerRow +
+  // unseal, both required) — no defensive fallback inside per-type
+  // runners. The "review-but-unseal-missing" branch is currently
+  // unreachable in 4.1; surfaces only with slice 4.6 (Resume) where
+  // server-stored answer rows arrive without client-side unseal data.
+  let questionArea: React.ReactNode;
+  if (!currentItem) {
+    questionArea = (
+      <div className="rn-q-wrap">
+        <div className="rn-stub">No questions in this attempt.</div>
+      </div>
+    );
+  } else if (itemMode === 'answering') {
+    questionArea = (
+      <RunnerQuestionArea
+        item={currentItem}
+        itemMode="answering"
+        pendingAnswer={pendingForCurrent}
+        onAnswerChange={onAnswerChange}
+      />
+    );
+  } else if (answerRowForCurrent && unsealForCurrent) {
+    questionArea = (
+      <RunnerQuestionArea
+        item={currentItem}
+        itemMode="review"
+        answerRow={answerRowForCurrent}
+        unseal={unsealForCurrent}
+      />
+    );
+  } else {
+    questionArea = (
+      <div className="rn-q-wrap">
+        <div className="rn-stem">{currentItem.stem_snapshot}</div>
+        <div className="rn-stub">Loading review data…</div>
+      </div>
+    );
+  }
+
   return (
     <div className="rn">
       <ErrorToast error={error} onDismiss={() => setError(null)} />
@@ -226,20 +266,7 @@ function RunnerShell({ data }: Props) {
       <div className="rn-body">
         <main className="rn-main">
           <div className="rn-main-scroll">
-            {currentItem ? (
-              <RunnerQuestionArea
-                item={currentItem}
-                itemMode={itemMode}
-                pendingAnswer={pendingForCurrent}
-                onAnswerChange={onAnswerChange}
-                answerRow={answerRowForCurrent}
-                unseal={unsealForCurrent}
-              />
-            ) : (
-              <div className="rn-q-wrap">
-                <div className="rn-stub">No questions in this attempt.</div>
-              </div>
-            )}
+            {questionArea}
           </div>
         </main>
 
