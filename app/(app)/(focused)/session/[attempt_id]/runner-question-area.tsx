@@ -15,8 +15,8 @@
 //
 // Per-type dispatch: a `switch` on `item.question_type`. TS
 // exhaustiveness — adding a 10th type to QuestionType errors the
-// switch until handled. MCQ + TF wired today; the remaining 7
-// fall through to the slice-4.2 placeholder.
+// switch until handled. MCQ + TF + SATA wired today; the remaining
+// 6 fall through to the slice-4.2 placeholder.
 //
 // Wrapper-aware layout (case panel + question, trend dataset + question)
 // lands with slices 4.3 / 4.4. For now we always render `.rn-q-wrap`.
@@ -30,10 +30,22 @@ import type {
   McqCorrect,
   TfContent,
   TfCorrect,
+  SataContent,
+  SataCorrect,
   BankItemCorrect,
 } from '@/lib/bank/types';
-import type { McqAnswer, TfAnswer, BankItemAnswer } from '@/lib/scoring';
-import { McqRunner, TfRunner, RationaleBlock } from '@/lib/bank/runner';
+import type {
+  McqAnswer,
+  TfAnswer,
+  SataAnswer,
+  BankItemAnswer,
+} from '@/lib/scoring';
+import {
+  McqRunner,
+  TfRunner,
+  SataRunner,
+  RationaleBlock,
+} from '@/lib/bank/runner';
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   MCQ:       'Multiple choice',
@@ -170,9 +182,33 @@ function PerTypeRunner(props: Props) {
       );
     }
 
+    case 'SATA': {
+      const content = item.content_snapshot_json as unknown as SataContent;
+
+      if (props.itemMode === 'answering') {
+        return (
+          <SataRunner
+            mode="answering"
+            content={content}
+            selected={(props.pendingAnswer as SataAnswer | undefined) ?? []}
+            onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
+          />
+        );
+      }
+
+      return (
+        <SataRunner
+          mode="review"
+          content={content}
+          studentAnswer={(props.answerRow.answer_json as SataAnswer | undefined) ?? []}
+          correct={props.unseal.correct as SataCorrect}
+        />
+      );
+    }
+
     // Slice 4.2 will split each of these into its own case mirroring
-    // the MCQ / TF pattern above. Until then they share the placeholder.
-    case 'SATA':
+    // the MCQ / TF / SATA pattern above. Until then they share the
+    // placeholder.
     case 'SELECT_N':
     case 'MATRIX':
     case 'HIGHLIGHT':

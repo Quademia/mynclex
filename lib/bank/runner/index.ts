@@ -31,4 +31,5 @@ export type {
 
 export { McqRunner }      from './types/mcq';
 export { TfRunner }       from './types/tf';
+export { SataRunner }     from './types/sata';
 export { RationaleBlock } from './rationale';

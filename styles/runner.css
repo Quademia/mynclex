@@ -288,6 +288,7 @@
 }
 .rn-opt.right  { border-left-color: #16a34a; }
 .rn-opt.wrong  { border-left-color: #b91c1c; }
+.rn-opt.missed { border-left-color: #d97706; }   /* amber — SATA "should have picked" */
 .rn-opt.locked { cursor: default; }
 .rn-opt.dim    { opacity: 0.6; }
 
@@ -308,21 +309,25 @@
 }
 .rn-opt-letter::after { content: "."; }
 
-/* Marked states — circle replaces the plain letter in the same slot. */
-.rn-opt.sel   .rn-opt-letter,
-.rn-opt.right .rn-opt-letter,
-.rn-opt.wrong .rn-opt-letter {
+/* Marked states — circle replaces the plain letter in the same slot.
+ * Four classes: .sel (answering pick), .right / .wrong / .missed (review). */
+.rn-opt.sel    .rn-opt-letter,
+.rn-opt.right  .rn-opt-letter,
+.rn-opt.wrong  .rn-opt-letter,
+.rn-opt.missed .rn-opt-letter {
   justify-content: center;
   border-radius: 50%;
   color: #fff;
   font-size: 12px;
 }
-.rn-opt.sel   .rn-opt-letter { background: var(--accent); }
-.rn-opt.right .rn-opt-letter { background: #16a34a; }
-.rn-opt.wrong .rn-opt-letter { background: #b91c1c; }
-.rn-opt.sel   .rn-opt-letter::after,
-.rn-opt.right .rn-opt-letter::after,
-.rn-opt.wrong .rn-opt-letter::after { content: ""; }
+.rn-opt.sel    .rn-opt-letter { background: var(--accent); }
+.rn-opt.right  .rn-opt-letter { background: #16a34a; }
+.rn-opt.wrong  .rn-opt-letter { background: #b91c1c; }
+.rn-opt.missed .rn-opt-letter { background: #d97706; }
+.rn-opt.sel    .rn-opt-letter::after,
+.rn-opt.right  .rn-opt-letter::after,
+.rn-opt.wrong  .rn-opt-letter::after,
+.rn-opt.missed .rn-opt-letter::after { content: ""; }
 
 .rn-opt-body { flex: 1; min-width: 0; }
 
@@ -348,8 +353,9 @@
   font-weight: 600;
   color: var(--text-muted);
 }
-.rn-opt.right .rn-opt-verdict { color: #15803d; }
-.rn-opt.wrong .rn-opt-verdict { color: #b91c1c; }
+.rn-opt.right  .rn-opt-verdict { color: #15803d; }
+.rn-opt.wrong  .rn-opt-verdict { color: #b91c1c; }
+.rn-opt.missed .rn-opt-verdict { color: #b45309; }
 
 /* Rationale block (UL post-submit + Review) — left-border accent on a
  * soft grey block. Replaces the bordered card to match the academic
