@@ -15,8 +15,8 @@
 //
 // Per-type dispatch: a `switch` on `item.question_type`. TS
 // exhaustiveness — adding a 10th type to QuestionType errors the
-// switch until handled. MCQ + TF + SATA wired today; the remaining
-// 6 fall through to the slice-4.2 placeholder.
+// switch until handled. MCQ + TF + SATA + SELECT_N wired today;
+// the remaining 5 fall through to the slice-4.2 placeholder.
 //
 // Wrapper-aware layout (case panel + question, trend dataset + question)
 // lands with slices 4.3 / 4.4. For now we always render `.rn-q-wrap`.
@@ -32,18 +32,22 @@ import type {
   TfCorrect,
   SataContent,
   SataCorrect,
+  SelectNContent,
+  SelectNCorrect,
   BankItemCorrect,
 } from '@/lib/bank/types';
 import type {
   McqAnswer,
   TfAnswer,
   SataAnswer,
+  SelectNAnswer,
   BankItemAnswer,
 } from '@/lib/scoring';
 import {
   McqRunner,
   TfRunner,
   SataRunner,
+  SelectNRunner,
   RationaleBlock,
 } from '@/lib/bank/runner';
 
@@ -206,10 +210,33 @@ function PerTypeRunner(props: Props) {
       );
     }
 
+    case 'SELECT_N': {
+      const content = item.content_snapshot_json as unknown as SelectNContent;
+
+      if (props.itemMode === 'answering') {
+        return (
+          <SelectNRunner
+            mode="answering"
+            content={content}
+            selected={(props.pendingAnswer as SelectNAnswer | undefined) ?? []}
+            onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
+          />
+        );
+      }
+
+      return (
+        <SelectNRunner
+          mode="review"
+          content={content}
+          studentAnswer={(props.answerRow.answer_json as SelectNAnswer | undefined) ?? []}
+          correct={props.unseal.correct as SelectNCorrect}
+        />
+      );
+    }
+
     // Slice 4.2 will split each of these into its own case mirroring
-    // the MCQ / TF / SATA pattern above. Until then they share the
-    // placeholder.
-    case 'SELECT_N':
+    // the MCQ / TF / SATA / SELECT_N pattern above. Until then they
+    // share the placeholder.
     case 'MATRIX':
     case 'HIGHLIGHT':
     case 'CLOZE':

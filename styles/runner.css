@@ -245,6 +245,24 @@
   margin-bottom: 14px;
 }
 
+/* SELECT_N count header — small line above the options showing the
+ * required pick-count and the student's progress. Indented + width-
+ * constrained to align with the option list below. Hidden in review
+ * mode (the per-option verdict states already tell the story). */
+.rn-opt-count {
+  margin-left: 32px;
+  max-width: 460px;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.rn-opt-count strong { color: var(--text); font-weight: 700; }
+.rn-opt-count .sep   { color: var(--text-faint); }
+.rn-opt-count .count.met { color: var(--accent); font-weight: 600; }
+
 /* MCQ / SATA / Select-N option list — academic / paper-exam treatment.
  * Settled in mockup review (2026-05-07): plain "A." letter prefixing
  * each line, fixed 22x22 letter slot to prevent text jiggle when state
