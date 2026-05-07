@@ -245,113 +245,157 @@
   margin-bottom: 14px;
 }
 
-/* MCQ / SATA / Select-N option list (real wiring lands in 4.1.4). */
-.rn-options { display: flex; flex-direction: column; gap: 8px; }
+/* MCQ / SATA / Select-N option list — academic / paper-exam treatment.
+ * Settled in mockup review (2026-05-07): plain "A." letter prefixing
+ * each line, fixed 22x22 letter slot to prevent text jiggle when state
+ * changes (selected / correct / wrong-pick fill the slot with a coloured
+ * circle + drop the period). No tinted backgrounds — state is signalled
+ * by a 3px left-border accent + the letter circle. Options sit indented
+ * (margin-left: 32px) and constrained (max-width: 460px) to read as a
+ * narrow indented list rather than full-width cards. */
+.rn-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-left: 32px;
+  max-width: 460px;
+}
 .rn-opt {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 8px;
+  padding: 8px 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-left: 3px solid var(--border);
+  border-radius: 3px;
   background: var(--white);
+  color: var(--text);
   cursor: pointer;
+  font-family: inherit;
   font-size: 14px;
   line-height: 1.55;
-  transition: border-color .12s, background .12s;
+  text-align: left;
+  transition: border-color .12s;
 }
 .rn-opt:hover:not(.locked) { border-color: var(--border-strong); }
-.rn-opt.sel    { border-color: var(--accent); background: rgba(45, 125, 114, 0.05); }
-.rn-opt.right  { border-color: #16a34a; background: rgba(22, 163, 74, 0.06); }
-.rn-opt.wrong  { border-color: #b91c1c; background: rgba(185, 28, 28, 0.05); }
+.rn-opt:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.rn-opt.sel {
+  border-color: var(--accent);
+  border-left-color: var(--accent);
+}
+.rn-opt.right  { border-left-color: #16a34a; }
+.rn-opt.wrong  { border-left-color: #b91c1c; }
 .rn-opt.locked { cursor: default; }
-.rn-opt.dim    { opacity: 0.78; }
+.rn-opt.dim    { opacity: 0.6; }
+
+/* Letter slot — fixed 22x22 in every state. Default: bold "A." with the
+ * period right-aligned so its right edge matches the circle's right edge
+ * across states (zero horizontal layout shift on state change). */
 .rn-opt-letter {
-  width: 22px; height: 22px;
   flex-shrink: 0;
-  margin-top: 1px;
-  border-radius: 50%;
-  border: 1.5px solid var(--border-strong);
+  width: 22px;
+  height: 22px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  font-size: 11px;
+  justify-content: flex-end;
   font-weight: 700;
-  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text);
 }
-.rn-opt.sel   .rn-opt-letter { border-color: var(--accent); background: var(--accent); color: #fff; }
-.rn-opt.right .rn-opt-letter { border-color: #16a34a; background: #16a34a; color: #fff; }
-.rn-opt.wrong .rn-opt-letter { border-color: #b91c1c; background: #b91c1c; color: #fff; }
+.rn-opt-letter::after { content: "."; }
+
+/* Marked states — circle replaces the plain letter in the same slot. */
+.rn-opt.sel   .rn-opt-letter,
+.rn-opt.right .rn-opt-letter,
+.rn-opt.wrong .rn-opt-letter {
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+}
+.rn-opt.sel   .rn-opt-letter { background: var(--accent); }
+.rn-opt.right .rn-opt-letter { background: #16a34a; }
+.rn-opt.wrong .rn-opt-letter { background: #b91c1c; }
+.rn-opt.sel   .rn-opt-letter::after,
+.rn-opt.right .rn-opt-letter::after,
+.rn-opt.wrong .rn-opt-letter::after { content: ""; }
+
 .rn-opt-body { flex: 1; min-width: 0; }
+
+/* Per-option feedback (review mode) — italic muted line directly under
+ * the option text. No top border, no top padding — keeps the option
+ * card compact. */
 .rn-opt-fb {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--border);
+  margin-top: 2px;
   font-size: 12.5px;
+  font-style: italic;
+  line-height: 1.5;
   color: var(--text-muted);
-  line-height: 1.55;
 }
 .rn-opt-fb strong { color: var(--text); font-weight: 600; }
+
+/* Verdict label (review mode) — plain inline text coloured by the
+ * parent option's state. The ✓ / ✕ glyph is in the markup so screen
+ * readers get a meaningful spoken cue alongside the text. */
 .rn-opt-verdict {
   flex-shrink: 0;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 2px 7px;
-  border-radius: 4px;
-  align-self: flex-start;
-  margin-top: 2px;
+  align-self: baseline;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
 }
-.rn-opt-verdict.ok { color: #14532d; background: #c8ecd1; }
-.rn-opt-verdict.no { color: #fde8e8; background: #5b1d1d; }
+.rn-opt.right .rn-opt-verdict { color: #15803d; }
+.rn-opt.wrong .rn-opt-verdict { color: #b91c1c; }
 
-/* Rationale block (UL post-submit + Review). 4.1.4 wires the content. */
+/* Rationale block (UL post-submit + Review) — left-border accent on a
+ * soft grey block. Replaces the bordered card to match the academic
+ * option treatment (no boxed chrome, no chip backgrounds). Verdict is
+ * coloured uppercase text; score sits next to it muted. */
 .rn-rationale {
-  margin-top: 18px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--white);
-  overflow: hidden;
+  margin-top: 16px;
+  background: var(--bg);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+  padding: 12px 14px;
 }
 .rn-rationale-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 10px;
-  padding: 10px 14px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
 }
 .rn-rationale-head .verdict {
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 3px 8px;
-  border-radius: 4px;
+  color: var(--text-muted);
 }
-.rn-rationale-head .verdict.ok { background: #c8ecd1; color: #14532d; }
-.rn-rationale-head .verdict.no { background: #5b1d1d; color: #fde8e8; }
+.rn-rationale-head .verdict.ok { color: #15803d; }
+.rn-rationale-head .verdict.no { color: #b91c1c; }
 .rn-rationale-head .score {
-  font-size: 12px;
-  color: var(--text);
+  font-size: 11.5px;
+  color: var(--text-muted);
   font-weight: 600;
 }
 .rn-rationale-body {
-  padding: 14px 16px;
-  font-size: 13.5px;
-  line-height: 1.65;
+  font-size: 13px;
+  line-height: 1.6;
   color: var(--text);
 }
-.rn-rationale-body p { margin: 0 0 10px; }
+.rn-rationale-body p { margin: 0 0 8px; }
 .rn-rationale-body p:last-child { margin-bottom: 0; }
 .rn-rationale-img {
   display: block;
-  margin-top: 12px;
+  margin-top: 10px;
   max-width: 100%;
   max-height: 320px;
   object-fit: contain;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 /* Slot placeholder used until 4.1.4 wires the per-type runner. */

@@ -29,7 +29,7 @@ export function RationaleBlock({
     <div className="rn-rationale">
       <div className="rn-rationale-head">
         <span className={'verdict ' + (isCorrect ? 'ok' : 'no')}>
-          {isCorrect ? 'Correct' : 'Wrong'}
+          Rationale · {isCorrect ? 'correct' : 'wrong'}
         </span>
         <span className="score">
           {formatScore(scoreAwarded)} / {marksMax}

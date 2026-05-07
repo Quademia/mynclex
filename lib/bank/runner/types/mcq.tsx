@@ -86,10 +86,10 @@ export function McqRunner(props: McqRunnerProps) {
             </div>
 
             {isReview && isCorrectOpt && (
-              <span className="rn-opt-verdict ok">Correct</span>
+              <span className="rn-opt-verdict">✓ Correct</span>
             )}
             {isReview && isStudentOpt && !isCorrectOpt && (
-              <span className="rn-opt-verdict no">Your pick</span>
+              <span className="rn-opt-verdict">✕ Your answer</span>
             )}
           </button>
         );
