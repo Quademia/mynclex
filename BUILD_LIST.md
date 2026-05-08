@@ -10,25 +10,30 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-08):** slice 4.2 — 5 question types wired
-> alongside MCQ from 4.1.4 (TF, SATA, SELECT_N, MATRIX, HIGHLIGHT).
-> Each lives at `lib/bank/runner/types/<type>.tsx` as its own
-> component with `mode: "answering" | "review"`, exports an
-> `isXxxComplete` helper, and slots into the `getSubmitGate` switch
-> in `runner.tsx`. Plus two visual restyles that landed mid-build:
-> MCQ option list (academic / paper-exam treatment — letter as
-> "A." with fixed 22px slot, no tints, left-border accent) and
-> MATRIX (outer + per-row borders, lighter header divider, bigger
-> ○ / ● glyphs at 20px). HIGHLIGHT got a "universal no-hint"
-> redesign — chunks render as plain passage text and the student
-> must search; persistent orientation line above the passage is the
-> discoverability safety net. Per-type submit gates settled (see
-> bank-consumption-runner.html §10.2).
+> **Last shipped (2026-05-08):** slice 4.2 closed — all 8 per-type
+> question runners now live alongside MCQ from 4.1.4. The 3 final
+> types landed across CLOZE → DRAG_DROP → BOWTIE, each with its own
+> design pass in `docs/scratch/<type>-*-mock.html` (gitignored). CLOZE
+> review went through three iterations to settle on flowing-prose
+> per-blank rationales with red-wrong / green-correct option labels
+> and per-blank `<num> CORRECT/WRONG` verdict headers, plus persistent
+> superscript blank numbers in the stem. DRAG_DROP shipped both
+> subtypes via internal switch with a **click-to-place** interaction
+> (not real HTML5 drag-and-drop — phone-first audience, no library
+> dependency); ORDERED review is a unified canonical-order card stack
+> with rationale stacked inside each green card + a distractor strip
+> below. BOWTIE took the most design iteration: settled on a literal
+> bow-tie shape with 5 empty drop slots and a 3-column pool below;
+> review tints filled slots green/red and the pool transforms into
+> per-wing SATA-style feedback columns. Per-type submit gates all
+> settled (see `bank-consumption-runner.html` §10.2).
 >
-> **Next pick:** `4.2` continued — 3 remaining question types
-> (CLOZE, DRAG_DROP, BOWTIE). Same per-type pattern; CLOZE will
-> have inline dropdowns inside the stem (the second type after
-> HIGHLIGHT where the per-type runner takes over stem rendering).
+> **Next pick:** `lib/bank/` refactor first (split authoring from
+> consumption — promote `runner/`, `builder/`, `entry-helpers/` to
+> `lib/` top-level so `bank/` is purely curator-side). Plan + wrinkles
+> in memory `project_lib_bank_refactor.md`. Then **4.3 Case-block UX**
+> — case panel (scenario + chart tabs), CJMM step labels, mount /
+> unmount at block boundaries.
 
 ---
 
@@ -64,16 +69,16 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
   - **4.1.3** Preflight — pre-Q1 confirm screen that calls `nclex_mark_attempt_started`; skipped when `started_at` is already set on mount. Localstorage skip-preflight flag deferred to slice 4.6.
   - **4.1.4** MCQ live — `<McqRunner mode="answering" | "review">` in `lib/bank/runner/types/mcq.tsx`. Per runner.html §16.1.1, the `mode` prop is **per-item** (UL hybrid). Per-option feedback shows for every option in review mode (no prefixes — role conveyed by border + verdict pill). Shared `<RationaleBlock>` in `lib/bank/runner/rationale.tsx` renders verdict pill + score + rationale prose + image (`max-height: 320px`, `object-fit: contain`). MCQ is the structural starting point for the other 8 types in slice 4.2.
   - **4.1.5** Finish + MCQ-review-from-mount — Finish CTA (last Q post-submit) calls `completeAttemptAction` → `router.refresh()` → page re-loads in review mode. Topbar timer pill swaps from `Untimed` to `Score · NN%`. Footer status copy swaps to review-mode message. Old stub `session-stub.tsx` removed.
-- 🔨 **4.2** Remaining question types — each as a single component with `mode: "answering" | "review"` prop in `lib/bank/runner/types/<type>.tsx`, plus an `isXxxComplete` helper that the `getSubmitGate` dispatch in `runner.tsx` consults to enable/disable Submit. Per-type design rules captured in `bank-consumption-runner.html` §5 (per type) and §10.2 (submit gates).
+- ✅ **4.2** Remaining question types — each as a single component with `mode: "answering" | "review"` prop in `lib/bank/runner/types/<type>.tsx`, plus an `isXxxComplete` helper that the `getSubmitGate` dispatch in `runner.tsx` consults to enable/disable Submit. Per-type design rules captured in `bank-consumption-runner.html` §5 (per type) and §10.2 (submit gates).
   - ✅ **TF** — thin wrapper around `McqRunner` (TfContent / TfCorrect are aliases). Submit gate: must pick.
   - ✅ **SATA** — multi-select toggle, 4 review states (right / wrong / missed / dim). Submit gate: zero allowed (NCLEX standard, "none apply" is valid).
   - ✅ **SELECT_N** — SATA + cap. Toggle caps additions at N; deselect always allowed. Progressive count line above the options ("Select N." → "X of N chosen · tap to deselect" → "X of N chosen · tap a selected option to swap"). Submit gate: exactly N picks.
   - ✅ **MATRIX** — rows × columns grid with one-pick-per-row radiogroup. Visual hierarchy refined in mockup review (outer + per-row borders, lighter header divider, 20px ○/● glyphs). Submit gate: every row answered.
   - ✅ **HIGHLIGHT** — passage with `[[bracketed]]` chunks. **Universal no-hint design** (settled with Sam): chunks render as plain passage text, students must search. Persistent orientation line above the passage is the safety net. The runner takes over stem rendering for this type only — `RunnerQuestionArea` skips its `.rn-stem` render and instruction moves above the passage. Submit gate: zero allowed.
-  - ⏭ **CLOZE** — sentence with inline dropdowns at `{N}` markers. Per-blank choice list in `content.blanks`. Like HIGHLIGHT, the per-type runner takes over stem rendering (dropdowns sit inside the stem text).
-  - ⬜ **DRAG_DROP** — token pool + slot list (or `[N]` markers in stem for SENTENCE subtype). Two subtypes per the schema: ORDERED (rank into positions) and SENTENCE (drag into stem markers).
-  - ⬜ **BOWTIE** — three-wing fixed layout (2 left + 1 centre + 2 right = 5 picks). Each wing has its own correctness rule.
-- ⬜ **4.3** Case-block UX — case panel (scenario + chart tabs), CJMM step labels, mount/unmount at block boundaries, "Case complete. Continuing…" transition.
+  - ✅ **CLOZE** — sentence with `{N}` markers; native `<select>` per blank in answering mode. Persistent superscript number before each blank, surviving into review. Hint above the stem progresses (empty → "X of N filled" → "all filled"). Submit gate: every blank filled. Review settled in mock B′ (`docs/scratch/cloze-review-mock.html`): per-blank "<num> CORRECT/WRONG" verdict header coloured by state, then flowing-prose rationale block listing every option's per-choice feedback inline (`<correct option label in green> — rationale. <wrong label in soft red> — rationale. ...`). Pill row dropped — coloured labels in the prose carry the answer-key signal.
+  - ✅ **DRAG_DROP** — both ORDERED + SENTENCE subtypes via internal `subtype` switch. **Click-to-place** interaction (NOT real HTML5 drag-and-drop — audience is phone-first and HTML5 DnD has poor touch support). ORDERED renders numbered slot list with `target_text` labels; SENTENCE takes over stem rendering with `[N]` markers becoming inline drop boxes (third type to do stem-takeover after HIGHLIGHT and CLOZE). Hint progression matches CLOZE pattern. Submit gate: every slot filled. Review for ORDERED: unified canonical-order cards (number + target_text + correct token text + per-slot rationale stacked inside the green card). Review for SENTENCE: per-slot verdict prose (`<num> CORRECT/WRONG/SKIPPED` + rationale). Both subtypes get a distractor strip at the bottom listing tokens that weren't the rubric for any slot.
+  - ✅ **BOWTIE** — literal bow-tie shape with **click-to-place** tokens. 5 empty drop slots in a 3-column × 3-row grid (left-top + centre + right-top in row 2; left-bot + right-bot in row 3, centre spanning the middle column). Token pool below mirrors the three wings as 3 separate bordered cards. Tokens can only land in slots of their own wing; matching-wing slots pulse-glow as drop targets while a token of that wing is armed. Slot-position semantics for left/right: schema's `BowtieAnswer.{left,right}` is unordered `string[]`, so removing slot[0] when slot[1] is filled rotates the second pick up to slot[0] (state derivation stays pure). Submit gate: every wing filled (2 + 1 + 2). Review: bow-tie keeps shape with green-✓ / red-✕ tinted slots; pool columns transform into feedback columns where every wing token shows in SATA's 4-state palette + per-token rationale below. Per-column header summary swaps to "X right · Y wrong".
+- ⏭ **4.3** Case-block UX — case panel (scenario + chart tabs), CJMM step labels, mount/unmount at block boundaries, "Case complete. Continuing…" transition.
 - ⬜ **4.4** Trend question rendering — trend panel (dataset display) alongside each trend question, kind-specific rendering.
 - ⬜ **4.5** Per-mode behaviour — timer (wall-clock for EXAM, engagement-clock for STUDY-timed), navigation (sequential vs free-nav), feedback timing (per-Q vs end-of-quiz), warning thresholds.
 - ⬜ **4.6** Save-progress + Resume — periodic save of in-progress answers (STUDY only), Resume detection on mount, restore to last-viewed Q.
