@@ -19,12 +19,16 @@
 // HIGHLIGHT wired today; the remaining 3 fall through to the
 // slice-4.2 placeholder.
 //
-// HIGHLIGHT is special: the per-type runner takes over stem
-// rendering (the stem itself contains the [[bracketed]] interactive
-// chunks). For HIGHLIGHT we skip the regular `.rn-stem` render in
-// RunnerQuestionArea and the instruction moves to ABOVE the passage
-// (the student needs to know what they're hunting for before they
-// read).
+// HIGHLIGHT, CLOZE, and DRAG_DROP-SENTENCE are special: the per-type
+// runner takes over stem rendering. HIGHLIGHT's stem holds the
+// [[bracketed]] clickable chunks; CLOZE's stem holds the {N} blank
+// markers that become inline dropdowns; DRAG_DROP-SENTENCE's stem
+// holds [N] markers that become inline drop boxes. For all three we
+// skip the regular `.rn-stem` render in RunnerQuestionArea and the
+// instruction moves to ABOVE the stem (the student needs to know
+// what they're doing before they read). DRAG_DROP-ORDERED renders
+// normally — its slot list sits below the stem like a regular options
+// block.
 //
 // Wrapper-aware layout (case panel + question, trend dataset + question)
 // lands with slices 4.3 / 4.4. For now we always render `.rn-q-wrap`.
@@ -46,6 +50,12 @@ import type {
   MatrixCorrect,
   HighlightContent,
   HighlightCorrect,
+  ClozeContent,
+  ClozeCorrect,
+  DragDropContent,
+  DragDropCorrect,
+  BowtieContent,
+  BowtieCorrect,
   BankItemCorrect,
 } from '@/lib/bank/types';
 import type {
@@ -55,6 +65,9 @@ import type {
   SelectNAnswer,
   MatrixAnswer,
   HighlightAnswer,
+  ClozeAnswer,
+  DragDropAnswer,
+  BowtieAnswer,
   BankItemAnswer,
 } from '@/lib/scoring';
 import {
@@ -64,6 +77,9 @@ import {
   SelectNRunner,
   MatrixRunner,
   HighlightRunner,
+  ClozeRunner,
+  DragDropRunner,
+  BowtieRunner,
   RationaleBlock,
 } from '@/lib/bank/runner';
 
@@ -128,21 +144,33 @@ export function RunnerQuestionArea(props: Props) {
         {difficulty  && <span className="rn-type-pill">Difficulty · {difficulty}</span>}
       </div>
 
-      {/* HIGHLIGHT renders its own stem with chunks; for it, instruction
-       *  moves above the passage so the student knows what to hunt for
-       *  before reading. All other types render stem here, then instruction. */}
-      {item.question_type === 'HIGHLIGHT' ? (
-        item.instruction_snapshot && (
-          <p className="rn-instruction">{item.instruction_snapshot}</p>
-        )
-      ) : (
-        <>
-          <div className="rn-stem">{item.stem_snapshot}</div>
-          {item.instruction_snapshot && (
+      {/* HIGHLIGHT, CLOZE, and DRAG_DROP-SENTENCE render their own stem
+       *  (interactive chunks / inline dropdowns / inline drop boxes).
+       *  For these, instruction moves above the stem so the student
+       *  knows what to do before reading. DRAG_DROP-ORDERED renders
+       *  normally — slot list sits below the stem. All other types
+       *  render stem here, then instruction. */}
+      {(() => {
+        const isStemTakeover =
+          item.question_type === 'HIGHLIGHT' ||
+          item.question_type === 'CLOZE' ||
+          (item.question_type === 'DRAG_DROP' &&
+            (item.content_snapshot_json as unknown as DragDropContent).subtype === 'SENTENCE');
+
+        if (isStemTakeover) {
+          return item.instruction_snapshot ? (
             <p className="rn-instruction">{item.instruction_snapshot}</p>
-          )}
-        </>
-      )}
+          ) : null;
+        }
+        return (
+          <>
+            <div className="rn-stem">{item.stem_snapshot}</div>
+            {item.instruction_snapshot && (
+              <p className="rn-instruction">{item.instruction_snapshot}</p>
+            )}
+          </>
+        );
+      })()}
 
       <PerTypeRunner {...props} />
 
@@ -310,18 +338,82 @@ function PerTypeRunner(props: Props) {
       );
     }
 
-    // Slice 4.2 will split each of these into its own case mirroring
-    // the MCQ / TF / SATA / SELECT_N / MATRIX / HIGHLIGHT pattern
-    // above. Until then they share the placeholder.
-    case 'CLOZE':
-    case 'DRAG_DROP':
-    case 'BOWTIE':
+    case 'CLOZE': {
+      const content = item.content_snapshot_json as unknown as ClozeContent;
+
+      if (props.itemMode === 'answering') {
+        return (
+          <ClozeRunner
+            mode="answering"
+            stem={item.stem_snapshot}
+            content={content}
+            selected={(props.pendingAnswer as ClozeAnswer | undefined) ?? {}}
+            onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
+          />
+        );
+      }
+
       return (
-        <div className="rn-stub">
-          The {QUESTION_TYPE_LABELS[item.question_type]} runner lands in slice 4.2.
-          {' '}For now this question can't be answered or scored.
-        </div>
+        <ClozeRunner
+          mode="review"
+          stem={item.stem_snapshot}
+          content={content}
+          studentAnswer={(props.answerRow.answer_json as ClozeAnswer | undefined) ?? {}}
+          correct={props.unseal.correct as ClozeCorrect}
+        />
       );
+    }
+
+    case 'DRAG_DROP': {
+      const content = item.content_snapshot_json as unknown as DragDropContent;
+
+      if (props.itemMode === 'answering') {
+        return (
+          <DragDropRunner
+            mode="answering"
+            stem={item.stem_snapshot}
+            content={content}
+            selected={(props.pendingAnswer as DragDropAnswer | undefined) ?? {}}
+            onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
+          />
+        );
+      }
+
+      return (
+        <DragDropRunner
+          mode="review"
+          stem={item.stem_snapshot}
+          content={content}
+          studentAnswer={(props.answerRow.answer_json as DragDropAnswer | undefined) ?? {}}
+          correct={props.unseal.correct as DragDropCorrect}
+        />
+      );
+    }
+
+    case 'BOWTIE': {
+      const content = item.content_snapshot_json as unknown as BowtieContent;
+      const emptyBowtieAnswer: BowtieAnswer = { left: [], centre: null, right: [] };
+
+      if (props.itemMode === 'answering') {
+        return (
+          <BowtieRunner
+            mode="answering"
+            content={content}
+            selected={(props.pendingAnswer as BowtieAnswer | undefined) ?? emptyBowtieAnswer}
+            onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
+          />
+        );
+      }
+
+      return (
+        <BowtieRunner
+          mode="review"
+          content={content}
+          studentAnswer={(props.answerRow.answer_json as BowtieAnswer | undefined) ?? emptyBowtieAnswer}
+          correct={props.unseal.correct as BowtieCorrect}
+        />
+      );
+    }
   }
 
   // Exhaustiveness — adding a 10th QuestionType makes item.question_type

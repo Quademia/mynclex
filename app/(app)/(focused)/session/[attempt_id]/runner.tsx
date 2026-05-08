@@ -38,14 +38,17 @@ import type {
   SataAnswer,
   SelectNAnswer,
 } from '@/lib/scoring';
-import type { SelectNContent, MatrixContent } from '@/lib/bank/types';
-import type { MatrixAnswer, HighlightAnswer } from '@/lib/scoring';
+import type { SelectNContent, MatrixContent, ClozeContent, DragDropContent } from '@/lib/bank/types';
+import type { MatrixAnswer, HighlightAnswer, ClozeAnswer, DragDropAnswer, BowtieAnswer } from '@/lib/scoring';
 import {
   isMcqComplete,
   isSataComplete,
   isSelectNComplete,
   isMatrixComplete,
   isHighlightComplete,
+  isClozeComplete,
+  isDragDropComplete,
+  isBowtieComplete,
 } from '@/lib/bank/runner';
 import { ErrorToast } from '@/lib/bank/atoms/error-toast';
 import { RunnerTopbar }       from './runner-topbar';
@@ -423,16 +426,56 @@ function getSubmitGate(
       };
     }
 
-    // CLOZE / DRAG_DROP / BOWTIE land in slice 4.2. Until then the
-    // per-type runner shows a placeholder and submission is gated off
-    // — there's no scoring path for these types yet.
-    default:
+    case 'CLOZE': {
+      const content = item.content_snapshot_json as unknown as ClozeContent;
+      const a = pending as ClozeAnswer | undefined;
+      const ok = isClozeComplete(a, content);
+      const filled = a ? Object.values(a).filter(Boolean).length : 0;
+      const total  = content.blanks.length;
       return {
-        canSubmit:   false,
-        submitValue: null,
-        hint:        'This question type is not yet wired in slice 4.2',
+        canSubmit:   ok,
+        submitValue: ok ? (a as BankItemAnswer) : null,
+        hint:        ok ? undefined : `${filled} of ${total} blanks filled — finish all to submit`,
       };
+    }
+
+    case 'DRAG_DROP': {
+      const content = item.content_snapshot_json as unknown as DragDropContent;
+      const a = pending as DragDropAnswer | undefined;
+      const ok = isDragDropComplete(a, content);
+      const filled = a
+        ? content.slots.filter((s) => Boolean(a[s.id])).length
+        : 0;
+      const total = content.slots.length;
+      return {
+        canSubmit:   ok,
+        submitValue: ok ? (a as BankItemAnswer) : null,
+        hint:        ok ? undefined : `${filled} of ${total} slots filled — finish all to submit`,
+      };
+    }
+
+    case 'BOWTIE': {
+      // Empty-default before first interaction so isBowtieComplete sees
+      // a well-shaped object regardless of whether the student has
+      // started.
+      const a = (pending as BowtieAnswer | undefined) ?? {
+        left: [], centre: null, right: [],
+      };
+      const ok = isBowtieComplete(a);
+      const total = a.left.length + (a.centre ? 1 : 0) + a.right.length;
+      return {
+        canSubmit:   ok,
+        submitValue: ok ? (a as BankItemAnswer) : null,
+        hint:        ok ? undefined : `${total} of 5 picks made — each wing needs 2 + 1 + 2`,
+      };
+    }
   }
+
+  // Exhaustiveness — adding a 10th QuestionType makes item.question_type
+  // not be `never` here and breaks the build until the new type is
+  // handled in the switch.
+  const _exhaustive: never = item.question_type;
+  return _exhaustive;
 }
 
 

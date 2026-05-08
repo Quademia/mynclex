@@ -6,6 +6,180 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-09 (build) — Slice 4.2 closed: CLOZE + DRAG_DROP + BOWTIE — all 8 per-type runners shipped
+
+Closes slice 4.2. The three remaining question types from the 2026-05-08
+session (CLOZE, DRAG_DROP, BOWTIE) all landed; each went through one or
+more design iterations in throwaway HTML mocks under `docs/scratch/`
+(now gitignored) before porting back to the real component. With this
+session the runner has all 9 question types end-to-end (counting MCQ
+from 4.1.4): MCQ, TF, SATA, SELECT_N, MATRIX, HIGHLIGHT, CLOZE,
+DRAG_DROP, BOWTIE.
+
+### What shipped
+
+- **CLOZE runner** (`feat(bank): slice 4.2 — CLOZE runner (7 of 8)`).
+  Stem with inline `{N}` markers; native `<select>` per blank in
+  answering mode (no custom dropdown infrastructure — accessible,
+  mobile-friendly, zero dependencies). Persistent superscript `¹` `²`
+  `³` before each blank in both answering and review modes — students
+  can map a stem position back to "Blank 1" / "Blank 2" headers in the
+  feedback prose below. Like HIGHLIGHT, takes over stem rendering;
+  instruction moves above the stem, max-width 22ch on the select keeps
+  long choice text from breaking the line. Submit gate: every blank
+  filled (skipping is unanswered, not a deliberate "nothing applies"
+  answer). Hint above progresses: "Choose one option for each blank."
+  → "X of N blanks filled · tap a dropdown to change" → "All blanks
+  filled · ready to submit."
+
+  Review mode went through three iterations before settling. **v1**
+  (single line "you picked X, correct Y") rejected as repetitive of
+  the stem pill. **v2** (vertical stack of all options + per-choice
+  rationale below each) rejected as too verbose. **v3** (horizontal
+  pill row + flowing-prose rationale) accepted as **B′** in
+  `docs/scratch/cloze-review-mock.html` after one more pass: pill row
+  dropped (the colour-coded labels in the prose already encoded the
+  answer-key signal twice), red softened from `#b91c1c` →
+  `#9b2c2c` (less alarmist when 3-4 wrong-distractor labels pile up
+  per blank). Final layout per blank: a left-accented "<num> CORRECT
+  / WRONG / SKIPPED" header coloured by state, followed by a single
+  `<p>` of flowing prose where each option's text reads `<label> —
+  <rationale>` inline, separated by spaces, correct-option labels in
+  green and wrong distractors in soft red.
+
+- **DRAG_DROP runner** (`feat(bank): slice 4.2 — DRAG_DROP runner
+  (8 of 8)`). Both ORDERED + SENTENCE subtypes via internal `subtype`
+  switch. Decisive design call: **click-to-place** instead of real
+  HTML5 drag-and-drop. Audience is phone-first (Ghanaian nurses on
+  mobile) and HTML5 DnD's touch story is bad; the type is named
+  DRAG_DROP for product reasons but the implementation is tap-token-
+  then-tap-slot. Pool tokens leave the pool when placed; tap a filled
+  slot to return its token; tap an armed token to disarm. Submit gate:
+  every slot filled.
+
+  ORDERED renders a numbered slot list with `target_text` labels
+  ("1st action", "2nd action", …); SENTENCE takes over stem rendering
+  with `[N]` markers becoming inline drop boxes (third stem-takeover
+  type after HIGHLIGHT and CLOZE). Note the single-bracket convention
+  is distinct from CLOZE's `{N}` and HIGHLIGHT's `[[..]]`.
+
+  Review-mode diverges by subtype. **ORDERED**: a single unified
+  feedback block where each slot in canonical order renders as a green
+  answer-key card containing number chip + target_text + correct token
+  text, with per-slot rationale stacked italic-muted **inside** the
+  green card itself (settled after one iteration that put rationale
+  outside the card). **SENTENCE**: per-slot verdict prose mirroring
+  CLOZE's "<num> CORRECT/WRONG" header + rationale pattern. Both
+  subtypes get a soft-red-bordered **distractor strip** at the bottom
+  listing tokens that aren't the rubric for any slot — names "trap"
+  options by name even when correctly left in the pool.
+
+- **BOWTIE runner** (`feat(bank): slice 4.2 — BOWTIE runner —
+  closes slice 4.2`). Most design iteration of any 4.2 type.
+  **First implementation** (three equal columns — left / centre /
+  right SATA-style lists side-by-side) was rejected as cramped and
+  losing the bow-tie metaphor. **Second mock** showed 4 alternative
+  variants (three columns / centre on top / vertical stack / chip-
+  style); Sam rejected all and asked for a literal bow-tie shape with
+  click-to-place. **Final** (`docs/scratch/bowtie-design-mock.html`):
+  five empty drop slots laid out as a 3-column × 3-row grid (left-top
+  + centre + right-top in row 2; left-bot + right-bot in row 3, with
+  centre slot spanning the middle column). Subtle CSS connector lines
+  flank the centre slot to suggest the wings flaring outward. Token
+  pool below as **3 separate bordered cards** (one per wing) so the
+  spatial mapping pool↔bow-tie is preserved. Centre column gets
+  accent-coloured border; matching-wing slots pulse-glow as drop
+  targets while a token of that wing is armed.
+
+  Slot-position semantics for left/right: schema's
+  `BowtieAnswer.{left,right}` is unordered `string[]`, so removing
+  slot[0] when slot[1] is filled rotates the second pick up to slot[0]
+  — keeps state derivation pure (no separate slot-position state).
+  Centre is straightforward single value. Submit gate: every wing
+  filled (2 + 1 + 2). Review: bow-tie keeps shape with green-✓ /
+  red-✕ tinted slots; pool columns transform into feedback columns
+  where every wing token shows in SATA's 4-state palette + per-token
+  rationale below. Per-column header summary swaps from "X of N
+  chosen" to "X right · Y wrong".
+
+### Test data inserts (mynclex-dev)
+
+- **4 fresh CLOZE** (`NCLEX_CLZ_00010`–`00013`) covering DKA, postpartum
+  hemorrhage, pediatric asthma, acute ischemic stroke. Plus instruction
+  backfilled on existing `NCLEX_CLZ_00001` (which had `instruction:
+  null` against the always-fill rule). Brings standalone-eligible CLOZE
+  pool to 5.
+
+- **DRAG_DROP**: published the 3 cleanest existing drafts (`T14`, `T25`,
+  `00001`, `00002`, `00008`) — only 3 turned out to be standalone-
+  eligible because T14 and T25 carry `trend_id` linking to unpublished
+  trend datasets, which the eligibility RPC `_nclex_eligible_unit_pool`
+  filters out. Authored 2 fresh items (`NCLEX_DD_00009` anaphylaxis
+  ORDERED, `NCLEX_DD_00010` hyperkalemia SENTENCE) without trend_id.
+  Brings standalone-eligible DRAG_DROP pool to 5 (3 ORDERED + 2
+  SENTENCE).
+
+- **4 fresh BOWTIE** (`NCLEX_BT_00003`–`00006`) covering septic shock,
+  acute ischemic stroke, anaphylaxis, DKA. All `marks=5` (fixed for
+  BOWTIE per the schema). Brings standalone-eligible BOWTIE pool to 5.
+
+### Repo housekeeping
+
+- Added `/docs/scratch/` to `.gitignore` so design-iteration mock
+  files (`cloze-review-mock.html`, `bowtie-design-mock.html`, …) live
+  on disk for the duration of a design pass without polluting the
+  repo. Pattern: write throwaway HTML mocks alongside the runner CSS,
+  iterate visually with the user, port the accepted variant back into
+  the real component + CSS.
+
+- Identified a structural issue with `lib/bank/`: most of its contents
+  are authoring code (editors, atoms used by editors, parsers, hooks,
+  actions, list-client, wrappers); only `runner/`, `builder/`, and
+  `entry-helpers/` are student-facing consumption code. Mixing both
+  axes inside a domain folder is increasingly confusing as `runner/`
+  has grown. **Refactor planned for the next session, before any new
+  feature work** — promote the three consumption sub-trees to
+  `lib/` top-level so `bank/` becomes purely curator-side. Plan
+  captured in memory `project_lib_bank_refactor.md`.
+
+### Doc updates
+
+- **`BUILD_LIST.md`** — slice 4.2 parent flipped 🔨 → ✅; all 8 sub-types
+  marked ✅ with expanded descriptions of what shipped (review patterns,
+  submit gates, click-to-place semantics, stem-takeover types).
+  "Next pick" advances to: refactor first, then 4.3 Case-block UX.
+  4.3 marker flipped ⬜ → ⏭.
+- **This entry.**
+
+### Memory
+
+- Added `feedback_review_mode_feedback_universal.md` after Sam corrected
+  v1 of CLOZE review (which only showed feedback for wrong/skipped
+  blanks): per-type runner feedback panels must render one entry per
+  engaged slot regardless of correctness, not just the wrong ones.
+  HIGHLIGHT is the documented exception (neutral passage chunks
+  excluded because most passage text is scenery, not part of the
+  answer story).
+- Added `project_lib_bank_refactor.md` capturing the refactor plan,
+  target structure, three wrinkles (atoms cross-import, wrappers/ may
+  span both sides, types.ts stays in bank/ as the schema home), and
+  the cost estimate (~10–15 min, mechanical).
+
+### Queued for next session
+
+- **`lib/bank/` refactor first.** Promote `runner/`, `builder/`,
+  `entry-helpers/` to `lib/` top-level. Read `wrappers/*` files to
+  decide whether they're authoring, consumption, or split. Single
+  `refactor(bank):` commit, no behaviour change. Run `vitest run`
+  after to confirm. See memory note for the full plan.
+- **Slice 4.3 — Case-block UX.** Case panel (scenario + chart tabs),
+  CJMM step labels, mount/unmount at block boundaries, "Case complete.
+  Continuing…" transition. The wrappers/ ambiguity will surface here
+  since case-block UX touches both authoring (case-study wrapper
+  curation) and consumption (case-block runner chrome) sides.
+
+---
+
 ## Session — 2026-05-08 (build) — Slice 4.2: TF + SATA + SELECT_N + MATRIX + HIGHLIGHT (5 of 8) + visual restyles + per-type submit gates
 
 Long session. Six runner-related commits plus three doc updates. Slice 4.2

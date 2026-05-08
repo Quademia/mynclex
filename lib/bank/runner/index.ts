@@ -35,4 +35,7 @@ export { SataRunner,      isSataComplete }      from './types/sata';
 export { SelectNRunner,   isSelectNComplete }   from './types/select-n';
 export { MatrixRunner,    isMatrixComplete }    from './types/matrix';
 export { HighlightRunner, isHighlightComplete } from './types/highlight';
+export { ClozeRunner,     isClozeComplete }     from './types/cloze';
+export { DragDropRunner,  isDragDropComplete }  from './types/drag-drop';
+export { BowtieRunner,    isBowtieComplete }    from './types/bowtie';
 export { RationaleBlock } from './rationale';
