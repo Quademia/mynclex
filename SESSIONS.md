@@ -6,6 +6,864 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-08 (build) — Slice 4.2: TF + SATA + SELECT_N + MATRIX + HIGHLIGHT (5 of 8) + visual restyles + per-type submit gates
+
+Long session. Six runner-related commits plus three doc updates. Slice 4.2
+is now 6 of 9 question types wired (counting MCQ from 4.1.4); CLOZE,
+DRAG_DROP, BOWTIE remain.
+
+### Branching workflow change
+
+Before any code, switched the dev workflow from per-session random
+worktree branches (`claude/<random>`) to a stable three-branch model
+on the remote: `work` (where I edit), `main` (stable), `prod`
+(released). `dev` deliberately avoided as a branch name — collides
+with Cloudflare/Supabase environment naming. CLAUDE.md updated;
+the persistent-worktree convention superseded.
+
+### What shipped
+
+- **MCQ visual restyle** (`refactor(bank): restyle MCQ runner —
+  academic / paper-exam treatment`). Mockup-reviewed
+  redesign of the option list and rationale block ahead of slice 4.2
+  so the other 8 types inherit the new treatment instead of needing
+  a second restyle pass. Plain "A." letter prefix in default state;
+  fixed 22×22 letter slot keeps the period right-aligned against the
+  same x-coordinate the circle uses, so a state flip causes zero
+  horizontal text jiggle. State = 3px left-border accent + letter
+  circle, no tinted backgrounds. Options indented 32px, max-width
+  460px so they read as a narrow indented list rather than full-width
+  cards. Rationale block became a left-border accent on a soft grey
+  block instead of the bordered card. Verdict became "✓ Correct" /
+  "✕ Your answer" plain coloured text. Mockup work happened in a
+  temp HTML file outside the repo (`%TEMP%/mcq-mockup.html`) so the
+  iteration didn't pollute git.
+
+- **Pre-4.2 structural cleanup**
+  (`refactor(bank): runner pre-4.2 structural cleanup`):
+  - `BankItemAnswer` union in `lib/scoring/types.ts` now lists all
+    9 types — `TfAnswer` and `SelectNAnswer` were defined but missing
+    from the union. Worked by structural-typing accident; listing all
+    9 communicates intent and prevents a nominal-typing bite later.
+  - `PerTypeRunner` dispatch in `runner-question-area.tsx` is now a
+    `switch` with TS exhaustiveness (final `_exhaustive: never` line).
+    Replaces the single-if-MCQ + placeholder fall-through.
+  - Lifted the "review-but-unseal-missing" defensive guard up to the
+    call site in `runner.tsx`. `RunnerQuestionArea` props are now a
+    discriminated union on `itemMode`: review carries `answerRow` +
+    `unseal` as required (not optional). Per-type runners assume
+    those exist when in review mode — 1 guard at the call site
+    instead of 9 inside per-type review branches. Surfaces a real
+    edge case: in live mode an answer row can exist (from a previous
+    client session) without client-side unseal data; currently
+    unreachable in 4.1, surfaces only after slice 4.6 (Resume) lands.
+
+- **TF runner** (`feat(bank): slice 4.2 — TF runner (1 of 8)`).
+  Thin wrapper around `McqRunner` since `TfContent = McqContent` and
+  `TfCorrect = McqCorrect`. Wrapper exists per BUILD_LIST §4.2's
+  "single component per type" guidance; gives TF-specific divergence
+  a future home (locked 2-option semantics, fixed marks=1).
+
+- **SATA runner** (`feat(bank): slice 4.2 — SATA runner (2 of 8)`).
+  Multi-select option list. Click TOGGLES membership; aria pattern is
+  a group of toggle buttons (`aria-pressed`), not radiogroup. Review
+  mode adds a 4th state on top of MCQ's 3: **missed** = correct AND
+  not picked. CSS adds `.rn-opt.missed` variant — amber-700 left
+  border, amber circle on the letter slot, amber-700 verdict text.
+  Verdict copy: "✓ Correct" / "✕ Wrong pick" / "⚠ Missed".
+
+- **SELECT_N runner**
+  (`feat(bank): slice 4.2 — SELECT_N runner (3 of 8)`).
+  SATA + fixed cap. Toggle caps additions at N — deselect always
+  allowed, but adding when at the cap is a no-op. Unpicked options
+  dim and become non-interactive at the cap (reuses `.rn-opt.dim`).
+  A small header above the options shows progressive state:
+  "Select 3." → "1 of 3 chosen · tap to deselect" → "3 of 3 chosen ·
+  tap a selected option to swap" (accent-coloured at the cap). The
+  progression introduces the deselect affordance BEFORE the student
+  hits the cap, addressing a concern Sam raised that capped-state
+  swap behaviour wasn't discoverable.
+
+- **Per-type submit gates**
+  (`feat(bank): SELECT_N hint progression + per-type submit gates`).
+  Each per-type module now exports an `isXxxComplete(answer, …)`
+  helper (returns boolean). `runner.tsx` dispatches through a switch
+  (`getSubmitGate`) that returns `{ canSubmit, submitValue, hint }`
+  per type. Rules: MCQ/TF must pick one; SATA always submittable
+  (zero allowed — "none of these apply" is a valid answer per Sam,
+  matches NCLEX); SELECT_N requires exactly `select_count` picks
+  (hint: "Select N of N to submit"); MATRIX requires every row
+  answered (hint: "X of N rows answered — finish all to submit");
+  HIGHLIGHT always submittable (zero allowed, SATA precedent). The
+  architectural pattern is captured in
+  `bank-consumption-runner.html` §10.2.
+
+- **MATRIX runner** (`feat(bank): slice 4.2 — MATRIX runner (4 of 8)`).
+  First structurally-different question type. Each row is its own
+  CSS Grid sharing the inline template
+  `minmax(180px, 30%) repeat(N, 1fr)` where N = column count. Cells
+  are clickable buttons with a radio-style ○/● glyph. Per-row aria
+  is `radiogroup`; per-cell is `radio` with `aria-checked`. Reuses
+  SATA's review-state classes (`.right` / `.wrong` / `.missed`).
+
+- **MATRIX visual restyle**
+  (`refactor(bank): restyle MATRIX runner — bordered rows + bigger
+  glyphs`). Mockup-reviewed refinement. Outer 2px border + 6px
+  radius wraps the entire matrix. Each body row sits in a 1.5px
+  bordered `row-block`. Header row uses just a bottom divider — it
+  frames the body without competing. Default ○ and state ● bumped
+  from 16px to 20px; missed-state ✓ from 14px to 18px. Considered
+  Variant A (constrained 60px cells) and Variant B (cell carries
+  column label inline) but rejected: Variant B repeats long column
+  labels per cell, visually heavy with NCLEX wording like "Continue
+  monitoring" / "Stop intervention". Mobile-friendly variant
+  deferred to slice 5.1e.
+
+- **HIGHLIGHT runner** (`feat(bank): slice 4.2 — HIGHLIGHT runner
+  (6 of 8)`). Passage with `[[bracketed]]` clickable chunks. The
+  runner parses the stem positionally and matches the i-th
+  `[[..]]` to `content.chunks[i]` for the chunk ID. First type
+  where the per-type runner takes over stem rendering —
+  `RunnerQuestionArea` skips its `.rn-stem` render for HIGHLIGHT
+  and the runner emits its own parsed stem with chunks-as-buttons
+  inline. Instruction also moves to ABOVE the passage (student
+  needs to know what they're hunting for). CLOZE and DRAG_DROP-
+  SENTENCE will share this stem-takeover pattern.
+
+- **HIGHLIGHT "universal no-hint" redesign**
+  (`refactor(bank): HIGHLIGHT — universal no-hint, students must
+  search`). Initial implementation painted clickable chunks with
+  blue tint + dashed underline — telegraphed the answer space and
+  shortcut clinical reasoning. After discussion Sam called for full
+  authenticity: chunks render as ordinary passage text, no
+  affordance, students must search. Tap a chunk → goes yellow
+  (selected). Tap plain text → silent. The "nothing happens"
+  outcome IS the search feedback. Discoverability safety net is a
+  persistent orientation line above the passage ("Tap a clinical
+  finding in the passage to highlight it." → "X highlighted ·
+  tap a highlight to remove"), pattern mirrors SELECT_N's progressive
+  count line. 2x6 padding on chunks extends tap-hit area for touch
+  precision. `:focus-visible` kept for keyboard a11y (small
+  inconsistency — keyboard users see chunks via the focus ring as
+  they tab; mouse/touch users don't get this preview).
+
+### Test data inserts (mynclex-dev)
+
+- **10 fresh TF** (`NCLEX_TF_00005`–`00014`) covering hand hygiene,
+  heparin antidote, magnesium toxicity, suicide assessment, insulin
+  storage, MRI safety, tPA window, Foley catheter, IV potassium,
+  newborn thermoregulation. Spread across all 4 client-needs
+  categories.
+- **5 fresh SATA** (`NCLEX_SATA_90004`–`90008`) covering
+  hypoglycemia, MI manifestations, sepsis priority, pre-op teaching,
+  suicidal ideation interventions. Plus published the existing
+  `NCLEX_SATA_90002` (heart failure findings).
+- **5 fresh SELECT_N** (`NCLEX_SELN_00002`–`00006`) covering
+  hypoglycemia treatment (15/15 rule), DKA management, falls
+  prevention, warfarin teaching, stroke priority assessment.
+- **5 fresh MATRIX** (`NCLEX_MAT_00003`–`00007`) covering HF
+  findings (3-col), postoperative vital signs (3-col), mood disorder
+  phase (2-col), electrolyte imbalances (3-col), discharge teaching
+  (2-col). Plus published the existing `NCLEX_MAT_91002`
+  (assess-vs-intervene).
+- **4 fresh HIGHLIGHT** (`NCLEX_HL_00004`–`00007`) covering sepsis
+  recognition, digoxin toxicity, postpartum hemorrhage, acute
+  ischemic stroke. Sam noted the minimum quiz size is 5 and there
+  was only 1 published HIGHLIGHT — these bring the standalone
+  published count to 5.
+
+All new questions get `instruction` filled (action cue per the
+column convention Sam clarified mid-session) and the placeholder
+rationale image URL.
+
+### Junk cleanup
+
+Deleted `NCLEX_TF_00001` / `00002` / `00003` (placeholder stems —
+"the colour of an apple is always brown", "Will the patient die",
+etc.) and `NCLEX_SELN_00001` ("Which of these is a fruit"). All
+were unpublished, only one had any attempt reference (snapshot
+preserves the row's data so deletion didn't break the attempt).
+
+### Doc updates
+
+- **`bank-consumption-runner.html`** §5 expanded from skeleton to
+  "settled (6 of 9)" with full per-type design notes for the 6
+  types built. §10 expanded with "Per-type completeness gate"
+  sub-section + the type-by-type rules table.
+- **`BUILD_LIST.md`** header refreshed to reflect 4.2 progress.
+  4.2 line broken out into per-type sub-bullets with status icons
+  (✅ for the 5 done; ⏭/⬜ for CLOZE / DRAG_DROP / BOWTIE).
+- **This entry.**
+
+### Memory
+
+- Added `feedback_authoring_instruction_column.md` capturing the
+  rule that bank-item inserts always populate the `instruction`
+  column with the action cue. Sam flagged this mid-session after
+  noticing the new TF / SATA / SELECT_N rows shipped without it.
+- Updated `reference_persistent_worktree.md` to describe the
+  three-branch workflow (`work` → `main` → `prod`); old
+  persistent-worktree convention dropped.
+
+### Queued for next session
+
+- **CLOZE** (slice 4.2 continued, type 7 of 9). Schema: stem with
+  inline `{N}` markers, per-blank choice list in `content.blanks`.
+  Like HIGHLIGHT, the per-type runner takes over stem rendering —
+  `<select>` dropdowns sit inside the stem text at each marker.
+  Submit gate likely "every blank filled."
+- **DRAG_DROP** (8 of 9). Two subtypes per the schema: ORDERED
+  (rank into positions) and SENTENCE (drag into stem markers).
+  The SENTENCE subtype shares HIGHLIGHT/CLOZE's stem-takeover
+  pattern.
+- **BOWTIE** (9 of 9). Three-wing fixed layout (2 left + 1 centre
+  + 2 right). Each wing has its own correctness rule.
+
+---
+
+## Session — 2026-05-07 (build) — Slice 4.1 runner shell + MCQ vertical slice
+
+Closes Phase C's first slice. Five sub-slices, the entire take-the-quiz
+loop end-to-end against mynclex-dev: Builder Start → preflight → Q1 →
+submit → see right/wrong + per-option feedback + rationale (text + image)
+→ Next → Finish → review-from-mount.
+
+### What shipped
+
+- **4.1.1 — RPCs.** Two migrations applied to mynclex-dev:
+  - `nclex_submit_answer(p_attempt_item_id, p_answer_json, p_score_awarded,
+    p_is_correct, p_time_spent_sec, p_submission_status, p_answer_changes_json)`
+    — thin INSERT into `nclex_attempt_answers` with ownership + status +
+    score-bound guards. Existing-row policy: no row → INSERT, DRAFT →
+    UPDATE in place (4.6 promotion path), final → RAISE (UL re-submit
+    lock per runner.html §16.4). Bumps `last_activity_at`.
+  - `nclex_complete_attempt(p_attempt_id)` — aggregates `final_score` as
+    item-equivalent average per `bank-marks-and-scoring.html` §7
+    (`AVG(COALESCE(score_awarded, 0) / marks_snapshot)`, LEFT JOIN over
+    items so unanswered counts as 0), sets status=COMPLETED + ended_at,
+    returns the score. Idempotent.
+  - Smoke-tested across 8 paths: happy submit · wrong-answer · double-
+    submit lock · score out of bounds · status guard · final-score
+    correctness ((1+0+0)/3 = 0.333…) · idempotency · cross-student
+    ownership.
+
+- **4.1.2 — Page shell + chrome.** Two checkpoints (a / b):
+  - `page.tsx` does sealed-projection load. `SEALED_ITEM_COLUMNS` omits
+    `correct_answer_snapshot_json` / `rationale_snapshot` /
+    `rationale_img_snapshot` while status=IN_PROGRESS;
+    `UNSEALED_ITEM_COLUMNS` adds them back when status flips to
+    COMPLETED / TIMED_OUT. Pillar 2 enforced at the server boundary
+    rather than via column-level RLS (review legitimately needs the
+    keys, so RLS stays permissive and the projection narrows).
+  - `runner.tsx` top-level container + `runner-topbar.tsx` +
+    `runner-footer.tsx` + `runner-grid.tsx` + `runner-question-area.tsx`.
+    Three-channel cell encoding: fill (5 states), border (marked, write
+    path lands in 4.7), outer ring (current). CVD-safe palette: light
+    green (#c8ecd1) for `right` vs dark red (#5b1d1d) for `wrong`,
+    brightness-distinguishable not just hue. Right-edge sticky 240px
+    sidebar; collapsed handle at 32px shows a rotated `Q N / T` counter.
+    Filter toggle row (`All / Marked / Unanswered / Wrong`) with live
+    counts; single-select per §16.6.
+  - `actions.ts` wraps three Server Actions: `markStartedAction`,
+    `submitAnswerAction`, `completeAttemptAction`. Submit reads the
+    unsealed snapshot row server-side, calls `scoreAttempt()` from
+    `lib/scoring/`, persists via the RPC, returns the per-Q unseal
+    envelope to the client.
+  - New `styles/runner.css` ports the design's `--rn-*` token block
+    (drops the `.mn` namespace; relies on existing `styles/tokens.css`
+    for `--accent` / `--primary` / etc.). Selectors are bare `.rn-*`
+    to match the repo pattern (`bk-*`, `auth-*`).
+  - Old stub `(focused)/session/[attempt_id]/session-stub.tsx` deleted.
+
+- **4.1.3 — Preflight.** Pre-Q1 confirmation card shown when
+  `attempt.started_at` is null. Summary = mode / intent / question count
+  / source. Start calls `nclex_mark_attempt_started` + `router.refresh()`
+  so the gate evaluates false on the next render. Localstorage skip-
+  preflight flag deferred to slice 4.6. Runner's outer / inner split
+  (`Runner` → `RunnerShell`) keeps rules-of-hooks happy when the gate
+  short-circuits before any useState.
+
+- **4.1.4 — MCQ live.** `<McqRunner mode="answering" | "review">` in
+  `lib/bank/runner/types/mcq.tsx`. Per runner.html §16.1.1, the `mode`
+  prop is **per-item** (UL hybrid: a cell flips to "review" the moment
+  its answer is submitted, while sealed cells stay "answering").
+  Discriminated-union props: answering takes `selected` + `onChange`;
+  review takes `studentAnswer` + `correct`. Per-option feedback shows
+  for every option in review (no prefixes — role conveyed by the
+  `.right` / `.wrong` border + the `Correct` / `Your pick` verdict
+  pill). Shared `<RationaleBlock>` in `lib/bank/runner/rationale.tsx`
+  renders verdict pill + score readout + rationale prose + image
+  (`max-height: 320px`, `object-fit: contain`). RunnerShell owns three
+  client overlays merged on every render: `pendingAnswers` (pre-submit
+  picks per item, persists across navigation), `clientAnswers` (rows
+  submitted in this session), `clientUnseal` (per-Q unseal envelopes).
+  Client wins on conflict.
+
+- **4.1.5 — Finish + MCQ-review-from-mount.** Last-Q post-submit primary
+  CTA becomes `Finish quiz` → calls `completeAttemptAction` +
+  `router.refresh()`. Page re-runs server-side, attempt is now
+  COMPLETED, page fetches with the unsealed projection, `data.mode`
+  flips to `'review'`. Topbar `Untimed` pill swaps to `Score · NN%`.
+  Every cell renders read-only review with full unseal — including
+  items the student didn't submit in this session, because the unseal
+  now flows from the page's projection rather than the per-Q action
+  overlay.
+
+### Design decisions locked
+
+1. **Mode policy for 4.1 — all five modes render as Untimed Learning
+   behaviour.** Per-Q submit, immediate feedback, free nav, no timer
+   countdown, no sequential lock. Builder doesn't know about this — the
+   user can pick TIMED_FREE_NAV in the Builder and the runner will run
+   it as UL. Per-mode deltas (timer, sequential lock, batched submit)
+   layer in slice 4.5. Surfaced in the preflight note.
+
+2. **Scoring stays in TS.** `nclex_submit_answer` is a thin persister —
+   accepts a pre-computed score from the caller. Server Action reads
+   the unsealed item server-side and runs `scoreAttempt()` from
+   `lib/scoring/` (40 Vitest cases) before posting. PL/pgSQL
+   re-implementation would have meant duplicating per-type math with
+   drift risk. Trust boundary: the Server Action runs on the Worker;
+   the key never reaches the browser unless the per-Q unseal returns
+   it for that one item.
+
+3. **Pillar 2 via server-side projection, not column-level RLS.** RLS
+   on `nclex_attempt_items` allows owning students to SELECT every
+   column — review legitimately needs the keys. Tightening RLS would
+   have meant column-level policies + a permissive view for review;
+   more moving parts. Instead the projection narrows at the only place
+   the runner crosses server/client (`page.tsx`): SEALED columns while
+   IN_PROGRESS, UNSEALED while COMPLETED / TIMED_OUT. Per-Q submit
+   returns the unseal envelope for one item via the action response.
+
+4. **Per-option feedback shows for every option in review.** Original
+   gate was "only correct + student-pick"; reverted on Sam's call —
+   distractors carry feedback too because that's how question banks
+   like UWorld / Archer teach option differentiation. Prefixes
+   (`Correct.` / `Why this is wrong.`) dropped — role is already
+   conveyed by border + verdict pill.
+
+5. **Per-type runner is one component with a `mode` prop.** Per
+   runner.html §2.2.1: single component over two-component variants.
+   Half the surface area, no drift risk. The structural shape (option
+   list) is identical between answering and review; only the
+   decorations differ. MCQ is the structural starting point for the
+   other 8 types in slice 4.2.
+
+6. **Runner CSS dropped the `.mn` namespace from the design.** Repo
+   uses bare prefixed selectors (`bk-*`, `auth-*`); `runner.css`
+   follows the same pattern.
+
+7. **Rationale image alt-text deferred.** Schema has only the URL, no
+   alt-text column. v1 ships `alt=""`; a `rationale_img_alt` column +
+   curator field is its own small slice.
+
+### Pillar-2 verification
+
+- Live-mode SSR document response contains zero hits for
+  `correct_answer_snapshot_json`, `rationale_snapshot`,
+  `rationale_img_snapshot` (column-projection-at-load).
+- After per-Q submit, those fields appear ONLY in the action response
+  for that one item.
+- Review-from-mount: when status flips to COMPLETED, the SSR fetches
+  with the unsealed projection — keys + rationale flow for every item
+  with no client overlay required. Reload of a COMPLETED attempt
+  serves the read-only review directly.
+
+### Mid-build polish
+
+- Cloudinary URL injected into all rationale-image columns
+  (`nclex_bank_items.rationale_img`, `nclex_tutor_questions.rationale_img`,
+  `nclex_attempt_items.rationale_img_snapshot`) on dev — temporary
+  placeholder so the rationale image surface can be exercised before
+  curators upload real artwork.
+- One subtle gotcha discovered: per-Q submit captures the unseal
+  envelope at submit time, so items submitted before the URL was added
+  still showed `null` for rationale_img — UL re-submit lock prevents
+  refreshing. Resolution: discard + start a fresh attempt; new submits
+  read the populated snapshot. Documented as inherent to per-Q unseal +
+  re-submit lock; not a bug.
+
+### What's deferred
+
+- `nclex_save_progress` (STUDY drafts) — slice 4.6 alongside Resume UI
+- The two cleanup sweeps from 2.4 (`nclex_timeout_sweep`,
+  `nclex_orphan_cleanup`) — separate slice
+- Per-mode deltas (timer, sequential lock, batched submit) — slice 4.5
+- Mark-for-review toggle wiring — slice 4.7
+- Discard modal with type-DELETE-to-confirm — slice 4.8
+- Case-grouping bands in the grid — slice 4.3
+- Trend dataset panel — slice 4.4
+- Review-state polish (grid CTA, results breakdown) — slice 4.9 / 6.2
+- Mobile bottom-sheet variant of the grid — runs alongside slice 5.1e
+- Rationale-image alt-text — its own small slice
+
+### Queued for next session
+
+- **Slice 4.2** — remaining 8 question types (TF, SATA, Select-N,
+  Matrix, Highlight, Cloze, Drag-drop, Bow-tie). Each as a single
+  component with `mode: "answering" | "review"` prop, structurally
+  mirroring `lib/bank/runner/types/mcq.tsx`. Reuse the existing
+  authoring-editor previews as the structural starting point.
+
+---
+
+## Session — 2026-05-06 (planning, late evening) — Question grid settled, runner doc rewritten
+
+Pure planning session, no code. Sam wanted the runner-design loop
+clean before handing off to Claude Design for a prototype: settle
+the structural decisions, pass them to design, get back a concrete
+runner shape, then implement (slice 4.1).
+
+The conversation walked the question grid from a TBD line in
+runner.html §15 ("jump-to-question grid for free-nav modes") into
+a fully-settled top-level section. Six dimensions, settled one at
+a time.
+
+### What got settled
+
+- **Where the grid shows.** Active session: free-nav modes only
+  (Untimed Learning, Untimed Test, Timed Free Nav). Sequential and
+  CAT have no grid during the run. Review: every finished attempt
+  regardless of mode. Untimed Learning is the awkward one — it's
+  free-nav AND per-Q submit, so individual cells flip pre→post-submit
+  independently. The §2.3.1 no-leakage rule already supports this
+  (per-Q submit returns the key for that one cell only); the only
+  architectural note that follows is that the `mode: answering | review`
+  prop is per-item in Untimed Learning, not per-attempt.
+
+- **Placement.** Right-edge sticky panel on desktop, flush to
+  viewport edge, ~220px wide, default-open. Push-mode normally,
+  overlay-mode when manually opened during a wrapper (case/trend).
+  Auto-collapses on wrapper entry, sticky-restores on wrapper exit.
+  Mobile: full-screen bottom sheet, default-collapsed, opened from
+  a topbar grid icon (not a hamburger — wrong semantics).
+
+- **Cell content.** Just the number, centred. No glyphs, no icons,
+  no question-type indicators. State encoded purely by colour.
+  Above the grid: filter toggles (`All / Marked / Unanswered / Wrong`)
+  for switching the visible subset. Filtering replaces the need for
+  corner glyphs.
+
+- **State palette — three orthogonal channels.** Fill encodes the
+  5 fill states (unanswered / answered / right / wrong / skipped),
+  border encodes marked, outer-ring encodes current. Composes
+  cleanly: a cell can be right + marked + current and still read.
+  Accessibility: palette pairs differ in brightness as well as hue
+  (light green vs dark red still reads as light vs dark for
+  red-green colour-blind users). Untimed Learning wrong cells are
+  locked (no resubmit) to preserve the learning loop and the
+  answer-changes analytics.
+
+- **Cell layout.** Square cells, ~36–40px desktop / ~44px mobile.
+  Fixed 5 columns desktop, responsive 5–7 mobile. Tight gaps. Case
+  grouping = subtle tinted band behind the 6 case-children, same
+  tint for every case. Trends not grouped (they scatter). Filter
+  toggles in a sticky header at top of the grid panel.
+
+- **Interaction model.** Single click/tap navigates. Filter
+  toggles single-select. v1 skips: hover tooltips, keyboard
+  shortcuts beyond a11y, long-press menus, search box, drag.
+  v1 keeps: tab-focusable cells, Enter/Space to activate,
+  screen-reader announcements (state-by-colour fails screen
+  readers — announcement is mandatory). Grid is navigation-only,
+  not an action surface — student can't mark / unmark / change
+  answer from the grid.
+
+- **Mobile.** Already implied by everything above. Locked the few
+  remaining specifics: full-screen sheet with sticky header carrying
+  filter toggles + close + Q-counter, three dismissal paths (cell tap,
+  close button, backdrop tap), breakpoint floor ~1024px.
+
+Pixel values, exact tones, animation treatments, and final visual
+language all defer to Claude Design.
+
+### Doc updates
+
+- **`docs/product-plan/bank-consumption-runner.html`** — new
+  §16 "Question grid — the navigation surface" inserted between
+  the (now-renamed) §15 Navigation rules and §17 Discard/abandon.
+  TOC and the five subsequent section headings renumbered (§16
+  Discard → §17, §17 Review → §18, §18 CAT → §19, §19 Open
+  decisions → §20, §20 Related docs → §21). The two inline
+  references inside the runner doc that pointed at the old numbers
+  also updated.
+- **§15 Navigation rules** rewritten — the stale Untimed Learning
+  "sequential, no skip" line is superseded (free nav with per-Q
+  submit, per the conversation), the per-mode table now matches
+  the §16 grid matrix, and the section now points at §16 as the
+  navigation surface for free-nav modes + every review.
+- **§18 Review state** points at §16 for navigation; the layout
+  TBD list is narrowed to what's actually still open.
+- **`docs/product-plan/bank-consumption.html`** parent — the
+  "Open for runner planning" subsection annotated to mark
+  navigation specifics as settled (link to runner.html §15 + §16).
+  Timer specifics, mode-switch rules, default-mode picks, and
+  Resume/Review surface details remain open.
+- **`docs/product-plan/bank-consumption-cat.html`** §14.2 — the
+  CAT review section's "list + detail layout" + "filtering on the
+  sidebar" bullets reworded to point at runner.html §16 (the grid)
+  and §16.3 (the four-toggle filter row). The earlier wording mentioned
+  "Right only / By category" filters that aren't in v1; clarified that
+  by-category drill-down lives on the analytics page, not in review
+  navigation. Two stale numeric backrefs to runner.html (§17 and §18)
+  bumped to §18 and §19 to match the renumbering.
+
+### What's queued for next
+
+Claude Design takes the runner brief and produces a prototype.
+That prototype lands here as the input to slice 4.1 — runner
+shell + MCQ vertical slice. Slice 4.1 in turn pulls slices 2.3
+(`nclex_submit_answer`) and the COMPLETED side of 2.4
+(`nclex_complete_attempt`) into the same build. The current
+`app/(app)/(focused)/session/[attempt_id]/` stub from slice 5.1a
+gets replaced wholesale.
+
+---
+
+## Session — 2026-05-06 (build, evening) — Builder UI shipped end-to-end
+
+The big Phase D push. Builder went from a placeholder `<Placeholder/>`
+component to a full working entry point — students can now configure
+a quiz across 6 pool chips + 8 content axes + 5 modes, see honest
+live counts on every row, click Start, and have an attempt with
+fully-snapshotted question rows materialise in the DB.
+
+Shipped slices 5.1a / 5.1b / 5.1d / 5.1c (in that order, not
+alphabetical — 5.1c entry helpers came last because they assume the
+core form is complete), plus a tab restructure that came out of a UX
+discussion mid-build, plus one bug fix on the All-pool-chip semantics.
+Six commits, one new RPC, no schema changes.
+
+### What shipped
+
+- **Slice 5.1a — Practice page spine** (commit `08ee219`). The skeleton:
+  three sections in the main column (Pool / Content / Intent+Mode) +
+  sticky 340px summary panel on the right. Wired to
+  `nclex_count_eligible_items` (debounced 150ms live count) and
+  `nclex_create_attempt` (Start click). Smart-link UX for CNC↔
+  Subcategory and Subject↔BodySystem — rows whose parent isn't
+  selected dim+disable. The Subject↔BodySystem map lives hardcoded
+  in `lib/bank/builder/filter-config.ts` (the DB doesn't carry it).
+  Plus a stub runner page at `(app)/(focused)/session/[id]/` showing
+  attempt details + a Discard button — temporary, gets replaced by
+  the real runner in slice 4.1.
+
+- **Slice 5.1d — Tags / Topic / Subtopic axes** (commit `4c00c31`).
+  Completes the 8-axis content filter set. New server-side fetch
+  `lib/bank/builder/get-filter-options.ts` reads distinct values from
+  the published bank on SSR. No new RPC.
+
+- **Slice 5.1b — per-row counts (honest filter signals)** (commit
+  `3137326`). Every checkbox row in sections 1+2 now shows a small
+  count on the right answering "what would I get if I ticked this,
+  holding my other filters constant." Pool chips get the same
+  treatment. Backed by a new RPC `nclex_filter_breakdown(filters)`
+  that for each of 9 axes drops that axis's filter from the active
+  set and groups the eligible-question count by the axis's value.
+  10 axes total (8 content + by_qtype + by_pool). The drop-self
+  semantics is what makes the count *honest* — sticking
+  Difficulty=Hard doesn't kill the Difficulty row counts (they still
+  report Easy/Medium/Hard), only the OTHER axes narrow.
+
+- **Tab restructure — Intent + Mode in its own tab** (commit
+  `52194b1`). Came out of a UX discussion mid-session: the original
+  page order had Intent+Mode at the bottom, which meant a student
+  could fill out filters, then pick CAT, then watch their work
+  collapse into "doesn't apply in CAT" banners. Reordered into two
+  tabs: `[Intent & Mode]` and `[Filters]`. Default tab on page load
+  is Intent + Mode (the higher-level decision comes first). Pool +
+  Content sections live together in the Filters tab. Sticky summary
+  stays mounted across both tabs. Section number badges (1/2/3) and
+  3a/3b sub-badges removed — non-sequential structure.
+
+- **Bug fix — All pool chip** (commit `7a826f8`). The All shortcut
+  was sending both `pool_history=[UNSEEN,CORRECT,INCORRECT]` AND
+  `pool_marked=true`, which the helper ANDs together — meaning "any
+  state AND marked." With zero marks in dev, count dropped to 0.
+  Fixed `build-filter-payload.ts` to send no pool filter at all when
+  the All chip is on. Individual-chip semantics (Marked + Correct
+  ANDs together) preserved.
+
+- **Slice 5.1c — entry helpers** (commit `84fda9a`). The chrome above
+  the tab strip:
+  - **Resume banner** (warm-amber) — most-recent unfinished STUDY
+    attempt. Resume → `/session/{id}`; Start fresh → discard +
+    dismiss. Currently latent until the runner fires
+    `mark_attempt_started`.
+  - **Recent Quizzes shortcut** — last 3 finished attempts as
+    one-tap chips. Click restores the saved configuration into the
+    Builder form via the new `parseFilterPayload` helper (inverse of
+    `buildFilterPayload`). Latent until quizzes are completed.
+  - **Practise my weak spots** — gradient teal-to-navy 1-tap
+    button. v1 heuristic: `pool=Incorrect`, 25 Q, Study + Untimed
+    Learning. Real weakness analytics arrive in slice 7.x.
+  - All three are presentation-only components in `lib/bank/entry-
+    helpers/`, taking data as props with callbacks for actions.
+    Designed to be reused on the Dashboard later.
+
+### Design decisions locked
+
+1. **Cases sit out when Question Type filter is active.** The other
+   7 content axes apply to cases at the case-level classification.
+   QType filter would either ambush students with mixed-type case
+   blocks or exclude nearly all cases — neither is right.
+2. **Case pool rollups.** Unseen=no child seen, Seen=any child seen,
+   Correct=all 6 most-recent right, Incorrect=any most-recent wrong
+   (per parent §10), Marked=case-level mark OR any child-level mark.
+3. **Pool chip combination semantics.** History chips OR each other;
+   if Marked is on, AND with the history result. The All shortcut
+   means *no pool constraint at all* — distinct from individually
+   ticking the 5 chips.
+4. **Honest row counts via drop-self.** For each axis, the row
+   count is computed by dropping that axis's filter from the active
+   set. Means picking a value never makes its sibling values show 0.
+5. **Components share-first.** Entry helpers built in `lib/bank/
+   entry-helpers/` from day one rather than page-local — they'll be
+   reused on the Dashboard.
+6. **Adopt design as concept not source.** The Claude Design handoff
+   is a hi-fi prototype with mock data and made-up IDs. We adopted
+   the *layout* + interaction patterns + visual language; we use our
+   own DB schema values directly (no translation layer at the RPC
+   seam). The design's "Hot spot" question type became our existing
+   HIGHLIGHT; the design's "Ordered response" + "Chart/Exhibit" types
+   were dropped (we don't have them); TF + SELECT_N (which the
+   design omitted) were added.
+7. **Tabs not stacked.** Intent + Mode lives in its own tab, in
+   front of Filters. Higher-level decision comes first. Prevents
+   the wasted-effort CAT trap.
+8. **Mobile variant deferred.** The Claude Design has a 390px
+   accordion + bottom-action-bar layout. Important (audience is
+   phone-first) but defer-able until we have a complete pipeline
+   to polish.
+
+### Verification
+
+End-to-end smoke tested against mynclex-dev:
+- Land on /student/bank/practice → see Mode tab default with Study
+  + Untimed Learning + Pool=Unseen + count=25.
+- Lower count to 10 (since dev has only 14 standalone items) →
+  Start enables.
+- Click Start → action fires `nclex_create_attempt({pool_history:
+  ['UNSEEN']}, 'UNTIMED_LEARNING', 'STUDY', 10, 'CUSTOM_BUILT')` →
+  receives attempt_id → navigates to `/session/[id]`.
+- DB inspection: 1 attempt row (status IN_PROGRESS, started_at
+  NULL, filters_json present), 10 attempt_items rows (mixed types,
+  all classification + content + correct snapshotted), 0 case
+  snapshots (no eligible cases in dev), 0 trend snapshots, 0
+  answer rows (lazy).
+- Discard via SQL → cascade deleted all child rows.
+
+Tested seeded resumable + recent attempts to verify Resume banner
++ Recent Quizzes row render correctly. Cleaned up after.
+
+Cases + trends couldn't be tested against real eligible content
+(dev DB has none published) but the helper logic was smoke-tested
+on synthetic filter sets back in slice 2.2a.
+
+### What's deferred
+
+- **Mobile variant** (5.1e) — picked up after the runner exists.
+- **Curator tag allowlist** (5.5) — admin-side, separate slice.
+- **Save filter presets** — v2 per planning §17 ("Recent Quizzes
+  covers most v1 use cases").
+- **Per-row counts via materialised view** (slice 7.3) — current
+  inline subquery implementation works, replace later if perf
+  matters.
+
+### Queued for next session
+
+- **Slice 4.1** — runner shell + MCQ vertical slice. Replaces the
+  stub at `(app)/(focused)/session/[attempt_id]/` with: preflight
+  screen → Q1 rendered from snapshot → submit (via
+  `nclex_submit_answer`, slice 2.3) → see right/wrong → next →
+  completion (via `nclex_complete_attempt`, slice 2.4 partial). The
+  biggest "feels like a real product" jump available.
+
+---
+
+## Session — 2026-05-06 (build, later x2) — Slice 2.2 attempt-creation RPCs
+
+The big slice in Phase A. Five PL/pgSQL functions across two migrations,
+turning the slice 2.1 attempt tables into a working create-attempt path.
+Bank-only for v1.
+
+### What shipped
+
+- **2.2a — count + create-attempt** (commit pending). Migration
+  `db/migrations/20260506150000_slice_2_2a_count_and_create_attempt.sql`.
+  - `_nclex_eligible_unit_pool(student_id, filters)` — internal SQL
+    helper. Returns the (unit_type, unit_id) pairs that pass the 8-axis
+    content filter + the pool-history rollup (with case-rollup rules
+    settled in this session). Single source of truth — both count and
+    create call it, so the live count chip and the actual quiz can't
+    disagree (planning §2). Inline subqueries against
+    `nclex_attempt_answers` + `nclex_question_marks` for v1; replaced
+    with the 7.3 materialised view later.
+  - `nclex_count_eligible_items(filters) → jsonb` — expands cases into
+    their 6 children for the breakdown so the "Roughly: 14 MCQ · 6 SATA
+    ..." line reflects what the student will actually see. Returns
+    `{ total: int, by_question_type: { ... } }`.
+  - `nclex_create_attempt(filters, mode, intent, requested_count, source)
+    → uuid` — validates, picks units random target-with-drift ±3,
+    expands cases into 6-child sequences, snapshots into the 4 attempt
+    tables, returns attempt_id. Single transaction.
+- **2.2b — lifecycle pair** (commit pending). Migration
+  `db/migrations/20260506160000_slice_2_2b_attempt_lifecycle_rpcs.sql`.
+  - `nclex_mark_attempt_started(attempt_id) → timestamptz` — sets
+    `started_at = NOW()` once. Idempotent (re-call returns existing
+    timestamp unchanged). Anchors timer to preflight Start.
+  - `nclex_discard_attempt(attempt_id) → void` — flips status to
+    ABANDONED, hard-deletes snapshot child rows per planning §6.3.1
+    ("discard is hard-delete, no forensics"). Idempotent for client
+    retries (no-op if already terminated).
+
+### Design decisions locked
+
+1. **Cases sit out when Question Type filter is active.** The other 7
+   content filter axes apply at the case-classification level. Question
+   Type filter would require either ambushing students with mixed-type
+   case blocks, or excluding nearly all cases — neither is right.
+2. **Pool filter case rollups.** Unseen = no child seen; Seen = any
+   child seen; Correct = all 6 most-recent right; Incorrect = any
+   most-recent wrong (per parent §10); Marked = case-target mark OR any
+   child-target mark.
+3. **Pool filter combination.** History chips OR each other; if Marked
+   is on, AND with the history result. Marked alone with no history
+   chips = "anything I marked." Reconciles the two conflicting examples
+   in parent §10.
+4. **Pool filter v1 implementation.** Inline subqueries — correct, slow
+   on populated DB. Replaced by the 7.3 materialised view later. Single
+   `LEFT JOIN last_ans` and the marks lookup; the JOIN-against-MV swap
+   is a one-line change in two places.
+5. **Selection algorithm — target-with-drift ±3.** Random shuffle the
+   pool; for each unit, exit if `running >= target`, skip if `running +
+   slot_cost > target + 3`, else take. After natural loop end, error if
+   `running < target - 3` (defensive — pool sanity check at step 2 makes
+   this unreachable in normal cases). Slot cost 1 for QUESTION, 6 for
+   CASE.
+6. **Bank-only for v1.** Tutor items are not in the candidate pool until
+   programme enrolment lands. The helper's `item_source = 'BANK'` filter
+   is the single switch.
+7. **All RPCs SECURITY DEFINER, search path locked.** Public RPCs check
+   `auth.uid() IS NOT NULL` first. Helper trusts caller (only called
+   from sibling SECURITY DEFINER functions). Ownership check on
+   lifecycle RPCs against `auth.uid()` with SUPER_ADMIN bypass.
+
+### Bug squashed mid-implementation
+
+- **Initial total in count was wrong.** Used `COUNT(*)` over the
+  grouped-by-type subquery → returned the number of distinct types
+  (6) instead of summing across types (14). Fixed to `SUM(n)`.
+- **Selection exited too early.** Initial `EXIT` condition was
+  `running >= target - 3`, which let a request for 5 questions
+  finish at 2 (the lower-tolerance bound) when the pool had 14
+  available. Reworked: exit at `running >= target`, fall through to
+  natural loop end + a defensive `< target - 3` check.
+
+### Permission hardening
+
+- Supabase grants EXECUTE to `anon` and `authenticated` by default on
+  every public-schema function. `REVOKE FROM PUBLIC` doesn't undo
+  those direct grants. Explicitly revoked from `anon` on all 4 public
+  RPCs and from both `anon` + `authenticated` on `_nclex_eligible_unit_pool`
+  (it accepts an arbitrary student_id parameter — direct access would
+  let any signed-in user enumerate any other student's pool). Public
+  RPCs reach the helper via SECURITY DEFINER context (postgres role)
+  so the revoke doesn't block them. Advisor confirmed clean on the new
+  functions.
+
+### Verification
+
+- Helper returns expected pool counts: empty filters = 14,
+  `question_type=[MCQ,SATA]` = 8, `difficulty=[Easy]` = 3, all matching
+  the underlying bank state (70 bank items but only 14 standalone +
+  builder-visible + published; 0 cases qualify because no case has
+  all 6 children populated).
+- Three create-attempt smoke tests: `req=5 → got=5`, `req=10 → got=10`,
+  `req=6 with QType=MCQ filter → got=6 all-MCQ`. Counts hit target
+  exactly (slot_cost=1 only — no cases in pool).
+- mark_attempt_started returns the same timestamp on first and second
+  call (idempotent).
+- discard_attempt flips status to ABANDONED, sets ended_at, removes
+  all snapshot child rows.
+
+### Queued for next session
+
+- **Slice 2.3** — `nclex_submit_answer` (calls the per-type scoring
+  functions already shipped in `lib/scoring/` from slice 2.5),
+  `nclex_save_progress` (STUDY drafts). The first slice that actually
+  calls `scoreAttempt` from slice 2.5a — closes the loop on scoring.
+
+---
+
+## Session — 2026-05-06 (build, later) — Slice 2.1.5 mark-for-review table
+
+Small adjacent slice on top of 2.1's attempt tables — `nclex_question_marks`
+applied to mynclex-dev. Drives the runner's mark-for-review toggle and
+the builder's "Marked" pool filter. Settled the 4 deferred design points
+inline before writing the migration.
+
+### What shipped
+
+- **`nclex_question_marks` table.** Migration
+  `db/migrations/20260506140000_slice_2_1_5_question_marks.sql`. One row
+  per `(student, target)`. Columns: `mark_id` (UUID PK),
+  `student_id`, `target_kind` ∈ `QUESTION`/`CASE`, `target_source` ∈
+  `BANK`/`TUTOR`, `target_id` (TEXT), `tutor_id` (nullable, required
+  iff `target_source='TUTOR'`), `marked_at`. No FK on `target_id` — it
+  is polymorphic across 4 source tables (bank items, case studies,
+  tutor questions, tutor case studies); same convention as
+  `nclex_attempt_items`.
+- **Two partial unique indexes** instead of one combined unique.
+  Postgres treats NULL as distinct in unique constraints, so a single
+  unique on `(student_id, target_kind, target_source, target_id, tutor_id)`
+  would let the same bank item be marked twice (both rows with
+  `tutor_id` NULL). Split: `WHERE target_source = 'BANK'` and
+  `WHERE target_source = 'TUTOR'`.
+- **Builder pool-filter index** `(student_id, target_kind)` — matches
+  the dominant query shape ("give me everything this student has
+  marked, filtered by kind").
+- **RLS.** Students get SELECT/INSERT/DELETE on own rows (mark toggle
+  is a direct write — no RPC, parent §6.3.4); SUPER_ADMIN bypass via
+  `nclex_user_has_role()`. UPDATE deliberately not granted: there is
+  no editable column.
+
+### Design decisions locked
+
+1. **Two target kinds, not three.** `QUESTION` + `CASE`. Trends are
+   not standalone scenarios with children — a trend question is a
+   single item with a dataset alongside, marked at the QUESTION level.
+   "Mark this trend dataset" as a separate concept has no v1 use case;
+   skip until one shows up.
+2. **Single polymorphic table, not split per kind.** Mirrors
+   `nclex_attempt_items.selection_unit_type`. Avoids a UNION in the
+   builder pool-filter query.
+3. **Row-exists toggle, not soft-delete.** Mark on = INSERT; mark
+   off = DELETE. No `is_marked` boolean, no audit history. If a future
+   analytic ever needs mark history, add a separate audit table — don't
+   bend this one.
+4. **Bank + tutor in one table.** Distinguished by `target_source` +
+   `tutor_id`. Marking is the student's, not the tutor's — same shape
+   regardless of source. The `tutor_id` consistency check enforces the
+   invariant at the schema level.
+
+### Verification
+
+- `apply_migration` returned success on mynclex-dev.
+- Column inventory matches the spec (7 columns, RLS enabled).
+- `get_advisors security` shows no new warnings — all flagged items
+  are pre-existing (the `nclex_readiness_packs` RLS-disabled note and
+  three `SECURITY DEFINER`-callable helpers from earlier slices).
+
+### Queued for next session
+
+- **Slice 2.2** — create-attempt RPCs (`nclex_count_eligible_items`,
+  `nclex_create_attempt`, `nclex_mark_attempt_started`,
+  `nclex_discard_attempt`). Bigger slice, unblocks the runner.
+
+---
+
 ## Session — 2026-05-06 (build) — Slice 2.5 scoring + marks-in-authoring + dead-RPC cleanup
 
 Continuation of the build phase. Closed the §5/§9 deferred decisions in

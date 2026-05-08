@@ -288,7 +288,7 @@
   <li><strong>Result columns are deferred to this doc.</strong> Verdict / ability estimate / standard error / termination reason — to be designed here. Will be NULL for non-CAT attempts; will replace <code>final_score</code> for CAT attempts (CAT has no raw score).</li>
 </ul>
 
-<h3>2.7 From <code>bank-consumption-runner.html</code> §18</h3>
+<h3>2.7 From <code>bank-consumption-runner.html</code> §19</h3>
 <ul>
   <li><strong>CAT runner is structurally different.</strong> No upfront question list, items arrive one at a time, preflight + termination both run differently.</li>
   <li><strong>Shared with fixed-length runner:</strong> snapshot tables, answer table, attempt row lifecycle (preflight, status transitions, timer).</li>
@@ -1345,9 +1345,10 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 
 <h3>14.2 What CAT inherits unchanged from the shared Review</h3>
 <ul>
-  <li><strong>Per-question rendering</strong> — the 9 question-type renderers used by the live runner, in <code>mode = "review"</code> (per <code>bank-consumption-runner.html</code> §17).</li>
-  <li><strong>List + detail layout</strong> — sidebar with item navigation, main pane shows the focused item. Same pattern as fixed-length review.</li>
-  <li><strong>Filtering on the sidebar</strong> — All / Wrong only / Right only / By category / Marked-for-review. Inherited.</li>
+  <li><strong>Per-question rendering</strong> — the 9 question-type renderers used by the live runner, in <code>mode = "review"</code> (per <code>bank-consumption-runner.html</code> §18).</li>
+  <li><strong>Navigation surface = the question grid</strong> (per <code>bank-consumption-runner.html</code> §16). Every finished attempt shows the grid in review regardless of which mode ran, so CAT inherits it identically. Cells carry post-submit fill states (right / wrong / skipped) and the marked / current overlays per §16.4.</li>
+  <li><strong>List + detail layout</strong> — grid as the list (right-edge sticky panel desktop, full-screen bottom sheet mobile), main pane shows the focused item. Same pattern as fixed-length review.</li>
+  <li><strong>Filter toggles</strong> — <code>All / Marked / Unanswered / Wrong</code> per §16.3. (Earlier wording mentioned "Right only / By category" — those finer filters are not in v1; the v1 surface is the four toggles plus the question-grid cells. By-category drill-down lives on the analytics page, not in review navigation.)</li>
   <li><strong>Mark-for-review toggle</strong> — student can mark items in Review for later study. The mark is universal across the platform — marked items from CAT mix with marked items from any other quiz type in the personal study list.</li>
 </ul>
 

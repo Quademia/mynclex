@@ -1,6 +1,6 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-05-05 (CAT removed from Explicit Deferrals — settled for v1 in `docs/product-plan/bank-consumption-cat.html`)
+Last updated: 2026-05-07 (branching workflow: `work` → `main` → `prod`)
 
 ## What This Is
 
@@ -194,12 +194,62 @@ slice.
   Dev (`next dev`) still uses Turbopack (it is mature for dev).
   Revisit and drop `--webpack` once OpenNext adds Turbopack support.
 
+## Branching workflow
+
+Three long-lived branches on the remote:
+
+- **`work`** — where Claude edits code. All session work happens here.
+  Push freely.
+- **`main`** — stable. `work` is merged into `main` once a slice is done
+  and tested locally.
+- **`prod`** — released / deployed. `main` is merged into `prod` when
+  it's time to ship to users.
+
+Branch names `dev` / `prod` are reserved for environment naming
+(Cloudflare, Supabase) — that's why the working branch is called
+`work` and not `dev`.
+
+**Every session — first action:**
+
+Each session lands in a fresh `.claude/worktrees/<random>` worktree
+on an auto-created `claude/<random>` branch. Switch to `work`
+immediately:
+
+```powershell
+git checkout work
+git pull origin work
+```
+
+Commit on `work`. Push with `git push origin work`.
+
+**Merging `work` → `main`** (when a slice is done and tested):
+
+```powershell
+git checkout main
+git merge work --ff-only
+git push origin main
+git checkout work
+```
+
+**Releasing `main` → `prod`** (when ready to deploy):
+
+```powershell
+git checkout prod
+git merge main --ff-only
+git push origin prod
+git checkout work
+```
+
+Never work directly in the `qacademy-mynclex` main checkout — always
+operate inside a `.claude/worktrees/<...>` worktree, on the `work`
+branch.
+
 ## Working With Sam
 
 - Sam has no coding background. Explain rationale before code. No assumed
   code literacy.
 - Discuss plans before building. No full rewrites without approval.
-- Always push directly to main. No PRs or branches.
+- Work on the `work` branch; merge to `main` when a slice is done; merge `main` to `prod` when releasing. See **Branching workflow** above.
 - One issue at a time, confirmed before moving on.
 
 ## Files To Read at Session Start

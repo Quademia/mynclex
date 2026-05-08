@@ -20,6 +20,8 @@ import '@/styles/dashboards.css';
 import '@/styles/shell.css';
 import '@/styles/nav.css';
 import '@/styles/authoring.css';
+import '@/styles/builder.css';
+import '@/styles/runner.css';
 
 export const dynamic = 'force-dynamic';
 
