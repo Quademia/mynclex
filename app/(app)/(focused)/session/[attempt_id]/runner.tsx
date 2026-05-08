@@ -38,8 +38,8 @@ import type {
   SataAnswer,
   SelectNAnswer,
 } from '@/lib/scoring';
-import type { SelectNContent, MatrixContent, ClozeContent } from '@/lib/bank/types';
-import type { MatrixAnswer, HighlightAnswer, ClozeAnswer } from '@/lib/scoring';
+import type { SelectNContent, MatrixContent, ClozeContent, DragDropContent } from '@/lib/bank/types';
+import type { MatrixAnswer, HighlightAnswer, ClozeAnswer, DragDropAnswer } from '@/lib/scoring';
 import {
   isMcqComplete,
   isSataComplete,
@@ -47,6 +47,7 @@ import {
   isMatrixComplete,
   isHighlightComplete,
   isClozeComplete,
+  isDragDropComplete,
 } from '@/lib/bank/runner';
 import { ErrorToast } from '@/lib/bank/atoms/error-toast';
 import { RunnerTopbar }       from './runner-topbar';
@@ -437,9 +438,23 @@ function getSubmitGate(
       };
     }
 
-    // DRAG_DROP / BOWTIE land in slice 4.2. Until then the per-type
-    // runner shows a placeholder and submission is gated off — there's
-    // no scoring path for these types yet.
+    case 'DRAG_DROP': {
+      const content = item.content_snapshot_json as unknown as DragDropContent;
+      const a = pending as DragDropAnswer | undefined;
+      const ok = isDragDropComplete(a, content);
+      const filled = a
+        ? content.slots.filter((s) => Boolean(a[s.id])).length
+        : 0;
+      const total = content.slots.length;
+      return {
+        canSubmit:   ok,
+        submitValue: ok ? (a as BankItemAnswer) : null,
+        hint:        ok ? undefined : `${filled} of ${total} slots filled — finish all to submit`,
+      };
+    }
+
+    // BOWTIE lands in the next 4.2 sub-slice — until then the per-type
+    // runner shows a placeholder and submission is gated off.
     default:
       return {
         canSubmit:   false,

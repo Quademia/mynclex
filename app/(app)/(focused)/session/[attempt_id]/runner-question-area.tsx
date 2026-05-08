@@ -19,12 +19,16 @@
 // HIGHLIGHT wired today; the remaining 3 fall through to the
 // slice-4.2 placeholder.
 //
-// HIGHLIGHT and CLOZE are special: the per-type runner takes over
-// stem rendering. HIGHLIGHT's stem holds the [[bracketed]] clickable
-// chunks; CLOZE's stem holds the {N} blank markers that become inline
-// dropdowns. For both we skip the regular `.rn-stem` render in
-// RunnerQuestionArea and the instruction moves to ABOVE the stem
-// (the student needs to know what they're doing before they read).
+// HIGHLIGHT, CLOZE, and DRAG_DROP-SENTENCE are special: the per-type
+// runner takes over stem rendering. HIGHLIGHT's stem holds the
+// [[bracketed]] clickable chunks; CLOZE's stem holds the {N} blank
+// markers that become inline dropdowns; DRAG_DROP-SENTENCE's stem
+// holds [N] markers that become inline drop boxes. For all three we
+// skip the regular `.rn-stem` render in RunnerQuestionArea and the
+// instruction moves to ABOVE the stem (the student needs to know
+// what they're doing before they read). DRAG_DROP-ORDERED renders
+// normally — its slot list sits below the stem like a regular options
+// block.
 //
 // Wrapper-aware layout (case panel + question, trend dataset + question)
 // lands with slices 4.3 / 4.4. For now we always render `.rn-q-wrap`.
@@ -48,6 +52,8 @@ import type {
   HighlightCorrect,
   ClozeContent,
   ClozeCorrect,
+  DragDropContent,
+  DragDropCorrect,
   BankItemCorrect,
 } from '@/lib/bank/types';
 import type {
@@ -58,6 +64,7 @@ import type {
   MatrixAnswer,
   HighlightAnswer,
   ClozeAnswer,
+  DragDropAnswer,
   BankItemAnswer,
 } from '@/lib/scoring';
 import {
@@ -68,6 +75,7 @@ import {
   MatrixRunner,
   HighlightRunner,
   ClozeRunner,
+  DragDropRunner,
   RationaleBlock,
 } from '@/lib/bank/runner';
 
@@ -132,22 +140,33 @@ export function RunnerQuestionArea(props: Props) {
         {difficulty  && <span className="rn-type-pill">Difficulty · {difficulty}</span>}
       </div>
 
-      {/* HIGHLIGHT and CLOZE render their own stem (interactive chunks
-       *  / inline dropdowns). For both, instruction moves above the
-       *  stem so the student knows what to do before reading. All other
-       *  types render stem here, then instruction. */}
-      {(item.question_type === 'HIGHLIGHT' || item.question_type === 'CLOZE') ? (
-        item.instruction_snapshot && (
-          <p className="rn-instruction">{item.instruction_snapshot}</p>
-        )
-      ) : (
-        <>
-          <div className="rn-stem">{item.stem_snapshot}</div>
-          {item.instruction_snapshot && (
+      {/* HIGHLIGHT, CLOZE, and DRAG_DROP-SENTENCE render their own stem
+       *  (interactive chunks / inline dropdowns / inline drop boxes).
+       *  For these, instruction moves above the stem so the student
+       *  knows what to do before reading. DRAG_DROP-ORDERED renders
+       *  normally — slot list sits below the stem. All other types
+       *  render stem here, then instruction. */}
+      {(() => {
+        const isStemTakeover =
+          item.question_type === 'HIGHLIGHT' ||
+          item.question_type === 'CLOZE' ||
+          (item.question_type === 'DRAG_DROP' &&
+            (item.content_snapshot_json as unknown as DragDropContent).subtype === 'SENTENCE');
+
+        if (isStemTakeover) {
+          return item.instruction_snapshot ? (
             <p className="rn-instruction">{item.instruction_snapshot}</p>
-          )}
-        </>
-      )}
+          ) : null;
+        }
+        return (
+          <>
+            <div className="rn-stem">{item.stem_snapshot}</div>
+            {item.instruction_snapshot && (
+              <p className="rn-instruction">{item.instruction_snapshot}</p>
+            )}
+          </>
+        );
+      })()}
 
       <PerTypeRunner {...props} />
 
@@ -341,9 +360,33 @@ function PerTypeRunner(props: Props) {
       );
     }
 
-    // Slice 4.2 remainders — DRAG_DROP and BOWTIE land in subsequent
-    // sub-slices using the same pattern.
-    case 'DRAG_DROP':
+    case 'DRAG_DROP': {
+      const content = item.content_snapshot_json as unknown as DragDropContent;
+
+      if (props.itemMode === 'answering') {
+        return (
+          <DragDropRunner
+            mode="answering"
+            stem={item.stem_snapshot}
+            content={content}
+            selected={(props.pendingAnswer as DragDropAnswer | undefined) ?? {}}
+            onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
+          />
+        );
+      }
+
+      return (
+        <DragDropRunner
+          mode="review"
+          stem={item.stem_snapshot}
+          content={content}
+          studentAnswer={(props.answerRow.answer_json as DragDropAnswer | undefined) ?? {}}
+          correct={props.unseal.correct as DragDropCorrect}
+        />
+      );
+    }
+
+    // BOWTIE — last per-type runner in slice 4.2, lands next.
     case 'BOWTIE':
       return (
         <div className="rn-stub">

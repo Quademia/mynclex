@@ -36,4 +36,5 @@ export { SelectNRunner,   isSelectNComplete }   from './types/select-n';
 export { MatrixRunner,    isMatrixComplete }    from './types/matrix';
 export { HighlightRunner, isHighlightComplete } from './types/highlight';
 export { ClozeRunner,     isClozeComplete }     from './types/cloze';
+export { DragDropRunner,  isDragDropComplete }  from './types/drag-drop';
 export { RationaleBlock } from './rationale';
