@@ -38,14 +38,15 @@ import type {
   SataAnswer,
   SelectNAnswer,
 } from '@/lib/scoring';
-import type { SelectNContent, MatrixContent } from '@/lib/bank/types';
-import type { MatrixAnswer, HighlightAnswer } from '@/lib/scoring';
+import type { SelectNContent, MatrixContent, ClozeContent } from '@/lib/bank/types';
+import type { MatrixAnswer, HighlightAnswer, ClozeAnswer } from '@/lib/scoring';
 import {
   isMcqComplete,
   isSataComplete,
   isSelectNComplete,
   isMatrixComplete,
   isHighlightComplete,
+  isClozeComplete,
 } from '@/lib/bank/runner';
 import { ErrorToast } from '@/lib/bank/atoms/error-toast';
 import { RunnerTopbar }       from './runner-topbar';
@@ -423,9 +424,22 @@ function getSubmitGate(
       };
     }
 
-    // CLOZE / DRAG_DROP / BOWTIE land in slice 4.2. Until then the
-    // per-type runner shows a placeholder and submission is gated off
-    // — there's no scoring path for these types yet.
+    case 'CLOZE': {
+      const content = item.content_snapshot_json as unknown as ClozeContent;
+      const a = pending as ClozeAnswer | undefined;
+      const ok = isClozeComplete(a, content);
+      const filled = a ? Object.values(a).filter(Boolean).length : 0;
+      const total  = content.blanks.length;
+      return {
+        canSubmit:   ok,
+        submitValue: ok ? (a as BankItemAnswer) : null,
+        hint:        ok ? undefined : `${filled} of ${total} blanks filled — finish all to submit`,
+      };
+    }
+
+    // DRAG_DROP / BOWTIE land in slice 4.2. Until then the per-type
+    // runner shows a placeholder and submission is gated off — there's
+    // no scoring path for these types yet.
     default:
       return {
         canSubmit:   false,

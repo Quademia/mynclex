@@ -587,6 +587,175 @@
   font-weight: 600;
 }
 
+/* CLOZE — sentence with inline {N} markers, native <select> per blank.
+ * Like HIGHLIGHT, the per-type runner takes over stem rendering. The
+ * stem reads as a sentence with dropdowns flowing inline; spacing
+ * mirrors the highlight stem (line-height 1.85) so dropdown chrome
+ * doesn't crowd the surrounding text. Native <select> keeps a11y +
+ * mobile + zero custom dropdown infrastructure. */
+.rn-cloze-stem {
+  font-size: 15.5px;
+  line-height: 1.85;
+  color: var(--text);
+  margin-bottom: 18px;
+}
+.rn-cloze-hint {
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.rn-cloze-hint strong { color: var(--text); font-weight: 700; }
+.rn-cloze-hint .sep   { color: var(--text-faint); }
+.rn-cloze-hint .hint  { font-style: italic; }
+
+/* Wrapper around each blank's number + dropdown/pill so they stay
+ * grouped on the same line when the line wraps. The wrapper itself is
+ * inline so the segment continues to flow with the surrounding stem
+ * prose. */
+.rn-cloze-blank-wrap {
+  display: inline;
+  white-space: nowrap;
+}
+/* Persistent number marker — small superscript before every blank.
+ * Faint enough not to compete with the surrounding stem prose; matches
+ * the "Blank N" headers in the post-answer feedback list so the
+ * student can map dropdown ↔ rationale by index. */
+.rn-cloze-blank-num {
+  display: inline-block;
+  margin-right: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+  vertical-align: super;
+  line-height: 1;
+}
+
+/* Inline dropdown — sized to its content with a max cap so a long
+ * choice doesn't stretch a line off the column. Default border picks
+ * up the same dashed-affordance feel HIGHLIGHT uses (clickable). When
+ * a value is picked, border firms up + faint accent tint signals the
+ * blank is filled without screaming. */
+.rn-cloze-select {
+  display: inline-block;
+  vertical-align: baseline;
+  margin: 0 2px;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  max-width: 22ch;
+  cursor: pointer;
+  transition: background-color .12s, border-color .12s;
+}
+.rn-cloze-select:hover  { border-color: var(--accent); }
+.rn-cloze-select:focus  { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rn-cloze-select.sel {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1e3a8a;
+  font-weight: 600;
+}
+
+/* Review pills — inline, sized to their picked text. Three states match
+ * the HIGHLIGHT palette so the visual language stays consistent across
+ * stem-takeover types. */
+.rn-cloze-pill {
+  display: inline;
+  padding: 2px 6px;
+  margin: 0 2px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.rn-cloze-pill-mark {
+  margin-right: 4px;
+  font-weight: 700;
+}
+.rn-cloze-pill.right {
+  background: #dcfce7;
+  border-color: #16a34a;
+  color: #14532d;
+  font-weight: 700;
+}
+.rn-cloze-pill.wrong {
+  background: #fee2e2;
+  border-color: #b91c1c;
+  color: #7f1d1d;
+}
+.rn-cloze-pill.skipped {
+  background: transparent;
+  border-color: #d97706;
+  border-style: dashed;
+  color: #b45309;
+  font-style: italic;
+}
+
+/* Per-blank feedback (review mode). Flowing prose, not boxed options.
+ * Per blank: a left-accented "Blank N" header followed by a paragraph
+ * where every option label runs inline with its per-choice rationale.
+ * Correct label is green, wrong labels are a softened red so multiple
+ * wrong distractors don't shout — the single green label still pops as
+ * the answer key. The pill row was dropped because the colour-coded
+ * labels in the prose already encode the answer-key signal. The
+ * student's pick stays in the stem pill, not duplicated in this block.
+ * Settled in design mock B′, 2026-05-08. */
+.rn-cloze-feedback {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.rn-cloze-feedback-blank {
+  border-left: 3px solid var(--accent);
+  padding-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+/* Per-blank header — "<num> CORRECT" / "<num> WRONG" / "<num> SKIPPED".
+ * The verdict colour mirrors the stem pill (green / red / amber) so the
+ * student can tell at a glance how they did on each blank before
+ * reading the rationale. The number ties back to the superscript marker
+ * in the stem above. */
+.rn-cloze-feedback-blank-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.rn-cloze-feedback-blank-label .num {
+  opacity: 0.7;
+}
+.rn-cloze-feedback-blank-label.right    { color: #15803d; }
+.rn-cloze-feedback-blank-label.wrong    { color: #9b2c2c; }
+.rn-cloze-feedback-blank-label.skipped  { color: #b45309; }
+.rn-cloze-feedback-rationales {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+.rn-cloze-feedback-item + .rn-cloze-feedback-item::before {
+  content: ' ';
+}
+.rn-cloze-feedback-label {
+  font-weight: 600;
+  color: #9b2c2c;
+}
+.rn-cloze-feedback-item.right .rn-cloze-feedback-label {
+  color: #15803d;
+}
+
 /* Per-option feedback (review mode) — italic muted line directly under
  * the option text. No top border, no top padding — keeps the option
  * card compact. */
