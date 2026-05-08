@@ -121,6 +121,26 @@ export function HighlightRunner(props: HighlightRunnerProps) {
 
   return (
     <>
+      {/* Persistent orientation line above the passage. Universal
+       * "no hint" treatment (design call 2026-05-08) means chunks
+       * look like ordinary passage text — students must search.
+       * The hint is the safety net: tells them the question is
+       * interactive, so silent taps don't read as a broken page.
+       * Pattern mirrors SELECT_N's progressive count line. */}
+      {!isReview && (
+        <div className="rn-highlight-hint">
+          {studentSet.size === 0 ? (
+            <>Tap a clinical finding in the passage to highlight it.</>
+          ) : (
+            <>
+              <strong>{studentSet.size}</strong> highlighted
+              <span className="sep">·</span>
+              <span className="hint">tap a highlight to remove</span>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="rn-highlight-stem">
         {segments.map((seg, i) => {
           if (seg.kind === 'plain') {

@@ -476,28 +476,43 @@
   color: var(--text);
   margin-bottom: 18px;
 }
+/* Orientation hint above the passage (answering mode only).
+ * Persistent — not a one-time onboarding — so repeat users still
+ * see it as state info ("X highlighted") once they engage. Pattern
+ * mirrors SELECT_N's count line. */
+.rn-highlight-hint {
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.rn-highlight-hint strong { color: var(--text); font-weight: 700; }
+.rn-highlight-hint .sep   { color: var(--text-faint); }
+.rn-highlight-hint .hint  { font-style: italic; }
+
+/* Universal no-hint default — chunks look like ordinary passage text
+ * until tapped. Per design discussion 2026-05-08: the cognitive work
+ * IS the search; pre-marking chunks would telegraph the answer space
+ * and shortcut the clinical reasoning the student is meant to do.
+ * The 2x6 padding extends the tap target invisibly without visible
+ * effect; the 1px transparent border reserves space so state changes
+ * don't shift the passage layout when a chunk is selected. */
 .rn-highlight-chunk {
   display: inline;
   padding: 2px 6px;
-  margin: 0 1px;
-  border: 1px solid #bfdbfe;
+  border: 1px solid transparent;
   border-radius: 3px;
-  background: #eff6ff;
-  color: #1e40af;
+  background: transparent;
+  color: inherit;
   cursor: pointer;
   font-family: inherit;
   font-size: inherit;
-  font-weight: 500;
+  font-weight: inherit;
   line-height: inherit;
-  text-decoration: underline;
-  text-decoration-style: dashed;
-  text-decoration-color: #1e40af;
-  text-decoration-thickness: 1px;
+  text-decoration: none;
   transition: background-color .12s, border-color .12s;
-}
-.rn-highlight-chunk:hover:not(.locked) {
-  background: #dbeafe;
-  border-color: #93c5fd;
 }
 .rn-highlight-chunk:focus-visible {
   outline: 2px solid var(--accent);
@@ -507,12 +522,10 @@
   background: #fef9c3;       /* highlighter yellow */
   border-color: #facc15;
   color: #713f12;
-  text-decoration: none;
   font-weight: 600;
 }
 .rn-highlight-chunk.locked {
   cursor: default;
-  text-decoration: none;
 }
 .rn-highlight-chunk.right {
   background: #dcfce7;
