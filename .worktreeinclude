@@ -1,0 +1,4 @@
+# Files copied from the parent repo into every new Claude worktree.
+# Used for gitignored config (env vars, secrets) that needs to follow
+# into worktrees but doesn't get checked in. Gitignore-style patterns.
+.env*
