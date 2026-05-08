@@ -447,26 +447,180 @@ Runner mounts → reads from those 5 tables → renders Q1
 </p>
 <p>To be filled in. Planning input from attempt-creation §6.1.2 and parent §15.</p>
 
-<h2 id="s5">5. Question rendering — per type <span class="status skeleton">skeleton</span></h2>
+<h2 id="s5">5. Question rendering — per type <span class="status settled">settled (6 of 9)</span></h2>
 <p>
-  9 question types from §15 of parent doc, each with its own rendering component, interaction model, and answer
-  shape. Per-type sub-sections to be filled in:
+  9 question types from §15 of parent doc. Each lives at <code>lib/bank/runner/types/&lt;type&gt;.tsx</code> as a
+  single component with a <code>mode: "answering" | "review"</code> prop, structurally mirroring the MCQ pattern.
+  Each module also exports a small <code>isXxxComplete</code> helper (boolean) that the runner consults to decide
+  whether the Submit button is enabled — see §10.2 for the dispatch.
+</p>
+
+<h3>5.1 MCQ — single-select <span class="status settled">settled</span></h3>
+<p>
+  Academic / paper-exam treatment (settled 2026-05-07 in mockup review). Each option is a row with:
 </p>
 <ul>
-  <li>5.1 MCQ (single-select)</li>
-  <li>5.2 SATA (multi-select with partial credit)</li>
-  <li>5.3 Bow-tie (priority condition + 2 actions + 2 parameters)</li>
-  <li>5.4 Cloze (fill-in-the-blank with dropdowns)</li>
-  <li>5.5 Drag-drop (reorder / categorise)</li>
-  <li>5.6 Highlight (text selection)</li>
-  <li>5.7 Matrix (rows × columns)</li>
-  <li>5.8 Select-N (pick exactly N from list)</li>
-  <li>5.9 TF (true / false)</li>
+  <li>Bold "A." letter prefix in default state — fixed 22×22 letter slot, period right-aligned within the slot.</li>
+  <li>State (selected / correct / wrong-pick) fills the slot with a coloured circle and drops the period;
+    no horizontal layout shift on state change.</li>
+  <li>No tinted backgrounds — state is signalled by a 3px left-border accent + the letter circle.</li>
+  <li>Options indented (margin-left: 32px) and constrained (max-width: 460px) so they read as a narrow indented
+    list rather than full-width cards.</li>
+  <li>Per-option feedback in review mode is a single italic muted line directly under the option text — no
+    dashed top divider, no extra padding.</li>
+  <li>Verdict label is plain coloured text "✓ Correct" / "✕ Your answer" — no chip background.</li>
 </ul>
 <p>
-  Each sub-section will cover: how <code>content_snapshot_json</code> is parsed for this type, the interaction model,
-  how <code>answer_json</code> is shaped, partial-credit rules, shuffle behaviour. Probably reference the existing
-  authoring/preview surface for shape parity.
+  Submit gate: must pick one option (<code>selected != null</code>).
+</p>
+
+<h3>5.9 TF — true / false <span class="status settled">settled</span></h3>
+<p>
+  TF is a thin wrapper around <code>McqRunner</code> — <code>TfContent = McqContent</code> and
+  <code>TfCorrect = McqCorrect</code> (lib/bank/types.ts §TF). The wrapper exists so each type owns its own
+  component file (per BUILD_LIST §4.2), and to give TF-specific divergence a natural future home (locked
+  2-option semantics, marks max fixed at 1 per scoring §5.2).
+</p>
+<p>
+  Submit gate: same as MCQ — must pick.
+</p>
+
+<h3>5.2 SATA — select all that apply <span class="status settled">settled</span></h3>
+<p>
+  Multi-select option list. Differs from MCQ:
+</p>
+<ul>
+  <li>Answer is <code>string[]</code> (toggleable membership). A click TOGGLES in/out of the array rather than
+    replacing.</li>
+  <li>Review mode has 4 states per option (vs MCQ's 3):
+    <ul>
+      <li><strong>right</strong> — picked AND correct (green circle, ✓ Correct)</li>
+      <li><strong>wrong</strong> — picked AND not correct (red circle, ✕ Wrong pick)</li>
+      <li><strong>missed</strong> — not picked AND correct (amber dashed border, ⚠ Missed)</li>
+      <li><strong>(dim)</strong> — not picked AND not correct (no styling)</li>
+    </ul>
+  </li>
+  <li>aria pattern is a group of toggle buttons (<code>aria-pressed</code>), not a radiogroup.</li>
+</ul>
+<p>
+  <strong>Submit gate: always submittable</strong>. Zero selections is a valid "none of these apply" answer
+  (standard NCLEX behaviour, settled with Sam 2026-05-07). Untouched answers (Map has no entry → undefined)
+  are coerced to <code>[]</code> at the call site.
+</p>
+
+<h3>5.8 SELECT_N — pick exactly N <span class="status settled">settled</span></h3>
+<p>
+  SATA with a fixed pick-cap. The curator sets <code>select_count</code> (N); the student must pick exactly N.
+</p>
+<ul>
+  <li>Toggle behaviour caps additions at N — deselect always allowed, but adding when at the cap is a no-op.</li>
+  <li>When the cap is reached, unpicked options dim and become non-interactive (reuses <code>.rn-opt.dim</code>).</li>
+  <li>A small header above the options shows progressive state (<strong>count line</strong>):
+    <ul>
+      <li>0 picked: <code>Select 3.</code></li>
+      <li>1 to N-1: <code>1 of 3 chosen · tap to deselect</code> (italic, muted)</li>
+      <li>at cap: <code>3 of 3 chosen · tap a selected option to swap</code> (accent, bold)</li>
+    </ul>
+    The progression introduces the "tap to deselect" affordance BEFORE the student hits the cap — no surprise
+    when they realise they want to swap a pick.
+  </li>
+</ul>
+<p>
+  <strong>Submit gate: exactly <code>select_count</code> picks required</strong>. Hint when disabled:
+  "Select N of N to submit".
+</p>
+
+<h3>5.7 Matrix — rows × columns <span class="status settled">settled</span></h3>
+<p>
+  Each row picks exactly one column. Layout: each row is its own CSS Grid sharing the template
+  <code>minmax(180px, 30%) repeat(N, 1fr)</code> where N = <code>content.columns.length</code>. Cells are
+  clickable buttons with a radio-style ○/● glyph.
+</p>
+<p>
+  Visual hierarchy (settled 2026-05-08 in mockup review):
+</p>
+<ul>
+  <li>Outer 2px border + 6px radius wraps the entire matrix as a contained unit.</li>
+  <li>Each body row sits in a 1.5px-bordered <code>row-block</code>.</li>
+  <li>Header row uses just a bottom divider (no all-sides border) — frames the body without competing.</li>
+  <li>Cell radio glyphs are 20px (default ○ / picked ●) so they read clearly at a glance; missed-state ✓ is 18px.</li>
+  <li>Per-row feedback (review mode) renders below each row as a muted italic line.</li>
+</ul>
+<p>
+  Considered Variant A (constrained 60px cells) and Variant B (cells with column label inline). Both addressed
+  the "wide empty cells" critique but introduced new costs — Variant B repeats long column labels in every
+  cell, heavy with NCLEX-style wording (e.g. "Continue monitoring" / "Stop intervention"). Mobile-friendly
+  variant deferred to slice 5.1e.
+</p>
+<p>
+  Reuses SATA's review-state classes (<code>.right</code> / <code>.wrong</code> / <code>.missed</code>) on
+  cells: <strong>right</strong> = picked AND correct, <strong>wrong</strong> = picked AND not correct,
+  <strong>missed</strong> = not picked AND correct.
+</p>
+<p>
+  <strong>Submit gate: every row must have a pick</strong>. Hint when disabled:
+  "X of N rows answered — finish all to submit".
+</p>
+
+<h3>5.6 Highlight — passage with [[bracketed]] chunks <span class="status settled">settled</span></h3>
+<p>
+  Passage text with double-bracket markers around clickable spans. The runner parses the stem positionally and
+  matches the i-th <code>[[..]]</code> to <code>content.chunks[i]</code> for the chunk ID. Single brackets
+  (<code>[K+] = 3.2</code>) are passage text and stay literal.
+</p>
+<p>
+  <strong>Architectural note</strong>: HIGHLIGHT is the first type where the per-type runner takes over stem
+  rendering. <code>RunnerQuestionArea</code> skips its <code>.rn-stem</code> render for HIGHLIGHT and the runner
+  emits its own parsed stem with chunks-as-buttons inline. Instruction also moves to ABOVE the passage for
+  HIGHLIGHT — the student needs to know what they're hunting for before reading. CLOZE will follow the same
+  pattern when wired (also stem-takeover, dropdowns inside the stem).
+</p>
+<p>
+  <strong>Universal no-hint design</strong> (settled 2026-05-08 with Sam):
+</p>
+<ul>
+  <li>Default chunks render as ordinary passage text — no background, no underline, no border colour, no hover
+    affordance. Just <code>cursor: pointer</code> when over one.</li>
+  <li>Tap a chunk → goes yellow (selected). Tap plain text → silent. The "nothing happens" outcome IS the
+    search feedback — the student infers "not a relevant phrase, keep reading."</li>
+  <li>Review states (right / wrong / missed) light up after submit; chunks the student didn't pick AND aren't
+    correct render as plain text (no chrome).</li>
+  <li>Why no hint: the cognitive work IS the search. Pre-marking chunks would telegraph the answer space and
+    shortcut the clinical reasoning the student is meant to do — same as the real NCLEX.</li>
+</ul>
+<p>
+  <strong>Orientation hint above the passage</strong> (discoverability safety net):
+</p>
+<ul>
+  <li>0 picked: <code>Tap a clinical finding in the passage to highlight it.</code></li>
+  <li>1+ picked: <code>X highlighted · tap a highlight to remove</code></li>
+</ul>
+<p>
+  Always visible. Students who tap and see "nothing happen" still know the question is interactive, they just
+  haven't found a real target yet — the failure mode is "keep searching" not "give up."
+</p>
+<p>
+  <strong>Touch precision</strong>: chunks have 2x6 padding extending the tap-hit area beyond the visible text
+  without visual effect. <strong>Keyboard a11y</strong>: <code>:focus-visible</code> shows a ring on each chunk
+  as the user tabs through — mouse/touch users don't get this preview, accepted inconsistency.
+</p>
+<p>
+  Per-chunk feedback list (review mode) shows only chunks the student engaged with (picked) or should have
+  engaged with (correct). Neutral chunks aren't shown — feedback for passage text the student rightly ignored
+  is noise.
+</p>
+<p>
+  <strong>Submit gate: zero highlights allowed</strong> (SATA precedent). A deliberate "no chunks are relevant"
+  answer is valid.
+</p>
+
+<h3>5.3, 5.4, 5.5 Bow-tie / Cloze / Drag-drop <span class="status pending">pending — slice 4.2 remainders</span></h3>
+<p>
+  Each will land as its own per-type module following the pattern above (own file in
+  <code>lib/bank/runner/types/</code>, <code>isXxxComplete</code> helper, switch case in
+  <code>runner-question-area.tsx</code>, submit-gate case in <code>runner.tsx</code>'s
+  <code>getSubmitGate</code>). CLOZE and DRAG_DROP-SENTENCE will share HIGHLIGHT's stem-takeover pattern;
+  BOWTIE renders its three-wing layout below the stem like MCQ and SATA.
 </p>
 
 <h2 id="s6">6. Case-block UX <span class="status skeleton">skeleton</span></h2>
@@ -521,17 +675,63 @@ Runner mounts → reads from those 5 tables → renders Q1
   (e.g. curator edited the question — but snapshots prevent this, so probably never relevant).
 </p>
 
-<h2 id="s10">10. Submission flow <span class="status skeleton">skeleton</span></h2>
+<h2 id="s10">10. Submission flow <span class="status settled">settled (per-Q + per-type completeness gates)</span></h2>
+
+<h3>10.1 Two submission models by mode</h3>
 <p>
   Two submission models depending on mode:
 </p>
 <ul>
-  <li><strong>Per-question submit</strong> (Untimed Learning): student picks answer → clicks Submit → sees rationale → clicks Next → next question</li>
-  <li><strong>Batched submit</strong> (Untimed Test, Timed Free Nav, Timed Sequential): student answers all questions → clicks final Submit → sees results</li>
+  <li><strong>Per-question submit</strong> (Untimed Learning): student picks answer → clicks Submit → sees
+    rationale → clicks Next → next question.</li>
+  <li><strong>Batched submit</strong> (Untimed Test, Timed Free Nav, Timed Sequential): student answers all
+    questions → clicks final Submit → sees results.</li>
 </ul>
 <p>
-  Each submission path writes to <code>nclex_attempt_answers</code> and updates score. TBD: exact RPC shape,
-  optimistic UI vs pessimistic, error handling on submit failure.
+  Each submission writes to <code>nclex_attempt_answers</code> via <code>submitAnswerAction</code>; scoring runs
+  in TS (<code>lib/scoring/scoreAttempt</code>) so the test suite is the single source of truth. The submit RPC
+  is thin (validate ownership + status, INSERT row, bump <code>last_activity_at</code>); for live mode it returns
+  the per-Q unseal envelope (correct + rationale + marks_max) for the one item the student just submitted —
+  other items stay sealed.
+</p>
+
+<h3>10.2 Per-type completeness gate <span class="status settled">settled</span></h3>
+<p>
+  Each per-type module (<code>lib/bank/runner/types/&lt;type&gt;.tsx</code>) exports a small
+  <code>isXxxComplete</code> helper that returns whether the current pending answer is enough to enable Submit.
+  <code>runner.tsx</code> dispatches through a switch (<code>getSubmitGate</code>) that returns:
+</p>
+<ul>
+  <li><code>canSubmit: boolean</code> — controls the Submit button.</li>
+  <li><code>submitValue: BankItemAnswer | null</code> — the value to send to <code>submitAnswerAction</code>
+    (null when the gate fails).</li>
+  <li><code>hint: string | undefined</code> — footer copy when canSubmit is false. Type-aware
+    (e.g. "Select 3 of 3 to submit" for SELECT_N).</li>
+</ul>
+<p>
+  Per-type rules (settled 2026-05-08 with Sam):
+</p>
+<table>
+  <thead><tr><th>Type</th><th>Rule</th><th>Hint when blocked</th></tr></thead>
+  <tbody>
+    <tr><td>MCQ / TF</td><td>Must pick one</td><td>"Pick an option to enable Submit"</td></tr>
+    <tr><td>SATA</td><td>Always submittable (zero allowed — "none of these apply")</td><td>—</td></tr>
+    <tr><td>SELECT_N</td><td>Exactly <code>select_count</code> picks</td><td>"Select N of N to submit"</td></tr>
+    <tr><td>MATRIX</td><td>Every row must have a pick</td><td>"X of N rows answered — finish all to submit"</td></tr>
+    <tr><td>HIGHLIGHT</td><td>Always submittable (zero allowed — "no chunks are relevant")</td><td>—</td></tr>
+    <tr><td>CLOZE / DRAG_DROP / BOWTIE</td><td>To be settled in 4.2 (likely "every blank / slot / wing filled")</td><td>—</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>Architectural reason</strong> for per-type ownership: keeps <code>runner.tsx</code> from accumulating
+  a long if-chain of per-type rules. When a 10th type is added, it ships with its own
+  <code>isXxxComplete</code> helper and one new case in the switch — no central file gets bloated, and the rule
+  visibly belongs to its type.
+</p>
+<p>
+  Edge case: SATA / HIGHLIGHT have a "zero is fine" rule — when the student lands on the question and never
+  interacts, the pending Map has no entry (<code>undefined</code>). The dispatcher coerces undefined → empty
+  array at the call site so the submit can fire with an empty answer (which is then scored as wrong).
 </p>
 
 <h2 id="s11">11. Scoring <span class="status skeleton">skeleton</span></h2>

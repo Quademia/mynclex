@@ -6,6 +6,221 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-08 (build) — Slice 4.2: TF + SATA + SELECT_N + MATRIX + HIGHLIGHT (5 of 8) + visual restyles + per-type submit gates
+
+Long session. Six runner-related commits plus three doc updates. Slice 4.2
+is now 6 of 9 question types wired (counting MCQ from 4.1.4); CLOZE,
+DRAG_DROP, BOWTIE remain.
+
+### Branching workflow change
+
+Before any code, switched the dev workflow from per-session random
+worktree branches (`claude/<random>`) to a stable three-branch model
+on the remote: `work` (where I edit), `main` (stable), `prod`
+(released). `dev` deliberately avoided as a branch name — collides
+with Cloudflare/Supabase environment naming. CLAUDE.md updated;
+the persistent-worktree convention superseded.
+
+### What shipped
+
+- **MCQ visual restyle** (`refactor(bank): restyle MCQ runner —
+  academic / paper-exam treatment`). Mockup-reviewed
+  redesign of the option list and rationale block ahead of slice 4.2
+  so the other 8 types inherit the new treatment instead of needing
+  a second restyle pass. Plain "A." letter prefix in default state;
+  fixed 22×22 letter slot keeps the period right-aligned against the
+  same x-coordinate the circle uses, so a state flip causes zero
+  horizontal text jiggle. State = 3px left-border accent + letter
+  circle, no tinted backgrounds. Options indented 32px, max-width
+  460px so they read as a narrow indented list rather than full-width
+  cards. Rationale block became a left-border accent on a soft grey
+  block instead of the bordered card. Verdict became "✓ Correct" /
+  "✕ Your answer" plain coloured text. Mockup work happened in a
+  temp HTML file outside the repo (`%TEMP%/mcq-mockup.html`) so the
+  iteration didn't pollute git.
+
+- **Pre-4.2 structural cleanup**
+  (`refactor(bank): runner pre-4.2 structural cleanup`):
+  - `BankItemAnswer` union in `lib/scoring/types.ts` now lists all
+    9 types — `TfAnswer` and `SelectNAnswer` were defined but missing
+    from the union. Worked by structural-typing accident; listing all
+    9 communicates intent and prevents a nominal-typing bite later.
+  - `PerTypeRunner` dispatch in `runner-question-area.tsx` is now a
+    `switch` with TS exhaustiveness (final `_exhaustive: never` line).
+    Replaces the single-if-MCQ + placeholder fall-through.
+  - Lifted the "review-but-unseal-missing" defensive guard up to the
+    call site in `runner.tsx`. `RunnerQuestionArea` props are now a
+    discriminated union on `itemMode`: review carries `answerRow` +
+    `unseal` as required (not optional). Per-type runners assume
+    those exist when in review mode — 1 guard at the call site
+    instead of 9 inside per-type review branches. Surfaces a real
+    edge case: in live mode an answer row can exist (from a previous
+    client session) without client-side unseal data; currently
+    unreachable in 4.1, surfaces only after slice 4.6 (Resume) lands.
+
+- **TF runner** (`feat(bank): slice 4.2 — TF runner (1 of 8)`).
+  Thin wrapper around `McqRunner` since `TfContent = McqContent` and
+  `TfCorrect = McqCorrect`. Wrapper exists per BUILD_LIST §4.2's
+  "single component per type" guidance; gives TF-specific divergence
+  a future home (locked 2-option semantics, fixed marks=1).
+
+- **SATA runner** (`feat(bank): slice 4.2 — SATA runner (2 of 8)`).
+  Multi-select option list. Click TOGGLES membership; aria pattern is
+  a group of toggle buttons (`aria-pressed`), not radiogroup. Review
+  mode adds a 4th state on top of MCQ's 3: **missed** = correct AND
+  not picked. CSS adds `.rn-opt.missed` variant — amber-700 left
+  border, amber circle on the letter slot, amber-700 verdict text.
+  Verdict copy: "✓ Correct" / "✕ Wrong pick" / "⚠ Missed".
+
+- **SELECT_N runner**
+  (`feat(bank): slice 4.2 — SELECT_N runner (3 of 8)`).
+  SATA + fixed cap. Toggle caps additions at N — deselect always
+  allowed, but adding when at the cap is a no-op. Unpicked options
+  dim and become non-interactive at the cap (reuses `.rn-opt.dim`).
+  A small header above the options shows progressive state:
+  "Select 3." → "1 of 3 chosen · tap to deselect" → "3 of 3 chosen ·
+  tap a selected option to swap" (accent-coloured at the cap). The
+  progression introduces the deselect affordance BEFORE the student
+  hits the cap, addressing a concern Sam raised that capped-state
+  swap behaviour wasn't discoverable.
+
+- **Per-type submit gates**
+  (`feat(bank): SELECT_N hint progression + per-type submit gates`).
+  Each per-type module now exports an `isXxxComplete(answer, …)`
+  helper (returns boolean). `runner.tsx` dispatches through a switch
+  (`getSubmitGate`) that returns `{ canSubmit, submitValue, hint }`
+  per type. Rules: MCQ/TF must pick one; SATA always submittable
+  (zero allowed — "none of these apply" is a valid answer per Sam,
+  matches NCLEX); SELECT_N requires exactly `select_count` picks
+  (hint: "Select N of N to submit"); MATRIX requires every row
+  answered (hint: "X of N rows answered — finish all to submit");
+  HIGHLIGHT always submittable (zero allowed, SATA precedent). The
+  architectural pattern is captured in
+  `bank-consumption-runner.html` §10.2.
+
+- **MATRIX runner** (`feat(bank): slice 4.2 — MATRIX runner (4 of 8)`).
+  First structurally-different question type. Each row is its own
+  CSS Grid sharing the inline template
+  `minmax(180px, 30%) repeat(N, 1fr)` where N = column count. Cells
+  are clickable buttons with a radio-style ○/● glyph. Per-row aria
+  is `radiogroup`; per-cell is `radio` with `aria-checked`. Reuses
+  SATA's review-state classes (`.right` / `.wrong` / `.missed`).
+
+- **MATRIX visual restyle**
+  (`refactor(bank): restyle MATRIX runner — bordered rows + bigger
+  glyphs`). Mockup-reviewed refinement. Outer 2px border + 6px
+  radius wraps the entire matrix. Each body row sits in a 1.5px
+  bordered `row-block`. Header row uses just a bottom divider — it
+  frames the body without competing. Default ○ and state ● bumped
+  from 16px to 20px; missed-state ✓ from 14px to 18px. Considered
+  Variant A (constrained 60px cells) and Variant B (cell carries
+  column label inline) but rejected: Variant B repeats long column
+  labels per cell, visually heavy with NCLEX wording like "Continue
+  monitoring" / "Stop intervention". Mobile-friendly variant
+  deferred to slice 5.1e.
+
+- **HIGHLIGHT runner** (`feat(bank): slice 4.2 — HIGHLIGHT runner
+  (6 of 8)`). Passage with `[[bracketed]]` clickable chunks. The
+  runner parses the stem positionally and matches the i-th
+  `[[..]]` to `content.chunks[i]` for the chunk ID. First type
+  where the per-type runner takes over stem rendering —
+  `RunnerQuestionArea` skips its `.rn-stem` render for HIGHLIGHT
+  and the runner emits its own parsed stem with chunks-as-buttons
+  inline. Instruction also moves to ABOVE the passage (student
+  needs to know what they're hunting for). CLOZE and DRAG_DROP-
+  SENTENCE will share this stem-takeover pattern.
+
+- **HIGHLIGHT "universal no-hint" redesign**
+  (`refactor(bank): HIGHLIGHT — universal no-hint, students must
+  search`). Initial implementation painted clickable chunks with
+  blue tint + dashed underline — telegraphed the answer space and
+  shortcut clinical reasoning. After discussion Sam called for full
+  authenticity: chunks render as ordinary passage text, no
+  affordance, students must search. Tap a chunk → goes yellow
+  (selected). Tap plain text → silent. The "nothing happens"
+  outcome IS the search feedback. Discoverability safety net is a
+  persistent orientation line above the passage ("Tap a clinical
+  finding in the passage to highlight it." → "X highlighted ·
+  tap a highlight to remove"), pattern mirrors SELECT_N's progressive
+  count line. 2x6 padding on chunks extends tap-hit area for touch
+  precision. `:focus-visible` kept for keyboard a11y (small
+  inconsistency — keyboard users see chunks via the focus ring as
+  they tab; mouse/touch users don't get this preview).
+
+### Test data inserts (mynclex-dev)
+
+- **10 fresh TF** (`NCLEX_TF_00005`–`00014`) covering hand hygiene,
+  heparin antidote, magnesium toxicity, suicide assessment, insulin
+  storage, MRI safety, tPA window, Foley catheter, IV potassium,
+  newborn thermoregulation. Spread across all 4 client-needs
+  categories.
+- **5 fresh SATA** (`NCLEX_SATA_90004`–`90008`) covering
+  hypoglycemia, MI manifestations, sepsis priority, pre-op teaching,
+  suicidal ideation interventions. Plus published the existing
+  `NCLEX_SATA_90002` (heart failure findings).
+- **5 fresh SELECT_N** (`NCLEX_SELN_00002`–`00006`) covering
+  hypoglycemia treatment (15/15 rule), DKA management, falls
+  prevention, warfarin teaching, stroke priority assessment.
+- **5 fresh MATRIX** (`NCLEX_MAT_00003`–`00007`) covering HF
+  findings (3-col), postoperative vital signs (3-col), mood disorder
+  phase (2-col), electrolyte imbalances (3-col), discharge teaching
+  (2-col). Plus published the existing `NCLEX_MAT_91002`
+  (assess-vs-intervene).
+- **4 fresh HIGHLIGHT** (`NCLEX_HL_00004`–`00007`) covering sepsis
+  recognition, digoxin toxicity, postpartum hemorrhage, acute
+  ischemic stroke. Sam noted the minimum quiz size is 5 and there
+  was only 1 published HIGHLIGHT — these bring the standalone
+  published count to 5.
+
+All new questions get `instruction` filled (action cue per the
+column convention Sam clarified mid-session) and the placeholder
+rationale image URL.
+
+### Junk cleanup
+
+Deleted `NCLEX_TF_00001` / `00002` / `00003` (placeholder stems —
+"the colour of an apple is always brown", "Will the patient die",
+etc.) and `NCLEX_SELN_00001` ("Which of these is a fruit"). All
+were unpublished, only one had any attempt reference (snapshot
+preserves the row's data so deletion didn't break the attempt).
+
+### Doc updates
+
+- **`bank-consumption-runner.html`** §5 expanded from skeleton to
+  "settled (6 of 9)" with full per-type design notes for the 6
+  types built. §10 expanded with "Per-type completeness gate"
+  sub-section + the type-by-type rules table.
+- **`BUILD_LIST.md`** header refreshed to reflect 4.2 progress.
+  4.2 line broken out into per-type sub-bullets with status icons
+  (✅ for the 5 done; ⏭/⬜ for CLOZE / DRAG_DROP / BOWTIE).
+- **This entry.**
+
+### Memory
+
+- Added `feedback_authoring_instruction_column.md` capturing the
+  rule that bank-item inserts always populate the `instruction`
+  column with the action cue. Sam flagged this mid-session after
+  noticing the new TF / SATA / SELECT_N rows shipped without it.
+- Updated `reference_persistent_worktree.md` to describe the
+  three-branch workflow (`work` → `main` → `prod`); old
+  persistent-worktree convention dropped.
+
+### Queued for next session
+
+- **CLOZE** (slice 4.2 continued, type 7 of 9). Schema: stem with
+  inline `{N}` markers, per-blank choice list in `content.blanks`.
+  Like HIGHLIGHT, the per-type runner takes over stem rendering —
+  `<select>` dropdowns sit inside the stem text at each marker.
+  Submit gate likely "every blank filled."
+- **DRAG_DROP** (8 of 9). Two subtypes per the schema: ORDERED
+  (rank into positions) and SENTENCE (drag into stem markers).
+  The SENTENCE subtype shares HIGHLIGHT/CLOZE's stem-takeover
+  pattern.
+- **BOWTIE** (9 of 9). Three-wing fixed layout (2 left + 1 centre
+  + 2 right). Each wing has its own correctness rule.
+
+---
+
 ## Session — 2026-05-07 (build) — Slice 4.1 runner shell + MCQ vertical slice
 
 Closes Phase C's first slice. Five sub-slices, the entire take-the-quiz

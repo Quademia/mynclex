@@ -10,24 +10,25 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-07):** slice 4.1 runner shell + MCQ vertical
-> slice — closes the take-the-quiz loop end-to-end. Five sub-slices
-> (RPCs → page shell → preflight → MCQ live → Finish + review-from-mount).
-> Pulled slice 2.3 `nclex_submit_answer` and the COMPLETED side of 2.4
-> `nclex_complete_attempt` into the same build — they're plumbing for
-> the runner that calls them. Verified against mynclex-dev: Builder
-> Start → preflight → Q1 → submit → see right/wrong + per-option
-> feedback + rationale (text + image) → Next → Finish → review-mode
-> page reload shows full unsealed projection with score in the topbar.
-> Pillar 2 holds: live-mode SSR projection drops correct/rationale
-> columns; per-Q submit returns the unseal envelope for that one item
-> only.
+> **Last shipped (2026-05-08):** slice 4.2 — 5 question types wired
+> alongside MCQ from 4.1.4 (TF, SATA, SELECT_N, MATRIX, HIGHLIGHT).
+> Each lives at `lib/bank/runner/types/<type>.tsx` as its own
+> component with `mode: "answering" | "review"`, exports an
+> `isXxxComplete` helper, and slots into the `getSubmitGate` switch
+> in `runner.tsx`. Plus two visual restyles that landed mid-build:
+> MCQ option list (academic / paper-exam treatment — letter as
+> "A." with fixed 22px slot, no tints, left-border accent) and
+> MATRIX (outer + per-row borders, lighter header divider, bigger
+> ○ / ● glyphs at 20px). HIGHLIGHT got a "universal no-hint"
+> redesign — chunks render as plain passage text and the student
+> must search; persistent orientation line above the passage is the
+> discoverability safety net. Per-type submit gates settled (see
+> bank-consumption-runner.html §10.2).
 >
-> **Next pick:** `4.2` remaining 8 question types (TF, SATA, Select-N,
-> Matrix, Highlight, Cloze, Drag-drop, Bow-tie). Each as a single
-> component with `mode: "answering" | "review"` prop, structurally
-> mirroring the MCQ pattern from 4.1.4. Reuse the existing authoring
-> editor previews as the structural starting point.
+> **Next pick:** `4.2` continued — 3 remaining question types
+> (CLOZE, DRAG_DROP, BOWTIE). Same per-type pattern; CLOZE will
+> have inline dropdowns inside the stem (the second type after
+> HIGHLIGHT where the per-type runner takes over stem rendering).
 
 ---
 
@@ -63,7 +64,15 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
   - **4.1.3** Preflight — pre-Q1 confirm screen that calls `nclex_mark_attempt_started`; skipped when `started_at` is already set on mount. Localstorage skip-preflight flag deferred to slice 4.6.
   - **4.1.4** MCQ live — `<McqRunner mode="answering" | "review">` in `lib/bank/runner/types/mcq.tsx`. Per runner.html §16.1.1, the `mode` prop is **per-item** (UL hybrid). Per-option feedback shows for every option in review mode (no prefixes — role conveyed by border + verdict pill). Shared `<RationaleBlock>` in `lib/bank/runner/rationale.tsx` renders verdict pill + score + rationale prose + image (`max-height: 320px`, `object-fit: contain`). MCQ is the structural starting point for the other 8 types in slice 4.2.
   - **4.1.5** Finish + MCQ-review-from-mount — Finish CTA (last Q post-submit) calls `completeAttemptAction` → `router.refresh()` → page re-loads in review mode. Topbar timer pill swaps from `Untimed` to `Score · NN%`. Footer status copy swaps to review-mode message. Old stub `session-stub.tsx` removed.
-- ⏭ **4.2** Remaining 8 question types — TF, SATA, Select-N, Matrix, Highlight, Cloze, Drag-drop, Bow-tie. Each as a single component with `mode: "answering" | "review"` prop, structurally mirroring `lib/bank/runner/types/mcq.tsx` from slice 4.1.4. Reuse the existing authoring-editor previews as the structural starting point.
+- 🔨 **4.2** Remaining question types — each as a single component with `mode: "answering" | "review"` prop in `lib/bank/runner/types/<type>.tsx`, plus an `isXxxComplete` helper that the `getSubmitGate` dispatch in `runner.tsx` consults to enable/disable Submit. Per-type design rules captured in `bank-consumption-runner.html` §5 (per type) and §10.2 (submit gates).
+  - ✅ **TF** — thin wrapper around `McqRunner` (TfContent / TfCorrect are aliases). Submit gate: must pick.
+  - ✅ **SATA** — multi-select toggle, 4 review states (right / wrong / missed / dim). Submit gate: zero allowed (NCLEX standard, "none apply" is valid).
+  - ✅ **SELECT_N** — SATA + cap. Toggle caps additions at N; deselect always allowed. Progressive count line above the options ("Select N." → "X of N chosen · tap to deselect" → "X of N chosen · tap a selected option to swap"). Submit gate: exactly N picks.
+  - ✅ **MATRIX** — rows × columns grid with one-pick-per-row radiogroup. Visual hierarchy refined in mockup review (outer + per-row borders, lighter header divider, 20px ○/● glyphs). Submit gate: every row answered.
+  - ✅ **HIGHLIGHT** — passage with `[[bracketed]]` chunks. **Universal no-hint design** (settled with Sam): chunks render as plain passage text, students must search. Persistent orientation line above the passage is the safety net. The runner takes over stem rendering for this type only — `RunnerQuestionArea` skips its `.rn-stem` render and instruction moves above the passage. Submit gate: zero allowed.
+  - ⏭ **CLOZE** — sentence with inline dropdowns at `{N}` markers. Per-blank choice list in `content.blanks`. Like HIGHLIGHT, the per-type runner takes over stem rendering (dropdowns sit inside the stem text).
+  - ⬜ **DRAG_DROP** — token pool + slot list (or `[N]` markers in stem for SENTENCE subtype). Two subtypes per the schema: ORDERED (rank into positions) and SENTENCE (drag into stem markers).
+  - ⬜ **BOWTIE** — three-wing fixed layout (2 left + 1 centre + 2 right = 5 picks). Each wing has its own correctness rule.
 - ⬜ **4.3** Case-block UX — case panel (scenario + chart tabs), CJMM step labels, mount/unmount at block boundaries, "Case complete. Continuing…" transition.
 - ⬜ **4.4** Trend question rendering — trend panel (dataset display) alongside each trend question, kind-specific rendering.
 - ⬜ **4.5** Per-mode behaviour — timer (wall-clock for EXAM, engagement-clock for STUDY-timed), navigation (sequential vs free-nav), feedback timing (per-Q vs end-of-quiz), warning thresholds.
