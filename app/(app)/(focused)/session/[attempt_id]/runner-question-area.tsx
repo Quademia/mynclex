@@ -54,6 +54,8 @@ import type {
   ClozeCorrect,
   DragDropContent,
   DragDropCorrect,
+  BowtieContent,
+  BowtieCorrect,
   BankItemCorrect,
 } from '@/lib/bank/types';
 import type {
@@ -65,6 +67,7 @@ import type {
   HighlightAnswer,
   ClozeAnswer,
   DragDropAnswer,
+  BowtieAnswer,
   BankItemAnswer,
 } from '@/lib/scoring';
 import {
@@ -76,6 +79,7 @@ import {
   HighlightRunner,
   ClozeRunner,
   DragDropRunner,
+  BowtieRunner,
   RationaleBlock,
 } from '@/lib/bank/runner';
 
@@ -386,14 +390,30 @@ function PerTypeRunner(props: Props) {
       );
     }
 
-    // BOWTIE — last per-type runner in slice 4.2, lands next.
-    case 'BOWTIE':
+    case 'BOWTIE': {
+      const content = item.content_snapshot_json as unknown as BowtieContent;
+      const emptyBowtieAnswer: BowtieAnswer = { left: [], centre: null, right: [] };
+
+      if (props.itemMode === 'answering') {
+        return (
+          <BowtieRunner
+            mode="answering"
+            content={content}
+            selected={(props.pendingAnswer as BowtieAnswer | undefined) ?? emptyBowtieAnswer}
+            onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
+          />
+        );
+      }
+
       return (
-        <div className="rn-stub">
-          The {QUESTION_TYPE_LABELS[item.question_type]} runner lands in slice 4.2.
-          {' '}For now this question can't be answered or scored.
-        </div>
+        <BowtieRunner
+          mode="review"
+          content={content}
+          studentAnswer={(props.answerRow.answer_json as BowtieAnswer | undefined) ?? emptyBowtieAnswer}
+          correct={props.unseal.correct as BowtieCorrect}
+        />
       );
+    }
   }
 
   // Exhaustiveness — adding a 10th QuestionType makes item.question_type

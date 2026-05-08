@@ -1122,6 +1122,276 @@
   font-weight: 600;
 }
 
+/* BOWTIE — literal bow-tie shape with click-to-place tokens. Five
+ * empty drop slots laid out as 3-column grid (left top + bottom on
+ * the sides, centre in the middle row, right top + bottom on the
+ * sides). Token pool below mirrors the three wings as separate
+ * bordered columns. Settled in the bow-tie design mock 2026-05-08. */
+.rn-bt-hint {
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
+/* The bow-tie shape itself — 3 columns × 3 rows. Wing labels in row 1,
+ * top side slots + centre in row 2, bottom side slots in row 3. */
+.rn-bt-shape {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1.3fr 1fr;
+  grid-template-rows: auto auto auto;
+  gap: 4px 14px;
+  align-items: center;
+  max-width: 600px;
+  margin: 0 auto 12px;
+  padding: 8px 4px;
+}
+.rn-bt-shape-label {
+  grid-row: 1;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-align: center;
+  padding-bottom: 2px;
+}
+.rn-bt-shape-label.left   { grid-column: 1; }
+.rn-bt-shape-label.centre { grid-column: 2; color: var(--accent); }
+.rn-bt-shape-label.right  { grid-column: 3; }
+
+/* Slot drop targets. Side slots in column 1 / 3, centre slot spans
+ * the middle row (column 2, row 2). */
+.rn-bt-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 36px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1.5px dashed var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text-faint);
+  font-family: inherit;
+  font-size: 12px;
+  font-style: italic;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color .12s, border-color .12s, box-shadow .12s;
+}
+.rn-bt-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rn-bt-slot.left-top  { grid-column: 1; grid-row: 2; }
+.rn-bt-slot.left-bot  { grid-column: 1; grid-row: 3; }
+.rn-bt-slot.right-top { grid-column: 3; grid-row: 2; }
+.rn-bt-slot.right-bot { grid-column: 3; grid-row: 3; }
+.rn-bt-slot.centre {
+  grid-column: 2;
+  grid-row: 2;
+  min-height: 56px;
+  border-color: var(--accent);
+  font-size: 13px;
+}
+.rn-bt-slot.filled {
+  background: #eff6ff;
+  border-style: solid;
+  border-color: var(--accent);
+  color: #1e3a8a;
+  font-style: normal;
+  font-weight: 600;
+}
+.rn-bt-slot.armed-target {
+  border-color: var(--accent);
+  background: #dbeafe;
+  animation: rn-bt-pulse 1.4s ease-in-out infinite;
+}
+@keyframes rn-bt-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.0); }
+  50%      { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.18); }
+}
+.rn-bt-slot.locked  { cursor: default; }
+.rn-bt-slot.right {
+  background: #dcfce7;
+  border-color: #16a34a;
+  border-style: solid;
+  color: #14532d;
+  font-style: normal;
+  font-weight: 700;
+}
+.rn-bt-slot.wrong {
+  background: #fee2e2;
+  border-color: #b91c1c;
+  border-style: solid;
+  color: #7f1d1d;
+  font-style: normal;
+  font-weight: 600;
+}
+.rn-bt-slot.skipped {
+  background: transparent;
+  border-color: #d97706;
+  border-style: dashed;
+  color: #b45309;
+}
+.rn-bt-slot-mark { font-weight: 700; }
+.rn-bt-slot-text { display: inline; }
+
+/* Subtle connector lines from centre slot edges suggest the bow-tie
+ * wings flaring out. Pure CSS, no SVG. */
+.rn-bt-slot.centre::before,
+.rn-bt-slot.centre::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 1px;
+  background: var(--border);
+  top: 50%;
+  pointer-events: none;
+}
+.rn-bt-slot.centre::before { right: 100%; transform: translateX(2px); }
+.rn-bt-slot.centre::after  { left: 100%;  transform: translateX(-2px); }
+
+/* Token pool below the bow-tie — 3 separate bordered cards, one per
+ * wing, mirroring the bow-tie's column structure for spatial mapping. */
+.rn-bt-pool {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 720px) {
+  .rn-bt-pool { grid-template-columns: 1fr; }
+}
+.rn-bt-pool-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.rn-bt-pool-col.centre { border-color: var(--accent); }
+.rn-bt-pool-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.rn-bt-pool-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.rn-bt-pool-col.centre .rn-bt-pool-label { color: var(--accent); }
+.rn-bt-pool-count {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.rn-bt-pool-count.full { color: #15803d; }
+.rn-bt-pool-tokens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Pool token (answering) — tap to arm. */
+.rn-bt-pool-token {
+  width: 100%;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: transform .08s, border-color .12s, box-shadow .12s;
+}
+.rn-bt-pool-token:hover         { border-color: var(--accent); }
+.rn-bt-pool-token:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rn-bt-pool-token.armed {
+  border-color: var(--accent);
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-weight: 600;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+}
+
+/* Review-mode feedback items — every token shown with 4-state palette
+ * + per-token rationale. Same column shell as the answering pool. */
+.rn-bt-fb-item { list-style: none; }
+.rn-bt-fb-pill {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+.rn-bt-fb-pill.right {
+  background: #dcfce7;
+  border-color: #16a34a;
+  color: #14532d;
+  font-weight: 700;
+}
+.rn-bt-fb-pill.wrong {
+  background: #fee2e2;
+  border-color: #b91c1c;
+  color: #7f1d1d;
+  font-weight: 600;
+}
+.rn-bt-fb-pill.missed {
+  background: transparent;
+  border-color: #d97706;
+  border-style: dashed;
+  color: #b45309;
+  font-weight: 600;
+}
+.rn-bt-fb-pill.dim {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.rn-bt-fb-text { flex: 1; }
+.rn-bt-fb-verdict {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.rn-bt-fb-pill.right  .rn-bt-fb-verdict { color: #15803d; }
+.rn-bt-fb-pill.wrong  .rn-bt-fb-verdict { color: #b91c1c; }
+.rn-bt-fb-pill.missed .rn-bt-fb-verdict { color: #b45309; }
+.rn-bt-fb-rationale {
+  margin: 3px 0 6px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
 /* Per-option feedback (review mode) — italic muted line directly under
  * the option text. No top border, no top padding — keeps the option
  * card compact. */

@@ -39,7 +39,7 @@ import type {
   SelectNAnswer,
 } from '@/lib/scoring';
 import type { SelectNContent, MatrixContent, ClozeContent, DragDropContent } from '@/lib/bank/types';
-import type { MatrixAnswer, HighlightAnswer, ClozeAnswer, DragDropAnswer } from '@/lib/scoring';
+import type { MatrixAnswer, HighlightAnswer, ClozeAnswer, DragDropAnswer, BowtieAnswer } from '@/lib/scoring';
 import {
   isMcqComplete,
   isSataComplete,
@@ -48,6 +48,7 @@ import {
   isHighlightComplete,
   isClozeComplete,
   isDragDropComplete,
+  isBowtieComplete,
 } from '@/lib/bank/runner';
 import { ErrorToast } from '@/lib/bank/atoms/error-toast';
 import { RunnerTopbar }       from './runner-topbar';
@@ -453,15 +454,28 @@ function getSubmitGate(
       };
     }
 
-    // BOWTIE lands in the next 4.2 sub-slice — until then the per-type
-    // runner shows a placeholder and submission is gated off.
-    default:
-      return {
-        canSubmit:   false,
-        submitValue: null,
-        hint:        'This question type is not yet wired in slice 4.2',
+    case 'BOWTIE': {
+      // Empty-default before first interaction so isBowtieComplete sees
+      // a well-shaped object regardless of whether the student has
+      // started.
+      const a = (pending as BowtieAnswer | undefined) ?? {
+        left: [], centre: null, right: [],
       };
+      const ok = isBowtieComplete(a);
+      const total = a.left.length + (a.centre ? 1 : 0) + a.right.length;
+      return {
+        canSubmit:   ok,
+        submitValue: ok ? (a as BankItemAnswer) : null,
+        hint:        ok ? undefined : `${total} of 5 picks made — each wing needs 2 + 1 + 2`,
+      };
+    }
   }
+
+  // Exhaustiveness — adding a 10th QuestionType makes item.question_type
+  // not be `never` here and breaks the build until the new type is
+  // handled in the switch.
+  const _exhaustive: never = item.question_type;
+  return _exhaustive;
 }
 
 
