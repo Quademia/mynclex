@@ -6,6 +6,205 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-09 (4.3) — Case-block UX: wrapper-aware split, CJMM strip, progressive disclosure, entry banner, grid bands
+
+Closes slice 4.3. The runner now branches its layout when the current
+item has a `parent_case_id`: standalones keep the centred 720px column
+(unchanged), case-childs render in a `.rn-split` grid with a sticky
+case panel on the left and the question column on the right. Question
+internals (stem / options / rationale) are unchanged inside a case —
+only the surrounding chrome changes. Banner explains the case-block
+concept on entry; grid bands group case-clustered cells visually.
+
+The slice landed as a single commit on the session branch
+(`83cfad0`) plus a docs commit. Approval-to-merge to `main` is
+pending Sam's continued testing.
+
+### What shipped
+
+**3 new files** in `lib/practice/runner/case/`:
+- `case-panel.tsx` — sticky left panel: head (title + "X of 6
+  answered" pill) + scenario block + filtered tab row + body. Owns
+  the active-tab state, keyed by `case_id` so React remounts on case
+  transitions.
+- `chart-tab-body.tsx` — renders one tab's visible entries. Three
+  shapes: built-in narrative (with `extra_fields` + optional
+  `omit_time`), built-in structured (table), custom_narrative
+  (free_text), custom_grid (rows_cols). Pulls shape from the
+  `BUILT_IN_TABS` registry for built-ins; `tab.custom_shape` for
+  custom.
+- `cjmm-strip.tsx` — 6-step horizontal stepper, current step
+  highlighted, earlier steps marked done. Short labels
+  (`Recognise / Analyse / Prioritise / Generate / Take action /
+  Evaluate`) so it fits the question column at typical widths.
+
+**1 new file** in `lib/hints/practice/`:
+- `case-entry-banner.tsx` — non-modal banner, auto-fades after 4s,
+  dismissable. Fires on every case entry (not first-time only) per
+  Sam's call — re-entry via the grid still surfaces the explanation
+  for students who forgot. Lives under `hints/` because it's an
+  explanation surface, not a confirmation overlay (per CLAUDE.md
+  #12); the shell is a new pattern within hints (auto-firing modal
+  rather than the click-toggle bulb).
+
+**Edits** to the runner shell:
+- `runner.tsx` — case-context derivation (current case_id, distinct
+  case order, children count, answered count, CJMM step index),
+  banner state via `useRef` + `useEffect` (fires on transitions
+  null→caseId or caseA→caseB), layout branch wrapping the question
+  area in `.rn-split` when on a case-child, `caseMeta` prop on the
+  topbar, `caseGroups` prop on the grid.
+- `runner-question-area.tsx` — `topSlot` prop (renders above
+  `.rn-q-meta` inside `.rn-q-wrap`); case-childs pass a
+  `<CjmmStrip />` here. Also reusable for slice 4.4's trend context
+  indicator.
+- `runner-topbar.tsx` — optional `caseMeta` prop adding three pills
+  to the meta line ("Case N of M · CJMM step X of 6 · &lt;label&gt;").
+- `runner-grid.tsx` — accepts `caseGroups: CaseGroup[]`, computes
+  band geometry per row segment (a 6-cell case starting at column 3
+  of a 5-column grid wraps into two row segments → two
+  `.rn-case-band` rectangles), no labels per spec §16.4.
+- `styles/runner.css` — `.rn-split` (Layout C: `minmax(380px, 1fr)
+  minmax(520px, 720px)`, max-width 1240), `.rn-case`,
+  `.rn-case-head`, `.rn-case-scenario`, `.rn-case-tabs`,
+  `.rn-case-tab`, `.rn-case-body`, `.rn-case-entry`,
+  `.rn-cjmm-strip`, `.rn-cjmm-step`, `.rn-cjmm-arrow`,
+  `.rn-cjmm-pill`, `.rn-case-banner` (with fade keyframes), and
+  `.rn-case-band`. Token additions: `--rn-case-band` +
+  `--rn-case-band-edge`.
+
+### Key conversation decisions
+
+The slice opened with a 5-question design discussion:
+
+1. **Layout** — three strategies compared in a throwaway HTML mock
+   (`docs/scratch/case-wrapper-layout.html`) at viewports
+   1100/1280/1440/1600px:
+   - **A** (question fixed 720, wrapper takes leftover): cramps the
+     wrapper at 1280px viewport (~440px) and badly at 1100px
+     (~270px).
+   - **B** (50/50 split capped 1180): the design artboard's choice;
+     forces the question to reflow narrower than standalone even
+     when there's room. Also *both* columns lock at the same width
+     regardless of wrapper content size — a 1-paragraph wrapper
+     still occupies 578px of empty whitespace.
+   - **C** (wrapper-protected, question shrinks if needed):
+     `minmax(380px, 1fr) minmax(520px, 720px)`, max-width 1240.
+     Question keeps 720 on wider screens, only shrinks (toward 520)
+     when the wrapper would otherwise be squeezed below 380.
+   Initial recommendation was C; flipped briefly to B after Sam
+   pushed back on column-stability grounds; flipped back to C after
+   Sam's clarifying question revealed B's content-size blindness.
+   Final reasoning: in a typical 25Q attempt the student sees ~19
+   standalones at 720 vs ~6 case-childs, so the question column
+   should stay canonical at 720 across the attempt and only the
+   wrapper appears/disappears.
+
+2. **Boundary cue** — refactored from a 1.2s full-bleed overlay to
+   a non-modal banner. The "mask the layout reshuffle" argument I
+   used to justify the modal didn't survive scrutiny (the reshuffle
+   is effectively instant). Sam's framing — entry overlay always,
+   exit warning only in free-nav modes when leaving mid-case — is
+   stronger because each cue is functional. **Slice 4.3 ships only
+   the entry banner**; the exit warning queues for slice 4.5 along
+   with mode-specific behaviour (free-nav vs sequential is currently
+   uniform). Naming tension flagged separately: "overlay" pulled
+   toward `lib/overlays/` (which is for *confirmations*); the cue
+   doesn't ask for a decision, so it's a hint. Renamed banner +
+   non-modal shape resolves the tension.
+
+3. **Grid auto-collapse** — Sam called for *no* auto-collapse,
+   contrary to the design artboard. Layout C protects the wrapper
+   at its 380px floor even with the 240px grid open, so manual
+   control suffices. Trades: at 1280px viewport with grid open the
+   wrapper is at its floor (380) and the question is around 540 —
+   tight but readable. Student can collapse manually.
+
+4. **Tab/entry visibility** — strict progressive disclosure (not
+   the artboard's locked + 🔒 pattern). Tabs and entries hide
+   entirely until `visible_from <= case_position`. Sam: "on real
+   exams, when a chart is only visible from question 2, it doesn't
+   show at all in question 1." Backward nav re-hides — students
+   reason at the point in time the case is at, including when they
+   jump back via the grid. Authentic to NCLEX behaviour.
+
+5. **Folder convention** — followed CLAUDE.md #11 (curator-side
+   `lib/bank/`, student-side `lib/practice/`) and #12 (cross-cutting
+   UI by category: overlays / toast / hints). New folders created
+   with explicit OK from Sam per his "ask before new folders" rule:
+   `lib/practice/runner/case/` (3 files) + `lib/hints/practice/` (1
+   file).
+
+### Test data
+
+mynclex-dev had 0 case studies before this slice. 4 cases seeded
+via SQL covering complementary tab-shape and question-type combos
+to exercise the runner thoroughly. **Not committed as a seed file
+per Sam** — lives on mynclex-dev only.
+
+| Case | Topic | Tab shapes |
+|---|---|---|
+| 01 | Cardiogenic shock (Mr Liang Tan, 68) | vital_signs · custom_narrative · custom_grid |
+| 02 | DKA (Mrs Adwoa Mensah, 24) | nurses_notes · lab_results · custom_grid |
+| 03 | Addisonian crisis (Mr Kwame Boateng, 42) | orders · diagnostics · custom_narrative |
+| 04 | Severe pre-eclampsia (Mrs Akosua Asante, 32, G2P1) | history · vital_signs · custom_grid |
+
+All 8 distinct chart-tab shapes covered. Question types span all 9:
+MCQ, TF, SATA, SELECT_N, MATRIX, HIGHLIGHT, CLOZE, DRAG_DROP-ORDERED,
+DRAG_DROP-SENTENCE, BOWTIE — distributed across the 6 case-childs of
+each case at the CJMM step where each type fits naturally.
+
+### Seed bug surfaced + fixed mid-test
+
+After all 4 cases were seeded, submit failed for any non-MCQ case-child
+with toast "score_awarded N out of range [0, 1]". Root cause: my
+direct INSERTs hardcoded `marks = 1` on every bank item, but the
+runner's `scoreAttempt` returns raw points up to `correct.length` (so
+a SATA with 5 correct answers returns up to 5). The submit RPC's
+guard `p_score_awarded <= v_marks_max` correctly rejected. Curator-
+saved questions never have this problem because the editor calls
+`computeMarksFromKey()` on save; my SQL bypassed that.
+
+Fixed in two places: (1) `nclex_bank_items.marks` for all seeded
+items, derived per-type from `correct` JSON the same way
+`computeMarksFromKey` does; (2) `nclex_attempt_items.marks_snapshot`
+for any IN_PROGRESS attempt that snapshotted the broken values
+(safe because the source was wrong from creation, not a curator
+edit). Sam's in-flight attempt resumed cleanly after the backfill.
+
+### Tested
+
+- All 4 cases discoverable in the Builder.
+- Layout split renders correctly when `parent_case_id` is set;
+  reverts to centred 720px on case exit.
+- Tab visibility and entry visibility both filter strictly by
+  `visible_from`; tabs disappear / re-appear cleanly across forward
+  + backward nav.
+- Active-tab state persists across case-children of the same case
+  (key by `case_id`); resets across different cases.
+- Topbar `caseMeta` line appears only on case-childs.
+- Grid case bands render correctly across single-row and
+  multi-row clusters.
+- Entry banner fires on case entry, fades after 4s, dismissable
+  via `×`. Re-entry via grid re-fires.
+- Scenario block sits between head and tabs (not inside the body —
+  Sam's correction during testing); always visible regardless of
+  active tab.
+- Submit + scoring works end-to-end for all 9 question types in
+  case-child context after the seed-bug fix.
+
+### Next pick
+
+- **Slice 4.4 — Trend question rendering.** Reuses `.rn-split`
+  layout + `topSlot` prop + topbar caseMeta pattern (rename to
+  trendMeta). New work is just the dataset rendering itself — kind-
+  specific (line chart for vital-sign trends, tabular for lab
+  trends). No CJMM strip, no progressive disclosure, no entry
+  banner: trends are scattered standalones per attempt-creation
+  §8.3, not a chained sequence.
+
+---
+
 ## Session — 2026-05-09 (refactor) — `lib/` restructure: split curator vs student-side; introduce overlays/toast/hints
 
 Executes the queued `lib/bank/` refactor from the prior session's

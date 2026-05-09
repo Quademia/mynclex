@@ -10,26 +10,33 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-09):** `lib/` restructure — split curator
-> vs student-side and introduced three top-level UI category folders.
-> `lib/bank/` is now strictly curator-only; student consumption lives
-> in `lib/practice/{runner,builder,launchers}/` (entry-helpers
-> renamed to launchers — thing-name not behaviour-name). Cross-cutting
-> floating UI now lives in `lib/overlays/` (modal/blocking confirms),
-> `lib/toast/` (passive notifications), and `lib/hints/` (explanation
-> surfaces — the bulb shell + 3 named bulbs in `hints/bank/` via
-> Path B: each unique explainer is its own file with content baked
-> in). 12 editor-internal atoms (stem-field, modal-frame, etc.)
-> stayed in `lib/bank/atoms/` by design — curator plumbing, not
-> cross-cutting. CLAUDE.md gained two new conventions (#11 + #12)
-> documenting the layout. See SESSIONS 2026-05-09 (refactor) for
-> the layer-2 vs layer-3 reasoning and the conversation that shaped
-> the three-folder structure.
+> **Last shipped (2026-05-09):** **Slice 4.3 — Case-block UX.**
+> Wrapper-aware split layout for case-childs: sticky case panel on the
+> left (scenario + filtered chart tabs + body) with strict progressive
+> disclosure (tabs and entries hide entirely until `visible_from <=
+> case_position`, re-hide on backward nav); question column on the
+> right with a CJMM strip above the meta. Layout C — wrapper has a
+> 380px floor, question floats 520→720 — keeps the wrapper from being
+> squeezed at typical laptop widths while preserving the question's
+> 720px canonical width on wider screens. Topbar gains a
+> `caseMeta` line ("Case N of M · CJMM step X of 6 · &lt;label&gt;");
+> grid renders subtle tinted bands behind case-clustered cells. A
+> non-modal `<CaseEntryBanner>` (in `lib/hints/practice/`) fires on
+> every case entry, auto-fades after ~4s, dismissable. No grid
+> auto-collapse — manual control only (layout C protects the wrapper
+> regardless). 4 test cases seeded into mynclex-dev (cardiogenic
+> shock, DKA, Addisonian crisis, severe pre-eclampsia) covering all
+> 8 chart-tab shapes and all 9 question types across the case-childs.
+> See SESSIONS 2026-05-09 (4.3) for the 5-question design discussion
+> that shaped the layout, transition, and visibility decisions.
 >
-> **Next pick:** **4.3 Case-block UX** — case panel (scenario +
-> chart tabs), CJMM step labels, mount / unmount at block
-> boundaries, "Case complete. Continuing…" transition. Consumes
-> the runner from its new `@/lib/practice/runner/` home.
+> **Next pick:** **4.4 Trend question rendering** — trend dataset
+> panel (kind-specific rendering: line chart vs tabular) alongside
+> each trend question. Mostly reuses 4.3's plumbing (.rn-split,
+> wrapper-aware question column, topbar meta pattern); the new work
+> is the dataset rendering itself. Trends are scattered standalones
+> (not chained), so no CJMM strip / progressive disclosure / entry
+> banner.
 
 ---
 
@@ -74,8 +81,8 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
   - ✅ **CLOZE** — sentence with `{N}` markers; native `<select>` per blank in answering mode. Persistent superscript number before each blank, surviving into review. Hint above the stem progresses (empty → "X of N filled" → "all filled"). Submit gate: every blank filled. Review settled in mock B′ (`docs/scratch/cloze-review-mock.html`): per-blank "<num> CORRECT/WRONG" verdict header coloured by state, then flowing-prose rationale block listing every option's per-choice feedback inline (`<correct option label in green> — rationale. <wrong label in soft red> — rationale. ...`). Pill row dropped — coloured labels in the prose carry the answer-key signal.
   - ✅ **DRAG_DROP** — both ORDERED + SENTENCE subtypes via internal `subtype` switch. **Click-to-place** interaction (NOT real HTML5 drag-and-drop — audience is phone-first and HTML5 DnD has poor touch support). ORDERED renders numbered slot list with `target_text` labels; SENTENCE takes over stem rendering with `[N]` markers becoming inline drop boxes (third type to do stem-takeover after HIGHLIGHT and CLOZE). Hint progression matches CLOZE pattern. Submit gate: every slot filled. Review for ORDERED: unified canonical-order cards (number + target_text + correct token text + per-slot rationale stacked inside the green card). Review for SENTENCE: per-slot verdict prose (`<num> CORRECT/WRONG/SKIPPED` + rationale). Both subtypes get a distractor strip at the bottom listing tokens that weren't the rubric for any slot.
   - ✅ **BOWTIE** — literal bow-tie shape with **click-to-place** tokens. 5 empty drop slots in a 3-column × 3-row grid (left-top + centre + right-top in row 2; left-bot + right-bot in row 3, centre spanning the middle column). Token pool below mirrors the three wings as 3 separate bordered cards. Tokens can only land in slots of their own wing; matching-wing slots pulse-glow as drop targets while a token of that wing is armed. Slot-position semantics for left/right: schema's `BowtieAnswer.{left,right}` is unordered `string[]`, so removing slot[0] when slot[1] is filled rotates the second pick up to slot[0] (state derivation stays pure). Submit gate: every wing filled (2 + 1 + 2). Review: bow-tie keeps shape with green-✓ / red-✕ tinted slots; pool columns transform into feedback columns where every wing token shows in SATA's 4-state palette + per-token rationale below. Per-column header summary swaps to "X right · Y wrong".
-- ⏭ **4.3** Case-block UX — case panel (scenario + chart tabs), CJMM step labels, mount/unmount at block boundaries, "Case complete. Continuing…" transition.
-- ⬜ **4.4** Trend question rendering — trend panel (dataset display) alongside each trend question, kind-specific rendering.
+- ✅ **4.3** Case-block UX — shipped 2026-05-09. Wrapper-aware `.rn-split` layout (Layout C: `minmax(380px, 1fr) minmax(520px, 720px)`, max-width 1240) when current item has `parent_case_id`. Sticky `<CasePanel>` on the left renders case head (title + "X of 6 answered" pill) + scenario block + filtered tab row + tab body. **Strict progressive disclosure**: tabs and entries hide entirely until `visible_from <= case_position`, re-hide on backward nav (no stickiness — students reason at the point in time the case is at). All three tab shapes supported in `<ChartTabBody>`: built-in narrative (with optional `extra_fields` + `omit_time`), built-in structured, custom_narrative (free_text), custom_grid (rows_cols). `<CjmmStrip>` renders above the question column via `RunnerQuestionArea`'s new `topSlot` prop. Topbar gains optional `caseMeta` ("Case N of M · CJMM step X of 6 · &lt;label&gt;") for case-childs. Grid renders subtle tinted bands behind clustered case-child cells (no labels, visual grouping only); bands wrap across grid rows when a case straddles a 5-column boundary. **No grid auto-collapse** — Sam's call: layout C protects the wrapper at its 380px floor even with grid open, manual control respects user agency. **Case-entry banner** (`lib/hints/practice/case-entry-banner.tsx`) — non-modal, sits above `.rn-split`, fades after ~4s, dismissable; fires on every case entry (not first-time only). 4 test cases seeded into mynclex-dev covering all 8 chart-tab shapes and all 9 question types across the case-childs. See SESSIONS 2026-05-09 (4.3) for the layout discussion (3-mock comparison at varying viewports → Layout C), the entry-cue refinement (modal overlay → non-modal hint banner; exit warning deferred to 4.5), and the seed-bug fix (hardcoded `marks=1` violated `score_awarded ≤ marks_snapshot` for non-MCQ types). Exit-while-mid-case warning queues for 4.5 (paired with mode-specific behaviour where free-nav vs sequential becomes meaningful).
+- ⏭ **4.4** Trend question rendering — trend panel (dataset display) alongside each trend question, kind-specific rendering. Reuses 4.3's `.rn-split` layout, `topSlot` prop, and topbar meta pattern. New work: the dataset rendering itself (line chart for vital-sign trends, tabular for lab trends). No CJMM strip / progressive disclosure / entry banner — trends are scattered standalones per attempt-creation §8.3.
 - ⬜ **4.5** Per-mode behaviour — timer (wall-clock for EXAM, engagement-clock for STUDY-timed), navigation (sequential vs free-nav), feedback timing (per-Q vs end-of-quiz), warning thresholds.
 - ⬜ **4.6** Save-progress + Resume — periodic save of in-progress answers (STUDY only), Resume detection on mount, restore to last-viewed Q.
 - ⬜ **4.7** Mark-for-review toggle — runner button, writes to marking table, persists across attempts.
