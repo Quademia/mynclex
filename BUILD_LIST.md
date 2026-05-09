@@ -10,33 +10,42 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-09):** **Slice 4.3 — Case-block UX.**
-> Wrapper-aware split layout for case-childs: sticky case panel on the
-> left (scenario + filtered chart tabs + body) with strict progressive
-> disclosure (tabs and entries hide entirely until `visible_from <=
-> case_position`, re-hide on backward nav); question column on the
-> right with a CJMM strip above the meta. Layout C — wrapper has a
-> 380px floor, question floats 520→720 — keeps the wrapper from being
-> squeezed at typical laptop widths while preserving the question's
-> 720px canonical width on wider screens. Topbar gains a
-> `caseMeta` line ("Case N of M · CJMM step X of 6 · &lt;label&gt;");
-> grid renders subtle tinted bands behind case-clustered cells. A
-> non-modal `<CaseEntryBanner>` (in `lib/hints/practice/`) fires on
-> every case entry, auto-fades after ~4s, dismissable. No grid
-> auto-collapse — manual control only (layout C protects the wrapper
-> regardless). 4 test cases seeded into mynclex-dev (cardiogenic
-> shock, DKA, Addisonian crisis, severe pre-eclampsia) covering all
-> 8 chart-tab shapes and all 9 question types across the case-childs.
-> See SESSIONS 2026-05-09 (4.3) for the 5-question design discussion
-> that shaped the layout, transition, and visibility decisions.
+> **Last shipped (2026-05-09):** **Slice 4.4 — Trend question rendering.**
+> When the current item has `trend_id` and a matching `TrendSnapshot`,
+> the runner wraps the question area in `.rn-split` (reusing Layout C
+> from 4.3) with a sticky `<TrendPanel>` on the left: kind label
+> ("Trend data · &lt;Kind&gt;" via `kindDefaultLabel` from the
+> curator side, so labels stay in sync) + optional scenario +
+> read-only row × timepoint table. Ref-range column auto-shows when
+> any row has it set. **No flag rendering on cell values** —
+> verified against the real NGN exam: NCSBN provides reference
+> ranges where relevant but never pre-flags abnormal/borderline
+> values. Curator-side flags ('abnormal' / 'borderline') are author
+> guidance only — pre-cuing answers in the runner would defeat the
+> point of the trend item type. New "⤬ Trend" pill in `.rn-q-meta`
+> (via `trendBadge` prop on `RunnerQuestionArea`) identifies trend
+> questions inline.
 >
-> **Next pick:** **4.4 Trend question rendering** — trend dataset
-> panel (kind-specific rendering: line chart vs tabular) alongside
-> each trend question. Mostly reuses 4.3's plumbing (.rn-split,
-> wrapper-aware question column, topbar meta pattern); the new work
-> is the dataset rendering itself. Trends are scattered standalones
-> (not chained), so no CJMM strip / progressive disclosure / entry
-> banner.
+> Differences vs 4.3: **no CJMM strip, no progressive disclosure,
+> no entry banner, no grid bands** — trends are scattered
+> standalones (attempt-creation §8.3), not chained. 9 published
+> trend questions in mynclex-dev cover all 6 kinds (vitals, labs,
+> io, neuro, assessment, custom "Pain & Sedation"). Curator UX bug
+> surfaced mid-test: the editor allows publishing a trend question
+> while its parent dataset stays unpublished, and the eligible-pool
+> RPC silently drops the question — logged as a follow-up. New
+> slice **5.6 — Source breakdown + filter axis** added to BUILD_LIST
+> from testing observations (per-type counts mislead when type
+> filter set; no source visibility; no source filter). See SESSIONS
+> 2026-05-09 (4.4) for the 5-question design discussion (flag-
+> rendering verification via web search, layout reuse from 4.3,
+> entry-cue / topbar-meta decisions).
+>
+> **Next pick:** **4.5 Per-mode behaviour** — real timer (wall-clock
+> for EXAM, engagement-clock for STUDY-timed), navigation rules
+> (sequential vs free-nav), feedback timing (per-Q vs end-of-quiz),
+> warning thresholds. Picks up the case-exit warning queued from
+> 4.3 (warn when leaving mid-case in free-nav modes).
 
 ---
 
@@ -82,8 +91,8 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
   - ✅ **DRAG_DROP** — both ORDERED + SENTENCE subtypes via internal `subtype` switch. **Click-to-place** interaction (NOT real HTML5 drag-and-drop — audience is phone-first and HTML5 DnD has poor touch support). ORDERED renders numbered slot list with `target_text` labels; SENTENCE takes over stem rendering with `[N]` markers becoming inline drop boxes (third type to do stem-takeover after HIGHLIGHT and CLOZE). Hint progression matches CLOZE pattern. Submit gate: every slot filled. Review for ORDERED: unified canonical-order cards (number + target_text + correct token text + per-slot rationale stacked inside the green card). Review for SENTENCE: per-slot verdict prose (`<num> CORRECT/WRONG/SKIPPED` + rationale). Both subtypes get a distractor strip at the bottom listing tokens that weren't the rubric for any slot.
   - ✅ **BOWTIE** — literal bow-tie shape with **click-to-place** tokens. 5 empty drop slots in a 3-column × 3-row grid (left-top + centre + right-top in row 2; left-bot + right-bot in row 3, centre spanning the middle column). Token pool below mirrors the three wings as 3 separate bordered cards. Tokens can only land in slots of their own wing; matching-wing slots pulse-glow as drop targets while a token of that wing is armed. Slot-position semantics for left/right: schema's `BowtieAnswer.{left,right}` is unordered `string[]`, so removing slot[0] when slot[1] is filled rotates the second pick up to slot[0] (state derivation stays pure). Submit gate: every wing filled (2 + 1 + 2). Review: bow-tie keeps shape with green-✓ / red-✕ tinted slots; pool columns transform into feedback columns where every wing token shows in SATA's 4-state palette + per-token rationale below. Per-column header summary swaps to "X right · Y wrong".
 - ✅ **4.3** Case-block UX — shipped 2026-05-09. Wrapper-aware `.rn-split` layout (Layout C: `minmax(380px, 1fr) minmax(520px, 720px)`, max-width 1240) when current item has `parent_case_id`. Sticky `<CasePanel>` on the left renders case head (title + "X of 6 answered" pill) + scenario block + filtered tab row + tab body. **Strict progressive disclosure**: tabs and entries hide entirely until `visible_from <= case_position`, re-hide on backward nav (no stickiness — students reason at the point in time the case is at). All three tab shapes supported in `<ChartTabBody>`: built-in narrative (with optional `extra_fields` + `omit_time`), built-in structured, custom_narrative (free_text), custom_grid (rows_cols). `<CjmmStrip>` renders above the question column via `RunnerQuestionArea`'s new `topSlot` prop. Topbar gains optional `caseMeta` ("Case N of M · CJMM step X of 6 · &lt;label&gt;") for case-childs. Grid renders subtle tinted bands behind clustered case-child cells (no labels, visual grouping only); bands wrap across grid rows when a case straddles a 5-column boundary. **No grid auto-collapse** — Sam's call: layout C protects the wrapper at its 380px floor even with grid open, manual control respects user agency. **Case-entry banner** (`lib/hints/practice/case-entry-banner.tsx`) — non-modal, sits above `.rn-split`, fades after ~4s, dismissable; fires on every case entry (not first-time only). 4 test cases seeded into mynclex-dev covering all 8 chart-tab shapes and all 9 question types across the case-childs. See SESSIONS 2026-05-09 (4.3) for the layout discussion (3-mock comparison at varying viewports → Layout C), the entry-cue refinement (modal overlay → non-modal hint banner; exit warning deferred to 4.5), and the seed-bug fix (hardcoded `marks=1` violated `score_awarded ≤ marks_snapshot` for non-MCQ types). Exit-while-mid-case warning queues for 4.5 (paired with mode-specific behaviour where free-nav vs sequential becomes meaningful).
-- ⏭ **4.4** Trend question rendering — trend panel (dataset display) alongside each trend question, kind-specific rendering. Reuses 4.3's `.rn-split` layout, `topSlot` prop, and topbar meta pattern. New work: the dataset rendering itself (line chart for vital-sign trends, tabular for lab trends). No CJMM strip / progressive disclosure / entry banner — trends are scattered standalones per attempt-creation §8.3.
-- ⬜ **4.5** Per-mode behaviour — timer (wall-clock for EXAM, engagement-clock for STUDY-timed), navigation (sequential vs free-nav), feedback timing (per-Q vs end-of-quiz), warning thresholds.
+- ✅ **4.4** Trend question rendering — shipped 2026-05-09. When current item has `trend_id` and a matching `TrendSnapshot`, runner wraps question area in `.rn-split` (reusing Layout C from 4.3) with sticky `<TrendPanel>` on the left: kind label ("Trend data · &lt;Kind&gt;" via `kindDefaultLabel`, keeping curator + student labels in sync) + optional scenario + read-only row × timepoint table. Ref-range column auto-shows when any row has it set. **No flag rendering on cell values** — verified against the real NGN exam (NCSBN provides ref ranges but never pre-flags abnormal/borderline values; curator-side flags are author guidance only). New "⤬ Trend" pill in `.rn-q-meta` (via `trendBadge` prop on `RunnerQuestionArea`). **No CJMM strip, no progressive disclosure, no entry banner, no grid bands** — trends are scattered standalones per attempt-creation §8.3, not chained. 9 published trend questions in mynclex-dev cover all 6 kinds. Single new file (`lib/practice/runner/trend/trend-panel.tsx`) + edits to `runner.tsx` (`currentTrendId` derivation + `inTrend` branch), `runner-question-area.tsx` (`trendBadge` prop), and `styles/runner.css` (new `.rn-trend*` block mirroring case-block CSS, `.rn-trend-pill` in same family as `.rn-cjmm-pill`). See SESSIONS 2026-05-09 (4.4) for the design discussion + the curator UX bug surfaced (publishing a question without the parent dataset blocks it from attempts) + the 5.6 backlog item that came out of testing.
+- ⏭ **4.5** Per-mode behaviour — timer (wall-clock for EXAM, engagement-clock for STUDY-timed), navigation (sequential vs free-nav), feedback timing (per-Q vs end-of-quiz), warning thresholds. Picks up the case-exit warning queued from 4.3 (warn when leaving mid-case in free-nav modes).
 - ⬜ **4.6** Save-progress + Resume — periodic save of in-progress answers (STUDY only), Resume detection on mount, restore to last-viewed Q.
 - ⬜ **4.7** Mark-for-review toggle — runner button, writes to marking table, persists across attempts.
 - ⬜ **4.8** Discard / abandon — modal with type-DELETE-to-confirm, calls `nclex_discard_attempt`.
@@ -104,6 +113,12 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 - ✅ **5.3** Weak-spots quick-start — shipped as part of 5.1c. v1 heuristic only (`pool=Incorrect`); replace with real analytics when slice 7.x lands.
 - ✅ **5.4** Unfinished-session banner — shipped as part of 5.1c (Resume banner). Latent until the runner fires `nclex_mark_attempt_started` and writes answers — currently no real students would see it because the runner stub doesn't call those.
 - ⬜ **5.5** Curator tag allowlist — admin UI + table flag marking which tags are student-facing. Only allowlisted tags appear in the builder Tags filter. Currently every distinct published tag surfaces.
+- ⬜ **5.6** Source breakdown + filter axis — three combined fixes for case/trend visibility in the Builder, surfaced 2026-05-09 during slice 4.4 testing:
+  - **Honest per-type count**: extend `nclex_count_eligible_items` + `nclex_filter_breakdown` to break the per-type tally into `standalone` / `case-linked` / `trend-linked`. Today picking `Question type = MCQ` silently drops case-children's MCQs from the count without telling the student — they can't tell that 24+ MCQs sit unreachable inside cases. Surface as a sub-line under the type axis: *"6 standalone MCQs · 24 more inside cases (un-filterable by type)."*
+  - **Source breakdown line**: above the live count, show a one-line expectation-setter — *"Standalone × N · Case-linked × M · Trend-linked × P."* Cases take ~6× the time per unit, so a 25-Q quiz with 2 cases lands closer to 60 min than the standalone 30 min. Students need that signal before they hit Start.
+  - **Source filter axis**: new Pool-tab axis "Source" with options `All / Standalones only / Cases only / Trends only / Standalones + trends (no cases)`. Lives alongside History + Marked, not in Filters — it's about which corner of the bank you draw from rather than what content is in the question. Real student needs that aren't expressible today: "drill cases this week," "skip cases for a quick session," "grind all my trend questions in one go."
+  
+  Scheduled after Phase D-E core slices so it lands alongside Phase F analytics polish.
 
 ## Phase E — Preflight, results, help
 

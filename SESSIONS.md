@@ -6,6 +6,167 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-09 (4.4) — Trend question rendering: TrendPanel + .rn-split branch + "⤬ Trend" pill (no CJMM / no banner / no bands)
+
+Closes slice 4.4. The runner now branches its layout when the current
+item has a `trend_id` (alongside the case-block branch from 4.3):
+trends scatter as standalones per attempt-creation §8.3, but each trend
+question still gets the dataset displayed alongside via a sticky
+`<TrendPanel>` on the left of `.rn-split`. Question internals (stem /
+options / rationale) are unchanged inside a trend — only the surrounding
+chrome differs.
+
+The slice landed as a single code commit on the session branch
+(`6c47447`) plus this docs commit. Approval-to-merge to `main` is
+pending Sam's sign-off.
+
+### What shipped
+
+**1 new file** in `lib/practice/runner/trend/`:
+- `trend-panel.tsx` — sticky left panel: kind label ("Trend data ·
+  Vitals" via `kindDefaultLabel` from the curator side, so labels stay
+  in sync) + optional scenario + read-only row × timepoint table.
+  Ref-range column auto-shows when at least one row has it set.
+  Curator-side flags ('abnormal' / 'borderline') are NOT rendered.
+
+**Edits** to the runner shell:
+- `runner.tsx` — `currentTrendId` + `trendSnap` derivation (parallel
+  to the 4.3 case derivation), `inTrend` branch wrapping the question
+  area in `.rn-split` with `<TrendPanel />` on the left,
+  `trendBadge={inTrend}` passed through to `RunnerQuestionArea`. Cases
+  win when both `parent_case_id` and `trend_id` happen to be set on
+  the same item (defensive — not authored that way today).
+- `runner-question-area.tsx` — new optional `trendBadge?: boolean`
+  prop that renders a green "⤬ Trend" pill in the `.rn-q-meta` strip.
+  Sits alongside the existing type / subject / difficulty pills.
+- `styles/runner.css` — new `.rn-trend*` block mirroring the
+  case-block CSS pattern. `.rn-trend-pill` is in the same family as
+  `.rn-cjmm-pill` (accent-toned, 999px radius). The panel reuses
+  `--accent` from `tokens.css` — no new `--rn-trend-*` variables
+  needed.
+- `lib/practice/runner/index.ts` — re-exports `TrendPanel`.
+
+### Key conversation decisions
+
+The slice opened with a 5-question design discussion of trend rendering
+inside the slice 4.3 shell:
+
+1. **Reuse Layout C from 4.3.** Same `minmax(380px, 1fr) minmax(520px,
+   720px)` grid, max-width 1240. No new wrapper-aware layout work
+   needed — trends just slot into the existing `.rn-split` plumbing.
+   The throwaway runner-context mock at `docs/scratch/trend-runner-mock.html`
+   (gitignored) confirmed the integration before any code.
+
+2. **Tabular always, no charts.** Confirmed by the existing
+   `docs/product-plan/mockups/trend-visualisation.html` which already
+   settled this in 4 worked examples. Auto-detecting numeric rows for
+   sparkline rendering would have been messy (BP "130/85" is a string;
+   mixed numeric/textual datasets are common) and the pedagogical
+   value is unclear at the data densities NCLEX uses (3–5 timepoints).
+   Defer to v2 if students ask.
+
+3. **No flag rendering on cell values.** Verified against the real NGN
+   exam via web search: NCSBN deliberately removed lab-value
+   memorisation as a testable skill ("no longer required to memorize
+   the normal lab ranges, as they will be provided on the exam") but
+   does NOT pre-flag abnormal/borderline values. Test-takers interpret
+   raw values against the supplied ranges themselves. Curator-side
+   flags exist for author guidance only — they help the curator track
+   which values they want to test, but pre-cuing answers in the runner
+   would defeat the point of the trend item type. Sam's framing made
+   this distinction sharp ("on authoring side it helps the curator…
+   a student have to know that there is normal borderline or abnormal
+   using the ref range").
+
+4. **No topbar `trendMeta` line.** For cases the meta line carries
+   genuine structural state ("Case N of M · CJMM step X of 6"). For
+   trends, the panel itself shows the dataset title — a topbar pill
+   would just duplicate. The inline "⤬ Trend" pill on the question
+   card is the only badge.
+
+5. **No entry banner.** For cases the banner explains that the chart
+   panel applies to N questions ahead. For trends the dataset is right
+   there beside the question, the layout reshuffle is self-explanatory,
+   and a banner firing on every trend question would be noisy across
+   an attempt with multiple trends.
+
+### Test data
+
+mynclex-dev has 7 trend datasets covering all 6 kinds (5 built-in +
+1 custom "Pain & Sedation"). 9 child questions are now published
+spanning all 6 kinds — the others (26 of 35) remain unpublished by
+Sam's call (some are likely abandoned drafts).
+
+| Kind | Reachable in runner |
+|---|---|
+| vitals | TF + MATRIX |
+| labs | CLOZE (with ref-range column) |
+| io | TF + DRAG_DROP |
+| neuro | MATRIX (densest dataset — 6 metrics × 4 timepoints) |
+| assessment | TF + DRAG_DROP |
+| Pain & Sedation (custom) | SATA — proves kind-label fall-through |
+
+### Bugs surfaced + fixed mid-slice
+
+**Trend datasets unpublished gate.** Initial test attempt had zero
+trend-linked items despite the questions being published. Root cause:
+`_nclex_eligible_unit_pool` requires `td.is_published = TRUE` on the
+parent dataset, AND all 7 datasets were `is_published = false` in
+mynclex-dev (curator authored questions but never explicitly published
+the datasets). Fix: published the 4 datasets that already had published
+children + 2 more (TEST_04 neuro and TEST_06 custom) so all 6 kinds are
+reachable.
+
+**Curator UX gap surfaced.** The trend wrapper editor allows publishing
+a question while the parent dataset stays unpublished, with no warning.
+The question silently disappears from the bank. Should add a validation
+gate on the trend wrapper (or auto-publish the dataset on first child
+publish, mirroring how the case-study wrapper handles its 6-of-6 gate).
+Logged for follow-up — not in scope for 4.4.
+
+### Outcomes for BUILD_LIST
+
+Slice **5.6 — Source breakdown + filter axis** added during testing
+to capture three Builder gaps Sam noticed:
+
+- **Honest per-type count** — picking `Question type = MCQ` silently
+  drops case-children's MCQs from the count without telling the
+  student. A student picking MCQ today loses 24+ MCQs reachable
+  through cases with no signal.
+- **Source breakdown line** — students can't tell if a 25-Q quiz is
+  mostly standalones (~30 min) or includes cases (~60 min, since cases
+  run ~6× longer per unit). Need a one-line expectation-setter above
+  the live count.
+- **Source filter axis** — no way to express "drill cases this week"
+  / "skip cases for a quick session" / "grind all my trend questions
+  in one go." New Pool-tab axis: `All / Standalones only / Cases only
+  / Trends only / Standalones + trends`.
+
+Scheduled after the Phase D-E core slices so it lands alongside Phase F
+analytics polish.
+
+### Tested
+
+- Trend layout fires when `trend_id` is set; reverts to centred 720px
+  on trend exit.
+- Vitals (no ref-range) and Labs (with ref-range column) variants both
+  render correctly with the right column shape.
+- "⤬ Trend" pill appears on trend-question cards.
+- Case-block items still render correctly (4.3 layout intact).
+- Standalone non-wrapper items still render centred (4.1 layout
+  intact).
+- Submit + scoring works end-to-end on trend questions.
+
+### Next pick
+
+- **Slice 4.5 — Per-mode behaviour.** Real timer (wall-clock for EXAM,
+  engagement-clock for STUDY-timed), navigation rules (sequential vs
+  free-nav), feedback timing (per-Q vs end-of-quiz), warning
+  thresholds. Picks up the case-exit warning queued from 4.3 (warn
+  when leaving mid-case in free-nav modes).
+
+---
+
 ## Session — 2026-05-09 (4.3) — Case-block UX: wrapper-aware split, CJMM strip, progressive disclosure, entry banner, grid bands
 
 Closes slice 4.3. The runner now branches its layout when the current
