@@ -117,12 +117,84 @@ export async function submitAnswerAction(
 }
 
 
+// Internal: flush every DRAFT row for an attempt as `terminalStatus`
+// (SUBMITTED for deliberate Finish, AUTO_SUBMITTED for timer expiry).
+// Reads each DRAFT's snapshot key, scores in TS via scoreAttempt(),
+// then calls nclex_submit_answer with the terminal status. The submit
+// RPC's promotion-from-DRAFT path handles the row update.
+//
+// Sequential (not Promise.all) so first failure aborts cleanly. The
+// caller can then surface the error without leaving half-flushed
+// state.
+async function _flushDrafts(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  attemptId: string,
+  terminalStatus: 'SUBMITTED' | 'AUTO_SUBMITTED',
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: itemsRaw, error: iErr } = await supabase
+    .from('nclex_attempt_items')
+    .select('attempt_item_id, question_type, marks_snapshot, correct_answer_snapshot_json')
+    .eq('attempt_id', attemptId);
+  if (iErr) return { ok: false, error: iErr.message };
+
+  const items = (itemsRaw ?? []) as unknown as Array<{
+    attempt_item_id:              string;
+    question_type:                string;
+    marks_snapshot:               number;
+    correct_answer_snapshot_json: BankItemCorrect;
+  }>;
+  const itemMap = new Map(items.map((it) => [it.attempt_item_id, it]));
+
+  const { data: draftsRaw, error: dErr } = await supabase
+    .from('nclex_attempt_answers')
+    .select('attempt_item_id, answer_json')
+    .eq('attempt_id', attemptId)
+    .eq('submission_status', 'DRAFT');
+  if (dErr) return { ok: false, error: dErr.message };
+
+  const drafts = (draftsRaw ?? []) as unknown as Array<{
+    attempt_item_id: string;
+    answer_json:     BankItemAnswer;
+  }>;
+
+  for (const draft of drafts) {
+    const item = itemMap.get(draft.attempt_item_id);
+    if (!item) continue;
+
+    const { score_awarded, is_correct } = scoreAttempt(
+      item.question_type as QuestionType,
+      item.correct_answer_snapshot_json,
+      draft.answer_json,
+    );
+
+    const { error: sErr } = await supabase.rpc('nclex_submit_answer', {
+      p_attempt_item_id:   draft.attempt_item_id,
+      p_answer_json:       draft.answer_json as unknown,
+      p_score_awarded:     score_awarded,
+      p_is_correct:        is_correct,
+      p_submission_status: terminalStatus,
+    });
+    if (sErr) return { ok: false, error: sErr.message };
+  }
+
+  return { ok: true };
+}
+
+
+// Deliberate Finish (Free-batched + Sequential have DRAFTs to flush;
+// UL has all SUBMITTEDs already because per-Q submit was wired in
+// 4.1.5). _flushDrafts is a no-op when no DRAFTs exist, so we can call
+// it unconditionally.
 export async function completeAttemptAction(
   attemptId: string,
 ): Promise<ActionResult<{ final_score: number }>> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const flush = await _flushDrafts(supabase, attemptId, 'SUBMITTED');
+  if (!flush.ok) return { ok: false, error: flush.error };
 
   const { data, error } = await supabase.rpc('nclex_complete_attempt', {
     p_attempt_id: attemptId,
@@ -156,20 +228,17 @@ export async function saveProgressAction(
 
 // Timer expiry. Triggered by lazy detection (page.tsx mounts and notices
 // `now() >= started_at + duration_seconds`) or by the client-side
-// countdown hitting zero. Three-step finalisation:
+// countdown hitting zero. Two-step finalisation:
 //
-//   1. Fetch the items + their snapshot keys + the DRAFT rows that need
-//      scoring. Two queries instead of a join — cleaner with supabase-js.
-//   2. For each DRAFT row: score in TS via scoreAttempt(), then call
-//      nclex_submit_answer with submission_status='AUTO_SUBMITTED'. The
-//      existing RPC's promotion-from-DRAFT path handles the row update.
-//   3. Call nclex_expire_attempt to insert SKIPPED rows for items with
+//   1. Flush DRAFT rows as AUTO_SUBMITTED (shared with completeAttemptAction
+//      via _flushDrafts helper).
+//   2. Call nclex_expire_attempt to insert SKIPPED rows for items with
 //      no answer at all, compute final_score, and flip status to
 //      TIMED_OUT (with ended_at = started_at + duration_seconds — the
 //      true expiry, not the detection moment, per §6.1.3).
 //
 // Idempotent end-to-end: if the attempt is already terminal, the expire
-// RPC short-circuits and returns the stored final_score; the DRAFT-loop
+// RPC short-circuits and returns the stored final_score; _flushDrafts
 // runs over an empty set in that case.
 export async function expireAttemptAction(
   attemptId: string,
@@ -178,58 +247,9 @@ export async function expireAttemptAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // Step 1a — items with their snapshot keys (for TS-side scoring).
-  const { data: itemsRaw, error: iErr } = await supabase
-    .from('nclex_attempt_items')
-    .select('attempt_item_id, question_type, marks_snapshot, correct_answer_snapshot_json')
-    .eq('attempt_id', attemptId);
-  if (iErr) return { ok: false, error: iErr.message };
+  const flush = await _flushDrafts(supabase, attemptId, 'AUTO_SUBMITTED');
+  if (!flush.ok) return { ok: false, error: flush.error };
 
-  const items = (itemsRaw ?? []) as unknown as Array<{
-    attempt_item_id:              string;
-    question_type:                string;
-    marks_snapshot:               number;
-    correct_answer_snapshot_json: BankItemCorrect;
-  }>;
-  const itemMap = new Map(items.map((it) => [it.attempt_item_id, it]));
-
-  // Step 1b — DRAFT rows that need to be auto-scored + auto-submitted.
-  const { data: draftsRaw, error: dErr } = await supabase
-    .from('nclex_attempt_answers')
-    .select('attempt_item_id, answer_json')
-    .eq('attempt_id', attemptId)
-    .eq('submission_status', 'DRAFT');
-  if (dErr) return { ok: false, error: dErr.message };
-
-  const drafts = (draftsRaw ?? []) as unknown as Array<{
-    attempt_item_id: string;
-    answer_json:     BankItemAnswer;
-  }>;
-
-  // Step 2 — score each DRAFT in TS, AUTO_SUBMIT via the existing RPC.
-  // Sequential (not Promise.all) to keep error semantics clean — first
-  // failure aborts the whole flow, no half-submitted state.
-  for (const draft of drafts) {
-    const item = itemMap.get(draft.attempt_item_id);
-    if (!item) continue; // defensive — should never happen given FK
-
-    const { score_awarded, is_correct } = scoreAttempt(
-      item.question_type as QuestionType,
-      item.correct_answer_snapshot_json,
-      draft.answer_json,
-    );
-
-    const { error: sErr } = await supabase.rpc('nclex_submit_answer', {
-      p_attempt_item_id:   draft.attempt_item_id,
-      p_answer_json:       draft.answer_json as unknown,
-      p_score_awarded:     score_awarded,
-      p_is_correct:        is_correct,
-      p_submission_status: 'AUTO_SUBMITTED',
-    });
-    if (sErr) return { ok: false, error: sErr.message };
-  }
-
-  // Step 3 — RPC handles SKIPPED inserts + status flip + final_score.
   const { data, error } = await supabase.rpc('nclex_expire_attempt', {
     p_attempt_id: attemptId,
   });

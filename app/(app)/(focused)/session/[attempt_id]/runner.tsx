@@ -55,6 +55,7 @@ import {
   isBowtieComplete,
 } from '@/lib/practice/runner';
 import { ErrorToast } from '@/lib/toast/error-toast';
+import { FinishWithBlanksConfirm } from '@/lib/overlays/practice/finish-with-blanks-confirm';
 import { RunnerTopbar }       from './runner-topbar';
 import { RunnerFooter }       from './runner-footer';
 import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
@@ -73,6 +74,32 @@ const MODE_LABELS: Record<RunnerData['attempt']['mode'], string> = {
   TIMED_SEQUENTIAL:  'Timed · sequential',
   CAT:               'CAT',
 };
+
+// Archetype collapses 8 (mode, intent) tuples into 3 behavioural groups
+// (slice 4.5b — runner.html §15 + BUILD_LIST 4.5):
+//
+//   • UL            — per-Q submit + immediate rationale + free nav (4.1).
+//   • FREE_BATCHED  — per-Q submit removed; footer is Prev / Next / Finish;
+//                     rationale hidden mid-quiz; revisable until Finish.
+//   • SEQUENTIAL    — per-Q "Submit & continue"; Prev disabled; no Skip.
+//                     In 4.5b the lock semantics (DRAFT → SUBMITTED on
+//                     submit, cell read-only) are deferred to 4.5c — for
+//                     now "Submit & continue" advances + saves like Next.
+//
+// CAT is treated as Sequential for the dispatch — it isn't reachable in
+// v1 (create-attempt rejects CAT mode until slice 3.x), and Sequential is
+// the closest defensive default.
+type Archetype = 'UL' | 'FREE_BATCHED' | 'SEQUENTIAL';
+
+function getArchetype(mode: RunnerData['attempt']['mode']): Archetype {
+  switch (mode) {
+    case 'UNTIMED_LEARNING': return 'UL';
+    case 'UNTIMED_TEST':
+    case 'TIMED_FREE_NAV':   return 'FREE_BATCHED';
+    case 'TIMED_SEQUENTIAL':
+    case 'CAT':              return 'SEQUENTIAL';
+  }
+}
 
 function statusMessage(mode: RunnerData['mode'], attemptMode: RunnerData['attempt']['mode']): string {
   if (mode === 'review') {
@@ -101,12 +128,32 @@ function RunnerShell({ data }: Props) {
   const [filter, setFilter]     = useState<GridFilter>('all');
   const [gridOpen, setGridOpen] = useState(true);
 
-  const [pendingAnswers, setPendingAnswers] =
-    useState<Map<string, BankItemAnswer>>(new Map());
+  // pendingAnswers seeds from any DRAFT rows already on the server. With
+  // universal save-on-tap (slice 4.5a §9.1), every material answer change
+  // writes a DRAFT row immediately. On page reload — including
+  // mid-attempt EXAM re-entry per attempt-creation §6.1.3 — the runner
+  // restores those DRAFTs into pendingAnswers so the student picks up
+  // where they left off. Submission rows (SUBMITTED / AUTO_SUBMITTED /
+  // SKIPPED) are NOT seeded here — they live in answersByItem and drive
+  // per-item review mode for UL.
+  const [pendingAnswers, setPendingAnswers] = useState<Map<string, BankItemAnswer>>(
+    () => {
+      const m = new Map<string, BankItemAnswer>();
+      for (const a of data.answers) {
+        if (a.submission_status === 'DRAFT' && a.answer_json !== null) {
+          m.set(a.attempt_item_id, a.answer_json);
+        }
+      }
+      return m;
+    },
+  );
   const [clientAnswers, setClientAnswers] =
     useState<Map<string, AnswerRow>>(new Map());
   const [clientUnseal, setClientUnseal] =
     useState<Map<string, PerItemUnseal>>(new Map());
+
+  // Finish-with-blanks confirmation modal (Free-batched only).
+  const [showBlanksConfirm, setShowBlanksConfirm] = useState(false);
 
   const [error, setError]   = useState<string | null>(null);
   const [submitting, startSubmit] = useTransition();
@@ -198,10 +245,22 @@ function RunnerShell({ data }: Props) {
   const modeLabel   = MODE_LABELS[data.attempt.mode];
   const modeMsg     = statusMessage(data.mode, data.attempt.mode);
 
-  // Per-item mode (UL hybrid §16.1.1). Review mode is uniformly review.
-  // Live mode flips to review per-item once an answer row exists.
+  const archetype = getArchetype(data.attempt.mode);
+
+  // Per-item mode (slice 4.5b — corrects the DRAFT bug from 4.5a):
+  //   • Whole-attempt review (`data.mode === 'review'`) always wins.
+  //   • Otherwise per-item 'review' fires only for UL when the row is
+  //     non-DRAFT — i.e. SUBMITTED / AUTO_SUBMITTED / SKIPPED. Free-
+  //     batched + Sequential never go to per-item review (rationale is
+  //     end-of-quiz — see runner.html §15).
+  //   • DRAFT rows from save-on-tap (universal across all archetypes)
+  //     keep the student in 'answering' mode so they can keep editing.
+  const currentRow = currentItem
+    ? answersByItem.get(currentItem.attempt_item_id)
+    : undefined;
+  const isFinalisedRow = currentRow !== undefined && currentRow.submission_status !== 'DRAFT';
   const itemMode: 'answering' | 'review' =
-    data.mode === 'review' || (currentItem && answersByItem.has(currentItem.attempt_item_id))
+    data.mode === 'review' || (archetype === 'UL' && isFinalisedRow)
       ? 'review'
       : 'answering';
 
@@ -402,11 +461,36 @@ function RunnerShell({ data }: Props) {
       // the unsealed projection now flows in for every item, no client
       // overlays needed for the items the student didn't submit in this
       // session.
+      setShowBlanksConfirm(false);
       router.refresh();
     });
   };
 
-  // Footer label / handler / disabled — derived from per-item mode.
+  // Free-batched Finish: gate on unanswered count. With at least one
+  // unanswered question, surface the confirmation modal; from there the
+  // student can either go back (Cancel) or commit (Finish anyway → onFinish).
+  // UL never reaches this — its Finish CTA only appears post-submit on the
+  // last Q, which means all rows are SUBMITTED. Sequential's Finish path
+  // is "Submit & finish" — also no blanks possible because each Q gets
+  // submitted as the student advances (or will, once 4.5c locks the row).
+  const unansweredCount = useMemo(() => {
+    let n = 0;
+    for (const it of data.items) {
+      const has = pendingAnswers.has(it.attempt_item_id) || answersByItem.has(it.attempt_item_id);
+      if (!has) n++;
+    }
+    return n;
+  }, [data.items, pendingAnswers, answersByItem]);
+
+  const onFinishFreeBatched = () => {
+    if (unansweredCount > 0) {
+      setShowBlanksConfirm(true);
+      return;
+    }
+    onFinish();
+  };
+
+  // Footer label / handler / disabled — archetype-aware (slice 4.5b).
   const isLastQ     = current >= total - 1;
   const isAnswering = itemMode === 'answering';
   const isFinishCta = isLastQ && itemMode === 'review' && data.mode === 'live';
@@ -416,25 +500,78 @@ function RunnerShell({ data }: Props) {
   let primaryHint:     string | undefined;
   let onPrimary:       () => void;
 
-  if (isAnswering) {
-    const canSubmit = submitGate?.canSubmit ?? false;
-    primaryLabel    = 'Submit answer';
-    primaryDisabled = !canSubmit || submitting;
-    primaryHint     = canSubmit ? undefined : submitGate?.hint;
-    onPrimary       = onSubmit;
-  } else if (isFinishCta) {
-    // Last Q post-submit in live mode → Finish CTA. completeAttemptAction
-    // sets status=COMPLETED + final_score, then router.refresh() re-runs
-    // page.tsx with the unsealed projection (review mode).
-    primaryLabel    = submitting ? 'Finishing…' : 'Finish quiz';
-    primaryDisabled = submitting;
-    primaryHint     = undefined;
-    onPrimary       = onFinish;
-  } else {
+  if (data.mode === 'review' || !isLive) {
+    // Review state — primary is unused (no footer interaction needed).
+    // Keep a Next-style label so the rendered button shape is preserved.
     primaryLabel    = 'Next →';
     primaryDisabled = isLastQ;
     primaryHint     = isLastQ ? 'You\'re on the last question' : undefined;
     onPrimary       = onNext;
+
+  } else if (archetype === 'UL') {
+    // UL behaviour (4.1 — unchanged): per-Q Submit → review → Next/Finish.
+    if (isAnswering) {
+      const canSubmit = submitGate?.canSubmit ?? false;
+      primaryLabel    = 'Submit answer';
+      primaryDisabled = !canSubmit || submitting;
+      primaryHint     = canSubmit ? undefined : submitGate?.hint;
+      onPrimary       = onSubmit;
+    } else if (isFinishCta) {
+      primaryLabel    = submitting ? 'Finishing…' : 'Finish quiz';
+      primaryDisabled = submitting;
+      primaryHint     = undefined;
+      onPrimary       = onFinish;
+    } else {
+      primaryLabel    = 'Next →';
+      primaryDisabled = isLastQ;
+      primaryHint     = isLastQ ? 'You\'re on the last question' : undefined;
+      onPrimary       = onNext;
+    }
+
+  } else if (archetype === 'FREE_BATCHED') {
+    // Free-batched (UT, TFN both intents): no per-Q Submit. Footer is just
+    // Next ›, plus Finish quiz on the last Q. Save-on-tap (4.5a) persists
+    // every change as a DRAFT row server-side; no per-Q rationale fires
+    // until the whole attempt finalises (data.mode === 'review').
+    if (isLastQ) {
+      primaryLabel    = submitting ? 'Finishing…' : 'Finish quiz';
+      primaryDisabled = submitting;
+      primaryHint     = undefined;
+      onPrimary       = onFinishFreeBatched;
+    } else {
+      primaryLabel    = 'Next →';
+      primaryDisabled = false;
+      primaryHint     = undefined;
+      onPrimary       = onNext;
+    }
+
+  } else {
+    // Sequential (TS both intents). 4.5b: per-Q "Submit & continue"
+    // advances + saves like Next; the lock semantics (DRAFT → SUBMITTED on
+    // submit + cell read-only) are deferred to 4.5c. Last Q becomes
+    // "Submit & finish" which calls onFinish directly. Prev is disabled
+    // (handled by RunnerFooter via prevDisabled prop).
+    //
+    // "No Skip button (must commit)" rule from BUILD_LIST 4.5b: Sequential
+    // gates the primary button on submitGate.canSubmit so the student
+    // can't advance / finish without answering the current question.
+    // Matches NCLEX authenticity — you can't skip on the real exam, you
+    // pick something even if you're guessing. Timer expiry remains the
+    // other way out: AUTO_SUBMITs whatever DRAFT exists + SKIPs the rest
+    // via expireAttemptAction.
+    const canSubmit = submitGate?.canSubmit ?? false;
+    const skipHint  = 'Pick an answer to continue — no skipping in Sequential mode';
+    if (isLastQ) {
+      primaryLabel    = submitting ? 'Finishing…' : 'Submit & finish';
+      primaryDisabled = !canSubmit || submitting;
+      primaryHint     = canSubmit ? undefined : (submitGate?.hint ?? skipHint);
+      onPrimary       = onFinish;
+    } else {
+      primaryLabel    = 'Submit & continue →';
+      primaryDisabled = !canSubmit;
+      primaryHint     = canSubmit ? undefined : (submitGate?.hint ?? skipHint);
+      onPrimary       = onNext;
+    }
   }
 
   // Topbar pill (slice 4.5a):
@@ -616,9 +753,21 @@ function RunnerShell({ data }: Props) {
         primaryLabel={primaryLabel}
         primaryDisabled={primaryDisabled}
         primaryHint={primaryHint}
+        prevDisabled={archetype === 'SEQUENTIAL' && data.mode === 'live'}
+        prevHint={archetype === 'SEQUENTIAL' ? 'Sequential mode — no going back' : undefined}
         onPrev={onPrev}
         onPrimary={onPrimary}
       />
+
+      {showBlanksConfirm && (
+        <FinishWithBlanksConfirm
+          unansweredCount={unansweredCount}
+          totalCount={total}
+          pending={submitting}
+          onCancel={() => setShowBlanksConfirm(false)}
+          onSubmitAnyway={onFinish}
+        />
+      )}
     </div>
   );
 }
