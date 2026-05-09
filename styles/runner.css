@@ -167,6 +167,124 @@
   50%      { box-shadow: 0 0 0 4px rgba(185, 28, 28, 0.10); }
 }
 
+/* ────────────────────────────────────────────────────────────
+ *  Live clock (slice 4.5a — runner.html §8)
+ *
+ *  Stopwatch (untimed) and countdown (timed) share the same pill chrome —
+ *  only the tone progression differs. Stopwatch stays neutral forever;
+ *  countdown escalates through tiers 30 / 15 / 5 / 1. Tone never reverts
+ *  (sticky max-tier-fired ref in runner.tsx). At tier-1, an additional
+ *  "1 min left" sub-label sits beside the time.
+ *
+ *  The eye-icon button on the left toggles visibility per-attempt.
+ *  Locked once the first warning tier fires (`.locked`) — the disable
+ *  state from React's `disabled` attribute is the source of truth; the
+ *  class is for visual styling only.
+ * ──────────────────────────────────────────────────────────── */
+.rn-clock-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rn-clock-eye {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+.rn-clock-eye:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.rn-clock-eye:disabled,
+.rn-clock-eye.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.rn-clock-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  transition: color 200ms ease, background 200ms ease, border-color 200ms ease;
+}
+.rn-clock-pill .time { font-weight: 700; }
+.rn-clock-pill .label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+/* Stopwatch — permanently neutral, no animations, no warnings (§8.3). */
+.rn-clock-pill.stopwatch {
+  color: var(--text-muted);
+}
+
+/* Countdown — escalating tiers. Each tier triggers a one-pulse animation
+ * on initial appearance via the .pulse keyframe. The escalates-only rule
+ * lives in runner.tsx via the sticky max-tier-fired ref. */
+.rn-clock-pill.countdown {
+  color: var(--text);
+}
+.rn-clock-pill.countdown.tier-30 {
+  color: #92400e;                        /* subtle amber */
+  background: rgba(217, 119, 6, 0.05);
+  border-color: rgba(217, 119, 6, 0.22);
+  animation: rn-clock-pulse-once 800ms ease-out;
+}
+.rn-clock-pill.countdown.tier-15 {
+  color: #7c2d12;                        /* medium amber */
+  background: rgba(217, 119, 6, 0.10);
+  border-color: rgba(217, 119, 6, 0.35);
+  animation: rn-clock-pulse-once 800ms ease-out;
+}
+.rn-clock-pill.countdown.tier-5 {
+  color: var(--rn-timer-warn);          /* strong amber */
+  background: rgba(217, 119, 6, 0.14);
+  border-color: rgba(217, 119, 6, 0.50);
+  animation: rn-clock-pulse-once 800ms ease-out;
+}
+.rn-clock-pill.countdown.tier-1 {
+  color: var(--rn-timer-crit);
+  background: rgba(185, 28, 28, 0.10);
+  border-color: rgba(185, 28, 28, 0.45);
+  animation: rn-clock-pulse-loop 1.6s ease-in-out infinite;
+}
+.rn-clock-pill.countdown.tier-1 .label {
+  color: var(--rn-timer-crit);
+  opacity: 1;
+}
+
+@keyframes rn-clock-pulse-once {
+  0%   { box-shadow: 0 0 0 0    rgba(217, 119, 6, 0.45); }
+  60%  { box-shadow: 0 0 0 6px  rgba(217, 119, 6, 0.00); }
+  100% { box-shadow: 0 0 0 0    rgba(217, 119, 6, 0.00); }
+}
+@keyframes rn-clock-pulse-loop {
+  0%, 100% { box-shadow: 0 0 0 0    rgba(185, 28, 28, 0.00); }
+  50%      { box-shadow: 0 0 0 4px  rgba(185, 28, 28, 0.14); }
+}
+
 .rn-mark-btn {
   display: inline-flex;
   align-items: center;

@@ -1,19 +1,23 @@
 // mynclex/app/(app)/(focused)/session/[attempt_id]/runner-topbar.tsx
 //
-// Runner topbar (56px). Layout: [Exit] | [Title + meta] [spacer] [Counter] [Timer] [Mark]
+// Runner topbar (56px). Layout:
+//   [Exit] | [Title + meta] [spacer] [Counter] [Clock + eye-icon] [Mark]
 //
-// 4.1 stubs:
-//   • Mark button — visual only, disabled with tooltip; toggle wiring
-//     lands in slice 4.7 (mark-for-review).
-//   • Timer pill — always renders the "Untimed · elapsed —" placeholder
-//     in 4.1 (per-mode timer behaviour lands in 4.5).
+// Clock pill (slice 4.5a — runner.html §8):
+//   • In review mode: clock prop is null and statusLabel renders the
+//     final-score string ("Score · 67%") in the existing placeholder pill.
+//   • In live mode: clock prop holds the tick state (stopwatch for untimed,
+//     countdown for timed) + warning tier + hide-toggle state. Pill renders
+//     the formatted display + tone class; eye-icon button next to it
+//     toggles visibility (locks once first warning fires per §8.5).
 //
-// Exit just navigates back to /student/bank/practice. Confirm-on-exit
-// for EXAM intent is a 4.5 concern.
+// Mark button — visual only, disabled with tooltip; toggle wiring lands
+// in slice 4.7 (mark-for-review).
 
 'use client';
 
 import { useRouter } from 'next/navigation';
+import type { WarningTier } from '@/lib/practice/runner/clock';
 
 interface CaseMeta {
   caseIndex:    number;   // 1-indexed (e.g. 1st of 3 cases)
@@ -22,18 +26,36 @@ interface CaseMeta {
   cjmmStepLabel: string;  // e.g. "Analyse cues"
 }
 
+export interface ClockProps {
+  mode:         'stopwatch' | 'countdown';
+  display:      string;          // "14:32" or "1:00:00"
+  tier:         WarningTier | null;
+  hidden:       boolean;         // true → pill collapses; eye-icon stays
+  canHide:      boolean;         // false once any tier fires
+  onToggleHide: () => void;
+}
+
 interface Props {
   modeLabel:   string;
   current:     number;          // 1-indexed for display
   total:       number;
   marked:      boolean;
-  statusLabel: string;          // "Untimed" in live, "Score · 67%" in review
-  // Set on case-childs (slice 4.3) so the meta strip surfaces the
-  // case-of-N + CJMM step. Standalones leave this undefined.
+  statusLabel: string;          // "Score · 67%" in review (live ignores)
   caseMeta?:   CaseMeta;
+  // Live-mode clock state. Null in review mode (statusLabel renders
+  // instead). Populated in live mode regardless of timed-vs-untimed.
+  clock?:      ClockProps | null;
 }
 
-export function RunnerTopbar({ modeLabel, current, total, marked, statusLabel, caseMeta }: Props) {
+export function RunnerTopbar({
+  modeLabel,
+  current,
+  total,
+  marked,
+  statusLabel,
+  caseMeta,
+  clock,
+}: Props) {
   const router = useRouter();
 
   return (
@@ -73,9 +95,11 @@ export function RunnerTopbar({ modeLabel, current, total, marked, statusLabel, c
         <strong>{total}</strong>
       </div>
 
-      <div className="rn-timer untimed" title="Per-mode timers land in slice 4.5">
-        {statusLabel}
-      </div>
+      {clock ? (
+        <ClockGroup clock={clock} />
+      ) : (
+        <div className="rn-timer untimed">{statusLabel}</div>
+      )}
 
       <button
         type="button"
@@ -86,5 +110,45 @@ export function RunnerTopbar({ modeLabel, current, total, marked, statusLabel, c
         ⚑ {marked ? 'Marked' : 'Mark'}
       </button>
     </header>
+  );
+}
+
+
+function ClockGroup({ clock }: { clock: ClockProps }) {
+  const tierClass = clock.tier === null ? '' : ` tier-${clock.tier}`;
+
+  return (
+    <div className="rn-clock-wrap">
+      <button
+        type="button"
+        className={'rn-clock-eye' + (clock.canHide ? '' : ' locked')}
+        onClick={clock.onToggleHide}
+        disabled={!clock.canHide}
+        aria-label={clock.hidden ? 'Show clock' : 'Hide clock'}
+        title={
+          !clock.canHide
+            ? 'Clock visibility locked — warning fired'
+            : clock.hidden
+              ? 'Show clock'
+              : 'Hide clock'
+        }
+      >
+        {clock.hidden ? '◌' : '◉'}
+      </button>
+
+      {!clock.hidden && (
+        <div
+          className={'rn-clock-pill ' + clock.mode + tierClass}
+          aria-label={
+            clock.mode === 'countdown'
+              ? `Time remaining ${clock.display}`
+              : `Time elapsed ${clock.display}`
+          }
+        >
+          <span className="time">{clock.display}</span>
+          {clock.tier === 1 && <span className="label">1 min left</span>}
+        </div>
+      )}
+    </div>
   );
 }

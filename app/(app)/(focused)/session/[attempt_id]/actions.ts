@@ -1,17 +1,31 @@
 // mynclex/app/(app)/(focused)/session/[attempt_id]/actions.ts
 //
 // Runner Server Actions — the bridge between client interactions and the
-// database. Three actions in 4.1:
+// database. Five actions:
 //
-//   • markStartedAction    — preflight Start. Anchors the timer to NOW().
-//   • submitAnswerAction   — per-Q submit. Reads the unsealed key
-//                            server-side, runs scoreAttempt() in TS,
-//                            persists via nclex_submit_answer RPC, and
-//                            returns the unsealed projection for THAT
-//                            one item back to the client (per
-//                            runner.html §2.3.1 — the per-Q unseal).
+//   • markStartedAction     — preflight Start. Anchors the timer to NOW().
+//   • saveProgressAction    — universal save-on-tap (slice 4.5a). Persists
+//                             every material answer change as a DRAFT row.
+//                             Called debounced (~500ms) from runner.tsx
+//                             onAnswerChange. Per runner.html §9.1.
+//   • submitAnswerAction    — per-Q submit. Reads the unsealed key
+//                             server-side, runs scoreAttempt() in TS,
+//                             persists via nclex_submit_answer RPC (which
+//                             promotes the existing DRAFT row from
+//                             save-on-tap to SUBMITTED), and returns the
+//                             unsealed projection for THAT one item back
+//                             to the client (per runner.html §2.3.1).
 //   • completeAttemptAction — Finish click. Aggregates final_score
-//                            server-side, flips status to COMPLETED.
+//                             server-side, flips status to COMPLETED.
+//   • expireAttemptAction   — timer expiry (slice 4.5a). Multi-step:
+//                             fetches DRAFT rows + their snapshot keys,
+//                             scores each in TS, AUTO_SUBMITs them via
+//                             the existing submit RPC, then calls
+//                             nclex_expire_attempt to insert SKIPPED rows
+//                             for items with no answer + flip status to
+//                             TIMED_OUT + compute final_score. Triggered
+//                             by lazy detection in page.tsx OR by the
+//                             client-side countdown hitting zero.
 
 'use server';
 
@@ -114,5 +128,112 @@ export async function completeAttemptAction(
     p_attempt_id: attemptId,
   });
   if (error) return { ok: false, error: error.message };
+  return { ok: true, data: { final_score: Number(data) } };
+}
+
+
+// Universal save-on-tap. Called debounced (~500ms) from runner.tsx whenever
+// a student materially changes their answer. Persists as a DRAFT row and
+// appends a {at, from, to} entry to answer_changes_json per
+// attempt-creation §6.3.3. RPC is no-op when the answer is unchanged from
+// the existing DRAFT — defensive against debounce edge cases.
+export async function saveProgressAction(
+  attemptItemId: string,
+  answerJson:    BankItemAnswer,
+): Promise<ActionResult<void>> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { error } = await supabase.rpc('nclex_save_progress', {
+    p_attempt_item_id: attemptItemId,
+    p_answer_json:     answerJson as unknown,
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: undefined };
+}
+
+
+// Timer expiry. Triggered by lazy detection (page.tsx mounts and notices
+// `now() >= started_at + duration_seconds`) or by the client-side
+// countdown hitting zero. Three-step finalisation:
+//
+//   1. Fetch the items + their snapshot keys + the DRAFT rows that need
+//      scoring. Two queries instead of a join — cleaner with supabase-js.
+//   2. For each DRAFT row: score in TS via scoreAttempt(), then call
+//      nclex_submit_answer with submission_status='AUTO_SUBMITTED'. The
+//      existing RPC's promotion-from-DRAFT path handles the row update.
+//   3. Call nclex_expire_attempt to insert SKIPPED rows for items with
+//      no answer at all, compute final_score, and flip status to
+//      TIMED_OUT (with ended_at = started_at + duration_seconds — the
+//      true expiry, not the detection moment, per §6.1.3).
+//
+// Idempotent end-to-end: if the attempt is already terminal, the expire
+// RPC short-circuits and returns the stored final_score; the DRAFT-loop
+// runs over an empty set in that case.
+export async function expireAttemptAction(
+  attemptId: string,
+): Promise<ActionResult<{ final_score: number }>> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Step 1a — items with their snapshot keys (for TS-side scoring).
+  const { data: itemsRaw, error: iErr } = await supabase
+    .from('nclex_attempt_items')
+    .select('attempt_item_id, question_type, marks_snapshot, correct_answer_snapshot_json')
+    .eq('attempt_id', attemptId);
+  if (iErr) return { ok: false, error: iErr.message };
+
+  const items = (itemsRaw ?? []) as unknown as Array<{
+    attempt_item_id:              string;
+    question_type:                string;
+    marks_snapshot:               number;
+    correct_answer_snapshot_json: BankItemCorrect;
+  }>;
+  const itemMap = new Map(items.map((it) => [it.attempt_item_id, it]));
+
+  // Step 1b — DRAFT rows that need to be auto-scored + auto-submitted.
+  const { data: draftsRaw, error: dErr } = await supabase
+    .from('nclex_attempt_answers')
+    .select('attempt_item_id, answer_json')
+    .eq('attempt_id', attemptId)
+    .eq('submission_status', 'DRAFT');
+  if (dErr) return { ok: false, error: dErr.message };
+
+  const drafts = (draftsRaw ?? []) as unknown as Array<{
+    attempt_item_id: string;
+    answer_json:     BankItemAnswer;
+  }>;
+
+  // Step 2 — score each DRAFT in TS, AUTO_SUBMIT via the existing RPC.
+  // Sequential (not Promise.all) to keep error semantics clean — first
+  // failure aborts the whole flow, no half-submitted state.
+  for (const draft of drafts) {
+    const item = itemMap.get(draft.attempt_item_id);
+    if (!item) continue; // defensive — should never happen given FK
+
+    const { score_awarded, is_correct } = scoreAttempt(
+      item.question_type as QuestionType,
+      item.correct_answer_snapshot_json,
+      draft.answer_json,
+    );
+
+    const { error: sErr } = await supabase.rpc('nclex_submit_answer', {
+      p_attempt_item_id:   draft.attempt_item_id,
+      p_answer_json:       draft.answer_json as unknown,
+      p_score_awarded:     score_awarded,
+      p_is_correct:        is_correct,
+      p_submission_status: 'AUTO_SUBMITTED',
+    });
+    if (sErr) return { ok: false, error: sErr.message };
+  }
+
+  // Step 3 — RPC handles SKIPPED inserts + status flip + final_score.
+  const { data, error } = await supabase.rpc('nclex_expire_attempt', {
+    p_attempt_id: attemptId,
+  });
+  if (error) return { ok: false, error: error.message };
+
   return { ok: true, data: { final_score: Number(data) } };
 }

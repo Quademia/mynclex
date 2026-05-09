@@ -26,6 +26,7 @@ import type {
   RunnerData,
 } from '@/lib/practice/runner';
 import { Runner } from './runner';
+import { expireAttemptAction } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,12 +63,45 @@ export default async function SessionPage({ params }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: attempt, error: aErr } = await supabase
+  let { data: attempt, error: aErr } = await supabase
     .from('nclex_attempts')
     .select('*')
     .eq('attempt_id', attempt_id)
     .maybeSingle();
   if (aErr || !attempt) notFound();
+
+  // Lazy expire detection (slice 4.5a — runner.html §8.6 + attempt-creation
+  // §6.1.3). When a timed EXAM has already passed `started_at +
+  // duration_seconds`, the row may still be IN_PROGRESS because the cron
+  // sweep hasn't fired yet (slice 2.4 will add it). Detect on page load
+  // and finalise inline: expireAttemptAction iterates DRAFT rows, scores
+  // each in TS via scoreAttempt, AUTO_SUBMITs them, then flips status to
+  // TIMED_OUT. The page re-fetches with the flipped status and renders
+  // review naturally — no special "exam ended" view (per the revised
+  // §6.1.3 rule).
+  //
+  // Untimed attempts (duration_seconds NULL) skip this — they only end
+  // via deliberate Finish or orphan cleanup.
+  if (
+    attempt.status === 'IN_PROGRESS' &&
+    attempt.duration_seconds !== null &&
+    attempt.started_at !== null
+  ) {
+    const startedAtMs = Date.parse(attempt.started_at);
+    const expiryMs    = startedAtMs + attempt.duration_seconds * 1000;
+    if (Date.now() >= expiryMs) {
+      const r = await expireAttemptAction(attempt_id);
+      if (!r.ok) notFound();
+
+      const refetch = await supabase
+        .from('nclex_attempts')
+        .select('*')
+        .eq('attempt_id', attempt_id)
+        .maybeSingle();
+      if (refetch.error || !refetch.data) notFound();
+      attempt = refetch.data;
+    }
+  }
 
   // ABANDONED has no rows underneath (discard hard-deletes per slice 2.2b).
   // Bounce back to Practice rather than render a broken runner.

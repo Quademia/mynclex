@@ -33,6 +33,7 @@ import type {
 } from '@/lib/practice/runner';
 import type { GridFilter } from '@/lib/practice/runner';
 import { CasePanel, CjmmStrip, TrendPanel } from '@/lib/practice/runner';
+import { formatClock, tierFor, tierIsStricter, type WarningTier } from '@/lib/practice/runner/clock';
 import { CJMM_STEPS } from '@/lib/bank/classifications';
 import { CaseEntryBanner } from '@/lib/hints/practice/case-entry-banner';
 import type {
@@ -59,7 +60,7 @@ import { RunnerFooter }       from './runner-footer';
 import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
 import { RunnerQuestionArea, type PerItemUnseal } from './runner-question-area';
 import { Preflight }          from './preflight';
-import { submitAnswerAction, completeAttemptAction } from './actions';
+import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction } from './actions';
 
 interface Props {
   data: RunnerData;
@@ -109,6 +110,75 @@ function RunnerShell({ data }: Props) {
 
   const [error, setError]   = useState<string | null>(null);
   const [submitting, startSubmit] = useTransition();
+
+  // ── Live clock state (slice 4.5a) ─────────────────────────────────
+  // `nowMs` ticks every second while the attempt is live with a started_at
+  // anchor. Drives both stopwatch (untimed) and countdown (timed) display.
+  // Skipped entirely in review mode — the topbar shows a final-score pill
+  // there instead. Per attempt-creation §11, started_at is the timer
+  // anchor (set on preflight Start, server-side, invariant for the
+  // attempt). Untimed attempts still have started_at set; duration_seconds
+  // is what flips us between stopwatch and countdown.
+  const startedAtMs = data.attempt.started_at
+    ? Date.parse(data.attempt.started_at)
+    : null;
+  const durationSec = data.attempt.duration_seconds; // null = untimed
+  const isTimed     = durationSec !== null;
+  const isLive      = data.mode === 'live';
+
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+  useEffect(() => {
+    if (!isLive)              return;
+    if (startedAtMs === null) return;
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [isLive, startedAtMs]);
+
+  // Stopwatch / countdown derivations (purely from nowMs + anchors).
+  const elapsedSec   = startedAtMs !== null ? (nowMs - startedAtMs) / 1000 : 0;
+  const remainingSec = isTimed && durationSec !== null
+    ? Math.max(0, durationSec - elapsedSec)
+    : null;
+
+  // Warning tier with sticky escalation (§8.4 — tone never reverts).
+  // `currentTier` is a pure function of (remaining, duration); the ref
+  // remembers the strictest tier ever fired so the UI doesn't relax tone
+  // back to neutral if a tick is briefly off.
+  const currentTier  = tierFor(remainingSec, durationSec);
+  const maxTierRef   = useRef<WarningTier | null>(null);
+  if (tierIsStricter(currentTier, maxTierRef.current)) {
+    maxTierRef.current = currentTier;
+  }
+  const effectiveTier = maxTierRef.current;
+
+  // Hide toggle (per-attempt scope — resets at next attempt; locks once
+  // any warning fires).
+  const [clockHidden, setClockHidden] = useState(false);
+  const canHideClock      = effectiveTier === null;
+  const effectiveHidden   = clockHidden && canHideClock;
+  const onToggleClockHide = () => {
+    if (!canHideClock) return;
+    setClockHidden((h) => !h);
+  };
+
+  // Auto-expire when the countdown hits zero. Single-shot via
+  // `firedExpire` so a second tick at zero doesn't double-call. Server
+  // RPC is idempotent anyway, but skipping the call keeps the network
+  // chatter honest.
+  const [firedExpire, setFiredExpire] = useState(false);
+  useEffect(() => {
+    if (!isLive)             return;
+    if (!isTimed)            return;
+    if (firedExpire)         return;
+    if (remainingSec === null || remainingSec > 0) return;
+
+    setFiredExpire(true);
+    startSubmit(async () => {
+      const r = await expireAttemptAction(data.attempt.attempt_id);
+      if (!r.ok) { setError(r.error); return; }
+      router.refresh();
+    });
+  }, [isLive, isTimed, remainingSec, firedExpire, data.attempt.attempt_id, router]);
 
   // Server answers + client overlays. Client wins on conflict — student
   // just submitted in this session, so their fresh row is authoritative.
@@ -245,6 +315,27 @@ function RunnerShell({ data }: Props) {
   const onPick = (idx: number) => setCurrent(idx);
   const onNext = () => setCurrent((c) => Math.min(total - 1, c + 1));
 
+  // Save-on-tap (slice 4.5a). Per-item debounce so navigating between
+  // questions mid-debounce doesn't drop the pending save for the
+  // question we're leaving — each item has its own timer in the map.
+  const saveDebounceRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map(),
+  );
+
+  // Cancel all pending debounces on unmount. Pending RPC calls (already
+  // dispatched) continue to completion server-side; only un-fired
+  // setTimeouts get cancelled. Documented as best-effort: navigating
+  // away mid-debounce may lose ≤500ms of state. STUDY Resume in 4.6
+  // reads from server DRAFT rows, so it picks up wherever the last
+  // committed save landed.
+  useEffect(() => {
+    const map = saveDebounceRef.current;
+    return () => {
+      for (const t of map.values()) clearTimeout(t);
+      map.clear();
+    };
+  }, []);
+
   const onAnswerChange = useCallback(
     (next: BankItemAnswer) => {
       if (!currentItem) return;
@@ -253,8 +344,37 @@ function RunnerShell({ data }: Props) {
         m.set(currentItem.attempt_item_id, next);
         return m;
       });
+
+      // Skip save-on-tap when:
+      //   - attempt is in review mode (status terminal — save_progress
+      //     would RAISE because status != IN_PROGRESS), or
+      //   - this item already has a finalised row (the per-item itemMode
+      //     is review post-submit in UL; save_progress would RAISE on
+      //     SUBMITTED row). The RPC enforces both rules; the client skip
+      //     avoids the round-trip + console noise.
+      if (data.mode === 'review') return;
+      if (answersByItem.has(currentItem.attempt_item_id)) return;
+
+      const itemId = currentItem.attempt_item_id;
+      const map = saveDebounceRef.current;
+      const existing = map.get(itemId);
+      if (existing) clearTimeout(existing);
+
+      const t = setTimeout(() => {
+        map.delete(itemId);
+        // Best-effort save — the server's no-op-on-identical check + the
+        // RPC's structural answer compare make duplicate fires harmless.
+        // Errors are non-fatal: the next material change saves the latest
+        // state, and the eventual Submit RPC would surface a hard error
+        // path. Log to console for visibility during dev.
+        saveProgressAction(itemId, next).then((r) => {
+          if (!r.ok) console.warn('saveProgressAction failed:', r.error);
+        });
+      }, 500);
+
+      map.set(itemId, t);
     },
-    [currentItem],
+    [currentItem, data.mode, answersByItem],
   );
 
   // Per-type submit gate — `canSubmit` controls the button, `submitValue`
@@ -317,12 +437,29 @@ function RunnerShell({ data }: Props) {
     onPrimary       = onNext;
   }
 
-  // Topbar pill: live → "Untimed" placeholder (slice 4.5 wires real
-  // timers); review → final-score readout.
+  // Topbar pill (slice 4.5a):
+  //   • Live mode → clockProps (live tick — stopwatch / countdown).
+  //   • Review mode → final-score string ("Score · NN%") via statusLabel.
+  // The two are passed independently so the topbar picks based on which
+  // is non-null. statusLabel keeps a placeholder for live so the existing
+  // string contract holds; the clockProps takes precedence in render.
   const statusLabel =
     data.mode === 'review' && data.attempt.final_score !== null
       ? `Score · ${formatPercent(data.attempt.final_score)}`
       : 'Untimed';
+
+  const clockProps = (!isLive || startedAtMs === null)
+    ? null
+    : {
+        mode:    isTimed ? ('countdown' as const) : ('stopwatch' as const),
+        display: isTimed
+          ? formatClock(remainingSec ?? 0)
+          : formatClock(elapsedSec),
+        tier:         effectiveTier,
+        hidden:       effectiveHidden,
+        canHide:      canHideClock,
+        onToggleHide: onToggleClockHide,
+      };
 
   // Branch the RunnerQuestionArea props at the call site so the child
   // gets clean discriminated-union props (review carries answerRow +
@@ -434,6 +571,7 @@ function RunnerShell({ data }: Props) {
         marked={marked.has(currentItem?.attempt_item_id ?? '')}
         statusLabel={statusLabel}
         caseMeta={caseMeta}
+        clock={clockProps}
       />
 
       <div className="rn-body">
