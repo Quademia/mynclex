@@ -6,6 +6,244 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-09 (4.5) — Per-mode behaviour: timer + save-on-tap + archetypes + sequential lock + case-exit warning
+
+Closes slice 4.5 across three sub-slices. Modes finally feel like
+modes — what was uniformly Untimed-Learning behaviour through 4.4 now
+branches by archetype (UL / Free-batched / Sequential) for footer +
+feedback timing, with a live ticking clock pill (stopwatch / countdown)
+in the topbar driven by archetype-aware logic. Universal save-on-tap
+landed alongside as the persistence pillar — every material answer
+change writes a DRAFT row server-side, debounced ~500ms, replacing
+the original "submit creates row directly" pattern in UL. Auto-submit
+on timer expiry + EXAM re-entry-without-pause fall out of the
+save-on-tap design naturally.
+
+The slice landed as **3 feat commits** (`3d33394` 4.5a, `f407c21` 4.5b,
+`d1490e8` 4.5c) on the session branch + this docs commit.
+
+### What shipped — 4.5a (timer + save-on-tap + auto-submit foundation)
+
+**3 new RPCs** (migrations applied to mynclex-dev):
+- `nclex_save_progress(attempt_item_id, answer_json)` — UPSERTs DRAFT
+  row + appends `{at, from, to}` entry to `answer_changes_json` per
+  attempt-creation §6.3.3. No-op when answer unchanged (defensive
+  against debounce edge cases). Bumps `last_activity_at`.
+- `nclex_expire_attempt(attempt_id)` — single-attempt timeout. Inserts
+  SKIPPED rows for items with no answer + computes final_score + flips
+  status to TIMED_OUT with `ended_at = started_at + duration_seconds`
+  (true expiry, not detection moment). Idempotent.
+- `nclex_submit_answer` updated — drops obsolete `p_time_spent_sec` +
+  `p_answer_changes_json` params; on DRAFT promotion no longer
+  overwrites `answer_changes_json` (was wiping the log save-on-tap
+  built up).
+
+**1 new file** in `lib/practice/runner/`:
+- `clock.ts` — `formatClock(seconds)` (`mm:ss` / `h:mm:ss` over 1 hr),
+  `tierFor(remaining, duration)` (warning tier with duration-conditional
+  firing: 30 needs ≥60 min, 15 needs ≥30, 5 needs ≥10, 1 always),
+  `tierIsStricter(next, prev)` (escalates-only comparator for the
+  sticky max-tier-fired ref).
+
+**Server actions** in `actions.ts`:
+- `saveProgressAction` — debounced wrapper around `nclex_save_progress`.
+- `expireAttemptAction` — multi-step: fetch DRAFT rows + their snapshot
+  keys, score each in TS via `scoreAttempt`, AUTO_SUBMIT via existing
+  submit RPC, then call `nclex_expire_attempt`.
+
+**Runner client edits** in `runner.tsx`:
+- Per-item debounce map (~500ms) for save-on-tap so navigating between
+  questions mid-debounce doesn't drop pending saves.
+- Live tick `useEffect` updates `nowMs` every 1s while live + has
+  started_at. Stopwatch (untimed) and countdown (timed) display derive
+  purely from `(nowMs, startedAt, durationSec)`.
+- Sticky max-tier-fired ref enforces escalates-only tone progression
+  (§8.4) — once amber, never reverts.
+- Hide toggle state (per-attempt, locks at first warning fired §8.5).
+- Auto-expire `useEffect` fires `expireAttemptAction` once when
+  `remainingSec ≤ 0`; `router.refresh()` reloads in TIMED_OUT review.
+
+**Topbar** (`runner-topbar.tsx`):
+- New `<ClockGroup>` renders eye-icon button + clock pill. Pill
+  collapses when hidden; eye stays so student can re-show. Tone
+  classes: `stopwatch` / `countdown` / `countdown.tier-30/-15/-5/-1`.
+  At tier-1 a "1 min left" sub-label appears beside the time.
+
+**Page (server)** (`page.tsx`):
+- Lazy expire detection: when a timed IN_PROGRESS attempt has already
+  passed `started_at + duration_seconds` at page load, calls
+  `expireAttemptAction` inline before deciding live vs review. The
+  page re-fetches and renders review naturally — no special "exam
+  ended" view needed (per the revised §6.1.3 rule from planning).
+
+**Styles** in `styles/runner.css`:
+- New `.rn-clock-wrap` / `.rn-clock-eye` / `.rn-clock-pill` block.
+  Tier tones: subtle amber (30) → medium amber (15) → strong amber
+  (5) → red (1). Single-pulse animation on tier appearance;
+  loop-pulse at red.
+
+### What shipped — 4.5b (submission archetypes)
+
+**Mode-aware footer + feedback timing** in `runner.tsx`:
+- New `Archetype = 'UL' | 'FREE_BATCHED' | 'SEQUENTIAL'` type +
+  `getArchetype(mode)` helper collapses 8 (mode, intent) tuples into
+  3 behavioural groups. CAT defensively maps to Sequential (not
+  reachable in v1 — create-attempt rejects).
+- UL keeps existing per-Q submit flow (refactored implicitly via
+  4.5a's save-on-tap → status-flip pattern; behaviour identical from
+  the student's view).
+- **Free-batched** (UT, TFN both intents) — per-Q Submit removed;
+  footer is `‹ Prev` + `Next ›` until last Q's `Finish quiz`.
+  Rationale hidden mid-quiz (implicit via the itemMode fix below).
+  Revisable until Finish. Confirmation modal if any blanks at Finish.
+- **Sequential** (TS both intents) — per-Q `Submit & continue`
+  button (4.5b: advances + saves like Next; lock semantics in 4.5c).
+  Last Q is `Submit & finish`. Prev disabled. "No Skip" gate added
+  during testing — primary button disabled until current Q has a
+  valid answer (matches NCLEX authenticity, "must commit").
+
+**Latent 4.5a bug fixed** — `itemMode` previously treated any answer
+row as 'review', including DRAFT rows from save-on-tap. Page reload
+mid-attempt would have shown "Loading review data..." instead of
+letting the student continue. Fixed: DRAFT rows stay 'answering';
+per-item review fires only for UL with a non-DRAFT row.
+
+**Reload restores in-progress state** — `pendingAnswers` seeds from
+DRAFT rows in `data.answers` on mount. Combined with universal save-
+on-tap from 4.5a, students returning to a quiz mid-flight (refresh,
+EXAM re-entry) pick up where they left off. Resume banner UI is still
+slice 4.6 territory; this is the underlying state restore.
+
+**Server-side**:
+- `_flushDrafts` helper in `actions.ts` — shared by
+  `completeAttemptAction` (terminalStatus='SUBMITTED') and
+  `expireAttemptAction` (terminalStatus='AUTO_SUBMITTED'). Iterates
+  DRAFTs, scores each in TS, calls `nclex_submit_answer` per row.
+- `completeAttemptAction` now flushes DRAFTs before calling
+  `nclex_complete_attempt`. Free-batched + Sequential clicked Finish
+  while DRAFTs were on the server; previously `nclex_complete_attempt`
+  aggregated final_score with NULL `score_awarded` → 0 for every DRAFT
+  → 0% scores. Fixed.
+
+**Migration — slice 2.2a oversight surfaced during testing**: the
+create-attempt RPC never set `duration_seconds`, so every timed
+attempt got NULL → 4.5a's runner correctly fell through to the
+untimed stopwatch path. **Fix**: `BEFORE INSERT` trigger
+`_nclex_set_attempt_duration_default` sets
+`duration_seconds = requested_count × 90` for `TIMED_FREE_NAV` /
+`TIMED_SEQUENTIAL` when caller didn't provide one. Backfill UPDATE
+catches any in-flight timed attempts. 90 sec/Q matches industry
+standard (UWorld; real NCLEX averages ~84 sec/Q in CAT).
+
+**New file** `lib/overlays/practice/finish-with-blanks-confirm.tsx` —
+Free-batched safety net. Centred dialog mirroring the
+`lib/overlays/bank/discard-confirm` pattern. Backdrop click maps to
+"Keep editing" per CLAUDE.md UI conventions §2.
+
+`runner-footer.tsx` gains optional `prevDisabled` + `prevHint` props
+for Sequential's no-going-back rule.
+
+### What shipped — 4.5c (sequential lock + case-exit warning + correctness gate)
+
+**Sequential lock fully wired** — `Submit & continue` /
+`Submit & finish` now actually fire `submitAnswerAction` per-Q (DRAFT
+→ SUBMITTED via the existing RPC's promotion path). Grid clicks
+short-circuited in Sequential live mode via `onPickGuarded` — the
+grid becomes a pure progress indicator. New `onSubmitAndAdvance` /
+`onSubmitAndFinish` handlers replace 4.5b's stub that just called
+onNext.
+
+**Case-exit warning** — for `FREE_BATCHED` archetype only (Sequential
+locks Prev + grid; UL has per-Q rationale rhythm). `shouldWarnCaseExit`
+predicate fires when:
+- archetype is FREE_BATCHED, AND
+- student is currently on a case-child, AND
+- target index would leave the case, AND
+- at least one case-child is unanswered, AND
+- the per-attempt suppression flag isn't set.
+
+Modal `lib/overlays/practice/case-exit-confirm.tsx` mirrors the
+finish-with-blanks pattern. Title *"Leaving this case study"*,
+scenario-aware count, `Stay in case` (safe / backdrop) /
+`Leave anyway` buttons, per-attempt suppression checkbox. Hooks
+into all three nav paths via guarded handlers (`onPickGuarded`,
+`onPrevGuarded`, `onNextGuarded`).
+
+**Hot-fix surfaced during testing** — Sequential's per-Q submit was
+correctly flipping rows to SUBMITTED, but the grid was rendering
+green/red cells mid-quiz based on `is_correct`. That contradicts
+runner.html §15 ("Batched submit at the end" — feedback is
+end-of-quiz) and Pillar 2 (real NCLEX never shows per-Q correctness
+during the test). **Fix**: `revealCorrectness` flag added to
+`deriveCellFill` / `gridCounts` / `RunnerGrid`. Set true for UL live
+(per-Q feedback by design) + any review state; false for Free-batched
++ Sequential mid-quiz. SUBMITTED / AUTO_SUBMITTED rows then render
+as 'answered' (neutral blue) regardless of `is_correct` — data still
+on the row, just not surfaced. Wrong filter chip + correctness
+legend rows hide when gated.
+
+### Bugs / oversights surfaced + fixed mid-slice
+
+| # | Surface | Cause | Fix slice |
+|---|---|---|---|
+| 1 | UL DRAFT row shown as "Loading review data…" on page reload | itemMode in 4.5a treated any answer row as 'review', including DRAFTs | 4.5b — itemMode requires non-DRAFT for review |
+| 2 | Timed quizzes rendering as stopwatch instead of countdown | slice 2.2a's create-attempt RPC never set `duration_seconds` | 4.5b — `BEFORE INSERT` trigger sets default for timed modes |
+| 3 | Sequential allowed advancing with blanks | 4.5b initial wiring forgot to gate primary button on `submitGate.canSubmit` | 4.5b — added "no Skip" gate during testing |
+| 4 | Sequential leaked per-Q correctness via green/red grid cells | per-Q submit in 4.5c populated `is_correct` mid-quiz; grid rendered it | 4.5c — `revealCorrectness` gate on `deriveCellFill` |
+
+### Outcomes for the planning docs
+
+Slice 4.5 was the first slice where the planning phase produced
+documentation deltas BEFORE code:
+- `runner.html §8 Timer behaviour` — skeleton → settled (full spec).
+- `runner.html §9 Save-progress and Resume` — split into 9.1 settled
+  (universal save-on-tap) + 9.2 skeleton (Resume detection, deferred
+  to 4.6).
+- `runner.html §13 Answer-changes tracking` — skeleton → settled
+  (close TBD by referencing §6.3.3 + §9.1).
+- `attempt-creation.html §6.1.3 EXAM re-entry` — revised from
+  "exams cannot be resumed" to "timed EXAM resumable mid-timer;
+  wall-clock continues during absence; lazy expiry on next mount."
+
+This planning-first pattern was Sam's call ("we need to settle this
+in writing first") and worked well — every code decision had a
+documented reference, and bugs surfaced during build were diagnosed
+quickly because we knew what *should* happen.
+
+### Tested
+
+- ✅ UL regression (no behaviour change from 4.4) — per-Q submit +
+  immediate rationale + free nav unchanged.
+- ✅ Stopwatch in untimed quizzes — counts up cleanly.
+- ✅ Countdown in timed quizzes — counts down (after the
+  duration_seconds trigger fix).
+- ✅ 1-min red warning fires in short timed attempts (5-min and
+  higher tiers not exercised — would require longer attempts; same
+  code path).
+- ✅ Auto-submit on timer expiry — runner transitions to review,
+  DRAFTs flushed as AUTO_SUBMITTED, SKIPPED rows for blanks.
+- ✅ Free-batched: Next / Prev / Finish flow works; no per-Q
+  rationale; revisable until Finish.
+- ✅ Sequential: Prev disabled, no Skip, per-Q DRAFT → SUBMITTED on
+  Submit & continue, grid cells locked from clicks, correctness
+  hidden mid-quiz (after the revealCorrectness fix).
+- ✅ Save-on-tap persists DRAFTs across page reload (verified via
+  DB inspection — the runner UI restoration arrives with 4.6
+  Resume).
+
+### Next pick
+
+- **Slice 4.6 — Resume detection.** Save-progress half is already
+  shipped (DRAFT-on-tap + pendingAnswers seeding from DRAFTs on
+  mount lands in 4.5b). 4.6 adds the entry-point UX: a "Resume your
+  unfinished quiz" banner on the Builder dashboard so students see
+  in-flight attempts before they navigate elsewhere. Per the revised
+  §6.1.3, EXAM is also resumable but doesn't need a banner — it just
+  continues into the runner shell on next visit; the banner is
+  STUDY-only.
+
+---
+
 ## Session — 2026-05-09 (4.5 planning) — Timer + save-on-tap + submission archetypes + EXAM re-entry settled in writing
 
 Pure planning pass — no code shipped. Slice 4.5 entered the design

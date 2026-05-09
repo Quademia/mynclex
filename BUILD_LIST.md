@@ -10,42 +10,72 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-09):** **Slice 4.4 — Trend question rendering.**
-> When the current item has `trend_id` and a matching `TrendSnapshot`,
-> the runner wraps the question area in `.rn-split` (reusing Layout C
-> from 4.3) with a sticky `<TrendPanel>` on the left: kind label
-> ("Trend data · &lt;Kind&gt;" via `kindDefaultLabel` from the
-> curator side, so labels stay in sync) + optional scenario +
-> read-only row × timepoint table. Ref-range column auto-shows when
-> any row has it set. **No flag rendering on cell values** —
-> verified against the real NGN exam: NCSBN provides reference
-> ranges where relevant but never pre-flags abnormal/borderline
-> values. Curator-side flags ('abnormal' / 'borderline') are author
-> guidance only — pre-cuing answers in the runner would defeat the
-> point of the trend item type. New "⤬ Trend" pill in `.rn-q-meta`
-> (via `trendBadge` prop on `RunnerQuestionArea`) identifies trend
-> questions inline.
+> **Last shipped (2026-05-09):** **Slice 4.5 — Per-mode behaviour.**
+> Three sub-slices closing the runner phase. Modes finally feel like
+> modes:
 >
-> Differences vs 4.3: **no CJMM strip, no progressive disclosure,
-> no entry banner, no grid bands** — trends are scattered
-> standalones (attempt-creation §8.3), not chained. 9 published
-> trend questions in mynclex-dev cover all 6 kinds (vitals, labs,
-> io, neuro, assessment, custom "Pain & Sedation"). Curator UX bug
-> surfaced mid-test: the editor allows publishing a trend question
-> while its parent dataset stays unpublished, and the eligible-pool
-> RPC silently drops the question — logged as a follow-up. New
-> slice **5.6 — Source breakdown + filter axis** added to BUILD_LIST
-> from testing observations (per-type counts mislead when type
-> filter set; no source visibility; no source filter). See SESSIONS
-> 2026-05-09 (4.4) for the 5-question design discussion (flag-
-> rendering verification via web search, layout reuse from 4.3,
-> entry-cue / topbar-meta decisions).
+> **4.5a — Timer + save-on-tap + auto-submit (foundation).** Unified
+> clock pill in the topbar — stopwatch (count-up, neutral) for untimed
+> / countdown (count-down, escalating tone) for timed. `mm:ss` under
+> 1 hr, `h:mm:ss` over. Hide toggle (eye-icon, per-attempt scope,
+> locks at first warning fired). Warning tiers 30 / 15 / 5 / 1 min
+> with duration-conditional firing (30 needs ≥60 min, 15 ≥30, 5 ≥10,
+> 1 always). Tone escalates only — never reverts. Universal save-on-
+> tap: every material change writes a DRAFT row + appends to
+> `answer_changes_json` via new `nclex_save_progress` RPC, debounced
+> ~500ms client-side. UL backported from "submit creates row" to
+> "save-on-tap → status flip on Submit" for consistency. Auto-
+> submit on expiry: lazy detection in `page.tsx` flips status to
+> TIMED_OUT + AUTO_SUBMITs DRAFT rows + inserts SKIPPED rows for
+> items with no answer. EXAM re-entry handled via 60s
+> `last_activity_at` heuristic (timed exams resumable mid-timer;
+> untimed EXAM also resumable; CAT keeps its exception per §6.1.2).
 >
-> **Next pick:** **4.5 Per-mode behaviour** — real timer (wall-clock
-> for EXAM, engagement-clock for STUDY-timed), navigation rules
-> (sequential vs free-nav), feedback timing (per-Q vs end-of-quiz),
-> warning thresholds. Picks up the case-exit warning queued from
-> 4.3 (warn when leaving mid-case in free-nav modes).
+> **4.5b — Submission archetypes.** Collapses 8 (mode, intent)
+> tuples into 3 behavioural groups: UL (per-Q + immediate rationale
+> + free nav, unchanged from 4.1), Free-batched (UT, TFN — Prev/Next
+> only, Finish-with-blanks confirm modal), Sequential (TS — per-Q
+> Submit & continue, Prev disabled, no Skip — must commit). New
+> `getArchetype` helper, `itemMode` corrected to keep DRAFT rows in
+> 'answering' (4.5a latent bug fixed: page reload no longer falsely
+> shows "Loading review data..." for UL DRAFTs). `pendingAnswers`
+> seeds from DRAFT rows on mount so reload restores in-progress
+> state. `_flushDrafts` helper extracted from `expireAttemptAction`
+> to also be used by `completeAttemptAction` (Free-batched +
+> Sequential have DRAFTs to flush at Finish). New
+> `lib/overlays/practice/finish-with-blanks-confirm.tsx`. Migration
+> fix for slice 2.2a oversight: `BEFORE INSERT` trigger sets
+> `duration_seconds = requested_count × 90` for timed modes
+> (matches UWorld's industry-standard pace; real NCLEX averages
+> ~84 sec/Q in CAT).
+>
+> **4.5c — Sequential lock + case-exit warning + correctness gate.**
+> Sequential's `Submit & continue` actually fires `submitAnswerAction`
+> per-Q now (DRAFT → SUBMITTED). Grid clicks short-circuited in
+> Sequential live mode — grid becomes a pure progress indicator.
+> Case-exit warning for FREE_BATCHED only (Sequential locks Prev +
+> grid; UL has per-Q rhythm) when student tries to leave a
+> partly-answered case via Prev / Next / grid. Modal
+> `lib/overlays/practice/case-exit-confirm.tsx` with per-attempt
+> suppression. Hot-fix surfaced during testing: the per-Q submit in
+> Sequential was leaking correctness via grid green/red mid-quiz —
+> contradicts §15 "Batched submit at the end" + Pillar 2 (real
+> NCLEX never shows per-Q correctness). Added `revealCorrectness`
+> gate to `deriveCellFill` / `gridCounts` / RunnerGrid: false for
+> Free-batched + Sequential live, true for UL live + any review
+> state. Wrong filter chip + correctness legend rows hide when
+> gated. SUBMITTED rows render as 'answered' (neutral blue) until
+> review.
+>
+> See SESSIONS 2026-05-09 (4.5 planning) for the spec settled in
+> writing across `runner.html §8 / §9.1 / §13` and
+> `attempt-creation §6.1.3` (revised); SESSIONS 2026-05-09 (4.5)
+> for the build phase + bugs surfaced + hot-fixes.
+>
+> **Next pick:** **4.6 Resume detection** — load DRAFT rows on
+> mount (already wired in 4.5b for in-session restore) + Resume
+> banner UI on the Builder dashboard. Save-progress half is done
+> in 4.5a/b; 4.6 just adds the entry-point UX.
 
 ---
 
@@ -92,11 +122,11 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
   - ✅ **BOWTIE** — literal bow-tie shape with **click-to-place** tokens. 5 empty drop slots in a 3-column × 3-row grid (left-top + centre + right-top in row 2; left-bot + right-bot in row 3, centre spanning the middle column). Token pool below mirrors the three wings as 3 separate bordered cards. Tokens can only land in slots of their own wing; matching-wing slots pulse-glow as drop targets while a token of that wing is armed. Slot-position semantics for left/right: schema's `BowtieAnswer.{left,right}` is unordered `string[]`, so removing slot[0] when slot[1] is filled rotates the second pick up to slot[0] (state derivation stays pure). Submit gate: every wing filled (2 + 1 + 2). Review: bow-tie keeps shape with green-✓ / red-✕ tinted slots; pool columns transform into feedback columns where every wing token shows in SATA's 4-state palette + per-token rationale below. Per-column header summary swaps to "X right · Y wrong".
 - ✅ **4.3** Case-block UX — shipped 2026-05-09. Wrapper-aware `.rn-split` layout (Layout C: `minmax(380px, 1fr) minmax(520px, 720px)`, max-width 1240) when current item has `parent_case_id`. Sticky `<CasePanel>` on the left renders case head (title + "X of 6 answered" pill) + scenario block + filtered tab row + tab body. **Strict progressive disclosure**: tabs and entries hide entirely until `visible_from <= case_position`, re-hide on backward nav (no stickiness — students reason at the point in time the case is at). All three tab shapes supported in `<ChartTabBody>`: built-in narrative (with optional `extra_fields` + `omit_time`), built-in structured, custom_narrative (free_text), custom_grid (rows_cols). `<CjmmStrip>` renders above the question column via `RunnerQuestionArea`'s new `topSlot` prop. Topbar gains optional `caseMeta` ("Case N of M · CJMM step X of 6 · &lt;label&gt;") for case-childs. Grid renders subtle tinted bands behind clustered case-child cells (no labels, visual grouping only); bands wrap across grid rows when a case straddles a 5-column boundary. **No grid auto-collapse** — Sam's call: layout C protects the wrapper at its 380px floor even with grid open, manual control respects user agency. **Case-entry banner** (`lib/hints/practice/case-entry-banner.tsx`) — non-modal, sits above `.rn-split`, fades after ~4s, dismissable; fires on every case entry (not first-time only). 4 test cases seeded into mynclex-dev covering all 8 chart-tab shapes and all 9 question types across the case-childs. See SESSIONS 2026-05-09 (4.3) for the layout discussion (3-mock comparison at varying viewports → Layout C), the entry-cue refinement (modal overlay → non-modal hint banner; exit warning deferred to 4.5), and the seed-bug fix (hardcoded `marks=1` violated `score_awarded ≤ marks_snapshot` for non-MCQ types). Exit-while-mid-case warning queues for 4.5 (paired with mode-specific behaviour where free-nav vs sequential becomes meaningful).
 - ✅ **4.4** Trend question rendering — shipped 2026-05-09. When current item has `trend_id` and a matching `TrendSnapshot`, runner wraps question area in `.rn-split` (reusing Layout C from 4.3) with sticky `<TrendPanel>` on the left: kind label ("Trend data · &lt;Kind&gt;" via `kindDefaultLabel`, keeping curator + student labels in sync) + optional scenario + read-only row × timepoint table. Ref-range column auto-shows when any row has it set. **No flag rendering on cell values** — verified against the real NGN exam (NCSBN provides ref ranges but never pre-flags abnormal/borderline values; curator-side flags are author guidance only). New "⤬ Trend" pill in `.rn-q-meta` (via `trendBadge` prop on `RunnerQuestionArea`). **No CJMM strip, no progressive disclosure, no entry banner, no grid bands** — trends are scattered standalones per attempt-creation §8.3, not chained. 9 published trend questions in mynclex-dev cover all 6 kinds. Single new file (`lib/practice/runner/trend/trend-panel.tsx`) + edits to `runner.tsx` (`currentTrendId` derivation + `inTrend` branch), `runner-question-area.tsx` (`trendBadge` prop), and `styles/runner.css` (new `.rn-trend*` block mirroring case-block CSS, `.rn-trend-pill` in same family as `.rn-cjmm-pill`). See SESSIONS 2026-05-09 (4.4) for the design discussion + the curator UX bug surfaced (publishing a question without the parent dataset blocks it from attempts) + the 5.6 backlog item that came out of testing.
-- ⏭ **4.5** Per-mode behaviour — fully specced 2026-05-09 across timer, save, submission, and re-entry; see runner.html §8 + §9.1 + §13 + §15 (settled) and attempt-creation.html §6.1.3 (revised). Three sub-slices, each independently testable in the browser; ship order 4.5a → 4.5b → 4.5c:
-  - ⏭ **4.5a** Timer + save-on-tap + auto-submit (foundation) — new `nclex_save_progress(attempt_item_id, answer_json)` RPC: upserts DRAFT row + appends to `answer_changes_json`. Client-side debounced (~500ms) save wired into all 9 per-type runners (UL backport from "submit creates row directly" to "save-on-tap → status flip on Submit"). Topbar pill becomes a live tick — stopwatch for untimed (count-up, neutral, no warnings) / countdown for timed (count-down, escalating tone). Single format function (`mm:ss` / `h:mm:ss`). Stopwatch resets to 0:00 on Resume with "Resumed" tag. Hide toggle (eye-icon, per-attempt scope, locks after first warning). Warning tiers 30 / 15 / 5 / 1 min with duration-conditional firing (30 needs ≥60 min, 15 needs ≥30 min, 5 needs ≥10 min, 1 always). Tone escalates only — never reverts. Auto-submit on expiry via lazy detection in `page.tsx`: single SQL UPDATE flipping DRAFT → AUTO_SUBMITTED + status → TIMED_OUT, SKIPPED rows inserted for items without answers, runner transitions to review. EXAM re-entry handled by 60s `last_activity_at` heuristic (timed exams resumable mid-timer; wall-clock continues server-side; untimed EXAM also resumable; CAT keeps its exception per §6.1.2). **Largest sub-slice — server + client + new RPC.** Sets the foundation 4.5b and 4.5c build on.
-  - ⬜ **4.5b** Submission archetypes (Free-batched + Sequential) — mode-aware footer + feedback timing for the 6 non-UL tuples. UL (already shipped) keeps per-Q submit + immediate rationale + free nav (refactored in 4.5a to use save-on-tap → status-flip pattern; behaviour unchanged from student's perspective). **Free-batched** (UT, TFN both intents) — per-Q submit removed; footer is `‹ Prev` + `Next ›` until last Q's `Finish quiz`; rationale hidden mid-quiz, revealed only in review; revisable until Finish; confirmation modal if any blanks at Finish. **Sequential** (TS both intents) — per-Q `Submit & continue` button; Prev disabled; no Skip button (must commit, matches NCLEX authenticity). Lock semantics on TS submit (DRAFT → SUBMITTED on row + cell read-only) deferred to 4.5c. Touches `runner.tsx` + `runner-footer.tsx` + per-type runners' review-mode rendering. No new RPCs (saves use 4.5a path; finalise uses existing `nclex_complete_attempt`).
-  - ⬜ **4.5c** Sequential lock polish + case-exit warning — closing layer. **Sequential lock fully wired** — `Submit & continue` flips DRAFT → SUBMITTED on the row, locks the cell from re-entry; grid cell becomes read-only (clicking does nothing). **Case-exit warning** — Archetype B free-nav modes only (sequential locks Prev, so the warning doesn't apply there). Centred dialog with backdrop, title "Leaving this case study," scenario-aware count ("You've answered X of 6"), `Stay in case` (safe, backdrop click maps here) / `Leave anyway` buttons, per-attempt suppression checkbox. Suppression resets each attempt.
-- ⬜ **4.6** Resume detection — load DRAFT rows on mount, restore `pendingAnswers` map, position student at last-viewed Q. Resume banner UI on Builder dashboard. Save-progress half moved to 4.5 (universal save-on-tap, see above). Per attempt-creation §6.1.3 revision, EXAM is also resumable but doesn't need a "Resume banner" — it just continues into the runner shell on next visit.
+- ✅ **4.5** Per-mode behaviour — shipped 2026-05-09 across three sub-slices, fully specced before code started; see runner.html §8 + §9.1 + §13 + §15 (settled) and attempt-creation.html §6.1.3 (revised).
+  - ✅ **4.5a** Timer + save-on-tap + auto-submit (foundation) — new `nclex_save_progress(attempt_item_id, answer_json)` RPC + new `nclex_expire_attempt(attempt_id)` RPC. Client-side debounced (~500ms) save wired into all 9 per-type runners via `runner.tsx`'s `onAnswerChange`. UL backported from "submit creates row directly" to "save-on-tap → status flip on Submit" via the existing RPC's promotion path; `nclex_submit_answer` updated to no longer overwrite `answer_changes_json` on the DRAFT promotion path. Topbar pill becomes a live tick — stopwatch (untimed) or countdown (timed). New `lib/practice/runner/clock.ts` with `formatClock` (`mm:ss` / `h:mm:ss`) + `tierFor` (30 / 15 / 5 / 1 min with duration-conditional firing). Sticky max-tier-fired ref enforces escalates-only tone progression. Hide toggle (eye-icon, per-attempt scope, locks after first warning). Auto-expire via lazy detection in `page.tsx` + client-side `useEffect` when remaining ≤ 0 — flips status to TIMED_OUT, AUTO_SUBMITs DRAFT rows, inserts SKIPPED rows for items without answers, transitions to review. Commit `3d33394`. See SESSIONS 2026-05-09 (4.5a).
+  - ✅ **4.5b** Submission archetypes (Free-batched + Sequential) — mode-aware footer + feedback timing. New `getArchetype(mode)` helper collapses 8 (mode, intent) tuples into 3 groups (UL / FREE_BATCHED / SEQUENTIAL). `itemMode` corrected to keep DRAFT rows in 'answering' (latent 4.5a bug fixed: page reload no longer falsely shows "Loading review data..." for UL DRAFTs). `pendingAnswers` seeds from DRAFT rows on mount so reload restores in-progress state. Free-batched (UT, TFN) removes per-Q Submit; footer is just Next / Finish; Finish-with-blanks confirmation modal in `lib/overlays/practice/`. Sequential (TS) gets per-Q `Submit & continue` (4.5b: advances + saves like Next; lock semantics in 4.5c) + Prev disabled + "no Skip" gate (must commit). `_flushDrafts` helper extracted from `expireAttemptAction` and reused in `completeAttemptAction`. Migration fix for slice 2.2a oversight: `BEFORE INSERT` trigger sets `duration_seconds = requested_count × 90` for timed modes (UWorld pace; real NCLEX averages ~84 sec/Q). Commit `f407c21`. See SESSIONS 2026-05-09 (4.5b).
+  - ✅ **4.5c** Sequential lock + case-exit warning + correctness gate — closing layer. Sequential's `Submit & continue` now actually fires `submitAnswerAction` per-Q (DRAFT → SUBMITTED) + advances; `Submit & finish` does the same for last Q + `completeAttemptAction`. Grid clicks short-circuited in Sequential live mode — grid becomes a pure progress indicator. Case-exit warning for FREE_BATCHED only (Sequential locks Prev + grid; UL has per-Q rhythm) when student tries to leave a partly-answered case via Prev / Next / grid; modal in `lib/overlays/practice/case-exit-confirm.tsx` with per-attempt suppression. **Hot-fix** surfaced during testing: per-Q submit was leaking correctness via grid green/red mid-quiz (contradicts §15 "Batched submit at the end" + Pillar 2). Added `revealCorrectness` flag to `deriveCellFill` / `gridCounts` / RunnerGrid: false for batched live, true for UL live + any review state. Wrong filter chip + correctness legend rows hide when gated. Commit `d1490e8`. See SESSIONS 2026-05-09 (4.5).
+- ⏭ **4.6** Resume detection — load DRAFT rows on mount, restore `pendingAnswers` map, position student at last-viewed Q. Resume banner UI on Builder dashboard. **Save-progress half already shipped in 4.5a/b** (universal save-on-tap; pendingAnswers DRAFT restore on mount); 4.6 adds the entry-point UX so students see "you have an unfinished quiz" on the dashboard. Per attempt-creation §6.1.3 revision, EXAM is also resumable but doesn't need a "Resume banner" — it just continues into the runner shell on next visit.
 - ⬜ **4.7** Mark-for-review toggle — runner button, writes to marking table, persists across attempts.
 - ⬜ **4.8** Discard / abandon — modal with type-DELETE-to-confirm, calls `nclex_discard_attempt`.
 - ⬜ **4.9** Review state polish — read-only post-completion view, list + detail with filters (All / Wrong / Right / By category / Marked).
