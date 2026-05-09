@@ -428,11 +428,36 @@
   pure auto-graded MCQ/SATA so we skip Canvas's <code>pending_review</code> split (no manual grading in v1).
 </p>
 <p>
-  <strong>EXAM re-entry attempt — runner concern, not status concern.</strong> If a student exits a timed EXAM at
-  minute 15 of 60 and tries to come back at minute 30, the row stays IN_PROGRESS until the timer naturally expires
-  to TIMED_OUT. The runner enforces "exams cannot be resumed" as a UX rule — it shows a read-only "this exam ended
-  when you exited; the timer continues" view. Status taxonomy stays clean: TIMED_OUT means "the timer ended this
-  exam," regardless of whether the student was at the screen.
+  <strong>EXAM re-entry — resumable mid-timer, with the wall-clock continuing during absence (revised 2026-05-09).</strong>
+  If a student exits a timed EXAM at minute 15 of 60 and returns at minute 30, the runner resumes them
+  at last-viewed Q with 30 minutes left on the clock — they lost the time they were away (no
+  client/server pause logic), but they get back into the attempt. The wall-clock continues server-side
+  throughout — elapsed time is always <code>now() − started_at</code> regardless of whether the student
+  is at the screen. If the student returns after natural expiry (e.g. exits at 15, returns at 70 on a
+  60-min attempt), lazy detection on page mount notices <code>now() &gt; started_at + duration_seconds</code>,
+  flips status to TIMED_OUT, auto-submits any DRAFT rows as AUTO_SUBMITTED with
+  <code>submitted_at = ended_at = started_at + duration_seconds</code>, and the page renders review.
+</p>
+<p>
+  <strong>Untimed EXAM</strong> (UT, EXAM) is also resumable — there's no timer to enforce
+  single-sitting, and the orphan-cleanup TTL becomes the safety net for genuinely-abandoned attempts.
+  Status taxonomy stays clean: TIMED_OUT specifically means "the timer ran out"; COMPLETED means
+  deliberate Finish (or, for untimed EXAM, eventual deliberate Finish on a later return).
+</p>
+<p>
+  <strong>CAT is the only exception.</strong> Per §6.1.2, CAT cannot pause or resume — the IRT model
+  needs continuous engagement and a 30-minute break invalidates the theta estimate. CAT exit
+  = ABANDONED on the next detection (cleanup sweep or page mount), no review path. Detailed in
+  <code>bank-consumption-cat.html</code>.
+</p>
+<p>
+  <strong>This is a revision of an earlier rule</strong> that said "exams cannot be resumed; the runner
+  shows a read-only 'this exam ended' view." That over-applied the single-sitting principle — the
+  wall-clock alone enforces no-time-gain (you cannot recover the minutes you were away), so the
+  additional "no resume" rule was adding friction without adding integrity. Real NCLEX allows breaks
+  (the timer continues during them), so the new rule matches both the actual exam mechanics and this
+  doc's existing §11 wall-clock semantics. Detection of "did they actually leave or is this a soft
+  page refresh?" uses a <code>last_activity_at &lt; now() − 60s</code> heuristic — tunable at build.
 </p>
 
 <h3>6.2 nclex_attempt_items</h3>

@@ -646,33 +646,181 @@ Runner mounts → reads from those 5 tables → renders Q1
 </p>
 <p>Display position (sidebar / above question / below question), kind-specific rendering — TBD.</p>
 
-<h2 id="s8">8. Timer behaviour <span class="status skeleton">skeleton</span></h2>
+<h2 id="s8">8. Timer behaviour <span class="status settled">settled (2026-05-09)</span></h2>
+
+<h3>8.1 Unified clock — always present, behaviour differs by mode</h3>
 <p>
-  Timer source per (mode, intent) combination — covered partially in attempt-creation §11:
+  Every attempt has a clock pill in the topbar regardless of mode. The clock is visible by default; the
+  student can hide it via a small eye-icon next to the pill (per-attempt scope — preference resets at next
+  attempt). What the pill shows differs by mode:
 </p>
 <ul>
-  <li>EXAM-timed: wall-clock from <code>started_at</code></li>
-  <li>STUDY-timed (v2 leaning, kept architecturally open): engagement-clock — pauses on inactive, uses <code>last_activity_at</code> to subtract idle gaps</li>
-  <li>Untimed modes: no countdown</li>
+  <li><strong>Untimed modes</strong> render a <em>stopwatch</em> — count-up from <code>started_at</code>,
+    permanently neutral grey, no animations, no warnings. Surfaces the time-per-question data we already
+    track for analytics (parent §12).</li>
+  <li><strong>Timed modes</strong> render a <em>countdown</em> — counts down toward
+    <code>started_at + duration_seconds</code>, escalates tone at warning tiers, locks visibility once
+    the first warning fires.</li>
 </ul>
 <p>
-  TBD: timer display position, warning thresholds (e.g. "5 minutes remaining"), behaviour at expiry (auto-submit
-  selected-but-unsubmitted answers per attempt-creation §6.1.3), pause UX for STUDY-engagement-clock.
+  <strong>Why unified.</strong> Implementation cost is essentially zero (same React effect, same format
+  function, the only branch is whether <code>delta = now − started_at</code> or
+  <code>(started_at + duration) − now</code>). Showing untimed students how long they're spending trains
+  pacing awareness without imposing pressure. Industry pattern (UWorld, ATI both show running time in
+  practice mode). Real NCLEX shows only a countdown, never a per-question stopwatch — but Untimed Learning
+  isn't simulating the real exam, so authenticity (Pillar 2) doesn't bind here.
 </p>
 
-<h2 id="s9">9. Save-progress and Resume <span class="status skeleton">skeleton</span></h2>
-<p>
-  STUDY intent allows Resume (per attempt-creation §6.1.3). Runner needs:
-</p>
+<h3>8.2 Format</h3>
+<p>One format function used by both stopwatch and countdown:</p>
 <ul>
-  <li>Periodic save of in-progress answer state (option picked but not submitted) to <code>nclex_attempt_answers</code></li>
-  <li><code>last_activity_at</code> heartbeat on every action</li>
-  <li>Resume detection on mount: load existing answer rows, restore the runner to the position the student left off</li>
+  <li><code>mm:ss</code> for any time under 1 hour (e.g. <code>14:32</code>).</li>
+  <li><code>h:mm:ss</code> once the time crosses 1 hour (e.g. <code>1:00:00</code>, <code>2:34:18</code>).</li>
+</ul>
+
+<h3>8.3 Stopwatch — visual rules</h3>
+<p>
+  <strong>Permanently neutral.</strong> Same grey pill family across the entire attempt. Never amber,
+  never red, never animated. The point is information without pressure — the moment the pill changes
+  tone, it becomes a stress signal, which defeats the untimed framing.
+</p>
+<p>
+  <strong>No expiry, no auto-submit.</strong> Status transitions only on explicit Finish (→ COMPLETED)
+  or via discard / orphan cleanup (→ ABANDONED). Never TIMED_OUT.
+</p>
+<p>
+  <strong>Reset on Resume.</strong> Untimed STUDY supports Resume (slice 4.6). When a student returns
+  three days after their first session, the literal <code>now − started_at</code> elapsed time would read
+  "72:14:33" — useless and confusing. The stopwatch resets to <code>0:00</code> on Resume, with a small
+  "Resumed" tag below the pill. We don't claim cumulative engagement-time as a number we'd hold the
+  student accountable to. This sidesteps the engagement-clock pause/resume complexity that STUDY-timed
+  needed (deferred to v2 anyway per §11).
+</p>
+
+<h3>8.4 Countdown — warning tiers and tone progression</h3>
+<p>
+  Warnings fire at 30, 15, 5, and 1 minute remaining. Each tier only fires when the attempt is long
+  enough for the warning to be a meaningful "approaching the end" signal rather than a distraction near
+  the start.
+</p>
+<table>
+  <thead>
+    <tr><th>Tier</th><th>Trigger</th><th>Fires when <code>duration_seconds ≥</code></th><th>Tone</th><th>Effect</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>30 min</td><td><code>remaining ≤ 30 min</code></td><td>60 min</td><td>subtle amber</td><td>single pulse on appearance, locks re-hide</td></tr>
+    <tr><td>15 min</td><td><code>remaining ≤ 15 min</code></td><td>30 min</td><td>medium amber</td><td>single pulse</td></tr>
+    <tr><td>5 min</td><td><code>remaining ≤ 5 min</code></td><td>10 min</td><td>strong amber</td><td>single pulse</td></tr>
+    <tr><td>1 min</td><td><code>remaining ≤ 1 min</code></td><td>always (any timed mode)</td><td>red</td><td>brighter pulse on appearance, subtle pulse every 10s; pill copy gains "1 min left" label</td></tr>
+  </tbody>
+</table>
+<p>Examples — so the "fires when ≥" rule is concrete:</p>
+<ul>
+  <li>A 38-min quiz sees <em>5 min → 1 min</em> only (30 and 15 don't qualify).</li>
+  <li>A 113-min mock sees <em>30 → 15 → 5 → 1</em> — the full ladder.</li>
+  <li>An 8-min curator-set timed attempt sees <em>1 min</em> only — the 5-min tier requires
+    <code>duration ≥ 10 min</code> so it doesn't fire 3 minutes in. Acceptable: an 8-min attempt is so
+    short the 1-min red is enough.</li>
 </ul>
 <p>
-  TBD: save cadence (debounced? on every action?), what counts as "Resume position" (last-submitted Q+1 vs last-viewed Q),
-  conflict resolution if save-progress fails, behaviour when answer state exists but doesn't match current item shape
-  (e.g. curator edited the question — but snapshots prevent this, so probably never relevant).
+  <strong>Tone escalates only — never reverts.</strong> Once amber, stays amber-or-darker for the rest
+  of the attempt. Once red, stays red. Cleaner mental model than "tone resets between tiers" — the
+  student reads tone as "how close to the end am I" without tracking which warning was last.
+</p>
+
+<h3>8.5 Hide toggle</h3>
+<p>
+  Small eye-icon button in the topbar next to the clock pill. Default <em>visible</em>; clicking the eye
+  hides the pill but leaves the eye visible so the student can re-show. Behaviour:
+</p>
+<ul>
+  <li><strong>Per-attempt scope.</strong> Hide preference resets at each new attempt. No localStorage,
+    no global preference — default-safe so a one-time anxious hide doesn't silently follow the student
+    forever.</li>
+  <li><strong>Allowed in all 8 (mode, intent) tuples</strong> — including timed EXAM. Even on the real
+    exam, students cover the clock with their hand; on-screen visibility doesn't actually prevent the
+    workaround. The auto-reappear at warning is the safety net.</li>
+  <li><strong>Auto-reappears at the first warning that fires.</strong> Once the topbar enters warning
+    territory (any tier), the pill becomes visible again with the warning tone applied, brief pulse to
+    draw attention. The eye-icon disables — the student cannot re-hide for the rest of the attempt.
+    Locking re-hide once warning fires is the safety mechanism.</li>
+  <li><strong>No auto-reappear in untimed modes</strong> — there's no warning to trigger it. The student
+    can hide and show freely throughout.</li>
+</ul>
+
+<h3>8.6 Expiry behaviour (timed modes)</h3>
+<p>When <code>now() ≥ started_at + duration_seconds</code>:</p>
+<ul>
+  <li>Status flips to <code>TIMED_OUT</code> (per attempt-creation §6.1.3).</li>
+  <li>Any DRAFT rows in <code>nclex_attempt_answers</code> flip to <code>AUTO_SUBMITTED</code> with
+    <code>submitted_at = ended_at</code>. Pending state lives server-side via universal save-on-tap
+    (§9.1), so auto-submit is a single SQL UPDATE — no client-flush race.</li>
+  <li>Items with no answer row at expiry get a SKIPPED row inserted (status SKIPPED, answer_json null,
+    score 0).</li>
+  <li>Final score computes across all rows. <code>ended_at = started_at + duration_seconds</code> (the
+    true expiry moment, not the detection moment).</li>
+  <li>Runner transitions to review mode — same render path as a deliberately-finished COMPLETED
+    attempt.</li>
+</ul>
+<p>
+  <strong>Detection is lazy</strong> per attempt-creation §6.1.3: the cleanup sweep or the
+  runner-on-page-mount notices the expiry condition and triggers the flip. No active server poll
+  required.
+</p>
+
+<h2 id="s9">9. Save-progress and Resume <span class="status mixed">9.1 settled · 9.2 skeleton (slice 4.6)</span></h2>
+
+<h3 id="s9-1">9.1 Save-progress — universal save-on-tap <span class="status settled">settled (2026-05-09)</span></h3>
+<p>
+  Every meaningful answer change writes to <code>nclex_attempt_answers</code> immediately — not just at
+  Submit click. The runner calls <code>nclex_save_progress(attempt_item_id, answer_json)</code> on every
+  material change to the student's pick (debounced for rapid clicks). The RPC upserts a row with
+  <code>submission_status = 'DRAFT'</code> and appends an entry to <code>answer_changes_json</code> per
+  attempt-creation §6.3.3.
+</p>
+<p>
+  <strong>Universal across all 7 active tuples</strong> — Untimed Learning included (backported from the
+  original "submit-creates-row directly" approach). One mental model: the runner persists every
+  intermediate state, and the final submit (per-Q for UL, batched Finish for UT/TFN, per-Q
+  Submit-and-continue for TS) is just a status flip from DRAFT → SUBMITTED on the existing row. CAT
+  remains the exception per §6.1.2 — pause/resume invalidates the IRT estimate, so save-on-tap doesn't
+  apply.
+</p>
+<p>
+  <strong>Why universal, not STUDY-only.</strong> The original plan deferred save_progress to slice 4.6
+  on the assumption that Resume was its only consumer. Three things changed during slice 4.5 design:
+  (1) timed exams became resumable mid-timer (revised §6.1.3) — the universal save now serves EXAM too;
+  (2) auto-submit on timer expiry is dramatically simpler when the server already has the latest pending
+  state (single UPDATE flips DRAFT → AUTO_SUBMITTED, no client-flush race condition); (3) answer-changes
+  analytics (§13) require the per-tap event log regardless of mode — UL is in fact the mode where
+  changes-tracking is most valuable. Save-on-tap does triple duty.
+</p>
+<p>
+  <strong>Cadence — debounced per material change.</strong> Per attempt-creation §6.3.3, "material
+  change" means each distinct option toggle (SATA, Bow-tie, Drag-drop), per-blank commit (Cloze), or
+  completed selection (MCQ, TF, Select-N, Matrix row, Highlight chunk). Rapid keystroke-level edits
+  coalesce via a client-side ~500ms debounce before the RPC fires (tunable at build).
+</p>
+<p>
+  <strong>Heartbeat.</strong> Every save-progress call also bumps <code>last_activity_at</code>
+  server-side. Drives orphan-cleanup detection (slice 2.4) and EXAM re-entry detection threshold
+  (attempt-creation §6.1.3 — 60s inactivity is the heuristic for "they left and came back").
+</p>
+<p>
+  <strong>Conflict resolution.</strong> Snapshots prevent shape mismatch — if a curator edits the
+  underlying question mid-session, the runner reads the snapshot from <code>nclex_attempt_items</code>,
+  not the live bank. Pending answer's structure stays valid for the lifetime of the attempt.
+</p>
+
+<h3 id="s9-2">9.2 Resume detection on mount <span class="status skeleton">skeleton — slice 4.6</span></h3>
+<p>
+  When the runner mounts and finds existing DRAFT rows for the attempt, it restores the
+  <code>pendingAnswers</code> map and positions the student at the last-viewed Q (settled — not
+  last-submitted-Q+1, not Q1; matches user expectation "pick up where I left off").
+</p>
+<p>
+  Save half is now done in 4.5 (§9.1 above). Slice 4.6 only adds the load-on-mount logic + the Resume
+  banner UI on the Builder dashboard.
 </p>
 
 <h2 id="s10">10. Submission flow <span class="status settled">settled (per-Q + per-type completeness gates)</span></h2>
@@ -767,15 +915,30 @@ Runner mounts → reads from those 5 tables → renders Q1
   in any mode (probably yes via Review state, regardless of mode).
 </p>
 
-<h2 id="s13">13. Answer-changes tracking <span class="status skeleton">skeleton</span></h2>
+<h2 id="s13">13. Answer-changes tracking <span class="status settled">settled (2026-05-09)</span></h2>
 <p>
-  Per parent §11, the runner tracks intermediate answer changes — Right→Wrong (lost a correct answer to
-  second-guessing) and Wrong→Right (caught a mistake on review). Stored in
-  <code>nclex_attempt_answers.answer_changes_json</code>.
+  The runner tracks every intermediate selection change to enable the R→W and W→R analytics in parent §11
+  ("you changed 14 correct answers to wrong"). Storage is settled in attempt-creation §6.3.3 as an
+  append-only event log on <code>nclex_attempt_answers.answer_changes_json</code>:
+</p>
+<pre><code>[
+  { "at": "2026-05-04T12:30:14Z", "from": null,        "to": ["A"]       },
+  { "at": "2026-05-04T12:30:31Z", "from": ["A"],       "to": ["A","C"]   },
+  { "at": "2026-05-04T12:30:48Z", "from": ["A","C"],   "to": ["B","C"]   }
+]</code></pre>
+<p>
+  <strong>Trigger</strong> — every material change, debounced for rapid clicks. Settled in §9.1 + §6.3.3:
+  one entry per distinct option toggle, per-blank commit, or completed selection. Keystroke-level edits
+  coalesce via the same ~500ms debounce that drives save-on-tap. The same RPC
+  (<code>nclex_save_progress</code>) writes both the answer state and the changes log entry — answer
+  state and changes are not separate concerns.
 </p>
 <p>
-  TBD: what counts as a "change" — every option click, or only changes between two committed picks? Surface in
-  results screen + analytics page per parent §11.
+  <strong>R→W / W→R counts are derived, not stored.</strong> They're computable from the log + the
+  correct-answer-key snapshot at any point. Counts cannot be reconstructed from each other, but both
+  can be reconstructed from the log — so we keep the log canonical and surface counts wherever needed.
+  Surfacing in the results screen + analytics page (parent §11) is review/analytics work, not runner
+  work.
 </p>
 
 <h2 id="s14">14. Mark-for-review <span class="status skeleton">skeleton</span></h2>

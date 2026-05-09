@@ -6,6 +6,102 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-09 (4.5 planning) — Timer + save-on-tap + submission archetypes + EXAM re-entry settled in writing
+
+Pure planning pass — no code shipped. Slice 4.5 entered the design
+phase with `runner.html §8 Timer behaviour` marked skeleton. Worked
+through the open TBDs one decision at a time, settled the spec across
+5 doc sections, flipped 3 sections from skeleton to settled, revised
+1 already-settled section, and updated BUILD_LIST 4.5/4.6 scope.
+
+### Key decisions
+
+1. **Unified clock model.** Stopwatch for untimed (count-up, neutral,
+   no warnings) / countdown for timed (count-down, escalating tone).
+   Shared format function (`mm:ss` under 1 hr, `h:mm:ss` once over).
+   Sam's framing of "there's always a clock; behaviour is what
+   matters" unlocked this — implementation cost is near-zero (one
+   React effect, two formulas) and untimed-stopwatch trains pacing
+   awareness without imposing pressure.
+
+2. **Hide toggle universal.** Eye-icon next to the clock pill.
+   Per-attempt scope (no localStorage). Allowed in all 8 (mode,
+   intent) tuples including timed EXAM. Auto-reappears at first
+   warning that fires; re-hide locks for the rest of the attempt.
+   Pulled into v1 (was originally v2 polish).
+
+3. **Warning tiers** 30 / 15 / 5 / 1 min with duration-conditional
+   firing (30 needs ≥60 min duration, 15 needs ≥30 min, 5 needs ≥10
+   min, 1 always). Tone escalates only — never reverts. 1-min red
+   gains "1 min left" pill copy.
+
+4. **Submission archetypes** collapse 8 per-tuple decisions into 3:
+   - **A** (UL): per-Q + immediate rationale + free nav (already
+     shipped).
+   - **B** (UT, TFN both intents): batched + end-of-quiz feedback +
+     free nav. Per-Q submit removed; footer is `Next ›` until last
+     Q's `Finish quiz`. Revisable until Finish; confirmation modal
+     if any blanks at Finish.
+   - **C** (TS both intents): batched + per-Q `Submit & continue`
+     lock + Prev disabled + no Skip button (must commit, matches
+     NCLEX authenticity).
+
+5. **Universal save-on-tap.** `nclex_save_progress` moves from slice
+   4.6 to 4.5; becomes universal across all 7 active tuples (CAT
+   excepted). DRAFT row written on every material change
+   (debounced ~500ms); flips to SUBMITTED at final submit. UL
+   backported from "submit-creates-row directly" for consistency +
+   answer-changes analytics value. Triple wins: enables mid-timer
+   EXAM resume; simplifies auto-submit on expiry (single SQL UPDATE,
+   no client-flush race); gives the per-tap event log §13 needs.
+
+6. **EXAM re-entry rule revised.** `attempt-creation §6.1.3` rewrote
+   from "exams cannot be resumed" to "timed EXAM resumable mid-timer;
+   wall-clock continues during absence; lazy expiry detection on
+   next mount → TIMED_OUT → review." Sam's framing made the
+   simplification: the wall-clock alone enforces no-time-gain; the
+   additional "no resume" rule was friction without integrity.
+   Real NCLEX allows breaks (timer continues during them) — so the
+   new rule matches both actual exam mechanics and the doc's existing
+   §11 wall-clock semantics. Untimed EXAM also resumable. CAT keeps
+   its exception (IRT validity).
+
+7. **Case-exit warning** (queued from 4.3) — Archetype B free-nav
+   only; centred dialog with per-attempt suppression checkbox.
+   Sequential locks Prev so the warning doesn't apply there.
+
+### Doc deltas
+
+| File | Section | Status |
+|---|---|---|
+| `runner.html` | §8 Timer behaviour | skeleton → **settled** (6 sub-sections) |
+| `runner.html` | §9 Save-progress and Resume | skeleton → **9.1 settled / 9.2 skeleton (slice 4.6)** |
+| `runner.html` | §13 Answer-changes tracking | skeleton → **settled** (close TBD by ref §6.3.3 + §9.1) |
+| `attempt-creation.html` | §6.1.3 EXAM re-entry paragraph | revised (was "cannot be resumed"; now "resumable mid-timer") |
+| `BUILD_LIST.md` | slice 2.3 caveat | save-progress note updated (4.6 → 4.5) |
+| `BUILD_LIST.md` | slice 4.5 line | one-line summary expanded into 5 sub-bullets |
+| `BUILD_LIST.md` | slice 4.6 line | shrunk to Resume detection only |
+
+### Outstanding for the build phase
+
+- Decide sub-slice split for 4.5 (likely 3 sub-slices: timer +
+  save-on-tap → submission archetypes → sequential lock + case-exit
+  warning).
+- `nclex_save_progress` RPC needs to be built (was deferred from
+  slice 2.3 to 4.6, now lands with 4.5a or 4.5b).
+- Verify the runner's existing per-Q submit path can be refactored
+  cleanly to use save-on-tap → status-flip pattern (UL backport).
+
+### Next pick
+
+- **Slice 4.5a — timer + save-on-tap.** Likely the largest sub-slice
+  because it spans topbar pill rendering (stopwatch + countdown),
+  warning-tier transitions, hide toggle, save-on-tap RPC + client
+  wiring (debounced), and auto-submit on expiry. Server work +
+  client work + new behaviour.
+
+---
+
 ## Session — 2026-05-09 (4.4) — Trend question rendering: TrendPanel + .rn-split branch + "⤬ Trend" pill (no CJMM / no banner / no bands)
 
 Closes slice 4.4. The runner now branches its layout when the current
