@@ -6,6 +6,144 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-09 (refactor) — `lib/` restructure: split curator vs student-side; introduce overlays/toast/hints
+
+Executes the queued `lib/bank/` refactor from the prior session's
+`project_lib_bank_refactor.md` memory note, but the conversation
+expanded the scope from a simple promote-three-folders move into a
+deliberate redesign of where cross-cutting UI pieces live. Net result:
+`lib/bank/` is now strictly curator-only, `lib/practice/` houses the
+student-facing consumption surface, and three new top-level folders
+(`lib/overlays/`, `lib/toast/`, `lib/hints/`) collect floating /
+affordance UI by category. All shipped in a single commit on
+2026-05-09 with zero new TS errors and a clean dev-server compile.
+
+### What landed structurally
+
+```
+lib/
+├── bank/                    (curator-only — editors, wrappers, parsers, list, types)
+│   └── atoms/               (12 editor-internal pieces remain — left in place by design)
+├── practice/                (NEW — student consumption)
+│   ├── runner/              (was lib/bank/runner/)
+│   ├── builder/             (was lib/bank/builder/)
+│   └── launchers/           (was lib/bank/entry-helpers/, renamed)
+├── overlays/                (NEW)
+│   └── bank/                (delete-confirm, discard-confirm)
+├── toast/                   (NEW, flat — toasts have no area subfolders)
+│   └── error-toast.tsx
+└── hints/                   (NEW — explanation surfaces)
+    ├── shared/              (bulb shell — was help-bulb.tsx, HelpBulb → Bulb)
+    └── bank/                (3 named bulbs — Path B content extraction)
+```
+
+### Key conversation decisions
+
+- **Three top-level folders, not one umbrella.** Initial proposal
+  bundled toasts + dialogs + bulbs into a single `lib/overlays/`
+  umbrella. Sam pushed back: toast ≠ confirm-dialog ≠ explanation, and
+  conflating them was exactly the same conflation that let
+  `lib/bank/atoms/` accumulate 16 mixed-scope files. Three categories,
+  three folders.
+
+- **Layer-2 generic vs Layer-3 instance** distinction surfaced when
+  reading `delete-confirm.tsx`: its title was hardcoded `"Delete
+  <itemId>"`, hint hardcoded `"Type DELETE to confirm"`, button
+  labels hardcoded — so it's a curator-specific instance, not a
+  primitive. Goes to `lib/overlays/bank/`. The future runner-side
+  discard-attempt overlay (slice 4.8) will land in
+  `lib/overlays/practice/`, and *that's the moment* we extract a
+  layer-2 `<TypeToConfirmDialog>` primitive both can call. Refactor
+  on demand, not speculatively.
+
+- **`error-toast.tsx` stayed named `error-toast.tsx`, not generalised.**
+  Considered renaming to `toast.tsx` with a `tone` prop for symmetry
+  with `bulb.tsx` — but the file is hardwired for error tone (red
+  class, `!` icon, `aria-live=assertive`) and we have zero non-error
+  callers today. Generalising now is "designing for hypothetical."
+  When the first success-toast caller lands (likely slice 4.6
+  Save-progress UX), that's the right moment to either generalise or
+  add a sibling `success-toast.tsx`.
+
+- **Path B for hints.** Each unique explainer is its own file in
+  `lib/hints/<area>/<surface>-bulb.tsx` that wraps the shell and
+  hardcodes its content. Toolbars import the named bulb
+  (`<TrendWrapperBulb />`), never the shell. Three named bulbs
+  landed today: `case-study-wrapper-bulb`, `case-study-editor-bulb`,
+  `trend-wrapper-bulb`. The 1000+ line wrapper pages dropped 9 lines
+  of inline `<HelpBulb><ul>...</ul></HelpBulb>` per bulb and gained
+  one `<NamedBulb />` line in their place. Win for future copy-edit
+  passes — all explainer prose now lives in one folder, auditable
+  by walking `lib/hints/`.
+
+- **`launchers/` not `entry-helpers/`.** "Entry helpers" was a
+  behaviour-name (helps you enter); `launchers/` is a thing-name (the
+  Resume / Recent / Weak-spots tiles all *launch* a practice attempt).
+  Renamed during the move.
+
+- **Editor-internal atoms stay put.** `stem-field`, `instruction-field`,
+  `modal-frame`, `editor-tabs`, `editor-actions`, `rationale-fields`,
+  `classification-fields`, `housekeeping-fields`, `hidden-item-inputs`,
+  `preview-toggle`, `question-type-picker`, `section` — 12 files —
+  remain in `lib/bank/atoms/` because they're curator-internal
+  plumbing, not cross-cutting affordances. Sam's call: "leave them.
+  Tell me before creating new folders going forward so we decide
+  together." That last bit became a feedback memory
+  (`feedback_ask_before_new_folders.md`) — surface name + purpose
+  before any `mkdir`/refactor/scaffold that creates a folder.
+
+### Implementation notes
+
+- **27 source files updated, 54 files in the commit.** Most changes
+  are mechanical import-path swaps (`@/lib/bank/runner/...` →
+  `@/lib/practice/runner/...`, `@/lib/bank/atoms/error-toast` →
+  `@/lib/toast/error-toast`, etc.). The only non-mechanical edits
+  were the wrapper-page bulb extractions: 9 lines of inline
+  `<HelpBulb>` content per bulb collapsed to a single
+  `<NamedBulb />` JSX call, with the content moved into the new
+  named-bulb file.
+
+- **PowerShell -Encoding utf8 corrupted 13 files mid-refactor**
+  (added BOM, mangled em-dashes via cp1252 round-trip). Caught it
+  via `git diff --stat` showing 592 ins / 592 del where 14 / 14 was
+  expected. Reverted with `git checkout HEAD -- <files>`, switched
+  to `sed -i` via the Bash tool which handles UTF-8 cleanly. Note
+  for future PowerShell scripted edits: avoid `Set-Content
+  -Encoding utf8` on UTF-8 files (it adds BOM); prefer
+  `[System.IO.File]::WriteAllText` with a no-BOM
+  `UTF8Encoding($false)` if PowerShell is required, or just use
+  `sed -i` via Bash.
+
+- **CLAUDE.md got two new conventions.** #11 codifies the curator
+  vs practice split. #12 codifies the overlays/toast/hints layout
+  including the `shared/` (layer-2 generics) vs area-subfolder
+  (layer-3 instances) sub-pattern. Together they document the
+  why behind the file moves so the next contributor doesn't have to
+  reconstruct the reasoning.
+
+### Tested
+
+- Trend wrapper toolbar bulb (`TrendWrapperBulb`) opens / closes /
+  shows correct content on a trend dataset in mynclex-dev. The shell
+  + Path B mechanism is verified. Case-study bulbs were not
+  exercised — mynclex-dev has 0 case studies — but they share the
+  identical wrapper pattern (one-line `<NamedBulb />` import +
+  render), so failure modes are confined to the same import path
+  the typecheck already validates.
+- `npx tsc --noEmit`: 0 new errors. (Two pre-existing errors in
+  `lib/scoring/*.test.ts` for missing vitest types are unrelated.)
+- Dev server: clean compile, routes serving 200 OK.
+
+### Next pick
+
+- **Slice 4.3 — Case-block UX.** Case panel (scenario + chart tabs),
+  CJMM step labels, mount/unmount at block boundaries, "Case
+  complete. Continuing…" transition. The `lib/bank/` refactor that
+  was gating new feature work is now done — case-block UX consumes
+  the runner from its new home at `@/lib/practice/runner/`.
+
+---
+
 ## Session — 2026-05-09 (build) — Slice 4.2 closed: CLOZE + DRAG_DROP + BOWTIE — all 8 per-type runners shipped
 
 Closes slice 4.2. The three remaining question types from the 2026-05-08

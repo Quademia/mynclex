@@ -10,30 +10,26 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-08):** slice 4.2 closed — all 8 per-type
-> question runners now live alongside MCQ from 4.1.4. The 3 final
-> types landed across CLOZE → DRAG_DROP → BOWTIE, each with its own
-> design pass in `docs/scratch/<type>-*-mock.html` (gitignored). CLOZE
-> review went through three iterations to settle on flowing-prose
-> per-blank rationales with red-wrong / green-correct option labels
-> and per-blank `<num> CORRECT/WRONG` verdict headers, plus persistent
-> superscript blank numbers in the stem. DRAG_DROP shipped both
-> subtypes via internal switch with a **click-to-place** interaction
-> (not real HTML5 drag-and-drop — phone-first audience, no library
-> dependency); ORDERED review is a unified canonical-order card stack
-> with rationale stacked inside each green card + a distractor strip
-> below. BOWTIE took the most design iteration: settled on a literal
-> bow-tie shape with 5 empty drop slots and a 3-column pool below;
-> review tints filled slots green/red and the pool transforms into
-> per-wing SATA-style feedback columns. Per-type submit gates all
-> settled (see `bank-consumption-runner.html` §10.2).
+> **Last shipped (2026-05-09):** `lib/` restructure — split curator
+> vs student-side and introduced three top-level UI category folders.
+> `lib/bank/` is now strictly curator-only; student consumption lives
+> in `lib/practice/{runner,builder,launchers}/` (entry-helpers
+> renamed to launchers — thing-name not behaviour-name). Cross-cutting
+> floating UI now lives in `lib/overlays/` (modal/blocking confirms),
+> `lib/toast/` (passive notifications), and `lib/hints/` (explanation
+> surfaces — the bulb shell + 3 named bulbs in `hints/bank/` via
+> Path B: each unique explainer is its own file with content baked
+> in). 12 editor-internal atoms (stem-field, modal-frame, etc.)
+> stayed in `lib/bank/atoms/` by design — curator plumbing, not
+> cross-cutting. CLAUDE.md gained two new conventions (#11 + #12)
+> documenting the layout. See SESSIONS 2026-05-09 (refactor) for
+> the layer-2 vs layer-3 reasoning and the conversation that shaped
+> the three-folder structure.
 >
-> **Next pick:** `lib/bank/` refactor first (split authoring from
-> consumption — promote `runner/`, `builder/`, `entry-helpers/` to
-> `lib/` top-level so `bank/` is purely curator-side). Plan + wrinkles
-> in memory `project_lib_bank_refactor.md`. Then **4.3 Case-block UX**
-> — case panel (scenario + chart tabs), CJMM step labels, mount /
-> unmount at block boundaries.
+> **Next pick:** **4.3 Case-block UX** — case panel (scenario +
+> chart tabs), CJMM step labels, mount / unmount at block
+> boundaries, "Case complete. Continuing…" transition. Consumes
+> the runner from its new `@/lib/practice/runner/` home.
 
 ---
 
