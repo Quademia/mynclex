@@ -117,9 +117,14 @@ export interface PerItemUnseal {
 interface CommonProps {
   item:     SealedItem | UnsealedItem;
   // Optional render slot above the q-meta strip. Case-childs (slice
-  // 4.3) pass a <CjmmStrip />; trend questions (slice 4.4) will pass
-  // their own context indicator. Standalones leave it undefined.
+  // 4.3) pass a <CjmmStrip />. Trend questions don't use this — their
+  // dataset panel sits beside the question, not above it.
   topSlot?: React.ReactNode;
+  // Trend questions render an inline "⤬ Trend" pill in the q-meta
+  // strip (slice 4.4). The dataset itself lives in <TrendPanel> on
+  // the left of the .rn-split. Standalones / case-childs leave this
+  // false.
+  trendBadge?: boolean;
 }
 
 type AnsweringProps = CommonProps & {
@@ -149,6 +154,12 @@ export function RunnerQuestionArea(props: Props) {
         <span className="rn-type-pill">
           {QUESTION_TYPE_LABELS[item.question_type] ?? item.question_type}
         </span>
+        {props.trendBadge && (
+          <span className="rn-trend-pill">
+            <span className="glyph" aria-hidden="true">⤬</span>
+            Trend
+          </span>
+        )}
         {subjectPill && <span className="rn-type-pill">{subjectPill}</span>}
         {difficulty  && <span className="rn-type-pill">Difficulty · {difficulty}</span>}
       </div>

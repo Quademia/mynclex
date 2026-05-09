@@ -32,7 +32,7 @@ import type {
   SubmitAnswerResult,
 } from '@/lib/practice/runner';
 import type { GridFilter } from '@/lib/practice/runner';
-import { CasePanel, CjmmStrip } from '@/lib/practice/runner';
+import { CasePanel, CjmmStrip, TrendPanel } from '@/lib/practice/runner';
 import { CJMM_STEPS } from '@/lib/bank/classifications';
 import { CaseEntryBanner } from '@/lib/hints/practice/case-entry-banner';
 import type {
@@ -207,6 +207,17 @@ function RunnerShell({ data }: Props) {
     prevCaseIdRef.current = currentCaseId;
   }, [currentCaseId]);
 
+  // ── Trend context (slice 4.4) ─────────────────────────────────────
+  // Trends are scattered standalones — no clustering, no progression,
+  // no entry banner. Resolved purely from the current item's trend_id.
+  // The same dataset re-displays each time the student lands on a
+  // trend question that uses it (per attempt-creation §8.3).
+  const currentTrendId = currentItem?.trend_id ?? null;
+  const trendSnap = useMemo(
+    () => (currentTrendId ? data.trends.find((t) => t.trend_id === currentTrendId) : undefined),
+    [currentTrendId, data.trends],
+  );
+
   // Resolve the unseal data for the current item. In review mode the
   // unsealed columns sit on the item itself; in live mode we look up
   // the per-Q envelope returned by submitAnswerAction.
@@ -326,7 +337,8 @@ function RunnerShell({ data }: Props) {
   // and a CJMM strip in the question column's topSlot. The split's
   // right column IS the .rn-q-wrap (clamped by minmax(520, 720) on
   // the grid column), so the question's internal layout is unchanged.
-  const inCase = Boolean(currentCaseId && caseSnap);
+  const inCase  = Boolean(currentCaseId  && caseSnap);
+  const inTrend = Boolean(currentTrendId && trendSnap);
   const cjmmTopSlot = inCase && cjmmStep
     ? <CjmmStrip current={cjmmStep} />
     : undefined;
@@ -346,6 +358,7 @@ function RunnerShell({ data }: Props) {
         pendingAnswer={pendingForCurrent}
         onAnswerChange={onAnswerChange}
         topSlot={cjmmTopSlot}
+        trendBadge={inTrend}
       />
     );
   } else if (answerRowForCurrent && unsealForCurrent) {
@@ -356,6 +369,7 @@ function RunnerShell({ data }: Props) {
         answerRow={answerRowForCurrent}
         unseal={unsealForCurrent}
         topSlot={cjmmTopSlot}
+        trendBadge={inTrend}
       />
     );
   } else {
@@ -367,12 +381,16 @@ function RunnerShell({ data }: Props) {
     );
   }
 
-  // Wrap in .rn-split when on a case-child. The CasePanel's React key
-  // is the case_id so its internal tab state persists across siblings
-  // of the same case (and resets when the student crosses into a
-  // different case).
-  const questionArea: React.ReactNode = inCase && caseSnap
-    ? (
+  // Wrap in .rn-split when on a case-child OR a trend question. Cases
+  // win if both fire (defensive — case-childs are not authored as trend
+  // questions in v1, but the schema allows the columns to coexist).
+  // The CasePanel's React key is the case_id so its internal tab state
+  // persists across siblings of the same case (and resets when the
+  // student crosses into a different case). The TrendPanel needs no
+  // key because it carries no internal state.
+  let questionArea: React.ReactNode;
+  if (inCase && caseSnap) {
+    questionArea = (
       <div className="rn-split">
         <CasePanel
           key={caseSnap.case_id}
@@ -383,8 +401,17 @@ function RunnerShell({ data }: Props) {
         />
         {questionAreaInner}
       </div>
-    )
-    : questionAreaInner;
+    );
+  } else if (inTrend && trendSnap) {
+    questionArea = (
+      <div className="rn-split">
+        <TrendPanel trendSnap={trendSnap} />
+        {questionAreaInner}
+      </div>
+    );
+  } else {
+    questionArea = questionAreaInner;
+  }
 
   // Topbar case meta — only shown on case-childs.
   const caseMeta = inCase && currentCaseId

@@ -523,6 +523,164 @@
   to   { opacity: 0; transform: translateY(-4px); }
 }
 
+/* ────────────────────────────────────────────────────────────
+ *  Trend dataset panel (slice 4.4)
+ *
+ *  Wrapper for trend questions. Reuses the .rn-split layout from
+ *  slice 4.3 (Layout C: wrapper-protected at 380px floor, question
+ *  column floats 520→720). Differences vs the case panel:
+ *    - No "X of N answered" pill in the head (trends are scattered
+ *      standalones, not chained).
+ *    - No tab row, no progressive disclosure — full dataset visible
+ *      from question 1.
+ *    - No CJMM strip in the question column (no clinical-judgment
+ *      phase to map).
+ *    - No grid bands behind clustered cells (trends scatter).
+ *    - No entry banner (the dataset is right there beside the
+ *      question; the layout reshuffle is self-explanatory).
+ * ──────────────────────────────────────────────────────────── */
+.rn-trend {
+  background: var(--rn-pane-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - var(--rn-topbar-h) - var(--rn-foot-h) - 56px);
+  display: flex;
+  flex-direction: column;
+}
+.rn-trend-head {
+  padding: 12px 14px;
+  background: linear-gradient(180deg, rgba(45,125,114,0.06) 0%, rgba(45,125,114,0) 100%);
+  border-bottom: 1px solid var(--border);
+}
+.rn-trend-head .label {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent-dark, #1f5a52);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rn-trend-head .label .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent, #2d7d72);
+}
+.rn-trend-head .title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* Scenario sits between the head and the table. Always visible. */
+.rn-trend-scenario {
+  padding: 10px 14px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+}
+.rn-trend-scenario .label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.rn-trend-scenario .body {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+/* Scrollable body — keeps the table from spilling out of the
+ * sticky aside if the dataset has many rows or long-text cells. */
+.rn-trend-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 14px 14px;
+}
+.rn-trend-body .empty {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 12px 4px;
+}
+
+/* Read-only sibling of the curator's tr-table (lib/bank/wrappers/trend
+ * /data-table.tsx). Same row × timepoint shape minus the input/buttons. */
+.rn-trend-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.rn-trend-table th,
+.rn-trend-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.rn-trend-table tbody tr:last-child td { border-bottom: 0; }
+.rn-trend-table th {
+  background: #fafbfc;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--border);
+}
+.rn-trend-table th.metric-col,
+.rn-trend-table td.metric-col {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 12.5px;
+}
+.rn-trend-table td.tp { font-variant-numeric: tabular-nums; }
+.rn-trend-table th.refrange-col,
+.rn-trend-table td.refrange {
+  background: #fafbfc;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+/* Trend pill in the q-meta strip — same family as .rn-cjmm-pill,
+ * accent-toned because it identifies the question as trend-linked.
+ * Lives only on trend-question cards (runner.tsx passes trendBadge
+ * to RunnerQuestionArea when currentItem.trend_id resolves to a
+ * snapshot). */
+.rn-trend-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(45,125,114,0.14);
+  color: var(--accent-dark, #1f5a52);
+}
+.rn-trend-pill .glyph {
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1;
+}
+
 .rn-q-meta {
   display: flex;
   gap: 8px;

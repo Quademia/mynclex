@@ -44,3 +44,6 @@ export { RationaleBlock } from './rationale';
 export { CasePanel }     from './case/case-panel';
 export { CjmmStrip }     from './case/cjmm-strip';
 export { ChartTabBody }  from './case/chart-tab-body';
+
+// Trend question UX (slice 4.4) — dataset panel for trend-linked questions.
+export { TrendPanel }    from './trend/trend-panel';
