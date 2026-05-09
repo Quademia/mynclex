@@ -1,6 +1,6 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-05-07 (branching workflow: `work` → `main` → `prod`)
+Last updated: 2026-05-09 (branching workflow simplified — dropped `work`; commit on the auto-generated session branch)
 
 ## What This Is
 
@@ -196,60 +196,74 @@ slice.
 
 ## Branching workflow
 
-Three long-lived branches on the remote:
+Two long-lived branches on the remote:
 
-- **`work`** — where Claude edits code. All session work happens here.
-  Push freely.
-- **`main`** — stable. `work` is merged into `main` once a slice is done
-  and tested locally.
-- **`prod`** — released / deployed. `main` is merged into `prod` when
-  it's time to ship to users.
+- **`main`** — stable. Each session's work merges here after Sam tests
+  it locally and explicitly approves.
+- **`prod`** — released / deployed. `main` merges into `prod` when
+  it's time to ship to users (also with Sam's approval).
 
-Branch names `dev` / `prod` are reserved for environment naming
-(Cloudflare, Supabase) — that's why the working branch is called
-`work` and not `dev`.
+Each session lands in a fresh `.claude/worktrees/<random>` worktree on
+an auto-created `claude/<random>` branch. **That session branch is the
+working branch** — commit there directly, no checkout needed. Each
+session is short-lived and gets its own branch.
 
-**Every session — first action:**
+`dev` is deliberately avoided as a branch name (Cloudflare / Supabase
+already use `dev`/`prod` for env naming, so a `dev` branch would
+collide). `prod` is reused as a branch name only because the env
+mapping is 1-to-1.
 
-Each session lands in a fresh `.claude/worktrees/<random>` worktree
-on an auto-created `claude/<random>` branch. Switch to `work`
-immediately:
+**Per-session loop:**
 
-```powershell
-git checkout work
-git pull origin work
-```
+1. **Start the dev server** as the first action of the session:
 
-Commit on `work`. Push with `git push origin work`.
+   ```powershell
+   npm run dev
+   ```
 
-**Merging `work` → `main`** (when a slice is done and tested):
+   Serves on `http://localhost:3000`. The `.env.local` is auto-copied
+   into new worktrees by `.worktreeinclude`, so credentials are
+   already wired.
 
-```powershell
-git checkout main
-git merge work --ff-only
-git push origin main
-git checkout work
-```
+2. Build the requested slice / fix on the auto-created session
+   branch. Commit there freely.
 
-**Releasing `main` → `prod`** (when ready to deploy):
+3. Sam tests the change in the browser at `localhost:3000`.
+
+4. **Always ask Sam for explicit approval before merging to `main`.**
+   Never push to `main` without it. On approval:
+
+   ```powershell
+   git push origin claude/<random>           # optional: keep session branch on remote
+   git checkout main
+   git merge claude/<random> --ff-only
+   git push origin main
+   ```
+
+**Releasing `main` → `prod`** (when ready to deploy, again with Sam's
+explicit approval):
 
 ```powershell
 git checkout prod
 git merge main --ff-only
 git push origin prod
-git checkout work
 ```
 
 Never work directly in the `qacademy-mynclex` main checkout — always
-operate inside a `.claude/worktrees/<...>` worktree, on the `work`
-branch.
+operate inside the session's `.claude/worktrees/<...>` worktree.
+
+**The old `work` branch was retired on 2026-05-09.** It used to be the
+single rolling branch Claude committed to, but each session already
+has its own isolated `claude/<random>` branch — `work` was a redundant
+hop and caused worktree-exclusivity collisions when more than one
+session was open.
 
 ## Working With Sam
 
 - Sam has no coding background. Explain rationale before code. No assumed
   code literacy.
 - Discuss plans before building. No full rewrites without approval.
-- Work on the `work` branch; merge to `main` when a slice is done; merge `main` to `prod` when releasing. See **Branching workflow** above.
+- Work on the auto-created session branch (`claude/<random>`). Always ask Sam for explicit approval before merging to `main`, and again before merging `main` to `prod`. See **Branching workflow** above.
 - One issue at a time, confirmed before moving on.
 
 ## Files To Read at Session Start
