@@ -44,6 +44,10 @@ interface Props {
   current:     number;          // 0-indexed
   filter:      GridFilter;
   caseGroups?: readonly CaseGroup[];
+  // Slice 4.5c: gate per-cell correctness rendering. True for UL live
+  // and any review-state mode; false for Free-batched + Sequential
+  // mid-quiz (rationale + correctness deferred until Finish).
+  revealCorrectness: boolean;
   onPick:           (index: number) => void;
   onFilterChange:   (filter: GridFilter) => void;
   onCollapse?:      () => void;
@@ -99,6 +103,7 @@ export function RunnerGrid({
   current,
   filter,
   caseGroups,
+  revealCorrectness,
   onPick,
   onFilterChange,
   onCollapse,
@@ -111,7 +116,7 @@ export function RunnerGrid({
     wrong:      0,
   };
   for (const item of items) {
-    const fill = deriveCellFill(answers.get(item.attempt_item_id));
+    const fill = deriveCellFill(answers.get(item.attempt_item_id), revealCorrectness);
     if (marked.has(item.attempt_item_id)) filterCounts.marked += 1;
     if (fill === 'unanswered' || fill === 'skipped') filterCounts.unanswered += 1;
     if (fill === 'wrong') filterCounts.wrong += 1;
@@ -136,12 +141,15 @@ export function RunnerGrid({
         <div className="rn-grid-filters" role="tablist">
           {(
             [
-              { id: 'all',        label: 'All',    n: filterCounts.all },
-              { id: 'marked',     label: 'Marked', n: filterCounts.marked },
-              { id: 'unanswered', label: 'Unans',  n: filterCounts.unanswered },
-              { id: 'wrong',      label: 'Wrong',  n: filterCounts.wrong },
+              { id: 'all',        label: 'All',    n: filterCounts.all,        show: true },
+              { id: 'marked',     label: 'Marked', n: filterCounts.marked,     show: true },
+              { id: 'unanswered', label: 'Unans',  n: filterCounts.unanswered, show: true },
+              // Wrong filter only meaningful when correctness is revealed
+              // (UL live, or any review state). In batched live modes the
+              // count would always be 0 and clicking it would empty the grid.
+              { id: 'wrong',      label: 'Wrong',  n: filterCounts.wrong,      show: revealCorrectness },
             ] as const
-          ).map((f) => (
+          ).filter((f) => f.show).map((f) => (
             <button
               key={f.id}
               type="button"
@@ -176,7 +184,7 @@ export function RunnerGrid({
           ))}
 
           {items.map((item, idx) => {
-            const fill   = deriveCellFill(answers.get(item.attempt_item_id));
+            const fill   = deriveCellFill(answers.get(item.attempt_item_id), revealCorrectness);
             const isMrk  = marked.has(item.attempt_item_id);
             const hidden = !isVisibleUnderFilter(fill, isMrk, filter);
             const cls = [
@@ -208,10 +216,14 @@ export function RunnerGrid({
 
       <div className="rn-grid-legend" aria-hidden="true">
         <div className="row"><span className="swatch" /> Unanswered</div>
-        <div className="row"><span className="swatch f-answered" /> Answered (pre-submit)</div>
-        <div className="row"><span className="swatch f-right" /> Correct</div>
-        <div className="row"><span className="swatch f-wrong" /> Wrong</div>
-        <div className="row"><span className="swatch f-skipped" /> Skipped</div>
+        <div className="row"><span className="swatch f-answered" /> Answered</div>
+        {revealCorrectness && (
+          <>
+            <div className="row"><span className="swatch f-right" /> Correct</div>
+            <div className="row"><span className="swatch f-wrong" /> Wrong</div>
+            <div className="row"><span className="swatch f-skipped" /> Skipped</div>
+          </>
+        )}
         <div className="row"><span className="swatch marked" /> Marked for review</div>
         <div className="row"><span className="swatch current" /> Current</div>
       </div>

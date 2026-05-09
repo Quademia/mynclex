@@ -56,6 +56,7 @@ import {
 } from '@/lib/practice/runner';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { FinishWithBlanksConfirm } from '@/lib/overlays/practice/finish-with-blanks-confirm';
+import { CaseExitConfirm } from '@/lib/overlays/practice/case-exit-confirm';
 import { RunnerTopbar }       from './runner-topbar';
 import { RunnerFooter }       from './runner-footer';
 import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
@@ -154,6 +155,13 @@ function RunnerShell({ data }: Props) {
 
   // Finish-with-blanks confirmation modal (Free-batched only).
   const [showBlanksConfirm, setShowBlanksConfirm] = useState(false);
+
+  // Case-exit warning state (slice 4.5c). When set, the modal is rendered
+  // and the click-target is held until the student confirms (Leave anyway)
+  // or cancels (Stay in case). Per-attempt suppression flag lets the
+  // student dismiss for the rest of the quiz; resets at next attempt.
+  const [caseExitTarget, setCaseExitTarget] = useState<number | null>(null);
+  const [caseExitSuppressed, setCaseExitSuppressed] = useState(false);
 
   const [error, setError]   = useState<string | null>(null);
   const [submitting, startSubmit] = useTransition();
@@ -374,6 +382,69 @@ function RunnerShell({ data }: Props) {
   const onPick = (idx: number) => setCurrent(idx);
   const onNext = () => setCurrent((c) => Math.min(total - 1, c + 1));
 
+  // Case-exit warning gate (slice 4.5c). Returns true when a navigation
+  // attempt should be intercepted with the warning modal. Only fires for
+  // FREE_BATCHED archetype — UL has per-Q rationale rhythm, Sequential
+  // already locks Prev + grid. Suppressed for the remainder of the
+  // attempt once the student ticks the per-attempt "don't show again"
+  // checkbox.
+  const shouldWarnCaseExit = (targetIdx: number): boolean => {
+    if (archetype !== 'FREE_BATCHED') return false;
+    if (caseExitSuppressed)           return false;
+    if (data.mode !== 'live')         return false;
+    if (!currentItem)                 return false;
+    if (!currentCaseId)               return false; // not currently in a case
+
+    const target = data.items[targetIdx];
+    if (!target) return false;
+
+    // Staying within the same case → no warning. Includes navigating
+    // backward inside the case (e.g. case-child 4 → case-child 2).
+    if (target.parent_case_id === currentCaseId) return false;
+
+    // Warn only when the case isn't fully answered. If every child has
+    // an answer (DRAFT in pendingAnswers OR finalised in answersByItem),
+    // leaving is fine — the student has done the case.
+    const allAnswered = caseChildIds.every(
+      (id) => pendingAnswers.has(id) || answersByItem.has(id),
+    );
+    return !allAnswered;
+  };
+
+  // Sequential lock (slice 4.5c). Grid clicks are no-ops in Sequential
+  // live mode — Prev is already disabled, and the only way forward is
+  // Submit & continue (which gates on canSubmit). The grid becomes a
+  // pure progress indicator. Free-batched / UL keep grid clicks live;
+  // Free-batched additionally checks the case-exit warning gate.
+  const onPickGuarded = (idx: number) => {
+    if (archetype === 'SEQUENTIAL' && data.mode === 'live') return;
+    if (shouldWarnCaseExit(idx)) {
+      setCaseExitTarget(idx);
+      return;
+    }
+    onPick(idx);
+  };
+
+  const onPrevGuarded = () => {
+    const target = current - 1;
+    if (target < 0) return;
+    if (shouldWarnCaseExit(target)) {
+      setCaseExitTarget(target);
+      return;
+    }
+    onPrev();
+  };
+
+  const onNextGuarded = () => {
+    const target = current + 1;
+    if (target >= total) return;
+    if (shouldWarnCaseExit(target)) {
+      setCaseExitTarget(target);
+      return;
+    }
+    onNext();
+  };
+
   // Save-on-tap (slice 4.5a). Per-item debounce so navigating between
   // questions mid-debounce doesn't drop the pending save for the
   // question we're leaving — each item has its own timer in the map.
@@ -490,6 +561,41 @@ function RunnerShell({ data }: Props) {
     onFinish();
   };
 
+  // Sequential per-Q submit + advance (slice 4.5c). The button's gate
+  // already enforces canSubmit (slice 4.5b "no Skip" rule). On success,
+  // the row flips DRAFT → SUBMITTED via the existing submit RPC, then
+  // setCurrent advances. The grid cell becomes locked on the next
+  // render because answersByItem now sees the SUBMITTED row, and
+  // onPickGuarded blocks all grid clicks for Sequential anyway.
+  const onSubmitAndAdvance = () => {
+    if (!currentItem || !submitGate?.canSubmit || submitGate.submitValue === null) return;
+    const submission = submitGate.submitValue;
+    startSubmit(async () => {
+      const r = await submitAnswerAction(currentItem.attempt_item_id, submission);
+      if (!r.ok) { setError(r.error); return; }
+      mergeSubmitResult(r.data, submission, setClientAnswers, setClientUnseal);
+      setCurrent((c) => Math.min(total - 1, c + 1));
+    });
+  };
+
+  // Sequential last-Q "Submit & finish" — submit the last DRAFT then
+  // finalise. completeAttemptAction's _flushDrafts is a no-op for this
+  // attempt by then (every prior Q was already submitted via
+  // onSubmitAndAdvance), so it just flips status + computes final_score.
+  const onSubmitAndFinish = () => {
+    if (!currentItem || !submitGate?.canSubmit || submitGate.submitValue === null) return;
+    const submission = submitGate.submitValue;
+    startSubmit(async () => {
+      const r = await submitAnswerAction(currentItem.attempt_item_id, submission);
+      if (!r.ok) { setError(r.error); return; }
+      mergeSubmitResult(r.data, submission, setClientAnswers, setClientUnseal);
+
+      const r2 = await completeAttemptAction(data.attempt.attempt_id);
+      if (!r2.ok) { setError(r2.error); return; }
+      router.refresh();
+    });
+  };
+
   // Footer label / handler / disabled — archetype-aware (slice 4.5b).
   const isLastQ     = current >= total - 1;
   const isAnswering = itemMode === 'answering';
@@ -510,6 +616,8 @@ function RunnerShell({ data }: Props) {
 
   } else if (archetype === 'UL') {
     // UL behaviour (4.1 — unchanged): per-Q Submit → review → Next/Finish.
+    // onNextGuarded is no-op for UL (case-exit guard only fires for
+    // FREE_BATCHED), so behaviour is identical to direct onNext.
     if (isAnswering) {
       const canSubmit = submitGate?.canSubmit ?? false;
       primaryLabel    = 'Submit answer';
@@ -525,7 +633,7 @@ function RunnerShell({ data }: Props) {
       primaryLabel    = 'Next →';
       primaryDisabled = isLastQ;
       primaryHint     = isLastQ ? 'You\'re on the last question' : undefined;
-      onPrimary       = onNext;
+      onPrimary       = onNextGuarded;
     }
 
   } else if (archetype === 'FREE_BATCHED') {
@@ -533,6 +641,8 @@ function RunnerShell({ data }: Props) {
     // Next ›, plus Finish quiz on the last Q. Save-on-tap (4.5a) persists
     // every change as a DRAFT row server-side; no per-Q rationale fires
     // until the whole attempt finalises (data.mode === 'review').
+    // onNextGuarded surfaces the case-exit warning when the student
+    // tries to leave a partly-answered case via Next (slice 4.5c).
     if (isLastQ) {
       primaryLabel    = submitting ? 'Finishing…' : 'Finish quiz';
       primaryDisabled = submitting;
@@ -542,15 +652,17 @@ function RunnerShell({ data }: Props) {
       primaryLabel    = 'Next →';
       primaryDisabled = false;
       primaryHint     = undefined;
-      onPrimary       = onNext;
+      onPrimary       = onNextGuarded;
     }
 
   } else {
-    // Sequential (TS both intents). 4.5b: per-Q "Submit & continue"
-    // advances + saves like Next; the lock semantics (DRAFT → SUBMITTED on
-    // submit + cell read-only) are deferred to 4.5c. Last Q becomes
-    // "Submit & finish" which calls onFinish directly. Prev is disabled
-    // (handled by RunnerFooter via prevDisabled prop).
+    // Sequential (TS both intents). 4.5c lock semantics now live:
+    //   • Submit & continue calls submitAnswerAction (DRAFT → SUBMITTED)
+    //     then advances. The grid cell becomes locked on the next render
+    //     because answersByItem reflects the SUBMITTED row.
+    //   • Submit & finish does the same submit + completeAttemptAction.
+    //   • Prev is disabled (RunnerFooter via prevDisabled prop).
+    //   • Grid clicks are no-op live (onPickGuarded short-circuits).
     //
     // "No Skip button (must commit)" rule from BUILD_LIST 4.5b: Sequential
     // gates the primary button on submitGate.canSubmit so the student
@@ -565,12 +677,12 @@ function RunnerShell({ data }: Props) {
       primaryLabel    = submitting ? 'Finishing…' : 'Submit & finish';
       primaryDisabled = !canSubmit || submitting;
       primaryHint     = canSubmit ? undefined : (submitGate?.hint ?? skipHint);
-      onPrimary       = onFinish;
+      onPrimary       = onSubmitAndFinish;
     } else {
       primaryLabel    = 'Submit & continue →';
-      primaryDisabled = !canSubmit;
+      primaryDisabled = !canSubmit || submitting;
       primaryHint     = canSubmit ? undefined : (submitGate?.hint ?? skipHint);
-      onPrimary       = onNext;
+      onPrimary       = onSubmitAndAdvance;
     }
   }
 
@@ -733,7 +845,8 @@ function RunnerShell({ data }: Props) {
             current={current}
             filter={filter}
             caseGroups={caseGroups}
-            onPick={onPick}
+            revealCorrectness={data.mode === 'review' || archetype === 'UL'}
+            onPick={onPickGuarded}
             onFilterChange={setFilter}
             onCollapse={() => setGridOpen(false)}
           />
@@ -755,7 +868,7 @@ function RunnerShell({ data }: Props) {
         primaryHint={primaryHint}
         prevDisabled={archetype === 'SEQUENTIAL' && data.mode === 'live'}
         prevHint={archetype === 'SEQUENTIAL' ? 'Sequential mode — no going back' : undefined}
-        onPrev={onPrev}
+        onPrev={onPrevGuarded}
         onPrimary={onPrimary}
       />
 
@@ -766,6 +879,20 @@ function RunnerShell({ data }: Props) {
           pending={submitting}
           onCancel={() => setShowBlanksConfirm(false)}
           onSubmitAnyway={onFinish}
+        />
+      )}
+
+      {caseExitTarget !== null && currentCaseId && (
+        <CaseExitConfirm
+          answeredInCase={answeredInCase}
+          totalChildren={caseChildIds.length}
+          onCancel={() => setCaseExitTarget(null)}
+          onLeaveAnyway={(suppress) => {
+            if (suppress) setCaseExitSuppressed(true);
+            const target = caseExitTarget;
+            setCaseExitTarget(null);
+            setCurrent(target);
+          }}
         />
       )}
     </div>
