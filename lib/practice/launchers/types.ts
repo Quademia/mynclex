@@ -4,8 +4,8 @@
 // Quizzes shortcut, Weak Spots button). Used by the Builder page
 // today; will be reused on the Dashboard and History pages later.
 
-import type { FilterPayload } from '@/lib/bank/builder/types';
-import type { Intent, ModeId } from '@/lib/bank/builder/filter-config';
+import type { FilterPayload } from '@/lib/practice/builder/types';
+import type { Intent, ModeId } from '@/lib/practice/builder/filter-config';
 
 /**
  * The single most-recent unfinished STUDY attempt for the signed-in

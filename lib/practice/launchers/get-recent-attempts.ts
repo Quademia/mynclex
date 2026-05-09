@@ -22,8 +22,8 @@ import {
   MODES_EXAM,
   type Intent,
   type ModeId,
-} from '@/lib/bank/builder/filter-config';
-import type { FilterPayload } from '@/lib/bank/builder/types';
+} from '@/lib/practice/builder/filter-config';
+import type { FilterPayload } from '@/lib/practice/builder/types';
 import type { RecentAttempt } from './types';
 import { summariseRecent } from './summarise-recent';
 

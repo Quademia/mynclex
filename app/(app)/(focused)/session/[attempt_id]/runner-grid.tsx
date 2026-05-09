@@ -15,9 +15,9 @@
 
 'use client';
 
-import type { AnswerRow } from '@/lib/bank/runner';
-import { deriveCellFill, isVisibleUnderFilter } from '@/lib/bank/runner';
-import type { GridFilter } from '@/lib/bank/runner';
+import type { AnswerRow } from '@/lib/practice/runner';
+import { deriveCellFill, isVisibleUnderFilter } from '@/lib/practice/runner';
+import type { GridFilter } from '@/lib/practice/runner';
 
 interface CellSummary {
   attempt_item_id: string;

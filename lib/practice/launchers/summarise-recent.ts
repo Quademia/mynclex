@@ -18,8 +18,8 @@
 // Type are deliberately omitted from the chip label — they make the
 // summary too long. Student can hover or click to see the full config.
 
-import type { FilterPayload } from '@/lib/bank/builder/types';
-import { POOLS } from '@/lib/bank/builder/filter-config';
+import type { FilterPayload } from '@/lib/practice/builder/types';
+import { POOLS } from '@/lib/practice/builder/filter-config';
 
 const POOL_LABEL: Record<string, string> = Object.fromEntries(
   POOLS.map((p) => [p.id, p.label])

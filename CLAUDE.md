@@ -125,6 +125,43 @@ slice.
     See `lib/access/README.md` for the full convention including where
     new helpers go.
 
+11. **`lib/bank/` is curator-side. `lib/practice/` is student-side.**
+    Curator surfaces (editors, wrappers, bank list, save/delete actions,
+    classifications, types) live in `lib/bank/`. Student-facing
+    consumption (`runner/`, `builder/`, `launchers/`) lives in
+    `lib/practice/`. Shared schema (`types.ts`, `classifications.ts`)
+    stays in `lib/bank/` as the source of truth — `practice/` imports
+    from `bank/`, never the other way round (consumers depend on
+    producers).
+
+12. **Cross-cutting UI categories: `lib/overlays/` + `lib/toast/` +
+    `lib/hints/`.** Three top-level folders, one per category of
+    floating/affordance UI:
+    - `lib/overlays/` — modal/blocking confirmation dialogs.
+    - `lib/toast/` — passive top-right notifications.
+    - `lib/hints/` — explanation surfaces (bulb 💡 today, future shells).
+
+    Within `overlays/` and `hints/`, the layer is encoded in the
+    sub-structure: `shared/` holds generic primitives/shells used
+    everywhere; area subfolders (`bank/`, `practice/`) hold instances
+    specific to a curator/student surface. **Layer-3 instances belong
+    next to the area, not in `shared/`** — e.g., the curator's
+    `delete-confirm` (which hardcodes "Delete <itemId>" copy) lives in
+    `overlays/bank/`, not `overlays/shared/`. `toast/` is flat (no
+    subfolders) because toast variants are tone-only — every caller
+    passes the message as a string, so there's no such thing as an
+    area-specific toast instance.
+
+    `lib/hints/` follows Path B: each unique explainer is its own file
+    in `hints/<area>/<surface>-bulb.tsx` that wraps the shell with its
+    content baked in. Toolbars import the named bulb (`<TrendWrapperBulb />`),
+    never the shell directly. This keeps explanation copy auditable in
+    one folder.
+
+    **Editor-form atoms (`stem-field`, `instruction-field`, `editor-tabs`,
+    `modal-frame`, etc.) stay in `lib/bank/atoms/`** — they're
+    curator-internal plumbing, not cross-cutting affordances.
+
 ## UI Conventions
 
 1. **Toasts for messages, not inline banners.** Server errors,

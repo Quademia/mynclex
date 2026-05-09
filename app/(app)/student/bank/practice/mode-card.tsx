@@ -8,7 +8,7 @@
 
 'use client';
 
-import type { ModeDef } from '@/lib/bank/builder/filter-config';
+import type { ModeDef } from '@/lib/practice/builder/filter-config';
 
 interface ModeCardProps {
   mode: ModeDef;

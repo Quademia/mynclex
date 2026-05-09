@@ -21,7 +21,7 @@ import {
   MODES_STUDY,
   type Intent,
   type ModeId,
-} from '@/lib/bank/builder/filter-config';
+} from '@/lib/practice/builder/filter-config';
 import type { ResumableAttempt } from './types';
 
 export async function getResumableAttempt(): Promise<ResumableAttempt | null> {

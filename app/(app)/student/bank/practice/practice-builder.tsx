@@ -20,7 +20,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ErrorToast } from '@/lib/bank/atoms/error-toast';
+import { ErrorToast } from '@/lib/toast/error-toast';
 import {
   POOLS,
   MODES_STUDY,
@@ -37,21 +37,21 @@ import {
   type Intent,
   type ModeId,
   type PoolId,
-} from '@/lib/bank/builder/filter-config';
-import { buildFilterPayload } from '@/lib/bank/builder/build-filter-payload';
+} from '@/lib/practice/builder/filter-config';
+import { buildFilterPayload } from '@/lib/practice/builder/build-filter-payload';
 import {
   countEligibleAction,
   createAttemptAction,
   breakdownAction,
-} from '@/lib/bank/builder/actions';
-import type { BreakdownResult, CountResult, FilterPayload } from '@/lib/bank/builder/types';
-import type { FilterOptions } from '@/lib/bank/builder/get-filter-options';
-import { parseFilterPayload } from '@/lib/bank/builder/parse-filter-payload';
-import type { ResumableAttempt, RecentAttempt } from '@/lib/bank/entry-helpers/types';
-import { ResumeBanner } from '@/lib/bank/entry-helpers/resume-banner';
-import { RecentQuizzesRow } from '@/lib/bank/entry-helpers/recent-quizzes-row';
-import { WeakSpotsButton } from '@/lib/bank/entry-helpers/weak-spots-button';
-import { discardAttemptAction } from '@/lib/bank/builder/actions';
+} from '@/lib/practice/builder/actions';
+import type { BreakdownResult, CountResult, FilterPayload } from '@/lib/practice/builder/types';
+import type { FilterOptions } from '@/lib/practice/builder/get-filter-options';
+import { parseFilterPayload } from '@/lib/practice/builder/parse-filter-payload';
+import type { ResumableAttempt, RecentAttempt } from '@/lib/practice/launchers/types';
+import { ResumeBanner } from '@/lib/practice/launchers/resume-banner';
+import { RecentQuizzesRow } from '@/lib/practice/launchers/recent-quizzes-row';
+import { WeakSpotsButton } from '@/lib/practice/launchers/weak-spots-button';
+import { discardAttemptAction } from '@/lib/practice/builder/actions';
 import { Axis } from './axis';
 import { ModeCard } from './mode-card';
 import { SummaryPanel } from './summary-panel';

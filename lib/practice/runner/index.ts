@@ -1,6 +1,6 @@
 // mynclex/lib/bank/runner/index.ts
 //
-// Barrel for the runner module. Call sites import from '@/lib/bank/runner'.
+// Barrel for the runner module. Call sites import from '@/lib/practice/runner'.
 
 export type {
   RunnerMode,

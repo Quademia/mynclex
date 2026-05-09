@@ -20,9 +20,10 @@
 import { useState, useMemo, useTransition, type MouseEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ErrorToast } from '@/lib/bank/atoms/error-toast';
-import { DiscardConfirm } from '@/lib/bank/atoms/discard-confirm';
-import { HelpBulb } from '@/lib/bank/atoms/help-bulb';
+import { ErrorToast } from '@/lib/toast/error-toast';
+import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
+import { CaseStudyWrapperBulb } from '@/lib/hints/bank/case-study-wrapper-bulb';
+import { CaseStudyEditorBulb } from '@/lib/hints/bank/case-study-editor-bulb';
 import { saveQuestionAction } from '@/lib/bank/actions/save-question';
 import { CJMM_STEPS } from '../../classifications';
 import type {
@@ -800,14 +801,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
                 >
                   {isPending ? 'Saving…' : 'Save case study'}
                 </button>
-                <HelpBulb title="What do these buttons do?">
-                  <ul className="auth-help-bulb-list">
-                    <li><strong>Cancel changes</strong> — Discard unsaved edits to title / scenario / visibility / CJMM in this pane. Returns those fields to the last saved values. Does not touch chart tabs or question editors.</li>
-                    <li><strong>Delete</strong> — Permanently delete this case study. The dialog auto-detects the right path (simple, detach-and-delete, or delete-everything) based on attached questions, with a type-to-confirm gate.</li>
-                    <li><strong>Validate</strong> — Run a manual validation pass over the case (chart tabs, slots, CJMM, etc.). Errors appear first, warnings second. Manual only; it never auto-runs.</li>
-                    <li><strong>Save case study</strong> — Save the wrapper metadata: title, scenario, visibility flags, per-slot CJMM. Chart tabs save independently from the Chart tab; questions save from inside the editor.</li>
-                  </ul>
-                </HelpBulb>
+                <CaseStudyWrapperBulb />
               </span>
             </div>
 
@@ -955,13 +949,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
                     {activeSlotPending ? 'Saving…' : 'Save question'}
                   </button>
                 )}
-                <HelpBulb title="What do these buttons do?">
-                  <ul className="auth-help-bulb-list">
-                    <li><strong>← Wrapper view</strong> — Return to the wrapper view (case title, scenario, visibility flags, slot rail). If this question has unsaved edits you'll be prompted to keep editing, discard, or save and close.</li>
-                    <li><strong>Q1–Q6 slot pips</strong> — Switch to another question slot, or click an empty pip to add a new question at that position. If the active editor is dirty you'll be prompted before switching.</li>
-                    <li><strong>Save question</strong> — Save this question's body. Independent of Save case study (which only saves wrapper metadata) — each question saves itself.</li>
-                  </ul>
-                </HelpBulb>
+                <CaseStudyEditorBulb />
               </span>
             </div>
 

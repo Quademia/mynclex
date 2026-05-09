@@ -20,7 +20,7 @@ import { scoreAttempt } from '@/lib/scoring';
 import type { BankItemAnswer } from '@/lib/scoring';
 import type { BankItemCorrect } from '@/lib/bank/types';
 import type { QuestionType } from '@/lib/bank/classifications';
-import type { SubmitAnswerResult } from '@/lib/bank/runner';
+import type { SubmitAnswerResult } from '@/lib/practice/runner';
 
 export type ActionResult<T> =
   | { ok: true;  data: T }

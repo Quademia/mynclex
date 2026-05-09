@@ -30,8 +30,8 @@ import type {
   SealedItem,
   UnsealedItem,
   SubmitAnswerResult,
-} from '@/lib/bank/runner';
-import type { GridFilter } from '@/lib/bank/runner';
+} from '@/lib/practice/runner';
+import type { GridFilter } from '@/lib/practice/runner';
 import type {
   BankItemAnswer,
   McqAnswer,
@@ -49,8 +49,8 @@ import {
   isClozeComplete,
   isDragDropComplete,
   isBowtieComplete,
-} from '@/lib/bank/runner';
-import { ErrorToast } from '@/lib/bank/atoms/error-toast';
+} from '@/lib/practice/runner';
+import { ErrorToast } from '@/lib/toast/error-toast';
 import { RunnerTopbar }       from './runner-topbar';
 import { RunnerFooter }       from './runner-footer';
 import { RunnerGrid, RunnerGridHandle } from './runner-grid';

@@ -1,21 +1,24 @@
-// mynclex/lib/bank/atoms/help-bulb.tsx
+// mynclex/lib/hints/shared/bulb.tsx
 //
-// A 💡 bulb help icon. Click toggles a small anchored hint card
-// listing the purpose of nearby action buttons. The card has a close
-// × button + Esc handler. No backdrop — this is informational, not a
-// modal action, per the UI convention split (CLAUDE.md UI Conventions
-// rule #2 — backdrop dialogs are for destructive/irreversible
-// actions).
+// The 💡 bulb shell — one of the explanation shells under lib/hints/.
+// Click toggles a small anchored hint card showing the supplied title
+// and body. The card has a close × button + Esc handler. No backdrop
+// — this is informational, not a modal action, per CLAUDE.md UI
+// Conventions rule #2 (backdrop dialogs are reserved for destructive
+// or irreversible actions).
 //
-// Used by the case-study wrapper page (one bulb in wrapper mode,
-// one in editor mode) and reusable for any future toolbar that
-// benefits from a single help affordance over many action buttons.
+// This component is the SHELL only — it knows nothing about what it
+// explains. The actual explanation content (title + body) lives in
+// the named bulb files under lib/hints/bank/<area>-bulb.tsx (Path B
+// pattern: each unique explainer is its own file that wraps the
+// shell with its content baked in). Toolbars import the named bulb,
+// not this shell directly.
 
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
-interface HelpBulbProps {
+interface BulbProps {
   /**
    * Title shown at the top of the hint card.
    */
@@ -32,7 +35,7 @@ interface HelpBulbProps {
   bulbTitle?: string;
 }
 
-export function HelpBulb({ title, children, bulbTitle }: HelpBulbProps) {
+export function Bulb({ title, children, bulbTitle }: BulbProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
 

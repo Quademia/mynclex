@@ -24,7 +24,7 @@ import type {
   CaseSnapshot,
   TrendSnapshot,
   RunnerData,
-} from '@/lib/bank/runner';
+} from '@/lib/practice/runner';
 import { Runner } from './runner';
 
 export const dynamic = 'force-dynamic';

@@ -35,7 +35,7 @@
 
 'use client';
 
-import type { SealedItem, UnsealedItem, AnswerRow } from '@/lib/bank/runner';
+import type { SealedItem, UnsealedItem, AnswerRow } from '@/lib/practice/runner';
 import type { QuestionType } from '@/lib/bank/classifications';
 import type {
   McqContent,
@@ -81,7 +81,7 @@ import {
   DragDropRunner,
   BowtieRunner,
   RationaleBlock,
-} from '@/lib/bank/runner';
+} from '@/lib/practice/runner';
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   MCQ:       'Multiple choice',
