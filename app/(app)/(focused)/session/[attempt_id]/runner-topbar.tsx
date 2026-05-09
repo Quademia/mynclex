@@ -15,15 +15,25 @@
 
 import { useRouter } from 'next/navigation';
 
+interface CaseMeta {
+  caseIndex:    number;   // 1-indexed (e.g. 1st of 3 cases)
+  caseTotal:    number;
+  cjmmStep:     number;   // 1..6 (step index within the case)
+  cjmmStepLabel: string;  // e.g. "Analyse cues"
+}
+
 interface Props {
   modeLabel:   string;
   current:     number;          // 1-indexed for display
   total:       number;
   marked:      boolean;
   statusLabel: string;          // "Untimed" in live, "Score · 67%" in review
+  // Set on case-childs (slice 4.3) so the meta strip surfaces the
+  // case-of-N + CJMM step. Standalones leave this undefined.
+  caseMeta?:   CaseMeta;
 }
 
-export function RunnerTopbar({ modeLabel, current, total, marked, statusLabel }: Props) {
+export function RunnerTopbar({ modeLabel, current, total, marked, statusLabel, caseMeta }: Props) {
   const router = useRouter();
 
   return (
@@ -44,6 +54,14 @@ export function RunnerTopbar({ modeLabel, current, total, marked, statusLabel }:
           <span>{modeLabel}</span>
           <span className="dot" />
           <span>{total} questions</span>
+          {caseMeta && (
+            <>
+              <span className="dot" />
+              <span>Case {caseMeta.caseIndex} of {caseMeta.caseTotal}</span>
+              <span className="dot" />
+              <span>CJMM step {caseMeta.cjmmStep} of 6 · {caseMeta.cjmmStepLabel}</span>
+            </>
+          )}
         </div>
       </div>
 

@@ -47,6 +47,10 @@
   --rn-mark-border:     #d97706;
   --rn-current-ring:    #2d7d72;
 
+  /* Case bands — subtle tinted grouping for case-clustered grid cells. */
+  --rn-case-band:       rgba(45, 125, 114, 0.08);
+  --rn-case-band-edge:  rgba(45, 125, 114, 0.20);
+
   /* Timer warnings (4.5 wires real countdowns; 4.1 keeps tokens) */
   --rn-timer-warn:      #d97706;
   --rn-timer-crit:      #b91c1c;
@@ -210,8 +214,314 @@
 }
 
 /* Standalone-question wrapper (default — focused 720px column).
- * Case-child layout (.rn-split) lands with slice 4.3. */
+ * On case-child items the same wrapper is the right-hand column of
+ * .rn-split (the column's minmax(520px, 720px) clamps the wrap, so
+ * its max-width / margin auto are no-ops inside a case). */
 .rn-q-wrap { max-width: 720px; margin: 0 auto; }
+
+/* ────────────────────────────────────────────────────────────
+ *  Case-block layout (slice 4.3)
+ *
+ *  Two-column split when current item has parent_case_id:
+ *    [ Case panel (sticky)  |  Question column ]
+ *
+ *  Layout C (wrapper-protected): wrapper has 380px floor, question
+ *  floats 520→720 depending on viewport. Cap total width at 1240px
+ *  so 27"+ monitors don't stretch the row past readable widths.
+ * ──────────────────────────────────────────────────────────── */
+.rn-split {
+  display: grid;
+  grid-template-columns: minmax(380px, 1fr) minmax(520px, 720px);
+  gap: 24px;
+  max-width: 1240px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+/* Case panel — sticky on the left so the chart stays visible while
+ * the question column scrolls. Column flex chain prevents the body
+ * from spilling out — internal scroll on .rn-case-body. */
+.rn-case {
+  background: var(--rn-pane-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - var(--rn-topbar-h) - var(--rn-foot-h) - 56px);
+  display: flex;
+  flex-direction: column;
+}
+.rn-case-head {
+  padding: 12px 14px;
+  background: linear-gradient(180deg, rgba(45,125,114,0.06) 0%, rgba(45,125,114,0) 100%);
+  border-bottom: 1px solid var(--border);
+}
+.rn-case-head .label {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent-dark, #1f5a52);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rn-case-head .label .pill {
+  background: rgba(45,125,114,0.14);
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--accent, #2d7d72);
+  font-weight: 700;
+}
+.rn-case-head .title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* Scenario block — sits between the head and the tab row. Always
+ * visible (doesn't scroll with the tab body), so the case's narrative
+ * anchor stays in front of the student no matter which tab they pick. */
+.rn-case-scenario {
+  padding: 10px 14px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+}
+.rn-case-scenario .label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.rn-case-scenario .body {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.rn-case-tabs {
+  display: flex;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0 6px;
+  overflow-x: auto;
+}
+.rn-case-tab {
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.rn-case-tab:hover { color: var(--text); }
+.rn-case-tab.on {
+  color: var(--primary, #1f4f48);
+  border-bottom-color: var(--accent, #2d7d72);
+  background: var(--white);
+}
+
+.rn-case-body {
+  padding: 14px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+/* Free-text / built-in narrative entries — stacked cards. */
+.rn-case-entry {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0;
+}
+.rn-case-entry:first-child { padding-top: 2px; }
+.rn-case-entry:last-child  { border-bottom: none; padding-bottom: 2px; }
+.rn-case-entry .meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+  font-weight: 700;
+}
+.rn-case-entry .meta .chip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.rn-case-entry .body {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Structured / rows_cols entries — table. */
+.rn-case-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 2px;
+}
+.rn-case-body th,
+.rn-case-body td {
+  text-align: left;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.rn-case-body th {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg);
+  font-weight: 700;
+}
+.rn-case-body tr:last-child td { border-bottom: none; }
+
+.rn-case-body .empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 6px 0;
+}
+
+/* CJMM strip — 6-step horizontal stepper above the question. */
+.rn-cjmm-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(45,125,114,0.05);
+  border: 1px solid rgba(45,125,114,0.15);
+  border-radius: 8px;
+  margin-bottom: 14px;
+  font-size: 11px;
+}
+.rn-cjmm-step {
+  flex: 1;
+  padding: 5px 6px;
+  border-radius: 5px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+}
+.rn-cjmm-step.done    { color: var(--accent-dark, #1f5a52); }
+.rn-cjmm-step.current {
+  background: var(--accent, #2d7d72);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(45,125,114,0.30);
+}
+.rn-cjmm-step .num {
+  font-size: 9.5px;
+  opacity: 0.7;
+  margin-right: 4px;
+}
+.rn-cjmm-arrow {
+  color: var(--text-faint, #93a0a0);
+  font-size: 9px;
+}
+
+/* CJMM pill in the q-meta strip — same family as .rn-type-pill but
+ * accent-toned because it carries the case's pedagogical label. */
+.rn-cjmm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(45,125,114,0.14);
+  color: var(--accent-dark, #1f5a52);
+}
+.rn-cjmm-pill .step { font-weight: 800; }
+
+/* Case-entry banner (lib/hints/practice/case-entry-banner.tsx).
+ * Non-modal — sits above the .rn-split, fades after a few seconds.
+ * The banner explains that the chart panel applies to N questions. */
+.rn-case-banner {
+  max-width: 1240px;
+  margin: 0 auto 16px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: rgba(45,125,114,0.08);
+  border: 1px solid rgba(45,125,114,0.25);
+  border-radius: 10px;
+  color: var(--text);
+  animation: rn-case-banner-in 240ms ease-out;
+}
+.rn-case-banner.fading {
+  animation: rn-case-banner-out 360ms ease-in forwards;
+}
+.rn-case-banner .icon {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(45,125,114,0.18);
+  color: var(--accent-dark, #1f5a52);
+  font-weight: 800;
+  font-size: 12px;
+}
+.rn-case-banner .body {
+  flex: 1;
+  min-width: 0;
+}
+.rn-case-banner .body strong {
+  font-weight: 700;
+  color: var(--accent-dark, #1f5a52);
+}
+.rn-case-banner .dismiss {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1;
+}
+.rn-case-banner .dismiss:hover {
+  background: rgba(0,0,0,0.04);
+  color: var(--text);
+}
+@keyframes rn-case-banner-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes rn-case-banner-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-4px); }
+}
 
 .rn-q-meta {
   display: flex;
@@ -1589,6 +1899,20 @@
   position: relative;
   justify-content: start;
 }
+
+/* Case-band — subtle tinted rectangle behind a cluster of case-child
+ * cells. Absolute-positioned by JS-computed offsets relative to .rn-cells.
+ * Sits behind the cells (z-index 0) so cell hover/focus rings still read.
+ * No label per spec §16.4 — visual grouping only. */
+.rn-case-band {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--rn-case-band);
+  border: 1px solid var(--rn-case-band-edge);
+  border-radius: 6px;
+}
+.rn-cell { z-index: 1; }
 
 .rn-cell {
   width: var(--rn-cell);

@@ -22,7 +22,7 @@
 
 'use client';
 
-import { useMemo, useState, useTransition, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type {
   RunnerData,
@@ -32,6 +32,9 @@ import type {
   SubmitAnswerResult,
 } from '@/lib/practice/runner';
 import type { GridFilter } from '@/lib/practice/runner';
+import { CasePanel, CjmmStrip } from '@/lib/practice/runner';
+import { CJMM_STEPS } from '@/lib/bank/classifications';
+import { CaseEntryBanner } from '@/lib/hints/practice/case-entry-banner';
 import type {
   BankItemAnswer,
   McqAnswer,
@@ -53,7 +56,7 @@ import {
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { RunnerTopbar }       from './runner-topbar';
 import { RunnerFooter }       from './runner-footer';
-import { RunnerGrid, RunnerGridHandle } from './runner-grid';
+import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
 import { RunnerQuestionArea, type PerItemUnseal } from './runner-question-area';
 import { Preflight }          from './preflight';
 import { submitAnswerAction, completeAttemptAction } from './actions';
@@ -131,6 +134,78 @@ function RunnerShell({ data }: Props) {
     data.mode === 'review' || (currentItem && answersByItem.has(currentItem.attempt_item_id))
       ? 'review'
       : 'answering';
+
+  // ── Case-block context (slice 4.3) ────────────────────────────────
+  // Computed every render from the items array + answer state. The
+  // runner has no separate "case state" — case-ness is derived purely
+  // from the current item's parent_case_id.
+  const currentCaseId = currentItem?.parent_case_id ?? null;
+  const caseSnap = useMemo(
+    () => (currentCaseId ? data.cases.find((c) => c.case_id === currentCaseId) : undefined),
+    [currentCaseId, data.cases],
+  );
+
+  // Distinct case_ids in attempt-order — drives the topbar's "Case N of M".
+  const caseOrder = useMemo(() => {
+    const seen = new Set<string>();
+    const order: string[] = [];
+    for (const it of data.items) {
+      if (it.parent_case_id && !seen.has(it.parent_case_id)) {
+        seen.add(it.parent_case_id);
+        order.push(it.parent_case_id);
+      }
+    }
+    return order;
+  }, [data.items]);
+
+  // Contiguous case-runs as 0-indexed ranges — drives the grid's case
+  // bands. The create-attempt RPC inserts a case's 6 children with
+  // consecutive positions, so each run is one contiguous block. A
+  // single attempt can carry multiple cases.
+  const caseGroups = useMemo<CaseGroup[]>(() => {
+    const groups: CaseGroup[] = [];
+    let run: CaseGroup | null = null;
+    data.items.forEach((it, i) => {
+      const cid = it.parent_case_id;
+      if (cid && run?.caseId === cid) {
+        run.to = i;
+      } else {
+        if (run) groups.push(run);
+        run = cid ? { caseId: cid, from: i, to: i } : null;
+      }
+    });
+    if (run) groups.push(run);
+    return groups;
+  }, [data.items]);
+
+  // Children of the current case (their attempt_item_ids), and how
+  // many have an answer row — drives the panel's "X of N answered" pill.
+  const caseChildIds = useMemo(() => {
+    if (!currentCaseId) return [] as string[];
+    return data.items
+      .filter((it) => it.parent_case_id === currentCaseId)
+      .map((it) => it.attempt_item_id);
+  }, [data.items, currentCaseId]);
+  const answeredInCase = caseChildIds.reduce(
+    (n, id) => n + (answersByItem.has(id) ? 1 : 0),
+    0,
+  );
+
+  const cjmmStep      = currentItem?.cjmm_step ?? null;
+  const cjmmStepIndex = cjmmStep ? CJMM_STEPS.indexOf(cjmmStep) + 1 : 0;
+
+  // Case-entry banner: fires when the student crosses into a case
+  // (null → caseId, or caseA → caseB). Persists 4s then auto-dismiss.
+  // Re-entry via grid re-fires the banner per slice 4.3 decision —
+  // the rule is "always, every case entry," not "first-time only."
+  const prevCaseIdRef = useRef<string | null>(null);
+  const [bannerCaseId, setBannerCaseId] = useState<string | null>(null);
+  useEffect(() => {
+    if (currentCaseId !== null && currentCaseId !== prevCaseIdRef.current) {
+      setBannerCaseId(currentCaseId);
+    }
+    prevCaseIdRef.current = currentCaseId;
+  }, [currentCaseId]);
 
   // Resolve the unseal data for the current item. In review mode the
   // unsealed columns sit on the item itself; in live mode we look up
@@ -244,39 +319,82 @@ function RunnerShell({ data }: Props) {
   // runners. The "review-but-unseal-missing" branch is currently
   // unreachable in 4.1; surfaces only with slice 4.6 (Resume) where
   // server-stored answer rows arrive without client-side unseal data.
-  let questionArea: React.ReactNode;
+  //
+  // Case-block layout (slice 4.3): when the current item has a
+  // parent_case_id and we have a matching CaseSnapshot, wrap the
+  // question area in a .rn-split grid with the CasePanel on the left
+  // and a CJMM strip in the question column's topSlot. The split's
+  // right column IS the .rn-q-wrap (clamped by minmax(520, 720) on
+  // the grid column), so the question's internal layout is unchanged.
+  const inCase = Boolean(currentCaseId && caseSnap);
+  const cjmmTopSlot = inCase && cjmmStep
+    ? <CjmmStrip current={cjmmStep} />
+    : undefined;
+
+  let questionAreaInner: React.ReactNode;
   if (!currentItem) {
-    questionArea = (
+    questionAreaInner = (
       <div className="rn-q-wrap">
         <div className="rn-stub">No questions in this attempt.</div>
       </div>
     );
   } else if (itemMode === 'answering') {
-    questionArea = (
+    questionAreaInner = (
       <RunnerQuestionArea
         item={currentItem}
         itemMode="answering"
         pendingAnswer={pendingForCurrent}
         onAnswerChange={onAnswerChange}
+        topSlot={cjmmTopSlot}
       />
     );
   } else if (answerRowForCurrent && unsealForCurrent) {
-    questionArea = (
+    questionAreaInner = (
       <RunnerQuestionArea
         item={currentItem}
         itemMode="review"
         answerRow={answerRowForCurrent}
         unseal={unsealForCurrent}
+        topSlot={cjmmTopSlot}
       />
     );
   } else {
-    questionArea = (
+    questionAreaInner = (
       <div className="rn-q-wrap">
         <div className="rn-stem">{currentItem.stem_snapshot}</div>
         <div className="rn-stub">Loading review data…</div>
       </div>
     );
   }
+
+  // Wrap in .rn-split when on a case-child. The CasePanel's React key
+  // is the case_id so its internal tab state persists across siblings
+  // of the same case (and resets when the student crosses into a
+  // different case).
+  const questionArea: React.ReactNode = inCase && caseSnap
+    ? (
+      <div className="rn-split">
+        <CasePanel
+          key={caseSnap.case_id}
+          caseSnap={caseSnap}
+          currentPosition={currentItem?.case_position ?? 1}
+          totalChildren={caseChildIds.length}
+          answeredCount={answeredInCase}
+        />
+        {questionAreaInner}
+      </div>
+    )
+    : questionAreaInner;
+
+  // Topbar case meta — only shown on case-childs.
+  const caseMeta = inCase && currentCaseId
+    ? {
+        caseIndex:     caseOrder.indexOf(currentCaseId) + 1,
+        caseTotal:     caseOrder.length,
+        cjmmStep:      cjmmStepIndex,
+        cjmmStepLabel: cjmmStep ?? '',
+      }
+    : undefined;
 
   return (
     <div className="rn">
@@ -288,11 +406,19 @@ function RunnerShell({ data }: Props) {
         total={total}
         marked={marked.has(currentItem?.attempt_item_id ?? '')}
         statusLabel={statusLabel}
+        caseMeta={caseMeta}
       />
 
       <div className="rn-body">
         <main className="rn-main">
           <div className="rn-main-scroll">
+            {bannerCaseId && bannerCaseId === currentCaseId && (
+              <CaseEntryBanner
+                key={bannerCaseId}
+                totalChildren={caseChildIds.length}
+                onDismiss={() => setBannerCaseId(null)}
+              />
+            )}
             {questionArea}
           </div>
         </main>
@@ -304,6 +430,7 @@ function RunnerShell({ data }: Props) {
             marked={marked}
             current={current}
             filter={filter}
+            caseGroups={caseGroups}
             onPick={onPick}
             onFilterChange={setFilter}
             onCollapse={() => setGridOpen(false)}

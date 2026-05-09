@@ -30,8 +30,12 @@
 // normally — its slot list sits below the stem like a regular options
 // block.
 //
-// Wrapper-aware layout (case panel + question, trend dataset + question)
-// lands with slices 4.3 / 4.4. For now we always render `.rn-q-wrap`.
+// Wrapper-aware layout (case panel + question — slice 4.3 / trend
+// dataset + question — slice 4.4) places the question column inside a
+// `.rn-split` grid. The wrapper still owns `.rn-q-wrap`; the column's
+// minmax sizing clamps it. Case-childs supply a CJMM strip via the
+// `topSlot` prop, which renders at the top of the wrap above
+// `.rn-q-meta`.
 
 'use client';
 
@@ -111,7 +115,11 @@ export interface PerItemUnseal {
 }
 
 interface CommonProps {
-  item: SealedItem | UnsealedItem;
+  item:     SealedItem | UnsealedItem;
+  // Optional render slot above the q-meta strip. Case-childs (slice
+  // 4.3) pass a <CjmmStrip />; trend questions (slice 4.4) will pass
+  // their own context indicator. Standalones leave it undefined.
+  topSlot?: React.ReactNode;
 }
 
 type AnsweringProps = CommonProps & {
@@ -136,6 +144,7 @@ export function RunnerQuestionArea(props: Props) {
 
   return (
     <div className="rn-q-wrap">
+      {props.topSlot}
       <div className="rn-q-meta">
         <span className="rn-type-pill">
           {QUESTION_TYPE_LABELS[item.question_type] ?? item.question_type}

@@ -39,3 +39,8 @@ export { ClozeRunner,     isClozeComplete }     from './types/cloze';
 export { DragDropRunner,  isDragDropComplete }  from './types/drag-drop';
 export { BowtieRunner,    isBowtieComplete }    from './types/bowtie';
 export { RationaleBlock } from './rationale';
+
+// Case-block UX (slice 4.3) — wrapper panel + CJMM stepper for case-childs.
+export { CasePanel }     from './case/case-panel';
+export { CjmmStrip }     from './case/cjmm-strip';
+export { ChartTabBody }  from './case/chart-tab-body';
