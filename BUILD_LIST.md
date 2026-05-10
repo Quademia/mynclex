@@ -1,89 +1,92 @@
 # MyNclex Build List
 
-Bank consumption work, in the order we're likely to build it. Each line
-is one slice. Not exhaustive — design surprises happen — but the shape
-is settled.
+Slice-by-slice list of work in the MyNclex product, split by the two
+layers MyNclex is built around: the **Bank** (self-study question
+bank) and the **Programme** (tutored prep). Each line is one slice.
+Not exhaustive — design surprises happen — but the shape is settled
+where it's listed.
+
+Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
+
+> **Last shipped (2026-05-10):** **Slice 4.6 — History page + Resume
+> detection.** Two sub-slices + two bug fixes that surfaced during
+> testing close out the runner-side resume story. Universal save-on-
+> tap from 4.5a was already persisting in-flight state to DRAFT rows;
+> what was missing was the entry point. Now both exist: a full History
+> page that lists every attempt with status-aware actions, and a
+> Resume banner extension so EXAM attempts (not just STUDY) surface
+> on the Builder.
+>
+> **4.6a — History page (MVP).** New `/student/bank/history` route
+> replacing the Placeholder. Table card listing every attempt the
+> student has (newest first, capped at 50, no pagination): When ·
+> Session · Source·Mode · Result · State · action. Status maps to
+> action: COMPLETED/TIMED_OUT → Review →; IN_PROGRESS → Resume →;
+> ABANDONED → no link (hidden by default, toggleable). Search input +
+> source/mode filter chips render disabled as visible placeholders for
+> slice 7.1 polish. Source pill always says "Custom" in v1 (forward-
+> compat for Packs/Programmes via `SOURCE_LABEL` map). Session column
+> reuses `summariseRecent()` from launchers so each row reads as e.g.
+> "Pharmacology · Hard · 25 Q" — same chip-style label Recent Quizzes
+> uses, no fake titles. New folder `lib/practice/history/` (queries /
+> types / format / table) + new `styles/history.css`.
+>
+> **4.6a fix — UL resume restored per-Q feedback.** UL students
+> returning to an in-progress attempt saw "Loading review data…" for
+> every previously-submitted question. Cause: `page.tsx` applies
+> sealed projection while `status=IN_PROGRESS` (Pillar 2), and
+> `clientUnseal` (the per-Q envelope from `submitAnswerAction`) is
+> React state lost on reload. 4.5b correctly set `itemMode='review'`
+> for finalised UL rows, but the data those rows need to render was
+> nowhere on the page. Fix: `page.tsx` does a narrow follow-up query
+> in the live branch fetching unseal columns ONLY for items whose
+> answer row is finalised (SUBMITTED / AUTO_SUBMITTED / SKIPPED —
+> never DRAFT). Threads through `LiveData.seededUnseal`, seeds
+> `clientUnseal` on mount. Pillar 2 holds — only items the student
+> already submitted get unsealed. `PerItemUnseal` moved to
+> `lib/practice/runner/types` (re-exported from runner-question-area
+> for backward-compat).
+>
+> **4.6b — Resume banner surfaces EXAM attempts (non-CAT).** The
+> banner shipped in 5.1c filtered to STUDY-intent based on the
+> original §15 rule. Slice 4.5a revised attempt-creation §6.1.3:
+> timed EXAM is now resumable mid-timer (wall-clock continues during
+> absence; lazy expiry on next mount). Drops the `intent='STUDY'`
+> filter from `get-resumable-attempt.ts`; adds `mode != 'CAT'` as a
+> defensive filter for Phase B (CAT can't be resumed). Banner sub-
+> line now mode-aware: timed → "Resume soon — the clock kept running
+> while you were away."; untimed → "Pick up exactly where you left
+> off."
+>
+> **4.6b fix — Sequential resume unstuck.** `current` initialised to
+> 0 always; on Sequential resume Q1 was SUBMITTED but `pendingAnswers`
+> only seeds DRAFT rows, so Q1 re-rendered in 'answering' mode with
+> empty state. Sequential locks Prev + grid (4.5c) → student stuck;
+> RPC blocks resubmit. Fix: `current` initialiser walks items, lands
+> on first index whose answer row is missing or DRAFT — natural
+> "where you left off" position. Universal across archetypes
+> (Sequential breaks; UL + Free-batched are UX-improved).
+>
+> Build-list also restructured this session: file now has two top-
+> level parts — Part 1 (Bank, existing slice list, phases demoted
+> h2 → h3) and Part 2 (Programme, stub for next session's pivot).
+>
+> See SESSIONS 2026-05-10 for the slice + bug-hunting session.
+>
+> **Next pick:** **next session pivots to Programme work** (Sam's
+> call). When Bank work resumes, the next ⏭ is **4.7 — Mark-for-
+> review toggle** (runner button writing to slice 2.1.5's marking
+> table, persists across attempts).
+
+---
+
+## Part 1 — Bank
 
 Sources: `docs/product-plan/bank-consumption.html` (parent),
 `bank-consumption-attempt-creation.html`, `bank-consumption-runner.html`,
 `bank-consumption-cat.html`, `bank-marks-and-scoring.html`.
 
-Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
-
-> **Last shipped (2026-05-09):** **Slice 4.5 — Per-mode behaviour.**
-> Three sub-slices closing the runner phase. Modes finally feel like
-> modes:
->
-> **4.5a — Timer + save-on-tap + auto-submit (foundation).** Unified
-> clock pill in the topbar — stopwatch (count-up, neutral) for untimed
-> / countdown (count-down, escalating tone) for timed. `mm:ss` under
-> 1 hr, `h:mm:ss` over. Hide toggle (eye-icon, per-attempt scope,
-> locks at first warning fired). Warning tiers 30 / 15 / 5 / 1 min
-> with duration-conditional firing (30 needs ≥60 min, 15 ≥30, 5 ≥10,
-> 1 always). Tone escalates only — never reverts. Universal save-on-
-> tap: every material change writes a DRAFT row + appends to
-> `answer_changes_json` via new `nclex_save_progress` RPC, debounced
-> ~500ms client-side. UL backported from "submit creates row" to
-> "save-on-tap → status flip on Submit" for consistency. Auto-
-> submit on expiry: lazy detection in `page.tsx` flips status to
-> TIMED_OUT + AUTO_SUBMITs DRAFT rows + inserts SKIPPED rows for
-> items with no answer. EXAM re-entry handled via 60s
-> `last_activity_at` heuristic (timed exams resumable mid-timer;
-> untimed EXAM also resumable; CAT keeps its exception per §6.1.2).
->
-> **4.5b — Submission archetypes.** Collapses 8 (mode, intent)
-> tuples into 3 behavioural groups: UL (per-Q + immediate rationale
-> + free nav, unchanged from 4.1), Free-batched (UT, TFN — Prev/Next
-> only, Finish-with-blanks confirm modal), Sequential (TS — per-Q
-> Submit & continue, Prev disabled, no Skip — must commit). New
-> `getArchetype` helper, `itemMode` corrected to keep DRAFT rows in
-> 'answering' (4.5a latent bug fixed: page reload no longer falsely
-> shows "Loading review data..." for UL DRAFTs). `pendingAnswers`
-> seeds from DRAFT rows on mount so reload restores in-progress
-> state. `_flushDrafts` helper extracted from `expireAttemptAction`
-> to also be used by `completeAttemptAction` (Free-batched +
-> Sequential have DRAFTs to flush at Finish). New
-> `lib/overlays/practice/finish-with-blanks-confirm.tsx`. Migration
-> fix for slice 2.2a oversight: `BEFORE INSERT` trigger sets
-> `duration_seconds = requested_count × 90` for timed modes
-> (matches UWorld's industry-standard pace; real NCLEX averages
-> ~84 sec/Q in CAT).
->
-> **4.5c — Sequential lock + case-exit warning + correctness gate.**
-> Sequential's `Submit & continue` actually fires `submitAnswerAction`
-> per-Q now (DRAFT → SUBMITTED). Grid clicks short-circuited in
-> Sequential live mode — grid becomes a pure progress indicator.
-> Case-exit warning for FREE_BATCHED only (Sequential locks Prev +
-> grid; UL has per-Q rhythm) when student tries to leave a
-> partly-answered case via Prev / Next / grid. Modal
-> `lib/overlays/practice/case-exit-confirm.tsx` with per-attempt
-> suppression. Hot-fix surfaced during testing: the per-Q submit in
-> Sequential was leaking correctness via grid green/red mid-quiz —
-> contradicts §15 "Batched submit at the end" + Pillar 2 (real
-> NCLEX never shows per-Q correctness). Added `revealCorrectness`
-> gate to `deriveCellFill` / `gridCounts` / RunnerGrid: false for
-> Free-batched + Sequential live, true for UL live + any review
-> state. Wrong filter chip + correctness legend rows hide when
-> gated. SUBMITTED rows render as 'answered' (neutral blue) until
-> review.
->
-> See SESSIONS 2026-05-09 (4.5 planning) for the spec settled in
-> writing across `runner.html §8 / §9.1 / §13` and
-> `attempt-creation §6.1.3` (revised); SESSIONS 2026-05-09 (4.5)
-> for the build phase + bugs surfaced + hot-fixes.
->
-> **Next pick:** **4.6 History page + Resume detection** — reframed
-> 2026-05-09 during 4.5 close. The History page is the natural home
-> for "your past quizzes" including in-progress ones, and the Resume
-> banner becomes a one-line shortcut to the most-recent in-progress
-> entry rather than a separate feature. Pulls slice 7.1's MVP
-> forward; 7.1 stays in Phase F as "History polish" (analytics +
-> filtering on the cards). Splits into **4.6a History page (MVP)**
-> + **4.6b Resume banner on Builder dashboard**.
-
----
-
-## Phase A — Database foundation
+### Phase A — Database foundation
 
 - ✅ **2.1** Base attempt tables — `nclex_attempts`, `nclex_attempt_items`, `nclex_attempt_answers`, `nclex_attempt_case_snapshots`, `nclex_attempt_trend_snapshots`. Applied to mynclex-dev 2026-05-05.
 - ✅ **2.1.5** Marking table — `nclex_question_marks` applied to mynclex-dev 2026-05-06. Polymorphic single table (`target_kind` ∈ QUESTION/CASE, `target_source` ∈ BANK/TUTOR), row-exists toggle (INSERT/DELETE, no `is_marked` column), partial unique indexes per source to handle nullable `tutor_id`. RLS: students INSERT/SELECT/DELETE own rows, SUPER_ADMIN bypass.
@@ -101,13 +104,13 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
   Followed by a hygiene pass: 7 dead case-save / trend-save RPCs dropped, `db/rpcs.sql` retired. See `SESSIONS.md` 2026-05-06 entry.
 
-## Phase B — CAT schema & engine
+### Phase B — CAT schema & engine
 
 - ⬜ **3.1** CAT schema package (§12.7 of cat.html) — `difficulty_irt` + `difficulty_source` on bank + tutor tables, 5 CAT cols on `nclex_attempts`, 4 CAT cols on `nclex_attempt_items`, audit table `nclex_bank_item_calibration_history`, RPC stubs (`create_cat_attempt`, `cat_next_item`) raising "not yet implemented." Sam-gated dev → prod.
 - ⬜ **3.2** Rasch engine — fill in `create_cat_attempt` and `cat_next_item` bodies with TS Rasch (1PL) math per §4 + §10.2. Selection rule per §7, termination per §9.
 - ⬜ **3.3** Recalibration job — weekly batch (Sundays 02:00 UTC), 30-response threshold, 70/30 dampened blend. Runtime location TBD (Supabase pg_cron vs Cloudflare Worker).
 
-## Phase C — Runner (smallest visible loop first)
+### Phase C — Runner (smallest visible loop first)
 
 - ✅ **4.1** Runner shell + MCQ vertical slice — shipped 2026-05-07. `app/(app)/(focused)/session/[attempt_id]/` route replaced the stub from slice 5.1a wholesale. Pulled slice 2.3 (`nclex_submit_answer`) and the COMPLETED side of 2.4 (`nclex_complete_attempt`) into the same build — designed alongside their only consumer. **Mode policy:** all 5 modes render as Untimed Learning behaviour for now (per-Q submit, immediate feedback, free nav, no timer, no sequential lock); per-mode deltas land in 4.5. Built from the `design_handoff_bank_consumption/` runner-v2 prototype as concept-not-source — three-channel cell encoding (fill / marked border / current ring), CVD-safe palette (light green vs dark red), right-edge sticky 240px grid sidebar. Five sub-slices:
   - **4.1.1** RPCs — `nclex_submit_answer` (thin: validates ownership + status=IN_PROGRESS, INSERTs `nclex_attempt_answers`, bumps `last_activity_at`; scoring stays in TS via `lib/scoring/scoreAttempt` so the 40-test suite remains the single source of truth) and `nclex_complete_attempt` (aggregates `final_score` as item-equivalent average per `bank-marks-and-scoring.html` §7, sets status=COMPLETED + ended_at, idempotent). Migrations applied to mynclex-dev, smoke-tested across 8 paths (happy / wrong / double-submit lock / score-out-of-bounds / status guard / final score / idempotency / cross-student ownership).
@@ -130,14 +133,14 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
   - ✅ **4.5a** Timer + save-on-tap + auto-submit (foundation) — new `nclex_save_progress(attempt_item_id, answer_json)` RPC + new `nclex_expire_attempt(attempt_id)` RPC. Client-side debounced (~500ms) save wired into all 9 per-type runners via `runner.tsx`'s `onAnswerChange`. UL backported from "submit creates row directly" to "save-on-tap → status flip on Submit" via the existing RPC's promotion path; `nclex_submit_answer` updated to no longer overwrite `answer_changes_json` on the DRAFT promotion path. Topbar pill becomes a live tick — stopwatch (untimed) or countdown (timed). New `lib/practice/runner/clock.ts` with `formatClock` (`mm:ss` / `h:mm:ss`) + `tierFor` (30 / 15 / 5 / 1 min with duration-conditional firing). Sticky max-tier-fired ref enforces escalates-only tone progression. Hide toggle (eye-icon, per-attempt scope, locks after first warning). Auto-expire via lazy detection in `page.tsx` + client-side `useEffect` when remaining ≤ 0 — flips status to TIMED_OUT, AUTO_SUBMITs DRAFT rows, inserts SKIPPED rows for items without answers, transitions to review. Commit `3d33394`. See SESSIONS 2026-05-09 (4.5a).
   - ✅ **4.5b** Submission archetypes (Free-batched + Sequential) — mode-aware footer + feedback timing. New `getArchetype(mode)` helper collapses 8 (mode, intent) tuples into 3 groups (UL / FREE_BATCHED / SEQUENTIAL). `itemMode` corrected to keep DRAFT rows in 'answering' (latent 4.5a bug fixed: page reload no longer falsely shows "Loading review data..." for UL DRAFTs). `pendingAnswers` seeds from DRAFT rows on mount so reload restores in-progress state. Free-batched (UT, TFN) removes per-Q Submit; footer is just Next / Finish; Finish-with-blanks confirmation modal in `lib/overlays/practice/`. Sequential (TS) gets per-Q `Submit & continue` (4.5b: advances + saves like Next; lock semantics in 4.5c) + Prev disabled + "no Skip" gate (must commit). `_flushDrafts` helper extracted from `expireAttemptAction` and reused in `completeAttemptAction`. Migration fix for slice 2.2a oversight: `BEFORE INSERT` trigger sets `duration_seconds = requested_count × 90` for timed modes (UWorld pace; real NCLEX averages ~84 sec/Q). Commit `f407c21`. See SESSIONS 2026-05-09 (4.5b).
   - ✅ **4.5c** Sequential lock + case-exit warning + correctness gate — closing layer. Sequential's `Submit & continue` now actually fires `submitAnswerAction` per-Q (DRAFT → SUBMITTED) + advances; `Submit & finish` does the same for last Q + `completeAttemptAction`. Grid clicks short-circuited in Sequential live mode — grid becomes a pure progress indicator. Case-exit warning for FREE_BATCHED only (Sequential locks Prev + grid; UL has per-Q rhythm) when student tries to leave a partly-answered case via Prev / Next / grid; modal in `lib/overlays/practice/case-exit-confirm.tsx` with per-attempt suppression. **Hot-fix** surfaced during testing: per-Q submit was leaking correctness via grid green/red mid-quiz (contradicts §15 "Batched submit at the end" + Pillar 2). Added `revealCorrectness` flag to `deriveCellFill` / `gridCounts` / RunnerGrid: false for batched live, true for UL live + any review state. Wrong filter chip + correctness legend rows hide when gated. Commit `d1490e8`. See SESSIONS 2026-05-09 (4.5).
-- ⏭ **4.6** History page + Resume detection — reframed 2026-05-09 during 4.5 close: the History page is the natural home for "your past quizzes" including in-progress ones, and the Resume banner becomes a one-line shortcut to the most-recent in-progress entry rather than a feature in its own right. **Save-progress half already shipped in 4.5a/b** (universal save-on-tap; pendingAnswers DRAFT restore on mount). What's left for the runner-side resume is the *entry point* — students need to be able to find their in-progress quizzes from the dashboard. The History page is that entry point. Pulls slice 7.1's MVP forward; 7.1 stays in Phase F as "History polish" (analytics + filtering on the cards):
-  - ⏭ **4.6a** History page (MVP) — list of attempts at `/student/bank/history/`. Card per attempt with date · mode · intent · question count · status · score (if terminal) · duration. Click routing by status: IN_PROGRESS → runner (resumes via DRAFT-on-mount, already wired in 4.5b); COMPLETED / TIMED_OUT → review; ABANDONED not clickable (discarded — nothing to open). Sort newest-first. ABANDONED hidden by default with an optional toggle. No pagination in v1 (≤50 attempts visible — paginate later if needed). Touches: new route, server query against `nclex_attempts`, new card component.
-  - ⬜ **4.6b** Resume banner on Builder dashboard — derives from the same query as 4.6a (filter `status='IN_PROGRESS'`, take most recent), surfaced as a callout above the Builder so students see in-flight attempts before they navigate elsewhere. One-click resume into the runner. Per attempt-creation §6.1.3, EXAM is also resumable mid-timer (wall-clock continues); same callout applies regardless of intent — the runner shell handles the EXAM-vs-STUDY framing.
-- ⬜ **4.7** Mark-for-review toggle — runner button, writes to marking table, persists across attempts.
+- ✅ **4.6** History page + Resume detection — shipped 2026-05-10 across two sub-slices + two bug fixes that surfaced during testing. Save-progress half already shipped in 4.5a/b; what was missing was the entry point UX. See SESSIONS 2026-05-10 for the slice + bug-hunting session.
+  - ✅ **4.6a** History page (MVP) — new `/student/bank/history` route replacing the Placeholder. Table card listing every attempt the student has (newest first, capped at 50, no pagination): When · Session · Source·Mode · Result · State · action. Status maps to action: COMPLETED/TIMED_OUT → Review →; IN_PROGRESS → Resume → (DRAFT restore from 4.5b takes over); ABANDONED → no link (hidden by default, toggleable). Search input + source/mode filter chips render disabled as visible placeholders for slice 7.1 polish. Source pill always says "Custom" in v1 (forward-compat for Packs/Programmes via SOURCE_LABEL map). Session column reuses `summariseRecent()` from launchers so each row reads as e.g. "Pharmacology · Hard · 25 Q." New folder `lib/practice/history/` (queries / types / format / table) + new `styles/history.css`. Commit `6cdc9dc`. **Hot-fix during testing** — UL students returning to an in-progress attempt saw "Loading review data…" for previously-submitted Qs. Cause: `page.tsx` applies sealed projection while `status=IN_PROGRESS` (Pillar 2), and `clientUnseal` (per-Q envelope from `submitAnswerAction`) is React state lost on reload. 4.5b correctly set `itemMode='review'` for finalised UL rows but the data those rows need to render was nowhere on the page. Fix: narrow follow-up query in the live branch fetches unseal columns ONLY for items whose answer row is finalised (SUBMITTED / AUTO_SUBMITTED / SKIPPED — never DRAFT); threads through `LiveData.seededUnseal`, seeds `clientUnseal` on mount. Pillar 2 holds — only items the student already submitted get unsealed. `PerItemUnseal` moved to canonical home in `lib/practice/runner/types`. Commit `16537f5`.
+  - ✅ **4.6b** Resume banner surfaces EXAM attempts (non-CAT) — extends the banner shipped in 5.1c. Drops the `intent='STUDY'` filter from `get-resumable-attempt.ts` (5.1c filtered to STUDY based on the original §15 rule; 4.5a's revised attempt-creation §6.1.3 made timed EXAM resumable mid-timer). Adds `mode != 'CAT'` defensively for Phase B. Banner sub-line now mode-aware: timed → "Resume soon — the clock kept running while you were away."; untimed → "Pick up exactly where you left off." Commit `80fdbfa`. **Hot-fix during testing** — Sequential resume was stuck. `current` initialised to 0 always; on Sequential resume Q1 was SUBMITTED but `pendingAnswers` only seeds DRAFT rows so Q1 re-rendered in 'answering' mode with empty state. Sequential locks Prev + grid (4.5c) → student stuck; RPC blocks resubmit. Fix: `current` initialiser walks items, lands on first index whose answer row is missing or DRAFT — the natural "where you left off" position. Universal across archetypes (Sequential breaks; UL + Free-batched are UX-improved). Commit `823a2bd`.
+- ⏭ **4.7** Mark-for-review toggle — runner button, writes to marking table, persists across attempts.
 - ⬜ **4.8** Discard / abandon — modal with type-DELETE-to-confirm, calls `nclex_discard_attempt`.
 - ⬜ **4.9** Review state polish — read-only post-completion view, list + detail with filters (All / Wrong / Right / By category / Marked).
 
-## Phase D — Builder (the entry point)
+### Phase D — Builder (the entry point)
 
 - ✅ **5.1** Builder page UI — `app/(app)/student/bank/practice/` shipped 2026-05-06 across four sub-slices, plus a tab restructure and a bug fix:
   - **5.1a** Spine — three sections (Pool, Content, Intent+Mode) + sticky summary, wired to `nclex_count_eligible_items` (debounced live count) and `nclex_create_attempt` (Start). Stub `/session/[id]` runner placeholder + Discard button. Smart-link UX for CNC↔Subcategory and Subject↔BodySystem (the Subject↔BodySystem map is hardcoded in `lib/bank/builder/filter-config.ts` — DB doesn't carry it).
@@ -159,26 +162,26 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
   
   Scheduled after Phase D-E core slices so it lands alongside Phase F analytics polish.
 
-## Phase E — Preflight, results, help
+### Phase E — Preflight, results, help
 
 - ⬜ **6.1** Preflight screen — between builder Start click and Q1; shows config summary, mode-specific note, "skip preflight next time" checkbox (per-mode localStorage). Calls `nclex_mark_attempt_started`.
 - ⬜ **6.2** Results screen (fixed-length) — score, session-scoped breakdown across 6 axes, transition to Review.
 - ⬜ **6.3** CAT summary page — verdict copy, items-administered fact line, **trajectory graph** (theta over question number, with passing-standard reference + per-item marker), per-Client-Needs-Category breakdown, "Compared to your previous CATs" panel, "Review answers" CTA.
 - ⬜ **6.4** Help routes — `app/help/[slug]/` (top-level, public, audience-neutral). First articles: `/help/cat`, `/help/payments`. Linked from CAT preflight + summary footer + dashboard CAT card.
 
-## Phase F — Dashboard, history, analytics
+### Phase F — Dashboard, history, analytics
 
 - ⬜ **7.1** History page polish — analytics + filtering layered on the MVP shipped in slice 4.6a. Per-attempt-card details (avg score, time-per-Q distribution, accuracy by axis), filter chips (mode, status, date range), sort options beyond newest-first. CAT-attempt cards open to the CAT summary page (slice 6.3) instead of the runner. The MVP list shipped earlier in 4.6a (pulled forward from this slice during 4.5 close).
 - ⬜ **7.2** Analytics page — `app/(app)/student/bank/analytics/`. All 6 breakdown axes with topic/subtopic drill-downs, peer percentile, answer-change tracking, time-per-question drill-down. Thin-slice gating.
 - ⬜ **7.3** Per-student-per-question state — materialised view over `nclex_attempt_answers` + marking table. Drives Unseen/Seen/Correct/Incorrect counts in the builder. Refresh on attempt completion. Promote to physical table only if measurable bottleneck.
 - ⬜ **7.4** Dashboard surface — `app/(app)/student/bank/dashboard/`. Readiness card (with cold-start gating), Client Needs Category breakdown card (compact), trend, coverage, recent activity, CAT card, consistency indicator.
 
-## Phase G — Multi-audience runner entries
+### Phase G — Multi-audience runner entries
 
 - ⬜ **8.1** Tutor preview into runner — tutors hit `/session/[attempt_id]` to QA assigned content; renders in review-style mode.
 - ⬜ **8.2** Admin QA into runner — same surface for content review.
 
-## Deferred to v2 (or later)
+### Deferred to v2 (Bank)
 
 Per the planning docs — explicit non-goals for v1, captured here so we don't drift back to them:
 
@@ -192,6 +195,31 @@ Per the planning docs — explicit non-goals for v1, captured here so we don't d
 - Saved filter presets in builder — Recent Quizzes covers v1 use cases.
 - Faculty / cohort dashboards — institutional product.
 - Spaced repetition — different product promise, not what we build.
+
+---
+
+## Part 2 — Programme
+
+Programme work hasn't started yet. Last planning pass: **2026-04-19**
+SESSIONS entry — programme structure settled (week-based, tutor-defined
+weekly templates with 6 block types, both cohort + rolling enrolment
+modes, time-gated progress, mixed auto/tick completion, tutor-authored
+questions private to the tutor, co-tutors with identical powers). Tutor
+onboarding settled the same week (vetted-marketplace shape, public
+"Become a Tutor" application form, admin-triggered account setup, soft-
+stop deactivation).
+
+Sources: `docs/product-plan/main.md` (programme structure) — TBD if a
+dedicated `programme-*.html` planning doc family emerges as we get
+closer to build.
+
+Slices to be defined when the programme work starts. Audience priority,
+phase ordering, and slice list to be discussed at session start.
+
+### Deferred to v2 (Programme)
+
+- Public self-serve tutor signup (tutors are manually vetted in v1).
+- Payment splits / marketplace billing between QAcademy and tutors.
 
 ---
 

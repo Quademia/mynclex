@@ -6,6 +6,265 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-10 (4.6) — History page + Resume banner extends to EXAM; build-list restructured into Bank + Programme parts
+
+Closes slice 4.6 across two sub-slices + two bug fixes that surfaced
+during testing. The save-progress half of resume already shipped with
+4.5a/b (universal save-on-tap; pendingAnswers DRAFT restore on mount);
+what was missing was the entry-point UX. 4.6 ships both halves: a full
+History page that lists every attempt with status-aware actions, and a
+Resume banner extension so non-CAT EXAM attempts also surface above the
+Builder. Both bug fixes were caught by Sam testing the live flow — one
+on UL resume (rationale gone), one on Sequential resume (stuck on Q1).
+
+The slice landed as **4 commits** on `claude/determined-williamson-cb46bc`
+(`6cdc9dc` 4.6a, `16537f5` UL resume fix, `80fdbfa` 4.6b, `823a2bd`
+Sequential resume fix) + this docs commit.
+
+### What shipped — 4.6a (History page MVP)
+
+New `/student/bank/history` route replacing the Placeholder. Single
+table card (concept-not-source from the prototype's `results-history.jsx`
+HistoryArtboard, rebuilt with our tokens):
+
+| Column | Source |
+|---|---|
+| When | `formatRelativeDate(created_at)` — Today/Yesterday/Apr 30/Apr 30 2025 |
+| Session | `summariseRecent(filters_json, requested_count)` — same chip-style label Recent Quizzes uses |
+| Source · Mode | "Custom" pill + mode_label pill (resolved from MODES_STUDY/EXAM at fetch time) |
+| Result | `formatScore(final_score)` — 0–1 → percent, null → em-dash |
+| State | "Done" / "Resume" / "Discarded" pill with status-coloured background |
+| (action) | Review → / Resume → / nothing |
+
+**Status mapping** — COMPLETED + TIMED_OUT both render as "Done" with
+a Review → link (review mode); IN_PROGRESS gets "Resume" + Resume →;
+ABANDONED hidden by default with a "Show discarded (N)" toggle that
+reveals them as non-clickable rows.
+
+**Placeholders for slice 7.1.** Sam's call during planning: rather
+than ship a stripped-down MVP and leave space empty, the search input
++ source/mode filter chips render as **visible-but-disabled placeholders**
+with `title="Coming soon"`. The "All" / "Any mode" chip stays
+visually-on; the rest are greyed out (`opacity: 0.55`, `cursor:
+not-allowed`). Source pill renders "Custom" on every row in v1 via a
+forward-compatible `SOURCE_LABEL` map (`CUSTOM_BUILT` / `READINESS_PACK`
+/ `PROGRAMME_ASSIGNED`) — when Packs/Programmes ship, the column
+renders correctly without a code change. `hist-pill-cat-pass` class is
+defined in CSS but unused (Phase B).
+
+**Folder structure decision.** Sam reframed `lib/practice/launchers/`
+mid-slice as "cross-surface entry-point components — Resume banner,
+Recent quizzes, Weak-spots — usable on Builder/Dashboard/History."
+First proposed a flat `lib/practice/launchers/get-history-attempts.ts`
++ page-local table. Sam then preferred a dedicated `lib/practice/history/`
+folder since the History page is its own surface (review/listing,
+distinct from launchers' "start a quiz" purpose). Settled on the
+folder. Final shape:
+
+- `lib/practice/history/types.ts` — `HistoryAttempt`, `AttemptStatus`,
+  `AttemptSource`
+- `lib/practice/history/queries.ts` — `getHistoryAttempts()`, RLS-scoped
+  to the signed-in student, `created_at desc`, capped at 50 (no
+  pagination in MVP — slice 7.1)
+- `lib/practice/history/format.ts` — `formatRelativeDate`,
+  `formatScore`
+- `lib/practice/history/history-table.tsx` — client component
+  ('use client' for the show-discarded toggle state)
+- `app/(app)/student/bank/history/page.tsx` — server component, fetches
+  + passes to `<HistoryTable>`
+- `styles/history.css` — new file (per CLAUDE.md folder convention #5,
+  "new domains get a new file")
+- `app/(app)/layout.tsx` — added the `history.css` import
+
+Footer note rewritten to reflect 4.5a's revised resume rules: "In-
+progress sessions resume from where you left off. Completed and timed-
+out sessions are reviewable. Discarded sessions can't be reopened."
+Replaces the prototype's stale "Timed and CAT can't be resumed" copy.
+
+### Hot-fix surfaced during testing — UL resume restored per-Q feedback
+
+Sam tested by starting a UL quiz, answering 2-3 Qs, navigating away,
+and resuming via the Resume → link from the new History page. Saw
+"Loading review data…" for every previously-submitted question.
+
+**Diagnosis** — `page.tsx` applies the sealed projection
+(`SEALED_ITEM_COLUMNS`, omitting `correct_answer_snapshot_json` /
+`rationale_snapshot` / `rationale_img_snapshot`) while
+`status=IN_PROGRESS` per Pillar 2. `clientUnseal` — the per-Q envelope
+populated by `submitAnswerAction`'s response in-session — is React
+state, lost on reload. 4.5b correctly set `itemMode='review'` for
+finalised UL rows (the DRAFT-vs-SUBMITTED distinction), but the data
+those rows need to render was nowhere on the page. Falls into the
+"Loading review data…" stub at runner.tsx:765.
+
+**Why this isn't a Pillar 2 violation.** The seal exists to hide
+rationales for not-yet-answered questions. SUBMITTED rows have
+*already been shown the rationale* during the in-session per-Q submit
+(via the envelope) — re-showing it on resume is byte-for-byte the
+same data the student already saw, locked behind their commit.
+
+**Fix** — narrow follow-up query in `page.tsx`'s live branch fetches
+the unseal columns ONLY for items whose answer row is finalised
+(`submission_status !== 'DRAFT'` — captures SUBMITTED, AUTO_SUBMITTED,
+SKIPPED). Result threads through `LiveData.seededUnseal:
+Record<attempt_item_id, PerItemUnseal>` and seeds `clientUnseal` on
+mount via the `useState` lazy initialiser. Brand-new attempts (no
+finalised rows) skip the second query entirely — `finalisedIds.length
+=== 0` short-circuit.
+
+**Drive-by** — `PerItemUnseal` moved from `runner-question-area.tsx`
+to `lib/practice/runner/types.ts` (canonical home for runner-internal
+types); re-exported from runner-question-area for backward-compat so
+existing import paths keep working. `BankItemCorrect` import dropped
+from runner-question-area (no longer used after the move).
+
+### What shipped — 4.6b (Resume banner surfaces EXAM attempts)
+
+The Resume banner shipped in 5.1c filtered to STUDY-intent attempts
+based on the original §15 rule that "EXAM can't be resumed."
+Slice 4.5a revised attempt-creation §6.1.3: timed EXAM is now resumable
+mid-timer (wall-clock continues during absence; lazy expiry on next
+mount per page.tsx's IN_PROGRESS+duration_seconds check). The STUDY-only
+filter became stale — Sam was building EXAM attempts, walking away,
+returning to the Builder, and seeing nothing.
+
+**Two-line fix** in `lib/practice/launchers/get-resumable-attempt.ts`:
+- Drop the `.eq('intent', 'STUDY')` filter — both intents now surface.
+- Add `.neq('mode', 'CAT')` defensively for Phase B — CAT genuinely
+  can't be resumed (adaptive selection state) and isn't creatable in
+  v1 anyway, but the filter belongs on the query when CAT lands.
+- Refresh the comment header to cite the revised §6.1.3 rule.
+
+**Banner sub-line copy** is now mode-aware. Old copy ("Untimed
+sessions stay where you left them. Timed sessions can't be resumed.")
+contradicts 4.5a. New:
+
+- Untimed (UNTIMED_LEARNING / UNTIMED_TEST): "Pick up exactly where
+  you left off."
+- Timed (TIMED_FREE_NAV / TIMED_SEQUENTIAL): "Resume soon — the clock
+  kept running while you were away."
+
+`TIMED_MODES` constant + ternary in `resume-banner.tsx`. Banner-host
+contract unchanged — `attempt.mode` was already on `ResumableAttempt`.
+
+### Hot-fix surfaced during testing — Sequential resume position
+
+Sam started a `TIMED_SEQUENTIAL` exam, answered 2-3 Qs (each
+flipping DRAFT → SUBMITTED via Submit & continue), navigated away,
+came back via the now-working Resume banner. Landed on Q1 with no
+visible answer; couldn't re-answer (RPC blocks resubmit); couldn't go
+forward (no Skip — must commit); couldn't go back (Sequential locks
+Prev). Stuck.
+
+**Diagnosis** — `current` initialised to `0` always. On Sequential
+resume:
+1. Q1 is SUBMITTED in the DB
+2. `pendingAnswers` only seeds DRAFT rows (slice 4.5b initialiser),
+   so the previously-picked answer doesn't pre-fill
+3. Sequential never flips to per-item review (that's UL-only per
+   4.5b's archetype check), so Q1 re-renders in `'answering'` mode
+4. Sequential locks Prev + grid clicks (slice 4.5c) — no escape paths
+5. The submit RPC's status guard rejects resubmit attempts on already-
+   SUBMITTED rows
+6. Student wedged
+
+**Fix** — `current`'s `useState` lazy initialiser walks the items
+array in attempt order, returns the first index whose answer row is
+missing or DRAFT. `SUBMITTED` / `AUTO_SUBMITTED` / `SKIPPED` rows are
+skipped past. If every item is finalised (rare — `completeAttemptAction`
+would have fired), lands on the last item to surface the Finish CTA.
+
+**Universal applicability.** The fix isn't Sequential-specific:
+- **Sequential**: SUBMITTED prefix sits behind disabled Prev — the
+  student literally can't navigate back, which is the right semantics
+  (committed answers stay committed, no peek). The new initial
+  position lands them at the next pending Q.
+- **UL**: lands student on next pending Q rather than Q1; they can
+  still navigate back to previously-submitted items via grid which
+  renders them in per-item review with rationales (slice 4.6a fix
+  above makes this work).
+- **Free-batched**: lands on the next blank instead of forcing a
+  Next-cascade through previously-DRAFT'd answers.
+
+In all three cases the new behaviour matches the natural "where you
+left off" UX — the position-fix is a UX win across the board, not just
+a Sequential rescue.
+
+### Build-list restructured into Bank + Programme parts
+
+Sam: "make build list have two clear parts. Bank and program." Mid-
+session restructure of `BUILD_LIST.md`:
+
+- File-level intro rewritten — was "Bank consumption work, in the
+  order we're likely to build it"; now "Slice-by-slice list of work
+  in the MyNclex product, split by the two layers MyNclex is built
+  around: the Bank … and the Programme …"
+- New `## Part 1 — Bank` section. All existing Phase A → Phase G
+  content moves under this section verbatim, with the phase
+  headings demoted from h2 → h3.
+- Bank-specific source references (`bank-consumption.html` family)
+  move from the file-level intro into the Part 1 header.
+- "Deferred to v2" demoted to h3, scoped as "Deferred to v2 (Bank)".
+- New `## Part 2 — Programme` section. Stub for now — points at the
+  2026-04-19 SESSIONS entry as the last planning pass and notes that
+  slices will be defined when programme work starts. Includes a
+  `### Deferred to v2 (Programme)` listing the two programme non-
+  goals from earlier planning (public self-serve tutor signup,
+  payment splits / marketplace billing).
+- "How to use this file" stays at file level (applies to both parts).
+- Last shipped callout updated to point at 4.6 with the four sub-
+  threads (4.6a, UL resume fix, 4.6b, Sequential resume fix). Next
+  pick line acknowledges the pivot to programme: "next session
+  pivots to Programme work (Sam's call). When Bank work resumes, the
+  next ⏭ is **4.7 — Mark-for-review toggle**."
+
+Programme planning content stays sparse on purpose. Sam's preference
+during the discussion: "those questions doesn't matter much. all i
+know is next session we will tackle somthing on program side." Audience
+priority + initial slices to be discussed at next session start.
+
+### Bugs / oversights surfaced + fixed mid-slice
+
+| # | Surface | Cause | Fix slice |
+|---|---|---|---|
+| 1 | UL resume showed "Loading review data…" for previously-submitted Qs | Sealed projection on IN_PROGRESS; clientUnseal is React state lost on reload; 4.5b's itemMode='review' had no rationale data to render | 4.6a fix — `seededUnseal` follow-up query in page.tsx, seeds clientUnseal on mount |
+| 2 | Sequential resume wedged the student on Q1 with no Submit/Prev/Skip path | `current` always initialised to 0; SUBMITTED Q1 rendered in 'answering' mode with empty state since pendingAnswers only seeds DRAFTs; Sequential locks Prev + grid + resubmit | 4.6b fix — `current`'s initialiser jumps to first non-finalised item |
+
+### Tested
+
+- ✅ History page renders for the signed-in student with attempts in
+  varied statuses; ABANDONED hidden by default; Show-discarded toggle
+  reveals them.
+- ✅ Click routing — COMPLETED/TIMED_OUT → review; IN_PROGRESS →
+  runner with DRAFT restore; ABANDONED no link.
+- ✅ Disabled placeholders (search + filter chips) render greyed out
+  with "Coming soon" tooltip, don't fire interactions.
+- ✅ UL resume — previously-submitted Qs render with rationale +
+  per-Q feedback (no more "Loading review data…").
+- ✅ Resume banner surfaces EXAM attempts (after dropping the STUDY
+  filter).
+- ✅ Banner sub-line copy is mode-aware (timed vs untimed).
+- ✅ Sequential resume — lands on next pending Q rather than Q1;
+  Prev still disabled; previous Submitted answers locked behind.
+- ✅ TypeScript clean across the slice (only pre-existing vitest
+  errors in `lib/scoring/*.test.ts` remain).
+
+### Next pick
+
+- **Next session pivots to Programme work.** Audience priority +
+  phase ordering + initial slice list to be discussed at session
+  start. The 2026-04-19 SESSIONS entry holds the last planning pass
+  on programme structure (week-based, 6 block types, cohort + rolling,
+  tutor-authored questions). Tutor onboarding settled the same week
+  (vetted-marketplace shape, public application form, admin-triggered
+  account setup). Programme part of BUILD_LIST is a stub waiting to
+  be filled in.
+- **Bank's next ⏭ when Bank resumes is 4.7** — mark-for-review
+  toggle (runner button writing to slice 2.1.5's marking table,
+  persists across attempts).
+
+---
+
 ## Session — 2026-05-09 (4.5) — Per-mode behaviour: timer + save-on-tap + archetypes + sequential lock + case-exit warning
 
 Closes slice 4.5 across three sub-slices. Modes finally feel like
