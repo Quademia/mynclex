@@ -1,18 +1,26 @@
-// mynclex/lib/bank/entry-helpers/resume-banner.tsx
+// mynclex/lib/practice/launchers/resume-banner.tsx
 //
 // Pure presentation. Renders the warm-amber Resume banner above the
-// Builder's tab strip when the student has an unfinished STUDY
-// session. Behaviour callbacks (onResume, onStartFresh) are passed in
-// — this component knows nothing about routes or RPCs.
+// Builder's tab strip when the student has an unfinished session of
+// any intent (slice 4.6b — was STUDY-only before; EXAM became
+// resumable in 4.5a per attempt-creation §6.1.3 revised). Behaviour
+// callbacks (onResume, onStartFresh) are passed in — this component
+// knows nothing about routes or RPCs.
 //
-// Per planning: the banner only appears for STUDY-intent attempts
-// where started_at IS NOT NULL. The data fetch in
-// get-resumable-attempt.ts already filters; this component just
-// renders what it's given.
+// Sub-line copy is mode-aware: timed attempts get a "clock kept
+// running" framing, untimed attempts a softer "pick up where you
+// left off." The data fetch in get-resumable-attempt.ts excludes
+// CAT (which can't be resumed) — this component renders whatever
+// it's given.
 
 'use client';
 
 import type { ResumableAttempt } from './types';
+
+const TIMED_MODES: ReadonlyArray<ResumableAttempt['mode']> = [
+  'TIMED_FREE_NAV',
+  'TIMED_SEQUENTIAL',
+];
 
 interface ResumeBannerProps {
   attempt: ResumableAttempt;
@@ -30,6 +38,7 @@ export function ResumeBanner({
   pending = false,
 }: ResumeBannerProps) {
   const when = formatWhen(attempt.last_activity_at);
+  const isTimed = TIMED_MODES.includes(attempt.mode);
 
   return (
     <div className="bk-resume" role="status">
@@ -44,7 +53,9 @@ export function ResumeBanner({
           You have an unfinished quiz from {when} — {attempt.done} of {attempt.total} done.
         </div>
         <div className="bk-resume-sub">
-          Untimed sessions stay where you left them. Timed sessions can&rsquo;t be resumed.
+          {isTimed
+            ? 'Resume soon — the clock kept running while you were away.'
+            : 'Pick up exactly where you left off.'}
         </div>
       </div>
       <div className="bk-resume-actions">

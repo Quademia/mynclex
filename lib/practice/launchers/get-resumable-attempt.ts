@@ -1,16 +1,22 @@
-// mynclex/lib/bank/entry-helpers/get-resumable-attempt.ts
+// mynclex/lib/practice/launchers/get-resumable-attempt.ts
 //
 // Server-side fetch for the Resume banner: the single most-recent
-// unfinished STUDY attempt for the signed-in student.
+// unfinished attempt (any intent, any mode except CAT) for the
+// signed-in student.
 //
-// Resume rules (planning §15 + attempt-creation §10.2):
-//   • Only STUDY attempts are resumable. Timed EXAM attempts auto-
-//     terminate on timeout; CAT attempts can't be resumed.
-//   • started_at IS NOT NULL — the student confirmed the preflight,
-//     not just clicked Start in the builder. (Orphans with NULL
-//     started_at are auto-cleaned by the orphan sweep — slice 2.4.)
-//   • status = 'IN_PROGRESS' — terminated attempts (COMPLETED,
-//     TIMED_OUT, ABANDONED) don't surface here.
+// Resume rules (attempt-creation §6.1.3, revised in slice 4.5a):
+//   • All non-CAT attempts are resumable. STUDY + EXAM, untimed +
+//     timed all surface here.
+//   • Timed attempts: wall-clock continues during the student's
+//     absence — page.tsx fires lazy expire detection on next mount
+//     if the attempt is past its duration. The banner shows them
+//     while they're still in flight.
+//   • CAT can't be resumed (adaptive selection state). CAT isn't
+//     creatable in v1 anyway, but the mode filter is defensive for
+//     Phase B.
+//   • started_at IS NOT NULL — preflight confirmed, not just Builder
+//     Start. Orphans (NULL started_at) get hard-deleted by slice 2.4
+//     orphan sweep.
 //   • Order by last_activity_at DESC — most recent on top.
 //
 // Returns null if no resumable attempt exists. Component renders
@@ -19,6 +25,7 @@
 import { createClient } from '@/lib/supabase/server';
 import {
   MODES_STUDY,
+  MODES_EXAM,
   type Intent,
   type ModeId,
 } from '@/lib/practice/builder/filter-config';
@@ -33,7 +40,7 @@ export async function getResumableAttempt(): Promise<ResumableAttempt | null> {
       'attempt_id, intent, mode, actual_question_count, last_activity_at, requested_question_count'
     )
     .eq('status', 'IN_PROGRESS')
-    .eq('intent', 'STUDY')
+    .neq('mode', 'CAT')
     .not('started_at', 'is', null)
     .order('last_activity_at', { ascending: false })
     .limit(1)
@@ -49,15 +56,15 @@ export async function getResumableAttempt(): Promise<ResumableAttempt | null> {
     .eq('attempt_id', attempt.attempt_id)
     .in('submission_status', ['SUBMITTED', 'AUTO_SUBMITTED']);
 
-  // Resolve the mode label. Resume banner only shows STUDY attempts so
-  // MODES_STUDY is the right lookup.
-  const modeLabel = MODES_STUDY.find((m) => m.id === attempt.mode)?.label
-    ?? attempt.mode;
+  const intent = attempt.intent as Intent;
+  const mode = attempt.mode as ModeId;
+  const modeList = intent === 'STUDY' ? MODES_STUDY : MODES_EXAM;
+  const modeLabel = modeList.find((m) => m.id === mode)?.label ?? mode;
 
   return {
     attempt_id: attempt.attempt_id,
-    intent: attempt.intent as Intent,
-    mode: attempt.mode as ModeId,
+    intent,
+    mode,
     total: attempt.actual_question_count,
     done: doneCount ?? 0,
     last_activity_at: attempt.last_activity_at,
