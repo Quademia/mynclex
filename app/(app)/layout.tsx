@@ -23,6 +23,7 @@ import '@/styles/authoring.css';
 import '@/styles/builder.css';
 import '@/styles/runner.css';
 import '@/styles/history.css';
+import '@/styles/programmes.css';
 
 export const dynamic = 'force-dynamic';
 

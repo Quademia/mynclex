@@ -429,3 +429,33 @@ CREATE POLICY nclex_attempt_trend_snapshots_admin_all ON nclex_attempt_trend_sna
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- =========================================================
+-- nclex_programmes (Slice 9.1a, 2026-05-10)
+-- =========================================================
+-- Tutor owns own programmes; SUPER_ADMIN bypass.
+-- UPDATE / DELETE / public-select policies deferred to the slices
+-- that need them (edit, discard/archive, public discovery).
+
+ALTER TABLE nclex_programmes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_programmes_self_select ON nclex_programmes FOR SELECT
+  TO authenticated
+  USING (tutor_id = auth.uid());
+
+CREATE POLICY nclex_programmes_self_insert ON nclex_programmes FOR INSERT
+  TO authenticated
+  WITH CHECK (tutor_id = auth.uid());
+
+-- Slice 9.1c: tutor edits own programmes. WITH CHECK prevents
+-- reassigning tutor_id to a different tutor via UPDATE.
+CREATE POLICY nclex_programmes_self_update ON nclex_programmes FOR UPDATE
+  TO authenticated
+  USING (tutor_id = auth.uid())
+  WITH CHECK (tutor_id = auth.uid());
+
+CREATE POLICY nclex_programmes_admin_all ON nclex_programmes FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
