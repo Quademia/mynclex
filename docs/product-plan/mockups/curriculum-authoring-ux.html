@@ -711,25 +711,37 @@ hr.divider {
 <div class="page-wrap">
 
 <div class="doc-title">MyNclex — Curriculum Authoring UX</div>
-<div class="doc-sub">Working mockups from the 2026-04-20 planning session</div>
+<div class="doc-sub">Working mockups · originally 2026-04-20 · revised 2026-05-10 for the programme/cohort split</div>
 <div class="doc-meta">Companion to <code>mynclex/docs/product-plan/curriculum-authoring-ux.md</code> · Reference only, not final design</div>
 
+<div style="background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 10px; padding: 14px 18px; margin-bottom: 32px; font-size: 13px; color: var(--text); line-height: 1.6;">
+<strong style="color: var(--success-text);">2026-05-10 — Programme/Cohort split.</strong>
+Programme is now the <em>reusable design</em> (curriculum + identity + pricing). A cohort is one <em>specific run</em> of that programme (dates, seats, enrolment, schedule). Curriculum lives at the programme layer; cohorts hold a checklist of which template activities are in. Content edits to the programme propagate to every live cohort; structural changes don't — the tutor opts in per cohort. See screens 1–7 for the programme layer (curriculum design) and screens 8–11 for the cohort layer (specific runs).
+</div>
+
 <div class="toc">
-<h2>Contents</h2>
+<h2>Contents — programme layer (the reusable design)</h2>
 <ol>
 <li><a href="#s1">My Programmes — the tutor's landing list</a></li>
-<li><a href="#s2">New Programme — single-screen form</a></li>
+<li><a href="#s2">New Programme + first cohort — modal</a></li>
 <li><a href="#s3">Weeks Overview — Week view</a></li>
 <li><a href="#s4">Weeks Overview — Calendar view (scheduled activities)</a></li>
 <li><a href="#s5">Week Builder — modules and activities with reorder arrows</a></li>
 <li><a href="#s6">Add-activity inline picker</a></li>
 <li><a href="#s7">Activity editors — all six types</a></li>
 </ol>
+<h2 style="margin-top: 12px;">Contents — cohort layer (specific runs)</h2>
+<ol start="8">
+<li><a href="#s8">Programme home — tabs (Curriculum / Cohorts / Students / Analytics / Settings)</a></li>
+<li><a href="#s9">Cohorts tab — list inside a programme</a></li>
+<li><a href="#s10">New Cohort modal</a></li>
+<li><a href="#s11">Cohort curriculum — checklist view</a></li>
+</ol>
 </div>
 
-<div class="section-label" id="s1">Screen 1</div>
+<div class="section-label" id="s1">Screen 1 · Programme layer</div>
 <div class="section-title">My Programmes</div>
-<div class="section-desc">The tutor's landing list. One unified list of owned and co-tutored programmes. Co-tutored rows are tagged.</div>
+<div class="section-desc">The tutor's landing list. One unified list of owned and co-tutored programmes. Co-tutored rows are tagged. Each row's sub-line summarises cohorts (active / upcoming / ended) rather than student count — students live on cohorts now.</div>
 
 <div class="mockup-frame">
 <div class="top-bar-inline">
@@ -737,53 +749,54 @@ hr.divider {
 <button class="btn btn-primary">+ New programme</button>
 </div>
 
-<div class="card">
-<div class="programme-row">
+<div class="card"><div class="programme-row">
 <div style="flex:1; min-width: 0;">
 <div class="title">8-Week NCLEX Bootcamp</div>
-<div class="sub">Live · Cohort · 14 students</div>
+<div class="sub">2 cohorts running · 1 upcoming · 3 ended</div>
 </div>
-<span class="pill pill-live">Live</span>
+<span class="pill pill-live">Published</span>
 <button class="btn btn-xs">Open</button>
-</div>
-</div>
+</div></div>
 
-<div class="card">
-<div class="programme-row">
+<div class="card"><div class="programme-row">
 <div style="flex:1; min-width: 0;">
 <div class="title">Weekend Cram Plan <span class="pill pill-co">Co-tutor</span></div>
-<div class="sub">Live · Rolling · 6 students</div>
+<div class="sub">1 cohort running · 2 ended</div>
 </div>
-<span class="pill pill-live">Live</span>
+<span class="pill pill-live">Published</span>
 <button class="btn btn-xs">Open</button>
-</div>
-</div>
+</div></div>
 
-<div class="card">
-<div class="programme-row">
+<div class="card"><div class="programme-row">
 <div style="flex:1; min-width: 0;">
 <div class="title">Extended 12-Week Deep Prep</div>
-<div class="sub">Draft · Cohort · Not started</div>
+<div class="sub">No cohorts yet · curriculum 60% built</div>
 </div>
 <span class="pill pill-draft">Draft</span>
 <button class="btn btn-xs">Open</button>
-</div>
-</div>
+</div></div>
 </div>
 
-<div class="section-label" id="s2">Screen 2</div>
-<div class="section-title">New Programme form</div>
-<div class="section-desc">Single-screen form (not a wizard). Seven fields. Submit creates a Draft programme and drops the tutor into the Weeks Overview.</div>
+<div class="section-label" id="s2">Screen 2 · Programme layer</div>
+<div class="section-title">New Programme + first cohort modal</div>
+<div class="section-desc">A modal (not a route) triggered from the <em>+ New programme</em> button. Single-scroll, three sections: <strong>Identity + Pricing</strong> (the reusable programme), then <strong>First cohort</strong> (the run that anchors this programme to real dates). Captures both in one go — most programmes start with one cohort, so making them two separate steps would be two clicks for one mental action. Subsequent cohorts use the smaller modal at screen 10.</div>
 
 <div class="mockup-frame">
-<div class="crumbs">
-<span>← My programmes</span>
-<span class="sep">/</span>
-<span class="here">New programme</span>
+<!-- Backdrop -->
+<div style="background: rgba(30, 58, 95, 0.22); padding: 28px 14px; border-radius: 10px;">
+<!-- Modal -->
+<div style="max-width: 580px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px; box-shadow: 0 12px 32px rgba(30, 58, 95, 0.18);">
+
+<div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 16px;">
+<div>
+<div style="font-size: 11px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px;">New programme</div>
+<h4 style="font-size: 17px; font-weight: 500; color: var(--navy);">Create a programme &amp; first cohort</h4>
+</div>
+<button class="btn btn-xs" style="color: var(--text-dim); border-color: transparent;">✕</button>
 </div>
 
-<div class="form-card">
-<h4>Create a programme</h4>
+<!-- Section: Identity + Pricing -->
+<div style="font-size: 11px; font-weight: 600; color: var(--teal); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px;">Programme — the reusable design</div>
 
 <div class="field">
 <div class="field-label">Title *</div>
@@ -791,66 +804,103 @@ hr.divider {
 </div>
 
 <div class="field">
-<div class="field-label">Description</div>
-<div class="field-input placeholder" style="min-height: 48px;">Short paragraph for students browsing</div>
+<div class="field-label">Tagline <span class="opt">— optional · one-liner shown on the public card</span></div>
+<div class="field-input placeholder">e.g. The exam, demystified — for working nurses</div>
+</div>
+
+<div class="field">
+<div class="field-label">Description <span class="opt">— optional · long copy for the detail page</span></div>
+<div class="field-input placeholder" style="min-height: 56px;">What students will learn, who it's for, what's included…</div>
+</div>
+
+<div class="field">
+<div class="field-label">Length in weeks *</div>
+<div class="field-input" style="width: 120px;">8</div>
 </div>
 
 <div class="field-row field">
 <div>
-<div class="field-label">Length in weeks *</div>
-<div class="field-input">8</div>
+<div class="field-label">Price (GHS) *</div>
+<div class="field-input">₵ 3,000</div>
 </div>
 <div>
-<div class="field-label">Max students <span class="opt">— optional</span></div>
-<div class="field-input placeholder">No cap</div>
+<div class="field-label">Price (USD) *</div>
+<div class="field-input">$ 250</div>
 </div>
 </div>
 
 <div class="field">
-<div class="field-label">Mode *</div>
-<div class="radio-group">
-<div class="radio-opt active">● Cohort</div>
-<div class="radio-opt">○ Rolling</div>
+<label style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text);">
+<span style="width: 32px; height: 18px; background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 999px; display: inline-block; position: relative;">
+<span style="position: absolute; right: 2px; top: 1px; width: 14px; height: 14px; background: var(--teal); border-radius: 50%;"></span>
+</span>
+<span><strong>Show price publicly</strong> <span class="opt">— off → "Contact" button instead of "Pay &amp; enrol"</span></span>
+</label>
+</div>
+
+<!-- Section: First cohort -->
+<div style="font-size: 11px; font-weight: 600; color: var(--teal); letter-spacing: 0.08em; text-transform: uppercase; margin: 20px 0 10px;">First cohort — when does it run?</div>
+
+<div class="field">
+<div class="field-label">Cohort name <span class="opt">— optional · auto-generates from dates</span></div>
+<div class="field-input placeholder">Auto: "5 May – 30 Jun 2026"</div>
+</div>
+
+<div class="field-row field">
+<div>
+<div class="field-label">Start date *</div>
+<div class="field-input">Mon 5 May 2026</div>
+</div>
+<div>
+<div class="field-label">End date *</div>
+<div class="field-input">Sun 30 Jun 2026</div>
+<div class="hint">Auto from start + 8 weeks. Editable.</div>
 </div>
 </div>
 
 <div class="field-row field">
 <div>
-<div class="field-label">Start date</div>
-<div class="field-input placeholder">Select date</div>
+<div class="field-label">Cohort size <span class="opt">— optional · blank = no cap</span></div>
+<div class="field-input placeholder">No cap</div>
 </div>
-<div style="display:flex; align-items: flex-end;">
-<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 9px 0; color: var(--text-muted);">
+<div style="display: flex; align-items: flex-end;">
+<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 9px 0; color: var(--text);">
 <span style="width: 32px; height: 18px; background: var(--surface-soft); border-radius: 999px; display: inline-block; position: relative; border: 1px solid var(--border);">
 <span style="position: absolute; left: 2px; top: 1px; width: 14px; height: 14px; background: var(--surface); border-radius: 50%; border: 1px solid var(--border);"></span>
 </span>
-Allow late enrolment
+Allow late join <span class="opt">(default off)</span>
 </label>
 </div>
 </div>
 
-<div class="form-footer">
+<div style="padding: 10px 12px; background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 6px; font-size: 11px; color: var(--success-text); margin-bottom: 14px; line-height: 1.5;">
+<strong>What happens next:</strong> programme is saved as Draft and the first cohort as Upcoming. You'll land on the programme workspace where you can build the curriculum, then Publish when ready.
+</div>
+
+<div style="display: flex; justify-content: flex-end; gap: 8px; padding-top: 14px; border-top: 1px solid var(--border);">
 <button class="btn">Cancel</button>
-<button class="btn btn-primary">Create programme</button>
+<button class="btn btn-primary">Create programme &amp; cohort</button>
+</div>
+
 </div>
 </div>
 </div>
 
-<div class="section-label" id="s3">Screen 3</div>
+<div class="section-label" id="s3">Screen 3 · Programme layer</div>
 <div class="section-title">Weeks Overview — Week view (default)</div>
-<div class="section-desc">A grid of week cards. Empty weeks are shown dashed so the tutor always sees N cards for an N-week programme. Segmented toggle at top-right switches to the Calendar view.</div>
+<div class="section-desc">The Curriculum tab inside a programme. A grid of week cards. Empty weeks are shown dashed so the tutor always sees N cards for an N-week programme. Segmented toggle at top-right switches to the Calendar view. This is the <strong>programme layer</strong> — curriculum edits here propagate to every live cohort.</div>
 
 <div class="mockup-frame">
 <div class="crumbs">
 <span>← My programmes</span>
 <span class="sep">/</span>
-<span class="here">8-Week NCLEX Bootcamp</span>
+<span class="here">8-Week NCLEX Bootcamp · Curriculum</span>
 </div>
 
 <div class="page-head">
 <div>
 <h3>8-Week NCLEX Bootcamp</h3>
-<div class="hsub">Cohort · Starts 1 May · 14 students</div>
+<div class="hsub">Published · 8 weeks · 2 cohorts running</div>
 </div>
 <div style="display:flex; gap: 10px; align-items: center;">
 <div class="view-toggle">
@@ -914,21 +964,21 @@ Allow late enrolment
 </div>
 </div>
 
-<div class="section-label" id="s4">Screen 3 (alternative view)</div>
+<div class="section-label" id="s4">Screen 4 · Programme layer</div>
 <div class="section-title">Weeks Overview — Calendar view</div>
-<div class="section-desc">Same programme, different projection. Rows are weeks, columns are days. The calendar shows <strong>scheduled activities</strong> (not modules), so modules can span days naturally. Text, PDF, and External link activities are "anytime" work and don't appear here.</div>
+<div class="section-desc">Same curriculum, different projection. Rows are weeks, columns are days. Calendar shows <strong>scheduled activity types</strong> (not modules), so modules can span days naturally. Text, PDF, and External link activities are "anytime" work and don't appear here. Day numbers shown here are <em>curriculum-relative</em> (week 1 day 1, week 1 day 2, …) — actual calendar dates are a per-cohort property, set on each cohort's start_date.</div>
 
 <div class="mockup-frame">
 <div class="crumbs">
 <span>← My programmes</span>
 <span class="sep">/</span>
-<span class="here">8-Week NCLEX Bootcamp</span>
+<span class="here">8-Week NCLEX Bootcamp · Curriculum</span>
 </div>
 
 <div class="page-head">
 <div>
 <h3>8-Week NCLEX Bootcamp</h3>
-<div class="hsub">Cohort · Starts 1 May · 14 students</div>
+<div class="hsub">Published · 8 weeks · 2 cohorts running</div>
 </div>
 <div style="display:flex; gap: 10px; align-items: center;">
 <div class="view-toggle">
@@ -991,13 +1041,13 @@ Allow late enrolment
 </div>
 </div>
 
-<div class="section-label" id="s5">Screen 4</div>
+<div class="section-label" id="s5">Screen 5 · Programme layer</div>
 <div class="section-title">Week Builder — modules and activities</div>
-<div class="section-desc">Inside one week. Each module is a card containing a flat list of activity rows. Up/down arrow buttons on each row for reordering (drag-and-drop deferred to v2). Each module has its own "+ Add activity" button; a full-width "+ Add module" sits at the bottom.</div>
+<div class="section-desc">Inside one week of the programme curriculum. Each module is a card containing a flat list of activity rows. Up/down arrow buttons on each row for reordering (drag-and-drop deferred to v2). Each module has its own "+ Add activity" button; a full-width "+ Add module" sits at the bottom. Edits here propagate to every live cohort.</div>
 
 <div class="mockup-frame">
 <div class="crumbs">
-<span>← All weeks</span>
+<span>← Curriculum</span>
 <span class="sep">/</span>
 <span>8-Week NCLEX Bootcamp</span>
 <span class="sep">/</span>
@@ -1128,9 +1178,9 @@ Allow late enrolment
 <button class="add-btn-prominent">+ Add module</button>
 </div>
 
-<div class="section-label" id="s6">Interaction</div>
+<div class="section-label" id="s6">Screen 6 · Programme layer</div>
 <div class="section-title">Add-activity inline picker</div>
-<div class="section-desc">When the tutor clicks "+ Add activity" inside a module, the button is replaced in place with this 3×2 picker. After selection, the picker closes and the editor panel slides in from the right.</div>
+<div class="section-desc">When the tutor clicks "+ Add activity" inside a module, the button is replaced in place with this 3×2 picker. After selection, the picker closes and the editor panel slides in from the right. Same picker is reused at the cohort layer when adding a cohort-only activity (screen 11).</div>
 
 <div class="mockup-frame">
 <div class="module-card" style="margin-bottom: 0;">
@@ -1222,9 +1272,9 @@ Allow late enrolment
 </div>
 </div>
 
-<div class="section-label" id="s7">Editor panels</div>
+<div class="section-label" id="s7">Screen 7 · Programme layer</div>
 <div class="section-title">Activity editors — all six types</div>
-<div class="section-desc">Each editor follows the same shape: type label and Cancel/Save at the top, title, note to student, then type-specific fields. Mock and Practice quiz include a warning notice flagging that question-selection UI is blocked on the bank topic.</div>
+<div class="section-desc">Each editor follows the same shape: type label and Cancel/Save at the top, title, note to student, then type-specific fields. Mock and Practice quiz include a warning notice flagging that question-selection UI is blocked on the bank topic. Content edited here propagates to every live cohort.</div>
 
 <div class="editors-grid">
 
@@ -1541,10 +1591,303 @@ The sinoatrial (SA) node serves as the heart's natural pacemaker...
 
 </div>
 
+<hr class="divider">
+
+<div class="section-label" style="color: var(--coral-text);">Cohort layer — specific runs</div>
+<div style="font-family: 'Fraunces', serif; font-size: 22px; font-weight: 500; margin-bottom: 12px; color: var(--navy);">Screens 8–11</div>
+<p style="font-size: 14px; color: var(--text-muted); margin-bottom: 32px; max-width: 760px;">Everything below this divider is the <strong>cohort layer</strong> — managing specific runs of a programme. These screens don't change the underlying curriculum; they configure delivery state (dates, enrolment, schedule) and the per-cohort checklist of which template activities are in.</p>
+
+<!-- ─── Screen 8: Programme tabs ───────────────────── -->
+
+<div class="section-label" id="s8">Screen 8 · Cohort layer</div>
+<div class="section-title">Programme home — tabs</div>
+<div class="section-desc">When the tutor opens a programme, the workspace presents a tabbed view. Curriculum is the default tab (screens 3–7). Cohorts is the new tab for managing specific runs (screen 9). Students / Analytics / Settings round out the workspace.</div>
+
+<div class="mockup-frame">
+<div class="crumbs">
+<span>← My programmes</span>
+<span class="sep">/</span>
+<span class="here">8-Week NCLEX Bootcamp</span>
+</div>
+
+<div class="page-head">
+<div>
+<h3>8-Week NCLEX Bootcamp</h3>
+<div class="hsub">Published · 8 weeks · ₵3,000 / $250</div>
+</div>
+<button class="btn btn-sm">Settings</button>
+</div>
+
+<!-- Tab row -->
+<div style="display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px;">
+<div style="padding: 9px 14px; font-size: 13px; font-weight: 500; color: var(--text-muted); border-bottom: 2px solid transparent; cursor: pointer;">Curriculum</div>
+<div style="padding: 9px 14px; font-size: 13px; font-weight: 500; color: var(--success-text); border-bottom: 2px solid var(--teal); cursor: pointer; background: var(--info-bg); border-radius: 6px 6px 0 0;">Cohorts <span style="font-size: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1px 6px; margin-left: 4px; color: var(--text-muted); font-weight: 400;">6</span></div>
+<div style="padding: 9px 14px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer;">Students</div>
+<div style="padding: 9px 14px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer;">Analytics <span class="placeholder-pill" style="font-size: 9px; padding: 0 5px; border: 1px solid var(--border); border-radius: 8px; margin-left: 4px;">placeholder</span></div>
+<div style="padding: 9px 14px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer;">Settings</div>
+</div>
+
+<div style="text-align: center; padding: 28px 16px; background: var(--surface); border: 1px dashed var(--border-strong); border-radius: 10px; font-size: 12px; color: var(--text-muted);">
+Cohorts tab content shown on screen 9 →
+</div>
+</div>
+
+<!-- ─── Screen 9: Cohorts list ──────────────────────── -->
+
+<div class="section-label" id="s9">Screen 9 · Cohort layer</div>
+<div class="section-title">Cohorts tab — list inside a programme</div>
+<div class="section-desc">Active rows (Upcoming + In progress) at the top. Ended / Cancelled collapse behind a <em>Show past cohorts</em> toggle. Primary action top-right: <em>+ New cohort</em> (opens the smaller modal at screen 10).</div>
+
+<div class="mockup-frame">
+<div class="crumbs">
+<span>← My programmes</span>
+<span class="sep">/</span>
+<span>8-Week NCLEX Bootcamp</span>
+<span class="sep">/</span>
+<span class="here">Cohorts</span>
+</div>
+
+<!-- Tab row condensed -->
+<div style="display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px;">
+<div style="padding: 9px 14px; font-size: 13px; color: var(--text-muted);">Curriculum</div>
+<div style="padding: 9px 14px; font-size: 13px; font-weight: 500; color: var(--success-text); border-bottom: 2px solid var(--teal); background: var(--info-bg); border-radius: 6px 6px 0 0;">Cohorts</div>
+<div style="padding: 9px 14px; font-size: 13px; color: var(--text-muted);">Students</div>
+<div style="padding: 9px 14px; font-size: 13px; color: var(--text-muted);">Analytics</div>
+<div style="padding: 9px 14px; font-size: 13px; color: var(--text-muted);">Settings</div>
+</div>
+
+<div class="top-bar-inline">
+<div>
+<h3 style="font-size: 16px;">All cohorts</h3>
+<div style="font-size: 12px; color: var(--text-muted);">2 running · 1 upcoming · 3 ended</div>
+</div>
+<button class="btn btn-primary btn-sm">+ New cohort</button>
+</div>
+
+<!-- Running cohort -->
+<div class="card">
+<div class="row-between">
+<div style="flex: 1; min-width: 0;">
+<div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">Jan 2027 Intake</div>
+<div style="font-size: 12px; color: var(--text-muted);">5 Jan – 27 Feb 2027 · Week 3 of 8</div>
+</div>
+<span style="font-size: 11px; color: var(--text-muted); margin-right: 12px;">14 / 20 students</span>
+<span class="pill pill-live">In progress</span>
+<button class="btn btn-xs">Open</button>
+</div>
+</div>
+
+<!-- Running cohort 2 -->
+<div class="card">
+<div class="row-between">
+<div style="flex: 1; min-width: 0;">
+<div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">Weekend Intensive Jan</div>
+<div style="font-size: 12px; color: var(--text-muted);">10 Jan – 7 Mar 2027 · Week 2 of 8</div>
+</div>
+<span style="font-size: 11px; color: var(--text-muted); margin-right: 12px;">7 students</span>
+<span class="pill pill-live">In progress</span>
+<button class="btn btn-xs">Open</button>
+</div>
+</div>
+
+<!-- Upcoming cohort -->
+<div class="card">
+<div class="row-between">
+<div style="flex: 1; min-width: 0;">
+<div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">April 2027 Intake</div>
+<div style="font-size: 12px; color: var(--text-muted);">6 Apr – 31 May 2027 · Starts in 11 weeks</div>
+</div>
+<span style="font-size: 11px; color: var(--text-muted); margin-right: 12px;">3 / 20 students</span>
+<span class="pill pill-draft">Upcoming</span>
+<button class="btn btn-xs">Open</button>
+</div>
+</div>
+
+<div style="margin-top: 16px; padding: 9px 14px; font-size: 12px; color: var(--text-muted); border-top: 1px dashed var(--border); cursor: pointer; text-align: center;">
+▾ Show past cohorts (3)
+</div>
+</div>
+
+<!-- ─── Screen 10: New Cohort modal ─────────────────── -->
+
+<div class="section-label" id="s10">Screen 10 · Cohort layer</div>
+<div class="section-title">New Cohort modal</div>
+<div class="section-desc">Smaller than the New Programme modal — only the cohort-level fields, because everything else is inherited from the programme. Triggered by the <em>+ New cohort</em> button on the Cohorts list.</div>
+
+<div class="mockup-frame">
+<div style="background: rgba(30, 58, 95, 0.22); padding: 28px 14px; border-radius: 10px;">
+<div style="max-width: 460px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px; box-shadow: 0 12px 32px rgba(30, 58, 95, 0.18);">
+
+<div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 16px;">
+<div>
+<div style="font-size: 11px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px;">New cohort</div>
+<h4 style="font-size: 16px; font-weight: 500; color: var(--navy);">8-Week NCLEX Bootcamp · new run</h4>
+</div>
+<button class="btn btn-xs" style="color: var(--text-dim); border-color: transparent;">✕</button>
+</div>
+
+<div class="field">
+<div class="field-label">Cohort name <span class="opt">— optional · auto-generates from dates</span></div>
+<div class="field-input placeholder">Auto: "6 Apr – 31 May 2027"</div>
+</div>
+
+<div class="field-row field">
+<div>
+<div class="field-label">Start date *</div>
+<div class="field-input">Mon 6 Apr 2027</div>
+</div>
+<div>
+<div class="field-label">End date *</div>
+<div class="field-input">Sun 31 May 2027</div>
+<div class="hint">Auto from start + 8 weeks. Editable.</div>
+</div>
+</div>
+
+<div class="field">
+<div class="field-label">Cohort size <span class="opt">— optional · blank = no cap</span></div>
+<div class="field-input" style="width: 140px;">20</div>
+</div>
+
+<div class="field">
+<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text);">
+<span style="width: 32px; height: 18px; background: var(--surface-soft); border-radius: 999px; display: inline-block; position: relative; border: 1px solid var(--border);">
+<span style="position: absolute; left: 2px; top: 1px; width: 14px; height: 14px; background: var(--surface); border-radius: 50%; border: 1px solid var(--border);"></span>
+</span>
+Allow late join <span class="opt">(default off)</span>
+</label>
+</div>
+
+<div style="padding: 10px 12px; background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 6px; font-size: 11px; color: var(--success-text); margin-bottom: 14px; line-height: 1.5;">
+This cohort starts with the full programme curriculum ticked into its checklist. You can remove individual activities or add cohort-only ones on the cohort's curriculum view (screen 11).
+</div>
+
+<div style="display: flex; justify-content: flex-end; gap: 8px; padding-top: 14px; border-top: 1px solid var(--border);">
+<button class="btn">Cancel</button>
+<button class="btn btn-primary">Create cohort</button>
+</div>
+
+</div>
+</div>
+</div>
+
+<!-- ─── Screen 11: Cohort curriculum checklist ────── -->
+
+<div class="section-label" id="s11">Screen 11 · Cohort layer</div>
+<div class="section-title">Cohort curriculum — checklist view</div>
+<div class="section-desc">Inside a cohort. Same shape as the Week Builder (screen 5), but each activity row is a <strong>checklist entry</strong> pointing at a template activity (or a cohort-only entry) with cohort-specific release dates. Source pill on each row says <em>Template</em> (content read from the programme) or <em>Cohort-only</em> (content lives here, doesn't propagate). Two add buttons per module: <em>+ Add from template</em> (template activities not yet in this cohort) and <em>+ Add cohort-only</em> (opens the 3×2 picker from screen 6).</div>
+
+<div class="mockup-frame">
+<div class="crumbs">
+<span>← Cohorts</span>
+<span class="sep">/</span>
+<span>Jan 2027 Intake</span>
+<span class="sep">/</span>
+<span class="here">Curriculum · Week 3</span>
+</div>
+
+<!-- Cohort sub-nav strip -->
+<div style="display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 18px;">
+<div style="padding: 9px 14px; font-size: 13px; color: var(--text-muted);">Overview</div>
+<div style="padding: 9px 14px; font-size: 13px; font-weight: 500; color: var(--success-text); border-bottom: 2px solid var(--teal); background: var(--info-bg); border-radius: 6px 6px 0 0;">Curriculum</div>
+<div style="padding: 9px 14px; font-size: 13px; color: var(--text-muted);">Students <span style="font-size: 10px; color: var(--text-dim); margin-left: 2px;">14</span></div>
+<div style="padding: 9px 14px; font-size: 13px; color: var(--text-muted);">Sessions</div>
+<div style="padding: 9px 14px; font-size: 13px; color: var(--text-muted);">Announcements</div>
+<div style="padding: 9px 14px; font-size: 13px; color: var(--text-muted);">Settings</div>
+</div>
+
+<!-- Propagation reminder -->
+<div style="padding: 9px 12px; background: var(--surface-soft); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; color: var(--text-muted); margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+<span>Content edits live at the programme — typo fixes there flow to every cohort automatically.</span>
+<button class="btn btn-xs">Edit curriculum →</button>
+</div>
+
+<div class="week-header-card">
+<div class="row-between">
+<div>
+<div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Week 3 · Releases 19 Jan 2027</div>
+<div style="font-size: 17px; font-weight: 500; margin-bottom: 4px; color: var(--navy);">Cardiovascular system</div>
+<div style="font-size: 12px; color: var(--text-muted);">3 activities included (1 removed from template, 1 cohort-only added)</div>
+</div>
+<button class="btn btn-sm">Edit release date</button>
+</div>
+</div>
+
+<div class="module-card">
+<div class="module-head">
+<div>
+<div class="mk">Module 1</div>
+<div class="mt">Cardiac anatomy primer</div>
+</div>
+<div style="font-size: 11px; color: var(--text-muted);">Releases 19 Jan · 9:00</div>
+</div>
+
+<!-- Template activity, kept -->
+<div class="activity-row">
+<span class="activity-icon t">T</span>
+<div class="activity-main">
+<div class="activity-title">Cardiac anatomy &amp; conduction <span style="font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--info-bg); color: var(--success-text); font-weight: 500; margin-left: 6px;">Template</span></div>
+<div class="activity-meta">Text · ~12 min</div>
+</div>
+<button class="btn btn-xs" style="color: var(--coral-text); border-color: var(--coral-border);">Remove</button>
+</div>
+
+<!-- Template activity, kept -->
+<div class="activity-row">
+<span class="activity-icon v">L</span>
+<div class="activity-main">
+<div class="activity-title">Heart anatomy primer <span style="font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--info-bg); color: var(--success-text); font-weight: 500; margin-left: 6px;">Template</span></div>
+<div class="activity-meta">External link · YouTube · 14 min</div>
+</div>
+<button class="btn btn-xs" style="color: var(--coral-text); border-color: var(--coral-border);">Remove</button>
+</div>
+
+<button class="add-btn">+ Add from template</button>
+<button class="add-btn" style="margin-top: 4px;">+ Add cohort-only activity</button>
+</div>
+
+<div class="module-card">
+<div class="module-head">
+<div>
+<div class="mk">Module 2</div>
+<div class="mt">ECG workshop &amp; mock</div>
+</div>
+<div style="font-size: 11px; color: var(--text-muted);">Releases 21 Jan · 9:00</div>
+</div>
+
+<!-- Template activity, kept -->
+<div class="activity-row">
+<span class="activity-icon q">Q</span>
+<div class="activity-main">
+<div class="activity-title">Cardiovascular fundamentals <span style="font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--info-bg); color: var(--success-text); font-weight: 500; margin-left: 6px;">Template</span></div>
+<div class="activity-meta">Practice quiz · 30 Qs · bank</div>
+</div>
+<button class="btn btn-xs" style="color: var(--coral-text); border-color: var(--coral-border);">Remove</button>
+</div>
+
+<!-- Cohort-only addition -->
+<div class="activity-row" style="background: rgba(45, 125, 114, 0.04); border-color: var(--info-border);">
+<span class="activity-icon l">L</span>
+<div class="activity-main">
+<div class="activity-title">Extra ECG case-discussion live <span style="font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--success-bg); color: var(--success-text); font-weight: 500; margin-left: 6px;">Cohort-only</span></div>
+<div class="activity-meta">Live · Sat 24 Jan 4pm GMT · 60 min</div>
+</div>
+<button class="btn btn-xs">Edit</button>
+<button class="btn btn-xs" style="color: var(--coral-text); border-color: var(--coral-border);">Remove</button>
+</div>
+
+<button class="add-btn">+ Add from template <span style="color: var(--text-dim); margin-left: 4px;">(2 available)</span></button>
+<button class="add-btn" style="margin-top: 4px;">+ Add cohort-only activity</button>
+</div>
+
+<div style="margin-top: 16px; padding: 12px 14px; background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 6px; font-size: 12px; color: var(--text); line-height: 1.6;">
+<strong>How this differs from screen 5.</strong> The Week Builder at the programme layer designs the <em>shared</em> curriculum. This view is the <em>cohort's checklist</em> — it determines which template entries are in <em>this cohort only</em>. Removing here doesn't touch the template; removing in the template doesn't auto-remove from active cohorts (only from new ones launched after).
+</div>
+</div>
+
 <div class="footer-note">
-<p><strong>About this file.</strong> These are planning-stage mockups, not final UI designs. They capture the decisions from the 2026-04-20 curriculum authoring UX session in a single place for later reference.</p>
-<p>Real UI will be built against the QAcademy brand and can refine layout, spacing, and typography. The structural decisions (hierarchy, views, flows, fields per activity type, reordering model, publish model) are what matter here.</p>
-<p>See <code>mynclex/docs/product-plan/curriculum-authoring-ux.md</code> for the full written plan.</p>
+<p><strong>About this file.</strong> These are planning-stage mockups, not final UI designs. Captures structural decisions from the 2026-04-20 curriculum authoring session, revised 2026-05-10 for the programme/cohort split.</p>
+<p>Real UI will be built against the QAcademy brand and can refine layout, spacing, and typography. The structural decisions (hierarchy, layers, propagation rules, fields per activity type, reordering model) are what matter here.</p>
+<p>See <code>mynclex/docs/product-plan/curriculum-authoring-ux.md</code> for the full written plan and <code>mynclex/docs/product-plan/main.md</code> for the canonical programme/cohort architecture.</p>
 </div>
 
 </div>

@@ -73,13 +73,15 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > See SESSIONS 2026-05-10 for the slice + bug-hunting session.
 >
-> **Next pick:** **Programme/Cohort architecture pivot (planning).**
-> Slice 9.1 (a/b/c) shipped today against a model where one programme
-> = one cohort. Sam surfaced the course/cohort split (programme =
-> reusable syllabus, cohort = a specific run) before curriculum lands
-> in Phase B. He's pausing to plan; next session will rework 9.1's
-> table + UI onto the split. When Bank work resumes, the next ⏭ is
-> **4.7 — Mark-for-review toggle**.
+> **Next pick:** **Slice 9.2 — Programme/Cohort architecture
+> rework.** Planning settled 2026-05-10 across 4 questions
+> (cohort-layer model, sync semantics, public discovery /
+> enrolment, naming). Five planning docs + the curriculum-authoring
+> mockup updated to the resolved architecture. 9.2 is now
+> build-ready: schema migration (9.2a) → modal split (9.2b) →
+> Cohorts tab + cohort detail subtree (9.2c). When Bank work
+> resumes after 9.2, the next ⏭ on that side is **4.7 —
+> Mark-for-review toggle**.
 
 ---
 
@@ -252,16 +254,42 @@ enrolment), `tutor-nav.html` (global vs programme nav contexts).
     edit mode. Migration
     `20260510130000_slice_9_1c_programmes_update_rls.sql`.
 
-- 🔨 **9.2** Programme/Cohort architecture pivot — planned 2026-05-10,
-  build deferred to next session. Sam wants to plan first. The split:
-  programme = reusable syllabus + curriculum; cohort = one specific
-  run with start/end dates, cohort_size, enrolment, status. Curriculum
-  (weeks/modules/activities, landing in Phase B) attaches to the
-  programme so improvements propagate to all cohorts; v1 has no
-  per-cohort content overrides (settled — single source of truth).
-  Cohort-level fields: start_date, end_date, cohort_size, status +
-  lifecycle timestamps, live-session schedule, mock due dates,
-  enrolments. Slice 9.1's table + UI gets reshaped here.
+- ⏭ **9.2** Programme/Cohort architecture rework — planning settled
+  2026-05-10 across 4 questions (see SESSIONS entry). The split:
+  programme = reusable design (curriculum + identity + pricing);
+  cohort = one specific run (dates, seats, enrolment, schedule).
+  Curriculum (weeks/modules/activities, Phase B) lives at the
+  programme layer so content edits propagate to every live cohort.
+  Cohorts hold an *explicit-membership checklist* (one row per
+  template activity included in the cohort, plus optional
+  cohort-only adds). Structural changes to the template don't
+  auto-propagate; cohort-only content overrides are not in v1.
+  Naming: "Programme" everywhere (no "Template" suffix). Slice
+  9.1's `nclex_programmes` schema gets reshaped — date / size /
+  late-join fields move out to a new `nclex_cohorts` table; the
+  6 seed rows are migrated to a programme + cohort pair each.
+  Build scope below; planning docs reflect resolved architecture
+  (main.md, curriculum-authoring-ux.md, payments-and-enrolment.md,
+  tutor-nav.html, mockup HTML all updated 2026-05-10).
+  - ⬜ **9.2a** Schema — migration adds `nclex_cohorts` (FK to
+    programmes, dates, size, late-join, status, name override,
+    lifecycle timestamps) with RLS. Drops `start_date` /
+    `end_date` / `cohort_size` from `nclex_programmes` after
+    backfilling existing rows into a first cohort each.
+    Programme status enum tightens to `DRAFT / PUBLISHED /
+    ARCHIVED` (CANCELLED moves to cohort).
+  - ⬜ **9.2b** Modal split — `<ProgrammeFormModal>` becomes
+    `<ProgrammeWithFirstCohortModal>` (create) capturing
+    programme + first cohort in one go. Edit modal narrows to
+    programme-only fields. New `<CohortFormModal>` for the
+    smaller "+ New cohort" flow on the Cohorts tab.
+  - ⬜ **9.2c** Cohorts tab + cohort detail subtree —
+    `/tutor/programme/[id]/cohorts/` (list inside programme) +
+    sibling `/tutor/cohort/[id]/...` subtree (Overview /
+    Curriculum / Students / Sessions / Announcements /
+    Settings). `getMyProgrammes()` + `<ProgrammeCard>` updated
+    to show cohort counts ("2 running · 1 upcoming") instead of
+    schedule line.
 
 Phase B+ slices defined after 9.2 lands.
 
