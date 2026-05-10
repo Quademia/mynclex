@@ -125,7 +125,26 @@ export function Runner({ data }: Props) {
 
 function RunnerShell({ data }: Props) {
   const router = useRouter();
-  const [current, setCurrent]   = useState(0);
+  // Resume to the first item that isn't yet finalised — picks up
+  // where the student left off (slice 4.6b). DRAFT rows (Free-batched
+  // mid-quiz, or any archetype's pending in-flight answer) are landing
+  // targets; SUBMITTED / AUTO_SUBMITTED / SKIPPED are skipped past.
+  // Critical for Sequential: the SUBMITTED prefix sits behind disabled
+  // Prev, so landing on Q1 when Q1-N are already submitted leaves the
+  // student stuck (RPC blocks resubmit, no Skip, no Prev). Universal
+  // because the jump is also a UX improvement for UL + Free-batched
+  // resume. If every item is finalised (rare — completeAttemptAction
+  // would normally have fired), land on the last one to surface Finish.
+  const [current, setCurrent]   = useState<number>(() => {
+    const finalised = new Set<string>();
+    for (const a of data.answers) {
+      if (a.submission_status !== 'DRAFT') finalised.add(a.attempt_item_id);
+    }
+    for (let i = 0; i < data.items.length; i++) {
+      if (!finalised.has(data.items[i].attempt_item_id)) return i;
+    }
+    return Math.max(0, data.items.length - 1);
+  });
   const [filter, setFilter]     = useState<GridFilter>('all');
   const [gridOpen, setGridOpen] = useState(true);
 
