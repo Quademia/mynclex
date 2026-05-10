@@ -15,6 +15,7 @@ export type {
   LiveData,
   ReviewData,
   RunnerData,
+  PerItemUnseal,
   SubmitAnswerResult,
 } from './types';
 

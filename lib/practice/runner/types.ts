@@ -94,6 +94,22 @@ export interface TrendSnapshot {
 
 export type CellFill = 'unanswered' | 'answered' | 'right' | 'wrong' | 'skipped';
 
+// Per-item unseal envelope. Live mode receives this via two paths:
+//   (a) submitAnswerAction's response on per-Q submit (UL hybrid,
+//       runner.html §2.3.1) — written into clientUnseal at submit time.
+//   (b) page.tsx's `seededUnseal` map for items whose answer row is
+//       already finalised at page load (resume) — seeds clientUnseal
+//       on mount so UL students see per-Q feedback persist across
+//       reloads. Pillar 2 holds: only items the student has already
+//       submitted get unsealed; not-yet-answered items stay sealed.
+// Review mode reads the same data straight off UnsealedItem instead.
+export interface PerItemUnseal {
+  correct:      BankItemCorrect;
+  rationale:    string | null;
+  rationaleImg: string | null;
+  marksMax:     number;
+}
+
 // The bundle page.tsx hands to the client. Discriminated by `mode`:
 // live carries SealedItem[]; review carries UnsealedItem[]. Type
 // narrowing on `data.mode` propagates the right item shape downstream.
@@ -104,6 +120,11 @@ export interface LiveData {
   cases:   CaseSnapshot[];
   trends:  TrendSnapshot[];
   answers: AnswerRow[];
+  /** Unseal envelopes for items whose answer row is already finalised
+   *  (SUBMITTED / AUTO_SUBMITTED / SKIPPED) at page load. Seeds
+   *  clientUnseal on mount so UL resume restores per-Q feedback.
+   *  Empty {} when no finalised rows exist (fresh attempt). */
+  seededUnseal: Record<string, PerItemUnseal>;
 }
 export interface ReviewData {
   mode:    'review';

@@ -150,8 +150,16 @@ function RunnerShell({ data }: Props) {
   );
   const [clientAnswers, setClientAnswers] =
     useState<Map<string, AnswerRow>>(new Map());
-  const [clientUnseal, setClientUnseal] =
-    useState<Map<string, PerItemUnseal>>(new Map());
+  // Seeds from data.seededUnseal in live mode so resume restores per-Q
+  // feedback for items the student already submitted in a prior session
+  // (slice 4.6a fix). Empty initial map in review mode — review reads
+  // unseal data straight off UnsealedItem.
+  const [clientUnseal, setClientUnseal] = useState<Map<string, PerItemUnseal>>(
+    () => {
+      if (data.mode !== 'live') return new Map();
+      return new Map(Object.entries(data.seededUnseal));
+    },
+  );
 
   // Finish-with-blanks confirmation modal (Free-batched only).
   const [showBlanksConfirm, setShowBlanksConfirm] = useState(false);

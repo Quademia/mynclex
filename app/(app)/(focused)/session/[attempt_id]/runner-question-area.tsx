@@ -39,7 +39,8 @@
 
 'use client';
 
-import type { SealedItem, UnsealedItem, AnswerRow } from '@/lib/practice/runner';
+import type { SealedItem, UnsealedItem, AnswerRow, PerItemUnseal } from '@/lib/practice/runner';
+export type { PerItemUnseal };
 import type { QuestionType } from '@/lib/bank/classifications';
 import type {
   McqContent,
@@ -60,7 +61,6 @@ import type {
   DragDropCorrect,
   BowtieContent,
   BowtieCorrect,
-  BankItemCorrect,
 } from '@/lib/bank/types';
 import type {
   McqAnswer,
@@ -105,13 +105,6 @@ interface Classification {
   nursing_subject?:          string;
   body_system?:              string;
   difficulty?:               string;
-}
-
-export interface PerItemUnseal {
-  correct:      BankItemCorrect;
-  rationale:    string | null;
-  rationaleImg: string | null;
-  marksMax:     number;
 }
 
 interface CommonProps {
