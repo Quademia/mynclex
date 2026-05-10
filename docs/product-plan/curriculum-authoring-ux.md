@@ -67,20 +67,36 @@ Programme  →  Week  →  Module  →  Activity
   Rolling), student count, Open button.
 - Primary action top-right: **+ New programme**.
 
-### 2. New Programme form
+### 2. New Programme modal
 
-Single screen, not a wizard. Seven fields:
+Triggered by the *+ New programme* button on the My Programmes list.
+Renders as a modal (not a dedicated route) — keeps the tutor in
+context, allows triggering from other surfaces later. Single-scroll,
+three sections: **Identity** / **Schedule** / **Pricing**.
+
+Ten fields:
 
 1. Title *
-2. Description
-3. Length in weeks *
-4. Max students (optional — blank = no cap)
-5. Mode * (Cohort / Rolling)
-6. Start date
-7. Allow late enrolment (toggle)
+2. Tagline (one-liner shown on the public card)
+3. Description (long copy for the public detail page)
+4. Length in weeks *
+5. Start date *
+6. End date * (auto-fills from start + length × 7; tutor-editable
+   to extend bank access beyond the curriculum)
+7. Cohort size (optional — blank = no cap)
+8. Price (GHS) * (0 = free)
+9. Price (USD) * (0 = free)
+10. Show price publicly (toggle, default ON; OFF → *"Contact"* button
+    on the public detail page instead of *"Pay & enrol"*)
 
-Submit → creates a Draft programme → lands the tutor on the Weeks
-Overview of that programme.
+Submit → creates a DRAFT programme → modal closes → parent page
+`router.refresh()` → success toast with an optional *Open programme →*
+link. Tutor stays on whichever page triggered the modal.
+
+Mode (Cohort / Rolling) and Allow-late-enrolment toggle removed per
+the [main.md](main.md) revision (2026-04-20). Status
+(DRAFT / PUBLISHED / ARCHIVED / CANCELLED) is set by post-create
+actions, not the form.
 
 ### 3. Weeks Overview — two views
 
@@ -222,5 +238,8 @@ in bank.md.
   actions).
 - [bank.md](bank.md) — question bank, source of the
   question-selection UI used by Mock and Practice quiz editors.
+- [tutor-library.md](tutor-library.md) — parked feature; will add
+  Library Note as the 7th activity type (and a 7th editor in the
+  table above) when queued for build.
 - [mockups/curriculum-authoring-ux.html](mockups/curriculum-authoring-ux.html)
   — visual mockups from the 2026-04-20 session.

@@ -337,6 +337,24 @@ When the bundled payment activates, the system creates:
 All three in one atomic step. Student is immediately enrolled and
 lands on dashboard.
 
+### Tutor-added enrolment
+
+A second path: a tutor adds a student directly from inside the
+programme workspace at any point in the programme's lifecycle. No
+payment row is created — QAcademy absorbs the bank-pack cost (the
+tutor "comps" the access for that student).
+
+- **Self-paid path** sets `enrolment_source = 'SELF_PAID'` on the
+  `nclex_enrolments` row.
+- **Tutor-added path** sets `enrolment_source = 'TUTOR_ADDED'`.
+
+The bundled bank-pack subscription is created either way; bank-access
+dates match the programme's `start_date → end_date`.
+
+Per-tutor quota mechanics (limiting how many tutor-added enrolments
+a tutor can comp based on their subscription tier) are deferred to a
+later slice.
+
 ### No waiting room
 
 Regardless of programme start dates, an enrolled student's
@@ -397,4 +415,7 @@ New tables needed for tutored enrolment:
   covers commercial numbers; Roles covers who can pay for what).
 - [bank.md](bank.md) — the product that bank-pack subscriptions
   unlock access to.
+- [tutor-library.md](tutor-library.md) — parked feature; library
+  visibility for tutored students depends on the enrolment flow
+  defined here.
 - `mynclex/CLAUDE.md` — stack, conventions, extraction rule.

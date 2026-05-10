@@ -1,0 +1,1748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MyNclex — Tutor Library · Mockup</title>
+<style>
+  :root {
+    --primary: #1e3a5f;
+    --primary-light: #e8eef4;
+    --accent: #2d7d72;
+    --accent-light: #e6f1ef;
+    --bg: #f8fafc;
+    --white: #ffffff;
+    --border: #e5e7eb;
+    --border-strong: #d1d5db;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --text-dim: #9ca3af;
+
+    --info-bg: #eef4fa;
+    --info-border: #93c5fd;
+    --info-accent: #2d6fc0;
+    --info-text: #0c447c;
+
+    --tip-bg: #e6f1ef;
+    --tip-border: #2d7d72;
+    --tip-text: #085041;
+
+    --warn-bg: #faeeda;
+    --warn-border: #fac775;
+    --warn-text: #633806;
+
+    --crit-bg: #fce7e7;
+    --crit-border: #f5a3a3;
+    --crit-text: #7c1d1d;
+
+    --memo-bg: #f0eefb;
+    --memo-border: #b6a8e8;
+    --memo-text: #3c2d75;
+
+    --success-bg: #e6f1ef;
+    --success-border: #2d7d72;
+    --success-text: #085041;
+
+    --draft-bg: #f3f4f6;
+    --draft-text: #4b5563;
+
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.10);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 24px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .wrap { max-width: 1080px; margin: 0 auto; }
+
+  h1 { font-size: 22px; font-weight: 600; color: var(--primary); margin: 0 0 4px; }
+  h2 { font-size: 16px; font-weight: 600; color: var(--primary); margin: 28px 0 8px; padding-top: 18px; border-top: 1px solid var(--border); }
+  p { margin: 0 0 10px; font-size: 14px; }
+
+  .subtitle { font-size: 13px; color: var(--text-muted); margin: 0 0 6px; }
+  .meta { font-size: 12px; color: var(--text-dim); margin: 0 0 24px; }
+
+  .callout-doc {
+    background: var(--info-bg);
+    border: 1px solid var(--info-accent);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    margin: 14px 0;
+    font-size: 13px;
+    color: var(--info-text);
+  }
+
+  /* ─── Mode + screen controls ──────────────────────── */
+
+  .mockup-header { margin: 24px 0 12px; }
+  .mockup-header h2 { margin: 0; border-top: none; padding-top: 0; }
+  .mockup-sub { font-size: 13px; color: var(--text-muted); margin: 4px 0 0; }
+
+  .mode-tabs {
+    display: inline-flex;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 3px;
+    gap: 2px;
+    margin-bottom: 12px;
+  }
+  .mode-tab {
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    padding: 6px 14px;
+    background: transparent; border: none; border-radius: 5px;
+    cursor: pointer; color: var(--text-muted);
+  }
+  .mode-tab.active {
+    background: var(--white); color: var(--primary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+
+  .controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .controls-label { font-size: 12px; color: var(--text-muted); margin-right: 4px; }
+
+  button {
+    font-family: inherit; font-size: 13px; padding: 6px 12px;
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); cursor: pointer; color: var(--text);
+  }
+  button:hover { border-color: var(--border-strong); }
+
+  .screen-btn { padding: 4px 10px; font-size: 12px; }
+  .screen-btn.active {
+    background: var(--info-bg); color: var(--info-text);
+    border-color: var(--info-accent);
+  }
+
+  .stage {
+    background: var(--border);
+    border-radius: var(--radius-lg);
+    padding: 12px;
+  }
+
+  .frame {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: var(--radius-md); overflow: hidden;
+    min-height: 540px; position: relative;
+  }
+
+  .hint {
+    margin-top: 10px;
+    padding: 9px 12px;
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 12.5px; color: var(--text-muted);
+  }
+  .hint b { color: var(--primary); }
+
+  /* ─── Topbar ────────────────────────────────────────── */
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    flex-wrap: wrap; gap: 8px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .brand-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: transparent; border: none; padding: 0; cursor: pointer; font-family: inherit;
+  }
+  .brand-logo {
+    width: 22px; height: 22px;
+    background: var(--primary); border-radius: 5px; position: relative;
+  }
+  .brand-logo::after {
+    content: ''; position: absolute; top: 5px; left: 5px;
+    width: 12px; height: 12px;
+    background: var(--accent); border-radius: 2px;
+  }
+  .brand-name { font-weight: 700; color: var(--primary); font-size: 14px; }
+  .brand-product { font-size: 12px; color: var(--text-muted); margin-left: 4px; }
+
+  .back-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 999px; padding: 4px 10px 4px 8px;
+    font-size: 12px; color: var(--text-muted); cursor: pointer; margin-left: 8px;
+  }
+  .back-pill:hover { border-color: var(--border-strong); color: var(--text); }
+
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .role-pill {
+    background: var(--info-bg); color: var(--info-text);
+    font-size: 11px; font-weight: 500;
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .role-pill.student { background: var(--accent-light); color: var(--success-text); }
+  .avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--primary); color: var(--white);
+    font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  /* ─── Body grid (sidebar + main) ──────────────────── */
+
+  .body { display: grid; grid-template-columns: 220px 1fr; min-height: 484px; }
+  .sidebar {
+    background: var(--bg); border-right: 1px solid var(--border);
+    padding: 12px 0; display: flex; flex-direction: column;
+  }
+  .sidebar-header {
+    padding: 6px 14px 8px;
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px;
+    font-size: 13px; color: var(--text-muted); cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+  .nav-item:hover { background: rgba(0, 0, 0, 0.02); }
+  .nav-item.active {
+    background: var(--white); color: var(--primary);
+    font-weight: 600; border-left-color: var(--accent);
+  }
+  .nav-icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+  /* ─── Main page area ──────────────────────────────── */
+
+  .main { padding: 18px 22px; overflow: hidden; }
+  .page-title { font-size: 18px; font-weight: 600; color: var(--primary); margin-bottom: 2px; }
+  .page-sub   { font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px; }
+
+  /* ─── Library list page ────────────────────────────── */
+
+  .lib-toolbar {
+    display: flex; gap: 10px; align-items: center;
+    margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .search-input {
+    flex: 1; min-width: 180px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 6px 10px; font-size: 13px; background: var(--white); color: var(--text);
+  }
+  .btn-primary {
+    background: var(--primary); color: var(--white);
+    border-color: var(--primary); font-weight: 500;
+  }
+  .btn-primary:hover { background: #16294a; border-color: #16294a; }
+
+  .lib-grid { display: grid; grid-template-columns: 180px 1fr; gap: 14px; }
+
+  .folders {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    background: var(--bg); padding: 8px 0;
+  }
+  .folder-item {
+    padding: 7px 12px; font-size: 12.5px; color: var(--text-muted);
+    cursor: pointer; border-left: 3px solid transparent;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .folder-item:hover { background: rgba(0,0,0,0.02); }
+  .folder-item.active {
+    background: var(--white); color: var(--primary); font-weight: 600;
+    border-left-color: var(--accent);
+  }
+  .folder-count { margin-left: auto; font-size: 11px; color: var(--text-dim); }
+
+  .notes-list {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+  .note-row {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    display: grid; grid-template-columns: 1fr auto auto;
+    gap: 10px; align-items: center;
+  }
+  .note-row:last-child { border-bottom: none; }
+  .note-row:hover { background: var(--bg); }
+  .note-title { font-size: 13.5px; font-weight: 500; color: var(--text); }
+  .note-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+  .note-tags { display: flex; gap: 4px; }
+  .tag {
+    font-size: 10.5px; padding: 2px 7px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 999px; color: var(--text-muted);
+  }
+  .pill {
+    font-size: 10.5px; padding: 2px 8px; border-radius: 999px;
+    font-weight: 500;
+  }
+  .pill-published { background: var(--success-bg); color: var(--success-text); }
+  .pill-draft { background: var(--draft-bg); color: var(--draft-text); }
+  .pill-task { background: var(--warn-bg); color: var(--warn-text); }
+
+  /* ─── Note editor (tutor) ─────────────────────────── */
+
+  .editor-grid {
+    display: grid; grid-template-columns: 1fr 220px;
+    gap: 14px; min-height: 460px;
+  }
+  .editor-main { min-width: 0; }
+  .editor-title-input {
+    width: 100%; border: none; padding: 4px 0;
+    font-size: 22px; font-weight: 600; color: var(--primary);
+    background: transparent; outline: none; margin-bottom: 4px;
+    font-family: inherit;
+  }
+  .editor-meta { font-size: 12px; color: var(--text-dim); margin-bottom: 10px; }
+
+  /* Inline formatting toolbar above the body */
+  .format-bar {
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px 8px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--bg);
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+  .fmt-btn {
+    width: 28px; height: 26px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; border: none; border-radius: 4px;
+    cursor: pointer; color: var(--text-muted);
+    font-family: inherit; font-size: 13px;
+  }
+  .fmt-btn:hover { background: var(--white); color: var(--text); }
+  .fmt-btn.active { background: var(--white); color: var(--primary); border: 1px solid var(--border); }
+  .fmt-divider { width: 1px; height: 16px; background: var(--border); margin: 0 4px; }
+
+  .block {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: var(--white);
+    position: relative;
+  }
+  .block:hover { border-color: var(--border-strong); }
+  .block-tag {
+    position: absolute; top: 6px; right: 8px;
+    font-size: 9.5px; font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    background: var(--bg); padding: 2px 6px; border-radius: 3px;
+    opacity: 0; transition: opacity 0.12s;
+  }
+  .block:hover .block-tag { opacity: 1; }
+
+  .block-content { font-size: 13.5px; color: var(--text); line-height: 1.6; }
+  .block-content.muted { color: var(--text-muted); }
+  .block-h2 { font-size: 17px; font-weight: 600; color: var(--primary); margin: 0; }
+  .block-content b { font-weight: 600; color: var(--text); }
+  .block-content em { font-style: italic; }
+  .block-content code {
+    font-family: 'Menlo', 'Monaco', monospace;
+    font-size: 12.5px;
+    background: var(--bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--primary);
+  }
+  .block-content a { color: var(--info-accent); text-decoration: underline; }
+
+  .block-list { padding-left: 20px; margin: 0; }
+  .block-list li { font-size: 13.5px; color: var(--text); line-height: 1.7; }
+  .block-list li::marker { color: var(--accent); }
+
+  .block-quote {
+    border-left: 3px solid var(--accent);
+    padding-left: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  .block-img {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg); padding: 8px;
+    border-radius: var(--radius-sm);
+  }
+  .block-img-thumb {
+    width: 50px; height: 36px; background: var(--border);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim);
+  }
+
+  /* Callouts */
+  .block-callout {
+    border-radius: var(--radius-md);
+    padding: 12px 14px 12px 16px;
+    border-left: 4px solid;
+    font-size: 13.5px;
+    line-height: 1.55;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .block-callout-head {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  .block-callout.tip   { background: var(--tip-bg);   border-color: var(--tip-border);   color: var(--tip-text); }
+  .block-callout.warn  { background: var(--warn-bg);  border-color: var(--warn-border);  color: var(--warn-text); }
+  .block-callout.crit  { background: var(--crit-bg);  border-color: var(--crit-border);  color: var(--crit-text); }
+  .block-callout.note  { background: var(--info-bg);  border-color: var(--info-border);  color: var(--info-text); }
+  .block-callout.memo  { background: var(--memo-bg);  border-color: var(--memo-border);  color: var(--memo-text); }
+
+  /* Drug card */
+  .block-drug {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 14px 16px; background: var(--white);
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .drug-head {
+    display: flex; align-items: baseline; gap: 8px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px; margin-bottom: 10px;
+  }
+  .drug-name { font-size: 16px; font-weight: 600; color: var(--primary); }
+  .drug-class { font-size: 12px; color: var(--accent); font-weight: 500; }
+  .drug-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px 18px; font-size: 12.5px;
+  }
+  .drug-field { }
+  .drug-field-label {
+    font-size: 10px; font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 2px;
+  }
+  .drug-field-value { color: var(--text); line-height: 1.5; }
+
+  /* Lab values table */
+  .block-lab {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    overflow: hidden; margin-bottom: 8px; position: relative;
+  }
+  .lab-head {
+    background: var(--bg);
+    padding: 8px 12px;
+    font-size: 12px; font-weight: 600; color: var(--primary);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .lab-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .lab-table th {
+    text-align: left; padding: 6px 12px;
+    font-weight: 600; color: var(--text-muted);
+    background: var(--bg); border-bottom: 1px solid var(--border);
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .lab-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+  .lab-table tr:last-child td { border-bottom: none; }
+  .lab-table .normal { color: var(--success-text); font-weight: 500; }
+
+  /* Embedded question */
+  .block-q {
+    border-color: var(--success-border);
+    background: var(--accent-light);
+  }
+  .block-q .block-tag { background: var(--accent); color: var(--white); opacity: 1; }
+  .block-q .block-content { color: var(--success-text); }
+
+  /* Block insert button */
+  .block-add-btn {
+    display: flex; align-items: center; justify-content: center;
+    margin: 6px 0;
+    height: 28px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.12s;
+  }
+  .block-add-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-light);
+  }
+
+  /* Block insert popover (open state) */
+  .block-popover {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--white);
+    box-shadow: var(--shadow-lg);
+    padding: 8px 0;
+    margin: 6px 0 12px;
+    width: 100%;
+    overflow: hidden;
+  }
+  .popover-search {
+    margin: 0 8px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: 13px;
+    width: calc(100% - 16px);
+  }
+  .popover-section {
+    padding: 6px 10px 4px;
+    font-size: 10px; font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .popover-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 4px; padding: 0 8px;
+  }
+  .popover-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 12.5px;
+    color: var(--text);
+  }
+  .popover-item:hover, .popover-item.kbd-hover {
+    background: var(--accent-light);
+    color: var(--success-text);
+  }
+  .popover-item-icon {
+    width: 22px; height: 22px;
+    background: var(--bg); border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); flex-shrink: 0;
+  }
+  .popover-item:hover .popover-item-icon, .popover-item.kbd-hover .popover-item-icon {
+    background: var(--accent); color: var(--white);
+  }
+  .popover-item-name { font-weight: 500; }
+  .popover-item-desc { font-size: 11px; color: var(--text-muted); }
+  .popover-item:hover .popover-item-desc, .popover-item.kbd-hover .popover-item-desc { color: var(--success-text); }
+  .popover-foot {
+    border-top: 1px solid var(--border);
+    padding: 7px 12px;
+    font-size: 11px; color: var(--text-dim);
+    margin-top: 4px;
+    display: flex; justify-content: space-between;
+  }
+  .kbd {
+    display: inline-block;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: 'Menlo', monospace; font-size: 10.5px;
+    color: var(--text-muted);
+  }
+
+  .editor-rail {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    background: var(--bg);
+    font-size: 12px;
+    height: fit-content;
+  }
+  .rail-section { margin-bottom: 14px; }
+  .rail-label {
+    font-size: 10px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 5px;
+  }
+  .rail-row {
+    background: var(--white); border: 1px solid var(--border);
+    padding: 6px 10px; border-radius: var(--radius-sm);
+    margin-bottom: 4px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .rail-help { font-size: 11px; color: var(--text-dim); line-height: 1.4; margin-top: 4px; }
+  .rail-list { font-size: 12px; line-height: 1.7; color: var(--text-muted); }
+
+  .editor-actions {
+    display: flex; gap: 8px; align-items: center; margin-top: 8px;
+    padding-top: 12px; border-top: 1px solid var(--border);
+    justify-content: flex-end;
+  }
+  .editor-actions .dirty {
+    margin-right: auto;
+    font-size: 11.5px; color: var(--warn-text);
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .editor-actions .dirty::before {
+    content: ''; width: 6px; height: 6px;
+    background: #ba7517; border-radius: 50%;
+  }
+
+  /* ─── Modal ───────────────────────────────────────── */
+
+  .backdrop {
+    position: absolute; inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 5;
+  }
+  .modal {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    width: 420px; max-width: calc(100% - 24px);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-lg);
+  }
+  .modal-title { font-size: 15px; font-weight: 600; color: var(--primary); margin-bottom: 6px; }
+  .modal-body { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.6; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .modal-actions button.primary {
+    background: var(--accent); color: var(--white);
+    border-color: var(--accent); font-weight: 500;
+  }
+
+  .visibility-card {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 10px 12px; margin-bottom: 8px; cursor: pointer;
+  }
+  .visibility-card.selected { border-color: var(--accent); background: var(--accent-light); }
+  .visibility-card-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .visibility-card-desc { font-size: 11.5px; color: var(--text-muted); line-height: 1.45; }
+
+  /* ─── Student library home ────────────────────────── */
+
+  .lib-home-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .topic-card {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 14px; background: var(--white);
+    cursor: pointer; transition: border-color 0.12s;
+  }
+  .topic-card:hover { border-color: var(--accent); }
+  .topic-card-icon {
+    width: 32px; height: 32px;
+    background: var(--accent-light); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 8px; color: var(--accent);
+  }
+  .topic-card-title { font-size: 14px; font-weight: 600; color: var(--primary); margin-bottom: 2px; }
+  .topic-card-meta { font-size: 11.5px; color: var(--text-muted); }
+
+  /* ─── Student note read view ──────────────────────── */
+
+  .read-grid { display: grid; grid-template-columns: 220px 1fr; min-height: 484px; }
+  .read-side {
+    background: var(--bg); border-right: 1px solid var(--border);
+    padding: 12px 0;
+    display: flex; flex-direction: column;
+  }
+
+  /* Contents (TOC) panel */
+  .toc-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .toc-title {
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .toc-collapse {
+    width: 22px; height: 22px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 4px;
+    color: var(--text-dim); cursor: pointer;
+  }
+  .toc-collapse:hover { background: var(--white); color: var(--text); }
+
+  .toc-list {
+    display: flex; flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .toc-item {
+    padding: 7px 14px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    line-height: 1.4;
+    text-decoration: none;
+    display: block;
+  }
+  .toc-item:hover { background: rgba(0,0,0,0.02); color: var(--text); }
+  .toc-item.active {
+    background: var(--white);
+    color: var(--primary); font-weight: 600;
+    border-left-color: var(--accent);
+  }
+  .toc-item.h3 {
+    padding-left: 28px;
+    font-size: 12px;
+  }
+
+  .toc-progress {
+    margin: 12px 14px 4px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .toc-progress-label {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    display: flex; justify-content: space-between;
+    margin-bottom: 5px;
+  }
+  .toc-progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .toc-progress-fill {
+    height: 100%; width: 38%;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  .toc-back {
+    margin: 0 14px 12px;
+    padding: 8px 10px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex; align-items: center; gap: 6px;
+    cursor: pointer;
+  }
+  .toc-back:hover { border-color: var(--border-strong); color: var(--text); }
+
+  .read-main { padding: 28px 36px; max-width: 720px; min-width: 0; }
+  .read-title { font-size: 24px; font-weight: 600; color: var(--primary); margin: 0 0 6px; }
+  .read-byline { font-size: 12px; color: var(--text-dim); margin-bottom: 20px; }
+  .read-h2 { font-size: 17px; font-weight: 600; color: var(--primary); margin: 22px 0 8px; }
+  .read-p { font-size: 14.5px; color: var(--text); line-height: 1.7; margin: 0 0 14px; }
+  .read-p b { font-weight: 600; }
+  .read-p code {
+    font-family: 'Menlo', 'Monaco', monospace; font-size: 12.5px;
+    background: var(--bg); padding: 1px 5px; border-radius: 3px;
+    color: var(--primary);
+  }
+  .read-list { padding-left: 22px; margin: 0 0 14px; }
+  .read-list li { font-size: 14.5px; color: var(--text); line-height: 1.75; }
+  .read-list li::marker { color: var(--accent); }
+
+  .read-quote {
+    border-left: 3px solid var(--accent);
+    padding: 4px 0 4px 14px;
+    margin: 14px 0;
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 14px;
+  }
+
+  .read-callout {
+    border-radius: var(--radius-md);
+    padding: 12px 14px 12px 16px;
+    border-left: 4px solid;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 14px 0;
+  }
+  .read-callout-head {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  .read-callout.tip   { background: var(--tip-bg);   border-color: var(--tip-border);   color: var(--tip-text); }
+  .read-callout.warn  { background: var(--warn-bg);  border-color: var(--warn-border);  color: var(--warn-text); }
+  .read-callout.crit  { background: var(--crit-bg);  border-color: var(--crit-border);  color: var(--crit-text); }
+  .read-callout.note  { background: var(--info-bg);  border-color: var(--info-border);  color: var(--info-text); }
+  .read-callout.memo  { background: var(--memo-bg);  border-color: var(--memo-border);  color: var(--memo-text); }
+
+  .read-drug {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 16px 18px; background: var(--white);
+    margin: 14px 0;
+  }
+  .read-drug .drug-name { font-size: 18px; }
+  .read-drug .drug-grid { font-size: 13px; }
+
+  .read-lab .lab-table { font-size: 13px; }
+  .read-lab .lab-table th { font-size: 11px; }
+
+  .read-img-stub {
+    width: 320px; height: 110px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim); font-size: 11px;
+    margin: 14px auto;
+  }
+
+  .read-q {
+    background: var(--accent-light);
+    border: 1px solid var(--success-border);
+    border-radius: var(--radius-md);
+    padding: 16px 18px; margin: 18px 0;
+  }
+  .read-q-label {
+    font-size: 11px; font-weight: 600; color: var(--success-text);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .read-q-stem { font-size: 14px; color: var(--success-text); margin-bottom: 10px; line-height: 1.6; }
+  .read-q-opts { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .read-q-opt {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 7px 10px;
+    font-size: 13px;
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+  }
+  .read-q-opt:hover { border-color: var(--accent); }
+  .read-q-checkbox {
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--border-strong); border-radius: 3px; flex-shrink: 0;
+  }
+  .read-q-letter { font-weight: 600; color: var(--text); min-width: 14px; }
+  .read-q-foot {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px;
+  }
+  .read-q-note { color: var(--success-text); }
+  .read-q-submit {
+    background: var(--accent); color: var(--white);
+    border-color: var(--accent);
+    font-size: 12px; padding: 5px 14px;
+  }
+
+  .read-prev-next {
+    display: flex; justify-content: space-between;
+    border-top: 1px solid var(--border);
+    margin-top: 28px; padding-top: 14px;
+  }
+
+  /* ─── Activity picker (week-builder) ─────────────── */
+
+  .activity-picker {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    padding: 8px;
+    background: var(--bg); border-radius: var(--radius-md);
+  }
+  .activity-tile {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 10px; text-align: center;
+    cursor: pointer; font-size: 11.5px;
+  }
+  .activity-tile:hover { border-color: var(--accent); }
+  .activity-tile.new {
+    border: 1px dashed var(--accent);
+    background: var(--accent-light); color: var(--success-text);
+  }
+  .activity-tile-icon { font-size: 18px; color: var(--text-muted); margin-bottom: 4px; display: block; }
+  .activity-tile.new .activity-tile-icon { color: var(--accent); }
+  .activity-tile-name { font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .activity-tile.new .activity-tile-name { color: var(--success-text); }
+  .activity-tile-desc { color: var(--text-muted); font-size: 10.5px; line-height: 1.35; }
+
+  /* ─── Week activity row ───────────────────────────── */
+
+  .week-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    margin-bottom: 6px; background: var(--white);
+  }
+  .week-row-icon {
+    width: 32px; height: 32px;
+    background: var(--bg); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); flex-shrink: 0;
+  }
+  .week-row.lib .week-row-icon { background: var(--accent-light); color: var(--accent); }
+  .week-row-body { flex: 1; min-width: 0; }
+  .week-row-title { font-size: 13.5px; font-weight: 500; color: var(--text); }
+  .week-row-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+  .week-row-tick {
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--border-strong); border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .week-row-tick.done {
+    background: var(--accent); border-color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--white);
+  }
+
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <h1>MyNclex — Tutor Library · Mockup</h1>
+  <p class="subtitle">Visual companion to <code>tutor-library.md</code>. 12 block types, full editor + reader experience.</p>
+  <p class="meta">Last updated: 2026-05-08 · Pure visuals · No real data, no real functionality</p>
+
+  <div class="callout-doc">
+    <strong>What changed in this version.</strong> Added 7 new block types (List, Quote, Table, Callout with 5 variants, Drug card, Lab values table, plus the existing Heading/Paragraph/Image/PDF/Video/Embedded question = 12 total). Editor gained an inline formatting toolbar and a block-insertion popover. Student read view now renders all the new structured blocks. New screen: "Add block" popover demonstrating slash-command UX. <strong>Latest:</strong> student read view now has a <b>Contents</b> panel on the left auto-built from the note's headings — click to jump, scroll-spy highlights active section, reading progress sits at the bottom of the panel.
+  </div>
+
+  <div class="mockup-header">
+    <h2>Interactive mockup</h2>
+    <p class="mockup-sub">Click between Tutor and Student to see the same library from both angles.</p>
+  </div>
+
+  <div class="mode-tabs" role="tablist">
+    <button class="mode-tab active" data-mode="tutor">Tutor view</button>
+    <button class="mode-tab" data-mode="student">Student view</button>
+  </div>
+
+  <div class="controls">
+    <span class="controls-label">Screen:</span>
+    <div id="screen-buttons"></div>
+  </div>
+
+  <div class="stage">
+    <div class="frame" id="frame"></div>
+  </div>
+
+  <div class="hint" id="hint"></div>
+
+  <h2>The 12 block types in v1</h2>
+  <ul style="font-size: 13.5px; color: var(--text-muted); line-height: 1.8;">
+    <li><strong style="color: var(--primary);">Text &amp; structure (4):</strong> Paragraph · Heading (H2/H3) · List (bulleted/numbered) · Quote</li>
+    <li><strong style="color: var(--primary);">Visual &amp; media (4):</strong> Image · PDF · Video · Table</li>
+    <li><strong style="color: var(--primary);">Nursing-shaped (3):</strong> Callout (5 variants — Note / Tip / Warning / Critical / Memory aid) · Drug card · Lab values</li>
+    <li><strong style="color: var(--primary);">Interactive (1):</strong> Embedded question (from the bank)</li>
+  </ul>
+  <p style="font-size: 13px; color: var(--text-muted);">Block insertion: click the <code>+</code> between blocks for the popover, or type <code>/</code> anywhere to open the same menu via slash command.</p>
+
+</div>
+
+<script>
+(() => {
+
+  const icons = {
+    home:      '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>',
+    book:      '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h14a2 2 0 002-2V6a2 2 0 00-2-2H4z"/><path d="M4 4v16"/></svg>',
+    folder:    '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>',
+    library:   '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h4v16H4zM10 4h4v16h-4zM18 6l3 13"/></svg>',
+    users:     '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><circle cx="17" cy="9" r="2.5"/><path d="M21 19v-1.5a3 3 0 00-3-3"/></svg>',
+    card:      '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>',
+    user:      '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 016-6h4a6 6 0 016 6v1"/></svg>',
+    calendar:  '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>',
+    layers:    '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>',
+    video:     '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/></svg>',
+    target:    '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>',
+    edit:      '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16v4z"/></svg>',
+    chart:     '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V5M3 21h18M7 17v-6M12 17v-9M17 17v-3"/></svg>',
+    bookmark:  '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v17l-6-4-6 4z"/></svg>',
+    clock:     '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    plus:      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
+    photo:     '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 17l-5-5L5 19"/></svg>',
+    pdf:       '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg>',
+    text:      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14M5 4v3M19 4v3M12 4v16M9 20h6"/></svg>',
+    link:      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.5-1.5"/></svg>',
+    quiz:      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 015 2c0 1.5-2 2-2 3M12 17h0"/></svg>',
+    check:     '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-12"/></svg>',
+    arrowL:    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>',
+    arrowR:    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>',
+    // Block-type icons (small, for popover and editor tags)
+    bH: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16M19 4v16M5 12h14"/></svg>',
+    bP: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12M6 8h12M6 12h12M6 16h8"/></svg>',
+    bL: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="5" cy="18" r="1.5"/><path d="M10 6h11M10 12h11M10 18h11"/></svg>',
+    bQ: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h4v6c0 2-1 3-3 3M14 7h4v6c0 2-1 3-3 3"/></svg>',
+    bI: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 17l-5-5L5 19"/></svg>',
+    bF: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg>',
+    bV: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/></svg>',
+    bT: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="1"/><path d="M4 10h16M4 15h16M10 5v14M16 5v14"/></svg>',
+    bC: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14v10l-4 4H5z"/><path d="M9 10h6"/></svg>',
+    bD: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M8 12h2M14 12h2"/></svg>',
+    bB: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14v3l-3 8H8l-3-8z"/><circle cx="12" cy="13" r="2"/></svg>',
+    bE: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 015 2c0 1.5-2 2-2 3M12 17h0"/></svg>',
+  };
+
+  // ─── Block type catalogue (for popover) ──────────────────────
+
+  const blockTypes = [
+    { group: 'Text & structure', items: [
+      { key: 'h',    name: 'Heading',          desc: 'Section heading (H2 / H3)', icon: 'bH' },
+      { key: 'p',    name: 'Paragraph',        desc: 'Plain text with formatting', icon: 'bP' },
+      { key: 'l',    name: 'List',             desc: 'Bulleted or numbered',       icon: 'bL' },
+      { key: 'q',    name: 'Quote',            desc: 'Block quote with citation',  icon: 'bQ' },
+    ]},
+    { group: 'Visual & media', items: [
+      { key: 'i',    name: 'Image',            desc: 'Single image with caption',  icon: 'bI' },
+      { key: 'f',    name: 'PDF',              desc: 'Inline PDF embed',           icon: 'bF' },
+      { key: 'v',    name: 'Video',            desc: 'YouTube / Vimeo / link',     icon: 'bV' },
+      { key: 't',    name: 'Table',            desc: 'Editable rows & columns',    icon: 'bT' },
+    ]},
+    { group: 'Nursing-shaped', items: [
+      { key: 'c',    name: 'Callout',          desc: 'Note / Tip / Warning / Critical / Memory', icon: 'bC' },
+      { key: 'd',    name: 'Drug card',        desc: 'Class, dose, indications…',  icon: 'bD' },
+      { key: 'b',    name: 'Lab values',       desc: 'Test, range, implications',  icon: 'bB' },
+    ]},
+    { group: 'Interactive', items: [
+      { key: 'e',    name: 'Embedded question',desc: 'Pull a question from your bank', icon: 'bE' },
+    ]},
+  ];
+
+  // ─── Screen catalogue ────────────────────────────────────────
+
+  const tutorScreens = [
+    { key: 'list',    label: '1. Library home',     hint: '<b>Library home.</b> Folders on the left, notes inside the open folder. The "Used in" column shows how many programme attachments each note has.' },
+    { key: 'editor',  label: '2. Note editor',      hint: '<b>Note editor.</b> Inline formatting toolbar, block-based body. Hover any block to see its type tag. The dashed <b>+</b> between blocks (or <code>/</code> anywhere) opens the block menu.' },
+    { key: 'popover', label: '3. Add block',        hint: '<b>Add block.</b> Same menu opens via the <b>+</b> button or <code>/</code> slash command. 12 block types organised into 4 groups. Type to search.' },
+    { key: 'publish', label: '4. Publish dialog',   hint: '<b>Publish dialog.</b> The tutor picks visibility mode at publish time — Tutor-wide is the default; Programme-scoped is the deliberate choice for cohort-specific content.' },
+    { key: 'picker',  label: '5. Activity picker',  hint: '<b>Activity picker.</b> The week-builder grows from a 3×2 grid (six types) to a 4×2 grid with Library Note as the new 7th type.' },
+    { key: 'attach',  label: '6. Attach modal',     hint: '<b>Attach modal.</b> Triggered from the activity picker. The tutor browses their library and picks one note to slot into the week.' },
+  ];
+
+  const studentScreens = [
+    { key: 'home',    label: '1. Library home',     hint: '<b>Library home.</b> Topic shelves modelled on a real library — folders the tutor created become topic cards.' },
+    { key: 'read',    label: '2. Note read view',   hint: '<b>Note read view.</b> Reads like a textbook chapter. Left rail is now a <b>Contents</b> panel auto-built from the note\'s headings — click to jump, scroll-spy highlights the active section. Reading progress lives at the bottom of the panel. The "Back to Cardiac" pill at the top returns the student to cross-note browsing.' },
+    { key: 'week',    label: '3. Week activity',    hint: '<b>Week activity.</b> A Library Note attached to a week appears alongside other activities with a completion tick.' },
+  ];
+
+  let mode = 'tutor';
+  let screen = 'list';
+
+  // ─── Topbars ─────────────────────────────────────────────────
+
+  function tutorTopbar() {
+    return `
+      <div class="topbar">
+        <div class="brand">
+          <button class="brand-btn"><div class="brand-logo"></div><span class="brand-name">QAcademy</span></button>
+          <span class="brand-product">· Tutor</span>
+        </div>
+        <div class="topbar-right">
+          <span class="role-pill">Tutor</span>
+          <div class="avatar">DM</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function studentTopbar(showTaskPill) {
+    return `
+      <div class="topbar">
+        <div class="brand">
+          <button class="brand-btn"><div class="brand-logo"></div><span class="brand-name">QAcademy</span></button>
+          <span class="brand-product">· Programme</span>
+          <span class="back-pill">${icons.arrowL} Bootcamp Cohort 5</span>
+        </div>
+        <div class="topbar-right">
+          ${showTaskPill ? `<span class="pill pill-task">Week 3 task</span>` : ''}
+          <span class="role-pill student">Student</span>
+          <div class="avatar">SA</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ─── Sidebars ────────────────────────────────────────────────
+
+  function tutorSidebar(activeKey) {
+    const items = [
+      { key: 'programmes', label: 'Programmes', icon: 'calendar' },
+      { key: 'bank',       label: 'My Bank',    icon: 'book' },
+      { key: 'library',    label: 'My Library', icon: 'library', isNew: true },
+      { key: 'students',   label: 'My Students',icon: 'users' },
+      { key: 'payments',   label: 'Payments',   icon: 'card' },
+      { key: 'profile',    label: 'Profile',    icon: 'user' },
+    ];
+    let html = '<aside class="sidebar">';
+    items.forEach(item => {
+      const isActive = item.key === activeKey;
+      html += `<div class="nav-item ${isActive ? 'active' : ''}">${icons[item.icon]}<span class="nav-label">${item.label}${item.isNew ? ' <span style="font-size:9px;background:var(--accent);color:var(--white);padding:1px 5px;border-radius:999px;margin-left:4px;">NEW</span>' : ''}</span></div>`;
+    });
+    html += '</aside>';
+    return html;
+  }
+
+  function programmeSidebar(activeKey) {
+    const items = [
+      { key: 'overview', label: 'Overview',     icon: 'home' },
+      { key: 'weeks',    label: 'Weeks',        icon: 'layers' },
+      { key: 'sessions', label: 'Live Sessions',icon: 'video' },
+      { key: 'library',  label: 'Library',      icon: 'library', isNew: true },
+      { key: 'mocks',    label: 'Mocks',        icon: 'target' },
+      { key: 'students', label: 'Students',     icon: 'users' },
+      { key: 'results',  label: 'Results',      icon: 'chart' },
+    ];
+    let html = '<aside class="sidebar"><div class="sidebar-header">This programme</div>';
+    items.forEach(item => {
+      const isActive = item.key === activeKey;
+      html += `<div class="nav-item ${isActive ? 'active' : ''}">${icons[item.icon]}<span class="nav-label">${item.label}${item.isNew ? ' <span style="font-size:9px;background:var(--accent);color:var(--white);padding:1px 5px;border-radius:999px;margin-left:4px;">NEW</span>' : ''}</span></div>`;
+    });
+    html += '</aside>';
+    return html;
+  }
+
+  // ─── Block insertion popover (rendered inline in editor) ──────
+
+  function blockPopover() {
+    let html = '<div class="block-popover">';
+    html += `<input class="popover-search" placeholder="Search block types…" autofocus />`;
+
+    blockTypes.forEach(group => {
+      html += `<div class="popover-section">${group.group}</div>`;
+      html += '<div class="popover-grid">';
+      group.items.forEach((item, idx) => {
+        const isHover = group.group === 'Text & structure' && idx === 0;
+        html += `
+          <div class="popover-item ${isHover ? 'kbd-hover' : ''}">
+            <div class="popover-item-icon">${icons[item.icon]}</div>
+            <div>
+              <div class="popover-item-name">${item.name}</div>
+              <div class="popover-item-desc">${item.desc}</div>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+    });
+
+    html += `
+      <div class="popover-foot">
+        <span><span class="kbd">↑</span> <span class="kbd">↓</span> to navigate · <span class="kbd">Enter</span> to insert</span>
+        <span><span class="kbd">Esc</span> to close</span>
+      </div>
+    `;
+    html += '</div>';
+    return html;
+  }
+
+  // ─── Tutor screens ───────────────────────────────────────────
+
+  function tutorListScreen() {
+    return `
+      ${tutorTopbar()}
+      <div class="body">
+        ${tutorSidebar('library')}
+        <main class="main">
+          <div class="page-title">My Library</div>
+          <div class="page-sub">Reusable teaching notes — your lecture material across all programmes.</div>
+
+          <div class="lib-toolbar">
+            <input class="search-input" placeholder="Search notes by title, body, or tag…" />
+            <button>+ New folder</button>
+            <button class="btn-primary">+ New note</button>
+          </div>
+
+          <div class="lib-grid">
+            <div class="folders">
+              <div class="folder-item">${icons.folder}<span>All notes</span><span class="folder-count">24</span></div>
+              <div class="folder-item active">${icons.folder}<span>Cardiac</span><span class="folder-count">7</span></div>
+              <div class="folder-item">${icons.folder}<span>Pharmacology</span><span class="folder-count">5</span></div>
+              <div class="folder-item">${icons.folder}<span>Endocrine</span><span class="folder-count">4</span></div>
+              <div class="folder-item">${icons.folder}<span>Test strategies</span><span class="folder-count">8</span></div>
+            </div>
+
+            <div class="notes-list">
+              <div class="note-row">
+                <div>
+                  <div class="note-title">Acid-Base Balance</div>
+                  <div class="note-meta">Updated 2 days ago · Used in 4 programmes · 8 min read</div>
+                </div>
+                <div class="note-tags"><span class="tag">acid-base</span><span class="tag">high-yield</span></div>
+                <span class="pill pill-published">Published</span>
+              </div>
+              <div class="note-row">
+                <div>
+                  <div class="note-title">Cardiac anatomy primer</div>
+                  <div class="note-meta">Updated 5 days ago · Used in 2 programmes · 12 min read</div>
+                </div>
+                <div class="note-tags"><span class="tag">anatomy</span></div>
+                <span class="pill pill-published">Published</span>
+              </div>
+              <div class="note-row">
+                <div>
+                  <div class="note-title">ECG basics — rhythm strips</div>
+                  <div class="note-meta">Updated 1 week ago · Used in 3 programmes · 15 min read</div>
+                </div>
+                <div class="note-tags"><span class="tag">ecg</span><span class="tag">high-yield</span></div>
+                <span class="pill pill-published">Published</span>
+              </div>
+              <div class="note-row">
+                <div>
+                  <div class="note-title">Heart failure pathophysiology</div>
+                  <div class="note-meta">Updated 3 weeks ago · Used in 1 programme · 10 min read</div>
+                </div>
+                <div class="note-tags"><span class="tag">pathophys</span></div>
+                <span class="pill pill-draft">Draft</span>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    `;
+  }
+
+  function tutorEditorScreen(showPublishModal, showPopover) {
+    return `
+      ${tutorTopbar()}
+      <div class="body">
+        ${tutorSidebar('library')}
+        <main class="main">
+          <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px;">
+            ${icons.arrowL} <span style="vertical-align: 4px; margin-left: 4px;">Library</span>
+            <span style="color: var(--text-dim); margin: 0 6px;">/</span>
+            <span style="vertical-align: 4px;">Cardiac</span>
+            <span style="color: var(--text-dim); margin: 0 6px;">/</span>
+            <span style="color: var(--text); font-weight: 500; vertical-align: 4px;">Acid-Base Balance</span>
+          </div>
+
+          <div class="editor-grid">
+
+            <div class="editor-main">
+              <input class="editor-title-input" value="Acid-Base Balance" />
+              <div class="editor-meta">Last edited 2 minutes ago · 4 attachments · ~1,240 words · 8 min read</div>
+
+              <div class="format-bar">
+                <button class="fmt-btn" title="Bold"><b>B</b></button>
+                <button class="fmt-btn" title="Italic"><em>I</em></button>
+                <button class="fmt-btn" title="Underline" style="text-decoration: underline;">U</button>
+                <button class="fmt-btn" title="Strikethrough" style="text-decoration: line-through;">S</button>
+                <span class="fmt-divider"></span>
+                <button class="fmt-btn" title="Inline code"><code style="background:none; padding:0; font-size:11px;">&lt;/&gt;</code></button>
+                <button class="fmt-btn" title="Link">🔗</button>
+                <span class="fmt-divider"></span>
+                <span style="font-size: 11px; color: var(--text-dim); margin-left: auto;">Type <span class="kbd">/</span> for blocks</span>
+              </div>
+
+              <div class="block">
+                <span class="block-tag">Heading</span>
+                <div class="block-content block-h2">Why acid-base balance matters</div>
+              </div>
+
+              <div class="block">
+                <span class="block-tag">Paragraph</span>
+                <div class="block-content">The body keeps blood pH between <code>7.35–7.45</code>. Outside this range, enzymes stop working and the patient becomes <b>critical</b>. Three buffer systems handle this: bicarbonate, phosphate, and protein.</div>
+              </div>
+
+              <div class="block">
+                <span class="block-tag">List · bulleted</span>
+                <ul class="block-list">
+                  <li><b>Bicarbonate buffer</b> — fastest, handled by lungs and kidneys</li>
+                  <li><b>Phosphate buffer</b> — intracellular, slower</li>
+                  <li><b>Protein buffer</b> — haemoglobin and plasma proteins</li>
+                </ul>
+              </div>
+
+              <div class="block-callout warn">
+                <div class="block-callout-head">⚠ Warning</div>
+                A pH below <b>6.8</b> or above <b>7.8</b> is incompatible with life. These are the absolute limits — well outside the normal range.
+              </div>
+
+              <div class="block-drug">
+                <span class="block-tag">Drug card</span>
+                <div class="drug-head">
+                  <div class="drug-name">Furosemide</div>
+                  <div class="drug-class">Loop diuretic</div>
+                </div>
+                <div class="drug-grid">
+                  <div class="drug-field">
+                    <div class="drug-field-label">Indications</div>
+                    <div class="drug-field-value">Heart failure, oedema, hypertension</div>
+                  </div>
+                  <div class="drug-field">
+                    <div class="drug-field-label">Typical dose</div>
+                    <div class="drug-field-value">20–80 mg PO/IV daily</div>
+                  </div>
+                  <div class="drug-field">
+                    <div class="drug-field-label">Side effects</div>
+                    <div class="drug-field-value">Hypokalaemia, ototoxicity, hypotension</div>
+                  </div>
+                  <div class="drug-field">
+                    <div class="drug-field-label">Nursing considerations</div>
+                    <div class="drug-field-value">Monitor K⁺, BP, daily weight, I&O</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="block-lab">
+                <span class="block-tag" style="position:relative; right:auto; top:auto; display:inline-block; opacity:1; margin: 6px 0 0 8px;">Lab values</span>
+                <div class="lab-head">${icons.bB} Arterial Blood Gas (ABG)</div>
+                <table class="lab-table">
+                  <thead>
+                    <tr><th>Test</th><th>Normal</th><th>If high</th><th>If low</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>pH</b></td>
+                      <td class="normal">7.35–7.45</td>
+                      <td>Alkalosis</td>
+                      <td>Acidosis</td>
+                    </tr>
+                    <tr>
+                      <td><b>PaCO₂</b></td>
+                      <td class="normal">35–45 mmHg</td>
+                      <td>Respiratory acidosis</td>
+                      <td>Respiratory alkalosis</td>
+                    </tr>
+                    <tr>
+                      <td><b>HCO₃⁻</b></td>
+                      <td class="normal">22–26 mEq/L</td>
+                      <td>Metabolic alkalosis</td>
+                      <td>Metabolic acidosis</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              ${showPopover ? blockPopover() : `<div class="block-add-btn">${icons.plus} <span style="margin-left: 4px;">Add block</span></div>`}
+
+              <div class="block block-q">
+                <span class="block-tag">Question · SATA</span>
+                <div class="block-content">A patient with metabolic acidosis is most likely to present with which of the following? Select all that apply.</div>
+                <div style="font-size: 11px; color: var(--success-text); margin-top: 5px; opacity: 0.85;">NCLEX_SATA_00012 · From your bank</div>
+              </div>
+
+              <div class="editor-actions">
+                <span class="dirty">Unsaved changes</span>
+                <button>Cancel</button>
+                <button class="btn-primary" data-publish="1">Save & publish</button>
+              </div>
+            </div>
+
+            <aside class="editor-rail">
+              <div class="rail-section">
+                <div class="rail-label">Status</div>
+                <span class="pill pill-published">Published</span>
+              </div>
+              <div class="rail-section">
+                <div class="rail-label">Visibility</div>
+                <div class="rail-row">${icons.users}<span>Tutor-wide</span></div>
+                <div class="rail-help">Visible to all 47 students across your 3 programmes.</div>
+              </div>
+              <div class="rail-section">
+                <div class="rail-label">Folder</div>
+                <div class="rail-row">${icons.folder}<span>Cardiac</span></div>
+              </div>
+              <div class="rail-section">
+                <div class="rail-label">Tags</div>
+                <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                  <span class="tag">acid-base</span>
+                  <span class="tag">high-yield</span>
+                  <span class="tag" style="color: var(--text-dim);">+ add</span>
+                </div>
+              </div>
+              <div class="rail-section">
+                <div class="rail-label">Used in (4)</div>
+                <div class="rail-list">
+                  Bootcamp C5 · W3<br>
+                  Bootcamp C6 · W3<br>
+                  Pharm Intensive · W1<br>
+                  Weekend Crash · W2
+                </div>
+              </div>
+            </aside>
+
+          </div>
+        </main>
+      </div>
+      ${showPublishModal ? publishModal() : ''}
+    `;
+  }
+
+  function publishModal() {
+    return `
+      <div class="backdrop" data-close="1">
+        <div class="modal" onclick="event.stopPropagation()">
+          <div class="modal-title">Publish "Acid-Base Balance"</div>
+          <div class="modal-body">Pick who can read this note. You can change this anytime.</div>
+          <div class="visibility-card selected">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              ${icons.users}
+              <div class="visibility-card-title">Tutor-wide</div>
+            </div>
+            <div class="visibility-card-desc">Any student enrolled in any of your programmes can read this note in their library. Recommended for general teaching content.</div>
+          </div>
+          <div class="visibility-card">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              ${icons.target}
+              <div class="visibility-card-title">Programme-scoped</div>
+            </div>
+            <div class="visibility-card-desc">Only students in programmes you attach this note to. Use for cohort-specific content.</div>
+          </div>
+          <div class="modal-actions">
+            <button data-close="1">Cancel</button>
+            <button class="primary">Publish</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function tutorPickerScreen() {
+    return `
+      ${tutorTopbar()}
+      <div class="body">
+        ${tutorSidebar('programmes')}
+        <main class="main">
+          <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 4px;">
+            Bootcamp Cohort 5 / Week 3 Cardiovascular / Module 1: Anatomy primer
+          </div>
+          <div class="page-title">Add an activity</div>
+          <div class="page-sub">Pick a type. The activity slots into the module after the existing rows.</div>
+
+          <div class="activity-picker">
+            <div class="activity-tile"><span class="activity-tile-icon">${icons.text}</span><div class="activity-tile-name">Text</div><div class="activity-tile-desc">Quick inline note</div></div>
+            <div class="activity-tile"><span class="activity-tile-icon">${icons.pdf}</span><div class="activity-tile-name">PDF</div><div class="activity-tile-desc">Upload a document</div></div>
+            <div class="activity-tile"><span class="activity-tile-icon">${icons.link}</span><div class="activity-tile-name">External link</div><div class="activity-tile-desc">YouTube, Vimeo, etc.</div></div>
+            <div class="activity-tile"><span class="activity-tile-icon">${icons.video}</span><div class="activity-tile-name">Live session</div><div class="activity-tile-desc">Zoom / Meet</div></div>
+            <div class="activity-tile"><span class="activity-tile-icon">${icons.target}</span><div class="activity-tile-name">Mock</div><div class="activity-tile-desc">Full-length assessment</div></div>
+            <div class="activity-tile"><span class="activity-tile-icon">${icons.quiz}</span><div class="activity-tile-name">Practice quiz</div><div class="activity-tile-desc">Filtered bank quiz</div></div>
+            <div class="activity-tile new" data-attach="1"><span class="activity-tile-icon">${icons.library}</span><div class="activity-tile-name">Library Note</div><div class="activity-tile-desc">Reusable teaching content</div></div>
+            <div class="activity-tile" style="opacity: 0.4; cursor: default;"><span class="activity-tile-icon">${icons.edit}</span><div class="activity-tile-name">Assignment</div><div class="activity-tile-desc">v2 — coming soon</div></div>
+          </div>
+
+          <div style="margin-top: 16px; padding: 10px 12px; background: var(--accent-light); border-radius: var(--radius-md); font-size: 12.5px; color: var(--success-text);">
+            <strong>New:</strong> Library Note is the 7th activity type. Picks from your library; the same note can be attached to multiple weeks.
+          </div>
+        </main>
+      </div>
+    `;
+  }
+
+  function tutorAttachModal() {
+    return `
+      ${tutorPickerScreen()}
+      <div class="backdrop">
+        <div class="modal" style="width: 480px;" onclick="event.stopPropagation()">
+          <div class="modal-title">Attach a Library Note</div>
+          <div class="modal-body">Pick a note from your library. The note keeps its single source of truth — edits propagate everywhere.</div>
+          <input class="search-input" placeholder="Search your library…" style="width: 100%; margin-bottom: 10px;" />
+          <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); max-height: 220px; overflow-y: auto;">
+            <div style="padding: 9px 12px; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center; cursor:pointer; background: var(--accent-light);">
+              <div><div style="font-size: 13px; font-weight: 500;">Acid-Base Balance</div><div style="font-size: 11px; color: var(--text-muted);">Cardiac · 8 min read</div></div>
+              <span class="pill pill-published">Published</span>
+            </div>
+            <div style="padding: 9px 12px; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <div><div style="font-size: 13px;">Cardiac anatomy primer</div><div style="font-size: 11px; color: var(--text-muted);">Cardiac · 12 min read</div></div>
+              <span class="pill pill-published">Published</span>
+            </div>
+            <div style="padding: 9px 12px; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <div><div style="font-size: 13px;">ECG basics — rhythm strips</div><div style="font-size: 11px; color: var(--text-muted);">Cardiac · 15 min read</div></div>
+              <span class="pill pill-published">Published</span>
+            </div>
+            <div style="padding: 9px 12px; opacity: 0.5; display:flex; justify-content:space-between; align-items:center;">
+              <div><div style="font-size: 13px;">Heart failure pathophysiology</div><div style="font-size: 11px; color: var(--text-muted);">Cardiac · Draft (cannot attach)</div></div>
+              <span class="pill pill-draft">Draft</span>
+            </div>
+          </div>
+          <div class="modal-actions" style="margin-top: 14px;">
+            <button data-close="1">Cancel</button>
+            <button class="primary">Attach to Week 3</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ─── Student screens ─────────────────────────────────────────
+
+  function studentLibraryHome() {
+    return `
+      ${studentTopbar(false)}
+      <div class="body">
+        ${programmeSidebar('library')}
+        <main class="main">
+          <div class="page-title">Library</div>
+          <div class="page-sub">Notes by Dr Mensah · 24 notes available · 2 new this week</div>
+
+          <div style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 10px 0 8px;">Topics</div>
+          <div class="lib-home-grid">
+            <div class="topic-card"><div class="topic-card-icon">${icons.folder}</div><div class="topic-card-title">Cardiac</div><div class="topic-card-meta">7 notes · 2 new</div></div>
+            <div class="topic-card"><div class="topic-card-icon">${icons.folder}</div><div class="topic-card-title">Pharmacology</div><div class="topic-card-meta">5 notes</div></div>
+            <div class="topic-card"><div class="topic-card-icon">${icons.folder}</div><div class="topic-card-title">Endocrine</div><div class="topic-card-meta">4 notes</div></div>
+            <div class="topic-card"><div class="topic-card-icon">${icons.folder}</div><div class="topic-card-title">Test strategies</div><div class="topic-card-meta">8 notes</div></div>
+          </div>
+
+          <div style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 22px 0 8px;">Recently updated</div>
+          <div class="notes-list" style="background: var(--white);">
+            <div class="note-row" style="grid-template-columns: 1fr auto;">
+              <div><div class="note-title">Acid-Base Balance</div><div class="note-meta">Cardiac · Updated 2 days ago · 8 min read</div></div>
+              <span class="pill pill-task">Week 3 task</span>
+            </div>
+            <div class="note-row" style="grid-template-columns: 1fr auto;">
+              <div><div class="note-title">ECG basics — rhythm strips</div><div class="note-meta">Cardiac · Updated 1 week ago · 15 min read</div></div>
+              <span style="font-size: 11px; color: var(--text-dim);">${icons.bookmark}</span>
+            </div>
+          </div>
+        </main>
+      </div>
+    `;
+  }
+
+  function studentReadView() {
+    return `
+      ${studentTopbar(true)}
+      <div class="read-grid">
+
+        <div class="read-side">
+          <div class="toc-back">${icons.arrowL}<span>Back to Cardiac</span></div>
+          <div class="toc-head">
+            <span class="toc-title">Contents</span>
+            <span class="toc-collapse" title="Collapse">${icons.arrowL}</span>
+          </div>
+          <div class="toc-list">
+            <a class="toc-item active" href="#sec-why">Why acid-base balance matters</a>
+            <a class="toc-item h3" href="#sec-buffers">The three buffer systems</a>
+            <a class="toc-item" href="#sec-drugs">Compensation drugs</a>
+            <a class="toc-item" href="#sec-abg">Reading an ABG</a>
+            <a class="toc-item h3" href="#sec-rome">ROME memory aid</a>
+            <a class="toc-item" href="#sec-check">Quick check</a>
+          </div>
+          <div class="toc-progress">
+            <div class="toc-progress-label">
+              <span>Reading progress</span>
+              <span>38%</span>
+            </div>
+            <div class="toc-progress-bar"><div class="toc-progress-fill"></div></div>
+          </div>
+        </div>
+
+        <div class="read-main">
+          <h1 class="read-title">Acid-Base Balance</h1>
+          <div class="read-byline">By Dr Mensah · Updated 2 days ago · 8 min read</div>
+
+          <h2 class="read-h2" id="sec-why">Why acid-base balance matters</h2>
+          <p class="read-p">The body keeps blood pH between <code>7.35–7.45</code>. Outside this range, enzymes stop working and the patient becomes <b>critical</b>. Three buffer systems handle this:</p>
+
+          <ul class="read-list">
+            <li><b>Bicarbonate buffer</b> — fastest, handled by lungs and kidneys</li>
+            <li><b>Phosphate buffer</b> — intracellular, slower</li>
+            <li><b>Protein buffer</b> — haemoglobin and plasma proteins</li>
+          </ul>
+
+          <div class="read-callout warn">
+            <div class="read-callout-head">⚠ Warning</div>
+            A pH below <b>6.8</b> or above <b>7.8</b> is incompatible with life. These are the absolute limits — well outside the normal range.
+          </div>
+
+          <h2 class="read-h2" id="sec-drugs">Compensation drugs</h2>
+          <p class="read-p">When acidosis develops, treatment depends on the cause. For volume-related cases tied to heart failure, furosemide is a frontline agent:</p>
+
+          <div class="read-drug">
+            <div class="drug-head">
+              <div class="drug-name">Furosemide</div>
+              <div class="drug-class">Loop diuretic</div>
+            </div>
+            <div class="drug-grid">
+              <div class="drug-field"><div class="drug-field-label">Indications</div><div class="drug-field-value">Heart failure, oedema, hypertension</div></div>
+              <div class="drug-field"><div class="drug-field-label">Typical dose</div><div class="drug-field-value">20–80 mg PO/IV daily</div></div>
+              <div class="drug-field"><div class="drug-field-label">Side effects</div><div class="drug-field-value">Hypokalaemia, ototoxicity, hypotension</div></div>
+              <div class="drug-field"><div class="drug-field-label">Nursing considerations</div><div class="drug-field-value">Monitor K⁺, BP, daily weight, I&O</div></div>
+            </div>
+          </div>
+
+          <h2 class="read-h2" id="sec-abg">Reading an ABG</h2>
+          <p class="read-p">The single most important diagnostic for acid-base disorders. Memorise these ranges:</p>
+
+          <div class="read-lab block-lab">
+            <div class="lab-head">${icons.bB} Arterial Blood Gas (ABG)</div>
+            <table class="lab-table">
+              <thead><tr><th>Test</th><th>Normal</th><th>If high</th><th>If low</th></tr></thead>
+              <tbody>
+                <tr><td><b>pH</b></td><td class="normal">7.35–7.45</td><td>Alkalosis</td><td>Acidosis</td></tr>
+                <tr><td><b>PaCO₂</b></td><td class="normal">35–45 mmHg</td><td>Respiratory acidosis</td><td>Respiratory alkalosis</td></tr>
+                <tr><td><b>HCO₃⁻</b></td><td class="normal">22–26 mEq/L</td><td>Metabolic alkalosis</td><td>Metabolic acidosis</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="read-callout memo">
+            <div class="read-callout-head">💡 Memory aid · ROME</div>
+            <b>R</b>espiratory <b>O</b>pposite — pH and PaCO₂ move opposite directions.<br>
+            <b>M</b>etabolic <b>E</b>qual — pH and HCO₃⁻ move the same direction.
+          </div>
+
+          <div class="read-q">
+            <div class="read-q-label">${icons.quiz} Quick check · Select all that apply</div>
+            <div class="read-q-stem">A patient with metabolic acidosis is most likely to present with which of the following?</div>
+            <div class="read-q-opts">
+              <div class="read-q-opt"><span class="read-q-checkbox"></span><span class="read-q-letter">A.</span><span>Kussmaul breathing</span></div>
+              <div class="read-q-opt"><span class="read-q-checkbox"></span><span class="read-q-letter">B.</span><span>Shallow, slow respirations</span></div>
+              <div class="read-q-opt"><span class="read-q-checkbox"></span><span class="read-q-letter">C.</span><span>Confusion or lethargy</span></div>
+              <div class="read-q-opt"><span class="read-q-checkbox"></span><span class="read-q-letter">D.</span><span>pH 7.48</span></div>
+            </div>
+            <div class="read-q-foot">
+              <span class="read-q-note">Practice only — won't affect your stats</span>
+              <button class="read-q-submit">Submit</button>
+            </div>
+          </div>
+
+          <div class="read-quote">
+            "The body's drive to maintain pH within tenths of a unit is one of the most aggressive homeostatic mechanisms in physiology."
+            <div style="font-size: 12px; margin-top: 4px; font-style: normal; color: var(--text-dim);">— Guyton & Hall, Medical Physiology</div>
+          </div>
+
+          <div class="read-prev-next">
+            <button>${icons.arrowL} <span style="margin-left: 4px;">Cardiac anatomy</span></button>
+            <button><span style="margin-right: 4px;">ECG basics</span> ${icons.arrowR}</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function studentWeekActivity() {
+    return `
+      ${studentTopbar(false)}
+      <div class="body">
+        ${programmeSidebar('weeks')}
+        <main class="main">
+          <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 4px;">Week 3 / Module 1: Anatomy primer</div>
+          <div class="page-title">Week 3 — Cardiovascular</div>
+          <div class="page-sub">15–21 May · 4 of 7 activities done</div>
+
+          <div style="margin-top: 16px;">
+            <div class="week-row">
+              <div class="week-row-icon">${icons.text}</div>
+              <div class="week-row-body">
+                <div class="week-row-title">Pre-reading: cardiac structures</div>
+                <div class="week-row-sub">Text · 5 min</div>
+              </div>
+              <div class="week-row-tick done">${icons.check}</div>
+            </div>
+
+            <div class="week-row lib">
+              <div class="week-row-icon">${icons.library}</div>
+              <div class="week-row-body">
+                <div class="week-row-title">Read: Acid-Base Balance</div>
+                <div class="week-row-sub">Library Note · 8 min · "Read before Wednesday's session"</div>
+              </div>
+              <div class="week-row-tick"></div>
+            </div>
+
+            <div class="week-row">
+              <div class="week-row-icon">${icons.video}</div>
+              <div class="week-row-body">
+                <div class="week-row-title">Live session: cardiac patho</div>
+                <div class="week-row-sub">Wed 15 May · 10:00 GMT</div>
+              </div>
+              <div class="week-row-tick"></div>
+            </div>
+
+            <div class="week-row">
+              <div class="week-row-icon">${icons.quiz}</div>
+              <div class="week-row-body">
+                <div class="week-row-title">Practice quiz: cardiac MCQs</div>
+                <div class="week-row-sub">Practice quiz · 25 questions</div>
+              </div>
+              <div class="week-row-tick"></div>
+            </div>
+          </div>
+
+          <div style="margin-top: 16px; padding: 10px 12px; background: var(--accent-light); border-radius: var(--radius-md); font-size: 12.5px; color: var(--success-text);">
+            <strong>The library note row.</strong> A Library Note attached to a week behaves like any other activity — same completion tick, same caption space — but the icon and tint mark it out as reusable content.
+          </div>
+        </main>
+      </div>
+    `;
+  }
+
+  // ─── Render ──────────────────────────────────────────────────
+
+  const frame = document.getElementById('frame');
+  const hint = document.getElementById('hint');
+  const screenButtons = document.getElementById('screen-buttons');
+  const modeTabs = document.querySelectorAll('.mode-tab');
+
+  function renderScreenButtons() {
+    const list = mode === 'tutor' ? tutorScreens : studentScreens;
+    screenButtons.innerHTML = list.map(s =>
+      `<button class="screen-btn ${s.key === screen ? 'active' : ''}" data-screen="${s.key}">${s.label}</button>`
+    ).join('');
+    screenButtons.querySelectorAll('[data-screen]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        screen = btn.dataset.screen;
+        render();
+      });
+    });
+  }
+
+  function render() {
+    let html = '';
+    const list = mode === 'tutor' ? tutorScreens : studentScreens;
+    if (!list.find(s => s.key === screen)) screen = list[0].key;
+
+    if (mode === 'tutor') {
+      switch (screen) {
+        case 'list':    html = tutorListScreen(); break;
+        case 'editor':  html = tutorEditorScreen(false, false); break;
+        case 'popover': html = tutorEditorScreen(false, true); break;
+        case 'publish': html = tutorEditorScreen(true, false); break;
+        case 'picker':  html = tutorPickerScreen(); break;
+        case 'attach':  html = tutorAttachModal(); break;
+      }
+    } else {
+      switch (screen) {
+        case 'home': html = studentLibraryHome(); break;
+        case 'read': html = studentReadView(); break;
+        case 'week': html = studentWeekActivity(); break;
+      }
+    }
+
+    frame.innerHTML = html;
+    hint.innerHTML = (list.find(s => s.key === screen) || list[0]).hint;
+
+    renderScreenButtons();
+
+    frame.querySelectorAll('[data-close]').forEach(el => {
+      el.addEventListener('click', () => {
+        if (screen === 'publish') screen = 'editor';
+        if (screen === 'attach')  screen = 'picker';
+        render();
+      });
+    });
+    frame.querySelectorAll('[data-publish]').forEach(el => {
+      el.addEventListener('click', () => { screen = 'publish'; render(); });
+    });
+    frame.querySelectorAll('[data-attach]').forEach(el => {
+      el.addEventListener('click', () => { screen = 'attach'; render(); });
+    });
+  }
+
+  modeTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      modeTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      mode = tab.dataset.mode;
+      screen = mode === 'tutor' ? 'list' : 'home';
+      render();
+    });
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>

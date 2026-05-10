@@ -153,10 +153,23 @@ suggestion, not a constraint.
 Tutor sets the maximum. No platform-imposed cap in v1. Platform-wide
 quality caps may be introduced later if needed.
 
-### Late enrolment
+### Enrolment paths
 
-Tutor decides per programme. Platform default (to be refined in build):
-late enrolment off; tutor toggles it on with a cut-off if desired.
+Two paths in v1:
+
+- **Self-paid** — student finds the programme on the public listing
+  and pays via the bundled checkout
+  (see [payments-and-enrolment.md](payments-and-enrolment.md)).
+- **Tutor-added** — tutor adds a student directly from inside the
+  programme workspace at any point in the programme's lifecycle. No
+  platform-enforced enrolment window or cut-off date.
+
+Tutor-added enrolments comp the bundled bank-pack subscription for
+the programme's duration; QAcademy absorbs the cost. Tracked via
+`enrolment_source ∈ ('SELF_PAID', 'TUTOR_ADDED')` on
+`nclex_enrolments`. Per-tutor quota (capping how many tutor-added
+enrolments a tutor can comp based on their subscription tier) is
+deferred to a later slice.
 
 ### Revenue model
 
@@ -191,8 +204,11 @@ Accepted as a starting set; may be refined during build.
 
 A tutor can, for each programme they own or co-run:
 
-1. Create and edit the programme (title, description, length in weeks,
-   start date, max cohort size, late-enrolment toggle).
+1. Create and edit the programme (title, tagline, description, length
+   in weeks, start/end dates, cohort size, dual GHS+USD price,
+   public-price toggle). Created via a modal triggered from the
+   My Programmes list — see
+   [curriculum-authoring-ux.md](curriculum-authoring-ux.md).
 2. Build weeks — add, edit, delete, and reorder blocks in any week.
 3. Post live session links and recording URLs.
 4. View the list of enrolled students.
@@ -599,6 +615,9 @@ added here as they emerge.
     editors
   - `payments-and-enrolment.md` — student payment flows, product
     catalogue, and enrolment (both self-study and tutored)
+  - `tutor-library.md` — tutor's reusable teaching notes (parked
+    feature; will add Library Note as the 7th activity type when
+    queued for build)
   - `mockups/` — visual mockups (HTML reference files)
   - (future) `payments.md`, `registration.md`, etc.
 - `mynclex/db/` — database schema, RLS, migrations (to be populated)
