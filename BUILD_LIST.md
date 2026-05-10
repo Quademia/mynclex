@@ -73,10 +73,13 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > See SESSIONS 2026-05-10 for the slice + bug-hunting session.
 >
-> **Next pick:** **next session pivots to Programme work** (Sam's
-> call). When Bank work resumes, the next ⏭ is **4.7 — Mark-for-
-> review toggle** (runner button writing to slice 2.1.5's marking
-> table, persists across attempts).
+> **Next pick:** **Programme/Cohort architecture pivot (planning).**
+> Slice 9.1 (a/b/c) shipped today against a model where one programme
+> = one cohort. Sam surfaced the course/cohort split (programme =
+> reusable syllabus, cohort = a specific run) before curriculum lands
+> in Phase B. He's pausing to plan; next session will rework 9.1's
+> table + UI onto the split. When Bank work resumes, the next ⏭ is
+> **4.7 — Mark-for-review toggle**.
 
 ---
 
@@ -200,21 +203,67 @@ Per the planning docs — explicit non-goals for v1, captured here so we don't d
 
 ## Part 2 — Programme
 
-Programme work hasn't started yet. Last planning pass: **2026-04-19**
-SESSIONS entry — programme structure settled (week-based, tutor-defined
-weekly templates with 6 block types, both cohort + rolling enrolment
-modes, time-gated progress, mixed auto/tick completion, tutor-authored
-questions private to the tutor, co-tutors with identical powers). Tutor
-onboarding settled the same week (vetted-marketplace shape, public
-"Become a Tutor" application form, admin-triggered account setup, soft-
-stop deactivation).
+Programme planning passes:
 
-Sources: `docs/product-plan/main.md` (programme structure) — TBD if a
-dedicated `programme-*.html` planning doc family emerges as we get
-closer to build.
+- **2026-04-19 / 04-20** — programme structure, curriculum authoring
+  UX, tutor onboarding, payments + enrolment all settled (Cohort /
+  Rolling mode dropped on 04-20; visibility now per-activity via
+  Live / Draft).
+- **2026-05-08** — tutor library architecturally settled, parked until
+  programmes / payments / runner ship.
+- **2026-05-10** — Phase A scoped: programme list page + create-
+  programme modal. Field list locked, schema sketched (provisional —
+  expect revisions during build), modal UX agreed.
 
-Slices to be defined when the programme work starts. Audience priority,
-phase ordering, and slice list to be discussed at session start.
+Sources: `docs/product-plan/main.md` (programme structure + pricing +
+tutor onboarding), `curriculum-authoring-ux.md` (tutor authoring
+screens), `payments-and-enrolment.md` (self-paid + tutor-added
+enrolment), `tutor-nav.html` (global vs programme nav contexts).
+
+### Phase A — Programme foundation
+
+- ✅ **9.1** Programme list + Create + Edit modal — shipped 2026-05-10
+  across three sub-slices (b, c added mid-session). Replaces the
+  demo-cards stub at `app/(app)/tutor/programmes/page.tsx` with a
+  real DB-backed list, plus a single `<ProgrammeFormModal>` that
+  handles both create and edit flows. **Provisional shape** — Sam
+  surfaced the course/cohort split at session-end; next session will
+  rework these onto a programme (syllabus) + cohort (run) model.
+  - ✅ **9.1a** Schema + list page — `nclex_programmes` table + RLS
+    (SELECT/INSERT/admin policies); `getMyProgrammes()` query;
+    `<ProgrammeCard>` with smart schedule line + status pill;
+    *Show archived (N)* toggle; empty-state CTA. Migration
+    `20260510120000_slice_9_1a_programmes_table.sql`. Wire-up fix:
+    `<TutorProgrammeShell>` switched from hardcoded
+    `DEMO_PROGRAMME_TITLES` map to `getProgrammeForShell()` so real
+    UUIDs no longer 404.
+  - ✅ **9.1b** Modal + create flow — `<ProgrammeFormModal>` (10
+    fields across 3 sections: Identity / Schedule / Pricing);
+    `createProgrammeAction` server action; end-date auto-fill from
+    start + length × 7 (with `endDateTouched` flag for tutor
+    overrides); `<DiscardConfirm>` + `<ErrorToast>` reuse from
+    `lib/overlays/bank/` and `lib/toast/`.
+  - ✅ **9.1c** Edit programme — UPDATE RLS policy
+    (`nclex_programmes_self_update`); `editProgrammeAction`;
+    `<ProgrammeFormModal>` refactored to discriminated `mode:
+    'create' | 'edit'`; per-card pencil-icon trigger; overlay-link
+    pattern on `<ProgrammeCard>` so the whole card stays clickable
+    around the edit button. Submit gated until form is dirty in
+    edit mode. Migration
+    `20260510130000_slice_9_1c_programmes_update_rls.sql`.
+
+- 🔨 **9.2** Programme/Cohort architecture pivot — planned 2026-05-10,
+  build deferred to next session. Sam wants to plan first. The split:
+  programme = reusable syllabus + curriculum; cohort = one specific
+  run with start/end dates, cohort_size, enrolment, status. Curriculum
+  (weeks/modules/activities, landing in Phase B) attaches to the
+  programme so improvements propagate to all cohorts; v1 has no
+  per-cohort content overrides (settled — single source of truth).
+  Cohort-level fields: start_date, end_date, cohort_size, status +
+  lifecycle timestamps, live-session schedule, mock due dates,
+  enrolments. Slice 9.1's table + UI gets reshaped here.
+
+Phase B+ slices defined after 9.2 lands.
 
 ### Deferred to v2 (Programme)
 

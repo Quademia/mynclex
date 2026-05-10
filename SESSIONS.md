@@ -6,6 +6,327 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-10 (9.1) — Programme list + create + edit modal; tutor-library docs uploaded; cohort architecture pivot surfaced
+
+First session pivoting from Bank to Programme work. Phase A foundation
+shipped across three sub-slices (9.1a/b/c) plus a planning preamble
+(tutor-library docs upload + cross-doc updates). The session closed on
+a meaningful architectural pivot — Sam surfaced the course/cohort
+split before curriculum lands — and he paused to plan before we
+restructure 9.1 onto the new model.
+
+Five commits on `claude/naughty-shirley-fb5b41` (planning docs, 9.1a
+schema + list, demo→DB shell wire-up fix, 9.1b modal + create, 9.1c
+edit + refactor) plus this docs commit.
+
+### Planning preamble — tutor library docs uploaded + cross-doc updates
+
+Sam uploaded two files for the planning area:
+
+- `mynclex/docs/product-plan/tutor-library.md` — architectural shape
+  for the per-tutor study-notes library, settled 2026-05-08, parked
+  until programmes/payments/runner ship. Three new tables sketched
+  (`nclex_tutor_library_folders`, `_notes`, `_note_attachments`),
+  12 block types in v1, decoupled visibility (`is_published` +
+  `visibility_mode`) vs scheduling (attach-to-week as the 7th
+  activity type). `embedded_question` blocks reference bank items
+  inline; `nclex_attempts.source = 'LIBRARY_EMBED'` keeps those out
+  of student analytics.
+- `mynclex/docs/product-plan/mockups/tutor-library-mockup.html` —
+  visual companion with 9 screens (tutor list / editor / popover /
+  publish dialog / activity picker / attach modal; student home /
+  read view / week-activity row).
+
+Reciprocal "Related" links added to `main.md`, `bank.md`,
+`curriculum-authoring-ux.md`, `payments-and-enrolment.md`, and
+`tutor-nav.html` so the new doc is discoverable. Deliberately did
+NOT promote Library Note to v1 in those docs (per the library doc's
+own deferral); the cross-references promise nothing about delivery.
+
+### Programme planning recap — field list locked
+
+Reviewed the existing planning set (`main.md` Programme Structure +
+Pricing + Tutor Onboarding, `curriculum-authoring-ux.md`,
+`payments-and-enrolment.md`, `tutor-nav.html`) and reconciled stale
+spec against settled decisions. The original 7-field New Programme
+form had two stale fields:
+
+- **Mode (Cohort/Rolling)** — killed by the 2026-04-20 main.md
+  revision; visibility now per-activity via Live/Draft.
+- **Allow late enrolment** — replaced by Sam's tutor-add-anytime
+  enrolment policy; tutors can manually add students at any point.
+
+Plus payments-and-enrolment.md adds fields the original 7 don't:
+dual GHS+USD prices, `show_price_publicly`, internal status. After
+discussion with Sam the locked field list became 10 fields:
+
+| Field | Required | Notes |
+|---|---|---|
+| Title | ✓ | |
+| Tagline | — | Public card one-liner |
+| Description | — | Long copy; tutor flags free here if price=0 |
+| Length in weeks | ✓ | Curriculum buckets |
+| Start date | ✓ | Week 1 anchor; access begins |
+| End date | ✓ | Auto-fills from start + length × 7; tutor-editable |
+| Cohort size | — | Blank = no cap |
+| Price GHS | ✓ | 0 = free |
+| Price USD | ✓ | 0 = free |
+| Show price publicly | toggle, default ON | OFF → "Contact" button publicly |
+
+Locked alongside:
+- Status (DRAFT / PUBLISHED / ARCHIVED / CANCELLED) is set by
+  post-create actions, not the form.
+- Co-tutors deferred — creator is sole tutor on day one.
+- `enrolment_source ∈ ('SELF_PAID', 'TUTOR_ADDED')` — tutor-add path
+  comp's the bank bundle (QAcademy absorbs the cost).
+- QAcademy quota (per-tutor cap based on subscription) deferred.
+
+Cross-doc updates landed alongside the planning conversation:
+`main.md` rewrote the Late-enrolment subsection to Enrolment paths
+(self-paid + tutor-added) and updated the Tutor-actions row to the
+new field list. `curriculum-authoring-ux.md` rewrote section 2 from
+"New Programme form (page)" to "New Programme modal" with the 10
+fields. `payments-and-enrolment.md` added a Tutor-added enrolment
+subsection. BUILD_LIST.md Part 2 got the Phase A header.
+
+### Slice 9.1a — Schema + list page
+
+Migration `20260510120000_slice_9_1a_programmes_table.sql` applied
+to mynclex-dev. `nclex_programmes` table:
+
+- UUID PK with `gen_random_uuid()` default (matches `nclex_question_marks`
+  convention; bank items use TEXT PKs because curators set them).
+- `tutor_id` FK to `nclex_users(id) ON DELETE CASCADE` (matches
+  `nclex_tutor_questions` convention; Sam left it open between
+  `auth.users` and `nclex_users`, went with the existing pattern).
+- `length_weeks SMALLINT CHECK (1..52)`, `start_date` + `end_date`
+  DATE both required, table-level `CHECK (end_date >= start_date)`.
+- `cohort_size INTEGER` nullable; `CHECK (cohort_size IS NULL OR > 0)`.
+- Prices `INTEGER NOT NULL DEFAULT 0` in minor units (GHS + USD).
+- `status TEXT CHECK IN ('DRAFT','PUBLISHED','ARCHIVED','CANCELLED')`
+  DEFAULT 'DRAFT'. CANCELLED included now to avoid altering the
+  CHECK later when admin cancellation lands.
+- Three lifecycle timestamps (`published_at`, `archived_at`,
+  `cancelled_at`) — fine-grained enough without a separate audit
+  table.
+- Two indexes: `idx_nclex_programmes_tutor` (drives the My Programmes
+  list query) and partial `idx_nclex_programmes_public` on status =
+  'PUBLISHED' (covers the future public discovery page).
+- 3 RLS policies for this slice: self_select, self_insert,
+  admin_all. UPDATE/DELETE/public-select deferred to the slices
+  that need them.
+
+Back-ported to `db/schema.sql` and `db/rls.sql` per the steady-state
+release process.
+
+UI: `lib/programmes/` new folder (announced + Sam approved per the
+ask-before-new-folders rule). Files:
+
+- `types.ts` — `Programme`, `ProgrammeStatus`, `ProgrammeListRow`,
+  `ProgrammeFormValues`.
+- `queries.ts` — `getMyProgrammes()` (RLS-scoped, ordered
+  `updated_at desc`); `getProgrammeForShell()` for the
+  programme-context shell title lookup.
+- `format.ts` — pure helpers: `formatSchedule()` (smart copy:
+  *"Starts Mon 19 May"* / *"Week 3 of 8 · Mon 5 May → Fri 27 Jun"*
+  / *"Ended Fri 27 Jun"*), `formatStudents()`, `formatStatusLabel()`,
+  `statusPillClass()`.
+- `programme-card.tsx` — server component, single card with status
+  pill, smart schedule line, students placeholder ("0 of N students"
+  or "— students"; real enrolment count lands when
+  `nclex_enrolments` ships).
+- `programme-list.tsx` — client component, splits programmes into
+  active bank + hidden bank (ARCHIVED + CANCELLED), hides the
+  hidden bank behind a *Show archived (N)* toggle (same pattern as
+  History page slice 4.6a).
+- `empty-state.tsx` — first-login CTA.
+
+`app/(app)/tutor/programmes/page.tsx` replaced the demo cards with a
+real DB-backed list. `<TutorGlobalShell>` chrome unchanged. The
++New programme button rendered as a placeholder (`disabled={true}`)
+until 9.1b.
+
+`styles/programmes.css` — new file (per CLAUDE.md folder convention
+#5). Cleared the old `.programme-card`-style block from `nav.css`
+(scaffold-era styles that didn't belong to nav anyway). Added the
+`programmes.css` import to `app/(app)/layout.tsx`.
+
+**Wire-up fix surfaced during testing.** Sam clicked a real card and
+got 404. Root cause: `components/nav/tutor/programme-shell.tsx` had
+a hardcoded `DEMO_PROGRAMME_TITLES` map and called `notFound()` for
+anything not matching `demo-bootcamp` / `demo-rolling`. The file
+even flagged itself for replacement when `nclex_programmes` lands.
+Fix: replace the hardcoded map with a `getProgrammeForShell()` DB
+call. RLS = ownership check; the SELECT returns no row for
+programmes that aren't the tutor's, which becomes the 404.
+
+Six seed rows (mybackpacc+mynclextutor@gmail.com) cover all 4
+status × multiple time-states: in-progress PUBLISHED, upcoming
+PUBLISHED, ended PUBLISHED, DRAFT, ARCHIVED, CANCELLED. Smart
+schedule line verified across all branches.
+
+### Slice 9.1b — Modal + create flow
+
+`<NewProgrammeModal>` client component with the 10-field form:
+
+- Three sections: Identity / Schedule / Pricing. Single scroll, no
+  wizard, no tabs (per curriculum-authoring-ux.md "flat screens, not
+  wizards" principle).
+- Auto-fill: `endDate` recomputes from `startDate + lengthWeeks × 7
+  - 1` whenever start or length changes — *unless* the tutor has
+  manually edited end_date already (`endDateTouched` flag). Helper
+  text under End date flips between *"Auto-fills from start + length
+  × 7. Edit to extend bank access."* and *"Custom — extends bank
+  access beyond the curriculum."*
+- Currency input: `inputMode="decimal"`, ₵ / $ prefix, decimal
+  allowed (`125` or `125.50`), stored as minor units (×100, rounded).
+  Default `0` so free programmes need no typing.
+- Validation derived from form state; submit button disabled until
+  required fields valid. Server-side validation mirrors client (the
+  modal's checks are UX, the action's are the security boundary).
+- Discard guard: any field deviating from initial blank state →
+  closing via Cancel / ESC / backdrop fires the existing
+  `<DiscardConfirm>` from `lib/overlays/bank/`.
+- Errors surface via existing `<ErrorToast>` from `lib/toast/`
+  (top-right of viewport, auto-dismiss 5s).
+- Submit: `createProgrammeAction` (server action) → INSERT with
+  `tutor_id` set from `auth.uid()` server-side. RLS belt-and-braces.
+  Success → `onClose()` + `router.refresh()`. Failure → toast,
+  modal stays open.
+
+`<NewProgrammeTrigger>` — small client wrapper that owns the modal
+open-state. Two visual variants (`'header'` for the page button,
+`'empty'` for the empty-state CTA). `app/(app)/tutor/programmes/page.tsx`
+swapped from disabled-button to `<NewProgrammeTrigger variant="header" />`.
+
+Sam tested by creating a programme: "QAcademy Nurses Hub Nclex Crash
+Course", 12 weeks, start 2026-07-01, auto-fill landed end on
+2026-09-22 (start + 83 days), price ₵3,500 / $350, show-price-publicly
+OFF. Stored as DRAFT, prices serialised as 350000 / 35000 minor units.
+End-to-end verified.
+
+### Slice 9.1c — Edit programme (added mid-session)
+
+Sam asked for edit support before closing out, so 9.1c got added to
+the slice list mid-session. Two design questions discussed:
+
+- **Where does the Edit trigger live?** Options A (per-card pencil),
+  B (real overview page), or future Settings sub-route. The proper
+  long-term home is a `/tutor/programme/<id>/settings` sub-route as
+  an 8th sidebar item, but Sam picked **A** for now — small scope,
+  wrong long-term home but easy to migrate.
+- **Status menu / archive / discard** — deferred to a separate
+  slice. 9.1c is just edit.
+
+Migration `20260510130000_slice_9_1c_programmes_update_rls.sql`
+applied to mynclex-dev — single new policy
+`nclex_programmes_self_update` with `tutor_id = auth.uid()` on both
+USING and WITH CHECK (the WITH CHECK prevents reassigning a
+programme to a different tutor via UPDATE). Back-ported to rls.sql.
+
+Modal refactored: `new-programme-modal.tsx` deleted, replaced by
+`programme-form-modal.tsx` exporting `<ProgrammeFormModal>` with a
+discriminated `mode: 'create' | 'edit'` prop. In edit mode it
+accepts `{ programmeId, initial }`, pre-populates all fields,
+detects whether the existing `end_date` matches the auto-derived
+value (and seeds `endDateTouched` accordingly so the helper text
+reads correctly), and submits via `editProgrammeAction`. Title and
+submit-button label both adapt to mode. Submit button is also
+disabled when `isEdit && !isDirty` — there's no point saving an
+unchanged form.
+
+`<EditProgrammeTrigger>` — pencil-icon button, lives in the card's
+header next to the status pill. The card uses the **overlay-link
+pattern** to keep the whole card clickable (navigates to overview)
+while leaving the edit button interactive: a `<Link>` element with
+`position: absolute; inset: 0; z-index: 1` covers the card; the
+actions row (`.programme-card-actions`) gets `position: relative;
+z-index: 2` so its button is layered above. `e.stopPropagation()`
+on the click is belt-and-braces.
+
+`editProgrammeAction` mirrors `createProgrammeAction`'s validation,
+runs `UPDATE … WHERE programme_id = …` (RLS does the ownership
+check; a foreign tutor's UPDATE silently affects 0 rows, surfaced
+as a generic "not found or not yours" failure). Bumps `updated_at`
+explicitly. Calls `revalidatePath` on both the list page and the
+programme overview.
+
+Programme list query (`getMyProgrammes`) extended to fetch all
+editable fields (description, prices, public toggle) so the edit
+modal opens fully populated without a second round trip.
+
+Sam tested by editing his earlier-created programme to fix typos
+("prrogram" → "program", "guarantes" → "guarantees"). Save closed
+the modal, list refreshed, re-opening Edit confirmed the saved
+values.
+
+### Cohort architecture pivot — surfaced, next-session work
+
+End-of-session, Sam asked: *"if i create a 12 weeks crash course,
+i'd like to use the same course for another time, like semesters …
+shall we duplicate the programmes to fit the cohorts or that's not
+how it works?"*
+
+This is the **course/cohort split** that every academic platform
+has. He spotted the right architectural seam at the right time —
+before curriculum (weeks/modules/activities) lands in Phase B,
+because curriculum needs to attach to the course (template), not
+the cohort (run). Discussion settled the following:
+
+- **Programme = reusable syllabus** (title, length, prices,
+  curriculum, ownership).
+- **Cohort = one run** (start_date, end_date, cohort_size, status +
+  lifecycle timestamps, live-session schedule, mock due dates,
+  enrolments). Per-cohort variation lives here.
+- **Curriculum stays on the programme.** Single source of truth.
+  Improve Week 3 once → all current and future cohorts inherit.
+- **No per-cohort content overrides in v1.** A cohort can't hide,
+  modify, or replace activities from the programme. If a cohort
+  genuinely needs different content the tutor either edits the
+  programme (everyone gets it) or uses the live session /
+  announcements to communicate the variation. A v2 "Fork
+  curriculum" action would copy the curriculum tree into
+  cohort-owned tables and break the link, but that's deferred.
+- **Naming kept** — "programme" stays as the parent (existing
+  docs/URLs intact); "cohort" is the new child entity. URLs
+  unchanged at `/tutor/programmes` and
+  `/tutor/programme/<id>/...`; cohorts are listed inside the
+  programme detail.
+- **Slice 9.1's table + UI gets reshaped** — the create modal
+  becomes shorter (no start/end/cohort_size), a separate small
+  cohort modal handles the run-specific fields. Existing seeded
+  programmes will need to be migrated into one default cohort each
+  during the restructure.
+
+Sam paused to plan properly before we restructure. Slice 9.2
+provisional title: *Programme/Cohort architecture pivot*. He'll
+return with a refined plan; we'll do it right rather than rush.
+
+### What didn't ship this session
+
+- Status transitions (Publish / Archive / Discard) — Sam asked late
+  in the session ("when does the programme become live?"); we
+  outlined a 9.1d shape (per-card status menu, mirrors the pencil
+  pattern) but parked it pending the 9.2 cohort pivot since status
+  will live on cohorts not programmes.
+- Programme overview real content — placeholder still in place;
+  becomes meaningful once the cohort split + curriculum land.
+
+### Next session
+
+- Sam returns with cohort-split planning details (any per-cohort
+  fields he wants beyond the obvious ones — pricing? show-price?).
+- Slice 9.2 builds the split: new `nclex_cohorts` table, schema
+  migration with `INSERT INTO nclex_cohorts SELECT … FROM
+  nclex_programmes` to migrate existing rows, UI reshaping (split
+  the create flow into Programme form + Cohort form, list page
+  shows programmes with a small *N cohorts* line per card,
+  programme detail gains a Cohorts panel with "+ Run a cohort").
+- Once the split lands, status transitions (publish/archive) land
+  next as 9.3 — they apply to cohorts.
+
+---
+
 ## Session — 2026-05-10 (4.6) — History page + Resume banner extends to EXAM; build-list restructured into Bank + Programme parts
 
 Closes slice 4.6 across two sub-slices + two bug fixes that surfaced
