@@ -2,7 +2,7 @@
 
 *Living document. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
-Last updated: 2026-05-10 (programme/cohort split — Tutored enrolment rewritten around the cohort layer; students enrol in cohorts, not programmes)
+Last updated: 2026-05-11 (terminology touch — programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
 
 ---
 
@@ -241,8 +241,10 @@ A single public page lists all *discoverable* tutored programmes —
 no marketplace bells, just a directory.
 
 - Card per programme: title, tutor name, brief description, price
-  (or *Contact* button — see below), key details (length in weeks,
-  next available cohort's start date if any).
+  (or *Contact* button — see below), key details (length — shown
+  as "N weeks" or "N modules" per the programme's `unit_label`,
+  e.g. "8 weeks" or "8 modules" — and next available cohort's
+  start date for tutor-led, or "self-paced" for self-paced).
 - Only programmes from vetted, active tutors appear.
 - **A programme is publicly discoverable only when it has at least
   one open cohort** (UPCOMING, or IN_PROGRESS with late-join

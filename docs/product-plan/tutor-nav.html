@@ -344,8 +344,14 @@
     Living document. Locked in session 2026-04-24 (Claude Web).
     Updated 2026-05-10: programme-context sidebar gains a Cohorts
     entry and the demo programme cards drop the dead Cohort/Rolling
-    mode label. Part of <code>mynclex/docs/product-plan/</code> set
-    — sibling to <code>main.md</code>, <code>bank.md</code>,
+    mode label. Updated 2026-05-11: Curriculum tab description and
+    route slug updated for the curriculum architecture rework
+    (modules → blocks; weeks → units;
+    delivery modes — tutor-led vs self-paced — introduced, both
+    ship in v1; unit label (Week / Module) is a separate tutor
+    choice on the programme with smart defaults from delivery
+    mode). Part of <code>mynclex/docs/product-plan/</code>
+    set — sibling to <code>main.md</code>, <code>bank.md</code>,
     <code>student-nav.md</code>, etc.
   </div>
 
@@ -441,13 +447,13 @@
     <thead><tr><th>Key</th><th>Label</th><th>Page purpose</th></tr></thead>
     <tbody>
       <tr><td><code>overview</code></td><td>Overview</td><td>Programme home: summary across all cohorts (active / upcoming / ended counts), recent announcements, links into the most recent cohort.</td></tr>
-      <tr><td><code>weeks</code></td><td>Curriculum</td><td>Week-by-week curriculum build at the programme (template) layer. Add/edit activities per week. Edits propagate to all live cohorts.</td></tr>
+      <tr><td><code>curriculum</code></td><td>Curriculum</td><td>Unit-by-unit curriculum build at the programme (template) layer. Add/edit activities per unit, group related activities into blocks, or leave them loose. Units render as "Week N" or "Module N" per the programme's <code>unit_label</code> (a separate tutor choice; smart default — Tutor-led pre-selects Week, Self-paced pre-selects Module — but tutor can override). Edits propagate to all live cohorts (tutor-led) or every enrolled student (self-paced).</td></tr>
       <tr><td><code>cohorts</code></td><td>Cohorts</td><td>List of every cohort of this programme. Launch new cohorts, archive ended ones, drill into a cohort for its checklist + enrolled students + live-session schedule.</td></tr>
       <tr><td><code>sessions</code></td><td>Live Sessions</td><td>Aggregated live-session schedule across cohorts of this programme. Per-cohort detail lives inside a cohort.</td></tr>
       <tr><td><code>mocks</code></td><td>Mocks <span class="placeholder-pill">placeholder</span></td><td>Full-length mock assessments for this programme. Builder + release schedule + per-cohort results.</td></tr>
       <tr><td><code>assignments</code></td><td>Assignments <span class="placeholder-pill">placeholder</span></td><td>Tutor-graded written tasks. Create, collect submissions, mark. (Deferred to v2 per the programme-structure plan — nav slot reserved now.)</td></tr>
       <tr><td><code>students</code></td><td>Students</td><td>Roster across all cohorts of this programme. Same student may also appear in the global My Students if enrolled across other programmes.</td></tr>
-      <tr><td><code>results</code></td><td>Results</td><td>Aggregated performance across cohorts, per-week analytics, per-student drill-down.</td></tr>
+      <tr><td><code>results</code></td><td>Results</td><td>Aggregated performance across cohorts, per-unit analytics (per-week in tutor-led, per-module in self-paced), per-student drill-down.</td></tr>
     </tbody>
   </table>
 
@@ -506,7 +512,7 @@
     programme/[programme_id]/   — sibling to programmes/ (singular vs plural)
       layout.tsx              — programme sidebar + back pill in topbar
       overview/page.tsx
-      curriculum/page.tsx     — programme-layer curriculum editor (Weeks / Calendar views)
+      curriculum/page.tsx     — programme-layer curriculum editor (Units / Calendar views; Calendar tutor-led only)
       cohorts/page.tsx        — list of cohorts (sibling cohort detail at /tutor/cohort/[id]/...)
       sessions/page.tsx
       mocks/page.tsx          — placeholder
@@ -555,7 +561,7 @@
   <ul>
     <li><code>main.md</code> — overall MyNclex product plan.</li>
     <li><code>bank.md</code> — Bank spec (admin + tutor are parallel surfaces).</li>
-    <li><code>curriculum-authoring-ux.md</code> — what lives inside Weeks.</li>
+    <li><code>curriculum-authoring-ux.md</code> — what lives inside Units (Weeks / Modules).</li>
     <li><code>tutor-library.md</code> — parked feature; will add a Library entry to both the global and programme sidebars when queued for build.</li>
     <li><code>student-nav.md</code> — the student counterpart to this doc.</li>
   </ul>
@@ -754,13 +760,13 @@
   function innerPage(key) {
     const p = {
       overview:    ['Overview',       'Programme home',                       'Summary across all cohorts (active / upcoming / ended), recent announcements, links into the most recent cohort.', false],
-      curriculum:  ['Curriculum',     'Week-by-week curriculum (template)',   'Build the reusable curriculum. Edits propagate to every live cohort.', false],
+      curriculum:  ['Curriculum',     'Unit-by-unit curriculum (template)',   'Build the reusable curriculum — units labelled per the programme\'s unit_label (Week / Module, tutor\'s choice with smart default), with optional blocks grouping related activities. Edits propagate to every live cohort (tutor-led) or every enrolled student (self-paced).', false],
       cohorts:     ['Cohorts',        'Specific runs of this programme',      'Launch new cohorts, archive ended ones. Drill into a cohort for its checklist, enrolled students, and live-session schedule.', false],
       sessions:    ['Live Sessions',  'Upcoming and past',                    'Aggregated live-session schedule across cohorts. Post recordings per cohort.', false],
       mocks:       ['Mocks',          'Full-length mock assessments',         'Mock exam builder, release schedule, per-cohort results.', true],
       assignments: ['Assignments',    'Tutor-graded tasks',                   'Create written assignments, collect submissions, mark.', true],
       students:    ['Students',       'Across all cohorts of this programme', 'Scoped roster. Same student may also appear in global "My Students" if enrolled in other programmes.', false],
-      results:     ['Results',        'Aggregated performance',               'Performance across cohorts, per-week analytics.', false]
+      results:     ['Results',        'Aggregated performance',               'Performance across cohorts, per-unit analytics (per-week tutor-led / per-module self-paced).', false]
     };
     const [t, s, b, ph] = p[key];
     return simplePage(t, s, b, ph);

@@ -904,7 +904,7 @@
 
   <h1>MyNclex — Tutor Library · Mockup</h1>
   <p class="subtitle">Visual companion to <code>tutor-library.md</code>. 12 block types, full editor + reader experience.</p>
-  <p class="meta">Last updated: 2026-05-08 · Pure visuals · No real data, no real functionality</p>
+  <p class="meta">Last updated: 2026-05-11 · Pure visuals · No real data, no real functionality · Terminology synced with the curriculum architecture rework — Library Notes attach to <em>units</em>, rendered as "Week N" or "Module N" per the programme's <code>unit_label</code> (a separate tutor choice, decoupled from delivery mode). Loose under a unit OR inside a curriculum block. Both delivery modes (tutor-led and self-paced) ship in v1; the screen labels "Week activity" etc. demonstrate the tutor-led + Week-labelled case.</p>
 
   <div class="callout-doc">
     <strong>What changed in this version.</strong> Added 7 new block types (List, Quote, Table, Callout with 5 variants, Drug card, Lab values table, plus the existing Heading/Paragraph/Image/PDF/Video/Embedded question = 12 total). Editor gained an inline formatting toolbar and a block-insertion popover. Student read view now renders all the new structured blocks. New screen: "Add block" popover demonstrating slash-command UX. <strong>Latest:</strong> student read view now has a <b>Contents</b> panel on the left auto-built from the note's headings — click to jump, scroll-spy highlights active section, reading progress sits at the bottom of the panel.
@@ -1017,8 +1017,8 @@
     { key: 'editor',  label: '2. Note editor',      hint: '<b>Note editor.</b> Inline formatting toolbar, block-based body. Hover any block to see its type tag. The dashed <b>+</b> between blocks (or <code>/</code> anywhere) opens the block menu.' },
     { key: 'popover', label: '3. Add block',        hint: '<b>Add block.</b> Same menu opens via the <b>+</b> button or <code>/</code> slash command. 12 block types organised into 4 groups. Type to search.' },
     { key: 'publish', label: '4. Publish dialog',   hint: '<b>Publish dialog.</b> The tutor picks visibility mode at publish time — Tutor-wide is the default; Programme-scoped is the deliberate choice for cohort-specific content.' },
-    { key: 'picker',  label: '5. Activity picker',  hint: '<b>Activity picker.</b> The week-builder grows from a 3×2 grid (six types) to a 4×2 grid with Library Note as the new 7th type.' },
-    { key: 'attach',  label: '6. Attach modal',     hint: '<b>Attach modal.</b> Triggered from the activity picker. The tutor browses their library and picks one note to slot into the week.' },
+    { key: 'picker',  label: '5. Activity picker',  hint: '<b>Activity picker.</b> The unit-builder grows from a 3×2 grid (six types) to a 4×2 grid with Library Note as the new 7th type. Same picker fires whether the entry point is "+ Add activity" (loose, in the unit) or "+ Add activity to block".' },
+    { key: 'attach',  label: '6. Attach modal',     hint: '<b>Attach modal.</b> Triggered from the activity picker. The tutor browses their library and picks one note to slot into the unit (loose) or into the curriculum block, depending on the entry point.' },
   ];
 
   const studentScreens = [
@@ -1406,10 +1406,10 @@
         ${tutorSidebar('programmes')}
         <main class="main">
           <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 4px;">
-            Bootcamp Cohort 5 / Week 3 Cardiovascular / Module 1: Anatomy primer
+            Bootcamp Cohort 5 / Week 3 Cardiovascular / Block 1: Anatomy primer
           </div>
           <div class="page-title">Add an activity</div>
-          <div class="page-sub">Pick a type. The activity slots into the module after the existing rows.</div>
+          <div class="page-sub">Pick a type. The activity slots into the block after the existing rows. (Same picker fires from "+ Add activity" at the unit level — that path attaches the activity loose under the unit instead of inside a block.)</div>
 
           <div class="activity-picker">
             <div class="activity-tile"><span class="activity-tile-icon">${icons.text}</span><div class="activity-tile-name">Text</div><div class="activity-tile-desc">Quick inline note</div></div>
@@ -1423,7 +1423,7 @@
           </div>
 
           <div style="margin-top: 16px; padding: 10px 12px; background: var(--accent-light); border-radius: var(--radius-md); font-size: 12.5px; color: var(--success-text);">
-            <strong>New:</strong> Library Note is the 7th activity type. Picks from your library; the same note can be attached to multiple weeks.
+            <strong>New:</strong> Library Note is the 7th activity type. Picks from your library; the same note can be attached to multiple units across multiple programmes.
           </div>
         </main>
       </div>
@@ -1618,7 +1618,7 @@
       <div class="body">
         ${programmeSidebar('weeks')}
         <main class="main">
-          <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 4px;">Week 3 / Module 1: Anatomy primer</div>
+          <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 4px;">Week 3 / Block 1: Anatomy primer</div>
           <div class="page-title">Week 3 — Cardiovascular</div>
           <div class="page-sub">15–21 May · 4 of 7 activities done</div>
 
@@ -1661,7 +1661,7 @@
           </div>
 
           <div style="margin-top: 16px; padding: 10px 12px; background: var(--accent-light); border-radius: var(--radius-md); font-size: 12.5px; color: var(--success-text);">
-            <strong>The library note row.</strong> A Library Note attached to a week behaves like any other activity — same completion tick, same caption space — but the icon and tint mark it out as reusable content.
+            <strong>The library note row.</strong> A Library Note attached to a unit behaves like any other activity — same completion tick, same caption space — but the icon and tint mark it out as reusable content. (Inside a curriculum block, it sits alongside the block's other activities and counts toward the block's done rollup.)
           </div>
         </main>
       </div>

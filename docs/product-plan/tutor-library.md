@@ -2,8 +2,32 @@
 
 *Living document. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
-Last updated: 2026-05-08 (architectural shape settled; design + build
-deferred)
+Last updated: 2026-05-11 (terminology sync with curriculum architecture
+rework — attaches to **units** now, not weeks; rendered Week / Module
+label is per the programme's `unit_label`, not derived from delivery
+mode; cross-reference fixed from "Block types" → "Activity types";
+terminology note added below to disambiguate two senses of "block".
+Both delivery modes ship in v1.)
+
+---
+
+> **Terminology note — two senses of "block" in this doc.**
+> "Block" is overloaded between this doc and the curriculum architecture:
+> - **Editor block** *(the meaning used throughout this doc)* — a
+>   typed unit inside a note's rich-text body (`paragraph`,
+>   `heading`, `image`, `pdf`, `video`, `embedded_question`,
+>   etc.). Notion / Editor.js sense. Authoring-time, scoped to a
+>   single note.
+> - **Curriculum block** *(defined in [main.md](main.md) → Programme
+>   Structure)* — a workflow grouping of related activities under a
+>   curriculum unit (e.g. PDF + quiz + tutorial wrapped as one
+>   "Cardiac Pharmacology Block"). Curriculum-time, scoped to a
+>   programme.
+>
+> Where this doc says "block" without qualification it always means
+> the editor sense. Architectural blocks are written as "**curriculum
+> block**" when they appear (e.g. when a Library Note attaches under
+> a curriculum block as one of its activities).
 
 ---
 
@@ -11,9 +35,10 @@ deferred)
 
 A **per-tutor study-notes library** — reusable teaching content
 authored by tutors, organised into folders, optionally attached to
-programme weeks as scheduled activities. Think "the tutor's lecture
-notes for the platform": acid-base balance, endocrine system, how to
-attack SATA questions, etc.
+programme units (rendered as Week N or Module N per the programme's
+`unit_label`) as scheduled activities. Think "the tutor's lecture
+notes for the platform": acid-base balance, endocrine system, how
+to attack SATA questions, etc.
 
 Sibling concept to the question bank: where the bank holds *practice*,
 the library holds *teaching*. The two compose — a library note can
@@ -46,11 +71,11 @@ without redesign if rationale quality proves insufficient.
 Self-study bank students currently get questions, rationales, per-
 option feedback, history, and analytics. They get no first-class
 teaching content beyond rationales. Tutored students get the same plus
-their tutor's curriculum (Text / PDF / Link activities inside weeks).
+their tutor's curriculum (Text / PDF / Link activities inside units).
 
 The gap: tutors have **no reusable teaching surface**. A great article
 on acid-base balance has to live as a Text activity inside a single
-week of a single programme. Run the same programme next term, the
+unit of a single programme. Run the same programme next term, the
 tutor copy-pastes. Run a different programme, copy-paste again. No
 catalogue, no reuse, no library.
 
@@ -71,13 +96,14 @@ Two distinct concepts that the design separates cleanly:
 - **Visibility** — *who can read this note*. Governed by the note's
   `is_published` flag and a tutor-set visibility mode.
 - **Scheduling** — *which programme treats this note as a tracked
-  activity this week*. Governed by attaching the note to a specific
-  programme/week as a Library Note activity.
+  activity inside one of its units*. Governed by attaching the note
+  to a specific programme/unit (as a loose Library Note activity, or
+  inside a curriculum block).
 
 These are independent axes. A note can be visible without being
-scheduled (browseable in library, no week assignment). A note can
+scheduled (browseable in library, no unit assignment). A note can
 be visible AND scheduled (browseable in library AND appears as a
-tracked task in a specific week). A note cannot be scheduled without
+tracked task in a specific unit). A note cannot be scheduled without
 being visible — publishing is a precondition of attachment.
 
 ---
@@ -91,7 +117,7 @@ tutor sidebar.
 
 Layout:
 - Left rail: folder list, drag-to-reorder via up/down arrows
-  (matching the week-builder's reorder pattern).
+  (matching the unit-builder's reorder pattern).
 - Main pane: notes inside the selected folder, listed with title,
   tags, last-edited timestamp, used-in count, status pill
   (Draft / Published).
@@ -166,11 +192,13 @@ Publishing a note is a deliberate two-step:
 
 Default is Tutor-wide because foundational content (general teaching)
 is the more common case. Programme-scoped is the deliberate choice for
-cohort-specific content ("Cohort 5 — Week 3 study plan").
+cohort-specific content ("Cohort 5 — Week 3 study plan"). *(The
+"Week 3" label depends on the programme's `unit_label` — a programme
+that picked Module would say "Module 3" instead.)*
 
 ### Used-in count
 
-Each note row shows a count of how many programme weeks it's attached
+Each note row shows a count of how many programme units it's attached
 to. Clicking the count opens a list ("Bootcamp Cohort 5 — Week 3,
 Pharm Intensive — Week 1") with deep links into each.
 
@@ -206,11 +234,12 @@ A scenario:
 ### The combination case
 
 A Tutor-wide note can ALSO be attached to a specific programme's
-week. Both states co-exist:
+unit. Both states co-exist:
 
 - All tutor's students see it in their library (Tutor-wide visibility).
 - Bootcamp Cohort 5 students additionally see it as a scheduled
-  activity in Week 3 (attachment).
+  activity in Week 3 (attachment — loose under the unit, or inside
+  one of its curriculum blocks).
 
 No content duplication — same note, two surfaces showing it.
 Visibility and scheduling are independent axes, by design.
@@ -219,30 +248,33 @@ Visibility and scheduling are independent axes, by design.
 
 ## Scheduling — Library Note as the 7th activity type
 
-The week-builder's add-activity picker grows from a 3×2 grid (six
+The unit-builder's add-activity picker grows from a 3×2 grid (six
 types) to a 4×2 grid (or similar) including a new **Library Note**
 type. This is documented as a structural revision to
 [curriculum-authoring-ux.md](curriculum-authoring-ux.md) and
-[main.md](main.md) (Programme Structure → Block types).
+[main.md](main.md) (Programme Structure → Activity types).
 
 ### Adding a Library Note activity
 
-1. Tutor clicks **+ Add activity** in a module.
+1. Tutor clicks **+ Add activity** at the unit level (loose) OR
+   **+ Add activity to block** inside a curriculum block.
 2. Picker appears with 7 tile options. Tutor picks **Library Note**.
 3. A modal opens showing the tutor's library — folders on the left,
    notes on the right, search + tag filter.
-4. Tutor picks one note; the modal closes and the note slots into
-   the module as an activity.
+4. Tutor picks one note; the modal closes and the note slots in
+   loose under the unit (or into the curriculum block, depending on
+   which entry point fired the picker) as an activity.
 
 The activity row shows: type icon, note title, optional tutor-set
 caption ("Read before Wednesday's session"), and the standard
-up/down arrows for reordering within the module.
+up/down arrows for reordering.
 
 ### Single source of truth
 
 Attaching is a *pointer*, not a copy. The attachment row stores
-`{note_id, programme_id, week_id, module_id, position}` — nothing
-else. The actual content lives once, in `nclex_tutor_library_notes`.
+`{note_id, programme_id, unit_id, block_id (nullable), position}` —
+nothing else. The actual content lives once, in
+`nclex_tutor_library_notes`.
 
 When the tutor edits the master note, every attachment renders the
 updated content immediately. There is no "per-attachment copy" model
@@ -251,7 +283,7 @@ notes left stale copies scattered across old cohorts.
 
 ### Visibility precondition
 
-A note can only be attached to a week if it is published. Draft
+A note can only be attached to a unit if it is published. Draft
 notes don't appear in the attach modal.
 
 Attaching a Programme-scoped note to a programme grants visibility to
@@ -260,7 +292,7 @@ step.
 
 ### Detach / delete behaviour
 
-- **Detaching** a note from a week removes the activity row but
+- **Detaching** a note from a unit removes the activity row but
   leaves the master note untouched in the library.
 - **Deleting** a master note is refused if it's attached anywhere
   (`ON DELETE RESTRICT`). The tutor must detach all attachments first.
@@ -307,16 +339,18 @@ the note's block document in student-facing mode:
 
 ### Scheduled vs unscheduled appearance
 
-- Notes attached to a week of an enrolled programme also appear in
-  that **week's activity list** as a tracked task with completion
+- Notes attached to a unit of an enrolled programme also appear in
+  that **unit's activity list** as a tracked task with completion
   tick (passive content — student-ticked, not auto-completed unless
   the note contains embedded questions, in which case completion
-  rules per programme structure apply).
+  rules per programme structure apply). When attached inside a
+  curriculum block, the note participates in that block's done
+  rollup like any other in-block activity.
 - Notes only visible via Tutor-wide (not attached) appear in the
-  library only — not in any week's activity list.
+  library only — not in any unit's activity list.
 
-The mental model: library = "what's available to read." Week
-activities = "what your tutor wants you to read this week." Same
+The mental model: library = "what's available to read." Unit
+activities = "what your tutor wants you to read this unit." Same
 content surface in two contexts.
 
 ---
@@ -423,12 +457,21 @@ nclex_tutor_library_note_attachments
   attachment_id      TEXT PK
   note_id            TEXT FK -> nclex_tutor_library_notes ON DELETE RESTRICT
   programme_id       TEXT FK -> nclex_programmes ON DELETE CASCADE
-  week_id            TEXT FK -> nclex_programme_weeks ON DELETE CASCADE
-  module_id          TEXT FK -> nclex_programme_modules ON DELETE CASCADE
-  position           INTEGER NOT NULL DEFAULT 0   -- order within module
+  unit_id            TEXT FK -> nclex_programme_units ON DELETE CASCADE
+  block_id           TEXT FK -> nclex_programme_blocks ON DELETE CASCADE
+                     -- nullable; null = loose under unit, set = inside a curriculum block
+  position           INTEGER NOT NULL DEFAULT 0   -- order within parent (unit or block)
   caption            TEXT                          -- nullable; tutor's "Read before Wednesday" annotation
   created_at         TIMESTAMPTZ DEFAULT NOW()
 ```
+
+> **Schema note (curriculum architecture rework, 2026-05-11).** The
+> attachment row's curriculum FKs were updated from `week_id` /
+> `module_id` to `unit_id` / `block_id` (nullable). This matches
+> the new generic-units + optional-blocks model. The exact table
+> names (`nclex_programme_units`, `nclex_programme_blocks`) are
+> placeholders — the canonical names get fixed in the slice 9.x
+> programme schema work; this doc will inherit whatever lands there.
 
 Body shape (JSONB):
 
@@ -538,7 +581,7 @@ plain markdown.
 When this feature gets queued for build, three other planning docs
 need updating:
 
-- **[main.md](main.md) — Programme Structure → Block types.** Add
+- **[main.md](main.md) — Programme Structure → Activity types.** Add
   Library Note as the 7th activity type. Move it from "deferred" to
   "v1" if/when the library ships.
 - **[curriculum-authoring-ux.md](curriculum-authoring-ux.md) —
@@ -546,8 +589,8 @@ need updating:
   (Type / Fields columns). Note that the editor is "pick from
   library" not "edit inline."
 - **`docs/product-plan/tutor-nav.html`** — programme sidebar may
-  want a Library entry alongside Weeks, Live Sessions, etc., for
-  the tutor's quick access into their own library from inside a
+  want a Library entry alongside Curriculum, Live Sessions, etc.,
+  for the tutor's quick access into their own library from inside a
   programme context.
 
 These edits are deferred until the feature is actually queued, to
@@ -574,7 +617,8 @@ avoid promising something that may slip again.
 - [main.md](main.md) — overall product plan; Programme Structure
   defines the activity-type registry this feature extends.
 - [curriculum-authoring-ux.md](curriculum-authoring-ux.md) — the
-  week-builder UI this feature plugs into.
+  unit-builder UI this feature plugs into (loose-or-in-block
+  attachment).
 - [bank.md](bank.md) — the question bank that embedded-question
   blocks reference.
 - [payments-and-enrolment.md](payments-and-enrolment.md) — the

@@ -216,6 +216,15 @@ Programme planning passes:
 - **2026-05-10** — Phase A scoped: programme list page + create-
   programme modal. Field list locked, schema sketched (provisional —
   expect revisions during build), modal UX agreed.
+- **2026-05-11** — Curriculum architecture rework: modules → blocks
+  (workflow groupings, not academic chapters); weeks → units
+  (generic layer); activities can live loose under a unit OR inside
+  a block; **delivery modes** introduced (tutor-led vs self-paced —
+  both v1); **unit label** decoupled from delivery mode as a
+  separate tutor choice (Week / Module) with smart defaults. All
+  seven planning docs + BUILD_LIST.md updated; curriculum-authoring
+  mockup visually rebuilt around loose+blocks Unit Builder + dual-
+  picker modal.
 
 Sources: `docs/product-plan/main.md` (programme structure + pricing +
 tutor onboarding), `curriculum-authoring-ux.md` (tutor authoring
@@ -255,22 +264,66 @@ enrolment), `tutor-nav.html` (global vs programme nav contexts).
     `20260510130000_slice_9_1c_programmes_update_rls.sql`.
 
 - ⏭ **9.2** Programme/Cohort architecture rework — planning settled
-  2026-05-10 across 4 questions (see SESSIONS entry). The split:
+  2026-05-10 across 4 questions (see SESSIONS entry); curriculum
+  layer architecture refined 2026-05-11 (see also). The split:
   programme = reusable design (curriculum + identity + pricing);
   cohort = one specific run (dates, seats, enrolment, schedule).
-  Curriculum (weeks/modules/activities, Phase B) lives at the
-  programme layer so content edits propagate to every live cohort.
-  Cohorts hold an *explicit-membership checklist* (one row per
-  template activity included in the cohort, plus optional
-  cohort-only adds). Structural changes to the template don't
-  auto-propagate; cohort-only content overrides are not in v1.
-  Naming: "Programme" everywhere (no "Template" suffix). Slice
+  Curriculum (units → blocks (optional) → activities, Phase B —
+  see Curriculum architecture rework below) lives at the programme
+  layer so content edits propagate to every live cohort. Cohorts
+  hold an *explicit-membership checklist* (one row per template
+  activity included in the cohort, plus optional cohort-only adds —
+  activities or whole blocks). Structural changes to the template
+  don't auto-propagate; cohort-only content overrides are not in
+  v1. Naming: "Programme" everywhere (no "Template" suffix). Slice
   9.1's `nclex_programmes` schema gets reshaped — date / size /
   late-join fields move out to a new `nclex_cohorts` table; the
-  6 seed rows are migrated to a programme + cohort pair each.
-  Build scope below; planning docs reflect resolved architecture
-  (main.md, curriculum-authoring-ux.md, payments-and-enrolment.md,
-  tutor-nav.html, mockup HTML all updated 2026-05-10).
+  6 seed rows are migrated to a programme + cohort pair each. Also
+  adds `programme.delivery_mode ∈ ('TUTOR_LED', 'SELF_PACED')` and
+  `programme.unit_label ∈ ('WEEK', 'MODULE')` — **both modes ship
+  in v1**; `unit_label` is decoupled from `delivery_mode` as a
+  separate tutor choice with smart defaults (TUTOR_LED → WEEK,
+  SELF_PACED → MODULE; tutor can override). Build scope below;
+  planning docs reflect resolved architecture — main.md,
+  curriculum-authoring-ux.md,
+  payments-and-enrolment.md, tutor-nav.html, tutor-library.md,
+  curriculum-authoring-ux mockup, tutor-library mockup all
+  updated 2026-05-10 (programme/cohort split) and 2026-05-11
+  (curriculum architecture rework).
+
+  **Curriculum architecture rework (2026-05-11) — what 9.2 must
+  carry forward into the schema (Phase B):**
+  - Modules retired; **blocks** are now workflow groupings of
+    related activities (often tutorial-anchored), not academic
+    chapters. Empty blocks aren't allowed.
+  - Weeks abstracted to a generic **units** layer. Programme
+    `length` stored as a unit count.
+  - **Both delivery modes ship in v1.** `programme.delivery_mode`
+    drives presence/absence of the cohort layer + how access is
+    gated (cohort release dates vs `is_published` + progression).
+  - **Unit label is decoupled from delivery mode.** New column
+    `programme.unit_label ∈ ('WEEK', 'MODULE')`. Smart default
+    in the create-programme form (TUTOR_LED → WEEK; SELF_PACED →
+    MODULE); tutor can override. Editable later (label-only flip,
+    no migration). All UI label sites use a `unitLabel(programme)`
+    helper rather than hardcoding "Week".
+  - Activities can live **loose under a unit** OR inside a block.
+    Schema implication: `activity.unit_id NOT NULL`,
+    `activity.block_id NULLABLE`. Same shape mirrors into the
+    cohort-checklist FK pair (`unit_id` + nullable `block_id`)
+    and into the Library Note attachment table when that ships.
+  - Provisional table names for Phase B: `nclex_programme_units`,
+    `nclex_programme_blocks`, `nclex_programme_activities` (the
+    canonical names land with the slice; tutor-library doc
+    inherits whatever names ship).
+  - Self-paced surface (deltas only — see main.md → Self-paced
+    surface): no cohort layer, direct enrolment with access
+    window per enrolment, no release dates, no calendar view.
+    The new screens (self-paced enrolment flow, self-paced
+    student dashboard, tutor view of enrolled self-paced
+    students) are queued for the slice that ships self-paced —
+    drafted in curriculum-authoring-ux.md → "Self-paced surface
+    (screen 12+)".
   - ⬜ **9.2a** Schema — migration adds `nclex_cohorts` (FK to
     programmes, dates, size, late-join, status, name override,
     lifecycle timestamps) with RLS. Drops `start_date` /

@@ -711,8 +711,13 @@ hr.divider {
 <div class="page-wrap">
 
 <div class="doc-title">MyNclex — Curriculum Authoring UX</div>
-<div class="doc-sub">Working mockups · originally 2026-04-20 · revised 2026-05-10 for the programme/cohort split</div>
+<div class="doc-sub">Working mockups · originally 2026-04-20 · revised 2026-05-10 (programme/cohort split) · revised 2026-05-11 (curriculum architecture rework)</div>
 <div class="doc-meta">Companion to <code>mynclex/docs/product-plan/curriculum-authoring-ux.md</code> · Reference only, not final design</div>
+
+<div style="background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 10px; padding: 14px 18px; margin-bottom: 14px; font-size: 13px; color: var(--text); line-height: 1.6;">
+<strong style="color: var(--success-text);">2026-05-11 — Curriculum architecture rework.</strong>
+Modules renamed to <strong>blocks</strong> (workflow groupings of related activities, often tutorial-anchored — not academic chapters). Weeks abstracted to a generic <strong>units</strong> layer; same DB layer. <strong>Unit label</strong> (Week / Module) is a <strong>separate tutor choice</strong> on the programme, decoupled from delivery mode — smart default is Week for tutor-led and Module for self-paced, but the tutor can override either way. Activities can live <strong>loose</strong> under a unit or <strong>inside a block</strong>; blocks are not mandatory containers. <strong>Delivery modes</strong> introduced — every programme is tutor-led (with cohorts) or self-paced (no cohorts); <strong>both ship in v1</strong>. Screens below show tutor-led + Week-labelled mode; self-paced reuses screens 1–7 (with the cohort screens 8–11 hidden) and an additional self-paced enrolment + dashboard set queued for design.
+</div>
 
 <div style="background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 10px; padding: 14px 18px; margin-bottom: 32px; font-size: 13px; color: var(--text); line-height: 1.6;">
 <strong style="color: var(--success-text);">2026-05-10 — Programme/Cohort split.</strong>
@@ -724,10 +729,10 @@ Programme is now the <em>reusable design</em> (curriculum + identity + pricing).
 <ol>
 <li><a href="#s1">My Programmes — the tutor's landing list</a></li>
 <li><a href="#s2">New Programme + first cohort — modal</a></li>
-<li><a href="#s3">Weeks Overview — Week view</a></li>
-<li><a href="#s4">Weeks Overview — Calendar view (scheduled activities)</a></li>
-<li><a href="#s5">Week Builder — modules and activities with reorder arrows</a></li>
-<li><a href="#s6">Add-activity inline picker</a></li>
+<li><a href="#s3">Units Overview — Unit view (labelled Weeks in tutor-led mode)</a></li>
+<li><a href="#s4">Units Overview — Calendar view (scheduled activities)</a></li>
+<li><a href="#s5">Unit Builder — loose activities + blocks, with reorder arrows</a></li>
+<li><a href="#s6">Add-activity inline picker (loose or inside a block)</a></li>
 <li><a href="#s7">Activity editors — all six types</a></li>
 </ol>
 <h2 style="margin-top: 12px;">Contents — cohort layer (specific runs)</h2>
@@ -779,7 +784,7 @@ Programme is now the <em>reusable design</em> (curriculum + identity + pricing).
 
 <div class="section-label" id="s2">Screen 2 · Programme layer</div>
 <div class="section-title">New Programme + first cohort modal</div>
-<div class="section-desc">A modal (not a route) triggered from the <em>+ New programme</em> button. Single-scroll, three sections: <strong>Identity + Pricing</strong> (the reusable programme), then <strong>First cohort</strong> (the run that anchors this programme to real dates). Captures both in one go — most programmes start with one cohort, so making them two separate steps would be two clicks for one mental action. Subsequent cohorts use the smaller modal at screen 10.</div>
+<div class="section-desc">A modal (not a route) triggered from the <em>+ New programme</em> button. Single-scroll, with sections that vary by <strong>delivery mode</strong>: <strong>Identity + Pricing</strong> (always), then <strong>First cohort</strong> (tutor-led mode only — hidden when Self-paced is selected). The first-cohort section captures programme + first cohort in one go, because most tutor-led programmes start with one cohort. Subsequent cohorts use the smaller modal at screen 10. Both delivery modes ship in v1. The <strong>Unit label</strong> picker (right after Delivery mode) is decoupled from mode — smart default applies (Tutor-led → Week, Self-paced → Module), tutor can override either way.</div>
 
 <div class="mockup-frame">
 <!-- Backdrop -->
@@ -799,6 +804,24 @@ Programme is now the <em>reusable design</em> (curriculum + identity + pricing).
 <div style="font-size: 11px; font-weight: 600; color: var(--teal); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px;">Programme — the reusable design</div>
 
 <div class="field">
+<div class="field-label">Delivery mode *</div>
+<div style="display: inline-flex; border: 1px solid var(--border); border-radius: 8px; padding: 3px; background: var(--surface-soft); gap: 2px;">
+<span style="padding: 6px 12px; font-size: 12px; font-weight: 500; background: var(--surface); border-radius: 5px; color: var(--navy); box-shadow: 0 1px 2px rgba(30, 58, 95, 0.08);">Tutor-led</span>
+<span style="padding: 6px 12px; font-size: 12px; font-weight: 400; color: var(--text); border-radius: 5px;">Self-paced</span>
+</div>
+<div class="hint">Tutor-led has cohorts (students enrol per intake). Self-paced has no cohorts (students enrol directly in the programme). Both ship in v1.</div>
+</div>
+
+<div class="field">
+<div class="field-label">Unit label *</div>
+<div style="display: inline-flex; border: 1px solid var(--border); border-radius: 8px; padding: 3px; background: var(--surface-soft); gap: 2px;">
+<span style="padding: 6px 12px; font-size: 12px; font-weight: 500; background: var(--surface); border-radius: 5px; color: var(--navy); box-shadow: 0 1px 2px rgba(30, 58, 95, 0.08);">Week</span>
+<span style="padding: 6px 12px; font-size: 12px; font-weight: 400; color: var(--text); border-radius: 5px;">Module</span>
+</div>
+<div class="hint">How units are labelled across the UI ("Week 3" vs "Module 3"). Smart default — Tutor-led pre-selects Week, Self-paced pre-selects Module — but you can override either way. Editable later from programme settings.</div>
+</div>
+
+<div class="field">
 <div class="field-label">Title *</div>
 <div class="field-input placeholder">e.g. 8-Week NCLEX Bootcamp</div>
 </div>
@@ -814,8 +837,9 @@ Programme is now the <em>reusable design</em> (curriculum + identity + pricing).
 </div>
 
 <div class="field">
-<div class="field-label">Length in weeks *</div>
+<div class="field-label">Length in weeks * <span class="opt">— "Number of modules" if Unit label = Module</span></div>
 <div class="field-input" style="width: 120px;">8</div>
+<div class="hint">Stored as a unit count; the form label flips live with the Unit label picker above.</div>
 </div>
 
 <div class="field-row field">
@@ -887,8 +911,8 @@ Allow late join <span class="opt">(default off)</span>
 </div>
 
 <div class="section-label" id="s3">Screen 3 · Programme layer</div>
-<div class="section-title">Weeks Overview — Week view (default)</div>
-<div class="section-desc">The Curriculum tab inside a programme. A grid of week cards. Empty weeks are shown dashed so the tutor always sees N cards for an N-week programme. Segmented toggle at top-right switches to the Calendar view. This is the <strong>programme layer</strong> — curriculum edits here propagate to every live cohort.</div>
+<div class="section-title">Units Overview — Unit view (default; labelled per the programme's <em>unit_label</em>)</div>
+<div class="section-desc">The Curriculum tab inside a programme. A grid of unit cards. Empty units are shown dashed so the tutor always sees N cards for an N-unit programme. Segmented toggle at top-right switches to the Calendar view (Calendar option hidden in self-paced — no cohort calendar to project against). This is the <strong>programme layer</strong> — curriculum edits here propagate to every live cohort (tutor-led) or to every enrolled student (self-paced). UI labels per the programme's <code>unit_label</code>: <em>Weeks / W1, W2, …</em> (shown here) or <em>Modules / M1, M2, …</em>. Independent of delivery mode.</div>
 
 <div class="mockup-frame">
 <div class="crumbs">
@@ -916,25 +940,25 @@ Allow late join <span class="opt">(default off)</span>
 <div class="week-card">
 <div class="wc-top"><span class="wc-n">W1</span><span class="pill pill-live">Live</span></div>
 <div class="wc-title">Orientation</div>
-<div class="wc-sub">1–7 May · 3 modules</div>
+<div class="wc-sub">1–7 May · 2 blocks · 1 loose</div>
 </div>
 
 <div class="week-card">
 <div class="wc-top"><span class="wc-n">W2</span><span class="pill pill-live">Live</span></div>
 <div class="wc-title">Fundamentals</div>
-<div class="wc-sub">8–14 May · 2 modules</div>
+<div class="wc-sub">8–14 May · 2 blocks</div>
 </div>
 
 <div class="week-card current">
 <div class="wc-top"><span class="wc-n">W3</span><span class="pill pill-draft">Draft</span></div>
 <div class="wc-title">Cardiovascular</div>
-<div class="wc-sub">15–21 May · 2 modules</div>
+<div class="wc-sub">15–21 May · 2 blocks · 1 loose</div>
 </div>
 
 <div class="week-card empty">
 <div class="wc-top"><span class="wc-n">W4</span><span class="pill pill-empty">Empty</span></div>
 <div class="wc-title">Untitled</div>
-<div class="wc-sub">22–28 May · 0 modules</div>
+<div class="wc-sub">22–28 May · 0 activities</div>
 </div>
 
 <div class="week-card empty">
@@ -965,8 +989,8 @@ Allow late join <span class="opt">(default off)</span>
 </div>
 
 <div class="section-label" id="s4">Screen 4 · Programme layer</div>
-<div class="section-title">Weeks Overview — Calendar view</div>
-<div class="section-desc">Same curriculum, different projection. Rows are weeks, columns are days. Calendar shows <strong>scheduled activity types</strong> (not modules), so modules can span days naturally. Text, PDF, and External link activities are "anytime" work and don't appear here. Day numbers shown here are <em>curriculum-relative</em> (week 1 day 1, week 1 day 2, …) — actual calendar dates are a per-cohort property, set on each cohort's start_date.</div>
+<div class="section-title">Units Overview — Calendar view (tutor-led only)</div>
+<div class="section-desc">Same curriculum, different projection. Rows are units, columns are days. Calendar shows <strong>scheduled activity types</strong> (not blocks), so a block can span days naturally. Text, PDF, and External link activities are "anytime" work and don't appear here. Each chip carries its block reference (e.g. "B2") when the activity belongs to a block — loose activities show without one. Day numbers shown here are <em>curriculum-relative</em> (unit 1 day 1, unit 1 day 2, …) — actual calendar dates are a per-cohort property, set on each cohort's start_date. Self-paced mode hides this view entirely (no cohorts → no release timeline). Note: the row-label "W1/W2/…" reflects the demo programme's <code>unit_label = Week</code>; a programme with <code>unit_label = Module</code> would show "M1/M2/…" the same way.</div>
 
 <div class="mockup-frame">
 <div class="crumbs">
@@ -1005,11 +1029,11 @@ Allow late join <span class="opt">(default off)</span>
 <div class="cal-day"><div class="daynum">1</div></div>
 <div class="cal-day"><div class="daynum">2</div></div>
 <div class="cal-day"><div class="daynum">3</div>
-<div class="cal-chip live"><div class="ct">Kick-off call</div><div class="cs">M1 · 6pm</div></div>
+<div class="cal-chip live"><div class="ct">Kick-off call</div><div class="cs">B1 · 6pm</div></div>
 </div>
 <div class="cal-day"><div class="daynum">4</div></div>
 <div class="cal-day"><div class="daynum">5</div>
-<div class="cal-chip practice"><div class="ct">Diagnostic quiz</div><div class="cs">M1 · 20 Qs</div></div>
+<div class="cal-chip practice"><div class="ct">Diagnostic quiz</div><div class="cs">loose · 20 Qs</div></div>
 </div>
 <div class="cal-day"><div class="daynum">6</div></div>
 <div class="cal-day"><div class="daynum">7</div></div>
@@ -1018,32 +1042,32 @@ Allow late join <span class="opt">(default off)</span>
 <div class="cal-row">
 <div class="cal-week-label current"><div class="ln">W3</div><div class="ld">15–21 May</div></div>
 <div class="cal-day"><div class="daynum">15</div>
-<div class="cal-chip live"><div class="ct">Cardiac intro</div><div class="cs">M2 · 6pm</div></div>
+<div class="cal-chip live"><div class="ct">Cardiac intro</div><div class="cs">B2 · 6pm</div></div>
 </div>
 <div class="cal-day"><div class="daynum">16</div></div>
 <div class="cal-day"><div class="daynum">17</div>
-<div class="cal-chip live"><div class="ct">ECG workshop</div><div class="cs">M2 · 6pm</div></div>
+<div class="cal-chip live"><div class="ct">ECG workshop</div><div class="cs">B2 · 6pm</div></div>
 </div>
 <div class="cal-day"><div class="daynum">18</div>
-<div class="cal-chip practice"><div class="ct">Cardiac Qs</div><div class="cs">M2 · 30 Qs</div></div>
+<div class="cal-chip practice"><div class="ct">Cardiac Qs</div><div class="cs">B2 · 30 Qs</div></div>
 </div>
 <div class="cal-day"><div class="daynum">19</div></div>
 <div class="cal-day"><div class="daynum">20</div></div>
 <div class="cal-day"><div class="daynum">21</div>
-<div class="cal-chip mock"><div class="ct">Cardiac mock</div><div class="cs">M2 · 75 Qs</div></div>
+<div class="cal-chip mock"><div class="ct">Cardiac mock</div><div class="cs">B2 · 75 Qs</div></div>
 </div>
 </div>
 
 <div style="margin-top: 12px; font-size: 11px; color: var(--text-dim);">Showing Weeks 1 &amp; 3 (abbreviated for mockup) · other weeks collapsed</div>
 
 <div style="margin-top: 16px; padding: 12px 14px; background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 6px; font-size: 12px; color: var(--text); line-height: 1.6;">
-<strong>Module 2 (Cardiovascular) spans three days.</strong> Mon intro, Wed workshop, Thu practice, Sun mock. Each block's chip carries the same "M2" reference so the tutor can see the module thread across days.
+<strong>Block 2 (Cardiovascular workflow) spans four days.</strong> Mon intro, Wed workshop, Thu practice, Sun mock — a tutorial-anchored block bundling the live session with its before- and after-work. Each chip carries the "B2" reference so the tutor can see the block thread across days. (Loose activities — like the diagnostic quiz on W1 day 5 — render with a "loose" tag instead.)
 </div>
 </div>
 
 <div class="section-label" id="s5">Screen 5 · Programme layer</div>
-<div class="section-title">Week Builder — modules and activities</div>
-<div class="section-desc">Inside one week of the programme curriculum. Each module is a card containing a flat list of activity rows. Up/down arrow buttons on each row for reordering (drag-and-drop deferred to v2). Each module has its own "+ Add activity" button; a full-width "+ Add module" sits at the bottom. Edits here propagate to every live cohort.</div>
+<div class="section-title">Unit Builder — loose activities + blocks</div>
+<div class="section-desc">Inside one unit of the programme curriculum (labelled per the programme's <code>unit_label</code> — <em>Week N</em> here, <em>Module N</em> if the tutor picked Module). The unit body is an interleaved stack of <strong>block cards</strong> (groupings of related activities the student treats as one push) and <strong>loose activity rows</strong> (sit directly under the unit, no block parent). Up/down arrows on every row for reordering (drag-and-drop deferred to v2). <strong>Two entry points at the bottom</strong>: "+ Add activity" (loose) and "+ Add block" (group). Edits here propagate to every live cohort (tutor-led) or every enrolled student (self-paced).</div>
 
 <div class="mockup-frame">
 <div class="crumbs">
@@ -1059,17 +1083,36 @@ Allow late join <span class="opt">(default off)</span>
 <div>
 <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Week 3 · Draft</div>
 <div style="font-size: 17px; font-weight: 500; margin-bottom: 4px; color: var(--navy);">Cardiovascular system</div>
-<div style="font-size: 12px; color: var(--text-muted);">Unlocks day 15 · 2 modules · 5 activities</div>
+<div style="font-size: 12px; color: var(--text-muted);">Unlocks day 15 · 2 blocks · 1 loose activity · 6 activities total</div>
 </div>
 <button class="btn btn-sm">Edit week</button>
 </div>
 </div>
 
+<!-- Loose activity (no block parent) -->
+<div class="activity-row" style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px;">
+<span class="activity-icon t">T</span>
+<div class="activity-main">
+<div class="activity-title">Week 3 reading list <span style="font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--surface-soft); color: var(--text-muted); font-weight: 500; margin-left: 6px; border: 1px solid var(--border);">Loose</span></div>
+<div class="activity-meta">Text · ~5 min · scene-setter for the unit</div>
+</div>
+<div style="display: flex; gap: 6px; align-items: center;">
+<div class="activity-reorder">
+<button>↑</button>
+<button>↓</button>
+</div>
+<button class="btn btn-xs">Edit</button>
+<button class="btn btn-xs" style="color: var(--text-dim);">Move into block →</button>
+</div>
+</div>
+
+<!-- Block 1 -->
 <div class="module-card">
 <div class="module-head">
 <div>
-<div class="mk">Module 1 <span class="pill pill-live" style="margin-left: 6px;">Live</span></div>
+<div class="mk">Block 1 <span class="pill pill-live" style="margin-left: 6px;">Live</span></div>
 <div class="mt">Cardiac anatomy primer</div>
+<div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Asynchronous block · pre-reading + watch-along</div>
 </div>
 <div style="display: flex; gap: 6px; align-items: center;">
 <div style="display:flex; flex-direction: column; gap: 1px; margin-right: 4px;">
@@ -1105,14 +1148,16 @@ Allow late join <span class="opt">(default off)</span>
 </div>
 </div>
 
-<button class="add-btn">+ Add activity</button>
+<button class="add-btn">+ Add activity to block</button>
 </div>
 
+<!-- Block 2 -->
 <div class="module-card">
 <div class="module-head">
 <div>
-<div class="mk">Module 2 <span class="pill pill-draft" style="margin-left: 6px;">Draft</span></div>
+<div class="mk">Block 2 <span class="pill pill-draft" style="margin-left: 6px;">Draft</span></div>
 <div class="mt">ECG workshop &amp; mock</div>
+<div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Tutorial-anchored block · pre-quiz · live workshop · post-mock</div>
 </div>
 <div style="display: flex; gap: 6px; align-items: center;">
 <div style="display:flex; flex-direction: column; gap: 1px; margin-right: 4px;">
@@ -1128,7 +1173,7 @@ Allow late join <span class="opt">(default off)</span>
 <span class="activity-icon q">Q</span>
 <div class="activity-main">
 <div class="activity-title">Cardiovascular fundamentals</div>
-<div class="activity-meta">Practice quiz · 30 Qs · bank</div>
+<div class="activity-meta">Practice quiz · 30 Qs · bank · pre-tutorial</div>
 </div>
 <div class="activity-reorder">
 <button>↑</button>
@@ -1140,7 +1185,7 @@ Allow late join <span class="opt">(default off)</span>
 <span class="activity-icon l">L</span>
 <div class="activity-main">
 <div class="activity-title">ECG workshop</div>
-<div class="activity-meta">Live · Wed 6pm GMT · 90 min</div>
+<div class="activity-meta">Live · Wed 6pm GMT · 90 min · anchor</div>
 </div>
 <div class="activity-reorder">
 <button>↑</button>
@@ -1152,7 +1197,7 @@ Allow late join <span class="opt">(default off)</span>
 <span class="activity-icon p">P</span>
 <div class="activity-main">
 <div class="activity-title">ECG strips worksheet</div>
-<div class="activity-meta">PDF · 8 pages</div>
+<div class="activity-meta">PDF · 8 pages · post-tutorial</div>
 </div>
 <div class="activity-reorder">
 <button>↑</button>
@@ -1164,7 +1209,7 @@ Allow late join <span class="opt">(default off)</span>
 <span class="activity-icon m">M</span>
 <div class="activity-main">
 <div class="activity-title">Cardiac mini-mock</div>
-<div class="activity-meta">Mock · 75 Qs · 90 min</div>
+<div class="activity-meta">Mock · 75 Qs · 90 min · post-tutorial</div>
 </div>
 <div class="activity-reorder">
 <button>↑</button>
@@ -1172,21 +1217,25 @@ Allow late join <span class="opt">(default off)</span>
 </div>
 </div>
 
-<button class="add-btn">+ Add activity</button>
+<button class="add-btn">+ Add activity to block</button>
 </div>
 
-<button class="add-btn-prominent">+ Add module</button>
+<!-- Two entry points at the unit level -->
+<div style="display: flex; gap: 8px; margin-top: 4px;">
+<button class="add-btn" style="flex: 1;">+ Add activity <span style="color: var(--text-dim); font-weight: 400;">(loose, in this unit)</span></button>
+<button class="add-btn-prominent" style="flex: 1;">+ Add block</button>
+</div>
 </div>
 
 <div class="section-label" id="s6">Screen 6 · Programme layer</div>
-<div class="section-title">Add-activity inline picker</div>
-<div class="section-desc">When the tutor clicks "+ Add activity" inside a module, the button is replaced in place with this 3×2 picker. After selection, the picker closes and the editor panel slides in from the right. Same picker is reused at the cohort layer when adding a cohort-only activity (screen 11).</div>
+<div class="section-title">Add-activity inline picker (loose or inside a block)</div>
+<div class="section-desc">Same picker, two entry points: "+ Add activity to block" inside a block card, OR "+ Add activity" at the unit level (loose). The button is replaced in place with this 3×2 picker. After selection, the picker closes and the editor panel slides in from the right. On Save, the activity attaches to the invoking block (<code>block_id = &lt;block&gt;</code>) or as loose under the unit (<code>block_id = null</code>) depending on the entry point. Reused at the cohort layer for cohort-only activities (screen 11). Mockup below shows the in-block context.</div>
 
 <div class="mockup-frame">
 <div class="module-card" style="margin-bottom: 0;">
 <div class="module-head">
 <div>
-<div class="mk">Module 2</div>
+<div class="mk">Block 2</div>
 <div class="mt">ECG workshop &amp; mock</div>
 </div>
 <div style="display: flex; gap: 6px;">
@@ -1495,7 +1544,7 @@ The sinoatrial (SA) node serves as the heart's natural pacemaker...
 
 <div class="field">
 <div class="field-label">Note to student</div>
-<div class="field-input" style="color: var(--text-muted); min-height: 32px;">End-of-module check. Do your best under timed conditions.</div>
+<div class="field-input" style="color: var(--text-muted); min-height: 32px;">End-of-block check. Do your best under timed conditions.</div>
 </div>
 
 <div class="notice-warn"><strong>Questions — from the bank.</strong> Question-selection UI is designed with the bank topic. Placeholder fields shown below.</div>
@@ -1774,7 +1823,7 @@ This cohort starts with the full programme curriculum ticked into its checklist.
 
 <div class="section-label" id="s11">Screen 11 · Cohort layer</div>
 <div class="section-title">Cohort curriculum — checklist view</div>
-<div class="section-desc">Inside a cohort. Same shape as the Week Builder (screen 5), but each activity row is a <strong>checklist entry</strong> pointing at a template activity (or a cohort-only entry) with cohort-specific release dates. Source pill on each row says <em>Template</em> (content read from the programme) or <em>Cohort-only</em> (content lives here, doesn't propagate). Two add buttons per module: <em>+ Add from template</em> (template activities not yet in this cohort) and <em>+ Add cohort-only</em> (opens the 3×2 picker from screen 6).</div>
+<div class="section-desc">Inside a cohort. Same shape as the Unit Builder (screen 5) — interleaved blocks + loose activities — but each row is a <strong>checklist entry</strong> pointing at a template activity (or a cohort-only entry) with cohort-specific release dates. Source pill on each row says <em>Template</em> (content read from the programme) or <em>Cohort-only</em> (content lives here, doesn't propagate). Block cards inherit the same source signal. Three add buttons per unit: <em>+ Add from template</em> (template entries not yet in this cohort), <em>+ Add cohort-only activity</em>, <em>+ Add cohort-only block</em>.</div>
 
 <div class="mockup-frame">
 <div class="crumbs">
@@ -1806,7 +1855,7 @@ This cohort starts with the full programme curriculum ticked into its checklist.
 <div>
 <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Week 3 · Releases 19 Jan 2027</div>
 <div style="font-size: 17px; font-weight: 500; margin-bottom: 4px; color: var(--navy);">Cardiovascular system</div>
-<div style="font-size: 12px; color: var(--text-muted);">3 activities included (1 removed from template, 1 cohort-only added)</div>
+<div style="font-size: 12px; color: var(--text-muted);">2 blocks (template) · 1 cohort-only loose activity · 1 template entry removed</div>
 </div>
 <button class="btn btn-sm">Edit release date</button>
 </div>
@@ -1815,7 +1864,7 @@ This cohort starts with the full programme curriculum ticked into its checklist.
 <div class="module-card">
 <div class="module-head">
 <div>
-<div class="mk">Module 1</div>
+<div class="mk">Block 1 <span style="font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--info-bg); color: var(--success-text); font-weight: 500; margin-left: 6px;">Template</span></div>
 <div class="mt">Cardiac anatomy primer</div>
 </div>
 <div style="font-size: 11px; color: var(--text-muted);">Releases 19 Jan · 9:00</div>
@@ -1840,15 +1889,12 @@ This cohort starts with the full programme curriculum ticked into its checklist.
 </div>
 <button class="btn btn-xs" style="color: var(--coral-text); border-color: var(--coral-border);">Remove</button>
 </div>
-
-<button class="add-btn">+ Add from template</button>
-<button class="add-btn" style="margin-top: 4px;">+ Add cohort-only activity</button>
 </div>
 
 <div class="module-card">
 <div class="module-head">
 <div>
-<div class="mk">Module 2</div>
+<div class="mk">Block 2 <span style="font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--info-bg); color: var(--success-text); font-weight: 500; margin-left: 6px;">Template</span></div>
 <div class="mt">ECG workshop &amp; mock</div>
 </div>
 <div style="font-size: 11px; color: var(--text-muted);">Releases 21 Jan · 9:00</div>
@@ -1864,30 +1910,36 @@ This cohort starts with the full programme curriculum ticked into its checklist.
 <button class="btn btn-xs" style="color: var(--coral-text); border-color: var(--coral-border);">Remove</button>
 </div>
 
-<!-- Cohort-only addition -->
-<div class="activity-row" style="background: rgba(45, 125, 114, 0.04); border-color: var(--info-border);">
+
+</div>
+
+<!-- Cohort-only loose activity (sits at unit level, not in any block) -->
+<div class="activity-row" style="background: rgba(45, 125, 114, 0.04); border: 1px solid var(--info-border); border-radius: 8px; padding: 12px 14px; margin-top: 10px;">
 <span class="activity-icon l">L</span>
 <div class="activity-main">
-<div class="activity-title">Extra ECG case-discussion live <span style="font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--success-bg); color: var(--success-text); font-weight: 500; margin-left: 6px;">Cohort-only</span></div>
-<div class="activity-meta">Live · Sat 24 Jan 4pm GMT · 60 min</div>
+<div class="activity-title">Extra ECG case-discussion live <span style="font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--success-bg); color: var(--success-text); font-weight: 500; margin-left: 6px;">Cohort-only · Loose</span></div>
+<div class="activity-meta">Live · Sat 24 Jan 4pm GMT · 60 min · this cohort only, no template counterpart</div>
 </div>
 <button class="btn btn-xs">Edit</button>
 <button class="btn btn-xs" style="color: var(--coral-text); border-color: var(--coral-border);">Remove</button>
 </div>
 
-<button class="add-btn">+ Add from template <span style="color: var(--text-dim); margin-left: 4px;">(2 available)</span></button>
-<button class="add-btn" style="margin-top: 4px;">+ Add cohort-only activity</button>
+<!-- Three unit-level add buttons -->
+<div style="display: flex; gap: 8px; margin-top: 10px;">
+<button class="add-btn" style="flex: 1;">+ Add from template <span style="color: var(--text-dim); margin-left: 4px;">(2 available)</span></button>
+<button class="add-btn" style="flex: 1;">+ Add cohort-only activity</button>
+<button class="add-btn" style="flex: 1;">+ Add cohort-only block</button>
 </div>
 
 <div style="margin-top: 16px; padding: 12px 14px; background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 6px; font-size: 12px; color: var(--text); line-height: 1.6;">
-<strong>How this differs from screen 5.</strong> The Week Builder at the programme layer designs the <em>shared</em> curriculum. This view is the <em>cohort's checklist</em> — it determines which template entries are in <em>this cohort only</em>. Removing here doesn't touch the template; removing in the template doesn't auto-remove from active cohorts (only from new ones launched after).
+<strong>How this differs from screen 5.</strong> The Unit Builder at the programme layer designs the <em>shared</em> curriculum. This view is the <em>cohort's checklist</em> — it determines which template entries are in <em>this cohort only</em>, plus any cohort-only adds (activities or whole blocks). Removing here doesn't touch the template; removing in the template doesn't auto-remove from active cohorts (only from new ones launched after).
 </div>
 </div>
 
 <div class="footer-note">
-<p><strong>About this file.</strong> These are planning-stage mockups, not final UI designs. Captures structural decisions from the 2026-04-20 curriculum authoring session, revised 2026-05-10 for the programme/cohort split.</p>
-<p>Real UI will be built against the QAcademy brand and can refine layout, spacing, and typography. The structural decisions (hierarchy, layers, propagation rules, fields per activity type, reordering model) are what matter here.</p>
-<p>See <code>mynclex/docs/product-plan/curriculum-authoring-ux.md</code> for the full written plan and <code>mynclex/docs/product-plan/main.md</code> for the canonical programme/cohort architecture.</p>
+<p><strong>About this file.</strong> These are planning-stage mockups, not final UI designs. Captures structural decisions from the 2026-04-20 curriculum authoring session, revised 2026-05-10 (programme/cohort split) and 2026-05-11 (curriculum architecture rework — modules → blocks, weeks → units, loose-vs-blocked activities, delivery modes — both tutor-led and self-paced ship in v1, unit label decoupled from delivery mode as a separate tutor choice).</p>
+<p>Real UI will be built against the QAcademy brand and can refine layout, spacing, and typography. The structural decisions (hierarchy, layers, propagation rules, fields per activity type, reordering model, loose-vs-blocked rule, delivery mode dimension, unit-label decoupling) are what matter here.</p>
+<p>See <code>mynclex/docs/product-plan/curriculum-authoring-ux.md</code> for the full written plan and <code>mynclex/docs/product-plan/main.md</code> for the canonical programme/cohort architecture, delivery-mode definitions, and unit_label rules.</p>
 </div>
 
 </div>
