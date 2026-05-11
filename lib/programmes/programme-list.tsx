@@ -2,8 +2,9 @@
 //
 // Client component — owns the "Show archived (N)" toggle state.
 // Splits the server-supplied programmes into an active bank
-// (DRAFT + PUBLISHED) and a hidden bank (ARCHIVED + CANCELLED).
-// Hidden bank renders only when the toggle is on.
+// (DRAFT + PUBLISHED) and a hidden bank (ARCHIVED). CANCELLED
+// no longer exists at the programme layer post-9.2a — cancellation
+// moved to nclex_cohorts.cancelled_at.
 
 'use client';
 
@@ -18,7 +19,7 @@ export function ProgrammeList({ programmes }: { programmes: ProgrammeListRow[] }
     const active: ProgrammeListRow[] = [];
     const hidden: ProgrammeListRow[] = [];
     for (const p of programmes) {
-      if (p.status === 'ARCHIVED' || p.status === 'CANCELLED') hidden.push(p);
+      if (p.status === 'ARCHIVED') hidden.push(p);
       else active.push(p);
     }
     return { active, hidden };

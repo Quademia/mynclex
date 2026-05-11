@@ -1,25 +1,27 @@
 // mynclex/lib/programmes/actions.ts
 //
 // Server actions for the programme tutor surfaces.
-// Slice 9.1b — createProgrammeAction (INSERT into nclex_programmes).
+// Slice 9.2a — input shape drops date/seat fields (moved to the
+// cohort modal in 9.2b) and gains delivery_mode + unit_label +
+// length_units.
 //
-// RLS allows the INSERT only when tutor_id = auth.uid(); we set
-// tutor_id from the current session here, so the policy check is the
-// belt-and-braces authorisation.
+// RLS allows INSERT only when tutor_id = auth.uid(); we set
+// tutor_id from the current session here so the policy check is
+// the belt-and-braces authorisation.
 
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import type { DeliveryMode, UnitLabel } from './types';
 
 export type CreateProgrammeInput = {
   title: string;
   tagline: string | null;
   description: string | null;
-  length_weeks: number;
-  start_date: string;            // YYYY-MM-DD
-  end_date: string;              // YYYY-MM-DD
-  cohort_size: number | null;
+  delivery_mode: DeliveryMode;
+  unit_label: UnitLabel;
+  length_units: number;
   price_minor_ghs: number;
   price_minor_usd: number;
   show_price_publicly: boolean;
@@ -29,27 +31,24 @@ export type CreateProgrammeResult =
   | { ok: true; programme_id: string }
   | { ok: false; error: string };
 
-export async function createProgrammeAction(
-  input: CreateProgrammeInput
-): Promise<CreateProgrammeResult> {
-  // Server-side validation. The modal mirrors these rules client-side
-  // for UX, but this is the security boundary — never trust the form.
+function validate(input: CreateProgrammeInput): string | null {
   const trimmedTitle = input.title?.trim() ?? '';
-  if (trimmedTitle.length === 0) {
-    return { ok: false, error: 'Title is required.' };
+  if (trimmedTitle.length === 0) return 'Title is required.';
+  if (
+    input.delivery_mode !== 'TUTOR_LED' &&
+    input.delivery_mode !== 'SELF_PACED'
+  ) {
+    return 'Delivery mode is invalid.';
+  }
+  if (input.unit_label !== 'WEEK' && input.unit_label !== 'MODULE') {
+    return 'Unit label is invalid.';
   }
   if (
-    !Number.isInteger(input.length_weeks) ||
-    input.length_weeks < 1 ||
-    input.length_weeks > 52
+    !Number.isInteger(input.length_units) ||
+    input.length_units < 1 ||
+    input.length_units > 52
   ) {
-    return { ok: false, error: 'Length must be between 1 and 52 weeks.' };
-  }
-  if (!input.start_date || !input.end_date) {
-    return { ok: false, error: 'Start and end dates are required.' };
-  }
-  if (input.end_date < input.start_date) {
-    return { ok: false, error: 'End date cannot be before start date.' };
+    return 'Length must be between 1 and 52 units.';
   }
   if (
     !Number.isInteger(input.price_minor_ghs) ||
@@ -57,14 +56,16 @@ export async function createProgrammeAction(
     !Number.isInteger(input.price_minor_usd) ||
     input.price_minor_usd < 0
   ) {
-    return { ok: false, error: 'Prices must be non-negative numbers.' };
+    return 'Prices must be non-negative numbers.';
   }
-  if (
-    input.cohort_size != null &&
-    (!Number.isInteger(input.cohort_size) || input.cohort_size < 1)
-  ) {
-    return { ok: false, error: 'Cohort size must be a positive number or blank.' };
-  }
+  return null;
+}
+
+export async function createProgrammeAction(
+  input: CreateProgrammeInput
+): Promise<CreateProgrammeResult> {
+  const validationError = validate(input);
+  if (validationError) return { ok: false, error: validationError };
 
   const supabase = await createClient();
   const {
@@ -76,13 +77,12 @@ export async function createProgrammeAction(
     .from('nclex_programmes')
     .insert({
       tutor_id: user.id,
-      title: trimmedTitle,
+      title: input.title.trim(),
       tagline: input.tagline?.trim() || null,
       description: input.description?.trim() || null,
-      length_weeks: input.length_weeks,
-      start_date: input.start_date,
-      end_date: input.end_date,
-      cohort_size: input.cohort_size,
+      delivery_mode: input.delivery_mode,
+      unit_label: input.unit_label,
+      length_units: input.length_units,
       price_minor_ghs: input.price_minor_ghs,
       price_minor_usd: input.price_minor_usd,
       show_price_publicly: input.show_price_publicly,
@@ -99,7 +99,7 @@ export async function createProgrammeAction(
 }
 
 // =====================================================================
-// editProgrammeAction (slice 9.1c)
+// editProgrammeAction
 // =====================================================================
 
 export type EditProgrammeResult =
@@ -110,38 +110,8 @@ export async function editProgrammeAction(
   programme_id: string,
   input: CreateProgrammeInput
 ): Promise<EditProgrammeResult> {
-  // Same validation as create — never trust the form.
-  const trimmedTitle = input.title?.trim() ?? '';
-  if (trimmedTitle.length === 0) {
-    return { ok: false, error: 'Title is required.' };
-  }
-  if (
-    !Number.isInteger(input.length_weeks) ||
-    input.length_weeks < 1 ||
-    input.length_weeks > 52
-  ) {
-    return { ok: false, error: 'Length must be between 1 and 52 weeks.' };
-  }
-  if (!input.start_date || !input.end_date) {
-    return { ok: false, error: 'Start and end dates are required.' };
-  }
-  if (input.end_date < input.start_date) {
-    return { ok: false, error: 'End date cannot be before start date.' };
-  }
-  if (
-    !Number.isInteger(input.price_minor_ghs) ||
-    input.price_minor_ghs < 0 ||
-    !Number.isInteger(input.price_minor_usd) ||
-    input.price_minor_usd < 0
-  ) {
-    return { ok: false, error: 'Prices must be non-negative numbers.' };
-  }
-  if (
-    input.cohort_size != null &&
-    (!Number.isInteger(input.cohort_size) || input.cohort_size < 1)
-  ) {
-    return { ok: false, error: 'Cohort size must be a positive number or blank.' };
-  }
+  const validationError = validate(input);
+  if (validationError) return { ok: false, error: validationError };
 
   const supabase = await createClient();
   const {
@@ -156,13 +126,12 @@ export async function editProgrammeAction(
   const { data, error } = await supabase
     .from('nclex_programmes')
     .update({
-      title: trimmedTitle,
+      title: input.title.trim(),
       tagline: input.tagline?.trim() || null,
       description: input.description?.trim() || null,
-      length_weeks: input.length_weeks,
-      start_date: input.start_date,
-      end_date: input.end_date,
-      cohort_size: input.cohort_size,
+      delivery_mode: input.delivery_mode,
+      unit_label: input.unit_label,
+      length_units: input.length_units,
       price_minor_ghs: input.price_minor_ghs,
       price_minor_usd: input.price_minor_usd,
       show_price_publicly: input.show_price_publicly,

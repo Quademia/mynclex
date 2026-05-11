@@ -1,13 +1,19 @@
 // mynclex/lib/programmes/programme-form-modal.tsx
 //
-// Programme form modal (slice 9.1b create + 9.1c edit). Single-scroll,
-// three sections: Identity / Schedule / Pricing. Auto-fills end_date
-// from start + length × 7 unless the tutor has manually edited it
-// (then "custom"). Reuses existing <DiscardConfirm> + <ErrorToast>.
+// Programme form modal — create + edit. Slice 9.2a reshape:
 //
-// Discriminated union on `mode` lets one component handle both
-// flows: the form layout is identical, only the title, submit
-// label, dirty baseline, and submit handler differ.
+// * Schedule section dropped (Start / End / Cohort size moved to
+//   the cohort modal in 9.2b — no cohort modal exists yet, so
+//   creating a new programme produces a programme without a cohort
+//   until 9.2b ships).
+// * New Shape section with Delivery mode + Unit label + Length.
+//   - Delivery mode (TUTOR_LED / SELF_PACED) is create-only;
+//     the field is disabled in edit mode.
+//   - Unit label smart-default flips with delivery mode at
+//     create-time (TUTOR_LED → WEEK, SELF_PACED → MODULE) unless
+//     the tutor has manually picked one.
+//   - Length label flips with unit_label ("Length in weeks" vs
+//     "Number of modules"). Limit stays 1–52 from the DB CHECK.
 
 'use client';
 
@@ -16,7 +22,11 @@ import { useRouter } from 'next/navigation';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { createProgrammeAction, editProgrammeAction } from './actions';
-import type { ProgrammeFormValues } from './types';
+import type {
+  DeliveryMode,
+  ProgrammeFormValues,
+  UnitLabel,
+} from './types';
 
 type ProgrammeFormModalProps =
   | { mode: 'create'; onClose: () => void }
@@ -44,14 +54,8 @@ function minorToInput(minor: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(2);
 }
 
-function addDaysISO(iso: string, days: number): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  date.setDate(date.getDate() + days);
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+function defaultUnitLabelFor(mode: DeliveryMode): UnitLabel {
+  return mode === 'TUTOR_LED' ? 'WEEK' : 'MODULE';
 }
 
 export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
@@ -67,20 +71,19 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
   const [title, setTitle] = useState(initial?.title ?? '');
   const [tagline, setTagline] = useState(initial?.tagline ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
-  const [lengthWeeks, setLengthWeeks] = useState(
-    initial ? String(initial.length_weeks) : ''
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(
+    initial?.delivery_mode ?? 'TUTOR_LED'
   );
-  const [startDate, setStartDate] = useState(initial?.start_date ?? '');
-  const [endDate, setEndDate] = useState(initial?.end_date ?? '');
-  // In edit mode: endDateTouched=true if existing end_date doesn't
-  // match the auto-derived value. The tutor saved a custom end_date.
-  const [endDateTouched, setEndDateTouched] = useState(() => {
-    if (!initial) return false;
-    const auto = addDaysISO(initial.start_date, initial.length_weeks * 7 - 1);
-    return initial.end_date !== auto;
-  });
-  const [cohortSize, setCohortSize] = useState(
-    initial?.cohort_size != null ? String(initial.cohort_size) : ''
+  const [unitLabel, setUnitLabel] = useState<UnitLabel>(
+    initial?.unit_label ?? 'WEEK'
+  );
+  // In create mode: track whether the tutor has manually picked a
+  // unit label. If not, the smart default follows delivery_mode.
+  // In edit mode: locked to "touched" — never auto-flip an existing
+  // programme's label silently.
+  const [unitLabelTouched, setUnitLabelTouched] = useState(isEdit);
+  const [lengthUnits, setLengthUnits] = useState(
+    initial ? String(initial.length_units) : ''
   );
   const [priceGhs, setPriceGhs] = useState(
     initial ? minorToInput(initial.price_minor_ghs) : '0'
@@ -92,15 +95,12 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
     initial?.show_price_publicly ?? true
   );
 
-  // Auto-fill end_date when start or length changes — but only when
-  // the tutor hasn't manually edited end_date yet.
+  // Smart default: when delivery_mode changes in create mode AND
+  // tutor hasn't manually picked a label yet, flip the label.
   useEffect(() => {
-    if (endDateTouched) return;
-    if (!startDate || !lengthWeeks) return;
-    const lw = parseInt(lengthWeeks, 10);
-    if (!Number.isInteger(lw) || lw < 1) return;
-    setEndDate(addDaysISO(startDate, lw * 7 - 1));
-  }, [startDate, lengthWeeks, endDateTouched]);
+    if (unitLabelTouched) return;
+    setUnitLabel(defaultUnitLabelFor(deliveryMode));
+  }, [deliveryMode, unitLabelTouched]);
 
   // Dirty tracking — gates the discard-confirm dialog. In create mode
   // dirty = any deviation from blank defaults; in edit mode dirty =
@@ -111,10 +111,9 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
         title !== initial.title ||
         tagline !== (initial.tagline ?? '') ||
         description !== (initial.description ?? '') ||
-        lengthWeeks !== String(initial.length_weeks) ||
-        startDate !== initial.start_date ||
-        endDate !== initial.end_date ||
-        cohortSize !== (initial.cohort_size != null ? String(initial.cohort_size) : '') ||
+        deliveryMode !== initial.delivery_mode ||
+        unitLabel !== initial.unit_label ||
+        lengthUnits !== String(initial.length_units) ||
         priceToMinor(priceGhs) !== initial.price_minor_ghs ||
         priceToMinor(priceUsd) !== initial.price_minor_usd ||
         showPricePublicly !== initial.show_price_publicly
@@ -124,10 +123,9 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
       title !== '' ||
       tagline !== '' ||
       description !== '' ||
-      lengthWeeks !== '' ||
-      startDate !== '' ||
-      endDateTouched ||
-      cohortSize !== '' ||
+      deliveryMode !== 'TUTOR_LED' ||
+      unitLabelTouched ||
+      lengthUnits !== '' ||
       priceGhs !== '0' ||
       priceUsd !== '0' ||
       !showPricePublicly
@@ -136,23 +134,14 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
 
   // Validation
   const trimmedTitle = title.trim();
-  const lengthWeeksNum = parseInt(lengthWeeks, 10);
-  const cohortSizeNum =
-    cohortSize.trim() === '' ? null : parseInt(cohortSize, 10);
-  const isCohortSizeValid =
-    cohortSizeNum === null ||
-    (Number.isInteger(cohortSizeNum) && cohortSizeNum > 0);
-  const datesValid =
-    Boolean(startDate) && Boolean(endDate) && endDate >= startDate;
+  const lengthUnitsNum = parseInt(lengthUnits, 10);
   const isFormValid =
     trimmedTitle.length > 0 &&
-    Number.isInteger(lengthWeeksNum) &&
-    lengthWeeksNum >= 1 &&
-    lengthWeeksNum <= 52 &&
-    datesValid &&
+    Number.isInteger(lengthUnitsNum) &&
+    lengthUnitsNum >= 1 &&
+    lengthUnitsNum <= 52 &&
     isValidPrice(priceGhs) &&
-    isValidPrice(priceUsd) &&
-    isCohortSizeValid;
+    isValidPrice(priceUsd);
 
   function attemptClose() {
     if (isPending) return;
@@ -181,10 +170,9 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
         title: trimmedTitle,
         tagline: tagline.trim() || null,
         description: description.trim() || null,
-        length_weeks: lengthWeeksNum,
-        start_date: startDate,
-        end_date: endDate,
-        cohort_size: cohortSizeNum,
+        delivery_mode: deliveryMode,
+        unit_label: unitLabel,
+        length_units: lengthUnitsNum,
         price_minor_ghs: priceToMinor(priceGhs),
         price_minor_usd: priceToMinor(priceUsd),
         show_price_publicly: showPricePublicly,
@@ -209,6 +197,14 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
     : isPending
       ? 'Creating…'
       : 'Create programme';
+
+  // Label strings flip with unit_label.
+  const lengthFieldLabel =
+    unitLabel === 'WEEK' ? 'Length in weeks' : 'Number of modules';
+  const lengthFieldHelp =
+    unitLabel === 'WEEK'
+      ? 'How many weeks of curriculum.'
+      : 'How many modules of curriculum.';
 
   return (
     <>
@@ -283,14 +279,60 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
               </label>
             </section>
 
-            {/* SCHEDULE */}
+            {/* SHAPE */}
             <section className="prog-form-section">
-              <h3 className="prog-form-section-title">Schedule</h3>
+              <h3 className="prog-form-section-title">Shape</h3>
+
+              <label className="prog-field">
+                <span className="prog-field-label">
+                  Delivery mode <span className="prog-required">*</span>
+                </span>
+                <select
+                  className="prog-input"
+                  value={deliveryMode}
+                  onChange={(e) =>
+                    setDeliveryMode(e.target.value as DeliveryMode)
+                  }
+                  disabled={isPending || isEdit}
+                >
+                  <option value="TUTOR_LED">Tutor-led (cohorts)</option>
+                  <option value="SELF_PACED">Self-paced (no cohorts)</option>
+                </select>
+                <span className="prog-field-help">
+                  {isEdit
+                    ? 'Delivery mode is set at create-time and can’t be changed.'
+                    : deliveryMode === 'TUTOR_LED'
+                      ? 'Students enrol per cohort with shared start/end dates.'
+                      : 'Students enrol directly and progress at their own pace.'}
+                </span>
+              </label>
 
               <div className="prog-field-row">
                 <label className="prog-field">
                   <span className="prog-field-label">
-                    Length in weeks <span className="prog-required">*</span>
+                    Unit label <span className="prog-required">*</span>
+                  </span>
+                  <select
+                    className="prog-input"
+                    value={unitLabel}
+                    onChange={(e) => {
+                      setUnitLabel(e.target.value as UnitLabel);
+                      setUnitLabelTouched(true);
+                    }}
+                    disabled={isPending}
+                  >
+                    <option value="WEEK">Weeks</option>
+                    <option value="MODULE">Modules</option>
+                  </select>
+                  <span className="prog-field-help">
+                    Renders curriculum units as &ldquo;Week N&rdquo; or
+                    &ldquo;Module N&rdquo;.
+                  </span>
+                </label>
+
+                <label className="prog-field">
+                  <span className="prog-field-label">
+                    {lengthFieldLabel} <span className="prog-required">*</span>
                   </span>
                   <input
                     type="number"
@@ -298,61 +340,11 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
                     min={1}
                     max={52}
                     className="prog-input"
-                    value={lengthWeeks}
-                    onChange={(e) => setLengthWeeks(e.target.value)}
+                    value={lengthUnits}
+                    onChange={(e) => setLengthUnits(e.target.value)}
                     disabled={isPending}
                   />
-                </label>
-
-                <label className="prog-field">
-                  <span className="prog-field-label">Cohort size</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    className="prog-input"
-                    placeholder="No cap"
-                    value={cohortSize}
-                    onChange={(e) => setCohortSize(e.target.value)}
-                    disabled={isPending}
-                  />
-                  <span className="prog-field-help">Blank = no cap.</span>
-                </label>
-              </div>
-
-              <div className="prog-field-row">
-                <label className="prog-field">
-                  <span className="prog-field-label">
-                    Start date <span className="prog-required">*</span>
-                  </span>
-                  <input
-                    type="date"
-                    className="prog-input"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    disabled={isPending}
-                  />
-                </label>
-
-                <label className="prog-field">
-                  <span className="prog-field-label">
-                    End date <span className="prog-required">*</span>
-                  </span>
-                  <input
-                    type="date"
-                    className="prog-input"
-                    value={endDate}
-                    onChange={(e) => {
-                      setEndDate(e.target.value);
-                      setEndDateTouched(true);
-                    }}
-                    disabled={isPending}
-                  />
-                  <span className="prog-field-help">
-                    {endDateTouched
-                      ? 'Custom — extends bank access beyond the curriculum.'
-                      : 'Auto-fills from start + length × 7. Edit to extend bank access.'}
-                  </span>
+                  <span className="prog-field-help">{lengthFieldHelp}</span>
                 </label>
               </div>
             </section>

@@ -1,12 +1,13 @@
 // mynclex/lib/programmes/queries.ts
 //
 // Server-side fetches for the programme tutor surfaces.
-// Slice 9.1a — getMyProgrammes for the My Programmes list page.
+// Slice 9.2a — programmes lose date/seat columns to nclex_cohorts;
+// the list rollup folds cohort counts into each row.
 //
-// RLS scopes the SELECT to tutor_id = auth.uid() (with SUPER_ADMIN
-// bypass via nclex_programmes_admin_all). Co-tutored programmes will
-// join in once the co-tutor join table lands; for v1 the creator is
-// the sole tutor.
+// RLS scopes SELECT to tutor_id = auth.uid() (SUPER_ADMIN bypass via
+// nclex_programmes_admin_all). Co-tutored programmes will join in
+// once the co-tutor join table lands; for v1 the creator is the sole
+// tutor.
 
 import { createClient } from '@/lib/supabase/server';
 import type { ProgrammeListRow } from './types';
@@ -14,15 +15,31 @@ import type { ProgrammeListRow } from './types';
 export async function getMyProgrammes(): Promise<ProgrammeListRow[]> {
   const supabase = await createClient();
 
+  // PostgREST embedded resource — `nclex_cohorts(count)` returns
+  // `[{ count: N }]` per row; we flatten below. RLS on
+  // nclex_cohorts uses the same tutor-ownership rule via the
+  // programme FK, so the count returned only includes cohorts
+  // the tutor is allowed to see (== all of their own).
   const { data, error } = await supabase
     .from('nclex_programmes')
     .select(
-      'programme_id, title, tagline, description, length_weeks, start_date, end_date, cohort_size, price_minor_ghs, price_minor_usd, show_price_publicly, status, updated_at'
+      `programme_id, title, tagline, description,
+       delivery_mode, unit_label, length_units,
+       price_minor_ghs, price_minor_usd, show_price_publicly,
+       status, updated_at,
+       nclex_cohorts(count)`
     )
     .order('updated_at', { ascending: false });
 
   if (error || !data) return [];
-  return data as ProgrammeListRow[];
+
+  return data.map((row) => {
+    const { nclex_cohorts, ...rest } = row as typeof row & {
+      nclex_cohorts: Array<{ count: number }> | null;
+    };
+    const cohort_count = nclex_cohorts?.[0]?.count ?? 0;
+    return { ...rest, cohort_count } as ProgrammeListRow;
+  });
 }
 
 /**

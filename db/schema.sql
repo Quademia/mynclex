@@ -657,14 +657,18 @@ CREATE INDEX idx_nclex_attempt_answers_student_status   ON nclex_attempt_answers
 -- Programme tables (Slice 9.1a, 2026-05-10)
 -- =========================================================
 -- The first table on the Programme side. Tutor-owned programmes plug
--- into Phase 4 of the Journey Tracker. One row per programme;
--- co-tutors deferred (single-tutor model in v1).
+-- into Phase 4 of the Journey Tracker. Programme = reusable design
+-- (curriculum + identity + pricing); cohort = one specific run
+-- (dates, seats, enrolment, schedule). Two-layer model settled
+-- 2026-05-10; curriculum architecture rework (blocks/units/dual
+-- delivery modes/decoupled unit_label) settled 2026-05-11.
 --
--- Source of truth: docs/product-plan/main.md (Programme Structure +
--- Pricing + Enrolment paths) and curriculum-authoring-ux.md (New
--- Programme modal field list).
+-- Source of truth: docs/product-plan/main.md (Programme structure,
+-- Cohort layer, Self-paced surface, Pricing), curriculum-authoring-
+-- ux.md (delivery mode + unit label + curriculum rework),
+-- payments-and-enrolment.md (price location, v1 deferrals).
 --
--- Schema is provisional — programme work is in early scoping; expect
+-- Schema is provisional — programme work is in build; expect
 -- revisions during build.
 
 CREATE TABLE nclex_programmes (
@@ -677,36 +681,70 @@ CREATE TABLE nclex_programmes (
   description           TEXT,
 
   -- Shape
-  length_weeks          SMALLINT NOT NULL
-                        CHECK (length_weeks BETWEEN 1 AND 52),
-  start_date            DATE NOT NULL,
-  end_date              DATE NOT NULL,                       -- auto-fills from start + length × 7; tutor-editable
-  cohort_size           INTEGER                              -- nullable: blank = no cap
-                        CHECK (cohort_size IS NULL OR cohort_size > 0),
+  delivery_mode         TEXT NOT NULL DEFAULT 'TUTOR_LED'
+                        CHECK (delivery_mode IN ('TUTOR_LED','SELF_PACED')),
+  unit_label            TEXT NOT NULL DEFAULT 'WEEK'         -- decoupled from delivery_mode
+                        CHECK (unit_label IN ('WEEK','MODULE')),
+  length_units          SMALLINT NOT NULL                    -- count of curriculum units
+                        CHECK (length_units BETWEEN 1 AND 52),
 
-  -- Pricing (minor units; 0 = free)
+  -- Pricing (minor units; 0 = free).
+  -- Stays on programme in v1 — cohort-level variation deferred per
+  -- payments-and-enrolment.md, and self-paced has no cohort layer.
   price_minor_ghs       INTEGER NOT NULL DEFAULT 0
                         CHECK (price_minor_ghs >= 0),
   price_minor_usd       INTEGER NOT NULL DEFAULT 0
                         CHECK (price_minor_usd >= 0),
   show_price_publicly   BOOLEAN NOT NULL DEFAULT TRUE,
 
-  -- Lifecycle
+  -- Lifecycle. CANCELLED moved to nclex_cohorts.cancelled_at.
   status                TEXT NOT NULL DEFAULT 'DRAFT'
-                        CHECK (status IN ('DRAFT','PUBLISHED','ARCHIVED','CANCELLED')),
+                        CHECK (status IN ('DRAFT','PUBLISHED','ARCHIVED')),
   published_at          TIMESTAMPTZ,
   archived_at           TIMESTAMPTZ,
-  cancelled_at          TIMESTAMPTZ,
 
   -- Audit
   created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-  CONSTRAINT nclex_programmes_dates_ok CHECK (end_date >= start_date)
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_nclex_programmes_tutor   ON nclex_programmes(tutor_id);
 CREATE INDEX idx_nclex_programmes_public  ON nclex_programmes(status) WHERE status = 'PUBLISHED';
+
+
+-- 14. Cohorts (slice 9.2a — programme/cohort split)
+-- One row per cohort run of a tutor-led programme. Self-paced
+-- programmes have no cohort rows; enrolments link directly to the
+-- programme with cohort_id = NULL.
+--
+-- Status (UPCOMING / IN_PROGRESS / ENDED / CANCELLED) is NOT stored.
+-- The first three derive from (start_date, end_date, today) in TS
+-- (`cohortStatus()` helper); only CANCELLED is persisted via
+-- cancelled_at IS NOT NULL.
+
+CREATE TABLE nclex_cohorts (
+  cohort_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  programme_id     UUID NOT NULL
+                   REFERENCES nclex_programmes(programme_id)
+                   ON DELETE CASCADE,
+
+  name             TEXT,                                     -- NULL → UI auto-generates from dates
+
+  start_date       DATE NOT NULL,
+  end_date         DATE NOT NULL,
+  cohort_size      INTEGER                                   -- nullable: blank = no cap
+                   CHECK (cohort_size IS NULL OR cohort_size > 0),
+  allow_late_join  BOOLEAN NOT NULL DEFAULT FALSE,
+
+  cancelled_at     TIMESTAMPTZ,                              -- only persisted lifecycle field
+
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT nclex_cohorts_dates_ok CHECK (end_date >= start_date)
+);
+
+CREATE INDEX idx_nclex_cohorts_programme ON nclex_cohorts(programme_id);
 
 
 -- RPC functions are large and tracked by their migration files

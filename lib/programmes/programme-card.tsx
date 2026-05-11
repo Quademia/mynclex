@@ -5,32 +5,24 @@
 // hyperlink to /tutor/programme/<id>/overview while the in-card
 // Edit button stays interactive (z-index trick).
 //
-// Layout:
-//   .programme-card (relative)
-//     <Link>             — absolute, inset:0, z:1 (the card link)
-//     .programme-card-head
-//       .programme-card-title
-//       .programme-card-actions   — relative, z:2 (above the link)
-//         .programme-pill
-//         <EditProgrammeTrigger>  — pencil icon
-//     .programme-card-tagline
-//     .programme-card-foot
-//       .programme-card-meta
-//       .programme-card-schedule
+// Slice 9.2a: schedule line replaced by cohort-count line +
+// programme-length shape line (since dates now belong to cohorts).
+// Real per-cohort schedule rendering lands with the Cohorts tab
+// in 9.2c.
 
 import Link from 'next/link';
 import type { ProgrammeListRow } from './types';
 import {
-  formatSchedule,
-  formatStudents,
+  formatCohortCount,
+  formatLength,
   formatStatusLabel,
   statusPillClass,
 } from './format';
 import { EditProgrammeTrigger } from './edit-programme-trigger';
 
 export function ProgrammeCard({ programme }: { programme: ProgrammeListRow }) {
-  const isMuted =
-    programme.status === 'ARCHIVED' || programme.status === 'CANCELLED';
+  const isMuted = programme.status === 'ARCHIVED';
+  const isSelfPaced = programme.delivery_mode === 'SELF_PACED';
 
   return (
     <div className={`programme-card ${isMuted ? 'is-muted' : ''}`}>
@@ -58,14 +50,12 @@ export function ProgrammeCard({ programme }: { programme: ProgrammeListRow }) {
 
       <div className="programme-card-foot">
         <span className="programme-card-meta">
-          {formatStudents(programme.cohort_size)}
+          {formatLength(programme.length_units, programme.unit_label)}
         </span>
         <span className="programme-card-schedule">
-          {formatSchedule(
-            programme.start_date,
-            programme.end_date,
-            programme.length_weeks
-          )}
+          {isSelfPaced
+            ? 'Self-paced'
+            : formatCohortCount(programme.cohort_count)}
         </span>
       </div>
     </div>
