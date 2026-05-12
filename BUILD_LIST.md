@@ -8,80 +8,82 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-10):** **Slice 4.6 — History page + Resume
-> detection.** Two sub-slices + two bug fixes that surfaced during
-> testing close out the runner-side resume story. Universal save-on-
-> tap from 4.5a was already persisting in-flight state to DRAFT rows;
-> what was missing was the entry point. Now both exist: a full History
-> page that lists every attempt with status-aware actions, and a
-> Resume banner extension so EXAM attempts (not just STUDY) surface
-> on the Builder.
+> **Last shipped (2026-05-12):** **Slices 9.2a + 9.2b — Programme /
+> Cohort split lands end-to-end.** Two slices in one session: 9.2a
+> did the schema lift + curriculum-rework columns; 9.2b followed
+> straight on with the first cohort surfaces so tutors can list
+> and create cohorts of their programmes today.
 >
-> **4.6a — History page (MVP).** New `/student/bank/history` route
-> replacing the Placeholder. Table card listing every attempt the
-> student has (newest first, capped at 50, no pagination): When ·
-> Session · Source·Mode · Result · State · action. Status maps to
-> action: COMPLETED/TIMED_OUT → Review →; IN_PROGRESS → Resume →;
-> ABANDONED → no link (hidden by default, toggleable). Search input +
-> source/mode filter chips render disabled as visible placeholders for
-> slice 7.1 polish. Source pill always says "Custom" in v1 (forward-
-> compat for Packs/Programmes via `SOURCE_LABEL` map). Session column
-> reuses `summariseRecent()` from launchers so each row reads as e.g.
-> "Pharmacology · Hard · 25 Q" — same chip-style label Recent Quizzes
-> uses, no fake titles. New folder `lib/practice/history/` (queries /
-> types / format / table) + new `styles/history.css`.
+> **9.2a — schema split.** Migration `20260512100000_slice_9_2a_
+> programme_cohort_split.sql` applied to mynclex-dev. New
+> `nclex_cohorts` table (FK to programmes, dates, seat cap,
+> late-join, `cancelled_at`, audit; RLS via parent-ownership
+> subquery). `nclex_programmes` loses `start_date` / `end_date` /
+> `cohort_size` / `cancelled_at`; gains `delivery_mode` (TUTOR_LED
+> / SELF_PACED) + `unit_label` (WEEK / MODULE); `length_weeks` →
+> `length_units`. Status enum tightened to DRAFT / PUBLISHED /
+> ARCHIVED (CANCELLED moves to `nclex_cohorts.cancelled_at`).
+> 7 existing programmes backfilled into one programme + one
+> cohort pair each (March Mini-Bootcamp's CANCELLED state moved
+> to its cohort row). **Pricing stayed on programme** per
+> planning-doc default — cohort-level variation deferred to v2
+> (would break self-paced, which has no cohort layer; access-
+> window pricing for self-paced is its own unfinalised design).
+> **Cohort status is NOT stored** — UPCOMING / IN_PROGRESS /
+> ENDED derive from dates; only CANCELLED is persisted. Minimum
+> app rewiring in the same slice so /tutor/programmes still
+> loads: programme modal stripped Schedule + gained Shape
+> section; card schedule line replaced by cohort-count line;
+> `getMyProgrammes()` embeds `nclex_cohorts(count)`. Commit
+> `c97f972` (10 files, +599 / −313).
 >
-> **4.6a fix — UL resume restored per-Q feedback.** UL students
-> returning to an in-progress attempt saw "Loading review data…" for
-> every previously-submitted question. Cause: `page.tsx` applies
-> sealed projection while `status=IN_PROGRESS` (Pillar 2), and
-> `clientUnseal` (the per-Q envelope from `submitAnswerAction`) is
-> React state lost on reload. 4.5b correctly set `itemMode='review'`
-> for finalised UL rows, but the data those rows need to render was
-> nowhere on the page. Fix: `page.tsx` does a narrow follow-up query
-> in the live branch fetching unseal columns ONLY for items whose
-> answer row is finalised (SUBMITTED / AUTO_SUBMITTED / SKIPPED —
-> never DRAFT). Threads through `LiveData.seededUnseal`, seeds
-> `clientUnseal` on mount. Pillar 2 holds — only items the student
-> already submitted get unsealed. `PerItemUnseal` moved to
-> `lib/practice/runner/types` (re-exported from runner-question-area
-> for backward-compat).
+> **9.2b — Cohorts tab + cohort form modal + entry-point nudges.**
+> New `lib/cohorts/` domain (types / format / queries / actions
+> / cohort-form-modal / new-cohort-trigger / cohort-list). New
+> route `/tutor/programme/[id]/cohorts/` with header +New cohort
+> button + empty-state CTA. `Cohorts` added to
+> `TUTOR_PROGRAMME_NAV` (after Overview); filtered out by the
+> programme-shell for SELF_PACED programmes — the URL itself
+> 404s in that mode too. Status derives via `cohortStatus()`
+> from stored dates + cancelled_at. End date in the cohort modal
+> is **derived from start + programme.length_units × 7**,
+> rendered as a read-only chip (not editable) — tutors who need
+> a different timeline edit the programme. Snapshot at save so
+> later programme-length edits don't silently shift existing
+> cohort end-dates. Entry-point nudges: programme card replaces
+> "No cohorts yet" with an inline + Add first cohort button when
+> `cohort_count === 0` (TUTOR_LED only); programme overview adds
+> an empty-state CTA below the placeholder under the same gate.
+> New `styles/cohorts.css`. Commit `ef59c9c` (16 files, +1103 /
+> −22).
 >
-> **4.6b — Resume banner surfaces EXAM attempts (non-CAT).** The
-> banner shipped in 5.1c filtered to STUDY-intent based on the
-> original §15 rule. Slice 4.5a revised attempt-creation §6.1.3:
-> timed EXAM is now resumable mid-timer (wall-clock continues during
-> absence; lazy expiry on next mount). Drops the `intent='STUDY'`
-> filter from `get-resumable-attempt.ts`; adds `mode != 'CAT'` as a
-> defensive filter for Phase B (CAT can't be resumed). Banner sub-
-> line now mode-aware: timed → "Resume soon — the clock kept running
-> while you were away."; untimed → "Pick up exactly where you left
-> off."
+> **Scope reshape vs original 9.2b/c.** Combined `<Programme
+> WithFirstCohortModal>` dropped — Sam's call: curriculum lives
+> at programme layer, tutors naturally build the curriculum
+> before scheduling cohorts. Forcing cohort-on-create inverts
+> that workflow. The system already handles cohortless
+> programmes — DRAFT is invisible publicly anyway, and PUBLISHED
+> with zero open cohorts isn't surfaced in the catalogue per
+> main.md. Cohorts tab moved from 9.2c into 9.2b so the slice
+> ships testable; 9.2c narrows to the cohort detail subtree
+> only.
 >
-> **4.6b fix — Sequential resume unstuck.** `current` initialised to
-> 0 always; on Sequential resume Q1 was SUBMITTED but `pendingAnswers`
-> only seeds DRAFT rows, so Q1 re-rendered in 'answering' mode with
-> empty state. Sequential locks Prev + grid (4.5c) → student stuck;
-> RPC blocks resubmit. Fix: `current` initialiser walks items, lands
-> on first index whose answer row is missing or DRAFT — natural
-> "where you left off" position. Universal across archetypes
-> (Sequential breaks; UL + Free-batched are UX-improved).
+> **Deferred product question:** whether to make cohort end-date
+> editable later (revision buffer / bank-access extension use
+> cases). Tabled in 9.2b's planning conversation. Not v1.
 >
-> Build-list also restructured this session: file now has two top-
-> level parts — Part 1 (Bank, existing slice list, phases demoted
-> h2 → h3) and Part 2 (Programme, stub for next session's pivot).
+> See SESSIONS 2026-05-12 for the planning + bug-hunting detail.
 >
-> See SESSIONS 2026-05-10 for the slice + bug-hunting session.
->
-> **Next pick:** **Slice 9.2 — Programme/Cohort architecture
-> rework.** Planning settled 2026-05-10 across 4 questions
-> (cohort-layer model, sync semantics, public discovery /
-> enrolment, naming). Five planning docs + the curriculum-authoring
-> mockup updated to the resolved architecture. 9.2 is now
-> build-ready: schema migration (9.2a) → modal split (9.2b) →
-> Cohorts tab + cohort detail subtree (9.2c). When Bank work
-> resumes after 9.2, the next ⏭ on that side is **4.7 —
-> Mark-for-review toggle**.
+> **Next pick:** **Slice 9.2c — Cohort detail subtree.** Build
+> the sibling routes under `/tutor/cohort/[cohort_id]/...` —
+> Overview, Students, Sessions, Announcements, Settings.
+> Curriculum tab queues behind Phase B (`nclex_programme_units
+> /blocks/activities`). Cohort cards on the list page become
+> clickable to the detail subtree. The existing programme
+> sidebar items conceptually at cohort layer (Live Sessions,
+> Mocks, Students, Results) need a migration plan — separate
+> planning conversation. When Bank work resumes after 9.2c, the
+> next ⏭ on that side is **4.7 — Mark-for-review toggle**.
 
 ---
 
@@ -263,9 +265,11 @@ enrolment), `tutor-nav.html` (global vs programme nav contexts).
     edit mode. Migration
     `20260510130000_slice_9_1c_programmes_update_rls.sql`.
 
-- ⏭ **9.2** Programme/Cohort architecture rework — planning settled
+- 🔨 **9.2** Programme/Cohort architecture rework — planning settled
   2026-05-10 across 4 questions (see SESSIONS entry); curriculum
-  layer architecture refined 2026-05-11 (see also). The split:
+  layer architecture refined 2026-05-11 (see also). 9.2a + 9.2b
+  shipped 2026-05-12 (see SESSIONS 2026-05-12); 9.2c queued. The
+  split:
   programme = reusable design (curriculum + identity + pricing);
   cohort = one specific run (dates, seats, enrolment, schedule).
   Curriculum (units → blocks (optional) → activities, Phase B —
@@ -324,25 +328,62 @@ enrolment), `tutor-nav.html` (global vs programme nav contexts).
     students) are queued for the slice that ships self-paced —
     drafted in curriculum-authoring-ux.md → "Self-paced surface
     (screen 12+)".
-  - ⬜ **9.2a** Schema — migration adds `nclex_cohorts` (FK to
-    programmes, dates, size, late-join, status, name override,
-    lifecycle timestamps) with RLS. Drops `start_date` /
-    `end_date` / `cohort_size` from `nclex_programmes` after
-    backfilling existing rows into a first cohort each.
-    Programme status enum tightens to `DRAFT / PUBLISHED /
-    ARCHIVED` (CANCELLED moves to cohort).
-  - ⬜ **9.2b** Modal split — `<ProgrammeFormModal>` becomes
-    `<ProgrammeWithFirstCohortModal>` (create) capturing
-    programme + first cohort in one go. Edit modal narrows to
-    programme-only fields. New `<CohortFormModal>` for the
-    smaller "+ New cohort" flow on the Cohorts tab.
-  - ⬜ **9.2c** Cohorts tab + cohort detail subtree —
-    `/tutor/programme/[id]/cohorts/` (list inside programme) +
-    sibling `/tutor/cohort/[id]/...` subtree (Overview /
-    Curriculum / Students / Sessions / Announcements /
-    Settings). `getMyProgrammes()` + `<ProgrammeCard>` updated
-    to show cohort counts ("2 running · 1 upcoming") instead of
-    schedule line.
+  - ✅ **9.2a** Schema split — shipped 2026-05-12. Migration
+    `20260512100000_slice_9_2a_programme_cohort_split.sql`
+    applied to mynclex-dev. Adds `nclex_cohorts` (FK to
+    programmes, dates, seat cap, late-join, `cancelled_at`,
+    audit) with parent-ownership RLS. Drops `start_date` /
+    `end_date` / `cohort_size` / `cancelled_at` from
+    `nclex_programmes` after backfilling 7 existing rows into a
+    programme + cohort pair each. Adds `delivery_mode`
+    (TUTOR_LED / SELF_PACED) + `unit_label` (WEEK / MODULE);
+    renames `length_weeks` → `length_units`. Programme status
+    tightens to DRAFT / PUBLISHED / ARCHIVED (CANCELLED moves
+    to cohort's `cancelled_at`). Cohort status is NOT stored —
+    UPCOMING / IN_PROGRESS / ENDED derive from dates; only
+    CANCELLED is persisted. Pricing stayed on programme
+    (cohort-level variation remains a v2 deferral; see
+    SESSIONS 2026-05-12 → 9.2a planning conversation). Minimum
+    app rewiring landed same-slice so /tutor/programmes still
+    loads: programme modal Schedule section deleted, replaced
+    by a Shape section (delivery_mode + unit_label + length);
+    card schedule line replaced by cohort-count line;
+    `getMyProgrammes()` embeds `nclex_cohorts(count)`. Commit
+    `c97f972`.
+  - ✅ **9.2b** Cohorts tab + cohort form modal + entry-point
+    nudges — shipped 2026-05-12. **Scope reshape**: original
+    `<ProgrammeWithFirstCohortModal>` (combined create) was
+    dropped — curriculum lives at programme layer, tutors
+    build the curriculum first and add cohorts when they're
+    ready to enrol. Cohorts tab moved from 9.2c into 9.2b so
+    the slice ships a testable end-to-end flow. New
+    `lib/cohorts/` domain (types / format / queries / actions
+    / cohort-form-modal / new-cohort-trigger / cohort-list).
+    New route `/tutor/programme/[id]/cohorts/`. `Cohorts`
+    added to `TUTOR_PROGRAMME_NAV` (after Overview); filtered
+    out by the programme-shell for SELF_PACED programmes
+    (direct nav to the URL 404s too). End date in the cohort
+    modal derives from start + `programme.length_units × 7`,
+    rendered as a read-only chip — tutors who need a different
+    timeline edit the programme; snapshot at save so later
+    programme-length edits don't silently shift existing
+    cohorts. Entry-point nudges per the (a)+(b) choice: card
+    replaces "No cohorts yet" text with an inline + Add first
+    cohort button when `cohort_count === 0` (TUTOR_LED only);
+    overview adds an empty-state CTA below the placeholder
+    under the same gate. New `styles/cohorts.css`. Deferred
+    product question: whether to make cohort end-date editable
+    later (revision-buffer / bank-access extension). Commit
+    `ef59c9c`.
+  - ⏭ **9.2c** Cohort detail subtree —
+    `/tutor/cohort/[cohort_id]/...` sibling routes (Overview /
+    Students / Sessions / Announcements / Settings). Curriculum
+    tab queues behind Phase B's `nclex_programme_units / blocks
+    / activities` tables. Cohort cards on the list page become
+    clickable to this subtree. The existing programme-sidebar
+    items conceptually at cohort layer (Live Sessions, Mocks,
+    Students, Results) need a separate migration plan —
+    queued for its own planning conversation after 9.2c lands.
 
 Phase B+ slices defined after 9.2 lands.
 

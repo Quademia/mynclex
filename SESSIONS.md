@@ -6,6 +6,274 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-12 (9.2a + 9.2b) — Programme/Cohort split lands end-to-end
+
+Two slices in one session, both on `claude/epic-curran-d7796e`. 9.2a
+did the heavy DB lift (programme/cohort split + curriculum-rework
+columns) plus minimum app rewiring so the page still loaded. 9.2b
+followed straight on with the first cohort surfaces — Cohorts tab,
+cohort form modal, entry-point nudges. Tutors can now genuinely list
+and create cohorts of their programmes; the detail subtree (Overview
+/ Students / Sessions / etc.) is 9.2c's job.
+
+Three commits on the session branch (9.2a feat, 9.2b feat, this docs
+commit). 9.2c was scope-narrowed mid-session as a side effect of the
+9.2b reshape — its planning-doc text moved into 9.2b so the slice
+ships a testable end-to-end flow.
+
+### 9.2a — planning conversation: where pricing lives
+
+Two pricing questions surfaced before SQL touched the database, and
+both were resolved by re-reading the planning docs against the
+suggestion on the table.
+
+**Q1: should cohort have its own pricing override columns?** Sam
+proposed nullable `price_minor_*_override` on cohort. Pushed back
+because three planning docs ([main.md](docs/product-plan/main.md),
+[payments-and-enrolment.md](docs/product-plan/payments-and-enrolment.md))
+explicitly defer cohort-level pricing variation to v2. The technical
+cost of two columns is tiny, but the architectural decision had
+already been analysed and recorded — reversing it without a new
+reason is the wrong shape of work. Sam confirmed: stick with the
+deferral. Forward-compatible — adding override columns later is a
+one-line migration.
+
+**Q2: should pricing move entirely to cohort?** Sam's follow-up.
+This one would actually break self-paced: per
+[main.md:154](docs/product-plan/main.md:154) self-paced programmes
+have no cohort layer, students enrol directly with an access
+window. If pricing lived only on cohort, self-paced would have
+nowhere to put a price — and access-window pricing is
+[curriculum-authoring-ux.md:613](docs/product-plan/curriculum-authoring-ux.md:613)
+explicitly unfinalised (queued for the self-paced enrolment slice).
+The pricing-on-cohort proposal was self-paced-blind. Sam agreed
+to stick with the planning-doc default.
+
+### 9.2a — schema decisions
+
+Migration `20260512100000_slice_9_2a_programme_cohort_split.sql`
+applied to mynclex-dev via MCP. Seven Postgres steps in a single
+transaction:
+
+1. **`nclex_programmes` gains** `delivery_mode TEXT` (TUTOR_LED /
+   SELF_PACED, default TUTOR_LED) and `unit_label TEXT` (WEEK /
+   MODULE, default WEEK). Both with CHECK constraints.
+2. **Rename `length_weeks` → `length_units`** plus its CHECK
+   constraint (`nclex_programmes_length_units_check`). Semantics
+   shift to a generic unit count rendered as Week N or Module N
+   per `unit_label`.
+3. **New `nclex_cohorts` table.** Columns: `cohort_id` (PK),
+   `programme_id` (FK, ON DELETE CASCADE), `name` (TEXT nullable —
+   NULL → UI auto-generates from dates), `start_date`, `end_date`,
+   `cohort_size` (nullable), `allow_late_join` (default FALSE),
+   `cancelled_at` (TIMESTAMPTZ nullable), `created_at`,
+   `updated_at`. Constraint `nclex_cohorts_dates_ok` on
+   `end_date >= start_date`. Single index
+   `idx_nclex_cohorts_programme(programme_id)`.
+4. **Backfill** — `INSERT INTO nclex_cohorts SELECT programme_id,
+   start_date, end_date, cohort_size, …` for every existing row.
+   For programmes whose status was CANCELLED, the cancellation
+   timestamp moves to the cohort's `cancelled_at` so no historical
+   fact is lost.
+5. **RLS on `nclex_cohorts`** — mirrors programmes via parent-
+   ownership subquery (`EXISTS (SELECT 1 FROM nclex_programmes p
+   WHERE p.programme_id = nclex_cohorts.programme_id AND
+   p.tutor_id = auth.uid())`) on USING + WITH CHECK. Four
+   policies: self_select / self_insert / self_update / admin_all.
+6. **`nclex_programmes` status tightens** to DRAFT / PUBLISHED /
+   ARCHIVED. Pre-flip: `UPDATE … SET status = 'ARCHIVED' WHERE
+   status = 'CANCELLED'` (cohort backfill above captured the
+   timestamp). Drop the old check constraint, add a new one.
+7. **`nclex_programmes` drops** `start_date`, `end_date`,
+   `cohort_size`, `cancelled_at`, and the `nclex_programmes_dates_ok`
+   constraint.
+
+**Cohort status — NOT stored** (decision settled in slice planning,
+matches [main.md:341](docs/product-plan/main.md:341)
+*"mostly derived from dates"*). UPCOMING / IN_PROGRESS / ENDED
+derive from `(start_date, end_date, today)` in TS via
+`cohortStatus()`; only CANCELLED is persisted via `cancelled_at IS
+NOT NULL`. No drift, no trigger.
+
+Verification: 7 programmes → 7 cohorts after backfill, one with
+`cancelled_at IS NOT NULL` (March Mini-Bootcamp), two programmes
+now ARCHIVED (the originally ARCHIVED + the migrated CANCELLED).
+
+### 9.2a — app rewiring
+
+Dropping date/seat columns from `nclex_programmes` broke
+`getMyProgrammes()`, `<ProgrammeFormModal>`, and `<ProgrammeCard>`.
+Same-slice fix so /tutor/programmes still loads:
+
+- **`<ProgrammeFormModal>`** — Schedule section deleted (Start /
+  End / Cohort size all gone). New Shape section with Delivery
+  mode (disabled in edit mode), Unit label, and Length. Length
+  field's label flips with Unit label ("Length in weeks" vs
+  "Number of modules") via a `lengthFieldLabel` const. Smart
+  default: in create mode, picking Self-paced auto-flips Unit
+  label to Modules unless the tutor has already touched the field
+  (`unitLabelTouched` ref).
+- **`<ProgrammeCard>`** — schedule line → cohort-count line.
+  `formatCohortCount(count)` returns "No cohorts yet" / "1 cohort"
+  / "N cohorts"; SELF_PACED programmes show "Self-paced" instead.
+  Programme length renders on the left via `formatLength()`.
+- **`getMyProgrammes()`** — `select(...)` embeds `nclex_cohorts(count)`
+  and flattens to `cohort_count: number` on each row.
+- **`<ProgrammeList>`** — drops the dead `p.status === 'CANCELLED'`
+  branch in the archived split.
+- **`getProgrammeForShell()`** returns `{programme_id, title,
+  delivery_mode, unit_label, length_units}` — drives both nav
+  filtering (slice 9.2b) and modal pre-fills.
+- **`db/schema.sql` + `db/rls.sql`** snapshots updated to mirror
+  the post-migration shape.
+
+10 files, +599 / −313. Commit `c97f972`.
+
+### 9.2b — reshape: programme-first, cohort-when-ready
+
+BUILD_LIST originally framed 9.2b as a combined
+`<ProgrammeWithFirstCohortModal>` capturing programme + first
+cohort in a single submit, with the cohort modal also reusable
+from the Cohorts tab in 9.2c. Sam pushed back: curriculum lives
+at programme layer, and a tutor would naturally build out the
+curriculum before scheduling the first cohort. Forcing cohort-on-
+create inverts that workflow and makes tutors invent dates before
+they've sized the curriculum.
+
+The system already handles cohortless programmes —
+[main.md:250-253](docs/product-plan/main.md:250) explicitly says a
+PUBLISHED programme with zero open cohorts is not-yet-discoverable
+in the catalogue. No data integrity problem.
+
+Slice reshape:
+
+- **9.2b** = Cohorts tab + standalone `<CohortFormModal>` +
+  entry-point nudges from the "no cohorts" state. Tutor can list
+  and create cohorts.
+- **9.2c** = Cohort detail subtree only (sibling
+  `/tutor/cohort/[id]/...`). Cohorts tab moved out of 9.2c into
+  9.2b so 9.2b ships a testable end-to-end flow rather than
+  building a modal with no caller.
+
+### 9.2b — what got built
+
+New `lib/cohorts/` domain (Sam approved the new folder per the
+"ask before new folders" rule):
+
+- **`types.ts`** — `Cohort`, `CohortStatus`, `CohortListRow`,
+  `CohortFormValues`.
+- **`format.ts`** — `cohortStatus()` (derives UPCOMING /
+  IN_PROGRESS / ENDED / CANCELLED from dates + cancelled_at),
+  `formatCohortName()` (falls back to date-range autogen when
+  `name IS NULL`), `formatDateRange()` ("5 Jan – 27 Mar 2027"
+  same-year, "20 Dec 2026 – 14 Feb 2027" cross-year),
+  `formatCohortStatusLabel()`, `cohortStatusPillClass()`,
+  `formatCohortSeats()`.
+- **`queries.ts`** — `getCohortsForProgramme(programmeId)` and
+  `getCohortCountForProgramme(programmeId)` (lightweight rollup
+  for entry-point nudges, uses `count: 'exact', head: true`).
+- **`actions.ts`** — `createCohortAction(programmeId, input)`.
+  Bare INSERT (no RPC needed — single row, RLS handles auth).
+  Revalidates `/tutor/programmes`, the Cohorts tab, and the
+  programme overview so cohort-count rollups refresh.
+- **`cohort-form-modal.tsx`** — name (optional), Start date
+  (required), End date (read-only readout, derived from start +
+  length × 7), Cohort size (optional), Late-join toggle. Reuses
+  `.prog-modal-*` / `.prog-field-*` styling from programmes.css
+  for visual consistency; adds `.prog-toggle-inline` modifier for
+  the late-join toggle inside a `.prog-field` column.
+- **`new-cohort-trigger.tsx`** — wrapper with three variants
+  ('header' / 'card' / 'empty') for the three places the button
+  surfaces.
+- **`cohort-list.tsx`** — grid of cohort cards with name (or
+  autogen date range), status pill, date-range subtext (when a
+  custom name is set), seat info, and Late-join badge.
+
+New route:
+
+- **`app/(app)/tutor/programme/[programme_id]/cohorts/page.tsx`**
+  — Cohorts tab. Direct nav to the URL 404s for SELF_PACED
+  programmes (no cohort layer). Empty state when 0 cohorts uses
+  the trigger's 'empty' variant; otherwise header has the
+  trigger's 'header' variant.
+
+New nav entry: `Cohorts` added to `TUTOR_PROGRAMME_NAV` between
+Overview and Weeks. `<TutorProgrammeShell>` filters this item out
+when `programme.delivery_mode === 'SELF_PACED'`.
+
+Entry-point nudges (the (a)+(b) Sam picked):
+
+- **(a) Programme card** — when `cohort_count === 0` and the
+  programme is TUTOR_LED, the cohort-count text becomes a
+  primary-styled "+ Add first cohort" inline button. Click opens
+  the cohort modal directly from the list page. Sits at z:2 over
+  the overlay link.
+- **(b) Programme overview** — currently a Placeholder. When
+  `cohort_count === 0`, an empty-state card with "+ Add your
+  first cohort" CTA renders below the placeholder. SELF_PACED
+  programmes skip this entirely (the empty-state is gated on
+  `cohort_count` being numeric, which we short-circuit to null
+  for self-paced).
+
+New `styles/cohorts.css` (imported from `app/(app)/layout.tsx`)
+carries the Cohorts tab + card + pill + entry-point affordance
+styles. Visual language mirrors programmes.css.
+
+### 9.2b — end-date decision (and deferred product question)
+
+The cohort modal started with the same auto-fill-with-override
+pattern the old programme modal had pre-9.2a: end_date editable,
+auto-fills from start + length × 7, "Custom" help text when
+touched. Sam pushed back: the cohort is *based on* the programme,
+so end_date should be strictly derived. If a tutor needs a
+different timeline, they edit the programme, not the cohort.
+
+Settled implementation: End date renders as a read-only readout
+(`.cohort-end-date-readout`) next to the editable Start date.
+Caption reads "N weeks after start. To change this, edit the
+programme's length." No `endDateTouched`, no auto-fill `useEffect`,
+no "Custom — extends bank access" string anywhere. The derived
+value still gets snapshotted onto the cohort row at save (so
+editing programme length later doesn't silently shift existing
+cohorts' end dates).
+
+**Deferred product question:** whether to make cohort end-date
+extendable for revision-buffer / bank-access extension use cases.
+Sam flagged this could be useful but it's a product call for
+later. Same pattern existed on the old programme modal pre-9.2a
+and was retired with the Schedule section; this slice retires it
+from the codebase entirely.
+
+### 9.2b — testing on localhost
+
+Sam confirmed end-to-end:
+
+- Programme list shows cohort counts; new programmes get the
+  inline + Add first cohort button.
+- Cohort modal opens, accepts a start date, derives end date,
+  saves, modal closes, card updates.
+- Cohorts tab lists existing cohorts with status pills derived
+  from dates (Upcoming / Running / Ended / Cancelled). Backfilled
+  March Mini-Bootcamp's cohort shows Cancelled.
+- +New cohort from the tab opens the same modal.
+- Self-paced programmes hide the Cohorts sidebar entry.
+
+16 files, +1103 / −22. Commit `ef59c9c`.
+
+### Next pick
+
+**Slice 9.2c — Cohort detail subtree.** Build the sibling routes
+under `/tutor/cohort/[cohort_id]/...` — Overview, Students,
+Sessions, Announcements, Settings (Curriculum tab depends on
+Phase B's `nclex_programme_units/blocks/activities` tables, so it
+queues behind that). Cohort cards on the list page should become
+clickable to the new detail subtree. Then the existing programme
+sidebar items that are conceptually cohort-level (Live Sessions,
+Mocks, Students, Results) need their migration plan; that's a
+separate slice planning conversation.
+
+---
+
 ## Session — 2026-05-10 (9.1) — Programme list + create + edit modal; tutor-library docs uploaded; cohort architecture pivot surfaced
 
 First session pivoting from Bank to Programme work. Phase A foundation
