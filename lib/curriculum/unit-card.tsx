@@ -1,11 +1,15 @@
 // mynclex/lib/curriculum/unit-card.tsx
 //
-// Single unit card for the Units Overview grid (slice 9.3a).
-// Read-only in this slice — no edit affordance, no link to a unit
-// detail page (the detail page is 9.3b). Empty cards render with a
-// dashed border so the grid's structure is visible even when every
-// slot is unfilled.
+// Single unit card for the Units Overview grid. Slice 9.3a shipped
+// this read-only; slice 9.3b wraps the whole surface as a clickable
+// link into the Unit Builder via the same overlay-link pattern as
+// <CohortCard> / <ProgrammeCard>.
+//
+// programmeId is needed for the link href — the unit row itself
+// has programme_id, but passing it down explicitly keeps the card
+// pure (no Supabase round trip).
 
+import Link from 'next/link';
 import type { UnitGridRow } from './types';
 import type { UnitLabel } from '@/lib/programmes/types';
 import {
@@ -18,15 +22,19 @@ import {
 
 export function UnitCard({
   unit,
+  programmeId,
   programmeUnitLabel,
 }: {
   unit: UnitGridRow;
+  programmeId: string;
   programmeUnitLabel: UnitLabel;
 }) {
   const heading = unitLabel(unit.unit_index, programmeUnitLabel);
   const customTitle = formatUnitTitle(unit, programmeUnitLabel);
   const hasCustomTitle = customTitle !== heading;
   const isEmpty = unit.block_count === 0 && unit.activity_count === 0;
+
+  const href = `/tutor/programme/${programmeId}/curriculum/unit/${unit.unit_id}`;
 
   return (
     <article
@@ -35,6 +43,16 @@ export function UnitCard({
       }
       aria-label={hasCustomTitle ? `${heading} — ${customTitle}` : heading}
     >
+      <Link
+        href={href}
+        className="unit-card-link"
+        aria-label={`Open ${hasCustomTitle ? customTitle : heading}`}
+      >
+        <span className="sr-only">
+          Open {hasCustomTitle ? customTitle : heading}
+        </span>
+      </Link>
+
       <header className="unit-card-head">
         <span className="unit-card-index">{heading}</span>
         <span className={`unit-pill ${unitStatusPillClass(unit.is_published)}`}>

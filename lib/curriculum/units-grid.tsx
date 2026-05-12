@@ -4,8 +4,9 @@
 // screen 3). Pre-slotted with N cards (where N = programme.length_
 // units) — the backfill in 9.3a guarantees that count exists.
 //
-// Read-only in this slice. Editing surfaces (unit detail, activity
-// picker, editors) land in 9.3b onwards.
+// Slice 9.3b — each card is now a clickable overlay link into the
+// Unit Builder (`/curriculum/unit/<unit_id>`). The grid container
+// stays unchanged; the link is inside <UnitCard>.
 
 import { UnitCard } from './unit-card';
 import type { UnitGridRow } from './types';
@@ -13,9 +14,11 @@ import type { UnitLabel } from '@/lib/programmes/types';
 
 export function UnitsGrid({
   units,
+  programmeId,
   programmeUnitLabel,
 }: {
   units: UnitGridRow[];
+  programmeId: string;
   programmeUnitLabel: UnitLabel;
 }) {
   return (
@@ -24,6 +27,7 @@ export function UnitsGrid({
         <div key={unit.unit_id} role="listitem">
           <UnitCard
             unit={unit}
+            programmeId={programmeId}
             programmeUnitLabel={programmeUnitLabel}
           />
         </div>

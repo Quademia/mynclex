@@ -44,6 +44,7 @@ export default async function ProgrammeCurriculumPage({
 
       <UnitsGrid
         units={units}
+        programmeId={programme.programme_id}
         programmeUnitLabel={programme.unit_label}
       />
     </div>
