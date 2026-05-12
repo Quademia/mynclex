@@ -163,14 +163,38 @@ export type TextActivityFormValues = ActivityCommonFormValues & {
   estimated_minutes: number | null;
 };
 
-// Unit detail projection — unit + its activities, with the parent
-// programme's identity inlined so the page can render headers
-// without a second round trip.
+// Unit detail projection — unit + ALL its content (blocks + every
+// activity, loose AND in-block) + parent programme identity.
+// Slice 9.3c added blocks; the activities array is no longer
+// loose-only — the page splits them by `block_id` when composing
+// the unit body.
 export type UnitDetail = {
   unit: ProgrammeUnit;
+  blocks: ProgrammeBlock[];
   activities: ProgrammeActivity[];
   programme: CurriculumProgrammeContext;
 };
+
+// Slice 9.3c — block authoring.
+
+// Editable shape of the block edit modal. Title is required at the
+// DB level (NOT NULL); create flow handles title via an inline
+// rename, so this form is reused only for edit. Description +
+// is_published mirror the unit pattern.
+export type BlockFormValues = {
+  title: string;            // required (NOT NULL in DB)
+  description: string;      // empty string → stored as NULL
+  is_published: boolean;
+};
+
+// Unit body is a flat ordered sequence of entries. Each entry is
+// either a block (carrying its own ordered activity list) or a
+// loose activity. `ordinal` lives in a single numeric space across
+// both kinds inside a unit; the queries layer merges them into
+// this discriminated union before render.
+export type UnitBodyEntry =
+  | { kind: 'block'; block: ProgrammeBlock; activities: ProgrammeActivity[] }
+  | { kind: 'loose'; activity: ProgrammeActivity };
 
 // Re-export the activity-type literal for the picker.
 export const ACTIVITY_TYPES: ActivityType[] = [

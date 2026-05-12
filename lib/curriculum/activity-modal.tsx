@@ -39,6 +39,10 @@ type ActivityModalProps =
       mode: 'create';
       unitId: string;
       type: ActivityType;
+      // null → loose under the unit. Set → append to that block.
+      // Slice 9.3c: the unit-builder passes whichever scope opened
+      // the picker.
+      blockId: string | null;
       onClose: () => void;
     }
   | {
@@ -148,7 +152,12 @@ export function ActivityModal(props: ActivityModalProps) {
     startTransition(async () => {
       const result = isEdit
         ? await editActivityAction(props.activity.activity_id, values)
-        : await createActivityAction(props.unitId, props.type, values);
+        : await createActivityAction(
+            props.unitId,
+            props.type,
+            values,
+            props.blockId
+          );
       if (!result.ok) {
         setError(result.error);
         return;

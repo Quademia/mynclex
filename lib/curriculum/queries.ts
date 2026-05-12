@@ -7,6 +7,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type {
   ProgrammeActivity,
+  ProgrammeBlock,
   ProgrammeUnit,
   UnitDetail,
   UnitGridRow,
@@ -63,16 +64,16 @@ export async function getUnitsForProgramme(
 
 /**
  * Unit Builder page query — one round trip pulling the unit, its
- * activities, and the parent programme's identity / shape fields
- * needed for the unit-label render and the curriculum-tab back
- * link. Returns null when the unit doesn't exist OR the tutor
- * doesn't own its parent programme; the page turns null into a
- * 404.
+ * blocks, its activities (loose AND in-block), and the parent
+ * programme's identity / shape fields needed for the unit-label
+ * render and the curriculum-tab back link. Returns null when the
+ * unit doesn't exist OR the tutor doesn't own its parent
+ * programme; the page turns null into a 404.
  *
- * Activities are scoped to loose-only in 9.3b (block_id IS NULL).
- * Blocks land in 9.3c — when that arrives the picker query will
- * also include block-scoped activities; for now any block-scoped
- * rows (none yet) get filtered out at the DB.
+ * Slice 9.3c: blocks join the body. The activities array is no
+ * longer loose-only — `composeUnitBody()` splits in-block vs.
+ * loose at render time. Each list is independently ordered by
+ * ordinal at the DB; merging across the two tables happens in TS.
  */
 export async function getUnitDetail(
   unitId: string
@@ -113,23 +114,34 @@ export async function getUnitDetail(
     is_published, created_at, updated_at,
   };
 
-  // Activities — loose-only (block_id IS NULL) for slice 9.3b.
-  // Blocks land in 9.3c. Ordered by ordinal so the body renders in
-  // tutor-set order.
-  const { data: activitiesData } = await supabase
-    .from('nclex_programme_activities')
-    .select(
-      `activity_id, unit_id, block_id, ordinal, type, title, note,
-       payload, is_published, created_at, updated_at`
-    )
-    .eq('unit_id', unitId)
-    .is('block_id', null)
-    .order('ordinal', { ascending: true });
+  // Two parallel reads — blocks + activities. RLS scopes both to
+  // the tutor's own programmes; the unit row above already proved
+  // ownership for this user.
+  const [blocksResult, activitiesResult] = await Promise.all([
+    supabase
+      .from('nclex_programme_blocks')
+      .select(
+        `block_id, unit_id, ordinal, title, description,
+         is_published, created_at, updated_at`
+      )
+      .eq('unit_id', unitId)
+      .order('ordinal', { ascending: true }),
+    supabase
+      .from('nclex_programme_activities')
+      .select(
+        `activity_id, unit_id, block_id, ordinal, type, title, note,
+         payload, is_published, created_at, updated_at`
+      )
+      .eq('unit_id', unitId)
+      .order('ordinal', { ascending: true }),
+  ]);
 
-  const activities = (activitiesData ?? []) as ProgrammeActivity[];
+  const blocks = (blocksResult.data ?? []) as ProgrammeBlock[];
+  const activities = (activitiesResult.data ?? []) as ProgrammeActivity[];
 
   return {
     unit,
+    blocks,
     activities,
     programme: {
       programme_id: programme.programme_id,
@@ -139,3 +151,7 @@ export async function getUnitDetail(
     },
   };
 }
+
+// composeUnitBody() lives in `./unit-body` — pure transform, no
+// DB. Kept out of this module so the client-side <UnitBuilder>
+// doesn't pull `next/headers` (via createClient) into its bundle.

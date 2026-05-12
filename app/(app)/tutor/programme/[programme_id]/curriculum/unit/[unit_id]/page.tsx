@@ -40,6 +40,7 @@ export default async function UnitDetailPage({
 
       <UnitBuilder
         unit={detail.unit}
+        blocks={detail.blocks}
         activities={detail.activities}
         programmeUnitLabel={detail.programme.unit_label}
       />
