@@ -8,7 +8,94 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-12):** **Slice 9.3c — Blocks.** Activates
+> **Last shipped (2026-05-12):** **Slice 9.3d-a — External link +
+> Online live session.** Lights up two more of the six v1
+> activity types and adds a shared `description` column across
+> all activities. After this slice the picker enables TEXT +
+> EXTERNAL_LINK + ONLINE_LIVE_SESSION; PDF / MOCK /
+> PRACTICE_QUIZ remain "Coming soon" until 9.3d-b.
+>
+> **Schema migration (one file, two changes):** Adds
+> `nclex_programme_activities.description TEXT` (nullable) —
+> symmetric with units + blocks. Distinct semantic from the
+> existing `note` column: description is substantive ("what the
+> activity is about"), note is operational ("directive to the
+> student"). The modal shell renders Title → Description → Note
+> → divider in that order. The same migration also renames
+> `LIVE_SESSION` → `ONLINE_LIVE_SESSION` in the type CHECK
+> constraint — "live" describes synchronicity, "online" the
+> medium; the original name conflated two axes. Zero rows to
+> migrate (the picker never enabled LIVE_SESSION before now).
+> Future pair `IN_PERSON_LIVE_SESSION` (deferred — see below)
+> shares the "live" prefix, leaving room for a future
+> `RECORDED_SESSION` async type.
+>
+> **External link editor.** URL \* with two passive affordances
+> under it as the tutor types — auto-derived domain chip
+> (strips `www.`) + "Open link in new tab ↗" anchor (renders
+> only when URL is parseable + http/https). Estimated time
+> (optional, minutes) mirrors Text's pattern. Server gate
+> restricts URL scheme to http: / https: only so the future
+> student-side runner can render the link as a plain `<a>`
+> without an XSS vector.
+>
+> **Online live session editor.** Four fields: When \*
+> (datetime-local), Duration \* (minutes), Join URL \*,
+> Recording URL (optional, always visible). When input is in the
+> tutor's browser-local time — modal converts to UTC ISO on save
+> and back to local on edit. Italic help line under the input
+> shows the tutor's TZ + GMT offset explicitly. End-time chip
+> auto-derived from When + Duration. Provider chip auto-derived
+> from join_url host (Zoom / Google Meet / Microsoft Teams /
+> Webex / Whereby / fallback host). Recording URL stays
+> day-one-visible (no past-only gate) — tutor controls when to
+> fill it.
+>
+> **Modal refactor.** `<ActivityModal>` body state moves from a
+> hardcoded `textBody` to an `EditorBodyState` discriminated
+> union over the three editor-enabled types (plus an
+> UNSUPPORTED sentinel branch for defensive fallback). Per-type
+> initial-body readers handle create + edit; per-type
+> validation builds the `ActivityFormValues` discriminated
+> union the server actions accept.
+>
+> **Server-action refactor.** `createActivityAction` /
+> `editActivityAction` drop the TEXT-only gate and take a
+> discriminated `ActivityFormValues` argument (type folded into
+> values.type). New `buildPayload()` helper performs per-type
+> validation + JSONB payload assembly. `validateHttpUrl()` +
+> `validateScheduledAt()` are the per-field gates. Edit pins
+> `.eq('type', values.type)` so a stale client can't switch
+> types mid-edit.
+>
+> **Five product questions answered up-front** (External link)
+> and **four more** (Online live session) before code — Sam
+> accepted recommendations on all of them. One "Requires
+> account" toggle was dropped on Sam's pushback: students are
+> already authed into MyNclex, and we have no auth relationship
+> with non-QAcademy URLs. Good speculative-metadata catch.
+>
+> **In-person live session (`IN_PERSON_LIVE_SESSION`) deferred.**
+> Sam raised the question; YAGNI — no current tutor demand, and
+> the relevant design questions (room number? GPS? attendance?)
+> are unanswerable without a real workflow. Naming convention
+> already captured so adding it later is a one-sitting slice.
+>
+> Sam smoke-tested both new editors end-to-end (chip updates,
+> datetime round-trip, validation errors) before approving
+> merge.
+>
+> Commit `0710cb6`. See SESSIONS 2026-05-12 (9.3d-a).
+>
+> **Next ⏭:** **Slice 9.3d-b — Remaining three activity types**
+> (PDF, Mock, Practice quiz). Bigger lift than 9.3d-a because
+> of infra dependencies: PDF needs a Supabase Storage bucket
+> (upload/read RLS + file picker + progress UI + storage path
+> on the payload); Mock + Practice quiz defer their question-
+> selection UI to a separate slice tied into bank consumption
+> design, shipping only metadata fields here.
+>
+> **Earlier the same day:** **Slice 9.3c — Blocks.** Activates
 > `nclex_programme_blocks` (shipped empty in 9.3a) via UI + eight
 > new server actions. Tutors can group related activities into
 > block cards inside a unit; blocks and loose activities
@@ -70,18 +157,6 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > merge.
 >
 > Commit `46e9b8b`. See SESSIONS 2026-05-12 (9.3c).
->
-> **Next ⏭:** **Slice 9.3d — Remaining five activity types.**
-> PDF, External link, Live session, Mock, Practice quiz. Each as
-> a single body component with the same shape as `<TextEditor>` —
-> takes `values` + `onChange` + `disabled`; the modal shell
-> dispatches on `activity.type`. PDF adds a storage bucket
-> setup; External link is URL + estimated time (YouTube/Vimeo
-> embedding deferred to student side); Live session is
-> date/time/duration + join link + recording URL; Mock + Practice
-> quiz defer their question-selection UI in this slice (only
-> metadata fields here; the bank filter builder for both is its
-> own slice tied into bank consumption design).
 >
 > **Earlier the same day:** **Slice 9.3b — Unit Builder + Text
 > activity.** First editing surface in Phase B. Tutors open
@@ -655,15 +730,37 @@ rebuild to suit.
   bundle. Five product questions answered up-front before code
   (Sam accepted all five recommendations). Commit `46e9b8b`.
   See SESSIONS 2026-05-12 (9.3c).
-- ⏭ **9.3d** Remaining activity types (5) — PDF (storage bucket
-  setup), External link (URL + estimated time; YouTube/Vimeo
-  rendering is student-side, deferred), Live session (date/time/
-  duration + join link + recording URL), Mock (count, time limit,
-  pass score, due date, attempts, release-results timing), Practice
-  quiz (count, due date, pass score, release-results timing). Mock
-  + Practice quiz **defer the question-selection UI** — they save
-  just the metadata fields in this slice; the bank filter builder
-  for both is its own slice tied into the bank consumption design.
+- ✅ **9.3d-a** External link + Online live session + shared
+  `description` column — shipped 2026-05-12 (commit `0710cb6`).
+  Migration adds `nclex_programme_activities.description TEXT`
+  (nullable) symmetric with units + blocks, and renames the
+  `LIVE_SESSION` type to `ONLINE_LIVE_SESSION` (no rows to
+  migrate — picker had it disabled). Modal shell renders
+  Title → Description → Note → divider. New
+  `<ExternalLinkEditor>` (URL + estimated time + auto-derived
+  domain chip + "Open in new tab" anchor; server gate restricts
+  scheme to http:/https: only) and `<OnlineLiveSessionEditor>`
+  (datetime-local in tutor-local TZ → UTC ISO; end-time chip
+  auto-derived; provider chip from join_url host — Zoom / Meet
+  / Teams / Webex / Whereby / fallback; recording URL always
+  visible). `<ActivityModal>` body state refactored to a
+  discriminated union over the three editor-enabled types.
+  Server actions take a discriminated `ActivityFormValues`
+  argument, drop the TEXT-only gate, validate per-type.
+  Nine product questions answered up-front; Sam accepted all
+  recommendations. `IN_PERSON_LIVE_SESSION` deferred (YAGNI
+  per CLAUDE.md — naming convention captured; cheap to add
+  later). See SESSIONS 2026-05-12 (9.3d-a).
+- ⏭ **9.3d-b** Remaining three activity types (PDF, Mock,
+  Practice quiz). Bigger infra lift than 9.3d-a: PDF needs a
+  Supabase Storage bucket (`nclex-curriculum-pdfs` or similar)
+  with upload/read RLS + file picker + progress UI + storage
+  path on the payload. Mock + Practice quiz defer their
+  question-selection UI to a separate slice tied into bank
+  consumption design — only metadata fields here (count, time
+  limit, pass score, due date, attempts, release-results
+  timing for Mock; count, due date, pass score, release-
+  results timing for Practice quiz).
 - ⬜ **9.3e** Publish state + content visibility — per-activity
   Live/Draft pill (`activity.is_published`) + tutor controls; per-
   unit aggregate status; programme-wide Publish action (DRAFT →
@@ -694,6 +791,16 @@ rebuild to suit.
   after the curriculum is functionally complete.
 - **Duplicate programme / duplicate cohort** flows — listed in
   Programme Structure as tutor capabilities; UI mockup deferred.
+- **`IN_PERSON_LIVE_SESSION` activity type** — surfaced during
+  9.3d-a planning. Names paired (`ONLINE_LIVE_SESSION` already
+  shipped; `IN_PERSON_LIVE_SESSION` reserved with shared "LIVE"
+  prefix so a future `RECORDED_SESSION` async type fits the
+  family without renames). One-sitting slice when a tutor
+  actually asks — adds a value to the type CHECK constraint,
+  one new body editor, one picker tile flip. Deferred on YAGNI
+  grounds because no current demand and the design questions
+  (room number? GPS? attendance tracking?) are unanswerable
+  in the abstract.
 
 ### Deferred to v2 (Programme)
 

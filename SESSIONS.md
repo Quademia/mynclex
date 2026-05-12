@@ -6,6 +6,217 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-12 (9.3d-a) — External link + Online live session
+
+Lights up two more of the six v1 activity types and lands a
+shared `description` column across all activities. After this
+slice tutors can author Text + External link + Online live
+session activities; PDF + Mock + Practice quiz stay "Coming
+soon" until 9.3d-b. Picker, modal shell, and server actions
+all generalised so the remaining three types are mostly drop-in.
+
+### Planning conversation — what shaped the slice
+
+This was the first slice where the editor work split into sub-
+slices. Original 9.3d covered all five remaining activity types
+in one go; Sam scoped it down by infra dependency:
+  • 9.3d-a (this slice) — types that need no infra: External
+    link + Online live session.
+  • 9.3d-b (later) — types that need infra: PDF (storage bucket)
+    + Mock + Practice quiz (bank filter builder UI in the modal).
+
+Five sub-discussions shaped the slice before code:
+
+**(1) Description column.** Sam proposed adding a `description`
+column across all activity types — distinct from the existing
+`note` column. Reached a clean semantic split:
+  • description = what the activity *is* (substantive, "appears
+    on the student's checklist card under the title")
+  • note = directive to the student (operational, "appears
+    above the activity body when the student opens it")
+Examples to illustrate the split:
+  • Description: *"Walkthrough of the five steps of the nursing
+    process with examples."*
+  • Note: *"Read this before Tuesday's tutorial."*
+Schema-symmetric with units + blocks which already carry
+description. One migration, nullable column, no backfill.
+
+**(2) Name audit — LIVE_SESSION is ambiguous.** Sam pushed back
+during the editor design: if "live" describes synchronicity
+(real-time), an in-person classroom session is also live. The
+type-name LIVE_SESSION conflates medium with synchronicity.
+Renamed to ONLINE_LIVE_SESSION (UI: "Online live session"). The
+shared "live" prefix in the rename + the future
+IN_PERSON_LIVE_SESSION leaves room for a potential async
+RECORDED_SESSION type without further renames.
+
+Zero data to migrate — the picker had LIVE_SESSION disabled from
+9.3a through 9.3c. The rename is a CHECK constraint swap.
+
+**(3) In-person live session — defer.** Sam asked whether to ship
+IN_PERSON_LIVE_SESSION alongside ONLINE_LIVE_SESSION while we're
+in the area. I pushed back on YAGNI grounds — he himself said
+nobody needs it today, the design questions (room number?
+GPS? attendance tracking?) are unanswerable in the abstract,
+and adding the type later is a one-sitting slice once a real
+tutor asks. Sam agreed; added a line to deferrals in
+BUILD_LIST.md.
+
+**(4) External link product questions.** Five questions surfaced
++ Sam accepted my recommendations:
+  • URL scheme restriction — http:/https: only (reject
+    javascript: / data: / file:) so the student-side runner can
+    safely render the URL as an anchor.
+  • Estimated time framing — generic "Estimated time" (no
+    "reading"/"viewing" qualifier) so it fits videos, tools,
+    articles uniformly.
+  • URL preview affordance — "Open link in new tab ↗" anchor
+    under the URL input so the tutor can sanity-check what they
+    pasted. Cheap, useful.
+  • YouTube/Vimeo special handling — defer to student-side
+    runner slice (curator stores plain URL regardless of host).
+  • Note field copy — existing "Note to student" placeholder
+    fits all types, no change needed.
+
+One "Requires account" toggle was discussed and dropped on Sam's
+push-back: students are already authed into MyNclex (that's the
+prerequisite to seeing the activity); for non-QAcademy URLs we
+have zero relationship with the destination's auth. Tutor
+flagging would be guessing, students discover the gate on click.
+Good catch — would have been speculative metadata bloat.
+
+**(5) Online live session — four product questions.** Sam
+accepted recommendations on all four:
+  • Timezone — tutor authors in browser-local; we store UTC;
+    students see browser-local. Standard web pattern. Italic
+    help line under the input names the TZ + GMT offset
+    explicitly so the tutor knows what's stored.
+  • End-time chip auto-derived from When + Duration — cheap,
+    catches paste mistakes.
+  • Provider chip auto-derived from join_url host (Zoom / Meet /
+    Teams / Webex / Whereby / fallback host).
+  • Recurrence — defer to v2. Tutors create one activity per
+    session; cohort-side date-shift in 9.3f may smooth this out
+    later.
+
+### Implementation
+
+Schema migration (one file, two changes):
+  • ADD nclex_programme_activities.description TEXT (nullable).
+  • DROP + re-ADD nclex_programme_activities_type_check
+    constraint with ONLINE_LIVE_SESSION in place of LIVE_SESSION.
+Applied to mynclex-dev via apply_migration. Local migration file
+at db/migrations/20260512400000_slice_9_3d_a_activity_
+description_and_online_rename.sql.
+
+types.ts:
+  • ProgrammeActivity gains `description: string | null`.
+  • ActivityCommonFormValues gains `description: string` (empty
+    string → stored as NULL).
+  • ActivityType enum: LIVE_SESSION renamed to
+    ONLINE_LIVE_SESSION.
+  • ActivityPayloadLiveSession renamed to
+    ActivityPayloadOnlineLiveSession.
+  • New ExternalLinkActivity{Body,Form}Values + OnlineLive
+    SessionActivity{Body,Form}Values types.
+  • New discriminated `ActivityFormValues` union across the
+    three editor-enabled types. Future types extend the union
+    as their editors ship.
+
+queries.ts: getUnitDetail's activities SELECT now includes the
+new `description` column.
+
+actions.ts:
+  • createActivityAction signature changes: drops the separate
+    `type` argument + values: TextActivityFormValues, takes a
+    discriminated `values: ActivityFormValues` instead. TEXT-only
+    gate dropped — TS narrowing now does the equivalent.
+  • editActivityAction same — takes ActivityFormValues; pins
+    .eq('type', values.type) on the UPDATE so a stale client
+    can't switch types mid-edit.
+  • New buildPayload() helper handles per-type validation +
+    JSONB assembly. URL gate via new validateHttpUrl()
+    restricts to http: / https: schemes only — javascript: /
+    data: reject so the student-side runner can render the URL
+    as <a> without XSS exposure.
+  • Datetime validation via validateScheduledAt() re-parses the
+    UTC ISO from the client.
+
+activity-modal.tsx — substantial rewrite (the heaviest single
+file in the slice). Body state moves from a hardcoded `textBody`
+to an EditorBodyState discriminated union (TEXT | EXTERNAL_LINK
+| ONLINE_LIVE_SESSION | UNSUPPORTED). Per-type initial body
+readers (emptyBody for create, bodyFromActivity for edit) +
+per-type buildValues() in handleSubmit. UNSUPPORTED branch
+renders "This activity type's editor isn't available yet" — a
+defence against stray invocation for PDF / Mock / Practice
+quiz (the picker shouldn't allow it, but old DB rows authored
+via direct SQL might exist). Shell renders Title → Description
+→ Note → divider in that order.
+
+UTC↔local round-trip helper utcIsoToLocalInput() handles the
+datetime-local input value vs the DB's UTC ISO storage.
+new Date(localStr).toISOString() does the local→UTC side; a
+hand-rolled formatter does the inverse so date-component digits
+get zero-padded.
+
+external-link-editor.tsx (new): URL + estimated_minutes fields.
+Two passive affordances under URL — auto-derived domain chip
+(strips `www.`) + "Open link in new tab ↗" anchor (renders only
+when parseable + http/https). safeParse() helper used in both
+places.
+
+online-live-session-editor.tsx (new): When (datetime-local) +
+Duration + Join URL + Recording URL. End-time chip computed
+from start + duration. Provider chip via providerLabelFor() —
+contains-checks the host so regional Zoom domains
+(us02web.zoom.us) and Teams variants get mapped correctly.
+TZ label via Intl.DateTimeFormat().resolvedOptions().timeZone +
+new Date().getTimezoneOffset() for the GMT offset.
+
+activity-picker.tsx — ENABLED_TYPES expands from ['TEXT'] to
+['TEXT', 'EXTERNAL_LINK', 'ONLINE_LIVE_SESSION']. TILE_COPY
+updated with the rename + tile order alignment.
+
+activity-row.tsx — TYPE_ICON + TYPE_LABEL maps updated for the
+rename. Row meta line stays unchanged (description rendering on
+the row is queued for a polish slice once student-card
+rendering lands).
+
+styles/curriculum.css — new style families:
+  • .activity-editor-unsupported (fallback message).
+  • .activity-url-affordances (chip + anchor row beneath URL
+    inputs).
+  • .activity-url-chip (pill — also reused for the end-time
+    chip on the When row).
+  • .activity-url-open (anchor styling).
+  • .activity-when-row (datetime + end-time chip layout).
+  • .activity-when-input (max-width so the chip fits alongside
+    on desktop, wraps clean on mobile).
+
+### Verified
+
+Sam tested the flow end-to-end before merge approval. Tried both
+new types, watched the chips update live, exercised the
+round-trip on the datetime field.
+
+### Next ⏭
+
+- **9.3d-b** — Remaining three activity types (PDF, Mock,
+  Practice quiz). Bigger lift than 9.3d-a because of infra
+  dependencies:
+  • PDF needs a Supabase Storage bucket (`nclex-curriculum-pdfs`
+    or similar) + RLS for upload/read + integration in the
+    PDF editor (file picker, progress UI, storage path on the
+    payload).
+  • Mock + Practice quiz defer their question-selection UI in
+    this slice — only metadata fields (count, time limit, pass
+    score, due date, attempts, release-results timing). The
+    bank filter builder integration for both is its own slice
+    tied into the bank consumption design.
+
+---
+
 ## Session — 2026-05-12 (9.3c) — Blocks
 
 Second editing surface in Phase B. Activates the
