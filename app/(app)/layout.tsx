@@ -25,6 +25,7 @@ import '@/styles/runner.css';
 import '@/styles/history.css';
 import '@/styles/programmes.css';
 import '@/styles/cohorts.css';
+import '@/styles/curriculum.css';
 
 export const dynamic = 'force-dynamic';
 

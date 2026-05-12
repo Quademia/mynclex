@@ -3,7 +3,7 @@
 // Tutor nav configs. Two contexts, each with its own sidebar:
 //   - Global    — cross-programme: programmes list, private bank,
 //                 students, payments, profile.
-//   - Programme — scoped to one programme: weekly curriculum, sessions,
+//   - Programme — scoped to one programme: curriculum, sessions,
 //                 mocks, assignments, students, results.
 //
 // To add/remove/reorder a sidebar item, edit this file only.
@@ -47,7 +47,7 @@ export const TUTOR_GLOBAL_NAV: NavItem[] = [
 export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   { key: 'overview',    label: 'Overview',      icon: 'home',     href: '/tutor/programme/:programmeId/overview' },
   { key: 'cohorts',     label: 'Cohorts',       icon: 'users',    href: '/tutor/programme/:programmeId/cohorts' },
-  { key: 'weeks',       label: 'Weeks',         icon: 'layers',   href: '/tutor/programme/:programmeId/weeks' },
+  { key: 'curriculum',  label: 'Curriculum',    icon: 'layers',   href: '/tutor/programme/:programmeId/curriculum' },
   { key: 'sessions',    label: 'Live Sessions', icon: 'video',    href: '/tutor/programme/:programmeId/sessions' },
   { key: 'mocks',       label: 'Mocks',         icon: 'target',   href: '/tutor/programme/:programmeId/mocks' },
   { key: 'assignments', label: 'Assignments',   icon: 'edit',     href: '/tutor/programme/:programmeId/assignments' },
