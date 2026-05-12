@@ -6,6 +6,145 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-12 (9.3c) — Blocks
+
+Second editing surface in Phase B. Activates the
+`nclex_programme_blocks` table (shipped empty in 9.3a) via UI +
+server actions. Tutors can now group related activities into
+**block cards** inside a unit, with blocks and loose activities
+interleaving in a single shared ordinal sequence within the unit
+body.
+
+### Planning conversation — five questions answered up-front
+
+Before writing any code, I drafted the slice scope and surfaced
+five product questions with my recommendations. Sam accepted all
+five:
+
+1. **"+ Add block" placement.** Side-by-side with "+ Add activity"
+   on desktop, stacked on mobile. Two equal dashed buttons at the
+   bottom of the unit body. Matches mockup §4's "two full-width
+   entry points at the bottom."
+2. **Block creation flow.** Inline rename rather than a modal.
+   Click "+ Add block" reveals a title input in place (Enter
+   saves, Esc cancels). Less ceremony for what is essentially a
+   thin wrapper around a name. Description + Live/Draft toggle
+   move to the edit modal that opens later from the block-header
+   Edit button.
+3. **"+ New block" wrap variant** in the move-into-block menu
+   (from the mockup). Deferred — tutors can already "+ Add block"
+   then "Move into block →" for the same outcome in two clicks.
+   Cuts a UI affordance without losing capability.
+4. **Block delete confirm.** Yes/no with the cascade activity
+   count visible ("3 activities inside will also be deleted").
+   Not type-to-confirm — single-tutor scale, no live students yet.
+5. **Empty-block prompt copy.** Two-button stacked dialog with
+   "Move out as loose" (rescue activity, drop block) above
+   "Delete the block too" (cascade both), plus a Cancel beneath
+   them. Each option carries an italic help line so the
+   consequence reads before the tap.
+
+### Implementation
+
+**Schema unchanged.** The block table shipped empty in 9.3a; this
+slice only writes to it. Ordinal lives in two adjacent numeric
+spaces — within a block (activities scoped to that block) and
+within a unit body (blocks + loose activities together). No
+UNIQUE constraint across tables; `composeUnitBody()` carries a
+stable tiebreaker (block-first, then created_at ASC) so a brief
+mid-state during a cross-table swap reads back coherently.
+
+**Eight new server actions** in `lib/curriculum/actions.ts`:
+`createBlockAction`, `editBlockAction`, `deleteBlockAction`,
+`reorderBlockAction`, `moveActivityIntoBlockAction`,
+`moveActivityOutOfBlockAction`,
+`deleteLastBlockActivityAction(choice: 'cascade' | 'preserve')`.
+Two existing actions extended: `createActivityAction` gains
+optional `blockId` (loose default); `reorderActivityAction`
+branches on `self.block_id` for in-block vs. cross-table
+unit-body swap.
+
+**Cross-table reorder** uses two pure helpers —
+`loadUnitBodyOrdinals()` reads both blocks + loose activities,
+sorts by ordinal, returns a flat `UnitBodyOrdinal[]`;
+`swapUnitBodyOrdinals()` trades values across tables in two
+UPDATEs. Same pattern as 9.3b's single-table swap, just
+discriminated by `kind`.
+
+**Shared `<ActivityRow>` component** extracted from 9.3b's
+unit-builder so loose and in-block rows render identically.
+Optional `onMoveIntoBlock` (loose, only when ≥1 block exists)
+vs `onMoveOutOfBlock` (in-block) — mutually exclusive props that
+swap the contextual button.
+
+**`composeUnitBody()` lives in its own pure module**
+(`lib/curriculum/unit-body.ts`) rather than `queries.ts`. First
+attempt put it in queries.ts and the client-side `<UnitBuilder>`
+import dragged `next/headers` (via supabase server client) into
+the client bundle — webpack flagged it loudly. Moving the pure
+helper to its own file was the fix; queries.ts now only holds
+DB-touching functions.
+
+**Empty-block prevention** dispatches client-side. The UI checks
+whether the activity being deleted is the last sibling in its
+block; if so, it swaps the simple delete confirm for the two-
+option `<LastInBlockPrompt>`. The `deleteLastBlockActivityAction`
+RPC handles both branches: 'cascade' deletes the block (FK
+cascades the one activity); 'preserve' moves the activity out as
+loose first, then deletes the now-empty block (two ops; not
+transactional, but recoverable on rerun).
+
+### Mid-slice refactor — overlays relocation
+
+Sam asked where the destructive confirms lived after the smoke
+test. The honest answer: three inline JSX blocks in
+`unit-builder.tsx` (matching 9.3b's pattern for the
+delete-activity confirm), plus two extracted components
+(`block-form-modal`, `move-into-block-menu`) in `lib/curriculum/`.
+
+CLAUDE.md folder convention #12 says area-specific destructive
+overlays belong in `lib/overlays/<area>/`. So mid-slice we
+relocated:
+
+- New `lib/overlays/curriculum/`:
+  - `delete-activity-confirm.tsx` (simple yes/no)
+  - `delete-block-confirm.tsx` (yes/no with cascade count)
+  - `last-in-block-prompt.tsx` (stacked two-option)
+  - `move-into-block-menu.tsx` (relocated from `lib/curriculum/`)
+- `unit-builder.tsx` dropped ~130 lines of inline JSX in favour
+  of four component imports.
+
+`<DiscardConfirm>` still lives in `lib/overlays/bank/` and is
+reused by curriculum modals. Strictly per convention #12 it's a
+shared primitive (generic "unsaved changes" copy, no
+area-specific text) so probably belongs in
+`lib/overlays/shared/`. Pre-existing pattern; Sam called to
+defer the move to a later cleanup slice.
+
+### Verified
+
+Sam smoke-tested the full block flow end-to-end before approving
+merge — create block, add activity into it, move loose into
+block, reorder block past a loose row, delete last-in-block
+activity with the two-option prompt, delete block with cascade
+count.
+
+### Next ⏭
+
+- **9.3d** — Remaining five activity types (PDF, External link,
+  Live session, Mock, Practice quiz). Each as a single body
+  component with the same shape as `<TextEditor>` — takes
+  `values` + `onChange` + `disabled`, the modal shell dispatches
+  on `activity.type`. PDF adds a storage bucket setup; External
+  link is URL + estimated time (YouTube/Vimeo rendering is
+  student-side, deferred); Live session is date/time/duration +
+  join link + recording URL; Mock + Practice quiz defer their
+  question-selection UI (just metadata fields in this slice; the
+  bank filter builder for both is its own slice tied into bank
+  consumption).
+
+---
+
 ## Session — 2026-05-12 (9.3b) — Unit Builder + Text activity
 
 First editing surface in Phase B. After this slice tutors can

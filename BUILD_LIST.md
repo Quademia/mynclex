@@ -8,8 +8,83 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-12):** **Slice 9.3b — Unit Builder +
-> Text activity.** First editing surface in Phase B. Tutors open
+> **Last shipped (2026-05-12):** **Slice 9.3c — Blocks.** Activates
+> `nclex_programme_blocks` (shipped empty in 9.3a) via UI + eight
+> new server actions. Tutors can group related activities into
+> block cards inside a unit; blocks and loose activities
+> interleave in a shared ordinal sequence within the unit body.
+>
+> **UI shape.** Paired "+ Add activity" / "+ Add block" triggers
+> at the bottom of the unit body (side-by-side on desktop,
+> stacked on mobile). "+ Add block" reveals an inline title
+> input — Enter saves, Esc cancels — matching the activity-
+> picker's in-place replacement pattern. Description + Live/Draft
+> toggle land in the block-edit modal once the block exists.
+> Block card carries header (title + Draft pill + Edit / ↑↓ / ✕
+> controls) with an internal activity stack and an indented
+> "+ Add activity to block" dashed button. Loose-activity rows
+> gain a "Move into block →" button (visible only when ≥1 block
+> exists); in-block rows gain a "Move out as loose" button.
+>
+> **Reorder model.** In-block ↑↓ is a single-table sibling swap.
+> Loose ↑↓ swaps in the shared unit-body sequence — neighbours
+> can be blocks OR other loose activities (cross-table swap via
+> `loadUnitBodyOrdinals()` + `swapUnitBodyOrdinals()` helpers).
+> No UNIQUE constraint across tables; `composeUnitBody()` (pure
+> helper in `lib/curriculum/unit-body.ts`) carries a stable
+> tiebreaker so mid-state during a swap reads back coherently.
+>
+> **Empty-block prevention.** Deleting the last activity in a
+> block shows a two-option prompt — *"Move out as loose"* (rescue
+> activity, drop the block) or *"Delete the block too"* (cascade
+> both). Block-header ✕ shows a yes/no confirm with the cascade
+> activity count visible. Type-to-confirm intentionally skipped
+> at single-tutor scale.
+>
+> **Mid-slice refactor — overlays relocation.** Three destructive
+> confirms (delete-activity, delete-block, last-in-block prompt)
+> + the move-into-block menu moved out of inline JSX in
+> `unit-builder.tsx` into a new `lib/overlays/curriculum/` folder
+> per CLAUDE.md folder convention #12. Sam called the convention
+> after smoke-testing and the relocation was a pure refactor
+> mid-slice. `<DiscardConfirm>` reused from `lib/overlays/bank/`
+> for the modals' cancel-with-unsaved guards; its eventual move
+> to `overlays/shared/` deferred to a later cleanup.
+>
+> **Five product questions answered up-front before code.** Sam
+> accepted all five recommendations: (1) paired triggers
+> side-by-side; (2) inline rename for block create rather than
+> modal; (3) defer the mockup's "+ New block" wrap-this-activity
+> variant ("+ Add block" then "Move into block" achieves the
+> same in two clicks); (4) yes/no with cascade count rather than
+> type-to-confirm for block delete; (5) two-button stacked
+> prompt for last-in-block with italic help under each option.
+>
+> Schema unchanged — `nclex_programme_blocks` shipped empty in
+> 9.3a; this slice only writes to it.
+>
+> Sam smoke-tested the full flow end-to-end (create block, add
+> activity into it, move loose into block, reorder block past a
+> loose row, delete last-in-block activity with the two-option
+> prompt, delete block with cascade count) before approving
+> merge.
+>
+> Commit `46e9b8b`. See SESSIONS 2026-05-12 (9.3c).
+>
+> **Next ⏭:** **Slice 9.3d — Remaining five activity types.**
+> PDF, External link, Live session, Mock, Practice quiz. Each as
+> a single body component with the same shape as `<TextEditor>` —
+> takes `values` + `onChange` + `disabled`; the modal shell
+> dispatches on `activity.type`. PDF adds a storage bucket
+> setup; External link is URL + estimated time (YouTube/Vimeo
+> embedding deferred to student side); Live session is
+> date/time/duration + join link + recording URL; Mock + Practice
+> quiz defer their question-selection UI in this slice (only
+> metadata fields here; the bank filter builder for both is its
+> own slice tied into bank consumption design).
+>
+> **Earlier the same day:** **Slice 9.3b — Unit Builder + Text
+> activity.** First editing surface in Phase B. Tutors open
 > a programme's curriculum tab, click a unit card, and land on a
 > Unit Builder page (`/curriculum/unit/<unit_id>`) where they can
 > author Text activities — add via inline 3×2 type picker (Text
@@ -42,17 +117,6 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > min each) in the 8-Week Bootcamp programme's Unit 1.
 >
 > Commit `e27ffe3`. See SESSIONS 2026-05-12 (9.3b).
->
-> **Next ⏭:** **Slice 9.3c — Blocks.** "+ Add block" entry point
-> on the Unit Builder alongside "+ Add activity". Block card UI
-> with its own activity stack + "+ Add activity to block". Reorder
-> a block within a unit. Row action "Move into block →" / "Move
-> out as loose". Empty-block prevention prompt on last-activity
-> delete. Blocks + loose entries interleave in any order in the
-> unit body (shared ordinal sequence). `nclex_programme_blocks`
-> table is already in place from 9.3a — this slice activates it
-> via UI + server actions + a small reorder rework so blocks and
-> loose activities live on one numeric line.
 >
 > **Earlier the same day:** **Slice 9.3a — Curriculum schema +
 > Units Overview (read-only).** Opens Phase B. Three new tables
@@ -563,14 +627,35 @@ rebuild to suit.
   cards on the curriculum tab became clickable overlay-links into
   the Unit Builder. No blocks yet — flat unit body only. Commit
   `e27ffe3`. See SESSIONS 2026-05-12 (9.3b).
-- ⏭ **9.3c** Blocks — "+ Add block" entry point on Unit Builder;
-  block card UI with own activity stack + "+ Add activity to block";
-  reorder a block within a unit; row action "Move into block →" /
-  "Move out as loose"; empty-block prevention prompt on last-activity
-  delete (*"delete the block too, or move out as loose?"*). Blocks +
-  loose entries interleave in any order in the unit body (mockup
-  screen 4).
-- ⬜ **9.3d** Remaining activity types (5) — PDF (storage bucket
+- ✅ **9.3c** Blocks — shipped 2026-05-12. Activates
+  `nclex_programme_blocks` (shipped empty in 9.3a) via UI + eight
+  new server actions. Paired "+ Add activity" / "+ Add block"
+  triggers at the bottom of the unit body (side-by-side desktop,
+  stacked mobile). "+ Add block" reveals an inline title input
+  (Enter saves, Esc cancels); description + Live/Draft toggle
+  edited later via the block-edit modal. Block card carries
+  header + internal activity stack + indented "+ Add activity
+  to block". Loose-activity rows gain "Move into block →"
+  (visible only when ≥1 block exists); in-block rows gain
+  "Move out as loose". Reorder is single-table within a block
+  and cross-table in the unit body (`loadUnitBodyOrdinals()` +
+  `swapUnitBodyOrdinals()` helpers). Empty-block prevention:
+  deleting the last activity in a block shows a two-option
+  prompt (Move out as loose / Delete the block too); block-
+  header ✕ shows a yes/no confirm with cascade activity count.
+  Destructive confirms (delete-activity, delete-block, last-
+  in-block, move-into-block menu) live in
+  `lib/overlays/curriculum/` per folder convention #12 — Sam
+  flagged the inline-JSX pattern mid-slice and the relocation
+  was a pure refactor. Shared `<ActivityRow>` extracted so
+  loose + in-block rows render identically.
+  `composeUnitBody()` lives in `lib/curriculum/unit-body.ts`
+  as a pure helper — first attempt put it in `queries.ts`
+  and webpack flagged the `next/headers` leak into the client
+  bundle. Five product questions answered up-front before code
+  (Sam accepted all five recommendations). Commit `46e9b8b`.
+  See SESSIONS 2026-05-12 (9.3c).
+- ⏭ **9.3d** Remaining activity types (5) — PDF (storage bucket
   setup), External link (URL + estimated time; YouTube/Vimeo
   rendering is student-side, deferred), Live session (date/time/
   duration + join link + recording URL), Mock (count, time limit,
