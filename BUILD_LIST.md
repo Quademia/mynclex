@@ -87,13 +87,19 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > Commit `0710cb6`. See SESSIONS 2026-05-12 (9.3d-a).
 >
-> **Next ⏭:** **Slice 9.3d-b — Remaining three activity types**
-> (PDF, Mock, Practice quiz). Bigger lift than 9.3d-a because
-> of infra dependencies: PDF needs a Supabase Storage bucket
-> (upload/read RLS + file picker + progress UI + storage path
-> on the payload); Mock + Practice quiz defer their question-
-> selection UI to a separate slice tied into bank consumption
-> design, shipping only metadata fields here.
+> **Next ⏭:** **Slice 9.3d-b — Media foundation.** Prerequisite
+> for any feature that uploads files. Creates the centralised
+> `nclex_media_assets` table (one control row per uploaded
+> file — owner, purpose, storage location, status), the first
+> Supabase Storage bucket for PDFs, generic upload server
+> action, and a generic asset-fetch helper. **No feature
+> integration yet** — PDF activity (now 9.3d-c), avatars,
+> rationale images, future videos all become consumers later,
+> each as a one-slice add. The `storage_provider` column on
+> every asset row makes future migration to Cloudflare R2 or
+> Stream a one-day data migration, not a re-architecture.
+> Architectural plan + eight locked decisions: see
+> `docs/product-plan/media-assets.md` (settled 2026-05-13).
 >
 > **Earlier the same day:** **Slice 9.3c — Blocks.** Activates
 > `nclex_programme_blocks` (shipped empty in 9.3a) via UI + eight
@@ -751,16 +757,78 @@ rebuild to suit.
   recommendations. `IN_PERSON_LIVE_SESSION` deferred (YAGNI
   per CLAUDE.md — naming convention captured; cheap to add
   later). See SESSIONS 2026-05-12 (9.3d-a).
-- ⏭ **9.3d-b** Remaining three activity types (PDF, Mock,
-  Practice quiz). Bigger infra lift than 9.3d-a: PDF needs a
-  Supabase Storage bucket (`nclex-curriculum-pdfs` or similar)
-  with upload/read RLS + file picker + progress UI + storage
-  path on the payload. Mock + Practice quiz defer their
-  question-selection UI to a separate slice tied into bank
-  consumption design — only metadata fields here (count, time
-  limit, pass score, due date, attempts, release-results
-  timing for Mock; count, due date, pass score, release-
-  results timing for Practice quiz).
+- ⏭ **9.3d-b** Media foundation — prerequisite for any feature
+  that uploads files. Creates the centralised `nclex_media_assets`
+  table that every future upload (PDFs, avatars, rationale
+  images, videos) will reference, plus the first Supabase
+  Storage bucket and the generic upload + fetch plumbing. No
+  feature integration yet. Source:
+  `docs/product-plan/media-assets.md`.
+
+  **What ships:**
+  - `nclex_media_assets` table with full schema per
+    `media-assets.md` §3 (asset_id, media_type, purpose,
+    storage_provider, bucket, storage_path, original_filename,
+    mime_type, size_bytes, status, uploaded_by, owner_user_id,
+    timestamps).
+  - RLS policies: SELECT own + SELECT where bucket is public-
+    read; INSERT via server action only; UPDATE/DELETE gated by
+    `owner_user_id = auth.uid()` + SUPER_ADMIN bypass per table.
+  - First bucket provisioned for PDF activities (indicative
+    name `nclex-pdfs` — final name decided at build time;
+    private, 25 MB cap, MIME allow-list `application/pdf` only).
+  - Generic `uploadAssetAction(file, purpose)` server action in
+    `lib/media/actions.ts` — handles the asset row create + the
+    Supabase Storage upload in one transactional flow, returns
+    `asset_id`.
+  - Generic `getAssetUrl(asset_id)` helper in `lib/media/queries.ts`
+    — returns a direct URL for public assets, a signed URL
+    (1-hour expiry) for private assets. Reads `storage_provider`
+    + `bucket` + `storage_path` from the asset row; future R2 /
+    Stream backends slot in here.
+  - Generic `<UploadField>` client component (folder location
+    confirmed at build time per CLAUDE.md folder convention #9
+    — likely `components/media/` or `lib/media/`) — file picker
+    + client-side size check + upload progress UI. Reusable
+    across feature consumers.
+
+  **What does NOT ship here:**
+  - No feature wiring yet. PDF activity (9.3d-c), avatars,
+    rationale images all become consumers later.
+  - No `*_asset_id` columns on other tables. Those land
+    per-feature.
+  - No sweeper job. Soft-delete only; sweeper deferred per
+    `media-assets.md` §4.7.
+  - No legacy field migration. `avatar_url` and `rationale_img`
+    stay untouched on existing tables until per-feature
+    migration slices.
+
+  **Why this slice exists separately from 9.3d-c:** PDF activity
+  was the trigger, but the plumbing it needs is the same plumbing
+  every future upload needs. Building it as a foundation slice
+  means the next five features that upload files (PDF activity,
+  avatar, rationale image, future video, future certificates)
+  each take one slice rather than each building their own upload
+  stack. Architectural decisions locked in conversation
+  2026-05-13; see `docs/product-plan/media-assets.md` for the
+  full plan.
+
+  **Bucket naming:** `nclex-pdfs` and the other names in
+  `media-assets.md` §4.3 are indicative only — final bucket
+  names decided at the build slice that creates each bucket.
+
+- ⬜ **9.3d-c** Remaining three activity types (PDF, Mock,
+  Practice quiz). PDF activity uses the media foundation
+  shipped in 9.3d-b (asset table, upload action, fetch helper).
+  This slice adds the PDF-specific editor body, wires it into
+  `<ActivityModal>`, stores `pdf_asset_id` on the activity
+  payload, and renders the PDF in the student view via the
+  asset-fetch helper. Mock + Practice quiz defer their
+  question-selection UI to a separate slice tied into bank-
+  consumption design, shipping only metadata fields here
+  (count, time limit, pass score, due date, attempts, release-
+  results timing for Mock; count, due date, pass score,
+  release-results timing for Practice quiz).
 - ⬜ **9.3e** Publish state + content visibility — per-activity
   Live/Draft pill (`activity.is_published`) + tutor controls; per-
   unit aggregate status; programme-wide Publish action (DRAFT →

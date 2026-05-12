@@ -6,6 +6,119 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-13 (planning) — Media assets architecture
+
+Planning-only session, no code shipped. Sam paused at slice 9.3d-b
+(originally PDF + Mock + Practice quiz) when the PDF infra
+discussion opened up a bigger question: every future feature that
+uploads files needs the same plumbing. Building one upload stack
+per feature would mean drift, duplicated permission models, and
+no central place to audit / migrate / retire files.
+
+Outcome: a centralised media-asset architecture, captured in a
+new planning doc at `docs/product-plan/media-assets.md`. Slice
+9.3d-b is renumbered — the **media foundation** slice takes the
+9.3d-b slot, and PDF + Mock + Practice quiz shift to 9.3d-c.
+
+### What's in the doc
+
+A new `nclex_media_assets` table becomes the control record for
+every uploaded file: who uploaded it, who owns it, what it's for,
+where it physically lives, and what state it's in. Other tables
+(activities, users, bank items) reference assets via foreign-key
+columns (`pdf_asset_id`, `avatar_asset_id`, `rationale_asset_id`,
+…) instead of storing raw file paths.
+
+### Eight locked decisions
+
+1. **Storage provider — Supabase Storage for v1.** All files
+   live on Supabase initially. The `storage_provider` column on
+   every asset row is the unlock for migrating to Cloudflare R2
+   or Stream later without schema or frontend changes — a
+   one-day data migration when the time comes.
+2. **Plan tier — Free for dev, Pro before launch.** Pro plan's
+   100 GB storage / 250 GB egress quota covers Scenario A
+   (50 students) comfortably for ~$25/mo all-in.
+3. **Bucket strategy — separate buckets per purpose.** Different
+   purposes get different access rules, MIME constraints, and
+   size caps. Supabase RLS attaches at the bucket layer, so
+   one-bucket-per-purpose keeps each policy short and
+   auditable. Five expected buckets mapped (PDFs, avatars,
+   rationale images, misc, future videos) — names indicative
+   only; final names decided at the build slice that creates
+   each bucket.
+4. **Public vs private — gated by what the file gates.** PDFs
+   and tutor videos (revenue-gating) → private + signed URLs.
+   Avatars + rationale images (no revenue gate) → public-read.
+   Lock down what gates revenue; leave the rest open.
+5. **Size caps — every bucket gets a hard cap, enforced at the
+   bucket level.** Suggested caps: PDFs 25 MB, avatars 2 MB,
+   rationale images 5 MB, videos TBD when video bucket ships.
+   Bucket-level enforcement rejects oversized uploads before
+   they reach our code.
+6. **Filename handling — UUID `storage_path`, preserved
+   `original_filename`.** Storage paths are server-generated
+   UUIDs (no collisions, no path-traversal exploits, no PII
+   leaks via public URLs). `original_filename` preserved
+   verbatim for display only.
+7. **Deletion — soft-delete only in v1; sweeper deferred.**
+   Deleting an activity flips its asset to `status = 'DELETED'`;
+   the file stays in the bucket. Snapshot safety (attempt items
+   reference asset IDs), recoverable accidents, and storage
+   being cheap at v1 scale all justify never hard-deleting.
+   A future sweeper purges files older than 30 days where no
+   attempt snapshot still references them.
+8. **Identity columns — both `uploaded_by` and `owner_user_id`.**
+   `uploaded_by` is the immutable audit trail (who pressed
+   upload). `owner_user_id` is the mutable RLS gate
+   (NULLABLE — null = platform-owned, like an admin-uploaded
+   global rationale image). They're equal in the common case
+   but separating them keeps audit integrity when ownership
+   transfers.
+
+### Adjacent decisions captured in the doc
+
+- **Migration approach — keep old fields alongside new.**
+  `nclex_users.avatar_url`, `nclex_bank_items.rationale_img`,
+  `nclex_tutor_questions.rationale_img` all stay; new
+  `*_asset_id` columns land alongside. Per-feature backfill
+  later. PDF activity is greenfield — uses `pdf_asset_id` from
+  day one with no legacy field.
+- **Snapshot thinking for rationale images on attempt items.**
+  Future shape: both `rationale_asset_id_snapshot` (which
+  asset) AND `rationale_img_snapshot` (URL valid at attempt
+  time) — the asset ID gates lookups, the URL survives
+  signed-URL expiry. Profile pictures don't need snapshot
+  fields (no historical accuracy concern).
+- **Video — flexible, but not built yet.** Asset table supports
+  videos via `storage_provider`. v1 ships no video upload.
+  When demand arrives the choice between Supabase / R2 / Stream
+  / external URL is made with then-current pricing in a
+  deliberate slice. Cost scenarios suggest migrating videos to
+  R2 around 200+ active students or when video egress crosses
+  ~500 GB/month.
+
+### Slice impact on BUILD_LIST.md
+
+Two edits landed:
+- **Insert new 9.3d-b — Media foundation.** Creates the table,
+  RLS, first bucket, generic `uploadAssetAction()` server action,
+  generic `getAssetUrl()` helper, generic `<UploadField>`
+  component. No feature integration yet.
+- **Rename 9.3d-b → 9.3d-c (PDF + Mock + Practice quiz).** PDF
+  becomes a consumer of the foundation; Mock + Practice quiz
+  scope unchanged (metadata fields only, question-selection UI
+  deferred).
+
+### Next ⏭
+
+- **Slice 9.3d-b — Media foundation.** First code slice off the
+  back of this planning. Bigger than typical 9.3d sub-slices
+  because it sets up infrastructure used by every downstream
+  feature.
+
+---
+
 ## Session — 2026-05-12 (9.3d-a) — External link + Online live session
 
 Lights up two more of the six v1 activity types and lands a
