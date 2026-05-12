@@ -6,6 +6,195 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-12 (9.3a) — Curriculum schema + Units Overview (read-only)
+
+Opening slice of Phase B. Curriculum-authoring rework (settled
+2026-05-11) lands in code. After this slice every programme has a
+real, navigable curriculum tab — pre-slotted with N empty unit
+cards — though no editing yet. The three template tables are in
+place and ready for 9.3b onwards.
+
+### Sub-slice plan for Phase B (locked in this session)
+
+Phase B is too big for one slice. Sub-sliced into six:
+
+- **9.3a** — Schema + Units Overview (read-only). *Shipped here.*
+- **9.3b** — Unit Builder + Text activity (first type).
+- **9.3c** — Blocks.
+- **9.3d** — Remaining five activity types (PDF, External link,
+  Live session, Mock, Practice quiz). Mock + PQ defer the
+  question-selection UI.
+- **9.3e** — Publish state + content visibility.
+- **9.3f** — Cohort curriculum tab (checklist).
+
+Deferred out of Phase B: Calendar view, cohort-only activities,
+real rich-text editor, duplicate flows. Sidebar reshuffle of
+Live Sessions / Mocks / Students / Results (the (a) option from
+earlier) also deferred — Sam's call to let it sort itself out as
+cohort-layer features land.
+
+Routing decision: the curriculum tab lives at
+`/tutor/programme/<id>/curriculum/...` regardless of the
+programme's `unit_label` — the URL segment is the neutral concept
+word "curriculum". Sidebar tab label is **static "Curriculum"** to
+match curriculum-authoring-ux.md screen 7; the Week/Module
+distinction surfaces on the unit cards via the new
+`unitLabel(unitIndex, label)` helper. The old `/weeks` placeholder
+gets **deleted, not renamed** — Sam established the general
+principle this session: when architecture moves, rebuild routes to
+fit the new shape rather than retrofit names. Saved as a feedback
+memory.
+
+### Planning conversation — access timing belongs on the cohort, not the programme
+
+Sam asked whether blocks + activities need `accessible_from` /
+`close_at` columns at the programme layer. The conversation
+walked three workflows:
+
+- **(A)** Tutor sets relative offsets at curriculum authoring time
+  ("open day 3 of week 3"). Cohorts inherit and can override.
+- **(B)** Self-paced access windows ("opens N days after
+  enrolment"). Different unit — relative to enrolment, not cohort
+  start.
+- **(C)** Absolute calendar dates. Makes the activity
+  non-reusable across cohorts.
+
+None of these fit the programme layer in v1. Sam's mental model
+once clarified: the tutor builds the curriculum once; when a
+cohort is created they set per-block / per-activity timing for
+that cohort directly. Different cohorts of the same programme can
+run different schedules — gradual reveal, all-open from day 1,
+manual tutor-driven, whatever. No programme-layer columns; no
+hard-coded modes. Timing is a cohort-layer concept that lands on
+the cohort-checklist row in slice 9.3f.
+
+Practical upshot: **9.3a's schema has no access/timing columns**.
+The programme tables hold curriculum content only.
+
+### Schema (migration `20260512200000_slice_9_3a_curriculum_schema.sql`)
+
+Three new tables, all RLS-policied via the programme ownership
+chain:
+
+- **`nclex_programme_units`** — one row per unit slot.
+  `unit_id, programme_id, unit_index (1..length_units), title?,
+  description?, is_published, created_at, updated_at`. Unique
+  `(programme_id, unit_index)` protects the backfill +
+  future length expansions from duplicating an index.
+
+- **`nclex_programme_blocks`** — empty until 9.3c.
+  `block_id, unit_id, ordinal, title (NOT NULL — empty blocks
+  aren't allowed), description?, is_published, audit`. ON DELETE
+  CASCADE from units.
+
+- **`nclex_programme_activities`** — empty until 9.3b.
+  `activity_id, unit_id (NOT NULL), block_id (NULLABLE — null =
+  loose under the unit), ordinal, type (CHECK enum of 6), title,
+  note?, payload JSONB, is_published, audit`. Both unit_id and
+  block_id cascade. Partial index on `block_id WHERE block_id IS
+  NOT NULL` keeps the by-block lookup cheap without indexing the
+  vast majority of loose-activity rows.
+
+Activity payload is a flexible JSONB column. The DB doesn't
+enforce per-type shape; the contract lives in
+`lib/curriculum/types.ts` as a discriminated union (`ActivityPayload
+{Text|Pdf|ExternalLink|LiveSession|Mock|PracticeQuiz}`). Marked
+**provisional** — Sam's call to keep the table as a reference and
+refine per-type when each editor ships (Text in 9.3b, the rest in
+9.3d).
+
+RLS on all three tables: tutors get full CRUD on curriculum for
+programmes they own via parent-ownership subqueries; SUPER_ADMIN
+gets a bypass policy per table. Full CRUD shipped in this slice
+even though only SELECT is exercised by the read-only UI — saves a
+follow-up migration in 9.3b just to add write policies.
+
+### Backfill — every programme gets N empty unit rows
+
+```sql
+INSERT INTO nclex_programme_units (programme_id, unit_index)
+SELECT p.programme_id, gs.idx
+FROM   nclex_programmes p
+CROSS  JOIN LATERAL generate_series(1, p.length_units) AS gs(idx);
+```
+
+10 existing dev programmes × their `length_units` = 62 empty unit
+rows on day one. After this migration every programme has a full
+set of empty unit slots; the Units Overview grid renders them as
+dashed placeholders. No programme can be in a "no units" state.
+
+### App code — read-only Units Overview
+
+- **`lib/curriculum/`** (new domain folder, sibling of
+  `lib/programmes/` + `lib/cohorts/`) — five files:
+  - `types.ts` — `ProgrammeUnit`, `ProgrammeBlock`,
+    `ProgrammeActivity`, `ActivityType`, `ActivityPayload*`
+    discriminated union, `UnitGridRow` projection.
+  - `queries.ts` — `getUnitsForProgramme(programmeId)` returns
+    units with rolled-up `block_count` + `activity_count` via
+    PostgREST embedded counts.
+  - `format.ts` — `unitLabel(index, label)`, `formatUnitCounts()`,
+    `formatUnitTitle()`, status pill helpers.
+  - `unit-card.tsx` — single read-only card. Dashed border on
+    empty units (block_count + activity_count both zero).
+  - `units-grid.tsx` — `auto-fill` CSS grid; one card per unit.
+
+- **`app/(app)/tutor/programme/[programme_id]/curriculum/page.tsx`** —
+  new route. Reads programme + units, renders a heading + grid.
+  Heading sub-line says "Weeks for this programme." or "Modules for
+  this programme." per `unit_label`.
+
+- **`styles/curriculum.css`** — new domain CSS file; imported in
+  `app/(app)/layout.tsx`. `.units-grid` is `auto-fill` `minmax(260px,
+  1fr)`; `.unit-card` is `display:flex; flex-direction:column` with
+  min-height 120px. Empty cards get `border-style: dashed` + soft
+  background. Live/Draft pill shares the colour tokens used by the
+  programme pill (`#f0fdf4 / #166534 / #bbf7d0` for Live, soft
+  greys for Draft).
+
+- **`lib/nav/tutor.ts`** — replaced the `weeks` programme-nav
+  entry with `curriculum`. Label is static "Curriculum"; href
+  swaps `:programmeId` at render time same as every other entry.
+
+- **`app/(app)/tutor/programme/[programme_id]/weeks/`** — deleted
+  whole-cloth (route + placeholder page). The old stub had no
+  callers other than the sidebar entry, which now points at
+  `/curriculum`.
+
+### What 9.3a explicitly doesn't do
+
+- No editing — unit cards are not clickable, no edit buttons, no
+  "+ Add" affordances. Unit Builder is 9.3b.
+- No activities or blocks render — those tables are empty.
+- No publish-state UI — every unit is Draft; no toggle yet.
+- No cohort-side surfaces — cohort curriculum tab is 9.3f.
+- No drag-and-drop reorder — deferred to v2 per planning doc.
+
+### Open product question kept on the side
+
+When the tutor edits a programme's `length_units` after curriculum
+rows exist (e.g. 8 → 10, or 10 → 8) — does the system auto-add /
+auto-delete unit rows? **Decision deferred**: lock `length_units`
+from being editable while curriculum rows exist, revisit when a
+real tutor asks. Cheap to relax later. Avoids a data-loss surface
+in the meantime. The lock itself isn't enforced in code yet — none
+of the existing rows have curriculum to lose, so 9.3a doesn't ship
+the lock. Will land alongside / before 9.3b when editing surfaces
+exist that could trigger the edge case.
+
+### Next ⏭
+
+- **9.3b** — Unit Builder + Text activity (first type). Clicking
+  a unit card lands on a unit detail page (`/curriculum/unit/<unit_id>`).
+  "+ Add activity" inline 3×2 picker (Text enabled, other five
+  greyed). Text-activity editor as a right-side slide-in panel
+  (Title + Note to student + body textarea — real RTE deferred).
+  Reorder arrows for loose activities. Edit / delete via
+  `<DeleteConfirm>` from `lib/overlays/`. No blocks yet — flat
+  unit body only.
+
+---
+
 ## Session — 2026-05-12 (9.2c) — Cohort detail subtree
 
 Closing out 9.2: cohorts now have their own workspace. Tutors can

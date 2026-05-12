@@ -8,8 +8,53 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-12):** **Slice 9.2c — Cohort detail
-> subtree.** Closes out the 9.2 architecture rework end-to-end.
+> **Last shipped (2026-05-12):** **Slice 9.3a — Curriculum schema
+> + Units Overview (read-only).** Opens Phase B. Three new tables
+> (`nclex_programme_units` / `_blocks` / `_activities`) with full
+> RLS via the programme ownership chain. Backfill seeds N empty
+> unit rows per existing programme (62 across the 10 dev rows).
+> New `/tutor/programme/<id>/curriculum` route renders the Units
+> Overview grid — dashed cards labelled "Week N" / "Module N" via
+> the new `unitLabel(index, label)` helper, status pill, "0 blocks
+> · 0 activities" meta. Sidebar entry renamed `weeks` →
+> `curriculum`; the old `/weeks` placeholder folder deleted, not
+> renamed (Sam established the principle: when architecture moves,
+> rebuild routes to fit, don't retrofit names). No editing yet —
+> Unit Builder is 9.3b.
+>
+> **Planning conversation that shaped 9.3a (worth remembering):**
+> Sam considered `accessible_from` / `close_at` columns on the
+> programme-layer tables. Three workflows on the table; resolution:
+> access timing is a cohort-layer concept, not a programme-layer
+> one. Tutor builds curriculum once; per-block / per-activity
+> timing gets set when a cohort is created (not at curriculum
+> authoring time). Different cohorts of the same programme can run
+> gradual / all-open / manual schedules. Timing columns land on the
+> cohort-checklist row in 9.3f. **9.3a's schema has no access /
+> timing columns** — the programme tables hold curriculum content
+> only.
+>
+> Activity `payload` is a generic `JSONB` column at the DB level.
+> Per-type shapes ship in `lib/curriculum/types.ts` as a
+> discriminated union, marked provisional — refined when each type's
+> editor ships (Text in 9.3b, the rest in 9.3d).
+>
+> Commit `794f56c`. See SESSIONS 2026-05-12 (9.3a) for the schema,
+> RLS, backfill, and planning detail.
+>
+> **Next ⏭:** **Slice 9.3b — Unit Builder + Text activity.** Click
+> a unit card → unit detail page at `/curriculum/unit/<unit_id>`
+> with the loose-activity stack. Inline 3×2 type picker (Text
+> enabled, other five disabled with "coming soon"). Text-activity
+> editor as a right-side slide-in panel (Title + Note to student +
+> body textarea — real rich-text editor deferred to Phase B polish).
+> Reorder arrows for loose activities, edit/delete via existing
+> overlays. No blocks yet — flat unit body only. Most of the
+> heavy-lifting in lib/curriculum/ is in place after 9.3a; 9.3b
+> adds the unit-detail route + activity actions + the editor panel.
+>
+> **Earlier the same day:** **Slice 9.2c — Cohort detail subtree.**
+> Closed out the 9.2 architecture rework end-to-end.
 > Cohorts now have their own workspace at
 > `/tutor/cohort/[id]/...` — sibling of the programme workspace
 > per CLAUDE.md folder convention #7 (different chrome, sibling
@@ -110,23 +155,6 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > cases). Tabled in 9.2b's planning conversation. Not v1.
 >
 > See SESSIONS 2026-05-12 for the planning + bug-hunting detail.
->
-> **Next pick:** Two natural directions, your call which goes
-> first.
->
-> **(a) Sidebar reshuffle.** Move Live Sessions / Mocks /
-> Students / Results from the programme sidebar to the cohort
-> sidebar (or evaluate which genuinely belong on the programme
-> template layer). Own planning conversation — the right shape
-> isn't obvious at every tab.
->
-> **(b) Phase B curriculum.**
-> `nclex_programme_units / blocks / activities` schema + the
-> curriculum-authoring UX. Settled in planning docs already;
-> build-ready. This is the next big lift on the programme side.
->
-> **Bank-side next ⏭**: slice 4.7 Mark-for-review toggle, when
-> Bank work resumes.
 
 ---
 
@@ -438,7 +466,107 @@ enrolment), `tutor-nav.html` (global vs programme nav contexts).
     workspace; their migration is a separate planning slice.
     Commit `b4b859f`.
 
-Phase B+ slices defined after 9.2 lands.
+### Phase B — Curriculum (units → blocks → activities)
+
+Sub-sliced 2026-05-12. Sources: `docs/product-plan/curriculum-
+authoring-ux.md` (screens 1–11), `main.md` → Programme Structure
+(delivery modes, unit label, curriculum, propagation rules).
+
+The full Phase B build covers: three new template tables
+(`nclex_programme_units`, `nclex_programme_blocks`,
+`nclex_programme_activities`), the Units Overview grid, the Unit
+Builder (loose + blocked entries with up/down reorder), the 3×2
+inline activity-picker, six activity-type editors, programme-level
+publish state, and the cohort-side checklist that mirrors the
+template tree. Calendar view + cohort-only activities + duplicate-
+programme flows are deferred out of Phase B.
+
+**Routing.** Everything lives under `/tutor/programme/<id>/curriculum/...`
+— the URL segment is `curriculum` regardless of the programme's
+`unit_label`. Sidebar label is dynamic ("Weeks" or "Modules") via
+the `unitLabel(programme)` helper. The existing `/weeks` placeholder
+is deleted at 9.3a (not renamed) — routes aren't compulsory; we
+rebuild to suit.
+
+- ✅ **9.3a** Schema + Units Overview (read-only) — shipped
+  2026-05-12. Migration
+  `20260512200000_slice_9_3a_curriculum_schema.sql` applied to
+  mynclex-dev. Three new tables (`nclex_programme_units` /
+  `_blocks` / `_activities`) with full RLS via programme-ownership
+  chain (full CRUD policies + SUPER_ADMIN bypass per table).
+  Backfill seeded 62 empty unit rows across 10 dev programmes (one
+  per `length_units` slot). Routing: `/weeks` route folder deleted
+  (not renamed); new `/tutor/programme/<id>/curriculum` renders the
+  Units Overview grid. Sidebar entry renamed `weeks` →
+  `curriculum`; tab label is **static "Curriculum"** (the Week /
+  Module distinction surfaces on the cards via the new
+  `unitLabel(unitIndex, label)` helper in `lib/curriculum/format.ts`,
+  not on the sidebar). Cards render dashed with "Draft" pill + "0
+  blocks · 0 activities" meta. Activity `payload` is generic JSONB
+  at the DB level; per-type discriminated union ships in
+  `lib/curriculum/types.ts` marked provisional — refined per type
+  when each editor lands. **Planning decision** locked here: access
+  timing (when an activity opens for students) is a cohort-layer
+  concept, not a programme-layer one — the programme tables have
+  no `accessible_from` / `close_at` columns; timing columns land on
+  the cohort-checklist row in 9.3f. Commit `794f56c`. See SESSIONS
+  2026-05-12 (9.3a).
+- ⏭ **9.3b** Unit Builder + Text activity (first type) — click a
+  unit card → `/curriculum/unit/<unit_id>` (Unit Builder, mockup
+  screen 4). "+ Add activity" button → inline 3×2 type picker
+  (only **Text** enabled in this slice; other tiles render disabled
+  with "coming soon"). Text-activity editor as a right-side slide-in
+  panel (Title + Note to student + body textarea — defer real
+  rich-text formatting to a later polish slice; the schema column
+  is text-shaped already). Up/down reorder arrows for loose
+  activities. Edit / delete with `<DeleteConfirm>` from
+  `lib/overlays/`. No blocks yet — flat unit body only.
+- ⬜ **9.3c** Blocks — "+ Add block" entry point on Unit Builder;
+  block card UI with own activity stack + "+ Add activity to block";
+  reorder a block within a unit; row action "Move into block →" /
+  "Move out as loose"; empty-block prevention prompt on last-activity
+  delete (*"delete the block too, or move out as loose?"*). Blocks +
+  loose entries interleave in any order in the unit body (mockup
+  screen 4).
+- ⬜ **9.3d** Remaining activity types (5) — PDF (storage bucket
+  setup), External link (URL + estimated time; YouTube/Vimeo
+  rendering is student-side, deferred), Live session (date/time/
+  duration + join link + recording URL), Mock (count, time limit,
+  pass score, due date, attempts, release-results timing), Practice
+  quiz (count, due date, pass score, release-results timing). Mock
+  + Practice quiz **defer the question-selection UI** — they save
+  just the metadata fields in this slice; the bank filter builder
+  for both is its own slice tied into the bank consumption design.
+- ⬜ **9.3e** Publish state + content visibility — per-activity
+  Live/Draft pill (`activity.is_published`) + tutor controls; per-
+  unit aggregate status; programme-wide Publish action (DRAFT →
+  PUBLISHED), Archive action. Draft activities don't surface in
+  any cohort's checklist.
+- ⬜ **9.3f** Cohort curriculum tab (checklist) — new `Curriculum`
+  tab in the cohort detail subtree. Renders the same unit→block→
+  activity tree but as a *checklist*. Migration adds
+  `nclex_cohort_checklist_items` (one row per template item
+  included in this cohort, plus per-cohort `release_date`).
+  Default-on for every published template item at cohort create.
+  Tutor can **Remove from this cohort** per row and **Add back from
+  template** if previously removed. Per-cohort release date defaults
+  to `cohort.start_date + (unit_index − 1) × 7 days`; editable per
+  row without touching the template.
+
+### Deferred out of Phase B
+
+- **Calendar view** (screen 3 alt — Mon–Sun grid of scheduled
+  activities). Needs release dates from 9.3f + its own UI build.
+  Slot as 9.3g if needed in v1, else push to Phase B+ polish.
+- **Cohort-only activities** (cohort can add an activity / block
+  that doesn't exist in the template). v1 of the cohort checklist
+  is remove-only overrides; cohort-only adds queue behind the first
+  real "tutor needs this for one cohort only" demand.
+- **Real rich-text editor** for Text activities — textarea ships in
+  9.3b; a proper RTE (H2/H3/B/I/lists/link/image) is a polish slice
+  after the curriculum is functionally complete.
+- **Duplicate programme / duplicate cohort** flows — listed in
+  Programme Structure as tutor capabilities; UI mockup deferred.
 
 ### Deferred to v2 (Programme)
 
