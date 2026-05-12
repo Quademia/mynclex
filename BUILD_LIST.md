@@ -8,8 +8,54 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-12):** **Slice 9.3a — Curriculum schema
-> + Units Overview (read-only).** Opens Phase B. Three new tables
+> **Last shipped (2026-05-12):** **Slice 9.3b — Unit Builder +
+> Text activity.** First editing surface in Phase B. Tutors open
+> a programme's curriculum tab, click a unit card, and land on a
+> Unit Builder page (`/curriculum/unit/<unit_id>`) where they can
+> author Text activities — add via inline 3×2 type picker (Text
+> enabled; other five "Coming soon"), edit by clicking a row,
+> reorder via up/down arrows, delete via simple confirm. Unit
+> title + description + Live-Draft toggle editable via an "Edit
+> unit" modal.
+>
+> **Activities-as-components, not pages** — `<ActivityModal>` is a
+> reusable modal shell holding shared Title + Note fields + a slot
+> for the type-specific body. Dispatches on `activity.type` to the
+> right body component (`<TextEditor>` in 9.3b; other five in
+> 9.3d). Same shell reuses from the cohort-only-activity flow in
+> 9.3f without changes. Sam pushed back twice during planning to
+> arrive at this shape — first the slide-in panels in the mockup
+> were too cramped for real authoring; then the dedicated-page
+> idea (intermediate) couldn't reuse from the cohort surface.
+> Component-based modal won.
+>
+> Body field is a plain `<textarea>` in this slice — real
+> rich-text formatting deferred to a Phase B polish slice (DB
+> column is text-shaped either way, so swap to a real RTE later
+> is a UI change, not a migration). Modal uses a wider variant
+> (`.activity-modal` at max-width 720px) for authoring-heavy
+> forms. Five server actions in `lib/curriculum/actions.ts` cover
+> create / edit / delete / reorder activity + edit unit.
+>
+> Sam verified the flow end-to-end by authoring two real Text
+> activities (Acid-Base Imbalance + NCLEX RN Exam Overview, ~30
+> min each) in the 8-Week Bootcamp programme's Unit 1.
+>
+> Commit `e27ffe3`. See SESSIONS 2026-05-12 (9.3b).
+>
+> **Next ⏭:** **Slice 9.3c — Blocks.** "+ Add block" entry point
+> on the Unit Builder alongside "+ Add activity". Block card UI
+> with its own activity stack + "+ Add activity to block". Reorder
+> a block within a unit. Row action "Move into block →" / "Move
+> out as loose". Empty-block prevention prompt on last-activity
+> delete. Blocks + loose entries interleave in any order in the
+> unit body (shared ordinal sequence). `nclex_programme_blocks`
+> table is already in place from 9.3a — this slice activates it
+> via UI + server actions + a small reorder rework so blocks and
+> loose activities live on one numeric line.
+>
+> **Earlier the same day:** **Slice 9.3a — Curriculum schema +
+> Units Overview (read-only).** Opens Phase B. Three new tables
 > (`nclex_programme_units` / `_blocks` / `_activities`) with full
 > RLS via the programme ownership chain. Backfill seeds N empty
 > unit rows per existing programme (62 across the 10 dev rows).
@@ -41,17 +87,6 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > Commit `794f56c`. See SESSIONS 2026-05-12 (9.3a) for the schema,
 > RLS, backfill, and planning detail.
->
-> **Next ⏭:** **Slice 9.3b — Unit Builder + Text activity.** Click
-> a unit card → unit detail page at `/curriculum/unit/<unit_id>`
-> with the loose-activity stack. Inline 3×2 type picker (Text
-> enabled, other five disabled with "coming soon"). Text-activity
-> editor as a right-side slide-in panel (Title + Note to student +
-> body textarea — real rich-text editor deferred to Phase B polish).
-> Reorder arrows for loose activities, edit/delete via existing
-> overlays. No blocks yet — flat unit body only. Most of the
-> heavy-lifting in lib/curriculum/ is in place after 9.3a; 9.3b
-> adds the unit-detail route + activity actions + the editor panel.
 >
 > **Earlier the same day:** **Slice 9.2c — Cohort detail subtree.**
 > Closed out the 9.2 architecture rework end-to-end.
@@ -511,17 +546,24 @@ rebuild to suit.
   no `accessible_from` / `close_at` columns; timing columns land on
   the cohort-checklist row in 9.3f. Commit `794f56c`. See SESSIONS
   2026-05-12 (9.3a).
-- ⏭ **9.3b** Unit Builder + Text activity (first type) — click a
-  unit card → `/curriculum/unit/<unit_id>` (Unit Builder, mockup
-  screen 4). "+ Add activity" button → inline 3×2 type picker
-  (only **Text** enabled in this slice; other tiles render disabled
-  with "coming soon"). Text-activity editor as a right-side slide-in
-  panel (Title + Note to student + body textarea — defer real
-  rich-text formatting to a later polish slice; the schema column
-  is text-shaped already). Up/down reorder arrows for loose
-  activities. Edit / delete with `<DeleteConfirm>` from
-  `lib/overlays/`. No blocks yet — flat unit body only.
-- ⬜ **9.3c** Blocks — "+ Add block" entry point on Unit Builder;
+- ✅ **9.3b** Unit Builder + Text activity (first type) — shipped
+  2026-05-12. Route `/tutor/programme/<id>/curriculum/unit/<unit_id>`
+  with the loose-activity stack. Inline 3×2 type picker (Text
+  enabled; other five "Coming soon"). **Activities-as-components,
+  not pages** — `<ActivityModal>` is a reusable modal shell holding
+  shared Title + Note fields + a slot for the type-specific body
+  (`<TextEditor>` in 9.3b; the other five in 9.3d). Same shell
+  reuses from the cohort-only-activity flow in 9.3f. Modal uses a
+  wider variant (`.activity-modal` at max-width 720px) for
+  authoring-heavy forms. Body is a plain textarea in this slice —
+  real RTE deferred to Phase B polish. Five server actions in
+  `lib/curriculum/actions.ts` cover create / edit / delete /
+  reorder activity + edit unit. Up/down reorder arrows; simple
+  yes/no delete confirm (not type-to-confirm — low-stakes). Unit
+  cards on the curriculum tab became clickable overlay-links into
+  the Unit Builder. No blocks yet — flat unit body only. Commit
+  `e27ffe3`. See SESSIONS 2026-05-12 (9.3b).
+- ⏭ **9.3c** Blocks — "+ Add block" entry point on Unit Builder;
   block card UI with own activity stack + "+ Add activity to block";
   reorder a block within a unit; row action "Move into block →" /
   "Move out as loose"; empty-block prevention prompt on last-activity

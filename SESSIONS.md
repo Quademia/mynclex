@@ -6,6 +6,164 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-12 (9.3b) — Unit Builder + Text activity
+
+First editing surface in Phase B. After this slice tutors can
+actually author Text content unit-by-unit — open a programme's
+curriculum tab, click into a unit, add Text activities, edit
+them, reorder them, delete them, set unit titles.
+
+### Planning conversation — what shaped the file shape
+
+Sam pushed back twice during planning. Both pushbacks reshaped
+the slice substantially.
+
+**First pushback — "why slide-in for the editor?"** The mockup
+HTML uses right-side slide-in panels for activity editors, and I
+proposed that initially. Sam asked why; thinking it through, the
+answer was wrong: activity editors are real authoring surfaces
+(Text body can run 500+ words; future Mock + Practice quiz will
+embed the bank filter builder), not transient overlays. A 400px
+slide-in panel cramps that. Reconsidered → moved to dedicated
+activity-editor pages under `/curriculum/unit/<unit_id>/activity/
+<activity_id>`.
+
+**Second pushback — "shouldn't activities be components?"** Sam
+flagged the cohort-only-activity flow (9.3f): the same editor
+needs to be invoked from the cohort layer, where a tutor adds a
+one-off activity to a specific run. If the editor is a dedicated
+page under `/curriculum/...`, the cohort surface (under
+`/cohort/...`) can't reuse it — different route subtree, no
+shared shell. A **component-based modal** is reusable from
+anywhere. That's the right call.
+
+So the final shape: **<ActivityModal> is a reusable component**
+(modal shell holding the type label header + shared Title + Note
+fields + a slot for the type-specific body). Below the divider
+it dispatches on activity.type to the right body component
+(<TextEditor> in 9.3b; the other five land in 9.3d). Same shell
+gets reused from the cohort-only-activity flow in 9.3f without
+changes — neither the shell nor the body components care where
+they're invoked from. Caller decides which server action runs.
+
+The discussion produced one more design choice: the activity
+modal needs more real estate than the programme/cohort form
+modals (which max-width at 560px). Defined a wider variant
+`.prog-modal.activity-modal` at max-width 720px to accommodate
+authoring-heavy forms. Future Mock + Practice quiz editors with
+embedded bank filter builders fit there too.
+
+### Schema — none new
+
+9.3a's three tables already cover everything 9.3b needs. No
+migration in this slice.
+
+Open product question still deferred: when a tutor edits a
+programme's `length_units` after curriculum exists. Lock not
+implemented yet — none of the existing rows have curriculum
+worth losing. Will land alongside / before whichever slice first
+ships the editable length flow.
+
+### What shipped
+
+**Route + page** — new
+`/tutor/programme/<id>/curriculum/unit/<unit_id>`. Server
+component fetches the unit + its loose activities + parent
+programme via `getUnitDetail()` in one trip. 404s when the unit
+doesn't exist or belongs to a programme the tutor doesn't own;
+defensive second check confirms `detail.programme.programme_id`
+matches the route's `programme_id` (catches typed URLs trying to
+reach a unit through the wrong programme).
+
+**lib/curriculum/ — 5 new files:**
+- `actions.ts` — five server actions: `createActivityAction`,
+  `editActivityAction`, `deleteActivityAction`,
+  `reorderActivityAction`, `editUnitAction`. All gated on
+  `auth.getUser()` and rely on RLS for parent-ownership
+  enforcement. The two activity-write actions hard-gate on
+  `type='TEXT'` in this slice; broaden in 9.3d.
+- `text-editor.tsx` — Text-type body component (Body textarea +
+  estimated reading time). Stateless about location; emits
+  `onChange` for every keystroke. First of six type bodies.
+- `activity-modal.tsx` — reusable modal shell. Holds the shared
+  Title + Note fields above a divider; slot below for the
+  type-specific body. Discriminated `mode: 'create' | 'edit'`.
+  Runs the server action itself based on mode so both call sites
+  (programme curriculum here; cohort-only-activity later) get
+  the same Save behaviour.
+- `activity-picker.tsx` — inline 3×2 type picker (mockup screen
+  5). Text tile enabled with "Notes & reading"; the other five
+  render disabled with "Coming soon" sublines. Replaces the
+  "+ Add activity" button in place — not modal.
+- `unit-form-modal.tsx` — small modal for editing the unit
+  itself (Title / Description / Live-Draft toggle). Matches the
+  programme/cohort form-modal pattern exactly.
+- `unit-builder.tsx` — interactive body of the unit-detail page.
+  Holds picker state, modal state (create vs edit), edit-unit
+  modal state, and the simple delete-confirm dialog. Activity
+  rows are rendered inline as `.map()` — no separate
+  `<ActivityRow>` component (file sprawl avoidance per Sam's
+  build-list discussion).
+
+**lib/curriculum/ — 3 edits:**
+- `types.ts` — added `UnitFormValues`, `ActivityCommonFormValues`,
+  `TextActivityBodyValues`, `TextActivityFormValues`,
+  `UnitDetail`, plus the exported `ACTIVITY_TYPES` literal array.
+- `queries.ts` — added `getUnitDetail(unitId)` returning unit +
+  loose activities (block_id IS NULL — blocks land in 9.3c) +
+  parent programme identity / shape in one PostgREST embed.
+- `unit-card.tsx` — overlay-link to the Unit Builder (same
+  pattern as `<CohortCard>` / `<ProgrammeCard>`). `units-grid.tsx`
+  edited to thread `programmeId` down to each card.
+- `app/(app)/.../curriculum/page.tsx` — minor edit to pass
+  `programmeId` into the grid.
+
+**styles/curriculum.css** — appended ~250 lines covering the
+unit-detail page header, activity rows, the inline 3×2 picker,
+the wider modal variant, the activity-editor body, and the
+overlay-link hover state on unit cards.
+
+### Per-Q UX choices locked in
+
+- **Delete activity = simple confirm** (not type-to-confirm).
+  Low-stakes — text content is recoverable mentally and v1 has
+  no consuming students yet. Same pattern as
+  `<CancelCohortConfirm>`.
+- **Reorder = up/down arrow buttons** at every row, with the
+  first row's up + last row's down disabled. Two-step DB UPDATE
+  (not atomic) — for v1 volumes the brief mid-swap is invisible
+  because ordering is by ordinal ASC and ties never matter (we
+  re-render after revalidate).
+- **No real RTE in the Body textarea** — plain `<textarea
+  rows={12}>` with a help text hinting that rich-text formatting
+  is coming later. The DB column is text-shaped either way;
+  swap to a real editor is a UI change, not a migration.
+- **Edit unit = modal**, not slide-in. Three fields. Matches
+  programme/cohort form-modal pattern.
+
+### Real authoring verified
+
+Sam created two real Text activities during testing — both
+substantive NCLEX content (Acid-Base Imbalance + NCLEX RN Exam
+Overview, ordinal 1 and 2 in Unit 1 of the 8-Week NCLEX
+Bootcamp). The unit title `"Foundations + Acid-Base"` confirmed
+the Edit unit modal also worked. Payload shape lands as
+`{body, estimated_minutes: 30}` exactly per the TS contract.
+
+### Next ⏭
+
+- **9.3c** — Blocks. "+ Add block" entry point on Unit Builder;
+  block card UI with own activity stack + "+ Add activity to
+  block"; reorder a block within a unit; row action "Move into
+  block →" / "Move out as loose"; empty-block prevention prompt
+  on last-activity delete. Blocks + loose entries interleave in
+  any order in the unit body. New `nclex_programme_blocks` table
+  is already in place from 9.3a; this slice activates it via UI
+  + server actions + a small reorder rework so blocks and loose
+  activities share one ordinal sequence within the unit body.
+
+---
+
 ## Session — 2026-05-12 (9.3a) — Curriculum schema + Units Overview (read-only)
 
 Opening slice of Phase B. Curriculum-authoring rework (settled
