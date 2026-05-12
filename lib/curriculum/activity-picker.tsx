@@ -16,12 +16,12 @@ import type { ActivityType } from './types';
 
 // Tile copy per type. Mirrors curriculum-authoring-ux.md §6.
 // Order is the mockup's 3×2 layout: row 1 Text / PDF / Link,
-// row 2 Live session / Mock / Practice quiz.
+// row 2 Online live session / Mock / Practice quiz.
 const TILE_ORDER: ActivityType[] = [
   'TEXT',
   'PDF',
   'EXTERNAL_LINK',
-  'LIVE_SESSION',
+  'ONLINE_LIVE_SESSION',
   'MOCK',
   'PRACTICE_QUIZ',
 ];
@@ -30,16 +30,21 @@ const TILE_COPY: Record<
   ActivityType,
   { label: string; sub: string; icon: string }
 > = {
-  TEXT:           { label: 'Text content',   sub: 'Notes & reading',      icon: '📝' },
-  PDF:            { label: 'PDF upload',     sub: 'Slides / handouts',    icon: '📄' },
-  EXTERNAL_LINK:  { label: 'External link',  sub: 'YouTube / website',    icon: '🔗' },
-  LIVE_SESSION:   { label: 'Live session',   sub: 'Tutorial / Q&A',       icon: '🎥' },
-  MOCK:           { label: 'Mock assessment',sub: 'Timed exam-style',     icon: '🎯' },
-  PRACTICE_QUIZ:  { label: 'Practice quiz',  sub: 'Bank-drawn quiz',      icon: '✏️' },
+  TEXT:                { label: 'Text content',        sub: 'Notes & reading',   icon: '📝' },
+  PDF:                 { label: 'PDF upload',          sub: 'Slides / handouts', icon: '📄' },
+  EXTERNAL_LINK:       { label: 'External link',       sub: 'YouTube / website', icon: '🔗' },
+  ONLINE_LIVE_SESSION: { label: 'Online live session', sub: 'Tutorial / Q&A',    icon: '🎥' },
+  MOCK:                { label: 'Mock assessment',     sub: 'Timed exam-style',  icon: '🎯' },
+  PRACTICE_QUIZ:       { label: 'Practice quiz',       sub: 'Bank-drawn quiz',   icon: '✏️' },
 };
 
-// Types enabled in 9.3b. The picker greys out everything else.
-const ENABLED_TYPES: ReadonlyArray<ActivityType> = ['TEXT'];
+// Types enabled in 9.3d-a. PDF / MOCK / PRACTICE_QUIZ land in
+// 9.3d-b. The picker greys out anything not on this list.
+const ENABLED_TYPES: ReadonlyArray<ActivityType> = [
+  'TEXT',
+  'EXTERNAL_LINK',
+  'ONLINE_LIVE_SESSION',
+];
 
 interface ActivityPickerProps {
   onPick: (type: ActivityType) => void;

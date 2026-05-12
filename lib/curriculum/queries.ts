@@ -129,8 +129,9 @@ export async function getUnitDetail(
     supabase
       .from('nclex_programme_activities')
       .select(
-        `activity_id, unit_id, block_id, ordinal, type, title, note,
-         payload, is_published, created_at, updated_at`
+        `activity_id, unit_id, block_id, ordinal, type, title,
+         description, note, payload, is_published,
+         created_at, updated_at`
       )
       .eq('unit_id', unitId)
       .order('ordinal', { ascending: true }),

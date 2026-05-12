@@ -23,9 +23,9 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import type {
+  ActivityFormValues,
   ActivityType,
   BlockFormValues,
-  TextActivityFormValues,
   UnitFormValues,
 } from './types';
 
@@ -43,6 +43,122 @@ function trimOrNull(s: string | null | undefined): string | null {
   if (s == null) return null;
   const t = s.trim();
   return t.length === 0 ? null : t;
+}
+
+// Slice 9.3d-a — URL gate.
+// Accepts http: + https: only. `javascript:`, `data:`, `file:`,
+// and any other scheme rejects so we can safely render the URL
+// as an anchor on the student side without an XSS vector.
+function validateHttpUrl(
+  value: string,
+  fieldLabel: string
+): { ok: true; url: string } | { ok: false; error: string } {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return { ok: false, error: `${fieldLabel} is required.` };
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return { ok: false, error: `${fieldLabel} is not a valid URL.` };
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return {
+      ok: false,
+      error: `${fieldLabel} must start with http:// or https://`,
+    };
+  }
+  return { ok: true, url: trimmed };
+}
+
+// Slice 9.3d-a — datetime gate.
+// The client sends UTC ISO (converted from the datetime-local
+// input via new Date(localStr).toISOString()). We re-parse to
+// catch malformed values and re-emit canonical ISO.
+function validateScheduledAt(
+  value: string
+): { ok: true; iso: string } | { ok: false; error: string } {
+  const d = new Date(value);
+  if (isNaN(d.getTime())) {
+    return { ok: false, error: 'Session date/time is not valid.' };
+  }
+  return { ok: true, iso: d.toISOString() };
+}
+
+// Slice 9.3d-a — payload builder.
+// Per-type validation + assembly of the JSONB payload column. The
+// discriminated `ActivityFormValues` argument narrows on `type`;
+// every branch returns the strict payload shape for that type.
+//
+// PDF / Mock / Practice quiz land in 9.3d-b — the union doesn't
+// include them yet, so the switch is currently exhaustive over
+// the three editor-enabled types.
+function buildPayload(
+  values: import('./types').ActivityFormValues
+):
+  | { ok: true; payload: Record<string, unknown> }
+  | { ok: false; error: string } {
+  switch (values.type) {
+    case 'TEXT': {
+      return {
+        ok: true,
+        payload: {
+          body: values.body,
+          ...(values.estimated_minutes != null
+            ? { estimated_minutes: values.estimated_minutes }
+            : {}),
+        },
+      };
+    }
+    case 'EXTERNAL_LINK': {
+      const u = validateHttpUrl(values.url, 'URL');
+      if (!u.ok) return u;
+      return {
+        ok: true,
+        payload: {
+          url: u.url,
+          ...(values.estimated_minutes != null
+            ? { estimated_minutes: values.estimated_minutes }
+            : {}),
+        },
+      };
+    }
+    case 'ONLINE_LIVE_SESSION': {
+      const when = validateScheduledAt(values.scheduled_at);
+      if (!when.ok) return when;
+
+      if (
+        !Number.isInteger(values.duration_minutes) ||
+        values.duration_minutes <= 0
+      ) {
+        return {
+          ok: false,
+          error: 'Duration must be a positive whole number of minutes.',
+        };
+      }
+
+      const join = validateHttpUrl(values.join_url, 'Join URL');
+      if (!join.ok) return join;
+
+      let recordingClean: string | null = null;
+      if (values.recording_url != null && values.recording_url.trim() !== '') {
+        const rec = validateHttpUrl(values.recording_url, 'Recording URL');
+        if (!rec.ok) return rec;
+        recordingClean = rec.url;
+      }
+
+      return {
+        ok: true,
+        payload: {
+          scheduled_at: when.iso,
+          duration_minutes: values.duration_minutes,
+          join_url: join.url,
+          ...(recordingClean ? { recording_url: recordingClean } : {}),
+        },
+      };
+    }
+  }
 }
 
 function refreshProgrammeCurriculumPaths(programmeId: string, unitId: string) {
@@ -187,21 +303,21 @@ export type CreateActivityResult =
 
 export async function createActivityAction(
   unitId: string,
-  type: ActivityType,
-  values: TextActivityFormValues,
+  values: ActivityFormValues,
   blockId: string | null = null
 ): Promise<CreateActivityResult> {
-  // 9.3b only ships the Text editor; other types remain disabled
-  // in the picker. Gate at the server too in case a stale tab
-  // submits with a non-Text type.
-  if (type !== 'TEXT') {
-    return { ok: false, error: 'That activity type is not available yet.' };
-  }
-
   const title = values.title.trim();
   if (title.length === 0) {
     return { ok: false, error: 'Title is required.' };
   }
+
+  // Per-type validation + payload assembly. The `values` union
+  // discriminates on `type`; PDF / MOCK / PRACTICE_QUIZ aren't
+  // editor-enabled yet (their picker tiles say "Coming soon")
+  // so a stale client can't submit them — TS narrows them out of
+  // the union here.
+  const built = buildPayload(values);
+  if (!built.ok) return built;
 
   const { supabase, user } = await getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
@@ -239,23 +355,17 @@ export async function createActivityAction(
     nextOrdinal = await nextUnitBodyOrdinal(supabase, unitId);
   }
 
-  const payload = {
-    body: values.body,
-    ...(values.estimated_minutes != null
-      ? { estimated_minutes: values.estimated_minutes }
-      : {}),
-  };
-
   const { data, error } = await supabase
     .from('nclex_programme_activities')
     .insert({
       unit_id: unitId,
       block_id: blockId,
       ordinal: nextOrdinal,
-      type: 'TEXT',
+      type: values.type,
       title,
+      description: trimOrNull(values.description),
       note: trimOrNull(values.note),
-      payload,
+      payload: built.payload,
       is_published: false,
     })
     .select('activity_id')
@@ -277,33 +387,33 @@ export type EditActivityResult = { ok: true } | { ok: false; error: string };
 
 export async function editActivityAction(
   activityId: string,
-  values: TextActivityFormValues
+  values: ActivityFormValues
 ): Promise<EditActivityResult> {
   const title = values.title.trim();
   if (title.length === 0) {
     return { ok: false, error: 'Title is required.' };
   }
 
+  const built = buildPayload(values);
+  if (!built.ok) return built;
+
   const { supabase, user } = await getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  const payload = {
-    body: values.body,
-    ...(values.estimated_minutes != null
-      ? { estimated_minutes: values.estimated_minutes }
-      : {}),
-  };
-
+  // Activity type is fixed at create time — editing can't change
+  // it. .eq('type', values.type) belt + suspenders pins the
+  // UPDATE so a stale client can't switch types mid-edit.
   const { data, error } = await supabase
     .from('nclex_programme_activities')
     .update({
       title,
+      description: trimOrNull(values.description),
       note: trimOrNull(values.note),
-      payload,
+      payload: built.payload,
       updated_at: new Date().toISOString(),
     })
     .eq('activity_id', activityId)
-    .eq('type', 'TEXT') // belt + suspenders: editing only TEXT in 9.3b
+    .eq('type', values.type)
     .select('activity_id, unit_id')
     .maybeSingle();
 

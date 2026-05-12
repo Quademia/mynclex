@@ -37,11 +37,16 @@ export type ProgrammeBlock = {
 
 // Six activity types — v1 set. Library Note, uploaded video,
 // written assignments deferred to v2 per main.md.
+//
+// `ONLINE_LIVE_SESSION` (renamed from `LIVE_SESSION` in slice
+// 9.3d-a): "live" describes synchronicity, "online" the medium.
+// A future `IN_PERSON_LIVE_SESSION` will share the "live" half;
+// both leave room for a future `RECORDED_SESSION` async type.
 export type ActivityType =
   | 'TEXT'
   | 'PDF'
   | 'EXTERNAL_LINK'
-  | 'LIVE_SESSION'
+  | 'ONLINE_LIVE_SESSION'
   | 'MOCK'
   | 'PRACTICE_QUIZ';
 
@@ -65,8 +70,8 @@ export type ActivityPayloadExternalLink = {
   estimated_minutes?: number;
 };
 
-export type ActivityPayloadLiveSession = {
-  scheduled_at?: string;       // ISO timestamp
+export type ActivityPayloadOnlineLiveSession = {
+  scheduled_at?: string;       // ISO UTC timestamp
   duration_minutes?: number;
   join_url?: string;
   recording_url?: string;
@@ -92,7 +97,7 @@ export type ActivityPayload =
   | ActivityPayloadText
   | ActivityPayloadPdf
   | ActivityPayloadExternalLink
-  | ActivityPayloadLiveSession
+  | ActivityPayloadOnlineLiveSession
   | ActivityPayloadMock
   | ActivityPayloadPracticeQuiz;
 
@@ -103,7 +108,8 @@ export type ProgrammeActivity = {
   ordinal: number;
   type: ActivityType;
   title: string;
-  note: string | null;
+  description: string | null;   // slice 9.3d-a — what the activity is about
+  note: string | null;          // directive to the student (operational)
   payload: ActivityPayload;
   is_published: boolean;
   created_at: string;
@@ -139,12 +145,18 @@ export type UnitFormValues = {
   is_published: boolean;
 };
 
-// Common shape every activity editor's modal carries — Title and
-// "Note to student" sit in the activity-modal shell above the
-// type-specific body. Every type uses the same two fields per
-// curriculum-authoring-ux.md screen 6.
+// Common shape every activity editor's modal carries — Title +
+// Description + "Note to student" sit in the activity-modal
+// shell above the type-specific body, in that order. Slice
+// 9.3d-a added description.
+//
+// `title` is required at the DB level (NOT NULL). `description`
+// and `note` are nullable — empty strings get stored as NULL.
+// Description = what the activity is about (substantive); note =
+// directive to the student (operational).
 export type ActivityCommonFormValues = {
   title: string;
+  description: string;      // empty string → stored as NULL
   note: string;             // empty string → stored as NULL
 };
 
@@ -162,6 +174,56 @@ export type TextActivityFormValues = ActivityCommonFormValues & {
   body: string;
   estimated_minutes: number | null;
 };
+
+// --- Slice 9.3d-a — External link ---
+
+// Raw editor body state. The estimated_minutes input is a free-
+// text number string so the parent modal can parse + validate
+// uniformly with Text's pattern. Empty string → NULL on save.
+export type ExternalLinkActivityBodyValues = {
+  url: string;
+  estimated_minutes: string;
+};
+
+// Parsed/validated form payload sent to the server action.
+export type ExternalLinkActivityFormValues = ActivityCommonFormValues & {
+  url: string;
+  estimated_minutes: number | null;
+};
+
+// --- Slice 9.3d-a — Online live session ---
+
+// Raw editor body state. `scheduled_at` here is the raw
+// datetime-local input value ("YYYY-MM-DDTHH:MM", local time, no
+// TZ); the modal converts to UTC ISO before save. The string-
+// shaped duration_minutes mirrors the pattern used for Text /
+// External link.
+export type OnlineLiveSessionActivityBodyValues = {
+  scheduled_at: string;       // "YYYY-MM-DDTHH:MM" local
+  duration_minutes: string;
+  join_url: string;
+  recording_url: string;
+};
+
+// Parsed/validated form payload sent to the server action.
+// `scheduled_at` here is UTC ISO. `recording_url` is nullable —
+// tutor fills it after the session airs.
+export type OnlineLiveSessionActivityFormValues = ActivityCommonFormValues & {
+  scheduled_at: string;       // UTC ISO
+  duration_minutes: number;
+  join_url: string;
+  recording_url: string | null;
+};
+
+// Discriminated union of every per-type form payload the server
+// actions accept. Narrows on `type` so each branch sees its own
+// fully-typed shape. New activity types extend this union as
+// their editors ship (PDF / Mock / Practice quiz arrive in
+// slice 9.3d-b).
+export type ActivityFormValues =
+  | ({ type: 'TEXT' } & TextActivityFormValues)
+  | ({ type: 'EXTERNAL_LINK' } & ExternalLinkActivityFormValues)
+  | ({ type: 'ONLINE_LIVE_SESSION' } & OnlineLiveSessionActivityFormValues);
 
 // Unit detail projection — unit + ALL its content (blocks + every
 // activity, loose AND in-block) + parent programme identity.
@@ -201,7 +263,7 @@ export const ACTIVITY_TYPES: ActivityType[] = [
   'TEXT',
   'PDF',
   'EXTERNAL_LINK',
-  'LIVE_SESSION',
+  'ONLINE_LIVE_SESSION',
   'MOCK',
   'PRACTICE_QUIZ',
 ];

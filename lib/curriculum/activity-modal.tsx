@@ -2,19 +2,19 @@
 //
 // Activity editor modal shell. Holds:
 //   • The header (type label + Save / Cancel buttons + close).
-//   • The shared fields (Title + Note to student) — these sit
-//     above the divider for every type per
-//     curriculum-authoring-ux.md screen 6.
+//   • The shared fields (Title + Description + Note to student)
+//     — these sit above the divider for every type per
+//     curriculum-authoring-ux.md screen 6 (+ description added
+//     in slice 9.3d-a).
 //   • A slot below the divider that dispatches on activity type
-//     to the right body component (TextEditor in 9.3b; the other
-//     five land in 9.3d).
+//     to the right body component. Three types editor-enabled
+//     in 9.3d-a (TEXT + EXTERNAL_LINK + ONLINE_LIVE_SESSION);
+//     PDF / MOCK / PRACTICE_QUIZ land in slice 9.3d-b.
 //
-// The shell is reusable across contexts. Today it's invoked from
-// <UnitBuilder> (programme curriculum); in 9.3f the cohort-only-
-// activity flow will invoke it from the cohort curriculum tab.
-// Neither caller passes the server action directly — the modal
-// runs the action itself based on `mode` so both call sites get
-// the same Save behaviour.
+// Body state is a discriminated union by type so each branch
+// holds exactly the fields its editor needs. Initial body in
+// create mode = empty defaults for the chosen type; in edit
+// mode = parsed from activity.payload via per-type readers.
 //
 // Cancel with unsaved edits surfaces <DiscardConfirm> — same
 // guard pattern as <ProgrammeFormModal> / <CohortFormModal>.
@@ -26,12 +26,16 @@ import { useRouter } from 'next/navigation';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { TextEditor } from './text-editor';
+import { ExternalLinkEditor } from './external-link-editor';
+import { OnlineLiveSessionEditor } from './online-live-session-editor';
 import { createActivityAction, editActivityAction } from './actions';
 import type {
+  ActivityFormValues,
   ActivityType,
+  ExternalLinkActivityBodyValues,
+  OnlineLiveSessionActivityBodyValues,
   ProgrammeActivity,
   TextActivityBodyValues,
-  TextActivityFormValues,
 } from './types';
 
 type ActivityModalProps =
@@ -40,8 +44,6 @@ type ActivityModalProps =
       unitId: string;
       type: ActivityType;
       // null → loose under the unit. Set → append to that block.
-      // Slice 9.3c: the unit-builder passes whichever scope opened
-      // the picker.
       blockId: string | null;
       onClose: () => void;
     }
@@ -51,27 +53,134 @@ type ActivityModalProps =
       onClose: () => void;
     };
 
-// Display name + tile copy by activity type. Used in the modal
-// header and the picker. Matches curriculum-authoring-ux.md §6.
+// Display name in the modal header by activity type. Mirrors the
+// picker copy in activity-picker.tsx.
 const TYPE_LABELS: Record<ActivityType, string> = {
   TEXT: 'Text content',
   PDF: 'PDF upload',
   EXTERNAL_LINK: 'External link',
-  LIVE_SESSION: 'Live session',
+  ONLINE_LIVE_SESSION: 'Online live session',
   MOCK: 'Mock assessment',
   PRACTICE_QUIZ: 'Practice quiz',
 };
 
-function readTextBodyFromActivity(activity: ProgrammeActivity): TextActivityBodyValues {
-  const payload = activity.payload as { body?: string; estimated_minutes?: number };
-  return {
-    body: payload.body ?? '',
-    estimated_minutes:
-      typeof payload.estimated_minutes === 'number'
-        ? String(payload.estimated_minutes)
-        : '',
-  };
+// Discriminated body-state by activity type. The three editor-
+// enabled types each carry their own value shape; the unhandled
+// three (PDF / MOCK / PRACTICE_QUIZ) fall through to a sentinel
+// 'UNSUPPORTED' branch so the modal can render a "Coming soon"
+// hint instead of crashing if invoked stray for those types
+// (which the picker shouldn't allow, but defence in depth).
+type EditorBodyState =
+  | { type: 'TEXT'; values: TextActivityBodyValues }
+  | { type: 'EXTERNAL_LINK'; values: ExternalLinkActivityBodyValues }
+  | {
+      type: 'ONLINE_LIVE_SESSION';
+      values: OnlineLiveSessionActivityBodyValues;
+    }
+  | { type: 'UNSUPPORTED' };
+
+// ---------- Per-type initial body readers ----------
+
+function emptyBody(type: ActivityType): EditorBodyState {
+  switch (type) {
+    case 'TEXT':
+      return { type, values: { body: '', estimated_minutes: '' } };
+    case 'EXTERNAL_LINK':
+      return { type, values: { url: '', estimated_minutes: '' } };
+    case 'ONLINE_LIVE_SESSION':
+      return {
+        type,
+        values: {
+          scheduled_at: '',
+          duration_minutes: '',
+          join_url: '',
+          recording_url: '',
+        },
+      };
+    default:
+      return { type: 'UNSUPPORTED' };
+  }
 }
+
+function bodyFromActivity(activity: ProgrammeActivity): EditorBodyState {
+  const p = activity.payload as Record<string, unknown>;
+  const asStr = (v: unknown) => (typeof v === 'string' ? v : '');
+  const asNumStr = (v: unknown) =>
+    typeof v === 'number' ? String(v) : '';
+
+  switch (activity.type) {
+    case 'TEXT':
+      return {
+        type: 'TEXT',
+        values: {
+          body: asStr(p.body),
+          estimated_minutes: asNumStr(p.estimated_minutes),
+        },
+      };
+    case 'EXTERNAL_LINK':
+      return {
+        type: 'EXTERNAL_LINK',
+        values: {
+          url: asStr(p.url),
+          estimated_minutes: asNumStr(p.estimated_minutes),
+        },
+      };
+    case 'ONLINE_LIVE_SESSION': {
+      const iso = asStr(p.scheduled_at);
+      return {
+        type: 'ONLINE_LIVE_SESSION',
+        values: {
+          scheduled_at: iso ? utcIsoToLocalInput(iso) : '',
+          duration_minutes: asNumStr(p.duration_minutes),
+          join_url: asStr(p.join_url),
+          recording_url: asStr(p.recording_url),
+        },
+      };
+    }
+    default:
+      return { type: 'UNSUPPORTED' };
+  }
+}
+
+// UTC ISO → local "YYYY-MM-DDTHH:MM" for the datetime-local input.
+function utcIsoToLocalInput(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
+// ---------- Dirty comparison ----------
+
+function bodyEqual(a: EditorBodyState, b: EditorBodyState): boolean {
+  if (a.type !== b.type) return false;
+  if (a.type === 'TEXT' && b.type === 'TEXT') {
+    return (
+      a.values.body === b.values.body &&
+      a.values.estimated_minutes === b.values.estimated_minutes
+    );
+  }
+  if (a.type === 'EXTERNAL_LINK' && b.type === 'EXTERNAL_LINK') {
+    return (
+      a.values.url === b.values.url &&
+      a.values.estimated_minutes === b.values.estimated_minutes
+    );
+  }
+  if (a.type === 'ONLINE_LIVE_SESSION' && b.type === 'ONLINE_LIVE_SESSION') {
+    return (
+      a.values.scheduled_at === b.values.scheduled_at &&
+      a.values.duration_minutes === b.values.duration_minutes &&
+      a.values.join_url === b.values.join_url &&
+      a.values.recording_url === b.values.recording_url
+    );
+  }
+  return true; // UNSUPPORTED — no editable fields
+}
+
+// ---------- Component ----------
 
 export function ActivityModal(props: ActivityModalProps) {
   const router = useRouter();
@@ -83,30 +192,28 @@ export function ActivityModal(props: ActivityModalProps) {
   const activityType = isEdit ? props.activity.type : props.type;
   const typeLabel = TYPE_LABELS[activityType];
 
-  // Shared fields — Title + Note. Pre-fill from row in edit mode.
+  // Shell fields — Title + Description + Note. Pre-fill in edit mode.
   const [title, setTitle] = useState(isEdit ? props.activity.title : '');
+  const [description, setDescription] = useState(
+    isEdit ? (props.activity.description ?? '') : ''
+  );
   const [note, setNote] = useState(isEdit ? (props.activity.note ?? '') : '');
 
-  // Type-specific body state. Currently TEXT only (others greyed
-  // in the picker). When 9.3d ships, branch this on activityType
-  // and lazily mount the right body component.
-  const [textBody, setTextBody] = useState<TextActivityBodyValues>(
-    isEdit
-      ? readTextBodyFromActivity(props.activity)
-      : { body: '', estimated_minutes: '' }
-  );
+  // Type-specific body state — discriminated union.
+  const initialBody: EditorBodyState = isEdit
+    ? bodyFromActivity(props.activity)
+    : emptyBody(activityType);
+  const [body, setBody] = useState<EditorBodyState>(initialBody);
 
   // Track dirty state so Cancel surfaces the discard guard.
   const initialTitle = isEdit ? props.activity.title : '';
+  const initialDescription = isEdit ? (props.activity.description ?? '') : '';
   const initialNote = isEdit ? (props.activity.note ?? '') : '';
-  const initialBody = isEdit
-    ? readTextBodyFromActivity(props.activity)
-    : { body: '', estimated_minutes: '' };
   const isDirty =
     title !== initialTitle ||
+    description !== initialDescription ||
     note !== initialNote ||
-    textBody.body !== initialBody.body ||
-    textBody.estimated_minutes !== initialBody.estimated_minutes;
+    !bodyEqual(body, initialBody);
 
   function attemptClose() {
     if (isPending) return;
@@ -123,41 +230,110 @@ export function ActivityModal(props: ActivityModalProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDirty, isPending]);
 
-  function handleSubmit() {
-    const trimmed = title.trim();
-    if (trimmed.length === 0) {
+  // Parse body state → ActivityFormValues for the server action.
+  // Returns null and sets error if client-side validation fails;
+  // the server re-validates everything regardless.
+  function buildValues(): ActivityFormValues | null {
+    const trimmedTitle = title.trim();
+    if (trimmedTitle.length === 0) {
       setError('Title is required.');
-      return;
+      return null;
     }
+    const common = { title: trimmedTitle, description, note };
+
+    if (body.type === 'TEXT') {
+      const emRaw = body.values.estimated_minutes.trim();
+      const em = emRaw === '' ? null : parseInt(emRaw, 10);
+      if (em !== null && (!Number.isInteger(em) || em < 1)) {
+        setError('Estimated time must be a positive number, or blank.');
+        return null;
+      }
+      return {
+        type: 'TEXT',
+        ...common,
+        body: body.values.body,
+        estimated_minutes: em,
+      };
+    }
+
+    if (body.type === 'EXTERNAL_LINK') {
+      const url = body.values.url.trim();
+      if (url.length === 0) {
+        setError('URL is required.');
+        return null;
+      }
+      const emRaw = body.values.estimated_minutes.trim();
+      const em = emRaw === '' ? null : parseInt(emRaw, 10);
+      if (em !== null && (!Number.isInteger(em) || em < 1)) {
+        setError('Estimated time must be a positive number, or blank.');
+        return null;
+      }
+      return {
+        type: 'EXTERNAL_LINK',
+        ...common,
+        url,
+        estimated_minutes: em,
+      };
+    }
+
+    if (body.type === 'ONLINE_LIVE_SESSION') {
+      const sched = body.values.scheduled_at.trim();
+      if (sched.length === 0) {
+        setError('Session date and time are required.');
+        return null;
+      }
+      let scheduledIso: string;
+      const d = new Date(sched);
+      if (isNaN(d.getTime())) {
+        setError('Session date/time is not valid.');
+        return null;
+      }
+      scheduledIso = d.toISOString();
+
+      const durRaw = body.values.duration_minutes.trim();
+      if (durRaw === '') {
+        setError('Duration is required.');
+        return null;
+      }
+      const dur = parseInt(durRaw, 10);
+      if (!Number.isInteger(dur) || dur < 1) {
+        setError('Duration must be a positive whole number of minutes.');
+        return null;
+      }
+
+      const joinUrl = body.values.join_url.trim();
+      if (joinUrl.length === 0) {
+        setError('Join URL is required.');
+        return null;
+      }
+
+      const recordingUrlTrimmed = body.values.recording_url.trim();
+      const recording_url =
+        recordingUrlTrimmed === '' ? null : recordingUrlTrimmed;
+
+      return {
+        type: 'ONLINE_LIVE_SESSION',
+        ...common,
+        scheduled_at: scheduledIso,
+        duration_minutes: dur,
+        join_url: joinUrl,
+        recording_url,
+      };
+    }
+
+    setError('This activity type is not editable yet.');
+    return null;
+  }
+
+  function handleSubmit() {
     setError(null);
-
-    const estimatedMinutesNum = textBody.estimated_minutes.trim() === ''
-      ? null
-      : parseInt(textBody.estimated_minutes, 10);
-    if (
-      estimatedMinutesNum !== null &&
-      (!Number.isInteger(estimatedMinutesNum) || estimatedMinutesNum < 1)
-    ) {
-      setError('Estimated time must be a positive number, or blank.');
-      return;
-    }
-
-    const values: TextActivityFormValues = {
-      title: trimmed,
-      note,
-      body: textBody.body,
-      estimated_minutes: estimatedMinutesNum,
-    };
+    const values = buildValues();
+    if (values === null) return;
 
     startTransition(async () => {
       const result = isEdit
         ? await editActivityAction(props.activity.activity_id, values)
-        : await createActivityAction(
-            props.unitId,
-            props.type,
-            values,
-            props.blockId
-          );
+        : await createActivityAction(props.unitId, values, props.blockId);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -169,8 +345,12 @@ export function ActivityModal(props: ActivityModalProps) {
 
   const headerTitle = isEdit ? `Edit · ${typeLabel}` : `New · ${typeLabel}`;
   const submitLabel = isEdit
-    ? isPending ? 'Saving…' : 'Save changes'
-    : isPending ? 'Creating…' : 'Add activity';
+    ? isPending
+      ? 'Saving…'
+      : 'Save changes'
+    : isPending
+      ? 'Creating…'
+      : 'Add activity';
 
   return (
     <>
@@ -214,6 +394,18 @@ export function ActivityModal(props: ActivityModalProps) {
               </label>
 
               <label className="prog-field">
+                <span className="prog-field-label">Description</span>
+                <textarea
+                  className="prog-input"
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  disabled={isPending}
+                  placeholder="Optional. What this activity is about — appears under the title on the student's checklist."
+                />
+              </label>
+
+              <label className="prog-field">
                 <span className="prog-field-label">Note to student</span>
                 <textarea
                   className="prog-input"
@@ -221,19 +413,47 @@ export function ActivityModal(props: ActivityModalProps) {
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   disabled={isPending}
-                  placeholder="Optional. A line shown above the activity body."
+                  placeholder="Optional. A directive shown above the activity body (e.g., when to do it)."
                 />
               </label>
             </section>
 
             <div className="activity-modal-divider" />
 
-            {activityType === 'TEXT' && (
+            {body.type === 'TEXT' && (
               <TextEditor
-                values={textBody}
-                onChange={setTextBody}
+                values={body.values}
+                onChange={(values) =>
+                  setBody({ type: 'TEXT', values })
+                }
                 disabled={isPending}
               />
+            )}
+
+            {body.type === 'EXTERNAL_LINK' && (
+              <ExternalLinkEditor
+                values={body.values}
+                onChange={(values) =>
+                  setBody({ type: 'EXTERNAL_LINK', values })
+                }
+                disabled={isPending}
+              />
+            )}
+
+            {body.type === 'ONLINE_LIVE_SESSION' && (
+              <OnlineLiveSessionEditor
+                values={body.values}
+                onChange={(values) =>
+                  setBody({ type: 'ONLINE_LIVE_SESSION', values })
+                }
+                disabled={isPending}
+              />
+            )}
+
+            {body.type === 'UNSUPPORTED' && (
+              <p className="activity-editor-unsupported">
+                This activity type&apos;s editor isn&apos;t available yet.
+              </p>
             )}
           </div>
 

@@ -21,7 +21,7 @@ const TYPE_ICON: Record<ActivityType, string> = {
   TEXT: '📝',
   PDF: '📄',
   EXTERNAL_LINK: '🔗',
-  LIVE_SESSION: '🎥',
+  ONLINE_LIVE_SESSION: '🎥',
   MOCK: '🎯',
   PRACTICE_QUIZ: '✏️',
 };
@@ -30,7 +30,7 @@ const TYPE_LABEL: Record<ActivityType, string> = {
   TEXT: 'Text',
   PDF: 'PDF',
   EXTERNAL_LINK: 'Link',
-  LIVE_SESSION: 'Live session',
+  ONLINE_LIVE_SESSION: 'Online live session',
   MOCK: 'Mock',
   PRACTICE_QUIZ: 'Practice quiz',
 };
