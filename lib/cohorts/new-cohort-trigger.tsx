@@ -68,6 +68,7 @@ export function NewCohortTrigger({
       </button>
       {isOpen && (
         <CohortFormModal
+          mode="create"
           programmeId={programmeId}
           programmeLengthUnits={programmeLengthUnits}
           onClose={() => setIsOpen(false)}

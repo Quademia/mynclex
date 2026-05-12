@@ -1,10 +1,12 @@
 // mynclex/lib/cohorts/cohort-list.tsx
 //
-// Cohort list + card for the Cohorts tab (slice 9.2b). Static
-// presentation in v1 — the cohort detail subtree (Overview /
-// Students / Sessions / Announcements / Settings) lands with
-// 9.2c and that's when the cards become clickable.
+// Cohort list + card for the Cohorts tab (slice 9.2b). Each card
+// is clickable into the cohort detail subtree
+// (`/tutor/cohort/[id]/overview`) — slice 9.2c. Same overlay-link
+// pattern as <ProgrammeCard> so the whole card surface is the
+// click target.
 
+import Link from 'next/link';
 import type { CohortListRow } from './types';
 import {
   cohortStatus,
@@ -22,14 +24,18 @@ export function CohortList({ cohorts }: { cohorts: CohortListRow[] }) {
         const status = cohortStatus(cohort);
         const display = formatCohortName(cohort);
         const range = formatDateRange(cohort.start_date, cohort.end_date);
-        // If the tutor set a custom name, show the auto-range as a
-        // secondary line so the dates are still surfaced; if there's
-        // no custom name display already IS the range, so no second
-        // line.
         const hasCustomName = display !== range;
 
         return (
           <article key={cohort.cohort_id} className="cohort-card">
+            <Link
+              href={`/tutor/cohort/${cohort.cohort_id}/overview`}
+              className="cohort-card-link"
+              aria-label={`Open ${display}`}
+            >
+              <span className="sr-only">Open {display}</span>
+            </Link>
+
             <header className="cohort-card-head">
               <h3 className="cohort-card-title">{display}</h3>
               <span className={`cohort-pill ${cohortStatusPillClass(status)}`}>

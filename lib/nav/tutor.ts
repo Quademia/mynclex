@@ -54,3 +54,18 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   { key: 'students',    label: 'Students',      icon: 'users',    href: '/tutor/programme/:programmeId/students' },
   { key: 'results',     label: 'Results',       icon: 'chart',    href: '/tutor/programme/:programmeId/results' },
 ];
+
+/**
+ * Cohort-scoped nav. Sibling world of the programme nav — opened
+ * when a tutor clicks into a specific cohort run. Hrefs contain
+ * ':cohortId' which the cohort layout replaces with the actual
+ * [cohort_id] route param. Slice 9.2c. Curriculum tab queues
+ * behind Phase B's nclex_programme_units/blocks/activities.
+ */
+export const TUTOR_COHORT_NAV: NavItem[] = [
+  { key: 'overview',      label: 'Overview',      icon: 'home',   href: '/tutor/cohort/:cohortId/overview' },
+  { key: 'students',      label: 'Students',      icon: 'users',  href: '/tutor/cohort/:cohortId/students' },
+  { key: 'sessions',      label: 'Sessions',      icon: 'video',  href: '/tutor/cohort/:cohortId/sessions' },
+  { key: 'announcements', label: 'Announcements', icon: 'edit',   href: '/tutor/cohort/:cohortId/announcements' },
+  { key: 'settings',      label: 'Settings',      icon: 'settings', href: '/tutor/cohort/:cohortId/settings' },
+];

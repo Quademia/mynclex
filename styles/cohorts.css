@@ -64,6 +64,7 @@
 }
 
 .cohort-card {
+  position: relative;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -71,6 +72,21 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.cohort-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
+}
+
+/* Overlay link — covers the whole card so it's clickable as a
+ * single target. Same pattern as .programme-card-link. */
+.cohort-card-link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--radius);
+  text-decoration: none;
 }
 
 .cohort-card-head {
@@ -227,6 +243,214 @@
 }
 .programme-card-add-cohort:hover:not(:disabled) {
   background: var(--primary-dark);
+}
+
+/* ─── Cohort sidebar context line ─────────────────── */
+
+/* Renders the cohort name as a secondary line under the
+ * "This cohort" header in the cohort sidebar. */
+.sidebar-context {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 0 12px 8px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* ─── Cohort detail pages ─────────────────────────── */
+
+.cohort-page {
+  max-width: 880px;
+}
+
+.cohort-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.cohort-page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.cohort-page-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Overview cards grid */
+
+.cohort-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.cohort-overview-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cohort-overview-card.is-cancelled {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.cohort-overview-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.cohort-overview-dl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+.cohort-overview-dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.cohort-overview-dl dt {
+  color: var(--text-muted);
+  margin: 0;
+}
+.cohort-overview-dl dd {
+  color: var(--text);
+  margin: 0;
+  text-align: right;
+}
+.cohort-overview-faint {
+  color: var(--text-faint);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.cohort-overview-prose {
+  font-size: 13px;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.5;
+}
+.cohort-overview-link {
+  color: var(--primary);
+  font-weight: 500;
+  text-decoration: none;
+}
+.cohort-overview-link:hover {
+  text-decoration: underline;
+}
+
+/* Settings tab — bordered "panels" stacked vertically */
+
+.cohort-settings-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.cohort-settings-card.is-danger {
+  border-color: #fecaca;
+  background: #fef9f9;
+}
+
+.cohort-settings-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.cohort-settings-card-body {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cohort-settings-disabled-note {
+  font-size: 12px;
+  color: var(--text-faint);
+  font-style: italic;
+  margin: 0;
+}
+
+/* Danger button — used by Cancel Cohort */
+.cohort-cancel-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  background: var(--white);
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background-color 0.15s ease;
+}
+.cohort-cancel-btn:hover {
+  background: #fef2f2;
+}
+
+/* ─── Confirmation dialog (Cancel Cohort) ─────────── */
+
+.confirm-dialog {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  max-width: 440px;
+  width: 100%;
+  padding: 20px 22px;
+}
+.confirm-dialog-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+.confirm-dialog-body {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+.confirm-dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Danger button variant for the modal */
+.prog-btn.prog-btn-danger {
+  background: #b91c1c;
+  color: var(--white);
+  border-color: #b91c1c;
+}
+.prog-btn.prog-btn-danger:hover:not(:disabled) {
+  background: #991b1b;
 }
 
 /* ─── Programme-overview "Add first cohort" empty state ─── */
