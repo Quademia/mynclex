@@ -14,9 +14,9 @@
 //      array when the student has no history yet.
 
 import { PracticeBuilder } from './practice-builder';
-import { getFilterOptions } from '@/lib/bank/builder/get-filter-options';
-import { getResumableAttempt } from '@/lib/bank/entry-helpers/get-resumable-attempt';
-import { getRecentAttempts }  from '@/lib/bank/entry-helpers/get-recent-attempts';
+import { getFilterOptions } from '@/lib/practice/builder/get-filter-options';
+import { getResumableAttempt } from '@/lib/practice/launchers/get-resumable-attempt';
+import { getRecentAttempts }  from '@/lib/practice/launchers/get-recent-attempts';
 
 export const dynamic = 'force-dynamic';
 

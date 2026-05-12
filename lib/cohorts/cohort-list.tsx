@@ -1,0 +1,63 @@
+// mynclex/lib/cohorts/cohort-list.tsx
+//
+// Cohort list + card for the Cohorts tab (slice 9.2b). Each card
+// is clickable into the cohort detail subtree
+// (`/tutor/cohort/[id]/overview`) — slice 9.2c. Same overlay-link
+// pattern as <ProgrammeCard> so the whole card surface is the
+// click target.
+
+import Link from 'next/link';
+import type { CohortListRow } from './types';
+import {
+  cohortStatus,
+  cohortStatusPillClass,
+  formatCohortName,
+  formatCohortSeats,
+  formatCohortStatusLabel,
+  formatDateRange,
+} from './format';
+
+export function CohortList({ cohorts }: { cohorts: CohortListRow[] }) {
+  return (
+    <div className="cohort-list">
+      {cohorts.map((cohort) => {
+        const status = cohortStatus(cohort);
+        const display = formatCohortName(cohort);
+        const range = formatDateRange(cohort.start_date, cohort.end_date);
+        const hasCustomName = display !== range;
+
+        return (
+          <article key={cohort.cohort_id} className="cohort-card">
+            <Link
+              href={`/tutor/cohort/${cohort.cohort_id}/overview`}
+              className="cohort-card-link"
+              aria-label={`Open ${display}`}
+            >
+              <span className="sr-only">Open {display}</span>
+            </Link>
+
+            <header className="cohort-card-head">
+              <h3 className="cohort-card-title">{display}</h3>
+              <span className={`cohort-pill ${cohortStatusPillClass(status)}`}>
+                {formatCohortStatusLabel(status)}
+              </span>
+            </header>
+
+            {hasCustomName && (
+              <p className="cohort-card-range">{range}</p>
+            )}
+
+            <footer className="cohort-card-foot">
+              <span className="cohort-card-meta">
+                {formatCohortSeats(cohort.cohort_size)}
+              </span>
+              {cohort.allow_late_join && (
+                <span className="cohort-card-late-join">Late join on</span>
+              )}
+            </footer>
+          </article>
+        );
+      })}
+    </div>
+  );
+}

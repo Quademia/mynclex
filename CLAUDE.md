@@ -1,6 +1,6 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-05-07 (branching workflow: `work` → `main` → `prod`)
+Last updated: 2026-05-09 (branching workflow simplified — dropped `work`; commit on the auto-generated session branch)
 
 ## What This Is
 
@@ -125,6 +125,43 @@ slice.
     See `lib/access/README.md` for the full convention including where
     new helpers go.
 
+11. **`lib/bank/` is curator-side. `lib/practice/` is student-side.**
+    Curator surfaces (editors, wrappers, bank list, save/delete actions,
+    classifications, types) live in `lib/bank/`. Student-facing
+    consumption (`runner/`, `builder/`, `launchers/`) lives in
+    `lib/practice/`. Shared schema (`types.ts`, `classifications.ts`)
+    stays in `lib/bank/` as the source of truth — `practice/` imports
+    from `bank/`, never the other way round (consumers depend on
+    producers).
+
+12. **Cross-cutting UI categories: `lib/overlays/` + `lib/toast/` +
+    `lib/hints/`.** Three top-level folders, one per category of
+    floating/affordance UI:
+    - `lib/overlays/` — modal/blocking confirmation dialogs.
+    - `lib/toast/` — passive top-right notifications.
+    - `lib/hints/` — explanation surfaces (bulb 💡 today, future shells).
+
+    Within `overlays/` and `hints/`, the layer is encoded in the
+    sub-structure: `shared/` holds generic primitives/shells used
+    everywhere; area subfolders (`bank/`, `practice/`) hold instances
+    specific to a curator/student surface. **Layer-3 instances belong
+    next to the area, not in `shared/`** — e.g., the curator's
+    `delete-confirm` (which hardcodes "Delete <itemId>" copy) lives in
+    `overlays/bank/`, not `overlays/shared/`. `toast/` is flat (no
+    subfolders) because toast variants are tone-only — every caller
+    passes the message as a string, so there's no such thing as an
+    area-specific toast instance.
+
+    `lib/hints/` follows Path B: each unique explainer is its own file
+    in `hints/<area>/<surface>-bulb.tsx` that wraps the shell with its
+    content baked in. Toolbars import the named bulb (`<TrendWrapperBulb />`),
+    never the shell directly. This keeps explanation copy auditable in
+    one folder.
+
+    **Editor-form atoms (`stem-field`, `instruction-field`, `editor-tabs`,
+    `modal-frame`, etc.) stay in `lib/bank/atoms/`** — they're
+    curator-internal plumbing, not cross-cutting affordances.
+
 ## UI Conventions
 
 1. **Toasts for messages, not inline banners.** Server errors,
@@ -196,60 +233,74 @@ slice.
 
 ## Branching workflow
 
-Three long-lived branches on the remote:
+Two long-lived branches on the remote:
 
-- **`work`** — where Claude edits code. All session work happens here.
-  Push freely.
-- **`main`** — stable. `work` is merged into `main` once a slice is done
-  and tested locally.
-- **`prod`** — released / deployed. `main` is merged into `prod` when
-  it's time to ship to users.
+- **`main`** — stable. Each session's work merges here after Sam tests
+  it locally and explicitly approves.
+- **`prod`** — released / deployed. `main` merges into `prod` when
+  it's time to ship to users (also with Sam's approval).
 
-Branch names `dev` / `prod` are reserved for environment naming
-(Cloudflare, Supabase) — that's why the working branch is called
-`work` and not `dev`.
+Each session lands in a fresh `.claude/worktrees/<random>` worktree on
+an auto-created `claude/<random>` branch. **That session branch is the
+working branch** — commit there directly, no checkout needed. Each
+session is short-lived and gets its own branch.
 
-**Every session — first action:**
+`dev` is deliberately avoided as a branch name (Cloudflare / Supabase
+already use `dev`/`prod` for env naming, so a `dev` branch would
+collide). `prod` is reused as a branch name only because the env
+mapping is 1-to-1.
 
-Each session lands in a fresh `.claude/worktrees/<random>` worktree
-on an auto-created `claude/<random>` branch. Switch to `work`
-immediately:
+**Per-session loop:**
 
-```powershell
-git checkout work
-git pull origin work
-```
+1. **Start the dev server** as the first action of the session:
 
-Commit on `work`. Push with `git push origin work`.
+   ```powershell
+   npm run dev
+   ```
 
-**Merging `work` → `main`** (when a slice is done and tested):
+   Serves on `http://localhost:3000`. The `.env.local` is auto-copied
+   into new worktrees by `.worktreeinclude`, so credentials are
+   already wired.
 
-```powershell
-git checkout main
-git merge work --ff-only
-git push origin main
-git checkout work
-```
+2. Build the requested slice / fix on the auto-created session
+   branch. Commit there freely.
 
-**Releasing `main` → `prod`** (when ready to deploy):
+3. Sam tests the change in the browser at `localhost:3000`.
+
+4. **Always ask Sam for explicit approval before merging to `main`.**
+   Never push to `main` without it. On approval:
+
+   ```powershell
+   git push origin claude/<random>           # optional: keep session branch on remote
+   git checkout main
+   git merge claude/<random> --ff-only
+   git push origin main
+   ```
+
+**Releasing `main` → `prod`** (when ready to deploy, again with Sam's
+explicit approval):
 
 ```powershell
 git checkout prod
 git merge main --ff-only
 git push origin prod
-git checkout work
 ```
 
 Never work directly in the `qacademy-mynclex` main checkout — always
-operate inside a `.claude/worktrees/<...>` worktree, on the `work`
-branch.
+operate inside the session's `.claude/worktrees/<...>` worktree.
+
+**The old `work` branch was retired on 2026-05-09.** It used to be the
+single rolling branch Claude committed to, but each session already
+has its own isolated `claude/<random>` branch — `work` was a redundant
+hop and caused worktree-exclusivity collisions when more than one
+session was open.
 
 ## Working With Sam
 
 - Sam has no coding background. Explain rationale before code. No assumed
   code literacy.
 - Discuss plans before building. No full rewrites without approval.
-- Work on the `work` branch; merge to `main` when a slice is done; merge `main` to `prod` when releasing. See **Branching workflow** above.
+- Work on the auto-created session branch (`claude/<random>`). Always ask Sam for explicit approval before merging to `main`, and again before merging `main` to `prod`. See **Branching workflow** above.
 - One issue at a time, confirmed before moving on.
 
 ## Files To Read at Session Start

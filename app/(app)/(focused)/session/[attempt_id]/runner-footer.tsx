@@ -2,9 +2,13 @@
 //
 // Runner footer (64px). Layout: [Prev] [Status msg] [Submit / Next / Finish]
 //
-// In 4.1.2b the right-side primary is a disabled "Submit answer" with a
-// "MCQ wiring lands in 4.1.4" hint. 4.1.4 swaps it to an enabled
-// Submit (pre-submit) → Next (post-submit) → Finish (last Q post-submit).
+// Prev is disabled in two cases:
+//   - At Q1 (atFirst) — no question to go back to.
+//   - Sequential archetype (slice 4.5b — `prevDisabled` from caller) —
+//     the mode prohibits backward navigation regardless of position.
+//
+// The primary button label/handler/disabled-state is fully driven by
+// runner.tsx's archetype-aware footer logic; this component just renders.
 
 'use client';
 
@@ -15,6 +19,8 @@ interface Props {
   primaryLabel?: string;
   primaryDisabled?: boolean;
   primaryHint?: string;
+  prevDisabled?: boolean; // Sequential mode forces this true (slice 4.5b)
+  prevHint?:     string;  // tooltip when prevDisabled && !atFirst
   onPrev: () => void;
   onPrimary?: () => void;
 }
@@ -26,11 +32,21 @@ export function RunnerFooter({
   primaryLabel    = 'Submit answer',
   primaryDisabled = true,
   primaryHint     = 'MCQ wiring lands in slice 4.1.4',
+  prevDisabled    = false,
+  prevHint,
   onPrev,
   onPrimary,
 }: Props) {
   const atFirst = current <= 1;
   const atLast  = current >= total;
+
+  // Combined disable: at-first OR mode forces it.
+  const prevIsDisabled = atFirst || prevDisabled;
+  const prevTitle = prevIsDisabled
+    ? (prevDisabled
+        ? (prevHint ?? 'Disabled in this mode')
+        : (atFirst ? 'You\'re on the first question' : undefined))
+    : undefined;
 
   return (
     <footer className="rn-foot">
@@ -39,7 +55,8 @@ export function RunnerFooter({
           type="button"
           className="btn btn-ghost btn-sm"
           onClick={onPrev}
-          disabled={atFirst}
+          disabled={prevIsDisabled}
+          title={prevTitle}
         >
           ← Previous
         </button>

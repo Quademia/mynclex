@@ -1,7 +1,7 @@
 # MyNclex — Product Plan
 
 *Living document. Filled in as decisions get made.*
-Last updated: 2026-04-20 (planning complete — all 9 topics settled)
+Last updated: 2026-05-11 (curriculum architecture rework — modules renamed to **blocks**; weeks abstracted to a generic **units** layer; activities can live loose under a unit or inside a block; **delivery modes** introduced — tutor-led cohort vs self-paced — **both ship in v1**; **unit label is an independent tutor choice** (Week / Module), decoupled from delivery mode, with smart defaults. Programme/cohort split from 2026-05-10 retained.)
 
 ---
 
@@ -12,8 +12,9 @@ An NCLEX-RN exam prep product inside the QAcademy family. Two layers:
 - **The Bank** — a QAcademy-owned NCLEX-RN question bank, available
   standalone for self-study.
 - **Tutored Programmes** — vetted tutors run structured NCLEX prep
-  curricula (week-by-week schedule, pre/post tutorial tasks, live
-  sessions with recordings hosted on-platform) using the shared bank.
+  curricula (paced unit-by-unit, with guided activity blocks built
+  around tutorials and self-study workflows, live sessions with
+  recordings hosted on-platform) using the shared bank.
 
 Core early audience: Ghanaian nurses pursuing migration to the US / UK /
 Canada. Open to anyone internationally.
@@ -24,8 +25,10 @@ Canada. Open to anyone internationally.
   including NGN items — see **The Bank** section)
 - Vetted tutors (Sam + approved others, manual onboarding — no public
   self-signup)
-- Tutor-owned curriculum: week-by-week schedule, pre-tutorial tasks,
-  post-tutorial tasks
+- Tutor-owned curriculum: pacing units (shown as Weeks in tutor-led
+  mode), optional activity **blocks** for tutorial-anchored or
+  guided workflows, individual activities (pre-tutorial reading,
+  practice quizzes, mocks, etc.)
 - Live tutorials via external video conferencing; recordings hosted
   inside MyNclex after sessions
 - Student enrolment into tutor programmes (bundles bank access for
@@ -61,10 +64,14 @@ MyNclex has four roles. A single user can hold more than one role
   (which has RN, RM, RPHN as platform-level programmes), MyNclex is
   NCLEX-RN only. A "programme" in MyNclex always means a tutor's own
   prep offering (e.g. "Dr Mensah's 8-Week NCLEX Bootcamp"), owned by
-  the tutor who created it.
+  the tutor who created it. A programme is the *reusable design* — a
+  specific run of that programme for a specific group of students is
+  a **cohort** (see Programme Structure below).
 
 - **Multiple tutors per programme is supported.** One programme can
-  be co-run by two or more tutors sharing the same cohort.
+  be co-run by two or more tutors. In v1 every co-tutor on a
+  programme is automatically on every cohort of that programme;
+  cohort-level co-tutor restrictions are deferred.
 
 - **Permission list for ADMIN is deferred.** We will define the exact
   permission buckets once the other topics (pricing, programme
@@ -107,115 +114,407 @@ the full picture.
 
 ## Programme Structure
 
-> **Revised 2026-04-20.** Cohort/rolling mode distinction removed.
-> Time-gated weekly progress is no longer a platform-enforced
-> behaviour. Content visibility is now controlled per-activity via
-> the Live/Draft status (from Curriculum Authoring UX) — tutors
-> publish activities when they want them visible. See below for the
-> revised shape. Original 2026-04-19 decision preserved in session
-> log.
+> **Revised 2026-05-11.** Curriculum architecture rework. Modules
+> renamed to **blocks** (workflow groupings of related activities,
+> often built around a tutorial); weeks abstracted to a generic
+> **units** layer; activities can live loose under a unit OR inside
+> a block (blocks are not mandatory containers). **Delivery modes**
+> introduced — every programme is either tutor-led (with cohorts)
+> or self-paced (no cohorts) — and the same curriculum engine
+> serves both. **Both modes ship in v1.**
+>
+> The **unit label** (what the tutor and students see — Week or
+> Module) is a **separate tutor choice** at programme creation,
+> decoupled from delivery mode. Smart default: tutor-led →
+> Week; self-paced → Module. Tutor can override (e.g. a
+> topic-organised tutor-led programme uses Modules; a self-paced
+> programme with a suggested 12-week pacing plan uses Weeks).
+> Same DB layer either way; only the rendered label changes.
+>
+> Programme/cohort split (2026-05-10) retained: programme = reusable
+> design, cohort = one specific run. Curriculum lives at the
+> programme layer (units → blocks → activities); dates, seats,
+> enrolment, and delivery state live at the cohort layer (tutor-led
+> mode only). Original 2026-04-19 / 2026-04-20 decisions preserved
+> in session log.
 
 A tutor's programme is a paid, tutor-owned NCLEX prep offering that
 plugs into Phase 4 of the Journey Tracker. One or more tutors can
 co-run the same programme.
 
-### Scheduling unit
+### Delivery modes
 
-Programmes are **week-based**. Tutor chooses the length (typical:
-3 / 4 / 6 / 9 / 12 weeks). No platform-fixed length. Date-based
-calendars are deferred to v2.
+Every programme is one of two delivery modes. **Both ship in v1.**
 
-### Weekly structure
+- **Tutor-led** — students enrol in a specific **cohort** of the
+  programme. The cohort owns the schedule (live sessions, release
+  dates), seat cap, and enrolment list. Default unit label is
+  **Week** (tutors typically plan by the week), but the tutor can
+  override this — see *Unit label* below.
+- **Self-paced** — students enrol directly in the programme; no
+  cohort layer. Activities are gated by `is_published` and student
+  progression, not by cohort release dates. Default unit label is
+  **Module** (solo learners typically think topic-by-topic), but
+  the tutor can override.
 
-Each week is **tutor-defined with a default template**. When a tutor
-creates a new week, the platform pre-fills a default shape
-(pre-session reading → live session → post-session tasks). The tutor
-can delete, reorder, or add any blocks — the default is a starting
-suggestion, not a constraint.
+`programme.delivery_mode ∈ ('TUTOR_LED', 'SELF_PACED')`. The
+curriculum engine itself (units → blocks → activities) is identical
+across modes — the differences are only (a) presence/absence of the
+cohort layer and (b) how access is gated (cohort release dates vs
+`is_published` + progression).
 
-### Block types (v1)
+The rest of this section describes the tutor-led shape in depth,
+with self-paced deltas called out where they matter. A separate
+*Self-paced surface* subsection at the end covers the bits unique
+to that mode.
+
+### Unit label
+
+A **separate tutor choice** at programme creation, stored as
+`programme.unit_label ∈ ('WEEK', 'MODULE')`. Decoupled from
+delivery mode — all four combinations are valid:
+
+| Mode | Unit label | When this fits |
+|---|---|---|
+| Tutor-led | Week | Default. The bootcamp pattern. |
+| Tutor-led | Module | Topic-organised tutorial series ("Module 1: Cardiac, Module 2: Renal", with weekly live tutorials *inside* each module). |
+| Self-paced | Module | Default. The Coursera pattern. |
+| Self-paced | Week | Self-paced course offering a suggested weekly pacing plan. |
+
+**Smart default** at form-fill time: picking Tutor-led pre-selects
+Week; picking Self-paced pre-selects Module. Tutor can override
+either way before submitting. Editable later from programme
+settings (no data migration — purely a label flip in render).
+
+The label drives every render site that says "Week N" or "Module
+N" (curriculum editor, calendar, cohort cards "Week 3 of 8",
+student dashboard, history, analytics) via a single
+`unitLabel(programme)` helper.
+
+### Two-layer model (tutor-led)
+
+Students enrol in cohorts, not directly in programmes.
+
+```
+Tutor
+  ↓ owns
+Programme           — reusable design (curriculum, brand, price)
+  ↓ has many
+Cohort              — one run (dates, seats, enrolments, schedule)
+  ↓ enrols
+Student
+```
+
+- **Programme** — the reusable teaching product. Owned by a tutor.
+  Holds the curriculum (units → blocks → activities) and the
+  brand-level fields (title, tagline, description, length in units,
+  prices, public-price toggle).
+- **Cohort** — one specific run of a programme for a specific group
+  of students. Holds dates, seats, enrolment list, live-session
+  schedule, mock due dates, announcements, and a checklist of
+  *which* template activities are included in this cohort (in what
+  order, with cohort-specific release dates).
+
+A tutor can run many cohorts of the same programme over time
+(e.g. *Jan 2027*, *April 2027*, *Weekend Intensive*). They iterate
+the programme's curriculum forward; cohorts inherit the improvements
+without breaking already-launched ones (see *Curriculum propagation*
+below).
+
+### Programme layer
+
+#### Programme fields
+
+| Field | Required | Notes |
+|---|---|---|
+| Delivery mode | ✓ | `TUTOR_LED` (default) or `SELF_PACED`. Drives presence/absence of the cohort layer. Set at create-time only. |
+| Unit label | ✓ | `WEEK` or `MODULE`. Smart default from delivery mode (Tutor-led → Week; Self-paced → Module); tutor can override. Editable later. |
+| Title | ✓ | |
+| Tagline | — | One-liner shown on the public card |
+| Description | — | Long copy for the public detail page |
+| Length (units) | ✓ | Number of curriculum units. Form label flips with `unit_label`: "Length in weeks" or "Number of modules". Stored as a unit count. |
+| Price (GHS) | ✓ | 0 = free |
+| Price (USD) | ✓ | 0 = free |
+| Show price publicly | toggle, default ON | OFF → "Contact" button publicly |
+
+Pricing is set once per programme and applied to every cohort of
+that programme. Cohort-level pricing variation (early-bird, holiday
+promo) is deferred to v2.
+
+#### Programme status
+
+`DRAFT / PUBLISHED / ARCHIVED`. Set by tutor actions, not by the
+create form.
+
+- `DRAFT` — invisible to the public; the tutor is still building.
+- `PUBLISHED` — visible to the public **only if at least one
+  open cohort exists**. A published programme with zero open
+  cohorts is treated as not-yet-discoverable; the catalogue
+  doesn't list it. (Prevents dead-end pages.)
+- `ARCHIVED` — retired by the tutor. No new cohorts can be
+  launched; existing cohorts run to completion.
+
+#### Curriculum
+
+Curriculum lives at the programme layer — four layers, with the
+middle one (blocks) optional:
+
+```
+Programme  →  Unit  →  Block (optional)  →  Activity
+```
+
+- **Unit** — top-level pacing/grouping container; the tutor chooses
+  how many (typical 3 / 4 / 6 / 9 / 12; no platform-fixed length).
+  Pre-slotted for all N units (empty units shown as dashed
+  placeholders so the tutor always sees the full programme shape).
+  Rendered as **Week N** or **Module N** in the UI per the
+  programme's `unit_label` (a separate tutor choice — see *Unit
+  label* above). Same DB layer either way; only the rendered label
+  changes.
+- **Block** *(optional)* — a guided workflow grouping of related
+  activities the student treats as one push. Common shapes: a
+  tutorial-anchored block (pre-tutorial reading + the live tutorial
+  + a post-tutorial quiz, all wrapped together); or an asynchronous
+  sequence like PDF → practice quiz → revision drill. A live session
+  is a *common* anchor but not a requirement — a block can be
+  entirely asynchronous, which makes blocks just as useful in self-
+  paced programmes as in tutor-led ones.
+- **Activity** — a single actionable learning item. Activities are
+  the leaf nodes; they're what the student actually does. See
+  *Activity types* below for the v1 set.
+
+#### Loose vs. blocked activities
+
+An activity lives directly under a unit (loose) OR inside a block
+within a unit. Blocks exist when a tutor wants the student to treat
+several activities as one workflow push. Decision rule for the
+tutor:
+
+- *"Do I want the student to treat these as one push?"* → block.
+- *"Is this just a thing for this unit?"* → loose.
+
+This avoids fake single-activity blocks (which would dilute what a
+block means) and matches how a tutor actually plans: a unit
+containing one orientation live session + one welcome quiz doesn't
+need a block wrapper; a unit covering Cardiac Pharmacology with
+PDF + practice quiz + revision drill + tutorial debrief earns one.
+
+Schema implication: `activity.unit_id` is required;
+`activity.block_id` is nullable. `block_id IS NULL` means the
+activity is loose under its unit.
+
+See [curriculum-authoring-ux.md](curriculum-authoring-ux.md) for
+the editor screens.
+
+#### Activity types (v1)
 
 - Text content (rich-text notes)
 - PDF upload
 - External video link (YouTube, Vimeo, recorded-session URL, etc.)
-- Bank question set (assigned questions from the shared NCLEX bank)
+- Practice quiz (assigned questions from the shared NCLEX bank or
+  the tutor's private bank)
 - Live session (external video-call link; recording URL added after)
 - Mock assessment
 
-### Block types deferred to v2
+#### Activity types deferred to v2
 
 - Uploaded video files (storage and bandwidth cost)
 - Written assignments with tutor grading (requires submission and
   feedback workflow)
+- Library Note (the 7th activity type, sourced from the tutor's
+  reusable notes library — see [tutor-library.md](tutor-library.md))
 
-### Cohort size
+### Cohort layer
 
-Tutor sets the maximum. No platform-imposed cap in v1. Platform-wide
-quality caps may be introduced later if needed.
+#### Cohort fields
 
-### Late enrolment
+| Field | Required | Notes |
+|---|---|---|
+| Cohort name | — | Auto-generated from dates (*"5 Jan – 27 Mar 2027"*); tutor can override (e.g. *"Weekend Intensive"*). |
+| Start date | ✓ | Anchors week 1; the cohort's week N runs from `start + (N-1)*7` days. |
+| End date | ✓ | Auto-fills from start + length × 7; tutor-editable to extend bank access beyond the curriculum. |
+| Cohort size (max students) | — | Blank = no cap. |
+| Allow late join | toggle, default OFF | When OFF, enrolment closes at `start_date`. When ON, allows enrolment past start (tutor's discretion, no platform-enforced cutoff). |
 
-Tutor decides per programme. Platform default (to be refined in build):
-late enrolment off; tutor toggles it on with a cut-off if desired.
+#### Cohort status
+
+`UPCOMING / IN_PROGRESS / ENDED / CANCELLED`. Mostly derived from
+dates; CANCELLED is an explicit tutor/admin action.
+
+- `UPCOMING` — `today < start_date`. Enrolment open.
+- `IN_PROGRESS` — `start_date ≤ today ≤ end_date`. Enrolment open
+  only if *allow late join* is ON.
+- `ENDED` — `today > end_date`. No new enrolments; existing
+  students retain bank access until the end_date already paid for.
+- `CANCELLED` — explicit cancel. Hidden from public; refunds
+  handled manually off-platform.
+
+#### What a cohort owns
+
+- The enrolled students for this run.
+- The schedule: live session times, mock due dates, weekly release
+  dates.
+- The activity checklist — which template activities are included
+  in this cohort, in what order, plus any cohort-only additions.
+- Announcements posted to this cohort's students.
+- Per-cohort completion data (student progress is scoped to the
+  cohort they're enrolled in).
+
+### Curriculum propagation
+
+The programme layer owns the curriculum *content*. The cohort layer
+owns the cohort's *checklist* of which activities are in. Two
+propagation rules:
+
+- **Content edits propagate automatically.** When the tutor fixes a
+  typo, swaps a video link, improves an explanation, or adjusts a
+  quiz key — every live cohort sees the update on the next student
+  view. Single source of truth.
+- **Structural changes do not propagate.** When the tutor adds a
+  new activity to the programme, removes one, or reorders the
+  curriculum — already-launched cohorts are unaffected. The tutor
+  opts in per cohort: "add this new template activity to cohort
+  X?" or "remove this from cohort X only?".
+
+A cohort can also add **cohort-only activities** that don't exist
+in the programme template — useful for a workshop the tutor decides
+to add for one specific intake. Cohort-only activities live only in
+that cohort and do not flow back to the template.
+
+Template "deletes" are soft-deletes — cohorts that already
+included the activity keep working; only new cohorts and not-yet-
+added activity slots stop seeing it.
+
+### Enrolment paths
+
+Two paths in v1, both at the cohort layer:
+
+- **Self-paid** — student finds the programme on the public listing,
+  picks an open cohort, and pays via the bundled checkout. See
+  [payments-and-enrolment.md](payments-and-enrolment.md).
+- **Tutor-added** — tutor adds a student directly to a specific
+  cohort from inside the cohort workspace, at any point in the
+  cohort's lifecycle. No platform-enforced enrolment window or
+  cut-off date.
+
+Tutor-added enrolments comp the bundled bank-pack subscription for
+the cohort's duration; QAcademy absorbs the cost. Tracked via
+`enrolment_source ∈ ('SELF_PAID', 'TUTOR_ADDED')` on
+`nclex_enrolments`. Per-tutor quota (capping how many tutor-added
+enrolments a tutor can comp based on their subscription tier) is
+deferred to a later slice.
 
 ### Revenue model
 
 Settled in the Pricing section. In brief: tutors pay a flat monthly
 platform subscription; students pay QAcademy directly for a
-subsidised, duration-matched bank bundle at enrolment; tutor
-programme fees stay off-platform between tutor and student. No
-automated payment splits in v1.
+subsidised bank bundle matched to **the cohort's duration** at
+enrolment; tutor programme fees stay off-platform between tutor and
+student. No automated payment splits in v1.
 
 ### Content visibility
 
-- Content visibility: tutor-controlled per-activity via Live/Draft
-  status. No platform-enforced drip rules. Tutors publish activities
-  when ready.
-- **"Done" logic:** mixed. Quiz blocks and mock assessments
-  auto-complete from their score. Passive content (text, PDF, external
-  video link) is student-ticked. Live session is student-ticked (or
-  auto-complete when the tutor posts the recording — refined in build).
+- **Programme-level visibility**: activities carry a Live / Draft
+  pill in the curriculum editor (`activity.is_published`). Draft
+  activities don't appear in any cohort's checklist until the
+  tutor publishes them.
+- **Cohort-level release** *(tutor-led mode)*: each cohort activity
+  has a release date defaulted from the cohort's start date + the
+  activity's unit index (treating each unit as one calendar week
+  by default — independent of whether the unit's label is "Week" or
+  "Module"). Students see an activity once its release date passes.
+- **Progression-based gating** *(self-paced mode)*: no cohorts, no
+  release dates. Activities gate by `is_published` (tutor-controlled)
+  plus optional student-progression rules (e.g. "complete unit 1
+  to unlock unit 2" — exact progression model finalised in build).
+- **"Done" logic:** mixed. Practice quiz and mock assessment
+  activities auto-complete from their score. Passive content (text,
+  PDF, external video link) is student-ticked. Live session is
+  student-ticked (or auto-complete when the tutor posts the recording
+  — refined in build). When activities are grouped inside a block,
+  the block is "done" once every activity in it is done.
 
 ### Student dashboard (v1)
 
-Minimum set:
-- Current week number and week progress bar
-- Overall programme progress %
+Two shapes, one per delivery mode of the programme the student is
+enrolled in.
+
+**Tutor-led cohort dashboard** — scoped to the student's current
+cohort:
+- Current unit number and unit progress bar (relative to the
+  cohort's calendar; labelled "Week N" or "Module N" per the
+  programme's `unit_label`)
+- Overall cohort progress %
 - Next live session (date + join link)
 - Most recent mock assessment score
 - Journey tracker snapshot (current phase, % through it)
 
-Accepted as a starting set; may be refined during build.
+A student enrolled in multiple cohorts sees a cohort switcher; one
+dashboard per cohort.
+
+**Self-paced dashboard** — scoped to the programme directly (no
+cohort layer):
+- Current unit (whichever the student last touched) + unit
+  progress bar, labelled per `unit_label`
+- Overall programme progress %
+- *(no next-live-session card — self-paced programmes typically
+  don't run live sessions; if a tutor adds one as a one-off
+  activity, it appears in the unit's activity list like any other)*
+- Most recent mock assessment score
+- Journey tracker snapshot
+
+A student enrolled in multiple self-paced programmes sees a
+programme switcher.
 
 ### Tutor actions (v1)
 
-A tutor can, for each programme they own or co-run:
+Tutor actions split between programme-level and cohort-level.
 
-1. Create and edit the programme (title, description, length in weeks,
-   start date, max cohort size, late-enrolment toggle).
-2. Build weeks — add, edit, delete, and reorder blocks in any week.
-3. Post live session links and recording URLs.
-4. View the list of enrolled students.
-5. View a single student's detail (week-by-week completion, mock
+**Programme-level (the reusable design):**
+
+1. Create and edit a programme (delivery mode, unit label, title,
+   tagline, description, length in units, dual GHS+USD price,
+   public-price toggle). Created via a modal triggered from My
+   Programmes — see [curriculum-authoring-ux.md](curriculum-authoring-ux.md).
+   The first cohort can be created in the same modal (tutor-led
+   mode only).
+2. Build the curriculum — units, blocks, activities. Add / edit /
+   delete / reorder. Activities can be loose under a unit or grouped
+   inside a block. Edits propagate to live cohorts.
+3. Publish / unpublish / archive the programme.
+4. Duplicate a programme (start from an existing curriculum
+   instead of an empty one).
+
+**Cohort-level (the specific run):**
+
+5. Launch a new cohort of a programme (sets start_date, end_date,
+   size, late-join toggle, optional name override).
+6. Manage the cohort's checklist — add / remove template
+   activities for this cohort only, reorder, add cohort-only
+   activities.
+7. Schedule live sessions, post recording URLs after each session.
+8. View the list of enrolled students in this cohort.
+9. View a single student's detail (week-by-week completion, mock
    scores, current journey-tracker phase).
-6. Message one student, or the whole cohort.
-7. Clone an existing programme (to run the next cohort without
-   rebuilding).
-8. Archive a programme.
+10. Message one student in a cohort, or the whole cohort.
+11. Post announcements to a cohort.
+12. Add a student manually (tutor-added enrolment).
+13. Archive or cancel a cohort.
 
 ### Co-tutors
 
 A programme can have one or more tutors. In v1, all tutors on a
-programme have identical powers — no owner/assistant split. If abuse
-or coordination issues appear, a permissions split can be introduced
-in v2.
+programme have identical powers — no owner/assistant split, and
+every co-tutor is automatically on every cohort of that programme.
+Cohort-level co-tutor restrictions (e.g. one cohort run solely by a
+co-tutor, another by the owner) are deferred to v2.
 
 ### Bank usage inside a programme
 
 Programme question sets can draw from two sources:
 
 1. **QAcademy bank** — shared, QAcademy-owned. Tutors can assign bank
-   questions into question-set blocks. Tutors cannot edit bank
+   questions into practice-quiz activities. Tutors cannot edit bank
    questions or add to the shared bank. (The QAcademy bank is itself
    a standalone product sold to self-study students, so its integrity
    is protected.)
@@ -227,11 +526,45 @@ Programme question sets can draw from two sources:
 
 - **QAcademy bank questions** are visible to a student if the student
   has any active QAcademy bank pack — either purchased standalone
-  (self-study) or purchased as the subsidised bundle at programme
+  (self-study) or purchased as the subsidised bundle at cohort
   enrolment.
 - **Tutor-authored questions** are visible only to students enrolled
-  in that tutor's programme, and only inside that programme's
+  in one of that tutor's cohorts, and only inside that cohort's
   assignments.
+
+### Self-paced surface (the deltas)
+
+Self-paced programmes share the curriculum engine and almost every
+authoring screen with tutor-led, but a few surfaces differ. v1
+ships both modes. The deltas:
+
+- **No cohort layer.** A self-paced programme has no cohorts. The
+  cohort screens (Cohorts tab, New Cohort modal, cohort detail
+  subtree) are hidden for self-paced programmes.
+- **Direct enrolment.** Students enrol in the programme itself,
+  not in a cohort. The enrolment row carries
+  `enrolment_source ∈ ('SELF_PAID', 'TUTOR_ADDED')` (same shape as
+  tutor-led), but with `cohort_id = NULL`.
+- **Access window** is set per enrolment (e.g. 90-day, 180-day,
+  unlimited — finalised in build) rather than bounded by cohort
+  start/end dates.
+- **No release dates.** Activities gate by `is_published` plus
+  optional progression rules — see *Content visibility* above.
+- **No live-session scheduling assumption.** A self-paced programme
+  *can* include a Live session activity (one-off office hour, etc.)
+  and it renders normally, but the surface doesn't assume one
+  exists.
+- **No calendar view.** The Units / Calendar segmented toggle on
+  the curriculum editor hides the Calendar option in self-paced
+  mode — there's no cohort calendar to project against.
+- **Public listing line.** "Length 8 weeks · next cohort 5 May"
+  becomes "Length 8 modules · self-paced" (or whatever the unit
+  label is). Pricing surface unchanged.
+
+Everything else — the curriculum editor, activity types, blocks,
+loose-vs-blocked rule, library notes, mocks, practice quizzes,
+the bank — is identical across modes. The mode boundary is
+deliberately narrow.
 
 ### Open items within programme structure
 
@@ -239,6 +572,17 @@ Programme question sets can draw from two sources:
   country) is an admin-authored content task, handled during build,
   not in planning.
 - Revenue model is parked in the Pricing topic.
+- Cohort-only *content overrides* (a cohort changes the body of a
+  template activity for itself only) are deliberately not in v1 —
+  cohorts can add and remove, but not override content. Revisit if
+  real tutor demand surfaces.
+- **Self-paced progression rules** — exact gating model ("complete
+  unit N to unlock unit N+1" vs "all units open from day one" vs
+  "tutor-set per-unit prerequisite") finalised in build, not in
+  planning.
+- **Self-paced access-window pricing** — whether to sell as
+  duration tiers (90 / 180 / 365 days) or as one-off purchase
+  (unlimited access). Decided alongside the Pricing topic in build.
 
 ## Tutor Onboarding
 
@@ -386,13 +730,14 @@ platform tutors rent, not a commission-taking middleman.
 
 ### Tutored students and the bank
 
-Programme enrolment **bundles** bank access for the programme's
+Cohort enrolment **bundles** bank access for the cohort's
 duration — but at a subsidised price, not free.
 
-- When a student enrols in a tutor's programme, they pay QAcademy
-  directly for a programme-matched bank pack, at a discounted rate.
+- When a student enrols in a tutor's cohort, they pay QAcademy
+  directly for a cohort-duration-matched bank pack, at a discounted
+  rate.
 - The discount is QAcademy's contribution to the programme's value.
-- Tutor has no variable cost tied to their cohort size — their
+- Tutor has no variable cost tied to a cohort's size — their
   subscription stays flat.
 - Student sees a clean enrolment flow: tutor fee paid to the tutor
   (off-platform, in the tutor's currency), bank access paid to
@@ -401,6 +746,9 @@ duration — but at a subsidised price, not free.
   matching duration, rounded up so no student is ever mid-week with
   expired bank access.
 - Subsidy price is set globally by admin. Tutors do not control it.
+- Cohort-level pricing variation (early-bird, holiday promo, foundation-
+  vs polished-cohort tiers) is deferred to v2 — for now, the
+  programme's price is the price for every cohort of that programme.
 
 ### Provisional numbers
 
@@ -599,6 +947,9 @@ added here as they emerge.
     editors
   - `payments-and-enrolment.md` — student payment flows, product
     catalogue, and enrolment (both self-study and tutored)
+  - `tutor-library.md` — tutor's reusable teaching notes (parked
+    feature; will add Library Note as the 7th activity type when
+    queued for build)
   - `mockups/` — visual mockups (HTML reference files)
   - (future) `payments.md`, `registration.md`, etc.
 - `mynclex/db/` — database schema, RLS, migrations (to be populated)

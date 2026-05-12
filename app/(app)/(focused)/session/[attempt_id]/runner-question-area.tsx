@@ -30,12 +30,17 @@
 // normally — its slot list sits below the stem like a regular options
 // block.
 //
-// Wrapper-aware layout (case panel + question, trend dataset + question)
-// lands with slices 4.3 / 4.4. For now we always render `.rn-q-wrap`.
+// Wrapper-aware layout (case panel + question — slice 4.3 / trend
+// dataset + question — slice 4.4) places the question column inside a
+// `.rn-split` grid. The wrapper still owns `.rn-q-wrap`; the column's
+// minmax sizing clamps it. Case-childs supply a CJMM strip via the
+// `topSlot` prop, which renders at the top of the wrap above
+// `.rn-q-meta`.
 
 'use client';
 
-import type { SealedItem, UnsealedItem, AnswerRow } from '@/lib/bank/runner';
+import type { SealedItem, UnsealedItem, AnswerRow, PerItemUnseal } from '@/lib/practice/runner';
+export type { PerItemUnseal };
 import type { QuestionType } from '@/lib/bank/classifications';
 import type {
   McqContent,
@@ -56,7 +61,6 @@ import type {
   DragDropCorrect,
   BowtieContent,
   BowtieCorrect,
-  BankItemCorrect,
 } from '@/lib/bank/types';
 import type {
   McqAnswer,
@@ -81,7 +85,7 @@ import {
   DragDropRunner,
   BowtieRunner,
   RationaleBlock,
-} from '@/lib/bank/runner';
+} from '@/lib/practice/runner';
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   MCQ:       'Multiple choice',
@@ -103,15 +107,17 @@ interface Classification {
   difficulty?:               string;
 }
 
-export interface PerItemUnseal {
-  correct:      BankItemCorrect;
-  rationale:    string | null;
-  rationaleImg: string | null;
-  marksMax:     number;
-}
-
 interface CommonProps {
-  item: SealedItem | UnsealedItem;
+  item:     SealedItem | UnsealedItem;
+  // Optional render slot above the q-meta strip. Case-childs (slice
+  // 4.3) pass a <CjmmStrip />. Trend questions don't use this — their
+  // dataset panel sits beside the question, not above it.
+  topSlot?: React.ReactNode;
+  // Trend questions render an inline "⤬ Trend" pill in the q-meta
+  // strip (slice 4.4). The dataset itself lives in <TrendPanel> on
+  // the left of the .rn-split. Standalones / case-childs leave this
+  // false.
+  trendBadge?: boolean;
 }
 
 type AnsweringProps = CommonProps & {
@@ -136,10 +142,17 @@ export function RunnerQuestionArea(props: Props) {
 
   return (
     <div className="rn-q-wrap">
+      {props.topSlot}
       <div className="rn-q-meta">
         <span className="rn-type-pill">
           {QUESTION_TYPE_LABELS[item.question_type] ?? item.question_type}
         </span>
+        {props.trendBadge && (
+          <span className="rn-trend-pill">
+            <span className="glyph" aria-hidden="true">⤬</span>
+            Trend
+          </span>
+        )}
         {subjectPill && <span className="rn-type-pill">{subjectPill}</span>}
         {difficulty  && <span className="rn-type-pill">Difficulty · {difficulty}</span>}
       </div>

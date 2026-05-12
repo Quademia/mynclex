@@ -6,6 +6,2186 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-12 (9.3b) — Unit Builder + Text activity
+
+First editing surface in Phase B. After this slice tutors can
+actually author Text content unit-by-unit — open a programme's
+curriculum tab, click into a unit, add Text activities, edit
+them, reorder them, delete them, set unit titles.
+
+### Planning conversation — what shaped the file shape
+
+Sam pushed back twice during planning. Both pushbacks reshaped
+the slice substantially.
+
+**First pushback — "why slide-in for the editor?"** The mockup
+HTML uses right-side slide-in panels for activity editors, and I
+proposed that initially. Sam asked why; thinking it through, the
+answer was wrong: activity editors are real authoring surfaces
+(Text body can run 500+ words; future Mock + Practice quiz will
+embed the bank filter builder), not transient overlays. A 400px
+slide-in panel cramps that. Reconsidered → moved to dedicated
+activity-editor pages under `/curriculum/unit/<unit_id>/activity/
+<activity_id>`.
+
+**Second pushback — "shouldn't activities be components?"** Sam
+flagged the cohort-only-activity flow (9.3f): the same editor
+needs to be invoked from the cohort layer, where a tutor adds a
+one-off activity to a specific run. If the editor is a dedicated
+page under `/curriculum/...`, the cohort surface (under
+`/cohort/...`) can't reuse it — different route subtree, no
+shared shell. A **component-based modal** is reusable from
+anywhere. That's the right call.
+
+So the final shape: **<ActivityModal> is a reusable component**
+(modal shell holding the type label header + shared Title + Note
+fields + a slot for the type-specific body). Below the divider
+it dispatches on activity.type to the right body component
+(<TextEditor> in 9.3b; the other five land in 9.3d). Same shell
+gets reused from the cohort-only-activity flow in 9.3f without
+changes — neither the shell nor the body components care where
+they're invoked from. Caller decides which server action runs.
+
+The discussion produced one more design choice: the activity
+modal needs more real estate than the programme/cohort form
+modals (which max-width at 560px). Defined a wider variant
+`.prog-modal.activity-modal` at max-width 720px to accommodate
+authoring-heavy forms. Future Mock + Practice quiz editors with
+embedded bank filter builders fit there too.
+
+### Schema — none new
+
+9.3a's three tables already cover everything 9.3b needs. No
+migration in this slice.
+
+Open product question still deferred: when a tutor edits a
+programme's `length_units` after curriculum exists. Lock not
+implemented yet — none of the existing rows have curriculum
+worth losing. Will land alongside / before whichever slice first
+ships the editable length flow.
+
+### What shipped
+
+**Route + page** — new
+`/tutor/programme/<id>/curriculum/unit/<unit_id>`. Server
+component fetches the unit + its loose activities + parent
+programme via `getUnitDetail()` in one trip. 404s when the unit
+doesn't exist or belongs to a programme the tutor doesn't own;
+defensive second check confirms `detail.programme.programme_id`
+matches the route's `programme_id` (catches typed URLs trying to
+reach a unit through the wrong programme).
+
+**lib/curriculum/ — 5 new files:**
+- `actions.ts` — five server actions: `createActivityAction`,
+  `editActivityAction`, `deleteActivityAction`,
+  `reorderActivityAction`, `editUnitAction`. All gated on
+  `auth.getUser()` and rely on RLS for parent-ownership
+  enforcement. The two activity-write actions hard-gate on
+  `type='TEXT'` in this slice; broaden in 9.3d.
+- `text-editor.tsx` — Text-type body component (Body textarea +
+  estimated reading time). Stateless about location; emits
+  `onChange` for every keystroke. First of six type bodies.
+- `activity-modal.tsx` — reusable modal shell. Holds the shared
+  Title + Note fields above a divider; slot below for the
+  type-specific body. Discriminated `mode: 'create' | 'edit'`.
+  Runs the server action itself based on mode so both call sites
+  (programme curriculum here; cohort-only-activity later) get
+  the same Save behaviour.
+- `activity-picker.tsx` — inline 3×2 type picker (mockup screen
+  5). Text tile enabled with "Notes & reading"; the other five
+  render disabled with "Coming soon" sublines. Replaces the
+  "+ Add activity" button in place — not modal.
+- `unit-form-modal.tsx` — small modal for editing the unit
+  itself (Title / Description / Live-Draft toggle). Matches the
+  programme/cohort form-modal pattern exactly.
+- `unit-builder.tsx` — interactive body of the unit-detail page.
+  Holds picker state, modal state (create vs edit), edit-unit
+  modal state, and the simple delete-confirm dialog. Activity
+  rows are rendered inline as `.map()` — no separate
+  `<ActivityRow>` component (file sprawl avoidance per Sam's
+  build-list discussion).
+
+**lib/curriculum/ — 3 edits:**
+- `types.ts` — added `UnitFormValues`, `ActivityCommonFormValues`,
+  `TextActivityBodyValues`, `TextActivityFormValues`,
+  `UnitDetail`, plus the exported `ACTIVITY_TYPES` literal array.
+- `queries.ts` — added `getUnitDetail(unitId)` returning unit +
+  loose activities (block_id IS NULL — blocks land in 9.3c) +
+  parent programme identity / shape in one PostgREST embed.
+- `unit-card.tsx` — overlay-link to the Unit Builder (same
+  pattern as `<CohortCard>` / `<ProgrammeCard>`). `units-grid.tsx`
+  edited to thread `programmeId` down to each card.
+- `app/(app)/.../curriculum/page.tsx` — minor edit to pass
+  `programmeId` into the grid.
+
+**styles/curriculum.css** — appended ~250 lines covering the
+unit-detail page header, activity rows, the inline 3×2 picker,
+the wider modal variant, the activity-editor body, and the
+overlay-link hover state on unit cards.
+
+### Per-Q UX choices locked in
+
+- **Delete activity = simple confirm** (not type-to-confirm).
+  Low-stakes — text content is recoverable mentally and v1 has
+  no consuming students yet. Same pattern as
+  `<CancelCohortConfirm>`.
+- **Reorder = up/down arrow buttons** at every row, with the
+  first row's up + last row's down disabled. Two-step DB UPDATE
+  (not atomic) — for v1 volumes the brief mid-swap is invisible
+  because ordering is by ordinal ASC and ties never matter (we
+  re-render after revalidate).
+- **No real RTE in the Body textarea** — plain `<textarea
+  rows={12}>` with a help text hinting that rich-text formatting
+  is coming later. The DB column is text-shaped either way;
+  swap to a real editor is a UI change, not a migration.
+- **Edit unit = modal**, not slide-in. Three fields. Matches
+  programme/cohort form-modal pattern.
+
+### Real authoring verified
+
+Sam created two real Text activities during testing — both
+substantive NCLEX content (Acid-Base Imbalance + NCLEX RN Exam
+Overview, ordinal 1 and 2 in Unit 1 of the 8-Week NCLEX
+Bootcamp). The unit title `"Foundations + Acid-Base"` confirmed
+the Edit unit modal also worked. Payload shape lands as
+`{body, estimated_minutes: 30}` exactly per the TS contract.
+
+### Next ⏭
+
+- **9.3c** — Blocks. "+ Add block" entry point on Unit Builder;
+  block card UI with own activity stack + "+ Add activity to
+  block"; reorder a block within a unit; row action "Move into
+  block →" / "Move out as loose"; empty-block prevention prompt
+  on last-activity delete. Blocks + loose entries interleave in
+  any order in the unit body. New `nclex_programme_blocks` table
+  is already in place from 9.3a; this slice activates it via UI
+  + server actions + a small reorder rework so blocks and loose
+  activities share one ordinal sequence within the unit body.
+
+---
+
+## Session — 2026-05-12 (9.3a) — Curriculum schema + Units Overview (read-only)
+
+Opening slice of Phase B. Curriculum-authoring rework (settled
+2026-05-11) lands in code. After this slice every programme has a
+real, navigable curriculum tab — pre-slotted with N empty unit
+cards — though no editing yet. The three template tables are in
+place and ready for 9.3b onwards.
+
+### Sub-slice plan for Phase B (locked in this session)
+
+Phase B is too big for one slice. Sub-sliced into six:
+
+- **9.3a** — Schema + Units Overview (read-only). *Shipped here.*
+- **9.3b** — Unit Builder + Text activity (first type).
+- **9.3c** — Blocks.
+- **9.3d** — Remaining five activity types (PDF, External link,
+  Live session, Mock, Practice quiz). Mock + PQ defer the
+  question-selection UI.
+- **9.3e** — Publish state + content visibility.
+- **9.3f** — Cohort curriculum tab (checklist).
+
+Deferred out of Phase B: Calendar view, cohort-only activities,
+real rich-text editor, duplicate flows. Sidebar reshuffle of
+Live Sessions / Mocks / Students / Results (the (a) option from
+earlier) also deferred — Sam's call to let it sort itself out as
+cohort-layer features land.
+
+Routing decision: the curriculum tab lives at
+`/tutor/programme/<id>/curriculum/...` regardless of the
+programme's `unit_label` — the URL segment is the neutral concept
+word "curriculum". Sidebar tab label is **static "Curriculum"** to
+match curriculum-authoring-ux.md screen 7; the Week/Module
+distinction surfaces on the unit cards via the new
+`unitLabel(unitIndex, label)` helper. The old `/weeks` placeholder
+gets **deleted, not renamed** — Sam established the general
+principle this session: when architecture moves, rebuild routes to
+fit the new shape rather than retrofit names. Saved as a feedback
+memory.
+
+### Planning conversation — access timing belongs on the cohort, not the programme
+
+Sam asked whether blocks + activities need `accessible_from` /
+`close_at` columns at the programme layer. The conversation
+walked three workflows:
+
+- **(A)** Tutor sets relative offsets at curriculum authoring time
+  ("open day 3 of week 3"). Cohorts inherit and can override.
+- **(B)** Self-paced access windows ("opens N days after
+  enrolment"). Different unit — relative to enrolment, not cohort
+  start.
+- **(C)** Absolute calendar dates. Makes the activity
+  non-reusable across cohorts.
+
+None of these fit the programme layer in v1. Sam's mental model
+once clarified: the tutor builds the curriculum once; when a
+cohort is created they set per-block / per-activity timing for
+that cohort directly. Different cohorts of the same programme can
+run different schedules — gradual reveal, all-open from day 1,
+manual tutor-driven, whatever. No programme-layer columns; no
+hard-coded modes. Timing is a cohort-layer concept that lands on
+the cohort-checklist row in slice 9.3f.
+
+Practical upshot: **9.3a's schema has no access/timing columns**.
+The programme tables hold curriculum content only.
+
+### Schema (migration `20260512200000_slice_9_3a_curriculum_schema.sql`)
+
+Three new tables, all RLS-policied via the programme ownership
+chain:
+
+- **`nclex_programme_units`** — one row per unit slot.
+  `unit_id, programme_id, unit_index (1..length_units), title?,
+  description?, is_published, created_at, updated_at`. Unique
+  `(programme_id, unit_index)` protects the backfill +
+  future length expansions from duplicating an index.
+
+- **`nclex_programme_blocks`** — empty until 9.3c.
+  `block_id, unit_id, ordinal, title (NOT NULL — empty blocks
+  aren't allowed), description?, is_published, audit`. ON DELETE
+  CASCADE from units.
+
+- **`nclex_programme_activities`** — empty until 9.3b.
+  `activity_id, unit_id (NOT NULL), block_id (NULLABLE — null =
+  loose under the unit), ordinal, type (CHECK enum of 6), title,
+  note?, payload JSONB, is_published, audit`. Both unit_id and
+  block_id cascade. Partial index on `block_id WHERE block_id IS
+  NOT NULL` keeps the by-block lookup cheap without indexing the
+  vast majority of loose-activity rows.
+
+Activity payload is a flexible JSONB column. The DB doesn't
+enforce per-type shape; the contract lives in
+`lib/curriculum/types.ts` as a discriminated union (`ActivityPayload
+{Text|Pdf|ExternalLink|LiveSession|Mock|PracticeQuiz}`). Marked
+**provisional** — Sam's call to keep the table as a reference and
+refine per-type when each editor ships (Text in 9.3b, the rest in
+9.3d).
+
+RLS on all three tables: tutors get full CRUD on curriculum for
+programmes they own via parent-ownership subqueries; SUPER_ADMIN
+gets a bypass policy per table. Full CRUD shipped in this slice
+even though only SELECT is exercised by the read-only UI — saves a
+follow-up migration in 9.3b just to add write policies.
+
+### Backfill — every programme gets N empty unit rows
+
+```sql
+INSERT INTO nclex_programme_units (programme_id, unit_index)
+SELECT p.programme_id, gs.idx
+FROM   nclex_programmes p
+CROSS  JOIN LATERAL generate_series(1, p.length_units) AS gs(idx);
+```
+
+10 existing dev programmes × their `length_units` = 62 empty unit
+rows on day one. After this migration every programme has a full
+set of empty unit slots; the Units Overview grid renders them as
+dashed placeholders. No programme can be in a "no units" state.
+
+### App code — read-only Units Overview
+
+- **`lib/curriculum/`** (new domain folder, sibling of
+  `lib/programmes/` + `lib/cohorts/`) — five files:
+  - `types.ts` — `ProgrammeUnit`, `ProgrammeBlock`,
+    `ProgrammeActivity`, `ActivityType`, `ActivityPayload*`
+    discriminated union, `UnitGridRow` projection.
+  - `queries.ts` — `getUnitsForProgramme(programmeId)` returns
+    units with rolled-up `block_count` + `activity_count` via
+    PostgREST embedded counts.
+  - `format.ts` — `unitLabel(index, label)`, `formatUnitCounts()`,
+    `formatUnitTitle()`, status pill helpers.
+  - `unit-card.tsx` — single read-only card. Dashed border on
+    empty units (block_count + activity_count both zero).
+  - `units-grid.tsx` — `auto-fill` CSS grid; one card per unit.
+
+- **`app/(app)/tutor/programme/[programme_id]/curriculum/page.tsx`** —
+  new route. Reads programme + units, renders a heading + grid.
+  Heading sub-line says "Weeks for this programme." or "Modules for
+  this programme." per `unit_label`.
+
+- **`styles/curriculum.css`** — new domain CSS file; imported in
+  `app/(app)/layout.tsx`. `.units-grid` is `auto-fill` `minmax(260px,
+  1fr)`; `.unit-card` is `display:flex; flex-direction:column` with
+  min-height 120px. Empty cards get `border-style: dashed` + soft
+  background. Live/Draft pill shares the colour tokens used by the
+  programme pill (`#f0fdf4 / #166534 / #bbf7d0` for Live, soft
+  greys for Draft).
+
+- **`lib/nav/tutor.ts`** — replaced the `weeks` programme-nav
+  entry with `curriculum`. Label is static "Curriculum"; href
+  swaps `:programmeId` at render time same as every other entry.
+
+- **`app/(app)/tutor/programme/[programme_id]/weeks/`** — deleted
+  whole-cloth (route + placeholder page). The old stub had no
+  callers other than the sidebar entry, which now points at
+  `/curriculum`.
+
+### What 9.3a explicitly doesn't do
+
+- No editing — unit cards are not clickable, no edit buttons, no
+  "+ Add" affordances. Unit Builder is 9.3b.
+- No activities or blocks render — those tables are empty.
+- No publish-state UI — every unit is Draft; no toggle yet.
+- No cohort-side surfaces — cohort curriculum tab is 9.3f.
+- No drag-and-drop reorder — deferred to v2 per planning doc.
+
+### Open product question kept on the side
+
+When the tutor edits a programme's `length_units` after curriculum
+rows exist (e.g. 8 → 10, or 10 → 8) — does the system auto-add /
+auto-delete unit rows? **Decision deferred**: lock `length_units`
+from being editable while curriculum rows exist, revisit when a
+real tutor asks. Cheap to relax later. Avoids a data-loss surface
+in the meantime. The lock itself isn't enforced in code yet — none
+of the existing rows have curriculum to lose, so 9.3a doesn't ship
+the lock. Will land alongside / before 9.3b when editing surfaces
+exist that could trigger the edge case.
+
+### Next ⏭
+
+- **9.3b** — Unit Builder + Text activity (first type). Clicking
+  a unit card lands on a unit detail page (`/curriculum/unit/<unit_id>`).
+  "+ Add activity" inline 3×2 picker (Text enabled, other five
+  greyed). Text-activity editor as a right-side slide-in panel
+  (Title + Note to student + body textarea — real RTE deferred).
+  Reorder arrows for loose activities. Edit / delete via
+  `<DeleteConfirm>` from `lib/overlays/`. No blocks yet — flat
+  unit body only.
+
+---
+
+## Session — 2026-05-12 (9.2c) — Cohort detail subtree
+
+Closing out 9.2: cohorts now have their own workspace. Tutors can
+click into a cohort from the list, navigate its tabs, edit it, and
+cancel it. This was the last sub-slice in the 9.2 architecture
+rework — the programme-side of MyNclex is now built end-to-end at
+its skeletal layer (programmes → cohorts → cohort management).
+
+One feat commit on `claude/epic-curran-d7796e` plus this docs commit.
+
+### Architecture: sibling routes, not nested
+
+The cohort detail subtree lives at `/tutor/cohort/[cohort_id]/...`
+as a sibling of `/tutor/programme/[programme_id]/...` — NOT nested
+under the programme. Per CLAUDE.md folder convention #7: when list
+and detail have different chrome, sibling folders avoid the
+double-rendered-layout bug. Same reason `/tutor/programmes/` (list)
+and `/tutor/programme/[id]/...` (detail) are siblings already.
+
+The cohort row's `programme_id` FK preserves the parent linkage in
+the data; the URL doesn't need to encode it.
+
+### Code surface
+
+New chrome: `<TutorCohortShell>` + `<TutorCohortSidebar>` +
+`<TutorCohortBackPill>` in `components/nav/tutor/`. New nav config
+`TUTOR_COHORT_NAV` in `lib/nav/tutor.ts` with five items: Overview /
+Students / Sessions / Announcements / Settings. The Settings item
+uses the `settings` (gear) icon; everything else reuses existing
+NavIcons.
+
+New route folder `app/(app)/tutor/cohort/[cohort_id]/` with:
+- `layout.tsx` — wraps children in `<TutorCohortShell>`.
+- `page.tsx` — redirects to `/overview` (root URL is a stub).
+- `overview/page.tsx` — real content (Schedule + Enrolment +
+  Programme info cards, status pill, cancelled banner when
+  applicable).
+- `students/`, `sessions/`, `announcements/page.tsx` —
+  `<Placeholder>` bodies until their respective slices land.
+- `settings/page.tsx` — real (Edit cohort + Cancel cohort cards).
+
+New `lib/cohorts/` additions:
+- `queries.ts` — `getCohortForShell(cohortId)` embeds the parent
+  programme via PostgREST's `nclex_programmes!inner(...)`
+  relationship in a single round trip.
+- `actions.ts` — `editCohortAction(cohortId, input)` (UPDATE,
+  doesn't touch programme_id — caller can't reparent) and
+  `cancelCohortAction(cohortId)` (sets cancelled_at; the
+  `.is('cancelled_at', null)` guard makes it a no-op on already-
+  cancelled rows).
+- `cohort-form-modal.tsx` — refactored to discriminated union
+  `{ mode: 'create' | 'edit' }`, same pattern as
+  `<ProgrammeFormModal>`. Edit mode pre-populates from `initial`
+  values and gates the submit button on dirtiness.
+- `edit-cohort-trigger.tsx` — client wrapper, opens the modal in
+  edit mode from the Settings tab.
+- `cancel-cohort-confirm.tsx` — client wrapper with a simple
+  confirm dialog ("Cancel this cohort? Keep cohort / Cancel
+  cohort"). No type-to-confirm gate — cancellation is reversible
+  (admin can clear cancelled_at later), so one-click friction is
+  the right amount.
+
+Updated:
+- `lib/cohorts/cohort-list.tsx` — each card wraps its content in
+  an overlay `<Link>` to `/tutor/cohort/<id>/overview`. Same
+  pattern as `<ProgrammeCard>`'s overlay-link.
+- `styles/cohorts.css` — added `.cohort-page`, `.cohort-overview-*`,
+  `.cohort-settings-*`, `.confirm-dialog`, `.cohort-cancel-btn`,
+  `.prog-btn-danger`, `.sidebar-context` (cohort name secondary
+  line in the sidebar header).
+
+### Settings tab: modal-on-click for edit, simple confirm for cancel
+
+Two judgment calls flagged in the planning conversation:
+
+**Edit: modal reuse over inline form.** The cohort form modal
+existed and worked; extending it with an edit mode was ~30 lines.
+Building a fresh inline form on Settings would have been a UX
+upgrade but a more expensive build. Deferred to a future polish
+slice if needed.
+
+**Cancel: simple confirm, not type-to-confirm.** Type-to-confirm is
+reserved for irreversible destruction. Cancellation here is soft —
+cancelled_at is a timestamp, admin can clear it, no data lost. A
+one-click confirm dialog is the right amount of friction.
+
+### Back-pill: one level
+
+Topbar back-pill in the cohort workspace reads `← <programme title>`
+and links to `/tutor/programme/<id>/cohorts/` — the parent
+programme's Cohorts tab. One-level over two-level to keep visual
+weight down. The cohort identity is already conveyed by the
+sidebar header ("This cohort" + the cohort name as a context line).
+
+### Defensive 404s
+
+- Unknown cohort ID → 404 (via `getCohortForShell` returning null).
+- Cohort whose parent programme is SELF_PACED → 404. Shouldn't be
+  reachable normally (the Cohorts tab itself hides for self-paced
+  programmes), but a stale link would land here otherwise.
+
+### Co-existing duplicate tabs (intentional, for now)
+
+The programme sidebar still has Live Sessions / Mocks / Students /
+Results tabs. Those are conceptually cohort-level concerns that
+were placed on the programme before the cohort split landed. The
+plan: leave them in place for 9.2c; reshuffle them onto the cohort
+workspace in a separate slice with its own planning conversation,
+once we know which of these belong where (some — like Mocks — may
+genuinely live at the programme template layer).
+
+### Modules + delivery mode clarification
+
+During testing Sam noticed that a programme set to "Modules" wasn't
+showing the Cohorts tab. The cause is delivery_mode (SELF_PACED
+hides cohorts), not unit_label. The smart default at create-time
+links the two (SELF_PACED → MODULE), so a tutor who picked
+Self-paced without re-touching the label ends up with the
+MODULE+SELF_PACED combo and reads "Modules → no cohorts." Confirmed
+the two axes are independent — TUTOR_LED + MODULE (a tutor-led
+module series) is a valid shape and shows the Cohorts tab.
+
+### Where 9.2 leaves us
+
+End-to-end programme/cohort architecture is built at the skeletal
+layer:
+- Tutors can create programmes (TUTOR_LED or SELF_PACED, WEEK or
+  MODULE label).
+- Tutors can create cohorts of tutor-led programmes.
+- Tutors can navigate into a specific cohort.
+- Tutors can edit or cancel a cohort.
+
+The heavier features still queued behind their own data:
+enrolments (table doesn't exist yet), session scheduling, mock due
+dates, announcements. Those land per-slice once their schemas are
+specified.
+
+### Next pick
+
+The natural next decisions:
+- **Sidebar reshuffle.** Move Live Sessions / Mocks / Students /
+  Results from the programme sidebar to the cohort sidebar (or
+  evaluate whether some belong on programme as templates). Own
+  planning conversation.
+- **Phase B curriculum.** `nclex_programme_units` /
+  `nclex_programme_blocks` / `nclex_programme_activities` schema +
+  the curriculum-authoring UX. Settled in planning docs already;
+  build-ready.
+- **Bank-side next ⏭**: slice 4.7 Mark-for-review toggle (still
+  the next pick when Bank work resumes).
+
+---
+
+## Session — 2026-05-12 (9.2a + 9.2b) — Programme/Cohort split lands end-to-end
+
+Two slices in one session, both on `claude/epic-curran-d7796e`. 9.2a
+did the heavy DB lift (programme/cohort split + curriculum-rework
+columns) plus minimum app rewiring so the page still loaded. 9.2b
+followed straight on with the first cohort surfaces — Cohorts tab,
+cohort form modal, entry-point nudges. Tutors can now genuinely list
+and create cohorts of their programmes; the detail subtree (Overview
+/ Students / Sessions / etc.) is 9.2c's job.
+
+Three commits on the session branch (9.2a feat, 9.2b feat, this docs
+commit). 9.2c was scope-narrowed mid-session as a side effect of the
+9.2b reshape — its planning-doc text moved into 9.2b so the slice
+ships a testable end-to-end flow.
+
+### 9.2a — planning conversation: where pricing lives
+
+Two pricing questions surfaced before SQL touched the database, and
+both were resolved by re-reading the planning docs against the
+suggestion on the table.
+
+**Q1: should cohort have its own pricing override columns?** Sam
+proposed nullable `price_minor_*_override` on cohort. Pushed back
+because three planning docs ([main.md](docs/product-plan/main.md),
+[payments-and-enrolment.md](docs/product-plan/payments-and-enrolment.md))
+explicitly defer cohort-level pricing variation to v2. The technical
+cost of two columns is tiny, but the architectural decision had
+already been analysed and recorded — reversing it without a new
+reason is the wrong shape of work. Sam confirmed: stick with the
+deferral. Forward-compatible — adding override columns later is a
+one-line migration.
+
+**Q2: should pricing move entirely to cohort?** Sam's follow-up.
+This one would actually break self-paced: per
+[main.md:154](docs/product-plan/main.md:154) self-paced programmes
+have no cohort layer, students enrol directly with an access
+window. If pricing lived only on cohort, self-paced would have
+nowhere to put a price — and access-window pricing is
+[curriculum-authoring-ux.md:613](docs/product-plan/curriculum-authoring-ux.md:613)
+explicitly unfinalised (queued for the self-paced enrolment slice).
+The pricing-on-cohort proposal was self-paced-blind. Sam agreed
+to stick with the planning-doc default.
+
+### 9.2a — schema decisions
+
+Migration `20260512100000_slice_9_2a_programme_cohort_split.sql`
+applied to mynclex-dev via MCP. Seven Postgres steps in a single
+transaction:
+
+1. **`nclex_programmes` gains** `delivery_mode TEXT` (TUTOR_LED /
+   SELF_PACED, default TUTOR_LED) and `unit_label TEXT` (WEEK /
+   MODULE, default WEEK). Both with CHECK constraints.
+2. **Rename `length_weeks` → `length_units`** plus its CHECK
+   constraint (`nclex_programmes_length_units_check`). Semantics
+   shift to a generic unit count rendered as Week N or Module N
+   per `unit_label`.
+3. **New `nclex_cohorts` table.** Columns: `cohort_id` (PK),
+   `programme_id` (FK, ON DELETE CASCADE), `name` (TEXT nullable —
+   NULL → UI auto-generates from dates), `start_date`, `end_date`,
+   `cohort_size` (nullable), `allow_late_join` (default FALSE),
+   `cancelled_at` (TIMESTAMPTZ nullable), `created_at`,
+   `updated_at`. Constraint `nclex_cohorts_dates_ok` on
+   `end_date >= start_date`. Single index
+   `idx_nclex_cohorts_programme(programme_id)`.
+4. **Backfill** — `INSERT INTO nclex_cohorts SELECT programme_id,
+   start_date, end_date, cohort_size, …` for every existing row.
+   For programmes whose status was CANCELLED, the cancellation
+   timestamp moves to the cohort's `cancelled_at` so no historical
+   fact is lost.
+5. **RLS on `nclex_cohorts`** — mirrors programmes via parent-
+   ownership subquery (`EXISTS (SELECT 1 FROM nclex_programmes p
+   WHERE p.programme_id = nclex_cohorts.programme_id AND
+   p.tutor_id = auth.uid())`) on USING + WITH CHECK. Four
+   policies: self_select / self_insert / self_update / admin_all.
+6. **`nclex_programmes` status tightens** to DRAFT / PUBLISHED /
+   ARCHIVED. Pre-flip: `UPDATE … SET status = 'ARCHIVED' WHERE
+   status = 'CANCELLED'` (cohort backfill above captured the
+   timestamp). Drop the old check constraint, add a new one.
+7. **`nclex_programmes` drops** `start_date`, `end_date`,
+   `cohort_size`, `cancelled_at`, and the `nclex_programmes_dates_ok`
+   constraint.
+
+**Cohort status — NOT stored** (decision settled in slice planning,
+matches [main.md:341](docs/product-plan/main.md:341)
+*"mostly derived from dates"*). UPCOMING / IN_PROGRESS / ENDED
+derive from `(start_date, end_date, today)` in TS via
+`cohortStatus()`; only CANCELLED is persisted via `cancelled_at IS
+NOT NULL`. No drift, no trigger.
+
+Verification: 7 programmes → 7 cohorts after backfill, one with
+`cancelled_at IS NOT NULL` (March Mini-Bootcamp), two programmes
+now ARCHIVED (the originally ARCHIVED + the migrated CANCELLED).
+
+### 9.2a — app rewiring
+
+Dropping date/seat columns from `nclex_programmes` broke
+`getMyProgrammes()`, `<ProgrammeFormModal>`, and `<ProgrammeCard>`.
+Same-slice fix so /tutor/programmes still loads:
+
+- **`<ProgrammeFormModal>`** — Schedule section deleted (Start /
+  End / Cohort size all gone). New Shape section with Delivery
+  mode (disabled in edit mode), Unit label, and Length. Length
+  field's label flips with Unit label ("Length in weeks" vs
+  "Number of modules") via a `lengthFieldLabel` const. Smart
+  default: in create mode, picking Self-paced auto-flips Unit
+  label to Modules unless the tutor has already touched the field
+  (`unitLabelTouched` ref).
+- **`<ProgrammeCard>`** — schedule line → cohort-count line.
+  `formatCohortCount(count)` returns "No cohorts yet" / "1 cohort"
+  / "N cohorts"; SELF_PACED programmes show "Self-paced" instead.
+  Programme length renders on the left via `formatLength()`.
+- **`getMyProgrammes()`** — `select(...)` embeds `nclex_cohorts(count)`
+  and flattens to `cohort_count: number` on each row.
+- **`<ProgrammeList>`** — drops the dead `p.status === 'CANCELLED'`
+  branch in the archived split.
+- **`getProgrammeForShell()`** returns `{programme_id, title,
+  delivery_mode, unit_label, length_units}` — drives both nav
+  filtering (slice 9.2b) and modal pre-fills.
+- **`db/schema.sql` + `db/rls.sql`** snapshots updated to mirror
+  the post-migration shape.
+
+10 files, +599 / −313. Commit `c97f972`.
+
+### 9.2b — reshape: programme-first, cohort-when-ready
+
+BUILD_LIST originally framed 9.2b as a combined
+`<ProgrammeWithFirstCohortModal>` capturing programme + first
+cohort in a single submit, with the cohort modal also reusable
+from the Cohorts tab in 9.2c. Sam pushed back: curriculum lives
+at programme layer, and a tutor would naturally build out the
+curriculum before scheduling the first cohort. Forcing cohort-on-
+create inverts that workflow and makes tutors invent dates before
+they've sized the curriculum.
+
+The system already handles cohortless programmes —
+[main.md:250-253](docs/product-plan/main.md:250) explicitly says a
+PUBLISHED programme with zero open cohorts is not-yet-discoverable
+in the catalogue. No data integrity problem.
+
+Slice reshape:
+
+- **9.2b** = Cohorts tab + standalone `<CohortFormModal>` +
+  entry-point nudges from the "no cohorts" state. Tutor can list
+  and create cohorts.
+- **9.2c** = Cohort detail subtree only (sibling
+  `/tutor/cohort/[id]/...`). Cohorts tab moved out of 9.2c into
+  9.2b so 9.2b ships a testable end-to-end flow rather than
+  building a modal with no caller.
+
+### 9.2b — what got built
+
+New `lib/cohorts/` domain (Sam approved the new folder per the
+"ask before new folders" rule):
+
+- **`types.ts`** — `Cohort`, `CohortStatus`, `CohortListRow`,
+  `CohortFormValues`.
+- **`format.ts`** — `cohortStatus()` (derives UPCOMING /
+  IN_PROGRESS / ENDED / CANCELLED from dates + cancelled_at),
+  `formatCohortName()` (falls back to date-range autogen when
+  `name IS NULL`), `formatDateRange()` ("5 Jan – 27 Mar 2027"
+  same-year, "20 Dec 2026 – 14 Feb 2027" cross-year),
+  `formatCohortStatusLabel()`, `cohortStatusPillClass()`,
+  `formatCohortSeats()`.
+- **`queries.ts`** — `getCohortsForProgramme(programmeId)` and
+  `getCohortCountForProgramme(programmeId)` (lightweight rollup
+  for entry-point nudges, uses `count: 'exact', head: true`).
+- **`actions.ts`** — `createCohortAction(programmeId, input)`.
+  Bare INSERT (no RPC needed — single row, RLS handles auth).
+  Revalidates `/tutor/programmes`, the Cohorts tab, and the
+  programme overview so cohort-count rollups refresh.
+- **`cohort-form-modal.tsx`** — name (optional), Start date
+  (required), End date (read-only readout, derived from start +
+  length × 7), Cohort size (optional), Late-join toggle. Reuses
+  `.prog-modal-*` / `.prog-field-*` styling from programmes.css
+  for visual consistency; adds `.prog-toggle-inline` modifier for
+  the late-join toggle inside a `.prog-field` column.
+- **`new-cohort-trigger.tsx`** — wrapper with three variants
+  ('header' / 'card' / 'empty') for the three places the button
+  surfaces.
+- **`cohort-list.tsx`** — grid of cohort cards with name (or
+  autogen date range), status pill, date-range subtext (when a
+  custom name is set), seat info, and Late-join badge.
+
+New route:
+
+- **`app/(app)/tutor/programme/[programme_id]/cohorts/page.tsx`**
+  — Cohorts tab. Direct nav to the URL 404s for SELF_PACED
+  programmes (no cohort layer). Empty state when 0 cohorts uses
+  the trigger's 'empty' variant; otherwise header has the
+  trigger's 'header' variant.
+
+New nav entry: `Cohorts` added to `TUTOR_PROGRAMME_NAV` between
+Overview and Weeks. `<TutorProgrammeShell>` filters this item out
+when `programme.delivery_mode === 'SELF_PACED'`.
+
+Entry-point nudges (the (a)+(b) Sam picked):
+
+- **(a) Programme card** — when `cohort_count === 0` and the
+  programme is TUTOR_LED, the cohort-count text becomes a
+  primary-styled "+ Add first cohort" inline button. Click opens
+  the cohort modal directly from the list page. Sits at z:2 over
+  the overlay link.
+- **(b) Programme overview** — currently a Placeholder. When
+  `cohort_count === 0`, an empty-state card with "+ Add your
+  first cohort" CTA renders below the placeholder. SELF_PACED
+  programmes skip this entirely (the empty-state is gated on
+  `cohort_count` being numeric, which we short-circuit to null
+  for self-paced).
+
+New `styles/cohorts.css` (imported from `app/(app)/layout.tsx`)
+carries the Cohorts tab + card + pill + entry-point affordance
+styles. Visual language mirrors programmes.css.
+
+### 9.2b — end-date decision (and deferred product question)
+
+The cohort modal started with the same auto-fill-with-override
+pattern the old programme modal had pre-9.2a: end_date editable,
+auto-fills from start + length × 7, "Custom" help text when
+touched. Sam pushed back: the cohort is *based on* the programme,
+so end_date should be strictly derived. If a tutor needs a
+different timeline, they edit the programme, not the cohort.
+
+Settled implementation: End date renders as a read-only readout
+(`.cohort-end-date-readout`) next to the editable Start date.
+Caption reads "N weeks after start. To change this, edit the
+programme's length." No `endDateTouched`, no auto-fill `useEffect`,
+no "Custom — extends bank access" string anywhere. The derived
+value still gets snapshotted onto the cohort row at save (so
+editing programme length later doesn't silently shift existing
+cohorts' end dates).
+
+**Deferred product question:** whether to make cohort end-date
+extendable for revision-buffer / bank-access extension use cases.
+Sam flagged this could be useful but it's a product call for
+later. Same pattern existed on the old programme modal pre-9.2a
+and was retired with the Schedule section; this slice retires it
+from the codebase entirely.
+
+### 9.2b — testing on localhost
+
+Sam confirmed end-to-end:
+
+- Programme list shows cohort counts; new programmes get the
+  inline + Add first cohort button.
+- Cohort modal opens, accepts a start date, derives end date,
+  saves, modal closes, card updates.
+- Cohorts tab lists existing cohorts with status pills derived
+  from dates (Upcoming / Running / Ended / Cancelled). Backfilled
+  March Mini-Bootcamp's cohort shows Cancelled.
+- +New cohort from the tab opens the same modal.
+- Self-paced programmes hide the Cohorts sidebar entry.
+
+16 files, +1103 / −22. Commit `ef59c9c`.
+
+### Next pick
+
+**Slice 9.2c — Cohort detail subtree.** Build the sibling routes
+under `/tutor/cohort/[cohort_id]/...` — Overview, Students,
+Sessions, Announcements, Settings (Curriculum tab depends on
+Phase B's `nclex_programme_units/blocks/activities` tables, so it
+queues behind that). Cohort cards on the list page should become
+clickable to the new detail subtree. Then the existing programme
+sidebar items that are conceptually cohort-level (Live Sessions,
+Mocks, Students, Results) need their migration plan; that's a
+separate slice planning conversation.
+
+---
+
+## Session — 2026-05-10 (9.1) — Programme list + create + edit modal; tutor-library docs uploaded; cohort architecture pivot surfaced
+
+First session pivoting from Bank to Programme work. Phase A foundation
+shipped across three sub-slices (9.1a/b/c) plus a planning preamble
+(tutor-library docs upload + cross-doc updates). The session closed on
+a meaningful architectural pivot — Sam surfaced the course/cohort
+split before curriculum lands — and he paused to plan before we
+restructure 9.1 onto the new model.
+
+Five commits on `claude/naughty-shirley-fb5b41` (planning docs, 9.1a
+schema + list, demo→DB shell wire-up fix, 9.1b modal + create, 9.1c
+edit + refactor) plus this docs commit.
+
+### Planning preamble — tutor library docs uploaded + cross-doc updates
+
+Sam uploaded two files for the planning area:
+
+- `mynclex/docs/product-plan/tutor-library.md` — architectural shape
+  for the per-tutor study-notes library, settled 2026-05-08, parked
+  until programmes/payments/runner ship. Three new tables sketched
+  (`nclex_tutor_library_folders`, `_notes`, `_note_attachments`),
+  12 block types in v1, decoupled visibility (`is_published` +
+  `visibility_mode`) vs scheduling (attach-to-week as the 7th
+  activity type). `embedded_question` blocks reference bank items
+  inline; `nclex_attempts.source = 'LIBRARY_EMBED'` keeps those out
+  of student analytics.
+- `mynclex/docs/product-plan/mockups/tutor-library-mockup.html` —
+  visual companion with 9 screens (tutor list / editor / popover /
+  publish dialog / activity picker / attach modal; student home /
+  read view / week-activity row).
+
+Reciprocal "Related" links added to `main.md`, `bank.md`,
+`curriculum-authoring-ux.md`, `payments-and-enrolment.md`, and
+`tutor-nav.html` so the new doc is discoverable. Deliberately did
+NOT promote Library Note to v1 in those docs (per the library doc's
+own deferral); the cross-references promise nothing about delivery.
+
+### Programme planning recap — field list locked
+
+Reviewed the existing planning set (`main.md` Programme Structure +
+Pricing + Tutor Onboarding, `curriculum-authoring-ux.md`,
+`payments-and-enrolment.md`, `tutor-nav.html`) and reconciled stale
+spec against settled decisions. The original 7-field New Programme
+form had two stale fields:
+
+- **Mode (Cohort/Rolling)** — killed by the 2026-04-20 main.md
+  revision; visibility now per-activity via Live/Draft.
+- **Allow late enrolment** — replaced by Sam's tutor-add-anytime
+  enrolment policy; tutors can manually add students at any point.
+
+Plus payments-and-enrolment.md adds fields the original 7 don't:
+dual GHS+USD prices, `show_price_publicly`, internal status. After
+discussion with Sam the locked field list became 10 fields:
+
+| Field | Required | Notes |
+|---|---|---|
+| Title | ✓ | |
+| Tagline | — | Public card one-liner |
+| Description | — | Long copy; tutor flags free here if price=0 |
+| Length in weeks | ✓ | Curriculum buckets |
+| Start date | ✓ | Week 1 anchor; access begins |
+| End date | ✓ | Auto-fills from start + length × 7; tutor-editable |
+| Cohort size | — | Blank = no cap |
+| Price GHS | ✓ | 0 = free |
+| Price USD | ✓ | 0 = free |
+| Show price publicly | toggle, default ON | OFF → "Contact" button publicly |
+
+Locked alongside:
+- Status (DRAFT / PUBLISHED / ARCHIVED / CANCELLED) is set by
+  post-create actions, not the form.
+- Co-tutors deferred — creator is sole tutor on day one.
+- `enrolment_source ∈ ('SELF_PAID', 'TUTOR_ADDED')` — tutor-add path
+  comp's the bank bundle (QAcademy absorbs the cost).
+- QAcademy quota (per-tutor cap based on subscription) deferred.
+
+Cross-doc updates landed alongside the planning conversation:
+`main.md` rewrote the Late-enrolment subsection to Enrolment paths
+(self-paid + tutor-added) and updated the Tutor-actions row to the
+new field list. `curriculum-authoring-ux.md` rewrote section 2 from
+"New Programme form (page)" to "New Programme modal" with the 10
+fields. `payments-and-enrolment.md` added a Tutor-added enrolment
+subsection. BUILD_LIST.md Part 2 got the Phase A header.
+
+### Slice 9.1a — Schema + list page
+
+Migration `20260510120000_slice_9_1a_programmes_table.sql` applied
+to mynclex-dev. `nclex_programmes` table:
+
+- UUID PK with `gen_random_uuid()` default (matches `nclex_question_marks`
+  convention; bank items use TEXT PKs because curators set them).
+- `tutor_id` FK to `nclex_users(id) ON DELETE CASCADE` (matches
+  `nclex_tutor_questions` convention; Sam left it open between
+  `auth.users` and `nclex_users`, went with the existing pattern).
+- `length_weeks SMALLINT CHECK (1..52)`, `start_date` + `end_date`
+  DATE both required, table-level `CHECK (end_date >= start_date)`.
+- `cohort_size INTEGER` nullable; `CHECK (cohort_size IS NULL OR > 0)`.
+- Prices `INTEGER NOT NULL DEFAULT 0` in minor units (GHS + USD).
+- `status TEXT CHECK IN ('DRAFT','PUBLISHED','ARCHIVED','CANCELLED')`
+  DEFAULT 'DRAFT'. CANCELLED included now to avoid altering the
+  CHECK later when admin cancellation lands.
+- Three lifecycle timestamps (`published_at`, `archived_at`,
+  `cancelled_at`) — fine-grained enough without a separate audit
+  table.
+- Two indexes: `idx_nclex_programmes_tutor` (drives the My Programmes
+  list query) and partial `idx_nclex_programmes_public` on status =
+  'PUBLISHED' (covers the future public discovery page).
+- 3 RLS policies for this slice: self_select, self_insert,
+  admin_all. UPDATE/DELETE/public-select deferred to the slices
+  that need them.
+
+Back-ported to `db/schema.sql` and `db/rls.sql` per the steady-state
+release process.
+
+UI: `lib/programmes/` new folder (announced + Sam approved per the
+ask-before-new-folders rule). Files:
+
+- `types.ts` — `Programme`, `ProgrammeStatus`, `ProgrammeListRow`,
+  `ProgrammeFormValues`.
+- `queries.ts` — `getMyProgrammes()` (RLS-scoped, ordered
+  `updated_at desc`); `getProgrammeForShell()` for the
+  programme-context shell title lookup.
+- `format.ts` — pure helpers: `formatSchedule()` (smart copy:
+  *"Starts Mon 19 May"* / *"Week 3 of 8 · Mon 5 May → Fri 27 Jun"*
+  / *"Ended Fri 27 Jun"*), `formatStudents()`, `formatStatusLabel()`,
+  `statusPillClass()`.
+- `programme-card.tsx` — server component, single card with status
+  pill, smart schedule line, students placeholder ("0 of N students"
+  or "— students"; real enrolment count lands when
+  `nclex_enrolments` ships).
+- `programme-list.tsx` — client component, splits programmes into
+  active bank + hidden bank (ARCHIVED + CANCELLED), hides the
+  hidden bank behind a *Show archived (N)* toggle (same pattern as
+  History page slice 4.6a).
+- `empty-state.tsx` — first-login CTA.
+
+`app/(app)/tutor/programmes/page.tsx` replaced the demo cards with a
+real DB-backed list. `<TutorGlobalShell>` chrome unchanged. The
++New programme button rendered as a placeholder (`disabled={true}`)
+until 9.1b.
+
+`styles/programmes.css` — new file (per CLAUDE.md folder convention
+#5). Cleared the old `.programme-card`-style block from `nav.css`
+(scaffold-era styles that didn't belong to nav anyway). Added the
+`programmes.css` import to `app/(app)/layout.tsx`.
+
+**Wire-up fix surfaced during testing.** Sam clicked a real card and
+got 404. Root cause: `components/nav/tutor/programme-shell.tsx` had
+a hardcoded `DEMO_PROGRAMME_TITLES` map and called `notFound()` for
+anything not matching `demo-bootcamp` / `demo-rolling`. The file
+even flagged itself for replacement when `nclex_programmes` lands.
+Fix: replace the hardcoded map with a `getProgrammeForShell()` DB
+call. RLS = ownership check; the SELECT returns no row for
+programmes that aren't the tutor's, which becomes the 404.
+
+Six seed rows (mybackpacc+mynclextutor@gmail.com) cover all 4
+status × multiple time-states: in-progress PUBLISHED, upcoming
+PUBLISHED, ended PUBLISHED, DRAFT, ARCHIVED, CANCELLED. Smart
+schedule line verified across all branches.
+
+### Slice 9.1b — Modal + create flow
+
+`<NewProgrammeModal>` client component with the 10-field form:
+
+- Three sections: Identity / Schedule / Pricing. Single scroll, no
+  wizard, no tabs (per curriculum-authoring-ux.md "flat screens, not
+  wizards" principle).
+- Auto-fill: `endDate` recomputes from `startDate + lengthWeeks × 7
+  - 1` whenever start or length changes — *unless* the tutor has
+  manually edited end_date already (`endDateTouched` flag). Helper
+  text under End date flips between *"Auto-fills from start + length
+  × 7. Edit to extend bank access."* and *"Custom — extends bank
+  access beyond the curriculum."*
+- Currency input: `inputMode="decimal"`, ₵ / $ prefix, decimal
+  allowed (`125` or `125.50`), stored as minor units (×100, rounded).
+  Default `0` so free programmes need no typing.
+- Validation derived from form state; submit button disabled until
+  required fields valid. Server-side validation mirrors client (the
+  modal's checks are UX, the action's are the security boundary).
+- Discard guard: any field deviating from initial blank state →
+  closing via Cancel / ESC / backdrop fires the existing
+  `<DiscardConfirm>` from `lib/overlays/bank/`.
+- Errors surface via existing `<ErrorToast>` from `lib/toast/`
+  (top-right of viewport, auto-dismiss 5s).
+- Submit: `createProgrammeAction` (server action) → INSERT with
+  `tutor_id` set from `auth.uid()` server-side. RLS belt-and-braces.
+  Success → `onClose()` + `router.refresh()`. Failure → toast,
+  modal stays open.
+
+`<NewProgrammeTrigger>` — small client wrapper that owns the modal
+open-state. Two visual variants (`'header'` for the page button,
+`'empty'` for the empty-state CTA). `app/(app)/tutor/programmes/page.tsx`
+swapped from disabled-button to `<NewProgrammeTrigger variant="header" />`.
+
+Sam tested by creating a programme: "QAcademy Nurses Hub Nclex Crash
+Course", 12 weeks, start 2026-07-01, auto-fill landed end on
+2026-09-22 (start + 83 days), price ₵3,500 / $350, show-price-publicly
+OFF. Stored as DRAFT, prices serialised as 350000 / 35000 minor units.
+End-to-end verified.
+
+### Slice 9.1c — Edit programme (added mid-session)
+
+Sam asked for edit support before closing out, so 9.1c got added to
+the slice list mid-session. Two design questions discussed:
+
+- **Where does the Edit trigger live?** Options A (per-card pencil),
+  B (real overview page), or future Settings sub-route. The proper
+  long-term home is a `/tutor/programme/<id>/settings` sub-route as
+  an 8th sidebar item, but Sam picked **A** for now — small scope,
+  wrong long-term home but easy to migrate.
+- **Status menu / archive / discard** — deferred to a separate
+  slice. 9.1c is just edit.
+
+Migration `20260510130000_slice_9_1c_programmes_update_rls.sql`
+applied to mynclex-dev — single new policy
+`nclex_programmes_self_update` with `tutor_id = auth.uid()` on both
+USING and WITH CHECK (the WITH CHECK prevents reassigning a
+programme to a different tutor via UPDATE). Back-ported to rls.sql.
+
+Modal refactored: `new-programme-modal.tsx` deleted, replaced by
+`programme-form-modal.tsx` exporting `<ProgrammeFormModal>` with a
+discriminated `mode: 'create' | 'edit'` prop. In edit mode it
+accepts `{ programmeId, initial }`, pre-populates all fields,
+detects whether the existing `end_date` matches the auto-derived
+value (and seeds `endDateTouched` accordingly so the helper text
+reads correctly), and submits via `editProgrammeAction`. Title and
+submit-button label both adapt to mode. Submit button is also
+disabled when `isEdit && !isDirty` — there's no point saving an
+unchanged form.
+
+`<EditProgrammeTrigger>` — pencil-icon button, lives in the card's
+header next to the status pill. The card uses the **overlay-link
+pattern** to keep the whole card clickable (navigates to overview)
+while leaving the edit button interactive: a `<Link>` element with
+`position: absolute; inset: 0; z-index: 1` covers the card; the
+actions row (`.programme-card-actions`) gets `position: relative;
+z-index: 2` so its button is layered above. `e.stopPropagation()`
+on the click is belt-and-braces.
+
+`editProgrammeAction` mirrors `createProgrammeAction`'s validation,
+runs `UPDATE … WHERE programme_id = …` (RLS does the ownership
+check; a foreign tutor's UPDATE silently affects 0 rows, surfaced
+as a generic "not found or not yours" failure). Bumps `updated_at`
+explicitly. Calls `revalidatePath` on both the list page and the
+programme overview.
+
+Programme list query (`getMyProgrammes`) extended to fetch all
+editable fields (description, prices, public toggle) so the edit
+modal opens fully populated without a second round trip.
+
+Sam tested by editing his earlier-created programme to fix typos
+("prrogram" → "program", "guarantes" → "guarantees"). Save closed
+the modal, list refreshed, re-opening Edit confirmed the saved
+values.
+
+### Cohort architecture pivot — surfaced, next-session work
+
+End-of-session, Sam asked: *"if i create a 12 weeks crash course,
+i'd like to use the same course for another time, like semesters …
+shall we duplicate the programmes to fit the cohorts or that's not
+how it works?"*
+
+This is the **course/cohort split** that every academic platform
+has. He spotted the right architectural seam at the right time —
+before curriculum (weeks/modules/activities) lands in Phase B,
+because curriculum needs to attach to the course (template), not
+the cohort (run). Discussion settled the following:
+
+- **Programme = reusable syllabus** (title, length, prices,
+  curriculum, ownership).
+- **Cohort = one run** (start_date, end_date, cohort_size, status +
+  lifecycle timestamps, live-session schedule, mock due dates,
+  enrolments). Per-cohort variation lives here.
+- **Curriculum stays on the programme.** Single source of truth.
+  Improve Week 3 once → all current and future cohorts inherit.
+- **No per-cohort content overrides in v1.** A cohort can't hide,
+  modify, or replace activities from the programme. If a cohort
+  genuinely needs different content the tutor either edits the
+  programme (everyone gets it) or uses the live session /
+  announcements to communicate the variation. A v2 "Fork
+  curriculum" action would copy the curriculum tree into
+  cohort-owned tables and break the link, but that's deferred.
+- **Naming kept** — "programme" stays as the parent (existing
+  docs/URLs intact); "cohort" is the new child entity. URLs
+  unchanged at `/tutor/programmes` and
+  `/tutor/programme/<id>/...`; cohorts are listed inside the
+  programme detail.
+- **Slice 9.1's table + UI gets reshaped** — the create modal
+  becomes shorter (no start/end/cohort_size), a separate small
+  cohort modal handles the run-specific fields. Existing seeded
+  programmes will need to be migrated into one default cohort each
+  during the restructure.
+
+Sam paused to plan properly before we restructure. Slice 9.2
+provisional title: *Programme/Cohort architecture pivot*. He'll
+return with a refined plan; we'll do it right rather than rush.
+
+### What didn't ship this session
+
+- Status transitions (Publish / Archive / Discard) — Sam asked late
+  in the session ("when does the programme become live?"); we
+  outlined a 9.1d shape (per-card status menu, mirrors the pencil
+  pattern) but parked it pending the 9.2 cohort pivot since status
+  will live on cohorts not programmes.
+- Programme overview real content — placeholder still in place;
+  becomes meaningful once the cohort split + curriculum land.
+
+### Next session
+
+- Sam returns with cohort-split planning details (any per-cohort
+  fields he wants beyond the obvious ones — pricing? show-price?).
+- Slice 9.2 builds the split: new `nclex_cohorts` table, schema
+  migration with `INSERT INTO nclex_cohorts SELECT … FROM
+  nclex_programmes` to migrate existing rows, UI reshaping (split
+  the create flow into Programme form + Cohort form, list page
+  shows programmes with a small *N cohorts* line per card,
+  programme detail gains a Cohorts panel with "+ Run a cohort").
+- Once the split lands, status transitions (publish/archive) land
+  next as 9.3 — they apply to cohorts.
+
+---
+
+## Session — 2026-05-10 (4.6) — History page + Resume banner extends to EXAM; build-list restructured into Bank + Programme parts
+
+Closes slice 4.6 across two sub-slices + two bug fixes that surfaced
+during testing. The save-progress half of resume already shipped with
+4.5a/b (universal save-on-tap; pendingAnswers DRAFT restore on mount);
+what was missing was the entry-point UX. 4.6 ships both halves: a full
+History page that lists every attempt with status-aware actions, and a
+Resume banner extension so non-CAT EXAM attempts also surface above the
+Builder. Both bug fixes were caught by Sam testing the live flow — one
+on UL resume (rationale gone), one on Sequential resume (stuck on Q1).
+
+The slice landed as **4 commits** on `claude/determined-williamson-cb46bc`
+(`6cdc9dc` 4.6a, `16537f5` UL resume fix, `80fdbfa` 4.6b, `823a2bd`
+Sequential resume fix) + this docs commit.
+
+### What shipped — 4.6a (History page MVP)
+
+New `/student/bank/history` route replacing the Placeholder. Single
+table card (concept-not-source from the prototype's `results-history.jsx`
+HistoryArtboard, rebuilt with our tokens):
+
+| Column | Source |
+|---|---|
+| When | `formatRelativeDate(created_at)` — Today/Yesterday/Apr 30/Apr 30 2025 |
+| Session | `summariseRecent(filters_json, requested_count)` — same chip-style label Recent Quizzes uses |
+| Source · Mode | "Custom" pill + mode_label pill (resolved from MODES_STUDY/EXAM at fetch time) |
+| Result | `formatScore(final_score)` — 0–1 → percent, null → em-dash |
+| State | "Done" / "Resume" / "Discarded" pill with status-coloured background |
+| (action) | Review → / Resume → / nothing |
+
+**Status mapping** — COMPLETED + TIMED_OUT both render as "Done" with
+a Review → link (review mode); IN_PROGRESS gets "Resume" + Resume →;
+ABANDONED hidden by default with a "Show discarded (N)" toggle that
+reveals them as non-clickable rows.
+
+**Placeholders for slice 7.1.** Sam's call during planning: rather
+than ship a stripped-down MVP and leave space empty, the search input
++ source/mode filter chips render as **visible-but-disabled placeholders**
+with `title="Coming soon"`. The "All" / "Any mode" chip stays
+visually-on; the rest are greyed out (`opacity: 0.55`, `cursor:
+not-allowed`). Source pill renders "Custom" on every row in v1 via a
+forward-compatible `SOURCE_LABEL` map (`CUSTOM_BUILT` / `READINESS_PACK`
+/ `PROGRAMME_ASSIGNED`) — when Packs/Programmes ship, the column
+renders correctly without a code change. `hist-pill-cat-pass` class is
+defined in CSS but unused (Phase B).
+
+**Folder structure decision.** Sam reframed `lib/practice/launchers/`
+mid-slice as "cross-surface entry-point components — Resume banner,
+Recent quizzes, Weak-spots — usable on Builder/Dashboard/History."
+First proposed a flat `lib/practice/launchers/get-history-attempts.ts`
++ page-local table. Sam then preferred a dedicated `lib/practice/history/`
+folder since the History page is its own surface (review/listing,
+distinct from launchers' "start a quiz" purpose). Settled on the
+folder. Final shape:
+
+- `lib/practice/history/types.ts` — `HistoryAttempt`, `AttemptStatus`,
+  `AttemptSource`
+- `lib/practice/history/queries.ts` — `getHistoryAttempts()`, RLS-scoped
+  to the signed-in student, `created_at desc`, capped at 50 (no
+  pagination in MVP — slice 7.1)
+- `lib/practice/history/format.ts` — `formatRelativeDate`,
+  `formatScore`
+- `lib/practice/history/history-table.tsx` — client component
+  ('use client' for the show-discarded toggle state)
+- `app/(app)/student/bank/history/page.tsx` — server component, fetches
+  + passes to `<HistoryTable>`
+- `styles/history.css` — new file (per CLAUDE.md folder convention #5,
+  "new domains get a new file")
+- `app/(app)/layout.tsx` — added the `history.css` import
+
+Footer note rewritten to reflect 4.5a's revised resume rules: "In-
+progress sessions resume from where you left off. Completed and timed-
+out sessions are reviewable. Discarded sessions can't be reopened."
+Replaces the prototype's stale "Timed and CAT can't be resumed" copy.
+
+### Hot-fix surfaced during testing — UL resume restored per-Q feedback
+
+Sam tested by starting a UL quiz, answering 2-3 Qs, navigating away,
+and resuming via the Resume → link from the new History page. Saw
+"Loading review data…" for every previously-submitted question.
+
+**Diagnosis** — `page.tsx` applies the sealed projection
+(`SEALED_ITEM_COLUMNS`, omitting `correct_answer_snapshot_json` /
+`rationale_snapshot` / `rationale_img_snapshot`) while
+`status=IN_PROGRESS` per Pillar 2. `clientUnseal` — the per-Q envelope
+populated by `submitAnswerAction`'s response in-session — is React
+state, lost on reload. 4.5b correctly set `itemMode='review'` for
+finalised UL rows (the DRAFT-vs-SUBMITTED distinction), but the data
+those rows need to render was nowhere on the page. Falls into the
+"Loading review data…" stub at runner.tsx:765.
+
+**Why this isn't a Pillar 2 violation.** The seal exists to hide
+rationales for not-yet-answered questions. SUBMITTED rows have
+*already been shown the rationale* during the in-session per-Q submit
+(via the envelope) — re-showing it on resume is byte-for-byte the
+same data the student already saw, locked behind their commit.
+
+**Fix** — narrow follow-up query in `page.tsx`'s live branch fetches
+the unseal columns ONLY for items whose answer row is finalised
+(`submission_status !== 'DRAFT'` — captures SUBMITTED, AUTO_SUBMITTED,
+SKIPPED). Result threads through `LiveData.seededUnseal:
+Record<attempt_item_id, PerItemUnseal>` and seeds `clientUnseal` on
+mount via the `useState` lazy initialiser. Brand-new attempts (no
+finalised rows) skip the second query entirely — `finalisedIds.length
+=== 0` short-circuit.
+
+**Drive-by** — `PerItemUnseal` moved from `runner-question-area.tsx`
+to `lib/practice/runner/types.ts` (canonical home for runner-internal
+types); re-exported from runner-question-area for backward-compat so
+existing import paths keep working. `BankItemCorrect` import dropped
+from runner-question-area (no longer used after the move).
+
+### What shipped — 4.6b (Resume banner surfaces EXAM attempts)
+
+The Resume banner shipped in 5.1c filtered to STUDY-intent attempts
+based on the original §15 rule that "EXAM can't be resumed."
+Slice 4.5a revised attempt-creation §6.1.3: timed EXAM is now resumable
+mid-timer (wall-clock continues during absence; lazy expiry on next
+mount per page.tsx's IN_PROGRESS+duration_seconds check). The STUDY-only
+filter became stale — Sam was building EXAM attempts, walking away,
+returning to the Builder, and seeing nothing.
+
+**Two-line fix** in `lib/practice/launchers/get-resumable-attempt.ts`:
+- Drop the `.eq('intent', 'STUDY')` filter — both intents now surface.
+- Add `.neq('mode', 'CAT')` defensively for Phase B — CAT genuinely
+  can't be resumed (adaptive selection state) and isn't creatable in
+  v1 anyway, but the filter belongs on the query when CAT lands.
+- Refresh the comment header to cite the revised §6.1.3 rule.
+
+**Banner sub-line copy** is now mode-aware. Old copy ("Untimed
+sessions stay where you left them. Timed sessions can't be resumed.")
+contradicts 4.5a. New:
+
+- Untimed (UNTIMED_LEARNING / UNTIMED_TEST): "Pick up exactly where
+  you left off."
+- Timed (TIMED_FREE_NAV / TIMED_SEQUENTIAL): "Resume soon — the clock
+  kept running while you were away."
+
+`TIMED_MODES` constant + ternary in `resume-banner.tsx`. Banner-host
+contract unchanged — `attempt.mode` was already on `ResumableAttempt`.
+
+### Hot-fix surfaced during testing — Sequential resume position
+
+Sam started a `TIMED_SEQUENTIAL` exam, answered 2-3 Qs (each
+flipping DRAFT → SUBMITTED via Submit & continue), navigated away,
+came back via the now-working Resume banner. Landed on Q1 with no
+visible answer; couldn't re-answer (RPC blocks resubmit); couldn't go
+forward (no Skip — must commit); couldn't go back (Sequential locks
+Prev). Stuck.
+
+**Diagnosis** — `current` initialised to `0` always. On Sequential
+resume:
+1. Q1 is SUBMITTED in the DB
+2. `pendingAnswers` only seeds DRAFT rows (slice 4.5b initialiser),
+   so the previously-picked answer doesn't pre-fill
+3. Sequential never flips to per-item review (that's UL-only per
+   4.5b's archetype check), so Q1 re-renders in `'answering'` mode
+4. Sequential locks Prev + grid clicks (slice 4.5c) — no escape paths
+5. The submit RPC's status guard rejects resubmit attempts on already-
+   SUBMITTED rows
+6. Student wedged
+
+**Fix** — `current`'s `useState` lazy initialiser walks the items
+array in attempt order, returns the first index whose answer row is
+missing or DRAFT. `SUBMITTED` / `AUTO_SUBMITTED` / `SKIPPED` rows are
+skipped past. If every item is finalised (rare — `completeAttemptAction`
+would have fired), lands on the last item to surface the Finish CTA.
+
+**Universal applicability.** The fix isn't Sequential-specific:
+- **Sequential**: SUBMITTED prefix sits behind disabled Prev — the
+  student literally can't navigate back, which is the right semantics
+  (committed answers stay committed, no peek). The new initial
+  position lands them at the next pending Q.
+- **UL**: lands student on next pending Q rather than Q1; they can
+  still navigate back to previously-submitted items via grid which
+  renders them in per-item review with rationales (slice 4.6a fix
+  above makes this work).
+- **Free-batched**: lands on the next blank instead of forcing a
+  Next-cascade through previously-DRAFT'd answers.
+
+In all three cases the new behaviour matches the natural "where you
+left off" UX — the position-fix is a UX win across the board, not just
+a Sequential rescue.
+
+### Build-list restructured into Bank + Programme parts
+
+Sam: "make build list have two clear parts. Bank and program." Mid-
+session restructure of `BUILD_LIST.md`:
+
+- File-level intro rewritten — was "Bank consumption work, in the
+  order we're likely to build it"; now "Slice-by-slice list of work
+  in the MyNclex product, split by the two layers MyNclex is built
+  around: the Bank … and the Programme …"
+- New `## Part 1 — Bank` section. All existing Phase A → Phase G
+  content moves under this section verbatim, with the phase
+  headings demoted from h2 → h3.
+- Bank-specific source references (`bank-consumption.html` family)
+  move from the file-level intro into the Part 1 header.
+- "Deferred to v2" demoted to h3, scoped as "Deferred to v2 (Bank)".
+- New `## Part 2 — Programme` section. Stub for now — points at the
+  2026-04-19 SESSIONS entry as the last planning pass and notes that
+  slices will be defined when programme work starts. Includes a
+  `### Deferred to v2 (Programme)` listing the two programme non-
+  goals from earlier planning (public self-serve tutor signup,
+  payment splits / marketplace billing).
+- "How to use this file" stays at file level (applies to both parts).
+- Last shipped callout updated to point at 4.6 with the four sub-
+  threads (4.6a, UL resume fix, 4.6b, Sequential resume fix). Next
+  pick line acknowledges the pivot to programme: "next session
+  pivots to Programme work (Sam's call). When Bank work resumes, the
+  next ⏭ is **4.7 — Mark-for-review toggle**."
+
+Programme planning content stays sparse on purpose. Sam's preference
+during the discussion: "those questions doesn't matter much. all i
+know is next session we will tackle somthing on program side." Audience
+priority + initial slices to be discussed at next session start.
+
+### Bugs / oversights surfaced + fixed mid-slice
+
+| # | Surface | Cause | Fix slice |
+|---|---|---|---|
+| 1 | UL resume showed "Loading review data…" for previously-submitted Qs | Sealed projection on IN_PROGRESS; clientUnseal is React state lost on reload; 4.5b's itemMode='review' had no rationale data to render | 4.6a fix — `seededUnseal` follow-up query in page.tsx, seeds clientUnseal on mount |
+| 2 | Sequential resume wedged the student on Q1 with no Submit/Prev/Skip path | `current` always initialised to 0; SUBMITTED Q1 rendered in 'answering' mode with empty state since pendingAnswers only seeds DRAFTs; Sequential locks Prev + grid + resubmit | 4.6b fix — `current`'s initialiser jumps to first non-finalised item |
+
+### Tested
+
+- ✅ History page renders for the signed-in student with attempts in
+  varied statuses; ABANDONED hidden by default; Show-discarded toggle
+  reveals them.
+- ✅ Click routing — COMPLETED/TIMED_OUT → review; IN_PROGRESS →
+  runner with DRAFT restore; ABANDONED no link.
+- ✅ Disabled placeholders (search + filter chips) render greyed out
+  with "Coming soon" tooltip, don't fire interactions.
+- ✅ UL resume — previously-submitted Qs render with rationale +
+  per-Q feedback (no more "Loading review data…").
+- ✅ Resume banner surfaces EXAM attempts (after dropping the STUDY
+  filter).
+- ✅ Banner sub-line copy is mode-aware (timed vs untimed).
+- ✅ Sequential resume — lands on next pending Q rather than Q1;
+  Prev still disabled; previous Submitted answers locked behind.
+- ✅ TypeScript clean across the slice (only pre-existing vitest
+  errors in `lib/scoring/*.test.ts` remain).
+
+### Next pick
+
+- **Next session pivots to Programme work.** Audience priority +
+  phase ordering + initial slice list to be discussed at session
+  start. The 2026-04-19 SESSIONS entry holds the last planning pass
+  on programme structure (week-based, 6 block types, cohort + rolling,
+  tutor-authored questions). Tutor onboarding settled the same week
+  (vetted-marketplace shape, public application form, admin-triggered
+  account setup). Programme part of BUILD_LIST is a stub waiting to
+  be filled in.
+- **Bank's next ⏭ when Bank resumes is 4.7** — mark-for-review
+  toggle (runner button writing to slice 2.1.5's marking table,
+  persists across attempts).
+
+---
+
+## Session — 2026-05-09 (4.5) — Per-mode behaviour: timer + save-on-tap + archetypes + sequential lock + case-exit warning
+
+Closes slice 4.5 across three sub-slices. Modes finally feel like
+modes — what was uniformly Untimed-Learning behaviour through 4.4 now
+branches by archetype (UL / Free-batched / Sequential) for footer +
+feedback timing, with a live ticking clock pill (stopwatch / countdown)
+in the topbar driven by archetype-aware logic. Universal save-on-tap
+landed alongside as the persistence pillar — every material answer
+change writes a DRAFT row server-side, debounced ~500ms, replacing
+the original "submit creates row directly" pattern in UL. Auto-submit
+on timer expiry + EXAM re-entry-without-pause fall out of the
+save-on-tap design naturally.
+
+The slice landed as **3 feat commits** (`3d33394` 4.5a, `f407c21` 4.5b,
+`d1490e8` 4.5c) on the session branch + this docs commit.
+
+### What shipped — 4.5a (timer + save-on-tap + auto-submit foundation)
+
+**3 new RPCs** (migrations applied to mynclex-dev):
+- `nclex_save_progress(attempt_item_id, answer_json)` — UPSERTs DRAFT
+  row + appends `{at, from, to}` entry to `answer_changes_json` per
+  attempt-creation §6.3.3. No-op when answer unchanged (defensive
+  against debounce edge cases). Bumps `last_activity_at`.
+- `nclex_expire_attempt(attempt_id)` — single-attempt timeout. Inserts
+  SKIPPED rows for items with no answer + computes final_score + flips
+  status to TIMED_OUT with `ended_at = started_at + duration_seconds`
+  (true expiry, not detection moment). Idempotent.
+- `nclex_submit_answer` updated — drops obsolete `p_time_spent_sec` +
+  `p_answer_changes_json` params; on DRAFT promotion no longer
+  overwrites `answer_changes_json` (was wiping the log save-on-tap
+  built up).
+
+**1 new file** in `lib/practice/runner/`:
+- `clock.ts` — `formatClock(seconds)` (`mm:ss` / `h:mm:ss` over 1 hr),
+  `tierFor(remaining, duration)` (warning tier with duration-conditional
+  firing: 30 needs ≥60 min, 15 needs ≥30, 5 needs ≥10, 1 always),
+  `tierIsStricter(next, prev)` (escalates-only comparator for the
+  sticky max-tier-fired ref).
+
+**Server actions** in `actions.ts`:
+- `saveProgressAction` — debounced wrapper around `nclex_save_progress`.
+- `expireAttemptAction` — multi-step: fetch DRAFT rows + their snapshot
+  keys, score each in TS via `scoreAttempt`, AUTO_SUBMIT via existing
+  submit RPC, then call `nclex_expire_attempt`.
+
+**Runner client edits** in `runner.tsx`:
+- Per-item debounce map (~500ms) for save-on-tap so navigating between
+  questions mid-debounce doesn't drop pending saves.
+- Live tick `useEffect` updates `nowMs` every 1s while live + has
+  started_at. Stopwatch (untimed) and countdown (timed) display derive
+  purely from `(nowMs, startedAt, durationSec)`.
+- Sticky max-tier-fired ref enforces escalates-only tone progression
+  (§8.4) — once amber, never reverts.
+- Hide toggle state (per-attempt, locks at first warning fired §8.5).
+- Auto-expire `useEffect` fires `expireAttemptAction` once when
+  `remainingSec ≤ 0`; `router.refresh()` reloads in TIMED_OUT review.
+
+**Topbar** (`runner-topbar.tsx`):
+- New `<ClockGroup>` renders eye-icon button + clock pill. Pill
+  collapses when hidden; eye stays so student can re-show. Tone
+  classes: `stopwatch` / `countdown` / `countdown.tier-30/-15/-5/-1`.
+  At tier-1 a "1 min left" sub-label appears beside the time.
+
+**Page (server)** (`page.tsx`):
+- Lazy expire detection: when a timed IN_PROGRESS attempt has already
+  passed `started_at + duration_seconds` at page load, calls
+  `expireAttemptAction` inline before deciding live vs review. The
+  page re-fetches and renders review naturally — no special "exam
+  ended" view needed (per the revised §6.1.3 rule from planning).
+
+**Styles** in `styles/runner.css`:
+- New `.rn-clock-wrap` / `.rn-clock-eye` / `.rn-clock-pill` block.
+  Tier tones: subtle amber (30) → medium amber (15) → strong amber
+  (5) → red (1). Single-pulse animation on tier appearance;
+  loop-pulse at red.
+
+### What shipped — 4.5b (submission archetypes)
+
+**Mode-aware footer + feedback timing** in `runner.tsx`:
+- New `Archetype = 'UL' | 'FREE_BATCHED' | 'SEQUENTIAL'` type +
+  `getArchetype(mode)` helper collapses 8 (mode, intent) tuples into
+  3 behavioural groups. CAT defensively maps to Sequential (not
+  reachable in v1 — create-attempt rejects).
+- UL keeps existing per-Q submit flow (refactored implicitly via
+  4.5a's save-on-tap → status-flip pattern; behaviour identical from
+  the student's view).
+- **Free-batched** (UT, TFN both intents) — per-Q Submit removed;
+  footer is `‹ Prev` + `Next ›` until last Q's `Finish quiz`.
+  Rationale hidden mid-quiz (implicit via the itemMode fix below).
+  Revisable until Finish. Confirmation modal if any blanks at Finish.
+- **Sequential** (TS both intents) — per-Q `Submit & continue`
+  button (4.5b: advances + saves like Next; lock semantics in 4.5c).
+  Last Q is `Submit & finish`. Prev disabled. "No Skip" gate added
+  during testing — primary button disabled until current Q has a
+  valid answer (matches NCLEX authenticity, "must commit").
+
+**Latent 4.5a bug fixed** — `itemMode` previously treated any answer
+row as 'review', including DRAFT rows from save-on-tap. Page reload
+mid-attempt would have shown "Loading review data..." instead of
+letting the student continue. Fixed: DRAFT rows stay 'answering';
+per-item review fires only for UL with a non-DRAFT row.
+
+**Reload restores in-progress state** — `pendingAnswers` seeds from
+DRAFT rows in `data.answers` on mount. Combined with universal save-
+on-tap from 4.5a, students returning to a quiz mid-flight (refresh,
+EXAM re-entry) pick up where they left off. Resume banner UI is still
+slice 4.6 territory; this is the underlying state restore.
+
+**Server-side**:
+- `_flushDrafts` helper in `actions.ts` — shared by
+  `completeAttemptAction` (terminalStatus='SUBMITTED') and
+  `expireAttemptAction` (terminalStatus='AUTO_SUBMITTED'). Iterates
+  DRAFTs, scores each in TS, calls `nclex_submit_answer` per row.
+- `completeAttemptAction` now flushes DRAFTs before calling
+  `nclex_complete_attempt`. Free-batched + Sequential clicked Finish
+  while DRAFTs were on the server; previously `nclex_complete_attempt`
+  aggregated final_score with NULL `score_awarded` → 0 for every DRAFT
+  → 0% scores. Fixed.
+
+**Migration — slice 2.2a oversight surfaced during testing**: the
+create-attempt RPC never set `duration_seconds`, so every timed
+attempt got NULL → 4.5a's runner correctly fell through to the
+untimed stopwatch path. **Fix**: `BEFORE INSERT` trigger
+`_nclex_set_attempt_duration_default` sets
+`duration_seconds = requested_count × 90` for `TIMED_FREE_NAV` /
+`TIMED_SEQUENTIAL` when caller didn't provide one. Backfill UPDATE
+catches any in-flight timed attempts. 90 sec/Q matches industry
+standard (UWorld; real NCLEX averages ~84 sec/Q in CAT).
+
+**New file** `lib/overlays/practice/finish-with-blanks-confirm.tsx` —
+Free-batched safety net. Centred dialog mirroring the
+`lib/overlays/bank/discard-confirm` pattern. Backdrop click maps to
+"Keep editing" per CLAUDE.md UI conventions §2.
+
+`runner-footer.tsx` gains optional `prevDisabled` + `prevHint` props
+for Sequential's no-going-back rule.
+
+### What shipped — 4.5c (sequential lock + case-exit warning + correctness gate)
+
+**Sequential lock fully wired** — `Submit & continue` /
+`Submit & finish` now actually fire `submitAnswerAction` per-Q (DRAFT
+→ SUBMITTED via the existing RPC's promotion path). Grid clicks
+short-circuited in Sequential live mode via `onPickGuarded` — the
+grid becomes a pure progress indicator. New `onSubmitAndAdvance` /
+`onSubmitAndFinish` handlers replace 4.5b's stub that just called
+onNext.
+
+**Case-exit warning** — for `FREE_BATCHED` archetype only (Sequential
+locks Prev + grid; UL has per-Q rationale rhythm). `shouldWarnCaseExit`
+predicate fires when:
+- archetype is FREE_BATCHED, AND
+- student is currently on a case-child, AND
+- target index would leave the case, AND
+- at least one case-child is unanswered, AND
+- the per-attempt suppression flag isn't set.
+
+Modal `lib/overlays/practice/case-exit-confirm.tsx` mirrors the
+finish-with-blanks pattern. Title *"Leaving this case study"*,
+scenario-aware count, `Stay in case` (safe / backdrop) /
+`Leave anyway` buttons, per-attempt suppression checkbox. Hooks
+into all three nav paths via guarded handlers (`onPickGuarded`,
+`onPrevGuarded`, `onNextGuarded`).
+
+**Hot-fix surfaced during testing** — Sequential's per-Q submit was
+correctly flipping rows to SUBMITTED, but the grid was rendering
+green/red cells mid-quiz based on `is_correct`. That contradicts
+runner.html §15 ("Batched submit at the end" — feedback is
+end-of-quiz) and Pillar 2 (real NCLEX never shows per-Q correctness
+during the test). **Fix**: `revealCorrectness` flag added to
+`deriveCellFill` / `gridCounts` / `RunnerGrid`. Set true for UL live
+(per-Q feedback by design) + any review state; false for Free-batched
++ Sequential mid-quiz. SUBMITTED / AUTO_SUBMITTED rows then render
+as 'answered' (neutral blue) regardless of `is_correct` — data still
+on the row, just not surfaced. Wrong filter chip + correctness
+legend rows hide when gated.
+
+### Bugs / oversights surfaced + fixed mid-slice
+
+| # | Surface | Cause | Fix slice |
+|---|---|---|---|
+| 1 | UL DRAFT row shown as "Loading review data…" on page reload | itemMode in 4.5a treated any answer row as 'review', including DRAFTs | 4.5b — itemMode requires non-DRAFT for review |
+| 2 | Timed quizzes rendering as stopwatch instead of countdown | slice 2.2a's create-attempt RPC never set `duration_seconds` | 4.5b — `BEFORE INSERT` trigger sets default for timed modes |
+| 3 | Sequential allowed advancing with blanks | 4.5b initial wiring forgot to gate primary button on `submitGate.canSubmit` | 4.5b — added "no Skip" gate during testing |
+| 4 | Sequential leaked per-Q correctness via green/red grid cells | per-Q submit in 4.5c populated `is_correct` mid-quiz; grid rendered it | 4.5c — `revealCorrectness` gate on `deriveCellFill` |
+
+### Outcomes for the planning docs
+
+Slice 4.5 was the first slice where the planning phase produced
+documentation deltas BEFORE code:
+- `runner.html §8 Timer behaviour` — skeleton → settled (full spec).
+- `runner.html §9 Save-progress and Resume` — split into 9.1 settled
+  (universal save-on-tap) + 9.2 skeleton (Resume detection, deferred
+  to 4.6).
+- `runner.html §13 Answer-changes tracking` — skeleton → settled
+  (close TBD by referencing §6.3.3 + §9.1).
+- `attempt-creation.html §6.1.3 EXAM re-entry` — revised from
+  "exams cannot be resumed" to "timed EXAM resumable mid-timer;
+  wall-clock continues during absence; lazy expiry on next mount."
+
+This planning-first pattern was Sam's call ("we need to settle this
+in writing first") and worked well — every code decision had a
+documented reference, and bugs surfaced during build were diagnosed
+quickly because we knew what *should* happen.
+
+### Tested
+
+- ✅ UL regression (no behaviour change from 4.4) — per-Q submit +
+  immediate rationale + free nav unchanged.
+- ✅ Stopwatch in untimed quizzes — counts up cleanly.
+- ✅ Countdown in timed quizzes — counts down (after the
+  duration_seconds trigger fix).
+- ✅ 1-min red warning fires in short timed attempts (5-min and
+  higher tiers not exercised — would require longer attempts; same
+  code path).
+- ✅ Auto-submit on timer expiry — runner transitions to review,
+  DRAFTs flushed as AUTO_SUBMITTED, SKIPPED rows for blanks.
+- ✅ Free-batched: Next / Prev / Finish flow works; no per-Q
+  rationale; revisable until Finish.
+- ✅ Sequential: Prev disabled, no Skip, per-Q DRAFT → SUBMITTED on
+  Submit & continue, grid cells locked from clicks, correctness
+  hidden mid-quiz (after the revealCorrectness fix).
+- ✅ Save-on-tap persists DRAFTs across page reload (verified via
+  DB inspection — the runner UI restoration arrives with 4.6
+  Resume).
+
+### Next pick
+
+- **Slice 4.6 — Resume detection.** Save-progress half is already
+  shipped (DRAFT-on-tap + pendingAnswers seeding from DRAFTs on
+  mount lands in 4.5b). 4.6 adds the entry-point UX: a "Resume your
+  unfinished quiz" banner on the Builder dashboard so students see
+  in-flight attempts before they navigate elsewhere. Per the revised
+  §6.1.3, EXAM is also resumable but doesn't need a banner — it just
+  continues into the runner shell on next visit; the banner is
+  STUDY-only.
+
+---
+
+## Session — 2026-05-09 (4.5 planning) — Timer + save-on-tap + submission archetypes + EXAM re-entry settled in writing
+
+Pure planning pass — no code shipped. Slice 4.5 entered the design
+phase with `runner.html §8 Timer behaviour` marked skeleton. Worked
+through the open TBDs one decision at a time, settled the spec across
+5 doc sections, flipped 3 sections from skeleton to settled, revised
+1 already-settled section, and updated BUILD_LIST 4.5/4.6 scope.
+
+### Key decisions
+
+1. **Unified clock model.** Stopwatch for untimed (count-up, neutral,
+   no warnings) / countdown for timed (count-down, escalating tone).
+   Shared format function (`mm:ss` under 1 hr, `h:mm:ss` once over).
+   Sam's framing of "there's always a clock; behaviour is what
+   matters" unlocked this — implementation cost is near-zero (one
+   React effect, two formulas) and untimed-stopwatch trains pacing
+   awareness without imposing pressure.
+
+2. **Hide toggle universal.** Eye-icon next to the clock pill.
+   Per-attempt scope (no localStorage). Allowed in all 8 (mode,
+   intent) tuples including timed EXAM. Auto-reappears at first
+   warning that fires; re-hide locks for the rest of the attempt.
+   Pulled into v1 (was originally v2 polish).
+
+3. **Warning tiers** 30 / 15 / 5 / 1 min with duration-conditional
+   firing (30 needs ≥60 min duration, 15 needs ≥30 min, 5 needs ≥10
+   min, 1 always). Tone escalates only — never reverts. 1-min red
+   gains "1 min left" pill copy.
+
+4. **Submission archetypes** collapse 8 per-tuple decisions into 3:
+   - **A** (UL): per-Q + immediate rationale + free nav (already
+     shipped).
+   - **B** (UT, TFN both intents): batched + end-of-quiz feedback +
+     free nav. Per-Q submit removed; footer is `Next ›` until last
+     Q's `Finish quiz`. Revisable until Finish; confirmation modal
+     if any blanks at Finish.
+   - **C** (TS both intents): batched + per-Q `Submit & continue`
+     lock + Prev disabled + no Skip button (must commit, matches
+     NCLEX authenticity).
+
+5. **Universal save-on-tap.** `nclex_save_progress` moves from slice
+   4.6 to 4.5; becomes universal across all 7 active tuples (CAT
+   excepted). DRAFT row written on every material change
+   (debounced ~500ms); flips to SUBMITTED at final submit. UL
+   backported from "submit-creates-row directly" for consistency +
+   answer-changes analytics value. Triple wins: enables mid-timer
+   EXAM resume; simplifies auto-submit on expiry (single SQL UPDATE,
+   no client-flush race); gives the per-tap event log §13 needs.
+
+6. **EXAM re-entry rule revised.** `attempt-creation §6.1.3` rewrote
+   from "exams cannot be resumed" to "timed EXAM resumable mid-timer;
+   wall-clock continues during absence; lazy expiry detection on
+   next mount → TIMED_OUT → review." Sam's framing made the
+   simplification: the wall-clock alone enforces no-time-gain; the
+   additional "no resume" rule was friction without integrity.
+   Real NCLEX allows breaks (timer continues during them) — so the
+   new rule matches both actual exam mechanics and the doc's existing
+   §11 wall-clock semantics. Untimed EXAM also resumable. CAT keeps
+   its exception (IRT validity).
+
+7. **Case-exit warning** (queued from 4.3) — Archetype B free-nav
+   only; centred dialog with per-attempt suppression checkbox.
+   Sequential locks Prev so the warning doesn't apply there.
+
+### Doc deltas
+
+| File | Section | Status |
+|---|---|---|
+| `runner.html` | §8 Timer behaviour | skeleton → **settled** (6 sub-sections) |
+| `runner.html` | §9 Save-progress and Resume | skeleton → **9.1 settled / 9.2 skeleton (slice 4.6)** |
+| `runner.html` | §13 Answer-changes tracking | skeleton → **settled** (close TBD by ref §6.3.3 + §9.1) |
+| `attempt-creation.html` | §6.1.3 EXAM re-entry paragraph | revised (was "cannot be resumed"; now "resumable mid-timer") |
+| `BUILD_LIST.md` | slice 2.3 caveat | save-progress note updated (4.6 → 4.5) |
+| `BUILD_LIST.md` | slice 4.5 line | one-line summary expanded into 5 sub-bullets |
+| `BUILD_LIST.md` | slice 4.6 line | shrunk to Resume detection only |
+
+### Outstanding for the build phase
+
+- Decide sub-slice split for 4.5 (likely 3 sub-slices: timer +
+  save-on-tap → submission archetypes → sequential lock + case-exit
+  warning).
+- `nclex_save_progress` RPC needs to be built (was deferred from
+  slice 2.3 to 4.6, now lands with 4.5a or 4.5b).
+- Verify the runner's existing per-Q submit path can be refactored
+  cleanly to use save-on-tap → status-flip pattern (UL backport).
+
+### Next pick
+
+- **Slice 4.5a — timer + save-on-tap.** Likely the largest sub-slice
+  because it spans topbar pill rendering (stopwatch + countdown),
+  warning-tier transitions, hide toggle, save-on-tap RPC + client
+  wiring (debounced), and auto-submit on expiry. Server work +
+  client work + new behaviour.
+
+---
+
+## Session — 2026-05-09 (4.4) — Trend question rendering: TrendPanel + .rn-split branch + "⤬ Trend" pill (no CJMM / no banner / no bands)
+
+Closes slice 4.4. The runner now branches its layout when the current
+item has a `trend_id` (alongside the case-block branch from 4.3):
+trends scatter as standalones per attempt-creation §8.3, but each trend
+question still gets the dataset displayed alongside via a sticky
+`<TrendPanel>` on the left of `.rn-split`. Question internals (stem /
+options / rationale) are unchanged inside a trend — only the surrounding
+chrome differs.
+
+The slice landed as a single code commit on the session branch
+(`6c47447`) plus this docs commit. Approval-to-merge to `main` is
+pending Sam's sign-off.
+
+### What shipped
+
+**1 new file** in `lib/practice/runner/trend/`:
+- `trend-panel.tsx` — sticky left panel: kind label ("Trend data ·
+  Vitals" via `kindDefaultLabel` from the curator side, so labels stay
+  in sync) + optional scenario + read-only row × timepoint table.
+  Ref-range column auto-shows when at least one row has it set.
+  Curator-side flags ('abnormal' / 'borderline') are NOT rendered.
+
+**Edits** to the runner shell:
+- `runner.tsx` — `currentTrendId` + `trendSnap` derivation (parallel
+  to the 4.3 case derivation), `inTrend` branch wrapping the question
+  area in `.rn-split` with `<TrendPanel />` on the left,
+  `trendBadge={inTrend}` passed through to `RunnerQuestionArea`. Cases
+  win when both `parent_case_id` and `trend_id` happen to be set on
+  the same item (defensive — not authored that way today).
+- `runner-question-area.tsx` — new optional `trendBadge?: boolean`
+  prop that renders a green "⤬ Trend" pill in the `.rn-q-meta` strip.
+  Sits alongside the existing type / subject / difficulty pills.
+- `styles/runner.css` — new `.rn-trend*` block mirroring the
+  case-block CSS pattern. `.rn-trend-pill` is in the same family as
+  `.rn-cjmm-pill` (accent-toned, 999px radius). The panel reuses
+  `--accent` from `tokens.css` — no new `--rn-trend-*` variables
+  needed.
+- `lib/practice/runner/index.ts` — re-exports `TrendPanel`.
+
+### Key conversation decisions
+
+The slice opened with a 5-question design discussion of trend rendering
+inside the slice 4.3 shell:
+
+1. **Reuse Layout C from 4.3.** Same `minmax(380px, 1fr) minmax(520px,
+   720px)` grid, max-width 1240. No new wrapper-aware layout work
+   needed — trends just slot into the existing `.rn-split` plumbing.
+   The throwaway runner-context mock at `docs/scratch/trend-runner-mock.html`
+   (gitignored) confirmed the integration before any code.
+
+2. **Tabular always, no charts.** Confirmed by the existing
+   `docs/product-plan/mockups/trend-visualisation.html` which already
+   settled this in 4 worked examples. Auto-detecting numeric rows for
+   sparkline rendering would have been messy (BP "130/85" is a string;
+   mixed numeric/textual datasets are common) and the pedagogical
+   value is unclear at the data densities NCLEX uses (3–5 timepoints).
+   Defer to v2 if students ask.
+
+3. **No flag rendering on cell values.** Verified against the real NGN
+   exam via web search: NCSBN deliberately removed lab-value
+   memorisation as a testable skill ("no longer required to memorize
+   the normal lab ranges, as they will be provided on the exam") but
+   does NOT pre-flag abnormal/borderline values. Test-takers interpret
+   raw values against the supplied ranges themselves. Curator-side
+   flags exist for author guidance only — they help the curator track
+   which values they want to test, but pre-cuing answers in the runner
+   would defeat the point of the trend item type. Sam's framing made
+   this distinction sharp ("on authoring side it helps the curator…
+   a student have to know that there is normal borderline or abnormal
+   using the ref range").
+
+4. **No topbar `trendMeta` line.** For cases the meta line carries
+   genuine structural state ("Case N of M · CJMM step X of 6"). For
+   trends, the panel itself shows the dataset title — a topbar pill
+   would just duplicate. The inline "⤬ Trend" pill on the question
+   card is the only badge.
+
+5. **No entry banner.** For cases the banner explains that the chart
+   panel applies to N questions ahead. For trends the dataset is right
+   there beside the question, the layout reshuffle is self-explanatory,
+   and a banner firing on every trend question would be noisy across
+   an attempt with multiple trends.
+
+### Test data
+
+mynclex-dev has 7 trend datasets covering all 6 kinds (5 built-in +
+1 custom "Pain & Sedation"). 9 child questions are now published
+spanning all 6 kinds — the others (26 of 35) remain unpublished by
+Sam's call (some are likely abandoned drafts).
+
+| Kind | Reachable in runner |
+|---|---|
+| vitals | TF + MATRIX |
+| labs | CLOZE (with ref-range column) |
+| io | TF + DRAG_DROP |
+| neuro | MATRIX (densest dataset — 6 metrics × 4 timepoints) |
+| assessment | TF + DRAG_DROP |
+| Pain & Sedation (custom) | SATA — proves kind-label fall-through |
+
+### Bugs surfaced + fixed mid-slice
+
+**Trend datasets unpublished gate.** Initial test attempt had zero
+trend-linked items despite the questions being published. Root cause:
+`_nclex_eligible_unit_pool` requires `td.is_published = TRUE` on the
+parent dataset, AND all 7 datasets were `is_published = false` in
+mynclex-dev (curator authored questions but never explicitly published
+the datasets). Fix: published the 4 datasets that already had published
+children + 2 more (TEST_04 neuro and TEST_06 custom) so all 6 kinds are
+reachable.
+
+**Curator UX gap surfaced.** The trend wrapper editor allows publishing
+a question while the parent dataset stays unpublished, with no warning.
+The question silently disappears from the bank. Should add a validation
+gate on the trend wrapper (or auto-publish the dataset on first child
+publish, mirroring how the case-study wrapper handles its 6-of-6 gate).
+Logged for follow-up — not in scope for 4.4.
+
+### Outcomes for BUILD_LIST
+
+Slice **5.6 — Source breakdown + filter axis** added during testing
+to capture three Builder gaps Sam noticed:
+
+- **Honest per-type count** — picking `Question type = MCQ` silently
+  drops case-children's MCQs from the count without telling the
+  student. A student picking MCQ today loses 24+ MCQs reachable
+  through cases with no signal.
+- **Source breakdown line** — students can't tell if a 25-Q quiz is
+  mostly standalones (~30 min) or includes cases (~60 min, since cases
+  run ~6× longer per unit). Need a one-line expectation-setter above
+  the live count.
+- **Source filter axis** — no way to express "drill cases this week"
+  / "skip cases for a quick session" / "grind all my trend questions
+  in one go." New Pool-tab axis: `All / Standalones only / Cases only
+  / Trends only / Standalones + trends`.
+
+Scheduled after the Phase D-E core slices so it lands alongside Phase F
+analytics polish.
+
+### Tested
+
+- Trend layout fires when `trend_id` is set; reverts to centred 720px
+  on trend exit.
+- Vitals (no ref-range) and Labs (with ref-range column) variants both
+  render correctly with the right column shape.
+- "⤬ Trend" pill appears on trend-question cards.
+- Case-block items still render correctly (4.3 layout intact).
+- Standalone non-wrapper items still render centred (4.1 layout
+  intact).
+- Submit + scoring works end-to-end on trend questions.
+
+### Next pick
+
+- **Slice 4.5 — Per-mode behaviour.** Real timer (wall-clock for EXAM,
+  engagement-clock for STUDY-timed), navigation rules (sequential vs
+  free-nav), feedback timing (per-Q vs end-of-quiz), warning
+  thresholds. Picks up the case-exit warning queued from 4.3 (warn
+  when leaving mid-case in free-nav modes).
+
+---
+
+## Session — 2026-05-09 (4.3) — Case-block UX: wrapper-aware split, CJMM strip, progressive disclosure, entry banner, grid bands
+
+Closes slice 4.3. The runner now branches its layout when the current
+item has a `parent_case_id`: standalones keep the centred 720px column
+(unchanged), case-childs render in a `.rn-split` grid with a sticky
+case panel on the left and the question column on the right. Question
+internals (stem / options / rationale) are unchanged inside a case —
+only the surrounding chrome changes. Banner explains the case-block
+concept on entry; grid bands group case-clustered cells visually.
+
+The slice landed as a single commit on the session branch
+(`83cfad0`) plus a docs commit. Approval-to-merge to `main` is
+pending Sam's continued testing.
+
+### What shipped
+
+**3 new files** in `lib/practice/runner/case/`:
+- `case-panel.tsx` — sticky left panel: head (title + "X of 6
+  answered" pill) + scenario block + filtered tab row + body. Owns
+  the active-tab state, keyed by `case_id` so React remounts on case
+  transitions.
+- `chart-tab-body.tsx` — renders one tab's visible entries. Three
+  shapes: built-in narrative (with `extra_fields` + optional
+  `omit_time`), built-in structured (table), custom_narrative
+  (free_text), custom_grid (rows_cols). Pulls shape from the
+  `BUILT_IN_TABS` registry for built-ins; `tab.custom_shape` for
+  custom.
+- `cjmm-strip.tsx` — 6-step horizontal stepper, current step
+  highlighted, earlier steps marked done. Short labels
+  (`Recognise / Analyse / Prioritise / Generate / Take action /
+  Evaluate`) so it fits the question column at typical widths.
+
+**1 new file** in `lib/hints/practice/`:
+- `case-entry-banner.tsx` — non-modal banner, auto-fades after 4s,
+  dismissable. Fires on every case entry (not first-time only) per
+  Sam's call — re-entry via the grid still surfaces the explanation
+  for students who forgot. Lives under `hints/` because it's an
+  explanation surface, not a confirmation overlay (per CLAUDE.md
+  #12); the shell is a new pattern within hints (auto-firing modal
+  rather than the click-toggle bulb).
+
+**Edits** to the runner shell:
+- `runner.tsx` — case-context derivation (current case_id, distinct
+  case order, children count, answered count, CJMM step index),
+  banner state via `useRef` + `useEffect` (fires on transitions
+  null→caseId or caseA→caseB), layout branch wrapping the question
+  area in `.rn-split` when on a case-child, `caseMeta` prop on the
+  topbar, `caseGroups` prop on the grid.
+- `runner-question-area.tsx` — `topSlot` prop (renders above
+  `.rn-q-meta` inside `.rn-q-wrap`); case-childs pass a
+  `<CjmmStrip />` here. Also reusable for slice 4.4's trend context
+  indicator.
+- `runner-topbar.tsx` — optional `caseMeta` prop adding three pills
+  to the meta line ("Case N of M · CJMM step X of 6 · &lt;label&gt;").
+- `runner-grid.tsx` — accepts `caseGroups: CaseGroup[]`, computes
+  band geometry per row segment (a 6-cell case starting at column 3
+  of a 5-column grid wraps into two row segments → two
+  `.rn-case-band` rectangles), no labels per spec §16.4.
+- `styles/runner.css` — `.rn-split` (Layout C: `minmax(380px, 1fr)
+  minmax(520px, 720px)`, max-width 1240), `.rn-case`,
+  `.rn-case-head`, `.rn-case-scenario`, `.rn-case-tabs`,
+  `.rn-case-tab`, `.rn-case-body`, `.rn-case-entry`,
+  `.rn-cjmm-strip`, `.rn-cjmm-step`, `.rn-cjmm-arrow`,
+  `.rn-cjmm-pill`, `.rn-case-banner` (with fade keyframes), and
+  `.rn-case-band`. Token additions: `--rn-case-band` +
+  `--rn-case-band-edge`.
+
+### Key conversation decisions
+
+The slice opened with a 5-question design discussion:
+
+1. **Layout** — three strategies compared in a throwaway HTML mock
+   (`docs/scratch/case-wrapper-layout.html`) at viewports
+   1100/1280/1440/1600px:
+   - **A** (question fixed 720, wrapper takes leftover): cramps the
+     wrapper at 1280px viewport (~440px) and badly at 1100px
+     (~270px).
+   - **B** (50/50 split capped 1180): the design artboard's choice;
+     forces the question to reflow narrower than standalone even
+     when there's room. Also *both* columns lock at the same width
+     regardless of wrapper content size — a 1-paragraph wrapper
+     still occupies 578px of empty whitespace.
+   - **C** (wrapper-protected, question shrinks if needed):
+     `minmax(380px, 1fr) minmax(520px, 720px)`, max-width 1240.
+     Question keeps 720 on wider screens, only shrinks (toward 520)
+     when the wrapper would otherwise be squeezed below 380.
+   Initial recommendation was C; flipped briefly to B after Sam
+   pushed back on column-stability grounds; flipped back to C after
+   Sam's clarifying question revealed B's content-size blindness.
+   Final reasoning: in a typical 25Q attempt the student sees ~19
+   standalones at 720 vs ~6 case-childs, so the question column
+   should stay canonical at 720 across the attempt and only the
+   wrapper appears/disappears.
+
+2. **Boundary cue** — refactored from a 1.2s full-bleed overlay to
+   a non-modal banner. The "mask the layout reshuffle" argument I
+   used to justify the modal didn't survive scrutiny (the reshuffle
+   is effectively instant). Sam's framing — entry overlay always,
+   exit warning only in free-nav modes when leaving mid-case — is
+   stronger because each cue is functional. **Slice 4.3 ships only
+   the entry banner**; the exit warning queues for slice 4.5 along
+   with mode-specific behaviour (free-nav vs sequential is currently
+   uniform). Naming tension flagged separately: "overlay" pulled
+   toward `lib/overlays/` (which is for *confirmations*); the cue
+   doesn't ask for a decision, so it's a hint. Renamed banner +
+   non-modal shape resolves the tension.
+
+3. **Grid auto-collapse** — Sam called for *no* auto-collapse,
+   contrary to the design artboard. Layout C protects the wrapper
+   at its 380px floor even with the 240px grid open, so manual
+   control suffices. Trades: at 1280px viewport with grid open the
+   wrapper is at its floor (380) and the question is around 540 —
+   tight but readable. Student can collapse manually.
+
+4. **Tab/entry visibility** — strict progressive disclosure (not
+   the artboard's locked + 🔒 pattern). Tabs and entries hide
+   entirely until `visible_from <= case_position`. Sam: "on real
+   exams, when a chart is only visible from question 2, it doesn't
+   show at all in question 1." Backward nav re-hides — students
+   reason at the point in time the case is at, including when they
+   jump back via the grid. Authentic to NCLEX behaviour.
+
+5. **Folder convention** — followed CLAUDE.md #11 (curator-side
+   `lib/bank/`, student-side `lib/practice/`) and #12 (cross-cutting
+   UI by category: overlays / toast / hints). New folders created
+   with explicit OK from Sam per his "ask before new folders" rule:
+   `lib/practice/runner/case/` (3 files) + `lib/hints/practice/` (1
+   file).
+
+### Test data
+
+mynclex-dev had 0 case studies before this slice. 4 cases seeded
+via SQL covering complementary tab-shape and question-type combos
+to exercise the runner thoroughly. **Not committed as a seed file
+per Sam** — lives on mynclex-dev only.
+
+| Case | Topic | Tab shapes |
+|---|---|---|
+| 01 | Cardiogenic shock (Mr Liang Tan, 68) | vital_signs · custom_narrative · custom_grid |
+| 02 | DKA (Mrs Adwoa Mensah, 24) | nurses_notes · lab_results · custom_grid |
+| 03 | Addisonian crisis (Mr Kwame Boateng, 42) | orders · diagnostics · custom_narrative |
+| 04 | Severe pre-eclampsia (Mrs Akosua Asante, 32, G2P1) | history · vital_signs · custom_grid |
+
+All 8 distinct chart-tab shapes covered. Question types span all 9:
+MCQ, TF, SATA, SELECT_N, MATRIX, HIGHLIGHT, CLOZE, DRAG_DROP-ORDERED,
+DRAG_DROP-SENTENCE, BOWTIE — distributed across the 6 case-childs of
+each case at the CJMM step where each type fits naturally.
+
+### Seed bug surfaced + fixed mid-test
+
+After all 4 cases were seeded, submit failed for any non-MCQ case-child
+with toast "score_awarded N out of range [0, 1]". Root cause: my
+direct INSERTs hardcoded `marks = 1` on every bank item, but the
+runner's `scoreAttempt` returns raw points up to `correct.length` (so
+a SATA with 5 correct answers returns up to 5). The submit RPC's
+guard `p_score_awarded <= v_marks_max` correctly rejected. Curator-
+saved questions never have this problem because the editor calls
+`computeMarksFromKey()` on save; my SQL bypassed that.
+
+Fixed in two places: (1) `nclex_bank_items.marks` for all seeded
+items, derived per-type from `correct` JSON the same way
+`computeMarksFromKey` does; (2) `nclex_attempt_items.marks_snapshot`
+for any IN_PROGRESS attempt that snapshotted the broken values
+(safe because the source was wrong from creation, not a curator
+edit). Sam's in-flight attempt resumed cleanly after the backfill.
+
+### Tested
+
+- All 4 cases discoverable in the Builder.
+- Layout split renders correctly when `parent_case_id` is set;
+  reverts to centred 720px on case exit.
+- Tab visibility and entry visibility both filter strictly by
+  `visible_from`; tabs disappear / re-appear cleanly across forward
+  + backward nav.
+- Active-tab state persists across case-children of the same case
+  (key by `case_id`); resets across different cases.
+- Topbar `caseMeta` line appears only on case-childs.
+- Grid case bands render correctly across single-row and
+  multi-row clusters.
+- Entry banner fires on case entry, fades after 4s, dismissable
+  via `×`. Re-entry via grid re-fires.
+- Scenario block sits between head and tabs (not inside the body —
+  Sam's correction during testing); always visible regardless of
+  active tab.
+- Submit + scoring works end-to-end for all 9 question types in
+  case-child context after the seed-bug fix.
+
+### Next pick
+
+- **Slice 4.4 — Trend question rendering.** Reuses `.rn-split`
+  layout + `topSlot` prop + topbar caseMeta pattern (rename to
+  trendMeta). New work is just the dataset rendering itself — kind-
+  specific (line chart for vital-sign trends, tabular for lab
+  trends). No CJMM strip, no progressive disclosure, no entry
+  banner: trends are scattered standalones per attempt-creation
+  §8.3, not a chained sequence.
+
+---
+
+## Session — 2026-05-09 (refactor) — `lib/` restructure: split curator vs student-side; introduce overlays/toast/hints
+
+Executes the queued `lib/bank/` refactor from the prior session's
+`project_lib_bank_refactor.md` memory note, but the conversation
+expanded the scope from a simple promote-three-folders move into a
+deliberate redesign of where cross-cutting UI pieces live. Net result:
+`lib/bank/` is now strictly curator-only, `lib/practice/` houses the
+student-facing consumption surface, and three new top-level folders
+(`lib/overlays/`, `lib/toast/`, `lib/hints/`) collect floating /
+affordance UI by category. All shipped in a single commit on
+2026-05-09 with zero new TS errors and a clean dev-server compile.
+
+### What landed structurally
+
+```
+lib/
+├── bank/                    (curator-only — editors, wrappers, parsers, list, types)
+│   └── atoms/               (12 editor-internal pieces remain — left in place by design)
+├── practice/                (NEW — student consumption)
+│   ├── runner/              (was lib/bank/runner/)
+│   ├── builder/             (was lib/bank/builder/)
+│   └── launchers/           (was lib/bank/entry-helpers/, renamed)
+├── overlays/                (NEW)
+│   └── bank/                (delete-confirm, discard-confirm)
+├── toast/                   (NEW, flat — toasts have no area subfolders)
+│   └── error-toast.tsx
+└── hints/                   (NEW — explanation surfaces)
+    ├── shared/              (bulb shell — was help-bulb.tsx, HelpBulb → Bulb)
+    └── bank/                (3 named bulbs — Path B content extraction)
+```
+
+### Key conversation decisions
+
+- **Three top-level folders, not one umbrella.** Initial proposal
+  bundled toasts + dialogs + bulbs into a single `lib/overlays/`
+  umbrella. Sam pushed back: toast ≠ confirm-dialog ≠ explanation, and
+  conflating them was exactly the same conflation that let
+  `lib/bank/atoms/` accumulate 16 mixed-scope files. Three categories,
+  three folders.
+
+- **Layer-2 generic vs Layer-3 instance** distinction surfaced when
+  reading `delete-confirm.tsx`: its title was hardcoded `"Delete
+  <itemId>"`, hint hardcoded `"Type DELETE to confirm"`, button
+  labels hardcoded — so it's a curator-specific instance, not a
+  primitive. Goes to `lib/overlays/bank/`. The future runner-side
+  discard-attempt overlay (slice 4.8) will land in
+  `lib/overlays/practice/`, and *that's the moment* we extract a
+  layer-2 `<TypeToConfirmDialog>` primitive both can call. Refactor
+  on demand, not speculatively.
+
+- **`error-toast.tsx` stayed named `error-toast.tsx`, not generalised.**
+  Considered renaming to `toast.tsx` with a `tone` prop for symmetry
+  with `bulb.tsx` — but the file is hardwired for error tone (red
+  class, `!` icon, `aria-live=assertive`) and we have zero non-error
+  callers today. Generalising now is "designing for hypothetical."
+  When the first success-toast caller lands (likely slice 4.6
+  Save-progress UX), that's the right moment to either generalise or
+  add a sibling `success-toast.tsx`.
+
+- **Path B for hints.** Each unique explainer is its own file in
+  `lib/hints/<area>/<surface>-bulb.tsx` that wraps the shell and
+  hardcodes its content. Toolbars import the named bulb
+  (`<TrendWrapperBulb />`), never the shell. Three named bulbs
+  landed today: `case-study-wrapper-bulb`, `case-study-editor-bulb`,
+  `trend-wrapper-bulb`. The 1000+ line wrapper pages dropped 9 lines
+  of inline `<HelpBulb><ul>...</ul></HelpBulb>` per bulb and gained
+  one `<NamedBulb />` line in their place. Win for future copy-edit
+  passes — all explainer prose now lives in one folder, auditable
+  by walking `lib/hints/`.
+
+- **`launchers/` not `entry-helpers/`.** "Entry helpers" was a
+  behaviour-name (helps you enter); `launchers/` is a thing-name (the
+  Resume / Recent / Weak-spots tiles all *launch* a practice attempt).
+  Renamed during the move.
+
+- **Editor-internal atoms stay put.** `stem-field`, `instruction-field`,
+  `modal-frame`, `editor-tabs`, `editor-actions`, `rationale-fields`,
+  `classification-fields`, `housekeeping-fields`, `hidden-item-inputs`,
+  `preview-toggle`, `question-type-picker`, `section` — 12 files —
+  remain in `lib/bank/atoms/` because they're curator-internal
+  plumbing, not cross-cutting affordances. Sam's call: "leave them.
+  Tell me before creating new folders going forward so we decide
+  together." That last bit became a feedback memory
+  (`feedback_ask_before_new_folders.md`) — surface name + purpose
+  before any `mkdir`/refactor/scaffold that creates a folder.
+
+### Implementation notes
+
+- **27 source files updated, 54 files in the commit.** Most changes
+  are mechanical import-path swaps (`@/lib/bank/runner/...` →
+  `@/lib/practice/runner/...`, `@/lib/bank/atoms/error-toast` →
+  `@/lib/toast/error-toast`, etc.). The only non-mechanical edits
+  were the wrapper-page bulb extractions: 9 lines of inline
+  `<HelpBulb>` content per bulb collapsed to a single
+  `<NamedBulb />` JSX call, with the content moved into the new
+  named-bulb file.
+
+- **PowerShell -Encoding utf8 corrupted 13 files mid-refactor**
+  (added BOM, mangled em-dashes via cp1252 round-trip). Caught it
+  via `git diff --stat` showing 592 ins / 592 del where 14 / 14 was
+  expected. Reverted with `git checkout HEAD -- <files>`, switched
+  to `sed -i` via the Bash tool which handles UTF-8 cleanly. Note
+  for future PowerShell scripted edits: avoid `Set-Content
+  -Encoding utf8` on UTF-8 files (it adds BOM); prefer
+  `[System.IO.File]::WriteAllText` with a no-BOM
+  `UTF8Encoding($false)` if PowerShell is required, or just use
+  `sed -i` via Bash.
+
+- **CLAUDE.md got two new conventions.** #11 codifies the curator
+  vs practice split. #12 codifies the overlays/toast/hints layout
+  including the `shared/` (layer-2 generics) vs area-subfolder
+  (layer-3 instances) sub-pattern. Together they document the
+  why behind the file moves so the next contributor doesn't have to
+  reconstruct the reasoning.
+
+### Tested
+
+- Trend wrapper toolbar bulb (`TrendWrapperBulb`) opens / closes /
+  shows correct content on a trend dataset in mynclex-dev. The shell
+  + Path B mechanism is verified. Case-study bulbs were not
+  exercised — mynclex-dev has 0 case studies — but they share the
+  identical wrapper pattern (one-line `<NamedBulb />` import +
+  render), so failure modes are confined to the same import path
+  the typecheck already validates.
+- `npx tsc --noEmit`: 0 new errors. (Two pre-existing errors in
+  `lib/scoring/*.test.ts` for missing vitest types are unrelated.)
+- Dev server: clean compile, routes serving 200 OK.
+
+### Next pick
+
+- **Slice 4.3 — Case-block UX.** Case panel (scenario + chart tabs),
+  CJMM step labels, mount/unmount at block boundaries, "Case
+  complete. Continuing…" transition. The `lib/bank/` refactor that
+  was gating new feature work is now done — case-block UX consumes
+  the runner from its new home at `@/lib/practice/runner/`.
+
+---
+
 ## Session — 2026-05-09 (build) — Slice 4.2 closed: CLOZE + DRAG_DROP + BOWTIE — all 8 per-type runners shipped
 
 Closes slice 4.2. The three remaining question types from the 2026-05-08

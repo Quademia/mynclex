@@ -3,13 +3,13 @@
 // Server Component wrapper used by the [programme_id] layout.
 // Resolves the :programmeId placeholder in TUTOR_PROGRAMME_NAV's
 // hrefs to the actual route param, fetches the programme title
-// (hardcoded demo lookup today), and renders the AppShell with the
-// programme sidebar + back pill in the topbar's right slot.
+// from nclex_programmes (RLS scopes to the tutor's own rows), and
+// renders the AppShell with the programme sidebar + back pill in
+// the topbar's right slot.
 //
-// Replace DEMO_PROGRAMME_TITLES with a DB query once the
-// nclex_programmes table lands. Add an ownership check at the same
-// time so a tutor can't peek at another tutor's programme by
-// guessing the id.
+// Slice 9.1a wired this up against the real DB. RLS = ownership
+// check; the SELECT returns no row for programmes that aren't the
+// tutor's, which becomes a 404 here.
 
 import { notFound } from 'next/navigation';
 import { loadChromeData } from '@/lib/shell/load-chrome-data';
@@ -17,11 +17,7 @@ import { AppShell } from '@/components/shell/app-shell';
 import { TutorProgrammeSidebar } from './programme-sidebar';
 import { TutorBackPill } from './back-pill';
 import { TUTOR_PROGRAMME_NAV } from '@/lib/nav/tutor';
-
-const DEMO_PROGRAMME_TITLES: Record<string, string> = {
-  'demo-bootcamp': '8-Week NCLEX Bootcamp',
-  'demo-rolling': 'Self-paced Foundations',
-};
+import { getProgrammeForShell } from '@/lib/programmes/queries';
 
 export async function TutorProgrammeShell({
   programmeId,
@@ -32,15 +28,21 @@ export async function TutorProgrammeShell({
 }) {
   const chrome = await loadChromeData();
 
-  const programmeTitle = DEMO_PROGRAMME_TITLES[programmeId];
-  // Unknown programme id with no DB to consult yet — 404 instead of
-  // rendering a "Programme" placeholder that pretends the route is real.
-  if (!programmeTitle) notFound();
+  const programme = await getProgrammeForShell(programmeId);
+  // Unknown programme id, or one this tutor doesn't own → 404.
+  if (!programme) notFound();
+  const programmeTitle = programme.title;
 
-  const items = TUTOR_PROGRAMME_NAV.map((item) => ({
-    ...item,
-    href: item.href.replace(':programmeId', programmeId),
-  }));
+  // SELF_PACED programmes have no cohort layer (main.md §Self-paced
+  // surface), so the Cohorts sidebar entry hides for them. Other
+  // tutor-led-only items (Live Sessions etc.) keep showing for now;
+  // their cohort-layer migration lands with later slices.
+  const items = TUTOR_PROGRAMME_NAV
+    .filter((item) => !(item.key === 'cohorts' && programme.delivery_mode === 'SELF_PACED'))
+    .map((item) => ({
+      ...item,
+      href: item.href.replace(':programmeId', programmeId),
+    }));
 
   return (
     <AppShell

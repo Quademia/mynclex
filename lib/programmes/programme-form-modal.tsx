@@ -1,0 +1,446 @@
+// mynclex/lib/programmes/programme-form-modal.tsx
+//
+// Programme form modal — create + edit. Slice 9.2a reshape:
+//
+// * Schedule section dropped (Start / End / Cohort size moved to
+//   the cohort modal in 9.2b — no cohort modal exists yet, so
+//   creating a new programme produces a programme without a cohort
+//   until 9.2b ships).
+// * New Shape section with Delivery mode + Unit label + Length.
+//   - Delivery mode (TUTOR_LED / SELF_PACED) is create-only;
+//     the field is disabled in edit mode.
+//   - Unit label smart-default flips with delivery mode at
+//     create-time (TUTOR_LED → WEEK, SELF_PACED → MODULE) unless
+//     the tutor has manually picked one.
+//   - Length label flips with unit_label ("Length in weeks" vs
+//     "Number of modules"). Limit stays 1–52 from the DB CHECK.
+
+'use client';
+
+import { useEffect, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
+import { ErrorToast } from '@/lib/toast/error-toast';
+import { createProgrammeAction, editProgrammeAction } from './actions';
+import type {
+  DeliveryMode,
+  ProgrammeFormValues,
+  UnitLabel,
+} from './types';
+
+type ProgrammeFormModalProps =
+  | { mode: 'create'; onClose: () => void }
+  | {
+      mode: 'edit';
+      programmeId: string;
+      initial: ProgrammeFormValues;
+      onClose: () => void;
+    };
+
+function isValidPrice(s: string): boolean {
+  if (s.trim() === '') return false;
+  const n = Number(s);
+  return Number.isFinite(n) && n >= 0;
+}
+
+function priceToMinor(s: string): number {
+  return Math.round(Number(s) * 100);
+}
+
+function minorToInput(minor: number): string {
+  // Display whole numbers as-is, keep the decimal only when needed.
+  // Tutor sees "350" not "350.00", but "29.99" stays "29.99".
+  const value = minor / 100;
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+function defaultUnitLabelFor(mode: DeliveryMode): UnitLabel {
+  return mode === 'TUTOR_LED' ? 'WEEK' : 'MODULE';
+}
+
+export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [showDiscard, setShowDiscard] = useState(false);
+
+  const isEdit = props.mode === 'edit';
+  const initial = isEdit ? props.initial : null;
+
+  // Form state — pre-populated from initial values in edit mode.
+  const [title, setTitle] = useState(initial?.title ?? '');
+  const [tagline, setTagline] = useState(initial?.tagline ?? '');
+  const [description, setDescription] = useState(initial?.description ?? '');
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(
+    initial?.delivery_mode ?? 'TUTOR_LED'
+  );
+  const [unitLabel, setUnitLabel] = useState<UnitLabel>(
+    initial?.unit_label ?? 'WEEK'
+  );
+  // In create mode: track whether the tutor has manually picked a
+  // unit label. If not, the smart default follows delivery_mode.
+  // In edit mode: locked to "touched" — never auto-flip an existing
+  // programme's label silently.
+  const [unitLabelTouched, setUnitLabelTouched] = useState(isEdit);
+  const [lengthUnits, setLengthUnits] = useState(
+    initial ? String(initial.length_units) : ''
+  );
+  const [priceGhs, setPriceGhs] = useState(
+    initial ? minorToInput(initial.price_minor_ghs) : '0'
+  );
+  const [priceUsd, setPriceUsd] = useState(
+    initial ? minorToInput(initial.price_minor_usd) : '0'
+  );
+  const [showPricePublicly, setShowPricePublicly] = useState(
+    initial?.show_price_publicly ?? true
+  );
+
+  // Smart default: when delivery_mode changes in create mode AND
+  // tutor hasn't manually picked a label yet, flip the label.
+  useEffect(() => {
+    if (unitLabelTouched) return;
+    setUnitLabel(defaultUnitLabelFor(deliveryMode));
+  }, [deliveryMode, unitLabelTouched]);
+
+  // Dirty tracking — gates the discard-confirm dialog. In create mode
+  // dirty = any deviation from blank defaults; in edit mode dirty =
+  // any deviation from the initial values loaded from the row.
+  const isDirty = (() => {
+    if (isEdit && initial) {
+      return (
+        title !== initial.title ||
+        tagline !== (initial.tagline ?? '') ||
+        description !== (initial.description ?? '') ||
+        deliveryMode !== initial.delivery_mode ||
+        unitLabel !== initial.unit_label ||
+        lengthUnits !== String(initial.length_units) ||
+        priceToMinor(priceGhs) !== initial.price_minor_ghs ||
+        priceToMinor(priceUsd) !== initial.price_minor_usd ||
+        showPricePublicly !== initial.show_price_publicly
+      );
+    }
+    return (
+      title !== '' ||
+      tagline !== '' ||
+      description !== '' ||
+      deliveryMode !== 'TUTOR_LED' ||
+      unitLabelTouched ||
+      lengthUnits !== '' ||
+      priceGhs !== '0' ||
+      priceUsd !== '0' ||
+      !showPricePublicly
+    );
+  })();
+
+  // Validation
+  const trimmedTitle = title.trim();
+  const lengthUnitsNum = parseInt(lengthUnits, 10);
+  const isFormValid =
+    trimmedTitle.length > 0 &&
+    Number.isInteger(lengthUnitsNum) &&
+    lengthUnitsNum >= 1 &&
+    lengthUnitsNum <= 52 &&
+    isValidPrice(priceGhs) &&
+    isValidPrice(priceUsd);
+
+  function attemptClose() {
+    if (isPending) return;
+    if (isDirty) setShowDiscard(true);
+    else props.onClose();
+  }
+
+  // ESC closes (with discard guard)
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') attemptClose();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty, isPending]);
+
+  function handleSubmit() {
+    if (!isFormValid) {
+      setError('Fill in the required fields.');
+      return;
+    }
+    setError(null);
+    startTransition(async () => {
+      const input = {
+        title: trimmedTitle,
+        tagline: tagline.trim() || null,
+        description: description.trim() || null,
+        delivery_mode: deliveryMode,
+        unit_label: unitLabel,
+        length_units: lengthUnitsNum,
+        price_minor_ghs: priceToMinor(priceGhs),
+        price_minor_usd: priceToMinor(priceUsd),
+        show_price_publicly: showPricePublicly,
+      };
+      const result = isEdit
+        ? await editProgrammeAction(props.programmeId, input)
+        : await createProgrammeAction(input);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      props.onClose();
+      router.refresh();
+    });
+  }
+
+  const modalTitle = isEdit ? 'Edit programme' : 'New programme';
+  const submitLabel = isEdit
+    ? isPending
+      ? 'Saving…'
+      : 'Save changes'
+    : isPending
+      ? 'Creating…'
+      : 'Create programme';
+
+  // Label strings flip with unit_label.
+  const lengthFieldLabel =
+    unitLabel === 'WEEK' ? 'Length in weeks' : 'Number of modules';
+  const lengthFieldHelp =
+    unitLabel === 'WEEK'
+      ? 'How many weeks of curriculum.'
+      : 'How many modules of curriculum.';
+
+  return (
+    <>
+      <div
+        className="prog-modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label={modalTitle}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) attemptClose();
+        }}
+      >
+        <div className="prog-modal">
+          <header className="prog-modal-header">
+            <h2 className="prog-modal-title">{modalTitle}</h2>
+            <button
+              type="button"
+              className="prog-modal-close"
+              aria-label="Close"
+              onClick={attemptClose}
+              disabled={isPending}
+            >
+              ✕
+            </button>
+          </header>
+
+          <div className="prog-modal-body">
+            {/* IDENTITY */}
+            <section className="prog-form-section">
+              <h3 className="prog-form-section-title">Identity</h3>
+
+              <label className="prog-field">
+                <span className="prog-field-label">
+                  Title <span className="prog-required">*</span>
+                </span>
+                <input
+                  type="text"
+                  className="prog-input"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  disabled={isPending}
+                  autoFocus
+                />
+              </label>
+
+              <label className="prog-field">
+                <span className="prog-field-label">Tagline</span>
+                <input
+                  type="text"
+                  className="prog-input"
+                  value={tagline}
+                  onChange={(e) => setTagline(e.target.value)}
+                  disabled={isPending}
+                />
+                <span className="prog-field-help">
+                  One-liner for the public card.
+                </span>
+              </label>
+
+              <label className="prog-field">
+                <span className="prog-field-label">Description</span>
+                <textarea
+                  className="prog-textarea"
+                  rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  disabled={isPending}
+                />
+                <span className="prog-field-help">
+                  Long copy for the public detail page. Mention &ldquo;free&rdquo; here if price is 0.
+                </span>
+              </label>
+            </section>
+
+            {/* SHAPE */}
+            <section className="prog-form-section">
+              <h3 className="prog-form-section-title">Shape</h3>
+
+              <label className="prog-field">
+                <span className="prog-field-label">
+                  Delivery mode <span className="prog-required">*</span>
+                </span>
+                <select
+                  className="prog-input"
+                  value={deliveryMode}
+                  onChange={(e) =>
+                    setDeliveryMode(e.target.value as DeliveryMode)
+                  }
+                  disabled={isPending || isEdit}
+                >
+                  <option value="TUTOR_LED">Tutor-led (cohorts)</option>
+                  <option value="SELF_PACED">Self-paced (no cohorts)</option>
+                </select>
+                <span className="prog-field-help">
+                  {isEdit
+                    ? 'Delivery mode is set at create-time and can’t be changed.'
+                    : deliveryMode === 'TUTOR_LED'
+                      ? 'Students enrol per cohort with shared start/end dates.'
+                      : 'Students enrol directly and progress at their own pace.'}
+                </span>
+              </label>
+
+              <div className="prog-field-row">
+                <label className="prog-field">
+                  <span className="prog-field-label">
+                    Unit label <span className="prog-required">*</span>
+                  </span>
+                  <select
+                    className="prog-input"
+                    value={unitLabel}
+                    onChange={(e) => {
+                      setUnitLabel(e.target.value as UnitLabel);
+                      setUnitLabelTouched(true);
+                    }}
+                    disabled={isPending}
+                  >
+                    <option value="WEEK">Weeks</option>
+                    <option value="MODULE">Modules</option>
+                  </select>
+                  <span className="prog-field-help">
+                    Renders curriculum units as &ldquo;Week N&rdquo; or
+                    &ldquo;Module N&rdquo;.
+                  </span>
+                </label>
+
+                <label className="prog-field">
+                  <span className="prog-field-label">
+                    {lengthFieldLabel} <span className="prog-required">*</span>
+                  </span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={52}
+                    className="prog-input"
+                    value={lengthUnits}
+                    onChange={(e) => setLengthUnits(e.target.value)}
+                    disabled={isPending}
+                  />
+                  <span className="prog-field-help">{lengthFieldHelp}</span>
+                </label>
+              </div>
+            </section>
+
+            {/* PRICING */}
+            <section className="prog-form-section">
+              <h3 className="prog-form-section-title">Pricing</h3>
+
+              <div className="prog-field-row">
+                <label className="prog-field">
+                  <span className="prog-field-label">
+                    Price (GHS) <span className="prog-required">*</span>
+                  </span>
+                  <div className="prog-price-input">
+                    <span className="prog-price-prefix">₵</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step="0.01"
+                      className="prog-input prog-input-price"
+                      value={priceGhs}
+                      onChange={(e) => setPriceGhs(e.target.value)}
+                      disabled={isPending}
+                    />
+                  </div>
+                </label>
+
+                <label className="prog-field">
+                  <span className="prog-field-label">
+                    Price (USD) <span className="prog-required">*</span>
+                  </span>
+                  <div className="prog-price-input">
+                    <span className="prog-price-prefix">$</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step="0.01"
+                      className="prog-input prog-input-price"
+                      value={priceUsd}
+                      onChange={(e) => setPriceUsd(e.target.value)}
+                      disabled={isPending}
+                    />
+                  </div>
+                </label>
+              </div>
+              <span className="prog-field-help">0 = free.</span>
+
+              <label className="prog-toggle">
+                <input
+                  type="checkbox"
+                  checked={showPricePublicly}
+                  onChange={(e) => setShowPricePublicly(e.target.checked)}
+                  disabled={isPending}
+                />
+                <span>Show price on the public listing</span>
+              </label>
+              <span className="prog-field-help prog-toggle-help">
+                Off → &ldquo;Contact&rdquo; button shown instead.
+              </span>
+            </section>
+          </div>
+
+          <footer className="prog-modal-footer">
+            <button
+              type="button"
+              className="prog-btn prog-btn-ghost"
+              onClick={attemptClose}
+              disabled={isPending}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="prog-btn prog-btn-primary"
+              onClick={handleSubmit}
+              disabled={!isFormValid || isPending || (isEdit && !isDirty)}
+            >
+              {submitLabel}
+            </button>
+          </footer>
+        </div>
+      </div>
+
+      <ErrorToast error={error} onDismiss={() => setError(null)} />
+
+      {showDiscard && (
+        <DiscardConfirm
+          onKeepEditing={() => setShowDiscard(false)}
+          onDiscard={() => {
+            setShowDiscard(false);
+            props.onClose();
+          }}
+        />
+      )}
+    </>
+  );
+}

@@ -4,10 +4,13 @@
 // cell encoding (fill / marked border / current ring) per §16.4. Filter
 // toggles use single-select per §16.6.
 //
-// Deferred for 4.1.2b:
-//   • Case-grouping bands (slice 4.3) — band geometry math omitted; the
-//     `caseGroups` data isn't surfaced yet.
-//   • Auto-collapse / overlay-on-wrapper modes (slice 4.3 alongside cases).
+// Slice 4.3 added case-grouping bands — subtle tinted rectangles behind
+// case-clustered cells. No labels (visual grouping only, per spec §16.4).
+// Bands wrap across grid rows when a case straddles a 5-column boundary.
+//
+// Deferred:
+//   • Auto-collapse / overlay-on-wrapper modes (slice 4.3 decision: no
+//     auto-collapse — manual control only).
 //   • Mobile bottom-sheet variant (covered with the mobile slice).
 //
 // Cells are clickable → onPick(index). Filter toggles reset the visible
@@ -15,24 +18,82 @@
 
 'use client';
 
-import type { AnswerRow } from '@/lib/bank/runner';
-import { deriveCellFill, isVisibleUnderFilter } from '@/lib/bank/runner';
-import type { GridFilter } from '@/lib/bank/runner';
+import type { AnswerRow } from '@/lib/practice/runner';
+import { deriveCellFill, isVisibleUnderFilter } from '@/lib/practice/runner';
+import type { GridFilter } from '@/lib/practice/runner';
 
 interface CellSummary {
   attempt_item_id: string;
   position:        number;
 }
 
+// One contiguous run of case-child cells. `from` / `to` are 0-indexed
+// positions in the items array — i.e. cell column-major indices in the
+// grid. Each run renders as one or more `.rn-case-band` rectangles
+// (multiple if the run wraps grid rows).
+export interface CaseGroup {
+  caseId: string;
+  from:   number;
+  to:     number;
+}
+
 interface Props {
-  items:    CellSummary[];
-  answers:  Map<string, AnswerRow>;
-  marked:   Set<string>;
-  current:  number;          // 0-indexed
-  filter:   GridFilter;
+  items:       CellSummary[];
+  answers:     Map<string, AnswerRow>;
+  marked:      Set<string>;
+  current:     number;          // 0-indexed
+  filter:      GridFilter;
+  caseGroups?: readonly CaseGroup[];
+  // Slice 4.5c: gate per-cell correctness rendering. True for UL live
+  // and any review-state mode; false for Free-batched + Sequential
+  // mid-quiz (rationale + correctness deferred until Finish).
+  revealCorrectness: boolean;
   onPick:           (index: number) => void;
   onFilterChange:   (filter: GridFilter) => void;
   onCollapse?:      () => void;
+}
+
+// Grid layout constants — kept in sync with --rn-cell / --rn-cell-gap
+// in styles/runner.css. Hard-coded here so band geometry is computed
+// without a layout-effect read-back. If those tokens change, update
+// these too.
+const CELL = 36;
+const GAP  = 5;
+const COLS = 5;
+const PAD  = 4;   // visual breathing room around the band edge
+
+interface BandRect {
+  key:    string;
+  left:   number;
+  top:    number;
+  width:  number;
+  height: number;
+}
+
+// Split a contiguous case run into one rectangle per grid row it
+// touches. A 6-cell case starting at column 3 of a 5-col grid spans
+// row 0 (cols 3-4) + row 1 (cols 0-3) → two rects.
+function bandsFor(group: CaseGroup): BandRect[] {
+  const rects: BandRect[] = [];
+  let i = group.from;
+  let n = 0;
+  while (i <= group.to) {
+    const row     = Math.floor(i / COLS);
+    const fromCol = i - row * COLS;
+    const rowEnd  = Math.min(group.to, (row + 1) * COLS - 1);
+    const toCol   = rowEnd - row * COLS;
+    const span    = toCol - fromCol + 1;
+    rects.push({
+      key:    `${group.caseId}-${n}`,
+      left:   fromCol * (CELL + GAP) - PAD,
+      top:    row     * (CELL + GAP) - PAD,
+      width:  span * CELL + (span - 1) * GAP + 2 * PAD,
+      height: CELL + 2 * PAD,
+    });
+    i = rowEnd + 1;
+    n += 1;
+  }
+  return rects;
 }
 
 export function RunnerGrid({
@@ -41,6 +102,8 @@ export function RunnerGrid({
   marked,
   current,
   filter,
+  caseGroups,
+  revealCorrectness,
   onPick,
   onFilterChange,
   onCollapse,
@@ -53,7 +116,7 @@ export function RunnerGrid({
     wrong:      0,
   };
   for (const item of items) {
-    const fill = deriveCellFill(answers.get(item.attempt_item_id));
+    const fill = deriveCellFill(answers.get(item.attempt_item_id), revealCorrectness);
     if (marked.has(item.attempt_item_id)) filterCounts.marked += 1;
     if (fill === 'unanswered' || fill === 'skipped') filterCounts.unanswered += 1;
     if (fill === 'wrong') filterCounts.wrong += 1;
@@ -78,12 +141,15 @@ export function RunnerGrid({
         <div className="rn-grid-filters" role="tablist">
           {(
             [
-              { id: 'all',        label: 'All',    n: filterCounts.all },
-              { id: 'marked',     label: 'Marked', n: filterCounts.marked },
-              { id: 'unanswered', label: 'Unans',  n: filterCounts.unanswered },
-              { id: 'wrong',      label: 'Wrong',  n: filterCounts.wrong },
+              { id: 'all',        label: 'All',    n: filterCounts.all,        show: true },
+              { id: 'marked',     label: 'Marked', n: filterCounts.marked,     show: true },
+              { id: 'unanswered', label: 'Unans',  n: filterCounts.unanswered, show: true },
+              // Wrong filter only meaningful when correctness is revealed
+              // (UL live, or any review state). In batched live modes the
+              // count would always be 0 and clicking it would empty the grid.
+              { id: 'wrong',      label: 'Wrong',  n: filterCounts.wrong,      show: revealCorrectness },
             ] as const
-          ).map((f) => (
+          ).filter((f) => f.show).map((f) => (
             <button
               key={f.id}
               type="button"
@@ -100,8 +166,25 @@ export function RunnerGrid({
 
       <div className="rn-grid-scroll">
         <div className="rn-cells">
+          {/* Case bands — absolute-positioned rectangles behind the
+              cells. Render before the cells so they sit underneath in
+              source order; .rn-cell { z-index: 1 } keeps them above. */}
+          {caseGroups?.flatMap((g) => bandsFor(g)).map((b) => (
+            <div
+              key={b.key}
+              className="rn-case-band"
+              style={{
+                left:   b.left,
+                top:    b.top,
+                width:  b.width,
+                height: b.height,
+              }}
+              aria-hidden="true"
+            />
+          ))}
+
           {items.map((item, idx) => {
-            const fill   = deriveCellFill(answers.get(item.attempt_item_id));
+            const fill   = deriveCellFill(answers.get(item.attempt_item_id), revealCorrectness);
             const isMrk  = marked.has(item.attempt_item_id);
             const hidden = !isVisibleUnderFilter(fill, isMrk, filter);
             const cls = [
@@ -133,10 +216,14 @@ export function RunnerGrid({
 
       <div className="rn-grid-legend" aria-hidden="true">
         <div className="row"><span className="swatch" /> Unanswered</div>
-        <div className="row"><span className="swatch f-answered" /> Answered (pre-submit)</div>
-        <div className="row"><span className="swatch f-right" /> Correct</div>
-        <div className="row"><span className="swatch f-wrong" /> Wrong</div>
-        <div className="row"><span className="swatch f-skipped" /> Skipped</div>
+        <div className="row"><span className="swatch f-answered" /> Answered</div>
+        {revealCorrectness && (
+          <>
+            <div className="row"><span className="swatch f-right" /> Correct</div>
+            <div className="row"><span className="swatch f-wrong" /> Wrong</div>
+            <div className="row"><span className="swatch f-skipped" /> Skipped</div>
+          </>
+        )}
         <div className="row"><span className="swatch marked" /> Marked for review</div>
         <div className="row"><span className="swatch current" /> Current</div>
       </div>

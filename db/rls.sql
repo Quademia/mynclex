@@ -429,3 +429,87 @@ CREATE POLICY nclex_attempt_trend_snapshots_admin_all ON nclex_attempt_trend_sna
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- =========================================================
+-- nclex_programmes (Slice 9.1a, 2026-05-10)
+-- =========================================================
+-- Tutor owns own programmes; SUPER_ADMIN bypass.
+-- UPDATE / DELETE / public-select policies deferred to the slices
+-- that need them (edit, discard/archive, public discovery).
+
+ALTER TABLE nclex_programmes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_programmes_self_select ON nclex_programmes FOR SELECT
+  TO authenticated
+  USING (tutor_id = auth.uid());
+
+CREATE POLICY nclex_programmes_self_insert ON nclex_programmes FOR INSERT
+  TO authenticated
+  WITH CHECK (tutor_id = auth.uid());
+
+-- Slice 9.1c: tutor edits own programmes. WITH CHECK prevents
+-- reassigning tutor_id to a different tutor via UPDATE.
+CREATE POLICY nclex_programmes_self_update ON nclex_programmes FOR UPDATE
+  TO authenticated
+  USING (tutor_id = auth.uid())
+  WITH CHECK (tutor_id = auth.uid());
+
+CREATE POLICY nclex_programmes_admin_all ON nclex_programmes FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- =========================================================
+-- nclex_cohorts (Slice 9.2a, 2026-05-12)
+-- =========================================================
+-- Tutor owns cohorts via the parent programme's tutor_id. The
+-- ownership EXISTS subquery is the same on USING and WITH CHECK so
+-- a tutor can't reassign a cohort to another tutor's programme.
+-- SUPER_ADMIN bypass mirrors the programmes pattern.
+-- Public-select deferred until public cohort discovery ships.
+
+ALTER TABLE nclex_cohorts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_cohorts_self_select ON nclex_cohorts FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_cohorts.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_cohorts_self_insert ON nclex_cohorts FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_cohorts.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_cohorts_self_update ON nclex_cohorts FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_cohorts.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_cohorts.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_cohorts_admin_all ON nclex_cohorts FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));

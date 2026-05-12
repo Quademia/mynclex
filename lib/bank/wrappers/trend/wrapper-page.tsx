@@ -41,9 +41,9 @@ import type {
   WrapperData,
 } from './types';
 import type { PreviewViewMode } from '@/lib/bank/atoms/preview-toggle';
-import { ErrorToast } from '@/lib/bank/atoms/error-toast';
-import { DiscardConfirm } from '@/lib/bank/atoms/discard-confirm';
-import { HelpBulb } from '@/lib/bank/atoms/help-bulb';
+import { ErrorToast } from '@/lib/toast/error-toast';
+import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
+import { TrendWrapperBulb } from '@/lib/hints/bank/trend-wrapper-bulb';
 import { QuestionTypePicker } from '@/lib/bank/atoms/question-type-picker';
 import { saveQuestionAction } from '@/lib/bank/actions/save-question';
 import type { QuestionType } from '@/lib/bank/classifications';
@@ -596,16 +596,7 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
           >
             Delete
           </button>
-          <HelpBulb title="What do these buttons do?">
-            <ul className="auth-help-bulb-list">
-              <li><strong>Cancel changes</strong> — Discard unsaved title / scenario / kind / visibility / data table edits in the Dataset view. Returns those fields to the last saved values. Visible when on the Dataset pill.</li>
-              <li><strong>Save trend</strong> — Save the dataset row: title, scenario, kind, the three visibility flags, and the data table (rows + timepoints + flags + ref-range). Visible when on the Dataset pill.</li>
-              <li><strong>Save question</strong> — Save the active question. Each attached question keeps its own publishing flags (genuinely owned per question, unlike CS). Visible when on a question pill.</li>
-              <li><strong>Detach</strong> — Remove the active question from the dataset. The question survives in the bank as a standalone item; the dataset just loses its link. Visible only on existing question pills.</li>
-              <li><strong>Validate</strong> — Run a manual validation pass over the dataset (title, rows, timepoints, attached questions). Errors first, warnings second. Manual only — never auto-runs. Click again to dismiss.</li>
-              <li><strong>Delete</strong> — Permanently delete this trend dataset. The dialog auto-detects the right path (simple, detach-and-delete, or delete-everything) based on attached questions, with a type-to-confirm gate.</li>
-            </ul>
-          </HelpBulb>
+          <TrendWrapperBulb />
         </div>
       </header>
 

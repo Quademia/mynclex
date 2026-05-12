@@ -1,0 +1,523 @@
+/* mynclex/styles/programmes.css
+ *
+ * Programme list page (slice 9.1a). New domain file per CLAUDE.md
+ * folder convention #5 — replaces the inline block previously in
+ * nav.css. New classes for status pills, smart schedule line,
+ * archived toggle, and empty-state CTA layered on top.
+ *
+ * Class prefix `.programme(s)-` so it can't collide with other
+ * domains.
+ */
+
+/* ─── Page header ─────────────────────────────────── */
+
+.programmes-page {
+  max-width: 1080px;
+}
+
+.programmes-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.programmes-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.programmes-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.programmes-new-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  background: var(--primary);
+  color: var(--white);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+.programmes-new-btn:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+.programmes-new-btn:disabled {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+/* ─── Card grid ───────────────────────────────────── */
+
+.programmes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 12px;
+}
+.programmes-grid.is-archived-bank {
+  margin-top: 12px;
+}
+
+/* ─── Programme card ──────────────────────────────── */
+
+.programme-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.programme-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
+}
+.programme-card.is-muted {
+  background: var(--bg);
+  opacity: 0.85;
+}
+.programme-card.is-muted:hover {
+  opacity: 1;
+}
+
+/* Overlay link — covers the whole card. The edit button (z:2) sits
+ * above this and intercepts its own clicks. */
+.programme-card-link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--radius);
+  text-decoration: none;
+}
+
+.programme-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.programme-card-actions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.programme-card-edit-btn {
+  background: transparent;
+  border: 0;
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.programme-card-edit-btn:hover {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+.programme-card-edit-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Visually hidden — accessible label text for the overlay link.
+ * Standard sr-only pattern. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.programme-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.programme-card-tagline {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.programme-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.programme-card-meta,
+.programme-card-schedule {
+  color: var(--text-muted);
+}
+
+/* ─── Status pills ────────────────────────────────── */
+
+.programme-pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.programme-pill.is-live {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+.programme-pill.is-draft {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+.programme-pill.is-archived {
+  background: var(--bg);
+  color: var(--text-faint);
+  border-color: var(--border);
+}
+.programme-pill.is-cancelled {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+/* ─── Archived toggle ─────────────────────────────── */
+
+.programmes-archived-toggle {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  padding: 12px 0 8px;
+  cursor: pointer;
+  text-align: left;
+  display: block;
+  margin-top: 8px;
+}
+.programmes-archived-toggle:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+/* ─── Empty state ─────────────────────────────────── */
+
+.programmes-empty {
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--white);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+}
+.programmes-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+.programmes-empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 auto 18px;
+  max-width: 440px;
+  line-height: 1.5;
+}
+.programmes-empty-cta {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  background: var(--primary);
+  color: var(--white);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.programmes-empty-cta:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+.programmes-empty-cta:disabled {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+/* ─── New Programme modal (slice 9.1b) ────────────── */
+
+.prog-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 24px;
+}
+
+.prog-modal {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.prog-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.prog-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.prog-modal-close {
+  background: transparent;
+  border: 0;
+  font-family: inherit;
+  font-size: 16px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.prog-modal-close:hover:not(:disabled) {
+  background: var(--bg);
+  color: var(--text);
+}
+.prog-modal-close:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.prog-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px;
+}
+
+.prog-modal-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* Buttons */
+
+.prog-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.prog-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.prog-btn-primary {
+  background: var(--primary);
+  color: var(--white);
+  border-color: var(--primary);
+}
+.prog-btn-primary:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+.prog-btn-ghost {
+  background: var(--white);
+  color: var(--text);
+  border-color: var(--border);
+}
+.prog-btn-ghost:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+/* Form sections */
+
+.prog-form-section + .prog-form-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.prog-form-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 12px;
+}
+
+.prog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.prog-field:last-child {
+  margin-bottom: 0;
+}
+
+.prog-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.prog-field-row .prog-field {
+  margin-bottom: 0;
+}
+
+.prog-field-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.prog-required {
+  color: var(--danger);
+  margin-left: 2px;
+}
+
+.prog-field-help {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.prog-input,
+.prog-textarea {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  width: 100%;
+}
+.prog-input:focus,
+.prog-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+.prog-input:disabled,
+.prog-textarea:disabled {
+  background: var(--bg);
+  cursor: not-allowed;
+}
+.prog-textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+/* Currency-prefixed price input */
+
+.prog-price-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.prog-price-prefix {
+  position: absolute;
+  left: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+  pointer-events: none;
+  font-weight: 500;
+}
+.prog-input-price {
+  padding-left: 22px;
+}
+
+/* Toggle */
+
+.prog-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  margin-top: 12px;
+  cursor: pointer;
+}
+.prog-toggle input[type='checkbox'] {
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+/* Inline modifier: used when the toggle sits inside a .prog-field
+ * column (e.g. the cohort modal's late-join field). Drops the
+ * default top margin since the parent column already provides
+ * spacing. */
+.prog-toggle.prog-toggle-inline {
+  margin-top: 4px;
+}
+.prog-toggle-help {
+  margin-left: 24px;
+  margin-top: 2px;
+}

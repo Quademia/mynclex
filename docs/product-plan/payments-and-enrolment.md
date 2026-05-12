@@ -2,7 +2,7 @@
 
 *Living document. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
-Last updated: 2026-04-20 (self-study + tutored enrolment settled)
+Last updated: 2026-05-11 (terminology touch — programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
 
 ---
 
@@ -228,40 +228,58 @@ status. Low-frills, reference-and-trust-building.
 
 ## Tutored enrolment
 
-**Settled 2026-04-20.**
+**Settled 2026-04-20. Reframed for the programme/cohort split
+2026-05-10** — students enrol in cohorts, not programmes. Programme
+is the shop window; cohort is the ticket.
 
 A student joining a specific tutor's programme, outside or alongside
 self-study bank access.
 
 ### Discovery — public programmes list
 
-A single public page lists all active tutored programmes. No
-marketplace bells — just a directory.
+A single public page lists all *discoverable* tutored programmes —
+no marketplace bells, just a directory.
 
 - Card per programme: title, tutor name, brief description, price
-  (or contact button — see below), key details (duration, start
-  date if set, spots remaining if capped).
+  (or *Contact* button — see below), key details (length — shown
+  as "N weeks" or "N modules" per the programme's `unit_label`,
+  e.g. "8 weeks" or "8 modules" — and next available cohort's
+  start date for tutor-led, or "self-paced" for self-paced).
 - Only programmes from vetted, active tutors appear.
-- Programmes with closed enrolment or full cohorts still appear
-  (for tutor visibility) but are not purchasable — see edge cases
-  below.
+- **A programme is publicly discoverable only when it has at least
+  one open cohort** (UPCOMING, or IN_PROGRESS with late-join
+  allowed). PUBLISHED programmes with zero open cohorts are
+  treated as not-yet-launched — they don't appear on the list.
+  This prevents dead-end discovery pages.
 
 ### Programme detail page
 
-Clicking a card opens a dedicated detail page with the full
-programme description, syllabus shape, tutor bio, pricing, and
-either a "Pay and enrol" button or a "Contact" button depending on
-tutor preference.
+Clicking a card opens the programme detail page with the full
+description, syllabus shape, tutor bio, pricing, and a **list of
+available cohorts**. Each cohort row shows:
+
+- Cohort name (auto from dates or tutor-named)
+- Start date → end date
+- Seats remaining (or *Open* if uncapped)
+- Status pill (Upcoming / In progress + late-join open)
+- **Enrol** button per row (or *Contact* if the programme is
+  contact-first — see below)
+
+A student picks one cohort and clicks Enrol. Multiple cohorts of
+the same programme can run in parallel (e.g. weekday + weekend
+intensive); the student picks the one that fits their schedule.
 
 ### Price visibility — tutor choice
 
 Each programme carries a boolean `show_price_publicly` (default
-`TRUE`).
+`TRUE`). It's a programme-level field — all cohorts of a
+programme share the same visibility setting.
 
-- `TRUE` — card and detail page show the price and a "Pay and
-  enrol" button leading to the bundled checkout.
-- `FALSE` — card and detail page show a "Contact" button leading
-  to the enquiry form (below). No price visible.
+- `TRUE` — programme card and cohort rows show the price; cohort
+  rows have *Enrol* buttons leading to the bundled checkout.
+- `FALSE` — programme card and detail page show a *Contact*
+  button leading to the enquiry form (below). No price visible
+  on any cohort row.
 
 ### Contact-first flow — pass-through enquiry
 
@@ -270,8 +288,9 @@ tutor directly. Enquiries route through QAcademy.
 
 **Student experience:**
 
-1. Click "Contact" → simple enquiry form (name, email, phone,
-   message).
+1. Click *Contact* → simple enquiry form (name, email, phone,
+   message). The enquiry is about the programme; cohort isn't
+   chosen yet (tutor figures that out during the conversation).
 2. Submit → stored in `nclex_programme_enquiries` → "Thanks,
    we'll be in touch" confirmation.
 3. No account creation required.
@@ -281,8 +300,8 @@ tutor directly. Enquiries route through QAcademy.
 - Enquiry logged with status `NEW`.
 - Auto-forwarded to the tutor via email (platform pass-through).
 - Status transitions to `FORWARDED`.
-- If the student later enrols (matched by email), status becomes
-  `CONVERTED`.
+- If the student later enrols in any cohort of that programme
+  (matched by email), status becomes `CONVERTED`.
 - Admin can view all enquiries in a lightweight queue; can mark
   stale ones `CLOSED`.
 
@@ -302,15 +321,22 @@ forwarded_at  TIMESTAMPTZ   -- nullable
 notes         TEXT          -- admin notes, nullable
 ```
 
+Enquiry is programme-scoped, not cohort-scoped — the student
+hasn't picked a cohort yet at enquiry time, and the tutor often
+slots the converted student into whichever cohort fits their
+timing best.
+
 ### Bundled transaction — single Paystack checkout
 
-When a student pays for a tutored programme, they pay **one
-bundled price** covering:
+When a student pays to join a cohort, they pay **one bundled
+price** covering:
 
-- Tutor's programme fee (set by tutor).
+- Tutor's programme fee (set by tutor; same price for every cohort
+  of the same programme in v1 — cohort-level pricing variation is
+  deferred).
 - QAcademy's subsidised bank access (50% of the standalone bank
-  price for the matching duration — per the Pricing commercials
-  in [main.md](main.md)).
+  price for the closest match to the cohort's duration — per the
+  Pricing commercials in [main.md](main.md)).
 
 **Student sees one total price. Student pays once.** The split is
 internal:
@@ -329,22 +355,41 @@ two-step payment flows.
 When the bundled payment activates, the system creates:
 
 - A new row in `nclex_enrolments` linking the student to the
-  programme.
+  **cohort** (programme is inferrable via `cohort.programme_id`).
 - A new row in `nclex_subscriptions` for the bundled bank access
-  (same duration as the programme).
+  (matching the cohort's duration).
 - An `ACTIVATED` entry in `nclex_payments`.
 
 All three in one atomic step. Student is immediately enrolled and
 lands on dashboard.
 
+### Tutor-added enrolment
+
+A second path: a tutor adds a student directly to a specific
+**cohort** from inside the cohort workspace, at any point in the
+cohort's lifecycle. No payment row is created — QAcademy absorbs
+the bank-pack cost (the tutor "comps" the access for that
+student).
+
+- **Self-paid path** sets `enrolment_source = 'SELF_PAID'` on the
+  `nclex_enrolments` row.
+- **Tutor-added path** sets `enrolment_source = 'TUTOR_ADDED'`.
+
+The bundled bank-pack subscription is created either way;
+bank-access dates match the cohort's `start_date → end_date`.
+
+Per-tutor quota mechanics (limiting how many tutor-added enrolments
+a tutor can comp based on their subscription tier) are deferred to a
+later slice.
+
 ### No waiting room
 
-Regardless of programme start dates, an enrolled student's
-dashboard goes live immediately after payment. The programme
-appears on their dashboard from moment one. What content is
-visible *inside* the programme is governed by the tutor's
-Live/Draft settings on activities — see the Programme Structure
-revision in [main.md](main.md).
+Regardless of the cohort's start date, an enrolled student's
+dashboard goes live immediately after payment. The cohort appears
+on their dashboard from moment one. What content is visible
+*inside* the cohort is governed by per-cohort release dates on the
+checklist activities — see *Programme Structure → Content
+visibility* in [main.md](main.md).
 
 There is no dedicated "waiting room" page.
 
@@ -352,30 +397,41 @@ There is no dedicated "waiting room" page.
 
 | Scenario | System behaviour |
 |---|---|
-| Enrolment closed (`allow_late_enrolment = FALSE` past `start_date`) | Programme visible on list with "Enrolment closed" pill. Not purchasable. |
-| Programme full (`max_students` cap reached) | Programme visible with "Fully subscribed" pill. Not purchasable. Shows contact button for future interest. No waitlist in v1. |
-| Tutor soft-stopped (per Tutor Onboarding) | Programmes hidden from public list. Existing enrolled students retain access until programme end. |
-| Programme cancelled by admin | Admin flips status to `CANCELLED`. Programme hidden. Refunds handled manually, off-platform. |
-| Student already enrolled | Detection on enrolment attempt → "You're already enrolled — go to programme." |
-| Student enrolled in multiple programmes | Allowed. Each is a separate enrolment row with its own payment and own bundled bank subscription. |
+| Cohort full (cohort_size cap reached) | Cohort row shows "Fully subscribed" pill. Not purchasable. Other cohorts of the same programme stay purchasable. No waitlist in v1. |
+| Cohort started + late-join is OFF | Cohort row shows "Enrolment closed" pill. Not purchasable. |
+| Cohort started + late-join is ON | Cohort row stays purchasable; bank-access duration still matches the cohort end-date already on file. |
+| Programme PUBLISHED but zero open cohorts | Programme hidden from the public list (see Discovery above). |
+| Tutor soft-stopped (per Tutor Onboarding) | All of the tutor's programmes hidden from the public list. Existing enrolled students retain cohort + bank access until each cohort's end_date. |
+| Cohort cancelled (admin or tutor) | Cohort flips to CANCELLED. Cohort hidden. Refunds handled manually, off-platform. Other cohorts of the same programme unaffected. |
+| Programme cancelled (admin) | All of its cohorts cascade to CANCELLED. |
+| Student already enrolled in this cohort | Detection on enrolment attempt → "You're already enrolled — open the cohort." |
+| Student enrolled in multiple cohorts (same or different programmes) | Allowed. Each is a separate enrolment row with its own payment and own bundled bank subscription. |
 
 ### Parallel tables (MyNclex-prefixed)
 
 New tables needed for tutored enrolment:
 
-- `nclex_enrolments` — student ↔ programme link, with status and
-  timestamps. Schema finalised in build.
-- `nclex_programme_enquiries` — contact-first enquiry audit trail.
+- `nclex_cohorts` — one row per cohort. Holds the cohort-level
+  fields (dates, size, late-join, status, name override) and a FK
+  to `nclex_programmes`. Schema finalised in build.
+- `nclex_enrolments` — student ↔ cohort link, with status and
+  timestamps. Programme is inferrable via the cohort. Schema
+  finalised in build.
+- `nclex_programme_enquiries` — contact-first enquiry audit trail
+  (stays programme-scoped, not cohort-scoped — see above).
 
 ### Out of scope for this section
 
-- Programme content visibility / drip-release (handled via
-  Live/Draft on activities — see Programme Structure revision in
+- Per-cohort content release / drip rules (handled via per-cohort
+  release dates on the checklist — see Programme Structure in
   [main.md](main.md)).
 - Automated tutor payout splits (deferred — see Pricing).
+- Cohort-level pricing variation (deferred — programme price
+  applies to every cohort in v1).
 - Waitlists when a cohort is full (deferred).
 - Refund workflow in admin (manual for v1).
-- Student-initiated cancellation or programme transfer (deferred).
+- Student-initiated cancellation or cohort transfer between
+  cohorts of the same programme (deferred).
 
 ---
 
@@ -397,4 +453,7 @@ New tables needed for tutored enrolment:
   covers commercial numbers; Roles covers who can pay for what).
 - [bank.md](bank.md) — the product that bank-pack subscriptions
   unlock access to.
+- [tutor-library.md](tutor-library.md) — parked feature; library
+  visibility for tutored students depends on the enrolment flow
+  defined here.
 - `mynclex/CLAUDE.md` — stack, conventions, extraction rule.

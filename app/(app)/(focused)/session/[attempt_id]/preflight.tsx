@@ -16,9 +16,9 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ErrorToast } from '@/lib/bank/atoms/error-toast';
+import { ErrorToast } from '@/lib/toast/error-toast';
 import { markStartedAction } from './actions';
-import type { AttemptHeader } from '@/lib/bank/runner';
+import type { AttemptHeader } from '@/lib/practice/runner';
 
 const MODE_LABELS: Record<AttemptHeader['mode'], string> = {
   UNTIMED_LEARNING:  'Untimed Learning',

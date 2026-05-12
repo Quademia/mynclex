@@ -47,9 +47,9 @@ import { RationaleFields } from '@/lib/bank/atoms/rationale-fields';
 import { ClassificationFields } from '@/lib/bank/atoms/classification-fields';
 import { HousekeepingFields } from '@/lib/bank/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/bank/atoms/hidden-item-inputs';
-import { DiscardConfirm } from '@/lib/bank/atoms/discard-confirm';
-import { DeleteConfirm } from '@/lib/bank/atoms/delete-confirm';
-import { ErrorToast } from '@/lib/bank/atoms/error-toast';
+import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
+import { DeleteConfirm } from '@/lib/overlays/bank/delete-confirm';
+import { ErrorToast } from '@/lib/toast/error-toast';
 import {
   PreviewToggle,
   type PreviewViewMode,

@@ -1,11 +1,25 @@
-import { Placeholder } from '@/components/nav/shared/placeholder';
+// mynclex/app/(app)/student/bank/history/page.tsx
+//
+// History page (slice 4.6a — MVP). Lists every attempt the student
+// has, newest first. The bank/layout.tsx STUDENT-role check is the
+// auth boundary; this page trusts it.
 
-export default function BankHistoryPage() {
+import { getHistoryAttempts } from '@/lib/practice/history/queries';
+import { HistoryTable } from '@/lib/practice/history/history-table';
+
+export const dynamic = 'force-dynamic';
+
+export default async function BankHistoryPage() {
+  const attempts = await getHistoryAttempts();
   return (
-    <Placeholder
-      title="History"
-      subtitle="Past attempts and scores"
-      description="All completed practice sessions, mocks, and readiness packs."
-    />
+    <>
+      <header className="hist-head">
+        <h1 className="hist-h1">History</h1>
+        <p className="hist-sub">
+          Every past session — review your answers or pick up where you left off.
+        </p>
+      </header>
+      <HistoryTable attempts={attempts} />
+    </>
   );
 }
