@@ -8,11 +8,48 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-12):** **Slices 9.2a + 9.2b — Programme /
-> Cohort split lands end-to-end.** Two slices in one session: 9.2a
-> did the schema lift + curriculum-rework columns; 9.2b followed
-> straight on with the first cohort surfaces so tutors can list
-> and create cohorts of their programmes today.
+> **Last shipped (2026-05-12):** **Slice 9.2c — Cohort detail
+> subtree.** Closes out the 9.2 architecture rework end-to-end.
+> Cohorts now have their own workspace at
+> `/tutor/cohort/[id]/...` — sibling of the programme workspace
+> per CLAUDE.md folder convention #7 (different chrome, sibling
+> routes). Five sidebar tabs (Overview / Students / Sessions /
+> Announcements / Settings); Overview + Settings are real
+> content; the other three are placeholders until enrolment /
+> session scheduling / announcements ship. Cohort cards on the
+> Cohorts tab are now clickable overlay-links into the new
+> subtree.
+>
+> **Real tabs:** Overview shows Schedule / Enrolment / Programme
+> info cards, derived status pill, cancelled banner when
+> applicable. Settings stacks two panels: Edit cohort (opens
+> `<CohortFormModal>` in edit mode — discriminated union refactor
+> adds the edit branch cleanly) and Cancel cohort (red-bordered
+> danger card with a one-click confirm dialog). Cancelled cohorts
+> disable both panels with status notes. New server actions:
+> `editCohortAction` (UPDATE, never touches programme_id — caller
+> can't reparent) and `cancelCohortAction` (soft cancel sets
+> `cancelled_at`; the `.is('cancelled_at', null)` guard makes it a
+> no-op on already-cancelled rows).
+>
+> **Back-pill** in the cohort topbar reads `← <programme title>`
+> and links to the parent programme's Cohorts tab. One level — the
+> cohort identity is already shown in the sidebar header.
+>
+> **9.2 end-to-end milestone:** tutors can create programmes
+> (TUTOR_LED or SELF_PACED, WEEK or MODULE), create cohorts of
+> tutor-led programmes, navigate into a specific cohort, edit or
+> cancel it. Heavier features (enrolments, session scheduling,
+> mock due dates, announcements) queue behind their own schemas.
+>
+> Commit `b4b859f` (19 files, +1080 / −61). See SESSIONS
+> 2026-05-12 (9.2c) for the architecture + decision detail
+> (modal-reuse vs inline-form for edit; simple confirm for
+> cancel; defensive 404 paths).
+>
+> **Earlier the same day:** Slices 9.2a + 9.2b shipped — schema
+> split + Cohorts tab + cohort form modal. See SESSIONS 2026-05-12
+> (9.2a + 9.2b).
 >
 > **9.2a — schema split.** Migration `20260512100000_slice_9_2a_
 > programme_cohort_split.sql` applied to mynclex-dev. New
@@ -74,16 +111,22 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > See SESSIONS 2026-05-12 for the planning + bug-hunting detail.
 >
-> **Next pick:** **Slice 9.2c — Cohort detail subtree.** Build
-> the sibling routes under `/tutor/cohort/[cohort_id]/...` —
-> Overview, Students, Sessions, Announcements, Settings.
-> Curriculum tab queues behind Phase B (`nclex_programme_units
-> /blocks/activities`). Cohort cards on the list page become
-> clickable to the detail subtree. The existing programme
-> sidebar items conceptually at cohort layer (Live Sessions,
-> Mocks, Students, Results) need a migration plan — separate
-> planning conversation. When Bank work resumes after 9.2c, the
-> next ⏭ on that side is **4.7 — Mark-for-review toggle**.
+> **Next pick:** Two natural directions, your call which goes
+> first.
+>
+> **(a) Sidebar reshuffle.** Move Live Sessions / Mocks /
+> Students / Results from the programme sidebar to the cohort
+> sidebar (or evaluate which genuinely belong on the programme
+> template layer). Own planning conversation — the right shape
+> isn't obvious at every tab.
+>
+> **(b) Phase B curriculum.**
+> `nclex_programme_units / blocks / activities` schema + the
+> curriculum-authoring UX. Settled in planning docs already;
+> build-ready. This is the next big lift on the programme side.
+>
+> **Bank-side next ⏭**: slice 4.7 Mark-for-review toggle, when
+> Bank work resumes.
 
 ---
 
@@ -265,11 +308,10 @@ enrolment), `tutor-nav.html` (global vs programme nav contexts).
     edit mode. Migration
     `20260510130000_slice_9_1c_programmes_update_rls.sql`.
 
-- 🔨 **9.2** Programme/Cohort architecture rework — planning settled
-  2026-05-10 across 4 questions (see SESSIONS entry); curriculum
-  layer architecture refined 2026-05-11 (see also). 9.2a + 9.2b
-  shipped 2026-05-12 (see SESSIONS 2026-05-12); 9.2c queued. The
-  split:
+- ✅ **9.2** Programme/Cohort architecture rework — planning settled
+  2026-05-10 across 4 questions; curriculum layer architecture
+  refined 2026-05-11. All three sub-slices shipped 2026-05-12.
+  The architecture, recapped:
   programme = reusable design (curriculum + identity + pricing);
   cohort = one specific run (dates, seats, enrolment, schedule).
   Curriculum (units → blocks (optional) → activities, Phase B —
@@ -375,15 +417,26 @@ enrolment), `tutor-nav.html` (global vs programme nav contexts).
     product question: whether to make cohort end-date editable
     later (revision-buffer / bank-access extension). Commit
     `ef59c9c`.
-  - ⏭ **9.2c** Cohort detail subtree —
-    `/tutor/cohort/[cohort_id]/...` sibling routes (Overview /
-    Students / Sessions / Announcements / Settings). Curriculum
-    tab queues behind Phase B's `nclex_programme_units / blocks
-    / activities` tables. Cohort cards on the list page become
-    clickable to this subtree. The existing programme-sidebar
-    items conceptually at cohort layer (Live Sessions, Mocks,
-    Students, Results) need a separate migration plan —
-    queued for its own planning conversation after 9.2c lands.
+  - ✅ **9.2c** Cohort detail subtree — shipped 2026-05-12.
+    Sibling routes under `/tutor/cohort/[cohort_id]/...` per
+    CLAUDE.md folder convention #7 (NOT nested under programme).
+    Five sidebar tabs: Overview + Settings real, Students +
+    Sessions + Announcements placeholders until their schemas
+    ship. New chrome (`<TutorCohortShell>` + sidebar + back-pill).
+    `getCohortForShell()` embeds the parent programme via
+    PostgREST `nclex_programmes!inner(...)` for a single round
+    trip. New server actions: `editCohortAction`,
+    `cancelCohortAction` (soft cancel — sets `cancelled_at`,
+    reversible by admin). `<CohortFormModal>` refactored to
+    discriminated union `{ mode: 'create' | 'edit' }`. Cohort
+    cards become clickable overlay-links into the subtree.
+    Settings tab uses modal-reuse for edit (cheaper than building
+    an inline form) and simple confirm dialog for cancel (not
+    type-to-confirm — cancellation is reversible). Programme-
+    sidebar items conceptually at cohort layer (Live Sessions /
+    Mocks / Students / Results) still co-exist on the programme
+    workspace; their migration is a separate planning slice.
+    Commit `b4b859f`.
 
 Phase B+ slices defined after 9.2 lands.
 

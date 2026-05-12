@@ -6,6 +6,159 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-12 (9.2c) — Cohort detail subtree
+
+Closing out 9.2: cohorts now have their own workspace. Tutors can
+click into a cohort from the list, navigate its tabs, edit it, and
+cancel it. This was the last sub-slice in the 9.2 architecture
+rework — the programme-side of MyNclex is now built end-to-end at
+its skeletal layer (programmes → cohorts → cohort management).
+
+One feat commit on `claude/epic-curran-d7796e` plus this docs commit.
+
+### Architecture: sibling routes, not nested
+
+The cohort detail subtree lives at `/tutor/cohort/[cohort_id]/...`
+as a sibling of `/tutor/programme/[programme_id]/...` — NOT nested
+under the programme. Per CLAUDE.md folder convention #7: when list
+and detail have different chrome, sibling folders avoid the
+double-rendered-layout bug. Same reason `/tutor/programmes/` (list)
+and `/tutor/programme/[id]/...` (detail) are siblings already.
+
+The cohort row's `programme_id` FK preserves the parent linkage in
+the data; the URL doesn't need to encode it.
+
+### Code surface
+
+New chrome: `<TutorCohortShell>` + `<TutorCohortSidebar>` +
+`<TutorCohortBackPill>` in `components/nav/tutor/`. New nav config
+`TUTOR_COHORT_NAV` in `lib/nav/tutor.ts` with five items: Overview /
+Students / Sessions / Announcements / Settings. The Settings item
+uses the `settings` (gear) icon; everything else reuses existing
+NavIcons.
+
+New route folder `app/(app)/tutor/cohort/[cohort_id]/` with:
+- `layout.tsx` — wraps children in `<TutorCohortShell>`.
+- `page.tsx` — redirects to `/overview` (root URL is a stub).
+- `overview/page.tsx` — real content (Schedule + Enrolment +
+  Programme info cards, status pill, cancelled banner when
+  applicable).
+- `students/`, `sessions/`, `announcements/page.tsx` —
+  `<Placeholder>` bodies until their respective slices land.
+- `settings/page.tsx` — real (Edit cohort + Cancel cohort cards).
+
+New `lib/cohorts/` additions:
+- `queries.ts` — `getCohortForShell(cohortId)` embeds the parent
+  programme via PostgREST's `nclex_programmes!inner(...)`
+  relationship in a single round trip.
+- `actions.ts` — `editCohortAction(cohortId, input)` (UPDATE,
+  doesn't touch programme_id — caller can't reparent) and
+  `cancelCohortAction(cohortId)` (sets cancelled_at; the
+  `.is('cancelled_at', null)` guard makes it a no-op on already-
+  cancelled rows).
+- `cohort-form-modal.tsx` — refactored to discriminated union
+  `{ mode: 'create' | 'edit' }`, same pattern as
+  `<ProgrammeFormModal>`. Edit mode pre-populates from `initial`
+  values and gates the submit button on dirtiness.
+- `edit-cohort-trigger.tsx` — client wrapper, opens the modal in
+  edit mode from the Settings tab.
+- `cancel-cohort-confirm.tsx` — client wrapper with a simple
+  confirm dialog ("Cancel this cohort? Keep cohort / Cancel
+  cohort"). No type-to-confirm gate — cancellation is reversible
+  (admin can clear cancelled_at later), so one-click friction is
+  the right amount.
+
+Updated:
+- `lib/cohorts/cohort-list.tsx` — each card wraps its content in
+  an overlay `<Link>` to `/tutor/cohort/<id>/overview`. Same
+  pattern as `<ProgrammeCard>`'s overlay-link.
+- `styles/cohorts.css` — added `.cohort-page`, `.cohort-overview-*`,
+  `.cohort-settings-*`, `.confirm-dialog`, `.cohort-cancel-btn`,
+  `.prog-btn-danger`, `.sidebar-context` (cohort name secondary
+  line in the sidebar header).
+
+### Settings tab: modal-on-click for edit, simple confirm for cancel
+
+Two judgment calls flagged in the planning conversation:
+
+**Edit: modal reuse over inline form.** The cohort form modal
+existed and worked; extending it with an edit mode was ~30 lines.
+Building a fresh inline form on Settings would have been a UX
+upgrade but a more expensive build. Deferred to a future polish
+slice if needed.
+
+**Cancel: simple confirm, not type-to-confirm.** Type-to-confirm is
+reserved for irreversible destruction. Cancellation here is soft —
+cancelled_at is a timestamp, admin can clear it, no data lost. A
+one-click confirm dialog is the right amount of friction.
+
+### Back-pill: one level
+
+Topbar back-pill in the cohort workspace reads `← <programme title>`
+and links to `/tutor/programme/<id>/cohorts/` — the parent
+programme's Cohorts tab. One-level over two-level to keep visual
+weight down. The cohort identity is already conveyed by the
+sidebar header ("This cohort" + the cohort name as a context line).
+
+### Defensive 404s
+
+- Unknown cohort ID → 404 (via `getCohortForShell` returning null).
+- Cohort whose parent programme is SELF_PACED → 404. Shouldn't be
+  reachable normally (the Cohorts tab itself hides for self-paced
+  programmes), but a stale link would land here otherwise.
+
+### Co-existing duplicate tabs (intentional, for now)
+
+The programme sidebar still has Live Sessions / Mocks / Students /
+Results tabs. Those are conceptually cohort-level concerns that
+were placed on the programme before the cohort split landed. The
+plan: leave them in place for 9.2c; reshuffle them onto the cohort
+workspace in a separate slice with its own planning conversation,
+once we know which of these belong where (some — like Mocks — may
+genuinely live at the programme template layer).
+
+### Modules + delivery mode clarification
+
+During testing Sam noticed that a programme set to "Modules" wasn't
+showing the Cohorts tab. The cause is delivery_mode (SELF_PACED
+hides cohorts), not unit_label. The smart default at create-time
+links the two (SELF_PACED → MODULE), so a tutor who picked
+Self-paced without re-touching the label ends up with the
+MODULE+SELF_PACED combo and reads "Modules → no cohorts." Confirmed
+the two axes are independent — TUTOR_LED + MODULE (a tutor-led
+module series) is a valid shape and shows the Cohorts tab.
+
+### Where 9.2 leaves us
+
+End-to-end programme/cohort architecture is built at the skeletal
+layer:
+- Tutors can create programmes (TUTOR_LED or SELF_PACED, WEEK or
+  MODULE label).
+- Tutors can create cohorts of tutor-led programmes.
+- Tutors can navigate into a specific cohort.
+- Tutors can edit or cancel a cohort.
+
+The heavier features still queued behind their own data:
+enrolments (table doesn't exist yet), session scheduling, mock due
+dates, announcements. Those land per-slice once their schemas are
+specified.
+
+### Next pick
+
+The natural next decisions:
+- **Sidebar reshuffle.** Move Live Sessions / Mocks / Students /
+  Results from the programme sidebar to the cohort sidebar (or
+  evaluate whether some belong on programme as templates). Own
+  planning conversation.
+- **Phase B curriculum.** `nclex_programme_units` /
+  `nclex_programme_blocks` / `nclex_programme_activities` schema +
+  the curriculum-authoring UX. Settled in planning docs already;
+  build-ready.
+- **Bank-side next ⏭**: slice 4.7 Mark-for-review toggle (still
+  the next pick when Bank work resumes).
+
+---
+
 ## Session — 2026-05-12 (9.2a + 9.2b) — Programme/Cohort split lands end-to-end
 
 Two slices in one session, both on `claude/epic-curran-d7796e`. 9.2a
