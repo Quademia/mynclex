@@ -46,6 +46,7 @@ export const TUTOR_GLOBAL_NAV: NavItem[] = [
  */
 export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   { key: 'overview',    label: 'Overview',      icon: 'home',     href: '/tutor/programme/:programmeId/overview' },
+  { key: 'cohorts',     label: 'Cohorts',       icon: 'users',    href: '/tutor/programme/:programmeId/cohorts' },
   { key: 'weeks',       label: 'Weeks',         icon: 'layers',   href: '/tutor/programme/:programmeId/weeks' },
   { key: 'sessions',    label: 'Live Sessions', icon: 'video',    href: '/tutor/programme/:programmeId/sessions' },
   { key: 'mocks',       label: 'Mocks',         icon: 'target',   href: '/tutor/programme/:programmeId/mocks' },

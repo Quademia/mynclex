@@ -1,0 +1,257 @@
+/* mynclex/styles/cohorts.css
+ *
+ * Cohorts tab + card + status pills + +Add-first-cohort entry-
+ * point affordances. Slice 9.2b. New domain file per CLAUDE.md
+ * folder convention #5.
+ *
+ * Visual language mirrors programmes.css for consistency; classes
+ * are .cohort(s)- prefixed so they can't collide.
+ */
+
+/* ─── Cohorts tab page ────────────────────────────── */
+
+.cohorts-page {
+  max-width: 880px;
+}
+
+.cohorts-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.cohorts-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.cohorts-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 60ch;
+  line-height: 1.4;
+}
+
+.cohorts-new-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  background: var(--primary);
+  color: var(--white);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+.cohorts-new-btn:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+/* ─── Cohort list (grid of cards) ─────────────────── */
+
+.cohort-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.cohort-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cohort-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cohort-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.cohort-card-range {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.cohort-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.cohort-card-late-join {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+/* ─── Status pills ────────────────────────────────── */
+
+.cohort-pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.cohort-pill.is-upcoming {
+  background: #eff6ff;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+.cohort-pill.is-running {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+.cohort-pill.is-ended {
+  background: var(--bg);
+  color: var(--text-faint);
+  border-color: var(--border);
+}
+.cohort-pill.is-cancelled {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+/* ─── Empty state ─────────────────────────────────── */
+
+.cohorts-empty {
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--white);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+}
+.cohorts-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+.cohorts-empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 auto 18px;
+  max-width: 440px;
+  line-height: 1.5;
+}
+.cohorts-empty-cta {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  background: var(--primary);
+  color: var(--white);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.cohorts-empty-cta:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+/* ─── End-date readout (cohort modal) ─────────────── */
+
+/* Renders the derived end-date as a read-only chip, visually
+ * paired with the editable Start date input so the row reads as
+ * two date fields even though only one is editable. */
+.cohort-end-date-readout {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+/* ─── Programme-card "Add first cohort" affordance ── */
+
+/* Sits above the .programme-card-link overlay (z:2) so clicks
+ * don't fall through to the card's main link. Visual reuses the
+ * primary-button palette so it reads as the call-to-action when
+ * the programme has zero cohorts. */
+.programme-card-add-cohort {
+  position: relative;
+  z-index: 2;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  background: var(--primary);
+  color: var(--white);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+.programme-card-add-cohort:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+/* ─── Programme-overview "Add first cohort" empty state ─── */
+
+/* Same shape as .programmes-empty; lives inside the overview page
+ * when cohort_count===0. Headline reads "No cohorts yet" instead
+ * of the catalogue empty state's copy. */
+.programme-overview-cohorts-empty {
+  text-align: center;
+  padding: 40px 24px;
+  background: var(--white);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  margin-top: 16px;
+}
+.programme-overview-cohorts-empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+.programme-overview-cohorts-empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 auto 16px;
+  max-width: 440px;
+  line-height: 1.5;
+}

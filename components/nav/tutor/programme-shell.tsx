@@ -33,10 +33,16 @@ export async function TutorProgrammeShell({
   if (!programme) notFound();
   const programmeTitle = programme.title;
 
-  const items = TUTOR_PROGRAMME_NAV.map((item) => ({
-    ...item,
-    href: item.href.replace(':programmeId', programmeId),
-  }));
+  // SELF_PACED programmes have no cohort layer (main.md §Self-paced
+  // surface), so the Cohorts sidebar entry hides for them. Other
+  // tutor-led-only items (Live Sessions etc.) keep showing for now;
+  // their cohort-layer migration lands with later slices.
+  const items = TUTOR_PROGRAMME_NAV
+    .filter((item) => !(item.key === 'cohorts' && programme.delivery_mode === 'SELF_PACED'))
+    .map((item) => ({
+      ...item,
+      href: item.href.replace(':programmeId', programmeId),
+    }));
 
   return (
     <AppShell

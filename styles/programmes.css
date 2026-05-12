@@ -510,6 +510,13 @@
   cursor: pointer;
   accent-color: var(--accent);
 }
+/* Inline modifier: used when the toggle sits inside a .prog-field
+ * column (e.g. the cohort modal's late-join field). Drops the
+ * default top margin since the parent column already provides
+ * spacing. */
+.prog-toggle.prog-toggle-inline {
+  margin-top: 4px;
+}
 .prog-toggle-help {
   margin-left: 24px;
   margin-top: 2px;

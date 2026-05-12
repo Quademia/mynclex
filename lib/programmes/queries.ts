@@ -43,25 +43,40 @@ export async function getMyProgrammes(): Promise<ProgrammeListRow[]> {
 }
 
 /**
- * Lookup for the programme-scoped shell — fetches the title (and
- * confirms the programme is visible to the signed-in tutor via RLS).
- * Returns null if the programme doesn't exist OR the tutor doesn't
- * own it; the shell turns null into a 404.
+ * Lookup for the programme-scoped shell — returns identity + the
+ * delivery / length / label fields that drive nav filtering (e.g.
+ * SELF_PACED hides the Cohorts tab) and modal pre-fills (e.g.
+ * end-date auto-fill in the cohort form uses length_units).
+ *
+ * RLS scopes the SELECT to tutor_id = auth.uid() (SUPER_ADMIN
+ * bypass via nclex_programmes_admin_all). Returns null if the
+ * programme doesn't exist OR the tutor doesn't own it; the shell
+ * turns null into a 404.
  *
  * Invalid UUIDs in the URL also return null (Supabase returns an
  * error for malformed UUID input on a uuid column).
  */
+import type { DeliveryMode, UnitLabel } from './types';
+
+export type ProgrammeShellContext = {
+  programme_id: string;
+  title: string;
+  delivery_mode: DeliveryMode;
+  unit_label: UnitLabel;
+  length_units: number;
+};
+
 export async function getProgrammeForShell(
   programmeId: string
-): Promise<{ programme_id: string; title: string } | null> {
+): Promise<ProgrammeShellContext | null> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('nclex_programmes')
-    .select('programme_id, title')
+    .select('programme_id, title, delivery_mode, unit_label, length_units')
     .eq('programme_id', programmeId)
     .maybeSingle();
 
   if (error || !data) return null;
-  return data;
+  return data as ProgrammeShellContext;
 }

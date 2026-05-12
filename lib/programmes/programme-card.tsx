@@ -19,10 +19,17 @@ import {
   statusPillClass,
 } from './format';
 import { EditProgrammeTrigger } from './edit-programme-trigger';
+import { NewCohortTrigger } from '@/lib/cohorts/new-cohort-trigger';
 
 export function ProgrammeCard({ programme }: { programme: ProgrammeListRow }) {
   const isMuted = programme.status === 'ARCHIVED';
   const isSelfPaced = programme.delivery_mode === 'SELF_PACED';
+  // TUTOR_LED programmes with zero cohorts get the "+ Add first
+  // cohort" inline affordance instead of the cohort-count text —
+  // the entry point Sam picked (option a) so the action is
+  // discoverable without navigating into the programme.
+  const showAddFirstCohort =
+    !isSelfPaced && programme.cohort_count === 0;
 
   return (
     <div className={`programme-card ${isMuted ? 'is-muted' : ''}`}>
@@ -52,11 +59,19 @@ export function ProgrammeCard({ programme }: { programme: ProgrammeListRow }) {
         <span className="programme-card-meta">
           {formatLength(programme.length_units, programme.unit_label)}
         </span>
-        <span className="programme-card-schedule">
-          {isSelfPaced
-            ? 'Self-paced'
-            : formatCohortCount(programme.cohort_count)}
-        </span>
+        {showAddFirstCohort ? (
+          <NewCohortTrigger
+            programmeId={programme.programme_id}
+            programmeLengthUnits={programme.length_units}
+            variant="card"
+          />
+        ) : (
+          <span className="programme-card-schedule">
+            {isSelfPaced
+              ? 'Self-paced'
+              : formatCohortCount(programme.cohort_count)}
+          </span>
+        )}
       </div>
     </div>
   );
