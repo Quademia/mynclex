@@ -6,6 +6,241 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-15 (10.1) — Student curriculum viewer scaffold
+
+Opens Phase C. First student-facing surface — the curriculum
+viewer at `/student/programme/[id]/curriculum` (self-paced) and
+`/student/cohort/[id]/curriculum` (tutor-led). Plus the
+overlay-based programme switcher accessible from picker, topbar,
+and sidebar.
+
+### Architectural turn — Sam returned with a plan
+
+Same pattern as 9.3d-d and 9.3f. Sam came back from offline
+planning with a strong-shape document covering:
+- Build the viewer FIRST, defer the enrolment system.
+- Centralise access behind helpers (permissive in v1, real in
+  the enrolment slice). Both layers move together.
+- Two routes for two delivery modes: `/student/programme/[id]`
+  for self-paced; `/student/cohort/[id]` for tutor-led.
+- One progress engine, two access models (deferred).
+- Soft guidance instead of hard module locks for self-paced
+  (deferred — requires progress data).
+
+Most of the plan landed verbatim. Three refinements during the
+conversation.
+
+### Three calls Sam locked before code
+
+Via AskUserQuestion + analysis:
+
+1. **Shape 1 (ID in URL).** `/student/programme/[id]` and
+   `/student/cohort/[id]` over the parameter-free shape inherited
+   from the 2026-04-25 student-nav scaffold. Reasons: symmetry
+   with the tutor side; "which programme" lookup happens
+   somewhere either way; multi-enrolment is realistic in NCLEX
+   prep (a finishing cohort + a self-paced refresher); the
+   `routes_not_fixed` memory says don't pick a shape that needs
+   rebuilding. Old parameter-free routes (overview/weeks/sessions/
+   tasks/profile) deleted.
+
+2. **Text only, others stubbed.** Slice 10.1 ships Text content
+   inline; the other five activity types render "viewer coming"
+   stubs. Mirrors the proven authoring cadence (9.3b Text →
+   9.3d-a/b/c/d for the rest). Each rich type ships its own slice
+   to keep architecture + viewer UX decisions separate.
+
+3. **Minimal sidebar.** One item (Curriculum) per detail
+   sidebar. Pre-populated empty placeholders rejected — the
+   tutor side ran into "empty rooms" with its initial scaffold;
+   student side starts lean and grows.
+
+### Mid-slice architectural shift — page → overlay
+
+Slice originally shipped `/student/programmes` as a real route
+(list of accessible programmes with their cohorts as nested
+click targets). After first browser test Sam asked whether
+programme selection had to be a page at all — could be a
+component opened from anywhere, like a workspace switcher.
+Three shapes weighed:
+
+- **A — Page only** (what just shipped). Bookmarkable, scales
+  with list size, but two clicks to switch (pill → list → entry).
+- **B — Component only.** Overlay opens in place from any
+  trigger. One click + one pick. Not bookmarkable; constrained
+  UI when the list grows large.
+- **C — Both.** Page for browse, overlay for quick switch.
+
+Locked on **B**. NCLEX students have 1–3 programmes (current
+cohort, maybe a past one, maybe a self-paced add-on) — not
+"browse" territory. The picker already serves as the "where do
+you want to go" surface, so a `/student/programmes` page was a
+second page doing the same job. One overlay component, three
+triggers (picker card, topbar pill, sidebar button), one server
+action.
+
+`/student/programmes` route deleted. Replaced with
+`<ProgrammeSwitcherOverlay>` + `<ProgrammeSwitcherTrigger>` +
+`getMyAccessibleProgrammesAction()` (lazy-fetched when the
+overlay opens). Bank layout's `hasProgrammeEnrolment` flipped
+from false → true so the topbar pill opens the overlay instead
+of the no-programme upsell modal (caught when Sam tested from
+Bank).
+
+### Implementation summary
+
+Single code commit.
+
+**Migration**
+(`20260515120000_slice_10_1_student_curriculum_rls.sql`):
+
+- Adds a `*_student_select` SELECT policy to each of
+  nclex_programmes / _units / _blocks / _activities / _cohorts /
+  _cohort_checklist_items. All gate on `programme.status =
+  'PUBLISHED'`. Permissive v1 — RLS USING clauses tighten to
+  "user has enrolment" when the enrolment slice ships.
+- `db/rls.sql` back-ports the programme + cohort policies
+  (those tables already tracked there; curriculum tables remain
+  migration-only per the 9.3a / 9.3f pattern).
+
+**Access layer** (`lib/access/student/`):
+- `requireStudent()` — STUDENT role gate.
+- `requireStudentProgrammeAccess(programmeId)` — STUDENT gate +
+  RLS-readable programme. 404s on miss (same response whether
+  DRAFT or non-existent — doesn't leak existence).
+- `requireStudentCohortAccess(cohortId)` — same shape for cohorts.
+- Re-exported via `@/lib/access`.
+
+**Visibility** (`lib/curriculum/format.ts`): unchanged —
+`isVisibleToStudents()` already supports both modes via optional
+cohort args (shipped in 9.3f). Student queries call it with
+self-paced shape (no cohort args) or tutor-led shape
+(cohortIncluded + releaseDate).
+
+**Queries** (`lib/curriculum/student-queries.ts`):
+- `getStudentSelfPacedCurriculum(programmeId)` — programme +
+  units + blocks + activities; filters by isVisibleToStudents.
+- `getStudentCohortCurriculum(cohortId)` — cohort + parent
+  programme + units + blocks + activity rows joined via checklist;
+  filters by isVisibleToStudents with cohort args.
+- Both compose into the same `StudentCurriculumTree` shape (new
+  type in `lib/curriculum/types.ts`).
+
+**Viewer** (`lib/curriculum/student-viewer.tsx`): server-
+rendered. Per activity type — Text shows body inline; the other
+five render "viewer coming" stubs. Empty units / empty blocks
+keep rendering so the tutor's structural intent (week 2 exists,
+module 5 is in the syllabus) stays visible.
+
+**Routes**:
+- New `/student/programme/[programme_id]/` tree (layout + redirect
+  page + curriculum page).
+- New `/student/cohort/[cohort_id]/` tree (same shape, sibling
+  world per folder convention #7).
+- Deleted: parameter-free `/student/programme/{overview,weeks,
+  sessions,tasks,profile,layout,page}`.
+
+**Shells** (`components/nav/student/`):
+- `programme-shell.tsx` + `cohort-shell.tsx` — server components.
+  Gate via the access helper, swap :programmeId/:cohortId in the
+  nav config, render AppShell with sidebar + ProductSwitcher in
+  the right slot.
+- Both shells render `<ProgrammeSwitcherTrigger>` as a "Switch
+  programme" button at the top of the sidebar column.
+
+**Programme switcher**:
+- `lib/programmes/student-actions.ts` —
+  `getMyAccessibleProgrammesAction()`. RLS-gated SELECT on
+  programmes + cohorts. Permissive v1.
+- `programme-switcher-overlay.tsx` — client component. Modal
+  with backdrop dim. Lazy-fetches on open. Loading, error, empty,
+  and loaded states. Self-paced programmes are clickable cards;
+  tutor-led programmes expand to clickable cohort rows. ESC +
+  backdrop click close.
+- `programme-switcher-trigger.tsx` — generic client wrapper.
+  Owns overlay open state, renders a button with custom visual
+  via children + className. Used by picker card and sidebar
+  shells.
+- ProductSwitcher inlines overlay state (it's part of a larger
+  toggle group — needed coordination with the Bank pill's
+  active state).
+
+**Nav config** (`lib/nav/student.ts`):
+- `STUDENT_PROGRAMME_NAV` removed.
+- `STUDENT_PROGRAMME_DETAIL_NAV` + `STUDENT_COHORT_DETAIL_NAV`
+  added — single Curriculum item each, `:programmeId`/`:cohortId`
+  placeholders.
+
+**Picker** (`app/(app)/student/picker/page.tsx`): "My Programmes"
+card flipped from `<Link>` to `<ProgrammeSwitcherTrigger>`.
+`hasProgrammeEnrolment` hard-coded true for permissive v1.
+
+**Bank** (`app/(app)/student/bank/layout.tsx`):
+`hasProgrammeEnrolment` flipped to true so the topbar Programme
+pill opens the switcher from Bank context.
+
+**Styles** (`styles/student-curriculum.css` — new):
+- Sidebar column (wraps switcher button + sidebar).
+- Switch programme button (with hover/focus states).
+- Overlay (backdrop, panel, head, body, items, cohort rows,
+  loading/error/empty states).
+- Curriculum viewer (units, blocks, activities, type tags,
+  stubs).
+
+One tweak to `styles/nav.css`: `.picker-card` gained `font:
+inherit` + `width: 100%` so it renders identically as either
+`<a>` or `<button>`.
+
+### What does NOT ship here
+
+Deferred per the plan:
+- **Progress engine** — `nclex_student_activity_progress` table,
+  "Mark as done" buttons, unit progress derivation, soft
+  guidance ("Start here / Up next") labels. Needs the table
+  first; ships later.
+- **Rich activity rendering** — PDF inline viewer, external link
+  launcher, live session display, Mock + Practice Quiz launchers.
+  Each ships its own slice (the Mock + PQ slices wait on the
+  central tutor-quiz system).
+- **Enrolment-aware access** — both RLS and TS helpers are
+  permissive today. Both tighten together when the enrolment
+  slice ships.
+- **Cohort/programme overview tabs, Live Sessions, Tasks,
+  Announcements** — single Curriculum item per sidebar; other
+  tabs ship with their content.
+- **Back-pill in the topbar** — sidebar is the primary nav for
+  10.1. Topbar polish lands later.
+- **Auto-route when student has exactly one programme** —
+  always-overlay behaviour in v1. One line of code to add later
+  if the UX calls for it.
+
+### Localhost smoke-test
+
+Sam tested before approving merge:
+1. Picker "My Programmes" card → overlay opens with the two
+   PUBLISHED programmes + their cohorts.
+2. Click a cohort → enters
+   `/student/cohort/[id]/curriculum`. Tree of units → blocks →
+   activities. Text bodies show inline; other types show stubs.
+3. Sidebar "Switch programme" button → overlay opens.
+4. Topbar Programme pill from inside a programme → overlay opens.
+5. Topbar Programme pill from Bank → overlay opens (after the
+   `hasProgrammeEnrolment` flip — first attempt opened the
+   upsell modal instead).
+6. ESC + backdrop click close the overlay.
+7. Direct URL to a DRAFT programme → 404.
+
+### Next
+
+⏭ First Phase C slice closed. Future student-side priorities:
+PDF + external link + live session rendering; central tutor-
+quiz system (unlocks Mock + PQ); progress engine; enrolment
+system. Sam to pick.
+
+Code commit + docs.
+
+---
+
 ## Session — 2026-05-14 (9.3f) — Cohort curriculum checklist
 
 Closes Phase B. Adds the cohort layer's curation surface — every

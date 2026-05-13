@@ -8,7 +8,77 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-14):** **Slice 9.3f — Cohort
+> **Last shipped (2026-05-15):** **Slice 10.1 — Student
+> curriculum viewer scaffold.** Opens Phase C. First student-
+> facing surface — curriculum viewer at `/student/programme/
+> [id]/curriculum` (self-paced) and `/student/cohort/[id]/
+> curriculum` (tutor-led). Plus an overlay-based programme
+> switcher accessible from the picker card, topbar Programme
+> pill, and a "Switch programme" button atop each detail
+> sidebar. Permissive v1 — any STUDENT can access any PUBLISHED
+> programme.
+>
+> **Architectural calls locked up-front.** ID-in-URL routes
+> (`/student/programme/[id]`, `/student/cohort/[id]`) over
+> parameter-free — symmetric with the tutor side, future-proof
+> for multi-enrolment. Text-only content rendering in 10.1
+> (other five activity types stub "viewer coming") — mirrors
+> the 9.3b → 9.3d-a/b/c/d authoring cadence. Single-item
+> sidebars (Curriculum) — no empty placeholders.
+>
+> **Mid-slice shift — page → overlay.** Originally shipped a
+> `/student/programmes` list route. Sam asked whether selection
+> had to be a page at all. Locked Shape B (component-only,
+> overlay opens from any trigger). NCLEX students have 1–3
+> programmes; the picker already serves the "where do you want
+> to go" role. Route deleted; replaced with
+> `<ProgrammeSwitcherOverlay>` (lazy-fetched server action) +
+> `<ProgrammeSwitcherTrigger>` generic wrapper. Three trigger
+> surfaces — picker card, topbar pill, sidebar button — all
+> open the same overlay.
+>
+> **RLS migration**
+> (`20260515120000_slice_10_1_student_curriculum_rls.sql`).
+> Six `*_student_select` policies (programmes, units, blocks,
+> activities, cohorts, checklist items), all gated on
+> `programme.status = 'PUBLISHED'`. RLS = hard wall (only
+> PUBLISHED leaks); TS `isVisibleToStudents()` = per-row
+> render filter (unit/block/activity `is_published`, plus
+> cohort `is_included` + `release_date` for tutor-led). Two
+> layers, two responsibilities. Both tighten to enrolment-
+> aware in the enrolment slice.
+>
+> **Access helpers** (`lib/access/student/`).
+> `requireStudent()` + `requireStudentProgrammeAccess` +
+> `requireStudentCohortAccess`. Each returns the loaded shell
+> data so callers don't refetch. Permissive v1 — body adds
+> the enrolment lookup later, in parallel with the RLS USING
+> clause update.
+>
+> **Queries + viewer.** `getStudentSelfPacedCurriculum` reads
+> the programme template directly; `getStudentCohortCurriculum`
+> joins through the cohort checklist. Both produce the same
+> `StudentCurriculumTree` shape — the viewer doesn't branch on
+> delivery mode. Activity body switches on `type`: Text inline,
+> the rest stubbed.
+>
+> **Routes.** New `/student/programme/[programme_id]/...` +
+> `/student/cohort/[cohort_id]/...` trees, each with its own
+> shell wrapper. Old parameter-free `/student/programme/
+> {overview,weeks,sessions,tasks,profile}` placeholders deleted
+> (per `routes_not_fixed` — when architecture moves, rebuild).
+>
+> **Bug found mid-test.** Topbar Programme pill from Bank
+> opened the no-programme upsell modal instead of the switcher
+> overlay. Bank layout still had `hasProgrammeEnrolment =
+> false`; flipped to true for permissive v1.
+>
+> Sam smoke-tested end-to-end (picker → overlay → cohort →
+> curriculum tree; sidebar "Switch programme" → overlay;
+> topbar pill from both Bank and inside a programme; ESC and
+> backdrop close; DRAFT URL → 404) before approving merge.
+>
+> **Earlier:** **Slice 9.3f — Cohort
 > curriculum checklist.** Closes Phase B. Adds the cohort
 > layer's curation surface — every template activity gets a
 > per-cohort row with inclusion + release-date controls. The
@@ -420,12 +490,14 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > Commit `0710cb6`. See SESSIONS 2026-05-12 (9.3d-a).
 >
-> **Next ⏭:** **Phase B closed.** Tutor authoring + cohort
-> curation surfaces are complete. Next slice priorities move
-> outside curriculum authoring — likely candidates: cohort
-> enrolment + student nav scaffold, the self-paced enrolment
-> flow, or the central tutor-quiz system that unlocks Mock /
-> Practice Quiz. Sam to pick.
+> **Next ⏭:** **First Phase C slice closed.** Student-facing
+> curriculum viewer + programme switcher shipped. Future
+> student-side priorities: rich activity rendering (PDF,
+> external link, live session) — each its own slice; central
+> tutor-quiz system (unlocks Mock + Practice Quiz placeholders);
+> student progress engine + soft guidance; full enrolment +
+> payments system (tightens the permissive access helpers
+> shipped here). Sam to pick.
 >
 > **Earlier the same day:** **Slice 9.3c — Blocks.** Activates
 > `nclex_programme_blocks` (shipped empty in 9.3a) via UI + eight
