@@ -15,6 +15,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { loadChromeData } from '@/lib/shell/load-chrome-data';
 import { AppShell } from '@/components/shell/app-shell';
+import { ProgrammeSwitcherTrigger } from '@/components/nav/student/programme-switcher-trigger';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,13 +32,15 @@ export default async function PickerPage() {
   const firstName = profile?.forename ?? 'there';
 
   // Placeholder enrolment state — replace with real queries when
-  // the subscriptions / enrolments tables land.
+  // the subscriptions / enrolments tables land. Slice 10.1 flipped
+  // the programme card on by default so the student-curriculum
+  // viewer is reachable from the picker without enrolment data;
+  // the bookmark message ("Dr Mensah — 8-Week Bootcamp") is
+  // replaced with a generic "Browse programmes" line because the
+  // picker doesn't know which programme to surface.
   const hasBankSubscription = true;
   const bankDaysLeft = 42;
-  const hasProgrammeEnrolment = false;
-  const programmeTitle = 'Dr Mensah — 8-Week Bootcamp';
-  const programmeWeek = 3;
-  const programmeTotalWeeks = 8;
+  const hasProgrammeEnrolment = true;
 
   return (
     <AppShell
@@ -53,12 +56,15 @@ export default async function PickerPage() {
           <div className="picker-sub">Where would you like to go?</div>
           <div className="picker-grid">
             {hasProgrammeEnrolment ? (
-              <Link href="/student/programme/overview" className="picker-card">
-                <div className="picker-card-title">My Programme</div>
+              <ProgrammeSwitcherTrigger
+                className="picker-card"
+                ariaLabel="Open programme switcher"
+              >
+                <div className="picker-card-title">My Programmes</div>
                 <div className="picker-card-sub">
-                  {programmeTitle} · Week {programmeWeek} of {programmeTotalWeeks}
+                  Browse programmes and cohorts you can access
                 </div>
-              </Link>
+              </ProgrammeSwitcherTrigger>
             ) : (
               <Link href="/programmes" className="picker-card empty">
                 <div className="picker-card-title">No programme yet</div>

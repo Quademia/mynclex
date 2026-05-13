@@ -460,6 +460,13 @@ CREATE POLICY nclex_programmes_admin_all ON nclex_programmes FOR ALL
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
 
+-- Slice 10.1: any authenticated user can SELECT a PUBLISHED
+-- programme. Permissive v1 shape — tightens to "user has an
+-- active enrolment record" when the enrolment slice ships.
+CREATE POLICY nclex_programmes_student_select ON nclex_programmes FOR SELECT
+  TO authenticated
+  USING (status = 'PUBLISHED');
+
 
 -- =========================================================
 -- nclex_cohorts (Slice 9.2a, 2026-05-12)
@@ -513,3 +520,18 @@ CREATE POLICY nclex_cohorts_admin_all ON nclex_cohorts FOR ALL
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+-- Slice 10.1: any authenticated user can SELECT a cohort whose
+-- parent programme is PUBLISHED. Permissive v1 shape — tightens
+-- to "user has an active enrolment record" when the enrolment
+-- slice ships. Mirrors the unit/block/activity/checklist student
+-- policies that live in their respective migration files.
+CREATE POLICY nclex_cohorts_student_select ON nclex_cohorts FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_cohorts.programme_id
+        AND p.status = 'PUBLISHED'
+    )
+  );

@@ -316,3 +316,48 @@ export const ACTIVITY_TYPES: ActivityType[] = [
   'MOCK',
   'PRACTICE_QUIZ',
 ];
+
+// =====================================================================
+// Slice 10.1 — Student curriculum viewer shape
+// =====================================================================
+//
+// Single shape produced by both delivery modes' student queries.
+// The viewer takes this tree and renders it identically — the
+// difference between SELF_PACED and TUTOR_LED is captured by
+// whether `cohort` is null. Self-paced reads the programme
+// template directly; tutor-led routes every activity through the
+// cohort checklist (inclusion + release date).
+//
+// Activities here are ALREADY filtered to isVisibleToStudents()
+// — the viewer never has to filter again. Empty units / empty
+// blocks survive the filter so the tutor's structural intent
+// stays visible to the student (e.g. "Week 2 — Coming soon"
+// rather than the week vanishing).
+
+export type StudentBodyEntry =
+  | {
+      kind: 'block';
+      block: ProgrammeBlock;
+      activities: ProgrammeActivity[]; // filtered
+    }
+  | { kind: 'loose'; activity: ProgrammeActivity };
+
+export type StudentCurriculumUnit = {
+  unit: ProgrammeUnit;
+  body: StudentBodyEntry[];
+};
+
+export type StudentCurriculumTree = {
+  programme: {
+    programme_id: string;
+    title: string;
+    delivery_mode: import('@/lib/programmes/types').DeliveryMode;
+    unit_label: UnitLabel;
+  };
+  cohort: {
+    cohort_id: string;
+    name: string | null;
+    start_date: string;
+  } | null;
+  units: StudentCurriculumUnit[];
+};

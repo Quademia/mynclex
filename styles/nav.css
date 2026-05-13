@@ -183,6 +183,8 @@
   cursor: pointer;
   text-decoration: none;
   color: inherit;
+  font: inherit;
+  width: 100%;
   transition: border-color 0.15s ease, transform 0.1s ease;
 }
 

@@ -18,6 +18,17 @@ export { requireAnyAdmin }         from './admin/require-any-admin';
 // Tutor
 export { requireTutor } from './tutor/require-tutor';
 
+// Student
+export { requireStudent } from './student/require-student';
+export {
+  requireStudentProgrammeAccess,
+  type StudentProgrammeAccessResult,
+} from './student/require-programme-access';
+export {
+  requireStudentCohortAccess,
+  type StudentCohortAccessResult,
+} from './student/require-cohort-access';
+
 // Shared (cross-audience)
 export { requireBankCurator } from './shared/require-bank-curator';
 export type { BankSurface }   from './shared/require-bank-curator';

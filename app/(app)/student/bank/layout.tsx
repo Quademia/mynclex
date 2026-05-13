@@ -28,8 +28,12 @@ export default async function BankLayout({
   const chrome = await loadChromeData();
   if (!chrome.roles.includes('STUDENT')) redirect('/no-access');
 
-  // Placeholder — replace with a real enrolment check.
-  const hasProgrammeEnrolment = false;
+  // Placeholder — replace with a real enrolment check. Slice 10.1
+  // flips this to true so the topbar Programme pill opens the
+  // <ProgrammeSwitcherOverlay> for permissive v1 testing. When the
+  // enrolment slice ships, this becomes a real lookup; students
+  // without an enrolment will see the upsell modal again.
+  const hasProgrammeEnrolment = true;
 
   return (
     <AppShell
