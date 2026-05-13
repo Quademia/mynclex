@@ -8,7 +8,59 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-13):** **Slice 9.1d — Programme/unit
+> **Last shipped (2026-05-13):** **Slice 9.3d-d — Mock + Practice
+> quiz placeholders.** Closes the activity-picker — the last two
+> tiles (Mock assessment + Practice quiz) flip live as curriculum
+> placeholders. Tutors can now author all six v1 activity types.
+>
+> **Architectural turn.** The slice was originally specced as
+> "metadata-only forms living inside the activity payload"
+> (count / time limit / pass score / due date / attempts /
+> release-results). Sam came back from a side discussion with a
+> better direction: a Mock/Practice activity shouldn't own a
+> miniature quiz system. The reusable quiz object will live in a
+> future `nclex_tutor_quizzes` table; the activity just carries
+> a thin `quiz_id` pointer. The existing attempt schema already
+> supports it — `source = PROGRAMME_ASSIGNED`,
+> `programme_activity_id`, runner doesn't care where attempts
+> come from.
+>
+> **Option A — curriculum placeholders only.** The activity
+> saves; body is non-interactive; no quiz settings, no question
+> selection, no student-launch path. The central tutor-quiz
+> system + selector ships in its own later slice.
+>
+> **Future-link payload shape.** Both types use
+> `{ quiz_id: string | null }` — null today, will hold a real id
+> when the selector ships. Locked rule: no separate
+> `quiz_link_status` column — derivable from `quiz_id`, so
+> `isQuizLinked(payload)` is a one-line helper in `format.ts`
+> (no second source of truth to keep in sync).
+>
+> **Single shared editor.** New `<QuizPlaceholderEditor type=>`
+> in `lib/curriculum/quiz-placeholder-editor.tsx` covers both
+> activity types via a type-keyed copy map. Mock copy emphasises
+> timed exam-style readiness; Practice quiz copy emphasises
+> learning-focused practice. When the future selector ships,
+> one file changes — both activity types pick up the wiring
+> together.
+>
+> **Three product/scope questions answered up-front.** Sam
+> accepted all three recommendations: (1) drop `quiz_link_status`
+> in favour of derivation; (2) shared editor over two; (3)
+> differentiated body copy over identical generic.
+>
+> **No migration.** JSONB column accepts the new payload shape;
+> activity-type CHECK constraint already includes MOCK +
+> PRACTICE_QUIZ from 9.3a.
+>
+> Sam smoke-tested end-to-end (create Mock, create Practice,
+> edit both, cancel-with-edits discard guard, save-without-title
+> error) before approving merge.
+>
+> Commit `eafc37f`. See SESSIONS 2026-05-13 (9.3d-d).
+>
+> **Earlier the same day:** **Slice 9.1d — Programme/unit
 > auto-sync (defect fix).** Closes a bug from slice 9.1 (shipped
 > 2026-05-10): newly-created programmes had an empty curriculum
 > tab because nothing seeded their unit rows. The 9.3a migration
@@ -238,13 +290,14 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > Commit `0710cb6`. See SESSIONS 2026-05-12 (9.3d-a).
 >
-> **Next ⏭:** **Slice 9.3d-d — Mock + Practice quiz.**
-> Metadata-only forms for the two question-list activity types.
-> Mock: count, time limit, pass score, due date, attempts,
-> release-results timing. Practice quiz: count, due date, pass
-> score, release-results timing. Question-selection UI (which
-> bank questions to draw from) tied to bank-consumption design
-> and deferred to its own slice.
+> **Next ⏭:** **Slice 9.3e — Publish state + content
+> visibility.** Per-activity Live/Draft pill + tutor controls;
+> per-unit aggregate status; programme-wide Publish action (DRAFT
+> → PUBLISHED) and Archive. Draft activities don't surface in
+> any cohort's checklist. Open question deferred to this slice:
+> whether to gate publish on Mock/PQ activities whose `quiz_id`
+> is still null (the central tutor-quiz system hasn't shipped at
+> 9.3e time, so every Mock/PQ in the system is unlinked).
 >
 > **Earlier the same day:** **Slice 9.3c — Blocks.** Activates
 > `nclex_programme_blocks` (shipped empty in 9.3a) via UI + eight
@@ -1022,17 +1075,31 @@ rebuild to suit.
   editor). No migration — JSONB payload accepts the new shape;
   ownership integrity at the action layer (per 9.3a's locked
   rule). Commit `5d5e71a`. See SESSIONS 2026-05-13 (9.3d-c).
-- ⏭ **9.3d-d** Mock + Practice quiz (metadata fields only).
-  Mock: count, time limit, pass score, due date, attempts,
-  release-results timing. Practice quiz: count, due date, pass
-  score, release-results timing. Question-selection UI (which
-  bank questions to draw from + filter rules) deferred to its
-  own slice tied into bank-consumption design.
-- ⬜ **9.3e** Publish state + content visibility — per-activity
+- ✅ **9.3d-d** Mock + Practice quiz placeholders — shipped
+  2026-05-13. Scope reworked from the original "metadata-only
+  forms" plan: a Mock/Practice activity won't own its own quiz
+  settings. The reusable quiz object lives in a future
+  `nclex_tutor_quizzes` table; the activity carries a thin
+  `quiz_id` pointer. The existing attempt schema already
+  supports it (`source = PROGRAMME_ASSIGNED`,
+  `programme_activity_id`). Both types ship as curriculum
+  placeholders today — the activity saves, the body is non-
+  interactive, no student-launch path. Payload is
+  `{ quiz_id: string | null }` (null until the selector ships).
+  Single shared `<QuizPlaceholderEditor type=>` with type-keyed
+  copy. New `isQuizLinked(payload)` helper in `format.ts`
+  (derived, not stored). `ENABLED_TYPES` covers all six types
+  now. `buildPayload` switch grows a shared MOCK/PRACTICE_QUIZ
+  branch returning `{ quiz_id: null }`. No migration. Commit
+  `eafc37f`. See SESSIONS 2026-05-13 (9.3d-d).
+- ⏭ **9.3e** Publish state + content visibility — per-activity
   Live/Draft pill (`activity.is_published`) + tutor controls; per-
   unit aggregate status; programme-wide Publish action (DRAFT →
   PUBLISHED), Archive action. Draft activities don't surface in
-  any cohort's checklist.
+  any cohort's checklist. **Open decision flagged here:** whether
+  to gate publish on Mock/PQ activities whose `quiz_id` is still
+  null (every Mock/PQ in the system will be unlinked at 9.3e
+  time, since the tutor-quiz system hasn't shipped).
 - ⬜ **9.3f** Cohort curriculum tab (checklist) — new `Curriculum`
   tab in the cohort detail subtree. Renders the same unit→block→
   activity tree but as a *checklist*. Migration adds
@@ -1043,6 +1110,31 @@ rebuild to suit.
   template** if previously removed. Per-cohort release date defaults
   to `cohort.start_date + (unit_index − 1) × 7 days`; editable per
   row without touching the template.
+
+### Follow-on: Central tutor-quiz system
+
+Architectural decision locked in 9.3d-d but build deferred: the
+reusable quiz object lives in a separate `nclex_tutor_quizzes`
+table, not inside the activity payload. Mock/Practice-quiz
+activities are placeholders today (`payload.quiz_id = null`)
+until this ships. A future slice (post-Phase B) wires the linking
+flow end-to-end:
+
+1. Migration adds `nclex_tutor_quizzes` (tutor-owned table —
+   columns sketched in SESSIONS 2026-05-13 9.3d-d, not yet
+   schema-final; key fields: `tutor_id`, `quiz_kind`, `intent`,
+   `mode`, question-count, time-limit, pass-score, attempts,
+   review behaviour, release-results, selection plan).
+2. Tutor quiz CRUD UI — list + create + edit + question
+   selection (the deferred piece tied to bank-consumption design).
+3. Activity-modal selector for Mock + Practice quiz —
+   replaces the placeholder body with "Choose a quiz" / "Change
+   quiz" affordance. Sets `payload.quiz_id` to the chosen quiz.
+4. Student launch path — `source = PROGRAMME_ASSIGNED` + the
+   activity's `programme_activity_id` → existing runner. No new
+   runner.
+5. Cohort-checklist render rules + publish gates against
+   unlinked quizzes (decided in 9.3e / 9.3f).
 
 ### Deferred out of Phase B
 

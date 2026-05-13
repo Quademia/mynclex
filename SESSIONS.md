@@ -6,6 +6,151 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-13 (9.3d-d) — Mock + Practice quiz placeholders
+
+Slice 9.3d-d closes the activity-picker — the last two tiles (Mock
+assessment + Practice quiz) flip live as curriculum placeholders.
+This was a scope rework from the originally-planned slice.
+
+### The architectural turn (handed over from Sam's reading)
+
+The slice was originally specced as "metadata-only forms living
+inside the activity payload" — count, time limit, pass score, due
+date, attempts, release-results timing. Sam came in with notes
+from a side discussion concluding that this was not the right
+direction: a Mock or Practice Quiz activity shouldn't own a
+miniature quiz authoring system. Instead, a future
+`nclex_tutor_quizzes` table holds the reusable quiz object, and
+the activity carries a thin `quiz_id` pointer. The existing
+attempt schema already supports this — `source =
+PROGRAMME_ASSIGNED`, `programme_activity_id`, the runner doesn't
+care where the attempt came from.
+
+Final shape for this slice: **Option A — curriculum placeholders
+only.** The activity saves; the body is non-interactive; no quiz
+settings, no question selection, no student-launch path. The
+central tutor-quiz system ships in its own later slice and the
+selector wires in then.
+
+### Three product/scope questions before code
+
+Sam accepted all three recommendations:
+
+1. **`quiz_link_status` field — drop or keep?** Drop. Derivable from
+   `quiz_id IS NULL`; storing it separately invites drift between
+   two sources of truth. New `isQuizLinked(payload)` helper in
+   `format.ts` does render-time derivation.
+2. **One shared editor component or two?** One.
+   `<QuizPlaceholderEditor type='MOCK'|'PRACTICE_QUIZ'>` with a
+   small copy map. When the future selector ships, one file
+   changes, not two. The activity-type distinction is preserved
+   via the row's `type` column already.
+3. **Differentiated body copy or identical?** Differentiated.
+   Mock copy emphasises timed exam-style readiness; Practice
+   emphasises learning-focused practice. Mirrors the picker
+   tile sub-labels.
+
+### Implementation
+
+Single commit (`eafc37f`). Seven files touched, no migration —
+JSONB accepts the new payload shape, activity-type CHECK already
+includes both values.
+
+- **types.ts** — Provisional `ActivityPayloadMock` and
+  `ActivityPayloadPracticeQuiz` (six and four optional fields
+  respectively) replaced with the future-link shape
+  `{ quiz_id: string | null }` — identical for both. Two new
+  form-values aliases `MockActivityFormValues` /
+  `PracticeQuizActivityFormValues` (both `=
+  ActivityCommonFormValues` since the body has no editable
+  fields). `ActivityFormValues` union extended with the two new
+  `{ type } & ...` branches.
+- **format.ts** — `isQuizLinked(payload)` helper. Pure function.
+  Returns true only when `quiz_id` is a non-empty string. Render
+  sites (future cohort checklist, future student card) call this
+  rather than reading the field directly.
+- **quiz-placeholder-editor.tsx** *(new)* — Shared body component.
+  Takes one prop (`type`). Renders a dashed-bordered panel with
+  the type-keyed icon + heading + explanatory paragraph. No
+  hooks, no state, no interactivity beyond what the modal shell
+  provides.
+- **activity-modal.tsx** —
+  - `EditorBodyState` union grows `{ type: 'MOCK' }` and
+    `{ type: 'PRACTICE_QUIZ' }` (no `values` payload — nothing
+    editable in the body).
+  - `emptyBody` and `bodyFromActivity` route both types to the
+    new variants.
+  - `bodyEqual` already returned `true` for unhandled-but-same-
+    type pairs; comment updated to acknowledge the two new
+    variants share that path.
+  - `buildValues` adds two new branches that return
+    `{ type: 'MOCK' | 'PRACTICE_QUIZ', ...common }`.
+  - Body render dispatches to `<QuizPlaceholderEditor>` for the
+    two new types. The `'UNSUPPORTED'` sentinel stays as
+    defence-in-depth for any future type the modal hasn't
+    learned about yet.
+- **activity-picker.tsx** — `ENABLED_TYPES` extended to all six.
+  Tile copy unchanged (already matched the final framing —
+  "Timed exam-style" / "Bank-drawn quiz" sub-labels predate this
+  slice). Comment refreshed.
+- **actions.ts** — `buildPayload` switch grows a shared
+  `case 'MOCK': case 'PRACTICE_QUIZ':` branch returning
+  `{ ok: true, payload: { quiz_id: null } }`. Strict null today;
+  relaxes when the tutor-quiz system ships and the selector
+  starts writing real ids. `createActivityAction` /
+  `editActivityAction` themselves needed no changes — they
+  already delegated to `buildPayload` and pass the discriminated
+  union through.
+- **curriculum.css** — Five new selectors under
+  `/* Slice 9.3d-d */`: `.activity-quiz-placeholder` (flex panel,
+  dashed border, soft bg), `.activity-quiz-placeholder-icon`,
+  `.activity-quiz-placeholder-text`,
+  `.activity-quiz-placeholder-heading`,
+  `.activity-quiz-placeholder-body`.
+
+### What does NOT ship here
+
+Locked deferrals per Option A:
+
+- No `nclex_tutor_quizzes` table. No quiz CRUD UI.
+- No question-selection UI (which bank questions / filter rules).
+- No attempt creation. No runner launch path.
+- No cohort-checklist render rules for unlinked Mock/PQ — when
+  9.3f ships the cohort checklist, that slice decides how to
+  render rows whose `quiz_id` is still null.
+- No publish-gate against unlinked Mock/PQ — `is_published`
+  works for both types just like any other today; 9.3e decides
+  whether to add a "can't publish an unlinked quiz" guard.
+- `IN_PERSON_LIVE_SESSION` (still reserved from 9.3d-a).
+
+### Localhost smoke-test
+
+Sam tested end-to-end before approving merge:
+
+1. Picker — both tiles now live, no "Coming soon" sub-label.
+2. Create Mock — modal opens with Title/Description/Note +
+   "🎯 Mock assessment" placeholder panel. Save → row appears.
+3. Create Practice quiz — different "✏️ Practice quiz" panel
+   copy, same flow.
+4. Edit — opens with pre-filled common fields + the same
+   placeholder body.
+5. Cancel-with-edits — Discard guard still trips.
+6. Save without title — error toast.
+7. Both types persist with `payload = { quiz_id: null }`.
+
+### Next
+
+⏭ **Slice 9.3e — Publish state + content visibility.**
+Per-activity Live/Draft pill, per-unit aggregate, programme-wide
+Publish action (DRAFT → PUBLISHED). Draft activities don't surface
+in any cohort's checklist. Decision flagged here: how to treat an
+unlinked Mock/PQ when 9.3e adds the publish gate — defer to that
+slice.
+
+Commit: `eafc37f` (code) + docs.
+
+---
+
 ## Session — 2026-05-13 (9.1d) — Programme/unit auto-sync
 
 Defect-fix slice. Sam spotted that a newly-created programme
