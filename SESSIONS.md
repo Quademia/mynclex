@@ -6,6 +6,198 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-13 (9.3e) — Publish state + content visibility
+
+Wires publish controls through every layer of the curriculum
+tree (activity / block / unit / programme) and ships the
+single visibility predicate that 9.3f will use to filter the
+cohort checklist. Closes the "everything is built but nothing
+is student-visible" gap that's been latent since 9.3a.
+
+### State of play coming in
+
+- Units + blocks: `is_published` column existed, edit modal had
+  the toggle, edits worked end-to-end since 9.3b/9.3c.
+- Activities: `is_published` column existed, but no UI to flip
+  it. The row showed `· Draft` as text only.
+- Programme: `status` column was DRAFT/PUBLISHED/ARCHIVED with
+  `published_at` + `archived_at` timestamps. No action existed
+  to flip them — the column was set at INSERT (default DRAFT)
+  and never moved.
+- Planning doc settled "dual publish status — block and unit
+  each carry a Live/Draft pill at the programme layer, allowing
+  draft blocks inside a Live unit." Same logic extended to
+  activities; programme-level publish is independent.
+
+### Three product calls locked up-front
+
+Sam accepted all three recommendations:
+
+1. **No cascade on programme publish.** Flipping
+   `programme.status` doesn't touch any unit/block/activity
+   `is_published`. The dual-publish design explicitly allows
+   draft children inside a Live parent; cascading would defeat
+   that.
+2. **Unlinked Mock/PQ can be marked Live.** Open question
+   flagged when closing 9.3d-d: every Mock/PQ in the system has
+   `payload.quiz_id = null` (tutor-quiz system not shipped).
+   Three options weighed (allow / allow with warning / block);
+   chose allow. Cohort surface decides how to render unlinked
+   Live placeholders ("Quiz coming soon") — that's a later-slice
+   concern.
+3. **Archive allowed from any state.** DRAFT → ARCHIVED and
+   PUBLISHED → ARCHIVED both supported. One-way lifecycle
+   overall: DRAFT → PUBLISHED → ARCHIVED with no reverse arrows
+   in v1. Simpler model, fewer states to test; mis-publish
+   recovery is "archive + clone" (when clone ships).
+
+### Implementation
+
+Single code commit (`1ab5f7e`). No migration — all columns
+already existed; this slice is wiring + UI + helpers.
+
+**Activity publish toggle:**
+- `types.ts` — `ActivityCommonFormValues` grows `is_published:
+  boolean`. The discriminated `ActivityFormValues` union picks
+  it up via the common type alias.
+- `activity-modal.tsx` — Status checkbox added in the shell's
+  common-fields section (Title / Description / Note / Status,
+  in that order). Defaults false on create; preserves on edit.
+  Threaded through dirty-state and `buildValues` so the toggle
+  triggers the discard guard and saves correctly.
+- `actions.ts` — `createActivityAction` writes
+  `is_published: values.is_published` (replacing the
+  `is_published: false` hardcode at line 468);
+  `editActivityAction` adds `is_published` to its UPDATE.
+- `activity-row.tsx` — Replaced the `· Draft` text suffix with
+  a real pill using the shared `unit-pill` class (already
+  used by block-card / unit-card / unit-builder). Title and
+  pill share a flex row; pill is fixed-width, title ellipses.
+
+**Per-unit aggregate display:**
+- `queries.ts` — `getUnitsForProgramme` rewritten to run three
+  parallel reads via `Promise.all`. The original embedded-count
+  query stays for totals; two new filtered list queries
+  (`nclex_programme_blocks.is_published=true` + inner-join
+  through `nclex_programme_units` for programme scope) feed
+  per-unit published counts. Merged into the row map in TS via
+  two Maps. RLS gates every read.
+- `types.ts` — `UnitGridRow` projection grows
+  `published_block_count` + `published_activity_count`.
+- `format.ts` — New `formatPublishedCounts()` helper. Skips
+  zero-total parts ("0 of 0 activities live" is not useful);
+  returns null when both children types are absent so the
+  caller can omit the line entirely.
+- `unit-card.tsx` — Second meta line under the existing counts.
+  Caller uses an IIFE to compute + conditionally render — keeps
+  the JSX flat without an extra component.
+
+**Visibility predicate:**
+- `format.ts` — New `isVisibleToStudents(input)` pure function.
+  AND-chain across the four flags: `programmeStatus ===
+  'PUBLISHED'`, `unitPublished`, `blockPublished ?? true` (null
+  = loose activity, no block to gate on), `activityPublished`.
+  Single source of truth — 9.3f's cohort-checklist query is the
+  first real caller; the student runtime will call it again at
+  render time as defence-in-depth (RLS stays the ultimate gate).
+
+**Programme publish/archive:**
+- `lib/programmes/actions.ts` — Two new server actions appended.
+  `publishProgrammeAction(programmeId)` reads current `status`
+  + `published_at`, gates the transition (only DRAFT can
+  publish; ARCHIVED can't be re-published), and on first publish
+  stamps `published_at = now()` (preserves it on later
+  transitions per audit semantics). `archiveProgrammeAction`
+  allows DRAFT → ARCHIVED and PUBLISHED → ARCHIVED, stamps
+  `archived_at = now()`. RLS scopes both updates to the tutor's
+  own programmes.
+- `lib/programmes/queries.ts` — New `getProgrammeStatus()` +
+  `ProgrammeStatusContext` type. Focused projection (status +
+  published_at + archived_at + title) — kept separate from
+  the chrome `ProgrammeShellContext` so the shell contract
+  doesn't bloat with overview-page concerns.
+- `lib/programmes/programme-status-controls.tsx` *(new)* —
+  Client component. Renders status pill + state-dependent
+  buttons (DRAFT → Publish primary + Archive ghost; PUBLISHED →
+  Archive danger; ARCHIVED → no buttons) + hint copy per state.
+  Publish fires silently (no confirm — single primary action,
+  reversible via archive). Archive opens
+  `<ProgrammeArchiveConfirm>` with type-DELETE gate.
+- `lib/overlays/programmes/programme-archive-confirm.tsx`
+  *(new)* — Type-to-confirm overlay matching the existing
+  destructive pattern (DeleteConfirm / DiscardConfirm /
+  ProgrammeLengthDecreaseConfirm). Reuses `auth-delete-*`
+  classes. Copy varies by `isCurrentlyPublished` — "Active
+  cohorts will continue to their end dates" for PUBLISHED →
+  ARCHIVED; "This draft will be retired without ever going
+  live" for DRAFT → ARCHIVED.
+- `app/(app)/tutor/programme/[programme_id]/overview/page.tsx`
+  — Renders `<ProgrammeStatusControls>` at the top, above the
+  existing Placeholder + cohort-empty CTA. Refactored the
+  three queries into one `Promise.all` (shell + status + cohort
+  count); the SELF_PACED skip moved from query-time to
+  render-time guard (`delivery_mode === 'TUTOR_LED' &&
+  cohortCount === 0`).
+
+**Styles:**
+- `styles/programmes.css` — `.programme-status-controls` panel,
+  `.programme-status-row`, `.programme-status-pill` (with
+  `.is-live` / `.is-draft` / new `.is-archived` red-tinted
+  variant), `.programme-status-actions`, `.programme-status-hint`.
+- `styles/curriculum.css` — `.activity-row-title-row` (flex row
+  holding title + pill with shrink-on-title); new
+  `.unit-card-meta-live` italic secondary meta; refactored
+  `.unit-card-foot` from `flex-direction: row` to `column` so
+  the two meta lines stack cleanly.
+
+### What does NOT ship here
+
+Locked deferrals per the plan:
+
+- No cohort-side visibility filtering (9.3f's job — predicate
+  ships here as the helper, but cohort queries don't call it
+  yet because there's no cohort-checklist surface to filter).
+- No "Quiz coming soon" student-side display for unlinked Live
+  Mock/PQ activities — that's a student-side render concern,
+  ships when the cohort or student surface ships.
+- No bulk publish / publish-all-in-unit actions.
+- No schedule-publish (publish at a future date) — v2.
+- No PUBLISHED → DRAFT reverse arrow (one-way lifecycle).
+- No un-archive (terminal state).
+- No publish gate against unlinked Mock/PQ (Sam's call: allow).
+
+### Localhost smoke-test
+
+Sam tested before approving merge:
+
+1. Activity Status toggle works (create + edit, pill flips).
+2. Unit-card second meta line shows "X of Y" + skips empty units.
+3. Programme Overview shows status controls above placeholder.
+4. DRAFT programme: Publish button works, pill flips to Live,
+   button row updates.
+5. Archive confirm requires DELETE; cancel + confirm both
+   behave; copy adapts to current state.
+6. PUBLISHED → ARCHIVED works; ARCHIVED hides action buttons.
+7. Cohort-empty CTA still renders for TUTOR_LED with 0 cohorts.
+8. Unlinked Mock/PQ can be marked Live (per the up-front call).
+
+### Next
+
+⏭ **Slice 9.3f — Cohort curriculum tab (checklist).** Adds a
+`Curriculum` tab to the cohort detail subtree, renders the same
+unit→block→activity tree as a checklist filtered by
+`isVisibleToStudents` (the predicate that lands in this slice).
+Migration adds `nclex_cohort_checklist_items` (one row per
+template item included in this cohort plus per-cohort
+`release_date`). Default-on for every published template item
+at cohort create; remove-only overrides per row. Per-cohort
+release date defaults to `cohort.start_date + (unit_index − 1)
+× 7 days`.
+
+Commit: `1ab5f7e` (code) + docs.
+
+---
+
 ## Session — 2026-05-13 (9.3d-d) — Mock + Practice quiz placeholders
 
 Slice 9.3d-d closes the activity-picker — the last two tiles (Mock

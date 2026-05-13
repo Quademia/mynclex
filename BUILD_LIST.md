@@ -8,7 +8,72 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-13):** **Slice 9.3d-d — Mock + Practice
+> **Last shipped (2026-05-13):** **Slice 9.3e — Publish state +
+> content visibility.** Wires publish controls through every
+> layer of the curriculum tree and ships the single visibility
+> predicate that 9.3f will use to filter the cohort checklist.
+> Closes the "everything is built but nothing is student-visible"
+> gap that's been latent since 9.3a.
+>
+> **Activity publish toggle.** Adds the missing piece —
+> activities had an `is_published` column and a "· Draft" text
+> suffix on the row, but no UI to flip it. Now there's a Status
+> checkbox in the activity-modal's common-fields section
+> (matching the unit + block modal pattern), and the row pill
+> mirrors the unit/block pill aesthetic (shared `unit-pill`
+> class).
+>
+> **Per-unit aggregate display.** Unit cards now show a second
+> meta line under the existing counts: "*3 of 5 activities live ·
+> 1 of 2 blocks live*". Empty units skip it. The cards still show
+> the unit's own intention as the pill (not derived) — the meta
+> line is child reality. Query: three parallel reads (totals via
+> PostgREST embed + two filtered list queries via inner-join
+> through `nclex_programme_units` for programme-scoping).
+>
+> **Visibility predicate.** New `isVisibleToStudents()` in
+> `lib/curriculum/format.ts` — single AND-chain across
+> `programme.status='PUBLISHED'`, `unit.is_published`,
+> `block.is_published` (loose activities skip this), and
+> `activity.is_published`. Ships here as the source of truth;
+> 9.3f's cohort-checklist query is the first real caller.
+>
+> **Programme publish/archive.** Two new server actions on
+> `lib/programmes/actions.ts`. One-way lifecycle: DRAFT →
+> PUBLISHED → ARCHIVED. Publish stamps `published_at` on first
+> transition; archive stamps `archived_at`. No cascade to
+> children — the dual-publish design explicitly allows draft
+> children inside a Live parent. New
+> `<ProgrammeStatusControls>` on the Overview page with
+> state-dependent buttons (DRAFT → Publish primary + Archive
+> ghost; PUBLISHED → Archive danger; ARCHIVED → none) and
+> hint copy per state. Archive opens a type-DELETE confirm
+> overlay matching the existing destructive pattern; copy
+> varies between "active cohorts continue to their end dates"
+> (PUBLISHED) and "draft retired without ever going live"
+> (DRAFT).
+>
+> **Three product calls Sam locked up-front.** Sam accepted all
+> three recommendations: (1) no cascade on programme publish
+> (planning doc's dual-publish rule); (2) unlinked Mock/PQ
+> activities CAN be marked Live — flagged from 9.3d-d (defer
+> "Quiz coming soon" student-side render to a later slice);
+> (3) archive allowed from any state — DRAFT and PUBLISHED both
+> flow to ARCHIVED.
+>
+> **No migration.** All four `is_published` columns + the three
+> programme-lifecycle columns shipped in earlier slices. This
+> slice is wiring + UI + helpers.
+>
+> Sam smoke-tested end-to-end (activity Status toggle round-
+> trips, second meta line renders correctly, programme
+> Publish flips state, Archive confirm gates on DELETE, copy
+> adapts to current state, cohort-empty CTA still works,
+> unlinked Mock/PQ can publish) before approving merge.
+>
+> Commit `1ab5f7e`. See SESSIONS 2026-05-13 (9.3e).
+>
+> **Earlier the same day:** **Slice 9.3d-d — Mock + Practice
 > quiz placeholders.** Closes the activity-picker — the last two
 > tiles (Mock assessment + Practice quiz) flip live as curriculum
 > placeholders. Tutors can now author all six v1 activity types.
@@ -290,14 +355,16 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > Commit `0710cb6`. See SESSIONS 2026-05-12 (9.3d-a).
 >
-> **Next ⏭:** **Slice 9.3e — Publish state + content
-> visibility.** Per-activity Live/Draft pill + tutor controls;
-> per-unit aggregate status; programme-wide Publish action (DRAFT
-> → PUBLISHED) and Archive. Draft activities don't surface in
-> any cohort's checklist. Open question deferred to this slice:
-> whether to gate publish on Mock/PQ activities whose `quiz_id`
-> is still null (the central tutor-quiz system hasn't shipped at
-> 9.3e time, so every Mock/PQ in the system is unlinked).
+> **Next ⏭:** **Slice 9.3f — Cohort curriculum tab (checklist).**
+> Adds a `Curriculum` tab to the cohort detail subtree, renders
+> the same unit→block→activity tree as a checklist filtered by
+> `isVisibleToStudents` (the predicate that landed in 9.3e).
+> Migration adds `nclex_cohort_checklist_items` (one row per
+> template item included in this cohort plus per-cohort
+> `release_date`). Default-on for every published template item
+> at cohort create; remove-only overrides per row. Per-cohort
+> release date defaults to `cohort.start_date + (unit_index − 1)
+> × 7 days`.
 >
 > **Earlier the same day:** **Slice 9.3c — Blocks.** Activates
 > `nclex_programme_blocks` (shipped empty in 9.3a) via UI + eight
@@ -1092,24 +1159,36 @@ rebuild to suit.
   now. `buildPayload` switch grows a shared MOCK/PRACTICE_QUIZ
   branch returning `{ quiz_id: null }`. No migration. Commit
   `eafc37f`. See SESSIONS 2026-05-13 (9.3d-d).
-- ⏭ **9.3e** Publish state + content visibility — per-activity
-  Live/Draft pill (`activity.is_published`) + tutor controls; per-
-  unit aggregate status; programme-wide Publish action (DRAFT →
-  PUBLISHED), Archive action. Draft activities don't surface in
-  any cohort's checklist. **Open decision flagged here:** whether
-  to gate publish on Mock/PQ activities whose `quiz_id` is still
-  null (every Mock/PQ in the system will be unlinked at 9.3e
-  time, since the tutor-quiz system hasn't shipped).
-- ⬜ **9.3f** Cohort curriculum tab (checklist) — new `Curriculum`
+- ✅ **9.3e** Publish state + content visibility — shipped
+  2026-05-13. Adds the missing activity Status toggle inside the
+  activity-modal (matching the unit/block modal pattern);
+  replaces the `· Draft` text suffix on activity rows with a
+  real `unit-pill`-class pill; adds a second "X of Y live"
+  meta line on each unit card via two new filtered queries
+  merged into the existing grid. New `isVisibleToStudents()`
+  predicate in `format.ts` — AND-chain across the four
+  publish flags. Two new server actions in `lib/programmes/`:
+  `publishProgrammeAction` (DRAFT → PUBLISHED, stamps
+  `published_at`) + `archiveProgrammeAction` (DRAFT or PUBLISHED
+  → ARCHIVED, stamps `archived_at`). New
+  `<ProgrammeStatusControls>` on the Overview page with
+  state-dependent buttons + per-state hint copy; new
+  `<ProgrammeArchiveConfirm>` type-DELETE overlay (copy varies
+  between "active cohorts continue" and "draft retired"). Three
+  product calls locked: no cascade on publish, unlinked Mock/PQ
+  CAN go Live, archive allowed from any non-terminal state. No
+  migration. Commit `1ab5f7e`. See SESSIONS 2026-05-13 (9.3e).
+- ⏭ **9.3f** Cohort curriculum tab (checklist) — new `Curriculum`
   tab in the cohort detail subtree. Renders the same unit→block→
-  activity tree but as a *checklist*. Migration adds
-  `nclex_cohort_checklist_items` (one row per template item
-  included in this cohort, plus per-cohort `release_date`).
-  Default-on for every published template item at cohort create.
-  Tutor can **Remove from this cohort** per row and **Add back from
-  template** if previously removed. Per-cohort release date defaults
-  to `cohort.start_date + (unit_index − 1) × 7 days`; editable per
-  row without touching the template.
+  activity tree but as a *checklist*, filtered through
+  `isVisibleToStudents` (the predicate that landed in 9.3e).
+  Migration adds `nclex_cohort_checklist_items` (one row per
+  template item included in this cohort, plus per-cohort
+  `release_date`). Default-on for every published template item
+  at cohort create. Tutor can **Remove from this cohort** per row
+  and **Add back from template** if previously removed. Per-cohort
+  release date defaults to `cohort.start_date + (unit_index − 1)
+  × 7 days`; editable per row without touching the template.
 
 ### Follow-on: Central tutor-quiz system
 
