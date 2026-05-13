@@ -6,6 +6,179 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-13 (9.1d) — Programme/unit auto-sync
+
+Defect-fix slice. Sam spotted that a newly-created programme
+showed an empty curriculum tab — no unit slots at all. Original
+9.1 (programme create) was shipped 2026-05-10; the 9.3a
+curriculum schema (2026-05-12) ran a one-shot backfill seeding
+N unit rows for every programme that existed at the moment of
+deploy, but nothing installed a permanent invariant. Any
+programme created after 9.3a came up empty.
+
+Same hole touched two adjacent flows: editing `length_units`
+upward never added new unit rows, and editing it downward left
+orphan units (and their blocks + activities) behind.
+
+### Investigation chain
+
+1. Sam asked "what should happen on the curriculum page when a
+   new programme is created?" — flagging that his test case
+   returned an empty grid.
+2. Reading `createProgrammeAction` confirmed it inserts one
+   `nclex_programmes` row and stops. No unit rows.
+3. Reading the 9.3a migration confirmed the unit backfill was an
+   `INSERT … SELECT FROM nclex_programmes` — one-shot, not a
+   trigger.
+4. Reading the `UnitsGrid` comment explicitly named the broken
+   assumption: *"Pre-slotted with N cards (where N =
+   programme.length_units) — the backfill in 9.3a guarantees
+   that count exists."* True at deploy; not true after.
+5. `editProgrammeAction` allowed length_units to change with no
+   reconciliation either. Increase → no new slots; decrease →
+   orphan units.
+
+### Two product decisions made up-front
+
+**Increase (new > old).** Trivially safe — auto-add the missing
+empty unit rows. No confirmation needed. Locked.
+
+**Decrease (new < old) with content present.** Four options
+weighed:
+
+- (a) Block entirely. Rejected — we don't have a "delete a single
+  unit" feature, so a tutor would have no way to reduce length.
+- (b) Confirm-and-cascade with type-to-confirm. Matches the
+  existing destructive patterns (`DeleteConfirm`,
+  `DiscardConfirm`). **Picked.**
+- (c) Allow only if trailing units are empty. Same gap as (a) —
+  no way to empty units one at a time.
+- (d) Silent destruction. Rejected — destroys tutor work.
+
+Decrease with no content silently succeeds (no confirm dialog
+appears) — only fires when actual work would be lost.
+
+### Implementation
+
+DB layer is the load-bearing piece. Two trigger functions
+installed on `nclex_programmes`:
+
+- `nclex_programmes_seed_units()` — fires `AFTER INSERT`. Runs
+  `INSERT INTO nclex_programme_units SELECT NEW.programme_id,
+  generate_series(1, NEW.length_units)`. Seeds N empty unit
+  rows in the same transaction as the programme insert.
+- `nclex_programmes_reconcile_units()` — fires
+  `AFTER UPDATE OF length_units WHEN OLD IS DISTINCT FROM NEW`.
+  Adds the new tail if length grew; deletes the surplus tail if
+  length shrank. Existing `ON DELETE CASCADE` on
+  `nclex_programme_blocks.unit_id` and
+  `nclex_programme_activities.unit_id` / `block_id` handles
+  block + activity cleanup atomically.
+
+Both functions run `SECURITY DEFINER`. Justification: the trigger
+only fires after a successful INSERT / UPDATE on
+`nclex_programmes`, which is already RLS-gated to the row owner
+(or SUPER_ADMIN). The trigger's bookkeeping is scoped to that
+single programme — no privilege escalation across rows.
+SECURITY DEFINER also future-proofs against any later tightening
+of the unit-table RLS that might otherwise silently break the
+trigger.
+
+One-time backfill in the same migration — `INSERT … WHERE NOT
+EXISTS` ensures every existing programme is in-sync without
+duplicating rows for the seven already-backfilled by 9.3a.
+
+Application-layer destructive gate in
+`lib/programmes/actions.ts`:
+
+- `editProgrammeAction` gains a third parameter
+  `confirmDestructive: boolean = false`.
+- New result variant
+  `{ ok: false; requiresConfirm: true; impact: DecreaseImpact }`.
+- New helper `measureDecreaseImpact()` queries the doomed unit
+  tail (units beyond the new length) and counts blocks + activities
+  cascading underneath, plus inspects each doomed unit for any
+  user-set metadata (title, description, is_published). Empty
+  trailing units → silent. Anything touched → confirm.
+- Trip flow: first call surfaces `requiresConfirm`; modal shows
+  the overlay; tutor types DELETE; second call with
+  `confirmDestructive=true` skips the preflight and runs the
+  UPDATE; the DB trigger cleans up.
+
+New overlay component:
+
+- `lib/overlays/programmes/programme-length-decrease-confirm.tsx`
+  — new file in a new folder. Type-to-confirm shell modelled on
+  `<DeleteConfirm>` from `lib/overlays/bank/`. Displays the
+  impact summary in human form: *"Reducing the length will
+  permanently delete Weeks 9–12 and their content (2 blocks,
+  5 activities)."* Contiguous-range formatter on the indices
+  (`Weeks 9–12`); falls back to a comma-separated list for
+  non-contiguous edge cases (defensive — the trigger removes a
+  contiguous tail in practice). Reuses the `auth-delete-*`
+  class set in `styles/authoring.css` (already imported in the
+  workspace bundle) for visual parity with the other
+  destructive-confirm dialogs.
+
+Folder rule check (CLAUDE.md #9): `lib/overlays/programmes/` is
+a new folder. Purpose: programme-domain destructive-confirm
+overlays — today the length-decrease confirm; future siblings
+will include a delete-programme confirm if/when that feature
+ships. Surfaced and Sam confirmed before the file landed.
+
+Programme form modal (`lib/programmes/programme-form-modal.tsx`):
+
+- New state `pendingDecrease: DecreaseImpact | null` and
+  `decreaseConfirmText: string`.
+- `handleSubmit` takes an optional `confirmDestructive` param;
+  on `requiresConfirm` result the modal sets pendingDecrease
+  instead of toasting the error. On confirm-button click the
+  modal re-fires the save with `confirmDestructive=true`.
+- New render block mounts the overlay when pendingDecrease is
+  set. Cancel / backdrop click clears state without saving.
+
+`revalidatePath` extended to the curriculum tab so length changes
+flush both the programmes list AND the curriculum grid.
+
+### TypeScript narrowing fix
+
+First type-check round flagged `setError(result.error)` after
+the `requiresConfirm` branch — the union's two `ok: false`
+variants don't share an `error` field. Fixed with an explicit
+`if ('error' in result)` narrowing before the toast.
+
+### Verification
+
+Sam smoke-tested on dev:
+- Create new programme with length 6 → curriculum tab shows 6
+  empty cards immediately. Bug fixed.
+- Edit existing programme: 8 → 10 → 2 new empty cards appear.
+  No confirm dialog.
+- Edit programme: 10 → 8 with empty trailing units → no confirm,
+  saves silently.
+- Edit programme: longer → shorter with content in the doomed
+  tail → confirm dialog lists Weeks N–M plus block/activity
+  counts; type DELETE → save → DB shows units + cascaded
+  blocks + activities removed.
+- Backfill on the migration caught the test programme created
+  earlier in the day (now in-sync — 6 unit rows for length 6).
+
+### Slice numbering
+
+Named **9.1d** to slot in the 9.1 family it's fixing. Not a
+Phase B addition — it's a Phase A correctness invariant that
+9.3 leans on. Phase A's 9.1 was the original single-slice
+ship; 9.1d is the first sub-slice / hot-fix in that family
+(9.1a/b/c reserved for any future patches to programme
+create / edit).
+
+### Next ⏭
+
+- **Slice 9.3d-d — Mock + Practice quiz** (metadata-only forms).
+  As planned before this defect detour.
+
+---
+
 ## Session — 2026-05-13 (9.3d-c) — PDF activity
 
 First consumer of the media foundation shipped earlier the same

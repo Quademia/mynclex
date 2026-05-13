@@ -8,7 +8,43 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-13):** **Slice 9.3d-c — PDF activity
+> **Last shipped (2026-05-13):** **Slice 9.1d — Programme/unit
+> auto-sync (defect fix).** Closes a bug from slice 9.1 (shipped
+> 2026-05-10): newly-created programmes had an empty curriculum
+> tab because nothing seeded their unit rows. The 9.3a migration
+> backfilled the 7 programmes that existed at deploy time; every
+> programme created since came up empty. Same hole left
+> length-edit broken in both directions.
+>
+> **DB-layer invariant.** Two triggers on `nclex_programmes`:
+> `AFTER INSERT` seeds N unit rows; `AFTER UPDATE OF length_units`
+> reconciles (INSERT the new tail on increase, DELETE the surplus
+> tail on decrease — existing `ON DELETE CASCADE` handles blocks
+> + activities). Both functions `SECURITY DEFINER` and scoped to
+> the modified programme. One-time backfill in the migration
+> catches programmes created since 9.3a.
+>
+> **App-layer destructive-decrease gate.** `editProgrammeAction`
+> gains a `confirmDestructive` param + a `requiresConfirm`
+> result variant carrying the impact summary (units, blocks,
+> activities, indices). New `<ProgrammeLengthDecreaseConfirm>`
+> type-to-confirm overlay in a new `lib/overlays/programmes/`
+> folder. Empty trailing units shorten silently — only fires
+> when the doomed tail carries real content.
+>
+> **Two product decisions** locked up-front. Increase: silent
+> auto-add. Decrease with content: type-to-confirm cascade
+> (chose B over the three alternatives — block / empty-first /
+> silent — because we don't yet have a "delete a single unit"
+> feature). Decrease without content: silent.
+>
+> Sam smoke-tested all four paths (create new programme,
+> increase, decrease-empty, decrease-with-content) before
+> approving merge.
+>
+> Commit `51d43c4`. See SESSIONS 2026-05-13 (9.1d).
+>
+> **Earlier the same day:** **Slice 9.3d-c — PDF activity
 > (first consumer of the media foundation).** Lights up the PDF
 > tile in the activity picker. Tutors can now author TEXT + PDF
 > + EXTERNAL_LINK + ONLINE_LIVE_SESSION; MOCK + PRACTICE_QUIZ
@@ -624,6 +660,48 @@ enrolment), `tutor-nav.html` (global vs programme nav contexts).
     around the edit button. Submit gated until form is dirty in
     edit mode. Migration
     `20260510130000_slice_9_1c_programmes_update_rls.sql`.
+  - ✅ **9.1d** Programme/unit auto-sync — defect fix shipped
+    2026-05-13. Sam spotted that newly-created programmes had an
+    empty curriculum tab — the 9.3a backfill seeded unit rows for
+    programmes existing at deploy time but nothing kept the
+    invariant (`count(units) = programme.length_units`) true
+    going forward. Same hole left length-edit broken in both
+    directions: increase added no new slots; decrease left
+    orphan units + content. Fix installs the invariant at the DB
+    layer:
+    - `AFTER INSERT` trigger on `nclex_programmes` seeds N unit
+      rows whenever a programme is created.
+    - `AFTER UPDATE OF length_units` trigger reconciles the unit
+      count — INSERTs the new tail on increase; DELETEs the
+      surplus tail on decrease (existing `ON DELETE CASCADE` on
+      blocks → unit + activities → unit/block cleans up
+      atomically).
+    - Both trigger functions run `SECURITY DEFINER` (justified:
+      they only fire after an RLS-gated insert/update on the
+      parent programme and operate scoped to that single row).
+    - One-time backfill `INSERT … WHERE NOT EXISTS` catches any
+      programme created since 9.3a that's currently missing
+      units (no-op for the 7 already-seeded ones).
+
+    Application-layer gate against accidental destruction —
+    `editProgrammeAction` gains a `confirmDestructive: boolean`
+    param + a new `requiresConfirm` result variant.
+    `measureDecreaseImpact()` helper queries the doomed unit
+    tail and counts blocks + activities + units with metadata
+    (title set, description set, is_published true). Empty
+    trailing units shorten silently; touched units trip the
+    confirm flow.
+
+    New overlay `lib/overlays/programmes/programme-length-
+    decrease-confirm.tsx` (new folder per CLAUDE.md rule #9,
+    surfaced + confirmed). Type-to-confirm shell modelled on
+    `<DeleteConfirm>`. Lists the impact in human form
+    ("Reducing the length will permanently delete Weeks 9–12
+    and their content (2 blocks, 5 activities)") with a
+    contiguous-range formatter on the indices.
+
+    Migration `20260513200000_slice_9_1d_programme_unit_sync.sql`.
+    Commit `51d43c4`. See SESSIONS 2026-05-13 (9.1d).
 
 - ✅ **9.2** Programme/Cohort architecture rework — planning settled
   2026-05-10 across 4 questions; curriculum layer architecture
