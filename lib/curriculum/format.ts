@@ -108,30 +108,57 @@ export function formatPublishedCounts(
 }
 
 /**
- * Slice 9.3e — single visibility predicate. AND-chains the four
- * publish flags the curriculum tree carries:
+ * Single visibility predicate. AND-chains every gate that has to
+ * be true for a student to see an activity row.
+ *
+ * Template-side (always checked):
  *   1. programme.status === 'PUBLISHED'
  *   2. unit.is_published
- *   3. block.is_published (only when the activity sits in a block;
- *      loose activities skip this check)
+ *   3. block.is_published — null = loose activity, skipped
  *   4. activity.is_published
  *
- * This is the source of truth for "does a student see this row in
- * a cohort checklist?". 9.3e ships it as a helper; 9.3f's cohort-
- * checklist query is the first real caller. The student-facing
- * runtime calls it again at render time as defence-in-depth (RLS
- * stays the ultimate gate at the DB layer).
+ * Cohort-side (slice 9.3f — checked only when provided):
+ *   5. cohort checklist row is included
+ *   6. release_date <= today
+ *
+ * Self-paced programmes have no cohort layer — callers pass
+ * `cohortIncluded` and `releaseDate` as null/undefined, and those
+ * branches short-circuit to true. Tutor-led student-facing
+ * callers pass real values.
+ *
+ * Today's `today` argument is exposed for testability; defaults
+ * to today (UTC) in YYYY-MM-DD shape — matches the DATE column
+ * shape used by release_date.
+ *
+ * This is the source of truth. 9.3e shipped the template half;
+ * 9.3f adds the cohort half. RLS stays the ultimate gate at the
+ * DB layer; this predicate is for app-side render filtering.
  */
 export function isVisibleToStudents(input: {
   programmeStatus: ProgrammeStatus;
   unitPublished: boolean;
   blockPublished: boolean | null;  // null = loose activity (no block)
   activityPublished: boolean;
+  // Cohort layer — null/undefined for self-paced (no cohort).
+  cohortIncluded?: boolean | null;
+  releaseDate?: string | null;     // YYYY-MM-DD
+  today?: string;                  // YYYY-MM-DD; defaults to today UTC
 }): boolean {
-  return (
-    input.programmeStatus === 'PUBLISHED' &&
-    input.unitPublished &&
-    (input.blockPublished === null || input.blockPublished) &&
-    input.activityPublished
-  );
+  // Template half.
+  if (input.programmeStatus !== 'PUBLISHED') return false;
+  if (!input.unitPublished) return false;
+  if (input.blockPublished !== null && !input.blockPublished) return false;
+  if (!input.activityPublished) return false;
+
+  // Cohort half — skipped entirely when the caller didn't provide
+  // cohort context (self-paced delivery mode).
+  if (input.cohortIncluded != null) {
+    if (!input.cohortIncluded) return false;
+  }
+  if (input.releaseDate != null) {
+    const today = input.today ?? new Date().toISOString().slice(0, 10);
+    if (input.releaseDate > today) return false;
+  }
+
+  return true;
 }

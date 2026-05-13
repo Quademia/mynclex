@@ -165,3 +165,91 @@ export async function cancelCohortAction(
   revalidatePath(`/tutor/cohort/${cohort_id}/settings`);
   return { ok: true };
 }
+
+// =====================================================================
+// Slice 9.3f — Cohort checklist mutations
+// =====================================================================
+//
+// Two narrow actions over `nclex_cohort_checklist_items`:
+//   • setChecklistItemIncludedAction — toggles inclusion.
+//   • setChecklistItemReleaseDateAction — updates release_date.
+//
+// RLS on the table gates writes to rows whose cohort belongs to a
+// programme the caller owns; the actions don't re-implement that
+// check at the app layer (would just shadow the policy). A
+// stale/mis-typed checklist_item_id surfaces as a generic
+// "not found or not yours" through the maybeSingle() return shape.
+
+type ChecklistMutationResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export type SetChecklistItemIncludedResult = ChecklistMutationResult;
+export type SetChecklistItemReleaseDateResult = ChecklistMutationResult;
+
+export async function setChecklistItemIncludedAction(
+  checklist_item_id: string,
+  included: boolean
+): Promise<SetChecklistItemIncludedResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('nclex_cohort_checklist_items')
+    .update({ is_included: included, updated_at: nowIso })
+    .eq('checklist_item_id', checklist_item_id)
+    .select('cohort_id')
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return {
+      ok: false,
+      error: 'Checklist item not found or not yours to edit.',
+    };
+  }
+
+  revalidatePath(`/tutor/cohort/${data.cohort_id}/curriculum`);
+  return { ok: true };
+}
+
+export async function setChecklistItemReleaseDateAction(
+  checklist_item_id: string,
+  release_date: string // YYYY-MM-DD
+): Promise<SetChecklistItemReleaseDateResult> {
+  // Cheap shape check — defence in depth against a stale client.
+  // The DB column is DATE; a bad string would error on the UPDATE
+  // anyway, this surfaces it as a clean validation message.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(release_date)) {
+    return { ok: false, error: 'Release date must be a YYYY-MM-DD value.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('nclex_cohort_checklist_items')
+    .update({ release_date, updated_at: nowIso })
+    .eq('checklist_item_id', checklist_item_id)
+    .select('cohort_id')
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return {
+      ok: false,
+      error: 'Checklist item not found or not yours to edit.',
+    };
+  }
+
+  revalidatePath(`/tutor/cohort/${data.cohort_id}/curriculum`);
+  return { ok: true };
+}

@@ -37,3 +37,98 @@ export type CohortFormValues = Pick<
   | 'cohort_size'
   | 'allow_late_join'
 >;
+
+// =====================================================================
+// Slice 9.3f — Cohort curriculum checklist
+// =====================================================================
+//
+// One row per (cohort, template_activity). Seeded by an AFTER INSERT
+// trigger on nclex_cohorts (one row per current template activity);
+// new template activities added AFTER cohort creation do NOT
+// auto-seed — that's the one structural change that doesn't
+// propagate. Everything else (reorder, move, delete) flows live
+// from the template via the joined render.
+//
+// `release_date` is DATE (not TIMESTAMPTZ) — symmetric with
+// cohort.start_date. Visibility check is `release_date <= today`.
+// Time-of-day deferred.
+//
+// `source` reserved for future COHORT_ONLY adds (activities added
+// to a single cohort without a template entry). v1 only ever
+// writes 'TEMPLATE'.
+
+export type ChecklistItemSource = 'TEMPLATE' | 'COHORT_ONLY';
+
+export type CohortChecklistItem = {
+  checklist_item_id: string;
+  cohort_id: string;
+  template_activity_id: string;
+  is_included: boolean;
+  release_date: string;             // ISO YYYY-MM-DD
+  source: ChecklistItemSource;
+  created_at: string;
+  updated_at: string;
+};
+
+// Projection joining the checklist row with the template activity
+// it points to. The tutor view renders the full template shape;
+// activity content is read live from `nclex_programme_activities`
+// (content edits on the template propagate to every cohort).
+import type {
+  ProgrammeActivity,
+  ProgrammeBlock,
+  ProgrammeUnit,
+} from '@/lib/curriculum/types';
+
+export type CohortChecklistActivityRow = {
+  checklist_item_id: string;
+  is_included: boolean;
+  release_date: string;
+  source: ChecklistItemSource;
+  activity: ProgrammeActivity;       // live-read from template
+};
+
+// Block + its in-block checklist rows. Mirrors the curriculum-tab
+// unit-body shape but with checklist projections instead of raw
+// activities.
+export type CohortChecklistBlockEntry = {
+  kind: 'block';
+  block: ProgrammeBlock;
+  rows: CohortChecklistActivityRow[];
+};
+
+export type CohortChecklistLooseEntry = {
+  kind: 'loose';
+  row: CohortChecklistActivityRow;
+};
+
+export type CohortChecklistBodyEntry =
+  | CohortChecklistBlockEntry
+  | CohortChecklistLooseEntry;
+
+// One unit with its full in-cohort body (blocks + loose rows,
+// interleaved in template ordinal order).
+export type CohortChecklistUnit = {
+  unit: ProgrammeUnit;
+  body: CohortChecklistBodyEntry[];
+};
+
+// Top-level projection returned by getCohortChecklist(). Includes
+// the cohort identity + programme status fields needed to render
+// the per-row "Visible to students" derivation.
+export type CohortChecklistTree = {
+  cohort: {
+    cohort_id: string;
+    programme_id: string;
+    start_date: string;
+    name: string | null;
+  };
+  programme: {
+    programme_id: string;
+    title: string;
+    status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+    unit_label: 'WEEK' | 'MODULE';
+    delivery_mode: 'TUTOR_LED' | 'SELF_PACED';
+  };
+  units: CohortChecklistUnit[];
+};
