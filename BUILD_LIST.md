@@ -8,7 +8,63 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-13):** **Slice 9.3d-b — Media
+> **Last shipped (2026-05-13):** **Slice 9.3d-c — PDF activity
+> (first consumer of the media foundation).** Lights up the PDF
+> tile in the activity picker. Tutors can now author TEXT + PDF
+> + EXTERNAL_LINK + ONLINE_LIVE_SESSION; MOCK + PRACTICE_QUIZ
+> stay "Coming soon" until 9.3d-d.
+>
+> **Scope split from the original 9.3d-c.** Original 9.3d-c
+> bundled PDF + Mock + Practice quiz. Sam asked for PDF first;
+> PDF and the question-list types are structurally different
+> enough that bundling would have meant a bigger slice without
+> shared work. Mock + PQ become **9.3d-d** (next).
+>
+> **PDF editor.** `<PdfEditor>` body component in
+> `lib/curriculum/pdf-editor.tsx`. Two visual states: upload
+> picker when no asset attached; file row (`📄 filename · size ·
+> [Preview ↗] [Replace]`) when one is. Preview ↗ opens the signed
+> URL in a new tab. Replace clears the asset, brings the picker
+> back, and the previous asset row is soft-deleted in the same
+> save (`status = 'DELETED'`, file stays in bucket for the
+> future sweeper per `media-assets.md` §4.7). Save is blocked
+> without an attached PDF — error toast "Please upload a PDF
+> before saving."
+>
+> **Payload shape.** `ActivityPayloadPdf` refined from the
+> provisional `{ storage_path }` to
+> `{ pdf_asset_id, estimated_minutes }`. JSONB payload, no
+> DB-level FK (per 9.3a's locked rule); ownership validity
+> enforced at the action layer via `validatePdfAssetForSave`.
+> No migration needed.
+>
+> **Server action additions.** `validatePdfAssetForSave` (RLS-
+> gated read confirms asset is owned, READY, purpose
+> PDF_ACTIVITY); `readExistingPdfAssetId` + `softDeleteAsset`
+> drive the replace flow; new `getOwnedAssetPreviewAction(assetId)`
+> returns `{ original_filename, size_bytes, signed_url }` for the
+> modal's file-row display (used in both edit-mode initial load
+> and fresh-upload preview minting). Signed URL minted via
+> `getAssetUrl` (service-role, 1-hour TTL — per the 9.3d-b
+> foundation).
+>
+> **Seven product/scope questions answered up-front** — split
+> bundle vs all-three; PDF required to save; replace flow (soft-
+> delete old); preview UI (link-only); student rendering (deferred
+> with the rest); `estimated_minutes` (yes); `displayed_filename`
+> override (no — YAGNI).
+>
+> **`/admin/media-test` removed.** The temporary smoke-test
+> route shipped in 9.3d-b is superseded by the real PDF editor.
+> Folder deleted in this slice.
+>
+> Sam smoke-tested end-to-end (create + edit + replace +
+> save-without-PDF blocked + Preview ↗ opens) before approving
+> merge.
+>
+> Commit `5d5e71a`. See SESSIONS 2026-05-13 (9.3d-c).
+>
+> **Earlier the same day:** **Slice 9.3d-b — Media
 > foundation.** Centralised media-asset system. Creates
 > `nclex_media_assets` (one control row per uploaded file), the
 > first Supabase Storage bucket (`nclex-pdf-activities`, private,
@@ -146,14 +202,13 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > Commit `0710cb6`. See SESSIONS 2026-05-12 (9.3d-a).
 >
-> **Next ⏭:** **Slice 9.3d-c — PDF activity (first consumer of
-> the media foundation) + Mock + Practice quiz.** PDF activity
-> wires `<UploadField purpose="PDF_ACTIVITY">` into the
-> activity-modal PDF body, stores `pdf_asset_id` on the activity
-> payload, and renders the PDF in the student view via
-> `getAssetUrl`. Mock + Practice quiz ship metadata fields only
-> (question-selection UI deferred — tied to bank-consumption
-> design).
+> **Next ⏭:** **Slice 9.3d-d — Mock + Practice quiz.**
+> Metadata-only forms for the two question-list activity types.
+> Mock: count, time limit, pass score, due date, attempts,
+> release-results timing. Practice quiz: count, due date, pass
+> score, release-results timing. Question-selection UI (which
+> bank questions to draw from) tied to bank-consumption design
+> and deferred to its own slice.
 >
 > **Earlier the same day:** **Slice 9.3c — Blocks.** Activates
 > `nclex_programme_blocks` (shipped empty in 9.3a) via UI + eight
@@ -870,18 +925,31 @@ rebuild to suit.
     stay untouched on existing tables until per-feature
     migration slices.
 
-- ⏭ **9.3d-c** Remaining three activity types (PDF, Mock,
-  Practice quiz). PDF activity uses the media foundation
-  shipped in 9.3d-b (asset table, upload action, fetch helper).
-  This slice adds the PDF-specific editor body, wires it into
-  `<ActivityModal>`, stores `pdf_asset_id` on the activity
-  payload, and renders the PDF in the student view via the
-  asset-fetch helper. Mock + Practice quiz defer their
-  question-selection UI to a separate slice tied into bank-
-  consumption design, shipping only metadata fields here
-  (count, time limit, pass score, due date, attempts, release-
-  results timing for Mock; count, due date, pass score,
-  release-results timing for Practice quiz).
+- ✅ **9.3d-c** PDF activity (first consumer of the media
+  foundation) — shipped 2026-05-13. Bundle split from the
+  original "three remaining types": PDF here; Mock + PQ
+  become 9.3d-d. `ActivityPayloadPdf` refined to
+  `{ pdf_asset_id, estimated_minutes }`. New `<PdfEditor>` with
+  two visual states (upload picker / file-row card). Save
+  blocked without a PDF. Replace flow soft-deletes the previous
+  asset row (`status = 'DELETED'`) in the same save. Three new
+  helpers in `actions.ts` (`validatePdfAssetForSave` ownership
+  gate, `readExistingPdfAssetId` for replace, `softDeleteAsset`
+  for the cleanup); new exported server action
+  `getOwnedAssetPreviewAction(assetId)` returns
+  `{ original_filename, size_bytes, signed_url }` for the
+  modal's file row in both initial-edit-load and fresh-upload
+  cases. PDF added to picker's `ENABLED_TYPES`. Temporary
+  `/admin/media-test` route deleted (superseded by the real
+  editor). No migration — JSONB payload accepts the new shape;
+  ownership integrity at the action layer (per 9.3a's locked
+  rule). Commit `5d5e71a`. See SESSIONS 2026-05-13 (9.3d-c).
+- ⏭ **9.3d-d** Mock + Practice quiz (metadata fields only).
+  Mock: count, time limit, pass score, due date, attempts,
+  release-results timing. Practice quiz: count, due date, pass
+  score, release-results timing. Question-selection UI (which
+  bank questions to draw from + filter rules) deferred to its
+  own slice tied into bank-consumption design.
 - ⬜ **9.3e** Publish state + content visibility — per-activity
   Live/Draft pill (`activity.is_published`) + tutor controls; per-
   unit aggregate status; programme-wide Publish action (DRAFT →

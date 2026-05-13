@@ -6,6 +6,173 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-13 (9.3d-c) — PDF activity
+
+First consumer of the media foundation shipped earlier the same
+day. Lights up the PDF tile in the activity picker. After this
+slice tutors can author TEXT + PDF + EXTERNAL_LINK +
+ONLINE_LIVE_SESSION activities; MOCK + PRACTICE_QUIZ remain
+"Coming soon" until 9.3d-d.
+
+### Planning conversation — what shaped the slice
+
+Originally `9.3d-c` covered all three remaining activity types
+(PDF + Mock + PQ). Sam asked for PDF first, so I proposed splitting:
+
+- **9.3d-c** — PDF activity (this slice; load-bearing first
+  consumer of the media foundation).
+- **9.3d-d** — Mock + Practice quiz (next).
+
+PDF and the question-list types are structurally different
+enough that bundling would have meant a bigger slice without
+shared work. Mock + PQ pair naturally (both reference bank
+questions, both have count + due date + pass score + release-
+results timing).
+
+Seven product/scope decisions answered up-front; Sam accepted
+recommendations on all of them:
+
+**(1) PDF required to save.** A PDF activity without a PDF is
+pointless. Save is blocked unless `pdf_asset_id` is set. The
+tutor can still save as Draft via `is_published = false`.
+
+**(2) Replace flow.** Soft-delete the previous asset row in the
+same write that swaps `pdf_asset_id`. Cleaner than orphaning;
+the soft-delete sweeper (deferred per media-assets.md §4.7)
+purges later. Versioning the asset history (option c) was
+overkill for v1.
+
+**(3) Tutor preview.** "Preview ↗" link only — signed URL, new
+tab. Inline iframe (the richer option) is a polish slice later;
+saves layout/styling work in this slice for a feature most
+tutors get the same value from via the new-tab link.
+
+**(4) Student-side rendering.** Deferred. No student-side view
+of activities exists for any type yet (lands with cohort
+checklist in 9.3f). PDF should follow the same pattern, not be
+the one type that ships student-side ahead of the others.
+
+**(5) `estimated_minutes`.** Yes, matching Text + External
+Link. Optional free-text number, "" → NULL on save.
+
+**(6) `displayed_filename` override.** No — stick with the
+asset's `original_filename`. YAGNI; tutors who care can rename
+the file before upload. Avoids the modal carrying a separate
+display-name field for v1.
+
+**(7) Remove `/admin/media-test`.** Yes. The temporary admin
+smoke-test route from 9.3d-b is superseded by the real PDF
+editor.
+
+### Implementation
+
+`lib/curriculum/types.ts`:
+- `ActivityPayloadPdf` refined from the provisional
+  `{ storage_path }` to `{ pdf_asset_id, estimated_minutes }`.
+  The payload's pdf_asset_id is a FK-shaped reference to
+  `nclex_media_assets.asset_id` (no DB-level FK — payload is
+  JSONB, integrity enforced at the action layer per 9.3a's
+  locked rule).
+- New `PdfActivityBodyValues` (raw editor state) + new
+  `PdfActivityFormValues` (validated payload).
+- New `PdfActivityPreview` — display metadata returned by the
+  preview action (filename / size / signed_url).
+- `ActivityFormValues` discriminated union extended with the
+  `'PDF'` branch.
+
+`lib/curriculum/pdf-editor.tsx` — new `<PdfEditor>`:
+- No asset attached → `<UploadField purpose="PDF_ACTIVITY">` with
+  the export-from-Word hint baked in.
+- Asset attached → file row `📄 filename · 1.2 MB · [Preview ↗] [Replace]`.
+- Loading state ("Loading file details…") while the modal
+  fetches preview metadata for an existing asset.
+- Estimated-time input below in both states.
+
+`lib/curriculum/activity-modal.tsx` — five touch points:
+- `EditorBodyState` union: added PDF branch.
+- `emptyBody('PDF')` → `{ pdf_asset_id: null, estimated_minutes: '' }`.
+- `bodyFromActivity` reads pdf_asset_id + estimated_minutes from
+  the existing payload.
+- `bodyEqual` for PDF branch.
+- `buildValues` for PDF — pdf_asset_id required (errors
+  "Please upload a PDF before saving."), estimated_minutes
+  optional positive integer.
+- Render dispatch: `<PdfEditor>` block.
+- New `pdfPreview` state + `useEffect` keyed on
+  `currentPdfAssetId` — fetches `getOwnedAssetPreviewAction`
+  whenever the attached asset changes (initial edit-mode load
+  AND fresh uploads).
+
+`lib/curriculum/actions.ts`:
+- `buildPayload()` extended with a PDF branch (defensive
+  pdf_asset_id check; estimated_minutes assembled).
+- New `validatePdfAssetForSave(supabase, assetId)` —
+  belt-and-braces ownership + status + purpose gate. RLS on
+  nclex_media_assets already enforces `owner_user_id =
+  auth.uid()` so a missing row means "not found OR not yours"
+  (surfaced as a generic error to prevent id probing).
+- New `readExistingPdfAssetId(supabase, activityId)` — fetches
+  the previous payload's pdf_asset_id so editActivityAction can
+  decide whether to soft-delete after a replace.
+- New `softDeleteAsset(supabase, assetId)` — flips
+  `status = 'DELETED'`. RLS denies the UPDATE silently if the
+  caller doesn't own the row, so a stale client passing a foreign
+  asset id can't damage anything.
+- `createActivityAction` — calls `validatePdfAssetForSave`
+  before INSERT when `values.type === 'PDF'`.
+- `editActivityAction` — reads `oldPdfAssetId` BEFORE the UPDATE
+  (the row only carries the new value after). After a successful
+  UPDATE, if `oldPdfAssetId !== values.pdf_asset_id`, soft-deletes
+  the old asset row.
+- New exported server action `getOwnedAssetPreviewAction(assetId)`
+  — returns `{ original_filename, size_bytes, signed_url }`.
+  Used by the modal in both edit-mode initial load and fresh-
+  upload preview minting. Signed URL minted via
+  `getAssetUrl` (service-role, 1-hour TTL).
+
+`lib/curriculum/activity-picker.tsx`:
+- `'PDF'` added to `ENABLED_TYPES`. MOCK + PRACTICE_QUIZ stay
+  "Coming soon" until 9.3d-d.
+
+`app/(app)/admin/media-test/` — entire folder removed (layout +
+page + test-panel + actions). The foundation slice 9.3d-b's
+temporary smoke-test surface is superseded by the real editor.
+
+`styles/curriculum.css` — `.pdf-editor-file-row` (file row card),
+`.pdf-editor-file-row-loading` (placeholder), `.pdf-editor-file-icon`,
+`.pdf-editor-file-name`, `.pdf-editor-file-size`,
+`.pdf-editor-file-actions`, `.pdf-editor-preview-link`,
+`.pdf-editor-replace-btn`.
+
+### No migration
+
+JSONB payload column already accepts any shape per 9.3a. The
+`pdf_asset_id` lives inside `payload` as a string. No FK at the
+DB level by design — validity is enforced at the action layer.
+
+### Verification
+
+Sam smoke-tested end-to-end on dev:
+- Picker → PDF tile enabled.
+- New activity: title + upload PDF → save → activity in unit body.
+- Edit mode: file row populates after brief "Loading…" state;
+  Preview ↗ opens signed URL.
+- Replace: clear → upload different PDF → save → old asset
+  status flips to DELETED; new asset stays READY and is the
+  active reference.
+- Save blocked without PDF (error toast: "Please upload a PDF
+  before saving.").
+
+### Next ⏭
+
+- **Slice 9.3d-d — Mock + Practice quiz.** Metadata-only forms
+  (count, time limit, pass score, due date, attempts, release-
+  results timing for Mock; count, due date, pass score, release-
+  results timing for PQ). Question-selection UI tied to bank-
+  consumption design and deferred to its own slice.
+
+---
+
 ## Session — 2026-05-13 (9.3d-b) — Media foundation
 
 Foundation slice. Creates `nclex_media_assets` table, RLS, first
