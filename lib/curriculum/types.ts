@@ -120,9 +120,13 @@ export type ProgrammeActivity = {
 
 // Projection for the Units Overview grid (slice 9.3a). One row
 // per unit slot with rolled-up counts for the card meta line.
+// Slice 9.3e added `published_*_count` so the card can show
+// "3 of 5 activities live" alongside the unit's own pill.
 export type UnitGridRow = ProgrammeUnit & {
   block_count: number;
   activity_count: number;
+  published_block_count: number;
+  published_activity_count: number;
 };
 
 // Context the Units Overview page needs from the parent programme
@@ -148,18 +152,21 @@ export type UnitFormValues = {
 };
 
 // Common shape every activity editor's modal carries — Title +
-// Description + "Note to student" sit in the activity-modal
-// shell above the type-specific body, in that order. Slice
-// 9.3d-a added description.
+// Description + "Note to student" + Live/Draft toggle sit in the
+// activity-modal shell above the type-specific body, in that
+// order. Slice 9.3d-a added description; slice 9.3e added
+// `is_published` to mirror the unit + block modals.
 //
 // `title` is required at the DB level (NOT NULL). `description`
 // and `note` are nullable — empty strings get stored as NULL.
 // Description = what the activity is about (substantive); note =
-// directive to the student (operational).
+// directive to the student (operational). `is_published` matches
+// the column; default false on create.
 export type ActivityCommonFormValues = {
   title: string;
   description: string;      // empty string → stored as NULL
   note: string;             // empty string → stored as NULL
+  is_published: boolean;
 };
 
 // Text-activity body fields. The shell holds title + note; this

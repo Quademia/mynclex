@@ -15,6 +15,7 @@
 
 'use client';
 
+import { unitStatusLabel, unitStatusPillClass } from './format';
 import type { ActivityType, ProgrammeActivity } from './types';
 
 const TYPE_ICON: Record<ActivityType, string> = {
@@ -75,10 +76,16 @@ export function ActivityRow({
           {TYPE_ICON[activity.type]}
         </span>
         <span className="activity-row-text">
-          <span className="activity-row-title">{activity.title}</span>
+          <span className="activity-row-title-row">
+            <span className="activity-row-title">{activity.title}</span>
+            <span
+              className={`unit-pill ${unitStatusPillClass(activity.is_published)}`}
+            >
+              {unitStatusLabel(activity.is_published)}
+            </span>
+          </span>
           <span className="activity-row-meta">
             {TYPE_LABEL[activity.type]}
-            {!activity.is_published && ' · Draft'}
           </span>
         </span>
       </button>

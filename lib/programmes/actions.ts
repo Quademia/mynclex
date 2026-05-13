@@ -287,3 +287,128 @@ export async function editProgrammeAction(
   revalidatePath(`/tutor/programme/${programme_id}/curriculum`);
   return { ok: true };
 }
+
+// =====================================================================
+// publishProgrammeAction / archiveProgrammeAction (slice 9.3e)
+// =====================================================================
+//
+// One-way lifecycle: DRAFT → PUBLISHED → ARCHIVED. ARCHIVED is
+// terminal in v1 (no un-archive flow; tutor clones to start over).
+// No PUBLISHED → DRAFT reverse arrow either — simpler model,
+// fewer states to test, matches v1 volumes.
+//
+// Publish/archive only flip `programme.status`. They do NOT
+// cascade to child units / blocks / activities — the dual-publish
+// design (planning doc §"dual publish status") explicitly allows
+// "draft blocks inside a Live unit". Cascading would defeat that.
+//
+// `published_at` is stamped on the first DRAFT → PUBLISHED
+// transition only. Subsequent transitions (only Archive in v1)
+// preserve it. The column intent is "when did this go live the
+// first time" — useful audit signal once we add multiple-publish
+// flows in v2.
+
+type StatusActionResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export type PublishProgrammeResult = StatusActionResult;
+export type ArchiveProgrammeResult = StatusActionResult;
+
+export async function publishProgrammeAction(
+  programme_id: string
+): Promise<PublishProgrammeResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Read current status to gate the transition. RLS scopes to the
+  // tutor's own programmes; missing row → "not found or not yours".
+  const { data: existing } = await supabase
+    .from('nclex_programmes')
+    .select('status, published_at')
+    .eq('programme_id', programme_id)
+    .maybeSingle();
+  if (!existing) {
+    return { ok: false, error: 'Programme not found or not yours.' };
+  }
+  if (existing.status === 'PUBLISHED') {
+    return { ok: false, error: 'Programme is already published.' };
+  }
+  if (existing.status === 'ARCHIVED') {
+    return { ok: false, error: 'Archived programmes can’t be re-published.' };
+  }
+
+  // First publish stamps published_at; later flows (v2) preserve it.
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('nclex_programmes')
+    .update({
+      status: 'PUBLISHED',
+      published_at: existing.published_at ?? nowIso,
+      updated_at: nowIso,
+    })
+    .eq('programme_id', programme_id)
+    .select('programme_id')
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return { ok: false, error: 'Programme not found or not yours.' };
+  }
+
+  revalidatePath('/tutor/programmes');
+  revalidatePath(`/tutor/programme/${programme_id}/overview`);
+  return { ok: true };
+}
+
+export async function archiveProgrammeAction(
+  programme_id: string
+): Promise<ArchiveProgrammeResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data: existing } = await supabase
+    .from('nclex_programmes')
+    .select('status')
+    .eq('programme_id', programme_id)
+    .maybeSingle();
+  if (!existing) {
+    return { ok: false, error: 'Programme not found or not yours.' };
+  }
+  if (existing.status === 'ARCHIVED') {
+    return { ok: false, error: 'Programme is already archived.' };
+  }
+
+  // DRAFT → ARCHIVED and PUBLISHED → ARCHIVED both allowed. The
+  // type-to-confirm overlay at the call site is the user-side
+  // brake. published_at preserved (audit) — archive doesn't undo
+  // the fact that the programme was once live. archived_at gets
+  // stamped on this transition; column shipped in 9.1a but no
+  // action wrote it until now.
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('nclex_programmes')
+    .update({
+      status: 'ARCHIVED',
+      archived_at: nowIso,
+      updated_at: nowIso,
+    })
+    .eq('programme_id', programme_id)
+    .select('programme_id')
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return { ok: false, error: 'Programme not found or not yours.' };
+  }
+
+  revalidatePath('/tutor/programmes');
+  revalidatePath(`/tutor/programme/${programme_id}/overview`);
+  return { ok: true };
+}

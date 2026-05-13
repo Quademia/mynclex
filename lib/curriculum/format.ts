@@ -7,7 +7,10 @@
 // history). Per the 2026-05-11 architecture rework: same DB layer
 // either way; only the rendered label changes.
 
-import type { UnitLabel } from '@/lib/programmes/types';
+import type {
+  ProgrammeStatus,
+  UnitLabel,
+} from '@/lib/programmes/types';
 import type {
   ActivityPayloadMock,
   ActivityPayloadPracticeQuiz,
@@ -77,4 +80,58 @@ export function isQuizLinked(
   payload: ActivityPayloadMock | ActivityPayloadPracticeQuiz
 ): boolean {
   return typeof payload.quiz_id === 'string' && payload.quiz_id.length > 0;
+}
+
+/**
+ * Slice 9.3e — second meta line on the unit card. Shows how many
+ * of the unit's children are Live vs total. Skips parts whose
+ * total is zero (an empty unit doesn't say "0 of 0 activities
+ * live"). Returns null when the unit has neither blocks nor
+ * activities — caller skips the line entirely.
+ */
+export function formatPublishedCounts(
+  publishedBlocks: number,
+  totalBlocks: number,
+  publishedActivities: number,
+  totalActivities: number
+): string | null {
+  const parts: string[] = [];
+  if (totalActivities > 0) {
+    const noun = totalActivities === 1 ? 'activity' : 'activities';
+    parts.push(`${publishedActivities} of ${totalActivities} ${noun} live`);
+  }
+  if (totalBlocks > 0) {
+    const noun = totalBlocks === 1 ? 'block' : 'blocks';
+    parts.push(`${publishedBlocks} of ${totalBlocks} ${noun} live`);
+  }
+  return parts.length === 0 ? null : parts.join(' · ');
+}
+
+/**
+ * Slice 9.3e — single visibility predicate. AND-chains the four
+ * publish flags the curriculum tree carries:
+ *   1. programme.status === 'PUBLISHED'
+ *   2. unit.is_published
+ *   3. block.is_published (only when the activity sits in a block;
+ *      loose activities skip this check)
+ *   4. activity.is_published
+ *
+ * This is the source of truth for "does a student see this row in
+ * a cohort checklist?". 9.3e ships it as a helper; 9.3f's cohort-
+ * checklist query is the first real caller. The student-facing
+ * runtime calls it again at render time as defence-in-depth (RLS
+ * stays the ultimate gate at the DB layer).
+ */
+export function isVisibleToStudents(input: {
+  programmeStatus: ProgrammeStatus;
+  unitPublished: boolean;
+  blockPublished: boolean | null;  // null = loose activity (no block)
+  activityPublished: boolean;
+}): boolean {
+  return (
+    input.programmeStatus === 'PUBLISHED' &&
+    input.unitPublished &&
+    (input.blockPublished === null || input.blockPublished) &&
+    input.activityPublished
+  );
 }

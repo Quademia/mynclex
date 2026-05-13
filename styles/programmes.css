@@ -521,3 +521,76 @@
   margin-left: 24px;
   margin-top: 2px;
 }
+
+/* ─── Slice 9.3e — Programme status controls ──────── */
+
+/* Status controls section at the top of the programme Overview
+ * page. Sits above the existing placeholder + cohort-empty CTA.
+ * Three rows visually: status pill row, action buttons, hint copy. */
+.programme-status-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+
+.programme-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.programme-status-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Reuses the same .is-live / .is-draft tokens shared with the
+ * programme card pill; adds .is-archived for the terminal state
+ * (red-tinted, distinct from draft). */
+.programme-status-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.programme-status-pill.is-live {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+.programme-status-pill.is-draft {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+.programme-status-pill.is-archived {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.programme-status-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.programme-status-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}

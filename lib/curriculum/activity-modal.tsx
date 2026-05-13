@@ -229,12 +229,17 @@ export function ActivityModal(props: ActivityModalProps) {
   const activityType = isEdit ? props.activity.type : props.type;
   const typeLabel = TYPE_LABELS[activityType];
 
-  // Shell fields — Title + Description + Note. Pre-fill in edit mode.
+  // Shell fields — Title + Description + Note + Live/Draft.
+  // Pre-fill in edit mode; defaults on create (is_published =
+  // false matches the DB default and the unit/block modal pattern).
   const [title, setTitle] = useState(isEdit ? props.activity.title : '');
   const [description, setDescription] = useState(
     isEdit ? (props.activity.description ?? '') : ''
   );
   const [note, setNote] = useState(isEdit ? (props.activity.note ?? '') : '');
+  const [isPublished, setIsPublished] = useState(
+    isEdit ? props.activity.is_published : false
+  );
 
   // Type-specific body state — discriminated union.
   const initialBody: EditorBodyState = isEdit
@@ -283,10 +288,12 @@ export function ActivityModal(props: ActivityModalProps) {
   const initialTitle = isEdit ? props.activity.title : '';
   const initialDescription = isEdit ? (props.activity.description ?? '') : '';
   const initialNote = isEdit ? (props.activity.note ?? '') : '';
+  const initialIsPublished = isEdit ? props.activity.is_published : false;
   const isDirty =
     title !== initialTitle ||
     description !== initialDescription ||
     note !== initialNote ||
+    isPublished !== initialIsPublished ||
     !bodyEqual(body, initialBody);
 
   function attemptClose() {
@@ -313,7 +320,12 @@ export function ActivityModal(props: ActivityModalProps) {
       setError('Title is required.');
       return null;
     }
-    const common = { title: trimmedTitle, description, note };
+    const common = {
+      title: trimmedTitle,
+      description,
+      note,
+      is_published: isPublished,
+    };
 
     if (body.type === 'TEXT') {
       const emRaw = body.values.estimated_minutes.trim();
@@ -517,6 +529,23 @@ export function ActivityModal(props: ActivityModalProps) {
                   placeholder="Optional. A directive shown above the activity body (e.g., when to do it)."
                 />
               </label>
+
+              <div className="prog-field">
+                <span className="prog-field-label">Status</span>
+                <label className="prog-toggle prog-toggle-inline">
+                  <input
+                    type="checkbox"
+                    checked={isPublished}
+                    onChange={(e) => setIsPublished(e.target.checked)}
+                    disabled={isPending}
+                  />
+                  <span>Live — student-visible in cohorts</span>
+                </label>
+                <span className="prog-field-help">
+                  Off → Draft. Draft activities don&apos;t surface in
+                  any cohort&apos;s checklist.
+                </span>
+              </div>
             </section>
 
             <div className="activity-modal-divider" />

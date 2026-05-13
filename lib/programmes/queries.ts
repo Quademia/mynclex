@@ -80,3 +80,31 @@ export async function getProgrammeForShell(
   if (error || !data) return null;
   return data as ProgrammeShellContext;
 }
+
+/**
+ * Focused projection for the Overview page's Publish / Archive
+ * controls. Slice 9.3e — kept separate from the shell context so
+ * the chrome contract stays narrow (status/timestamps are a
+ * concern of one page, not every page under a programme).
+ */
+export type ProgrammeStatusContext = {
+  programme_id: string;
+  title: string;
+  status: import('./types').ProgrammeStatus;
+  published_at: string | null;
+  archived_at: string | null;
+};
+
+export async function getProgrammeStatus(
+  programmeId: string
+): Promise<ProgrammeStatusContext | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('nclex_programmes')
+    .select('programme_id, title, status, published_at, archived_at')
+    .eq('programme_id', programmeId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as ProgrammeStatusContext;
+}

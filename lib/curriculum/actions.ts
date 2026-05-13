@@ -465,7 +465,7 @@ export async function createActivityAction(
       description: trimOrNull(values.description),
       note: trimOrNull(values.note),
       payload: built.payload,
-      is_published: false,
+      is_published: values.is_published,
     })
     .select('activity_id')
     .single();
@@ -524,6 +524,7 @@ export async function editActivityAction(
       description: trimOrNull(values.description),
       note: trimOrNull(values.note),
       payload: built.payload,
+      is_published: values.is_published,
       updated_at: new Date().toISOString(),
     })
     .eq('activity_id', activityId)
