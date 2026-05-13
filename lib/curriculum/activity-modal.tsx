@@ -28,12 +28,19 @@ import { ErrorToast } from '@/lib/toast/error-toast';
 import { TextEditor } from './text-editor';
 import { ExternalLinkEditor } from './external-link-editor';
 import { OnlineLiveSessionEditor } from './online-live-session-editor';
-import { createActivityAction, editActivityAction } from './actions';
+import { PdfEditor } from './pdf-editor';
+import {
+  createActivityAction,
+  editActivityAction,
+  getOwnedAssetPreviewAction,
+} from './actions';
 import type {
   ActivityFormValues,
   ActivityType,
   ExternalLinkActivityBodyValues,
   OnlineLiveSessionActivityBodyValues,
+  PdfActivityBodyValues,
+  PdfActivityPreview,
   ProgrammeActivity,
   TextActivityBodyValues,
 } from './types';
@@ -64,14 +71,15 @@ const TYPE_LABELS: Record<ActivityType, string> = {
   PRACTICE_QUIZ: 'Practice quiz',
 };
 
-// Discriminated body-state by activity type. The three editor-
+// Discriminated body-state by activity type. The four editor-
 // enabled types each carry their own value shape; the unhandled
-// three (PDF / MOCK / PRACTICE_QUIZ) fall through to a sentinel
+// two (MOCK / PRACTICE_QUIZ) fall through to a sentinel
 // 'UNSUPPORTED' branch so the modal can render a "Coming soon"
 // hint instead of crashing if invoked stray for those types
 // (which the picker shouldn't allow, but defence in depth).
 type EditorBodyState =
   | { type: 'TEXT'; values: TextActivityBodyValues }
+  | { type: 'PDF'; values: PdfActivityBodyValues }
   | { type: 'EXTERNAL_LINK'; values: ExternalLinkActivityBodyValues }
   | {
       type: 'ONLINE_LIVE_SESSION';
@@ -85,6 +93,8 @@ function emptyBody(type: ActivityType): EditorBodyState {
   switch (type) {
     case 'TEXT':
       return { type, values: { body: '', estimated_minutes: '' } };
+    case 'PDF':
+      return { type, values: { pdf_asset_id: null, estimated_minutes: '' } };
     case 'EXTERNAL_LINK':
       return { type, values: { url: '', estimated_minutes: '' } };
     case 'ONLINE_LIVE_SESSION':
@@ -114,6 +124,14 @@ function bodyFromActivity(activity: ProgrammeActivity): EditorBodyState {
         type: 'TEXT',
         values: {
           body: asStr(p.body),
+          estimated_minutes: asNumStr(p.estimated_minutes),
+        },
+      };
+    case 'PDF':
+      return {
+        type: 'PDF',
+        values: {
+          pdf_asset_id: asStr(p.pdf_asset_id) || null,
           estimated_minutes: asNumStr(p.estimated_minutes),
         },
       };
@@ -163,6 +181,12 @@ function bodyEqual(a: EditorBodyState, b: EditorBodyState): boolean {
       a.values.estimated_minutes === b.values.estimated_minutes
     );
   }
+  if (a.type === 'PDF' && b.type === 'PDF') {
+    return (
+      a.values.pdf_asset_id === b.values.pdf_asset_id &&
+      a.values.estimated_minutes === b.values.estimated_minutes
+    );
+  }
   if (a.type === 'EXTERNAL_LINK' && b.type === 'EXTERNAL_LINK') {
     return (
       a.values.url === b.values.url &&
@@ -204,6 +228,43 @@ export function ActivityModal(props: ActivityModalProps) {
     ? bodyFromActivity(props.activity)
     : emptyBody(activityType);
   const [body, setBody] = useState<EditorBodyState>(initialBody);
+
+  // PDF preview metadata. Fetched whenever a PDF asset becomes
+  // attached — both in edit-mode initial load (if the activity
+  // already has a pdf_asset_id) and after a fresh upload. Cleared
+  // on Replace. The current pdf_asset_id is the dep that drives
+  // the fetch; the action mints a 1-hour signed URL via service
+  // role (the asset table's RLS already gates ownership at the
+  // SELECT).
+  const [pdfPreview, setPdfPreview] = useState<PdfActivityPreview | null>(null);
+
+  const currentPdfAssetId =
+    body.type === 'PDF' ? body.values.pdf_asset_id : null;
+
+  useEffect(() => {
+    if (currentPdfAssetId === null) {
+      setPdfPreview(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const result = await getOwnedAssetPreviewAction(currentPdfAssetId);
+      if (cancelled) return;
+      if (result.ok) {
+        setPdfPreview({
+          original_filename: result.original_filename,
+          size_bytes: result.size_bytes,
+          signed_url: result.signed_url,
+        });
+      } else {
+        setPdfPreview(null);
+        setError(result.error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPdfAssetId]);
 
   // Track dirty state so Cancel surfaces the discard guard.
   const initialTitle = isEdit ? props.activity.title : '';
@@ -252,6 +313,25 @@ export function ActivityModal(props: ActivityModalProps) {
         type: 'TEXT',
         ...common,
         body: body.values.body,
+        estimated_minutes: em,
+      };
+    }
+
+    if (body.type === 'PDF') {
+      if (body.values.pdf_asset_id === null) {
+        setError('Please upload a PDF before saving.');
+        return null;
+      }
+      const emRaw = body.values.estimated_minutes.trim();
+      const em = emRaw === '' ? null : parseInt(emRaw, 10);
+      if (em !== null && (!Number.isInteger(em) || em < 1)) {
+        setError('Estimated time must be a positive number, or blank.');
+        return null;
+      }
+      return {
+        type: 'PDF',
+        ...common,
+        pdf_asset_id: body.values.pdf_asset_id,
         estimated_minutes: em,
       };
     }
@@ -425,6 +505,29 @@ export function ActivityModal(props: ActivityModalProps) {
                 values={body.values}
                 onChange={(values) =>
                   setBody({ type: 'TEXT', values })
+                }
+                disabled={isPending}
+              />
+            )}
+
+            {body.type === 'PDF' && (
+              <PdfEditor
+                values={body.values}
+                onChange={(values) =>
+                  setBody({ type: 'PDF', values })
+                }
+                preview={pdfPreview}
+                onUploaded={(assetId) =>
+                  setBody({
+                    type: 'PDF',
+                    values: { ...body.values, pdf_asset_id: assetId },
+                  })
+                }
+                onClearAsset={() =>
+                  setBody({
+                    type: 'PDF',
+                    values: { ...body.values, pdf_asset_id: null },
+                  })
                 }
                 disabled={isPending}
               />

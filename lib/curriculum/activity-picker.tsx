@@ -4,10 +4,10 @@
 // "+ Add activity" button in place — not a modal — so the tutor
 // keeps the unit body visible while choosing.
 //
-// 9.3b enables TEXT only; the other five tiles render disabled
-// with a "Coming soon" subline. As 9.3d adds editors, the
-// `enabled` set grows. No type ever disappears from the picker —
-// the grid shape is part of the affordance ("these are the six
+// 9.3b enabled TEXT; 9.3d-a added EXTERNAL_LINK + ONLINE_LIVE_SESSION;
+// 9.3d-c adds PDF. Mock + Practice quiz remain "Coming soon"
+// until 9.3d-d. No type ever disappears from the picker — the
+// grid shape is part of the affordance ("these are the six
 // kinds of activities you can add").
 
 'use client';
@@ -38,10 +38,11 @@ const TILE_COPY: Record<
   PRACTICE_QUIZ:       { label: 'Practice quiz',       sub: 'Bank-drawn quiz',   icon: '✏️' },
 };
 
-// Types enabled in 9.3d-a. PDF / MOCK / PRACTICE_QUIZ land in
-// 9.3d-b. The picker greys out anything not on this list.
+// Types enabled in 9.3d-c. MOCK / PRACTICE_QUIZ land in 9.3d-d.
+// The picker greys out anything not on this list.
 const ENABLED_TYPES: ReadonlyArray<ActivityType> = [
   'TEXT',
+  'PDF',
   'EXTERNAL_LINK',
   'ONLINE_LIVE_SESSION',
 ];

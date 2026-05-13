@@ -60,8 +60,14 @@ export type ActivityPayloadText = {
   estimated_minutes?: number;
 };
 
+// Refined in slice 9.3d-c — `storage_path` replaced by
+// `pdf_asset_id`. The PDF file lives as a row in
+// `nclex_media_assets` (slice 9.3d-b); the activity payload only
+// carries the FK-shaped reference. No DB-level FK constraint — per
+// 9.3a's locked decision, the payload is JSONB and integrity is
+// enforced at the action layer (validatePdfAssetOwnership).
 export type ActivityPayloadPdf = {
-  storage_path?: string;
+  pdf_asset_id?: string;
   estimated_minutes?: number;
 };
 
@@ -191,6 +197,36 @@ export type ExternalLinkActivityFormValues = ActivityCommonFormValues & {
   estimated_minutes: number | null;
 };
 
+// --- Slice 9.3d-c — PDF activity ---
+
+// Raw editor body state. `pdf_asset_id` is null until the tutor
+// completes an upload (or, in edit mode, the value loaded from
+// payload). `estimated_minutes` mirrors the free-text pattern
+// used by Text + External link.
+export type PdfActivityBodyValues = {
+  pdf_asset_id: string | null;
+  estimated_minutes: string;
+};
+
+// Validated form payload sent to the server action. pdf_asset_id
+// is required at save time — a PDF activity without a PDF is
+// pointless. estimated_minutes is optional.
+export type PdfActivityFormValues = ActivityCommonFormValues & {
+  pdf_asset_id: string;
+  estimated_minutes: number | null;
+};
+
+// Display metadata for an existing PDF activity's attached asset.
+// Fetched lazily by the modal in edit mode via
+// getActivityPdfPreviewAction. signed_url is a short-lived (1-hour)
+// link minted by the server; the modal won't be open long enough
+// for expiry to matter, but cache busts on Replace.
+export type PdfActivityPreview = {
+  original_filename: string;
+  size_bytes: number;
+  signed_url: string;
+};
+
 // --- Slice 9.3d-a — Online live session ---
 
 // Raw editor body state. `scheduled_at` here is the raw
@@ -218,10 +254,11 @@ export type OnlineLiveSessionActivityFormValues = ActivityCommonFormValues & {
 // Discriminated union of every per-type form payload the server
 // actions accept. Narrows on `type` so each branch sees its own
 // fully-typed shape. New activity types extend this union as
-// their editors ship (PDF / Mock / Practice quiz arrive in
-// slice 9.3d-b).
+// their editors ship (PDF added in 9.3d-c; Mock + Practice quiz
+// arrive in slice 9.3d-d).
 export type ActivityFormValues =
   | ({ type: 'TEXT' } & TextActivityFormValues)
+  | ({ type: 'PDF' } & PdfActivityFormValues)
   | ({ type: 'EXTERNAL_LINK' } & ExternalLinkActivityFormValues)
   | ({ type: 'ONLINE_LIVE_SESSION' } & OnlineLiveSessionActivityFormValues);
 

@@ -22,6 +22,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { getAssetUrl } from '@/lib/media/queries';
 import type {
   ActivityFormValues,
   ActivityType,
@@ -111,6 +112,23 @@ function buildPayload(
         },
       };
     }
+    case 'PDF': {
+      // pdf_asset_id is required at the type level (string, not
+      // nullable) because the modal-side buildValues blocks save
+      // without one. Defence in depth: re-check here.
+      if (!values.pdf_asset_id) {
+        return { ok: false, error: 'A PDF is required.' };
+      }
+      return {
+        ok: true,
+        payload: {
+          pdf_asset_id: values.pdf_asset_id,
+          ...(values.estimated_minutes != null
+            ? { estimated_minutes: values.estimated_minutes }
+            : {}),
+        },
+      };
+    }
     case 'EXTERNAL_LINK': {
       const u = validateHttpUrl(values.url, 'URL');
       if (!u.ok) return u;
@@ -159,6 +177,74 @@ function buildPayload(
       };
     }
   }
+}
+
+// Slice 9.3d-c — PDF asset gate.
+// Used by create/edit-PDF-activity paths after buildPayload. RLS on
+// nclex_media_assets enforces owner_user_id = auth.uid() on SELECT,
+// so a missing row means "doesn't exist OR isn't yours" — both
+// surface as the same generic error so a malicious client can't
+// probe for asset ids belonging to someone else. Also rejects
+// not-READY rows (mid-upload, soft-deleted) and any non-PDF
+// purpose. NOTE: this is a Supabase-client-using helper so it
+// can't live inside the pure buildPayload() switch.
+async function validatePdfAssetForSave(
+  supabase: SupabaseClient,
+  assetId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data } = await supabase
+    .from('nclex_media_assets')
+    .select('asset_id, status, purpose')
+    .eq('asset_id', assetId)
+    .maybeSingle();
+  if (!data) {
+    return { ok: false, error: 'PDF not found or not yours to use.' };
+  }
+  if (data.status !== 'READY') {
+    return {
+      ok: false,
+      error: `PDF is not available (status: ${data.status}). Please re-upload.`,
+    };
+  }
+  if (data.purpose !== 'PDF_ACTIVITY') {
+    return { ok: false, error: 'Asset is not a PDF activity file.' };
+  }
+  return { ok: true };
+}
+
+// Read the existing PDF asset id (if any) from an activity row so
+// editActivityAction can soft-delete the previous asset when a
+// tutor uploads a replacement. Returns null if the activity isn't
+// a PDF or the payload doesn't carry a pdf_asset_id.
+async function readExistingPdfAssetId(
+  supabase: SupabaseClient,
+  activityId: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('nclex_programme_activities')
+    .select('payload')
+    .eq('activity_id', activityId)
+    .eq('type', 'PDF')
+    .maybeSingle();
+  if (!data) return null;
+  const payload = data.payload as Record<string, unknown> | null;
+  if (!payload || typeof payload !== 'object') return null;
+  const id = payload.pdf_asset_id;
+  return typeof id === 'string' ? id : null;
+}
+
+// Soft-delete an asset row (status='DELETED'). The bytes stay in
+// the bucket — a future sweeper (media-assets.md §4.7) handles
+// the eventual physical purge. No-ops if the asset isn't owned by
+// this user (RLS denies the UPDATE silently).
+async function softDeleteAsset(
+  supabase: SupabaseClient,
+  assetId: string
+): Promise<void> {
+  await supabase
+    .from('nclex_media_assets')
+    .update({ status: 'DELETED', updated_at: new Date().toISOString() })
+    .eq('asset_id', assetId);
 }
 
 function refreshProgrammeCurriculumPaths(programmeId: string, unitId: string) {
@@ -322,6 +408,13 @@ export async function createActivityAction(
   const { supabase, user } = await getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
+  // PDF-specific: verify the new asset is owned, READY, and has
+  // the right purpose before we wire it into an activity row.
+  if (values.type === 'PDF') {
+    const v = await validatePdfAssetForSave(supabase, values.pdf_asset_id);
+    if (!v.ok) return v;
+  }
+
   // Resolve the unit's programme_id. RLS on the units row scopes
   // to the tutor's own; if the unit doesn't exist for this user
   // we surface "not found" generically.
@@ -400,6 +493,21 @@ export async function editActivityAction(
   const { supabase, user } = await getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
+  // PDF-specific pre-flight:
+  //   • Read the OLD pdf_asset_id from the existing row so we can
+  //     soft-delete it after the UPDATE if the tutor replaced the
+  //     file. This must happen BEFORE the UPDATE — the row only
+  //     carries the new value afterwards.
+  //   • Validate the new asset is owned + READY + the right
+  //     purpose. RLS already gates ownership of the asset row,
+  //     this just turns "row not found" into a clean error.
+  let oldPdfAssetId: string | null = null;
+  if (values.type === 'PDF') {
+    oldPdfAssetId = await readExistingPdfAssetId(supabase, activityId);
+    const v = await validatePdfAssetForSave(supabase, values.pdf_asset_id);
+    if (!v.ok) return v;
+  }
+
   // Activity type is fixed at create time — editing can't change
   // it. .eq('type', values.type) belt + suspenders pins the
   // UPDATE so a stale client can't switch types mid-edit.
@@ -422,6 +530,20 @@ export async function editActivityAction(
     return { ok: false, error: 'Activity not found or not yours to edit.' };
   }
 
+  // Replace cleanup — soft-delete the previous PDF asset only if
+  // the UPDATE swapped to a new one. Same id → no-op. Old id was
+  // null (legacy / inconsistent) → no-op. RLS on the asset row
+  // additionally enforces "owner_user_id = auth.uid()" so a stale
+  // client can't pass a replace id pointing to someone else's
+  // asset; the soft-delete would silently no-op.
+  if (
+    values.type === 'PDF' &&
+    oldPdfAssetId !== null &&
+    oldPdfAssetId !== values.pdf_asset_id
+  ) {
+    await softDeleteAsset(supabase, oldPdfAssetId);
+  }
+
   // Look up programme_id for revalidation (cheap; one row).
   const { data: unitRow } = await supabase
     .from('nclex_programme_units')
@@ -432,6 +554,60 @@ export async function editActivityAction(
     refreshProgrammeCurriculumPaths(unitRow.programme_id, data.unit_id);
   }
   return { ok: true };
+}
+
+// =========================================================
+// getOwnedAssetPreviewAction (slice 9.3d-c)
+// =========================================================
+// Lets the activity modal display the file row (filename, size,
+// preview link) for an attached PDF — both in edit-mode initial
+// load and immediately after a fresh upload in create mode.
+//
+// RLS on nclex_media_assets gates SELECT to owner_user_id =
+// auth.uid(), so a missing row means "asset doesn't exist OR
+// isn't yours" — both surface as the same generic error. Signed
+// URLs are minted by getAssetUrl via the service-role client
+// (per the foundation slice 9.3d-b).
+
+export type OwnedAssetPreviewResult =
+  | {
+      ok: true;
+      original_filename: string;
+      size_bytes: number;
+      signed_url: string;
+    }
+  | { ok: false; error: string };
+
+export async function getOwnedAssetPreviewAction(
+  assetId: string
+): Promise<OwnedAssetPreviewResult> {
+  const { supabase, user } = await getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data } = await supabase
+    .from('nclex_media_assets')
+    .select('original_filename, size_bytes, status')
+    .eq('asset_id', assetId)
+    .maybeSingle();
+  if (!data) {
+    return { ok: false, error: 'File not found or not yours.' };
+  }
+  if (data.status !== 'READY') {
+    return {
+      ok: false,
+      error: `File is not available (status: ${data.status}).`,
+    };
+  }
+
+  const url = await getAssetUrl(assetId);
+  if (!url.ok) return { ok: false, error: url.error };
+
+  return {
+    ok: true,
+    original_filename: data.original_filename,
+    size_bytes: data.size_bytes,
+    signed_url: url.url,
+  };
 }
 
 // =========================================================
