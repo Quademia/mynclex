@@ -8,12 +8,71 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-12):** **Slice 9.3d-a — External link +
+> **Last shipped (2026-05-13):** **Slice 9.3d-b — Media
+> foundation.** Centralised media-asset system. Creates
+> `nclex_media_assets` (one control row per uploaded file), the
+> first Supabase Storage bucket (`nclex-pdf-activities`, private,
+> 25 MB cap, `application/pdf` only), a generic upload server
+> action, a generic `getAssetUrl` helper, and a generic
+> `<UploadField>` component. **No feature integration yet** —
+> PDF activity (9.3d-c), avatars, rationale images, future
+> videos all become consumers later, each as a one-slice add.
+>
+> **RLS shape.** Asset table is owner-only:
+> `owner_user_id = auth.uid()` OR SUPER_ADMIN for
+> SELECT/UPDATE/DELETE; INSERT pins `uploaded_by` and
+> `owner_user_id` to `auth.uid()` so a fresh row can't claim
+> someone else as uploader. Bucket denies direct reads —
+> service-role-minted signed URLs (1-hour TTL) are the
+> legitimate read path. Cross-feature access (students viewing
+> PDFs they're enrolled to see) does NOT live on the asset row;
+> it's gated at the consumer table's own RLS, and `getAssetUrl`
+> is called only after that check passes. Keeps the asset table
+> single-purpose: it knows nothing about enrolments, cohorts,
+> programmes.
+>
+> **storage_path shape:** `{purpose}/{uuid}.{ext}` —
+> e.g. `pdf_activity/8a3...c2.pdf`. Folder-per-purpose keeps the
+> dashboard browsable; UUID kills collisions and prevents PII
+> leaks via filename echo. `original_filename` preserved
+> separately for display.
+>
+> **Five product questions answered up-front** — bucket name
+> scope (renamed `nclex-pdfs` → `nclex-pdf-activities` to leave
+> room for future library + admin PDF buckets); PDF-only vs
+> Word/PowerPoint (strict PDF-only — renders consistently,
+> inline-viewable, no macro vector); bucket propagation to prod
+> (same manual MCP-apply path as tables, by putting the bucket
+> creation in the migration SQL); RLS shape; `<UploadField>`
+> placement (`components/media/`, visual side; plumbing in
+> `lib/media/`).
+>
+> **Temporary `/admin/media-test` route** (SUPER_ADMIN-gated)
+> ships in this slice so the foundation can be smoke-tested
+> end-to-end before any consumer feature exists. Removed in
+> 9.3d-c. Initial `_media-test` folder name 404'd — Next.js
+> treats underscore prefixes as "private folders" excluded from
+> routing.
+>
+> Sam smoke-tested end-to-end on dev (upload PDF → asset row
+> READY → fetch signed URL → opens in new tab) before approving
+> merge.
+>
+> Commit `05ffcf0`. See SESSIONS 2026-05-13 (9.3d-b).
+>
+> **Earlier the same day:** **Planning — media assets
+> architecture.** Settled the architectural plan at
+> `docs/product-plan/media-assets.md` (eight locked decisions)
+> and split slice 9.3d-b in two: the foundation slice (this
+> shipment) gets the 9.3d-b slot; PDF + Mock + Practice quiz
+> become 9.3d-c. See SESSIONS 2026-05-13 (planning).
+>
+> **Earlier — 2026-05-12:** **Slice 9.3d-a — External link +
 > Online live session.** Lights up two more of the six v1
 > activity types and adds a shared `description` column across
 > all activities. After this slice the picker enables TEXT +
 > EXTERNAL_LINK + ONLINE_LIVE_SESSION; PDF / MOCK /
-> PRACTICE_QUIZ remain "Coming soon" until 9.3d-b.
+> PRACTICE_QUIZ remain "Coming soon" until 9.3d-c.
 >
 > **Schema migration (one file, two changes):** Adds
 > `nclex_programme_activities.description TEXT` (nullable) —
@@ -87,19 +146,14 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > Commit `0710cb6`. See SESSIONS 2026-05-12 (9.3d-a).
 >
-> **Next ⏭:** **Slice 9.3d-b — Media foundation.** Prerequisite
-> for any feature that uploads files. Creates the centralised
-> `nclex_media_assets` table (one control row per uploaded
-> file — owner, purpose, storage location, status), the first
-> Supabase Storage bucket for PDFs, generic upload server
-> action, and a generic asset-fetch helper. **No feature
-> integration yet** — PDF activity (now 9.3d-c), avatars,
-> rationale images, future videos all become consumers later,
-> each as a one-slice add. The `storage_provider` column on
-> every asset row makes future migration to Cloudflare R2 or
-> Stream a one-day data migration, not a re-architecture.
-> Architectural plan + eight locked decisions: see
-> `docs/product-plan/media-assets.md` (settled 2026-05-13).
+> **Next ⏭:** **Slice 9.3d-c — PDF activity (first consumer of
+> the media foundation) + Mock + Practice quiz.** PDF activity
+> wires `<UploadField purpose="PDF_ACTIVITY">` into the
+> activity-modal PDF body, stores `pdf_asset_id` on the activity
+> payload, and renders the PDF in the student view via
+> `getAssetUrl`. Mock + Practice quiz ship metadata fields only
+> (question-selection UI deferred — tied to bank-consumption
+> design).
 >
 > **Earlier the same day:** **Slice 9.3c — Blocks.** Activates
 > `nclex_programme_blocks` (shipped empty in 9.3a) via UI + eight
@@ -757,40 +811,53 @@ rebuild to suit.
   recommendations. `IN_PERSON_LIVE_SESSION` deferred (YAGNI
   per CLAUDE.md — naming convention captured; cheap to add
   later). See SESSIONS 2026-05-12 (9.3d-a).
-- ⏭ **9.3d-b** Media foundation — prerequisite for any feature
-  that uploads files. Creates the centralised `nclex_media_assets`
-  table that every future upload (PDFs, avatars, rationale
-  images, videos) will reference, plus the first Supabase
-  Storage bucket and the generic upload + fetch plumbing. No
-  feature integration yet. Source:
-  `docs/product-plan/media-assets.md`.
+- ✅ **9.3d-b** Media foundation — shipped 2026-05-13. Centralised
+  media-asset system. Locked bucket name `nclex-pdf-activities`
+  (scoped to tutor PDFs for curriculum only — library / admin PDFs
+  each get their own buckets in their own slices). PDF-only MIME
+  allow-list (Word / PowerPoint excluded — rendering drift,
+  download friction, macro-malware vector). Asset table is
+  owner-only RLS; bucket denies direct reads; service-role-minted
+  signed URLs (1-hour TTL) are the legitimate read path; consumer
+  features verify access at their own layer before calling
+  `getAssetUrl`. Temporary `/admin/media-test` route ships in this
+  slice as the smoke-test surface (removed in 9.3d-c).
+  Commit `05ffcf0`. See SESSIONS 2026-05-13 (9.3d-b).
 
-  **What ships:**
+  **What shipped:**
   - `nclex_media_assets` table with full schema per
     `media-assets.md` §3 (asset_id, media_type, purpose,
     storage_provider, bucket, storage_path, original_filename,
     mime_type, size_bytes, status, uploaded_by, owner_user_id,
-    timestamps).
-  - RLS policies: SELECT own + SELECT where bucket is public-
-    read; INSERT via server action only; UPDATE/DELETE gated by
-    `owner_user_id = auth.uid()` + SUPER_ADMIN bypass per table.
-  - First bucket provisioned for PDF activities (indicative
-    name `nclex-pdfs` — final name decided at build time;
-    private, 25 MB cap, MIME allow-list `application/pdf` only).
-  - Generic `uploadAssetAction(file, purpose)` server action in
-    `lib/media/actions.ts` — handles the asset row create + the
-    Supabase Storage upload in one transactional flow, returns
-    `asset_id`.
-  - Generic `getAssetUrl(asset_id)` helper in `lib/media/queries.ts`
-    — returns a direct URL for public assets, a signed URL
-    (1-hour expiry) for private assets. Reads `storage_provider`
-    + `bucket` + `storage_path` from the asset row; future R2 /
-    Stream backends slot in here.
-  - Generic `<UploadField>` client component (folder location
-    confirmed at build time per CLAUDE.md folder convention #9
-    — likely `components/media/` or `lib/media/`) — file picker
-    + client-side size check + upload progress UI. Reusable
-    across feature consumers.
+    timestamps). `uploaded_by` ON DELETE RESTRICT preserves
+    audit; `owner_user_id` ON DELETE SET NULL on owner removal.
+    UNIQUE (storage_provider, bucket, storage_path) guards
+    against duplicate rows pointing at the same physical file.
+  - RLS policies — owner-only SELECT/UPDATE/DELETE
+    (`owner_user_id = auth.uid()` OR SUPER_ADMIN); INSERT pins
+    `uploaded_by = auth.uid() AND owner_user_id = auth.uid()`.
+  - First bucket: `nclex-pdf-activities` — private, 25 MB cap,
+    MIME allow-list `application/pdf` only. `storage.objects`
+    INSERT policy lets authenticated users upload to this bucket;
+    SELECT/UPDATE/DELETE deliberately absent so direct reads fail
+    and signed URLs are the only legitimate read path.
+  - Generic `uploadAssetAction(file, purpose)` in
+    `lib/media/actions.ts` — application-layer MIME + size
+    pre-check, asset row insert (status=UPLOADING), storage
+    upload, status flip to READY, soft-delete on any failure.
+  - Generic `getAssetUrl(asset_id)` in `lib/media/queries.ts` —
+    uses service-role client to bypass asset-table RLS (consumer
+    layer has already gated access); returns direct URL for
+    public buckets, 1-hour signed URL for private.
+  - Generic `<UploadField>` in `components/media/upload-field.tsx`
+    — auto-uploads on file pick; four-state machine (idle →
+    uploading → done / error); reads `PURPOSE_CONFIG` for
+    `accept=` + validation messages.
+  - `lib/supabase/server.ts` — new `createServiceRoleClient()`
+    helper. Per-request, server-only. First named helper for
+    service-role in `lib/supabase/`.
+  - `styles/media.css` — new domain CSS, wired into
+    `app/(app)/layout.tsx`.
 
   **What does NOT ship here:**
   - No feature wiring yet. PDF activity (9.3d-c), avatars,
@@ -803,21 +870,7 @@ rebuild to suit.
     stay untouched on existing tables until per-feature
     migration slices.
 
-  **Why this slice exists separately from 9.3d-c:** PDF activity
-  was the trigger, but the plumbing it needs is the same plumbing
-  every future upload needs. Building it as a foundation slice
-  means the next five features that upload files (PDF activity,
-  avatar, rationale image, future video, future certificates)
-  each take one slice rather than each building their own upload
-  stack. Architectural decisions locked in conversation
-  2026-05-13; see `docs/product-plan/media-assets.md` for the
-  full plan.
-
-  **Bucket naming:** `nclex-pdfs` and the other names in
-  `media-assets.md` §4.3 are indicative only — final bucket
-  names decided at the build slice that creates each bucket.
-
-- ⬜ **9.3d-c** Remaining three activity types (PDF, Mock,
+- ⏭ **9.3d-c** Remaining three activity types (PDF, Mock,
   Practice quiz). PDF activity uses the media foundation
   shipped in 9.3d-b (asset table, upload action, fetch helper).
   This slice adds the PDF-specific editor body, wires it into

@@ -6,6 +6,193 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-13 (9.3d-b) — Media foundation
+
+Foundation slice. Creates `nclex_media_assets` table, RLS, first
+bucket (`nclex-pdf-activities`), generic upload action,
+`getAssetUrl` helper, and `<UploadField>` component. No feature
+integration yet — slice 9.3d-c (PDF activity) is the first
+consumer.
+
+### Planning conversation — what shaped the slice
+
+Five up-front product questions surfaced before any code; Sam
+accepted recommendations on all five:
+
+**(1) Bucket name.** Initially proposed `nclex-pdfs`. Sam asked
+whether this should hold every PDF ever uploaded — including
+QAcademy admin PDFs (policies, T&Cs) and the future library.
+Renamed to `nclex-pdf-activities` to make scope explicit. Library
+PDFs and admin PDFs each get their own bucket in their own
+slices. Architecture stays clean — `media_type = 'PDF'` answers
+"all PDFs" regardless of bucket. Reason this matters: Supabase
+attaches access rules at the bucket layer, so mixing
+revenue-gating PDFs with public-read PDFs in one bucket forces a
+single shared policy that "kind of fits" both — exactly how leaks
+happen.
+
+**(2) PDF-only vs Word/PowerPoint too.** Sam asked whether to
+accept .docx as well as .pdf. Pushed back with reasoning: PDFs
+render identically across machines and browsers (Word documents
+shift with installed fonts), view inline (Word forces a download
+→ open elsewhere → switch back), can't be casually edited by
+students, dominate academic publishing, and don't carry the
+macro-malware vector. The export-to-PDF friction is solved with a
+one-line picker hint ("In Word: File → Export → PDF"). Sam
+accepted strict PDF-only.
+
+**(3) Bucket propagation to prod.** Sam asked how buckets compare
+to tables when merging code to prod. Confirmed the mechanism:
+neither tables nor buckets auto-deploy on `git merge` — migrations
+are applied manually per-environment via the Supabase MCP, on
+Sam's explicit approval. By placing `INSERT INTO storage.buckets`
+inside the migration file, applying that file to prod at release
+time creates the bucket identically to dev. So: dev now, prod at
+the release step.
+
+**(4) RLS shape.** Sam intuited that "tutors AND enrolled
+students both need access". Walked through why the asset table
+itself shouldn't encode cross-feature access — it would accumulate
+conditional logic touching activities → blocks → units →
+programmes → cohorts → enrolments, and would need parallel
+branches for avatars, rationale images, future videos, library.
+Cleaner pattern locked: asset table is owner-only
+(`owner_user_id = auth.uid()` + SUPER_ADMIN); bucket denies
+direct reads; signed URLs (service-role-minted, 1-hour TTL) are
+the legitimate read path; each consumer feature verifies access
+in its own layer before calling `getAssetUrl`. Single
+responsibility for the asset table.
+
+**(5) storage_path shape.** Locked `{purpose}/{uuid}.{ext}` —
+e.g. `pdf_activity/8a3...c2.pdf`. Folder-per-purpose keeps the
+Supabase dashboard browsable; UUID kills collisions and prevents
+PII leaks via filename echo; `original_filename` preserved
+separately for display.
+
+Two adjacent decisions also locked:
+
+- **`<UploadField>` placement** — `components/media/` (visual
+  domain), with plumbing in `lib/media/` (logic domain). Matches
+  CLAUDE.md folder rule #2.
+- **Smoke test approach** — temporary `/admin/media-test` route
+  (SUPER_ADMIN-gated). Foundation ships no consumer that would
+  exercise the upload + signed-URL flow, so without a test
+  harness the slice can't be smoke-tested end-to-end before
+  merge. Page is removed in 9.3d-c when the real PDF editor
+  takes over.
+
+### Implementation
+
+Migration
+(`db/migrations/20260513120000_slice_9_3d_b_media_assets.sql`):
+- `nclex_media_assets` table per media-assets.md §3. `uploaded_by`
+  is `ON DELETE RESTRICT` (preserves audit); `owner_user_id` is
+  `ON DELETE SET NULL` (asset becomes platform-owned on owner
+  deletion). UNIQUE (storage_provider, bucket, storage_path) as
+  defence against duplicate rows pointing at the same physical
+  file.
+- Three indexes: (owner_user_id, status), (purpose, status),
+  (uploaded_by).
+- RLS via the existing `nclex_user_has_role('SUPER_ADMIN')`
+  helper. SELECT/UPDATE/DELETE all gate on
+  `owner_user_id = auth.uid() OR SUPER_ADMIN`. INSERT pins
+  `uploaded_by = auth.uid() AND owner_user_id = auth.uid()` so a
+  fresh row can't claim someone else as uploader/owner.
+- Bucket `nclex-pdf-activities` provisioned via
+  `INSERT INTO storage.buckets` — private, 25 MB cap
+  (26,214,400 bytes), MIME allow-list `application/pdf`.
+- `storage.objects` INSERT policy scoped to this bucket;
+  SELECT/UPDATE/DELETE deliberately absent so direct reads fail
+  and signed URLs are the only legitimate read path.
+
+`lib/media/types.ts`:
+- MediaType / StorageProvider / AssetStatus / Purpose string
+  unions (mirroring the SQL CHECK constraints).
+- `PurposeConfigEntry` with `bucket`, `mediaType`,
+  `storagePathPrefix`, `allowedMimeTypes`, `maxSizeBytes`,
+  `isPublic`.
+- `PURPOSE_CONFIG` map — single `PDF_ACTIVITY` entry today.
+  Future purposes extend the union and add a row here.
+- `MediaAsset` row shape (snake_case to match SQL — keeps
+  queries.ts / actions.ts grep-able against the migration).
+- `UploadResult` / `AssetUrlResult` discriminated unions for
+  caller-side narrowing.
+
+`lib/media/actions.ts` — `uploadAssetAction(file, purpose)`:
+- Application-layer MIME + size pre-check (bucket-level rules
+  are authoritative; this fails fast with clear messages).
+- Authenticated-user check via `getUser()`.
+- Builds the storage path via `randomUUID()`.
+- Inserts asset row with `status = 'UPLOADING'`, pushes bytes via
+  `supabase.storage.from(bucket).upload(...)`, flips status to
+  `READY` on success. Any failure soft-deletes the row
+  (`status = 'DELETED'`) so the row reflects reality and a sweeper
+  can prune it later.
+
+`lib/media/queries.ts` — `getAssetUrl(assetId)`:
+- Service-role client — bypasses asset-table RLS deliberately.
+  Students viewing PDF activities will never own the asset row,
+  so RLS can't be the access gate for them; consumer-level
+  access checks (e.g. the activity's own RLS in 9.3d-c) run
+  before this is called.
+- Public buckets → `getPublicUrl` direct link.
+- Private buckets → `createSignedUrl(path, 3600)` for a 1-hour
+  link.
+- Asset-not-READY guard so a half-uploaded row can't leak its
+  URL.
+
+`lib/supabase/server.ts` — added `createServiceRoleClient()`:
+- Per-request creation (CLAUDE.md rule #4 — no module-scope
+  caching).
+- Wraps `@supabase/supabase-js` directly with the service-role
+  key. First helper to expose service-role from `lib/supabase/`
+  (the `register/actions.ts` rollback path used to inline this
+  pattern; we can migrate that to the helper later).
+
+`components/media/upload-field.tsx` — `<UploadField>`:
+- Client component. Auto-uploads on file pick (single-click UX
+  for the smoke test; 9.3d-c can layer an explicit Upload button
+  if the PDF editor wants a "Cancel before upload" step).
+- Client-side MIME + size pre-flight before invoking the action.
+- Four-state machine: idle → uploading → done (×-clearable) /
+  error (re-pickable).
+- Props: `purpose`, `onUploaded`, optional `hint` + `label` +
+  `disabled`. Reads `PURPOSE_CONFIG` for the `accept=` attribute
+  and validation messages.
+
+`styles/media.css` — new domain CSS file (`upload-field-*` +
+`prog-field-error`). Wired into `app/(app)/layout.tsx` alongside
+the other workspace stylesheets.
+
+`app/(app)/admin/media-test/` — temporary smoke-test surface
+(layout + page + test-panel + actions). SUPER_ADMIN-gated. Picks
+a PDF, displays the asset_id, lets you mint and open a signed
+URL. To be removed in 9.3d-c.
+
+### Verification
+
+Sam smoke-tested end-to-end on dev: uploaded "TEST PDF.pdf"
+(~15 KB) → asset row created with `status = READY`,
+`owner_user_id` equal to `uploaded_by` → "Fetch signed URL"
+button minted a 1-hour link → link opened the PDF in a new tab.
+
+Initial 404 on `/admin/_media-test` flagged the Next.js
+"underscore = private folder, excluded from routing" rule; folder
+renamed to `media-test` and the "TEMPORARY" intent moved into
+file-header comments.
+
+### Next ⏭
+
+- **Slice 9.3d-c — PDF activity (first consumer of the media
+  foundation) + Mock + Practice quiz.** Wires
+  `<UploadField purpose="PDF_ACTIVITY">` into the activity-modal
+  PDF body, stores `pdf_asset_id` on the activity payload, and
+  renders the PDF in the student view via `getAssetUrl`. Mock +
+  Practice quiz ship metadata fields only (question-selection UI
+  tied into bank-consumption design and deferred).
+
+---
+
 ## Session — 2026-05-13 (planning) — Media assets architecture
 
 Planning-only session, no code shipped. Sam paused at slice 9.3d-b
