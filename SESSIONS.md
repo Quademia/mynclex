@@ -6,6 +6,239 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-14 (9.3f) — Cohort curriculum checklist
+
+Closes Phase B. Adds the cohort layer's curation surface — every
+template activity gets a per-cohort row with inclusion +
+release-date controls. Bridges the tutor authoring layer (units
+→ blocks → activities) and the eventual student experience.
+
+### Architectural turn — Sam returned with a plan
+
+Like 9.3d-d, Sam came back from offline planning with a
+strong-shape document. Most of it landed verbatim; one
+refinement happened during the conversation.
+
+The settled shape:
+- **Cohort = pointer to template, not a copy.** Content edits
+  (title, body, PDF replacement, recording URL, future quiz
+  key) propagate from the programme to every cohort. The cohort
+  side stores only cohort-specific data: inclusion flag + release
+  date.
+- **Include Draft + Live activities in the checklist at cohort
+  creation.** Avoids the "draft flipped Live silently disappears"
+  scenario. The checklist is a tutor control surface, not a
+  student filter.
+- **Checklist inclusion ≠ student visibility.** Two independent
+  layers: is_included AND-chained with isVisibleToStudents() AND
+  release_date <= today.
+- **Release dates per activity (not per unit/block).** Unit /
+  block status derives from children at render time. Single
+  source of truth.
+- **Self-paced has no checklist.** Different gating model
+  (progression rules) shipped separately later.
+
+### One refinement during the conversation
+
+Sam's plan listed five "structural changes that shouldn't
+auto-propagate" — add activity, remove activity, reorder, add
+block, move activity. I pushed back: with the schema I was
+proposing (template_activity_id only, joined live), four of
+those five propagate naturally and that's the right behaviour:
+
+- DELETE activity → ON DELETE CASCADE cleans up cohort rows.
+- REORDER → activity_id unchanged; cohort renders in current
+  template order via live join.
+- MOVE between units/blocks → same.
+- ADD a new block → blocks don't have checklist rows; the block
+  surfaces when an activity is moved into it.
+
+The ONLY structural change that genuinely needs an opt-out is
+adding a NEW template activity to an existing cohort. That's
+handled trivially by NOT firing the seed on template-activity
+INSERT — the new template activity exists in the curriculum
+but isn't in the checklist until a future "Add from template"
+affordance is built. Sam agreed; locked.
+
+### Other product calls
+
+Three locked before code via AskUserQuestion:
+
+1. **Re-include affordance ships in 9.3f** — flipping is_included
+   is symmetric, same row, same toggle. Two-way control in v1.
+   Only the "add new template items not yet in cohort" path
+   stays deferred.
+2. **Click-through opens the template editor modal** — same
+   modal as the curriculum tab. Content edits flow back to the
+   template and propagate. One editor everywhere.
+3. **Blocks always render in the cohort view** — even when all
+   their children are excluded. The checklist is a CONTROL
+   surface; the tutor sees full template shape with cohort state
+   overlaid, not a student preview.
+
+Plus two more on UX before code:
+4. **Individual badges, no synthesised "hidden because X" line** —
+   tutor reads Live/Draft pill + Excluded badge + release-date
+   and infers. Matches the "control surface" framing.
+5. **Inline date input on every row** (not behind an Edit
+   button) — fast bulk editing.
+
+### Save-safety layer — added mid-build after Sam flagged a real
+### risk
+
+After the first build pass, Sam asked: *"for editing the release
+date, we need to ensure its really saved, because if a tutor
+makes changes to different ones quickly they don't get saved.
+so either we do something like wait saving and make sure the
+server has saved it before allowing to go on."*
+
+Real risk. Original implementation used onBlur + useTransition,
+which is fine for the happy path but has gaps:
+- Tutor edits row A, immediately clicks the sidebar — blur may
+  not fire before navigation; edit lost.
+- Two saves race; tutor doesn't know which finished.
+- Network error surfaces as a toast but the input keeps showing
+  the new value — tutor thinks it saved.
+
+Sam picked "yes, add all three" from the AskUserQuestion. Built:
+
+1. **Per-row save status pill** — `'idle' | 'saving' | 'saved' |
+   'failed'`. 'Saved' flashes green for 1.5s then auto-dismisses.
+   'Failed' is sticky red until the next edit. Rollback on
+   failure: local state reverts to last server value.
+2. **Page-level pending banner** — top of the page, "Saving N
+   changes…" with spinner. Aggregates rows that are dirty (local
+   differs from server) OR have a save in flight.
+3. **beforeunload guard** — browser prompt blocks tab close /
+   navigation away while pendingCount > 0.
+4. **onChange debounce (600ms) alongside onBlur** — calendar-
+   picker change events fire onChange with the final value;
+   debounce collapses keyboard typing; blur cancels the pending
+   debounce and fires immediately. Disabled-while-saving
+   prevents queued races.
+
+Pending tracking uses a Set<string> of row IDs in the parent
+component; each ChecklistRow useEffect-syncs its own "am I
+contributing?" flag (dirty OR isPending) up to the parent. Auto-
+cleans up on unmount so a navigation doesn't leave stale entries.
+
+### Implementation summary
+
+Single code commit (`e621afa`).
+
+**Migration** (`20260514120000_slice_9_3f_cohort_checklist.sql`):
+
+- New table `nclex_cohort_checklist_items` (8 columns + the two
+  FK CASCADEs). UNIQUE (cohort_id, template_activity_id) prevents
+  trigger/backfill races.
+- Indexes on cohort_id + template_activity_id.
+- RLS: four self_* policies + admin_all bypass. Two-hop
+  ownership chain checklist → cohort → programme → tutor;
+  matches the pattern shipped in 9.3a.
+- AFTER INSERT trigger `nclex_cohorts_seed_checklist()` seeds
+  one checklist row per current template activity, with
+  release_date defaulting to `start_date + (unit_index - 1) × 7
+  days`. SECURITY DEFINER + REVOKE FROM PUBLIC/anon/authenticated
+  (matches the 9.1d trigger lockdown pattern).
+- One-shot backfill via NOT EXISTS join. Applied to dev via
+  MCP; seeded 24 rows across two cohorts (third cohort's
+  programme has no activities yet — backfill correctly produced
+  0 rows).
+
+**Types** (`lib/cohorts/types.ts`): seven new exports —
+`ChecklistItemSource`, `CohortChecklistItem`,
+`CohortChecklistActivityRow`, `CohortChecklistBlockEntry`,
+`CohortChecklistLooseEntry`, `CohortChecklistBodyEntry`,
+`CohortChecklistUnit`, `CohortChecklistTree`.
+
+**Query** (`lib/cohorts/queries.ts`):
+`getCohortChecklist(cohortId)` runs two waves:
+- Wave 1: cohort with parent programme (one round trip).
+- Wave 2: units + blocks + checklist rows joined to activities
+  (three parallel round trips).
+Composition (grouping by unit, splitting loose vs in-block,
+sorting by template ordinals) happens entirely in TS — same
+pattern as the curriculum tab's `composeUnitBody()`.
+
+**Actions** (`lib/cohorts/actions.ts`):
+- `setChecklistItemIncludedAction(id, included)`.
+- `setChecklistItemReleaseDateAction(id, date)` — YYYY-MM-DD
+  regex shape check + UPDATE. Both stamp `updated_at` and
+  revalidate the cohort curriculum path.
+
+**Visibility predicate** (`lib/curriculum/format.ts`):
+`isVisibleToStudents` extended with optional `cohortIncluded`
+and `releaseDate` inputs + a `today` parameter for testability.
+Refactored from a single boolean expression to early-return form.
+Self-paced callers pass null/undefined → those branches skip.
+
+**Components** (`lib/cohorts/cohort-curriculum.tsx`):
+- `<CohortCurriculum>` — top-level client component. Holds the
+  edit-activity-modal state, the pending-rows Set, the
+  beforeunload registration, and the empty-state guard.
+- `<BodyEntry>` — dispatches between block and loose row.
+- `<ChecklistRow>` — single activity row with all the save-
+  safety wiring (per-row status, debounce, optimistic-with-
+  rollback, dirty-tracking effect).
+- `<SaveStatusPill>` — small inline pill rendering the four
+  status states.
+
+**Route + nav**:
+- New page: `app/(app)/tutor/cohort/[cohort_id]/curriculum/
+  page.tsx`. Server component; fetches the tree; renders
+  `<CohortCurriculum>`.
+- `lib/nav/tutor.ts` — Curriculum tab added to
+  `TUTOR_COHORT_NAV` between Overview and Students.
+
+**Styles** (`styles/cohorts.css`): unit + block + row layout;
+excluded-row modifier + Excluded badge; pending banner + per-row
+save-status pill with three colour-coded states.
+
+### What does NOT ship here
+
+Deferred per the plan:
+- **Add new template items to existing cohorts** — for activities
+  authored after cohort creation. Separate one-sitting slice.
+- **Cohort-only activities** — `source = 'COHORT_ONLY'` column
+  ships ready; UI deferred.
+- **Self-paced layer** — no cohort, separate progression rules.
+- **Student-facing rendering** — separate surface, separate slice.
+- **Student completion tracking** — future `nclex_cohort_activity
+  _completion`-style table, future slice.
+- **Cohort-specific reordering** — structural changes propagate
+  from the template.
+- **"Release block together"** — single date per activity in v1.
+- **In-app navigation guard** — beforeunload catches tab close /
+  reload but not Next.js `<Link>` clicks; the unstable_useNavigation
+  Block API can take over once it lands stable.
+
+### Localhost smoke-test
+
+Sam tested before approving merge:
+1. Curriculum tab appears in sidebar for every cohort.
+2. Empty programme → informative empty-state page.
+3. Populated cohort → unit/block/loose tree renders with template
+   ordinals.
+4. Toggle Included off → row greys, Excluded badge appears, save
+   status flashes Saved.
+5. Edit release-date inline → pending banner shows "Saving 1
+   change…", per-row Saving pill, then Saved flash.
+6. Edit dates on three rows fast → banner shows
+   "Saving 3 changes…", each row's pill flips independently.
+7. Click an activity row → template editor modal opens; edits
+   propagate.
+8. Close tab mid-save → browser shows "leave site?" prompt.
+
+### Next
+
+⏭ Phase B closed. Slice priorities now move outside curriculum
+authoring — most likely candidates: cohort enrolment + student
+nav scaffold, or the self-paced enrolment flow. Sam to pick.
+
+Commit `e621afa` (code + migration) + docs.
+
+---
+
 ## Session — 2026-05-13 (9.3e) — Publish state + content visibility
 
 Wires publish controls through every layer of the curriculum

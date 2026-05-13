@@ -8,7 +8,72 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-13):** **Slice 9.3e — Publish state +
+> **Last shipped (2026-05-14):** **Slice 9.3f — Cohort
+> curriculum checklist.** Closes Phase B. Adds the cohort
+> layer's curation surface — every template activity gets a
+> per-cohort row with inclusion + release-date controls. The
+> tutor authoring tree (units → blocks → activities) and the
+> cohort layer are now connected; the next layer is the
+> student-facing surface.
+>
+> **Architectural rule locked.** Cohort = pointer to template,
+> not a copy. Content edits propagate (title, body, PDF
+> replacement, recording URL). The ONE structural change that
+> doesn't auto-propagate is adding a NEW template activity to
+> an existing cohort (deferred "add-from-template" affordance).
+> Every other structural operation handles itself: DELETE via
+> ON DELETE CASCADE; REORDER + MOVE via live join through the
+> activity FK; ADD a new block surfaces when an activity is
+> moved into it. Sam's plan listed five "doesn't propagate"
+> cases — we refined it down to one before code.
+>
+> **Schema.** New `nclex_cohort_checklist_items` (checklist_item_id
+> / cohort_id / template_activity_id / is_included / release_date
+> / source / timestamps). UNIQUE (cohort_id, template_activity_id)
+> prevents trigger/backfill races. `release_date DATE` (not
+> TIMESTAMPTZ — symmetric with cohort.start_date; day-level
+> granularity is enough). `source` column ships ready for future
+> COHORT_ONLY adds.
+>
+> **AFTER INSERT trigger on `nclex_cohorts`** seeds one row per
+> current template activity with `release_date = start_date +
+> (unit_index - 1) × 7 days`. SECURITY DEFINER + REVOKE FROM
+> PUBLIC/anon/authenticated, matching the 9.1d lockdown pattern.
+> One-shot backfill for existing cohorts.
+>
+> **Five product calls locked up-front.** Sam accepted all
+> recommendations: (1) re-include affordance ships (toggle is
+> symmetric — same row, same flip); (2) click-through opens the
+> template editor modal (same `<ActivityModal>` as the curriculum
+> tab — one editor everywhere); (3) blocks always render even
+> when all children excluded (checklist is a control surface,
+> not a student preview); (4) individual badges, no synthesised
+> "hidden because X" line; (5) inline date input per row (fast
+> bulk editing).
+>
+> **Save-safety layer added mid-build** after Sam flagged a real
+> risk ("if a tutor makes changes to different ones quickly they
+> don't get saved"). Four pieces:
+> - Per-row save status pill — Saving / Saved (1.5s flash) /
+>   Failed (sticky).
+> - Page-level "Saving N changes…" banner with spinner.
+> - `beforeunload` guard while any row is dirty or saving.
+> - `onChange` debounce (600ms) alongside `onBlur` — catches
+>   calendar-picker change events.
+>
+> Visibility predicate `isVisibleToStudents()` extended with
+> optional `cohortIncluded` and `releaseDate` inputs (and a
+> `today` parameter for testability). Self-paced callers pass
+> null/undefined; tutor-led student-facing callers pass real
+> values.
+>
+> Sam smoke-tested end-to-end (tab appears, empty-state, toggle
+> Included, edit release-date, three-row bulk edit, click-through
+> edit, close-tab guard) before approving merge.
+>
+> Commit `e621afa`. See SESSIONS 2026-05-14 (9.3f).
+>
+> **Earlier:** **Slice 9.3e — Publish state +
 > content visibility.** Wires publish controls through every
 > layer of the curriculum tree and ships the single visibility
 > predicate that 9.3f will use to filter the cohort checklist.
@@ -355,16 +420,12 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > Commit `0710cb6`. See SESSIONS 2026-05-12 (9.3d-a).
 >
-> **Next ⏭:** **Slice 9.3f — Cohort curriculum tab (checklist).**
-> Adds a `Curriculum` tab to the cohort detail subtree, renders
-> the same unit→block→activity tree as a checklist filtered by
-> `isVisibleToStudents` (the predicate that landed in 9.3e).
-> Migration adds `nclex_cohort_checklist_items` (one row per
-> template item included in this cohort plus per-cohort
-> `release_date`). Default-on for every published template item
-> at cohort create; remove-only overrides per row. Per-cohort
-> release date defaults to `cohort.start_date + (unit_index − 1)
-> × 7 days`.
+> **Next ⏭:** **Phase B closed.** Tutor authoring + cohort
+> curation surfaces are complete. Next slice priorities move
+> outside curriculum authoring — likely candidates: cohort
+> enrolment + student nav scaffold, the self-paced enrolment
+> flow, or the central tutor-quiz system that unlocks Mock /
+> Practice Quiz. Sam to pick.
 >
 > **Earlier the same day:** **Slice 9.3c — Blocks.** Activates
 > `nclex_programme_blocks` (shipped empty in 9.3a) via UI + eight
@@ -1178,17 +1239,31 @@ rebuild to suit.
   product calls locked: no cascade on publish, unlinked Mock/PQ
   CAN go Live, archive allowed from any non-terminal state. No
   migration. Commit `1ab5f7e`. See SESSIONS 2026-05-13 (9.3e).
-- ⏭ **9.3f** Cohort curriculum tab (checklist) — new `Curriculum`
-  tab in the cohort detail subtree. Renders the same unit→block→
-  activity tree but as a *checklist*, filtered through
-  `isVisibleToStudents` (the predicate that landed in 9.3e).
-  Migration adds `nclex_cohort_checklist_items` (one row per
-  template item included in this cohort, plus per-cohort
-  `release_date`). Default-on for every published template item
-  at cohort create. Tutor can **Remove from this cohort** per row
-  and **Add back from template** if previously removed. Per-cohort
-  release date defaults to `cohort.start_date + (unit_index − 1)
-  × 7 days`; editable per row without touching the template.
+- ✅ **9.3f** Cohort curriculum tab (checklist) — shipped
+  2026-05-14. Closes Phase B. Migration adds
+  `nclex_cohort_checklist_items` (one row per template activity
+  per cohort, with `is_included` + `release_date DATE` + `source`
+  reserved for future COHORT_ONLY adds). AFTER INSERT trigger on
+  `nclex_cohorts` seeds rows on creation; one-shot backfill in
+  the migration. Cohort = pointer to template — content edits
+  propagate; reorder + move + delete propagate via live join
+  and CASCADE; only structural change that doesn't propagate is
+  adding a NEW template activity (deferred "add-from-template"
+  affordance). RLS via 2-hop ownership chain (checklist → cohort
+  → programme → tutor); SECURITY DEFINER trigger with REVOKE
+  PUBLIC/anon/authenticated. New `getCohortChecklist()` query
+  composes the tree in TS (units + blocks + checklist-rows-joined-
+  with-activities). Two new actions
+  (`setChecklistItemIncludedAction` + `setChecklistItemReleaseDateAction`).
+  `<CohortCurriculum>` client component with click-through-to-
+  template-editor (reuses `<ActivityModal>`). Five product calls
+  locked. **Save-safety layer** added mid-build per Sam's request:
+  per-row save status pill (Saving / Saved flash / Failed), page-
+  level "Saving N changes…" banner, `beforeunload` guard while
+  dirty, onChange debounce + onBlur on date inputs. Visibility
+  predicate `isVisibleToStudents()` extended with cohort context
+  + `today` test parameter. Commit `e621afa`. See SESSIONS
+  2026-05-14 (9.3f).
 
 ### Follow-on: Central tutor-quiz system
 
