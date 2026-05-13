@@ -7,9 +7,11 @@
 //     curriculum-authoring-ux.md screen 6 (+ description added
 //     in slice 9.3d-a).
 //   • A slot below the divider that dispatches on activity type
-//     to the right body component. Three types editor-enabled
-//     in 9.3d-a (TEXT + EXTERNAL_LINK + ONLINE_LIVE_SESSION);
-//     PDF / MOCK / PRACTICE_QUIZ land in slice 9.3d-b.
+//     to the right body component. TEXT + EXTERNAL_LINK +
+//     ONLINE_LIVE_SESSION shipped in 9.3d-a; PDF in 9.3d-c; MOCK
+//     + PRACTICE_QUIZ ship as placeholders in 9.3d-d (body has no
+//     editable fields — just an explanation panel — pending the
+//     central tutor-quiz system).
 //
 // Body state is a discriminated union by type so each branch
 // holds exactly the fields its editor needs. Initial body in
@@ -29,6 +31,7 @@ import { TextEditor } from './text-editor';
 import { ExternalLinkEditor } from './external-link-editor';
 import { OnlineLiveSessionEditor } from './online-live-session-editor';
 import { PdfEditor } from './pdf-editor';
+import { QuizPlaceholderEditor } from './quiz-placeholder-editor';
 import {
   createActivityAction,
   editActivityAction,
@@ -72,11 +75,11 @@ const TYPE_LABELS: Record<ActivityType, string> = {
 };
 
 // Discriminated body-state by activity type. The four editor-
-// enabled types each carry their own value shape; the unhandled
-// two (MOCK / PRACTICE_QUIZ) fall through to a sentinel
-// 'UNSUPPORTED' branch so the modal can render a "Coming soon"
-// hint instead of crashing if invoked stray for those types
-// (which the picker shouldn't allow, but defence in depth).
+// enabled types each carry their own value shape. MOCK +
+// PRACTICE_QUIZ have no editable body fields today (placeholders
+// per slice 9.3d-d) — they carry an empty marker. UNSUPPORTED
+// stays as defence-in-depth for any future type the modal hasn't
+// learned about yet.
 type EditorBodyState =
   | { type: 'TEXT'; values: TextActivityBodyValues }
   | { type: 'PDF'; values: PdfActivityBodyValues }
@@ -85,6 +88,8 @@ type EditorBodyState =
       type: 'ONLINE_LIVE_SESSION';
       values: OnlineLiveSessionActivityBodyValues;
     }
+  | { type: 'MOCK' }
+  | { type: 'PRACTICE_QUIZ' }
   | { type: 'UNSUPPORTED' };
 
 // ---------- Per-type initial body readers ----------
@@ -107,6 +112,10 @@ function emptyBody(type: ActivityType): EditorBodyState {
           recording_url: '',
         },
       };
+    case 'MOCK':
+      return { type };
+    case 'PRACTICE_QUIZ':
+      return { type };
     default:
       return { type: 'UNSUPPORTED' };
   }
@@ -155,6 +164,10 @@ function bodyFromActivity(activity: ProgrammeActivity): EditorBodyState {
         },
       };
     }
+    case 'MOCK':
+      return { type: 'MOCK' };
+    case 'PRACTICE_QUIZ':
+      return { type: 'PRACTICE_QUIZ' };
     default:
       return { type: 'UNSUPPORTED' };
   }
@@ -201,7 +214,7 @@ function bodyEqual(a: EditorBodyState, b: EditorBodyState): boolean {
       a.values.recording_url === b.values.recording_url
     );
   }
-  return true; // UNSUPPORTED — no editable fields
+  return true; // MOCK / PRACTICE_QUIZ / UNSUPPORTED — no editable fields
 }
 
 // ---------- Component ----------
@@ -354,6 +367,14 @@ export function ActivityModal(props: ActivityModalProps) {
         url,
         estimated_minutes: em,
       };
+    }
+
+    if (body.type === 'MOCK') {
+      return { type: 'MOCK', ...common };
+    }
+
+    if (body.type === 'PRACTICE_QUIZ') {
+      return { type: 'PRACTICE_QUIZ', ...common };
     }
 
     if (body.type === 'ONLINE_LIVE_SESSION') {
@@ -551,6 +572,14 @@ export function ActivityModal(props: ActivityModalProps) {
                 }
                 disabled={isPending}
               />
+            )}
+
+            {body.type === 'MOCK' && (
+              <QuizPlaceholderEditor type="MOCK" />
+            )}
+
+            {body.type === 'PRACTICE_QUIZ' && (
+              <QuizPlaceholderEditor type="PRACTICE_QUIZ" />
             )}
 
             {body.type === 'UNSUPPORTED' && (

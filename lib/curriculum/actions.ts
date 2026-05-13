@@ -92,9 +92,10 @@ function validateScheduledAt(
 // discriminated `ActivityFormValues` argument narrows on `type`;
 // every branch returns the strict payload shape for that type.
 //
-// PDF / Mock / Practice quiz land in 9.3d-b — the union doesn't
-// include them yet, so the switch is currently exhaustive over
-// the three editor-enabled types.
+// All six activity types are covered as of slice 9.3d-d. MOCK +
+// PRACTICE_QUIZ ship with the future-link shape pre-populated to
+// `{ quiz_id: null }` — strict null today; relaxes to accept a
+// real id when the central tutor-quiz system lands.
 function buildPayload(
   values: import('./types').ActivityFormValues
 ):
@@ -175,6 +176,12 @@ function buildPayload(
           ...(recordingClean ? { recording_url: recordingClean } : {}),
         },
       };
+    }
+    case 'MOCK':
+    case 'PRACTICE_QUIZ': {
+      // Placeholder shape. Strict null today — relaxes when the
+      // tutor-quiz system ships and the editor gains a selector.
+      return { ok: true, payload: { quiz_id: null } };
     }
   }
 }
@@ -398,10 +405,9 @@ export async function createActivityAction(
   }
 
   // Per-type validation + payload assembly. The `values` union
-  // discriminates on `type`; PDF / MOCK / PRACTICE_QUIZ aren't
-  // editor-enabled yet (their picker tiles say "Coming soon")
-  // so a stale client can't submit them — TS narrows them out of
-  // the union here.
+  // discriminates on `type`; the switch inside buildPayload covers
+  // all six activity types as of slice 9.3d-d (MOCK + PRACTICE_QUIZ
+  // produce the placeholder `{ quiz_id: null }` payload).
   const built = buildPayload(values);
   if (!built.ok) return built;
 

@@ -83,21 +83,17 @@ export type ActivityPayloadOnlineLiveSession = {
   recording_url?: string;
 };
 
-export type ActivityPayloadMock = {
-  question_count?: number;
-  time_limit_minutes?: number;
-  pass_score?: number;
-  due_at?: string;             // ISO timestamp
-  attempts?: number;
-  release_results?: 'IMMEDIATE' | 'AFTER_DUE';
-};
-
-export type ActivityPayloadPracticeQuiz = {
-  question_count?: number;
-  due_at?: string;
-  pass_score?: number;
-  release_results?: 'IMMEDIATE' | 'AFTER_DUE';
-};
+// Slice 9.3d-d — future-link shape. MOCK and PRACTICE_QUIZ are
+// curriculum placeholders today: the activity exists, but no quiz
+// settings live on it. When the central tutor-quiz system ships
+// (separate later slice), `quiz_id` points to a row in
+// `nclex_tutor_quizzes`; the student launches a PROGRAMME_ASSIGNED
+// attempt against that quiz through the existing runner. Until
+// then, `quiz_id` is null and the activity is not student-
+// launchable. Both placeholder types share the same shape — the
+// activity-type field on the row already encodes the distinction.
+export type ActivityPayloadMock = { quiz_id: string | null };
+export type ActivityPayloadPracticeQuiz = { quiz_id: string | null };
 
 export type ActivityPayload =
   | ActivityPayloadText
@@ -251,16 +247,25 @@ export type OnlineLiveSessionActivityFormValues = ActivityCommonFormValues & {
   recording_url: string | null;
 };
 
+// --- Slice 9.3d-d — Mock + Practice quiz (placeholders) ---
+
+// Both placeholder editors expose no body fields — the shell's
+// Title + Description + Note are the only editable surfaces. When
+// the quiz selector ships, these gain a `quiz_id` (and the
+// payload field flips from null to that id).
+export type MockActivityFormValues = ActivityCommonFormValues;
+export type PracticeQuizActivityFormValues = ActivityCommonFormValues;
+
 // Discriminated union of every per-type form payload the server
 // actions accept. Narrows on `type` so each branch sees its own
-// fully-typed shape. New activity types extend this union as
-// their editors ship (PDF added in 9.3d-c; Mock + Practice quiz
-// arrive in slice 9.3d-d).
+// fully-typed shape.
 export type ActivityFormValues =
   | ({ type: 'TEXT' } & TextActivityFormValues)
   | ({ type: 'PDF' } & PdfActivityFormValues)
   | ({ type: 'EXTERNAL_LINK' } & ExternalLinkActivityFormValues)
-  | ({ type: 'ONLINE_LIVE_SESSION' } & OnlineLiveSessionActivityFormValues);
+  | ({ type: 'ONLINE_LIVE_SESSION' } & OnlineLiveSessionActivityFormValues)
+  | ({ type: 'MOCK' } & MockActivityFormValues)
+  | ({ type: 'PRACTICE_QUIZ' } & PracticeQuizActivityFormValues);
 
 // Unit detail projection — unit + ALL its content (blocks + every
 // activity, loose AND in-block) + parent programme identity.

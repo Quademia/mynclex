@@ -5,10 +5,11 @@
 // keeps the unit body visible while choosing.
 //
 // 9.3b enabled TEXT; 9.3d-a added EXTERNAL_LINK + ONLINE_LIVE_SESSION;
-// 9.3d-c adds PDF. Mock + Practice quiz remain "Coming soon"
-// until 9.3d-d. No type ever disappears from the picker — the
-// grid shape is part of the affordance ("these are the six
-// kinds of activities you can add").
+// 9.3d-c added PDF; 9.3d-d enables MOCK + PRACTICE_QUIZ as
+// placeholders (the activity saves, but the central tutor-quiz
+// system that powers them ships in a later slice). No type ever
+// disappears from the picker — the grid shape is part of the
+// affordance ("these are the six kinds of activities you can add").
 
 'use client';
 
@@ -38,13 +39,17 @@ const TILE_COPY: Record<
   PRACTICE_QUIZ:       { label: 'Practice quiz',       sub: 'Bank-drawn quiz',   icon: '✏️' },
 };
 
-// Types enabled in 9.3d-c. MOCK / PRACTICE_QUIZ land in 9.3d-d.
-// The picker greys out anything not on this list.
+// All six types enabled as of 9.3d-d. MOCK + PRACTICE_QUIZ ship
+// as placeholders (no body fields, no student-launch path until
+// the tutor-quiz system lands). The picker greys out anything not
+// on this list — currently nothing.
 const ENABLED_TYPES: ReadonlyArray<ActivityType> = [
   'TEXT',
   'PDF',
   'EXTERNAL_LINK',
   'ONLINE_LIVE_SESSION',
+  'MOCK',
+  'PRACTICE_QUIZ',
 ];
 
 interface ActivityPickerProps {

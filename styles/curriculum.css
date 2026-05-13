@@ -954,3 +954,44 @@
   max-width: 320px;
 }
 
+/* ─── Slice 9.3d-d — Mock + Practice quiz placeholder ─── */
+
+/* Panel rendered in place of an editor body for the two quiz
+ * activity types. Soft, framed, non-interactive — explains what
+ * the activity will become once the tutor-quiz system ships. */
+.activity-quiz-placeholder {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--bg-soft);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.activity-quiz-placeholder-icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.activity-quiz-placeholder-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.activity-quiz-placeholder-heading {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.activity-quiz-placeholder-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+

@@ -8,6 +8,10 @@
 // either way; only the rendered label changes.
 
 import type { UnitLabel } from '@/lib/programmes/types';
+import type {
+  ActivityPayloadMock,
+  ActivityPayloadPracticeQuiz,
+} from './types';
 
 /**
  * Render a unit number with the programme's chosen label, e.g.
@@ -60,4 +64,17 @@ export function unitStatusLabel(isPublished: boolean): string {
 
 export function unitStatusPillClass(isPublished: boolean): string {
   return isPublished ? 'is-live' : 'is-draft';
+}
+
+/**
+ * Slice 9.3d-d — is this Mock / Practice-quiz activity wired to a
+ * tutor quiz yet? Render-time derivation from the payload's
+ * `quiz_id`. The placeholder editors and the (future) cohort
+ * checklist both ask this question; storing the flag separately
+ * would invite drift.
+ */
+export function isQuizLinked(
+  payload: ActivityPayloadMock | ActivityPayloadPracticeQuiz
+): boolean {
+  return typeof payload.quiz_id === 'string' && payload.quiz_id.length > 0;
 }
