@@ -6,6 +6,97 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-15 (10.1b) — Curriculum launcher conversion + shared activity-type icon
+
+Restructure of the 10.1 student curriculum viewer. The curriculum
+page becomes a course map / launcher — each activity is a summary
+row with one action button, not a place where content is consumed
+inline.
+
+### Architectural turn — Sam returned with a plan
+
+Same pattern as 10.1 / 9.3f / 9.3d-d. Sam came back from offline
+planning with a strong-shape document: the curriculum page is
+**structure + listing + progress**; the actual reading / viewing /
+quiz-attempting happens on a per-type **activity viewer** surface.
+10.1's inline Text render was always scaffold — this slice makes
+the shape honest.
+
+Core model locked:
+- **Curriculum = map.** Programme title, unit/block/activity list,
+  per-activity summary (type, title, description, note, estimated
+  time), and one action button per row.
+- **Activity = destination.** Each type opens its own surface —
+  reading page, PDF, external link, session detail, quiz runner.
+  Never inline on the curriculum page.
+- **Progress = tracker, Access = gate** — both separate, both
+  deferred.
+
+### One pushback during the conversation
+
+Sam's plan scoped 10.1b as gutting `ActivityBody` and adding
+action buttons. Flagged: Text *currently renders* — removing it
+and shipping buttons that go nowhere is a half-finished state.
+Resolution — 10.1b is **structural-only**: the launcher shape
+lands, every button ships **disabled** (an honest "coming" state,
+not a live-looking dead button), and each type's actual launch
+becomes its own small slice taken one at a time. Sam chose to
+leave every per-activity launch (even External link, trivially an
+`<a>`) for those follow-on slices.
+
+### Implementation
+
+Single code commit (`a81b7d0`).
+
+**Launcher conversion:**
+- `lib/curriculum/student-viewer.tsx` — `ActivityBody` (inline
+  Text + five stubs) replaced by an action area: estimated time
+  + one disabled action button per activity card.
+- `lib/curriculum/format.ts` — two new helpers: `activityActionLabel`
+  (per-type button copy) and `activityEstimatedMinutes`
+  (normalises the `estimated_minutes` vs `duration_minutes`
+  per-type payload split).
+- `styles/student-curriculum.css` — dropped `.student-activity-{body,
+  text,stub}`; added `.student-activity-{action,est,launch}`.
+
+**Shared activity-type icon:**
+- The type→icon map (`📝 📄 🔗 🎥 🎯 ✏️`) was duplicated **4×** —
+  `activity-row.tsx`, `cohort-curriculum.tsx`, `activity-picker.tsx`,
+  `quiz-placeholder-editor.tsx`. Consolidated into one
+  `ACTIVITY_TYPE_ICON` const in `format.ts`; all four call sites
+  + the student card now read from it. Labels stay per-surface
+  ("Text" vs "Reading") — only the icon is shared.
+
+**Test data** (mynclex-dev): both test programmes were all-Text.
+Seeded one of each remaining type (PDF, External link, Online
+live session, Mock, Practice quiz) into Unit 1 of each — the
+self-paced "NCLEX Self-Paced Refresher" and the tutor-led "NCLEX
+4-Week Tutor-Led Bootcamp" — plus cohort-checklist backfill rows
+for both bootcamp cohorts so the new activities surface in the
+cohort view too. PDF activities carry `pdf_asset_id: null` (the
+launcher button is disabled, so no real file is needed yet).
+
+### Localhost smoke-test
+
+Sam tested before approving merge: curriculum pages read as a
+launcher (type icon + chip + title + summary + action row);
+buttons all disabled with the right per-type copy; estimated-time
+line shows where set and hides for Mock / Practice quiz; tutor
+surfaces (unit builder, cohort checklist, activity picker, quiz
+editor) unchanged.
+
+### Next
+
+⏭ Per-type activity viewers — one slice each, taken one at a
+time. First candidate Sam to pick (External link is the cheapest
+— a plain `<a>`, no new surface; Text reading needs its own
+route). Mock + Practice quiz viewers still wait on the central
+tutor-quiz system.
+
+Code commit + docs.
+
+---
+
 ## Session — 2026-05-15 (10.1) — Student curriculum viewer scaffold
 
 Opens Phase C. First student-facing surface — the curriculum

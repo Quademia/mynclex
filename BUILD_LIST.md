@@ -8,7 +8,54 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-15):** **Slice 10.1 — Student
+> **Last shipped (2026-05-15):** **Slice 10.1b — Curriculum
+> launcher conversion + shared activity-type icon.** Restructures
+> the 10.1 student curriculum viewer: the curriculum page becomes
+> a course map / launcher, not a place where content is consumed
+> inline. Each activity is a summary row (type icon, title,
+> description, note, estimated time) with one action button;
+> content consumption moves to per-type viewer surfaces.
+>
+> **Core model locked.** Curriculum = map; Activity = destination;
+> Progress = tracker; Access = gate. 10.1's inline Text render was
+> always scaffold — this slice makes the shape honest. Each
+> activity type opens its own surface (reading page, PDF, external
+> link, session detail, quiz runner), never inline.
+>
+> **Structural-only — one pushback.** Sam's plan scoped 10.1b as
+> gutting `ActivityBody` + adding action buttons. Flagged: Text
+> *currently renders*, so buttons that go nowhere would be a
+> half-finished state. Resolution — the launcher shape lands and
+> every button ships **disabled** (honest "coming" state, not a
+> live-looking dead button); each type's actual launch becomes its
+> own small slice, taken one at a time. Sam left every per-activity
+> launch (even External link, trivially an `<a>`) for those
+> follow-on slices.
+>
+> **New format helpers.** `activityActionLabel` (per-type button
+> copy) + `activityEstimatedMinutes` (normalises the
+> `estimated_minutes` vs `duration_minutes` per-type payload
+> split).
+>
+> **Shared activity-type icon.** The type→icon map was duplicated
+> 4× (`activity-row`, `cohort-curriculum`, `activity-picker`,
+> `quiz-placeholder-editor`). Consolidated into one
+> `ACTIVITY_TYPE_ICON` const in `format.ts`; all four call sites +
+> the student card read from it. Labels stay per-surface ("Text"
+> vs "Reading") — only the icon is shared.
+>
+> **No migration.** Code + test data only. Both test programmes
+> were all-Text; seeded one of each remaining type into Unit 1 of
+> each (self-paced + tutor-led), plus cohort-checklist backfill so
+> the new tutor-led activities surface in the cohort view.
+>
+> Sam smoke-tested (launcher reads correctly, buttons disabled
+> with right copy, estimated-time shows/hides, tutor surfaces
+> unchanged) before approving merge.
+>
+> Commit `a81b7d0`. See SESSIONS 2026-05-15 (10.1b).
+>
+> **Earlier:** **Slice 10.1 — Student
 > curriculum viewer scaffold.** Opens Phase C. First student-
 > facing surface — curriculum viewer at `/student/programme/
 > [id]/curriculum` (self-paced) and `/student/cohort/[id]/
@@ -490,14 +537,14 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > Commit `0710cb6`. See SESSIONS 2026-05-12 (9.3d-a).
 >
-> **Next ⏭:** **First Phase C slice closed.** Student-facing
-> curriculum viewer + programme switcher shipped. Future
-> student-side priorities: rich activity rendering (PDF,
-> external link, live session) — each its own slice; central
-> tutor-quiz system (unlocks Mock + Practice Quiz placeholders);
-> student progress engine + soft guidance; full enrolment +
-> payments system (tightens the permissive access helpers
-> shipped here). Sam to pick.
+> **Next ⏭:** **Curriculum launcher shipped.** The student
+> curriculum page is now a launcher; per-type activity viewers
+> come next, one slice each. Cheapest first candidate: External
+> link (a plain `<a>`, no new surface); Text reading needs its
+> own route. Also open: central tutor-quiz system (unlocks Mock +
+> Practice Quiz placeholders); student progress engine + soft
+> guidance; full enrolment + payments system (tightens the
+> permissive access helpers shipped in 10.1). Sam to pick.
 >
 > **Earlier the same day:** **Slice 9.3c — Blocks.** Activates
 > `nclex_programme_blocks` (shipped empty in 9.3a) via UI + eight
