@@ -1557,6 +1557,14 @@ Build arc:
   activity completion → unit/programme progress → tutor
   analytics. Deferred; depends on the student progress engine.
 
+**Deferred enhancement — richer question filtering.** The quiz
+question picker (and `/tutor/bank/all`, which shares the filter
+vocabulary) need a stronger filter system before a tutor can
+comfortably build quizzes from a large bank — notably **tags** as
+a filter axis, alongside the current type / category / difficulty
+/ text search. Surfaced 2026-05-16 while reviewing Slice 1. Slot
+when the bank grows enough that the current filter set feels thin.
+
 ### Deferred out of Phase B
 
 - **Calendar view** (screen 3 alt — Mon–Sun grid of scheduled
