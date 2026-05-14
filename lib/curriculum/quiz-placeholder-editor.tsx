@@ -17,16 +17,19 @@
 
 'use client';
 
+import { ACTIVITY_TYPE_ICON } from './format';
+
 interface QuizPlaceholderEditorProps {
   type: 'MOCK' | 'PRACTICE_QUIZ';
 }
 
+// Icon is sourced from ACTIVITY_TYPE_ICON (shared) — only the
+// heading + body copy is editor-specific.
 const COPY: Record<
   QuizPlaceholderEditorProps['type'],
-  { icon: string; heading: string; body: string }
+  { heading: string; body: string }
 > = {
   MOCK: {
-    icon: '🎯',
     heading: 'Mock assessment — timed exam-style readiness check',
     body:
       'Quiz setup is coming in a later slice. Once the tutor quiz system ships, ' +
@@ -35,7 +38,6 @@ const COPY: Record<
       'same runner the bank uses.',
   },
   PRACTICE_QUIZ: {
-    icon: '✏️',
     heading: 'Practice quiz — learning-focused practice',
     body:
       'Quiz setup is coming in a later slice. Once the tutor quiz system ships, ' +
@@ -51,7 +53,7 @@ export function QuizPlaceholderEditor({ type }: QuizPlaceholderEditorProps) {
     <div className="activity-editor-body">
       <div className="activity-quiz-placeholder" role="note">
         <div className="activity-quiz-placeholder-icon" aria-hidden="true">
-          {copy.icon}
+          {ACTIVITY_TYPE_ICON[type]}
         </div>
         <div className="activity-quiz-placeholder-text">
           <h4 className="activity-quiz-placeholder-heading">{copy.heading}</h4>

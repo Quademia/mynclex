@@ -15,17 +15,12 @@
 
 'use client';
 
-import { unitStatusLabel, unitStatusPillClass } from './format';
+import {
+  unitStatusLabel,
+  unitStatusPillClass,
+  ACTIVITY_TYPE_ICON,
+} from './format';
 import type { ActivityType, ProgrammeActivity } from './types';
-
-const TYPE_ICON: Record<ActivityType, string> = {
-  TEXT: '📝',
-  PDF: '📄',
-  EXTERNAL_LINK: '🔗',
-  ONLINE_LIVE_SESSION: '🎥',
-  MOCK: '🎯',
-  PRACTICE_QUIZ: '✏️',
-};
 
 const TYPE_LABEL: Record<ActivityType, string> = {
   TEXT: 'Text',
@@ -73,7 +68,7 @@ export function ActivityRow({
         onClick={onClick}
       >
         <span className="activity-row-icon" aria-hidden="true">
-          {TYPE_ICON[activity.type]}
+          {ACTIVITY_TYPE_ICON[activity.type]}
         </span>
         <span className="activity-row-text">
           <span className="activity-row-title-row">

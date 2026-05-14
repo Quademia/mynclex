@@ -44,6 +44,7 @@ import {
   unitLabel,
   unitStatusLabel,
   unitStatusPillClass,
+  ACTIVITY_TYPE_ICON,
 } from '@/lib/curriculum/format';
 import {
   setChecklistItemIncludedAction,
@@ -56,15 +57,6 @@ import type {
 } from './types';
 import type { ProgrammeActivity } from '@/lib/curriculum/types';
 import type { UnitLabel } from '@/lib/programmes/types';
-
-const TYPE_ICON = {
-  TEXT: '📝',
-  PDF: '📄',
-  EXTERNAL_LINK: '🔗',
-  ONLINE_LIVE_SESSION: '🎥',
-  MOCK: '🎯',
-  PRACTICE_QUIZ: '✏️',
-} as const;
 
 const TYPE_LABEL = {
   TEXT: 'Text',
@@ -471,7 +463,7 @@ function ChecklistRow({
         title="Open template editor"
       >
         <span className="cohort-checklist-row-icon" aria-hidden="true">
-          {TYPE_ICON[a.type]}
+          {ACTIVITY_TYPE_ICON[a.type]}
         </span>
         <span className="cohort-checklist-row-text">
           <span className="cohort-checklist-row-title-row">

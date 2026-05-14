@@ -424,6 +424,12 @@ button.programme-switcher-item {
   margin-bottom: 6px;
 }
 
+.student-activity-icon {
+  font-size: 15px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 .student-activity-type {
   font-size: 10px;
   font-weight: 700;
@@ -460,23 +466,52 @@ button.programme-switcher-item {
   margin: 8px 0 0;
 }
 
-.student-activity-body {
+/* ─── Activity action area (slice 10.1b) ────────────────
+ * The curriculum page is a launcher: each activity card
+ * carries one action button. Estimated time sits on the
+ * left, button on the right. Buttons render disabled until
+ * the per-type viewer slices flip them live one at a time.
+ */
+
+.student-activity-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-top: 10px;
 }
 
-.student-activity-text {
-  font-size: 14px;
-  color: var(--text);
-  line-height: 1.6;
-  white-space: pre-wrap;
+.student-activity-est {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
-.student-activity-stub {
+.student-activity-launch {
+  margin-left: auto;
   font-size: 13px;
-  color: var(--text-muted);
-  font-style: italic;
-  padding: 10px 12px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--white);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.student-activity-launch:hover:not(:disabled) {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.student-activity-launch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.student-activity-launch:disabled {
   background: var(--bg-soft);
-  border: 1px dashed var(--border);
-  border-radius: 6px;
+  border-color: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
 }

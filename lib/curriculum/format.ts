@@ -12,9 +12,34 @@ import type {
   UnitLabel,
 } from '@/lib/programmes/types';
 import type {
+  ActivityPayloadExternalLink,
   ActivityPayloadMock,
+  ActivityPayloadOnlineLiveSession,
+  ActivityPayloadPdf,
   ActivityPayloadPracticeQuiz,
+  ActivityPayloadText,
+  ActivityType,
+  ProgrammeActivity,
 } from './types';
+
+/**
+ * Single source of truth for the per-type activity icon. Used by
+ * every curriculum surface that shows an activity — the tutor unit
+ * builder, the activity picker, the cohort checklist, and the
+ * student curriculum launcher. Decorative everywhere (the text
+ * label beside it carries the meaning for assistive tech).
+ *
+ * Only the icon is shared — the text *labels* stay per-surface on
+ * purpose (the tutor says "Text", the student says "Reading").
+ */
+export const ACTIVITY_TYPE_ICON: Record<ActivityType, string> = {
+  TEXT: '📝',
+  PDF: '📄',
+  EXTERNAL_LINK: '🔗',
+  ONLINE_LIVE_SESSION: '🎥',
+  MOCK: '🎯',
+  PRACTICE_QUIZ: '✏️',
+};
 
 /**
  * Render a unit number with the programme's chosen label, e.g.
@@ -161,4 +186,74 @@ export function isVisibleToStudents(input: {
   }
 
   return true;
+}
+
+// =====================================================================
+// Slice 10.1b — student curriculum launcher
+// =====================================================================
+//
+// The student curriculum page is a course map / launcher, not a
+// content reader: each activity row carries one action button and
+// the actual consumption happens on the per-type viewer surface.
+// These two helpers feed that row — what the button says, and the
+// "~N min" estimate beside it.
+
+/**
+ * Action-button copy for a student curriculum row, keyed on type.
+ * TEXT / PDF / EXTERNAL_LINK / ONLINE_LIVE_SESSION carry the verb
+ * for what they open; MOCK / PRACTICE_QUIZ carry "coming soon"
+ * copy directly — they stay un-launchable until the central
+ * tutor-quiz system ships. (In 10.1b every button renders disabled
+ * regardless; the per-type viewer slices flip them live one at a
+ * time.)
+ */
+export function activityActionLabel(type: ActivityType): string {
+  switch (type) {
+    case 'TEXT':
+      return 'Open reading';
+    case 'PDF':
+      return 'Open PDF';
+    case 'EXTERNAL_LINK':
+      return 'Open link';
+    case 'ONLINE_LIVE_SESSION':
+      return 'View session';
+    case 'MOCK':
+      return 'Mock coming soon';
+    case 'PRACTICE_QUIZ':
+      return 'Practice quiz coming soon';
+  }
+}
+
+/**
+ * Estimated minutes for a student curriculum row, normalised
+ * across the per-type payload split: TEXT / PDF / EXTERNAL_LINK
+ * store `estimated_minutes`; ONLINE_LIVE_SESSION has no separate
+ * estimate — its `duration_minutes` (the session length) doubles
+ * as one; MOCK / PRACTICE_QUIZ carry none yet (it'll come from the
+ * linked quiz). Returns null when unset, so callers skip the line.
+ */
+export function activityEstimatedMinutes(
+  activity: ProgrammeActivity
+): number | null {
+  switch (activity.type) {
+    case 'TEXT':
+    case 'PDF':
+    case 'EXTERNAL_LINK':
+      return (
+        (
+          activity.payload as
+            | ActivityPayloadText
+            | ActivityPayloadPdf
+            | ActivityPayloadExternalLink
+        ).estimated_minutes ?? null
+      );
+    case 'ONLINE_LIVE_SESSION':
+      return (
+        (activity.payload as ActivityPayloadOnlineLiveSession)
+          .duration_minutes ?? null
+      );
+    case 'MOCK':
+    case 'PRACTICE_QUIZ':
+      return null;
+  }
 }

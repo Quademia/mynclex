@@ -1,8 +1,8 @@
 // mynclex/lib/curriculum/student-viewer.tsx
 //
-// Slice 10.1 — server-rendered curriculum tree the student sees.
-// Same shape for self-paced and tutor-led — the producer query
-// (lib/curriculum/student-queries.ts) decides the visibility
+// Slice 10.1 → 10.1b — server-rendered curriculum tree the student
+// sees. Same shape for self-paced and tutor-led — the producer
+// query (lib/curriculum/student-queries.ts) decides the visibility
 // rules; this viewer just renders what it's given.
 //
 // Tree shape:
@@ -11,30 +11,29 @@
 //   │   └── Activity card × N
 //   └── Loose activity card × N
 //
-// Activity card renders its body inline by type:
-//   - TEXT          → activity body text (only TYPE we light up in 10.1)
-//   - PDF           → "PDF viewer coming" stub
-//   - EXTERNAL_LINK → "External link viewer coming" stub
-//   - ONLINE_LIVE_SESSION → "Live session viewer coming" stub
-//   - MOCK          → "Mock quiz coming" stub
-//   - PRACTICE_QUIZ → "Practice quiz coming" stub
+// Slice 10.1b — the curriculum page is a course map / launcher,
+// not a content reader. Each activity card shows its summary
+// (type, title, description, note, estimated time) plus ONE action
+// button. The button is disabled here — the actual viewer for each
+// type lands in its own slice and flips that type's button live.
+// Content consumption (reading, PDF, link, session, quiz) happens
+// on the per-type surface, never inline on this page.
 //
 // Empty units (no visible activities, no visible blocks) render
 // as a "no content yet" card — the tutor's structural intent
 // stays visible even when the body is empty.
 //
-// No progress UI, no "Start" or "Mark as done" buttons. Progress
-// engine ships in a later slice (planning: 10.2+).
+// No progress UI, no "Start" or "Mark as done" state. The progress
+// engine ships in a later slice.
 
 import {
   unitLabel,
   formatUnitTitle,
+  activityActionLabel,
+  activityEstimatedMinutes,
+  ACTIVITY_TYPE_ICON,
 } from './format';
 import type {
-  ActivityPayloadExternalLink,
-  ActivityPayloadOnlineLiveSession,
-  ActivityPayloadPdf,
-  ActivityPayloadText,
   ProgrammeActivity,
   StudentCurriculumTree,
 } from './types';
@@ -139,9 +138,14 @@ function BlockCard({
 }
 
 function ActivityCard({ activity }: { activity: ProgrammeActivity }) {
+  const estMinutes = activityEstimatedMinutes(activity);
+
   return (
     <article className="student-activity" data-type={activity.type}>
       <header className="student-activity-head">
+        <span className="student-activity-icon" aria-hidden="true">
+          {ACTIVITY_TYPE_ICON[activity.type]}
+        </span>
         <span className="student-activity-type">
           {activityTypeLabel(activity.type)}
         </span>
@@ -157,55 +161,17 @@ function ActivityCard({ activity }: { activity: ProgrammeActivity }) {
         </p>
       )}
 
-      <div className="student-activity-body">
-        <ActivityBody activity={activity} />
+      <div className="student-activity-action">
+        {estMinutes != null && (
+          <span className="student-activity-est">~{estMinutes} min</span>
+        )}
+        {/* Disabled until this type's viewer slice lands. */}
+        <button type="button" className="student-activity-launch" disabled>
+          {activityActionLabel(activity.type)}
+        </button>
       </div>
     </article>
   );
-}
-
-function ActivityBody({ activity }: { activity: ProgrammeActivity }) {
-  switch (activity.type) {
-    case 'TEXT': {
-      const body = (activity.payload as ActivityPayloadText).body ?? '';
-      if (!body.trim()) {
-        return <div className="student-activity-stub">No body yet.</div>;
-      }
-      return <div className="student-activity-text">{body}</div>;
-    }
-    case 'PDF': {
-      const _ = activity.payload as ActivityPayloadPdf;
-      return (
-        <div className="student-activity-stub">
-          PDF viewer coming — the file is attached on the tutor side.
-        </div>
-      );
-    }
-    case 'EXTERNAL_LINK': {
-      const _ = activity.payload as ActivityPayloadExternalLink;
-      return (
-        <div className="student-activity-stub">External link viewer coming.</div>
-      );
-    }
-    case 'ONLINE_LIVE_SESSION': {
-      const _ = activity.payload as ActivityPayloadOnlineLiveSession;
-      return (
-        <div className="student-activity-stub">Live session viewer coming.</div>
-      );
-    }
-    case 'MOCK':
-      return (
-        <div className="student-activity-stub">
-          Mock quiz coming — the quiz selector is in a future slice.
-        </div>
-      );
-    case 'PRACTICE_QUIZ':
-      return (
-        <div className="student-activity-stub">
-          Practice quiz coming — the quiz selector is in a future slice.
-        </div>
-      );
-  }
 }
 
 function activityTypeLabel(type: ProgrammeActivity['type']): string {
