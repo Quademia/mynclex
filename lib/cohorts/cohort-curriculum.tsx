@@ -4,8 +4,8 @@
 // checklist as a control surface (not a student preview):
 //   • Every template activity is shown (Draft + Live).
 //   • Each row carries the template's Live/Draft pill + a cohort
-//     Excluded badge when is_included=false + an inline release-
-//     date input.
+//     Excluded badge when is_included=false + the activity window
+//     — opens / due / closes date inputs (slice 10.7).
 //   • Clicking a row opens the template editor modal (reused from
 //     the curriculum tab). Content edits flow back to the template
 //     and propagate to every cohort.
@@ -15,7 +15,7 @@
 //     surface; tutors see the full shape here.
 //
 // Save-safety layer (added per the 9.3f planning conversation —
-// release-date bulk edits need to survive a tutor moving quickly
+// window-date bulk edits need to survive a tutor moving quickly
 // between rows or closing the tab):
 //   • Per-row save status pill (idle / saving / saved / failed).
 //   • Page-level "Saving N changes…" banner aggregates all rows
@@ -49,6 +49,8 @@ import {
 import {
   setChecklistItemIncludedAction,
   setChecklistItemReleaseDateAction,
+  setChecklistItemDueDateAction,
+  setChecklistItemCloseDateAction,
 } from './actions';
 import type {
   CohortChecklistActivityRow,
@@ -145,9 +147,10 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
         <header className="cohort-checklist-head">
           <h2 className="cohort-checklist-title">Cohort curriculum</h2>
           <p className="cohort-checklist-hint">
-            Toggle inclusion and set release dates for this cohort.
-            Content edits flow from the programme&apos;s Curriculum tab
-            — click any activity to edit it there.
+            Toggle inclusion and set each activity&apos;s window —
+            opens, due, closes — for this cohort. Due and close are
+            optional. Content edits flow from the programme&apos;s
+            Curriculum tab — click any activity to edit it there.
           </p>
         </header>
 
@@ -305,6 +308,10 @@ const DATE_DEBOUNCE_MS = 600;
 // the row goes back to a quiet state.
 const SAVED_FLASH_MS = 1500;
 
+type DateField = 'release' | 'due' | 'close';
+
+type DateActionResult = { ok: true } | { ok: false; error: string };
+
 function ChecklistRow({
   row,
   onClickActivity,
@@ -318,43 +325,47 @@ function ChecklistRow({
   onMutated: () => void;
   markPending: (id: string, isPending: boolean) => void;
 }) {
-  const [isPending, startTransition] = useTransition();
-
-  // Local optimistic state for snappy toggles + date edits; the
-  // server is the source of truth and gets re-loaded by router
-  // .refresh() on success.
+  // Included toggle — its own optimistic state + transition.
   const [included, setIncluded] = useState(row.is_included);
-  const [releaseDate, setReleaseDate] = useState(row.release_date);
+  const [includedPending, startIncludedTransition] = useTransition();
 
-  // Per-row visible save status. 'failed' is sticky until the next
-  // edit attempt; 'saved' flashes for SAVED_FLASH_MS then reverts
-  // to 'idle'.
+  // Per-row visible save status, set by any of the four controls
+  // (three date fields + the toggle). 'failed' is sticky until the
+  // next edit; 'saved' flashes for SAVED_FLASH_MS then reverts.
   const [saveStatus, setSaveStatus] = useState<RowSaveStatus>('idle');
-
-  // Debounce timer for date onChange. Cleared by onBlur (fire now)
-  // or by component unmount.
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flashRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Cleanup pending timers on unmount.
   useEffect(() => {
+    if (saveStatus !== 'saved') return;
+    flashRef.current = setTimeout(() => setSaveStatus('idle'), SAVED_FLASH_MS);
     return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
       if (flashRef.current) clearTimeout(flashRef.current);
     };
-  }, []);
+  }, [saveStatus]);
 
-  // Aggregate "is this row contributing to the page-level pending
-  // count?". A row is pending if any of:
-  //   • A save action is in flight (isPending true).
-  //   • The local date differs from the row's server value (dirty
-  //     — typed but not yet committed; debounce pending).
-  //   • The local included flag differs from the server value.
-  // 'saved' status doesn't count — it's a visual flash, the DB is
-  // already up to date.
-  const isDirtyDate = releaseDate !== row.release_date;
-  const isDirtyIncluded = included !== row.is_included;
-  const rowIsPending = isPending || isDirtyDate || isDirtyIncluded;
+  // Per-field pending tracking. Each <ChecklistDateField> reports
+  // its own pending (dirty OR save-in-flight); the toggle's is
+  // derived here. The OR across all four feeds markPending.
+  const [datePending, setDatePending] = useState({
+    release: false,
+    due: false,
+    close: false,
+  });
+  const onFieldPending = useCallback(
+    (field: DateField, pending: boolean) => {
+      setDatePending((prev) =>
+        prev[field] === pending ? prev : { ...prev, [field]: pending }
+      );
+    },
+    []
+  );
+
+  const includedDirty = included !== row.is_included;
+  const rowIsPending =
+    includedPending ||
+    includedDirty ||
+    datePending.release ||
+    datePending.due ||
+    datePending.close;
 
   useEffect(() => {
     markPending(row.checklist_item_id, rowIsPending);
@@ -366,17 +377,9 @@ function ChecklistRow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rowIsPending, row.checklist_item_id]);
 
-  function flashSaved() {
-    setSaveStatus('saved');
-    if (flashRef.current) clearTimeout(flashRef.current);
-    flashRef.current = setTimeout(() => {
-      setSaveStatus('idle');
-    }, SAVED_FLASH_MS);
-  }
-
   function saveIncluded(next: boolean) {
     setSaveStatus('saving');
-    startTransition(async () => {
+    startIncludedTransition(async () => {
       const result = await setChecklistItemIncludedAction(
         row.checklist_item_id,
         next
@@ -387,7 +390,7 @@ function ChecklistRow({
         onError(result.error);
         return;
       }
-      flashSaved();
+      setSaveStatus('saved');
       onMutated();
     });
   }
@@ -397,56 +400,8 @@ function ChecklistRow({
     saveIncluded(next);
   }
 
-  function saveDate(value: string) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      setReleaseDate(row.release_date); // rollback to last server value
-      setSaveStatus('failed');
-      onError('Release date must be a valid date.');
-      return;
-    }
-    setSaveStatus('saving');
-    startTransition(async () => {
-      const result = await setChecklistItemReleaseDateAction(
-        row.checklist_item_id,
-        value
-      );
-      if (!result.ok) {
-        setReleaseDate(row.release_date); // rollback
-        setSaveStatus('failed');
-        onError(result.error);
-        return;
-      }
-      flashSaved();
-      onMutated();
-    });
-  }
-
-  function handleDateChange(next: string) {
-    setReleaseDate(next);
-    // Debounce — calendar pickers fire onChange with the final
-    // value once. Keyboard typing might fire many; the debounce
-    // collapses to the last value.
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      debounceRef.current = null;
-      saveDate(next);
-    }, DATE_DEBOUNCE_MS);
-  }
-
-  function handleDateBlur() {
-    // If a debounce is pending, fire immediately instead.
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
-      if (releaseDate !== row.release_date) saveDate(releaseDate);
-      return;
-    }
-    // No pending debounce — only fire if the value actually
-    // differs from the server (covers focus-without-edit).
-    if (releaseDate !== row.release_date) saveDate(releaseDate);
-  }
-
   const a = row.activity;
+  const itemId = row.checklist_item_id;
 
   return (
     <div
@@ -486,29 +441,166 @@ function ChecklistRow({
       </button>
 
       <div className="cohort-checklist-row-controls">
-        <label className="cohort-checklist-row-date">
-          <span className="cohort-checklist-row-date-label">Release</span>
-          <input
-            type="date"
-            className="cohort-checklist-row-date-input"
-            value={releaseDate}
-            onChange={(e) => handleDateChange(e.target.value)}
-            onBlur={handleDateBlur}
-            disabled={isPending}
+        <div
+          className="cohort-checklist-row-window"
+          role="group"
+          aria-label="Activity window"
+        >
+          <ChecklistDateField
+            field="release"
+            label="Opens"
+            serverValue={row.release_date}
+            nullable={false}
+            action={(value) =>
+              setChecklistItemReleaseDateAction(itemId, value ?? '')
+            }
+            onStatus={setSaveStatus}
+            onError={onError}
+            onMutated={onMutated}
+            onPendingChange={onFieldPending}
           />
-        </label>
+          <ChecklistDateField
+            field="due"
+            label="Due"
+            serverValue={row.due_date}
+            nullable
+            action={(value) => setChecklistItemDueDateAction(itemId, value)}
+            onStatus={setSaveStatus}
+            onError={onError}
+            onMutated={onMutated}
+            onPendingChange={onFieldPending}
+          />
+          <ChecklistDateField
+            field="close"
+            label="Closes"
+            serverValue={row.close_date}
+            nullable
+            action={(value) => setChecklistItemCloseDateAction(itemId, value)}
+            onStatus={setSaveStatus}
+            onError={onError}
+            onMutated={onMutated}
+            onPendingChange={onFieldPending}
+          />
+        </div>
         <label className="cohort-checklist-row-toggle">
           <input
             type="checkbox"
             checked={included}
             onChange={(e) => handleToggleIncluded(e.target.checked)}
-            disabled={isPending}
+            disabled={includedPending}
           />
           <span>Included</span>
         </label>
         <SaveStatusPill status={saveStatus} />
       </div>
     </div>
+  );
+}
+
+// ---------- One date field of the activity window ----------
+//
+// Self-contained: owns its local value, debounce timer, and a
+// transition for its own save. `nullable` false → empty input is
+// a validation error (release_date is NOT NULL); nullable true →
+// empty means "clear it" (saves null). Reports pending up so the
+// row can aggregate; reports save status up so the row's single
+// pill reflects the latest outcome.
+
+function ChecklistDateField({
+  field,
+  label,
+  serverValue,
+  nullable,
+  action,
+  onStatus,
+  onError,
+  onMutated,
+  onPendingChange,
+}: {
+  field: DateField;
+  label: string;
+  serverValue: string | null;
+  nullable: boolean;
+  action: (value: string | null) => Promise<DateActionResult>;
+  onStatus: (status: RowSaveStatus) => void;
+  onError: (msg: string) => void;
+  onMutated: () => void;
+  onPendingChange: (field: DateField, pending: boolean) => void;
+}) {
+  const [value, setValue] = useState(serverValue ?? '');
+  const [isPending, startTransition] = useTransition();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isDirty = value !== (serverValue ?? '');
+
+  useEffect(() => {
+    onPendingChange(field, isDirty || isPending);
+  }, [field, isDirty, isPending, onPendingChange]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  function commit(raw: string) {
+    if (raw === '') {
+      if (!nullable) {
+        setValue(serverValue ?? ''); // rollback
+        onStatus('failed');
+        onError(`${label} date is required.`);
+        return;
+      }
+      // nullable + empty → clear (save null below)
+    } else if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      setValue(serverValue ?? ''); // rollback
+      onStatus('failed');
+      onError(`${label} date must be a valid date.`);
+      return;
+    }
+    onStatus('saving');
+    startTransition(async () => {
+      const result = await action(raw === '' ? null : raw);
+      if (!result.ok) {
+        setValue(serverValue ?? ''); // rollback
+        onStatus('failed');
+        onError(result.error);
+        return;
+      }
+      onStatus('saved');
+      onMutated();
+    });
+  }
+
+  function handleChange(next: string) {
+    setValue(next);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      commit(next);
+    }, DATE_DEBOUNCE_MS);
+  }
+
+  function handleBlur() {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    if (value !== (serverValue ?? '')) commit(value);
+  }
+
+  return (
+    <label className="cohort-checklist-row-date">
+      <span className="cohort-checklist-row-date-label">{label}</span>
+      <input
+        type="date"
+        className="cohort-checklist-row-date-input"
+        value={value}
+        onChange={(e) => handleChange(e.target.value)}
+        onBlur={handleBlur}
+        disabled={isPending}
+      />
+    </label>
   );
 }
 

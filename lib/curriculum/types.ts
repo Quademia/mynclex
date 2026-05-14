@@ -334,13 +334,31 @@ export const ACTIVITY_TYPES: ActivityType[] = [
 // stays visible to the student (e.g. "Week 2 — Coming soon"
 // rather than the week vanishing).
 
+// Slice 10.6 / 10.7 — an activity as the student sees it: the
+// template row, plus its window state. A flat intersection (not a
+// wrapper) so call sites stay activity-shaped.
+//
+// `openState` is derived from the cohort window vs. today:
+//   LOCKED — before release_date ("Opens <date>")
+//   OPEN   — released and not past close (the normal action; a
+//            "Due <date>" line shows when dueDate is set)
+//   CLOSED — past close_date ("Closed <date>")
+// Self-paced activities have no window — openState 'OPEN', all
+// three dates null.
+export type StudentActivity = ProgrammeActivity & {
+  openState: 'LOCKED' | 'OPEN' | 'CLOSED';
+  releaseDate: string | null; // YYYY-MM-DD; null for self-paced
+  dueDate: string | null;     // soft target; null = none set
+  closeDate: string | null;   // hard gate; null = none set
+};
+
 export type StudentBodyEntry =
   | {
       kind: 'block';
       block: ProgrammeBlock;
-      activities: ProgrammeActivity[]; // filtered
+      activities: StudentActivity[]; // visible (may be locked)
     }
-  | { kind: 'loose'; activity: ProgrammeActivity };
+  | { kind: 'loose'; activity: StudentActivity };
 
 export type StudentCurriculumUnit = {
   unit: ProgrammeUnit;

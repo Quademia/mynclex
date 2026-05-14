@@ -230,7 +230,8 @@ export async function getCohortChecklist(
     supabase
       .from('nclex_cohort_checklist_items')
       .select(
-        `checklist_item_id, is_included, release_date, source,
+        `checklist_item_id, is_included, release_date, due_date,
+         close_date, source,
          nclex_programme_activities!inner(
            activity_id, unit_id, block_id, ordinal, type, title,
            description, note, payload, is_published, created_at, updated_at
@@ -249,6 +250,8 @@ export async function getCohortChecklist(
     checklist_item_id: string;
     is_included: boolean;
     release_date: string;
+    due_date: string | null;
+    close_date: string | null;
     source: 'TEMPLATE' | 'COHORT_ONLY';
     nclex_programme_activities: ProgrammeActivity | ProgrammeActivity[];
   };
@@ -265,6 +268,8 @@ export async function getCohortChecklist(
         checklist_item_id: r.checklist_item_id,
         is_included: r.is_included,
         release_date: r.release_date,
+        due_date: r.due_date,
+        close_date: r.close_date,
         source: r.source,
         activity,
       } satisfies CohortChecklistActivityRow;

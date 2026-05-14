@@ -167,18 +167,25 @@ export async function cancelCohortAction(
 }
 
 // =====================================================================
-// Slice 9.3f — Cohort checklist mutations
+// Slice 9.3f / 10.7 — Cohort checklist mutations
 // =====================================================================
 //
-// Two narrow actions over `nclex_cohort_checklist_items`:
-//   • setChecklistItemIncludedAction — toggles inclusion.
+// Four narrow actions over `nclex_cohort_checklist_items`:
+//   • setChecklistItemIncludedAction    — toggles inclusion.
 //   • setChecklistItemReleaseDateAction — updates release_date.
+//   • setChecklistItemDueDateAction     — updates due_date (10.7).
+//   • setChecklistItemCloseDateAction   — updates close_date (10.7).
 //
 // RLS on the table gates writes to rows whose cohort belongs to a
 // programme the caller owns; the actions don't re-implement that
 // check at the app layer (would just shadow the policy). A
 // stale/mis-typed checklist_item_id surfaces as a generic
 // "not found or not yours" through the maybeSingle() return shape.
+//
+// The three date actions each read the row's current window first,
+// then validate release <= due <= close (where set) before the
+// UPDATE — ordering is an app-layer rule, not a DB CHECK (a CHECK
+// would block moving release_date past an existing due/close).
 
 type ChecklistMutationResult =
   | { ok: true }
@@ -186,6 +193,33 @@ type ChecklistMutationResult =
 
 export type SetChecklistItemIncludedResult = ChecklistMutationResult;
 export type SetChecklistItemReleaseDateResult = ChecklistMutationResult;
+export type SetChecklistItemDueDateResult = ChecklistMutationResult;
+export type SetChecklistItemCloseDateResult = ChecklistMutationResult;
+
+// Shape guard for a date input.
+function isDateString(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+// Validates the per-activity window ordering: release <= due <=
+// close, skipping any leg whose date isn't set. Returns an error
+// string for the tutor, or null when the window is coherent.
+function validateWindowOrdering(
+  release: string,
+  due: string | null,
+  close: string | null
+): string | null {
+  if (due != null && due < release) {
+    return 'Due date cannot be before the release date.';
+  }
+  if (close != null && close < release) {
+    return 'Close date cannot be before the release date.';
+  }
+  if (due != null && close != null && close < due) {
+    return 'Close date cannot be before the due date.';
+  }
+  return null;
+}
 
 export async function setChecklistItemIncludedAction(
   checklist_item_id: string,
@@ -219,12 +253,9 @@ export async function setChecklistItemIncludedAction(
 
 export async function setChecklistItemReleaseDateAction(
   checklist_item_id: string,
-  release_date: string // YYYY-MM-DD
+  release_date: string // YYYY-MM-DD (required — release is NOT NULL)
 ): Promise<SetChecklistItemReleaseDateResult> {
-  // Cheap shape check — defence in depth against a stale client.
-  // The DB column is DATE; a bad string would error on the UPDATE
-  // anyway, this surfaces it as a clean validation message.
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(release_date)) {
+  if (!isDateString(release_date)) {
     return { ok: false, error: 'Release date must be a YYYY-MM-DD value.' };
   }
 
@@ -234,10 +265,142 @@ export async function setChecklistItemReleaseDateAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
+  // Read the current window so a moved release_date can be checked
+  // against any existing due/close date. RLS gates this read.
+  const { data: current } = await supabase
+    .from('nclex_cohort_checklist_items')
+    .select('due_date, close_date')
+    .eq('checklist_item_id', checklist_item_id)
+    .maybeSingle();
+  if (!current) {
+    return {
+      ok: false,
+      error: 'Checklist item not found or not yours to edit.',
+    };
+  }
+
+  const orderError = validateWindowOrdering(
+    release_date,
+    current.due_date,
+    current.close_date
+  );
+  if (orderError) return { ok: false, error: orderError };
+
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
     .from('nclex_cohort_checklist_items')
     .update({ release_date, updated_at: nowIso })
+    .eq('checklist_item_id', checklist_item_id)
+    .select('cohort_id')
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return {
+      ok: false,
+      error: 'Checklist item not found or not yours to edit.',
+    };
+  }
+
+  revalidatePath(`/tutor/cohort/${data.cohort_id}/curriculum`);
+  return { ok: true };
+}
+
+// due_date — soft target. Nullable: passing null clears it. Does
+// NOT gate student access (that's close_date) — the student-side
+// just surfaces "Due <date>".
+export async function setChecklistItemDueDateAction(
+  checklist_item_id: string,
+  due_date: string | null // YYYY-MM-DD, or null to clear
+): Promise<SetChecklistItemDueDateResult> {
+  if (due_date != null && !isDateString(due_date)) {
+    return { ok: false, error: 'Due date must be a YYYY-MM-DD value.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data: current } = await supabase
+    .from('nclex_cohort_checklist_items')
+    .select('release_date, close_date')
+    .eq('checklist_item_id', checklist_item_id)
+    .maybeSingle();
+  if (!current) {
+    return {
+      ok: false,
+      error: 'Checklist item not found or not yours to edit.',
+    };
+  }
+
+  const orderError = validateWindowOrdering(
+    current.release_date,
+    due_date,
+    current.close_date
+  );
+  if (orderError) return { ok: false, error: orderError };
+
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('nclex_cohort_checklist_items')
+    .update({ due_date, updated_at: nowIso })
+    .eq('checklist_item_id', checklist_item_id)
+    .select('cohort_id')
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return {
+      ok: false,
+      error: 'Checklist item not found or not yours to edit.',
+    };
+  }
+
+  revalidatePath(`/tutor/cohort/${data.cohort_id}/curriculum`);
+  return { ok: true };
+}
+
+// close_date — hard gate. Nullable: passing null clears it. Once
+// past, the student-side activity locks ("Closed <date>").
+export async function setChecklistItemCloseDateAction(
+  checklist_item_id: string,
+  close_date: string | null // YYYY-MM-DD, or null to clear
+): Promise<SetChecklistItemCloseDateResult> {
+  if (close_date != null && !isDateString(close_date)) {
+    return { ok: false, error: 'Close date must be a YYYY-MM-DD value.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data: current } = await supabase
+    .from('nclex_cohort_checklist_items')
+    .select('release_date, due_date')
+    .eq('checklist_item_id', checklist_item_id)
+    .maybeSingle();
+  if (!current) {
+    return {
+      ok: false,
+      error: 'Checklist item not found or not yours to edit.',
+    };
+  }
+
+  const orderError = validateWindowOrdering(
+    current.release_date,
+    current.due_date,
+    close_date
+  );
+  if (orderError) return { ok: false, error: orderError };
+
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('nclex_cohort_checklist_items')
+    .update({ close_date, updated_at: nowIso })
     .eq('checklist_item_id', checklist_item_id)
     .select('cohort_id')
     .maybeSingle();

@@ -11,8 +11,11 @@
 //
 // Tutor-led routes every activity through the cohort checklist:
 //   cohort + parent programme + units + blocks + checklist rows
-//   joined to activities → filtered by isVisibleToStudents() with
-//   cohort context (is_included + release_date).
+//   joined to activities → filtered by isVisibleToStudents()
+//   (publish + inclusion gates). Release/close-gated activities
+//   are NOT dropped — they ride along as StudentActivity rows;
+//   their window dates feed activityOpenState() (slice 10.6 /
+//   10.7), which the viewer renders as LOCKED / OPEN / CLOSED.
 //
 // RLS is the security floor — students can only SELECT under a
 // PUBLISHED programme (slice 10.1 *_student_select policies).
@@ -26,11 +29,12 @@
 // response either way so DRAFT existence doesn't leak).
 
 import { createClient } from '@/lib/supabase/server';
-import { isVisibleToStudents } from './format';
+import { isVisibleToStudents, activityOpenState } from './format';
 import type {
   ProgrammeActivity,
   ProgrammeBlock,
   ProgrammeUnit,
+  StudentActivity,
   StudentBodyEntry,
   StudentCurriculumTree,
   StudentCurriculumUnit,
@@ -93,20 +97,29 @@ export async function getStudentSelfPacedCurriculum(
   ) as ProgrammeActivity[];
 
   // Filter activities by isVisibleToStudents (self-paced — no
-  // cohort args). Then compose into the unit→body shape.
-  const visibleActivities = activities.filter((a) =>
-    isVisibleToStudents({
-      programmeStatus: 'PUBLISHED',
-      unitPublished:
-        units.find((u) => u.unit_id === a.unit_id)?.is_published ?? false,
-      blockPublished:
-        a.block_id === null
-          ? null
-          : blocks.find((b) => b.block_id === a.block_id)?.is_published ??
-            false,
-      activityPublished: a.is_published,
-    })
-  );
+  // cohort args), then wrap as StudentActivity. Self-paced has no
+  // window — every visible activity is permanently OPEN.
+  const visibleActivities: StudentActivity[] = activities
+    .filter((a) =>
+      isVisibleToStudents({
+        programmeStatus: 'PUBLISHED',
+        unitPublished:
+          units.find((u) => u.unit_id === a.unit_id)?.is_published ?? false,
+        blockPublished:
+          a.block_id === null
+            ? null
+            : blocks.find((b) => b.block_id === a.block_id)?.is_published ??
+              false,
+        activityPublished: a.is_published,
+      })
+    )
+    .map((activity) => ({
+      ...activity,
+      openState: 'OPEN' as const,
+      releaseDate: null,
+      dueDate: null,
+      closeDate: null,
+    }));
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
 
@@ -180,7 +193,7 @@ export async function getStudentCohortCurriculum(
     supabase
       .from('nclex_cohort_checklist_items')
       .select(
-        `is_included, release_date,
+        `is_included, release_date, due_date, close_date,
          nclex_programme_activities!inner(
            activity_id, unit_id, block_id, ordinal, type, title,
            description, note, payload, is_published, created_at, updated_at
@@ -196,14 +209,17 @@ export async function getStudentCohortCurriculum(
   type RawRow = {
     is_included: boolean;
     release_date: string;
+    due_date: string | null;
+    close_date: string | null;
     nclex_programme_activities: ProgrammeActivity | ProgrammeActivity[];
   };
   const rawRows = (rowsRes.data ?? []) as RawRow[];
 
-  // Apply student visibility filter at the row level — drop rows
-  // where the predicate says no. Reduces the activity list down
-  // to what the student should see.
-  const visibleActivities: ProgrammeActivity[] = [];
+  // Apply the student visibility filter at the row level. Publish
+  // + inclusion gates HIDE an activity (dropped here). The release
+  // date does NOT hide — visible-but-unreleased activities stay in
+  // the tree as locked StudentActivity rows (slice 10.6).
+  const visibleActivities: StudentActivity[] = [];
   for (const r of rawRows) {
     const activity = Array.isArray(r.nclex_programme_activities)
       ? r.nclex_programme_activities[0]
@@ -219,18 +235,24 @@ export async function getStudentCohortCurriculum(
           false;
 
     if (
-      isVisibleToStudents({
+      !isVisibleToStudents({
         programmeStatus: 'PUBLISHED',
         unitPublished,
         blockPublished,
         activityPublished: activity.is_published,
         cohortIncluded: r.is_included,
-        releaseDate: r.release_date,
-        today,
       })
     ) {
-      visibleActivities.push(activity);
+      continue;
     }
+
+    visibleActivities.push({
+      ...activity,
+      openState: activityOpenState(r.release_date, r.close_date, today),
+      releaseDate: r.release_date,
+      dueDate: r.due_date,
+      closeDate: r.close_date,
+    });
   }
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
@@ -282,7 +304,7 @@ function stripUnitEmbed<T extends { nclex_programme_units?: unknown }>(
 function composeUnitTrees(
   units: ProgrammeUnit[],
   blocks: ProgrammeBlock[],
-  visibleActivities: ProgrammeActivity[]
+  visibleActivities: StudentActivity[]
 ): StudentCurriculumUnit[] {
   const blocksByUnit = new Map<string, ProgrammeBlock[]>();
   for (const b of blocks) {
@@ -291,7 +313,7 @@ function composeUnitTrees(
     blocksByUnit.set(b.unit_id, arr);
   }
 
-  const activitiesByUnit = new Map<string, ProgrammeActivity[]>();
+  const activitiesByUnit = new Map<string, StudentActivity[]>();
   for (const a of visibleActivities) {
     const arr = activitiesByUnit.get(a.unit_id) ?? [];
     arr.push(a);
@@ -303,8 +325,8 @@ function composeUnitTrees(
     const unitActivities = activitiesByUnit.get(unit.unit_id) ?? [];
 
     // Split visible activities into loose vs in-block.
-    const looseActivities: ProgrammeActivity[] = [];
-    const activitiesByBlock = new Map<string, ProgrammeActivity[]>();
+    const looseActivities: StudentActivity[] = [];
+    const activitiesByBlock = new Map<string, StudentActivity[]>();
     for (const a of unitActivities) {
       if (a.block_id === null) {
         looseActivities.push(a);
@@ -318,7 +340,7 @@ function composeUnitTrees(
     // Compose: blocks + loose activities interleaved by ordinal.
     type Sortable =
       | { kind: 'block'; ordinal: number; block: ProgrammeBlock }
-      | { kind: 'loose'; ordinal: number; activity: ProgrammeActivity };
+      | { kind: 'loose'; ordinal: number; activity: StudentActivity };
     const sortables: Sortable[] = [];
     for (const b of unitBlocks) {
       sortables.push({ kind: 'block', ordinal: b.ordinal, block: b });

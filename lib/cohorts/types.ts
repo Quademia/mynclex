@@ -49,9 +49,15 @@ export type CohortFormValues = Pick<
 // propagate. Everything else (reorder, move, delete) flows live
 // from the template via the joined render.
 //
-// `release_date` is DATE (not TIMESTAMPTZ) — symmetric with
-// cohort.start_date. Visibility check is `release_date <= today`.
-// Time-of-day deferred.
+// The per-activity window (all DATE, day-granularity):
+//   `release_date` — when the activity opens. NOT NULL, trigger-
+//     seeded at cohort creation.
+//   `due_date`     — soft target ("do this by"). Nullable, tutor-
+//     set. Does NOT gate access — the activity stays open.
+//   `close_date`   — hard gate ("unopenable after"). Nullable,
+//     tutor-set. (Slice 10.7.)
+// Ordering release <= due <= close is validated in the server
+// actions, not as a DB CHECK.
 //
 // `source` reserved for future COHORT_ONLY adds (activities added
 // to a single cohort without a template entry). v1 only ever
@@ -65,6 +71,8 @@ export type CohortChecklistItem = {
   template_activity_id: string;
   is_included: boolean;
   release_date: string;             // ISO YYYY-MM-DD
+  due_date: string | null;          // ISO YYYY-MM-DD; null = not set
+  close_date: string | null;        // ISO YYYY-MM-DD; null = not set
   source: ChecklistItemSource;
   created_at: string;
   updated_at: string;
@@ -84,6 +92,8 @@ export type CohortChecklistActivityRow = {
   checklist_item_id: string;
   is_included: boolean;
   release_date: string;
+  due_date: string | null;
+  close_date: string | null;
   source: ChecklistItemSource;
   activity: ProgrammeActivity;       // live-read from template
 };

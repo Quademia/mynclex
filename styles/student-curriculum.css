@@ -466,6 +466,38 @@ button.programme-switcher-item {
   margin: 8px 0 0;
 }
 
+/* Locked row — a tutor-led activity outside its window (slice
+ * 10.6 / 10.7): LOCKED before release, CLOSED past close. Visible
+ * but not openable — the title is muted and the action area is
+ * replaced by a "🔒 Opens / Closed <date>" line. */
+.student-activity.is-locked .student-activity-title {
+  color: var(--text-muted);
+}
+
+.student-activity-locked {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* "Due <date>" line on an OPEN activity that has a due date
+ * (slice 10.7). Soft — it never gates access; once past, an
+ * overdue tint. */
+.student-activity-due {
+  margin: 10px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.student-activity-due.is-overdue {
+  color: var(--warning);
+}
+
 /* ─── Activity action area (slice 10.1b) ────────────────
  * The curriculum page is a launcher: each activity card
  * carries one action button. Estimated time sits on the

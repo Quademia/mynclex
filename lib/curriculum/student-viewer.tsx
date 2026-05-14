@@ -17,10 +17,18 @@
 // button. Content consumption (reading, PDF, link, session, quiz)
 // happens on the per-type surface, never inline on this page.
 //
-// Slice 10.2 — the action button + per-type dispatch live in the
-// shared <ActivityAction> piece (reused by the future weekly +
-// calendar views). External link is wired up; the rest stay
-// disabled until their own viewer slices.
+// Slice 10.2-10.5 — the action button + per-type dispatch live in
+// the shared <ActivityAction> piece (reused by the future weekly +
+// calendar views). Text / External link / Live session / PDF are
+// wired up; Mock + Practice quiz stay disabled pending the central
+// tutor-quiz system.
+//
+// Slice 10.6 / 10.7 — a tutor-led activity's row reflects its
+// window: LOCKED before release ("Opens <date>"), OPEN between
+// release and close (with a "Due <date>" line when a due date is
+// set), CLOSED past the close date ("Closed <date>"). Draft /
+// excluded activities are still hidden entirely — locked/closed
+// is not the same as hidden.
 //
 // Empty units (no visible activities, no visible blocks) render
 // as a "no content yet" card — the tutor's structural intent
@@ -32,11 +40,14 @@
 import {
   unitLabel,
   formatUnitTitle,
+  formatWindowDate,
+  isPastDue,
   ACTIVITY_TYPE_ICON,
 } from './format';
 import { ActivityAction } from './activity-action';
 import type {
   ProgrammeActivity,
+  StudentActivity,
   StudentCurriculumTree,
 } from './types';
 
@@ -139,9 +150,16 @@ function BlockCard({
   );
 }
 
-function ActivityCard({ activity }: { activity: ProgrammeActivity }) {
+function ActivityCard({ activity }: { activity: StudentActivity }) {
+  const locked = activity.openState !== 'OPEN';
+  const overdue =
+    activity.openState === 'OPEN' && isPastDue(activity.dueDate);
+
   return (
-    <article className="student-activity" data-type={activity.type}>
+    <article
+      className={locked ? 'student-activity is-locked' : 'student-activity'}
+      data-type={activity.type}
+    >
       <header className="student-activity-head">
         <span className="student-activity-icon" aria-hidden="true">
           {ACTIVITY_TYPE_ICON[activity.type]}
@@ -161,7 +179,45 @@ function ActivityCard({ activity }: { activity: ProgrammeActivity }) {
         </p>
       )}
 
-      <ActivityAction activity={activity} />
+      {activity.openState === 'OPEN' && (
+        <>
+          {activity.dueDate && (
+            <p
+              className={
+                overdue
+                  ? 'student-activity-due is-overdue'
+                  : 'student-activity-due'
+              }
+            >
+              Due {formatWindowDate(activity.dueDate)}
+              {overdue ? ' · overdue' : ''}
+            </p>
+          )}
+          <ActivityAction activity={activity} />
+        </>
+      )}
+
+      {activity.openState === 'LOCKED' && (
+        <div className="student-activity-locked">
+          <span aria-hidden="true">🔒</span>
+          <span>
+            {activity.releaseDate
+              ? `Opens ${formatWindowDate(activity.releaseDate)}`
+              : 'Opens later'}
+          </span>
+        </div>
+      )}
+
+      {activity.openState === 'CLOSED' && (
+        <div className="student-activity-locked">
+          <span aria-hidden="true">🔒</span>
+          <span>
+            {activity.closeDate
+              ? `Closed ${formatWindowDate(activity.closeDate)}`
+              : 'Closed'}
+          </span>
+        </div>
+      )}
     </article>
   );
 }

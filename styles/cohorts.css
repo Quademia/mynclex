@@ -721,14 +721,25 @@
   white-space: nowrap;
 }
 
-/* Row controls — date input + include toggle. */
+/* Row controls — the activity-window group + include toggle. */
 .cohort-checklist-row-controls {
   display: flex;
   align-items: center;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: 12px;
   padding: 8px 12px;
   border-left: 1px solid var(--border);
   background: var(--bg-soft);
+}
+
+/* The activity-window group — three labelled date inputs (Opens /
+ * Due / Closes) kept together. Wraps as a unit if the row is
+ * cramped (slice 10.7). */
+.cohort-checklist-row-window {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .cohort-checklist-row-date {

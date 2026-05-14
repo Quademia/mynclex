@@ -133,8 +133,8 @@ export function formatPublishedCounts(
 }
 
 /**
- * Single visibility predicate. AND-chains every gate that has to
- * be true for a student to see an activity row.
+ * "Does this activity appear in the student's curriculum at all?"
+ * AND-chains the gates that genuinely HIDE an activity:
  *
  * Template-side (always checked):
  *   1. programme.status === 'PUBLISHED'
@@ -144,20 +144,21 @@ export function formatPublishedCounts(
  *
  * Cohort-side (slice 9.3f — checked only when provided):
  *   5. cohort checklist row is included
- *   6. release_date <= today
  *
  * Self-paced programmes have no cohort layer — callers pass
- * `cohortIncluded` and `releaseDate` as null/undefined, and those
- * branches short-circuit to true. Tutor-led student-facing
- * callers pass real values.
+ * `cohortIncluded` as null/undefined and that branch short-
+ * circuits to true.
  *
- * Today's `today` argument is exposed for testability; defaults
- * to today (UTC) in YYYY-MM-DD shape — matches the DATE column
- * shape used by release_date.
+ * The window-date gates (release / close) are deliberately NOT
+ * here (slice 10.6 / 10.7). A future release date or a past close
+ * date does not HIDE an activity — it LOCKS it: the activity stays
+ * in the tree as a "🔒 Opens / Closed <date>" row. "Hidden" (draft
+ * / excluded — not ready) and "locked" (scheduled — ready but
+ * outside its window) are two different states. Use
+ * activityOpenState() for the window question.
  *
- * This is the source of truth. 9.3e shipped the template half;
- * 9.3f adds the cohort half. RLS stays the ultimate gate at the
- * DB layer; this predicate is for app-side render filtering.
+ * RLS stays the ultimate gate at the DB layer; this predicate is
+ * the app-side render filter.
  */
 export function isVisibleToStudents(input: {
   programmeStatus: ProgrammeStatus;
@@ -166,26 +167,70 @@ export function isVisibleToStudents(input: {
   activityPublished: boolean;
   // Cohort layer — null/undefined for self-paced (no cohort).
   cohortIncluded?: boolean | null;
-  releaseDate?: string | null;     // YYYY-MM-DD
-  today?: string;                  // YYYY-MM-DD; defaults to today UTC
 }): boolean {
-  // Template half.
   if (input.programmeStatus !== 'PUBLISHED') return false;
   if (!input.unitPublished) return false;
   if (input.blockPublished !== null && !input.blockPublished) return false;
   if (!input.activityPublished) return false;
-
-  // Cohort half — skipped entirely when the caller didn't provide
-  // cohort context (self-paced delivery mode).
-  if (input.cohortIncluded != null) {
-    if (!input.cohortIncluded) return false;
-  }
-  if (input.releaseDate != null) {
-    const today = input.today ?? new Date().toISOString().slice(0, 10);
-    if (input.releaseDate > today) return false;
-  }
-
+  if (input.cohortIncluded != null && !input.cohortIncluded) return false;
   return true;
+}
+
+/**
+ * Slice 10.6 / 10.7 — the student-facing open state of a cohort
+ * activity, derived from its window dates vs. today:
+ *   LOCKED  — before release_date ("Opens <date>")
+ *   OPEN    — released, and either no close_date or close_date is
+ *             today or later
+ *   CLOSED  — past close_date ("Closed <date>")
+ *
+ * Self-paced activities have no window (both dates null) → always
+ * OPEN. An activity stays open *through* its close_date — it goes
+ * CLOSED only once close_date is strictly before today.
+ *
+ * `today` is exposed for testability; defaults to today (UTC) in
+ * YYYY-MM-DD shape — matches the DATE columns on the checklist.
+ */
+export function activityOpenState(
+  releaseDate: string | null | undefined,
+  closeDate: string | null | undefined,
+  today?: string
+): 'LOCKED' | 'OPEN' | 'CLOSED' {
+  const t = today ?? new Date().toISOString().slice(0, 10);
+  if (releaseDate != null && releaseDate > t) return 'LOCKED';
+  if (closeDate != null && closeDate < t) return 'CLOSED';
+  return 'OPEN';
+}
+
+/**
+ * Slice 10.7 — is an OPEN activity past its (soft) due date? Due
+ * dates never gate access — this only drives the "overdue" tint
+ * on the student card. Null due date → never past due.
+ */
+export function isPastDue(
+  dueDate: string | null | undefined,
+  today?: string
+): boolean {
+  if (dueDate == null) return false;
+  const t = today ?? new Date().toISOString().slice(0, 10);
+  return dueDate < t;
+}
+
+/**
+ * Slice 10.6 / 10.7 — display form for a window date (release /
+ * due / close), e.g. "27 May 2026". The columns are plain DATEs
+ * (day granularity, no zone); parsed as UTC so the rendered day
+ * never shifts.
+ */
+export function formatWindowDate(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
 }
 
 // =====================================================================
