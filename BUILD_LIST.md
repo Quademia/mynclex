@@ -8,7 +8,51 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-15):** **Slices 10.2–10.5 — Per-type
+> **Last shipped (2026-05-15):** **Slices 10.6–10.7 — Locked
+> activity rows + activity window.** Two follow-ons off the
+> per-type viewers, both about *when* a tutor-led activity is
+> reachable.
+>
+> **10.6 — Locked rows.** A tutor-led activity behind a future
+> release date was filtered out entirely, so its unit read "no
+> content yet" (a not-yet-started cohort looked like an empty
+> programme). `isVisibleToStudents()` is split: it now only
+> handles what genuinely HIDES an activity (draft / excluded). A
+> future release date no longer hides — the activity stays in the
+> tree as a locked "Opens <date>" row. Draft ≠ locked.
+>
+> **10.7 — Activity window (due + close dates).** Two nullable
+> columns on `nclex_cohort_checklist_items` complete the
+> per-activity window: release (opens) → due (soft target) →
+> close (hard gate). Sam settled the key distinction — due is soft
+> (activity stays open, "overdue" tint), close is a hard gate
+> (activity locks). Two separate optional columns, not one
+> ambiguous one. Rich due-date *pacing* stays progress-engine
+> territory; v1 just shows the date.
+>
+> **Tutor side.** Three new/updated checklist actions sharing
+> `validateWindowOrdering` (release ≤ due ≤ close, app-layer not a
+> DB CHECK). The cohort checklist row gains two more date inputs
+> via an extracted `<ChecklistDateField>`; the save-safety layer
+> extends across all three.
+>
+> **Student side.** `StudentActivity.openState` is a 3-way (LOCKED
+> / OPEN / CLOSED) via the new `activityOpenState()`. Viewer:
+> LOCKED → "Opens …"; OPEN → the action + a "Due …" line (overdue
+> tint when past); CLOSED → "Closed …".
+>
+> **Migration** `20260515160000` — two nullable DATE columns, no
+> trigger change, no backfill. Validation is app-layer.
+>
+> **One UX call flagged:** three date inputs per checklist row is
+> dense — shipped as a compact inline "window" group; expandable-
+> row fallback if it reads as too cramped.
+>
+> Sam smoke-tested both before approving the merge.
+>
+> Commit `6db89cf`. See SESSIONS 2026-05-15 (10.6–10.7).
+>
+> **Earlier:** **Slices 10.2–10.5 — Per-type
 > activity viewers.** The student curriculum launcher's "Open"
 > button goes live, one activity type at a time: External link
 > (10.2), Online live session (10.3), PDF (10.4), and Text reading
@@ -592,12 +636,13 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > Commit `0710cb6`. See SESSIONS 2026-05-12 (9.3d-a).
 >
-> **Next ⏭:** **Per-type activity viewers complete** — except Mock
-> + Practice quiz, which wait on the central tutor-quiz system.
-> Open student-side priorities: the student progress engine + soft
-> guidance; the central tutor-quiz system (unlocks the last two
-> viewers); full enrolment + payments system (tightens the
-> permissive access helpers shipped in 10.1). Sam to pick.
+> **Next ⏭:** **Per-type viewers + the cohort access window are
+> done.** Open student-side priorities: the student progress
+> engine + soft guidance (which also makes due dates *smart* —
+> urgency, "you're behind"); the central tutor-quiz system
+> (unlocks Mock + Practice quiz); full enrolment + payments system
+> (tightens the permissive access helpers shipped in 10.1). Sam to
+> pick.
 >
 > **Earlier the same day:** **Slice 9.3c — Blocks.** Activates
 > `nclex_programme_blocks` (shipped empty in 9.3a) via UI + eight

@@ -6,6 +6,95 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-15 (10.6–10.7) — Locked activity rows + activity window
+
+Two follow-on slices off the per-type viewer work — both about
+*when* a tutor-led activity is reachable, not what it is.
+
+### 10.6 — Locked activity rows
+
+Sam spotted that a tutor-led activity behind a future release date
+made its unit read "no content yet." Cause: `isVisibleToStudents()`
+bundled the release-date gate with the publish gates, so a future
+release date *filtered the activity out entirely*. For a not-yet-
+started cohort the whole curriculum read as an empty programme.
+
+The fix splits the predicate:
+- `isVisibleToStudents()` now only handles what genuinely **hides**
+  an activity — draft / excluded / unpublished parent.
+- A future release date no longer hides — the activity stays in
+  the tree as a **locked row**: "🔒 Opens 27 May 2026", title
+  muted, no action button.
+
+New `StudentActivity` type (flat intersection — `ProgrammeActivity
+& { released, releaseDate }`) carries the lock state. Draft ≠
+locked: draft is "not ready, hidden"; locked is "ready, scheduled,
+visible."
+
+### 10.7 — Activity window (due + close dates)
+
+Sam: both a soft *due date* and a hard *close date* are useful,
+both optional. The discussion settled the key distinction — **due**
+is a soft target (activity stays open, "overdue" tint); **close**
+is a hard gate (activity locks). Two separate nullable columns, not
+one ambiguous one. The rich due-date *pacing* behaviour (urgency,
+"you're behind" rollups) stays progress-engine territory; v1's
+`due_date` just *shows the date*.
+
+**Migration** (`20260515160000`): `due_date` + `close_date` DATE
+columns on `nclex_cohort_checklist_items`, both nullable. No
+trigger change (the cohort-creation trigger seeds only
+`release_date`), no backfill, no RLS change.
+
+**Validation** is app-layer, not a DB CHECK — `release ≤ due ≤
+close` (where set), enforced in the server actions. A CHECK would
+awkwardly block a tutor moving `release_date` past an existing
+due/close.
+
+**Tutor side.** Three new/updated checklist actions
+(`setChecklistItemDueDateAction`, `setChecklistItemCloseDateAction`,
+plus `setChecklistItemReleaseDateAction` now validates against the
+others), sharing `validateWindowOrdering`. Each reads the row's
+current window first, validates, then updates. The cohort checklist
+row gains two more date inputs — extracted `<ChecklistDateField>`
+(self-contained: own value, debounce, transition, nullable
+handling); the row renders three of them as a compact "window"
+group. The save-safety layer (per-row pill, page banner,
+beforeunload, debounce) extends across all three.
+
+**Student side.** `StudentActivity.openState` becomes a 3-way —
+`LOCKED` / `OPEN` / `CLOSED` — via the new `activityOpenState()`
+(replaces 10.6's `isActivityReleased`). The viewer branches: LOCKED
+→ "🔒 Opens …"; OPEN → the action, plus a "Due …" line when a due
+date is set (`isPastDue()` drives an overdue tint); CLOSED → "🔒
+Closed …" (mirrors the locked-row style). `formatReleaseDate` →
+`formatWindowDate` (formats all three).
+
+### One UX call flagged for Sam
+
+Three date inputs per cohort checklist row is dense — shipped as a
+compact inline "window" group with a wrapping fallback. Flagged for
+Sam to eyeball; the fallback if it's too cramped is an expandable
+row.
+
+### Test data (mynclex-dev)
+
+Four Q1-cohort checklist rows seeded with example windows so the
+student side shows every state at once: one CLOSED, one
+OPEN+overdue, two OPEN with future due dates; Week 4 stays LOCKED.
+
+### Next
+
+⏭ Per-type viewers + the cohort access window are done. Open
+student-side priorities unchanged: the progress engine + soft
+guidance (which also makes due dates *smart* — urgency, "you're
+behind"); the central tutor-quiz system (unlocks Mock + Practice
+quiz); full enrolment + payments. Sam to pick.
+
+Commit `6db89cf` + docs.
+
+---
+
 ## Session — 2026-05-15 (10.2–10.5) — Per-type activity viewers
 
 Four slices, one arc: the student curriculum launcher's "Open"
