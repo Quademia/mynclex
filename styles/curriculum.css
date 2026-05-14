@@ -112,14 +112,25 @@
   margin-top: auto;
   padding-top: 8px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 .unit-card-meta {
   font-size: 12px;
   color: var(--text-muted);
+}
+
+/* Slice 9.3e — second meta line on the unit card. Sits below the
+ * "X blocks · Y activities" totals and reports how many of those
+ * are Live. Slightly smaller + greener so it reads as a status
+ * subline rather than another stat. Hidden via the formatter
+ * returning null when the unit has no children. */
+.unit-card-meta-live {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 /* ─── Unit / Block / Activity status pill ──────── */
@@ -319,6 +330,15 @@
   min-width: 0;
 }
 
+/* Slice 9.3e — title + status pill on one line. Pill is fixed
+ * width; title shrinks with ellipsis. */
+.activity-row-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .activity-row-title {
   font-size: 14px;
   font-weight: 500;
@@ -511,5 +531,469 @@
 .activity-text-minutes-suffix {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+/* ─── Slice 9.3d-c additions: PDF editor file row ─── */
+
+/* Two visual states. When a file is attached, this row shows
+ * the icon + filename + size + Preview + Replace; the upload
+ * picker disappears. When the file is freshly cleared (Replace
+ * tapped) or in create mode pre-upload, the inner UploadField
+ * shows instead — no special styles needed there.
+ */
+.pdf-editor-file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface-2, #f5f5f5);
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.pdf-editor-file-row-loading {
+  color: var(--text-muted, #888);
+  font-style: italic;
+}
+
+.pdf-editor-file-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.pdf-editor-file-name {
+  font-weight: 500;
+  word-break: break-all;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pdf-editor-file-size {
+  color: var(--text-muted, #888);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.pdf-editor-file-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.pdf-editor-preview-link {
+  font-size: 13px;
+  color: var(--link, #2563eb);
+  text-decoration: none;
+}
+
+.pdf-editor-preview-link:hover {
+  text-decoration: underline;
+}
+
+.pdf-editor-replace-btn {
+  background: transparent;
+  border: 1px solid var(--border, #d0d0d0);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-2, #444);
+}
+
+.pdf-editor-replace-btn:hover:not(:disabled) {
+  background: var(--surface-1, #fff);
+  border-color: var(--text-2, #888);
+}
+
+.pdf-editor-replace-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Slice 9.3c additions: blocks ───────────────── */
+
+/* The unit body is now a vertical sequence of mixed entries
+ * (loose activity rows OR block cards). The wrapper list governs
+ * vertical rhythm; per-entry styling lives on the rows/cards
+ * themselves. */
+.unit-body-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.unit-body-item {
+  display: block;
+}
+
+/* Bottom action row — paired dashed buttons. Two on desktop, one
+ * stacked column on narrow viewports. */
+.unit-detail-add-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .unit-detail-add-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Inline + Add block rename form. Replaces the trigger in place
+ * — same shape as activity-picker. */
+.add-block-inline {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.add-block-inline-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ─── Block card ───────────────────────────────── */
+
+.block-card {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.block-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+
+.block-card-head-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.block-card-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.block-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 2px 0 0;
+  line-height: 1.3;
+}
+
+.block-card-desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+  line-height: 1.4;
+  max-width: 60ch;
+}
+
+.block-card-controls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.block-card-action {
+  background: transparent;
+  border: 0;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 4px 10px;
+  height: 28px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  border-right: 1px solid var(--border);
+}
+.block-card-action:hover {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
+/* Re-use .activity-row-arrow / .activity-row-delete sizing on
+ * the block header — they sit inside the same control group so
+ * heights match. */
+.block-card-controls .activity-row-arrow,
+.block-card-controls .activity-row-delete {
+  height: 28px;
+  border-right: 1px solid var(--border);
+}
+.block-card-controls .activity-row-delete {
+  border-right: 0;
+}
+
+.block-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.block-card-empty {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--white);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+/* In-block "+ Add activity to block" — smaller / lighter than the
+ * outer unit-body add buttons; sits at the bottom of the block
+ * body. */
+.block-card-add {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 8px 12px;
+  background: var(--white);
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background-color 0.15s ease,
+    color 0.15s ease;
+}
+.block-card-add:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
+/* Slot under a block where the inline picker materialises when
+ * the tutor taps "+ Add activity to block." */
+.block-card-picker-slot {
+  margin-top: 4px;
+}
+
+/* ─── Activity row: move-into-block / move-out icons ─ */
+
+.activity-row-move {
+  background: transparent;
+  border: 0;
+  font-family: inherit;
+  font-size: 14px;
+  width: 32px;
+  height: 100%;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.activity-row-move:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ─── Move-into-block dialog ───────────────────── */
+
+.move-into-block-dialog {
+  max-width: 480px;
+}
+
+.move-into-block-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.move-into-block-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.move-into-block-item:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--bg-soft);
+}
+.move-into-block-item:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.move-into-block-item-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.move-into-block-item-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── Last-in-block confirm — stacked option buttons ─ */
+
+.confirm-dialog-wide {
+  max-width: 480px;
+}
+
+.confirm-dialog-actions-stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.confirm-dialog-actions-stacked .prog-btn {
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 10px 14px;
+  height: auto;
+  white-space: normal;
+}
+
+.confirm-action-help {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.confirm-dialog-actions-stacked .confirm-cancel {
+  align-items: center;
+  text-align: center;
+  font-style: normal;
+  margin-top: 4px;
+}
+
+/* ─── Slice 9.3d-a additions ─────────────────────── */
+
+/* Fallback message when a not-yet-supported type opens the modal
+ * (defensive — picker shouldn't allow it). */
+.activity-editor-unsupported {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--bg-soft);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* URL-row affordances: domain/provider chip + "Open in new tab"
+ * anchor under the URL input. Same row beneath the input,
+ * wraps on narrow viewports. */
+.activity-url-affordances {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  min-height: 22px;
+}
+
+.activity-url-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.activity-url-open {
+  font-size: 12px;
+  color: var(--primary);
+  text-decoration: none;
+}
+.activity-url-open:hover {
+  text-decoration: underline;
+}
+
+/* Online-live-session "When" row: datetime input + end-time
+ * chip on the same line, wraps on narrow viewports. */
+.activity-when-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.activity-when-input {
+  /* Constrain so the chip can sit alongside on desktop, wraps
+   * cleanly on mobile. */
+  max-width: 320px;
+}
+
+/* ─── Tutor-quiz Slice 2 — Mock + Practice quiz selector ─── */
+
+/* One-line confirmation of the linked quiz, shown under the
+ * selector dropdown: "Mock exam · Timed — free navigation ·
+ * 7 questions". */
+.activity-quiz-summary {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Inline / standalone warning — a linked quiz that's archived,
+ * draft, or missing, or a fetch failure. Reuses the danger token.
+ * As a <span> inside .activity-quiz-summary it ignores the top
+ * margin; as a standalone <p> it picks it up. */
+.activity-quiz-warn {
+  margin-top: 6px;
+  color: var(--danger);
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 

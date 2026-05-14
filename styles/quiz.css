@@ -1,0 +1,584 @@
+/* mynclex/styles/quiz.css
+ *
+ * Tutor-quiz surfaces (Tutor Quiz Slice 1): the /tutor/quizzes list
+ * and the /tutor/quiz/[id] editor. New domain file per CLAUDE.md
+ * folder convention #5.
+ *
+ * The quiz form modal reuses the .prog-modal-* / .prog-field-* form
+ * vocabulary from programmes.css (the established tutor form-modal
+ * pattern). The question picker's filter bar reuses .bank-filter-*
+ * from dashboards.css. Everything else is prefixed `.quiz(zes)-`.
+ */
+
+/* ─── List page header ────────────────────────────── */
+
+.quizzes-page {
+  max-width: 1080px;
+}
+
+.quizzes-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.quizzes-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.quizzes-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 560px;
+}
+
+.quizzes-new-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  background: var(--primary);
+  color: var(--white);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+.quizzes-new-btn:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+/* ─── Card grid ───────────────────────────────────── */
+
+.quizzes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+}
+.quizzes-grid.is-archived-bank {
+  margin-top: 12px;
+}
+
+/* ─── Quiz card ───────────────────────────────────── */
+
+.quiz-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.quiz-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
+  text-decoration: none;
+}
+.quiz-card.is-muted {
+  background: var(--bg);
+  opacity: 0.85;
+}
+.quiz-card.is-muted:hover {
+  opacity: 1;
+}
+
+.quiz-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.quiz-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.quiz-card-desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.quiz-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.quiz-card-kind {
+  font-weight: 600;
+  color: var(--text);
+}
+.quiz-card-meta {
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* ─── Status pills ────────────────────────────────── */
+
+.quiz-pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.quiz-pill.is-published {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+.quiz-pill.is-draft {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+.quiz-pill.is-archived {
+  background: var(--bg);
+  color: var(--text-faint);
+  border-color: var(--border);
+}
+
+/* ─── Archived toggle ─────────────────────────────── */
+
+.quizzes-archived-toggle {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  padding: 12px 0 8px;
+  cursor: pointer;
+  text-align: left;
+  display: block;
+  margin-top: 8px;
+}
+.quizzes-archived-toggle:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+/* ─── Empty state ─────────────────────────────────── */
+
+.quizzes-empty {
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--white);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+}
+.quizzes-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+.quizzes-empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 auto 18px;
+  max-width: 460px;
+  line-height: 1.5;
+}
+.quizzes-empty-cta {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  background: var(--primary);
+  color: var(--white);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.quizzes-empty-cta:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+/* ─── Editor page ─────────────────────────────────── */
+
+.quiz-editor-page {
+  /* Fills the available content width — the two-column editor is a
+   * workbench, not a reading column, so it shouldn't sit narrow.
+   * The cap only rails ultra-wide monitors. */
+  max-width: 1800px;
+}
+
+.quiz-editor-backlink {
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+.quiz-editor-backlink a {
+  color: var(--text-muted);
+}
+.quiz-editor-backlink a:hover {
+  color: var(--text);
+}
+
+.quiz-editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+.quiz-editor-head-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.quiz-editor-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.quiz-editor-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.2;
+}
+.quiz-editor-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+.quiz-editor-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+.quiz-editor-kind {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ─── Editor buttons ──────────────────────────────── */
+
+.quiz-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+.quiz-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.quiz-btn-primary {
+  background: var(--primary);
+  color: var(--white);
+  border-color: var(--primary);
+}
+.quiz-btn-primary:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+.quiz-btn-ghost {
+  background: var(--white);
+  color: var(--text);
+  border-color: var(--border);
+}
+.quiz-btn-ghost:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+/* ─── Editor zones — two-column layout ────────────── */
+
+/* The quiz (left) and the question picker (right) sit side by
+ * side so the picker isn't pushed down the page as the selected
+ * list grows. Each column's LIST scrolls internally (see
+ * .quiz-item-list / .quiz-picker-list) so neither column pushes
+ * the other. Stacks below a narrow breakpoint. */
+.quiz-editor-columns {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.quiz-zone {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+
+/* In the two-column layout each zone is an equal-width column.
+ * min-width:0 lets the flex child shrink so the stem line-clamp
+ * works instead of the column forcing itself wide. */
+.quiz-editor-columns .quiz-zone {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/* The picker's filter bar reuses .bank-filter-row (a 5-track
+ * grid built for the full-width bank page) — too wide for the
+ * narrower right column, so restack it 2×2 here. */
+.quiz-col-picker .bank-filter-row {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 880px) {
+  .quiz-editor-columns {
+    flex-direction: column;
+  }
+  .quiz-editor-columns .quiz-zone {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+}
+
+.quiz-zone-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+.quiz-zone-count {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.quiz-zone-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+.quiz-zone-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 16px 0 4px;
+}
+
+/* ─── Selected-questions list ─────────────────────── */
+
+.quiz-item-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* Scrolls internally so a long quiz doesn't make the left
+   * column tower over the picker on the right. */
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+.quiz-item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+}
+
+.quiz-item-position {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.quiz-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quiz-item-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.quiz-item-stem {
+  font-size: 13px;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.quiz-item-cat {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.quiz-type-chip {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.quiz-diff-chip {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+.quiz-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.quiz-icon-btn {
+  font-family: inherit;
+  font-size: 13px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease;
+}
+.quiz-icon-btn:hover:not(:disabled) {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.quiz-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.quiz-icon-btn-danger:hover:not(:disabled) {
+  background: #fef2f2;
+  color: var(--danger);
+  border-color: #fecaca;
+}
+
+/* ─── Question picker ─────────────────────────────── */
+
+.quiz-picker-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0 8px;
+}
+.quiz-picker-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.quiz-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+.quiz-picker-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+}
+.quiz-picker-row.is-added {
+  background: var(--bg);
+  opacity: 0.7;
+}
+
+.quiz-picker-check {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.quiz-picker-check input[type='checkbox'] {
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+.quiz-picker-check input[type='checkbox']:disabled {
+  cursor: not-allowed;
+}
+
+.quiz-picker-added {
+  flex-shrink: 0;
+  align-self: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

@@ -2,9 +2,9 @@
 //
 // Tutor nav configs. Two contexts, each with its own sidebar:
 //   - Global    — cross-programme: programmes list, private bank,
-//                 students, payments, profile.
+//                 quizzes, students, payments, profile.
 //   - Programme — scoped to one programme: curriculum, sessions,
-//                 mocks, assignments, students, results.
+//                 assignments, students, results.
 //
 // To add/remove/reorder a sidebar item, edit this file only.
 //
@@ -34,6 +34,7 @@ export const TUTOR_GLOBAL_NAV: NavItem[] = [
       { key: 'bank-trends', label: 'Trend datasets', icon: 'book', href: '/tutor/bank/trends' },
     ],
   },
+  { key: 'quizzes',  label: 'Quizzes',     icon: 'target', href: '/tutor/quizzes' },
   { key: 'students', label: 'My Students', icon: 'users', href: '/tutor/students' },
   { key: 'payments', label: 'Payments',    icon: 'card',  href: '/tutor/payments' },
   { key: 'profile',  label: 'Profile',     icon: 'user',  href: '/tutor/profile' },
@@ -49,7 +50,6 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   { key: 'cohorts',     label: 'Cohorts',       icon: 'users',    href: '/tutor/programme/:programmeId/cohorts' },
   { key: 'curriculum',  label: 'Curriculum',    icon: 'layers',   href: '/tutor/programme/:programmeId/curriculum' },
   { key: 'sessions',    label: 'Live Sessions', icon: 'video',    href: '/tutor/programme/:programmeId/sessions' },
-  { key: 'mocks',       label: 'Mocks',         icon: 'target',   href: '/tutor/programme/:programmeId/mocks' },
   { key: 'assignments', label: 'Assignments',   icon: 'edit',     href: '/tutor/programme/:programmeId/assignments' },
   { key: 'students',    label: 'Students',      icon: 'users',    href: '/tutor/programme/:programmeId/students' },
   { key: 'results',     label: 'Results',       icon: 'chart',    href: '/tutor/programme/:programmeId/results' },
@@ -59,11 +59,13 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
  * Cohort-scoped nav. Sibling world of the programme nav — opened
  * when a tutor clicks into a specific cohort run. Hrefs contain
  * ':cohortId' which the cohort layout replaces with the actual
- * [cohort_id] route param. Slice 9.2c. Curriculum tab queues
- * behind Phase B's nclex_programme_units/blocks/activities.
+ * [cohort_id] route param. Slice 9.2c set up the chrome; slice
+ * 9.3f adds the Curriculum tab (the cohort's inclusion + release-
+ * date controls over the programme's template activities).
  */
 export const TUTOR_COHORT_NAV: NavItem[] = [
   { key: 'overview',      label: 'Overview',      icon: 'home',   href: '/tutor/cohort/:cohortId/overview' },
+  { key: 'curriculum',    label: 'Curriculum',    icon: 'layers', href: '/tutor/cohort/:cohortId/curriculum' },
   { key: 'students',      label: 'Students',      icon: 'users',  href: '/tutor/cohort/:cohortId/students' },
   { key: 'sessions',      label: 'Sessions',      icon: 'video',  href: '/tutor/cohort/:cohortId/sessions' },
   { key: 'announcements', label: 'Announcements', icon: 'edit',   href: '/tutor/cohort/:cohortId/announcements' },

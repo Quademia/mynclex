@@ -8,12 +8,21 @@
 // when the TUTOR_LED programme has zero cohorts: tutors landing
 // here see an obvious "+ Add your first cohort" call rather than
 // having to navigate to the Cohorts tab and find it there.
+//
+// Slice 9.3e adds the Publish / Archive status controls. Renders
+// at the top of the page — high-impact action, deserves prime
+// position. Independent of the cohort-empty CTA below it (the
+// CTA is TUTOR_LED-only; status controls apply to every mode).
 
 import { notFound } from 'next/navigation';
 import { Placeholder } from '@/components/nav/shared/placeholder';
-import { getProgrammeForShell } from '@/lib/programmes/queries';
+import {
+  getProgrammeForShell,
+  getProgrammeStatus,
+} from '@/lib/programmes/queries';
 import { getCohortCountForProgramme } from '@/lib/cohorts/queries';
 import { NewCohortTrigger } from '@/lib/cohorts/new-cohort-trigger';
+import { ProgrammeStatusControls } from '@/lib/programmes/programme-status-controls';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,24 +33,27 @@ export default async function ProgrammeOverviewPage({
 }) {
   const { programme_id } = await params;
 
-  const programme = await getProgrammeForShell(programme_id);
-  if (!programme) notFound();
-
-  // SELF_PACED has no cohort layer — skip the cohort-empty CTA path.
-  const cohortCount =
-    programme.delivery_mode === 'SELF_PACED'
-      ? null
-      : await getCohortCountForProgramme(programme_id);
+  // Three parallel reads — shell context for the page itself,
+  // status context for the controls, cohort count for the empty
+  // CTA. All RLS-scoped to this tutor.
+  const [programme, status, cohortCount] = await Promise.all([
+    getProgrammeForShell(programme_id),
+    getProgrammeStatus(programme_id),
+    getCohortCountForProgramme(programme_id),
+  ]);
+  if (!programme || !status) notFound();
 
   return (
     <>
+      <ProgrammeStatusControls programme={status} />
+
       <Placeholder
         title="Overview"
         subtitle="Programme home"
         description="Next live session, announcements, weekly progress, cohort size."
       />
 
-      {cohortCount === 0 && (
+      {programme.delivery_mode === 'TUTOR_LED' && cohortCount === 0 && (
         <div className="programme-overview-cohorts-empty">
           <h2 className="programme-overview-cohorts-empty-title">
             No cohorts yet.

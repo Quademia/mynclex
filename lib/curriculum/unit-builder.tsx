@@ -1,18 +1,25 @@
 // mynclex/lib/curriculum/unit-builder.tsx
 //
-// Interactive body of the unit-detail page (slice 9.3b, mockup
-// screen 4). The page shell wraps the unit header + back link
-// server-side; this client component owns:
-//   • The loose-activity stack (rendered inline as .map()).
-//   • The "+ Add activity" trigger → inline 3×2 picker in place.
-//   • Modal state — which activity is being edited / created.
-//   • Delete confirm (simple yes/no — no type-to-confirm).
-//   • Reorder via up/down arrows wired to reorderActivityAction.
+// Interactive body of the unit-detail page. Renders the merged
+// unit-body sequence — interleaved <BlockCard> (with its own
+// activity stack) and loose <ActivityRow> entries — plus the
+// two bottom triggers ("+ Add activity" / "+ Add block") and
+// every modal/overlay the surface needs.
 //
-// Activities are loose-only in 9.3b (no blocks yet). Blocks layer
-// on top in 9.3c — they'll add a separate "+ Add block" trigger
-// alongside this one, and the block cards interleave with the
-// loose rows in the same body ordinal space.
+// State map:
+//   • pickerScope      — which entry point opened the type
+//                        picker (unit body vs. specific block)
+//   • addBlockOpen     — inline rename form for new blocks
+//   • modalState       — activity create/edit modal
+//   • editBlockTarget  — block-edit modal
+//   • editUnitOpen     — unit-edit modal (carried over from 9.3b)
+//   • deleteActivity   — simple or last-in-block delete confirm
+//   • deleteBlock      — block delete confirm (with cascade count)
+//   • moveActivityTo   — move-into-block picker dialog
+//
+// Slice 9.3c — blocks layer on the loose-activity foundation
+// from 9.3b. The bottom triggers are the only place new entries
+// originate; reorder + move-in/out happen via row controls.
 
 'use client';
 
@@ -21,91 +28,177 @@ import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { ActivityPicker } from './activity-picker';
 import { ActivityModal } from './activity-modal';
+import { ActivityRow } from './activity-row';
+import { BlockCard } from './block-card';
+import { BlockFormModal } from './block-form-modal';
 import { UnitFormModal } from './unit-form-modal';
+import { DeleteActivityConfirm } from '@/lib/overlays/curriculum/delete-activity-confirm';
+import { DeleteBlockConfirm } from '@/lib/overlays/curriculum/delete-block-confirm';
+import { LastInBlockPrompt } from '@/lib/overlays/curriculum/last-in-block-prompt';
+import { MoveIntoBlockMenu } from '@/lib/overlays/curriculum/move-into-block-menu';
 import {
+  createBlockAction,
   deleteActivityAction,
+  deleteBlockAction,
+  deleteLastBlockActivityAction,
+  moveActivityIntoBlockAction,
+  moveActivityOutOfBlockAction,
   reorderActivityAction,
+  reorderBlockAction,
 } from './actions';
+import { composeUnitBody } from './unit-body';
 import { unitLabel, unitStatusLabel, unitStatusPillClass } from './format';
 import type {
   ActivityType,
   ProgrammeActivity,
+  ProgrammeBlock,
   ProgrammeUnit,
 } from './types';
 import type { UnitLabel } from '@/lib/programmes/types';
 
 interface UnitBuilderProps {
   unit: ProgrammeUnit;
+  blocks: ProgrammeBlock[];
   activities: ProgrammeActivity[];
   programmeUnitLabel: UnitLabel;
 }
 
-// Picker icons match activity-picker tile copy — keep the row
-// glyph in sync.
-const TYPE_ICON: Record<ActivityType, string> = {
-  TEXT: '📝',
-  PDF: '📄',
-  EXTERNAL_LINK: '🔗',
-  LIVE_SESSION: '🎥',
-  MOCK: '🎯',
-  PRACTICE_QUIZ: '✏️',
-};
+type PickerScope =
+  | null
+  | { kind: 'unit' }
+  | { kind: 'block'; blockId: string };
 
-const TYPE_LABEL: Record<ActivityType, string> = {
-  TEXT: 'Text',
-  PDF: 'PDF',
-  EXTERNAL_LINK: 'Link',
-  LIVE_SESSION: 'Live session',
-  MOCK: 'Mock',
-  PRACTICE_QUIZ: 'Practice quiz',
-};
+type ActivityModalState =
+  | { kind: 'closed' }
+  | { kind: 'create'; type: ActivityType; blockId: string | null }
+  | { kind: 'edit'; activity: ProgrammeActivity };
+
+type DeleteActivityState =
+  | null
+  | { kind: 'simple'; activity: ProgrammeActivity }
+  | { kind: 'last-in-block'; activity: ProgrammeActivity; blockTitle: string };
 
 export function UnitBuilder({
   unit,
+  blocks,
   activities,
   programmeUnitLabel,
 }: UnitBuilderProps) {
   const router = useRouter();
-  const [isReorderPending, startReorderTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  // Picker visibility — inline in place of the "+ Add activity"
-  // button.
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // Picker (in-place 3×2 type grid). Null = button visible.
+  const [pickerScope, setPickerScope] = useState<PickerScope>(null);
 
-  // Activity modal — either "create" (with a chosen type) or
-  // "edit" (with the existing row).
-  const [modalState, setModalState] = useState<
-    | { kind: 'closed' }
-    | { kind: 'create'; type: ActivityType }
-    | { kind: 'edit'; activity: ProgrammeActivity }
-  >({ kind: 'closed' });
+  // Inline "+ Add block" rename form.
+  const [addBlockOpen, setAddBlockOpen] = useState(false);
+  const [addBlockTitle, setAddBlockTitle] = useState('');
 
-  // Edit-unit modal.
-  const [editUnitOpen, setEditUnitOpen] = useState(false);
+  // Activity create/edit modal.
+  const [modalState, setModalState] = useState<ActivityModalState>({
+    kind: 'closed',
+  });
 
-  // Delete-activity confirm — simple yes/no per the slice planning
-  // discussion (low-stakes; not type-to-confirm).
-  const [deleteTarget, setDeleteTarget] = useState<ProgrammeActivity | null>(
+  // Block edit / delete state.
+  const [editBlockTarget, setEditBlockTarget] = useState<ProgrammeBlock | null>(
     null
   );
-  const [isDeletePending, startDeleteTransition] = useTransition();
+  const [deleteBlockTarget, setDeleteBlockTarget] = useState<{
+    block: ProgrammeBlock;
+    activityCount: number;
+  } | null>(null);
 
-  function handlePick(type: ActivityType) {
-    setPickerOpen(false);
-    setModalState({ kind: 'create', type });
+  // Unit edit (carried from 9.3b).
+  const [editUnitOpen, setEditUnitOpen] = useState(false);
+
+  // Delete-activity confirm — simple or last-in-block flavour.
+  const [deleteActivity, setDeleteActivity] = useState<DeleteActivityState>(
+    null
+  );
+
+  // Move-into-block picker.
+  const [moveActivityTo, setMoveActivityTo] =
+    useState<ProgrammeActivity | null>(null);
+
+  // ─── Derived data ───────────────────────────────────
+
+  const body = composeUnitBody(blocks, activities);
+  const hasBlocks = blocks.length > 0;
+
+  function activitiesInBlock(blockId: string): ProgrammeActivity[] {
+    return activities
+      .filter((a) => a.block_id === blockId)
+      .sort((a, b) => a.ordinal - b.ordinal);
   }
 
-  function handleRowClick(activity: ProgrammeActivity) {
+  // ─── Picker / type pick ─────────────────────────────
+
+  function openUnitPicker() {
+    setAddBlockOpen(false);
+    setPickerScope({ kind: 'unit' });
+  }
+  function openBlockPicker(blockId: string) {
+    setAddBlockOpen(false);
+    setPickerScope({ kind: 'block', blockId });
+  }
+  function closePicker() {
+    setPickerScope(null);
+  }
+  function handlePick(type: ActivityType) {
+    if (!pickerScope) return;
+    const blockId =
+      pickerScope.kind === 'block' ? pickerScope.blockId : null;
+    setPickerScope(null);
+    setModalState({ kind: 'create', type, blockId });
+  }
+
+  // ─── + Add block (inline rename) ────────────────────
+
+  function openAddBlock() {
+    setPickerScope(null);
+    setAddBlockTitle('');
+    setAddBlockOpen(true);
+  }
+  function cancelAddBlock() {
+    setAddBlockOpen(false);
+    setAddBlockTitle('');
+  }
+  function submitAddBlock() {
+    const trimmed = addBlockTitle.trim();
+    if (trimmed.length === 0) {
+      setError('Block title is required.');
+      return;
+    }
+    setError(null);
+    startTransition(async () => {
+      const result = await createBlockAction(unit.unit_id, {
+        title: trimmed,
+        description: '',
+        is_published: false,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setAddBlockOpen(false);
+      setAddBlockTitle('');
+      router.refresh();
+    });
+  }
+
+  // ─── Activity click / reorder / delete ──────────────
+
+  function handleActivityClick(activity: ProgrammeActivity) {
     setModalState({ kind: 'edit', activity });
   }
 
-  function handleReorder(
+  function handleActivityReorder(
     activity: ProgrammeActivity,
     direction: 'up' | 'down'
   ) {
     setError(null);
-    startReorderTransition(async () => {
+    startTransition(async () => {
       const result = await reorderActivityAction(
         activity.activity_id,
         direction
@@ -118,19 +211,132 @@ export function UnitBuilder({
     });
   }
 
-  function handleDeleteConfirm() {
-    if (!deleteTarget) return;
+  function handleActivityDeleteRequest(activity: ProgrammeActivity) {
+    if (activity.block_id === null) {
+      setDeleteActivity({ kind: 'simple', activity });
+      return;
+    }
+    // In-block: detect last-in-block to swap the prompt.
+    const siblings = activities.filter((a) => a.block_id === activity.block_id);
+    if (siblings.length <= 1) {
+      const parentBlock = blocks.find(
+        (b) => b.block_id === activity.block_id
+      );
+      setDeleteActivity({
+        kind: 'last-in-block',
+        activity,
+        blockTitle: parentBlock?.title ?? 'this block',
+      });
+    } else {
+      setDeleteActivity({ kind: 'simple', activity });
+    }
+  }
+
+  function handleSimpleDeleteConfirm() {
+    if (!deleteActivity || deleteActivity.kind !== 'simple') return;
     setError(null);
-    startDeleteTransition(async () => {
-      const result = await deleteActivityAction(deleteTarget.activity_id);
+    startTransition(async () => {
+      const result = await deleteActivityAction(
+        deleteActivity.activity.activity_id
+      );
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      setDeleteTarget(null);
+      setDeleteActivity(null);
       router.refresh();
     });
   }
+
+  function handleLastInBlockChoice(choice: 'cascade' | 'preserve') {
+    if (!deleteActivity || deleteActivity.kind !== 'last-in-block') return;
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteLastBlockActivityAction(
+        deleteActivity.activity.activity_id,
+        choice
+      );
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setDeleteActivity(null);
+      router.refresh();
+    });
+  }
+
+  // ─── Move-into-block / Move-out-of-block ────────────
+
+  function openMoveIntoBlock(activity: ProgrammeActivity) {
+    if (!hasBlocks) return;
+    setMoveActivityTo(activity);
+  }
+  function pickMoveTarget(blockId: string) {
+    if (!moveActivityTo) return;
+    const activityId = moveActivityTo.activity_id;
+    setError(null);
+    startTransition(async () => {
+      const result = await moveActivityIntoBlockAction(activityId, blockId);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setMoveActivityTo(null);
+      router.refresh();
+    });
+  }
+
+  function handleActivityMoveOut(activity: ProgrammeActivity) {
+    setError(null);
+    startTransition(async () => {
+      const result = await moveActivityOutOfBlockAction(activity.activity_id);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  // ─── Block reorder / edit / delete ──────────────────
+
+  function handleBlockReorder(
+    block: ProgrammeBlock,
+    direction: 'up' | 'down'
+  ) {
+    setError(null);
+    startTransition(async () => {
+      const result = await reorderBlockAction(block.block_id, direction);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  function handleBlockDeleteRequest(block: ProgrammeBlock) {
+    setDeleteBlockTarget({
+      block,
+      activityCount: activitiesInBlock(block.block_id).length,
+    });
+  }
+  function handleBlockDeleteConfirm() {
+    if (!deleteBlockTarget) return;
+    setError(null);
+    const blockId = deleteBlockTarget.block.block_id;
+    startTransition(async () => {
+      const result = await deleteBlockAction(blockId);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setDeleteBlockTarget(null);
+      router.refresh();
+    });
+  }
+
+  // ─── Render ─────────────────────────────────────────
 
   return (
     <>
@@ -167,92 +373,138 @@ export function UnitBuilder({
         </div>
       </header>
 
-      {/* ─── Activity stack ─────────────────────────── */}
+      {/* ─── Body — interleaved blocks + loose rows ─── */}
 
       <section className="unit-detail-body">
-        {activities.length === 0 && !pickerOpen && (
+        {body.length === 0 && !pickerScope && !addBlockOpen && (
           <p className="unit-detail-empty">
-            No activities yet. Tap <strong>+ Add activity</strong> below to
-            start building.
+            No content yet. Add an activity or a block to start building.
           </p>
         )}
 
-        {activities.length > 0 && (
-          <ul className="activity-list" role="list">
-            {activities.map((activity, idx) => {
+        {body.length > 0 && (
+          <ul className="unit-body-list" role="list">
+            {body.map((entry, idx) => {
               const isFirst = idx === 0;
-              const isLast = idx === activities.length - 1;
+              const isLast = idx === body.length - 1;
+              if (entry.kind === 'block') {
+                return (
+                  <li key={`block-${entry.block.block_id}`} className="unit-body-item">
+                    <BlockCard
+                      block={entry.block}
+                      activities={entry.activities}
+                      canMoveUp={!isFirst}
+                      canMoveDown={!isLast}
+                      reorderPending={isPending}
+                      onReorder={(direction) =>
+                        handleBlockReorder(entry.block, direction)
+                      }
+                      onEdit={() => setEditBlockTarget(entry.block)}
+                      onDelete={() => handleBlockDeleteRequest(entry.block)}
+                      onAddActivity={() => openBlockPicker(entry.block.block_id)}
+                      onActivityClick={handleActivityClick}
+                      onActivityReorder={handleActivityReorder}
+                      onActivityDelete={handleActivityDeleteRequest}
+                      onActivityMoveOut={handleActivityMoveOut}
+                    />
+                    {/* Inline picker if scoped to this block */}
+                    {pickerScope?.kind === 'block' &&
+                      pickerScope.blockId === entry.block.block_id && (
+                        <div className="block-card-picker-slot">
+                          <ActivityPicker
+                            onPick={handlePick}
+                            onCancel={closePicker}
+                          />
+                        </div>
+                      )}
+                  </li>
+                );
+              }
+              // Loose activity
               return (
-                <li key={activity.activity_id} className="activity-row">
-                  <button
-                    type="button"
-                    className="activity-row-main"
-                    onClick={() => handleRowClick(activity)}
-                  >
-                    <span className="activity-row-icon" aria-hidden="true">
-                      {TYPE_ICON[activity.type]}
-                    </span>
-                    <span className="activity-row-text">
-                      <span className="activity-row-title">{activity.title}</span>
-                      <span className="activity-row-meta">
-                        {TYPE_LABEL[activity.type]}
-                        {!activity.is_published && ' · Draft'}
-                      </span>
-                    </span>
-                  </button>
-
-                  <div
-                    className="activity-row-controls"
-                    role="group"
-                    aria-label="Row controls"
-                  >
-                    <button
-                      type="button"
-                      className="activity-row-arrow"
-                      aria-label="Move up"
-                      onClick={() => handleReorder(activity, 'up')}
-                      disabled={isFirst || isReorderPending}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className="activity-row-arrow"
-                      aria-label="Move down"
-                      onClick={() => handleReorder(activity, 'down')}
-                      disabled={isLast || isReorderPending}
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      className="activity-row-delete"
-                      aria-label="Delete activity"
-                      onClick={() => setDeleteTarget(activity)}
-                    >
-                      ✕
-                    </button>
-                  </div>
+                <li key={`act-${entry.activity.activity_id}`} className="unit-body-item">
+                  <ActivityRow
+                    activity={entry.activity}
+                    canMoveUp={!isFirst}
+                    canMoveDown={!isLast}
+                    reorderPending={isPending}
+                    onClick={() => handleActivityClick(entry.activity)}
+                    onReorder={(direction) =>
+                      handleActivityReorder(entry.activity, direction)
+                    }
+                    onDelete={() => handleActivityDeleteRequest(entry.activity)}
+                    onMoveIntoBlock={() => openMoveIntoBlock(entry.activity)}
+                    hasBlocks={hasBlocks}
+                  />
                 </li>
               );
             })}
           </ul>
         )}
 
-        {/* "+ Add activity" trigger / inline picker */}
-        {pickerOpen ? (
-          <ActivityPicker
-            onPick={handlePick}
-            onCancel={() => setPickerOpen(false)}
-          />
-        ) : (
-          <button
-            type="button"
-            className="unit-detail-add-btn"
-            onClick={() => setPickerOpen(true)}
-          >
-            + Add activity
-          </button>
+        {/* ─── Unit-scope picker (loose entry point) ──── */}
+
+        {pickerScope?.kind === 'unit' && (
+          <ActivityPicker onPick={handlePick} onCancel={closePicker} />
+        )}
+
+        {/* ─── Inline + Add block form ────────────────── */}
+
+        {addBlockOpen && (
+          <div className="add-block-inline">
+            <input
+              type="text"
+              className="prog-input"
+              value={addBlockTitle}
+              onChange={(e) => setAddBlockTitle(e.target.value)}
+              placeholder="Block title — e.g. Pre-tutorial reading"
+              autoFocus
+              disabled={isPending}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submitAddBlock();
+                if (e.key === 'Escape') cancelAddBlock();
+              }}
+            />
+            <div className="add-block-inline-actions">
+              <button
+                type="button"
+                className="prog-btn prog-btn-ghost"
+                onClick={cancelAddBlock}
+                disabled={isPending}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="prog-btn prog-btn-primary"
+                onClick={submitAddBlock}
+                disabled={isPending || addBlockTitle.trim() === ''}
+              >
+                {isPending ? 'Creating…' : 'Add block'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Bottom triggers (paired) ───────────────── */}
+
+        {!pickerScope && !addBlockOpen && (
+          <div className="unit-detail-add-row">
+            <button
+              type="button"
+              className="unit-detail-add-btn"
+              onClick={openUnitPicker}
+            >
+              + Add activity
+            </button>
+            <button
+              type="button"
+              className="unit-detail-add-btn"
+              onClick={openAddBlock}
+            >
+              + Add block
+            </button>
+          </div>
         )}
       </section>
 
@@ -263,6 +515,7 @@ export function UnitBuilder({
           mode="create"
           unitId={unit.unit_id}
           type={modalState.type}
+          blockId={modalState.blockId}
           onClose={() => setModalState({ kind: 'closed' })}
         />
       )}
@@ -289,45 +542,56 @@ export function UnitBuilder({
         />
       )}
 
-      {deleteTarget && (
-        <div
-          className="prog-modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Delete activity"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !isDeletePending) {
-              setDeleteTarget(null);
-            }
+      {editBlockTarget && (
+        <BlockFormModal
+          blockId={editBlockTarget.block_id}
+          initial={{
+            title: editBlockTarget.title,
+            description: editBlockTarget.description ?? '',
+            is_published: editBlockTarget.is_published,
           }}
-        >
-          <div className="confirm-dialog">
-            <h2 className="confirm-dialog-title">Delete this activity?</h2>
-            <p className="confirm-dialog-body">
-              <strong>{deleteTarget.title}</strong> will be removed from this
-              unit. This can&apos;t be undone.
-            </p>
-            <div className="confirm-dialog-actions">
-              <button
-                type="button"
-                className="prog-btn prog-btn-ghost"
-                onClick={() => setDeleteTarget(null)}
-                disabled={isDeletePending}
-                autoFocus
-              >
-                Keep activity
-              </button>
-              <button
-                type="button"
-                className="prog-btn prog-btn-danger"
-                onClick={handleDeleteConfirm}
-                disabled={isDeletePending}
-              >
-                {isDeletePending ? 'Deleting…' : 'Delete activity'}
-              </button>
-            </div>
-          </div>
-        </div>
+          onClose={() => setEditBlockTarget(null)}
+        />
+      )}
+
+      {moveActivityTo && (
+        <MoveIntoBlockMenu
+          activityTitle={moveActivityTo.title}
+          blocks={blocks}
+          onPick={pickMoveTarget}
+          onCancel={() => setMoveActivityTo(null)}
+          pending={isPending}
+        />
+      )}
+
+      {deleteActivity?.kind === 'simple' && (
+        <DeleteActivityConfirm
+          activityTitle={deleteActivity.activity.title}
+          pending={isPending}
+          onCancel={() => setDeleteActivity(null)}
+          onConfirm={handleSimpleDeleteConfirm}
+        />
+      )}
+
+      {deleteActivity?.kind === 'last-in-block' && (
+        <LastInBlockPrompt
+          activityTitle={deleteActivity.activity.title}
+          blockTitle={deleteActivity.blockTitle}
+          pending={isPending}
+          onMoveOut={() => handleLastInBlockChoice('preserve')}
+          onDeleteBoth={() => handleLastInBlockChoice('cascade')}
+          onCancel={() => setDeleteActivity(null)}
+        />
+      )}
+
+      {deleteBlockTarget && (
+        <DeleteBlockConfirm
+          blockTitle={deleteBlockTarget.block.title}
+          activityCount={deleteBlockTarget.activityCount}
+          pending={isPending}
+          onCancel={() => setDeleteBlockTarget(null)}
+          onConfirm={handleBlockDeleteConfirm}
+        />
       )}
 
       <ErrorToast error={error} onDismiss={() => setError(null)} />

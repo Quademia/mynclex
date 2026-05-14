@@ -1,0 +1,78 @@
+/* mynclex/styles/media.css
+ * Cross-cutting media UI — file uploaders, asset previews.
+ * Imported globally from app/(app)/layout.tsx so any consumer
+ * (curriculum editors, profile pages, admin tools) renders the
+ * shared look without per-feature CSS.
+ */
+
+.upload-field {
+  display: block;
+}
+
+.upload-field-input {
+  /* Inherits .prog-input. File inputs are awkward to style cross-
+   * browser — leave the native chrome alone and just gate the
+   * accept attribute. */
+  padding: 6px 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.upload-field-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: var(--surface-2, #f5f5f5);
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.upload-field-filename {
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.upload-field-size {
+  color: var(--text-muted, #888);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.upload-field-progress {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted, #888);
+}
+
+.upload-field-progress-done {
+  color: var(--success, #1e7f3f);
+  font-weight: 500;
+}
+
+.upload-field-clear {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-muted, #888);
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.upload-field-clear:hover:not(:disabled) {
+  color: var(--danger, #d04040);
+}
+
+.upload-field-clear:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.prog-field-error {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--danger, #d04040);
+}

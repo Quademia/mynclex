@@ -479,3 +479,365 @@
   max-width: 440px;
   line-height: 1.5;
 }
+
+/* ─── Slice 9.3f — Cohort Curriculum tab (checklist) ─── */
+
+/* Empty-state when the parent programme has no template
+ * activities yet. */
+.cohort-checklist-empty {
+  text-align: center;
+  padding: 40px 24px;
+  background: var(--white);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+}
+.cohort-checklist-empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+.cohort-checklist-empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 auto;
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+/* Section wrapper. */
+.cohort-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cohort-checklist-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cohort-checklist-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cohort-checklist-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.cohort-checklist-units {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Single unit panel. */
+.cohort-checklist-unit {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cohort-checklist-unit-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cohort-checklist-unit-index {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cohort-checklist-unit-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cohort-checklist-unit-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.cohort-checklist-unit-empty {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.cohort-checklist-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* Block container. Mirrors the tutor curriculum block-card style
+ * but read-only (no add/edit/reorder inside a cohort view). */
+.cohort-checklist-block {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cohort-checklist-block-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cohort-checklist-block-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cohort-checklist-block-desc {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.cohort-checklist-block-empty {
+  margin: 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.cohort-checklist-block-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* Single activity row. Title button on the left (click-to-edit),
+ * release-date + included controls on the right. */
+.cohort-checklist-row {
+  display: flex;
+  align-items: stretch;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.cohort-checklist-row.is-excluded {
+  background: var(--bg-soft);
+  opacity: 0.7;
+}
+
+.cohort-checklist-row-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.cohort-checklist-row-main:hover {
+  background: var(--bg-soft);
+}
+
+.cohort-checklist-row-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.cohort-checklist-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cohort-checklist-row-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.cohort-checklist-row-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.cohort-checklist-row-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* "Excluded from cohort" badge — distinct from the Live/Draft
+ * pill so the tutor never confuses cohort state with template
+ * state. Greyer, no border, italic. */
+.cohort-checklist-excluded-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  font-style: italic;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* Row controls — the activity-window group + include toggle. */
+.cohort-checklist-row-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 12px;
+  border-left: 1px solid var(--border);
+  background: var(--bg-soft);
+}
+
+/* The activity-window group — three labelled date inputs (Opens /
+ * Due / Closes) kept together. Wraps as a unit if the row is
+ * cramped (slice 10.7). */
+.cohort-checklist-row-window {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cohort-checklist-row-date {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.cohort-checklist-row-date-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cohort-checklist-row-date-input {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--text);
+}
+
+.cohort-checklist-row-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.cohort-checklist-row-toggle input[type='checkbox'] {
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+/* Save-safety layer: top-of-page pending banner + per-row status pill. */
+
+/* Top-of-page banner shown while any row is dirty or has a save
+ * in flight. Aggregates the row count so the tutor knows how many
+ * changes are still travelling. */
+.cohort-checklist-pending-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 6px 12px;
+  background: #fef9c3;
+  color: #713f12;
+  border: 1px solid #fde68a;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cohort-checklist-pending-spinner {
+  font-size: 13px;
+  animation: cohort-checklist-spin 1.2s linear infinite;
+  display: inline-block;
+}
+
+@keyframes cohort-checklist-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Per-row save status pill. Sits beside the controls. Three
+ * visible states: 'saving' (yellow), 'saved' (green flash for
+ * 1.5s, then auto-dismisses), 'failed' (red, sticky until next
+ * edit). 'idle' renders nothing. */
+.cohort-checklist-save-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.cohort-checklist-save-pill.is-saving {
+  background: #fef9c3;
+  color: #713f12;
+  border-color: #fde68a;
+}
+.cohort-checklist-save-pill.is-saved {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+.cohort-checklist-save-pill.is-failed {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}

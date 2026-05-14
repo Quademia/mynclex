@@ -4,42 +4,53 @@
 // "+ Add activity" button in place — not a modal — so the tutor
 // keeps the unit body visible while choosing.
 //
-// 9.3b enables TEXT only; the other five tiles render disabled
-// with a "Coming soon" subline. As 9.3d adds editors, the
-// `enabled` set grows. No type ever disappears from the picker —
-// the grid shape is part of the affordance ("these are the six
-// kinds of activities you can add").
+// 9.3b enabled TEXT; 9.3d-a added EXTERNAL_LINK + ONLINE_LIVE_SESSION;
+// 9.3d-c added PDF; 9.3d-d enables MOCK + PRACTICE_QUIZ as
+// placeholders (the activity saves, but the central tutor-quiz
+// system that powers them ships in a later slice). No type ever
+// disappears from the picker — the grid shape is part of the
+// affordance ("these are the six kinds of activities you can add").
 
 'use client';
 
 import type { ActivityType } from './types';
+import { ACTIVITY_TYPE_ICON } from './format';
 
 // Tile copy per type. Mirrors curriculum-authoring-ux.md §6.
 // Order is the mockup's 3×2 layout: row 1 Text / PDF / Link,
-// row 2 Live session / Mock / Practice quiz.
+// row 2 Online live session / Mock / Practice quiz.
 const TILE_ORDER: ActivityType[] = [
   'TEXT',
   'PDF',
   'EXTERNAL_LINK',
-  'LIVE_SESSION',
+  'ONLINE_LIVE_SESSION',
   'MOCK',
   'PRACTICE_QUIZ',
 ];
 
-const TILE_COPY: Record<
-  ActivityType,
-  { label: string; sub: string; icon: string }
-> = {
-  TEXT:           { label: 'Text content',   sub: 'Notes & reading',      icon: '📝' },
-  PDF:            { label: 'PDF upload',     sub: 'Slides / handouts',    icon: '📄' },
-  EXTERNAL_LINK:  { label: 'External link',  sub: 'YouTube / website',    icon: '🔗' },
-  LIVE_SESSION:   { label: 'Live session',   sub: 'Tutorial / Q&A',       icon: '🎥' },
-  MOCK:           { label: 'Mock assessment',sub: 'Timed exam-style',     icon: '🎯' },
-  PRACTICE_QUIZ:  { label: 'Practice quiz',  sub: 'Bank-drawn quiz',      icon: '✏️' },
+// Icon is sourced from ACTIVITY_TYPE_ICON (shared) — only the
+// label + sub copy is picker-specific.
+const TILE_COPY: Record<ActivityType, { label: string; sub: string }> = {
+  TEXT:                { label: 'Text content',        sub: 'Notes & reading'   },
+  PDF:                 { label: 'PDF upload',          sub: 'Slides / handouts' },
+  EXTERNAL_LINK:       { label: 'External link',       sub: 'YouTube / website' },
+  ONLINE_LIVE_SESSION: { label: 'Online live session', sub: 'Tutorial / Q&A'    },
+  MOCK:                { label: 'Mock assessment',     sub: 'Timed exam-style'  },
+  PRACTICE_QUIZ:       { label: 'Practice quiz',       sub: 'Bank-drawn quiz'   },
 };
 
-// Types enabled in 9.3b. The picker greys out everything else.
-const ENABLED_TYPES: ReadonlyArray<ActivityType> = ['TEXT'];
+// All six types enabled as of 9.3d-d. MOCK + PRACTICE_QUIZ ship
+// as placeholders (no body fields, no student-launch path until
+// the tutor-quiz system lands). The picker greys out anything not
+// on this list — currently nothing.
+const ENABLED_TYPES: ReadonlyArray<ActivityType> = [
+  'TEXT',
+  'PDF',
+  'EXTERNAL_LINK',
+  'ONLINE_LIVE_SESSION',
+  'MOCK',
+  'PRACTICE_QUIZ',
+];
 
 interface ActivityPickerProps {
   onPick: (type: ActivityType) => void;
@@ -79,7 +90,7 @@ export function ActivityPicker({ onPick, onCancel }: ActivityPickerProps) {
               aria-label={copy.label}
             >
               <span className="activity-picker-tile-icon" aria-hidden="true">
-                {copy.icon}
+                {ACTIVITY_TYPE_ICON[type]}
               </span>
               <span className="activity-picker-tile-label">{copy.label}</span>
               <span className="activity-picker-tile-sub">

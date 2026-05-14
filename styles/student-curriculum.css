@@ -1,0 +1,835 @@
+/* mynclex/styles/student-curriculum.css
+ *
+ * Slice 10.1 — student-facing curriculum viewer + the
+ * <ProgrammeSwitcherOverlay> + sidebar "Switch programme" trigger.
+ * New domain file per CLAUDE.md folder convention #5 — kept
+ * separate from the tutor-side curriculum.css so the two surfaces
+ * evolve independently.
+ *
+ * Classes:
+ *   - .student-curriculum*       → curriculum viewer head/units
+ *   - .student-unit*             → per-unit card
+ *   - .student-block*            → block card inside a unit
+ *   - .student-activity*         → activity card inside a unit/block
+ *   - .sidebar-column            → wraps sidebar switcher + sidebar
+ *   - .sidebar-switcher-btn      → "Switch programme" button atop sidebar
+ *   - .programme-switcher-*      → overlay modal
+ */
+
+/* ─────────────────────────────────────────────────────
+ * Sidebar column (wraps switcher button + sidebar)
+ * ───────────────────────────────────────────────────── */
+
+.sidebar-column {
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* The .sidebar inside .sidebar-column drops its own border-right
+ * (the column provides it) and its own background (the column
+ * provides it). Standalone .sidebar callers (Bank) keep both. */
+.sidebar-column > .sidebar {
+  border-right: none;
+  background: transparent;
+}
+
+@media (max-width: 640px) {
+  .sidebar-column {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.sidebar-switcher-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 16px);
+  margin: 12px 8px 4px;
+  padding: 10px 12px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 120ms, background 120ms;
+  text-align: left;
+}
+
+.sidebar-switcher-btn:hover {
+  border-color: var(--accent);
+  background: var(--white);
+}
+
+.sidebar-switcher-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sidebar-switcher-chev {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+
+/* ─────────────────────────────────────────────────────
+ * <ProgrammeSwitcherOverlay>
+ * ───────────────────────────────────────────────────── */
+
+.programme-switcher-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 24px;
+}
+
+.programme-switcher-panel {
+  width: 100%;
+  max-width: 560px;
+  max-height: 80vh;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.programme-switcher-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.programme-switcher-head h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.programme-switcher-close {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.programme-switcher-close:hover {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
+.programme-switcher-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.programme-switcher-loading,
+.programme-switcher-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.programme-switcher-error {
+  padding: 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.programme-switcher-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.programme-switcher-item {
+  width: 100%;
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: block;
+}
+
+button.programme-switcher-item {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.programme-switcher-item.is-clickable {
+  transition: border-color 120ms;
+}
+
+.programme-switcher-item.is-clickable:hover {
+  border-color: var(--accent);
+}
+
+.programme-switcher-item.is-clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.programme-switcher-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.programme-switcher-item-tagline {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.programme-switcher-item-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 0;
+}
+
+.programme-switcher-cohorts {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 6px;
+}
+
+.programme-switcher-cohorts-empty {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.programme-switcher-cohort {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg-soft);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms, background 120ms;
+}
+
+.programme-switcher-cohort:hover {
+  border-color: var(--accent);
+  background: var(--white);
+}
+
+.programme-switcher-cohort:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.programme-switcher-cohort-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.programme-switcher-cohort-dates {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+
+/* ─────────────────────────────────────────────────────
+ * /student/programme/[id]/curriculum and
+ * /student/cohort/[id]/curriculum (viewer)
+ * ───────────────────────────────────────────────────── */
+
+.student-curriculum {
+  max-width: 880px;
+  padding: 24px;
+}
+
+.student-curriculum-head {
+  margin-bottom: 24px;
+}
+
+.student-curriculum-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.student-curriculum-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 60ch;
+  line-height: 1.5;
+}
+
+.student-curriculum-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+.student-curriculum-units {
+  display: grid;
+  gap: 20px;
+}
+
+/* ─── Unit card ─────────────────────────────────────── */
+
+.student-unit {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.student-unit-head {
+  margin-bottom: 16px;
+}
+
+.student-unit-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.student-unit-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+  line-height: 1.3;
+}
+
+.student-unit-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.student-unit-empty {
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+
+.student-unit-body {
+  display: grid;
+  gap: 10px;
+}
+
+/* ─── Block card ────────────────────────────────────── */
+
+.student-block {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  background: var(--bg-soft);
+}
+
+.student-block-head {
+  margin-bottom: 10px;
+}
+
+.student-block-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 2px;
+}
+
+.student-block-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.student-block-empty {
+  padding: 10px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.student-block-body {
+  display: grid;
+  gap: 8px;
+}
+
+/* ─── Activity card ─────────────────────────────────── */
+
+.student-activity {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.student-activity-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.student-activity-icon {
+  font-size: 15px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.student-activity-type {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  background: var(--bg-soft);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.student-activity-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.student-activity-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
+.student-activity-note {
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg-soft);
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin: 8px 0 0;
+}
+
+/* Locked row — a tutor-led activity outside its window (slice
+ * 10.6 / 10.7): LOCKED before release, CLOSED past close. Visible
+ * but not openable — the title is muted and the action area is
+ * replaced by a "🔒 Opens / Closed <date>" line. */
+.student-activity.is-locked .student-activity-title {
+  color: var(--text-muted);
+}
+
+.student-activity-locked {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* "Due <date>" line on an OPEN activity that has a due date
+ * (slice 10.7). Soft — it never gates access; once past, an
+ * overdue tint. */
+.student-activity-due {
+  margin: 10px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.student-activity-due.is-overdue {
+  color: var(--warning);
+}
+
+/* ─── Activity action area (slice 10.1b) ────────────────
+ * The curriculum page is a launcher: each activity card
+ * carries one action button. Estimated time sits on the
+ * left, button on the right. Buttons render disabled until
+ * the per-type viewer slices flip them live one at a time.
+ */
+
+.student-activity-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.student-activity-est {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.student-activity-launch {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--white);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.student-activity-launch:hover:not(:disabled) {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.student-activity-launch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.student-activity-launch:disabled {
+  background: var(--bg-soft);
+  border-color: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ─── Activity viewer modal (slice 10.2) ────────────────
+ * Shared frame (<ViewerModalShell>) for modal-shaped per-type
+ * activity viewers. External link is the first; Live session /
+ * PDF reuse the same frame later. Mirrors the .programme-switcher
+ * modal styling above so student-side modals feel consistent.
+ */
+
+.viewer-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 24px;
+}
+
+.viewer-modal-panel {
+  width: 100%;
+  max-width: 460px;
+  max-height: 80vh;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Wide variant — the Text reading viewer wants a comfortable
+ * reading width. */
+.viewer-modal-panel-wide {
+  max-width: 680px;
+}
+
+.viewer-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.viewer-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.viewer-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.viewer-modal-close:hover {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
+.viewer-modal-body {
+  padding: 16px 20px 20px;
+  overflow-y: auto;
+}
+
+/* ─── Viewer modal content (slice 10.2 / 10.3) ──────────
+ * Shared content vocabulary for every modal-shaped viewer —
+ * description, note, estimated time, the primary call-to-action
+ * button, and the "unavailable" fallback. Per-type viewers add
+ * their own classes for anything unique.
+ */
+
+.viewer-modal-content {
+  display: grid;
+  gap: 12px;
+}
+
+.viewer-modal-desc {
+  font-size: 14px;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.viewer-modal-note {
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg-soft);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.viewer-modal-est {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.viewer-modal-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+  padding: 12px 16px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.viewer-modal-cta:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+  text-decoration: none;
+}
+
+.viewer-modal-cta:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.viewer-modal-cta-sub {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.viewer-modal-broken {
+  font-size: 13px;
+  color: var(--danger);
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin: 4px 0 0;
+}
+
+/* ─── Live session viewer (slice 10.3) ──────────────────── */
+
+.live-session-status {
+  justify-self: start;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.live-session-status-upcoming {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.live-session-status-live {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.live-session-status-ended {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+}
+
+.live-session-when {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.live-session-when-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.live-session-when-meta {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.live-session-when-meta > span + span::before {
+  content: "·";
+  margin: 0 6px;
+  color: var(--text-faint);
+}
+
+.live-session-when-tz {
+  font-style: italic;
+}
+
+.live-session-recording {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+  padding: 8px;
+}
+
+/* ─── PDF viewer (slice 10.4) ───────────────────────────── */
+
+.pdf-viewer-status {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: 8px 0;
+  margin: 0;
+}
+
+.pdf-viewer-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.pdf-viewer-file-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.pdf-viewer-file-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pdf-viewer-file-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdf-viewer-file-size {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── Text viewer (slice 10.5) ──────────────────────────── */
+
+.text-viewer-body {
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.text-viewer-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}

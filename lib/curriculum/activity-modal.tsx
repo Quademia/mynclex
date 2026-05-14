@@ -2,19 +2,21 @@
 //
 // Activity editor modal shell. Holds:
 //   • The header (type label + Save / Cancel buttons + close).
-//   • The shared fields (Title + Note to student) — these sit
-//     above the divider for every type per
-//     curriculum-authoring-ux.md screen 6.
+//   • The shared fields (Title + Description + Note to student)
+//     — these sit above the divider for every type per
+//     curriculum-authoring-ux.md screen 6 (+ description added
+//     in slice 9.3d-a).
 //   • A slot below the divider that dispatches on activity type
-//     to the right body component (TextEditor in 9.3b; the other
-//     five land in 9.3d).
+//     to the right body component. TEXT + EXTERNAL_LINK +
+//     ONLINE_LIVE_SESSION shipped in 9.3d-a; PDF in 9.3d-c; MOCK
+//     + PRACTICE_QUIZ ship as placeholders in 9.3d-d (body has no
+//     editable fields — just an explanation panel — pending the
+//     central tutor-quiz system).
 //
-// The shell is reusable across contexts. Today it's invoked from
-// <UnitBuilder> (programme curriculum); in 9.3f the cohort-only-
-// activity flow will invoke it from the cohort curriculum tab.
-// Neither caller passes the server action directly — the modal
-// runs the action itself based on `mode` so both call sites get
-// the same Save behaviour.
+// Body state is a discriminated union by type so each branch
+// holds exactly the fields its editor needs. Initial body in
+// create mode = empty defaults for the chosen type; in edit
+// mode = parsed from activity.payload via per-type readers.
 //
 // Cancel with unsaved edits surfaces <DiscardConfirm> — same
 // guard pattern as <ProgrammeFormModal> / <CohortFormModal>.
@@ -26,12 +28,25 @@ import { useRouter } from 'next/navigation';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { TextEditor } from './text-editor';
-import { createActivityAction, editActivityAction } from './actions';
+import { ExternalLinkEditor } from './external-link-editor';
+import { OnlineLiveSessionEditor } from './online-live-session-editor';
+import { PdfEditor } from './pdf-editor';
+import { QuizSelectorEditor } from './quiz-selector-editor';
+import {
+  createActivityAction,
+  editActivityAction,
+  getOwnedAssetPreviewAction,
+} from './actions';
 import type {
+  ActivityFormValues,
   ActivityType,
+  ExternalLinkActivityBodyValues,
+  OnlineLiveSessionActivityBodyValues,
+  PdfActivityBodyValues,
+  PdfActivityPreview,
   ProgrammeActivity,
+  QuizActivityBodyValues,
   TextActivityBodyValues,
-  TextActivityFormValues,
 } from './types';
 
 type ActivityModalProps =
@@ -39,6 +54,8 @@ type ActivityModalProps =
       mode: 'create';
       unitId: string;
       type: ActivityType;
+      // null → loose under the unit. Set → append to that block.
+      blockId: string | null;
       onClose: () => void;
     }
   | {
@@ -47,27 +64,173 @@ type ActivityModalProps =
       onClose: () => void;
     };
 
-// Display name + tile copy by activity type. Used in the modal
-// header and the picker. Matches curriculum-authoring-ux.md §6.
+// Display name in the modal header by activity type. Mirrors the
+// picker copy in activity-picker.tsx.
 const TYPE_LABELS: Record<ActivityType, string> = {
   TEXT: 'Text content',
   PDF: 'PDF upload',
   EXTERNAL_LINK: 'External link',
-  LIVE_SESSION: 'Live session',
+  ONLINE_LIVE_SESSION: 'Online live session',
   MOCK: 'Mock assessment',
   PRACTICE_QUIZ: 'Practice quiz',
 };
 
-function readTextBodyFromActivity(activity: ProgrammeActivity): TextActivityBodyValues {
-  const payload = activity.payload as { body?: string; estimated_minutes?: number };
-  return {
-    body: payload.body ?? '',
-    estimated_minutes:
-      typeof payload.estimated_minutes === 'number'
-        ? String(payload.estimated_minutes)
-        : '',
-  };
+// Discriminated body-state by activity type. The four editor-
+// enabled types each carry their own value shape. MOCK +
+// PRACTICE_QUIZ have no editable body fields today (placeholders
+// per slice 9.3d-d) — they carry an empty marker. UNSUPPORTED
+// stays as defence-in-depth for any future type the modal hasn't
+// learned about yet.
+type EditorBodyState =
+  | { type: 'TEXT'; values: TextActivityBodyValues }
+  | { type: 'PDF'; values: PdfActivityBodyValues }
+  | { type: 'EXTERNAL_LINK'; values: ExternalLinkActivityBodyValues }
+  | {
+      type: 'ONLINE_LIVE_SESSION';
+      values: OnlineLiveSessionActivityBodyValues;
+    }
+  | { type: 'MOCK'; values: QuizActivityBodyValues }
+  | { type: 'PRACTICE_QUIZ'; values: QuizActivityBodyValues }
+  | { type: 'UNSUPPORTED' };
+
+// ---------- Per-type initial body readers ----------
+
+function emptyBody(type: ActivityType): EditorBodyState {
+  switch (type) {
+    case 'TEXT':
+      return { type, values: { body: '', estimated_minutes: '' } };
+    case 'PDF':
+      return { type, values: { pdf_asset_id: null, estimated_minutes: '' } };
+    case 'EXTERNAL_LINK':
+      return { type, values: { url: '', estimated_minutes: '' } };
+    case 'ONLINE_LIVE_SESSION':
+      return {
+        type,
+        values: {
+          scheduled_at: '',
+          duration_minutes: '',
+          join_url: '',
+          recording_url: '',
+        },
+      };
+    case 'MOCK':
+      return { type, values: { quiz_id: null } };
+    case 'PRACTICE_QUIZ':
+      return { type, values: { quiz_id: null } };
+    default:
+      return { type: 'UNSUPPORTED' };
+  }
 }
+
+function bodyFromActivity(activity: ProgrammeActivity): EditorBodyState {
+  const p = activity.payload as Record<string, unknown>;
+  const asStr = (v: unknown) => (typeof v === 'string' ? v : '');
+  const asNumStr = (v: unknown) =>
+    typeof v === 'number' ? String(v) : '';
+
+  switch (activity.type) {
+    case 'TEXT':
+      return {
+        type: 'TEXT',
+        values: {
+          body: asStr(p.body),
+          estimated_minutes: asNumStr(p.estimated_minutes),
+        },
+      };
+    case 'PDF':
+      return {
+        type: 'PDF',
+        values: {
+          pdf_asset_id: asStr(p.pdf_asset_id) || null,
+          estimated_minutes: asNumStr(p.estimated_minutes),
+        },
+      };
+    case 'EXTERNAL_LINK':
+      return {
+        type: 'EXTERNAL_LINK',
+        values: {
+          url: asStr(p.url),
+          estimated_minutes: asNumStr(p.estimated_minutes),
+        },
+      };
+    case 'ONLINE_LIVE_SESSION': {
+      const iso = asStr(p.scheduled_at);
+      return {
+        type: 'ONLINE_LIVE_SESSION',
+        values: {
+          scheduled_at: iso ? utcIsoToLocalInput(iso) : '',
+          duration_minutes: asNumStr(p.duration_minutes),
+          join_url: asStr(p.join_url),
+          recording_url: asStr(p.recording_url),
+        },
+      };
+    }
+    case 'MOCK':
+      return {
+        type: 'MOCK',
+        values: { quiz_id: asStr(p.quiz_id) || null },
+      };
+    case 'PRACTICE_QUIZ':
+      return {
+        type: 'PRACTICE_QUIZ',
+        values: { quiz_id: asStr(p.quiz_id) || null },
+      };
+    default:
+      return { type: 'UNSUPPORTED' };
+  }
+}
+
+// UTC ISO → local "YYYY-MM-DDTHH:MM" for the datetime-local input.
+function utcIsoToLocalInput(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
+// ---------- Dirty comparison ----------
+
+function bodyEqual(a: EditorBodyState, b: EditorBodyState): boolean {
+  if (a.type !== b.type) return false;
+  if (a.type === 'TEXT' && b.type === 'TEXT') {
+    return (
+      a.values.body === b.values.body &&
+      a.values.estimated_minutes === b.values.estimated_minutes
+    );
+  }
+  if (a.type === 'PDF' && b.type === 'PDF') {
+    return (
+      a.values.pdf_asset_id === b.values.pdf_asset_id &&
+      a.values.estimated_minutes === b.values.estimated_minutes
+    );
+  }
+  if (a.type === 'EXTERNAL_LINK' && b.type === 'EXTERNAL_LINK') {
+    return (
+      a.values.url === b.values.url &&
+      a.values.estimated_minutes === b.values.estimated_minutes
+    );
+  }
+  if (a.type === 'ONLINE_LIVE_SESSION' && b.type === 'ONLINE_LIVE_SESSION') {
+    return (
+      a.values.scheduled_at === b.values.scheduled_at &&
+      a.values.duration_minutes === b.values.duration_minutes &&
+      a.values.join_url === b.values.join_url &&
+      a.values.recording_url === b.values.recording_url
+    );
+  }
+  if (a.type === 'MOCK' && b.type === 'MOCK') {
+    return a.values.quiz_id === b.values.quiz_id;
+  }
+  if (a.type === 'PRACTICE_QUIZ' && b.type === 'PRACTICE_QUIZ') {
+    return a.values.quiz_id === b.values.quiz_id;
+  }
+  return true; // UNSUPPORTED — no editable fields
+}
+
+// ---------- Component ----------
 
 export function ActivityModal(props: ActivityModalProps) {
   const router = useRouter();
@@ -79,30 +242,72 @@ export function ActivityModal(props: ActivityModalProps) {
   const activityType = isEdit ? props.activity.type : props.type;
   const typeLabel = TYPE_LABELS[activityType];
 
-  // Shared fields — Title + Note. Pre-fill from row in edit mode.
+  // Shell fields — Title + Description + Note + Live/Draft.
+  // Pre-fill in edit mode; defaults on create (is_published =
+  // false matches the DB default and the unit/block modal pattern).
   const [title, setTitle] = useState(isEdit ? props.activity.title : '');
-  const [note, setNote] = useState(isEdit ? (props.activity.note ?? '') : '');
-
-  // Type-specific body state. Currently TEXT only (others greyed
-  // in the picker). When 9.3d ships, branch this on activityType
-  // and lazily mount the right body component.
-  const [textBody, setTextBody] = useState<TextActivityBodyValues>(
-    isEdit
-      ? readTextBodyFromActivity(props.activity)
-      : { body: '', estimated_minutes: '' }
+  const [description, setDescription] = useState(
+    isEdit ? (props.activity.description ?? '') : ''
   );
+  const [note, setNote] = useState(isEdit ? (props.activity.note ?? '') : '');
+  const [isPublished, setIsPublished] = useState(
+    isEdit ? props.activity.is_published : false
+  );
+
+  // Type-specific body state — discriminated union.
+  const initialBody: EditorBodyState = isEdit
+    ? bodyFromActivity(props.activity)
+    : emptyBody(activityType);
+  const [body, setBody] = useState<EditorBodyState>(initialBody);
+
+  // PDF preview metadata. Fetched whenever a PDF asset becomes
+  // attached — both in edit-mode initial load (if the activity
+  // already has a pdf_asset_id) and after a fresh upload. Cleared
+  // on Replace. The current pdf_asset_id is the dep that drives
+  // the fetch; the action mints a 1-hour signed URL via service
+  // role (the asset table's RLS already gates ownership at the
+  // SELECT).
+  const [pdfPreview, setPdfPreview] = useState<PdfActivityPreview | null>(null);
+
+  const currentPdfAssetId =
+    body.type === 'PDF' ? body.values.pdf_asset_id : null;
+
+  useEffect(() => {
+    if (currentPdfAssetId === null) {
+      setPdfPreview(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const result = await getOwnedAssetPreviewAction(currentPdfAssetId);
+      if (cancelled) return;
+      if (result.ok) {
+        setPdfPreview({
+          original_filename: result.original_filename,
+          size_bytes: result.size_bytes,
+          signed_url: result.signed_url,
+        });
+      } else {
+        setPdfPreview(null);
+        setError(result.error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPdfAssetId]);
 
   // Track dirty state so Cancel surfaces the discard guard.
   const initialTitle = isEdit ? props.activity.title : '';
+  const initialDescription = isEdit ? (props.activity.description ?? '') : '';
   const initialNote = isEdit ? (props.activity.note ?? '') : '';
-  const initialBody = isEdit
-    ? readTextBodyFromActivity(props.activity)
-    : { body: '', estimated_minutes: '' };
+  const initialIsPublished = isEdit ? props.activity.is_published : false;
   const isDirty =
     title !== initialTitle ||
+    description !== initialDescription ||
     note !== initialNote ||
-    textBody.body !== initialBody.body ||
-    textBody.estimated_minutes !== initialBody.estimated_minutes;
+    isPublished !== initialIsPublished ||
+    !bodyEqual(body, initialBody);
 
   function attemptClose() {
     if (isPending) return;
@@ -119,36 +324,146 @@ export function ActivityModal(props: ActivityModalProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDirty, isPending]);
 
-  function handleSubmit() {
-    const trimmed = title.trim();
-    if (trimmed.length === 0) {
+  // Parse body state → ActivityFormValues for the server action.
+  // Returns null and sets error if client-side validation fails;
+  // the server re-validates everything regardless.
+  function buildValues(): ActivityFormValues | null {
+    const trimmedTitle = title.trim();
+    if (trimmedTitle.length === 0) {
       setError('Title is required.');
-      return;
+      return null;
     }
-    setError(null);
-
-    const estimatedMinutesNum = textBody.estimated_minutes.trim() === ''
-      ? null
-      : parseInt(textBody.estimated_minutes, 10);
-    if (
-      estimatedMinutesNum !== null &&
-      (!Number.isInteger(estimatedMinutesNum) || estimatedMinutesNum < 1)
-    ) {
-      setError('Estimated time must be a positive number, or blank.');
-      return;
-    }
-
-    const values: TextActivityFormValues = {
-      title: trimmed,
+    const common = {
+      title: trimmedTitle,
+      description,
       note,
-      body: textBody.body,
-      estimated_minutes: estimatedMinutesNum,
+      is_published: isPublished,
     };
+
+    if (body.type === 'TEXT') {
+      const emRaw = body.values.estimated_minutes.trim();
+      const em = emRaw === '' ? null : parseInt(emRaw, 10);
+      if (em !== null && (!Number.isInteger(em) || em < 1)) {
+        setError('Estimated time must be a positive number, or blank.');
+        return null;
+      }
+      return {
+        type: 'TEXT',
+        ...common,
+        body: body.values.body,
+        estimated_minutes: em,
+      };
+    }
+
+    if (body.type === 'PDF') {
+      if (body.values.pdf_asset_id === null) {
+        setError('Please upload a PDF before saving.');
+        return null;
+      }
+      const emRaw = body.values.estimated_minutes.trim();
+      const em = emRaw === '' ? null : parseInt(emRaw, 10);
+      if (em !== null && (!Number.isInteger(em) || em < 1)) {
+        setError('Estimated time must be a positive number, or blank.');
+        return null;
+      }
+      return {
+        type: 'PDF',
+        ...common,
+        pdf_asset_id: body.values.pdf_asset_id,
+        estimated_minutes: em,
+      };
+    }
+
+    if (body.type === 'EXTERNAL_LINK') {
+      const url = body.values.url.trim();
+      if (url.length === 0) {
+        setError('URL is required.');
+        return null;
+      }
+      const emRaw = body.values.estimated_minutes.trim();
+      const em = emRaw === '' ? null : parseInt(emRaw, 10);
+      if (em !== null && (!Number.isInteger(em) || em < 1)) {
+        setError('Estimated time must be a positive number, or blank.');
+        return null;
+      }
+      return {
+        type: 'EXTERNAL_LINK',
+        ...common,
+        url,
+        estimated_minutes: em,
+      };
+    }
+
+    if (body.type === 'MOCK') {
+      return { type: 'MOCK', ...common, quiz_id: body.values.quiz_id };
+    }
+
+    if (body.type === 'PRACTICE_QUIZ') {
+      return {
+        type: 'PRACTICE_QUIZ',
+        ...common,
+        quiz_id: body.values.quiz_id,
+      };
+    }
+
+    if (body.type === 'ONLINE_LIVE_SESSION') {
+      const sched = body.values.scheduled_at.trim();
+      if (sched.length === 0) {
+        setError('Session date and time are required.');
+        return null;
+      }
+      let scheduledIso: string;
+      const d = new Date(sched);
+      if (isNaN(d.getTime())) {
+        setError('Session date/time is not valid.');
+        return null;
+      }
+      scheduledIso = d.toISOString();
+
+      const durRaw = body.values.duration_minutes.trim();
+      if (durRaw === '') {
+        setError('Duration is required.');
+        return null;
+      }
+      const dur = parseInt(durRaw, 10);
+      if (!Number.isInteger(dur) || dur < 1) {
+        setError('Duration must be a positive whole number of minutes.');
+        return null;
+      }
+
+      const joinUrl = body.values.join_url.trim();
+      if (joinUrl.length === 0) {
+        setError('Join URL is required.');
+        return null;
+      }
+
+      const recordingUrlTrimmed = body.values.recording_url.trim();
+      const recording_url =
+        recordingUrlTrimmed === '' ? null : recordingUrlTrimmed;
+
+      return {
+        type: 'ONLINE_LIVE_SESSION',
+        ...common,
+        scheduled_at: scheduledIso,
+        duration_minutes: dur,
+        join_url: joinUrl,
+        recording_url,
+      };
+    }
+
+    setError('This activity type is not editable yet.');
+    return null;
+  }
+
+  function handleSubmit() {
+    setError(null);
+    const values = buildValues();
+    if (values === null) return;
 
     startTransition(async () => {
       const result = isEdit
         ? await editActivityAction(props.activity.activity_id, values)
-        : await createActivityAction(props.unitId, props.type, values);
+        : await createActivityAction(props.unitId, values, props.blockId);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -160,8 +475,12 @@ export function ActivityModal(props: ActivityModalProps) {
 
   const headerTitle = isEdit ? `Edit · ${typeLabel}` : `New · ${typeLabel}`;
   const submitLabel = isEdit
-    ? isPending ? 'Saving…' : 'Save changes'
-    : isPending ? 'Creating…' : 'Add activity';
+    ? isPending
+      ? 'Saving…'
+      : 'Save changes'
+    : isPending
+      ? 'Creating…'
+      : 'Add activity';
 
   return (
     <>
@@ -205,6 +524,18 @@ export function ActivityModal(props: ActivityModalProps) {
               </label>
 
               <label className="prog-field">
+                <span className="prog-field-label">Description</span>
+                <textarea
+                  className="prog-input"
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  disabled={isPending}
+                  placeholder="Optional. What this activity is about — appears under the title on the student's checklist."
+                />
+              </label>
+
+              <label className="prog-field">
                 <span className="prog-field-label">Note to student</span>
                 <textarea
                   className="prog-input"
@@ -212,19 +543,109 @@ export function ActivityModal(props: ActivityModalProps) {
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   disabled={isPending}
-                  placeholder="Optional. A line shown above the activity body."
+                  placeholder="Optional. A directive shown above the activity body (e.g., when to do it)."
                 />
               </label>
+
+              <div className="prog-field">
+                <span className="prog-field-label">Status</span>
+                <label className="prog-toggle prog-toggle-inline">
+                  <input
+                    type="checkbox"
+                    checked={isPublished}
+                    onChange={(e) => setIsPublished(e.target.checked)}
+                    disabled={isPending}
+                  />
+                  <span>Live — student-visible in cohorts</span>
+                </label>
+                <span className="prog-field-help">
+                  Off → Draft. Draft activities don&apos;t surface in
+                  any cohort&apos;s checklist.
+                </span>
+              </div>
             </section>
 
             <div className="activity-modal-divider" />
 
-            {activityType === 'TEXT' && (
+            {body.type === 'TEXT' && (
               <TextEditor
-                values={textBody}
-                onChange={setTextBody}
+                values={body.values}
+                onChange={(values) =>
+                  setBody({ type: 'TEXT', values })
+                }
                 disabled={isPending}
               />
+            )}
+
+            {body.type === 'PDF' && (
+              <PdfEditor
+                values={body.values}
+                onChange={(values) =>
+                  setBody({ type: 'PDF', values })
+                }
+                preview={pdfPreview}
+                onUploaded={(assetId) =>
+                  setBody({
+                    type: 'PDF',
+                    values: { ...body.values, pdf_asset_id: assetId },
+                  })
+                }
+                onClearAsset={() =>
+                  setBody({
+                    type: 'PDF',
+                    values: { ...body.values, pdf_asset_id: null },
+                  })
+                }
+                disabled={isPending}
+              />
+            )}
+
+            {body.type === 'EXTERNAL_LINK' && (
+              <ExternalLinkEditor
+                values={body.values}
+                onChange={(values) =>
+                  setBody({ type: 'EXTERNAL_LINK', values })
+                }
+                disabled={isPending}
+              />
+            )}
+
+            {body.type === 'ONLINE_LIVE_SESSION' && (
+              <OnlineLiveSessionEditor
+                values={body.values}
+                onChange={(values) =>
+                  setBody({ type: 'ONLINE_LIVE_SESSION', values })
+                }
+                disabled={isPending}
+              />
+            )}
+
+            {body.type === 'MOCK' && (
+              <QuizSelectorEditor
+                type="MOCK"
+                quizId={body.values.quiz_id}
+                onChange={(quiz_id) =>
+                  setBody({ type: 'MOCK', values: { quiz_id } })
+                }
+                disabled={isPending}
+              />
+            )}
+
+            {body.type === 'PRACTICE_QUIZ' && (
+              <QuizSelectorEditor
+                type="PRACTICE_QUIZ"
+                quizId={body.values.quiz_id}
+                onChange={(quiz_id) =>
+                  setBody({ type: 'PRACTICE_QUIZ', values: { quiz_id } })
+                }
+                disabled={isPending}
+              />
+            )}
+
+            {body.type === 'UNSUPPORTED' && (
+              <p className="activity-editor-unsupported">
+                This activity type&apos;s editor isn&apos;t available yet.
+              </p>
             )}
           </div>
 

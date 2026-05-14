@@ -8,8 +8,757 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-12):** **Slice 9.3b — Unit Builder +
-> Text activity.** First editing surface in Phase B. Tutors open
+> **Last shipped (2026-05-17):** **Tutor Quiz Slice 2 — link a
+> quiz into Mock/Practice activities** (+ a Slice 1 layout polish).
+>
+> **Slice 2.** The Mock/Practice curriculum activity editor's
+> static placeholder becomes a real "Choose a quiz" selector — a
+> dropdown of the tutor's PUBLISHED quizzes of the matching kind
+> (Mock activity → Mock quiz, Practice → Practice). The chosen
+> `quiz_id` is stored on the activity payload; a since-archived /
+> missing link is flagged inline. New `getActivityQuizPickerContext`
+> server action; `buildPayload` gates publishing (a Live quiz
+> activity must have a quiz; drafts may save without one);
+> `validateQuizForActivity` re-checks ownership + kind + published
+> status server-side. No schema change. Student launch stays Slice 3.
+>
+> **Slice 1 polish.** The quiz editor's stacked layout → two
+> side-by-side columns (quiz left, picker right) so the picker
+> isn't pushed down as the quiz grows; each column's list scrolls
+> internally; editor page widened.
+>
+> Commits `83c214d` (polish) + `670a878` (Slice 2). See SESSIONS
+> 2026-05-17.
+>
+> **Earlier:** **Tutor Quiz Slice 1 — Quiz
+> foundation.** The reusable Mock/Practice quiz object + the tutor
+> surface to build one.
+>
+> **Schema.** Migration `20260516120000` adds `nclex_tutor_quizzes`
+> (the quiz plan — kind, mode, duration, pass_score, max_attempts,
+> status) + `nclex_tutor_quiz_items` (the ordered question
+> references). `mode` excludes `CAT` (adaptive selection
+> contradicts a hand-picked fixed list); a `(quiz_kind, mode)`
+> CHECK mirrors the attempts intent/mode tuple. `pass_score` is a
+> 0..1 fraction. Tutor-owned RLS.
+>
+> **Mirror catch-up.** `db/schema.sql` + `db/rls.sql` had drifted
+> from dev since slice 2.1.5 — back-ported the 7 unmirrored tables
+> (question_marks, curriculum units/blocks/activities, cohort
+> checklist, keepalive, media assets) plus the new quiz tables.
+> Verified parity against dev.
+>
+> **Surface.** `lib/tutor-quiz/` + `/tutor/quizzes` (list) +
+> `/tutor/quiz/[id]` (editor — metadata modal + ordered question
+> list + question picker). "Mocks" leaves the programme nav;
+> "Quizzes" joins the global tutor nav; the stale
+> `/tutor/programme/[id]/mocks` route is deleted.
+>
+> Sam reviewed the surface before approving the merge.
+>
+> Commit `33729ec`. See SESSIONS 2026-05-16.
+>
+> **Earlier:** **Slices 10.6–10.7 — Locked
+> activity rows + activity window.** Two follow-ons off the
+> per-type viewers, both about *when* a tutor-led activity is
+> reachable.
+>
+> **10.6 — Locked rows.** A tutor-led activity behind a future
+> release date was filtered out entirely, so its unit read "no
+> content yet" (a not-yet-started cohort looked like an empty
+> programme). `isVisibleToStudents()` is split: it now only
+> handles what genuinely HIDES an activity (draft / excluded). A
+> future release date no longer hides — the activity stays in the
+> tree as a locked "Opens <date>" row. Draft ≠ locked.
+>
+> **10.7 — Activity window (due + close dates).** Two nullable
+> columns on `nclex_cohort_checklist_items` complete the
+> per-activity window: release (opens) → due (soft target) →
+> close (hard gate). Sam settled the key distinction — due is soft
+> (activity stays open, "overdue" tint), close is a hard gate
+> (activity locks). Two separate optional columns, not one
+> ambiguous one. Rich due-date *pacing* stays progress-engine
+> territory; v1 just shows the date.
+>
+> **Tutor side.** Three new/updated checklist actions sharing
+> `validateWindowOrdering` (release ≤ due ≤ close, app-layer not a
+> DB CHECK). The cohort checklist row gains two more date inputs
+> via an extracted `<ChecklistDateField>`; the save-safety layer
+> extends across all three.
+>
+> **Student side.** `StudentActivity.openState` is a 3-way (LOCKED
+> / OPEN / CLOSED) via the new `activityOpenState()`. Viewer:
+> LOCKED → "Opens …"; OPEN → the action + a "Due …" line (overdue
+> tint when past); CLOSED → "Closed …".
+>
+> **Migration** `20260515160000` — two nullable DATE columns, no
+> trigger change, no backfill. Validation is app-layer.
+>
+> **One UX call flagged:** three date inputs per checklist row is
+> dense — shipped as a compact inline "window" group; expandable-
+> row fallback if it reads as too cramped.
+>
+> Sam smoke-tested both before approving the merge.
+>
+> Commit `6db89cf`. See SESSIONS 2026-05-15 (10.6–10.7).
+>
+> **Earlier:** **Slices 10.2–10.5 — Per-type
+> activity viewers.** The student curriculum launcher's "Open"
+> button goes live, one activity type at a time: External link
+> (10.2), Online live session (10.3), PDF (10.4), and Text reading
+> (10.5). Mock + Practice quiz stay disabled — blocked on the
+> central tutor-quiz system.
+>
+> **Architecture settled over several rounds with Sam.** Curriculum
+> = launcher, activity = destination; the list views (curriculum,
+> future weekly + calendar) stay dumb and just render a shared
+> `<ActivityAction>` piece per activity. "Component vs route" is a
+> false opposition — the genuinely shared unit is the per-type
+> *dispatch*, which lives in `<ActivityAction>` (owns the uniform
+> "Open" button + dispatch + any modal's open/close). Destinations
+> are *right-sized per type*: External link / Live session / PDF →
+> modals; Text reading → a wide modal for now (dedicated route
+> deferred to the rich-text-editor era); Mock / PQ → the existing
+> runner.
+>
+> **Shared thin shell.** New `<ViewerModalShell>` owns only the
+> modal plumbing (backdrop, Escape / click-outside / close,
+> narrow/wide size); each viewer fills it with unique content. Not
+> reused from `lib/bank/atoms/modal-frame.tsx` — that atom is
+> curator-internal per folder convention #12; this is the
+> student-side equivalent in `lib/curriculum/`.
+>
+> **PDF — on-demand signed URL, not a stored link.** A PDF
+> activity's payload carries only an opaque `pdf_asset_id`; the
+> file lives in a private bucket. The viewer mints a short-lived
+> signed URL on open via a new student-side action
+> (`getStudentPdfActivityUrl`), then hands off to the browser's PDF
+> viewer in a new tab. Sam asked about storing the link
+> permanently — rejected: a stored link can't be both permanent and
+> private (long-lived signed URL = leakable bearer token to paid
+> content; public URL = file public to the internet). On-demand
+> minting means leaked links die in an hour and access is
+> re-checked every open.
+>
+> **Consolidations.** `safeHttpUrl`, `providerLabelFor`,
+> `formatFileSize` pulled into `format.ts` as shared helpers (used
+> by the viewers AND the tutor editors); `.external-link-viewer-*`
+> CSS generalised to the shared `.viewer-modal-*` vocabulary.
+> `activityActionLabel` (10.1b) removed — superseded by the uniform
+> "Open" label.
+>
+> **No schema, no migration.** Test data: Sam attached a real PDF
+> to both PDF activities; three Text activities given long-form
+> NCLEX content to stress-test the wide modal.
+>
+> Sam smoke-tested each viewer as it shipped before approving the
+> batch merge.
+>
+> Commits `ecbff95` (10.2) + `c0f44cb` (10.3-10.5). See SESSIONS
+> 2026-05-15 (10.2–10.5).
+>
+> **Earlier:** **Slice 10.1b — Curriculum
+> launcher conversion + shared activity-type icon.** Restructures
+> the 10.1 student curriculum viewer: the curriculum page becomes
+> a course map / launcher, not a place where content is consumed
+> inline. Each activity is a summary row (type icon, title,
+> description, note, estimated time) with one action button;
+> content consumption moves to per-type viewer surfaces.
+>
+> **Core model locked.** Curriculum = map; Activity = destination;
+> Progress = tracker; Access = gate. 10.1's inline Text render was
+> always scaffold — this slice makes the shape honest. Each
+> activity type opens its own surface (reading page, PDF, external
+> link, session detail, quiz runner), never inline.
+>
+> **Structural-only — one pushback.** Sam's plan scoped 10.1b as
+> gutting `ActivityBody` + adding action buttons. Flagged: Text
+> *currently renders*, so buttons that go nowhere would be a
+> half-finished state. Resolution — the launcher shape lands and
+> every button ships **disabled** (honest "coming" state, not a
+> live-looking dead button); each type's actual launch becomes its
+> own small slice, taken one at a time. Sam left every per-activity
+> launch (even External link, trivially an `<a>`) for those
+> follow-on slices.
+>
+> **New format helpers.** `activityActionLabel` (per-type button
+> copy) + `activityEstimatedMinutes` (normalises the
+> `estimated_minutes` vs `duration_minutes` per-type payload
+> split).
+>
+> **Shared activity-type icon.** The type→icon map was duplicated
+> 4× (`activity-row`, `cohort-curriculum`, `activity-picker`,
+> `quiz-placeholder-editor`). Consolidated into one
+> `ACTIVITY_TYPE_ICON` const in `format.ts`; all four call sites +
+> the student card read from it. Labels stay per-surface ("Text"
+> vs "Reading") — only the icon is shared.
+>
+> **No migration.** Code + test data only. Both test programmes
+> were all-Text; seeded one of each remaining type into Unit 1 of
+> each (self-paced + tutor-led), plus cohort-checklist backfill so
+> the new tutor-led activities surface in the cohort view.
+>
+> Sam smoke-tested (launcher reads correctly, buttons disabled
+> with right copy, estimated-time shows/hides, tutor surfaces
+> unchanged) before approving merge.
+>
+> Commit `a81b7d0`. See SESSIONS 2026-05-15 (10.1b).
+>
+> **Earlier:** **Slice 10.1 — Student
+> curriculum viewer scaffold.** Opens Phase C. First student-
+> facing surface — curriculum viewer at `/student/programme/
+> [id]/curriculum` (self-paced) and `/student/cohort/[id]/
+> curriculum` (tutor-led). Plus an overlay-based programme
+> switcher accessible from the picker card, topbar Programme
+> pill, and a "Switch programme" button atop each detail
+> sidebar. Permissive v1 — any STUDENT can access any PUBLISHED
+> programme.
+>
+> **Architectural calls locked up-front.** ID-in-URL routes
+> (`/student/programme/[id]`, `/student/cohort/[id]`) over
+> parameter-free — symmetric with the tutor side, future-proof
+> for multi-enrolment. Text-only content rendering in 10.1
+> (other five activity types stub "viewer coming") — mirrors
+> the 9.3b → 9.3d-a/b/c/d authoring cadence. Single-item
+> sidebars (Curriculum) — no empty placeholders.
+>
+> **Mid-slice shift — page → overlay.** Originally shipped a
+> `/student/programmes` list route. Sam asked whether selection
+> had to be a page at all. Locked Shape B (component-only,
+> overlay opens from any trigger). NCLEX students have 1–3
+> programmes; the picker already serves the "where do you want
+> to go" role. Route deleted; replaced with
+> `<ProgrammeSwitcherOverlay>` (lazy-fetched server action) +
+> `<ProgrammeSwitcherTrigger>` generic wrapper. Three trigger
+> surfaces — picker card, topbar pill, sidebar button — all
+> open the same overlay.
+>
+> **RLS migration**
+> (`20260515120000_slice_10_1_student_curriculum_rls.sql`).
+> Six `*_student_select` policies (programmes, units, blocks,
+> activities, cohorts, checklist items), all gated on
+> `programme.status = 'PUBLISHED'`. RLS = hard wall (only
+> PUBLISHED leaks); TS `isVisibleToStudents()` = per-row
+> render filter (unit/block/activity `is_published`, plus
+> cohort `is_included` + `release_date` for tutor-led). Two
+> layers, two responsibilities. Both tighten to enrolment-
+> aware in the enrolment slice.
+>
+> **Access helpers** (`lib/access/student/`).
+> `requireStudent()` + `requireStudentProgrammeAccess` +
+> `requireStudentCohortAccess`. Each returns the loaded shell
+> data so callers don't refetch. Permissive v1 — body adds
+> the enrolment lookup later, in parallel with the RLS USING
+> clause update.
+>
+> **Queries + viewer.** `getStudentSelfPacedCurriculum` reads
+> the programme template directly; `getStudentCohortCurriculum`
+> joins through the cohort checklist. Both produce the same
+> `StudentCurriculumTree` shape — the viewer doesn't branch on
+> delivery mode. Activity body switches on `type`: Text inline,
+> the rest stubbed.
+>
+> **Routes.** New `/student/programme/[programme_id]/...` +
+> `/student/cohort/[cohort_id]/...` trees, each with its own
+> shell wrapper. Old parameter-free `/student/programme/
+> {overview,weeks,sessions,tasks,profile}` placeholders deleted
+> (per `routes_not_fixed` — when architecture moves, rebuild).
+>
+> **Bug found mid-test.** Topbar Programme pill from Bank
+> opened the no-programme upsell modal instead of the switcher
+> overlay. Bank layout still had `hasProgrammeEnrolment =
+> false`; flipped to true for permissive v1.
+>
+> Sam smoke-tested end-to-end (picker → overlay → cohort →
+> curriculum tree; sidebar "Switch programme" → overlay;
+> topbar pill from both Bank and inside a programme; ESC and
+> backdrop close; DRAFT URL → 404) before approving merge.
+>
+> **Earlier:** **Slice 9.3f — Cohort
+> curriculum checklist.** Closes Phase B. Adds the cohort
+> layer's curation surface — every template activity gets a
+> per-cohort row with inclusion + release-date controls. The
+> tutor authoring tree (units → blocks → activities) and the
+> cohort layer are now connected; the next layer is the
+> student-facing surface.
+>
+> **Architectural rule locked.** Cohort = pointer to template,
+> not a copy. Content edits propagate (title, body, PDF
+> replacement, recording URL). The ONE structural change that
+> doesn't auto-propagate is adding a NEW template activity to
+> an existing cohort (deferred "add-from-template" affordance).
+> Every other structural operation handles itself: DELETE via
+> ON DELETE CASCADE; REORDER + MOVE via live join through the
+> activity FK; ADD a new block surfaces when an activity is
+> moved into it. Sam's plan listed five "doesn't propagate"
+> cases — we refined it down to one before code.
+>
+> **Schema.** New `nclex_cohort_checklist_items` (checklist_item_id
+> / cohort_id / template_activity_id / is_included / release_date
+> / source / timestamps). UNIQUE (cohort_id, template_activity_id)
+> prevents trigger/backfill races. `release_date DATE` (not
+> TIMESTAMPTZ — symmetric with cohort.start_date; day-level
+> granularity is enough). `source` column ships ready for future
+> COHORT_ONLY adds.
+>
+> **AFTER INSERT trigger on `nclex_cohorts`** seeds one row per
+> current template activity with `release_date = start_date +
+> (unit_index - 1) × 7 days`. SECURITY DEFINER + REVOKE FROM
+> PUBLIC/anon/authenticated, matching the 9.1d lockdown pattern.
+> One-shot backfill for existing cohorts.
+>
+> **Five product calls locked up-front.** Sam accepted all
+> recommendations: (1) re-include affordance ships (toggle is
+> symmetric — same row, same flip); (2) click-through opens the
+> template editor modal (same `<ActivityModal>` as the curriculum
+> tab — one editor everywhere); (3) blocks always render even
+> when all children excluded (checklist is a control surface,
+> not a student preview); (4) individual badges, no synthesised
+> "hidden because X" line; (5) inline date input per row (fast
+> bulk editing).
+>
+> **Save-safety layer added mid-build** after Sam flagged a real
+> risk ("if a tutor makes changes to different ones quickly they
+> don't get saved"). Four pieces:
+> - Per-row save status pill — Saving / Saved (1.5s flash) /
+>   Failed (sticky).
+> - Page-level "Saving N changes…" banner with spinner.
+> - `beforeunload` guard while any row is dirty or saving.
+> - `onChange` debounce (600ms) alongside `onBlur` — catches
+>   calendar-picker change events.
+>
+> Visibility predicate `isVisibleToStudents()` extended with
+> optional `cohortIncluded` and `releaseDate` inputs (and a
+> `today` parameter for testability). Self-paced callers pass
+> null/undefined; tutor-led student-facing callers pass real
+> values.
+>
+> Sam smoke-tested end-to-end (tab appears, empty-state, toggle
+> Included, edit release-date, three-row bulk edit, click-through
+> edit, close-tab guard) before approving merge.
+>
+> Commit `e621afa`. See SESSIONS 2026-05-14 (9.3f).
+>
+> **Earlier:** **Slice 9.3e — Publish state +
+> content visibility.** Wires publish controls through every
+> layer of the curriculum tree and ships the single visibility
+> predicate that 9.3f will use to filter the cohort checklist.
+> Closes the "everything is built but nothing is student-visible"
+> gap that's been latent since 9.3a.
+>
+> **Activity publish toggle.** Adds the missing piece —
+> activities had an `is_published` column and a "· Draft" text
+> suffix on the row, but no UI to flip it. Now there's a Status
+> checkbox in the activity-modal's common-fields section
+> (matching the unit + block modal pattern), and the row pill
+> mirrors the unit/block pill aesthetic (shared `unit-pill`
+> class).
+>
+> **Per-unit aggregate display.** Unit cards now show a second
+> meta line under the existing counts: "*3 of 5 activities live ·
+> 1 of 2 blocks live*". Empty units skip it. The cards still show
+> the unit's own intention as the pill (not derived) — the meta
+> line is child reality. Query: three parallel reads (totals via
+> PostgREST embed + two filtered list queries via inner-join
+> through `nclex_programme_units` for programme-scoping).
+>
+> **Visibility predicate.** New `isVisibleToStudents()` in
+> `lib/curriculum/format.ts` — single AND-chain across
+> `programme.status='PUBLISHED'`, `unit.is_published`,
+> `block.is_published` (loose activities skip this), and
+> `activity.is_published`. Ships here as the source of truth;
+> 9.3f's cohort-checklist query is the first real caller.
+>
+> **Programme publish/archive.** Two new server actions on
+> `lib/programmes/actions.ts`. One-way lifecycle: DRAFT →
+> PUBLISHED → ARCHIVED. Publish stamps `published_at` on first
+> transition; archive stamps `archived_at`. No cascade to
+> children — the dual-publish design explicitly allows draft
+> children inside a Live parent. New
+> `<ProgrammeStatusControls>` on the Overview page with
+> state-dependent buttons (DRAFT → Publish primary + Archive
+> ghost; PUBLISHED → Archive danger; ARCHIVED → none) and
+> hint copy per state. Archive opens a type-DELETE confirm
+> overlay matching the existing destructive pattern; copy
+> varies between "active cohorts continue to their end dates"
+> (PUBLISHED) and "draft retired without ever going live"
+> (DRAFT).
+>
+> **Three product calls Sam locked up-front.** Sam accepted all
+> three recommendations: (1) no cascade on programme publish
+> (planning doc's dual-publish rule); (2) unlinked Mock/PQ
+> activities CAN be marked Live — flagged from 9.3d-d (defer
+> "Quiz coming soon" student-side render to a later slice);
+> (3) archive allowed from any state — DRAFT and PUBLISHED both
+> flow to ARCHIVED.
+>
+> **No migration.** All four `is_published` columns + the three
+> programme-lifecycle columns shipped in earlier slices. This
+> slice is wiring + UI + helpers.
+>
+> Sam smoke-tested end-to-end (activity Status toggle round-
+> trips, second meta line renders correctly, programme
+> Publish flips state, Archive confirm gates on DELETE, copy
+> adapts to current state, cohort-empty CTA still works,
+> unlinked Mock/PQ can publish) before approving merge.
+>
+> Commit `1ab5f7e`. See SESSIONS 2026-05-13 (9.3e).
+>
+> **Earlier the same day:** **Slice 9.3d-d — Mock + Practice
+> quiz placeholders.** Closes the activity-picker — the last two
+> tiles (Mock assessment + Practice quiz) flip live as curriculum
+> placeholders. Tutors can now author all six v1 activity types.
+>
+> **Architectural turn.** The slice was originally specced as
+> "metadata-only forms living inside the activity payload"
+> (count / time limit / pass score / due date / attempts /
+> release-results). Sam came back from a side discussion with a
+> better direction: a Mock/Practice activity shouldn't own a
+> miniature quiz system. The reusable quiz object will live in a
+> future `nclex_tutor_quizzes` table; the activity just carries
+> a thin `quiz_id` pointer. The existing attempt schema already
+> supports it — `source = PROGRAMME_ASSIGNED`,
+> `programme_activity_id`, runner doesn't care where attempts
+> come from.
+>
+> **Option A — curriculum placeholders only.** The activity
+> saves; body is non-interactive; no quiz settings, no question
+> selection, no student-launch path. The central tutor-quiz
+> system + selector ships in its own later slice.
+>
+> **Future-link payload shape.** Both types use
+> `{ quiz_id: string | null }` — null today, will hold a real id
+> when the selector ships. Locked rule: no separate
+> `quiz_link_status` column — derivable from `quiz_id`, so
+> `isQuizLinked(payload)` is a one-line helper in `format.ts`
+> (no second source of truth to keep in sync).
+>
+> **Single shared editor.** New `<QuizPlaceholderEditor type=>`
+> in `lib/curriculum/quiz-placeholder-editor.tsx` covers both
+> activity types via a type-keyed copy map. Mock copy emphasises
+> timed exam-style readiness; Practice quiz copy emphasises
+> learning-focused practice. When the future selector ships,
+> one file changes — both activity types pick up the wiring
+> together.
+>
+> **Three product/scope questions answered up-front.** Sam
+> accepted all three recommendations: (1) drop `quiz_link_status`
+> in favour of derivation; (2) shared editor over two; (3)
+> differentiated body copy over identical generic.
+>
+> **No migration.** JSONB column accepts the new payload shape;
+> activity-type CHECK constraint already includes MOCK +
+> PRACTICE_QUIZ from 9.3a.
+>
+> Sam smoke-tested end-to-end (create Mock, create Practice,
+> edit both, cancel-with-edits discard guard, save-without-title
+> error) before approving merge.
+>
+> Commit `eafc37f`. See SESSIONS 2026-05-13 (9.3d-d).
+>
+> **Earlier the same day:** **Slice 9.1d — Programme/unit
+> auto-sync (defect fix).** Closes a bug from slice 9.1 (shipped
+> 2026-05-10): newly-created programmes had an empty curriculum
+> tab because nothing seeded their unit rows. The 9.3a migration
+> backfilled the 7 programmes that existed at deploy time; every
+> programme created since came up empty. Same hole left
+> length-edit broken in both directions.
+>
+> **DB-layer invariant.** Two triggers on `nclex_programmes`:
+> `AFTER INSERT` seeds N unit rows; `AFTER UPDATE OF length_units`
+> reconciles (INSERT the new tail on increase, DELETE the surplus
+> tail on decrease — existing `ON DELETE CASCADE` handles blocks
+> + activities). Both functions `SECURITY DEFINER` and scoped to
+> the modified programme. One-time backfill in the migration
+> catches programmes created since 9.3a.
+>
+> **App-layer destructive-decrease gate.** `editProgrammeAction`
+> gains a `confirmDestructive` param + a `requiresConfirm`
+> result variant carrying the impact summary (units, blocks,
+> activities, indices). New `<ProgrammeLengthDecreaseConfirm>`
+> type-to-confirm overlay in a new `lib/overlays/programmes/`
+> folder. Empty trailing units shorten silently — only fires
+> when the doomed tail carries real content.
+>
+> **Two product decisions** locked up-front. Increase: silent
+> auto-add. Decrease with content: type-to-confirm cascade
+> (chose B over the three alternatives — block / empty-first /
+> silent — because we don't yet have a "delete a single unit"
+> feature). Decrease without content: silent.
+>
+> Sam smoke-tested all four paths (create new programme,
+> increase, decrease-empty, decrease-with-content) before
+> approving merge.
+>
+> Commit `51d43c4`. See SESSIONS 2026-05-13 (9.1d).
+>
+> **Earlier the same day:** **Slice 9.3d-c — PDF activity
+> (first consumer of the media foundation).** Lights up the PDF
+> tile in the activity picker. Tutors can now author TEXT + PDF
+> + EXTERNAL_LINK + ONLINE_LIVE_SESSION; MOCK + PRACTICE_QUIZ
+> stay "Coming soon" until 9.3d-d.
+>
+> **Scope split from the original 9.3d-c.** Original 9.3d-c
+> bundled PDF + Mock + Practice quiz. Sam asked for PDF first;
+> PDF and the question-list types are structurally different
+> enough that bundling would have meant a bigger slice without
+> shared work. Mock + PQ become **9.3d-d** (next).
+>
+> **PDF editor.** `<PdfEditor>` body component in
+> `lib/curriculum/pdf-editor.tsx`. Two visual states: upload
+> picker when no asset attached; file row (`📄 filename · size ·
+> [Preview ↗] [Replace]`) when one is. Preview ↗ opens the signed
+> URL in a new tab. Replace clears the asset, brings the picker
+> back, and the previous asset row is soft-deleted in the same
+> save (`status = 'DELETED'`, file stays in bucket for the
+> future sweeper per `media-assets.md` §4.7). Save is blocked
+> without an attached PDF — error toast "Please upload a PDF
+> before saving."
+>
+> **Payload shape.** `ActivityPayloadPdf` refined from the
+> provisional `{ storage_path }` to
+> `{ pdf_asset_id, estimated_minutes }`. JSONB payload, no
+> DB-level FK (per 9.3a's locked rule); ownership validity
+> enforced at the action layer via `validatePdfAssetForSave`.
+> No migration needed.
+>
+> **Server action additions.** `validatePdfAssetForSave` (RLS-
+> gated read confirms asset is owned, READY, purpose
+> PDF_ACTIVITY); `readExistingPdfAssetId` + `softDeleteAsset`
+> drive the replace flow; new `getOwnedAssetPreviewAction(assetId)`
+> returns `{ original_filename, size_bytes, signed_url }` for the
+> modal's file-row display (used in both edit-mode initial load
+> and fresh-upload preview minting). Signed URL minted via
+> `getAssetUrl` (service-role, 1-hour TTL — per the 9.3d-b
+> foundation).
+>
+> **Seven product/scope questions answered up-front** — split
+> bundle vs all-three; PDF required to save; replace flow (soft-
+> delete old); preview UI (link-only); student rendering (deferred
+> with the rest); `estimated_minutes` (yes); `displayed_filename`
+> override (no — YAGNI).
+>
+> **`/admin/media-test` removed.** The temporary smoke-test
+> route shipped in 9.3d-b is superseded by the real PDF editor.
+> Folder deleted in this slice.
+>
+> Sam smoke-tested end-to-end (create + edit + replace +
+> save-without-PDF blocked + Preview ↗ opens) before approving
+> merge.
+>
+> Commit `5d5e71a`. See SESSIONS 2026-05-13 (9.3d-c).
+>
+> **Earlier the same day:** **Slice 9.3d-b — Media
+> foundation.** Centralised media-asset system. Creates
+> `nclex_media_assets` (one control row per uploaded file), the
+> first Supabase Storage bucket (`nclex-pdf-activities`, private,
+> 25 MB cap, `application/pdf` only), a generic upload server
+> action, a generic `getAssetUrl` helper, and a generic
+> `<UploadField>` component. **No feature integration yet** —
+> PDF activity (9.3d-c), avatars, rationale images, future
+> videos all become consumers later, each as a one-slice add.
+>
+> **RLS shape.** Asset table is owner-only:
+> `owner_user_id = auth.uid()` OR SUPER_ADMIN for
+> SELECT/UPDATE/DELETE; INSERT pins `uploaded_by` and
+> `owner_user_id` to `auth.uid()` so a fresh row can't claim
+> someone else as uploader. Bucket denies direct reads —
+> service-role-minted signed URLs (1-hour TTL) are the
+> legitimate read path. Cross-feature access (students viewing
+> PDFs they're enrolled to see) does NOT live on the asset row;
+> it's gated at the consumer table's own RLS, and `getAssetUrl`
+> is called only after that check passes. Keeps the asset table
+> single-purpose: it knows nothing about enrolments, cohorts,
+> programmes.
+>
+> **storage_path shape:** `{purpose}/{uuid}.{ext}` —
+> e.g. `pdf_activity/8a3...c2.pdf`. Folder-per-purpose keeps the
+> dashboard browsable; UUID kills collisions and prevents PII
+> leaks via filename echo. `original_filename` preserved
+> separately for display.
+>
+> **Five product questions answered up-front** — bucket name
+> scope (renamed `nclex-pdfs` → `nclex-pdf-activities` to leave
+> room for future library + admin PDF buckets); PDF-only vs
+> Word/PowerPoint (strict PDF-only — renders consistently,
+> inline-viewable, no macro vector); bucket propagation to prod
+> (same manual MCP-apply path as tables, by putting the bucket
+> creation in the migration SQL); RLS shape; `<UploadField>`
+> placement (`components/media/`, visual side; plumbing in
+> `lib/media/`).
+>
+> **Temporary `/admin/media-test` route** (SUPER_ADMIN-gated)
+> ships in this slice so the foundation can be smoke-tested
+> end-to-end before any consumer feature exists. Removed in
+> 9.3d-c. Initial `_media-test` folder name 404'd — Next.js
+> treats underscore prefixes as "private folders" excluded from
+> routing.
+>
+> Sam smoke-tested end-to-end on dev (upload PDF → asset row
+> READY → fetch signed URL → opens in new tab) before approving
+> merge.
+>
+> Commit `05ffcf0`. See SESSIONS 2026-05-13 (9.3d-b).
+>
+> **Earlier the same day:** **Planning — media assets
+> architecture.** Settled the architectural plan at
+> `docs/product-plan/media-assets.md` (eight locked decisions)
+> and split slice 9.3d-b in two: the foundation slice (this
+> shipment) gets the 9.3d-b slot; PDF + Mock + Practice quiz
+> become 9.3d-c. See SESSIONS 2026-05-13 (planning).
+>
+> **Earlier — 2026-05-12:** **Slice 9.3d-a — External link +
+> Online live session.** Lights up two more of the six v1
+> activity types and adds a shared `description` column across
+> all activities. After this slice the picker enables TEXT +
+> EXTERNAL_LINK + ONLINE_LIVE_SESSION; PDF / MOCK /
+> PRACTICE_QUIZ remain "Coming soon" until 9.3d-c.
+>
+> **Schema migration (one file, two changes):** Adds
+> `nclex_programme_activities.description TEXT` (nullable) —
+> symmetric with units + blocks. Distinct semantic from the
+> existing `note` column: description is substantive ("what the
+> activity is about"), note is operational ("directive to the
+> student"). The modal shell renders Title → Description → Note
+> → divider in that order. The same migration also renames
+> `LIVE_SESSION` → `ONLINE_LIVE_SESSION` in the type CHECK
+> constraint — "live" describes synchronicity, "online" the
+> medium; the original name conflated two axes. Zero rows to
+> migrate (the picker never enabled LIVE_SESSION before now).
+> Future pair `IN_PERSON_LIVE_SESSION` (deferred — see below)
+> shares the "live" prefix, leaving room for a future
+> `RECORDED_SESSION` async type.
+>
+> **External link editor.** URL \* with two passive affordances
+> under it as the tutor types — auto-derived domain chip
+> (strips `www.`) + "Open link in new tab ↗" anchor (renders
+> only when URL is parseable + http/https). Estimated time
+> (optional, minutes) mirrors Text's pattern. Server gate
+> restricts URL scheme to http: / https: only so the future
+> student-side runner can render the link as a plain `<a>`
+> without an XSS vector.
+>
+> **Online live session editor.** Four fields: When \*
+> (datetime-local), Duration \* (minutes), Join URL \*,
+> Recording URL (optional, always visible). When input is in the
+> tutor's browser-local time — modal converts to UTC ISO on save
+> and back to local on edit. Italic help line under the input
+> shows the tutor's TZ + GMT offset explicitly. End-time chip
+> auto-derived from When + Duration. Provider chip auto-derived
+> from join_url host (Zoom / Google Meet / Microsoft Teams /
+> Webex / Whereby / fallback host). Recording URL stays
+> day-one-visible (no past-only gate) — tutor controls when to
+> fill it.
+>
+> **Modal refactor.** `<ActivityModal>` body state moves from a
+> hardcoded `textBody` to an `EditorBodyState` discriminated
+> union over the three editor-enabled types (plus an
+> UNSUPPORTED sentinel branch for defensive fallback). Per-type
+> initial-body readers handle create + edit; per-type
+> validation builds the `ActivityFormValues` discriminated
+> union the server actions accept.
+>
+> **Server-action refactor.** `createActivityAction` /
+> `editActivityAction` drop the TEXT-only gate and take a
+> discriminated `ActivityFormValues` argument (type folded into
+> values.type). New `buildPayload()` helper performs per-type
+> validation + JSONB payload assembly. `validateHttpUrl()` +
+> `validateScheduledAt()` are the per-field gates. Edit pins
+> `.eq('type', values.type)` so a stale client can't switch
+> types mid-edit.
+>
+> **Five product questions answered up-front** (External link)
+> and **four more** (Online live session) before code — Sam
+> accepted recommendations on all of them. One "Requires
+> account" toggle was dropped on Sam's pushback: students are
+> already authed into MyNclex, and we have no auth relationship
+> with non-QAcademy URLs. Good speculative-metadata catch.
+>
+> **In-person live session (`IN_PERSON_LIVE_SESSION`) deferred.**
+> Sam raised the question; YAGNI — no current tutor demand, and
+> the relevant design questions (room number? GPS? attendance?)
+> are unanswerable without a real workflow. Naming convention
+> already captured so adding it later is a one-sitting slice.
+>
+> Sam smoke-tested both new editors end-to-end (chip updates,
+> datetime round-trip, validation errors) before approving
+> merge.
+>
+> Commit `0710cb6`. See SESSIONS 2026-05-12 (9.3d-a).
+>
+> **Next ⏭:** **Per-type viewers + the cohort access window are
+> done.** Open student-side priorities: the student progress
+> engine + soft guidance (which also makes due dates *smart* —
+> urgency, "you're behind"); the central tutor-quiz system
+> (unlocks Mock + Practice quiz); full enrolment + payments system
+> (tightens the permissive access helpers shipped in 10.1). Sam to
+> pick.
+>
+> **Earlier the same day:** **Slice 9.3c — Blocks.** Activates
+> `nclex_programme_blocks` (shipped empty in 9.3a) via UI + eight
+> new server actions. Tutors can group related activities into
+> block cards inside a unit; blocks and loose activities
+> interleave in a shared ordinal sequence within the unit body.
+>
+> **UI shape.** Paired "+ Add activity" / "+ Add block" triggers
+> at the bottom of the unit body (side-by-side on desktop,
+> stacked on mobile). "+ Add block" reveals an inline title
+> input — Enter saves, Esc cancels — matching the activity-
+> picker's in-place replacement pattern. Description + Live/Draft
+> toggle land in the block-edit modal once the block exists.
+> Block card carries header (title + Draft pill + Edit / ↑↓ / ✕
+> controls) with an internal activity stack and an indented
+> "+ Add activity to block" dashed button. Loose-activity rows
+> gain a "Move into block →" button (visible only when ≥1 block
+> exists); in-block rows gain a "Move out as loose" button.
+>
+> **Reorder model.** In-block ↑↓ is a single-table sibling swap.
+> Loose ↑↓ swaps in the shared unit-body sequence — neighbours
+> can be blocks OR other loose activities (cross-table swap via
+> `loadUnitBodyOrdinals()` + `swapUnitBodyOrdinals()` helpers).
+> No UNIQUE constraint across tables; `composeUnitBody()` (pure
+> helper in `lib/curriculum/unit-body.ts`) carries a stable
+> tiebreaker so mid-state during a swap reads back coherently.
+>
+> **Empty-block prevention.** Deleting the last activity in a
+> block shows a two-option prompt — *"Move out as loose"* (rescue
+> activity, drop the block) or *"Delete the block too"* (cascade
+> both). Block-header ✕ shows a yes/no confirm with the cascade
+> activity count visible. Type-to-confirm intentionally skipped
+> at single-tutor scale.
+>
+> **Mid-slice refactor — overlays relocation.** Three destructive
+> confirms (delete-activity, delete-block, last-in-block prompt)
+> + the move-into-block menu moved out of inline JSX in
+> `unit-builder.tsx` into a new `lib/overlays/curriculum/` folder
+> per CLAUDE.md folder convention #12. Sam called the convention
+> after smoke-testing and the relocation was a pure refactor
+> mid-slice. `<DiscardConfirm>` reused from `lib/overlays/bank/`
+> for the modals' cancel-with-unsaved guards; its eventual move
+> to `overlays/shared/` deferred to a later cleanup.
+>
+> **Five product questions answered up-front before code.** Sam
+> accepted all five recommendations: (1) paired triggers
+> side-by-side; (2) inline rename for block create rather than
+> modal; (3) defer the mockup's "+ New block" wrap-this-activity
+> variant ("+ Add block" then "Move into block" achieves the
+> same in two clicks); (4) yes/no with cascade count rather than
+> type-to-confirm for block delete; (5) two-button stacked
+> prompt for last-in-block with italic help under each option.
+>
+> Schema unchanged — `nclex_programme_blocks` shipped empty in
+> 9.3a; this slice only writes to it.
+>
+> Sam smoke-tested the full flow end-to-end (create block, add
+> activity into it, move loose into block, reorder block past a
+> loose row, delete last-in-block activity with the two-option
+> prompt, delete block with cascade count) before approving
+> merge.
+>
+> Commit `46e9b8b`. See SESSIONS 2026-05-12 (9.3c).
+>
+> **Earlier the same day:** **Slice 9.3b — Unit Builder + Text
+> activity.** First editing surface in Phase B. Tutors open
 > a programme's curriculum tab, click a unit card, and land on a
 > Unit Builder page (`/curriculum/unit/<unit_id>`) where they can
 > author Text activities — add via inline 3×2 type picker (Text
@@ -42,17 +791,6 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > min each) in the 8-Week Bootcamp programme's Unit 1.
 >
 > Commit `e27ffe3`. See SESSIONS 2026-05-12 (9.3b).
->
-> **Next ⏭:** **Slice 9.3c — Blocks.** "+ Add block" entry point
-> on the Unit Builder alongside "+ Add activity". Block card UI
-> with its own activity stack + "+ Add activity to block". Reorder
-> a block within a unit. Row action "Move into block →" / "Move
-> out as loose". Empty-block prevention prompt on last-activity
-> delete. Blocks + loose entries interleave in any order in the
-> unit body (shared ordinal sequence). `nclex_programme_blocks`
-> table is already in place from 9.3a — this slice activates it
-> via UI + server actions + a small reorder rework so blocks and
-> loose activities live on one numeric line.
 >
 > **Earlier the same day:** **Slice 9.3a — Curriculum schema +
 > Units Overview (read-only).** Opens Phase B. Three new tables
@@ -370,6 +1108,48 @@ enrolment), `tutor-nav.html` (global vs programme nav contexts).
     around the edit button. Submit gated until form is dirty in
     edit mode. Migration
     `20260510130000_slice_9_1c_programmes_update_rls.sql`.
+  - ✅ **9.1d** Programme/unit auto-sync — defect fix shipped
+    2026-05-13. Sam spotted that newly-created programmes had an
+    empty curriculum tab — the 9.3a backfill seeded unit rows for
+    programmes existing at deploy time but nothing kept the
+    invariant (`count(units) = programme.length_units`) true
+    going forward. Same hole left length-edit broken in both
+    directions: increase added no new slots; decrease left
+    orphan units + content. Fix installs the invariant at the DB
+    layer:
+    - `AFTER INSERT` trigger on `nclex_programmes` seeds N unit
+      rows whenever a programme is created.
+    - `AFTER UPDATE OF length_units` trigger reconciles the unit
+      count — INSERTs the new tail on increase; DELETEs the
+      surplus tail on decrease (existing `ON DELETE CASCADE` on
+      blocks → unit + activities → unit/block cleans up
+      atomically).
+    - Both trigger functions run `SECURITY DEFINER` (justified:
+      they only fire after an RLS-gated insert/update on the
+      parent programme and operate scoped to that single row).
+    - One-time backfill `INSERT … WHERE NOT EXISTS` catches any
+      programme created since 9.3a that's currently missing
+      units (no-op for the 7 already-seeded ones).
+
+    Application-layer gate against accidental destruction —
+    `editProgrammeAction` gains a `confirmDestructive: boolean`
+    param + a new `requiresConfirm` result variant.
+    `measureDecreaseImpact()` helper queries the doomed unit
+    tail and counts blocks + activities + units with metadata
+    (title set, description set, is_published true). Empty
+    trailing units shorten silently; touched units trip the
+    confirm flow.
+
+    New overlay `lib/overlays/programmes/programme-length-
+    decrease-confirm.tsx` (new folder per CLAUDE.md rule #9,
+    surfaced + confirmed). Type-to-confirm shell modelled on
+    `<DeleteConfirm>`. Lists the impact in human form
+    ("Reducing the length will permanently delete Weeks 9–12
+    and their content (2 blocks, 5 activities)") with a
+    contiguous-range formatter on the indices.
+
+    Migration `20260513200000_slice_9_1d_programme_unit_sync.sql`.
+    Commit `51d43c4`. See SESSIONS 2026-05-13 (9.1d).
 
 - ✅ **9.2** Programme/Cohort architecture rework — planning settled
   2026-05-10 across 4 questions; curriculum layer architecture
@@ -563,37 +1343,253 @@ rebuild to suit.
   cards on the curriculum tab became clickable overlay-links into
   the Unit Builder. No blocks yet — flat unit body only. Commit
   `e27ffe3`. See SESSIONS 2026-05-12 (9.3b).
-- ⏭ **9.3c** Blocks — "+ Add block" entry point on Unit Builder;
-  block card UI with own activity stack + "+ Add activity to block";
-  reorder a block within a unit; row action "Move into block →" /
-  "Move out as loose"; empty-block prevention prompt on last-activity
-  delete (*"delete the block too, or move out as loose?"*). Blocks +
-  loose entries interleave in any order in the unit body (mockup
-  screen 4).
-- ⬜ **9.3d** Remaining activity types (5) — PDF (storage bucket
-  setup), External link (URL + estimated time; YouTube/Vimeo
-  rendering is student-side, deferred), Live session (date/time/
-  duration + join link + recording URL), Mock (count, time limit,
-  pass score, due date, attempts, release-results timing), Practice
-  quiz (count, due date, pass score, release-results timing). Mock
-  + Practice quiz **defer the question-selection UI** — they save
-  just the metadata fields in this slice; the bank filter builder
-  for both is its own slice tied into the bank consumption design.
-- ⬜ **9.3e** Publish state + content visibility — per-activity
-  Live/Draft pill (`activity.is_published`) + tutor controls; per-
-  unit aggregate status; programme-wide Publish action (DRAFT →
-  PUBLISHED), Archive action. Draft activities don't surface in
-  any cohort's checklist.
-- ⬜ **9.3f** Cohort curriculum tab (checklist) — new `Curriculum`
-  tab in the cohort detail subtree. Renders the same unit→block→
-  activity tree but as a *checklist*. Migration adds
-  `nclex_cohort_checklist_items` (one row per template item
-  included in this cohort, plus per-cohort `release_date`).
-  Default-on for every published template item at cohort create.
-  Tutor can **Remove from this cohort** per row and **Add back from
-  template** if previously removed. Per-cohort release date defaults
-  to `cohort.start_date + (unit_index − 1) × 7 days`; editable per
-  row without touching the template.
+- ✅ **9.3c** Blocks — shipped 2026-05-12. Activates
+  `nclex_programme_blocks` (shipped empty in 9.3a) via UI + eight
+  new server actions. Paired "+ Add activity" / "+ Add block"
+  triggers at the bottom of the unit body (side-by-side desktop,
+  stacked mobile). "+ Add block" reveals an inline title input
+  (Enter saves, Esc cancels); description + Live/Draft toggle
+  edited later via the block-edit modal. Block card carries
+  header + internal activity stack + indented "+ Add activity
+  to block". Loose-activity rows gain "Move into block →"
+  (visible only when ≥1 block exists); in-block rows gain
+  "Move out as loose". Reorder is single-table within a block
+  and cross-table in the unit body (`loadUnitBodyOrdinals()` +
+  `swapUnitBodyOrdinals()` helpers). Empty-block prevention:
+  deleting the last activity in a block shows a two-option
+  prompt (Move out as loose / Delete the block too); block-
+  header ✕ shows a yes/no confirm with cascade activity count.
+  Destructive confirms (delete-activity, delete-block, last-
+  in-block, move-into-block menu) live in
+  `lib/overlays/curriculum/` per folder convention #12 — Sam
+  flagged the inline-JSX pattern mid-slice and the relocation
+  was a pure refactor. Shared `<ActivityRow>` extracted so
+  loose + in-block rows render identically.
+  `composeUnitBody()` lives in `lib/curriculum/unit-body.ts`
+  as a pure helper — first attempt put it in `queries.ts`
+  and webpack flagged the `next/headers` leak into the client
+  bundle. Five product questions answered up-front before code
+  (Sam accepted all five recommendations). Commit `46e9b8b`.
+  See SESSIONS 2026-05-12 (9.3c).
+- ✅ **9.3d-a** External link + Online live session + shared
+  `description` column — shipped 2026-05-12 (commit `0710cb6`).
+  Migration adds `nclex_programme_activities.description TEXT`
+  (nullable) symmetric with units + blocks, and renames the
+  `LIVE_SESSION` type to `ONLINE_LIVE_SESSION` (no rows to
+  migrate — picker had it disabled). Modal shell renders
+  Title → Description → Note → divider. New
+  `<ExternalLinkEditor>` (URL + estimated time + auto-derived
+  domain chip + "Open in new tab" anchor; server gate restricts
+  scheme to http:/https: only) and `<OnlineLiveSessionEditor>`
+  (datetime-local in tutor-local TZ → UTC ISO; end-time chip
+  auto-derived; provider chip from join_url host — Zoom / Meet
+  / Teams / Webex / Whereby / fallback; recording URL always
+  visible). `<ActivityModal>` body state refactored to a
+  discriminated union over the three editor-enabled types.
+  Server actions take a discriminated `ActivityFormValues`
+  argument, drop the TEXT-only gate, validate per-type.
+  Nine product questions answered up-front; Sam accepted all
+  recommendations. `IN_PERSON_LIVE_SESSION` deferred (YAGNI
+  per CLAUDE.md — naming convention captured; cheap to add
+  later). See SESSIONS 2026-05-12 (9.3d-a).
+- ✅ **9.3d-b** Media foundation — shipped 2026-05-13. Centralised
+  media-asset system. Locked bucket name `nclex-pdf-activities`
+  (scoped to tutor PDFs for curriculum only — library / admin PDFs
+  each get their own buckets in their own slices). PDF-only MIME
+  allow-list (Word / PowerPoint excluded — rendering drift,
+  download friction, macro-malware vector). Asset table is
+  owner-only RLS; bucket denies direct reads; service-role-minted
+  signed URLs (1-hour TTL) are the legitimate read path; consumer
+  features verify access at their own layer before calling
+  `getAssetUrl`. Temporary `/admin/media-test` route ships in this
+  slice as the smoke-test surface (removed in 9.3d-c).
+  Commit `05ffcf0`. See SESSIONS 2026-05-13 (9.3d-b).
+
+  **What shipped:**
+  - `nclex_media_assets` table with full schema per
+    `media-assets.md` §3 (asset_id, media_type, purpose,
+    storage_provider, bucket, storage_path, original_filename,
+    mime_type, size_bytes, status, uploaded_by, owner_user_id,
+    timestamps). `uploaded_by` ON DELETE RESTRICT preserves
+    audit; `owner_user_id` ON DELETE SET NULL on owner removal.
+    UNIQUE (storage_provider, bucket, storage_path) guards
+    against duplicate rows pointing at the same physical file.
+  - RLS policies — owner-only SELECT/UPDATE/DELETE
+    (`owner_user_id = auth.uid()` OR SUPER_ADMIN); INSERT pins
+    `uploaded_by = auth.uid() AND owner_user_id = auth.uid()`.
+  - First bucket: `nclex-pdf-activities` — private, 25 MB cap,
+    MIME allow-list `application/pdf` only. `storage.objects`
+    INSERT policy lets authenticated users upload to this bucket;
+    SELECT/UPDATE/DELETE deliberately absent so direct reads fail
+    and signed URLs are the only legitimate read path.
+  - Generic `uploadAssetAction(file, purpose)` in
+    `lib/media/actions.ts` — application-layer MIME + size
+    pre-check, asset row insert (status=UPLOADING), storage
+    upload, status flip to READY, soft-delete on any failure.
+  - Generic `getAssetUrl(asset_id)` in `lib/media/queries.ts` —
+    uses service-role client to bypass asset-table RLS (consumer
+    layer has already gated access); returns direct URL for
+    public buckets, 1-hour signed URL for private.
+  - Generic `<UploadField>` in `components/media/upload-field.tsx`
+    — auto-uploads on file pick; four-state machine (idle →
+    uploading → done / error); reads `PURPOSE_CONFIG` for
+    `accept=` + validation messages.
+  - `lib/supabase/server.ts` — new `createServiceRoleClient()`
+    helper. Per-request, server-only. First named helper for
+    service-role in `lib/supabase/`.
+  - `styles/media.css` — new domain CSS, wired into
+    `app/(app)/layout.tsx`.
+
+  **What does NOT ship here:**
+  - No feature wiring yet. PDF activity (9.3d-c), avatars,
+    rationale images all become consumers later.
+  - No `*_asset_id` columns on other tables. Those land
+    per-feature.
+  - No sweeper job. Soft-delete only; sweeper deferred per
+    `media-assets.md` §4.7.
+  - No legacy field migration. `avatar_url` and `rationale_img`
+    stay untouched on existing tables until per-feature
+    migration slices.
+
+- ✅ **9.3d-c** PDF activity (first consumer of the media
+  foundation) — shipped 2026-05-13. Bundle split from the
+  original "three remaining types": PDF here; Mock + PQ
+  become 9.3d-d. `ActivityPayloadPdf` refined to
+  `{ pdf_asset_id, estimated_minutes }`. New `<PdfEditor>` with
+  two visual states (upload picker / file-row card). Save
+  blocked without a PDF. Replace flow soft-deletes the previous
+  asset row (`status = 'DELETED'`) in the same save. Three new
+  helpers in `actions.ts` (`validatePdfAssetForSave` ownership
+  gate, `readExistingPdfAssetId` for replace, `softDeleteAsset`
+  for the cleanup); new exported server action
+  `getOwnedAssetPreviewAction(assetId)` returns
+  `{ original_filename, size_bytes, signed_url }` for the
+  modal's file row in both initial-edit-load and fresh-upload
+  cases. PDF added to picker's `ENABLED_TYPES`. Temporary
+  `/admin/media-test` route deleted (superseded by the real
+  editor). No migration — JSONB payload accepts the new shape;
+  ownership integrity at the action layer (per 9.3a's locked
+  rule). Commit `5d5e71a`. See SESSIONS 2026-05-13 (9.3d-c).
+- ✅ **9.3d-d** Mock + Practice quiz placeholders — shipped
+  2026-05-13. Scope reworked from the original "metadata-only
+  forms" plan: a Mock/Practice activity won't own its own quiz
+  settings. The reusable quiz object lives in a future
+  `nclex_tutor_quizzes` table; the activity carries a thin
+  `quiz_id` pointer. The existing attempt schema already
+  supports it (`source = PROGRAMME_ASSIGNED`,
+  `programme_activity_id`). Both types ship as curriculum
+  placeholders today — the activity saves, the body is non-
+  interactive, no student-launch path. Payload is
+  `{ quiz_id: string | null }` (null until the selector ships).
+  Single shared `<QuizPlaceholderEditor type=>` with type-keyed
+  copy. New `isQuizLinked(payload)` helper in `format.ts`
+  (derived, not stored). `ENABLED_TYPES` covers all six types
+  now. `buildPayload` switch grows a shared MOCK/PRACTICE_QUIZ
+  branch returning `{ quiz_id: null }`. No migration. Commit
+  `eafc37f`. See SESSIONS 2026-05-13 (9.3d-d).
+- ✅ **9.3e** Publish state + content visibility — shipped
+  2026-05-13. Adds the missing activity Status toggle inside the
+  activity-modal (matching the unit/block modal pattern);
+  replaces the `· Draft` text suffix on activity rows with a
+  real `unit-pill`-class pill; adds a second "X of Y live"
+  meta line on each unit card via two new filtered queries
+  merged into the existing grid. New `isVisibleToStudents()`
+  predicate in `format.ts` — AND-chain across the four
+  publish flags. Two new server actions in `lib/programmes/`:
+  `publishProgrammeAction` (DRAFT → PUBLISHED, stamps
+  `published_at`) + `archiveProgrammeAction` (DRAFT or PUBLISHED
+  → ARCHIVED, stamps `archived_at`). New
+  `<ProgrammeStatusControls>` on the Overview page with
+  state-dependent buttons + per-state hint copy; new
+  `<ProgrammeArchiveConfirm>` type-DELETE overlay (copy varies
+  between "active cohorts continue" and "draft retired"). Three
+  product calls locked: no cascade on publish, unlinked Mock/PQ
+  CAN go Live, archive allowed from any non-terminal state. No
+  migration. Commit `1ab5f7e`. See SESSIONS 2026-05-13 (9.3e).
+- ✅ **9.3f** Cohort curriculum tab (checklist) — shipped
+  2026-05-14. Closes Phase B. Migration adds
+  `nclex_cohort_checklist_items` (one row per template activity
+  per cohort, with `is_included` + `release_date DATE` + `source`
+  reserved for future COHORT_ONLY adds). AFTER INSERT trigger on
+  `nclex_cohorts` seeds rows on creation; one-shot backfill in
+  the migration. Cohort = pointer to template — content edits
+  propagate; reorder + move + delete propagate via live join
+  and CASCADE; only structural change that doesn't propagate is
+  adding a NEW template activity (deferred "add-from-template"
+  affordance). RLS via 2-hop ownership chain (checklist → cohort
+  → programme → tutor); SECURITY DEFINER trigger with REVOKE
+  PUBLIC/anon/authenticated. New `getCohortChecklist()` query
+  composes the tree in TS (units + blocks + checklist-rows-joined-
+  with-activities). Two new actions
+  (`setChecklistItemIncludedAction` + `setChecklistItemReleaseDateAction`).
+  `<CohortCurriculum>` client component with click-through-to-
+  template-editor (reuses `<ActivityModal>`). Five product calls
+  locked. **Save-safety layer** added mid-build per Sam's request:
+  per-row save status pill (Saving / Saved flash / Failed), page-
+  level "Saving N changes…" banner, `beforeunload` guard while
+  dirty, onChange debounce + onBlur on date inputs. Visibility
+  predicate `isVisibleToStudents()` extended with cohort context
+  + `today` test parameter. Commit `e621afa`. See SESSIONS
+  2026-05-14 (9.3f).
+
+### Phase C — Student-facing curriculum
+
+The student side of the Programme — the curriculum viewer, the
+per-type activity viewers, and access timing. One-liners here;
+full write-ups live in the "Last shipped / Earlier" header above
+and in SESSIONS.
+
+- ✅ **10.1** Student curriculum viewer scaffold — `/student/programme/[id]/curriculum` + `/student/cohort/[id]/curriculum`, overlay programme switcher, `*_student_select` RLS migration. Commit `b99adb4`. See SESSIONS 2026-05-15 (10.1).
+- ✅ **10.1b** Curriculum launcher conversion + shared activity-type icon — the curriculum page becomes a course map / launcher; per-type content moves to its own viewer surface. `ACTIVITY_TYPE_ICON` consolidated. Commit `a81b7d0`. See SESSIONS 2026-05-15 (10.1b).
+- ✅ **10.2** External link viewer — first per-type viewer; the shared `<ActivityAction>` dispatch + `<ViewerModalShell>` are built here. Commit `ecbff95`. See SESSIONS 2026-05-15 (10.2–10.5).
+- ✅ **10.3** Online live session viewer — modal: session time in the student's zone, provider, Join button, recording link, Upcoming/Happening-now/Ended status. Commit `c0f44cb`.
+- ✅ **10.4** PDF viewer — modal; mints a short-lived signed URL on open via the new `getStudentPdfActivityUrl` action (link never stored). Commit `c0f44cb`.
+- ✅ **10.5** Text reading viewer — wide variant of `<ViewerModalShell>`; plain-text body (rich-text + a dedicated reading route deferred). Commit `c0f44cb`. See SESSIONS 2026-05-15 (10.2–10.5).
+- ✅ **10.6** Locked activity rows — `isVisibleToStudents()` split so a future release date LOCKS the activity (visible "Opens &lt;date&gt;" row) instead of HIDING it. Commit `6db89cf`.
+- ✅ **10.7** Activity window (due + close dates) — `due_date` + `close_date` nullable columns on `nclex_cohort_checklist_items`; `StudentActivity.openState` is a 3-way (LOCKED / OPEN / CLOSED); tutor checklist row gains Due + Closes inputs. Migration `20260515160000`. Commit `6db89cf`. See SESSIONS 2026-05-15 (10.6–10.7).
+- ⬜ **Mock + Practice quiz viewers** — the last two per-type viewers. Blocked on the central tutor-quiz system (Follow-on, below): both render disabled "Open" buttons until a quiz can be linked and launched.
+
+### Follow-on: Central tutor-quiz system
+
+The reusable quiz object lives in its own `nclex_tutor_quizzes`
+table, not inside the activity payload (decision locked 9.3d-d).
+Full plan + settled schema: `docs/product-plan/tutor-quiz-system.md`.
+Build arc:
+
+- ✅ **Slice 1** Quiz foundation — `nclex_tutor_quizzes` +
+  `nclex_tutor_quiz_items` (migration `20260516120000`), tutor
+  RLS, and the `/tutor/quizzes` list + `/tutor/quiz/[id]` editor
+  surface (metadata modal + ordered question list + question
+  picker). "Mocks" leaves the programme nav; "Quizzes" joins the
+  global tutor nav. Also back-ported 7 tables that had drifted
+  out of `db/schema.sql` / `db/rls.sql`. Commit `33729ec`. See
+  SESSIONS 2026-05-16.
+- ✅ **Slice 2** Link to activity — the Mock/Practice activity
+  editor's placeholder becomes a "Choose a quiz" selector (picks
+  from the tutor's PUBLISHED quizzes of the matching kind); stores
+  `payload.quiz_id`. `buildPayload` gates publishing against an
+  unlinked quiz; `validateQuizForActivity` re-checks ownership +
+  kind + published status. Commit `670a878`. See SESSIONS
+  2026-05-17. (The cohort-checklist "needs a quiz" visual cue was
+  deferred as polish — the publish gate already prevents the
+  breakage.)
+- ⏭ **Slice 3** Student launch — the
+  `nclex_create_programme_attempt` RPC (fixed-list snapshot,
+  `source = PROGRAMME_ASSIGNED`); the Mock + Practice
+  `<ActivityAction>` goes live as the modal viewer; max-attempts
+  check at launch + pass/fail badge on results. Closes the
+  "Mock + Practice quiz viewers" row above.
+- ⬜ **Slice 4** Progress / analytics — quiz completion →
+  activity completion → unit/programme progress → tutor
+  analytics. Deferred; depends on the student progress engine.
+
+**Deferred enhancement — richer question filtering.** The quiz
+question picker (and `/tutor/bank/all`, which shares the filter
+vocabulary) need a stronger filter system before a tutor can
+comfortably build quizzes from a large bank — notably **tags** as
+a filter axis, alongside the current type / category / difficulty
+/ text search. Surfaced 2026-05-16 while reviewing Slice 1. Slot
+when the bank grows enough that the current filter set feels thin.
 
 ### Deferred out of Phase B
 
@@ -609,6 +1605,16 @@ rebuild to suit.
   after the curriculum is functionally complete.
 - **Duplicate programme / duplicate cohort** flows — listed in
   Programme Structure as tutor capabilities; UI mockup deferred.
+- **`IN_PERSON_LIVE_SESSION` activity type** — surfaced during
+  9.3d-a planning. Names paired (`ONLINE_LIVE_SESSION` already
+  shipped; `IN_PERSON_LIVE_SESSION` reserved with shared "LIVE"
+  prefix so a future `RECORDED_SESSION` async type fits the
+  family without renames). One-sitting slice when a tutor
+  actually asks — adds a value to the type CHECK constraint,
+  one new body editor, one picker tile flip. Deferred on YAGNI
+  grounds because no current demand and the design questions
+  (room number? GPS? attendance tracking?) are unanswerable
+  in the abstract.
 
 ### Deferred to v2 (Programme)
 

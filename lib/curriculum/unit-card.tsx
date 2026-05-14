@@ -13,6 +13,7 @@ import Link from 'next/link';
 import type { UnitGridRow } from './types';
 import type { UnitLabel } from '@/lib/programmes/types';
 import {
+  formatPublishedCounts,
   formatUnitCounts,
   formatUnitTitle,
   unitLabel,
@@ -76,6 +77,19 @@ export function UnitCard({
         <span className="unit-card-meta">
           {formatUnitCounts(unit.block_count, unit.activity_count)}
         </span>
+        {(() => {
+          const live = formatPublishedCounts(
+            unit.published_block_count,
+            unit.block_count,
+            unit.published_activity_count,
+            unit.activity_count
+          );
+          return live ? (
+            <span className="unit-card-meta unit-card-meta-live">
+              {live}
+            </span>
+          ) : null;
+        })()}
       </footer>
     </article>
   );

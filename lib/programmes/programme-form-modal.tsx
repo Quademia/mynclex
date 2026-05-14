@@ -20,6 +20,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
+import { ProgrammeLengthDecreaseConfirm } from '@/lib/overlays/programmes/programme-length-decrease-confirm';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { createProgrammeAction, editProgrammeAction } from './actions';
 import type {
@@ -27,6 +28,16 @@ import type {
   ProgrammeFormValues,
   UnitLabel,
 } from './types';
+
+// Mirrors the DecreaseImpact shape returned by editProgrammeAction's
+// `requiresConfirm` result. Kept inline so the modal doesn't need to
+// re-export the type from actions.ts.
+type DecreaseImpact = {
+  units: number;
+  blocks: number;
+  activities: number;
+  affectedUnitIndices: number[];
+};
 
 type ProgrammeFormModalProps =
   | { mode: 'create'; onClose: () => void }
@@ -63,6 +74,15 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showDiscard, setShowDiscard] = useState(false);
+
+  // Slice 9.1d — length-decrease confirmation. When the server
+  // action returns `requiresConfirm` (tutor shrank length_units
+  // and the trailing units carry content), pendingDecrease holds
+  // the impact summary and the overlay renders below. The tutor
+  // types DELETE; on confirm, the modal re-fires the save with
+  // confirmDestructive=true.
+  const [pendingDecrease, setPendingDecrease] = useState<DecreaseImpact | null>(null);
+  const [decreaseConfirmText, setDecreaseConfirmText] = useState('');
 
   const isEdit = props.mode === 'edit';
   const initial = isEdit ? props.initial : null;
@@ -159,7 +179,7 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDirty, isPending]);
 
-  function handleSubmit() {
+  function handleSubmit(confirmDestructive: boolean = false) {
     if (!isFormValid) {
       setError('Fill in the required fields.');
       return;
@@ -178,14 +198,27 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
         show_price_publicly: showPricePublicly,
       };
       const result = isEdit
-        ? await editProgrammeAction(props.programmeId, input)
+        ? await editProgrammeAction(props.programmeId, input, confirmDestructive)
         : await createProgrammeAction(input);
-      if (!result.ok) {
-        setError(result.error);
+      if (result.ok) {
+        // Both branches succeeded — close everything and refresh.
+        setPendingDecrease(null);
+        setDecreaseConfirmText('');
+        props.onClose();
+        router.refresh();
         return;
       }
-      props.onClose();
-      router.refresh();
+      // Length-decrease preflight tripped — surface the confirm
+      // overlay with the impact summary instead of a toast.
+      if ('requiresConfirm' in result && result.requiresConfirm) {
+        setPendingDecrease(result.impact);
+        setDecreaseConfirmText('');
+        return;
+      }
+      // Remaining branch: regular validation/server error.
+      if ('error' in result) {
+        setError(result.error);
+      }
     });
   }
 
@@ -421,7 +454,7 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
             <button
               type="button"
               className="prog-btn prog-btn-primary"
-              onClick={handleSubmit}
+              onClick={() => handleSubmit(false)}
               disabled={!isFormValid || isPending || (isEdit && !isDirty)}
             >
               {submitLabel}
@@ -439,6 +472,24 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
             setShowDiscard(false);
             props.onClose();
           }}
+        />
+      )}
+
+      {pendingDecrease && (
+        <ProgrammeLengthDecreaseConfirm
+          affectedUnitIndices={pendingDecrease.affectedUnitIndices}
+          blocks={pendingDecrease.blocks}
+          activities={pendingDecrease.activities}
+          unitLabel={unitLabel}
+          deleteText={decreaseConfirmText}
+          pending={isPending}
+          onTextChange={setDecreaseConfirmText}
+          onCancel={() => {
+            if (isPending) return;
+            setPendingDecrease(null);
+            setDecreaseConfirmText('');
+          }}
+          onConfirm={() => handleSubmit(true)}
         />
       )}
     </>
