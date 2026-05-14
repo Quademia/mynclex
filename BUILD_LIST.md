@@ -8,7 +8,29 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-16):** **Tutor Quiz Slice 1 — Quiz
+> **Last shipped (2026-05-17):** **Tutor Quiz Slice 2 — link a
+> quiz into Mock/Practice activities** (+ a Slice 1 layout polish).
+>
+> **Slice 2.** The Mock/Practice curriculum activity editor's
+> static placeholder becomes a real "Choose a quiz" selector — a
+> dropdown of the tutor's PUBLISHED quizzes of the matching kind
+> (Mock activity → Mock quiz, Practice → Practice). The chosen
+> `quiz_id` is stored on the activity payload; a since-archived /
+> missing link is flagged inline. New `getActivityQuizPickerContext`
+> server action; `buildPayload` gates publishing (a Live quiz
+> activity must have a quiz; drafts may save without one);
+> `validateQuizForActivity` re-checks ownership + kind + published
+> status server-side. No schema change. Student launch stays Slice 3.
+>
+> **Slice 1 polish.** The quiz editor's stacked layout → two
+> side-by-side columns (quiz left, picker right) so the picker
+> isn't pushed down as the quiz grows; each column's list scrolls
+> internally; editor page widened.
+>
+> Commits `83c214d` (polish) + `670a878` (Slice 2). See SESSIONS
+> 2026-05-17.
+>
+> **Earlier:** **Tutor Quiz Slice 1 — Quiz
 > foundation.** The reusable Mock/Practice quiz object + the tutor
 > surface to build one.
 >
@@ -1542,12 +1564,16 @@ Build arc:
   global tutor nav. Also back-ported 7 tables that had drifted
   out of `db/schema.sql` / `db/rls.sql`. Commit `33729ec`. See
   SESSIONS 2026-05-16.
-- ⏭ **Slice 2** Link to activity — the Mock/Practice activity
-  editor gains "Choose a quiz" (picks from the tutor's PUBLISHED
-  quizzes); stores `payload.quiz_id`. Also folds in the
-  cohort-checklist render rules + publish gates against unlinked
-  quizzes (decided in 9.3e / 9.3f).
-- ⬜ **Slice 3** Student launch — the
+- ✅ **Slice 2** Link to activity — the Mock/Practice activity
+  editor's placeholder becomes a "Choose a quiz" selector (picks
+  from the tutor's PUBLISHED quizzes of the matching kind); stores
+  `payload.quiz_id`. `buildPayload` gates publishing against an
+  unlinked quiz; `validateQuizForActivity` re-checks ownership +
+  kind + published status. Commit `670a878`. See SESSIONS
+  2026-05-17. (The cohort-checklist "needs a quiz" visual cue was
+  deferred as polish — the publish gate already prevents the
+  breakage.)
+- ⏭ **Slice 3** Student launch — the
   `nclex_create_programme_attempt` RPC (fixed-list snapshot,
   `source = PROGRAMME_ASSIGNED`); the Mock + Practice
   `<ActivityAction>` goes live as the modal viewer; max-attempts

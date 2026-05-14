@@ -6,6 +6,78 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-17 (Tutor Quiz — Slice 1 polish + Slice 2)
+
+Continuation of the tutor-quiz build: a layout polish on the
+Slice 1 editor, then Slice 2 — linking a quiz into a curriculum
+activity.
+
+### Slice 1 polish — two-column quiz editor
+
+Sam flagged that the quiz editor's stacked layout pushed the
+question picker down the page as the selected list grew. Reworked
+to two side-by-side columns: the quiz (selected questions) on the
+left, the question picker on the right. Each column's list scrolls
+internally so neither pushes the other; the picker's filter bar
+restacks 2×2 in the narrower column; the editor page widened to
+use the full content width (it had been sitting narrow with empty
+space on the right). Columns stack vertically below a narrow
+breakpoint. Planning doc §7 updated. Commit `83c214d`.
+
+### Slice 2 — link a quiz into Mock/Practice activities
+
+The Mock/Practice curriculum activity editor's static placeholder
+(`quiz-placeholder-editor.tsx`) becomes a real "Choose a quiz"
+selector (`quiz-selector-editor.tsx`):
+
+- A dropdown of the tutor's PUBLISHED quizzes of the **matching
+  kind** — a Mock activity lists Mock quizzes, a Practice quiz
+  activity lists Practice quizzes. Each shows *Title · N
+  questions*.
+- A one-line summary confirms the pick; a since-archived / deleted
+  linked quiz is flagged inline rather than silently dropped; a
+  "no published quizzes yet" empty state points at the Quizzes
+  page.
+- New server action `getActivityQuizPickerContext` (in
+  `lib/tutor-quiz/actions.ts`) returns the dropdown options + the
+  linked quiz resolved by id at any status. The activity modal
+  wires `quiz_id` through body-state, dirty-tracking, and
+  `buildValues`.
+
+**Server-side guards:**
+- `buildPayload` writes `payload.quiz_id` and **gates publishing**
+  — a Live quiz activity must have a quiz linked; a Draft may be
+  saved without one (Sam's accepted recommendation).
+- `validateQuizForActivity` re-checks ownership + kind match at
+  the trust boundary, plus published status when the activity is
+  going Live.
+
+**No schema change** — `payload.quiz_id` already existed in the
+JSONB (reserved since 9.3d-d); Slice 2 just makes the editor write
+to it. The student "Open" button stays disabled — launching is
+Slice 3.
+
+### Sample quizzes (dev test data)
+
+Sam asked for sample quizzes before Slice 2 so the selector has
+something to pick. Seeded on dev: 3 published quizzes (Cardiac
+Practice Set, Pharmacology Mock Exam, Fundamentals Quick Quiz) +
+1 draft (Safety & Infection Control Mock — verifies the selector
+filters to PUBLISHED), drawing items from the 27 published
+standalone tutor questions. Dev-only test data, not committed.
+
+### Next
+
+⏭ Tutor Quiz Slice 3 — student launch: the
+`nclex_create_programme_attempt` RPC (fixed-list snapshot) + the
+Mock/Practice `<ActivityAction>` goes live as the modal viewer +
+the max-attempts check + pass/fail badge. See
+`docs/product-plan/tutor-quiz-system.md` §8.
+
+Commits `83c214d` (Slice 1 polish) + `670a878` (Slice 2) + docs.
+
+---
+
 ## Session — 2026-05-16 (Tutor Quiz Slice 1) — Quiz foundation
 
 First slice of the central tutor-quiz system — the reusable
