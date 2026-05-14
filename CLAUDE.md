@@ -1,6 +1,6 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-05-09 (branching workflow simplified — dropped `work`; commit on the auto-generated session branch)
+Last updated: 2026-05-14 (release process corrected — `main` → `prod` is a GitHub PR merge commit, not `--ff-only`; added the migration-tracker consistency pre-check)
 
 ## What This Is
 
@@ -280,11 +280,34 @@ mapping is 1-to-1.
 **Releasing `main` → `prod`** (when ready to deploy, again with Sam's
 explicit approval):
 
+`prod` is **not** fast-forwardable from `main` — every release so far
+has been a GitHub pull request from `main` into `prod`, merged as a
+**merge commit**. `prod` therefore carries release merge commits that
+`main` does not, so `git merge main --ff-only` would fail. Release the
+established way:
+
 ```powershell
-git checkout prod
-git merge main --ff-only
-git push origin prod
+gh pr create --base prod --head main --title "Release main → prod — <summary>" --body "<what ships>"
+gh pr merge <pr#> --merge --subject "Release main → prod — <summary>" --delete-branch=false
 ```
+
+The merge pushes `prod`, which triggers two GitHub Actions in parallel:
+`migrate-prod.yml` (applies any new `db/migrations/` files to the prod
+Supabase project) and `deploy-prod.yml` (builds the OpenNext bundle and
+deploys the Worker to the workspace Cloudflare account). Watch both with
+`gh run list` / `gh run watch`, then sanity-check prod
+(`supabase_migrations.schema_migrations`, the prod Worker URL).
+
+**Pre-release check — migration-tracker consistency.** `supabase db
+push` fails its strict consistency check if prod's
+`schema_migrations` tracker has a row whose `version` doesn't match an
+on-disk `db/migrations/<version>_*.sql` filename. This happens when a
+migration was applied to prod directly via MCP `apply_migration`
+(which stamps a wall-clock `version`) instead of through the pipeline.
+Before releasing, compare prod's tracker tail against the migration
+files; reconcile any mismatch with a one-row `UPDATE` on
+`schema_migrations.version` so it matches the file. (Seen 2026-05-14
+with `keepalive_table`.)
 
 Never work directly in the `qacademy-mynclex` main checkout — always
 operate inside the session's `.claude/worktrees/<...>` worktree.
