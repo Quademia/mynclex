@@ -654,6 +654,52 @@ CREATE INDEX idx_nclex_attempt_answers_student_status   ON nclex_attempt_answers
 
 
 -- =========================================================
+-- Added 2026-05-06 in Slice 2.1.5 — Mark-for-review table
+-- =========================================================
+-- One row per (student, target). Drives the runner's mark-for-
+-- review toggle and the builder's "Marked" pool filter. Marking is
+-- the student's own state, independent of correct/incorrect, and
+-- persists across attempts — so it lives in its own table.
+-- Polymorphic target (QUESTION / CASE x BANK / TUTOR); no FK on
+-- target_id (mirrors the attempt-items convention). Origin
+-- migration: db/migrations/20260506140000_slice_2_1_5_question_marks.sql.
+
+CREATE TABLE nclex_question_marks (
+  mark_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id     UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
+
+  -- Target reference (polymorphic — no FK on target_id)
+  target_kind    TEXT NOT NULL CHECK (target_kind IN ('QUESTION','CASE')),
+  target_source  TEXT NOT NULL CHECK (target_source IN ('BANK','TUTOR')),
+  target_id      TEXT NOT NULL,
+  tutor_id       UUID REFERENCES nclex_users(id) ON DELETE CASCADE,
+
+  marked_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Tutor sourcing requires tutor_id; bank sourcing leaves it null
+  CONSTRAINT nclex_question_marks_tutor_id_consistent CHECK (
+    (target_source = 'BANK'  AND tutor_id IS NULL)
+    OR (target_source = 'TUTOR' AND tutor_id IS NOT NULL)
+  )
+);
+
+-- Uniqueness invariants — one mark per (student, kind, target).
+-- Split by source because PG treats NULL as distinct in unique
+-- constraints (a single combined constraint would let the same
+-- bank item be marked twice with tutor_id NULL on both rows).
+CREATE UNIQUE INDEX nclex_question_marks_bank_unique
+  ON nclex_question_marks (student_id, target_kind, target_id)
+  WHERE target_source = 'BANK';
+
+CREATE UNIQUE INDEX nclex_question_marks_tutor_unique
+  ON nclex_question_marks (student_id, target_kind, tutor_id, target_id)
+  WHERE target_source = 'TUTOR';
+
+CREATE INDEX idx_nclex_question_marks_student_kind
+  ON nclex_question_marks (student_id, target_kind);
+
+
+-- =========================================================
 -- Programme tables (Slice 9.1a, 2026-05-10)
 -- =========================================================
 -- The first table on the Programme side. Tutor-owned programmes plug
@@ -745,6 +791,375 @@ CREATE TABLE nclex_cohorts (
 );
 
 CREATE INDEX idx_nclex_cohorts_programme ON nclex_cohorts(programme_id);
+
+
+-- =========================================================
+-- Curriculum tables (Slice 9.3a, 2026-05-12)
+-- =========================================================
+-- A programme's curriculum: units -> (optional) blocks -> activities.
+--   nclex_programme_units       — top-level pacing/grouping container
+--                                 (rendered "Week N" / "Module N").
+--   nclex_programme_blocks      — optional workflow grouping of related
+--                                 activities within a unit.
+--   nclex_programme_activities  — the leaf nodes; one per Text / PDF /
+--                                 External link / Online live session /
+--                                 Mock / Practice quiz.
+-- Activity payload is flexible JSONB (no DB-level shape enforcement —
+-- the per-type contract is the TS discriminated union in
+-- lib/curriculum/types.ts). Origin migration:
+-- db/migrations/20260512200000_slice_9_3a_curriculum_schema.sql.
+-- The unit-count reconciliation triggers (slice 9.1d) and the
+-- cohort-checklist seed trigger (9.3f) are functions — see the
+-- migrations folder, per the RPC note at the foot of this file.
+
+CREATE TABLE nclex_programme_units (
+  unit_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  programme_id     UUID NOT NULL
+                   REFERENCES nclex_programmes(programme_id)
+                   ON DELETE CASCADE,
+
+  -- Position in the programme (1 .. programme.length_units).
+  unit_index       INTEGER NOT NULL CHECK (unit_index >= 1),
+
+  -- Tutor-set title; NULL falls back to "Week N" / "Module N".
+  title            TEXT,
+  description      TEXT,
+
+  is_published     BOOLEAN NOT NULL DEFAULT FALSE,
+
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT nclex_programme_units_slot_unique
+    UNIQUE (programme_id, unit_index)
+);
+
+CREATE INDEX idx_nclex_programme_units_programme
+  ON nclex_programme_units(programme_id);
+
+
+CREATE TABLE nclex_programme_blocks (
+  block_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  unit_id          UUID NOT NULL
+                   REFERENCES nclex_programme_units(unit_id)
+                   ON DELETE CASCADE,
+
+  -- Position within the unit body (shares a numeric space with
+  -- loose activities' ordinal; reorder renumbers both atomically).
+  ordinal          INTEGER NOT NULL CHECK (ordinal >= 1),
+
+  title            TEXT NOT NULL,
+  description      TEXT,
+
+  is_published     BOOLEAN NOT NULL DEFAULT FALSE,
+
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_nclex_programme_blocks_unit
+  ON nclex_programme_blocks(unit_id);
+
+
+-- The `description` column and the ONLINE_LIVE_SESSION type name
+-- both arrived in Slice 9.3d-a (the type was originally
+-- LIVE_SESSION); shown here in final state.
+CREATE TABLE nclex_programme_activities (
+  activity_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Activity always belongs to a unit. Activities inside a block
+  -- also carry the block's unit_id (kept denormalised so the
+  -- units-overview count query needs no join through blocks).
+  unit_id          UUID NOT NULL
+                   REFERENCES nclex_programme_units(unit_id)
+                   ON DELETE CASCADE,
+
+  -- Optional parent block. NULL -> loose under the unit.
+  block_id         UUID
+                   REFERENCES nclex_programme_blocks(block_id)
+                   ON DELETE CASCADE,
+
+  -- Position within immediate parent (unit body or block).
+  ordinal          INTEGER NOT NULL CHECK (ordinal >= 1),
+
+  type             TEXT NOT NULL
+                   CHECK (type IN (
+                     'TEXT',
+                     'PDF',
+                     'EXTERNAL_LINK',
+                     'ONLINE_LIVE_SESSION',
+                     'MOCK',
+                     'PRACTICE_QUIZ'
+                   )),
+
+  title            TEXT NOT NULL,
+
+  -- "What the activity is about" (substantive) — added 9.3d-a.
+  description      TEXT,
+
+  -- "Note to student" — operational directive under the title.
+  note             TEXT,
+
+  -- Type-specific fields; the TS discriminated union carries the
+  -- contract. The DB stores any JSONB.
+  payload          JSONB NOT NULL DEFAULT '{}'::jsonb,
+
+  is_published     BOOLEAN NOT NULL DEFAULT FALSE,
+
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_nclex_programme_activities_unit
+  ON nclex_programme_activities(unit_id);
+
+CREATE INDEX idx_nclex_programme_activities_block
+  ON nclex_programme_activities(block_id)
+  WHERE block_id IS NOT NULL;
+
+
+-- =========================================================
+-- Cohort curriculum checklist (Slice 9.3f, 2026-05-14;
+-- due_date + close_date added Slice 10.7, 2026-05-15)
+-- =========================================================
+-- The cohort layer's curation surface. The programme owns the
+-- curriculum template; the cohort-side row stores only what's
+-- cohort-specific: inclusion flag + the activity window
+-- (release -> due -> close). Cohort = pointer to template, not a
+-- copy. Origin migrations:
+-- db/migrations/20260514120000_slice_9_3f_cohort_checklist.sql,
+-- db/migrations/20260515160000_slice_10_7_activity_window.sql.
+-- The seed-on-cohort-INSERT trigger is a function — see the
+-- migrations folder.
+
+CREATE TABLE nclex_cohort_checklist_items (
+  checklist_item_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  cohort_id             UUID NOT NULL
+                        REFERENCES nclex_cohorts(cohort_id)
+                        ON DELETE CASCADE,
+
+  template_activity_id  UUID NOT NULL
+                        REFERENCES nclex_programme_activities(activity_id)
+                        ON DELETE CASCADE,
+
+  -- Cohort-side controls.
+  is_included           BOOLEAN NOT NULL DEFAULT TRUE,
+
+  -- Activity window. release_date is trigger-seeded + NOT NULL;
+  -- due_date (soft target) and close_date (hard gate) are nullable,
+  -- tutor-set. Ordering (release <= due <= close) is validated in
+  -- the server actions, not as a DB CHECK.
+  release_date          DATE NOT NULL,
+  due_date              DATE,
+  close_date            DATE,
+
+  -- Reserved for future COHORT_ONLY adds; v1 only writes 'TEMPLATE'.
+  source                TEXT NOT NULL DEFAULT 'TEMPLATE'
+                        CHECK (source IN ('TEMPLATE', 'COHORT_ONLY')),
+
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  UNIQUE (cohort_id, template_activity_id)
+);
+
+CREATE INDEX idx_nclex_cohort_checklist_cohort
+  ON nclex_cohort_checklist_items(cohort_id);
+CREATE INDEX idx_nclex_cohort_checklist_activity
+  ON nclex_cohort_checklist_items(template_activity_id);
+
+
+-- =========================================================
+-- Keep-alive activity table (2026-05-12)
+-- =========================================================
+-- Internal infrastructure — a real DB write target so the
+-- keep-alive path generates a WAL entry (unambiguous "activity")
+-- instead of relying on a stateless auth ping. No RLS policies:
+-- only service-role (which bypasses RLS) reads/writes it. Origin
+-- migration: db/migrations/20260512300000_keepalive_table.sql.
+
+CREATE TABLE nclex_keepalive (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pinged_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  source      TEXT
+);
+
+CREATE INDEX idx_nclex_keepalive_pinged_at
+  ON nclex_keepalive(pinged_at);
+
+
+-- =========================================================
+-- Media assets (Slice 9.3d-b, 2026-05-13)
+-- =========================================================
+-- Centralised media-asset control records. The file bytes live in
+-- object storage (Supabase Storage for v1); this row is the
+-- control record — who uploaded it, who owns it, what it's for,
+-- what state it's in, where it physically lives. First consumer:
+-- PDF activity. Origin migration:
+-- db/migrations/20260513120000_slice_9_3d_b_media_assets.sql.
+
+CREATE TABLE nclex_media_assets (
+  asset_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Coarse classification (filtering / admin views).
+  media_type        TEXT NOT NULL
+                    CHECK (media_type IN ('IMAGE','PDF','VIDEO','OTHER')),
+
+  -- Fine-grained classification — drives bucket choice, MIME
+  -- allow-list, size cap at the app layer (PURPOSE_CONFIG). Free
+  -- text at the DB level so new purposes are a TS-only edit.
+  purpose           TEXT NOT NULL,
+
+  storage_provider  TEXT NOT NULL DEFAULT 'SUPABASE'
+                    CHECK (storage_provider IN
+                      ('SUPABASE','CLOUDFLARE_R2','CLOUDFLARE_STREAM','EXTERNAL')),
+
+  bucket            TEXT NOT NULL,
+
+  -- Server-generated, UUID-based: {purpose}/{uuid}.{ext}.
+  storage_path      TEXT NOT NULL,
+
+  -- What the user saw on disk. Display-only.
+  original_filename TEXT NOT NULL,
+
+  mime_type         TEXT NOT NULL,
+  size_bytes        BIGINT NOT NULL CHECK (size_bytes >= 0),
+
+  status            TEXT NOT NULL DEFAULT 'UPLOADING'
+                    CHECK (status IN ('UPLOADING','READY','DELETED','PURGED')),
+
+  -- Who pressed upload. Immutable. ON DELETE RESTRICT preserves
+  -- audit integrity.
+  uploaded_by       UUID NOT NULL
+                    REFERENCES nclex_users(id) ON DELETE RESTRICT,
+
+  -- Who controls edit/delete. NULL = platform-owned. ON DELETE
+  -- SET NULL — a deleted owner's asset becomes platform-owned.
+  owner_user_id     UUID
+                    REFERENCES nclex_users(id) ON DELETE SET NULL,
+
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  UNIQUE (storage_provider, bucket, storage_path)
+);
+
+CREATE INDEX idx_nclex_media_assets_owner_status
+  ON nclex_media_assets(owner_user_id, status);
+CREATE INDEX idx_nclex_media_assets_purpose_status
+  ON nclex_media_assets(purpose, status);
+CREATE INDEX idx_nclex_media_assets_uploaded_by
+  ON nclex_media_assets(uploaded_by);
+
+-- Storage bucket for tutor-uploaded PDF activity files. Private,
+-- 25 MB cap, application/pdf only. Included here so a fresh
+-- bootstrap reaches the same functional state as dev / prod.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'nclex-pdf-activities',
+  'nclex-pdf-activities',
+  FALSE,
+  26214400,
+  ARRAY['application/pdf']
+);
+
+
+-- =========================================================
+-- Tutor quiz tables (Tutor Quiz Slice 1, 2026-05-16)
+-- =========================================================
+-- The central tutor-quiz system: a reusable tutor-owned quiz plan
+-- (nclex_tutor_quizzes) + its ordered list of question references
+-- (nclex_tutor_quiz_items). The quiz stores references; a student
+-- attempt snapshots them at attempt-creation time. Origin
+-- migration: db/migrations/20260516120000_tutor_quiz_1_foundation.sql.
+
+CREATE TABLE nclex_tutor_quizzes (
+  quiz_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tutor_id         UUID NOT NULL
+                   REFERENCES nclex_users(id) ON DELETE CASCADE,
+
+  title            TEXT NOT NULL,
+  description      TEXT,
+
+  quiz_kind        TEXT NOT NULL
+                   CHECK (quiz_kind IN ('MOCK', 'PRACTICE')),
+
+  -- The four non-adaptive runner modes. CAT is excluded — it
+  -- selects questions adaptively, incompatible with a fixed list.
+  mode             TEXT NOT NULL
+                   CHECK (mode IN (
+                     'UNTIMED_LEARNING',
+                     'UNTIMED_TEST',
+                     'TIMED_FREE_NAV',
+                     'TIMED_SEQUENTIAL'
+                   )),
+
+  -- Set for timed modes only; the mode<->duration coherence rule
+  -- is app-layer (the save action), not a DB CHECK.
+  duration_seconds INTEGER
+                   CHECK (duration_seconds IS NULL OR duration_seconds > 0),
+
+  -- Pass threshold as a 0..1 fraction (same scale as
+  -- nclex_attempts.final_score). NULL = ungraded.
+  pass_score       NUMERIC
+                   CHECK (pass_score IS NULL
+                          OR (pass_score >= 0 AND pass_score <= 1)),
+
+  -- NULL = unlimited.
+  max_attempts     INTEGER
+                   CHECK (max_attempts IS NULL OR max_attempts >= 1),
+
+  status           TEXT NOT NULL DEFAULT 'DRAFT'
+                   CHECK (status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')),
+
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- (quiz_kind, mode) pairing, mirroring nclex_attempts_intent_
+  -- mode_tuple via MOCK -> EXAM / PRACTICE -> STUDY. MOCK excludes
+  -- UNTIMED_LEARNING (that mode reveals answers live).
+  CONSTRAINT nclex_tutor_quizzes_kind_mode_tuple CHECK (
+    (quiz_kind, mode) IN (
+      ('PRACTICE', 'UNTIMED_LEARNING'),
+      ('PRACTICE', 'UNTIMED_TEST'),
+      ('PRACTICE', 'TIMED_FREE_NAV'),
+      ('PRACTICE', 'TIMED_SEQUENTIAL'),
+      ('MOCK',     'UNTIMED_TEST'),
+      ('MOCK',     'TIMED_FREE_NAV'),
+      ('MOCK',     'TIMED_SEQUENTIAL')
+    )
+  )
+);
+
+CREATE INDEX idx_nclex_tutor_quizzes_tutor
+  ON nclex_tutor_quizzes(tutor_id);
+
+
+CREATE TABLE nclex_tutor_quiz_items (
+  quiz_item_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  quiz_id          UUID NOT NULL
+                   REFERENCES nclex_tutor_quizzes(quiz_id)
+                   ON DELETE CASCADE,
+
+  -- 1-based position within the quiz; renumbered by the reorder
+  -- action (no DB-level contiguity guarantee).
+  position         INTEGER NOT NULL CHECK (position >= 1),
+
+  -- Real FK — tutor-authored questions only. ON DELETE CASCADE:
+  -- deleting a question drops it from any quiz referencing it
+  -- (in-progress / past attempts hold snapshots, unaffected).
+  item_id          TEXT NOT NULL
+                   REFERENCES nclex_tutor_questions(item_id)
+                   ON DELETE CASCADE,
+
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT nclex_tutor_quiz_items_unique UNIQUE (quiz_id, item_id)
+);
+
+CREATE INDEX idx_nclex_tutor_quiz_items_quiz
+  ON nclex_tutor_quiz_items(quiz_id);
 
 
 -- RPC functions are large and tracked by their migration files

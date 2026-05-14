@@ -1,0 +1,343 @@
+// mynclex/lib/tutor-quiz/quiz-editor.tsx
+//
+// The /tutor/quiz/[id] editor body. One page, two zones:
+//   1. "In this quiz" — the ordered list of selected questions;
+//      reorder with up/down arrows, remove per row.
+//   2. "Add questions" — the tutor's own published, standalone
+//      questions, behind the picker filter bar; checkbox + Add.
+// Above both, a header with the quiz metadata + an "Edit details"
+// button that reopens <QuizFormModal> in edit mode.
+//
+// Item operations (add / remove / reorder) are server actions; the
+// component refreshes the route after each so the server-rendered
+// lists re-fetch. The picker filter bar is a GET form — submitting
+// it navigates and the server page re-queries.
+
+'use client';
+
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { ErrorToast } from '@/lib/toast/error-toast';
+import { QuizFormModal } from './quiz-form-modal';
+import { QuizPickerFilterBar } from './quiz-picker-filters';
+import {
+  addQuizItemsAction,
+  moveQuizItemAction,
+  removeQuizItemAction,
+} from './actions';
+import {
+  formatDuration,
+  formatItemCount,
+  formatMaxAttempts,
+  formatPassScore,
+  formatQuizKind,
+  formatQuizMode,
+  formatQuizStatus,
+  quizStatusPillClass,
+} from './format';
+import type {
+  PickerQuestionRow,
+  QuizFormValues,
+  QuizItemRow,
+  QuizPickerFilters,
+  TutorQuiz,
+} from './types';
+
+function stemPreview(stem: string): string {
+  const trimmed = stem.trim();
+  return trimmed.length > 0 ? trimmed : '(no stem)';
+}
+
+export function QuizEditor({
+  quiz,
+  items,
+  pickerQuestions,
+  pickerFilters,
+}: {
+  quiz: TutorQuiz;
+  items: QuizItemRow[];
+  pickerQuestions: PickerQuestionRow[];
+  pickerFilters: QuizPickerFilters;
+}) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const baseUrl = `/tutor/quiz/${quiz.quiz_id}`;
+  const addedItemIds = new Set(items.map((i) => i.item_id));
+
+  const editInitial: QuizFormValues = {
+    title: quiz.title,
+    description: quiz.description,
+    quiz_kind: quiz.quiz_kind,
+    mode: quiz.mode,
+    duration_seconds: quiz.duration_seconds,
+    pass_score: quiz.pass_score,
+    max_attempts: quiz.max_attempts,
+    status: quiz.status,
+  };
+
+  // Meta line under the title — mode, duration (timed only), pass
+  // score (graded only), attempts.
+  const metaParts: string[] = [formatQuizMode(quiz.mode)];
+  const durationLabel = formatDuration(quiz.duration_seconds);
+  if (durationLabel) metaParts.push(durationLabel);
+  const passLabel = formatPassScore(quiz.pass_score);
+  if (passLabel) metaParts.push(`Pass ${passLabel}`);
+  metaParts.push(formatMaxAttempts(quiz.max_attempts));
+
+  function runItemAction(action: () => Promise<{ ok: boolean; error?: string }>) {
+    startTransition(async () => {
+      const result = await action();
+      if (!result.ok) {
+        setError(result.error ?? 'Something went wrong.');
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  function toggleSelected(itemId: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  }
+
+  function handleAddSelected() {
+    if (selected.size === 0) return;
+    const ids = [...selected];
+    startTransition(async () => {
+      const result = await addQuizItemsAction(quiz.quiz_id, ids);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setSelected(new Set());
+      router.refresh();
+    });
+  }
+
+  return (
+    <>
+      {/* ── Header ─────────────────────────────────────────── */}
+      <header className="quiz-editor-head">
+        <div className="quiz-editor-head-main">
+          <div className="quiz-editor-title-row">
+            <h1 className="quiz-editor-title">{quiz.title}</h1>
+            <span className={`quiz-pill ${quizStatusPillClass(quiz.status)}`}>
+              {formatQuizStatus(quiz.status)}
+            </span>
+          </div>
+          {quiz.description && (
+            <p className="quiz-editor-desc">{quiz.description}</p>
+          )}
+          <p className="quiz-editor-meta">
+            <span className="quiz-editor-kind">
+              {formatQuizKind(quiz.quiz_kind)}
+            </span>
+            {' · '}
+            {metaParts.join(' · ')}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="quiz-btn quiz-btn-ghost"
+          onClick={() => setEditOpen(true)}
+        >
+          Edit details
+        </button>
+      </header>
+
+      {/* ── Zone 1: selected questions ─────────────────────── */}
+      <section className="quiz-zone">
+        <h2 className="quiz-zone-title">
+          In this quiz{' '}
+          <span className="quiz-zone-count">
+            ({formatItemCount(items.length)})
+          </span>
+        </h2>
+
+        {items.length === 0 ? (
+          <p className="quiz-zone-empty">
+            No questions yet. Add some from your bank below.
+          </p>
+        ) : (
+          <ol className="quiz-item-list">
+            {items.map((item, index) => (
+              <li key={item.quiz_item_id} className="quiz-item-row">
+                <span className="quiz-item-position">{item.position}</span>
+                <div className="quiz-item-body">
+                  <div className="quiz-item-line">
+                    <span className="quiz-type-chip">
+                      {item.question_type}
+                    </span>
+                    {item.difficulty && (
+                      <span className="quiz-diff-chip">
+                        {item.difficulty}
+                      </span>
+                    )}
+                    {item.client_needs_category && (
+                      <span className="quiz-item-cat">
+                        {item.client_needs_category}
+                      </span>
+                    )}
+                  </div>
+                  <p className="quiz-item-stem">
+                    {stemPreview(item.stem)}
+                  </p>
+                </div>
+                <div className="quiz-item-actions">
+                  <button
+                    type="button"
+                    className="quiz-icon-btn"
+                    aria-label="Move up"
+                    title="Move up"
+                    disabled={isPending || index === 0}
+                    onClick={() =>
+                      runItemAction(() =>
+                        moveQuizItemAction(item.quiz_item_id, 'up'),
+                      )
+                    }
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    className="quiz-icon-btn"
+                    aria-label="Move down"
+                    title="Move down"
+                    disabled={isPending || index === items.length - 1}
+                    onClick={() =>
+                      runItemAction(() =>
+                        moveQuizItemAction(item.quiz_item_id, 'down'),
+                      )
+                    }
+                  >
+                    ↓
+                  </button>
+                  <button
+                    type="button"
+                    className="quiz-icon-btn quiz-icon-btn-danger"
+                    aria-label="Remove from quiz"
+                    title="Remove from quiz"
+                    disabled={isPending}
+                    onClick={() =>
+                      runItemAction(() =>
+                        removeQuizItemAction(item.quiz_item_id),
+                      )
+                    }
+                  >
+                    ✕
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+
+      {/* ── Zone 2: question picker ────────────────────────── */}
+      <section className="quiz-zone">
+        <h2 className="quiz-zone-title">Add questions</h2>
+        <p className="quiz-zone-hint">
+          Your published, standalone questions. Filter, tick the ones
+          you want, then Add.
+        </p>
+
+        <QuizPickerFilterBar values={pickerFilters} baseUrl={baseUrl} />
+
+        {pickerQuestions.length === 0 ? (
+          <p className="quiz-zone-empty">
+            No published standalone questions match. Adjust the filters,
+            or publish more questions in your bank first.
+          </p>
+        ) : (
+          <>
+            <div className="quiz-picker-bar">
+              <span className="quiz-picker-count">
+                {selected.size === 0
+                  ? `${pickerQuestions.length} shown`
+                  : `${selected.size} selected`}
+              </span>
+              <button
+                type="button"
+                className="quiz-btn quiz-btn-primary"
+                disabled={selected.size === 0 || isPending}
+                onClick={handleAddSelected}
+              >
+                {isPending && selected.size > 0
+                  ? 'Adding…'
+                  : selected.size > 0
+                    ? `Add ${selected.size} selected`
+                    : 'Add selected'}
+              </button>
+            </div>
+
+            <ul className="quiz-picker-list">
+              {pickerQuestions.map((q) => {
+                const alreadyAdded = addedItemIds.has(q.item_id);
+                const isChecked = selected.has(q.item_id);
+                return (
+                  <li
+                    key={q.item_id}
+                    className={`quiz-picker-row ${
+                      alreadyAdded ? 'is-added' : ''
+                    }`}
+                  >
+                    <label className="quiz-picker-check">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        disabled={alreadyAdded || isPending}
+                        onChange={() => toggleSelected(q.item_id)}
+                      />
+                    </label>
+                    <div className="quiz-item-body">
+                      <div className="quiz-item-line">
+                        <span className="quiz-type-chip">
+                          {q.question_type}
+                        </span>
+                        {q.difficulty && (
+                          <span className="quiz-diff-chip">
+                            {q.difficulty}
+                          </span>
+                        )}
+                        {q.client_needs_category && (
+                          <span className="quiz-item-cat">
+                            {q.client_needs_category}
+                          </span>
+                        )}
+                      </div>
+                      <p className="quiz-item-stem">
+                        {stemPreview(q.stem)}
+                      </p>
+                    </div>
+                    {alreadyAdded && (
+                      <span className="quiz-picker-added">Added</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
+      </section>
+
+      <ErrorToast error={error} onDismiss={() => setError(null)} />
+
+      {editOpen && (
+        <QuizFormModal
+          mode="edit"
+          quizId={quiz.quiz_id}
+          initial={editInitial}
+          onClose={() => setEditOpen(false)}
+        />
+      )}
+    </>
+  );
+}

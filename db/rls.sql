@@ -535,3 +535,514 @@ CREATE POLICY nclex_cohorts_student_select ON nclex_cohorts FOR SELECT
         AND p.status = 'PUBLISHED'
     )
   );
+
+
+-- =========================================================
+-- nclex_question_marks (Slice 2.1.5, 2026-05-06)
+-- =========================================================
+-- Student owns their own marks; SUPER_ADMIN bypass. Direct
+-- INSERT / DELETE allowed (no RPC) — the toggle is a single-row
+-- write whose authorisation reduces to "is this row mine?".
+-- UPDATE not granted: no editable column exists.
+
+ALTER TABLE nclex_question_marks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_question_marks_self_select ON nclex_question_marks FOR SELECT
+  TO authenticated
+  USING (student_id = auth.uid());
+
+CREATE POLICY nclex_question_marks_self_insert ON nclex_question_marks FOR INSERT
+  TO authenticated
+  WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY nclex_question_marks_self_delete ON nclex_question_marks FOR DELETE
+  TO authenticated
+  USING (student_id = auth.uid());
+
+CREATE POLICY nclex_question_marks_admin_all ON nclex_question_marks FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- =========================================================
+-- nclex_keepalive (2026-05-12)
+-- =========================================================
+-- RLS enabled with NO policies. Only service-role (which bypasses
+-- RLS) reads/writes this internal infrastructure table; anon and
+-- authenticated have no access by design.
+
+ALTER TABLE nclex_keepalive ENABLE ROW LEVEL SECURITY;
+
+
+-- =========================================================
+-- nclex_programme_units (Slice 9.3a, 2026-05-12;
+-- student_select added Slice 10.1, 2026-05-15)
+-- =========================================================
+-- Tutor CRUDs curriculum for programmes they own (ownership via
+-- the programme FK). SUPER_ADMIN bypass. The student_select policy
+-- exposes units under a PUBLISHED programme to any authenticated
+-- user — permissive v1 shape; tightens to "active enrolment" when
+-- the enrolment slice ships. Per-row is_published stays a TS render
+-- filter, not an RLS gate.
+
+ALTER TABLE nclex_programme_units ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_programme_units_self_select
+  ON nclex_programme_units FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_units.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_programme_units_self_insert
+  ON nclex_programme_units FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_units.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_programme_units_self_update
+  ON nclex_programme_units FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_units.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_units.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_programme_units_self_delete
+  ON nclex_programme_units FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_units.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_programme_units_admin_all
+  ON nclex_programme_units FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+CREATE POLICY nclex_programme_units_student_select
+  ON nclex_programme_units FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_units.programme_id
+        AND p.status = 'PUBLISHED'
+    )
+  );
+
+
+-- =========================================================
+-- nclex_programme_blocks (Slice 9.3a, 2026-05-12;
+-- student_select added Slice 10.1, 2026-05-15)
+-- =========================================================
+-- Ownership traces block -> unit -> programme.tutor_id.
+
+ALTER TABLE nclex_programme_blocks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_programme_blocks_self_select
+  ON nclex_programme_blocks FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_programme_units u
+      JOIN nclex_programmes p ON p.programme_id = u.programme_id
+      WHERE u.unit_id = nclex_programme_blocks.unit_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_programme_blocks_self_insert
+  ON nclex_programme_blocks FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM nclex_programme_units u
+      JOIN nclex_programmes p ON p.programme_id = u.programme_id
+      WHERE u.unit_id = nclex_programme_blocks.unit_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_programme_blocks_self_update
+  ON nclex_programme_blocks FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_programme_units u
+      JOIN nclex_programmes p ON p.programme_id = u.programme_id
+      WHERE u.unit_id = nclex_programme_blocks.unit_id
+        AND p.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM nclex_programme_units u
+      JOIN nclex_programmes p ON p.programme_id = u.programme_id
+      WHERE u.unit_id = nclex_programme_blocks.unit_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_programme_blocks_self_delete
+  ON nclex_programme_blocks FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_programme_units u
+      JOIN nclex_programmes p ON p.programme_id = u.programme_id
+      WHERE u.unit_id = nclex_programme_blocks.unit_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_programme_blocks_admin_all
+  ON nclex_programme_blocks FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+CREATE POLICY nclex_programme_blocks_student_select
+  ON nclex_programme_blocks FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_programme_units u
+      JOIN nclex_programmes p ON p.programme_id = u.programme_id
+      WHERE u.unit_id = nclex_programme_blocks.unit_id
+        AND p.status = 'PUBLISHED'
+    )
+  );
+
+
+-- =========================================================
+-- nclex_programme_activities (Slice 9.3a, 2026-05-12;
+-- student_select added Slice 10.1, 2026-05-15)
+-- =========================================================
+-- Ownership traces activity -> unit -> programme.tutor_id (via
+-- unit_id — loose activities still carry a unit).
+
+ALTER TABLE nclex_programme_activities ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_programme_activities_self_select
+  ON nclex_programme_activities FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_programme_units u
+      JOIN nclex_programmes p ON p.programme_id = u.programme_id
+      WHERE u.unit_id = nclex_programme_activities.unit_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_programme_activities_self_insert
+  ON nclex_programme_activities FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM nclex_programme_units u
+      JOIN nclex_programmes p ON p.programme_id = u.programme_id
+      WHERE u.unit_id = nclex_programme_activities.unit_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_programme_activities_self_update
+  ON nclex_programme_activities FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_programme_units u
+      JOIN nclex_programmes p ON p.programme_id = u.programme_id
+      WHERE u.unit_id = nclex_programme_activities.unit_id
+        AND p.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM nclex_programme_units u
+      JOIN nclex_programmes p ON p.programme_id = u.programme_id
+      WHERE u.unit_id = nclex_programme_activities.unit_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_programme_activities_self_delete
+  ON nclex_programme_activities FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_programme_units u
+      JOIN nclex_programmes p ON p.programme_id = u.programme_id
+      WHERE u.unit_id = nclex_programme_activities.unit_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_programme_activities_admin_all
+  ON nclex_programme_activities FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+CREATE POLICY nclex_programme_activities_student_select
+  ON nclex_programme_activities FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_programme_units u
+      JOIN nclex_programmes p ON p.programme_id = u.programme_id
+      WHERE u.unit_id = nclex_programme_activities.unit_id
+        AND p.status = 'PUBLISHED'
+    )
+  );
+
+
+-- =========================================================
+-- nclex_cohort_checklist_items (Slice 9.3f, 2026-05-14;
+-- student_select added Slice 10.1, 2026-05-15)
+-- =========================================================
+-- Ownership chain: checklist_item -> cohort -> programme.tutor_id
+-- (two-hop join). SUPER_ADMIN bypass. The student_select policy
+-- exposes rows under a PUBLISHED programme; is_included and the
+-- activity-window dates stay TS render filters, not RLS gates.
+
+ALTER TABLE nclex_cohort_checklist_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_cohort_checklist_items_self_select
+  ON nclex_cohort_checklist_items FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_cohorts c
+      JOIN nclex_programmes p ON p.programme_id = c.programme_id
+      WHERE c.cohort_id = nclex_cohort_checklist_items.cohort_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_cohort_checklist_items_self_insert
+  ON nclex_cohort_checklist_items FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM nclex_cohorts c
+      JOIN nclex_programmes p ON p.programme_id = c.programme_id
+      WHERE c.cohort_id = nclex_cohort_checklist_items.cohort_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_cohort_checklist_items_self_update
+  ON nclex_cohort_checklist_items FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_cohorts c
+      JOIN nclex_programmes p ON p.programme_id = c.programme_id
+      WHERE c.cohort_id = nclex_cohort_checklist_items.cohort_id
+        AND p.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM nclex_cohorts c
+      JOIN nclex_programmes p ON p.programme_id = c.programme_id
+      WHERE c.cohort_id = nclex_cohort_checklist_items.cohort_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_cohort_checklist_items_self_delete
+  ON nclex_cohort_checklist_items FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_cohorts c
+      JOIN nclex_programmes p ON p.programme_id = c.programme_id
+      WHERE c.cohort_id = nclex_cohort_checklist_items.cohort_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_cohort_checklist_items_admin_all
+  ON nclex_cohort_checklist_items FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+CREATE POLICY nclex_cohort_checklist_items_student_select
+  ON nclex_cohort_checklist_items FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_cohorts c
+      JOIN nclex_programmes p ON p.programme_id = c.programme_id
+      WHERE c.cohort_id = nclex_cohort_checklist_items.cohort_id
+        AND p.status = 'PUBLISHED'
+    )
+  );
+
+
+-- =========================================================
+-- nclex_media_assets (Slice 9.3d-b, 2026-05-13)
+-- =========================================================
+-- Narrow, owner-based gates. Cross-feature read access (an
+-- enrolled student viewing a tutor's PDF) does NOT live here —
+-- it's enforced at the consumer's RLS and bridged by a
+-- service-role-minted signed URL.
+
+ALTER TABLE nclex_media_assets ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_media_assets_owner_select
+  ON nclex_media_assets FOR SELECT
+  TO authenticated
+  USING (
+    owner_user_id = auth.uid()
+    OR nclex_user_has_role('SUPER_ADMIN')
+  );
+
+CREATE POLICY nclex_media_assets_self_insert
+  ON nclex_media_assets FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    uploaded_by = auth.uid()
+    AND owner_user_id = auth.uid()
+  );
+
+CREATE POLICY nclex_media_assets_owner_update
+  ON nclex_media_assets FOR UPDATE
+  TO authenticated
+  USING (
+    owner_user_id = auth.uid()
+    OR nclex_user_has_role('SUPER_ADMIN')
+  )
+  WITH CHECK (
+    owner_user_id = auth.uid()
+    OR nclex_user_has_role('SUPER_ADMIN')
+  );
+
+CREATE POLICY nclex_media_assets_owner_delete
+  ON nclex_media_assets FOR DELETE
+  TO authenticated
+  USING (
+    owner_user_id = auth.uid()
+    OR nclex_user_has_role('SUPER_ADMIN')
+  );
+
+
+-- =========================================================
+-- storage.objects — nclex-pdf-activities bucket (Slice 9.3d-b)
+-- =========================================================
+-- Authenticated users can INSERT (upload) to this bucket; the
+-- app-layer uploadAssetAction does the additional gating. No
+-- SELECT / UPDATE / DELETE policies — the legitimate read path is
+-- a service-role-minted signed URL (1-hour expiry), which bypasses
+-- storage.objects RLS by design. storage.objects already has RLS
+-- enabled by the Supabase platform default.
+
+CREATE POLICY nclex_pdf_activities_upload
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'nclex-pdf-activities');
+
+
+-- =========================================================
+-- nclex_tutor_quizzes (Tutor Quiz Slice 1, 2026-05-16)
+-- =========================================================
+-- Tutor-owned, following the nclex_tutor_questions pattern:
+-- one FOR ALL "own" policy (direct tutor_id) + one FOR ALL
+-- SUPER_ADMIN bypass. Students never SELECT this table directly —
+-- the student read path is the SECURITY DEFINER launch RPC
+-- (tutor-quiz slice 3).
+
+ALTER TABLE nclex_tutor_quizzes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_tutor_quizzes_tutor_own
+  ON nclex_tutor_quizzes FOR ALL
+  TO authenticated
+  USING (tutor_id = auth.uid())
+  WITH CHECK (tutor_id = auth.uid());
+
+CREATE POLICY nclex_tutor_quizzes_superadmin
+  ON nclex_tutor_quizzes FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- =========================================================
+-- nclex_tutor_quiz_items (Tutor Quiz Slice 1, 2026-05-16)
+-- =========================================================
+-- Ownership traces through the parent quiz (the row has no
+-- tutor_id column). Same FOR ALL "own" + SUPER_ADMIN bypass shape.
+
+ALTER TABLE nclex_tutor_quiz_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_tutor_quiz_items_tutor_own
+  ON nclex_tutor_quiz_items FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_tutor_quizzes q
+      WHERE q.quiz_id = nclex_tutor_quiz_items.quiz_id
+        AND q.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_tutor_quizzes q
+      WHERE q.quiz_id = nclex_tutor_quiz_items.quiz_id
+        AND q.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_tutor_quiz_items_superadmin
+  ON nclex_tutor_quiz_items FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));

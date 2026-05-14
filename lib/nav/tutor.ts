@@ -2,9 +2,9 @@
 //
 // Tutor nav configs. Two contexts, each with its own sidebar:
 //   - Global    — cross-programme: programmes list, private bank,
-//                 students, payments, profile.
+//                 quizzes, students, payments, profile.
 //   - Programme — scoped to one programme: curriculum, sessions,
-//                 mocks, assignments, students, results.
+//                 assignments, students, results.
 //
 // To add/remove/reorder a sidebar item, edit this file only.
 //
@@ -34,6 +34,7 @@ export const TUTOR_GLOBAL_NAV: NavItem[] = [
       { key: 'bank-trends', label: 'Trend datasets', icon: 'book', href: '/tutor/bank/trends' },
     ],
   },
+  { key: 'quizzes',  label: 'Quizzes',     icon: 'target', href: '/tutor/quizzes' },
   { key: 'students', label: 'My Students', icon: 'users', href: '/tutor/students' },
   { key: 'payments', label: 'Payments',    icon: 'card',  href: '/tutor/payments' },
   { key: 'profile',  label: 'Profile',     icon: 'user',  href: '/tutor/profile' },
@@ -49,7 +50,6 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   { key: 'cohorts',     label: 'Cohorts',       icon: 'users',    href: '/tutor/programme/:programmeId/cohorts' },
   { key: 'curriculum',  label: 'Curriculum',    icon: 'layers',   href: '/tutor/programme/:programmeId/curriculum' },
   { key: 'sessions',    label: 'Live Sessions', icon: 'video',    href: '/tutor/programme/:programmeId/sessions' },
-  { key: 'mocks',       label: 'Mocks',         icon: 'target',   href: '/tutor/programme/:programmeId/mocks' },
   { key: 'assignments', label: 'Assignments',   icon: 'edit',     href: '/tutor/programme/:programmeId/assignments' },
   { key: 'students',    label: 'Students',      icon: 'users',    href: '/tutor/programme/:programmeId/students' },
   { key: 'results',     label: 'Results',       icon: 'chart',    href: '/tutor/programme/:programmeId/results' },

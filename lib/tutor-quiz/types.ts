@@ -1,0 +1,103 @@
+// mynclex/lib/tutor-quiz/types.ts
+//
+// Shapes for the central tutor-quiz system (Tutor Quiz Slice 1).
+// Mirrors nclex_tutor_quizzes + nclex_tutor_quiz_items. A quiz is a
+// reusable tutor-owned plan: metadata + an ordered list of question
+// references. The student attempt snapshots the questions at
+// attempt-creation time (slice 3) — the quiz itself only stores refs.
+
+import type { QuestionType } from '@/lib/bank/classifications';
+
+export type QuizKind = 'MOCK' | 'PRACTICE';
+
+// The four NON-adaptive runner modes. CAT is excluded — it selects
+// questions adaptively, incompatible with a quiz's fixed list.
+export type QuizMode =
+  | 'UNTIMED_LEARNING'
+  | 'UNTIMED_TEST'
+  | 'TIMED_FREE_NAV'
+  | 'TIMED_SEQUENTIAL';
+
+export type QuizStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+// Full nclex_tutor_quizzes row.
+export type TutorQuiz = {
+  quiz_id: string;
+  tutor_id: string;
+  title: string;
+  description: string | null;
+  quiz_kind: QuizKind;
+  mode: QuizMode;
+  duration_seconds: number | null;
+  /** Pass threshold as a 0..1 fraction; null = ungraded. */
+  pass_score: number | null;
+  max_attempts: number | null;
+  status: QuizStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+// Projection for the /tutor/quizzes list — adds the question-count
+// rollup (count(quiz_items)) so each card renders without a second
+// round trip.
+export type QuizListRow = Pick<
+  TutorQuiz,
+  | 'quiz_id'
+  | 'title'
+  | 'description'
+  | 'quiz_kind'
+  | 'mode'
+  | 'duration_seconds'
+  | 'pass_score'
+  | 'max_attempts'
+  | 'status'
+  | 'updated_at'
+> & {
+  item_count: number;
+};
+
+// The editable subset — QuizFormModal's initial values in edit mode
+// and the input to createQuizAction / updateQuizAction. `status` is
+// only set through the edit modal (create always lands as DRAFT).
+export type QuizFormValues = Pick<
+  TutorQuiz,
+  | 'title'
+  | 'description'
+  | 'quiz_kind'
+  | 'mode'
+  | 'duration_seconds'
+  | 'pass_score'
+  | 'max_attempts'
+  | 'status'
+>;
+
+// One selected question inside a quiz — a quiz_item row joined to
+// its question's display fields. `position` is 1-based.
+export type QuizItemRow = {
+  quiz_item_id: string;
+  position: number;
+  item_id: string;
+  question_type: QuestionType;
+  stem: string;
+  difficulty: string | null;
+  client_needs_category: string | null;
+};
+
+// One question row in the picker — the tutor's own published,
+// standalone questions, filtered by the picker's filter bar.
+export type PickerQuestionRow = {
+  item_id: string;
+  question_type: QuestionType;
+  stem: string;
+  difficulty: string | null;
+  client_needs_category: string | null;
+};
+
+// Picker filter values — a subset of the bank filter set (no status
+// or membership: the picker is hard-scoped to published + standalone).
+export type QuizPickerFilters = {
+  type: string;
+  category: string;
+  difficulty: string;
+  q: string;
+};

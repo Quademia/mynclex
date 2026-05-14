@@ -43,16 +43,23 @@ attempt; the runner consumes it like any other.
 
 | column | notes |
 |---|---|
-| `quiz_id` | PK |
+| `quiz_id` | PK — UUID (`gen_random_uuid()`), matching the structural tables (programmes, units, activities) |
 | `tutor_id` | owner; quizzes are tutor-scoped and reusable |
 | `title` | |
+| `description` | nullable — shown on the quiz list card and (later) the student launch modal |
 | `quiz_kind` | `MOCK` \| `PRACTICE` |
-| `mode` | one of the existing bank runner modes; the tutor picks it, `quiz_kind` sets the editor default |
-| `duration_seconds` | nullable — set for timed modes only |
-| `pass_score` | nullable — pass threshold; null = ungraded |
+| `mode` | one of the **four non-adaptive** runner modes — `UNTIMED_LEARNING`, `UNTIMED_TEST`, `TIMED_FREE_NAV`, `TIMED_SEQUENTIAL`. `CAT` is excluded: it selects each next question adaptively, which is incompatible with a quiz's hand-picked fixed list. The tutor picks the mode; `quiz_kind` sets the editor default |
+| `duration_seconds` | nullable — set for timed modes only; the mode↔duration coherence rule is app-layer (the save action), not a DB CHECK |
+| `pass_score` | nullable — pass threshold as a `0..1` fraction (same scale as `nclex_attempts.final_score`, so pass/fail is `final_score >= pass_score`); shown as a % in the UI; null = ungraded |
 | `max_attempts` | nullable — null = unlimited |
 | `status` | `DRAFT` \| `PUBLISHED` \| `ARCHIVED` |
 | `created_at`, `updated_at` | |
+
+**`(quiz_kind, mode)` pairing** is a DB CHECK constraint, mirroring
+`nclex_attempts_intent_mode_tuple`. `PRACTICE` allows all four modes;
+`MOCK` excludes `UNTIMED_LEARNING` (that mode reveals answers live,
+which doesn't fit an exam-style mock). Derived from the existing
+attempts tuple constraint via `MOCK → EXAM`, `PRACTICE → STUDY`.
 
 **No `intent` column.** `intent` is derived from `quiz_kind`:
 `MOCK → EXAM`, `PRACTICE → STUDY`. One source of truth.
@@ -61,10 +68,10 @@ attempt; the runner consumes it like any other.
 
 | column | notes |
 |---|---|
-| `quiz_item_id` | PK |
+| `quiz_item_id` | PK — UUID |
 | `quiz_id` | FK → `nclex_tutor_quizzes`, `ON DELETE CASCADE` |
-| `position` | order within the quiz |
-| `item_id` | FK → `nclex_tutor_questions` (a real FK — tutor-only, so no polymorphism) |
+| `position` | order within the quiz (1-based; renumbered by the reorder action) |
+| `item_id` | FK → `nclex_tutor_questions`, `ON DELETE CASCADE` (a real FK — tutor-only, so no polymorphism; if a tutor deletes a question it drops out of any quiz referencing it — in-progress/past attempts are unaffected, they hold snapshots) |
 | `created_at` | |
 
 `UNIQUE (quiz_id, item_id)` — a question can't be added twice.
