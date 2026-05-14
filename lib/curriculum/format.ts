@@ -195,34 +195,9 @@ export function isVisibleToStudents(input: {
 // The student curriculum page is a course map / launcher, not a
 // content reader: each activity row carries one action button and
 // the actual consumption happens on the per-type viewer surface.
-// These two helpers feed that row — what the button says, and the
-// "~N min" estimate beside it.
-
-/**
- * Action-button copy for a student curriculum row, keyed on type.
- * TEXT / PDF / EXTERNAL_LINK / ONLINE_LIVE_SESSION carry the verb
- * for what they open; MOCK / PRACTICE_QUIZ carry "coming soon"
- * copy directly — they stay un-launchable until the central
- * tutor-quiz system ships. (In 10.1b every button renders disabled
- * regardless; the per-type viewer slices flip them live one at a
- * time.)
- */
-export function activityActionLabel(type: ActivityType): string {
-  switch (type) {
-    case 'TEXT':
-      return 'Open reading';
-    case 'PDF':
-      return 'Open PDF';
-    case 'EXTERNAL_LINK':
-      return 'Open link';
-    case 'ONLINE_LIVE_SESSION':
-      return 'View session';
-    case 'MOCK':
-      return 'Mock coming soon';
-    case 'PRACTICE_QUIZ':
-      return 'Practice quiz coming soon';
-  }
-}
+// This helper feeds the "~N min" estimate shown beside that
+// button. The button label itself is a uniform "Open" — the
+// per-type dispatch lives in <ActivityAction>, not in a label map.
 
 /**
  * Estimated minutes for a student curriculum row, normalised

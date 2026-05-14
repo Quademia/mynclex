@@ -14,10 +14,13 @@
 // Slice 10.1b — the curriculum page is a course map / launcher,
 // not a content reader. Each activity card shows its summary
 // (type, title, description, note, estimated time) plus ONE action
-// button. The button is disabled here — the actual viewer for each
-// type lands in its own slice and flips that type's button live.
-// Content consumption (reading, PDF, link, session, quiz) happens
-// on the per-type surface, never inline on this page.
+// button. Content consumption (reading, PDF, link, session, quiz)
+// happens on the per-type surface, never inline on this page.
+//
+// Slice 10.2 — the action button + per-type dispatch live in the
+// shared <ActivityAction> piece (reused by the future weekly +
+// calendar views). External link is wired up; the rest stay
+// disabled until their own viewer slices.
 //
 // Empty units (no visible activities, no visible blocks) render
 // as a "no content yet" card — the tutor's structural intent
@@ -29,10 +32,9 @@
 import {
   unitLabel,
   formatUnitTitle,
-  activityActionLabel,
-  activityEstimatedMinutes,
   ACTIVITY_TYPE_ICON,
 } from './format';
+import { ActivityAction } from './activity-action';
 import type {
   ProgrammeActivity,
   StudentCurriculumTree,
@@ -138,8 +140,6 @@ function BlockCard({
 }
 
 function ActivityCard({ activity }: { activity: ProgrammeActivity }) {
-  const estMinutes = activityEstimatedMinutes(activity);
-
   return (
     <article className="student-activity" data-type={activity.type}>
       <header className="student-activity-head">
@@ -161,15 +161,7 @@ function ActivityCard({ activity }: { activity: ProgrammeActivity }) {
         </p>
       )}
 
-      <div className="student-activity-action">
-        {estMinutes != null && (
-          <span className="student-activity-est">~{estMinutes} min</span>
-        )}
-        {/* Disabled until this type's viewer slice lands. */}
-        <button type="button" className="student-activity-launch" disabled>
-          {activityActionLabel(activity.type)}
-        </button>
-      </div>
+      <ActivityAction activity={activity} />
     </article>
   );
 }
