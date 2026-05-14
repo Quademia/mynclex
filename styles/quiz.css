@@ -226,7 +226,10 @@
 /* ─── Editor page ─────────────────────────────────── */
 
 .quiz-editor-page {
-  max-width: 980px;
+  /* Fills the available content width — the two-column editor is a
+   * workbench, not a reading column, so it shouldn't sit narrow.
+   * The cap only rails ultra-wide monitors. */
+  max-width: 1800px;
 }
 
 .quiz-editor-backlink {
@@ -321,7 +324,18 @@
   background: var(--bg);
 }
 
-/* ─── Editor zones ────────────────────────────────── */
+/* ─── Editor zones — two-column layout ────────────── */
+
+/* The quiz (left) and the question picker (right) sit side by
+ * side so the picker isn't pushed down the page as the selected
+ * list grows. Each column's LIST scrolls internally (see
+ * .quiz-item-list / .quiz-picker-list) so neither column pushes
+ * the other. Stacks below a narrow breakpoint. */
+.quiz-editor-columns {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
 
 .quiz-zone {
   background: var(--white);
@@ -329,6 +343,32 @@
   border-radius: var(--radius);
   padding: 16px 18px;
   margin-bottom: 16px;
+}
+
+/* In the two-column layout each zone is an equal-width column.
+ * min-width:0 lets the flex child shrink so the stem line-clamp
+ * works instead of the column forcing itself wide. */
+.quiz-editor-columns .quiz-zone {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/* The picker's filter bar reuses .bank-filter-row (a 5-track
+ * grid built for the full-width bank page) — too wide for the
+ * narrower right column, so restack it 2×2 here. */
+.quiz-col-picker .bank-filter-row {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 880px) {
+  .quiz-editor-columns {
+    flex-direction: column;
+  }
+  .quiz-editor-columns .quiz-zone {
+    width: 100%;
+    margin-bottom: 16px;
+  }
 }
 
 .quiz-zone-title {
@@ -362,6 +402,10 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  /* Scrolls internally so a long quiz doesn't make the left
+   * column tower over the picker on the right. */
+  max-height: 560px;
+  overflow-y: auto;
 }
 
 .quiz-item-row {
@@ -499,7 +543,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 520px;
+  max-height: 560px;
   overflow-y: auto;
 }
 

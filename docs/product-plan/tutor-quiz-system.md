@@ -134,17 +134,22 @@ mode. See §9 for the one case the mode doesn't cover.
 
 ## 7. Building a quiz — the tutor editor
 
-The quiz editor (`/tutor/quiz/[id]`) is one page, two zones:
+The quiz editor (`/tutor/quiz/[id]`) is one page, two side-by-side
+columns under a full-width header:
 
-- **Selected questions** — the ordered list that *is* the quiz.
-  Reorder with up/down arrows; remove per row.
-- **Question picker** — the tutor's own question library, below
-  the selected list. Reuses the existing `/tutor/bank/all` filter
-  bar (question type, client-needs category, difficulty, text
-  search). Each row shows the stem + type + difficulty + a
-  checkbox; rows already in the quiz show as "Added". The tutor
-  filters, checks the questions they want, and clicks Add — the
-  picks append to the selected list.
+- **Selected questions (left)** — the ordered list that *is* the
+  quiz. Reorder with up/down arrows; remove per row.
+- **Question picker (right)** — the tutor's own question library,
+  *beside* the selected list rather than below it, so the picker
+  isn't pushed down the page as the quiz grows. Each column's list
+  scrolls on its own. The filter bar covers question type,
+  client-needs category, difficulty, and text search. Each row
+  shows the stem + type + difficulty + a checkbox; rows already in
+  the quiz show as "Added". The tutor filters, checks the
+  questions they want, and clicks Add — the picks append to the
+  selected list.
+
+The columns stack vertically below a narrow viewport breakpoint.
 
 The picker is scoped to the tutor's **published, standalone**
 questions only:
@@ -155,10 +160,15 @@ questions only:
   Case-children and trend-linked questions are hidden — they need
   the case/trend snapshot machinery, out of v1 scope per §2.
 
-Reuse note: `<BankFilters>` and the filtered query from
-`/tutor/bank/all` are reused as-is; the picker's row list is its
-own simple checkbox renderer (the bank list's rows carry *edit*
-affordances — the picker needs *add* affordances).
+Reuse note: the picker's filter bar reuses the `/tutor/bank/all`
+filter vocabulary — the same `.bank-filter-*` styling and the
+same classification constants — but as a **4-field subset** (type
+/ category / difficulty / search). The bank bar's Status and
+Membership selects are omitted: the picker is hard-scoped to
+published + standalone, so showing those as forced dropdowns
+would mislead. The picker's row list is its own simple checkbox
+renderer (the bank list's rows carry *edit* affordances — the
+picker needs *add* affordances).
 
 ## 8. Build arc
 

@@ -153,8 +153,9 @@ export function QuizEditor({
         </button>
       </header>
 
-      {/* ── Zone 1: selected questions ─────────────────────── */}
-      <section className="quiz-zone">
+      <div className="quiz-editor-columns">
+      {/* ── Left column: the quiz (selected questions) ───────── */}
+      <section className="quiz-zone quiz-col-selected">
         <h2 className="quiz-zone-title">
           In this quiz{' '}
           <span className="quiz-zone-count">
@@ -241,8 +242,8 @@ export function QuizEditor({
         )}
       </section>
 
-      {/* ── Zone 2: question picker ────────────────────────── */}
-      <section className="quiz-zone">
+      {/* ── Right column: question picker ────────────────────── */}
+      <section className="quiz-zone quiz-col-picker">
         <h2 className="quiz-zone-title">Add questions</h2>
         <p className="quiz-zone-hint">
           Your published, standalone questions. Filter, tick the ones
@@ -327,6 +328,7 @@ export function QuizEditor({
           </>
         )}
       </section>
+      </div>
 
       <ErrorToast error={error} onDismiss={() => setError(null)} />
 
