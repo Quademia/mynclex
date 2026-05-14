@@ -24,6 +24,7 @@
 'use client';
 
 import type { OnlineLiveSessionActivityBodyValues } from './types';
+import { providerLabelFor } from './format';
 
 interface OnlineLiveSessionEditorProps {
   values: OnlineLiveSessionActivityBodyValues;
@@ -41,20 +42,6 @@ function safeParse(value: string): URL | null {
   } catch {
     return null;
   }
-}
-
-// Map a host to a short provider label. Falls back to the host
-// itself for unknown providers. Lowercased contains-check covers
-// regional Zoom domains (us02web.zoom.us, etc.) and Meet variants.
-function providerLabelFor(host: string): string {
-  const h = host.toLowerCase();
-  if (h.includes('zoom.us')) return 'Zoom';
-  if (h.includes('meet.google.com')) return 'Google Meet';
-  if (h.includes('teams.microsoft.com') || h.includes('teams.live.com'))
-    return 'Microsoft Teams';
-  if (h.includes('webex.com')) return 'Webex';
-  if (h.includes('whereby.com')) return 'Whereby';
-  return host.replace(/^www\./, '');
 }
 
 // Format the tutor's local TZ as a short label (e.g.,

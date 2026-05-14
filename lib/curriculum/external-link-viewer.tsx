@@ -10,30 +10,14 @@
 // no new query, no new route.
 //
 // Pairs with the tutor-side external-link-editor.tsx (editor for
-// authoring, viewer for consuming).
+// authoring, viewer for consuming). Shared content classes
+// (.viewer-modal-*) come from <ViewerModalShell>'s vocabulary.
 
 'use client';
 
 import { ViewerModalShell } from './viewer-modal-shell';
-import { activityEstimatedMinutes } from './format';
+import { activityEstimatedMinutes, safeHttpUrl } from './format';
 import type { ActivityPayloadExternalLink, ProgrammeActivity } from './types';
-
-// Render-time guard mirroring external-link-editor.tsx's safeParse.
-// The action layer already restricts the scheme to http/https at
-// write time (slice 9.3d-a) — this is cheap defence-in-depth so a
-// bad value renders an honest "unavailable" state instead of a
-// broken link. Returns the normalised href, or null.
-function safeHttpUrl(value: string | undefined): string | null {
-  if (!value) return null;
-  const trimmed = value.trim();
-  if (trimmed.length === 0) return null;
-  try {
-    const u = new URL(trimmed);
-    return u.protocol === 'http:' || u.protocol === 'https:' ? u.href : null;
-  } catch {
-    return null;
-  }
-}
 
 export function ExternalLinkViewer({
   activity,
@@ -49,35 +33,31 @@ export function ExternalLinkViewer({
 
   return (
     <ViewerModalShell title={activity.title} onClose={onClose}>
-      <div className="external-link-viewer">
+      <div className="viewer-modal-content">
         {activity.description && (
-          <p className="external-link-viewer-desc">{activity.description}</p>
+          <p className="viewer-modal-desc">{activity.description}</p>
         )}
         {activity.note && (
-          <p className="external-link-viewer-note">
+          <p className="viewer-modal-note">
             <strong>Note:</strong> {activity.note}
           </p>
         )}
         {estMinutes != null && (
-          <p className="external-link-viewer-est">
-            Estimated time: ~{estMinutes} min
-          </p>
+          <p className="viewer-modal-est">Estimated time: ~{estMinutes} min</p>
         )}
 
         {url ? (
           <a
-            className="external-link-viewer-open"
+            className="viewer-modal-cta"
             href={url}
             target="_blank"
             rel="noopener noreferrer"
           >
             <span>Open link in new tab ↗</span>
-            {domain && (
-              <span className="external-link-viewer-domain">{domain}</span>
-            )}
+            {domain && <span className="viewer-modal-cta-sub">{domain}</span>}
           </a>
         ) : (
-          <p className="external-link-viewer-broken">
+          <p className="viewer-modal-broken">
             This link isn&apos;t available yet — ask your tutor to check it.
           </p>
         )}

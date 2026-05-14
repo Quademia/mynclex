@@ -547,6 +547,12 @@ button.programme-switcher-item {
   overflow: hidden;
 }
 
+/* Wide variant — the Text reading viewer wants a comfortable
+ * reading width. */
+.viewer-modal-panel-wide {
+  max-width: 680px;
+}
+
 .viewer-modal-head {
   display: flex;
   align-items: center;
@@ -586,21 +592,26 @@ button.programme-switcher-item {
   overflow-y: auto;
 }
 
-/* ─── External link viewer (slice 10.2) ─────────────────── */
+/* ─── Viewer modal content (slice 10.2 / 10.3) ──────────
+ * Shared content vocabulary for every modal-shaped viewer —
+ * description, note, estimated time, the primary call-to-action
+ * button, and the "unavailable" fallback. Per-type viewers add
+ * their own classes for anything unique.
+ */
 
-.external-link-viewer {
+.viewer-modal-content {
   display: grid;
   gap: 12px;
 }
 
-.external-link-viewer-desc {
+.viewer-modal-desc {
   font-size: 14px;
   color: var(--text);
   margin: 0;
   line-height: 1.55;
 }
 
-.external-link-viewer-note {
+.viewer-modal-note {
   font-size: 13px;
   color: var(--text);
   background: var(--bg-soft);
@@ -610,13 +621,13 @@ button.programme-switcher-item {
   line-height: 1.5;
 }
 
-.external-link-viewer-est {
+.viewer-modal-est {
   font-size: 12px;
   color: var(--text-muted);
   margin: 0;
 }
 
-.external-link-viewer-open {
+.viewer-modal-cta {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -634,24 +645,24 @@ button.programme-switcher-item {
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.external-link-viewer-open:hover {
+.viewer-modal-cta:hover {
   background: var(--accent-dark);
   border-color: var(--accent-dark);
   text-decoration: none;
 }
 
-.external-link-viewer-open:focus-visible {
+.viewer-modal-cta:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.external-link-viewer-domain {
+.viewer-modal-cta-sub {
   font-size: 11px;
   font-weight: 500;
   opacity: 0.85;
 }
 
-.external-link-viewer-broken {
+.viewer-modal-broken {
   font-size: 13px;
   color: var(--danger);
   background: #fef2f2;
@@ -659,4 +670,134 @@ button.programme-switcher-item {
   padding: 10px 12px;
   border-radius: 6px;
   margin: 4px 0 0;
+}
+
+/* ─── Live session viewer (slice 10.3) ──────────────────── */
+
+.live-session-status {
+  justify-self: start;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.live-session-status-upcoming {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.live-session-status-live {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.live-session-status-ended {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+}
+
+.live-session-when {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.live-session-when-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.live-session-when-meta {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.live-session-when-meta > span + span::before {
+  content: "·";
+  margin: 0 6px;
+  color: var(--text-faint);
+}
+
+.live-session-when-tz {
+  font-style: italic;
+}
+
+.live-session-recording {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+  padding: 8px;
+}
+
+/* ─── PDF viewer (slice 10.4) ───────────────────────────── */
+
+.pdf-viewer-status {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: 8px 0;
+  margin: 0;
+}
+
+.pdf-viewer-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.pdf-viewer-file-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.pdf-viewer-file-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pdf-viewer-file-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdf-viewer-file-size {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── Text viewer (slice 10.5) ──────────────────────────── */
+
+.text-viewer-body {
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.text-viewer-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
 }

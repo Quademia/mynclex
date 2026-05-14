@@ -21,6 +21,9 @@
 import { useState } from 'react';
 import { activityEstimatedMinutes } from './format';
 import { ExternalLinkViewer } from './external-link-viewer';
+import { OnlineLiveSessionViewer } from './online-live-session-viewer';
+import { PdfViewer } from './pdf-viewer';
+import { TextViewer } from './text-viewer';
 import type { ProgrammeActivity } from './types';
 
 export function ActivityAction({ activity }: { activity: ProgrammeActivity }) {
@@ -29,7 +32,12 @@ export function ActivityAction({ activity }: { activity: ProgrammeActivity }) {
 
   // Which types have a wired-up viewer. Grows one entry per
   // per-type viewer slice; everything else stays disabled.
-  const isLaunchable = activity.type === 'EXTERNAL_LINK';
+  // MOCK + PRACTICE_QUIZ wait on the central tutor-quiz system.
+  const isLaunchable =
+    activity.type === 'TEXT' ||
+    activity.type === 'EXTERNAL_LINK' ||
+    activity.type === 'ONLINE_LIVE_SESSION' ||
+    activity.type === 'PDF';
 
   return (
     <div className="student-activity-action">
@@ -47,6 +55,24 @@ export function ActivityAction({ activity }: { activity: ProgrammeActivity }) {
 
       {viewerOpen && activity.type === 'EXTERNAL_LINK' && (
         <ExternalLinkViewer
+          activity={activity}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
+      {viewerOpen && activity.type === 'ONLINE_LIVE_SESSION' && (
+        <OnlineLiveSessionViewer
+          activity={activity}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
+      {viewerOpen && activity.type === 'PDF' && (
+        <PdfViewer
+          activity={activity}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
+      {viewerOpen && activity.type === 'TEXT' && (
+        <TextViewer
           activity={activity}
           onClose={() => setViewerOpen(false)}
         />

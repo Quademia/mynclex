@@ -232,3 +232,59 @@ export function activityEstimatedMinutes(
       return null;
   }
 }
+
+// =====================================================================
+// Shared link helpers
+// =====================================================================
+//
+// Used by the per-type activity viewers (slice 10.2+) and the
+// tutor editors. One copy each, so the student and tutor sides
+// read a link the same way.
+
+/**
+ * Normalise a value to an http(s) href, or null. The per-type
+ * viewers use this to gate clickable links: a missing, malformed,
+ * or non-http(s) value renders an honest "unavailable" state
+ * instead of a broken link. The action layer already restricts
+ * schemes at write time — this is render-side defence-in-depth.
+ */
+export function safeHttpUrl(value: string | undefined | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+  try {
+    const u = new URL(trimmed);
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Short provider label from a meeting-URL host (Zoom / Google Meet
+ * / etc.), falling back to the bare host. Shared by the online
+ * live session editor (tutor) and viewer (student) so the provider
+ * chip reads the same on both sides. Lowercased contains-checks
+ * cover regional domains (us02web.zoom.us, teams.live.com, etc.).
+ */
+export function providerLabelFor(host: string): string {
+  const h = host.toLowerCase();
+  if (h.includes('zoom.us')) return 'Zoom';
+  if (h.includes('meet.google.com')) return 'Google Meet';
+  if (h.includes('teams.microsoft.com') || h.includes('teams.live.com'))
+    return 'Microsoft Teams';
+  if (h.includes('webex.com')) return 'Webex';
+  if (h.includes('whereby.com')) return 'Whereby';
+  return host.replace(/^www\./, '');
+}
+
+/**
+ * Human-readable file size — "14 KB", "2.3 MB". Shared by the
+ * tutor PDF editor and the student PDF viewer so an attached file
+ * reads the same on both sides.
+ */
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}

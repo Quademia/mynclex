@@ -1,10 +1,11 @@
 // mynclex/lib/curriculum/viewer-modal-shell.tsx
 //
 // Slice 10.2 — the shared modal *frame* for modal-shaped activity
-// viewers (External link now; Live session / PDF later). It owns
-// only the plumbing — dimmed backdrop, centred panel, header with
-// title + close ✕, Escape-to-close, click-outside-to-close. The
-// content inside is each viewer's own.
+// viewers (External link, Live session, PDF, Text reading). It
+// owns only the plumbing — dimmed backdrop, centred panel, header
+// with title + close ✕, Escape-to-close, click-outside-to-close,
+// and a narrow/wide size option. The content inside is each
+// viewer's own.
 //
 // Deliberately NOT reusing lib/bank/atoms/modal-frame.tsx — per
 // CLAUDE.md folder convention #12 that atom is curator-internal
@@ -22,12 +23,16 @@ interface ViewerModalShellProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  // Panel width. 'narrow' (~460px) suits the link / session / PDF
+  // viewers; 'wide' (~680px) suits the Text reading viewer.
+  size?: 'narrow' | 'wide';
 }
 
 export function ViewerModalShell({
   title,
   onClose,
   children,
+  size = 'narrow',
 }: ViewerModalShellProps) {
   // Escape closes. Click-outside is handled on the backdrop div.
   useEffect(() => {
@@ -48,7 +53,13 @@ export function ViewerModalShell({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="viewer-modal-panel">
+      <div
+        className={
+          size === 'wide'
+            ? 'viewer-modal-panel viewer-modal-panel-wide'
+            : 'viewer-modal-panel'
+        }
+      >
         <header className="viewer-modal-head">
           <h2 className="viewer-modal-title">{title}</h2>
           <button

@@ -22,6 +22,7 @@
 'use client';
 
 import { UploadField } from '@/components/media/upload-field';
+import { formatFileSize } from './format';
 import type {
   PdfActivityBodyValues,
   PdfActivityPreview,
@@ -38,13 +39,6 @@ interface PdfEditorProps {
   onUploaded: (assetId: string) => void;
   onClearAsset: () => void;
   disabled?: boolean;
-}
-
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 
@@ -75,7 +69,7 @@ export function PdfEditor({
                 {preview.original_filename}
               </span>
               <span className="pdf-editor-file-size">
-                {formatSize(preview.size_bytes)}
+                {formatFileSize(preview.size_bytes)}
               </span>
               <div className="pdf-editor-file-actions">
                 <a
