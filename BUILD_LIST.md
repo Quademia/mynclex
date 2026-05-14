@@ -8,7 +8,62 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-15):** **Slice 10.1b — Curriculum
+> **Last shipped (2026-05-15):** **Slices 10.2–10.5 — Per-type
+> activity viewers.** The student curriculum launcher's "Open"
+> button goes live, one activity type at a time: External link
+> (10.2), Online live session (10.3), PDF (10.4), and Text reading
+> (10.5). Mock + Practice quiz stay disabled — blocked on the
+> central tutor-quiz system.
+>
+> **Architecture settled over several rounds with Sam.** Curriculum
+> = launcher, activity = destination; the list views (curriculum,
+> future weekly + calendar) stay dumb and just render a shared
+> `<ActivityAction>` piece per activity. "Component vs route" is a
+> false opposition — the genuinely shared unit is the per-type
+> *dispatch*, which lives in `<ActivityAction>` (owns the uniform
+> "Open" button + dispatch + any modal's open/close). Destinations
+> are *right-sized per type*: External link / Live session / PDF →
+> modals; Text reading → a wide modal for now (dedicated route
+> deferred to the rich-text-editor era); Mock / PQ → the existing
+> runner.
+>
+> **Shared thin shell.** New `<ViewerModalShell>` owns only the
+> modal plumbing (backdrop, Escape / click-outside / close,
+> narrow/wide size); each viewer fills it with unique content. Not
+> reused from `lib/bank/atoms/modal-frame.tsx` — that atom is
+> curator-internal per folder convention #12; this is the
+> student-side equivalent in `lib/curriculum/`.
+>
+> **PDF — on-demand signed URL, not a stored link.** A PDF
+> activity's payload carries only an opaque `pdf_asset_id`; the
+> file lives in a private bucket. The viewer mints a short-lived
+> signed URL on open via a new student-side action
+> (`getStudentPdfActivityUrl`), then hands off to the browser's PDF
+> viewer in a new tab. Sam asked about storing the link
+> permanently — rejected: a stored link can't be both permanent and
+> private (long-lived signed URL = leakable bearer token to paid
+> content; public URL = file public to the internet). On-demand
+> minting means leaked links die in an hour and access is
+> re-checked every open.
+>
+> **Consolidations.** `safeHttpUrl`, `providerLabelFor`,
+> `formatFileSize` pulled into `format.ts` as shared helpers (used
+> by the viewers AND the tutor editors); `.external-link-viewer-*`
+> CSS generalised to the shared `.viewer-modal-*` vocabulary.
+> `activityActionLabel` (10.1b) removed — superseded by the uniform
+> "Open" label.
+>
+> **No schema, no migration.** Test data: Sam attached a real PDF
+> to both PDF activities; three Text activities given long-form
+> NCLEX content to stress-test the wide modal.
+>
+> Sam smoke-tested each viewer as it shipped before approving the
+> batch merge.
+>
+> Commits `ecbff95` (10.2) + `c0f44cb` (10.3-10.5). See SESSIONS
+> 2026-05-15 (10.2–10.5).
+>
+> **Earlier:** **Slice 10.1b — Curriculum
 > launcher conversion + shared activity-type icon.** Restructures
 > the 10.1 student curriculum viewer: the curriculum page becomes
 > a course map / launcher, not a place where content is consumed
@@ -537,13 +592,11 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > Commit `0710cb6`. See SESSIONS 2026-05-12 (9.3d-a).
 >
-> **Next ⏭:** **Curriculum launcher shipped.** The student
-> curriculum page is now a launcher; per-type activity viewers
-> come next, one slice each. Cheapest first candidate: External
-> link (a plain `<a>`, no new surface); Text reading needs its
-> own route. Also open: central tutor-quiz system (unlocks Mock +
-> Practice Quiz placeholders); student progress engine + soft
-> guidance; full enrolment + payments system (tightens the
+> **Next ⏭:** **Per-type activity viewers complete** — except Mock
+> + Practice quiz, which wait on the central tutor-quiz system.
+> Open student-side priorities: the student progress engine + soft
+> guidance; the central tutor-quiz system (unlocks the last two
+> viewers); full enrolment + payments system (tightens the
 > permissive access helpers shipped in 10.1). Sam to pick.
 >
 > **Earlier the same day:** **Slice 9.3c — Blocks.** Activates

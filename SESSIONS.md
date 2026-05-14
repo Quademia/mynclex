@@ -6,6 +6,123 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-15 (10.2–10.5) — Per-type activity viewers
+
+Four slices, one arc: the student curriculum launcher's "Open"
+button goes from disabled placeholder to live, one activity type
+at a time. External link (10.2), Online live session (10.3), PDF
+(10.4), and Text reading (10.5) all ship working viewers. Mock +
+Practice quiz stay disabled — blocked on the central tutor-quiz
+system.
+
+### Architectural discussion — several rounds with Sam
+
+The shape settled over a back-and-forth, not up front:
+
+- **Curriculum = launcher; activity = destination.** Each activity
+  type opens its own viewer surface; the curriculum / weekly /
+  calendar list views stay "dumb" — they just render one row per
+  activity.
+- **"Component vs route" is a false opposition.** A route is just a
+  component with a URL, and is no less reusable than an overlay.
+  The genuinely shared unit is the **per-type dispatch**, not "the
+  viewer" — so it lives in one shared `<ActivityAction>` piece that
+  every list view drops in. It owns the uniform "Open" button + the
+  dispatch + any modal's open/close state.
+- **Right-sized destination per type.** Not everything is a page;
+  not everything is a modal. External link / Live session / PDF →
+  modals (light, structured content; keep the student in place).
+  Text reading → a *wide* modal for now, a dedicated route later
+  (see the `project_text_activity_evolution` memory). Mock /
+  Practice quiz → the existing runner. The shared dispatch makes
+  "some modal, some page, some launch" transparent to the list
+  views.
+- **Shared thin shell, unique content.** `<ViewerModalShell>` owns
+  only the modal *plumbing* — backdrop, Escape / click-outside /
+  close, narrow/wide size. Each viewer fills it with its own
+  content. Not reused from `lib/bank/atoms/modal-frame.tsx` — that
+  atom is curator-internal per folder convention #12; this is the
+  student-side equivalent, co-located in `lib/curriculum/` with the
+  viewers it hosts.
+- **Uniform "Open" label.** Every activity card's button reads
+  "Open" regardless of type — the icon + type chip already convey
+  what it is. `activityActionLabel` (added in 10.1b) removed,
+  superseded.
+
+### The four viewers
+
+**10.2 External link** — `<ExternalLinkViewer>` modal: description,
+note, estimated time, and a clickable "Open link in new tab" button
+with the domain. The foundational pieces — `<ActivityAction>` and
+`<ViewerModalShell>` — were built here.
+
+**10.3 Online live session** — `<OnlineLiveSessionViewer>` modal:
+the session time in the *student's* local zone (tutor stored UTC),
+duration + end time, provider chip, a "Join session" button, and a
+"Watch recording" link once the tutor sets it. A status line —
+Upcoming / Happening now / Ended — derived from the start time +
+duration vs. now, computed when the modal opens.
+
+**10.4 PDF** — `<PdfViewer>` modal. Unlike the others, a PDF
+activity's payload only carries an opaque `pdf_asset_id` — the file
+lives in a private bucket. So the modal does a small server fetch
+on open (new `getStudentPdfActivityUrl` action in
+`lib/curriculum/student-actions.ts`) to mint a short-lived signed
+URL, then hands off to the browser's built-in PDF viewer in a new
+tab. The link is never stored — minted on demand, access
+re-checked every open. (Sam asked whether to store the link
+permanently; rejected — a stored link can't be both permanent and
+private. A long-lived signed URL is a leakable bearer token to
+paid content; a public URL makes the file public to the internet.
+On-demand minting is the standard pattern, and 9.3d-b deliberately
+made the bucket private for exactly this.)
+
+**10.5 Text reading** — `<TextViewer>`, a *wide* variant of
+`<ViewerModalShell>` (new `size` prop) rendering the reading body.
+Deliberate interim: in v1 the body is plain text, so a wide modal
+fits; a dedicated route becomes the move once the rich-text editor
+lands. Captured in the `project_text_activity_evolution` memory.
+
+### Consolidations (second-consumer moments)
+
+Each new viewer triggered shared-helper hygiene rather than a
+fourth copy:
+- `safeHttpUrl`, `providerLabelFor`, `formatFileSize` → pulled into
+  `format.ts`, shared by the viewers AND the tutor editors.
+- `.external-link-viewer-*` CSS → generalised to the shared
+  `.viewer-modal-*` content vocabulary.
+
+### Test data (mynclex-dev)
+
+- The all-Text test programmes already had one of each non-Text
+  type seeded into Unit 1 (from slice 10.1b's test-data pass).
+- Sam attached a real PDF (`TEST PDF.pdf`) to both PDF activities
+  via the tutor editor so the PDF viewer's working path could be
+  tested.
+- Three Text activities were given real long-form NCLEX content
+  (3.4k–4.9k chars) so the wide modal could be tested against
+  genuine reading length.
+
+### Localhost smoke-test
+
+Sam tested each viewer as it shipped — External link opens in a
+new tab; Live session shows the right status + provider; PDF mints
+the link and opens in a new tab; Text reads well in the wide
+modal, including long content. Tutor surfaces (editors, picker,
+cohort checklist) unchanged.
+
+### Next
+
+⏭ Per-type viewers complete except Mock + Practice quiz, which
+wait on the central tutor-quiz system. Open student-side
+priorities: the progress engine + soft guidance; the central
+tutor-quiz system (unlocks the last two viewers); full enrolment +
+payments (tightens the permissive access helpers). Sam to pick.
+
+Commits `ecbff95` (10.2) + `c0f44cb` (10.3-10.5) + docs.
+
+---
+
 ## Session — 2026-05-15 (10.1b) — Curriculum launcher conversion + shared activity-type icon
 
 Restructure of the 10.1 student curriculum viewer. The curriculum
