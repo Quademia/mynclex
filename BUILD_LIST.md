@@ -8,7 +8,35 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-15):** **Slices 10.6–10.7 — Locked
+> **Last shipped (2026-05-16):** **Tutor Quiz Slice 1 — Quiz
+> foundation.** The reusable Mock/Practice quiz object + the tutor
+> surface to build one.
+>
+> **Schema.** Migration `20260516120000` adds `nclex_tutor_quizzes`
+> (the quiz plan — kind, mode, duration, pass_score, max_attempts,
+> status) + `nclex_tutor_quiz_items` (the ordered question
+> references). `mode` excludes `CAT` (adaptive selection
+> contradicts a hand-picked fixed list); a `(quiz_kind, mode)`
+> CHECK mirrors the attempts intent/mode tuple. `pass_score` is a
+> 0..1 fraction. Tutor-owned RLS.
+>
+> **Mirror catch-up.** `db/schema.sql` + `db/rls.sql` had drifted
+> from dev since slice 2.1.5 — back-ported the 7 unmirrored tables
+> (question_marks, curriculum units/blocks/activities, cohort
+> checklist, keepalive, media assets) plus the new quiz tables.
+> Verified parity against dev.
+>
+> **Surface.** `lib/tutor-quiz/` + `/tutor/quizzes` (list) +
+> `/tutor/quiz/[id]` (editor — metadata modal + ordered question
+> list + question picker). "Mocks" leaves the programme nav;
+> "Quizzes" joins the global tutor nav; the stale
+> `/tutor/programme/[id]/mocks` route is deleted.
+>
+> Sam reviewed the surface before approving the merge.
+>
+> Commit `33729ec`. See SESSIONS 2026-05-16.
+>
+> **Earlier:** **Slices 10.6–10.7 — Locked
 > activity rows + activity window.** Two follow-ons off the
 > per-type viewers, both about *when* a tutor-led activity is
 > reachable.
@@ -1501,28 +1529,33 @@ and in SESSIONS.
 
 ### Follow-on: Central tutor-quiz system
 
-Architectural decision locked in 9.3d-d but build deferred: the
-reusable quiz object lives in a separate `nclex_tutor_quizzes`
-table, not inside the activity payload. Mock/Practice-quiz
-activities are placeholders today (`payload.quiz_id = null`)
-until this ships. A future slice (post-Phase B) wires the linking
-flow end-to-end:
+The reusable quiz object lives in its own `nclex_tutor_quizzes`
+table, not inside the activity payload (decision locked 9.3d-d).
+Full plan + settled schema: `docs/product-plan/tutor-quiz-system.md`.
+Build arc:
 
-1. Migration adds `nclex_tutor_quizzes` (tutor-owned table —
-   columns sketched in SESSIONS 2026-05-13 9.3d-d, not yet
-   schema-final; key fields: `tutor_id`, `quiz_kind`, `intent`,
-   `mode`, question-count, time-limit, pass-score, attempts,
-   review behaviour, release-results, selection plan).
-2. Tutor quiz CRUD UI — list + create + edit + question
-   selection (the deferred piece tied to bank-consumption design).
-3. Activity-modal selector for Mock + Practice quiz —
-   replaces the placeholder body with "Choose a quiz" / "Change
-   quiz" affordance. Sets `payload.quiz_id` to the chosen quiz.
-4. Student launch path — `source = PROGRAMME_ASSIGNED` + the
-   activity's `programme_activity_id` → existing runner. No new
-   runner.
-5. Cohort-checklist render rules + publish gates against
-   unlinked quizzes (decided in 9.3e / 9.3f).
+- ✅ **Slice 1** Quiz foundation — `nclex_tutor_quizzes` +
+  `nclex_tutor_quiz_items` (migration `20260516120000`), tutor
+  RLS, and the `/tutor/quizzes` list + `/tutor/quiz/[id]` editor
+  surface (metadata modal + ordered question list + question
+  picker). "Mocks" leaves the programme nav; "Quizzes" joins the
+  global tutor nav. Also back-ported 7 tables that had drifted
+  out of `db/schema.sql` / `db/rls.sql`. Commit `33729ec`. See
+  SESSIONS 2026-05-16.
+- ⏭ **Slice 2** Link to activity — the Mock/Practice activity
+  editor gains "Choose a quiz" (picks from the tutor's PUBLISHED
+  quizzes); stores `payload.quiz_id`. Also folds in the
+  cohort-checklist render rules + publish gates against unlinked
+  quizzes (decided in 9.3e / 9.3f).
+- ⬜ **Slice 3** Student launch — the
+  `nclex_create_programme_attempt` RPC (fixed-list snapshot,
+  `source = PROGRAMME_ASSIGNED`); the Mock + Practice
+  `<ActivityAction>` goes live as the modal viewer; max-attempts
+  check at launch + pass/fail badge on results. Closes the
+  "Mock + Practice quiz viewers" row above.
+- ⬜ **Slice 4** Progress / analytics — quiz completion →
+  activity completion → unit/programme progress → tutor
+  analytics. Deferred; depends on the student progress engine.
 
 ### Deferred out of Phase B
 

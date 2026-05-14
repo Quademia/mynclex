@@ -6,6 +6,103 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-16 (Tutor Quiz Slice 1) — Quiz foundation
+
+First slice of the central tutor-quiz system — the reusable
+Mock/Practice quiz object plus the tutor surface to build one.
+
+### Schema
+
+Migration `20260516120000` adds two tables:
+- `nclex_tutor_quizzes` — the quiz plan: title, description,
+  `quiz_kind` (MOCK/PRACTICE), `mode`, `duration_seconds`,
+  `pass_score`, `max_attempts`, `status`. UUID PK.
+- `nclex_tutor_quiz_items` — the ordered question references that
+  *are* the quiz. `ON DELETE CASCADE` on both FKs; UNIQUE
+  (quiz_id, item_id); `position` renumbered app-side (no DB
+  contiguity constraint).
+
+Tutor-owned RLS following the `nclex_tutor_questions` pattern
+(direct `tutor_id` on quizzes; ownership traces through the
+parent quiz for items).
+
+**Two design points settled with Sam:**
+- `mode` excludes `CAT` — CAT selects questions adaptively, which
+  contradicts a quiz's hand-picked fixed list. Only the four
+  non-adaptive runner modes are allowed. A `(quiz_kind, mode)`
+  CHECK mirrors `nclex_attempts_intent_mode_tuple`: MOCK loses
+  `UNTIMED_LEARNING` (that mode reveals answers live).
+- `pass_score` stored as a 0..1 fraction (same scale as
+  `nclex_attempts.final_score`), shown as a % in the UI.
+
+`docs/product-plan/tutor-quiz-system.md` §3 updated to record both.
+
+### Schema mirror catch-up
+
+The back-port step surfaced that `db/schema.sql` + `db/rls.sql`
+had quietly stopped being a full mirror of dev — current only
+through slice 9.2a. Sam asked to catch up everything that fell
+out. Back-ported the 7 migration-only tables:
+`nclex_question_marks` (2.1.5), the curriculum trio
+(`nclex_programme_units` / `_blocks` / `_activities`, 9.3a — with
+the 9.3d-a `description` column + `ONLINE_LIVE_SESSION` rename
+folded into final state), `nclex_cohort_checklist_items` (9.3f +
+the 10.7 due/close columns), `nclex_keepalive`, and
+`nclex_media_assets` (+ its storage bucket). Trigger functions
+stay migration-only, matching the file's existing convention.
+Verified column / constraint / index / policy parity against dev
+table-by-table.
+
+### Surface
+
+`lib/tutor-quiz/` — the new domain folder. `/tutor/quizzes` (list)
++ `/tutor/quiz/[id]` (editor), siblings under the global tutor
+chrome. The editor is the plan doc's two zones: an ordered "in
+this quiz" list (reorder ↑↓, remove) and a question picker over
+the tutor's published, standalone questions. Create + edit both
+go through one `<QuizFormModal>`; lifecycle is the `status` field
+in that modal — no separate publish button, no hard delete
+(archive-via-status, matching the programmes pattern).
+
+**Two judgment calls flagged to Sam:**
+- The picker filter bar is a 4-field subset of the bank's
+  `<BankFilters>` (Type / Category / Difficulty / Search) — the
+  bank's Status + Membership selects would mislead on a picker
+  hard-scoped to published + standalone, so they're omitted
+  rather than shown forced. Same CSS + constants.
+- No hard delete, no dedicated publish button — leaner than
+  programmes' publish/archive buttons; revisit as polish if Sam
+  wants them.
+
+### Nav
+
+"Mocks" leaves the per-programme sidebar; "Quizzes" joins the
+global tutor sidebar — quizzes are tutor-scoped + reusable across
+programmes, so linking one into a programme is a slice-2 concern,
+not a programme tab. The stale `/tutor/programme/[id]/mocks`
+placeholder route is deleted.
+
+### Verified
+
+`tsc` clean across all new files; dev server compiles; the
+`/tutor/quizzes` route serves 200. Sam reviewed the surface in
+the browser before approving. The interactive flows (create →
+editor, picker add/remove/reorder) want a fuller question bank to
+exercise properly — Sam flagged "test properly" as a follow-up
+before slice 2.
+
+### Next
+
+⏭ Tutor Quiz Slice 2 — link a published quiz into a Mock/Practice
+curriculum activity (the activity editor's "Choose a quiz"
+affordance; sets `payload.quiz_id`). Then Slice 3 — the student
+launch path (`nclex_create_programme_attempt` RPC + the activity
+modal viewer). See `docs/product-plan/tutor-quiz-system.md` §8.
+
+Commits `33729ec` (feat) + docs.
+
+---
+
 ## Session — 2026-05-15 (10.6–10.7) — Locked activity rows + activity window
 
 Two follow-on slices off the per-type viewer work — both about
