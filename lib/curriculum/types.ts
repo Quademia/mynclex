@@ -254,14 +254,25 @@ export type OnlineLiveSessionActivityFormValues = ActivityCommonFormValues & {
   recording_url: string | null;
 };
 
-// --- Slice 9.3d-d — Mock + Practice quiz (placeholders) ---
+// --- Tutor-quiz Slice 2 — Mock + Practice quiz (functional) ---
 
-// Both placeholder editors expose no body fields — the shell's
-// Title + Description + Note are the only editable surfaces. When
-// the quiz selector ships, these gain a `quiz_id` (and the
-// payload field flips from null to that id).
-export type MockActivityFormValues = ActivityCommonFormValues;
-export type PracticeQuizActivityFormValues = ActivityCommonFormValues;
+// Raw editor body state for both quiz activity types. `quiz_id` is
+// null until the tutor picks a quiz in the "Choose a quiz"
+// selector (or, in edit mode, the value loaded from payload). Both
+// types share this shape — the activity-type row field encodes the
+// Mock vs Practice distinction.
+export type QuizActivityBodyValues = {
+  quiz_id: string | null;
+};
+
+// Validated form payload sent to the server action. `quiz_id` may
+// be null (a quiz activity can be saved as a draft without a quiz);
+// the publish gate in buildPayload blocks is_published === true
+// when quiz_id is null.
+export type MockActivityFormValues = ActivityCommonFormValues &
+  QuizActivityBodyValues;
+export type PracticeQuizActivityFormValues = ActivityCommonFormValues &
+  QuizActivityBodyValues;
 
 // Discriminated union of every per-type form payload the server
 // actions accept. Narrows on `type` so each branch sees its own

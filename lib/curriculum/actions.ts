@@ -179,9 +179,20 @@ function buildPayload(
     }
     case 'MOCK':
     case 'PRACTICE_QUIZ': {
-      // Placeholder shape. Strict null today — relaxes when the
-      // tutor-quiz system ships and the editor gains a selector.
-      return { ok: true, payload: { quiz_id: null } };
+      // Publish gate: a Live quiz activity with no quiz linked is a
+      // permanently dead "Open" button for students. A draft may be
+      // saved without one. The quiz's ownership / kind /
+      // published-status is checked separately in the action via
+      // validateQuizForActivity — that needs a DB read so it can't
+      // live in this pure builder.
+      if (values.is_published && !values.quiz_id) {
+        return {
+          ok: false,
+          error:
+            'Choose a quiz before publishing this activity. You can save it as a draft without one.',
+        };
+      }
+      return { ok: true, payload: { quiz_id: values.quiz_id ?? null } };
     }
   }
 }
@@ -215,6 +226,50 @@ async function validatePdfAssetForSave(
   }
   if (data.purpose !== 'PDF_ACTIVITY') {
     return { ok: false, error: 'Asset is not a PDF activity file.' };
+  }
+  return { ok: true };
+}
+
+// Tutor-quiz Slice 2 — quiz link gate.
+// Used by create/edit-activity paths for MOCK / PRACTICE_QUIZ when
+// the form carries a quiz_id. RLS on nclex_tutor_quizzes scopes the
+// SELECT to the tutor's own quizzes, so a missing row means
+// "doesn't exist OR isn't yours". Always checks ownership + kind
+// match (a Mock activity must link a Mock quiz). The
+// published-status check applies only when the activity itself is
+// being published — a draft activity may hold a link to a
+// not-yet-published or since-archived quiz; the publish gate is
+// what stops it going Live. Supabase-client-using, so it can't
+// live inside the pure buildPayload() switch.
+async function validateQuizForActivity(
+  supabase: SupabaseClient,
+  quizId: string,
+  activityType: 'MOCK' | 'PRACTICE_QUIZ',
+  mustBePublished: boolean
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data } = await supabase
+    .from('nclex_tutor_quizzes')
+    .select('quiz_id, quiz_kind, status')
+    .eq('quiz_id', quizId)
+    .maybeSingle();
+  if (!data) {
+    return { ok: false, error: 'Quiz not found or not yours to use.' };
+  }
+  const expectedKind = activityType === 'MOCK' ? 'MOCK' : 'PRACTICE';
+  if (data.quiz_kind !== expectedKind) {
+    const activityLabel = activityType === 'MOCK' ? 'Mock' : 'Practice quiz';
+    const kindLabel = expectedKind === 'MOCK' ? 'Mock' : 'Practice';
+    return {
+      ok: false,
+      error: `A ${activityLabel} activity must link a ${kindLabel} quiz.`,
+    };
+  }
+  if (mustBePublished && data.status !== 'PUBLISHED') {
+    return {
+      ok: false,
+      error:
+        'The linked quiz is not published. Publish it (or pick another) before this activity can go Live.',
+    };
   }
   return { ok: true };
 }
@@ -421,6 +476,22 @@ export async function createActivityAction(
     if (!v.ok) return v;
   }
 
+  // Quiz-activity-specific: if a quiz is linked, verify it's the
+  // tutor's own quiz of the matching kind (published when the
+  // activity itself is being published).
+  if (
+    (values.type === 'MOCK' || values.type === 'PRACTICE_QUIZ') &&
+    values.quiz_id
+  ) {
+    const v = await validateQuizForActivity(
+      supabase,
+      values.quiz_id,
+      values.type,
+      values.is_published
+    );
+    if (!v.ok) return v;
+  }
+
   // Resolve the unit's programme_id. RLS on the units row scopes
   // to the tutor's own; if the unit doesn't exist for this user
   // we surface "not found" generically.
@@ -511,6 +582,22 @@ export async function editActivityAction(
   if (values.type === 'PDF') {
     oldPdfAssetId = await readExistingPdfAssetId(supabase, activityId);
     const v = await validatePdfAssetForSave(supabase, values.pdf_asset_id);
+    if (!v.ok) return v;
+  }
+
+  // Quiz-activity-specific: if a quiz is linked, verify it's the
+  // tutor's own quiz of the matching kind (published when the
+  // activity itself is being published).
+  if (
+    (values.type === 'MOCK' || values.type === 'PRACTICE_QUIZ') &&
+    values.quiz_id
+  ) {
+    const v = await validateQuizForActivity(
+      supabase,
+      values.quiz_id,
+      values.type,
+      values.is_published
+    );
     if (!v.ok) return v;
   }
 

@@ -101,3 +101,17 @@ export type QuizPickerFilters = {
   difficulty: string;
   q: string;
 };
+
+// A quiz option as offered to the curriculum activity editor's
+// "Choose a quiz" selector (tutor-quiz Slice 2). The selector lists
+// the tutor's PUBLISHED quizzes of the matching kind; `status` is
+// carried so a previously-linked-but-since-archived quiz can still
+// be rendered (flagged) rather than vanishing.
+export type QuizPickerOption = {
+  quiz_id: string;
+  title: string;
+  quiz_kind: QuizKind;
+  mode: QuizMode;
+  status: QuizStatus;
+  item_count: number;
+};

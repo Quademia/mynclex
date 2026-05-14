@@ -16,7 +16,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import type { ServerSupabaseClient } from '@/lib/access';
 import { QUIZ_MODES_BY_KIND, isTimedMode } from './format';
-import type { QuizFormValues } from './types';
+import type { QuizFormValues, QuizKind, QuizPickerOption } from './types';
 
 // ── Validation ───────────────────────────────────────────────────
 // Re-validated server-side at the trust boundary — the client form
@@ -370,4 +370,70 @@ export async function moveQuizItemAction(
 
   revalidatePath(`/tutor/quiz/${target.quiz_id}`);
   return { ok: true };
+}
+
+// ── Activity quiz picker (Slice 2) ───────────────────────────────
+// Powers the curriculum activity editor's "Choose a quiz" selector.
+// Returns the tutor's PUBLISHED quizzes of the matching kind (the
+// dropdown options) plus the currently-linked quiz resolved by id
+// — at ANY status, so a since-archived or deleted link can be
+// flagged rather than silently vanishing. RLS scopes every read to
+// the tutor's own quizzes.
+
+export type ActivityQuizPickerContext =
+  | {
+      ok: true;
+      publishedQuizzes: QuizPickerOption[];
+      linkedQuiz: QuizPickerOption | null;
+    }
+  | { ok: false; error: string };
+
+const QUIZ_PICKER_SELECT =
+  'quiz_id, title, quiz_kind, mode, status, nclex_tutor_quiz_items(count)';
+
+function mapQuizPickerRow(row: Record<string, unknown>): QuizPickerOption {
+  const { nclex_tutor_quiz_items, ...rest } = row as typeof row & {
+    nclex_tutor_quiz_items: Array<{ count: number }> | null;
+  };
+  return {
+    ...rest,
+    item_count: nclex_tutor_quiz_items?.[0]?.count ?? 0,
+  } as QuizPickerOption;
+}
+
+export async function getActivityQuizPickerContext(
+  quizKind: QuizKind,
+  currentQuizId: string | null,
+): Promise<ActivityQuizPickerContext> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Dropdown options: the tutor's PUBLISHED quizzes of the matching
+  // kind (a Mock activity links a Mock quiz; Practice -> Practice).
+  const { data: publishedData, error: publishedErr } = await supabase
+    .from('nclex_tutor_quizzes')
+    .select(QUIZ_PICKER_SELECT)
+    .eq('quiz_kind', quizKind)
+    .eq('status', 'PUBLISHED')
+    .order('updated_at', { ascending: false });
+  if (publishedErr) return { ok: false, error: publishedErr.message };
+  const publishedQuizzes = (publishedData ?? []).map(mapQuizPickerRow);
+
+  // Resolve the currently-linked quiz by id at any status, so the
+  // selector can flag a link that now points at an archived or
+  // missing quiz instead of just dropping it.
+  let linkedQuiz: QuizPickerOption | null = null;
+  if (currentQuizId) {
+    const { data: linkedData } = await supabase
+      .from('nclex_tutor_quizzes')
+      .select(QUIZ_PICKER_SELECT)
+      .eq('quiz_id', currentQuizId)
+      .maybeSingle();
+    linkedQuiz = linkedData ? mapQuizPickerRow(linkedData) : null;
+  }
+
+  return { ok: true, publishedQuizzes, linkedQuiz };
 }

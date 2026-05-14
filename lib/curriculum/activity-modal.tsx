@@ -31,7 +31,7 @@ import { TextEditor } from './text-editor';
 import { ExternalLinkEditor } from './external-link-editor';
 import { OnlineLiveSessionEditor } from './online-live-session-editor';
 import { PdfEditor } from './pdf-editor';
-import { QuizPlaceholderEditor } from './quiz-placeholder-editor';
+import { QuizSelectorEditor } from './quiz-selector-editor';
 import {
   createActivityAction,
   editActivityAction,
@@ -45,6 +45,7 @@ import type {
   PdfActivityBodyValues,
   PdfActivityPreview,
   ProgrammeActivity,
+  QuizActivityBodyValues,
   TextActivityBodyValues,
 } from './types';
 
@@ -88,8 +89,8 @@ type EditorBodyState =
       type: 'ONLINE_LIVE_SESSION';
       values: OnlineLiveSessionActivityBodyValues;
     }
-  | { type: 'MOCK' }
-  | { type: 'PRACTICE_QUIZ' }
+  | { type: 'MOCK'; values: QuizActivityBodyValues }
+  | { type: 'PRACTICE_QUIZ'; values: QuizActivityBodyValues }
   | { type: 'UNSUPPORTED' };
 
 // ---------- Per-type initial body readers ----------
@@ -113,9 +114,9 @@ function emptyBody(type: ActivityType): EditorBodyState {
         },
       };
     case 'MOCK':
-      return { type };
+      return { type, values: { quiz_id: null } };
     case 'PRACTICE_QUIZ':
-      return { type };
+      return { type, values: { quiz_id: null } };
     default:
       return { type: 'UNSUPPORTED' };
   }
@@ -165,9 +166,15 @@ function bodyFromActivity(activity: ProgrammeActivity): EditorBodyState {
       };
     }
     case 'MOCK':
-      return { type: 'MOCK' };
+      return {
+        type: 'MOCK',
+        values: { quiz_id: asStr(p.quiz_id) || null },
+      };
     case 'PRACTICE_QUIZ':
-      return { type: 'PRACTICE_QUIZ' };
+      return {
+        type: 'PRACTICE_QUIZ',
+        values: { quiz_id: asStr(p.quiz_id) || null },
+      };
     default:
       return { type: 'UNSUPPORTED' };
   }
@@ -214,7 +221,13 @@ function bodyEqual(a: EditorBodyState, b: EditorBodyState): boolean {
       a.values.recording_url === b.values.recording_url
     );
   }
-  return true; // MOCK / PRACTICE_QUIZ / UNSUPPORTED — no editable fields
+  if (a.type === 'MOCK' && b.type === 'MOCK') {
+    return a.values.quiz_id === b.values.quiz_id;
+  }
+  if (a.type === 'PRACTICE_QUIZ' && b.type === 'PRACTICE_QUIZ') {
+    return a.values.quiz_id === b.values.quiz_id;
+  }
+  return true; // UNSUPPORTED — no editable fields
 }
 
 // ---------- Component ----------
@@ -382,11 +395,15 @@ export function ActivityModal(props: ActivityModalProps) {
     }
 
     if (body.type === 'MOCK') {
-      return { type: 'MOCK', ...common };
+      return { type: 'MOCK', ...common, quiz_id: body.values.quiz_id };
     }
 
     if (body.type === 'PRACTICE_QUIZ') {
-      return { type: 'PRACTICE_QUIZ', ...common };
+      return {
+        type: 'PRACTICE_QUIZ',
+        ...common,
+        quiz_id: body.values.quiz_id,
+      };
     }
 
     if (body.type === 'ONLINE_LIVE_SESSION') {
@@ -604,11 +621,25 @@ export function ActivityModal(props: ActivityModalProps) {
             )}
 
             {body.type === 'MOCK' && (
-              <QuizPlaceholderEditor type="MOCK" />
+              <QuizSelectorEditor
+                type="MOCK"
+                quizId={body.values.quiz_id}
+                onChange={(quiz_id) =>
+                  setBody({ type: 'MOCK', values: { quiz_id } })
+                }
+                disabled={isPending}
+              />
             )}
 
             {body.type === 'PRACTICE_QUIZ' && (
-              <QuizPlaceholderEditor type="PRACTICE_QUIZ" />
+              <QuizSelectorEditor
+                type="PRACTICE_QUIZ"
+                quizId={body.values.quiz_id}
+                onChange={(quiz_id) =>
+                  setBody({ type: 'PRACTICE_QUIZ', values: { quiz_id } })
+                }
+                disabled={isPending}
+              />
             )}
 
             {body.type === 'UNSUPPORTED' && (
