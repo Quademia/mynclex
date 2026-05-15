@@ -6,6 +6,106 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-15 (Slice 10.8 — tabbed student curriculum)
+
+Small design improvement on the student curriculum view. The
+scroll length on a programme with several units felt long; Sam
+asked to make use of panes so only one unit is visible at a time,
+switched via a tab strip at the top.
+
+### Design conversation (calls settled before code)
+
+Three open questions resolved up-front:
+1. **Default tab on first load** = Unit 1 in v1. Smart "where I
+   left off" rebuilds on top of the progress engine later (Slice 4).
+2. **Tutor curriculum stays scroll-based.** Tutors are authoring
+   (reorder, drag across units, see whole structure); students
+   are consuming one activity at a time. Tabs help consumers, hurt
+   authors. Cohort checklist same reasoning — Sam asked partway
+   through if it should get the same treatment; recommended against
+   on the same grounds (it's a configuration surface with a
+   save-safety layer that becomes confusing across tabs). Left as-is.
+3. **Cohort tab indicators** (lock / due-soon / overdue dots on
+   tabs) deferred. Ship plain tabs first.
+
+Plus: URL state via `?unit=N` (refresh + direct links preserve),
+single-unit edge case hides tabs entirely.
+
+### Build
+
+**New** — `lib/curriculum/student-unit-tabs.tsx`. Client wrapper,
+reads `?unit=N` from the URL (1-based, Unit 1 omitted from query
+for clean default URL), shows only the matching pre-rendered
+section, hides others via the `hidden` attribute (children stay
+mounted so no in-progress UI state is destroyed by switching).
+
+**Modified** — `lib/curriculum/student-viewer.tsx`. Extracted
+`<UnitSection>` from inline JSX. Viewer branches three ways:
+0 units → empty message (unchanged), 1 unit → render section
+directly (no tabs), 2+ → wrap with the tabs component.
+
+**Modified** — `styles/student-curriculum.css`. New
+`.student-unit-tabs-*` classes — underline tab style with accent
+color, horizontal scroll-snap for long programmes.
+
+### Three design iterations after the first ship
+
+1. **Card-in-card heaviness.** First version wrapped tabs + body
+   in one outer card AND kept each unit's `.student-unit` card
+   chrome inside — read as nested boxes. Refactored: stripped the
+   per-unit chrome inside the tabs panel so the outer card carried
+   the visual weight. Single unified surface.
+
+2. **"Standalone tab strip" reshape (Interpretation A).** Sam
+   pointed out the tab strip was wrapping the body instead of
+   standing alone above it. Two interpretations laid out:
+   wrapping-card style vs. independent-strip-above-card style. He
+   picked the second. Refactor: removed the outer card chrome
+   entirely — tab strip is now a standalone underline strip with
+   a 16px gap below; the unit body restored its full
+   `.student-unit` card chrome.
+
+3. **Vertical scrollbar quirk.** A small vertical scrollbar
+   appeared on the tab strip. Root cause: the tabs' `margin-bottom:
+   -1px` trick (used to overlap the strip's bottom border)
+   technically overflows the strip by 1px vertically, and
+   `overflow-x: auto` promotes the y-axis from `visible` to `auto`
+   per CSS spec, triggering a vertical bar for the 1px overflow.
+   Pinned `overflow-y: hidden` explicitly. Also hid the horizontal
+   scrollbar visually while keeping scroll behaviour (touchpad /
+   swipe / keyboard) — long programmes still scroll, just no
+   visible bar.
+
+### Mock-driven iteration
+
+Used throwaway HTML mocks (`curriculum-tabs-mock.html`,
+`curriculum-current-mock.html`) to converge on the visual before
+touching real CSS. The second mock faithfully replicated the
+actual rendered design (real tokens + classes) so we had an honest
+redesign target — surfaced things like the type chip + icon
+duplication and the standalone-vs-in-block activity treatment.
+Both mocks deleted at the close.
+
+### Test
+
+Sam stepped through tab switching (URL updates to `?unit=N`,
+Unit 1 leaves query off), refresh-preserves-state, the smaller
+unit body chrome variants, and the scrollbar fix on both Firefox
+and Chrome before approving the merge.
+
+### Next
+
+No queued follow-on from this slice. The deferred cohort tab
+indicators (locked / due / overdue dots) could land later if a
+tester struggles to find which unit needs attention — not built
+without that signal.
+
+Tutor-quiz Slice 4 (progress + analytics) remains the next major
+queue item per BUILD_LIST, deferred until the student progress
+engine starts.
+
+---
+
 ## Session — 2026-05-15 (Tutor Quiz — Slice 3a, results popup + smart exit)
 
 Two threads landed in one session: a dev-data cleanup surfaced before

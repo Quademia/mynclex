@@ -8,7 +8,36 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-15):** **Tutor Quiz Slice 3a — universal
+> **Last shipped (2026-05-15):** **Slice 10.8 — tabbed student
+> curriculum.** Small design improvement: the student curriculum
+> view now shows one unit at a time, switched via a horizontal tab
+> strip at the top. Reduces scroll on programmes with multiple
+> units. `?unit=N` in the URL (Unit 1 omitted for clean default).
+> Single-unit programmes hide the tabs entirely. Tutor curriculum
+> + cohort checklist deliberately untouched — they're authoring /
+> control surfaces that benefit from cross-unit visibility, not
+> the launcher pattern.
+>
+> **Design iteration** went through three reshapes before landing:
+> from "card-in-card heaviness" (outer card wrapping per-unit
+> cards) to "single unified surface" (chrome stripped inside the
+> wrapper) to **Interpretation A** (Sam's pick) — tab strip is
+> standalone above a separate body card, not wrapped together.
+> A vertical-scrollbar quirk caught at the end: tabs'
+> `margin-bottom:-1px` (used to overlap the strip's bottom border)
+> plus `overflow-x: auto` promotes y-axis from `visible` to `auto`
+> per CSS spec, triggering a 1px-tall vertical bar. Pinned
+> `overflow-y: hidden`.
+>
+> **Build.** New `lib/curriculum/student-unit-tabs.tsx` (client
+> wrapper, reads `?unit=N`, hides non-selected sections via the
+> `hidden` attribute so per-unit UI state isn't destroyed by
+> switching). Server viewer extracted `<UnitSection>` and branches
+> 3 ways: 0 → empty, 1 → direct render, 2+ → tabs. No schema, no
+> query changes, no impact on tutor side. See SESSIONS 2026-05-15
+> (Slice 10.8).
+>
+> **Earlier:** **Tutor Quiz Slice 3a — universal
 > end-of-quiz results popup + smart exit.** Two threads in one
 > session: a dev-data cleanup (option-id normalisation across 23
 > tutor + bank questions, after Sam spotted `o1./o2.` rendering),
@@ -1660,6 +1689,7 @@ and in SESSIONS.
 - ✅ **10.5** Text reading viewer — wide variant of `<ViewerModalShell>`; plain-text body (rich-text + a dedicated reading route deferred). Commit `c0f44cb`. See SESSIONS 2026-05-15 (10.2–10.5).
 - ✅ **10.6** Locked activity rows — `isVisibleToStudents()` split so a future release date LOCKS the activity (visible "Opens &lt;date&gt;" row) instead of HIDING it. Commit `6db89cf`.
 - ✅ **10.7** Activity window (due + close dates) — `due_date` + `close_date` nullable columns on `nclex_cohort_checklist_items`; `StudentActivity.openState` is a 3-way (LOCKED / OPEN / CLOSED); tutor checklist row gains Due + Closes inputs. Migration `20260515160000`. Commit `6db89cf`. See SESSIONS 2026-05-15 (10.6–10.7).
+- ✅ **10.8** Tabbed student curriculum — one unit visible at a time via a horizontal tab strip; `?unit=N` URL state; single-unit programmes hide the tabs. Standalone tab strip above a separate body card (Sam's "Interpretation A" pick after three design iterations). No schema, no query changes. Tutor curriculum + cohort checklist deliberately left scroll-based (authoring surfaces benefit from cross-unit visibility). See SESSIONS 2026-05-15 (Slice 10.8).
 - ⬜ **Mock + Practice quiz viewers** — the last two per-type viewers. Blocked on the central tutor-quiz system (Follow-on, below): both render disabled "Open" buttons until a quiz can be linked and launched.
 
 ### Follow-on: Central tutor-quiz system
