@@ -8,7 +8,63 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-15):** **Tutor Quiz Slice 3 — student
+> **Last shipped (2026-05-15):** **Tutor Quiz Slice 3a — universal
+> end-of-quiz results popup + smart exit.** Two threads in one
+> session: a dev-data cleanup (option-id normalisation across 23
+> tutor + bank questions, after Sam spotted `o1./o2.` rendering),
+> then the slice itself.
+>
+> **Popup.** Auto-shown the moment the runner flips to review mode
+> in *this* session (set true right before `router.refresh()` in the
+> 4 completion paths; not shown on initial load of an
+> already-completed attempt). Reusable via topbar pill click on
+> dismiss. Source-aware via `getResultsContext`: bank Builder shows
+> "Build another" + exits to `/student/bank/practice`; programme
+> shows "Take again" + exits to the curriculum URL; both share the
+> same score + verdict + facts chrome. "Take again" hides entirely
+> when programme attempts exhausted (no greyed dead-end button).
+> Pass/fail verdict suppressed when `pass_score` is null
+> (unchanged from Slice 3 behaviour). Primary action "Review
+> attempt" jumps to Q1 in review.
+>
+> **Smart exit (3 fixes surfaced during testing).** Same root cause
+> — exit destinations hardcoded to bank's path. New
+> `resolveAttemptExitHref()` (cohort first via
+> `nclex_cohort_checklist_items`, then self-paced programme URL,
+> `/student/picker` fallback) consumed by:
+> - the popup's Exit button (on-demand server action),
+> - the runner topbar's ← Exit (resolved at page-load, threaded
+>   through `RunnerData.exitHref`),
+> - the preflight ← Back button.
+> Topbar prop became `onExit: () => void` so the runner can decide
+> whether to navigate immediately (review) or open a confirm modal
+> first (live).
+>
+> **Exit-confirm modal.** New
+> `lib/overlays/practice/exit-attempt-confirm.tsx`, copy varies by
+> mode (timed callouts that the clock keeps running; untimed
+> reassures progress is saved). Backdrop/Esc → Keep going.
+>
+> **Preflight smartness.** Source-aware destination + label via
+> new `exitBackLabel(source)` helper. No modal — preflight is
+> before any work.
+>
+> **Pre-slice cleanup.** Sam saw tutor questions rendering as
+> `o1./o2./true./false.` instead of `A./B.`. Root cause: runner
+> renders `opt.id` directly; bank editor enforces A/B/C/D/E ids
+> but my dev seed file (`db/seed-tutor-bank-dev.sql`) used raw SQL
+> inserts with `o1` ids. Decision against the runner-side defence
+> ("don't change code to defend against a hypothetical future bad
+> seed when the fix is 'don't seed badly'") — went with seed-only
+> fix. Single `DO` block normalised 23 affected rows across both
+> tables; 19 dev attempts deleted (cascade); seed file rewritten.
+>
+> **No schema, no migration.** Slice 3 already added `pass_score`;
+> the popup reads existing columns. 3 new files + 6 modified.
+>
+> See SESSIONS 2026-05-15 (Slice 3a).
+>
+> **Earlier:** **Tutor Quiz Slice 3 — student
 > launch.** Closes the Mock / Practice quiz loop end-to-end: the
 > student's Open button on a Mock/Practice activity now mounts a
 > launch modal, Start (or Resume) creates an attempt and hands
@@ -1641,15 +1697,25 @@ Build arc:
   topbar pill. End-of-quiz popup split out as Slice 3a (universal,
   not programme-only). Migration `20260517120000`. See SESSIONS
   2026-05-15.
-- ⏭ **Slice 3a** Universal end-of-quiz results popup — score +
-  pass/fail + action set (Review answers / Exit / Take again).
-  Source-aware from day one: serves Mock + Practice + bank
-  Builder + future Readiness Packs equally. Sits on top of the
-  runner's review-mode flip; touches all attempt surfaces in one
-  shot.
-- ⬜ **Slice 4** Progress / analytics — quiz completion →
+- ✅ **Slice 3a** Universal end-of-quiz results popup — score +
+  pass/fail + 3-action set (Review attempt jumps to Q1 / Take
+  again or Build another / Exit). Source-aware from day one:
+  serves Mock + Practice + bank Builder + future Readiness Packs
+  equally. Auto-shown on completion-in-this-session, re-openable
+  via the topbar Score pill after dismiss. Bundled three exit
+  smartness fixes surfaced in testing: new
+  `resolveAttemptExitHref()` shared resolver (cohort-first
+  per Permissive v1, self-paced programme URL fallback) feeds
+  popup / topbar / preflight; topbar prop became
+  `onExit: () => void` so the runner can interpose a confirm
+  modal in live mode; new `exit-attempt-confirm.tsx` with
+  timed-vs-untimed copy; preflight's Back button source-aware
+  via `exitBackLabel(source)`. Pre-slice: dev tutor-question
+  option ids normalised to A/B/C/D/E across 23 rows + seed file
+  rewritten. No schema. See SESSIONS 2026-05-15 (Slice 3a).
+- ⏭ **Slice 4** Progress / analytics — quiz completion →
   activity completion → unit/programme progress → tutor
-  analytics. Deferred; depends on the student progress engine.
+  analytics. Depends on the student progress engine.
 
 **Deferred enhancement — richer question filtering.** The quiz
 question picker (and `/tutor/bank/all`, which shares the filter

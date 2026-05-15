@@ -6,6 +6,203 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-15 (Tutor Quiz — Slice 3a, results popup + smart exit)
+
+Two threads landed in one session: a dev-data cleanup surfaced before
+the slice could be planned, and then Slice 3a itself (universal
+end-of-quiz results popup) plus three exit-related smartness fixes
+that came out of testing the popup.
+
+### Pre-slice: option-id normalisation across dev questions
+
+Sam launched a tutor quiz from the new Slice 3 flow and noticed the
+options rendered as `o1.` / `o2.` / `o3.` (and `true.` / `false.`)
+instead of `A.` / `B.` / `C.`. Pushed me to investigate before
+moving on.
+
+Root cause traced cleanly: every per-type runner component
+(`mcq.tsx`, `sata.tsx`, `select-n.tsx`, TF via wrapper) renders
+`<span className="rn-opt-letter">{opt.id}</span>` — display reads
+the storage id directly. The bank editor seeds A/B/C/D ids
+(`OPTION_LETTERS` const), and the editor UI doesn't expose the id
+field for edit, so questions authored through it always look right.
+But my dev seed file (`db/seed-tutor-bank-dev.sql`) was bypassing
+the editor with raw SQL inserts using `o1`/`o2` ids — and other
+seeding events on dev had introduced `true`/`false` and `T`/`F`
+variants too.
+
+Sam's sharp push: "is the issue not that you seeded the tutor
+questions?" Honest answer: yes, mostly. The runner is technically
+coupling display to storage, but the visible bug is dev-data only —
+real tutors using the editor can't produce these ids. Decided
+against the runner-side defence in depth ("don't change code to
+defend against a hypothetical future bad seed when the fix is
+'don't seed badly'") and went with a seed-only fix.
+
+Survey on dev showed the breakage was wider than the 4-row seed
+file alone — across both tables:
+
+| Where | Bad rows | Formats |
+|---|---|---|
+| `nclex_tutor_questions` | 20 (7 MCQ + 5 SATA + 1 SELECT_N + 7 TF) | `o1/o2/…`, `true/false`, `T/F` |
+| `nclex_bank_items` | 3 (TF only) | `T/F` |
+
+Executed on dev via Supabase MCP:
+1. Deleted all 19 dev attempts (cascaded to `nclex_attempt_items` +
+   case/trend snapshots).
+2. Single PL/pgSQL `DO` block normalised all 23 question rows:
+   rebuilt `content.options[].id` by position (A/B/C/D/E),
+   remapped `correct.answer` / `correct.answers` / `correct.feedback`
+   keys through the old→new id map. `select_count` preserved for
+   SELECT_N.
+3. Re-wrote `db/seed-tutor-bank-dev.sql` to use A/B/C/D/E ids and
+   A/B for TF so future re-runs stay clean. Added a header comment
+   recording why so future-me doesn't slip back.
+
+Verified — both tables 100% letter-ids; Sam re-tested and the runner
+now reads correctly for tutor questions.
+
+### Slice 3a — universal results popup
+
+Three open questions settled in conversation before any code:
+
+1. **Auto-show on completion, plus reopen from topbar pill on
+   dismiss.** Without auto-show the runner-flip is too quiet — the
+   student doesn't know they're done. Dismiss takes them to the
+   review screen behind it; the existing Score pill (Slice 3)
+   becomes a click-to-reopen button so they can summon it again.
+2. **"Take again" hidden entirely when attempts exhausted**
+   (programme only). A greyed button is a dead end; the message
+   belongs in the body text ("Attempt 3 of 3 — no attempts
+   remaining"), not in a fake button.
+3. **Universal across attempt sources, not programme-only.** Slice
+   3 deferred this exactly to avoid retrofitting later. Same shape
+   for bank Builder + programme today, with hooks ready for
+   Readiness Packs. Only the action labels and destinations vary:
+
+   |                       | Bank Builder           | Programme              |
+   |-----------------------|------------------------|------------------------|
+   | Retake label          | "Build another"        | "Take again"           |
+   | Exit destination      | `/student/bank/practice` | curriculum URL       |
+   | Retake action         | `nclex_create_attempt` w/ same filters | Slice 3's `nclex_create_programme_attempt` |
+
+   Sam also asked for "Untimed Learning still gets the popup?" Yes —
+   per-Q feedback is already seen during UL, but the aggregate
+   score, pass/fail verdict, and clean transition moment are all
+   new info regardless of mode.
+
+Also settled: "Review attempt" (the primary action) explicitly
+jumps to Q1 in review mode — not wherever the cursor was when the
+attempt flipped.
+
+### Build
+
+**New** — three files:
+
+- `lib/practice/runner/results-popup.tsx` — the modal component.
+  Reuses `<ViewerModalShell variant="narrow">` (the per-type
+  curriculum viewer shell — established cross-area pattern). Calls
+  `getResultsContext` on mount for source-specific labels +
+  destinations + retake availability. Renders: eyebrow → score
+  ("80% · 8 of 10 correct") → verdict pill (only when graded) →
+  facts block (pass mark + attempts, conditional) → 3 actions.
+- `lib/practice/runner/results-actions.ts` — `getResultsContext`
+  (single round-trip resolver: exit URL, retake label, retake
+  availability, attempts line) and `restartAttemptAction`
+  (source-aware retake: reuses `nclex_create_attempt` for bank,
+  `nclex_create_programme_attempt` for programme).
+- `lib/practice/runner/resolve-exit-href.ts` — shared URL resolver
+  + `exitBackLabel(source)` helper. Plain module (no
+  `'use server'`) so it exports a non-action helper that both the
+  popup action AND the page's server component can call. Plus the
+  preflight button label helper.
+
+**Modified** — `runner.tsx` mounts the popup, manages `showResults`
+(set true in the four completion paths: `onFinish`,
+`onSubmitAndFinish`, `onFinishFreeBatched` via `onFinish`,
+auto-expire — and crucially NOT on initial load of an
+already-completed attempt). Topbar's Pass/Fail pill (Slice 3)
+becomes a button when `onPillClick` is non-null. Reopens the
+popup.
+
+**Wiring note:** state survives `router.refresh()` cleanly, so
+no URL-param hack needed. `setShowResults(true)` right before the
+refresh persists into the review-mode render.
+
+### Smartness fixes surfaced during testing
+
+Sam tested the popup, found three exit-button issues. Same root
+cause across all three: existing exit destinations were hardcoded
+to `/student/bank/practice` from when bank was the only attempt
+source.
+
+**Fix 1 — popup's "Exit to curriculum" 404'd.** The action's
+fallback was `/student/programmes` (not a real route). Worse,
+even when the chain worked it always pointed at
+`/student/programme/{id}/curriculum`, wrong for cohort-led
+students. Fixed by adding a cohort-first lookup
+(`nclex_cohort_checklist_items` → `cohort_id`) — Permissive v1
+makes any cohort with this activity in its checklist a valid
+destination. Self-paced falls through to the programme URL. Final
+fallback `/student/picker` (a real route).
+
+**Fix 2 — runner topbar's ← Exit was hardcoded.** Sam: "the exit
+button on the runner itself has to be smart now." Extracted
+`resolveAttemptExitHref()` so the page (server-side, on load) and
+the popup action (server action, on demand) call the same logic.
+Page computes `exitHref` once at load, threads it onto `RunnerData`
+(both `LiveData` and `ReviewData`). Topbar takes a callback
+(`onExit: () => void`) instead of a URL string, so the runner can
+decide whether to navigate immediately (review mode) or open a
+confirmation modal first (live mode).
+
+**Fix 3 — exit confirmation modal.** Sam: "when an attempt is not
+finished and the user decides to exit, it should warn them?"
+Right call. New `lib/overlays/practice/exit-attempt-confirm.tsx`,
+copy varies by mode:
+- Timed: "The timer keeps running while you're away — your answers
+  so far are saved, but the clock won't pause." (Real consequence —
+  server-anchored timer doesn't pause.)
+- Untimed: "Your answers so far are saved. You can resume this
+  attempt later from where you left off."
+
+Backdrop/Esc → "Keep going" (the safe option), per CLAUDE.md UI
+convention #2. Review mode skips the modal entirely (nothing to
+lose; attempt is already terminal).
+
+**Fix 4 — preflight's "← Back to Practice".** Same hardcoded URL
++ bank-flavored copy. Threaded `exitHref` through; added
+`exitBackLabel(source)` for source-aware copy ("← Back to
+Practice" vs "← Back to curriculum"). No modal here — preflight
+is before any work happens.
+
+### Test data + verification
+
+Sam re-tested end-to-end on dev with a fresh tutor quiz attempt:
+- Letter ids render correctly across all rendered surfaces.
+- Popup auto-appears on completion with score + verdict.
+- Review attempt → dismisses popup + jumps to Q1.
+- Take again → new attempt created via Slice 3's RPC.
+- Exit to curriculum → lands on `/student/cohort/{id}/curriculum`.
+- Topbar score pill reopens popup after dismiss.
+- Mid-attempt ← Exit shows confirm modal with appropriate copy.
+
+Sam approved the slice for merge.
+
+### Next
+
+⏭ **Slice 4 — Progress / analytics** (already deferred in BUILD_LIST
+as the natural neighbour of the programme-side attempt-history
+surface). Quiz completion → activity completion → unit/programme
+progress → tutor analytics. Depends on the student progress
+engine — slot when that work begins.
+
+The two earlier follow-ons (programme-side attempt history,
+add-from-template affordance for cohort checklists) remain
+queued; both are deferred to Slice 4's neighbourhood.
+
+---
+
 ## Session — 2026-05-15 (Tutor Quiz — Slice 3, student launch)
 
 Closes the Mock / Practice quiz loop end-to-end. A student opening
