@@ -45,6 +45,7 @@ import {
   ACTIVITY_TYPE_ICON,
 } from './format';
 import { ActivityAction } from './activity-action';
+import { StudentUnitTabs } from './student-unit-tabs';
 import type {
   ProgrammeActivity,
   StudentActivity,
@@ -74,48 +75,75 @@ export function StudentCurriculumViewer({
         <div className="student-curriculum-empty">
           No content has been published yet.
         </div>
-      ) : (
+      ) : tree.units.length === 1 ? (
+        // Single unit — render the section directly, no tabs (per
+        // Slice 10.8 design decision: tabs add noise when there's
+        // only one unit).
         <div className="student-curriculum-units">
-          {tree.units.map((u) => (
-            <section className="student-unit" key={u.unit.unit_id}>
-              <header className="student-unit-head">
-                <div className="student-unit-tag">
-                  {unitLabel(u.unit.unit_index, tree.programme.unit_label)}
-                </div>
-                <h2 className="student-unit-title">
-                  {formatUnitTitle(u.unit, tree.programme.unit_label)}
-                </h2>
-                {u.unit.description && (
-                  <p className="student-unit-desc">{u.unit.description}</p>
-                )}
-              </header>
-
-              {u.body.length === 0 ? (
-                <div className="student-unit-empty">
-                  No content yet for this {unitNounSingular(tree.programme.unit_label)}.
-                </div>
-              ) : (
-                <div className="student-unit-body">
-                  {u.body.map((entry, idx) =>
-                    entry.kind === 'block' ? (
-                      <BlockCard
-                        key={`b-${entry.block.block_id}`}
-                        entry={entry}
-                      />
-                    ) : (
-                      <ActivityCard
-                        key={`a-${entry.activity.activity_id}`}
-                        activity={entry.activity}
-                      />
-                    )
-                  )}
-                </div>
-              )}
-            </section>
-          ))}
+          <UnitSection unit={tree.units[0]} tree={tree} />
         </div>
+      ) : (
+        // 2+ units — wrap with the client tabs component. Children
+        // are server-rendered <UnitSection> nodes, one per tab; the
+        // wrapper shows only the selected one.
+        <StudentUnitTabs
+          tabs={tree.units.map((u) => ({
+            index: u.unit.unit_index,
+            label: unitLabel(u.unit.unit_index, tree.programme.unit_label),
+          }))}
+        >
+          {tree.units.map((u) => (
+            <UnitSection key={u.unit.unit_id} unit={u} tree={tree} />
+          ))}
+        </StudentUnitTabs>
       )}
     </div>
+  );
+}
+
+function UnitSection({
+  unit,
+  tree,
+}: {
+  unit: StudentCurriculumTree['units'][number];
+  tree: StudentCurriculumTree;
+}) {
+  return (
+    <section className="student-unit">
+      <header className="student-unit-head">
+        <div className="student-unit-tag">
+          {unitLabel(unit.unit.unit_index, tree.programme.unit_label)}
+        </div>
+        <h2 className="student-unit-title">
+          {formatUnitTitle(unit.unit, tree.programme.unit_label)}
+        </h2>
+        {unit.unit.description && (
+          <p className="student-unit-desc">{unit.unit.description}</p>
+        )}
+      </header>
+
+      {unit.body.length === 0 ? (
+        <div className="student-unit-empty">
+          No content yet for this {unitNounSingular(tree.programme.unit_label)}.
+        </div>
+      ) : (
+        <div className="student-unit-body">
+          {unit.body.map((entry) =>
+            entry.kind === 'block' ? (
+              <BlockCard
+                key={`b-${entry.block.block_id}`}
+                entry={entry}
+              />
+            ) : (
+              <ActivityCard
+                key={`a-${entry.activity.activity_id}`}
+                activity={entry.activity}
+              />
+            )
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 

@@ -316,6 +316,82 @@ button.programme-switcher-item {
   gap: 20px;
 }
 
+/* ─── Unit tabs (Slice 10.8) ──────────────────────────
+ *
+ * Horizontal strip at the top of the curriculum view; one
+ * unit visible at a time. Selected tab carries an accent
+ * underline. Tabs overflow horizontally (scroll still works
+ * via touchpad / swipe) when a programme has many units.
+ * Hidden entirely when the programme has 0 or 1 units (the
+ * server viewer decides).
+ *
+ * Layout (after the 2026-05-15 Interpretation A redesign):
+ * the tab strip is a standalone strip with no card chrome of
+ * its own — sits above the body card with a small gap. The
+ * unit body BELOW keeps the standard .student-unit card
+ * chrome (border + bg + rounded + padding). Tabs and body
+ * read as two separate surfaces, not one wrapped container.
+ * ──────────────────────────────────────────────────── */
+
+.student-unit-tabs {
+  /* No chrome — just a structural wrapper. */
+}
+
+.student-unit-tabs-strip {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;        /* kill the 1px vertical-overflow scrollbar
+                                caused by the tabs' margin-bottom:-1px trick
+                                — overflow-x:auto promotes y from visible
+                                to auto per spec, so we pin it explicitly. */
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;       /* gap between strip and body card */
+  /* Hide the horizontal scrollbar visually but keep scroll behaviour
+   * (touchpad / swipe / keyboard) so a long programme still works. */
+  scrollbar-width: none;     /* Firefox */
+}
+.student-unit-tabs-strip::-webkit-scrollbar {
+  display: none;             /* Chrome / Safari / Edge */
+}
+
+.student-unit-tab {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;       /* overlap the strip's bottom line */
+  padding: 12px 14px 13px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.student-unit-tab:hover {
+  color: var(--text);
+}
+.student-unit-tab.is-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.student-unit-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 2px;
+}
+
+/* Panel container — no chrome of its own; the inner
+ * .student-unit keeps its default card chrome. */
+.student-unit-tab-panels {
+  /* deliberately empty */
+}
+
 /* ─── Unit card ─────────────────────────────────────── */
 
 .student-unit {
