@@ -36,6 +36,13 @@ export interface AttemptHeader {
   actual_question_count:    number;
   actual_unit_count:        number;
   final_score:              number | null;
+  /** Pass threshold this attempt is graded against (0..1 fraction).
+   *  Tutor-Quiz slice 3: populated by `nclex_create_programme_attempt`
+   *  from the quiz's pass_score. Bank attempts leave it null today
+   *  (Builder + future Readiness Packs may populate it later).
+   *  Drives the review-mode "· Pass" / "· Fail" suffix on the
+   *  score pill. NULL = ungraded (pill shows only "Score · NN%"). */
+  pass_score:               number | null;
   created_at:               string;
   started_at:               string | null;
   ended_at:                 string | null;

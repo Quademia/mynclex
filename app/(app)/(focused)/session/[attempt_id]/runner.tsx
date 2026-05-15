@@ -719,10 +719,24 @@ function RunnerShell({ data }: Props) {
   // The two are passed independently so the topbar picks based on which
   // is non-null. statusLabel keeps a placeholder for live so the existing
   // string contract holds; the clockProps takes precedence in render.
-  const statusLabel =
-    data.mode === 'review' && data.attempt.final_score !== null
-      ? `Score · ${formatPercent(data.attempt.final_score)}`
-      : 'Untimed';
+  //
+  // Tutor-Quiz slice 3: if the attempt has a pass_score (graded
+  // attempt — set today only by `nclex_create_programme_attempt`
+  // from the quiz's pass_score), append "· Pass" / "· Fail" based
+  // on `final_score >= pass_score`. Ungraded attempts (pass_score
+  // null) show only the score, unchanged.
+  let statusLabel: string;
+  if (data.mode === 'review' && data.attempt.final_score !== null) {
+    const scorePart = `Score · ${formatPercent(data.attempt.final_score)}`;
+    if (data.attempt.pass_score !== null) {
+      const passed = data.attempt.final_score >= data.attempt.pass_score;
+      statusLabel = `${scorePart} · ${passed ? 'Pass' : 'Fail'}`;
+    } else {
+      statusLabel = scorePart;
+    }
+  } else {
+    statusLabel = 'Untimed';
+  }
 
   const clockProps = (!isLive || startedAtMs === null)
     ? null

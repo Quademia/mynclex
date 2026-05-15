@@ -480,6 +480,13 @@ CREATE TABLE nclex_attempts (
   -- Item-equivalent average per bank-marks-and-scoring.html §7
   final_score                NUMERIC CHECK (final_score IS NULL OR (final_score >= 0 AND final_score <= 1)),
 
+  -- Pass threshold this attempt is graded against (0..1 fraction).
+  -- Added Tutor-Quiz slice 3. General-purpose (not programme-only):
+  -- bank Builder + future Readiness Packs can populate it later.
+  -- NULL = ungraded; the runner renders just "Score · NN%" instead
+  -- of "Score · NN% · Pass/Fail".
+  pass_score                 NUMERIC CHECK (pass_score IS NULL OR (pass_score >= 0 AND pass_score <= 1)),
+
   -- (intent, mode) tuple validation per attempt-creation §6.1.2
   CONSTRAINT nclex_attempts_intent_mode_tuple CHECK (
     (intent, mode) IN (

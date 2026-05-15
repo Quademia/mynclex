@@ -24,20 +24,36 @@ import { ExternalLinkViewer } from './external-link-viewer';
 import { OnlineLiveSessionViewer } from './online-live-session-viewer';
 import { PdfViewer } from './pdf-viewer';
 import { TextViewer } from './text-viewer';
-import type { ProgrammeActivity } from './types';
+import { QuizLaunchViewer } from './quiz-launch-viewer';
+import type {
+  ActivityPayloadMock,
+  ActivityPayloadPracticeQuiz,
+  ProgrammeActivity,
+} from './types';
 
 export function ActivityAction({ activity }: { activity: ProgrammeActivity }) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const estMinutes = activityEstimatedMinutes(activity);
 
   // Which types have a wired-up viewer. Grows one entry per
-  // per-type viewer slice; everything else stays disabled.
-  // MOCK + PRACTICE_QUIZ wait on the central tutor-quiz system.
+  // per-type viewer slice. Mock + Practice quiz become launchable
+  // only when a quiz is linked (payload.quiz_id non-null) —
+  // defence in depth on top of slice 2's publish gate, which
+  // blocks publishing an unlinked Mock/Practice activity. A
+  // published activity with a null quiz_id (legacy edge) shows the
+  // Open button disabled rather than crashing the launch modal.
+  const isQuizActivity =
+    activity.type === 'MOCK' || activity.type === 'PRACTICE_QUIZ';
+  const quizId = isQuizActivity
+    ? (activity.payload as ActivityPayloadMock | ActivityPayloadPracticeQuiz)
+        .quiz_id
+    : null;
   const isLaunchable =
     activity.type === 'TEXT' ||
     activity.type === 'EXTERNAL_LINK' ||
     activity.type === 'ONLINE_LIVE_SESSION' ||
-    activity.type === 'PDF';
+    activity.type === 'PDF' ||
+    (isQuizActivity && quizId != null);
 
   return (
     <div className="student-activity-action">
@@ -77,6 +93,13 @@ export function ActivityAction({ activity }: { activity: ProgrammeActivity }) {
           onClose={() => setViewerOpen(false)}
         />
       )}
+      {viewerOpen &&
+        (activity.type === 'MOCK' || activity.type === 'PRACTICE_QUIZ') && (
+          <QuizLaunchViewer
+            activity={activity}
+            onClose={() => setViewerOpen(false)}
+          />
+        )}
     </div>
   );
 }

@@ -6,6 +6,191 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-15 (Tutor Quiz — Slice 3, student launch)
+
+Closes the Mock / Practice quiz loop end-to-end. A student opening
+a quiz activity now lands in a launch modal, clicks Start (or
+Resume), and ends up in the existing runner — the same runner the
+bank's Practice and Mock builders feed into, with no
+runner-side branching on attempt source.
+
+### Replanning conversation (5 open questions)
+
+Walked the planning doc + open questions one-by-one with Sam
+before writing code. Settled:
+
+1. **Pass/fail "results screen" = the existing runner's review
+   mode.** No new page. The review-mode topbar pill grows from
+   `Score · NN%` to `Score · NN% · Pass` / `· Fail` when a
+   `pass_score` is set on the attempt. Ungraded attempts (no pass
+   score) keep the old pill unchanged.
+2. **`pass_score` is general, not programme-specific.** Lives as a
+   nullable column on `nclex_attempts` so bank Builder + future
+   Readiness Packs can populate it later when those flows want a
+   pass mark — same scale as `final_score`, ungraded is a valid
+   state for any source. Today only `nclex_create_programme_attempt`
+   populates it (from `quiz.pass_score`).
+3. **Resume governs in-flight; max_attempts governs terminal —
+   two independent rules, no overlap.** Terminal statuses
+   (COMPLETED + TIMED_OUT + ABANDONED) count toward `max_attempts`;
+   IN_PROGRESS doesn't (the launch modal surfaces it as Resume
+   instead). Same rule for Mock and Practice — granularity is the
+   tutor-set `max_attempts` value (null = unlimited), not the kind.
+4. **Modal shows attempts count only, no inline list.** Sam's
+   point: backend shares one attempts table, but the frontend
+   should split bank attempts from programme attempts. The bank's
+   `/student/bank/history` stays bank-only; a programme-side
+   attempt history surface waits for its own slice. The launch
+   modal does the immediate decision support ("Attempt 2 of 3" /
+   "No attempts remaining" / "Unlimited"), nothing more.
+5. **Visual treatment matches the per-type viewer family** —
+   same `<ViewerModalShell>` (narrow), same `viewer-modal-*`
+   vocabulary. Stakes communicated through content (clear button
+   labels, attempts line, pass mark line), not chrome variation.
+
+Also surfaced and confirmed during the conversation: the runner's
+auto-calc duration (90 sec/Q from slice 4.5b's BEFORE INSERT
+trigger) is a fallback default, not the primary path. The trigger
+only fires when `duration_seconds IS NULL` at INSERT time. The
+tutor's quiz-set duration is authoritative — the new RPC copies
+it straight onto the attempt and the trigger no-ops. No conflict.
+
+### End-of-quiz popup — split into its own slice (3a)
+
+The runner currently flips silently into review mode at completion
+— no celebration, no summary, no clear next-step. A results popup
+(score + pass/fail + actions: Review / Exit / Take again) makes
+sense, but Sam accepted the recommendation to ship it **after**
+Slice 3 as a universal piece (source-agnostic — applies to bank
+Builder and future Readiness Packs too, not programme-only). Slice
+3 ships the minimum honest experience (score + pass/fail visible
+in the topbar pill, attempt completes correctly); the popup adds
+polish to all attempt surfaces in one shot.
+
+### Build
+
+**Schema migration** (`20260517120000_tutor_quiz_3_student_launch.sql`):
+
+- Adds `nclex_attempts.pass_score NUMERIC NULL` (0..1 fraction,
+  CHECK constrained). General-purpose, not programme-specific.
+- Adds `nclex_create_programme_attempt(p_programme_activity_id UUID)
+  RETURNS UUID` — the launch RPC. Fixed-list snapshot (no pool
+  selection / drift): validates activity + quiz + max_attempts,
+  inserts the attempt header, then walks `nclex_tutor_quiz_items`
+  in `position` order and snapshots each linked
+  `nclex_tutor_questions` row into `nclex_attempt_items` (stem,
+  rationale, classification, content, correct, marks — same
+  column set the bank RPC uses). Source is `'TUTOR'`, intent is
+  derived from `quiz_kind` (`MOCK → EXAM`, `PRACTICE → STUDY`),
+  duration + pass_score pass through from the quiz.
+- SECURITY DEFINER, search path locked to `public`, EXECUTE
+  granted to `authenticated` only.
+
+**Schema mirror** — `db/schema.sql` updated with the new
+`pass_score` column. RPCs aren't mirrored (they live in
+migrations per the schema.sql footer note).
+
+**Server actions** (new `lib/curriculum/quiz-launch.ts`):
+
+- `getQuizLaunchContext(activityId)` — one round trip, returns
+  quiz metadata + attempts taken + attempts remaining + an
+  in-progress lookup scoped to *this* activity. Uses
+  student-RLS-gated reads for activity + attempts, and a
+  service-role read for the quiz row (RLS on
+  `nclex_tutor_quizzes` is tutor-owned; same pattern as the
+  PDF activity's signed-URL flow).
+- `startProgrammeQuizAction(activityId)` — thin wrapper around
+  the RPC, returns `{ ok, attempt_id }` for the modal to
+  navigate on.
+
+**Modal viewer** (new `lib/curriculum/quiz-launch-viewer.tsx`):
+
+- Joins the per-type viewer family (slices 10.2–10.5), uses
+  `<ViewerModalShell variant="narrow">`. Three render states:
+  Resume (in-progress exists) → "Resume attempt" button →
+  navigates without RPC; Start (attempts available) → "Start
+  quiz" button → RPC → navigate; Exhausted → no button, just
+  the "No attempts remaining" line. Server-fetches on mount via
+  `getQuizLaunchContext`; brief "Loading quiz…" line covers the
+  sub-100ms round trip.
+- Body renders mode label, question count, duration, pass mark,
+  and the attempts line (`"Attempt N of M"` / `"Attempt N of M
+  · in progress"` / `"Unlimited attempts"` / `"No attempts
+  remaining"`).
+
+**Wiring** (`lib/curriculum/activity-action.tsx`):
+
+- MOCK + PRACTICE_QUIZ flip to `isLaunchable` — but **only when
+  `payload.quiz_id` is non-null**. Defence in depth on top of
+  Slice 2's publish gate. Activities with no quiz linked stay
+  disabled with the "Open" button greyed.
+
+**Runner pill** (`runner.tsx`):
+
+- Review-mode `statusLabel` grows from `Score · NN%` to
+  `Score · NN% · Pass` / `· Fail` when the attempt has a
+  `pass_score` (compared against `final_score`). Ungraded
+  attempts keep the existing pill unchanged.
+- `AttemptHeader` type gains `pass_score: number | null`.
+  The runner page's `.select('*')` picks the new column up
+  automatically; no fetch change needed.
+
+**Styling** (`styles/student-curriculum.css`) — new
+`.quiz-launch-*` classes for the modal's mode label, fact list
+(definition-list grid), loading line, and CTA.
+
+### Test data + bug surfaced mid-test
+
+Sam tested using the existing "Pharmacology Mock Exam" quiz and a
+cohort he was logged into. The Mock activity with the linked quiz
+(`Mock on Pharmacology`) wasn't in his cohort's checklist (Slice
+9.3f's "new template activities don't auto-propagate to existing
+cohorts" limitation), so the Open button was correctly disabled.
+He linked the Pharmacology quiz to one of the activities his
+cohort *did* have (`Fundamentals practice set`) via the Slice 2
+selector, then re-tested.
+
+**Mid-build bug:** first Start click failed with
+`nclex_attempt_items_tutor_id_consistent` — a CHECK constraint
+the bank RPC's BANK rows never hit but TUTOR-source rows do
+(`item_source = 'TUTOR' ⇒ tutor_id NOT NULL`). RPC was leaving
+`tutor_id` null. Fixed by reading `tq.tutor_id` in the snapshot
+loop and threading it into the insert. Migration file + live
+function both updated; re-tested clean.
+
+### Verification
+
+DB cross-check on the resulting attempt: `source =
+PROGRAMME_ASSIGNED`, `intent = STUDY` (Practice kind → STUDY),
+`mode = UNTIMED_TEST`, `pass_score = 0.60` (propagated from
+quiz), `actual_question_count = 5`, all 5 item rows
+`item_source='TUTOR'` with `tutor_id` populated. Started_at set
+(student went through preflight). End-to-end: modal → RPC →
+attempt + snapshot → runner. Pass/Fail badge surfaces once the
+student submits in review mode.
+
+### Next
+
+⏭ **Slice 3a — Universal end-of-quiz results popup.** Score +
+pass/fail + action set (Review answers / Exit / Take again).
+Source-aware so it serves Mock + Practice + bank Builder +
+future Readiness Packs from day one. Sits on top of the runner's
+review-mode flip.
+
+Follow-ons added:
+- **Programme-side attempt history surface.** The bank's
+  `/student/bank/history` will now include `PROGRAMME_ASSIGNED`
+  attempts in its bank-styled rows — known cosmetic glitch.
+  Resolved by a separate programme-side history view (per Sam's
+  point about frontend separation by source), slot when the
+  progress engine work starts.
+- **Add-from-template affordance** for cohort checklists (so a
+  template activity added after the cohort exists can be added
+  to that cohort) — pre-existing Slice 9.3f deferral, surfaced
+  again here.
+
+---
+
 ## Session — 2026-05-17 (Tutor Quiz — Slice 1 polish + Slice 2)
 
 Continuation of the tutor-quiz build: a layout polish on the
