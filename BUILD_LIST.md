@@ -8,7 +8,64 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-17):** **Tutor Quiz Slice 2 — link a
+> **Last shipped (2026-05-15):** **Tutor Quiz Slice 3 — student
+> launch.** Closes the Mock / Practice quiz loop end-to-end: the
+> student's Open button on a Mock/Practice activity now mounts a
+> launch modal, Start (or Resume) creates an attempt and hands
+> off to the existing runner, and review-mode shows a pass/fail
+> badge alongside the score.
+>
+> **Schema.** Migration `20260517120000` adds nullable
+> `nclex_attempts.pass_score` (0..1 fraction — general-purpose, so
+> bank Builder + future Readiness Packs can populate it later when
+> they want a pass mark) and the new RPC
+> `nclex_create_programme_attempt(p_programme_activity_id)`. The
+> RPC is a fixed-list snapshot (no pool selection / drift) —
+> validates activity + quiz + max_attempts, then walks
+> `nclex_tutor_quiz_items` in `position` order and snapshots each
+> linked tutor question into `nclex_attempt_items`. Source is
+> `TUTOR`, intent derived from `quiz_kind` (MOCK→EXAM,
+> PRACTICE→STUDY), duration + pass_score pass through. SECURITY
+> DEFINER, EXECUTE to `authenticated` only.
+>
+> **Resume rule.** Resume governs in-flight attempts; max_attempts
+> governs terminal ones — two independent rules, no overlap. The
+> modal's server-fetch (one round trip via the new
+> `getQuizLaunchContext`) returns attempts taken
+> (COMPLETED+TIMED_OUT+ABANDONED — IN_PROGRESS excluded) + an
+> in-progress lookup scoped to *this* activity. IN_PROGRESS exists
+> → Resume button → navigates without RPC; otherwise Start →
+> RPC → navigate; exhausted → no button.
+>
+> **Pass mark on attempts.** The runner's review-mode topbar pill
+> grows from `Score · NN%` to `Score · NN% · Pass` / `· Fail` when
+> the attempt has a `pass_score`. Ungraded attempts keep the old
+> pill unchanged.
+>
+> **Wiring + visual.** `<ActivityAction>` flips MOCK + PRACTICE_QUIZ
+> to `isLaunchable` *only when `payload.quiz_id` is non-null* —
+> defence in depth on top of Slice 2's publish gate. New
+> `<QuizLaunchViewer>` uses the same `<ViewerModalShell>` + 
+> `viewer-modal-*` vocabulary as the per-type viewers (slices
+> 10.2–10.5). Stakes communicated by content (attempts line, pass
+> mark line, clear button labels), not chrome variation.
+>
+> **Mid-build bug.** First Start hit
+> `nclex_attempt_items_tutor_id_consistent` — the CHECK requires
+> `tutor_id NOT NULL` when `item_source = 'TUTOR'`. RPC was leaving
+> it null. Fix: read `tq.tutor_id` in the snapshot loop, carry
+> through to the insert. Re-tested clean.
+>
+> **End-of-quiz popup deferred.** Score + pass/fail + action set
+> (Review / Exit / Take again) is real value, but ships as **Slice
+> 3a** because it's universal — applies to bank Builder + future
+> Readiness Packs equally, not programme-only. Designing it once
+> source-aware (vs. retrofitting from "programme quiz finished")
+> avoids reshape later.
+>
+> See SESSIONS 2026-05-15.
+>
+> **Earlier:** **Tutor Quiz Slice 2 — link a
 > quiz into Mock/Practice activities** (+ a Slice 1 layout polish).
 >
 > **Slice 2.** The Mock/Practice curriculum activity editor's
@@ -1573,12 +1630,23 @@ Build arc:
   2026-05-17. (The cohort-checklist "needs a quiz" visual cue was
   deferred as polish — the publish gate already prevents the
   breakage.)
-- ⏭ **Slice 3** Student launch — the
+- ✅ **Slice 3** Student launch — the
   `nclex_create_programme_attempt` RPC (fixed-list snapshot,
-  `source = PROGRAMME_ASSIGNED`); the Mock + Practice
-  `<ActivityAction>` goes live as the modal viewer; max-attempts
-  check at launch + pass/fail badge on results. Closes the
-  "Mock + Practice quiz viewers" row above.
+  `source = PROGRAMME_ASSIGNED`, populates the new
+  general-purpose `nclex_attempts.pass_score` column); the Mock +
+  Practice `<ActivityAction>` goes live as the modal viewer
+  (`<QuizLaunchViewer>`, in the per-type viewer family);
+  max-attempts check (terminal statuses only — resume handles
+  IN_PROGRESS); pass/fail badge on the runner's review-mode
+  topbar pill. End-of-quiz popup split out as Slice 3a (universal,
+  not programme-only). Migration `20260517120000`. See SESSIONS
+  2026-05-15.
+- ⏭ **Slice 3a** Universal end-of-quiz results popup — score +
+  pass/fail + action set (Review answers / Exit / Take again).
+  Source-aware from day one: serves Mock + Practice + bank
+  Builder + future Readiness Packs equally. Sits on top of the
+  runner's review-mode flip; touches all attempt surfaces in one
+  shot.
 - ⬜ **Slice 4** Progress / analytics — quiz completion →
   activity completion → unit/programme progress → tutor
   analytics. Deferred; depends on the student progress engine.
@@ -1590,6 +1658,31 @@ comfortably build quizzes from a large bank — notably **tags** as
 a filter axis, alongside the current type / category / difficulty
 / text search. Surfaced 2026-05-16 while reviewing Slice 1. Slot
 when the bank grows enough that the current filter set feels thin.
+
+**Deferred follow-on — programme-side attempt history.** From day
+1 of Slice 3, programme-assigned attempts share the
+`nclex_attempts` table with bank attempts. The existing
+`/student/bank/history` page lists them all — fine on the
+backend, but the *frontend* should split bank attempts from
+programme attempts (Sam's call, 2026-05-15). v1 cosmetic glitch:
+programme attempts render with bank-styled rows in the bank
+history page. Resolved by a dedicated programme-side history
+surface alongside the cohort / programme detail, sharing the
+backend table but with programme-aware row rendering and a
+per-activity filter. Slot when the progress engine work starts
+(natural neighbour — both read the attempt table for student
+state).
+
+**Deferred follow-on — add-from-template for cohort checklists.**
+A template activity added to the programme *after* a cohort exists
+doesn't auto-propagate into that cohort's checklist (Slice 9.3f's
+one explicit non-propagation case). Surfaced again during Slice 3
+testing — Sam couldn't see the Pharmacology Mock activity in his
+cohort because it was added after the cohort was created. The
+workaround (link the existing Pharmacology quiz to a *different*
+activity that *is* in the cohort) worked, but the affordance is
+real and will land when a tutor actually needs it for a real
+cohort situation.
 
 ### Deferred out of Phase B
 
