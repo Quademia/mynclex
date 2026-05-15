@@ -2387,3 +2387,137 @@
   justify-content: space-between;
   gap: 12px;
 }
+
+/* ────────────────────────────────────────────────────────────
+ *  Slice 3a — End-of-quiz results popup
+ *
+ *  Sits inside the shared <ViewerModalShell> (narrow). The shell
+ *  owns backdrop + panel + close ✕; these styles fill the panel body.
+ *  Topbar score pill becomes a button in review mode so the student
+ *  can reopen the popup after dismiss — .rn-timer-btn overrides the
+ *  default button chrome to match the static pill it replaces.
+ * ──────────────────────────────────────────────────────────── */
+.rn-timer-btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+}
+.rn-timer-btn:hover { background: var(--bg-soft, #f5f5f7); color: var(--text); }
+.rn-timer-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.results-popup {
+  padding-top: 4px;
+}
+.results-eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 6px;
+}
+.results-score {
+  text-align: center;
+  margin: 4px 0 2px;
+}
+.results-score .num {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--text);
+}
+.results-score .pct {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+.results-score .frac {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-top: 2px;
+}
+.results-verdict {
+  display: block;
+  text-align: center;
+  margin: 6px auto 4px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  width: fit-content;
+  font-size: 13px;
+  font-weight: 600;
+}
+.results-verdict.pass {
+  background: #e7f6ee;
+  color: #168f4d;
+}
+.results-verdict.fail {
+  background: #fbe9e7;
+  color: #b3261e;
+}
+.results-facts {
+  margin: 14px 0 18px;
+  padding: 10px 12px;
+  background: var(--bg-soft, #fafafa);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  display: grid;
+  gap: 4px;
+}
+.results-facts .row {
+  display: flex;
+  justify-content: space-between;
+}
+.results-facts .row .v {
+  color: var(--text);
+  font-weight: 500;
+}
+.results-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.results-actions .btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 11px 16px;
+  border-radius: 10px;
+  border: 0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.results-actions .btn.primary {
+  background: var(--text);
+  color: white;
+}
+.results-actions .btn.primary:hover { opacity: 0.92; }
+.results-actions .btn.secondary {
+  background: rgba(45, 125, 114, 0.10);
+  color: var(--accent);
+}
+.results-actions .btn.secondary:hover { background: rgba(45, 125, 114, 0.18); }
+.results-actions .btn.secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.results-actions .btn.tertiary {
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 8px;
+}
+.results-actions .btn.tertiary:hover { color: var(--text); }
+.results-actions .btn.tertiary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

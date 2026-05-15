@@ -19,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { markStartedAction } from './actions';
 import type { AttemptHeader } from '@/lib/practice/runner';
+import { exitBackLabel } from '@/lib/practice/runner/resolve-exit-href';
 
 const MODE_LABELS: Record<AttemptHeader['mode'], string> = {
   UNTIMED_LEARNING:  'Untimed Learning',
@@ -37,9 +38,12 @@ const SOURCE_LABELS: Record<AttemptHeader['source'], string> = {
 interface Props {
   attempt:   AttemptHeader;
   itemCount: number;
+  /** Slice 3a — source-aware destination resolved server-side. Same
+   *  href used by the runner topbar's ← Exit and the results popup. */
+  exitHref:  string;
 }
 
-export function Preflight({ attempt, itemCount }: Props) {
+export function Preflight({ attempt, itemCount, exitHref }: Props) {
   const router = useRouter();
   const [error, setError]     = useState<string | null>(null);
   const [pending, startTrans] = useTransition();
@@ -52,7 +56,7 @@ export function Preflight({ attempt, itemCount }: Props) {
     });
   };
 
-  const onBack = () => router.push('/student/bank/practice');
+  const onBack = () => router.push(exitHref);
 
   return (
     <div className="rn-preflight">
@@ -84,7 +88,7 @@ export function Preflight({ attempt, itemCount }: Props) {
             onClick={onBack}
             disabled={pending}
           >
-            ← Back to Practice
+            {exitBackLabel(attempt.source)}
           </button>
           <button
             type="button"

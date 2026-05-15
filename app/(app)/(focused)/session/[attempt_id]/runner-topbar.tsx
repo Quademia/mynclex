@@ -16,7 +16,6 @@
 
 'use client';
 
-import { useRouter } from 'next/navigation';
 import type { WarningTier } from '@/lib/practice/runner/clock';
 
 interface CaseMeta {
@@ -45,6 +44,14 @@ interface Props {
   // Live-mode clock state. Null in review mode (statusLabel renders
   // instead). Populated in live mode regardless of timed-vs-untimed.
   clock?:      ClockProps | null;
+  // Slice 3a — handler for the ← Exit click. Runner decides whether to
+  // navigate immediately (review mode) or open a confirmation modal
+  // first (live mode, attempt in-progress). Topbar just calls it.
+  onExit:      () => void;
+  // Slice 3a — reopen the results popup from review mode. Non-null
+  // only in review; null in live (the pill just shows the clock).
+  // When non-null the status pill becomes a button.
+  onPillClick?: (() => void) | null;
 }
 
 export function RunnerTopbar({
@@ -55,15 +62,15 @@ export function RunnerTopbar({
   statusLabel,
   caseMeta,
   clock,
+  onExit,
+  onPillClick,
 }: Props) {
-  const router = useRouter();
-
   return (
     <header className="rn-top">
       <button
         type="button"
         className="rn-top-exit"
-        onClick={() => router.push('/student/bank/practice')}
+        onClick={onExit}
       >
         ← Exit
       </button>
@@ -97,6 +104,15 @@ export function RunnerTopbar({
 
       {clock ? (
         <ClockGroup clock={clock} />
+      ) : onPillClick ? (
+        <button
+          type="button"
+          className="rn-timer untimed rn-timer-btn"
+          onClick={onPillClick}
+          title="Show results"
+        >
+          {statusLabel}
+        </button>
       ) : (
         <div className="rn-timer untimed">{statusLabel}</div>
       )}
