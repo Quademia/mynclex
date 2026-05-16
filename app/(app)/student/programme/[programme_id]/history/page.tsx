@@ -39,9 +39,9 @@ export default async function StudentProgrammeHistoryPage({
   return (
     <>
       <header className="hist-head">
-        <h1 className="hist-h1">History</h1>
+        <h1 className="hist-h1">Quiz History</h1>
         <p className="hist-sub">
-          Your past Mock and Practice Quiz attempts in {prog.title}.
+          Your past attempts in {prog.title}.
         </p>
       </header>
       <ProgrammeHistoryTable

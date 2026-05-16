@@ -38,8 +38,8 @@ export const STUDENT_BANK_NAV: NavItem[] = [
  * programme layout for the actual [programme_id] route param.
  */
 export const STUDENT_PROGRAMME_DETAIL_NAV: NavItem[] = [
-  { key: 'curriculum', label: 'Curriculum', icon: 'layers', href: '/student/programme/:programmeId/curriculum' },
-  { key: 'history',    label: 'History',    icon: 'clock',  href: '/student/programme/:programmeId/history' },
+  { key: 'curriculum', label: 'Curriculum',   icon: 'layers', href: '/student/programme/:programmeId/curriculum' },
+  { key: 'history',    label: 'Quiz History', icon: 'clock',  href: '/student/programme/:programmeId/history' },
 ];
 
 /**
@@ -48,6 +48,6 @@ export const STUDENT_PROGRAMME_DETAIL_NAV: NavItem[] = [
  * layout for the actual [cohort_id] route param.
  */
 export const STUDENT_COHORT_DETAIL_NAV: NavItem[] = [
-  { key: 'curriculum', label: 'Curriculum', icon: 'layers', href: '/student/cohort/:cohortId/curriculum' },
-  { key: 'history',    label: 'History',    icon: 'clock',  href: '/student/cohort/:cohortId/history' },
+  { key: 'curriculum', label: 'Curriculum',   icon: 'layers', href: '/student/cohort/:cohortId/curriculum' },
+  { key: 'history',    label: 'Quiz History', icon: 'clock',  href: '/student/cohort/:cohortId/history' },
 ];
