@@ -21,7 +21,10 @@
 // The dataset is bounded (one student's programme attempts) so the
 // extra round trips are cheap.
 
-import { createClient } from '@/lib/supabase/server';
+import {
+  createClient,
+  createServiceRoleClient,
+} from '@/lib/supabase/server';
 import {
   MODES_STUDY,
   MODES_EXAM,
@@ -34,6 +37,22 @@ import type {
   ProgrammeActivityType,
   ProgrammeHistoryAttempt,
 } from './programme-types';
+
+/**
+ * Quiz cap shape carried inside the activity record after the
+ * service-role lookup. NULL = uncapped (or quiz unreadable / not
+ * linked). Slice 4b — per the spec, the cap shown is whatever the
+ * activity's currently-linked quiz says today (not stored on the
+ * attempt at creation time).
+ */
+type ActivityFat = {
+  title: string;
+  type: ProgrammeActivityType;
+  unit_index: number;
+  unit_title: string | null;
+  quiz_id: string | null;
+  max_attempts: number | null;
+};
 
 const ATTEMPT_FETCH_LIMIT = 200; // generous safety cap before per-programme filter
 const ROW_RETURN_LIMIT = 50;     // matches the bank-side history page
@@ -76,12 +95,14 @@ export async function getProgrammeHistoryAttempts(
   if (activityIds.length === 0) return [];
 
   // 2) Resolve activities + parent units, scoped to this programme.
-  // Attempts whose activity isn't in this programme drop out of the
-  // result naturally (no entry in activityMap → skipped below).
+  // Also pulls the activity payload so we can extract the linked
+  // quiz_id for the cap lookup in pass 3. Attempts whose activity
+  // isn't in this programme drop out naturally (no entry in
+  // activityMap → skipped in the merge pass).
   const { data: activities, error: actErr } = await supabase
     .from('nclex_programme_activities')
     .select(
-      `activity_id, title, type, unit_id,
+      `activity_id, title, type, unit_id, payload,
        nclex_programme_units!inner(programme_id, unit_index, title)`
     )
     .in('activity_id', activityIds)
@@ -94,6 +115,7 @@ export async function getProgrammeHistoryAttempts(
     title: string;
     type: string;
     unit_id: string;
+    payload: { quiz_id?: string | null } | null;
     nclex_programme_units:
       | { programme_id: string; unit_index: number; title: string | null }
       | Array<{
@@ -104,33 +126,63 @@ export async function getProgrammeHistoryAttempts(
       | null;
   };
 
-  const activityMap = new Map<
-    string,
-    {
-      title: string;
-      type: ProgrammeActivityType;
-      unit_index: number;
-      unit_title: string | null;
-    }
-  >();
+  const activityMap = new Map<string, ActivityFat>();
+  const quizIds = new Set<string>();
   for (const row of activities as ActivityRow[]) {
     const unitRaw = row.nclex_programme_units;
     const unit = Array.isArray(unitRaw) ? unitRaw[0] : unitRaw;
     if (!unit) continue;
+    const quizId = row.payload?.quiz_id ?? null;
+    if (quizId) quizIds.add(quizId);
     activityMap.set(row.activity_id, {
       title: row.title,
       type: row.type as ProgrammeActivityType,
       unit_index: unit.unit_index,
       unit_title: unit.title,
+      quiz_id: quizId,
+      max_attempts: null, // filled in pass 3
     });
   }
 
-  // 3) Progress map for the same activity ids — drives the DONE
+  // 3) Cap lookup via service role — students can't SELECT
+  // nclex_tutor_quizzes directly (the table is tutor-owned; the
+  // student read path is the launch RPC per Tutor-Quiz Slice 1).
+  // max_attempts isn't sensitive (the launch modal already exposes
+  // it), so a service-role read for this single field is the
+  // pragmatic v1 fix. Matches the pattern in getStudentPdfActivityUrl.
+  if (quizIds.size > 0) {
+    const service = createServiceRoleClient();
+    const { data: quizzes } = await service
+      .from('nclex_tutor_quizzes')
+      .select('quiz_id, max_attempts')
+      .in('quiz_id', Array.from(quizIds));
+
+    if (quizzes) {
+      const capByQuiz = new Map<string, number | null>();
+      for (const q of quizzes as Array<{
+        quiz_id: string;
+        max_attempts: number | null;
+      }>) {
+        capByQuiz.set(q.quiz_id, q.max_attempts);
+      }
+      for (const a of activityMap.values()) {
+        if (a.quiz_id && capByQuiz.has(a.quiz_id)) {
+          a.max_attempts = capByQuiz.get(a.quiz_id) ?? null;
+        }
+      }
+    }
+  }
+
+  // 4) Progress map for the same activity ids — drives the DONE
   // badge. RLS scopes to caller's own progress rows.
   const inScopeActivityIds = Array.from(activityMap.keys());
   const progressMap = await getActivityProgressMap(inScopeActivityIds);
 
-  // 4) Merge + filter to this programme + cap at ROW_RETURN_LIMIT.
+  // 5) Merge + filter to this programme. Build out the full filtered
+  // list FIRST so attempt ordinals can be computed over the full
+  // per-activity set (pass 6), THEN cap at ROW_RETURN_LIMIT (pass 7).
+  // Computing ordinals before the cap means "Attempt N" stays
+  // stable even when older attempts fall off the visible window.
   const out: ProgrammeHistoryAttempt[] = [];
   for (const att of rawAttempts) {
     const activityId = att.programme_activity_id as string;
@@ -155,12 +207,30 @@ export async function getProgrammeHistoryAttempts(
       unit_index: activity.unit_index,
       unit_title: activity.unit_title,
       activity_is_done: progressMap.has(activityId),
+      attempt_ordinal: 0, // filled in pass 6
+      max_attempts: activity.max_attempts,
     });
-
-    if (out.length >= ROW_RETURN_LIMIT) break;
   }
 
-  return out;
+  // 6) Compute per-activity ordinals — 1-based chronological from
+  // the OLDEST attempt. Sort each activity group ascending by
+  // created_at, then assign 1, 2, 3, …
+  const byActivity = new Map<string, ProgrammeHistoryAttempt[]>();
+  for (const row of out) {
+    const arr = byActivity.get(row.activity_id) ?? [];
+    arr.push(row);
+    byActivity.set(row.activity_id, arr);
+  }
+  for (const arr of byActivity.values()) {
+    arr.sort((x, y) => x.created_at.localeCompare(y.created_at));
+    arr.forEach((row, i) => {
+      row.attempt_ordinal = i + 1;
+    });
+  }
+
+  // 7) Cap at ROW_RETURN_LIMIT. The original sort (newest first)
+  // is preserved by `out` — slice from the top.
+  return out.slice(0, ROW_RETURN_LIMIT);
 }
 
 /**

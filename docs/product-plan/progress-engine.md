@@ -720,6 +720,32 @@ dedicated programme-side surface.
 in the programme history surface, not bank history; per-activity
 filter narrows the list.
 
+### Slice 4b — Attempt count column
+
+Small additive slice on top of Slice 4 (settled mid-build). Adds
+an **Attempt** column between Activity and Mode showing the
+chronological attempt number for that activity, with the cap when
+the linked quiz sets `max_attempts` ("Attempt 2 of 4") or just the
+ordinal when uncapped ("Attempt 2"). Useful before retake exists
+(progression tracking, pacing) and lays the groundwork for the
+retake feature (§10 future).
+
+- Ordinals computed client-side over the **full** filtered-to-
+  programme set per activity (group → sort ascending by
+  `created_at` → assign 1..N) **before** the 50-row display cap, so
+  numbering stays stable when older attempts fall off the visible
+  window.
+- Cap fetched via service-role read of `nclex_tutor_quizzes`
+  (`max_attempts`) — student RLS on that table doesn't expose it
+  directly. `max_attempts` isn't sensitive (the launch modal
+  already surfaces it). Pragmatic v1 fix vs. adding a focused
+  student-read policy.
+- **Current cap, not historical.** Cap shown is whatever the
+  activity's currently-linked quiz says today. No schema change.
+  Honest fallback when `attempt_ordinal > max_attempts` (cap
+  dropped post-hoc): drop the "of M", show just the ordinal —
+  avoids rendering the contradictory "3 of 2".
+
 ### Future — Tutor analytics (blocked on enrolment)
 
 Not part of this arc. Tutor-quiz Slice 4 + cohort progress
@@ -807,3 +833,23 @@ Deliberately left unscoped — when Sam returns with the visual
 treatments he wants, each is a small additive slice on top of the
 existing decoration helpers in `lib/curriculum/student-queries.ts`.
 No schema work needed.
+
+### Retake-from-history (deferred — Sam's planned next move)
+
+A **Retake** button on the programme history page that starts a
+fresh attempt against the row's activity. Builds on Slice 4b's
+attempt-count column (which already surfaces "Attempt N of M" so
+the student knows whether they have shots remaining). When
+shipped:
+
+- Per-row "can retake" logic — most recent attempt for that
+  activity, not exhausted (`attempt_ordinal < max_attempts`),
+  activity still OPEN.
+- Action button → reuses the existing
+  `startProgrammeQuizAction` from Tutor-Quiz Slice 3 → navigates
+  to `/session/[newAttemptId]`.
+- UX choices to settle when picked up: confirm-before-retake
+  (modal), or single-click? Land on attempt or preflight?
+
+The data path is complete (cap + ordinal are already on every
+row); this slice is pure UX wiring.

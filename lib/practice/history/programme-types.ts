@@ -64,4 +64,20 @@ export interface ProgrammeHistoryAttempt {
    *  DONE if the row was voided. Drives the small ✓ badge next to
    *  the activity title. */
   activity_is_done: boolean;
+
+  /** 1-based chronological position of this attempt within all the
+   *  student's attempts against this activity (1 = first ever).
+   *  Computed over the FULL set per (student, activity) before the
+   *  50-row display cap, so an ordinal is stable even when older
+   *  attempts fall off the visible window. */
+  attempt_ordinal: number;
+
+  /** Max attempts allowed by the activity's CURRENTLY-linked quiz
+   *  (the v1 choice — "current cap" rather than "cap at attempt
+   *  time"; no schema change required). NULL = uncapped, quiz
+   *  unlinked, or the linked quiz isn't readable. Cell renders as
+   *  "N of M" when set; just "N" otherwise. If attempt_ordinal
+   *  exceeds max_attempts (cap dropped post-hoc), the cell falls
+   *  back to just "N" to avoid rendering the contradictory "3 of 2". */
+  max_attempts: number | null;
 }

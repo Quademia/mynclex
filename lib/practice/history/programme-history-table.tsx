@@ -58,6 +58,20 @@ function passFailHint(row: ProgrammeHistoryAttempt): string | null {
   return row.final_score >= row.pass_score ? 'Pass' : 'Fail';
 }
 
+/**
+ * Format for the Attempt column. Honest fallback when the displayed
+ * ordinal exceeds the (current) cap — happens if the tutor lowered
+ * max_attempts after the student already exceeded it. Rendering
+ * "3 of 2" would be visually wrong; we drop the "of M" instead.
+ */
+function formatAttempt(
+  ordinal: number,
+  cap: number | null
+): string {
+  if (cap === null || ordinal > cap) return String(ordinal);
+  return `${ordinal} of ${cap}`;
+}
+
 export function ProgrammeHistoryTable({
   attempts,
   unitLabelKind,
@@ -151,6 +165,7 @@ export function ProgrammeHistoryTable({
               <tr>
                 <th>When</th>
                 <th>Activity</th>
+                <th>Attempt</th>
                 <th>Mode</th>
                 <th>Result</th>
                 <th>State</th>
@@ -182,6 +197,9 @@ export function ProgrammeHistoryTable({
                         {unitLabel(r.unit_index, unitLabelKind)}
                         {r.unit_title ? ` · ${r.unit_title}` : ''}
                       </div>
+                    </td>
+                    <td className="hist-attempt">
+                      {formatAttempt(r.attempt_ordinal, r.max_attempts)}
                     </td>
                     <td>
                       <span className="hist-pill hist-pill-mode">

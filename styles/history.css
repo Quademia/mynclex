@@ -299,4 +299,14 @@
 .hist-verdict-fail {
   color: var(--danger);
 }
+
+/* Attempt column (Slice 4b — "Attempt N of M" / "Attempt N").
+ * Tabular nums so the digits line up vertically across rows;
+ * muted weight so it informs without competing with the score. */
+.hist-attempt {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
 .hist-note strong { color: var(--text); }
