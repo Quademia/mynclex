@@ -8,34 +8,58 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-15):** **Slice 10.8 — tabbed student
-> curriculum.** Small design improvement: the student curriculum
-> view now shows one unit at a time, switched via a horizontal tab
-> strip at the top. Reduces scroll on programmes with multiple
-> units. `?unit=N` in the URL (Unit 1 omitted for clean default).
-> Single-unit programmes hide the tabs entirely. Tutor curriculum
-> + cohort checklist deliberately untouched — they're authoring /
-> control surfaces that benefit from cross-unit visibility, not
-> the launcher pattern.
+> **Last shipped (2026-05-16):** **Progress engine — full 4-slice
+> arc + Slice 4b + Quiz History rename.** Big session. Sam asked
+> what the "student progress engine" referenced across deferred
+> notes actually was; opened a planning conversation, settled the
+> full design into `docs/product-plan/progress-engine.md`, then
+> shipped the 4-slice build arc end-to-end (plus a small additive
+> Slice 4b mid-build for the attempt-count column).
 >
-> **Design iteration** went through three reshapes before landing:
-> from "card-in-card heaviness" (outer card wrapping per-unit
-> cards) to "single unified surface" (chrome stripped inside the
-> wrapper) to **Interpretation A** (Sam's pick) — tab strip is
-> standalone above a separate body card, not wrapped together.
-> A vertical-scrollbar quirk caught at the end: tabs'
-> `margin-bottom:-1px` (used to overlap the strip's bottom border)
-> plus `overflow-x: auto` promotes y-axis from `visible` to `auto`
-> per CSS spec, triggering a 1px-tall vertical bar. Pinned
-> `overflow-y: hidden`.
+> **Hybrid model.** Store the completion record (one table
+> `nclex_student_activity_progress`), derive everything else.
+> NOT_STARTED is implicit (no row); IN_PROGRESS for quiz types is
+> derived from `nclex_attempts` at read time; roll-ups (unit %,
+> programme %) computed at read time. DB trigger on
+> `nclex_attempts` owns QUIZ_ATTEMPT writes; server actions own
+> MANUAL mark/un-mark on the 4 non-quiz types.
 >
-> **Build.** New `lib/curriculum/student-unit-tabs.tsx` (client
-> wrapper, reads `?unit=N`, hides non-selected sections via the
-> `hidden` attribute so per-unit UI state isn't destroyed by
-> switching). Server viewer extracted `<UnitSection>` and branches
-> 3 ways: 0 → empty, 1 → direct render, 2+ → tabs. No schema, no
-> query changes, no impact on tutor side. See SESSIONS 2026-05-15
-> (Slice 10.8).
+> **What students see.** Activity rows carry a labelled state pill
+> (`✓ Done` / `In progress` / `Up next` or `Start here` / `Not
+> started`) in a 4-state cascade. Unit tab strip shows "· NN%"
+> per tab; default tab is "Where I left off" (most recent
+> IN_PROGRESS quiz attempt's unit → most recent DONE → Unit 1).
+> Manual viewers (TEXT / PDF / EXTERNAL_LINK / LIVE) get a "Mark
+> as done" button at the foot; the live-session button disables
+> until the session ends. Programme attempts split out of bank
+> history into dedicated `/student/programme/[id]/history` +
+> `/student/cohort/[id]/history` surfaces (sidebar "Quiz History"
+> item), with activity filter, DONE badge, pass/fail verdict, and
+> an "Attempt N of M" column.
+>
+> **What did NOT ship.** Slice 5 (tutor analytics + cohort
+> dashboards) gates on the enrolment slice — engine schema doesn't
+> wait, but the cohort-membership scoping does. Retake-from-history
+> deferred (data path complete; pure UX wiring on top). Backfill
+> for pre-existing terminal attempts skipped (no real users yet).
+> Wider use of the % counting pattern (programme header, picker
+> cards, block badges) captured as deferred follow-ons.
+>
+> Commits `1453726` (Slice 1) + `6bad6c9` (Slice 2) + `c89a3ff`
+> (Slice 3) + `2a345f2` (Slice 4) + `fda868d` (Slice 4b) +
+> `b890b84` (rename). See SESSIONS 2026-05-16.
+>
+> **Earlier:** **Slice 10.8 — tabbed student curriculum.** Small
+> design improvement: the student curriculum view now shows one
+> unit at a time, switched via a horizontal tab strip at the top.
+> Reduces scroll on programmes with multiple units. `?unit=N` in
+> the URL (Unit 1 omitted for clean default). Single-unit
+> programmes hide the tabs entirely. Tutor curriculum + cohort
+> checklist deliberately untouched — they're authoring / control
+> surfaces that benefit from cross-unit visibility, not the
+> launcher pattern. (Slice 10.8's Unit-1-default behaviour was
+> later superseded by the progress engine's "Where I left off"
+> default in Slice 3 above.) See SESSIONS 2026-05-15 (Slice 10.8).
 >
 > **Earlier:** **Tutor Quiz Slice 3a — universal
 > end-of-quiz results popup + smart exit.** Two threads in one
@@ -1755,20 +1779,6 @@ a filter axis, alongside the current type / category / difficulty
 / text search. Surfaced 2026-05-16 while reviewing Slice 1. Slot
 when the bank grows enough that the current filter set feels thin.
 
-**Deferred follow-on — programme-side attempt history.** From day
-1 of Slice 3, programme-assigned attempts share the
-`nclex_attempts` table with bank attempts. The existing
-`/student/bank/history` page lists them all — fine on the
-backend, but the *frontend* should split bank attempts from
-programme attempts (Sam's call, 2026-05-15). v1 cosmetic glitch:
-programme attempts render with bank-styled rows in the bank
-history page. Resolved by a dedicated programme-side history
-surface alongside the cohort / programme detail, sharing the
-backend table but with programme-aware row rendering and a
-per-activity filter. Slot when the progress engine work starts
-(natural neighbour — both read the attempt table for student
-state).
-
 **Deferred follow-on — add-from-template for cohort checklists.**
 A template activity added to the programme *after* a cohort exists
 doesn't auto-propagate into that cohort's checklist (Slice 9.3f's
@@ -1779,6 +1789,87 @@ workaround (link the existing Pharmacology quiz to a *different*
 activity that *is* in the cohort) worked, but the affordance is
 real and will land when a tutor actually needs it for a real
 cohort situation.
+
+### Follow-on: Progress engine
+
+The student-progress layer for tutored Programmes. Tracks
+"is this activity done for this student?", rolls up to unit /
+programme / cohort completion, and feeds three downstream
+surfaces in one shot. Full plan + settled schema:
+`docs/product-plan/progress-engine.md`. Build arc:
+
+- ✅ **Slice 1** Engine foundation (visible) —
+  `nclex_student_activity_progress` table + composite + partial
+  indexes + `nclex_progress_on_attempt_terminal()` trigger function
+  + AFTER UPDATE OF status trigger + three RLS policies (migration
+  `20260518120000`); new `lib/progress/` folder with `types.ts` +
+  `queries.ts`; `StudentActivity.isDone` flag fetched in parallel
+  with the curriculum tree; small green ✓ on the row header when
+  done. Commit `1453726`. See SESSIONS 2026-05-16.
+- ✅ **Slice 2** Manual completion + state pills —
+  `markActivityDone` / `unmarkActivityDone` server actions (quiz
+  types reject; un-mark scopes to MANUAL only); shared
+  `<MarkDoneButton>` rendered at the foot of all 4 manual viewers;
+  live-session viewer disables the button while UPCOMING/LIVE
+  (marking attendance only meaningful when ENDED). Mid-slice
+  refinement: row state markers upgraded from absence-as-NOT_STARTED
+  to symmetric labelled pills (`✓ Done` + `○ Not started`) via a
+  shared `.student-activity-state` class. Commit `6bad6c9`.
+- ✅ **Slice 3** Soft guidance (cascade, Where I left off, unit %) —
+  `getInProgressQuizAttempts()` derives the IN_PROGRESS map from
+  `nclex_attempts`; producer wires `upNextActivityId`,
+  `whereILeftOffUnitIndex`, `hasAnyDone`, per-unit
+  `progressDone/Total/Pct`. Pill cascade (priority): Done > In
+  progress (quiz, amber) > Up next / Start here (accent, copy on
+  hasAnyDone) > Not started (muted). Tab strip gets `pct?` per-tab
+  and `defaultIndex` (resume-first); URL `?unit=N` always wins;
+  clean URL when picked matches default. Commit `c89a3ff`.
+- ✅ **Slice 4** Programme history split — split
+  `PROGRAMME_ASSIGNED` attempts out of `/student/bank/history` into
+  dedicated `/student/programme/[id]/history` +
+  `/student/cohort/[id]/history` surfaces (cohort variant resolves
+  to parent programme — attempts attach to template, not cohort).
+  Sidebar gains "Quiz History" item alongside Curriculum. New
+  programme-history table with activity dropdown filter, activity
+  title + unit label + DONE badge, pass/fail verdict in the Result
+  column. Bank history filters out programme-source rows. Commit
+  `2a345f2`.
+- ✅ **Slice 4b** Attempt count column — new "Attempt" column
+  ("N of M" / "N") via attempt_ordinal computed over the full
+  filtered-to-programme set (stable when older attempts fall off
+  the visible window) + max_attempts via service-role read of
+  `nclex_tutor_quizzes`. Honest fallback when ordinal > cap (drops
+  "of M" rather than render "3 of 2"). Lays the data groundwork
+  for retake-from-history (future). Commit `fda868d`.
+- ⬜ **Slice 5** Tutor analytics + cohort dashboards — same engine
+  read pattern (§6.2 of the plan), scoped per cohort. Build-blocked
+  on enrolment (the "students in this cohort" relation doesn't
+  exist yet). Engine schema doesn't wait; this slice does. Will
+  ship alongside tutor-quiz Slice 4 when enrolment lands.
+
+**Deferred follow-on — retake-from-history.** A Retake button on
+the programme history page that starts a fresh attempt against the
+row's activity. Builds on Slice 4b's attempt-count column (knows
+"shots remaining"). Data path is complete (cap + ordinal already
+on every row); slice is pure UX wiring (per-row "can retake" gate,
+reuse of `startProgrammeQuizAction` from Tutor-Quiz Slice 3,
+navigate to new attempt). Doc captured under §10 of the plan.
+
+**Deferred follow-on — wider % counting use.** The
+`done / total × 100` pattern shipped at the unit-tab scope (§8.3)
+extends trivially to programme-level (§7.2 already specced),
+block-level, and cohort dashboards. No schema work — same
+`isDone` flag, same flatten, different denominator. Sam to return
+with specific visual treatments (programme % header? picker cards?
+per-block badges?).
+
+**Backfill (deliberate non-ship).** Pre-existing terminal
+programme attempts have no progress rows (trigger only fires on
+UPDATE → terminal status; attempts taken before the migration
+don't get a row). Sam's call: no real users yet, dev only, no need
+today. If prod has real users with terminal attempts before the
+migration runs there, add a one-line `INSERT … SELECT FROM
+nclex_attempts`.
 
 ### Deferred out of Phase B
 

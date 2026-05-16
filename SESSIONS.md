@@ -6,6 +6,226 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-16 (Progress engine — planning + 4-slice arc + Slice 4b)
+
+Big session. Sam asked what the "student progress engine" referenced
+across deferred notes actually was, opened a planning conversation,
+and we settled the full design then shipped the 4-slice build arc
+end-to-end (plus a small additive Slice 4b mid-build).
+
+### Planning — new doc `docs/product-plan/progress-engine.md`
+
+Settled in conversation, captured section-by-section as we went
+(Sam's "open the doc + decide as we go" choice). Major calls:
+
+- **§1 Hybrid model** — store the completion record (one table
+  `nclex_student_activity_progress`), derive everything else.
+  NOT_STARTED is implicit (no row); IN_PROGRESS for quiz types is
+  derived from `nclex_attempts` at read time; roll-ups (unit %,
+  programme %) are computed at read time. Rejected pure-stored
+  (drift) and pure-derived (TEXT/PDF/etc. have no event to derive
+  from).
+- **§3 Per-type completion rules** — 4 manual types (TEXT, PDF,
+  EXTERNAL_LINK, ONLINE_LIVE_SESSION) become DONE via student-
+  clicked "Mark as done"; quiz types (MOCK, PRACTICE_QUIZ) become
+  DONE on first terminal attempt (`COMPLETED` or `TIMED_OUT`).
+  Rejected pass-based MOCK completion (conflates "did I do this
+  work" with "did I pass this gate"; ungraded Mocks have no rule).
+- **§4 Schema** — single table with `completion_source` enum
+  (QUIZ_ATTEMPT / MANUAL), `attempt_id` nullable FK with CHECK
+  consistency, `marked_by` reserved for v2 tutor attendance,
+  composite covering index `(activity_id, student_id)` for tutor
+  analytics, partial index on `attempt_id` for the void cascade.
+- **§5 Write paths** — DB trigger on `nclex_attempts` for QUIZ_ATTEMPT
+  writes (single owner of "terminal programme attempt → progress
+  row"); server actions for MANUAL mark/un-mark with type check +
+  RLS. Three policies: student own (FOR ALL); tutor read for own
+  programmes' students (FOR SELECT); SUPER_ADMIN bypass.
+- **§9 Build arc** — 4 shippable slices for engine + history split,
+  plus a 5th tutor-analytics slice gated on enrolment.
+
+Carried in two prior decisions as foundational principles: "one
+engine, two access models" (Slice 10.1) and "cohort = pointer to
+template, not a copy" (Slice 9.3f). Both shape the
+row-attaches-to-template-`activity_id` decision that makes the
+engine work across self-paced + cohort without forking.
+
+Doc pushed for offline review; Sam returned approving the plan.
+
+### Slice 1 — Engine foundation (visible)
+
+Migration `20260518120000_progress_engine_1_foundation.sql` —
+table + composite + partial indexes + trigger function (with
+explicit `search_path = public, pg_temp` to satisfy the Supabase
+advisor) + AFTER UPDATE OF status trigger + three RLS policies.
+Applied to dev cleanly; mirrors back-ported to `db/schema.sql` +
+`db/rls.sql`.
+
+App layer: new `lib/progress/` folder (Sam approved) with
+`types.ts` + `queries.ts`. `getActivityProgressMap(activityIds)`
+returns `Map<activityId, row>`; RLS scopes to caller's own rows
+(no studentId arg). `StudentActivity` gains `isDone`; both
+producer queries (self-paced + cohort) fetch the progress map in
+parallel and stamp the flag. Curriculum viewer renders a small
+green ✓ pill on the row header when `isDone`. Commit `1453726`.
+
+### Slice 2 — Manual completion + state pills
+
+Server actions `markActivityDone` / `unmarkActivityDone` — caller
+must be the student, activity type must be MANUAL (quiz types
+reject), un-mark scopes the DELETE to `completion_source =
+'MANUAL'` so quiz rows are immune. Idempotent via upsert/no-row
+flows.
+
+Shared `<MarkDoneButton>` in `lib/progress/mark-done-button.tsx`
+— label toggles on isDone, useTransition for pending state,
+`router.refresh()` on success so the row tick + button label both
+update without closing the modal. Live-session viewer passes
+`disabled={status === 'UPCOMING' || status === 'LIVE'}` with the
+tooltip "Available after the session ends." — marking attendance
+before the session ends is meaningless. All 4 manual viewers
+retyped to take `StudentActivity` and render the button at the
+foot of their content.
+
+**Mid-slice design refinement.** Sam looked at the bare ✓ tick in
+isolation and asked for explicit "Not started" indication too. We
+discussed (symmetric markers vs. just stronger DONE chrome); Sam
+picked symmetric. Initial attempt: empty circle ◯ at the same
+22×22 slot. Sam then asked to add the labels too. Landed on
+labelled pills — `✓ Done` + `○ Not started` — using a shared
+`.student-activity-state` class with `.is-done` / `.is-not-started`
+modifiers. CSS uses `color-mix(in srgb, var(--success) 12%,
+transparent)` for the subtle tint. Commit `6bad6c9`.
+
+### Slice 3 — Soft guidance (cascade, Where I left off, unit %)
+
+`getInProgressQuizAttempts()` added — derives the IN_PROGRESS map
+from `nclex_attempts` (RLS-scoped). Returns `Map<activity_id,
+last_activity_at>` — the timestamp also feeds the "Where I left
+off" finder.
+
+Producer wiring computes three programme-wide signals in one pass
+over the tree:
+- `upNextActivityId` — first row in curriculum order that's
+  NOT_STARTED AND NOT IN_PROGRESS AND OPEN (skips quiz
+  IN_PROGRESS rows so they don't double up with their own pill).
+- `whereILeftOffUnitIndex` — most recent IN_PROGRESS quiz
+  attempt's unit, then most recent DONE activity's unit, then
+  null (viewer falls back to Unit 1).
+- `hasAnyDone` — drives the "Start here" vs "Up next" copy split.
+
+**Pill cascade** (Sam settled the priority order):
+1. Done (green ✓) — terminal, always wins
+2. In progress (amber, filled dot) — quiz only
+3. Up next / Start here (accent, outlined dot) — copy flips on
+   hasAnyDone
+4. Not started (muted, outlined dot) — default for OPEN rows
+5. No pill — LOCKED / CLOSED rows (🔒 in action area is the
+   signal)
+
+Tab strip gained `pct?` per-tab (renders "· NN%" suffix; omitted
+when unit has zero activities) and `defaultIndex` (drives the
+default-tab pick; URL `?unit=N` always overrides; clean URL when
+the picked tab matches the resolved default).
+
+Mid-slice Sam asked about extending the % counting pattern to
+blocks + programmes. Discussed — same pattern, different scope,
+zero schema work. Captured as a deferred follow-on in the doc
+(§10) so future surfaces (programme % header, picker cards,
+block % badges, cohort dashboards) can consume the existing
+helpers when Sam returns with specific shapes. Commit `c89a3ff`.
+
+### Slice 4 — Programme history split
+
+Splits `PROGRAMME_ASSIGNED` attempts out of `/student/bank/history`
+into dedicated programme-side surfaces (both delivery modes):
+- `/student/programme/[id]/history` — self-paced entry point.
+- `/student/cohort/[id]/history` — cohort entry point; resolves
+  the cohort's parent programme and renders the same table
+  (attempts attach to the template programme via the activity,
+  not to a cohort, so two cohort routes of the same programme see
+  the same rows).
+- Each layout sidebar gains a History item alongside Curriculum.
+- Bank history filters `.neq('source', 'PROGRAMME_ASSIGNED')` so
+  attempts don't double-show; the now-misleading "Programme"
+  disabled filter chip dropped.
+
+Query shape: 3-pass resolution (attempts → activities+units
+filtered to programme → progress map). Three passes instead of one
+embedded query because `nclex_attempts.programme_activity_id` is
+TEXT (forward-reference) and PostgREST embed needs a real FK —
+pragmatic for v1 over a SECURITY DEFINER RPC.
+
+Table columns: When / Activity (with ✓ DONE badge + unit label) /
+Mode / Result (with pass/fail verdict when `pass_score` is set) /
+State / Action. Activity dropdown filter replaces the disabled
+chip segments from the bank-side variant. Status pills + action
+links (`/session/[id]`) + show-discarded toggle reused unchanged.
+Commit `2a345f2`.
+
+### Slice 4b — Attempt count column
+
+Sam asked mid-test about showing attempt number on each row —
+useful before retake exists (progression tracking, pacing) and
+lays groundwork for the retake feature. Discussed; agreed to ship
+now as a small additive slice.
+
+`ProgrammeHistoryAttempt` gains `attempt_ordinal` (1-based
+chronological within the student's attempts at this activity,
+computed over the FULL filtered-to-programme set BEFORE the 50-row
+display cap so numbering stays stable) and `max_attempts`
+(current cap from the activity's currently-linked quiz, null when
+uncapped / unlinked / unreadable).
+
+Cap fetched via service-role read of `nclex_tutor_quizzes` —
+students can't SELECT that table directly (tutor-owned, launch RPC
+is the read path per Tutor-Quiz Slice 1); `max_attempts` isn't
+sensitive (the launch modal surfaces it). Matches the
+`getStudentPdfActivityUrl` service-role pattern.
+
+New Attempt column between Activity and Mode. `formatAttempt()`
+honestly drops the "of M" when `attempt_ordinal > max_attempts`
+(cap dropped post-hoc — avoids rendering "3 of 2"). Commit
+`fda868d`.
+
+### Polish — `History` → `Quiz History`
+
+Sam flagged that "History" is ambiguous in the programme context
+(future live-session attendance, learning timeline etc. could
+compete). Renamed sidebar + h1 + sub-text on both programme +
+cohort surfaces. Bank-side history label left unchanged for now —
+its filter polish slice will revisit naturally. Commit `b890b84`.
+
+### What did NOT ship
+
+Per the planning doc deferrals:
+- **Backfill for pre-existing terminal programme attempts** —
+  Sam's call: no real users yet, dev only, no need today. If
+  prod has users with terminal attempts before the migration
+  runs there, add a one-line `INSERT … SELECT FROM nclex_attempts`
+  then.
+- **Slice 5 — tutor analytics + cohort dashboards** — build-blocked
+  on enrolment. Engine schema doesn't wait; this slice does.
+- **Retake-from-history** — the data path is now complete (cap +
+  ordinal on every row); retake is pure UX wiring. Future slice
+  when Sam wants it.
+- **Wider use of the % counting pattern** (programme header,
+  picker cards, block % badges) — captured as deferred follow-on
+  in the doc; Sam to return with specific shapes.
+
+### Next
+
+⏭ No specific next slice queued from this arc. The progress
+engine is feature-complete for v1; future work either gates on
+enrolment (Slice 5) or returns when Sam has the visual shapes for
+the % extensions. BUILD_LIST + doc updated.
+
+Commits `1453726` (Slice 1) + `6bad6c9` (Slice 2) + `c89a3ff`
+(Slice 3) + `2a345f2` (Slice 4) + `fda868d` (Slice 4b) + `b890b84`
+(rename).
+
+---
+
 ## Session — 2026-05-15 (Slice 10.8 — tabbed student curriculum)
 
 Small design improvement on the student curriculum view. The
