@@ -1169,6 +1169,72 @@ CREATE INDEX idx_nclex_tutor_quiz_items_quiz
   ON nclex_tutor_quiz_items(quiz_id);
 
 
+-- =========================================================
+-- Student activity progress (Progress engine, Slice 1, 2026-05-18)
+-- =========================================================
+-- One row per (student, activity) when the activity is DONE.
+-- Same shape for QUIZ_ATTEMPT and MANUAL completion sources. The
+-- table stores the completion record only — NOT_STARTED is
+-- implicit (no row); IN_PROGRESS for quiz types is derived from
+-- nclex_attempts at read time; roll-ups (unit/programme %) are
+-- computed at read time too. See docs/product-plan/progress-engine.md.
+--
+-- Quiz completion is written by the
+-- nclex_progress_on_attempt_terminal() trigger function (tracked in
+-- the migration, not mirrored here). Manual completion is written
+-- by Slice 2 server actions. Origin migration:
+-- db/migrations/20260518120000_progress_engine_1_foundation.sql.
+
+CREATE TABLE nclex_student_activity_progress (
+  progress_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  student_id         UUID NOT NULL
+                     REFERENCES nclex_users(id)
+                     ON DELETE CASCADE,
+
+  -- Row attaches to the TEMPLATE activity, never to a cohort. A
+  -- self-paced student and a cohort student share the same progress
+  -- for the same activity.
+  activity_id        UUID NOT NULL
+                     REFERENCES nclex_programme_activities(activity_id)
+                     ON DELETE CASCADE,
+
+  completion_source  TEXT NOT NULL
+                     CHECK (completion_source IN ('QUIZ_ATTEMPT', 'MANUAL')),
+
+  -- Populated only for QUIZ_ATTEMPT. ON DELETE CASCADE is the void
+  -- cascade — hard-deleting an attempt removes its progress row.
+  attempt_id         UUID
+                     REFERENCES nclex_attempts(attempt_id)
+                     ON DELETE CASCADE,
+
+  -- NEVER updated on retake — DONE is a one-time state transition.
+  completed_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Reserved for v2 tutor-marked attendance; v1 always NULL.
+  marked_by          UUID
+                     REFERENCES nclex_users(id)
+                     ON DELETE SET NULL,
+
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  UNIQUE (student_id, activity_id),
+
+  CONSTRAINT nclex_student_activity_progress_source_consistent CHECK (
+    (completion_source = 'QUIZ_ATTEMPT' AND attempt_id IS NOT NULL)
+    OR (completion_source = 'MANUAL' AND attempt_id IS NULL)
+  )
+);
+
+CREATE INDEX idx_nclex_student_activity_progress_activity_student
+  ON nclex_student_activity_progress(activity_id, student_id);
+
+CREATE INDEX idx_nclex_student_activity_progress_attempt
+  ON nclex_student_activity_progress(attempt_id)
+  WHERE attempt_id IS NOT NULL;
+
+
 -- RPC functions are large and tracked by their migration files
 -- (mynclex/db/migrations/mynclex_trend_save_rpc_slice_1_12b.sql).
 -- The function bodies are NOT mirrored into schema.sql to keep the

@@ -361,6 +361,11 @@ export type StudentActivity = ProgrammeActivity & {
   releaseDate: string | null; // YYYY-MM-DD; null for self-paced
   dueDate: string | null;     // soft target; null = none set
   closeDate: string | null;   // hard gate; null = none set
+  // Progress engine, Slice 1. TRUE when the student has a row in
+  // nclex_student_activity_progress for this activity. Orthogonal
+  // to openState — a LOCKED or CLOSED activity may still be DONE
+  // (e.g., done while open then later closed; the row survives).
+  isDone: boolean;
 };
 
 export type StudentBodyEntry =

@@ -1046,3 +1046,41 @@ CREATE POLICY nclex_tutor_quiz_items_superadmin
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- =========================================================
+-- nclex_student_activity_progress (Progress engine Slice 1, 2026-05-18)
+-- =========================================================
+-- Students own their own progress rows (FOR ALL, scoped to
+-- student_id = auth.uid()). Tutors read progress for activities in
+-- their own programmes (FOR SELECT, joined through unit ->
+-- programme). SUPER_ADMIN bypass for FOR ALL — same intentional v1
+-- pattern as other tutor-side tables.
+
+ALTER TABLE nclex_student_activity_progress ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_student_activity_progress_student_own
+  ON nclex_student_activity_progress FOR ALL
+  TO authenticated
+  USING (student_id = auth.uid())
+  WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY nclex_student_activity_progress_tutor_read
+  ON nclex_student_activity_progress FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_programme_activities pa
+      JOIN nclex_programme_units pu ON pu.unit_id = pa.unit_id
+      JOIN nclex_programmes p ON p.programme_id = pu.programme_id
+      WHERE pa.activity_id = nclex_student_activity_progress.activity_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_student_activity_progress_superadmin
+  ON nclex_student_activity_progress FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));

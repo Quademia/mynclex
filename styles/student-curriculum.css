@@ -550,6 +550,27 @@ button.programme-switcher-item {
   color: var(--text-muted);
 }
 
+/* DONE tick — progress engine Slice 1. Anchored to the right edge
+ * of the row header via margin-left:auto so the title doesn't have
+ * to grow. Same treatment for QUIZ_ATTEMPT and MANUAL sources
+ * (per progress-engine.md §8.4). Bigger Slice-3 chrome (Up next
+ * pill, unit % tabs) lands later. */
+.student-activity-done-tick {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .student-activity-locked {
   display: flex;
   align-items: center;

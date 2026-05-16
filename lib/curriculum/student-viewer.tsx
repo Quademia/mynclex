@@ -34,8 +34,11 @@
 // as a "no content yet" card — the tutor's structural intent
 // stays visible even when the body is empty.
 //
-// No progress UI, no "Start" or "Mark as done" state. The progress
-// engine ships in a later slice.
+// Progress engine, Slice 1 — a DONE activity gets a small ✓ tick
+// in its row header. Same tick for QUIZ_ATTEMPT and MANUAL sources
+// (per docs/product-plan/progress-engine.md §8.4). The "Mark as
+// done" button on MANUAL types ships in Slice 2; soft guidance
+// labels (Up next / Start here) and the unit-tab % ship in Slice 3.
 
 import {
   unitLabel,
@@ -185,7 +188,15 @@ function ActivityCard({ activity }: { activity: StudentActivity }) {
 
   return (
     <article
-      className={locked ? 'student-activity is-locked' : 'student-activity'}
+      className={
+        [
+          'student-activity',
+          locked ? 'is-locked' : null,
+          activity.isDone ? 'is-done' : null,
+        ]
+          .filter(Boolean)
+          .join(' ')
+      }
       data-type={activity.type}
     >
       <header className="student-activity-head">
@@ -196,6 +207,15 @@ function ActivityCard({ activity }: { activity: StudentActivity }) {
           {activityTypeLabel(activity.type)}
         </span>
         <h4 className="student-activity-title">{activity.title}</h4>
+        {activity.isDone && (
+          <span
+            className="student-activity-done-tick"
+            aria-label="Completed"
+            title="Completed"
+          >
+            ✓
+          </span>
+        )}
       </header>
 
       {activity.description && (

@@ -30,6 +30,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { isVisibleToStudents, activityOpenState } from './format';
+import { getActivityProgressMap } from '@/lib/progress/queries';
 import type {
   ProgrammeActivity,
   ProgrammeBlock,
@@ -99,27 +100,37 @@ export async function getStudentSelfPacedCurriculum(
   // Filter activities by isVisibleToStudents (self-paced — no
   // cohort args), then wrap as StudentActivity. Self-paced has no
   // window — every visible activity is permanently OPEN.
-  const visibleActivities: StudentActivity[] = activities
-    .filter((a) =>
-      isVisibleToStudents({
-        programmeStatus: 'PUBLISHED',
-        unitPublished:
-          units.find((u) => u.unit_id === a.unit_id)?.is_published ?? false,
-        blockPublished:
-          a.block_id === null
-            ? null
-            : blocks.find((b) => b.block_id === a.block_id)?.is_published ??
-              false,
-        activityPublished: a.is_published,
-      })
-    )
-    .map((activity) => ({
+  const filteredActivities = activities.filter((a) =>
+    isVisibleToStudents({
+      programmeStatus: 'PUBLISHED',
+      unitPublished:
+        units.find((u) => u.unit_id === a.unit_id)?.is_published ?? false,
+      blockPublished:
+        a.block_id === null
+          ? null
+          : blocks.find((b) => b.block_id === a.block_id)?.is_published ??
+            false,
+      activityPublished: a.is_published,
+    })
+  );
+
+  // Progress engine, Slice 1 — fetch the student's progress rows for
+  // the visible activities (RLS scopes to auth.uid()'s own rows).
+  // Empty list → empty map → every isDone reads as false.
+  const progressMap = await getActivityProgressMap(
+    filteredActivities.map((a) => a.activity_id)
+  );
+
+  const visibleActivities: StudentActivity[] = filteredActivities.map(
+    (activity) => ({
       ...activity,
       openState: 'OPEN' as const,
       releaseDate: null,
       dueDate: null,
       closeDate: null,
-    }));
+      isDone: progressMap.has(activity.activity_id),
+    })
+  );
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
 
@@ -219,7 +230,11 @@ export async function getStudentCohortCurriculum(
   // + inclusion gates HIDE an activity (dropped here). The release
   // date does NOT hide — visible-but-unreleased activities stay in
   // the tree as locked StudentActivity rows (slice 10.6).
-  const visibleActivities: StudentActivity[] = [];
+  //
+  // Two-pass: first build the visible-list shaped without isDone,
+  // then fetch progress for those ids in one query, then attach.
+  type StagedActivity = Omit<StudentActivity, 'isDone'>;
+  const staged: StagedActivity[] = [];
   for (const r of rawRows) {
     const activity = Array.isArray(r.nclex_programme_activities)
       ? r.nclex_programme_activities[0]
@@ -246,7 +261,7 @@ export async function getStudentCohortCurriculum(
       continue;
     }
 
-    visibleActivities.push({
+    staged.push({
       ...activity,
       openState: activityOpenState(r.release_date, r.close_date, today),
       releaseDate: r.release_date,
@@ -254,6 +269,19 @@ export async function getStudentCohortCurriculum(
       closeDate: r.close_date,
     });
   }
+
+  // Progress engine, Slice 1 — fetch progress for visible activities.
+  // RLS scopes to auth.uid()'s own rows; cohort-mode reads the same
+  // table as self-paced (the row attaches to the template activity,
+  // not to a cohort).
+  const progressMap = await getActivityProgressMap(
+    staged.map((a) => a.activity_id)
+  );
+
+  const visibleActivities: StudentActivity[] = staged.map((a) => ({
+    ...a,
+    isDone: progressMap.has(a.activity_id),
+  }));
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
 
