@@ -8,13 +8,96 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-16):** **Progress engine — full 4-slice
-> arc + Slice 4b + Quiz History rename.** Big session. Sam asked
-> what the "student progress engine" referenced across deferred
-> notes actually was; opened a planning conversation, settled the
-> full design into `docs/product-plan/progress-engine.md`, then
-> shipped the 4-slice build arc end-to-end (plus a small additive
-> Slice 4b mid-build for the attempt-count column).
+> **Last shipped (2026-05-16):** **Tutor-quiz Slices 5 + 6 —
+> programme-level quiz membership end-to-end.** Closes the
+> tutor-quiz arc: a tutor can now attach quizzes directly to a
+> programme (separate from the curriculum activity-link path) and
+> students see the result on a new Quizzes tab under both delivery
+> modes.
+>
+> **Slice 5 — tutor surface.** New junction `nclex_programme_quizzes`
+> (composite PK, programme + quiz + added_at) is the canonical
+> record of "what quizzes are in this programme." Two write paths
+> feed it: the existing activity-save action auto-mirrors when
+> `quiz_id` is set, and a new standalone-add path on
+> `/tutor/programme/[id]/quizzes`. The page surfaces an empty state
+> + two equal-weight CTAs (Add existing picker for PUBLISHED quizzes
+> / New quiz creates DRAFT + auto-attaches + redirects to editor),
+> a list of attached quizzes with a derived `Linked to Unit N` vs
+> `Standalone` source hint, and a remove flow that **blocks** when
+> the quiz is still activity-linked in this programme (§9.3 copy
+> verbatim, no per-activity deep links — simpler than the prototype
+> proposed). Per-row removes use a simple destructive confirm — no
+> type-to-confirm gate (recoverable action, the quiz stays in the
+> library). Sidebar item between Curriculum and Live Sessions; new
+> "Used in N programmes" chip on `/tutor/quizzes` (forward-compat
+> shape).
+>
+> **Slice 6 — student surface.** New `/student/programme/[id]/quizzes`
+> + `/student/cohort/[id]/quizzes` (shared view component; cohort
+> resolves to parent programme). Row anatomy = title + kind pill
+> + mode/count/duration/attempt-counter/pass-hint + source hint +
+> progress-engine state pill (`✓ Done` / `In progress` /
+> `Up next` or `Start here` / `Not started`; `Exhausted` drops the
+> pill, the disabled button carries the meaning). Filters by kind
+> (All / Mock / Practice) + state (All / Not started only) with
+> a "Showing N of M" counter. **Launch routing (Option 2 — Sam's
+> call):** rows that are also activity-linked route their launch
+> through the existing `<QuizLaunchViewer>` with the resolved
+> primary activity — one counter per row, matching what the student
+> would see in Curriculum. Standalone-only rows use a new
+> `<StandaloneQuizLaunchViewer>` + new RPC. Sidebar item between
+> Curriculum and Quiz History (icon `book`, distinct from the
+> bank-side `target` used by Readiness Packs).
+>
+> **Schema (Slice 6).** `nclex_attempts` gains nullable
+> `programme_id` + `quiz_id` columns, populated only for
+> standalone attempts. Relaxed `nclex_attempts_source_refs` CHECK
+> + partial index for the per-(student, quiz, programme) cap
+> count. New SECURITY DEFINER RPC
+> `nclex_create_standalone_quiz_attempt(programme_id, quiz_id)`
+> enforces the §9.7-B cap (terminal attempts on standalone rows
+> only — activity-linked attempts have their own scope, matching
+> the spec's literal reading).
+>
+> **§9.9 captured.** Cohort-level quiz divergence is a real future
+> need (a tutor running multiple cohorts will eventually want to
+> vary the quiz set per cohort). Three implementation options
+> documented in §9.9 — additive-only / full checklist / hidden
+> checklist — with the **design decision deliberately deferred to
+> the build slice**, depending on whether per-cohort scheduling or
+> subtraction is in scope by then.
+>
+> **Plan-doc alignment.** §9.7 (attempt-cap for standalone quizzes)
+> locked to **B** — per-(student, quiz, programme), cap resets
+> across programmes. "Linked to Week N" → "Linked to Unit N"
+> everywhere — matches the curriculum `nclex_programme_units`
+> schema (the design prototype used "Week" as spec language; code
+> uses "Unit").
+>
+> **Off-script trims (from Claude Design prototypes, locked with
+> Sam).** Slice 5: dropped type-to-confirm REMOVE (recoverable) +
+> dropped per-activity deep links in the blocked dialog. Slice 6:
+> dropped the amber Resume button (accent like every other primary
+> CTA), collapsed six prototype states to four (UP_NEXT + START_HERE
+> share a label via `hasAnyDone`), reused existing
+> `.student-activity-state` classes instead of inventing parallels.
+>
+> **Hoist.** `.pq-pill-mock` / `.pq-pill-practice` promoted to
+> shared `.quiz-pill-kind-mock` / `.quiz-pill-kind-practice` in
+> `quiz.css`. Slice 5 callsites updated.
+>
+> Commits `b6e693e` (Slice 5) + `b58b15c` (docs: §9.9 + §9.7 +
+> Week→Unit) + `466141c` (Slice 6). See SESSIONS 2026-05-16
+> (tutor-quiz Slices 5 + 6).
+>
+> **Earlier:** **Progress engine — full 4-slice arc + Slice 4b +
+> Quiz History rename.** Big session. Sam asked what the "student
+> progress engine" referenced across deferred notes actually was;
+> opened a planning conversation, settled the full design into
+> `docs/product-plan/progress-engine.md`, then shipped the 4-slice
+> build arc end-to-end (plus a small additive Slice 4b mid-build
+> for the attempt-count column).
 >
 > **Hybrid model.** Store the completion record (one table
 > `nclex_student_activity_progress`), derive everything else.
@@ -1772,25 +1855,47 @@ Build arc:
   analytics. Depends on the student progress engine — now rolled
   into the progress-engine Slice 5 (same blocker on enrolment,
   same ship moment).
-- ⏭ **Slice 5** Programme-level quiz membership (tutor surface) —
-  new junction table `nclex_programme_quizzes` (mirrored from
-  activity-link saves; canonical source of truth for "what
-  quizzes are in this programme"); new
-  `/tutor/programme/[id]/quizzes` page with two add paths
-  ("Add existing" picker for PUBLISHED quizzes + "New quiz"
-  creates-and-auto-attaches as DRAFT); per-row block-remove
-  (rejects when the quiz is still linked to activities in this
-  programme); "Used in N programmes" chip on `/tutor/quizzes`.
-  Sidebar item. Auto-mirror added to the existing activity-save
-  server action. RLS policies on junction; new student-read
-  policy on `nclex_tutor_quizzes`. Settled in §9 of
-  `docs/product-plan/tutor-quiz-system.md` (2026-05-16).
-- ⬜ **Slice 6** Programme-level quiz membership (student surface) —
-  `/student/programme/[id]/quizzes` + `/student/cohort/[id]/quizzes`,
-  junction-driven listing, reuses the existing `<QuizLaunchViewer>`
-  modal + `nclex_create_programme_attempt` RPC (with an open call
-  on attempt-cap semantics for standalone-launched quizzes —
-  §9.7 of the plan). Sidebar items.
+- ✅ **Slice 5** Programme-level quiz membership (tutor surface) —
+  new junction table `nclex_programme_quizzes` (composite PK,
+  auto-mirrored from activity-link saves; canonical source of
+  truth for "what quizzes are in this programme"). New
+  `/tutor/programme/[id]/quizzes` page with two equal-weight add
+  paths (Add existing picker for PUBLISHED quizzes / New quiz
+  creates DRAFT + auto-attaches + redirects to editor). Per-row
+  remove uses a simple destructive confirm (no type-to-confirm —
+  recoverable action) and BLOCKS when the quiz is still
+  activity-linked in this programme (§9.3 copy verbatim, no
+  per-activity deep links — simpler than the prototype proposed).
+  Source hint on each row (`Linked to Unit N` / `Standalone`,
+  derived from the activity LEFT JOIN). Sidebar item between
+  Curriculum and Live Sessions. "Used in N programmes" chip on
+  `/tutor/quizzes` (3 tones; forward-compat shape). RLS: tutor
+  own + superadmin + student select on the junction; new student
+  SELECT policy on `nclex_tutor_quizzes` (PUBLISHED + attached to
+  PUBLISHED programme). Migration `20260519120000`. Commit
+  `b6e693e`. See SESSIONS 2026-05-16 (tutor-quiz Slices 5 + 6).
+- ✅ **Slice 6** Programme-level quiz membership (student surface) —
+  new `/student/programme/[id]/quizzes` + `/student/cohort/[id]/quizzes`
+  (shared view; cohort resolves to parent programme). Junction-driven
+  listing with progress-engine state pill cascade (`✓ Done` /
+  `In progress` / `Up next`/`Start here` / `Not started`; exhausted
+  rows drop the pill — disabled button carries the meaning).
+  Filters by kind + state. **Launch routing (Option 2):**
+  activity-linked rows route their launch through the existing
+  `<QuizLaunchViewer>` with the resolved primary activity (one
+  counter per row, matching what the student would see in
+  Curriculum); standalone-only rows use a new
+  `<StandaloneQuizLaunchViewer>` + new RPC. Schema:
+  `nclex_attempts` gains nullable `programme_id` + `quiz_id`
+  (standalone-only), relaxed source_refs CHECK, partial index.
+  New SECURITY DEFINER RPC
+  `nclex_create_standalone_quiz_attempt(programme_id, quiz_id)`
+  enforcing the §9.7-B cap (per-(student, quiz, programme)
+  terminal attempts on standalone rows). Sidebar item with icon
+  `book` (distinct from bank-side `target` for Readiness Packs).
+  `.quiz-pill-kind-*` classes hoisted to `quiz.css` so Slice 5 +
+  Slice 6 share. Migration `20260520120000`. Commit `466141c`.
+  See SESSIONS 2026-05-16 (tutor-quiz Slices 5 + 6).
 
 **Deferred enhancement — richer question filtering.** The quiz
 question picker (and `/tutor/bank/all`, which shares the filter

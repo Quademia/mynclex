@@ -6,6 +6,278 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-16 (Tutor-quiz Slices 5 + 6 — programme-level quiz membership end-to-end)
+
+Closes the tutor-quiz arc. Slice 5 = tutor surface (programme has
+its own Quizzes tab with attach / remove / new-quiz). Slice 6 =
+student surface (programme + cohort Quizzes pages, junction-driven,
+launches reuse existing modal). Plus a sub-thread on cohort-level
+quiz divergence — captured into §9.9 of the planning doc as a
+future build slice with three implementation options compared and
+the design decision deliberately deferred.
+
+Two design handoffs from Claude Design landed during the session
+(one per slice). Both reviewed against the spec, off-script
+additions trimmed before build.
+
+### Pre-slice alignment — plan doc
+
+- **§9.7 attempt-cap for standalone quizzes** locked to **B** —
+  per-(student, quiz, programme). Cap resets across programmes.
+  Activity-linked attempts keep their existing per-activity scope
+  (§6's pre-§9 design); standalone attempts have their own
+  per-(student, quiz, programme) scope. Two separate caps when a
+  quiz is both activity-linked and standalone-available in the
+  same programme — clarified during Slice 6 build by Sam's "Option
+  2" routing decision (below).
+- **"Linked to Week N" → "Linked to Unit N"** everywhere in §9.4 +
+  §9.5. The design prototype faithfully copied the spec's "Week N"
+  wording, but the codebase uses Units (`nclex_programme_units`).
+  Updated the spec to match code (option (a)) rather than
+  introducing a translation helper.
+
+### Slice 5 — tutor surface
+
+**Architectural shape** (settled in §9 planning, 2026-05-16):
+- Junction `nclex_programme_quizzes` (composite PK on
+  `(programme_id, quiz_id)` + `added_at`) is the canonical record
+  of "what quizzes are in this programme."
+- **Two write paths feed it.** The existing curriculum
+  activity-save action auto-mirrors via `ON CONFLICT DO NOTHING`
+  upsert whenever a Mock/Practice activity saves with a non-null
+  `payload.quiz_id`. The standalone-add path comes from the new
+  tutor page.
+- **The source hint** (`Linked to Unit N` vs `Standalone`) is
+  derived at read time from a LEFT JOIN to
+  `nclex_programme_activities` — no stored discriminator column,
+  no second source of truth.
+- **Remove is BLOCK, not cascade.** When a quiz is still
+  activity-linked in this programme, remove rejects with the §9.3
+  message verbatim. Curriculum unlinking is the prerequisite the
+  tutor performs manually.
+
+**Off-script trims (from the Claude Design prototype).** Sam
+explicitly flagged that prototypes are design references, not
+build scripts. Two trims:
+- Dropped type-to-confirm `REMOVE` gate — simple destructive
+  confirm (red Remove + Cancel). The action is recoverable: the
+  quiz stays in the library, attempts unaffected, can re-attach.
+  Type-to-confirm is reserved for genuinely destructive moves
+  (e.g. deleting a bank item).
+- Dropped the per-activity deep-link list in the blocked-remove
+  dialog. The §9.3 spec only calls for the rejection message + a
+  "Go to Curriculum" CTA. The prototype added an "Open" link per
+  blocking activity; we stayed at the spec line.
+
+**Files created**
+- `db/migrations/20260519120000_tutor_quiz_5_programme_membership.sql`
+  — junction table, composite PK, reverse-lookup index, 3 RLS
+  policies on junction + 1 new student SELECT policy on
+  `nclex_tutor_quizzes`.
+- `app/(app)/tutor/programme/[programme_id]/quizzes/page.tsx`.
+- `lib/programme-quizzes/` — `types.ts`, `queries.ts` (programme
+  quiz list + eligible-picker + blocking-activities),
+  `actions.ts` (attach / remove / create-and-attach),
+  `format.ts`, `programme-quizzes-view.tsx`, `quiz-row.tsx`,
+  `source-hint.tsx`.
+- `lib/overlays/programme-quizzes/` — `add-existing-picker.tsx`,
+  `remove-quiz-confirm.tsx`, `remove-quiz-blocked.tsx`.
+- `styles/programme-quizzes.css`.
+
+**Files modified**
+- `db/schema.sql` + `db/rls.sql` — schema + RLS mirror.
+- `lib/curriculum/actions.ts` — `createActivityAction` +
+  `editActivityAction` gained the auto-mirror upsert after
+  successful save with non-null `values.quiz_id`. Helper
+  `mirrorQuizIntoProgramme()` factored at the bottom of the file.
+- `lib/tutor-quiz/types.ts` — `QuizListRow` gained
+  `used_in_programmes`.
+- `lib/tutor-quiz/queries.ts` — `getMyQuizzes()` embed adds
+  `nclex_programme_quizzes(count)`.
+- `lib/tutor-quiz/quiz-card.tsx` — new `<UsedInProgrammesChip>`
+  rendered on the global `/tutor/quizzes` card.
+- `lib/nav/tutor.ts` — Quizzes item added to
+  `TUTOR_PROGRAMME_NAV` between Curriculum and Live Sessions
+  (icon `target`).
+- `app/(app)/layout.tsx` — registered `programme-quizzes.css`.
+
+**Migrations + data applied to dev (`zrakjibtxyzoqcdtvpmq`)**
+- `tutor_quiz_5_programme_membership` — `{"success":true}`. All
+  4 policies verified via `pg_policies`.
+
+Commit `b6e693e`. Doc-only commit for §9.9 + §9.7 lock +
+Week→Unit followed as `b58b15c`.
+
+### Slice 6 — student surface
+
+**Routing decision (Option 2 — Sam's call).** A Slice 6 row that
+is ALSO activity-linked (per the §9.2 LEFT JOIN derivation) routes
+its launch through the EXISTING `<QuizLaunchViewer>` with the
+resolved primary activity_id. Standalone-only rows use the new
+`<StandaloneQuizLaunchViewer>` + new RPC. The student sees one
+counter per row, matching what they'd see if they launched the
+same quiz from Curriculum. Considered Option 1 (always launch as
+standalone) — rejected because it would create two independent
+counters per quiz and let students effectively double their
+max_attempts by using both entry points.
+
+**Schema.** `nclex_attempts` gains nullable `programme_id` +
+`quiz_id` columns, populated ONLY for standalone attempts.
+Activity-linked attempts keep their existing shape
+(`programme_activity_id` set, both new columns null). Relaxed
+`nclex_attempts_source_refs` CHECK to permit the standalone
+shape. Partial index `idx_nclex_attempts_standalone_quiz` on
+`(student_id, programme_id, quiz_id) WHERE source =
+'PROGRAMME_ASSIGNED' AND programme_activity_id IS NULL` drives
+the cap-count query. New SECURITY DEFINER RPC
+`nclex_create_standalone_quiz_attempt(programme_id, quiz_id)`
+mirrors the existing programme-attempt RPC's snapshot machinery
+but validates against the §9.7-B cap (terminal attempts on the
+standalone branch only — activity-linked attempts have a
+separate scope by spec literal reading).
+
+**Off-script trims (from the second Claude Design prototype).**
+- **Amber Resume button → accent.** Prototype painted Resume
+  warning-amber for "visual handoff to the In progress pill."
+  Existing modal's CTA is accent like every other primary
+  action; inventing an amber action button would be a one-off
+  pattern. Pill carries the warning tone; button stays accent.
+- **Six prototype states → four.** Prototype had
+  `DONE | IN_PROGRESS | UP_NEXT | START_HERE | NOT_STARTED |
+  EXHAUSTED`. UP_NEXT and START_HERE mapped to the same pill
+  class with `hasAnyDone` doing the label flip — so START_HERE
+  was redundant. Build collapses to UP_NEXT and uses
+  `hasAnyDone` for the copy flip (matches progress-engine
+  Slice 3).
+- **Reuse `.student-activity-state` classes.** Prototype invented
+  `.sq-state` parallel classes. Build imports the existing
+  curriculum-side cadence directly so the visual stays in lock
+  step automatically. Same call for `.quiz-pill-kind-*` — hoisted
+  to `quiz.css` so Slice 5 (tutor) + Slice 6 (student) share one
+  definition.
+- **Sidebar icon `book` not `target`.** Prototype used `target`
+  to match the tutor side, but the student global-bank nav
+  already uses `target` for Readiness Packs. Sam: "a quiz is
+  better represented by a book anyway." Distinct icon avoids
+  cross-context collision.
+
+**§9.9 — cohort-level quiz divergence (deferred, captured).**
+Sub-thread mid-Slice-6. Sam raised whether the cohort sidebar
+needs a Quizzes tab too — for the case of multi-cohort programmes
+where the tutor wants per-cohort variation. We worked through:
+
+- For v1 cohort-quizzes view = programme quizzes (no divergence
+  needed) → no surface yet.
+- BUT the eventual divergence is structurally analogous to 9.3f's
+  activity checklist. Three implementation options surface:
+  - **A — additive-only.** Cohort-only adds; no subtraction.
+    Simplest. Closes off future scheduling + subtraction without
+    re-architecture.
+  - **B — full checklist.** Mirror `nclex_cohort_checklist_items`.
+    Most extensible.
+  - **C — hidden checklist.** Architecture B, UI A. Middle cost.
+
+Sam settled: capture in the planning doc as a future build slice;
+**implementation shape decided at build time** when there's a
+concrete reason (tutor wanting per-cohort divergence, or the
+deferred per-cohort scheduling lands). §9.9 of
+`tutor-quiz-system.md` documents all three. Old §9.9 (Not in v1)
+renumbered to §9.10.
+
+**Files created**
+- `db/migrations/20260520120000_tutor_quiz_6_standalone_launch.sql`
+  — column additions, CHECK relax, partial index, new RPC.
+- `app/(app)/student/programme/[programme_id]/quizzes/page.tsx`
+  + cohort sibling at `student/cohort/[cohort_id]/quizzes/`.
+- `lib/student-quizzes/` — `types.ts`, `queries.ts` (producer
+  with linked + standalone attempt stats), `format.ts`,
+  `student-quizzes-view.tsx`, `quiz-row.tsx`, `source-hint.tsx`.
+- `lib/curriculum/standalone-quiz-launch.ts` +
+  `standalone-quiz-launch-viewer.tsx` — sibling launch path,
+  shares body + actions via re-exports from the existing viewer.
+- `styles/student-quizzes.css`.
+
+**Files modified**
+- `db/schema.sql` — column additions + CHECK relax + index
+  mirror.
+- `lib/curriculum/quiz-launch-viewer.tsx` — prop narrowed from
+  `activity: ProgrammeActivity` to `target: QuizLaunchTarget`
+  (4 fields). Promoted `QuizLaunchBody`, `QuizLaunchActions`,
+  `formatAttemptsLine` to public exports. `QuizLaunchActions`
+  gained `startLabel` prop for the "Take again" variant.
+- `lib/curriculum/activity-action.tsx` — caller update to the
+  new `target` prop name.
+- `lib/nav/student.ts` — Quizzes (icon `book`) added to both
+  `STUDENT_PROGRAMME_DETAIL_NAV` and `STUDENT_COHORT_DETAIL_NAV`
+  between Curriculum and Quiz History.
+- `styles/quiz.css` — `.quiz-pill-kind-mock` / `-practice`
+  classes hoisted in (shared between Slices 5 + 6).
+- `styles/programme-quizzes.css` — removed the local kind-pill
+  classes (now in `quiz.css`).
+- `lib/programme-quizzes/quiz-row.tsx` +
+  `lib/overlays/programme-quizzes/add-existing-picker.tsx` —
+  updated to the hoisted `.quiz-pill-kind-*` class name.
+- `app/(app)/layout.tsx` — registered `student-quizzes.css`.
+
+**Migrations + data applied to dev**
+- `tutor_quiz_6_standalone_launch` — `{"success":true}`.
+  Columns verified via `information_schema.columns`. RPC
+  callable.
+- Seed: 3 additional PUBLISHED quizzes on the
+  `mybackpacc+mynclextutor` tutor account (Maternal Health Mock,
+  Quick Med-Surg Drill, End of Block Mini-Mock) covering the
+  remaining mode/cap matrix — published TIMED_SEQUENTIAL,
+  unlimited-attempts Practice, and 1-attempt Mock for the fast
+  Exhausted-state test.
+
+**Verified locally (Slice 6 + Slice 5)**
+- `npx tsc --noEmit` — clean (the 2 pre-existing vitest test
+  errors in `lib/scoring/*.test.ts` predate this slice).
+- `npx eslint` scoped to slice-touched files — clean both slices.
+- `npm run build` — clean. Both new student routes
+  (`/student/programme/[id]/quizzes`,
+  `/student/cohort/[id]/quizzes`) registered. New tutor route
+  (`/tutor/programme/[id]/quizzes`) registered.
+
+**Verified by Sam on dev Worker**
+- Slice 5 sidebar Quizzes item appears between Curriculum and
+  Live Sessions, confirmed by Sam.
+- Slice 6 Quizzes item appears on student programme + cohort
+  sidebars (between Curriculum and Quiz History).
+- Initial state was empty programme — surfaced the need for
+  seeded global quizzes for back-to-back testing; seed delivered
+  3 new PUBLISHED quizzes. Deeper interaction testing left to
+  Sam post-merge.
+
+Commits `b6e693e` (Slice 5) + `b58b15c` (docs: §9.9 + §9.7 +
+Week→Unit) + `466141c` (Slice 6).
+
+### Deferred to future sessions
+
+- **Cohort-level quiz divergence build.** §9.9 captures the
+  shape; build fires when a real tutor asks for cohort-unique
+  quizzes, subtraction, or per-cohort release dates. Three
+  implementation options pre-compared.
+- **Progress-engine Slice 5 (tutor analytics).** Still blocked
+  on the enrolment slice (which doesn't exist yet) — gates
+  "students in this cohort" relation needed for per-cohort
+  analytics. Tutor-quiz analytics piggy-backs.
+- **Retake-from-history UX wire-up.** Data path complete
+  (per-(quiz, programme) scope is now queryable); pure UX
+  shim. Slot when a tester reaches for it.
+
+### Next session
+
+No firm next slice — Sam's call. Candidates:
+- **Enrolment.** Unblocks two deferred slices in one shot
+  (progress-engine analytics + tutor-quiz analytics).
+- **Bank 4.7 — Mark-for-review.** Smaller, less urgent given
+  the programme-side focus.
+- **Cohort-quiz divergence.** Only if a real tutor surfaces a
+  divergence need first.
+
+---
+
 ## Session — 2026-05-16 (Progress engine — planning + 4-slice arc + Slice 4b)
 
 Big session. Sam asked what the "student progress engine" referenced
