@@ -212,4 +212,91 @@
   color: var(--text-muted);
   line-height: 1.5;
 }
+
+/* ─── Programme history (progress engine Slice 4) ─────
+ * The programme-side table uses the same .hist-* skeleton as bank
+ * history (filter row, table card, pills, action links). Only the
+ * activity-cell shape and the activity-filter dropdown are net new.
+ */
+
+.hist-activity {
+  /* Two-line cell: activity title (with optional ✓) + unit label. */
+}
+
+.hist-activity-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.hist-activity-done {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.hist-activity-unit {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Activity filter dropdown — sits alongside the show-discarded
+ * toggle on the filter row. Replaces the disabled chip-segments
+ * from the bank-side variant. */
+.hist-activity-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.hist-activity-filter-label {
+  font-weight: 600;
+}
+
+.hist-activity-filter select {
+  padding: 5px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.hist-activity-filter select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Pass / fail verdict on the Result column (tutor-quiz Slice 3
+ * surfaces this as a row badge once a pass_score is set on the
+ * attempt). Quietly muted so it doesn't outweigh the % score. */
+.hist-verdict {
+  margin-left: 2px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.hist-verdict-pass {
+  color: var(--success);
+}
+
+.hist-verdict-fail {
+  color: var(--danger);
+}
 .hist-note strong { color: var(--text); }

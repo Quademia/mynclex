@@ -33,19 +33,21 @@ export const STUDENT_BANK_NAV: NavItem[] = [
 ];
 
 /**
- * Programme-detail sidebar (slice 10.1). Hrefs carry
- * ':programmeId', swapped by the programme layout for the actual
- * [programme_id] route param.
+ * Programme-detail sidebar (slice 10.1; History added in progress
+ * engine Slice 4). Hrefs carry ':programmeId', swapped by the
+ * programme layout for the actual [programme_id] route param.
  */
 export const STUDENT_PROGRAMME_DETAIL_NAV: NavItem[] = [
   { key: 'curriculum', label: 'Curriculum', icon: 'layers', href: '/student/programme/:programmeId/curriculum' },
+  { key: 'history',    label: 'History',    icon: 'clock',  href: '/student/programme/:programmeId/history' },
 ];
 
 /**
- * Cohort-detail sidebar (slice 10.1). Hrefs carry ':cohortId',
- * swapped by the cohort layout for the actual [cohort_id] route
- * param.
+ * Cohort-detail sidebar (slice 10.1; History added in progress
+ * engine Slice 4). Hrefs carry ':cohortId', swapped by the cohort
+ * layout for the actual [cohort_id] route param.
  */
 export const STUDENT_COHORT_DETAIL_NAV: NavItem[] = [
   { key: 'curriculum', label: 'Curriculum', icon: 'layers', href: '/student/cohort/:cohortId/curriculum' },
+  { key: 'history',    label: 'History',    icon: 'clock',  href: '/student/cohort/:cohortId/history' },
 ];

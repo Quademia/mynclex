@@ -1,7 +1,11 @@
 // mynclex/lib/practice/history/queries.ts
 //
-// Server-side fetcher for the History page. Returns every attempt the
-// signed-in student has, newest first, capped at 50.
+// Server-side fetcher for the bank History page. Returns every
+// CUSTOM_BUILT or READINESS_PACK attempt the signed-in student has,
+// newest first, capped at 50. PROGRAMME_ASSIGNED attempts are
+// excluded — they live on the dedicated programme-side history
+// surface added in progress engine Slice 4
+// (/student/programme/[id]/history + /student/cohort/[id]/history).
 //
 // Why no explicit student_id filter: RLS on nclex_attempts already
 // scopes the query to auth.uid(). Matches get-recent-attempts.ts +
@@ -28,6 +32,7 @@ export async function getHistoryAttempts(): Promise<HistoryAttempt[]> {
     .select(
       'attempt_id, created_at, status, intent, mode, source, requested_question_count, final_score, filters_json'
     )
+    .neq('source', 'PROGRAMME_ASSIGNED')
     .order('created_at', { ascending: false })
     .limit(50);
 
