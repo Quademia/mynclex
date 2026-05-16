@@ -10,8 +10,15 @@ Three layers, kept separate:
 - **Tutor quiz** — a reusable quiz *plan*: metadata + an ordered
   list of question *references*. Tutor-owned, reusable across
   programmes and activities.
+- **Programme quiz membership** — added 2026-05-16 (see §9). A
+  junction layer (`nclex_programme_quizzes`) makes "this quiz is in
+  this programme" a first-class concept, fed by activity links
+  (auto-mirror) and direct standalone adds. Originally, programme
+  visibility was implicit via activity links only.
 - **Mock / Practice activity** — a thin pointer. Its payload
-  carries `{ quiz_id }`; it owns no quiz content.
+  carries `{ quiz_id }`; it owns no quiz content. Saving an
+  activity with a `quiz_id` auto-mirrors into the membership
+  junction (§9.1).
 - **Student attempt** — a frozen *snapshot* of the quiz's
   questions, taken when the student starts.
 
@@ -189,7 +196,251 @@ picker needs *add* affordances).
   completion → unit/programme progress → tutor analytics.
   Deferred — depends on the student progress engine.
 
-## 9. Not in v1
+## 9. Programme-level quiz membership
+
+Settled 2026-05-16, after Slices 1-3a shipped. The original model
+(§1-§7) only let a student reach a quiz via a curriculum activity
+that linked to it. This section extends the model so a quiz can
+also be attached **directly to a programme** as a standalone
+practice resource — visible to students on a new Quizzes page,
+launchable from there with the existing flow. Both placements
+coexist: activity-linked quizzes show in curriculum AND the
+Quizzes page; standalone quizzes show in the Quizzes page only.
+
+### 9.1 Mirrored junction (single source of truth)
+
+A new table `nclex_programme_quizzes` becomes the **canonical**
+record of "what quizzes are in this programme." Two write paths
+feed it:
+
+- **Activity link → auto-mirror.** When the tutor saves an
+  activity with a `quiz_id` set (existing flow from Slice 2), the
+  same server action upserts into the junction
+  (`ON CONFLICT DO NOTHING`). The activity-link IS a placement
+  within the programme; the junction records the membership.
+- **Standalone add via Quizzes page.** Tutor explicitly picks a
+  quiz to attach to the programme without making it an activity.
+
+Either path makes the quiz available standalone via the student
+Quizzes page (§9.5). The activity-link path additionally surfaces
+it in the curriculum (existing behaviour, unchanged).
+
+### 9.2 Schema
+
+`nclex_programme_quizzes`:
+
+| column | notes |
+|---|---|
+| `programme_id` | FK → `nclex_programmes`, `ON DELETE CASCADE`; part of composite PK |
+| `quiz_id` | FK → `nclex_tutor_quizzes`, `ON DELETE CASCADE`; part of composite PK |
+| `added_at` | `TIMESTAMPTZ NOT NULL DEFAULT NOW()` — tutor-side default sort key |
+| (PK) | `(programme_id, quiz_id)` — naturally enforces idempotency |
+
+**No `display_order`** in v1 — default order is `added_at DESC`
+(or alphabetical by quiz title — pick during build, cheap to
+revisit). Reorder lands if a tutor asks.
+
+**No `linked_via_activity_id` column.** Whether a quiz is also
+activity-linked in this programme is derived at read time via a
+LEFT JOIN to `nclex_programme_activities` (filtered to this
+programme + this `quiz_id`). Stays consistent automatically; one
+fewer write path. Drives the "Linked to Week N" / "Standalone"
+hint on tutor + student row UIs.
+
+### 9.3 Membership rules
+
+**Adding** — two paths into the junction (above). Both idempotent
+via `ON CONFLICT DO NOTHING`.
+
+**Removing — block, don't cascade.**
+- "Remove from programme" on the Quizzes page **rejects** when the
+  quiz is still linked to one or more activities in this programme,
+  with a clear error: *"This quiz is linked to N activity/activities
+  in this programme. Unlink it from those activities first."* The
+  tutor unlinks from activities, then can remove.
+- Unlinking from an activity (setting `payload.quiz_id = null`)
+  does **NOT** auto-remove from the junction — the quiz might still
+  be useful standalone or linked to other activities. The junction
+  row stays until the tutor explicitly removes it from the Quizzes
+  page.
+- Hard-deleting the quiz or programme cascades through the FKs
+  (junction row goes away).
+
+This shape keeps the junction as source of truth while preventing
+the curriculum side from being silently broken by a programme-side
+removal.
+
+### 9.4 Tutor surface
+
+Three tutor-side touch points: the new programme Quizzes page,
+the two ways quizzes get added to a programme from there, and a
+small back-reference on the global quizzes list.
+
+**The programme Quizzes page** — `/tutor/programme/[id]/quizzes`.
+Lists every quiz attached to this programme. Each row: title, kind
+(Mock / Practice), mode, question count, status badge (Draft /
+Published / Archived), a small **"Linked to Week N"** /
+**"Standalone"** source hint derived from the activity JOIN
+(§9.2), per-row "Remove" button subject to the §9.3 block rule.
+
+**Sidebar item** — programme-detail nav gains **Quizzes** between
+Curriculum and (when it lands) Analytics. One-line edit in
+`lib/nav/tutor.ts`.
+
+#### 9.4.1 Two ways to add a quiz
+
+The page surfaces both creation paths side-by-side (e.g., one
+"Add existing" button + one "New quiz" button at the top of the
+list).
+
+- **Add existing** — modal or inline dropdown listing the tutor's
+  own PUBLISHED quizzes not already in this programme. Optional
+  kind filter (All / Mock / Practice). Multi-select with an Add
+  button; idempotent inserts into the junction.
+- **New quiz** — opens the existing quiz editor (`/tutor/quiz/[id]`,
+  Slice 1) for a fresh quiz. The quiz lives in the global
+  `nclex_tutor_quizzes` table the same as any other tutor quiz
+  (appears on `/tutor/quizzes` immediately), AND is auto-inserted
+  into the current programme's junction in the same transaction
+  as the create. The tutor lands in the editor with the quiz
+  already "in this programme" — when they finish authoring and
+  publish, it's launchable for students.
+
+The two paths cover the two natural tutor mindsets: *"I have a
+quiz, put it in this programme"* and *"I'm building a quiz for
+this programme."* Either way the junction is the source of truth;
+the global quiz list and the programme membership stay in sync.
+
+(Why the picker stays PUBLISHED-only while New-quiz creates a
+DRAFT: the picker is for adding **already-finished** quizzes —
+DRAFT quizzes are mid-authoring and pulling one into a programme
+mid-edit risks accidental student exposure. New-quiz creates the
+DRAFT *for* this programme — intent is explicit, the tutor stays
+in the editor to finish it.)
+
+#### 9.4.2 Global Quizzes list — programme membership badge
+
+`/tutor/quizzes` (the existing global list) gets a small
+**"Used in N programmes"** chip per row, derived from
+`COUNT(*) FROM nclex_programme_quizzes WHERE quiz_id = X`.
+Counts zero quizzes that aren't attached anywhere ("Not in any
+programme yet"); count-only in v1, click-to-expand for the
+programme names lands when a tutor asks. Lets the tutor see at a
+glance which quizzes are reused and which are orphans.
+
+(Forward-compat: when bank quizzes / cross-product quiz reuse
+ship, the same chip extends naturally — `"Used in 2 programmes,
+1 readiness pack"`.)
+
+### 9.5 Student surface
+
+- **New page** — `/student/programme/[id]/quizzes` +
+  `/student/cohort/[id]/quizzes`. Lists every quiz in the
+  programme's junction (single query — junction IS the source of
+  truth; activity-linked quizzes are already in there per §9.1).
+- **Row content** — title, kind pill (Mock / Practice), state
+  pill from the progress-engine cascade (Done / In progress /
+  Up next / Not started), "Attempt N of M" (reusing the data
+  from progress-engine Slice 4b), pass mark hint when set,
+  primary action (Start / Resume / Take again / disabled when
+  exhausted). Optional small **"Linked to Week 3"** /
+  **"Standalone practice"** hint derived from the activity JOIN.
+- **Filters** — by kind (All / Mock / Practice), by state (default
+  All; "Not started only" is the most useful narrow). Activity-
+  filter dropdown can land later if multi-programme demand grows.
+- **Launch flow** — reuses the existing `<QuizLaunchViewer>`
+  modal + `nclex_create_programme_attempt` RPC. **No new launch
+  surface.** The RPC currently takes a `programme_activity_id`;
+  for standalone quizzes that's `null` (or the RPC gets a sibling
+  for direct-quiz attempts — build-time call).
+- **Sidebar item** — student programme + cohort detail navs gain
+  **Quizzes** between Curriculum and Quiz History. One-line edits
+  in `lib/nav/student.ts`.
+
+### 9.6 RLS
+
+`nclex_programme_quizzes`:
+- **Tutor own** (FOR ALL) — `EXISTS (SELECT 1 FROM nclex_programmes
+  WHERE programme_id = junction.programme_id AND tutor_id = auth.uid())`.
+- **Student select** (FOR SELECT) — readable when the parent
+  programme is PUBLISHED. Permissive v1; tightens to enrolled
+  students when the enrolment slice ships.
+- **SUPER_ADMIN bypass** — the intentional v1 pattern.
+
+`nclex_tutor_quizzes` gains a **new student-read policy**:
+- **Student select** (FOR SELECT) — readable when the quiz is
+  PUBLISHED AND attached (via the junction) to a PUBLISHED
+  programme. The student Quizzes page reads quiz metadata
+  (title, kind, mode, pass_score, max_attempts) directly from
+  this table; the policy makes that legal without funnelling
+  through a SECURITY DEFINER RPC.
+
+### 9.7 Attempt semantics for standalone quizzes (open call)
+
+The existing `nclex_create_programme_attempt` RPC keys attempts
+to a `programme_activity_id` — that's how `max_attempts` is
+enforced (per-(student, activity), counting attempts on that
+activity). For a **standalone** quiz with no activity, the natural
+question: how is the cap counted?
+
+Three plausible shapes:
+- **A — per-(student, quiz) globally** across all standalone
+  attempts of this quiz (and across all programmes that include
+  it). Simplest interpretation of "max_attempts" as a quiz-level
+  property.
+- **B — per-(student, quiz, programme)** so the cap resets when a
+  quiz is added to a different programme. Most flexible; matches
+  the "the programme owns the relationship" framing.
+- **C — uncapped** for standalone, capped only for activity-linked.
+
+Sam to settle when this slice lands. **My lean: B** — keeps the
+quiz reusable across programmes without surprising the student
+(taking it in Programme A doesn't burn their attempts in
+Programme B). Requires the RPC sibling to take a `programme_id`
+arg.
+
+### 9.8 Build arc (extends §8)
+
+- **Slice 5 — Programme-level quiz membership (tutor surface).**
+  Migration (junction table + RLS policies on both junction and
+  `nclex_tutor_quizzes`). Auto-mirror added to the existing
+  activity-save server action. New `/tutor/programme/[id]/quizzes`
+  page with two add paths — picker for existing PUBLISHED quizzes,
+  "New quiz" creation that auto-attaches (§9.4.1) — plus
+  per-row remove (block-remove rule). Sidebar item.
+  `/tutor/quizzes` gets the "Used in N programmes" chip per row
+  (§9.4.2).
+- **Slice 6 — Student Quizzes page.** Junction-driven listing on
+  `/student/programme/[id]/quizzes` + `/student/cohort/[id]/quizzes`.
+  Sidebar items. Reuses the existing `<QuizLaunchViewer>` modal +
+  launch RPC (with the §9.7 sibling RPC if standalone attempts
+  ship in this slice — otherwise defer standalone attempts to a
+  follow-up).
+
+(Tutor analytics — the original §8 Slice 4 — still gates on
+enrolment; unaffected by this arc.)
+
+### 9.9 Not in v1 (this section)
+
+- **Reordering** the programme's quiz list (no `display_order`
+  column).
+- **Per-programme override of quiz settings** (e.g., a quiz could
+  have different `max_attempts` in different programmes). v1 uses
+  the quiz's own settings everywhere except the per-programme
+  attempt-cap scope from §9.7.
+- **Per-programme scheduling for standalone quizzes** (release /
+  close dates like activities have). Always-available once the
+  programme is published / the cohort starts. Can add later as
+  columns on the junction.
+- **Tutor adding shared QAcademy bank quizzes to a programme** —
+  for now, only the tutor's own quizzes. The bank stays its own
+  consumption path (§2).
+- **Reordering rules between activity-linked and standalone** on
+  the student page (e.g., "activity-linked first, then
+  standalone"). Single sort axis in v1; group/section the list
+  if a tester struggles to scan it.
+
+## 10. Not in v1
 
 - Cases and trends as quiz content.
 - The shared QAcademy bank as a quiz source.
