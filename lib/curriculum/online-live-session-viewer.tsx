@@ -20,9 +20,10 @@
 
 import { ViewerModalShell } from './viewer-modal-shell';
 import { providerLabelFor, safeHttpUrl } from './format';
+import { MarkDoneButton } from '@/lib/progress/mark-done-button';
 import type {
   ActivityPayloadOnlineLiveSession,
-  ProgrammeActivity,
+  StudentActivity,
 } from './types';
 
 type SessionStatus = 'UPCOMING' | 'LIVE' | 'ENDED';
@@ -56,7 +57,7 @@ export function OnlineLiveSessionViewer({
   activity,
   onClose,
 }: {
-  activity: ProgrammeActivity;
+  activity: StudentActivity;
   onClose: () => void;
 }) {
   const payload = activity.payload as ActivityPayloadOnlineLiveSession;
@@ -154,6 +155,25 @@ export function OnlineLiveSessionViewer({
             Watch recording ↗
           </a>
         )}
+
+        {/* Mark-as-done gated on session status: marking attendance
+            only makes sense after the session ends (Q2 of Slice 2).
+            Disabled with a tooltip while UPCOMING or LIVE; enabled
+            once status flips to ENDED. Status === null (no
+            scheduled_at on the activity payload) leaves the button
+            available since the gate has no meaning then. */}
+        <MarkDoneButton
+          activityId={activity.activity_id}
+          isDone={activity.isDone}
+          disabled={status === 'UPCOMING' || status === 'LIVE'}
+          disabledReason={
+            status === 'UPCOMING'
+              ? 'Available after the session ends.'
+              : status === 'LIVE'
+              ? 'Available after the session ends.'
+              : undefined
+          }
+        />
       </div>
     </ViewerModalShell>
   );

@@ -207,15 +207,23 @@ function ActivityCard({ activity }: { activity: StudentActivity }) {
           {activityTypeLabel(activity.type)}
         </span>
         <h4 className="student-activity-title">{activity.title}</h4>
-        {activity.isDone && (
-          <span
-            className="student-activity-done-tick"
-            aria-label="Completed"
-            title="Completed"
-          >
-            ✓
+        {activity.isDone ? (
+          <span className="student-activity-state is-done">
+            <span className="student-activity-state-icon" aria-hidden="true">
+              ✓
+            </span>
+            <span className="student-activity-state-label">Done</span>
           </span>
-        )}
+        ) : activity.openState === 'OPEN' ? (
+          // LOCKED and CLOSED rows skip the state pill entirely —
+          // the 🔒 in their action area carries the relevant signal.
+          // Already-DONE rows that later close keep their pill
+          // (rows survive window changes).
+          <span className="student-activity-state is-not-started">
+            <span className="student-activity-state-dot" aria-hidden="true" />
+            <span className="student-activity-state-label">Not started</span>
+          </span>
+        ) : null}
       </header>
 
       {activity.description && (

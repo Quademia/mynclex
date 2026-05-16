@@ -28,10 +28,10 @@ import { QuizLaunchViewer } from './quiz-launch-viewer';
 import type {
   ActivityPayloadMock,
   ActivityPayloadPracticeQuiz,
-  ProgrammeActivity,
+  StudentActivity,
 } from './types';
 
-export function ActivityAction({ activity }: { activity: ProgrammeActivity }) {
+export function ActivityAction({ activity }: { activity: StudentActivity }) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const estMinutes = activityEstimatedMinutes(activity);
 

@@ -16,13 +16,14 @@
 
 import { ViewerModalShell } from './viewer-modal-shell';
 import { activityEstimatedMinutes } from './format';
-import type { ActivityPayloadText, ProgrammeActivity } from './types';
+import { MarkDoneButton } from '@/lib/progress/mark-done-button';
+import type { ActivityPayloadText, StudentActivity } from './types';
 
 export function TextViewer({
   activity,
   onClose,
 }: {
-  activity: ProgrammeActivity;
+  activity: StudentActivity;
   onClose: () => void;
 }) {
   const payload = activity.payload as ActivityPayloadText;
@@ -51,6 +52,11 @@ export function TextViewer({
             This reading doesn&apos;t have any content yet.
           </p>
         )}
+
+        <MarkDoneButton
+          activityId={activity.activity_id}
+          isDone={activity.isDone}
+        />
       </div>
     </ViewerModalShell>
   );

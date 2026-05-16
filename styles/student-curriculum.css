@@ -550,25 +550,59 @@ button.programme-switcher-item {
   color: var(--text-muted);
 }
 
-/* DONE tick — progress engine Slice 1. Anchored to the right edge
- * of the row header via margin-left:auto so the title doesn't have
- * to grow. Same treatment for QUIZ_ATTEMPT and MANUAL sources
- * (per progress-engine.md §8.4). Bigger Slice-3 chrome (Up next
- * pill, unit % tabs) lands later. */
-.student-activity-done-tick {
+/* Row state pills (progress engine Slice 1 + 2 follow-on).
+ *
+ * Symmetric: DONE rows get a filled green "✓ Done" pill;
+ * NOT_STARTED OPEN rows get an outlined muted "○ Not started" pill.
+ * LOCKED / CLOSED rows get nothing (the 🔒 in their action area is
+ * the relevant signal). Already-DONE rows that later close keep
+ * their pill — rows survive window changes.
+ *
+ * Slice 3 will add an IN_PROGRESS variant for quiz rows with a
+ * live attempt (derived from nclex_attempts, not stored). It slots
+ * into the same .student-activity-state class as a third .is-*
+ * modifier — no layout change needed. */
+.student-activity-state {
   margin-left: auto;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.student-activity-state-label {
+  line-height: 1;
+}
+
+.student-activity-state.is-done {
   background: color-mix(in srgb, var(--success) 12%, transparent);
   color: var(--success);
-  font-size: 13px;
+}
+
+.student-activity-state.is-done .student-activity-state-icon {
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
+}
+
+.student-activity-state.is-not-started {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--text-muted) 40%, transparent);
+  color: var(--text-muted);
+}
+
+.student-activity-state.is-not-started .student-activity-state-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  box-sizing: border-box;
 }
 
 .student-activity-locked {
@@ -984,5 +1018,79 @@ button.programme-switcher-item {
 
 .quiz-launch-cta {
   margin-top: 8px;
+}
+
+/* ─── Mark-as-done button (progress engine Slice 2) ──────
+ * Shared <MarkDoneButton> rendered at the foot of each MANUAL
+ * activity viewer (TEXT, PDF, EXTERNAL_LINK, ONLINE_LIVE_SESSION).
+ * Secondary visual treatment vs .viewer-modal-cta — outlined, not
+ * filled — because the primary action of each viewer is its own
+ * CTA (Open link / Join session / Open PDF), and marking done is
+ * the follow-up confirmation. The is-done state subtly uses
+ * var(--success) to signal "already recorded" without dominating
+ * the modal. */
+
+.mark-done-wrapper {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mark-done-button {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.mark-done-button:hover:not(:disabled) {
+  background: var(--bg-soft);
+  border-color: var(--text-muted);
+}
+
+.mark-done-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.mark-done-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* DONE state — subtle green tint signals "already recorded" while
+ * the un-mark affordance stays prominent enough to find. */
+.mark-done-button.is-done {
+  background: color-mix(in srgb, var(--success) 8%, transparent);
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+  color: var(--success);
+}
+
+.mark-done-button.is-done:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  border-color: var(--success);
+}
+
+.mark-done-disabled-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.mark-done-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--danger);
+  text-align: center;
 }
 
