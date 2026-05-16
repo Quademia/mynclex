@@ -366,6 +366,13 @@ export type StudentActivity = ProgrammeActivity & {
   // to openState — a LOCKED or CLOSED activity may still be DONE
   // (e.g., done while open then later closed; the row survives).
   isDone: boolean;
+  // Progress engine, Slice 3. TRUE only for quiz types (MOCK /
+  // PRACTICE_QUIZ) when the student has an IN_PROGRESS programme
+  // attempt against this activity. Derived from nclex_attempts at
+  // read time; not stored (per §1). Always FALSE for non-quiz
+  // types. Mutually exclusive with isDone (DONE means the latest
+  // attempt was terminal; can't also be IN_PROGRESS).
+  isInProgress: boolean;
 };
 
 export type StudentBodyEntry =
@@ -379,6 +386,14 @@ export type StudentBodyEntry =
 export type StudentCurriculumUnit = {
   unit: ProgrammeUnit;
   body: StudentBodyEntry[];
+  // Progress engine, Slice 3. Counts of visible activities in this
+  // unit (matches what isVisibleToStudents filters in). LOCKED and
+  // CLOSED activities count toward the denominator (§7 — they're
+  // part of the curriculum). progressPct is null when total = 0
+  // (no denominator) — the tab strip omits the % suffix in that case.
+  progressDone: number;
+  progressTotal: number;
+  progressPct: number | null; // 0..100 integer, or null
 };
 
 export type StudentCurriculumTree = {
@@ -394,4 +409,25 @@ export type StudentCurriculumTree = {
     start_date: string;
   } | null;
   units: StudentCurriculumUnit[];
+
+  // Progress engine, Slice 3 — soft guidance signals.
+  //
+  // upNextActivityId: the activity_id the "Up next" / "Start here"
+  // pill should land on (per §8.1). First row in curriculum order
+  // that's NOT_STARTED AND NOT IN_PROGRESS (an IN_PROGRESS quiz
+  // gets its own pill — Up next would double up). null when
+  // nothing matches (everything DONE, or only quiz IN_PROGRESS
+  // exists).
+  upNextActivityId: string | null;
+
+  // whereILeftOffUnitIndex: the unit the tab strip should default
+  // to (per §6.1 + §8.2 — resume-first). Most recent IN_PROGRESS
+  // quiz attempt's unit, fallback most recent DONE activity's
+  // unit, fallback null (the tab wrapper falls back to Unit 1).
+  whereILeftOffUnitIndex: number | null;
+
+  // hasAnyDone: drives the "Start here" vs "Up next" copy flip
+  // (§8.1). TRUE when at least one activity in this programme is
+  // DONE for this student.
+  hasAnyDone: boolean;
 };

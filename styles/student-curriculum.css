@@ -386,6 +386,24 @@ button.programme-switcher-item {
   border-radius: 2px;
 }
 
+/* Progress engine Slice 3 — per-unit % done suffix in each tab.
+ * Muted relative to the unit label so it informs without competing.
+ * The wrapper span exists primarily to keep the label compact
+ * when the pct is omitted (zero-activity unit). */
+.student-unit-tab-label {
+  /* deliberately empty — defaults to button's font weight + colour */
+}
+
+.student-unit-tab-pct {
+  margin-left: 6px;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+.student-unit-tab.is-active .student-unit-tab-pct {
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-faint));
+}
+
 /* Panel container — no chrome of its own; the inner
  * .student-unit keeps its default card chrome. */
 .student-unit-tab-panels {
@@ -598,6 +616,43 @@ button.programme-switcher-item {
 }
 
 .student-activity-state.is-not-started .student-activity-state-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  box-sizing: border-box;
+}
+
+/* In progress (quiz only — derived from nclex_attempts).
+ * Amber to read as "in flight." Filled dot inside (you're already
+ * mid-something), distinct from the outlined dot on Not started /
+ * Up next. */
+.student-activity-state.is-in-progress {
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent);
+  color: var(--warning);
+}
+
+.student-activity-state.is-in-progress .student-activity-state-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  border: none;
+}
+
+/* Up next / Start here — the single forward-pointing pill. Uses
+ * the brand accent so it pops against the muted "Not started"
+ * rows in the same list. Outlined dot to echo Not started (same
+ * "NOT yet done" semantic family); the accent colour does the
+ * pop-out work. */
+.student-activity-state.is-up-next {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent);
+}
+
+.student-activity-state.is-up-next .student-activity-state-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;

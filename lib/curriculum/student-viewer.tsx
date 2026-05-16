@@ -34,11 +34,17 @@
 // as a "no content yet" card — the tutor's structural intent
 // stays visible even when the body is empty.
 //
-// Progress engine, Slice 1 — a DONE activity gets a small ✓ tick
-// in its row header. Same tick for QUIZ_ATTEMPT and MANUAL sources
-// (per docs/product-plan/progress-engine.md §8.4). The "Mark as
-// done" button on MANUAL types ships in Slice 2; soft guidance
-// labels (Up next / Start here) and the unit-tab % ship in Slice 3.
+// Progress engine, Slices 1-3 — row state pill cascade:
+//   1. Done (green ✓)        — terminal, wins over everything
+//   2. In progress (amber)   — quiz row with an IN_PROGRESS attempt
+//                              (derived; never for manual types)
+//   3. Up next / Start here  — the single forward-pointing row
+//      (accent)                (copy depends on hasAnyDone)
+//   4. Not started (muted)   — default for OPEN rows
+//   5. (no pill)              — LOCKED / CLOSED rows (the 🔒 in
+//                              their action area is their signal)
+// See docs/product-plan/progress-engine.md §§8.1, 8.4-8.5 + Slice 3
+// pill-cascade decision (2026-05-16 build session).
 
 import {
   unitLabel,
@@ -89,11 +95,16 @@ export function StudentCurriculumViewer({
         // 2+ units — wrap with the client tabs component. Children
         // are server-rendered <UnitSection> nodes, one per tab; the
         // wrapper shows only the selected one.
+        // Slice 3 — pass `pct` per tab (drives the "· NN%" suffix)
+        // and `defaultIndex` (Where I left off; falls back to Unit 1
+        // inside the wrapper when null).
         <StudentUnitTabs
           tabs={tree.units.map((u) => ({
             index: u.unit.unit_index,
             label: unitLabel(u.unit.unit_index, tree.programme.unit_label),
+            pct: u.progressPct,
           }))}
+          defaultIndex={tree.whereILeftOffUnitIndex}
         >
           {tree.units.map((u) => (
             <UnitSection key={u.unit.unit_id} unit={u} tree={tree} />
@@ -136,11 +147,15 @@ function UnitSection({
               <BlockCard
                 key={`b-${entry.block.block_id}`}
                 entry={entry}
+                upNextActivityId={tree.upNextActivityId}
+                hasAnyDone={tree.hasAnyDone}
               />
             ) : (
               <ActivityCard
                 key={`a-${entry.activity.activity_id}`}
                 activity={entry.activity}
+                upNextActivityId={tree.upNextActivityId}
+                hasAnyDone={tree.hasAnyDone}
               />
             )
           )}
@@ -152,11 +167,15 @@ function UnitSection({
 
 function BlockCard({
   entry,
+  upNextActivityId,
+  hasAnyDone,
 }: {
   entry: Extract<
     StudentCurriculumTree['units'][number]['body'][number],
     { kind: 'block' }
   >;
+  upNextActivityId: string | null;
+  hasAnyDone: boolean;
 }) {
   return (
     <article className="student-block">
@@ -173,7 +192,12 @@ function BlockCard({
       ) : (
         <div className="student-block-body">
           {entry.activities.map((a) => (
-            <ActivityCard key={a.activity_id} activity={a} />
+            <ActivityCard
+              key={a.activity_id}
+              activity={a}
+              upNextActivityId={upNextActivityId}
+              hasAnyDone={hasAnyDone}
+            />
           ))}
         </div>
       )}
@@ -181,7 +205,15 @@ function BlockCard({
   );
 }
 
-function ActivityCard({ activity }: { activity: StudentActivity }) {
+function ActivityCard({
+  activity,
+  upNextActivityId,
+  hasAnyDone,
+}: {
+  activity: StudentActivity;
+  upNextActivityId: string | null;
+  hasAnyDone: boolean;
+}) {
   const locked = activity.openState !== 'OPEN';
   const overdue =
     activity.openState === 'OPEN' && isPastDue(activity.dueDate);
@@ -207,23 +239,55 @@ function ActivityCard({ activity }: { activity: StudentActivity }) {
           {activityTypeLabel(activity.type)}
         </span>
         <h4 className="student-activity-title">{activity.title}</h4>
-        {activity.isDone ? (
-          <span className="student-activity-state is-done">
-            <span className="student-activity-state-icon" aria-hidden="true">
-              ✓
-            </span>
-            <span className="student-activity-state-label">Done</span>
-          </span>
-        ) : activity.openState === 'OPEN' ? (
-          // LOCKED and CLOSED rows skip the state pill entirely —
-          // the 🔒 in their action area carries the relevant signal.
-          // Already-DONE rows that later close keep their pill
-          // (rows survive window changes).
-          <span className="student-activity-state is-not-started">
-            <span className="student-activity-state-dot" aria-hidden="true" />
-            <span className="student-activity-state-label">Not started</span>
-          </span>
-        ) : null}
+        {/* Pill cascade — see header comment for full priority order.
+            Computed once into a local for readability. */}
+        {(() => {
+          if (activity.isDone) {
+            return (
+              <span className="student-activity-state is-done">
+                <span className="student-activity-state-icon" aria-hidden="true">
+                  ✓
+                </span>
+                <span className="student-activity-state-label">Done</span>
+              </span>
+            );
+          }
+          if (activity.isInProgress) {
+            return (
+              <span className="student-activity-state is-in-progress">
+                <span className="student-activity-state-dot" aria-hidden="true" />
+                <span className="student-activity-state-label">In progress</span>
+              </span>
+            );
+          }
+          if (activity.activity_id === upNextActivityId) {
+            // Copy flips on whether the student has ANY DONE row in
+            // the programme (§8.1) — empty slate gets the welcoming
+            // "Start here", any progress flips to forward-looking
+            // "Up next". upNextActivityId is only ever set on an
+            // OPEN row (the derivation skips LOCKED / CLOSED), so
+            // no extra guard needed here.
+            return (
+              <span className="student-activity-state is-up-next">
+                <span className="student-activity-state-dot" aria-hidden="true" />
+                <span className="student-activity-state-label">
+                  {hasAnyDone ? 'Up next' : 'Start here'}
+                </span>
+              </span>
+            );
+          }
+          if (activity.openState === 'OPEN') {
+            return (
+              <span className="student-activity-state is-not-started">
+                <span className="student-activity-state-dot" aria-hidden="true" />
+                <span className="student-activity-state-label">Not started</span>
+              </span>
+            );
+          }
+          // LOCKED / CLOSED — no pill. The 🔒 in the action area
+          // is the relevant signal.
+          return null;
+        })()}
       </header>
 
       {activity.description && (

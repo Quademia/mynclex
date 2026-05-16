@@ -19,6 +19,12 @@
 // in-progress per-activity UI state (open modal, opened menu) isn't
 // destroyed by switching tabs. Cost is negligible — these are
 // static activity rows.
+//
+// Progress engine, Slice 3:
+//   • `pct` per tab adds a "· NN%" suffix to the label.
+//   • `defaultIndex` lets the server tell us which tab to land on
+//     when no `?unit=N` is set ("Where I left off" resume-first
+//     rule per §6.1). Falls back to 1 if null or out of range.
 
 'use client';
 
@@ -30,24 +36,49 @@ export interface UnitTabMeta {
   index: number;
   /** Short label for the tab — e.g. "Week 1" or "Module 1". */
   label: string;
+  /**
+   * Progress engine Slice 3 — 0..100 integer of completion in this
+   * unit, or null when the unit has no activities. Drives the
+   * "· NN%" suffix appended to the label.
+   */
+  pct?: number | null;
 }
 
 interface Props {
   tabs:     UnitTabMeta[];
   children: React.ReactNode;
+  /**
+   * 1-based default tab when `?unit=N` is not in the URL — the
+   * "Where I left off" pick from the server (per §6.1 resume-first).
+   * Falls back to 1 when null or out of range. URL state always
+   * wins — a user with a `?unit=N` in the address bar stays put.
+   */
+  defaultIndex?: number | null;
 }
 
-export function StudentUnitTabs({ tabs, children }: Props) {
+export function StudentUnitTabs({
+  tabs,
+  children,
+  defaultIndex = null,
+}: Props) {
   const router    = useRouter();
   const pathname  = usePathname();
   const sp        = useSearchParams();
 
+  const fallback =
+    defaultIndex !== null &&
+    Number.isFinite(defaultIndex) &&
+    defaultIndex >= 1 &&
+    defaultIndex <= tabs.length
+      ? defaultIndex
+      : 1;
+
   const raw    = sp.get('unit');
-  const parsed = raw ? parseInt(raw, 10) : 1;
+  const parsed = raw ? parseInt(raw, 10) : fallback;
   const selected =
     Number.isFinite(parsed) && parsed >= 1 && parsed <= tabs.length
       ? parsed
-      : 1;
+      : fallback;
 
   // Children should be one node per tab, in the same order as `tabs`.
   // If there's a mismatch, fall through to rendering nothing for
@@ -56,8 +87,12 @@ export function StudentUnitTabs({ tabs, children }: Props) {
 
   function onPick(index: number) {
     const next = new URLSearchParams(sp.toString());
-    if (index === 1) next.delete('unit');
-    else             next.set('unit', String(index));
+    // Clean URL when the picked tab matches whatever the current
+    // default would resolve to (Slice 3: "Where I left off"; pre-3:
+    // always Unit 1). Otherwise the URL pins ?unit=N as an
+    // explicit override.
+    if (index === fallback) next.delete('unit');
+    else                    next.set('unit', String(index));
     const qs = next.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
@@ -84,7 +119,10 @@ export function StudentUnitTabs({ tabs, children }: Props) {
               }
               onClick={() => onPick(t.index)}
             >
-              {t.label}
+              <span className="student-unit-tab-label">{t.label}</span>
+              {t.pct !== null && t.pct !== undefined && (
+                <span className="student-unit-tab-pct">· {t.pct}%</span>
+              )}
             </button>
           );
         })}

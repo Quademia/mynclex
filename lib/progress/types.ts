@@ -27,3 +27,10 @@ export type ActivityProgressRow = {
 
 // Lookup by activity_id. Absence of a key == NOT_STARTED.
 export type ActivityProgressMap = Map<string, ActivityProgressRow>;
+
+// Derived IN_PROGRESS signal for quiz types — Map<activity_id,
+// last_activity_at_iso>. Sourced from nclex_attempts (not stored
+// in the progress table per §1). Used by both the row's
+// "In progress" pill (Slice 3) and the "Where I left off" finder
+// (which sorts by the timestamp to pick the most recent).
+export type InProgressQuizMap = Map<string, string>;

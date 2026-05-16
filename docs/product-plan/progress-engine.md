@@ -780,3 +780,30 @@ that this engine completes the dependency for:
   BUILD_LIST) — lands in Slice 4.
 - **Per-activity filter on programme history** (deferred follow-on
   in BUILD_LIST) — lands in Slice 4.
+
+### Wider use of the % counting pattern (deferred — Sam's future shapes)
+
+The `pct = done / total × 100` pattern Slice 3 ships at the **unit
+tab** scope (per §8.3) extends trivially to any other scope of the
+curriculum tree — same `isDone` flag, same flatten, different
+denominator. The counting logic is reusable.
+
+Surfaces a future slice could consume it on (not yet shaped — Sam
+to return with specifics):
+
+- **Programme % done** — already specced in §7.2; a single visible
+  "how far along am I" summary on the curriculum header, and a
+  natural fit for **picker cards** when a student has multiple
+  programmes (helps them pick which to work on next).
+- **Block % done** — per-block badge on the block header. Lower
+  intrinsic value when the block's own activity rows are right
+  there with their state pills, but real for blocks with many
+  activities.
+- **Cohort dashboard surfaces** — the same pattern under tutor
+  RLS scopes naturally to the cohort-level analytics (§6.2).
+  Already build-blocked on enrolment.
+
+Deliberately left unscoped — when Sam returns with the visual
+treatments he wants, each is a small additive slice on top of the
+existing decoration helpers in `lib/curriculum/student-queries.ts`.
+No schema work needed.
