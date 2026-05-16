@@ -1811,6 +1811,20 @@ activity that *is* in the cohort) worked, but the affordance is
 real and will land when a tutor actually needs it for a real
 cohort situation.
 
+**Deferred follow-on — cohort-level quiz divergence (cohort
+Quizzes tab).** A tutor running multiple cohorts of the same
+programme will eventually want to vary the quiz set per cohort
+(cohort-unique additions, possibly subtraction, possibly per-
+cohort release dates). Settled now: cohort sidebar gains a
+**Quizzes** tab between Curriculum and Sessions; cohort view =
+programme's quizzes + cohort-unique extras. **Implementation
+shape (additive-only vs full checklist vs hidden-checklist)
+deliberately deferred to the build slice** — depends on whether
+per-cohort scheduling or subtraction is in scope by then. Three
+options compared in §9.9 of `docs/product-plan/tutor-quiz-system.md`.
+Build fires when a real tutor asks for cohort-unique quizzes,
+subtraction, or per-cohort release dates.
+
 ### Follow-on: Progress engine
 
 The student-progress layer for tutored Programmes. Tracks

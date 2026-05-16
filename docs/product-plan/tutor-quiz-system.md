@@ -279,9 +279,12 @@ small back-reference on the global quizzes list.
 **The programme Quizzes page** — `/tutor/programme/[id]/quizzes`.
 Lists every quiz attached to this programme. Each row: title, kind
 (Mock / Practice), mode, question count, status badge (Draft /
-Published / Archived), a small **"Linked to Week N"** /
+Published / Archived), a small **"Linked to Unit N"** /
 **"Standalone"** source hint derived from the activity JOIN
 (§9.2), per-row "Remove" button subject to the §9.3 block rule.
+(Slice 5 build used "Unit N" — matches the curriculum
+`nclex_programme_units` schema. Student surface in Slice 6 follows
+the same.)
 
 **Sidebar item** — programme-detail nav gains **Quizzes** between
 Curriculum and (when it lands) Analytics. One-line edit in
@@ -343,7 +346,7 @@ ship, the same chip extends naturally — `"Used in 2 programmes,
   Up next / Not started), "Attempt N of M" (reusing the data
   from progress-engine Slice 4b), pass mark hint when set,
   primary action (Start / Resume / Take again / disabled when
-  exhausted). Optional small **"Linked to Week 3"** /
+  exhausted). Optional small **"Linked to Unit 3"** /
   **"Standalone practice"** hint derived from the activity JOIN.
 - **Filters** — by kind (All / Mock / Practice), by state (default
   All; "Not started only" is the most useful narrow). Activity-
@@ -375,7 +378,7 @@ ship, the same chip extends naturally — `"Used in 2 programmes,
   this table; the policy makes that legal without funnelling
   through a SECURITY DEFINER RPC.
 
-### 9.7 Attempt semantics for standalone quizzes (open call)
+### 9.7 Attempt semantics for standalone quizzes (settled — B)
 
 The existing `nclex_create_programme_attempt` RPC keys attempts
 to a `programme_activity_id` — that's how `max_attempts` is
@@ -393,11 +396,13 @@ Three plausible shapes:
   the "the programme owns the relationship" framing.
 - **C — uncapped** for standalone, capped only for activity-linked.
 
-Sam to settle when this slice lands. **My lean: B** — keeps the
+**Settled 2026-05-16: B** — per-(student, quiz, programme). Cap
+resets when a quiz is added to a different programme. Keeps the
 quiz reusable across programmes without surprising the student
 (taking it in Programme A doesn't burn their attempts in
 Programme B). Requires the RPC sibling to take a `programme_id`
-arg.
+arg. Ships in Slice 6 (student surface); Slice 5's tutor-side
+build doesn't depend on this.
 
 ### 9.8 Build arc (extends §8)
 
@@ -420,7 +425,76 @@ arg.
 (Tutor analytics — the original §8 Slice 4 — still gates on
 enrolment; unaffected by this arc.)
 
-### 9.9 Not in v1 (this section)
+### 9.9 Cohort-level quiz divergence (future, captured 2026-05-16)
+
+Settled 2026-05-16 while building Slice 5: a tutor running two
+cohorts of the same programme will eventually want to vary the
+quiz set per cohort — different mock for Cohort B than Cohort A,
+or a cohort-unique practice quiz that doesn't belong in the
+programme template. This section captures the trajectory and the
+three implementation options; the **specific shape is chosen at
+build time**, not now.
+
+**Settled now:**
+- Cohort sidebar gains a **Quizzes** tab between Curriculum and
+  Sessions (symmetric with the programme sidebar).
+- The cohort Quizzes view at `/tutor/cohort/[id]/quizzes` shows
+  the parent programme's quizzes + any cohort-unique additions.
+- Student cohort Quizzes page reads the same cohort-effective
+  list; self-paced (no-cohort) student programme quizzes keeps
+  reading `nclex_programme_quizzes` directly.
+
+**Open at build time — three options compared.**
+
+The choice turns on whether per-cohort quiz **scheduling**
+(`release_date`) or per-cohort **include/exclude** will ever
+land. The 9.3f activity checklist exists because both genuinely
+vary for activities. For quizzes, neither is settled.
+
+**Option A — Additive-only.** `nclex_cohort_quizzes` holds ONLY
+cohort-unique adds (no row per programme-inherited quiz). Cohort
+view = `nclex_programme_quizzes` (parent programme) UNION
+`nclex_cohort_quizzes` (cohort-unique). Subtraction not
+supported. Per-cohort scheduling requires re-architecture.
+Cheapest to build; closes off both future paths.
+
+**Option B — Full checklist.** Mirrors `nclex_cohort_checklist_items`.
+One row per (cohort × parent-programme-quiz), seeded by AFTER
+INSERT triggers on `nclex_cohorts` and `nclex_programme_quizzes`,
+plus rows for cohort-unique adds. Source-discriminated (PROGRAMME
+vs COHORT_ONLY). `is_included BOOLEAN` toggle exposed in UI from
+day one. Per-cohort scheduling = one nullable `release_date`
+column away. Most upfront work; most extensible.
+
+**Option C — Hidden checklist (Option B architecture, Option A
+UI).** Same DB shape as B (one row per cohort × quiz, seeded by
+triggers), but v1 UI is additive-only — no inclusion toggle, no
+scheduling. The row exists silently. When subtraction or
+scheduling lands, the UI surfaces the existing column;
+zero re-architecture. Middle cost; preserves both future paths.
+
+Trade-off summary:
+
+| Option | v1 surface | v1 cost | Future subtraction | Future per-cohort dates |
+|---|---|---|---|---|
+| A | Simple | Lowest | Re-architect | Re-architect |
+| B | Toggle visible | Highest | Already there | Add one column |
+| C | Same as A | Medium | Surface existing toggle | Add one column |
+
+**Decision deferred.** The build slice picks A / B / C based on
+how confident we are that per-cohort scheduling or subtraction
+will land. If neither feels likely → A. If either feels likely →
+C is the cheapest insurance. B only if we want to surface
+include/exclude on day one.
+
+**Build trigger.** Slice fires when a real tutor asks for one of:
+- A cohort-unique quiz that shouldn't be in the programme
+  template.
+- A quiz the tutor wants to skip for a specific cohort.
+- A quiz that should release on different dates for different
+  cohorts of the same programme.
+
+### 9.10 Not in v1 (this section)
 
 - **Reordering** the programme's quiz list (no `display_order`
   column).
