@@ -96,7 +96,7 @@ export function ActivityAction({ activity }: { activity: StudentActivity }) {
       {viewerOpen &&
         (activity.type === 'MOCK' || activity.type === 'PRACTICE_QUIZ') && (
           <QuizLaunchViewer
-            activity={activity}
+            target={activity}
             onClose={() => setViewerOpen(false)}
           />
         )}

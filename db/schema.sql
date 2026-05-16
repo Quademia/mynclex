@@ -501,11 +501,31 @@ CREATE TABLE nclex_attempts (
     )
   ),
 
-  -- Source-specific reference columns: at most one populated, matching the source
+  -- programme_id + quiz_id (Tutor Quiz Slice 6, 2026-05-20) —
+  -- populated ONLY for standalone PROGRAMME_ASSIGNED attempts
+  -- (those that launched from the Slice 6 student Quizzes page
+  -- without an underlying activity). Activity-linked attempts
+  -- leave both NULL; the (programme, quiz) tuple is derivable via
+  -- the activity JOIN.
+  programme_id               UUID REFERENCES nclex_programmes(programme_id) ON DELETE SET NULL,
+  quiz_id                    UUID REFERENCES nclex_tutor_quizzes(quiz_id) ON DELETE SET NULL,
+
+  -- Source-specific reference columns: at most one populated, matching the source.
+  -- The PROGRAMME_ASSIGNED branch was relaxed in Tutor Quiz Slice 6
+  -- (2026-05-20) to permit a standalone shape (programme_activity_id
+  -- NULL + programme_id + quiz_id NOT NULL) alongside the original
+  -- activity-linked shape.
   CONSTRAINT nclex_attempts_source_refs CHECK (
-    (source = 'CUSTOM_BUILT'        AND readiness_pack_id IS NULL AND programme_activity_id IS NULL)
-    OR (source = 'READINESS_PACK'    AND readiness_pack_id IS NOT NULL AND programme_activity_id IS NULL)
-    OR (source = 'PROGRAMME_ASSIGNED' AND programme_activity_id IS NOT NULL)
+    (source = 'CUSTOM_BUILT'        AND readiness_pack_id IS NULL AND programme_activity_id IS NULL AND programme_id IS NULL AND quiz_id IS NULL)
+    OR (source = 'READINESS_PACK'   AND readiness_pack_id IS NOT NULL AND programme_activity_id IS NULL AND programme_id IS NULL AND quiz_id IS NULL)
+    OR (
+      source = 'PROGRAMME_ASSIGNED'
+      AND (
+        (programme_activity_id IS NOT NULL AND programme_id IS NULL AND quiz_id IS NULL)
+        OR
+        (programme_activity_id IS NULL AND programme_id IS NOT NULL AND quiz_id IS NOT NULL)
+      )
+    )
   )
 );
 
@@ -517,6 +537,10 @@ CREATE INDEX idx_nclex_attempts_pack               ON nclex_attempts(readiness_p
   WHERE readiness_pack_id IS NOT NULL;
 CREATE INDEX idx_nclex_attempts_programme_activity ON nclex_attempts(programme_activity_id)
   WHERE programme_activity_id IS NOT NULL;
+-- Slice 6 — partial index for the per-(student, quiz, programme)
+-- cap count on standalone attempts.
+CREATE INDEX idx_nclex_attempts_standalone_quiz    ON nclex_attempts(student_id, programme_id, quiz_id)
+  WHERE source = 'PROGRAMME_ASSIGNED' AND programme_activity_id IS NULL;
 
 
 -- 14. nclex_attempt_case_snapshots — case scenarios snapshotted per attempt

@@ -224,18 +224,10 @@
   cursor: not-allowed;
 }
 
-/* ─── Kind pills (Mock = warm orange; Practice = indigo) ──── */
-
-.quiz-pill.pq-pill-mock {
-  background: #fff7ed;
-  color: #9a3412;
-  border-color: #fed7aa;
-}
-.quiz-pill.pq-pill-practice {
-  background: #eef2ff;
-  color: #3730a3;
-  border-color: #c7d2fe;
-}
+/* ─── Kind pills moved to quiz.css (.quiz-pill-kind-mock /
+ * .quiz-pill-kind-practice) so the student-quizzes surface and
+ * any future quiz-list view can reuse the same tone. Slice 6
+ * hoist (2026-05-20). ──────────────────────────────────────── */
 
 /* ─── Source hint — Linked / Standalone ───────────────────── */
 

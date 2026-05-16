@@ -167,6 +167,35 @@
   border-color: var(--border);
 }
 
+/* ─── Kind pills (Mock = warm orange, Practice = indigo) ──
+ * Shared across the tutor programme Quizzes page (Slice 5),
+ * the student programme/cohort Quizzes pages (Slice 6), and
+ * any future quiz-list surface. Same shape as .quiz-pill
+ * (rounded, 11px) but with kind-specific tone. Stands alone —
+ * not stacked under .quiz-pill so callers don't need both
+ * classes. */
+
+.quiz-pill-kind {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.quiz-pill-kind-mock {
+  background: #fff7ed;
+  color: #9a3412;
+  border-color: #fed7aa;
+}
+.quiz-pill-kind-practice {
+  background: #eef2ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
+}
+
 /* ─── Archived toggle ─────────────────────────────── */
 
 .quizzes-archived-toggle {

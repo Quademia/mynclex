@@ -39,15 +39,22 @@ export const STUDENT_BANK_NAV: NavItem[] = [
  */
 export const STUDENT_PROGRAMME_DETAIL_NAV: NavItem[] = [
   { key: 'curriculum', label: 'Curriculum',   icon: 'layers', href: '/student/programme/:programmeId/curriculum' },
+  // Tutor Quiz Slice 6 — programme-level quizzes. Icon `book`
+  // (the student's mental model is "a quiz to take," and `target`
+  // already represents Readiness Packs in the global bank nav —
+  // using a different icon here avoids cross-context collision).
+  { key: 'quizzes',    label: 'Quizzes',      icon: 'book',   href: '/student/programme/:programmeId/quizzes' },
   { key: 'history',    label: 'Quiz History', icon: 'clock',  href: '/student/programme/:programmeId/history' },
 ];
 
 /**
  * Cohort-detail sidebar (slice 10.1; History added in progress
- * engine Slice 4). Hrefs carry ':cohortId', swapped by the cohort
- * layout for the actual [cohort_id] route param.
+ * engine Slice 4; Quizzes added in tutor-quiz Slice 6). Hrefs
+ * carry ':cohortId', swapped by the cohort layout for the actual
+ * [cohort_id] route param.
  */
 export const STUDENT_COHORT_DETAIL_NAV: NavItem[] = [
   { key: 'curriculum', label: 'Curriculum',   icon: 'layers', href: '/student/cohort/:cohortId/curriculum' },
+  { key: 'quizzes',    label: 'Quizzes',      icon: 'book',   href: '/student/cohort/:cohortId/quizzes' },
   { key: 'history',    label: 'Quiz History', icon: 'clock',  href: '/student/cohort/:cohortId/history' },
 ];

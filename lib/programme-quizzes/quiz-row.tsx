@@ -40,7 +40,7 @@ export function QuizRow({
           >
             <h3 className="pq-row-title">{quiz.title}</h3>
           </Link>
-          <span className={`quiz-pill pq-pill-${quiz.quiz_kind.toLowerCase()}`}>
+          <span className={`quiz-pill-kind quiz-pill-kind-${quiz.quiz_kind.toLowerCase()}`}>
             {formatQuizKind(quiz.quiz_kind)}
           </span>
           <span className={`quiz-pill ${quizStatusPillClass(quiz.status)}`}>

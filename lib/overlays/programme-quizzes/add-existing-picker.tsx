@@ -186,7 +186,7 @@ export function AddExistingPicker({
                         </span>
                         <span className="pq-picker-row-meta">
                           <span
-                            className={`quiz-pill pq-pill-${q.quiz_kind.toLowerCase()}`}
+                            className={`quiz-pill-kind quiz-pill-kind-${q.quiz_kind.toLowerCase()}`}
                           >
                             {formatQuizKind(q.quiz_kind)}
                           </span>

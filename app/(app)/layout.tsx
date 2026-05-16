@@ -30,6 +30,7 @@ import '@/styles/student-curriculum.css';
 import '@/styles/media.css';
 import '@/styles/quiz.css';
 import '@/styles/programme-quizzes.css';
+import '@/styles/student-quizzes.css';
 
 export const dynamic = 'force-dynamic';
 

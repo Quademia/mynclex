@@ -1,0 +1,316 @@
+/* mynclex/styles/student-quizzes.css
+ *
+ * Student Quizzes page — Tutor Quiz Slice 6. New domain file per
+ * CLAUDE.md folder convention #5.
+ *
+ * Reuses across slices:
+ *   - .student-activity-state (+ .is-done / .is-in-progress /
+ *     .is-up-next / .is-not-started) — progress-engine state pill
+ *     cadence (student-curriculum.css).
+ *   - .quiz-pill-kind-mock / .quiz-pill-kind-practice — kind pill
+ *     classes hoisted to quiz.css in Slice 6 so both Slice 5
+ *     (tutor) and Slice 6 (student) share the same tone.
+ *   - .viewer-modal-* — the launch modal shell (existing).
+ *
+ * Class prefix `.sq-*` for everything specific to this slice.
+ */
+
+/* ─── Page ─────────────────────────────────────────────── */
+
+.sq-page {
+  max-width: 1080px;
+}
+
+.sq-head {
+  margin-bottom: 18px;
+}
+
+.sq-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.sq-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 640px;
+  line-height: 1.5;
+}
+
+/* ─── Filters bar ──────────────────────────────────────── */
+
+.sq-filters {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+}
+
+.sq-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sq-filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.sq-segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  padding: 2px;
+  gap: 2px;
+}
+
+.sq-segmented-btn {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.sq-segmented-btn:hover {
+  color: var(--text);
+}
+.sq-segmented-btn.is-active {
+  background: var(--white);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.sq-filters-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* ─── Empty state ──────────────────────────────────────── */
+
+.sq-empty {
+  background: var(--white);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.sq-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.sq-empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 auto;
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+/* ─── Row ─────────────────────────────────────────────── */
+
+.sq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sq-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s ease;
+}
+.sq-row:hover {
+  border-color: var(--border-strong);
+}
+.sq-row.is-exhausted {
+  background: var(--bg);
+  opacity: 0.85;
+}
+.sq-row.is-done {
+  /* DONE rows aren't muted — student should still feel encouraged
+   * to retake. No background change; just a subtle border tone. */
+  border-color: #bbf7d0;
+}
+
+.sq-row-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sq-row-title-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sq-row-link {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+  min-width: 0;
+}
+.sq-row-link:hover .sq-row-title {
+  color: var(--primary);
+}
+.sq-row-link:disabled {
+  cursor: not-allowed;
+  color: var(--text-muted);
+}
+
+.sq-row-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.sq-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.sq-row-meta-sep {
+  color: var(--text-faint);
+}
+
+.sq-row-attempt {
+  font-variant-numeric: tabular-nums;
+}
+.sq-row-attempt.is-exhausted {
+  color: var(--danger);
+}
+
+.sq-row-pass {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Source hint (mirrors Slice 5 .pq-source-hint) ───── */
+
+.sq-source-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid;
+  width: fit-content;
+}
+.sq-source-hint.is-linked {
+  background: #f0fdfa;
+  color: #115e59;
+  border-color: #99f6e4;
+}
+.sq-source-hint.is-standalone {
+  background: var(--bg);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+/* ─── Right column (state pill + action) ──────────────── */
+
+.sq-row-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ─── Action button ────────────────────────────────────── */
+
+.sq-action {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease;
+  min-width: 92px;
+  text-align: center;
+}
+.sq-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Start + Resume + Take again all use the accent (primary). The
+ * In-progress state pill carries the warning tone; the button
+ * stays accent so the visual handoff is consistent with the
+ * existing launch modal's CTA. */
+.sq-action-start,
+.sq-action-resume {
+  background: var(--primary);
+  color: var(--white);
+  border-color: var(--primary);
+}
+.sq-action-start:hover:not(:disabled),
+.sq-action-resume:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+/* Take again — secondary visual weight. Outlined accent — the
+ * student has already completed it once; the row is a re-take
+ * suggestion, not a primary CTA. */
+.sq-action-take_again {
+  background: var(--white);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.sq-action-take_again:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+/* Exhausted — disabled muted button carrying the meaning. No
+ * state pill renders on this row; this button is the signal. */
+.sq-action-exhausted {
+  background: var(--bg);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
