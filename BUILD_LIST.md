@@ -1767,9 +1767,30 @@ Build arc:
   via `exitBackLabel(source)`. Pre-slice: dev tutor-question
   option ids normalised to A/B/C/D/E across 23 rows + seed file
   rewritten. No schema. See SESSIONS 2026-05-15 (Slice 3a).
-- ⏭ **Slice 4** Progress / analytics — quiz completion →
+- ⬜ **Slice 4** Progress / analytics — quiz completion →
   activity completion → unit/programme progress → tutor
-  analytics. Depends on the student progress engine.
+  analytics. Depends on the student progress engine — now rolled
+  into the progress-engine Slice 5 (same blocker on enrolment,
+  same ship moment).
+- ⏭ **Slice 5** Programme-level quiz membership (tutor surface) —
+  new junction table `nclex_programme_quizzes` (mirrored from
+  activity-link saves; canonical source of truth for "what
+  quizzes are in this programme"); new
+  `/tutor/programme/[id]/quizzes` page with two add paths
+  ("Add existing" picker for PUBLISHED quizzes + "New quiz"
+  creates-and-auto-attaches as DRAFT); per-row block-remove
+  (rejects when the quiz is still linked to activities in this
+  programme); "Used in N programmes" chip on `/tutor/quizzes`.
+  Sidebar item. Auto-mirror added to the existing activity-save
+  server action. RLS policies on junction; new student-read
+  policy on `nclex_tutor_quizzes`. Settled in §9 of
+  `docs/product-plan/tutor-quiz-system.md` (2026-05-16).
+- ⬜ **Slice 6** Programme-level quiz membership (student surface) —
+  `/student/programme/[id]/quizzes` + `/student/cohort/[id]/quizzes`,
+  junction-driven listing, reuses the existing `<QuizLaunchViewer>`
+  modal + `nclex_create_programme_attempt` RPC (with an open call
+  on attempt-cap semantics for standalone-launched quizzes —
+  §9.7 of the plan). Sidebar items.
 
 **Deferred enhancement — richer question filtering.** The quiz
 question picker (and `/tutor/bank/all`, which shares the filter

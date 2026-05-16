@@ -215,14 +215,58 @@ Per the planning doc deferrals:
 
 ### Next
 
-⏭ No specific next slice queued from this arc. The progress
-engine is feature-complete for v1; future work either gates on
-enrolment (Slice 5) or returns when Sam has the visual shapes for
-the % extensions. BUILD_LIST + doc updated.
+⏭ Next session — Tutor-Quiz Slice 5 (programme-level quiz
+membership, tutor surface). Planning extension settled this
+session (see below); build deferred to next session by Sam's call.
 
 Commits `1453726` (Slice 1) + `6bad6c9` (Slice 2) + `c89a3ff`
 (Slice 3) + `2a345f2` (Slice 4) + `fda868d` (Slice 4b) + `b890b84`
-(rename).
+(rename) + `758adff` (closing docs).
+
+### Late-session: Tutor-Quiz §9 planning extension
+
+After the engine arc closed, Sam opened a separate conversation
+about a student-facing Quizzes page. The discussion surfaced that
+the real ask wasn't a navigation lens (list curriculum quizzes
+flat) but an architectural reframe: **quizzes should be
+first-class programme content, not just activity payloads.**
+Standalone practice resources, attached to the programme directly,
+alongside the curriculum-embedded ones.
+
+Settled the full design into a new §9 in
+`docs/product-plan/tutor-quiz-system.md`:
+
+- **Mirrored junction model** (Sam's pushback against my initial
+  "independent" framing — single source of truth is cleaner).
+  `nclex_programme_quizzes(programme_id, quiz_id, added_at)`; two
+  write paths feed it (activity-save auto-mirrors; standalone add
+  via the new programme Quizzes page).
+- **Block-remove** rule with clear error when activity-links
+  remain — prevents silent curriculum breakage.
+- **Two tutor add paths**: "Add existing" picker (PUBLISHED only)
+  + "New quiz" creates a DRAFT and auto-attaches in the same
+  transaction (lets a tutor build a quiz *for* a programme without
+  the picker-then-build round trip). Plus a small "Used in N
+  programmes" chip on the global `/tutor/quizzes` list so tutors
+  see at a glance which quizzes are reused vs. orphans.
+- **Student page** at `/student/programme/[id]/quizzes` +
+  `/student/cohort/[id]/quizzes` — junction-driven, reuses the
+  existing `<QuizLaunchViewer>` modal + launch RPC, rows use the
+  progress-engine state pill cascade + Slice 4b's "Attempt N
+  of M".
+- **New student-read RLS on `nclex_tutor_quizzes`** so the student
+  Quizzes page can read metadata directly (avoids funnelling
+  everything through a SECURITY DEFINER RPC).
+- **One open call** — §9.7 attempt-cap semantics for
+  standalone-launched quizzes (per-(student, quiz, programme) is
+  the lean). Settles before Slice 6.
+
+Build arc adds two new slices on top of the original tutor-quiz
+arc:
+- **Slice 5** — tutor surface (this is the next-session build).
+- **Slice 6** — student surface.
+
+Doc commit `ba9c92d`. Memory pointer updated.
 
 ---
 
