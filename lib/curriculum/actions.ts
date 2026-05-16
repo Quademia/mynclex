@@ -545,6 +545,19 @@ export async function createActivityAction(
     return { ok: false, error: error?.message ?? 'Failed to create activity.' };
   }
 
+  // Tutor Quiz Slice 5 — auto-mirror into nclex_programme_quizzes.
+  // The activity-link IS a placement within the programme, so the
+  // junction records the membership. Idempotent via the composite
+  // PK + ON CONFLICT DO NOTHING. Best-effort: a junction-side
+  // failure does not roll back the activity (the activity is the
+  // primary surface; the junction is a derived view of membership).
+  if (
+    (values.type === 'MOCK' || values.type === 'PRACTICE_QUIZ') &&
+    values.quiz_id
+  ) {
+    await mirrorQuizIntoProgramme(supabase, unitRow.programme_id, values.quiz_id);
+  }
+
   refreshProgrammeCurriculumPaths(unitRow.programme_id, unitId);
   return { ok: true, activity_id: data.activity_id };
 }
@@ -644,10 +657,51 @@ export async function editActivityAction(
     .select('programme_id')
     .eq('unit_id', data.unit_id)
     .maybeSingle();
+
+  // Tutor Quiz Slice 5 — auto-mirror into nclex_programme_quizzes
+  // on the edit path too (a tutor may LINK a quiz on a previously-
+  // unlinked activity via this action). Symmetric with the create
+  // path; idempotent via composite PK + ON CONFLICT DO NOTHING.
+  // Note: this only ADDS to the junction. UNLINKING from an
+  // activity (setting payload.quiz_id = null) does NOT auto-remove
+  // — the quiz might still be useful standalone or linked to
+  // other activities; junction row stays until the tutor
+  // explicitly removes from the Quizzes page (§9.3).
+  if (
+    unitRow &&
+    (values.type === 'MOCK' || values.type === 'PRACTICE_QUIZ') &&
+    values.quiz_id
+  ) {
+    await mirrorQuizIntoProgramme(supabase, unitRow.programme_id, values.quiz_id);
+  }
+
   if (unitRow) {
     refreshProgrammeCurriculumPaths(unitRow.programme_id, data.unit_id);
   }
   return { ok: true };
+}
+
+// =========================================================
+// mirrorQuizIntoProgramme (Tutor Quiz Slice 5)
+// =========================================================
+// Best-effort upsert into nclex_programme_quizzes. The activity's
+// own ownership chain (RLS on nclex_programme_activities ->
+// _units -> _programmes) guarantees the caller owns the
+// programme — so by the time we get here, the caller is allowed
+// to write the junction row. Idempotent via composite PK + the
+// onConflict directive; a duplicate caller is a no-op.
+
+async function mirrorQuizIntoProgramme(
+  supabase: SupabaseClient,
+  programmeId: string,
+  quizId: string,
+): Promise<void> {
+  await supabase
+    .from('nclex_programme_quizzes')
+    .upsert(
+      { programme_id: programmeId, quiz_id: quizId },
+      { onConflict: 'programme_id,quiz_id', ignoreDuplicates: true },
+    );
 }
 
 // =========================================================

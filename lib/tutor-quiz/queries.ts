@@ -15,11 +15,16 @@ import type {
 
 /**
  * /tutor/quizzes list query. One row per quiz the tutor owns, with
- * the question-count rollup folded in via a PostgREST embedded
- * count. Ordered most-recently-updated first.
+ * the question-count rollup AND the "Used in N programmes" count
+ * folded in via PostgREST embedded counts. Ordered most-recently-
+ * updated first.
  *
  * RLS scopes the SELECT to tutor_id = auth.uid() (SUPER_ADMIN
- * bypass via nclex_tutor_quizzes_superadmin). Returns [] on error.
+ * bypass via nclex_tutor_quizzes_superadmin). The programme-count
+ * embed is added by Tutor Quiz Slice 5 — drives the "Used in N
+ * programmes" chip on the card (§9.4.2).
+ *
+ * Returns [] on error.
  */
 export async function getMyQuizzes(): Promise<QuizListRow[]> {
   const supabase = await createClient();
@@ -29,19 +34,26 @@ export async function getMyQuizzes(): Promise<QuizListRow[]> {
     .select(
       `quiz_id, title, description, quiz_kind, mode,
        duration_seconds, pass_score, max_attempts, status, updated_at,
-       nclex_tutor_quiz_items(count)`,
+       nclex_tutor_quiz_items(count),
+       nclex_programme_quizzes(count)`,
     )
     .order('updated_at', { ascending: false });
 
   if (error || !data) return [];
 
   return data.map((row) => {
-    const { nclex_tutor_quiz_items, ...rest } = row as typeof row & {
+    const {
+      nclex_tutor_quiz_items,
+      nclex_programme_quizzes,
+      ...rest
+    } = row as typeof row & {
       nclex_tutor_quiz_items: Array<{ count: number }> | null;
+      nclex_programme_quizzes: Array<{ count: number }> | null;
     };
     return {
       ...rest,
       item_count: nclex_tutor_quiz_items?.[0]?.count ?? 0,
+      used_in_programmes: nclex_programme_quizzes?.[0]?.count ?? 0,
     } as QuizListRow;
   });
 }

@@ -1048,6 +1048,76 @@ CREATE POLICY nclex_tutor_quiz_items_superadmin
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
 
 
+-- ---------- nclex_tutor_quizzes: student-read (Slice 5, 2026-05-19) ----------
+-- Added by Tutor Quiz Slice 5 so the Slice 6 student Quizzes page
+-- can read quiz metadata (title, kind, mode, pass_score,
+-- max_attempts) directly from this table. Readable when the quiz
+-- itself is PUBLISHED AND it's attached (via the junction) to a
+-- PUBLISHED programme. Permissive v1; tightens to enrolment-aware
+-- when the enrolment slice lands.
+
+CREATE POLICY nclex_tutor_quizzes_student_select
+  ON nclex_tutor_quizzes FOR SELECT
+  TO authenticated
+  USING (
+    status = 'PUBLISHED'
+    AND EXISTS (
+      SELECT 1
+      FROM nclex_programme_quizzes pq
+      JOIN nclex_programmes p ON p.programme_id = pq.programme_id
+      WHERE pq.quiz_id = nclex_tutor_quizzes.quiz_id
+        AND p.status = 'PUBLISHED'
+    )
+  );
+
+
+-- =========================================================
+-- nclex_programme_quizzes (Tutor Quiz Slice 5, 2026-05-19)
+-- =========================================================
+-- Tutor own: walks the parent programme's tutor_id (the junction
+-- row has no tutor_id — ownership is through the programme).
+-- SUPER_ADMIN bypass mirrors the established v1 pattern.
+-- Student select: PUBLISHED-parent-only — permissive v1, tightens
+-- to enrolment-aware when the enrolment slice ships.
+
+ALTER TABLE nclex_programme_quizzes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_programme_quizzes_tutor_own
+  ON nclex_programme_quizzes FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_quizzes.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_quizzes.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_programme_quizzes_superadmin
+  ON nclex_programme_quizzes FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+CREATE POLICY nclex_programme_quizzes_student_select
+  ON nclex_programme_quizzes FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_quizzes.programme_id
+        AND p.status = 'PUBLISHED'
+    )
+  );
+
+
 -- =========================================================
 -- nclex_student_activity_progress (Progress engine Slice 1, 2026-05-18)
 -- =========================================================

@@ -1,0 +1,590 @@
+/* mynclex/styles/programme-quizzes.css
+ *
+ * Programme Quizzes — Tutor Quiz Slice 5. New domain file per
+ * CLAUDE.md folder convention #5.
+ *
+ * Reuses across slices:
+ *   - .prog-modal-overlay / .confirm-dialog / .prog-btn-* — the
+ *     established overlay + dialog vocabulary (programmes.css +
+ *     cohorts.css).
+ *   - .quiz-pill / .quiz-pill.is-published / .is-draft / .is-archived
+ *     — Tutor Quiz Slice 1's status pill cadence (quiz.css).
+ *   - .quiz-card-* — the global quiz card chrome (quiz.css); the
+ *     "Used in N programmes" chip below is an additive insert.
+ *
+ * Class prefix `.pq-*` for everything specific to this slice.
+ */
+
+/* ─── List page ───────────────────────────────────────────── */
+
+.pq-page {
+  max-width: 1080px;
+}
+
+.pq-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.pq-head-titles {
+  flex: 1;
+}
+
+.pq-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.pq-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 640px;
+  line-height: 1.5;
+}
+
+.pq-head-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Add-existing + New quiz CTA pair — equal-weight per §9.4.1. */
+
+.pq-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  text-decoration: none;
+}
+.pq-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pq-btn-primary {
+  background: var(--primary);
+  color: var(--white);
+  border-color: var(--primary);
+}
+.pq-btn-primary:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+.pq-btn-outline {
+  background: var(--white);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.pq-btn-outline:hover:not(:disabled) {
+  background: var(--bg);
+}
+.pq-btn-ghost {
+  background: var(--white);
+  color: var(--text);
+  border-color: var(--border);
+}
+.pq-btn-ghost:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+/* ─── Empty state ─────────────────────────────────────────── */
+
+.pq-empty {
+  background: var(--white);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.pq-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.pq-empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 auto 18px;
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+.pq-empty-ctas {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* ─── Row ─────────────────────────────────────────────────── */
+
+.pq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pq-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s ease;
+}
+.pq-row:hover {
+  border-color: var(--border-strong);
+}
+.pq-row.is-muted {
+  background: var(--bg);
+  opacity: 0.85;
+}
+
+.pq-row-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pq-row-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pq-row-link {
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+.pq-row-link:hover .pq-row-title {
+  color: var(--primary);
+}
+
+.pq-row-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.pq-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pq-row-right {
+  flex-shrink: 0;
+}
+
+.pq-row-remove {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  background: var(--white);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+.pq-row-remove:hover:not(:disabled) {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+.pq-row-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Kind pills (Mock = warm orange; Practice = indigo) ──── */
+
+.quiz-pill.pq-pill-mock {
+  background: #fff7ed;
+  color: #9a3412;
+  border-color: #fed7aa;
+}
+.quiz-pill.pq-pill-practice {
+  background: #eef2ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
+}
+
+/* ─── Source hint — Linked / Standalone ───────────────────── */
+
+.pq-source-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid;
+  width: fit-content;
+}
+.pq-source-hint.is-linked {
+  background: #f0fdfa;
+  color: #115e59;
+  border-color: #99f6e4;
+}
+.pq-source-hint.is-standalone {
+  background: var(--bg);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+/* ─── Picker modal ────────────────────────────────────────── */
+
+.pq-picker-modal {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 600px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pq-picker-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pq-picker-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+.pq-picker-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 460px;
+  line-height: 1.5;
+}
+
+.pq-picker-close {
+  background: transparent;
+  border: 0;
+  font-family: inherit;
+  font-size: 16px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.pq-picker-close:hover:not(:disabled) {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.pq-picker-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pq-picker-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pq-segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  padding: 2px;
+  gap: 2px;
+}
+
+.pq-segmented-btn {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.pq-segmented-btn:hover {
+  color: var(--text);
+}
+.pq-segmented-btn.is-active {
+  background: var(--white);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.pq-picker-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pq-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pq-picker-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.pq-picker-row:hover {
+  border-color: var(--border-strong);
+  background: var(--bg);
+}
+.pq-picker-row.is-selected {
+  border-color: var(--primary);
+  background: #eff6ff;
+}
+
+.pq-picker-row-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.pq-picker-check {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--primary);
+}
+
+.pq-picker-row-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pq-picker-row-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pq-picker-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.pq-picker-empty {
+  text-align: center;
+  padding: 28px 16px;
+}
+
+.pq-picker-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.pq-picker-empty-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0 auto;
+  max-width: 420px;
+  line-height: 1.5;
+}
+
+.pq-picker-error {
+  margin: 0;
+  padding: 10px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  color: #7f1d1d;
+  font-size: 12.5px;
+}
+
+.pq-picker-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.pq-picker-foot-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pq-picker-foot-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ─── Confirm-dialog soft body ────────────────────────────── */
+
+.pq-confirm-body-soft {
+  color: var(--text-muted) !important;
+  font-size: 12.5px !important;
+}
+
+/* ─── Toast ───────────────────────────────────────────────── */
+
+.pq-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: min(440px, calc(100vw - 48px));
+  padding: 12px 14px;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  font-size: 13px;
+}
+.pq-toast-success {
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-left: 4px solid #16a34a;
+}
+.pq-toast-error {
+  color: #7f1d1d;
+  border: 1px solid #fecaca;
+  border-left: 4px solid var(--danger);
+}
+
+.pq-toast-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  color: var(--white);
+  font-weight: 700;
+  font-size: 13px;
+}
+.pq-toast-success .pq-toast-icon {
+  background: #16a34a;
+}
+.pq-toast-error .pq-toast-icon {
+  background: var(--danger);
+}
+
+.pq-toast-message {
+  flex: 1;
+  font-weight: 500;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+.pq-toast-close {
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1;
+}
+.pq-toast-close:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ─── "Used in N programmes" chip on global quiz card ─────── */
+
+.quiz-card-used-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid;
+  width: fit-content;
+}
+.quiz-card-used-chip.is-none {
+  background: var(--bg);
+  color: var(--text-muted);
+  border-color: var(--border);
+  font-style: italic;
+}
+.quiz-card-used-chip.is-some {
+  background: #f0fdfa;
+  color: #115e59;
+  border-color: #99f6e4;
+}
+.quiz-card-used-chip.is-many {
+  background: #f0fdfa;
+  color: #115e59;
+  border-color: #99f6e4;
+  font-weight: 600;
+}

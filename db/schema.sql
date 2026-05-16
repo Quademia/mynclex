@@ -1170,6 +1170,42 @@ CREATE INDEX idx_nclex_tutor_quiz_items_quiz
 
 
 -- =========================================================
+-- Programme-level quiz membership (Tutor Quiz Slice 5, 2026-05-19)
+-- =========================================================
+-- The canonical record of "what quizzes are in this programme." Two
+-- write paths feed it: the activity-save auto-mirror (saving an
+-- activity with a non-null quiz_id upserts here too) and the
+-- standalone-add from the /tutor/programme/[id]/quizzes page.
+-- Composite PK enforces idempotency at the row level — both paths
+-- can safely use ON CONFLICT DO NOTHING.
+--
+-- "Linked to Unit N" / "Standalone" hint on the tutor row is
+-- derived from a LEFT JOIN to nclex_programme_activities — there is
+-- NO `linked_via_activity_id` column. Whether a quiz is also
+-- activity-linked stays consistent automatically.
+--
+-- Remove is BLOCK, not cascade — enforced in the remove server
+-- action (§9.3). The DB only has the FK CASCADEs (which fire when
+-- the programme or quiz itself is deleted).
+
+CREATE TABLE nclex_programme_quizzes (
+  programme_id  UUID NOT NULL
+                REFERENCES nclex_programmes(programme_id) ON DELETE CASCADE,
+  quiz_id       UUID NOT NULL
+                REFERENCES nclex_tutor_quizzes(quiz_id)   ON DELETE CASCADE,
+
+  added_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  PRIMARY KEY (programme_id, quiz_id)
+);
+
+-- Reverse-lookup index — drives the "Used in N programmes" chip on
+-- /tutor/quizzes and the Slice 6 student read path keyed on quiz_id.
+CREATE INDEX idx_nclex_programme_quizzes_quiz
+  ON nclex_programme_quizzes(quiz_id);
+
+
+-- =========================================================
 -- Student activity progress (Progress engine, Slice 1, 2026-05-18)
 -- =========================================================
 -- One row per (student, activity) when the activity is DONE.
