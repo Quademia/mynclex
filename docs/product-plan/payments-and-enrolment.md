@@ -2,7 +2,7 @@
 
 *Living document. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
-Last updated: 2026-05-11 (terminology touch — programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
+Last updated: 2026-05-17 (Bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
 
 ---
 
@@ -132,14 +132,19 @@ or the MyNclex Cloudflare Worker landing URL).
 - Logo + tagline.
 - Currency toggle (top-right): **GHS | USD**. GHS is default.
 
-**Section 1 — Bank Access.** Four cards in a row, left to right:
+**Section 1 — Bank Access.** Six cards in a row, left to right:
 
-| Card | Pack | Price | Action |
-|---|---|---|---|
-| 7-day Trial | free | `₵0 / $0` | "Start Trial" → register flow |
-| 30 days | duration pack | live | "Buy" → subscribe flow |
-| 90 days | duration pack | live | "Buy" → subscribe flow |
-| 180 days | duration pack | live | "Buy" → subscribe flow |
+| Card | Pack | GHS | USD | Action |
+|---|---|---|---|---|
+| 7-day Trial | free | ₵0 | $0 | "Start Trial" → register flow |
+| 30 days | duration pack | ₵120 | $30 | "Buy" → subscribe flow |
+| 60 days | duration pack | ₵200 | $50 | "Buy" → subscribe flow |
+| 90 days | duration pack | ₵270 | $70 | "Buy" → subscribe flow |
+| 180 days | duration pack | ₵450 | $110 | "Buy" → subscribe flow |
+| 365 days | duration pack | ₵700 | $160 | "Buy" → subscribe flow |
+
+Settled 2026-05-17 — see *Pricing — Bank* below for the reasoning
+and the alternative pricings considered.
 
 **Section 2 — Exam Readiness Assessments.** One card per readiness
 pack from `nclex_readiness_packs` joined with `nclex_products`.
@@ -147,6 +152,102 @@ Each card shows pack name, question count, price, "Buy" button.
 
 Sections 3+ (FAQ, testimonials, sample-question teaser) deferred to
 v2 or post-launch marketing iteration.
+
+### Pricing — Bank
+
+**Settled 2026-05-17.** Dual-currency, six tiers, per-day cost
+drops with duration.
+
+**Settled prices:**
+
+| Plan | GHS | USD | GHS $/day | USD $/day | % monthly GH salary |
+|---|---|---|---|---|---|
+| 30 days | ₵120 | $30 | ₵4.00 | $1.00 | ~5% |
+| 60 days | ₵200 | $50 | ₵3.33 | $0.83 | ~10% |
+| 90 days | ₵270 | $70 | ₵3.00 | $0.78 | ~13% |
+| 180 days | ₵450 | $110 | ₵2.50 | $0.61 | ~22% |
+| 365 days | ₵700 | $160 | ₵1.92 | $0.44 | ~33% |
+
+(% monthly Ghana salary anchored to ~₵2,000–2,200 entry-level
+nursing salary, May 2026.)
+
+**Principles:**
+- **GHS anchored to local salary** (~5–33% of monthly entry salary
+  across tiers). A Ghanaian nurse can buy 30 days for the cost of
+  a meal out; can buy 365 days for ~2 weeks salary.
+- **USD anchored to competitors** (Archer-tier — well under UWorld).
+  Mid-tier value framing; we're new, so we can't price like UWorld.
+- **GHS ≠ USD conversion deliberately.** At FX ~11.44 (May 2026),
+  ₵120 = $10.50, but international price is $30. Regional pricing
+  pattern (Spotify, Netflix, every major global SaaS). Local market
+  stays accessible; diaspora pays a quality-signalling premium.
+- **Per-day curve rewards commitment.** ~2.5× drop from 30d to 365d
+  in both currencies. Gentler than UWorld's ~7× drop, steeper than
+  Bootcamp's flat curve.
+
+**Market reference (2026-05, for context):**
+
+| Platform | 30d | 60d | 90d | 180d | 365d |
+|---|---|---|---|---|---|
+| UWorld | $139 | $169 | $249 | $329 | $389 |
+| Bootcamp | $80 | $160 | $240 | — | — |
+| Archer Rapid Combo | — | $89 | $109 | $169 | $199 |
+| **MyNclex (USD)** | **$30** | **$50** | **$70** | **$110** | **$160** |
+
+**Alternative pricings considered** (for the record — not adopted):
+
+| Plan | USD (FX conversion) | USD (suggested, ADOPTED) | USD (earlier, higher) |
+|---|---|---|---|
+| 30 days | $10.50 | **$30** | $50 |
+| 60 days | $17.50 | **$50** | $80 |
+| 90 days | $23.60 | **$70** | $110 |
+| 180 days | $39.30 | **$110** | $170 |
+| 365 days | $61.20 | **$160** | $240 |
+
+- **FX conversion** ($10.50 → $61.20): too cheap-looking; signals
+  inferior product to a diaspora buyer with a USD card.
+- **Earlier, higher** ($50 → $240): originally proposed against
+  UWorld's positioning, but our actual USD buyers are mostly
+  diaspora (not Americans choosing between Qbanks). At those prices
+  the diaspora buyer compares to GHS-converted and feels overcharged.
+- **Suggested (adopted)** ($30 → $160): roughly 2.5–3× the FX
+  conversion. Signals quality without being prohibitive. Sits at
+  Archer's level (we're new, mid-tier value framing) and undercuts
+  UWorld by ~40–60% at every tier.
+
+**Single-currency stress test.** A USD-only catalogue would price
+365d at $160 = ₵1,830 ≈ **83% of a Ghanaian nurse's monthly salary**
+(vs 33% under the dual-currency settled plan). Would price out the
+core local audience to keep the catalogue simple. Hence dual-currency
+is kept.
+
+**Revenue framing note** (rough, lifetime not monthly): at a
+blended-mix average revenue per subscriber of ~$63, $1M USD in
+bank-only revenue ≈ ~15,900 lifetime subscribers. Programmes and
+readiness packs stack on top — bank-only is the volume play.
+
+### Bundled readiness packs
+
+Longer bank tiers include access to readiness packs (product
+catalogue's `nclex_readiness_packs`), modelled on UWorld's
+self-assessment bundling:
+
+- Count per tier — **TBD** (finalised during readiness-pack
+  planning; will follow UWorld's "more packs as tier grows"
+  shape: 0 on 30d trial path, ~1–6 across the paid tiers).
+- Each bundled pack is **dormant until activated** by the student.
+- On activation, the pack has a **21-day window** to complete
+  (chosen over UWorld's 14-day window — more generous, mild
+  differentiation, still tight enough to feel focused rather than
+  "a second bank subscription").
+- The 21-day window is **independent of the bank subscription**.
+  Unactivated packs survive the bank's expiry — students can come
+  back later, activate, get their 21 days.
+
+Bundling is one-way: bundled packs unlock access to the same pack
+content as the standalone purchase (no separate "bundled-only"
+SKU). The catalogue stays clean — one product per pack — with the
+bundling expressed as an entitlement on the bank subscription.
 
 ### Two paths on card click
 
@@ -439,11 +540,14 @@ New tables needed for tutored enrolment:
 
 - Payment methods beyond Paystack.
 - Group / institutional licences.
-- 365-day bank packs.
 - Discount codes and promotions.
 - Refund workflow in admin (currently manual / off-platform).
 - Subscription auto-renewal.
 - Gift subscriptions.
+- **Time Reset option** — let a student wipe their answer history
+  mid-subscription and start fresh. Mirrors UWorld's reset feature
+  (offered on 180d+ tiers). Parked; revisit once we see whether
+  real students ask for it.
 
 ---
 
