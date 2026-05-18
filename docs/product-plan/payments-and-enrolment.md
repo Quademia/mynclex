@@ -2,7 +2,7 @@
 
 *Living document. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
-Last updated: 2026-05-17 (Programme enrolment model revised — old bundled-bank checkout dropped in favour of decoupled Option C (opt-in bank at 40% off + tutor-mediated enrolment + tutor-configurable payment strategies + on-platform vs off-platform collection toggle). Old "Bundled transaction" / "Auto-enrolment on payment" / "Tutor-added enrolment" subsections marked SUPERSEDED in-place; new "Settled 2026-05-17" subsection inside Tutored enrolment carries the revised model. Self-paced enrolment + auth-model alignment + enrolment-source enum + tutor-sub revisit + waitlist behaviour all noted as Still open in that subsection. Earlier today: readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
+Last updated: 2026-05-17 (Self-paced enrolment + Programme access window both settled — new top-level sections added for each. Self-paced: self-serve on-platform only, one access window per programme, same payment strategies as tutored but anchored to enrolment date, instant enrolment no tutor mediation. Access window cross-cutting: Pattern A adopted (tutor-set per programme, contingent on tutor maintaining the monthly sub — industry standard). Earlier in this same day: Programme enrolment model revised — old bundled-bank checkout dropped in favour of decoupled Option C (opt-in bank at 40% off + tutor-mediated enrolment + tutor-configurable payment strategies + on-platform vs off-platform collection toggle). Old "Bundled transaction" / "Auto-enrolment on payment" / "Tutor-added enrolment" subsections marked SUPERSEDED in-place; new "Settled 2026-05-17" subsection inside Tutored enrolment carries the revised model. Auth-model alignment + enrolment-source enum + tutor-sub revisit + waitlist behaviour all noted as Still open in that subsection. Earlier today: readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
 
 ---
 
@@ -25,6 +25,13 @@ this file.
   decoupled (opt-in bank, tutor-mediated enrolment, flexible
   payment strategies). A handful of sub-topics still open — see
   "Still open" inside *Tutored enrolment → Settled 2026-05-17*.
+- **Programme access window — SETTLED 2026-05-17.** Pattern A
+  adopted: tutor-set per programme, all access contingent on
+  tutor maintaining their monthly platform subscription. Applies
+  to both tutored and self-paced.
+- **Self-paced enrolment — SETTLED 2026-05-17.** Self-serve
+  on-platform only, one access window per programme, same payment
+  strategies as tutored but anchored to enrolment date.
 
 ---
 
@@ -674,12 +681,6 @@ Slot if real-world signal pushes us to revisit:
 These were flagged during the 2026-05-17 discussion but not
 settled in this pass. They need revisiting before build:
 
-- **Self-paced vs tutor-led programmes** — the doc treats
-  cohorts as having dates, but self-paced programmes have no
-  cohort dates. How does payment-strategy "deposit + balance by
-  cohort-start" work without a cohort start? Self-paced flow
-  drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md);
-  needs an enrolment-side counterpart.
 - **Tutor monthly sub** — still $29/mo from main.md, or revisit
   in light of the decoupled revenue model?
 - **Enrolment-source values** — the old `enrolment_source`
@@ -696,6 +697,9 @@ settled in this pass. They need revisiting before build:
   still references `nclex_users` from the Licensure-era plan,
   but the live codebase uses Supabase Auth directly. Tables /
   schema need to be re-aligned during build.
+
+*(Self-paced enrolment — resolved 2026-05-17 — see the new
+top-level "Self-paced enrolment" section below.)*
 
 ---
 
@@ -912,6 +916,156 @@ New tables needed for tutored enrolment:
 - Refund workflow in admin (manual for v1).
 - Student-initiated cancellation or cohort transfer between
   cohorts of the same programme (deferred).
+
+---
+
+## Programme access window (cross-cutting — tutored + self-paced)
+
+**Settled 2026-05-17. Applies to both tutored and self-paced
+programmes equally.**
+
+Tension to resolve: tutor owns the programme content, but
+QAcademy owns the platform that hosts and delivers it. Access
+policy has to honour both.
+
+**Pattern A — tutor-controlled with platform dependency (adopted).**
+
+- The tutor picks an **access window** per programme: e.g.
+  lifetime, 24 months, 12 months, 6 months, 3 months from
+  enrolment date. One window per programme.
+- All student access is **contingent on the tutor maintaining
+  their monthly platform subscription**. If the tutor cancels
+  or lapses, students enter a transition period (length TBD in
+  build, e.g. 90 days) during which they retain access and
+  can download materials, then access locks.
+- "Lifetime" is therefore honestly described to students as
+  "lifetime of the tutor's subscription on QAcademy" — not
+  "lifetime regardless of platform status." Matches industry
+  standard (Teachable, Thinkific, Kajabi all work this way).
+- The access window covers **programme content only**. Bank pack
+  access is governed by the student's bank subscription
+  separately (see *Self-study enrolment → Pricing — Bank*).
+
+**Patterns considered and rejected:**
+
+- **Pattern B — fixed window QAcademy-set.** QAcademy decides one
+  global rule (e.g. "all programmes give 12 months access"),
+  tutor has no say. Rejected: kills the tutor's ability to offer
+  premium "lifetime" or short-burst "3 months" as a sales lever.
+- **Pattern C — full lifetime regardless of tutor sub.** QAcademy
+  hosts content forever even if tutor leaves. Rejected: turns into
+  permanent platform obligation with no offsetting revenue once
+  the tutor leaves; not financially sustainable.
+
+**Interaction with payment strategies.** Access window is a
+**post-enrolment** duration — counts forward from the enrolment
+date. Payment strategies (upfront / deposit + balance /
+installments) govern *how the programme fee is collected*; missed
+installments pause access (per *Tutored enrolment* and *Self-paced
+enrolment*) but don't shrink the window once paid.
+
+---
+
+## Self-paced enrolment
+
+**Settled 2026-05-17.** Self-paced programmes share the
+content structure of tutored programmes (Programme → Unit →
+Block → Activity, per
+[curriculum-authoring-ux.md](curriculum-authoring-ux.md)) but
+differ on shape:
+
+- **No cohorts.** Student enrols directly into the programme —
+  no cohort row, no waitlist hop.
+- **No live sessions.** Pure async content.
+- **Self-serve enrolment.** Instant access on successful payment,
+  no tutor approval gate.
+
+### Pricing shape — one window, one price (v1)
+
+Tutor picks **one access window** for the programme (e.g.
+lifetime, 12 months, 6 months — see *Programme access window*
+above) and **one programme price**. No access-tier laddering in
+v1.
+
+Considered: tiered access (e.g. "90d for $X, 180d for $Y,
+lifetime for $Z") as in Udemy / Coursera. Deferred to v2 —
+real demand from tutors hasn't surfaced yet, and shipping with
+one price-per-programme keeps the model symmetric with
+tutored.
+
+### Payment-collection mode — on-platform only
+
+Self-paced is **on-platform only** in v1 — QAcademy collects via
+Paystack. No off-platform option. Reasons:
+
+- The self-serve / instant-access experience is the whole
+  point of self-paced; mediating it through manual tutor
+  payment-verification defeats the model.
+- Tutors who want off-platform collection should run tutored
+  cohorts, where the waitlist + approval gate already supports
+  off-platform verification.
+
+If a tutor without on-platform payment infrastructure wants to
+offer a self-paced programme in v1, the workaround is to run it
+as a long-running "always-open" tutored cohort with off-platform
+collection — minor UX impedance but no model change required.
+
+### Payment strategies — same as tutored, anchored to enrolment date
+
+Tutor configures one or more allowed payment strategies per
+self-paced programme (same v1 set as tutored: upfront full /
+deposit + balance / equal installments; per-module deferred to
+v2). Each strategy can carry its own price (e.g. installments at
+a slight premium).
+
+**Anchor difference:** tutored strategies anchor to cohort dates
+(deposit before cohort start, installments through cohort active
+period). Self-paced strategies anchor to **enrolment date** (deposit
+at enrolment, balance N days later, installments monthly from
+enrolment). The strategy code path is the same; only the anchor
+date differs.
+
+**Missed installment** behaviour identical to tutored: reminder
+before due date, programme access pauses on due date, tutor can
+manually override per student (extend grace, mark paid).
+
+### Enrolment flow
+
+1. Student finds the programme on the public list.
+2. Picks a payment strategy (if multiple offered).
+3. Pays via Paystack.
+4. On Paystack confirmation: enrolment row created immediately;
+   programme accessible on dashboard.
+
+No waitlist, no tutor approval gate. The tutor sees the
+enrolment after the fact in their cohort/programme workspace.
+
+### Bank opt-in at checkout
+
+Self-paced checkout shows the same bank opt-in card as tutored
+(see *Tutored enrolment → Bank opt-in at programme checkout
+(Option C — decoupled)*). Same 40% discount, same 5-tier offering,
+same emphasised-recommendation-but-not-pre-selected UX. Readiness
+packs not shown.
+
+### Edge cases
+
+| Scenario | System behaviour |
+|---|---|
+| Student already has bank access | Bank opt-in still shown; if bought, new duration stacks on existing (same rule as bank standalone purchases). |
+| Tutor cancels platform subscription | Student's programme access enters transition period (see *Programme access window*), then locks. |
+| Tutor archives the programme post-enrolment | Existing enrolled students retain access until their access window expires. Programme hidden from the public list. |
+| Refund for self-paced | Manual, admin-handled — same policy as tutored. |
+
+### Out of scope for self-paced v1
+
+- Tiered access-window pricing (90d / 180d / 365d / lifetime
+  laddered). Deferred to v2.
+- Per-module pay-as-you-go (the strategy that fits self-paced
+  best, but deferred across both programme types in v1).
+- Self-paced cohorts (cohorts of self-paced enrollees with a
+  shared start date but async progression) — a hybrid pattern
+  worth considering in v2 if real tutor demand surfaces.
 
 ---
 
