@@ -2,7 +2,7 @@
 
 *Living document. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
-Last updated: 2026-05-17 (Readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
+Last updated: 2026-05-17 (Programme enrolment model revised — old bundled-bank checkout dropped in favour of decoupled Option C (opt-in bank at 40% off + tutor-mediated enrolment + tutor-configurable payment strategies + on-platform vs off-platform collection toggle). Old "Bundled transaction" / "Auto-enrolment on payment" / "Tutor-added enrolment" subsections marked SUPERSEDED in-place; new "Settled 2026-05-17" subsection inside Tutored enrolment carries the revised model. Self-paced enrolment + auth-model alignment + enrolment-source enum + tutor-sub revisit + waitlist behaviour all noted as Still open in that subsection. Earlier today: readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
 
 ---
 
@@ -18,8 +18,13 @@ this file.
 
 ## Settled / open status
 
-- **Self-study enrolment — SETTLED 2026-04-20.**
-- **Tutored enrolment — SETTLED 2026-04-20.**
+- **Self-study enrolment — SETTLED 2026-04-20.** Bank pricing
+  settled 2026-05-17; readiness pack format + pricing + bundling
+  settled 2026-05-17.
+- **Tutored enrolment — REVISED 2026-05-17.** Headline model
+  decoupled (opt-in bank, tutor-mediated enrolment, flexible
+  payment strategies). A handful of sub-topics still open — see
+  "Still open" inside *Tutored enrolment → Settled 2026-05-17*.
 
 ---
 
@@ -429,18 +434,270 @@ status. Low-frills, reference-and-trust-building.
 - Journey Tracker state at signup — the Journey Tracker is its
   own feature area with its own initialisation logic, not an
   enrolment concern.
-- Tutored programme enrolment — covered below (open topic).
+- Tutored programme enrolment — covered below (revised 2026-05-17;
+  a few sub-topics still open, see "Still open" in that section).
 
 ---
 
 ## Tutored enrolment
 
 **Settled 2026-04-20. Reframed for the programme/cohort split
-2026-05-10** — students enrol in cohorts, not programmes. Programme
-is the shop window; cohort is the ticket.
+2026-05-10. Reframed again 2026-05-17** — the bundled-bank model
+dropped in favour of an opt-in bank model (Option C): the tutor's
+programme fee and QAcademy's bank pack are now decoupled.
+Enrolment is tutor-mediated regardless of payment path. Multiple
+payment strategies per programme. See the "Settled 2026-05-17"
+subsection below for the full revised model; pre-revision body
+preserved below it for discovery + detail-page sections that
+didn't change.
 
 A student joining a specific tutor's programme, outside or alongside
-self-study bank access.
+self-study bank access. Students enrol in **cohorts**, not programmes
+directly — programme is the shop window, cohort is the ticket.
+
+### Settled 2026-05-17 — revised model (opt-in bank + tutor-mediated enrolment + flexible payment strategies)
+
+**Headline shift.** The 2026-04-20 plan bundled QAcademy's bank
+pack into the programme checkout (50% subsidy, tutor picks bank
+tier matching the cohort length, single Paystack checkout). The
+2026-05-17 revision drops that. Tutor's programme fee and
+QAcademy's bank pack are now **decoupled products**. Bank becomes
+an opt-in recommendation at programme checkout (40% off standalone
+prices). Reasons in §"Why decoupled" below.
+
+#### Two payment-collection modes — tutor's choice per programme
+
+Each programme carries a setting for how the **tutor's programme
+fee** is collected. (QAcademy's bank line, if the student opts in,
+is always collected by QAcademy regardless of this setting.)
+
+- **Off-platform collection** (default) — tutor handles their own
+  programme-fee collection however they want (mobile money, bank
+  transfer, Stripe, off-platform invoicing). QAcademy never sees
+  this money.
+- **On-platform collection** (opt-in by tutor) — QAcademy collects
+  the programme fee via Paystack and remits to the tutor (see
+  *Remittance* below). Useful for tutors without their own payment
+  infrastructure or those who want single-checkout convenience for
+  students.
+
+QAcademy does **not** take a cut of the programme fee in either
+mode. The tutor's value to QAcademy is captured via the flat
+monthly subscription (per main.md Pricing) and via the bank
+opt-in revenue at checkout. Double-charging the tutor would
+contradict the platform-not-parasite framing.
+
+#### Enrolment — always tutor-mediated in v1
+
+Regardless of payment-collection mode, **enrolment is mediated by
+the tutor**. The tutor decides who gets in. Two entry paths
+collapse to the same destination:
+
+- **Student-initiated.** Student finds the programme on the public
+  list, picks a cohort, joins the cohort's **waitlist** with their
+  email (and an optional message). Tutor sees the request in the
+  cohort workspace and approves once payment + readiness are
+  confirmed.
+- **Tutor-initiated.** Tutor invites a student directly from inside
+  the cohort workspace (by email / invite link). Student accepts.
+  No waitlist hop.
+
+Both paths land at the same gate: a tutor click that flips the
+student from "waitlisted / invited" to "enrolled." Only at that
+moment does the `nclex_enrolments` row become active.
+
+**Why tutor-mediated for v1.** The tutor is the business owner;
+QAcademy is the platform. Letting the tutor decide who gets into
+their cohort matches that mental model and avoids forcing the
+platform to mediate payment-completion edge cases (off-platform
+"did they actually pay me?" verification, refund disputes, etc.)
+in v1.
+
+#### Payment strategies — tutor configures, student picks
+
+For on-platform collection, the tutor configures one or more
+**allowed payment strategies** per programme. Each strategy can
+have its own total price (a marketing lever: tutors often charge
+more for installments to reward upfront payment).
+
+v1 strategies:
+
+- **Upfront full** — single payment.
+- **Deposit + balance** — e.g. 50% to secure seat, 50% before
+  cohort starts (or by a configured cut-off).
+- **Equal installments** — N monthly payments (N configured by
+  tutor).
+- **Per-module** — pay as student progresses through units.
+  **Deferred to v2** (more state, more access-cutoff edges).
+
+The student sees all configured strategies at checkout and picks
+one. Different strategies may show different total prices.
+
+**Missed installment behaviour** (default; tutor can override
+per-student):
+- A few days before the due date, system sends a payment reminder.
+- On the due date, if the installment hasn't been paid, **access
+  to the cohort is paused** until paid.
+- Tutor can manually mark paid (e.g. student paid off-platform) or
+  extend the grace window.
+
+#### On-platform money flow
+
+When a student pays via QAcademy:
+
+1. Student picks a cohort on the public list → joins waitlist
+   → picks a payment strategy → Paystack checkout.
+2. Money lands in QAcademy's account (Paystack settlement).
+3. Tutor sees the paid waitlist entry in the cohort workspace.
+4. Tutor approves the enrolment.
+5. Student is enrolled; cohort appears on their dashboard.
+
+**Remittance.** Money sits in QAcademy's account until the tutor
+requests withdrawal. Admin processes payouts manually for v1
+(mobile money / bank transfer / Wise / etc., depending on the
+tutor's preferred destination). Auto-payouts via Paystack split
+accounts are a v2 candidate.
+
+**Refunds** (when the tutor rejects a waitlist entry, or under
+exceptional circumstances post-enrolment): manual. Admin
+processes case-by-case. Auto-refund on tutor rejection deferred
+to v2 once the volume justifies the automation.
+
+#### Off-platform money flow
+
+When the tutor collects programme fees directly:
+
+1. Student picks a cohort → joins waitlist with email + message
+   (no payment on QAcademy at this step).
+2. Tutor receives notification; arranges payment with student
+   off-platform (mobile money, bank transfer, etc.).
+3. Tutor verifies payment, approves the enrolment in the cohort
+   workspace.
+4. Student is enrolled; cohort appears on their dashboard.
+
+Off-platform mode never touches QAcademy's payment infrastructure
+for the programme fee. The bank opt-in at checkout (below) is the
+only QAcademy-collected line in this mode.
+
+#### Bank opt-in at programme checkout (Option C — decoupled)
+
+The 2026-04-20 plan bundled bank into the programme checkout
+(forced, subsidised at 50%). The 2026-05-17 revision drops this.
+Bank becomes a **separate opt-in line** at checkout, with the
+following rules:
+
+- **Always offered.** Every programme checkout (on-platform and
+  off-platform alike, for new students) shows the bank opt-in
+  card. Tutor has no toggle to disable it. Reason: tutor-toggle
+  would let some tutors zero-out QAcademy's per-enrolment revenue
+  while still using the platform.
+- **40% off standalone prices.** Global discount, admin-set. Not
+  tutor-adjustable in v1 (avoids race-to-the-bottom on bank
+  discount as a marketing lever).
+- **All 5 tiers offered** (30 / 60 / 90 / 180 / 365 days). Since
+  it's opt-in, no tier-match constraint to programme length.
+  Student picks freely. (The 2026-04-20 constraint of bank tier ≥
+  programme length was a bundled-model artefact — irrelevant once
+  bank is decoupled.)
+- **Readiness packs NOT shown at programme checkout.** Kept simple.
+  Readiness packs continue to sell through the main readiness page.
+- **Presentation:** emphasised recommendation card ("Recommended —
+  add NCLEX Bank Access · save GHS X"), but **not pre-selected**.
+  Student actively opts in. Pre-selected opt-out is a dark
+  pattern; we avoid it.
+- **Pricing table** (40% off standalone):
+
+  | Tier | Standalone GHS | Programme price GHS | Standalone USD | Programme price USD | Saves |
+  |---|---|---|---|---|---|
+  | 30 days | 120 | 72 | $30 | $18 | $12 |
+  | 60 days | 200 | 120 | $50 | $30 | $20 |
+  | 90 days | 270 | 162 | $70 | $42 | $28 |
+  | 180 days | 450 | 270 | $110 | $66 | $44 |
+  | 365 days | 700 | 420 | $160 | $96 | $64 |
+
+- **Existing bank access.** If the student already has bank access
+  when they enrol, the opt-in still appears; if they buy, the new
+  duration **stacks** on top of existing access (no overlap
+  penalty). Same rule that holds for self-study bank purchases.
+
+#### Why decoupled (vs the old bundled model)
+
+The 2026-04-20 bundled model had complexity (tier-vs-programme
+length validation, what-if-student-already-has-bank stacking
+logic, readiness-pack credit carry-through, refund split logic)
+and an implicit "force bank on programme students" stance that
+sat awkwardly with the tutor-as-business-owner framing.
+
+The 2026-05-17 decoupled model:
+
+- Treats the programme as the tutor's pure product (tutor decides
+  price, payment strategies, collection method) and the bank as
+  QAcademy's pure product offered at programme checkout.
+- Lower upfront price for the student (programme alone, no forced
+  bank line).
+- Cleaner mental model for everyone (tutor, student, QAcademy).
+- Simpler implementation — fewer edge cases, fewer schema knobs.
+- Per-enrolment revenue for QAcademy comes from voluntary bank
+  opt-ins; if opt-in rate hits ~50% the expected revenue is
+  comparable to the old 50%-subsidised forced bundle (~$25 vs
+  ~$35 per enrolment), and the willing buyers tend to engage more.
+
+#### Alternatives considered (documented for v2+)
+
+Three alternative monetisation shapes were laid out and
+deliberately not adopted:
+
+- **Option A — current/old bundled-bank model.** Forced bank with
+  50% subsidy bundled into checkout. Predictable per-enrolment
+  revenue ($25–$80 depending on tier) but high complexity, lower
+  trust, awkward forcing.
+- **Option E (student-paid platform fee, no bank coupling).**
+  Tutor pays monthly sub; student pays a separate per-enrolment
+  platform fee (e.g. $5–10) at checkout; bank stays self-serve.
+  Rejected: students don't see what the platform fee buys them
+  (tax-like feel); bank is a more tangible value-add to charge for.
+- **Option E-flipped (per-enrolment fee only, no sub).** No
+  monthly fee; tutor pays $15/enrolment only when they actually
+  enrol. Aligns revenue tightly with tutor success but loses the
+  stable sub floor.
+
+Slot if real-world signal pushes us to revisit:
+- If opt-in rates underperform expectations and revenue per
+  enrolment lags badly → consider Option A or E.
+- If tutors complain that "students don't pay through QAcademy
+  because they're paying directly anyway, so I get bank
+  discount-conversion without the platform doing much" → consider
+  raising the monthly sub or adding a small platform fee.
+
+#### Still open (deferred from this revision)
+
+These were flagged during the 2026-05-17 discussion but not
+settled in this pass. They need revisiting before build:
+
+- **Self-paced vs tutor-led programmes** — the doc treats
+  cohorts as having dates, but self-paced programmes have no
+  cohort dates. How does payment-strategy "deposit + balance by
+  cohort-start" work without a cohort start? Self-paced flow
+  drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md);
+  needs an enrolment-side counterpart.
+- **Tutor monthly sub** — still $29/mo from main.md, or revisit
+  in light of the decoupled revenue model?
+- **Enrolment-source values** — the old `enrolment_source`
+  enum was `SELF_PAID | TUTOR_ADDED`. Decoupling may introduce
+  more (`TUTOR_ADDED_OFFLINE_PAID`, `TUTOR_COMPED`, `TRIAL_CONVERTED`,
+  `ADMIN_GRANT` etc.). Finalise during build alongside the
+  enrolments table.
+- **Cohort full / waitlist behaviour** — old plan deferred
+  waitlists; with tutor-mediated enrolment, the waitlist is now
+  the entry point regardless. May need to revisit how "full
+  cohort" interacts with the waitlist (does it block new
+  entries, or queue them?).
+- **Auth model alignment** — the parallel-tables section below
+  still references `nclex_users` from the Licensure-era plan,
+  but the live codebase uses Supabase Auth directly. Tables /
+  schema need to be re-aligned during build.
+
+---
 
 ### Discovery — public programmes list
 
@@ -533,7 +790,12 @@ hasn't picked a cohort yet at enquiry time, and the tutor often
 slots the converted student into whichever cohort fits their
 timing best.
 
-### Bundled transaction — single Paystack checkout
+### Bundled transaction — single Paystack checkout *(SUPERSEDED 2026-05-17)*
+
+> ⚠️ **Superseded by the 2026-05-17 revision above.** The bundled-
+> bank model below was the 2026-04-20 plan; it has been replaced by
+> the decoupled opt-in model (Option C). Kept in the doc for
+> historical context only — do not implement.
 
 When a student pays to join a cohort, they pay **one bundled
 price** covering:
@@ -557,7 +819,11 @@ internal:
 This keeps the checkout simple and avoids the dropoff risk of
 two-step payment flows.
 
-### Auto-enrolment on successful payment
+### Auto-enrolment on successful payment *(SUPERSEDED 2026-05-17)*
+
+> ⚠️ **Superseded.** Enrolment is tutor-mediated in the revised
+> model — no auto-enrolment on payment. See the 2026-05-17 section
+> above.
 
 When the bundled payment activates, the system creates:
 
@@ -570,7 +836,14 @@ When the bundled payment activates, the system creates:
 All three in one atomic step. Student is immediately enrolled and
 lands on dashboard.
 
-### Tutor-added enrolment
+### Tutor-added enrolment *(SUPERSEDED 2026-05-17)*
+
+> ⚠️ **Superseded.** Tutor-added is now one of two entry paths
+> within the unified tutor-mediated enrolment model (see 2026-05-17
+> section above). The "QAcademy absorbs the bank-pack cost" framing
+> no longer applies because bank is decoupled — if the student
+> wants bank, they opt in at checkout and pay (40% off) just like
+> any other student.
 
 A second path: a tutor adds a student directly to a specific
 **cohort** from inside the cohort workspace, at any point in the
