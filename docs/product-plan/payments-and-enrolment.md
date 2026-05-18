@@ -2,7 +2,7 @@
 
 *Living document. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
-Last updated: 2026-05-18 (Enrolment-source enum settled — three values for v1: `SELF_PAID` | `TUTOR_ADDED` | `ADMIN_GRANT`. Mutually exclusive; offline-paid folded into `TUTOR_ADDED` since we can't reliably know whether the tutor actually collected money. `TRIAL_CONVERTED` dropped (trials are for the bank, not programmes). Audit fields like `enrolled_by_user_id` live in separate columns, not encoded in the enum name. main.md updated in two places to match. Earlier today: Tutor monthly sub revisit closed — stays at $29/mo flat, single tier, USD only for v1; sits at the low end of the SaaS-tutor-platform market which suits a new vetted niche platform. Tiering (library/programme/quiz limits) stays deferred to v2. Previous touch 2026-05-17: Cohort full / waitlist behaviour settled — Pattern C: soft cap, `cohort_size` is a tutor-set planning target only, waitlist always open, tutor approval is the only hard gate. Earlier in this same day: Self-paced enrolment + Programme access window both settled — new top-level sections added for each. Self-paced: self-serve on-platform only, one access window per programme, same payment strategies as tutored but anchored to enrolment date, instant enrolment no tutor mediation. Access window cross-cutting: Pattern A adopted (tutor-set per programme, contingent on tutor maintaining the monthly sub — industry standard). Earlier in this same day: Programme enrolment model revised — old bundled-bank checkout dropped in favour of decoupled Option C (opt-in bank at 40% off + tutor-mediated enrolment + tutor-configurable payment strategies + on-platform vs off-platform collection toggle). Old "Bundled transaction" / "Auto-enrolment on payment" / "Tutor-added enrolment" subsections marked SUPERSEDED in-place; new "Settled 2026-05-17" subsection inside Tutored enrolment carries the revised model. Auth-model alignment + enrolment-source enum + tutor-sub revisit + waitlist behaviour all noted as Still open in that subsection. Earlier today: readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
+Last updated: 2026-05-18 (Auth model alignment settled — MyNclex uses Supabase Auth as the source of identity: `auth.users` (Supabase-managed identity, holds email + hashed password + verification state) + `nclex_users` (our profile mirror, PK = `auth.users.id`, already in `db/schema.sql`). The Licensure-era custom user-table pattern is superseded. Pay-first flow updated to use Supabase's `inviteUserByEmail` (Option C) instead of a custom setup-token mechanism — Supabase ships token generation, email sending, link expiry, and resend out of the box; we only build the `/welcome` page. Trial signup uses `supabase.auth.signUp()` directly. Edge-cases section updated (no more "setup token expiry"; now "invite-link expiry" using the Supabase project setting). New "Identity model" subsection added under Shared infrastructure. Earlier today: Enrolment-source enum settled — three values for v1: `SELF_PAID` | `TUTOR_ADDED` | `ADMIN_GRANT`. Mutually exclusive; offline-paid folded into `TUTOR_ADDED` since we can't reliably know whether the tutor actually collected money. `TRIAL_CONVERTED` dropped (trials are for the bank, not programmes). Audit fields like `enrolled_by_user_id` live in separate columns, not encoded in the enum name. main.md updated in two places to match. Earlier today: Tutor monthly sub revisit closed — stays at $29/mo flat, single tier, USD only for v1; sits at the low end of the SaaS-tutor-platform market which suits a new vetted niche platform. Tiering (library/programme/quiz limits) stays deferred to v2. Previous touch 2026-05-17: Cohort full / waitlist behaviour settled — Pattern C: soft cap, `cohort_size` is a tutor-set planning target only, waitlist always open, tutor approval is the only hard gate. Earlier in this same day: Self-paced enrolment + Programme access window both settled — new top-level sections added for each. Self-paced: self-serve on-platform only, one access window per programme, same payment strategies as tutored but anchored to enrolment date, instant enrolment no tutor mediation. Access window cross-cutting: Pattern A adopted (tutor-set per programme, contingent on tutor maintaining the monthly sub — industry standard). Earlier in this same day: Programme enrolment model revised — old bundled-bank checkout dropped in favour of decoupled Option C (opt-in bank at 40% off + tutor-mediated enrolment + tutor-configurable payment strategies + on-platform vs off-platform collection toggle). Old "Bundled transaction" / "Auto-enrolment on payment" / "Tutor-added enrolment" subsections marked SUPERSEDED in-place; new "Settled 2026-05-17" subsection inside Tutored enrolment carries the revised model. Auth-model alignment + enrolment-source enum + tutor-sub revisit + waitlist behaviour all noted as Still open in that subsection. Earlier today: readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
 
 ---
 
@@ -109,27 +109,51 @@ Payment statuses (same as Licensure):
 `INIT` → `PAID` → `ACTIVATED`, with `SETUP_REQUIRED` as a branch
 when the student paid before an account existed.
 
+### Identity model — Supabase Auth + profile mirror
+
+**Settled 2026-05-18.** MyNclex uses **Supabase Auth** as the source
+of identity, not a custom user table. Two tables, 1-to-1:
+
+- **`auth.users`** — Supabase's built-in identity table. Holds email,
+  hashed password, email-verification state, login sessions.
+  Supabase manages it. We don't define its schema or write to it
+  directly (always go through `supabase.auth.*` APIs).
+- **`nclex_users`** — *our* profile mirror, prefixed per the
+  extraction rule. PK = `auth.users.id` via FK. Holds the
+  MyNclex-specific profile fields (forename, surname, name, phone,
+  avatar, signup_source, is_active, must_change_password, timestamps,
+  etc.). Already exists in `db/schema.sql`.
+
+Wherever older planning text said "`nclex_users` is the account",
+read it as "`auth.users` is the account, with an `nclex_users`
+profile row alongside it."
+
+The Licensure-era custom `users` table pattern (own password column,
+own setup-token mechanism, own email verification) is **superseded**
+by Supabase Auth across all MyNclex flows.
+
 ### Parallel tables (MyNclex-prefixed)
 
 - `nclex_products` — catalogue (see schema above).
-- `nclex_users` — MyNclex user accounts (schema finalised in build).
+- `nclex_users` — profile mirror of `auth.users` (already in
+  `db/schema.sql`).
 - `nclex_subscriptions` — active and historical subscriptions.
 - `nclex_payments` — payment audit trail.
 
-Full schemas, RLS, and relationships finalised during build — not
-planning. Shape mirrors the Licensure equivalents with the
-differences called out above.
+Full schemas, RLS, and relationships for the subscription /
+payment tables finalised during build — not planning.
 
 ### Pay-first principle
 
-No half-made accounts. The `nclex_users` row only exists after
-either:
+No half-made accounts. Neither an `auth.users` row nor an
+`nclex_users` row exists until either:
 
-- the student paid AND completed the setup form, OR
-- the student signed up for a free trial.
+- the student paid AND clicked the post-payment invite link AND
+  completed the welcome form (see "Pay-first flow" below), OR
+- the student signed up for a free trial directly.
 
 Abandoned payments leave an `INIT` row in `nclex_payments` but no
-user record.
+identity record in `auth.users` and no profile row in `nclex_users`.
 
 ---
 
@@ -375,7 +399,8 @@ scale the same way: GHS 100 / 200 / 240 / 350 across 60d / 90d /
 
 ### Two paths on card click
 
-**Paid card → pay-first flow:**
+**Paid card → pay-first flow (Settled 2026-05-18 — uses Supabase
+invite, not a custom setup-token mechanism):**
 
 1. Student lands on the subscribe page (MyNclex equivalent of
    Licensure's `subscribe.html`).
@@ -390,25 +415,45 @@ scale the same way: GHS 100 / 200 / 240 / 350 across 60d / 90d /
    confirmation page with a reference.
 6. Confirmation page calls `GET /payments/verify` with the
    reference. Worker verifies with Paystack.
-7. If an `nclex_users` account already exists for that email →
-   activate subscription immediately → status `ACTIVATED`.
-8. If no account yet → status `SETUP_REQUIRED` → show setup form
-   (name, password). Student completes form → account created →
-   subscription activated → logged in → dashboard.
+7. If an `auth.users` row already exists for that email →
+   activate subscription immediately against the existing account
+   → status `ACTIVATED`.
+8. If no account yet → server calls Supabase's
+   `auth.admin.inviteUserByEmail(email)`. This creates the
+   `auth.users` row (no password yet) and emails the student a
+   secure one-time invite link. Payment status: `SETUP_REQUIRED`.
+9. Student clicks the link → lands on `/welcome` → fills name +
+   chooses password → server writes the password to `auth.users`
+   (via `supabase.auth.updateUser`) and inserts the matching
+   profile row in `nclex_users` → subscription activated → student
+   logged in → dashboard.
 
-Setup token mechanism (48-hour expiry; admin can refresh by
-issuing a new link) inherited from Licensure.
+**Why Supabase invite (Option C) over a custom token (Licensure
+pattern):** Supabase ships the token generation, the email-sending,
+the link-expiry, the resend-invite endpoint, and the email template
+out of the box. We only build the `/welcome` page and a small server
+action that saves the name + password. The Licensure-era custom
+setup-token mechanism is *not* carried over.
+
+**Link expiry / resend:** invite-link expiry follows the Supabase
+project setting (default 24 hours; configurable). If the student
+misses the window, an admin re-sends the invite from the admin
+queue using Supabase's built-in resend — no custom token-refresh
+endpoint needed.
 
 **Trial card → sign-up-first flow:**
 
 1. Student lands on the register page (MyNclex equivalent of
    Licensure's `register.html`).
 2. Enters email, password, name.
-3. Account created in `nclex_users`. Trial product
-   (`NCLEX_TRIAL` or equivalent) auto-assigned as a subscription
-   with `source = 'SELF_TRIAL_SIGNUP'` (matching Licensure's
-   convention).
-4. Logged in. Dashboard.
+3. Server calls `supabase.auth.signUp()` — creates the `auth.users`
+   row directly (no invite needed; the student is in front of us
+   with a password in hand). Then inserts the matching `nclex_users`
+   profile row.
+4. Trial product (`NCLEX_TRIAL` or equivalent) auto-assigned as a
+   subscription with `source = 'SELF_TRIAL_SIGNUP'` (matching
+   Licensure's convention).
+5. Logged in. Dashboard.
 
 ### Post-payment experience (paid path)
 
@@ -430,16 +475,18 @@ flows are all **deferred** to v2+.
 transactions. One row per payment: date, product, amount, currency,
 status. Low-frills, reference-and-trust-building.
 
-### Edge cases (inherit Licensure behaviour)
+### Edge cases
 
 - **Payment abandoned mid-flow.** Paystack stays pending. MyNclex
-  has an `INIT` row in `nclex_payments`. No user account created.
-  No follow-up action needed.
-- **Duplicate email at setup.** If an `nclex_users` account already
+  has an `INIT` row in `nclex_payments`. Neither `auth.users` nor
+  `nclex_users` row created. No follow-up action needed.
+- **Duplicate email at setup.** If an `auth.users` row already
   exists for the email, the subscription activates against the
-  existing account — no new account created, no duplicate.
-- **Setup token expiry (48 hours).** Student contacts admin.
-  Admin issues a fresh setup link.
+  existing account — no invite sent, no duplicate identity created.
+- **Invite-link expiry.** Follows the Supabase project setting
+  (default 24h; configurable). Student contacts admin → admin
+  re-sends the invite from the admin queue using Supabase's
+  built-in resend.
 - **Refunds.** Manual, admin-handled. Not a build concern for v1.
 
 ### Out of scope for this section
@@ -718,10 +765,18 @@ settled in this pass. They need revisiting before build:
   table as a tutor-set planning target — public list shows
   "X / Y enrolled" progress against it but does not enforce. The
   tutor's approval is the only hard gate.
-- **Auth model alignment** — the parallel-tables section below
-  still references `nclex_users` from the Licensure-era plan,
-  but the live codebase uses Supabase Auth directly. Tables /
-  schema need to be re-aligned during build.
+- ~~**Auth model alignment**~~ — **resolved 2026-05-18.** MyNclex
+  uses Supabase Auth as the source of identity. Two tables, 1-to-1:
+  `auth.users` (Supabase-managed identity — email, hashed password,
+  verification state) and `nclex_users` (our profile mirror with PK
+  = `auth.users.id`). Wherever older planning text says
+  "`nclex_users` is the account", read it as "`auth.users` is the
+  account, with an `nclex_users` profile row alongside it." Full
+  reframe lives in *Shared infrastructure → Identity model* above.
+  Pay-first flow now uses Supabase's `inviteUserByEmail` rather
+  than a Licensure-style custom setup token (see *Two paths on
+  card click → Paid card → pay-first flow* in the Self-study
+  section).
 
 *(Self-paced enrolment — resolved 2026-05-17 — see the new
 top-level "Self-paced enrolment" section below.)*
