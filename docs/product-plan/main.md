@@ -757,7 +757,7 @@ market-validated before public launch.
 
 | Product | Price (USD) | Price (GHS) |
 |--|--|--|
-| Tutor monthly subscription | $29 | ~350 |
+| Tutor monthly subscription | $29 (USD only — settled 2026-05-18) | — |
 | Self-study bank, 30-day | TBD | TBD |
 | Self-study bank, 90-day | $40 | ~480 |
 | Self-study bank, 180-day | TBD | TBD |
