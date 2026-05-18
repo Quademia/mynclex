@@ -399,8 +399,10 @@ Two paths in v1, both at the cohort layer:
 
 Tutor-added enrolments comp the bundled bank-pack subscription for
 the cohort's duration; QAcademy absorbs the cost. Tracked via
-`enrolment_source ∈ ('SELF_PAID', 'TUTOR_ADDED')` on
-`nclex_enrolments`. Per-tutor quota (capping how many tutor-added
+`enrolment_source ∈ ('SELF_PAID', 'TUTOR_ADDED', 'ADMIN_GRANT')` on
+`nclex_enrolments` (full definitions in payments-and-enrolment.md →
+"Settled 2026-05-18 — enrolment-source values"). Per-tutor quota
+(capping how many tutor-added
 enrolments a tutor can comp based on their subscription tier) is
 deferred to a later slice.
 
@@ -543,8 +545,8 @@ ships both modes. The deltas:
   subtree) are hidden for self-paced programmes.
 - **Direct enrolment.** Students enrol in the programme itself,
   not in a cohort. The enrolment row carries
-  `enrolment_source ∈ ('SELF_PAID', 'TUTOR_ADDED')` (same shape as
-  tutor-led), but with `cohort_id = NULL`.
+  `enrolment_source ∈ ('SELF_PAID', 'TUTOR_ADDED', 'ADMIN_GRANT')`
+  (same shape as tutor-led), but with `cohort_id = NULL`.
 - **Access window** is set per enrolment (e.g. 90-day, 180-day,
   unlimited — finalised in build) rather than bounded by cohort
   start/end dates.

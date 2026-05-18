@@ -2,7 +2,7 @@
 
 *Living document. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
-Last updated: 2026-05-18 (Tutor monthly sub revisit closed — stays at $29/mo flat, single tier, USD only for v1; sits at the low end of the SaaS-tutor-platform market which suits a new vetted niche platform. Tiering (library/programme/quiz limits) stays deferred to v2. Previous touch 2026-05-17: Cohort full / waitlist behaviour settled — Pattern C: soft cap, `cohort_size` is a tutor-set planning target only, waitlist always open, tutor approval is the only hard gate. Earlier in this same day: Self-paced enrolment + Programme access window both settled — new top-level sections added for each. Self-paced: self-serve on-platform only, one access window per programme, same payment strategies as tutored but anchored to enrolment date, instant enrolment no tutor mediation. Access window cross-cutting: Pattern A adopted (tutor-set per programme, contingent on tutor maintaining the monthly sub — industry standard). Earlier in this same day: Programme enrolment model revised — old bundled-bank checkout dropped in favour of decoupled Option C (opt-in bank at 40% off + tutor-mediated enrolment + tutor-configurable payment strategies + on-platform vs off-platform collection toggle). Old "Bundled transaction" / "Auto-enrolment on payment" / "Tutor-added enrolment" subsections marked SUPERSEDED in-place; new "Settled 2026-05-17" subsection inside Tutored enrolment carries the revised model. Auth-model alignment + enrolment-source enum + tutor-sub revisit + waitlist behaviour all noted as Still open in that subsection. Earlier today: readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
+Last updated: 2026-05-18 (Enrolment-source enum settled — three values for v1: `SELF_PAID` | `TUTOR_ADDED` | `ADMIN_GRANT`. Mutually exclusive; offline-paid folded into `TUTOR_ADDED` since we can't reliably know whether the tutor actually collected money. `TRIAL_CONVERTED` dropped (trials are for the bank, not programmes). Audit fields like `enrolled_by_user_id` live in separate columns, not encoded in the enum name. main.md updated in two places to match. Earlier today: Tutor monthly sub revisit closed — stays at $29/mo flat, single tier, USD only for v1; sits at the low end of the SaaS-tutor-platform market which suits a new vetted niche platform. Tiering (library/programme/quiz limits) stays deferred to v2. Previous touch 2026-05-17: Cohort full / waitlist behaviour settled — Pattern C: soft cap, `cohort_size` is a tutor-set planning target only, waitlist always open, tutor approval is the only hard gate. Earlier in this same day: Self-paced enrolment + Programme access window both settled — new top-level sections added for each. Self-paced: self-serve on-platform only, one access window per programme, same payment strategies as tutored but anchored to enrolment date, instant enrolment no tutor mediation. Access window cross-cutting: Pattern A adopted (tutor-set per programme, contingent on tutor maintaining the monthly sub — industry standard). Earlier in this same day: Programme enrolment model revised — old bundled-bank checkout dropped in favour of decoupled Option C (opt-in bank at 40% off + tutor-mediated enrolment + tutor-configurable payment strategies + on-platform vs off-platform collection toggle). Old "Bundled transaction" / "Auto-enrolment on payment" / "Tutor-added enrolment" subsections marked SUPERSEDED in-place; new "Settled 2026-05-17" subsection inside Tutored enrolment carries the revised model. Auth-model alignment + enrolment-source enum + tutor-sub revisit + waitlist behaviour all noted as Still open in that subsection. Earlier today: readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
 
 ---
 
@@ -695,11 +695,23 @@ settled in this pass. They need revisiting before build:
   with library limits, programme limits, quiz limits, etc.) stays
   deferred to v2 — see *Pricing-related items deferred to v2+* in
   [main.md](main.md).
-- **Enrolment-source values** — the old `enrolment_source`
-  enum was `SELF_PAID | TUTOR_ADDED`. Decoupling may introduce
-  more (`TUTOR_ADDED_OFFLINE_PAID`, `TUTOR_COMPED`, `TRIAL_CONVERTED`,
-  `ADMIN_GRANT` etc.). Finalise during build alongside the
-  enrolments table.
+- ~~**Enrolment-source values**~~ — **resolved 2026-05-18.**
+  Three values for v1, mutually exclusive:
+
+  | Value | When |
+  |---|---|
+  | `SELF_PAID` | Student paid through on-platform checkout. QAcademy collected the money. |
+  | `TUTOR_ADDED` | Tutor added the student — whether the student paid the tutor offline or the tutor comped them. We don't distinguish; from QAcademy's revenue view both are $0, and we can't reliably know which actually happened. |
+  | `ADMIN_GRANT` | QAcademy admin added the student (refund replacement, support case, promotional grant). Nobody paid. |
+
+  `TRIAL_CONVERTED` was considered and dropped — trials are for the
+  bank, not programmes; a trial student who later enrols goes through
+  one of the three paths above.
+
+  *Audit fields* like `enrolled_by_user_id` (which tutor or admin
+  added them) go in separate columns, not encoded in the enum name.
+  Finalise the column shape during build alongside the
+  `nclex_enrolments` table.
 - ~~**Cohort full / waitlist behaviour**~~ — **resolved
   2026-05-17.** Pattern C adopted: soft cap, waitlist always open,
   tutor decides who to approve. `cohort_size` stays on the cohort
