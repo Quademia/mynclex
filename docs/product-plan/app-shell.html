@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MyNclex — App Shell Design</title>
+<style>
+  /* ──────────────────────────────────────────────────────────────
+   *   Document styling (spec text)
+   * ────────────────────────────────────────────────────────────── */
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f6f7f8;
+    color: #212529;
+    margin: 0;
+    padding: 24px;
+    line-height: 1.5;
+  }
+  .doc-container {
+    max-width: 980px;
+    margin: 0 auto;
+  }
+  .doc-container h1 {
+    font-size: 24px;
+    margin-bottom: 4px;
+  }
+  .doc-container .meta {
+    color: #6c757d;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .doc-container h2 {
+    font-size: 18px;
+    margin-top: 32px;
+    margin-bottom: 8px;
+    color: #212529;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 4px;
+  }
+  .doc-container h3 {
+    font-size: 15px;
+    margin-top: 18px;
+    margin-bottom: 6px;
+    color: #343a40;
+  }
+  .doc-container p, .doc-container li {
+    font-size: 14px;
+    color: #343a40;
+  }
+  .doc-container p { margin-bottom: 10px; }
+  .doc-container ul, .doc-container ol {
+    margin-bottom: 12px;
+    padding-left: 24px;
+  }
+  .doc-container li { margin-bottom: 4px; }
+  .doc-container code {
+    background: #f1f3f5;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-family: "SF Mono", Menlo, monospace;
+  }
+  .doc-container .callout {
+    background: #fff3bf;
+    border-left: 3px solid #ffe066;
+    padding: 10px 14px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #5c4900;
+    margin: 12px 0;
+  }
+  .doc-container .ascii {
+    background: #212529;
+    color: #f8f9fa;
+    padding: 14px 18px;
+    border-radius: 4px;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: pre;
+    overflow-x: auto;
+    margin: 12px 0;
+  }
+  .doc-container table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 16px;
+    font-size: 13px;
+  }
+  .doc-container th, .doc-container td {
+    border: 1px solid #dee2e6;
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .doc-container th {
+    background: #f1f3f5;
+    font-weight: 600;
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+   *   Mockup section
+   * ────────────────────────────────────────────────────────────── */
+  .mockup-frame {
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+    margin: 12px 0 24px;
+  }
+  .mockup-label {
+    background: #2f7a3a;
+    color: #fff;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .app {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    transition: grid-template-columns 0.2s ease;
+    overflow: hidden;
+  }
+  .app.collapsed {
+    grid-template-columns: 56px 1fr;
+  }
+
+  /* Sidebar — full height */
+  .sidebar-col {
+    background: #f8f9fa;
+    border-right: 1px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-header {
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    border-bottom: 1px solid #e9ecef;
+    background: #f8f9fa;
+  }
+  .sidebar-brand {
+    font-weight: 700;
+    font-size: 14px;
+    color: #212529;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .app.collapsed .sidebar-brand { display: none; }
+  .toggle-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #ced4da;
+    background: #fff;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    color: #495057;
+    flex-shrink: 0;
+  }
+  .toggle-btn:hover { background: #e9ecef; }
+  .app.collapsed .sidebar-header {
+    justify-content: center;
+    padding: 0;
+  }
+  .sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    font-size: 12px;
+    color: #495057;
+    border-left: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    position: relative;
+  }
+  .nav-item.active {
+    background: #fff;
+    color: #1971c2;
+    border-left-color: #1971c2;
+    font-weight: 600;
+  }
+  .nav-item .ico {
+    width: 16px; height: 16px;
+    background: #adb5bd;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .nav-item.active .ico { background: #1971c2; }
+  .app.collapsed .nav-item {
+    justify-content: center;
+    padding: 9px 0;
+  }
+  .app.collapsed .nav-item .label { display: none; }
+  .app.collapsed .nav-item:hover::after {
+    content: attr(data-label);
+    position: absolute;
+    left: 56px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #212529;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  /* Content column */
+  .content-col {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #fff;
+  }
+  .topbar {
+    height: 48px;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    font-size: 13px;
+    background: #fff;
+    flex-shrink: 0;
+  }
+  .topbar .crumb { color: #212529; font-weight: 600; }
+  .topbar .crumb .sep { color: #adb5bd; margin: 0 6px; font-weight: 400; }
+  .topbar .crumb .child { color: #6c757d; font-weight: 400; font-size: 12px; }
+  .topbar .spacer { flex: 1; }
+  .topbar .user {
+    width: 30px; height: 30px;
+    background: #dee2e6;
+    border-radius: 50%;
+  }
+  .content-wrap {
+    flex: 1;
+    overflow-y: auto;
+  }
+  .content { padding: 18px; }
+  .content h2 { font-size: 15px; margin-bottom: 8px; color: #212529; border: none; padding: 0; }
+  .content p { font-size: 12px; color: #495057; margin-bottom: 10px; line-height: 1.5; }
+  .placeholder-card {
+    background: #f1f3f5;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 14px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: #495057;
+  }
+  .scroll-hint {
+    background: #fff3bf;
+    border: 1px solid #ffe066;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: #5c4900;
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-container">
+
+  <h1>MyNclex — App Shell Design</h1>
+  <p class="meta">
+    Planning doc + interactive mockup combined. Settled 2026-05-17 (planning;
+    not yet built). Cross-cutting — applies to student, tutor, and admin
+    shells equally.
+  </p>
+
+  <h2>1. Why this change</h2>
+
+  <p>
+    The current shell (shipped in the 2026-04-25 nav scaffold) puts a
+    full-width topbar above a column-split layout. Both the sidebar and
+    the page content scroll together — when the user scrolls down a long
+    page, the sidebar slides off-screen with it, forcing them to scroll
+    back to the top before they can switch sections.
+  </p>
+
+  <p>Two problems we want to fix:</p>
+
+  <ol>
+    <li><strong>Pinning</strong> — the sidebar should stay visible no
+      matter how long the page is. Only the main content area scrolls.</li>
+    <li><strong>Density</strong> — the sidebar should be collapsible to an
+      icon-only rail, so users who want maximum content width can
+      reclaim the space.</li>
+  </ol>
+
+  <p>
+    A third change rides along with the pinning fix: the layout
+    restructures so the <strong>sidebar runs floor-to-ceiling</strong>
+    (full viewport height) and the <strong>topbar lives only above the
+    content column</strong>. The MyNclex brand mark moves into the
+    sidebar's own header, and the topbar becomes a per-context bar
+    (breadcrumb + page actions + user menu) rather than a global header.
+  </p>
+
+  <h2>2. The interactive mockup</h2>
+
+  <p>
+    Click the toggle (three lines, top-left of the sidebar). Sidebar
+    shrinks to icons only. Hover any icon to see its label as a
+    tooltip. Scroll the content area — sidebar and topbar both stay
+    pinned in either state.
+  </p>
+
+  <div class="mockup-frame">
+    <div class="mockup-label">Proposed shell — full-height sidebar, content-column topbar, collapsible</div>
+
+    <div class="app" id="app">
+
+      <!-- Sidebar -->
+      <div class="sidebar-col">
+        <div class="sidebar-header">
+          <span class="sidebar-brand">MyNclex</span>
+          <button class="toggle-btn" id="toggleBtn" aria-label="Toggle sidebar">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2 3h10M2 7h10M2 11h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <nav class="sidebar-nav">
+          <div class="nav-item" data-label="Dashboard">
+            <span class="ico"></span><span class="label">Dashboard</span>
+          </div>
+          <div class="nav-item active" data-label="Question Bank">
+            <span class="ico"></span><span class="label">Question Bank</span>
+          </div>
+          <div class="nav-item" data-label="Readiness Packs">
+            <span class="ico"></span><span class="label">Readiness Packs</span>
+          </div>
+          <div class="nav-item" data-label="Journey Tracker">
+            <span class="ico"></span><span class="label">Journey Tracker</span>
+          </div>
+          <div class="nav-item" data-label="History">
+            <span class="ico"></span><span class="label">History</span>
+          </div>
+          <div class="nav-item" data-label="Profile">
+            <span class="ico"></span><span class="label">Profile</span>
+          </div>
+        </nav>
+      </div>
+
+      <!-- Content column -->
+      <div class="content-col">
+        <div class="topbar">
+          <span class="crumb">Question Bank<span class="sep">/</span><span class="child">Practice</span></span>
+          <span class="spacer"></span>
+          <span class="user" title="user menu"></span>
+        </div>
+        <div class="content-wrap">
+          <div class="content">
+            <div class="scroll-hint">↓ Scroll this content. Sidebar (full height) stays put. Topbar (above content only) also stays.</div>
+            <h2>Question Bank</h2>
+            <p>Click the toggle in the sidebar header (three lines) to collapse the sidebar.</p>
+            <div class="placeholder-card">Card 1 — recent activity</div>
+            <div class="placeholder-card">Card 2 — readiness signal</div>
+            <div class="placeholder-card">Card 3 — coverage by category</div>
+            <div class="placeholder-card">Card 4 — performance trend</div>
+            <div class="placeholder-card">Card 5 — weak spots</div>
+            <div class="placeholder-card">Card 6 — recent quizzes</div>
+            <div class="placeholder-card">Card 7 — saved filters</div>
+            <div class="placeholder-card">Card 8 — bookmarked items</div>
+            <div class="placeholder-card">Card 9 — time-per-question</div>
+            <div class="placeholder-card">Card 10 — peer percentile</div>
+            <div class="placeholder-card">Card 11 — Client Needs Category</div>
+            <div class="placeholder-card">Card 12 — Pharmacology focus</div>
+            <div class="placeholder-card">Card 13 — Maternal Health</div>
+            <div class="placeholder-card">Card 14 — Mental Health</div>
+            <div class="placeholder-card">Card 15 — bottom of page</div>
+            <p style="text-align:center;color:#868e96;font-size:11px;margin-top:14px;">↑ Sidebar and topbar both still visible.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <h2>3. Layout — before vs after</h2>
+
+  <p><strong>Before (current — 2026-04-25 scaffold):</strong></p>
+  <div class="ascii">┌─────────────────────────────────────┐
+│   Topbar (full width)               │
+├─────────┬───────────────────────────┤
+│ Sidebar │   Content                 │
+│ (scrolls with page)                 │
+└─────────────────────────────────────┘</div>
+
+  <p><strong>After (proposed):</strong></p>
+  <div class="ascii">┌─────────┬───────────────────────────┐
+│ Brand   │   Topbar (content only)   │
+│ Toggle  ├───────────────────────────┤
+│         │                           │
+│ Sidebar │   Content (scrolls)       │
+│ (full   │                           │
+│  height,│                           │
+│  pinned)│                           │
+└─────────┴───────────────────────────┘</div>
+
+  <h2>4. Settled decisions</h2>
+
+  <h3>4.1 Sidebar is pinned</h3>
+  <p>
+    The sidebar stays anchored in place regardless of content height.
+    Only the content column scrolls. Implementation: the sidebar column
+    is its own scroll container; the content column is its own scroll
+    container; the outer app shell is <code>overflow: hidden</code>.
+  </p>
+
+  <h3>4.2 Sidebar is collapsible</h3>
+  <p>
+    A toggle in the sidebar's own header collapses the sidebar to an
+    icon-only rail (56px wide). In collapsed state, hovering an icon
+    surfaces the item label as a tooltip.
+  </p>
+
+  <h3>4.3 Sidebar runs full height</h3>
+  <p>
+    The sidebar column extends from the top of the viewport to the
+    bottom. The MyNclex brand sits in the sidebar's own header (top of
+    the column). No full-width topbar above.
+  </p>
+
+  <h3>4.4 Topbar spans the content column only</h3>
+  <p>
+    Each audience-specific layout renders its own content-column
+    topbar with whatever it needs there: breadcrumb / page title,
+    product switcher (where applicable), user menu, role chip,
+    page-level actions.
+  </p>
+
+  <h3>4.5 Collapse state is persisted</h3>
+  <p>
+    Once a user collapses the sidebar, it stays collapsed across
+    page navigations and across browser sessions. Persisted in
+    <code>localStorage</code> under a single key (e.g.
+    <code>mynclex.shell.sidebarCollapsed</code>) so the preference
+    applies <strong>globally across all audiences</strong> — same
+    user, same choice on bank, tutor, admin surfaces. (Per-audience
+    persistence considered and rejected for v1 — too granular for
+    too little gain.)
+  </p>
+
+  <h3>4.6 Tooltip on collapsed hover</h3>
+  <p>
+    When collapsed, hovering an icon shows the item's label as a
+    small dark tooltip to the right of the icon. Solves the "what
+    does this icon do?" discoverability problem without forcing the
+    user to expand.
+  </p>
+
+  <h2>5. Tutor "My Bank" — collapsed-mode behaviour</h2>
+
+  <p>
+    The tutor global sidebar's "My Bank" item has three child rows
+    (All questions / Case Studies / Trend datasets). In the current
+    expanded layout, these render as an inline expand below the
+    parent. When the sidebar is collapsed to icon-only, the inline
+    expand cannot fit.
+  </p>
+
+  <p>Two options considered, one adopted:</p>
+
+  <table>
+    <tr>
+      <th>Option</th>
+      <th>Behaviour when collapsed</th>
+      <th>Decision</th>
+    </tr>
+    <tr>
+      <td>A — Click goes to default</td>
+      <td>Clicking the My Bank icon navigates to the parent's <code>href</code> (<code>/tutor/bank/all</code>). Children are inaccessible until the sidebar is expanded.</td>
+      <td><strong>Adopted v1.</strong> Simpler implementation; users who need a specific child can expand the sidebar (single click) to reach it.</td>
+    </tr>
+    <tr>
+      <td>B — Hover flyout</td>
+      <td>Hovering the icon pops out a small floating sub-menu listing the children. Click a child to navigate without expanding the sidebar.</td>
+      <td>Considered. Better UX in some senses, but adds positioning complexity and an extra interaction layer. Defer to v2 if real demand surfaces.</td>
+    </tr>
+  </table>
+
+  <h2>6. Mobile behaviour</h2>
+
+  <p>
+    Mobile (≤640px) already uses a stacked layout — sidebar above
+    content as a horizontal bar — per the existing
+    <code>styles/nav.css</code>. The collapse toggle does not apply
+    on mobile; the sidebar's stacked form is already compact. No
+    change needed.
+  </p>
+
+  <p>
+    Tablet sizing (641px–960px) gets the desktop layout. Default
+    collapsed state on first load for tablets is a v2 polish item;
+    v1 defaults to expanded everywhere on desktop+.
+  </p>
+
+  <h2>7. Default state on first visit</h2>
+
+  <p>
+    On a fresh load (no <code>localStorage</code> entry), the
+    sidebar renders <strong>expanded</strong>. This matches the
+    current behaviour and keeps the navigation discoverable for
+    new users who haven't yet learned the icon set.
+  </p>
+
+  <h2>8. Implementation surface</h2>
+
+  <p>
+    Concretely, the shipping change touches:
+  </p>
+
+  <ul>
+    <li>
+      <code>components/shell/app-shell.tsx</code> — restructures the
+      outer layout so the sidebar column wraps both the brand-header
+      and the nav-rows in a single floor-to-ceiling column; the
+      topbar moves into the content column.
+    </li>
+    <li>
+      <code>styles/nav.css</code> + <code>styles/shell.css</code> —
+      new grid template for the app shell; sidebar scroll container
+      pattern; collapsed-state classes (<code>.shell-collapsed</code>);
+      tooltip styles for collapsed nav items.
+    </li>
+    <li>
+      <code>components/nav/shared/</code> — new
+      <code>sidebar-header.tsx</code> (brand + toggle button) and a
+      tiny <code>useCollapsed</code> hook backed by
+      <code>localStorage</code> (or equivalent client-side store).
+    </li>
+    <li>
+      Audience layouts
+      (<code>app/(app)/student/*/layout.tsx</code>,
+      <code>app/(app)/tutor/*/layout.tsx</code>,
+      <code>app/(app)/admin/*/layout.tsx</code>) — each updates to
+      pass its sidebar config + content-column topbar slot into the
+      new shell shape.
+    </li>
+    <li>
+      <code>components/nav/student/product-switcher.tsx</code>,
+      role-chip, user-menu, etc. — these all currently live in the
+      old full-width topbar; need to relocate into the new
+      content-column topbar.
+    </li>
+    <li>
+      <code>components/nav/admin/sidebar.tsx</code> — its existing
+      <code>.sidebar-footer</code> pattern still works (footer pins
+      to bottom of the sidebar column), but needs to be revisited
+      in collapsed mode.
+    </li>
+  </ul>
+
+  <h2>9. Open questions (slot at build time)</h2>
+
+  <ul>
+    <li>
+      <strong>Collapsed-state visual when there's no brand text.</strong>
+      Do we render a small "M" logo at the top in collapsed mode, or
+      just the toggle button? Most apps put a logo. Lean toward yes,
+      but a single-letter mark needs designer review.
+    </li>
+    <li>
+      <strong>Admin sidebar footer in collapsed mode.</strong> The
+      admin footer currently shows role + permission count.
+      Collapsed mode either hides the footer entirely or shows just
+      a tiny icon. TBD with first build.
+    </li>
+    <li>
+      <strong>Keyboard shortcut to toggle.</strong> Many apps bind
+      Cmd/Ctrl+B. Not v1-critical but cheap to add.
+    </li>
+    <li>
+      <strong>Transition timing.</strong> 200ms ease for the
+      grid-column-width transition feels right in the mockup. Worth
+      a designer pass once it's in real product context.
+    </li>
+  </ul>
+
+  <h2>10. Not in scope</h2>
+
+  <ul>
+    <li><strong>Hover-flyout sub-menus</strong> for parent items
+      with children (deferred to v2 — see §5).</li>
+    <li><strong>Per-audience collapse persistence</strong> (rejected
+      — global single setting in v1).</li>
+    <li><strong>Multi-pane layouts</strong> beyond the sidebar +
+      content split (e.g. right rail). Out of scope for this revision.</li>
+    <li><strong>Animation polish</strong> (icon-to-label fade,
+      label fade-in on expand, etc.) — base CSS transition is
+      enough for v1; polish is a follow-up.</li>
+  </ul>
+
+  <h2>11. Related</h2>
+
+  <ul>
+    <li><a href="student-nav.md">student-nav.md</a> — student sidebar items + structure.</li>
+    <li><a href="tutor-nav.html">tutor-nav.html</a> — tutor sidebar items + visual mockup.</li>
+    <li><a href="admin-nav.html">admin-nav.html</a> — admin sidebar items + permission gating.</li>
+    <li><a href="nav-scaffold-kickoff.md">nav-scaffold-kickoff.md</a> — the original 2026-04-25 nav scaffold session.</li>
+    <li><code>../../CLAUDE.md</code> — folder conventions (folder rule 6: "each audience renders its own chrome" — preserved by this design).</li>
+  </ul>
+
+</div>
+
+<script>
+  const app = document.getElementById('app');
+  const btn = document.getElementById('toggleBtn');
+  btn.addEventListener('click', () => {
+    app.classList.toggle('collapsed');
+  });
+</script>
+
+</body>
+</html>
