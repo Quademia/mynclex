@@ -2,7 +2,7 @@
 
 *Living document. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
-Last updated: 2026-05-17 (Bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
+Last updated: 2026-05-17 (Readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
 
 ---
 
@@ -146,9 +146,21 @@ or the MyNclex Cloudflare Worker landing URL).
 Settled 2026-05-17 — see *Pricing — Bank* below for the reasoning
 and the alternative pricings considered.
 
-**Section 2 — Exam Readiness Assessments.** One card per readiness
-pack from `nclex_readiness_packs` joined with `nclex_products`.
-Each card shows pack name, question count, price, "Buy" button.
+**Section 2 — Exam Readiness Assessments.** Three SKU cards in a
+row (Single / Select 3 / All 5):
+
+| Card | What it grants | GHS | USD | Action |
+|---|---|---|---|---|
+| Single Pack | 1 pack — student picks any 1 of the 5 | ₵100 | $20 | "Buy" → subscribe flow |
+| Select 3 | 3 packs — student picks any 3 of the 5 | ₵240 | $48 | "Buy" → subscribe flow |
+| All 5 | All 5 packs unlocked | ₵350 | $70 | "Buy" → subscribe flow |
+
+Each card carries the same headline copy under the title: *"100
+questions · 3 hours 20 minutes · one shot per pack · 21-day window
+on activation."* Selection of which specific packs to claim happens
+post-purchase (so a returning student isn't blocked from buying by
+the SKU shape). See *Pricing — Readiness packs* below for the
+reasoning and the bundle-into-bank value table.
 
 Sections 3+ (FAQ, testimonials, sample-question teaser) deferred to
 v2 or post-launch marketing iteration.
@@ -226,28 +238,122 @@ blended-mix average revenue per subscriber of ~$63, $1M USD in
 bank-only revenue ≈ ~15,900 lifetime subscribers. Programmes and
 readiness packs stack on top — bank-only is the volume play.
 
-### Bundled readiness packs
+### Pricing — Readiness packs
 
-Longer bank tiers include access to readiness packs (product
-catalogue's `nclex_readiness_packs`), modelled on UWorld's
-self-assessment bundling:
+**Settled 2026-05-17.** Five identical-shape packs, three standalone
+SKUs, bundled credits per bank tier.
 
-- Count per tier — **TBD** (finalised during readiness-pack
-  planning; will follow UWorld's "more packs as tier grows"
-  shape: 0 on 30d trial path, ~1–6 across the paid tiers).
-- Each bundled pack is **dormant until activated** by the student.
-- On activation, the pack has a **21-day window** to complete
-  (chosen over UWorld's 14-day window — more generous, mild
-  differentiation, still tight enough to feel focused rather than
-  "a second bank subscription").
-- The 21-day window is **independent of the bank subscription**.
-  Unactivated packs survive the bank's expiry — students can come
-  back later, activate, get their 21 days.
+**Format (all 5 packs identical shape):**
 
-Bundling is one-way: bundled packs unlock access to the same pack
-content as the standalone purchase (no separate "bundled-only"
-SKU). The catalogue stays clean — one product per pack — with the
-bundling expressed as an entitlement on the bank subscription.
+- **Count in v1:** 5 packs.
+- **Length:** 100 questions per pack (fixed, not CAT — predictive
+  integrity needs a consistent denominator).
+- **Time limit:** 3 hours 20 minutes (200 min = 2 min/Q, matching
+  the real NCLEX's 5-hour / 150-Q pace).
+- **Naming:** "Readiness Pack 1" → "Readiness Pack 5". Plain.
+- **Question reservation:** pack questions carry
+  `is_builder_visible = FALSE` so the student custom-quiz builder
+  never sees them — kept from the earlier bank plan (see
+  [bank.md](bank.md) §"Readiness packs"). Once a pack is taken,
+  the questions stay hidden from the builder forever.
+
+**Attempt rules:**
+
+- **One shot per pack.** No retakes, no resets. UWorld follows
+  the same rule for the same reason — if a student can retake the
+  same 100 questions, the score isn't a real signal anymore.
+- **Permanent until activated.** Packs sit dormant in the
+  student's account forever once entitled (whether bundled or
+  standalone). The clock only starts on "Start."
+- **21-day window on activation.** Same for bundled and
+  standalone. Chosen over UWorld's 14-day window — more generous,
+  mild differentiation, still tight enough to feel focused rather
+  than "a second bank subscription."
+- **Window is independent of the bank subscription.** Unactivated
+  packs survive bank expiry. Students can return weeks or months
+  later, activate, get their 21 days.
+
+**Standalone catalogue (3 SKUs):**
+
+| SKU | What it grants | GHS | USD | USD per pack |
+|---|---|---|---|---|
+| Single Pack | 1 pack | ₵100 | $20 | $20 |
+| Select 3 | 3 packs (any 3 of 5) | ₵240 | $48 | $16 (20% off) |
+| All 5 | All 5 packs | ₵350 | $70 | $14 (30% off) |
+
+**Bundled credits per bank tier:**
+
+| Bank tier | Pack credits |
+|---|---|
+| Trial | 0 |
+| 30 days | 0 |
+| 60 days | 1 |
+| 90 days | 2 |
+| 180 days | 3 |
+| 365 days | 5 (all) |
+
+Readiness packs only kick in on serious commitment — 30d is pure
+bank, no readiness sweetener.
+
+**Bundle vs standalone value:**
+
+| Tier | Bank price (USD) | Packs | Standalone pack value | Combo worth | Bundle saves |
+|---|---|---|---|---|---|
+| 30 days | $30 | 0 | — | $30 | — |
+| 60 days | $50 | 1 | $20 | $70 | **$20** |
+| 90 days | $70 | 2 | $40 (2× Single) | $110 | **$40** |
+| 180 days | $110 | 3 | $48 (Select 3) | $158 | **$48** |
+| 365 days | $160 | 5 | $70 (All 5) | $230 | **$70** |
+
+(2-pack rows use 2× Single — there's no "Select 2" SKU; Select 3
+would be more expensive for fewer packs of value.) GHS savings
+scale the same way: GHS 100 / 200 / 240 / 350 across 60d / 90d /
+180d / 365d.
+
+**Interaction rules (bundle + standalone coexist):**
+
+- Bundled packs are granted as **credits**, not pre-assigned
+  packs. A 90d bank gives "2 credits" — the student picks which 2
+  of the 5 packs to claim. Standalone purchases grant a specific
+  pack directly.
+- A student can buy standalone packs on top of a bundle.
+- During standalone selection, the system **disables packs the
+  student already owns** (whether owned via bundle-claim or prior
+  standalone purchase). Prevents double-purchase, prevents wasted
+  credits.
+
+**Principles (echoing the bank plan):**
+
+- **Single pack = $20 anchored to UWorld's standalone price.**
+  Same anchor we used to set the per-pack market floor.
+- **30% off at the All-5 tier.** Smooth discount curve — gentle,
+  matches the bank's "reward commitment" pattern.
+- **GHS regionally priced.** Single pack at ₵100 ≈ 5% of monthly
+  Ghanaian entry-nursing salary. All 5 at ₵350 ≈ 16% of monthly
+  salary — meaningful but accessible.
+- **Bundle value is real, not cosmetic.** A 365d bank saves $70
+  on the readiness side (44% of the bank price) — gives the bundle
+  a genuine marketing line: *"a year of bank + all 5 readiness
+  packs, $70 cheaper than buying separately."*
+
+**Alternative pricings considered** (for the record — not adopted):
+
+| SKU | GHS (lower, rejected) | GHS adopted | USD (lower, rejected) | USD adopted | USD (higher, rejected) |
+|---|---|---|---|---|---|
+| Single | ₵60 | **₵100** | $15 | **$20** | $25 |
+| Select 3 | ₵150 | **₵240** | $35 | **$48** | $60 |
+| All 5 | ₵220 | **₵350** | $50 | **$70** | $90 |
+
+- **Lower (rejected):** undercut UWorld and felt too cheap —
+  signals an inferior product, also weakens the bundled-into-bank
+  value (5 packs "worth" $50 would make the 365d bundle feel like
+  nothing extra).
+- **Adopted ($20 / $48 / $70):** matches UWorld's anchor on the
+  single, adds a smooth bulk discount, makes the bundle materially
+  valuable.
+- **Higher (rejected):** premium positioning, but the standalone
+  All 5 at $90 starts encroaching on the 180d bank ($110) which
+  blurs the product line.
 
 ### Two paths on card click
 
