@@ -2,7 +2,7 @@
 
 *Living document. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
-Last updated: 2026-05-18 (Auth model alignment settled — MyNclex uses Supabase Auth as the source of identity: `auth.users` (Supabase-managed identity, holds email + hashed password + verification state) + `nclex_users` (our profile mirror, PK = `auth.users.id`, already in `db/schema.sql`). The Licensure-era custom user-table pattern is superseded. Pay-first flow updated to use Supabase's `inviteUserByEmail` (Option C) instead of a custom setup-token mechanism — Supabase ships token generation, email sending, link expiry, and resend out of the box; we only build the `/welcome` page. Trial signup uses `supabase.auth.signUp()` directly. Edge-cases section updated (no more "setup token expiry"; now "invite-link expiry" using the Supabase project setting). New "Identity model" subsection added under Shared infrastructure. Earlier today: Enrolment-source enum settled — three values for v1: `SELF_PAID` | `TUTOR_ADDED` | `ADMIN_GRANT`. Mutually exclusive; offline-paid folded into `TUTOR_ADDED` since we can't reliably know whether the tutor actually collected money. `TRIAL_CONVERTED` dropped (trials are for the bank, not programmes). Audit fields like `enrolled_by_user_id` live in separate columns, not encoded in the enum name. main.md updated in two places to match. Earlier today: Tutor monthly sub revisit closed — stays at $29/mo flat, single tier, USD only for v1; sits at the low end of the SaaS-tutor-platform market which suits a new vetted niche platform. Tiering (library/programme/quiz limits) stays deferred to v2. Previous touch 2026-05-17: Cohort full / waitlist behaviour settled — Pattern C: soft cap, `cohort_size` is a tutor-set planning target only, waitlist always open, tutor approval is the only hard gate. Earlier in this same day: Self-paced enrolment + Programme access window both settled — new top-level sections added for each. Self-paced: self-serve on-platform only, one access window per programme, same payment strategies as tutored but anchored to enrolment date, instant enrolment no tutor mediation. Access window cross-cutting: Pattern A adopted (tutor-set per programme, contingent on tutor maintaining the monthly sub — industry standard). Earlier in this same day: Programme enrolment model revised — old bundled-bank checkout dropped in favour of decoupled Option C (opt-in bank at 40% off + tutor-mediated enrolment + tutor-configurable payment strategies + on-platform vs off-platform collection toggle). Old "Bundled transaction" / "Auto-enrolment on payment" / "Tutor-added enrolment" subsections marked SUPERSEDED in-place; new "Settled 2026-05-17" subsection inside Tutored enrolment carries the revised model. Auth-model alignment + enrolment-source enum + tutor-sub revisit + waitlist behaviour all noted as Still open in that subsection. Earlier today: readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
+Last updated: 2026-05-18 (Programme enrolment flows fleshed out end-to-end — two concrete flows now documented step-by-step inside Tutored enrolment → Settled 2026-05-17. **On-platform flow:** student pays initial payment via Paystack → Supabase invite → student sets up account at `/welcome` → enrolment row created with status `PENDING_APPROVAL` and `enrolment_source = 'SELF_PAID'` → student sees "Pending tutor approval" on dashboard → tutor clicks Approve in cohort workspace → status flips to `ENROLLED`. Bank opt-in (if ticked) activates immediately and is not gated on tutor approval — it's QAcademy's product. **Off-platform flow:** tutor adds student from cohort workspace (typing name + email, or one-click-converting a waitlist entry the student created via the discovery page) → Supabase invite → student sets up account at `/welcome` → enrolment row created immediately with status `ENROLLED` and `enrolment_source = 'TUTOR_ADDED'`, no pending state (tutor is both approver and actor). Account-creation mechanism is Supabase `inviteUserByEmail` for both flows — same as standalone bank — no temp-password / WhatsApp credentials pattern. Bank opt-in card only shown in on-platform flow (off-platform students who want bank access buy it through the standalone self-study landing). New "Enrolment-source mapping" table added. Earlier today: Auth model alignment settled — MyNclex uses Supabase Auth as the source of identity: `auth.users` (Supabase-managed identity, holds email + hashed password + verification state) + `nclex_users` (our profile mirror, PK = `auth.users.id`, already in `db/schema.sql`). The Licensure-era custom user-table pattern is superseded. Pay-first flow updated to use Supabase's `inviteUserByEmail` (Option C) instead of a custom setup-token mechanism — Supabase ships token generation, email sending, link expiry, and resend out of the box; we only build the `/welcome` page. Trial signup uses `supabase.auth.signUp()` directly. Edge-cases section updated (no more "setup token expiry"; now "invite-link expiry" using the Supabase project setting). New "Identity model" subsection added under Shared infrastructure. Earlier today: Enrolment-source enum settled — three values for v1: `SELF_PAID` | `TUTOR_ADDED` | `ADMIN_GRANT`. Mutually exclusive; offline-paid folded into `TUTOR_ADDED` since we can't reliably know whether the tutor actually collected money. `TRIAL_CONVERTED` dropped (trials are for the bank, not programmes). Audit fields like `enrolled_by_user_id` live in separate columns, not encoded in the enum name. main.md updated in two places to match. Earlier today: Tutor monthly sub revisit closed — stays at $29/mo flat, single tier, USD only for v1; sits at the low end of the SaaS-tutor-platform market which suits a new vetted niche platform. Tiering (library/programme/quiz limits) stays deferred to v2. Previous touch 2026-05-17: Cohort full / waitlist behaviour settled — Pattern C: soft cap, `cohort_size` is a tutor-set planning target only, waitlist always open, tutor approval is the only hard gate. Earlier in this same day: Self-paced enrolment + Programme access window both settled — new top-level sections added for each. Self-paced: self-serve on-platform only, one access window per programme, same payment strategies as tutored but anchored to enrolment date, instant enrolment no tutor mediation. Access window cross-cutting: Pattern A adopted (tutor-set per programme, contingent on tutor maintaining the monthly sub — industry standard). Earlier in this same day: Programme enrolment model revised — old bundled-bank checkout dropped in favour of decoupled Option C (opt-in bank at 40% off + tutor-mediated enrolment + tutor-configurable payment strategies + on-platform vs off-platform collection toggle). Old "Bundled transaction" / "Auto-enrolment on payment" / "Tutor-added enrolment" subsections marked SUPERSEDED in-place; new "Settled 2026-05-17" subsection inside Tutored enrolment carries the revised model. Auth-model alignment + enrolment-source enum + tutor-sub revisit + waitlist behaviour all noted as Still open in that subsection. Earlier today: readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
 
 ---
 
@@ -601,16 +601,40 @@ per-student):
 - Tutor can manually mark paid (e.g. student paid off-platform) or
   extend the grace window.
 
-#### On-platform money flow
+#### On-platform flow — full sequence (Settled 2026-05-18)
 
-When a student pays via QAcademy:
+When the tutor has opted into on-platform collection and a student
+finds the programme through QAcademy's public list:
 
-1. Student picks a cohort on the public list → joins waitlist
-   → picks a payment strategy → Paystack checkout.
-2. Money lands in QAcademy's account (Paystack settlement).
-3. Tutor sees the paid waitlist entry in the cohort workspace.
-4. Tutor approves the enrolment.
-5. Student is enrolled; cohort appears on their dashboard.
+1. Student lands on the programme detail page → picks a cohort →
+   picks one of the tutor's configured payment strategies (upfront
+   full / deposit + balance / equal installments).
+2. Optionally ticks the bank opt-in card (40% off — see below).
+3. Clicks Pay → Paystack checkout. Pays the **initial amount**
+   for the chosen strategy (full price for upfront, deposit for
+   deposit+balance, installment 1 for installments).
+4. Paystack confirms → an `INIT` row in `nclex_payments` flips to
+   `PAID`.
+5. If no `auth.users` row exists for the student's email yet,
+   server fires `auth.admin.inviteUserByEmail(email)` — Supabase
+   creates the identity row (no password) and sends the invite
+   email.
+6. Student clicks the invite link → lands on `/welcome` → fills
+   name + chooses password → server writes the password to
+   `auth.users` and inserts the matching profile row in
+   `nclex_users`.
+7. `nclex_enrolments` row created with
+   `enrolment_source = 'SELF_PAID'` and status `PENDING_APPROVAL`.
+   Bank opt-in (if ticked) activates immediately as a separate
+   `nclex_subscriptions` row — bank is QAcademy's product, not
+   gated on tutor approval.
+8. Student logs in → dashboard shows the programme tile with a
+   **"Pending tutor approval"** state — programme content not yet
+   accessible. Bank tile is fully usable.
+9. Tutor sees the paid waitlist entry in the cohort workspace →
+   clicks **Approve enrolment**.
+10. State flips to `ENROLLED`. Programme content unlocks for the
+    student.
 
 **Remittance.** Money sits in QAcademy's account until the tutor
 requests withdrawal. Admin processes payouts manually for v1
@@ -618,26 +642,61 @@ requests withdrawal. Admin processes payouts manually for v1
 tutor's preferred destination). Auto-payouts via Paystack split
 accounts are a v2 candidate.
 
-**Refunds** (when the tutor rejects a waitlist entry, or under
-exceptional circumstances post-enrolment): manual. Admin
-processes case-by-case. Auto-refund on tutor rejection deferred
-to v2 once the volume justifies the automation.
+**Tutor rejects a paid pending student.** Manual refund handled
+by admin, case-by-case. Student-facing UX: programme tile shows
+"Refund being processed" rather than vanishing. Auto-refund on
+tutor rejection deferred to v2 once volume justifies it.
 
-#### Off-platform money flow
+#### Off-platform flow — full sequence (Settled 2026-05-18)
 
-When the tutor collects programme fees directly:
+When the tutor collects programme fees directly, the tutor is the
+one who initiates enrolment. Two sub-cases roll into one flow:
 
-1. Student picks a cohort → joins waitlist with email + message
-   (no payment on QAcademy at this step).
-2. Tutor receives notification; arranges payment with student
-   off-platform (mobile money, bank transfer, etc.).
-3. Tutor verifies payment, approves the enrolment in the cohort
-   workspace.
-4. Student is enrolled; cohort appears on their dashboard.
+- *Tutor brings their own student* (from their own pipeline,
+  referrals, existing students) — tutor types in name + email.
+- *Tutor converts a discovery-page waitlist entry* (student found
+  the tutor via the public list, joined the cohort waitlist with
+  name + email + optional message, then paid the tutor
+  off-platform) — tutor confirms payment and converts the
+  waitlist entry to an enrolment with one click. The student's
+  details carry over from the waitlist row.
+
+**Concrete steps (either sub-case):**
+
+1. Tutor goes to the cohort workspace → **Add student** (or
+   **Convert waitlist entry** for the sub-case above).
+2. Confirms / enters student's name + email.
+3. Clicks Enrol. Server fires `auth.admin.inviteUserByEmail(email)`
+   — Supabase creates the `auth.users` row (no password) and
+   sends the invite email.
+4. `nclex_enrolments` row created immediately with
+   `enrolment_source = 'TUTOR_ADDED'` and status `ENROLLED` — no
+   pending state because the tutor is both the approver and the
+   actor.
+5. `nclex_users` profile row inserted using the tutor-supplied
+   name (student can edit later).
+6. Student clicks the invite link → `/welcome` → sets password
+   → logged in → cohort is already on their dashboard, content
+   fully accessible.
 
 Off-platform mode never touches QAcademy's payment infrastructure
-for the programme fee. The bank opt-in at checkout (below) is the
-only QAcademy-collected line in this mode.
+for the programme fee. The bank opt-in is **not** shown in this
+flow — bank opt-in lives at programme checkout, which only exists
+in the on-platform flow. Off-platform students who want bank
+access buy it through the standard self-study landing page.
+
+**Why one consistent account-creation mechanism (Supabase invite,
+not temp-password).** Tutors don't see or set credentials. Same
+mechanism as the standalone bank pay-first flow — one pattern
+everywhere, no plaintext passwords in WhatsApp, less custom code.
+
+#### Enrolment-source mapping
+
+| Flow | `enrolment_source` |
+|---|---|
+| On-platform flow (student pays via QAcademy, tutor approves) | `SELF_PAID` |
+| Off-platform flow (tutor adds student, paid them or comped them) | `TUTOR_ADDED` |
+| Admin manually grants enrolment (refund replacement, support, promo) | `ADMIN_GRANT` |
 
 #### Bank opt-in at programme checkout (Option C — decoupled)
 
