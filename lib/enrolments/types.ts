@@ -1,0 +1,47 @@
+// mynclex/lib/enrolments/types.ts
+//
+// Shared shapes for the enrolment surfaces (Slice 1). The status +
+// source string unions mirror the CHECK constraints on
+// nclex_enrolments (db/schema.sql). Keep them in lock-step with the
+// table — they're the TS half of the same contract.
+
+export type EnrolmentStatus =
+  | 'PENDING_APPROVAL'
+  | 'ENROLLED'
+  | 'PAUSED'
+  | 'REJECTED'
+  | 'CANCELLED'
+  | 'EXPIRED';
+
+export type EnrolmentSource = 'SELF_PAID' | 'TUTOR_ADDED' | 'ADMIN_GRANT';
+
+/** One row in the tutor's cohort roster — enrolment joined to the
+ *  student's profile. */
+export interface EnrolmentRosterRow {
+  enrolment_id: string;
+  user_id: string;
+  status: EnrolmentStatus;
+  enrolment_source: EnrolmentSource;
+  enrolled_at: string;
+  name: string;
+  email: string;
+}
+
+/** Status → display label + pill class (see styles/enrolments.css). */
+export const ENROLMENT_STATUS_META: Record<
+  EnrolmentStatus,
+  { label: string; pillClass: string }
+> = {
+  PENDING_APPROVAL: { label: 'Pending approval', pillClass: 'enrol-pill-pending' },
+  ENROLLED: { label: 'Enrolled', pillClass: 'enrol-pill-enrolled' },
+  PAUSED: { label: 'Paused', pillClass: 'enrol-pill-paused' },
+  REJECTED: { label: 'Rejected', pillClass: 'enrol-pill-rejected' },
+  CANCELLED: { label: 'Cancelled', pillClass: 'enrol-pill-cancelled' },
+  EXPIRED: { label: 'Expired', pillClass: 'enrol-pill-expired' },
+};
+
+export const ENROLMENT_SOURCE_LABEL: Record<EnrolmentSource, string> = {
+  SELF_PAID: 'Self-paid',
+  TUTOR_ADDED: 'Added by you',
+  ADMIN_GRANT: 'Admin grant',
+};
