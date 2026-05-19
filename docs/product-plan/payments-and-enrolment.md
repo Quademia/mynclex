@@ -2,7 +2,7 @@
 
 *Living document. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
-Last updated: 2026-05-18 (Enrolment row lifecycle settled — six mutually-exclusive status values for `nclex_enrolments`: `PENDING_APPROVAL`, `ENROLLED`, `PAUSED`, `REJECTED`, `CANCELLED`, `EXPIRED`. New cross-cutting section added between Tutored / Self-paced enrolment sections and the access-window section, with status table, allowed transitions, and entry-point rules per flow. `COMPLETED` deliberately excluded — it's a progress-engine concept, not an enrolment-row concept. Tutor-sub-lapsed transition handled at read time, not as a status. Earlier today: Self-paced enrolment flow fleshed out end-to-end — now matches the rigour of the tutored on-platform flow. Explicit Supabase invite step for new accounts, status `ENROLLED` from moment of payment (no `PENDING_APPROVAL` — no tutor-approval gate), `cohort_id = NULL`, `enrolment_source = 'SELF_PAID'`. Access-window clock starts at enrolment moment. Bank opt-in (if ticked) activates as a separate subscription, independent of programme access. Earlier today: Programme enrolment flows fleshed out end-to-end — two concrete flows now documented step-by-step inside Tutored enrolment → Settled 2026-05-17. **On-platform flow:** student pays initial payment via Paystack → Supabase invite → student sets up account at `/welcome` → enrolment row created with status `PENDING_APPROVAL` and `enrolment_source = 'SELF_PAID'` → student sees "Pending tutor approval" on dashboard → tutor clicks Approve in cohort workspace → status flips to `ENROLLED`. Bank opt-in (if ticked) activates immediately and is not gated on tutor approval — it's QAcademy's product. **Off-platform flow:** tutor adds student from cohort workspace (typing name + email, or one-click-converting a waitlist entry the student created via the discovery page) → Supabase invite → student sets up account at `/welcome` → enrolment row created immediately with status `ENROLLED` and `enrolment_source = 'TUTOR_ADDED'`, no pending state (tutor is both approver and actor). Account-creation mechanism is Supabase `inviteUserByEmail` for both flows — same as standalone bank — no temp-password / WhatsApp credentials pattern. Bank opt-in card only shown in on-platform flow (off-platform students who want bank access buy it through the standalone self-study landing). New "Enrolment-source mapping" table added. Earlier today: Auth model alignment settled — MyNclex uses Supabase Auth as the source of identity: `auth.users` (Supabase-managed identity, holds email + hashed password + verification state) + `nclex_users` (our profile mirror, PK = `auth.users.id`, already in `db/schema.sql`). The Licensure-era custom user-table pattern is superseded. Pay-first flow updated to use Supabase's `inviteUserByEmail` (Option C) instead of a custom setup-token mechanism — Supabase ships token generation, email sending, link expiry, and resend out of the box; we only build the `/welcome` page. Trial signup uses `supabase.auth.signUp()` directly. Edge-cases section updated (no more "setup token expiry"; now "invite-link expiry" using the Supabase project setting). New "Identity model" subsection added under Shared infrastructure. Earlier today: Enrolment-source enum settled — three values for v1: `SELF_PAID` | `TUTOR_ADDED` | `ADMIN_GRANT`. Mutually exclusive; offline-paid folded into `TUTOR_ADDED` since we can't reliably know whether the tutor actually collected money. `TRIAL_CONVERTED` dropped (trials are for the bank, not programmes). Audit fields like `enrolled_by_user_id` live in separate columns, not encoded in the enum name. main.md updated in two places to match. Earlier today: Tutor monthly sub revisit closed — stays at $29/mo flat, single tier, USD only for v1; sits at the low end of the SaaS-tutor-platform market which suits a new vetted niche platform. Tiering (library/programme/quiz limits) stays deferred to v2. Previous touch 2026-05-17: Cohort full / waitlist behaviour settled — Pattern C: soft cap, `cohort_size` is a tutor-set planning target only, waitlist always open, tutor approval is the only hard gate. Earlier in this same day: Self-paced enrolment + Programme access window both settled — new top-level sections added for each. Self-paced: self-serve on-platform only, one access window per programme, same payment strategies as tutored but anchored to enrolment date, instant enrolment no tutor mediation. Access window cross-cutting: Pattern A adopted (tutor-set per programme, contingent on tutor maintaining the monthly sub — industry standard). Earlier in this same day: Programme enrolment model revised — old bundled-bank checkout dropped in favour of decoupled Option C (opt-in bank at 40% off + tutor-mediated enrolment + tutor-configurable payment strategies + on-platform vs off-platform collection toggle). Old "Bundled transaction" / "Auto-enrolment on payment" / "Tutor-added enrolment" subsections marked SUPERSEDED in-place; new "Settled 2026-05-17" subsection inside Tutored enrolment carries the revised model. Auth-model alignment + enrolment-source enum + tutor-sub revisit + waitlist behaviour all noted as Still open in that subsection. Earlier today: readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
+Last updated: 2026-05-18 (Programme listing price display settled — public card and detail page show the tutor's **upfront-full programme fee** as the canonical headline price (one number, in the tutor's configured currency). Multiple payment strategies (deposit, installments with surcharges) only appear at checkout, never on the listing. Small optional bank hint *"💡 Add NCLEX Bank Access from $18 at checkout (optional)"* sits beneath the headline. FX-converted hint based on student's currency toggle deferred as polish. Contact-first programmes (`show_price_publicly = FALSE`) unchanged. "Bundled checkout" wording removed from price-visibility section to match the decoupled model. Earlier today: Enrolment row lifecycle settled — six mutually-exclusive status values for `nclex_enrolments`: `PENDING_APPROVAL`, `ENROLLED`, `PAUSED`, `REJECTED`, `CANCELLED`, `EXPIRED`. New cross-cutting section added between Tutored / Self-paced enrolment sections and the access-window section, with status table, allowed transitions, and entry-point rules per flow. `COMPLETED` deliberately excluded — it's a progress-engine concept, not an enrolment-row concept. Tutor-sub-lapsed transition handled at read time, not as a status. Earlier today: Self-paced enrolment flow fleshed out end-to-end — now matches the rigour of the tutored on-platform flow. Explicit Supabase invite step for new accounts, status `ENROLLED` from moment of payment (no `PENDING_APPROVAL` — no tutor-approval gate), `cohort_id = NULL`, `enrolment_source = 'SELF_PAID'`. Access-window clock starts at enrolment moment. Bank opt-in (if ticked) activates as a separate subscription, independent of programme access. Earlier today: Programme enrolment flows fleshed out end-to-end — two concrete flows now documented step-by-step inside Tutored enrolment → Settled 2026-05-17. **On-platform flow:** student pays initial payment via Paystack → Supabase invite → student sets up account at `/welcome` → enrolment row created with status `PENDING_APPROVAL` and `enrolment_source = 'SELF_PAID'` → student sees "Pending tutor approval" on dashboard → tutor clicks Approve in cohort workspace → status flips to `ENROLLED`. Bank opt-in (if ticked) activates immediately and is not gated on tutor approval — it's QAcademy's product. **Off-platform flow:** tutor adds student from cohort workspace (typing name + email, or one-click-converting a waitlist entry the student created via the discovery page) → Supabase invite → student sets up account at `/welcome` → enrolment row created immediately with status `ENROLLED` and `enrolment_source = 'TUTOR_ADDED'`, no pending state (tutor is both approver and actor). Account-creation mechanism is Supabase `inviteUserByEmail` for both flows — same as standalone bank — no temp-password / WhatsApp credentials pattern. Bank opt-in card only shown in on-platform flow (off-platform students who want bank access buy it through the standalone self-study landing). New "Enrolment-source mapping" table added. Earlier today: Auth model alignment settled — MyNclex uses Supabase Auth as the source of identity: `auth.users` (Supabase-managed identity, holds email + hashed password + verification state) + `nclex_users` (our profile mirror, PK = `auth.users.id`, already in `db/schema.sql`). The Licensure-era custom user-table pattern is superseded. Pay-first flow updated to use Supabase's `inviteUserByEmail` (Option C) instead of a custom setup-token mechanism — Supabase ships token generation, email sending, link expiry, and resend out of the box; we only build the `/welcome` page. Trial signup uses `supabase.auth.signUp()` directly. Edge-cases section updated (no more "setup token expiry"; now "invite-link expiry" using the Supabase project setting). New "Identity model" subsection added under Shared infrastructure. Earlier today: Enrolment-source enum settled — three values for v1: `SELF_PAID` | `TUTOR_ADDED` | `ADMIN_GRANT`. Mutually exclusive; offline-paid folded into `TUTOR_ADDED` since we can't reliably know whether the tutor actually collected money. `TRIAL_CONVERTED` dropped (trials are for the bank, not programmes). Audit fields like `enrolled_by_user_id` live in separate columns, not encoded in the enum name. main.md updated in two places to match. Earlier today: Tutor monthly sub revisit closed — stays at $29/mo flat, single tier, USD only for v1; sits at the low end of the SaaS-tutor-platform market which suits a new vetted niche platform. Tiering (library/programme/quiz limits) stays deferred to v2. Previous touch 2026-05-17: Cohort full / waitlist behaviour settled — Pattern C: soft cap, `cohort_size` is a tutor-set planning target only, waitlist always open, tutor approval is the only hard gate. Earlier in this same day: Self-paced enrolment + Programme access window both settled — new top-level sections added for each. Self-paced: self-serve on-platform only, one access window per programme, same payment strategies as tutored but anchored to enrolment date, instant enrolment no tutor mediation. Access window cross-cutting: Pattern A adopted (tutor-set per programme, contingent on tutor maintaining the monthly sub — industry standard). Earlier in this same day: Programme enrolment model revised — old bundled-bank checkout dropped in favour of decoupled Option C (opt-in bank at 40% off + tutor-mediated enrolment + tutor-configurable payment strategies + on-platform vs off-platform collection toggle). Old "Bundled transaction" / "Auto-enrolment on payment" / "Tutor-added enrolment" subsections marked SUPERSEDED in-place; new "Settled 2026-05-17" subsection inside Tutored enrolment carries the revised model. Auth-model alignment + enrolment-source enum + tutor-sub revisit + waitlist behaviour all noted as Still open in that subsection. Earlier today: readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
 
 ---
 
@@ -847,11 +847,12 @@ top-level "Self-paced enrolment" section below.)*
 A single public page lists all *discoverable* tutored programmes —
 no marketplace bells, just a directory.
 
-- Card per programme: title, tutor name, brief description, price
-  (or *Contact* button — see below), key details (length — shown
-  as "N weeks" or "N modules" per the programme's `unit_label`,
-  e.g. "8 weeks" or "8 modules" — and next available cohort's
-  start date for tutor-led, or "self-paced" for self-paced).
+- Card per programme: title, tutor name, brief description,
+  **headline price** (or *Contact* button — see below), key
+  details (length — shown as "N weeks" or "N modules" per the
+  programme's `unit_label`, e.g. "8 weeks" or "8 modules" — and
+  next available cohort's start date for tutor-led, or
+  "self-paced" for self-paced).
 - Only programmes from vetted, active tutors appear.
 - **A programme is publicly discoverable only when it has at least
   one open cohort** (UPCOMING, or IN_PROGRESS with late-join
@@ -859,11 +860,40 @@ no marketplace bells, just a directory.
   treated as not-yet-launched — they don't appear on the list.
   This prevents dead-end discovery pages.
 
+### Headline price display (Settled 2026-05-18)
+
+In the decoupled model (post-2026-05-17), the programme listing
+shows the tutor's programme fee only — the QAcademy bank pack is
+a separate opt-in line at checkout, not bundled into the
+displayed price.
+
+- **Headline price** = the tutor's **upfront-full programme fee**.
+  One number, in the currency the tutor configured (likely GHS
+  for Ghana-based tutors, USD for international). Stored on the
+  programme row.
+- **Multiple payment strategies** (upfront / deposit + balance /
+  installments) — only the upfront-full price appears publicly.
+  Installment and deposit variants (and any surcharges on them)
+  only appear at checkout. Keeps cards uncluttered and matches
+  industry practice (Teachable, Thinkific, Coursera).
+- **Optional bank hint.** A small line below the headline price
+  reads *"💡 Add NCLEX Bank Access from $18 at checkout
+  (optional)"* — sets expectation that bank is an add-on,
+  doesn't muddy the headline.
+- **Currency display (v1).** Show in the tutor's configured
+  currency only. An automatic FX-converted hint ("≈ ₵2,860")
+  based on the student's landing-page currency toggle is a
+  polish item — deferred to a later slice.
+- **Bank opt-in at checkout** always renders in the student's
+  chosen currency (QAcademy product, dual-currency pricing —
+  see *Bank opt-in at programme checkout* above).
+
 ### Programme detail page
 
 Clicking a card opens the programme detail page with the full
-description, syllabus shape, tutor bio, pricing, and a **list of
-available cohorts**. Each cohort row shows:
+description, syllabus shape, tutor bio, pricing (same headline
+price as the card), and a **list of available cohorts**. Each
+cohort row shows:
 
 - Cohort name (auto from dates or tutor-named)
 - Start date → end date
@@ -882,11 +912,13 @@ Each programme carries a boolean `show_price_publicly` (default
 `TRUE`). It's a programme-level field — all cohorts of a
 programme share the same visibility setting.
 
-- `TRUE` — programme card and cohort rows show the price; cohort
-  rows have *Enrol* buttons leading to the bundled checkout.
+- `TRUE` — programme card and detail page show the headline price
+  (per *Headline price display* above); cohort rows have *Enrol*
+  buttons leading to checkout (on-platform or off-platform flow
+  per the tutor's collection-mode setting).
 - `FALSE` — programme card and detail page show a *Contact*
-  button leading to the enquiry form (below). No price visible
-  on any cohort row.
+  button instead of the price. No price visible on any cohort
+  row. Leads to the enquiry form (below).
 
 ### Contact-first flow — pass-through enquiry
 
