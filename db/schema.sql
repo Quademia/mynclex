@@ -1276,6 +1276,83 @@ CREATE INDEX idx_nclex_student_activity_progress_attempt
   WHERE attempt_id IS NOT NULL;
 
 
+-- =========================================================
+-- Enrolments (Slice 1a, 2026-05-20)
+-- =========================================================
+-- One row = "this student is in this programme (and cohort, for
+-- tutor-led)". 6-status lifecycle + enrolment source + audit + frozen
+-- access expiry. Built lifecycle-ready; Slice 1 only writes
+-- ENROLLED / TUTOR_ADDED. strategy_id omitted until the installments
+-- slice (it FKs a table that doesn't exist yet). Origin migration:
+-- db/migrations/20260522120000_enrolments_1_foundation.sql.
+-- Source of truth: docs/product-plan/payments-and-enrolment.md.
+
+CREATE TABLE nclex_enrolments (
+  enrolment_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  user_id              UUID NOT NULL
+                       REFERENCES nclex_users(id) ON DELETE CASCADE,
+  programme_id         UUID NOT NULL
+                       REFERENCES nclex_programmes(programme_id) ON DELETE RESTRICT,
+  cohort_id            UUID                                       -- NULL for self-paced
+                       REFERENCES nclex_cohorts(cohort_id) ON DELETE RESTRICT,
+
+  status               TEXT NOT NULL
+                       CHECK (status IN (
+                         'PENDING_APPROVAL','ENROLLED','PAUSED',
+                         'REJECTED','CANCELLED','EXPIRED'
+                       )),
+  enrolment_source     TEXT NOT NULL
+                       CHECK (enrolment_source IN (
+                         'SELF_PAID','TUTOR_ADDED','ADMIN_GRANT'
+                       )),
+
+  enrolled_by_user_id  UUID                                       -- NULL for SELF_PAID
+                       REFERENCES nclex_users(id) ON DELETE SET NULL,
+  enrolled_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  approved_at          TIMESTAMPTZ,
+  approved_by_user_id  UUID
+                       REFERENCES nclex_users(id) ON DELETE SET NULL,
+
+  access_expires_at    TIMESTAMPTZ,                               -- NULL = lifetime of tutor sub
+
+  paused_at            TIMESTAMPTZ,
+  paused_reason        TEXT
+                       CHECK (paused_reason IS NULL OR paused_reason IN (
+                         'INSTALLMENT_OVERDUE','TUTOR_MANUAL'
+                       )),
+  terminal_at          TIMESTAMPTZ,
+  tutor_note           TEXT,
+
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT nclex_enrolments_actor_consistent CHECK (
+    (enrolment_source = 'SELF_PAID' AND enrolled_by_user_id IS NULL)
+    OR (enrolment_source <> 'SELF_PAID' AND enrolled_by_user_id IS NOT NULL)
+  )
+);
+
+-- One active enrolment per (student, cohort) / (student, programme);
+-- terminal rows excluded so a lapsed student can re-enrol.
+CREATE UNIQUE INDEX idx_nclex_enrolments_active_cohort
+  ON nclex_enrolments (user_id, cohort_id)
+  WHERE cohort_id IS NOT NULL
+    AND status IN ('PENDING_APPROVAL','ENROLLED','PAUSED');
+CREATE UNIQUE INDEX idx_nclex_enrolments_active_selfpaced
+  ON nclex_enrolments (user_id, programme_id)
+  WHERE cohort_id IS NULL
+    AND status IN ('PENDING_APPROVAL','ENROLLED','PAUSED');
+CREATE INDEX idx_nclex_enrolments_cohort_status
+  ON nclex_enrolments (cohort_id, status);
+CREATE INDEX idx_nclex_enrolments_user_status
+  ON nclex_enrolments (user_id, status);
+CREATE INDEX idx_nclex_enrolments_expiry
+  ON nclex_enrolments (access_expires_at)
+  WHERE status IN ('ENROLLED','PAUSED');
+
+
 -- RPC functions are large and tracked by their migration files
 -- (mynclex/db/migrations/mynclex_trend_save_rpc_slice_1_12b.sql).
 -- The function bodies are NOT mirrored into schema.sql to keep the

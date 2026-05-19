@@ -1144,3 +1144,72 @@ CREATE POLICY nclex_student_activity_progress_superadmin
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- =========================================================
+-- nclex_enrolments (Slice 1a, 2026-05-20)
+-- =========================================================
+-- Read: enrolled student (own rows), owning tutor (walks the parent
+-- programme tutor_id), SUPER_ADMIN. Write: owning tutor (insert +
+-- status flips) + SUPER_ADMIN; no tutor DELETE (terminal state is
+-- CANCELLED, not row removal). The off-platform tutor-add action also
+-- uses the service role (invite + invited-student profile write),
+-- which bypasses RLS by design and validates tutor ownership in TS.
+--
+-- The permissive PUBLISHED-parent student-select policies on
+-- nclex_cohorts / nclex_programme_* are deliberately NOT tightened to
+-- enrolment-aware yet — that happens in a later step once real
+-- enrolment data exists, to avoid locking out current test students.
+
+ALTER TABLE nclex_enrolments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_enrolments_student_select
+  ON nclex_enrolments FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid());
+
+CREATE POLICY nclex_enrolments_tutor_select
+  ON nclex_enrolments FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_enrolments.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_enrolments_tutor_insert
+  ON nclex_enrolments FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_enrolments.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_enrolments_tutor_update
+  ON nclex_enrolments FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_enrolments.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_enrolments.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_enrolments_admin_all
+  ON nclex_enrolments FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
