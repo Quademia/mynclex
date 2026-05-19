@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototype D — Checkout + /welcome · MyNclex</title>
+<link rel="stylesheet" href="../styles/proposal.css">
+<link rel="stylesheet" href="../styles/checkout.css">
+</head>
+<body data-screen-label="D · Checkout & /welcome">
+
+<div class="prototype-shell">
+
+  <div class="prototype-bar">
+    <div class="left">
+      <a href="../index.html">← Proposal</a>
+      <span style="color:var(--ink-faint)">/</span>
+      <span class="title">Prototype D · On-platform checkout + /welcome</span>
+    </div>
+    <div class="right">
+      <span style="color:var(--ink-mute); margin-right:8px;">View</span>
+      <div class="seg" id="state-toggle">
+        <button data-state="checkout"  class="on">Checkout</button>
+        <button data-state="dupcheck">Dup-check pause</button>
+        <button data-state="welcome">/welcome</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="proto-state-stripe" id="stripe">
+    <span class="lbl">View</span>
+    <span id="stripe-text">Checkout — student picks a payment strategy, optionally opts into bank, enters email. Headline price is the upfront-full strategy's total.</span>
+  </div>
+
+  <!-- ── CHECKOUT + DUP CHECK ──────────────────────────────────── -->
+  <div id="view-checkout" class="view co-shell">
+
+    <header class="co-nav">
+      <div class="brand"><div class="glyph">M</div> MyNclex</div>
+      <div class="steps">
+        <div class="step on"><span class="num">1</span> Choose strategy</div>
+        <span class="sep"></span>
+        <div class="step"><span class="num">2</span> Paystack</div>
+        <span class="sep"></span>
+        <div class="step"><span class="num">3</span> /welcome</div>
+      </div>
+      <div style="color:var(--ink-mute); font-size: 13px;">Secured by Paystack</div>
+    </header>
+
+    <main class="co-page">
+
+      <p style="font-size: 13px; color: var(--ink-mute); margin-bottom: 12px;">
+        <a href="discovery-and-detail.html" style="color:var(--ink-mute)">← Back to programme</a>
+      </p>
+
+      <div class="co-grid">
+
+        <!-- LEFT — strategy + bank opt-in + email -->
+        <div>
+
+          <!-- programme summary header inside the card area -->
+          <div class="co-card" style="padding: 22px 28px;">
+            <div style="display:flex; gap:14px; align-items:center;">
+              <div style="width:44px; height:44px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-strong); font-weight:600; display:grid; place-items:center;">AO</div>
+              <div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint);">YOU'RE ENROLLING IN</div>
+                <div style="font-weight: 600; font-size: 15px; margin-top: 2px;">NCLEX-RN Intensive · 8 weeks · Aug 5 cohort</div>
+                <div style="color: var(--ink-mute); font-size: 13px; margin-top: 1px;">By Akosua Owusu · on-platform · Paystack</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- payment strategy -->
+          <div class="co-card">
+            <h2>Choose a payment strategy</h2>
+            <p class="desc">Akosua offers three. Pick whichever works for you — different strategies may have different total prices.</p>
+
+            <div class="strategies" id="strategies">
+              <label class="strategy on" data-strategy="upfront">
+                <span class="radio"></span>
+                <div class="meta">
+                  <div class="nm">Upfront — full</div>
+                  <div class="sub">Pay once today. Lowest total cost.</div>
+                </div>
+                <div class="price">
+                  <span class="ccy" style="color:var(--ink-mute);font-size:11px;font-weight:500;">GHS</span> 1,600
+                  <div class="sub">due today</div>
+                </div>
+              </label>
+              <label class="strategy" data-strategy="deposit">
+                <span class="radio"></span>
+                <div class="meta">
+                  <div class="nm">Deposit + balance</div>
+                  <div class="sub">₵800 now, ₵800 due Aug 19. Same total.</div>
+                </div>
+                <div class="price">
+                  <span class="ccy" style="color:var(--ink-mute);font-size:11px;font-weight:500;">GHS</span> 800
+                  <div class="sub">due today · 1,600 total</div>
+                </div>
+              </label>
+              <label class="strategy" data-strategy="installments">
+                <span class="radio"></span>
+                <div class="meta">
+                  <div class="nm">Equal — 3 monthly</div>
+                  <div class="sub">3 × ₵550 / month. Slight premium for splitting.</div>
+                </div>
+                <div class="price">
+                  <span class="ccy" style="color:var(--ink-mute);font-size:11px;font-weight:500;">GHS</span> 550
+                  <div class="sub">due today · 1,650 total</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- bank opt-in -->
+          <div class="co-card bank-optin">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap: 12px;">
+              <div>
+                <h2 style="display:flex; align-items:center; gap:10px;">
+                  Add NCLEX Bank Access
+                  <span class="tag locked" style="font-size:10.5px;">40% OFF</span>
+                </h2>
+                <p class="desc">Recommended add-on, not required. Stack on existing access if you already have any.</p>
+              </div>
+              <label style="display:flex; align-items:center; gap:8px; color:var(--ink-soft); font-size:13px; padding-top:6px;">
+                <input type="checkbox" id="bank-toggle" onclick="toggleBank()">
+                <span>I want to add bank access</span>
+              </label>
+            </div>
+
+            <div id="bank-tiers-wrap">
+              <p class="bank-empty">Tick the box above to pick a tier. Bank access is a separate QAcademy subscription — independent of programme enrolment.</p>
+            </div>
+          </div>
+
+          <!-- email -->
+          <div class="co-card" id="email-card">
+            <h2>Your details</h2>
+            <p class="desc">We check this email against existing accounts <em>before</em> Paystack — so returning students log in instead of paying as guests.</p>
+
+            <div class="email-form">
+              <div class="row">
+                <div>
+                  <label>First name</label>
+                  <input type="text" placeholder="Ama" value="Ama">
+                </div>
+                <div>
+                  <label>Last name</label>
+                  <input type="text" placeholder="Mensah" value="Mensah">
+                </div>
+              </div>
+              <div>
+                <label>Email</label>
+                <input id="email-input" type="email" placeholder="you@example.com" value="ama.mensah@gmail.com">
+                <p class="field-help" id="email-help">We'll email your receipt and your <code style="background:var(--bg-sunk);padding:1px 5px;border-radius:3px;border:1px solid var(--line-soft);font-size:11.5px;">/welcome</code> link here.</p>
+              </div>
+            </div>
+
+            <!-- dup-check banner — visible only in dupcheck state -->
+            <div class="dup-banner" id="dup-banner" style="display:none;">
+              <div>
+                <h4>This email already has a MyNclex account.</h4>
+                <p>Log in to continue. We'll bring your existing account into this checkout — no new identity is created, and any bank access you have stacks rather than overlapping.</p>
+              </div>
+              <div class="actions">
+                <button class="btn" onclick="window.location.reload()">Forgot password</button>
+                <button class="btn">Log in to continue →</button>
+              </div>
+            </div>
+
+          </div>
+
+          <p style="margin-top: 16px; font-size: 12px; color: var(--ink-mute);">
+            By continuing you agree to MyNclex's terms and Akosua's programme cancellation policy.
+          </p>
+        </div>
+
+        <!-- RIGHT — summary rail -->
+        <aside class="co-summary">
+          <div class="rail-card">
+            <h3>Order summary</h3>
+
+            <div class="item">
+              <div>
+                <div class="nm">NCLEX-RN Intensive</div>
+                <div class="meta" id="strategy-meta">Upfront full · Aug 5 cohort</div>
+              </div>
+              <div class="amt" id="strategy-amt"><span class="ccy">GHS</span>1,600</div>
+            </div>
+
+            <div class="item removable" id="bank-line" style="display:none">
+              <div>
+                <div class="nm" id="bank-line-nm">NCLEX Bank — 90 days</div>
+                <div class="meta">40% off · stacks on any existing access</div>
+              </div>
+              <div class="amt"><span class="ccy">GHS</span><span id="bank-line-amt">162</span></div>
+            </div>
+
+            <div class="total">
+              <div class="lbl">Pay today</div>
+              <div class="v"><span class="ccy">GHS</span><span id="total-amt">1,600</span></div>
+            </div>
+            <p class="hint" id="schedule-hint">One-off. Programme content unlocks once Akosua approves your enrolment (usually within 24 h).</p>
+
+            <a class="btn accent pay-now" href="#" onclick="event.preventDefault(); window.location.hash='dupcheck';">
+              Pay with Paystack →
+            </a>
+
+            <p class="hint" style="margin-top:12px; text-align:center;">
+              <span class="mono">INIT</span> row in <span class="mono">nclex_payments</span> created · redirected to Paystack
+            </p>
+          </div>
+
+          <div class="rail-card" style="margin-top: 12px; padding: 18px 20px;">
+            <h3 style="margin-bottom: 10px;">What happens next</h3>
+            <ol style="padding-left: 18px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.55;">
+              <li>Pay through Paystack (this page redirects)</li>
+              <li>Supabase sends you a <code style="background:var(--bg-sunk);padding:1px 5px;border-radius:3px;border:1px solid var(--line-soft);font-size:11.5px;">/welcome</code> link</li>
+              <li>Set your name + password</li>
+              <li>Programme tile appears as <span class="status-pill st-pending" style="vertical-align:-2px;">PENDING_APPROVAL</span></li>
+              <li>Akosua approves → tile flips to <span class="status-pill st-enrolled" style="vertical-align:-2px;">ENROLLED</span></li>
+            </ol>
+          </div>
+        </aside>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ── /WELCOME ──────────────────────────────────────────────── -->
+  <div id="view-welcome" class="view welcome-shell" style="display:none">
+    <div class="welcome-card">
+      <div class="product-lbl"><div class="glyph">M</div> MyNclex · account setup</div>
+      <h1>Welcome, Ama 👋</h1>
+      <p class="lede">You paid for NCLEX-RN Intensive a few minutes ago. Set your password to finish creating your account — Supabase verified your email, so this is the last step.</p>
+
+      <div class="what-bought">
+        <div class="lbl">YOU'RE FINISHING SETUP FOR</div>
+        <div class="nm">NCLEX-RN Intensive · 8 weeks · Aug 5 cohort</div>
+        <div class="sub">Plus: NCLEX Bank — 90 days (already active)</div>
+      </div>
+
+      <form onsubmit="event.preventDefault(); alert('Demo only — would call supabase.auth.updateUser({password}) and insert nclex_users.')">
+        <div class="row">
+          <div>
+            <label>First name</label>
+            <input type="text" value="Ama">
+          </div>
+          <div>
+            <label>Last name</label>
+            <input type="text" value="Mensah">
+          </div>
+        </div>
+        <div>
+          <label>Choose a password</label>
+          <input type="password" value="········" placeholder="At least 12 characters">
+          <p class="pw-hint">At least 12 characters. Avoid passwords you use elsewhere.</p>
+        </div>
+        <div>
+          <label>Confirm password</label>
+          <input type="password" value="········">
+        </div>
+
+        <button class="btn accent submit" type="submit">Finish setup &amp; log in →</button>
+      </form>
+
+      <p class="footnote">
+        Submitting writes the password to <code>auth.users</code> via <code>supabase.auth.updateUser</code> and inserts the matching profile row in <code>nclex_users</code>. Then you'll land on the student dashboard.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+
+<script>
+const STRIPES = {
+  checkout: "Checkout — student picks a payment strategy, optionally opts into bank, enters email. Headline price is the upfront-full strategy's total.",
+  dupcheck: "Dup-check pause — email entry triggered an auth.users lookup BEFORE Paystack. Existing account found. Checkout pauses; ‘log in to continue’ banner appears inline.",
+  welcome:  "/welcome — landed via Supabase invite link after payment. Last step: set name + password. Submitting via supabase.auth.updateUser + insert into nclex_users."
+};
+
+function setState(s){
+  document.querySelectorAll('#state-toggle button').forEach(b=>{
+    b.classList.toggle('on', b.dataset.state === s);
+  });
+  document.getElementById('stripe-text').textContent = STRIPES[s];
+  document.getElementById('view-checkout').style.display = (s === 'welcome') ? 'none' : '';
+  document.getElementById('view-welcome').style.display  = (s === 'welcome') ? '' : 'none';
+  document.getElementById('dup-banner').style.display    = (s === 'dupcheck') ? '' : 'none';
+  document.getElementById('email-input').classList.toggle('has-dup', s === 'dupcheck');
+  const help = document.getElementById('email-help');
+  if (s === 'dupcheck') {
+    help.classList.add('warn');
+    help.innerHTML = '<strong>Existing account found.</strong> Pause + log-in is the cheaper UX — better than discovering this post-payment.';
+  } else {
+    help.classList.remove('warn');
+    help.innerHTML = 'We\'ll email your receipt and your <code style="background:var(--bg-sunk);padding:1px 5px;border-radius:3px;border:1px solid var(--line-soft);font-size:11.5px;">/welcome</code> link here.';
+  }
+  if (s !== 'welcome') window.scrollTo(0,0);
+}
+document.querySelectorAll('#state-toggle button').forEach(b=>{
+  b.addEventListener('click', ()=>setState(b.dataset.state));
+});
+
+// ── strategy radio
+const STRATS = {
+  upfront:      { meta: 'Upfront full · Aug 5 cohort',       initial: 1600, total: 1600, hint: 'One-off. Programme content unlocks once Akosua approves your enrolment (usually within 24 h).' },
+  deposit:      { meta: 'Deposit + balance · Aug 5 cohort',  initial: 800,  total: 1600, hint: '₵800 today + ₵800 due Aug 19. Reminder before due date · access pauses if missed.' },
+  installments: { meta: 'Equal · 3 monthly · Aug 5 cohort',  initial: 550,  total: 1650, hint: '₵550 today · 2 more installments due Sep 5 and Oct 5. Access pauses if a due date passes.' }
+};
+function pickStrategy(k){
+  document.querySelectorAll('.strategy').forEach(el=>{
+    el.classList.toggle('on', el.dataset.strategy === k);
+  });
+  const s = STRATS[k];
+  document.getElementById('strategy-meta').textContent = s.meta;
+  document.getElementById('strategy-amt').innerHTML    = '<span class="ccy">GHS</span>' + s.initial.toLocaleString();
+  document.getElementById('schedule-hint').textContent = s.hint;
+  recompute();
+}
+document.querySelectorAll('.strategy').forEach(el=>{
+  el.addEventListener('click', ()=>pickStrategy(el.dataset.strategy));
+});
+
+// ── bank opt-in
+const BANK_TIERS = [
+  { days: 30,  price: 72 },
+  { days: 60,  price: 120 },
+  { days: 90,  price: 162 },
+  { days: 180, price: 270 },
+  { days: 365, price: 420 }
+];
+let bankPick = null;
+function toggleBank(){
+  const on = document.getElementById('bank-toggle').checked;
+  const wrap = document.getElementById('bank-tiers-wrap');
+  if (on) {
+    wrap.innerHTML = '<div class="bank-grid">' + BANK_TIERS.map((t,i)=>`
+      <label class="bank-tier ${bankPick===i?'on':''}" data-tier="${i}">
+        <div class="days">${t.days} days</div>
+        <div class="price">₵${t.price}<div class="strike">₵${Math.round(t.price/0.6)}</div></div>
+      </label>`).join('') + '</div><p style="margin-top:10px;font-size:12px;color:var(--ink-mute)">Bank activates immediately on payment success — not gated on tutor approval. New duration stacks on any existing access.</p>';
+    wrap.querySelectorAll('.bank-tier').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        bankPick = +el.dataset.tier;
+        wrap.querySelectorAll('.bank-tier').forEach(t=>t.classList.remove('on'));
+        el.classList.add('on');
+        recompute();
+      });
+    });
+    if (bankPick === null) bankPick = 2; // 90 days default
+    wrap.querySelectorAll('.bank-tier')[bankPick].classList.add('on');
+  } else {
+    bankPick = null;
+    wrap.innerHTML = '<p class="bank-empty">Tick the box above to pick a tier. Bank access is a separate QAcademy subscription — independent of programme enrolment.</p>';
+  }
+  recompute();
+}
+function recompute(){
+  const stratKey = document.querySelector('.strategy.on')?.dataset.strategy || 'upfront';
+  const s = STRATS[stratKey];
+  const bankLine = document.getElementById('bank-line');
+  let total = s.initial;
+  if (bankPick !== null) {
+    const tier = BANK_TIERS[bankPick];
+    bankLine.style.display = '';
+    document.getElementById('bank-line-nm').textContent = `NCLEX Bank — ${tier.days} days`;
+    document.getElementById('bank-line-amt').textContent = tier.price.toLocaleString();
+    total += tier.price;
+  } else {
+    bankLine.style.display = 'none';
+  }
+  document.getElementById('total-amt').textContent = total.toLocaleString();
+}
+
+// hash → dup-check shortcut from "Pay" click
+window.addEventListener('hashchange', ()=>{
+  if (location.hash === '#dupcheck') {
+    setState('dupcheck');
+    history.replaceState(null,'',location.pathname);
+    const card = document.querySelector('#email-card');
+    if (card) window.scrollTo({ top: card.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' });
+  }
+});
+
+recompute();
+</script>
+
+</body>
+</html>

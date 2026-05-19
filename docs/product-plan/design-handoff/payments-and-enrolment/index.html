@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyNclex — Payments &amp; Enrolment · Proposal</title>
+<link rel="stylesheet" href="styles/proposal.css">
+</head>
+<body>
+
+<div class="proposal-shell">
+
+  <aside class="doc-toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#slice"><span class="num">01</span>Slice order</a></li>
+      <li><a href="#schema-approach"><span class="num">02</span>Schema approach</a></li>
+      <li><a href="#programmes"><span class="num">03</span>nclex_programmes <i>Δ</i></a></li>
+      <li><a href="#products"><span class="num">04</span>nclex_products</a></li>
+      <li><a href="#strategies"><span class="num">05</span>payment_strategies</a></li>
+      <li><a href="#payments"><span class="num">06</span>nclex_payments</a></li>
+      <li><a href="#subs"><span class="num">07</span>nclex_subscriptions</a></li>
+      <li><a href="#enrolments"><span class="num">08</span>nclex_enrolments</a></li>
+      <li><a href="#enquiries"><span class="num">09</span>programme_enquiries</a></li>
+      <li><a href="#waitlist"><span class="num">10</span>cohort_waitlist <i>+</i></a></li>
+      <li><a href="#cross"><span class="num">11</span>Cross-cutting</a></li>
+      <li><a href="#open"><span class="num">12</span>Open questions</a></li>
+      <li><a href="#prototypes"><span class="num">13</span>Prototypes</a></li>
+    </ol>
+  </aside>
+
+  <div class="proposal-body">
+
+    <div class="proposal-meta">
+      <span>MyNclex · Design proposal</span>
+      <span class="dot"></span>
+      <span>2026-05-19</span>
+      <span class="dot"></span>
+      <span>Payments &amp; Enrolment</span>
+    </div>
+
+    <h1>Payments &amp; Enrolment — proposed schema and prototype set</h1>
+    <p class="lede">
+      Greenfield table model fitted to the 2026-05-19 settled policy, plus four
+      prototype surfaces that exercise the end-to-end flow. Everything below
+      treats the older table sketches inside the plan doc as illustrative, not
+      binding.
+    </p>
+
+    <!-- ─────────────────────────────────────────────────────────── 1. Slice order -->
+    <section class="block" id="slice">
+      <div class="block-head">
+        <span class="num">01 ·</span>
+        <h2>Recommended slice order</h2>
+      </div>
+
+      <div class="callout accent">
+        <p><strong>Agreed — start with the off-platform tutor-add flow.</strong>
+        It needs <em>none</em> of the heavy infrastructure (no Paystack, no
+        payment Worker, no checkout, no <code>nclex_payments</code> row movement,
+        no bank opt-in card, no installments cron). The whole slice fits in
+        five files: one migration adding <code>nclex_enrolments</code>, a server
+        action that calls <code>auth.admin.inviteUserByEmail</code>, a tiny
+        cohort-workspace page with an "Add student" form, the
+        <code>/welcome</code> page, and a student-dashboard tile read.</p>
+      </div>
+
+      <ul class="bare" style="margin-top:24px">
+        <li>
+          <span class="hdg">Slice 1 — Off-platform tutor-add</span>
+          <span class="bdy">
+            Tutor types <span class="mono">name + email</span> → Supabase invite → <code>ENROLLED</code> row with <code>enrolment_source = 'TUTOR_ADDED'</code>, <code>cohort_id</code> set. Unblocks tutor-quiz Slice 4 and progress-engine Slice 5 the moment it merges.
+          </span>
+        </li>
+        <li>
+          <span class="hdg">Slice 2 — Enrolment lifecycle scaffolding</span>
+          <span class="bdy">
+            The 6-status transitions, <code>pg_cron</code> stub for nightly EXPIRED / PAUSED, the student-tile state matrix, and admin-grant variant. No Paystack yet — synthetic enrolment rows are fine to develop against. <strong>This is where the lifecycle state machine gets real.</strong>
+          </span>
+        </li>
+        <li>
+          <span class="hdg">Slice 3 — Programme deltas + discovery + detail page</span>
+          <span class="bdy">
+            <code>price_currency</code> + <code>price_minor</code> migration on <code>nclex_programmes</code>; <code>payment_collection_mode</code>; <code>access_window_days</code>. Public discovery list + programme detail page (read-only). Still no payment Worker — off-platform cohorts can already accept waitlist sign-ups.
+          </span>
+        </li>
+        <li>
+          <span class="hdg">Slice 4 — Student-initiated waitlist (off-platform)</span>
+          <span class="bdy">
+            <code>nclex_cohort_waitlist</code> table + "Join waitlist" form on the cohort row + tutor-side "convert to enrolment" one-click action. Off-platform half of the loop is now end-to-end without ever invoking Paystack.
+          </span>
+        </li>
+        <li>
+          <span class="hdg">Slice 5 — On-platform checkout (single-strategy)</span>
+          <span class="bdy">
+            Payment Worker + <code>nclex_products</code> + <code>nclex_payments</code> + bank opt-in card. Ship with <strong>upfront-full only</strong>. Email-entry dup-check pause is in this slice from day one (cheap; one auth lookup).
+          </span>
+        </li>
+        <li>
+          <span class="hdg">Slice 6 — Subscriptions + bank standalone</span>
+          <span class="bdy">
+            <code>nclex_subscriptions</code> + bank-tier purchases. Standalone bank landing page. <code>nclex_subscriptions</code> sits next to <code>nclex_enrolments</code>, not under it.
+          </span>
+        </li>
+        <li>
+          <span class="hdg">Slice 7 — Multi-strategy + installments</span>
+          <span class="bdy">
+            <code>nclex_programme_payment_strategies</code> sub-table + nightly cron flip to <code>PAUSED</code> + manual tutor override. This is the most expensive bit — saved for last on purpose.
+          </span>
+        </li>
+        <li>
+          <span class="hdg">Slice 8 — Self-paced + enquiry routing</span>
+          <span class="bdy">
+            <code>cohort_id = NULL</code> enrolment branch + <code>show_price_publicly = FALSE</code> contact path + <code>nclex_programme_enquiries</code> queue.
+          </span>
+        </li>
+      </ul>
+
+      <div class="callout tight" style="margin-top:18px">
+        <strong>Why not a different first slice?</strong> Three alternatives that look tempting on paper —
+        <em>"start with discovery"</em> (no real data to discover yet, has to be back-filled with stubs),
+        <em>"start with /welcome + invite"</em> (still needs <code>nclex_enrolments</code> shape locked to mean anything),
+        <em>"start with bank checkout"</em> (full Paystack lift before any tutor sees value) — all front-load infra without unblocking the two adjacent slices waiting on real enrolment rows. The tutor-add path costs one weekend and immediately turns three slices green.
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────── 2. Approach -->
+    <section class="block" id="schema-approach">
+      <div class="block-head">
+        <span class="num">02 ·</span>
+        <h2>Schema approach</h2>
+      </div>
+
+      <div class="prose">
+        <p>Three principles applied across every table below:</p>
+        <ul>
+          <li><strong>Single canonical table per concept.</strong> Tutored and self-paced share one <code>nclex_enrolments</code> table (cohort_id is nullable). Payment audit rows for bank and programme share one <code>nclex_payments</code>. Splitting by product type would push policy into joins.</li>
+          <li><strong>Enums as CHECK constraints, not Postgres ENUM types.</strong> Easier to evolve, no <code>ALTER TYPE</code> migrations, matches the existing schema's convention (see <code>nclex_attempts.status</code>, <code>nclex_users.role</code>).</li>
+          <li><strong>RLS is the security boundary; TS gates mirror SQL.</strong> Every table below has its RLS intent listed in the footer block — those policies are mandatory companions, not "to be added later."</li>
+        </ul>
+        <p>The waitlist table (<a href="#waitlist">§10</a>) isn't in your list of greenfield tables but the off-platform flow needs somewhere to put the student-initiated lead before tutor approval. Flagging as a proposed addition rather than assuming.</p>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────── 3. nclex_programmes Δ -->
+    <section class="block" id="programmes">
+      <div class="block-head">
+        <span class="num">03 ·</span>
+        <h2>nclex_programmes — deltas to the live table</h2>
+        <span class="tag delta">migration</span>
+      </div>
+
+      <p class="lede" style="font-size:15px">
+        Three additive deltas plus one destructive currency migration. The
+        destructive one is non-negotiable per the 2026-05-19 single-currency
+        decision; the others are nullable adds and safe.
+      </p>
+
+      <div class="schema-card">
+        <div class="sc-head">
+          <h3>nclex_programmes  <span style="color:var(--ink-mute);font-weight:400">(ALTER)</span></h3>
+          <div class="sc-tags">
+            <span class="tag delta">delta</span>
+            <span class="tag">RLS exists</span>
+          </div>
+        </div>
+        <p class="sc-purpose">Programme = tutor's reusable template. Cohorts hang off it (tutor-led) or stay NULL (self-paced).</p>
+        <table class="sc-cols">
+          <thead><tr><th>Column</th><th>Type</th><th>What it does · note</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="col-name">price_currency <span class="tag delta" style="margin-left:6px">new</span></td>
+              <td class="col-type">TEXT NOT NULL</td>
+              <td class="col-note">CHECK IN ('GHS','USD'). The tutor picks one. Bank stays dual-currency on <code>nclex_products</code>; only the programme is single-currency.</td>
+            </tr>
+            <tr>
+              <td class="col-name">price_minor <span class="tag delta" style="margin-left:6px">new</span></td>
+              <td class="col-type">INTEGER NOT NULL</td>
+              <td class="col-note">CHECK ≥ 0. 0 = free programme (rare but legal — e.g. a tutor's intro programme).</td>
+            </tr>
+            <tr>
+              <td class="col-name">payment_collection_mode <span class="tag delta" style="margin-left:6px">new</span></td>
+              <td class="col-type">TEXT NOT NULL DEFAULT 'OFF_PLATFORM'</td>
+              <td class="col-note">CHECK IN ('OFF_PLATFORM','ON_PLATFORM'). Tutor's choice per programme. Self-paced must be 'ON_PLATFORM' — enforced in TS (the doc says so explicitly).</td>
+            </tr>
+            <tr>
+              <td class="col-name">access_window_days <span class="tag delta" style="margin-left:6px">new</span></td>
+              <td class="col-type">INTEGER</td>
+              <td class="col-note">NULL = "lifetime of tutor's subscription" per Pattern A. Otherwise N days from <code>nclex_enrolments.enrolled_at</code>. The pg_cron job reads this.</td>
+            </tr>
+            <tr>
+              <td class="col-name">price_minor_ghs <span class="tag delta" style="margin-left:6px">drop</span></td>
+              <td class="col-type">INTEGER</td>
+              <td class="col-note">Drop. Backfill: tutor picks GHS or USD pre-migration; non-zero column wins.</td>
+            </tr>
+            <tr>
+              <td class="col-name">price_minor_usd <span class="tag delta" style="margin-left:6px">drop</span></td>
+              <td class="col-type">INTEGER</td>
+              <td class="col-note">Drop. Same backfill rule. If both non-zero, default to tutor's account country.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="sc-foot">
+          <span class="label">Index</span><span><code class="mono">(payment_collection_mode)</code> partial WHERE status='PUBLISHED' — feeds discovery filters.</span>
+          <span class="label">RLS intent</span><span><strong>Read:</strong> public can SELECT rows WHERE <code>status='PUBLISHED'</code> AND tutor active. <strong>Write:</strong> tutor (owner) only. SUPER_ADMIN bypass.</span>
+          <span class="label">Migration</span><span>Two-step: add new cols → backfill from dual GHS/USD → flip NOT NULL → drop old cols. Run inside one tx.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────── 4. products -->
+    <section class="block" id="products">
+      <div class="block-head">
+        <span class="num">04 ·</span>
+        <h2>nclex_products</h2>
+        <span class="tag greenfd">greenfield</span>
+      </div>
+
+      <p class="lede" style="font-size:15px">QAcademy's catalogue of buyable SKUs. Bank tiers, readiness pack SKUs, trial. <strong>Not</strong> programme fees — those live on <code>nclex_programmes</code> / payment-strategies because pricing is the tutor's, not the platform's.</p>
+
+      <div class="schema-card">
+        <div class="sc-head">
+          <h3>nclex_products</h3>
+          <div class="sc-tags"><span class="tag greenfd">new</span></div>
+        </div>
+        <p class="sc-purpose">One row per buyable QAcademy SKU. Dual-currency by column because the bank deliberately is.</p>
+        <table class="sc-cols">
+          <thead><tr><th>Column</th><th>Type</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr><td class="col-name">product_id</td>          <td class="col-type">TEXT PRIMARY KEY</td><td class="col-note">Slug-ish — <code>BANK_30D</code>, <code>BANK_365D</code>, <code>READINESS_SINGLE</code>, <code>READINESS_ALL5</code>, <code>NCLEX_TRIAL</code>.</td></tr>
+            <tr><td class="col-name">name</td>                <td class="col-type">TEXT NOT NULL</td>     <td class="col-note">Display label — "30 days bank access", "Readiness — Select 3", "7-day Trial".</td></tr>
+            <tr><td class="col-name">kind</td>                <td class="col-type">TEXT NOT NULL</td>     <td class="col-note">CHECK IN ('PAID','TRIAL'). No FREE.</td></tr>
+            <tr><td class="col-name">pack_type</td>           <td class="col-type">TEXT NOT NULL</td>     <td class="col-note">CHECK IN ('BANK_DURATION','READINESS','TRIAL'). Drives subscription shape.</td></tr>
+            <tr><td class="col-name">duration_days</td>       <td class="col-type">INTEGER</td>          <td class="col-note">NULL for readiness packs (21-day clock starts on activation, not purchase). 7 / 30 / 60 / 90 / 180 / 365 for the rest.</td></tr>
+            <tr><td class="col-name">readiness_pack_count</td><td class="col-type">SMALLINT</td>        <td class="col-note">For READINESS SKUs only — 1 / 3 / 5 — drives the credit grant on purchase.</td></tr>
+            <tr><td class="col-name">price_minor_ghs</td>     <td class="col-type">INTEGER NOT NULL DEFAULT 0</td><td class="col-note">Minor units, dual-currency by column.</td></tr>
+            <tr><td class="col-name">price_minor_usd</td>     <td class="col-type">INTEGER NOT NULL DEFAULT 0</td><td class="col-note">Trial rows: both 0.</td></tr>
+            <tr><td class="col-name">status</td>              <td class="col-type">TEXT NOT NULL DEFAULT 'ACTIVE'</td><td class="col-note">CHECK IN ('ACTIVE','ARCHIVED'). Archived rows stay readable for historical payments.</td></tr>
+            <tr><td class="col-name">sort_order</td>          <td class="col-type">SMALLINT NOT NULL DEFAULT 0</td><td class="col-note">Cheap display ordering on the landing page.</td></tr>
+            <tr><td class="col-name">created_at / updated_at</td><td class="col-type">TIMESTAMPTZ</td>  <td class="col-note">Standard.</td></tr>
+          </tbody>
+        </table>
+        <div class="sc-foot">
+          <span class="label">Indexes</span>     <span><code class="mono">(status, sort_order)</code> for the landing page query.</span>
+          <span class="label">Seed data</span>   <span>6 bank tiers + 3 readiness SKUs + 1 trial = <strong>10 rows</strong>, inserted via the migration, not a runtime admin UI in v1.</span>
+          <span class="label">RLS intent</span>  <span><strong>Read:</strong> anyone WHERE <code>status='ACTIVE'</code>. <strong>Write:</strong> SUPER_ADMIN only (no admin UI in v1; manage via migrations).</span>
+          <span class="label">Note</span>        <span>Bank opt-in at programme checkout reads the same row — the 40% discount is applied client-side from a <code>BANK_PROGRAMME_OPTIN_DISCOUNT</code> constant. Storing the discounted price on a duplicate row was considered and rejected (two prices for the same product = drift risk).</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────── 5. strategies -->
+    <section class="block" id="strategies">
+      <div class="block-head">
+        <span class="num">05 ·</span>
+        <h2>nclex_programme_payment_strategies</h2>
+        <span class="tag greenfd">greenfield</span>
+      </div>
+
+      <p class="lede" style="font-size:15px">Sub-table on programme. One row per allowed strategy. Different strategies may carry different total prices (a marketing lever — installments often cost more).</p>
+
+      <div class="schema-card">
+        <div class="sc-head">
+          <h3>nclex_programme_payment_strategies</h3>
+          <div class="sc-tags"><span class="tag greenfd">new</span></div>
+        </div>
+        <p class="sc-purpose">Inherits the programme's currency. Tutor must keep at least one row per programme (enforced in TS, not DB).</p>
+        <table class="sc-cols">
+          <thead><tr><th>Column</th><th>Type</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr><td class="col-name">strategy_id</td>      <td class="col-type">UUID PRIMARY KEY</td>    <td class="col-note">DEFAULT gen_random_uuid().</td></tr>
+            <tr><td class="col-name">programme_id</td>     <td class="col-type">UUID NOT NULL</td>       <td class="col-note">FK → <code>nclex_programmes</code> ON DELETE CASCADE.</td></tr>
+            <tr><td class="col-name">kind</td>             <td class="col-type">TEXT NOT NULL</td>       <td class="col-note">CHECK IN ('UPFRONT_FULL','DEPOSIT_BALANCE','EQUAL_INSTALLMENTS'). PER_MODULE deferred to v2.</td></tr>
+            <tr><td class="col-name">label</td>            <td class="col-type">TEXT</td>                <td class="col-note">Optional tutor-set display — "Pay in 3", "Founding cohort price". Falls back to a system label.</td></tr>
+            <tr><td class="col-name">total_price_minor</td><td class="col-type">INTEGER NOT NULL</td>    <td class="col-note">In the programme's currency. UPFRONT_FULL row's total is the headline price shown publicly.</td></tr>
+            <tr><td class="col-name">initial_price_minor</td><td class="col-type">INTEGER NOT NULL</td> <td class="col-note">What student pays at checkout. For UPFRONT = total. For DEPOSIT = deposit. For INSTALLMENTS = installment 1.</td></tr>
+            <tr><td class="col-name">installment_count</td><td class="col-type">SMALLINT</td>           <td class="col-note">NULL except EQUAL_INSTALLMENTS (then 2..12).</td></tr>
+            <tr><td class="col-name">installment_interval_days</td><td class="col-type">SMALLINT</td>   <td class="col-note">NULL except EQUAL_INSTALLMENTS. Typically 30.</td></tr>
+            <tr><td class="col-name">balance_due_days_after_enrolment</td><td class="col-type">SMALLINT</td><td class="col-note">DEPOSIT_BALANCE only. Tutor sets — e.g. "balance due 14 days after deposit."</td></tr>
+            <tr><td class="col-name">is_active</td>        <td class="col-type">BOOLEAN NOT NULL DEFAULT TRUE</td><td class="col-note">Tutor can hide a strategy without deleting it (preserves running enrolments referencing it).</td></tr>
+            <tr><td class="col-name">sort_order</td>       <td class="col-type">SMALLINT NOT NULL DEFAULT 0</td><td class="col-note">Order shown at checkout. Upfront usually first.</td></tr>
+            <tr><td class="col-name">created_at / updated_at</td><td class="col-type">TIMESTAMPTZ</td>  <td class="col-note">Standard.</td></tr>
+          </tbody>
+        </table>
+        <div class="sc-foot">
+          <span class="label">Indexes</span>     <span><code class="mono">(programme_id, sort_order)</code> for the checkout query; <code class="mono">UNIQUE (programme_id, kind)</code> — at most one row per kind per programme.</span>
+          <span class="label">Enrolment link</span><span>The <code>nclex_enrolments</code> row stores <code>strategy_id</code> so installment cron knows when the next due-date is. ON DELETE: <strong>RESTRICT</strong> (you can't delete a strategy that has live enrolments — use <code>is_active=FALSE</code>).</span>
+          <span class="label">RLS intent</span>  <span><strong>Read:</strong> programme tutor + public WHERE programme is PUBLISHED. <strong>Write:</strong> programme tutor only.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────── 6. payments -->
+    <section class="block" id="payments">
+      <div class="block-head">
+        <span class="num">06 ·</span>
+        <h2>nclex_payments</h2>
+        <span class="tag greenfd">greenfield</span>
+      </div>
+
+      <p class="lede" style="font-size:15px">Audit trail of every Paystack interaction. One row per transaction. Bank purchases, programme initial / installments, all live here. Off-platform programme enrolments never touch this table.</p>
+
+      <div class="schema-card">
+        <div class="sc-head">
+          <h3>nclex_payments</h3>
+          <div class="sc-tags"><span class="tag greenfd">new</span></div>
+        </div>
+        <p class="sc-purpose">Polymorphic — references one of (product_id, programme_strategy_id). Always carries an email and currency. Created with <code>INIT</code> before redirect to Paystack.</p>
+        <table class="sc-cols">
+          <thead><tr><th>Column</th><th>Type</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr><td class="col-name">payment_id</td>           <td class="col-type">UUID PRIMARY KEY</td><td class="col-note">DEFAULT gen_random_uuid().</td></tr>
+            <tr><td class="col-name">paystack_reference</td>   <td class="col-type">TEXT UNIQUE</td>     <td class="col-note">Set on /init; what Paystack returns to verify against.</td></tr>
+            <tr><td class="col-name">user_id</td>              <td class="col-type">UUID</td>            <td class="col-note">NULL while in pay-first mode (no account yet). FK → <code>nclex_users.id</code> set on verify.</td></tr>
+            <tr><td class="col-name">email</td>                <td class="col-type">TEXT NOT NULL</td>   <td class="col-note">Always captured up front (used by dup-check + invite).</td></tr>
+            <tr><td class="col-name">purpose</td>              <td class="col-type">TEXT NOT NULL</td>   <td class="col-note">CHECK IN ('BANK_PURCHASE','READINESS_PURCHASE','PROGRAMME_INITIAL','PROGRAMME_INSTALLMENT','BANK_OPTIN_AT_PROGRAMME').</td></tr>
+            <tr><td class="col-name">product_id</td>           <td class="col-type">TEXT</td>            <td class="col-note">FK → <code>nclex_products</code>. Set for bank / readiness / bank-opt-in. NULL for programme.</td></tr>
+            <tr><td class="col-name">programme_id</td>         <td class="col-type">UUID</td>            <td class="col-note">FK → <code>nclex_programmes</code>. Set for PROGRAMME_*.</td></tr>
+            <tr><td class="col-name">strategy_id</td>          <td class="col-type">UUID</td>            <td class="col-note">FK → strategies. Set for PROGRAMME_*. Tells cron the schedule.</td></tr>
+            <tr><td class="col-name">enrolment_id</td>         <td class="col-type">UUID</td>            <td class="col-note">FK → <code>nclex_enrolments</code>. NULL on /init, populated on verify for programme purposes.</td></tr>
+            <tr><td class="col-name">installment_index</td>    <td class="col-type">SMALLINT</td>        <td class="col-note">PROGRAMME_INSTALLMENT only; 1-based.</td></tr>
+            <tr><td class="col-name">currency</td>             <td class="col-type">TEXT NOT NULL</td>   <td class="col-note">CHECK IN ('GHS','USD'). Frozen at /init.</td></tr>
+            <tr><td class="col-name">amount_minor</td>         <td class="col-type">INTEGER NOT NULL</td><td class="col-note">What Paystack was actually charged. Frozen at /init.</td></tr>
+            <tr><td class="col-name">status</td>               <td class="col-type">TEXT NOT NULL DEFAULT 'INIT'</td><td class="col-note">CHECK IN ('INIT','PAID','SETUP_REQUIRED','ACTIVATED','FAILED','REFUNDED').</td></tr>
+            <tr><td class="col-name">paystack_payload_json</td><td class="col-type">JSONB</td>           <td class="col-note">Raw response — debugging gold for failed verifies.</td></tr>
+            <tr><td class="col-name">created_at / paid_at / activated_at</td><td class="col-type">TIMESTAMPTZ</td><td class="col-note">Lifecycle timestamps; let analytics reconstruct time-to-activate.</td></tr>
+          </tbody>
+        </table>
+        <div class="sc-foot">
+          <span class="label">Constraint</span>  <span>Polymorphic check — exactly one of (<code>product_id</code>, <code>programme_id</code>) is NOT NULL per row. Strategy + installment_index only with PROGRAMME_*.</span>
+          <span class="label">Indexes</span>     <span><code class="mono">(user_id)</code>, <code class="mono">(email)</code> for the "my payments" page, <code class="mono">(enrolment_id)</code> for installment history, <code class="mono">(status)</code> WHERE status IN ('INIT','PAID','SETUP_REQUIRED').</span>
+          <span class="label">RLS intent</span>  <span><strong>Read:</strong> owner (by user_id) + ADMIN. <strong>Write:</strong> only via payment Worker service role — RLS blocks all direct writes from the app server.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────── 7. subscriptions -->
+    <section class="block" id="subs">
+      <div class="block-head">
+        <span class="num">07 ·</span>
+        <h2>nclex_subscriptions</h2>
+        <span class="tag greenfd">greenfield</span>
+      </div>
+
+      <p class="lede" style="font-size:15px">
+        Bank + readiness entitlements only. <strong>Programme access is not a subscription</strong> — it's the <code>nclex_enrolments</code> row. Conflating the two would force every entitlement check into a UNION query.
+      </p>
+
+      <div class="schema-card">
+        <div class="sc-head">
+          <h3>nclex_subscriptions</h3>
+          <div class="sc-tags"><span class="tag greenfd">new</span></div>
+        </div>
+        <p class="sc-purpose">One row per granted entitlement. Stacks: a student with 30d + a later 60d has two rows, both active, expires at max(end).</p>
+        <table class="sc-cols">
+          <thead><tr><th>Column</th><th>Type</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr><td class="col-name">subscription_id</td>    <td class="col-type">UUID PRIMARY KEY</td>   <td class="col-note">DEFAULT gen_random_uuid().</td></tr>
+            <tr><td class="col-name">user_id</td>            <td class="col-type">UUID NOT NULL</td>      <td class="col-note">FK → <code>nclex_users.id</code> CASCADE.</td></tr>
+            <tr><td class="col-name">product_id</td>         <td class="col-type">TEXT NOT NULL</td>      <td class="col-note">FK → <code>nclex_products</code> RESTRICT.</td></tr>
+            <tr><td class="col-name">pack_type</td>          <td class="col-type">TEXT NOT NULL</td>      <td class="col-note">Denormalised from product for cheap entitlement queries. CHECK IN ('BANK_DURATION','READINESS','TRIAL').</td></tr>
+            <tr><td class="col-name">source</td>             <td class="col-type">TEXT NOT NULL</td>      <td class="col-note">CHECK IN ('SELF_PURCHASE','PROGRAMME_OPTIN','SELF_TRIAL_SIGNUP','ADMIN_GRANT').</td></tr>
+            <tr><td class="col-name">status</td>             <td class="col-type">TEXT NOT NULL DEFAULT 'ACTIVE'</td><td class="col-note">CHECK IN ('ACTIVE','EXPIRED','REVOKED'). pg_cron flips ACTIVE → EXPIRED past end_at.</td></tr>
+            <tr><td class="col-name">started_at</td>         <td class="col-type">TIMESTAMPTZ NOT NULL DEFAULT NOW()</td><td class="col-note">Activation moment.</td></tr>
+            <tr><td class="col-name">end_at</td>             <td class="col-type">TIMESTAMPTZ</td>        <td class="col-note">NULL for readiness packs not yet activated (clock starts on "Start"). Otherwise <code>started_at + product.duration_days</code>.</td></tr>
+            <tr><td class="col-name">readiness_pack_id</td>  <td class="col-type">TEXT</td>               <td class="col-note">For READINESS subscriptions only — which specific pack of the 5 was claimed. FK → <code>nclex_readiness_packs</code>.</td></tr>
+            <tr><td class="col-name">readiness_activated_at</td><td class="col-type">TIMESTAMPTZ</td>     <td class="col-note">Set when student presses "Start" — triggers the 21-day clock.</td></tr>
+            <tr><td class="col-name">payment_id</td>         <td class="col-type">UUID</td>               <td class="col-note">FK → <code>nclex_payments</code> RESTRICT. NULL for trial / admin grants.</td></tr>
+            <tr><td class="col-name">granted_by</td>         <td class="col-type">UUID</td>               <td class="col-note">FK → <code>nclex_users.id</code>. ADMIN_GRANT only.</td></tr>
+            <tr><td class="col-name">created_at / updated_at</td><td class="col-type">TIMESTAMPTZ</td>   <td class="col-note">Standard.</td></tr>
+          </tbody>
+        </table>
+        <div class="sc-foot">
+          <span class="label">Indexes</span>     <span><code class="mono">(user_id, status)</code> for entitlement reads; <code class="mono">(end_at)</code> WHERE status='ACTIVE' for the cron sweep.</span>
+          <span class="label">Readiness credits</span><span>A "credit" is just a row with <code>readiness_pack_id = NULL</code>. Student claim writes the pack_id. The plan's "2 credits, pick 2 of 5" maps cleanly: insert 2 rows.</span>
+          <span class="label">RLS intent</span>  <span><strong>Read:</strong> owner + ADMIN. <strong>Write:</strong> Worker service role + ADMIN (grants).</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────── 8. enrolments -->
+    <section class="block" id="enrolments">
+      <div class="block-head">
+        <span class="num">08 ·</span>
+        <h2>nclex_enrolments</h2>
+        <span class="tag greenfd">greenfield</span>
+        <span class="tag locked">policy-bound</span>
+      </div>
+
+      <p class="lede" style="font-size:15px">The most policy-loaded table in the set. Six statuses, three sources, both tutored and self-paced share one shape. Cohort_id nullable.</p>
+
+      <div class="schema-card">
+        <div class="sc-head">
+          <h3>nclex_enrolments</h3>
+          <div class="sc-tags"><span class="tag greenfd">new</span></div>
+        </div>
+        <p class="sc-purpose">One row per (user, programme, cohort?) triple. Cohort_id NULL for self-paced. UNIQUE constraint blocks double-enrolment within the same cohort but allows across cohorts.</p>
+        <table class="sc-cols">
+          <thead><tr><th>Column</th><th>Type</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr><td class="col-name">enrolment_id</td>        <td class="col-type">UUID PRIMARY KEY</td>  <td class="col-note">DEFAULT gen_random_uuid().</td></tr>
+            <tr><td class="col-name">user_id</td>             <td class="col-type">UUID NOT NULL</td>     <td class="col-note">FK → <code>nclex_users.id</code> CASCADE.</td></tr>
+            <tr><td class="col-name">programme_id</td>        <td class="col-type">UUID NOT NULL</td>     <td class="col-note">FK → <code>nclex_programmes</code> RESTRICT (no orphan rows on programme delete; archive instead).</td></tr>
+            <tr><td class="col-name">cohort_id</td>           <td class="col-type">UUID</td>              <td class="col-note">FK → <code>nclex_cohorts</code> RESTRICT. NULL for self-paced. NOT NULL enforced in TS for tutored programmes.</td></tr>
+            <tr><td class="col-name">status</td>              <td class="col-type">TEXT NOT NULL</td>     <td class="col-note">CHECK IN ('PENDING_APPROVAL','ENROLLED','PAUSED','REJECTED','CANCELLED','EXPIRED'). Transitions enforced via server actions, not DB triggers (less surprise).</td></tr>
+            <tr><td class="col-name">enrolment_source</td>    <td class="col-type">TEXT NOT NULL</td>     <td class="col-note">CHECK IN ('SELF_PAID','TUTOR_ADDED','ADMIN_GRANT').</td></tr>
+            <tr><td class="col-name">enrolled_by_user_id</td> <td class="col-type">UUID</td>              <td class="col-note">FK → <code>nclex_users.id</code>. Tutor or admin who created the row. NULL for SELF_PAID. Audit only.</td></tr>
+            <tr><td class="col-name">strategy_id</td>         <td class="col-type">UUID</td>              <td class="col-note">FK → strategies RESTRICT. Set for SELF_PAID on-platform programmes. NULL for off-platform (we don't know how the tutor priced it).</td></tr>
+            <tr><td class="col-name">enrolled_at</td>         <td class="col-type">TIMESTAMPTZ NOT NULL DEFAULT NOW()</td><td class="col-note">Anchors the access-window clock.</td></tr>
+            <tr><td class="col-name">approved_at</td>         <td class="col-type">TIMESTAMPTZ</td>       <td class="col-note">PENDING_APPROVAL → ENROLLED transition timestamp. NULL for paths that skip pending.</td></tr>
+            <tr><td class="col-name">approved_by_user_id</td> <td class="col-type">UUID</td>              <td class="col-note">FK → <code>nclex_users.id</code>. The tutor who clicked Approve. Audit only.</td></tr>
+            <tr><td class="col-name">access_expires_at</td>   <td class="col-type">TIMESTAMPTZ</td>       <td class="col-note">Computed at enrolment time from <code>programmes.access_window_days</code>. NULL = "lifetime of tutor sub". Frozen on the row so tutor changing the policy later doesn't shrink existing students' window.</td></tr>
+            <tr><td class="col-name">paused_at</td>           <td class="col-type">TIMESTAMPTZ</td>       <td class="col-note">When PAUSED was set. NULL otherwise.</td></tr>
+            <tr><td class="col-name">paused_reason</td>       <td class="col-type">TEXT</td>              <td class="col-note">CHECK IN ('INSTALLMENT_OVERDUE','TUTOR_MANUAL'). NULL otherwise.</td></tr>
+            <tr><td class="col-name">terminal_at</td>         <td class="col-type">TIMESTAMPTZ</td>       <td class="col-note">When REJECTED / CANCELLED / EXPIRED was set. Indexed for the "wrap up" cron.</td></tr>
+            <tr><td class="col-name">tutor_note</td>          <td class="col-type">TEXT</td>              <td class="col-note">Optional reason text on reject/cancel. Shown to admin during refund handling.</td></tr>
+            <tr><td class="col-name">created_at / updated_at</td><td class="col-type">TIMESTAMPTZ</td>   <td class="col-note">Standard.</td></tr>
+          </tbody>
+        </table>
+        <div class="sc-foot">
+          <span class="label">Constraints</span><span><code class="mono">UNIQUE (user_id, cohort_id)</code> WHERE cohort_id IS NOT NULL — blocks the "already enrolled in this cohort" case. Self-paced uses <code>UNIQUE (user_id, programme_id)</code> WHERE cohort_id IS NULL.</span>
+          <span class="label">Indexes</span>    <span><code class="mono">(cohort_id, status)</code> drives the tutor cohort workspace roster query; <code class="mono">(user_id, status)</code> drives the student dashboard; <code class="mono">(access_expires_at)</code> WHERE status IN ('ENROLLED','PAUSED') feeds the nightly EXPIRED sweep.</span>
+          <span class="label">RLS intent</span> <span><strong>Read:</strong> the enrolled user, the programme's tutor, ADMIN. <strong>Write:</strong> programme tutor (for status flips on their cohorts) + payment Worker service role (for initial PENDING_APPROVAL creation) + ADMIN. Status transitions are RPC-gated, not raw UPDATEs.</span>
+        </div>
+      </div>
+
+      <div class="callout" style="margin-top:20px">
+        <h4>Lifecycle state machine (mirror of the plan's diagram)</h4>
+        <div style="margin-top:12px; display:grid; grid-template-columns: 200px 1fr; gap:8px 16px; font-size:13px;">
+          <div><span class="status-pill st-pending">PENDING_APPROVAL</span></div>
+          <div style="color:var(--ink-soft)">Set on on-platform tutored payment. Single entry point. → <span class="mono">ENROLLED</span> (approve) or <span class="mono">REJECTED</span> (reject).</div>
+          <div><span class="status-pill st-enrolled">ENROLLED</span></div>
+          <div style="color:var(--ink-soft)">Active access. Entered from PENDING_APPROVAL, or directly for off-platform TUTOR_ADDED / self-paced SELF_PAID / ADMIN_GRANT. → <span class="mono">PAUSED</span>, <span class="mono">CANCELLED</span>, <span class="mono">EXPIRED</span>.</div>
+          <div><span class="status-pill st-paused">PAUSED</span></div>
+          <div style="color:var(--ink-soft)">Installment overdue or tutor-manual pause. Reversible to <span class="mono">ENROLLED</span> by mark-paid / unpause. Can still go <span class="mono">CANCELLED</span> / <span class="mono">EXPIRED</span>.</div>
+          <div><span class="status-pill st-rejected">REJECTED</span></div>
+          <div style="color:var(--ink-soft)">Terminal. Tutor rejected a paid-and-pending request. Triggers manual refund.</div>
+          <div><span class="status-pill st-cancelled">CANCELLED</span></div>
+          <div style="color:var(--ink-soft)">Terminal. Tutor/admin terminates active enrolment, or cohort/programme cancelled (cascade).</div>
+          <div><span class="status-pill st-expired">EXPIRED</span></div>
+          <div style="color:var(--ink-soft)">Terminal. <code>access_expires_at</code> elapsed. Set by nightly <code>pg_cron</code> SQL function.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────── 9. enquiries -->
+    <section class="block" id="enquiries">
+      <div class="block-head">
+        <span class="num">09 ·</span>
+        <h2>nclex_programme_enquiries</h2>
+        <span class="tag greenfd">greenfield</span>
+      </div>
+
+      <p class="lede" style="font-size:15px">Contact-first programmes (<code>show_price_publicly = FALSE</code>). No account creation; QAcademy passes through to the tutor.</p>
+
+      <div class="schema-card">
+        <div class="sc-head">
+          <h3>nclex_programme_enquiries</h3>
+          <div class="sc-tags"><span class="tag greenfd">new</span></div>
+        </div>
+        <p class="sc-purpose">Lightweight lead capture. Programme-scoped, not cohort-scoped — the tutor figures out which cohort during conversation.</p>
+        <table class="sc-cols">
+          <thead><tr><th>Column</th><th>Type</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr><td class="col-name">enquiry_id</td>     <td class="col-type">UUID PRIMARY KEY</td>      <td class="col-note">DEFAULT gen_random_uuid().</td></tr>
+            <tr><td class="col-name">programme_id</td>   <td class="col-type">UUID NOT NULL</td>         <td class="col-note">FK → <code>nclex_programmes</code> CASCADE.</td></tr>
+            <tr><td class="col-name">name</td>           <td class="col-type">TEXT NOT NULL</td>         <td class="col-note">Free text.</td></tr>
+            <tr><td class="col-name">email</td>          <td class="col-type">TEXT NOT NULL</td>         <td class="col-note">Used to match if they later enrol.</td></tr>
+            <tr><td class="col-name">phone</td>          <td class="col-type">TEXT</td>                  <td class="col-note">Optional.</td></tr>
+            <tr><td class="col-name">message</td>        <td class="col-type">TEXT</td>                  <td class="col-note">Optional.</td></tr>
+            <tr><td class="col-name">status</td>         <td class="col-type">TEXT NOT NULL DEFAULT 'NEW'</td><td class="col-note">CHECK IN ('NEW','FORWARDED','CONVERTED','CLOSED').</td></tr>
+            <tr><td class="col-name">forwarded_at</td>   <td class="col-type">TIMESTAMPTZ</td>           <td class="col-note">Set when the email worker sent the pass-through.</td></tr>
+            <tr><td class="col-name">converted_enrolment_id</td><td class="col-type">UUID</td>           <td class="col-note">FK → <code>nclex_enrolments</code>. Set when the email later matches an enrolment row. Cheap retention metric.</td></tr>
+            <tr><td class="col-name">admin_notes</td>    <td class="col-type">TEXT</td>                  <td class="col-note">Free text for admin queue.</td></tr>
+            <tr><td class="col-name">created_at</td>     <td class="col-type">TIMESTAMPTZ DEFAULT NOW()</td><td class="col-note">Standard.</td></tr>
+          </tbody>
+        </table>
+        <div class="sc-foot">
+          <span class="label">Indexes</span>    <span><code class="mono">(programme_id, status)</code> for tutor + admin queues; <code class="mono">(email)</code> for the convert-on-enrol matcher.</span>
+          <span class="label">RLS intent</span> <span><strong>Read:</strong> programme tutor + ADMIN. <strong>Write (insert):</strong> public (anon role) — anyone can submit. <strong>Update:</strong> tutor + ADMIN.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────── 10. waitlist (proposed) -->
+    <section class="block" id="waitlist">
+      <div class="block-head">
+        <span class="num">10 ·</span>
+        <h2>nclex_cohort_waitlist</h2>
+        <span class="tag delta">proposed addition</span>
+      </div>
+
+      <p class="lede" style="font-size:15px">
+        Not in the original greenfield list, but the off-platform student-initiated path needs a home for the lead before tutor approval. Without it, the waitlist UI in the cohort workspace has nothing to read from.
+      </p>
+
+      <div class="schema-card">
+        <div class="sc-head">
+          <h3>nclex_cohort_waitlist</h3>
+          <div class="sc-tags"><span class="tag delta">propose</span></div>
+        </div>
+        <p class="sc-purpose">A "lead" row that the tutor can one-click-convert to an enrolment. Used when the programme is OFF_PLATFORM and a student joins the cohort waitlist from the discovery page.</p>
+        <table class="sc-cols">
+          <thead><tr><th>Column</th><th>Type</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr><td class="col-name">waitlist_id</td>    <td class="col-type">UUID PRIMARY KEY</td>      <td class="col-note">DEFAULT gen_random_uuid().</td></tr>
+            <tr><td class="col-name">cohort_id</td>      <td class="col-type">UUID NOT NULL</td>         <td class="col-note">FK → <code>nclex_cohorts</code> CASCADE. Off-platform only — on-platform creates a PENDING_APPROVAL enrolment, not a waitlist row.</td></tr>
+            <tr><td class="col-name">name</td>           <td class="col-type">TEXT NOT NULL</td>         <td class="col-note">Pre-account. Lives here until the tutor converts and Supabase invite goes out.</td></tr>
+            <tr><td class="col-name">email</td>          <td class="col-type">TEXT NOT NULL</td>         <td class="col-note">Dup-check fires at submission too (same rule as paid flows).</td></tr>
+            <tr><td class="col-name">phone</td>          <td class="col-type">TEXT</td>                  <td class="col-note">Optional.</td></tr>
+            <tr><td class="col-name">message</td>        <td class="col-type">TEXT</td>                  <td class="col-note">Optional "anything you want the tutor to know".</td></tr>
+            <tr><td class="col-name">status</td>         <td class="col-type">TEXT NOT NULL DEFAULT 'NEW'</td><td class="col-note">CHECK IN ('NEW','CONVERTED','DISMISSED').</td></tr>
+            <tr><td class="col-name">converted_enrolment_id</td><td class="col-type">UUID</td>           <td class="col-note">FK → <code>nclex_enrolments</code>. Set when tutor converts.</td></tr>
+            <tr><td class="col-name">created_at / updated_at</td><td class="col-type">TIMESTAMPTZ</td>  <td class="col-note">Standard.</td></tr>
+          </tbody>
+        </table>
+        <div class="sc-foot">
+          <span class="label">Constraint</span> <span><code class="mono">UNIQUE (cohort_id, email)</code> WHERE status='NEW' — prevents spam-clicking duplicate joins.</span>
+          <span class="label">Indexes</span>    <span><code class="mono">(cohort_id, status, created_at)</code> for the workspace waitlist tab.</span>
+          <span class="label">RLS intent</span> <span><strong>Read:</strong> cohort's programme tutor + ADMIN. <strong>Insert:</strong> public anon. <strong>Update:</strong> tutor + ADMIN.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────── 11. cross-cutting -->
+    <section class="block" id="cross">
+      <div class="block-head">
+        <span class="num">11 ·</span>
+        <h2>Cross-cutting</h2>
+      </div>
+
+      <div class="prose">
+        <h3 style="margin-bottom:8px">Nightly <code>pg_cron</code> SQL function</h3>
+        <p>Per 2026-05-19 decision, two transitions run nightly as a single Supabase <code>pg_cron</code> SQL function:</p>
+        <ul>
+          <li><code>ENROLLED</code> / <code>PAUSED</code> → <code>EXPIRED</code> when <code>access_expires_at &lt; NOW()</code>. One UPDATE.</li>
+          <li><code>ENROLLED</code> → <code>PAUSED</code> when an installment due-date passed and no PROGRAMME_INSTALLMENT row exists with <code>status='ACTIVATED'</code> for that index. One UPDATE + JOIN through <code>nclex_payments</code>.</li>
+        </ul>
+        <p>Function name: <code>nclex_enrolment_nightly_sweep()</code>. Scheduled via <code>cron.schedule('nclex-enrolment-nightly', '0 2 * * *', $$ SELECT nclex_enrolment_nightly_sweep(); $$)</code>. Notifications are deferred per the plan — the function writes status flips, not emails.</p>
+
+        <h3 style="margin-top:24px; margin-bottom:8px">RLS pattern across the set</h3>
+        <ul>
+          <li><strong>Three roles consulted via subquery:</strong> <code>auth.uid()</code>, <code>EXISTS</code> on <code>nclex_user_roles</code>, and <code>EXISTS</code> on the programme/cohort ownership chain. Standard pattern — same as the existing bank schema's policies.</li>
+          <li><strong>Status-flip writes happen via RPCs</strong>, not raw UPDATEs. Policies allow UPDATE only via SECURITY DEFINER functions (<code>nclex_approve_enrolment</code>, <code>nclex_reject_enrolment</code>, <code>nclex_pause_enrolment</code>, <code>nclex_unpause_enrolment</code>, <code>nclex_cancel_enrolment</code>). Keeps the transition rules in one auditable place.</li>
+          <li><strong>Service-role writes</strong> (Worker) bypass RLS by design — but the Worker validates the same transitions before writing.</li>
+        </ul>
+
+        <h3 style="margin-top:24px; margin-bottom:8px">Entitlement read at request time</h3>
+        <p>Programme content access check becomes: <code>SELECT 1 FROM nclex_enrolments WHERE user_id = $1 AND programme_id = $2 AND status = 'ENROLLED' AND (access_expires_at IS NULL OR access_expires_at &gt; NOW())</code>. Bank access: <code>SELECT 1 FROM nclex_subscriptions WHERE user_id = $1 AND pack_type IN ('BANK_DURATION','TRIAL') AND status='ACTIVE' AND end_at &gt; NOW()</code>. Both single-row, indexed.</p>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────── 12. open questions -->
+    <section class="block" id="open">
+      <div class="block-head">
+        <span class="num">12 ·</span>
+        <h2>Genuinely open questions</h2>
+      </div>
+
+      <ul class="bare">
+        <li>
+          <span class="hdg">Tutor-sub-lapsed grace period</span>
+          <span class="bdy">Doc says "length TBD in build, e.g. 90 days." This is a single integer setting; defer to build but flag it now. Storage: a row in <code>nclex_platform_settings</code> (doesn't exist) or a constant in <code>lib/access</code>.</span>
+        </li>
+        <li>
+          <span class="hdg">Strategy mutation during live enrolment</span>
+          <span class="bdy">If a tutor edits an installment strategy <em>after</em> students enrolled on it, do existing students keep the old schedule? Proposed: <strong>yes</strong> — freeze the strategy snapshot on the enrolment row (add <code>strategy_snapshot_json</code>). Otherwise an installment count change retroactively breaks the cron.</span>
+        </li>
+        <li>
+          <span class="hdg">Self-paced UNIQUE constraint scope</span>
+          <span class="bdy">Plan doesn't say whether a student can re-enrol in the same self-paced programme after their access expired. Proposed: yes — drop the partial unique constraint and rely on "active enrolment exists" check at checkout. Otherwise a returning student can never come back.</span>
+        </li>
+        <li>
+          <span class="hdg">Refund row representation</span>
+          <span class="bdy">Refunds are admin-handled off-platform per plan. Do we still want a <code>REFUNDED</code> status on <code>nclex_payments</code> (proposed yes, for audit) and a "Refund being processed" sub-state on enrolment? Currently mapped to REJECTED — but a refunded ENROLLED student would also need it.</span>
+        </li>
+        <li>
+          <span class="hdg">Bank opt-in row on programme checkout</span>
+          <span class="bdy">Single Paystack charge for programme + bank? Or two? Proposed: <strong>two separate charges</strong> (two <code>nclex_payments</code> rows: PROGRAMME_INITIAL + BANK_OPTIN_AT_PROGRAMME). Cleaner audit, cleaner refund. Cost: two Paystack transactions in one user flow.</span>
+        </li>
+        <li>
+          <span class="hdg">Per-cohort price overrides</span>
+          <span class="bdy">Plan keeps pricing on the programme. Some tutors will want "founding cohort = ₵800, later cohorts ₵1,000." Not in v1 per plan. If/when added: a <code>price_minor_override</code> column on <code>nclex_cohorts</code> + strategies referencing cohort instead of programme. Just flagging.</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────── 13. prototypes -->
+    <section class="block" id="prototypes">
+      <div class="block-head">
+        <span class="num">13 ·</span>
+        <h2>Prototypes</h2>
+      </div>
+
+      <p class="lede" style="font-size:15px">Layout + interactions only — adapt copy + components to your actual stack. Each prototype includes a state-toggle in its top bar so you can step through the variations.</p>
+
+      <div class="proto-grid">
+        <a class="proto-card" href="prototypes/tutor-cohort-workspace.html">
+          <div class="pc-no">A · tutor</div>
+          <h3>Cohort workspace</h3>
+          <p>Roster · Waitlist · Add student (off-platform) · Approve enrolment modal · 6-status roster with filters.</p>
+          <div class="pc-screens">
+            <span class="status-pill st-pending">PENDING</span>
+            <span class="status-pill st-enrolled">ENROLLED</span>
+            <span class="status-pill st-paused">PAUSED</span>
+            <span class="status-pill st-rejected">REJECTED</span>
+            <span class="status-pill st-cancelled">CANCELLED</span>
+            <span class="status-pill st-expired">EXPIRED</span>
+          </div>
+        </a>
+
+        <a class="proto-card" href="prototypes/student-dashboard.html">
+          <div class="pc-no">B · student</div>
+          <h3>Dashboard programme tile states</h3>
+          <p>Four tile variants — pending approval, enrolled active, paused (overdue installment), expired — plus the bank tile alongside for context.</p>
+          <div class="pc-screens">
+            <span class="tag">pending</span>
+            <span class="tag">enrolled</span>
+            <span class="tag">paused</span>
+            <span class="tag">expired</span>
+          </div>
+        </a>
+
+        <a class="proto-card" href="prototypes/discovery-and-detail.html">
+          <div class="pc-no">C · public</div>
+          <h3>Discovery list + programme detail</h3>
+          <p>Public list of discoverable programmes (single-currency cards, optional bank hint), then the detail page with cohort rows + Enrol / Join waitlist per row.</p>
+          <div class="pc-screens">
+            <span class="tag">tutor-led</span>
+            <span class="tag">self-paced</span>
+            <span class="tag">contact-first</span>
+          </div>
+        </a>
+
+        <a class="proto-card" href="prototypes/checkout-and-welcome.html">
+          <div class="pc-no">D · purchase</div>
+          <h3>On-platform checkout + /welcome</h3>
+          <p>Pick payment strategy, optional bank opt-in card, email-entry dup-check pause. Plus the <code>/welcome</code> account-setup page reached via Supabase invite.</p>
+          <div class="pc-screens">
+            <span class="tag">strategy pick</span>
+            <span class="tag">dup-check</span>
+            <span class="tag">/welcome</span>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <div style="margin-top:80px; padding-top:32px; border-top:1px solid var(--line); color:var(--ink-mute); font-size:13px;">
+      <p>End of proposal. Open each prototype to walk the surface — the state toggle in its top bar swaps content in place.</p>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
