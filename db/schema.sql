@@ -1002,25 +1002,6 @@ CREATE INDEX idx_nclex_cohort_checklist_activity
 
 
 -- =========================================================
--- Keep-alive activity table (2026-05-12)
--- =========================================================
--- Internal infrastructure — a real DB write target so the
--- keep-alive path generates a WAL entry (unambiguous "activity")
--- instead of relying on a stateless auth ping. No RLS policies:
--- only service-role (which bypasses RLS) reads/writes it. Origin
--- migration: db/migrations/20260512300000_keepalive_table.sql.
-
-CREATE TABLE nclex_keepalive (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  pinged_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  source      TEXT
-);
-
-CREATE INDEX idx_nclex_keepalive_pinged_at
-  ON nclex_keepalive(pinged_at);
-
-
--- =========================================================
 -- Media assets (Slice 9.3d-b, 2026-05-13)
 -- =========================================================
 -- Centralised media-asset control records. The file bytes live in

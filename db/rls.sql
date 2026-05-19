@@ -566,16 +566,6 @@ CREATE POLICY nclex_question_marks_admin_all ON nclex_question_marks FOR ALL
 
 
 -- =========================================================
--- nclex_keepalive (2026-05-12)
--- =========================================================
--- RLS enabled with NO policies. Only service-role (which bypasses
--- RLS) reads/writes this internal infrastructure table; anon and
--- authenticated have no access by design.
-
-ALTER TABLE nclex_keepalive ENABLE ROW LEVEL SECURITY;
-
-
--- =========================================================
 -- nclex_programme_units (Slice 9.3a, 2026-05-12;
 -- student_select added Slice 10.1, 2026-05-15)
 -- =========================================================
