@@ -920,16 +920,33 @@ Slice order from the adopted Claude Design proposal
 - ⏭ **Slice 3.5** Tutor public profile (JSONB) — **NEXT SESSION.**
   Add a single `profile` JSONB column to `nclex_users` (sits beside
   `avatar_url`; role-agnostic — tutors + students share the mechanism)
-  with a documented, typed shape in TS as the single source of truth
-  (e.g. `{ headline, speciality, years_experience, bio }`, extensible by
-  adding a key). Treat `profile` as public-display data by rule (no
-  private fields ever go in it). Then: expose the tutor's profile in
-  `nclex_public_programmes`; add a "Public profile" editor section to
-  `/tutor/profile`; render the "About {tutor}" + sub-headline section on
-  the programme detail page; seed the dev tutor. Decided 2026-05-20 with
-  Sam (chose flexible JSONB over fixed headline/bio columns; co-tutors-
-  per-programme is a separate join-table concern, not this). NOT rushed —
-  design the shape carefully.
+  with a documented, typed shape in TS as the single source of truth,
+  extensible by adding a key. Treat `profile` as public-display data by
+  rule (no private/operational fields ever go in it — those get a
+  `nclex_tutors` table when they arrive; see note below). Proposed shape:
+  - Person fields: `headline`, `speciality`, `years_experience`, `bio`.
+  - **Branding** (confirmed with Sam 2026-05-20 — branding, NOT
+    ownership): `display_mode: 'person' | 'business'`, `business_name`,
+    `business_logo_url`, `business_bio`. The card + detail page attribute
+    to the business name/logo when `display_mode = 'business'` (e.g.
+    "8-week NCLEX Bootcamp by NCLEX ProSolutions"), else the person.
+  
+  Then: expose the tutor's profile in `nclex_public_programmes`; add a
+  "Public profile" editor section to `/tutor/profile`; render the
+  "About {tutor}"/business + sub-headline section on the programme detail
+  page; seed the dev tutor. Decided 2026-05-20 with Sam (chose flexible
+  JSONB over fixed headline/bio columns; co-tutors-per-programme is a
+  separate join-table concern, not this). NOT rushed — design carefully.
+
+  **Boundary (branding vs ownership).** The business fields are display
+  branding and hold only while **one business = one tutor**. If the same
+  brand ever spans multiple tutors / shared billing / shared roster,
+  that's the trigger to promote to a real `nclex_organizations` entity
+  (org owns programmes, org-level subscription) — the brand fields
+  migrate there. Likely arrives with the tutor-subscription / vetting
+  work, which is also the trigger for a 1:1 `nclex_tutors` table holding
+  tutor-only *operational* data (vetting status, $29/mo sub linkage,
+  payout details, quotas) that can't live in the public JSONB.
 - ⬜ **Slice 4** Student-initiated waitlist (off-platform) —
   `nclex_cohort_waitlist` + "Join waitlist" form + tutor "convert to
   enrolment" one-click.
