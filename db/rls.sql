@@ -1190,23 +1190,12 @@ CREATE POLICY nclex_enrolments_tutor_insert
     )
   );
 
-CREATE POLICY nclex_enrolments_tutor_update
-  ON nclex_enrolments FOR UPDATE
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM nclex_programmes p
-      WHERE p.programme_id = nclex_enrolments.programme_id
-        AND p.tutor_id = auth.uid()
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM nclex_programmes p
-      WHERE p.programme_id = nclex_enrolments.programme_id
-        AND p.tutor_id = auth.uid()
-    )
-  );
+-- No tutor UPDATE policy: status transitions are RPC-gated (Slice 2a).
+-- The Slice 1a direct tutor UPDATE policy was dropped in migration
+-- 20260524120000_enrolments_2a_transitions.sql — tutors change status
+-- only through the SECURITY DEFINER transition functions
+-- (nclex_approve/reject/pause/unpause/cancel_enrolment), which validate
+-- ownership + the legal source status in one auditable place.
 
 CREATE POLICY nclex_enrolments_admin_all
   ON nclex_enrolments FOR ALL
