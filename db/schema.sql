@@ -1396,6 +1396,8 @@ CREATE TABLE nclex_cohort_waitlist (
   forename             TEXT NOT NULL,                            -- split name → convert creates the profile directly
   surname              TEXT NOT NULL,
   email                TEXT NOT NULL,                             -- lower-cased by the RPC
+  phone                TEXT,                                      -- optional; required if a phone method chosen
+  preferred_contact    TEXT[] NOT NULL DEFAULT ARRAY['EMAIL']::TEXT[],  -- subset of CALL/SMS/WHATSAPP/EMAIL
   message              TEXT,
 
   status               TEXT NOT NULL DEFAULT 'PENDING'
@@ -1408,7 +1410,16 @@ CREATE TABLE nclex_cohort_waitlist (
   handled_at           TIMESTAMPTZ,
 
   created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT nclex_waitlist_pref_contact_valid CHECK (
+    array_length(preferred_contact, 1) >= 1
+    AND preferred_contact <@ ARRAY['CALL','SMS','WHATSAPP','EMAIL']::TEXT[]
+  ),
+  CONSTRAINT nclex_waitlist_phone_when_needed CHECK (
+    NOT (preferred_contact && ARRAY['CALL','SMS','WHATSAPP']::TEXT[])
+    OR (phone IS NOT NULL AND btrim(phone) <> '')
+  )
 );
 
 -- One pending lead per (cohort, email); converted/dismissed excluded so

@@ -27,14 +27,32 @@ export interface EnrolmentRosterRow {
   email: string;
 }
 
+/** A contact channel the lead can ask to be reached on. Mirrors the
+ *  preferred_contact allowed set on nclex_cohort_waitlist. */
+export type PreferredContact = 'CALL' | 'SMS' | 'WHATSAPP' | 'EMAIL';
+
+/** Display label per channel (tutor waitlist badges + the public form). */
+export const PREFERRED_CONTACT_LABEL: Record<PreferredContact, string> = {
+  CALL: 'Call',
+  SMS: 'SMS',
+  WHATSAPP: 'WhatsApp',
+  EMAIL: 'Email',
+};
+
+/** Channels that need a phone number — used by the phone-required rule. */
+export const PHONE_CONTACT_METHODS: PreferredContact[] = ['CALL', 'SMS', 'WHATSAPP'];
+
 /** One PENDING student-initiated waitlist lead (Slice 4), shown in the
  *  cohort workspace. forename/surname/email are self-supplied (no
- *  account yet); message is optional. */
+ *  account yet); phone + message are optional; preferred_contact says
+ *  how they want to be reached. */
 export interface WaitlistEntry {
   waitlist_id: string;
   forename: string;
   surname: string;
   email: string;
+  phone: string | null;
+  preferred_contact: PreferredContact[];
   message: string | null;
   created_at: string;
 }

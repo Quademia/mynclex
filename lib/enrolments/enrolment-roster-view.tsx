@@ -1,14 +1,18 @@
 // mynclex/lib/enrolments/enrolment-roster-view.tsx
 //
-// Client orchestrator for the cohort Students tab (Slice 1b).
-// Owns: the roster list, the "Add student" modal (off-platform
-// tutor-add), and the success/error toast. The server action does
-// the invite-or-attach + enrolment insert; this just collects the
-// form and reflects the result.
+// Cohort workspace — Students surface (Slice 1b + Slice 4 rework to the
+// CD design at docs/product-plan/design-handoff/payments-and-enrolment/
+// prototypes/tutor-cohort-workspace.html).
+//
+// Two sub-tabs: Roster (the enrolled/lifecycle table, with status filter
+// chips + search) and Waitlist (student-initiated off-platform leads,
+// Convert → enrolment / Dismiss). Summary cells up top. Avatars + relative
+// time per the prototype. The payment-era columns (Access · payment) are
+// PLACEHOLDERS until the on-platform / installments slices fill them.
 
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   addStudentAction,
@@ -21,13 +25,16 @@ import {
   resumeEnrolmentAction,
   type TransitionResult,
 } from './actions';
+import { initials, relativeTime } from './format';
 import {
   actionsForStatus,
   ENROLMENT_ACTION_META,
   ENROLMENT_SOURCE_LABEL,
   ENROLMENT_STATUS_META,
+  PREFERRED_CONTACT_LABEL,
   type EnrolmentAction,
   type EnrolmentRosterRow,
+  type EnrolmentStatus,
   type WaitlistEntry,
 } from './types';
 
@@ -46,6 +53,19 @@ const ACTION_PAST_TENSE: Record<EnrolmentAction, string> = {
   cancel: 'Cancelled',
 };
 
+// Order the status filter chips follow when present in the roster.
+const STATUS_ORDER: EnrolmentStatus[] = [
+  'PENDING_APPROVAL',
+  'ENROLLED',
+  'PAUSED',
+  'REJECTED',
+  'CANCELLED',
+  'EXPIRED',
+];
+
+type Tab = 'roster' | 'waitlist';
+type StatusFilter = EnrolmentStatus | 'ALL';
+
 export function EnrolmentRosterView({
   cohortId,
   cohortName,
@@ -54,6 +74,13 @@ export function EnrolmentRosterView({
 }: EnrolmentRosterViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+
+  const [tab, setTab] = useState<Tab>(
+    // Land on Waitlist when there are leads waiting and no roster yet —
+    // the action items come first. Otherwise default to Roster.
+    waitlist.length > 0 && roster.length === 0 ? 'waitlist' : 'roster',
+  );
+
   const [addOpen, setAddOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [toast, setToast] = useState<{
@@ -61,20 +88,103 @@ export function EnrolmentRosterView({
     message: string;
   } | null>(null);
 
-  // Which row is mid-transition (disables that row's buttons), and the
-  // pending confirm dialog (for access-removing actions).
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{
     action: EnrolmentAction;
     row: EnrolmentRosterRow;
   } | null>(null);
 
-  // Waitlist: which lead is mid-action, and the pending dismiss confirm.
   const [wlBusyId, setWlBusyId] = useState<string | null>(null);
   const [wlDismiss, setWlDismiss] = useState<WaitlistEntry | null>(null);
 
+  // Roster filtering.
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  const [search, setSearch] = useState('');
+
+  const counts = useMemo(() => {
+    const c: Record<EnrolmentStatus, number> = {
+      PENDING_APPROVAL: 0,
+      ENROLLED: 0,
+      PAUSED: 0,
+      REJECTED: 0,
+      CANCELLED: 0,
+      EXPIRED: 0,
+    };
+    for (const r of roster) c[r.status] += 1;
+    return c;
+  }, [roster]);
+
+  const visibleRoster = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return roster.filter((r) => {
+      if (statusFilter !== 'ALL' && r.status !== statusFilter) return false;
+      if (q && !`${r.name} ${r.email}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [roster, statusFilter, search]);
+
   function leadName(entry: WaitlistEntry) {
     return `${entry.forename} ${entry.surname}`.trim();
+  }
+
+  const ACTION_FN: Record<
+    EnrolmentAction,
+    (cohortId: string, enrolmentId: string, note?: string) => Promise<TransitionResult>
+  > = {
+    approve: approveEnrolmentAction,
+    reject: rejectEnrolmentAction,
+    pause: pauseEnrolmentAction,
+    resume: resumeEnrolmentAction,
+    cancel: cancelEnrolmentAction,
+  };
+
+  function runAction(action: EnrolmentAction, row: EnrolmentRosterRow, note?: string) {
+    setBusyId(row.enrolment_id);
+    startTransition(async () => {
+      const res = await ACTION_FN[action](cohortId, row.enrolment_id, note);
+      setBusyId(null);
+      setConfirm(null);
+      if (!res.ok) {
+        setToast({ tone: 'error', message: res.error });
+        return;
+      }
+      setToast({ tone: 'success', message: `${ACTION_PAST_TENSE[action]} ${row.name}.` });
+      router.refresh();
+    });
+  }
+
+  function onActionClick(action: EnrolmentAction, row: EnrolmentRosterRow) {
+    if (ENROLMENT_ACTION_META[action].confirm) setConfirm({ action, row });
+    else runAction(action, row);
+  }
+
+  function openAdd() {
+    setFormError(null);
+    setAddOpen(true);
+  }
+  function closeAdd() {
+    if (pending) return;
+    setAddOpen(false);
+    setFormError(null);
+  }
+
+  function handleSubmit(formData: FormData) {
+    setFormError(null);
+    startTransition(async () => {
+      const res = await addStudentAction(cohortId, formData);
+      if (!res.ok) {
+        setFormError(res.error);
+        return;
+      }
+      setAddOpen(false);
+      setToast({
+        tone: 'success',
+        message: res.invited
+          ? `Invited ${res.name} — they'll get an email to set up their account.`
+          : `Enrolled ${res.name} (existing MyNclex account).`,
+      });
+      router.refresh();
+    });
   }
 
   function runConvert(entry: WaitlistEntry) {
@@ -111,223 +221,201 @@ export function EnrolmentRosterView({
     });
   }
 
-  const ACTION_FN: Record<
-    EnrolmentAction,
-    (cohortId: string, enrolmentId: string, note?: string) => Promise<TransitionResult>
-  > = {
-    approve: approveEnrolmentAction,
-    reject: rejectEnrolmentAction,
-    pause: pauseEnrolmentAction,
-    resume: resumeEnrolmentAction,
-    cancel: cancelEnrolmentAction,
-  };
-
-  function runAction(action: EnrolmentAction, row: EnrolmentRosterRow, note?: string) {
-    setBusyId(row.enrolment_id);
-    startTransition(async () => {
-      const res = await ACTION_FN[action](cohortId, row.enrolment_id, note);
-      setBusyId(null);
-      setConfirm(null);
-      if (!res.ok) {
-        setToast({ tone: 'error', message: res.error });
-        return;
-      }
-      setToast({
-        tone: 'success',
-        message: `${ACTION_PAST_TENSE[action]} ${row.name}.`,
-      });
-      router.refresh();
-    });
-  }
-
-  function onActionClick(action: EnrolmentAction, row: EnrolmentRosterRow) {
-    if (ENROLMENT_ACTION_META[action].confirm) {
-      setConfirm({ action, row });
-    } else {
-      runAction(action, row);
-    }
-  }
-
-  function openAdd() {
-    setFormError(null);
-    setAddOpen(true);
-  }
-  function closeAdd() {
-    if (pending) return;
-    setAddOpen(false);
-    setFormError(null);
-  }
-
-  function handleSubmit(formData: FormData) {
-    setFormError(null);
-    startTransition(async () => {
-      const res = await addStudentAction(cohortId, formData);
-      if (!res.ok) {
-        setFormError(res.error);
-        return;
-      }
-      setAddOpen(false);
-      setToast({
-        tone: 'success',
-        message: res.invited
-          ? `Invited ${res.name} — they'll get an email to set up their account.`
-          : `Enrolled ${res.name} (existing MyNclex account).`,
-      });
-      router.refresh();
-    });
-  }
-
   const hasStudents = roster.length > 0;
+  const activeChips: StatusFilter[] = [
+    'ALL',
+    ...STATUS_ORDER.filter((s) => counts[s] > 0),
+  ];
 
   return (
-    <div className="enrol-page">
-      <header className="enrol-head">
-        <div className="enrol-head-titles">
-          <h1 className="enrol-title">Students</h1>
-          <p className="enrol-sub">
-            Enrolled students for {cohortName}. Add a student directly
-            by name and email — new students get an invite to set up
-            their account.
-          </p>
+    <div className="cw-page">
+      <header className="cw-header">
+        <div className="cw-header-titles">
+          <h1 className="cw-title">Students</h1>
+          <p className="cw-sub">{cohortName}</p>
         </div>
-        {hasStudents && (
-          <button
-            type="button"
-            className="enrol-btn enrol-btn-primary"
-            onClick={openAdd}
-            disabled={pending}
-          >
-            + Add student
-          </button>
-        )}
+        <button
+          type="button"
+          className="enrol-btn enrol-btn-primary"
+          onClick={openAdd}
+          disabled={pending}
+        >
+          + Add student
+        </button>
       </header>
 
-      {waitlist.length > 0 && (
-        <section className="enrol-waitlist">
-          <div className="enrol-waitlist-head">
-            <h2 className="enrol-waitlist-title">
-              Waitlist requests
-              <span className="enrol-waitlist-count">{waitlist.length}</span>
-            </h2>
-            <p className="enrol-waitlist-sub">
-              People who asked to join this cohort from the public page.
-              Convert once they&apos;ve paid you (or you&apos;re ready to
-              let them in) — they&apos;ll be enrolled and emailed an invite
-              to set up their account.
-            </p>
-          </div>
-          <div className="enrol-waitlist-list">
-            {waitlist.map((entry) => {
-              const rowBusy = wlBusyId === entry.waitlist_id && pending;
-              return (
-                <div className="enrol-wl-card" key={entry.waitlist_id}>
-                  <div className="enrol-wl-main">
-                    <div className="enrol-wl-id">
-                      <span className="enrol-wl-name">{leadName(entry)}</span>
-                      <span className="enrol-wl-email">{entry.email}</span>
-                    </div>
-                    {entry.message && (
-                      <p className="enrol-wl-message">{entry.message}</p>
-                    )}
-                    <span className="enrol-wl-date">
-                      Requested {new Date(entry.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="enrol-wl-actions">
-                    <button
-                      type="button"
-                      className="enrol-action enrol-action-primary"
-                      onClick={() => runConvert(entry)}
-                      disabled={pending}
-                    >
-                      {rowBusy ? '…' : 'Convert to enrolment'}
-                    </button>
-                    <button
-                      type="button"
-                      className="enrol-action enrol-action-neutral"
-                      onClick={() => setWlDismiss(entry)}
-                      disabled={pending}
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      <div className="cw-summary">
+        <SummaryCell k="Enrolled" v={counts.ENROLLED} sub="Active access" />
+        <SummaryCell
+          k="Pending approval"
+          v={counts.PENDING_APPROVAL}
+          sub="Awaiting your decision"
+        />
+        <SummaryCell k="Waitlist" v={waitlist.length} sub="Off-platform leads" />
+        <SummaryCell k="Paused" v={counts.PAUSED} sub="Access on hold" />
+      </div>
 
-      {!hasStudents ? (
-        <div className="enrol-empty">
-          <h2 className="enrol-empty-title">No students enrolled yet.</h2>
-          <p className="enrol-empty-sub">
-            Add a student you&apos;re bringing in off-platform — type
-            their name and email and they&apos;ll be enrolled right
-            away.
-          </p>
-          <button
-            type="button"
-            className="enrol-btn enrol-btn-primary"
-            onClick={openAdd}
-            disabled={pending}
-          >
-            + Add student
-          </button>
-        </div>
-      ) : (
-        <div className="enrol-roster">
-          <div className="enrol-roster-head" role="row">
-            <span role="columnheader">Student</span>
-            <span role="columnheader">Email</span>
-            <span role="columnheader">Status</span>
-            <span role="columnheader">Source</span>
-            <span role="columnheader">Enrolled</span>
-            <span role="columnheader">Actions</span>
+      <nav className="cw-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'roster'}
+          className={`cw-tab ${tab === 'roster' ? 'on' : ''}`}
+          onClick={() => setTab('roster')}
+        >
+          Roster <span className="cw-tab-count">{roster.length}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'waitlist'}
+          className={`cw-tab ${tab === 'waitlist' ? 'on' : ''}`}
+          onClick={() => setTab('waitlist')}
+        >
+          Waitlist
+          {waitlist.length > 0 && (
+            <span className="cw-tab-count warn">{waitlist.length}</span>
+          )}
+        </button>
+      </nav>
+
+      {tab === 'roster' ? (
+        !hasStudents ? (
+          <div className="enrol-empty">
+            <h2 className="enrol-empty-title">No students enrolled yet.</h2>
+            <p className="enrol-empty-sub">
+              Add a student you&apos;re bringing in off-platform — type their
+              name and email and they&apos;ll be enrolled right away. Or
+              convert a request from the Waitlist tab.
+            </p>
+            <button
+              type="button"
+              className="enrol-btn enrol-btn-primary"
+              onClick={openAdd}
+              disabled={pending}
+            >
+              + Add student
+            </button>
           </div>
-          {roster.map((row) => {
-            const meta = ENROLMENT_STATUS_META[row.status];
-            const actions = actionsForStatus(row.status);
-            const rowBusy = busyId === row.enrolment_id && pending;
-            return (
-              <div className="enrol-row" role="row" key={row.enrolment_id}>
-                <span className="enrol-row-name">{row.name}</span>
-                <span className="enrol-row-email">{row.email}</span>
-                <span>
-                  <span className={`enrol-pill ${meta.pillClass}`}>
-                    {meta.label}
-                  </span>
-                </span>
-                <span className="enrol-row-source">
-                  {ENROLMENT_SOURCE_LABEL[row.enrolment_source]}
-                </span>
-                <span className="enrol-row-date">
-                  {new Date(row.enrolled_at).toLocaleDateString()}
-                </span>
-                <span className="enrol-row-actions">
-                  {actions.length === 0 ? (
-                    <span className="enrol-row-actions-none">—</span>
+        ) : (
+          <>
+            <div className="cw-toolbar">
+              <div className="cw-filters">
+                {activeChips.map((chip) => {
+                  const on = statusFilter === chip;
+                  const label =
+                    chip === 'ALL' ? 'All' : ENROLMENT_STATUS_META[chip].label;
+                  const count = chip === 'ALL' ? roster.length : counts[chip];
+                  return (
+                    <button
+                      key={chip}
+                      type="button"
+                      className={`cw-filter ${on ? 'on' : ''}`}
+                      onClick={() => setStatusFilter(chip)}
+                    >
+                      {label} <span className="cw-filter-count">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <input
+                type="search"
+                className="cw-search"
+                placeholder="Search by name or email"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            <div className="cw-roster">
+              <table>
+                <thead>
+                  <tr>
+                    <th style={{ width: '30%' }}>Student</th>
+                    <th>Status</th>
+                    <th>Source</th>
+                    <th>Enrolled</th>
+                    <th>Access · payment</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRoster.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="cw-roster-empty">
+                        No students match this filter.
+                      </td>
+                    </tr>
                   ) : (
-                    actions.map((action) => {
-                      const am = ENROLMENT_ACTION_META[action];
+                    visibleRoster.map((row) => {
+                      const meta = ENROLMENT_STATUS_META[row.status];
+                      const actions = actionsForStatus(row.status);
+                      const rowBusy = busyId === row.enrolment_id && pending;
                       return (
-                        <button
-                          key={action}
-                          type="button"
-                          className={`enrol-action enrol-action-${am.tone}`}
-                          onClick={() => onActionClick(action, row)}
-                          disabled={pending}
-                        >
-                          {rowBusy ? '…' : am.label}
-                        </button>
+                        <tr key={row.enrolment_id}>
+                          <td>
+                            <div className="cw-student">
+                              <span className="cw-avatar" aria-hidden="true">
+                                {initials(row.name)}
+                              </span>
+                              <span className="cw-student-id">
+                                <span className="cw-student-name">{row.name}</span>
+                                <span className="cw-student-email">{row.email}</span>
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`enrol-pill ${meta.pillClass}`}>
+                              {meta.label}
+                            </span>
+                          </td>
+                          <td className="cw-src">
+                            {ENROLMENT_SOURCE_LABEL[row.enrolment_source]}
+                          </td>
+                          <td className="cw-muted">{relativeTime(row.enrolled_at)}</td>
+                          <td className="cw-placeholder" title="Available once online payments launch">
+                            —
+                          </td>
+                          <td>
+                            <div className="cw-row-actions">
+                              {actions.length === 0 ? (
+                                <span className="cw-muted">—</span>
+                              ) : (
+                                actions.map((action) => {
+                                  const am = ENROLMENT_ACTION_META[action];
+                                  return (
+                                    <button
+                                      key={action}
+                                      type="button"
+                                      className={`enrol-action enrol-action-${am.tone}`}
+                                      onClick={() => onActionClick(action, row)}
+                                      disabled={pending}
+                                    >
+                                      {rowBusy ? '…' : am.label}
+                                    </button>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </td>
+                        </tr>
                       );
                     })
                   )}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+                </tbody>
+              </table>
+            </div>
+          </>
+        )
+      ) : (
+        <WaitlistTab
+          waitlist={waitlist}
+          pending={pending}
+          wlBusyId={wlBusyId}
+          leadName={leadName}
+          onConvert={runConvert}
+          onDismiss={(entry) => setWlDismiss(entry)}
+        />
       )}
 
       {addOpen && (
@@ -373,6 +461,104 @@ export function EnrolmentRosterView({
   );
 }
 
+function SummaryCell({ k, v, sub }: { k: string; v: number; sub: string }) {
+  return (
+    <div className="cw-cell">
+      <div className="cw-cell-k">{k}</div>
+      <div className="cw-cell-v">{v}</div>
+      <div className="cw-cell-sub">{sub}</div>
+    </div>
+  );
+}
+
+function WaitlistTab({
+  waitlist,
+  pending,
+  wlBusyId,
+  leadName,
+  onConvert,
+  onDismiss,
+}: {
+  waitlist: WaitlistEntry[];
+  pending: boolean;
+  wlBusyId: string | null;
+  leadName: (e: WaitlistEntry) => string;
+  onConvert: (e: WaitlistEntry) => void;
+  onDismiss: (e: WaitlistEntry) => void;
+}) {
+  if (waitlist.length === 0) {
+    return (
+      <div className="enrol-empty">
+        <h2 className="enrol-empty-title">No waitlist requests.</h2>
+        <p className="enrol-empty-sub">
+          When someone fills in the &ldquo;Join the waitlist&rdquo; form on
+          this programme&apos;s public page, their request shows up here for
+          you to convert into an enrolment.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <p className="cw-wl-intro">
+        People who asked to join this cohort from the public page — name,
+        email and how they&apos;d like to be contacted. Once they&apos;ve paid
+        you (or you&apos;re ready to let them in), <strong>Convert</strong>{' '}
+        sends an invite and enrols them.
+      </p>
+      <div className="cw-waitlist">
+        {waitlist.map((entry) => {
+          const rowBusy = wlBusyId === entry.waitlist_id && pending;
+          return (
+            <div className="cw-wl-row" key={entry.waitlist_id}>
+              <div className="cw-wl-person">
+                <span className="cw-avatar lg" aria-hidden="true">
+                  {initials(leadName(entry))}
+                </span>
+                <div className="cw-wl-id">
+                  <span className="cw-student-name">{leadName(entry)}</span>
+                  <span className="cw-student-email">{entry.email}</span>
+                  {entry.phone && <span className="cw-wl-phone">{entry.phone}</span>}
+                  <div className="cw-wl-prefs">
+                    {entry.preferred_contact.map((p) => (
+                      <span key={p} className="cw-pref-badge">
+                        {PREFERRED_CONTACT_LABEL[p]}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className={`cw-wl-msg ${entry.message ? '' : 'empty'}`}>
+                {entry.message ? `“${entry.message}”` : 'No message'}
+              </div>
+              <div className="cw-wl-when">{relativeTime(entry.created_at)}</div>
+              <div className="cw-wl-actions">
+                <button
+                  type="button"
+                  className="enrol-action enrol-action-neutral"
+                  onClick={() => onDismiss(entry)}
+                  disabled={pending}
+                >
+                  Dismiss
+                </button>
+                <button
+                  type="button"
+                  className="enrol-action enrol-action-primary"
+                  onClick={() => onConvert(entry)}
+                  disabled={pending}
+                >
+                  {rowBusy ? '…' : 'Convert →'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 function AddStudentModal({
   pending,
   error,
@@ -390,11 +576,7 @@ function AddStudentModal({
   }, []);
 
   return (
-    <div
-      className="enrol-modal-backdrop"
-      onClick={onClose}
-      role="presentation"
-    >
+    <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
       <div
         className="enrol-modal"
         role="dialog"
@@ -406,9 +588,9 @@ function AddStudentModal({
           Add student
         </h2>
         <p className="enrol-modal-sub">
-          Enrol a student directly. If they already have a MyNclex
-          account they&apos;re attached straight away; otherwise they
-          get an email to set up their account.
+          Enrol a student directly. If they already have a MyNclex account
+          they&apos;re attached straight away; otherwise they get an email to
+          set up their account.
         </p>
 
         <form action={onSubmit} className="enrol-form">
@@ -514,7 +696,6 @@ function TransitionConfirm({
 }) {
   const [note, setNote] = useState('');
   const meta = ENROLMENT_ACTION_META[action];
-  // Only the confirm-gated actions reach this dialog.
   const copy = CONFIRM_COPY[action as 'pause' | 'reject' | 'cancel'];
 
   return (

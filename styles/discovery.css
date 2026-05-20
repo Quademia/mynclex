@@ -468,6 +468,28 @@
   font-size: 13.5px;
 }
 
+.wl-prefset { border: 0; padding: 0; margin: 0; }
+.wl-checks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+.wl-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-card);
+  font-size: 13px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  user-select: none;
+}
+.wl-check:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.wl-check input { accent-color: var(--primary); cursor: pointer; }
+
 .wl-error {
   margin: 0;
   padding: 9px 11px;

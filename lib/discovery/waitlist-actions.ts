@@ -13,6 +13,9 @@ import { createClient } from '@/lib/supabase/server';
 
 export type JoinWaitlistResult = { ok: true } | { ok: false; error: string };
 
+const ALLOWED_CONTACT = ['CALL', 'SMS', 'WHATSAPP', 'EMAIL'] as const;
+const PHONE_METHODS = ['CALL', 'SMS', 'WHATSAPP'];
+
 export async function joinWaitlistAction(
   formData: FormData,
 ): Promise<JoinWaitlistResult> {
@@ -20,8 +23,20 @@ export async function joinWaitlistAction(
   const forename = String(formData.get('forename') ?? '').trim();
   const surname = String(formData.get('surname') ?? '').trim();
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  const phoneRaw = String(formData.get('phone') ?? '').trim();
+  const phone = phoneRaw === '' ? null : phoneRaw;
   const messageRaw = String(formData.get('message') ?? '').trim();
   const message = messageRaw === '' ? null : messageRaw;
+
+  // Preferred-contact checkboxes (name="preferred"); keep only allowed
+  // values, default to EMAIL when none ticked.
+  let preferred = formData
+    .getAll('preferred')
+    .map((v) => String(v))
+    .filter((v): v is (typeof ALLOWED_CONTACT)[number] =>
+      (ALLOWED_CONTACT as readonly string[]).includes(v),
+    );
+  if (preferred.length === 0) preferred = ['EMAIL'];
 
   if (!cohortId) {
     return { ok: false, error: 'Please choose a cohort to join.' };
@@ -32,6 +47,12 @@ export async function joinWaitlistAction(
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, error: 'Please enter a valid email address.' };
   }
+  if (preferred.some((p) => PHONE_METHODS.includes(p)) && !phone) {
+    return {
+      ok: false,
+      error: 'Please add a phone number for call, SMS, or WhatsApp contact.',
+    };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.rpc('nclex_join_waitlist', {
@@ -39,6 +60,8 @@ export async function joinWaitlistAction(
     p_forename: forename,
     p_surname: surname,
     p_email: email,
+    p_phone: phone,
+    p_preferred_contact: preferred,
     p_message: message,
   });
 

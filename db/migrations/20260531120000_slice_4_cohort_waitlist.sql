@@ -7,11 +7,18 @@
 --    "Off-platform flow", convert-waitlist-entry sub-case).
 --
 -- A visitor on a programme's PUBLIC detail page can express interest in
--- a cohort by leaving name + email + an optional message — WITHOUT an
+-- a cohort by leaving their details + an optional message — WITHOUT an
 -- account. That lands in nclex_cohort_waitlist as a PENDING row. The
 -- owning tutor sees it in the cohort workspace and either CONVERTS it
 -- (one click → invite + ENROLLED enrolment, exactly like the manual
 -- "Add student" path, pre-filled from the row) or DISMISSES it.
+--
+-- Contact: email is REQUIRED (it is the account/invite key on convert).
+-- phone is optional, and preferred_contact is a small multi-select
+-- (CALL / SMS / WHATSAPP / EMAIL) so the tutor knows how to reach the
+-- lead — the WhatsApp-heavy Ghanaian audience often prefers a number to
+-- email. A phone number is required when any phone-based method is
+-- chosen (enforced here AND in the RPC for a friendly message).
 --
 -- These are pre-enrolment LEADS, not financial records: ON DELETE
 -- CASCADE off the cohort/programme (unlike nclex_enrolments, which is
@@ -51,10 +58,16 @@ CREATE TABLE nclex_cohort_waitlist (
   -- Self-supplied lead details (no account yet). forename + surname
   -- (not one "name") so the convert path can create the nclex_users
   -- profile directly — its forename/surname are both NOT NULL. Email
-  -- stored lower-cased by the RPC.
+  -- stored lower-cased by the RPC; phone optional.
   forename             TEXT NOT NULL,
   surname              TEXT NOT NULL,
   email                TEXT NOT NULL,
+  phone                TEXT,
+
+  -- How the lead wants to be contacted. Subset of the allowed set,
+  -- always at least one (defaults to EMAIL).
+  preferred_contact    TEXT[] NOT NULL DEFAULT ARRAY['EMAIL']::TEXT[],
+
   message              TEXT,
 
   status               TEXT NOT NULL DEFAULT 'PENDING'
@@ -71,7 +84,19 @@ CREATE TABLE nclex_cohort_waitlist (
   handled_at           TIMESTAMPTZ,
 
   created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- preferred_contact is a non-empty subset of the allowed channels.
+  CONSTRAINT nclex_waitlist_pref_contact_valid CHECK (
+    array_length(preferred_contact, 1) >= 1
+    AND preferred_contact <@ ARRAY['CALL','SMS','WHATSAPP','EMAIL']::TEXT[]
+  ),
+
+  -- A phone number is present whenever a phone-based channel is chosen.
+  CONSTRAINT nclex_waitlist_phone_when_needed CHECK (
+    NOT (preferred_contact && ARRAY['CALL','SMS','WHATSAPP']::TEXT[])
+    OR (phone IS NOT NULL AND btrim(phone) <> '')
+  )
 );
 
 
@@ -127,11 +152,13 @@ CREATE POLICY nclex_cohort_waitlist_admin_all
 -- the existing row rather than erroring — the form shows the same
 -- "you're on the list" either way (no email-enumeration signal).
 CREATE OR REPLACE FUNCTION nclex_join_waitlist(
-  p_cohort_id UUID,
-  p_forename  TEXT,
-  p_surname   TEXT,
-  p_email     TEXT,
-  p_message   TEXT DEFAULT NULL
+  p_cohort_id         UUID,
+  p_forename          TEXT,
+  p_surname           TEXT,
+  p_email             TEXT,
+  p_phone             TEXT,
+  p_preferred_contact TEXT[],
+  p_message           TEXT DEFAULT NULL
 )
 RETURNS UUID
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public AS $$
@@ -139,7 +166,9 @@ DECLARE
   v_forename   TEXT := btrim(p_forename);
   v_surname    TEXT := btrim(p_surname);
   v_email      TEXT := lower(btrim(p_email));
+  v_phone      TEXT := NULLIF(btrim(COALESCE(p_phone, '')), '');
   v_message    TEXT := NULLIF(btrim(COALESCE(p_message, '')), '');
+  v_pref       TEXT[];
   v_programme  UUID;
   v_existing   UUID;
 BEGIN
@@ -148,6 +177,16 @@ BEGIN
   END IF;
   IF v_email !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' THEN
     RAISE EXCEPTION 'a valid email is required';
+  END IF;
+
+  -- Normalise preferred contact: default to EMAIL, must be a subset of
+  -- the allowed channels.
+  v_pref := COALESCE(NULLIF(p_preferred_contact, ARRAY[]::TEXT[]), ARRAY['EMAIL']::TEXT[]);
+  IF NOT (v_pref <@ ARRAY['CALL','SMS','WHATSAPP','EMAIL']::TEXT[]) THEN
+    RAISE EXCEPTION 'invalid contact preference';
+  END IF;
+  IF (v_pref && ARRAY['CALL','SMS','WHATSAPP']::TEXT[]) AND v_phone IS NULL THEN
+    RAISE EXCEPTION 'a phone number is required for call, SMS, or WhatsApp contact';
   END IF;
 
   -- Cohort must be joinable: published + active tutor, not cancelled,
@@ -180,13 +219,15 @@ BEGIN
     RETURN v_existing;
   END IF;
 
-  INSERT INTO nclex_cohort_waitlist (cohort_id, programme_id, forename, surname, email, message)
-  VALUES (p_cohort_id, v_programme, v_forename, v_surname, v_email, v_message)
+  INSERT INTO nclex_cohort_waitlist
+    (cohort_id, programme_id, forename, surname, email, phone, preferred_contact, message)
+  VALUES
+    (p_cohort_id, v_programme, v_forename, v_surname, v_email, v_phone, v_pref, v_message)
   RETURNING waitlist_id INTO v_existing;
 
   RETURN v_existing;
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION nclex_join_waitlist(UUID, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION nclex_join_waitlist(UUID, TEXT, TEXT, TEXT, TEXT) TO anon, authenticated;
+REVOKE EXECUTE ON FUNCTION nclex_join_waitlist(UUID, TEXT, TEXT, TEXT, TEXT, TEXT[], TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION nclex_join_waitlist(UUID, TEXT, TEXT, TEXT, TEXT, TEXT[], TEXT) TO anon, authenticated;

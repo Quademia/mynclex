@@ -21,6 +21,13 @@ export interface WaitlistCohortOption {
   label: string;
 }
 
+const CONTACT_OPTIONS: { value: string; label: string; needsPhone: boolean }[] = [
+  { value: 'WHATSAPP', label: 'WhatsApp', needsPhone: true },
+  { value: 'CALL', label: 'Call', needsPhone: true },
+  { value: 'SMS', label: 'SMS', needsPhone: true },
+  { value: 'EMAIL', label: 'Email', needsPhone: false },
+];
+
 export function WaitlistCta({
   cohorts,
   tutorName,
@@ -98,6 +105,22 @@ function WaitlistModal({
 }) {
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const single = cohorts.length === 1;
+
+  // Preferred-contact checkbox state — Email pre-ticked. Phone becomes
+  // required the moment a phone-based channel (WhatsApp/Call/SMS) is on.
+  const [preferred, setPreferred] = useState<Set<string>>(new Set(['EMAIL']));
+  const needsPhone = CONTACT_OPTIONS.some(
+    (o) => o.needsPhone && preferred.has(o.value),
+  );
+
+  function togglePreferred(value: string) {
+    setPreferred((prev) => {
+      const next = new Set(prev);
+      if (next.has(value)) next.delete(value);
+      else next.add(value);
+      return next;
+    });
+  }
 
   useEffect(() => {
     firstFieldRef.current?.focus();
@@ -199,6 +222,45 @@ function WaitlistModal({
                   className="wl-input"
                   autoComplete="email"
                   required
+                  disabled={pending}
+                />
+              </label>
+
+              <fieldset className="wl-field wl-prefset">
+                <legend className="wl-field-label">
+                  How should the tutor reach you?
+                </legend>
+                <div className="wl-checks">
+                  {CONTACT_OPTIONS.map((o) => (
+                    <label key={o.value} className="wl-check">
+                      <input
+                        type="checkbox"
+                        name="preferred"
+                        value={o.value}
+                        checked={preferred.has(o.value)}
+                        onChange={() => togglePreferred(o.value)}
+                        disabled={pending}
+                      />
+                      <span>{o.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              <label className="wl-field">
+                <span className="wl-field-label">
+                  Phone{' '}
+                  <span className="wl-optional">
+                    {needsPhone ? '(required)' : '(optional)'}
+                  </span>
+                </span>
+                <input
+                  name="phone"
+                  type="tel"
+                  className="wl-input"
+                  autoComplete="tel"
+                  placeholder="+233 ..."
+                  required={needsPhone}
                   disabled={pending}
                 />
               </label>

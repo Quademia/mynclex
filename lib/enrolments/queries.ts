@@ -158,7 +158,7 @@ export async function getCohortWaitlist(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('nclex_cohort_waitlist')
-    .select('waitlist_id, forename, surname, email, message, created_at')
+    .select('waitlist_id, forename, surname, email, phone, preferred_contact, message, created_at')
     .eq('cohort_id', cohortId)
     .eq('status', 'PENDING')
     .order('created_at', { ascending: true });
