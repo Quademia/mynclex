@@ -8,7 +8,26 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-16):** **Tutor-quiz Slices 5 + 6 —
+> **Last shipped (2026-05-20):** **Enrolment — Slice 1 completion +
+> Slices 2a + 2b.** Tested the prior session's Slice 1 (off-platform
+> tutor-add), fixed a roster bug (three-FK embed ambiguity rendered the
+> roster empty), and completed Slice 1 with the **`/welcome`**
+> invite-landing page (invited students set a password + land in the
+> app; session is read from the invite link only, never an ambient
+> browser session). **Slice 2a** = tutor lifecycle state machine: five
+> SECURITY DEFINER RPCs (approve/reject/pause/unpause/cancel) + roster
+> action buttons + confirm dialogs; direct tutor UPDATE policy dropped
+> so transitions are RPC-gated. **Slice 2b** = student enrolment status
+> pills in the programme switcher (informational only — access is *not*
+> yet gated by status; that's the separate access-gating step). Deferred
+> from the proposal's Slice 2: the pg_cron EXPIRED/PAUSED sweep (no data
+> until the access-window slice) + admin-grant (no surface yet). Dev
+> migration tracker reconciled to match filenames. Commits `6995d46`
+> (roster fix) + `2c09173` (`/welcome`) + `e141479` (2a db) + `e91b151`
+> (2a feat) + `d704e83` (2b). Unblocks tutor-quiz Slice 4 +
+> progress-engine Slice 5. See SESSIONS 2026-05-20.
+>
+> **Earlier:** **Tutor-quiz Slices 5 + 6 —
 > programme-level quiz membership end-to-end.** Closes the
 > tutor-quiz arc: a tutor can now attach quizzes directly to a
 > programme (separate from the curriculum activity-link path) and
@@ -2010,6 +2029,61 @@ don't get a row). Sam's call: no real users yet, dev only, no need
 today. If prod has real users with terminal attempts before the
 migration runs there, add a one-line `INSERT … SELECT FROM
 nclex_attempts`.
+
+### Follow-on: Payments & enrolment
+
+Slice order from the adopted Claude Design proposal
+(`docs/product-plan/design-handoff/payments-and-enrolment/index.html`
+§1). Policy source of truth: `docs/product-plan/payments-and-enrolment.md`.
+
+- ✅ **Slice 1** Off-platform tutor-add — `nclex_enrolments` table +
+  RLS (`4b49f62`), tutor cohort roster + add-student (`b92e974`),
+  roster embed fix (`6995d46`), and the `/welcome` invite-landing page
+  (`2c09173`). A tutor types name + email → Supabase invite (new) or
+  attach (existing) → ENROLLED row; invited student sets a password on
+  `/welcome` and lands in the app. See SESSIONS 2026-05-20.
+- ✅ **Slice 2a** Tutor lifecycle state machine — five SECURITY DEFINER
+  RPCs (approve/reject/pause/unpause/cancel) + status-aware roster
+  buttons + confirm dialogs; direct tutor UPDATE policy dropped
+  (RPC-gated). Migration `20260524120000`. Commits `e141479` (db) +
+  `e91b151` (feat). See SESSIONS 2026-05-20.
+- ✅ **Slice 2b** Student status pills — enrolment status (Enrolled /
+  Pending / Paused / Cancelled / Expired) on the programme switcher
+  rows; informational only, no access gating. Commit `d704e83`.
+- ⏭ **Access-gating step** — make status actually CONTROL access: UX
+  lock for non-ENROLLED rows + tighten the `*_student_select` RLS on
+  cohorts/programmes/curriculum to enrolled-only. Two layers move
+  together. Now safe (real enrolment data exists).
+- ⬜ **Slice 3** Programme deltas + discovery + detail — `price_currency`
+  / `price_minor` / `payment_collection_mode` / `access_window_days` on
+  `nclex_programmes` (drops dual GHS/USD); public discovery list +
+  programme detail page (read-only). Also unblocks the pg_cron
+  EXPIRED/PAUSED sweep (needs `access_window_days`).
+- ⬜ **Slice 4** Student-initiated waitlist (off-platform) —
+  `nclex_cohort_waitlist` + "Join waitlist" form + tutor "convert to
+  enrolment" one-click.
+- ⬜ **Slice 5** On-platform checkout (single-strategy) — payment Worker
+  + `nclex_products` + `nclex_payments` + bank opt-in card; upfront-full
+  only; email dup-check pause.
+- ⬜ **Slice 6** Subscriptions + bank standalone — `nclex_subscriptions`
+  + bank-tier purchases + standalone bank landing.
+- ⬜ **Slice 7** Multi-strategy + installments —
+  `nclex_programme_payment_strategies` + nightly cron PAUSE on overdue +
+  manual tutor override.
+- ⬜ **Slice 8** Self-paced + enquiry routing — `cohort_id = NULL`
+  branch + `show_price_publicly = FALSE` contact path +
+  `nclex_programme_enquiries`.
+
+**Deferred from the proposal's Slice 2** — pg_cron EXPIRED/PAUSED nightly
+sweep (no data to act on until Slice 3's `access_window_days` /
+installments) + admin-grant enrolment path (no admin surface yet).
+
+**Email (locked, not built).** When transactional email lands (with the
+Slice 5/6 receipts): React Email components sent directly from server
+actions (no separate worker needed on the Workers stack); two channels —
+Supabase auth emails (custom SMTP / template, or Send-Email-Hook later)
+vs app-triggered transactional via Resend. `/welcome` contract: the
+invite-creating flow must create the profile + STUDENT role first.
 
 ### Deferred out of Phase B
 

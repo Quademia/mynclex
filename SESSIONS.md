@@ -6,6 +6,134 @@ other QAcademy products, per the extraction rule in CLAUDE.md.
 
 ---
 
+## Session — 2026-05-20 (Enrolment — Slice 1 completion + Slices 2a + 2b)
+
+Continued the payments-and-enrolment arc. The prior (unlogged) session
+shipped Slice 1a (`nclex_enrolments` table + RLS, commit `4b49f62`) and
+Slice 1b (tutor cohort roster + off-platform add-student, `b92e974`),
+plus the Claude Design handoff (`61bae18`) — but Slice 1 had never been
+tested. This session tested it, fixed a roster bug, completed Slice 1
+with the `/welcome` page, then built Slices 2a + 2b. All five commits
+merged to `main` (FF `61bae18 → d704e83`).
+
+### Slice order reference (adopted Claude Design proposal, 2026-05-19)
+
+`docs/product-plan/design-handoff/payments-and-enrolment/index.html` §1.
+Slice 1 (off-platform tutor-add) ✅. Slice 2 (lifecycle scaffolding) —
+split into 2a (tutor transitions, ✅) + 2b (student status, ✅). The
+proposal's Slice 2 also bundled the pg_cron EXPIRED/PAUSED sweep + the
+admin-grant path; both deferred — the sweep has no data to act on until
+the access-window slice (Slice 3) adds `access_window_days`, and
+admin-grant has no surface (admin tooling deferred).
+
+### Roster bug fix (commit `6995d46`)
+
+Slice 1b shipped untested; the roster always rendered empty.
+`nclex_enrolments` has **three** FKs to `nclex_users` (`user_id`,
+`enrolled_by_user_id`, `approved_by_user_id`), so the
+`nclex_users!inner(...)` embed in `getCohortRoster` was ambiguous —
+PostgREST errored and the `if (error || !data) return []` swallowed it
+into an empty roster. Fixed by naming the FK:
+`nclex_users!nclex_enrolments_user_id_fkey!inner(...)`. (The
+error-swallow that hid this for a whole slice was flagged but left as-is.)
+
+### `/welcome` — invite-landing page (commit `2c09173`, completes Slice 1)
+
+Off-platform-added students got a Supabase invite but had nowhere to
+land (`/welcome` didn't exist). Built top-level `app/welcome/` (mirrors
+`/login` + `/register`, reuses `auth.css`):
+
+- **Session pickup is invite-link-only.** First attempt used
+  `onAuthStateChange` and trusted the ambient browser session — when
+  Sam tested logged in as the tutor, it prefilled the *tutor's* email.
+  Rewrote to read the invite credentials straight from the URL
+  (hash `access_token`/`refresh_token`, captured synchronously before
+  `detectSessionInUrl` clears them; `?code=` fallback) and never an
+  ambient session. The page now establishes the invited student's
+  session, prefills their tutor-supplied name, takes a password, and
+  redirects to `/router`. No invite credentials → friendly "link didn't
+  work" dead-end with a sign-in link.
+- **Contract surfaced:** `/welcome` only *updates* the profile + reads
+  the role; it assumes the inviter already created the profile + STUDENT
+  role (the add-student action does). Every future invite path (paid
+  checkout, bank-alone) must do the same or the student bounces to
+  `/no-access`. Captured in conversation; flagged for the payment slices.
+- **Config dependency:** Supabase redirect allowlist must include the
+  `/welcome` URL (dev confirmed working).
+
+### Slice 2a — tutor lifecycle state machine (commits `e141479` db, `e91b151` feat)
+
+Five SECURITY DEFINER RPCs (`nclex_approve / reject / pause / unpause /
+cancel _enrolment`) — the only way to move a row between statuses. Each
+validates programme ownership (or SUPER_ADMIN) + the legal source
+status; illegal transitions raise. Migration
+`20260524120000_enrolments_2a_transitions.sql` also **drops the Slice 1a
+direct tutor UPDATE policy** so status can't be set by raw client write
+(transitions are RPC-gated, mirrored in `db/rls.sql`). EXPIRED stays out
+(nightly sweep's job, needs Slice 3).
+
+Roster gains status-aware buttons: Approve/Reject (pending),
+Pause/Cancel (enrolled), Resume/Cancel (paused), none (terminal).
+Access-removing actions (pause/reject/cancel) use a confirm dialog with
+optional note (reject/cancel — kept for refund handling); approve/resume
+are immediate. Simple confirm, **not** type-to-confirm (recoverable —
+student can be re-added).
+
+### Slice 2b — student status pills (commit `d704e83`)
+
+The programme switcher (`<ProgrammeSwitcherOverlay>`) now shows the
+student's own enrolment status pill (Enrolled / Pending / Paused /
+Cancelled / Expired) on each cohort row (tutor-led) or programme row
+(self-paced), reusing the tutor-side `enrol-pill` styling +
+`ENROLMENT_STATUS_META`. `getMyAccessibleProgrammesAction` also fetches
+the student's own enrolments (RLS `user_id = auth.uid()`), active status
+winning over terminal. **Informational only** — listing stays permissive
+and entry is *not* gated by status. That's the separate access-gating
+step (deliberately deferred): a two-layer job (UX lock + tighten the
+`*_student_select` RLS to enrolled-only) now safe to do because real
+enrolment data exists.
+
+### Email discussion (no build)
+
+Reviewed the gamma email pattern (`workers/email-worker/` per product:
+HTML templates + `{{placeholder}}` + Resend + shared secret). Locked the
+MyNclex approach for when it's built (with the payment-receipt slices):
+**React Email components, sent directly from server actions (no separate
+worker needed on the Workers stack), two channels** (Supabase auth emails
+via custom SMTP/template vs app-triggered transactional via Resend).
+Confirmed this Supabase project is MyNclex-dedicated (only `nclex_`
+tables), so customising auth-email templates won't bleed into siblings.
+
+### Dev migration tracker reconciled
+
+Both enrolment migrations had been applied to dev via MCP
+`apply_migration`, which stamps wall-clock versions that didn't match the
+filenames (`20260519233552` vs `20260522120000`; `20260520101915` vs
+`20260524120000`) — the drift CLAUDE.md warns about. Reconciled both
+`schema_migrations.version` rows to match the filenames. Prod unaffected
+(never MCP'd prod; pipeline applies the files at release).
+
+### Verified
+
+- Slice 1 (all 5 add-student checks + full `/welcome` invite → password →
+  login round-trip) — PASS by Sam.
+- Slice 2a (approve→cancel + the seeded pending row) — PASS by Sam.
+- Slice 2b (Enrolled/Paused/Cancelled pills + no-pill case) — PASS by Sam.
+- `npx tsc` clean (only the 2 pre-existing vitest test errors);
+  `npm run build` clean; new routes registered.
+
+### Deferred / next
+
+- **Access-gating step** — make status actually control access (UX lock
+  + tighten `*_student_select` RLS to enrolled-only). Natural next slice.
+- **Slice 3** — programme price columns + public discovery/detail.
+- **pg_cron EXPIRED/PAUSED sweep** — with Slice 3 (access window).
+- **Admin-grant path** — when admin tooling ships.
+- This session unblocks **tutor-quiz Slice 4** + **progress-engine
+  Slice 5** (the "students in this cohort" relation now exists).
+
+---
+
 ## Session — 2026-05-16 (Tutor-quiz Slices 5 + 6 — programme-level quiz membership end-to-end)
 
 Closes the tutor-quiz arc. Slice 5 = tutor surface (programme has
