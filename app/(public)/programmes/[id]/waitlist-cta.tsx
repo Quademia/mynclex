@@ -64,12 +64,14 @@ export function WaitlistCta({
 
   return (
     <div className="wl-cta">
+      <h3 className="wl-cta-title">Join the waitlist</h3>
+      <p className="wl-cta-blurb">
+        Not paying online yet? Leave your details and {tutorName} will be in
+        touch about joining.
+      </p>
       <button type="button" className="wl-cta-btn" onClick={openForm}>
         Join the waitlist
       </button>
-      <p className="det-cta-note">
-        Not ready to pay online? Ask to join — {tutorName} will be in touch.
-      </p>
 
       {open && (
         <WaitlistModal

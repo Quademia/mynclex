@@ -221,31 +221,30 @@ export default async function ProgrammeDetailPage({
           )}
         </article>
 
-        <aside className="det-rail">
-          {showPrice ? (
-            <div className="price">
-              {ccy && <span className="ccy">{ccy}</span>}
-              {amount}
-            </div>
-          ) : (
-            <div className="price price-contact">Contact for price</div>
-          )}
+        <aside className="det-aside">
+          <div className="det-rail">
+            {showPrice ? (
+              <div className="price">
+                {ccy && <span className="ccy">{ccy}</span>}
+                {amount}
+              </div>
+            ) : (
+              <div className="price price-contact">Contact for price</div>
+            )}
 
-          <div className="det-cta">
-            <button type="button" className="pub-btn-primary" disabled>
-              {ctaLabel}
-            </button>
-            <p className="det-cta-note">
-              Online enrolment is coming soon. For now, contact the tutor to
-              join.
-            </p>
+            <div className="det-cta">
+              <button type="button" className="pub-btn-primary" disabled>
+                {ctaLabel}
+              </button>
+              <p className="det-cta-note">
+                Online enrolment is coming soon. For now, contact the tutor to
+                join.
+              </p>
+            </div>
           </div>
 
           {waitlistCohorts.length > 0 && (
-            <WaitlistCta
-              cohorts={waitlistCohorts}
-              tutorName={personFirst}
-            />
+            <WaitlistCta cohorts={waitlistCohorts} tutorName={personFirst} />
           )}
         </aside>
       </div>
