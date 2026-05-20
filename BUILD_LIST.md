@@ -8,24 +8,27 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-20):** **Enrolment — access-gating step +
-> picker lists programmes inline.** Made enrolment status actually
-> *control* access (Slice 2b only displayed it). Two-tier RLS: metadata
-> tier (any enrolment row) on programmes + cohorts so the switcher still
-> shows status pills; content tier (ENROLLED only) on
-> units/blocks/activities/checklist/quizzes. Four SECURITY DEFINER
-> helpers (`nclex_has[_active]_programme/cohort_enrolment`) + the 8
-> `*_student_select` policies rewritten + an active-enrolment guard
-> added to both student launch RPCs (they bypass RLS). TS layer: the two
-> `requireStudent*Access` helpers resolve status and bounce non-ENROLLED
-> direct-URL hits to the picker; switcher rows non-clickable unless
-> ENROLLED, with a reason line. **Picker rebuilt** (Sam-directed, not in
-> the handoff): lists enrolled programmes inline via a shared
-> `<ProgrammeList>` (popup now only for in-programme switching); empty =
-> disabled "Browse programmes — coming soon". Migration `20260526120000`
-> (dev tracker reconciled); verified via RLS impersonation. Commits
-> `0321f0f` (db) + `3ab2219` (feat). Merged to `main` (FF
-> `38cebc1 → 3ab2219`). See SESSIONS 2026-05-20.
+> **Last shipped (2026-05-20):** **Payments Slice 3 — programme price
+> deltas + public discovery + detail page.** Three sub-slices. **3a (DB):**
+> dropped the dual GHS/USD columns for a single tutor-chosen
+> `price_currency` + `price_minor`; added `payment_collection_mode` +
+> `access_window_days`; reworked the tutor programme form (currency picker
+> + single price + "Online checkout: On/Off" + access-window). **3b:** the
+> shared public-projection layer — one `nclex_public_programmes` view is
+> the single public read path (curated columns: programme + tutor
+> name/avatar only + cohort rollup; "published + active tutor" rule defined
+> once), superseding the 3a base-table public policy. New `(public)` route
+> group with shared chrome (full CD nav, inert placeholders for
+> not-yet-built links + FX toggle); discovery list at `/programmes` with
+> working filter chips. **3c:** read-only detail page (`/programmes/[id]`)
+> — header + about + syllabus (units) + cohorts (status pills, no seat
+> counts) + pricing rail with disabled "coming soon" Enrol; added
+> `nclex_public_units` + `nclex_public_cohorts` to the same view family.
+> Two design clarifications logged in payments-and-enrolment.md (self-paced
+> not forced on-platform; collection mode = "online checkout button on/off",
+> manual add always available). Migrations `20260527/28/29120000` (dev
+> trackers reconciled). Verified anon RLS + tsc + build + browser.
+> **Next session: JSONB tutor-profile slice** (see below).
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -892,11 +895,41 @@ Slice order from the adopted Claude Design proposal
   (shared `<ProgrammeList>`; popup now only for in-programme switching).
   Migration `20260526120000`. Commits `0321f0f` (db) + `3ab2219` (feat).
   See SESSIONS 2026-05-20.
-- ⏭ **Slice 3** Programme deltas + discovery + detail — `price_currency`
-  / `price_minor` / `payment_collection_mode` / `access_window_days` on
-  `nclex_programmes` (drops dual GHS/USD); public discovery list +
-  programme detail page (read-only). Also unblocks the pg_cron
-  EXPIRED/PAUSED sweep (needs `access_window_days`).
+- ✅ **Slice 3** Programme deltas + discovery + detail — shipped
+  2026-05-20 across three sub-slices:
+  - **3a** DB price deltas — `price_currency` / `price_minor` /
+    `payment_collection_mode` / `access_window_days` on `nclex_programmes`
+    (dropped dual GHS/USD; backfill non-zero-wins/GHS-tiebreak); tutor
+    form reworked to currency-picker + single price + "Online checkout:
+    On/Off" + access-window. Migration `20260527120000`.
+  - **3b** Public-projection layer + discovery — single
+    `nclex_public_programmes` view as the one public read path (curated:
+    programme + tutor name/avatar only + cohort rollup; gate defined
+    once); superseded + removed the 3a base-table public policy. New
+    `(public)` route group + shared chrome (`components/public/`,
+    `lib/discovery/`, `styles/discovery.css`); `/programmes` discovery
+    list with client-side filter chips. Migration `20260528120000`.
+  - **3c** Read-only detail page (`/programmes/[id]`) — header / about /
+    syllabus / cohorts (status pills, no seat counts) / pricing rail
+    (disabled "coming soon" Enrol). Added `nclex_public_units` +
+    `nclex_public_cohorts` to the view family. Migration `20260529120000`.
+  - **Deferred to the tutor-profile slice below:** the "About {tutor}"
+    section on the detail page (no tutor bio fields exist yet).
+  - Still unblocks the pg_cron EXPIRED/PAUSED sweep (needs
+    `access_window_days`), now present.
+- ⏭ **Slice 3.5** Tutor public profile (JSONB) — **NEXT SESSION.**
+  Add a single `profile` JSONB column to `nclex_users` (sits beside
+  `avatar_url`; role-agnostic — tutors + students share the mechanism)
+  with a documented, typed shape in TS as the single source of truth
+  (e.g. `{ headline, speciality, years_experience, bio }`, extensible by
+  adding a key). Treat `profile` as public-display data by rule (no
+  private fields ever go in it). Then: expose the tutor's profile in
+  `nclex_public_programmes`; add a "Public profile" editor section to
+  `/tutor/profile`; render the "About {tutor}" + sub-headline section on
+  the programme detail page; seed the dev tutor. Decided 2026-05-20 with
+  Sam (chose flexible JSONB over fixed headline/bio columns; co-tutors-
+  per-programme is a separate join-table concern, not this). NOT rushed —
+  design the shape carefully.
 - ⬜ **Slice 4** Student-initiated waitlist (off-platform) —
   `nclex_cohort_waitlist` + "Join waitlist" form + tutor "convert to
   enrolment" one-click.
