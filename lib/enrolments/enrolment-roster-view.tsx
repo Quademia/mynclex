@@ -95,6 +95,7 @@ export function EnrolmentRosterView({
   } | null>(null);
 
   const [wlBusyId, setWlBusyId] = useState<string | null>(null);
+  const [wlConvert, setWlConvert] = useState<WaitlistEntry | null>(null);
   const [wlDismiss, setWlDismiss] = useState<WaitlistEntry | null>(null);
 
   // Roster filtering.
@@ -192,6 +193,7 @@ export function EnrolmentRosterView({
     startTransition(async () => {
       const res = await convertWaitlistEntryAction(cohortId, entry.waitlist_id);
       setWlBusyId(null);
+      setWlConvert(null);
       if (!res.ok) {
         setToast({ tone: 'error', message: res.error });
         return;
@@ -413,7 +415,7 @@ export function EnrolmentRosterView({
           pending={pending}
           wlBusyId={wlBusyId}
           leadName={leadName}
-          onConvert={runConvert}
+          onConvert={(entry) => setWlConvert(entry)}
           onDismiss={(entry) => setWlDismiss(entry)}
         />
       )}
@@ -436,6 +438,18 @@ export function EnrolmentRosterView({
             if (!pending) setConfirm(null);
           }}
           onConfirm={(note) => runAction(confirm.action, confirm.row, note)}
+        />
+      )}
+
+      {wlConvert && (
+        <WaitlistConvertConfirm
+          name={leadName(wlConvert)}
+          email={wlConvert.email}
+          pending={pending}
+          onClose={() => {
+            if (!pending) setWlConvert(null);
+          }}
+          onConfirm={() => runConvert(wlConvert)}
         />
       )}
 
@@ -744,6 +758,69 @@ function TransitionConfirm({
             disabled={pending}
           >
             {pending ? 'Working…' : copy.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WaitlistConvertConfirm({
+  name,
+  email,
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  name: string;
+  email: string;
+  pending: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
+      <div
+        className="enrol-modal enrol-modal-confirm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="enrol-wl-convert-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="enrol-wl-convert-title" className="enrol-modal-title">
+          Convert {name} to an enrolment?
+        </h2>
+        <p className="enrol-modal-sub">Converting will:</p>
+        <ul className="enrol-modal-list">
+          <li>
+            Email an invite to <strong>{email}</strong> to set up their MyNclex
+            account (skipped if they already have one).
+          </li>
+          <li>
+            Add them to this cohort as <strong>Enrolled</strong> — they appear
+            in the roster and get access right away.
+          </li>
+        </ul>
+        <p className="enrol-modal-sub">
+          Only do this once you&apos;ve confirmed their payment (or you&apos;re
+          ready to let them in).
+        </p>
+        <div className="enrol-modal-actions">
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-ghost"
+            onClick={onClose}
+            disabled={pending}
+          >
+            Not yet
+          </button>
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-primary"
+            onClick={onConfirm}
+            disabled={pending}
+          >
+            {pending ? 'Converting…' : 'Convert & enrol'}
           </button>
         </div>
       </div>

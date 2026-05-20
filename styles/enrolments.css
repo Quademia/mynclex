@@ -548,6 +548,17 @@
   line-height: 1.5;
 }
 
+.enrol-modal-list {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.55;
+}
+.enrol-modal-list li {
+  margin-bottom: 6px;
+}
+
 .enrol-form {
   display: flex;
   flex-direction: column;
