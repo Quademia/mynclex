@@ -196,11 +196,30 @@ button.programme-switcher-item {
   outline-offset: 2px;
 }
 
+.programme-switcher-item-titlerow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+
 .programme-switcher-item-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
   margin-bottom: 2px;
+}
+
+.programme-switcher-item-titlerow .programme-switcher-item-title {
+  margin-bottom: 0;
+}
+
+.programme-switcher-cohort-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .programme-switcher-item-tagline {

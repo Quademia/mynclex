@@ -22,6 +22,13 @@ import {
   getMyAccessibleProgrammesAction,
   type SwitcherProgramme,
 } from '@/lib/programmes/student-actions';
+import { ENROLMENT_STATUS_META, type EnrolmentStatus } from '@/lib/enrolments/types';
+
+function StatusPill({ status }: { status: EnrolmentStatus | null }) {
+  if (!status) return null;
+  const meta = ENROLMENT_STATUS_META[status];
+  return <span className={`enrol-pill ${meta.pillClass}`}>{meta.label}</span>;
+}
 
 type LoadState =
   | { kind: 'idle' }
@@ -137,8 +144,11 @@ export function ProgrammeSwitcherOverlay({
                           go(`/student/programme/${p.programme_id}/curriculum`)
                         }
                       >
-                        <div className="programme-switcher-item-title">
-                          {p.title}
+                        <div className="programme-switcher-item-titlerow">
+                          <span className="programme-switcher-item-title">
+                            {p.title}
+                          </span>
+                          <StatusPill status={p.status} />
                         </div>
                         {p.tagline && (
                           <div className="programme-switcher-item-tagline">
@@ -188,8 +198,11 @@ export function ProgrammeSwitcherOverlay({
                                   {c.name ??
                                     `${c.start_date} → ${c.end_date}`}
                                 </span>
-                                <span className="programme-switcher-cohort-dates">
-                                  {c.start_date} → {c.end_date}
+                                <span className="programme-switcher-cohort-right">
+                                  <StatusPill status={c.status} />
+                                  <span className="programme-switcher-cohort-dates">
+                                    {c.start_date} → {c.end_date}
+                                  </span>
                                 </span>
                               </button>
                             </li>
