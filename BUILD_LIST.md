@@ -8,24 +8,24 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-20):** **Enrolment — Slice 1 completion +
-> Slices 2a + 2b.** Tested the prior session's Slice 1 (off-platform
-> tutor-add), fixed a roster bug (three-FK embed ambiguity rendered the
-> roster empty), and completed Slice 1 with the **`/welcome`**
-> invite-landing page (invited students set a password + land in the
-> app; session is read from the invite link only, never an ambient
-> browser session). **Slice 2a** = tutor lifecycle state machine: five
-> SECURITY DEFINER RPCs (approve/reject/pause/unpause/cancel) + roster
-> action buttons + confirm dialogs; direct tutor UPDATE policy dropped
-> so transitions are RPC-gated. **Slice 2b** = student enrolment status
-> pills in the programme switcher (informational only — access is *not*
-> yet gated by status; that's the separate access-gating step). Deferred
-> from the proposal's Slice 2: the pg_cron EXPIRED/PAUSED sweep (no data
-> until the access-window slice) + admin-grant (no surface yet). Dev
-> migration tracker reconciled to match filenames. Commits `6995d46`
-> (roster fix) + `2c09173` (`/welcome`) + `e141479` (2a db) + `e91b151`
-> (2a feat) + `d704e83` (2b). Unblocks tutor-quiz Slice 4 +
-> progress-engine Slice 5. See SESSIONS 2026-05-20.
+> **Last shipped (2026-05-20):** **Enrolment — access-gating step +
+> picker lists programmes inline.** Made enrolment status actually
+> *control* access (Slice 2b only displayed it). Two-tier RLS: metadata
+> tier (any enrolment row) on programmes + cohorts so the switcher still
+> shows status pills; content tier (ENROLLED only) on
+> units/blocks/activities/checklist/quizzes. Four SECURITY DEFINER
+> helpers (`nclex_has[_active]_programme/cohort_enrolment`) + the 8
+> `*_student_select` policies rewritten + an active-enrolment guard
+> added to both student launch RPCs (they bypass RLS). TS layer: the two
+> `requireStudent*Access` helpers resolve status and bounce non-ENROLLED
+> direct-URL hits to the picker; switcher rows non-clickable unless
+> ENROLLED, with a reason line. **Picker rebuilt** (Sam-directed, not in
+> the handoff): lists enrolled programmes inline via a shared
+> `<ProgrammeList>` (popup now only for in-programme switching); empty =
+> disabled "Browse programmes — coming soon". Migration `20260526120000`
+> (dev tracker reconciled); verified via RLS impersonation. Commits
+> `0321f0f` (db) + `3ab2219` (feat). Merged to `main` (FF
+> `38cebc1 → 3ab2219`). See SESSIONS 2026-05-20.
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -882,11 +882,17 @@ Slice order from the adopted Claude Design proposal
 - ✅ **Slice 2b** Student status pills — enrolment status (Enrolled /
   Pending / Paused / Cancelled / Expired) on the programme switcher
   rows; informational only, no access gating. Commit `d704e83`.
-- ⏭ **Access-gating step** — make status actually CONTROL access: UX
-  lock for non-ENROLLED rows + tighten the `*_student_select` RLS on
-  cohorts/programmes/curriculum to enrolled-only. Two layers move
-  together. Now safe (real enrolment data exists).
-- ⬜ **Slice 3** Programme deltas + discovery + detail — `price_currency`
+- ✅ **Access-gating step** — status now CONTROLS access. Two-tier RLS
+  (metadata = any enrolment on programmes/cohorts; content = ENROLLED on
+  units/blocks/activities/checklist/quizzes) via 4 SECURITY DEFINER
+  helpers; the 8 `*_student_select` policies rewritten; active-enrolment
+  guard added to both launch RPCs. TS `requireStudent*Access` bounce
+  non-ENROLLED to the picker; switcher rows non-clickable unless
+  ENROLLED. **Picker rebuilt** to list enrolled programmes inline
+  (shared `<ProgrammeList>`; popup now only for in-programme switching).
+  Migration `20260526120000`. Commits `0321f0f` (db) + `3ab2219` (feat).
+  See SESSIONS 2026-05-20.
+- ⏭ **Slice 3** Programme deltas + discovery + detail — `price_currency`
   / `price_minor` / `payment_collection_mode` / `access_window_days` on
   `nclex_programmes` (drops dual GHS/USD); public discovery list +
   programme detail page (read-only). Also unblocks the pg_cron
