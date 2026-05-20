@@ -290,6 +290,27 @@ button.programme-switcher-item {
   white-space: nowrap;
 }
 
+/* Non-ENROLLED rows: shown but not enterable (access-gating step).
+ * Dimmed, default cursor, no hover affordance. The status pill +
+ * reason line carry the explanation. */
+.programme-switcher-item.is-locked,
+.programme-switcher-cohort.is-locked {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.programme-switcher-cohort.is-locked:hover {
+  border-color: transparent;
+  background: var(--bg-soft);
+}
+
+.programme-switcher-locked-reason {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
 
 /* ─────────────────────────────────────────────────────
  * /student/programme/[id]/curriculum and

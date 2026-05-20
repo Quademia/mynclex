@@ -4,12 +4,14 @@
 // <ProgrammeSwitcherOverlay>. Returns the student's accessible
 // programmes + cohorts, lazily fetched when the overlay opens.
 //
-// Permissive v1: RLS exposes every PUBLISHED programme to any
-// authenticated student (slice 10.1 *_student_select policies).
-// When the enrolment slice ships, the query body adds an
-// EXISTS on the enrolment table AND the RLS USING clause
-// tightens — both layers move together. The shape returned to
-// the overlay does not change.
+// Enrolment-gated since the access-gating step: metadata-tier RLS
+// (nclex_has_programme_enrolment / nclex_has_cohort_enrolment) returns
+// only programmes + cohorts the student holds an enrolment row in (any
+// status). So this list narrows to enrolled-only automatically — no
+// EXISTS in the query body — and a row's `status` is the pill the
+// overlay shows. ENROLLED rows are enterable; the rest are shown
+// non-clickable (the overlay gates entry; require-*-access is the
+// server-side safety net for direct URLs).
 
 'use server';
 

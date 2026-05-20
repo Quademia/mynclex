@@ -17,7 +17,64 @@
 // in their programmes") could replace step 2 — left for later.
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
-import type { EnrolmentRosterRow } from './types';
+import type { EnrolmentRosterRow, EnrolmentStatus } from './types';
+
+// Active statuses win over terminal ones when a student has both a past
+// (e.g. CANCELLED) and a current row for the same scope. Mirrors the
+// same rule in lib/programmes/student-actions.ts (the switcher).
+const ACTIVE_STATUSES: ReadonlySet<EnrolmentStatus> = new Set([
+  'PENDING_APPROVAL',
+  'ENROLLED',
+  'PAUSED',
+]);
+
+function pickStatus(
+  rows: { status: EnrolmentStatus }[],
+): EnrolmentStatus | null {
+  let chosen: EnrolmentStatus | null = null;
+  for (const r of rows) {
+    if (
+      !chosen ||
+      (ACTIVE_STATUSES.has(r.status) && !ACTIVE_STATUSES.has(chosen))
+    ) {
+      chosen = r.status;
+    }
+  }
+  return chosen;
+}
+
+/**
+ * The calling student's own enrolment status for a SELF-PACED
+ * programme (cohort_id IS NULL), active-wins-over-terminal.
+ * null = no enrolment row at all. RLS scopes to user_id = auth.uid(),
+ * so this only ever sees the caller's rows.
+ */
+export async function getMyProgrammeEnrolmentStatus(
+  programmeId: string,
+): Promise<EnrolmentStatus | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('nclex_enrolments')
+    .select('status')
+    .eq('programme_id', programmeId)
+    .is('cohort_id', null);
+  return pickStatus((data ?? []) as { status: EnrolmentStatus }[]);
+}
+
+/**
+ * The calling student's own enrolment status for a tutor-led COHORT,
+ * active-wins-over-terminal. null = no enrolment row.
+ */
+export async function getMyCohortEnrolmentStatus(
+  cohortId: string,
+): Promise<EnrolmentStatus | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('nclex_enrolments')
+    .select('status')
+    .eq('cohort_id', cohortId);
+  return pickStatus((data ?? []) as { status: EnrolmentStatus }[]);
+}
 
 export async function getCohortRoster(
   cohortId: string,

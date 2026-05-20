@@ -4,33 +4,32 @@
 // require-programme-access.ts but for the tutor-led delivery
 // mode where the student's experience is cohort-scoped.
 //
-// Three checks in one:
-//   1. User holds the STUDENT role.
-//   2. The cohort row is readable (RLS exposes cohorts whose
-//      parent programme is PUBLISHED — slice 10.1 student SELECT
-//      policy on nclex_cohorts).
-//   3. The cohort's parent programme is PUBLISHED — already
-//      enforced by RLS; the loaded programme is returned for the
-//      caller's use.
+// Three checks, in order:
+//   1. User holds the STUDENT role (requireStudent).
+//   2. The cohort row is readable — metadata-tier RLS exposes a cohort
+//      to a student iff they hold ANY enrolment row in THAT cohort
+//      (access-gating step). No row → getCohortForShell returns null →
+//      notFound() (404 doesn't leak existence).
+//   3. That enrolment is ACTIVE (ENROLLED). A non-ENROLLED status
+//      bounces back to the picker, where the switcher popup explains
+//      the status. Safety net for direct-URL access; the primary UX is
+//      the switcher hiding the entry.
 //
-// Permissive shape (v1): any STUDENT user can access any cohort
-// of any PUBLISHED programme. Enrolment-aware tightening happens
-// in the enrolment slice — both layers (RLS + this helper)
-// gain an enrolment lookup at the same time.
-//
-// Returns the loaded cohort + programme shell so callers don't
-// refetch. Cohort not found / parent not PUBLISHED → notFound()
-// (same 404 response so existence doesn't leak).
+// Returns the loaded cohort + programme shell + resolved status so
+// callers don't refetch.
 
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import {
   getCohortForShell,
   type CohortShellContext,
 } from '@/lib/cohorts/queries';
+import { getMyCohortEnrolmentStatus } from '@/lib/enrolments/queries';
+import type { EnrolmentStatus } from '@/lib/enrolments/types';
 import { requireStudent } from './require-student';
 import type { AuthGateResult } from '../types';
 
-export type StudentCohortAccessResult = AuthGateResult & CohortShellContext;
+export type StudentCohortAccessResult = AuthGateResult &
+  CohortShellContext & { enrolmentStatus: EnrolmentStatus };
 
 export async function requireStudentCohortAccess(
   cohortId: string
@@ -40,5 +39,8 @@ export async function requireStudentCohortAccess(
   const cohortContext = await getCohortForShell(cohortId);
   if (!cohortContext) notFound();
 
-  return { ...ctx, ...cohortContext };
+  const status = await getMyCohortEnrolmentStatus(cohortId);
+  if (status !== 'ENROLLED') redirect('/student/picker');
+
+  return { ...ctx, ...cohortContext, enrolmentStatus: status };
 }
