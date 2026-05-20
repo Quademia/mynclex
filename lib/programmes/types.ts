@@ -9,6 +9,8 @@
 export type ProgrammeStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 export type DeliveryMode = 'TUTOR_LED' | 'SELF_PACED';
 export type UnitLabel = 'WEEK' | 'MODULE';
+export type Currency = 'GHS' | 'USD';
+export type PaymentCollectionMode = 'OFF_PLATFORM' | 'ON_PLATFORM';
 
 export type Programme = {
   programme_id: string;
@@ -19,9 +21,12 @@ export type Programme = {
   delivery_mode: DeliveryMode;
   unit_label: UnitLabel;
   length_units: number;
-  price_minor_ghs: number;
-  price_minor_usd: number;
+  // Slice 3a — single tutor-chosen currency replaces dual GHS/USD.
+  price_currency: Currency;
+  price_minor: number;
   show_price_publicly: boolean;
+  payment_collection_mode: PaymentCollectionMode;
+  access_window_days: number | null;
   status: ProgrammeStatus;
   published_at: string | null;
   archived_at: string | null;
@@ -43,9 +48,11 @@ export type ProgrammeListRow = Pick<
   | 'delivery_mode'
   | 'unit_label'
   | 'length_units'
-  | 'price_minor_ghs'
-  | 'price_minor_usd'
+  | 'price_currency'
+  | 'price_minor'
   | 'show_price_publicly'
+  | 'payment_collection_mode'
+  | 'access_window_days'
   | 'status'
   | 'updated_at'
 > & {
@@ -64,7 +71,9 @@ export type ProgrammeFormValues = Pick<
   | 'delivery_mode'
   | 'unit_label'
   | 'length_units'
-  | 'price_minor_ghs'
-  | 'price_minor_usd'
+  | 'price_currency'
+  | 'price_minor'
   | 'show_price_publicly'
+  | 'payment_collection_mode'
+  | 'access_window_days'
 >;

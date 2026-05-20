@@ -24,7 +24,9 @@ import { ProgrammeLengthDecreaseConfirm } from '@/lib/overlays/programmes/progra
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { createProgrammeAction, editProgrammeAction } from './actions';
 import type {
+  Currency,
   DeliveryMode,
+  PaymentCollectionMode,
   ProgrammeFormValues,
   UnitLabel,
 } from './types';
@@ -69,6 +71,14 @@ function defaultUnitLabelFor(mode: DeliveryMode): UnitLabel {
   return mode === 'TUTOR_LED' ? 'WEEK' : 'MODULE';
 }
 
+// Self-paced students self-serve through on-platform checkout (no
+// cohort, no tutor mediation); tutor-led defaults to the tutor
+// collecting off-platform. Smart default only — not hard-enforced in
+// v1 (on-platform checkout lands in Slice 5).
+function defaultCollectionFor(mode: DeliveryMode): PaymentCollectionMode {
+  return mode === 'SELF_PACED' ? 'ON_PLATFORM' : 'OFF_PLATFORM';
+}
+
 export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -105,14 +115,25 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
   const [lengthUnits, setLengthUnits] = useState(
     initial ? String(initial.length_units) : ''
   );
-  const [priceGhs, setPriceGhs] = useState(
-    initial ? minorToInput(initial.price_minor_ghs) : '0'
+  const [currency, setCurrency] = useState<Currency>(
+    initial?.price_currency ?? 'GHS'
   );
-  const [priceUsd, setPriceUsd] = useState(
-    initial ? minorToInput(initial.price_minor_usd) : '0'
+  const [price, setPrice] = useState(
+    initial ? minorToInput(initial.price_minor) : '0'
   );
   const [showPricePublicly, setShowPricePublicly] = useState(
     initial?.show_price_publicly ?? true
+  );
+  const [collectionMode, setCollectionMode] = useState<PaymentCollectionMode>(
+    initial?.payment_collection_mode ?? 'OFF_PLATFORM'
+  );
+  // Smart default tracking, same shape as unitLabelTouched: in create
+  // mode the collection mode follows delivery_mode until the tutor
+  // picks one; in edit mode it's locked to the loaded value.
+  const [collectionModeTouched, setCollectionModeTouched] = useState(isEdit);
+  // Access window in days; empty string = lifetime (NULL).
+  const [accessWindowDays, setAccessWindowDays] = useState(
+    initial?.access_window_days != null ? String(initial.access_window_days) : ''
   );
 
   // Smart default: when delivery_mode changes in create mode AND
@@ -121,6 +142,11 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
     if (unitLabelTouched) return;
     setUnitLabel(defaultUnitLabelFor(deliveryMode));
   }, [deliveryMode, unitLabelTouched]);
+
+  useEffect(() => {
+    if (collectionModeTouched) return;
+    setCollectionMode(defaultCollectionFor(deliveryMode));
+  }, [deliveryMode, collectionModeTouched]);
 
   // Dirty tracking — gates the discard-confirm dialog. In create mode
   // dirty = any deviation from blank defaults; in edit mode dirty =
@@ -134,9 +160,14 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
         deliveryMode !== initial.delivery_mode ||
         unitLabel !== initial.unit_label ||
         lengthUnits !== String(initial.length_units) ||
-        priceToMinor(priceGhs) !== initial.price_minor_ghs ||
-        priceToMinor(priceUsd) !== initial.price_minor_usd ||
-        showPricePublicly !== initial.show_price_publicly
+        currency !== initial.price_currency ||
+        priceToMinor(price) !== initial.price_minor ||
+        showPricePublicly !== initial.show_price_publicly ||
+        collectionMode !== initial.payment_collection_mode ||
+        accessWindowDays !==
+          (initial.access_window_days != null
+            ? String(initial.access_window_days)
+            : '')
       );
     }
     return (
@@ -146,22 +177,27 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
       deliveryMode !== 'TUTOR_LED' ||
       unitLabelTouched ||
       lengthUnits !== '' ||
-      priceGhs !== '0' ||
-      priceUsd !== '0' ||
-      !showPricePublicly
+      currency !== 'GHS' ||
+      price !== '0' ||
+      !showPricePublicly ||
+      collectionModeTouched ||
+      accessWindowDays !== ''
     );
   })();
 
   // Validation
   const trimmedTitle = title.trim();
   const lengthUnitsNum = parseInt(lengthUnits, 10);
+  const accessWindowValid =
+    accessWindowDays.trim() === '' ||
+    (Number.isInteger(Number(accessWindowDays)) && Number(accessWindowDays) >= 1);
   const isFormValid =
     trimmedTitle.length > 0 &&
     Number.isInteger(lengthUnitsNum) &&
     lengthUnitsNum >= 1 &&
     lengthUnitsNum <= 52 &&
-    isValidPrice(priceGhs) &&
-    isValidPrice(priceUsd);
+    isValidPrice(price) &&
+    accessWindowValid;
 
   function attemptClose() {
     if (isPending) return;
@@ -193,9 +229,12 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
         delivery_mode: deliveryMode,
         unit_label: unitLabel,
         length_units: lengthUnitsNum,
-        price_minor_ghs: priceToMinor(priceGhs),
-        price_minor_usd: priceToMinor(priceUsd),
+        price_currency: currency,
+        price_minor: priceToMinor(price),
         show_price_publicly: showPricePublicly,
+        payment_collection_mode: collectionMode,
+        access_window_days:
+          accessWindowDays.trim() === '' ? null : Number(accessWindowDays),
       };
       const result = isEdit
         ? await editProgrammeAction(props.programmeId, input, confirmDestructive)
@@ -389,43 +428,45 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
               <div className="prog-field-row">
                 <label className="prog-field">
                   <span className="prog-field-label">
-                    Price (GHS) <span className="prog-required">*</span>
+                    Currency <span className="prog-required">*</span>
                   </span>
-                  <div className="prog-price-input">
-                    <span className="prog-price-prefix">₵</span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      step="0.01"
-                      className="prog-input prog-input-price"
-                      value={priceGhs}
-                      onChange={(e) => setPriceGhs(e.target.value)}
-                      disabled={isPending}
-                    />
-                  </div>
+                  <select
+                    className="prog-input"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value as Currency)}
+                    disabled={isPending}
+                  >
+                    <option value="GHS">GHS (₵)</option>
+                    <option value="USD">USD ($)</option>
+                  </select>
+                  <span className="prog-field-help">
+                    The single currency you collect in. Students browsing in
+                    another currency see an approximate equivalent later.
+                  </span>
                 </label>
 
                 <label className="prog-field">
                   <span className="prog-field-label">
-                    Price (USD) <span className="prog-required">*</span>
+                    Price <span className="prog-required">*</span>
                   </span>
                   <div className="prog-price-input">
-                    <span className="prog-price-prefix">$</span>
+                    <span className="prog-price-prefix">
+                      {currency === 'GHS' ? '₵' : '$'}
+                    </span>
                     <input
                       type="number"
                       inputMode="decimal"
                       min={0}
                       step="0.01"
                       className="prog-input prog-input-price"
-                      value={priceUsd}
-                      onChange={(e) => setPriceUsd(e.target.value)}
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
                       disabled={isPending}
                     />
                   </div>
+                  <span className="prog-field-help">0 = free.</span>
                 </label>
               </div>
-              <span className="prog-field-help">0 = free.</span>
 
               <label className="prog-toggle">
                 <input
@@ -439,6 +480,59 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
               <span className="prog-field-help prog-toggle-help">
                 Off → &ldquo;Contact&rdquo; button shown instead.
               </span>
+            </section>
+
+            {/* ACCESS & COLLECTION */}
+            <section className="prog-form-section">
+              <h3 className="prog-form-section-title">Access &amp; collection</h3>
+
+              <div className="prog-field-row">
+                <label className="prog-field">
+                  <span className="prog-field-label">Online checkout</span>
+                  <select
+                    className="prog-input"
+                    value={collectionMode}
+                    onChange={(e) => {
+                      setCollectionMode(
+                        e.target.value as PaymentCollectionMode
+                      );
+                      setCollectionModeTouched(true);
+                    }}
+                    disabled={isPending}
+                  >
+                    <option value="ON_PLATFORM">
+                      On — show a Paystack &ldquo;Pay &amp; enrol&rdquo; button
+                    </option>
+                    <option value="OFF_PLATFORM">
+                      Off — enrol students manually
+                    </option>
+                  </select>
+                  <span className="prog-field-help">
+                    Controls only the public page&rsquo;s online checkout
+                    button. You can always add students by hand from your
+                    roster either way. (Online checkout goes live in a later
+                    release.)
+                  </span>
+                </label>
+
+                <label className="prog-field">
+                  <span className="prog-field-label">Access window (days)</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    className="prog-input"
+                    placeholder="Lifetime"
+                    value={accessWindowDays}
+                    onChange={(e) => setAccessWindowDays(e.target.value)}
+                    disabled={isPending}
+                  />
+                  <span className="prog-field-help">
+                    How long a student keeps access after enrolling. Blank =
+                    lifetime (while your subscription stays active).
+                  </span>
+                </label>
+              </div>
             </section>
           </div>
 

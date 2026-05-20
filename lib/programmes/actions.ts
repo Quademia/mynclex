@@ -13,7 +13,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import type { DeliveryMode, UnitLabel } from './types';
+import type {
+  Currency,
+  DeliveryMode,
+  PaymentCollectionMode,
+  UnitLabel,
+} from './types';
 
 export type CreateProgrammeInput = {
   title: string;
@@ -22,9 +27,11 @@ export type CreateProgrammeInput = {
   delivery_mode: DeliveryMode;
   unit_label: UnitLabel;
   length_units: number;
-  price_minor_ghs: number;
-  price_minor_usd: number;
+  price_currency: Currency;
+  price_minor: number;
   show_price_publicly: boolean;
+  payment_collection_mode: PaymentCollectionMode;
+  access_window_days: number | null;
 };
 
 export type CreateProgrammeResult =
@@ -50,13 +57,24 @@ function validate(input: CreateProgrammeInput): string | null {
   ) {
     return 'Length must be between 1 and 52 units.';
   }
+  if (input.price_currency !== 'GHS' && input.price_currency !== 'USD') {
+    return 'Currency is invalid.';
+  }
+  if (!Number.isInteger(input.price_minor) || input.price_minor < 0) {
+    return 'Price must be a non-negative number.';
+  }
   if (
-    !Number.isInteger(input.price_minor_ghs) ||
-    input.price_minor_ghs < 0 ||
-    !Number.isInteger(input.price_minor_usd) ||
-    input.price_minor_usd < 0
+    input.payment_collection_mode !== 'OFF_PLATFORM' &&
+    input.payment_collection_mode !== 'ON_PLATFORM'
   ) {
-    return 'Prices must be non-negative numbers.';
+    return 'Collection mode is invalid.';
+  }
+  if (
+    input.access_window_days !== null &&
+    (!Number.isInteger(input.access_window_days) ||
+      input.access_window_days < 1)
+  ) {
+    return 'Access window must be a positive number of days, or blank for lifetime.';
   }
   return null;
 }
@@ -83,9 +101,11 @@ export async function createProgrammeAction(
       delivery_mode: input.delivery_mode,
       unit_label: input.unit_label,
       length_units: input.length_units,
-      price_minor_ghs: input.price_minor_ghs,
-      price_minor_usd: input.price_minor_usd,
+      price_currency: input.price_currency,
+      price_minor: input.price_minor,
       show_price_publicly: input.show_price_publicly,
+      payment_collection_mode: input.payment_collection_mode,
+      access_window_days: input.access_window_days,
     })
     .select('programme_id')
     .single();
@@ -266,9 +286,11 @@ export async function editProgrammeAction(
       delivery_mode: input.delivery_mode,
       unit_label: input.unit_label,
       length_units: input.length_units,
-      price_minor_ghs: input.price_minor_ghs,
-      price_minor_usd: input.price_minor_usd,
+      price_currency: input.price_currency,
+      price_minor: input.price_minor,
       show_price_publicly: input.show_price_publicly,
+      payment_collection_mode: input.payment_collection_mode,
+      access_window_days: input.access_window_days,
       updated_at: new Date().toISOString(),
     })
     .eq('programme_id', programme_id)
