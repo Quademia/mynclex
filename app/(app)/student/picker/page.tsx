@@ -1,21 +1,28 @@
 // mynclex/app/(app)/student/picker/page.tsx
 //
-// Student landing after login. Two cards: My Programme + Question Bank.
-// Card states reflect the student's bank subscription + programme
-// enrolment. No auto-redirect into either product — picker is the
-// single entry point per the student-nav spec.
+// Student landing after login. The home base: a "Your programmes"
+// section listing the programmes the student is enrolled in (with
+// status), and a "Question Bank" section. No auto-redirect into either
+// product — the picker is the single entry point per the student-nav
+// spec.
 //
-// NOTE: bank subscription / programme enrolment data is hard-coded
-// today. The real tables (nclex_subscriptions, nclex_enrolments) do
-// not exist yet — they land with the subscriptions slice. Replace the
-// placeholder block below when those tables ship.
+// Programmes are listed INLINE here (via <ProgrammeList>), not behind
+// the switcher popup — the popup is now only for switching while
+// already inside a programme. Same data + row rendering as the popup,
+// so enrolment gating shows identically: ENROLLED rows are enterable,
+// every other status is dimmed with its pill + reason.
+//
+// NOTE: bank subscription data is still hard-coded — the real check
+// (nclex_subscriptions) lands with the bank-access slice and will
+// render in this same picker.
 
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { loadChromeData } from '@/lib/shell/load-chrome-data';
 import { AppShell } from '@/components/shell/app-shell';
-import { ProgrammeSwitcherTrigger } from '@/components/nav/student/programme-switcher-trigger';
+import { ProgrammeList } from '@/components/nav/student/programme-list';
+import { getMyAccessibleProgrammesAction } from '@/lib/programmes/student-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,16 +38,13 @@ export default async function PickerPage() {
     .maybeSingle();
   const firstName = profile?.forename ?? 'there';
 
-  // Placeholder enrolment state — replace with real queries when
-  // the subscriptions / enrolments tables land. Slice 10.1 flipped
-  // the programme card on by default so the student-curriculum
-  // viewer is reachable from the picker without enrolment data;
-  // the bookmark message ("Dr Mensah — 8-Week Bootcamp") is
-  // replaced with a generic "Browse programmes" line because the
-  // picker doesn't know which programme to surface.
+  // Enrolled programmes — RLS narrows this to the student's own
+  // enrolments (any status); ENROLLED ones are enterable.
+  const { programmes } = await getMyAccessibleProgrammesAction();
+
+  // Placeholder bank state — replace when the bank-access check lands.
   const hasBankSubscription = true;
   const bankDaysLeft = 42;
-  const hasProgrammeEnrolment = true;
 
   return (
     <AppShell
@@ -54,32 +58,32 @@ export default async function PickerPage() {
         <div className="picker-inner">
           <div className="picker-greeting">Welcome back, {firstName}</div>
           <div className="picker-sub">Where would you like to go?</div>
-          <div className="picker-grid">
-            {hasProgrammeEnrolment ? (
-              <ProgrammeSwitcherTrigger
-                className="picker-card"
-                ariaLabel="Open programme switcher"
-              >
-                <div className="picker-card-title">My Programmes</div>
-                <div className="picker-card-sub">
-                  Browse programmes and cohorts you can access
-                </div>
-              </ProgrammeSwitcherTrigger>
+
+          <section className="picker-section">
+            <h2 className="picker-section-title">Your programmes</h2>
+            {programmes.length > 0 ? (
+              <ProgrammeList programmes={programmes} />
             ) : (
-              <Link href="/programmes" className="picker-card empty">
-                <div className="picker-card-title">No programme yet</div>
-                <div className="picker-card-sub">Browse tutor programmes →</div>
-              </Link>
+              <div className="picker-card empty is-disabled" aria-disabled="true">
+                <div className="picker-card-title">No programmes yet</div>
+                <div className="picker-card-sub">
+                  Browse programmes — coming soon
+                </div>
+              </div>
             )}
+          </section>
+
+          <section className="picker-section">
+            <h2 className="picker-section-title">Question Bank</h2>
             <Link href="/student/bank/dashboard" className="picker-card">
-              <div className="picker-card-title">Question Bank</div>
+              <div className="picker-card-title">Self-study practice</div>
               <div className="picker-card-sub">
                 {hasBankSubscription
-                  ? `Self-study practice · ${bankDaysLeft} days left`
+                  ? `${bankDaysLeft} days left`
                   : 'Renew to continue practising'}
               </div>
             </Link>
-          </div>
+          </section>
         </div>
       </div>
     </AppShell>

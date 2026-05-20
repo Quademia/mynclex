@@ -3,6 +3,12 @@
 // Server component — one card in the /tutor/quizzes grid. The whole
 // card is a link into the quiz editor; there's no in-card Edit
 // affordance (metadata editing lives on the editor page itself).
+//
+// Tutor Quiz Slice 5 — adds the "Used in N programmes" chip
+// (§9.4.2). Three tones: not-in-any-programme (muted), 1 (linked),
+// 2+ (linked, semibold). Forward-compat single-segment for v1; the
+// future "Used in 2 programmes, 1 readiness pack" shape extends
+// naturally.
 
 import Link from 'next/link';
 import type { QuizListRow } from './types';
@@ -13,6 +19,7 @@ import {
   formatQuizStatus,
   quizStatusPillClass,
 } from './format';
+import { formatUsedInProgrammes } from '@/lib/programme-quizzes/format';
 
 export function QuizCard({ quiz }: { quiz: QuizListRow }) {
   const isMuted = quiz.status === 'ARCHIVED';
@@ -33,6 +40,8 @@ export function QuizCard({ quiz }: { quiz: QuizListRow }) {
         <p className="quiz-card-desc">{quiz.description}</p>
       )}
 
+      <UsedInProgrammesChip count={quiz.used_in_programmes} />
+
       <div className="quiz-card-foot">
         <span className="quiz-card-kind">
           {formatQuizKind(quiz.quiz_kind)}
@@ -42,5 +51,22 @@ export function QuizCard({ quiz }: { quiz: QuizListRow }) {
         </span>
       </div>
     </Link>
+  );
+}
+
+function UsedInProgrammesChip({ count }: { count: number }) {
+  // Three tones — none / one / many — drives the §9.4.2 chip.
+  const toneClass =
+    count === 0 ? 'is-none' : count === 1 ? 'is-some' : 'is-many';
+  const title =
+    count === 0
+      ? "This quiz isn't in any programme yet."
+      : count === 1
+        ? 'This quiz is attached to 1 programme.'
+        : `This quiz is attached to ${count} programmes.`;
+  return (
+    <span className={`quiz-card-used-chip ${toneClass}`} title={title}>
+      {formatUsedInProgrammes(count)}
+    </span>
   );
 }

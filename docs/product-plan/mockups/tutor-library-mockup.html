@@ -284,7 +284,512 @@
   }
   .pill-published { background: var(--success-bg); color: var(--success-text); }
   .pill-draft { background: var(--draft-bg); color: var(--draft-text); }
+  .pill-scoped { background: var(--info-bg); color: var(--info-text); }
   .pill-task { background: var(--warn-bg); color: var(--warn-text); }
+
+  /* ─── Library home — four-lens layout ─────────────── */
+
+  .lib-grid-lens { display: grid; grid-template-columns: 200px 1fr; gap: 14px; }
+
+  /* Sidebar — Views / Folders / Shelves / Tags */
+  .lens-side {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    background: var(--bg); padding: 6px 0 10px;
+    font-size: 12.5px;
+  }
+  .lens-section {
+    display: flex; align-items: center; gap: 4px;
+    padding: 10px 12px 4px;
+    font-size: 10.5px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-dim);
+  }
+  .lens-section .grow { flex: 1; }
+  .lens-section .act {
+    font-size: 11px; font-weight: 500; color: var(--text-muted);
+    text-transform: none; letter-spacing: 0; cursor: pointer;
+    padding: 1px 6px; border-radius: var(--radius-sm);
+  }
+  .lens-section .act:hover { background: rgba(0,0,0,0.04); color: var(--primary); }
+  .lens-item {
+    padding: 5px 12px; color: var(--text-muted);
+    cursor: pointer; border-left: 3px solid transparent;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .lens-item:hover { background: rgba(0,0,0,0.02); }
+  .lens-item.active {
+    background: var(--white); color: var(--primary); font-weight: 600;
+    border-left-color: var(--accent);
+  }
+  .lens-item .ico { width: 16px; text-align: center; opacity: 0.7; font-size: 12px; }
+  .lens-item .cnt { margin-left: auto; font-size: 10.5px; color: var(--text-dim); }
+  .lens-item .pip {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-dim); flex-shrink: 0; margin-right: 2px;
+  }
+  .lens-add {
+    padding: 4px 12px 4px 28px; font-size: 11.5px;
+    color: var(--text-dim); cursor: pointer;
+  }
+  .lens-add:hover { color: var(--accent); }
+  .lens-tag-cloud {
+    padding: 4px 12px 0; display: flex; flex-wrap: wrap; gap: 4px;
+  }
+  .lens-tag-cloud .tag-chip {
+    font-size: 10.5px; padding: 1px 7px;
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 999px; color: var(--text-muted); cursor: pointer;
+  }
+  .lens-tag-cloud .tag-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .lens-tag-cloud .tag-chip.nclex {
+    background: var(--info-bg); border-color: var(--info-border); color: var(--info-text);
+  }
+
+  /* Main pane — crumb, title row, scope badge */
+  .lens-crumb {
+    font-size: 12px; color: var(--text-muted); margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .lens-crumb .icn { font-size: 13px; }
+  .lens-title-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+  }
+  .lens-title { font-size: 18px; font-weight: 600; color: var(--text); }
+  .lens-badge {
+    font-size: 10.5px; font-weight: 500; padding: 2px 8px; border-radius: 999px;
+  }
+  .lens-badge.folder { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+  .lens-badge.shelf { background: var(--accent-light); color: var(--success-text); }
+  .lens-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+
+  /* Shelf-scope metadata strip — Attached + Visibility */
+  .shelf-meta-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    margin: 4px 0 12px;
+  }
+  .shelf-meta {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 8px 12px; background: var(--white);
+  }
+  .shelf-meta-lbl {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-dim); margin-bottom: 4px;
+  }
+  .shelf-meta-val { font-size: 12.5px; color: var(--text); font-weight: 500; }
+  .shelf-meta-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Filter bar */
+  .lens-filter {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    padding: 6px 10px; margin-bottom: 8px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-md); font-size: 11.5px;
+  }
+  .lens-filter .lbl { color: var(--text-muted); font-weight: 500; }
+  .lens-filter .clear { margin-left: auto; font-size: 11px; color: var(--text-dim); }
+
+  /* Note list with per-note lens row */
+  .lens-list {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    overflow: hidden; background: var(--white);
+  }
+  .lens-note-row {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    display: grid; grid-template-columns: 28px 1fr auto; gap: 10px;
+    align-items: start;
+    cursor: pointer;
+  }
+  .lens-note-row:last-child { border-bottom: none; }
+  .lens-note-row:hover { background: var(--bg); }
+  .lens-note-row.no-num { grid-template-columns: 1fr auto; }
+  .lens-num {
+    font-size: 12px; font-weight: 600; color: var(--text-dim);
+    line-height: 1.4; padding-top: 1px;
+  }
+  .lens-note-title { font-size: 13.5px; font-weight: 500; color: var(--text); }
+  .lens-note-ex { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; line-height: 1.45; }
+  .lens-note-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .lens-note-edit { font-size: 10.5px; color: var(--text-dim); }
+  .used-pill {
+    font-size: 10.5px; padding: 2px 8px; border-radius: 999px;
+    background: var(--accent-light); color: var(--success-text); font-weight: 500;
+  }
+  .used-pill.zero { background: var(--bg); color: var(--text-dim); border: 1px dashed var(--border-strong); }
+
+  /* The per-note lens row — the headline UI element */
+  .lens-membership {
+    display: flex; flex-wrap: wrap; gap: 4px 10px;
+    margin-top: 6px; font-size: 11px;
+  }
+  .lens-bit {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--text-muted);
+  }
+  .lens-bit .icn { color: var(--text-dim); font-size: 11px; }
+  .lens-bit .v { color: var(--text); font-weight: 500; }
+  .lens-bit .pip {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--text-dim); display: inline-block; margin-right: 3px;
+  }
+  .lens-bit .sep { color: var(--text-dim); margin: 0 2px; }
+  .lens-also {
+    margin-top: 4px; font-size: 10.5px; color: var(--text-dim);
+    font-style: italic;
+  }
+  .lens-also .v { font-style: normal; color: var(--text-muted); font-weight: 500; }
+
+  /* Foot explainer */
+  .lens-explain {
+    margin-top: 14px; padding: 10px 12px;
+    background: var(--info-bg); border: 1px solid var(--info-border);
+    border-radius: var(--radius-md);
+    font-size: 11.5px; color: var(--info-text); line-height: 1.55;
+  }
+  .lens-explain b { color: var(--info-accent); }
+  .lens-explain-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px; margin-top: 8px;
+  }
+  .lens-explain-cell {
+    background: var(--white); border: 1px solid var(--info-border);
+    border-radius: var(--radius-sm); padding: 6px 8px;
+    color: var(--text); font-size: 10.5px;
+  }
+  .lens-explain-cell .h {
+    font-weight: 600; color: var(--info-accent);
+    display: block; margin-bottom: 2px;
+  }
+
+  /* ─── All folders — folder cards grid ─────────────── */
+
+  .all-folders-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .folder-card {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 14px; background: var(--white);
+    cursor: pointer; transition: border-color 0.12s;
+  }
+  .folder-card:hover { border-color: var(--accent); }
+  .folder-card-icon {
+    width: 32px; height: 32px;
+    background: var(--accent-light); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 8px; color: var(--accent);
+  }
+  .folder-card-title { font-size: 14px; font-weight: 600; color: var(--primary); margin-bottom: 2px; }
+  .folder-card-meta { font-size: 11.5px; color: var(--text-muted); }
+
+  /* ─── All shelves — Spotify-library layout ────────── */
+
+  .all-shelves-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin: 2px 0 4px;
+  }
+  .all-shelves-pill .num {
+    font-size: 14px; font-weight: 600; color: var(--primary);
+  }
+  .all-shelves-pill .mn {
+    background: var(--accent); color: var(--white);
+    font-size: 9.5px; font-weight: 700;
+    padding: 2px 7px; border-radius: var(--radius-sm);
+    letter-spacing: 0.04em;
+  }
+  .all-shelves-pill .note {
+    font-size: 12px; color: var(--text-muted);
+  }
+
+  .all-shelves-tabs {
+    display: inline-flex; background: var(--bg);
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 3px; gap: 2px;
+    margin: 8px 0 14px;
+  }
+  .all-shelves-tab {
+    padding: 5px 12px; font-size: 12px;
+    color: var(--text-muted); border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .all-shelves-tab.active {
+    background: var(--white); color: var(--text); font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+
+  .shelf-section { margin-bottom: 20px; }
+  .shelf-section-head {
+    display: flex; align-items: baseline; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .shelf-section-head .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    align-self: center; flex-shrink: 0;
+  }
+  .shelf-section-head .ttl {
+    font-size: 15px; font-weight: 700; color: var(--primary);
+  }
+  .shelf-section-head .cnt {
+    font-size: 11.5px; color: var(--text-muted);
+  }
+  .shelf-section-head .sep { color: var(--text-dim); }
+  .shelf-section-head .tag-line {
+    font-size: 11.5px; color: var(--text-muted);
+  }
+  .shelf-section-head .open-link {
+    margin-left: auto; font-size: 11.5px; color: var(--accent);
+    font-weight: 500; cursor: pointer;
+  }
+  .shelf-section-head .open-link:hover { text-decoration: underline; }
+
+  .shelf-cards {
+    display: flex; gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .shelf-card {
+    flex: 0 0 220px;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    background: var(--white);
+    padding: 12px 12px 10px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    min-height: 140px;
+    cursor: pointer; transition: border-color 0.12s, box-shadow 0.12s;
+  }
+  .shelf-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  }
+  .shelf-card-title {
+    font-size: 13px; font-weight: 600; color: var(--text);
+    margin-bottom: 4px; line-height: 1.3;
+  }
+  .shelf-card-excerpt {
+    font-size: 11.5px; color: var(--text-muted);
+    line-height: 1.45;
+    display: -webkit-box; -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .shelf-card-tags {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    margin-top: 8px;
+  }
+  .shelf-card-tags .tag {
+    font-size: 10px; padding: 1px 6px; border-radius: 999px;
+    background: var(--bg); color: var(--text-muted);
+  }
+  .shelf-card-tags .tag.solid-teal { background: var(--accent-light); color: var(--success-text); }
+  .shelf-card-tags .tag.solid-blue { background: var(--info-bg); color: var(--info-text); }
+  .shelf-card-tags .tag.solid-purple { background: var(--memo-bg); color: var(--memo-text); }
+  .shelf-card-tags .tag.solid-red { background: var(--crit-bg); color: var(--crit-text); }
+  .shelf-card-tags .tag.solid-amber { background: var(--warn-bg); color: var(--warn-text); }
+
+  .shelf-card-add {
+    flex: 0 0 220px;
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    background: transparent;
+    min-height: 140px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: var(--text-dim);
+    cursor: pointer; transition: border-color 0.12s, color 0.12s;
+  }
+  .shelf-card-add:hover {
+    border-color: var(--accent); color: var(--accent);
+  }
+
+  /* ─── NCLEX pillar chip — single-primary, 8 sub-cats ─ */
+
+  .pillar-chip {
+    display: inline-flex; align-items: center;
+    font-size: 10px; padding: 1px 6px; border-radius: 4px;
+    font-weight: 700; letter-spacing: 0.04em;
+    line-height: 1.5;
+  }
+  .pillar-chip.moc { background: #e5e9f0; color: #1e3a5f; }   /* Management of Care */
+  .pillar-chip.sic { background: #fce7e7; color: #7c1d1d; }   /* Safety & Infection Control */
+  .pillar-chip.hpm { background: #d1fae5; color: #065f46; }   /* Health Promotion & Maintenance */
+  .pillar-chip.pi  { background: #f0eefb; color: #3c2d75; }   /* Psychosocial Integrity */
+  .pillar-chip.bcc { background: #dbeafe; color: #1e40af; }   /* Basic Care & Comfort */
+  .pillar-chip.ppt { background: #faeeda; color: #633806; }   /* Pharmacological Therapies */
+  .pillar-chip.ror { background: #ffedd5; color: #9a3412; }   /* Reduction of Risk Potential */
+  .pillar-chip.pa  { background: #e6f1ef; color: #085041; }   /* Physiological Adaptation */
+
+  /* Sidebar variant — full-bleed dot + code */
+  .lens-item .pillar-dot {
+    width: 8px; height: 8px; border-radius: 2px;
+    flex-shrink: 0; margin-right: 2px;
+  }
+
+  /* ─── Library home — top-bar chrome variant ────────── */
+
+  .lens-bar {
+    display: flex; gap: 8px;
+    margin: 10px 0 14px;
+    flex-wrap: wrap;
+  }
+  .lens-bar-item { position: relative; }
+  .lens-bar-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px;
+    background: var(--white); border: 1px solid var(--border);
+    font-size: 12.5px; color: var(--text-muted);
+    cursor: pointer; transition: border-color 0.12s, background 0.12s;
+    white-space: nowrap;
+  }
+  .lens-bar-chip:hover { border-color: var(--accent); }
+  .lens-bar-chip.active {
+    background: var(--accent-light); border-color: var(--accent);
+    color: var(--success-text);
+  }
+  .lens-bar-chip .label { color: var(--text-muted); }
+  .lens-bar-chip.active .label { color: var(--success-text); font-weight: 500; }
+  .lens-bar-chip .value { color: var(--text); font-weight: 600; }
+  .lens-bar-chip.active .value { color: var(--success-text); }
+  .lens-bar-chip .chev { font-size: 9px; opacity: 0.5; }
+  .lens-bar-chip.open { border-color: var(--accent); }
+
+  .lens-dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0;
+    min-width: 240px;
+    background: var(--white);
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    padding: 6px 0;
+    z-index: 20;
+  }
+  .lens-dropdown-section {
+    padding: 6px 12px 2px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-dim);
+  }
+  .lens-dropdown-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px; font-size: 12px;
+    color: var(--text-muted); cursor: pointer;
+  }
+  .lens-dropdown-item:hover { background: rgba(0,0,0,0.03); color: var(--text); }
+  .lens-dropdown-item.active {
+    background: var(--accent-light); color: var(--primary); font-weight: 600;
+  }
+  .lens-dropdown-item .ico {
+    width: 16px; text-align: center; opacity: 0.7; font-size: 12px;
+  }
+  .lens-dropdown-item .cnt {
+    margin-left: auto; font-size: 10.5px; color: var(--text-dim);
+  }
+  .lens-dropdown-item .pip {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0; margin-right: 2px; background: var(--text-dim);
+  }
+  .lens-dropdown-divider {
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
+  }
+  .lens-dropdown-add {
+    padding: 6px 12px; font-size: 11.5px;
+    color: var(--text-dim); cursor: pointer;
+  }
+  .lens-dropdown-add:hover { color: var(--accent); background: rgba(0,0,0,0.02); }
+
+  /* Full-width main pane (no left sidebar) */
+  .lib-fullwidth { padding-top: 4px; }
+
+  /* ─── Shelf-picker modal — rows of shelves ─────────── */
+
+  .shelf-pick-row {
+    display: grid; grid-template-columns: auto 1fr auto;
+    gap: 10px; align-items: start;
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .shelf-pick-row:last-child { border-bottom: none; }
+  .shelf-pick-row:hover { background: var(--bg); }
+  .shelf-pick-row.selected { background: var(--accent-light); }
+  .shelf-pick-row .dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    margin-top: 3px;
+  }
+  .shelf-pick-row .ttl { font-size: 13px; font-weight: 600; color: var(--text); }
+  .shelf-pick-row .desc { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+  .shelf-pick-row .preview {
+    font-size: 11px; color: var(--text-dim); margin-top: 4px;
+    display: flex; flex-wrap: wrap; gap: 4px;
+  }
+  .shelf-pick-row .preview .nm {
+    background: var(--bg); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 999px; color: var(--text-muted);
+  }
+  .shelf-pick-row .cnt-col {
+    font-size: 10.5px; color: var(--text-dim); text-align: right;
+  }
+
+  /* ─── State 3 — Attached / auto-syncing unit view ──── */
+
+  .unit-board {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    background: var(--white); overflow: hidden;
+  }
+  .unit-row {
+    display: grid; grid-template-columns: 32px 1fr auto auto;
+    gap: 10px; align-items: center;
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+  }
+  .unit-row:last-child { border-bottom: none; }
+  .unit-row-icon {
+    width: 28px; height: 28px;
+    background: var(--bg); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted);
+  }
+  .unit-row-title { font-size: 13px; font-weight: 500; color: var(--text); }
+  .unit-row-meta { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .unit-row-kebab {
+    font-size: 14px; color: var(--text-dim);
+    padding: 2px 6px; cursor: pointer;
+  }
+
+  /* The grouped shelf block — coloured outer border. */
+  .shelf-attach-block {
+    border: 2px solid; border-radius: var(--radius-md);
+    margin: 8px 0; overflow: hidden;
+    background: var(--white);
+  }
+  .shelf-attach-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .shelf-attach-head .dot {
+    width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  }
+  .shelf-attach-head .ttl {
+    font-size: 13.5px; font-weight: 700; color: var(--primary);
+  }
+  .shelf-attach-head .sub {
+    font-size: 11.5px; color: var(--text-muted); margin-left: 4px;
+  }
+  .shelf-attach-head .kebab {
+    margin-left: auto; font-size: 14px; color: var(--text-dim);
+    padding: 2px 6px; cursor: pointer;
+  }
+  .shelf-attach-rows .unit-row {
+    padding-left: 26px;
+  }
+  .shelf-attach-banner {
+    padding: 9px 14px; font-size: 11.5px;
+    background: var(--info-bg); color: var(--info-text);
+    border-top: 1px solid var(--info-border);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .shelf-attach-banner b { color: var(--info-accent); }
+
+  /* Unit-builder page chrome */
+  .unit-builder-crumb {
+    font-size: 12px; color: var(--text-muted); margin-bottom: 6px;
+  }
+  .unit-builder-actions {
+    display: flex; gap: 8px; margin-top: 14px;
+  }
 
   /* ─── Note editor (tutor) ─────────────────────────── */
 
@@ -1013,18 +1518,27 @@
   // ─── Screen catalogue ────────────────────────────────────────
 
   const tutorScreens = [
-    { key: 'list',    label: '1. Library home',     hint: '<b>Library home.</b> Folders on the left, notes inside the open folder. The "Used in" column shows how many programme attachments each note has.' },
-    { key: 'editor',  label: '2. Note editor',      hint: '<b>Note editor.</b> Inline formatting toolbar, block-based body. Hover any block to see its type tag. The dashed <b>+</b> between blocks (or <code>/</code> anywhere) opens the block menu.' },
-    { key: 'popover', label: '3. Add block',        hint: '<b>Add block.</b> Same menu opens via the <b>+</b> button or <code>/</code> slash command. 12 block types organised into 4 groups. Type to search.' },
-    { key: 'publish', label: '4. Publish dialog',   hint: '<b>Publish dialog.</b> The tutor picks visibility mode at publish time — Tutor-wide is the default; Programme-scoped is the deliberate choice for cohort-specific content.' },
-    { key: 'picker',  label: '5. Activity picker',  hint: '<b>Activity picker.</b> The unit-builder grows from a 3×2 grid (six types) to a 4×2 grid with Library Note as the new 7th type. Same picker fires whether the entry point is "+ Add activity" (loose, in the unit) or "+ Add activity to block".' },
-    { key: 'attach',  label: '6. Attach modal',     hint: '<b>Attach modal.</b> Triggered from the activity picker. The tutor browses their library and picks one note to slot into the unit (loose) or into the curriculum block, depending on the entry point.' },
+    { key: 'allfolders', label: '1. Library home — all folders', hint: '<b>Library home — all folders.</b> The zoomed-out view of the Folders lens. Each folder is a card showing name + note count. Folders are the tutor\'s primary organising bin (1 per note) — they\'re a navigation tool, not a visibility gate. Clicking a card drills into folder scope (screen 2).' },
+    { key: 'list',       label: '2. Library home — folder scope', hint: '<b>Library home — folder scope (sidebar chrome).</b> Five organising lenses share one left rail: <b>Views</b> · <b>Folders</b> (primary bin, 1 per note) · <b>Shelves</b> (curated packs, many per note) · <b>Pillars</b> (NCLEX Client Needs) · <b>Tags</b>. All five are pure organisational tools — visibility lives on the note itself (Tutor-wide / Programme-scoped). The <b>per-note lens row</b> below each title shows all memberships inline so the classification model is legible at a glance.' },
+    { key: 'listTopbar', label: '3. Library home — folder scope (top-bar variant)', hint: '<b>Library home — folder scope (top-bar chrome).</b> Same content as screen 2, different chrome: the five lenses collapse into a horizontal bar of dropdowns sitting under the search bar. The main pane is full-width — more room for content at the cost of always-visible lens entries. Active scope reads on the chip itself (e.g. <code>Folders: Cardiac ▾</code>). Clicking any chip opens its dropdown.' },
+    { key: 'allshelves', label: '4. Library home — all shelves',  hint: '<b>Library home — all shelves.</b> Spotify-library treatment for shelves. Each shelf is a horizontal section: coloured dot + title + count + tagline, then a row of note cards ending in a dashed "+ Add to shelf" slot. The same note can appear under more than one shelf header (M:N is visible by repetition). "Open shelf →" jumps into shelf scope (screen 5).' },
+    { key: 'shelf',      label: '5. Library home — shelf scope',  hint: '<b>Library home — shelf scope.</b> Same sidebar, different main pane. A shelf is the unit of sharing &amp; attaching, so its main pane shows two metadata panels — <b>Attached to</b> (which programme unit) and <b>Visibility</b> (Tutor-wide / Programme-scoped). Notes are <b>numbered</b> (shelves have explicit ordering; folders don\'t). The "Also on:" hint per row exposes the m:n nature — a note can sit on several shelves at once.' },
+    { key: 'editor',     label: '6. Note editor',      hint: '<b>Note editor.</b> Inline formatting toolbar, block-based body. Hover any block to see its type tag. The dashed <b>+</b> between blocks (or <code>/</code> anywhere) opens the block menu.' },
+    { key: 'popover',    label: '7. Add block',        hint: '<b>Add block.</b> Same menu opens via the <b>+</b> button or <code>/</code> slash command. 12 block types organised into 4 groups. Type to search.' },
+    { key: 'publish',    label: '8. Publish dialog',   hint: '<b>Publish dialog.</b> The tutor picks visibility mode at publish time — Tutor-wide is the default; Programme-scoped is the deliberate choice for cohort-specific content.' },
+    { key: 'picker',      label: '9. Activity picker — 8 tiles', hint: '<b>Activity picker (State 1 of the attach-shelf flow).</b> The unit-builder grows from a 3×2 grid (six types) to a 4×2 grid with <b>two NEW types</b>: <b>Library Note</b> (single note) and <b>Shelf</b> (a whole curated pack). Picking a tile branches: Library Note → attach modal (screen 10); Shelf → shelf-picker modal (screen 11).' },
+    { key: 'attach',      label: '10. Attach modal (note path)',  hint: '<b>Attach modal — Library Note path.</b> Fires when "Library Note" tile is picked. Tutor picks one note from their library to slot into the unit. Single source of truth — edits propagate to every attachment.' },
+    { key: 'shelfPicker', label: '11. Shelf-picker modal',        hint: '<b>Shelf-picker modal (State 2 of the attach-shelf flow).</b> Fires when "Shelf" tile is picked. Lists the tutor\'s published shelves with colour dot, title, description, and a preview of the first few notes. One pick attaches the whole pack to the unit.' },
+    { key: 'attached',    label: '12. Attached — auto-syncing',   hint: '<b>Attached state (State 3 of the attach-shelf flow).</b> The unit-builder after a shelf is attached: the shelf becomes a <b>grouped block</b> with a coloured outer border (the shelf\'s colour), the shelf identity bar at the top, and the constituent notes as individual activity rows below. Each row stays individually addressable. The auto-sync banner explains that adding or removing notes on the shelf updates this unit automatically.' },
   ];
 
   const studentScreens = [
-    { key: 'home',    label: '1. Library home',     hint: '<b>Library home.</b> Topic shelves modelled on a real library — folders the tutor created become topic cards.' },
-    { key: 'read',    label: '2. Note read view',   hint: '<b>Note read view.</b> Reads like a textbook chapter. Left rail is now a <b>Contents</b> panel auto-built from the note\'s headings — click to jump, scroll-spy highlights the active section. Reading progress lives at the bottom of the panel. The "Back to Cardiac" pill at the top returns the student to cross-note browsing.' },
-    { key: 'week',    label: '3. Week activity',    hint: '<b>Week activity.</b> A Library Note attached to a week appears alongside other activities with a completion tick.' },
+    { key: 'allfolders', label: '1. Library home — all folders', hint: '<b>Library home — all folders.</b> Zoomed-out view of the Folders lens for students. Each card shows a folder the student has at least one visible note in (empty folders hidden). Counts are student-visible only — typically lower than the tutor\'s totals. Read-only navigation; no "+ New folder" affordance.' },
+    { key: 'home',       label: '2. Library home — folder scope', hint: '<b>Library home — folder scope.</b> Students see the same five-lens sidebar as the tutor (Views, Folders, Shelves, Pillars, Tags) — minus author-only entries (Drafts, Used nowhere) and authoring affordances (+ New). Visibility is per-note, so a folder of 7 for the tutor might show 3 to this student — sidebar counts and folder contents are filtered automatically. Empty containers are hidden from the student\'s sidebar.' },
+    { key: 'allshelves', label: '3. Library home — all shelves',  hint: '<b>Library home — all shelves.</b> Spotify-library treatment for shelves, student variant. Each shelf section shows its student-visible notes as horizontal cards. "+ Add to shelf" trailing slots are gone (read-only). If a shelf has 6 notes for the tutor but only 4 for this student, the student sees 4 cards.' },
+    { key: 'shelf',      label: '4. Library home — shelf scope',  hint: '<b>Library home — shelf scope.</b> A shelf the student can see — its notes shown numbered, each with the lens-row of memberships and a Read button. "X of Y available to you" sub-line communicates the visibility filtering. Read-only — no "Attached to" or "Visibility" author panels.' },
+    { key: 'read',       label: '5. Note read view',   hint: '<b>Note read view.</b> Reads like a textbook chapter. Left rail is now a <b>Contents</b> panel auto-built from the note\'s headings — click to jump, scroll-spy highlights the active section. Reading progress lives at the bottom of the panel. The "Back to Cardiac" pill at the top returns the student to cross-note browsing.' },
+    { key: 'week',       label: '6. Unit activity',    hint: '<b>Unit activity.</b> A Library Note attached to a unit appears alongside other activities with a completion tick.' },
   ];
 
   let mode = 'tutor';
@@ -1139,7 +1653,111 @@
 
   // ─── Tutor screens ───────────────────────────────────────────
 
+  // Shelf palette + metadata — used across all home variants.
+  const SHELVES = [
+    { id: 'foundational-sata', title: 'Foundational SATA pack', color: '#3b82f6',
+      count: 4, tagline: 'Every cohort gets these in week 1.' },
+    { id: 'drug-deep-dives',   title: 'Drug deep dives',         color: '#f97316',
+      count: 6, tagline: 'The pharm-heavy ones. Reuse across programmes.' },
+    { id: 'cohort-5-w3',       title: 'Cohort 5 — Unit 3',       color: '#8b5cf6',
+      count: 3, tagline: 'Locked to this cohort\'s pace.' },
+  ];
+  const shelfById = id => SHELVES.find(s => s.id === id);
+
+  // Folder palette + metadata — used across all home variants.
+  const FOLDERS = [
+    { id: 'cardiac',   title: 'Cardiac',         count: 7, drafts: 1 },
+    { id: 'pharm',     title: 'Pharmacology',    count: 5, drafts: 0 },
+    { id: 'endocrine', title: 'Endocrine',       count: 4, drafts: 0 },
+    { id: 'test',      title: 'Test strategies', count: 8, drafts: 0 },
+  ];
+
+  // NCLEX Client Needs — the 8 sub-categories under the 4 top-level pillars.
+  // One primary per note in v1 (array shape for forward compat). Sidebar shows
+  // all 8 even at count 0, so the taxonomy is visible.
+  const PILLARS = [
+    { id: 'moc', code: 'MoC', name: 'Management of Care',          count: 4 },
+    { id: 'sic', code: 'SIC', name: 'Safety & Infection Control',  count: 0 },
+    { id: 'hpm', code: 'HPM', name: 'Health Promotion & Maint.',   count: 0 },
+    { id: 'pi',  code: 'PI',  name: 'Psychosocial Integrity',      count: 0 },
+    { id: 'bcc', code: 'BCC', name: 'Basic Care & Comfort',        count: 0 },
+    { id: 'ppt', code: 'PPT', name: 'Pharmacological Therapies',   count: 2 },
+    { id: 'ror', code: 'ROR', name: 'Reduction of Risk Potential', count: 2 },
+    { id: 'pa',  code: 'PA',  name: 'Physiological Adaptation',    count: 4 },
+  ];
+
+  function lensSidebar(opts) {
+    const { activeKind, activeId } = opts; // activeKind: 'folder' | 'shelf' | 'all-folders' | 'all-shelves'
+    const isFolderActive = key => activeKind === 'folder' && activeId === key;
+    const isShelfActive  = id  => activeKind === 'shelf'  && activeId === id;
+    const isAllFolders   = activeKind === 'all-folders';
+    const isAllShelves   = activeKind === 'all-shelves';
+    return `
+      <div class="lens-side">
+        <div class="lens-section"><span>Views</span><span class="grow"></span></div>
+        <div class="lens-item"><span class="ico">▤</span><span>All notes</span><span class="cnt">24</span></div>
+        <div class="lens-item"><span class="ico">⏱</span><span>Recent</span><span class="cnt">4</span></div>
+        <div class="lens-item"><span class="ico">✎</span><span>Drafts</span><span class="cnt">1</span></div>
+        <div class="lens-item"><span class="ico">⚠</span><span>Used nowhere</span><span class="cnt">2</span></div>
+        <div class="lens-add">+ New view</div>
+
+        <div class="lens-section"><span>Folders</span><span class="grow"></span><span class="act">+</span></div>
+        <div class="lens-item ${isAllFolders ? 'active' : ''}"><span class="ico">▦</span><span>All folders</span><span class="cnt">${FOLDERS.length}</span></div>
+        ${FOLDERS.map(f => `
+          <div class="lens-item ${isFolderActive(f.id) ? 'active' : ''}"><span class="ico">📁</span><span>${f.title}</span><span class="cnt">${f.count}</span></div>
+        `).join('')}
+
+        <div class="lens-section"><span>Shelves</span><span class="grow"></span><span class="act">+</span></div>
+        <div class="lens-item ${isAllShelves ? 'active' : ''}"><span class="ico">▦</span><span>All shelves</span><span class="cnt">${SHELVES.length}</span></div>
+        ${SHELVES.map(s => `
+          <div class="lens-item ${isShelfActive(s.id) ? 'active' : ''}">
+            <span class="pip" style="background: ${s.color};"></span>
+            <span>${s.title}</span>
+            <span class="cnt">${s.count}</span>
+          </div>
+        `).join('')}
+
+        <div class="lens-section"><span>Pillars</span><span class="grow"></span><span class="act" title="NCLEX Client Needs">NCLEX</span></div>
+        ${PILLARS.map(p => `
+          <div class="lens-item" title="${p.name}">
+            <span class="pillar-chip ${p.id}" style="margin-right: 4px;">${p.code}</span>
+            <span style="font-size: 11.5px; color: var(--text-muted);">${p.name.length > 22 ? p.name.slice(0, 20) + '…' : p.name}</span>
+            <span class="cnt">${p.count}</span>
+          </div>
+        `).join('')}
+
+        <div class="lens-section"><span>Tags</span><span class="grow"></span><span class="act">manage</span></div>
+        <div class="lens-tag-cloud">
+          <span class="tag-chip">acid-base</span>
+          <span class="tag-chip">high-yield</span>
+          <span class="tag-chip">anatomy</span>
+          <span class="tag-chip">ecg</span>
+          <span class="tag-chip">pathophys</span>
+          <span class="tag-chip">sata</span>
+          <span class="tag-chip">lab-values</span>
+          <span class="tag-chip">foundational</span>
+        </div>
+        <div class="lens-add">+ nclex_* (NCLEX classification)</div>
+      </div>
+    `;
+  }
+
+  function lensExplainStrip() {
+    return `
+      <div class="lens-explain">
+        <b>How the lenses divide the work.</b> Each note carries all kinds of membership, visible inline on every row above. <b>All five are organisational — visibility lives on the note itself.</b>
+        <div class="lens-explain-grid">
+          <div class="lens-explain-cell"><span class="h">📁 Folders</span>primary bin — <em>where I file things</em> (1 per note)</div>
+          <div class="lens-explain-cell"><span class="h">📚 Shelves</span>curated packs — <em>cross-cutting collections</em> (many per note)</div>
+          <div class="lens-explain-cell"><span class="h"># Tags</span>attributes — <em>what this note is about</em> (many per note)</div>
+          <div class="lens-explain-cell"><span class="h">⚙ Views</span>saved queries — <em>self-maintenance</em> (derived)</div>
+        </div>
+      </div>
+    `;
+  }
+
   function tutorListScreen() {
+    // Folder scope — "Cardiac" selected.
     return `
       ${tutorTopbar()}
       <div class="body">
@@ -1154,48 +1772,641 @@
             <button class="btn-primary">+ New note</button>
           </div>
 
-          <div class="lib-grid">
-            <div class="folders">
-              <div class="folder-item">${icons.folder}<span>All notes</span><span class="folder-count">24</span></div>
-              <div class="folder-item active">${icons.folder}<span>Cardiac</span><span class="folder-count">7</span></div>
-              <div class="folder-item">${icons.folder}<span>Pharmacology</span><span class="folder-count">5</span></div>
-              <div class="folder-item">${icons.folder}<span>Endocrine</span><span class="folder-count">4</span></div>
-              <div class="folder-item">${icons.folder}<span>Test strategies</span><span class="folder-count">8</span></div>
+          <div class="lib-grid-lens">
+            ${lensSidebar({ activeKind: 'folder', activeId: 'cardiac' })}
+
+            <div>
+              <div class="lens-crumb"><span class="icn">📁</span>Folder / <b style="color: var(--text); margin-left: 2px;">Cardiac</b></div>
+              <div class="lens-title-row">
+                <span class="lens-title">Cardiac</span>
+                <span class="lens-badge folder">Folder</span>
+              </div>
+              <div class="lens-sub">7 notes filed here · each can also live on shelves, carry tags, and appear in views. Visibility is set per-note, not per-folder.</div>
+
+              <div class="lens-filter">
+                <span class="lbl">Filter by tag:</span>
+                <span class="tag-chip" style="background: var(--bg); border: 1px solid var(--border); padding: 1px 7px; border-radius: 999px; font-size: 10.5px; color: var(--text-muted);">acid-base</span>
+                <span class="tag-chip" style="background: var(--bg); border: 1px solid var(--border); padding: 1px 7px; border-radius: 999px; font-size: 10.5px; color: var(--text-muted);">high-yield</span>
+                <span class="tag-chip" style="background: var(--bg); border: 1px solid var(--border); padding: 1px 7px; border-radius: 999px; font-size: 10.5px; color: var(--text-muted);">pathophys</span>
+                <span class="tag-chip" style="background: var(--bg); border: 1px solid var(--border); padding: 1px 7px; border-radius: 999px; font-size: 10.5px; color: var(--text-muted);">+ nclex_*</span>
+                <span class="clear">No filters active</span>
+              </div>
+
+              <div class="lens-list">
+                <div class="lens-note-row no-num">
+                  <div>
+                    <div class="lens-note-title">Acid-Base Balance</div>
+                    <div class="lens-note-ex">Respiratory vs metabolic, acidosis vs alkalosis — once you read the ABG in the right order, the answer falls out…</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                      <span class="lens-bit">
+                        <span class="icn">📚</span>
+                        <span class="pip" style="background: #3b82f6;"></span><span class="v">Foundational SATA</span>
+                        <span class="sep">·</span>
+                        <span class="pip" style="background: #f97316;"></span><span class="v">Drug deep dives</span>
+                      </span>
+                      <span class="lens-bit" title="Physiological Adaptation">
+                        <span class="pillar-chip pa">PA</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">acid-base</span>
+                        <span class="tag">high-yield</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="lens-note-right">
+                    <span class="pill pill-published">Pub</span>
+                    <span class="used-pill">↳ used in 4</span>
+                    <span class="lens-note-edit">edited 2d ago</span>
+                  </div>
+                </div>
+
+                <div class="lens-note-row no-num">
+                  <div>
+                    <div class="lens-note-title">Cardiac anatomy primer</div>
+                    <div class="lens-note-ex">The four chambers, the great vessels, and the conduction system — the parts you must hold in your head before any cardiac question…</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                      <span class="lens-bit" title="Physiological Adaptation">
+                        <span class="pillar-chip pa">PA</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">anatomy</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="lens-note-right">
+                    <span class="pill pill-published">Pub</span>
+                    <span class="used-pill">↳ used in 2</span>
+                    <span class="lens-note-edit">edited 5d ago</span>
+                  </div>
+                </div>
+
+                <div class="lens-note-row no-num">
+                  <div>
+                    <div class="lens-note-title">ECG basics — rhythm strips</div>
+                    <div class="lens-note-ex">Sinus, atrial, ventricular, blocks. The decision tree that gets you to the correct rhythm in three steps, with two embedded practice strips…</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                      <span class="lens-bit">
+                        <span class="icn">📚</span>
+                        <span class="pip" style="background: #f97316;"></span><span class="v">Drug deep dives</span>
+                      </span>
+                      <span class="lens-bit" title="Reduction of Risk Potential">
+                        <span class="pillar-chip ror">ROR</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">ecg</span>
+                        <span class="tag">high-yield</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="lens-note-right">
+                    <span class="pill pill-published">Pub</span>
+                    <span class="used-pill">↳ used in 3</span>
+                    <span class="lens-note-edit">edited 1w ago</span>
+                  </div>
+                </div>
+
+                <div class="lens-note-row no-num">
+                  <div>
+                    <div class="lens-note-title">Heart failure pathophysiology</div>
+                    <div class="lens-note-ex">Preload, afterload, contractility — the 3 levers and which drugs pull each one. Forward vs backward failure side-by-side.</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                      <span class="lens-bit" title="Physiological Adaptation">
+                        <span class="pillar-chip pa">PA</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">pathophys</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="lens-note-right">
+                    <span class="pill pill-draft">Draft</span>
+                    <span class="used-pill zero">— used nowhere</span>
+                    <span class="lens-note-edit">edited 3w ago</span>
+                  </div>
+                </div>
+              </div>
+
+              ${lensExplainStrip()}
+            </div>
+          </div>
+        </main>
+      </div>
+    `;
+  }
+
+  function tutorListTopbarScreen() {
+    // Folder scope — top-bar chrome variant. Same content as tutorListScreen,
+    // but the five lenses collapse into a horizontal dropdown bar under the
+    // toolbar. The main pane runs full-width. Folders dropdown shown open.
+    return `
+      ${tutorTopbar()}
+      <div class="body">
+        ${tutorSidebar('library')}
+        <main class="main">
+          <div class="page-title">My Library</div>
+          <div class="page-sub">Reusable teaching notes — your lecture material across all programmes.</div>
+
+          <div class="lib-toolbar">
+            <input class="search-input" placeholder="Search notes by title, body, or tag…" />
+            <button>+ New folder</button>
+            <button class="btn-primary">+ New note</button>
+          </div>
+
+          <div class="lens-bar">
+            <div class="lens-bar-item">
+              <div class="lens-bar-chip"><span class="label">Views</span><span class="chev">▼</span></div>
+            </div>
+            <div class="lens-bar-item">
+              <div class="lens-bar-chip active open"><span class="label">Folders:</span><span class="value">Cardiac</span><span class="chev">▼</span></div>
+              <div class="lens-dropdown">
+                <div class="lens-dropdown-item"><span class="ico">▦</span><span>All folders</span><span class="cnt">${FOLDERS.length}</span></div>
+                <div class="lens-dropdown-divider"></div>
+                ${FOLDERS.map(f => `
+                  <div class="lens-dropdown-item ${f.id === 'cardiac' ? 'active' : ''}">
+                    <span class="ico">📁</span><span>${f.title}</span><span class="cnt">${f.count}</span>
+                  </div>
+                `).join('')}
+                <div class="lens-dropdown-divider"></div>
+                <div class="lens-dropdown-add">+ New folder</div>
+              </div>
+            </div>
+            <div class="lens-bar-item">
+              <div class="lens-bar-chip"><span class="label">Shelves</span><span class="chev">▼</span></div>
+            </div>
+            <div class="lens-bar-item">
+              <div class="lens-bar-chip"><span class="label">Pillars</span><span class="chev">▼</span></div>
+            </div>
+            <div class="lens-bar-item">
+              <div class="lens-bar-chip"><span class="label">Tags</span><span class="chev">▼</span></div>
+            </div>
+          </div>
+
+          <div class="lib-fullwidth">
+            <div class="lens-crumb"><span class="icn">📁</span>Folder / <b style="color: var(--text); margin-left: 2px;">Cardiac</b></div>
+            <div class="lens-title-row">
+              <span class="lens-title">Cardiac</span>
+              <span class="lens-badge folder">Folder · private</span>
+            </div>
+            <div class="lens-sub">7 notes filed here · each can also live on shelves, carry tags, and appear in views.</div>
+
+            <div class="lens-filter">
+              <span class="lbl">Filter by tag:</span>
+              <span class="tag-chip" style="background: var(--bg); border: 1px solid var(--border); padding: 1px 7px; border-radius: 999px; font-size: 10.5px; color: var(--text-muted);">acid-base</span>
+              <span class="tag-chip" style="background: var(--bg); border: 1px solid var(--border); padding: 1px 7px; border-radius: 999px; font-size: 10.5px; color: var(--text-muted);">high-yield</span>
+              <span class="tag-chip" style="background: var(--bg); border: 1px solid var(--border); padding: 1px 7px; border-radius: 999px; font-size: 10.5px; color: var(--text-muted);">pathophys</span>
+              <span class="tag-chip" style="background: var(--bg); border: 1px solid var(--border); padding: 1px 7px; border-radius: 999px; font-size: 10.5px; color: var(--text-muted);">+ nclex_*</span>
+              <span class="clear">No filters active</span>
             </div>
 
-            <div class="notes-list">
-              <div class="note-row">
+            <div class="lens-list">
+              <div class="lens-note-row no-num">
                 <div>
-                  <div class="note-title">Acid-Base Balance</div>
-                  <div class="note-meta">Updated 2 days ago · Used in 4 programmes · 8 min read</div>
+                  <div class="lens-note-title">Acid-Base Balance</div>
+                  <div class="lens-note-ex">Respiratory vs metabolic, acidosis vs alkalosis — once you read the ABG in the right order, the answer falls out…</div>
+                  <div class="lens-membership">
+                    <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                    <span class="lens-bit">
+                      <span class="icn">📚</span>
+                      <span class="pip" style="background: #3b82f6;"></span><span class="v">Foundational SATA</span>
+                      <span class="sep">·</span>
+                      <span class="pip" style="background: #f97316;"></span><span class="v">Drug deep dives</span>
+                    </span>
+                    <span class="lens-bit" title="Physiological Adaptation">
+                      <span class="pillar-chip pa">PA</span>
+                    </span>
+                    <span class="lens-bit">
+                      <span class="icn">#</span>
+                      <span class="tag">acid-base</span>
+                      <span class="tag">high-yield</span>
+                    </span>
+                  </div>
                 </div>
-                <div class="note-tags"><span class="tag">acid-base</span><span class="tag">high-yield</span></div>
-                <span class="pill pill-published">Published</span>
+                <div class="lens-note-right">
+                  <span class="pill pill-published">Pub</span>
+                  <span class="used-pill">↳ used in 4</span>
+                  <span class="lens-note-edit">edited 2d ago</span>
+                </div>
               </div>
-              <div class="note-row">
+
+              <div class="lens-note-row no-num">
                 <div>
-                  <div class="note-title">Cardiac anatomy primer</div>
-                  <div class="note-meta">Updated 5 days ago · Used in 2 programmes · 12 min read</div>
+                  <div class="lens-note-title">Cardiac anatomy primer</div>
+                  <div class="lens-note-ex">The four chambers, the great vessels, and the conduction system — the parts you must hold in your head before any cardiac question…</div>
+                  <div class="lens-membership">
+                    <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                    <span class="lens-bit" title="Physiological Adaptation">
+                      <span class="pillar-chip pa">PA</span>
+                    </span>
+                    <span class="lens-bit">
+                      <span class="icn">#</span>
+                      <span class="tag">anatomy</span>
+                    </span>
+                  </div>
                 </div>
-                <div class="note-tags"><span class="tag">anatomy</span></div>
-                <span class="pill pill-published">Published</span>
+                <div class="lens-note-right">
+                  <span class="pill pill-published">Pub</span>
+                  <span class="used-pill">↳ used in 2</span>
+                  <span class="lens-note-edit">edited 5d ago</span>
+                </div>
               </div>
-              <div class="note-row">
+
+              <div class="lens-note-row no-num">
                 <div>
-                  <div class="note-title">ECG basics — rhythm strips</div>
-                  <div class="note-meta">Updated 1 week ago · Used in 3 programmes · 15 min read</div>
+                  <div class="lens-note-title">ECG basics — rhythm strips</div>
+                  <div class="lens-note-ex">Sinus, atrial, ventricular, blocks. The decision tree that gets you to the correct rhythm in three steps, with two embedded practice strips…</div>
+                  <div class="lens-membership">
+                    <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                    <span class="lens-bit">
+                      <span class="icn">📚</span>
+                      <span class="pip" style="background: #f97316;"></span><span class="v">Drug deep dives</span>
+                    </span>
+                    <span class="lens-bit" title="Reduction of Risk Potential">
+                      <span class="pillar-chip ror">ROR</span>
+                    </span>
+                    <span class="lens-bit">
+                      <span class="icn">#</span>
+                      <span class="tag">ecg</span>
+                      <span class="tag">high-yield</span>
+                    </span>
+                  </div>
                 </div>
-                <div class="note-tags"><span class="tag">ecg</span><span class="tag">high-yield</span></div>
-                <span class="pill pill-published">Published</span>
+                <div class="lens-note-right">
+                  <span class="pill pill-published">Pub</span>
+                  <span class="used-pill">↳ used in 3</span>
+                  <span class="lens-note-edit">edited 1w ago</span>
+                </div>
               </div>
-              <div class="note-row">
+
+              <div class="lens-note-row no-num">
                 <div>
-                  <div class="note-title">Heart failure pathophysiology</div>
-                  <div class="note-meta">Updated 3 weeks ago · Used in 1 programme · 10 min read</div>
+                  <div class="lens-note-title">Heart failure pathophysiology</div>
+                  <div class="lens-note-ex">Preload, afterload, contractility — the 3 levers and which drugs pull each one. Forward vs backward failure side-by-side.</div>
+                  <div class="lens-membership">
+                    <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                    <span class="lens-bit" title="Physiological Adaptation">
+                      <span class="pillar-chip pa">PA</span>
+                    </span>
+                    <span class="lens-bit">
+                      <span class="icn">#</span>
+                      <span class="tag">pathophys</span>
+                    </span>
+                  </div>
                 </div>
-                <div class="note-tags"><span class="tag">pathophys</span></div>
-                <span class="pill pill-draft">Draft</span>
+                <div class="lens-note-right">
+                  <span class="pill pill-draft">Draft</span>
+                  <span class="used-pill zero">— used nowhere</span>
+                  <span class="lens-note-edit">edited 3w ago</span>
+                </div>
               </div>
+            </div>
+
+            ${lensExplainStrip()}
+          </div>
+        </main>
+      </div>
+    `;
+  }
+
+  function tutorShelfScopeScreen() {
+    // Shelf scope — "Foundational SATA pack" selected.
+    const shelf = shelfById('foundational-sata');
+    return `
+      ${tutorTopbar()}
+      <div class="body">
+        ${tutorSidebar('library')}
+        <main class="main">
+          <div class="page-title">My Library</div>
+          <div class="page-sub">Reusable teaching notes — your lecture material across all programmes.</div>
+
+          <div class="lib-toolbar">
+            <input class="search-input" placeholder="Search notes by title, body, or tag…" />
+            <button>+ New folder</button>
+            <button class="btn-primary">+ New note</button>
+          </div>
+
+          <div class="lib-grid-lens">
+            ${lensSidebar({ activeKind: 'shelf', activeId: shelf.id })}
+
+            <div>
+              <div class="lens-crumb">
+                <span class="pip" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${shelf.color};"></span>
+                Shelf / <b style="color: var(--text); margin-left: 2px;">${shelf.title}</b>
+              </div>
+              <div class="lens-title-row">
+                <span class="lens-title">${shelf.title}</span>
+                <span class="lens-badge shelf">Shelf · curated</span>
+              </div>
+              <div class="lens-sub">A reusable pack of 4 foundational notes — attach the whole shelf to any unit and every note becomes an activity, auto-syncing.</div>
+
+              <div class="shelf-meta-grid">
+                <div class="shelf-meta">
+                  <div class="shelf-meta-lbl">Attached to</div>
+                  <div class="shelf-meta-val">Bootcamp Cohort 5 · Unit 3</div>
+                  <div class="shelf-meta-sub">47 students — auto-syncs on shelf edits</div>
+                </div>
+                <div class="shelf-meta">
+                  <div class="shelf-meta-lbl">Visibility</div>
+                  <div class="shelf-meta-val">Tutor-wide</div>
+                  <div class="shelf-meta-sub">Visible to every student in any of your programmes</div>
+                </div>
+              </div>
+
+              <div class="lens-list">
+                <div class="lens-note-row">
+                  <div class="lens-num">1</div>
+                  <div>
+                    <div class="lens-note-title">How to attack SATA questions</div>
+                    <div class="lens-note-ex">Recognising the pattern: "Select all that apply" isn't one question, it's up to seven. Rule each option in or out independently…</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Test strategies</span></span>
+                      <span class="lens-bit" title="Management of Care">
+                        <span class="pillar-chip moc">MoC</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">test-strategy</span>
+                        <span class="tag">sata</span>
+                        <span class="tag">foundational</span>
+                      </span>
+                    </div>
+                    <div class="lens-also">
+                      Also on: <span class="pip" style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#8b5cf6; margin-right:3px;"></span><span class="v">Cohort 5 — Unit 3</span>
+                    </div>
+                  </div>
+                  <div class="lens-note-right">
+                    <span class="pill pill-published">Pub</span>
+                    <span class="used-pill">↳ used in 4</span>
+                    <span class="lens-note-edit">edited 2d ago</span>
+                  </div>
+                </div>
+
+                <div class="lens-note-row">
+                  <div class="lens-num">2</div>
+                  <div>
+                    <div class="lens-note-title">Acid-Base Balance</div>
+                    <div class="lens-note-ex">Respiratory vs metabolic, acidosis vs alkalosis — once you read the ABG in the right order, the answer falls out…</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                      <span class="lens-bit" title="Physiological Adaptation">
+                        <span class="pillar-chip pa">PA</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">acid-base</span>
+                        <span class="tag">high-yield</span>
+                      </span>
+                    </div>
+                    <div class="lens-also">
+                      Also on: <span class="pip" style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#f97316; margin-right:3px;"></span><span class="v">Drug deep dives</span>
+                    </div>
+                  </div>
+                  <div class="lens-note-right">
+                    <span class="pill pill-published">Pub</span>
+                    <span class="used-pill">↳ used in 4</span>
+                    <span class="lens-note-edit">edited 2d ago</span>
+                  </div>
+                </div>
+
+                <div class="lens-note-row">
+                  <div class="lens-num">3</div>
+                  <div>
+                    <div class="lens-note-title">Reading lab values quickly</div>
+                    <div class="lens-note-ex">Don't memorise reference ranges. Memorise direction (high/low) and what that means clinically. The 8 you actually need.</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Test strategies</span></span>
+                      <span class="lens-bit" title="Reduction of Risk Potential">
+                        <span class="pillar-chip ror">ROR</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">test-strategy</span>
+                        <span class="tag">lab-values</span>
+                        <span class="tag">foundational</span>
+                      </span>
+                    </div>
+                    <div class="lens-also">Also on: <span class="v" style="color: var(--text-dim);">— this shelf only</span></div>
+                  </div>
+                  <div class="lens-note-right">
+                    <span class="pill pill-published">Pub</span>
+                    <span class="used-pill">↳ used in 4</span>
+                    <span class="lens-note-edit">edited 6d ago</span>
+                  </div>
+                </div>
+
+                <div class="lens-note-row">
+                  <div class="lens-num">4</div>
+                  <div>
+                    <div class="lens-note-title">Prioritization frameworks (ABC, Maslow)</div>
+                    <div class="lens-note-ex">When all four options are correct — which one comes first? Airway always wins. Unless it doesn't (and here's when).</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Test strategies</span></span>
+                      <span class="lens-bit" title="Management of Care">
+                        <span class="pillar-chip moc">MoC</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">test-strategy</span>
+                        <span class="tag">foundational</span>
+                      </span>
+                    </div>
+                    <div class="lens-also">Also on: <span class="v" style="color: var(--text-dim);">— this shelf only</span></div>
+                  </div>
+                  <div class="lens-note-right">
+                    <span class="pill pill-published">Pub</span>
+                    <span class="used-pill">↳ used in 5</span>
+                    <span class="lens-note-edit">edited 1w ago</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top: 10px; display: flex; gap: 8px;">
+                <button>+ Add note to shelf</button>
+                <button>Reorder</button>
+                <button>Shelf settings</button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    `;
+  }
+
+  function tutorAllFoldersScreen() {
+    return `
+      ${tutorTopbar()}
+      <div class="body">
+        ${tutorSidebar('library')}
+        <main class="main">
+          <div class="page-title">My Library</div>
+          <div class="page-sub">Reusable teaching notes — your lecture material across all programmes.</div>
+
+          <div class="lib-toolbar">
+            <input class="search-input" placeholder="Search notes by title, body, or tag…" />
+            <button>+ New folder</button>
+            <button class="btn-primary">+ New note</button>
+          </div>
+
+          <div class="lib-grid-lens">
+            ${lensSidebar({ activeKind: 'all-folders' })}
+
+            <div>
+              <div class="lens-crumb"><span class="icn">▦</span>Folders / <b style="color: var(--text); margin-left: 2px;">All folders</b></div>
+              <div class="lens-title-row">
+                <span class="lens-title">All folders</span>
+                <span class="lens-badge folder">${FOLDERS.length} folders · primary bin</span>
+              </div>
+              <div class="lens-sub">Exactly one folder per note — your primary structure. Visibility is per-note, not per-folder.</div>
+
+              <div class="all-folders-grid">
+                ${FOLDERS.map(f => `
+                  <div class="folder-card">
+                    <div class="folder-card-icon">${icons.folder}</div>
+                    <div class="folder-card-title">${f.title}</div>
+                    <div class="folder-card-meta">${f.count} notes${f.drafts > 0 ? ` · ${f.drafts} draft` : ''}</div>
+                  </div>
+                `).join('')}
+              </div>
+
+              <div class="lens-explain" style="margin-top: 18px;">
+                <b>Folders vs Shelves.</b> A folder is the <em>one place a note is filed</em> (1 per note) — your primary structure. A shelf is a <em>curated pack</em> (many per note) — useful for cross-cutting collections that span folders. Use folders for your spine, shelves for groupings. Visibility lives on the note (Tutor-wide or Programme-scoped) — both folders and shelves are pure organisational tools.
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    `;
+  }
+
+  function tutorAllShelvesScreen() {
+    // Note cards per shelf — drives the Spotify-style horizontal carousel.
+    const shelfNotes = {
+      'foundational-sata': [
+        { title: 'How to attack SATA questions',
+          excerpt: 'Recognising the pattern: "Select all that apply" isn\'t one question, it\'s up to seven. Rule each option in or out…',
+          pillar: 'moc',
+          tags: [['test-strategy','teal'], ['sata','blue']] },
+        { title: 'ABG interpretation walkthrough',
+          excerpt: 'pH → CO₂ → HCO₃ → compensation. Worked example with two embedded questions you can attempt as you read…',
+          pillar: 'ror',
+          tags: [['pathophys','blue'], ['lab-values','purple']] },
+        { title: 'Reading lab values quickly',
+          excerpt: 'Don\'t memorise reference ranges. Memorise direction (high/low) and what that means clinically. The 8 you actually need.',
+          pillar: 'ror',
+          tags: [['test-strategy','teal'], ['lab-values','purple']] },
+        { title: 'Prioritization frameworks (ABC, Maslow)',
+          excerpt: 'When all four options are correct — which one comes first? Airway always wins. Unless it doesn\'t (and here\'s when).',
+          pillar: 'moc',
+          tags: [['test-strategy','teal'], ['foundational','']] },
+      ],
+      'cohort-5-w3': [
+        { title: 'How to attack SATA questions',
+          excerpt: 'Recognising the pattern: "Select all that apply" isn\'t one question, it\'s up to seven. Rule each option in or out…',
+          pillar: 'moc',
+          tags: [['test-strategy','teal'], ['sata','blue']] },
+        { title: 'Beta-blockers deep dive',
+          excerpt: 'Selective vs non-selective, the -olol family, why you hold for bradycardia under 60, and the rebound risk if you stop abruptly…',
+          pillar: 'ppt',
+          tags: [['pharm','purple'], ['cardiac','red']] },
+        { title: 'Cohort 5 — Unit 3 study plan',
+          excerpt: 'Mon: read beta-blockers. Tue: SATA strategy. Wed: live Q&A. Thu: bank quiz. Fri: review wrong answers.',
+          pillar: 'moc',
+          tags: [] },
+      ],
+      'drug-deep-dives': [
+        { title: 'Acid-base balance — the 4 disturbances',
+          excerpt: 'Respiratory vs metabolic, acidosis vs alkalosis — once you read the ABG in the right order, the answer falls out…',
+          pillar: 'pa',
+          tags: [['pathophys','blue'], ['lab-values','purple']] },
+        { title: 'Beta-blockers deep dive',
+          excerpt: 'Selective vs non-selective, the -olol family, why you hold for bradycardia under 60, and the rebound risk…',
+          pillar: 'ppt',
+          tags: [['pharm','purple'], ['cardiac','red']] },
+        { title: 'Heart failure case map',
+          excerpt: 'Preload, afterload, contractility — the 3 levers and which drugs pull each one. Forward vs backward failure side-by-side.',
+          pillar: 'pa',
+          tags: [['pathophys','blue'], ['cardiac','red']] },
+        { title: 'Insulin types & sliding scale',
+          excerpt: 'Onset / peak / duration table for rapid, short, intermediate, long. Lispro vs regular vs NPH vs glargine.',
+          pillar: 'ppt',
+          tags: [['pharm','purple'], ['endocrine','amber']] },
+        { title: 'Sepsis — the first-hour bundle',
+          excerpt: 'Lactate, cultures, broad-spectrum, fluids — the order matters and the timer is real.',
+          pillar: 'pa',
+          tags: [['pathophys','blue']] },
+      ],
+    };
+
+    const pillarCodeOf = id => (PILLARS.find(p => p.id === id) || {}).code;
+    const pillarNameOf = id => (PILLARS.find(p => p.id === id) || {}).name;
+
+    const totalNotes = SHELVES.reduce((sum, s) => sum + (shelfNotes[s.id]?.length || 0), 0);
+
+    return `
+      ${tutorTopbar()}
+      <div class="body">
+        ${tutorSidebar('library')}
+        <main class="main">
+          <div class="all-shelves-pill">
+            <span class="num">${SHELVES.length} · Shelves</span>
+            <span class="mn">M:N COLLECTIONS</span>
+            <span class="note">Curated packs. One note can live on many shelves. Like Spotify playlists.</span>
+          </div>
+
+          <div class="page-title" style="margin-top: 4px;">My Library</div>
+          <div class="page-sub">${totalNotes} notes across ${SHELVES.length} shelves · drag notes onto shelves to add</div>
+
+          <div class="all-shelves-tabs">
+            <span class="all-shelves-tab active">Shelves</span>
+            <span class="all-shelves-tab">All notes</span>
+            <span class="all-shelves-tab">Recents</span>
+          </div>
+
+          <div class="lib-grid-lens">
+            ${lensSidebar({ activeKind: 'all-shelves' })}
+
+            <div>
+              ${SHELVES.map(s => {
+                const notes = shelfNotes[s.id] || [];
+                return `
+                  <div class="shelf-section">
+                    <div class="shelf-section-head">
+                      <span class="dot" style="background: ${s.color};"></span>
+                      <span class="ttl">${s.title}</span>
+                      <span class="cnt">${notes.length} notes</span>
+                      <span class="sep">·</span>
+                      <span class="tag-line">${s.tagline}</span>
+                      <span class="open-link">Open shelf →</span>
+                    </div>
+                    <div class="shelf-cards">
+                      ${notes.map(n => `
+                        <div class="shelf-card">
+                          <div>
+                            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; margin-bottom: 4px;">
+                              <div class="shelf-card-title" style="flex: 1;">${n.title}</div>
+                              ${n.pillar ? `<span class="pillar-chip ${n.pillar}" title="${pillarNameOf(n.pillar)}">${pillarCodeOf(n.pillar)}</span>` : ''}
+                            </div>
+                            <div class="shelf-card-excerpt">${n.excerpt}</div>
+                          </div>
+                          ${n.tags.length > 0 ? `
+                            <div class="shelf-card-tags">
+                              ${n.tags.map(([t, tone]) => `<span class="tag${tone ? ` solid-${tone}` : ''}">${t}</span>`).join('')}
+                            </div>
+                          ` : ''}
+                        </div>
+                      `).join('')}
+                      <div class="shelf-card-add">+ Add to shelf</div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
             </div>
           </div>
         </main>
@@ -1345,6 +2556,14 @@
                 <div class="rail-row">${icons.folder}<span>Cardiac</span></div>
               </div>
               <div class="rail-section">
+                <div class="rail-label">NCLEX pillar</div>
+                <div class="rail-row" style="align-items: center;">
+                  <span class="pillar-chip pa" title="Physiological Adaptation">PA</span>
+                  <span style="font-size: 11.5px; color: var(--text-muted);">Physiological Adaptation</span>
+                </div>
+                <div class="rail-help">Primary Client Needs category. One per note.</div>
+              </div>
+              <div class="rail-section">
                 <div class="rail-label">Tags</div>
                 <div style="display:flex; gap:4px; flex-wrap:wrap;">
                   <span class="tag">acid-base</span>
@@ -1418,12 +2637,12 @@
             <div class="activity-tile"><span class="activity-tile-icon">${icons.video}</span><div class="activity-tile-name">Live session</div><div class="activity-tile-desc">Zoom / Meet</div></div>
             <div class="activity-tile"><span class="activity-tile-icon">${icons.target}</span><div class="activity-tile-name">Mock</div><div class="activity-tile-desc">Full-length assessment</div></div>
             <div class="activity-tile"><span class="activity-tile-icon">${icons.quiz}</span><div class="activity-tile-name">Practice quiz</div><div class="activity-tile-desc">Filtered bank quiz</div></div>
-            <div class="activity-tile new" data-attach="1"><span class="activity-tile-icon">${icons.library}</span><div class="activity-tile-name">Library Note</div><div class="activity-tile-desc">Reusable teaching content</div></div>
-            <div class="activity-tile" style="opacity: 0.4; cursor: default;"><span class="activity-tile-icon">${icons.edit}</span><div class="activity-tile-name">Assignment</div><div class="activity-tile-desc">v2 — coming soon</div></div>
+            <div class="activity-tile new" data-attach="1"><span class="activity-tile-icon">${icons.library}</span><div class="activity-tile-name">Library Note</div><div class="activity-tile-desc">A single reusable note</div></div>
+            <div class="activity-tile new" data-shelf-pick="1"><span class="activity-tile-icon">${icons.library}</span><div class="activity-tile-name">Shelf</div><div class="activity-tile-desc">A whole curated pack</div></div>
           </div>
 
           <div style="margin-top: 16px; padding: 10px 12px; background: var(--accent-light); border-radius: var(--radius-md); font-size: 12.5px; color: var(--success-text);">
-            <strong>New:</strong> Library Note is the 7th activity type. Picks from your library; the same note can be attached to multiple units across multiple programmes.
+            <strong>Two new types.</strong> <b>Library Note</b> attaches a single reusable note. <b>Shelf</b> attaches a whole curated pack — every note on the shelf becomes an activity row in this unit, all under one coloured grouped block. Shelf members auto-sync: add or remove a note on the shelf later and this unit updates automatically.
           </div>
         </main>
       </div>
@@ -1465,34 +2684,695 @@
     `;
   }
 
+  function tutorShelfPickerModal() {
+    // State 2 of the attach-shelf flow. Layered over the picker.
+    // First 3 notes of each shelf are previewed for context.
+    const shelfPreviews = {
+      'foundational-sata': ['How to attack SATA questions', 'ABG interpretation walkthrough', 'Reading lab values quickly'],
+      'drug-deep-dives':   ['Acid-base balance — the 4 disturbances', 'Beta-blockers deep dive', 'Heart failure case map'],
+      'cohort-5-w3':       ['How to attack SATA questions', 'Beta-blockers deep dive', 'Cohort 5 — Unit 3 study plan'],
+    };
+    return `
+      ${tutorPickerScreen()}
+      <div class="backdrop">
+        <div class="modal" style="width: 540px;" onclick="event.stopPropagation()">
+          <div class="modal-title">Add a Shelf to Unit 3</div>
+          <div class="modal-body">Pick one shelf. Every note on the shelf becomes an activity row in this unit, grouped under one coloured block. The shelf auto-syncs — add or remove notes later and this unit updates automatically.</div>
+          <input class="search-input" placeholder="Search your shelves…" style="width: 100%; margin-bottom: 10px;" />
+          <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); max-height: 280px; overflow-y: auto;">
+            ${SHELVES.map((s, i) => `
+              <div class="shelf-pick-row ${i === 0 ? 'selected' : ''}">
+                <span class="dot" style="background: ${s.color};"></span>
+                <div>
+                  <div class="ttl">${s.title}</div>
+                  <div class="desc">${s.tagline}</div>
+                  <div class="preview">
+                    ${(shelfPreviews[s.id] || []).slice(0, 3).map(n => `<span class="nm">${n}</span>`).join('')}
+                    ${s.count > 3 ? `<span style="color: var(--text-dim);">+ ${s.count - 3} more</span>` : ''}
+                  </div>
+                </div>
+                <div class="cnt-col">
+                  <div style="font-weight: 600; color: var(--text); font-size: 12px;">${s.count}</div>
+                  <div>notes</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="modal-actions" style="margin-top: 14px;">
+            <button data-close="1">Cancel</button>
+            <button class="primary">Add shelf to Unit 3</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function tutorAttachedScreen() {
+    // State 3 of the attach-shelf flow. The unit-builder AFTER a shelf is attached.
+    // Shows context activities + the new grouped shelf block + auto-sync banner.
+    const shelf = shelfById('foundational-sata');
+    const shelfNotes = [
+      { title: 'How to attack SATA questions',     meta: 'Library Note · 6 min read' },
+      { title: 'ABG interpretation walkthrough',   meta: 'Library Note · 8 min read · 2 embedded questions' },
+      { title: 'Reading lab values quickly',       meta: 'Library Note · 5 min read' },
+      { title: 'Prioritization frameworks (ABC, Maslow)', meta: 'Library Note · 7 min read' },
+    ];
+    return `
+      ${tutorTopbar()}
+      <div class="body">
+        ${tutorSidebar('programmes')}
+        <main class="main">
+          <div class="unit-builder-crumb">Bootcamp Cohort 5 / Unit 3 Cardiovascular / Block 1: Anatomy primer</div>
+          <div class="page-title">Unit 3 · Cardiovascular</div>
+          <div class="page-sub">Authoring this unit's reading list. The new shelf attachment appears as a single grouped block — its members auto-sync with the source shelf.</div>
+
+          <div class="unit-board" style="margin-top: 12px;">
+            <div class="unit-row">
+              <div class="unit-row-icon">${icons.text}</div>
+              <div>
+                <div class="unit-row-title">Welcome &amp; overview</div>
+                <div class="unit-row-meta">Text · 2 min read</div>
+              </div>
+              <span class="pill pill-published">Published</span>
+              <span class="unit-row-kebab">⋮</span>
+            </div>
+            <div class="unit-row">
+              <div class="unit-row-icon">${icons.video}</div>
+              <div>
+                <div class="unit-row-title">Live session: cardiac patho</div>
+                <div class="unit-row-meta">Live session · Wed 10:00 GMT · Zoom</div>
+              </div>
+              <span class="pill pill-published">Published</span>
+              <span class="unit-row-kebab">⋮</span>
+            </div>
+
+            <div class="shelf-attach-block" style="border-color: ${shelf.color};">
+              <div class="shelf-attach-head" style="background: ${shelf.color}1a;">
+                <span class="dot" style="background: ${shelf.color};"></span>
+                <span class="ttl">${shelf.title}</span>
+                <span class="sub">· ${shelfNotes.length} notes from your library</span>
+                <span class="kebab">⋮</span>
+              </div>
+              <div class="shelf-attach-rows">
+                ${shelfNotes.map(n => `
+                  <div class="unit-row">
+                    <div class="unit-row-icon">${icons.library}</div>
+                    <div>
+                      <div class="unit-row-title">${n.title}</div>
+                      <div class="unit-row-meta">${n.meta}</div>
+                    </div>
+                    <span class="pill pill-published">Published</span>
+                    <span class="unit-row-kebab">⋮</span>
+                  </div>
+                `).join('')}
+              </div>
+              <div class="shelf-attach-banner">
+                ↻ <b>Auto-syncing.</b> Add or remove notes on the <em>${shelf.title}</em> shelf and this unit's activities update automatically. Each note row stays individually addressable — kebab to remove from this unit, or open the editor.
+              </div>
+            </div>
+
+            <div class="unit-row">
+              <div class="unit-row-icon">${icons.target}</div>
+              <div>
+                <div class="unit-row-title">Cardiac fundamentals mock</div>
+                <div class="unit-row-meta">Mock · 30 questions · 60 min</div>
+              </div>
+              <span class="pill pill-published">Published</span>
+              <span class="unit-row-kebab">⋮</span>
+            </div>
+          </div>
+
+          <div class="unit-builder-actions">
+            <button>+ Add activity</button>
+            <button>+ Add activity to block</button>
+            <button>+ Add block</button>
+          </div>
+
+          <div style="margin-top: 18px; padding: 10px 12px; background: var(--accent-light); border-radius: var(--radius-md); font-size: 12px; color: var(--success-text);">
+            <strong>The grouped block.</strong> Coloured outer border = the shelf's identity, carried from the library all the way into the unit. Inside the block, each note is a normal activity row — same as if you'd attached them one at a time, but now their membership lives on the shelf and auto-propagates. Detaching a single note via its kebab breaks the link for that row only (the rest of the shelf stays attached).
+          </div>
+        </main>
+      </div>
+    `;
+  }
+
   // ─── Student screens ─────────────────────────────────────────
 
-  function studentLibraryHome() {
+  // Student lens sidebar — same five lenses as tutor, minus author affordances.
+  // Counts are visibility-filtered (a "view available to me" slice).
+  function studentLensSidebar(opts) {
+    const { activeKind, activeId } = opts; // 'folder' | 'shelf' | 'all-folders' | 'all-shelves'
+    const isFolderActive = key => activeKind === 'folder' && activeId === key;
+    const isShelfActive  = id  => activeKind === 'shelf'  && activeId === id;
+    const isAllFolders   = activeKind === 'all-folders';
+    const isAllShelves   = activeKind === 'all-shelves';
+    // Student-visible counts — typically lower than the tutor's totals.
+    const studentFolderCounts = { cardiac: 5, pharm: 3, endocrine: 2, test: 6 };
+    const studentShelfCounts  = { 'foundational-sata': 4, 'drug-deep-dives': 4, 'cohort-5-w3': 3 };
+    const studentPillarCounts = { moc: 3, sic: 0, hpm: 0, pi: 0, bcc: 0, ppt: 1, ror: 2, pa: 4 };
+    const visibleFolders = FOLDERS.filter(f => studentFolderCounts[f.id] > 0);
+    const visibleShelves = SHELVES.filter(s => studentShelfCounts[s.id] > 0);
+    return `
+      <div class="lens-side">
+        <div class="lens-section"><span>Views</span><span class="grow"></span></div>
+        <div class="lens-item"><span class="ico">▤</span><span>All notes</span><span class="cnt">16</span></div>
+        <div class="lens-item"><span class="ico">⏱</span><span>Recent</span><span class="cnt">3</span></div>
+        <div class="lens-item"><span class="ico">📅</span><span>For this unit</span><span class="cnt">2</span></div>
+        <div class="lens-item"><span class="ico">${icons.bookmark}</span><span>Bookmarked</span><span class="cnt">1</span></div>
+
+        <div class="lens-section"><span>Folders</span><span class="grow"></span></div>
+        <div class="lens-item ${isAllFolders ? 'active' : ''}"><span class="ico">▦</span><span>All folders</span><span class="cnt">${visibleFolders.length}</span></div>
+        ${visibleFolders.map(f => `
+          <div class="lens-item ${isFolderActive(f.id) ? 'active' : ''}"><span class="ico">📁</span><span>${f.title}</span><span class="cnt">${studentFolderCounts[f.id]}</span></div>
+        `).join('')}
+
+        <div class="lens-section"><span>Shelves</span><span class="grow"></span></div>
+        <div class="lens-item ${isAllShelves ? 'active' : ''}"><span class="ico">▦</span><span>All shelves</span><span class="cnt">${visibleShelves.length}</span></div>
+        ${visibleShelves.map(s => `
+          <div class="lens-item ${isShelfActive(s.id) ? 'active' : ''}">
+            <span class="pip" style="background: ${s.color};"></span>
+            <span>${s.title}</span>
+            <span class="cnt">${studentShelfCounts[s.id]}</span>
+          </div>
+        `).join('')}
+
+        <div class="lens-section"><span>Pillars</span><span class="grow"></span><span class="act" title="NCLEX Client Needs">NCLEX</span></div>
+        ${PILLARS.filter(p => studentPillarCounts[p.id] > 0).map(p => `
+          <div class="lens-item" title="${p.name}">
+            <span class="pillar-chip ${p.id}" style="margin-right: 4px;">${p.code}</span>
+            <span style="font-size: 11.5px; color: var(--text-muted);">${p.name.length > 22 ? p.name.slice(0, 20) + '…' : p.name}</span>
+            <span class="cnt">${studentPillarCounts[p.id]}</span>
+          </div>
+        `).join('')}
+
+        <div class="lens-section"><span>Tags</span><span class="grow"></span></div>
+        <div class="lens-tag-cloud">
+          <span class="tag-chip">acid-base</span>
+          <span class="tag-chip">high-yield</span>
+          <span class="tag-chip">ecg</span>
+          <span class="tag-chip">pathophys</span>
+          <span class="tag-chip">sata</span>
+          <span class="tag-chip">lab-values</span>
+          <span class="tag-chip">foundational</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function studentAllFoldersScreen() {
+    // Student all folders — folder cards grid, counts are student-visible only.
+    const studentFolderCounts = { cardiac: 5, pharm: 3, endocrine: 2, test: 6 };
+    const visibleFolders = FOLDERS.filter(f => studentFolderCounts[f.id] > 0);
     return `
       ${studentTopbar(false)}
       <div class="body">
         ${programmeSidebar('library')}
         <main class="main">
           <div class="page-title">Library</div>
-          <div class="page-sub">Notes by Dr Mensah · 24 notes available · 2 new this week</div>
+          <div class="page-sub">Notes by Dr Mensah · 16 notes available to you · 2 added this week</div>
 
-          <div style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 10px 0 8px;">Topics</div>
-          <div class="lib-home-grid">
-            <div class="topic-card"><div class="topic-card-icon">${icons.folder}</div><div class="topic-card-title">Cardiac</div><div class="topic-card-meta">7 notes · 2 new</div></div>
-            <div class="topic-card"><div class="topic-card-icon">${icons.folder}</div><div class="topic-card-title">Pharmacology</div><div class="topic-card-meta">5 notes</div></div>
-            <div class="topic-card"><div class="topic-card-icon">${icons.folder}</div><div class="topic-card-title">Endocrine</div><div class="topic-card-meta">4 notes</div></div>
-            <div class="topic-card"><div class="topic-card-icon">${icons.folder}</div><div class="topic-card-title">Test strategies</div><div class="topic-card-meta">8 notes</div></div>
+          <div class="lib-toolbar">
+            <input class="search-input" placeholder="Search notes by title, body, or tag…" />
           </div>
 
-          <div style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 22px 0 8px;">Recently updated</div>
-          <div class="notes-list" style="background: var(--white);">
-            <div class="note-row" style="grid-template-columns: 1fr auto;">
-              <div><div class="note-title">Acid-Base Balance</div><div class="note-meta">Cardiac · Updated 2 days ago · 8 min read</div></div>
-              <span class="pill pill-task">Week 3 task</span>
+          <div class="lib-grid-lens">
+            ${studentLensSidebar({ activeKind: 'all-folders' })}
+
+            <div>
+              <div class="lens-crumb"><span class="icn">▦</span>Folders / <b style="color: var(--text); margin-left: 2px;">All folders</b></div>
+              <div class="lens-title-row">
+                <span class="lens-title">All folders</span>
+                <span class="lens-badge folder">${visibleFolders.length} folders available to you</span>
+              </div>
+              <div class="lens-sub">Empty folders are hidden — only folders with at least one note you can read appear here.</div>
+
+              <div class="all-folders-grid">
+                ${visibleFolders.map(f => `
+                  <div class="folder-card">
+                    <div class="folder-card-icon">${icons.folder}</div>
+                    <div class="folder-card-title">${f.title}</div>
+                    <div class="folder-card-meta">${studentFolderCounts[f.id]} notes</div>
+                  </div>
+                `).join('')}
+              </div>
+
+              <div class="lens-explain" style="margin-top: 18px;">
+                <b>Your tutor's folders, your view.</b> Your tutor uses folders as their primary organising bin. You see the same folders, but each card's count reflects the notes <em>you</em> can read — typically fewer than the tutor's totals because some notes are scoped to other cohorts.
+              </div>
             </div>
-            <div class="note-row" style="grid-template-columns: 1fr auto;">
-              <div><div class="note-title">ECG basics — rhythm strips</div><div class="note-meta">Cardiac · Updated 1 week ago · 15 min read</div></div>
-              <span style="font-size: 11px; color: var(--text-dim);">${icons.bookmark}</span>
+          </div>
+        </main>
+      </div>
+    `;
+  }
+
+  function studentAllShelvesScreen() {
+    // Student all shelves — Spotify carousels, only student-visible notes.
+    // No "+ Add to shelf" trailing slot; read-only.
+    const shelfNotes = {
+      'foundational-sata': [
+        { title: 'How to attack SATA questions',
+          excerpt: 'Recognising the pattern: "Select all that apply" isn\'t one question, it\'s up to seven. Rule each option in or out…',
+          pillar: 'moc',
+          tags: [['test-strategy','teal'], ['sata','blue']] },
+        { title: 'ABG interpretation walkthrough',
+          excerpt: 'pH → CO₂ → HCO₃ → compensation. Worked example with two embedded questions you can attempt as you read…',
+          pillar: 'ror',
+          tags: [['pathophys','blue'], ['lab-values','purple']] },
+        { title: 'Reading lab values quickly',
+          excerpt: 'Don\'t memorise reference ranges. Memorise direction (high/low) and what that means clinically. The 8 you actually need.',
+          pillar: 'ror',
+          tags: [['test-strategy','teal'], ['lab-values','purple']] },
+        { title: 'Prioritization frameworks (ABC, Maslow)',
+          excerpt: 'When all four options are correct — which one comes first? Airway always wins. Unless it doesn\'t (and here\'s when).',
+          pillar: 'moc',
+          tags: [['test-strategy','teal'], ['foundational','']] },
+      ],
+      'cohort-5-w3': [
+        { title: 'How to attack SATA questions',
+          excerpt: 'Recognising the pattern: "Select all that apply" isn\'t one question, it\'s up to seven. Rule each option in or out…',
+          pillar: 'moc',
+          tags: [['test-strategy','teal'], ['sata','blue']] },
+        { title: 'Beta-blockers deep dive',
+          excerpt: 'Selective vs non-selective, the -olol family, why you hold for bradycardia under 60, and the rebound risk if you stop abruptly…',
+          pillar: 'ppt',
+          tags: [['pharm','purple'], ['cardiac','red']] },
+        { title: 'Cohort 5 — Unit 3 study plan',
+          excerpt: 'Mon: read beta-blockers. Tue: SATA strategy. Wed: live Q&A. Thu: bank quiz. Fri: review wrong answers.',
+          pillar: 'moc',
+          tags: [] },
+      ],
+      // 'drug-deep-dives' has 6 tutor-side notes; this student sees 4.
+      'drug-deep-dives': [
+        { title: 'Acid-base balance — the 4 disturbances',
+          excerpt: 'Respiratory vs metabolic, acidosis vs alkalosis — once you read the ABG in the right order, the answer falls out…',
+          pillar: 'pa',
+          tags: [['pathophys','blue'], ['lab-values','purple']] },
+        { title: 'Beta-blockers deep dive',
+          excerpt: 'Selective vs non-selective, the -olol family, why you hold for bradycardia under 60, and the rebound risk…',
+          pillar: 'ppt',
+          tags: [['pharm','purple'], ['cardiac','red']] },
+        { title: 'Heart failure case map',
+          excerpt: 'Preload, afterload, contractility — the 3 levers and which drugs pull each one. Forward vs backward failure side-by-side.',
+          pillar: 'pa',
+          tags: [['pathophys','blue'], ['cardiac','red']] },
+        { title: 'Sepsis — the first-hour bundle',
+          excerpt: 'Lactate, cultures, broad-spectrum, fluids — the order matters and the timer is real.',
+          pillar: 'pa',
+          tags: [['pathophys','blue']] },
+      ],
+    };
+
+    const studentShelfCounts  = { 'foundational-sata': 4, 'drug-deep-dives': 4, 'cohort-5-w3': 3 };
+    const tutorShelfCounts    = { 'foundational-sata': 4, 'drug-deep-dives': 6, 'cohort-5-w3': 3 };
+    const visibleShelves = SHELVES.filter(s => studentShelfCounts[s.id] > 0);
+    const totalVisible = Object.values(studentShelfCounts).reduce((a, b) => a + b, 0);
+    const pillarCodeOf = id => (PILLARS.find(p => p.id === id) || {}).code;
+    const pillarNameOf = id => (PILLARS.find(p => p.id === id) || {}).name;
+
+    return `
+      ${studentTopbar(false)}
+      <div class="body">
+        ${programmeSidebar('library')}
+        <main class="main">
+          <div class="all-shelves-pill">
+            <span class="num">${visibleShelves.length} · Shelves</span>
+            <span class="mn">M:N COLLECTIONS</span>
+            <span class="note">Your tutor's curated packs. The same note can sit on more than one shelf.</span>
+          </div>
+
+          <div class="page-title" style="margin-top: 4px;">Library</div>
+          <div class="page-sub">${totalVisible} notes across ${visibleShelves.length} shelves available to you</div>
+
+          <div class="all-shelves-tabs">
+            <span class="all-shelves-tab active">Shelves</span>
+            <span class="all-shelves-tab">All notes</span>
+            <span class="all-shelves-tab">Recents</span>
+          </div>
+
+          <div class="lib-grid-lens">
+            ${studentLensSidebar({ activeKind: 'all-shelves' })}
+
+            <div>
+              ${visibleShelves.map(s => {
+                const notes = shelfNotes[s.id] || [];
+                const tutorTotal = tutorShelfCounts[s.id] || notes.length;
+                const filterHint = notes.length < tutorTotal
+                  ? ` <span style="color: var(--text-dim);">· ${notes.length} of ${tutorTotal} available to you</span>`
+                  : '';
+                return `
+                  <div class="shelf-section">
+                    <div class="shelf-section-head">
+                      <span class="dot" style="background: ${s.color};"></span>
+                      <span class="ttl">${s.title}</span>
+                      <span class="cnt">${notes.length} notes</span>
+                      <span class="sep">·</span>
+                      <span class="tag-line">${s.tagline}</span>${filterHint}
+                      <span class="open-link">Open shelf →</span>
+                    </div>
+                    <div class="shelf-cards">
+                      ${notes.map(n => `
+                        <div class="shelf-card">
+                          <div>
+                            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; margin-bottom: 4px;">
+                              <div class="shelf-card-title" style="flex: 1;">${n.title}</div>
+                              ${n.pillar ? `<span class="pillar-chip ${n.pillar}" title="${pillarNameOf(n.pillar)}">${pillarCodeOf(n.pillar)}</span>` : ''}
+                            </div>
+                            <div class="shelf-card-excerpt">${n.excerpt}</div>
+                          </div>
+                          ${n.tags.length > 0 ? `
+                            <div class="shelf-card-tags">
+                              ${n.tags.map(([t, tone]) => `<span class="tag${tone ? ` solid-${tone}` : ''}">${t}</span>`).join('')}
+                            </div>
+                          ` : ''}
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+
+              <div class="lens-explain" style="margin-top: 6px;">
+                <b>Your shelves, your view.</b> A shelf shown here has at least one note you can read. If your tutor put 6 notes on a shelf but only 4 are visible to you, you'll see 4 cards — the "of N available to you" hint next to the tagline reflects that. Empty shelves are hidden from your view automatically.
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    `;
+  }
+
+  function studentLibraryHome() {
+    // Student folder scope — Cardiac active. Read-only mirror of tutor folder scope.
+    return `
+      ${studentTopbar(false)}
+      <div class="body">
+        ${programmeSidebar('library')}
+        <main class="main">
+          <div class="page-title">Library</div>
+          <div class="page-sub">Notes by Dr Mensah · 16 notes available to you · 2 added this week</div>
+
+          <div class="lib-toolbar">
+            <input class="search-input" placeholder="Search notes by title, body, or tag…" />
+          </div>
+
+          <div class="lib-grid-lens">
+            ${studentLensSidebar({ activeKind: 'folder', activeId: 'cardiac' })}
+
+            <div>
+              <div class="lens-crumb"><span class="icn">📁</span>Folder / <b style="color: var(--text); margin-left: 2px;">Cardiac</b></div>
+              <div class="lens-title-row">
+                <span class="lens-title">Cardiac</span>
+                <span class="lens-badge folder">Folder</span>
+              </div>
+              <div class="lens-sub">5 of 7 notes available to you — the rest are scoped to other cohorts.</div>
+
+              <div class="lens-filter">
+                <span class="lbl">Filter by tag:</span>
+                <span class="tag-chip" style="background: var(--bg); border: 1px solid var(--border); padding: 1px 7px; border-radius: 999px; font-size: 10.5px; color: var(--text-muted);">acid-base</span>
+                <span class="tag-chip" style="background: var(--bg); border: 1px solid var(--border); padding: 1px 7px; border-radius: 999px; font-size: 10.5px; color: var(--text-muted);">high-yield</span>
+                <span class="tag-chip" style="background: var(--bg); border: 1px solid var(--border); padding: 1px 7px; border-radius: 999px; font-size: 10.5px; color: var(--text-muted);">pathophys</span>
+                <span class="clear">No filters active</span>
+              </div>
+
+              <div class="lens-list">
+                <div class="lens-note-row no-num">
+                  <div>
+                    <div class="lens-note-title">Acid-Base Balance</div>
+                    <div class="lens-note-ex">Respiratory vs metabolic, acidosis vs alkalosis — once you read the ABG in the right order, the answer falls out…</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                      <span class="lens-bit">
+                        <span class="icn">📚</span>
+                        <span class="pip" style="background: #3b82f6;"></span><span class="v">Foundational SATA</span>
+                        <span class="sep">·</span>
+                        <span class="pip" style="background: #f97316;"></span><span class="v">Drug deep dives</span>
+                      </span>
+                      <span class="lens-bit" title="Physiological Adaptation">
+                        <span class="pillar-chip pa">PA</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">acid-base</span>
+                        <span class="tag">high-yield</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="lens-note-right">
+                    <span class="pill pill-task">Unit 3 task</span>
+                    <span class="lens-note-edit">8 min read</span>
+                  </div>
+                </div>
+
+                <div class="lens-note-row no-num">
+                  <div>
+                    <div class="lens-note-title">Cardiac anatomy primer</div>
+                    <div class="lens-note-ex">The four chambers, the great vessels, and the conduction system — the parts you must hold in your head before any cardiac question…</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                      <span class="lens-bit" title="Physiological Adaptation">
+                        <span class="pillar-chip pa">PA</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">anatomy</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="lens-note-right">
+                    <span style="font-size: 13px; color: var(--text-dim);">${icons.bookmark}</span>
+                    <span class="lens-note-edit">12 min read</span>
+                  </div>
+                </div>
+
+                <div class="lens-note-row no-num">
+                  <div>
+                    <div class="lens-note-title">ECG basics — rhythm strips</div>
+                    <div class="lens-note-ex">Sinus, atrial, ventricular, blocks. The decision tree that gets you to the correct rhythm in three steps, with two embedded practice strips…</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                      <span class="lens-bit">
+                        <span class="icn">📚</span>
+                        <span class="pip" style="background: #f97316;"></span><span class="v">Drug deep dives</span>
+                      </span>
+                      <span class="lens-bit" title="Reduction of Risk Potential">
+                        <span class="pillar-chip ror">ROR</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">ecg</span>
+                        <span class="tag">high-yield</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="lens-note-right">
+                    <span style="font-size: 13px; color: var(--accent);">${icons.bookmark}</span>
+                    <span class="lens-note-edit">15 min read</span>
+                  </div>
+                </div>
+
+                <div class="lens-note-row no-num">
+                  <div>
+                    <div class="lens-note-title">Heart failure case map</div>
+                    <div class="lens-note-ex">Preload, afterload, contractility — the 3 levers and which drugs pull each one. Forward vs backward failure side-by-side.</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                      <span class="lens-bit">
+                        <span class="icn">📚</span>
+                        <span class="pip" style="background: #f97316;"></span><span class="v">Drug deep dives</span>
+                      </span>
+                      <span class="lens-bit" title="Physiological Adaptation">
+                        <span class="pillar-chip pa">PA</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">pathophys</span>
+                        <span class="tag">cardiac</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="lens-note-right">
+                    <span style="font-size: 13px; color: var(--text-dim);">${icons.bookmark}</span>
+                    <span class="lens-note-edit">10 min read</span>
+                  </div>
+                </div>
+
+                <div class="lens-note-row no-num">
+                  <div>
+                    <div class="lens-note-title">Beta-blockers deep dive</div>
+                    <div class="lens-note-ex">Selective vs non-selective, the -olol family, why you hold for bradycardia under 60, and the rebound risk if you stop abruptly…</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                      <span class="lens-bit">
+                        <span class="icn">📚</span>
+                        <span class="pip" style="background: #f97316;"></span><span class="v">Drug deep dives</span>
+                        <span class="sep">·</span>
+                        <span class="pip" style="background: #8b5cf6;"></span><span class="v">Cohort 5 — Unit 3</span>
+                      </span>
+                      <span class="lens-bit" title="Pharmacological Therapies">
+                        <span class="pillar-chip ppt">PPT</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">pharm</span>
+                        <span class="tag">cardiac</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="lens-note-right">
+                    <span class="pill pill-task">Unit 3 task</span>
+                    <span class="lens-note-edit">12 min read</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="lens-explain" style="margin-top: 14px;">
+                <b>Visibility is per-note.</b> Your tutor has filed 7 notes in this folder; you can see 5 because the other 2 are scoped to a different cohort. Empty folders / shelves are hidden from your sidebar automatically — counts always reflect what's available to you.
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    `;
+  }
+
+  function studentShelfScopeScreen() {
+    // Student shelf scope — "Foundational SATA pack" active.
+    const shelf = shelfById('foundational-sata');
+    return `
+      ${studentTopbar(false)}
+      <div class="body">
+        ${programmeSidebar('library')}
+        <main class="main">
+          <div class="page-title">Library</div>
+          <div class="page-sub">Notes by Dr Mensah · 16 notes available to you · 2 added this week</div>
+
+          <div class="lib-toolbar">
+            <input class="search-input" placeholder="Search notes by title, body, or tag…" />
+          </div>
+
+          <div class="lib-grid-lens">
+            ${studentLensSidebar({ activeKind: 'shelf', activeId: shelf.id })}
+
+            <div>
+              <div class="lens-crumb">
+                <span class="pip" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${shelf.color};"></span>
+                Shelf / <b style="color: var(--text); margin-left: 2px;">${shelf.title}</b>
+              </div>
+              <div class="lens-title-row">
+                <span class="lens-title">${shelf.title}</span>
+                <span class="lens-badge shelf">Shelf</span>
+              </div>
+              <div class="lens-sub">4 of 4 notes available to you — your tutor curated this pack as foundational reading.</div>
+
+              <div class="lens-list">
+                <div class="lens-note-row">
+                  <div class="lens-num">1</div>
+                  <div>
+                    <div class="lens-note-title">How to attack SATA questions</div>
+                    <div class="lens-note-ex">Recognising the pattern: "Select all that apply" isn't one question, it's up to seven. Rule each option in or out independently…</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Test strategies</span></span>
+                      <span class="lens-bit" title="Management of Care">
+                        <span class="pillar-chip moc">MoC</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">test-strategy</span>
+                        <span class="tag">sata</span>
+                        <span class="tag">foundational</span>
+                      </span>
+                    </div>
+                    <div class="lens-also">
+                      Also on: <span class="pip" style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#8b5cf6; margin-right:3px;"></span><span class="v">Cohort 5 — Unit 3</span>
+                    </div>
+                  </div>
+                  <div class="lens-note-right">
+                    <button class="btn-primary" style="padding: 4px 10px; font-size: 11px;">Read</button>
+                    <span class="lens-note-edit">6 min read</span>
+                  </div>
+                </div>
+
+                <div class="lens-note-row">
+                  <div class="lens-num">2</div>
+                  <div>
+                    <div class="lens-note-title">Acid-Base Balance</div>
+                    <div class="lens-note-ex">Respiratory vs metabolic, acidosis vs alkalosis — once you read the ABG in the right order, the answer falls out…</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Cardiac</span></span>
+                      <span class="lens-bit" title="Physiological Adaptation">
+                        <span class="pillar-chip pa">PA</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">acid-base</span>
+                        <span class="tag">high-yield</span>
+                      </span>
+                    </div>
+                    <div class="lens-also">
+                      Also on: <span class="pip" style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#f97316; margin-right:3px;"></span><span class="v">Drug deep dives</span>
+                    </div>
+                  </div>
+                  <div class="lens-note-right">
+                    <span class="pill pill-task">Unit 3 task</span>
+                    <button style="padding: 4px 10px; font-size: 11px;">Continue</button>
+                    <span class="lens-note-edit">8 min read</span>
+                  </div>
+                </div>
+
+                <div class="lens-note-row">
+                  <div class="lens-num">3</div>
+                  <div>
+                    <div class="lens-note-title">Reading lab values quickly</div>
+                    <div class="lens-note-ex">Don't memorise reference ranges. Memorise direction (high/low) and what that means clinically. The 8 you actually need.</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Test strategies</span></span>
+                      <span class="lens-bit" title="Reduction of Risk Potential">
+                        <span class="pillar-chip ror">ROR</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">test-strategy</span>
+                        <span class="tag">lab-values</span>
+                        <span class="tag">foundational</span>
+                      </span>
+                    </div>
+                    <div class="lens-also">Also on: <span class="v" style="color: var(--text-dim);">— this shelf only</span></div>
+                  </div>
+                  <div class="lens-note-right">
+                    <button style="padding: 4px 10px; font-size: 11px;">Read</button>
+                    <span class="lens-note-edit">5 min read</span>
+                  </div>
+                </div>
+
+                <div class="lens-note-row">
+                  <div class="lens-num">4</div>
+                  <div>
+                    <div class="lens-note-title">Prioritization frameworks (ABC, Maslow)</div>
+                    <div class="lens-note-ex">When all four options are correct — which one comes first? Airway always wins. Unless it doesn't (and here's when).</div>
+                    <div class="lens-membership">
+                      <span class="lens-bit"><span class="icn">📁</span><span class="v">Test strategies</span></span>
+                      <span class="lens-bit" title="Management of Care">
+                        <span class="pillar-chip moc">MoC</span>
+                      </span>
+                      <span class="lens-bit">
+                        <span class="icn">#</span>
+                        <span class="tag">test-strategy</span>
+                        <span class="tag">foundational</span>
+                      </span>
+                    </div>
+                    <div class="lens-also">Also on: <span class="v" style="color: var(--text-dim);">— this shelf only</span></div>
+                  </div>
+                  <div class="lens-note-right">
+                    <button style="padding: 4px 10px; font-size: 11px;">Read</button>
+                    <span class="lens-note-edit">7 min read</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="lens-explain" style="margin-top: 14px;">
+                <b>This shelf is your tutor's curation.</b> "Foundational SATA pack" groups four notes your tutor thinks you should read first. You'd see fewer rows here if any were Programme-scoped to a different cohort — but in this case, all four are visible to you.
+              </div>
             </div>
           </div>
         </main>
@@ -1618,8 +3498,8 @@
       <div class="body">
         ${programmeSidebar('weeks')}
         <main class="main">
-          <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 4px;">Week 3 / Block 1: Anatomy primer</div>
-          <div class="page-title">Week 3 — Cardiovascular</div>
+          <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 4px;">Unit 3 / Block 1: Anatomy primer</div>
+          <div class="page-title">Unit 3 — Cardiovascular</div>
           <div class="page-sub">15–21 May · 4 of 7 activities done</div>
 
           <div style="margin-top: 16px;">
@@ -1695,17 +3575,26 @@
 
     if (mode === 'tutor') {
       switch (screen) {
-        case 'list':    html = tutorListScreen(); break;
-        case 'editor':  html = tutorEditorScreen(false, false); break;
-        case 'popover': html = tutorEditorScreen(false, true); break;
-        case 'publish': html = tutorEditorScreen(true, false); break;
-        case 'picker':  html = tutorPickerScreen(); break;
-        case 'attach':  html = tutorAttachModal(); break;
+        case 'allfolders':  html = tutorAllFoldersScreen(); break;
+        case 'list':        html = tutorListScreen(); break;
+        case 'listTopbar':  html = tutorListTopbarScreen(); break;
+        case 'allshelves':  html = tutorAllShelvesScreen(); break;
+        case 'shelf':       html = tutorShelfScopeScreen(); break;
+        case 'editor':      html = tutorEditorScreen(false, false); break;
+        case 'popover':     html = tutorEditorScreen(false, true); break;
+        case 'publish':     html = tutorEditorScreen(true, false); break;
+        case 'picker':      html = tutorPickerScreen(); break;
+        case 'attach':      html = tutorAttachModal(); break;
+        case 'shelfPicker': html = tutorShelfPickerModal(); break;
+        case 'attached':    html = tutorAttachedScreen(); break;
       }
     } else {
       switch (screen) {
-        case 'home': html = studentLibraryHome(); break;
-        case 'read': html = studentReadView(); break;
+        case 'allfolders': html = studentAllFoldersScreen(); break;
+        case 'home':       html = studentLibraryHome(); break;
+        case 'allshelves': html = studentAllShelvesScreen(); break;
+        case 'shelf':      html = studentShelfScopeScreen(); break;
+        case 'read':       html = studentReadView(); break;
         case 'week': html = studentWeekActivity(); break;
       }
     }

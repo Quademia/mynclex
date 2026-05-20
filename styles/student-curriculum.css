@@ -196,11 +196,30 @@ button.programme-switcher-item {
   outline-offset: 2px;
 }
 
+.programme-switcher-item-titlerow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+
 .programme-switcher-item-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
   margin-bottom: 2px;
+}
+
+.programme-switcher-item-titlerow .programme-switcher-item-title {
+  margin-bottom: 0;
+}
+
+.programme-switcher-cohort-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .programme-switcher-item-tagline {
@@ -271,6 +290,27 @@ button.programme-switcher-item {
   white-space: nowrap;
 }
 
+/* Non-ENROLLED rows: shown but not enterable (access-gating step).
+ * Dimmed, default cursor, no hover affordance. The status pill +
+ * reason line carry the explanation. */
+.programme-switcher-item.is-locked,
+.programme-switcher-cohort.is-locked {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.programme-switcher-cohort.is-locked:hover {
+  border-color: transparent;
+  background: var(--bg-soft);
+}
+
+.programme-switcher-locked-reason {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
 
 /* ─────────────────────────────────────────────────────
  * /student/programme/[id]/curriculum and
@@ -314,6 +354,100 @@ button.programme-switcher-item {
 .student-curriculum-units {
   display: grid;
   gap: 20px;
+}
+
+/* ─── Unit tabs (Slice 10.8) ──────────────────────────
+ *
+ * Horizontal strip at the top of the curriculum view; one
+ * unit visible at a time. Selected tab carries an accent
+ * underline. Tabs overflow horizontally (scroll still works
+ * via touchpad / swipe) when a programme has many units.
+ * Hidden entirely when the programme has 0 or 1 units (the
+ * server viewer decides).
+ *
+ * Layout (after the 2026-05-15 Interpretation A redesign):
+ * the tab strip is a standalone strip with no card chrome of
+ * its own — sits above the body card with a small gap. The
+ * unit body BELOW keeps the standard .student-unit card
+ * chrome (border + bg + rounded + padding). Tabs and body
+ * read as two separate surfaces, not one wrapped container.
+ * ──────────────────────────────────────────────────── */
+
+.student-unit-tabs {
+  /* No chrome — just a structural wrapper. */
+}
+
+.student-unit-tabs-strip {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;        /* kill the 1px vertical-overflow scrollbar
+                                caused by the tabs' margin-bottom:-1px trick
+                                — overflow-x:auto promotes y from visible
+                                to auto per spec, so we pin it explicitly. */
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;       /* gap between strip and body card */
+  /* Hide the horizontal scrollbar visually but keep scroll behaviour
+   * (touchpad / swipe / keyboard) so a long programme still works. */
+  scrollbar-width: none;     /* Firefox */
+}
+.student-unit-tabs-strip::-webkit-scrollbar {
+  display: none;             /* Chrome / Safari / Edge */
+}
+
+.student-unit-tab {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;       /* overlap the strip's bottom line */
+  padding: 12px 14px 13px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.student-unit-tab:hover {
+  color: var(--text);
+}
+.student-unit-tab.is-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.student-unit-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 2px;
+}
+
+/* Progress engine Slice 3 — per-unit % done suffix in each tab.
+ * Muted relative to the unit label so it informs without competing.
+ * The wrapper span exists primarily to keep the label compact
+ * when the pct is omitted (zero-activity unit). */
+.student-unit-tab-label {
+  /* deliberately empty — defaults to button's font weight + colour */
+}
+
+.student-unit-tab-pct {
+  margin-left: 6px;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+.student-unit-tab.is-active .student-unit-tab-pct {
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-faint));
+}
+
+/* Panel container — no chrome of its own; the inner
+ * .student-unit keeps its default card chrome. */
+.student-unit-tab-panels {
+  /* deliberately empty */
 }
 
 /* ─── Unit card ─────────────────────────────────────── */
@@ -472,6 +606,98 @@ button.programme-switcher-item {
  * replaced by a "🔒 Opens / Closed <date>" line. */
 .student-activity.is-locked .student-activity-title {
   color: var(--text-muted);
+}
+
+/* Row state pills (progress engine Slice 1 + 2 follow-on).
+ *
+ * Symmetric: DONE rows get a filled green "✓ Done" pill;
+ * NOT_STARTED OPEN rows get an outlined muted "○ Not started" pill.
+ * LOCKED / CLOSED rows get nothing (the 🔒 in their action area is
+ * the relevant signal). Already-DONE rows that later close keep
+ * their pill — rows survive window changes.
+ *
+ * Slice 3 will add an IN_PROGRESS variant for quiz rows with a
+ * live attempt (derived from nclex_attempts, not stored). It slots
+ * into the same .student-activity-state class as a third .is-*
+ * modifier — no layout change needed. */
+.student-activity-state {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.student-activity-state-label {
+  line-height: 1;
+}
+
+.student-activity-state.is-done {
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+}
+
+.student-activity-state.is-done .student-activity-state-icon {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.student-activity-state.is-not-started {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--text-muted) 40%, transparent);
+  color: var(--text-muted);
+}
+
+.student-activity-state.is-not-started .student-activity-state-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  box-sizing: border-box;
+}
+
+/* In progress (quiz only — derived from nclex_attempts).
+ * Amber to read as "in flight." Filled dot inside (you're already
+ * mid-something), distinct from the outlined dot on Not started /
+ * Up next. */
+.student-activity-state.is-in-progress {
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent);
+  color: var(--warning);
+}
+
+.student-activity-state.is-in-progress .student-activity-state-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  border: none;
+}
+
+/* Up next / Start here — the single forward-pointing pill. Uses
+ * the brand accent so it pops against the muted "Not started"
+ * rows in the same list. Outlined dot to echo Not started (same
+ * "NOT yet done" semantic family); the accent colour does the
+ * pop-out work. */
+.student-activity-state.is-up-next {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent);
+}
+
+.student-activity-state.is-up-next .student-activity-state-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  box-sizing: border-box;
 }
 
 .student-activity-locked {
@@ -887,5 +1113,79 @@ button.programme-switcher-item {
 
 .quiz-launch-cta {
   margin-top: 8px;
+}
+
+/* ─── Mark-as-done button (progress engine Slice 2) ──────
+ * Shared <MarkDoneButton> rendered at the foot of each MANUAL
+ * activity viewer (TEXT, PDF, EXTERNAL_LINK, ONLINE_LIVE_SESSION).
+ * Secondary visual treatment vs .viewer-modal-cta — outlined, not
+ * filled — because the primary action of each viewer is its own
+ * CTA (Open link / Join session / Open PDF), and marking done is
+ * the follow-up confirmation. The is-done state subtly uses
+ * var(--success) to signal "already recorded" without dominating
+ * the modal. */
+
+.mark-done-wrapper {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mark-done-button {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.mark-done-button:hover:not(:disabled) {
+  background: var(--bg-soft);
+  border-color: var(--text-muted);
+}
+
+.mark-done-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.mark-done-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* DONE state — subtle green tint signals "already recorded" while
+ * the un-mark affordance stays prominent enough to find. */
+.mark-done-button.is-done {
+  background: color-mix(in srgb, var(--success) 8%, transparent);
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+  color: var(--success);
+}
+
+.mark-done-button.is-done:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  border-color: var(--success);
+}
+
+.mark-done-disabled-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.mark-done-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--danger);
+  text-align: center;
 }
 

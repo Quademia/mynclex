@@ -34,8 +34,17 @@
 // as a "no content yet" card — the tutor's structural intent
 // stays visible even when the body is empty.
 //
-// No progress UI, no "Start" or "Mark as done" state. The progress
-// engine ships in a later slice.
+// Progress engine, Slices 1-3 — row state pill cascade:
+//   1. Done (green ✓)        — terminal, wins over everything
+//   2. In progress (amber)   — quiz row with an IN_PROGRESS attempt
+//                              (derived; never for manual types)
+//   3. Up next / Start here  — the single forward-pointing row
+//      (accent)                (copy depends on hasAnyDone)
+//   4. Not started (muted)   — default for OPEN rows
+//   5. (no pill)              — LOCKED / CLOSED rows (the 🔒 in
+//                              their action area is their signal)
+// See docs/product-plan/progress-engine.md §§8.1, 8.4-8.5 + Slice 3
+// pill-cascade decision (2026-05-16 build session).
 
 import {
   unitLabel,
@@ -45,6 +54,7 @@ import {
   ACTIVITY_TYPE_ICON,
 } from './format';
 import { ActivityAction } from './activity-action';
+import { StudentUnitTabs } from './student-unit-tabs';
 import type {
   ProgrammeActivity,
   StudentActivity,
@@ -74,58 +84,98 @@ export function StudentCurriculumViewer({
         <div className="student-curriculum-empty">
           No content has been published yet.
         </div>
-      ) : (
+      ) : tree.units.length === 1 ? (
+        // Single unit — render the section directly, no tabs (per
+        // Slice 10.8 design decision: tabs add noise when there's
+        // only one unit).
         <div className="student-curriculum-units">
-          {tree.units.map((u) => (
-            <section className="student-unit" key={u.unit.unit_id}>
-              <header className="student-unit-head">
-                <div className="student-unit-tag">
-                  {unitLabel(u.unit.unit_index, tree.programme.unit_label)}
-                </div>
-                <h2 className="student-unit-title">
-                  {formatUnitTitle(u.unit, tree.programme.unit_label)}
-                </h2>
-                {u.unit.description && (
-                  <p className="student-unit-desc">{u.unit.description}</p>
-                )}
-              </header>
-
-              {u.body.length === 0 ? (
-                <div className="student-unit-empty">
-                  No content yet for this {unitNounSingular(tree.programme.unit_label)}.
-                </div>
-              ) : (
-                <div className="student-unit-body">
-                  {u.body.map((entry, idx) =>
-                    entry.kind === 'block' ? (
-                      <BlockCard
-                        key={`b-${entry.block.block_id}`}
-                        entry={entry}
-                      />
-                    ) : (
-                      <ActivityCard
-                        key={`a-${entry.activity.activity_id}`}
-                        activity={entry.activity}
-                      />
-                    )
-                  )}
-                </div>
-              )}
-            </section>
-          ))}
+          <UnitSection unit={tree.units[0]} tree={tree} />
         </div>
+      ) : (
+        // 2+ units — wrap with the client tabs component. Children
+        // are server-rendered <UnitSection> nodes, one per tab; the
+        // wrapper shows only the selected one.
+        // Slice 3 — pass `pct` per tab (drives the "· NN%" suffix)
+        // and `defaultIndex` (Where I left off; falls back to Unit 1
+        // inside the wrapper when null).
+        <StudentUnitTabs
+          tabs={tree.units.map((u) => ({
+            index: u.unit.unit_index,
+            label: unitLabel(u.unit.unit_index, tree.programme.unit_label),
+            pct: u.progressPct,
+          }))}
+          defaultIndex={tree.whereILeftOffUnitIndex}
+        >
+          {tree.units.map((u) => (
+            <UnitSection key={u.unit.unit_id} unit={u} tree={tree} />
+          ))}
+        </StudentUnitTabs>
       )}
     </div>
   );
 }
 
+function UnitSection({
+  unit,
+  tree,
+}: {
+  unit: StudentCurriculumTree['units'][number];
+  tree: StudentCurriculumTree;
+}) {
+  return (
+    <section className="student-unit">
+      <header className="student-unit-head">
+        <div className="student-unit-tag">
+          {unitLabel(unit.unit.unit_index, tree.programme.unit_label)}
+        </div>
+        <h2 className="student-unit-title">
+          {formatUnitTitle(unit.unit, tree.programme.unit_label)}
+        </h2>
+        {unit.unit.description && (
+          <p className="student-unit-desc">{unit.unit.description}</p>
+        )}
+      </header>
+
+      {unit.body.length === 0 ? (
+        <div className="student-unit-empty">
+          No content yet for this {unitNounSingular(tree.programme.unit_label)}.
+        </div>
+      ) : (
+        <div className="student-unit-body">
+          {unit.body.map((entry) =>
+            entry.kind === 'block' ? (
+              <BlockCard
+                key={`b-${entry.block.block_id}`}
+                entry={entry}
+                upNextActivityId={tree.upNextActivityId}
+                hasAnyDone={tree.hasAnyDone}
+              />
+            ) : (
+              <ActivityCard
+                key={`a-${entry.activity.activity_id}`}
+                activity={entry.activity}
+                upNextActivityId={tree.upNextActivityId}
+                hasAnyDone={tree.hasAnyDone}
+              />
+            )
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function BlockCard({
   entry,
+  upNextActivityId,
+  hasAnyDone,
 }: {
   entry: Extract<
     StudentCurriculumTree['units'][number]['body'][number],
     { kind: 'block' }
   >;
+  upNextActivityId: string | null;
+  hasAnyDone: boolean;
 }) {
   return (
     <article className="student-block">
@@ -142,7 +192,12 @@ function BlockCard({
       ) : (
         <div className="student-block-body">
           {entry.activities.map((a) => (
-            <ActivityCard key={a.activity_id} activity={a} />
+            <ActivityCard
+              key={a.activity_id}
+              activity={a}
+              upNextActivityId={upNextActivityId}
+              hasAnyDone={hasAnyDone}
+            />
           ))}
         </div>
       )}
@@ -150,14 +205,30 @@ function BlockCard({
   );
 }
 
-function ActivityCard({ activity }: { activity: StudentActivity }) {
+function ActivityCard({
+  activity,
+  upNextActivityId,
+  hasAnyDone,
+}: {
+  activity: StudentActivity;
+  upNextActivityId: string | null;
+  hasAnyDone: boolean;
+}) {
   const locked = activity.openState !== 'OPEN';
   const overdue =
     activity.openState === 'OPEN' && isPastDue(activity.dueDate);
 
   return (
     <article
-      className={locked ? 'student-activity is-locked' : 'student-activity'}
+      className={
+        [
+          'student-activity',
+          locked ? 'is-locked' : null,
+          activity.isDone ? 'is-done' : null,
+        ]
+          .filter(Boolean)
+          .join(' ')
+      }
       data-type={activity.type}
     >
       <header className="student-activity-head">
@@ -168,6 +239,55 @@ function ActivityCard({ activity }: { activity: StudentActivity }) {
           {activityTypeLabel(activity.type)}
         </span>
         <h4 className="student-activity-title">{activity.title}</h4>
+        {/* Pill cascade — see header comment for full priority order.
+            Computed once into a local for readability. */}
+        {(() => {
+          if (activity.isDone) {
+            return (
+              <span className="student-activity-state is-done">
+                <span className="student-activity-state-icon" aria-hidden="true">
+                  ✓
+                </span>
+                <span className="student-activity-state-label">Done</span>
+              </span>
+            );
+          }
+          if (activity.isInProgress) {
+            return (
+              <span className="student-activity-state is-in-progress">
+                <span className="student-activity-state-dot" aria-hidden="true" />
+                <span className="student-activity-state-label">In progress</span>
+              </span>
+            );
+          }
+          if (activity.activity_id === upNextActivityId) {
+            // Copy flips on whether the student has ANY DONE row in
+            // the programme (§8.1) — empty slate gets the welcoming
+            // "Start here", any progress flips to forward-looking
+            // "Up next". upNextActivityId is only ever set on an
+            // OPEN row (the derivation skips LOCKED / CLOSED), so
+            // no extra guard needed here.
+            return (
+              <span className="student-activity-state is-up-next">
+                <span className="student-activity-state-dot" aria-hidden="true" />
+                <span className="student-activity-state-label">
+                  {hasAnyDone ? 'Up next' : 'Start here'}
+                </span>
+              </span>
+            );
+          }
+          if (activity.openState === 'OPEN') {
+            return (
+              <span className="student-activity-state is-not-started">
+                <span className="student-activity-state-dot" aria-hidden="true" />
+                <span className="student-activity-state-label">Not started</span>
+              </span>
+            );
+          }
+          // LOCKED / CLOSED — no pill. The 🔒 in the action area
+          // is the relevant signal.
+          return null;
+        })()}
       </header>
 
       {activity.description && (

@@ -25,7 +25,8 @@ export async function getMyProgrammes(): Promise<ProgrammeListRow[]> {
     .select(
       `programme_id, title, tagline, description,
        delivery_mode, unit_label, length_units,
-       price_minor_ghs, price_minor_usd, show_price_publicly,
+       price_currency, price_minor, show_price_publicly,
+       payment_collection_mode, access_window_days,
        status, updated_at,
        nclex_cohorts(count)`
     )

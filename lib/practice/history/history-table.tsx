@@ -78,7 +78,9 @@ export function HistoryTable({ attempts }: { attempts: HistoryAttempt[] }) {
           <button className="on" disabled>All</button>
           <button disabled>Custom</button>
           <button disabled>Packs</button>
-          <button disabled>Programme</button>
+          {/* "Programme" chip dropped in progress engine Slice 4 —
+              programme attempts live on the dedicated programme/
+              cohort history pages, not here. */}
         </div>
         <div className="hist-seg" title="Coming soon" aria-disabled="true">
           <button className="on" disabled>Any mode</button>

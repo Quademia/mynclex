@@ -19,6 +19,14 @@ CREATE TABLE nclex_users (
   phone_number          TEXT,
   avatar_url            TEXT,
 
+  -- Public-display bag (role-agnostic). Outward-facing fields any user
+  -- may show to others — today the tutor public profile (headline /
+  -- speciality / years / bio + optional business branding). Shape is
+  -- the TS type lib/discovery/types.ts#PublicProfile. PUBLIC-ONLY by
+  -- rule: never put private/sensitive data here (those get own columns).
+  -- Added slice 3.5 (20260530120000).
+  public_profile        JSONB NOT NULL DEFAULT '{}'::jsonb,
+
   -- Auth state
   is_active             BOOLEAN NOT NULL DEFAULT TRUE,
   must_change_password  BOOLEAN NOT NULL DEFAULT FALSE,
@@ -501,11 +509,31 @@ CREATE TABLE nclex_attempts (
     )
   ),
 
-  -- Source-specific reference columns: at most one populated, matching the source
+  -- programme_id + quiz_id (Tutor Quiz Slice 6, 2026-05-20) —
+  -- populated ONLY for standalone PROGRAMME_ASSIGNED attempts
+  -- (those that launched from the Slice 6 student Quizzes page
+  -- without an underlying activity). Activity-linked attempts
+  -- leave both NULL; the (programme, quiz) tuple is derivable via
+  -- the activity JOIN.
+  programme_id               UUID REFERENCES nclex_programmes(programme_id) ON DELETE SET NULL,
+  quiz_id                    UUID REFERENCES nclex_tutor_quizzes(quiz_id) ON DELETE SET NULL,
+
+  -- Source-specific reference columns: at most one populated, matching the source.
+  -- The PROGRAMME_ASSIGNED branch was relaxed in Tutor Quiz Slice 6
+  -- (2026-05-20) to permit a standalone shape (programme_activity_id
+  -- NULL + programme_id + quiz_id NOT NULL) alongside the original
+  -- activity-linked shape.
   CONSTRAINT nclex_attempts_source_refs CHECK (
-    (source = 'CUSTOM_BUILT'        AND readiness_pack_id IS NULL AND programme_activity_id IS NULL)
-    OR (source = 'READINESS_PACK'    AND readiness_pack_id IS NOT NULL AND programme_activity_id IS NULL)
-    OR (source = 'PROGRAMME_ASSIGNED' AND programme_activity_id IS NOT NULL)
+    (source = 'CUSTOM_BUILT'        AND readiness_pack_id IS NULL AND programme_activity_id IS NULL AND programme_id IS NULL AND quiz_id IS NULL)
+    OR (source = 'READINESS_PACK'   AND readiness_pack_id IS NOT NULL AND programme_activity_id IS NULL AND programme_id IS NULL AND quiz_id IS NULL)
+    OR (
+      source = 'PROGRAMME_ASSIGNED'
+      AND (
+        (programme_activity_id IS NOT NULL AND programme_id IS NULL AND quiz_id IS NULL)
+        OR
+        (programme_activity_id IS NULL AND programme_id IS NOT NULL AND quiz_id IS NOT NULL)
+      )
+    )
   )
 );
 
@@ -517,6 +545,10 @@ CREATE INDEX idx_nclex_attempts_pack               ON nclex_attempts(readiness_p
   WHERE readiness_pack_id IS NOT NULL;
 CREATE INDEX idx_nclex_attempts_programme_activity ON nclex_attempts(programme_activity_id)
   WHERE programme_activity_id IS NOT NULL;
+-- Slice 6 — partial index for the per-(student, quiz, programme)
+-- cap count on standalone attempts.
+CREATE INDEX idx_nclex_attempts_standalone_quiz    ON nclex_attempts(student_id, programme_id, quiz_id)
+  WHERE source = 'PROGRAMME_ASSIGNED' AND programme_activity_id IS NULL;
 
 
 -- 14. nclex_attempt_case_snapshots — case scenarios snapshotted per attempt
@@ -741,14 +773,24 @@ CREATE TABLE nclex_programmes (
   length_units          SMALLINT NOT NULL                    -- count of curriculum units
                         CHECK (length_units BETWEEN 1 AND 52),
 
-  -- Pricing (minor units; 0 = free).
-  -- Stays on programme in v1 — cohort-level variation deferred per
-  -- payments-and-enrolment.md, and self-paced has no cohort layer.
-  price_minor_ghs       INTEGER NOT NULL DEFAULT 0
-                        CHECK (price_minor_ghs >= 0),
-  price_minor_usd       INTEGER NOT NULL DEFAULT 0
-                        CHECK (price_minor_usd >= 0),
+  -- Pricing (minor units; 0 = free). Slice 3a — single tutor-chosen
+  -- currency (vs the bank's deliberate dual-currency PPP on
+  -- nclex_products). The tutor settles in one currency; an FX
+  -- "≈ equivalent" public display is deferred polish.
+  price_currency        TEXT NOT NULL
+                        CHECK (price_currency IN ('GHS','USD')),
+  price_minor           INTEGER NOT NULL
+                        CHECK (price_minor >= 0),
   show_price_publicly   BOOLEAN NOT NULL DEFAULT TRUE,
+  -- OFF_PLATFORM (tutor collects + adds students) | ON_PLATFORM
+  -- (Paystack checkout). No runtime effect until Slice 5. Self-paced
+  -- must be ON_PLATFORM (enforced in TS).
+  payment_collection_mode TEXT NOT NULL DEFAULT 'OFF_PLATFORM'
+                        CHECK (payment_collection_mode IN ('OFF_PLATFORM','ON_PLATFORM')),
+  -- NULL = lifetime of tutor's sub (Pattern A). Otherwise N days from
+  -- enrolled_at; the deferred EXPIRED/PAUSED pg_cron sweep reads this.
+  access_window_days    INTEGER
+                        CHECK (access_window_days IS NULL OR access_window_days > 0),
 
   -- Lifecycle. CANCELLED moved to nclex_cohorts.cancelled_at.
   status                TEXT NOT NULL DEFAULT 'DRAFT'
@@ -763,6 +805,9 @@ CREATE TABLE nclex_programmes (
 
 CREATE INDEX idx_nclex_programmes_tutor   ON nclex_programmes(tutor_id);
 CREATE INDEX idx_nclex_programmes_public  ON nclex_programmes(status) WHERE status = 'PUBLISHED';
+-- Slice 3a — discovery filter on collection mode (published rows only).
+CREATE INDEX idx_nclex_programmes_collection_public
+  ON nclex_programmes(payment_collection_mode) WHERE status = 'PUBLISHED';
 
 
 -- 14. Cohorts (slice 9.2a — programme/cohort split)
@@ -978,25 +1023,6 @@ CREATE INDEX idx_nclex_cohort_checklist_activity
 
 
 -- =========================================================
--- Keep-alive activity table (2026-05-12)
--- =========================================================
--- Internal infrastructure — a real DB write target so the
--- keep-alive path generates a WAL entry (unambiguous "activity")
--- instead of relying on a stateless auth ping. No RLS policies:
--- only service-role (which bypasses RLS) reads/writes it. Origin
--- migration: db/migrations/20260512300000_keepalive_table.sql.
-
-CREATE TABLE nclex_keepalive (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  pinged_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  source      TEXT
-);
-
-CREATE INDEX idx_nclex_keepalive_pinged_at
-  ON nclex_keepalive(pinged_at);
-
-
--- =========================================================
 -- Media assets (Slice 9.3d-b, 2026-05-13)
 -- =========================================================
 -- Centralised media-asset control records. The file bytes live in
@@ -1167,6 +1193,242 @@ CREATE TABLE nclex_tutor_quiz_items (
 
 CREATE INDEX idx_nclex_tutor_quiz_items_quiz
   ON nclex_tutor_quiz_items(quiz_id);
+
+
+-- =========================================================
+-- Programme-level quiz membership (Tutor Quiz Slice 5, 2026-05-19)
+-- =========================================================
+-- The canonical record of "what quizzes are in this programme." Two
+-- write paths feed it: the activity-save auto-mirror (saving an
+-- activity with a non-null quiz_id upserts here too) and the
+-- standalone-add from the /tutor/programme/[id]/quizzes page.
+-- Composite PK enforces idempotency at the row level — both paths
+-- can safely use ON CONFLICT DO NOTHING.
+--
+-- "Linked to Unit N" / "Standalone" hint on the tutor row is
+-- derived from a LEFT JOIN to nclex_programme_activities — there is
+-- NO `linked_via_activity_id` column. Whether a quiz is also
+-- activity-linked stays consistent automatically.
+--
+-- Remove is BLOCK, not cascade — enforced in the remove server
+-- action (§9.3). The DB only has the FK CASCADEs (which fire when
+-- the programme or quiz itself is deleted).
+
+CREATE TABLE nclex_programme_quizzes (
+  programme_id  UUID NOT NULL
+                REFERENCES nclex_programmes(programme_id) ON DELETE CASCADE,
+  quiz_id       UUID NOT NULL
+                REFERENCES nclex_tutor_quizzes(quiz_id)   ON DELETE CASCADE,
+
+  added_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  PRIMARY KEY (programme_id, quiz_id)
+);
+
+-- Reverse-lookup index — drives the "Used in N programmes" chip on
+-- /tutor/quizzes and the Slice 6 student read path keyed on quiz_id.
+CREATE INDEX idx_nclex_programme_quizzes_quiz
+  ON nclex_programme_quizzes(quiz_id);
+
+
+-- =========================================================
+-- Student activity progress (Progress engine, Slice 1, 2026-05-18)
+-- =========================================================
+-- One row per (student, activity) when the activity is DONE.
+-- Same shape for QUIZ_ATTEMPT and MANUAL completion sources. The
+-- table stores the completion record only — NOT_STARTED is
+-- implicit (no row); IN_PROGRESS for quiz types is derived from
+-- nclex_attempts at read time; roll-ups (unit/programme %) are
+-- computed at read time too. See docs/product-plan/progress-engine.md.
+--
+-- Quiz completion is written by the
+-- nclex_progress_on_attempt_terminal() trigger function (tracked in
+-- the migration, not mirrored here). Manual completion is written
+-- by Slice 2 server actions. Origin migration:
+-- db/migrations/20260518120000_progress_engine_1_foundation.sql.
+
+CREATE TABLE nclex_student_activity_progress (
+  progress_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  student_id         UUID NOT NULL
+                     REFERENCES nclex_users(id)
+                     ON DELETE CASCADE,
+
+  -- Row attaches to the TEMPLATE activity, never to a cohort. A
+  -- self-paced student and a cohort student share the same progress
+  -- for the same activity.
+  activity_id        UUID NOT NULL
+                     REFERENCES nclex_programme_activities(activity_id)
+                     ON DELETE CASCADE,
+
+  completion_source  TEXT NOT NULL
+                     CHECK (completion_source IN ('QUIZ_ATTEMPT', 'MANUAL')),
+
+  -- Populated only for QUIZ_ATTEMPT. ON DELETE CASCADE is the void
+  -- cascade — hard-deleting an attempt removes its progress row.
+  attempt_id         UUID
+                     REFERENCES nclex_attempts(attempt_id)
+                     ON DELETE CASCADE,
+
+  -- NEVER updated on retake — DONE is a one-time state transition.
+  completed_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Reserved for v2 tutor-marked attendance; v1 always NULL.
+  marked_by          UUID
+                     REFERENCES nclex_users(id)
+                     ON DELETE SET NULL,
+
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  UNIQUE (student_id, activity_id),
+
+  CONSTRAINT nclex_student_activity_progress_source_consistent CHECK (
+    (completion_source = 'QUIZ_ATTEMPT' AND attempt_id IS NOT NULL)
+    OR (completion_source = 'MANUAL' AND attempt_id IS NULL)
+  )
+);
+
+CREATE INDEX idx_nclex_student_activity_progress_activity_student
+  ON nclex_student_activity_progress(activity_id, student_id);
+
+CREATE INDEX idx_nclex_student_activity_progress_attempt
+  ON nclex_student_activity_progress(attempt_id)
+  WHERE attempt_id IS NOT NULL;
+
+
+-- =========================================================
+-- Enrolments (Slice 1a, 2026-05-20)
+-- =========================================================
+-- One row = "this student is in this programme (and cohort, for
+-- tutor-led)". 6-status lifecycle + enrolment source + audit + frozen
+-- access expiry. Built lifecycle-ready; Slice 1 only writes
+-- ENROLLED / TUTOR_ADDED. strategy_id omitted until the installments
+-- slice (it FKs a table that doesn't exist yet). Origin migration:
+-- db/migrations/20260522120000_enrolments_1_foundation.sql.
+-- Source of truth: docs/product-plan/payments-and-enrolment.md.
+
+CREATE TABLE nclex_enrolments (
+  enrolment_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  user_id              UUID NOT NULL
+                       REFERENCES nclex_users(id) ON DELETE CASCADE,
+  programme_id         UUID NOT NULL
+                       REFERENCES nclex_programmes(programme_id) ON DELETE RESTRICT,
+  cohort_id            UUID                                       -- NULL for self-paced
+                       REFERENCES nclex_cohorts(cohort_id) ON DELETE RESTRICT,
+
+  status               TEXT NOT NULL
+                       CHECK (status IN (
+                         'PENDING_APPROVAL','ENROLLED','PAUSED',
+                         'REJECTED','CANCELLED','EXPIRED'
+                       )),
+  enrolment_source     TEXT NOT NULL
+                       CHECK (enrolment_source IN (
+                         'SELF_PAID','TUTOR_ADDED','ADMIN_GRANT'
+                       )),
+
+  enrolled_by_user_id  UUID                                       -- NULL for SELF_PAID
+                       REFERENCES nclex_users(id) ON DELETE SET NULL,
+  enrolled_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  approved_at          TIMESTAMPTZ,
+  approved_by_user_id  UUID
+                       REFERENCES nclex_users(id) ON DELETE SET NULL,
+
+  access_expires_at    TIMESTAMPTZ,                               -- NULL = lifetime of tutor sub
+
+  paused_at            TIMESTAMPTZ,
+  paused_reason        TEXT
+                       CHECK (paused_reason IS NULL OR paused_reason IN (
+                         'INSTALLMENT_OVERDUE','TUTOR_MANUAL'
+                       )),
+  terminal_at          TIMESTAMPTZ,
+  tutor_note           TEXT,
+
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT nclex_enrolments_actor_consistent CHECK (
+    (enrolment_source = 'SELF_PAID' AND enrolled_by_user_id IS NULL)
+    OR (enrolment_source <> 'SELF_PAID' AND enrolled_by_user_id IS NOT NULL)
+  )
+);
+
+-- One active enrolment per (student, cohort) / (student, programme);
+-- terminal rows excluded so a lapsed student can re-enrol.
+CREATE UNIQUE INDEX idx_nclex_enrolments_active_cohort
+  ON nclex_enrolments (user_id, cohort_id)
+  WHERE cohort_id IS NOT NULL
+    AND status IN ('PENDING_APPROVAL','ENROLLED','PAUSED');
+CREATE UNIQUE INDEX idx_nclex_enrolments_active_selfpaced
+  ON nclex_enrolments (user_id, programme_id)
+  WHERE cohort_id IS NULL
+    AND status IN ('PENDING_APPROVAL','ENROLLED','PAUSED');
+CREATE INDEX idx_nclex_enrolments_cohort_status
+  ON nclex_enrolments (cohort_id, status);
+CREATE INDEX idx_nclex_enrolments_user_status
+  ON nclex_enrolments (user_id, status);
+CREATE INDEX idx_nclex_enrolments_expiry
+  ON nclex_enrolments (access_expires_at)
+  WHERE status IN ('ENROLLED','PAUSED');
+
+
+-- =========================================================
+-- Cohort waitlist (Payments Slice 4, 2026-05-20)
+-- =========================================================
+-- Student-initiated interest in a cohort, captured from the PUBLIC
+-- programme page WITHOUT an account. PENDING leads; the owning tutor
+-- converts (→ invite + ENROLLED enrolment) or dismisses. Pre-enrolment
+-- leads, so CASCADE off cohort/programme (not RESTRICT like enrolments).
+-- INSERT is via the SECURITY DEFINER nclex_join_waitlist RPC only;
+-- convert/dismiss run service-side. Origin migration:
+-- db/migrations/20260531120000_slice_4_cohort_waitlist.sql.
+
+CREATE TABLE nclex_cohort_waitlist (
+  waitlist_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  cohort_id            UUID NOT NULL
+                       REFERENCES nclex_cohorts(cohort_id) ON DELETE CASCADE,
+  programme_id         UUID NOT NULL                              -- denormalised from cohort (RLS)
+                       REFERENCES nclex_programmes(programme_id) ON DELETE CASCADE,
+
+  forename             TEXT NOT NULL,                            -- split name → convert creates the profile directly
+  surname              TEXT NOT NULL,
+  email                TEXT NOT NULL,                             -- lower-cased by the RPC
+  phone                TEXT,                                      -- optional; required if a phone method chosen
+  preferred_contact    TEXT[] NOT NULL DEFAULT ARRAY['EMAIL']::TEXT[],  -- subset of CALL/SMS/WHATSAPP/EMAIL
+  message              TEXT,
+
+  status               TEXT NOT NULL DEFAULT 'PENDING'
+                       CHECK (status IN ('PENDING','CONVERTED','DISMISSED')),
+
+  converted_enrolment_id UUID                                     -- set on CONVERTED
+                       REFERENCES nclex_enrolments(enrolment_id) ON DELETE SET NULL,
+  handled_by_user_id   UUID                                       -- tutor who actioned it
+                       REFERENCES nclex_users(id) ON DELETE SET NULL,
+  handled_at           TIMESTAMPTZ,
+
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT nclex_waitlist_pref_contact_valid CHECK (
+    array_length(preferred_contact, 1) >= 1
+    AND preferred_contact <@ ARRAY['CALL','SMS','WHATSAPP','EMAIL']::TEXT[]
+  ),
+  CONSTRAINT nclex_waitlist_phone_when_needed CHECK (
+    NOT (preferred_contact && ARRAY['CALL','SMS','WHATSAPP']::TEXT[])
+    OR (phone IS NOT NULL AND btrim(phone) <> '')
+  )
+);
+
+-- One pending lead per (cohort, email); converted/dismissed excluded so
+-- a dismissed person can re-join.
+CREATE UNIQUE INDEX idx_nclex_cohort_waitlist_pending
+  ON nclex_cohort_waitlist (cohort_id, lower(email))
+  WHERE status = 'PENDING';
+CREATE INDEX idx_nclex_cohort_waitlist_cohort_status
+  ON nclex_cohort_waitlist (cohort_id, status);
 
 
 -- RPC functions are large and tracked by their migration files

@@ -1,0 +1,689 @@
+/* mynclex/styles/enrolments.css
+ *
+ * Enrolment surfaces — Slice 1b (tutor cohort Students tab). New
+ * domain file per CLAUDE.md folder convention #5. Class prefix
+ * `.enrol-*`. Tokens + toast/button/modal vocabulary mirror
+ * programme-quizzes.css.
+ */
+
+/* ─── Cohort workspace — Students surface (Slice 4 rework) ─── */
+
+.cw-page {
+  max-width: 1080px;
+}
+
+.cw-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cw-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.cw-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* summary cells */
+.cw-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 22px;
+}
+.cw-cell {
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.cw-cell-k {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.cw-cell-v {
+  margin-top: 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.cw-cell-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* tabs */
+.cw-tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.cw-tab {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 14px;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cw-tab:hover {
+  color: var(--text);
+}
+.cw-tab.on {
+  color: var(--text);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+.cw-tab-count {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 7px;
+  height: 18px;
+  line-height: 16px;
+  color: var(--text-muted);
+}
+.cw-tab-count.warn {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+/* roster toolbar */
+.cw-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 20px 0 14px;
+  flex-wrap: wrap;
+}
+.cw-filters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.cw-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--white);
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+.cw-filter:hover {
+  border-color: var(--border-strong);
+}
+.cw-filter.on {
+  background: var(--primary);
+  color: var(--white);
+  border-color: var(--primary);
+}
+.cw-filter-count {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+.cw-search {
+  font-family: inherit;
+  font-size: 13px;
+  height: 32px;
+  width: 280px;
+  max-width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--text);
+}
+.cw-search:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* roster table */
+.cw-roster {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  overflow: hidden;
+}
+.cw-roster table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.cw-roster th,
+.cw-roster td {
+  text-align: left;
+  padding: 11px 16px;
+  font-size: 13.5px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.cw-roster th {
+  background: var(--bg);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.cw-roster tr:last-child td {
+  border-bottom: 0;
+}
+.cw-roster tbody tr:hover td {
+  background: var(--bg);
+}
+.cw-roster-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 28px 16px;
+}
+.cw-student {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cw-student-id {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.cw-student-name {
+  font-weight: 600;
+  color: var(--text);
+}
+.cw-student-email {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.cw-src {
+  color: var(--text-muted);
+}
+.cw-muted {
+  color: var(--text-muted);
+}
+.cw-placeholder {
+  color: var(--text-faint, var(--text-muted));
+  opacity: 0.6;
+}
+.cw-row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* avatar */
+.cw-avatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary-light, #eef2ff);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 11px;
+  display: grid;
+  place-items: center;
+}
+.cw-avatar.lg {
+  width: 38px;
+  height: 38px;
+  font-size: 13px;
+}
+
+/* waitlist tab */
+.cw-wl-intro {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  max-width: 720px;
+  margin: 20px 0 14px;
+}
+.cw-waitlist {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  overflow: hidden;
+}
+.cw-wl-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1.4fr 110px auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.cw-wl-row:last-child {
+  border-bottom: 0;
+}
+.cw-wl-person {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.cw-wl-id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cw-wl-phone {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.cw-wl-prefs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.cw-pref-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.cw-wl-msg {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.45;
+}
+.cw-wl-msg.empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+.cw-wl-when {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.cw-wl-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .cw-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .cw-wl-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .cw-wl-actions {
+    justify-content: flex-start;
+  }
+}
+
+/* ─── Buttons ─────────────────────────────────────────────── */
+
+.enrol-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.enrol-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.enrol-btn-primary {
+  background: var(--primary);
+  color: var(--white);
+  border-color: var(--primary);
+}
+.enrol-btn-primary:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+.enrol-btn-ghost {
+  background: var(--white);
+  color: var(--text);
+  border-color: var(--border);
+}
+.enrol-btn-ghost:hover:not(:disabled) {
+  background: var(--bg);
+}
+.enrol-btn-danger {
+  background: var(--danger);
+  color: var(--white);
+  border-color: var(--danger);
+}
+.enrol-btn-danger:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+/* ─── Roster row actions (Slice 2a) ───────────────────────── */
+
+.enrol-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.enrol-row-actions-none {
+  color: var(--text-muted);
+}
+.enrol-action {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease;
+}
+.enrol-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.enrol-action-primary {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.enrol-action-primary:hover:not(:disabled) {
+  background: var(--primary);
+  color: var(--white);
+}
+.enrol-action-neutral:hover:not(:disabled) {
+  background: var(--bg);
+}
+.enrol-action-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.enrol-action-danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--white);
+}
+
+.enrol-textarea {
+  resize: vertical;
+  min-height: 64px;
+  line-height: 1.5;
+}
+
+/* ─── Empty state ─────────────────────────────────────────── */
+
+.enrol-empty {
+  background: var(--white);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.enrol-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.enrol-empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 auto 18px;
+  max-width: 460px;
+  line-height: 1.5;
+}
+
+/* ─── Status pills ────────────────────────────────────────── */
+
+.enrol-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid;
+  width: fit-content;
+}
+.enrol-pill-enrolled {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+.enrol-pill-pending {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+}
+.enrol-pill-paused {
+  background: var(--bg);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+.enrol-pill-rejected,
+.enrol-pill-cancelled {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+.enrol-pill-expired {
+  background: var(--bg);
+  color: var(--text-muted);
+  border-color: var(--border-strong);
+}
+
+/* ─── Add-student modal ───────────────────────────────────── */
+
+.enrol-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.enrol-modal {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 440px;
+  padding: 24px;
+}
+
+.enrol-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.enrol-modal-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+
+.enrol-modal-list {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.55;
+}
+.enrol-modal-list li {
+  margin-bottom: 6px;
+}
+
+.enrol-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.enrol-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.enrol-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.enrol-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.enrol-input {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--text);
+}
+.enrol-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+.enrol-input:disabled {
+  background: var(--bg);
+  opacity: 0.7;
+}
+
+.enrol-form-error {
+  margin: 0;
+  padding: 9px 11px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  color: #7f1d1d;
+  font-size: 12.5px;
+}
+
+.enrol-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ─── Toast ───────────────────────────────────────────────── */
+
+.enrol-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: min(440px, calc(100vw - 48px));
+  padding: 12px 14px;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  font-size: 13px;
+}
+.enrol-toast-success {
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-left: 4px solid #16a34a;
+}
+.enrol-toast-error {
+  color: #7f1d1d;
+  border: 1px solid #fecaca;
+  border-left: 4px solid var(--danger);
+}
+
+.enrol-toast-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  color: var(--white);
+  font-weight: 700;
+  font-size: 13px;
+}
+.enrol-toast-success .enrol-toast-icon {
+  background: #16a34a;
+}
+.enrol-toast-error .enrol-toast-icon {
+  background: var(--danger);
+}
+
+.enrol-toast-message {
+  flex: 1;
+  font-weight: 500;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+.enrol-toast-close {
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1;
+}
+.enrol-toast-close:hover {
+  background: var(--bg);
+  color: var(--text);
+}

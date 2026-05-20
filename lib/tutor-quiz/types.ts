@@ -39,7 +39,8 @@ export type TutorQuiz = {
 
 // Projection for the /tutor/quizzes list — adds the question-count
 // rollup (count(quiz_items)) so each card renders without a second
-// round trip.
+// round trip, plus the "Used in N programmes" count from the
+// junction (Tutor Quiz Slice 5, §9.4.2) for the membership chip.
 export type QuizListRow = Pick<
   TutorQuiz,
   | 'quiz_id'
@@ -54,6 +55,7 @@ export type QuizListRow = Pick<
   | 'updated_at'
 > & {
   item_count: number;
+  used_in_programmes: number;
 };
 
 // The editable subset — QuizFormModal's initial values in edit mode

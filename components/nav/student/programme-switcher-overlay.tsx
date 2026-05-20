@@ -1,9 +1,11 @@
 // mynclex/components/nav/student/programme-switcher-overlay.tsx
 //
-// Slice 10.1 — shared overlay opened from three triggers:
-//   1. Picker "My Programmes" card
-//   2. Topbar Programme pill (ProductSwitcher)
-//   3. Sidebar "Switch programme" button (programme + cohort shells)
+// In-app "switch programme" popup, opened from two triggers:
+//   1. Topbar Programme pill (ProductSwitcher)
+//   2. Sidebar "Switch programme" button (programme + cohort shells)
+// The picker lists programmes inline (it no longer opens this popup) —
+// the popup is now purely for switching while already inside a
+// programme. Row rendering is shared via <ProgrammeList>.
 //
 // Lazy data fetch: when `open` flips to true, the overlay fires
 // getMyAccessibleProgrammesAction(). Loading + error states
@@ -16,12 +18,12 @@
 
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import {
   getMyAccessibleProgrammesAction,
   type SwitcherProgramme,
 } from '@/lib/programmes/student-actions';
+import { ProgrammeList } from './programme-list';
 
 type LoadState =
   | { kind: 'idle' }
@@ -36,9 +38,7 @@ export function ProgrammeSwitcherOverlay({
   open: boolean;
   onClose: () => void;
 }) {
-  const router = useRouter();
   const [state, setState] = useState<LoadState>({ kind: 'idle' });
-  const [, startTransition] = useTransition();
 
   // Lazy fetch when the overlay opens. Always refetch on each open
   // so the list reflects the latest published programmes / cohorts.
@@ -74,13 +74,6 @@ export function ProgrammeSwitcherOverlay({
   }, [open, onClose]);
 
   if (!open) return null;
-
-  function go(href: string) {
-    startTransition(() => {
-      router.push(href);
-      onClose();
-    });
-  }
 
   return (
     <div
@@ -119,88 +112,7 @@ export function ProgrammeSwitcherOverlay({
             </div>
           )}
           {state.kind === 'loaded' && state.programmes.length > 0 && (
-            <ul className="programme-switcher-list">
-              {state.programmes.map((p) => {
-                const unitNoun =
-                  p.unit_label === 'WEEK' ? 'weeks' : 'modules';
-                const meta = `${p.length_units} ${unitNoun} · ${
-                  p.delivery_mode === 'SELF_PACED' ? 'Self-paced' : 'Tutor-led'
-                }`;
-
-                if (p.delivery_mode === 'SELF_PACED') {
-                  return (
-                    <li key={p.programme_id}>
-                      <button
-                        type="button"
-                        className="programme-switcher-item is-clickable"
-                        onClick={() =>
-                          go(`/student/programme/${p.programme_id}/curriculum`)
-                        }
-                      >
-                        <div className="programme-switcher-item-title">
-                          {p.title}
-                        </div>
-                        {p.tagline && (
-                          <div className="programme-switcher-item-tagline">
-                            {p.tagline}
-                          </div>
-                        )}
-                        <div className="programme-switcher-item-meta">
-                          {meta}
-                        </div>
-                      </button>
-                    </li>
-                  );
-                }
-
-                // TUTOR_LED — programme card is informational; cohorts
-                // below are the clickable rows.
-                return (
-                  <li key={p.programme_id}>
-                    <div className="programme-switcher-item">
-                      <div className="programme-switcher-item-title">
-                        {p.title}
-                      </div>
-                      {p.tagline && (
-                        <div className="programme-switcher-item-tagline">
-                          {p.tagline}
-                        </div>
-                      )}
-                      <div className="programme-switcher-item-meta">{meta}</div>
-                      {p.cohorts.length === 0 ? (
-                        <div className="programme-switcher-cohorts-empty">
-                          No cohorts scheduled yet.
-                        </div>
-                      ) : (
-                        <ul className="programme-switcher-cohorts">
-                          {p.cohorts.map((c) => (
-                            <li key={c.cohort_id}>
-                              <button
-                                type="button"
-                                className="programme-switcher-cohort"
-                                onClick={() =>
-                                  go(
-                                    `/student/cohort/${c.cohort_id}/curriculum`
-                                  )
-                                }
-                              >
-                                <span className="programme-switcher-cohort-name">
-                                  {c.name ??
-                                    `${c.start_date} → ${c.end_date}`}
-                                </span>
-                                <span className="programme-switcher-cohort-dates">
-                                  {c.start_date} → {c.end_date}
-                                </span>
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <ProgrammeList programmes={state.programmes} onNavigate={onClose} />
           )}
         </div>
       </div>

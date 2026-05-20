@@ -6,6 +6,10 @@
 --
 -- Applied to dev via Supabase MCP apply_migration; not intended for
 -- prod (these are test drafts, not QAcademy content).
+--
+-- Option ids use A/B/C/D/E to match what the bank editor produces.
+-- The runner displays opt.id directly as the visible prefix, so any
+-- other format (o1/o2, true/false, T/F) leaks straight to the student.
 
 INSERT INTO nclex_tutor_questions (
   item_id,
@@ -31,16 +35,16 @@ VALUES
     'Which assessment finding is most concerning in a client admitted with acute heart failure?',
     'New-onset bilateral crackles reflect worsening pulmonary oedema — the hallmark of decompensated heart failure. Mild pedal oedema is expected and does not trigger immediate escalation; RR 18 and BP 132/80 are both within target ranges.',
     '{"options":[
-      {"id":"o1","text":"Bilateral crackles in both lower lung fields"},
-      {"id":"o2","text":"Mild pedal oedema"},
-      {"id":"o3","text":"Respiratory rate of 18"},
-      {"id":"o4","text":"Blood pressure 132/80 mmHg"}
+      {"id":"A","text":"Bilateral crackles in both lower lung fields"},
+      {"id":"B","text":"Mild pedal oedema"},
+      {"id":"C","text":"Respiratory rate of 18"},
+      {"id":"D","text":"Blood pressure 132/80 mmHg"}
     ]}'::jsonb,
-    '{"answer":"o1","feedback":{
-      "o1":"Correct — crackles indicate pulmonary fluid overload.",
-      "o2":"Expected in heart failure; monitor but not urgent.",
-      "o3":"Within normal limits.",
-      "o4":"Acceptable BP range for most HF clients."
+    '{"answer":"A","feedback":{
+      "A":"Correct — crackles indicate pulmonary fluid overload.",
+      "B":"Expected in heart failure; monitor but not urgent.",
+      "C":"Within normal limits.",
+      "D":"Acceptable BP range for most HF clients."
     }}'::jsonb,
     'Physiological Integrity',
     'Physiological Adaptation',
@@ -57,12 +61,12 @@ VALUES
     'Administering nitroglycerin sublingually lowers preload and can relieve chest pain associated with angina.',
     'Nitroglycerin dilates veins, reducing preload and myocardial oxygen demand. This is its primary mechanism in angina relief.',
     '{"options":[
-      {"id":"true","text":"True"},
-      {"id":"false","text":"False"}
+      {"id":"A","text":"True"},
+      {"id":"B","text":"False"}
     ]}'::jsonb,
-    '{"answer":"true","feedback":{
-      "true":"Correct — preload reduction is the key mechanism.",
-      "false":"Incorrect — preload reduction is exactly how nitroglycerin works."
+    '{"answer":"A","feedback":{
+      "A":"Correct — preload reduction is the key mechanism.",
+      "B":"Incorrect — preload reduction is exactly how nitroglycerin works."
     }}'::jsonb,
     'Physiological Integrity',
     'Pharmacological and Parenteral Therapies',
@@ -79,18 +83,18 @@ VALUES
     'Which findings are associated with hypokalaemia? Select all that apply.',
     'Hypokalaemia impairs smooth and cardiac muscle function. Classic findings include muscle weakness, cramping, a flattened T-wave on ECG, and reduced bowel motility leading to constipation or ileus.',
     '{"options":[
-      {"id":"o1","text":"Muscle weakness"},
-      {"id":"o2","text":"Flattened T-wave on ECG"},
-      {"id":"o3","text":"Hyperactive bowel sounds"},
-      {"id":"o4","text":"Constipation"},
-      {"id":"o5","text":"Peaked T-wave on ECG"}
+      {"id":"A","text":"Muscle weakness"},
+      {"id":"B","text":"Flattened T-wave on ECG"},
+      {"id":"C","text":"Hyperactive bowel sounds"},
+      {"id":"D","text":"Constipation"},
+      {"id":"E","text":"Peaked T-wave on ECG"}
     ]}'::jsonb,
-    '{"answers":["o1","o2","o4"],"feedback":{
-      "o1":"Correct — low K⁺ causes skeletal muscle weakness.",
-      "o2":"Correct — classic hypokalaemia ECG change.",
-      "o3":"Incorrect — hypokalaemia slows bowel motility.",
-      "o4":"Correct — reduced peristalsis → constipation.",
-      "o5":"Incorrect — peaked T-waves indicate hyperkalaemia."
+    '{"answers":["A","B","D"],"feedback":{
+      "A":"Correct — low K⁺ causes skeletal muscle weakness.",
+      "B":"Correct — classic hypokalaemia ECG change.",
+      "C":"Incorrect — hypokalaemia slows bowel motility.",
+      "D":"Correct — reduced peristalsis → constipation.",
+      "E":"Incorrect — peaked T-waves indicate hyperkalaemia."
     }}'::jsonb,
     'Physiological Integrity',
     'Physiological Adaptation',
@@ -107,18 +111,18 @@ VALUES
     'A client newly diagnosed with type 2 diabetes asks about lifestyle measures. Select the TWO most important teaching points for glycaemic control.',
     'Consistent carbohydrate intake and regular moderate-intensity aerobic activity are the two evidence-based lifestyle measures with the largest impact on HbA1c. Daily weighing, limiting all fats, and doubling water intake are either unhelpful or incorrect advice.',
     '{"select_count":2,"options":[
-      {"id":"o1","text":"Eat consistent carbohydrate amounts at each meal"},
-      {"id":"o2","text":"Weigh yourself at the same time every day"},
-      {"id":"o3","text":"Engage in 150 minutes of moderate aerobic activity per week"},
-      {"id":"o4","text":"Eliminate all dietary fat"},
-      {"id":"o5","text":"Double your daily water intake"}
+      {"id":"A","text":"Eat consistent carbohydrate amounts at each meal"},
+      {"id":"B","text":"Weigh yourself at the same time every day"},
+      {"id":"C","text":"Engage in 150 minutes of moderate aerobic activity per week"},
+      {"id":"D","text":"Eliminate all dietary fat"},
+      {"id":"E","text":"Double your daily water intake"}
     ]}'::jsonb,
-    '{"answers":["o1","o3"],"feedback":{
-      "o1":"Correct — consistent carb intake stabilises glucose.",
-      "o2":"Useful for weight monitoring but not the top priority here.",
-      "o3":"Correct — aerobic activity improves insulin sensitivity.",
-      "o4":"Incorrect — healthy fats are part of a balanced diet.",
-      "o5":"Incorrect — excess water intake isn''t a diabetes measure."
+    '{"answers":["A","C"],"feedback":{
+      "A":"Correct — consistent carb intake stabilises glucose.",
+      "B":"Useful for weight monitoring but not the top priority here.",
+      "C":"Correct — aerobic activity improves insulin sensitivity.",
+      "D":"Incorrect — healthy fats are part of a balanced diet.",
+      "E":"Incorrect — excess water intake isn''t a diabetes measure."
     }}'::jsonb,
     'Health Promotion and Maintenance',
     'Health Promotion and Maintenance',

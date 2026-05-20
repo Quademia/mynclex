@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototype B — Student Dashboard Tile States · MyNclex</title>
+<link rel="stylesheet" href="../styles/proposal.css">
+<link rel="stylesheet" href="../styles/student-dashboard.css">
+</head>
+<body data-screen-label="B · Student Dashboard">
+
+<div class="prototype-shell">
+
+  <div class="prototype-bar">
+    <div class="left">
+      <a href="../index.html">← Proposal</a>
+      <span style="color:var(--ink-faint)">/</span>
+      <span class="title">Prototype B · Student dashboard tile states</span>
+    </div>
+    <div class="right">
+      <span style="color:var(--ink-mute); margin-right:8px;">Programme tile state</span>
+      <div class="seg" id="state-toggle">
+        <button data-state="pending"  class="on">Pending</button>
+        <button data-state="enrolled">Enrolled</button>
+        <button data-state="paused">Paused</button>
+        <button data-state="expired">Expired</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="proto-state-stripe" id="stripe">
+    <span class="lbl">State</span>
+    <span id="stripe-text">PENDING_APPROVAL — on-platform tutored, student paid, awaiting tutor approval. Programme content locked. Bank tile (if opted in) is fully usable.</span>
+  </div>
+
+  <div class="sd-shell">
+
+    <aside class="sd-sidebar">
+      <div class="product">
+        <div class="glyph">M</div>
+        <div>
+          <div class="label">MyNclex</div>
+          <div class="role">Ama Mensah · Student</div>
+        </div>
+      </div>
+      <nav>
+        <a href="#" class="on"><span class="dot"></span>Dashboard</a>
+        <a href="#"><span class="dot"></span>Practice bank</a>
+        <a href="#"><span class="dot"></span>Readiness packs</a>
+        <a href="#"><span class="dot"></span>Programmes</a>
+        <a href="#"><span class="dot"></span>Journey tracker</a>
+        <div class="sub-h">Account</div>
+        <a href="#"><span class="dot"></span>My payments</a>
+        <a href="#"><span class="dot"></span>Settings</a>
+      </nav>
+    </aside>
+
+    <main class="sd-main">
+      <div class="sd-greeting">Good morning</div>
+      <h1>Welcome back, Ama</h1>
+      <p class="lede">Your active programmes and bank access live here. Bank purchases and programme enrolments are independent — losing one doesn't affect the other.</p>
+
+      <div class="sd-grid">
+
+        <!-- BANK TILE — stable across all states -->
+        <article class="tile">
+          <div class="head">
+            <div>
+              <div class="product-lbl">NCLEX BANK · 90 days</div>
+              <h2>Practice bank access</h2>
+              <p class="by">Self-purchase · 2 readiness pack credits unclaimed</p>
+            </div>
+            <span class="status-pill st-enrolled">ACTIVE</span>
+          </div>
+          <div class="body">
+            <div class="progress" aria-label="44 of 90 days used"><span style="width: 49%"></span></div>
+            <div class="meta-line">
+              <span><span class="k">Started</span> Jun 21</span>
+              <span><span class="k">Expires</span> Sep 19 · 46 days left</span>
+              <span><span class="k">Questions answered</span> 312 of 2,400</span>
+            </div>
+            <p style="margin-top:16px; font-size:13px; color:var(--ink-soft);">
+              Last session: 28 questions on <em>Cardiac rhythms</em> · 71% correct.
+            </p>
+          </div>
+          <div class="foot tile-actions">
+            <a class="btn primary" href="#">Continue practising</a>
+            <a class="btn ghost" href="#">Claim 2 readiness packs</a>
+          </div>
+        </article>
+
+        <!-- PROGRAMME TILE — swaps state -->
+        <article class="tile" id="prog-tile">
+          <!-- contents injected by JS -->
+        </article>
+
+      </div>
+
+      <!-- compare grid: all 4 tiles small -->
+      <section class="sd-compare">
+        <h3>All four states, compared</h3>
+        <p>The tile appears the moment the <code>nclex_enrolments</code> row exists — what it shows depends on status. Bank access (separate subscription) is unaffected in every case.</p>
+
+        <div class="sd-compare-grid">
+
+          <div class="sd-mini is-pending">
+            <div class="lbl">PENDING_APPROVAL</div>
+            <div class="pill-row"><span class="status-pill st-pending">PENDING_APPROVAL</span></div>
+            <h4>NCLEX-RN Intensive</h4>
+            <div class="body">
+              "Pending tutor approval." Content locked. Tutor will see your paid waitlist entry and approve.
+            </div>
+          </div>
+
+          <div class="sd-mini">
+            <div class="lbl">ENROLLED</div>
+            <div class="pill-row"><span class="status-pill st-enrolled">ENROLLED</span></div>
+            <h4>NCLEX-RN Intensive</h4>
+            <div class="body">
+              Active access. Progress bar against curriculum. Access window end-date shown. Cohort or self-paced — same template.
+            </div>
+          </div>
+
+          <div class="sd-mini is-paused">
+            <div class="lbl">PAUSED</div>
+            <div class="pill-row"><span class="status-pill st-paused">PAUSED</span></div>
+            <h4>NCLEX-RN Intensive</h4>
+            <div class="body">
+              "Payment overdue — access paused." Pay-now button. Tutor can also mark paid (off-platform) to unpause.
+            </div>
+          </div>
+
+          <div class="sd-mini is-expired">
+            <div class="lbl">EXPIRED</div>
+            <div class="pill-row"><span class="status-pill st-expired">EXPIRED</span></div>
+            <h4>NCLEX-RN Intensive</h4>
+            <div class="body">
+              "Access expired Mar 20." Row preserved for history; archive section. Re-enrol if cohort still running.
+            </div>
+          </div>
+
+        </div>
+
+        <p style="margin-top:18px; color:var(--ink-mute); font-size:12.5px;">
+          Two states intentionally omitted from the front page: <span class="status-pill st-rejected" style="vertical-align:-2px;">REJECTED</span> shows a "Refund being processed" tile (then disappears once admin handles); <span class="status-pill st-cancelled" style="vertical-align:-2px;">CANCELLED</span> shows a one-line "Enrolment cancelled" notice in the archive.
+        </p>
+      </section>
+    </main>
+
+  </div>
+</div>
+
+
+<script>
+const STRIPES = {
+  pending:  "PENDING_APPROVAL — on-platform tutored, student paid, awaiting tutor approval. Programme content locked. Bank tile (if opted in) is fully usable.",
+  enrolled: "ENROLLED — tutor approved (or off-platform / self-paced direct). Curriculum + sessions visible. Access window end-date shown.",
+  paused:   "PAUSED — an installment due-date passed without payment. The pg_cron nightly job set this. Programme content locked; bank unaffected.",
+  expired:  "EXPIRED — access window ended. Set by nightly pg_cron. Row preserved for history; tile moves to the archive section."
+};
+
+const TILES = {
+  pending: `
+    <div class="head">
+      <div>
+        <div class="product-lbl">PROGRAMME · TUTORED</div>
+        <h2>NCLEX-RN Intensive · 8&nbsp;weeks</h2>
+        <p class="by">By A. Owusu · Cohort Aug 5 → Sep 29</p>
+      </div>
+      <span class="status-pill st-pending">PENDING_APPROVAL</span>
+    </div>
+    <div class="body">
+      <div class="state-msg" style="margin-top:4px">
+        <strong>Pending tutor approval.</strong> You paid ₵800 deposit (deposit + balance strategy). A. Owusu will approve your enrolment within 24 hours — you'll get an email when programme content unlocks.
+      </div>
+      <div class="meta-line">
+        <span><span class="k">Paid</span> ₵800 · today, 09:12</span>
+        <span><span class="k">Next payment</span> ₵800 due Aug 19</span>
+      </div>
+    </div>
+    <div class="foot tile-actions">
+      <a class="btn" href="#" style="pointer-events:none; opacity:0.55;">Open programme (locked)</a>
+      <a class="btn ghost" href="#">View payment receipt</a>
+    </div>`,
+
+  enrolled: `
+    <div class="head">
+      <div>
+        <div class="product-lbl">PROGRAMME · TUTORED · WEEK 3 OF 8</div>
+        <h2>NCLEX-RN Intensive · 8&nbsp;weeks</h2>
+        <p class="by">By A. Owusu · Cohort Aug 5 → Sep 29 · live session Tue 7pm</p>
+      </div>
+      <span class="status-pill st-enrolled">ENROLLED</span>
+    </div>
+    <div class="body">
+      <div class="progress" aria-label="3 of 8 weeks complete"><span style="width: 37%"></span></div>
+      <div class="meta-line">
+        <span><span class="k">Week</span> 3 of 8</span>
+        <span><span class="k">Activities done</span> 12 of 36</span>
+        <span><span class="k">Access expires</span> Aug 5, 2028</span>
+      </div>
+      <p style="margin-top:14px; font-size:13px; color:var(--ink-soft);">
+        Next up: <strong>Wk 3.4 · Pre-tutorial — Pharmacology safe-dose calc quiz</strong> · due Thu.
+      </p>
+    </div>
+    <div class="foot tile-actions">
+      <a class="btn accent" href="#">Continue week 3</a>
+      <a class="btn ghost" href="#">Cohort schedule</a>
+    </div>`,
+
+  paused: `
+    <div class="head">
+      <div>
+        <div class="product-lbl">PROGRAMME · TUTORED</div>
+        <h2>NCLEX-RN Intensive · 8&nbsp;weeks</h2>
+        <p class="by">By A. Owusu · Cohort Aug 5 → Sep 29</p>
+      </div>
+      <span class="status-pill st-paused">PAUSED</span>
+    </div>
+    <div class="body">
+      <div class="state-msg" style="margin-top:4px">
+        <strong>Payment overdue — access paused.</strong> Installment 2 of 3 (₵550) was due Sep 5. Access resumes the moment payment clears.
+      </div>
+      <div class="meta-line">
+        <span><span class="k">Overdue</span> 4 days · ₵550</span>
+        <span><span class="k">Strategy</span> Equal · 3 monthly installments</span>
+        <span><span class="k">Paused on</span> Sep 6 · nightly cron</span>
+      </div>
+      <p style="margin-top:14px; font-size:12.5px; color:var(--ink-mute);">
+        Paid your tutor off-platform? Ask A. Owusu to mark it paid in the cohort workspace.
+      </p>
+    </div>
+    <div class="foot tile-actions">
+      <a class="btn accent" href="#">Pay ₵550 now</a>
+      <a class="btn ghost" href="#">Message tutor</a>
+    </div>`,
+
+  expired: `
+    <div class="head">
+      <div>
+        <div class="product-lbl">PROGRAMME · TUTORED · ARCHIVE</div>
+        <h2 style="color: var(--ink-soft)">NCLEX-RN Intensive · 8&nbsp;weeks</h2>
+        <p class="by">By A. Owusu · Cohort Jan 20 → Mar 16, 2025</p>
+      </div>
+      <span class="status-pill st-expired">EXPIRED</span>
+    </div>
+    <div class="body">
+      <div class="state-msg" style="margin-top:4px">
+        <strong>Access expired Mar 20.</strong> Your 24-month access window ended. Notes, recordings and quiz history remain visible in read-only mode for 30 days, then archive.
+      </div>
+      <div class="meta-line">
+        <span><span class="k">Enrolled</span> Jan 20, 2025</span>
+        <span><span class="k">Completed</span> 32 of 36 activities</span>
+        <span><span class="k">Final mock</span> 78% · pass</span>
+      </div>
+    </div>
+    <div class="foot tile-actions">
+      <a class="btn" href="#">View read-only archive</a>
+      <a class="btn ghost" href="#">Find current cohorts</a>
+    </div>`
+};
+
+function setState(s){
+  document.querySelectorAll('#state-toggle button').forEach(b=>{
+    b.classList.toggle('on', b.dataset.state === s);
+  });
+  document.getElementById('stripe-text').textContent = STRIPES[s];
+  const tile = document.getElementById('prog-tile');
+  tile.className = 'tile tile-' + s;
+  tile.innerHTML = TILES[s];
+}
+document.querySelectorAll('#state-toggle button').forEach(b=>{
+  b.addEventListener('click', ()=>setState(b.dataset.state));
+});
+setState('pending');
+</script>
+
+</body>
+</html>

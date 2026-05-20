@@ -17,13 +17,14 @@
 
 import { ViewerModalShell } from './viewer-modal-shell';
 import { activityEstimatedMinutes, safeHttpUrl } from './format';
-import type { ActivityPayloadExternalLink, ProgrammeActivity } from './types';
+import { MarkDoneButton } from '@/lib/progress/mark-done-button';
+import type { ActivityPayloadExternalLink, StudentActivity } from './types';
 
 export function ExternalLinkViewer({
   activity,
   onClose,
 }: {
-  activity: ProgrammeActivity;
+  activity: StudentActivity;
   onClose: () => void;
 }) {
   const payload = activity.payload as ActivityPayloadExternalLink;
@@ -61,6 +62,11 @@ export function ExternalLinkViewer({
             This link isn&apos;t available yet — ask your tutor to check it.
           </p>
         )}
+
+        <MarkDoneButton
+          activityId={activity.activity_id}
+          isDone={activity.isDone}
+        />
       </div>
     </ViewerModalShell>
   );

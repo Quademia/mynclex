@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototype C — Discovery + Programme Detail · MyNclex</title>
+<link rel="stylesheet" href="../styles/proposal.css">
+<link rel="stylesheet" href="../styles/discovery.css">
+</head>
+<body data-screen-label="C · Public Discovery + Detail">
+
+<div class="prototype-shell">
+
+  <div class="prototype-bar">
+    <div class="left">
+      <a href="../index.html">← Proposal</a>
+      <span style="color:var(--ink-faint)">/</span>
+      <span class="title">Prototype C · Public discovery + programme detail</span>
+    </div>
+    <div class="right">
+      <span style="color:var(--ink-mute); margin-right:8px;">View</span>
+      <div class="seg" id="state-toggle">
+        <button data-state="list"      class="on">Discovery list</button>
+        <button data-state="tutored">Detail · tutor-led</button>
+        <button data-state="selfpaced">Detail · self-paced</button>
+        <button data-state="contact">Detail · contact-first</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="proto-state-stripe" id="stripe">
+    <span class="lbl">View</span>
+    <span id="stripe-text">Discovery list — public page, tutor-led + self-paced cards mixed. Tutor-led with zero open cohorts are hidden; self-paced never gated on cohorts.</span>
+  </div>
+
+  <div class="pub-shell">
+
+    <!-- public nav -->
+    <header class="pub-nav">
+      <div class="brand"><div class="glyph">M</div> MyNclex</div>
+      <nav class="links">
+        <a href="#">Practice bank</a>
+        <a href="#">Programmes</a>
+        <a href="#">Readiness</a>
+        <a href="#">For tutors</a>
+      </nav>
+      <div class="right">
+        <div class="fx-toggle">
+          <button class="on">GHS</button>
+          <button>USD</button>
+        </div>
+        <a class="btn ghost" href="#">Log in</a>
+      </div>
+    </header>
+
+    <!-- ── STATE: discovery list ─────────────────────────────── -->
+    <section id="view-list" class="pub-content view">
+      <div class="disc-hero">
+        <div class="kicker">Vetted tutored programmes · NCLEX-RN</div>
+        <h1>Programmes from tutors who've done this before</h1>
+        <p>Eight-week intensives, lifetime self-paced courses, and everything in between. Pick a tutor, pick a cohort, pay through them or through us — either way QAcademy hosts the content.</p>
+      </div>
+
+      <div class="disc-filters">
+        <div class="left">
+          <button class="chip on">All <span class="count" style="margin-left:6px; color:#fff; opacity:0.7">12</span></button>
+          <button class="chip">Tutor-led <span class="count" style="margin-left:6px">9</span></button>
+          <button class="chip">Self-paced <span class="count" style="margin-left:6px">3</span></button>
+          <button class="chip">Starting this month</button>
+        </div>
+        <div class="right" style="color:var(--ink-mute); font-size:13px;">12 of 12 · sorted by next cohort</div>
+      </div>
+
+      <div class="prog-grid">
+
+        <a class="prog-card" href="#" onclick="setState('tutored');event.preventDefault()">
+          <div class="tutor-row">
+            <div class="avatar">AO</div>
+            <div class="nm">By <strong>Akosua Owusu</strong> · 6 years tutoring</div>
+            <div class="delivery-tag">TUTOR-LED</div>
+          </div>
+          <h2>NCLEX-RN Intensive — 8 weeks to ready</h2>
+          <p class="desc">Live weekly sessions + structured pre/post tutorial tasks. Built for Ghanaian nurses with US licensure as the goal.</p>
+          <div class="price-row">
+            <div class="price"><span class="ccy">GHS</span>1,600</div>
+            <div class="when">
+              <span class="k">Next cohort</span>
+              Aug 5 → Sep 29
+            </div>
+          </div>
+          <div class="bank-hint"><span class="bullet"></span>Add NCLEX Bank Access from ₵72 at checkout (optional)</div>
+        </a>
+
+        <a class="prog-card" href="#" onclick="setState('selfpaced');event.preventDefault()">
+          <div class="tutor-row">
+            <div class="avatar">EM</div>
+            <div class="nm">By <strong>Esi Mensah</strong> · 4 years tutoring</div>
+            <div class="delivery-tag self-paced">SELF-PACED</div>
+          </div>
+          <h2>Pharmacology Deep Dive — 6 modules</h2>
+          <p class="desc">Async-only. Six modules of structured content covering high-yield drugs, calculations, and SATA strategies. 12-month access.</p>
+          <div class="price-row">
+            <div class="price"><span class="ccy">GHS</span>650</div>
+            <div class="when">
+              <span class="k">Start</span>
+              Anytime
+            </div>
+          </div>
+          <div class="bank-hint"><span class="bullet"></span>Add NCLEX Bank Access from ₵72 at checkout (optional)</div>
+        </a>
+
+        <a class="prog-card" href="#">
+          <div class="tutor-row">
+            <div class="avatar">KS</div>
+            <div class="nm">By <strong>Kwame Sarpong</strong> · 8 years tutoring</div>
+            <div class="delivery-tag">TUTOR-LED</div>
+          </div>
+          <h2>NCLEX-RN Full Course — 12 weeks</h2>
+          <p class="desc">Comprehensive coverage with weekly cohort calls, mock NCLEX simulations, and CJMM case-study workshops.</p>
+          <div class="price-row">
+            <div class="price"><span class="ccy">GHS</span>2,800</div>
+            <div class="when">
+              <span class="k">Next cohort</span>
+              Sep 2 → Nov 24
+            </div>
+          </div>
+          <div class="bank-hint"><span class="bullet"></span>Add NCLEX Bank Access from ₵162 at checkout (optional)</div>
+        </a>
+
+        <a class="prog-card contact-first" href="#" onclick="setState('contact');event.preventDefault()">
+          <div class="tutor-row">
+            <div class="avatar">DA</div>
+            <div class="nm">By <strong>Dr. Doris Asare</strong> · 12 years tutoring</div>
+            <div class="delivery-tag">TUTOR-LED</div>
+          </div>
+          <h2>1-on-1 Concierge — bespoke 16-week programme</h2>
+          <p class="desc">Personalised tutoring with weekly 1:1 calls and a tailored review plan. Limited seats per quarter.</p>
+          <div class="price-row">
+            <div class="price"></div>
+            <div class="when">
+              <span class="k">Next intake</span>
+              Aug 12
+            </div>
+          </div>
+        </a>
+
+        <a class="prog-card" href="#">
+          <div class="tutor-row">
+            <div class="avatar">PA</div>
+            <div class="nm">By <strong>Paulina Adu</strong> · 3 years tutoring</div>
+            <div class="delivery-tag self-paced">SELF-PACED</div>
+          </div>
+          <h2>SATA &amp; Bow-tie Bootcamp — 4 modules</h2>
+          <p class="desc">Targeted drilling on the highest-leverage NCLEX question types. 90-day window.</p>
+          <div class="price-row">
+            <div class="price"><span class="ccy">GHS</span>320</div>
+            <div class="when">
+              <span class="k">Start</span>
+              Anytime
+            </div>
+          </div>
+          <div class="bank-hint"><span class="bullet"></span>Add NCLEX Bank Access from ₵72 at checkout (optional)</div>
+        </a>
+
+        <a class="prog-card" href="#">
+          <div class="tutor-row">
+            <div class="avatar">JM</div>
+            <div class="nm">By <strong>Joana Mensah</strong> · 5 years tutoring</div>
+            <div class="delivery-tag">TUTOR-LED</div>
+          </div>
+          <h2>NCLEX-RN Weekend Cohort — 10 weeks</h2>
+          <p class="desc">Saturday-only live sessions for working nurses. Same curriculum, slower pacing.</p>
+          <div class="price-row">
+            <div class="price"><span class="ccy">GHS</span>1,400</div>
+            <div class="when">
+              <span class="k">Next cohort</span>
+              Aug 17 → Oct 26
+            </div>
+          </div>
+          <div class="bank-hint"><span class="bullet"></span>Add NCLEX Bank Access from ₵72 at checkout (optional)</div>
+        </a>
+
+      </div>
+
+      <p style="margin-top: 28px; color:var(--ink-mute); font-size:12.5px;">
+        Discovery query: <code style="background:var(--bg-sunk);padding:1px 5px;border-radius:3px;border:1px solid var(--line-soft);font-size:11.5px;">SELECT programmes WHERE status='PUBLISHED' AND tutor_active AND (delivery_mode='SELF_PACED' OR EXISTS open_cohort)</code>. Listed prices are <code style="background:var(--bg-sunk);padding:1px 5px;border-radius:3px;border:1px solid var(--line-soft);font-size:11.5px;">strategies WHERE kind='UPFRONT_FULL'</code>. The bank-hint line is always shown but doesn't affect the headline.
+      </p>
+    </section>
+
+    <!-- ── STATE: tutor-led detail ────────────────────────────── -->
+    <section id="view-tutored" class="pub-content view" style="display:none">
+      <a class="det-back" href="#" onclick="setState('list');event.preventDefault()">← Back to programmes</a>
+
+      <div class="det-shell">
+        <article>
+          <header class="det-header">
+            <div class="tutor-row">
+              <div class="avatar">AO</div>
+              <div class="who">
+                <div class="nm">Akosua Owusu, BSN RN</div>
+                <div class="sub">Pediatric ICU nurse · 6 years tutoring</div>
+              </div>
+              <span class="delivery-tag">TUTOR-LED</span>
+            </div>
+            <h1>NCLEX-RN Intensive — 8 weeks to ready</h1>
+            <p class="tagline">A structured eight-week run from foundational reasoning to mock-NCLEX-pass. Designed around the Clinical Judgment Measurement Model.</p>
+
+            <div class="det-meta">
+              <div class="cell"><div class="k">Length</div><div class="v">8 weeks</div></div>
+              <div class="cell"><div class="k">Live session</div><div class="v">Tue 7&nbsp;pm GMT</div></div>
+              <div class="cell"><div class="k">Access window</div><div class="v">24 months</div></div>
+              <div class="cell"><div class="k">Collection</div><div class="v" style="font-size:13px;">On-platform (Paystack)</div></div>
+            </div>
+          </header>
+
+          <section class="det-section">
+            <h2>About this programme</h2>
+            <p>Eight weeks of structured prep. Each week opens with a recorded pre-tutorial primer, runs a live cohort session on Tuesday evenings, and closes with a quiz + reflection task. By week six you'll be running full mock-NCLEX simulations in CAT mode.</p>
+            <p style="margin-top:10px">Mostly built for Ghanaian-trained nurses targeting US licensure, but the curriculum doesn't assume a specific origin — works for UK / Canada / direct US graduates too.</p>
+          </section>
+
+          <section class="det-section">
+            <h2>Syllabus shape</h2>
+            <div class="syllabus">
+              <div class="wk"><div class="num">Week 01</div><div class="ttl">Reasoning foundations</div><div class="sub">CJMM intro · Recognise/Analyse cues</div></div>
+              <div class="wk"><div class="num">Week 02</div><div class="ttl">Cardiovascular</div><div class="sub">Rhythms, meds, priorities</div></div>
+              <div class="wk"><div class="num">Week 03</div><div class="ttl">Pharmacology + safe-dose</div><div class="sub">High-alert meds · calc drills</div></div>
+              <div class="wk"><div class="num">Week 04</div><div class="ttl">Maternal-newborn</div><div class="sub">Antepartum → postpartum</div></div>
+              <div class="wk"><div class="num">Week 05</div><div class="ttl">Mental health</div><div class="sub">Therapeutic communication</div></div>
+              <div class="wk"><div class="num">Week 06</div><div class="ttl">Mock-NCLEX simulation</div><div class="sub">First full CAT pass</div></div>
+              <div class="wk"><div class="num">Week 07</div><div class="ttl">Weak-area drill</div><div class="sub">Personalised from mock</div></div>
+              <div class="wk"><div class="num">Week 08</div><div class="ttl">Test-day readiness</div><div class="sub">Strategy + final mock</div></div>
+            </div>
+          </section>
+
+          <section class="det-section">
+            <h2>Available cohorts</h2>
+            <div class="cohort-list">
+              <div class="cohort-row">
+                <div>
+                  <div class="nm">Aug 5 — Sep 29 cohort</div>
+                  <div class="dates">8 weeks · Tue 7&nbsp;pm</div>
+                </div>
+                <div class="seats">14 / 20 enrolled<span class="bar"><span style="width:70%"></span></span></div>
+                <div class="pill-host"><span class="tag-soft soon">Upcoming · 12d</span></div>
+                <a class="btn accent" href="#" onclick="goCheckout()">Enrol</a>
+              </div>
+              <div class="cohort-row">
+                <div>
+                  <div class="nm">Aug 17 — Oct 12 cohort</div>
+                  <div class="dates">8 weeks · Sat 10&nbsp;am</div>
+                </div>
+                <div class="seats">5 / 20 enrolled<span class="bar"><span style="width:25%"></span></span></div>
+                <div class="pill-host"><span class="tag-soft soon">Upcoming · 24d</span></div>
+                <a class="btn accent" href="#" onclick="goCheckout()">Enrol</a>
+              </div>
+              <div class="cohort-row">
+                <div>
+                  <div class="nm">July 22 cohort</div>
+                  <div class="dates">In week 3 of 8</div>
+                </div>
+                <div class="seats">19 / 20 enrolled<span class="bar"><span style="width:95%"></span></span></div>
+                <div class="pill-host"><span class="tag-soft late">In progress · late-join open</span></div>
+                <a class="btn" href="#" onclick="goCheckout()">Join late</a>
+              </div>
+            </div>
+          </section>
+
+          <section class="det-section">
+            <h2>What's included</h2>
+            <ul>
+              <li>8 live cohort sessions (recorded if you miss one)</li>
+              <li>~36 graded curriculum activities (videos, PDFs, quizzes, mocks)</li>
+              <li>One full CAT-mode mock NCLEX</li>
+              <li>Direct tutor messaging through the cohort</li>
+              <li>24-month read access after the cohort ends</li>
+            </ul>
+          </section>
+
+          <section class="det-section">
+            <h2>About Akosua</h2>
+            <p>BSN-RN, NCLEX-RN passed first attempt 2018, currently a Pediatric ICU nurse in Maryland. Six years of tutoring with a 94% first-attempt pass rate across 187 students.</p>
+          </section>
+        </article>
+
+        <!-- right rail: pricing -->
+        <aside class="det-rail">
+          <div class="price"><span class="ccy">GHS</span>1,600</div>
+          <div class="price-sub">Upfront full · pay-in-3 from ₵550/mo at checkout</div>
+
+          <div style="margin-top:18px">
+            <a class="btn accent" href="#" onclick="goCheckout()" style="width:100%;justify-content:center; height: 40px;">Enrol in next cohort →</a>
+            <p style="margin-top:8px; font-size:12px; color:var(--ink-mute); text-align:center;">Aug 5 cohort · 6 seats left</p>
+          </div>
+
+          <div class="bank-hint">
+            <strong>Optional add-on</strong>
+            Add NCLEX Bank Access from <span class="mono">₵72</span> at checkout (40% off standalone).
+          </div>
+
+          <div class="what-includes">
+            <h4>Payment strategies available</h4>
+            <ul>
+              <li>Upfront full · ₵1,600</li>
+              <li>Deposit + balance · ₵800 + ₵800 (due Aug 19)</li>
+              <li>Equal · 3 × ₵550 (₵1,650)</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ── STATE: self-paced detail ───────────────────────────── -->
+    <section id="view-selfpaced" class="pub-content view" style="display:none">
+      <a class="det-back" href="#" onclick="setState('list');event.preventDefault()">← Back to programmes</a>
+
+      <div class="det-shell">
+        <article>
+          <header class="det-header">
+            <div class="tutor-row">
+              <div class="avatar">EM</div>
+              <div class="who">
+                <div class="nm">Esi Mensah, RN MSc</div>
+                <div class="sub">Clinical pharmacist + NCLEX tutor · 4 years</div>
+              </div>
+              <span class="delivery-tag self-paced">SELF-PACED</span>
+            </div>
+            <h1>Pharmacology Deep Dive — 6 modules</h1>
+            <p class="tagline">Async-only. Master the highest-yield NCLEX pharmacology in six structured modules. Start the moment you enrol; no cohort hop.</p>
+
+            <div class="det-meta">
+              <div class="cell"><div class="k">Length</div><div class="v">6 modules</div></div>
+              <div class="cell"><div class="k">Format</div><div class="v">Async only</div></div>
+              <div class="cell"><div class="k">Access window</div><div class="v">12 months</div></div>
+              <div class="cell"><div class="k">Starts</div><div class="v">Instantly on payment</div></div>
+            </div>
+          </header>
+
+          <section class="det-section">
+            <h2>About this programme</h2>
+            <p>Six modules covering the drugs that show up most on the NCLEX-RN. Each module pairs a 20-30 min video, a structured note pack, and a 30-question targeted quiz. Work through it in a week or stretch over months — your 12-month window covers any pace.</p>
+          </section>
+
+          <section class="det-section">
+            <h2>Modules</h2>
+            <div class="syllabus">
+              <div class="wk"><div class="num">Module 01</div><div class="ttl">Pharmacology principles</div><div class="sub">Absorption · onset · pregnancy</div></div>
+              <div class="wk"><div class="num">Module 02</div><div class="ttl">Cardiovascular drugs</div><div class="sub">Anticoag, beta-blockers, digoxin</div></div>
+              <div class="wk"><div class="num">Module 03</div><div class="ttl">Pain &amp; sedation</div><div class="sub">Opioids · antidotes · safe doses</div></div>
+              <div class="wk"><div class="num">Module 04</div><div class="ttl">Endocrine &amp; antibiotics</div><div class="sub">Insulin · steroids · resistance</div></div>
+              <div class="wk"><div class="num">Module 05</div><div class="ttl">Psychiatric meds</div><div class="sub">SSRIs · antipsychotics · MAOIs</div></div>
+              <div class="wk"><div class="num">Module 06</div><div class="ttl">Calculation drills</div><div class="sub">Mock-style safe-dose problems</div></div>
+            </div>
+          </section>
+
+          <section class="det-section">
+            <h2>About Esi</h2>
+            <p>Clinical pharmacist in Accra and NCLEX-RN tutor since 2022. Specialises in turning pharmacology from rote memorisation into pattern recognition.</p>
+          </section>
+        </article>
+
+        <aside class="det-rail">
+          <div class="price"><span class="ccy">GHS</span>650</div>
+          <div class="price-sub">Upfront full · pay-in-2 available at checkout</div>
+
+          <div style="margin-top:18px">
+            <a class="btn accent" href="#" onclick="goCheckout()" style="width:100%;justify-content:center; height: 40px;">Start now →</a>
+            <p style="margin-top:8px; font-size:12px; color:var(--ink-mute); text-align:center;">No cohort wait · instant access</p>
+          </div>
+
+          <div class="bank-hint">
+            <strong>Optional add-on</strong>
+            Add NCLEX Bank Access from <span class="mono">₵72</span> at checkout (40% off standalone).
+          </div>
+
+          <div class="what-includes">
+            <h4>Payment strategies available</h4>
+            <ul>
+              <li>Upfront full · ₵650</li>
+              <li>Deposit + balance · ₵400 + ₵280 (14 days later)</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ── STATE: contact-first detail ────────────────────────── -->
+    <section id="view-contact" class="pub-content view" style="display:none">
+      <a class="det-back" href="#" onclick="setState('list');event.preventDefault()">← Back to programmes</a>
+
+      <div class="det-shell">
+        <article>
+          <header class="det-header">
+            <div class="tutor-row">
+              <div class="avatar">DA</div>
+              <div class="who">
+                <div class="nm">Dr. Doris Asare, DNP RN</div>
+                <div class="sub">NP-led tutoring · 12 years</div>
+              </div>
+              <span class="delivery-tag">TUTOR-LED</span>
+            </div>
+            <h1>1-on-1 Concierge — bespoke 16-week programme</h1>
+            <p class="tagline">Personalised tutoring with weekly 1:1 calls and a custom review plan tailored to your weak areas. Limited seats per quarter.</p>
+
+            <div class="det-meta">
+              <div class="cell"><div class="k">Length</div><div class="v">16 weeks</div></div>
+              <div class="cell"><div class="k">Format</div><div class="v">1:1 + async</div></div>
+              <div class="cell"><div class="k">Access window</div><div class="v">Lifetime *</div></div>
+              <div class="cell"><div class="k">Next intake</div><div class="v">Aug 12</div></div>
+            </div>
+          </header>
+
+          <section class="det-section">
+            <h2>About this programme</h2>
+            <p>A fully bespoke 16-week run-up to NCLEX. Weekly 1:1 video calls with Doris, a personalised review plan, mock simulations scheduled to your pace, and unlimited messaging access throughout. Pricing depends on your timeline, diagnostic baseline, and add-ons — typically GHS 4,000–7,000.</p>
+          </section>
+
+          <section class="det-section">
+            <h2>About Doris</h2>
+            <p>DNP, RN, board-certified family nurse practitioner. Twelve years tutoring NCLEX with a 100% first-attempt pass rate over the last three cohorts. Quarterly intake — eight seats max.</p>
+          </section>
+        </article>
+
+        <aside class="det-rail contact">
+          <div class="price"></div>
+          <div class="price-sub">Doris reviews each enquiry personally and replies within 48&nbsp;h.</div>
+
+          <form class="contact-form" onsubmit="event.preventDefault()">
+            <label>Your name</label>
+            <input type="text" placeholder="Ama Mensah">
+            <label>Email</label>
+            <input type="email" placeholder="you@example.com">
+            <label>Phone (optional)</label>
+            <input type="text" placeholder="+233 …">
+            <label>What are you hoping for?</label>
+            <textarea placeholder="Quick context — your target NCLEX date, current background, anything specific Doris should know."></textarea>
+            <button class="btn accent" style="margin-top:14px; width:100%; justify-content:center; height: 40px;">Send enquiry →</button>
+          </form>
+
+          <p style="margin-top:14px; font-size:12px; color:var(--ink-mute);">
+            Submits an <code style="background:var(--bg-card);padding:1px 5px;border-radius:3px;border:1px solid var(--line-soft);font-size:11.5px;">nclex_programme_enquiries</code> row with status <code style="background:var(--bg-card);padding:1px 5px;border-radius:3px;border:1px solid var(--line-soft);font-size:11.5px;">NEW</code>. No account creation. Pass-through email goes to Doris immediately.
+          </p>
+        </aside>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+
+<script>
+const STRIPES = {
+  list:      "Discovery list — public page, tutor-led + self-paced cards mixed. Tutor-led with zero open cohorts are hidden; self-paced never gated on cohorts.",
+  tutored:   "Programme detail · TUTOR-LED — cohort rows with Enrol per row, late-join pill where allowed. Pricing rail shows headline price + payment-strategy preview.",
+  selfpaced: "Programme detail · SELF-PACED — no cohort rows; one ‘Start now’ CTA. Instant access on payment. Otherwise visually parallel to tutored.",
+  contact:   "Programme detail · CONTACT-FIRST (show_price_publicly = FALSE) — pricing rail replaced with an enquiry form. No checkout path here."
+};
+
+function setState(s){
+  document.querySelectorAll('#state-toggle button').forEach(b=>{
+    b.classList.toggle('on', b.dataset.state === s);
+  });
+  document.getElementById('stripe-text').textContent = STRIPES[s];
+  ['list','tutored','selfpaced','contact'].forEach(v => {
+    document.getElementById('view-'+v).style.display = (v === s) ? '' : 'none';
+  });
+  window.scrollTo(0, 0);
+}
+function goCheckout(){
+  window.location.href = 'checkout-and-welcome.html';
+}
+document.querySelectorAll('#state-toggle button').forEach(b=>{
+  b.addEventListener('click', ()=>setState(b.dataset.state));
+});
+</script>
+
+</body>
+</html>

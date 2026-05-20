@@ -49,6 +49,10 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   { key: 'overview',    label: 'Overview',      icon: 'home',     href: '/tutor/programme/:programmeId/overview' },
   { key: 'cohorts',     label: 'Cohorts',       icon: 'users',    href: '/tutor/programme/:programmeId/cohorts' },
   { key: 'curriculum',  label: 'Curriculum',    icon: 'layers',   href: '/tutor/programme/:programmeId/curriculum' },
+  // Tutor Quiz Slice 5 — programme-level quiz membership. Icon
+  // `target` matches the global Quizzes nav entry above so the
+  // iconography family stays consistent across the two sidebars.
+  { key: 'quizzes',     label: 'Quizzes',       icon: 'target',   href: '/tutor/programme/:programmeId/quizzes' },
   { key: 'sessions',    label: 'Live Sessions', icon: 'video',    href: '/tutor/programme/:programmeId/sessions' },
   { key: 'assignments', label: 'Assignments',   icon: 'edit',     href: '/tutor/programme/:programmeId/assignments' },
   { key: 'students',    label: 'Students',      icon: 'users',    href: '/tutor/programme/:programmeId/students' },

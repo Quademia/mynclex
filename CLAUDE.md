@@ -329,8 +329,11 @@ session was open.
 ## Files To Read at Session Start
 
 - This file (`mynclex/CLAUDE.md`)
-- `mynclex/SESSIONS.md` — running log of work done
-- `mynclex/BUILD_LIST.md` — once it exists, current priorities
+- `mynclex/SESSIONS.md` — index of work sessions; then open the latest
+  period file in `mynclex/sessions/` (monthly, e.g. `sessions/2026-05.md`)
+  for recent detail. Don't read every archive — just the index + the
+  latest period file(s) relevant to the task.
+- `mynclex/BUILD_LIST.md` — current priorities (slice checklists)
 - Recent commits (`git log --oneline -10`)
 
 ## Explicit Deferrals (Not v1)

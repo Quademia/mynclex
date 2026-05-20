@@ -28,6 +28,7 @@ import type {
 } from '@/lib/practice/runner';
 import { Runner } from './runner';
 import { expireAttemptAction } from './actions';
+import { resolveAttemptExitHref } from '@/lib/practice/runner/resolve-exit-href';
 
 export const dynamic = 'force-dynamic';
 
@@ -183,6 +184,14 @@ export default async function SessionPage({ params }: PageProps) {
     }
   }
 
+  // Slice 3a — exit URL for the topbar ← Exit button. Server-side so
+  // the click is a sync push (no spinner). Same resolver the results
+  // popup calls on-demand.
+  const exitHref = await resolveAttemptExitHref(supabase, {
+    source:                attempt.source,
+    programme_activity_id: attempt.programme_activity_id,
+  });
+
   // Multi-line / concatenated select strings defeat supabase-js's row-
   // shape inference (returns GenericStringError[]); cast through unknown.
   const data: RunnerData = isLive
@@ -194,6 +203,7 @@ export default async function SessionPage({ params }: PageProps) {
         trends:  (trends.data  ?? []) as unknown as TrendSnapshot[],
         answers: (answers.data ?? []) as unknown as AnswerRow[],
         seededUnseal,
+        exitHref,
       }
     : {
         mode:    'review',
@@ -202,6 +212,7 @@ export default async function SessionPage({ params }: PageProps) {
         cases:   (cases.data   ?? []) as unknown as CaseSnapshot[],
         trends:  (trends.data  ?? []) as unknown as TrendSnapshot[],
         answers: (answers.data ?? []) as unknown as AnswerRow[],
+        exitHref,
       };
 
   return <Runner data={data} />;

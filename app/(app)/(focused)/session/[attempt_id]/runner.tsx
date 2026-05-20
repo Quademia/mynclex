@@ -57,6 +57,8 @@ import {
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { FinishWithBlanksConfirm } from '@/lib/overlays/practice/finish-with-blanks-confirm';
 import { CaseExitConfirm } from '@/lib/overlays/practice/case-exit-confirm';
+import { ExitAttemptConfirm } from '@/lib/overlays/practice/exit-attempt-confirm';
+import { ResultsPopup } from '@/lib/practice/runner/results-popup';
 import { RunnerTopbar }       from './runner-topbar';
 import { RunnerFooter }       from './runner-footer';
 import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
@@ -117,7 +119,13 @@ function statusMessage(mode: RunnerData['mode'], attemptMode: RunnerData['attemp
 // before they're declared (rules-of-hooks).
 export function Runner({ data }: Props) {
   if (data.mode === 'live' && data.attempt.started_at === null) {
-    return <Preflight attempt={data.attempt} itemCount={data.items.length} />;
+    return (
+      <Preflight
+        attempt={data.attempt}
+        itemCount={data.items.length}
+        exitHref={data.exitHref}
+      />
+    );
   }
   return <RunnerShell data={data} />;
 }
@@ -182,6 +190,18 @@ function RunnerShell({ data }: Props) {
 
   // Finish-with-blanks confirmation modal (Free-batched only).
   const [showBlanksConfirm, setShowBlanksConfirm] = useState(false);
+
+  // Slice 3a — results popup. Auto-shown when the attempt completes in
+  // THIS session (set true right before router.refresh() in the four
+  // completion paths); stays false when an already-completed attempt
+  // is loaded from a URL (so reopening review doesn't auto-pop).
+  // Re-openable from the topbar pill after dismiss.
+  const [showResults, setShowResults] = useState(false);
+
+  // Slice 3a — exit-attempt confirmation. Only fires in live mode (the
+  // attempt is mid-flight and the student might think they're losing
+  // work). Review-mode Exit skips the modal and navigates immediately.
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Case-exit warning state (slice 4.5c). When set, the modal is rendered
   // and the click-target is held until the student confirms (Leave anyway)
@@ -258,6 +278,7 @@ function RunnerShell({ data }: Props) {
     startSubmit(async () => {
       const r = await expireAttemptAction(data.attempt.attempt_id);
       if (!r.ok) { setError(r.error); return; }
+      setShowResults(true);
       router.refresh();
     });
   }, [isLive, isTimed, remainingSec, firedExpire, data.attempt.attempt_id, router]);
@@ -560,6 +581,7 @@ function RunnerShell({ data }: Props) {
       // overlays needed for the items the student didn't submit in this
       // session.
       setShowBlanksConfirm(false);
+      setShowResults(true);
       router.refresh();
     });
   };
@@ -619,6 +641,7 @@ function RunnerShell({ data }: Props) {
 
       const r2 = await completeAttemptAction(data.attempt.attempt_id);
       if (!r2.ok) { setError(r2.error); return; }
+      setShowResults(true);
       router.refresh();
     });
   };
@@ -862,6 +885,17 @@ function RunnerShell({ data }: Props) {
         statusLabel={statusLabel}
         caseMeta={caseMeta}
         clock={clockProps}
+        onExit={
+          // Live (mid-flight) → confirm first. Review → leave directly.
+          data.mode === 'live'
+            ? () => setShowExitConfirm(true)
+            : () => router.push(data.exitHref)
+        }
+        onPillClick={
+          data.mode === 'review' && data.attempt.final_score !== null
+            ? () => setShowResults(true)
+            : null
+        }
       />
 
       <div className="rn-body">
@@ -934,6 +968,37 @@ function RunnerShell({ data }: Props) {
             setCaseExitTarget(null);
             setCurrent(target);
           }}
+        />
+      )}
+
+      {showExitConfirm && data.mode === 'live' && (
+        <ExitAttemptConfirm
+          isTimed={isTimed}
+          onCancel={() => setShowExitConfirm(false)}
+          onConfirm={() => {
+            setShowExitConfirm(false);
+            router.push(data.exitHref);
+          }}
+        />
+      )}
+
+      {/* Slice 3a — results popup. Renders only in review mode (gated
+          to a terminal attempt status) AND when showResults is true.
+          Set true in the four completion paths (onFinish,
+          onSubmitAndFinish, onFinishFreeBatched via onFinish, auto-
+          expire). Reopened via the topbar pill click on dismiss. */}
+      {showResults && data.mode === 'review' && (
+        <ResultsPopup
+          attemptId={data.attempt.attempt_id}
+          finalScore={data.attempt.final_score}
+          passScore={data.attempt.pass_score}
+          totalQ={total}
+          source={data.attempt.source}
+          onReview={() => {
+            setCurrent(0);
+            setShowResults(false);
+          }}
+          onDismiss={() => setShowResults(false)}
         />
       )}
     </div>

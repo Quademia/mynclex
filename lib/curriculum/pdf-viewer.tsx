@@ -18,7 +18,8 @@ import { useEffect, useState } from 'react';
 import { ViewerModalShell } from './viewer-modal-shell';
 import { activityEstimatedMinutes, formatFileSize } from './format';
 import { getStudentPdfActivityUrl } from './student-actions';
-import type { ProgrammeActivity } from './types';
+import { MarkDoneButton } from '@/lib/progress/mark-done-button';
+import type { StudentActivity } from './types';
 
 type FetchState =
   | { phase: 'loading' }
@@ -34,7 +35,7 @@ export function PdfViewer({
   activity,
   onClose,
 }: {
-  activity: ProgrammeActivity;
+  activity: StudentActivity;
   onClose: () => void;
 }) {
   const [state, setState] = useState<FetchState>({ phase: 'loading' });
@@ -111,6 +112,11 @@ export function PdfViewer({
             </a>
           </>
         )}
+
+        <MarkDoneButton
+          activityId={activity.activity_id}
+          isDone={activity.isDone}
+        />
       </div>
     </ViewerModalShell>
   );

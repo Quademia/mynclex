@@ -35,6 +35,60 @@ AS $$
     EXISTS (SELECT 1 FROM nclex_admin_permissions WHERE user_id = auth.uid() AND permission = check_permission);
 $$;
 
+-- Enrolment gates (access-gating step, 2026-05-20). Two granularities ×
+-- two strictnesses. The "_active_" variants require status = 'ENROLLED'
+-- (content tier); the plain variants accept ANY enrolment row, active or
+-- terminal (metadata tier — lets the switcher show a PAUSED/CANCELLED
+-- student their programme name + pill without exposing curriculum).
+-- SECURITY DEFINER so a student_select policy referencing nclex_enrolments
+-- can't recurse through that table's own RLS.
+
+CREATE OR REPLACE FUNCTION nclex_has_programme_enrolment(p_programme_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM nclex_enrolments e
+    WHERE e.programme_id = p_programme_id
+      AND e.user_id = auth.uid()
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION nclex_has_active_programme_enrolment(p_programme_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM nclex_enrolments e
+    WHERE e.programme_id = p_programme_id
+      AND e.user_id = auth.uid()
+      AND e.status = 'ENROLLED'
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION nclex_has_cohort_enrolment(p_cohort_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM nclex_enrolments e
+    WHERE e.cohort_id = p_cohort_id
+      AND e.user_id = auth.uid()
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION nclex_has_active_cohort_enrolment(p_cohort_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM nclex_enrolments e
+    WHERE e.cohort_id = p_cohort_id
+      AND e.user_id = auth.uid()
+      AND e.status = 'ENROLLED'
+  );
+$$;
+
 
 -- ─────────────────────────────────────────────────────────
 -- ENABLE RLS
@@ -460,12 +514,23 @@ CREATE POLICY nclex_programmes_admin_all ON nclex_programmes FOR ALL
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
 
--- Slice 10.1: any authenticated user can SELECT a PUBLISHED
--- programme. Permissive v1 shape — tightens to "user has an
--- active enrolment record" when the enrolment slice ships.
+-- Slice 10.1 → tightened in the access-gating step (2026-05-20):
+-- metadata tier. A student SELECTs a programme iff they hold ANY
+-- enrolment row for it (active or terminal). Drops the old
+-- status='PUBLISHED' gate on purpose — the access window keeps an
+-- already-enrolled student's access alive after the programme is
+-- ARCHIVED, and you can't hold an enrolment in a never-published
+-- programme. Public discovery of PUBLISHED-but-not-enrolled
+-- programmes is a separate surface (Slice 3).
 CREATE POLICY nclex_programmes_student_select ON nclex_programmes FOR SELECT
   TO authenticated
-  USING (status = 'PUBLISHED');
+  USING (nclex_has_programme_enrolment(programme_id));
+
+-- NOTE (Slice 3b): public discovery does NOT read the base table. It
+-- reads the nclex_public_programmes view (see "PUBLIC VIEWS" below),
+-- which exposes a curated projection with owner rights. The short-lived
+-- 3a base-table public-read policy + its nclex_user_is_active helper
+-- were dropped once the view became the single public path.
 
 
 -- =========================================================
@@ -521,20 +586,14 @@ CREATE POLICY nclex_cohorts_admin_all ON nclex_cohorts FOR ALL
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
 
--- Slice 10.1: any authenticated user can SELECT a cohort whose
--- parent programme is PUBLISHED. Permissive v1 shape — tightens
--- to "user has an active enrolment record" when the enrolment
--- slice ships. Mirrors the unit/block/activity/checklist student
--- policies that live in their respective migration files.
+-- Slice 10.1 → tightened in the access-gating step (2026-05-20):
+-- metadata tier. A student SELECTs a cohort iff they hold ANY
+-- enrolment row in THAT cohort (active or terminal) — so the switcher
+-- lists only the cohort they enrolled in, never sibling cohorts, and
+-- still shows it after a terminal status (with its pill).
 CREATE POLICY nclex_cohorts_student_select ON nclex_cohorts FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM nclex_programmes p
-      WHERE p.programme_id = nclex_cohorts.programme_id
-        AND p.status = 'PUBLISHED'
-    )
-  );
+  USING (nclex_has_cohort_enrolment(cohort_id));
 
 
 -- =========================================================
@@ -563,16 +622,6 @@ CREATE POLICY nclex_question_marks_admin_all ON nclex_question_marks FOR ALL
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
-
-
--- =========================================================
--- nclex_keepalive (2026-05-12)
--- =========================================================
--- RLS enabled with NO policies. Only service-role (which bypasses
--- RLS) reads/writes this internal infrastructure table; anon and
--- authenticated have no access by design.
-
-ALTER TABLE nclex_keepalive ENABLE ROW LEVEL SECURITY;
 
 
 -- =========================================================
@@ -645,16 +694,14 @@ CREATE POLICY nclex_programme_units_admin_all
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
 
+-- Access-gating step (2026-05-20): content tier — was PUBLISHED-parent,
+-- now requires an ACTIVE (ENROLLED) programme enrolment. Curriculum is
+-- programme-shared; a tutor-led student's cohort row carries
+-- programme_id, so this covers both delivery modes.
 CREATE POLICY nclex_programme_units_student_select
   ON nclex_programme_units FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM nclex_programmes p
-      WHERE p.programme_id = nclex_programme_units.programme_id
-        AND p.status = 'PUBLISHED'
-    )
-  );
+  USING (nclex_has_active_programme_enrolment(programme_id));
 
 
 -- =========================================================
@@ -732,16 +779,16 @@ CREATE POLICY nclex_programme_blocks_admin_all
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
 
+-- Access-gating step (2026-05-20): content tier — active programme
+-- enrolment via the parent unit.
 CREATE POLICY nclex_programme_blocks_student_select
   ON nclex_programme_blocks FOR SELECT
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1
-      FROM nclex_programme_units u
-      JOIN nclex_programmes p ON p.programme_id = u.programme_id
+      SELECT 1 FROM nclex_programme_units u
       WHERE u.unit_id = nclex_programme_blocks.unit_id
-        AND p.status = 'PUBLISHED'
+        AND nclex_has_active_programme_enrolment(u.programme_id)
     )
   );
 
@@ -822,16 +869,16 @@ CREATE POLICY nclex_programme_activities_admin_all
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
 
+-- Access-gating step (2026-05-20): content tier — active programme
+-- enrolment via the parent unit.
 CREATE POLICY nclex_programme_activities_student_select
   ON nclex_programme_activities FOR SELECT
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1
-      FROM nclex_programme_units u
-      JOIN nclex_programmes p ON p.programme_id = u.programme_id
+      SELECT 1 FROM nclex_programme_units u
       WHERE u.unit_id = nclex_programme_activities.unit_id
-        AND p.status = 'PUBLISHED'
+        AND nclex_has_active_programme_enrolment(u.programme_id)
     )
   );
 
@@ -914,18 +961,12 @@ CREATE POLICY nclex_cohort_checklist_items_admin_all
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
 
+-- Access-gating step (2026-05-20): content tier — the checklist is
+-- cohort-specific, so it requires an ACTIVE enrolment in THIS cohort.
 CREATE POLICY nclex_cohort_checklist_items_student_select
   ON nclex_cohort_checklist_items FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1
-      FROM nclex_cohorts c
-      JOIN nclex_programmes p ON p.programme_id = c.programme_id
-      WHERE c.cohort_id = nclex_cohort_checklist_items.cohort_id
-        AND p.status = 'PUBLISHED'
-    )
-  );
+  USING (nclex_has_active_cohort_enrolment(cohort_id));
 
 
 -- =========================================================
@@ -1046,3 +1087,259 @@ CREATE POLICY nclex_tutor_quiz_items_superadmin
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- ---------- nclex_tutor_quizzes: student-read (Slice 5, 2026-05-19) ----------
+-- Added by Tutor Quiz Slice 5 so the Slice 6 student Quizzes page
+-- can read quiz metadata (title, kind, mode, pass_score,
+-- max_attempts) directly from this table. Readable when the quiz
+-- itself is PUBLISHED AND it's attached (via the junction) to a
+-- PUBLISHED programme. Permissive v1; tightens to enrolment-aware
+-- when the enrolment slice lands.
+
+-- Access-gating step (2026-05-20): content tier. Quiz still must be
+-- PUBLISHED, but the attachment must be to a programme the student is
+-- ACTIVELY enrolled in (was: any PUBLISHED programme).
+CREATE POLICY nclex_tutor_quizzes_student_select
+  ON nclex_tutor_quizzes FOR SELECT
+  TO authenticated
+  USING (
+    status = 'PUBLISHED'
+    AND EXISTS (
+      SELECT 1 FROM nclex_programme_quizzes pq
+      WHERE pq.quiz_id = nclex_tutor_quizzes.quiz_id
+        AND nclex_has_active_programme_enrolment(pq.programme_id)
+    )
+  );
+
+
+-- =========================================================
+-- nclex_programme_quizzes (Tutor Quiz Slice 5, 2026-05-19)
+-- =========================================================
+-- Tutor own: walks the parent programme's tutor_id (the junction
+-- row has no tutor_id — ownership is through the programme).
+-- SUPER_ADMIN bypass mirrors the established v1 pattern.
+-- Student select: PUBLISHED-parent-only — permissive v1, tightens
+-- to enrolment-aware when the enrolment slice ships.
+
+ALTER TABLE nclex_programme_quizzes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_programme_quizzes_tutor_own
+  ON nclex_programme_quizzes FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_quizzes.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_quizzes.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_programme_quizzes_superadmin
+  ON nclex_programme_quizzes FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+-- Access-gating step (2026-05-20): content tier — active programme
+-- enrolment (was: PUBLISHED parent).
+CREATE POLICY nclex_programme_quizzes_student_select
+  ON nclex_programme_quizzes FOR SELECT
+  TO authenticated
+  USING (nclex_has_active_programme_enrolment(programme_id));
+
+
+-- =========================================================
+-- nclex_student_activity_progress (Progress engine Slice 1, 2026-05-18)
+-- =========================================================
+-- Students own their own progress rows (FOR ALL, scoped to
+-- student_id = auth.uid()). Tutors read progress for activities in
+-- their own programmes (FOR SELECT, joined through unit ->
+-- programme). SUPER_ADMIN bypass for FOR ALL — same intentional v1
+-- pattern as other tutor-side tables.
+
+ALTER TABLE nclex_student_activity_progress ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_student_activity_progress_student_own
+  ON nclex_student_activity_progress FOR ALL
+  TO authenticated
+  USING (student_id = auth.uid())
+  WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY nclex_student_activity_progress_tutor_read
+  ON nclex_student_activity_progress FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_programme_activities pa
+      JOIN nclex_programme_units pu ON pu.unit_id = pa.unit_id
+      JOIN nclex_programmes p ON p.programme_id = pu.programme_id
+      WHERE pa.activity_id = nclex_student_activity_progress.activity_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_student_activity_progress_superadmin
+  ON nclex_student_activity_progress FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- =========================================================
+-- nclex_enrolments (Slice 1a, 2026-05-20)
+-- =========================================================
+-- Read: enrolled student (own rows), owning tutor (walks the parent
+-- programme tutor_id), SUPER_ADMIN. Write: owning tutor (insert +
+-- status flips) + SUPER_ADMIN; no tutor DELETE (terminal state is
+-- CANCELLED, not row removal). The off-platform tutor-add action also
+-- uses the service role (invite + invited-student profile write),
+-- which bypasses RLS by design and validates tutor ownership in TS.
+--
+-- The student-select policies on nclex_cohorts / nclex_programme_* were
+-- tightened to enrolment-aware in the access-gating step (migration
+-- 20260526120000_enrolments_access_gating.sql): metadata tier (any
+-- enrolment) for programmes + cohorts, content tier (ENROLLED) for
+-- units/blocks/activities/checklist/quizzes, via the
+-- nclex_has[_active]_programme/cohort_enrolment helpers above.
+
+ALTER TABLE nclex_enrolments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_enrolments_student_select
+  ON nclex_enrolments FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid());
+
+CREATE POLICY nclex_enrolments_tutor_select
+  ON nclex_enrolments FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_enrolments.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_enrolments_tutor_insert
+  ON nclex_enrolments FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_enrolments.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+-- No tutor UPDATE policy: status transitions are RPC-gated (Slice 2a).
+-- The Slice 1a direct tutor UPDATE policy was dropped in migration
+-- 20260524120000_enrolments_2a_transitions.sql — tutors change status
+-- only through the SECURITY DEFINER transition functions
+-- (nclex_approve/reject/pause/unpause/cancel_enrolment), which validate
+-- ownership + the legal source status in one auditable place.
+
+CREATE POLICY nclex_enrolments_admin_all
+  ON nclex_enrolments FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- ─────────────────────────────────────────────────────────
+-- PUBLIC VIEWS (Slice 3b)
+-- The single public read path for programme data. Owner-rights views
+-- (security_invoker = false, default) expose a curated projection to
+-- anon WITHOUT opening the base tables, whose RLS stays
+-- authenticated-only. Every public page reads from these and takes the
+-- columns it needs — the "what's public" rule lives here, once.
+-- ─────────────────────────────────────────────────────────
+
+-- One row per publicly-visible programme: programme public fields + the
+-- tutor's PUBLIC profile (name + avatar only) + a cohort rollup. Gate:
+-- PUBLISHED + active tutor. The open-cohort discovery rule is a LIST
+-- filter on open_cohort_count, applied by the page — NOT baked in here,
+-- so the detail page can read a published-but-cohortless programme.
+CREATE OR REPLACE VIEW nclex_public_programmes AS
+SELECT
+  p.programme_id,
+  p.title,
+  p.tagline,
+  p.description,
+  p.delivery_mode,
+  p.unit_label,
+  p.length_units,
+  p.price_currency,
+  p.price_minor,
+  p.show_price_publicly,
+  p.payment_collection_mode,
+  p.access_window_days,
+  p.published_at,
+  u.name           AS tutor_name,
+  u.avatar_url     AS tutor_avatar_url,
+  oc.next_cohort_start,
+  COALESCE(oc.open_cohort_count, 0) AS open_cohort_count,
+  u.public_profile AS tutor_profile   -- slice 3.5
+FROM nclex_programmes p
+JOIN nclex_users u ON u.id = p.tutor_id
+LEFT JOIN LATERAL (
+  -- "Open" = joinable: not cancelled, not yet ended, and either
+  -- upcoming or in-progress with late-join allowed.
+  SELECT
+    MIN(c.start_date) FILTER (WHERE c.start_date >= CURRENT_DATE)
+                                         AS next_cohort_start,
+    COUNT(*)                             AS open_cohort_count
+  FROM nclex_cohorts c
+  WHERE c.programme_id = p.programme_id
+    AND c.cancelled_at IS NULL
+    AND c.end_date >= CURRENT_DATE
+    AND (c.start_date >= CURRENT_DATE OR c.allow_late_join)
+) oc ON TRUE
+WHERE p.status = 'PUBLISHED'
+  AND u.is_active;
+
+GRANT SELECT ON nclex_public_programmes TO anon, authenticated;
+
+-- Published units of a public programme (Slice 3c). Draft units stay
+-- hidden. Feeds the detail page's "Syllabus" section.
+CREATE OR REPLACE VIEW nclex_public_units AS
+SELECT
+  pu.programme_id,
+  pu.unit_index,
+  pu.title,
+  pu.description
+FROM nclex_programme_units pu
+JOIN nclex_programmes p ON p.programme_id = pu.programme_id
+JOIN nclex_users u      ON u.id = p.tutor_id
+WHERE p.status = 'PUBLISHED'
+  AND u.is_active
+  AND pu.is_published;
+
+GRANT SELECT ON nclex_public_units TO anon, authenticated;
+
+-- Non-cancelled cohorts of a public programme (Slice 3c). Feeds the
+-- detail page's "Available cohorts" section; status is derived in TS.
+CREATE OR REPLACE VIEW nclex_public_cohorts AS
+SELECT
+  c.cohort_id,
+  c.programme_id,
+  c.name,
+  c.start_date,
+  c.end_date,
+  c.allow_late_join
+FROM nclex_cohorts c
+JOIN nclex_programmes p ON p.programme_id = c.programme_id
+JOIN nclex_users u      ON u.id = p.tutor_id
+WHERE p.status = 'PUBLISHED'
+  AND u.is_active
+  AND c.cancelled_at IS NULL;
+
+GRANT SELECT ON nclex_public_cohorts TO anon, authenticated;

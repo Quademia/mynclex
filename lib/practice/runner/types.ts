@@ -132,6 +132,12 @@ export interface LiveData {
    *  clientUnseal on mount so UL resume restores per-Q feedback.
    *  Empty {} when no finalised rows exist (fresh attempt). */
   seededUnseal: Record<string, PerItemUnseal>;
+  /** Slice 3a — destination for the topbar's ← Exit button. Resolved
+   *  server-side per attempt source (bank → practice, programme →
+   *  curriculum URL via cohort lookup, etc.) so the click is a sync
+   *  router.push with no spinner. Same resolver feeds the results
+   *  popup's Exit button. */
+  exitHref: string;
 }
 export interface ReviewData {
   mode:    'review';
@@ -140,6 +146,8 @@ export interface ReviewData {
   cases:   CaseSnapshot[];
   trends:  TrendSnapshot[];
   answers: AnswerRow[];
+  /** Slice 3a — see LiveData.exitHref. */
+  exitHref: string;
 }
 export type RunnerData = LiveData | ReviewData;
 

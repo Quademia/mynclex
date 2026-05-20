@@ -1059,6 +1059,20 @@
   border-left: 4px solid var(--danger);
 }
 
+/* Success variant — same family as the error toast (slice 3.5). */
+.auth-toast-success {
+  background: var(--white);
+  color: var(--success);
+  border: 1px solid #bbf7d0;
+  border-left: 4px solid var(--success);
+}
+.auth-toast-success .auth-toast-icon {
+  background: var(--success);
+}
+.auth-toast-success .auth-toast-message {
+  color: #065f46;
+}
+
 .auth-toast-icon {
   display: inline-flex;
   align-items: center;

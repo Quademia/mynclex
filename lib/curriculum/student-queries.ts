@@ -30,6 +30,14 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { isVisibleToStudents, activityOpenState } from './format';
+import {
+  getActivityProgressMap,
+  getInProgressQuizAttempts,
+} from '@/lib/progress/queries';
+import type {
+  ActivityProgressMap,
+  InProgressQuizMap,
+} from '@/lib/progress/types';
 import type {
   ProgrammeActivity,
   ProgrammeBlock,
@@ -99,29 +107,45 @@ export async function getStudentSelfPacedCurriculum(
   // Filter activities by isVisibleToStudents (self-paced — no
   // cohort args), then wrap as StudentActivity. Self-paced has no
   // window — every visible activity is permanently OPEN.
-  const visibleActivities: StudentActivity[] = activities
-    .filter((a) =>
-      isVisibleToStudents({
-        programmeStatus: 'PUBLISHED',
-        unitPublished:
-          units.find((u) => u.unit_id === a.unit_id)?.is_published ?? false,
-        blockPublished:
-          a.block_id === null
-            ? null
-            : blocks.find((b) => b.block_id === a.block_id)?.is_published ??
-              false,
-        activityPublished: a.is_published,
-      })
-    )
-    .map((activity) => ({
+  const filteredActivities = activities.filter((a) =>
+    isVisibleToStudents({
+      programmeStatus: 'PUBLISHED',
+      unitPublished:
+        units.find((u) => u.unit_id === a.unit_id)?.is_published ?? false,
+      blockPublished:
+        a.block_id === null
+          ? null
+          : blocks.find((b) => b.block_id === a.block_id)?.is_published ??
+            false,
+      activityPublished: a.is_published,
+    })
+  );
+
+  // Progress engine — fetch progress rows + IN_PROGRESS quiz
+  // attempts in parallel (both scoped by RLS to auth.uid()'s own
+  // rows). Slice 1 added the progress map; Slice 3 added the
+  // IN_PROGRESS derivation.
+  const [progressMap, inProgressMap] = await Promise.all([
+    getActivityProgressMap(filteredActivities.map((a) => a.activity_id)),
+    getInProgressQuizAttempts(),
+  ]);
+
+  const visibleActivities: StudentActivity[] = filteredActivities.map(
+    (activity) => ({
       ...activity,
       openState: 'OPEN' as const,
       releaseDate: null,
       dueDate: null,
       closeDate: null,
-    }));
+      isDone: progressMap.has(activity.activity_id),
+      isInProgress: isQuizActivityInProgress(activity, inProgressMap),
+    })
+  );
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
+  const decoratedUnits = decorateUnitsWithProgress(unitTrees);
+  const { upNextActivityId, whereILeftOffUnitIndex, hasAnyDone } =
+    deriveProgrammeSignals(decoratedUnits, progressMap, inProgressMap);
 
   return {
     programme: {
@@ -131,7 +155,10 @@ export async function getStudentSelfPacedCurriculum(
       unit_label: prog.unit_label as UnitLabel,
     },
     cohort: null,
-    units: unitTrees,
+    units: decoratedUnits,
+    upNextActivityId,
+    whereILeftOffUnitIndex,
+    hasAnyDone,
   };
 }
 
@@ -219,7 +246,12 @@ export async function getStudentCohortCurriculum(
   // + inclusion gates HIDE an activity (dropped here). The release
   // date does NOT hide — visible-but-unreleased activities stay in
   // the tree as locked StudentActivity rows (slice 10.6).
-  const visibleActivities: StudentActivity[] = [];
+  //
+  // Two-pass: first build the visible-list shaped without progress
+  // signals, then fetch progress + IN_PROGRESS for those ids in
+  // parallel and attach.
+  type StagedActivity = Omit<StudentActivity, 'isDone' | 'isInProgress'>;
+  const staged: StagedActivity[] = [];
   for (const r of rawRows) {
     const activity = Array.isArray(r.nclex_programme_activities)
       ? r.nclex_programme_activities[0]
@@ -246,7 +278,7 @@ export async function getStudentCohortCurriculum(
       continue;
     }
 
-    visibleActivities.push({
+    staged.push({
       ...activity,
       openState: activityOpenState(r.release_date, r.close_date, today),
       releaseDate: r.release_date,
@@ -255,7 +287,24 @@ export async function getStudentCohortCurriculum(
     });
   }
 
+  // Progress engine — fetch progress + IN_PROGRESS map in parallel.
+  // Same shape as self-paced; cohort mode reads the same progress
+  // table (row attaches to template activity, not cohort).
+  const [progressMap, inProgressMap] = await Promise.all([
+    getActivityProgressMap(staged.map((a) => a.activity_id)),
+    getInProgressQuizAttempts(),
+  ]);
+
+  const visibleActivities: StudentActivity[] = staged.map((a) => ({
+    ...a,
+    isDone: progressMap.has(a.activity_id),
+    isInProgress: isQuizActivityInProgress(a, inProgressMap),
+  }));
+
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
+  const decoratedUnits = decorateUnitsWithProgress(unitTrees);
+  const { upNextActivityId, whereILeftOffUnitIndex, hasAnyDone } =
+    deriveProgrammeSignals(decoratedUnits, progressMap, inProgressMap);
 
   return {
     programme: {
@@ -269,7 +318,10 @@ export async function getStudentCohortCurriculum(
       name: cohortRow.name,
       start_date: cohortRow.start_date,
     },
-    units: unitTrees,
+    units: decoratedUnits,
+    upNextActivityId,
+    whereILeftOffUnitIndex,
+    hasAnyDone,
   };
 }
 
@@ -360,6 +412,130 @@ function composeUnitTrees(
       return { kind: 'loose', activity: e.activity };
     });
 
-    return { unit, body };
+    // Progress counts are stubbed here and overwritten by
+    // decorateUnitsWithProgress — this composer doesn't know about
+    // progress.
+    return {
+      unit,
+      body,
+      progressDone: 0,
+      progressTotal: 0,
+      progressPct: null,
+    };
   });
+}
+
+// ─────────────────────────────────────────────────────────
+// Progress decoration (Slice 3)
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Quiz activity types that can have an IN_PROGRESS attempt against
+ * them. Other types (TEXT, PDF, etc.) never have IN_PROGRESS — the
+ * MANUAL completion source is binary NOT_STARTED → DONE.
+ */
+const QUIZ_TYPES = new Set(['MOCK', 'PRACTICE_QUIZ']);
+
+function isQuizActivityInProgress(
+  activity: ProgrammeActivity,
+  inProgressMap: InProgressQuizMap
+): boolean {
+  if (!QUIZ_TYPES.has(activity.type)) return false;
+  return inProgressMap.has(activity.activity_id);
+}
+
+/**
+ * Flatten a unit's body to its activity list (loose + within-block,
+ * preserving display order). Shared helper for the per-unit count +
+ * the programme-wide finders.
+ */
+function flattenUnitActivities(
+  unit: StudentCurriculumUnit
+): StudentActivity[] {
+  const out: StudentActivity[] = [];
+  for (const entry of unit.body) {
+    if (entry.kind === 'block') {
+      out.push(...entry.activities);
+    } else {
+      out.push(entry.activity);
+    }
+  }
+  return out;
+}
+
+/**
+ * Per-unit progress counts. Total = visible activities in unit;
+ * LOCKED / CLOSED count toward the denominator per §7 — they're
+ * part of the curriculum, just inaccessible right now. Pct rounded
+ * to integer; null when total = 0.
+ */
+function decorateUnitsWithProgress(
+  units: StudentCurriculumUnit[]
+): StudentCurriculumUnit[] {
+  return units.map((u) => {
+    const activities = flattenUnitActivities(u);
+    const total = activities.length;
+    const done = activities.filter((a) => a.isDone).length;
+    const pct = total === 0 ? null : Math.round((done / total) * 100);
+    return { ...u, progressDone: done, progressTotal: total, progressPct: pct };
+  });
+}
+
+/**
+ * Programme-wide signals derived after units are composed:
+ * - upNextActivityId — first row in curriculum order that's
+ *   NOT_STARTED AND NOT IN_PROGRESS AND OPEN. Skips quiz rows with
+ *   an IN_PROGRESS attempt (they have their own pill, per the
+ *   Slice 3 pill cascade). LOCKED/CLOSED rows skipped too — Up
+ *   next is a "do this now" pointer.
+ * - whereILeftOffUnitIndex — most recent IN_PROGRESS quiz
+ *   attempt's unit (per §6.1's resume-first rule), fallback to
+ *   most recent DONE activity's unit, fallback to null (viewer
+ *   defaults to Unit 1).
+ * - hasAnyDone — drives the "Start here" vs "Up next" copy flip.
+ */
+function deriveProgrammeSignals(
+  units: StudentCurriculumUnit[],
+  progressMap: ActivityProgressMap,
+  inProgressMap: InProgressQuizMap
+): {
+  upNextActivityId: string | null;
+  whereILeftOffUnitIndex: number | null;
+  hasAnyDone: boolean;
+} {
+  let upNextActivityId: string | null = null;
+  let mostRecentInProgressTs: string | null = null;
+  let mostRecentInProgressUnitIndex: number | null = null;
+  let mostRecentDoneTs: string | null = null;
+  let mostRecentDoneUnitIndex: number | null = null;
+  let hasAnyDone = false;
+
+  for (const u of units) {
+    const activities = flattenUnitActivities(u);
+    for (const a of activities) {
+      if (a.isDone) {
+        hasAnyDone = true;
+        const ts = progressMap.get(a.activity_id)?.completed_at;
+        if (ts && (!mostRecentDoneTs || ts > mostRecentDoneTs)) {
+          mostRecentDoneTs = ts;
+          mostRecentDoneUnitIndex = u.unit.unit_index;
+        }
+      } else if (a.isInProgress) {
+        const ts = inProgressMap.get(a.activity_id);
+        if (ts && (!mostRecentInProgressTs || ts > mostRecentInProgressTs)) {
+          mostRecentInProgressTs = ts;
+          mostRecentInProgressUnitIndex = u.unit.unit_index;
+        }
+      } else if (a.openState === 'OPEN' && upNextActivityId === null) {
+        // First NOT_STARTED-and-not-in-progress OPEN row in
+        // curriculum order — this is the Up next target.
+        upNextActivityId = a.activity_id;
+      }
+    }
+  }
+
+  const whereILeftOffUnitIndex =
+    mostRecentInProgressUnitIndex ?? mostRecentDoneUnitIndex ?? null;
+
+  return { upNextActivityId, whereILeftOffUnitIndex, hasAnyDone };
 }

@@ -40,9 +40,11 @@ import {
   formatPassScore,
   formatQuizMode,
 } from '@/lib/tutor-quiz/format';
-import type { ProgrammeActivity } from './types';
 
-function formatAttemptsLine(ctx: QuizLaunchContext): string {
+// Exported as of Tutor Quiz Slice 6 so the standalone viewer
+// (lib/curriculum/standalone-quiz-launch-viewer.tsx) can reuse the
+// same body + actions cadence without duplicating the formatter.
+export function formatAttemptsLine(ctx: QuizLaunchContext): string {
   const { attempts_taken, attempts_remaining, in_progress_attempt_id } = ctx;
   // Unlimited
   if (attempts_remaining === null) {
@@ -65,13 +67,30 @@ function formatAttemptsLine(ctx: QuizLaunchContext): string {
   return `Attempt ${currentN} of ${total}`;
 }
 
+/**
+ * Activity-linked quiz launch surface. Tutor Quiz Slice 6 narrowed
+ * the prop type from `ProgrammeActivity` to a focused shape — the
+ * viewer only needs four fields, so callers don't need a full
+ * activity row. Slice 6 row launches construct this shape from the
+ * row's primary_activity_id + title; the Slice 3 curriculum
+ * launcher (lib/curriculum/activity-action.tsx) passes its full
+ * ProgrammeActivity (structurally compatible).
+ */
+export type QuizLaunchTarget = {
+  activity_id: string;
+  title: string;
+  description: string | null;
+  note: string | null;
+};
+
 export function QuizLaunchViewer({
-  activity,
+  target,
   onClose,
 }: {
-  activity: ProgrammeActivity;
+  target: QuizLaunchTarget;
   onClose: () => void;
 }) {
+  const activity = target;
   const router = useRouter();
   const [ctx, setCtx] = useState<QuizLaunchContext | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -153,7 +172,8 @@ export function QuizLaunchViewer({
   );
 }
 
-function QuizLaunchBody({ ctx }: { ctx: QuizLaunchContext }) {
+// Exported as of Tutor Quiz Slice 6 (see formatAttemptsLine note).
+export function QuizLaunchBody({ ctx }: { ctx: QuizLaunchContext }) {
   const durationLabel = formatDuration(ctx.quiz.duration_seconds);
   const passLabel = formatPassScore(ctx.quiz.pass_score);
 
@@ -187,16 +207,22 @@ function QuizLaunchBody({ ctx }: { ctx: QuizLaunchContext }) {
   );
 }
 
-function QuizLaunchActions({
+// Exported as of Tutor Quiz Slice 6. `startLabel` opt-in so the
+// standalone viewer can render "Take again" on a re-take instead
+// of the activity-default "Start quiz". Defaults preserve the
+// existing activity-linked behaviour.
+export function QuizLaunchActions({
   ctx,
   pending,
   onStart,
   onResume,
+  startLabel = 'Start quiz',
 }: {
   ctx: QuizLaunchContext;
   pending: boolean;
   onStart: () => void;
   onResume: () => void;
+  startLabel?: string;
 }) {
   // Resume takes precedence over Start. Either is gated by the
   // same `pending` flag while the action is in flight.
@@ -225,7 +251,7 @@ function QuizLaunchActions({
       onClick={onStart}
       disabled={pending}
     >
-      {pending ? 'Starting…' : 'Start quiz'}
+      {pending ? 'Starting…' : startLabel}
     </button>
   );
 }

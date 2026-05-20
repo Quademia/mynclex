@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototype A — Tutor Cohort Workspace · MyNclex</title>
+<link rel="stylesheet" href="../styles/proposal.css">
+<link rel="stylesheet" href="../styles/tutor-workspace.css">
+</head>
+<body data-screen-label="A · Tutor Cohort Workspace">
+
+<div class="prototype-shell">
+
+  <!-- top bar: state toggle -->
+  <div class="prototype-bar">
+    <div class="left">
+      <a href="../index.html">← Proposal</a>
+      <span style="color:var(--ink-faint)">/</span>
+      <span class="title">Prototype A · Tutor Cohort Workspace</span>
+    </div>
+    <div class="right">
+      <span style="color:var(--ink-mute); margin-right:8px;">State</span>
+      <div class="seg" id="state-toggle">
+        <button data-state="roster" class="on">Roster</button>
+        <button data-state="waitlist">Waitlist</button>
+        <button data-state="add">+ Add student</button>
+        <button data-state="approve">Approve modal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- contextual stripe describing current state -->
+  <div class="proto-state-stripe" id="stripe">
+    <span class="lbl">State</span>
+    <span id="stripe-text">Roster — all 6 enrolment statuses populated · filter chips active</span>
+  </div>
+
+  <div class="tw-shell">
+
+    <!-- ── sidebar (tutor audience) ─────────────────────────────── -->
+    <aside class="tw-sidebar">
+      <div class="product">
+        <div class="glyph">M</div>
+        <div>
+          <div class="label">MyNclex</div>
+          <div class="role">Tutor · A. Owusu</div>
+        </div>
+      </div>
+      <nav>
+        <a href="#"><span class="dot"></span>Dashboard</a>
+        <a href="#" class="on"><span class="dot"></span>Programmes</a>
+        <a href="#"><span class="dot"></span>Question library</a>
+        <a href="#"><span class="dot"></span>Quizzes</a>
+        <div class="sub-h">This programme</div>
+        <a href="#"><span class="dot"></span>Curriculum</a>
+        <a href="#"><span class="dot"></span>Cohorts</a>
+        <a href="#"><span class="dot"></span>Settings</a>
+        <div class="sub-h">Account</div>
+        <a href="#"><span class="dot"></span>Earnings</a>
+        <a href="#"><span class="dot"></span>Subscription</a>
+      </nav>
+    </aside>
+
+    <!-- ── main ─────────────────────────────────────────────────── -->
+    <main class="tw-main">
+
+      <div class="tw-breadcrumb">
+        <a href="#">Programmes</a>
+        <span class="sep">›</span>
+        <a href="#">NCLEX-RN Intensive · 8&nbsp;weeks</a>
+        <span class="sep">›</span>
+        <span>Cohort Aug 5 → Sep 29</span>
+      </div>
+
+      <header class="tw-header">
+        <div>
+          <h1>Cohort Aug 5 → Sep 29</h1>
+          <div class="sub">
+            <div class="meta"><span class="k">Status</span> <span class="v">Upcoming · starts in 12 days</span></div>
+            <div class="meta"><span class="k">Seats</span> <span class="v">14 / 20 enrolled</span></div>
+            <div class="meta"><span class="k">Collection</span> <span class="tag">OFF_PLATFORM</span></div>
+            <div class="meta"><span class="k">Late-join</span> <span class="v">on</span></div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost">Edit cohort</button>
+          <button class="btn primary" onclick="setState('add')">+ Add student</button>
+        </div>
+      </header>
+
+      <!-- summary cells visible across states -->
+      <div class="tw-summary">
+        <div class="cell">
+          <div class="k">Enrolled</div>
+          <div class="v">14</div>
+          <div class="sub">Active access</div>
+        </div>
+        <div class="cell">
+          <div class="k">Pending approval</div>
+          <div class="v">3</div>
+          <div class="sub">Paid · awaiting your decision</div>
+        </div>
+        <div class="cell">
+          <div class="k">Waitlist</div>
+          <div class="v">5</div>
+          <div class="sub">Off-platform leads</div>
+        </div>
+        <div class="cell">
+          <div class="k">Paused</div>
+          <div class="v">1</div>
+          <div class="sub">Installment overdue</div>
+        </div>
+      </div>
+
+      <!-- ── tabs ───────────────────────────────────────────────── -->
+      <nav class="tw-tabs">
+        <a href="#" class="on" id="tab-roster"
+           onclick="setState('roster');event.preventDefault()">
+          Roster <span class="count">22</span>
+        </a>
+        <a href="#" id="tab-waitlist"
+           onclick="setState('waitlist');event.preventDefault()">
+          Waitlist <span class="count warn">5</span>
+        </a>
+        <a href="#">Curriculum window</a>
+        <a href="#">Sessions</a>
+        <a href="#">Settings</a>
+      </nav>
+
+      <!-- ── STATE: ROSTER ──────────────────────────────────────── -->
+      <section id="view-roster" class="view">
+
+        <div class="tw-toolbar">
+          <div class="tw-filters">
+            <button class="tw-filter on">All <span class="count">22</span></button>
+            <button class="tw-filter">
+              <span class="status-pill st-pending" style="margin:0">PENDING_APPROVAL</span>
+              <span class="count">3</span>
+            </button>
+            <button class="tw-filter">
+              <span class="status-pill st-enrolled" style="margin:0">ENROLLED</span>
+              <span class="count">14</span>
+            </button>
+            <button class="tw-filter">
+              <span class="status-pill st-paused" style="margin:0">PAUSED</span>
+              <span class="count">1</span>
+            </button>
+            <button class="tw-filter">
+              <span class="status-pill st-rejected" style="margin:0">REJECTED</span>
+              <span class="count">1</span>
+            </button>
+            <button class="tw-filter">
+              <span class="status-pill st-cancelled" style="margin:0">CANCELLED</span>
+              <span class="count">1</span>
+            </button>
+            <button class="tw-filter">
+              <span class="status-pill st-expired" style="margin:0">EXPIRED</span>
+              <span class="count">2</span>
+            </button>
+          </div>
+          <div class="tw-search">
+            <input placeholder="Search by name or email">
+            <span class="k">⌘K</span>
+          </div>
+        </div>
+
+        <div class="tw-roster">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:30%">Student</th>
+                <th style="width:16%">Status</th>
+                <th style="width:14%">Source</th>
+                <th style="width:14%">Enrolled</th>
+                <th>Access · payment</th>
+                <th style="text-align:right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              <!-- pending row -->
+              <tr>
+                <td>
+                  <div class="student">
+                    <div class="avatar">AM</div>
+                    <div>
+                      <div class="nm">Ama Mensah</div>
+                      <div class="em">ama.mensah@gmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="status-pill st-pending">PENDING_APPROVAL</span></td>
+                <td><span class="src">SELF_PAID</span></td>
+                <td class="mono">today, 09:12</td>
+                <td class="mono">Paid ₵800 deposit · 50/50 strategy</td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn sm danger">Reject</button>
+                    <button class="btn sm primary" onclick="setState('approve')">Approve</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- pending row 2 -->
+              <tr>
+                <td>
+                  <div class="student">
+                    <div class="avatar">KO</div>
+                    <div>
+                      <div class="nm">Kwame Owusu</div>
+                      <div class="em">k.owusu@yahoo.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="status-pill st-pending">PENDING_APPROVAL</span></td>
+                <td><span class="src">SELF_PAID</span></td>
+                <td class="mono">today, 08:01</td>
+                <td class="mono">Paid ₵1,600 upfront</td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn sm danger">Reject</button>
+                    <button class="btn sm primary" onclick="setState('approve')">Approve</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- pending row 3 -->
+              <tr>
+                <td>
+                  <div class="student">
+                    <div class="avatar">EN</div>
+                    <div>
+                      <div class="nm">Esi Nyarko</div>
+                      <div class="em">esi.nyarko@outlook.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="status-pill st-pending">PENDING_APPROVAL</span></td>
+                <td><span class="src">SELF_PAID</span></td>
+                <td class="mono">yesterday, 16:48</td>
+                <td class="mono">Paid ₵550 install. 1 of 3 · next due Sep 5</td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn sm danger">Reject</button>
+                    <button class="btn sm primary" onclick="setState('approve')">Approve</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- enrolled rows (showing 4 of 14) -->
+              <tr>
+                <td>
+                  <div class="student">
+                    <div class="avatar">AB</div>
+                    <div>
+                      <div class="nm">Adwoa Boateng</div>
+                      <div class="em">adwoa.b@gmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="status-pill st-enrolled">ENROLLED</span></td>
+                <td><span class="src">TUTOR_ADDED</span></td>
+                <td class="mono">Jul 30</td>
+                <td class="mono">Access through Apr 5, 2027</td>
+                <td><div class="row-actions"><button class="btn sm ghost">⋯</button></div></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="student">
+                    <div class="avatar">DT</div>
+                    <div>
+                      <div class="nm">Daniel Tetteh</div>
+                      <div class="em">danielt@gmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="status-pill st-enrolled">ENROLLED</span></td>
+                <td><span class="src">SELF_PAID</span></td>
+                <td class="mono">Jul 28</td>
+                <td class="mono">2 of 3 installments paid · next Sep 28</td>
+                <td><div class="row-actions"><button class="btn sm ghost">⋯</button></div></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="student">
+                    <div class="avatar">SA</div>
+                    <div>
+                      <div class="nm">Sefa Ankrah</div>
+                      <div class="em">sefa.ankrah@gmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="status-pill st-enrolled">ENROLLED</span></td>
+                <td><span class="src">TUTOR_ADDED</span></td>
+                <td class="mono">Jul 22</td>
+                <td class="mono">Access through Apr 5, 2027</td>
+                <td><div class="row-actions"><button class="btn sm ghost">⋯</button></div></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="student">
+                    <div class="avatar">NA</div>
+                    <div>
+                      <div class="nm">Nana Aidoo</div>
+                      <div class="em">nana.a@hotmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="status-pill st-enrolled">ENROLLED</span></td>
+                <td><span class="src">ADMIN_GRANT</span></td>
+                <td class="mono">Jul 20</td>
+                <td class="mono">Refund replacement (admin note)</td>
+                <td><div class="row-actions"><button class="btn sm ghost">⋯</button></div></td>
+              </tr>
+
+              <!-- paused -->
+              <tr>
+                <td>
+                  <div class="student">
+                    <div class="avatar">LA</div>
+                    <div>
+                      <div class="nm">Linda Asante</div>
+                      <div class="em">linda.asante@gmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="status-pill st-paused">PAUSED</span></td>
+                <td><span class="src">SELF_PAID</span></td>
+                <td class="mono">Jul 15</td>
+                <td class="due-warn">Installment 2 of 3 overdue · 4 days</td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn sm">Mark paid</button>
+                    <button class="btn sm ghost">⋯</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- rejected -->
+              <tr>
+                <td>
+                  <div class="student">
+                    <div class="avatar">JM</div>
+                    <div>
+                      <div class="nm">Joel Mensah</div>
+                      <div class="em">joel.m@yahoo.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="status-pill st-rejected">REJECTED</span></td>
+                <td><span class="src">SELF_PAID</span></td>
+                <td class="mono">Jul 12</td>
+                <td class="mono">Refund pending (admin handling)</td>
+                <td><div class="row-actions"><button class="btn sm ghost">⋯</button></div></td>
+              </tr>
+
+              <!-- cancelled -->
+              <tr>
+                <td>
+                  <div class="student">
+                    <div class="avatar">BO</div>
+                    <div>
+                      <div class="nm">Belinda Osei</div>
+                      <div class="em">belinda.o@gmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="status-pill st-cancelled">CANCELLED</span></td>
+                <td><span class="src">TUTOR_ADDED</span></td>
+                <td class="mono">Jun 28</td>
+                <td class="mono">Cancelled by tutor · Jul 4 (no-show)</td>
+                <td><div class="row-actions"><button class="btn sm ghost">⋯</button></div></td>
+              </tr>
+
+              <!-- expired -->
+              <tr>
+                <td>
+                  <div class="student">
+                    <div class="avatar">FT</div>
+                    <div>
+                      <div class="nm">Felicia Twum</div>
+                      <div class="em">f.twum@gmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="status-pill st-expired">EXPIRED</span></td>
+                <td><span class="src">SELF_PAID</span></td>
+                <td class="mono">Feb 2, 2025</td>
+                <td class="mono">Access window ended Apr 2</td>
+                <td><div class="row-actions"><button class="btn sm ghost">⋯</button></div></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="student">
+                    <div class="avatar">PA</div>
+                    <div>
+                      <div class="nm">Paulina Adu</div>
+                      <div class="em">paulina.adu@gmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="status-pill st-expired">EXPIRED</span></td>
+                <td><span class="src">TUTOR_ADDED</span></td>
+                <td class="mono">Jan 20, 2025</td>
+                <td class="mono">Access window ended Mar 20</td>
+                <td><div class="row-actions"><button class="btn sm ghost">⋯</button></div></td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+
+        <p style="margin-top:14px; color:var(--ink-mute); font-size:12.5px;">
+          Showing all 22 enrolment rows · status pill colours match the doc's lifecycle diagram.
+        </p>
+      </section>
+
+      <!-- ── STATE: WAITLIST ────────────────────────────────────── -->
+      <section id="view-waitlist" class="view" style="display:none">
+        <div class="tw-toolbar">
+          <div>
+            <p style="color:var(--ink-soft); font-size:14px; max-width:640px;">
+              Five students filled in the discovery-page waitlist form for this off-platform cohort. The form captured <span class="mono">name + email + (optional) message</span> — no payment, no account yet. Once they pay you offline, click <strong>Convert</strong> to send a Supabase invite and create an <code>ENROLLED</code> row.
+            </p>
+          </div>
+        </div>
+
+        <div class="tw-waitlist">
+          <div class="tw-wl-row">
+            <div class="person">
+              <div class="avatar">YO</div>
+              <div>
+                <div class="nm">Yaa Osei</div>
+                <div class="em">yaa.osei@gmail.com</div>
+              </div>
+            </div>
+            <div class="msg">"Hi — I'm a final-year nursing student at KNUST, taking NCLEX in January. Is this cohort still open?"</div>
+            <div class="when">3 hours ago</div>
+            <div class="actions">
+              <button class="btn sm ghost">Dismiss</button>
+              <button class="btn sm primary">Convert →</button>
+            </div>
+          </div>
+          <div class="tw-wl-row">
+            <div class="person">
+              <div class="avatar">RA</div>
+              <div>
+                <div class="nm">Richard Antwi</div>
+                <div class="em">richard.a@yahoo.com</div>
+              </div>
+            </div>
+            <div class="msg msg-empty">No message</div>
+            <div class="when">yesterday</div>
+            <div class="actions">
+              <button class="btn sm ghost">Dismiss</button>
+              <button class="btn sm primary">Convert →</button>
+            </div>
+          </div>
+          <div class="tw-wl-row">
+            <div class="person">
+              <div class="avatar">GM</div>
+              <div>
+                <div class="nm">Gifty Mensah</div>
+                <div class="em">gifty.mensah@outlook.com</div>
+              </div>
+            </div>
+            <div class="msg">"Can I split this into 4 monthly payments? My work schedule is irregular."</div>
+            <div class="when">2 days ago</div>
+            <div class="actions">
+              <button class="btn sm ghost">Dismiss</button>
+              <button class="btn sm primary">Convert →</button>
+            </div>
+          </div>
+          <div class="tw-wl-row">
+            <div class="person">
+              <div class="avatar">SK</div>
+              <div>
+                <div class="nm">Samuel Kofi</div>
+                <div class="em">samuel.kofi@gmail.com</div>
+              </div>
+            </div>
+            <div class="msg">"Hi — referred by Adwoa. Sending mobile money tonight."</div>
+            <div class="when">3 days ago</div>
+            <div class="actions">
+              <button class="btn sm ghost">Dismiss</button>
+              <button class="btn sm primary">Convert →</button>
+            </div>
+          </div>
+          <div class="tw-wl-row">
+            <div class="person">
+              <div class="avatar">AB</div>
+              <div>
+                <div class="nm">Abena Bediako</div>
+                <div class="em">abena.b@gmail.com</div>
+              </div>
+            </div>
+            <div class="msg msg-empty">No message</div>
+            <div class="when">5 days ago</div>
+            <div class="actions">
+              <button class="btn sm ghost">Dismiss</button>
+              <button class="btn sm primary">Convert →</button>
+            </div>
+          </div>
+        </div>
+
+        <p style="margin-top:14px; color:var(--ink-mute); font-size:12.5px;">
+          Convert is one click: pre-fills the Add-student form with the waitlist row, sends the Supabase invite, creates <code>nclex_enrolments</code> (ENROLLED · TUTOR_ADDED), marks the waitlist row CONVERTED. Dismiss → <code>DISMISSED</code> (kept for audit, not deleted).
+        </p>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ── ADD STUDENT modal (off-platform) ─────────────────────────── -->
+<div class="tw-overlay" id="modal-add" style="display:none" onclick="if(event.target===this)setState('roster')">
+  <div class="tw-modal">
+    <div class="head">
+      <h3>Add student to this cohort</h3>
+      <p class="desc">Off-platform · the student pays you directly. We'll send a Supabase invite and enrol them immediately as <span class="status-pill st-enrolled" style="margin-left:4px">ENROLLED</span></p>
+    </div>
+    <div class="body">
+      <div class="row">
+        <div>
+          <label>First name</label>
+          <input type="text" placeholder="Ama" value="Yaa">
+        </div>
+        <div>
+          <label>Last name</label>
+          <input type="text" placeholder="Mensah" value="Osei">
+        </div>
+      </div>
+      <label>Email</label>
+      <input type="email" placeholder="ama.mensah@gmail.com" value="yaa.osei@gmail.com">
+      <div class="hint">We'll check whether this email already has a MyNclex account. If it does, no invite is sent — the student is notified instead.</div>
+
+      <div class="preview">
+        <div class="label">What will happen on Enrol</div>
+        <ol style="margin:0; padding-left:18px; line-height:1.6;">
+          <li>Dup-check fires against <code>auth.users</code></li>
+          <li><strong>If new email</strong> → <code>auth.admin.inviteUserByEmail()</code> · student gets a <code>/welcome</code> link</li>
+          <li><strong>If existing</strong> → notification email only · no invite</li>
+          <li><code>nclex_enrolments</code> row created: <code>ENROLLED</code> · <code>TUTOR_ADDED</code></li>
+          <li>Access window starts now · ends <span class="mono">Apr 5, 2027</span> (per your 24-month setting)</li>
+        </ol>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="btn ghost" onclick="setState('roster')">Cancel</button>
+      <button class="btn accent">Enrol student</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── APPROVE modal (on-platform pending) ──────────────────────── -->
+<div class="tw-overlay" id="modal-approve" style="display:none" onclick="if(event.target===this)setState('roster')">
+  <div class="tw-modal approve">
+    <div class="head">
+      <h3>Approve enrolment</h3>
+      <p class="desc">Status will flip <span class="status-pill st-pending">PENDING_APPROVAL</span> → <span class="status-pill st-enrolled">ENROLLED</span>. Programme content unlocks for the student immediately.</p>
+    </div>
+    <div class="body">
+      <div class="student-card">
+        <div class="avatar">AM</div>
+        <div>
+          <div class="nm">Ama Mensah</div>
+          <div class="em">ama.mensah@gmail.com · joined waitlist 3h ago</div>
+        </div>
+      </div>
+
+      <dl class="summary-row">
+        <dt>Source</dt>            <dd><span class="src mono">SELF_PAID</span> · on-platform</dd>
+        <dt>Strategy</dt>          <dd>Deposit + balance <span class="mono">(₵800 paid, ₵800 due Aug 19)</span></dd>
+        <dt>Bank opt-in</dt>       <dd>90 days · already active (separate subscription)</dd>
+        <dt>Access window</dt>     <dd>24 months from approval → <span class="mono">Aug 5, 2028</span></dd>
+        <dt>Payment trail</dt>     <dd><span class="mono">payment_id 7c92… · status PAID · Paystack ref T-7791</span></dd>
+      </dl>
+
+      <p class="hint" style="margin-top:16px">
+        The student's dashboard tile currently reads <em>"Pending tutor approval"</em>. After approval they'll be notified by email and the cohort content tab unlocks.
+      </p>
+    </div>
+    <div class="foot">
+      <button class="btn danger">Reject &amp; refund</button>
+      <button class="btn ghost" onclick="setState('roster')">Not yet</button>
+      <button class="btn accent">Approve enrolment</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+const STRIPES = {
+  roster:   "Roster — all 6 enrolment statuses populated · filter chips active",
+  waitlist: "Waitlist — 5 off-platform leads. Each row is a row in nclex_cohort_waitlist with status='NEW'",
+  add:      "Add-student modal — off-platform tutor-add flow. Slice 1 of the recommended slice order.",
+  approve:  "Approve modal — the gate where PENDING_APPROVAL → ENROLLED. On-platform tutored flow only."
+};
+
+function setState(s){
+  // toggle segmented buttons
+  document.querySelectorAll('#state-toggle button').forEach(b=>{
+    b.classList.toggle('on', b.dataset.state === s);
+  });
+  // tabs
+  document.getElementById('tab-roster').classList.toggle('on', s === 'roster' || s === 'add' || s === 'approve');
+  document.getElementById('tab-waitlist').classList.toggle('on', s === 'waitlist');
+  // views
+  document.getElementById('view-roster').style.display   = (s==='waitlist') ? 'none' : '';
+  document.getElementById('view-waitlist').style.display = (s==='waitlist') ? '' : 'none';
+  // modals
+  document.getElementById('modal-add').style.display     = (s==='add') ? '' : 'none';
+  document.getElementById('modal-approve').style.display = (s==='approve') ? '' : 'none';
+  // stripe
+  document.getElementById('stripe-text').textContent = STRIPES[s];
+}
+document.querySelectorAll('#state-toggle button').forEach(b=>{
+  b.addEventListener('click', ()=>setState(b.dataset.state));
+});
+</script>
+
+</body>
+</html>
