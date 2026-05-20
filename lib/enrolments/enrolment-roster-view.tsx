@@ -10,10 +10,21 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { addStudentAction } from './actions';
 import {
+  addStudentAction,
+  approveEnrolmentAction,
+  cancelEnrolmentAction,
+  pauseEnrolmentAction,
+  rejectEnrolmentAction,
+  resumeEnrolmentAction,
+  type TransitionResult,
+} from './actions';
+import {
+  actionsForStatus,
+  ENROLMENT_ACTION_META,
   ENROLMENT_SOURCE_LABEL,
   ENROLMENT_STATUS_META,
+  type EnrolmentAction,
   type EnrolmentRosterRow,
 } from './types';
 
@@ -22,6 +33,14 @@ interface EnrolmentRosterViewProps {
   cohortName: string;
   roster: EnrolmentRosterRow[];
 }
+
+const ACTION_PAST_TENSE: Record<EnrolmentAction, string> = {
+  approve: 'Approved',
+  reject: 'Rejected',
+  pause: 'Paused',
+  resume: 'Resumed',
+  cancel: 'Cancelled',
+};
 
 export function EnrolmentRosterView({
   cohortId,
@@ -36,6 +55,51 @@ export function EnrolmentRosterView({
     tone: 'success' | 'error';
     message: string;
   } | null>(null);
+
+  // Which row is mid-transition (disables that row's buttons), and the
+  // pending confirm dialog (for access-removing actions).
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<{
+    action: EnrolmentAction;
+    row: EnrolmentRosterRow;
+  } | null>(null);
+
+  const ACTION_FN: Record<
+    EnrolmentAction,
+    (cohortId: string, enrolmentId: string, note?: string) => Promise<TransitionResult>
+  > = {
+    approve: approveEnrolmentAction,
+    reject: rejectEnrolmentAction,
+    pause: pauseEnrolmentAction,
+    resume: resumeEnrolmentAction,
+    cancel: cancelEnrolmentAction,
+  };
+
+  function runAction(action: EnrolmentAction, row: EnrolmentRosterRow, note?: string) {
+    setBusyId(row.enrolment_id);
+    startTransition(async () => {
+      const res = await ACTION_FN[action](cohortId, row.enrolment_id, note);
+      setBusyId(null);
+      setConfirm(null);
+      if (!res.ok) {
+        setToast({ tone: 'error', message: res.error });
+        return;
+      }
+      setToast({
+        tone: 'success',
+        message: `${ACTION_PAST_TENSE[action]} ${row.name}.`,
+      });
+      router.refresh();
+    });
+  }
+
+  function onActionClick(action: EnrolmentAction, row: EnrolmentRosterRow) {
+    if (ENROLMENT_ACTION_META[action].confirm) {
+      setConfirm({ action, row });
+    } else {
+      runAction(action, row);
+    }
+  }
 
   function openAdd() {
     setFormError(null);
@@ -116,9 +180,12 @@ export function EnrolmentRosterView({
             <span role="columnheader">Status</span>
             <span role="columnheader">Source</span>
             <span role="columnheader">Enrolled</span>
+            <span role="columnheader">Actions</span>
           </div>
           {roster.map((row) => {
             const meta = ENROLMENT_STATUS_META[row.status];
+            const actions = actionsForStatus(row.status);
+            const rowBusy = busyId === row.enrolment_id && pending;
             return (
               <div className="enrol-row" role="row" key={row.enrolment_id}>
                 <span className="enrol-row-name">{row.name}</span>
@@ -134,6 +201,26 @@ export function EnrolmentRosterView({
                 <span className="enrol-row-date">
                   {new Date(row.enrolled_at).toLocaleDateString()}
                 </span>
+                <span className="enrol-row-actions">
+                  {actions.length === 0 ? (
+                    <span className="enrol-row-actions-none">—</span>
+                  ) : (
+                    actions.map((action) => {
+                      const am = ENROLMENT_ACTION_META[action];
+                      return (
+                        <button
+                          key={action}
+                          type="button"
+                          className={`enrol-action enrol-action-${am.tone}`}
+                          onClick={() => onActionClick(action, row)}
+                          disabled={pending}
+                        >
+                          {rowBusy ? '…' : am.label}
+                        </button>
+                      );
+                    })
+                  )}
+                </span>
               </div>
             );
           })}
@@ -146,6 +233,18 @@ export function EnrolmentRosterView({
           error={formError}
           onClose={closeAdd}
           onSubmit={handleSubmit}
+        />
+      )}
+
+      {confirm && (
+        <TransitionConfirm
+          action={confirm.action}
+          row={confirm.row}
+          pending={pending}
+          onClose={() => {
+            if (!pending) setConfirm(null);
+          }}
+          onConfirm={(note) => runAction(confirm.action, confirm.row, note)}
         />
       )}
 
@@ -260,6 +359,98 @@ function AddStudentModal({
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+const CONFIRM_COPY: Record<
+  'pause' | 'reject' | 'cancel',
+  { title: (name: string) => string; body: string; confirmLabel: string }
+> = {
+  pause: {
+    title: (name) => `Pause ${name}'s access?`,
+    body: "They'll temporarily lose access to this cohort. You can resume them at any time.",
+    confirmLabel: 'Pause access',
+  },
+  reject: {
+    title: (name) => `Reject ${name}'s request?`,
+    body: 'This declines their pending enrolment request. You can add them again later.',
+    confirmLabel: 'Reject request',
+  },
+  cancel: {
+    title: (name) => `Cancel ${name}'s enrolment?`,
+    body: "They'll lose access to this cohort. You can add them again later.",
+    confirmLabel: 'Cancel enrolment',
+  },
+};
+
+function TransitionConfirm({
+  action,
+  row,
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  action: EnrolmentAction;
+  row: EnrolmentRosterRow;
+  pending: boolean;
+  onClose: () => void;
+  onConfirm: (note?: string) => void;
+}) {
+  const [note, setNote] = useState('');
+  const meta = ENROLMENT_ACTION_META[action];
+  // Only the confirm-gated actions reach this dialog.
+  const copy = CONFIRM_COPY[action as 'pause' | 'reject' | 'cancel'];
+
+  return (
+    <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
+      <div
+        className="enrol-modal enrol-modal-confirm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="enrol-confirm-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="enrol-confirm-title" className="enrol-modal-title">
+          {copy.title(row.name)}
+        </h2>
+        <p className="enrol-modal-sub">{copy.body}</p>
+
+        {meta.note && (
+          <label className="enrol-field">
+            <span className="enrol-field-label">Note (optional)</span>
+            <textarea
+              className="enrol-input enrol-textarea"
+              rows={3}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Reason — kept for your records and refund handling."
+              disabled={pending}
+            />
+          </label>
+        )}
+
+        <div className="enrol-modal-actions">
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-ghost"
+            onClick={onClose}
+            disabled={pending}
+          >
+            Keep as is
+          </button>
+          <button
+            type="button"
+            className={`enrol-btn ${
+              meta.tone === 'danger' ? 'enrol-btn-danger' : 'enrol-btn-primary'
+            }`}
+            onClick={() => onConfirm(meta.note ? note : undefined)}
+            disabled={pending}
+          >
+            {pending ? 'Working…' : copy.confirmLabel}
+          </button>
+        </div>
       </div>
     </div>
   );

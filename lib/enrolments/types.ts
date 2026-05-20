@@ -45,3 +45,40 @@ export const ENROLMENT_SOURCE_LABEL: Record<EnrolmentSource, string> = {
   TUTOR_ADDED: 'Added by you',
   ADMIN_GRANT: 'Admin grant',
 };
+
+/** The lifecycle transitions a tutor can drive from the roster (Slice 2a).
+ *  EXPIRED is excluded — that's the nightly sweep's job, not a button. */
+export type EnrolmentAction = 'approve' | 'reject' | 'pause' | 'resume' | 'cancel';
+
+/** Which action buttons a roster row shows, given its current status.
+ *  Terminal statuses (REJECTED / CANCELLED / EXPIRED) show none. */
+export function actionsForStatus(status: EnrolmentStatus): EnrolmentAction[] {
+  switch (status) {
+    case 'PENDING_APPROVAL':
+      return ['approve', 'reject'];
+    case 'ENROLLED':
+      return ['pause', 'cancel'];
+    case 'PAUSED':
+      return ['resume', 'cancel'];
+    default:
+      return [];
+  }
+}
+
+/** Per-action presentation: button label, visual tone, and whether it
+ *  needs a confirm dialog (access-removing) and an optional note field. */
+export const ENROLMENT_ACTION_META: Record<
+  EnrolmentAction,
+  {
+    label: string;
+    tone: 'primary' | 'neutral' | 'danger';
+    confirm: boolean;
+    note: boolean;
+  }
+> = {
+  approve: { label: 'Approve', tone: 'primary', confirm: false, note: false },
+  resume: { label: 'Resume', tone: 'primary', confirm: false, note: false },
+  pause: { label: 'Pause', tone: 'neutral', confirm: true, note: false },
+  reject: { label: 'Reject', tone: 'danger', confirm: true, note: true },
+  cancel: { label: 'Cancel', tone: 'danger', confirm: true, note: true },
+};

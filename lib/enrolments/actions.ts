@@ -192,6 +192,92 @@ export async function addStudentAction(
   return { ok: true, invited, name: `${forename} ${surname}` };
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Slice 2a — lifecycle transitions
+//
+// Five thin wrappers over the SECURITY DEFINER RPCs. The RPC enforces
+// ownership (programme tutor or SUPER_ADMIN) and the legal source
+// status, so these actions stay minimal: call, revalidate, report.
+// We surface a generic message on failure (the buttons are status-
+// gated, so a raw RPC error here means stale UI or a real fault) and
+// log the detail for debugging.
+// ─────────────────────────────────────────────────────────────────
+
+export type TransitionResult = { ok: true } | { ok: false; error: string };
+
+async function callTransition(
+  cohortId: string,
+  rpc: string,
+  params: Record<string, unknown>,
+): Promise<TransitionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { error } = await supabase.rpc(rpc, params);
+  if (error) {
+    console.error(`Enrolment transition ${rpc} failed:`, error.message);
+    return {
+      ok: false,
+      error: 'Could not update this student. Refresh the page and try again.',
+    };
+  }
+
+  revalidatePath(`/tutor/cohort/${cohortId}/students`);
+  return { ok: true };
+}
+
+export async function approveEnrolmentAction(
+  cohortId: string,
+  enrolmentId: string,
+): Promise<TransitionResult> {
+  return callTransition(cohortId, 'nclex_approve_enrolment', {
+    p_enrolment_id: enrolmentId,
+  });
+}
+
+export async function rejectEnrolmentAction(
+  cohortId: string,
+  enrolmentId: string,
+  note?: string,
+): Promise<TransitionResult> {
+  return callTransition(cohortId, 'nclex_reject_enrolment', {
+    p_enrolment_id: enrolmentId,
+    p_note: note?.trim() ? note.trim() : null,
+  });
+}
+
+export async function pauseEnrolmentAction(
+  cohortId: string,
+  enrolmentId: string,
+): Promise<TransitionResult> {
+  return callTransition(cohortId, 'nclex_pause_enrolment', {
+    p_enrolment_id: enrolmentId,
+  });
+}
+
+export async function resumeEnrolmentAction(
+  cohortId: string,
+  enrolmentId: string,
+): Promise<TransitionResult> {
+  return callTransition(cohortId, 'nclex_unpause_enrolment', {
+    p_enrolment_id: enrolmentId,
+  });
+}
+
+export async function cancelEnrolmentAction(
+  cohortId: string,
+  enrolmentId: string,
+  note?: string,
+): Promise<TransitionResult> {
+  return callTransition(cohortId, 'nclex_cancel_enrolment', {
+    p_enrolment_id: enrolmentId,
+    p_note: note?.trim() ? note.trim() : null,
+  });
+}
+
 // Adds the STUDENT role if the user doesn't already have it. Returns
 // an error object on failure, undefined on success. (A tutor or admin
 // can legitimately be a student in someone else's cohort, so we never

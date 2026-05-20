@@ -76,6 +76,68 @@
 .enrol-btn-ghost:hover:not(:disabled) {
   background: var(--bg);
 }
+.enrol-btn-danger {
+  background: var(--danger);
+  color: var(--white);
+  border-color: var(--danger);
+}
+.enrol-btn-danger:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+/* ─── Roster row actions (Slice 2a) ───────────────────────── */
+
+.enrol-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.enrol-row-actions-none {
+  color: var(--text-muted);
+}
+.enrol-action {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease;
+}
+.enrol-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.enrol-action-primary {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.enrol-action-primary:hover:not(:disabled) {
+  background: var(--primary);
+  color: var(--white);
+}
+.enrol-action-neutral:hover:not(:disabled) {
+  background: var(--bg);
+}
+.enrol-action-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.enrol-action-danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--white);
+}
+
+.enrol-textarea {
+  resize: vertical;
+  min-height: 64px;
+  line-height: 1.5;
+}
 
 /* ─── Empty state ─────────────────────────────────────────── */
 
@@ -116,7 +178,7 @@
 .enrol-roster-head,
 .enrol-row {
   display: grid;
-  grid-template-columns: 1.6fr 2fr 1fr 1fr 1fr;
+  grid-template-columns: 1.6fr 2fr 1fr 1fr 0.9fr 1.5fr;
   gap: 16px;
   align-items: center;
   padding: 12px 16px;
