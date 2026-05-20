@@ -765,14 +765,24 @@ CREATE TABLE nclex_programmes (
   length_units          SMALLINT NOT NULL                    -- count of curriculum units
                         CHECK (length_units BETWEEN 1 AND 52),
 
-  -- Pricing (minor units; 0 = free).
-  -- Stays on programme in v1 — cohort-level variation deferred per
-  -- payments-and-enrolment.md, and self-paced has no cohort layer.
-  price_minor_ghs       INTEGER NOT NULL DEFAULT 0
-                        CHECK (price_minor_ghs >= 0),
-  price_minor_usd       INTEGER NOT NULL DEFAULT 0
-                        CHECK (price_minor_usd >= 0),
+  -- Pricing (minor units; 0 = free). Slice 3a — single tutor-chosen
+  -- currency (vs the bank's deliberate dual-currency PPP on
+  -- nclex_products). The tutor settles in one currency; an FX
+  -- "≈ equivalent" public display is deferred polish.
+  price_currency        TEXT NOT NULL
+                        CHECK (price_currency IN ('GHS','USD')),
+  price_minor           INTEGER NOT NULL
+                        CHECK (price_minor >= 0),
   show_price_publicly   BOOLEAN NOT NULL DEFAULT TRUE,
+  -- OFF_PLATFORM (tutor collects + adds students) | ON_PLATFORM
+  -- (Paystack checkout). No runtime effect until Slice 5. Self-paced
+  -- must be ON_PLATFORM (enforced in TS).
+  payment_collection_mode TEXT NOT NULL DEFAULT 'OFF_PLATFORM'
+                        CHECK (payment_collection_mode IN ('OFF_PLATFORM','ON_PLATFORM')),
+  -- NULL = lifetime of tutor's sub (Pattern A). Otherwise N days from
+  -- enrolled_at; the deferred EXPIRED/PAUSED pg_cron sweep reads this.
+  access_window_days    INTEGER
+                        CHECK (access_window_days IS NULL OR access_window_days > 0),
 
   -- Lifecycle. CANCELLED moved to nclex_cohorts.cancelled_at.
   status                TEXT NOT NULL DEFAULT 'DRAFT'
@@ -787,6 +797,9 @@ CREATE TABLE nclex_programmes (
 
 CREATE INDEX idx_nclex_programmes_tutor   ON nclex_programmes(tutor_id);
 CREATE INDEX idx_nclex_programmes_public  ON nclex_programmes(status) WHERE status = 'PUBLISHED';
+-- Slice 3a — discovery filter on collection mode (published rows only).
+CREATE INDEX idx_nclex_programmes_collection_public
+  ON nclex_programmes(payment_collection_mode) WHERE status = 'PUBLISHED';
 
 
 -- 14. Cohorts (slice 9.2a — programme/cohort split)

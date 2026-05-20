@@ -526,6 +526,12 @@ CREATE POLICY nclex_programmes_student_select ON nclex_programmes FOR SELECT
   TO authenticated
   USING (nclex_has_programme_enrolment(programme_id));
 
+-- NOTE (Slice 3b): public discovery does NOT read the base table. It
+-- reads the nclex_public_programmes view (see "PUBLIC VIEWS" below),
+-- which exposes a curated projection with owner rights. The short-lived
+-- 3a base-table public-read policy + its nclex_user_is_active helper
+-- were dropped once the view became the single public path.
+
 
 -- =========================================================
 -- nclex_cohorts (Slice 9.2a, 2026-05-12)
@@ -1246,3 +1252,93 @@ CREATE POLICY nclex_enrolments_admin_all
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- ─────────────────────────────────────────────────────────
+-- PUBLIC VIEWS (Slice 3b)
+-- The single public read path for programme data. Owner-rights views
+-- (security_invoker = false, default) expose a curated projection to
+-- anon WITHOUT opening the base tables, whose RLS stays
+-- authenticated-only. Every public page reads from these and takes the
+-- columns it needs — the "what's public" rule lives here, once.
+-- ─────────────────────────────────────────────────────────
+
+-- One row per publicly-visible programme: programme public fields + the
+-- tutor's PUBLIC profile (name + avatar only) + a cohort rollup. Gate:
+-- PUBLISHED + active tutor. The open-cohort discovery rule is a LIST
+-- filter on open_cohort_count, applied by the page — NOT baked in here,
+-- so the detail page can read a published-but-cohortless programme.
+CREATE OR REPLACE VIEW nclex_public_programmes AS
+SELECT
+  p.programme_id,
+  p.title,
+  p.tagline,
+  p.description,
+  p.delivery_mode,
+  p.unit_label,
+  p.length_units,
+  p.price_currency,
+  p.price_minor,
+  p.show_price_publicly,
+  p.payment_collection_mode,
+  p.access_window_days,
+  p.published_at,
+  u.name        AS tutor_name,
+  u.avatar_url  AS tutor_avatar_url,
+  oc.next_cohort_start,
+  COALESCE(oc.open_cohort_count, 0) AS open_cohort_count
+FROM nclex_programmes p
+JOIN nclex_users u ON u.id = p.tutor_id
+LEFT JOIN LATERAL (
+  -- "Open" = joinable: not cancelled, not yet ended, and either
+  -- upcoming or in-progress with late-join allowed.
+  SELECT
+    MIN(c.start_date) FILTER (WHERE c.start_date >= CURRENT_DATE)
+                                         AS next_cohort_start,
+    COUNT(*)                             AS open_cohort_count
+  FROM nclex_cohorts c
+  WHERE c.programme_id = p.programme_id
+    AND c.cancelled_at IS NULL
+    AND c.end_date >= CURRENT_DATE
+    AND (c.start_date >= CURRENT_DATE OR c.allow_late_join)
+) oc ON TRUE
+WHERE p.status = 'PUBLISHED'
+  AND u.is_active;
+
+GRANT SELECT ON nclex_public_programmes TO anon, authenticated;
+
+-- Published units of a public programme (Slice 3c). Draft units stay
+-- hidden. Feeds the detail page's "Syllabus" section.
+CREATE OR REPLACE VIEW nclex_public_units AS
+SELECT
+  pu.programme_id,
+  pu.unit_index,
+  pu.title,
+  pu.description
+FROM nclex_programme_units pu
+JOIN nclex_programmes p ON p.programme_id = pu.programme_id
+JOIN nclex_users u      ON u.id = p.tutor_id
+WHERE p.status = 'PUBLISHED'
+  AND u.is_active
+  AND pu.is_published;
+
+GRANT SELECT ON nclex_public_units TO anon, authenticated;
+
+-- Non-cancelled cohorts of a public programme (Slice 3c). Feeds the
+-- detail page's "Available cohorts" section; status is derived in TS.
+CREATE OR REPLACE VIEW nclex_public_cohorts AS
+SELECT
+  c.cohort_id,
+  c.programme_id,
+  c.name,
+  c.start_date,
+  c.end_date,
+  c.allow_late_join
+FROM nclex_cohorts c
+JOIN nclex_programmes p ON p.programme_id = c.programme_id
+JOIN nclex_users u      ON u.id = p.tutor_id
+WHERE p.status = 'PUBLISHED'
+  AND u.is_active
+  AND c.cancelled_at IS NULL;
+
+GRANT SELECT ON nclex_public_cohorts TO anon, authenticated;
