@@ -43,9 +43,14 @@ export async function getCohortRoster(
   const admin = createServiceRoleClient();
   const { data, error } = await admin
     .from('nclex_enrolments')
+    // nclex_enrolments has three FKs to nclex_users (user_id,
+    // enrolled_by_user_id, approved_by_user_id), so the embed MUST name
+    // the constraint — an unqualified nclex_users!inner is ambiguous and
+    // PostgREST errors (which this function would swallow into an empty
+    // roster). Follow the user_id FK explicitly.
     .select(
       `enrolment_id, user_id, status, enrolment_source, enrolled_at,
-       nclex_users!inner(name, email)`,
+       nclex_users!nclex_enrolments_user_id_fkey!inner(name, email)`,
     )
     .eq('cohort_id', cohortId)
     .order('enrolled_at', { ascending: false });
