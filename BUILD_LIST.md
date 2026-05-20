@@ -8,27 +8,25 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-20):** **Payments Slice 3 — programme price
-> deltas + public discovery + detail page.** Three sub-slices. **3a (DB):**
-> dropped the dual GHS/USD columns for a single tutor-chosen
-> `price_currency` + `price_minor`; added `payment_collection_mode` +
-> `access_window_days`; reworked the tutor programme form (currency picker
-> + single price + "Online checkout: On/Off" + access-window). **3b:** the
-> shared public-projection layer — one `nclex_public_programmes` view is
-> the single public read path (curated columns: programme + tutor
-> name/avatar only + cohort rollup; "published + active tutor" rule defined
-> once), superseding the 3a base-table public policy. New `(public)` route
-> group with shared chrome (full CD nav, inert placeholders for
-> not-yet-built links + FX toggle); discovery list at `/programmes` with
-> working filter chips. **3c:** read-only detail page (`/programmes/[id]`)
-> — header + about + syllabus (units) + cohorts (status pills, no seat
-> counts) + pricing rail with disabled "coming soon" Enrol; added
-> `nclex_public_units` + `nclex_public_cohorts` to the same view family.
-> Two design clarifications logged in payments-and-enrolment.md (self-paced
-> not forced on-platform; collection mode = "online checkout button on/off",
-> manual add always available). Migrations `20260527/28/29120000` (dev
-> trackers reconciled). Verified anon RLS + tsc + build + browser.
-> **Next session: JSONB tutor-profile slice** (see below).
+> **Last shipped (2026-05-20):** **Payments Slice 3.5 — tutor public
+> profile (JSONB).** One role-agnostic `public_profile` JSONB bag added to
+> `nclex_users` (public-display-only by rule; private fields stay in
+> dedicated columns), shape pinned by the `PublicProfile` TS type in
+> `lib/discovery/types.ts`. Fields: `headline` / `speciality` /
+> `years_experience` / `bio` + optional business branding (`business_name`
+> / `business_logo_url` / `business_bio`). **No display-mode switch** —
+> when a business name is set the card + detail page show the business
+> **and** the person together ("NCLEX ProSolutions · with Akosua Owusu")
+> per Sam's transparency call. Exposed as `tutor_profile` in
+> `nclex_public_programmes`. The `/tutor/profile` placeholder became a real
+> "Public profile" editor (person + business sections, live preview,
+> dirty-gated save, success/error toasts, beforeunload + in-app
+> discard-overlay guards). Discovery card + detail page render the
+> attribution + "About {person}" / "About {business}" sections via shared
+> `tutorAttribution` + `yearsTutoringLabel` helpers. Logo: URL field now,
+> direct upload deferred. Migrations `20260530120000/130000` (dev only);
+> dev tutor seeded. Verified tsc + browser. **Next session: Slice 4 —
+> student-initiated waitlist** (see below).
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -917,26 +915,27 @@ Slice order from the adopted Claude Design proposal
     section on the detail page (no tutor bio fields exist yet).
   - Still unblocks the pg_cron EXPIRED/PAUSED sweep (needs
     `access_window_days`), now present.
-- ⏭ **Slice 3.5** Tutor public profile (JSONB) — **NEXT SESSION.**
-  Add a single `profile` JSONB column to `nclex_users` (sits beside
-  `avatar_url`; role-agnostic — tutors + students share the mechanism)
-  with a documented, typed shape in TS as the single source of truth,
-  extensible by adding a key. Treat `profile` as public-display data by
-  rule (no private/operational fields ever go in it — those get a
-  `nclex_tutors` table when they arrive; see note below). Proposed shape:
-  - Person fields: `headline`, `speciality`, `years_experience`, `bio`.
-  - **Branding** (confirmed with Sam 2026-05-20 — branding, NOT
-    ownership): `display_mode: 'person' | 'business'`, `business_name`,
-    `business_logo_url`, `business_bio`. The card + detail page attribute
-    to the business name/logo when `display_mode = 'business'` (e.g.
-    "8-week NCLEX Bootcamp by NCLEX ProSolutions"), else the person.
-  
-  Then: expose the tutor's profile in `nclex_public_programmes`; add a
-  "Public profile" editor section to `/tutor/profile`; render the
-  "About {tutor}"/business + sub-headline section on the programme detail
-  page; seed the dev tutor. Decided 2026-05-20 with Sam (chose flexible
-  JSONB over fixed headline/bio columns; co-tutors-per-programme is a
-  separate join-table concern, not this). NOT rushed — design carefully.
+- ✅ **Slice 3.5** Tutor public profile (JSONB) — shipped 2026-05-20.
+  Column **renamed `public_profile`** (not `profile`) — the `public_`
+  prefix encodes the invariant: public-display data only, role-agnostic,
+  sits beside `avatar_url`. Shape is the `PublicProfile` TS type in
+  `lib/discovery/types.ts` (single source of truth; reshape later at zero
+  migration cost). Fields: `headline` / `speciality` / `years_experience`
+  / `bio` + `business_name` / `business_logo_url` / `business_bio`.
+  **Dropped the `display_mode` switch** (revised with Sam 2026-05-20): for
+  transparency, person + business always show **together** when a business
+  name is set — never one instead of the other; co-tutor individual bios
+  on a programme are future work that the person `bio` future-proofs.
+  Exposed as `tutor_profile` in `nclex_public_programmes` (whole bag, so
+  field additions need no view change). `/tutor/profile` placeholder →
+  real "Public profile" editor (person + business sections, live preview,
+  dirty-gated save, success/error toasts, beforeunload + in-app
+  discard-overlay guards). Card + detail page render attribution +
+  "About {person}" / "About {business}" via shared `tutorAttribution` +
+  `yearsTutoringLabel`. Logo = URL field for now; direct upload deferred.
+  Migrations `20260530120000` (column) + `130000` (view); dev only, dev
+  tutor seeded. The `nclex_tutors` table for private/operational tutor
+  data (vetting, $29/mo sub, payouts) still arrives with vetting work.
 
   **Boundary (branding vs ownership).** The business fields are display
   branding and hold only while **one business = one tutor**. If the same

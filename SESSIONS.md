@@ -10,5 +10,5 @@ CLAUDE.md.
 
 ## Session files (newest first)
 
-- [2026-05 — Programme build: foundation → curriculum → tutor-quiz → progress engine → enrolment (53 sessions)](sessions/2026-05.md)
+- [2026-05 — Programme build: foundation → curriculum → tutor-quiz → progress engine → enrolment → payments (54 sessions)](sessions/2026-05.md)
 - [2026-04 — Bank authoring (all 9 item types + wrappers), nav scaffolds, auth, repo + DB split off gamma (44 sessions)](sessions/2026-04.md)
