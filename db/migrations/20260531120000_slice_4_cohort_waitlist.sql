@@ -48,9 +48,12 @@ CREATE TABLE nclex_cohort_waitlist (
   programme_id         UUID NOT NULL
                        REFERENCES nclex_programmes(programme_id) ON DELETE CASCADE,
 
-  -- Self-supplied lead details (no account yet). Email stored
-  -- lower-cased by the RPC.
-  name                 TEXT NOT NULL,
+  -- Self-supplied lead details (no account yet). forename + surname
+  -- (not one "name") so the convert path can create the nclex_users
+  -- profile directly — its forename/surname are both NOT NULL. Email
+  -- stored lower-cased by the RPC.
+  forename             TEXT NOT NULL,
+  surname              TEXT NOT NULL,
   email                TEXT NOT NULL,
   message              TEXT,
 
@@ -125,21 +128,23 @@ CREATE POLICY nclex_cohort_waitlist_admin_all
 -- "you're on the list" either way (no email-enumeration signal).
 CREATE OR REPLACE FUNCTION nclex_join_waitlist(
   p_cohort_id UUID,
-  p_name      TEXT,
+  p_forename  TEXT,
+  p_surname   TEXT,
   p_email     TEXT,
   p_message   TEXT DEFAULT NULL
 )
 RETURNS UUID
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public AS $$
 DECLARE
-  v_name       TEXT := btrim(p_name);
+  v_forename   TEXT := btrim(p_forename);
+  v_surname    TEXT := btrim(p_surname);
   v_email      TEXT := lower(btrim(p_email));
   v_message    TEXT := NULLIF(btrim(COALESCE(p_message, '')), '');
   v_programme  UUID;
   v_existing   UUID;
 BEGIN
-  IF v_name = '' THEN
-    RAISE EXCEPTION 'name is required';
+  IF v_forename = '' OR v_surname = '' THEN
+    RAISE EXCEPTION 'first name and surname are required';
   END IF;
   IF v_email !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' THEN
     RAISE EXCEPTION 'a valid email is required';
@@ -175,13 +180,13 @@ BEGIN
     RETURN v_existing;
   END IF;
 
-  INSERT INTO nclex_cohort_waitlist (cohort_id, programme_id, name, email, message)
-  VALUES (p_cohort_id, v_programme, v_name, v_email, v_message)
+  INSERT INTO nclex_cohort_waitlist (cohort_id, programme_id, forename, surname, email, message)
+  VALUES (p_cohort_id, v_programme, v_forename, v_surname, v_email, v_message)
   RETURNING waitlist_id INTO v_existing;
 
   RETURN v_existing;
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION nclex_join_waitlist(UUID, TEXT, TEXT, TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION nclex_join_waitlist(UUID, TEXT, TEXT, TEXT) TO anon, authenticated;
+REVOKE EXECUTE ON FUNCTION nclex_join_waitlist(UUID, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION nclex_join_waitlist(UUID, TEXT, TEXT, TEXT, TEXT) TO anon, authenticated;

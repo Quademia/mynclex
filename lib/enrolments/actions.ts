@@ -98,6 +98,42 @@ export async function addStudentAction(
   }
 
   const admin = createServiceRoleClient();
+  const res = await inviteOrAttachAndEnrol(admin, {
+    forename,
+    surname,
+    email,
+    programmeId: programme.programme_id,
+    cohortId,
+    tutorId: tutor.id,
+  });
+  if (!res.ok) return res;
+
+  revalidatePath(`/tutor/cohort/${cohortId}/students`);
+  return { ok: true, invited: res.invited, name: `${forename} ${surname}` };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Shared invite-or-attach + enrol (used by Add-student AND Convert-
+// waitlist). Caller MUST have already proven the acting tutor owns the
+// cohort. Existing account → attach + enrol; new email → Supabase
+// invite + profile + STUDENT role, then enrol. Returns the new
+// enrolment's id so the waitlist convert path can link it.
+// ─────────────────────────────────────────────────────────────────
+async function inviteOrAttachAndEnrol(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  args: {
+    forename: string;
+    surname: string;
+    email: string; // already trimmed + lower-cased + validated
+    programmeId: string;
+    cohortId: string;
+    tutorId: string;
+  },
+): Promise<
+  { ok: true; invited: boolean; enrolmentId: string } | { ok: false; error: string }
+> {
+  const { forename, surname, email, programmeId, cohortId, tutorId } = args;
+  const fullName = [forename, surname].filter(Boolean).join(' ');
 
   // Existing account? nclex_users.email is unique; a tutor-added or
   // self-registered student always has a profile row.
@@ -120,7 +156,7 @@ export async function addStudentAction(
     const { data: inviteData, error: inviteErr } =
       await admin.auth.admin.inviteUserByEmail(email, {
         redirectTo: `${origin}/welcome`,
-        data: { full_name: `${forename} ${surname}` },
+        data: { full_name: fullName },
       });
     if (inviteErr || !inviteData?.user) {
       return {
@@ -136,7 +172,7 @@ export async function addStudentAction(
       email,
       forename,
       surname,
-      name: `${forename} ${surname}`,
+      name: fullName,
       signup_source: 'TUTOR_INVITE',
     });
     if (profileErr) {
@@ -168,28 +204,31 @@ export async function addStudentAction(
     };
   }
 
-  const { error: enrolErr } = await admin.from('nclex_enrolments').insert({
-    user_id: studentId,
-    programme_id: programme.programme_id,
-    cohort_id: cohortId,
-    status: 'ENROLLED',
-    enrolment_source: 'TUTOR_ADDED',
-    enrolled_by_user_id: tutor.id,
-    // access_expires_at left NULL = lifetime (programmes have no
-    // access_window_days column until the discovery slice).
-  });
-  if (enrolErr) {
-    if (enrolErr.code === '23505') {
+  const { data: enrolRow, error: enrolErr } = await admin
+    .from('nclex_enrolments')
+    .insert({
+      user_id: studentId,
+      programme_id: programmeId,
+      cohort_id: cohortId,
+      status: 'ENROLLED',
+      enrolment_source: 'TUTOR_ADDED',
+      enrolled_by_user_id: tutorId,
+      // access_expires_at left NULL = lifetime (programmes have no
+      // access_window_days column until the discovery slice).
+    })
+    .select('enrolment_id')
+    .single();
+  if (enrolErr || !enrolRow) {
+    if (enrolErr?.code === '23505') {
       return {
         ok: false,
         error: 'This student is already enrolled in this cohort.',
       };
     }
-    return { ok: false, error: enrolErr.message };
+    return { ok: false, error: enrolErr?.message ?? 'Could not enrol the student.' };
   }
 
-  revalidatePath(`/tutor/cohort/${cohortId}/students`);
-  return { ok: true, invited, name: `${forename} ${surname}` };
+  return { ok: true, invited, enrolmentId: enrolRow.enrolment_id };
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -276,6 +315,132 @@ export async function cancelEnrolmentAction(
     p_enrolment_id: enrolmentId,
     p_note: note?.trim() ? note.trim() : null,
   });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Slice 4 — waitlist convert / dismiss
+//
+// convert: turn a PENDING waitlist lead into an ENROLLED enrolment via
+// the same invite-or-attach path as Add-student, then mark the lead
+// CONVERTED and link the enrolment. dismiss: mark the lead DISMISSED.
+//
+// Ownership is gated by reading the waitlist row through the AUTHED
+// (RLS-scoped) client first — the row returns only for the owning tutor
+// or SUPER_ADMIN. The status-changing writes then run under the service
+// role (the table has no tutor-write policy; convert must also create a
+// user the tutor's own client can't), exactly as Add-student does.
+// ─────────────────────────────────────────────────────────────────
+
+export type ConvertWaitlistResult =
+  | { ok: true; invited: boolean; name: string }
+  | { ok: false; error: string };
+
+export async function convertWaitlistEntryAction(
+  cohortId: string,
+  waitlistId: string,
+): Promise<ConvertWaitlistResult> {
+  const supabase = await createClient();
+  const {
+    data: { user: tutor },
+  } = await supabase.auth.getUser();
+  if (!tutor) return { ok: false, error: 'Not signed in.' };
+
+  // Ownership gate + payload, in one RLS-scoped read.
+  const { data: lead } = await supabase
+    .from('nclex_cohort_waitlist')
+    .select('waitlist_id, cohort_id, programme_id, forename, surname, email, status')
+    .eq('waitlist_id', waitlistId)
+    .maybeSingle();
+  if (!lead) {
+    return { ok: false, error: 'Waitlist entry not found, or not one of yours.' };
+  }
+  if (lead.status !== 'PENDING') {
+    return { ok: false, error: 'This waitlist entry has already been handled.' };
+  }
+
+  const admin = createServiceRoleClient();
+
+  // Cohort still joinable? (cancelled cohorts can't take enrolments.)
+  const { data: cohortRow } = await admin
+    .from('nclex_cohorts')
+    .select('cancelled_at')
+    .eq('cohort_id', lead.cohort_id)
+    .maybeSingle();
+  if (!cohortRow) return { ok: false, error: 'Cohort not found.' };
+  if (cohortRow.cancelled_at) {
+    return { ok: false, error: 'This cohort is cancelled — enrolment is closed.' };
+  }
+
+  const fullName = [lead.forename, lead.surname].filter(Boolean).join(' ');
+  const res = await inviteOrAttachAndEnrol(admin, {
+    forename: lead.forename,
+    surname: lead.surname,
+    email: lead.email,
+    programmeId: lead.programme_id,
+    cohortId: lead.cohort_id,
+    tutorId: tutor.id,
+  });
+  if (!res.ok) return res;
+
+  const { error: markErr } = await admin
+    .from('nclex_cohort_waitlist')
+    .update({
+      status: 'CONVERTED',
+      converted_enrolment_id: res.enrolmentId,
+      handled_by_user_id: tutor.id,
+      handled_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('waitlist_id', waitlistId);
+  if (markErr) {
+    // The enrolment exists; only the lead bookkeeping failed. Surface a
+    // soft note rather than implying nothing happened.
+    console.error('Waitlist convert: enrolment created but mark failed:', markErr.message);
+  }
+
+  revalidatePath(`/tutor/cohort/${cohortId}/students`);
+  return { ok: true, invited: res.invited, name: fullName };
+}
+
+export async function dismissWaitlistEntryAction(
+  cohortId: string,
+  waitlistId: string,
+): Promise<TransitionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user: tutor },
+  } = await supabase.auth.getUser();
+  if (!tutor) return { ok: false, error: 'Not signed in.' };
+
+  const { data: lead } = await supabase
+    .from('nclex_cohort_waitlist')
+    .select('waitlist_id, status')
+    .eq('waitlist_id', waitlistId)
+    .maybeSingle();
+  if (!lead) {
+    return { ok: false, error: 'Waitlist entry not found, or not one of yours.' };
+  }
+  if (lead.status !== 'PENDING') {
+    return { ok: false, error: 'This waitlist entry has already been handled.' };
+  }
+
+  const admin = createServiceRoleClient();
+  const { error } = await admin
+    .from('nclex_cohort_waitlist')
+    .update({
+      status: 'DISMISSED',
+      handled_by_user_id: tutor.id,
+      handled_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('waitlist_id', waitlistId);
+  if (error) {
+    console.error('Waitlist dismiss failed:', error.message);
+    return { ok: false, error: 'Could not dismiss this entry. Refresh and try again.' };
+  }
+
+  revalidatePath(`/tutor/cohort/${cohortId}/students`);
+  return { ok: true };
 }
 
 // Adds the STUDENT role if the user doesn't already have it. Returns

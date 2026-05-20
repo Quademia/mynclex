@@ -27,6 +27,18 @@ export interface EnrolmentRosterRow {
   email: string;
 }
 
+/** One PENDING student-initiated waitlist lead (Slice 4), shown in the
+ *  cohort workspace. forename/surname/email are self-supplied (no
+ *  account yet); message is optional. */
+export interface WaitlistEntry {
+  waitlist_id: string;
+  forename: string;
+  surname: string;
+  email: string;
+  message: string | null;
+  created_at: string;
+}
+
 /** Status → display label + pill class (see styles/enrolments.css). */
 export const ENROLMENT_STATUS_META: Record<
   EnrolmentStatus,

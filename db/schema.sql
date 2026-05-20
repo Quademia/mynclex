@@ -1393,7 +1393,8 @@ CREATE TABLE nclex_cohort_waitlist (
   programme_id         UUID NOT NULL                              -- denormalised from cohort (RLS)
                        REFERENCES nclex_programmes(programme_id) ON DELETE CASCADE,
 
-  name                 TEXT NOT NULL,
+  forename             TEXT NOT NULL,                            -- split name → convert creates the profile directly
+  surname              TEXT NOT NULL,
   email                TEXT NOT NULL,                             -- lower-cased by the RPC
   message              TEXT,
 

@@ -14,6 +14,8 @@ import {
   addStudentAction,
   approveEnrolmentAction,
   cancelEnrolmentAction,
+  convertWaitlistEntryAction,
+  dismissWaitlistEntryAction,
   pauseEnrolmentAction,
   rejectEnrolmentAction,
   resumeEnrolmentAction,
@@ -26,12 +28,14 @@ import {
   ENROLMENT_STATUS_META,
   type EnrolmentAction,
   type EnrolmentRosterRow,
+  type WaitlistEntry,
 } from './types';
 
 interface EnrolmentRosterViewProps {
   cohortId: string;
   cohortName: string;
   roster: EnrolmentRosterRow[];
+  waitlist: WaitlistEntry[];
 }
 
 const ACTION_PAST_TENSE: Record<EnrolmentAction, string> = {
@@ -46,6 +50,7 @@ export function EnrolmentRosterView({
   cohortId,
   cohortName,
   roster,
+  waitlist,
 }: EnrolmentRosterViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -63,6 +68,48 @@ export function EnrolmentRosterView({
     action: EnrolmentAction;
     row: EnrolmentRosterRow;
   } | null>(null);
+
+  // Waitlist: which lead is mid-action, and the pending dismiss confirm.
+  const [wlBusyId, setWlBusyId] = useState<string | null>(null);
+  const [wlDismiss, setWlDismiss] = useState<WaitlistEntry | null>(null);
+
+  function leadName(entry: WaitlistEntry) {
+    return `${entry.forename} ${entry.surname}`.trim();
+  }
+
+  function runConvert(entry: WaitlistEntry) {
+    setWlBusyId(entry.waitlist_id);
+    startTransition(async () => {
+      const res = await convertWaitlistEntryAction(cohortId, entry.waitlist_id);
+      setWlBusyId(null);
+      if (!res.ok) {
+        setToast({ tone: 'error', message: res.error });
+        return;
+      }
+      setToast({
+        tone: 'success',
+        message: res.invited
+          ? `Enrolled ${res.name} — invite sent to set up their account.`
+          : `Enrolled ${res.name} (existing MyNclex account).`,
+      });
+      router.refresh();
+    });
+  }
+
+  function runDismiss(entry: WaitlistEntry) {
+    setWlBusyId(entry.waitlist_id);
+    startTransition(async () => {
+      const res = await dismissWaitlistEntryAction(cohortId, entry.waitlist_id);
+      setWlBusyId(null);
+      setWlDismiss(null);
+      if (!res.ok) {
+        setToast({ tone: 'error', message: res.error });
+        return;
+      }
+      setToast({ tone: 'success', message: `Dismissed ${leadName(entry)}'s request.` });
+      router.refresh();
+    });
+  }
 
   const ACTION_FN: Record<
     EnrolmentAction,
@@ -155,6 +202,62 @@ export function EnrolmentRosterView({
         )}
       </header>
 
+      {waitlist.length > 0 && (
+        <section className="enrol-waitlist">
+          <div className="enrol-waitlist-head">
+            <h2 className="enrol-waitlist-title">
+              Waitlist requests
+              <span className="enrol-waitlist-count">{waitlist.length}</span>
+            </h2>
+            <p className="enrol-waitlist-sub">
+              People who asked to join this cohort from the public page.
+              Convert once they&apos;ve paid you (or you&apos;re ready to
+              let them in) — they&apos;ll be enrolled and emailed an invite
+              to set up their account.
+            </p>
+          </div>
+          <div className="enrol-waitlist-list">
+            {waitlist.map((entry) => {
+              const rowBusy = wlBusyId === entry.waitlist_id && pending;
+              return (
+                <div className="enrol-wl-card" key={entry.waitlist_id}>
+                  <div className="enrol-wl-main">
+                    <div className="enrol-wl-id">
+                      <span className="enrol-wl-name">{leadName(entry)}</span>
+                      <span className="enrol-wl-email">{entry.email}</span>
+                    </div>
+                    {entry.message && (
+                      <p className="enrol-wl-message">{entry.message}</p>
+                    )}
+                    <span className="enrol-wl-date">
+                      Requested {new Date(entry.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="enrol-wl-actions">
+                    <button
+                      type="button"
+                      className="enrol-action enrol-action-primary"
+                      onClick={() => runConvert(entry)}
+                      disabled={pending}
+                    >
+                      {rowBusy ? '…' : 'Convert to enrolment'}
+                    </button>
+                    <button
+                      type="button"
+                      className="enrol-action enrol-action-neutral"
+                      onClick={() => setWlDismiss(entry)}
+                      disabled={pending}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {!hasStudents ? (
         <div className="enrol-empty">
           <h2 className="enrol-empty-title">No students enrolled yet.</h2>
@@ -245,6 +348,17 @@ export function EnrolmentRosterView({
             if (!pending) setConfirm(null);
           }}
           onConfirm={(note) => runAction(confirm.action, confirm.row, note)}
+        />
+      )}
+
+      {wlDismiss && (
+        <WaitlistDismissConfirm
+          name={leadName(wlDismiss)}
+          pending={pending}
+          onClose={() => {
+            if (!pending) setWlDismiss(null);
+          }}
+          onConfirm={() => runDismiss(wlDismiss)}
         />
       )}
 
@@ -449,6 +563,56 @@ function TransitionConfirm({
             disabled={pending}
           >
             {pending ? 'Working…' : copy.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WaitlistDismissConfirm({
+  name,
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  name: string;
+  pending: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
+      <div
+        className="enrol-modal enrol-modal-confirm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="enrol-wl-dismiss-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="enrol-wl-dismiss-title" className="enrol-modal-title">
+          Dismiss {name}&apos;s request?
+        </h2>
+        <p className="enrol-modal-sub">
+          This removes their waitlist request from the list. It doesn&apos;t
+          notify them, and they can ask to join again from the public page.
+        </p>
+        <div className="enrol-modal-actions">
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-ghost"
+            onClick={onClose}
+            disabled={pending}
+          >
+            Keep request
+          </button>
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-primary"
+            onClick={onConfirm}
+            disabled={pending}
+          >
+            {pending ? 'Working…' : 'Dismiss request'}
           </button>
         </div>
       </div>

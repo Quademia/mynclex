@@ -24,6 +24,7 @@ import {
   tutorAttribution,
   yearsTutoringLabel,
 } from '@/lib/discovery/format';
+import { WaitlistCta } from './waitlist-cta';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +50,21 @@ export default async function ProgrammeDetailPage({
   );
   const showPrice = programme.show_price_publicly;
   const ctaLabel = selfPaced ? 'Start now' : 'Enrol';
+
+  // Waitlist-joinable cohorts: tutor-led only, and (matching the
+  // nclex_join_waitlist gate) upcoming OR late-join-allowed. getPublicCohorts
+  // already dropped ended/cancelled ones.
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const waitlistCohorts = selfPaced
+    ? []
+    : cohorts
+        .filter((c) => c.start_date >= todayStr || c.allow_late_join)
+        .map((c) => ({
+          id: c.cohort_id,
+          label: c.name
+            ? `${c.name} · starts ${formatCohortDateLong(c.start_date)}`
+            : `Starts ${formatCohortDateLong(c.start_date)}`,
+        }));
 
   // Tutor public profile (slice 3.5). Attribution = the "show person +
   // business together" rule; the rest feeds the header sub-line and the
@@ -224,6 +240,13 @@ export default async function ProgrammeDetailPage({
               join.
             </p>
           </div>
+
+          {waitlistCohorts.length > 0 && (
+            <WaitlistCta
+              cohorts={waitlistCohorts}
+              tutorName={personFirst}
+            />
+          )}
         </aside>
       </div>
     </main>

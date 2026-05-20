@@ -17,7 +17,7 @@
 // in their programmes") could replace step 2 — left for later.
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
-import type { EnrolmentRosterRow, EnrolmentStatus } from './types';
+import type { EnrolmentRosterRow, EnrolmentStatus, WaitlistEntry } from './types';
 
 // Active statuses win over terminal ones when a student has both a past
 // (e.g. CANCELLED) and a current row for the same scope. Mirrors the
@@ -143,4 +143,26 @@ export async function getCohortRoster(
       } satisfies EnrolmentRosterRow;
     })
     .filter((r): r is EnrolmentRosterRow => r !== null);
+}
+
+/**
+ * PENDING student-initiated waitlist leads for a cohort (Slice 4).
+ * Unlike the roster, the waitlist row itself is readable by the owning
+ * tutor (RLS policy nclex_cohort_waitlist_tutor_select), so the authed
+ * client suffices — no service-role hop. Callers gate ownership via
+ * getCohortRoster (returns null → 404) before reaching this.
+ */
+export async function getCohortWaitlist(
+  cohortId: string,
+): Promise<WaitlistEntry[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('nclex_cohort_waitlist')
+    .select('waitlist_id, forename, surname, email, message, created_at')
+    .eq('cohort_id', cohortId)
+    .eq('status', 'PENDING')
+    .order('created_at', { ascending: true });
+
+  if (error || !data) return [];
+  return data as WaitlistEntry[];
 }
