@@ -8,25 +8,23 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-20):** **Payments Slice 3.5 — tutor public
-> profile (JSONB).** One role-agnostic `public_profile` JSONB bag added to
-> `nclex_users` (public-display-only by rule; private fields stay in
-> dedicated columns), shape pinned by the `PublicProfile` TS type in
-> `lib/discovery/types.ts`. Fields: `headline` / `speciality` /
-> `years_experience` / `bio` + optional business branding (`business_name`
-> / `business_logo_url` / `business_bio`). **No display-mode switch** —
-> when a business name is set the card + detail page show the business
-> **and** the person together ("NCLEX ProSolutions · with Akosua Owusu")
-> per Sam's transparency call. Exposed as `tutor_profile` in
-> `nclex_public_programmes`. The `/tutor/profile` placeholder became a real
-> "Public profile" editor (person + business sections, live preview,
-> dirty-gated save, success/error toasts, beforeunload + in-app
-> discard-overlay guards). Discovery card + detail page render the
-> attribution + "About {person}" / "About {business}" sections via shared
-> `tutorAttribution` + `yearsTutoringLabel` helpers. Logo: URL field now,
-> direct upload deferred. Migrations `20260530120000/130000` (dev only);
-> dev tutor seeded. Verified tsc + browser. **Next session: Slice 4 —
-> student-initiated waitlist** (see below).
+> **Last shipped (2026-05-20):** **Payments Slice 4 — student-initiated
+> waitlist + cohort-workspace redesign.** New `nclex_cohort_waitlist`
+> (PENDING/CONVERTED/DISMISSED leads; CASCADE — pre-enrolment leads, not
+> financial records) + anon-callable idempotent `nclex_join_waitlist` RPC
+> (validates cohort is joinable). Public programme page gains a **second**
+> rail button (under the kept "coming soon" CTA) → a Join-waitlist form
+> (forename/surname, email, **phone**, **preferred contact** Call/SMS/
+> WhatsApp/Email with phone-required-iff-phone-method, cohort picker that
+> collapses for a single cohort). Tutor **Students** surface rebuilt to the
+> CD handoff (`prototypes/tutor-cohort-workspace.html`) using app tokens:
+> **Roster | Waitlist sub-tabs**, summary cells, avatars + relative time,
+> roster table w/ status filter chips + search + an Access·payment
+> **placeholder** column (fills in Slices 5–7). Waitlist tab: contact-badge
+> rows + **Convert →** (shared `inviteOrAttachAndEnrol`, confirm dialog) /
+> **Dismiss**. Migration `20260531120000` (dev only). Verified tsc +
+> browser. **Next session: Slice 5 — on-platform checkout** (see below),
+> or rotate per the alternate-features rule.
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -946,9 +944,24 @@ Slice order from the adopted Claude Design proposal
   work, which is also the trigger for a 1:1 `nclex_tutors` table holding
   tutor-only *operational* data (vetting status, $29/mo sub linkage,
   payout details, quotas) that can't live in the public JSONB.
-- ⬜ **Slice 4** Student-initiated waitlist (off-platform) —
-  `nclex_cohort_waitlist` + "Join waitlist" form + tutor "convert to
-  enrolment" one-click.
+- ✅ **Slice 4** Student-initiated waitlist (off-platform) — shipped
+  2026-05-20. `nclex_cohort_waitlist` (PENDING/CONVERTED/DISMISSED,
+  CASCADE) + anon-callable idempotent `nclex_join_waitlist` RPC
+  (cohort-joinable gate, `(cohort,lower(email))` dedup). Public
+  Join-waitlist form as a 2nd rail button under the kept "coming soon"
+  CTA: forename/surname + email + **phone** + **preferred_contact**
+  (Call/SMS/WhatsApp/Email, phone required iff a phone-method ticked,
+  enforced at form+action+RPC+CHECK) + single-cohort-collapsing picker.
+  Tutor **Students** surface reworked to the CD handoff
+  (`prototypes/tutor-cohort-workspace.html`, app tokens): Roster|Waitlist
+  sub-tabs, summary cells, avatars + relative time, roster table w/
+  filter chips + search + Access·payment **placeholder** (Slices 5–7).
+  Waitlist tab: contact-badge rows + Convert (shared
+  `inviteOrAttachAndEnrol` + confirm dialog) / Dismiss (confirm). Convert/
+  dismiss run service-side after RLS-scoped ownership read. Migration
+  `20260531120000` (dev only). **Deferred:** "did you mean gmail.com?"
+  email typo hint (we verify format only — Convert's invite is the real
+  deliverability test).
 - ⬜ **Slice 5** On-platform checkout (single-strategy) — payment Worker
   + `nclex_products` + `nclex_payments` + bank opt-in card; upfront-full
   only; email dup-check pause.
