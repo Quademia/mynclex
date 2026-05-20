@@ -1374,6 +1374,51 @@ CREATE INDEX idx_nclex_enrolments_expiry
   WHERE status IN ('ENROLLED','PAUSED');
 
 
+-- =========================================================
+-- Cohort waitlist (Payments Slice 4, 2026-05-20)
+-- =========================================================
+-- Student-initiated interest in a cohort, captured from the PUBLIC
+-- programme page WITHOUT an account. PENDING leads; the owning tutor
+-- converts (→ invite + ENROLLED enrolment) or dismisses. Pre-enrolment
+-- leads, so CASCADE off cohort/programme (not RESTRICT like enrolments).
+-- INSERT is via the SECURITY DEFINER nclex_join_waitlist RPC only;
+-- convert/dismiss run service-side. Origin migration:
+-- db/migrations/20260531120000_slice_4_cohort_waitlist.sql.
+
+CREATE TABLE nclex_cohort_waitlist (
+  waitlist_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  cohort_id            UUID NOT NULL
+                       REFERENCES nclex_cohorts(cohort_id) ON DELETE CASCADE,
+  programme_id         UUID NOT NULL                              -- denormalised from cohort (RLS)
+                       REFERENCES nclex_programmes(programme_id) ON DELETE CASCADE,
+
+  name                 TEXT NOT NULL,
+  email                TEXT NOT NULL,                             -- lower-cased by the RPC
+  message              TEXT,
+
+  status               TEXT NOT NULL DEFAULT 'PENDING'
+                       CHECK (status IN ('PENDING','CONVERTED','DISMISSED')),
+
+  converted_enrolment_id UUID                                     -- set on CONVERTED
+                       REFERENCES nclex_enrolments(enrolment_id) ON DELETE SET NULL,
+  handled_by_user_id   UUID                                       -- tutor who actioned it
+                       REFERENCES nclex_users(id) ON DELETE SET NULL,
+  handled_at           TIMESTAMPTZ,
+
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- One pending lead per (cohort, email); converted/dismissed excluded so
+-- a dismissed person can re-join.
+CREATE UNIQUE INDEX idx_nclex_cohort_waitlist_pending
+  ON nclex_cohort_waitlist (cohort_id, lower(email))
+  WHERE status = 'PENDING';
+CREATE INDEX idx_nclex_cohort_waitlist_cohort_status
+  ON nclex_cohort_waitlist (cohort_id, status);
+
+
 -- RPC functions are large and tracked by their migration files
 -- (mynclex/db/migrations/mynclex_trend_save_rpc_slice_1_12b.sql).
 -- The function bodies are NOT mirrored into schema.sql to keep the
