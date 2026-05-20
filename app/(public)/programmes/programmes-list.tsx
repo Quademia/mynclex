@@ -10,7 +10,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { PublicProgramme } from '@/lib/discovery/types';
-import { initials, priceParts, whenLabel } from '@/lib/discovery/format';
+import {
+  initials,
+  priceParts,
+  tutorAttribution,
+  whenLabel,
+} from '@/lib/discovery/format';
 
 type Filter = 'all' | 'tutor-led' | 'self-paced';
 
@@ -19,13 +24,24 @@ function ProgrammeCard({ p }: { p: PublicProgramme }) {
   const when = whenLabel(p);
   const { ccy, amount } = priceParts(p.price_currency, p.price_minor);
   const showPrice = p.show_price_publicly;
+  const attr = tutorAttribution(p.tutor_profile, p.tutor_name, p.tutor_avatar_url);
 
   return (
     <Link href={`/programmes/${p.programme_id}`} className="prog-card">
       <div className="tutor-row">
-        <div className="avatar">{initials(p.tutor_name)}</div>
+        <div className="avatar">
+          {attr.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={attr.imageUrl} alt="" />
+          ) : (
+            initials(attr.initialsSeed)
+          )}
+        </div>
         <div className="nm">
-          By <strong>{p.tutor_name ?? 'A MyNclex tutor'}</strong>
+          By <strong>{attr.primaryName}</strong>
+          {attr.secondaryName && (
+            <span className="with"> · with {attr.secondaryName}</span>
+          )}
         </div>
         <div className={`delivery-tag${selfPaced ? ' self-paced' : ''}`}>
           {selfPaced ? 'SELF-PACED' : 'TUTOR-LED'}

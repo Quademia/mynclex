@@ -1283,10 +1283,11 @@ SELECT
   p.payment_collection_mode,
   p.access_window_days,
   p.published_at,
-  u.name        AS tutor_name,
-  u.avatar_url  AS tutor_avatar_url,
+  u.name           AS tutor_name,
+  u.avatar_url     AS tutor_avatar_url,
   oc.next_cohort_start,
-  COALESCE(oc.open_cohort_count, 0) AS open_cohort_count
+  COALESCE(oc.open_cohort_count, 0) AS open_cohort_count,
+  u.public_profile AS tutor_profile   -- slice 3.5
 FROM nclex_programmes p
 JOIN nclex_users u ON u.id = p.tutor_id
 LEFT JOIN LATERAL (

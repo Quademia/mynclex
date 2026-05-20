@@ -19,6 +19,14 @@ CREATE TABLE nclex_users (
   phone_number          TEXT,
   avatar_url            TEXT,
 
+  -- Public-display bag (role-agnostic). Outward-facing fields any user
+  -- may show to others — today the tutor public profile (headline /
+  -- speciality / years / bio + optional business branding). Shape is
+  -- the TS type lib/discovery/types.ts#PublicProfile. PUBLIC-ONLY by
+  -- rule: never put private/sensitive data here (those get own columns).
+  -- Added slice 3.5 (20260530120000).
+  public_profile        JSONB NOT NULL DEFAULT '{}'::jsonb,
+
   -- Auth state
   is_active             BOOLEAN NOT NULL DEFAULT TRUE,
   must_change_password  BOOLEAN NOT NULL DEFAULT FALSE,

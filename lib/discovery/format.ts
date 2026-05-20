@@ -5,7 +5,7 @@
 // as-is. An FX "≈ equivalent" hint is deferred polish.
 
 import type { Currency, UnitLabel } from '@/lib/programmes/types';
-import type { PublicProgramme, PublicCohort } from './types';
+import type { PublicProgramme, PublicCohort, PublicProfile } from './types';
 
 // Avatar initials from a display name. "?" when name is missing.
 export function initials(name: string | null): string {
@@ -76,6 +76,47 @@ export function formatCohortDateLong(isoDate: string): string {
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+// "6 years tutoring" from the optional years_experience field. Null
+// when unset or non-positive (so callers can omit the line entirely).
+export function yearsTutoringLabel(years: number | null | undefined): string | null {
+  if (years == null || !Number.isFinite(years) || years <= 0) return null;
+  return `${years} year${years === 1 ? '' : 's'} tutoring`;
+}
+
+// Who to attribute a programme to — the single place the "show person
+// AND business together" rule lives (slice 3.5). No mode switch: a
+// filled business_name means the business is the primary name and the
+// person is shown alongside; otherwise the person is primary.
+//
+// `imageUrl` is the business logo (business mode) or the person's
+// avatar; when null the caller falls back to initials of `initialsSeed`.
+export type TutorAttribution = {
+  isBusiness: boolean;
+  primaryName: string;        // headline name (business or person)
+  secondaryName: string | null; // person shown alongside, business mode only
+  imageUrl: string | null;
+  initialsSeed: string | null;
+};
+
+export function tutorAttribution(
+  profile: PublicProfile | null,
+  tutorName: string | null,
+  avatarUrl: string | null
+): TutorAttribution {
+  const business = (profile?.business_name ?? '').trim();
+  const isBusiness = business.length > 0;
+  const person = (tutorName ?? '').trim() || null;
+  const logo = (profile?.business_logo_url ?? '').trim() || null;
+
+  return {
+    isBusiness,
+    primaryName: isBusiness ? business : (person ?? 'A MyNclex tutor'),
+    secondaryName: isBusiness ? person : null,
+    imageUrl: isBusiness ? logo : (avatarUrl ?? null),
+    initialsSeed: isBusiness ? business : person,
+  };
 }
 
 // Derived cohort status for a public cohort row (ended ones are already

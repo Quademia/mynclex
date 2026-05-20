@@ -12,6 +12,24 @@ import type {
   UnitLabel,
 } from '@/lib/programmes/types';
 
+// The shape of nclex_users.public_profile — the role-agnostic
+// public-display bag (slice 3.5). Single source of truth for what may
+// live in that JSONB; every field is optional (the bag starts '{}').
+// PUBLIC-ONLY by rule: never add private/sensitive fields here.
+//
+// Today only the tutor public-profile fields exist. Business fields are
+// branding shown ALONGSIDE the person (no mode switch) — when
+// business_name is set, both the business and the person are displayed.
+export type PublicProfile = {
+  headline?: string;           // "Current role / title" — e.g. "Pediatric ICU nurse"
+  speciality?: string;         // "Speciality / field"   — e.g. "Pharmacology, Med-Surg"
+  years_experience?: number;   // "Years tutoring"
+  bio?: string;                // "About you" — the person's about paragraph
+  business_name?: string;      // optional business branding
+  business_logo_url?: string;  // optional logo (upload wiring deferred)
+  business_bio?: string;       // optional "About the business" paragraph
+};
+
 // One row of nclex_public_programmes. The view exposes only public
 // fields; tutor identity is name + avatar, never email / phone / role.
 export type PublicProgramme = {
@@ -30,6 +48,7 @@ export type PublicProgramme = {
   published_at: string | null;
   tutor_name: string | null;
   tutor_avatar_url: string | null;
+  tutor_profile: PublicProfile | null;
   next_cohort_start: string | null;
   open_cohort_count: number;
 };

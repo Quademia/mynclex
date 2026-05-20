@@ -1,0 +1,168 @@
+/* mynclex/styles/profile.css
+ *
+ * Tutor profile page (slice 3.5) — the public-profile editor + live
+ * preview. Field atoms (.prog-field / .prog-input / .prog-textarea /
+ * .prog-btn) are reused from programmes.css; this file owns only the
+ * page chrome, the two-column form+preview grid, the sticky save bar,
+ * and the preview card.
+ */
+
+.pf-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 28px 96px;
+}
+
+.pf-head {
+  margin-bottom: 24px;
+}
+.pf-head h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+.pf-sub {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 60ch;
+}
+
+/* Form + preview side by side; stacks on narrow viewports. */
+.pf-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 28px;
+  align-items: start;
+}
+@media (max-width: 880px) {
+  .pf-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pf-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pf-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+.pf-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+.pf-section-note {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+/* ── Live preview rail ─────────────────────────────────────── */
+.pf-preview-rail {
+  position: sticky;
+  top: 20px;
+}
+.pf-preview-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.pf-preview-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+.pf-preview-tutor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pf-preview-avatar {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-muted);
+  overflow: hidden;
+}
+.pf-preview-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pf-preview-who {
+  min-width: 0;
+}
+.pf-preview-name {
+  font-size: 14px;
+  color: var(--text);
+}
+.pf-preview-with {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.pf-preview-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.pf-preview-bio {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  margin: 14px 0 0;
+}
+.pf-preview-bizbio {
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.pf-preview-empty {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 14px 0 0;
+}
+
+/* ── Sticky save bar ───────────────────────────────────────── */
+.pf-actions {
+  position: sticky;
+  bottom: 0;
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 14px 0;
+  background: linear-gradient(
+    to top,
+    var(--bg) 70%,
+    transparent
+  );
+}
+.pf-actions-hint {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}

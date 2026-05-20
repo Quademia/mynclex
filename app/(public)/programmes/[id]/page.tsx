@@ -21,6 +21,8 @@ import {
   initials,
   lengthLabel,
   priceParts,
+  tutorAttribution,
+  yearsTutoringLabel,
 } from '@/lib/discovery/format';
 
 export const dynamic = 'force-dynamic';
@@ -48,6 +50,19 @@ export default async function ProgrammeDetailPage({
   const showPrice = programme.show_price_publicly;
   const ctaLabel = selfPaced ? 'Start now' : 'Enrol';
 
+  // Tutor public profile (slice 3.5). Attribution = the "show person +
+  // business together" rule; the rest feeds the header sub-line and the
+  // About sections.
+  const prof = programme.tutor_profile;
+  const attr = tutorAttribution(
+    prof,
+    programme.tutor_name,
+    programme.tutor_avatar_url
+  );
+  const yrs = yearsTutoringLabel(prof?.years_experience);
+  const headerSub = [prof?.headline, yrs].filter(Boolean).join(' · ');
+  const personFirst = (programme.tutor_name ?? '').trim().split(/\s+/)[0] || 'the tutor';
+
   return (
     <main className="pub-content">
       <Link className="det-back" href="/programmes">
@@ -58,11 +73,22 @@ export default async function ProgrammeDetailPage({
         <article>
           <header className="det-header">
             <div className="tutor-row">
-              <div className="avatar">{initials(programme.tutor_name)}</div>
+              <div className="avatar">
+                {attr.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={attr.imageUrl} alt="" />
+                ) : (
+                  initials(attr.initialsSeed)
+                )}
+              </div>
               <div className="who">
                 <div className="nm">
-                  {programme.tutor_name ?? 'A MyNclex tutor'}
+                  {attr.primaryName}
+                  {attr.secondaryName && (
+                    <span className="with"> · with {attr.secondaryName}</span>
+                  )}
                 </div>
+                {headerSub && <div className="sub">{headerSub}</div>}
               </div>
               <span className={`delivery-tag${selfPaced ? ' self-paced' : ''}`}>
                 {selfPaced ? 'SELF-PACED' : 'TUTOR-LED'}
@@ -156,6 +182,25 @@ export default async function ProgrammeDetailPage({
                   );
                 })}
               </div>
+            </section>
+          )}
+
+          {(prof?.bio || prof?.speciality || yrs) && (
+            <section className="det-section">
+              <h2>About {personFirst}</h2>
+              {(prof?.speciality || yrs) && (
+                <p className="det-tutor-meta">
+                  {[prof?.speciality, yrs].filter(Boolean).join(' · ')}
+                </p>
+              )}
+              {prof?.bio && <p>{prof.bio}</p>}
+            </section>
+          )}
+
+          {attr.isBusiness && prof?.business_bio && (
+            <section className="det-section">
+              <h2>About {prof.business_name}</h2>
+              <p>{prof.business_bio}</p>
             </section>
           )}
         </article>

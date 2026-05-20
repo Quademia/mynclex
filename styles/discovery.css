@@ -200,8 +200,14 @@
   place-items: center;
   font-size: 11px;
 }
+.prog-card .tutor-row .avatar img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
 .prog-card .tutor-row .nm { font-size: 13px; color: var(--ink-soft); }
 .prog-card .tutor-row .nm strong { color: var(--ink); }
+.prog-card .tutor-row .nm .with { color: var(--ink-mute); }
 .prog-card .delivery-tag {
   display: inline-flex;
   align-items: center;
@@ -266,7 +272,20 @@
   display: grid; place-items: center;
   font-size: 13px;
 }
+.det-header .tutor-row .avatar img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
 .det-header .tutor-row .who .nm { font-weight: 600; font-size: 14px; color: var(--ink); }
+.det-header .tutor-row .who .nm .with { font-weight: 500; color: var(--ink-mute); }
+.det-header .tutor-row .who .sub { font-size: 12.5px; color: var(--ink-mute); margin-top: 2px; }
+.det-tutor-meta {
+  font-size: 13px;
+  color: var(--ink-mute);
+  margin-bottom: 10px;
+  font-weight: 500;
+}
 .det-header .tutor-row .delivery-tag {
   margin-left: 12px;
   display: inline-flex; align-items: center;
