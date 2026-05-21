@@ -1532,6 +1532,9 @@ CREATE TABLE nclex_subscriptions (
 );
 CREATE INDEX idx_nclex_subscriptions_user_status ON nclex_subscriptions (user_id, status);
 CREATE INDEX idx_nclex_subscriptions_expiry ON nclex_subscriptions (end_at) WHERE status = 'ACTIVE';
+-- One subscription per payment (idempotent activation). Partial: trial /
+-- admin grants carry no payment_id. (migration 20260602120000)
+CREATE UNIQUE INDEX idx_nclex_subscriptions_payment ON nclex_subscriptions (payment_id) WHERE payment_id IS NOT NULL;
 
 
 -- RPC functions are large and tracked by their migration files

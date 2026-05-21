@@ -33,3 +33,11 @@ export type StartPaymentResult =
 export type VerifyResult =
   | { ok: true; status: 'PAID' | 'ALREADY'; reference: string; purpose: PaymentPurpose }
   | { ok: false; status: 'PENDING' | 'FAILED' | 'NOT_FOUND' | 'ERROR'; error: string };
+
+// settlePayment = verify + activate, for the callback page.
+//   ACCESS_READY  — paid and access granted (buyer already had an account)
+//   INVITE_SENT   — paid; pay-first guest must finish setup via the emailed link
+//   ALREADY       — already settled (idempotent re-hit)
+export type SettleResult =
+  | { ok: true; status: 'ACCESS_READY' | 'INVITE_SENT' | 'ALREADY' }
+  | { ok: false; status: 'PENDING' | 'FAILED' | 'NOT_FOUND' | 'ERROR'; error: string };

@@ -7,7 +7,6 @@
 'use server';
 
 import { headers } from 'next/headers';
-import { createClient } from '@/lib/supabase/server';
 import { emailHasAccount } from './dup-check';
 import { startPayment } from './init';
 import type { CheckoutTarget, StartPaymentResult } from './types';
@@ -30,15 +29,14 @@ export async function startPaymentAction(args: {
   const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
   const baseUrl = `${proto}://${host}`;
 
-  // Attach to the logged-in student if there is one; pay-first guests have none.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  // The payment's EMAIL is the canonical identity. The dup-check has
+  // already reconciled an existing email to its account (via login before
+  // payment), and activation resolves the account by this email — so we
+  // deliberately do NOT stamp the current session's id here. (In 5.4's
+  // real checkout a logged-in buyer's email field is pre-filled with their
+  // own account email, so it still resolves to them.)
   return startPayment({
     email: args.email,
-    userId: user?.id ?? null,
     target: args.target,
     baseUrl,
   });

@@ -1073,10 +1073,24 @@ Slice order from the adopted Claude Design proposal
     enrolment/subscription + welcome invite). **Reliability note:** v1
     relies on the browser-redirect verify (mirrors Licensure); a Paystack
     webhook would be more robust — revisit later.
-  - ⬜ **5.3** Activation engine — verify → by payment `purpose`:
-    `PROGRAMME_*` → enrolment `PENDING_APPROVAL`; `BANK_*` → subscription
-    (immediate, stacking). Pay-first invite → `/welcome` → activate.
-    Idempotent on reference.
+  - ✅ **5.3** Activation engine (BANK only; programme enrolment activation
+    deferred to 5.4 with the cohort picker). `lib/payments/activate.ts`
+    grants an `nclex_subscriptions` row from a PAID bank payment +
+    `lib/payments/settle.ts` (verify→activate orchestrator the callback
+    page calls). Two identity cases: existing account → grant immediately
+    → `ACTIVATED`; pay-first guest → Supabase invite → `SETUP_REQUIRED` →
+    `/welcome` (now creates the profile + STUDENT role when missing, then
+    `activatePendingForEmail`) → grant. **Email is the canonical identity**
+    — `startPaymentAction` no longer stamps the logged-in session id;
+    activation resolves the account by the payment's email (the dup-check
+    already reconciles an existing email to its account via login before
+    payment). **Idempotent**: partial unique index
+    `idx_nclex_subscriptions_payment` on `payment_id`
+    (migration `20260602120000`) + 23505-as-success on insert — replaced a
+    racy `maybeSingle()` pre-check that ran away to duplicate subs under
+    concurrent callback hits (caught in testing). Verified on dev across
+    both paths: granted to the typed account (not the session), one sub
+    per payment, correct durations, pay-first profile+role created.
   - ⬜ **5.4** Programme checkout page — upfront-full strategy + bank
     opt-in card; wire the live Enrol button on `/programmes/[id]`.
   - ⬜ **5.5** Standalone bank landing + purchase — public dual-currency

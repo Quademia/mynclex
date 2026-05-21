@@ -6,7 +6,7 @@
 // result" screen, and slice 5.3 adds the access-granting step.
 
 import Link from 'next/link';
-import { verifyPayment } from '@/lib/payments/verify';
+import { settlePayment } from '@/lib/payments/settle';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,15 +17,23 @@ export default async function CheckoutCallbackPage({
 }) {
   const sp = await searchParams;
   const reference = (sp.reference ?? sp.trxref ?? '').trim();
-  const result = reference ? await verifyPayment(reference) : null;
+  const result = reference ? await settlePayment(reference) : null;
 
   let heading = 'No payment reference';
   let body = 'We could not find a payment to confirm.';
 
   if (result) {
     if (result.ok) {
-      heading = result.status === 'ALREADY' ? 'Payment already confirmed' : 'Payment received';
-      body = 'Your payment is confirmed. (Setting up your access comes next — slice 5.3.)';
+      if (result.status === 'INVITE_SENT') {
+        heading = 'Payment received';
+        body = 'Check your email for a link to finish setting up your account — your access unlocks once you do.';
+      } else if (result.status === 'ALREADY') {
+        heading = 'Payment already confirmed';
+        body = 'This payment was already confirmed and your access is set up.';
+      } else {
+        heading = 'Payment received';
+        body = 'Your payment is confirmed and your access is ready.';
+      }
     } else if (result.status === 'PENDING') {
       heading = 'Payment not completed';
       body = 'We didn’t see a completed payment yet. If you did pay, refresh in a moment.';
