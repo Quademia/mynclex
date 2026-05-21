@@ -1050,8 +1050,29 @@ Slice order from the adopted Claude Design proposal
     `db/schema.sql` + `db/rls.sql`. Verified: seed (6 products + discount
     config), RLS on all four, polymorphic purpose↔target CHECK, security
     advisor clean (no new warnings).
-  - ⬜ **5.2** Paystack init + verify as in-app route handlers
-    (test-mode) + the email dup-check pause. `INIT` → `PAID`.
+  - ✅ **5.2** Paystack init + verify (test-mode) + email dup-check.
+    Built in-app, NOT as `app/api/.../route.ts` handlers — corrected
+    mid-build: `init` is a **server action** (`startPaymentAction`),
+    `verify` is a **plain function** called by the **callback page** the
+    browser returns to (a server action can't be a redirect target; an
+    API route was unnecessary). New `lib/payments/`: `paystack.ts` (the
+    only file that calls Paystack — `initialize`+`verify`, reads
+    `PAYSTACK_SECRET_KEY`), `dup-check.ts` (email-exists via service-role
+    on `nclex_users`), `init.ts` (resolve amount/currency/purpose →
+    write `INIT` row → start Paystack → return redirect URL), `verify.ts`
+    (confirm + amount tamper-guard → flip `PAID`; stops short of access),
+    `types.ts`, `actions.ts` (`'use server'` wrappers). Callback page at
+    `/checkout/callback` (minimal; 5.4 makes it the real result screen).
+    Throwaway `/paytest` harness (NODE_ENV-guarded; deleted at 5.4).
+    Writes via service role (no authenticated write policy on payments).
+    Verified on localhost with Paystack test mode: GHS BANK_30D went
+    `INIT → PAID` (amount-matched ₵120); abandoned attempt left `INIT`;
+    USD failed at Paystack (test account has no USD enabled — account
+    setting, not code) and was correctly marked `FAILED`; dup-check
+    returns yes/no correctly. **Open for 5.3:** activation (PAID →
+    enrolment/subscription + welcome invite). **Reliability note:** v1
+    relies on the browser-redirect verify (mirrors Licensure); a Paystack
+    webhook would be more robust — revisit later.
   - ⬜ **5.3** Activation engine — verify → by payment `purpose`:
     `PROGRAMME_*` → enrolment `PENDING_APPROVAL`; `BANK_*` → subscription
     (immediate, stacking). Pay-first invite → `/welcome` → activate.
