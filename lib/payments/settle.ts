@@ -23,6 +23,12 @@ export async function settlePayment(reference: string): Promise<SettleResult> {
   }
 
   const status =
-    a.outcome === 'INVITE_SENT' ? 'INVITE_SENT' : a.outcome === 'ALREADY' ? 'ALREADY' : 'ACCESS_READY';
+    a.outcome === 'INVITE_SENT'
+      ? 'INVITE_SENT'
+      : a.outcome === 'PENDING_APPROVAL'
+        ? 'PENDING_APPROVAL'
+        : a.outcome === 'ALREADY'
+          ? 'ALREADY'
+          : 'ACCESS_READY';
   return { ok: true, status };
 }

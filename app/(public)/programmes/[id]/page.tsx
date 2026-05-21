@@ -66,6 +66,26 @@ export default async function ProgrammeDetailPage({
             : `Starts ${formatCohortDateLong(c.start_date)}`,
         }));
 
+  // On-platform checkout (slice 5.4a). The Enrol button goes live when the
+  // programme takes online payment with a public price and there's something
+  // to enrol into (self-paced always; tutor-led needs a joinable cohort).
+  // Otherwise the button stays the "coming soon" placeholder and the
+  // off-platform waitlist shows instead.
+  const canEnrol =
+    programme.payment_collection_mode === 'ON_PLATFORM' &&
+    showPrice &&
+    programme.price_minor > 0 &&
+    (selfPaced || waitlistCohorts.length > 0);
+
+  // Short note under the Enrol button: the soonest joinable cohort for
+  // tutor-led (no seat counts — the public view omits them by design).
+  const nextJoinable = selfPaced
+    ? null
+    : cohorts.find((c) => c.start_date >= todayStr || c.allow_late_join) ?? null;
+  const nextCohortNote = nextJoinable
+    ? nextJoinable.name ?? `Starts ${formatCohortDateLong(nextJoinable.start_date)}`
+    : 'Next cohort';
+
   // Tutor public profile (slice 3.5). Attribution = the "show person +
   // business together" rule; the rest feeds the header sub-line and the
   // About sections.
@@ -224,23 +244,62 @@ export default async function ProgrammeDetailPage({
         <aside className="det-aside">
           <div className="det-rail">
             {showPrice ? (
-              <div className="price">
-                {ccy && <span className="ccy">{ccy}</span>}
-                {amount}
-              </div>
+              <>
+                <div className="price">
+                  {ccy && <span className="ccy">{ccy}</span>}
+                  {amount}
+                </div>
+                <div className="price-sub">
+                  Upfront full · more payment options at checkout soon
+                </div>
+              </>
             ) : (
               <div className="price price-contact">Contact for price</div>
             )}
 
             <div className="det-cta">
-              <button type="button" className="pub-btn-primary" disabled>
-                {ctaLabel}
-              </button>
-              <p className="det-cta-note">
-                Online enrolment is coming soon. For now, contact the tutor to
-                join.
-              </p>
+              {canEnrol ? (
+                <Link className="pub-btn-primary" href={`/checkout/${id}`}>
+                  {selfPaced ? 'Start now →' : 'Enrol in next cohort →'}
+                </Link>
+              ) : (
+                <button type="button" className="pub-btn-primary" disabled>
+                  {ctaLabel}
+                </button>
+              )}
+              {canEnrol ? (
+                <p className="det-cta-note">
+                  {selfPaced ? 'No cohort wait · instant access' : nextCohortNote}
+                </p>
+              ) : (
+                <p className="det-cta-note">
+                  Online enrolment is coming soon. For now, contact the tutor to
+                  join.
+                </p>
+              )}
             </div>
+
+            {/* Bank opt-in hint — placeholder until checkout opt-in lands (Slice 5.4b) */}
+            <div className="bank-hint">
+              <strong>Optional add-on</strong>
+              You&apos;ll be able to add NCLEX Bank Access at checkout — 40% off the
+              standalone price. <span className="bank-hint-soon">Coming soon.</span>
+            </div>
+
+            {/* Payment strategies — only Upfront is live; the rest land in Slice 7 */}
+            {showPrice && (
+              <div className="what-includes">
+                <h4>Payment strategies</h4>
+                <ul>
+                  <li>
+                    Upfront full · {ccy ? `${ccy} ` : ''}
+                    {amount}
+                  </li>
+                  <li className="soon">Deposit + balance · coming soon</li>
+                  <li className="soon">Installments · coming soon</li>
+                </ul>
+              </div>
+            )}
           </div>
 
           {waitlistCohorts.length > 0 && (

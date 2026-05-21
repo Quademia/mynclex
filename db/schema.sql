@@ -1482,6 +1482,7 @@ CREATE TABLE nclex_payments (
   programme_id          UUID REFERENCES nclex_programmes(programme_id) ON DELETE RESTRICT,
   strategy_id           UUID,                                      -- FK → strategies table (Slice 7); bare UUID for now
   enrolment_id          UUID REFERENCES nclex_enrolments(enrolment_id) ON DELETE SET NULL,
+  cohort_id             UUID REFERENCES nclex_cohorts(cohort_id) ON DELETE RESTRICT,  -- chosen cohort, carried across the Paystack round trip (5.4a)
   installment_index     SMALLINT,
   currency              TEXT NOT NULL CHECK (currency IN ('GHS','USD')),
   amount_minor          INTEGER NOT NULL,
@@ -1501,6 +1502,9 @@ CREATE TABLE nclex_payments (
   ),
   CONSTRAINT nclex_payments_installment_index_scope CHECK (
     purpose = 'PROGRAMME_INSTALLMENT' OR installment_index IS NULL
+  ),
+  CONSTRAINT nclex_payments_cohort_scope CHECK (
+    cohort_id IS NULL OR purpose = 'PROGRAMME_INITIAL'
   )
 );
 CREATE INDEX idx_nclex_payments_user      ON nclex_payments (user_id);

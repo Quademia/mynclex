@@ -27,6 +27,9 @@ export default async function CheckoutCallbackPage({
       if (result.status === 'INVITE_SENT') {
         heading = 'Payment received';
         body = 'Check your email for a link to finish setting up your account — your access unlocks once you do.';
+      } else if (result.status === 'PENDING_APPROVAL') {
+        heading = 'Payment received';
+        body = 'Your enrolment is in — the tutor will approve it shortly (usually within 24 hours), and the programme unlocks once they do. You can log in to track it.';
       } else if (result.status === 'ALREADY') {
         heading = 'Payment already confirmed';
         body = 'This payment was already confirmed and your access is set up.';

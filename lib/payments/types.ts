@@ -14,10 +14,11 @@ export type PaymentPurpose =
   | 'BANK_OPTIN_AT_PROGRAMME';
 
 // What the buyer is paying for. Bank purchases pick their own currency;
-// a programme's currency is fixed by the programme itself.
+// a programme's currency is fixed by the programme itself. cohortId is the
+// picked cohort for a tutor-led programme (null/omitted for self-paced).
 export type CheckoutTarget =
   | { kind: 'BANK'; productId: string; currency: Currency }
-  | { kind: 'PROGRAMME'; programmeId: string };
+  | { kind: 'PROGRAMME'; programmeId: string; cohortId?: string | null };
 
 export type StartPaymentInput = {
   email: string;
@@ -35,9 +36,10 @@ export type VerifyResult =
   | { ok: false; status: 'PENDING' | 'FAILED' | 'NOT_FOUND' | 'ERROR'; error: string };
 
 // settlePayment = verify + activate, for the callback page.
-//   ACCESS_READY  — paid and access granted (buyer already had an account)
-//   INVITE_SENT   — paid; pay-first guest must finish setup via the emailed link
-//   ALREADY       — already settled (idempotent re-hit)
+//   ACCESS_READY      — paid and access granted (buyer already had an account)
+//   PENDING_APPROVAL  — paid; tutor-led enrolment created, awaiting tutor approval
+//   INVITE_SENT       — paid; pay-first guest must finish setup via the emailed link
+//   ALREADY           — already settled (idempotent re-hit)
 export type SettleResult =
-  | { ok: true; status: 'ACCESS_READY' | 'INVITE_SENT' | 'ALREADY' }
+  | { ok: true; status: 'ACCESS_READY' | 'PENDING_APPROVAL' | 'INVITE_SENT' | 'ALREADY' }
   | { ok: false; status: 'PENDING' | 'FAILED' | 'NOT_FOUND' | 'ERROR'; error: string };

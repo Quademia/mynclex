@@ -29,6 +29,7 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
   let amountMinor: number;
   let productId: string | null = null;
   let programmeId: string | null = null;
+  let cohortId: string | null = null;
   let label: string;
 
   if (input.target.kind === 'BANK') {
@@ -48,12 +49,38 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
   } else {
     const { data: prog, error } = await admin
       .from('nclex_programmes')
-      .select('programme_id, title, price_minor, price_currency, payment_collection_mode, status')
+      .select('programme_id, title, price_minor, price_currency, payment_collection_mode, delivery_mode, status')
       .eq('programme_id', input.target.programmeId)
       .maybeSingle();
     if (error || !prog) return { ok: false, error: 'Programme not found.' };
-    // payment_collection_mode (on/off-platform) gate is enforced by the
-    // checkout UI in slice 5.4 — init trusts its caller for now.
+    if (prog.status !== 'PUBLISHED') return { ok: false, error: 'This programme is not open for enrolment.' };
+    if (prog.payment_collection_mode !== 'ON_PLATFORM') {
+      return { ok: false, error: 'This programme does not accept online payment.' };
+    }
+
+    // Tutor-led requires a valid, joinable cohort that belongs to this
+    // programme; self-paced has none (cohort stays NULL).
+    if (prog.delivery_mode === 'SELF_PACED') {
+      cohortId = null;
+    } else {
+      const reqCohort = input.target.kind === 'PROGRAMME' ? input.target.cohortId : null;
+      if (!reqCohort) return { ok: false, error: 'Please choose a cohort to join.' };
+
+      const { data: cohort } = await admin
+        .from('nclex_cohorts')
+        .select('cohort_id, programme_id, cancelled_at, start_date, allow_late_join')
+        .eq('cohort_id', reqCohort)
+        .maybeSingle();
+      if (!cohort || cohort.programme_id !== prog.programme_id) {
+        return { ok: false, error: 'That cohort is not available.' };
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      const joinable =
+        cohort.cancelled_at == null &&
+        (cohort.start_date >= today || cohort.allow_late_join);
+      if (!joinable) return { ok: false, error: 'That cohort is no longer open to join.' };
+      cohortId = cohort.cohort_id;
+    }
 
     currency = prog.price_currency as Currency;
     amountMinor = prog.price_minor;
@@ -75,6 +102,7 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
     purpose,
     product_id: productId,
     programme_id: programmeId,
+    cohort_id: cohortId,
     currency,
     amount_minor: amountMinor,
     status: 'INIT',

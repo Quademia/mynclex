@@ -1,17 +1,21 @@
 // mynclex/lib/payments/activate.ts
 //
-// Turns a PAID payment into actual access. Slice 5.3 handles BANK
-// purposes only → an nclex_subscriptions row. (Programme enrolment
-// activation lands in 5.4, once the payment carries the chosen cohort.)
+// Turns a PAID payment into actual access:
+//   • BANK / readiness purposes  → an nclex_subscriptions row (5.3).
+//   • PROGRAMME_INITIAL          → an nclex_enrolments row (5.4a):
+//       tutor-led → PENDING_APPROVAL (tutor still approves),
+//       self-paced → ENROLLED immediately (no approval gate).
 //
-// Two identity cases:
+// Two identity cases (both purposes):
 //   • Buyer already has an account → grant immediately, mark ACTIVATED.
 //   • Pay-first guest (no account)  → send the Supabase invite, mark
 //     SETUP_REQUIRED; the grant happens when they finish /welcome
 //     (activatePendingForEmail, called from the welcome action).
 //
-// Everything here is idempotent: ACTIVATED short-circuits, and a
-// subscription is created at most once per payment_id.
+// Everything here is idempotent: ACTIVATED short-circuits, a subscription
+// is created at most once per payment_id, and an enrolment is created at
+// most once per (student, cohort) / (student, programme) — the partial
+// unique indexes on nclex_enrolments are the hard backstop.
 
 import 'server-only';
 import { headers } from 'next/headers';
@@ -26,19 +30,26 @@ type PaymentRow = {
   email: string;
   purpose: string;
   product_id: string | null;
+  programme_id: string | null;
+  cohort_id: string | null;
+  enrolment_id: string | null;
   status: string;
 };
 
-export type ActivateOutcome = 'ACTIVATED' | 'ALREADY' | 'INVITE_SENT';
+export type ActivateOutcome = 'ACTIVATED' | 'PENDING_APPROVAL' | 'ALREADY' | 'INVITE_SENT';
 export type ActivateResult =
   | { ok: true; outcome: ActivateOutcome }
   | { ok: false; error: string };
 
 const PAYMENT_COLS =
-  'payment_id, paystack_reference, user_id, email, purpose, product_id, status';
+  'payment_id, paystack_reference, user_id, email, purpose, product_id, programme_id, cohort_id, enrolment_id, status';
 
 // Purposes that grant a bank/readiness subscription (vs programme enrolment).
 const BANK_PURPOSES = ['BANK_PURCHASE', 'READINESS_PURCHASE', 'BANK_OPTIN_AT_PROGRAMME'];
+
+// Enrolment statuses that count as "already actively enrolled" — must
+// match the partial unique indexes on nclex_enrolments.
+const ACTIVE_ENROLMENT_STATUSES = ['PENDING_APPROVAL', 'ENROLLED', 'PAUSED'];
 
 async function findProfileIdByEmail(admin: AdminClient, email: string): Promise<string | null> {
   const { data } = await admin
@@ -101,13 +112,121 @@ async function grantBankSubscription(
   return { ok: true };
 }
 
+// Create the enrolment row from a PAID programme payment. Tutor-led →
+// PENDING_APPROVAL (the tutor still approves before access unlocks);
+// self-paced → ENROLLED at once. Idempotent: an existing active enrolment
+// for this student+cohort (or student+programme, self-paced) is linked to
+// the payment rather than re-created — never trap a paid buyer behind the
+// active-enrolment guard. Returns `pending` so the caller can pick the
+// ACTIVATED vs PENDING_APPROVAL outcome.
+async function grantProgrammeEnrolment(
+  admin: AdminClient,
+  payment: PaymentRow,
+  userId: string
+): Promise<{ ok: true; pending: boolean } | { ok: false; error: string }> {
+  if (!payment.programme_id) return { ok: false, error: 'Payment has no programme to enrol into.' };
+
+  const { data: prog, error: progErr } = await admin
+    .from('nclex_programmes')
+    .select('programme_id, delivery_mode, access_window_days')
+    .eq('programme_id', payment.programme_id)
+    .maybeSingle();
+  if (progErr || !prog) return { ok: false, error: 'Programme not found for activation.' };
+
+  const isSelfPaced = prog.delivery_mode === 'SELF_PACED';
+  const cohortId = isSelfPaced ? null : payment.cohort_id;
+  if (!isSelfPaced && !cohortId) {
+    return { ok: false, error: 'This programme payment has no cohort to enrol into.' };
+  }
+
+  const status = isSelfPaced ? 'ENROLLED' : 'PENDING_APPROVAL';
+  const pending = !isSelfPaced;
+
+  // Freeze the access-window expiry at enrolment time (NULL = lifetime-of-
+  // tutor-sub). The nightly sweep reads this column.
+  const accessExpiresAt =
+    prog.access_window_days != null
+      ? new Date(Date.now() + prog.access_window_days * 86_400_000).toISOString()
+      : null;
+
+  // Find an existing active enrolment (idempotent re-hit, or the buyer was
+  // already enrolled). ≤1 by the partial unique indexes.
+  const existingQuery = admin
+    .from('nclex_enrolments')
+    .select('enrolment_id, status')
+    .eq('user_id', userId)
+    .eq('programme_id', prog.programme_id)
+    .in('status', ACTIVE_ENROLMENT_STATUSES);
+  const { data: existing } = await (cohortId
+    ? existingQuery.eq('cohort_id', cohortId)
+    : existingQuery.is('cohort_id', null)
+  ).limit(1);
+
+  if (existing && existing.length > 0) {
+    const row = existing[0];
+    if (payment.enrolment_id !== row.enrolment_id) {
+      await admin
+        .from('nclex_payments')
+        .update({ enrolment_id: row.enrolment_id })
+        .eq('payment_id', payment.payment_id);
+    }
+    return { ok: true, pending: row.status === 'PENDING_APPROVAL' };
+  }
+
+  const { data: inserted, error: insErr } = await admin
+    .from('nclex_enrolments')
+    .insert({
+      user_id: userId,
+      programme_id: prog.programme_id,
+      cohort_id: cohortId,
+      status,
+      enrolment_source: 'SELF_PAID',
+      access_expires_at: accessExpiresAt,
+    })
+    .select('enrolment_id')
+    .single();
+
+  if (insErr || !inserted) {
+    // A concurrent activation already inserted the one allowed active row.
+    if (insErr?.code === '23505') {
+      const reread = admin
+        .from('nclex_enrolments')
+        .select('enrolment_id, status')
+        .eq('user_id', userId)
+        .eq('programme_id', prog.programme_id)
+        .in('status', ACTIVE_ENROLMENT_STATUSES);
+      const { data: again } = await (cohortId
+        ? reread.eq('cohort_id', cohortId)
+        : reread.is('cohort_id', null)
+      ).limit(1);
+      if (again && again.length > 0) {
+        await admin
+          .from('nclex_payments')
+          .update({ enrolment_id: again[0].enrolment_id })
+          .eq('payment_id', payment.payment_id);
+        return { ok: true, pending: again[0].status === 'PENDING_APPROVAL' };
+      }
+    }
+    return { ok: false, error: insErr?.message ?? 'Could not create the enrolment.' };
+  }
+
+  await admin
+    .from('nclex_payments')
+    .update({ enrolment_id: inserted.enrolment_id })
+    .eq('payment_id', payment.payment_id);
+  return { ok: true, pending };
+}
+
 async function activatePaymentRow(admin: AdminClient, payment: PaymentRow): Promise<ActivateResult> {
   if (payment.status === 'ACTIVATED') return { ok: true, outcome: 'ALREADY' };
   if (payment.status !== 'PAID' && payment.status !== 'SETUP_REQUIRED') {
     return { ok: false, error: 'Payment is not in a state that can be activated.' };
   }
-  if (!BANK_PURPOSES.includes(payment.purpose)) {
-    // Programme enrolment activation arrives in slice 5.4.
+
+  const isBank = BANK_PURPOSES.includes(payment.purpose);
+  const isProgramme = payment.purpose === 'PROGRAMME_INITIAL';
+  if (!isBank && !isProgramme) {
+    // PROGRAMME_INSTALLMENT activation arrives with the strategies slice (7).
     return { ok: false, error: 'This payment type is not handled yet.' };
   }
 
@@ -115,13 +234,20 @@ async function activatePaymentRow(admin: AdminClient, payment: PaymentRow): Prom
 
   // Buyer has a profile → grant now.
   if (userId) {
-    const grant = await grantBankSubscription(admin, payment, userId);
-    if (!grant.ok) return { ok: false, error: grant.error };
+    let outcome: ActivateOutcome = 'ACTIVATED';
+    if (isBank) {
+      const grant = await grantBankSubscription(admin, payment, userId);
+      if (!grant.ok) return { ok: false, error: grant.error };
+    } else {
+      const grant = await grantProgrammeEnrolment(admin, payment, userId);
+      if (!grant.ok) return { ok: false, error: grant.error };
+      outcome = grant.pending ? 'PENDING_APPROVAL' : 'ACTIVATED';
+    }
     await admin
       .from('nclex_payments')
       .update({ status: 'ACTIVATED', activated_at: new Date().toISOString(), user_id: userId })
       .eq('payment_id', payment.payment_id);
-    return { ok: true, outcome: 'ACTIVATED' };
+    return { ok: true, outcome };
   }
 
   // Pay-first guest. If we already invited on a prior pass, just wait.

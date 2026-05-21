@@ -8,23 +8,20 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-20):** **Payments Slice 4 — student-initiated
-> waitlist + cohort-workspace redesign.** New `nclex_cohort_waitlist`
-> (PENDING/CONVERTED/DISMISSED leads; CASCADE — pre-enrolment leads, not
-> financial records) + anon-callable idempotent `nclex_join_waitlist` RPC
-> (validates cohort is joinable). Public programme page gains a **second**
-> rail button (under the kept "coming soon" CTA) → a Join-waitlist form
-> (forename/surname, email, **phone**, **preferred contact** Call/SMS/
-> WhatsApp/Email with phone-required-iff-phone-method, cohort picker that
-> collapses for a single cohort). Tutor **Students** surface rebuilt to the
-> CD handoff (`prototypes/tutor-cohort-workspace.html`) using app tokens:
-> **Roster | Waitlist sub-tabs**, summary cells, avatars + relative time,
-> roster table w/ status filter chips + search + an Access·payment
-> **placeholder** column (fills in Slices 5–7). Waitlist tab: contact-badge
-> rows + **Convert →** (shared `inviteOrAttachAndEnrol`, confirm dialog) /
-> **Dismiss**. Migration `20260531120000` (dev only). Verified tsc +
-> browser. **Next session: Slice 5 — on-platform checkout** (see below),
-> or rotate per the alternate-features rule.
+> **Last shipped (2026-05-21):** **Payments Slice 5.4a — programme-only
+> on-platform checkout.** Live **Enrol** button on `/programmes/[id]` →
+> new public checkout route (`app/(public)/checkout/[programmeId]/`):
+> cohort picker, email + dup-check, order summary, **Pay with Paystack**,
+> with payment-strategy + bank-opt-in cards as disabled "coming soon"
+> placeholders. Activation extended to programme enrolment (tutor-led →
+> `PENDING_APPROVAL`, self-paced → `ENROLLED`, access window frozen); new
+> `nclex_payments.cohort_id` (migration `20260603120000`, dev only) carries
+> the cohort across Paystack. Detail-page **rail rebuilt to the CD
+> prototype**. Verified end-to-end on dev (pay-first GHS → enrolment →
+> tutor approve → `ENROLLED`). **Next: Slice 5.4b** (live bank opt-in via
+> `checkout_group_id`), **5.5** (standalone bank landing), or rotate per
+> the alternate-features rule. Earlier this arc: 5.1 schema, 5.2 Paystack
+> init/verify, 5.3 bank activation.
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -1091,8 +1088,39 @@ Slice order from the adopted Claude Design proposal
     concurrent callback hits (caught in testing). Verified on dev across
     both paths: granted to the typed account (not the session), one sub
     per payment, correct durations, pay-first profile+role created.
-  - ⬜ **5.4** Programme checkout page — upfront-full strategy + bank
-    opt-in card; wire the live Enrol button on `/programmes/[id]`.
+  - ✅ **5.4a** Programme checkout page (upfront-full, programme-only) —
+    shipped 2026-05-21. New public route `app/(public)/checkout/[programmeId]/`
+    (server gate re-applies the Enrol button's enable rule + co-located
+    client form): cohort picker (collapses for a single cohort; hidden for
+    self-paced), email + live dup-check, order summary, **Pay with Paystack**.
+    The payment-strategy and bank-opt-in cards render as disabled "coming
+    soon" placeholders (Slices 7 + 5.4b) so the page already reads as the
+    full prototype. Activation engine (`activate.ts`) extended to
+    `PROGRAMME_INITIAL` → an `nclex_enrolments` row: tutor-led →
+    `PENDING_APPROVAL`, self-paced → `ENROLLED` immediately, with
+    `access_expires_at` frozen from `access_window_days`; same pay-first
+    invite + idempotency (existing active enrolment is linked, not
+    re-created — never trap a paid buyer behind the unique-active guard).
+    New nullable `nclex_payments.cohort_id` (migration `20260603120000`,
+    dev only) carries the picked cohort across the Paystack round trip
+    (the enrolment doesn't exist until after payment). `init.ts` enforces
+    on-platform + published + validates a joinable cohort; `settle.ts` /
+    callback page distinguish `PENDING_APPROVAL` from `ACCESS_READY`. Live
+    **Enrol** button wired on `/programmes/[id]` (on-platform + public price
+    + something joinable); the **detail rail was rebuilt to the CD
+    prototype** (price + sub, Enrol + cohort note, bank-opt-in hint box,
+    payment-strategies list — placeholders where data isn't live; seat
+    counts deliberately omitted per Slice 3c). Verified end-to-end on dev:
+    pay-first GHS ₵3,000 → `INIT→PAID→ACTIVATED`, `PENDING_APPROVAL`
+    enrolment w/ 365-day window → tutor approve → `ENROLLED`.
+    **Deferred to 5.4b:** the live bank opt-in card (the one-charge
+    `checkout_group_id` model) + session-aware prefill for an
+    already-logged-in buyer (today the dup-check blocks a logged-in buyer
+    who types their own email).
+  - ⬜ **5.4b** Bank opt-in card at programme checkout — one combined Pay
+    button via a new `checkout_group_id` tying the programme + bank rows to
+    one Paystack charge (the decided model); 40% off, all 5 tiers, not
+    pre-selected, stacks. + logged-in-buyer prefill.
   - ⬜ **5.5** Standalone bank landing + purchase — public dual-currency
     landing (GHS|USD toggle), 5 tiers, pay-first flow.
   - ⬜ **5.6** Bank entitlement gating — bank/practice surfaces require an
