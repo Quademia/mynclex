@@ -26,6 +26,7 @@ type AdminClient = ReturnType<typeof createServiceRoleClient>;
 type PaymentRow = {
   payment_id: string;
   paystack_reference: string | null;
+  checkout_group_id: string;
   user_id: string | null;
   email: string;
   purpose: string;
@@ -42,7 +43,7 @@ export type ActivateResult =
   | { ok: false; error: string };
 
 const PAYMENT_COLS =
-  'payment_id, paystack_reference, user_id, email, purpose, product_id, programme_id, cohort_id, enrolment_id, status';
+  'payment_id, paystack_reference, checkout_group_id, user_id, email, purpose, product_id, programme_id, cohort_id, enrolment_id, status';
 
 // Purposes that grant a bank/readiness subscription (vs programme enrolment).
 const BANK_PURPOSES = ['BANK_PURCHASE', 'READINESS_PURCHASE', 'BANK_OPTIN_AT_PROGRAMME'];
@@ -217,12 +218,14 @@ async function grantProgrammeEnrolment(
   return { ok: true, pending };
 }
 
-async function activatePaymentRow(admin: AdminClient, payment: PaymentRow): Promise<ActivateResult> {
-  if (payment.status === 'ACTIVATED') return { ok: true, outcome: 'ALREADY' };
-  if (payment.status !== 'PAID' && payment.status !== 'SETUP_REQUIRED') {
-    return { ok: false, error: 'Payment is not in a state that can be activated.' };
-  }
-
+// Grant one PAID/SETUP_REQUIRED row, given an already-resolved account, and
+// mark it ACTIVATED. Identity + the pay-first invite are handled once at the
+// group level (activateGroup), so this only does the entitlement grant.
+async function grantAndActivateRow(
+  admin: AdminClient,
+  payment: PaymentRow,
+  userId: string
+): Promise<{ ok: true; pending: boolean } | { ok: false; error: string }> {
   const isBank = BANK_PURPOSES.includes(payment.purpose);
   const isProgramme = payment.purpose === 'PROGRAMME_INITIAL';
   if (!isBank && !isProgramme) {
@@ -230,66 +233,90 @@ async function activatePaymentRow(admin: AdminClient, payment: PaymentRow): Prom
     return { ok: false, error: 'This payment type is not handled yet.' };
   }
 
-  const userId = payment.user_id ?? (await findProfileIdByEmail(admin, payment.email));
+  let pending = false;
+  if (isBank) {
+    const grant = await grantBankSubscription(admin, payment, userId);
+    if (!grant.ok) return { ok: false, error: grant.error };
+  } else {
+    const grant = await grantProgrammeEnrolment(admin, payment, userId);
+    if (!grant.ok) return { ok: false, error: grant.error };
+    pending = grant.pending;
+  }
 
-  // Buyer has a profile → grant now.
-  if (userId) {
-    let outcome: ActivateOutcome = 'ACTIVATED';
-    if (isBank) {
-      const grant = await grantBankSubscription(admin, payment, userId);
-      if (!grant.ok) return { ok: false, error: grant.error };
-    } else {
-      const grant = await grantProgrammeEnrolment(admin, payment, userId);
-      if (!grant.ok) return { ok: false, error: grant.error };
-      outcome = grant.pending ? 'PENDING_APPROVAL' : 'ACTIVATED';
+  await admin
+    .from('nclex_payments')
+    .update({ status: 'ACTIVATED', activated_at: new Date().toISOString(), user_id: userId })
+    .eq('payment_id', payment.payment_id);
+  return { ok: true, pending };
+}
+
+// Activate a whole checkout group (1+ rows sharing one charge). Identity is
+// resolved ONCE here, and the pay-first invite fires ONCE for the group
+// (not per row). Combined-order outcome precedence:
+//   INVITE_SENT (guest must finish setup) > PENDING_APPROVAL (programme
+//   needs the tutor) > ACTIVATED > ALREADY.
+async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<ActivateResult> {
+  if (rows.length === 0) return { ok: false, error: 'Payment not found.' };
+
+  const activatable = rows.filter((r) => r.status === 'PAID' || r.status === 'SETUP_REQUIRED');
+  if (activatable.length === 0) {
+    if (rows.every((r) => r.status === 'ACTIVATED')) return { ok: true, outcome: 'ALREADY' };
+    return { ok: false, error: 'Payment is not in a state that can be activated.' };
+  }
+
+  const email = rows[0].email;
+  const userId = rows.find((r) => r.user_id)?.user_id ?? (await findProfileIdByEmail(admin, email));
+
+  // Pay-first guest: no account yet.
+  if (!userId) {
+    // Already invited on a prior pass → just wait for /welcome.
+    if (rows.some((r) => r.status === 'SETUP_REQUIRED')) return { ok: true, outcome: 'INVITE_SENT' };
+
+    // First time: one invite for the whole group. The profile + grants
+    // happen when they finish /welcome (no name yet, so no profile here).
+    const h = await headers();
+    const origin = h.get('origin') ?? 'http://localhost:3000';
+    const { data: invite, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
+      redirectTo: `${origin}/welcome`,
+    });
+    if (inviteErr || !invite?.user) {
+      console.error('Pay-first invite failed:', inviteErr?.message);
+      return {
+        ok: false,
+        error: 'Payment recorded, but we could not send the setup email. Please contact support.',
+      };
     }
     await admin
       .from('nclex_payments')
-      .update({ status: 'ACTIVATED', activated_at: new Date().toISOString(), user_id: userId })
-      .eq('payment_id', payment.payment_id);
-    return { ok: true, outcome };
-  }
-
-  // Pay-first guest. If we already invited on a prior pass, just wait.
-  if (payment.status === 'SETUP_REQUIRED') {
+      .update({ status: 'SETUP_REQUIRED', user_id: invite.user.id })
+      .eq('checkout_group_id', rows[0].checkout_group_id);
     return { ok: true, outcome: 'INVITE_SENT' };
   }
 
-  // First time: send the Supabase invite. The profile + grant happen when
-  // they finish /welcome (no name yet, so no profile created here).
-  const h = await headers();
-  const origin = h.get('origin') ?? 'http://localhost:3000';
-  const { data: invite, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(payment.email, {
-    redirectTo: `${origin}/welcome`,
-  });
-  if (inviteErr || !invite?.user) {
-    console.error('Pay-first invite failed:', inviteErr?.message);
-    return {
-      ok: false,
-      error: 'Payment recorded, but we could not send the setup email. Please contact support.',
-    };
+  // Buyer has a profile → grant each row now.
+  let anyPending = false;
+  for (const row of activatable) {
+    const g = await grantAndActivateRow(admin, row, userId);
+    if (!g.ok) return { ok: false, error: g.error };
+    if (g.pending) anyPending = true;
   }
-  await admin
-    .from('nclex_payments')
-    .update({ status: 'SETUP_REQUIRED', user_id: invite.user.id })
-    .eq('payment_id', payment.payment_id);
-  return { ok: true, outcome: 'INVITE_SENT' };
+  return { ok: true, outcome: anyPending ? 'PENDING_APPROVAL' : 'ACTIVATED' };
 }
 
-// Used by the callback page (via settlePayment).
+// Used by the callback page (via settlePayment). The reference identifies
+// the whole charge group.
 export async function activatePaymentByReference(reference: string): Promise<ActivateResult> {
   const admin = createServiceRoleClient();
-  const { data: payment, error } = await admin
+  const { data: rows, error } = await admin
     .from('nclex_payments')
     .select(PAYMENT_COLS)
-    .eq('paystack_reference', reference)
-    .maybeSingle();
-  if (error || !payment) return { ok: false, error: 'Payment not found.' };
-  return activatePaymentRow(admin, payment as PaymentRow);
+    .eq('paystack_reference', reference);
+  if (error || !rows?.length) return { ok: false, error: 'Payment not found.' };
+  return activateGroup(admin, rows as PaymentRow[]);
 }
 
 // Used by /welcome after the profile + STUDENT role exist: grant any
-// paid-but-not-activated bank payments for this email.
+// paid-but-not-activated payments for this email, group by group.
 export async function activatePendingForEmail(email: string): Promise<void> {
   const admin = createServiceRoleClient();
   const { data: payments } = await admin
@@ -299,10 +326,15 @@ export async function activatePendingForEmail(email: string): Promise<void> {
     .in('status', ['PAID', 'SETUP_REQUIRED']);
   if (!payments?.length) return;
 
-  for (const p of payments) {
-    const r = await activatePaymentRow(admin, p as PaymentRow);
-    if (!r.ok) {
-      console.error('activatePendingForEmail failed for', (p as PaymentRow).payment_id, r.error);
-    }
+  const groups = new Map<string, PaymentRow[]>();
+  for (const p of payments as PaymentRow[]) {
+    const g = groups.get(p.checkout_group_id) ?? [];
+    g.push(p);
+    groups.set(p.checkout_group_id, g);
+  }
+
+  for (const [groupId, rows] of groups) {
+    const r = await activateGroup(admin, rows);
+    if (!r.ok) console.error('activatePendingForEmail failed for group', groupId, r.error);
   }
 }

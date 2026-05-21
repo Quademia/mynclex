@@ -8,20 +8,20 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-21):** **Payments Slice 5.4a — programme-only
-> on-platform checkout.** Live **Enrol** button on `/programmes/[id]` →
-> new public checkout route (`app/(public)/checkout/[programmeId]/`):
-> cohort picker, email + dup-check, order summary, **Pay with Paystack**,
-> with payment-strategy + bank-opt-in cards as disabled "coming soon"
-> placeholders. Activation extended to programme enrolment (tutor-led →
-> `PENDING_APPROVAL`, self-paced → `ENROLLED`, access window frozen); new
-> `nclex_payments.cohort_id` (migration `20260603120000`, dev only) carries
-> the cohort across Paystack. Detail-page **rail rebuilt to the CD
-> prototype**. Verified end-to-end on dev (pay-first GHS → enrolment →
-> tutor approve → `ENROLLED`). **Next: Slice 5.4b** (live bank opt-in via
-> `checkout_group_id`), **5.5** (standalone bank landing), or rotate per
-> the alternate-features rule. Earlier this arc: 5.1 schema, 5.2 Paystack
-> init/verify, 5.3 bank activation.
+> **Last shipped (2026-05-22):** **Payments Slice 5.4b — bank opt-in at
+> programme checkout (combined charge).** Live opt-in card (5 tiers, 40%
+> off, off-by-default) → one Paystack charge covering programme + bank via
+> new `nclex_payments.checkout_group_id` (migration `20260604120000`, dev
+> only; per-row UNIQUE on `paystack_reference` dropped — a group shares it).
+> `init.ts` is now a line-item order; `verify`/`activate` are group-aware
+> (sum-matched amount guard; programme → enrolment, bank → subscription
+> immediately; one invite per group). + logged-in-buyer prefill. Verified
+> end-to-end (GHS ₵3,420 single charge → both activated). **Deferred to
+> 5.5:** shared checkout-shell extraction + route rename. **Next: Slice
+> 5.5** (standalone bank landing — public GHS|USD dual-currency, 5 tiers,
+> pay-first), or rotate per the alternate-features rule. This arc so far:
+> 5.1 schema, 5.2 Paystack init/verify, 5.3 bank activation, 5.4a programme
+> checkout, 5.4b bank opt-in.
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -1117,10 +1117,28 @@ Slice order from the adopted Claude Design proposal
     `checkout_group_id` model) + session-aware prefill for an
     already-logged-in buyer (today the dup-check blocks a logged-in buyer
     who types their own email).
-  - ⬜ **5.4b** Bank opt-in card at programme checkout — one combined Pay
-    button via a new `checkout_group_id` tying the programme + bank rows to
-    one Paystack charge (the decided model); 40% off, all 5 tiers, not
-    pre-selected, stacks. + logged-in-buyer prefill.
+  - ✅ **5.4b** Bank opt-in card at programme checkout — shipped 2026-05-22.
+    One **combined Paystack charge** covers programme + bank via a new
+    `nclex_payments.checkout_group_id` (migration `20260604120000`, dev
+    only): rows of one order share the group + one reference (the per-row
+    UNIQUE on `paystack_reference` was dropped — a group legitimately shares
+    it). `init.ts` rebuilt around a **line-item order** (programme + optional
+    bank line, both in the programme's currency; bank price computed
+    **server-side** from the product × `nclex_config.bank_optin_discount`,
+    never trusting the browser). `verify.ts` + `activate.ts` made
+    **group-aware**: verify sums the group and checks that against Paystack's
+    charge; activation grants every row (programme → enrolment, bank →
+    subscription **immediately**, `source=PROGRAMME_OPTIN`) with the pay-first
+    invite firing **once per group**. Live opt-in card (checkbox off by
+    default, 5 `BANK_DURATION` tiers w/ discounted + struck prices, 90d
+    default-once-ticked, order line + combined total) + **logged-in-buyer
+    prefill** (own email pre-filled, skips the dup-block). Verified
+    end-to-end on dev: pay-first GHS ₵3,000 + 365d ₵420 = **₵3,420 single
+    charge** → both rows ACTIVATED → enrolment `PENDING_APPROVAL` +
+    subscription `ACTIVE`. **Deferred to 5.5:** the shared checkout-shell
+    extraction + route rename (`/checkout/programme/[id]`) — premature with
+    one consumer; do it when standalone bank gives the second case. The
+    `checkout_group_id` model also future-proofs any multi-product cart.
   - ⬜ **5.5** Standalone bank landing + purchase — public dual-currency
     landing (GHS|USD toggle), 5 tiers, pay-first flow.
   - ⬜ **5.6** Bank entitlement gating — bank/practice surfaces require an

@@ -1472,7 +1472,8 @@ CREATE INDEX idx_nclex_products_status_sort ON nclex_products (status, sort_orde
 -- single-purpose rows (`purpose` enum + exactly one of product/programme).
 CREATE TABLE nclex_payments (
   payment_id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  paystack_reference    TEXT UNIQUE,
+  paystack_reference    TEXT,                                    -- Paystack charge id; SHARED across a checkout group's rows (5.4b) so not unique per row
+  checkout_group_id     UUID NOT NULL DEFAULT gen_random_uuid(), -- order-grouping key: rows of one combined charge share it (5.4b)
   user_id               UUID REFERENCES nclex_users(id) ON DELETE SET NULL,  -- NULL while pay-first
   email                 TEXT NOT NULL,
   purpose               TEXT NOT NULL
@@ -1510,6 +1511,8 @@ CREATE TABLE nclex_payments (
 CREATE INDEX idx_nclex_payments_user      ON nclex_payments (user_id);
 CREATE INDEX idx_nclex_payments_email     ON nclex_payments (email);
 CREATE INDEX idx_nclex_payments_enrolment ON nclex_payments (enrolment_id);
+CREATE INDEX idx_nclex_payments_reference ON nclex_payments (paystack_reference);
+CREATE INDEX idx_nclex_payments_group     ON nclex_payments (checkout_group_id);
 CREATE INDEX idx_nclex_payments_open_status ON nclex_payments (status)
   WHERE status IN ('INIT','PAID','SETUP_REQUIRED');
 

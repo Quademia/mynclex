@@ -8,19 +8,19 @@
 // programme that isn't actually enrollable. The interactive part (cohort
 // pick, email + dup-check, Pay) lives in the co-located client form.
 //
-// Upfront-full only in 5.4a. The payment-strategy and bank-opt-in cards
-// render as disabled "coming soon" placeholders (Slices 7 and 5.4b).
+// Upfront-full only. The payment-strategy card is still a "coming soon"
+// placeholder (Slice 7); the bank opt-in card is LIVE (5.4b).
 
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import { getPublicProgramme, getPublicCohorts } from '@/lib/discovery/queries';
 import {
   formatCohortDateLong,
   initials,
-  priceParts,
   tutorAttribution,
 } from '@/lib/discovery/format';
-import { CheckoutForm } from './checkout-form';
+import { CheckoutForm, type BankTier } from './checkout-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,7 +66,37 @@ export default async function CheckoutPage({
     programme.tutor_name,
     programme.tutor_avatar_url
   );
-  const { ccy, amount } = priceParts(programme.price_currency, programme.price_minor);
+
+  // Bank opt-in (5.4b): the 5 paid duration tiers + the configured discount,
+  // priced in the PROGRAMME's currency (one charge, one currency). Both read
+  // through the public RLS (active products + public config).
+  const supabase = await createClient();
+  const currency = programme.price_currency;
+  const [{ data: products }, { data: cfg }, { data: { user } }] = await Promise.all([
+    supabase
+      .from('nclex_products')
+      .select('product_id, duration_days, price_minor_ghs, price_minor_usd')
+      .eq('pack_type', 'BANK_DURATION')
+      .eq('kind', 'PAID')
+      .eq('status', 'ACTIVE')
+      .order('sort_order', { ascending: true }),
+    supabase.from('nclex_config').select('value').eq('key', 'bank_optin_discount').maybeSingle(),
+    supabase.auth.getUser(),
+  ]);
+
+  const rawDiscount = Number(cfg?.value);
+  const discount = Number.isFinite(rawDiscount) && rawDiscount >= 0 && rawDiscount < 1 ? rawDiscount : 0;
+  const bankTiers: BankTier[] = discount
+    ? (products ?? []).map((p) => {
+        const standalone = currency === 'GHS' ? p.price_minor_ghs : p.price_minor_usd;
+        return {
+          productId: p.product_id,
+          days: p.duration_days ?? 0,
+          standaloneMinor: standalone,
+          discountedMinor: Math.round(standalone * (1 - discount)),
+        };
+      })
+    : [];
 
   return (
     <main className="pub-content co-content">
@@ -99,8 +129,11 @@ export default async function CheckoutPage({
         selfPaced={selfPaced}
         cohorts={cohortOptions}
         programmeTitle={programme.title}
-        currencyLabel={ccy}
-        amount={amount}
+        currency={currency}
+        programmeMinor={programme.price_minor}
+        bankTiers={bankTiers}
+        discountPct={Math.round(discount * 100)}
+        accountEmail={user?.email ?? null}
       />
     </main>
   );

@@ -70,6 +70,36 @@
 .co-soon-tag, .co-soon-pill { background: var(--bg-sunk); color: var(--ink-faint); }
 .co-off-tag { background: var(--accent-soft); color: var(--accent-strong); margin-left: 6px; vertical-align: 2px; }
 
+/* bank opt-in (live, 5.4b) */
+.co-bank-toggle { display: flex; align-items: center; gap: 8px; color: var(--ink-soft); font-size: 13px; cursor: pointer; }
+.co-bank-toggle input { width: 15px; height: 15px; cursor: pointer; }
+.co-bank-empty { margin-top: 12px; font-size: 12.5px; color: var(--ink-mute); line-height: 1.5; }
+.co-bank-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+}
+.co-bank-tier {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.co-bank-tier:hover:not(:disabled) { border-color: var(--ink-mute); }
+.co-bank-tier.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.co-bank-tier:disabled { cursor: not-allowed; }
+.co-bank-tier .days { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.co-bank-tier .price { font-size: 13.5px; font-weight: 600; color: var(--accent-strong); display: flex; flex-direction: column; gap: 1px; }
+.co-bank-tier .price .strike { font-size: 11px; font-weight: 500; color: var(--ink-faint); text-decoration: line-through; }
+.co-bank-note { margin-top: 10px; font-size: 12px; color: var(--ink-mute); line-height: 1.45; }
+
 /* payment strategies */
 .co-strats { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
 .co-strat {

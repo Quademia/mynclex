@@ -279,11 +279,11 @@ export default async function ProgrammeDetailPage({
               )}
             </div>
 
-            {/* Bank opt-in hint — placeholder until checkout opt-in lands (Slice 5.4b) */}
+            {/* Bank opt-in hint — live at checkout (Slice 5.4b) */}
             <div className="bank-hint">
               <strong>Optional add-on</strong>
-              You&apos;ll be able to add NCLEX Bank Access at checkout — 40% off the
-              standalone price. <span className="bank-hint-soon">Coming soon.</span>
+              Add NCLEX Bank Access at checkout — 40% off the standalone price, stacking
+              on any access you already have.
             </div>
 
             {/* Payment strategies — only Upfront is live; the rest land in Slice 7 */}

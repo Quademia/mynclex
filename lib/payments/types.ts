@@ -16,9 +16,20 @@ export type PaymentPurpose =
 // What the buyer is paying for. Bank purchases pick their own currency;
 // a programme's currency is fixed by the programme itself. cohortId is the
 // picked cohort for a tutor-led programme (null/omitted for self-paced).
+//
+// bankOptIn (programme checkout only, 5.4b): the optional "add bank access"
+// line. It rides on the SAME charge as the programme and inherits the
+// programme's currency — the student doesn't pick a currency here. Only the
+// productId is trusted; the discounted price is computed server-side from
+// nclex_config (bank_optin_discount) so the browser can't set the amount.
 export type CheckoutTarget =
   | { kind: 'BANK'; productId: string; currency: Currency }
-  | { kind: 'PROGRAMME'; programmeId: string; cohortId?: string | null };
+  | {
+      kind: 'PROGRAMME';
+      programmeId: string;
+      cohortId?: string | null;
+      bankOptIn?: { productId: string } | null;
+    };
 
 export type StartPaymentInput = {
   email: string;
@@ -31,8 +42,12 @@ export type StartPaymentResult =
   | { ok: true; reference: string; authorizationUrl: string }
   | { ok: false; error: string };
 
+// verifyPayment works on the whole checkout group sharing one Paystack
+// reference: it sums the group's amounts and checks that against what
+// Paystack actually charged, then flips the group PAID. (No per-row purpose
+// — a combined order has several.)
 export type VerifyResult =
-  | { ok: true; status: 'PAID' | 'ALREADY'; reference: string; purpose: PaymentPurpose }
+  | { ok: true; status: 'PAID' | 'ALREADY' }
   | { ok: false; status: 'PENDING' | 'FAILED' | 'NOT_FOUND' | 'ERROR'; error: string };
 
 // settlePayment = verify + activate, for the callback page.
