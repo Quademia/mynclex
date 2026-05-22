@@ -20,6 +20,8 @@
 import 'server-only';
 import { headers } from 'next/headers';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { buildSchedule, isOverdue } from './schedule';
+import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
 
 type AdminClient = ReturnType<typeof createServiceRoleClient>;
 
@@ -33,6 +35,7 @@ type PaymentRow = {
   product_id: string | null;
   programme_id: string | null;
   cohort_id: string | null;
+  strategy_id: string | null;
   enrolment_id: string | null;
   status: string;
 };
@@ -43,7 +46,7 @@ export type ActivateResult =
   | { ok: false; error: string };
 
 const PAYMENT_COLS =
-  'payment_id, paystack_reference, checkout_group_id, user_id, email, purpose, product_id, programme_id, cohort_id, enrolment_id, status';
+  'payment_id, paystack_reference, checkout_group_id, user_id, email, purpose, product_id, programme_id, cohort_id, strategy_id, enrolment_id, status';
 
 // Purposes that grant a bank/readiness subscription (vs programme enrolment).
 const BANK_PURPOSES = ['BANK_PURCHASE', 'READINESS_PURCHASE', 'BANK_OPTIN_AT_PROGRAMME'];
@@ -174,6 +177,24 @@ async function grantProgrammeEnrolment(
     return { ok: true, pending: row.status === 'PENDING_APPROVAL' };
   }
 
+  // Freeze the chosen plan onto the enrolment (Slice 7c). The snapshot is
+  // what 7d reads to compute due-dates, so a later tutor edit to the plan
+  // can't rewrite this student's schedule. Null for legacy upfront (no
+  // strategy on the payment).
+  let strategySnapshot: Record<string, unknown> | null = null;
+  if (payment.strategy_id) {
+    const { data: strat } = await admin
+      .from('nclex_programme_payment_strategies')
+      .select(
+        `strategy_id, kind, label, total_price_minor, initial_price_minor,
+         installment_count, installment_interval_days,
+         balance_due_days_after_enrolment`
+      )
+      .eq('strategy_id', payment.strategy_id)
+      .maybeSingle();
+    if (strat) strategySnapshot = { ...strat, frozen_at: new Date().toISOString() };
+  }
+
   const { data: inserted, error: insErr } = await admin
     .from('nclex_enrolments')
     .insert({
@@ -183,6 +204,8 @@ async function grantProgrammeEnrolment(
       status,
       enrolment_source: 'SELF_PAID',
       access_expires_at: accessExpiresAt,
+      strategy_id: payment.strategy_id,
+      strategy_snapshot_json: strategySnapshot,
     })
     .select('enrolment_id')
     .single();
@@ -218,6 +241,63 @@ async function grantProgrammeEnrolment(
   return { ok: true, pending };
 }
 
+// Record a later installment / balance payment against an existing enrolment
+// (Slice 7d). The payment row already links to the enrolment (set at INIT) and
+// is flipped to ACTIVATED by the caller. The only side-effect here is the
+// auto-unpause: if the student was paused for an overdue installment and this
+// payment brings them back in line, lift the pause. A TUTOR_MANUAL pause is
+// never auto-lifted — that stays the tutor's decision. The write is a direct
+// service-role UPDATE (the auth-gated unpause RPC can't run with no session);
+// activation has already validated ownership, mirroring the handoff's
+// "service-role writes validate the same transition" rule.
+async function grantInstallmentPayment(
+  admin: AdminClient,
+  payment: PaymentRow,
+  userId: string
+): Promise<{ ok: true; pending: boolean } | { ok: false; error: string }> {
+  if (!payment.enrolment_id) {
+    return { ok: false, error: 'Installment payment has no enrolment to apply to.' };
+  }
+
+  const { data: enr, error } = await admin
+    .from('nclex_enrolments')
+    .select('enrolment_id, user_id, status, paused_reason, strategy_snapshot_json, enrolled_at')
+    .eq('enrolment_id', payment.enrolment_id)
+    .maybeSingle();
+  if (error || !enr) return { ok: false, error: 'Enrolment not found for installment activation.' };
+  if (enr.user_id !== userId) {
+    return { ok: false, error: 'Installment does not belong to this account.' };
+  }
+
+  if (enr.status === 'PAUSED' && enr.paused_reason === 'INSTALLMENT_OVERDUE') {
+    const snapshot = enr.strategy_snapshot_json as FrozenStrategySnapshot | null;
+    if (snapshot) {
+      // This row is already PAID at activation time, so the PAID+ACTIVATED
+      // count includes it.
+      const { count } = await admin
+        .from('nclex_payments')
+        .select('payment_id', { count: 'exact', head: true })
+        .eq('enrolment_id', enr.enrolment_id)
+        .in('purpose', ['PROGRAMME_INITIAL', 'PROGRAMME_INSTALLMENT'])
+        .in('status', ['PAID', 'ACTIVATED']);
+      const schedule = buildSchedule(snapshot, new Date(enr.enrolled_at), count ?? 0);
+      if (!isOverdue(schedule, new Date())) {
+        await admin
+          .from('nclex_enrolments')
+          .update({
+            status: 'ENROLLED',
+            paused_at: null,
+            paused_reason: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('enrolment_id', enr.enrolment_id);
+      }
+    }
+  }
+
+  return { ok: true, pending: false };
+}
+
 // Grant one PAID/SETUP_REQUIRED row, given an already-resolved account, and
 // mark it ACTIVATED. Identity + the pay-first invite are handled once at the
 // group level (activateGroup), so this only does the entitlement grant.
@@ -227,15 +307,18 @@ async function grantAndActivateRow(
   userId: string
 ): Promise<{ ok: true; pending: boolean } | { ok: false; error: string }> {
   const isBank = BANK_PURPOSES.includes(payment.purpose);
-  const isProgramme = payment.purpose === 'PROGRAMME_INITIAL';
-  if (!isBank && !isProgramme) {
-    // PROGRAMME_INSTALLMENT activation arrives with the strategies slice (7).
+  const isProgrammeInitial = payment.purpose === 'PROGRAMME_INITIAL';
+  const isInstallment = payment.purpose === 'PROGRAMME_INSTALLMENT';
+  if (!isBank && !isProgrammeInitial && !isInstallment) {
     return { ok: false, error: 'This payment type is not handled yet.' };
   }
 
   let pending = false;
   if (isBank) {
     const grant = await grantBankSubscription(admin, payment, userId);
+    if (!grant.ok) return { ok: false, error: grant.error };
+  } else if (isInstallment) {
+    const grant = await grantInstallmentPayment(admin, payment, userId);
     if (!grant.ok) return { ok: false, error: grant.error };
   } else {
     const grant = await grantProgrammeEnrolment(admin, payment, userId);

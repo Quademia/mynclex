@@ -54,6 +54,8 @@ AS $$
   );
 $$;
 
+-- Access-window check added Payments 7d (2026-06-10): a past-window enrolment
+-- loses content access at read time, before the nightly EXPIRED sweep runs.
 CREATE OR REPLACE FUNCTION nclex_has_active_programme_enrolment(p_programme_id UUID)
 RETURNS BOOLEAN
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
@@ -63,6 +65,7 @@ AS $$
     WHERE e.programme_id = p_programme_id
       AND e.user_id = auth.uid()
       AND e.status = 'ENROLLED'
+      AND (e.access_expires_at IS NULL OR e.access_expires_at > NOW())
   );
 $$;
 
@@ -77,6 +80,7 @@ AS $$
   );
 $$;
 
+-- Access-window check added Payments 7d (2026-06-10) — see programme twin above.
 CREATE OR REPLACE FUNCTION nclex_has_active_cohort_enrolment(p_cohort_id UUID)
 RETURNS BOOLEAN
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
@@ -86,6 +90,7 @@ AS $$
     WHERE e.cohort_id = p_cohort_id
       AND e.user_id = auth.uid()
       AND e.status = 'ENROLLED'
+      AND (e.access_expires_at IS NULL OR e.access_expires_at > NOW())
   );
 $$;
 
@@ -1402,6 +1407,41 @@ CREATE POLICY nclex_subscriptions_owner_select
 
 CREATE POLICY nclex_subscriptions_admin_all
   ON nclex_subscriptions FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- =========================================================
+-- nclex_programme_payment_strategies (Payments Slice 7a, 2026-05-22)
+-- =========================================================
+-- Read + write: the owning tutor (walks the parent programme's tutor_id);
+-- SUPER_ADMIN bypass. Direct tutor RLS writes (not RPC-gated) — strategies
+-- are tutor-owned config like programmes/cohorts themselves. NO public
+-- base-table policy: public checkout / discovery read a curated view
+-- (added in 7c/7e), matching the nclex_public_programmes pattern (3b).
+ALTER TABLE nclex_programme_payment_strategies ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_pps_tutor_all
+  ON nclex_programme_payment_strategies FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_payment_strategies.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_payment_strategies.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_pps_admin_all
+  ON nclex_programme_payment_strategies FOR ALL
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));

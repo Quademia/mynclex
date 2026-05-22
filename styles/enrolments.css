@@ -236,6 +236,40 @@
   color: var(--text-faint, var(--text-muted));
   opacity: 0.6;
 }
+
+/* Roster "Access · payment" column (Slice 7d). */
+.cw-pay {
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.cw-pay.overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+.cw-pay.extended {
+  color: var(--warning);
+  font-weight: 600;
+}
+.cw-pay.paid {
+  color: var(--success);
+  font-weight: 600;
+}
+/* Informational (no on-platform payment to track), not a status alert. */
+.cw-pay.offplatform {
+  color: var(--text-muted);
+  font-style: italic;
+}
+.cw-pay-due {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.cw-pay.overdue .cw-pay-due {
+  color: var(--danger);
+}
+.cw-pay.extended .cw-pay-due {
+  color: var(--warning);
+}
 .cw-row-actions {
   display: flex;
   gap: 6px;

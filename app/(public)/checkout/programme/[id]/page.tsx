@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getPublicProgramme, getPublicCohorts } from '@/lib/discovery/queries';
+import { getPublicPaymentPlans } from '@/lib/strategies/public-queries';
 import { formatCohortDateLong, initials, tutorAttribution } from '@/lib/discovery/format';
 import { ProgrammeCheckout, type BankTier } from './programme-checkout';
 
@@ -59,7 +60,7 @@ export default async function ProgrammeCheckoutPage({
   // in the PROGRAMME's currency (one charge, one currency).
   const supabase = await createClient();
   const currency = programme.price_currency;
-  const [{ data: products }, { data: cfg }, { data: { user } }] = await Promise.all([
+  const [{ data: products }, { data: cfg }, { data: { user } }, plans] = await Promise.all([
     supabase
       .from('nclex_products')
       .select('product_id, duration_days, price_minor_ghs, price_minor_usd')
@@ -69,6 +70,7 @@ export default async function ProgrammeCheckoutPage({
       .order('sort_order', { ascending: true }),
     supabase.from('nclex_config').select('value').eq('key', 'bank_optin_discount').maybeSingle(),
     supabase.auth.getUser(),
+    getPublicPaymentPlans(id),
   ]);
 
   const rawDiscount = Number(cfg?.value);
@@ -118,6 +120,7 @@ export default async function ProgrammeCheckoutPage({
         programmeTitle={programme.title}
         currency={currency}
         programmeMinor={programme.price_minor}
+        plans={plans}
         bankTiers={bankTiers}
         discountPct={Math.round(discount * 100)}
         accountEmail={user?.email ?? null}

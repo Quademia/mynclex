@@ -13,7 +13,10 @@ import {
   getPublicProgramme,
   getPublicUnits,
   getPublicCohorts,
+  getBankOptinDiscountPct,
 } from '@/lib/discovery/queries';
+import { getPublicPaymentPlans } from '@/lib/strategies/public-queries';
+import { formatMoney, systemLabel } from '@/lib/strategies/format';
 import {
   accessWindowLabel,
   cohortStatus,
@@ -37,12 +40,15 @@ export default async function ProgrammeDetailPage({
   const programme = await getPublicProgramme(id);
   if (!programme) notFound();
 
-  const [units, cohorts] = await Promise.all([
+  const [units, cohorts, plans, bankDiscountPct] = await Promise.all([
     getPublicUnits(id),
     getPublicCohorts(id),
+    getPublicPaymentPlans(id),
+    getBankOptinDiscountPct(),
   ]);
 
   const selfPaced = programme.delivery_mode === 'SELF_PACED';
+  const isOnPlatform = programme.payment_collection_mode === 'ON_PLATFORM';
   const unitNoun = programme.unit_label === 'WEEK' ? 'Week' : 'Module';
   const { ccy, amount } = priceParts(
     programme.price_currency,
@@ -50,6 +56,14 @@ export default async function ProgrammeDetailPage({
   );
   const showPrice = programme.show_price_publicly;
   const ctaLabel = selfPaced ? 'Start now' : 'Enrol';
+
+  // Sub-line under the headline price. Off-platform programmes don't take
+  // online payment; on-platform ones note whether plans are available.
+  const priceSubLabel = !isOnPlatform
+    ? 'Collected directly by the tutor'
+    : plans.length >= 2
+      ? 'Pay in full, or choose a plan at checkout'
+      : 'Upfront — one payment';
 
   // Waitlist-joinable cohorts: tutor-led only, and (matching the
   // nclex_join_waitlist gate) upcoming OR late-join-allowed. getPublicCohorts
@@ -249,9 +263,7 @@ export default async function ProgrammeDetailPage({
                   {ccy && <span className="ccy">{ccy}</span>}
                   {amount}
                 </div>
-                <div className="price-sub">
-                  Upfront full · more payment options at checkout soon
-                </div>
+                <div className="price-sub">{priceSubLabel}</div>
               </>
             ) : (
               <div className="price price-contact">Contact for price</div>
@@ -271,32 +283,46 @@ export default async function ProgrammeDetailPage({
                 <p className="det-cta-note">
                   {selfPaced ? 'No cohort wait · instant access' : nextCohortNote}
                 </p>
+              ) : !isOnPlatform ? (
+                <p className="det-cta-note">
+                  This tutor collects payment directly — reach out to them to
+                  enrol.
+                </p>
               ) : (
                 <p className="det-cta-note">
-                  Online enrolment is coming soon. For now, contact the tutor to
-                  join.
+                  Enrolment isn&apos;t open right now — check back soon.
                 </p>
               )}
             </div>
 
-            {/* Bank opt-in hint — live at checkout (Slice 5.4b) */}
-            <div className="bank-hint">
-              <strong>Optional add-on</strong>
-              Add NCLEX Bank Access at checkout — 40% off the standalone price, stacking
-              on any access you already have.
-            </div>
+            {/* Bank opt-in hint — only meaningful for on-platform checkout (5.4b),
+                and only when a discount is actually configured. The percent is
+                read from nclex_config so it tracks the live setting. */}
+            {isOnPlatform && bankDiscountPct > 0 && (
+              <div className="bank-hint">
+                <strong>Optional add-on</strong>
+                Add NCLEX Bank Access at checkout — {bankDiscountPct}% off the standalone
+                price, stacking on any access you already have.
+              </div>
+            )}
 
-            {/* Payment strategies — only Upfront is live; the rest land in Slice 7 */}
-            {showPrice && (
+            {/* Payment options — the programme's real active plans (Slice 7c).
+                On-platform only; off-platform has no online checkout. */}
+            {isOnPlatform && showPrice && plans.length > 0 && (
               <div className="what-includes">
-                <h4>Payment strategies</h4>
+                <h4>Payment options</h4>
                 <ul>
-                  <li>
-                    Upfront full · {ccy ? `${ccy} ` : ''}
-                    {amount}
-                  </li>
-                  <li className="soon">Deposit + balance · coming soon</li>
-                  <li className="soon">Installments · coming soon</li>
+                  {plans.map((p) => {
+                    const title = (p.label ?? '').trim() || systemLabel(p.kind);
+                    const isUpfront = p.kind === 'UPFRONT_FULL';
+                    return (
+                      <li key={p.strategy_id}>
+                        {title} ·{' '}
+                        {formatMoney(programme.price_currency, p.initial_price_minor)}
+                        {isUpfront ? '' : ' now'}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}

@@ -20,12 +20,15 @@ import {
   cancelEnrolmentAction,
   convertWaitlistEntryAction,
   dismissWaitlistEntryAction,
+  giveMoreTimeAction,
+  markInstallmentPaidAction,
   pauseEnrolmentAction,
   rejectEnrolmentAction,
   resumeEnrolmentAction,
   type TransitionResult,
 } from './actions';
 import { initials, relativeTime } from './format';
+import { formatMoney } from '@/lib/strategies/format';
 import {
   actionsForStatus,
   ENROLMENT_ACTION_META,
@@ -52,6 +55,10 @@ const ACTION_PAST_TENSE: Record<EnrolmentAction, string> = {
   resume: 'Resumed',
   cancel: 'Cancelled',
 };
+
+function formatDueShort(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
 
 // Order the status filter chips follow when present in the roster.
 const STATUS_ORDER: EnrolmentStatus[] = [
@@ -93,6 +100,8 @@ export function EnrolmentRosterView({
     action: EnrolmentAction;
     row: EnrolmentRosterRow;
   } | null>(null);
+  const [markPaidRow, setMarkPaidRow] = useState<EnrolmentRosterRow | null>(null);
+  const [giveTimeRow, setGiveTimeRow] = useState<EnrolmentRosterRow | null>(null);
 
   const [wlBusyId, setWlBusyId] = useState<string | null>(null);
   const [wlConvert, setWlConvert] = useState<WaitlistEntry | null>(null);
@@ -157,6 +166,36 @@ export function EnrolmentRosterView({
   function onActionClick(action: EnrolmentAction, row: EnrolmentRosterRow) {
     if (ENROLMENT_ACTION_META[action].confirm) setConfirm({ action, row });
     else runAction(action, row);
+  }
+
+  function runMarkPaid(row: EnrolmentRosterRow) {
+    setBusyId(row.enrolment_id);
+    startTransition(async () => {
+      const res = await markInstallmentPaidAction(cohortId, row.enrolment_id);
+      setBusyId(null);
+      setMarkPaidRow(null);
+      if (!res.ok) {
+        setToast({ tone: 'error', message: res.error });
+        return;
+      }
+      setToast({ tone: 'success', message: `Recorded an off-platform payment for ${row.name}.` });
+      router.refresh();
+    });
+  }
+
+  function runGiveTime(row: EnrolmentRosterRow, days: number) {
+    setBusyId(row.enrolment_id);
+    startTransition(async () => {
+      const res = await giveMoreTimeAction(cohortId, row.enrolment_id, days);
+      setBusyId(null);
+      setGiveTimeRow(null);
+      if (!res.ok) {
+        setToast({ tone: 'error', message: res.error });
+        return;
+      }
+      setToast({ tone: 'success', message: `Gave ${row.name} ${days} more day${days === 1 ? '' : 's'}.` });
+      router.refresh();
+    });
   }
 
   function openAdd() {
@@ -353,6 +392,11 @@ export function EnrolmentRosterView({
                       const meta = ENROLMENT_STATUS_META[row.status];
                       const actions = actionsForStatus(row.status);
                       const rowBusy = busyId === row.enrolment_id && pending;
+                      const np = row.nextPayment;
+                      const graced = np?.graceUntilIso != null;
+                      // "Give more time" applies to an overdue-paused student.
+                      const canGiveTime =
+                        row.status === 'PAUSED' && row.paused_reason === 'INSTALLMENT_OVERDUE';
                       return (
                         <tr key={row.enrolment_id}>
                           <td>
@@ -375,28 +419,74 @@ export function EnrolmentRosterView({
                             {ENROLMENT_SOURCE_LABEL[row.enrolment_source]}
                           </td>
                           <td className="cw-muted">{relativeTime(row.enrolled_at)}</td>
-                          <td className="cw-placeholder" title="Available once online payments launch">
-                            —
+                          <td>
+                            {np ? (
+                              <span
+                                className={`cw-pay${
+                                  np.isOverdue ? ' overdue' : graced ? ' extended' : ''
+                                }`}
+                              >
+                                {np.isOverdue ? 'Overdue · ' : graced ? 'Grace · ' : 'Next · '}
+                                {formatMoney(np.currency, np.amountMinor)}
+                                <span className="cw-pay-due">
+                                  {' '}
+                                  {np.isOverdue ? 'since' : graced ? 'until' : 'by'}{' '}
+                                  {formatDueShort(graced ? np.graceUntilIso! : np.dueDateIso)}
+                                </span>
+                              </span>
+                            ) : row.paymentFullyPaid ? (
+                              <span className="cw-pay paid">Paid in full</span>
+                            ) : row.enrolment_source === 'TUTOR_ADDED' ? (
+                              <span className="cw-pay offplatform">Off-platform</span>
+                            ) : row.enrolment_source === 'ADMIN_GRANT' ? (
+                              <span className="cw-pay offplatform">Granted</span>
+                            ) : (
+                              <span className="cw-muted">—</span>
+                            )}
                           </td>
                           <td>
                             <div className="cw-row-actions">
-                              {actions.length === 0 ? (
+                              {actions.length === 0 && !np && !canGiveTime ? (
                                 <span className="cw-muted">—</span>
                               ) : (
-                                actions.map((action) => {
-                                  const am = ENROLMENT_ACTION_META[action];
-                                  return (
+                                <>
+                                  {actions.map((action) => {
+                                    const am = ENROLMENT_ACTION_META[action];
+                                    return (
+                                      <button
+                                        key={action}
+                                        type="button"
+                                        className={`enrol-action enrol-action-${am.tone}`}
+                                        onClick={() => onActionClick(action, row)}
+                                        disabled={pending}
+                                      >
+                                        {rowBusy ? '…' : am.label}
+                                      </button>
+                                    );
+                                  })}
+                                  {canGiveTime && (
                                     <button
-                                      key={action}
                                       type="button"
-                                      className={`enrol-action enrol-action-${am.tone}`}
-                                      onClick={() => onActionClick(action, row)}
+                                      className="enrol-action enrol-action-neutral"
+                                      onClick={() => setGiveTimeRow(row)}
                                       disabled={pending}
+                                      title="Let them back in for longer without recording a payment"
                                     >
-                                      {rowBusy ? '…' : am.label}
+                                      {rowBusy ? '…' : 'Give more time'}
                                     </button>
-                                  );
-                                })
+                                  )}
+                                  {np && (
+                                    <button
+                                      type="button"
+                                      className="enrol-action enrol-action-neutral"
+                                      onClick={() => setMarkPaidRow(row)}
+                                      disabled={pending}
+                                      title="Record a payment the student made off-platform"
+                                    >
+                                      {rowBusy ? '…' : 'Mark paid'}
+                                    </button>
+                                  )}
+                                </>
                               )}
                             </div>
                           </td>
@@ -438,6 +528,28 @@ export function EnrolmentRosterView({
             if (!pending) setConfirm(null);
           }}
           onConfirm={(note) => runAction(confirm.action, confirm.row, note)}
+        />
+      )}
+
+      {markPaidRow && (
+        <MarkPaidConfirm
+          row={markPaidRow}
+          pending={pending}
+          onClose={() => {
+            if (!pending) setMarkPaidRow(null);
+          }}
+          onConfirm={() => runMarkPaid(markPaidRow)}
+        />
+      )}
+
+      {giveTimeRow && (
+        <GiveMoreTimeModal
+          row={giveTimeRow}
+          pending={pending}
+          onClose={() => {
+            if (!pending) setGiveTimeRow(null);
+          }}
+          onConfirm={(days) => runGiveTime(giveTimeRow, days)}
         />
       )}
 
@@ -710,7 +822,19 @@ function TransitionConfirm({
 }) {
   const [note, setNote] = useState('');
   const meta = ENROLMENT_ACTION_META[action];
-  const copy = CONFIRM_COPY[action as 'pause' | 'reject' | 'cancel'];
+  // Resume's consequence depends on why they were paused, so its copy is
+  // computed from the row rather than the static map.
+  const copy =
+    action === 'resume'
+      ? {
+          title: (name: string) => `Resume ${name}'s access?`,
+          body:
+            row.paused_reason === 'INSTALLMENT_OVERDUE'
+              ? "This lets them back in right now, but they're still behind on payment — tonight's automatic check will pause them again unless they pay or you give them more time."
+              : 'This lifts the pause and restores their access.',
+          confirmLabel: 'Resume access',
+        }
+      : CONFIRM_COPY[action as 'pause' | 'reject' | 'cancel'];
 
   return (
     <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
@@ -758,6 +882,143 @@ function TransitionConfirm({
             disabled={pending}
           >
             {pending ? 'Working…' : copy.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GiveMoreTimeModal({
+  row,
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  row: EnrolmentRosterRow;
+  pending: boolean;
+  onClose: () => void;
+  onConfirm: (days: number) => void;
+}) {
+  const [days, setDays] = useState(7);
+  const np = row.nextPayment;
+  const valid = Number.isInteger(days) && days >= 1 && days <= 365;
+  return (
+    <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
+      <div
+        className="enrol-modal enrol-modal-confirm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="enrol-givetime-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="enrol-givetime-title" className="enrol-modal-title">
+          Give {row.name} more time?
+        </h2>
+        <p className="enrol-modal-sub">
+          This lets them back in <strong>without recording any payment</strong>.
+          {np ? (
+            <>
+              {' '}
+              They still owe {formatMoney(np.currency, np.amountMinor)} (payment{' '}
+              {np.index} of {np.totalPayments}) and are expected to pay it on the
+              platform by the new date.
+            </>
+          ) : null}
+        </p>
+        <label className="enrol-field">
+          <span className="enrol-field-label">Extra days from today</span>
+          <input
+            type="number"
+            min={1}
+            max={365}
+            className="enrol-input"
+            value={Number.isNaN(days) ? '' : days}
+            onChange={(e) => setDays(parseInt(e.target.value, 10))}
+            disabled={pending}
+          />
+        </label>
+        <p className="enrol-modal-sub">
+          They&apos;ll be paused again after that date if the payment still
+          hasn&apos;t arrived.
+        </p>
+        <div className="enrol-modal-actions">
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-ghost"
+            onClick={onClose}
+            disabled={pending}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-primary"
+            onClick={() => onConfirm(days)}
+            disabled={pending || !valid}
+          >
+            {pending ? 'Saving…' : 'Give more time'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MarkPaidConfirm({
+  row,
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  row: EnrolmentRosterRow;
+  pending: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const np = row.nextPayment;
+  return (
+    <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
+      <div
+        className="enrol-modal enrol-modal-confirm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="enrol-markpaid-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="enrol-markpaid-title" className="enrol-modal-title">
+          Record an off-platform payment?
+        </h2>
+        <p className="enrol-modal-sub">
+          This marks {row.name}&apos;s next payment
+          {np
+            ? ` — ${formatMoney(np.currency, np.amountMinor)}, payment ${np.index} of ${np.totalPayments}`
+            : ''}{' '}
+          as paid, for money received directly (cash or transfer), not through
+          Paystack.
+          {np?.isOverdue
+            ? ' If this clears their overdue balance, their paused access is restored.'
+            : ''}
+        </p>
+        <p className="enrol-modal-sub">
+          Only do this once you&apos;ve actually received the payment.
+        </p>
+        <div className="enrol-modal-actions">
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-ghost"
+            onClick={onClose}
+            disabled={pending}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-primary"
+            onClick={onConfirm}
+            disabled={pending}
+          >
+            {pending ? 'Recording…' : 'Mark paid'}
           </button>
         </div>
       </div>

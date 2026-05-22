@@ -1,0 +1,277 @@
+/* System Config admin page (app/(app)/admin/config). */
+
+.cfg-page {
+  max-width: 760px;
+  padding: 24px;
+}
+
+.cfg-head {
+  margin-bottom: 20px;
+}
+.cfg-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+.cfg-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ── tiles ─────────────────────────────────────────────── */
+.cfg-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cfg-tile {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+.cfg-tile-main {
+  min-width: 0;
+}
+.cfg-tile-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.cfg-tile-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-bottom: 8px;
+}
+.cfg-tile-key {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.cfg-tile-control {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cfg-tile-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ── toggle switch ─────────────────────────────────────── */
+.cfg-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.cfg-switch-track {
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--border-strong);
+  position: relative;
+  transition: background 0.15s ease;
+  flex: none;
+}
+.cfg-switch.on .cfg-switch-track {
+  background: var(--success);
+}
+.cfg-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+.cfg-switch.on .cfg-switch-knob {
+  transform: translateX(18px);
+}
+.cfg-switch-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 24px;
+  text-align: left;
+}
+.cfg-switch.on .cfg-switch-text {
+  color: var(--success);
+}
+.cfg-switch:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.cfg-edit-btn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.cfg-edit-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.cfg-edit-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ── modal ─────────────────────────────────────────────── */
+.cfg-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+.cfg-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 22px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+.cfg-modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+.cfg-modal-body {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+.cfg-field {
+  display: block;
+  margin-bottom: 16px;
+}
+.cfg-field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.cfg-field-pct {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cfg-input {
+  width: 90px;
+  font-size: 15px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+}
+.cfg-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.cfg-field-suffix {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.cfg-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.cfg-btn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.cfg-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.cfg-btn-ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+}
+.cfg-btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+.cfg-btn-primary:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+.cfg-btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+.cfg-btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+/* ── toast ─────────────────────────────────────────────── */
+.cfg-toast {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  z-index: 60;
+}
+.cfg-toast-success {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+.cfg-toast-error {
+  background: #fef2f2;
+  color: var(--danger);
+  border: 1px solid #fecaca;
+}
+.cfg-toast-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font-size: 13px;
+}

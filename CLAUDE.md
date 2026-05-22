@@ -231,6 +231,16 @@ slice.
   Dev (`next dev`) still uses Turbopack (it is mature for dev).
   Revisit and drop `--webpack` once OpenNext adds Turbopack support.
 
+- **`npm install` can break the dev server's CSS (lightningcss).** Running
+  `npm install` on Windows can trip the npm optional-dependencies bug and drop
+  Tailwind v4's native `lightningcss` binary, after which `next dev` throws
+  `Cannot find module '../lightningcss.win32-x64-msvc.node'` on every request
+  and pages render unstyled / 500. Quick fix: copy
+  `node_modules/lightningcss-win32-x64-msvc/lightningcss.win32-x64-msvc.node`
+  into `node_modules/lightningcss/`, delete `.next`, restart `npm run dev`.
+  Proper fix: delete `node_modules` + `package-lock.json` and reinstall. (Hit
+  2026-05-22 after installing vitest.)
+
 ## Branching workflow
 
 Two long-lived branches on the remote:
