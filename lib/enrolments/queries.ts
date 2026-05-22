@@ -17,6 +17,9 @@
 // in their programmes") could replace step 2 — left for later.
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { nextPaymentView } from '@/lib/payments/schedule';
+import type { Currency } from '@/lib/payments/types';
+import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
 import type { EnrolmentRosterRow, EnrolmentStatus, WaitlistEntry } from './types';
 
 // Active statuses win over terminal ones when a student has both a past
@@ -87,13 +90,20 @@ export async function getCohortRoster(
   if (!user) return null;
 
   // Ownership gate (RLS-scoped). Returns the row only for the owning
-  // tutor or a SUPER_ADMIN; anyone else gets null.
+  // tutor or a SUPER_ADMIN; anyone else gets null. The parent programme's
+  // currency rides along (every plan inherits it) for the payment column.
   const { data: owned } = await supabase
     .from('nclex_cohorts')
-    .select('cohort_id')
+    .select('cohort_id, nclex_programmes!inner(price_currency)')
     .eq('cohort_id', cohortId)
     .maybeSingle();
   if (!owned) return null;
+  const ownedProg = (
+    owned as typeof owned & {
+      nclex_programmes: { price_currency: Currency } | { price_currency: Currency }[] | null;
+    }
+  ).nclex_programmes;
+  const currency = (Array.isArray(ownedProg) ? ownedProg[0] : ownedProg)?.price_currency ?? 'GHS';
 
   // Roster read via service role (student profiles are self-read-only
   // under RLS). Ownership already proven above.
@@ -106,7 +116,7 @@ export async function getCohortRoster(
     // PostgREST errors (which this function would swallow into an empty
     // roster). Follow the user_id FK explicitly.
     .select(
-      `enrolment_id, user_id, status, enrolment_source, enrolled_at,
+      `enrolment_id, user_id, status, enrolment_source, enrolled_at, strategy_snapshot_json,
        nclex_users!nclex_enrolments_user_id_fkey!inner(name, email)`,
     )
     .eq('cohort_id', cohortId)
@@ -120,18 +130,39 @@ export async function getCohortRoster(
     status: EnrolmentRosterRow['status'];
     enrolment_source: EnrolmentRosterRow['enrolment_source'];
     enrolled_at: string;
+    strategy_snapshot_json: FrozenStrategySnapshot | null;
     nclex_users:
       | { name: string; email: string }
       | { name: string; email: string }[]
       | null;
   };
 
-  return (data as RawRow[])
+  const rows = data as RawRow[];
+
+  // Settled-payment counts per enrolment, in one read, for the schedule
+  // engine's paidCount. PAID counts even before activation.
+  const paidByEnrolment = new Map<string, number>();
+  const enrolmentIds = rows.map((r) => r.enrolment_id);
+  if (enrolmentIds.length > 0) {
+    const { data: pays } = await admin
+      .from('nclex_payments')
+      .select('enrolment_id')
+      .in('enrolment_id', enrolmentIds)
+      .in('purpose', ['PROGRAMME_INITIAL', 'PROGRAMME_INSTALLMENT'])
+      .in('status', ['PAID', 'ACTIVATED']);
+    for (const p of (pays ?? []) as { enrolment_id: string | null }[]) {
+      if (!p.enrolment_id) continue;
+      paidByEnrolment.set(p.enrolment_id, (paidByEnrolment.get(p.enrolment_id) ?? 0) + 1);
+    }
+  }
+
+  return rows
     .map((r) => {
       const profile = Array.isArray(r.nclex_users)
         ? r.nclex_users[0]
         : r.nclex_users;
       if (!profile) return null;
+      const showsPayment = r.status === 'ENROLLED' || r.status === 'PAUSED';
       return {
         enrolment_id: r.enrolment_id,
         user_id: r.user_id,
@@ -140,6 +171,16 @@ export async function getCohortRoster(
         enrolled_at: r.enrolled_at,
         name: profile.name,
         email: profile.email,
+        nextPayment:
+          showsPayment && r.strategy_snapshot_json
+            ? nextPaymentView(
+                r.strategy_snapshot_json,
+                new Date(r.enrolled_at),
+                paidByEnrolment.get(r.enrolment_id) ?? 0,
+                currency,
+                r.enrolment_id,
+              )
+            : null,
       } satisfies EnrolmentRosterRow;
     })
     .filter((r): r is EnrolmentRosterRow => r !== null);

@@ -26,6 +26,8 @@
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { buildSchedule, isOverdue } from '@/lib/payments/schedule';
+import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
 
 export type AddStudentResult =
   | { ok: true; invited: boolean; name: string }
@@ -315,6 +317,117 @@ export async function cancelEnrolmentAction(
     p_enrolment_id: enrolmentId,
     p_note: note?.trim() ? note.trim() : null,
   });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Slice 7d — mark an installment paid off-platform
+//
+// For when a student pays the tutor directly (cash / bank transfer).
+// Records a synthetic ACTIVATED PROGRAMME_INSTALLMENT payment for the
+// next scheduled position — no Paystack — and, if the student was paused
+// for an overdue installment and is now caught up, lifts the pause. A
+// TUTOR_MANUAL pause is never auto-lifted. Reuses the schedule engine so
+// the "next payment + amount" is identical to what the student would pay.
+//
+// Ownership: the parent programme is read through the AUTHED client (RLS
+// returns it only for the owning tutor / SUPER_ADMIN); the privileged
+// writes then run under the service role, matching addStudentAction.
+// ─────────────────────────────────────────────────────────────────
+
+export async function markInstallmentPaidAction(
+  cohortId: string,
+  enrolmentId: string,
+): Promise<TransitionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user: tutor },
+  } = await supabase.auth.getUser();
+  if (!tutor) return { ok: false, error: 'Not signed in.' };
+
+  const admin = createServiceRoleClient();
+  const { data: enr } = await admin
+    .from('nclex_enrolments')
+    .select(
+      'enrolment_id, programme_id, user_id, status, enrolled_at, strategy_id, strategy_snapshot_json',
+    )
+    .eq('enrolment_id', enrolmentId)
+    .maybeSingle();
+  if (!enr) return { ok: false, error: 'Enrolment not found.' };
+
+  // Ownership gate: the row returns only for the owning tutor / SUPER_ADMIN.
+  const { data: owned } = await supabase
+    .from('nclex_programmes')
+    .select('programme_id, price_currency')
+    .eq('programme_id', enr.programme_id)
+    .maybeSingle();
+  if (!owned) return { ok: false, error: 'Not your programme.' };
+
+  if (!['ENROLLED', 'PAUSED'].includes(enr.status)) {
+    return { ok: false, error: 'This enrolment is not active.' };
+  }
+  const snapshot = enr.strategy_snapshot_json as FrozenStrategySnapshot | null;
+  if (!snapshot) return { ok: false, error: 'This enrolment has no instalment plan.' };
+
+  const { count } = await admin
+    .from('nclex_payments')
+    .select('payment_id', { count: 'exact', head: true })
+    .eq('enrolment_id', enr.enrolment_id)
+    .in('purpose', ['PROGRAMME_INITIAL', 'PROGRAMME_INSTALLMENT'])
+    .in('status', ['PAID', 'ACTIVATED']);
+  const paid = count ?? 0;
+
+  const schedule = buildSchedule(snapshot, new Date(enr.enrolled_at), paid);
+  if (!schedule.next) return { ok: false, error: 'This plan is already fully paid.' };
+  const next = schedule.next;
+
+  const { data: profile } = await admin
+    .from('nclex_users')
+    .select('email')
+    .eq('id', enr.user_id)
+    .maybeSingle();
+  if (!profile?.email) return { ok: false, error: 'Could not find the student account.' };
+
+  const now = new Date().toISOString();
+  const { error: insErr } = await admin.from('nclex_payments').insert({
+    paystack_reference: null,
+    checkout_group_id: crypto.randomUUID(),
+    user_id: enr.user_id,
+    email: profile.email,
+    purpose: 'PROGRAMME_INSTALLMENT',
+    programme_id: enr.programme_id,
+    cohort_id: null, // cohort_scope CHECK: cohort_id only on PROGRAMME_INITIAL.
+    strategy_id: enr.strategy_id,
+    installment_index: next.index,
+    currency: owned.price_currency,
+    amount_minor: next.amountMinor,
+    status: 'ACTIVATED',
+    paid_at: now,
+    activated_at: now,
+    enrolment_id: enr.enrolment_id,
+  });
+  if (insErr) {
+    // The one-settled-per-position unique index already had this covered.
+    if (insErr.code === '23505') {
+      return { ok: false, error: 'That payment is already recorded.' };
+    }
+    console.error('mark installment paid failed:', insErr.message);
+    return { ok: false, error: 'Could not record the payment. Refresh and try again.' };
+  }
+
+  // Auto-unpause only an installment-overdue pause, only once caught up.
+  if (enr.status === 'PAUSED') {
+    const after = buildSchedule(snapshot, new Date(enr.enrolled_at), paid + 1);
+    if (!isOverdue(after, new Date())) {
+      await admin
+        .from('nclex_enrolments')
+        .update({ status: 'ENROLLED', paused_at: null, paused_reason: null, updated_at: now })
+        .eq('enrolment_id', enr.enrolment_id)
+        .eq('paused_reason', 'INSTALLMENT_OVERDUE');
+    }
+  }
+
+  revalidatePath(`/tutor/cohort/${cohortId}/students`);
+  return { ok: true };
 }
 
 // ─────────────────────────────────────────────────────────────────

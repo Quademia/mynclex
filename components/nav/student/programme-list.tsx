@@ -17,6 +17,7 @@
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { SwitcherProgramme } from '@/lib/programmes/student-actions';
+import { InstallmentCta } from '@/lib/payments/installment-cta';
 import {
   ENROLMENT_STATUS_META,
   type EnrolmentStatus,
@@ -120,6 +121,7 @@ export function ProgrammeList({
                   {inner}
                 </div>
               )}
+              <InstallmentCta next={p.nextPayment} />
             </li>
           );
         }
@@ -177,6 +179,7 @@ export function ProgrammeList({
                           </div>
                         )}
                         <LockedReason status={c.status} />
+                        <InstallmentCta next={c.nextPayment} />
                       </li>
                     );
                   })}

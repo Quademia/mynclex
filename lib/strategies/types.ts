@@ -71,6 +71,23 @@ export type PublicPaymentPlan = {
   sort_order: number;
 };
 
+// The plan frozen onto an enrolment at checkout (Slice 7c writes this into
+// nclex_enrolments.strategy_snapshot_json). A later tutor edit to the plan
+// can't rewrite an existing student's schedule because this copy is what the
+// schedule engine reads. Mirrors the strategy row's rhythm fields plus the
+// freeze timestamp; no is_active / sort_order (irrelevant once chosen).
+export type FrozenStrategySnapshot = {
+  strategy_id: string;
+  kind: StrategyKind;
+  label: string | null;
+  total_price_minor: number;
+  initial_price_minor: number;
+  installment_count: number | null;
+  installment_interval_days: number | null;
+  balance_due_days_after_enrolment: number | null;
+  frozen_at: string;
+};
+
 // What the payment-plans page loads: the programme's pricing context
 // plus all its plans (active + inactive, in sort order).
 export type PaymentPlansContext = {

@@ -236,6 +236,24 @@
   color: var(--text-faint, var(--text-muted));
   opacity: 0.6;
 }
+
+/* Roster "Access · payment" column (Slice 7d). */
+.cw-pay {
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.cw-pay.overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+.cw-pay-due {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.cw-pay.overdue .cw-pay-due {
+  color: var(--danger);
+}
 .cw-row-actions {
   display: flex;
   gap: 6px;

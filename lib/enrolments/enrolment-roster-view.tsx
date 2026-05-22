@@ -20,12 +20,14 @@ import {
   cancelEnrolmentAction,
   convertWaitlistEntryAction,
   dismissWaitlistEntryAction,
+  markInstallmentPaidAction,
   pauseEnrolmentAction,
   rejectEnrolmentAction,
   resumeEnrolmentAction,
   type TransitionResult,
 } from './actions';
 import { initials, relativeTime } from './format';
+import { formatMoney } from '@/lib/strategies/format';
 import {
   actionsForStatus,
   ENROLMENT_ACTION_META,
@@ -52,6 +54,10 @@ const ACTION_PAST_TENSE: Record<EnrolmentAction, string> = {
   resume: 'Resumed',
   cancel: 'Cancelled',
 };
+
+function formatDueShort(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
 
 // Order the status filter chips follow when present in the roster.
 const STATUS_ORDER: EnrolmentStatus[] = [
@@ -93,6 +99,7 @@ export function EnrolmentRosterView({
     action: EnrolmentAction;
     row: EnrolmentRosterRow;
   } | null>(null);
+  const [markPaidRow, setMarkPaidRow] = useState<EnrolmentRosterRow | null>(null);
 
   const [wlBusyId, setWlBusyId] = useState<string | null>(null);
   const [wlConvert, setWlConvert] = useState<WaitlistEntry | null>(null);
@@ -157,6 +164,21 @@ export function EnrolmentRosterView({
   function onActionClick(action: EnrolmentAction, row: EnrolmentRosterRow) {
     if (ENROLMENT_ACTION_META[action].confirm) setConfirm({ action, row });
     else runAction(action, row);
+  }
+
+  function runMarkPaid(row: EnrolmentRosterRow) {
+    setBusyId(row.enrolment_id);
+    startTransition(async () => {
+      const res = await markInstallmentPaidAction(cohortId, row.enrolment_id);
+      setBusyId(null);
+      setMarkPaidRow(null);
+      if (!res.ok) {
+        setToast({ tone: 'error', message: res.error });
+        return;
+      }
+      setToast({ tone: 'success', message: `Recorded an off-platform payment for ${row.name}.` });
+      router.refresh();
+    });
   }
 
   function openAdd() {
@@ -375,28 +397,55 @@ export function EnrolmentRosterView({
                             {ENROLMENT_SOURCE_LABEL[row.enrolment_source]}
                           </td>
                           <td className="cw-muted">{relativeTime(row.enrolled_at)}</td>
-                          <td className="cw-placeholder" title="Available once online payments launch">
-                            —
+                          <td>
+                            {row.nextPayment ? (
+                              <span
+                                className={`cw-pay${row.nextPayment.isOverdue ? ' overdue' : ''}`}
+                              >
+                                {row.nextPayment.isOverdue ? 'Overdue · ' : 'Next · '}
+                                {formatMoney(row.nextPayment.currency, row.nextPayment.amountMinor)}
+                                <span className="cw-pay-due">
+                                  {' '}
+                                  {row.nextPayment.isOverdue ? 'since' : 'by'}{' '}
+                                  {formatDueShort(row.nextPayment.dueDateIso)}
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="cw-muted">—</span>
+                            )}
                           </td>
                           <td>
                             <div className="cw-row-actions">
-                              {actions.length === 0 ? (
+                              {actions.length === 0 && !row.nextPayment ? (
                                 <span className="cw-muted">—</span>
                               ) : (
-                                actions.map((action) => {
-                                  const am = ENROLMENT_ACTION_META[action];
-                                  return (
+                                <>
+                                  {actions.map((action) => {
+                                    const am = ENROLMENT_ACTION_META[action];
+                                    return (
+                                      <button
+                                        key={action}
+                                        type="button"
+                                        className={`enrol-action enrol-action-${am.tone}`}
+                                        onClick={() => onActionClick(action, row)}
+                                        disabled={pending}
+                                      >
+                                        {rowBusy ? '…' : am.label}
+                                      </button>
+                                    );
+                                  })}
+                                  {row.nextPayment && (
                                     <button
-                                      key={action}
                                       type="button"
-                                      className={`enrol-action enrol-action-${am.tone}`}
-                                      onClick={() => onActionClick(action, row)}
+                                      className="enrol-action enrol-action-neutral"
+                                      onClick={() => setMarkPaidRow(row)}
                                       disabled={pending}
+                                      title="Record a payment the student made off-platform"
                                     >
-                                      {rowBusy ? '…' : am.label}
+                                      {rowBusy ? '…' : 'Mark paid'}
                                     </button>
-                                  );
-                                })
+                                  )}
+                                </>
                               )}
                             </div>
                           </td>
@@ -438,6 +487,17 @@ export function EnrolmentRosterView({
             if (!pending) setConfirm(null);
           }}
           onConfirm={(note) => runAction(confirm.action, confirm.row, note)}
+        />
+      )}
+
+      {markPaidRow && (
+        <MarkPaidConfirm
+          row={markPaidRow}
+          pending={pending}
+          onClose={() => {
+            if (!pending) setMarkPaidRow(null);
+          }}
+          onConfirm={() => runMarkPaid(markPaidRow)}
         />
       )}
 
@@ -758,6 +818,67 @@ function TransitionConfirm({
             disabled={pending}
           >
             {pending ? 'Working…' : copy.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MarkPaidConfirm({
+  row,
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  row: EnrolmentRosterRow;
+  pending: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const np = row.nextPayment;
+  return (
+    <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
+      <div
+        className="enrol-modal enrol-modal-confirm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="enrol-markpaid-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="enrol-markpaid-title" className="enrol-modal-title">
+          Record an off-platform payment?
+        </h2>
+        <p className="enrol-modal-sub">
+          This marks {row.name}&apos;s next payment
+          {np
+            ? ` — ${formatMoney(np.currency, np.amountMinor)}, payment ${np.index} of ${np.totalPayments}`
+            : ''}{' '}
+          as paid, for money received directly (cash or transfer), not through
+          Paystack.
+          {np?.isOverdue
+            ? ' If this clears their overdue balance, their paused access is restored.'
+            : ''}
+        </p>
+        <p className="enrol-modal-sub">
+          Only do this once you&apos;ve actually received the payment.
+        </p>
+        <div className="enrol-modal-actions">
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-ghost"
+            onClick={onClose}
+            disabled={pending}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-primary"
+            onClick={onConfirm}
+            disabled={pending}
+          >
+            {pending ? 'Recording…' : 'Mark paid'}
           </button>
         </div>
       </div>

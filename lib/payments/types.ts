@@ -34,7 +34,12 @@ export type CheckoutTarget =
       // the programme's full price (upfront) for older callers.
       strategyId?: string | null;
       bankOptIn?: { productId: string } | null;
-    };
+    }
+  // A later installment / balance on an existing enrolment (Slice 7d). The
+  // browser sends only the enrolment id; the server resolves the next due
+  // payment from the frozen plan snapshot + payments-made and charges that
+  // amount (never trusted from the client). Requires a logged-in owner.
+  | { kind: 'PROGRAMME_INSTALLMENT'; enrolmentId: string };
 
 export type StartPaymentInput = {
   email: string;

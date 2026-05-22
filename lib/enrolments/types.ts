@@ -5,6 +5,8 @@
 // nclex_enrolments (db/schema.sql). Keep them in lock-step with the
 // table — they're the TS half of the same contract.
 
+import type { NextPaymentView } from '@/lib/payments/schedule';
+
 export type EnrolmentStatus =
   | 'PENDING_APPROVAL'
   | 'ENROLLED'
@@ -25,6 +27,10 @@ export interface EnrolmentRosterRow {
   enrolled_at: string;
   name: string;
   email: string;
+  // The next payment owed on this enrolment (Slice 7d), or null when the
+  // plan is fully paid / there's no installment plan. Drives the roster's
+  // "Access · payment" column and the "Mark paid" action.
+  nextPayment: NextPaymentView | null;
 }
 
 /** A contact channel the lead can ask to be reached on. Mirrors the

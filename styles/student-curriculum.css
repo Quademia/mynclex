@@ -311,6 +311,53 @@ button.programme-switcher-item {
   margin-top: 6px;
 }
 
+/* Installment "pay next" affordance (Slice 7d). Reused on the future
+ * My-Payments page; styles may migrate to a payments stylesheet then. */
+.inst-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-soft);
+}
+.inst-cta.is-overdue {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+.inst-cta-info {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.4;
+}
+.inst-cta.is-overdue .inst-cta-info {
+  color: var(--danger);
+}
+.inst-cta-progress {
+  color: var(--text-muted);
+}
+.inst-cta-pay {
+  flex: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--accent);
+  color: #fff;
+}
+.inst-cta-pay:hover {
+  background: var(--accent-dark);
+}
+.inst-cta.is-overdue .inst-cta-pay {
+  background: var(--danger);
+}
+.inst-cta.is-overdue .inst-cta-pay:hover {
+  background: #b91c1c;
+}
+
 
 /* ─────────────────────────────────────────────────────
  * /student/programme/[id]/curriculum and
