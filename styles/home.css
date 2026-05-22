@@ -1,0 +1,256 @@
+/* mynclex/styles/home.css
+ *
+ * Public homepage (app/(public)/page.tsx). A dark hero BAND (contained —
+ * not the old fixed full-viewport canvas) sits under the shared light nav,
+ * then light sections route into the products. Dark palette is hardcoded +
+ * scoped to .home-hero so it can't bleed; light sections use the .pub-shell
+ * bridge tokens (--ink / --line / ...).
+ */
+
+/* ── dark hero band ─────────────────────────────────────────── */
+.home-hero {
+  position: relative;
+  padding: 76px 24px 92px;
+  text-align: center;
+  background: #091524;
+  color: #e8eef5;
+}
+
+.home-hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 60% 60% at 20% 10%, rgba(45, 125, 114, 0.20), transparent 60%),
+    radial-gradient(ellipse 50% 55% at 85% 90%, rgba(30, 58, 95, 0.55), transparent 65%),
+    radial-gradient(ellipse 70% 70% at 50% 50%, rgba(30, 58, 95, 0.25), transparent 70%),
+    linear-gradient(180deg, #091524 0%, #060f1c 100%);
+}
+.home-hero-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(232, 238, 245, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 238, 245, 0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 35%, black 25%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 35%, black 25%, transparent 75%);
+}
+
+.home-hero-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.home-family {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 15px;
+  background: rgba(232, 238, 245, 0.04);
+  border: 1px solid rgba(232, 238, 245, 0.10);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(232, 238, 245, 0.62);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.home-family-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3ca295;
+  box-shadow: 0 0 8px rgba(60, 162, 149, 0.6);
+}
+
+.home-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 6px 14px;
+  background: rgba(45, 125, 114, 0.12);
+  border: 1px solid rgba(45, 125, 114, 0.35);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #3ca295;
+}
+.home-status-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3ca295;
+  position: relative;
+}
+.home-status-pulse::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid #3ca295;
+  opacity: 0.6;
+  animation: home-pulse 2s ease-out infinite;
+}
+@keyframes home-pulse {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.home-title {
+  margin-top: 20px;
+  font-size: clamp(42px, 7vw, 72px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  white-space: nowrap;
+  color: #eaf1f8;
+}
+.home-title .my { font-weight: 400; opacity: 0.7; }
+.home-title .rn { font-weight: 500; opacity: 0.7; }
+/* Only the product word gets the teal gradient — applied to this span
+   alone so the solid-coloured siblings (.my / .rn) stay visible. */
+.home-title .nclex {
+  background: linear-gradient(180deg, #ffffff 0%, #3ca295 150%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.home-tagline {
+  margin: 18px auto 0;
+  max-width: 440px;
+  font-size: clamp(15px, 2.2vw, 18px);
+  color: rgba(232, 238, 245, 0.62);
+}
+
+.home-cta {
+  margin: 36px auto 0;
+  max-width: 440px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.home-cta-primary,
+.home-cta-secondary {
+  flex: 1;
+  min-width: 160px;
+  padding: 13px 24px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+.home-cta-primary {
+  background: #2d7d72;
+  color: #fff;
+  border: 1px solid #2d7d72;
+}
+.home-cta-primary:hover { background: #3ca295; transform: translateY(-1px); text-decoration: none; }
+.home-cta-secondary {
+  background: transparent;
+  color: #e8eef5;
+  border: 1px solid rgba(232, 238, 245, 0.18);
+}
+.home-cta-secondary:hover {
+  border-color: rgba(60, 162, 149, 0.5);
+  background: rgba(232, 238, 245, 0.04);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+.home-cta-note {
+  margin-top: 18px;
+  font-size: 13px;
+  color: rgba(232, 238, 245, 0.45);
+}
+.home-cta-note a { color: rgba(232, 238, 245, 0.85); border-bottom: 1px solid transparent; }
+.home-cta-note a:hover { color: #3ca295; text-decoration: none; }
+
+/* ── light offer section ────────────────────────────────────── */
+.home-content { padding-top: 56px; }
+.home-offer { text-align: center; }
+.home-offer-eyebrow {
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--accent-strong);
+}
+.home-offer h2 {
+  margin-top: 10px;
+  font-size: clamp(24px, 4vw, 32px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.home-offer-lede {
+  margin: 12px auto 0;
+  max-width: 560px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.home-offer-grid {
+  margin-top: 32px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  text-align: left;
+}
+.home-offer-card {
+  display: block;
+  padding: 24px 24px 22px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+.home-offer-card:hover {
+  border-color: var(--accent-strong);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+.home-offer-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+}
+.home-offer-card h3 { font-size: 17px; font-weight: 600; color: var(--ink); }
+.home-offer-card p { margin-top: 7px; font-size: 13.5px; line-height: 1.55; color: var(--ink-mute); }
+.home-offer-link {
+  display: inline-block;
+  margin-top: 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent-strong);
+}
+
+@media (max-width: 480px) {
+  .home-hero { padding: 56px 20px 64px; }
+  .home-cta { flex-direction: column; }
+  .home-cta-primary, .home-cta-secondary { flex: initial; width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-status-pulse::before { animation: none; }
+}

@@ -1180,14 +1180,17 @@ Slice order from the adopted Claude Design proposal
     no-sub student → false; super-admin bypasses). Full per-user redirect +
     create-RPC-refusal + programme-quiz-still-works = Sam's browser test.
     Trial deferred (will satisfy the same check once built).
-  - ⬜ **5.7** "My Payments" student page — transaction list (date,
-    product, amount, currency, status).
 - ⬜ **Slice 7** Multi-strategy + installments —
   `nclex_programme_payment_strategies` + nightly cron PAUSE on overdue +
   manual tutor override.
 - ⬜ **Slice 8** Self-paced + enquiry routing — `cohort_id = NULL`
   branch + `show_price_publicly = FALSE` contact path +
   `nclex_programme_enquiries`.
+- ⬜ **5.7 (resequenced to last, 2026-05-22)** "My Payments" student page —
+  transaction list (date, product, amount, currency, status). Moved out of
+  the 5.x block to after Slice 8 so it can display **every** payment type +
+  state once installments (Slice 7) and self-paced/enquiry (Slice 8) exist —
+  building it earlier would only cover a subset.
 
 **Deferred from the proposal's Slice 2** — pg_cron EXPIRED/PAUSED nightly
 sweep (no data to act on until Slice 3's `access_window_days` /
