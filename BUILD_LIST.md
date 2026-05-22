@@ -1273,6 +1273,17 @@ Slice order from the adopted Claude Design proposal
 - ⬜ **Slice 8** Self-paced + enquiry routing — `cohort_id = NULL`
   branch + `show_price_publicly = FALSE` contact path +
   `nclex_programme_enquiries`.
+  - **Scope refinement (2026-05-22):** the enquiry/contact form should
+    trigger for **any off-platform programme that has no online checkout**,
+    not only the price-hidden (`show_price_publicly = FALSE`) "contact for
+    price" case. Surfaced while testing 7c: an **off-platform self-paced**
+    programme that *shows* a price (e.g. the dev "Self-Paced Refresher")
+    currently has no on-page way to reach the tutor — the waitlist is
+    tutor-led-only, and tutor-add is the only mechanism. The three
+    off-platform paths: tutor-led → waitlist (built, Slice 4); contact-first
+    (price hidden) → enquiry form; off-platform self-paced w/ price → also
+    needs the enquiry form. Decide the exact trigger condition when 8 starts,
+    but lean to "off-platform + no online checkout → show contact form."
 - ⬜ **5.7 (resequenced to last, 2026-05-22)** "My Payments" student page —
   transaction list (date, product, amount, currency, status). Moved out of
   the 5.x block to after Slice 8 so it can display **every** payment type +
