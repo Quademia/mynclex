@@ -15,8 +15,9 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > TS `requireActiveBankSubscription()` on the bank layout; **source-aware**
 > runner gate (bank `CUSTOM_BUILT` only — programme quizzes untouched);
 > picker card reflects real access ("X days left" / "Get access →").
-> SUPER_ADMIN bypass. **Next: Slice 5.7** (my-payments page), or rotate per
-> the alternate-features rule. This arc so far: 5.1 schema · 5.2 Paystack
+> SUPER_ADMIN bypass. **Next: Slice 7** (multi-strategy + installments,
+> sub-sliced 7a–7e 2026-05-22; 5.7 my-payments resequenced to last), or
+> rotate per the alternate-features rule. This arc so far: 5.1 schema · 5.2 Paystack
 > init/verify · 5.3 bank activation · 5.4a programme checkout · 5.4b bank
 > opt-in · 5.5 standalone bank · 5.6 bank gating.
 >
@@ -1180,9 +1181,95 @@ Slice order from the adopted Claude Design proposal
     no-sub student → false; super-admin bypasses). Full per-user redirect +
     create-RPC-refusal + programme-quiz-still-works = Sam's browser test.
     Trial deferred (will satisfy the same check once built).
-- ⬜ **Slice 7** Multi-strategy + installments —
-  `nclex_programme_payment_strategies` + nightly cron PAUSE on overdue +
-  manual tutor override.
+- ⬜ **Slice 7** Multi-strategy + installments — payment plans for
+  on-platform tutored programmes. Pay-in-full already ships (5.x); this
+  adds **deposit + balance** and **equal installments**, and makes the
+  strategies table the single source of truth for programme amounts.
+  Source: design-handoff `index.html` §05 + `payments-and-enrolment.md`
+  §658–684 / §1390–1405. Sub-sliced + decisions locked 2026-05-22 (revised
+  same day after Sam pushback — see below).
+
+  **Decisions locked 2026-05-22:**
+  - **Upfront-full IS a strategy row** (revised — supersedes the first-pass
+    "upfront stays off the table"). Sam's point: with upfront implicit, a
+    tutor can't turn it *off*, but some only want installments / deposit.
+    So upfront is a real, selectable plan — auto-created + pre-selected on
+    programme setup, but **deactivatable**. The strategies table becomes the
+    **single source of truth for programme amounts**; `nclex_programmes.
+    price_minor` is **retired** (the leftover copy → drift risk). Done via
+    **Phasing 2** (incremental, below) so no big-bang on the live public
+    pages. `price_currency` **stays on the programme** — a programme is one
+    currency, every plan inherits it; only the *amount* moves to the plans.
+  - **Plan edits don't touch live enrolments** (open-Q §12.2 → freeze). The
+    chosen plan is snapshotted onto the enrolment row at checkout; a later
+    tutor edit to the plan only affects future students.
+  - **Due dates are computed, not tutor-typed** (Decision 4). Tutor sets the
+    *pattern* (installment count + interval days; "balance due N days after
+    deposit"); the system computes each student's actual due dates from their
+    own enrolment / first-payment date. Anchored to enrolment for BOTH
+    self-paced and tutored — simplifies the doc's "tutored anchors to cohort
+    dates" to one code path (noted divergence). Per-student grace/extend
+    stays a manual tutor override (7d).
+  - **Student pays later installments from the programme tile** — not the
+    My-Payments page (which stays deferred to 5.7). Reuses the checkout
+    shell for the single charge.
+  - **Deposit + balance is in v1** — same overdue→PAUSE machinery as
+    installments, one balance payment instead of N.
+  - **No reminder emails in v1** — no transactional email infra yet; the
+    nightly job flips status only (drives the dashboard tile). Reminder
+    emails land when email ships.
+
+  **Blast radius of retiring `price_minor`** (mapped 2026-05-22; bank's
+  dual-currency `nclex_products.price_minor_ghs/usd` are unaffected): 9 code
+  spots + the public views — headline display (discovery list card, detail
+  page), the charge (checkout page, `lib/payments/init.ts`), the write
+  (programme create/edit form + actions), plumbing (`lib/programmes/types.ts`
+  + `queries.ts`, `lib/discovery/types.ts`), and the `nclex_public_programmes`
+  view family. Phasing 2 cuts these over in the dedicated 7e step, not in 7a.
+
+  - ⬜ **7a** Schema + foundation (DB only, dev) — create
+    `nclex_programme_payment_strategies` (kind ∈ UPFRONT_FULL /
+    DEPOSIT_BALANCE / EQUAL_INSTALLMENTS; label, total/initial
+    `*_price_minor`, `installment_count` 2..12, `installment_interval_days`,
+    `balance_due_days_after_enrolment`, `is_active`, `sort_order`; index
+    `(programme_id, sort_order)` + UNIQUE `(programme_id, kind)`; RLS — read
+    = owning tutor + public WHERE programme PUBLISHED, write = owning tutor,
+    SUPER_ADMIN bypass). ALTER `nclex_enrolments` ADD `strategy_id`
+    (FK RESTRICT) + `strategy_snapshot_json`. ALTER `nclex_payments` to add
+    the real FK on its existing bare `strategy_id`. **Backfill**: each
+    programme's `price_minor` → one active UPFRONT_FULL strategy row
+    (total = initial = price_minor, currency from the programme).
+    **`price_minor` LEFT IN PLACE** — still the source for display + charge
+    this slice, so nothing visible changes (7a stays invisible/safe). The
+    upfront rows sit alongside, kept in step by the create/edit action until
+    7e retires the column.
+  - ⬜ **7b** Tutor payment-plan config UI — per-programme surface to manage
+    plans: the auto-created upfront plan (deactivatable), plus add / edit /
+    deactivate deposit+balance + installment plans. RLS-gated server actions;
+    validation (count 2..12, deposit < total, balance = total − deposit,
+    interval days). Hide-not-delete once a strategy has live enrolments. The
+    upfront *amount* is still edited via the programme price box (which writes
+    both `price_minor` and the upfront row) until 7e — avoids a two-way sync.
+  - ⬜ **7c** Checkout plan picker — checkout shell shows the active plans;
+    student picks one, pays the INITIAL amount (full / deposit /
+    installment 1) **read from the chosen strategy row**. On verify/activate:
+    enrolment gets `strategy_id` + frozen snapshot; payment row carries
+    `strategy_id` (+ `installment_index = 1`).
+  - ⬜ **7d** Installments lifecycle — `nclex_enrolment_nightly_sweep()`
+    pg_cron: ENROLLED→PAUSED on overdue installment/balance +
+    ENROLLED/PAUSED→EXPIRED on access-window end (also clears the EXPIRED
+    sweep deferred out of enrolments Slice 2; the bank-subscription EXPIRED
+    sweep can fold into the same function). Student **"Pay next
+    installment"** action on the programme tile (checkout-shell single
+    charge; auto-unpause when caught up). Tutor override: "mark installment
+    paid off-platform" (new) + unpause (RPC exists).
+  - ⬜ **7e** Retire `price_minor` — the deliberate cutover. Switch the
+    discovery card + detail headline + the `nclex_public_programmes` view
+    family to **derive** the headline from plans (upfront total if active,
+    else "from `min(initial)`"); point display + plumbing types at the plan
+    amounts; drop the temporary `price_minor` sync; drop the column. Re-test
+    discovery + detail + checkout in one pass (this is the one step that
+    touches live public pages).
 - ⬜ **Slice 8** Self-paced + enquiry routing — `cohort_id = NULL`
   branch + `show_price_publicly = FALSE` contact path +
   `nclex_programme_enquiries`.

@@ -1298,13 +1298,65 @@ CREATE INDEX idx_nclex_student_activity_progress_attempt
 
 
 -- =========================================================
+-- Programme payment strategies (Payments Slice 7a, 2026-05-22)
+-- =========================================================
+-- One row per payment plan a tutor offers on a programme. UPFRONT_FULL is
+-- a real row (auto-created by the 7a backfill, deactivatable), so this
+-- table is the single source of truth for programme amounts. Currency is
+-- inherited from the programme (price_currency), not stored here.
+-- UNIQUE (programme_id, kind) → at most one plan of each kind. Defined
+-- BEFORE enrolments/payments so their strategy_id FKs resolve on a fresh
+-- bootstrap. Origin migration:
+-- db/migrations/20260606120000_slice_7a_payment_strategies.sql.
+
+CREATE TABLE nclex_programme_payment_strategies (
+  strategy_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  programme_id         UUID NOT NULL
+                       REFERENCES nclex_programmes(programme_id) ON DELETE CASCADE,
+  kind                 TEXT NOT NULL
+                       CHECK (kind IN ('UPFRONT_FULL','DEPOSIT_BALANCE','EQUAL_INSTALLMENTS')),
+  label                TEXT,                                      -- optional tutor display name
+  total_price_minor    INTEGER NOT NULL CHECK (total_price_minor   >= 0),  -- minor units, programme's currency
+  initial_price_minor  INTEGER NOT NULL CHECK (initial_price_minor >= 0),  -- paid at checkout (full/deposit/installment 1)
+  installment_count            SMALLINT
+                               CHECK (installment_count IS NULL OR installment_count BETWEEN 2 AND 12),
+  installment_interval_days    SMALLINT
+                               CHECK (installment_interval_days IS NULL OR installment_interval_days > 0),
+  balance_due_days_after_enrolment SMALLINT
+                               CHECK (balance_due_days_after_enrolment IS NULL OR balance_due_days_after_enrolment >= 0),
+  is_active            BOOLEAN  NOT NULL DEFAULT TRUE,            -- hide-not-delete
+  sort_order           SMALLINT NOT NULL DEFAULT 0,
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT nclex_pps_initial_le_total CHECK (initial_price_minor <= total_price_minor),
+  -- Per-kind field shape: each kind uses only its own optional fields.
+  CONSTRAINT nclex_pps_kind_fields CHECK (
+    (kind = 'UPFRONT_FULL'
+       AND initial_price_minor = total_price_minor
+       AND installment_count IS NULL AND installment_interval_days IS NULL
+       AND balance_due_days_after_enrolment IS NULL)
+    OR (kind = 'DEPOSIT_BALANCE'
+       AND installment_count IS NULL AND installment_interval_days IS NULL
+       AND balance_due_days_after_enrolment IS NOT NULL)
+    OR (kind = 'EQUAL_INSTALLMENTS'
+       AND installment_count IS NOT NULL AND installment_interval_days IS NOT NULL
+       AND balance_due_days_after_enrolment IS NULL)
+  )
+);
+CREATE INDEX idx_nclex_pps_programme_sort
+  ON nclex_programme_payment_strategies (programme_id, sort_order);
+CREATE UNIQUE INDEX idx_nclex_pps_programme_kind
+  ON nclex_programme_payment_strategies (programme_id, kind);
+
+
+-- =========================================================
 -- Enrolments (Slice 1a, 2026-05-20)
 -- =========================================================
 -- One row = "this student is in this programme (and cohort, for
 -- tutor-led)". 6-status lifecycle + enrolment source + audit + frozen
 -- access expiry. Built lifecycle-ready; Slice 1 only writes
--- ENROLLED / TUTOR_ADDED. strategy_id omitted until the installments
--- slice (it FKs a table that doesn't exist yet). Origin migration:
+-- ENROLLED / TUTOR_ADDED. strategy_id + strategy_snapshot_json added in
+-- Payments Slice 7a. Origin migration:
 -- db/migrations/20260522120000_enrolments_1_foundation.sql.
 -- Source of truth: docs/product-plan/payments-and-enrolment.md.
 
@@ -1337,6 +1389,14 @@ CREATE TABLE nclex_enrolments (
                        REFERENCES nclex_users(id) ON DELETE SET NULL,
 
   access_expires_at    TIMESTAMPTZ,                               -- NULL = lifetime of tutor sub
+
+  -- Payment plan the student is on (Slice 7a). NULL until 7c writes it;
+  -- may stay NULL for plain upfront. RESTRICT: a plan with live enrolments
+  -- can't be deleted (deactivate instead). strategy_snapshot_json freezes
+  -- the plan's terms at checkout so later tutor edits don't rewrite it.
+  strategy_id          UUID
+                       REFERENCES nclex_programme_payment_strategies(strategy_id) ON DELETE RESTRICT,
+  strategy_snapshot_json JSONB,
 
   paused_at            TIMESTAMPTZ,
   paused_reason        TEXT
@@ -1481,7 +1541,7 @@ CREATE TABLE nclex_payments (
                           'PROGRAMME_INITIAL','PROGRAMME_INSTALLMENT','BANK_OPTIN_AT_PROGRAMME')),
   product_id            TEXT REFERENCES nclex_products(product_id) ON DELETE RESTRICT,
   programme_id          UUID REFERENCES nclex_programmes(programme_id) ON DELETE RESTRICT,
-  strategy_id           UUID,                                      -- FK → strategies table (Slice 7); bare UUID for now
+  strategy_id           UUID REFERENCES nclex_programme_payment_strategies(strategy_id) ON DELETE RESTRICT,  -- FK added Slice 7a
   enrolment_id          UUID REFERENCES nclex_enrolments(enrolment_id) ON DELETE SET NULL,
   cohort_id             UUID REFERENCES nclex_cohorts(cohort_id) ON DELETE RESTRICT,  -- chosen cohort, carried across the Paystack round trip (5.4a)
   installment_index     SMALLINT,

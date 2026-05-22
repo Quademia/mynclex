@@ -1405,3 +1405,38 @@ CREATE POLICY nclex_subscriptions_admin_all
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- =========================================================
+-- nclex_programme_payment_strategies (Payments Slice 7a, 2026-05-22)
+-- =========================================================
+-- Read + write: the owning tutor (walks the parent programme's tutor_id);
+-- SUPER_ADMIN bypass. Direct tutor RLS writes (not RPC-gated) — strategies
+-- are tutor-owned config like programmes/cohorts themselves. NO public
+-- base-table policy: public checkout / discovery read a curated view
+-- (added in 7c/7e), matching the nclex_public_programmes pattern (3b).
+ALTER TABLE nclex_programme_payment_strategies ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_pps_tutor_all
+  ON nclex_programme_payment_strategies FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_payment_strategies.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_programmes p
+      WHERE p.programme_id = nclex_programme_payment_strategies.programme_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_pps_admin_all
+  ON nclex_programme_payment_strategies FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
