@@ -20,6 +20,7 @@ import {
   cancelEnrolmentAction,
   convertWaitlistEntryAction,
   dismissWaitlistEntryAction,
+  giveMoreTimeAction,
   markInstallmentPaidAction,
   pauseEnrolmentAction,
   rejectEnrolmentAction,
@@ -100,6 +101,7 @@ export function EnrolmentRosterView({
     row: EnrolmentRosterRow;
   } | null>(null);
   const [markPaidRow, setMarkPaidRow] = useState<EnrolmentRosterRow | null>(null);
+  const [giveTimeRow, setGiveTimeRow] = useState<EnrolmentRosterRow | null>(null);
 
   const [wlBusyId, setWlBusyId] = useState<string | null>(null);
   const [wlConvert, setWlConvert] = useState<WaitlistEntry | null>(null);
@@ -177,6 +179,21 @@ export function EnrolmentRosterView({
         return;
       }
       setToast({ tone: 'success', message: `Recorded an off-platform payment for ${row.name}.` });
+      router.refresh();
+    });
+  }
+
+  function runGiveTime(row: EnrolmentRosterRow, days: number) {
+    setBusyId(row.enrolment_id);
+    startTransition(async () => {
+      const res = await giveMoreTimeAction(cohortId, row.enrolment_id, days);
+      setBusyId(null);
+      setGiveTimeRow(null);
+      if (!res.ok) {
+        setToast({ tone: 'error', message: res.error });
+        return;
+      }
+      setToast({ tone: 'success', message: `Gave ${row.name} ${days} more day${days === 1 ? '' : 's'}.` });
       router.refresh();
     });
   }
@@ -375,6 +392,11 @@ export function EnrolmentRosterView({
                       const meta = ENROLMENT_STATUS_META[row.status];
                       const actions = actionsForStatus(row.status);
                       const rowBusy = busyId === row.enrolment_id && pending;
+                      const np = row.nextPayment;
+                      const graced = np?.graceUntilIso != null;
+                      // "Give more time" applies to an overdue-paused student.
+                      const canGiveTime =
+                        row.status === 'PAUSED' && row.paused_reason === 'INSTALLMENT_OVERDUE';
                       return (
                         <tr key={row.enrolment_id}>
                           <td>
@@ -398,16 +420,18 @@ export function EnrolmentRosterView({
                           </td>
                           <td className="cw-muted">{relativeTime(row.enrolled_at)}</td>
                           <td>
-                            {row.nextPayment ? (
+                            {np ? (
                               <span
-                                className={`cw-pay${row.nextPayment.isOverdue ? ' overdue' : ''}`}
+                                className={`cw-pay${
+                                  np.isOverdue ? ' overdue' : graced ? ' extended' : ''
+                                }`}
                               >
-                                {row.nextPayment.isOverdue ? 'Overdue · ' : 'Next · '}
-                                {formatMoney(row.nextPayment.currency, row.nextPayment.amountMinor)}
+                                {np.isOverdue ? 'Overdue · ' : graced ? 'Grace · ' : 'Next · '}
+                                {formatMoney(np.currency, np.amountMinor)}
                                 <span className="cw-pay-due">
                                   {' '}
-                                  {row.nextPayment.isOverdue ? 'since' : 'by'}{' '}
-                                  {formatDueShort(row.nextPayment.dueDateIso)}
+                                  {np.isOverdue ? 'since' : graced ? 'until' : 'by'}{' '}
+                                  {formatDueShort(graced ? np.graceUntilIso! : np.dueDateIso)}
                                 </span>
                               </span>
                             ) : (
@@ -416,7 +440,7 @@ export function EnrolmentRosterView({
                           </td>
                           <td>
                             <div className="cw-row-actions">
-                              {actions.length === 0 && !row.nextPayment ? (
+                              {actions.length === 0 && !np && !canGiveTime ? (
                                 <span className="cw-muted">—</span>
                               ) : (
                                 <>
@@ -434,7 +458,18 @@ export function EnrolmentRosterView({
                                       </button>
                                     );
                                   })}
-                                  {row.nextPayment && (
+                                  {canGiveTime && (
+                                    <button
+                                      type="button"
+                                      className="enrol-action enrol-action-neutral"
+                                      onClick={() => setGiveTimeRow(row)}
+                                      disabled={pending}
+                                      title="Let them back in for longer without recording a payment"
+                                    >
+                                      {rowBusy ? '…' : 'Give more time'}
+                                    </button>
+                                  )}
+                                  {np && (
                                     <button
                                       type="button"
                                       className="enrol-action enrol-action-neutral"
@@ -498,6 +533,17 @@ export function EnrolmentRosterView({
             if (!pending) setMarkPaidRow(null);
           }}
           onConfirm={() => runMarkPaid(markPaidRow)}
+        />
+      )}
+
+      {giveTimeRow && (
+        <GiveMoreTimeModal
+          row={giveTimeRow}
+          pending={pending}
+          onClose={() => {
+            if (!pending) setGiveTimeRow(null);
+          }}
+          onConfirm={(days) => runGiveTime(giveTimeRow, days)}
         />
       )}
 
@@ -770,7 +816,19 @@ function TransitionConfirm({
 }) {
   const [note, setNote] = useState('');
   const meta = ENROLMENT_ACTION_META[action];
-  const copy = CONFIRM_COPY[action as 'pause' | 'reject' | 'cancel'];
+  // Resume's consequence depends on why they were paused, so its copy is
+  // computed from the row rather than the static map.
+  const copy =
+    action === 'resume'
+      ? {
+          title: (name: string) => `Resume ${name}'s access?`,
+          body:
+            row.paused_reason === 'INSTALLMENT_OVERDUE'
+              ? "This lets them back in right now, but they're still behind on payment — tonight's automatic check will pause them again unless they pay or you give them more time."
+              : 'This lifts the pause and restores their access.',
+          confirmLabel: 'Resume access',
+        }
+      : CONFIRM_COPY[action as 'pause' | 'reject' | 'cancel'];
 
   return (
     <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
@@ -818,6 +876,82 @@ function TransitionConfirm({
             disabled={pending}
           >
             {pending ? 'Working…' : copy.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GiveMoreTimeModal({
+  row,
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  row: EnrolmentRosterRow;
+  pending: boolean;
+  onClose: () => void;
+  onConfirm: (days: number) => void;
+}) {
+  const [days, setDays] = useState(7);
+  const np = row.nextPayment;
+  const valid = Number.isInteger(days) && days >= 1 && days <= 365;
+  return (
+    <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
+      <div
+        className="enrol-modal enrol-modal-confirm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="enrol-givetime-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="enrol-givetime-title" className="enrol-modal-title">
+          Give {row.name} more time?
+        </h2>
+        <p className="enrol-modal-sub">
+          This lets them back in <strong>without recording any payment</strong>.
+          {np ? (
+            <>
+              {' '}
+              They still owe {formatMoney(np.currency, np.amountMinor)} (payment{' '}
+              {np.index} of {np.totalPayments}) and are expected to pay it on the
+              platform by the new date.
+            </>
+          ) : null}
+        </p>
+        <label className="enrol-field">
+          <span className="enrol-field-label">Extra days from today</span>
+          <input
+            type="number"
+            min={1}
+            max={365}
+            className="enrol-input"
+            value={Number.isNaN(days) ? '' : days}
+            onChange={(e) => setDays(parseInt(e.target.value, 10))}
+            disabled={pending}
+          />
+        </label>
+        <p className="enrol-modal-sub">
+          They&apos;ll be paused again after that date if the payment still
+          hasn&apos;t arrived.
+        </p>
+        <div className="enrol-modal-actions">
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-ghost"
+            onClick={onClose}
+            disabled={pending}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-primary"
+            onClick={() => onConfirm(days)}
+            disabled={pending || !valid}
+          >
+            {pending ? 'Saving…' : 'Give more time'}
           </button>
         </div>
       </div>

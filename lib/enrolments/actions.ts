@@ -401,6 +401,11 @@ export async function markInstallmentPaidAction(
     currency: owned.price_currency,
     amount_minor: next.amountMinor,
     status: 'ACTIVATED',
+    // No money reached QAcademy — the tutor collected this directly. Stamp it
+    // explicitly + record who, for reconciliation (vs inferring from a null
+    // paystack_reference).
+    collection_channel: 'OFF_PLATFORM',
+    recorded_by_user_id: tutor.id,
     paid_at: now,
     activated_at: now,
     enrolment_id: enr.enrolment_id,
@@ -424,6 +429,87 @@ export async function markInstallmentPaidAction(
         .eq('enrolment_id', enr.enrolment_id)
         .eq('paused_reason', 'INSTALLMENT_OVERDUE');
     }
+  }
+
+  revalidatePath(`/tutor/cohort/${cohortId}/students`);
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Slice 7d follow-up — "give more time" (grace)
+//
+// Lets a tutor defer an overdue student's pause WITHOUT recording a payment.
+// Sets installment_grace_until (the sweep skips a graced enrolment), appends
+// to grace_history_json (audit), and lifts an INSTALLMENT_OVERDUE pause as
+// part of the grant. The installment stays unpaid and on-platform — grace
+// only moves the pause deadline, it does not advance the schedule. A
+// TUTOR_MANUAL pause is left as-is (that's the tutor's separate decision).
+// ─────────────────────────────────────────────────────────────────
+
+export async function giveMoreTimeAction(
+  cohortId: string,
+  enrolmentId: string,
+  days: number,
+): Promise<TransitionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user: tutor },
+  } = await supabase.auth.getUser();
+  if (!tutor) return { ok: false, error: 'Not signed in.' };
+
+  const d = Math.trunc(days);
+  if (!Number.isFinite(d) || d < 1 || d > 365) {
+    return { ok: false, error: 'Enter a number of days between 1 and 365.' };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: enr } = await admin
+    .from('nclex_enrolments')
+    .select('enrolment_id, programme_id, status, paused_reason, grace_history_json')
+    .eq('enrolment_id', enrolmentId)
+    .maybeSingle();
+  if (!enr) return { ok: false, error: 'Enrolment not found.' };
+
+  const { data: owned } = await supabase
+    .from('nclex_programmes')
+    .select('programme_id')
+    .eq('programme_id', enr.programme_id)
+    .maybeSingle();
+  if (!owned) return { ok: false, error: 'Not your programme.' };
+
+  if (!['ENROLLED', 'PAUSED'].includes(enr.status)) {
+    return { ok: false, error: 'This enrolment is not active.' };
+  }
+
+  const now = new Date();
+  const graceUntil = new Date(now.getTime() + d * 86_400_000);
+  const history = Array.isArray(enr.grace_history_json) ? enr.grace_history_json : [];
+  history.push({
+    granted_at: now.toISOString(),
+    granted_by: tutor.id,
+    days: d,
+    grace_until: graceUntil.toISOString(),
+  });
+
+  const update: Record<string, unknown> = {
+    installment_grace_until: graceUntil.toISOString(),
+    grace_history_json: history,
+    updated_at: now.toISOString(),
+  };
+  // Granting time also lifts an overdue pause (never a manual one).
+  if (enr.status === 'PAUSED' && enr.paused_reason === 'INSTALLMENT_OVERDUE') {
+    update.status = 'ENROLLED';
+    update.paused_at = null;
+    update.paused_reason = null;
+  }
+
+  const { error } = await admin
+    .from('nclex_enrolments')
+    .update(update)
+    .eq('enrolment_id', enr.enrolment_id);
+  if (error) {
+    console.error('give more time failed:', error.message);
+    return { ok: false, error: 'Could not extend the deadline. Refresh and try again.' };
   }
 
   revalidatePath(`/tutor/cohort/${cohortId}/students`);

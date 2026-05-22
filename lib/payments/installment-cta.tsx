@@ -25,13 +25,19 @@ export function InstallmentCta({ next }: { next: NextPaymentView | null }) {
 
   const amount = formatMoney(next.currency, next.amountMinor);
   const due = formatDue(next.dueDateIso);
+  const graced = next.graceUntilIso != null;
+  const stateClass = next.isOverdue ? ' is-overdue' : graced ? ' is-extended' : '';
 
   return (
-    <div className={`inst-cta${next.isOverdue ? ' is-overdue' : ''}`}>
+    <div className={`inst-cta${stateClass}`}>
       <span className="inst-cta-info">
         {next.isOverdue ? (
           <>
             Payment overdue — <strong>{amount}</strong> was due {due}
+          </>
+        ) : graced ? (
+          <>
+            Extended — <strong>{amount}</strong> now due {formatDue(next.graceUntilIso!)}
           </>
         ) : (
           <>

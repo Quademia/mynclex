@@ -19,6 +19,8 @@ export type EnrolmentSource = 'SELF_PAID' | 'TUTOR_ADDED' | 'ADMIN_GRANT';
 
 /** One row in the tutor's cohort roster — enrolment joined to the
  *  student's profile. */
+export type PausedReason = 'INSTALLMENT_OVERDUE' | 'TUTOR_MANUAL';
+
 export interface EnrolmentRosterRow {
   enrolment_id: string;
   user_id: string;
@@ -27,6 +29,10 @@ export interface EnrolmentRosterRow {
   enrolled_at: string;
   name: string;
   email: string;
+  // Why a PAUSED row is paused — drives which actions/copy show (Give more
+  // time + the futile-Resume warning apply to INSTALLMENT_OVERDUE). NULL
+  // unless PAUSED.
+  paused_reason: PausedReason | null;
   // The next payment owed on this enrolment (Slice 7d), or null when the
   // plan is fully paid / there's no installment plan. Drives the roster's
   // "Access · payment" column and the "Mark paid" action.
@@ -113,7 +119,9 @@ export const ENROLMENT_ACTION_META: Record<
   }
 > = {
   approve: { label: 'Approve', tone: 'primary', confirm: false, note: false },
-  resume: { label: 'Resume', tone: 'primary', confirm: false, note: false },
+  // Resume now confirms — it has a non-obvious consequence (an overdue student
+  // gets re-paused by tonight's sweep), so the dialog spells that out.
+  resume: { label: 'Resume', tone: 'primary', confirm: true, note: false },
   pause: { label: 'Pause', tone: 'neutral', confirm: true, note: false },
   reject: { label: 'Reject', tone: 'danger', confirm: true, note: true },
   cancel: { label: 'Cancel', tone: 'danger', confirm: true, note: true },

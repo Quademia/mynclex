@@ -247,12 +247,19 @@
   color: var(--danger);
   font-weight: 600;
 }
+.cw-pay.extended {
+  color: var(--warning);
+  font-weight: 600;
+}
 .cw-pay-due {
   color: var(--text-muted);
   font-weight: 400;
 }
 .cw-pay.overdue .cw-pay-due {
   color: var(--danger);
+}
+.cw-pay.extended .cw-pay-due {
+  color: var(--warning);
 }
 .cw-row-actions {
   display: flex;

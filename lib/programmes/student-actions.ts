@@ -79,7 +79,7 @@ export async function getMyAccessibleProgrammesAction(): Promise<{
     // The student's own enrolment rows (RLS: user_id = auth.uid()).
     supabase
       .from('nclex_enrolments')
-      .select('enrolment_id, programme_id, cohort_id, status, enrolled_at, strategy_snapshot_json'),
+      .select('enrolment_id, programme_id, cohort_id, status, enrolled_at, strategy_snapshot_json, installment_grace_until'),
     // The student's own programme payments that count toward "paid so far"
     // (RLS: user_id = auth.uid()). PAID counts even before activation.
     supabase
@@ -101,6 +101,7 @@ export async function getMyAccessibleProgrammesAction(): Promise<{
     status: EnrolmentStatus;
     enrolled_at: string;
     strategy_snapshot_json: FrozenStrategySnapshot | null;
+    installment_grace_until: string | null;
   }[];
   const payments = (payRes.data ?? []) as { enrolment_id: string | null }[];
 
@@ -137,7 +138,9 @@ export async function getMyAccessibleProgrammesAction(): Promise<{
               new Date(e.enrolled_at),
               paidByEnrolment.get(e.enrolment_id) ?? 0,
               currency,
-              e.enrolment_id
+              e.enrolment_id,
+              new Date(),
+              e.installment_grace_until ? new Date(e.installment_grace_until) : null
             )
           : null
       );

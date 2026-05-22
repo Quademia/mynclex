@@ -88,6 +88,7 @@ export default async function InstallmentCheckoutPage({
             currency,
             dueDateIso: schedule.next.dueDate.toISOString(),
             isOverdue: schedule.next.dueDate.getTime() < Date.now(),
+            graceUntilIso: null,
           }}
           accountEmail={user.email ?? null}
         />

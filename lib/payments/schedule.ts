@@ -131,6 +131,11 @@ export type NextPaymentView = {
   currency: Currency;
   dueDateIso: string;
   isOverdue: boolean;
+  // An active tutor-granted grace deadline (Slice 7d follow-up). When set,
+  // the payment is past its original due date but the tutor has deferred the
+  // pause to this date, so `isOverdue` is suppressed and the UI shows
+  // "extended to <date>" rather than a red "overdue".
+  graceUntilIso: string | null;
 };
 
 export function nextPaymentView(
@@ -139,10 +144,12 @@ export function nextPaymentView(
   paidCount: number,
   currency: Currency,
   enrolmentId: string,
-  asOf: Date = new Date()
+  asOf: Date = new Date(),
+  graceUntil: Date | null = null
 ): NextPaymentView | null {
   const schedule = buildSchedule(snapshot, enrolledAt, paidCount);
   if (!schedule.next) return null;
+  const graceActive = graceUntil != null && graceUntil.getTime() > asOf.getTime();
   return {
     enrolmentId,
     index: schedule.next.index,
@@ -150,6 +157,8 @@ export function nextPaymentView(
     amountMinor: schedule.next.amountMinor,
     currency,
     dueDateIso: schedule.next.dueDate.toISOString(),
-    isOverdue: isOverdue(schedule, asOf),
+    // Grace defers the pause, so a graced payment isn't shown as overdue.
+    isOverdue: isOverdue(schedule, asOf) && !graceActive,
+    graceUntilIso: graceActive ? graceUntil.toISOString() : null,
   };
 }

@@ -116,7 +116,8 @@ export async function getCohortRoster(
     // PostgREST errors (which this function would swallow into an empty
     // roster). Follow the user_id FK explicitly.
     .select(
-      `enrolment_id, user_id, status, enrolment_source, enrolled_at, strategy_snapshot_json,
+      `enrolment_id, user_id, status, enrolment_source, enrolled_at, paused_reason,
+       strategy_snapshot_json, installment_grace_until,
        nclex_users!nclex_enrolments_user_id_fkey!inner(name, email)`,
     )
     .eq('cohort_id', cohortId)
@@ -130,7 +131,9 @@ export async function getCohortRoster(
     status: EnrolmentRosterRow['status'];
     enrolment_source: EnrolmentRosterRow['enrolment_source'];
     enrolled_at: string;
+    paused_reason: EnrolmentRosterRow['paused_reason'];
     strategy_snapshot_json: FrozenStrategySnapshot | null;
+    installment_grace_until: string | null;
     nclex_users:
       | { name: string; email: string }
       | { name: string; email: string }[]
@@ -169,6 +172,7 @@ export async function getCohortRoster(
         status: r.status,
         enrolment_source: r.enrolment_source,
         enrolled_at: r.enrolled_at,
+        paused_reason: r.paused_reason,
         name: profile.name,
         email: profile.email,
         nextPayment:
@@ -179,6 +183,8 @@ export async function getCohortRoster(
                 paidByEnrolment.get(r.enrolment_id) ?? 0,
                 currency,
                 r.enrolment_id,
+                new Date(),
+                r.installment_grace_until ? new Date(r.installment_grace_until) : null,
               )
             : null,
       } satisfies EnrolmentRosterRow;
