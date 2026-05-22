@@ -8,20 +8,18 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-22):** **Payments Slice 5.4b — bank opt-in at
-> programme checkout (combined charge).** Live opt-in card (5 tiers, 40%
-> off, off-by-default) → one Paystack charge covering programme + bank via
-> new `nclex_payments.checkout_group_id` (migration `20260604120000`, dev
-> only; per-row UNIQUE on `paystack_reference` dropped — a group shares it).
-> `init.ts` is now a line-item order; `verify`/`activate` are group-aware
-> (sum-matched amount guard; programme → enrolment, bank → subscription
-> immediately; one invite per group). + logged-in-buyer prefill. Verified
-> end-to-end (GHS ₵3,420 single charge → both activated). **Deferred to
-> 5.5:** shared checkout-shell extraction + route rename. **Next: Slice
-> 5.5** (standalone bank landing — public GHS|USD dual-currency, 5 tiers,
-> pay-first), or rotate per the alternate-features rule. This arc so far:
-> 5.1 schema, 5.2 Paystack init/verify, 5.3 bank activation, 5.4a programme
-> checkout, 5.4b bank opt-in.
+> **Last shipped (2026-05-22):** **Payments Slice 5.5 — standalone bank
+> landing + purchase.** Public **`/bank-access`** (GHS|USD toggle, 5 tiers,
+> "what you get", trial deferred) → **`/checkout/bank`** reusing a newly
+> **extracted shared checkout shell** (`components/checkout/`); programme
+> checkout renamed to **`/checkout/programme/[id]`**. No schema change —
+> reuses the BANK engine path from 5.2/5.3. Verified end-to-end (pay-first
+> GHS BANK_365D → ACTIVE subscription). **Next: Slice 5.6** (bank
+> entitlement gating — bank/practice requires an active subscription, RLS +
+> per-page + launch-RPC guard), then 5.7 (my-payments page), or rotate per
+> the alternate-features rule. This arc so far: 5.1 schema · 5.2 Paystack
+> init/verify · 5.3 bank activation · 5.4a programme checkout · 5.4b bank
+> opt-in (combined charge) · 5.5 standalone bank.
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -1139,8 +1137,26 @@ Slice order from the adopted Claude Design proposal
     extraction + route rename (`/checkout/programme/[id]`) — premature with
     one consumer; do it when standalone bank gives the second case. The
     `checkout_group_id` model also future-proofs any multi-product cart.
-  - ⬜ **5.5** Standalone bank landing + purchase — public dual-currency
-    landing (GHS|USD toggle), 5 tiers, pay-first flow.
+  - ✅ **5.5** Standalone bank landing + purchase — shipped 2026-05-22.
+    Public **`/bank-access`** landing (`app/(public)/bank-access/`): hero,
+    a live **GHS|USD toggle**, the 5 `BANK_DURATION` tiers as cards (real
+    catalogue prices, bundled-readiness-credit lines, 90d "Most popular"),
+    a "what you get" feature grid (CAT marked coming-soon), trial strip
+    (button inert — **trial deferred** to its own slice, needs a free
+    self-serve signup we don't have). "Get access" → **`/checkout/bank`**.
+    **Shared checkout shell extracted** (`components/checkout/checkout-shell.tsx`
+    — email+dup-check+prefill, order rail, Pay, what-happens-next) now
+    powering both bank + programme checkout; **programme route renamed**
+    `/checkout/[programmeId]` → **`/checkout/programme/[id]`** (Enrol link +
+    callback updated; old route 404s). Bank checkout (`/checkout/bank`,
+    server-validates the product is an active paid BANK_DURATION, else
+    redirects to the landing) reuses the proven BANK engine path (5.2/5.3) —
+    no schema change. Nav "Practice bank" wired to `/bank-access`. Verified
+    end-to-end on dev: pay-first GHS BANK_365D → payment ACTIVATED →
+    `/welcome` → profile+role → `nclex_subscriptions` ACTIVE 365d,
+    `SELF_PURCHASE`; programme checkout still works post-refactor. (USD not
+    fully testable — Paystack test account has USD disabled — but same code
+    path.)
   - ⬜ **5.6** Bank entitlement gating — bank/practice surfaces require an
     active bank subscription (RLS + per-page guard + launch-RPC guard,
     per the layered-access rule). Currently bank/practice is gated only

@@ -259,7 +259,7 @@ export default async function ProgrammeDetailPage({
 
             <div className="det-cta">
               {canEnrol ? (
-                <Link className="pub-btn-primary" href={`/checkout/${id}`}>
+                <Link className="pub-btn-primary" href={`/checkout/programme/${id}`}>
                   {selfPaced ? 'Start now →' : 'Enrol in next cohort →'}
                 </Link>
               ) : (

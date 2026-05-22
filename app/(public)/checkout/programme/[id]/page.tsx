@@ -1,57 +1,45 @@
-// mynclex/app/(public)/checkout/[programmeId]/page.tsx
+// mynclex/app/(public)/checkout/programme/[id]/page.tsx
 //
-// On-platform programme checkout (Payments Slice 5.4a). Reached from the
-// live "Enrol" button on /programmes/[id]. Server component: re-reads the
-// programme from the public view and re-applies the same gates the detail
-// page used to enable the button (published + on-platform + public price +
-// something joinable), so a hand-typed URL can't reach checkout for a
-// programme that isn't actually enrollable. The interactive part (cohort
-// pick, email + dup-check, Pay) lives in the co-located client form.
-//
-// Upfront-full only. The payment-strategy card is still a "coming soon"
-// placeholder (Slice 7); the bank opt-in card is LIVE (5.4b).
+// On-platform programme checkout. Reached from the live "Enrol" button on
+// /programmes/[id]. Server component: re-reads the programme from the public
+// view and re-applies the same gates the detail page used to enable the
+// button, so a hand-typed URL can't reach checkout for a programme that
+// isn't enrollable. The interactive part (cohort, bank opt-in, email, Pay)
+// is the co-located client component, which renders the shared CheckoutShell.
 
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getPublicProgramme, getPublicCohorts } from '@/lib/discovery/queries';
-import {
-  formatCohortDateLong,
-  initials,
-  tutorAttribution,
-} from '@/lib/discovery/format';
-import { CheckoutForm, type BankTier } from './checkout-form';
+import { formatCohortDateLong, initials, tutorAttribution } from '@/lib/discovery/format';
+import { ProgrammeCheckout, type BankTier } from './programme-checkout';
 
 export const dynamic = 'force-dynamic';
 
-export default async function CheckoutPage({
+export default async function ProgrammeCheckoutPage({
   params,
 }: {
-  params: Promise<{ programmeId: string }>;
+  params: Promise<{ id: string }>;
 }) {
-  const { programmeId } = await params;
-  const programme = await getPublicProgramme(programmeId);
+  const { id } = await params;
+  const programme = await getPublicProgramme(id);
   if (!programme) notFound();
 
-  const detailHref = `/programmes/${programmeId}`;
+  const detailHref = `/programmes/${id}`;
   const selfPaced = programme.delivery_mode === 'SELF_PACED';
 
-  // Re-apply the button's enable gate. Anything that fails it bounces back
-  // to the read-only detail page rather than showing an unusable checkout.
-  // (The public view already gates to PUBLISHED + active tutor, so a row
-  // here is necessarily published.)
+  // Re-apply the button's enable gate. (The public view already gates to
+  // PUBLISHED + active tutor, so a row here is necessarily published.)
   const enrollable =
     programme.payment_collection_mode === 'ON_PLATFORM' &&
     programme.show_price_publicly &&
     programme.price_minor > 0;
   if (!enrollable) redirect(detailHref);
 
-  // Tutor-led needs at least one joinable cohort (matches the detail page +
-  // the nclex_join gate: upcoming OR late-join-allowed).
   const todayStr = new Date().toISOString().slice(0, 10);
   const cohortOptions = selfPaced
     ? []
-    : (await getPublicCohorts(programmeId))
+    : (await getPublicCohorts(id))
         .filter((c) => c.start_date >= todayStr || c.allow_late_join)
         .map((c) => ({
           id: c.cohort_id,
@@ -67,9 +55,8 @@ export default async function CheckoutPage({
     programme.tutor_avatar_url
   );
 
-  // Bank opt-in (5.4b): the 5 paid duration tiers + the configured discount,
-  // priced in the PROGRAMME's currency (one charge, one currency). Both read
-  // through the public RLS (active products + public config).
+  // Bank opt-in: the 5 paid duration tiers + the configured discount, priced
+  // in the PROGRAMME's currency (one charge, one currency).
   const supabase = await createClient();
   const currency = programme.price_currency;
   const [{ data: products }, { data: cfg }, { data: { user } }] = await Promise.all([
@@ -124,8 +111,8 @@ export default async function CheckoutPage({
         </div>
       </div>
 
-      <CheckoutForm
-        programmeId={programmeId}
+      <ProgrammeCheckout
+        programmeId={id}
         selfPaced={selfPaced}
         cohorts={cohortOptions}
         programmeTitle={programme.title}

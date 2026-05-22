@@ -100,6 +100,13 @@
 .co-bank-tier .price .strike { font-size: 11px; font-weight: 500; color: var(--ink-faint); text-decoration: line-through; }
 .co-bank-note { margin-top: 10px; font-size: 12px; color: var(--ink-mute); line-height: 1.45; }
 
+/* bank checkout — chosen-plan summary */
+.co-change-link { font-size: 12.5px; color: var(--accent); }
+.co-plan-summary { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.co-plan-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+.co-plan-sub { font-size: 12.5px; color: var(--ink-mute); margin-top: 2px; }
+.co-plan-amt { font-size: 18px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+
 /* payment strategies */
 .co-strats { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
 .co-strat {

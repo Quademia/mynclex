@@ -1,0 +1,160 @@
+/* mynclex/styles/bank.css
+ * Standalone bank landing (/bank-access, Slice 5.5).
+ * Inherits the (public) discovery.css bridge vars. Namespaced `.bank-*`.
+ */
+
+.bank-content { max-width: 1080px; }
+
+/* hero */
+.bank-hero { padding: 28px 0 8px; max-width: 760px; }
+.bank-eyebrow {
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent-strong);
+}
+.bank-hero h1 {
+  margin-top: 10px;
+  font-size: 36px;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.bank-lede { margin-top: 14px; font-size: 16px; line-height: 1.55; color: var(--ink-soft); }
+.bank-hero-meta {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 13px;
+  color: var(--ink-mute);
+}
+
+/* plans */
+.bank-plans { margin-top: 36px; }
+.bank-plans-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.bank-plans-head h2 { font-size: 18px; font-weight: 600; color: var(--ink); }
+.bank-fx { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.bank-fx button {
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  background: #fff;
+  color: var(--ink-mute);
+  border: none;
+  cursor: pointer;
+}
+.bank-fx button.on { background: var(--primary); color: #fff; }
+
+.bank-plan-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.bank-plan {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 20px 18px;
+}
+.bank-plan.popular { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.bank-plan-badge {
+  position: absolute;
+  top: -10px;
+  left: 18px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.bank-plan-days { font-size: 13px; font-weight: 600; color: var(--ink-mute); }
+.bank-plan-price { margin-top: 4px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+.bank-plan-feats { margin: 14px 0 16px; padding-left: 16px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; list-style: disc; }
+.bank-plan-feats li { margin: 4px 0; }
+.bank-plan-feats li.muted { color: var(--ink-faint); list-style: none; margin-left: -16px; }
+.bank-plan-btn {
+  margin-top: auto;
+  width: 100%;
+  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.bank-plan-btn:hover { background: var(--accent-dark); text-decoration: none; }
+
+/* trial + stacking */
+.bank-trial {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--accent-soft);
+  border: 1px solid #cfe2de;
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.bank-trial-btn {
+  flex: none;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--accent-strong);
+  background: #fff;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.bank-trial-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.bank-stack-note { margin-top: 12px; font-size: 12.5px; color: var(--ink-mute); }
+
+/* includes */
+.bank-includes { margin-top: 44px; }
+.bank-includes h2 { font-size: 18px; font-weight: 600; color: var(--ink); }
+.bank-feature-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.bank-feature { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 18px 20px; }
+.bank-feature h4 { font-size: 14px; font-weight: 600; color: var(--ink); }
+.bank-feature p { margin-top: 6px; font-size: 13px; line-height: 1.5; color: var(--ink-mute); }
+.bank-soon {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--ink-faint);
+  background: var(--bg-sunk);
+  padding: 1px 7px;
+  border-radius: 999px;
+  margin-right: 4px;
+}
+
+.bank-trust { margin-top: 32px; font-size: 12.5px; color: var(--ink-mute); text-align: center; }
+
+@media (max-width: 720px) {
+  .bank-hero h1 { font-size: 28px; }
+  .bank-trial { flex-direction: column; align-items: flex-start; }
+}

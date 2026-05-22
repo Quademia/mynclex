@@ -11,6 +11,7 @@
 import '@/styles/tokens.css';
 import '@/styles/discovery.css';
 import '@/styles/checkout.css';
+import '@/styles/bank.css';
 import { PublicNav } from '@/components/public/public-nav';
 import { PublicFooter } from '@/components/public/public-footer';
 

@@ -16,7 +16,7 @@ export function PublicNav() {
       </Link>
 
       <nav className="links">
-        <span className="link-soon">Practice bank</span>
+        <Link href="/bank-access">Practice bank</Link>
         <Link href="/programmes">Programmes</Link>
         <span className="link-soon">Readiness</span>
         <span className="link-soon">For tutors</span>
