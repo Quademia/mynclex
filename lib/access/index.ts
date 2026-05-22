@@ -28,6 +28,7 @@ export {
   requireStudentCohortAccess,
   type StudentCohortAccessResult,
 } from './student/require-cohort-access';
+export { requireActiveBankSubscription } from './student/require-active-bank-subscription';
 
 // Shared (cross-audience)
 export { requireBankCurator } from './shared/require-bank-curator';

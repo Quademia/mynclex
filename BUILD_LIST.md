@@ -8,23 +8,17 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-20):** **Payments Slice 4 — student-initiated
-> waitlist + cohort-workspace redesign.** New `nclex_cohort_waitlist`
-> (PENDING/CONVERTED/DISMISSED leads; CASCADE — pre-enrolment leads, not
-> financial records) + anon-callable idempotent `nclex_join_waitlist` RPC
-> (validates cohort is joinable). Public programme page gains a **second**
-> rail button (under the kept "coming soon" CTA) → a Join-waitlist form
-> (forename/surname, email, **phone**, **preferred contact** Call/SMS/
-> WhatsApp/Email with phone-required-iff-phone-method, cohort picker that
-> collapses for a single cohort). Tutor **Students** surface rebuilt to the
-> CD handoff (`prototypes/tutor-cohort-workspace.html`) using app tokens:
-> **Roster | Waitlist sub-tabs**, summary cells, avatars + relative time,
-> roster table w/ status filter chips + search + an Access·payment
-> **placeholder** column (fills in Slices 5–7). Waitlist tab: contact-badge
-> rows + **Convert →** (shared `inviteOrAttachAndEnrol`, confirm dialog) /
-> **Dismiss**. Migration `20260531120000` (dev only). Verified tsc +
-> browser. **Next session: Slice 5 — on-platform checkout** (see below),
-> or rotate per the alternate-features rule.
+> **Last shipped (2026-05-22):** **Payments Slice 5.6 — bank entitlement
+> gating.** Bank practice now requires an active bank subscription
+> (full-lock on lapse). Layered: SQL `nclex_has_active_bank_access` + a gate
+> in the `nclex_create_attempt` RPC (migration `20260605120000`, dev only);
+> TS `requireActiveBankSubscription()` on the bank layout; **source-aware**
+> runner gate (bank `CUSTOM_BUILT` only — programme quizzes untouched);
+> picker card reflects real access ("X days left" / "Get access →").
+> SUPER_ADMIN bypass. **Next: Slice 5.7** (my-payments page), or rotate per
+> the alternate-features rule. This arc so far: 5.1 schema · 5.2 Paystack
+> init/verify · 5.3 bank activation · 5.4a programme checkout · 5.4b bank
+> opt-in · 5.5 standalone bank · 5.6 bank gating.
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -962,17 +956,241 @@ Slice order from the adopted Claude Design proposal
   `20260531120000` (dev only). **Deferred:** "did you mean gmail.com?"
   email typo hint (we verify format only — Convert's invite is the real
   deliverability test).
-- ⬜ **Slice 5** On-platform checkout (single-strategy) — payment Worker
-  + `nclex_products` + `nclex_payments` + bank opt-in card; upfront-full
-  only; email dup-check pause.
-- ⬜ **Slice 6** Subscriptions + bank standalone — `nclex_subscriptions`
-  + bank-tier purchases + standalone bank landing.
+- ⬜ **Slice 5+6 (combined)** On-platform checkout + subscriptions +
+  standalone bank. Slices 5 and 6 were merged 2026-05-21 — the bank
+  opt-in card at programme checkout can't activate without
+  `nclex_subscriptions`, so building them apart would ship a half-wired
+  table. **Decisions locked this session (see SESSIONS 2026-05-21):**
+  - **In-app route handlers, NOT a separate Cloudflare Worker.** The
+    doc's "payment Worker mirroring Licensure" rationale doesn't carry
+    over: Licensure was a static site with no server runtime, so it
+    needed a standalone Worker. MyNclex already runs server-side on
+    Cloudflare Workers (Next.js via OpenNext), so `init`/`verify` are
+    ordinary route handlers / server actions in the app — no separate
+    deploy, no CORS, secrets already wired. Paystack is redirect-based
+    (no card data touches us), so PCI scope stays minimal.
+  - **`nclex_products` is dual-currency** (`price_minor_ghs` +
+    `price_minor_usd`), unlike single-currency programmes. Deliberate:
+    the bank is QAcademy's own product priced *regionally* (GHS anchored
+    to local nurse salary; USD to international competitors; conversion
+    intentionally not 1:1) — see payments-and-enrolment.md §282–349,
+    §966–981. Programmes are single-currency only because each is run by
+    one tutor who shouldn't maintain two prices (Slice 3a).
+  - **Readiness packs are products at the schema level, deferred at the
+    build level.** `nclex_products` carries `pack_type ∈ BANK_DURATION |
+    READINESS | TRIAL` + a nullable `readiness_pack_id` FK →
+    `nclex_readiness_packs` (which already exists in `db/schema.sql`).
+    We seed only the 5 bank tiers (+ trial) and build only the bank +
+    programme flows; the readiness *purchase* path stays a v2 deferral
+    (sells via the main readiness page, never at programme checkout —
+    doc §803–804). Bank tiers DO carry a `bundled_readiness_credits`
+    column (60d→1 … 365d→5 per doc §396), captured now even though
+    nothing consumes it until readiness ships — Sam's call 2026-05-21.
+  - **Payment = polymorphic single-purpose rows, NOT header + line
+    items.** Build the CD proposal's model verbatim (it's the adopted
+    build basis): `nclex_payments` is one row per Paystack transaction
+    carrying a `purpose` enum (`BANK_PURCHASE` | `READINESS_PURCHASE` |
+    `PROGRAMME_INITIAL` | `PROGRAMME_INSTALLMENT` |
+    `BANK_OPTIN_AT_PROGRAMME`) + polymorphic FKs (exactly one of
+    `product_id` / `programme_id` per row). No `nclex_payment_items`
+    child table — that was an early Claude drift, retracted 2026-05-21
+    in favour of the CD shape (keeps each txn one row, no join for the
+    "my payments" page). The 40% bank-opt-in discount is computed
+    client-side from a `BANK_PROGRAMME_OPTIN_DISCOUNT` constant, not a
+    duplicate discounted product row. **Divergence (2026-05-21):** the
+    CD proposal held this discount as a client-side constant
+    (`BANK_PROGRAMME_OPTIN_DISCOUNT`); we instead store it in a new
+    `nclex_config` key-value table so it's retunable without a redeploy.
+  - **Activation targets differ.** A `PROGRAMME_*` payment → `nclex_enrolments`
+    row, `SELF_PAID`, `PENDING_APPROVAL` (tutor still approves). A
+    `BANK_*` payment → `nclex_subscriptions` row, **activates immediately
+    on payment** (not gated on tutor approval), new duration **stacks**
+    as a fresh row (access = `max(end_at)`), not a mutate-existing extend.
+  - **`strategy_id` deferred.** `nclex_payments.strategy_id` /
+    `nclex_enrolments.strategy_id` FK → `nclex_programme_payment_strategies`,
+    but that table is Slice 7. For upfront-full only, the programme price
+    already lives on `nclex_programmes.price_minor` (Slice 3a), so
+    `strategy_id` stays nullable and the strategies table waits for
+    Slice 7.
+  - **Open question deferred to 5.4:** programme + bank opt-in is one
+    combined "Pay" button in the prototype, but the polymorphic schema
+    is one-purpose-per-row with a UNIQUE reference → implies either two
+    Paystack charges or a `checkout_group_id` tying two rows to one
+    charge. Decided at the checkout-UI sub-slice, not a 5.1 blocker.
+  - **Pay-first via Supabase invite, NOT the sibling's setup-token.**
+    verify → `inviteUserByEmail` → existing `/welcome` (shipped Slice 1)
+    → account + activation. The Licensure custom setup-token /
+    `setup-complete` route is not carried over.
+  - **Email dup-check fires at email entry, before Paystack** (doc
+    §164–175): existing account → checkout pauses with "log in to
+    continue," resumes post-login against the existing account.
+
+  Bank opt-in rules (doc §783–822): always offered, no tutor toggle,
+  40% off standalone, all 5 tiers, **not pre-selected** (no dark
+  pattern), stacks on existing access. Sub-slices, built bottom-up
+  (~one per session per the alternate-features rule):
+  - ✅ **5.1** Schema + seed (DB only) — a new `nclex_config` key-value
+    table (`key`/`value`/`description`/`updated_at`, mirrors gamma's
+    `config`; read public, write SUPER_ADMIN; seeded with
+    `bank_optin_discount = 0.40`) plus three CD tables verbatim:
+    `nclex_products` (dual-currency `price_minor_ghs`/`_usd`, `kind`,
+    `pack_type`, `duration_days`, `readiness_pack_count`, `status`
+    ACTIVE/ARCHIVED, `sort_order`; seed 6 bank tiers + trial — readiness
+    SKUs optional, no purchase path in v1), `nclex_payments` (polymorphic
+    `purpose` rows, no line-item child; `strategy_id` nullable), and
+    `nclex_subscriptions` (stacking, `pack_type` denormalised, readiness
+    fields present but unused in v1). Full RLS + SUPER_ADMIN bypass.
+    Applied to mynclex-dev as migration `20260601120000`; mirrored into
+    `db/schema.sql` + `db/rls.sql`. Verified: seed (6 products + discount
+    config), RLS on all four, polymorphic purpose↔target CHECK, security
+    advisor clean (no new warnings).
+  - ✅ **5.2** Paystack init + verify (test-mode) + email dup-check.
+    Built in-app, NOT as `app/api/.../route.ts` handlers — corrected
+    mid-build: `init` is a **server action** (`startPaymentAction`),
+    `verify` is a **plain function** called by the **callback page** the
+    browser returns to (a server action can't be a redirect target; an
+    API route was unnecessary). New `lib/payments/`: `paystack.ts` (the
+    only file that calls Paystack — `initialize`+`verify`, reads
+    `PAYSTACK_SECRET_KEY`), `dup-check.ts` (email-exists via service-role
+    on `nclex_users`), `init.ts` (resolve amount/currency/purpose →
+    write `INIT` row → start Paystack → return redirect URL), `verify.ts`
+    (confirm + amount tamper-guard → flip `PAID`; stops short of access),
+    `types.ts`, `actions.ts` (`'use server'` wrappers). Callback page at
+    `/checkout/callback` (minimal; 5.4 makes it the real result screen).
+    Throwaway `/paytest` harness (NODE_ENV-guarded; deleted at 5.4).
+    Writes via service role (no authenticated write policy on payments).
+    Verified on localhost with Paystack test mode: GHS BANK_30D went
+    `INIT → PAID` (amount-matched ₵120); abandoned attempt left `INIT`;
+    USD failed at Paystack (test account has no USD enabled — account
+    setting, not code) and was correctly marked `FAILED`; dup-check
+    returns yes/no correctly. **Open for 5.3:** activation (PAID →
+    enrolment/subscription + welcome invite). **Reliability note:** v1
+    relies on the browser-redirect verify (mirrors Licensure); a Paystack
+    webhook would be more robust — revisit later.
+  - ✅ **5.3** Activation engine (BANK only; programme enrolment activation
+    deferred to 5.4 with the cohort picker). `lib/payments/activate.ts`
+    grants an `nclex_subscriptions` row from a PAID bank payment +
+    `lib/payments/settle.ts` (verify→activate orchestrator the callback
+    page calls). Two identity cases: existing account → grant immediately
+    → `ACTIVATED`; pay-first guest → Supabase invite → `SETUP_REQUIRED` →
+    `/welcome` (now creates the profile + STUDENT role when missing, then
+    `activatePendingForEmail`) → grant. **Email is the canonical identity**
+    — `startPaymentAction` no longer stamps the logged-in session id;
+    activation resolves the account by the payment's email (the dup-check
+    already reconciles an existing email to its account via login before
+    payment). **Idempotent**: partial unique index
+    `idx_nclex_subscriptions_payment` on `payment_id`
+    (migration `20260602120000`) + 23505-as-success on insert — replaced a
+    racy `maybeSingle()` pre-check that ran away to duplicate subs under
+    concurrent callback hits (caught in testing). Verified on dev across
+    both paths: granted to the typed account (not the session), one sub
+    per payment, correct durations, pay-first profile+role created.
+  - ✅ **5.4a** Programme checkout page (upfront-full, programme-only) —
+    shipped 2026-05-21. New public route `app/(public)/checkout/[programmeId]/`
+    (server gate re-applies the Enrol button's enable rule + co-located
+    client form): cohort picker (collapses for a single cohort; hidden for
+    self-paced), email + live dup-check, order summary, **Pay with Paystack**.
+    The payment-strategy and bank-opt-in cards render as disabled "coming
+    soon" placeholders (Slices 7 + 5.4b) so the page already reads as the
+    full prototype. Activation engine (`activate.ts`) extended to
+    `PROGRAMME_INITIAL` → an `nclex_enrolments` row: tutor-led →
+    `PENDING_APPROVAL`, self-paced → `ENROLLED` immediately, with
+    `access_expires_at` frozen from `access_window_days`; same pay-first
+    invite + idempotency (existing active enrolment is linked, not
+    re-created — never trap a paid buyer behind the unique-active guard).
+    New nullable `nclex_payments.cohort_id` (migration `20260603120000`,
+    dev only) carries the picked cohort across the Paystack round trip
+    (the enrolment doesn't exist until after payment). `init.ts` enforces
+    on-platform + published + validates a joinable cohort; `settle.ts` /
+    callback page distinguish `PENDING_APPROVAL` from `ACCESS_READY`. Live
+    **Enrol** button wired on `/programmes/[id]` (on-platform + public price
+    + something joinable); the **detail rail was rebuilt to the CD
+    prototype** (price + sub, Enrol + cohort note, bank-opt-in hint box,
+    payment-strategies list — placeholders where data isn't live; seat
+    counts deliberately omitted per Slice 3c). Verified end-to-end on dev:
+    pay-first GHS ₵3,000 → `INIT→PAID→ACTIVATED`, `PENDING_APPROVAL`
+    enrolment w/ 365-day window → tutor approve → `ENROLLED`.
+    **Deferred to 5.4b:** the live bank opt-in card (the one-charge
+    `checkout_group_id` model) + session-aware prefill for an
+    already-logged-in buyer (today the dup-check blocks a logged-in buyer
+    who types their own email).
+  - ✅ **5.4b** Bank opt-in card at programme checkout — shipped 2026-05-22.
+    One **combined Paystack charge** covers programme + bank via a new
+    `nclex_payments.checkout_group_id` (migration `20260604120000`, dev
+    only): rows of one order share the group + one reference (the per-row
+    UNIQUE on `paystack_reference` was dropped — a group legitimately shares
+    it). `init.ts` rebuilt around a **line-item order** (programme + optional
+    bank line, both in the programme's currency; bank price computed
+    **server-side** from the product × `nclex_config.bank_optin_discount`,
+    never trusting the browser). `verify.ts` + `activate.ts` made
+    **group-aware**: verify sums the group and checks that against Paystack's
+    charge; activation grants every row (programme → enrolment, bank →
+    subscription **immediately**, `source=PROGRAMME_OPTIN`) with the pay-first
+    invite firing **once per group**. Live opt-in card (checkbox off by
+    default, 5 `BANK_DURATION` tiers w/ discounted + struck prices, 90d
+    default-once-ticked, order line + combined total) + **logged-in-buyer
+    prefill** (own email pre-filled, skips the dup-block). Verified
+    end-to-end on dev: pay-first GHS ₵3,000 + 365d ₵420 = **₵3,420 single
+    charge** → both rows ACTIVATED → enrolment `PENDING_APPROVAL` +
+    subscription `ACTIVE`. **Deferred to 5.5:** the shared checkout-shell
+    extraction + route rename (`/checkout/programme/[id]`) — premature with
+    one consumer; do it when standalone bank gives the second case. The
+    `checkout_group_id` model also future-proofs any multi-product cart.
+  - ✅ **5.5** Standalone bank landing + purchase — shipped 2026-05-22.
+    Public **`/bank-access`** landing (`app/(public)/bank-access/`): hero,
+    a live **GHS|USD toggle**, the 5 `BANK_DURATION` tiers as cards (real
+    catalogue prices, bundled-readiness-credit lines, 90d "Most popular"),
+    a "what you get" feature grid (CAT marked coming-soon), trial strip
+    (button inert — **trial deferred** to its own slice, needs a free
+    self-serve signup we don't have). "Get access" → **`/checkout/bank`**.
+    **Shared checkout shell extracted** (`components/checkout/checkout-shell.tsx`
+    — email+dup-check+prefill, order rail, Pay, what-happens-next) now
+    powering both bank + programme checkout; **programme route renamed**
+    `/checkout/[programmeId]` → **`/checkout/programme/[id]`** (Enrol link +
+    callback updated; old route 404s). Bank checkout (`/checkout/bank`,
+    server-validates the product is an active paid BANK_DURATION, else
+    redirects to the landing) reuses the proven BANK engine path (5.2/5.3) —
+    no schema change. Nav "Practice bank" wired to `/bank-access`. Verified
+    end-to-end on dev: pay-first GHS BANK_365D → payment ACTIVATED →
+    `/welcome` → profile+role → `nclex_subscriptions` ACTIVE 365d,
+    `SELF_PURCHASE`; programme checkout still works post-refactor. (USD not
+    fully testable — Paystack test account has USD disabled — but same code
+    path.)
+  - ✅ **5.6** Bank entitlement gating — shipped 2026-05-22. Bank practice
+    now requires an **active bank subscription** (full-lock on lapse, Sam's
+    call: builder, runner, AND history/review). Layered per the
+    layered-access rule:
+    - **DB (hard backstop):** `nclex_has_active_bank_access(uuid)` (ACTIVE +
+      `end_at` null-or-future, pack_type BANK_DURATION/TRIAL — date-compared
+      so it's correct before the deferred expiry sweep) + the gate inside
+      the SECURITY DEFINER `nclex_create_attempt` RPC. SUPER_ADMIN bypass.
+      Migration `20260605120000` (dev only).
+    - **TS page guard:** `requireActiveBankSubscription()` in
+      `lib/access/student/` (barrel-exported), reading `bankAccessForUser`
+      in new `lib/payments/entitlements.ts`. Applied at the **bank layout**
+      (covers every `/student/bank/*` page → `/bank-access` on no access).
+    - **Source-aware runner:** the shared runner (`/session/[id]`, outside
+      the bank layout) gates **only `CUSTOM_BUILT` (bank) attempts** —
+      `PROGRAMME_ASSIGNED` tutor-quiz attempts are untouched, so a bank-less
+      programme student still runs their quizzes.
+    - **Picker UI:** real `getMyBankAccess()` — active → enters bank w/
+      "X days left" / "Lifetime access"; none/lapsed → "Get access →" CTA to
+      `/bank-access`.
+    Helper verified per-student on dev (student w/ 30d & 365d → true;
+    no-sub student → false; super-admin bypasses). Full per-user redirect +
+    create-RPC-refusal + programme-quiz-still-works = Sam's browser test.
+    Trial deferred (will satisfy the same check once built).
 - ⬜ **Slice 7** Multi-strategy + installments —
   `nclex_programme_payment_strategies` + nightly cron PAUSE on overdue +
   manual tutor override.
 - ⬜ **Slice 8** Self-paced + enquiry routing — `cohort_id = NULL`
   branch + `show_price_publicly = FALSE` contact path +
   `nclex_programme_enquiries`.
+- ⬜ **5.7 (resequenced to last, 2026-05-22)** "My Payments" student page —
+  transaction list (date, product, amount, currency, status). Moved out of
+  the 5.x block to after Slice 8 so it can display **every** payment type +
+  state once installments (Slice 7) and self-paced/enquiry (Slice 8) exist —
+  building it earlier would only cover a subset.
 
 **Deferred from the proposal's Slice 2** — pg_cron EXPIRED/PAUSED nightly
 sweep (no data to act on until Slice 3's `access_window_days` /

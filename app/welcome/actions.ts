@@ -13,6 +13,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { activatePendingForEmail } from '@/lib/payments/activate';
 
 type FinalizeResult = { ok: true } | { ok: false; error: string };
 
@@ -54,12 +55,52 @@ export async function finalizeWelcomeAction(
     return { ok: false, error: pwError.message };
   }
 
-  const { error: profileError } = await supabase
+  // Two arrivals land here:
+  //   • tutor-add invite — the tutor already created the profile, so we
+  //     just save the name.
+  //   • pay-first purchase — no profile yet, so we create it + the
+  //     STUDENT role (the buyer named themselves on this form).
+  const fullName = `${forename} ${surname}`;
+  const { data: existingProfile } = await supabase
     .from('nclex_users')
-    .update({ forename, surname, name: `${forename} ${surname}` })
-    .eq('id', user.id);
-  if (profileError) {
-    return { ok: false, error: 'Could not save your details. Please try again.' };
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (existingProfile) {
+    const { error: profileError } = await supabase
+      .from('nclex_users')
+      .update({ forename, surname, name: fullName })
+      .eq('id', user.id);
+    if (profileError) {
+      return { ok: false, error: 'Could not save your details. Please try again.' };
+    }
+  } else {
+    const { error: profileError } = await supabase.from('nclex_users').insert({
+      id: user.id,
+      email: user.email,
+      forename,
+      surname,
+      name: fullName,
+      signup_source: 'SELF_PURCHASE',
+    });
+    if (profileError) {
+      return { ok: false, error: 'Could not create your profile. Please try again.' };
+    }
+    const { error: roleError } = await supabase
+      .from('nclex_user_roles')
+      .insert({ user_id: user.id, role: 'STUDENT' });
+    // Ignore a duplicate-role race; any other failure is non-fatal to setup.
+    if (roleError && roleError.code !== '23505') {
+      console.error('welcome: STUDENT role insert failed:', roleError.message);
+    }
+  }
+
+  // Grant any paid-but-not-yet-activated bank purchases for this email
+  // (pay-first). No-op for tutor-add arrivals. Runs server-side under the
+  // service role inside the helper.
+  if (user.email) {
+    await activatePendingForEmail(user.email);
   }
 
   redirect('/router');

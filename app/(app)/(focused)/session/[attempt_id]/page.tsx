@@ -16,6 +16,7 @@
 
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { requireActiveBankSubscription } from '@/lib/access';
 import type {
   AttemptHeader,
   SealedItem,
@@ -71,6 +72,14 @@ export default async function SessionPage({ params }: PageProps) {
     .eq('attempt_id', attempt_id)
     .maybeSingle();
   if (aErr || !attempt) notFound();
+
+  // Bank entitlement gate (Slice 5.6): a bank (CUSTOM_BUILT) attempt needs
+  // active bank access — full-lock on lapse covers the runner too, including
+  // review of past attempts. Programme/tutor-quiz attempts (PROGRAMME_ASSIGNED)
+  // are gated by enrolment elsewhere, so they're not touched here.
+  if (attempt.source === 'CUSTOM_BUILT') {
+    await requireActiveBankSubscription();
+  }
 
   // Lazy expire detection (slice 4.5a — runner.html §8.6 + attempt-creation
   // §6.1.3). When a timed EXAM has already passed `started_at +

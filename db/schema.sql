@@ -1431,6 +1431,119 @@ CREATE INDEX idx_nclex_cohort_waitlist_cohort_status
   ON nclex_cohort_waitlist (cohort_id, status);
 
 
+-- ────────────────────────────────────────────────────────────
+-- PAYMENTS (Slice 5.1) — catalogue, payments, subscriptions, config
+-- Migration: db/migrations/20260601120000_slice_5_1_payments_schema.sql
+-- RLS policies live in db/rls.sql; seed rows live in the migration.
+-- ────────────────────────────────────────────────────────────
+
+-- nclex_config — runtime-tunable key/value constants (gamma `config`
+-- pattern). NON-SECRET values only. First key: bank_optin_discount.
+CREATE TABLE nclex_config (
+  key         TEXT PRIMARY KEY,
+  value       TEXT NOT NULL,
+  description TEXT,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- nclex_products — QAcademy's buyable SKU catalogue (bank durations,
+-- readiness, trial). NOT programme fees. Dual-currency by column.
+CREATE TABLE nclex_products (
+  product_id            TEXT PRIMARY KEY,                          -- slug: BANK_30D, READINESS_ALL5, NCLEX_TRIAL
+  name                  TEXT NOT NULL,
+  kind                  TEXT NOT NULL DEFAULT 'PAID'
+                        CHECK (kind IN ('PAID','TRIAL')),
+  pack_type             TEXT NOT NULL
+                        CHECK (pack_type IN ('BANK_DURATION','READINESS','TRIAL')),
+  duration_days         INTEGER,                                   -- NULL for readiness
+  readiness_pack_count  SMALLINT,                                  -- READINESS SKUs only — 1/3/5
+  bundled_readiness_credits SMALLINT NOT NULL DEFAULT 0,           -- BANK_DURATION only — free readiness credits with the pass
+  price_minor_ghs       INTEGER NOT NULL DEFAULT 0,
+  price_minor_usd       INTEGER NOT NULL DEFAULT 0,
+  status                TEXT NOT NULL DEFAULT 'ACTIVE'
+                        CHECK (status IN ('ACTIVE','ARCHIVED')),
+  sort_order            SMALLINT NOT NULL DEFAULT 0,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_nclex_products_status_sort ON nclex_products (status, sort_order);
+
+-- nclex_payments — Paystack audit trail. One row per txn; polymorphic
+-- single-purpose rows (`purpose` enum + exactly one of product/programme).
+CREATE TABLE nclex_payments (
+  payment_id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  paystack_reference    TEXT,                                    -- Paystack charge id; SHARED across a checkout group's rows (5.4b) so not unique per row
+  checkout_group_id     UUID NOT NULL DEFAULT gen_random_uuid(), -- order-grouping key: rows of one combined charge share it (5.4b)
+  user_id               UUID REFERENCES nclex_users(id) ON DELETE SET NULL,  -- NULL while pay-first
+  email                 TEXT NOT NULL,
+  purpose               TEXT NOT NULL
+                        CHECK (purpose IN ('BANK_PURCHASE','READINESS_PURCHASE',
+                          'PROGRAMME_INITIAL','PROGRAMME_INSTALLMENT','BANK_OPTIN_AT_PROGRAMME')),
+  product_id            TEXT REFERENCES nclex_products(product_id) ON DELETE RESTRICT,
+  programme_id          UUID REFERENCES nclex_programmes(programme_id) ON DELETE RESTRICT,
+  strategy_id           UUID,                                      -- FK → strategies table (Slice 7); bare UUID for now
+  enrolment_id          UUID REFERENCES nclex_enrolments(enrolment_id) ON DELETE SET NULL,
+  cohort_id             UUID REFERENCES nclex_cohorts(cohort_id) ON DELETE RESTRICT,  -- chosen cohort, carried across the Paystack round trip (5.4a)
+  installment_index     SMALLINT,
+  currency              TEXT NOT NULL CHECK (currency IN ('GHS','USD')),
+  amount_minor          INTEGER NOT NULL,
+  status                TEXT NOT NULL DEFAULT 'INIT'
+                        CHECK (status IN ('INIT','PAID','SETUP_REQUIRED','ACTIVATED','FAILED','REFUNDED')),
+  paystack_payload_json JSONB,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  paid_at               TIMESTAMPTZ,
+  activated_at          TIMESTAMPTZ,
+  -- programme purposes carry a programme; bank/readiness carry a product
+  CONSTRAINT nclex_payments_purpose_target CHECK (
+    (purpose IN ('PROGRAMME_INITIAL','PROGRAMME_INSTALLMENT') AND programme_id IS NOT NULL AND product_id IS NULL)
+    OR (purpose IN ('BANK_PURCHASE','READINESS_PURCHASE','BANK_OPTIN_AT_PROGRAMME') AND product_id IS NOT NULL AND programme_id IS NULL)
+  ),
+  CONSTRAINT nclex_payments_programme_only_fields CHECK (
+    purpose IN ('PROGRAMME_INITIAL','PROGRAMME_INSTALLMENT') OR (strategy_id IS NULL AND installment_index IS NULL)
+  ),
+  CONSTRAINT nclex_payments_installment_index_scope CHECK (
+    purpose = 'PROGRAMME_INSTALLMENT' OR installment_index IS NULL
+  ),
+  CONSTRAINT nclex_payments_cohort_scope CHECK (
+    cohort_id IS NULL OR purpose = 'PROGRAMME_INITIAL'
+  )
+);
+CREATE INDEX idx_nclex_payments_user      ON nclex_payments (user_id);
+CREATE INDEX idx_nclex_payments_email     ON nclex_payments (email);
+CREATE INDEX idx_nclex_payments_enrolment ON nclex_payments (enrolment_id);
+CREATE INDEX idx_nclex_payments_reference ON nclex_payments (paystack_reference);
+CREATE INDEX idx_nclex_payments_group     ON nclex_payments (checkout_group_id);
+CREATE INDEX idx_nclex_payments_open_status ON nclex_payments (status)
+  WHERE status IN ('INIT','PAID','SETUP_REQUIRED');
+
+-- nclex_subscriptions — bank + readiness entitlements only (programme
+-- access is the enrolment row). Stacks: new row per purchase, access = max(end_at).
+CREATE TABLE nclex_subscriptions (
+  subscription_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id                UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
+  product_id             TEXT NOT NULL REFERENCES nclex_products(product_id) ON DELETE RESTRICT,
+  pack_type              TEXT NOT NULL
+                         CHECK (pack_type IN ('BANK_DURATION','READINESS','TRIAL')),  -- denormalised
+  source                 TEXT NOT NULL
+                         CHECK (source IN ('SELF_PURCHASE','PROGRAMME_OPTIN','SELF_TRIAL_SIGNUP','ADMIN_GRANT')),
+  status                 TEXT NOT NULL DEFAULT 'ACTIVE'
+                         CHECK (status IN ('ACTIVE','EXPIRED','REVOKED')),
+  started_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  end_at                 TIMESTAMPTZ,                              -- NULL for unactivated readiness
+  readiness_pack_id      TEXT REFERENCES nclex_readiness_packs(pack_id) ON DELETE RESTRICT,
+  readiness_activated_at TIMESTAMPTZ,
+  payment_id             UUID REFERENCES nclex_payments(payment_id) ON DELETE RESTRICT,  -- NULL for trial/admin
+  granted_by             UUID REFERENCES nclex_users(id) ON DELETE SET NULL,             -- ADMIN_GRANT only
+  created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_nclex_subscriptions_user_status ON nclex_subscriptions (user_id, status);
+CREATE INDEX idx_nclex_subscriptions_expiry ON nclex_subscriptions (end_at) WHERE status = 'ACTIVE';
+-- One subscription per payment (idempotent activation). Partial: trial /
+-- admin grants carry no payment_id. (migration 20260602120000)
+CREATE UNIQUE INDEX idx_nclex_subscriptions_payment ON nclex_subscriptions (payment_id) WHERE payment_id IS NOT NULL;
+
+
 -- RPC functions are large and tracked by their migration files
 -- (mynclex/db/migrations/mynclex_trend_save_rpc_slice_1_12b.sql).
 -- The function bodies are NOT mirrored into schema.sql to keep the

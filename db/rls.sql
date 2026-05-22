@@ -1343,3 +1343,65 @@ WHERE p.status = 'PUBLISHED'
   AND c.cancelled_at IS NULL;
 
 GRANT SELECT ON nclex_public_cohorts TO anon, authenticated;
+
+
+-- ============================================================
+-- PAYMENTS (Slice 5.1) — config / products / payments / subscriptions
+-- Migration: db/migrations/20260601120000_slice_5_1_payments_schema.sql
+-- ============================================================
+
+-- nclex_config — read PUBLIC (the bank-opt-in discount is shown on the
+-- guest-accessible checkout); write SUPER_ADMIN only.
+ALTER TABLE nclex_config ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_config_public_select
+  ON nclex_config FOR SELECT
+  USING (true);
+
+CREATE POLICY nclex_config_admin_write
+  ON nclex_config FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- nclex_products — public reads ACTIVE SKUs (landing + checkout);
+-- SUPER_ADMIN manages (and can read ARCHIVED for historical payments).
+ALTER TABLE nclex_products ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_products_public_select
+  ON nclex_products FOR SELECT
+  USING (status = 'ACTIVE');
+
+CREATE POLICY nclex_products_admin_all
+  ON nclex_products FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- nclex_payments — owner reads own rows; SUPER_ADMIN reads all. No
+-- authenticated WRITE policy: writes happen only via the service-role
+-- checkout handlers (5.2/5.3), which bypass RLS.
+ALTER TABLE nclex_payments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_payments_owner_select
+  ON nclex_payments FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid() OR nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- nclex_subscriptions — owner reads own; SUPER_ADMIN reads/manages
+-- (manual grants). Service-role handlers do the routine writes.
+ALTER TABLE nclex_subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_subscriptions_owner_select
+  ON nclex_subscriptions FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid() OR nclex_user_has_role('SUPER_ADMIN'));
+
+CREATE POLICY nclex_subscriptions_admin_all
+  ON nclex_subscriptions FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));

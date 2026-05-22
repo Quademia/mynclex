@@ -6,12 +6,16 @@
 //   - the bank sidebar (left)
 //   - main content area (right)
 //
-// STUDENT role gate lives here — descendant pages trust it.
+// STUDENT role + active-bank-subscription gate lives here (Slice 5.6) —
+// descendant pages trust it. requireActiveBankSubscription bounces a
+// non-student to /no-access and a student without active bank access to
+// /bank-access (SUPER_ADMIN bypasses). The create-attempt RPC carries the
+// same check as the hard backstop.
 //
 // hasProgrammeEnrolment is hard-coded today; replace when the
 // nclex_enrolments table lands.
 
-import { redirect } from 'next/navigation';
+import { requireActiveBankSubscription } from '@/lib/access';
 import { loadChromeData } from '@/lib/shell/load-chrome-data';
 import { AppShell } from '@/components/shell/app-shell';
 import { StudentSidebar } from '@/components/nav/student/sidebar';
@@ -25,8 +29,8 @@ export default async function BankLayout({
 }: {
   children: React.ReactNode;
 }) {
+  await requireActiveBankSubscription();
   const chrome = await loadChromeData();
-  if (!chrome.roles.includes('STUDENT')) redirect('/no-access');
 
   // Placeholder — replace with a real enrolment check. Slice 10.1
   // flips this to true so the topbar Programme pill opens the

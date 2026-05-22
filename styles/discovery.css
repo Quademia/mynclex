@@ -386,11 +386,15 @@
 .det-rail .price { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
 .det-rail .price .ccy { font-size: 16px; font-weight: 500; color: var(--ink-mute); margin-right: 6px; }
 .det-rail .price.price-contact { font-size: 18px; color: var(--ink-soft); font-weight: 500; }
+.det-rail .price-sub { margin-top: 4px; font-size: 13px; color: var(--ink-mute); }
 
 .det-cta { margin-top: 18px; }
 .pub-btn-primary {
   width: 100%;
   height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius);
   border: 1px solid var(--primary);
   background: var(--primary);
@@ -400,8 +404,45 @@
   font-family: inherit;
   cursor: pointer;
 }
+.pub-btn-primary:hover { text-decoration: none; }
+a.pub-btn-primary:hover { background: var(--primary-dark); }
 .pub-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
-.det-cta-note { margin-top: 8px; font-size: 12px; color: var(--ink-mute); }
+.det-cta-note { margin-top: 8px; font-size: 12px; color: var(--ink-mute); text-align: center; }
+
+/* rail: bank opt-in hint (placeholder) + payment-strategies list */
+.det-rail .bank-hint {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: var(--accent-soft);
+  border: 1px solid #cfe2de;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--accent-strong);
+  line-height: 1.45;
+}
+.det-rail .bank-hint strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.det-rail .bank-hint .bank-hint-soon { color: var(--ink-mute); font-weight: 500; }
+.det-rail .what-includes {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.det-rail .what-includes h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-mute);
+}
+.det-rail .what-includes ul { padding-left: 16px; margin-top: 8px; list-style: disc; color: var(--ink-soft); }
+.det-rail .what-includes li { margin: 5px 0; }
+.det-rail .what-includes li.soon { color: var(--ink-faint); }
 
 /* ── waitlist card (Slice 4) — separate, lighter/secondary card ── */
 .wl-cta {
