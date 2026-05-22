@@ -12,9 +12,10 @@
 // so enrolment gating shows identically: ENROLLED rows are enterable,
 // every other status is dimmed with its pill + reason.
 //
-// NOTE: bank subscription data is still hard-coded — the real check
-// (nclex_subscriptions) lands with the bank-access slice and will
-// render in this same picker.
+// The bank card reflects real bank access (Slice 5.6): active → enters the
+// bank with "X days left"; none/lapsed → a "Get access" CTA pointing at
+// /bank-access (since full-lock means the bank dashboard would only bounce
+// a sub-less student).
 
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -23,6 +24,7 @@ import { loadChromeData } from '@/lib/shell/load-chrome-data';
 import { AppShell } from '@/components/shell/app-shell';
 import { ProgrammeList } from '@/components/nav/student/programme-list';
 import { getMyAccessibleProgrammesAction } from '@/lib/programmes/student-actions';
+import { getMyBankAccess } from '@/lib/payments/entitlements';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,9 +44,13 @@ export default async function PickerPage() {
   // enrolments (any status); ENROLLED ones are enterable.
   const { programmes } = await getMyAccessibleProgrammesAction();
 
-  // Placeholder bank state — replace when the bank-access check lands.
-  const hasBankSubscription = true;
-  const bankDaysLeft = 42;
+  const bankAccess = await getMyBankAccess();
+  const bankHref = bankAccess.active ? '/student/bank/dashboard' : '/bank-access';
+  const bankSubLine = bankAccess.active
+    ? bankAccess.lifetime
+      ? 'Lifetime access'
+      : `${bankAccess.daysLeft} day${bankAccess.daysLeft === 1 ? '' : 's'} left`
+    : 'Get access →';
 
   return (
     <AppShell
@@ -75,13 +81,9 @@ export default async function PickerPage() {
 
           <section className="picker-section">
             <h2 className="picker-section-title">Question Bank</h2>
-            <Link href="/student/bank/dashboard" className="picker-card">
+            <Link href={bankHref} className="picker-card">
               <div className="picker-card-title">Self-study practice</div>
-              <div className="picker-card-sub">
-                {hasBankSubscription
-                  ? `${bankDaysLeft} days left`
-                  : 'Renew to continue practising'}
-              </div>
+              <div className="picker-card-sub">{bankSubLine}</div>
             </Link>
           </section>
         </div>

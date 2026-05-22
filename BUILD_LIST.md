@@ -8,18 +8,17 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-22):** **Payments Slice 5.5 — standalone bank
-> landing + purchase.** Public **`/bank-access`** (GHS|USD toggle, 5 tiers,
-> "what you get", trial deferred) → **`/checkout/bank`** reusing a newly
-> **extracted shared checkout shell** (`components/checkout/`); programme
-> checkout renamed to **`/checkout/programme/[id]`**. No schema change —
-> reuses the BANK engine path from 5.2/5.3. Verified end-to-end (pay-first
-> GHS BANK_365D → ACTIVE subscription). **Next: Slice 5.6** (bank
-> entitlement gating — bank/practice requires an active subscription, RLS +
-> per-page + launch-RPC guard), then 5.7 (my-payments page), or rotate per
+> **Last shipped (2026-05-22):** **Payments Slice 5.6 — bank entitlement
+> gating.** Bank practice now requires an active bank subscription
+> (full-lock on lapse). Layered: SQL `nclex_has_active_bank_access` + a gate
+> in the `nclex_create_attempt` RPC (migration `20260605120000`, dev only);
+> TS `requireActiveBankSubscription()` on the bank layout; **source-aware**
+> runner gate (bank `CUSTOM_BUILT` only — programme quizzes untouched);
+> picker card reflects real access ("X days left" / "Get access →").
+> SUPER_ADMIN bypass. **Next: Slice 5.7** (my-payments page), or rotate per
 > the alternate-features rule. This arc so far: 5.1 schema · 5.2 Paystack
 > init/verify · 5.3 bank activation · 5.4a programme checkout · 5.4b bank
-> opt-in (combined charge) · 5.5 standalone bank.
+> opt-in · 5.5 standalone bank · 5.6 bank gating.
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -1157,11 +1156,30 @@ Slice order from the adopted Claude Design proposal
     `SELF_PURCHASE`; programme checkout still works post-refactor. (USD not
     fully testable — Paystack test account has USD disabled — but same code
     path.)
-  - ⬜ **5.6** Bank entitlement gating — bank/practice surfaces require an
-    active bank subscription (RLS + per-page guard + launch-RPC guard,
-    per the layered-access rule). Currently bank/practice is gated only
-    by `require-student`; subscription entitlement is net-new. Its own
-    careful slice.
+  - ✅ **5.6** Bank entitlement gating — shipped 2026-05-22. Bank practice
+    now requires an **active bank subscription** (full-lock on lapse, Sam's
+    call: builder, runner, AND history/review). Layered per the
+    layered-access rule:
+    - **DB (hard backstop):** `nclex_has_active_bank_access(uuid)` (ACTIVE +
+      `end_at` null-or-future, pack_type BANK_DURATION/TRIAL — date-compared
+      so it's correct before the deferred expiry sweep) + the gate inside
+      the SECURITY DEFINER `nclex_create_attempt` RPC. SUPER_ADMIN bypass.
+      Migration `20260605120000` (dev only).
+    - **TS page guard:** `requireActiveBankSubscription()` in
+      `lib/access/student/` (barrel-exported), reading `bankAccessForUser`
+      in new `lib/payments/entitlements.ts`. Applied at the **bank layout**
+      (covers every `/student/bank/*` page → `/bank-access` on no access).
+    - **Source-aware runner:** the shared runner (`/session/[id]`, outside
+      the bank layout) gates **only `CUSTOM_BUILT` (bank) attempts** —
+      `PROGRAMME_ASSIGNED` tutor-quiz attempts are untouched, so a bank-less
+      programme student still runs their quizzes.
+    - **Picker UI:** real `getMyBankAccess()` — active → enters bank w/
+      "X days left" / "Lifetime access"; none/lapsed → "Get access →" CTA to
+      `/bank-access`.
+    Helper verified per-student on dev (student w/ 30d & 365d → true;
+    no-sub student → false; super-admin bypasses). Full per-user redirect +
+    create-RPC-refusal + programme-quiz-still-works = Sam's browser test.
+    Trial deferred (will satisfy the same check once built).
   - ⬜ **5.7** "My Payments" student page — transaction list (date,
     product, amount, currency, status).
 - ⬜ **Slice 7** Multi-strategy + installments —
