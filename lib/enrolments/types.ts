@@ -37,6 +37,9 @@ export interface EnrolmentRosterRow {
   // plan is fully paid / there's no installment plan. Drives the roster's
   // "Access · payment" column and the "Mark paid" action.
   nextPayment: NextPaymentView | null;
+  // True when the student HAS a plan and has settled every payment — lets the
+  // roster show "Paid in full" instead of the bare "—" used for no-plan rows.
+  paymentFullyPaid: boolean;
 }
 
 /** A contact channel the lead can ask to be reached on. Mirrors the

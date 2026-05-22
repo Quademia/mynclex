@@ -434,6 +434,12 @@ export function EnrolmentRosterView({
                                   {formatDueShort(graced ? np.graceUntilIso! : np.dueDateIso)}
                                 </span>
                               </span>
+                            ) : row.paymentFullyPaid ? (
+                              <span className="cw-pay paid">Paid in full</span>
+                            ) : row.enrolment_source === 'TUTOR_ADDED' ? (
+                              <span className="cw-pay offplatform">Off-platform</span>
+                            ) : row.enrolment_source === 'ADMIN_GRANT' ? (
+                              <span className="cw-pay offplatform">Granted</span>
                             ) : (
                               <span className="cw-muted">—</span>
                             )}

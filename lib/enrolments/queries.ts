@@ -165,7 +165,22 @@ export async function getCohortRoster(
         ? r.nclex_users[0]
         : r.nclex_users;
       if (!profile) return null;
-      const showsPayment = r.status === 'ENROLLED' || r.status === 'PAUSED';
+      // A plan only "shows" payment state for active enrolments. With a plan,
+      // a null next-payment means fully paid; without one it just means
+      // "no payment plan" (bare dash).
+      const hasPlan =
+        (r.status === 'ENROLLED' || r.status === 'PAUSED') && !!r.strategy_snapshot_json;
+      const nextPayment = hasPlan
+        ? nextPaymentView(
+            r.strategy_snapshot_json!,
+            new Date(r.enrolled_at),
+            paidByEnrolment.get(r.enrolment_id) ?? 0,
+            currency,
+            r.enrolment_id,
+            new Date(),
+            r.installment_grace_until ? new Date(r.installment_grace_until) : null,
+          )
+        : null;
       return {
         enrolment_id: r.enrolment_id,
         user_id: r.user_id,
@@ -175,18 +190,8 @@ export async function getCohortRoster(
         paused_reason: r.paused_reason,
         name: profile.name,
         email: profile.email,
-        nextPayment:
-          showsPayment && r.strategy_snapshot_json
-            ? nextPaymentView(
-                r.strategy_snapshot_json,
-                new Date(r.enrolled_at),
-                paidByEnrolment.get(r.enrolment_id) ?? 0,
-                currency,
-                r.enrolment_id,
-                new Date(),
-                r.installment_grace_until ? new Date(r.installment_grace_until) : null,
-              )
-            : null,
+        nextPayment,
+        paymentFullyPaid: hasPlan && nextPayment === null,
       } satisfies EnrolmentRosterRow;
     })
     .filter((r): r is EnrolmentRosterRow => r !== null);

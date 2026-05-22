@@ -251,6 +251,15 @@
   color: var(--warning);
   font-weight: 600;
 }
+.cw-pay.paid {
+  color: var(--success);
+  font-weight: 600;
+}
+/* Informational (no on-platform payment to track), not a status alert. */
+.cw-pay.offplatform {
+  color: var(--text-muted);
+  font-style: italic;
+}
 .cw-pay-due {
   color: var(--text-muted);
   font-weight: 400;
