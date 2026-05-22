@@ -28,6 +28,11 @@ export type CheckoutTarget =
       kind: 'PROGRAMME';
       programmeId: string;
       cohortId?: string | null;
+      // The chosen payment plan (Slice 7c). The browser only sends the id;
+      // the initial amount is read + validated server-side from the
+      // strategy row (never trusted from the client). Null falls back to
+      // the programme's full price (upfront) for older callers.
+      strategyId?: string | null;
       bankOptIn?: { productId: string } | null;
     };
 

@@ -1,13 +1,21 @@
 // mynclex/app/(public)/checkout/programme/[id]/programme-checkout.tsx
 //
-// The programme-specific panel for checkout: cohort picker, the (placeholder)
-// payment-strategy card, and the live bank opt-in card. It owns its own state
-// and feeds the shared CheckoutShell the order lines + the CheckoutTarget.
+// The programme-specific panel for checkout: cohort picker, the payment-plan
+// picker (Slice 7c), and the live bank opt-in card. It owns its own state and
+// feeds the shared CheckoutShell the order lines + the CheckoutTarget.
+//
+// Plan picker rules (settled 2026-05-22): the picker only shows when the
+// programme offers 2+ active plans; with a single plan it's hidden and that
+// plan is used silently. Default selection is Pay-in-full when offered, else
+// the cheapest first payment. The amount charged is the chosen plan's
+// initial_price_minor; init.ts re-validates it server-side.
 
 'use client';
 
 import { useState } from 'react';
 import { CheckoutShell, money, type OrderLine } from '@/components/checkout/checkout-shell';
+import { systemLabel, installmentSplit } from '@/lib/strategies/format';
+import type { PublicPaymentPlan } from '@/lib/strategies/types';
 import type { Currency } from '@/lib/payments/types';
 
 export interface CohortOption {
@@ -22,6 +30,73 @@ export interface BankTier {
   discountedMinor: number;
 }
 
+// Pick the default plan: Pay-in-full if offered, else the one with the
+// smallest first payment. Returns null only when there are no plans.
+function defaultPlanId(plans: PublicPaymentPlan[]): string | null {
+  if (plans.length === 0) return null;
+  const upfront = plans.find((p) => p.kind === 'UPFRONT_FULL');
+  if (upfront) return upfront.strategy_id;
+  const cheapest = [...plans].sort(
+    (a, b) => a.initial_price_minor - b.initial_price_minor
+  )[0];
+  return cheapest.strategy_id;
+}
+
+function planTitle(p: PublicPaymentPlan): string {
+  const custom = (p.label ?? '').trim();
+  return custom.length > 0 ? custom : systemLabel(p.kind);
+}
+
+// Sub-line under a plan's title in the picker.
+function planSub(p: PublicPaymentPlan, currency: Currency): string {
+  switch (p.kind) {
+    case 'UPFRONT_FULL':
+      return 'Pay once today. Full programme access on approval.';
+    case 'DEPOSIT_BALANCE': {
+      const balance = p.total_price_minor - p.initial_price_minor;
+      const days = p.balance_due_days_after_enrolment ?? 0;
+      return `Deposit now, then ${money(balance, currency)} after ${days} day${
+        days === 1 ? '' : 's'
+      }.`;
+    }
+    case 'EQUAL_INSTALLMENTS': {
+      const count = p.installment_count ?? 0;
+      const interval = p.installment_interval_days ?? 0;
+      return `${count} payments, every ${interval} day${interval === 1 ? '' : 's'}.`;
+    }
+  }
+}
+
+// The order-line meta for the selected plan — spells out what's owed later.
+function planLineMeta(
+  p: PublicPaymentPlan | null,
+  selfPaced: boolean,
+  currency: Currency
+): string {
+  const cohortBit = selfPaced ? '' : ' · selected cohort';
+  if (!p) return `Upfront full${cohortBit}`;
+  switch (p.kind) {
+    case 'UPFRONT_FULL':
+      return `Pay in full${cohortBit}`;
+    case 'DEPOSIT_BALANCE': {
+      const balance = p.total_price_minor - p.initial_price_minor;
+      const days = p.balance_due_days_after_enrolment ?? 0;
+      return `Deposit · ${money(balance, currency)} balance due in ${days} day${
+        days === 1 ? '' : 's'
+      }${cohortBit}`;
+    }
+    case 'EQUAL_INSTALLMENTS': {
+      const count = p.installment_count ?? 0;
+      const interval = p.installment_interval_days ?? 0;
+      const { rest } = installmentSplit(p.total_price_minor, count);
+      return `Installment 1 of ${count} · then ${count - 1} × ${money(
+        rest,
+        currency
+      )} every ${interval} day${interval === 1 ? '' : 's'}${cohortBit}`;
+    }
+  }
+}
+
 export function ProgrammeCheckout({
   programmeId,
   selfPaced,
@@ -29,6 +104,7 @@ export function ProgrammeCheckout({
   programmeTitle,
   currency,
   programmeMinor,
+  plans,
   bankTiers,
   discountPct,
   accountEmail,
@@ -39,6 +115,7 @@ export function ProgrammeCheckout({
   programmeTitle: string;
   currency: Currency;
   programmeMinor: number;
+  plans: PublicPaymentPlan[];
   bankTiers: BankTier[];
   discountPct: number;
   accountEmail: string | null;
@@ -48,8 +125,15 @@ export function ProgrammeCheckout({
   const defaultTierIdx = Math.max(0, bankTiers.findIndex((t) => t.days === 90));
 
   const [cohortId, setCohortId] = useState(cohorts[0]?.id ?? '');
+  const [planId, setPlanId] = useState<string | null>(defaultPlanId(plans));
   const [bankOn, setBankOn] = useState(false);
   const [bankTierIdx, setBankTierIdx] = useState(defaultTierIdx);
+
+  // Selected plan (null only when the programme has no plans — defensive
+  // fallback to the programme's full price, no strategy).
+  const selectedPlan = plans.find((p) => p.strategy_id === planId) ?? null;
+  const initialMinor = selectedPlan ? selectedPlan.initial_price_minor : programmeMinor;
+  const showPicker = plans.length >= 2;
 
   const selectedTier = bankOn ? bankTiers[bankTierIdx] : null;
 
@@ -57,8 +141,8 @@ export function ProgrammeCheckout({
     {
       key: 'programme',
       name: programmeTitle,
-      meta: `Upfront full${selfPaced ? '' : ' · selected cohort'}`,
-      amountMinor: programmeMinor,
+      meta: planLineMeta(selectedPlan, selfPaced, currency),
+      amountMinor: initialMinor,
     },
     ...(selectedTier
       ? [
@@ -88,6 +172,7 @@ export function ProgrammeCheckout({
         kind: 'PROGRAMME',
         programmeId,
         cohortId: selfPaced ? null : cohortId,
+        strategyId: selectedPlan ? selectedPlan.strategy_id : null,
         bankOptIn: selectedTier ? { productId: selectedTier.productId } : null,
       })}
       validate={() => (!selfPaced && !cohortId ? 'Please choose a cohort to join.' : null)}
@@ -132,39 +217,44 @@ export function ProgrammeCheckout({
         </section>
       )}
 
-      {/* payment strategy — placeholder (Slice 7) */}
-      <section className="co-card">
-        <div className="co-card-head">
-          <h2>Choose a payment strategy</h2>
-          <span className="co-soon-tag">More options soon</span>
-        </div>
-        <div className="co-strats">
-          <label className="co-strat on">
-            <span className="co-radio" aria-hidden="true" />
-            <span className="co-strat-meta">
-              <span className="nm">Upfront — full</span>
-              <span className="sub">Pay once today. Full programme access on approval.</span>
-            </span>
-            <span className="co-strat-price">{money(programmeMinor, currency)}</span>
-          </label>
-          <div className="co-strat disabled" aria-disabled="true">
-            <span className="co-radio" aria-hidden="true" />
-            <span className="co-strat-meta">
-              <span className="nm">Deposit + balance</span>
-              <span className="sub">Pay part now, the rest later.</span>
-            </span>
-            <span className="co-soon-pill">Coming soon</span>
+      {/* payment plan — picker shows only when 2+ plans are offered */}
+      {showPicker && (
+        <section className="co-card">
+          <div className="co-card-head">
+            <h2>Choose how to pay</h2>
           </div>
-          <div className="co-strat disabled" aria-disabled="true">
-            <span className="co-radio" aria-hidden="true" />
-            <span className="co-strat-meta">
-              <span className="nm">Equal installments</span>
-              <span className="sub">Split into monthly payments.</span>
-            </span>
-            <span className="co-soon-pill">Coming soon</span>
+          <div className="co-strats">
+            {plans.map((p) => {
+              const on = p.strategy_id === planId;
+              return (
+                <label
+                  key={p.strategy_id}
+                  className={`co-strat${on ? ' on' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="payment-plan"
+                    className="co-radio-input"
+                    checked={on}
+                    onChange={() => setPlanId(p.strategy_id)}
+                  />
+                  <span className="co-radio" aria-hidden="true" />
+                  <span className="co-strat-meta">
+                    <span className="nm">{planTitle(p)}</span>
+                    <span className="sub">{planSub(p, currency)}</span>
+                  </span>
+                  <span className="co-strat-price">
+                    {money(p.initial_price_minor, currency)}
+                    {p.kind !== 'UPFRONT_FULL' && (
+                      <span className="co-strat-now"> now</span>
+                    )}
+                  </span>
+                </label>
+              );
+            })}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* bank opt-in — live */}
       {bankAvailable && (

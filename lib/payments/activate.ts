@@ -33,6 +33,7 @@ type PaymentRow = {
   product_id: string | null;
   programme_id: string | null;
   cohort_id: string | null;
+  strategy_id: string | null;
   enrolment_id: string | null;
   status: string;
 };
@@ -43,7 +44,7 @@ export type ActivateResult =
   | { ok: false; error: string };
 
 const PAYMENT_COLS =
-  'payment_id, paystack_reference, checkout_group_id, user_id, email, purpose, product_id, programme_id, cohort_id, enrolment_id, status';
+  'payment_id, paystack_reference, checkout_group_id, user_id, email, purpose, product_id, programme_id, cohort_id, strategy_id, enrolment_id, status';
 
 // Purposes that grant a bank/readiness subscription (vs programme enrolment).
 const BANK_PURPOSES = ['BANK_PURCHASE', 'READINESS_PURCHASE', 'BANK_OPTIN_AT_PROGRAMME'];
@@ -174,6 +175,24 @@ async function grantProgrammeEnrolment(
     return { ok: true, pending: row.status === 'PENDING_APPROVAL' };
   }
 
+  // Freeze the chosen plan onto the enrolment (Slice 7c). The snapshot is
+  // what 7d reads to compute due-dates, so a later tutor edit to the plan
+  // can't rewrite this student's schedule. Null for legacy upfront (no
+  // strategy on the payment).
+  let strategySnapshot: Record<string, unknown> | null = null;
+  if (payment.strategy_id) {
+    const { data: strat } = await admin
+      .from('nclex_programme_payment_strategies')
+      .select(
+        `strategy_id, kind, label, total_price_minor, initial_price_minor,
+         installment_count, installment_interval_days,
+         balance_due_days_after_enrolment`
+      )
+      .eq('strategy_id', payment.strategy_id)
+      .maybeSingle();
+    if (strat) strategySnapshot = { ...strat, frozen_at: new Date().toISOString() };
+  }
+
   const { data: inserted, error: insErr } = await admin
     .from('nclex_enrolments')
     .insert({
@@ -183,6 +202,8 @@ async function grantProgrammeEnrolment(
       status,
       enrolment_source: 'SELF_PAID',
       access_expires_at: accessExpiresAt,
+      strategy_id: payment.strategy_id,
+      strategy_snapshot_json: strategySnapshot,
     })
     .select('enrolment_id')
     .single();

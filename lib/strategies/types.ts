@@ -55,6 +55,22 @@ export type StrategyFormValues = {
   installment_interval_days: number | null;
 };
 
+// Public projection (Slice 7c) — what the checkout plan picker reads from
+// the nclex_public_payment_strategies view. Active plans only; no is_active
+// or audit columns (the view already filters to active + published).
+export type PublicPaymentPlan = {
+  strategy_id: string;
+  programme_id: string;
+  kind: StrategyKind;
+  label: string | null;
+  total_price_minor: number;
+  initial_price_minor: number;
+  installment_count: number | null;
+  installment_interval_days: number | null;
+  balance_due_days_after_enrolment: number | null;
+  sort_order: number;
+};
+
 // What the payment-plans page loads: the programme's pricing context
 // plus all its plans (active + inactive, in sort order).
 export type PaymentPlansContext = {

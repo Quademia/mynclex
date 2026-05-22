@@ -134,6 +134,13 @@
 .co-strat-price { font-size: 16px; font-weight: 600; color: var(--ink); }
 .co-strat-price .ccy { font-size: 11px; font-weight: 500; color: var(--ink-mute); margin-right: 3px; }
 
+/* Slice 7c — real selectable plan picker. The whole row is a label
+   wrapping a visually-hidden radio; the .co-radio span is the visual. */
+label.co-strat { cursor: pointer; }
+.co-radio-input { position: absolute; opacity: 0; width: 0; height: 0; }
+label.co-strat:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.co-strat-now { font-size: 11px; font-weight: 500; color: var(--ink-mute); }
+
 /* fields */
 .co-field { display: block; margin-top: 14px; }
 .co-field-label { display: block; font-size: 12.5px; font-weight: 500; color: var(--ink-soft); margin-bottom: 5px; }

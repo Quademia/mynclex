@@ -26,6 +26,7 @@ type LineItem = {
   productId: string | null;
   programmeId: string | null;
   cohortId: string | null;
+  strategyId: string | null;
   amountMinor: number;
   label: string;
 };
@@ -75,6 +76,7 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
       productId: product.product_id,
       programmeId: null,
       cohortId: null,
+      strategyId: null,
       amountMinor: currency === 'GHS' ? product.price_minor_ghs : product.price_minor_usd,
       label: product.name,
     });
@@ -115,12 +117,36 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
       cohortId = cohort.cohort_id;
     }
 
+    // Resolve the chosen payment plan (Slice 7c). The initial charge is the
+    // plan's initial_price_minor (full / deposit / installment 1), looked up
+    // server-side so the browser can't set the amount. A missing strategyId
+    // falls back to the programme's full price (upfront), strategy_id NULL.
+    let initialAmount = prog.price_minor;
+    let strategyId: string | null = null;
+    if (input.target.strategyId) {
+      const { data: strategy } = await admin
+        .from('nclex_programme_payment_strategies')
+        .select('strategy_id, programme_id, initial_price_minor, is_active')
+        .eq('strategy_id', input.target.strategyId)
+        .maybeSingle();
+      if (
+        !strategy ||
+        strategy.programme_id !== prog.programme_id ||
+        !strategy.is_active
+      ) {
+        return { ok: false, error: 'That payment plan is not available.' };
+      }
+      initialAmount = strategy.initial_price_minor;
+      strategyId = strategy.strategy_id;
+    }
+
     items.push({
       purpose: 'PROGRAMME_INITIAL',
       productId: null,
       programmeId: prog.programme_id,
       cohortId,
-      amountMinor: prog.price_minor,
+      strategyId,
+      amountMinor: initialAmount,
       label: prog.title,
     });
 
@@ -152,6 +178,7 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
         productId: bank.product_id,
         programmeId: null,
         cohortId: null,
+        strategyId: null,
         amountMinor: discounted,
         label: bank.name,
       });
@@ -176,6 +203,7 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
       product_id: it.productId,
       programme_id: it.programmeId,
       cohort_id: it.cohortId,
+      strategy_id: it.strategyId,
       currency,
       amount_minor: it.amountMinor,
       status: 'INIT',
