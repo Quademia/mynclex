@@ -48,6 +48,10 @@ export const TUTOR_GLOBAL_NAV: NavItem[] = [
 export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   { key: 'overview',    label: 'Overview',      icon: 'home',     href: '/tutor/programme/:programmeId/overview' },
   { key: 'cohorts',     label: 'Cohorts',       icon: 'users',    href: '/tutor/programme/:programmeId/cohorts' },
+  // Payments Slice 7b — per-programme payment-plan config (upfront +
+  // deposit + installments). Always shown; the page itself notes when
+  // the programme collects off-platform (plans then don't apply).
+  { key: 'payment-plans', label: 'Payment plans', icon: 'card',   href: '/tutor/programme/:programmeId/payment-plans' },
   { key: 'curriculum',  label: 'Curriculum',    icon: 'layers',   href: '/tutor/programme/:programmeId/curriculum' },
   // Tutor Quiz Slice 5 — programme-level quiz membership. Icon
   // `target` matches the global Quizzes nav entry above so the

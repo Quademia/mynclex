@@ -38,6 +38,43 @@ export type CreateProgrammeResult =
   | { ok: true; programme_id: string }
   | { ok: false; error: string };
 
+// Payments Slice 7b — keep the programme's UPFRONT_FULL payment plan
+// in step with price_minor. The full price is edited here (the
+// programme price box) and mirrored onto the upfront plan row, which
+// is the single source of truth for amounts (Phasing 2; price_minor
+// is retired in 7e). is_active is deliberately NOT touched — a tutor
+// who turned upfront off keeps it off when they later edit the price.
+// Best-effort: a failure here doesn't roll back the programme write.
+async function syncUpfrontStrategy(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  programmeId: string,
+  priceMinor: number
+): Promise<void> {
+  const nowIso = new Date().toISOString();
+  const { data } = await supabase
+    .from('nclex_programme_payment_strategies')
+    .update({
+      total_price_minor: priceMinor,
+      initial_price_minor: priceMinor,
+      updated_at: nowIso,
+    })
+    .eq('programme_id', programmeId)
+    .eq('kind', 'UPFRONT_FULL')
+    .select('strategy_id')
+    .maybeSingle();
+
+  if (!data) {
+    await supabase.from('nclex_programme_payment_strategies').insert({
+      programme_id: programmeId,
+      kind: 'UPFRONT_FULL',
+      total_price_minor: priceMinor,
+      initial_price_minor: priceMinor,
+      is_active: true,
+      sort_order: 0,
+    });
+  }
+}
+
 function validate(input: CreateProgrammeInput): string | null {
   const trimmedTitle = input.title?.trim() ?? '';
   if (trimmedTitle.length === 0) return 'Title is required.';
@@ -113,6 +150,10 @@ export async function createProgrammeAction(
   if (error || !data) {
     return { ok: false, error: error?.message ?? 'Failed to create programme.' };
   }
+
+  // Seed the UPFRONT_FULL plan so the new programme has a purchasable
+  // plan from the moment it's created (mirrors price_minor).
+  await syncUpfrontStrategy(supabase, data.programme_id, input.price_minor);
 
   revalidatePath('/tutor/programmes');
   return { ok: true, programme_id: data.programme_id };
@@ -304,9 +345,13 @@ export async function editProgrammeAction(
     return { ok: false, error: 'Programme not found or not yours to edit.' };
   }
 
+  // Mirror the (possibly changed) full price onto the upfront plan.
+  await syncUpfrontStrategy(supabase, programme_id, input.price_minor);
+
   revalidatePath('/tutor/programmes');
   revalidatePath(`/tutor/programme/${programme_id}/overview`);
   revalidatePath(`/tutor/programme/${programme_id}/curriculum`);
+  revalidatePath(`/tutor/programme/${programme_id}/payment-plans`);
   return { ok: true };
 }
 
