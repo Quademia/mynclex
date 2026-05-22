@@ -755,6 +755,39 @@ under *Missed installment behaviour* above. MyNclex has no transactional
 email yet, so the nightly job flips enrolment status only (which drives the
 dashboard tile); reminder emails arrive when email infrastructure lands.
 
+#### Built 2026-05-22 — 7d shipped + follow-up decisions
+
+7d (installments lifecycle) shipped; three decisions firmed up during build
+and review:
+
+1. **`installment_index` is NULL on the initial payment** (correcting an
+   earlier "= 1" note). A DB CHECK (`installment_index_scope`) only permits
+   the column on `PROGRAMME_INSTALLMENT` rows; the initial `PROGRAMME_INITIAL`
+   row is implicitly schedule position 1, later installments carry their
+   position. "Paid so far" = count of PAID/ACTIVATED programme payment rows.
+
+2. **Off-platform payments are explicit, not inferred.** `nclex_payments`
+   gains `collection_channel` (`PAYSTACK` = money into QAcademy / `OFF_PLATFORM`
+   = tutor collected directly) + `recorded_by_user_id`. The tutor "mark
+   installment paid" path stamps both, so reconciliation no longer relies on a
+   null `paystack_reference`.
+
+3. **Grace ("give more time") is distinct from "mark paid".** A tutor can
+   defer an overdue student's pause WITHOUT recording a payment — the
+   installment stays owed (on-platform) by a later date. Stored as
+   `nclex_enrolments.installment_grace_until` (the nightly sweep skips a
+   student whose grace is still active) + append-only `grace_history_json`.
+   Marking paid (which advances the schedule and claims money) is reserved for
+   genuine off-platform payments; a bare unpause/Resume is kept for "let them
+   in briefly" but is undone by the next sweep — so all three pause-resolution
+   actions carry a consequence-explaining confirmation. This closed the gap
+   where tutors would have mis-used "mark paid" just to grant access.
+
+The editable values behind all this (the `enrolment_sweep_enabled` flag, the
+`bank_optin_discount`) live in `nclex_config` and are now editable from the
+**System Config** admin page (`/admin/config`) — keys are code-defined and
+read-only, values are edited via typed controls.
+
 #### On-platform flow — full sequence (Settled 2026-05-18)
 
 When the tutor has opted into on-platform collection and a student

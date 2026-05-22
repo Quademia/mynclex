@@ -1406,6 +1406,13 @@ CREATE TABLE nclex_enrolments (
   terminal_at          TIMESTAMPTZ,
   tutor_note           TEXT,
 
+  -- "Give more time" grace (Payments 7d follow-up, 2026-06-10).
+  -- installment_grace_until is the active deadline the nightly sweep respects
+  -- (defers the overdue pause without recording a payment); grace_history_json
+  -- is an append-only log of each grant ({granted_at, granted_by, days, grace_until}).
+  installment_grace_until TIMESTAMPTZ,
+  grace_history_json   JSONB NOT NULL DEFAULT '[]'::jsonb,
+
   created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
@@ -1553,6 +1560,11 @@ CREATE TABLE nclex_payments (
   created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   paid_at               TIMESTAMPTZ,
   activated_at          TIMESTAMPTZ,
+  -- Reconciliation (Payments 7d follow-up, 2026-06-09): PAYSTACK = money into
+  -- QAcademy via Paystack; OFF_PLATFORM = a tutor recorded a cash/transfer.
+  -- recorded_by_user_id = the tutor who recorded an off-platform payment.
+  collection_channel    TEXT NOT NULL DEFAULT 'PAYSTACK',
+  recorded_by_user_id   UUID REFERENCES nclex_users(id) ON DELETE SET NULL,
   -- programme purposes carry a programme; bank/readiness carry a product
   CONSTRAINT nclex_payments_purpose_target CHECK (
     (purpose IN ('PROGRAMME_INITIAL','PROGRAMME_INSTALLMENT') AND programme_id IS NOT NULL AND product_id IS NULL)
@@ -1566,6 +1578,12 @@ CREATE TABLE nclex_payments (
   ),
   CONSTRAINT nclex_payments_cohort_scope CHECK (
     cohort_id IS NULL OR purpose = 'PROGRAMME_INITIAL'
+  ),
+  CONSTRAINT nclex_payments_collection_channel_check CHECK (
+    collection_channel IN ('PAYSTACK','OFF_PLATFORM')
+  ),
+  CONSTRAINT nclex_payments_recorded_by_scope CHECK (
+    recorded_by_user_id IS NULL OR collection_channel = 'OFF_PLATFORM'
   )
 );
 CREATE INDEX idx_nclex_payments_user      ON nclex_payments (user_id);
@@ -1575,6 +1593,11 @@ CREATE INDEX idx_nclex_payments_reference ON nclex_payments (paystack_reference)
 CREATE INDEX idx_nclex_payments_group     ON nclex_payments (checkout_group_id);
 CREATE INDEX idx_nclex_payments_open_status ON nclex_payments (status)
   WHERE status IN ('INIT','PAID','SETUP_REQUIRED');
+-- One settled installment per position (Payments 7d follow-up).
+CREATE UNIQUE INDEX idx_nclex_payments_one_settled_installment
+  ON nclex_payments (enrolment_id, installment_index)
+  WHERE purpose = 'PROGRAMME_INSTALLMENT' AND status IN ('PAID','ACTIVATED');
+CREATE INDEX idx_nclex_payments_channel ON nclex_payments (collection_channel);
 
 -- nclex_subscriptions — bank + readiness entitlements only (programme
 -- access is the enrolment row). Stacks: new row per purchase, access = max(end_at).

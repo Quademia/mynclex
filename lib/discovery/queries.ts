@@ -45,6 +45,22 @@ export async function getPublicProgramme(
   return data as PublicProgramme;
 }
 
+// The bank opt-in discount as a whole percent (e.g. 40), read from the runtime
+// config (nclex_config, publicly readable). Returns 0 when unset / 0 / invalid
+// — the detail page hides the add-on hint in that case. Single source of truth
+// shared with checkout, which charges the same [0,1) fraction.
+export async function getBankOptinDiscountPct(): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('nclex_config')
+    .select('value')
+    .eq('key', 'bank_optin_discount')
+    .maybeSingle();
+  const n = Number(data?.value);
+  if (!Number.isFinite(n) || n <= 0 || n >= 1) return 0;
+  return Math.round(n * 100);
+}
+
 // Published units (the syllabus), ordered.
 export async function getPublicUnits(
   programmeId: string

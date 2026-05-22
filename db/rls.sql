@@ -54,6 +54,8 @@ AS $$
   );
 $$;
 
+-- Access-window check added Payments 7d (2026-06-10): a past-window enrolment
+-- loses content access at read time, before the nightly EXPIRED sweep runs.
 CREATE OR REPLACE FUNCTION nclex_has_active_programme_enrolment(p_programme_id UUID)
 RETURNS BOOLEAN
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
@@ -63,6 +65,7 @@ AS $$
     WHERE e.programme_id = p_programme_id
       AND e.user_id = auth.uid()
       AND e.status = 'ENROLLED'
+      AND (e.access_expires_at IS NULL OR e.access_expires_at > NOW())
   );
 $$;
 
@@ -77,6 +80,7 @@ AS $$
   );
 $$;
 
+-- Access-window check added Payments 7d (2026-06-10) — see programme twin above.
 CREATE OR REPLACE FUNCTION nclex_has_active_cohort_enrolment(p_cohort_id UUID)
 RETURNS BOOLEAN
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
@@ -86,6 +90,7 @@ AS $$
     WHERE e.cohort_id = p_cohort_id
       AND e.user_id = auth.uid()
       AND e.status = 'ENROLLED'
+      AND (e.access_expires_at IS NULL OR e.access_expires_at > NOW())
   );
 $$;
 

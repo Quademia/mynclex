@@ -8,18 +8,26 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-22):** **Payments Slice 5.6 — bank entitlement
-> gating.** Bank practice now requires an active bank subscription
-> (full-lock on lapse). Layered: SQL `nclex_has_active_bank_access` + a gate
-> in the `nclex_create_attempt` RPC (migration `20260605120000`, dev only);
-> TS `requireActiveBankSubscription()` on the bank layout; **source-aware**
-> runner gate (bank `CUSTOM_BUILT` only — programme quizzes untouched);
-> picker card reflects real access ("X days left" / "Get access →").
-> SUPER_ADMIN bypass. **Next: Slice 7** (multi-strategy + installments,
-> sub-sliced 7a–7e 2026-05-22; 5.7 my-payments resequenced to last), or
-> rotate per the alternate-features rule. This arc so far: 5.1 schema · 5.2 Paystack
-> init/verify · 5.3 bank activation · 5.4a programme checkout · 5.4b bank
-> opt-in · 5.5 standalone bank · 5.6 bank gating.
+> **Last shipped (2026-05-22):** **Payments Slice 7 — multi-strategy +
+> installments (7a–7d done) + follow-ups + System Config page.** 7d shipped
+> the installments lifecycle: a pure schedule engine (`lib/payments/schedule.ts`,
+> 12 Vitest); the "pay next installment" path (`init.ts` resolves the amount
+> server-side, `activate.ts` auto-unpauses once caught up); the nightly
+> `nclex_enrolment_nightly_sweep()` on pg_cron (02:00 UTC — overdue→PAUSED,
+> window→EXPIRED, lapsed subs→EXPIRED; gated by `enrolment_sweep_enabled`,
+> default ON); the access-window read gate; the student programme-tile CTA;
+> and the tutor "Mark paid off-platform". **Follow-ups (same session):**
+> payment **reconciliation columns** (`collection_channel` +
+> `recorded_by_user_id`); a **grace / "give more time"** path distinct from
+> mark-paid (`installment_grace_until` + append-only `grace_history_json`; the
+> sweep respects grace; consequence overlays on all three pause-resolution
+> buttons); roster **payment-column labels** (Paid in full / Off-platform /
+> Granted). Plus the **System Config admin page** (`/admin/config` — typed
+> editors over `nclex_config`: sweep on/off + bank discount) and a fix to the
+> detail page's hardcoded bank-discount % (now reads the live config).
+> **Next: Slice 7e** (retire `price_minor`), or rotate per the
+> alternate-features rule. Payments arc: 5.1–5.6 · 7a strategies schema ·
+> 7b plan config · 7c checkout picker · 7d installments lifecycle (+ follow-ups).
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -1181,8 +1189,8 @@ Slice order from the adopted Claude Design proposal
     no-sub student → false; super-admin bypasses). Full per-user redirect +
     create-RPC-refusal + programme-quiz-still-works = Sam's browser test.
     Trial deferred (will satisfy the same check once built).
-- ⬜ **Slice 7** Multi-strategy + installments — payment plans for
-  on-platform tutored programmes. Pay-in-full already ships (5.x); this
+- 🔨 **Slice 7** Multi-strategy + installments — payment plans for
+  on-platform tutored programmes (7a–7d ✅; 7e ⏭). Pay-in-full already ships (5.x); this
   adds **deposit + balance** and **equal installments**, and makes the
   strategies table the single source of truth for programme amounts.
   Source: design-handoff `index.html` §05 + `payments-and-enrolment.md`
@@ -1227,7 +1235,7 @@ Slice order from the adopted Claude Design proposal
   + `queries.ts`, `lib/discovery/types.ts`), and the `nclex_public_programmes`
   view family. Phasing 2 cuts these over in the dedicated 7e step, not in 7a.
 
-  - ⬜ **7a** Schema + foundation (DB only, dev) — create
+  - ✅ **7a** Schema + foundation (DB only, dev) — create
     `nclex_programme_payment_strategies` (kind ∈ UPFRONT_FULL /
     DEPOSIT_BALANCE / EQUAL_INSTALLMENTS; label, total/initial
     `*_price_minor`, `installment_count` 2..12, `installment_interval_days`,
@@ -1243,33 +1251,65 @@ Slice order from the adopted Claude Design proposal
     this slice, so nothing visible changes (7a stays invisible/safe). The
     upfront rows sit alongside, kept in step by the create/edit action until
     7e retires the column.
-  - ⬜ **7b** Tutor payment-plan config UI — per-programme surface to manage
+  - ✅ **7b** Tutor payment-plan config UI — per-programme surface to manage
     plans: the auto-created upfront plan (deactivatable), plus add / edit /
     deactivate deposit+balance + installment plans. RLS-gated server actions;
     validation (count 2..12, deposit < total, balance = total − deposit,
     interval days). Hide-not-delete once a strategy has live enrolments. The
     upfront *amount* is still edited via the programme price box (which writes
     both `price_minor` and the upfront row) until 7e — avoids a two-way sync.
-  - ⬜ **7c** Checkout plan picker — checkout shell shows the active plans;
+  - ✅ **7c** Checkout plan picker — checkout shell shows the active plans;
     student picks one, pays the INITIAL amount (full / deposit /
     installment 1) **read from the chosen strategy row**. On verify/activate:
     enrolment gets `strategy_id` + frozen snapshot; payment row carries
-    `strategy_id` (+ `installment_index = 1`).
-  - ⬜ **7d** Installments lifecycle — `nclex_enrolment_nightly_sweep()`
-    pg_cron: ENROLLED→PAUSED on overdue installment/balance +
-    ENROLLED/PAUSED→EXPIRED on access-window end (also clears the EXPIRED
-    sweep deferred out of enrolments Slice 2; the bank-subscription EXPIRED
-    sweep can fold into the same function). Student **"Pay next
-    installment"** action on the programme tile (checkout-shell single
-    charge; auto-unpause when caught up). Tutor override: "mark installment
-    paid off-platform" (new) + unpause (RPC exists).
-  - ⬜ **7e** Retire `price_minor` — the deliberate cutover. Switch the
+    `strategy_id`. **Correction (7d):** the initial row's `installment_index`
+    stays **NULL** (the `installment_index_scope` CHECK only permits it on
+    `PROGRAMME_INSTALLMENT` rows) — it's implicitly position 1; later
+    installments carry their position. (An earlier "= 1" note was wrong and
+    would have broken the INIT insert.)
+  - ✅ **7d** Installments lifecycle — shipped 2026-05-22. Pure schedule
+    engine (`lib/payments/schedule.ts`, 12 Vitest); `nclex_enrolment_nightly_sweep()`
+    on pg_cron (02:00 UTC — ENROLLED→PAUSED on overdue, ENROLLED/PAUSED→EXPIRED
+    on window end, ACTIVE subs→EXPIRED past `end_at`; gated by `nclex_config.
+    enrolment_sweep_enabled`, default ON); access-window read gate folded into
+    `nclex_has_active_*_enrolment`; student **"Pay next installment"**
+    (`/checkout/installment/[id]`, amount resolved server-side, auto-unpause
+    when caught up); tutor **"Mark paid off-platform"** in the cohort roster.
+    Migrations `20260608120000` (sweep) applied to dev. Live-tested + Sam
+    browser-tested (real Paystack installment + tutor mark-paid both
+    auto-unpaused). **Follow-ups same session:**
+    - **Reconciliation columns** (`20260609120000`): `nclex_payments` gains
+      `collection_channel` (PAYSTACK / OFF_PLATFORM) + `recorded_by_user_id`;
+      mark-paid stamps both — money-collected is now explicit, not inferred
+      from a null `paystack_reference`.
+    - **Grace / "give more time"** (`20260610120000`): `nclex_enrolments` gains
+      `installment_grace_until` (active deadline, sweep-respected) +
+      `grace_history_json` (append-only audit). New `giveMoreTimeAction` defers
+      the pause WITHOUT recording a payment (installment still owed, on-platform,
+      by the later date). Resume/Give-more-time/Mark-paid each now carry a
+      consequence-explaining overlay.
+    - **Roster payment-column labels:** Paid in full / Off-platform / Granted —
+      no more ambiguous bare "—".
+  - ⏭ **7e** Retire `price_minor` — the deliberate cutover. Switch the
     discovery card + detail headline + the `nclex_public_programmes` view
     family to **derive** the headline from plans (upfront total if active,
     else "from `min(initial)`"); point display + plumbing types at the plan
     amounts; drop the temporary `price_minor` sync; drop the column. Re-test
     discovery + detail + checkout in one pass (this is the one step that
     touches live public pages).
+- ✅ **System Config admin page** — shipped 2026-05-22. The first real
+  admin surface (replacing the `/admin/config` placeholder), built off the
+  back of the sweep flag. Typed editors over the `nclex_config` key/value
+  table — a yes/no switch for `enrolment_sweep_enabled` (inline toggle +
+  confirm-on-off) and a percent editor for `bank_optin_discount` (modal).
+  Driven by a small per-key definitions list (`config-defs.ts`: label /
+  description / type / validation) so a value can't be saved in the wrong
+  shape; `SYSTEM_MANAGE`-gated save action (service-role write, since
+  `nclex_config` RLS is SUPER_ADMIN-only for writes). Also fixed the
+  programme **detail page**'s hardcoded "40% off" add-on blurb — now reads
+  the live discount via `getBankOptinDiscountPct()` (and hides at 0%); the
+  checkout page was already dynamic. Surfaced when Sam edited the discount to
+  20% and the detail page still said 40%.
 - ⬜ **Slice 8** Self-paced + enquiry routing — `cohort_id = NULL`
   branch + `show_price_publicly = FALSE` contact path +
   `nclex_programme_enquiries`.

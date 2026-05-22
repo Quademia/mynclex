@@ -13,6 +13,7 @@ import {
   getPublicProgramme,
   getPublicUnits,
   getPublicCohorts,
+  getBankOptinDiscountPct,
 } from '@/lib/discovery/queries';
 import { getPublicPaymentPlans } from '@/lib/strategies/public-queries';
 import { formatMoney, systemLabel } from '@/lib/strategies/format';
@@ -39,10 +40,11 @@ export default async function ProgrammeDetailPage({
   const programme = await getPublicProgramme(id);
   if (!programme) notFound();
 
-  const [units, cohorts, plans] = await Promise.all([
+  const [units, cohorts, plans, bankDiscountPct] = await Promise.all([
     getPublicUnits(id),
     getPublicCohorts(id),
     getPublicPaymentPlans(id),
+    getBankOptinDiscountPct(),
   ]);
 
   const selfPaced = programme.delivery_mode === 'SELF_PACED';
@@ -293,12 +295,14 @@ export default async function ProgrammeDetailPage({
               )}
             </div>
 
-            {/* Bank opt-in hint — only meaningful for on-platform checkout (5.4b) */}
-            {isOnPlatform && (
+            {/* Bank opt-in hint — only meaningful for on-platform checkout (5.4b),
+                and only when a discount is actually configured. The percent is
+                read from nclex_config so it tracks the live setting. */}
+            {isOnPlatform && bankDiscountPct > 0 && (
               <div className="bank-hint">
                 <strong>Optional add-on</strong>
-                Add NCLEX Bank Access at checkout — 40% off the standalone price, stacking
-                on any access you already have.
+                Add NCLEX Bank Access at checkout — {bankDiscountPct}% off the standalone
+                price, stacking on any access you already have.
               </div>
             )}
 
