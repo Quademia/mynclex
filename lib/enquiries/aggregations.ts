@@ -160,6 +160,17 @@ export type AdminEnquiryStats = {
     volumeLastWeek: number;
     // 8 most recent week buckets (oldest → newest). Drives the sparkline.
     weeklySpark: number[];
+    // Per-week hot-leads-waiting counts — 8 buckets. Uses the SAME
+    // urgency rule as the live `hotWaiting` (NEW/CONTACTED + <4h), so
+    // historic buckets are the hot count of leads that were created
+    // in that week. Approximation, not exact-as-of-then.
+    hotWaitingSpark: number[];
+    // Per-week avg-first-response (seconds). 0 in buckets with no
+    // CONTACTED rows received that week.
+    avgResponseSpark: number[];
+    // Per-week conversion-rate fraction [0..1]. 0 in buckets with no
+    // leads received that week.
+    conversionSpark: number[];
     // Open NEW + CONTACTED that are 'hot' tier right now.
     hotWaiting: number;
     // NEW leads older than 24h — the SLA "breach" flag in the KPI card.
@@ -195,21 +206,52 @@ function slaTierFromAvgSec(avgSec: number | null): TutorScoreRow['slaTier'] {
   return 'bad';
 }
 
-// Buckets a list of timestamps into N consecutive week-long windows ending
-// at `now`. Returns counts ordered oldest → newest. Used for the KPI
-// sparkline (default N=8 — eight weeks of trend).
-function weeklyBuckets(rows: AdminAggregationRow[], now: Date, n: number): number[] {
+// Bucket index (oldest → newest, length n) for a created_at timestamp,
+// or null when the row falls outside the trailing n-week window.
+function bucketIndexFor(iso: string, now: Date, n: number): number | null {
+  const ms = new Date(iso).getTime();
+  const ageMs = now.getTime() - ms;
+  if (ageMs < 0 || ageMs >= n * MS_PER_WEEK) return null;
+  return n - 1 - Math.floor(ageMs / MS_PER_WEEK);
+}
+
+// Per-bucket reducer that returns counts of rows matching `predicate`.
+function bucketCounts(
+  rows: AdminAggregationRow[],
+  now: Date,
+  n: number,
+  predicate: (r: AdminAggregationRow) => boolean,
+): number[] {
   const buckets = new Array<number>(n).fill(0);
-  const nowMs = now.getTime();
-  const windowMs = n * MS_PER_WEEK;
   for (const r of rows) {
-    const ms = new Date(r.created_at).getTime();
-    const ageMs = nowMs - ms;
-    if (ageMs < 0 || ageMs >= windowMs) continue;
-    const idx = n - 1 - Math.floor(ageMs / MS_PER_WEEK);
-    if (idx >= 0 && idx < n) buckets[idx] += 1;
+    const idx = bucketIndexFor(r.created_at, now, n);
+    if (idx == null) continue;
+    if (predicate(r)) buckets[idx] += 1;
   }
   return buckets;
+}
+
+// Per-bucket reducer for sample-based aggregates (avg + rate). Returns
+// numerator + denominator pairs per bucket; downstream picks ratio or
+// mean. Predicate filters which rows to include in the numerator.
+function bucketSampled(
+  rows: AdminAggregationRow[],
+  now: Date,
+  n: number,
+  numerator: (r: AdminAggregationRow) => number | null,
+  denominator: (r: AdminAggregationRow) => boolean = () => true,
+): { sums: number[]; counts: number[] } {
+  const sums = new Array<number>(n).fill(0);
+  const counts = new Array<number>(n).fill(0);
+  for (const r of rows) {
+    const idx = bucketIndexFor(r.created_at, now, n);
+    if (idx == null) continue;
+    if (!denominator(r)) continue;
+    counts[idx] += 1;
+    const v = numerator(r);
+    if (v != null) sums[idx] += v;
+  }
+  return { sums, counts };
 }
 
 export function computeAdminStats(
@@ -335,11 +377,54 @@ export function computeAdminStats(
       return a.tutorName.localeCompare(b.tutorName);
     });
 
+  // Sparkline series — 8 trailing weeks each. Volume is just counts;
+  // hot is counts of rows that would be 'hot' tier; response + conversion
+  // are sample-based ratios.
+  const SPARK_WEEKS = 8;
+  const weeklySpark = bucketCounts(rows, now, SPARK_WEEKS, () => true);
+  const hotWaitingSpark = bucketCounts(
+    rows,
+    now,
+    SPARK_WEEKS,
+    (r) => urgencyTier(r.created_at, r.status) === 'hot',
+  );
+
+  const respBuckets = bucketSampled(
+    rows,
+    now,
+    SPARK_WEEKS,
+    (r) => {
+      if (!r.contacted_at) return null;
+      return Math.max(
+        0,
+        (new Date(r.contacted_at).getTime() - new Date(r.created_at).getTime()) / 1000,
+      );
+    },
+    (r) => r.contacted_at != null,
+  );
+  const avgResponseSpark = respBuckets.sums.map((sum, i) =>
+    respBuckets.counts[i] === 0 ? 0 : Math.round(sum / respBuckets.counts[i]),
+  );
+
+  const convBuckets = bucketSampled(
+    rows,
+    now,
+    SPARK_WEEKS,
+    (r) => (r.status === 'CONVERTED' ? 1 : 0),
+    () => true,
+  );
+  const conversionSpark = convBuckets.sums.map((sum, i) =>
+    convBuckets.counts[i] === 0 ? 0 : sum / convBuckets.counts[i],
+  );
+
   return {
     kpis: {
       volumeThisWeek,
       volumeLastWeek,
-      weeklySpark: weeklyBuckets(rows, now, 8),
+      weeklySpark,
+      hotWaitingSpark,
+      avgResponseSpark,
+      conversionSpark,
       hotWaiting,
       breach24hCount,
       avgFirstResponseSec: avgOrNull(respCurr),
