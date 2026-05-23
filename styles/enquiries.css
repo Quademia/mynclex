@@ -366,6 +366,14 @@
  * PR 3 will replace those with admin-only styles.
  * ───────────────────────────────────────────────────────────── */
 
+/* Page shell. Distinct from .pp-page (which caps at 720px for the
+ * narrow payment-plans form) because the inbox needs the full
+ * available width for the split view + KPI strip to breathe. Caps
+ * at 1480px so very wide screens don't stretch the detail pane to
+ * unreadable line lengths. */
+.ti-page {
+  max-width: 1480px;
+}
 .ti-wrap { display: flex; flex-direction: column; gap: 14px; }
 
 /* Stats strip — 5 KPI cards. */

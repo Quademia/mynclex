@@ -31,7 +31,7 @@ export default async function ProgrammeEnquiriesPage({
   const stats = computeTutorStats(enquiries);
 
   return (
-    <div className="pp-page">
+    <div className="ti-page">
       <header className="pp-page-head">
         <h1 className="pp-page-title">Enquiries</h1>
         <p className="pp-page-sub">
