@@ -1,10 +1,9 @@
 // mynclex/app/(app)/tutor/programme/[programme_id]/enquiries/page.tsx
 //
-// Tutor enquiry queue (Slice 8b). Lists the programme's lead-capture
-// rows from Slice 8a; lets the tutor mark Forwarded / Closed and edit
-// admin notes. The list is RLS-scoped to the tutor's own programmes;
-// a programme they don't own returns no rows (the layout itself 404s
-// first via getProgrammeForShell).
+// Tutor enquiry queue (Slice 8 — V1 polished inbox). One DB read; the
+// stats strip + list + detail all derive from the same `enquiries[]`
+// array. Stats are computed server-side from the rows so the bundle
+// stays lean; the panel still re-derives on filter changes client-side.
 //
 // Always present in the sidebar regardless of programme config — even
 // programmes that don't currently surface a Contact form might
@@ -12,6 +11,7 @@
 
 import { getProgrammeForShell } from '@/lib/programmes/queries';
 import { getEnquiriesForProgramme } from '@/lib/enquiries/queries';
+import { computeTutorStats } from '@/lib/enquiries/aggregations';
 import { EnquiriesPanel } from './enquiries-panel';
 
 export const dynamic = 'force-dynamic';
@@ -28,22 +28,23 @@ export default async function ProgrammeEnquiriesPage({
   if (!programme) return null;
 
   const enquiries = await getEnquiriesForProgramme(programme_id);
+  const stats = computeTutorStats(enquiries);
 
   return (
     <div className="pp-page">
       <header className="pp-page-head">
         <h1 className="pp-page-title">Enquiries</h1>
         <p className="pp-page-sub">
-          Leads from students who used the Contact form on your
-          programme&apos;s public page. Reach out through their preferred
-          channel, then mark the lead as Forwarded so you know what
-          you&apos;ve already handled.
+          Leads from your programme&apos;s public Contact form. WhatsApp is
+          the fastest channel for this audience — replies under 4 hours
+          convert ~3× more often.
         </p>
       </header>
 
       <EnquiriesPanel
         programmeId={programme_id}
         enquiries={enquiries}
+        stats={stats}
       />
     </div>
   );
