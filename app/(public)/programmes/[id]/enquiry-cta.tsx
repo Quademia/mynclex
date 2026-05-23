@@ -1,36 +1,42 @@
-// mynclex/app/(public)/programmes/[id]/waitlist-cta.tsx
+// mynclex/app/(public)/programmes/[id]/enquiry-cta.tsx
 //
-// Public "Join the waitlist" CTA (Payments Slice 4). Sits in the detail
-// rail UNDER the (kept) "coming soon" online-enrolment button — that one
-// is reserved for Slice 5 on-platform checkout. This is the off-platform
-// path: leave name + email + an optional note, no account needed. The
-// owning tutor converts the request to an enrolment from their cohort
-// workspace.
+// Public "Contact tutor" CTA (Slice 8a). Sits in the detail rail for
+// programmes with no on-page commitment path — off-platform self-paced
+// (no cohorts to waitlist against) and price-hidden programmes of any
+// delivery mode (the tutor wants a conversation before quoting). The
+// page decides eligibility; this just renders the button + modal.
 //
-// Only rendered for tutor-led programmes with >= 1 joinable cohort (the
-// page decides). The cohort picker collapses to fixed text when there's
-// just one — no needless choice.
+// Modal shape mirrors waitlist-cta.tsx (same chrome, same contact-
+// preference checkbox group, same conditional-phone-required, same
+// "thanks — we'll be in touch" success screen) so the two flows feel
+// like the same family. CONTACT_OPTIONS is imported from the shared
+// module so the two forms can't drift.
+//
+// Submission goes through submitEnquiryAction → nclex_submit_enquiry
+// RPC, which is anon-grantable, validates programme eligibility, and
+// is idempotent on (programme, email).
 
 'use client';
 
 import { useEffect, useRef, useState, useTransition } from 'react';
-import { joinWaitlistAction } from '@/lib/discovery/waitlist-actions';
+import { submitEnquiryAction } from '@/lib/discovery/enquiry-actions';
 import {
   CONTACT_OPTIONS,
   preferredContactNeedsPhone,
 } from '@/lib/discovery/contact-options';
 
-export interface WaitlistCohortOption {
-  id: string;
-  label: string;
-}
-
-export function WaitlistCta({
-  cohorts,
+export function EnquiryCta({
+  programmeId,
   tutorName,
+  reason,
 }: {
-  cohorts: WaitlistCohortOption[];
+  programmeId: string;
   tutorName: string;
+  // Short copy explaining why we're showing this instead of an Enrol
+  // button — flips between the price-hidden case ("Reach out about
+  // pricing and joining") and the off-platform-with-price case ("This
+  // tutor collects fees directly — reach out to enrol").
+  reason: 'PRICE_HIDDEN' | 'OFF_PLATFORM';
 }) {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
@@ -50,7 +56,7 @@ export function WaitlistCta({
   function handleSubmit(formData: FormData) {
     setError(null);
     startTransition(async () => {
-      const res = await joinWaitlistAction(formData);
+      const res = await submitEnquiryAction(formData);
       if (!res.ok) {
         setError(res.error);
         return;
@@ -59,20 +65,22 @@ export function WaitlistCta({
     });
   }
 
+  const blurb =
+    reason === 'PRICE_HIDDEN'
+      ? `${tutorName} prefers to talk before sharing the price. Leave your details and they'll be in touch.`
+      : `${tutorName} collects fees directly — reach out and they'll guide you through enrolling.`;
+
   return (
     <div className="wl-cta">
-      <h3 className="wl-cta-title">Join the waitlist</h3>
-      <p className="wl-cta-blurb">
-        Not paying online yet? Leave your details and {tutorName} will be in
-        touch about joining.
-      </p>
+      <h3 className="wl-cta-title">Contact {tutorName}</h3>
+      <p className="wl-cta-blurb">{blurb}</p>
       <button type="button" className="wl-cta-btn" onClick={openForm}>
-        Join the waitlist
+        Contact tutor
       </button>
 
       {open && (
-        <WaitlistModal
-          cohorts={cohorts}
+        <EnquiryModal
+          programmeId={programmeId}
           tutorName={tutorName}
           done={done}
           error={error}
@@ -85,8 +93,8 @@ export function WaitlistCta({
   );
 }
 
-function WaitlistModal({
-  cohorts,
+function EnquiryModal({
+  programmeId,
   tutorName,
   done,
   error,
@@ -94,7 +102,7 @@ function WaitlistModal({
   onClose,
   onSubmit,
 }: {
-  cohorts: WaitlistCohortOption[];
+  programmeId: string;
   tutorName: string;
   done: boolean;
   error: string | null;
@@ -103,7 +111,6 @@ function WaitlistModal({
   onSubmit: (formData: FormData) => void;
 }) {
   const firstFieldRef = useRef<HTMLInputElement>(null);
-  const single = cohorts.length === 1;
 
   // Preferred-contact checkbox state — Email pre-ticked. Phone becomes
   // required the moment a phone-based channel (WhatsApp/Call/SMS) is on.
@@ -129,7 +136,7 @@ function WaitlistModal({
         className="wl-modal"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="wl-modal-title"
+        aria-labelledby="enquiry-modal-title"
         onClick={(e) => e.stopPropagation()}
       >
         {done ? (
@@ -137,12 +144,12 @@ function WaitlistModal({
             <div className="wl-done-icon" aria-hidden="true">
               ✓
             </div>
-            <h2 id="wl-modal-title" className="wl-modal-title">
-              You&apos;re on the waitlist
+            <h2 id="enquiry-modal-title" className="wl-modal-title">
+              Message sent
             </h2>
             <p className="wl-modal-sub">
-              {tutorName} can see your request and will reach out about the
-              next steps. You don&apos;t need to do anything else for now.
+              {tutorName} can see your enquiry and will reach out via your
+              preferred channel. No need to do anything else for now.
             </p>
             <div className="wl-actions">
               <button type="button" className="wl-cta-btn" onClick={onClose}>
@@ -152,64 +159,29 @@ function WaitlistModal({
           </div>
         ) : (
           <>
-            <h2 id="wl-modal-title" className="wl-modal-title">
-              Join the waitlist
+            <h2 id="enquiry-modal-title" className="wl-modal-title">
+              Contact {tutorName}
             </h2>
             <p className="wl-modal-sub">
-              Leave your details and {tutorName} will get in touch. No account
-              needed yet — you&apos;ll get one when you&apos;re enrolled.
+              Leave your details and {tutorName} will get back to you. No
+              account needed — you&apos;ll get one if you enrol later.
             </p>
 
             <form action={onSubmit} className="wl-form">
-              {single ? (
-                <input type="hidden" name="cohortId" value={cohorts[0].id} />
-              ) : null}
+              <input type="hidden" name="programmeId" value={programmeId} />
 
               <label className="wl-field">
-                <span className="wl-field-label">Cohort</span>
-                {single ? (
-                  <span className="wl-fixed-cohort">{cohorts[0].label}</span>
-                ) : (
-                  <select
-                    name="cohortId"
-                    className="wl-input"
-                    defaultValue={cohorts[0].id}
-                    disabled={pending}
-                  >
-                    {cohorts.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                <span className="wl-field-label">Your name</span>
+                <input
+                  ref={firstFieldRef}
+                  name="name"
+                  type="text"
+                  className="wl-input"
+                  autoComplete="name"
+                  required
+                  disabled={pending}
+                />
               </label>
-
-              <div className="wl-form-row">
-                <label className="wl-field">
-                  <span className="wl-field-label">First name</span>
-                  <input
-                    ref={firstFieldRef}
-                    name="forename"
-                    type="text"
-                    className="wl-input"
-                    autoComplete="given-name"
-                    required
-                    disabled={pending}
-                  />
-                </label>
-                <label className="wl-field">
-                  <span className="wl-field-label">Surname</span>
-                  <input
-                    name="surname"
-                    type="text"
-                    className="wl-input"
-                    autoComplete="family-name"
-                    required
-                    disabled={pending}
-                  />
-                </label>
-              </div>
 
               <label className="wl-field">
                 <span className="wl-field-label">Email</span>
@@ -270,7 +242,7 @@ function WaitlistModal({
                   name="message"
                   className="wl-input wl-textarea"
                   rows={3}
-                  placeholder="Anything you'd like the tutor to know."
+                  placeholder="Anything you'd like the tutor to know — questions, schedule, anything."
                   disabled={pending}
                 />
               </label>
@@ -291,7 +263,7 @@ function WaitlistModal({
                   Cancel
                 </button>
                 <button type="submit" className="wl-cta-btn" disabled={pending}>
-                  {pending ? 'Sending…' : 'Join the waitlist'}
+                  {pending ? 'Sending…' : 'Send message'}
                 </button>
               </div>
             </form>
