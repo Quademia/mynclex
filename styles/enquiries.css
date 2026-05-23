@@ -278,3 +278,82 @@
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * Admin cross-programme list (Slice 8c — /admin/enquiries)
+ * Read-only stack of richer rows that carry programme + tutor
+ * context the tutor surface doesn't need to show.
+ * ───────────────────────────────────────────────────────────── */
+
+.enq-prog-filter {
+  margin-left: auto;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--ink-soft);
+}
+
+.enq-admin-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.enq-admin-row {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.enq-admin-row-head {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12.5px;
+}
+.enq-admin-prog {
+  flex: 1; min-width: 0;
+  font-weight: 600; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.enq-admin-tutor { color: var(--ink-mute); font-weight: 500; }
+.enq-admin-when {
+  color: var(--ink-faint);
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+}
+
+.enq-admin-body {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+}
+.enq-admin-identity {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  font-size: 13px;
+}
+.enq-admin-name { font-weight: 600; color: var(--ink); }
+.enq-admin-contact {
+  color: var(--accent-strong); text-decoration: none;
+}
+.enq-admin-contact:hover { text-decoration: underline; }
+.enq-admin-channels { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.enq-admin-message {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--surface-soft);
+  border-left: 3px solid var(--line-strong);
+  border-radius: 4px;
+  font-size: 13px; color: var(--ink-soft); line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.enq-admin-actions {
+  display: flex; justify-content: flex-end;
+}
+.enq-admin-link {
+  font-size: 12.5px; font-weight: 500;
+  color: var(--accent-strong); text-decoration: none;
+}
+.enq-admin-link:hover { text-decoration: underline; }
