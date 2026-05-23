@@ -56,7 +56,14 @@ export function EditProgrammeTrigger({ programme }: EditProgrammeTriggerProps) {
         <ProgrammeFormModal
           mode="edit"
           programmeId={programme.programme_id}
-          initial={programme}
+          initial={{
+            ...programme,
+            // ProgrammeListRow's upfront_total_minor is nullable (rare
+            // transient case — programme with no upfront plan row); the
+            // form treats it as the canonical full-price authoring field,
+            // so coalesce to 0 instead of crashing.
+            upfront_total_minor: programme.upfront_total_minor ?? 0,
+          }}
           onClose={() => setIsOpen(false)}
         />
       )}

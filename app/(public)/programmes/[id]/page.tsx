@@ -52,18 +52,22 @@ export default async function ProgrammeDetailPage({
   const unitNoun = programme.unit_label === 'WEEK' ? 'Week' : 'Module';
   const { ccy, amount } = priceParts(
     programme.price_currency,
-    programme.price_minor
+    programme.headline_price_minor
   );
   const showPrice = programme.show_price_publicly;
   const ctaLabel = selfPaced ? 'Start now' : 'Enrol';
 
   // Sub-line under the headline price. Off-platform programmes don't take
-  // online payment; on-platform ones note whether plans are available.
+  // online payment; on-platform ones note whether plans are available and
+  // whether the headline is the full price or a first installment (slice 7e —
+  // headline_is_upfront tells us which case we're in).
   const priceSubLabel = !isOnPlatform
     ? 'Collected directly by the tutor'
     : plans.length >= 2
       ? 'Pay in full, or choose a plan at checkout'
-      : 'Upfront — one payment';
+      : programme.headline_is_upfront
+        ? 'Upfront — one payment'
+        : 'Deposit or installment plan';
 
   // Waitlist-joinable cohorts: tutor-led only, and (matching the
   // nclex_join_waitlist gate) upcoming OR late-join-allowed. getPublicCohorts
@@ -88,7 +92,7 @@ export default async function ProgrammeDetailPage({
   const canEnrol =
     programme.payment_collection_mode === 'ON_PLATFORM' &&
     showPrice &&
-    programme.price_minor > 0 &&
+    programme.headline_price_minor > 0 &&
     (selfPaced || waitlistCohorts.length > 0);
 
   // Short note under the Enrol button: the soonest joinable cohort for
@@ -260,6 +264,10 @@ export default async function ProgrammeDetailPage({
             {showPrice ? (
               <>
                 <div className="price">
+                  {!programme.headline_is_upfront &&
+                    programme.headline_price_minor > 0 && (
+                      <span className="from">from </span>
+                    )}
                   {ccy && <span className="ccy">{ccy}</span>}
                   {amount}
                 </div>

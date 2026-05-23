@@ -22,7 +22,11 @@ type Filter = 'all' | 'tutor-led' | 'self-paced';
 function ProgrammeCard({ p }: { p: PublicProgramme }) {
   const selfPaced = p.delivery_mode === 'SELF_PACED';
   const when = whenLabel(p);
-  const { ccy, amount } = priceParts(p.price_currency, p.price_minor);
+  // Slice 7e — headline derived in the view: upfront total when the tutor
+  // offers Pay-in-full, else the cheapest first payment across other
+  // active plans. "from" prefix flags the second case so the card doesn't
+  // present a deposit as if it were the full price.
+  const { ccy, amount } = priceParts(p.price_currency, p.headline_price_minor);
   const showPrice = p.show_price_publicly;
   const attr = tutorAttribution(p.tutor_profile, p.tutor_name, p.tutor_avatar_url);
 
@@ -55,6 +59,9 @@ function ProgrammeCard({ p }: { p: PublicProgramme }) {
         <div className="price">
           {showPrice ? (
             <>
+              {!p.headline_is_upfront && p.headline_price_minor > 0 && (
+                <span className="from">from </span>
+              )}
               {ccy && <span className="ccy">{ccy}</span>}
               {amount}
             </>

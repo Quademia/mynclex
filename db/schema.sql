@@ -773,14 +773,18 @@ CREATE TABLE nclex_programmes (
   length_units          SMALLINT NOT NULL                    -- count of curriculum units
                         CHECK (length_units BETWEEN 1 AND 52),
 
-  -- Pricing (minor units; 0 = free). Slice 3a — single tutor-chosen
-  -- currency (vs the bank's deliberate dual-currency PPP on
-  -- nclex_products). The tutor settles in one currency; an FX
-  -- "≈ equivalent" public display is deferred polish.
+  -- Pricing (Slice 3a — single tutor-chosen currency vs the bank's
+  -- deliberate dual-currency PPP on nclex_products). The tutor settles
+  -- in one currency; an FX "≈ equivalent" public display is deferred
+  -- polish.
+  --
+  -- The price amount lives on nclex_programme_payment_strategies (one
+  -- row per plan; UPFRONT_FULL is the canonical full-price plan). Slice
+  -- 7e retired the legacy price_minor column on this table — two copies
+  -- of the same number = drift risk. The public view derives a headline
+  -- from active plans (upfront total when offered, else min initial).
   price_currency        TEXT NOT NULL
                         CHECK (price_currency IN ('GHS','USD')),
-  price_minor           INTEGER NOT NULL
-                        CHECK (price_minor >= 0),
   show_price_publicly   BOOLEAN NOT NULL DEFAULT TRUE,
   -- OFF_PLATFORM (tutor collects + adds students) | ON_PLATFORM
   -- (Paystack checkout). No runtime effect until Slice 5. Self-paced

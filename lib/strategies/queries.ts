@@ -22,7 +22,7 @@ export async function getPaymentPlansContext(
   const { data: prog, error } = await supabase
     .from('nclex_programmes')
     .select(
-      'programme_id, title, price_currency, price_minor, payment_collection_mode, status'
+      'programme_id, title, price_currency, payment_collection_mode, status'
     )
     .eq('programme_id', programmeId)
     .maybeSingle();
@@ -46,7 +46,6 @@ export async function getPaymentPlansContext(
       programme_id: prog.programme_id as string,
       title: prog.title as string,
       price_currency: prog.price_currency as Currency,
-      price_minor: prog.price_minor as number,
       payment_collection_mode:
         prog.payment_collection_mode as PaymentCollectionMode,
       status: prog.status as ProgrammeStatus,

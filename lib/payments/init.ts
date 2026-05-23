@@ -155,7 +155,7 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
   } else {
     const { data: prog, error } = await admin
       .from('nclex_programmes')
-      .select('programme_id, title, price_minor, price_currency, payment_collection_mode, delivery_mode, status')
+      .select('programme_id, title, price_currency, payment_collection_mode, delivery_mode, status')
       .eq('programme_id', input.target.programmeId)
       .maybeSingle();
     if (error || !prog) return { ok: false, error: 'Programme not found.' };
@@ -191,9 +191,12 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
 
     // Resolve the chosen payment plan (Slice 7c). The initial charge is the
     // plan's initial_price_minor (full / deposit / installment 1), looked up
-    // server-side so the browser can't set the amount. A missing strategyId
-    // falls back to the programme's full price (upfront), strategy_id NULL.
-    let initialAmount = prog.price_minor;
+    // server-side so the browser can't set the amount. Slice 7e — the plans
+    // table is now the only source of truth for amounts (no legacy
+    // price_minor column to fall back to), so when no strategyId is sent
+    // (e.g. an old client) we resolve the active UPFRONT_FULL plan and
+    // use that. If neither exists the order has no payable price.
+    let initialAmount: number;
     let strategyId: string | null = null;
     if (input.target.strategyId) {
       const { data: strategy } = await admin
@@ -210,6 +213,19 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
       }
       initialAmount = strategy.initial_price_minor;
       strategyId = strategy.strategy_id;
+    } else {
+      const { data: upfront } = await admin
+        .from('nclex_programme_payment_strategies')
+        .select('strategy_id, initial_price_minor')
+        .eq('programme_id', prog.programme_id)
+        .eq('kind', 'UPFRONT_FULL')
+        .eq('is_active', true)
+        .maybeSingle();
+      if (!upfront) {
+        return { ok: false, error: 'That payment plan is not available.' };
+      }
+      initialAmount = upfront.initial_price_minor;
+      strategyId = upfront.strategy_id;
     }
 
     items.push({

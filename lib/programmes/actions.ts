@@ -28,7 +28,10 @@ export type CreateProgrammeInput = {
   unit_label: UnitLabel;
   length_units: number;
   price_currency: Currency;
-  price_minor: number;
+  // The programme's canonical full price. Written to the UPFRONT_FULL
+  // plan row, not a programme column (slice 7e — the legacy
+  // nclex_programmes.price_minor was retired).
+  upfront_total_minor: number;
   show_price_publicly: boolean;
   payment_collection_mode: PaymentCollectionMode;
   access_window_days: number | null;
@@ -38,13 +41,16 @@ export type CreateProgrammeResult =
   | { ok: true; programme_id: string }
   | { ok: false; error: string };
 
-// Payments Slice 7b — keep the programme's UPFRONT_FULL payment plan
-// in step with price_minor. The full price is edited here (the
-// programme price box) and mirrored onto the upfront plan row, which
-// is the single source of truth for amounts (Phasing 2; price_minor
-// is retired in 7e). is_active is deliberately NOT touched — a tutor
-// who turned upfront off keeps it off when they later edit the price.
-// Best-effort: a failure here doesn't roll back the programme write.
+// Slice 7e — write the programme's canonical full price to the
+// UPFRONT_FULL plan row. Before 7e this kept two copies in sync
+// (the now-retired price_minor column + the upfront plan); after
+// 7e the plan row is the only place a price lives, so this function
+// went from "mirror" to "authoritative writer." UPSERT-shaped:
+// updates the existing row when one is there (preserves is_active
+// — a tutor who turned upfront off keeps it off when they later edit
+// the price), inserts the active default on create. Best-effort:
+// a failure here doesn't roll back the programme write — the row
+// is fixable from the payment-plans surface.
 async function syncUpfrontStrategy(
   supabase: Awaited<ReturnType<typeof createClient>>,
   programmeId: string,
@@ -97,7 +103,10 @@ function validate(input: CreateProgrammeInput): string | null {
   if (input.price_currency !== 'GHS' && input.price_currency !== 'USD') {
     return 'Currency is invalid.';
   }
-  if (!Number.isInteger(input.price_minor) || input.price_minor < 0) {
+  if (
+    !Number.isInteger(input.upfront_total_minor) ||
+    input.upfront_total_minor < 0
+  ) {
     return 'Price must be a non-negative number.';
   }
   if (
@@ -139,7 +148,6 @@ export async function createProgrammeAction(
       unit_label: input.unit_label,
       length_units: input.length_units,
       price_currency: input.price_currency,
-      price_minor: input.price_minor,
       show_price_publicly: input.show_price_publicly,
       payment_collection_mode: input.payment_collection_mode,
       access_window_days: input.access_window_days,
@@ -152,8 +160,12 @@ export async function createProgrammeAction(
   }
 
   // Seed the UPFRONT_FULL plan so the new programme has a purchasable
-  // plan from the moment it's created (mirrors price_minor).
-  await syncUpfrontStrategy(supabase, data.programme_id, input.price_minor);
+  // plan (and a headline price) from the moment it's created.
+  await syncUpfrontStrategy(
+    supabase,
+    data.programme_id,
+    input.upfront_total_minor
+  );
 
   revalidatePath('/tutor/programmes');
   return { ok: true, programme_id: data.programme_id };
@@ -328,7 +340,6 @@ export async function editProgrammeAction(
       unit_label: input.unit_label,
       length_units: input.length_units,
       price_currency: input.price_currency,
-      price_minor: input.price_minor,
       show_price_publicly: input.show_price_publicly,
       payment_collection_mode: input.payment_collection_mode,
       access_window_days: input.access_window_days,
@@ -345,8 +356,9 @@ export async function editProgrammeAction(
     return { ok: false, error: 'Programme not found or not yours to edit.' };
   }
 
-  // Mirror the (possibly changed) full price onto the upfront plan.
-  await syncUpfrontStrategy(supabase, programme_id, input.price_minor);
+  // Write the (possibly changed) full price onto the upfront plan — the
+  // single place a price lives since slice 7e.
+  await syncUpfrontStrategy(supabase, programme_id, input.upfront_total_minor);
 
   revalidatePath('/tutor/programmes');
   revalidatePath(`/tutor/programme/${programme_id}/overview`);

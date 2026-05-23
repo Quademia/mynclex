@@ -32,6 +32,12 @@ export type PublicProfile = {
 
 // One row of nclex_public_programmes. The view exposes only public
 // fields; tutor identity is name + avatar, never email / phone / role.
+//
+// Slice 7e — headline_price_minor is derived inside the view from the
+// programme's active plans (upfront total when offered, else the
+// cheapest first payment). headline_is_upfront flags case 1 vs case 2
+// so the discovery card can prefix "from " on the deposit/installment
+// case (honest signal: that's a first payment, not a full price).
 export type PublicProgramme = {
   programme_id: string;
   title: string;
@@ -41,7 +47,8 @@ export type PublicProgramme = {
   unit_label: UnitLabel;
   length_units: number;
   price_currency: Currency;
-  price_minor: number;
+  headline_price_minor: number;
+  headline_is_upfront: boolean;
   show_price_publicly: boolean;
   payment_collection_mode: PaymentCollectionMode;
   access_window_days: number | null;

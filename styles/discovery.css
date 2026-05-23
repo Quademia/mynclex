@@ -237,6 +237,7 @@
 }
 .prog-card .price-row .price { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
 .prog-card .price-row .price .ccy { font-size: 13px; font-weight: 500; color: var(--ink-mute); margin-right: 3px; }
+.prog-card .price-row .price .from { font-size: 12.5px; font-weight: 500; color: var(--ink-mute); margin-right: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
 .prog-card .price-row .price .price-contact { font-size: 16px; font-weight: 500; color: var(--ink-mute); }
 .prog-card .price-row .when { font-size: 12.5px; color: var(--ink-mute); text-align: right; }
 .prog-card .price-row .when .k {
@@ -385,6 +386,7 @@
 }
 .det-rail .price { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
 .det-rail .price .ccy { font-size: 16px; font-weight: 500; color: var(--ink-mute); margin-right: 6px; }
+.det-rail .price .from { font-size: 14px; font-weight: 500; color: var(--ink-mute); margin-right: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
 .det-rail .price.price-contact { font-size: 18px; color: var(--ink-soft); font-weight: 500; }
 .det-rail .price-sub { margin-top: 4px; font-size: 13px; color: var(--ink-mute); }
 

@@ -118,8 +118,10 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
   const [currency, setCurrency] = useState<Currency>(
     initial?.price_currency ?? 'GHS'
   );
+  // Initial value is the programme's canonical full price — read from the
+  // UPFRONT_FULL plan row (slice 7e replaced the legacy price_minor column).
   const [price, setPrice] = useState(
-    initial ? minorToInput(initial.price_minor) : '0'
+    initial ? minorToInput(initial.upfront_total_minor) : '0'
   );
   const [showPricePublicly, setShowPricePublicly] = useState(
     initial?.show_price_publicly ?? true
@@ -161,7 +163,7 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
         unitLabel !== initial.unit_label ||
         lengthUnits !== String(initial.length_units) ||
         currency !== initial.price_currency ||
-        priceToMinor(price) !== initial.price_minor ||
+        priceToMinor(price) !== initial.upfront_total_minor ||
         showPricePublicly !== initial.show_price_publicly ||
         collectionMode !== initial.payment_collection_mode ||
         accessWindowDays !==
@@ -230,7 +232,7 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
         unit_label: unitLabel,
         length_units: lengthUnitsNum,
         price_currency: currency,
-        price_minor: priceToMinor(price),
+        upfront_total_minor: priceToMinor(price),
         show_price_publicly: showPricePublicly,
         payment_collection_mode: collectionMode,
         access_window_days:

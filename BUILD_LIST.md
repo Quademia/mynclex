@@ -8,26 +8,23 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-22):** **Payments Slice 7 — multi-strategy +
-> installments (7a–7d done) + follow-ups + System Config page.** 7d shipped
-> the installments lifecycle: a pure schedule engine (`lib/payments/schedule.ts`,
-> 12 Vitest); the "pay next installment" path (`init.ts` resolves the amount
-> server-side, `activate.ts` auto-unpauses once caught up); the nightly
-> `nclex_enrolment_nightly_sweep()` on pg_cron (02:00 UTC — overdue→PAUSED,
-> window→EXPIRED, lapsed subs→EXPIRED; gated by `enrolment_sweep_enabled`,
-> default ON); the access-window read gate; the student programme-tile CTA;
-> and the tutor "Mark paid off-platform". **Follow-ups (same session):**
-> payment **reconciliation columns** (`collection_channel` +
-> `recorded_by_user_id`); a **grace / "give more time"** path distinct from
-> mark-paid (`installment_grace_until` + append-only `grace_history_json`; the
-> sweep respects grace; consequence overlays on all three pause-resolution
-> buttons); roster **payment-column labels** (Paid in full / Off-platform /
-> Granted). Plus the **System Config admin page** (`/admin/config` — typed
-> editors over `nclex_config`: sweep on/off + bank discount) and a fix to the
-> detail page's hardcoded bank-discount % (now reads the live config).
-> **Next: Slice 7e** (retire `price_minor`), or rotate per the
-> alternate-features rule. Payments arc: 5.1–5.6 · 7a strategies schema ·
-> 7b plan config · 7c checkout picker · 7d installments lifecycle (+ follow-ups).
+> **Last shipped (2026-05-23):** **Payments Slice 7e — retire `price_minor`.**
+> The final step of Phasing 2: deleted `nclex_programmes.price_minor`, with the
+> `nclex_programme_payment_strategies` table now the sole place a price lives.
+> `nclex_public_programmes` view rebuilt with a derived `headline_price_minor`
+> (active UPFRONT_FULL's total when offered, else the cheapest first payment
+> across other active plans) + `headline_is_upfront` flag so the discovery
+> card can prefix "from " when the headline is a deposit/first installment.
+> `syncUpfrontStrategy` went from "mirror" to authoritative writer (the
+> programme form's Price box now writes only to the upfront-plan row); list
+> queries embed the upfront row to pre-fill the form on edit; `init.ts`
+> fallback path (when no `strategyId` is sent) resolves the active upfront
+> plan. 15 files + 1 migration; typecheck clean; both seed programmes still
+> derive the same headlines they had pre-cutover. **Payments arc complete:**
+> 5.1–5.6 · 7a strategies schema · 7b plan config · 7c checkout picker ·
+> 7d installments lifecycle (+ follow-ups) · 7e column retirement.
+> **Next:** rotate per the alternate-features rule — programme-side
+> (tutor-quiz S4, progress engine S5) is queued.
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -1290,13 +1287,28 @@ Slice order from the adopted Claude Design proposal
       consequence-explaining overlay.
     - **Roster payment-column labels:** Paid in full / Off-platform / Granted —
       no more ambiguous bare "—".
-  - ⏭ **7e** Retire `price_minor` — the deliberate cutover. Switch the
-    discovery card + detail headline + the `nclex_public_programmes` view
-    family to **derive** the headline from plans (upfront total if active,
-    else "from `min(initial)`"); point display + plumbing types at the plan
-    amounts; drop the temporary `price_minor` sync; drop the column. Re-test
-    discovery + detail + checkout in one pass (this is the one step that
-    touches live public pages).
+  - ✅ **7e** Retire `price_minor` — shipped 2026-05-23. Single migration
+    `20260612120000_slice_7e_retire_programme_price_minor.sql`: DROP VIEW
+    nclex_public_programmes (column removal needs DROP, not REPLACE);
+    recreate it without `p.price_minor`, with two new derived columns
+    (`headline_price_minor` — COALESCE of active UPFRONT_FULL's total →
+    cheapest active initial → 0; `headline_is_upfront` — boolean for the
+    "from " prefix on the card / rail); ALTER DROP COLUMN price_minor.
+    `syncUpfrontStrategy` is now the authoritative writer (not a mirror)
+    — the programme form's Price box still exists, but writes only to the
+    UPFRONT_FULL plan row. `getMyProgrammes` embeds the upfront row via
+    `upfront:nclex_programme_payment_strategies(total_price_minor)` so the
+    edit modal can pre-fill the Price field; `PaymentPlansContext`
+    dropped `programme.price_minor`; the payment-plans panel derives its
+    default-Total from `strategies[]`. `init.ts` PROGRAMME branch dropped
+    `price_minor` from the SELECT and gained a fallback (when no
+    `strategyId` is sent) that resolves the active UPFRONT_FULL plan
+    instead. Public surfaces (discovery list, detail rail, checkout
+    page) all switched to `headline_price_minor`; cards + rail render
+    "from " on the non-upfront case (new `.from` style in
+    `styles/discovery.css`). 15 files + 1 migration; typecheck clean;
+    both seed programmes still derive identical headlines (₵3000 +
+    ₵250) to the pre-cutover values. Commit `<TBD>`.
 - ✅ **System Config admin page** — shipped 2026-05-22. The first real
   admin surface (replacing the `/admin/config` placeholder), built off the
   back of the sweep flag. Typed editors over the `nclex_config` key/value
