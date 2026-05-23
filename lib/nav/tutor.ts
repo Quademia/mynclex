@@ -59,6 +59,10 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   { key: 'quizzes',     label: 'Quizzes',       icon: 'target',   href: '/tutor/programme/:programmeId/quizzes' },
   { key: 'sessions',    label: 'Live Sessions', icon: 'video',    href: '/tutor/programme/:programmeId/sessions' },
   { key: 'assignments', label: 'Assignments',   icon: 'edit',     href: '/tutor/programme/:programmeId/assignments' },
+  // Slice 8b — lead queue for programmes that surface a Contact form
+  // (off-platform or price-hidden). Sits before Students in the funnel
+  // order: enquiry → enrolment → student.
+  { key: 'enquiries',   label: 'Enquiries',     icon: 'mail',     href: '/tutor/programme/:programmeId/enquiries' },
   { key: 'students',    label: 'Students',      icon: 'users',    href: '/tutor/programme/:programmeId/students' },
   { key: 'results',     label: 'Results',       icon: 'chart',    href: '/tutor/programme/:programmeId/results' },
 ];

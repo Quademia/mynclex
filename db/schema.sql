@@ -1524,9 +1524,9 @@ CREATE TABLE nclex_programme_enquiries (
   message              TEXT,
 
   status               TEXT NOT NULL DEFAULT 'NEW'
-                       CHECK (status IN ('NEW','FORWARDED','CONVERTED','CLOSED')),
+                       CHECK (status IN ('NEW','CONTACTED','CONVERTED','CLOSED')),
 
-  forwarded_at         TIMESTAMPTZ,                                  -- tutor marked Forwarded (8b)
+  contacted_at         TIMESTAMPTZ,                                  -- tutor marked Contacted (8b — renamed from forwarded_at)
   converted_enrolment_id UUID                                        -- 8c auto-stamp on email match
                        REFERENCES nclex_enrolments(enrolment_id) ON DELETE SET NULL,
   admin_notes          TEXT,
@@ -1548,13 +1548,13 @@ CREATE TABLE nclex_programme_enquiries (
 -- closed contact can re-enquire later.
 CREATE UNIQUE INDEX idx_nclex_programme_enquiries_open
   ON nclex_programme_enquiries (programme_id, lower(email))
-  WHERE status IN ('NEW','FORWARDED');
+  WHERE status IN ('NEW','CONTACTED');
 CREATE INDEX idx_nclex_programme_enquiries_programme_status
   ON nclex_programme_enquiries (programme_id, status);
 -- 8c email matcher (auto-convert on enrolment).
 CREATE INDEX idx_nclex_programme_enquiries_email
   ON nclex_programme_enquiries (lower(email))
-  WHERE status IN ('NEW','FORWARDED');
+  WHERE status IN ('NEW','CONTACTED');
 
 
 -- ────────────────────────────────────────────────────────────
