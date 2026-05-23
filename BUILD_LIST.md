@@ -8,23 +8,39 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-23):** **Payments Slice 7e — retire `price_minor`.**
-> The final step of Phasing 2: deleted `nclex_programmes.price_minor`, with the
-> `nclex_programme_payment_strategies` table now the sole place a price lives.
-> `nclex_public_programmes` view rebuilt with a derived `headline_price_minor`
-> (active UPFRONT_FULL's total when offered, else the cheapest first payment
-> across other active plans) + `headline_is_upfront` flag so the discovery
-> card can prefix "from " when the headline is a deposit/first installment.
-> `syncUpfrontStrategy` went from "mirror" to authoritative writer (the
-> programme form's Price box now writes only to the upfront-plan row); list
-> queries embed the upfront row to pre-fill the form on edit; `init.ts`
-> fallback path (when no `strategyId` is sent) resolves the active upfront
-> plan. 15 files + 1 migration; typecheck clean; both seed programmes still
-> derive the same headlines they had pre-cutover. **Payments arc complete:**
-> 5.1–5.6 · 7a strategies schema · 7b plan config · 7c checkout picker ·
-> 7d installments lifecycle (+ follow-ups) · 7e column retirement.
-> **Next:** rotate per the alternate-features rule — programme-side
-> (tutor-quiz S4, progress engine S5) is queued.
+> **Last shipped (2026-05-23):** **Payments Slice 8 (a + b + c) — programme
+> enquiries (contact-first leads).** Three sub-slices in one session.
+> **8a:** new `nclex_programme_enquiries` table + anon-grantable
+> `nclex_submit_enquiry` RPC (validates programme is enquiry-eligible:
+> off-platform OR price-hidden; idempotent on (programme, email)). Public
+> Contact form on the programme detail page with the same shape as the
+> waitlist modal (CONTACT_OPTIONS lifted into shared
+> `lib/discovery/contact-options.ts`). Detail-page CTA branching is now
+> three mutually-exclusive states (canEnrol / canWaitlist / canEnquire);
+> the disabled "coming soon" stub survives only when truly stuck.
+> **8b:** new `/tutor/programme/<id>/enquiries` route + `Enquiries` tab.
+> Inbox-style split view (list left, detail right) replaced an earlier
+> card-stack that didn't read well; awaiting a CD prototype to refine the
+> visual further. New `lib/enquiries/` feature folder (types / queries /
+> actions / format). Tutor-side writes go through service role gating
+> ownership in TS first — matches the enrolments + waitlist convention.
+> Renamed status `FORWARDED → CONTACTED` (tutor-perspective: the button
+> records "I contacted the student", not "platform forwarded it") with
+> a clean migration loosening the CHECK, flipping any existing rows,
+> re-tightening + rebuilding the two partial indexes; column
+> `forwarded_at → contacted_at`. **8c:** `AFTER INSERT` trigger on
+> `nclex_enrolments` (SECURITY DEFINER) auto-stamps the matching open
+> enquiry (NEW/CONTACTED for the same programme, lower(email) match)
+> as `CONVERTED` + populates `converted_enrolment_id`. Smoke-tested
+> end-to-end on dev. Admin `/admin/enquiries` replaces the placeholder
+> with a read-only cross-programme list (PROGRAMMES_VIEW gated,
+> service-role read embeds programme title + tutor name) + filter
+> chips + per-programme dropdown + "Open in tutor view ↗" link per row;
+> status writes intentionally only on the tutor surface, not the admin.
+> **Next:** still rotate per the alternate-features rule — tutor-quiz S4
+> (analytics) + progress-engine S5 (tutor analytics + cohort dashboards)
+> were enrolment-blocked, are now unblocked. **5.7** (My Payments) and
+> CD-driven enquiry UI rebuild are also queued.
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -1322,20 +1338,77 @@ Slice order from the adopted Claude Design proposal
   the live discount via `getBankOptinDiscountPct()` (and hides at 0%); the
   checkout page was already dynamic. Surfaced when Sam edited the discount to
   20% and the detail page still said 40%.
-- ⬜ **Slice 8** Self-paced + enquiry routing — `cohort_id = NULL`
-  branch + `show_price_publicly = FALSE` contact path +
-  `nclex_programme_enquiries`.
-  - **Scope refinement (2026-05-22):** the enquiry/contact form should
-    trigger for **any off-platform programme that has no online checkout**,
-    not only the price-hidden (`show_price_publicly = FALSE`) "contact for
-    price" case. Surfaced while testing 7c: an **off-platform self-paced**
-    programme that *shows* a price (e.g. the dev "Self-Paced Refresher")
-    currently has no on-page way to reach the tutor — the waitlist is
-    tutor-led-only, and tutor-add is the only mechanism. The three
-    off-platform paths: tutor-led → waitlist (built, Slice 4); contact-first
-    (price hidden) → enquiry form; off-platform self-paced w/ price → also
-    needs the enquiry form. Decide the exact trigger condition when 8 starts,
-    but lean to "off-platform + no online checkout → show contact form."
+- ✅ **Slice 8 — Self-paced + enquiry routing.** Shipped 2026-05-23 in
+  three sub-slices.
+  - ✅ **8a** Schema + public submission. Migration
+    `20260613120000_slice_8a_programme_enquiries.sql`: new
+    `nclex_programme_enquiries` table (programme-scoped lead capture,
+    not cohort-scoped — the tutor decides cohort later in conversation),
+    matching the design handoff §09 + the waitlist's
+    `preferred_contact TEXT[]` + two CHECK constraints (subset-of-allowed
+    + phone-required-when-phone-channel). RLS: anon-only via the
+    `nclex_submit_enquiry` SECURITY DEFINER RPC (validates programme is
+    enquiry-eligible: `payment_collection_mode = 'OFF_PLATFORM'` OR
+    `NOT show_price_publicly`; idempotent on `(programme, email)`),
+    tutor SELECT scoped to own programmes, SUPER_ADMIN-ALL bypass.
+    `CONTACT_OPTIONS` lifted to `lib/discovery/contact-options.ts` so
+    the waitlist + enquiry forms share one source. New
+    `app/(public)/programmes/[id]/enquiry-cta.tsx` + the public
+    `submitEnquiryAction` (`lib/discovery/enquiry-actions.ts`). Detail
+    page CTA branching reshaped: `canEnrol` / `canWaitlist` /
+    `canEnquire` are mutually exclusive — the disabled "coming soon"
+    stub now only fires for the truly stuck case. Trigger rule landed
+    as planned ("off-platform + no online checkout → show contact
+    form"), and the rule also catches **tutor-led off-platform with no
+    joinable cohort** as a fallback so that case no longer dead-ends.
+    Commit `1fd2a53`. See SESSIONS 2026-05-23 (8a).
+  - ✅ **8b** Tutor enquiry queue. New `/tutor/programme/<id>/enquiries`
+    sibling route + `Enquiries` sidebar entry (placed before Students in
+    the funnel order: enquiry → enrolment → student). New
+    `lib/enquiries/` feature folder (types / queries / actions / format)
+    mirroring `lib/enrolments/`. Tutor-side actions
+    (`markContactedAction`, `markClosedAction`, `saveAdminNotesAction`)
+    use the established pattern — gate ownership with the authed client
+    first, write under service role — because `nclex_programme_enquiries`
+    has no tutor UPDATE policy. **UI shape note:** shipped as an inbox
+    split view (filter chips → scannable list on the left, full detail
+    on the right) after a first card-stack attempt didn't read well; the
+    visual will be refined again when a CD prototype lands, but the data
+    model + actions don't need to change for that. Status `FORWARDED →
+    CONTACTED` renamed (tutor-perspective: button records the tutor's
+    act of contacting the student, not platform-side "forwarded"
+    jargon) via migration `20260614120000_slice_8b_rename_forwarded_to_contacted.sql`
+    — loosen CHECK, UPDATE existing rows, re-tighten with new value,
+    rename `forwarded_at → contacted_at`, rebuild both partial indexes
+    that referenced the old name. Commit `e0b8bf6`. See SESSIONS
+    2026-05-23 (8b).
+  - ✅ **8c** Auto-convert on enrolment + admin queue. Migration
+    `20260615120000_slice_8c_auto_convert_enquiry.sql`: `AFTER INSERT`
+    trigger on `nclex_enrolments` (SECURITY DEFINER, runs after the
+    row exists so the `converted_enrolment_id` FK target is real) reads
+    the new enrolment's email from `nclex_users` and stamps any open
+    enquiry (NEW/CONTACTED) for the same programme + lower(email)
+    as `CONVERTED` with the new enrolment id linked. Fires for every
+    enrolment path (tutor-add, on-platform checkout, future) — no
+    "we forgot to call the matcher" risk. Smoke-tested end-to-end on
+    mynclex-dev with a synthetic enquiry + matching SELF_PACED
+    SELF_PAID enrolment → CONVERTED stamped + linked correctly.
+    `/admin/enquiries` placeholder replaced with a real read-only
+    cross-programme list (PROGRAMMES_VIEW-gated, SUPER_ADMIN bypass):
+    service-role read embeds programme title + tutor name; client
+    board renders filter chips (status) + a per-programme dropdown
+    that appears only when ≥2 programmes have enquiries; richer card
+    layout with status pill + programme · tutor header + lead identity
+    + channel pills + message. Status writes intentionally NOT on
+    the admin surface — each row has an "Open in tutor view ↗" link
+    that hops to the owning tutor's queue, which already has the
+    actions (SUPER_ADMIN bypass on the tutor RLS lets the admin land
+    there). Commit `319d8f6`. See SESSIONS 2026-05-23 (8c).
+  - **Scope refinement (was 2026-05-22, addressed in 8a):** the
+    trigger rule "off-platform + no online checkout → show contact
+    form" was adopted in 8a, plus the fallback case "tutor-led
+    off-platform with no joinable cohort" so that path no longer
+    dead-ends.
 - ⬜ **5.7 (resequenced to last, 2026-05-22)** "My Payments" student page —
   transaction list (date, product, amount, currency, status). Moved out of
   the 5.x block to after Slice 8 so it can display **every** payment type +
