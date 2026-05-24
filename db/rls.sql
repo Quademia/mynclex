@@ -1269,10 +1269,19 @@ CREATE POLICY nclex_enrolments_admin_all
 -- ─────────────────────────────────────────────────────────
 
 -- One row per publicly-visible programme: programme public fields + the
--- tutor's PUBLIC profile (name + avatar only) + a cohort rollup. Gate:
--- PUBLISHED + active tutor. The open-cohort discovery rule is a LIST
--- filter on open_cohort_count, applied by the page — NOT baked in here,
--- so the detail page can read a published-but-cohortless programme.
+-- tutor's PUBLIC profile (name + avatar only) + a cohort rollup + a
+-- derived headline price. Gate: PUBLISHED + active tutor. The open-cohort
+-- discovery rule is a LIST filter on open_cohort_count, applied by the
+-- page — NOT baked in here, so the detail page can read a published-but-
+-- cohortless programme.
+--
+-- headline_price_minor (slice 7e) — derived since price_minor was retired
+-- on the base table:
+--   • active UPFRONT_FULL plan's total_price_minor when offered,
+--   • else the cheapest first payment across other active plans,
+--   • else 0 ("Contact for price" / disabled Enrol).
+-- headline_is_upfront flags which case fired so the discovery card can
+-- prefix "from " when the headline is a first payment, not a full price.
 CREATE OR REPLACE VIEW nclex_public_programmes AS
 SELECT
   p.programme_id,
@@ -1283,7 +1292,6 @@ SELECT
   p.unit_label,
   p.length_units,
   p.price_currency,
-  p.price_minor,
   p.show_price_publicly,
   p.payment_collection_mode,
   p.access_window_days,
@@ -1292,7 +1300,27 @@ SELECT
   u.avatar_url     AS tutor_avatar_url,
   oc.next_cohort_start,
   COALESCE(oc.open_cohort_count, 0) AS open_cohort_count,
-  u.public_profile AS tutor_profile   -- slice 3.5
+  u.public_profile AS tutor_profile,  -- slice 3.5
+  COALESCE(
+    (SELECT s.total_price_minor
+       FROM nclex_programme_payment_strategies s
+      WHERE s.programme_id = p.programme_id
+        AND s.kind = 'UPFRONT_FULL'
+        AND s.is_active
+      LIMIT 1),
+    (SELECT MIN(s.initial_price_minor)
+       FROM nclex_programme_payment_strategies s
+      WHERE s.programme_id = p.programme_id
+        AND s.is_active),
+    0
+  )                AS headline_price_minor,    -- slice 7e
+  EXISTS (
+    SELECT 1
+      FROM nclex_programme_payment_strategies s
+     WHERE s.programme_id = p.programme_id
+       AND s.kind = 'UPFRONT_FULL'
+       AND s.is_active
+  )                AS headline_is_upfront     -- slice 7e
 FROM nclex_programmes p
 JOIN nclex_users u ON u.id = p.tutor_id
 LEFT JOIN LATERAL (

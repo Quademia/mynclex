@@ -28,6 +28,7 @@ import {
   yearsTutoringLabel,
 } from '@/lib/discovery/format';
 import { WaitlistCta } from './waitlist-cta';
+import { EnquiryCta } from './enquiry-cta';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,18 +53,22 @@ export default async function ProgrammeDetailPage({
   const unitNoun = programme.unit_label === 'WEEK' ? 'Week' : 'Module';
   const { ccy, amount } = priceParts(
     programme.price_currency,
-    programme.price_minor
+    programme.headline_price_minor
   );
   const showPrice = programme.show_price_publicly;
   const ctaLabel = selfPaced ? 'Start now' : 'Enrol';
 
   // Sub-line under the headline price. Off-platform programmes don't take
-  // online payment; on-platform ones note whether plans are available.
+  // online payment; on-platform ones note whether plans are available and
+  // whether the headline is the full price or a first installment (slice 7e —
+  // headline_is_upfront tells us which case we're in).
   const priceSubLabel = !isOnPlatform
     ? 'Collected directly by the tutor'
     : plans.length >= 2
       ? 'Pay in full, or choose a plan at checkout'
-      : 'Upfront — one payment';
+      : programme.headline_is_upfront
+        ? 'Upfront — one payment'
+        : 'Deposit or installment plan';
 
   // Waitlist-joinable cohorts: tutor-led only, and (matching the
   // nclex_join_waitlist gate) upcoming OR late-join-allowed. getPublicCohorts
@@ -80,16 +85,33 @@ export default async function ProgrammeDetailPage({
             : `Starts ${formatCohortDateLong(c.start_date)}`,
         }));
 
-  // On-platform checkout (slice 5.4a). The Enrol button goes live when the
-  // programme takes online payment with a public price and there's something
-  // to enrol into (self-paced always; tutor-led needs a joinable cohort).
-  // Otherwise the button stays the "coming soon" placeholder and the
-  // off-platform waitlist shows instead.
+  // CTA branching (Slice 8a — see BUILD_LIST §"Slice 8 scope refinement"):
+  // three mutually-exclusive end-states for the rail.
+  //   canEnrol    — on-platform with a real price and an open path (existing).
+  //   canWaitlist — tutor-led off-platform with joinable cohorts (Slice 4).
+  //   canEnquire  — every other case where the programme is still RPC-eligible:
+  //                 off-platform OR price hidden. Catches price-hidden any-mode,
+  //                 off-platform self-paced, AND tutor-led off-platform when it
+  //                 has no joinable cohort right now (which would otherwise be
+  //                 a dead-end "Enrolment isn't open" page).
+  const isPriceHidden = !showPrice;
+  const isOffPlatform = !isOnPlatform;
+
   const canEnrol =
-    programme.payment_collection_mode === 'ON_PLATFORM' &&
+    isOnPlatform &&
     showPrice &&
-    programme.price_minor > 0 &&
+    programme.headline_price_minor > 0 &&
     (selfPaced || waitlistCohorts.length > 0);
+  const canWaitlist =
+    !selfPaced && isOffPlatform && showPrice && waitlistCohorts.length > 0;
+  const canEnquire =
+    !canEnrol && !canWaitlist && (isOffPlatform || isPriceHidden);
+
+  // Picks the modal's blurb wording — "talk before pricing" vs "tutor
+  // collects directly" — so the message matches why we're showing the form.
+  const enquiryReason: 'PRICE_HIDDEN' | 'OFF_PLATFORM' = isPriceHidden
+    ? 'PRICE_HIDDEN'
+    : 'OFF_PLATFORM';
 
   // Short note under the Enrol button: the soonest joinable cohort for
   // tutor-led (no seat counts — the public view omits them by design).
@@ -260,6 +282,10 @@ export default async function ProgrammeDetailPage({
             {showPrice ? (
               <>
                 <div className="price">
+                  {!programme.headline_is_upfront &&
+                    programme.headline_price_minor > 0 && (
+                      <span className="from">from </span>
+                    )}
                   {ccy && <span className="ccy">{ccy}</span>}
                   {amount}
                 </div>
@@ -269,31 +295,29 @@ export default async function ProgrammeDetailPage({
               <div className="price price-contact">Contact for price</div>
             )}
 
-            <div className="det-cta">
-              {canEnrol ? (
+            {/* Rail CTA — only shows the disabled "coming soon" stub when
+                no other path applies (i.e. we'd otherwise dead-end). When
+                canEnquire / canWaitlist, the dedicated CTA card below the
+                rail takes over so we don't double-up on call-to-action. */}
+            {canEnrol ? (
+              <div className="det-cta">
                 <Link className="pub-btn-primary" href={`/checkout/programme/${id}`}>
                   {selfPaced ? 'Start now →' : 'Enrol in next cohort →'}
                 </Link>
-              ) : (
-                <button type="button" className="pub-btn-primary" disabled>
-                  {ctaLabel}
-                </button>
-              )}
-              {canEnrol ? (
                 <p className="det-cta-note">
                   {selfPaced ? 'No cohort wait · instant access' : nextCohortNote}
                 </p>
-              ) : !isOnPlatform ? (
-                <p className="det-cta-note">
-                  This tutor collects payment directly — reach out to them to
-                  enrol.
-                </p>
-              ) : (
+              </div>
+            ) : !canEnquire && !canWaitlist ? (
+              <div className="det-cta">
+                <button type="button" className="pub-btn-primary" disabled>
+                  {ctaLabel}
+                </button>
                 <p className="det-cta-note">
                   Enrolment isn&apos;t open right now — check back soon.
                 </p>
-              )}
-            </div>
+              </div>
+            ) : null}
 
             {/* Bank opt-in hint — only meaningful for on-platform checkout (5.4b),
                 and only when a discount is actually configured. The percent is
@@ -328,8 +352,15 @@ export default async function ProgrammeDetailPage({
             )}
           </div>
 
-          {waitlistCohorts.length > 0 && (
+          {canWaitlist && (
             <WaitlistCta cohorts={waitlistCohorts} tutorName={personFirst} />
+          )}
+          {canEnquire && (
+            <EnquiryCta
+              programmeId={id}
+              tutorName={personFirst}
+              reason={enquiryReason}
+            />
           )}
         </aside>
       </div>

@@ -37,14 +37,18 @@ const ADDABLE_KINDS: EditableStrategyKind[] = [
 export function PaymentPlansPanel({
   programmeId,
   currency,
-  programmePriceMinor,
   strategies,
 }: {
   programmeId: string;
   currency: Currency;
-  programmePriceMinor: number;
   strategies: PaymentStrategy[];
 }) {
+  // Default-Total source for the add/edit modal (slice 7e — replaces the
+  // retired nclex_programmes.price_minor). The UPFRONT_FULL plan is the
+  // canonical full price; if it doesn't exist yet (very transient case
+  // for a freshly-created programme) we fall back to 0.
+  const programmePriceMinor =
+    strategies.find((s) => s.kind === 'UPFRONT_FULL')?.total_price_minor ?? 0;
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>(null);
   const [error, setError] = useState<string | null>(null);

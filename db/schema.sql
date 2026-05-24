@@ -773,14 +773,18 @@ CREATE TABLE nclex_programmes (
   length_units          SMALLINT NOT NULL                    -- count of curriculum units
                         CHECK (length_units BETWEEN 1 AND 52),
 
-  -- Pricing (minor units; 0 = free). Slice 3a — single tutor-chosen
-  -- currency (vs the bank's deliberate dual-currency PPP on
-  -- nclex_products). The tutor settles in one currency; an FX
-  -- "≈ equivalent" public display is deferred polish.
+  -- Pricing (Slice 3a — single tutor-chosen currency vs the bank's
+  -- deliberate dual-currency PPP on nclex_products). The tutor settles
+  -- in one currency; an FX "≈ equivalent" public display is deferred
+  -- polish.
+  --
+  -- The price amount lives on nclex_programme_payment_strategies (one
+  -- row per plan; UPFRONT_FULL is the canonical full-price plan). Slice
+  -- 7e retired the legacy price_minor column on this table — two copies
+  -- of the same number = drift risk. The public view derives a headline
+  -- from active plans (upfront total when offered, else min initial).
   price_currency        TEXT NOT NULL
                         CHECK (price_currency IN ('GHS','USD')),
-  price_minor           INTEGER NOT NULL
-                        CHECK (price_minor >= 0),
   show_price_publicly   BOOLEAN NOT NULL DEFAULT TRUE,
   -- OFF_PLATFORM (tutor collects + adds students) | ON_PLATFORM
   -- (Paystack checkout). No runtime effect until Slice 5. Self-paced
@@ -1496,6 +1500,61 @@ CREATE UNIQUE INDEX idx_nclex_cohort_waitlist_pending
   WHERE status = 'PENDING';
 CREATE INDEX idx_nclex_cohort_waitlist_cohort_status
   ON nclex_cohort_waitlist (cohort_id, status);
+
+
+-- ────────────────────────────────────────────────────────────
+-- PROGRAMME ENQUIRIES (Slice 8a) — contact-first lead capture
+-- Migration: db/migrations/20260613120000_slice_8a_programme_enquiries.sql
+-- ────────────────────────────────────────────────────────────
+-- Public lead capture for programmes that don't expose an on-page
+-- commitment path (off-platform OR price hidden). Mirrors the waitlist
+-- contact-preference shape exactly. Programme-scoped, not cohort-scoped:
+-- the tutor figures out cohort + scheduling during the conversation.
+
+CREATE TABLE nclex_programme_enquiries (
+  enquiry_id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  programme_id         UUID NOT NULL
+                       REFERENCES nclex_programmes(programme_id) ON DELETE CASCADE,
+
+  name                 TEXT NOT NULL,                                -- single field (vs waitlist's forename+surname)
+  email                TEXT NOT NULL,                                -- lower-cased by the RPC
+  phone                TEXT,                                         -- optional; required if a phone method chosen
+  preferred_contact    TEXT[] NOT NULL DEFAULT ARRAY['EMAIL']::TEXT[],  -- subset of CALL/SMS/WHATSAPP/EMAIL
+  message              TEXT,
+
+  status               TEXT NOT NULL DEFAULT 'NEW'
+                       CHECK (status IN ('NEW','CONTACTED','CONVERTED','CLOSED')),
+
+  contacted_at         TIMESTAMPTZ,                                  -- tutor marked Contacted (8b — renamed from forwarded_at)
+  converted_enrolment_id UUID                                        -- 8c auto-stamp on email match
+                       REFERENCES nclex_enrolments(enrolment_id) ON DELETE SET NULL,
+  admin_notes          TEXT,
+
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT nclex_enquiry_pref_contact_valid CHECK (
+    array_length(preferred_contact, 1) >= 1
+    AND preferred_contact <@ ARRAY['CALL','SMS','WHATSAPP','EMAIL']::TEXT[]
+  ),
+  CONSTRAINT nclex_enquiry_phone_when_needed CHECK (
+    NOT (preferred_contact && ARRAY['CALL','SMS','WHATSAPP']::TEXT[])
+    OR (phone IS NOT NULL AND btrim(phone) <> '')
+  )
+);
+
+-- One open lead per (programme, email); converted/closed excluded so a
+-- closed contact can re-enquire later.
+CREATE UNIQUE INDEX idx_nclex_programme_enquiries_open
+  ON nclex_programme_enquiries (programme_id, lower(email))
+  WHERE status IN ('NEW','CONTACTED');
+CREATE INDEX idx_nclex_programme_enquiries_programme_status
+  ON nclex_programme_enquiries (programme_id, status);
+-- 8c email matcher (auto-convert on enrolment).
+CREATE INDEX idx_nclex_programme_enquiries_email
+  ON nclex_programme_enquiries (lower(email))
+  WHERE status IN ('NEW','CONTACTED');
 
 
 -- ────────────────────────────────────────────────────────────

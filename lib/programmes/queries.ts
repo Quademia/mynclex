@@ -15,31 +15,41 @@ import type { ProgrammeListRow } from './types';
 export async function getMyProgrammes(): Promise<ProgrammeListRow[]> {
   const supabase = await createClient();
 
-  // PostgREST embedded resource — `nclex_cohorts(count)` returns
-  // `[{ count: N }]` per row; we flatten below. RLS on
-  // nclex_cohorts uses the same tutor-ownership rule via the
-  // programme FK, so the count returned only includes cohorts
-  // the tutor is allowed to see (== all of their own).
+  // PostgREST embedded resources:
+  //   • nclex_cohorts(count) — flattened to cohort_count.
+  //   • nclex_programme_payment_strategies(...) filtered to UPFRONT_FULL —
+  //     the canonical full price the programme form's Price field reads
+  //     in edit mode (slice 7e — replaces the retired price_minor column).
+  //     Filtered on `kind=eq.UPFRONT_FULL` via the inner alias so we get
+  //     at most one row; activation is irrelevant (we want the canonical
+  //     price even if upfront is currently turned off).
+  //
+  // RLS on the embedded tables uses the same tutor-ownership rule via the
+  // programme FK, so we only see the tutor's own rows.
   const { data, error } = await supabase
     .from('nclex_programmes')
     .select(
       `programme_id, title, tagline, description,
        delivery_mode, unit_label, length_units,
-       price_currency, price_minor, show_price_publicly,
+       price_currency, show_price_publicly,
        payment_collection_mode, access_window_days,
        status, updated_at,
-       nclex_cohorts(count)`
+       nclex_cohorts(count),
+       upfront:nclex_programme_payment_strategies(total_price_minor)`
     )
+    .eq('upfront.kind', 'UPFRONT_FULL')
     .order('updated_at', { ascending: false });
 
   if (error || !data) return [];
 
   return data.map((row) => {
-    const { nclex_cohorts, ...rest } = row as typeof row & {
+    const { nclex_cohorts, upfront, ...rest } = row as typeof row & {
       nclex_cohorts: Array<{ count: number }> | null;
+      upfront: Array<{ total_price_minor: number }> | null;
     };
     const cohort_count = nclex_cohorts?.[0]?.count ?? 0;
-    return { ...rest, cohort_count } as ProgrammeListRow;
+    const upfront_total_minor = upfront?.[0]?.total_price_minor ?? null;
+    return { ...rest, cohort_count, upfront_total_minor } as ProgrammeListRow;
   });
 }
 

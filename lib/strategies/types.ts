@@ -89,13 +89,15 @@ export type FrozenStrategySnapshot = {
 };
 
 // What the payment-plans page loads: the programme's pricing context
-// plus all its plans (active + inactive, in sort order).
+// plus all its plans (active + inactive, in sort order). Slice 7e —
+// the programme's canonical full price is now whatever the UPFRONT_FULL
+// row in strategies says (or 0 if it doesn't exist yet); the deprecated
+// programme.price_minor column is gone.
 export type PaymentPlansContext = {
   programme: {
     programme_id: string;
     title: string;
     price_currency: Currency;
-    price_minor: number;
     payment_collection_mode: PaymentCollectionMode;
     status: ProgrammeStatus;
   };

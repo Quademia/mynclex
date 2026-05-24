@@ -51,7 +51,6 @@ export default async function PaymentPlansPage({
       <PaymentPlansPanel
         programmeId={ctx.programme.programme_id}
         currency={ctx.programme.price_currency}
-        programmePriceMinor={ctx.programme.price_minor}
         strategies={ctx.strategies}
       />
     </div>

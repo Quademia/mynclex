@@ -34,7 +34,7 @@ export default async function ProgrammeCheckoutPage({
   const enrollable =
     programme.payment_collection_mode === 'ON_PLATFORM' &&
     programme.show_price_publicly &&
-    programme.price_minor > 0;
+    programme.headline_price_minor > 0;
   if (!enrollable) redirect(detailHref);
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -119,7 +119,7 @@ export default async function ProgrammeCheckoutPage({
         cohorts={cohortOptions}
         programmeTitle={programme.title}
         currency={currency}
-        programmeMinor={programme.price_minor}
+        programmeMinor={programme.headline_price_minor}
         plans={plans}
         bankTiers={bankTiers}
         discountPct={Math.round(discount * 100)}
