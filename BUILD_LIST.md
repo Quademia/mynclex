@@ -8,39 +8,45 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-23):** **Payments Slice 8 (a + b + c) — programme
-> enquiries (contact-first leads).** Three sub-slices in one session.
-> **8a:** new `nclex_programme_enquiries` table + anon-grantable
-> `nclex_submit_enquiry` RPC (validates programme is enquiry-eligible:
-> off-platform OR price-hidden; idempotent on (programme, email)). Public
-> Contact form on the programme detail page with the same shape as the
-> waitlist modal (CONTACT_OPTIONS lifted into shared
-> `lib/discovery/contact-options.ts`). Detail-page CTA branching is now
-> three mutually-exclusive states (canEnrol / canWaitlist / canEnquire);
-> the disabled "coming soon" stub survives only when truly stuck.
-> **8b:** new `/tutor/programme/<id>/enquiries` route + `Enquiries` tab.
-> Inbox-style split view (list left, detail right) replaced an earlier
-> card-stack that didn't read well; awaiting a CD prototype to refine the
-> visual further. New `lib/enquiries/` feature folder (types / queries /
-> actions / format). Tutor-side writes go through service role gating
-> ownership in TS first — matches the enrolments + waitlist convention.
-> Renamed status `FORWARDED → CONTACTED` (tutor-perspective: the button
-> records "I contacted the student", not "platform forwarded it") with
-> a clean migration loosening the CHECK, flipping any existing rows,
-> re-tightening + rebuilding the two partial indexes; column
-> `forwarded_at → contacted_at`. **8c:** `AFTER INSERT` trigger on
-> `nclex_enrolments` (SECURITY DEFINER) auto-stamps the matching open
-> enquiry (NEW/CONTACTED for the same programme, lower(email) match)
-> as `CONVERTED` + populates `converted_enrolment_id`. Smoke-tested
-> end-to-end on dev. Admin `/admin/enquiries` replaces the placeholder
-> with a read-only cross-programme list (PROGRAMMES_VIEW gated,
-> service-role read embeds programme title + tutor name) + filter
-> chips + per-programme dropdown + "Open in tutor view ↗" link per row;
-> status writes intentionally only on the tutor surface, not the admin.
-> **Next:** still rotate per the alternate-features rule — tutor-quiz S4
-> (analytics) + progress-engine S5 (tutor analytics + cohort dashboards)
-> were enrolment-blocked, are now unblocked. **5.7** (My Payments) and
-> CD-driven enquiry UI rebuild are also queued.
+> **Last shipped (2026-05-24):** **Slice 8 UI rebuild — CD-driven polish
+> of the programme-enquiry surfaces.** Three PRs in one session, the day
+> after Slice 8 a/b/c shipped the data + plumbing layer. Sam pushed back
+> on the first card-stack tutor surface ("the interphase is not nice at
+> all"); brief went to Claude Design which returned 3 hi-fi prototype
+> variants per audience — we picked Tutor V1 (polished inbox) + Admin V1
+> (operations dashboard). **PR 1** = data layer: `urgencyTier(iso,
+> status)` + URGENCY_META in `lib/enquiries/format.ts`;
+> `lib/enquiries/aggregations.ts` with `computeTutorStats` +
+> `computeAdminStats` (pure functions over the row list — KPIs,
+> sparklines, per-tutor SLA scoreboard, channel mix);
+> `lib/enquiries/templates.ts` with four quick-reply templates +
+> `renderTemplate` helper. **PR 2** = tutor V1 polished inbox at
+> `/tutor/programme/<id>/enquiries`: KPI strip (5 cards) → toolbar
+> (filter chips + search) → split (day-grouped list with urgency-coloured
+> left strip + detail pane with reply bar + quick replies + auto-save
+> notes + close action). **The killer feature:** reply-bar CTAs
+> (WhatsApp / Call / Email) open the channel deep-link AND fire
+> `markContactedAction` in the same click — two steps collapsed to one.
+> React 19 strict-mode polish along the way: derived `selectedId` via
+> useMemo (no setState-in-effect); NotesEditor uses `key=enquiry_id` for
+> clean remount; Donut uses a reduce-based pre-compute pass (no
+> mid-render mutation). New `.ti-*` style family. **Width fix** in the
+> same PR: the page broke out of the inherited `.pp-page` 720px cap via
+> a new `.ti-page` wrapper (1480px). **PR 3** = admin V1 operations
+> dashboard at `/admin/enquiries`: KPI strip (4 cards w/ inline 8-week
+> sparklines + corner "X BREACHES" flag when NEW leads ≥24h old) →
+> insights row (tutor SLA scoreboard sorted by open work then volume +
+> channel mix donut + insight callout) → filterable table (status +
+> programme + tutor selects, SLA badges per row, "Open in tutor view ↗"
+> link). Inline Sparkline + Donut SVG components, no library dep. New
+> `.ao-*` style family. **Scope note** added to `lib/enquiries/types.ts`:
+> module is programme-only today; if a second enquiry type ever appears
+> (general support, institutional sales), the in-place refactor cost is
+> ~1-2 hrs — split into `lib/enquiries/{shared,programme,<new>}/` and DB
+> tables stay put. **Next:** rotate per the alternate-features rule —
+> tutor-quiz S4 (analytics) + progress-engine S5 (tutor analytics +
+> cohort dashboards) were enrolment-blocked, are now unblocked. 5.7
+> (My Payments) also queued.
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -1370,11 +1376,11 @@ Slice order from the adopted Claude Design proposal
     (`markContactedAction`, `markClosedAction`, `saveAdminNotesAction`)
     use the established pattern — gate ownership with the authed client
     first, write under service role — because `nclex_programme_enquiries`
-    has no tutor UPDATE policy. **UI shape note:** shipped as an inbox
-    split view (filter chips → scannable list on the left, full detail
-    on the right) after a first card-stack attempt didn't read well; the
-    visual will be refined again when a CD prototype lands, but the data
-    model + actions don't need to change for that. Status `FORWARDED →
+    has no tutor UPDATE policy. **UI shape (initial):** shipped as an
+    inbox split view (filter chips → scannable list on the left, full
+    detail on the right) after a first card-stack attempt didn't read
+    well. **Replaced 2026-05-24 by the CD V1 polished inbox** — see
+    the "Slice 8 UI rebuild" subsection below. Status `FORWARDED →
     CONTACTED` renamed (tutor-perspective: button records the tutor's
     act of contacting the student, not platform-side "forwarded"
     jargon) via migration `20260614120000_slice_8b_rename_forwarded_to_contacted.sql`
@@ -1409,6 +1415,72 @@ Slice order from the adopted Claude Design proposal
     form" was adopted in 8a, plus the fallback case "tutor-led
     off-platform with no joinable cohort" so that path no longer
     dead-ends.
+  - ✅ **Slice 8 UI rebuild (CD-driven, 3 PRs, 2026-05-24).** First
+    real test of the [[feedback_cd_prototype_then_implement]] workflow.
+    Brief went to Claude Design after Sam pushed back on the initial
+    card-stack tutor surface ("the interphase is not nice at all");
+    CD returned 3 hi-fi variants per audience. Picked Tutor V1
+    (polished inbox) + Admin V1 (operations dashboard); shipped via 3
+    serial commits on the same session branch.
+    - **PR 1 — data layer** (commit `06c83a3`): `urgencyTier(iso,
+      status)` + URGENCY_META in `lib/enquiries/format.ts`;
+      `lib/enquiries/aggregations.ts` with `computeTutorStats` +
+      `computeAdminStats` (pure functions; sparkline series via
+      `bucketCounts` + `bucketSampled` helpers); four quick-reply
+      templates + `renderTemplate` helper in
+      `lib/enquiries/templates.ts`. No UI consumers yet —
+      foundations only.
+    - **PR 2 — tutor V1 polished inbox** (commits `8d40dc0` + width
+      fix `e7c3b05`): `/tutor/programme/<id>/enquiries` rebuilt.
+      Stacked: KPI strip (5 cards) → toolbar (filter chips + search)
+      → split (day-grouped list with urgency-coloured left strip per
+      row + detail pane). Detail pane: 44px gradient avatar +
+      head meta + reply bar + body sections (Message · Quick replies ·
+      Notes) + footer (enquiry ID + Close lead). **The killer
+      feature** is the reply bar — WhatsApp/Call/Email CTAs open
+      the channel deep-link AND call `markContactedAction` in the
+      same click. Plus a "Mark contacted only" ghost CTA for the
+      off-platform case. Quick-reply templates pre-fill channel-aware
+      deep-links (chooseChannel picks the lead's preferred channel
+      from their `preferred_contact[]` array, falls back to WhatsApp
+      or Email). Notes use 800ms-debounced auto-save with a 3-second
+      green "Saved · just now" flash. New `.ti-*` style family.
+      **React 19 strict-mode polish** along the way: derived
+      `selectedId` via useMemo (no setState-in-effect cascade);
+      NotesEditor uses `key=enquiry.enquiry_id` for clean remount on
+      switch rather than reset-on-effect; binary `recentlySaved` flag
+      replaces `Date.now()`-in-render. **Width fix** (`e7c3b05`):
+      the inherited `.pp-page` 720px cap was crushing the layout —
+      added a new `.ti-page` wrapper (1480px max) so the page uses
+      the available viewport. Other tutor pages still use `.pp-page`
+      (the payment-plans form genuinely wants 720px).
+    - **PR 3 — admin V1 operations dashboard** (commit `1364b92`):
+      `/admin/enquiries` rebuilt. Stacked: KPI strip (4 cards w/
+      inline 8-week sparklines + corner "X BREACHES" flag on the
+      Volume card when there are NEW leads ≥24h old) → insights row
+      (Tutor SLA scoreboard left, sorted by open work then volume so
+      tutors needing attention surface first; Channel mix donut
+      right, with legend + insight callout) → filterable table
+      (status + programme + tutor selects; SLA badges per row —
+      green "On track" / amber "Xh waiting" / red "SLA breach" / grey
+      "—"; "Open in tutor view ↗" per row). Inline `Sparkline` +
+      `Donut` SVG components (Donut uses a reduce-based pre-compute
+      pass — React 19 strict-mode forbids mid-render mutation). New
+      `.ao-*` style family. Aggregations extended in PR 1's module:
+      `weeklySpark` / `hotWaitingSpark` / `avgResponseSpark` /
+      `conversionSpark` — four 8-bucket series for the KPI
+      sparklines; shared `bucketCounts` + `bucketSampled` helpers.
+      Admin's status writes intentionally NOT here — every row's
+      "Open ↗" hops to the owning tutor's queue where the actions
+      already live.
+    - **Scope note** added to `lib/enquiries/types.ts` (per a Sam
+      forward-looking call): module is programme-scoped today. If a
+      second enquiry type ever appears (general support, institutional
+      sales), refactor to `lib/enquiries/{shared,programme,<new>}/`
+      with shared status enum + format helpers extracted up. DB
+      tables stay put (already correctly prefixed
+      `nclex_programme_enquiries`). ~1-2 hrs cost when it happens;
+      don't pre-split.
 - ⬜ **5.7 (resequenced to last, 2026-05-22)** "My Payments" student page —
   transaction list (date, product, amount, currency, status). Moved out of
   the 5.x block to after Slice 8 so it can display **every** payment type +

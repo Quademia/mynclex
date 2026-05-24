@@ -6,6 +6,32 @@
 //
 // Public-side submission (Slice 8a) doesn't share these — it goes
 // directly to nclex_submit_enquiry RPC via FormData, no typed payload.
+//
+// ─────────────────────────────────────────────────────────────────
+// Scope note (2026-05-24)
+// ─────────────────────────────────────────────────────────────────
+// This module currently covers PROGRAMME enquiries only — leads from
+// the public Contact form on a programme's detail page. The name
+// `lib/enquiries/` is deliberately programme-scoped despite the
+// generic name, matching the rest of the codebase's "name by concept,
+// not by parent" convention (see lib/enrolments/, lib/cohorts/,
+// lib/strategies/).
+//
+// If a SECOND enquiry shape ever appears (general "Contact QAcademy"
+// support, institutional sales, etc.), the split plan is:
+//
+//   lib/enquiries/
+//     shared/    ← EnquiryStatus, format helpers (statusPill,
+//                  urgencyTier, formatEnquiryDateTime),
+//                  saveAdminNotesAction (works on any table)
+//     programme/ ← everything currently in this folder
+//     <new>/     ← parallel structure for the new type
+//
+// DB tables don't move (nclex_programme_enquiries is already
+// correctly prefixed; the second type lives alongside as e.g.
+// nclex_general_enquiries). Refactor cost when it happens: ~1-2 hrs.
+// Don't pre-split — wait for the second concrete type so the right
+// shared/per-type cut becomes visible.
 
 import type { ContactChannel } from '@/lib/discovery/contact-options';
 
