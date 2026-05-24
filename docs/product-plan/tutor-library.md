@@ -183,10 +183,11 @@ drill into a specific container.
 - Sub-line (count + clarifying copy)
 - Filter bar (tag chips + `+ nclex_*` action)
 - Notes list with the **per-note lens row** — each note's title,
-  excerpt, and a single line below carrying all memberships inline:
-  📁 folder · 📚 shelf pip(s) · pillar chip · # tags. Right column
-  carries status (`Pub` / `Draft`), `↳ used in N` pill, last-edited
-  timestamp.
+  subtitle (when set), `description` (or an auto-excerpt of `body`
+  when description is null), and a single line below carrying all
+  memberships inline: 📁 folder · 📚 shelf pip(s) · pillar chip ·
+  \# tags. Right column carries status (`Pub` / `Draft`), `↳ used in
+  N` pill, last-edited timestamp.
 
 The per-note lens row is the single most important UI element on the
 library home — it makes the m:n classification model legible at a
@@ -236,8 +237,9 @@ can hold many notes. Shelves do not gate visibility — see
 - **All shelves view** (`/tutor/library/?lens=shelves`) lays out
   shelves as Spotify-style horizontal carousels — one section per
   shelf with colour dot + title + count + tagline at the top, then a
-  row of note cards (title + excerpt + pillar chip + tags), ending in
-  a dashed `+ Add to shelf` slot.
+  row of note cards (title + subtitle when set + `description` or
+  body-excerpt fallback + pillar chip + tags), ending in a dashed
+  `+ Add to shelf` slot.
 
 ### NCLEX Pillars
 
@@ -910,6 +912,11 @@ nclex_tutor_library_folders
   folder_id          TEXT PK
   tutor_id           UUID FK -> nclex_users(id) ON DELETE CASCADE
   name               TEXT NOT NULL
+  description        TEXT                          -- nullable; brief copy
+                     -- explaining what this folder is for. Shown as the
+                     -- sub-line on the folder card in the "All folders"
+                     -- zoomed-out view, and as a sub-head under the
+                     -- title on the folder scope page.
   position           INTEGER NOT NULL DEFAULT 0   -- folder sort order
   created_at         TIMESTAMPTZ DEFAULT NOW()
   updated_at         TIMESTAMPTZ DEFAULT NOW()
@@ -946,6 +953,18 @@ nclex_tutor_library_notes
   folder_id          TEXT FK -> nclex_tutor_library_folders ON DELETE SET NULL
                      -- nullable; null = root-level note (no folder)
   title              TEXT NOT NULL
+  subtitle           TEXT                          -- nullable; shorter
+                     -- secondary headline shown directly under the title
+                     -- (tutor edit view + student read-mode view).
+                     -- Example: title "Acid-base balance" + subtitle
+                     -- "Compensation mechanisms and ABG interpretation".
+  description        TEXT                          -- nullable; brief abstract
+                     -- of the note. Drives the per-note lens row on the
+                     -- library home (replaces the auto-excerpt of `body`
+                     -- when set), the sub-line on attached-activity rows
+                     -- in the unit view, and the card text on shelf
+                     -- carousel tiles. Falls back to an auto-generated
+                     -- excerpt of `body` when null.
   body               JSONB NOT NULL DEFAULT '[]'::jsonb
                      -- array of typed blocks
   tags               TEXT[] NOT NULL DEFAULT '{}'
