@@ -14,12 +14,28 @@ is settled.*
 
 ---
 
+## Architectural decision — Shelf attachment model (drives #1, #2, #14)
+
+Settled 2026-05-24. A shelf attached to a unit is **one atomic activity**, not a fan-out into per-note rows. The shape:
+
+- **Attachment table.** One row per shelf-attach (`{shelf_id, unit_id, block_id, caption, ...}`). Loose Library Notes still get one row each (`{note_id, ...}`). No per-note rows inside a shelf.
+- **Completion.** The progress engine's completion row carries a nullable `notes_completed JSONB` array of `note_id`s the student has ticked. The shelf-activity flips to done when that array covers every note in the shelf's current membership. Auto-rolls up; no separate "Mark shelf done" click.
+- **Skip in a unit.** `skipped_note_ids JSONB` on the shelf attachment row lets a tutor omit specific notes from this unit's render without breaking the shelf-link. Resurrects #2 without re-introducing per-note rows.
+- **Ordering.** Always the shelf's master order, read at render time. No `position` on attachment for shelf-grouped notes. #1 + #14 fall out of this.
+- **Membership change behaviour.** If the tutor adds a note to a shelf after a student completed it, the activity reverts to in-progress until the new note is ticked. If the tutor removes a note the student hadn't ticked, the activity may complete retroactively. Both are correct behaviour — communicated to students with a small "your tutor updated this shelf" hint.
+
+Trade-offs accepted:
+- No per-note caption *inside* a shelf — caption is shelf-level. Per-attachment caption still works for loose Library Notes.
+- No per-shelf per-unit ordering — to reorder, edit the shelf itself.
+
+---
+
 ## The 21 gaps
 
 | # · Point | Issue (in plain terms) | Proposal | Status |
 |---|---|---|---|
 | **1. Reorder inside a shelf-attached block** | A shelf can be dropped into a unit as a grouped block. If the tutor drags one of those notes up *inside the unit*, should the shelf itself reorder, or is it a unit-local move? Without a rule, you get silent drift — the shelf says one order, the unit shows another, and nobody knows which is "right." | **No reordering inside a shelf-as-activity.** The grouped block in a unit always renders the master shelf's current order, read-only. To change order, the tutor goes to the shelf in the library and reorders it there — that change then propagates to every unit using the shelf (they're all pointers to the same master). One rule, one place. No `is_position_overridden` flag, no "moved" indicator, no "reset to shelf order" action. Also makes #14 trivial — new notes added to a shelf always slot in at their shelf position in every attached unit. | 🟢 |
-| **2. Skip one note from a shelf attachment** | Right now the only way to remove a single note from a shelf inside a unit is to "detach" it, which severs the shelf link and turns it into a loose Library Note. That's overkill if the tutor just wants to hide that note in that unit but keep the shelf connection. | **Add a skip toggle.** New `is_skipped BOOLEAN` flag on the attachment row. Skipped rows: hidden from students, dimmed in the tutor unit view with a "Hidden in this unit" pill and an "Unhide" action. The existing "detach to loose" stays — it's a different intent ("I want to keep this note here independently of the shelf"). Two distinct actions, two distinct meanings. | 🟡 |
+| **2. Skip one note from a shelf attachment** | Right now the only way to remove a single note from a shelf inside a unit is to "detach" it, which severs the shelf link and turns it into a loose Library Note. That's overkill if the tutor just wants to hide that note in that unit but keep the shelf connection. | **`skipped_note_ids JSONB` on the shelf attachment row.** Tutor opens the grouped block's kebab → "Hide in this unit" on a single note row → its `note_id` is appended to the array. Hidden notes don't render to students and don't count toward the shelf's completion rollup. Tutor unit view shows the row dimmed with a "Hidden in this unit" pill and an "Unhide" action. Survives the Option D refactor cleanly — no per-note rows required. | 🟢 |
 | **3. Mixed-visibility shelves** | A shelf can hold a mix of Tutor-wide notes and Programme-scoped notes. If a tutor attaches such a shelf to a programme it isn't scoped to, some rows silently won't render for those students — and the tutor probably didn't intend that. | **Attach-time check + permanent badge.** When attaching a shelf to a unit, run a visibility-intersection check. If any note on the shelf is scoped to a *different* programme, show a confirm dialog: "2 notes on this shelf are scoped to Cohort 5 — students in Cohort 6 won't see them. Continue?" After attach, the grouped block carries a small "⚠ 2 hidden for this cohort" pill that opens a list. | 🟡 |
 | **4. Co-tutor concurrent edits** | Two people editing the same note at the same time could overwrite each other. The doc calls this low-priority, but it can also happen with one tutor in two browser tabs. | **Last-write-wins with a soft guard.** Each note row carries a `version_id` that the server regenerates on every save. The editor sends the version it loaded with; if it doesn't match on save, the editor shows "This note was saved in another tab. Reload to continue." No merge UI. Cheap, covers the only realistic case in v1 (no cross-tutor sharing yet). | 🟡 |
 | **5. Collapsible sidebar** | The five-lens sidebar is tall and eats horizontal space on small screens. | **Build it in the first slice.** Sidebar defaults to expanded; a "«" button at the top collapses it to a 48-px icon rail (lens icons only, tooltips on hover). State saved in localStorage. Each lens section also collapses independently via its chevron. Small enough to ship with the library list page. | 🟡 |
@@ -50,9 +66,16 @@ is settled.*
 - `nclex_tutor_library_views` (point 12)
 - `nclex_library_note_assets` (point 18)
 
-*New columns on `nclex_tutor_library_note_attachments`*
-- `is_skipped BOOLEAN` (point 2)
-- *(point 1 originally added `is_position_overridden`; dropped after #1 resolved as "no unit-level reordering")*
+*Schema change to `nclex_tutor_library_note_attachments` — Option D model*
+- **Row shape diverges by kind:**
+  - *Loose Library Note attachment*: `{attachment_id, note_id, programme_id, unit_id, block_id, position, caption, ...}` — `shelf_id` null. Unchanged from original plan.
+  - *Shelf attachment*: `{attachment_id, shelf_id, programme_id, unit_id, block_id, position, caption, skipped_note_ids JSONB, ...}` — `note_id` null. **One row per shelf-attach (not per note).**
+- Implies a CHECK: exactly one of `note_id` / `shelf_id` is set.
+- `skipped_note_ids JSONB` — array of note_ids the tutor has hidden in this unit (point 2).
+- *(point 1 originally added `is_position_overridden`; dropped — see architectural decision above.)*
+
+*New column on the progress engine's completion row*
+- `notes_completed JSONB` — nullable array of note_ids; used only for shelf-activity completions. Drives the per-note-rollup rule (architectural decision above).
 
 *New columns on `nclex_tutor_library_notes`*
 - `version_id UUID` (point 4)
@@ -70,7 +93,8 @@ is settled.*
 - Drop `nclex_*` tag pre-seed (point 10)
 - Add collapse-rail button (point 5)
 - Add mixed-visibility shelf badge (point 3)
-- Add skipped row indicator (point 2)
+- Add "Hidden in this unit" row indicator on shelf-grouped blocks (point 2)
+- Add "your tutor updated this shelf" hint when membership change re-opens completion (Option D)
 - Add programme-picker landing page (point 9)
 
 ---
