@@ -1732,93 +1732,110 @@ Tracking deliberately deferred:
 
 ## Build order (when this gets queued)
 
-Suggested sequence, smallest verifiable slice first:
+Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending. Slices
+under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
 
-1. **Schema + RLS** — 9 tables (`_folders`, `_shelves`,
-   `_shelf_memberships`, `_notes`, `_note_visibility`,
-   `_note_attachments`, `_note_state`, `_views`, `_embed_answers`)
-   + `nclex_pillar` domain type + same-tutor invariant trigger on
-   `_note_visibility` + deferred-row trigger on `_note_visibility`
-   + `nclex_extract_body_text(body JSONB)` IMMUTABLE helper +
-   `body_tsv` generated column on `_notes` + GIN indexes on
-   `body_tsv` and `tags` + policies + `nclex_student_can_see_note`
-   helper function. Verify with seeded SQL before any UI.
-2. **Library list page — folder scope** (tutor side) — five-lens
-   sidebar (Views, Folders, Shelves, Pillars, Tags) with
-   collapse-to-rail + folder list + note list with per-note lens row.
-   Body editor is a single textarea placeholder for now. Pillar
-   chips rendered from the note's `pillars` array. Ship before the
-   block editor lands.
-3. **Library list page — All folders + All shelves** views — the
-   zoomed-out folder cards grid + Spotify-style shelf carousels.
-   Same data, different lens-scope. Builds the SHELVES table use.
-4. **Library list page — shelf scope** — shelf detail view (numbered
-   notes, no Attached-to/Visibility metadata on shelf itself).
-5. **Tiptap editor scaffold** — starter-kit (paragraph, heading,
-   list, quote, marks) + slash command + `+` button + drag handle
-   + always-visible toolbar + autosave + `version_id` save guard +
-   `BroadcastChannel` two-tabs presence warning + edit-propagation
-   warning. Ship with text-only blocks; verify the editor feel
-   before adding custom nodes. **Provisional gate** — if the
-   framework's going badly, fall back to markdown textarea and ship
-   the rest of the library without rich blocks.
-6. **Standard visual blocks** — Image (with Supabase Storage +
-   on-demand signed URL pipeline + auto-resize) + PDF (link-card)
-   + Video (YouTube/Vimeo/Loom embeds) + Table. Alt-text preflight
-   wires into Publish (step 10).
-7. **NCLEX domain blocks (1/3) — Callout** with the 5 tones + icons.
-8. **NCLEX domain blocks (2/3) — Drug card** with extensible field
-   array, drag-reorder, add-field, remove-field. NCLEX-canonical 4
-   fields pre-populated.
-9. **NCLEX domain blocks (3/3) — Lab values** with extensible
-   columns, column-add/rename/remove (with deletion warning), row
-   add/remove. NCLEX-canonical 4 columns pre-populated.
-10. **Publish flow + visibility mode + status pills + alt-text
-    preflight** — wire draft/published + tutor-wide /
-    programme-scoped (multi-select picker writing to
-    `_note_visibility`) end-to-end. Publish runs the alt-text
-    preflight (refuses to publish if any image has empty `alt`,
-    click-through scrolls to the first offender).
-11. **Programme integration — Library Note path** — Library Note as
-    the 7th activity type, attach modal (single note), detach,
-    used-in count.
-12. **Programme integration — Shelf path (atomic activity)** — Shelf
-    as the 8th activity type, shelf-picker modal,
-    mixed-visibility attach-time dialog, **single-row atomic
-    attachment** (CHECK ensures `note_id` XOR `shelf_id`), grouped
-    block render via shelf-membership join, "Hide in this unit"
-    kebab writing `note_id` into `skipped_note_ids JSONB`, "your
-    tutor updated this shelf" hint on membership change.
-13. **Student read-mode renderer** — full-page route at
-    `/student/programme/[programme_id]/library/note/[note_id]` +
-    Contents rail + scroll-spy writing `last_heading_id` to
-    `nclex_library_note_state` + per-block rendering + Mark as done
-    (writes `marked_done_at` with write-through to the progress
-    engine when from a Library Note activity) + Bookmark toggle
-    (writes `bookmarked_at`). Embedded-questions block renders in
-    answering mode (no submit yet — gated by step 15).
-14. **Student library** — same five-lens sidebar (read-only
-    adaptations) with collapse-to-rail, visibility-filtered counts,
-    empty-container hiding, Views adapted (**By unit** + **Bookmarked**
-    replace Drafts / Used nowhere). Wired at
-    `/student/programme/[programme_id]/library/` and the cohort
-    sibling. Sidebar entry added to `STUDENT_PROGRAMME_DETAIL_NAV`
-    + `STUDENT_COHORT_DETAIL_NAV`.
-15. **Embedded questions — full loop** — multi-select picker in
-    editor (tutor bank only), per-block 5/10 caps, per-note 20/50
-    caps (warn at 20, reject at 50, both at save), reference-card
-    edit-mode rendering (one per question), inline player
-    read-mode rendering (Question 1 of N + Next + end-of-set
-    summary), submit → per-question write to
-    `nclex_library_embed_answers` keyed `(student_id, note_id,
-    block_id, question_index)` with snapshot, on-re-render show
-    submitted state.
-16. **Tag manager + custom views + search** — kebab on Tags lens
-    opens *Manage tags* (rename / delete / merge); custom view
-    save/edit/delete from toolbar; `tsvector`-backed search
-    composing with chip filters via AND.
-17. **Polish** — used-in click-through, save dialogs, all the
-    smaller affordances.
+- ✅ **11.1a** Schema + RLS — 9 tables (`_folders`, `_shelves`,
+  `_shelf_memberships`, `_notes`, `_note_visibility`,
+  `_note_attachments`, `_note_state`, `_views`, `_embed_answers`)
+  + `nclex_pillar` domain type + same-tutor invariant trigger on
+  `_note_visibility` + deferred-row trigger on `_note_visibility`
+  + `nclex_extract_body_text(body JSONB)` IMMUTABLE helper +
+  `body_tsv` generated column on `_notes` + GIN indexes on
+  `body_tsv` and `tags` + policies + `nclex_student_can_see_note`
+  helper function. Migration
+  `20260616120000_slice_11_1_tutor_library_schema.sql`. Committed
+  `23c23e7`. ⚠️ Not yet applied to `mynclex-dev` — the dev MCP
+  didn't come online; apply + smoke test is the first action of
+  the next session.
+- ✅ **11.1b** Library home shell — chrome only, no data. Route
+  `/tutor/library`. Five-lens sidebar (Views, Folders, Shelves,
+  Pillars, Tags) with per-section chevron collapse + whole-sidebar
+  collapse-to-rail (`«` / `»` button, 48-px icon strip, localStorage
+  persisted). System views + 8 pillar names render statically; data
+  lenses show "no folders yet" / "no shelves yet" / "tags appear
+  here" hints. Main pane empty-state hero with two disabled CTAs.
+  Library entry in `TUTOR_GLOBAL_NAV` (icon `tutor`, between Bank
+  and Quizzes). New `styles/library.css`. Committed `763872b`.
+- ⏭ **11.2** Folder CRUD + folder lens data — folder rows actually
+  render in the sidebar (real counts, "All folders" → the zoomed-
+  out folder cards grid); "+ New folder" + "+ New note" wired.
+  Notes render in the main pane as a list with the per-note lens
+  row (title + subtitle + description fallback + pillar chips +
+  tags inline). Body is a textarea placeholder for now. Real
+  schema-backed reads + writes against the migration applied in
+  11.1a. Ship before the block editor lands.
+- ⬜ **11.3** Library list page — All folders + All shelves views.
+  Zoomed-out folder cards grid + Spotify-style shelf carousels.
+  Same data, different lens-scope. Builds the SHELVES table use.
+- ⬜ **11.4** Library list page — shelf scope. Shelf detail view
+  (numbered notes, no Attached-to/Visibility metadata on shelf
+  itself).
+- ⬜ **11.5** Tiptap editor scaffold — starter-kit (paragraph,
+  heading, list, quote, marks) + slash command + `+` button +
+  drag handle + always-visible toolbar + autosave + `version_id`
+  save guard + `BroadcastChannel` two-tabs presence warning +
+  edit-propagation warning. Ship with text-only blocks; verify
+  the editor feel before adding custom nodes. **Provisional gate**
+  — if the framework's going badly, fall back to markdown textarea
+  and ship the rest of the library without rich blocks.
+- ⬜ **11.6** Standard visual blocks — Image (Supabase Storage +
+  on-demand signed URL pipeline + auto-resize) + PDF (link-card)
+  + Video (YouTube/Vimeo/Loom embeds) + Table. Alt-text preflight
+  wires into Publish (slice 11.10).
+- ⬜ **11.7** NCLEX domain block — Callout (5 tones + icons).
+- ⬜ **11.8** NCLEX domain block — Drug card (extensible field
+  array, drag-reorder, add-field, remove-field; NCLEX-canonical
+  4 fields pre-populated).
+- ⬜ **11.9** NCLEX domain block — Lab values (extensible columns,
+  column-add/rename/remove with deletion warning, row add/remove;
+  NCLEX-canonical 4 columns pre-populated).
+- ⬜ **11.10** Publish flow + visibility mode + status pills +
+  alt-text preflight. Wire draft/published + tutor-wide /
+  programme-scoped (multi-select picker writing to
+  `_note_visibility`) end-to-end. Publish runs the alt-text
+  preflight (refuses to publish if any image has empty `alt`,
+  click-through scrolls to the first offender).
+- ⬜ **11.11** Programme integration — Library Note path. Library
+  Note as the 7th activity type, attach modal (single note),
+  detach, used-in count.
+- ⬜ **11.12** Programme integration — Shelf path (atomic activity).
+  Shelf as the 8th activity type, shelf-picker modal,
+  mixed-visibility attach-time dialog, **single-row atomic
+  attachment** (CHECK ensures `note_id` XOR `shelf_id`), grouped
+  block render via shelf-membership join, "Hide in this unit"
+  kebab writing `note_id` into `skipped_note_ids JSONB`, "your
+  tutor updated this shelf" hint on membership change.
+- ⬜ **11.13** Student read-mode renderer — full-page route at
+  `/student/programme/[programme_id]/library/note/[note_id]` +
+  Contents rail + scroll-spy writing `last_heading_id` to
+  `nclex_library_note_state` + per-block rendering + Mark as done
+  (writes `marked_done_at` with write-through to the progress
+  engine when from a Library Note activity) + Bookmark toggle
+  (writes `bookmarked_at`). Embedded-questions block renders in
+  answering mode (no submit yet — gated by 11.15).
+- ⬜ **11.14** Student library — same five-lens sidebar (read-only
+  adaptations) with collapse-to-rail, visibility-filtered counts,
+  empty-container hiding, Views adapted (**By unit** + **Bookmarked**
+  replace Drafts / Used nowhere). Wired at
+  `/student/programme/[programme_id]/library/` and the cohort
+  sibling. Sidebar entry added to `STUDENT_PROGRAMME_DETAIL_NAV`
+  + `STUDENT_COHORT_DETAIL_NAV`.
+- ⬜ **11.15** Embedded questions — full loop. Multi-select picker
+  in editor (tutor bank only), per-block 5/10 caps, per-note
+  20/50 caps (warn at 20, reject at 50, both at save), reference-
+  card edit-mode rendering (one per question), inline player
+  read-mode rendering (Question 1 of N + Next + end-of-set
+  summary), submit → per-question write to
+  `nclex_library_embed_answers` keyed `(student_id, note_id,
+  block_id, question_index)` with snapshot, on-re-render show
+  submitted state.
+- ⬜ **11.16** Tag manager + custom views + search. Kebab on Tags
+  lens opens *Manage tags* (rename / delete / merge); custom view
+  save/edit/delete from toolbar; `tsvector`-backed search
+  composing with chip filters via AND.
+- ⬜ **11.17** Polish — used-in click-through, save dialogs, all the
+  smaller affordances.
 
 ---
 

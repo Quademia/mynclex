@@ -8,45 +8,59 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-24):** **Slice 8 UI rebuild — CD-driven polish
-> of the programme-enquiry surfaces.** Three PRs in one session, the day
-> after Slice 8 a/b/c shipped the data + plumbing layer. Sam pushed back
-> on the first card-stack tutor surface ("the interphase is not nice at
-> all"); brief went to Claude Design which returned 3 hi-fi prototype
-> variants per audience — we picked Tutor V1 (polished inbox) + Admin V1
-> (operations dashboard). **PR 1** = data layer: `urgencyTier(iso,
-> status)` + URGENCY_META in `lib/enquiries/format.ts`;
-> `lib/enquiries/aggregations.ts` with `computeTutorStats` +
-> `computeAdminStats` (pure functions over the row list — KPIs,
-> sparklines, per-tutor SLA scoreboard, channel mix);
-> `lib/enquiries/templates.ts` with four quick-reply templates +
-> `renderTemplate` helper. **PR 2** = tutor V1 polished inbox at
-> `/tutor/programme/<id>/enquiries`: KPI strip (5 cards) → toolbar
-> (filter chips + search) → split (day-grouped list with urgency-coloured
-> left strip + detail pane with reply bar + quick replies + auto-save
-> notes + close action). **The killer feature:** reply-bar CTAs
-> (WhatsApp / Call / Email) open the channel deep-link AND fire
-> `markContactedAction` in the same click — two steps collapsed to one.
-> React 19 strict-mode polish along the way: derived `selectedId` via
-> useMemo (no setState-in-effect); NotesEditor uses `key=enquiry_id` for
-> clean remount; Donut uses a reduce-based pre-compute pass (no
-> mid-render mutation). New `.ti-*` style family. **Width fix** in the
-> same PR: the page broke out of the inherited `.pp-page` 720px cap via
-> a new `.ti-page` wrapper (1480px). **PR 3** = admin V1 operations
-> dashboard at `/admin/enquiries`: KPI strip (4 cards w/ inline 8-week
-> sparklines + corner "X BREACHES" flag when NEW leads ≥24h old) →
-> insights row (tutor SLA scoreboard sorted by open work then volume +
-> channel mix donut + insight callout) → filterable table (status +
-> programme + tutor selects, SLA badges per row, "Open in tutor view ↗"
-> link). Inline Sparkline + Donut SVG components, no library dep. New
-> `.ao-*` style family. **Scope note** added to `lib/enquiries/types.ts`:
-> module is programme-only today; if a second enquiry type ever appears
-> (general support, institutional sales), the in-place refactor cost is
-> ~1-2 hrs — split into `lib/enquiries/{shared,programme,<new>}/` and DB
-> tables stay put. **Next:** rotate per the alternate-features rule —
-> tutor-quiz S4 (analytics) + progress-engine S5 (tutor analytics +
-> cohort dashboards) were enrolment-blocked, are now unblocked. 5.7
-> (My Payments) also queued.
+> **Last shipped (2026-05-25):** **Tutor Library — gap-review fold-back
+> + Slice 11.1 foundation.** Two threads in one session, both
+> programme-tutor-facing.
+>
+> **(1) Gap-review fold-back.** A working doc landed from a parallel
+> machine — `docs/product-plan/tutor-library-gaps-review.md` (8
+> commits, 178 lines) — closing 4 architectural decisions + 20
+> confirmed gap resolutions against the original tutor-library plan.
+> Fast-forwarded to `main`, then merged into the canonical
+> `docs/product-plan/tutor-library.md` end-to-end (Pass 1
+> architectural rewrites: pillars are now multi-value full-name
+> `nclex_pillar[]`, visibility is a junction table for one-or-more
+> programmes per scoped note, shelf attachment is one atomic
+> activity with `skipped_note_ids JSONB` per-unit hides, embedded
+> questions hold 1..N `item_ids[]` with per-block 5/10 + per-note
+> 20/50 caps; Pass 2 schema sketch updated to 9 tables + domain +
+> 2 helpers + 2 triggers; Pass 3 mechanical resolutions covering
+> sidebar collapse, tag manager, alt-text-at-publish, two-tabs
+> guard, custom views in v1, locked student URL paths, merged
+> `nclex_library_note_state` table, asset-orphan deferral). Working
+> doc retired in the same commit (history preserves it).
+>
+> **(2) Slice 11.1 foundation — two commits.** The first build slice
+> for the Tutor Library product surface (parallel to Bank in the
+> tutor nav).
+> - **11.1a (`23c23e7`)** — Schema migration
+>   `20260616120000_slice_11_1_tutor_library_schema.sql`: the
+>   `nclex_pillar` domain type, 9 tables, 2 helper functions
+>   (`nclex_extract_body_text` IMMUTABLE + `nclex_student_can_see_note`
+>   STABLE SECURITY DEFINER), the `body_tsv` STORED generated column
+>   over title/subtitle/description/body, 2 GIN indexes, same-tutor
+>   invariant trigger on the visibility junction, deferred ≥-1-row
+>   constraint trigger, full RLS per table. ⚠️ Not yet applied to
+>   `mynclex-dev` — the `supabase-mynclex-dev` MCP didn't come online
+>   this session; deferred to the next session, when we'll apply +
+>   smoke test as the first action.
+> - **11.1b (`763872b`)** — Tutor library home shell at
+>   `/tutor/library`. 5-lens sidebar (Views / Folders / Shelves /
+>   Pillars / Tags) with per-section chevron collapse + whole-sidebar
+>   collapse-to-rail (`«` / `»`, 48-px icon strip, localStorage
+>   persisted). System views + 8 pillar names render statically;
+>   data lenses show "no folders yet" / "no shelves yet" / "tags
+>   appear here" hints until 11.2+ wire real data. Main pane empty
+>   state with two disabled CTAs (+ New folder / + New note).
+>   Library entry added to `TUTOR_GLOBAL_NAV` (icon `tutor`, between
+>   Bank and Quizzes). New `styles/library.css` (`.lib-*` + `.lens-*`
+>   style family). Renders cleanly without the migration applied —
+>   no DB calls in this chrome-only slice.
+>
+> **Next:** Slice 11.2 — folder CRUD + folder list (real folder lens
+> data) is ⏭. Full library slice ladder + status flags live in
+> [`docs/product-plan/tutor-library.md` → Build order](docs/product-plan/tutor-library.md#build-order-when-this-gets-queued)
+> — see Part 3 below.
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -1527,6 +1541,36 @@ invite-creating flow must create the profile + STUDENT role first.
 
 - Public self-serve tutor signup (tutors are manually vetted in v1).
 - Payment splits / marketplace billing between QAcademy and tutors.
+
+---
+
+## Part 3 — Library
+
+The **Tutor Library** is a sibling product surface to the Bank: where
+the Bank holds practice (questions), the Library holds teaching
+(notes). It lives in the tutor's global nav alongside Bank + Quizzes,
+attaches into programmes via Library Note / Shelf activity types,
+and is read-only on the student side (visibility-filtered by note,
+not by container).
+
+**Full slice ladder + status lives in the planning doc, not here** —
+single source of truth, no drift between this file and the
+canonical plan:
+
+- **[docs/product-plan/tutor-library.md → Build order](docs/product-plan/tutor-library.md#build-order-when-this-gets-queued)**
+  — every slice (currently numbered 11.1a through 11.17) with
+  ✅ / 🔨 / ⏭ / ⬜ status flags and per-slice scope.
+
+Slice numbering: **11.x** (the next free top-level slot — Bank
+occupies 1.x through 8.x, Programme 9.x and 10.x).
+
+Currently shipped: **11.1a** (schema foundation, ⚠️ committed
+unapplied) + **11.1b** (home shell chrome). **Next ⏭ is 11.2** —
+folder CRUD + real folder lens data.
+
+Build size estimate: ~6–8 weeks of focused work; markdown-textarea
+fallback gate at slice 11.5 (Tiptap editor) shaves ~2 weeks if the
+block editor proves painful.
 
 ---
 
