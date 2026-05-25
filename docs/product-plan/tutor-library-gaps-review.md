@@ -14,6 +14,36 @@ is settled.*
 
 ---
 
+## Architectural decision — Multi-pillar notes from day 1
+
+Settled 2026-05-24 (mid-#10 discussion). The original plan stored one pillar per note as a single `TEXT` column with a CHECK constraint, deferring multi-pillar to v1.5. Real NCLEX content routinely spans pillars (Furosemide is Pharmacological and Parenteral Therapies + Reduction of Risk Potential; wound-infection prevention is Safety and Infection Control + Reduction of Risk Potential + Physiological Adaptation; pre-op patient education is Management of Care + Health Promotion and Maintenance + Psychosocial Integrity). Forcing a "primary" pillar means artificial judgment calls at save time and undercounted coverage analytics. The migration cost of starting single and promoting later is real; the cost of starting multi is small.
+
+**Storage uses the full NCLEX names, not codes.** The original draft used abbreviation codes (`MoC`, `SIC`, `HPM`, `PI`, `BCC`, `PPT`, `ROR`, `PA`). Those were a programming convenience that didn't earn their keep — they require a constants-file translation layer, don't match the vocabulary tutors and students actually use, and the rename-safety argument is weak (NCLEX category names are decades-stable). Self-documenting raw data wins.
+
+- **Schema.** New domain type `nclex_pillar` with a CHECK constraint against the 8 full NCLEX-RN Client Needs sub-category names:
+  - `Management of Care`
+  - `Safety and Infection Control`
+  - `Health Promotion and Maintenance`
+  - `Psychosocial Integrity`
+  - `Basic Care and Comfort`
+  - `Pharmacological and Parenteral Therapies`
+  - `Reduction of Risk Potential`
+  - `Physiological Adaptation`
+  
+  The notes table carries `pillars nclex_pillar[] NOT NULL` with a length-≥-1 check.
+- **No "primary" concept.** All pillars in the array are equal weight. If primary ever needs to exist (chip rendering priority, weighted analytics), a separate column lands later without touching the array.
+- **Editor UI.** Multi-select chip input constrained to the 8 names.
+- **Per-note row.** All pillar chips render inline (1-3 typical), each color-coded. Where the per-note lens row gets crowded, names truncate with a tooltip — no abbreviated codes ever shown to users.
+- **Pillar lens (sidebar).** Each of the 8 entries shows count of notes where that pillar appears in the array. Multi-pillar notes count in each of their pillars (correct, not double-counting in a misleading sense — the note genuinely IS relevant to each).
+- **Filter chips.** Default OR semantics — selecting two pillars shows notes covering either. (AND semantics could be a later power-user toggle.)
+- **URLs.** Filter parameters use slugified pillar names (e.g. `?pillar=pharmacological-and-parenteral-therapies`). A small client/server map handles slug↔name; cheap.
+- **Bank consistency — already aligned.** Verified 2026-05-24: `lib/bank/classifications.ts` (sourced from the NCSBN 2023 NCLEX-RN Test Plan) already uses these exact 8 full names; the bank's `client_needs_subcategory TEXT` column stores them as-is. No parallel migration needed on the bank side — the library is adopting the bank's existing vocabulary. The bank validates the values only in TypeScript; the library will additionally validate at the DB level via the `nclex_pillar` domain type. Optional follow-up later: the bank could adopt the same domain type for free DB-level validation. Independent of library work.
+- **Library uses sub-categories only.** Top-level categories (the 4-entry roll-up — Safe and Effective Care Environment, Health Promotion and Maintenance, Psychosocial Integrity, Physiological Integrity) are derived from the sub-category array at query time, not stored separately. The bank chose to denormalize and store both `client_needs_category` and `client_needs_subcategory`; the library doesn't follow suit — single source of truth (the array).
+
+This decision also retires the old text in `tutor-library.md` that says "Single primary pillar per note in v1 ... Promote to many in v1.5" and the entire codes-based vocabulary — needs folding back into the spec.
+
+---
+
 ## Architectural decision — Visibility model (drives #3, #16, #17)
 
 Settled 2026-05-24. The original plan modelled `PROGRAMME_SCOPED` as a single-programme FK, which couldn't express the realistic "this note belongs to two of my cohorts but not the third" case. Refined model:
@@ -57,7 +87,7 @@ Trade-offs accepted:
 | **7. Student bookmarks** | The student-side Views section promises a "Bookmarked" view, but the schema has nowhere to store bookmarks. | **Add `nclex_library_note_bookmarks`** with `(student_id, note_id, bookmarked_at)`, PK on `(student_id, note_id)`. Inserted/deleted by the student via the bookmark toggle in the read view. RLS: student sees own only. Drives the "Bookmarked" view and the bookmark-icon state on every per-note row. | 🟢 |
 | **8. "For this unit" student view** | The student-side Views section promises a "For this unit" view, but a student in two programmes has no single "current unit." Beyond that, the dynamic "current unit" filter is a feature looking for a use case — students mostly enter the library via a unit page (which already gives them the note in unit context) or by topic browsing, not by opening the library and asking "what's scheduled for now?" | **Drop "For this unit" entirely; replace with a structural "By unit" view.** Same slot in the Views section, different shape: a static index that groups notes by the unit they're attached to. Renders as collapsible sections — one per unit the student is in — with the unit's notes listed under each. Works for any number of programmes (each unit is its own group regardless of programme), needs no "current unit" detection, and decouples from #9 (works whether the library is per-programme isolated or merged). Optional tiny polish: a "← you are here" tag on the current unit group header if the progress engine can supply it cheaply. | 🟢 |
 | **9. Multi-tutor students** | The original concern was that a student enrolled with two tutors might need a merged view or a programme picker. Walking through the existing architecture: it's a phantom problem. The student lands at `/student/picker` after login (showing all enrolled programmes as cards), picks one, drops into a programme-scoped surface (`/student/programme/[id]/...`), and from there is always in exactly one programme context. There is no UI surface where two tutors' libraries would need to coexist. | **Library is always programme-scoped. No global library page. No merged view. No programme picker for libraries.** The library is a new sidebar entry inside the programme-detail and cohort-detail navs, mirroring the Quizzes pattern. To switch libraries, the student switches programmes via the existing `<ProgrammeSwitcher>`. One-line edit in `lib/nav/student.ts` adds the entry to both `STUDENT_PROGRAMME_DETAIL_NAV` and `STUDENT_COHORT_DETAIL_NAV` (between Curriculum and Quizzes). | 🟢 |
-| **10. Tag management** | Tags are free-form text. Tutors will create "cardic", "cardiac", "Cardiac" within a week, and there's no way to rename, delete, or merge them. The mockup also seeds `nclex_*` pillar tags, which duplicates the dedicated pillar field. | **Build a tag-manager panel + drop the `nclex_*` pre-seed.** A kebab → "Manage tags" off the Tags lens section header lists every tag in the tutor's library with counts and supports Rename, Delete, Merge (server actions scoped by `tutor_id`). Drop the `nclex_*` tag seed entirely — pillars are first-class via the `pillar` column; the filter bar's pillar filter operates on that column, not on tags. Tags stay as `TEXT[]` (no separate table). | 🟡 |
+| **10. Tag management** | Tags are free-form text. Tutors will create "cardic", "cardiac", "Cardiac" within a week, and there's no way to rename, delete, or merge them. The mockup also seeds `nclex_*` pillar tags, which duplicates the dedicated pillar field. | **Build a tag-manager panel + drop the `nclex_*` pre-seed.** A kebab → "Manage tags" off the Tags lens section header opens a panel listing every tag in the tutor's library with usage counts, supporting three operations: **Rename** (one-step bulk update across all notes — server action runs `array_replace` then dedupes), **Delete** (`array_remove` from all notes; confirm with affected count), **Merge** (rename A into B with auto-dedupe; multi-source variant for batched cleanup). All scoped by `tutor_id` via RLS. **Drop the `nclex_*` tag seed entirely** — pillars are first-class via the `pillars` array (architectural decision above); the filter bar's pillar slicing operates on that column, not on tags. Tags stay as `TEXT[]` (no separate table); a **GIN index on `tags`** speeds both the manager's distinct-tag query and the filter chips. | 🟢 |
 | **11. Search scope** | The toolbar has a search input but doesn't say what it searches. | **Search title + subtitle + description + body plain-text.** Postgres `tsvector` index on a generated column that concatenates these four. Filter chips (pillar, tags, folder, shelf, status) compose with the query via AND. Tag and pillar searching is done through chips, not the text box. | 🟡 |
 | **12. Custom views** | The doc promises saved filter combos but doesn't specify storage. | **Add `nclex_tutor_library_views`** with `(view_id, tutor_id, name, filters_json, position, created_at, updated_at)`. Tutor sets filter chips, clicks "Save as view," names it. Custom views render under the four system views in the Views section. Edit/rename/delete via kebab. Student-side views stay hard-coded (system views only) — saved tutor views are authoring tools and don't propagate. | 🟡 |
 | **13. Reading-progress persistence** | The read view shows a "% scrolled" bar but doesn't persist it. Students who close a long note halfway through have to re-find their place on return. | **Persist one resume position per (student, note).** New `nclex_library_note_progress` table: `(student_id, note_id, scroll_position, last_visited_at)`, PK on `(student_id, note_id)`. Debounced write ~3s after scroll stops. On re-open, scroll to that position with a small "Resume reading · Back to top" toast. Reset on mark-done. Also drives the student-side "Recent" view ordering. | 🟡 |
@@ -97,11 +127,16 @@ Trade-offs accepted:
 
 *New columns on `nclex_tutor_library_notes`*
 - `version_id UUID` (point 4)
+- `pillars nclex_pillar[]` — replaces the single `pillar TEXT` column from the original plan (multi-pillar architectural decision above)
 
-*New constraints*
+*New types*
+- `nclex_pillar` domain type — CHECK constraint against the 8 full NCLEX-RN Client Needs sub-category names (no abbreviation codes); used by the `pillars` column above and ideally by the bank's question classification too
+
+*New constraints / indexes*
 - Deferred constraint trigger: `PROGRAMME_SCOPED` notes must end every transaction with ≥1 junction row (point 16)
 - Trigger on `nclex_tutor_library_note_visibility`: every `programme_id` must belong to the note's tutor (point 17)
 - Generated `tsvector` column + GIN index (point 11)
+- GIN index on `nclex_tutor_library_notes.tags` (point 10 — speeds both tag-manager queries and filter chips)
 
 *Activity-type registry stays at 8 types* (point 6 — Text, PDF, External Link, Library Note, Shelf, Mock Quiz, Practice Quiz, Tutorial Session — distinct by intent/lifecycle, not by content shape)
 
