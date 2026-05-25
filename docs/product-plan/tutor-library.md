@@ -2,20 +2,38 @@
 
 *Living document. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
-Last updated: 2026-05-16 (architectural pivot + editor-side sync —
-**visibility now lives on the note**, not on shelves; folders, shelves,
-views, pillars and tags are pure organisational tools; **shelves**
-added as a curated-pack lens; **NCLEX pillars** added as first-class
-single-primary classification; mockup synced; student side mirrors
-tutor structure with read-only adaptations and visibility-filtered
-counts; **8 activity types** — Library Note + Shelf join the existing
-six; **editor side fully specified** — Tiptap framework chosen, 12
-block types in 4 groups (Drug card + Lab values extensible from day
-one), editor UX + keyboard shortcuts + autosave locked, embedded
-questions tutor-bank-only with answers in dedicated table
-`nclex_library_embed_answers` (not `nclex_attempts`); read-mode
-renderer specified end-to-end. Earlier sync 2026-05-11 — attaches to
-**units** not weeks; rendered label per programme's `unit_label`.)
+Last updated: 2026-05-24 (gap-review fold-back — 4 architectural
+decisions and 20 confirmed gap resolutions folded in from the
+separate working doc, now retired:
+- **Multi-pillar from day 1** (full NCSBN names, `nclex_pillar`
+  domain type, no abbreviation codes).
+- **Visibility junction table** (`PROGRAMME_SCOPED` can scope to
+  one or more programmes; same-tutor invariant + deferred
+  constraint + RLS helper).
+- **Shelf attachment as one atomic activity** (Option D —
+  `note_id` XOR `shelf_id`, `skipped_note_ids JSONB` for per-unit
+  hides, no per-unit reorder, completion derives from
+  `nclex_library_note_state`).
+- **Multi-question embedded blocks** (`embedded_questions` with
+  `item_ids[]`; per-block 5/10 + per-note 20/50 caps; inline
+  player walks the set).
+- Plus mechanical resolutions: tag manager + drop `nclex_*`
+  pre-seed; collapsible 5-lens sidebar; alt-text enforced at
+  publish; same-user-two-tabs guard via `version_id`; custom
+  views promoted to v1; student-side "By unit" view replaces
+  "For this unit"; locked student URL paths; bookmarks +
+  reading position + per-note completion collapsed into a
+  single `nclex_library_note_state` table; full-text search
+  via generated `body_tsv`; v1 leaves asset orphans (a future
+  Tutor Media surface handles cleanup).
+
+Earlier syncs:
+- 2026-05-16 — architectural pivot + editor-side sync (visibility
+  on the note; shelves added as a curated-pack lens; 12 block
+  types in 4 groups; Tiptap chosen; embedded-question table
+  separated from `nclex_attempts`).
+- 2026-05-11 — attaches to **units** not weeks; rendered label
+  per programme's `unit_label`.)
 
 ---
 
@@ -23,7 +41,7 @@ renderer specified end-to-end. Earlier sync 2026-05-11 — attaches to
 > "Block" is overloaded between this doc and the curriculum architecture:
 > - **Editor block** *(the meaning used throughout this doc)* — a
 >   typed unit inside a note's rich-text body (`paragraph`,
->   `heading`, `image`, `pdf`, `video`, `embedded_question`,
+>   `heading`, `image`, `pdf`, `video`, `embedded_questions`,
 >   etc.). Notion / Editor.js sense. Authoring-time, scoped to a
 >   single note.
 > - **Curriculum block** *(defined in [main.md](main.md) → Programme
@@ -66,29 +84,30 @@ five organising lenses defined, integration with programmes specified.
 Mockup at `docs/product-plan/mockups/tutor-library-mockup.html` reflects
 the current architecture and is the source of truth for the UI.
 
-**Visibility lives on the note.** Two values: `TUTOR_WIDE` (every
-student of this tutor sees it) and `PROGRAMME_SCOPED` (only students in
-the specific programme/cohort see it). **Folders, views, shelves,
-pillars and tags do not gate visibility** — they are pure organisational
-tools. Students see the same organising structure as the tutor, just
-visibility-filtered.
+**Visibility lives on the note.** Two modes: `TUTOR_WIDE` (every
+student of this tutor sees it) and `PROGRAMME_SCOPED` (only students
+in the programme(s) the tutor explicitly picked see it — one or more,
+stored as rows in `nclex_tutor_library_note_visibility`). **Folders,
+views, shelves, pillars and tags do not gate visibility** — they are
+pure organisational tools. Students see the same organising structure
+as the tutor, just visibility-filtered.
 
 **Five organising lenses** (see [Organising lenses](#organising-lenses)
 below):
 
 - **Folders** — tutor's primary filing bin (1 per note)
 - **Shelves** — curated cross-cutting packs (many per note)
-- **Pillars** — NCLEX Client Needs classification (1 per note, 8
-  sub-categories)
+- **Pillars** — NCLEX Client Needs classification (many per note,
+  8 sub-categories)
 - **Tags** — free-form attributes (many per note)
 - **Views** — derived/saved queries
 
-**Not queued for build.** Substantial feature (~5–7 weeks of focused
-work with the shelves and pillars additions — block-based editor is
-still the heavy lift) with no users blocking on it today. Parked until
-programmes, payments, and runner finish ship. Revisit when one of:
-(a) a tutor pilot asks for it, or (b) consumption work is complete and
-tutor-side differentiation is the next priority.
+**Not queued for build.** Substantial feature (~6–8 weeks of focused
+work — block-based editor is still the heavy lift) with no users
+blocking on it today. Parked until programmes, payments, and runner
+finish ship. Revisit when one of: (a) a tutor pilot asks for it, or
+(b) consumption work is complete and tutor-side differentiation is
+the next priority.
 
 **No QAcademy-side library in v1.** The decision to leave self-study
 students with rationales-as-teaching is deliberate; the library is a
@@ -126,9 +145,10 @@ draw on across all their cohorts.
 Three orthogonal concepts the design separates cleanly:
 
 - **Visibility** — *who can read this note*. A property of the **note
-  itself**: `is_published` flag + visibility mode (`TUTOR_WIDE` or
-  `PROGRAMME_SCOPED`). Not derived from folders, shelves, or any
-  organisational container.
+  itself**: `is_published` flag + visibility mode (`TUTOR_WIDE`, or
+  `PROGRAMME_SCOPED` with a one-or-more-programme set stored in the
+  `nclex_tutor_library_note_visibility` junction). Not derived from
+  folders, shelves, or any organisational container.
 - **Organisation** — *how the tutor finds and groups their content*.
   Five lenses (folders, shelves, pillars, tags, views), each playing
   a distinct role. None of these affect who can read a note.
@@ -163,12 +183,18 @@ tutor sidebar.
 **Chrome — five-lens sidebar.** The library home has a secondary left
 rail (inside the page, not a new global nav entry) carrying all five
 organising lenses, top to bottom: **Views**, **Folders**, **Shelves**,
-**Pillars**, **Tags**. Each section is collapsible; counts are shown
-per entry. A top-bar dropdown chrome was evaluated as a v2 alternative
-— see the [mockup](mockups/tutor-library-mockup.html) screen 3
-"Library home — folder scope (top-bar variant)". Decision: **sidebar
-default**, with collapse-to-icons as a future affordance for narrow
-viewports.
+**Pillars**, **Tags**. Each section is collapsible via its chevron;
+counts are shown per entry. A top-bar dropdown chrome was evaluated as
+a v2 alternative — see the [mockup](mockups/tutor-library-mockup.html)
+screen 3 "Library home — folder scope (top-bar variant)". Decision:
+**sidebar default**.
+
+**Sidebar collapse-to-rail (v1).** A `«` button at the top of the rail
+collapses the whole sidebar to a 48-px icon strip — lens icons only,
+tooltips on hover. Click `»` (or any icon) to expand. State saved in
+localStorage per-tutor so the choice survives reloads. Ships in the
+first library slice; matters because the rail eats horizontal space on
+small / dense screens.
 
 **Folders + Shelves sections each carry an "All folders" / "All
 shelves" top entry** that opens a zoomed-out view of the lens (folder
@@ -181,7 +207,7 @@ drill into a specific container.
 - Crumb (`Folder / Cardiac` or `Shelf / Foundational SATA pack`)
 - Title row + lens badge (`Folder` or `Shelf · curated`)
 - Sub-line (count + clarifying copy)
-- Filter bar (tag chips + `+ nclex_*` action)
+- Filter bar (tag chips + pillar chips)
 - Notes list with the **per-note lens row** — each note's title,
   subtitle (when set), `description` (or an auto-excerpt of `body`
   when description is null), and a single line below carrying all
@@ -195,6 +221,20 @@ glance.
 
 **Toolbar:** search input + `+ New folder` + `+ New note`. Primary
 actions live at the top, above the lens bar / sidebar split.
+
+**Search scope (locked).** The toolbar search input searches the
+**content of the note**: title + subtitle + description + body
+plain-text. Tags, pillars, folders, and shelves are NOT searched
+through the text box — they have dedicated chip filters in the
+toolbar. Search and chips compose via AND: tutor selects pillar
+*Pharmacological and Parenteral Therapies* + types `furosemide` →
+notes matching both. Backed by a Postgres generated `tsvector`
+column on `nclex_tutor_library_notes` (title=A weight, subtitle=B,
+description=C, body=D); GIN index for fast lookup; `ts_rank` so
+title hits outrank body hits. The body walk uses an IMMUTABLE
+helper that extracts text from paragraph / heading / list / quote
+/ callout / drug_card / lab_values / table blocks (image / pdf /
+video / embedded_questions are skipped).
 
 ### Folders
 
@@ -249,44 +289,129 @@ items by it. Notes carry the same classification, so the library
 becomes pillar-balanced study material.
 
 - **8 sub-categories** (the Client Needs sub-level — the grain at
-  which bank items are classified):
-  - `MoC` Management of Care
-  - `SIC` Safety & Infection Control
-  - `HPM` Health Promotion & Maintenance
-  - `PI` Psychosocial Integrity
-  - `BCC` Basic Care & Comfort
-  - `PPT` Pharmacological Therapies
-  - `ROR` Reduction of Risk Potential
-  - `PA` Physiological Adaptation
-- **Single primary pillar per note in v1.** One field, one chip.
-  Stored as `domains: string[]` (array shape for forward compat) but
-  required length = 1 in v1. Promote to many in v1.5 without a
-  migration if real tutors hit "this note legitimately covers two
-  pillars."
-- **Surfaced two ways**: as a 5th sidebar section (8 entries with
-  short codes + counts) and as a coloured chip in every per-note
-  lens row. The chip carries the daily load; the sidebar lens is for
-  occasional pillar-browsing.
+  which bank items are classified). The library stores the full
+  NCSBN names verbatim — no abbreviation codes ever shown to users:
+  - Management of Care
+  - Safety and Infection Control
+  - Health Promotion and Maintenance
+  - Psychosocial Integrity
+  - Basic Care and Comfort
+  - Pharmacological and Parenteral Therapies
+  - Reduction of Risk Potential
+  - Physiological Adaptation
+- **Multi-pillar from day 1.** Notes carry `pillars nclex_pillar[]
+  NOT NULL` (CHECK length ≥ 1). Real NCLEX content routinely spans
+  pillars: Furosemide is *Pharmacological and Parenteral Therapies*
+  + *Reduction of Risk Potential*; wound-infection prevention is
+  *Safety and Infection Control* + *Reduction of Risk Potential* +
+  *Physiological Adaptation*. Forcing a single "primary" pillar
+  would mean artificial judgment calls at save time and
+  undercounted coverage analytics. No "primary" concept in v1 —
+  every pillar in the array is equal weight. If primary-ish
+  behaviour ever needs to exist later (chip render priority,
+  weighted analytics), a separate column lands later without
+  touching the array.
+- **DB validation via domain type.** New `nclex_pillar` domain type
+  with a CHECK constraint against the 8 full names. The notes
+  table's `pillars` column uses that domain. Optional future
+  follow-on, independent of library work: the bank's
+  `client_needs_subcategory TEXT` column could adopt the same
+  domain for free DB-level validation.
+- **Editor UI.** Multi-select chip input constrained to the 8
+  names.
+- **Per-note lens row.** All pillar chips render inline (1–3
+  typical), each colour-coded. Where the row gets crowded, names
+  truncate with a tooltip — no abbreviation codes ever shown to
+  users.
+- **Pillar lens (sidebar).** Each of the 8 entries shows count of
+  notes where that pillar appears in the array. Multi-pillar notes
+  count in each of their pillars — correct, not misleading
+  double-counting; the note genuinely IS relevant to each.
+- **Filter chips.** Default OR semantics — selecting two pillars
+  shows notes covering either. AND semantics could be a later
+  power-user toggle.
+- **URLs.** Filter parameters use slugified pillar names (e.g.
+  `?pillar=pharmacological-and-parenteral-therapies`). A small
+  client/server map handles slug↔name; cheap.
 - **Top-level pillars (4) are derived**, not stored — the 8
-  sub-categories roll up into Safe & Effective Care Environment,
-  Health Promotion & Maintenance, Psychosocial Integrity, and
+  sub-categories roll up into Safe and Effective Care Environment,
+  Health Promotion and Maintenance, Psychosocial Integrity, and
   Physiological Integrity. No expand/collapse in the sidebar; the
-  flat 8-entry list is short enough to scan directly.
+  flat 8-entry list is short enough to scan directly. The library
+  uses sub-categories only as the storage grain — the array is the
+  single source of truth.
+- **Bank consistency — already aligned.** `lib/bank/classifications.ts`
+  (sourced from the NCSBN 2023 NCLEX-RN Test Plan) already uses
+  these exact 8 full names; the bank's `client_needs_subcategory
+  TEXT` column stores them as-is. No parallel migration on the
+  bank side — the library is adopting the bank's existing
+  vocabulary.
+
+### Tags
+
+Free-form attributes — the catch-all lens for anything that
+isn't a folder, shelf, or pillar (e.g. `bootcamp-cohort-5`,
+`week-3`, `high-yield`, `revision`). Stored as `tags TEXT[]` on
+the note. No separate table — TEXT[] keeps writes cheap and
+read-grouping fast over a GIN index. Many tags per note; tags are
+tutor-scoped (each tutor has their own tag vocabulary).
+
+**No `nclex_*` pre-seed.** Earlier drafts proposed pre-seeding
+`nclex_management-of-care`, `nclex_safety-and-infection-control`,
+etc. as tags — that duplicated the dedicated `pillars` field and
+muddied the lens model. Pillars are first-class via the `pillars`
+array; the filter bar's pillar chips slice on that column, not on
+tags. Drop the seed.
+
+#### Tag manager
+
+A kebab on the **Tags** lens section header opens *Manage tags* —
+a panel listing every tag in the tutor's library with usage
+counts. Three operations:
+
+- **Rename** — one-step bulk update across all notes. Server
+  action runs `array_replace(tags, 'old', 'new')` then dedupes
+  the array. Resolves the inevitable *cardic / cardiac / Cardiac*
+  drift.
+- **Delete** — `array_remove(tags, 'tag')` from every note;
+  confirms with the count of affected notes.
+- **Merge** — rename A into B with auto-dedupe. Multi-source
+  variant supports batched cleanup ("merge `cardic`, `Cardiac`
+  into `cardiac`").
+
+All scoped by `tutor_id` via RLS. Powered by the GIN index on
+`tags` so the distinct-tag query stays fast.
 
 ### Views
 
-Derived/saved queries on the tutor's library. Three system defaults
-ship; tutors can add custom views in v1.5.
+Derived/saved queries on the tutor's library.
 
-- **System views (v1):** *All notes*, *Recent*, *Drafts*, *Used
-  nowhere* (orphans — notes with no programme attachment).
-- **Custom views (v1.5):** saved filter combos like *"Stale but still
-  in use"* (`edited > 60d AND attached somewhere`) or *"Cohort 5"*
-  (notes tagged `cohort-5`). No query language to invent — the
-  filter chips on the main toolbar are the building blocks.
+- **System views (tutor, v1):** *All notes*, *Recent*, *Drafts*,
+  *Used nowhere* (orphans — notes with no programme attachment).
+- **Custom views (tutor, v1).** Tutor sets the filter chips
+  (pillars, tags, folder, shelf, status, search), clicks **Save
+  as view** in the toolbar, names it. Examples: *"Stale but still
+  in use"* (`edited > 60d AND attached somewhere`), *"Cohort 5"*
+  (notes tagged `cohort-5`). Saved views render in the Views
+  section beneath the four system views; edit / rename / delete
+  via per-view kebab. Backed by `nclex_tutor_library_views`
+  (`view_id, tutor_id, name, filters_json, position, …`) — no
+  query language to invent; the filter chips are the building
+  blocks.
 - **Student-side views differ.** Students don't get *Drafts* or
-  *Used nowhere* — they get *For this unit* and *Bookmarked*
-  instead.
+  *Used nowhere* (authoring-only) or custom views (authoring
+  tool). They get a hard-coded set:
+  - *All notes* — the full visibility-filtered library.
+  - *Recent* — most recently visited notes (uses
+    `nclex_library_note_state.last_visited_at`).
+  - *By unit* — a static index that groups notes by the unit
+    they're attached to. Collapsible sections, one per unit the
+    student is in. Works for students enrolled in multiple
+    programmes (each unit is its own group). Replaces the
+    earlier "For this unit" idea, which depended on a "current
+    unit" detection that nothing else needed.
+  - *Bookmarked* — notes the student has bookmarked (filters by
+    `nclex_library_note_state.bookmarked_at IS NOT NULL`).
 
 ### Note editor
 
@@ -304,12 +429,13 @@ Each note carries:
 |---|---|
 | **Title** (text) | Required. Auto-saved. |
 | **Folder** (FK) | The tutor's primary bin. Nullable (root-level note). |
-| **Tags** (text array) | Free-form, comma-input. NCLEX-pillar `nclex_*` tags pre-seeded. |
-| **Pillar** (enum) | NCLEX Client Needs primary category. One of 8 sub-categories. Required at save. |
+| **Tags** (text array) | Free-form, comma-input. Tutor-scoped vocabulary. No pre-seed. |
+| **Pillars** (`nclex_pillar[]`) | Multi-select. One or more of the 8 NCLEX Client Needs sub-categories (full NCSBN names). Required at save (≥ 1). |
 | **Body** (JSONB block document) | Sequence of typed blocks — see Block types below. |
 | **Status** | Draft / Published. |
 | **Visibility mode** | Tutor-wide / Programme-scoped — set at publish time, editable thereafter. |
-| **Scoped programme** (FK) | Required when visibility = Programme-scoped; nullable otherwise. |
+| **Visibility set** (junction) | For Programme-scoped notes: ≥ 1 row in `nclex_tutor_library_note_visibility`. Multi-select in the publish dialog. Empty for Tutor-wide notes. |
+| **Version id** (UUID) | Regenerated on every save; rejected at save time if it doesn't match what the editor loaded with. Guards same-user-two-tabs overwrites. |
 
 #### Editor UX
 
@@ -338,6 +464,11 @@ All three open the same block-picker popover (12 types grouped into Text & struc
 
 **Autosave** — every 3 seconds of inactivity (debounced). Indicator in the editor's top-right: *"Saving…"* during write, *"Saved 3s ago"* at rest, *"Unsaved changes"* on failure. No explicit Save button. Publish button stays separate (it's the visibility-mode flip, not save).
 
+**Concurrent-edit guards** — two layers, defending against the "same tutor with the same note open in two tabs" case (the realistic v1 trigger; cross-tutor sharing isn't a v1 feature). Both layers carry through unchanged when co-tutor editing lands in v2.
+
+- **`version_id` save guard (server, at save time).** The note row carries a `version_id UUID` that the server regenerates on every save. The editor records the version it loaded with and sends it on each save. Mismatch → server rejects with *"This note was saved in another tab. Reload to see the latest version."* No merge UI in v1 — last-write-wins with a guard. Catches every concurrent-edit case at the data layer.
+- **`BroadcastChannel` presence warning (client, at open time).** When the editor mounts, it broadcasts on a per-note channel. If a peer responds, the second tab shows a banner: *"You have this note open in another tab — editing here may overwrite the other version."* Zero schema cost; pre-empts the most common case before the user invests typing time.
+
 **Edit-propagation warning** — on the first significant save after 5+ minutes of inactivity (a "session break"), the save dialog surfaces the propagation reach: *"This note is attached to 3 programmes (~47 students). Your changes are now visible."* Subsequent autosaves within the session don't re-show the warning. "Significant" = block added/removed/converted, embedded question changed, drug-card fields edited — not micro-edits (typos, formatting).
 
 #### Block types
@@ -360,7 +491,7 @@ own typed content. Mirrors the bank's polymorphic-content approach.
 
 | Type | Schema | Authoring notes |
 |---|---|---|
-| `image` | `{ type, asset_id, alt, caption? }` | Alt text **required**. 5MB cap, auto-resize to 1600px width on upload. Supabase Storage, signed URLs on-demand. |
+| `image` | `{ type, asset_id, alt, caption? }` | Alt text **required at publish** (not at block insert or autosave — drafts can have empty alt freely). 5MB cap, auto-resize to 1600px width on upload. Supabase Storage, signed URLs on-demand. See Publishing → Alt-text preflight. |
 | `pdf` | `{ type, asset_id, title, caption? }` | Same storage strategy as Image. Renders as a **link card with "Open" button** (not inline iframe — inline embeds are unreliable across browsers). |
 | `video` | `{ type, url, provider, caption? }` | External embeds only — YouTube + Vimeo + Loom in v1. Direct MP4 URLs render via `<video>`. No self-hosting. |
 | `table` | `{ type, header_row: bool, cells: [[...], ...] }` | Generic comparison table. Rich-text cell contents (bold / italic / link within a cell). No images in cells in v1. Standard add/remove row/column controls. **First to defer if editor work runs over.** |
@@ -418,17 +549,18 @@ own typed content. Mirrors the bank's polymorphic-content approach.
 
 ##### Group 4 — Interactive
 
-**Embedded question** — *the killer feature*
-- Schema: `{ type: "embedded_question", item_id, source: "TUTOR" }`
+**Embedded questions** — *the killer feature*
+- Schema: `{ type: "embedded_questions", item_ids: string[], source: "TUTOR" }`. **Multi-question block** — `item_ids` is 1..N references. Single-question case is `item_ids: ["..."]`.
 - Picks **from the tutor's own bank only** — not from the QAcademy bank (editorial control + attribution clarity + cross-ownership deletion concerns). Source field retained as forward-compat enum; v1 only allows `TUTOR`.
-- **Edit mode rendering** — a reference card (not the live question): `Question TUTOR_SATA_00012 · SATA · 4 options · Cardiac · PA chip` + "Open in bank" link. Reduces editor visual clutter; the tutor already knows the question.
-- **Read mode rendering** — interactive practice (see [Read-mode renderer](#read-mode-renderer) below).
+- **Authoring** — multi-select picker (pick 1..N bank items at once). Reorder + remove inside the block via a small list view.
+- **Edit mode rendering** — one reference card per question (not the live question). Each card: `Question TUTOR_SATA_00012 · SATA · 4 options · Pharmacological and Parenteral Therapies chip` + "Open in bank" link. Reduces editor visual clutter; the tutor already knows the questions.
+- **Read mode rendering** — inline player walks the set sequentially: "Question 1 of N" → Submit → feedback → Next → end-of-set "You got 2 of 3 right" card. See [Read-mode renderer](#read-mode-renderer) below.
 - Question types in v1: MCQ + SATA + TF. NGN types deferred at the product level per `mynclex/CLAUDE.md`.
-- Multiple embeds of the same question in the same note allowed (per-occurrence).
-- Soft cap of **20 embeds per note** (at-save prompt: "Are you sure?"); hard cap 50.
+- **Per-block cap.** Soft 5 questions; hard 10. Past 5 nudges the tutor toward a quiz; past 10 is refused.
+- **Per-note cap (summed across all blocks).** Soft 20; hard 50. Soft cap fires a warn-dialog at note save (*"Many embeds can be overwhelming for students. Consider splitting into a quiz."* [Cancel] [Save anyway]); hard cap is a server-side reject (*"A note can have at most 50 embedded questions. For longer question sets, build a quiz instead."*). Both checks fire at note-save, not at block insert.
 - Only Published bank questions are embeddable. Drafts don't appear in the picker.
-- **Empty-state**: when a brand-new tutor with zero published bank questions opens the block menu and picks Embedded question, show an empty-state message with a deep link to their bank editor.
-- **Question deletion**: `ON DELETE RESTRICT` on the embed reference — the tutor must remove the embed from every note before deleting the question.
+- **Empty-state**: when a brand-new tutor with zero published bank questions opens the block menu and picks Embedded questions, show an empty-state message with a deep link to their bank editor.
+- **Question deletion**: `ON DELETE RESTRICT` on the embed reference — the tutor must remove the question from every block's `item_ids` array (or delete the block entirely) before deleting the question.
 
 #### Storage strategy (Image + PDF blocks)
 
@@ -454,21 +586,38 @@ revision model in v2 if real tutors create chaos.
 
 Publishing a note is a deliberate two-step:
 
-1. Tutor clicks **Publish** on a draft.
+1. Tutor clicks **Publish** on a draft. An **alt-text preflight**
+   runs first (below); if it passes, the dialog opens.
 2. A dialog asks: *Who can read this note?*
    - **Tutor-wide** *(default)* — any student enrolled in any of my
      programmes can see this note in their library.
-   - **Programme-scoped** — pick one programme; only students in that
-     programme see it.
+   - **Programme-scoped** — multi-select picker. Pick **one or more**
+     of the tutor's programmes; only students enrolled in any of
+     those programmes see the note. The picker defaults to the
+     programme the tutor is currently working in (if any). Storage:
+     ≥ 1 row inserted into `nclex_tutor_library_note_visibility`.
 
 Default is Tutor-wide because foundational content (general teaching)
 is the more common case. Programme-scoped is the deliberate choice for
-cohort-specific content ("Cohort 5 — Unit 3 study plan"). *(The
-"Unit 3" label depends on the programme's `unit_label` — a programme
-that picked Module would say "Module 3" instead.)*
+cohort-specific content (*"Cohort 5 + Cohort 6 — Unit 3 study plan"* —
+the kind of pair-specific scope a single-FK model can't express).
+*(The "Unit 3" label depends on the programme's `unit_label` — a
+programme that picked Module would say "Module 3" instead.)*
 
 Visibility is set per-note. Folders, shelves, pillars, tags, and views
 do not affect it — they are pure organisational tools.
+
+#### Alt-text preflight (image accessibility gate)
+
+Drafts can have empty `alt` on image blocks freely — tutor's working
+scratch space. The Publish action runs a preflight scan; if any image
+block has empty `alt`, publishing is blocked with *"3 images are
+missing alt text — click here to jump to the first one."* The
+click-through scrolls the editor to the first offender and focuses
+its alt field. After publish, edits to existing images don't
+re-trigger the check (the gate fired once; the note has met the
+bar). If a tutor later removes alt text from a published image, that
+is their call — no rolling enforcement.
 
 ### Used-in count
 
@@ -487,13 +636,25 @@ will be visible immediately."*
 ## Visibility (who sees what)
 
 Visibility is a property of the **note**, not of any organisational
-container. Two values, set when the tutor publishes:
+container. Two modes, set when the tutor publishes:
 
 | Note state | Who sees it |
 |---|---|
 | Draft | Only the tutor |
 | Published, **Tutor-wide** | Every student enrolled in any of this tutor's programmes |
-| Published, **Programme-scoped** | Only students in the specific programme the note is scoped to (and only when that programme is itself published) |
+| Published, **Programme-scoped** | Only students in the programme(s) the tutor explicitly picked — one or more, chosen at publish |
+
+**Storage uses a junction table**, not a single FK. A single-FK
+model couldn't express the realistic "this note belongs to two of
+my cohorts but not the third" case. The junction:
+
+- `nclex_tutor_library_note_visibility (note_id, programme_id)` —
+  one row per (note, programme) pairing.
+- **Tutor-wide** notes have **zero rows** in the junction.
+- **Programme-scoped** notes have **≥ 1 row** in the junction.
+- The publish dialog's programme picker is a multi-select. Default
+  selection on first publish is whichever programme the tutor is
+  currently working in (if any).
 
 A scenario:
 
@@ -501,12 +662,59 @@ A scenario:
 > Cohort 6, Weekend Pharm Intensive.
 >
 > They publish "How to attack SATA questions" as **Tutor-wide**.
-> Every student in all three programmes sees it in their library.
+> The junction stays empty. Every student in all three programmes
+> sees it in their library.
 >
-> They publish "Cohort 5 — Unit 3 study plan" as **Programme-scoped
-> to Bootcamp Cohort 5**. Only Cohort 5 students see it. Cohort 6
-> doesn't (different cohort). Pharm Intensive doesn't (different
-> programme).
+> They publish "Pharm essentials — Unit 3 study plan" as
+> **Programme-scoped** to both Bootcamp cohorts (the two that share
+> the same Unit 3 reading). The junction gets two rows. Cohort 5
+> and Cohort 6 students see it; Pharm Intensive students don't —
+> not in the scope set.
+
+### Same-tutor invariant
+
+Every `programme_id` in a note's visibility junction must belong to
+that note's tutor. A tutor can't accidentally (or intentionally)
+add another tutor's programme to their note's scope.
+
+- App layer: `saveLibraryNote` rejects any `programme_id` whose
+  owning tutor doesn't match the note's `tutor_id`.
+- SQL layer: `BEFORE INSERT/UPDATE` trigger on
+  `nclex_tutor_library_note_visibility` looks up
+  `nclex_programmes.tutor_id` and refuses mismatches.
+
+Matches CLAUDE.md rule #4 — TypeScript for UX-friendly errors, SQL
+for the security floor.
+
+### Programme-scoped with no programmes is impossible
+
+A `PROGRAMME_SCOPED` note must end every transaction with at least
+one junction row. Two layers:
+
+- **Save-time invariant (app):** the save action refuses to commit
+  a `PROGRAMME_SCOPED` note with an empty visibility set, with a
+  UX-friendly error.
+- **Deferred constraint trigger (SQL):** a `DEFERRABLE INITIALLY
+  DEFERRED` trigger on the junction runs at transaction commit; if
+  a `PROGRAMME_SCOPED` note ends the transaction with zero junction
+  rows, the trigger raises.
+
+Belt-and-braces.
+
+### Student-side RLS helper
+
+A SQL function `nclex_student_can_see_note(note_id)` centralises
+the visibility check used by every student-side query:
+
+- Returns true if the note is published AND
+  - `visibility_mode = 'TUTOR_WIDE'` AND the student is enrolled in
+    any programme of this tutor, OR
+  - `visibility_mode = 'PROGRAMME_SCOPED'` AND the student is
+    enrolled in at least one programme in the note's visibility
+    junction.
+
+RLS policies and content queries both call this; one function, one
+truth.
 
 ### Containers don't gate visibility
 
@@ -522,6 +730,25 @@ A note's folder, shelf, pillar, or tags do not affect who can see it.
   least one visible note appear.
 - Sidebar counts are viewer-relative.
 
+### Mixed-visibility shelves — attach-time dialog
+
+When a tutor attaches a shelf to a unit, the system scans the
+shelf's notes. If any are `PROGRAMME_SCOPED` to a set that doesn't
+include the target programme, a dialog appears with three explicit
+choices:
+
+- **Attach anyway** — students here won't see those rows.
+- **Add this programme to their visibility, then attach** —
+  students here WILL see them.
+- **Cancel.**
+
+If the tutor picks the middle option, the necessary rows insert
+into `nclex_tutor_library_note_visibility` in the same transaction
+as the attach. The dialog lists the affected notes by title so the
+choice is informed. Three explicit options (not defaulted) so the
+visibility expansion is always deliberate. No permanent badge —
+the moment-of-decision interaction is substantive enough.
+
 ### The combination case
 
 A Tutor-wide note can also be attached to a specific programme's
@@ -536,8 +763,11 @@ unit. Both surfaces co-exist:
 No content duplication — same note, two surfaces showing it.
 Visibility and scheduling are independent axes, by design.
 
-A Programme-scoped note can only be attached to units in the same
-programme. Attempting to attach it elsewhere is refused.
+A `PROGRAMME_SCOPED` note can only be attached to units in
+programmes within its visibility set. Attaching it to a unit
+outside that set is refused; the tutor can re-attempt after
+widening the note's scope (via the publish dialog, or via the
+attach-time dialog above).
 
 ---
 
@@ -545,9 +775,9 @@ programme. Attempting to attach it elsewhere is refused.
 
 The unit-builder's add-activity picker grows from a 3×2 grid (six
 types) to a 4×2 grid with **two new types**: **Library Note** (a
-single reusable note) and **Shelf** (a whole curated pack — every note
-on the shelf becomes a row). Both flagged NEW in the picker. This is
-documented as a structural revision to
+single reusable note) and **Shelf** (a whole curated pack — attached
+as one atomic activity, all notes rendered together). Both flagged
+NEW in the picker. This is documented as a structural revision to
 [curriculum-authoring-ux.md](curriculum-authoring-ux.md) and
 [main.md](main.md) (Programme Structure → Activity types).
 
@@ -562,80 +792,148 @@ documented as a structural revision to
    loose under the unit (or into the curriculum block, depending on
    which entry point fired the picker) as an activity.
 
+The attachment row shape: `{attachment_id, note_id, programme_id,
+unit_id, block_id, position, caption?, …}` — `shelf_id` is null.
+
 The activity row shows: type icon, note title, optional tutor-set
 caption ("Read before Wednesday's session"), and the standard
 up/down arrows for reordering.
 
-### Adding a Shelf activity
+### Adding a Shelf activity (atomic-activity model)
 
 1. Picker → Tutor picks **Shelf**.
 2. A modal opens listing the tutor's shelves with colour dot, title,
    description, count, and a preview of the first 3 notes per shelf.
-3. Tutor picks one shelf; the modal closes and the shelf slots in
-   under the unit (or curriculum block) as a single grouped block —
-   one attachment row per note on the shelf, all stamped with the
-   shared `shelf_id` so the runtime can group them in the unit view.
+3. Tutor picks one shelf. If any note on the shelf is
+   `PROGRAMME_SCOPED` to a set that doesn't include the target
+   programme, the visibility attach-time dialog fires (see
+   *Visibility → Mixed-visibility shelves*).
+4. Modal closes; the shelf slots in under the unit (or curriculum
+   block) as **one atomic activity** — a single attachment row, not
+   a fan-out of per-note rows.
 
-**The grouped block** shows: a coloured outer border (the shelf's
-colour), an identity bar at the top (shelf colour dot + title +
-optional kebab), the constituent notes as individual activity rows
-below, and an "Auto-syncing" banner explaining the membership
-propagation.
+The attachment row shape for a shelf: `{attachment_id, shelf_id,
+programme_id, unit_id, block_id, position, caption?,
+skipped_note_ids JSONB, …}` — `note_id` is null. A CHECK constraint
+on the table ensures exactly one of `note_id` / `shelf_id` is set
+per row.
 
-**Auto-sync.** Adding or removing a note on the shelf later updates
-every unit using that shelf — attachment rows are inserted / deleted
-to match the shelf's current membership. Reordering the shelf
-updates row `position`. Detaching the shelf from a unit removes all
-attachment rows for that shelf in that unit. Detaching a single note
-from a shelf-grouped attachment is also allowed (sets `shelf_id` to
-NULL on that row — the note becomes a loose Library Note activity in
-the unit, the rest of the shelf stays attached).
+**Why atomic, not per-note rows.** The original plan fanned a shelf
+out into one attachment row per note, all stamped with a shared
+`shelf_id`. The attachments table then had to be kept in sync with
+shelf membership via insert/delete sweeps every time the shelf
+changed. The atomic model collapses all of that — the shelf is the
+source of truth for its contents; the unit just points at it.
+
+**The grouped block** in the unit view shows: a coloured outer
+border (the shelf's colour), an identity bar at the top (shelf
+colour dot + title + optional kebab), and the shelf's notes as
+individual activity rows beneath. Order always mirrors the shelf's
+current master order.
+
+### Ordering inside a shelf-attached block
+
+**Read-only inside the unit.** The grouped block always renders the
+master shelf's current order. To change the order, the tutor goes
+to the shelf in the library and reorders it there — the change
+propagates to every unit using the shelf (they're all pointers to
+the same master). One rule, one place. No "shelf-order overridden"
+flag, no "moved" indicator, no "reset to shelf order" action.
+
+### Skipping a note within a shelf attachment
+
+A tutor can omit specific notes from a particular unit's shelf
+render without breaking the shelf-link or forking the shelf:
+
+1. Open the unit's grouped block, tap the kebab on a single note
+   row.
+2. **Hide in this unit** → that `note_id` is appended to the
+   attachment row's `skipped_note_ids JSONB` array.
+3. The hidden note no longer renders to students and no longer
+   counts toward the shelf-activity's completion rollup.
+4. In the tutor's unit view the row appears dimmed with a "Hidden
+   in this unit" pill and an **Unhide** action.
+
+**Real case.** The shelf is the tutor's master pack — reused across
+cohorts. Cohort 5 already covered note X elsewhere, so the tutor
+hides it for Cohort 5's Unit 3 only. The shelf itself stays
+unchanged for Cohort 6 and Pharm Intensive. The alternative —
+forking the shelf into a Cohort-5 variant — creates near-identical
+shelves that drift over time.
+
+Caption inside a shelf attachment is shelf-level only — no per-note
+caption inside a shelf. Per-attachment caption still works for
+loose Library Note attachments.
+
+### Shelf membership changes after attachment
+
+If the tutor adds a note to a shelf, every unit using that shelf
+automatically picks up the new note in the shelf's master order. A
+student who had previously completed the shelf-activity reverts to
+in-progress until the new note is ticked. If the tutor removes a
+note that some students hadn't ticked, those students' activity may
+complete retroactively.
+
+Both behaviours are correct. Communicated to students with a small
+"your tutor updated this shelf" hint above the grouped block when
+membership has changed since their last view.
 
 ### Single source of truth
 
-Both attachment paths are *pointers*, not copies. A Library Note
-attachment stores `{note_id, programme_id, unit_id, block_id,
-position, shelf_id?, caption?}` — nothing else. The actual content
-lives once, in `nclex_tutor_library_notes`. When the tutor edits the
-master note, every attachment renders the updated content
+Both attachment paths are *pointers*, not copies. The actual
+content lives once, in `nclex_tutor_library_notes`. When the tutor
+edits the master note, every attachment renders the updated content
 immediately. There is no "per-attachment copy" model in v1.
 Confirmed call: it would feel wrong if editing your acid-base notes
 left stale copies scattered across old cohorts.
+
+### Completion (shelf rollup)
+
+Shelf-activity completion derives at query time from
+`nclex_library_note_state.marked_done_at` (the merged per-(student,
+note) state table — see *Student side → Reading a note*). A
+shelf-activity is complete for a student when every member note
+that isn't in `skipped_note_ids` has `marked_done_at IS NOT NULL`
+for that student. Auto-rolls up — no separate "Mark shelf done"
+click. One source of truth for note-level completion; no per-shelf
+JSONB column to keep in sync.
 
 ### Visibility precondition
 
 A note can only be attached to a unit if it is published. Draft
 notes don't appear in the attach modal.
 
-A Programme-scoped note can only be attached to a unit in the same
-programme. Attaching it elsewhere is refused.
+A `PROGRAMME_SCOPED` note can be attached to units in any programme
+within its visibility set. Attaching it to a unit outside that set
+is refused; the tutor can re-attempt after widening the note's
+scope.
 
 A shelf can mix Tutor-wide and Programme-scoped notes freely; when
 the shelf is attached to a unit, each member note's visibility
-determines whether students see that row. A Programme-scoped note on
-a shelf attached to a different programme's unit results in
-attachment rows that the students of that programme simply cannot
-see — same rule as for individual Library Notes.
+determines whether students see that row. The attach-time dialog
+catches the mixed-visibility case so the outcome is never silent.
 
 ### Detach / delete behaviour
 
-- **Detaching** a Library Note from a unit removes the activity row
-  but leaves the master note untouched in the library.
-- **Detaching** a shelf from a unit removes all attachment rows for
-  that shelf at that unit. The shelf itself stays in the library.
-- **Detaching a single note from a shelf-grouped attachment** sets
-  `shelf_id` to NULL on that row — the note becomes a loose Library
-  Note activity in the unit. The rest of the shelf-grouped
-  attachment is unaffected.
+- **Detaching** a Library Note from a unit removes the attachment
+  row but leaves the master note untouched in the library.
+- **Detaching** a shelf from a unit removes the single shelf
+  attachment row. The shelf itself stays in the library.
+- **Detaching a single note from a shelf attachment is no longer a
+  separate action.** Use **Hide in this unit** (above) — the
+  attachment row stays, just with that `note_id` appended to
+  `skipped_note_ids`. To restore the row, **Unhide**. (The old
+  "set `shelf_id` NULL on that row" behaviour is retired by the
+  atomic-activity model — there are no per-note rows to mutate.)
 - **Deleting** a master note is refused if it's attached anywhere
-  (`ON DELETE RESTRICT`). The tutor must detach all attachments first.
-  Same pattern as Trend datasets in the bank.
-- **Deleting** a shelf is refused if it's attached anywhere
-  (`ON DELETE RESTRICT`). Same pattern.
-- **Unpublishing** a note that's attached: the note becomes invisible
-  again (back to draft state), the attachments stay in place but
-  render a "Note hidden by tutor" placeholder. Tutor can republish
-  to restore.
+  (`ON DELETE RESTRICT`). The tutor must detach all attachments
+  first. Same pattern as Trend datasets in the bank.
+- **Deleting** a shelf is refused if any unit attaches it (`ON
+  DELETE RESTRICT`). Same pattern.
+- **Unpublishing** a note that's attached: the note becomes
+  invisible again (back to draft state), the attachments stay in
+  place but render a "Note hidden by tutor" placeholder. Tutor can
+  republish to restore.
 
 ---
 
@@ -643,17 +941,39 @@ see — same rule as for individual Library Notes.
 
 ### Programme library surface
 
-Route: most likely `/student/programme/[programme_id]/library/`
-(exact path TBD at build time).
+**Routes (locked).** The library is **always programme-scoped** on
+the student side — mirroring the Quizzes pattern. There is no global
+`/student/library/` page and no merged "all my tutors" view; a
+student switches libraries by switching programmes via the existing
+`<ProgrammeSwitcher>`.
+
+- `/student/programme/[programme_id]/library/` — programme-scope
+  list.
+- `/student/cohort/[cohort_id]/library/` — cohort-scope list
+  (renders the parent programme's library).
+- `/student/programme/[programme_id]/library/note/[note_id]` — read
+  view (cohort equivalent at
+  `/student/cohort/[cohort_id]/library/note/[note_id]`).
+
+Sidebar entry lives in `lib/nav/student.ts` — one item in
+`STUDENT_PROGRAMME_DETAIL_NAV` and one in
+`STUDENT_COHORT_DETAIL_NAV`, between *Curriculum* and *Quizzes*.
+
+The student library always carries a programme/cohort context in
+the URL so back-pills, sidebar state, and "next in shelf/folder"
+navigation have unambiguous context. A student enrolled with two
+tutors works through one programme at a time, never sees two
+libraries side-by-side.
 
 **The student library mirrors the tutor library's structure** — same
-five-lens sidebar (Views, Folders, Shelves, Pillars, Tags), same
+five-lens sidebar (Views, Folders, Shelves, Pillars, Tags) with the
+same collapse-to-rail affordance (per-student localStorage), same
 per-note lens row, same All folders / All shelves zoomed-out views.
 Three adaptations:
 
 | Aspect | Tutor | Student |
 |---|---|---|
-| Views section | All notes / Recent / **Drafts** / **Used nowhere** / + New view | All notes / Recent / **For this unit** / **Bookmarked** (author-hygiene views drop, student-state views replace) |
+| Views section | All notes / Recent / **Drafts** / **Used nowhere** / + custom views | All notes / Recent / **By unit** / **Bookmarked** (no Drafts / Used nowhere; no custom views — system-only) |
 | Folder / Shelf entries | All shown | Only those with ≥1 visible note (empty containers hidden) |
 | Sidebar counts | Total | Student-visible only (a folder of 7 for the tutor may show 5 to a Cohort 5 student) |
 | Action affordances | + New folder / + New note / drag-to-add | None — read-only |
@@ -684,33 +1004,57 @@ but no trailing "+ Add to shelf" slot.
 
 ### Reading a note (read-mode renderer)
 
-A dedicated full-page route (not a modal) — `/student/library/note/[note_id]`
-— with a read-only renderer that's a separate component from the
-editor. Same JSONB block document drives both; the renderer just omits
-the authoring affordances (toolbar, drag handle, kebab menu).
+A dedicated full-page route (not a modal) — see *Programme library
+surface → Routes (locked)* above — with a read-only renderer that's
+a separate component from the editor. Same JSONB block document
+drives both; the renderer just omits the authoring affordances
+(toolbar, drag handle, kebab menu).
+
+Per-(student, note) state — reading position, bookmark, manual
+completion, last-visited — lives in a single merged table
+`nclex_library_note_state` (PK `(student_id, note_id)`). Three
+originally-separate concerns collapse into one row: bookmarks (was
+`nclex_library_note_bookmarks`), reading position (was
+`nclex_library_note_progress`), per-note completion (was a JSONB
+column on the progress engine's completion row). One source of
+truth for note-level student state.
 
 **Page chrome** (top to bottom):
 
 1. **Back pill** — context-aware: "Back to Cardiac" (folder),
    "Back to Foundational SATA pack" (shelf), "Back to Unit 3" (when
    arriving from a unit activity row).
-2. **Bookmark toggle** — top-right of the header, persists in the
-   student's *Bookmarked* view.
+2. **Bookmark toggle** — top-right of the header. Writes
+   `nclex_library_note_state.bookmarked_at` (toggles on/off); powers
+   the student *Bookmarked* view.
 3. **Title** — large.
-4. **Metadata row** — pillar chip + tag chips (clickable to filter
-   the library) + reading-time estimate (auto-calculated at ~200 wpm)
-   + last-updated timestamp. Tutor name implicit by programme
-   context, not labelled.
+4. **Metadata row** — pillar chips (multi — see NCLEX Pillars) + tag
+   chips (clickable to filter the library) + reading-time estimate
+   (auto-calculated at ~200 wpm) + last-updated timestamp. Tutor
+   name implicit by programme context, not labelled.
 5. **Body** — the rendered block document.
 6. **Foot** — *Mark as done* button (primary CTA — see Completion
    below) + "Next in [shelf/folder] →" link when reading from a
    container.
 
+**Resume-on-reopen.** On mount, the renderer reads
+`nclex_library_note_state.last_heading_id` for this note. If set, it
+scrolls to that heading's anchor; if the heading has since been
+deleted, it falls back to the top of the note and shows a small
+"this note has been updated" hint. Scroll-spy maintains
+`last_heading_id` as the student moves past H2/H3 headings —
+debounced, never overwriting a more advanced position with an
+earlier one within the same session.
+
 **Left rail — Contents panel**:
 - Auto-built from H2/H3 headings in the body.
 - Click an entry to jump.
-- Scroll-spy highlights the active section.
-- Foot of rail: thin reading-progress bar (% scrolled).
+- Scroll-spy highlights the active section + writes
+  `last_heading_id` as headings are passed.
+- Foot of rail: **"section N of M"** progress meter, derived from
+  the position of `last_heading_id` in the heading sequence. Replaces
+  the earlier "% scrolled" bar — meaningful units that survive
+  body-length edits.
 - Collapses to a hamburger / floating button on narrow viewports
   (build-time refinement).
 
@@ -724,24 +1068,31 @@ the authoring affordances (toolbar, drag handle, kebab menu).
   signed URL). No inline iframe.
 - `video` — embedded iframe (YouTube / Vimeo / Loom). Caption
   underneath.
-- `embedded_question` — **interactive practice** (see below).
+- `embedded_questions` — **interactive practice block** (see below).
 
-**Embedded question flow** (the differentiator):
+**Embedded questions flow** (the differentiator):
 
-*First time the student reaches an embed (scrolling through the note):*
-1. Renders in answering mode — stem, options, Submit button.
-2. Student answers, clicks Submit.
-3. Transitions to feedback mode **inline** — right/wrong + per-option
-   feedback + rationale + snapshot frozen to `nclex_library_embed_answers`.
-4. Note continues below the embed; student keeps reading.
+*First time the student reaches the block (scrolling through the note):*
+1. Header renders: *"Question 1 of N"* (or just the single question
+   if N=1, with no counter).
+2. Question 1 renders in answering mode — stem, options, Submit
+   button.
+3. Student answers, clicks Submit.
+4. Transitions to feedback mode **inline** — right/wrong + per-option
+   feedback + rationale + snapshot frozen to
+   `nclex_library_embed_answers` (one row per question slot, keyed
+   `(student_id, note_id, block_id, question_index)`).
+5. Next button advances to question 2; repeat.
+6. End of set: a small summary card — *"You got 2 of 3 right."*
+7. Note continues below the block.
 
-*Re-entering the note later (after a previous submit):*
+*Re-entering the note later (after some questions submitted):*
 1. Note renders fully top-to-bottom.
-2. Each previously-submitted embed shows submitted-answer + feedback
-   in read-only state (the snapshot, not the live question — preserves
-   the moment-of-submit content).
-3. New embeds (added after the student's last read) render in
-   answering mode.
+2. Each previously-submitted question shows submitted-answer +
+   feedback in read-only state (the snapshot, not the live question
+   — preserves the moment-of-submit content).
+3. New questions (added to the block after the student's last read)
+   render in answering mode when reached.
 4. Student scrolls unfettered — no gating, no re-answer.
 
 Same per-question-runner components as the main runner uses (with a
@@ -750,18 +1101,32 @@ Same per-question-runner components as the main runner uses (with a
 
 #### Completion semantics
 
-**Manual mark-done only.** A *Mark as done* button at the foot of the
-note records completion via the existing progress-engine
-`markActivityDone` / `unmarkActivityDone` server actions. Consistent
-with the other passive-content activity types (Text, PDF, External
-link, Live session) — no new completion concept introduced.
+**Manual mark-done only.** A *Mark as done* button at the foot of
+the note records completion to
+`nclex_library_note_state.marked_done_at` (one row per (student,
+note); the timestamp toggles set/clear when the student taps the
+button). Same table holds bookmarks + reading position — one source
+of truth for note-level student state.
 
-Embedded question submissions live in
-`nclex_library_embed_answers` — they are *question*-level state, not
-*note*-level state. A student might submit all embeds and still not
-mark the note done (chose to stop mid-rationale-reading); a student
-might mark a note done having skimmed past the embeds. Both are
-valid; the two signals stay separate.
+**Write-through to the progress engine** when the read came from a
+Library Note activity — the same action that stamps
+`marked_done_at` also calls the existing
+`markActivityDone` / `unmarkActivityDone` server actions so the
+curriculum tick fires. Consistent with the other passive-content
+activity types (Text, PDF, External link, Live session) — no new
+completion concept introduced.
+
+**Shelf-activity completion derives** from this table — a shelf
+attached to a unit is complete for the student when every member
+note that isn't in `skipped_note_ids` has `marked_done_at IS NOT
+NULL`. No `notes_completed` JSONB column on the progress engine's
+row; one source of truth.
+
+Embedded-question submissions live in `nclex_library_embed_answers`
+— they are *question*-level state, not *note*-level state. A student
+might submit every embed and still not mark the note done (stopped
+mid-rationale); a student might mark a note done having skimmed past
+the embeds. Both are valid; the two signals stay separate.
 
 Rejected alternatives:
 - *Auto-done on scroll-to-bottom* — game-able (fast-scroll without
@@ -775,7 +1140,8 @@ Rejected alternatives:
   shown in the header.
 - **Tag chips** in the metadata row are clickable → filter the
   library by that tag.
-- **Bookmark icon** in the header toggles the note in the student's
+- **Bookmark icon** in the header toggles
+  `nclex_library_note_state.bookmarked_at`; powers the student
   *Bookmarked* view.
 - **Print / export** — deferred per *What's NOT in v1*.
 
@@ -801,37 +1167,73 @@ content surface in two contexts.
 
 ## Embedded questions — the differentiating feature
 
-The `embedded_question` block (Group 4 — Interactive) is the
+The `embedded_questions` block (Group 4 — Interactive) is the
 differentiating capability of the library. A note on *"How to attack
-SATA questions"* embeds two real SATA questions inline as guided
-practice — student reads, attempts, sees feedback, reads on. Without
-this, the library is a notes app; with it, it's a teaching surface.
+SATA questions"* embeds three real SATA questions inline as guided
+practice — student reads, attempts, sees feedback, reads on.
+Without this, the library is a notes app; with it, it's a teaching
+surface.
 
-Provisional in earlier drafts (likely to slip if runner reuse turned
-out painful) — now treated as **v1**, with the markdown-fallback
-escape hatch still available for the whole editor if cost runs over.
+Provisional in earlier drafts (likely to slip if runner reuse
+turned out painful) — now treated as **v1**, with the
+markdown-fallback escape hatch still available for the whole editor
+if cost runs over.
 
 ### Mechanics
 
-A note's body can include `embedded_question` blocks. Each block
-references a single bank item by `item_id`, from the **tutor's own
-bank only** (not the QAcademy shared bank — locked 2026-05-16 for
-editorial control + attribution clarity + cross-ownership deletion
-hygiene). Source field retained as a forward-compat enum (currently
-fixed at `TUTOR`).
+A note's body can include `embedded_questions` blocks (note the
+plural). Each block references **one or more** bank items by id,
+from the **tutor's own bank only** (not the QAcademy shared bank —
+locked 2026-05-16 for editorial control + attribution clarity +
+cross-ownership deletion hygiene). Source field retained as a
+forward-compat enum (currently fixed at `TUTOR`).
 
-When the student reads the note and reaches an embed:
-- The question renders in answering mode.
-- Student answers. Submit fires.
+Block shape: `{ type: "embedded_questions", item_ids: string[],
+source: "TUTOR" }`. The single-question case is just an array of
+length 1 — nothing is lost. Multi-question is the natural shape for
+*"now try these three"* teaching moments: pedagogical coherence,
+one reading break instead of three scattered widgets, cleaner
+authoring (multi-select picker once vs adding three blocks).
+
+**Per-block caps.** Soft 5, hard 10 questions per block. Past 5
+nudges the tutor toward a quiz; past 10 is refused — at that size
+the content is a quiz, not a teaching break.
+
+**Per-note caps.** Soft 20, hard 50 embedded questions per note,
+**summed across every `embedded_questions` block**:
+
+- **Soft cap (20)** — warn dialog at note save: *"This note has N
+  embedded questions. Many embeds can be overwhelming for students.
+  Consider splitting into a quiz."* [Cancel] [Save anyway].
+- **Hard cap (50)** — server-side reject at 51+ with an error
+  toast: *"A note can have at most 50 embedded questions. For
+  longer question sets, build a quiz instead."*
+
+Both checks fire at note-save, not at block insert — so the tutor
+isn't blocked mid-authoring while shuffling. The 20–50 range gives
+room for honest outliers (a comprehensive drug-card note with 30
+quick checks); past 50 it isn't a note any more.
+
+When the student reads the note and reaches an embed block, an
+inline player walks through the questions sequentially:
+
+- Header: *"Question 1 of N."*
+- Student answers; per-question Submit fires.
 - Student sees right/wrong + per-option feedback + rationale.
-- Reading continues.
+- Next button advances to the next question.
+- End of set: a small summary card — *"You got 2 of 3 right."*
+- Reading continues below the block.
+
+Reuses the existing per-question runner components in
+`lib/bank/runner/types/` (MCQ / SATA / etc.) — same review-mode
+rendering. The inline player is a thin wrapper over those.
 
 On re-render later (same student, same note):
-- Previously-submitted embeds show in **read-only submitted state**
-  (submitted answer + feedback visible).
-- New embeds (added to the note after the student last read it) show
-  in answering mode.
-- No re-answer in v1 — once submitted, the embed is locked.
+- Previously-submitted questions show in **read-only submitted
+  state** (submitted answer + feedback visible).
+- New questions (added to the block after the student last read)
+  show in answering mode.
+- No re-answer in v1 — once submitted, each question is locked.
 
 ### Attempt-tracking — separate table, no pollution of student analytics
 
@@ -851,6 +1253,14 @@ Three reasons drove the separation:
 3. **Lighter rows.** Embed answers don't need status / duration /
    intent fields; a dedicated table can be slim.
 
+**Row shape:** `(student_id, note_id, block_id, question_index,
+item_id, snapshot_json, answer_json, is_correct, submitted_at)`
+with `UNIQUE (student_id, note_id, block_id, question_index)` —
+one row per question per student. A multi-question block produces
+multiple rows (one per array slot); a single-question block
+produces one. `ON DELETE RESTRICT` on the bank-item FK (see
+*Question deletion behaviour* below).
+
 A student's answer on an embedded question:
 - Does **not** count toward their main practice analytics
 - Does **not** affect their pool state (Unseen → Seen, Correct/Incorrect)
@@ -866,10 +1276,10 @@ their pool state shouldn't shift.
 
 Once tutor analytics arrives, rows from `nclex_library_embed_answers`
 become a powerful signal for tutors: *"80% of students failed the
-SATA in my acid-base note"* is exactly the kind of teaching insight
-that justifies the feature. The schema is shaped right for this from
-day one — `student_id` + `note_id` + `block_id` + `item_id` +
-`is_correct` are all in place.
+second SATA in my acid-base note"* is exactly the kind of teaching
+insight that justifies the feature. The schema is shaped right from
+day one — `student_id` + `note_id` + `block_id` + `question_index`
++ `item_id` + `is_correct` are all in place.
 
 ### Snapshot at submit time
 
@@ -896,7 +1306,8 @@ the snapshot, not the live question.
 
 A bank question embedded in any note cannot be deleted from the
 tutor's bank. `ON DELETE RESTRICT` on the embed reference. Tutor
-must remove the embed from all notes before deleting the question.
+must remove the question from every block's `item_ids` array (or
+delete the block entirely) before deleting the question.
 
 Same pattern as Case Study children and Trend dataset children.
 
@@ -904,10 +1315,26 @@ Same pattern as Case Study children and Trend dataset children.
 
 ## Schema sketch
 
-Six tables. Names follow the `nclex_tutor_*` prefix convention of
-the existing parallel-ownership tutor side.
+Nine tables plus one domain type. Tutor-owned tables use the
+`nclex_tutor_*` prefix; student-owned tables use `nclex_library_*`
+(matching `nclex_library_embed_answers` which predates this doc).
 
 ```
+nclex_pillar
+  -- Domain type. CHECK against the 8 NCLEX-RN Client Needs
+  -- sub-category names (full NCSBN names, no abbreviation codes).
+  CREATE DOMAIN nclex_pillar AS TEXT
+    CHECK (VALUE IN (
+      'Management of Care',
+      'Safety and Infection Control',
+      'Health Promotion and Maintenance',
+      'Psychosocial Integrity',
+      'Basic Care and Comfort',
+      'Pharmacological and Parenteral Therapies',
+      'Reduction of Risk Potential',
+      'Physiological Adaptation'
+    ));
+
 nclex_tutor_library_folders
   folder_id          TEXT PK
   tutor_id           UUID FK -> nclex_users(id) ON DELETE CASCADE
@@ -967,41 +1394,144 @@ nclex_tutor_library_notes
                      -- excerpt of `body` when null.
   body               JSONB NOT NULL DEFAULT '[]'::jsonb
                      -- array of typed blocks
+  body_tsv           TSVECTOR GENERATED ALWAYS AS (
+                       setweight(to_tsvector('english', coalesce(title,'')),       'A') ||
+                       setweight(to_tsvector('english', coalesce(subtitle,'')),    'B') ||
+                       setweight(to_tsvector('english', coalesce(description,'')), 'C') ||
+                       setweight(to_tsvector('english', nclex_extract_body_text(body)), 'D')
+                     ) STORED
+                     -- Powers the search input (point 11). An IMMUTABLE
+                     -- helper `nclex_extract_body_text(body JSONB)` walks
+                     -- the block tree and extracts plain text from
+                     -- paragraph / heading / list / quote / callout /
+                     -- drug_card / lab_values / table blocks. Image /
+                     -- PDF / video / embedded_questions are skipped.
+                     -- `ts_rank` orders results so title hits outrank
+                     -- body hits.
   tags               TEXT[] NOT NULL DEFAULT '{}'
-  pillar             TEXT NOT NULL                 -- NCLEX Client Needs sub-category
-                     CHECK (pillar IN ('MoC','SIC','HPM','PI','BCC','PPT','ROR','PA'))
-                     -- Single primary pillar per note (v1). Promote
-                     -- to array `pillars TEXT[]` in v1.5 without
-                     -- migration if real tutors need many.
+  pillars            nclex_pillar[] NOT NULL
+                     CHECK (array_length(pillars, 1) >= 1)
+                     -- Multi-pillar from day 1. No "primary" concept;
+                     -- every pillar in the array is equal weight.
+  version_id         UUID NOT NULL DEFAULT gen_random_uuid()
+                     -- Regenerated on every save. The editor records
+                     -- the version it loaded with and sends it on save;
+                     -- server rejects saves whose `version_id` doesn't
+                     -- match. Guards against same-user-two-tabs
+                     -- overwrites in v1 (and reused for co-tutor
+                     -- editing when that lands in v2).
   position           INTEGER NOT NULL DEFAULT 0   -- order within folder
   is_published       BOOLEAN NOT NULL DEFAULT FALSE
   visibility_mode    TEXT NOT NULL DEFAULT 'TUTOR_WIDE'
                      CHECK (visibility_mode IN ('TUTOR_WIDE','PROGRAMME_SCOPED'))
-  scoped_programme_id TEXT FK -> nclex_programmes ON DELETE CASCADE
-                     -- nullable; required when visibility_mode = 'PROGRAMME_SCOPED'
+  -- (No `scoped_programme_id` column. PROGRAMME_SCOPED notes carry
+  --  their visibility set in `nclex_tutor_library_note_visibility`.)
   created_at         TIMESTAMPTZ DEFAULT NOW()
   updated_at         TIMESTAMPTZ DEFAULT NOW()
+
+  INDEX gin (body_tsv)
+  INDEX gin (tags)
+
+nclex_tutor_library_note_visibility
+  note_id            TEXT FK -> nclex_tutor_library_notes ON DELETE CASCADE
+  programme_id       TEXT FK -> nclex_programmes ON DELETE CASCADE
+  added_at           TIMESTAMPTZ DEFAULT NOW()
+  PRIMARY KEY (note_id, programme_id)
+
+  -- Junction defining the visibility set for PROGRAMME_SCOPED notes.
+  --   TUTOR_WIDE notes:        empty junction.
+  --   PROGRAMME_SCOPED notes:  ≥ 1 row.
+  --
+  -- DEFERRABLE INITIALLY DEFERRED constraint trigger enforces the
+  -- ≥-1-row rule at transaction commit. The app-layer save also
+  -- refuses to commit an empty visibility set with a UX-friendly
+  -- error (TS for UX, SQL for the security floor).
+  --
+  -- BEFORE INSERT/UPDATE trigger enforces the same-tutor invariant:
+  -- every `programme_id` must belong to the note's `tutor_id`
+  -- (resolves the cross-tutor leak — point 17).
 
 nclex_tutor_library_note_attachments
   attachment_id      TEXT PK
   note_id            TEXT FK -> nclex_tutor_library_notes ON DELETE RESTRICT
-  shelf_id           TEXT FK -> nclex_tutor_library_shelves ON DELETE CASCADE
-                     -- nullable; set when this attachment came from a shelf-attach
-                     -- (and the row is part of a grouped block in the unit view).
-                     -- Null = loose Library Note activity.
+                     -- nullable; set for loose Library Note activity rows
+  shelf_id           TEXT FK -> nclex_tutor_library_shelves ON DELETE RESTRICT
+                     -- nullable; set for shelf-as-atomic-activity rows
   programme_id       TEXT FK -> nclex_programmes ON DELETE CASCADE
   unit_id            TEXT FK -> nclex_programme_units ON DELETE CASCADE
   block_id           TEXT FK -> nclex_programme_blocks ON DELETE CASCADE
                      -- nullable; null = loose under unit, set = inside a curriculum block
-  position           INTEGER NOT NULL DEFAULT 0   -- order within parent (unit, block, or shelf-group)
+  position           INTEGER NOT NULL DEFAULT 0   -- order within parent (unit or block)
   caption            TEXT                          -- nullable; tutor's "Read before Wednesday" annotation
+  skipped_note_ids   JSONB NOT NULL DEFAULT '[]'::jsonb
+                     -- For shelf attachments only: note_ids hidden in
+                     -- this unit's render. See Scheduling → Skipping a
+                     -- note within a shelf attachment (point 2).
   created_at         TIMESTAMPTZ DEFAULT NOW()
+
+  CHECK (
+    (note_id IS NOT NULL AND shelf_id IS NULL) OR
+    (note_id IS NULL     AND shelf_id IS NOT NULL)
+  )
+  -- Row shape diverges by kind (Option D):
+  --   Loose Library Note attach: note_id set, shelf_id null.
+  --   Shelf attach (atomic):     shelf_id set, note_id null —
+  --     one row, not a fan-out. Member notes derive at render time
+  --     from `nclex_tutor_library_shelf_memberships`.
+
+nclex_library_note_state
+  student_id         UUID FK -> nclex_users(id) ON DELETE CASCADE
+  note_id            TEXT FK -> nclex_tutor_library_notes ON DELETE CASCADE
+  last_heading_id    TEXT                          -- nullable; resume position
+                     -- ID of the deepest H2/H3 heading the student
+                     -- has scrolled past. Drives the "section N of M"
+                     -- progress meter + the resume-scroll on re-open
+                     -- (falls back to top if the heading was deleted,
+                     -- with a "this note has been updated" hint).
+  marked_done_at     TIMESTAMPTZ                   -- nullable; manual completion
+                     -- Written when the student taps "Mark as done".
+                     -- Also write-through to the progress engine when
+                     -- the read came from a Library Note activity (so
+                     -- the curriculum tick fires).
+  bookmarked_at      TIMESTAMPTZ                   -- nullable; bookmark toggle
+                     -- Powers the student "Bookmarked" view (point 7).
+  last_visited_at    TIMESTAMPTZ DEFAULT NOW()     -- any interaction
+  PRIMARY KEY (student_id, note_id)
+
+  -- Merged per-(student, note) state. Collapses three originally
+  -- separate concerns into one row:
+  --   1. Bookmarks  (was `nclex_library_note_bookmarks`)
+  --   2. Reading position (was `nclex_library_note_progress`)
+  --   3. Per-note completion (was a JSONB column on the progress
+  --      engine's completion row; retired so completion has one
+  --      source of truth).
+  --
+  -- Shelf-activity completion derives at query time from this table:
+  --   "every member note minus skipped_note_ids has marked_done_at
+  --    IS NOT NULL for this student."
+
+nclex_tutor_library_views
+  view_id            TEXT PK
+  tutor_id           UUID FK -> nclex_users(id) ON DELETE CASCADE
+  name               TEXT NOT NULL
+  filters_json       JSONB NOT NULL
+                     -- saved filter set (pillars, tags, folder, shelf,
+                     -- status, search). Replayed into the toolbar
+                     -- chip state when the view is opened.
+  position           INTEGER NOT NULL DEFAULT 0
+  created_at         TIMESTAMPTZ DEFAULT NOW()
+  updated_at         TIMESTAMPTZ DEFAULT NOW()
+
+  -- Tutor-side only. The student library uses hard-coded system
+  -- views (All notes, Recent, By unit, Bookmarked) — saved tutor
+  -- views don't propagate to students.
 
 nclex_library_embed_answers
   answer_id          TEXT PK
   student_id         UUID FK -> nclex_users(id) ON DELETE CASCADE
   note_id            TEXT FK -> nclex_tutor_library_notes(note_id) ON DELETE CASCADE
-  block_id           TEXT NOT NULL                 -- the embedded_question block's ID within the note
+  block_id           TEXT NOT NULL                 -- the embedded_questions block's ID within the note
+  question_index     INTEGER NOT NULL              -- 0-based index into the block's item_ids[] array
   item_id            TEXT FK -> nclex_bank_items(item_id) ON DELETE RESTRICT
                      -- prevents deletion of a bank question while embed answers exist
   answer_json        JSONB NOT NULL                -- the student's submitted answer (per question type)
@@ -1010,10 +1540,11 @@ nclex_library_embed_answers
                      -- preserves attempt integrity if the tutor edits the question later
   submitted_at       TIMESTAMPTZ DEFAULT NOW()
 
-  UNIQUE (student_id, note_id, block_id)
-  -- One answer per student per embed occurrence in a note. Multiple
-  -- embeds of the same item_id in the same note are distinct because
-  -- they have different block_ids.
+  UNIQUE (student_id, note_id, block_id, question_index)
+  -- One row per (student, embed-block, question slot). A multi-question
+  -- block produces N rows per student; a single-question block
+  -- produces 1. Distinct blocks of the same `item_id` in the same note
+  -- still distinguish via different `block_id`.
 
   -- Deliberately NOT in nclex_attempts:
   --   1. No "session" semantic — embeds are one-shot, asynchronous
@@ -1022,24 +1553,31 @@ nclex_library_embed_answers
   --   3. Lighter rows — no status/duration/intent fields needed
 ```
 
-**Shelf-attach fan-out.** When a tutor picks "Shelf" in the activity
-picker and selects shelf X for unit U, one attachment row is created
-per note in shelf X's membership, all stamped with `shelf_id = X` and
-the same `unit_id = U`. The runtime groups them in the unit view via
-`shelf_id`. Sync behaviour on shelf changes:
+**Shelf attaches as one atomic row, not a fan-out.** When a tutor
+picks "Shelf" in the activity picker and selects shelf X for unit U,
+exactly one attachment row is created (`shelf_id = X`, `note_id =
+NULL`, `unit_id = U`). The runtime groups the shelf's notes in the
+unit view by joining the attachment to
+`nclex_tutor_library_shelf_memberships` at render time. Behaviour on
+shelf-content changes (no row-sync needed — derivation handles it):
 
-- **Add note to shelf** → insert attachment rows for every unit the
-  shelf is attached to (one per attachment context).
-- **Remove note from shelf** → delete corresponding attachment rows.
-- **Reorder shelf** → update `position` on attachment rows where
-  `shelf_id` matches (unless the tutor has overridden — see open
-  question on per-attachment reorder).
-- **Detach shelf from unit** → delete all attachment rows with that
-  `shelf_id` for that unit.
-- **Detach a single note from a shelf-grouped attachment** → set
-  `shelf_id = NULL` on that row. The note becomes a loose Library
-  Note activity. The rest of the shelf's attachment rows in that
-  unit are unaffected.
+- **Add note to shelf** → no attachment-table writes. Every unit
+  using the shelf picks the new note up at render time. Students
+  who had completed the shelf-activity revert to in-progress until
+  they tick the new note.
+- **Remove note from shelf** → no attachment-table writes. The note
+  stops appearing in every unit using the shelf. If a student
+  hadn't ticked it, their shelf-activity may complete retroactively.
+- **Reorder shelf** → `nclex_tutor_library_shelf_memberships.position`
+  is the only place to update. Every unit using the shelf renders
+  the new order on next load.
+- **Hide a note in this unit** → append the `note_id` to the
+  attachment row's `skipped_note_ids JSONB` array. Skipped notes
+  don't render and don't count toward completion.
+- **Detach shelf from unit** → delete the single attachment row.
+- *(The old "detach a single note from a shelf-grouped attachment
+  by setting `shelf_id = NULL`" is retired — there are no per-note
+  rows to mutate. Use "Hide in this unit" instead.)*
 
 > **Schema note (curriculum architecture rework, 2026-05-11).** The
 > attachment row's curriculum FKs were updated from `week_id` /
@@ -1057,10 +1595,15 @@ Body shape (JSONB):
   { "type": "paragraph", "content": [{ "text": "The body keeps blood pH between ", "marks": [] }, { "text": "7.35–7.45", "marks": ["code"] }] },
   { "type": "callout", "tone": "warning", "content": [...] },
   { "type": "image", "asset_id": "img_abc123", "alt": "ABG compensation diagram", "caption": "Optional caption" },
-  { "type": "embedded_question", "item_id": "TUTOR_SATA_00012", "source": "TUTOR" },
+  { "type": "embedded_questions", "item_ids": ["TUTOR_SATA_00012", "TUTOR_MCQ_00041", "TUTOR_SATA_00018"], "source": "TUTOR" },
   { "type": "paragraph", "content": [...] }
 ]
 ```
+
+Each `embedded_questions` block holds 1..N bank-item references
+(soft cap 5, hard cap 10 per block; soft 20 / hard 50 per note,
+summed across all blocks). The single-question case is `item_ids:
+["..."]`.
 
 Block types extend additively — adding a new block type is a
 schema-free change (just teach the editor and renderer about it).
@@ -1076,31 +1619,50 @@ schema-free change (just teach the editor and renderer about it).
 - `nclex_tutor_library_shelf_memberships`: derived from the shelf +
   note RLS — accessible if the viewer can see the shelf AND the note.
 - `nclex_tutor_library_notes`: tutor sees own (any state); enrolled
-  students see notes per visibility rules below; SUPER_ADMIN bypass.
+  students see notes per the visibility helper below; SUPER_ADMIN
+  bypass.
+- `nclex_tutor_library_note_visibility`: tutor sees own (rows for
+  notes they own); enrolled students see rows only as input to the
+  visibility helper, never directly queried from the client. INSERT/
+  UPDATE/DELETE restricted to the tutor's `saveLibraryNote` action;
+  same-tutor invariant enforced by `BEFORE INSERT/UPDATE` trigger.
+  SUPER_ADMIN bypass.
 - `nclex_tutor_library_note_attachments`: tutor sees own; enrolled
   students see attachments for their programmes (filtered to notes
   they can see); SUPER_ADMIN bypass.
+- `nclex_library_note_state`: **student sees own rows only**; tutor
+  has no read access in v1 (per-note state is private student
+  reading behaviour; tutor analytics is v2+). INSERT/UPDATE
+  restricted to the student-side actions (`markNoteDone`,
+  `setBookmark`, `updateReadingPosition`); SUPER_ADMIN bypass.
+- `nclex_tutor_library_views`: tutor sees own only; SUPER_ADMIN
+  bypass. Student-side has no access (saved views are an authoring
+  tool — students get hard-coded system views).
 - `nclex_library_embed_answers`: **student sees own rows only**;
   tutor sees rows for embeds of their own bank questions (for future
   v2+ analytics); SUPER_ADMIN bypass. INSERT is restricted to the
   student-side `submitLibraryEmbedAnswer` action; UPDATE is
   disallowed (snapshot is captured once and frozen).
 
-The student-visibility rule for notes is the load-bearing one. Likely
-shape: a helper function `nclex_student_can_see_note(note_id)` that
-returns true iff:
+The student-visibility rule for notes is the load-bearing one. A
+SQL helper function `nclex_student_can_see_note(note_id)` returns
+true iff:
 
 - The note is `is_published = TRUE`, AND either
-- `visibility_mode = 'TUTOR_WIDE'` AND the student is enrolled in
-  ANY programme run by the note's tutor, OR
-- `visibility_mode = 'PROGRAMME_SCOPED'` AND the student is enrolled
-  in `scoped_programme_id`.
+  - `visibility_mode = 'TUTOR_WIDE'` AND the student is enrolled in
+    ANY programme run by the note's tutor, OR
+  - `visibility_mode = 'PROGRAMME_SCOPED'` AND the student is
+    enrolled in at least one programme in the note's
+    `nclex_tutor_library_note_visibility` junction.
 
-Folders and shelves use this same helper transitively — a folder is
+Every student-side read path (RLS policies and query helpers) calls
+this single function — one truth.
+
+Folders and shelves use the same helper transitively — a folder is
 visible to a student if any note in it is; same for shelves. The
 "empty container hiding" on the student side is implemented as
-filtering folders/shelves whose `COUNT(visible notes) = 0` out of the
-sidebar query.
+filtering folders/shelves whose `COUNT(visible notes) = 0` out of
+the sidebar query.
 
 ---
 
@@ -1113,16 +1675,18 @@ read-mode renderer).
 
 | Stage | Size |
 |---|---|
-| Schema + RLS + visibility helper function + embed-answers table | ~1 week |
-| Library list + 5-lens sidebar + folder/shelf management + All-folders / All-shelves zoomed-out views | ~5 days |
-| NCLEX pillars — chip palette + sidebar entries + editor field + filtering | ~3 days |
-| Tiptap editor scaffold — starter-kit + slash command + `+` button + drag handle + always-visible toolbar + autosave + propagation warning | ~1 week |
-| Standard blocks (8) — Heading / Paragraph / List / Quote / Image / PDF / Video / Table + media-upload pipeline | ~1 week |
+| Schema + RLS — 9 tables + `nclex_pillar` domain + visibility helper function + same-tutor / deferred-row triggers + `nclex_extract_body_text` helper + `body_tsv` generated column + GIN indexes | ~1.5 weeks |
+| Library list + 5-lens sidebar (with collapse-to-rail) + folder/shelf management + Tags lens + All-folders / All-shelves zoomed-out views | ~5 days |
+| NCLEX pillars — multi-select chip input + sidebar entries + filter chips + per-note lens-row chips | ~3 days |
+| Tiptap editor scaffold — starter-kit + slash command + `+` button + drag handle + always-visible toolbar + autosave + `version_id` guard + BroadcastChannel presence + propagation warning | ~1 week |
+| Standard blocks (8) — Heading / Paragraph / List / Quote / Image / PDF / Video / Table + media-upload pipeline + publish-time alt-text preflight | ~1 week |
 | NCLEX domain blocks (3) — Callout (5 tones) + Drug card (extensible fields) + Lab values (extensible columns) | ~1 week |
-| Embedded-question block — picker (tutor bank only), reference-card edit-mode rendering, interactive read-mode rendering, snapshot on submit, `nclex_library_embed_answers` writes | ~1 week |
-| Programme integration — 8 activity types (Library Note + Shelf), attach modal, shelf-picker modal, attached/auto-syncing grouped block, used-in count | ~1.5 weeks |
-| Student read-mode renderer — full-page route + Contents rail (scroll-spy + progress) + per-block rendering + embedded-question flow + manual mark-done | ~1 week |
-| Student library — same 5-lens sidebar (read-only adaptations) + visibility-filtered counts + empty-container hiding | ~4 days |
+| Embedded-questions block — multi-select picker (tutor bank only) + 1..N `item_ids[]` + per-block 5/10 caps + per-note 20/50 caps + reference-card edit-mode rendering + inline player read-mode rendering + per-question snapshot writes to `nclex_library_embed_answers` | ~1 week |
+| Programme integration — Library Note + Shelf as atomic activities, attach modal, shelf-picker modal (with mixed-visibility attach-time dialog), grouped block render via shelf-membership join, "Hide in this unit" via `skipped_note_ids`, used-in count | ~1.5 weeks |
+| Student read-mode renderer — full-page route + Contents rail (scroll-spy + "section N of M" progress driven by `last_heading_id`) + per-block rendering + embedded-questions inline player + manual Mark as done writing to `nclex_library_note_state` (with write-through to progress engine) | ~1 week |
+| Student library — same 5-lens sidebar with collapse-to-rail + visibility-filtered counts + empty-container hiding + system views (All notes / Recent / By unit / Bookmarked) | ~4 days |
+| Tag manager + custom views — kebab on Tags section opens *Manage tags* (rename / delete / merge); custom-view save/edit/delete from toolbar; `nclex_tutor_library_views` writes | ~3 days |
+| Search — `tsvector`-backed search input with chip-AND composition + `ts_rank` ordering | ~2 days |
 
 Block editor is still the dominant unknown — the markdown-fallback
 gate from the original plan still applies, and would compress the
@@ -1142,11 +1706,22 @@ Tracking deliberately deferred:
 - **Nested folders** — flat two-level (Folder → Note) is enough.
 - **Per-attachment content variants** — single-source-of-truth only.
 - **Tutor-side analytics on embedded questions** — schema supports it
-  via `nclex_library_embed_answers`; UI is v2+.
+  (per-question_index rows in `nclex_library_embed_answers`); UI is
+  v2+.
 - **Revision history / draft-of-published edits** — edit-anytime
   goes live immediately.
-- **Co-tutor edit conflict handling** — low priority for v1 cohort
-  sizes.
+- **Co-tutor (cross-tutor) edit conflict handling** — cross-tutor
+  sharing isn't a v1 feature. (The `version_id` save guard already
+  covers same-user-two-tabs; co-tutor co-editing reuses the same
+  mechanism unchanged when sharing lands.)
+- **Asset cleanup / orphan sweep** — v1 leaves orphan Storage
+  objects untouched when a tutor deletes an image or PDF block. A
+  future "Tutor Media" management surface (per-asset usage status +
+  permanent-delete) puts cleanup authority with the tutor. Until
+  then, orphans accumulate harmlessly — Storage is cheap at v1
+  scale.
+- **Per-pillar AND filter semantics** — pillar filter chips compose
+  via OR in v1. AND-mode could be a power-user toggle later.
 - **Student annotations / highlights / personal notes on tutor
   notes** — read-only on the student side in v1.
 - **Comments / questions on notes** — no discussion surface.
@@ -1159,14 +1734,21 @@ Tracking deliberately deferred:
 
 Suggested sequence, smallest verifiable slice first:
 
-1. **Schema + RLS** — five tables (folders, shelves, shelf
-   memberships, notes, attachments) + policies + `nclex_student_can_see_note`
+1. **Schema + RLS** — 9 tables (`_folders`, `_shelves`,
+   `_shelf_memberships`, `_notes`, `_note_visibility`,
+   `_note_attachments`, `_note_state`, `_views`, `_embed_answers`)
+   + `nclex_pillar` domain type + same-tutor invariant trigger on
+   `_note_visibility` + deferred-row trigger on `_note_visibility`
+   + `nclex_extract_body_text(body JSONB)` IMMUTABLE helper +
+   `body_tsv` generated column on `_notes` + GIN indexes on
+   `body_tsv` and `tags` + policies + `nclex_student_can_see_note`
    helper function. Verify with seeded SQL before any UI.
 2. **Library list page — folder scope** (tutor side) — five-lens
-   sidebar (Views, Folders, Shelves, Pillars, Tags) + folder list +
-   note list with per-note lens row. Body editor is a single
-   textarea placeholder for now. Pillar chip rendered from the note's
-   `pillar` field. Ship before the block editor lands.
+   sidebar (Views, Folders, Shelves, Pillars, Tags) with
+   collapse-to-rail + folder list + note list with per-note lens row.
+   Body editor is a single textarea placeholder for now. Pillar
+   chips rendered from the note's `pillars` array. Ship before the
+   block editor lands.
 3. **Library list page — All folders + All shelves** views — the
    zoomed-out folder cards grid + Spotify-style shelf carousels.
    Same data, different lens-scope. Builds the SHELVES table use.
@@ -1174,14 +1756,16 @@ Suggested sequence, smallest verifiable slice first:
    notes, no Attached-to/Visibility metadata on shelf itself).
 5. **Tiptap editor scaffold** — starter-kit (paragraph, heading,
    list, quote, marks) + slash command + `+` button + drag handle
-   + always-visible toolbar + autosave + edit-propagation warning.
-   Ship with text-only blocks; verify the editor feel before adding
-   custom nodes. **Provisional gate** — if the framework's going
-   badly, fall back to markdown textarea and ship the rest of the
-   library without rich blocks.
+   + always-visible toolbar + autosave + `version_id` save guard +
+   `BroadcastChannel` two-tabs presence warning + edit-propagation
+   warning. Ship with text-only blocks; verify the editor feel
+   before adding custom nodes. **Provisional gate** — if the
+   framework's going badly, fall back to markdown textarea and ship
+   the rest of the library without rich blocks.
 6. **Standard visual blocks** — Image (with Supabase Storage +
-   on-demand signed URL pipeline + alt-text requirement + auto-resize)
-   + PDF (link-card) + Video (YouTube/Vimeo/Loom embeds) + Table.
+   on-demand signed URL pipeline + auto-resize) + PDF (link-card)
+   + Video (YouTube/Vimeo/Loom embeds) + Table. Alt-text preflight
+   wires into Publish (step 10).
 7. **NCLEX domain blocks (1/3) — Callout** with the 5 tones + icons.
 8. **NCLEX domain blocks (2/3) — Drug card** with extensible field
    array, drag-reorder, add-field, remove-field. NCLEX-canonical 4
@@ -1189,54 +1773,90 @@ Suggested sequence, smallest verifiable slice first:
 9. **NCLEX domain blocks (3/3) — Lab values** with extensible
    columns, column-add/rename/remove (with deletion warning), row
    add/remove. NCLEX-canonical 4 columns pre-populated.
-10. **Publish flow + visibility mode + status pills** — wire the
-    draft/published + tutor-wide/programme-scoped states end-to-end.
+10. **Publish flow + visibility mode + status pills + alt-text
+    preflight** — wire draft/published + tutor-wide /
+    programme-scoped (multi-select picker writing to
+    `_note_visibility`) end-to-end. Publish runs the alt-text
+    preflight (refuses to publish if any image has empty `alt`,
+    click-through scrolls to the first offender).
 11. **Programme integration — Library Note path** — Library Note as
     the 7th activity type, attach modal (single note), detach,
     used-in count.
-12. **Programme integration — Shelf path** — Shelf as the 8th
-    activity type, shelf-picker modal, attached/auto-syncing grouped
-    block in unit view, shelf-attach fan-out logic + propagation on
-    shelf membership changes.
-13. **Student read-mode renderer** — full-page route + Contents rail
-    + scroll-spy + per-block rendering + manual mark-done. Embedded
-    questions render in answering mode (no submit yet — gated by
-    step 14).
+12. **Programme integration — Shelf path (atomic activity)** — Shelf
+    as the 8th activity type, shelf-picker modal,
+    mixed-visibility attach-time dialog, **single-row atomic
+    attachment** (CHECK ensures `note_id` XOR `shelf_id`), grouped
+    block render via shelf-membership join, "Hide in this unit"
+    kebab writing `note_id` into `skipped_note_ids JSONB`, "your
+    tutor updated this shelf" hint on membership change.
+13. **Student read-mode renderer** — full-page route at
+    `/student/programme/[programme_id]/library/note/[note_id]` +
+    Contents rail + scroll-spy writing `last_heading_id` to
+    `nclex_library_note_state` + per-block rendering + Mark as done
+    (writes `marked_done_at` with write-through to the progress
+    engine when from a Library Note activity) + Bookmark toggle
+    (writes `bookmarked_at`). Embedded-questions block renders in
+    answering mode (no submit yet — gated by step 15).
 14. **Student library** — same five-lens sidebar (read-only
-    adaptations), visibility-filtered counts, empty-container
-    hiding, Views adapted (For this unit / Bookmarked replace
-    Drafts / Used nowhere).
-15. **Embedded question — full loop** — picker in editor (tutor
-    bank only), reference-card edit-mode rendering, interactive
-    answering in read mode, submit → write to
-    `nclex_library_embed_answers` with snapshot, post-submit
-    feedback rendering, on-re-render show submitted state.
-16. **Polish** — search, tag + pillar filtering, used-in click-through,
-    save dialogs, NCLEX_* tag seeding, the lot.
+    adaptations) with collapse-to-rail, visibility-filtered counts,
+    empty-container hiding, Views adapted (**By unit** + **Bookmarked**
+    replace Drafts / Used nowhere). Wired at
+    `/student/programme/[programme_id]/library/` and the cohort
+    sibling. Sidebar entry added to `STUDENT_PROGRAMME_DETAIL_NAV`
+    + `STUDENT_COHORT_DETAIL_NAV`.
+15. **Embedded questions — full loop** — multi-select picker in
+    editor (tutor bank only), per-block 5/10 caps, per-note 20/50
+    caps (warn at 20, reject at 50, both at save), reference-card
+    edit-mode rendering (one per question), inline player
+    read-mode rendering (Question 1 of N + Next + end-of-set
+    summary), submit → per-question write to
+    `nclex_library_embed_answers` keyed `(student_id, note_id,
+    block_id, question_index)` with snapshot, on-re-render show
+    submitted state.
+16. **Tag manager + custom views + search** — kebab on Tags lens
+    opens *Manage tags* (rename / delete / merge); custom view
+    save/edit/delete from toolbar; `tsvector`-backed search
+    composing with chip filters via AND.
+17. **Polish** — used-in click-through, save dialogs, all the
+    smaller affordances.
 
 ---
 
 ## Cross-references — TODO
 
-When this feature gets queued for build, three other planning docs
-need updating:
+To be done as the **first step of the library build slice**, not
+later. Three sibling planning docs + one student-nav file need
+updating:
 
 - **[main.md](main.md) — Programme Structure → Activity types.** Add
-  **Library Note** as the 7th activity type AND **Shelf** as the 8th.
-  Move both from "deferred" to "v1" if/when the library ships.
+  **Library Note** as the 7th activity type AND **Shelf** as the 8th
+  (8 types total). Document the **intent/lifecycle distinction**
+  between Text / PDF / External Link / Library Note so the surface
+  overlap (paragraph block vs library note, PDF block vs PDF
+  activity) isn't mistaken for redundancy — Text = ephemeral
+  unit-specific framing copy; PDF = external uploaded reference the
+  tutor didn't author; External Link = off-platform URL; Library
+  Note = tutor-authored, library-owned, reusable, classified.
 - **[curriculum-authoring-ux.md](curriculum-authoring-ux.md) —
-  Activity editors.** Add Library Note as the 7th editor AND Shelf
-  as the 8th editor in the table (Type / Fields columns). Note that
-  the editors are "pick from library" / "pick a shelf" not "edit
-  inline." Document the shelf-attach fan-out and grouped-block
-  treatment.
-- **`docs/product-plan/tutor-nav.html`** — programme sidebar may
-  want a Library entry alongside Curriculum, Live Sessions, etc.,
-  for the tutor's quick access into their own library from inside a
+  Activity editors.** Add Library Note (7th) and Shelf (8th) editor
+  rows in the table (Type / Fields columns). The editors are "pick
+  from library" / "pick a shelf" not "edit inline." Document the
+  **shelf attachment Option D model** (atomic activity, single
+  attachment row, `skipped_note_ids JSONB` for per-unit hides,
+  completion derives from `nclex_library_note_state.marked_done_at`)
+  and the **mixed-visibility attach-time dialog** (three explicit
+  options: attach anyway / widen visibility + attach / cancel).
+- **`docs/product-plan/tutor-nav.html`** — programme sidebar gains a
+  **Library** entry alongside Curriculum, Live Sessions, etc., for
+  the tutor's quick access into their own library from inside a
   programme context.
+- **`lib/nav/student.ts`** — student programme + cohort sidebars
+  gain a **Library** entry between *Curriculum* and *Quizzes* in
+  both `STUDENT_PROGRAMME_DETAIL_NAV` and `STUDENT_COHORT_DETAIL_NAV`.
 
-These edits are deferred until the feature is actually queued, to
-avoid promising something that may slip again.
+Doing all four at the top of the build slice keeps the docs
+honest — if the library ever slips out of v1 (the gate from step 5
+above), revert these changes in one commit.
 
 ---
 
@@ -1271,34 +1891,79 @@ Resolved during the 2026-05-16 sync:
 - ~~Lab values extensibility~~ → resolved: extensible columns from
   day one. NCLEX-canonical 4 columns pre-populated.
 
+Resolved during the 2026-05-24 gap-review pass (the working doc
+that produced these decisions has been retired; see *Last updated*
+at the top for the headline list):
+
+- ~~Per-attachment reorder override for shelf-grouped notes~~ →
+  resolved: no per-unit reorder. Atomic-activity attachments always
+  render the shelf's master order; reordering happens on the shelf,
+  propagating everywhere it's attached. The old "store
+  `attachment.position` independently with a manual-move cue" idea
+  is retired.
+- ~~Skip-one-note from a shelf attachment~~ → resolved: shipped as
+  the **"Hide in this unit"** kebab action writing into the shelf
+  attachment row's `skipped_note_ids JSONB` array. The earlier "set
+  `shelf_id = NULL` to break the link" mechanism is retired — there
+  are no per-note rows to mutate under the atomic-activity model.
+- ~~Visibility intersection conflict warning~~ → resolved: **attach-
+  time dialog** when a shelf containing `PROGRAMME_SCOPED` notes is
+  attached to a unit outside their visibility set, with three
+  explicit choices (attach anyway / widen + attach / cancel). No
+  permanent badge — the moment-of-decision interaction is enough.
+- ~~Collapsible library sidebar~~ → resolved: ships in v1. `«` button
+  collapses to a 48-px icon rail; state saved per-tutor in
+  localStorage.
+- ~~Concurrent-edit conflicts~~ → resolved for the same-tutor-two-
+  tabs v1 case via `version_id` save guard + `BroadcastChannel`
+  presence warning. Cross-tutor sharing isn't a v1 feature; when it
+  lands, the same `version_id` guard carries through unchanged.
+- ~~Multi-pillar per note~~ → resolved: multi-pillar from day 1
+  (`pillars nclex_pillar[]`). No v1.5 migration.
+- ~~Multi-programme visibility scope~~ → resolved: junction table
+  (`nclex_tutor_library_note_visibility`) supports one-or-more
+  programmes per PROGRAMME_SCOPED note. Same-tutor invariant
+  enforced TS + SQL.
+- ~~Custom views~~ → resolved: ship in v1 via `nclex_tutor_library_views`.
+- ~~Tag-vocabulary drift~~ → resolved: tag manager (rename / delete
+  / merge) ships in v1; `nclex_*` pre-seed dropped.
+- ~~Search scope~~ → resolved: title + subtitle + description + body
+  plain-text, backed by generated `tsvector` + GIN. Chip filters
+  compose via AND.
+- ~~Alt-text enforcement timing~~ → resolved: at publish only (not
+  at insert or autosave).
+- ~~Reading-progress / bookmark / completion storage~~ → resolved:
+  one merged table `nclex_library_note_state`. Replaces three
+  originally-separate tables.
+- ~~Asset orphan cleanup~~ → deferred to a future Tutor Media
+  surface (v1 leaves orphans).
+- ~~Student "For this unit" view~~ → replaced with a static "By
+  unit" index (multi-programme-safe, no "current unit" detection
+  needed).
+- ~~Student URL paths~~ → locked; programme/cohort-rooted, no global
+  library route.
+- ~~Multi-tutor student support~~ → resolved as a non-problem; the
+  existing `/student/picker` → programme-scoped architecture
+  already prevents the situation. No global library page; library
+  is always programme-scoped on the student side.
+- ~~Should Text + PDF activity types fold into Library Note?~~ →
+  resolved: no. The eight types are distinct by **intent and
+  lifecycle**, even though some share content shapes. Documented in
+  `main.md` activity registry.
+- ~~Embedded-question multi-question shape~~ → resolved: blocks hold
+  1..N questions (`item_ids[]`), with per-block (5/10) and
+  per-note (20/50) caps; inline player walks the set.
+- ~~How required alt-text gets enforced~~ → resolved: publish-time
+  preflight (drafts free, edits to existing images don't re-trigger).
+
 Still open:
 
-- **Concurrent-edit conflicts** between co-tutors on a shared note.
-  Low priority for v1 cohort sizes.
-- **Per-attachment reorder override** for shelf-grouped notes — when
-  a tutor reorders a note inside a shelf-grouped attachment, does
-  that propagate back to shelf order, or stay local to the unit?
-  Recommendation: store `attachment.position` independently; the
-  unit can diverge from shelf order without affecting the source.
-  Needs a visual cue for "this row was manually moved" to avoid
-  silent divergence.
-- **Skip-one-note from a shelf attachment** as a v1 affordance? Or
-  defer to v1.5 with a per-attachment `skipped_note_ids` array?
-  Current default: kebab → "remove from this unit" on a single
-  shelf-grouped row sets `shelf_id = NULL` and breaks the link
-  (becomes a loose Library Note in the unit). This works in v1.
-- **Visibility intersection conflict warning** — surfaced when a
-  shelf contains a mix of Tutor-wide and Programme-scoped notes,
-  and the resulting student-visible set is non-obvious. The mockup
-  doesn't yet show this warning UI.
 - **Lock-attached-shelf as snapshot** (v1.5) — for tutors who want
-  "snapshot the shelf as it is today" rather than auto-sync. Open
-  in the handoff README #3.
-- **Whether to fold Text and PDF activity types into Library Note**
-  (decided: leave alone for now, revisit if the redundancy bites).
-- **Collapsible library sidebar** — collapse-to-icons treatment for
-  narrow viewports or tutors who want more horizontal room. Small
-  polish, defer until requested.
+  "snapshot the shelf as it is today" rather than the auto-sync
+  behaviour. The atomic-activity model handles auto-sync cleanly; a
+  snapshot variant would mean a separate attachment kind (e.g.
+  `shelf_snapshot_id` referencing a frozen point-in-time
+  membership). Defer until a tutor asks.
 
 ---
 
