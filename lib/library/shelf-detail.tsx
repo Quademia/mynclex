@@ -27,9 +27,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { AddNotesToShelfModal } from './add-notes-to-shelf-modal';
+import { NoteLensRow } from './note-lens-row';
 import { RemoveFromShelfConfirm } from './remove-from-shelf-confirm';
 import { reorderShelfMemberAction } from './actions';
-import { lensRowFallback, pillarShortName } from './format';
 import type {
   LibraryEligibleNote,
   LibraryShelfDetail,
@@ -189,8 +189,6 @@ function ShelfNoteRow({
   );
   const [reorderError, setReorderError] = useState<string | null>(null);
 
-  const fallbackLine = lensRowFallback(note.description, note.subtitle);
-
   async function handleReorder(direction: 'up' | 'down') {
     if (reorderPending) return;
     setReorderPending(direction);
@@ -216,61 +214,11 @@ function ShelfNoteRow({
       className="lib-shelf-detail-row-wrap"
       style={{ '--shelf-accent': shelfColor } as React.CSSProperties }
     >
-      <Link
-        href={`/tutor/library/note/${note.note_id}`}
-        className="lib-shelf-detail-row"
-      >
-        <span className="lib-shelf-detail-num" aria-hidden="true">
-          {ordinal}.
-        </span>
-        <div className="lib-shelf-detail-row-main">
-          <div className="lib-note-title-line">
-            <span className="lib-note-title">{note.title}</span>
-            {note.subtitle && (
-              <span className="lib-note-subtitle">{note.subtitle}</span>
-            )}
-          </div>
-          {fallbackLine && (
-            <div className="lib-note-desc">{fallbackLine}</div>
-          )}
-          <div className="lib-note-meta">
-            {note.folder_name && (
-              <span className="lib-meta-chip lib-meta-chip-folder">
-                <span aria-hidden="true">📁</span> {note.folder_name}
-              </span>
-            )}
-            {note.other_shelf_count > 0 && (
-              <span
-                className="lib-meta-chip lib-meta-chip-shelf"
-                title={`Also on ${note.other_shelf_count} other shelf${
-                  note.other_shelf_count === 1 ? '' : 'ves'
-                }`}
-              >
-                <span aria-hidden="true">📚</span> +{note.other_shelf_count}
-              </span>
-            )}
-            {note.pillars.map((p) => (
-              <span key={p} className="lib-meta-chip" title={p}>
-                {pillarShortName(p)}
-              </span>
-            ))}
-            {note.tags.map((t) => (
-              <span key={t} className="lib-tag-inline">
-                #{t}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="lib-shelf-detail-row-side">
-          <span
-            className={`lib-state-pill is-${
-              note.is_published ? 'pub' : 'draft'
-            }`}
-          >
-            {note.is_published ? 'Pub' : 'Draft'}
-          </span>
-        </div>
-      </Link>
+      <NoteLensRow
+        note={note}
+        numberPrefix={ordinal}
+        excludeShelfId={shelfId}
+      />
 
       <div className="lib-shelf-detail-row-tools" aria-hidden={false}>
         <button

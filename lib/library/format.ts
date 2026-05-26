@@ -50,3 +50,30 @@ export function lensRowFallback(
   if (subtitle && subtitle.trim().length > 0) return subtitle.trim();
   return null;
 }
+
+/**
+ * Relative-time formatter — "just now", "12s ago", "3m ago",
+ * "yesterday", or absolute date for >7 days. Used by the lens row's
+ * "edited X ago" column and by the note editor's save badge.
+ *
+ * Hoisted from note-editor.tsx during the 11.4 follow-on slice so
+ * the shared `<NoteLensRow>` component can reach it without
+ * importing from a sibling component file.
+ */
+export function formatRelative(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return 'unknown';
+  const now = Date.now();
+  const diffMs = now - then;
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 5) return 'just now';
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const days = Math.floor(hr / 24);
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}

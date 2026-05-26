@@ -2436,3 +2436,145 @@
   font-size: 11px;
   line-height: 1;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════
+ * SLICE 11.4 follow-on — shared NoteLensRow + shelf pips + editor
+ * "On shelves" rail (P3 + P4 bundle)
+ * ════════════════════════════════════════════════════════════════════
+ *
+ * One canonical visual for every full-width note row — replaces
+ * `.lib-note-row` (notes-list) and `.lib-shelf-detail-row` (the row
+ * half of the shelf-detail layout). Each row carries the lens content
+ * (title + subtitle + description fallback + meta line of folder /
+ * shelf pips / pillars / tags) plus a right state column stacking
+ * Pub/Draft + ↳ used-in + edited timestamp.
+ *
+ * Shelf detail's per-row tools (▲ ▼ ✕) and number column are added
+ * by the wrapping <li class="lib-shelf-detail-row-wrap"> and an
+ * optional <span class="lib-note-lens-num"> prefix inside the row.
+ */
+
+.lib-note-lens-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s, box-shadow 0.12s;
+}
+
+.lib-note-lens-row:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.lib-note-lens-num {
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 28px;
+  text-align: right;
+  padding-top: 1px;
+  flex-shrink: 0;
+}
+
+.lib-note-lens-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.lib-note-lens-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.lib-state-used {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.lib-state-edited {
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Shelf pips — one coloured 8px dot per shelf the note's on. Cluster
+   sits inline with the rest of the meta row; each dot carries the
+   shelf's identity colour as its background. Tooltip on hover via
+   the native `title` attribute. */
+.lib-shelf-pip-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 4px;
+}
+
+.lib-shelf-pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* When a NoteLensRow lives inside a shelf-detail wrap, the row gains
+   the shelf's accent colour as a left edge bar + reserves room on the
+   right for the floating ▲ ▼ ✕ tool group. */
+.lib-shelf-detail-row-wrap .lib-note-lens-row {
+  padding-right: 100px;
+  border-left: 3px solid var(--shelf-accent, var(--border));
+}
+
+.lib-shelf-detail-row-wrap:hover .lib-note-lens-row {
+  border-left-color: var(--shelf-accent, var(--accent));
+}
+
+/* Editor rail — "On shelves" section. List of clickable rows; each
+   row is a pip + shelf title that links to ?shelf=<id>. */
+.lib-rail-shelves {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lib-rail-shelf-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 12.5px;
+  transition: background 0.12s;
+}
+
+.lib-rail-shelf-link:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.lib-rail-shelf-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

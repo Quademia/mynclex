@@ -100,38 +100,27 @@ export type LibraryNote = {
 };
 
 /**
- * Display projection for the per-folder notes list. Carries everything
- * the lens-row needs (title + subtitle + description + pillars + tags)
- * plus the timestamps for "edited X ago" copy when we add it.
- *
- * Excludes `body` + `body_tsv` so the list query doesn't drag JSONB
- * over the wire — list views never need the body text.
+ * Display projection for the per-folder notes list. Now an alias of
+ * `LibraryNoteLensRow` — see that type below for the canonical
+ * fields. Kept as a named export so existing call sites still type-
+ * check.
  */
-export type LibraryNoteListRow = Pick<
-  LibraryNote,
-  | 'note_id'
-  | 'folder_id'
-  | 'title'
-  | 'subtitle'
-  | 'description'
-  | 'tags'
-  | 'pillars'
-  | 'is_published'
-  | 'visibility_mode'
-  | 'updated_at'
->;
+export type LibraryNoteListRow = LibraryNoteLensRow;
 
 /**
  * Editor projection — `LibraryNote` plus the "Used in" rollup
- * counted off `nclex_tutor_library_note_attachments`. Always 0 in
- * 11.2b (no attachment UI yet); lights up as the count starts
- * incrementing when slice 11.11 ships note-as-activity attachment.
+ * counted off `nclex_tutor_library_note_attachments` and the
+ * shelf-membership list (one pip per shelf, used by the
+ * editor's "On shelves" rail section — slice 11.4 follow-on).
+ * Always 0 / [] in 11.2b notes that haven't been attached or
+ * shelved yet; lights up as the relevant slices ship.
  *
  * Kept as a separate type so the strict per-row `LibraryNote` shape
  * isn't polluted with derived counts.
  */
 export type LibraryNoteForEdit = LibraryNote & {
   used_in_count: number;
+  shelf_memberships: LibraryShelfPip[];
 };
 
 /**
@@ -315,27 +304,11 @@ export type LibraryEligibleNote = {
 // =====================================================================
 
 /**
- * Richer per-note projection for the numbered-list shelf detail
- * pane. Superset of `LibraryShelfCardNote`: adds `tags`,
- * `folder_id`, `folder_name`, and `other_shelf_count` so the
- * lens row can carry the full inline metadata (📁 folder ·
- * 📚 other-shelf pips · pillars · #tags). Position is the
- * `_shelf_memberships.position` value — surfaces here so
- * the reorder action can compute neighbours without a second
- * round trip.
+ * Per-shelf detail row — the shared `LibraryNoteLensRow` shape
+ * plus the membership's `position` so the reorder action can
+ * compute neighbours without a second round trip.
  */
-export type LibraryShelfDetailNote = {
-  note_id: string;
-  title: string;
-  subtitle: string | null;
-  description: string | null;
-  folder_id: string | null;
-  folder_name: string | null; // null = root
-  pillars: NclexPillar[];
-  tags: string[];
-  is_published: boolean;
-  updated_at: string;
-  other_shelf_count: number;
+export type LibraryShelfDetailNote = LibraryNoteLensRow & {
   position: number; // membership.position
 };
 
@@ -349,4 +322,57 @@ export type LibraryShelfDetailNote = {
 export type LibraryShelfDetail = LibraryShelf & {
   notes: LibraryShelfDetailNote[];
   note_count: number;
+};
+
+
+// =====================================================================
+// Slice 11.4 follow-on — shared note-lens-row shape (P3 + P4 bundle)
+// =====================================================================
+
+/**
+ * Thin per-shelf reference rendered as a coloured pip inside a
+ * note's lens row + inside the editor's "On shelves" rail
+ * section. The note may sit on 0..N shelves; each one carries
+ * its identity colour so the pip cluster doubles as a visual
+ * signal of where the note appears.
+ */
+export type LibraryShelfPip = {
+  shelf_id: string;
+  title: string;
+  color: string; // hex; app-validated against SHELF_PALETTE
+};
+
+/**
+ * Canonical lens-row projection used by every full-width note
+ * context (folder list, shelf detail, future All Notes / Drafts
+ * / Used nowhere / custom views). Replaces the ad-hoc shapes the
+ * earlier slices were each defining.
+ *
+ * Field set per the planning doc lens-row spec:
+ *   • title + subtitle + description-or-body-excerpt fallback
+ *   • inline meta — folder name + shelf pips + pillars + tags
+ *   • right column — is_published + used_in_count + updated_at
+ *
+ * `shelf_memberships` lists every shelf the note is on (in
+ * arbitrary order); the row component can optionally filter out
+ * a `currentShelfId` so shelf-detail rows don't repeat the
+ * page-scope shelf's pip.
+ *
+ * Excludes `body` + `body_tsv` so list queries don't drag JSONB
+ * over the wire.
+ */
+export type LibraryNoteLensRow = {
+  note_id: string;
+  folder_id: string | null;
+  folder_name: string | null; // null = root
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  pillars: NclexPillar[];
+  tags: string[];
+  shelf_memberships: LibraryShelfPip[];
+  is_published: boolean;
+  visibility_mode: LibraryVisibilityMode;
+  updated_at: string;
+  used_in_count: number;
 };

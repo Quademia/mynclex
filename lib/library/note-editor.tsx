@@ -40,7 +40,7 @@ import { updateNoteAction } from './actions';
 import { PillarPicker } from './pillar-picker';
 import { FolderPicker } from './folder-picker';
 import { TagInput } from './tag-input';
-import { pillarShortName } from './format';
+import { formatRelative, pillarShortName } from './format';
 import type {
   LibraryFolderWithCount,
   LibraryNoteForEdit,
@@ -511,6 +511,36 @@ The rich block editor with headings, lists, callouts, drug cards and embedded qu
           </section>
 
           <section className="lib-rail-section">
+            <div className="lib-rail-title">On shelves</div>
+            {note.shelf_memberships.length > 0 ? (
+              <ul className="lib-rail-shelves">
+                {note.shelf_memberships.map((s) => (
+                  <li key={s.shelf_id}>
+                    <a
+                      href={`/tutor/library?shelf=${s.shelf_id}`}
+                      className="lib-rail-shelf-link"
+                      title={`Open the ${s.title} shelf`}
+                    >
+                      <span
+                        className="lib-shelf-pip"
+                        style={{ background: s.color }}
+                        aria-hidden="true"
+                      />
+                      <span className="lib-rail-shelf-title">{s.title}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="lib-rail-muted">
+                Not on any shelf yet. Add this note to a shelf from
+                the All Shelves carousel or any shelf&apos;s detail
+                page.
+              </p>
+            )}
+          </section>
+
+          <section className="lib-rail-section">
             <div className="lib-rail-title">Outline</div>
             {outline.length > 0 ? (
               <ul className="lib-rail-outline">
@@ -635,24 +665,3 @@ function deriveOutline(text: string): string[] {
   return out.slice(0, 12);
 }
 
-/**
- * Relative-time formatter — "just now", "12s ago", "3m ago",
- * "yesterday", or absolute date for >24h.
- */
-function formatRelative(iso: string): string {
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return 'unknown';
-  const now = Date.now();
-  const diffMs = now - then;
-  const sec = Math.floor(diffMs / 1000);
-  if (sec < 5) return 'just now';
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const days = Math.floor(hr / 24);
-  if (days === 1) return 'yesterday';
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
-}

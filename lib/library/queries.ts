@@ -15,14 +15,64 @@ import type {
   LibraryFolderWithCount,
   LibraryNote,
   LibraryNoteForEdit,
+  LibraryNoteLensRow,
   LibraryNoteListRow,
   LibraryShelfCardNote,
   LibraryShelfDetail,
   LibraryShelfDetailNote,
+  LibraryShelfPip,
   LibraryShelfWithCount,
   LibraryShelfWithNotes,
   NclexPillar,
 } from './types';
+
+
+// =====================================================================
+// Shared embed helpers — used by getNotesForTutor + getShelfDetail +
+// getNoteForEdit. Each takes the raw PostgREST embed shape (which may
+// be `T | T[] | null` depending on FK direction) and returns the
+// flattened projection field.
+// =====================================================================
+
+type FolderEmbed = { name: string } | { name: string }[] | null | undefined;
+type ShelfPipEmbed = {
+  nclex_tutor_library_shelves:
+    | { shelf_id: string; title: string; color: string }
+    | { shelf_id: string; title: string; color: string }[]
+    | null;
+}[];
+type AttachmentCountEmbed =
+  | { count: number }
+  | { count: number }[]
+  | null
+  | undefined;
+
+function extractFolderName(embed: FolderEmbed): string | null {
+  const f = Array.isArray(embed) ? embed[0] : embed;
+  return f?.name ?? null;
+}
+
+function extractShelfPips(embed: ShelfPipEmbed | null | undefined): LibraryShelfPip[] {
+  if (!Array.isArray(embed)) return [];
+  return embed
+    .map((m) => {
+      const s = m.nclex_tutor_library_shelves;
+      const shelf = Array.isArray(s) ? s[0] : s;
+      if (!shelf) return null;
+      return {
+        shelf_id: shelf.shelf_id,
+        title: shelf.title,
+        color: shelf.color,
+      } satisfies LibraryShelfPip;
+    })
+    .filter((x): x is LibraryShelfPip => x != null);
+}
+
+function extractAttachmentCount(embed: AttachmentCountEmbed): number {
+  const arr = Array.isArray(embed) ? embed : embed ? [embed] : [];
+  const first = arr[0];
+  return first?.count ?? 0;
+}
 
 /**
  * All folders owned by the signed-in tutor, with per-folder note
@@ -92,6 +142,12 @@ export async function getFoldersForTutor(): Promise<LibraryFolderWithCount[]> {
  *   • Call with `folderId === 'all'` from a route param to bypass the
  *     filter and return every note — handled by the caller (page.tsx).
  *
+ * Returns the canonical `LibraryNoteLensRow` projection used by every
+ * full-width row context (folder list, future All Notes / Drafts /
+ * Used nowhere views). PostgREST embeds carry the folder name, the
+ * shelf-membership pips (one per shelf with its identity colour),
+ * and the programme-attachment count — single round trip.
+ *
  * Excludes body + body_tsv to keep the row light — list views never
  * need the body. Sorted by `position` so the tutor's curated order
  * (when it lands) survives; ties break on updated_at desc.
@@ -101,9 +157,15 @@ export async function getNotesForTutor(
 ): Promise<LibraryNoteListRow[]> {
   const supabase = await createClient();
 
-  const baseSelect = `note_id, folder_id, title, subtitle, description,
-                      tags, pillars, is_published, visibility_mode,
-                      updated_at`;
+  const baseSelect = `
+    note_id, folder_id, title, subtitle, description,
+    tags, pillars, is_published, visibility_mode, updated_at,
+    nclex_tutor_library_folders ( name ),
+    nclex_tutor_library_shelf_memberships (
+      nclex_tutor_library_shelves ( shelf_id, title, color )
+    ),
+    nclex_tutor_library_note_attachments ( count )
+  `;
 
   let query = supabase
     .from('nclex_tutor_library_notes')
@@ -121,7 +183,43 @@ export async function getNotesForTutor(
 
   const { data, error } = await query;
   if (error || !data) return [];
-  return data as LibraryNoteListRow[];
+
+  return data.map((row) => {
+    const r = row as {
+      note_id: string;
+      folder_id: string | null;
+      title: string;
+      subtitle: string | null;
+      description: string | null;
+      tags: string[];
+      pillars: NclexPillar[];
+      is_published: boolean;
+      visibility_mode: LibraryNoteLensRow['visibility_mode'];
+      updated_at: string;
+      nclex_tutor_library_folders: FolderEmbed;
+      nclex_tutor_library_shelf_memberships: ShelfPipEmbed;
+      nclex_tutor_library_note_attachments: AttachmentCountEmbed;
+    };
+    return {
+      note_id: r.note_id,
+      folder_id: r.folder_id,
+      folder_name: extractFolderName(r.nclex_tutor_library_folders),
+      title: r.title,
+      subtitle: r.subtitle,
+      description: r.description,
+      pillars: r.pillars,
+      tags: r.tags,
+      shelf_memberships: extractShelfPips(
+        r.nclex_tutor_library_shelf_memberships,
+      ),
+      is_published: r.is_published,
+      visibility_mode: r.visibility_mode,
+      updated_at: r.updated_at,
+      used_in_count: extractAttachmentCount(
+        r.nclex_tutor_library_note_attachments,
+      ),
+    } satisfies LibraryNoteLensRow;
+  });
 }
 
 /**
@@ -149,37 +247,43 @@ export async function getNoteForEdit(
       `note_id, tutor_id, folder_id, title, subtitle, description,
        body, tags, pillars, version_id, position, is_published,
        visibility_mode, created_at, updated_at,
-       nclex_tutor_library_note_attachments(count)`,
+       nclex_tutor_library_note_attachments(count),
+       nclex_tutor_library_shelf_memberships (
+         nclex_tutor_library_shelves ( shelf_id, title, color )
+       )`,
     )
     .eq('note_id', noteId)
     .maybeSingle();
 
   if (error || !data) return null;
 
-  // PostgREST returns the count as an array with one entry — same
-  // shape as the folder note-count join. Normalise to a plain number.
-  const countArr = (
-    data as {
-      nclex_tutor_library_note_attachments?: Array<{ count: number }>;
-    }
-  ).nclex_tutor_library_note_attachments;
-  const used_in_count =
-    Array.isArray(countArr) && countArr[0]?.count != null
-      ? countArr[0].count
-      : 0;
-
-  // Strip the embed before returning so the LibraryNote shape stays
-  // clean — the count lives in the extension field, not as a nested
-  // relationship array.
-  const {
-    nclex_tutor_library_note_attachments: _embed,
-    ...rest
-  } = data as LibraryNote & {
-    nclex_tutor_library_note_attachments?: Array<{ count: number }>;
+  const raw = data as LibraryNote & {
+    nclex_tutor_library_note_attachments?: AttachmentCountEmbed;
+    nclex_tutor_library_shelf_memberships?: ShelfPipEmbed;
   };
-  void _embed;
 
-  return { ...(rest as LibraryNote), used_in_count } satisfies LibraryNoteForEdit;
+  const used_in_count = extractAttachmentCount(
+    raw.nclex_tutor_library_note_attachments,
+  );
+  const shelf_memberships = extractShelfPips(
+    raw.nclex_tutor_library_shelf_memberships,
+  );
+
+  // Strip the embeds before returning so the LibraryNote shape stays
+  // clean — the derived fields live in the extension type.
+  const {
+    nclex_tutor_library_note_attachments: _attEmbed,
+    nclex_tutor_library_shelf_memberships: _memEmbed,
+    ...rest
+  } = raw;
+  void _attEmbed;
+  void _memEmbed;
+
+  return {
+    ...(rest as LibraryNote),
+    used_in_count,
+    shelf_memberships,
+  } satisfies LibraryNoteForEdit;
 }
 
 
@@ -449,112 +553,114 @@ export async function getEligibleNotesForShelf(
  * cross-tutor reads, so non-existent + not-yours both surface as
  * `null` — caller renders the same "Shelf not found" empty state).
  *
- * The embed shape:
- *   shelves
- *     └─ shelf_memberships (position)
- *          └─ notes (full row)
- *               ├─ folders (name)
- *               └─ shelf_memberships(count)   ← total memberships for the note
- *
- * `other_shelf_count` is derived in JS as `totalMemberships - 1` —
- * the note's total memberships minus this one. The relationship is
- * unambiguous (`_shelf_memberships.note_id → _notes.note_id`), so
- * PostgREST doesn't need a hint to follow the second embed.
+ * Two queries (deliberate): the first reads the shelf + its
+ * member-position pairs; the second pulls the canonical
+ * `LibraryNoteLensRow` projection for those notes in a single
+ * batched `IN (...)` call. We could collapse to one round trip via
+ * a deeply nested PostgREST embed, but the self-referencing embed
+ * (shelves → memberships → notes → memberships → shelves) needs an
+ * alias hint to disambiguate, and the two-query form keeps the
+ * lens-row projection shareable with `getNotesForTutor`. Two cheap
+ * reads beats one twisty one.
  */
 export async function getShelfDetail(
   shelfId: string,
 ): Promise<LibraryShelfDetail | null> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  // Query 1 — shelf row + its membership-position pairs.
+  const { data: shelfRow, error: shelfErr } = await supabase
     .from('nclex_tutor_library_shelves')
     .select(
       `shelf_id, tutor_id, title, tagline, description, color, position,
        created_at, updated_at,
-       nclex_tutor_library_shelf_memberships (
-         position,
-         nclex_tutor_library_notes (
-           note_id, title, subtitle, description, folder_id, pillars,
-           tags, is_published, updated_at,
-           nclex_tutor_library_folders ( name ),
-           nclex_tutor_library_shelf_memberships ( count )
-         )
-       )`,
+       nclex_tutor_library_shelf_memberships ( position, note_id )`,
     )
     .eq('shelf_id', shelfId)
     .maybeSingle();
 
-  if (error || !data) return null;
+  if (shelfErr || !shelfRow) return null;
 
-  // Embed shape decoded — each membership row carries a `position`
-  // and a nested `_notes` object (FK is to-one, so PostgREST returns
-  // an object, not an array; we handle the array form defensively).
-  type NoteEmbed = {
-    note_id: string;
-    title: string;
-    subtitle: string | null;
-    description: string | null;
-    folder_id: string | null;
-    pillars: NclexPillar[];
-    tags: string[];
-    is_published: boolean;
-    updated_at: string;
-    nclex_tutor_library_folders:
-      | { name: string }
-      | { name: string }[]
-      | null;
-    nclex_tutor_library_shelf_memberships:
-      | Array<{ count: number }>
-      | { count: number }
-      | null;
-  };
-
+  type MembershipRow = { position: number; note_id: string };
   const memberships =
-    (data as {
-      nclex_tutor_library_shelf_memberships?: Array<{
-        position: number;
-        nclex_tutor_library_notes: NoteEmbed | NoteEmbed[] | null;
-      }>;
-    }).nclex_tutor_library_shelf_memberships ?? [];
+    (
+      shelfRow as {
+        nclex_tutor_library_shelf_memberships?: MembershipRow[];
+      }
+    ).nclex_tutor_library_shelf_memberships ?? [];
 
-  const notes: LibraryShelfDetailNote[] = memberships
-    .map((m) => {
-      const ne = m.nclex_tutor_library_notes;
-      const note = Array.isArray(ne) ? ne[0] : ne;
-      if (!note) return null;
-
-      const folderEmbed = note.nclex_tutor_library_folders;
-      const folder = Array.isArray(folderEmbed)
-        ? folderEmbed[0]
-        : folderEmbed;
-
-      const countEmbed = note.nclex_tutor_library_shelf_memberships;
-      const countObj = Array.isArray(countEmbed)
-        ? countEmbed[0]
-        : countEmbed;
-      const totalMemberships = countObj?.count ?? 1;
-      // Subtract this shelf's own membership. Floor at 0 just in case
-      // the count comes back unexpectedly low.
-      const other_shelf_count = Math.max(0, totalMemberships - 1);
-
-      const projection: LibraryShelfDetailNote = {
-        note_id: note.note_id,
-        title: note.title,
-        subtitle: note.subtitle,
-        description: note.description,
-        folder_id: note.folder_id,
-        folder_name: folder?.name ?? null,
-        pillars: note.pillars,
-        tags: note.tags,
-        is_published: note.is_published,
-        updated_at: note.updated_at,
-        other_shelf_count,
-        position: m.position,
-      };
-      return projection;
-    })
-    .filter((x): x is LibraryShelfDetailNote => x != null)
+  // Order memberships up front so we can preserve curator order.
+  const ordered = memberships
+    .map((m) => ({ note_id: m.note_id, position: m.position }))
     .sort((a, b) => a.position - b.position);
+
+  // Query 2 — lens-row projection for every member note. RLS gates
+  // both queries to the tutor's own rows. Skipped when the shelf is
+  // empty (no IN clause to fire).
+  let notes: LibraryShelfDetailNote[] = [];
+  if (ordered.length > 0) {
+    const noteIds = ordered.map((m) => m.note_id);
+    const { data: noteRows, error: notesErr } = await supabase
+      .from('nclex_tutor_library_notes')
+      .select(
+        `note_id, folder_id, title, subtitle, description,
+         tags, pillars, is_published, visibility_mode, updated_at,
+         nclex_tutor_library_folders ( name ),
+         nclex_tutor_library_shelf_memberships (
+           nclex_tutor_library_shelves ( shelf_id, title, color )
+         ),
+         nclex_tutor_library_note_attachments ( count )`,
+      )
+      .in('note_id', noteIds);
+
+    if (notesErr) return null;
+
+    const byId = new Map<string, LibraryNoteLensRow>();
+    for (const row of noteRows ?? []) {
+      const r = row as {
+        note_id: string;
+        folder_id: string | null;
+        title: string;
+        subtitle: string | null;
+        description: string | null;
+        tags: string[];
+        pillars: NclexPillar[];
+        is_published: boolean;
+        visibility_mode: LibraryNoteLensRow['visibility_mode'];
+        updated_at: string;
+        nclex_tutor_library_folders: FolderEmbed;
+        nclex_tutor_library_shelf_memberships: ShelfPipEmbed;
+        nclex_tutor_library_note_attachments: AttachmentCountEmbed;
+      };
+      byId.set(r.note_id, {
+        note_id: r.note_id,
+        folder_id: r.folder_id,
+        folder_name: extractFolderName(r.nclex_tutor_library_folders),
+        title: r.title,
+        subtitle: r.subtitle,
+        description: r.description,
+        pillars: r.pillars,
+        tags: r.tags,
+        shelf_memberships: extractShelfPips(
+          r.nclex_tutor_library_shelf_memberships,
+        ),
+        is_published: r.is_published,
+        visibility_mode: r.visibility_mode,
+        updated_at: r.updated_at,
+        used_in_count: extractAttachmentCount(
+          r.nclex_tutor_library_note_attachments,
+        ),
+      });
+    }
+
+    notes = ordered
+      .map((m) => {
+        const lens = byId.get(m.note_id);
+        if (!lens) return null;
+        return { ...lens, position: m.position } satisfies LibraryShelfDetailNote;
+      })
+      .filter((x): x is LibraryShelfDetailNote => x != null);
+  }
 
   const {
     shelf_id,
@@ -566,7 +672,7 @@ export async function getShelfDetail(
     position,
     created_at,
     updated_at,
-  } = data;
+  } = shelfRow;
 
   return {
     shelf_id,

@@ -1945,24 +1945,25 @@ home directly. Settled with Sam mid-11.4 session — bumped ahead
 of 11.5+ because they fix discoverability gaps a tutor hits in
 their first 30 seconds with the library.
 
-- ⬜ **Note-card consistency + editor "On shelves" rail (bundled).**
-  Extract `<NoteLensRow>` as the single source of truth for every
-  full-width note row (folder list, shelf detail, future All
-  Notes / Drafts / Used nowhere views). Canonical fields:
-  title + subtitle inline + description-or-body-excerpt fallback,
-  meta line carrying 📁 folder · coloured shelf pip(s) · pillar
-  chips · #tags, right column carrying Pub/Draft pill + ↳ used-in
-  N pill + edited-relative-time. Folder chip always shown (slight
-  redundancy in folder scope is fine). Shelf membership renders
-  as one coloured dot per shelf carrying that shelf's identity
-  colour + tooltip with title — not a `+N` count. Carousel keeps
-  its compact card (horizontal scroll demands it). Editor right
-  rail gains a read-only **On shelves** section (clickable pip +
-  title → `?shelf=<id>`) — edit affordance stays on the
-  shelf-side flows (carousel add-to-shelf, shelf-detail add). Both
-  surfaces depend on the same `shelf_memberships(shelf_id, title,
-  color)` projection on the note + the `used_in_count` rollup
-  (already in `getNoteForEdit`; needs adding to the list query).
+- ✅ **(2026-05-27) Note-card consistency + editor "On shelves" rail (bundled).**
+  Shipped `lib/library/note-lens-row.tsx` as the single shared
+  component for every full-width note row (folder list + shelf
+  detail; future All Notes / Drafts / Used nowhere will reuse it).
+  `LibraryNoteLensRow` canonical projection added to `types.ts`;
+  `LibraryNoteListRow` aliases to it; `LibraryShelfDetailNote`
+  extends it with `position`. `getNotesForTutor` and
+  `getShelfDetail` both return the new shape with `folder_name` +
+  `shelf_memberships` (pips with identity colour + title) +
+  `used_in_count` embeds. Shelf-detail query split into two round
+  trips (shelf + ordered IDs, then batched lens-row data via `IN
+  (...)`) instead of a nested self-referencing PostgREST embed.
+  Editor right rail now carries an **On shelves** section between
+  Status and Outline — clickable pip + shelf title →
+  `?shelf=<id>` per membership; empty-state copy explains where
+  to attach. Right column three-stack on every row: Pub/Draft +
+  `↳ used in N` (hidden when zero) + `edited Xd ago`.
+  `formatRelative` hoisted from `note-editor.tsx` into
+  `format.ts`. Carousel card kept its own compact shape.
 - ⬜ **Library Overview + system Views.** `/tutor/library` (no
   scope) becomes a dashboard rather than the EmptyState hero:
   stat cards (Total notes · Folders · Shelves · Drafts · Not yet

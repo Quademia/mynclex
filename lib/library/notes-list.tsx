@@ -1,21 +1,17 @@
 // mynclex/lib/library/notes-list.tsx
 //
-// Per-folder (or root) notes list in the main pane (slice 11.2b).
-// Each row uses the "per-note lens row" shape from the CD prototype:
-//   title (+ subtitle inline) ↘
-//                              description fallback (or subtitle if
-//                              no description)
-//                              pillar chips · #tag · #tag
-//                                                       state pill →
+// Per-folder (or root) notes list in the main pane.
 //
-// Rows are <Link>-based — clicking anywhere on the row opens the
-// editor route. The state pill (Draft / Pub) is informational only.
+// Slice 11.2b shipped this with a bespoke row layout. The 11.4
+// follow-on slice consolidates every full-width note row onto the
+// shared `<NoteLensRow>` component — same data shape, same visual,
+// across folder list / shelf detail / future Views.
 
 'use client';
 
 import Link from 'next/link';
+import { NoteLensRow } from './note-lens-row';
 import type { LibraryNoteListRow } from './types';
-import { lensRowFallback, pillarShortName } from './format';
 
 interface NotesListProps {
   notes: LibraryNoteListRow[];
@@ -81,50 +77,7 @@ export function NotesList({
         <ul className="lib-notes-list">
           {notes.map((n) => (
             <li key={n.note_id}>
-              <Link
-                href={`/tutor/library/note/${n.note_id}`}
-                className="lib-note-row"
-              >
-                <div className="lib-note-row-main">
-                  <div className="lib-note-title-line">
-                    <span className="lib-note-title">{n.title}</span>
-                    {n.subtitle && (
-                      <span className="lib-note-subtitle">{n.subtitle}</span>
-                    )}
-                  </div>
-                  {lensRowFallback(n.description, n.subtitle) && (
-                    <div className="lib-note-desc">
-                      {lensRowFallback(n.description, n.subtitle)}
-                    </div>
-                  )}
-                  <div className="lib-note-meta">
-                    {n.pillars.map((p) => (
-                      <span
-                        key={p}
-                        className="lib-meta-chip"
-                        title={p}
-                      >
-                        {pillarShortName(p)}
-                      </span>
-                    ))}
-                    {n.tags.length > 0 && n.pillars.length > 0 && (
-                      <span className="lib-note-sep" aria-hidden="true">·</span>
-                    )}
-                    {n.tags.map((t) => (
-                      <span key={t} className="lib-tag-inline">#{t}</span>
-                    ))}
-                  </div>
-                </div>
-                <div className="lib-note-row-side">
-                  <span
-                    className={`lib-state-pill is-${
-                      n.is_published ? 'pub' : 'draft'
-                    }`}
-                  >
-                    {n.is_published ? 'Pub' : 'Draft'}
-                  </span>
-                </div>
-              </Link>
+              <NoteLensRow note={n} />
             </li>
           ))}
         </ul>

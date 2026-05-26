@@ -8,7 +8,62 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-26):** **Tutor Library 11.4 follow-on —
+> **Last shipped (2026-05-27):** **Tutor Library 11.4 follow-on —
+> shared `<NoteLensRow>` + editor "On shelves" rail (P3 + P4
+> bundle).** Two related Sam complaints surfaced in the same
+> session, bundled because they share the same data plumbing — a
+> `shelf_memberships` projection (one pip per shelf with its
+> identity colour + title) on the note.
+>
+> - **Shared row component.** New
+>   `lib/library/note-lens-row.tsx` replaces three independently-
+>   evolved lens-row implementations (`.lib-note-row` in the folder
+>   list, `.lib-shelf-detail-row` in the shelf detail, with the
+>   carousel keeping its own compact card). Single canonical
+>   shape per the planning doc's lens-row spec: title + inline
+>   subtitle + description-or-subtitle fallback + meta line (📁
+>   folder · coloured shelf pips · pillar chips · #tags) + right
+>   column stacking Pub/Draft pill + `↳ used in N` + `edited Xd ago`.
+> - **Shelf pips, not a count badge.** One coloured 8px dot per
+>   shelf the note's on, carrying the shelf's identity colour.
+>   Title tooltip on hover. `excludeShelfId` prop hides the
+>   page-scope shelf's pip on shelf-detail rows so they don't
+>   render a redundant dot.
+> - **Right column three-stack.** Pub/Draft pill is always there;
+>   `↳ used in N` hides when zero; `edited Xd ago` always shows
+>   (relative formatter hoisted from `note-editor.tsx` into
+>   `format.ts`). Used-in count lights up automatically when
+>   slice 11.11 ships note-as-activity attachment.
+> - **`LibraryNoteLensRow` projection.** New canonical type;
+>   `LibraryNoteListRow` is now an alias; `LibraryShelfDetailNote`
+>   extends it (adds `position`). `getNotesForTutor` and
+>   `getShelfDetail` both return the new shape. The shelf-detail
+>   query is now two round trips (shelf + ordered note IDs, then
+>   batched lens-row data via `IN (...)`) — cleaner than the
+>   nested self-referencing PostgREST embed.
+> - **Editor "On shelves" rail.** New section between Status and
+>   Outline in the editor right rail. Each shelf renders as a
+>   clickable row (coloured pip + title) that links to
+>   `?shelf=<id>`. Empty state: "Not on any shelf yet. Add this
+>   note to a shelf from the All Shelves carousel or any shelf's
+>   detail page." Read-only by design — add/remove still happens
+>   from the shelf-side flows.
+>
+> **Files new (1):** `lib/library/note-lens-row.tsx`.
+>
+> **Files modified (7 code + 0 schema):** `lib/library/types.ts`
+> (`LibraryShelfPip` + `LibraryNoteLensRow` canonical; reshape
+> `LibraryNoteListRow` + `LibraryShelfDetailNote` + `LibraryNoteForEdit`),
+> `lib/library/queries.ts` (enriched projections + shared
+> embed-helpers + two-query `getShelfDetail`), `lib/library/format.ts`
+> (hoisted `formatRelative`), `lib/library/notes-list.tsx` (uses
+> `<NoteLensRow>`), `lib/library/shelf-detail.tsx` (uses
+> `<NoteLensRow>` with numberPrefix + excludeShelfId), `lib/library/note-editor.tsx`
+> (On shelves rail section + drop local formatRelative), `styles/library.css`
+> (SLICE 11.4 follow-on block — `.lib-note-lens-row`,
+> `.lib-shelf-pip`, `.lib-rail-shelves`).
+>
+> **Earlier shipped (2026-05-26):** **Tutor Library 11.4 follow-on —
 > folder kebab + editor edit-cue.** Two small UX gaps Sam flagged
 > while testing 11.4: folders had no edit/delete UI (only shelves
 > did), and the editor's title / subtitle / description inputs
@@ -330,24 +385,19 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > (`23c23e7`, `763872b`, plus the 7 gap-review commits) and the
 > canonical planning doc.
 >
-> **Next:** Library **note-card consistency + editor "On shelves"
-> rail** (bundled — they share a `shelf_memberships` projection on
-> the note). Extract a single `<NoteLensRow>` for every full-width
-> note context (folder list, shelf detail, future All Notes /
-> Drafts / Used nowhere) — title + subtitle + description + 📁
-> folder chip + coloured shelf pips (one per membership) + pillar
-> chips + #tags, with Pub/Draft + ↳ used-in-N + edited-Xd-ago in
-> the right column. Carousel keeps its compact card. Editor right
-> rail gains a read-only **On shelves** section (clickable pip +
-> title → `?shelf=<id>`). After that: **Library Overview + system
-> Views** (`/tutor/library` becomes a dashboard with stat cards +
-> recent activity + pillar coverage + quick links; All notes /
-> Drafts / Used nowhere wired as `?view=<key>`; Recent deferred
-> until visit-tracking ships). Tiptap editor scaffold (was the
-> previous ⏭) bumps after these. Or rotate per the
-> alternate-features rule — Payments 5.3 is the live alternate
-> (5.1 + 5.2 shipped). Full library slice ladder + status flags
-> live in
+> **Next:** Library **Overview + system Views** —
+> `/tutor/library` becomes a dashboard (stat cards: Total notes ·
+> Folders · Shelves · Drafts · Not yet in any programme unit;
+> Recent activity — last 5 edited; Pillar coverage horizontal-bar
+> per pillar; Quick links to each system view). `?view=<key>`
+> wires three system views — **All notes**, **Drafts**
+> (`is_published = false`), **Used nowhere** (zero programme
+> attachments) — each reusing `<NoteLensRow>` from the previous
+> slice. **Recent** stays disabled until visit-tracking ships.
+> Tiptap editor scaffold (was previous ⏭) bumps after this. Or
+> rotate per the alternate-features rule — Payments 5.3 is the
+> live alternate (5.1 + 5.2 shipped). Full library slice ladder +
+> status flags live in
 > [`docs/product-plan/tutor-library.md` → Build order](docs/product-plan/tutor-library.md#build-order-when-this-gets-queued)
 > — see Part 3 below.
 >
