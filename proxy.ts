@@ -1,6 +1,7 @@
-// mynclex/middleware.ts
+// mynclex/proxy.ts
 //
-// Runs on every request before page render.
+// Runs on every request before page render. Renamed from
+// `middleware.ts` for Next.js 16 — same behaviour, new file convention.
 //
 // Two jobs:
 //   1. Refresh the Supabase auth cookie if it's close to expiring.
@@ -24,7 +25,7 @@ const AUTH_REQUIRED_PREFIXES = [
 // Paths that should redirect to /router if the user IS already signed in.
 const AUTH_FORBIDDEN_PATHS = ['/login', '/register'];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

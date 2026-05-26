@@ -86,7 +86,7 @@ slice.
    does NOT render the topbar or footer. Each audience layout calls
    `loadChromeData()` and wraps its tree in `<AppShell>`, passing its
    own `productLabel` and `rightSlot` (e.g. `<ProductSwitcher />` for
-   student product spaces). This avoids middleware-pathname tricks and
+   student product spaces). This avoids proxy-pathname tricks and
    keeps each audience's chrome self-contained.
 
 7. **List and detail are sibling worlds when each has its own chrome.**
