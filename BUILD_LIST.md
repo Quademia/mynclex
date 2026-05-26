@@ -8,7 +8,46 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-25):** **Tutor Library — gap-review fold-back
+> **Last shipped (2026-05-26):** **Tutor Library Slice 11.2a — folder
+> CRUD + folder lens data.** First slice that talks to the schema
+> applied in 11.1a. Notes ship in 11.2b (next).
+>
+> - Sidebar Folders lens now renders real rows (folder name + per-folder
+>   note count, "All folders" entry at the top showing the total).
+>   URL-driven selection via `?folder=<uuid>` / `?folder=all` — `<Link>`
+>   based rows so browser-back + middle-click-open-in-new-tab work.
+> - Main pane branches on the URL: nothing selected → empty-state hero;
+>   `?folder=all` → zoomed-out cards grid with a dashed "+ New folder"
+>   card at the tail; `?folder=<uuid>` → that folder's name + an
+>   honest "this folder is empty (note creation lands in 11.2b)"
+>   placeholder; unknown id → friendly "Folder not found".
+> - Toolbar `+ New folder` button is wired (the `+ New note` button
+>   stays disabled with a "Coming in 11.2b" tooltip until the editor
+>   route ships).
+> - New-folder modal — name field (2–60 chars, dup check both client-
+>   side against the in-memory list and server-side in
+>   `createFolderAction`, both surface inline red copy), optional
+>   description textarea, hint card explaining "folders are
+>   organisational only — they don't gate visibility." ESC/backdrop
+>   trigger `<DiscardConfirm>` if dirty.
+> - New files in `lib/library/`: `types.ts`, `queries.ts`, `actions.ts`,
+>   `folder-rows.tsx`, `all-folders-grid.tsx`, `new-folder-modal.tsx`.
+>   `home/home-shell.tsx` flattened to `home-shell.tsx` to match the
+>   `lib/cohorts/` + `lib/curriculum/` flat-folder convention. Page is
+>   now a server component reading `searchParams.folder` + fetching
+>   folders via `getFoldersForTutor()`. `styles/library.css` gains a
+>   token bridge (`--text-dim`/`--bg-card` → canonical names — fixes a
+>   latent degradation from 11.1b) + new-folder modal styles + folder
+>   grid + lens-item active state.
+> - **Concept-not-source** lift from the Claude Design handoff: the
+>   new-folder modal copy + the All-folders grid shape + the "card
+>   icon + name + description + count" body all trace back to CD's
+>   `Tutor Library Prototype` (`01-library-home.png` + `library-list.jsx`
+>   + the `NewFolderDialog` in `note-editor.jsx`). The "create folder &
+>   open new draft note" checkbox from CD's modal is deferred to 11.2b
+>   when the note editor route exists.
+>
+> **Earlier shipped (2026-05-25):** **Tutor Library — gap-review fold-back
 > + Slice 11.1 foundation.** Two threads in one session, both
 > programme-tutor-facing.
 >
@@ -63,9 +102,11 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   style family). Renders cleanly without the migration applied —
 >   no DB calls in this chrome-only slice.
 >
-> **Next:** Slice 11.2 — folder CRUD + folder list (real folder lens
-> data) is ⏭. Full library slice ladder + status flags live in
-> [`docs/product-plan/tutor-library.md` → Build order](docs/product-plan/tutor-library.md#build-order-when-this-gets-queued)
+> **Next:** Slice 11.2b — note CRUD + the dedicated note-editor route
+> at `/tutor/library/note/[note_id]` (title + subtitle + description +
+> plain-textarea body + pillar multi-select + tags). The Tiptap rich
+> editor follows in 11.5. Full library slice ladder + status flags
+> live in [`docs/product-plan/tutor-library.md` → Build order](docs/product-plan/tutor-library.md#build-order-when-this-gets-queued)
 > — see Part 3 below.
 >
 > **Earlier sessions:** the full per-session history lives in

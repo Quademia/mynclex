@@ -1,26 +1,37 @@
 'use client';
 
-// mynclex/lib/library/home/home-shell.tsx
+// mynclex/lib/library/home-shell.tsx
 //
-// Tutor library home — chrome-only slice (11.1 part 2).
-// Renders the page frame: title + toolbar + (sidebar + main pane).
-// The 5-lens sidebar is structural (Views / Folders / Shelves /
-// Pillars / Tags), powered by static data this slice — folder /
-// shelf / note CRUD lands in slice 11.2.
+// Tutor library home shell. Renders the page frame: title +
+// toolbar + (sidebar + main pane).
 //
-// State held here:
+// Slice 11.1b shipped this as chrome-only (no data calls). Slice
+// 11.2a wires it to real folder data:
+//   • Folders lens — real rows from `nclex_tutor_library_folders`
+//     via the `folders` prop. URL-driven selection (`?folder=...`).
+//   • Toolbar `+ New folder` opens the new-folder modal.
+//   • Main pane branches on `selected`:
+//       null     → EmptyState (no folder picked)
+//       'all'    → AllFoldersGrid
+//       <uuid>   → folder selected, but notes aren't built yet —
+//                  shows a "this folder is empty" placeholder until
+//                  slice 11.2b lands.
+//
+// Notes / shelves / search remain static placeholders until their
+// own slices (11.2b, 11.3+, 11.16).
+//
+// State held client-side:
 //   • `railed`        — whole sidebar collapsed to a 48 px icon strip.
-//                        Persisted in localStorage so the tutor's
-//                        choice survives reloads.
-//   • `openSections`  — per-lens-section open/closed (chevron toggle).
-//                        Default-open everywhere; closed state also
-//                        persists.
-//
-// The schema migration (slice 11.1 part 1) is committed but not yet
-// applied to mynclex-dev — no data calls happen on this surface, so
-// the page renders cleanly without it.
+//                       Persisted in localStorage.
+//   • `closedSections`— per-lens-section open/closed (chevron toggle).
+//                       Persisted in localStorage.
+//   • `newFolderOpen` — modal open state.
 
 import { useEffect, useState } from 'react';
+import { FolderRows } from './folder-rows';
+import { AllFoldersGrid } from './all-folders-grid';
+import { NewFolderModal } from './new-folder-modal';
+import type { LibraryFolderWithCount } from './types';
 
 const LS_RAILED = 'mynclex.library.home.railed';
 const LS_SECTIONS = 'mynclex.library.home.sections';
@@ -67,7 +78,17 @@ const PILLAR_NAMES: string[] = [
   'Physiological Adaptation',
 ];
 
-export function LibraryHomeShell() {
+interface LibraryHomeShellProps {
+  /** All folders owned by the signed-in tutor, ordered by `position`. */
+  folders: LibraryFolderWithCount[];
+  /** The current `?folder=` URL value — null = nothing selected. */
+  selected: string | null;
+}
+
+export function LibraryHomeShell({
+  folders,
+  selected,
+}: LibraryHomeShellProps) {
   // Default to expanded + all sections open. localStorage rehydration
   // happens in a useEffect (so first paint is consistent across
   // server + client; no hydration mismatch).
@@ -75,6 +96,7 @@ export function LibraryHomeShell() {
   const [closedSections, setClosedSections] = useState<Set<LensKey>>(
     () => new Set(),
   );
+  const [newFolderOpen, setNewFolderOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -119,6 +141,17 @@ export function LibraryHomeShell() {
     });
   }
 
+  function openNewFolder() {
+    setNewFolderOpen(true);
+  }
+
+  // Resolve the selected folder (when ?folder=<uuid>) for the
+  // empty-folder placeholder in the main pane.
+  const selectedFolder =
+    selected && selected !== 'all'
+      ? folders.find((f) => f.folder_id === selected) ?? null
+      : null;
+
   return (
     <div className="lib-page">
       <header className="lib-page-head">
@@ -153,13 +186,13 @@ export function LibraryHomeShell() {
             aria-label="Search notes"
           />
         </div>
-        <button className="lib-btn" disabled title="Coming in slice 11.2">
+        <button className="lib-btn" type="button" onClick={openNewFolder}>
           + New folder
         </button>
         <button
           className="lib-btn lib-btn-primary"
           disabled
-          title="Coming in slice 11.3"
+          title="Coming in slice 11.2b"
         >
           + New note
         </button>
@@ -186,14 +219,33 @@ export function LibraryHomeShell() {
               railed={railed}
               closed={closedSections.has(key)}
               onToggle={() => toggleSection(key)}
+              folders={folders}
+              selected={selected}
             />
           ))}
         </aside>
 
         <main className="lib-main">
-          <EmptyState />
+          {selected === 'all' ? (
+            <AllFoldersGrid folders={folders} onNewFolder={openNewFolder} />
+          ) : selectedFolder ? (
+            <SelectedFolderEmpty folder={selectedFolder} />
+          ) : selected != null && selected !== 'all' ? (
+            // ?folder=<uuid-that-doesn't-exist> — likely stale URL after
+            // a deletion or share from another tutor.
+            <FolderNotFound />
+          ) : (
+            <EmptyState onNewFolder={openNewFolder} />
+          )}
         </main>
       </div>
+
+      {newFolderOpen && (
+        <NewFolderModal
+          existingFolders={folders}
+          onClose={() => setNewFolderOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -204,11 +256,15 @@ function LensSection({
   railed,
   closed,
   onToggle,
+  folders,
+  selected,
 }: {
   lens: LensKey;
   railed: boolean;
   closed: boolean;
   onToggle: () => void;
+  folders: LibraryFolderWithCount[];
+  selected: string | null;
 }) {
   if (railed) {
     // Railed mode: one icon glyph per section, hovering shows the
@@ -239,40 +295,39 @@ function LensSection({
           ▾
         </span>
       </button>
-      <div className="lens-section-body">{renderLensBody(lens)}</div>
+      <div className="lens-section-body">
+        {renderLensBody(lens, folders, selected)}
+      </div>
     </div>
   );
 }
 
 
-function renderLensBody(lens: LensKey) {
+function renderLensBody(
+  lens: LensKey,
+  folders: LibraryFolderWithCount[],
+  selected: string | null,
+) {
   switch (lens) {
     case 'views':
       // System views always render — they're structural, not data-
-      // driven. Counts will land when slice 11.2 + 11.3 ship.
+      // driven. Counts will land when slice 11.2b ships notes.
       return (
         <>
-          <LensItem label="All notes" count={0} />
-          <LensItem label="Recent" count={0} />
-          <LensItem label="Drafts" count={0} />
-          <LensItem label="Used nowhere" count={0} />
+          <LensItemStatic label="All notes" count={0} />
+          <LensItemStatic label="Recent" count={0} />
+          <LensItemStatic label="Drafts" count={0} />
+          <LensItemStatic label="Used nowhere" count={0} />
         </>
       );
 
     case 'folders':
-      return (
-        <>
-          <LensItem label="All folders" count={0} />
-          <div className="lens-empty">
-            No folders yet — create one with + New folder.
-          </div>
-        </>
-      );
+      return <FolderRows folders={folders} selected={selected} />;
 
     case 'shelves':
       return (
         <>
-          <LensItem label="All shelves" count={0} />
+          <LensItemStatic label="All shelves" count={0} />
           <div className="lens-empty">
             Curated packs across folders. Coming with shelves.
           </div>
@@ -285,7 +340,7 @@ function renderLensBody(lens: LensKey) {
       return (
         <>
           {PILLAR_NAMES.map((name) => (
-            <LensItem key={name} label={name} count={0} />
+            <LensItemStatic key={name} label={name} count={0} />
           ))}
         </>
       );
@@ -300,7 +355,8 @@ function renderLensBody(lens: LensKey) {
 }
 
 
-function LensItem({ label, count }: { label: string; count: number }) {
+/** A disabled placeholder lens row for lenses that aren't wired yet. */
+function LensItemStatic({ label, count }: { label: string; count: number }) {
   return (
     <button type="button" className="lens-item" disabled>
       <span className="label">{label}</span>
@@ -310,7 +366,7 @@ function LensItem({ label, count }: { label: string; count: number }) {
 }
 
 
-function EmptyState() {
+function EmptyState({ onNewFolder }: { onNewFolder: () => void }) {
   return (
     <div className="lib-empty">
       <div className="lib-empty-glyph" aria-hidden="true">
@@ -323,17 +379,78 @@ function EmptyState() {
         Start with a folder or jump straight to a new note.
       </p>
       <div className="lib-empty-actions">
-        <button className="lib-btn" disabled title="Coming in slice 11.2">
+        <button className="lib-btn" type="button" onClick={onNewFolder}>
           + New folder
         </button>
         <button
           className="lib-btn lib-btn-primary"
           disabled
-          title="Coming in slice 11.3"
+          title="Coming in slice 11.2b"
         >
           + New note
         </button>
       </div>
+    </div>
+  );
+}
+
+
+/**
+ * The tutor has selected a folder but no notes exist yet. This is
+ * the expected state throughout slice 11.2a (note CRUD doesn't ship
+ * until 11.2b). The card explains the state honestly without
+ * pretending the folder is broken.
+ */
+function SelectedFolderEmpty({ folder }: { folder: LibraryFolderWithCount }) {
+  return (
+    <div className="lib-all-folders">
+      <header className="lib-pane-head">
+        <div>
+          <div className="lib-pane-crumb">
+            <span>Library</span>
+            <span className="sep">/</span>
+            <span className="b">{folder.name}</span>
+          </div>
+          <h2 className="lib-pane-title">{folder.name}</h2>
+          {folder.description && (
+            <p className="lib-pane-sub">{folder.description}</p>
+          )}
+        </div>
+        <button
+          className="lib-btn lib-btn-primary"
+          disabled
+          title="Coming in slice 11.2b"
+        >
+          + New note
+        </button>
+      </header>
+      <div className="lib-empty lib-empty-inline">
+        <div className="lib-empty-glyph" aria-hidden="true">
+          📒
+        </div>
+        <p className="lib-empty-sub">
+          This folder is empty. Note creation lands in the next slice —
+          for now you can use this folder as a placeholder for the
+          content you&apos;re planning.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
+/** Stale `?folder=` URL — folder id doesn't match any of the tutor's. */
+function FolderNotFound() {
+  return (
+    <div className="lib-empty">
+      <div className="lib-empty-glyph" aria-hidden="true">
+        ❔
+      </div>
+      <h2 className="lib-empty-title">Folder not found</h2>
+      <p className="lib-empty-sub">
+        That folder doesn&apos;t exist (or isn&apos;t yours). Try a folder
+        from the sidebar.
+      </p>
     </div>
   );
 }

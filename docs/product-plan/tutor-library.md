@@ -1757,14 +1757,24 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   here" hints. Main pane empty-state hero with two disabled CTAs.
   Library entry in `TUTOR_GLOBAL_NAV` (icon `tutor`, between Bank
   and Quizzes). New `styles/library.css`. Committed `763872b`.
-- ⏭ **11.2** Folder CRUD + folder lens data — folder rows actually
-  render in the sidebar (real counts, "All folders" → the zoomed-
-  out folder cards grid); "+ New folder" + "+ New note" wired.
-  Notes render in the main pane as a list with the per-note lens
-  row (title + subtitle + description fallback + pillar chips +
-  tags inline). Body is a textarea placeholder for now. Real
-  schema-backed reads + writes against the migration applied in
-  11.1a. Ship before the block editor lands.
+- 🔨 **11.2** Folder CRUD + folder lens data + note CRUD. Split into
+  two sub-slices once started:
+  - ✅ **11.2a** (2026-05-26) — folder CRUD. Sidebar Folders lens
+    renders real rows (real counts + "All folders" entry); main pane
+    branches on `?folder=` URL state — empty/grid/per-folder/not-found.
+    `+ New folder` wired through a name + description modal with
+    inline validation (2..60 chars, dup check, length cap). The home
+    shell is now a server-component-fed client component. Files in
+    `lib/library/`: `types.ts`, `queries.ts`, `actions.ts`,
+    `folder-rows.tsx`, `all-folders-grid.tsx`, `new-folder-modal.tsx`.
+  - ⏭ **11.2b** — note CRUD. `+ New note` wired through a modal
+    (title + folder + pillar multi-select); notes render in the main
+    pane as a list with the per-note lens row (title + subtitle +
+    description fallback + pillar chips + tags inline); note editor
+    on its own route `/tutor/library/note/[note_id]` with title +
+    subtitle + description + plain textarea body + pillars + tags
+    (Save round-trips through a server action). Body is a textarea
+    placeholder — Tiptap lands in 11.5.
 - ⬜ **11.3** Library list page — All folders + All shelves views.
   Zoomed-out folder cards grid + Spotify-style shelf carousels.
   Same data, different lens-scope. Builds the SHELVES table use.
