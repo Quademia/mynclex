@@ -3,12 +3,21 @@
 -- File: mynclex/db/migrations/20260616120000_slice_11_1_tutor_library_schema.sql
 -- =========================================================
 -- First slice of the Tutor Library build. Lands the entire DB
--- foundation: domain type, 9 tables, 2 helper functions
+-- foundation: domain type, 8 tables, 2 helper functions
 -- (`nclex_extract_body_text` IMMUTABLE + `nclex_student_can_see_note`
 -- STABLE SECURITY DEFINER), the search `body_tsv` generated column,
 -- 2 GIN indexes, the same-tutor-invariant trigger on the visibility
 -- junction, the deferred ≥-1-row constraint trigger on visibility,
 -- and full RLS policies for every table.
+--
+-- Slice scope note: the original plan included a 9th table,
+-- `nclex_library_embed_answers`, for per-question answers inside
+-- `embedded_questions` blocks. Dropped from this slice because the
+-- v1 bank uses TEXT item_ids (no `tutor_id` column either), and
+-- the planned UUID FK + tutor-owned `tutor_select` policy can't be
+-- created against the current bank schema. Deferred to the slice
+-- that actually wires embedded-question consumption, where the
+-- polymorphic bank/tutor source question can be designed properly.
 --
 -- Source of truth: docs/product-plan/tutor-library.md (single
 -- canonical planning doc — the gap-review working doc has been
@@ -16,8 +25,7 @@
 --
 -- Decisions confirmed during planning:
 --   • Tutor-owned tables use the `nclex_tutor_*` prefix; student-
---     owned tables use `nclex_library_*` (matching the existing
---     `nclex_library_embed_answers` naming).
+--     owned tables use `nclex_library_*`.
 --   • PKs are UUID with `gen_random_uuid()` (matches the rest of
 --     this product's schema; the planning doc's "TEXT PK" was
 --     illustrative).
@@ -36,8 +44,6 @@
 --   • Per-(student, note) state is one merged row (bookmarks +
 --     resume position + completion). Collapses three originally-
 --     separate concerns into `nclex_library_note_state`.
---   • Embed answers keyed `(student_id, note_id, block_id,
---     question_index)` so a multi-question block produces N rows.
 --   • Body text search via Postgres FTS — `body_tsv` is a STORED
 --     generated column over (title=A, subtitle=B, description=C,
 --     body=D); GIN index on `body_tsv` + GIN on `tags` for the tag
@@ -501,45 +507,11 @@ CREATE INDEX idx_nclex_tutor_library_views_tutor
 
 
 -- =========================================================
--- 11. nclex_library_embed_answers — per-question embed answers
+-- 11. (intentionally skipped) — nclex_library_embed_answers was
+--     planned here. Deferred to the embedded-questions consumption
+--     slice. See file header note. Section numbers below preserved
+--     to keep the planning-doc cross-references stable.
 -- =========================================================
--- Locked 2026-05-16: embed answers live in their own table, NOT
--- in nclex_attempts. See planning doc § Attempt-tracking. Keyed
--- per question slot so a multi-question block produces N rows.
-
-CREATE TABLE nclex_library_embed_answers (
-  answer_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-  student_id       UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
-  note_id          UUID NOT NULL REFERENCES nclex_tutor_library_notes(note_id) ON DELETE CASCADE,
-  -- The embedded_questions block's UUID within the note body.
-  -- Stored as TEXT because the block id lives in JSONB, not as a
-  -- referenced row.
-  block_id         TEXT NOT NULL,
-  -- 0-based index into the block's item_ids[] array.
-  question_index   INTEGER NOT NULL CHECK (question_index >= 0),
-  -- Prevents deletion of a bank question while embed answers exist.
-  item_id          UUID NOT NULL REFERENCES nclex_bank_items(item_id) ON DELETE RESTRICT,
-
-  -- The student's submitted answer (per question type).
-  answer_json      JSONB NOT NULL,
-  is_correct       BOOLEAN NOT NULL,
-  -- Content + correct + rationale at submit time — preserves
-  -- attempt integrity if the tutor edits the question later.
-  snapshot_json    JSONB NOT NULL,
-
-  submitted_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-  -- One row per (student, embed-block, question slot).
-  CONSTRAINT nclex_library_embed_answers_unique
-    UNIQUE (student_id, note_id, block_id, question_index)
-);
-
-CREATE INDEX idx_nclex_library_embed_answers_student
-  ON nclex_library_embed_answers(student_id);
-
-CREATE INDEX idx_nclex_library_embed_answers_item
-  ON nclex_library_embed_answers(item_id);
 
 
 -- =========================================================
@@ -711,7 +683,7 @@ GRANT  EXECUTE ON FUNCTION nclex_student_can_see_note(UUID) TO authenticated;
 
 
 -- =========================================================
--- 15. RLS — enable on all 9 tables
+-- 15. RLS — enable on all 8 tables
 -- =========================================================
 
 ALTER TABLE nclex_tutor_library_folders             ENABLE ROW LEVEL SECURITY;
@@ -722,7 +694,6 @@ ALTER TABLE nclex_tutor_library_note_visibility     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE nclex_tutor_library_note_attachments    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE nclex_library_note_state                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE nclex_tutor_library_views               ENABLE ROW LEVEL SECURITY;
-ALTER TABLE nclex_library_embed_answers             ENABLE ROW LEVEL SECURITY;
 
 
 -- =========================================================
@@ -1037,41 +1008,10 @@ CREATE POLICY nclex_tutor_library_views_admin_all
 
 
 -- =========================================================
--- 24. Policies — nclex_library_embed_answers
+-- 24. (intentionally skipped) — policies for
+--     nclex_library_embed_answers will land with the table in the
+--     embedded-questions consumption slice.
 -- =========================================================
--- Student sees own rows. Tutor sees rows for embeds of their own
--- bank questions (for future v2+ analytics). INSERT is restricted
--- to the student-side submit action; UPDATE is disallowed (the
--- snapshot is captured once and frozen).
-
-CREATE POLICY nclex_library_embed_answers_student_select
-  ON nclex_library_embed_answers FOR SELECT
-  TO authenticated
-  USING (student_id = auth.uid());
-
-CREATE POLICY nclex_library_embed_answers_student_insert
-  ON nclex_library_embed_answers FOR INSERT
-  TO authenticated
-  WITH CHECK (student_id = auth.uid());
-
--- Tutor read access for v2+ analytics — scoped to rows where the
--- embedded bank item belongs to this tutor.
-CREATE POLICY nclex_library_embed_answers_tutor_select
-  ON nclex_library_embed_answers FOR SELECT
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM nclex_bank_items i
-      WHERE i.item_id = nclex_library_embed_answers.item_id
-        AND i.tutor_id = auth.uid()
-    )
-  );
-
-CREATE POLICY nclex_library_embed_answers_admin_all
-  ON nclex_library_embed_answers FOR ALL
-  TO authenticated
-  USING (nclex_user_has_role('SUPER_ADMIN'))
-  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
 
 
 COMMIT;

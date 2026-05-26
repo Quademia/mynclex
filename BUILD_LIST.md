@@ -33,17 +33,23 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > **(2) Slice 11.1 foundation — two commits.** The first build slice
 > for the Tutor Library product surface (parallel to Bank in the
 > tutor nav).
-> - **11.1a (`23c23e7`)** — Schema migration
+> - **11.1a (`23c23e7`, patched + applied 2026-05-26)** — Schema
+>   migration
 >   `20260616120000_slice_11_1_tutor_library_schema.sql`: the
->   `nclex_pillar` domain type, 9 tables, 2 helper functions
->   (`nclex_extract_body_text` IMMUTABLE + `nclex_student_can_see_note`
->   STABLE SECURITY DEFINER), the `body_tsv` STORED generated column
->   over title/subtitle/description/body, 2 GIN indexes, same-tutor
+>   `nclex_pillar` domain type, **8 tables** (one short of the original
+>   plan), 2 helper functions (`nclex_extract_body_text` IMMUTABLE +
+>   `nclex_student_can_see_note` STABLE SECURITY DEFINER), the
+>   `body_tsv` STORED generated column over
+>   title/subtitle/description/body, 2 GIN indexes, same-tutor
 >   invariant trigger on the visibility junction, deferred ≥-1-row
->   constraint trigger, full RLS per table. ⚠️ Not yet applied to
->   `mynclex-dev` — the `supabase-mynclex-dev` MCP didn't come online
->   this session; deferred to the next session, when we'll apply +
->   smoke test as the first action.
+>   constraint trigger, full RLS per table. Applied to mynclex-dev
+>   2026-05-26 after patching out `nclex_library_embed_answers` (and
+>   its policies): the v1 bank uses TEXT `item_id` with no
+>   `tutor_id` column, so the planned UUID FK + tutor-owned policy
+>   couldn't be created. Sections 11 + 24 of the migration are now
+>   comment-only placeholders. Embed-answers re-lands as a
+>   polymorphic BANK/TUTOR table when embedded-question consumption
+>   is built — see `project_library_embed_answers_deferred` memory.
 > - **11.1b (`763872b`)** — Tutor library home shell at
 >   `/tutor/library`. 5-lens sidebar (Views / Folders / Shelves /
 >   Pillars / Tags) with per-section chevron collapse + whole-sidebar
