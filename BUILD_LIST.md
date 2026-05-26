@@ -8,105 +8,112 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-26):** **Tutor Library Slice 11.2a — folder
-> CRUD + folder lens data.** First slice that talks to the schema
-> applied in 11.1a. Notes ship in 11.2b (next).
+> **Last shipped (2026-05-26):** **Tutor Library Slice 11.2b — notes
+> CRUD + dedicated editor route.** Closes the 11.2 sub-arc; the
+> library now round-trips folders AND notes through real UI. The
+> Tiptap rich block editor is still 11.5; this slice ships a plain-
+> textarea body editor with the full chrome around it (breadcrumb,
+> meta row, right rail).
 >
-> - Sidebar Folders lens now renders real rows (folder name + per-folder
->   note count, "All folders" entry at the top showing the total).
->   URL-driven selection via `?folder=<uuid>` / `?folder=all` — `<Link>`
->   based rows so browser-back + middle-click-open-in-new-tab work.
-> - Main pane branches on the URL: nothing selected → empty-state hero;
->   `?folder=all` → zoomed-out cards grid with a dashed "+ New folder"
->   card at the tail; `?folder=<uuid>` → that folder's name + an
->   honest "this folder is empty (note creation lands in 11.2b)"
->   placeholder; unknown id → friendly "Folder not found".
-> - Toolbar `+ New folder` button is wired (the `+ New note` button
->   stays disabled with a "Coming in 11.2b" tooltip until the editor
->   route ships).
-> - New-folder modal — name field (2–60 chars, dup check both client-
->   side against the in-memory list and server-side in
->   `createFolderAction`, both surface inline red copy), optional
->   description textarea, hint card explaining "folders are
->   organisational only — they don't gate visibility." ESC/backdrop
->   trigger `<DiscardConfirm>` if dirty.
-> - New files in `lib/library/`: `types.ts`, `queries.ts`, `actions.ts`,
->   `folder-rows.tsx`, `all-folders-grid.tsx`, `new-folder-modal.tsx`.
->   `home/home-shell.tsx` flattened to `home-shell.tsx` to match the
->   `lib/cohorts/` + `lib/curriculum/` flat-folder convention. Page is
->   now a server component reading `searchParams.folder` + fetching
->   folders via `getFoldersForTutor()`. `styles/library.css` gains a
->   token bridge (`--text-dim`/`--bg-card` → canonical names — fixes a
->   latent degradation from 11.1b) + new-folder modal styles + folder
->   grid + lens-item active state.
-> - **Concept-not-source** lift from the Claude Design handoff: the
->   new-folder modal copy + the All-folders grid shape + the "card
->   icon + name + description + count" body all trace back to CD's
->   `Tutor Library Prototype` (`01-library-home.png` + `library-list.jsx`
->   + the `NewFolderDialog` in `note-editor.jsx`). The "create folder &
->   open new draft note" checkbox from CD's modal is deferred to 11.2b
->   when the note editor route exists.
+> - **+ New note flow.** `+ New note` (was disabled, said "Coming in
+>   11.2b") now opens a modal — title + folder dropdown +
+>   pillar multi-select (≥1 required, NCLEX domain values). Submit →
+>   `createNoteAction` → routes to the editor at
+>   `/tutor/library/note/<id>`. The folder dropdown defaults to the
+>   currently-selected folder in the home shell if one is open.
+> - **Editor route at `/tutor/library/note/[note_id]`.** Server
+>   component fetches the note (RLS-gated; 404 on miss) + the tutor's
+>   folders in parallel. Renders `<NoteEditor>` inside the existing
+>   tutor global chrome (no special layout — global sidebar stays).
+> - **Editor layout — CD-faithful three-zone.** Sticky toolbar
+>   (breadcrumb left, save badge + Draft pill + disabled Publish +
+>   Save right) → grid `1fr 240px` (main + rail) below. Hides the
+>   rail at ≤1080px. CD-prototype-derived defaults: 34px serif
+>   title, 16px italic serif subtitle, small one-line description,
+>   inline meta row of Folder / Pillars / Tags chips between the
+>   text headers and the body.
+> - **Body as a textarea.** The schema stores body as JSONB blocks;
+>   11.2b round-trips a single paragraph block via
+>   `bodyToText` / `textToBody` helpers in `note-editor.tsx`. When
+>   slice 11.5 ships the Tiptap rich editor it writes the same
+>   block shape so the persisted JSON survives the upgrade.
+> - **Inline meta row pickers.** New atoms — `pillar-picker.tsx`
+>   (popover with 8 NCLEX pillar checkboxes + short-form chip
+>   labels), `folder-picker.tsx` (popover folder list reused by the
+>   modal + the editor reparent), `tag-input.tsx` (chip row + free-
+>   text input; Enter / comma / Tab commits, Backspace pops). All
+>   popovers close on ESC + click-outside.
+> - **Right rail — 5 sections.** Status (Draft + visibility-coming +
+>   last-save timestamp with relative formatter that auto-refreshes
+>   every 30s); Outline (best-effort heading detection from textarea
+>   text); Embedded questions (count via body-walk for
+>   `embedded_questions` blocks — always 0 in 11.2b, lights up with
+>   11.15); Used in (real `nclex_tutor_library_note_attachments`
+>   count via PostgREST embed — always 0 in 11.2b, lights up with
+>   11.11); Guards (live explainer of the current save model).
+> - **Breadcrumb in the toolbar** (added during the same session
+>   after Sam flagged the inconsistency). Replaces the back arrow
+>   with `Library / <folder name> / <note title>` — clickable
+>   segments routed through a `attemptLeave(href)` guard that fires
+>   the `DiscardConfirm` modal when the editor is dirty. For root
+>   notes the middle segment is skipped. Folder-list + all-folders
+>   crumbs got the `Library` link too for consistency.
+> - **Save model.** Explicit Save button on the toolbar; debounced
+>   autosave waits for 11.5. Save badge has three states (saved /
+>   saving / dirty) with a coloured blip dot + relative-time copy.
+>   `version_id` rotates on every UPDATE (forward-compat scaffolding
+>   for the two-tabs guard in 11.5). `beforeunload` browser warning
+>   on close-tab when dirty.
+> - **Validation** mirrors at three layers: client modal (inline red
+>   copy), server action (auth check + length caps + pillar
+>   membership + tag length + dup-check), DB (CHECK constraint on
+>   `nclex_pillar` domain + ≥1 pillars + RLS).
 >
-> **Earlier shipped (2026-05-25):** **Tutor Library — gap-review fold-back
-> + Slice 11.1 foundation.** Two threads in one session, both
-> programme-tutor-facing.
+> **Files new (8):** `lib/library/format.ts`,
+> `lib/library/pillar-picker.tsx`, `lib/library/folder-picker.tsx`,
+> `lib/library/tag-input.tsx`, `lib/library/new-note-modal.tsx`,
+> `lib/library/notes-list.tsx`, `lib/library/note-editor.tsx`,
+> `app/(app)/tutor/library/note/[note_id]/page.tsx`.
 >
-> **(1) Gap-review fold-back.** A working doc landed from a parallel
-> machine — `docs/product-plan/tutor-library-gaps-review.md` (8
-> commits, 178 lines) — closing 4 architectural decisions + 20
-> confirmed gap resolutions against the original tutor-library plan.
-> Fast-forwarded to `main`, then merged into the canonical
-> `docs/product-plan/tutor-library.md` end-to-end (Pass 1
-> architectural rewrites: pillars are now multi-value full-name
-> `nclex_pillar[]`, visibility is a junction table for one-or-more
-> programmes per scoped note, shelf attachment is one atomic
-> activity with `skipped_note_ids JSONB` per-unit hides, embedded
-> questions hold 1..N `item_ids[]` with per-block 5/10 + per-note
-> 20/50 caps; Pass 2 schema sketch updated to 9 tables + domain +
-> 2 helpers + 2 triggers; Pass 3 mechanical resolutions covering
-> sidebar collapse, tag manager, alt-text-at-publish, two-tabs
-> guard, custom views in v1, locked student URL paths, merged
-> `nclex_library_note_state` table, asset-orphan deferral). Working
-> doc retired in the same commit (history preserves it).
+> **Files modified (7):** `lib/library/queries.ts` (note-list +
+> note-with-attachment-count reads), `lib/library/actions.ts`
+> (create + update + pillar / tag validators), `lib/library/types.ts`
+> (`NclexPillar` + `LibraryNote` + projections + form-value types),
+> `lib/library/home-shell.tsx` (wire `+ New note`, render
+> `<NotesList>` for selected folders, `<NewNoteModal>` mount,
+> remove the `SelectedFolderEmpty` placeholder),
+> `lib/library/all-folders-grid.tsx` + `lib/library/notes-list.tsx`
+> (clickable `Library` crumb), `app/(app)/tutor/library/page.tsx`
+> (fetch notes when a real folder is selected), `styles/library.css`
+> (notes list rows + meta chips + popovers + tag chips + editor
+> three-zone shell + breadcrumb).
 >
-> **(2) Slice 11.1 foundation — two commits.** The first build slice
-> for the Tutor Library product surface (parallel to Bank in the
-> tutor nav).
-> - **11.1a (`23c23e7`, patched + applied 2026-05-26)** — Schema
->   migration
->   `20260616120000_slice_11_1_tutor_library_schema.sql`: the
->   `nclex_pillar` domain type, **8 tables** (one short of the original
->   plan), 2 helper functions (`nclex_extract_body_text` IMMUTABLE +
->   `nclex_student_can_see_note` STABLE SECURITY DEFINER), the
->   `body_tsv` STORED generated column over
->   title/subtitle/description/body, 2 GIN indexes, same-tutor
->   invariant trigger on the visibility junction, deferred ≥-1-row
->   constraint trigger, full RLS per table. Applied to mynclex-dev
->   2026-05-26 after patching out `nclex_library_embed_answers` (and
->   its policies): the v1 bank uses TEXT `item_id` with no
->   `tutor_id` column, so the planned UUID FK + tutor-owned policy
->   couldn't be created. Sections 11 + 24 of the migration are now
->   comment-only placeholders. Embed-answers re-lands as a
->   polymorphic BANK/TUTOR table when embedded-question consumption
->   is built — see `project_library_embed_answers_deferred` memory.
-> - **11.1b (`763872b`)** — Tutor library home shell at
->   `/tutor/library`. 5-lens sidebar (Views / Folders / Shelves /
->   Pillars / Tags) with per-section chevron collapse + whole-sidebar
->   collapse-to-rail (`«` / `»`, 48-px icon strip, localStorage
->   persisted). System views + 8 pillar names render statically;
->   data lenses show "no folders yet" / "no shelves yet" / "tags
->   appear here" hints until 11.2+ wire real data. Main pane empty
->   state with two disabled CTAs (+ New folder / + New note).
->   Library entry added to `TUTOR_GLOBAL_NAV` (icon `tutor`, between
->   Bank and Quizzes). New `styles/library.css` (`.lib-*` + `.lens-*`
->   style family). Renders cleanly without the migration applied —
->   no DB calls in this chrome-only slice.
+> **Earlier shipped (2026-05-26):** Tutor Library Slice **11.2a** —
+> folder CRUD + folder lens data + the All-folders grid. The
+> sidebar's Folders lens stopped being a placeholder. Toolbar
+> `+ New folder` wired through a name + description modal. New
+> files: `lib/library/{types,queries,actions,folder-rows,
+> all-folders-grid,new-folder-modal}.tsx`. CD-derived design.
 >
-> **Next:** Slice 11.2b — note CRUD + the dedicated note-editor route
-> at `/tutor/library/note/[note_id]` (title + subtitle + description +
-> plain-textarea body + pillar multi-select + tags). The Tiptap rich
-> editor follows in 11.5. Full library slice ladder + status flags
-> live in [`docs/product-plan/tutor-library.md` → Build order](docs/product-plan/tutor-library.md#build-order-when-this-gets-queued)
+> **Earlier shipped (2026-05-25):** Tutor Library **Slice 11.1
+> foundation** + the **gap-review fold-back** into the canonical
+> planning doc. 11.1a shipped the schema migration (8 tables — the
+> 9th `nclex_library_embed_answers` was patched out + deferred to
+> 11.15); 11.1b shipped the chrome-only home shell at
+> `/tutor/library` with the 5-lens sidebar (Views / Folders /
+> Shelves / Pillars / Tags) and a collapse-to-rail control. The
+> gap-review pass closed 4 architectural decisions + 20 gap
+> resolutions (multi-value pillars, junction-table programme
+> visibility, atomic shelf attach, embedded-question caps, merged
+> note-state table, etc.). Full write-ups live in the git log
+> (`23c23e7`, `763872b`, plus the 7 gap-review commits) and the
+> canonical planning doc.
+>
+> **Next:** Slice **11.3** — Library list page (All shelves view).
+> Spotify-style shelf carousels in the main pane; shelf entity
+> CRUD; sidebar Shelves lens lights up the same way Folders did in
+> 11.2a. Full library slice ladder + status flags live in
+> [`docs/product-plan/tutor-library.md` → Build order](docs/product-plan/tutor-library.md#build-order-when-this-gets-queued)
 > — see Part 3 below.
 >
 > **Earlier sessions:** the full per-session history lives in

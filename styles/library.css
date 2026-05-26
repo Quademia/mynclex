@@ -468,6 +468,22 @@
   font-weight: 600;
 }
 
+.lib-pane-crumb-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  border-radius: 3px;
+}
+
+.lib-pane-crumb-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.lib-pane-crumb-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .lib-pane-title {
   font-size: 20px;
   font-weight: 600;
@@ -671,4 +687,829 @@
   align-items: center;
   justify-content: center;
   margin-top: 1px;
+}
+
+
+/* ════════════════════════════════════════════════════════
+ * SLICE 11.2b — notes list, popovers, inline meta row, editor
+ * ════════════════════════════════════════════════════════ */
+
+/* ─── Notes list (per-folder lens rows) ──────────────────── */
+
+.lib-notes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lib-note-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s, box-shadow 0.12s;
+}
+
+.lib-note-row:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.lib-note-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.lib-note-title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lib-note-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.lib-note-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.lib-note-desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lib-note-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.lib-note-sep {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.lib-tag-inline {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--ff-mono, monospace);
+}
+
+.lib-note-row-side {
+  display: flex;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.lib-state-pill {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid;
+  line-height: 1;
+}
+
+.lib-state-pill.is-draft {
+  color: var(--text-muted);
+  border-color: var(--border-strong);
+  background: var(--bg);
+}
+
+.lib-state-pill.is-pub {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--white));
+}
+
+
+/* ─── Meta chips (folder/pillar/tag chips, used by modal + editor) ─ */
+
+.lib-meta-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lib-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  cursor: default;
+}
+
+.lib-meta-chip.is-on {
+  background: color-mix(in srgb, var(--accent) 10%, var(--white));
+  color: var(--accent);
+  border-color: var(--accent);
+  cursor: pointer;
+}
+
+.lib-meta-chip-x {
+  font-size: 14px;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.6;
+  margin-left: 2px;
+}
+
+.lib-meta-chip:hover .lib-meta-chip-x {
+  opacity: 1;
+}
+
+.lib-meta-chip-add {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  border: 1px dashed var(--accent);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.lib-meta-chip-add:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--white));
+}
+
+.lib-meta-chip-add:disabled {
+  color: var(--text-faint);
+  border-color: var(--border-strong);
+  cursor: not-allowed;
+}
+
+
+/* ─── Anchor + popover positioning (shared) ────────────── */
+
+.lib-anchor {
+  position: relative;
+  display: inline-block;
+}
+
+.lib-anchor-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.lib-anchor-trigger:hover {
+  border-color: var(--accent);
+}
+
+.lib-anchor-ic {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.lib-anchor-chev {
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+.lib-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 60;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  min-width: 280px;
+  max-width: 360px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.lib-popover-head {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 10px 12px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.lib-popover-body {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+
+/* ─── Pillar picker rows ───────────────────────────────── */
+
+.lib-pp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.lib-pp-row:hover {
+  background: var(--bg);
+}
+
+.lib-pp-row.is-on {
+  background: color-mix(in srgb, var(--accent) 8%, var(--white));
+  color: var(--accent);
+}
+
+.lib-pp-check {
+  flex: 0 0 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--white);
+}
+
+.lib-pp-row.is-on .lib-pp-check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.lib-pp-name {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.lib-pp-name .full {
+  font-weight: 500;
+}
+
+.lib-pp-name .short {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.lib-pp-row.is-on .lib-pp-name .short {
+  color: color-mix(in srgb, var(--accent) 60%, var(--text-muted));
+}
+
+
+/* ─── Folder picker rows ───────────────────────────────── */
+
+.lib-fp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.lib-fp-row:hover {
+  background: var(--bg);
+}
+
+.lib-fp-row.is-on {
+  background: color-mix(in srgb, var(--accent) 8%, var(--white));
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.lib-fp-ic {
+  font-size: 13px;
+  line-height: 1;
+  flex: 0 0 18px;
+}
+
+.lib-fp-name {
+  flex: 1;
+}
+
+.lib-fp-check {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.lib-fp-empty {
+  padding: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+
+/* ─── Tag input chips ──────────────────────────────────── */
+
+.lib-tag-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lib-tag-input-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.lib-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--ff-mono, monospace);
+}
+
+.lib-tag-chip-x {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+
+.lib-tag-chip-x:hover {
+  color: var(--danger);
+}
+
+.lib-tag-text {
+  flex: 1;
+  min-width: 80px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 12.5px;
+  color: var(--text);
+  padding: 3px 4px;
+  font-family: inherit;
+}
+
+.lib-tag-text::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+
+/* ════════════════════════════════════════════════════════
+ * Note editor — three-zone shell
+ * ════════════════════════════════════════════════════════ */
+
+.lib-editor-shell {
+  display: flex;
+  flex-direction: column;
+  max-width: 1480px;
+  margin: 0 auto;
+  width: 100%;
+  --text-dim: var(--text-muted);
+  --bg-card: var(--white);
+}
+
+.lib-editor-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lib-editor-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;            /* let the crumb shrink and truncate */
+  flex: 1 1 auto;
+}
+
+/* Editor breadcrumb — sits where the back arrow used to.
+   Long folder names and titles ellipsis-truncate so the save
+   badge and Publish button on the right always stay visible. */
+.lib-editor-crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--text-muted);
+  /* The whole crumb caps its width so the right toolbar items
+     have room. Individual segments truncate within this cap. */
+  max-width: 100%;
+}
+
+.lib-crumb-link {
+  background: transparent;
+  border: none;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lib-crumb-link:hover:not(:disabled) {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  text-decoration: underline;
+}
+
+.lib-crumb-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.lib-crumb-link:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.lib-crumb-sep {
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.lib-crumb-cur {
+  color: var(--text);
+  font-weight: 600;
+  padding: 4px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;
+  min-width: 0;
+}
+
+.lib-editor-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.lib-btn-accent {
+  background: var(--accent);
+  color: var(--white);
+  border: 1px solid var(--accent);
+}
+
+.lib-btn-accent:hover:not(:disabled) {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.lib-btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid transparent;
+}
+
+.lib-btn-ghost:hover {
+  background: var(--bg);
+}
+
+.lib-savebadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.lib-savebadge .blip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.lib-savebadge.is-saving .blip {
+  background: var(--warning);
+  animation: lib-pulse 1s ease-in-out infinite;
+}
+
+.lib-savebadge.is-dirty .blip {
+  background: var(--warning);
+}
+
+.lib-savebadge.is-dirty {
+  color: var(--warning);
+}
+
+@keyframes lib-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+
+/* ─── Editor grid: main + right rail ──────────────────── */
+
+.lib-editor-grid {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 0;
+  background: var(--bg);
+  min-height: 480px;
+}
+
+@media (max-width: 1080px) {
+  .lib-editor-grid {
+    grid-template-columns: 1fr;
+  }
+  .lib-editor-rail {
+    display: none;
+  }
+}
+
+.lib-editor-main {
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  padding: 28px 40px 80px;
+  min-width: 0;
+}
+
+@media (max-width: 1080px) {
+  .lib-editor-main {
+    border-right: none;
+  }
+}
+
+
+/* ─── Editor body inputs ──────────────────────────────── */
+
+.lib-editor-title {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 34px;
+  font-weight: 600;
+  color: var(--primary);
+  line-height: 1.15;
+  letter-spacing: -0.018em;
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.lib-editor-title::placeholder {
+  color: var(--text-faint);
+}
+
+.lib-editor-subtitle {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 16px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 8px;
+  padding: 0;
+}
+
+.lib-editor-subtitle::placeholder {
+  color: var(--text-faint);
+}
+
+.lib-editor-desc {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+  padding: 0;
+}
+
+.lib-editor-desc::placeholder {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+
+/* ─── Inline meta row ─────────────────────────────────── */
+
+.lib-editor-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 24px;
+  padding: 16px 0;
+  margin-bottom: 20px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.lib-meta-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lib-meta-block-tags {
+  flex: 1;
+  min-width: 200px;
+}
+
+.lib-meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+
+/* ─── Body textarea ───────────────────────────────────── */
+
+.lib-editor-body {
+  width: 100%;
+  min-height: 360px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.65;
+  resize: vertical;
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.12s;
+}
+
+.lib-editor-body:focus {
+  border-color: var(--accent);
+}
+
+.lib-editor-body::placeholder {
+  color: var(--text-faint);
+  font-style: italic;
+  line-height: 1.6;
+}
+
+
+/* ─── Right rail ──────────────────────────────────────── */
+
+.lib-editor-rail {
+  background: var(--bg);
+  padding: 24px 18px 60px;
+  overflow-y: auto;
+}
+
+.lib-rail-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 14px 12px;
+  margin-bottom: 12px;
+}
+
+.lib-rail-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.lib-rail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.lib-rail-row:last-child {
+  margin-bottom: 0;
+}
+
+.lib-rail-row .lbl {
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
+
+.lib-rail-muted {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.lib-rail-outline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lib-rail-outline li {
+  font-size: 12.5px;
+  color: var(--text);
+  padding: 3px 0;
+  line-height: 1.4;
+  border-left: 2px solid var(--accent);
+  padding-left: 8px;
+  margin-bottom: 2px;
+}
+
+.lib-rail-guards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.lib-rail-guards li {
+  padding: 2px 0;
 }

@@ -1757,8 +1757,8 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   here" hints. Main pane empty-state hero with two disabled CTAs.
   Library entry in `TUTOR_GLOBAL_NAV` (icon `tutor`, between Bank
   and Quizzes). New `styles/library.css`. Committed `763872b`.
-- 🔨 **11.2** Folder CRUD + folder lens data + note CRUD. Split into
-  two sub-slices once started:
+- ✅ **11.2** Folder CRUD + folder lens data + note CRUD. Shipped in
+  two sub-slices:
   - ✅ **11.2a** (2026-05-26) — folder CRUD. Sidebar Folders lens
     renders real rows (real counts + "All folders" entry); main pane
     branches on `?folder=` URL state — empty/grid/per-folder/not-found.
@@ -1767,17 +1767,35 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
     shell is now a server-component-fed client component. Files in
     `lib/library/`: `types.ts`, `queries.ts`, `actions.ts`,
     `folder-rows.tsx`, `all-folders-grid.tsx`, `new-folder-modal.tsx`.
-  - ⏭ **11.2b** — note CRUD. `+ New note` wired through a modal
-    (title + folder + pillar multi-select); notes render in the main
-    pane as a list with the per-note lens row (title + subtitle +
-    description fallback + pillar chips + tags inline); note editor
-    on its own route `/tutor/library/note/[note_id]` with title +
-    subtitle + description + plain textarea body + pillars + tags
-    (Save round-trips through a server action). Body is a textarea
-    placeholder — Tiptap lands in 11.5.
-- ⬜ **11.3** Library list page — All folders + All shelves views.
-  Zoomed-out folder cards grid + Spotify-style shelf carousels.
-  Same data, different lens-scope. Builds the SHELVES table use.
+  - ✅ **11.2b** (2026-05-26) — note CRUD + editor route.
+    `+ New note` wired through a title + folder + pillar multi-select
+    modal; notes render in the per-folder lens-row list (title +
+    subtitle + description-fallback + pillar chips + #tags + Draft/Pub
+    pill); editor at `/tutor/library/note/[note_id]` with a
+    CD-faithful three-zone layout (sticky toolbar with clickable
+    breadcrumb + save badge + Save; main `1fr 240px` grid with
+    inline meta row Folder/Pillars/Tags chips between text headers
+    and the body textarea; right rail with Status / Outline /
+    Embedded questions / Used in / Guards sections). Embedded-question
+    count walks the persisted body JSONB (live-ready for 11.15);
+    "Used in" count via PostgREST embed on
+    `nclex_tutor_library_note_attachments` (live-ready for 11.11).
+    `version_id` rotates on every save (forward-compat for the 11.5
+    two-tabs guard). DiscardConfirm guards both breadcrumb-leave and
+    browser-unload when dirty. Pillars are multi-select (popover
+    with the 8 NCLEX domain values + short-form labels); tags are
+    chip + free-text input with Enter / comma / Tab commit. Body is
+    a single textarea over a single paragraph JSONB block — Tiptap
+    rich editor lands in 11.5 with the same block shape preserved.
+    Files in `lib/library/`: `format.ts`, `pillar-picker.tsx`,
+    `folder-picker.tsx`, `tag-input.tsx`, `new-note-modal.tsx`,
+    `notes-list.tsx`, `note-editor.tsx`, plus
+    `app/(app)/tutor/library/note/[note_id]/page.tsx`.
+- ⏭ **11.3** Library list page — All folders (✅ folder side shipped
+  in 11.2a) + **All shelves** view (the new work here). Spotify-style
+  shelf carousels in the main pane; sidebar Shelves lens lights up
+  with real rows. Builds the SHELVES table use. (Shelf CRUD itself
+  may need its own modal — to be scoped at the start of the slice.)
 - ⬜ **11.4** Library list page — shelf scope. Shelf detail view
   (numbered notes, no Attached-to/Visibility metadata on shelf
   itself).

@@ -31,7 +31,12 @@ import { useEffect, useState } from 'react';
 import { FolderRows } from './folder-rows';
 import { AllFoldersGrid } from './all-folders-grid';
 import { NewFolderModal } from './new-folder-modal';
-import type { LibraryFolderWithCount } from './types';
+import { NewNoteModal } from './new-note-modal';
+import { NotesList } from './notes-list';
+import type {
+  LibraryFolderWithCount,
+  LibraryNoteListRow,
+} from './types';
 
 const LS_RAILED = 'mynclex.library.home.railed';
 const LS_SECTIONS = 'mynclex.library.home.sections';
@@ -81,12 +86,20 @@ const PILLAR_NAMES: string[] = [
 interface LibraryHomeShellProps {
   /** All folders owned by the signed-in tutor, ordered by `position`. */
   folders: LibraryFolderWithCount[];
+  /**
+   * Notes in the currently-selected folder, or null when no folder
+   * is selected (the home empty-state doesn't list any notes). When
+   * `selected === 'all'` the parent route doesn't fetch notes either
+   * — the all-folders grid is folder-scoped, not note-scoped.
+   */
+  notes: LibraryNoteListRow[] | null;
   /** The current `?folder=` URL value — null = nothing selected. */
   selected: string | null;
 }
 
 export function LibraryHomeShell({
   folders,
+  notes,
   selected,
 }: LibraryHomeShellProps) {
   // Default to expanded + all sections open. localStorage rehydration
@@ -97,6 +110,7 @@ export function LibraryHomeShell({
     () => new Set(),
   );
   const [newFolderOpen, setNewFolderOpen] = useState(false);
+  const [newNoteOpen, setNewNoteOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -145,6 +159,20 @@ export function LibraryHomeShell({
     setNewFolderOpen(true);
   }
 
+  function openNewNote() {
+    setNewNoteOpen(true);
+  }
+
+  // The default folder when the new-note modal opens: whichever
+  // folder is currently selected (when `selected` is a real uuid),
+  // else null (root). 'all' is treated as "no preference."
+  const newNoteDefaultFolder =
+    selected && selected !== 'all'
+      ? folders.some((f) => f.folder_id === selected)
+        ? selected
+        : null
+      : null;
+
   // Resolve the selected folder (when ?folder=<uuid>) for the
   // empty-folder placeholder in the main pane.
   const selectedFolder =
@@ -191,8 +219,8 @@ export function LibraryHomeShell({
         </button>
         <button
           className="lib-btn lib-btn-primary"
-          disabled
-          title="Coming in slice 11.2b"
+          type="button"
+          onClick={openNewNote}
         >
           + New note
         </button>
@@ -229,13 +257,21 @@ export function LibraryHomeShell({
           {selected === 'all' ? (
             <AllFoldersGrid folders={folders} onNewFolder={openNewFolder} />
           ) : selectedFolder ? (
-            <SelectedFolderEmpty folder={selectedFolder} />
+            <NotesList
+              notes={notes ?? []}
+              folderName={selectedFolder.name}
+              folderDescription={selectedFolder.description}
+              onNewNote={openNewNote}
+            />
           ) : selected != null && selected !== 'all' ? (
             // ?folder=<uuid-that-doesn't-exist> — likely stale URL after
             // a deletion or share from another tutor.
             <FolderNotFound />
           ) : (
-            <EmptyState onNewFolder={openNewFolder} />
+            <EmptyState
+              onNewFolder={openNewFolder}
+              onNewNote={openNewNote}
+            />
           )}
         </main>
       </div>
@@ -244,6 +280,13 @@ export function LibraryHomeShell({
         <NewFolderModal
           existingFolders={folders}
           onClose={() => setNewFolderOpen(false)}
+        />
+      )}
+      {newNoteOpen && (
+        <NewNoteModal
+          folders={folders}
+          defaultFolderId={newNoteDefaultFolder}
+          onClose={() => setNewNoteOpen(false)}
         />
       )}
     </div>
@@ -366,7 +409,13 @@ function LensItemStatic({ label, count }: { label: string; count: number }) {
 }
 
 
-function EmptyState({ onNewFolder }: { onNewFolder: () => void }) {
+function EmptyState({
+  onNewFolder,
+  onNewNote,
+}: {
+  onNewFolder: () => void;
+  onNewNote: () => void;
+}) {
   return (
     <div className="lib-empty">
       <div className="lib-empty-glyph" aria-hidden="true">
@@ -384,55 +433,11 @@ function EmptyState({ onNewFolder }: { onNewFolder: () => void }) {
         </button>
         <button
           className="lib-btn lib-btn-primary"
-          disabled
-          title="Coming in slice 11.2b"
+          type="button"
+          onClick={onNewNote}
         >
           + New note
         </button>
-      </div>
-    </div>
-  );
-}
-
-
-/**
- * The tutor has selected a folder but no notes exist yet. This is
- * the expected state throughout slice 11.2a (note CRUD doesn't ship
- * until 11.2b). The card explains the state honestly without
- * pretending the folder is broken.
- */
-function SelectedFolderEmpty({ folder }: { folder: LibraryFolderWithCount }) {
-  return (
-    <div className="lib-all-folders">
-      <header className="lib-pane-head">
-        <div>
-          <div className="lib-pane-crumb">
-            <span>Library</span>
-            <span className="sep">/</span>
-            <span className="b">{folder.name}</span>
-          </div>
-          <h2 className="lib-pane-title">{folder.name}</h2>
-          {folder.description && (
-            <p className="lib-pane-sub">{folder.description}</p>
-          )}
-        </div>
-        <button
-          className="lib-btn lib-btn-primary"
-          disabled
-          title="Coming in slice 11.2b"
-        >
-          + New note
-        </button>
-      </header>
-      <div className="lib-empty lib-empty-inline">
-        <div className="lib-empty-glyph" aria-hidden="true">
-          📒
-        </div>
-        <p className="lib-empty-sub">
-          This folder is empty. Note creation lands in the next slice —
-          for now you can use this folder as a placeholder for the
-          content you&apos;re planning.
-        </p>
       </div>
     </div>
   );

@@ -29,7 +29,9 @@ export function AllFoldersGrid({
       <header className="lib-pane-head">
         <div>
           <div className="lib-pane-crumb">
-            <span>Library</span>
+            <Link href="/tutor/library" className="lib-pane-crumb-link">
+              Library
+            </Link>
             <span className="sep">/</span>
             <span className="b">All folders</span>
           </div>
