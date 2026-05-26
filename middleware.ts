@@ -1,12 +1,20 @@
-// mynclex/proxy.ts
+// mynclex/middleware.ts
 //
-// Runs on every request before page render. Renamed from
-// `middleware.ts` for Next.js 16 — same behaviour, new file convention.
+// Runs on every request before page render.
 //
 // Two jobs:
 //   1. Refresh the Supabase auth cookie if it's close to expiring.
 //      (Without this, users get silently signed out after the token TTL.)
 //   2. Route guards — redirect based on auth state and path.
+//
+// Next.js 16 prints a `middleware → proxy` deprecation warning at dev
+// startup. We can't rename to proxy.ts yet — see the "Known
+// Workarounds" entry in CLAUDE.md. tl;dr: proxy.ts is Node-runtime
+// only, and the current `@opennextjs/cloudflare` (1.19.x) build
+// pipeline refuses Node middleware (`ERROR Node.js middleware is not
+// currently supported. Consider switching to Edge Middleware.`).
+// Re-rename when OpenNext catches up (tracking
+// cloudflare/workers-sdk#13755).
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
@@ -25,7 +33,7 @@ const AUTH_REQUIRED_PREFIXES = [
 // Paths that should redirect to /router if the user IS already signed in.
 const AUTH_FORBIDDEN_PATHS = ['/login', '/register'];
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

@@ -86,7 +86,7 @@ slice.
    does NOT render the topbar or footer. Each audience layout calls
    `loadChromeData()` and wraps its tree in `<AppShell>`, passing its
    own `productLabel` and `rightSlot` (e.g. `<ProductSwitcher />` for
-   student product spaces). This avoids proxy-pathname tricks and
+   student product spaces). This avoids middleware-pathname tricks and
    keeps each audience's chrome self-contained.
 
 7. **List and detail are sibling worlds when each has its own chrome.**
@@ -240,6 +240,19 @@ slice.
   into `node_modules/lightningcss/`, delete `.next`, restart `npm run dev`.
   Proper fix: delete `node_modules` + `package-lock.json` and reinstall. (Hit
   2026-05-22 after installing vitest.)
+
+- **Keep using `middleware.ts` — do NOT rename to `proxy.ts`.** Next.js 16
+  prints a deprecation warning at `npm run dev` startup recommending the
+  rename, but `proxy.ts` is **Node.js-runtime only** in Next 16 (route
+  segment config — including `export const runtime = 'edge'` — is not
+  allowed on proxies). The current `@opennextjs/cloudflare` (1.19.x)
+  build pipeline rejects Node middleware with
+  `ERROR Node.js middleware is not currently supported. Consider switching
+  to Edge Middleware.`, breaking the dev deploy. Tracking issue:
+  cloudflare/workers-sdk#13755 (unresolved as of 2026-04). The cosmetic
+  rename was attempted in commit `2c66d46` (2026-05-26) and immediately
+  reverted the same day after the deploy of slice 11.2b failed. Re-rename
+  when OpenNext ships proxy.ts support via the Next 16.2 Build Adapters API.
 
 ## Branching workflow
 

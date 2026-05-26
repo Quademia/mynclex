@@ -1,7 +1,7 @@
 # `lib/access/`
 
 Central module for every access decision in the product. Pages,
-Server Actions, and (eventually) proxy.ts import gate helpers from
+Server Actions, and (eventually) middleware import gate helpers from
 here instead of inlining role/permission boilerplate.
 
 ## Why centralised
