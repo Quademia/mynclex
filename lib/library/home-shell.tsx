@@ -29,13 +29,16 @@
 
 import { useEffect, useState } from 'react';
 import { FolderRows } from './folder-rows';
+import { ShelfRows } from './shelf-rows';
 import { AllFoldersGrid } from './all-folders-grid';
 import { NewFolderModal } from './new-folder-modal';
+import { NewShelfModal } from './new-shelf-modal';
 import { NewNoteModal } from './new-note-modal';
 import { NotesList } from './notes-list';
 import type {
   LibraryFolderWithCount,
   LibraryNoteListRow,
+  LibraryShelfWithCount,
 } from './types';
 
 const LS_RAILED = 'mynclex.library.home.railed';
@@ -86,6 +89,8 @@ const PILLAR_NAMES: string[] = [
 interface LibraryHomeShellProps {
   /** All folders owned by the signed-in tutor, ordered by `position`. */
   folders: LibraryFolderWithCount[];
+  /** All shelves owned by the signed-in tutor, ordered by `position`. */
+  shelves: LibraryShelfWithCount[];
   /**
    * Notes in the currently-selected folder, or null when no folder
    * is selected (the home empty-state doesn't list any notes). When
@@ -95,12 +100,16 @@ interface LibraryHomeShellProps {
   notes: LibraryNoteListRow[] | null;
   /** The current `?folder=` URL value — null = nothing selected. */
   selected: string | null;
+  /** The current `?shelf=` URL value — null = no shelf scope active. */
+  shelfSelected: string | null;
 }
 
 export function LibraryHomeShell({
   folders,
+  shelves,
   notes,
   selected,
+  shelfSelected,
 }: LibraryHomeShellProps) {
   // Default to expanded + all sections open. localStorage rehydration
   // happens in a useEffect (so first paint is consistent across
@@ -110,6 +119,7 @@ export function LibraryHomeShell({
     () => new Set(),
   );
   const [newFolderOpen, setNewFolderOpen] = useState(false);
+  const [newShelfOpen, setNewShelfOpen] = useState(false);
   const [newNoteOpen, setNewNoteOpen] = useState(false);
 
   useEffect(() => {
@@ -157,6 +167,10 @@ export function LibraryHomeShell({
 
   function openNewFolder() {
     setNewFolderOpen(true);
+  }
+
+  function openNewShelf() {
+    setNewShelfOpen(true);
   }
 
   function openNewNote() {
@@ -217,6 +231,9 @@ export function LibraryHomeShell({
         <button className="lib-btn" type="button" onClick={openNewFolder}>
           + New folder
         </button>
+        <button className="lib-btn" type="button" onClick={openNewShelf}>
+          + New shelf
+        </button>
         <button
           className="lib-btn lib-btn-primary"
           type="button"
@@ -248,13 +265,24 @@ export function LibraryHomeShell({
               closed={closedSections.has(key)}
               onToggle={() => toggleSection(key)}
               folders={folders}
+              shelves={shelves}
               selected={selected}
+              shelfSelected={shelfSelected}
             />
           ))}
         </aside>
 
         <main className="lib-main">
-          {selected === 'all' ? (
+          {shelfSelected != null ? (
+            // 11.3a placeholder for the All Shelves carousel — the real
+            // carousel ships in 11.3b. For now every shelf nav lands
+            // here (per the scope decision: route all `?shelf=` URLs to
+            // `?shelf=all` until 11.4 ships shelf-detail).
+            <ShelvesComingSoon
+              shelfCount={shelves.length}
+              onNewShelf={openNewShelf}
+            />
+          ) : selected === 'all' ? (
             <AllFoldersGrid folders={folders} onNewFolder={openNewFolder} />
           ) : selectedFolder ? (
             <NotesList
@@ -282,6 +310,13 @@ export function LibraryHomeShell({
           onClose={() => setNewFolderOpen(false)}
         />
       )}
+      {newShelfOpen && (
+        <NewShelfModal
+          existingShelves={shelves}
+          variant={{ mode: 'create' }}
+          onClose={() => setNewShelfOpen(false)}
+        />
+      )}
       {newNoteOpen && (
         <NewNoteModal
           folders={folders}
@@ -300,14 +335,18 @@ function LensSection({
   closed,
   onToggle,
   folders,
+  shelves,
   selected,
+  shelfSelected,
 }: {
   lens: LensKey;
   railed: boolean;
   closed: boolean;
   onToggle: () => void;
   folders: LibraryFolderWithCount[];
+  shelves: LibraryShelfWithCount[];
   selected: string | null;
+  shelfSelected: string | null;
 }) {
   if (railed) {
     // Railed mode: one icon glyph per section, hovering shows the
@@ -339,7 +378,7 @@ function LensSection({
         </span>
       </button>
       <div className="lens-section-body">
-        {renderLensBody(lens, folders, selected)}
+        {renderLensBody(lens, folders, shelves, selected, shelfSelected)}
       </div>
     </div>
   );
@@ -349,7 +388,9 @@ function LensSection({
 function renderLensBody(
   lens: LensKey,
   folders: LibraryFolderWithCount[],
+  shelves: LibraryShelfWithCount[],
   selected: string | null,
+  shelfSelected: string | null,
 ) {
   switch (lens) {
     case 'views':
@@ -368,14 +409,7 @@ function renderLensBody(
       return <FolderRows folders={folders} selected={selected} />;
 
     case 'shelves':
-      return (
-        <>
-          <LensItemStatic label="All shelves" count={0} />
-          <div className="lens-empty">
-            Curated packs across folders. Coming with shelves.
-          </div>
-        </>
-      );
+      return <ShelfRows shelves={shelves} selected={shelfSelected} />;
 
     case 'pillars':
       // The 8 NCLEX-RN Client Needs sub-categories. All counts zero
@@ -456,6 +490,44 @@ function FolderNotFound() {
         That folder doesn&apos;t exist (or isn&apos;t yours). Try a folder
         from the sidebar.
       </p>
+    </div>
+  );
+}
+
+
+/**
+ * Placeholder main pane for any `?shelf=...` URL in 11.3a. The
+ * Spotify-style All Shelves carousel — the real consumer of this
+ * surface — ships in 11.3b. Until then, every shelf-related nav
+ * lands here so the rest of the entity (create / edit / delete from
+ * the sidebar kebab) works end-to-end without a half-built
+ * intermediate page.
+ */
+function ShelvesComingSoon({
+  shelfCount,
+  onNewShelf,
+}: {
+  shelfCount: number;
+  onNewShelf: () => void;
+}) {
+  return (
+    <div className="lib-empty">
+      <div className="lib-empty-glyph" aria-hidden="true">
+        📚
+      </div>
+      <h2 className="lib-empty-title">
+        {shelfCount === 0 ? 'No shelves yet' : 'All shelves'}
+      </h2>
+      <p className="lib-empty-sub">
+        {shelfCount === 0
+          ? 'Shelves are curated cross-folder packs — "Foundational SATA pack", "Drug deep dives", "Week 1 essentials". Each one carries its own identity colour wherever it appears.'
+          : `You have ${shelfCount} shelf${shelfCount === 1 ? '' : 'es'}. The Spotify-style carousel that lays out every shelf with its notes lands in slice 11.3b — for now create + edit shelves from the sidebar; notes attach in 11.3b.`}
+      </p>
+      <div className="lib-empty-actions">
+        <button className="lib-btn lib-btn-primary" type="button" onClick={onNewShelf}>
+          + New shelf
+        </button>
+      </div>
     </div>
   );
 }

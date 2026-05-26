@@ -14,9 +14,11 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import {
   NCLEX_PILLARS,
+  SHELF_PALETTE,
   type LibraryFolderFormValues,
   type LibraryNoteCreateValues,
   type LibraryNoteUpdateValues,
+  type LibraryShelfFormValues,
   type NclexPillar,
 } from './types';
 
@@ -363,4 +365,234 @@ export async function updateNoteAction(
   revalidatePath('/tutor/library');
   revalidatePath(`/tutor/library/note/${noteId}`);
   return { ok: true, version_id: data.version_id };
+}
+
+
+// =====================================================================
+// Slice 11.3a — shelves
+// =====================================================================
+
+const SHELF_TITLE_MIN = 2;
+const SHELF_TITLE_MAX = 60;
+const SHELF_TAGLINE_MAX = 120;
+const SHELF_DESC_MAX = 600;
+
+// Closed set — must match SHELF_PALETTE in types.ts. Used at the
+// action layer because the DB stores `color` as free TEXT; the
+// constraint is application-level.
+const PALETTE_COLORS = new Set<string>(SHELF_PALETTE.map((p) => p.color));
+
+function validateShelf(input: LibraryShelfFormValues): string | null {
+  const trimmed = input.title.trim();
+  if (trimmed.length < SHELF_TITLE_MIN) {
+    return `Shelf title must be at least ${SHELF_TITLE_MIN} characters.`;
+  }
+  if (trimmed.length > SHELF_TITLE_MAX) {
+    return `Shelf title must be ${SHELF_TITLE_MAX} characters or fewer.`;
+  }
+  if (input.tagline != null && input.tagline.length > SHELF_TAGLINE_MAX) {
+    return `Tagline must be ${SHELF_TAGLINE_MAX} characters or fewer.`;
+  }
+  if (input.description != null && input.description.length > SHELF_DESC_MAX) {
+    return `Description must be ${SHELF_DESC_MAX} characters or fewer.`;
+  }
+  if (!PALETTE_COLORS.has(input.color)) {
+    return 'Pick an identity colour from the palette.';
+  }
+  return null;
+}
+
+export type CreateShelfResult =
+  | { ok: true; shelf_id: string }
+  | { ok: false; error: string };
+
+/**
+ * Create a shelf owned by the signed-in tutor. Same shape as
+ * `createFolderAction` — auth gate, validation, case-insensitive
+ * dup-check on title, position = current count, return id.
+ *
+ * Membership rows (`nclex_tutor_library_shelf_memberships`) are NOT
+ * touched here. Add-to-shelf is the 11.3b flow that the carousel's
+ * dashed `+ Add to shelf` tile drives.
+ */
+export async function createShelfAction(
+  input: LibraryShelfFormValues,
+): Promise<CreateShelfResult> {
+  const validationError = validateShelf(input);
+  if (validationError) return { ok: false, error: validationError };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const title = input.title.trim();
+  const tagline =
+    input.tagline != null && input.tagline.trim().length > 0
+      ? input.tagline.trim()
+      : null;
+  const description =
+    input.description != null && input.description.trim().length > 0
+      ? input.description.trim()
+      : null;
+
+  // Case-insensitive uniqueness check against the tutor's own shelves
+  // (RLS scopes the read). Same UX-friendly app-layer gate as folders.
+  const { data: existing } = await supabase
+    .from('nclex_tutor_library_shelves')
+    .select('shelf_id, title')
+    .ilike('title', title);
+  if (existing && existing.length > 0) {
+    return { ok: false, error: `A shelf named "${title}" already exists.` };
+  }
+
+  const { count } = await supabase
+    .from('nclex_tutor_library_shelves')
+    .select('shelf_id', { count: 'exact', head: true });
+  const position = count ?? 0;
+
+  const { data, error } = await supabase
+    .from('nclex_tutor_library_shelves')
+    .insert({
+      tutor_id: user.id,
+      title,
+      tagline,
+      description,
+      color: input.color,
+      position,
+    })
+    .select('shelf_id')
+    .single();
+
+  if (error || !data) {
+    return {
+      ok: false,
+      error: error?.message ?? 'Failed to create shelf.',
+    };
+  }
+
+  revalidatePath('/tutor/library');
+  return { ok: true, shelf_id: data.shelf_id };
+}
+
+
+export type EditShelfResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Edit the four user-controlled shelf fields. RLS gates the UPDATE
+ * via `nclex_tutor_library_shelves_self_update` (tutor_id = auth.uid()).
+ * Cross-tutor / not-found come back as the same "Shelf not found, or
+ * not yours to edit." surface to avoid leaking the distinction.
+ *
+ * Dup-check excludes the shelf being edited so renaming to the same
+ * title (or only changing case) is allowed.
+ */
+export async function editShelfAction(
+  shelfId: string,
+  input: LibraryShelfFormValues,
+): Promise<EditShelfResult> {
+  const validationError = validateShelf(input);
+  if (validationError) return { ok: false, error: validationError };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const title = input.title.trim();
+  const tagline =
+    input.tagline != null && input.tagline.trim().length > 0
+      ? input.tagline.trim()
+      : null;
+  const description =
+    input.description != null && input.description.trim().length > 0
+      ? input.description.trim()
+      : null;
+
+  // Dup-check against OTHER shelves only.
+  const { data: existing } = await supabase
+    .from('nclex_tutor_library_shelves')
+    .select('shelf_id, title')
+    .ilike('title', title)
+    .neq('shelf_id', shelfId);
+  if (existing && existing.length > 0) {
+    return { ok: false, error: `A shelf named "${title}" already exists.` };
+  }
+
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('nclex_tutor_library_shelves')
+    .update({
+      title,
+      tagline,
+      description,
+      color: input.color,
+      updated_at: nowIso,
+    })
+    .eq('shelf_id', shelfId)
+    .select('shelf_id')
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return {
+      ok: false,
+      error: 'Shelf not found, or not yours to edit.',
+    };
+  }
+
+  revalidatePath('/tutor/library');
+  return { ok: true };
+}
+
+
+export type DeleteShelfResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Delete a shelf. The membership rows cascade away (FK CASCADE), so
+ * notes that were on the shelf simply lose the membership — they
+ * stay where they live (folders / pillars / tags untouched).
+ *
+ * However, `nclex_tutor_library_note_attachments.shelf_id` is
+ * `ON DELETE RESTRICT` (per the 11.1 migration) — a shelf that's
+ * attached to a programme unit as an activity cannot be deleted.
+ * We catch that FK error and surface the right copy. The detach-
+ * shelf-from-programme path will land with 11.12 when shelves
+ * become attachable.
+ */
+export async function deleteShelfAction(
+  shelfId: string,
+): Promise<DeleteShelfResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { error } = await supabase
+    .from('nclex_tutor_library_shelves')
+    .delete()
+    .eq('shelf_id', shelfId);
+
+  if (error) {
+    // FK 23503 = foreign_key_violation. Means the shelf is attached
+    // to one or more programme units via _note_attachments (RESTRICT).
+    if (error.code === '23503') {
+      return {
+        ok: false,
+        error:
+          "Can't delete — this shelf is attached to a programme. Detach it first.",
+      };
+    }
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath('/tutor/library');
+  return { ok: true };
 }

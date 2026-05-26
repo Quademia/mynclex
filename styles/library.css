@@ -1513,3 +1513,197 @@
 .lib-rail-guards li {
   padding: 2px 0;
 }
+
+
+/* ════════════════════════════════════════════════════════
+ * SLICE 11.3a — shelves: sidebar rows + new-shelf modal
+ * ════════════════════════════════════════════════════════ */
+
+.lib-modal-shelf,
+.lib-modal-shelf-delete {
+  --text-dim: var(--text-muted);
+  --bg-card: var(--white);
+}
+
+.lib-modal-shelf {
+  max-width: 540px;
+}
+
+.lib-modal-shelf-delete {
+  max-width: 460px;
+}
+
+
+/* ─── Sidebar shelf rows ─────────────────────────────────── */
+
+/* Wraps a shelf lens-item plus its kebab + popover menu so the
+   popover anchors against this container. */
+.lens-item-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Shelf-specific lens-item variant. Takes the full width of the
+   wrap minus the kebab, leaving the kebab in the dead-space at
+   the right edge. */
+.lens-item-shelf {
+  flex: 1;
+  min-width: 0;
+}
+
+.lens-shelf-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Kebab button — invisible until the row is hovered, then 16px
+   button with the active-state colour. */
+.lens-item-kebab {
+  width: 22px;
+  height: 22px;
+  margin-right: 2px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+  opacity: 0;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lens-item-wrap:hover .lens-item-kebab,
+.lens-item-kebab[aria-expanded='true'] {
+  opacity: 1;
+}
+
+.lens-item-kebab:hover,
+.lens-item-kebab[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+
+.lens-item-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 4px;
+  z-index: 30;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+}
+
+.lens-item-menu-btn {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 12.5px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.lens-item-menu-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.lens-item-menu-btn-danger {
+  color: #b91c1c;
+}
+
+.lens-item-menu-btn-danger:hover {
+  background: color-mix(in srgb, #b91c1c 10%, transparent);
+}
+
+
+/* ─── New shelf modal — colour picker ────────────────────── */
+
+.lib-shelf-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.lib-shelf-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 3px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  background-clip: padding-box;
+  transition: transform 0.08s ease;
+}
+
+.lib-shelf-swatch:hover {
+  transform: scale(1.05);
+}
+
+.lib-shelf-swatch.is-selected {
+  border-color: var(--white);
+  box-shadow: 0 0 0 2px var(--swatch-color, var(--accent));
+}
+
+.lib-shelf-swatch:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.lib-shelf-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  flex-wrap: wrap;
+}
+
+.lib-shelf-preview-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--white);
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.lib-shelf-preview-pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.lib-shelf-preview-where {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ─── Field-level hint copy under labels ─────────────────── */
+
+.lib-field-hint {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}

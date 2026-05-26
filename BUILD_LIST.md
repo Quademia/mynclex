@@ -8,8 +8,74 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-26):** **Tutor Library Slice 11.2b — notes
-> CRUD + dedicated editor route.** Closes the 11.2 sub-arc; the
+> **Last shipped (2026-05-26):** **Tutor Library Slice 11.3a — shelf
+> entity + sidebar lens.** The Shelves lens stops being a placeholder
+> — real shelf rows, real counts, an All shelves entry, and full
+> create / edit / delete on the entity (hover-revealed kebab on each
+> row → menu). New tagline column on `nclex_tutor_library_shelves`
+> (separate from the existing description, which 11.4 will use for
+> the shelf detail page). The Spotify-style carousel main pane is
+> 11.3b; until then, every `?shelf=…` URL lands on a friendly
+> placeholder. CD-derived: 8-swatch palette + smart default + live
+> preview pill from the prototype's `NewShelfDialog`.
+>
+> - **Schema.** `db/migrations/20260617120000_slice_11_3a_shelf_tagline.sql`
+>   adds `tagline TEXT NULL` (applied to mynclex-dev). Two
+>   descriptive fields side-by-side now — `tagline` (short carousel
+>   header copy) + `description` (longer copy for the shelf detail
+>   page 11.4). Both optional; UI degrades on null.
+> - **Server boundary.** `getShelvesForTutor()` joins
+>   `nclex_tutor_library_shelf_memberships(count)` for per-shelf note
+>   counts — single round trip, mirrors the folder pattern.
+>   `page.tsx` runs the folders + shelves fetches in parallel
+>   (`Promise.all`); skips the per-folder notes fetch when a shelf
+>   scope is active (the main pane is shelves-only there).
+> - **Actions.** `createShelfAction` / `editShelfAction` /
+>   `deleteShelfAction` in `lib/library/actions.ts`. Validation
+>   chain: title 2..60 + dup-check + tagline ≤120 + description ≤600
+>   + colour ∈ SHELF_PALETTE. Delete catches FK 23503 (shelf attached
+>   to a programme via `_note_attachments`) and surfaces a specific
+>   "detach first" error — RESTRICT prevents the cascade today; the
+>   detach UI lands with 11.12.
+> - **Sidebar lens.** New `<ShelfRows>` wires real rows with the
+>   shelf's identity colour as a 9px square dot to the left, the
+>   title, the count to the right. Hover → kebab `⋮` opens a popover
+>   menu (Edit / Delete with click-outside + Escape close). 11.3a
+>   routes every per-shelf URL to `?shelf=all` — the per-shelf
+>   detail view ships in 11.4.
+> - **New shelf modal.** Discriminated union `{ mode: 'create' | 'edit' }`
+>   so the same modal handles both flows. Smart-default colour
+>   picks the first SHELF_PALETTE entry not already worn by an
+>   existing shelf (falls back to entry 0 above 8 shelves). Title +
+>   tagline + description + 8-swatch colour picker + live preview
+>   pill ("rail dot · per-note pip · attached-block border" copy
+>   explaining where the colour shows up).
+> - **Delete confirm.** Simple yes/no `DeleteShelfConfirm` (not
+>   type-to-confirm — cascade only drops membership rows; notes are
+>   untouched, and the shelf can be recreated trivially).
+> - **Main pane placeholder.** `ShelvesComingSoon` renders the 📚
+>   glyph + "All shelves" title + a hint explaining the carousel
+>   ships in 11.3b. Empty-state copy switches to "No shelves yet"
+>   when the tutor has none.
+> - **CSS.** New SLICE 11.3a block in `styles/library.css` covers
+>   the lens-item-wrap + shelf-dot + kebab + popover menu + swatch
+>   grid + preview pill + field hints + the two modal size variants.
+>
+> **Files new (3):** `lib/library/new-shelf-modal.tsx`,
+> `lib/library/shelf-rows.tsx`,
+> `db/migrations/20260617120000_slice_11_3a_shelf_tagline.sql`.
+>
+> **Files modified (5):** `lib/library/types.ts` (SHELF_PALETTE +
+> LibraryShelf / WithCount / FormValues), `lib/library/queries.ts`
+> (getShelvesForTutor), `lib/library/actions.ts` (create + edit +
+> delete shelf actions + validateShelf), `lib/library/home-shell.tsx`
+> (mount Shelves lens + + New shelf toolbar button + NewShelfModal +
+> ShelvesComingSoon main pane), `app/(app)/tutor/library/page.tsx`
+> (parallel folders + shelves fetch, `?shelf=` URL param, scope
+> precedence), `styles/library.css` (SLICE 11.3a CSS block).
+>
+> **Earlier shipped (2026-05-26):** Tutor Library Slice **11.2b** —
+> notes CRUD + dedicated editor route. Closes the 11.2 sub-arc; the
 > library now round-trips folders AND notes through real UI. The
 > Tiptap rich block editor is still 11.5; this slice ships a plain-
 > textarea body editor with the full chrome around it (breadcrumb,
@@ -109,10 +175,11 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > (`23c23e7`, `763872b`, plus the 7 gap-review commits) and the
 > canonical planning doc.
 >
-> **Next:** Slice **11.3** — Library list page (All shelves view).
-> Spotify-style shelf carousels in the main pane; shelf entity
-> CRUD; sidebar Shelves lens lights up the same way Folders did in
-> 11.2a. Full library slice ladder + status flags live in
+> **Next:** Slice **11.3b** — Spotify-style All Shelves carousel
+> main pane + add-to-shelf flow (the dashed `+ Add to shelf` tile
+> at the end of each carousel row). The shelf entity itself is now
+> live (11.3a); 11.3b is the read-and-attach side. Full library
+> slice ladder + status flags live in
 > [`docs/product-plan/tutor-library.md` → Build order](docs/product-plan/tutor-library.md#build-order-when-this-gets-queued)
 > — see Part 3 below.
 >

@@ -1791,11 +1791,32 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
     `folder-picker.tsx`, `tag-input.tsx`, `new-note-modal.tsx`,
     `notes-list.tsx`, `note-editor.tsx`, plus
     `app/(app)/tutor/library/note/[note_id]/page.tsx`.
-- ⏭ **11.3** Library list page — All folders (✅ folder side shipped
-  in 11.2a) + **All shelves** view (the new work here). Spotify-style
-  shelf carousels in the main pane; sidebar Shelves lens lights up
-  with real rows. Builds the SHELVES table use. (Shelf CRUD itself
-  may need its own modal — to be scoped at the start of the slice.)
+- ✅ **11.3a** (2026-05-26) Shelf entity + sidebar lens. Migration
+  `20260617120000_slice_11_3a_shelf_tagline.sql` adds `tagline TEXT
+  NULL` so the carousel header (11.3b) and the shelf detail page
+  (11.4) have separate copy. New `<ShelfRows>` lights up the
+  Shelves lens with real rows (coloured 9px dot + title + count) +
+  All shelves entry; hover-revealed kebab menu drives Edit /
+  Delete. `<NewShelfModal>` is a unified create/edit modal with
+  title + tagline + description + 8-swatch SHELF_PALETTE picker
+  (smart default — first unused colour); CD-derived from the
+  prototype's `NewShelfDialog`. `?shelf=` URL param wired in
+  `page.tsx` (parallel folders + shelves fetch). 11.3a routes every
+  `?shelf=…` URL to the All-shelves placeholder pane until 11.4
+  ships shelf-detail; 11.3b replaces that placeholder with the real
+  carousel. Files: `lib/library/{new-shelf-modal,shelf-rows}.tsx`
+  new; `types.ts` / `queries.ts` / `actions.ts` / `home-shell.tsx`
+  / `page.tsx` / `styles/library.css` updated.
+- ⏭ **11.3b** Spotify-style All Shelves carousel main pane +
+  add-to-shelf flow. One section per shelf — colour dot + title +
+  count + tagline header, horizontal row of note cards (Pub/Draft
+  pill + title + description-or-subtitle + 2-pillar chip row),
+  ending in a dashed `+ Add to shelf` tile that opens the
+  AddNotesToShelfDialog (CD-prototyped — multi-select published
+  notes filtered by folder + search, writes to
+  `_shelf_memberships`). Carousel reads via a new
+  `getShelvesWithNotes()` projection (members joined per shelf).
+  Sidebar Shelves lens already shipped in 11.3a.
 - ⬜ **11.4** Library list page — shelf scope. Shelf detail view
   (numbered notes, no Attached-to/Visibility metadata on shelf
   itself).

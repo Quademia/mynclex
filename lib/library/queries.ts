@@ -7,7 +7,7 @@
 // when the tutor has no folders yet.
 //
 // Slice 11.2b extends this file with note queries; folder reads
-// stay as-is.
+// stay as-is. Slice 11.3a adds shelf queries the same way.
 
 import { createClient } from '@/lib/supabase/server';
 import type {
@@ -15,6 +15,7 @@ import type {
   LibraryNote,
   LibraryNoteForEdit,
   LibraryNoteListRow,
+  LibraryShelfWithCount,
 } from './types';
 
 /**
@@ -173,4 +174,79 @@ export async function getNoteForEdit(
   void _embed;
 
   return { ...(rest as LibraryNote), used_in_count } satisfies LibraryNoteForEdit;
+}
+
+
+// =====================================================================
+// Slice 11.3a — shelves
+// =====================================================================
+
+/**
+ * All shelves owned by the signed-in tutor, with per-shelf note
+ * counts joined in the same round trip. Sorted by `position` so the
+ * tutor's curated ordering survives across reloads — newly-created
+ * shelves land at the tail (`createShelfAction` sets `position` to
+ * the current count on insert).
+ *
+ * The note-count subquery uses PostgREST's relationship-based count
+ * (`nclex_tutor_library_shelf_memberships(count)`) — the same shape
+ * as the folder note-count join in `getFoldersForTutor`. Becomes a
+ * LEFT JOIN with COUNT in SQL — single round trip.
+ *
+ * Members are pulled via the M:N junction table, not via a column on
+ * the notes table (notes can sit on many shelves). Membership rows
+ * are gated by RLS through `nclex_tutor_library_shelf_memberships_self_all`,
+ * which scopes via the parent shelf's `tutor_id` — so the count we
+ * get back is exactly "rows in this shelf that the tutor owns".
+ */
+export async function getShelvesForTutor(): Promise<LibraryShelfWithCount[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('nclex_tutor_library_shelves')
+    .select(
+      `shelf_id, tutor_id, title, tagline, description, color, position,
+       created_at, updated_at,
+       nclex_tutor_library_shelf_memberships(count)`,
+    )
+    .order('position', { ascending: true });
+
+  if (error || !data) return [];
+
+  // PostgREST returns the count as an array with one object —
+  // identical normalisation to the folder note-count branch.
+  return data.map((row) => {
+    const countArr = (
+      row as {
+        nclex_tutor_library_shelf_memberships?: Array<{ count: number }>;
+      }
+    ).nclex_tutor_library_shelf_memberships;
+    const note_count =
+      Array.isArray(countArr) && countArr[0]?.count != null
+        ? countArr[0].count
+        : 0;
+    const {
+      shelf_id,
+      tutor_id,
+      title,
+      tagline,
+      description,
+      color,
+      position,
+      created_at,
+      updated_at,
+    } = row;
+    return {
+      shelf_id,
+      tutor_id,
+      title,
+      tagline,
+      description,
+      color,
+      position,
+      created_at,
+      updated_at,
+      note_count,
+    } satisfies LibraryShelfWithCount;
+  });
 }

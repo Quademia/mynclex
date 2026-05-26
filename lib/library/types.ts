@@ -164,3 +164,87 @@ export type LibraryNoteUpdateValues = {
   tags: string[];
   folder_id: string | null;
 };
+
+// =====================================================================
+// Slice 11.3a — shelves
+// =====================================================================
+
+/**
+ * The fixed 8-colour palette for shelf identity. The migration's
+ * `color` column is `TEXT NOT NULL` (free hex), so the constraint is
+ * application-level only — the New Shelf modal picks one of these
+ * eight and the smart default cycles through whichever colour isn't
+ * already used by an existing shelf.
+ *
+ * Source: the Claude Design `tutor-library/note-editor.jsx`
+ * SHELF_PALETTE constant from the 2026-05-26 handoff. Matches the
+ * 5 colours already in the CD seed data + 3 coordinated extras.
+ */
+export const SHELF_PALETTE = [
+  { color: '#2d7d72', name: 'Teal' },
+  { color: '#c97a16', name: 'Amber' },
+  { color: '#2d6fc0', name: 'Blue' },
+  { color: '#6a55c7', name: 'Purple' },
+  { color: '#c43e3e', name: 'Red' },
+  { color: '#1f8a5b', name: 'Green' },
+  { color: '#a25e83', name: 'Plum' },
+  { color: '#4a6fa5', name: 'Slate' },
+] as const;
+
+export type ShelfColor = (typeof SHELF_PALETTE)[number]['color'];
+
+/**
+ * One row in `nclex_tutor_library_shelves`. Mirror of the migration
+ * column set including the new `tagline TEXT NULL` added by slice
+ * 11.3a's migration (`20260617120000_slice_11_3a_shelf_tagline.sql`).
+ *
+ * Two descriptive fields side-by-side:
+ *   • tagline     — short, carousel-header one-liner
+ *   • description — longer copy for the shelf detail page (slice 11.4)
+ *
+ * Both nullable. New shelves can ship without either; the UI degrades
+ * by hiding the corresponding span.
+ */
+export type LibraryShelf = {
+  shelf_id: string;
+  tutor_id: string;
+  title: string;
+  tagline: string | null;
+  description: string | null;
+  color: string; // hex string, app-validated against SHELF_PALETTE
+  position: number;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Display projection for sidebar lens rows + the All Shelves
+ * carousel. Adds the per-shelf note count derived at query time via
+ * a PostgREST `nclex_tutor_library_shelf_memberships(count)` join,
+ * mirroring the folder pattern in slice 11.2a.
+ *
+ * 11.3a's UI surfaces — the Shelves sidebar lens and the placeholder
+ * routing — only need this count. 11.3b's All Shelves carousel will
+ * need the actual member-note rows; it gets a separate richer
+ * projection at that slice.
+ */
+export type LibraryShelfWithCount = LibraryShelf & {
+  note_count: number;
+};
+
+/**
+ * Mutation input shared by `createShelfAction` + `editShelfAction`.
+ * All four fields are user-controlled in the New Shelf modal:
+ *   • title is required (>= 2 chars, <= 60 chars, dup-checked)
+ *   • tagline + description are optional, capped on length only
+ *   • color must be one of SHELF_PALETTE (app-layer enum, not DB)
+ *
+ * Used by the modal's submit handler and the server action; the
+ * action revalidates everything before the INSERT/UPDATE.
+ */
+export type LibraryShelfFormValues = {
+  title: string;
+  tagline: string | null;
+  description: string | null;
+  color: string;
+};

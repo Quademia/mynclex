@@ -1,14 +1,19 @@
 // mynclex/app/(app)/tutor/library/page.tsx
 //
-// Tutor library home — slice 11.2a wired folder data, 11.2b adds
-// the per-folder notes fetch + the `+ New note` modal-first flow.
+// Tutor library home — slice 11.2a wired folder data, 11.2b added
+// per-folder notes, 11.3a adds shelves.
 //
-// Server component. Reads `?folder=` to decide what to fetch:
-//   • no `?folder=`                — folders only (empty-state hero)
-//   • `?folder=all`                — folders only (cards grid)
-//   • `?folder=<uuid>`             — folders + that folder's notes
-//   • `?folder=<bad-uuid>`         — folders only (home-shell renders
-//                                    "Folder not found")
+// Server component. Reads two mutually-coordinated URL params:
+//   • `?folder=`  — folder lens scope
+//       (none / all / <uuid> / unknown-uuid → "Folder not found")
+//   • `?shelf=`   — shelf lens scope
+//       (none / all / <uuid>; 11.3a routes all per-shelf to 'all',
+//        the per-shelf detail view ships in 11.4)
+//
+// When `?shelf=` is set it wins — the main pane shows the shelves
+// surface regardless of `?folder=`. The sidebar still renders both
+// lenses fully (folder rows + shelf rows + counts), so the user can
+// pivot back to a folder via a single click.
 //
 // Auth: gated by (app)/tutor/layout.tsx which enforces TUTOR role.
 
@@ -16,27 +21,42 @@ import { LibraryHomeShell } from '@/lib/library/home-shell';
 import {
   getFoldersForTutor,
   getNotesForTutor,
+  getShelvesForTutor,
 } from '@/lib/library/queries';
 
 interface PageProps {
   // Next.js 16: searchParams is a Promise on server components.
-  searchParams: Promise<{ folder?: string | string[] }>;
+  searchParams: Promise<{
+    folder?: string | string[];
+    shelf?: string | string[];
+  }>;
+}
+
+function firstOrNull(raw: string | string[] | undefined): string | null {
+  if (typeof raw === 'string') return raw;
+  if (Array.isArray(raw)) return raw[0] ?? null;
+  return null;
 }
 
 export default async function TutorLibraryPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const raw = params.folder;
-  const selected =
-    typeof raw === 'string' ? raw : Array.isArray(raw) ? (raw[0] ?? null) : null;
+  const selected = firstOrNull(params.folder);
+  const shelfSelected = firstOrNull(params.shelf);
 
-  // Folders always — needed for the sidebar lens regardless of view.
-  const folders = await getFoldersForTutor();
+  // Folders + shelves always — both lenses render their rows in the
+  // sidebar regardless of which scope the main pane is showing. Run
+  // them in parallel to keep TTFB tight.
+  const [folders, shelves] = await Promise.all([
+    getFoldersForTutor(),
+    getShelvesForTutor(),
+  ]);
 
-  // Notes only when a real folder is selected. 'all' = no per-folder
-  // notes fetch (the cards grid doesn't list notes). Unknown ids
-  // also skip the fetch — the home shell renders "Folder not found"
-  // when `selected` doesn't match.
+  // Notes only when a real folder is selected AND no shelf scope is
+  // active. The shelf scope (?shelf=...) takes the main pane over
+  // wholesale in 11.3a — the per-folder notes list isn't visible
+  // there, so skip the fetch.
   const folderIsReal =
+    shelfSelected == null &&
     selected != null &&
     selected !== 'all' &&
     folders.some((f) => f.folder_id === selected);
@@ -44,6 +64,12 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
   const notes = folderIsReal ? await getNotesForTutor(selected) : null;
 
   return (
-    <LibraryHomeShell folders={folders} notes={notes} selected={selected} />
+    <LibraryHomeShell
+      folders={folders}
+      shelves={shelves}
+      notes={notes}
+      selected={selected}
+      shelfSelected={shelfSelected}
+    />
   );
 }
