@@ -8,7 +8,44 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-26):** **Tutor Library Slice 11.4 —
+> **Last shipped (2026-05-26):** **Tutor Library 11.4 follow-on —
+> folder kebab + editor edit-cue.** Two small UX gaps Sam flagged
+> while testing 11.4: folders had no edit/delete UI (only shelves
+> did), and the editor's title / subtitle / description inputs
+> looked like display text to a new tutor.
+>
+> - **Folder kebab.** `<FolderRows>` gains the hover-revealed
+>   `⋮` + popover menu pattern from `<ShelfRows>` — Edit / Delete
+>   entries, click-outside + Escape close.
+> - **Folder edit.** `<NewFolderModal>` refactored to a
+>   discriminated `variant: { mode: 'create' } | { mode: 'edit' }`
+>   mirroring `<NewShelfModal>`. Pre-fill from the folder; dup-check
+>   excludes self; mode-aware copy.
+> - **Folder delete with orphan-to-root.** New
+>   `deleteFolderAction` — UPDATE notes SET folder_id = NULL WHERE
+>   folder_id = ?, then DELETE folder. Notes survive intact
+>   (body, shelf memberships, programme attachments, visibility).
+>   Simple yes/no confirm with note-count-aware copy ("the N notes
+>   inside will move to Root — body content, shelf memberships,
+>   programme attachments and visibility settings are all kept").
+> - **Editor edit-cue.** Title / subtitle / description each
+>   wrapped in a `.lib-editor-editable` div with a hover- and
+>   focus-within-revealed `✎` icon at the right edge + a subtle
+>   accent tint on the field. Pencil has `pointer-events: none`
+>   so clicks fall through to the input. Solves the "looks like
+>   display text" complaint without restructuring.
+>
+> **Files new (1):** `lib/library/delete-folder-confirm.tsx`.
+>
+> **Files modified (5):** `lib/library/actions.ts`
+> (editFolderAction + deleteFolderAction),
+> `lib/library/new-folder-modal.tsx` (discriminated mode),
+> `lib/library/folder-rows.tsx` (kebab + edit/delete state),
+> `lib/library/home-shell.tsx` (variant prop),
+> `lib/library/note-editor.tsx` (editable wraps + pencil) +
+> `styles/library.css` (`.lib-editor-editable` block).
+>
+> **Earlier shipped (2026-05-26):** **Tutor Library Slice 11.4 —
 > per-shelf detail view (shelf scope).** Per-shelf URLs become
 > real: clicking a shelf row in the sidebar now lands at
 > `?shelf=<uuid>` on a dedicated numbered-list pane (the 11.3a
@@ -293,15 +330,37 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > (`23c23e7`, `763872b`, plus the 7 gap-review commits) and the
 > canonical planning doc.
 >
-> **Next:** Slice **11.5** — Tiptap editor scaffold (starter-kit
-> blocks + slash command + `+` button + drag handle + always-visible
-> toolbar + autosave + `version_id` save guard + `BroadcastChannel`
-> two-tabs warning). Provisional gate: fall back to a markdown
-> textarea if Tiptap goes badly. Or rotate per the alternate-features
-> rule — Payments 5.3 is the live alternate (5.1 + 5.2 shipped). Full
-> library slice ladder + status flags live in
+> **Next:** Library **note-card consistency + editor "On shelves"
+> rail** (bundled — they share a `shelf_memberships` projection on
+> the note). Extract a single `<NoteLensRow>` for every full-width
+> note context (folder list, shelf detail, future All Notes /
+> Drafts / Used nowhere) — title + subtitle + description + 📁
+> folder chip + coloured shelf pips (one per membership) + pillar
+> chips + #tags, with Pub/Draft + ↳ used-in-N + edited-Xd-ago in
+> the right column. Carousel keeps its compact card. Editor right
+> rail gains a read-only **On shelves** section (clickable pip +
+> title → `?shelf=<id>`). After that: **Library Overview + system
+> Views** (`/tutor/library` becomes a dashboard with stat cards +
+> recent activity + pillar coverage + quick links; All notes /
+> Drafts / Used nowhere wired as `?view=<key>`; Recent deferred
+> until visit-tracking ships). Tiptap editor scaffold (was the
+> previous ⏭) bumps after these. Or rotate per the
+> alternate-features rule — Payments 5.3 is the live alternate
+> (5.1 + 5.2 shipped). Full library slice ladder + status flags
+> live in
 > [`docs/product-plan/tutor-library.md` → Build order](docs/product-plan/tutor-library.md#build-order-when-this-gets-queued)
 > — see Part 3 below.
+>
+> **Deferred follow-on — note deletion.** The schema is ready
+> (`nclex_tutor_library_note_attachments.note_id` is `ON DELETE
+> RESTRICT`; `_shelf_memberships.note_id` is `ON DELETE CASCADE`)
+> but there's no UI or `deleteNoteAction` yet. Surfaced 2026-05-26.
+> Shape when it lands: kebab on each note row in `<NotesList>` /
+> `<ShelfDetail>` + a Delete entry in a future editor toolbar
+> overflow menu + a `deleteNoteAction` that catches FK 23503 and
+> returns "detach from N units first." Pairs naturally with the
+> note-card-consistency slice (which is touching the same row
+> components anyway) or with Publish (11.10).
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.

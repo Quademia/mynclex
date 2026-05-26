@@ -115,6 +115,127 @@ export async function createFolderAction(
 }
 
 
+export type EditFolderResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Edit a folder's name + description. Mirrors `editShelfAction` —
+ * auth check, validation, dup-check excluding the folder being
+ * edited, UPDATE.
+ *
+ * RLS gates the UPDATE via the folder-self-update policy; cross-tutor
+ * + not-found come back as a single "Folder not found, or not yours
+ * to edit." surface so we never leak the distinction.
+ */
+export async function editFolderAction(
+  folderId: string,
+  input: LibraryFolderFormValues,
+): Promise<EditFolderResult> {
+  const validationError = validate(input);
+  if (validationError) return { ok: false, error: validationError };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const name = input.name.trim();
+  const description =
+    input.description != null && input.description.trim().length > 0
+      ? input.description.trim()
+      : null;
+
+  // Dup-check against OTHER folders only — renaming to the same
+  // name (case-only flip) is allowed.
+  const { data: existing } = await supabase
+    .from('nclex_tutor_library_folders')
+    .select('folder_id, name')
+    .ilike('name', name)
+    .neq('folder_id', folderId);
+  if (existing && existing.length > 0) {
+    return { ok: false, error: `A folder named "${name}" already exists.` };
+  }
+
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('nclex_tutor_library_folders')
+    .update({
+      name,
+      description,
+      updated_at: nowIso,
+    })
+    .eq('folder_id', folderId)
+    .select('folder_id')
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return {
+      ok: false,
+      error: 'Folder not found, or not yours to edit.',
+    };
+  }
+
+  revalidatePath('/tutor/library');
+  return { ok: true };
+}
+
+
+export type DeleteFolderResult =
+  | { ok: true; orphaned: number }
+  | { ok: false; error: string };
+
+/**
+ * Delete a folder. Notes inside don't go with it — they orphan to
+ * Root (folder_id = NULL) before the folder DELETE fires. The note's
+ * body, shelf memberships, programme attachments and visibility
+ * survive intact; only the folder pointer changes.
+ *
+ * Two writes, no DB transaction (supabase-js doesn't expose one
+ * client-side). The orphan UPDATE happens first; if it succeeds and
+ * the DELETE fails, the worst case is "notes already at root, folder
+ * still exists" — recoverable on retry. The reverse ordering would
+ * be worse: a fired-DELETE with no orphan would leave dangling
+ * `folder_id` references, which can't actually happen here because
+ * `nclex_tutor_library_notes.folder_id` is `ON DELETE SET NULL` per
+ * the migration, but doing the orphan explicitly keeps the intent
+ * legible in the action layer.
+ *
+ * Returns the count of orphaned notes so the toast / log can be
+ * precise.
+ */
+export async function deleteFolderAction(
+  folderId: string,
+): Promise<DeleteFolderResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Orphan-then-delete. UPDATE returns the affected rows when we ask
+  // for them via .select(); we use that to compute the count for the
+  // success message.
+  const { data: orphaned, error: orphanErr } = await supabase
+    .from('nclex_tutor_library_notes')
+    .update({ folder_id: null })
+    .eq('folder_id', folderId)
+    .select('note_id');
+  if (orphanErr) return { ok: false, error: orphanErr.message };
+
+  const { error: delErr } = await supabase
+    .from('nclex_tutor_library_folders')
+    .delete()
+    .eq('folder_id', folderId);
+  if (delErr) return { ok: false, error: delErr.message };
+
+  revalidatePath('/tutor/library');
+  return { ok: true, orphaned: orphaned?.length ?? 0 };
+}
+
+
 // =====================================================================
 // Slice 11.2b — notes
 // =====================================================================

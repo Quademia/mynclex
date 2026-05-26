@@ -1,24 +1,14 @@
 // mynclex/lib/library/new-folder-modal.tsx
 //
-// Create-folder modal for the tutor library (slice 11.2a). One
-// section, two fields:
-//   • Name (required, 2..60 chars, no duplicates within the tutor's
-//     library — uniqueness checked client-side against the
-//     pre-fetched folder list as well as server-side in
-//     createFolderAction).
-//   • Description (optional, ≤280 chars). Shown on folder cards
-//     and as a sub-head on the folder scope page (when the page
-//     ships in 11.2b).
-//
-// The CD prototype includes a third field — "Open editor with a
-// new draft note in this folder" checkbox — that ships in slice
-// 11.2b once the note editor route exists. For 11.2a the checkbox
-// is omitted; new folders just appear in the sidebar.
+// Unified create + edit modal for tutor library folders.
+// Discriminated `variant` prop — `{ mode: 'create' }` shows a blank
+// form, `{ mode: 'edit', folder }` pre-populates from the row and
+// wires the submit to editFolderAction. Mirrors the shape of
+// NewShelfModal so the two modals feel identical.
 //
 // Class family `prog-modal-*` is reused from the existing programme/
 // cohort modals so we don't re-style the same surface in two places.
-// Library-specific touches (the hint card at the bottom, the field
-// hint copy) live inline.
+// Library-specific touches (hint card, field hint copy) live inline.
 
 'use client';
 
@@ -26,21 +16,28 @@ import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { ErrorToast } from '@/lib/toast/error-toast';
-import { createFolderAction } from './actions';
-import type { LibraryFolderWithCount } from './types';
+import { createFolderAction, editFolderAction } from './actions';
+import type { LibraryFolder, LibraryFolderWithCount } from './types';
 
 const NAME_MIN = 2;
 const NAME_MAX = 60;
 const DESC_MAX = 280;
 
+type Mode =
+  | { mode: 'create' }
+  | { mode: 'edit'; folder: LibraryFolder };
+
 interface NewFolderModalProps {
   /** Existing folders, used for the client-side duplicate-name check. */
   existingFolders: LibraryFolderWithCount[];
+  /** Discriminated mode. */
+  variant: Mode;
   onClose: () => void;
 }
 
 export function NewFolderModal({
   existingFolders,
+  variant,
   onClose,
 }: NewFolderModalProps) {
   const router = useRouter();
@@ -48,17 +45,39 @@ export function NewFolderModal({
   const [error, setError] = useState<string | null>(null);
   const [showDiscard, setShowDiscard] = useState(false);
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const initialName = variant.mode === 'edit' ? variant.folder.name : '';
+  const initialDescription =
+    variant.mode === 'edit' ? variant.folder.description ?? '' : '';
+
+  const [name, setName] = useState(initialName);
+  const [description, setDescription] = useState(initialDescription);
 
   const trimmedName = name.trim();
-  const isDirty = trimmedName.length > 0 || description.trim().length > 0;
+
+  // Dirty = anything differs from the starting state.
+  const isDirty = useMemo(() => {
+    if (variant.mode === 'create') {
+      return trimmedName.length > 0 || description.trim().length > 0;
+    }
+    if (trimmedName !== variant.folder.name) return true;
+    const persistedDesc = variant.folder.description ?? '';
+    if (description !== persistedDesc) return true;
+    return false;
+  }, [variant, trimmedName, name, description]);
 
   // Build a case-insensitive set of existing names for the dup check.
-  const existingNamesLower = useMemo(
-    () => new Set(existingFolders.map((f) => f.name.toLowerCase())),
-    [existingFolders],
-  );
+  // Edit mode excludes the folder being edited so renaming to the
+  // same name (or case-only flip) is allowed.
+  const existingNamesLower = useMemo(() => {
+    const skipId = variant.mode === 'edit' ? variant.folder.folder_id : null;
+    const set = new Set<string>();
+    for (const f of existingFolders) {
+      if (skipId && f.folder_id === skipId) continue;
+      set.add(f.name.toLowerCase());
+    }
+    return set;
+  }, [existingFolders, variant]);
+
   const isDuplicate =
     trimmedName.length > 0 && existingNamesLower.has(trimmedName.toLowerCase());
   const isTooShort = trimmedName.length > 0 && trimmedName.length < NAME_MIN;
@@ -70,7 +89,8 @@ export function NewFolderModal({
     !isTooLong &&
     !isDuplicate &&
     !isDescTooLong &&
-    !isPending;
+    !isPending &&
+    (variant.mode === 'create' || isDirty);
 
   function attemptClose() {
     if (isPending) return;
@@ -91,10 +111,14 @@ export function NewFolderModal({
     if (!canSubmit) return;
     setError(null);
     startTransition(async () => {
-      const result = await createFolderAction({
+      const payload = {
         name: trimmedName,
         description: description.trim() || null,
-      });
+      };
+      const result =
+        variant.mode === 'create'
+          ? await createFolderAction(payload)
+          : await editFolderAction(variant.folder.folder_id, payload);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -104,13 +128,27 @@ export function NewFolderModal({
     });
   }
 
+  const headingText = variant.mode === 'create' ? 'New folder' : 'Edit folder';
+  const subHeadText =
+    variant.mode === 'create'
+      ? 'Your primary filing bin. Tutor-scoped — students see the same folders you do, just with their visibility slice.'
+      : 'Rename the folder or update its description. Notes inside aren’t affected.';
+  const submitLabel =
+    variant.mode === 'create'
+      ? isPending
+        ? 'Creating…'
+        : 'Create folder'
+      : isPending
+        ? 'Saving…'
+        : 'Save changes';
+
   return (
     <>
       <div
         className="prog-modal-overlay"
         role="dialog"
         aria-modal="true"
-        aria-label="New folder"
+        aria-label={headingText}
         onClick={(e) => {
           if (e.target === e.currentTarget) attemptClose();
         }}
@@ -118,11 +156,8 @@ export function NewFolderModal({
         <div className="prog-modal lib-modal-folder">
           <header className="prog-modal-header">
             <div>
-              <h2 className="prog-modal-title">New folder</h2>
-              <p className="lib-modal-sub">
-                Your primary filing bin. Tutor-scoped — students see the
-                same folders you do, just with their visibility slice.
-              </p>
+              <h2 className="prog-modal-title">{headingText}</h2>
+              <p className="lib-modal-sub">{subHeadText}</p>
             </div>
             <button
               type="button"
@@ -218,7 +253,7 @@ export function NewFolderModal({
               onClick={handleSubmit}
               disabled={!canSubmit}
             >
-              {isPending ? 'Creating…' : 'Create folder'}
+              {submitLabel}
             </button>
           </footer>
         </div>

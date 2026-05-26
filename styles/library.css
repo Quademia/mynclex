@@ -1316,6 +1316,42 @@
 
 /* ─── Editor body inputs ──────────────────────────────── */
 
+/* Each of title / subtitle / description is wrapped in this
+   container. At rest the wrap is invisible; on hover or focus-within
+   it tints faintly and surfaces a ✎ icon at the right edge so a new
+   tutor reads "click to edit" rather than "this is display text."
+   The wrap reserves 30px on the right for the pencil; the inputs'
+   own margin-bottom values still drive the vertical rhythm. */
+.lib-editor-editable {
+  position: relative;
+  border-radius: 6px;
+  margin: -2px -10px 0;
+  padding: 2px 30px 2px 10px;
+  transition: background 0.14s;
+}
+
+.lib-editor-editable:hover,
+.lib-editor-editable:focus-within {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.lib-editor-pencil {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: var(--text-muted);
+  opacity: 0;
+  pointer-events: none; /* clicks fall through to the input behind */
+  transition: opacity 0.14s;
+}
+
+.lib-editor-editable:hover .lib-editor-pencil,
+.lib-editor-editable:focus-within .lib-editor-pencil {
+  opacity: 0.65;
+}
+
 .lib-editor-title {
   width: 100%;
   border: none;

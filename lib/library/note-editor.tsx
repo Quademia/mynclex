@@ -339,14 +339,25 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
       <div className="lib-editor-grid">
         {/* Main editor pane */}
         <div className="lib-editor-main">
-          <input
-            type="text"
-            className="lib-editor-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Untitled note"
-            aria-label="Note title"
-          />
+          {/* Each of title / subtitle / description is wrapped in a
+              hover-revealed edit affordance. Looks like display text
+              at rest; on hover or focus a subtle background tint +
+              ✎ icon at the end signal "you can edit this." The
+              pencil span has pointer-events:none so clicks fall
+              through to the input below. */}
+          <div className="lib-editor-editable">
+            <input
+              type="text"
+              className="lib-editor-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Untitled note"
+              aria-label="Note title"
+            />
+            <span className="lib-editor-pencil" aria-hidden="true">
+              ✎
+            </span>
+          </div>
           {!isTitleValid && trimmedTitle.length > 0 && (
             <span className="lib-field-error">
               {trimmedTitle.length < TITLE_MIN
@@ -354,28 +365,38 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
                 : `Title must be ${TITLE_MAX} characters or fewer.`}
             </span>
           )}
-          <input
-            type="text"
-            className="lib-editor-subtitle"
-            value={subtitle}
-            onChange={(e) => setSubtitle(e.target.value)}
-            placeholder="Subtitle (optional)"
-            aria-label="Subtitle"
-          />
+          <div className="lib-editor-editable">
+            <input
+              type="text"
+              className="lib-editor-subtitle"
+              value={subtitle}
+              onChange={(e) => setSubtitle(e.target.value)}
+              placeholder="Subtitle (optional)"
+              aria-label="Subtitle"
+            />
+            <span className="lib-editor-pencil" aria-hidden="true">
+              ✎
+            </span>
+          </div>
           {!isSubtitleValid && (
             <span className="lib-field-error">
               Subtitle must be {SUBTITLE_MAX} characters or fewer.
             </span>
           )}
-          <input
-            type="text"
-            className="lib-editor-desc"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Card description — shown when this note appears in lists (optional)"
-            aria-label="Description"
-            maxLength={DESC_MAX + 20}
-          />
+          <div className="lib-editor-editable">
+            <input
+              type="text"
+              className="lib-editor-desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Card description — shown when this note appears in lists (optional)"
+              aria-label="Description"
+              maxLength={DESC_MAX + 20}
+            />
+            <span className="lib-editor-pencil" aria-hidden="true">
+              ✎
+            </span>
+          </div>
           {!isDescValid && (
             <span className="lib-field-error">
               Description must be {DESC_MAX} characters or fewer

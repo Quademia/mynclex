@@ -1,22 +1,25 @@
 // mynclex/lib/library/folder-rows.tsx
 //
-// Folder lens body for the tutor library sidebar (slice 11.2a).
-// Replaces the static "no folders yet" copy that 11.1b shipped with
-// real folder rows fed from `getFoldersForTutor()`.
+// Folder lens body for the tutor library sidebar.
+//
+// Slice 11.2a shipped the read-only row + the "All folders" header.
+// Slice 11.4 follow-on adds a per-row hover-revealed kebab ⋮ menu
+// with Edit + Delete entries — mirrors ShelfRows so the two lenses
+// feel identical.
 //
 // Selection state is URL-driven: `?folder=<uuid>` for a specific
-// folder, `?folder=all` for the All-folders grid. The component
-// uses Next's <Link> components so clicks behave like real
-// navigation (browser-back, middle-click open-in-new-tab, etc.) —
-// no client-side state for selection.
-//
-// Active state lights up the row whose folder_id matches the
-// current `?folder` param.
+// folder, `?folder=all` for the All-folders grid. We use Next's
+// <Link> components so clicks behave like real navigation
+// (browser-back, middle-click open-in-new-tab, etc.) — no
+// client-side state for selection.
 
 'use client';
 
 import Link from 'next/link';
-import type { LibraryFolderWithCount } from './types';
+import { useEffect, useRef, useState } from 'react';
+import { NewFolderModal } from './new-folder-modal';
+import { DeleteFolderConfirm } from './delete-folder-confirm';
+import type { LibraryFolder, LibraryFolderWithCount } from './types';
 
 interface FolderRowsProps {
   folders: LibraryFolderWithCount[];
@@ -27,6 +30,10 @@ interface FolderRowsProps {
 export function FolderRows({ folders, selected }: FolderRowsProps) {
   const totalFolders = folders.length;
   const allActive = selected === 'all';
+
+  // One modal/confirm open at a time across the whole lens.
+  const [editing, setEditing] = useState<LibraryFolder | null>(null);
+  const [deleting, setDeleting] = useState<LibraryFolderWithCount | null>(null);
 
   return (
     <>
@@ -44,22 +51,116 @@ export function FolderRows({ folders, selected }: FolderRowsProps) {
           No folders yet — create one with + New folder.
         </div>
       ) : (
-        folders.map((f) => {
-          const active = selected === f.folder_id;
-          return (
-            <Link
-              key={f.folder_id}
-              href={`/tutor/library?folder=${f.folder_id}`}
-              className={`lens-item${active ? ' is-active' : ''}`}
-              aria-current={active ? 'page' : undefined}
-              title={f.description ?? undefined}
-            >
-              <span className="label">{f.name}</span>
-              <span className="cnt">{f.note_count}</span>
-            </Link>
-          );
-        })
+        folders.map((f) => (
+          <FolderRow
+            key={f.folder_id}
+            folder={f}
+            isActive={selected === f.folder_id}
+            onEdit={() => setEditing(f)}
+            onDelete={() => setDeleting(f)}
+          />
+        ))
+      )}
+
+      {editing && (
+        <NewFolderModal
+          existingFolders={folders}
+          variant={{ mode: 'edit', folder: editing }}
+          onClose={() => setEditing(null)}
+        />
+      )}
+
+      {deleting && (
+        <DeleteFolderConfirm
+          folder={deleting}
+          onClose={() => setDeleting(null)}
+        />
       )}
     </>
+  );
+}
+
+
+interface FolderRowProps {
+  folder: LibraryFolderWithCount;
+  isActive: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function FolderRow({ folder, isActive, onEdit, onDelete }: FolderRowProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const rowRef = useRef<HTMLDivElement | null>(null);
+
+  // Click-outside + Escape close.
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onDocClick(e: MouseEvent) {
+      if (!rowRef.current) return;
+      if (!rowRef.current.contains(e.target as Node)) setMenuOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMenuOpen(false);
+    }
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  return (
+    <div className="lens-item-wrap" ref={rowRef}>
+      <Link
+        href={`/tutor/library?folder=${folder.folder_id}`}
+        className={`lens-item${isActive ? ' is-active' : ''}`}
+        aria-current={isActive ? 'page' : undefined}
+        title={folder.description ?? undefined}
+      >
+        <span className="label">{folder.name}</span>
+        <span className="cnt">{folder.note_count}</span>
+      </Link>
+      <button
+        type="button"
+        className="lens-item-kebab"
+        aria-label={`Folder actions for ${folder.name}`}
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setMenuOpen((v) => !v);
+        }}
+      >
+        ⋮
+      </button>
+      {menuOpen && (
+        <div className="lens-item-menu" role="menu">
+          <button
+            type="button"
+            role="menuitem"
+            className="lens-item-menu-btn"
+            onClick={() => {
+              setMenuOpen(false);
+              onEdit();
+            }}
+          >
+            ✎ Edit
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="lens-item-menu-btn lens-item-menu-btn-danger"
+            onClick={() => {
+              setMenuOpen(false);
+              onDelete();
+            }}
+          >
+            🗑 Delete
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

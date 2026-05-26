@@ -1833,6 +1833,21 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   `lib/library/{all-shelves-carousel,add-notes-to-shelf-modal}.tsx`
   new; types / queries / actions / home-shell / page /
   `styles/library.css` updated.
+- ✅ **11.4 follow-on** (2026-05-26) Folder kebab + editor edit-cue.
+  Folder rows gain the hover-revealed `⋮` + Edit / Delete menu
+  pattern from `<ShelfRows>`. New `editFolderAction` + 
+  `deleteFolderAction` (delete orphans notes to root via UPDATE-
+  then-DELETE — body content, shelf memberships, programme
+  attachments and visibility all kept; notes survive intact).
+  `<NewFolderModal>` refactored to discriminated `{ mode }` union
+  mirroring the shelf modal. Editor's title / subtitle /
+  description inputs each wrapped in a `.lib-editor-editable`
+  div with a hover- and focus-within-revealed `✎` icon + subtle
+  accent tint, fixing the "looks like display text" UX gap for
+  new tutors. Pencil has `pointer-events: none` so clicks fall
+  through to the input. Files new: `delete-folder-confirm.tsx`;
+  files modified: actions / new-folder-modal / folder-rows /
+  home-shell / note-editor / `styles/library.css`.
 - ✅ **11.4** (2026-05-26) Shelf scope — per-shelf detail view.
   `?shelf=<uuid>` activates as a real destination (the sidebar
   shelf rows route there now; `?shelf=all` still renders the
@@ -1922,6 +1937,58 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   composing with chip filters via AND.
 - ⬜ **11.17** Polish — used-in click-through, save dialogs, all the
   smaller affordances.
+
+### Queued out-of-numbered-order slices (design-locked 2026-05-26)
+
+Two near-term polish slices that touch the lens row + library
+home directly. Settled with Sam mid-11.4 session — bumped ahead
+of 11.5+ because they fix discoverability gaps a tutor hits in
+their first 30 seconds with the library.
+
+- ⬜ **Note-card consistency + editor "On shelves" rail (bundled).**
+  Extract `<NoteLensRow>` as the single source of truth for every
+  full-width note row (folder list, shelf detail, future All
+  Notes / Drafts / Used nowhere views). Canonical fields:
+  title + subtitle inline + description-or-body-excerpt fallback,
+  meta line carrying 📁 folder · coloured shelf pip(s) · pillar
+  chips · #tags, right column carrying Pub/Draft pill + ↳ used-in
+  N pill + edited-relative-time. Folder chip always shown (slight
+  redundancy in folder scope is fine). Shelf membership renders
+  as one coloured dot per shelf carrying that shelf's identity
+  colour + tooltip with title — not a `+N` count. Carousel keeps
+  its compact card (horizontal scroll demands it). Editor right
+  rail gains a read-only **On shelves** section (clickable pip +
+  title → `?shelf=<id>`) — edit affordance stays on the
+  shelf-side flows (carousel add-to-shelf, shelf-detail add). Both
+  surfaces depend on the same `shelf_memberships(shelf_id, title,
+  color)` projection on the note + the `used_in_count` rollup
+  (already in `getNoteForEdit`; needs adding to the list query).
+- ⬜ **Library Overview + system Views.** `/tutor/library` (no
+  scope) becomes a dashboard rather than the EmptyState hero:
+  stat cards (Total notes · Folders · Shelves · Drafts · Not yet
+  in any programme unit) + Recent activity (last 5 edited) +
+  Pillar coverage (horizontal bar per pillar showing relative
+  count — surfaces gaps) + Quick links to each system view.
+  `?view=<key>` wires three system views — **All notes**,
+  **Drafts** (`is_published = false`), **Used nowhere** (zero
+  programme attachments). **Recent** stays disabled until the
+  `last_visited_at` visit-tracking infrastructure ships. View
+  rows reuse `<NoteLensRow>` from the previous slice. Counts on
+  each lens entry derived at query time.
+
+### Deferred follow-ons (post-build)
+
+- **Note deletion** — schema is ready
+  (`_note_attachments.note_id` is `ON DELETE RESTRICT`;
+  `_shelf_memberships.note_id` is `ON DELETE CASCADE`) but
+  there's no UI or `deleteNoteAction` yet. Surfaced 2026-05-26
+  during the 11.4 follow-on session. Shape when it lands: kebab
+  on each note row in `<NotesList>` / `<ShelfDetail>` /
+  `<NoteLensRow>` + a Delete entry in a future editor toolbar
+  overflow menu + a `deleteNoteAction` that catches FK 23503 and
+  surfaces "detach from N units first." Pairs naturally with the
+  note-card-consistency slice (which is touching the same row
+  components anyway) or with Publish (11.10).
 
 ---
 

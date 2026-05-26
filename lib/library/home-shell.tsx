@@ -357,6 +357,7 @@ export function LibraryHomeShell({
       {newFolderOpen && (
         <NewFolderModal
           existingFolders={folders}
+          variant={{ mode: 'create' }}
           onClose={() => setNewFolderOpen(false)}
         />
       )}
