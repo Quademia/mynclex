@@ -11,11 +11,14 @@
 
 import { createClient } from '@/lib/supabase/server';
 import type {
+  LibraryEligibleNote,
   LibraryFolderWithCount,
   LibraryNote,
   LibraryNoteForEdit,
   LibraryNoteListRow,
+  LibraryShelfCardNote,
   LibraryShelfWithCount,
+  LibraryShelfWithNotes,
 } from './types';
 
 /**
@@ -249,4 +252,185 @@ export async function getShelvesForTutor(): Promise<LibraryShelfWithCount[]> {
       note_count,
     } satisfies LibraryShelfWithCount;
   });
+}
+
+
+// =====================================================================
+// Slice 11.3b — shelves + members joined for the carousel
+// =====================================================================
+
+/**
+ * Shelves with their member notes attached — feeds the Spotify-
+ * style All Shelves carousel main pane. One round trip via
+ * PostgREST embed: each shelf row carries an array of
+ * `_shelf_memberships(position, _notes(...))` joins that we flatten
+ * down into a clean `notes: LibraryShelfCardNote[]` ordered by
+ * membership.position.
+ *
+ * Heavy at the embed layer (one join hop + a nested join to the
+ * notes table), but bounded — a shelf typically holds 5..40 notes,
+ * and a tutor typically has < 20 shelves. If carousel render time
+ * grows into a problem, the natural next move is a
+ * `nclex_tutor_library_shelf_notes` materialised view; not needed
+ * for v1.
+ *
+ * RLS gates: tutor sees own shelves (`_shelves_self_select`); the
+ * membership embed sees own rows (`_shelf_memberships_self_all`);
+ * the nested note embed sees own notes (`_notes_self_select`). All
+ * three policies fire automatically through the PostgREST query.
+ */
+export async function getShelvesWithNotes(): Promise<LibraryShelfWithNotes[]> {
+  const supabase = await createClient();
+
+  // The double-nested embed shape:
+  //   shelves
+  //     └─ shelf_memberships
+  //          └─ notes
+  // PostgREST returns membership rows ordered by their `position`
+  // when we add `.order('position', { foreignTable: ... })`, but
+  // the simpler path is to fetch unordered and sort in JS — the
+  // arrays are small.
+  const { data, error } = await supabase
+    .from('nclex_tutor_library_shelves')
+    .select(
+      `shelf_id, tutor_id, title, tagline, description, color, position,
+       created_at, updated_at,
+       nclex_tutor_library_shelf_memberships (
+         position,
+         nclex_tutor_library_notes (
+           note_id, title, subtitle, description, pillars,
+           is_published, updated_at
+         )
+       )`,
+    )
+    .order('position', { ascending: true });
+
+  if (error || !data) return [];
+
+  return data.map((row) => {
+    // Flatten the membership embed → ordered LibraryShelfCardNote[].
+    const memberships =
+      (row as {
+        nclex_tutor_library_shelf_memberships?: Array<{
+          position: number;
+          nclex_tutor_library_notes:
+            | LibraryShelfCardNote
+            | LibraryShelfCardNote[]
+            | null;
+        }>;
+      }).nclex_tutor_library_shelf_memberships ?? [];
+
+    const notes: LibraryShelfCardNote[] = memberships
+      .map((m) => {
+        // PostgREST returns the nested note as either an object (FK
+        // is to-one) or an array (FK is to-many); the membership
+        // row's FK is to-one (each membership references exactly one
+        // note), so it's the object case here. Defensive handle both.
+        const n = m.nclex_tutor_library_notes;
+        const note = Array.isArray(n) ? n[0] : n;
+        return note ? { note, position: m.position } : null;
+      })
+      .filter((x): x is { note: LibraryShelfCardNote; position: number } => x != null)
+      .sort((a, b) => a.position - b.position)
+      .map((x) => x.note);
+
+    const {
+      shelf_id,
+      tutor_id,
+      title,
+      tagline,
+      description,
+      color,
+      position,
+      created_at,
+      updated_at,
+    } = row;
+    return {
+      shelf_id,
+      tutor_id,
+      title,
+      tagline,
+      description,
+      color,
+      position,
+      created_at,
+      updated_at,
+      note_count: notes.length,
+      notes,
+    } satisfies LibraryShelfWithNotes;
+  });
+}
+
+
+/**
+ * Eligible-notes picker for the AddNotesToShelfDialog. Returns every
+ * note the tutor owns that ISN'T already on the given shelf — both
+ * draft AND published per the 11.3b scope decision (shelves don't
+ * gate visibility; drafts on shelves are harmless).
+ *
+ * `folder_name` is joined in for the picker meta line.
+ * `other_shelf_count` is the count of memberships this note has on
+ * OTHER shelves (drives the "also on N shelf" badge); 0 for notes
+ * with no membership rows anywhere.
+ *
+ * Sorted by `updated_at desc` so the tutor's most-recently-worked-
+ * on notes surface first — that's the natural "what am I curating
+ * right now" order.
+ */
+export async function getEligibleNotesForShelf(
+  shelfId: string,
+): Promise<LibraryEligibleNote[]> {
+  const supabase = await createClient();
+
+  // Pull all owned notes with folder + every membership in a single
+  // round trip. We exclude already-on-this-shelf rows in JS rather
+  // than via a NOT EXISTS subquery — supabase-js doesn't express
+  // that well and the membership arrays are small.
+  const { data, error } = await supabase
+    .from('nclex_tutor_library_notes')
+    .select(
+      `note_id, title, subtitle, folder_id, pillars, is_published,
+       updated_at,
+       nclex_tutor_library_folders ( name ),
+       nclex_tutor_library_shelf_memberships ( shelf_id )`,
+    )
+    .order('updated_at', { ascending: false });
+
+  if (error || !data) return [];
+
+  return data
+    .map((row) => {
+      const folderEmbed = (row as {
+        nclex_tutor_library_folders?:
+          | { name: string }
+          | { name: string }[]
+          | null;
+      }).nclex_tutor_library_folders;
+      const folder = Array.isArray(folderEmbed) ? folderEmbed[0] : folderEmbed;
+
+      const memberships =
+        (row as {
+          nclex_tutor_library_shelf_memberships?: Array<{ shelf_id: string }>;
+        }).nclex_tutor_library_shelf_memberships ?? [];
+
+      const onThisShelf = memberships.some((m) => m.shelf_id === shelfId);
+      if (onThisShelf) return null; // exclude already-attached
+
+      const other_shelf_count = memberships.filter(
+        (m) => m.shelf_id !== shelfId,
+      ).length;
+
+      const projection: LibraryEligibleNote = {
+        note_id: row.note_id,
+        title: row.title,
+        subtitle: row.subtitle,
+        folder_id: row.folder_id,
+        folder_name: folder?.name ?? null,
+        pillars: row.pillars,
+        is_published: row.is_published,
+        other_shelf_count,
+      };
+      return projection;
+    })
+    .filter((x): x is LibraryEligibleNote => x != null);
 }

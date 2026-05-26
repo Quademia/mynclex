@@ -31,14 +31,17 @@ import { useEffect, useState } from 'react';
 import { FolderRows } from './folder-rows';
 import { ShelfRows } from './shelf-rows';
 import { AllFoldersGrid } from './all-folders-grid';
+import { AllShelvesCarousel } from './all-shelves-carousel';
 import { NewFolderModal } from './new-folder-modal';
 import { NewShelfModal } from './new-shelf-modal';
 import { NewNoteModal } from './new-note-modal';
 import { NotesList } from './notes-list';
 import type {
+  LibraryEligibleNote,
   LibraryFolderWithCount,
   LibraryNoteListRow,
   LibraryShelfWithCount,
+  LibraryShelfWithNotes,
 } from './types';
 
 const LS_RAILED = 'mynclex.library.home.railed';
@@ -89,8 +92,20 @@ const PILLAR_NAMES: string[] = [
 interface LibraryHomeShellProps {
   /** All folders owned by the signed-in tutor, ordered by `position`. */
   folders: LibraryFolderWithCount[];
-  /** All shelves owned by the signed-in tutor, ordered by `position`. */
+  /** Lean shelf projection — used by the sidebar lens for counts. */
   shelves: LibraryShelfWithCount[];
+  /**
+   * Rich shelf projection with members embedded — non-null only when
+   * a shelf scope is active (`?shelf=…`). The main pane uses this to
+   * render the Spotify-style carousels in 11.3b.
+   */
+  shelvesWithNotes: LibraryShelfWithNotes[] | null;
+  /**
+   * Pre-fetched eligible-notes per shelf for the
+   * AddNotesToShelfModal. Non-empty only when a shelf scope is
+   * active. Keyed by shelf_id.
+   */
+  eligibleByShelf: Record<string, LibraryEligibleNote[]>;
   /**
    * Notes in the currently-selected folder, or null when no folder
    * is selected (the home empty-state doesn't list any notes). When
@@ -107,6 +122,8 @@ interface LibraryHomeShellProps {
 export function LibraryHomeShell({
   folders,
   shelves,
+  shelvesWithNotes,
+  eligibleByShelf,
   notes,
   selected,
   shelfSelected,
@@ -274,14 +291,23 @@ export function LibraryHomeShell({
 
         <main className="lib-main">
           {shelfSelected != null ? (
-            // 11.3a placeholder for the All Shelves carousel — the real
-            // carousel ships in 11.3b. For now every shelf nav lands
-            // here (per the scope decision: route all `?shelf=` URLs to
-            // `?shelf=all` until 11.4 ships shelf-detail).
-            <ShelvesComingSoon
-              shelfCount={shelves.length}
-              onNewShelf={openNewShelf}
-            />
+            shelves.length === 0 ? (
+              // Empty-state hero — no shelves yet. Stays at the empty
+              // hero rather than rendering an empty carousel page.
+              <ShelvesEmptyHero onNewShelf={openNewShelf} />
+            ) : (
+              // Real All Shelves carousel (11.3b). 11.3a's placeholder
+              // is gone now that the carousel exists.
+              <AllShelvesCarousel
+                shelves={shelvesWithNotes ?? []}
+                folders={folders.map((f) => ({
+                  folder_id: f.folder_id,
+                  name: f.name,
+                }))}
+                eligibleByShelf={eligibleByShelf}
+                onNewShelf={openNewShelf}
+              />
+            )
           ) : selected === 'all' ? (
             <AllFoldersGrid folders={folders} onNewFolder={openNewFolder} />
           ) : selectedFolder ? (
@@ -496,35 +522,29 @@ function FolderNotFound() {
 
 
 /**
- * Placeholder main pane for any `?shelf=...` URL in 11.3a. The
- * Spotify-style All Shelves carousel — the real consumer of this
- * surface — ships in 11.3b. Until then, every shelf-related nav
- * lands here so the rest of the entity (create / edit / delete from
- * the sidebar kebab) works end-to-end without a half-built
- * intermediate page.
+ * Empty-state hero shown at `?shelf=…` when the tutor has 0 shelves.
+ * When at least one shelf exists, the AllShelvesCarousel renders
+ * instead (with its own dashed `+ Add to shelf` tiles).
  */
-function ShelvesComingSoon({
-  shelfCount,
-  onNewShelf,
-}: {
-  shelfCount: number;
-  onNewShelf: () => void;
-}) {
+function ShelvesEmptyHero({ onNewShelf }: { onNewShelf: () => void }) {
   return (
     <div className="lib-empty">
       <div className="lib-empty-glyph" aria-hidden="true">
         📚
       </div>
-      <h2 className="lib-empty-title">
-        {shelfCount === 0 ? 'No shelves yet' : 'All shelves'}
-      </h2>
+      <h2 className="lib-empty-title">No shelves yet</h2>
       <p className="lib-empty-sub">
-        {shelfCount === 0
-          ? 'Shelves are curated cross-folder packs — "Foundational SATA pack", "Drug deep dives", "Week 1 essentials". Each one carries its own identity colour wherever it appears.'
-          : `You have ${shelfCount} shelf${shelfCount === 1 ? '' : 'es'}. The Spotify-style carousel that lays out every shelf with its notes lands in slice 11.3b — for now create + edit shelves from the sidebar; notes attach in 11.3b.`}
+        Shelves are curated cross-folder packs — &ldquo;Foundational SATA
+        pack&rdquo;, &ldquo;Drug deep dives&rdquo;, &ldquo;Week 1
+        essentials&rdquo;. Each one carries its own identity colour
+        wherever it appears.
       </p>
       <div className="lib-empty-actions">
-        <button className="lib-btn lib-btn-primary" type="button" onClick={onNewShelf}>
+        <button
+          className="lib-btn lib-btn-primary"
+          type="button"
+          onClick={onNewShelf}
+        >
           + New shelf
         </button>
       </div>

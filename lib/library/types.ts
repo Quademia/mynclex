@@ -248,3 +248,64 @@ export type LibraryShelfFormValues = {
   description: string | null;
   color: string;
 };
+
+// =====================================================================
+// Slice 11.3b — shelf carousels + add-to-shelf
+// =====================================================================
+
+/**
+ * Thin per-note projection rendered in the All Shelves carousel
+ * cards. Carries everything the card needs: title + subtitle +
+ * description (or a body-excerpt fallback in a later slice), the
+ * first 2 pillars for the chip-row, and the publish flag for the
+ * Pub/Draft pill at the head of the card.
+ *
+ * Deliberately excludes body / body_tsv / tags — the carousel
+ * card doesn't render them, and `body_tsv` is heavy.
+ */
+export type LibraryShelfCardNote = {
+  note_id: string;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  pillars: NclexPillar[];
+  is_published: boolean;
+  updated_at: string;
+};
+
+/**
+ * Per-shelf projection for the All Shelves carousel — extends the
+ * sidebar's LibraryShelfWithCount with the actual note rows
+ * embedded for the horizontal card strip. One row per shelf, with
+ * `notes` ordered by the membership table's `position` (curator's
+ * within-shelf order).
+ *
+ * Membership rows are joined via PostgREST embed; the carousel
+ * renders the resulting `notes` array directly.
+ */
+export type LibraryShelfWithNotes = LibraryShelfWithCount & {
+  notes: LibraryShelfCardNote[];
+};
+
+/**
+ * Eligible-notes row for the AddNotesToShelfDialog picker. Per the
+ * 11.3b scope decision the dialog shows BOTH draft and published
+ * notes — shelves don't gate visibility, so a draft on a shelf is
+ * harmless. The status pill lets the tutor see which is which.
+ *
+ * `folder_name` is computed at query time (LEFT JOIN to folders)
+ * so the picker's "Folder · {name}" meta line doesn't need a
+ * second round trip; `other_shelf_count` is the number of OTHER
+ * shelves this note is already on (powers the "also on N shelf"
+ * badge).
+ */
+export type LibraryEligibleNote = {
+  note_id: string;
+  title: string;
+  subtitle: string | null;
+  folder_id: string | null;
+  folder_name: string | null; // null = root
+  pillars: NclexPillar[];
+  is_published: boolean;
+  other_shelf_count: number;
+};

@@ -8,16 +8,72 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-26):** **Tutor Library Slice 11.3a — shelf
-> entity + sidebar lens.** The Shelves lens stops being a placeholder
+> **Last shipped (2026-05-26):** **Tutor Library Slice 11.3b —
+> Spotify-style All Shelves carousel + add-to-shelf flow.** Closes
+> the 11.3 sub-arc; the All Shelves view is now real. Each shelf
+> renders as a horizontal-scrolling row of note cards with the
+> shelf's identity colour as a left-edge bar; trailing dashed
+> `+ Add to shelf` tile opens a multi-select picker (search + folder
+> filter + status pill per row + smart eligibility). Hover-revealed
+> ✕ on each card removes the membership with a friendly confirm.
+> Both DRAFT and PUBLISHED notes are eligible (shelves don't gate
+> visibility — drafts on shelves are harmless).
+>
+> - **Two new server reads.** `getShelvesWithNotes()` joins
+>   `_shelf_memberships` → `_notes` via PostgREST embed; one round
+>   trip per page render with members ordered by membership.position.
+>   `getEligibleNotesForShelf(shelfId)` returns the picker rows with
+>   folder name + `other_shelf_count` joined in; sorted by
+>   updated_at desc.
+> - **Two new actions.** `attachNotesToShelfAction` bulk-INSERTs
+>   memberships with positions running from current count; catches
+>   23505 (race-attached duplicate) with friendly copy.
+>   `removeNoteFromShelfAction` DELETEs a single (shelf, note) row
+>   — composite-PK exact.
+> - **`<AllShelvesCarousel>`.** Replaces the 11.3a placeholder when
+>   any shelf scope is active and the tutor has ≥1 shelf. Empty-
+>   state hero with + New shelf CTA when the tutor has 0 shelves.
+>   Per-row: coloured dot + clickable title (links to `?shelf=<id>`
+>   — gains a real destination in 11.4) + count + tagline (italic,
+>   right-aligned, ellipsis-truncated). Carousel cards have a
+>   3px shelf-coloured left-edge bar.
+> - **`<AddNotesToShelfModal>`.** Multi-select picker with live
+>   search (title / subtitle / folder name), folder dropdown
+>   (Root + All + per-folder), Select all / Clear, per-row checkbox
+>   + title + subtitle + folder + "also on N shelves" badge + first
+>   pillar + Pub/Draft pill. Submit copy updates with selection
+>   count.
+> - **Per-card ✕ remove.** Hover-revealed in the card corner;
+>   click opens a reassuring confirm ("the note stays put, only the
+>   membership goes"); confirm calls `removeNoteFromShelfAction`.
+>   Mirrors the cohort-card overlay-link pattern.
+> - **Pre-fetched eligibles.** `page.tsx` runs
+>   `getEligibleNotesForShelf` for every shelf in parallel when the
+>   shelf scope is active — opening the picker is instant.
+> - **CSS — SLICE 11.3b block** in `styles/library.css` covers
+>   carousel layout (244px grid-auto-columns + scroll-snap), card
+>   chrome with the shelf-coloured accent bar, hover-✕, dashed
+>   add-tile, and the picker chrome.
+>
+> **Files new (2):** `lib/library/all-shelves-carousel.tsx`,
+> `lib/library/add-notes-to-shelf-modal.tsx`.
+>
+> **Files modified (5):** `lib/library/types.ts` (3 new projections),
+> `lib/library/queries.ts` (getShelvesWithNotes +
+> getEligibleNotesForShelf), `lib/library/actions.ts` (attach +
+> remove membership actions), `lib/library/home-shell.tsx` (carousel
+> mount + ShelvesEmptyHero), `app/(app)/tutor/library/page.tsx`
+> (shelf-scope-aware fetch shape + parallel eligibles), `styles/library.css`
+> (SLICE 11.3b CSS block).
+>
+> **Earlier shipped (2026-05-26):** **Slice 11.3a — shelf entity +
+> sidebar lens.** The Shelves lens stops being a placeholder
 > — real shelf rows, real counts, an All shelves entry, and full
 > create / edit / delete on the entity (hover-revealed kebab on each
 > row → menu). New tagline column on `nclex_tutor_library_shelves`
 > (separate from the existing description, which 11.4 will use for
-> the shelf detail page). The Spotify-style carousel main pane is
-> 11.3b; until then, every `?shelf=…` URL lands on a friendly
-> placeholder. CD-derived: 8-swatch palette + smart default + live
-> preview pill from the prototype's `NewShelfDialog`.
+> the shelf detail page). CD-derived: 8-swatch palette + smart
+> default + live preview pill from the prototype's `NewShelfDialog`.
 >
 > - **Schema.** `db/migrations/20260617120000_slice_11_3a_shelf_tagline.sql`
 >   adds `tagline TEXT NULL` (applied to mynclex-dev). Two
@@ -175,11 +231,12 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > (`23c23e7`, `763872b`, plus the 7 gap-review commits) and the
 > canonical planning doc.
 >
-> **Next:** Slice **11.3b** — Spotify-style All Shelves carousel
-> main pane + add-to-shelf flow (the dashed `+ Add to shelf` tile
-> at the end of each carousel row). The shelf entity itself is now
-> live (11.3a); 11.3b is the read-and-attach side. Full library
-> slice ladder + status flags live in
+> **Next:** Slice **11.4** — Shelf scope (per-shelf detail page).
+> Numbered list of notes in master shelf order; remove `?shelf=<id>`
+> stub-route (every shelf row currently lands on the All Shelves
+> carousel — 11.4 makes individual shelf URLs real). Or rotate per
+> the alternate-features rule. Full library slice ladder + status
+> flags live in
 > [`docs/product-plan/tutor-library.md` → Build order](docs/product-plan/tutor-library.md#build-order-when-this-gets-queued)
 > — see Part 3 below.
 >

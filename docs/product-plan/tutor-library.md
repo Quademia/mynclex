@@ -1807,16 +1807,32 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   carousel. Files: `lib/library/{new-shelf-modal,shelf-rows}.tsx`
   new; `types.ts` / `queries.ts` / `actions.ts` / `home-shell.tsx`
   / `page.tsx` / `styles/library.css` updated.
-- ⏭ **11.3b** Spotify-style All Shelves carousel main pane +
-  add-to-shelf flow. One section per shelf — colour dot + title +
-  count + tagline header, horizontal row of note cards (Pub/Draft
-  pill + title + description-or-subtitle + 2-pillar chip row),
-  ending in a dashed `+ Add to shelf` tile that opens the
-  AddNotesToShelfDialog (CD-prototyped — multi-select published
-  notes filtered by folder + search, writes to
-  `_shelf_memberships`). Carousel reads via a new
-  `getShelvesWithNotes()` projection (members joined per shelf).
-  Sidebar Shelves lens already shipped in 11.3a.
+- ✅ **11.3b** (2026-05-26) Spotify-style All Shelves carousel main
+  pane + add-to-shelf flow + per-card remove. One section per shelf
+  — coloured dot + clickable title (links to `?shelf=<id>` —
+  destination lands in 11.4) + count + tagline (italic, right-
+  aligned, truncates). Horizontal-scrolling row of note cards with
+  the shelf's identity colour as a 3px left-edge accent bar; cards
+  carry Pub/Draft pill + title (2-line clamp) + description-or-
+  subtitle fallback (2-line clamp) + ≤2 pillar chips. Trailing
+  dashed `+ Add to shelf` tile opens AddNotesToShelfModal —
+  multi-select picker with search (title/subtitle/folder) + folder
+  dropdown + Select all / Clear. Per-row: checkbox + title +
+  subtitle + folder + "also on N shelves" badge + Pub/Draft pill.
+  **Both DRAFT and PUBLISHED notes eligible** (revised from CD's
+  PUBLISHED-only gate — shelves don't gate visibility; drafts on
+  shelves are harmless and pre-organising is a real authoring
+  workflow). Hover-revealed ✕ on each carousel card opens a
+  reassuring confirm → `removeNoteFromShelfAction`. New reads:
+  `getShelvesWithNotes()` (members embedded via PostgREST),
+  `getEligibleNotesForShelf(shelfId)` (folder + other-shelf count
+  joined). New actions: `attachNotesToShelfAction` (bulk),
+  `removeNoteFromShelfAction` (single). `page.tsx` pre-fetches
+  eligibles for every shelf in parallel when the shelf scope is
+  active so the picker opens instantly. Files:
+  `lib/library/{all-shelves-carousel,add-notes-to-shelf-modal}.tsx`
+  new; types / queries / actions / home-shell / page /
+  `styles/library.css` updated.
 - ⬜ **11.4** Library list page — shelf scope. Shelf detail view
   (numbered notes, no Attached-to/Visibility metadata on shelf
   itself).

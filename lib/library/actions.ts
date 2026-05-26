@@ -596,3 +596,130 @@ export async function deleteShelfAction(
   revalidatePath('/tutor/library');
   return { ok: true };
 }
+
+
+// =====================================================================
+// Slice 11.3b — shelf memberships (attach / remove)
+// =====================================================================
+
+export type AttachNotesToShelfResult =
+  | { ok: true; attached: number }
+  | { ok: false; error: string };
+
+/**
+ * Bulk-attach a list of notes to a shelf. Each new membership row's
+ * `position` lands at the tail of the shelf's existing order (start
+ * = current count, +1 per item).
+ *
+ * RLS on `_shelf_memberships_self_all` already enforces that the
+ * shelf belongs to the tutor (the policy joins back via
+ * `_shelves.tutor_id = auth.uid()`); we add an app-layer pre-check
+ * to surface a UX-friendly error before the INSERT and to verify
+ * the note ownership symmetric to the shelf check. RLS on
+ * `_notes_self_select` would block cross-tutor note reads anyway,
+ * so a bad note_id slipping into the payload becomes a no-op from
+ * the DB side.
+ *
+ * Bulk INSERT in one round trip. Returns the count attached so the
+ * dialog's toast / closing copy can be precise.
+ */
+export async function attachNotesToShelfAction(
+  shelfId: string,
+  noteIds: string[],
+): Promise<AttachNotesToShelfResult> {
+  if (noteIds.length === 0) {
+    return { ok: false, error: 'Pick at least one note to add.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Verify the shelf belongs to this tutor (RLS scopes the read).
+  const { data: shelf } = await supabase
+    .from('nclex_tutor_library_shelves')
+    .select('shelf_id')
+    .eq('shelf_id', shelfId)
+    .maybeSingle();
+  if (!shelf) {
+    return {
+      ok: false,
+      error: 'That shelf no longer exists. Refresh and try again.',
+    };
+  }
+
+  // Position starts at current count — newly-attached notes land at
+  // the tail of the shelf order.
+  const { count } = await supabase
+    .from('nclex_tutor_library_shelf_memberships')
+    .select('shelf_id', { count: 'exact', head: true })
+    .eq('shelf_id', shelfId);
+  const startPosition = count ?? 0;
+
+  const rows = noteIds.map((noteId, i) => ({
+    shelf_id: shelfId,
+    note_id: noteId,
+    position: startPosition + i,
+  }));
+
+  const { error } = await supabase
+    .from('nclex_tutor_library_shelf_memberships')
+    .insert(rows);
+
+  if (error) {
+    // 23505 = unique violation. Could happen if the dialog raced
+    // against another tab that already attached one of these notes
+    // — vanishingly unlikely in v1's single-user flow, but the
+    // copy should still be friendly.
+    if (error.code === '23505') {
+      return {
+        ok: false,
+        error: 'One or more of those notes is already on this shelf.',
+      };
+    }
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath('/tutor/library');
+  return { ok: true, attached: rows.length };
+}
+
+
+export type RemoveNoteFromShelfResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Detach a single note from a shelf — drives the hover-revealed ✕
+ * on each carousel card. Composite PK is (shelf_id, note_id), so
+ * the DELETE is exact. The membership row vanishes; the note
+ * itself is untouched (it stays in its folder, keeps its pillars,
+ * keeps any other shelf memberships).
+ *
+ * RLS gates the DELETE through `_shelf_memberships_self_all`
+ * (which scopes via the parent shelf's tutor_id). A successful
+ * call from a tutor who doesn't own the shelf is impossible.
+ */
+export async function removeNoteFromShelfAction(
+  shelfId: string,
+  noteId: string,
+): Promise<RemoveNoteFromShelfResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { error } = await supabase
+    .from('nclex_tutor_library_shelf_memberships')
+    .delete()
+    .eq('shelf_id', shelfId)
+    .eq('note_id', noteId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/tutor/library');
+  return { ok: true };
+}
