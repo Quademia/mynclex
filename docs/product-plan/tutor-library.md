@@ -1833,9 +1833,30 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   `lib/library/{all-shelves-carousel,add-notes-to-shelf-modal}.tsx`
   new; types / queries / actions / home-shell / page /
   `styles/library.css` updated.
-- ⬜ **11.4** Library list page — shelf scope. Shelf detail view
-  (numbered notes, no Attached-to/Visibility metadata on shelf
-  itself).
+- ✅ **11.4** (2026-05-26) Shelf scope — per-shelf detail view.
+  `?shelf=<uuid>` activates as a real destination (the sidebar
+  shelf rows route there now; `?shelf=all` still renders the
+  carousel; unknown UUID → `<ShelfNotFound>`). New
+  `<ShelfDetail>` pane: crumb (Library / Shelves / <title>) +
+  title row with the identity dot + `Shelf · curated` lens
+  badge + sub-line (count · tagline · description) + ordered
+  numbered list. Each row carries the lens row (📁 folder ·
+  📚 +N other-shelf badge · pillar chips · #tags) + Pub/Draft
+  pill + a hover-revealed tool group (▲ / ▼ reorder + ✕
+  remove) overlapping the right edge. Reorder ships as a
+  swap-with-neighbour action; tool group disabled at boundaries.
+  Empty state offers a + Add notes hero (reuses 11.3b's picker
+  modal). New `getShelfDetail()` query (single round trip with
+  nested PostgREST embed for folder + membership-count → derived
+  `other_shelf_count = total - 1`). New `reorderShelfMemberAction()`
+  (two UPDATEs, no UNIQUE on (shelf_id, position) so the swap
+  writes directly). Files: `lib/library/{shelf-detail,
+  remove-from-shelf-confirm}.tsx` new; the carousel and
+  shelf-rows + page + home-shell + types + queries + actions +
+  `styles/library.css` updated. Filter chips (pillar/tag) inside
+  the shelf — deferred; most v1 shelves are small enough that
+  the lens row carries the metadata, can land in a polish slice
+  once a tutor with a big shelf asks.
 - ⬜ **11.5** Tiptap editor scaffold — starter-kit (paragraph,
   heading, list, quote, marks) + slash command + `+` button +
   drag handle + always-visible toolbar + autosave + `version_id`

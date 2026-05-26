@@ -36,10 +36,12 @@ import { NewFolderModal } from './new-folder-modal';
 import { NewShelfModal } from './new-shelf-modal';
 import { NewNoteModal } from './new-note-modal';
 import { NotesList } from './notes-list';
+import { ShelfDetail, ShelfNotFound } from './shelf-detail';
 import type {
   LibraryEligibleNote,
   LibraryFolderWithCount,
   LibraryNoteListRow,
+  LibraryShelfDetail,
   LibraryShelfWithCount,
   LibraryShelfWithNotes,
 } from './types';
@@ -96,10 +98,17 @@ interface LibraryHomeShellProps {
   shelves: LibraryShelfWithCount[];
   /**
    * Rich shelf projection with members embedded — non-null only when
-   * a shelf scope is active (`?shelf=…`). The main pane uses this to
-   * render the Spotify-style carousels in 11.3b.
+   * the carousel scope (`?shelf=all`) is active. The main pane uses
+   * this to render the Spotify-style carousels in 11.3b.
    */
   shelvesWithNotes: LibraryShelfWithNotes[] | null;
+  /**
+   * Single-shelf detail projection — non-null when the per-shelf
+   * scope (`?shelf=<uuid>`) is active AND the shelf was found.
+   * `null` when the URL points at a stale / cross-tutor uuid; the
+   * main pane renders `<ShelfNotFound>` in that case.
+   */
+  shelfDetail: LibraryShelfDetail | null;
   /**
    * Pre-fetched eligible-notes per shelf for the
    * AddNotesToShelfModal. Non-empty only when a shelf scope is
@@ -123,6 +132,7 @@ export function LibraryHomeShell({
   folders,
   shelves,
   shelvesWithNotes,
+  shelfDetail,
   eligibleByShelf,
   notes,
   selected,
@@ -292,12 +302,11 @@ export function LibraryHomeShell({
         <main className="lib-main">
           {shelfSelected != null ? (
             shelves.length === 0 ? (
-              // Empty-state hero — no shelves yet. Stays at the empty
-              // hero rather than rendering an empty carousel page.
+              // Empty-state hero — tutor has no shelves at all. Any
+              // ?shelf= URL is stale; route them to the create CTA.
               <ShelvesEmptyHero onNewShelf={openNewShelf} />
-            ) : (
-              // Real All Shelves carousel (11.3b). 11.3a's placeholder
-              // is gone now that the carousel exists.
+            ) : shelfSelected === 'all' ? (
+              // All Shelves carousel (11.3b).
               <AllShelvesCarousel
                 shelves={shelvesWithNotes ?? []}
                 folders={folders.map((f) => ({
@@ -307,6 +316,21 @@ export function LibraryHomeShell({
                 eligibleByShelf={eligibleByShelf}
                 onNewShelf={openNewShelf}
               />
+            ) : shelfDetail ? (
+              // Per-shelf detail view (11.4).
+              <ShelfDetail
+                shelf={shelfDetail}
+                folders={folders.map((f) => ({
+                  folder_id: f.folder_id,
+                  name: f.name,
+                }))}
+                eligibles={eligibleByShelf[shelfDetail.shelf_id] ?? []}
+              />
+            ) : (
+              // ?shelf=<uuid-that-doesn't-exist> — stale link or
+              // someone else's id. RLS returned null; surface the
+              // dedicated empty state.
+              <ShelfNotFound />
             )
           ) : selected === 'all' ? (
             <AllFoldersGrid folders={folders} onNewFolder={openNewFolder} />

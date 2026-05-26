@@ -17,8 +17,11 @@ import type {
   LibraryNoteForEdit,
   LibraryNoteListRow,
   LibraryShelfCardNote,
+  LibraryShelfDetail,
+  LibraryShelfDetailNote,
   LibraryShelfWithCount,
   LibraryShelfWithNotes,
+  NclexPillar,
 } from './types';
 
 /**
@@ -433,4 +436,149 @@ export async function getEligibleNotesForShelf(
       return projection;
     })
     .filter((x): x is LibraryEligibleNote => x != null);
+}
+
+
+// =====================================================================
+// Slice 11.4 — shelf detail (single-shelf scope)
+// =====================================================================
+
+/**
+ * One shelf with its members in ordered detail. Returns `null` when
+ * the shelf id doesn't match any of the tutor's shelves (RLS filters
+ * cross-tutor reads, so non-existent + not-yours both surface as
+ * `null` — caller renders the same "Shelf not found" empty state).
+ *
+ * The embed shape:
+ *   shelves
+ *     └─ shelf_memberships (position)
+ *          └─ notes (full row)
+ *               ├─ folders (name)
+ *               └─ shelf_memberships(count)   ← total memberships for the note
+ *
+ * `other_shelf_count` is derived in JS as `totalMemberships - 1` —
+ * the note's total memberships minus this one. The relationship is
+ * unambiguous (`_shelf_memberships.note_id → _notes.note_id`), so
+ * PostgREST doesn't need a hint to follow the second embed.
+ */
+export async function getShelfDetail(
+  shelfId: string,
+): Promise<LibraryShelfDetail | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('nclex_tutor_library_shelves')
+    .select(
+      `shelf_id, tutor_id, title, tagline, description, color, position,
+       created_at, updated_at,
+       nclex_tutor_library_shelf_memberships (
+         position,
+         nclex_tutor_library_notes (
+           note_id, title, subtitle, description, folder_id, pillars,
+           tags, is_published, updated_at,
+           nclex_tutor_library_folders ( name ),
+           nclex_tutor_library_shelf_memberships ( count )
+         )
+       )`,
+    )
+    .eq('shelf_id', shelfId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  // Embed shape decoded — each membership row carries a `position`
+  // and a nested `_notes` object (FK is to-one, so PostgREST returns
+  // an object, not an array; we handle the array form defensively).
+  type NoteEmbed = {
+    note_id: string;
+    title: string;
+    subtitle: string | null;
+    description: string | null;
+    folder_id: string | null;
+    pillars: NclexPillar[];
+    tags: string[];
+    is_published: boolean;
+    updated_at: string;
+    nclex_tutor_library_folders:
+      | { name: string }
+      | { name: string }[]
+      | null;
+    nclex_tutor_library_shelf_memberships:
+      | Array<{ count: number }>
+      | { count: number }
+      | null;
+  };
+
+  const memberships =
+    (data as {
+      nclex_tutor_library_shelf_memberships?: Array<{
+        position: number;
+        nclex_tutor_library_notes: NoteEmbed | NoteEmbed[] | null;
+      }>;
+    }).nclex_tutor_library_shelf_memberships ?? [];
+
+  const notes: LibraryShelfDetailNote[] = memberships
+    .map((m) => {
+      const ne = m.nclex_tutor_library_notes;
+      const note = Array.isArray(ne) ? ne[0] : ne;
+      if (!note) return null;
+
+      const folderEmbed = note.nclex_tutor_library_folders;
+      const folder = Array.isArray(folderEmbed)
+        ? folderEmbed[0]
+        : folderEmbed;
+
+      const countEmbed = note.nclex_tutor_library_shelf_memberships;
+      const countObj = Array.isArray(countEmbed)
+        ? countEmbed[0]
+        : countEmbed;
+      const totalMemberships = countObj?.count ?? 1;
+      // Subtract this shelf's own membership. Floor at 0 just in case
+      // the count comes back unexpectedly low.
+      const other_shelf_count = Math.max(0, totalMemberships - 1);
+
+      const projection: LibraryShelfDetailNote = {
+        note_id: note.note_id,
+        title: note.title,
+        subtitle: note.subtitle,
+        description: note.description,
+        folder_id: note.folder_id,
+        folder_name: folder?.name ?? null,
+        pillars: note.pillars,
+        tags: note.tags,
+        is_published: note.is_published,
+        updated_at: note.updated_at,
+        other_shelf_count,
+        position: m.position,
+      };
+      return projection;
+    })
+    .filter((x): x is LibraryShelfDetailNote => x != null)
+    .sort((a, b) => a.position - b.position);
+
+  const {
+    shelf_id,
+    tutor_id,
+    title,
+    tagline,
+    description,
+    color,
+    position,
+    created_at,
+    updated_at,
+  } = data;
+
+  return {
+    shelf_id,
+    tutor_id,
+    title,
+    tagline,
+    description,
+    color,
+    position,
+    created_at,
+    updated_at,
+    notes,
+    note_count: notes.length,
+  } satisfies LibraryShelfDetail;
 }

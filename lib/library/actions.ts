@@ -687,6 +687,86 @@ export async function attachNotesToShelfAction(
 }
 
 
+export type ReorderShelfMemberResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Move a note up or down by one slot within a shelf's master order.
+ * The numbered shelf-detail list (slice 11.4) uses this to swap the
+ * target row with its neighbour. A no-op at the boundaries (top row
+ * receiving `up`, bottom row receiving `down`) returns `ok: true` —
+ * the UI never disables the boundary arrow optimistically, so the
+ * action absorbs the bounds check.
+ *
+ * Two UPDATEs in sequence — there's no UNIQUE on `(shelf_id,
+ * position)` so we can write the swap directly. RLS on
+ * `_shelf_memberships_self_all` scopes both writes to the tutor's
+ * own shelf via the parent FK chain.
+ */
+export async function reorderShelfMemberAction(
+  shelfId: string,
+  noteId: string,
+  direction: 'up' | 'down',
+): Promise<ReorderShelfMemberResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Pull the full membership list for this shelf so we can find the
+  // neighbour by ordered position. RLS already gates this to the
+  // tutor's own rows, so an attacker's shelf id surfaces an empty
+  // list (and the no-op below is harmless).
+  const { data: rows, error: readErr } = await supabase
+    .from('nclex_tutor_library_shelf_memberships')
+    .select('note_id, position')
+    .eq('shelf_id', shelfId)
+    .order('position', { ascending: true });
+
+  if (readErr) return { ok: false, error: readErr.message };
+  if (!rows || rows.length === 0) {
+    return { ok: false, error: 'Shelf is empty or not yours.' };
+  }
+
+  const idx = rows.findIndex((r) => r.note_id === noteId);
+  if (idx < 0) {
+    return { ok: false, error: 'That note is not on this shelf anymore.' };
+  }
+
+  const neighbourIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (neighbourIdx < 0 || neighbourIdx >= rows.length) {
+    // Already at the boundary — nothing to do.
+    return { ok: true };
+  }
+
+  const target = rows[idx];
+  const neighbour = rows[neighbourIdx];
+
+  // Two straight UPDATEs. We swap their `position` values; the PK
+  // (shelf_id, note_id) makes each write unambiguous and there's no
+  // UNIQUE on `(shelf_id, position)` so an intermediate state never
+  // collides.
+  const { error: e1 } = await supabase
+    .from('nclex_tutor_library_shelf_memberships')
+    .update({ position: neighbour.position })
+    .eq('shelf_id', shelfId)
+    .eq('note_id', target.note_id);
+  if (e1) return { ok: false, error: e1.message };
+
+  const { error: e2 } = await supabase
+    .from('nclex_tutor_library_shelf_memberships')
+    .update({ position: target.position })
+    .eq('shelf_id', shelfId)
+    .eq('note_id', neighbour.note_id);
+  if (e2) return { ok: false, error: e2.message };
+
+  revalidatePath('/tutor/library');
+  return { ok: true };
+}
+
+
 export type RemoveNoteFromShelfResult =
   | { ok: true }
   | { ok: false; error: string };

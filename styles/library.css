@@ -2197,3 +2197,206 @@
   background: color-mix(in srgb, var(--text-muted) 14%, transparent);
   color: var(--text-muted);
 }
+
+
+/* ════════════════════════════════════════════════════════════════════
+ * SLICE 11.4 — per-shelf detail view (numbered notes list)
+ * ════════════════════════════════════════════════════════════════════
+ *
+ * Single-shelf scope at `?shelf=<uuid>`. Replaces the 11.3a stub that
+ * routed every shelf URL to the All Shelves carousel. The detail
+ * pane reuses the `.lib-pane-head` chrome (crumb + title + sub-line)
+ * with shelf-specific additions:
+ *   • a coloured identity dot to the left of the title
+ *   • a `Shelf · curated` lens badge inline with the title
+ *   • a tagline inline with the count in the sub-line
+ *   • an optional description paragraph below
+ *
+ * The body is an ordered list of rows. Each row is a clickable
+ * link to the editor with a number column + lens row + state pill,
+ * and a floating tool group on the right (hover-revealed) carrying
+ * up/down reorder arrows and a ✕ remove button.
+ */
+
+.lib-shelf-detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 0;
+}
+
+.lib-shelf-detail-title-row .lib-pane-title {
+  margin: 0;
+}
+
+.lib-shelf-detail-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.lib-shelf-detail-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  background: var(--bg);
+  line-height: 1;
+}
+
+.lib-pane-sub-sep {
+  margin: 0 6px;
+  color: var(--text-faint);
+}
+
+.lib-shelf-detail-tagline {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.lib-shelf-detail-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 6px 0 0;
+  max-width: 720px;
+}
+
+.lib-shelf-detail-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  counter-reset: shelf-row;
+}
+
+.lib-shelf-detail-row-wrap {
+  position: relative;
+}
+
+.lib-shelf-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 100px 14px 16px; /* room on the right for the tools */
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--shelf-accent, var(--border));
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s, box-shadow 0.12s;
+}
+
+.lib-shelf-detail-row:hover {
+  border-color: var(--accent);
+  border-left-color: var(--shelf-accent, var(--accent));
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.lib-shelf-detail-num {
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 28px;
+  text-align: right;
+  padding-top: 1px;
+  flex-shrink: 0;
+}
+
+.lib-shelf-detail-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.lib-shelf-detail-row-side {
+  display: flex;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+/* The tool group floats over the right edge of the row. Hover-
+   revealed: it's invisible by default, fades in when the row is
+   hovered, focus-within keeps it visible for keyboard users.
+   The row's right padding reserves the space so the row content
+   never reflows when the tools appear. */
+.lib-shelf-detail-row-tools {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+
+.lib-shelf-detail-row-wrap:hover .lib-shelf-detail-row-tools,
+.lib-shelf-detail-row-wrap:focus-within .lib-shelf-detail-row-tools {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lib-shelf-detail-arrow,
+.lib-shelf-detail-remove {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.lib-shelf-detail-arrow:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--white));
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.lib-shelf-detail-arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.lib-shelf-detail-remove {
+  margin-left: 6px;
+}
+
+.lib-shelf-detail-remove:hover {
+  background: color-mix(in srgb, #c43e3e 12%, var(--white));
+  color: #c43e3e;
+  border-color: #c43e3e;
+}
+
+/* Folder + other-shelf meta chip variants. The plain `.lib-meta-chip`
+   styles inherit; these add the inline icon spacing. */
+.lib-meta-chip-folder,
+.lib-meta-chip-shelf {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lib-meta-chip-folder > span[aria-hidden='true'],
+.lib-meta-chip-shelf > span[aria-hidden='true'] {
+  font-size: 11px;
+  line-height: 1;
+}

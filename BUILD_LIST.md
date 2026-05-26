@@ -8,7 +8,69 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-26):** **Tutor Library Slice 11.3b —
+> **Last shipped (2026-05-26):** **Tutor Library Slice 11.4 —
+> per-shelf detail view (shelf scope).** Per-shelf URLs become
+> real: clicking a shelf row in the sidebar now lands at
+> `?shelf=<uuid>` on a dedicated numbered-list pane (the 11.3a
+> stub that routed everything to `?shelf=all` is gone).
+> `?shelf=all` keeps the carousel; an unknown UUID surfaces a
+> `<ShelfNotFound>` empty state mirroring `<FolderNotFound>`.
+>
+> - **Detail pane chrome.** Crumb `Library / Shelves / <title>` →
+>   title row with the shelf's identity dot + a `Shelf · curated`
+>   lens badge inline → sub-line composed of count + tagline +
+>   optional description paragraph below → `+ Add notes` primary
+>   button on the right.
+> - **Numbered list.** Ordered by `_shelf_memberships.position`.
+>   Each row carries the planning doc's "per-note lens row"
+>   shape: title (+ subtitle), description-or-subtitle fallback,
+>   inline meta (📁 folder · 📚 +N other-shelf badge · pillar
+>   chips · #tags), Pub/Draft pill on the right, and a 3px
+>   shelf-coloured accent bar on the left edge.
+> - **Reorder + remove tool group.** Floating ▲ ▼ ✕ on the right
+>   edge of each row, hover- and focus-within–revealed (visible
+>   for keyboard nav too). Arrows disabled at the boundaries.
+>   `preventDefault + stopPropagation` so the row's outer Link to
+>   the editor doesn't fire when clicking the affordances.
+> - **`reorderShelfMemberAction(shelfId, noteId, direction)`.**
+>   Pulls the ordered membership list once, swaps target with
+>   neighbour, writes two `UPDATE`s. There's no `UNIQUE` on
+>   `(shelf_id, position)` so an intermediate state can't collide.
+>   Boundary case (top row ▲ / bottom row ▼) returns ok:true
+>   no-op — the UI never blocks the button optimistically.
+> - **`getShelfDetail(shelfId)`.** Single round trip via
+>   PostgREST: shelves → memberships(position) → notes →
+>   folder(name) + memberships(count). `other_shelf_count`
+>   derives in JS as `totalMemberships - 1`. RLS-gated; null
+>   return covers both "doesn't exist" and "not yours" so the
+>   caller renders the same not-found state for either.
+> - **Empty shelf** offers a `+ Add notes to shelf` hero CTA that
+>   opens 11.3b's `<AddNotesToShelfModal>` directly — same picker
+>   the carousel uses.
+> - **`RemoveFromShelfConfirm` extracted.** Pulled out of
+>   `all-shelves-carousel.tsx` into its own file so the detail
+>   view and the carousel share the dialog. Pure refactor — no
+>   behaviour change on the carousel side.
+> - **Filter chips (pillar / tag) inside a shelf — deferred.**
+>   Most v1 shelves are small enough that the lens row carries
+>   the metadata; the chip filter slots in cleanly when a real
+>   tutor with a big shelf asks.
+>
+> **Files new (2):** `lib/library/shelf-detail.tsx`,
+> `lib/library/remove-from-shelf-confirm.tsx`.
+>
+> **Files modified (8):** `lib/library/types.ts` (LibraryShelfDetail
+> + LibraryShelfDetailNote projections), `lib/library/queries.ts`
+> (getShelfDetail), `lib/library/actions.ts`
+> (reorderShelfMemberAction), `lib/library/shelf-rows.tsx`
+> (per-shelf href + is-active class), `lib/library/home-shell.tsx`
+> (shelfDetail prop + branched main pane),
+> `lib/library/all-shelves-carousel.tsx` (imports the shared
+> confirm), `app/(app)/tutor/library/page.tsx` (3-way
+> shelf-scope branch + per-detail eligibles fetch), `styles/library.css`
+> (SLICE 11.4 block).
+>
+> **Earlier shipped (2026-05-26):** **Tutor Library Slice 11.3b —
 > Spotify-style All Shelves carousel + add-to-shelf flow.** Closes
 > the 11.3 sub-arc; the All Shelves view is now real. Each shelf
 > renders as a horizontal-scrolling row of note cards with the
@@ -231,12 +293,13 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > (`23c23e7`, `763872b`, plus the 7 gap-review commits) and the
 > canonical planning doc.
 >
-> **Next:** Slice **11.4** — Shelf scope (per-shelf detail page).
-> Numbered list of notes in master shelf order; remove `?shelf=<id>`
-> stub-route (every shelf row currently lands on the All Shelves
-> carousel — 11.4 makes individual shelf URLs real). Or rotate per
-> the alternate-features rule. Full library slice ladder + status
-> flags live in
+> **Next:** Slice **11.5** — Tiptap editor scaffold (starter-kit
+> blocks + slash command + `+` button + drag handle + always-visible
+> toolbar + autosave + `version_id` save guard + `BroadcastChannel`
+> two-tabs warning). Provisional gate: fall back to a markdown
+> textarea if Tiptap goes badly. Or rotate per the alternate-features
+> rule — Payments 5.3 is the live alternate (5.1 + 5.2 shipped). Full
+> library slice ladder + status flags live in
 > [`docs/product-plan/tutor-library.md` → Build order](docs/product-plan/tutor-library.md#build-order-when-this-gets-queued)
 > — see Part 3 below.
 >

@@ -21,11 +21,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ErrorToast } from '@/lib/toast/error-toast';
 import { AddNotesToShelfModal } from './add-notes-to-shelf-modal';
-import { removeNoteFromShelfAction } from './actions';
+import { RemoveFromShelfConfirm } from './remove-from-shelf-confirm';
 import type {
   LibraryEligibleNote,
   LibraryShelfCardNote,
@@ -229,85 +227,4 @@ function CarouselCard({ note, shelfColor, onOpen, onRemove }: CarouselCardProps)
  */
 function shortPillar(name: string): string {
   return name.split(' ').slice(0, 2).join(' ');
-}
-
-
-interface RemoveFromShelfConfirmProps {
-  shelfTitle: string;
-  shelfId: string;
-  note: LibraryShelfCardNote;
-  onClose: () => void;
-}
-
-function RemoveFromShelfConfirm({
-  shelfTitle,
-  shelfId,
-  note,
-  onClose,
-}: RemoveFromShelfConfirmProps) {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  async function handleRemove() {
-    setPending(true);
-    setError(null);
-    const result = await removeNoteFromShelfAction(shelfId, note.note_id);
-    if (!result.ok) {
-      setError(result.error);
-      setPending(false);
-      return;
-    }
-    onClose();
-    router.refresh();
-  }
-
-  return (
-    <>
-      <div
-        className="prog-modal-overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Remove ${note.title} from ${shelfTitle}`}
-        onClick={(e) => {
-          if (e.target === e.currentTarget && !pending) onClose();
-        }}
-      >
-        <div className="prog-modal lib-modal-remove-from-shelf">
-          <header className="prog-modal-header">
-            <h2 className="prog-modal-title">Remove from shelf?</h2>
-          </header>
-          <div className="prog-modal-body">
-            <p>
-              Remove <b>{note.title}</b> from <b>{shelfTitle}</b>?
-            </p>
-            <p className="lib-modal-sub">
-              The note itself stays put — it keeps its folder, pillars,
-              tags and any other shelves it&apos;s on. Only the
-              membership on this shelf goes.
-            </p>
-          </div>
-          <footer className="prog-modal-footer">
-            <button
-              type="button"
-              className="prog-btn prog-btn-ghost"
-              onClick={onClose}
-              disabled={pending}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="prog-btn prog-btn-danger"
-              onClick={handleRemove}
-              disabled={pending}
-            >
-              {pending ? 'Removing…' : 'Remove'}
-            </button>
-          </footer>
-        </div>
-      </div>
-      <ErrorToast error={error} onDismiss={() => setError(null)} />
-    </>
-  );
 }

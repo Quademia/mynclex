@@ -309,3 +309,44 @@ export type LibraryEligibleNote = {
   is_published: boolean;
   other_shelf_count: number;
 };
+
+// =====================================================================
+// Slice 11.4 — shelf detail (single-shelf scope)
+// =====================================================================
+
+/**
+ * Richer per-note projection for the numbered-list shelf detail
+ * pane. Superset of `LibraryShelfCardNote`: adds `tags`,
+ * `folder_id`, `folder_name`, and `other_shelf_count` so the
+ * lens row can carry the full inline metadata (📁 folder ·
+ * 📚 other-shelf pips · pillars · #tags). Position is the
+ * `_shelf_memberships.position` value — surfaces here so
+ * the reorder action can compute neighbours without a second
+ * round trip.
+ */
+export type LibraryShelfDetailNote = {
+  note_id: string;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  folder_id: string | null;
+  folder_name: string | null; // null = root
+  pillars: NclexPillar[];
+  tags: string[];
+  is_published: boolean;
+  updated_at: string;
+  other_shelf_count: number;
+  position: number; // membership.position
+};
+
+/**
+ * One-shelf-with-its-notes projection — feeds the ShelfDetail
+ * main pane. Same surface area as the shelf row + an ordered
+ * note list (sorted by `membership.position`). `note_count`
+ * is `notes.length` (cheap; kept for parity with the lean
+ * `LibraryShelfWithCount` shape).
+ */
+export type LibraryShelfDetail = LibraryShelf & {
+  notes: LibraryShelfDetailNote[];
+  note_count: number;
+};

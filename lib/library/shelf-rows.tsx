@@ -1,6 +1,8 @@
 // mynclex/lib/library/shelf-rows.tsx
 //
-// Shelf lens body for the tutor library sidebar (slice 11.3a).
+// Shelf lens body for the tutor library sidebar (slice 11.3a,
+// rewired in 11.4).
+//
 // Parallels `folder-rows.tsx` from 11.2a, with two shelf-specific
 // additions:
 //   • A coloured square dot to the left of each shelf title (carries
@@ -10,11 +12,10 @@
 //     minimal CRUD surface a tutor needs to clean up test shelves
 //     while building the library.
 //
-// Per the scope decision for 11.3a, clicking a shelf row navigates
-// to `?shelf=all` (the All Shelves carousel placeholder). The
-// per-shelf detail view ships in 11.4; until then, every shelf row
-// goes to the same carousel landing rather than rendering a half-
-// built shelf-scope page.
+// Routing — slice 11.4 makes per-shelf URLs real. Each shelf row's
+// link points at `?shelf=<shelf_id>` and lights up as active when
+// the URL matches; `All shelves` continues to point at `?shelf=all`
+// (which renders the Spotify-style carousel).
 
 'use client';
 
@@ -62,10 +63,8 @@ export function ShelfRows({ shelves, selected }: ShelfRowsProps) {
           <ShelfRow
             key={s.shelf_id}
             shelf={s}
-            // 11.3a routes every shelf row to ?shelf=all (per scope
-            // decision); 11.4's shelf-detail view replaces this with
-            // `?shelf=${s.shelf_id}`.
-            href="/tutor/library?shelf=all"
+            href={`/tutor/library?shelf=${s.shelf_id}`}
+            isActive={selected === s.shelf_id}
             onEdit={() => setEditing(s)}
             onDelete={() => setDeleting(s)}
           />
@@ -94,11 +93,12 @@ export function ShelfRows({ shelves, selected }: ShelfRowsProps) {
 interface ShelfRowProps {
   shelf: LibraryShelfWithCount;
   href: string;
+  isActive: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-function ShelfRow({ shelf, href, onEdit, onDelete }: ShelfRowProps) {
+function ShelfRow({ shelf, href, isActive, onEdit, onDelete }: ShelfRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const rowRef = useRef<HTMLDivElement | null>(null);
 
@@ -124,7 +124,8 @@ function ShelfRow({ shelf, href, onEdit, onDelete }: ShelfRowProps) {
     <div className="lens-item-wrap" ref={rowRef}>
       <Link
         href={href}
-        className="lens-item lens-item-shelf"
+        className={`lens-item lens-item-shelf${isActive ? ' is-active' : ''}`}
+        aria-current={isActive ? 'page' : undefined}
         title={shelf.tagline ?? shelf.description ?? undefined}
       >
         <span
