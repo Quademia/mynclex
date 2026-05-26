@@ -376,3 +376,41 @@ export type LibraryNoteLensRow = {
   updated_at: string;
   used_in_count: number;
 };
+
+
+// =====================================================================
+// Slice 11.4 follow-on (P2) — Library Overview + system Views
+// =====================================================================
+
+/**
+ * Identifier for each system view in the Views lens. Three are
+ * wired in v1; `Recent` stays disabled until visit-tracking
+ * infrastructure (`last_visited_at` on the note-state table) is
+ * populated by a future slice.
+ */
+export type LibraryViewKey = 'all-notes' | 'drafts' | 'used-nowhere';
+
+/**
+ * Counts powering the sidebar Views lens entries. Always 0 when
+ * the tutor has no notes yet.
+ */
+export type LibraryViewCounts = {
+  all: number;
+  drafts: number;
+  used_nowhere: number;
+};
+
+/**
+ * Data feeding the Overview dashboard at `/tutor/library` (no
+ * scope). Five stat cards + a Recent activity list (last 5 by
+ * `updated_at`) + an 8-row Pillar coverage breakdown.
+ */
+export type LibraryOverviewStats = {
+  total_notes: number;
+  folders: number;
+  shelves: number;
+  drafts: number;
+  used_nowhere: number;
+  pillar_counts: Record<NclexPillar, number>;
+  recent: LibraryNoteLensRow[];
+};

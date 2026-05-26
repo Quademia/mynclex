@@ -27,23 +27,31 @@
 //                       Persisted in localStorage.
 //   • `newFolderOpen` — modal open state.
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { FolderRows } from './folder-rows';
 import { ShelfRows } from './shelf-rows';
 import { AllFoldersGrid } from './all-folders-grid';
 import { AllShelvesCarousel } from './all-shelves-carousel';
+import { LibraryOverview } from './library-overview';
 import { NewFolderModal } from './new-folder-modal';
 import { NewShelfModal } from './new-shelf-modal';
 import { NewNoteModal } from './new-note-modal';
 import { NotesList } from './notes-list';
+import { NotesView } from './notes-view';
 import { ShelfDetail, ShelfNotFound } from './shelf-detail';
 import type {
   LibraryEligibleNote,
   LibraryFolderWithCount,
+  LibraryNoteLensRow,
   LibraryNoteListRow,
+  LibraryOverviewStats,
   LibraryShelfDetail,
   LibraryShelfWithCount,
   LibraryShelfWithNotes,
+  LibraryViewCounts,
+  LibraryViewKey,
+  NclexPillar,
 } from './types';
 
 const LS_RAILED = 'mynclex.library.home.railed';
@@ -126,6 +134,30 @@ interface LibraryHomeShellProps {
   selected: string | null;
   /** The current `?shelf=` URL value — null = no shelf scope active. */
   shelfSelected: string | null;
+  /** The current `?view=` URL value — null = no view scope active. */
+  viewSelected: LibraryViewKey | null;
+  /**
+   * Lens-row data for the active view (when `viewSelected != null`).
+   * Empty array when the filter happens to match no notes.
+   */
+  viewNotes: LibraryNoteLensRow[] | null;
+  /**
+   * Counts for the Views lens entries — drives the count chips on
+   * All notes / Drafts / Used nowhere. Always present.
+   */
+  viewCounts: LibraryViewCounts;
+  /**
+   * Counts for the Pillars lens entries — drives the count chips on
+   * each of the 8 NCLEX pillars. Always present (zero for unseeded
+   * pillars).
+   */
+  pillarCounts: Record<NclexPillar, number>;
+  /**
+   * Overview dashboard data — non-null only when no scope is
+   * active (`/tutor/library` with no query params). Drives stat
+   * cards + recent activity + pillar coverage + quick links.
+   */
+  overviewStats: LibraryOverviewStats | null;
 }
 
 export function LibraryHomeShell({
@@ -137,6 +169,11 @@ export function LibraryHomeShell({
   notes,
   selected,
   shelfSelected,
+  viewSelected,
+  viewNotes,
+  viewCounts,
+  pillarCounts,
+  overviewStats,
 }: LibraryHomeShellProps) {
   // Default to expanded + all sections open. localStorage rehydration
   // happens in a useEffect (so first paint is consistent across
@@ -221,6 +258,10 @@ export function LibraryHomeShell({
       ? folders.find((f) => f.folder_id === selected) ?? null
       : null;
 
+  // Overview is the bare-URL destination — no scope set at all.
+  const isOverviewActive =
+    selected == null && shelfSelected == null && viewSelected == null;
+
   return (
     <div className="lib-page">
       <header className="lib-page-head">
@@ -284,6 +325,20 @@ export function LibraryHomeShell({
             {railed ? '»' : '«'}
           </button>
 
+          {/* Overview / Home entry sits above the lens sections —
+              distinct from any lens. Active when no scope is set;
+              railed mode shows just the 🏠 glyph with a native
+              tooltip. */}
+          <Link
+            href="/tutor/library"
+            className={`lens-home${isOverviewActive ? ' is-active' : ''}`}
+            aria-current={isOverviewActive ? 'page' : undefined}
+            title={railed ? 'Overview' : undefined}
+          >
+            <span className="lens-home-icon" aria-hidden="true">🏠</span>
+            {!railed && <span className="label">Overview</span>}
+          </Link>
+
           {ALL_SECTIONS.map((key) => (
             <LensSection
               key={key}
@@ -291,10 +346,16 @@ export function LibraryHomeShell({
               railed={railed}
               closed={closedSections.has(key)}
               onToggle={() => toggleSection(key)}
+              onExpandRail={() => {
+                if (railed) toggleRailed();
+              }}
               folders={folders}
               shelves={shelves}
               selected={selected}
               shelfSelected={shelfSelected}
+              viewSelected={viewSelected}
+              viewCounts={viewCounts}
+              pillarCounts={pillarCounts}
             />
           ))}
         </aside>
@@ -332,6 +393,11 @@ export function LibraryHomeShell({
               // dedicated empty state.
               <ShelfNotFound />
             )
+          ) : viewSelected != null ? (
+            // System view scope (?view=<key>). Lens-row list of the
+            // notes matching the view's filter — All notes / Drafts /
+            // Used nowhere.
+            <NotesView viewKey={viewSelected} notes={viewNotes ?? []} />
           ) : selected === 'all' ? (
             <AllFoldersGrid folders={folders} onNewFolder={openNewFolder} />
           ) : selectedFolder ? (
@@ -345,7 +411,14 @@ export function LibraryHomeShell({
             // ?folder=<uuid-that-doesn't-exist> — likely stale URL after
             // a deletion or share from another tutor.
             <FolderNotFound />
+          ) : overviewStats ? (
+            // No scope at all — Overview dashboard (P2 slice).
+            // Replaces the generic EmptyState hero that used to sit
+            // here.
+            <LibraryOverview stats={overviewStats} />
           ) : (
+            // Fallback: page-layer didn't fetch overview stats.
+            // Shouldn't fire in practice; kept as a safety net.
             <EmptyState
               onNewFolder={openNewFolder}
               onNewNote={openNewNote}
@@ -380,37 +453,74 @@ export function LibraryHomeShell({
 }
 
 
+// Default landing URL for each lens, used by the railed-mode icon
+// click. Pillars and Tags don't have wired destinations yet — they
+// expand the sidebar via `onExpandRail` instead. An "All tags" view
+// is queued as a future follow-on; we'll swap that mapping in
+// when it ships.
+const SECTION_RAIL_HREF: Partial<Record<LensKey, string>> = {
+  views: '/tutor/library?view=all-notes',
+  folders: '/tutor/library?folder=all',
+  shelves: '/tutor/library?shelf=all',
+};
+
 function LensSection({
   lens,
   railed,
   closed,
   onToggle,
+  onExpandRail,
   folders,
   shelves,
   selected,
   shelfSelected,
+  viewSelected,
+  viewCounts,
+  pillarCounts,
 }: {
   lens: LensKey;
   railed: boolean;
   closed: boolean;
   onToggle: () => void;
+  onExpandRail: () => void;
   folders: LibraryFolderWithCount[];
   shelves: LibraryShelfWithCount[];
   selected: string | null;
   shelfSelected: string | null;
+  viewSelected: LibraryViewKey | null;
+  viewCounts: LibraryViewCounts;
+  pillarCounts: Record<NclexPillar, number>;
 }) {
   if (railed) {
-    // Railed mode: one icon glyph per section, hovering shows the
-    // label as a native tooltip.
+    // Railed mode: one icon glyph per section. Views / Folders /
+    // Shelves are Link-clickable to their default landing; Pillars
+    // and Tags expand the rail instead (no destination wired).
+    const href = SECTION_RAIL_HREF[lens];
+    if (href) {
+      return (
+        <div className="lens-section">
+          <Link
+            href={href}
+            className="lens-rail-icon"
+            title={SECTION_LABEL[lens]}
+            aria-label={SECTION_LABEL[lens]}
+          >
+            {SECTION_RAIL_GLYPH[lens]}
+          </Link>
+        </div>
+      );
+    }
     return (
       <div className="lens-section">
-        <span
+        <button
+          type="button"
           className="lens-rail-icon"
-          title={SECTION_LABEL[lens]}
-          aria-label={SECTION_LABEL[lens]}
+          title={`${SECTION_LABEL[lens]} — click to expand`}
+          aria-label={`Expand ${SECTION_LABEL[lens]} lens`}
+          onClick={onExpandRail}
         >
           {SECTION_RAIL_GLYPH[lens]}
-        </span>
+        </button>
       </div>
     );
   }
@@ -423,13 +533,25 @@ function LensSection({
         onClick={onToggle}
         aria-expanded={!closed}
       >
+        <span className="lens-section-icon" aria-hidden="true">
+          {SECTION_RAIL_GLYPH[lens]}
+        </span>
         <span>{SECTION_LABEL[lens]}</span>
         <span className="chev" aria-hidden="true">
           ▾
         </span>
       </button>
       <div className="lens-section-body">
-        {renderLensBody(lens, folders, shelves, selected, shelfSelected)}
+        {renderLensBody(
+          lens,
+          folders,
+          shelves,
+          selected,
+          shelfSelected,
+          viewSelected,
+          viewCounts,
+          pillarCounts,
+        )}
       </div>
     </div>
   );
@@ -442,17 +564,39 @@ function renderLensBody(
   shelves: LibraryShelfWithCount[],
   selected: string | null,
   shelfSelected: string | null,
+  viewSelected: LibraryViewKey | null,
+  viewCounts: LibraryViewCounts,
+  pillarCounts: Record<NclexPillar, number>,
 ) {
   switch (lens) {
     case 'views':
-      // System views always render — they're structural, not data-
-      // driven. Counts will land when slice 11.2b ships notes.
+      // 3 of 4 system views are wired (P2 slice). Recent stays
+      // disabled until visit-tracking ships.
       return (
         <>
-          <LensItemStatic label="All notes" count={0} />
-          <LensItemStatic label="Recent" count={0} />
-          <LensItemStatic label="Drafts" count={0} />
-          <LensItemStatic label="Used nowhere" count={0} />
+          <LensItemLink
+            href="/tutor/library?view=all-notes"
+            label="All notes"
+            count={viewCounts.all}
+            isActive={viewSelected === 'all-notes'}
+          />
+          <LensItemStatic
+            label="Recent"
+            count={0}
+            hint="Needs visit tracking — ships with a later slice."
+          />
+          <LensItemLink
+            href="/tutor/library?view=drafts"
+            label="Drafts"
+            count={viewCounts.drafts}
+            isActive={viewSelected === 'drafts'}
+          />
+          <LensItemLink
+            href="/tutor/library?view=used-nowhere"
+            label="Used nowhere"
+            count={viewCounts.used_nowhere}
+            isActive={viewSelected === 'used-nowhere'}
+          />
         </>
       );
 
@@ -463,12 +607,17 @@ function renderLensBody(
       return <ShelfRows shelves={shelves} selected={shelfSelected} />;
 
     case 'pillars':
-      // The 8 NCLEX-RN Client Needs sub-categories. All counts zero
-      // until notes exist.
+      // Real counts now — multi-pillar notes count in each of their
+      // pillars (correct, not misleading double-counting). Rows
+      // stay disabled until the pillar filter UI ships.
       return (
         <>
           {PILLAR_NAMES.map((name) => (
-            <LensItemStatic key={name} label={name} count={0} />
+            <LensItemStatic
+              key={name}
+              label={name}
+              count={pillarCounts[name as NclexPillar] ?? 0}
+            />
           ))}
         </>
       );
@@ -484,12 +633,44 @@ function renderLensBody(
 
 
 /** A disabled placeholder lens row for lenses that aren't wired yet. */
-function LensItemStatic({ label, count }: { label: string; count: number }) {
+function LensItemStatic({
+  label,
+  count,
+  hint,
+}: {
+  label: string;
+  count: number;
+  hint?: string;
+}) {
   return (
-    <button type="button" className="lens-item" disabled>
+    <button type="button" className="lens-item" disabled title={hint}>
       <span className="label">{label}</span>
       <span className="cnt">{count}</span>
     </button>
+  );
+}
+
+/** An active lens entry that links to a URL. */
+function LensItemLink({
+  href,
+  label,
+  count,
+  isActive,
+}: {
+  href: string;
+  label: string;
+  count: number;
+  isActive: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`lens-item${isActive ? ' is-active' : ''}`}
+      aria-current={isActive ? 'page' : undefined}
+    >
+      <span className="label">{label}</span>
+      <span className="cnt">{count}</span>
+    </Link>
   );
 }
 

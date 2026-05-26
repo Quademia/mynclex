@@ -205,9 +205,19 @@
 }
 
 .lens-section + .lens-section {
-  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-  padding-top: 10px;
-  margin-top: 6px;
+  border-top: 1px solid var(--border-strong);
+  padding-top: 12px;
+  margin-top: 10px;
+}
+
+.lens-section-icon {
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
 }
 
 .lens-section-head {
@@ -332,6 +342,15 @@
   border-radius: 6px;
   color: var(--text-dim);
   font-size: 14px;
+  /* Cover both <Link> + <button> renderings — the button case
+     needs explicit border/background resets; the Link inherits
+     anchor defaults we want to override (text-decoration). */
+  background: transparent;
+  border: none;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s, color 0.12s;
 }
 
 .lens-side.is-railed .lens-rail-icon:hover {
@@ -2577,4 +2596,257 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+ * SLICE 11.4 follow-on (P2) — Library Overview + system Views
+ * ════════════════════════════════════════════════════════════════════
+ *
+ * `/tutor/library` (no scope) becomes a dashboard. Stat cards across
+ * the top, Recent + Pillar coverage side-by-side below, Quick links
+ * row at the bottom. The three system views (?view=<key>) reuse the
+ * existing `.lib-notes-list` for their note rendering — only the
+ * header chrome is bespoke (NotesView component).
+ */
+
+.lib-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.lib-stat-cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 1000px) {
+  .lib-stat-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .lib-stat-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.lib-stat-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lib-stat-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.lib-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lib-overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .lib-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lib-overview-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.lib-overview-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+
+/* Recent activity rows — compact, clickable into the editor. */
+.lib-recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lib-recent-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text);
+  transition: background 0.12s;
+}
+
+.lib-recent-row:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.lib-recent-title {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.lib-recent-meta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pillar coverage — horizontal bar per pillar, scaled to the
+   busiest pillar so gaps are visible at a glance. */
+.lib-pillar-bars {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lib-pillar-bar-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 32px;
+  gap: 10px;
+  align-items: center;
+}
+
+.lib-pillar-bar-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lib-pillar-bar-track {
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.lib-pillar-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.3s;
+  min-width: 2px;
+}
+
+.lib-pillar-bar-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Quick links — chip row at the bottom of the overview. */
+.lib-quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lib-quick-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.lib-quick-link:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--white));
+  color: var(--accent);
+}
+
+/* NotesView main pane — system view (All notes / Drafts / Used
+   nowhere). Just inherits the .lib-pane-head + .lib-notes-list
+   patterns; no bespoke layout. */
+.lib-notes-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Overview / Home entry — sits above the lens sections, distinct
+   from any lens but visually consistent with `.lens-item`. Bottom
+   margin separates it from the first lens section. */
+.lens-home {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.12s, color 0.12s;
+  margin-bottom: 10px;
+}
+
+.lens-home:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--accent);
+}
+
+.lens-home.is-active {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.lens-home-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.lens-side.is-railed .lens-home {
+  justify-content: center;
+  padding: 8px 0;
+  font-size: 0; /* hide any stray text in railed mode */
+}
+
+.lens-side.is-railed .lens-home-icon {
+  font-size: 16px;
 }

@@ -9,7 +9,9 @@
 // Slice 11.2b extends this file with note queries; folder reads
 // stay as-is. Slice 11.3a adds shelf queries the same way.
 
+import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
+import { NCLEX_PILLARS } from './types';
 import type {
   LibraryEligibleNote,
   LibraryFolderWithCount,
@@ -17,12 +19,15 @@ import type {
   LibraryNoteForEdit,
   LibraryNoteLensRow,
   LibraryNoteListRow,
+  LibraryOverviewStats,
   LibraryShelfCardNote,
   LibraryShelfDetail,
   LibraryShelfDetailNote,
   LibraryShelfPip,
   LibraryShelfWithCount,
   LibraryShelfWithNotes,
+  LibraryViewCounts,
+  LibraryViewKey,
   NclexPillar,
 } from './types';
 
@@ -687,4 +692,155 @@ export async function getShelfDetail(
     notes,
     note_count: notes.length,
   } satisfies LibraryShelfDetail;
+}
+
+
+// =====================================================================
+// Slice 11.4 follow-on (P2) — Library Overview + system Views
+// =====================================================================
+
+/**
+ * Every lens row the tutor owns, ordered by `updated_at` desc.
+ * Used by the overview (counts + recent + pillar coverage) and the
+ * three system views (All notes / Drafts / Used nowhere). Wrapped
+ * in React's `cache()` so multiple consumers in the same RSC
+ * render share a single round trip — `getLibraryLensCounts` and
+ * `getNotesForView` both call this without paying the fetch cost
+ * twice.
+ */
+const fetchAllLensRowsForTutor = cache(async (): Promise<LibraryNoteLensRow[]> => {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('nclex_tutor_library_notes')
+    .select(
+      `note_id, folder_id, title, subtitle, description,
+       tags, pillars, is_published, visibility_mode, updated_at,
+       nclex_tutor_library_folders ( name ),
+       nclex_tutor_library_shelf_memberships (
+         nclex_tutor_library_shelves ( shelf_id, title, color )
+       ),
+       nclex_tutor_library_note_attachments ( count )`,
+    )
+    .order('updated_at', { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((row) => {
+    const r = row as {
+      note_id: string;
+      folder_id: string | null;
+      title: string;
+      subtitle: string | null;
+      description: string | null;
+      tags: string[];
+      pillars: NclexPillar[];
+      is_published: boolean;
+      visibility_mode: LibraryNoteLensRow['visibility_mode'];
+      updated_at: string;
+      nclex_tutor_library_folders: FolderEmbed;
+      nclex_tutor_library_shelf_memberships: ShelfPipEmbed;
+      nclex_tutor_library_note_attachments: AttachmentCountEmbed;
+    };
+    return {
+      note_id: r.note_id,
+      folder_id: r.folder_id,
+      folder_name: extractFolderName(r.nclex_tutor_library_folders),
+      title: r.title,
+      subtitle: r.subtitle,
+      description: r.description,
+      pillars: r.pillars,
+      tags: r.tags,
+      shelf_memberships: extractShelfPips(
+        r.nclex_tutor_library_shelf_memberships,
+      ),
+      is_published: r.is_published,
+      visibility_mode: r.visibility_mode,
+      updated_at: r.updated_at,
+      used_in_count: extractAttachmentCount(
+        r.nclex_tutor_library_note_attachments,
+      ),
+    } satisfies LibraryNoteLensRow;
+  });
+});
+
+function aggregatePillars(
+  rows: LibraryNoteLensRow[],
+): Record<NclexPillar, number> {
+  const counts = Object.fromEntries(
+    NCLEX_PILLARS.map((p) => [p, 0]),
+  ) as Record<NclexPillar, number>;
+  for (const r of rows) {
+    for (const p of r.pillars) {
+      counts[p] += 1;
+    }
+  }
+  return counts;
+}
+
+/**
+ * Counts powering the sidebar Views lens entries. Always called on
+ * every render of `/tutor/library` so the lens lights up regardless
+ * of which scope the tutor is in.
+ */
+export async function getLibraryLensCounts(): Promise<{
+  view: LibraryViewCounts;
+  pillars: Record<NclexPillar, number>;
+}> {
+  const rows = await fetchAllLensRowsForTutor();
+  return {
+    view: {
+      all: rows.length,
+      drafts: rows.filter((r) => !r.is_published).length,
+      used_nowhere: rows.filter((r) => r.used_in_count === 0).length,
+    },
+    pillars: aggregatePillars(rows),
+  };
+}
+
+/**
+ * Data feeding the Overview dashboard at `/tutor/library` (no scope).
+ * Five stat cards + a Recent activity list (last 5 by updated_at) +
+ * an 8-row Pillar coverage breakdown.
+ */
+export async function getLibraryOverviewStats(): Promise<LibraryOverviewStats> {
+  const supabase = await createClient();
+
+  const [rows, foldersHead, shelvesHead] = await Promise.all([
+    fetchAllLensRowsForTutor(),
+    supabase
+      .from('nclex_tutor_library_folders')
+      .select('folder_id', { count: 'exact', head: true }),
+    supabase
+      .from('nclex_tutor_library_shelves')
+      .select('shelf_id', { count: 'exact', head: true }),
+  ]);
+
+  return {
+    total_notes: rows.length,
+    folders: foldersHead.count ?? 0,
+    shelves: shelvesHead.count ?? 0,
+    drafts: rows.filter((r) => !r.is_published).length,
+    used_nowhere: rows.filter((r) => r.used_in_count === 0).length,
+    pillar_counts: aggregatePillars(rows),
+    recent: rows.slice(0, 5),
+  };
+}
+
+/**
+ * Lens-row list for a system view. `Recent` is not represented here
+ * — it stays disabled in the sidebar until visit-tracking ships.
+ */
+export async function getNotesForView(
+  key: LibraryViewKey,
+): Promise<LibraryNoteLensRow[]> {
+  const rows = await fetchAllLensRowsForTutor();
+  switch (key) {
+    case 'all-notes':
+      return rows;
+    case 'drafts':
+      return rows.filter((r) => !r.is_published);
+    case 'used-nowhere':
+      return rows.filter((r) => r.used_in_count === 0);
+  }
 }

@@ -1964,20 +1964,42 @@ their first 30 seconds with the library.
   `↳ used in N` (hidden when zero) + `edited Xd ago`.
   `formatRelative` hoisted from `note-editor.tsx` into
   `format.ts`. Carousel card kept its own compact shape.
-- ⬜ **Library Overview + system Views.** `/tutor/library` (no
-  scope) becomes a dashboard rather than the EmptyState hero:
-  stat cards (Total notes · Folders · Shelves · Drafts · Not yet
-  in any programme unit) + Recent activity (last 5 edited) +
-  Pillar coverage (horizontal bar per pillar showing relative
-  count — surfaces gaps) + Quick links to each system view.
-  `?view=<key>` wires three system views — **All notes**,
-  **Drafts** (`is_published = false`), **Used nowhere** (zero
-  programme attachments). **Recent** stays disabled until the
-  `last_visited_at` visit-tracking infrastructure ships. View
-  rows reuse `<NoteLensRow>` from the previous slice. Counts on
-  each lens entry derived at query time.
+- ✅ **(2026-05-27) Library Overview + system Views + sidebar
+  polish.** Shipped `lib/library/library-overview.tsx` (dashboard
+  with 5 stat cards + Recent activity + Pillar coverage bars +
+  Quick links) and `lib/library/notes-view.tsx` (view-specific
+  header chrome reusing `<NoteLensRow>`). `?view=<key>` wires
+  three system views — **All notes**, **Drafts**
+  (`is_published = false`), **Used nowhere** (zero programme
+  attachments); **Recent** stays disabled until visit-tracking
+  ships. Sidebar Views + Pillars lens entries light up with
+  live counts derived from `fetchAllLensRowsForTutor` (wrapped
+  in React's `cache()` so multiple consumers in one render
+  share a single round trip). Sidebar gained a permanent
+  🏠 Overview entry at the top (above the lens sections, active
+  when no scope is set, railed mode shows just the glyph).
+  Three same-session polish improvements: lens header glyphs
+  added in expanded mode for visual consistency with the railed
+  view; railed icons became Links (Views / Folders / Shelves
+  → default landing) or buttons (Pillars / Tags → expand the
+  rail since no destination is wired); section dividers
+  promoted from 60%-faded `--border` to `--border-strong` with
+  more breathing room. Routing precedence:
+  `?shelf=` > `?view=` > `?folder=` > no scope (overview).
 
 ### Deferred follow-ons (post-build)
+
+- **All tags view** — when tag vocabulary grows enough that a
+  tutor wants to browse by tag, ship `/tutor/library?view=all-tags`
+  (or `?tag=all`) as an alphabetised list with notes-per-tag
+  counts. Mirrors the All folders / All shelves pattern. Surfaced
+  2026-05-27 during the P2 design session — Pillars are
+  deliberately *not* getting this treatment (fixed 8-item NCSBN
+  taxonomy doesn't warrant its own page), but tags are
+  tutor-generated and benefit from a browse view as the vocab
+  grows. Once shipped, the railed Tags icon swaps from "expand
+  the rail" to a Link to this URL — one-line change in
+  `SECTION_RAIL_HREF`.
 
 - **Note deletion** — schema is ready
   (`_note_attachments.note_id` is `ON DELETE RESTRICT`;

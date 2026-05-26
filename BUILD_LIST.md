@@ -9,6 +9,84 @@ where it's listed.
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
 > **Last shipped (2026-05-27):** **Tutor Library 11.4 follow-on —
+> Library Overview + system Views + sidebar polish (P2 +
+> sidebar improvements).** `/tutor/library` becomes a real
+> dashboard instead of the generic "Your library is empty" hero,
+> three of the four system views light up, and the sidebar grows
+> a permanent Overview entry plus three small polish items Sam
+> flagged in the same session.
+>
+> - **Library Overview dashboard** at `/tutor/library` (no scope).
+>   Five stat cards across the top (Total notes · Folders ·
+>   Shelves · Drafts · Not in a programme), Recent activity + 
+>   Pillar coverage in a two-column grid, Quick links chip row at
+>   the bottom (All notes · Drafts · Not in a programme · All
+>   folders · All shelves).
+> - **System views (3 of 4 wired).** `?view=all-notes`,
+>   `?view=drafts`, `?view=used-nowhere` each render a
+>   view-specific header + a `<NoteLensRow>` list. **Recent**
+>   stays disabled until visit-tracking ships (needs
+>   `last_visited_at` populated by a future slice).
+> - **Sidebar Views + Pillars lens entries light up.** All notes
+>   / Drafts / Used nowhere become real Link rows with live
+>   counts; active row highlights when its URL matches. Pillars
+>   show real counts (multi-pillar notes count in each pillar).
+>   Recent stays disabled with a tooltip.
+> - **Overview sidebar entry.** New 🏠 Overview row sits at the
+>   top of the sidebar above the lens sections; active when no
+>   scope is set; railed mode shows just the glyph with a
+>   tooltip.
+> - **Lens header icons (expanded mode).** Each lens section
+>   header now carries its glyph in front of the label (☰ Views
+>   / 📁 Folders / 📚 Shelves / ◆ Pillars / # Tags) for
+>   consistency with the railed view.
+> - **Railed icons are clickable.** Views / Folders / Shelves
+>   icons in railed mode become Links to `?view=all-notes` /
+>   `?folder=all` / `?shelf=all` respectively. Pillars / Tags
+>   icons (no destination wired yet) expand the rail when
+>   clicked — keeps every icon clickable without faking a
+>   destination.
+> - **Stronger lens-section dividers.** Section divider colour
+>   bumped from 60%-faded `--border` to `--border-strong`, with
+>   12px top padding + 10px top margin for more breathing room.
+>
+> - **Data plumbing.** `fetchAllLensRowsForTutor` (wrapped in
+>   React's `cache()`) is the single source of truth — called by
+>   `getLibraryLensCounts`, `getLibraryOverviewStats`, and
+>   `getNotesForView` and deduplicated within one render. New
+>   `LibraryViewKey`, `LibraryViewCounts`, `LibraryOverviewStats`
+>   exported types. `getLibraryOverviewStats` parallelises three
+>   reads (notes + folder count + shelf count).
+> - **Routing.** Precedence: `?shelf=` > `?view=` > `?folder=` >
+>   no scope (overview). The bare `/tutor/library` URL renders
+>   the dashboard; all three system view URLs render
+>   `<NotesView>`; everything else unchanged.
+>
+> **Files new (2):** `lib/library/library-overview.tsx`,
+> `lib/library/notes-view.tsx`.
+>
+> **Files modified (5):** `lib/library/types.ts`
+> (`LibraryViewKey` + `LibraryViewCounts` + `LibraryOverviewStats`),
+> `lib/library/queries.ts` (cached `fetchAllLensRowsForTutor`
+> helper + `getLibraryLensCounts` + `getLibraryOverviewStats` +
+> `getNotesForView`), `lib/library/home-shell.tsx` (Overview
+> sidebar entry + lens-header icons + railed-icon Links +
+> expanded-rail handler + view-scope main pane branch),
+> `app/(app)/tutor/library/page.tsx` (4-way scope precedence +
+> parallel fetches), `styles/library.css` (SLICE 11.4 follow-on
+> P2 block + sidebar polish — `.lens-section-icon`,
+> stronger dividers, `.lens-rail-icon` as Link/button,
+> `.lens-home`, `.lib-overview`, `.lib-stat-card`,
+> `.lib-pillar-bars`, `.lib-quick-link`).
+>
+> **Deferred follow-on — All tags view.** Sam locked in the
+> design session: as tag vocabulary grows, an alphabetised browse
+> view (tag list with notes-per-tag) earns its keep. Slot when
+> there's a real tutor with enough tags to need it. Pillars
+> deliberately stay filter-only — fixed 8-item taxonomy doesn't
+> warrant its own page.
+>
+> **Earlier shipped (2026-05-27):** **Tutor Library 11.4 follow-on —
 > shared `<NoteLensRow>` + editor "On shelves" rail (P3 + P4
 > bundle).** Two related Sam complaints surfaced in the same
 > session, bundled because they share the same data plumbing — a
@@ -385,18 +463,13 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > (`23c23e7`, `763872b`, plus the 7 gap-review commits) and the
 > canonical planning doc.
 >
-> **Next:** Library **Overview + system Views** —
-> `/tutor/library` becomes a dashboard (stat cards: Total notes ·
-> Folders · Shelves · Drafts · Not yet in any programme unit;
-> Recent activity — last 5 edited; Pillar coverage horizontal-bar
-> per pillar; Quick links to each system view). `?view=<key>`
-> wires three system views — **All notes**, **Drafts**
-> (`is_published = false`), **Used nowhere** (zero programme
-> attachments) — each reusing `<NoteLensRow>` from the previous
-> slice. **Recent** stays disabled until visit-tracking ships.
-> Tiptap editor scaffold (was previous ⏭) bumps after this. Or
-> rotate per the alternate-features rule — Payments 5.3 is the
-> live alternate (5.1 + 5.2 shipped). Full library slice ladder +
+> **Next:** Slice **11.5** — Tiptap editor scaffold (starter-kit
+> blocks + slash command + `+` button + drag handle + always-
+> visible toolbar + autosave + `version_id` save guard +
+> `BroadcastChannel` two-tabs warning). Provisional gate: fall
+> back to a markdown textarea if Tiptap goes badly. Or rotate per
+> the alternate-features rule — Payments 5.3 is the live
+> alternate (5.1 + 5.2 shipped). Full library slice ladder +
 > status flags live in
 > [`docs/product-plan/tutor-library.md` → Build order](docs/product-plan/tutor-library.md#build-order-when-this-gets-queued)
 > — see Part 3 below.

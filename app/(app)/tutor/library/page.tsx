@@ -1,21 +1,22 @@
 // mynclex/app/(app)/tutor/library/page.tsx
 //
-// Tutor library home — slice 11.2a wired folder data, 11.2b added
-// per-folder notes, 11.3a-b added shelves + the All Shelves
-// carousel, 11.4 makes per-shelf URLs real.
+// Tutor library home — composes folder / shelf / view / overview
+// scopes onto a single route.
 //
-// Server component. Reads two mutually-coordinated URL params:
+// Server component. Reads three mutually-coordinated URL params:
 //   • `?folder=` — folder lens scope
 //       (none / all / <uuid> / unknown-uuid → "Folder not found")
 //   • `?shelf=`  — shelf lens scope
 //       (none / all → All Shelves carousel
 //        / <uuid> → per-shelf detail view (11.4)
 //        / unknown-uuid → "Shelf not found")
+//   • `?view=`   — system view scope (slice 11.4 follow-on P2)
+//       (none / all-notes / drafts / used-nowhere)
 //
-// When `?shelf=` is set it wins — the main pane shows a shelves
-// surface regardless of `?folder=`. The sidebar still renders both
-// lenses fully (folder rows + shelf rows + counts), so the user can
-// pivot back to a folder via a single click.
+// Precedence when more than one is set:
+//   shelf > view > folder > none(=overview)
+//
+// The sidebar always renders all five lenses with real counts.
 //
 // Auth: gated by (app)/tutor/layout.tsx which enforces TUTOR role.
 
@@ -23,18 +24,25 @@ import { LibraryHomeShell } from '@/lib/library/home-shell';
 import {
   getEligibleNotesForShelf,
   getFoldersForTutor,
+  getLibraryLensCounts,
+  getLibraryOverviewStats,
   getNotesForTutor,
+  getNotesForView,
   getShelfDetail,
   getShelvesForTutor,
   getShelvesWithNotes,
 } from '@/lib/library/queries';
-import type { LibraryEligibleNote } from '@/lib/library/types';
+import type {
+  LibraryEligibleNote,
+  LibraryViewKey,
+} from '@/lib/library/types';
 
 interface PageProps {
   // Next.js 16: searchParams is a Promise on server components.
   searchParams: Promise<{
     folder?: string | string[];
     shelf?: string | string[];
+    view?: string | string[];
   }>;
 }
 
@@ -44,35 +52,52 @@ function firstOrNull(raw: string | string[] | undefined): string | null {
   return null;
 }
 
+function parseViewKey(raw: string | null): LibraryViewKey | null {
+  if (raw === 'all-notes' || raw === 'drafts' || raw === 'used-nowhere') {
+    return raw;
+  }
+  return null;
+}
+
 export default async function TutorLibraryPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const selected = firstOrNull(params.folder);
   const shelfSelected = firstOrNull(params.shelf);
+  const viewSelected = parseViewKey(firstOrNull(params.view));
 
-  // Three branches on the shelf scope:
-  //   null     → sidebar lens only (cheap lean fetch)
-  //   'all'    → carousel page (heavy fetch with note embeds)
-  //   <uuid>   → per-shelf detail (single shelf + its notes)
-  //
-  // The sidebar lens always needs the lean shelf list with counts —
-  // we fetch it unconditionally now. That's one cheap round trip
-  // either way and avoids the "derive lean from heavy" branch the
-  // 11.3b version carried.
+  // Branch dispatch — precedence: shelf > view > folder > none(overview).
+  // Lens counts always fetched so the sidebar lights up regardless
+  // of scope.
   const carouselScope = shelfSelected === 'all';
   const detailScope = shelfSelected != null && shelfSelected !== 'all';
+  const viewScope = shelfSelected == null && viewSelected != null;
+  const folderScope =
+    shelfSelected == null && viewSelected == null && selected != null;
+  const overviewScope =
+    shelfSelected == null && viewSelected == null && selected == null;
 
-  const [folders, shelves, shelvesWithNotes, shelfDetail] = await Promise.all([
+  const [
+    folders,
+    shelves,
+    shelvesWithNotes,
+    shelfDetail,
+    viewNotes,
+    overviewStats,
+    lensCounts,
+  ] = await Promise.all([
     getFoldersForTutor(),
     getShelvesForTutor(),
     carouselScope ? getShelvesWithNotes() : Promise.resolve(null),
     detailScope ? getShelfDetail(shelfSelected) : Promise.resolve(null),
+    viewScope ? getNotesForView(viewSelected) : Promise.resolve(null),
+    overviewScope ? getLibraryOverviewStats() : Promise.resolve(null),
+    getLibraryLensCounts(),
   ]);
 
-  // Notes only when a real folder is selected AND no shelf scope is
-  // active. The shelf scope takes the main pane over wholesale.
-  const shelfScopeActive = shelfSelected != null;
+  // Folder list — only when a real folder is selected. The
+  // overview / view / shelf scopes take the main pane over wholesale.
   const folderIsReal =
-    !shelfScopeActive &&
+    folderScope &&
     selected != null &&
     selected !== 'all' &&
     folders.some((f) => f.folder_id === selected);
@@ -80,9 +105,6 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
   const notes = folderIsReal ? await getNotesForTutor(selected) : null;
 
   // Pre-fetch eligible-notes for the AddNotesToShelfModal.
-  // Carousel — one entry per shelf.
-  // Detail — one entry for the focused shelf (when it resolved).
-  // Empty object otherwise to keep the prop shape stable.
   const eligibleByShelf: Record<string, LibraryEligibleNote[]> = {};
   if (carouselScope && shelvesWithNotes && shelvesWithNotes.length > 0) {
     const results = await Promise.all(
@@ -107,6 +129,11 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
       notes={notes}
       selected={selected}
       shelfSelected={shelfSelected}
+      viewSelected={viewSelected}
+      viewNotes={viewNotes}
+      viewCounts={lensCounts.view}
+      pillarCounts={lensCounts.pillars}
+      overviewStats={overviewStats}
     />
   );
 }
