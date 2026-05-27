@@ -31,10 +31,19 @@ import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
 import type { Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import Focus from '@tiptap/extension-focus';
 import { DragHandle } from '@tiptap/extension-drag-handle-react';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { SlashCommand } from './slash-command';
+import {
+  SlashMenu,
+  SLASH_ITEMS,
+  type SlashItem,
+  type SlashMenuHandle,
+} from './slash-menu';
+import { NavIcon } from '@/components/nav/shared/nav-icon';
 import type { TiptapDoc } from './body-tiptap';
+import type { Node as PMNode } from '@tiptap/pm/model';
 
 interface NoteBodyEditorProps {
   initialDoc: TiptapDoc;
@@ -76,6 +85,15 @@ export function NoteBodyEditor({
         showOnlyCurrent: true,
         includeChildren: false,
       }),
+      Focus.configure({
+        // Tag whichever top-level block the cursor is inside with
+        // `has-focus`. CSS in styles/library.css tints the focused
+        // block. `mode: 'shallowest'` so the class lands on the
+        // containing block (paragraph / heading / list / quote)
+        // rather than nested list items or text marks.
+        className: 'has-focus',
+        mode: 'shallowest',
+      }),
       SlashCommand,
     ],
     content: initialDoc,
@@ -100,15 +118,155 @@ export function NoteBodyEditor({
   return (
     <div className="lib-tiptap-shell">
       <Toolbar editor={editor} />
+      <BlockEditingArea editor={editor} />
+    </div>
+  );
+}
+
+// =====================================================================
+// Editing area — body + drag handle + per-block "+" + footer "+ Add"
+// =====================================================================
+//
+// The block-level affordances cluster: the drag handle (⋮⋮) and a
+// per-block "+" sit beside each other at the left edge of the
+// currently-hovered block; the footer "+ Add block" sits below the
+// editor body. Both "+"s open the slash menu by programmatically
+// inserting a `/` at the appropriate position — Tiptap's
+// Suggestion plugin picks that up and shows the popover. No
+// separate menu component, no parallel "button-triggered" command
+// path.
+
+function BlockEditingArea({ editor }: { editor: Editor }) {
+  // The drag-handle extension fires `onNodeChange` whenever the
+  // currently-targeted block changes. We capture pos + node so the
+  // per-block "+" can insert relative to *that* block, not wherever
+  // the cursor happens to be.
+  const currentBlockRef = useRef<{ pos: number; node: PMNode } | null>(null);
+
+  // Button-triggered menu state. When non-null, the controlled
+  // SlashMenu mounts below `rect` and picking an item runs
+  // `item.runAt(editor, position)`. Slash-key path is unaffected —
+  // it still goes through the Suggestion plugin in SlashCommand.
+  const [buttonMenu, setButtonMenu] = useState<null | {
+    position: number;
+    rect: DOMRect;
+  }>(null);
+  const menuRef = useRef<SlashMenuHandle | null>(null);
+
+  function openMenuAfterCurrent(buttonRect: DOMRect) {
+    const cur = currentBlockRef.current;
+    if (!cur) return;
+    setButtonMenu({
+      position: cur.pos + cur.node.nodeSize,
+      rect: buttonRect,
+    });
+  }
+
+  function openMenuAtEnd(buttonRect: DOMRect) {
+    setButtonMenu({
+      position: editor.state.doc.content.size,
+      rect: buttonRect,
+    });
+  }
+
+  function pickItem(item: SlashItem) {
+    if (!buttonMenu) return;
+    if (item.runAt) item.runAt(editor, buttonMenu.position);
+    setButtonMenu(null);
+  }
+
+  // Global key + click handling while the controlled menu is open.
+  // Esc closes; Up/Down/Enter forward to the menu's imperative
+  // onKeyDown; clicks outside the popover (and outside any trigger
+  // button) close it.
+  useEffect(() => {
+    if (!buttonMenu) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setButtonMenu(null);
+        return;
+      }
+      if (
+        e.key === 'ArrowDown' ||
+        e.key === 'ArrowUp' ||
+        e.key === 'Enter'
+      ) {
+        const handled = menuRef.current?.onKeyDown({ event: e }) ?? false;
+        if (handled) e.preventDefault();
+      }
+    }
+    function onMouseDown(e: MouseEvent) {
+      const target = e.target as Element | null;
+      if (!target) return;
+      if (target.closest('.lib-slash-popover')) return;
+      if (target.closest('.lib-tiptap-block-plus')) return;
+      if (target.closest('.lib-tiptap-add-block-foot')) return;
+      setButtonMenu(null);
+    }
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onMouseDown);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onMouseDown);
+    };
+  }, [buttonMenu]);
+
+  return (
+    <>
       <div className="lib-tiptap-body-wrap">
-        <DragHandle editor={editor}>
-          <span className="lib-tiptap-drag-handle" aria-label="Drag to reorder" title="Drag to reorder">
-            ⋮⋮
-          </span>
+        <DragHandle
+          editor={editor}
+          onNodeChange={({ node, pos }) => {
+            currentBlockRef.current = node ? { node, pos } : null;
+          }}
+        >
+          <div className="lib-tiptap-block-affordances">
+            <button
+              type="button"
+              className="lib-tiptap-block-plus"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) =>
+                openMenuAfterCurrent(e.currentTarget.getBoundingClientRect())
+              }
+              aria-label="Insert block below"
+              title="Insert block below"
+            >
+              +
+            </button>
+            <span
+              className="lib-tiptap-drag-handle"
+              aria-label="Drag to reorder"
+              title="Drag to reorder"
+            >
+              ⋮⋮
+            </span>
+          </div>
         </DragHandle>
         <EditorContent editor={editor} className="lib-tiptap-body" />
       </div>
-    </div>
+      <button
+        type="button"
+        className="lib-tiptap-add-block-foot"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={(e) =>
+          openMenuAtEnd(e.currentTarget.getBoundingClientRect())
+        }
+        title="Add a block at the end"
+      >
+        <span aria-hidden="true">+</span>
+        <span>Add block</span>
+      </button>
+
+      {buttonMenu && (
+        <SlashMenu
+          ref={menuRef}
+          items={SLASH_ITEMS}
+          command={pickItem}
+          clientRect={() => buttonMenu.rect}
+        />
+      )}
+    </>
   );
 }
 
@@ -156,42 +314,42 @@ function Toolbar({ editor }: { editor: Editor }) {
         pressed={state.isBold}
         onClick={() => editor.chain().focus().toggleBold().run()}
       >
-        <strong>B</strong>
+        <NavIcon name="bold" />
       </TbButton>
       <TbButton
         label="Italic (⌘I)"
         pressed={state.isItalic}
         onClick={() => editor.chain().focus().toggleItalic().run()}
       >
-        <em>I</em>
+        <NavIcon name="italic" />
       </TbButton>
       <TbButton
         label="Underline (⌘U)"
         pressed={state.isUnderline}
         onClick={() => editor.chain().focus().toggleUnderline().run()}
       >
-        <span style={{ textDecoration: 'underline' }}>U</span>
+        <NavIcon name="underline" />
       </TbButton>
       <TbButton
         label="Strikethrough"
         pressed={state.isStrike}
         onClick={() => editor.chain().focus().toggleStrike().run()}
       >
-        <span style={{ textDecoration: 'line-through' }}>S</span>
+        <NavIcon name="strikethrough" />
       </TbButton>
       <TbButton
         label="Inline code (⌘E)"
         pressed={state.isCode}
         onClick={() => editor.chain().focus().toggleCode().run()}
       >
-        <code>{'<>'}</code>
+        <NavIcon name="code" />
       </TbButton>
       <TbButton
         label={state.isLink ? 'Remove link' : 'Add link (⌘K)'}
         pressed={state.isLink}
         onClick={onToggleLink}
       >
-        🔗
+        <NavIcon name="link" />
       </TbButton>
 
       <span className="lib-tiptap-tb-sep" aria-hidden="true" />
@@ -203,7 +361,7 @@ function Toolbar({ editor }: { editor: Editor }) {
           editor.chain().focus().toggleHeading({ level: 2 }).run()
         }
       >
-        H2
+        <NavIcon name="heading-2" />
       </TbButton>
       <TbButton
         label="Heading 3 (⌘⇧3)"
@@ -212,7 +370,7 @@ function Toolbar({ editor }: { editor: Editor }) {
           editor.chain().focus().toggleHeading({ level: 3 }).run()
         }
       >
-        H3
+        <NavIcon name="heading-3" />
       </TbButton>
 
       <span className="lib-tiptap-tb-sep" aria-hidden="true" />
@@ -222,21 +380,21 @@ function Toolbar({ editor }: { editor: Editor }) {
         pressed={state.isBulletList}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
       >
-        •
+        <NavIcon name="list-bulleted" />
       </TbButton>
       <TbButton
         label="Numbered list"
         pressed={state.isOrderedList}
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
       >
-        1.
+        <NavIcon name="list-numbered" />
       </TbButton>
       <TbButton
         label="Blockquote"
         pressed={state.isBlockquote}
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
       >
-        &ldquo;
+        <NavIcon name="quote" />
       </TbButton>
 
       <span className="lib-tiptap-tb-spacer" aria-hidden="true" />

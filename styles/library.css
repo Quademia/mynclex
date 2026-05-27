@@ -1578,6 +1578,40 @@
   min-height: 280px;
 }
 
+/* Cluster of per-block affordances rendered inside the
+ * drag-handle's host element. The drag-handle extension positions
+ * the cluster at the left edge of the hovered block; both children
+ * (the "+" button and the ⋮⋮ glyph) inherit that positioning. */
+.lib-tiptap-block-affordances {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-right: 4px;
+}
+
+.lib-tiptap-block-plus {
+  appearance: none;
+  background: transparent;
+  border: none;
+  width: 20px;
+  height: 22px;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-faint);
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+
+.lib-tiptap-block-plus:hover {
+  background: var(--bg);
+  color: var(--accent);
+}
+
 /* Drag handle — rendered as a child of the body wrap by
  * @tiptap/extension-drag-handle-react. The extension positions
  * its host element via inline transforms, so we only style the
@@ -1588,7 +1622,6 @@
   justify-content: center;
   width: 18px;
   height: 22px;
-  margin-right: 4px;
   border-radius: 4px;
   font-size: 14px;
   line-height: 1;
@@ -1607,6 +1640,40 @@
 .lib-tiptap-drag-handle:active {
   cursor: grabbing;
   background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* Persistent "+ Add block" at the foot of the editor. Always
+ * visible, ghosted style so it doesn't compete with the inline
+ * affordances above. */
+.lib-tiptap-add-block-foot {
+  appearance: none;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 10px;
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+
+.lib-tiptap-add-block-foot:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.lib-tiptap-add-block-foot > span:first-child {
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 600;
 }
 
 .lib-tiptap-body-skeleton {
@@ -1659,14 +1726,36 @@
   scroll-margin-top: 110px;
 }
 
-.lib-tiptap-body .ProseMirror ul,
+/* Restore list bullets / numbers — Tailwind's CSS reset (in
+ * @tailwindcss/postcss preflight) clears `list-style` globally
+ * because most app `<ul>`s are nav menus. The editor body wants
+ * the markers back. */
+.lib-tiptap-body .ProseMirror ul {
+  margin: 0 0 12px;
+  padding-left: 24px;
+  list-style-type: disc;
+}
+
 .lib-tiptap-body .ProseMirror ol {
   margin: 0 0 12px;
   padding-left: 24px;
+  list-style-type: decimal;
+}
+
+.lib-tiptap-body .ProseMirror ul ul {
+  list-style-type: circle;
+}
+
+.lib-tiptap-body .ProseMirror ol ol {
+  list-style-type: lower-alpha;
 }
 
 .lib-tiptap-body .ProseMirror li {
   margin-bottom: 4px;
+}
+
+.lib-tiptap-body .ProseMirror li > p {
+  margin: 0;
 }
 
 .lib-tiptap-body .ProseMirror blockquote {
@@ -1712,6 +1801,35 @@
   border-top: 1px solid var(--border);
   margin: 16px 0;
 }
+
+/* Per-block hover + focus tint (slice 11.5 follow-on).
+ *
+ * Hover: a subtle tint on the block under the mouse — pairs with
+ * the drag handle that appears on the same hover.
+ * Focus: a stronger tint on the block containing the cursor —
+ * driven by @tiptap/extension-focus adding `.has-focus` to the
+ * shallowest enclosing block.
+ *
+ * Both tints fill the full block width (block-level elements span
+ * the body's content area) and round to 6px. Transitions kept
+ * short so the tint feels snappy. */
+.lib-tiptap-body .ProseMirror > * {
+  border-radius: 6px;
+  transition: background 0.12s;
+}
+
+.lib-tiptap-body .ProseMirror > *:hover {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.lib-tiptap-body .ProseMirror > .has-focus {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.lib-tiptap-body .ProseMirror > .has-focus:hover {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
 
 /* Tiptap's Placeholder extension adds `is-empty` to every empty
  * node and writes the placeholder text into a `data-placeholder`

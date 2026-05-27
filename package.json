@@ -17,6 +17,7 @@
     "@opennextjs/cloudflare": "^1.19.1",
     "@supabase/ssr": "^0.5.2",
     "@tiptap/extension-drag-handle-react": "^3.23.6",
+    "@tiptap/extension-focus": "^3.23.6",
     "@tiptap/extension-link": "^3.23.6",
     "@tiptap/extension-placeholder": "^3.23.6",
     "@tiptap/extension-underline": "^3.23.6",

@@ -19,17 +19,39 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import type { Editor, Range } from '@tiptap/react';
+import { NavIcon } from '@/components/nav/shared/nav-icon';
+import type { NavIcon as NavIconName } from '@/lib/nav/types';
 
 export type SlashItem = {
   type: string;
   name: string;
   desc: string;
+  /**
+   * Fallback emoji/text icon. Used when `iconSvg` is unset — typically
+   * the disabled "coming in slice X" items that don't have an SVG yet.
+   */
   icon: string;
+  /**
+   * Preferred SVG icon name (resolved via `<NavIcon>`). Set on enabled
+   * items so the slash menu uses crisp scalable SVGs rather than the
+   * emoji fallback.
+   */
+  iconSvg?: NavIconName;
   group: 'Text & structure' | 'Visual & media' | 'Nursing-shaped' | 'Interactive';
   /** Slice that will enable this item. null = enabled now. */
   comingIn: string | null;
-  /** Tiptap command to run when picked. Skipped for disabled items. */
+  /**
+   * Slash-triggered command. The user typed `/...` — `range` covers
+   * the slash + the typed query, so the command deletes it then
+   * converts/inserts. Skipped for disabled items.
+   */
   run?: (editor: Editor, range: Range) => void;
+  /**
+   * Button-triggered command. The user clicked a `+` — there's no
+   * slash range to delete; we insert a fresh block at `position`.
+   * Skipped for disabled items.
+   */
+  runAt?: (editor: Editor, position: number) => void;
 };
 
 export const SLASH_ITEMS: SlashItem[] = [
@@ -39,60 +61,123 @@ export const SLASH_ITEMS: SlashItem[] = [
     name: 'Paragraph',
     desc: 'Plain text with marks',
     icon: '¶',
+    iconSvg: 'edit',
     group: 'Text & structure',
     comingIn: null,
     run: (editor, range) =>
       editor.chain().focus().deleteRange(range).setParagraph().run(),
+    runAt: (editor, position) =>
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(position, { type: 'paragraph' })
+        .setTextSelection(position + 1)
+        .run(),
   },
   {
     type: 'h2',
     name: 'Heading 2',
     desc: 'Big section title',
     icon: 'H₂',
+    iconSvg: 'heading-2',
     group: 'Text & structure',
     comingIn: null,
     run: (editor, range) =>
       editor.chain().focus().deleteRange(range).setHeading({ level: 2 }).run(),
+    runAt: (editor, position) =>
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(position, {
+          type: 'heading',
+          attrs: { level: 2 },
+        })
+        .setTextSelection(position + 1)
+        .run(),
   },
   {
     type: 'h3',
     name: 'Heading 3',
     desc: 'Sub-section title',
     icon: 'H₃',
+    iconSvg: 'heading-3',
     group: 'Text & structure',
     comingIn: null,
     run: (editor, range) =>
       editor.chain().focus().deleteRange(range).setHeading({ level: 3 }).run(),
+    runAt: (editor, position) =>
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(position, {
+          type: 'heading',
+          attrs: { level: 3 },
+        })
+        .setTextSelection(position + 1)
+        .run(),
   },
   {
     type: 'bulletList',
     name: 'Bulleted list',
     desc: 'Simple bullet list',
     icon: '•',
+    iconSvg: 'list-bulleted',
     group: 'Text & structure',
     comingIn: null,
     run: (editor, range) =>
       editor.chain().focus().deleteRange(range).toggleBulletList().run(),
+    runAt: (editor, position) =>
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(position, {
+          type: 'bulletList',
+          content: [{ type: 'listItem', content: [{ type: 'paragraph' }] }],
+        })
+        .setTextSelection(position + 3)
+        .run(),
   },
   {
     type: 'orderedList',
     name: 'Numbered list',
     desc: 'Ordered list',
     icon: '1.',
+    iconSvg: 'list-numbered',
     group: 'Text & structure',
     comingIn: null,
     run: (editor, range) =>
       editor.chain().focus().deleteRange(range).toggleOrderedList().run(),
+    runAt: (editor, position) =>
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(position, {
+          type: 'orderedList',
+          content: [{ type: 'listItem', content: [{ type: 'paragraph' }] }],
+        })
+        .setTextSelection(position + 3)
+        .run(),
   },
   {
     type: 'blockquote',
     name: 'Quote',
     desc: 'Block quote',
     icon: '❝',
+    iconSvg: 'quote',
     group: 'Text & structure',
     comingIn: null,
     run: (editor, range) =>
       editor.chain().focus().deleteRange(range).toggleBlockquote().run(),
+    runAt: (editor, position) =>
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(position, {
+          type: 'blockquote',
+          content: [{ type: 'paragraph' }],
+        })
+        .setTextSelection(position + 2)
+        .run(),
   },
   // Visual & media — disabled until their slices land
   {
@@ -301,7 +386,7 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
                   aria-disabled={disabled}
                 >
                   <span className="lib-slash-ic" aria-hidden="true">
-                    {it.icon}
+                    {it.iconSvg ? <NavIcon name={it.iconSvg} /> : it.icon}
                   </span>
                   <div className="lib-slash-text">
                     <div className="lib-slash-name">{it.name}</div>
