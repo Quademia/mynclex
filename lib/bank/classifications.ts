@@ -176,18 +176,21 @@ export const BLOOM_LEVELS = [
 ] as const;
 
 // ─────────────────────────────────────────────────────────────
-// Option lettering — 6 slots max (A–F) so authoring stays bounded.
-// SATA / SELECT_N can use up to 6; MCQ typically 4.
+// Option lettering — 10 slots max (A–J). Bumped from 6 (A–F) on
+// 2026-05-27 because real Maryland NGN test-bank items routinely
+// run 7–10 options on SATA / SELECT_N. MCQ still typically 4.
 // ─────────────────────────────────────────────────────────────
 
-export const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
+export const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'] as const;
 export const MIN_OPTIONS = 2;
-export const MAX_OPTIONS = 6;
+export const MAX_OPTIONS = 10;
 export const DEFAULT_OPTIONS = 4;
 
-// Matrix bounds (Family B — Slice 1.5)
+// Matrix bounds (Family B — Slice 1.5; row cap bumped 2026-05-27)
+// MAX_MATRIX_ROWS raised from 6 to 10 to accommodate real NGN
+// matrix items, which routinely run 7–9 rows.
 export const MIN_MATRIX_ROWS = 2;
-export const MAX_MATRIX_ROWS = 6;
+export const MAX_MATRIX_ROWS = 10;
 export const MIN_MATRIX_COLS = 2;
 export const MAX_MATRIX_COLS = 6;
 export const DEFAULT_MATRIX_ROWS = 3;
