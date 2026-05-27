@@ -1561,6 +1561,105 @@
   color: var(--text);
 }
 
+.lib-tiptap-tb-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lib-tiptap-tb-btn:disabled:hover {
+  background: transparent;
+}
+
+
+/* ─── Highlight + text-colour swatch popovers ─────────── */
+
+.lib-tiptap-swatch-pop {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  padding: 8px;
+  width: 188px;
+}
+
+.lib-tiptap-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.lib-tiptap-swatch {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--border-strong, #d1d5db) 60%, transparent);
+  border-radius: 4px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s, border-color 0.1s;
+}
+
+.lib-tiptap-swatch:hover {
+  transform: scale(1.08);
+  border-color: var(--accent);
+}
+
+.lib-tiptap-swatch.is-active {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.lib-tiptap-swatch-remove {
+  appearance: none;
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.lib-tiptap-swatch-remove:hover {
+  background: var(--white);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+
+/* ─── Editor body rendering for new marks ─────────────── */
+
+.lib-tiptap-body .ProseMirror mark {
+  /* Inline highlight; @tiptap/extension-highlight writes the
+   * picked colour into a `style="background-color: ..."` attribute
+   * which overrides this default. The rule here is a fallback for
+   * highlights without an explicit colour. */
+  background: #fef08a;
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+.lib-tiptap-body .ProseMirror sub {
+  vertical-align: sub;
+  font-size: 0.75em;
+}
+
+.lib-tiptap-body .ProseMirror sup {
+  vertical-align: super;
+  font-size: 0.75em;
+}
+
+/* The TextAlign extension writes alignment to `style="text-align:..."`
+ * on heading + paragraph. Browsers default to left, so left-aligned
+ * blocks need no rule — center/right/justify just work via inline
+ * style. We don't need any CSS here unless we want to add visual
+ * affordances. */
+
 /* Body wrapper holds the editable region + the drag-handle's
  * absolutely-positioned anchor. position:relative gives the handle
  * a containing block for its `left` calculations. */
@@ -1642,38 +1741,82 @@
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
-/* Persistent "+ Add block" at the foot of the editor. Always
- * visible, ghosted style so it doesn't compete with the inline
- * affordances above. */
-.lib-tiptap-add-block-foot {
-  appearance: none;
-  background: transparent;
+/* Block tray — chip row at the foot of the editor. Replaces the
+ * "+ Add block" dashed button. Shows every block type from the
+ * planning doc as a clickable chip; enabled types insert at the
+ * end of the doc, disabled types ("coming in slice X") render
+ * dimmed with a slice-number pill. Wraps on narrow screens. */
+.lib-tiptap-block-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px;
   border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg) 50%, transparent);
+}
+
+.lib-tiptap-block-chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--white);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 8px 12px;
-  margin-top: 10px;
-  width: 100%;
   font-family: inherit;
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 12.5px;
+  color: var(--text);
   cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s, transform 0.08s;
+}
+
+.lib-tiptap-block-chip:hover:not(.is-disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, var(--white));
+}
+
+.lib-tiptap-block-chip:active:not(.is-disabled) {
+  transform: translateY(1px);
+}
+
+.lib-tiptap-block-chip.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  color: var(--text-muted);
+}
+
+.lib-tiptap-block-chip.is-disabled:hover {
+  background: var(--white);
+}
+
+.lib-tiptap-block-chip-ic {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  transition: border-color 0.12s, color 0.12s, background 0.12s;
-}
-
-.lib-tiptap-add-block-foot:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
-}
-
-.lib-tiptap-add-block-foot > span:first-child {
-  font-size: 16px;
+  width: 18px;
+  height: 18px;
+  font-size: 13px;
   line-height: 1;
-  font-weight: 600;
+}
+
+.lib-tiptap-block-chip-label {
+  font-weight: 500;
+}
+
+.lib-tiptap-block-chip-pill {
+  margin-left: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 6px;
 }
 
 .lib-tiptap-body-skeleton {

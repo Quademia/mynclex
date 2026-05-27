@@ -275,6 +275,100 @@ function inner(name: NavIconName) {
           <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z" />
         </>
       );
+    // ─── Expanded toolbar (slice 11.5 follow-on, second wave) ───
+    case 'highlight':
+      return (
+        <>
+          <path d="m9 11-6 6v3h9l3-3" />
+          <path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" />
+        </>
+      );
+    case 'subscript':
+      return (
+        <>
+          <path d="m4 5 8 8" />
+          <path d="m12 5-8 8" />
+          <path d="M20 19h-4c0-1.5.44-2 1.5-2.5S20 15.33 20 14c0-.47-.17-.93-.48-1.29a2.11 2.11 0 0 0-2.62-.44c-.42.24-.74.62-.9 1.07" />
+        </>
+      );
+    case 'superscript':
+      return (
+        <>
+          <path d="m4 19 8-8" />
+          <path d="m12 19-8-8" />
+          <path d="M20 12h-4c0-1.5.442-2.001 1.5-2.5S20 8.334 20 7.001c0-.472-.17-.93-.484-1.29a2.105 2.105 0 0 0-2.617-.436c-.42.239-.738.614-.899 1.06" />
+        </>
+      );
+    case 'text-color':
+      return (
+        <>
+          <path d="M4 20h16" />
+          <path d="m6 16 6-12 6 12" />
+          <path d="M8 12h8" />
+        </>
+      );
+    case 'align-left':
+      return (
+        <>
+          <line x1="21" y1="6" x2="3" y2="6" />
+          <line x1="15" y1="12" x2="3" y2="12" />
+          <line x1="17" y1="18" x2="3" y2="18" />
+        </>
+      );
+    case 'align-center':
+      return (
+        <>
+          <line x1="21" y1="6" x2="3" y2="6" />
+          <line x1="17" y1="12" x2="7" y2="12" />
+          <line x1="19" y1="18" x2="5" y2="18" />
+        </>
+      );
+    case 'align-right':
+      return (
+        <>
+          <line x1="21" y1="6" x2="3" y2="6" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+          <line x1="21" y1="18" x2="7" y2="18" />
+        </>
+      );
+    case 'undo':
+      return (
+        <>
+          <path d="M3 7v6h6" />
+          <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6.7 2.9L3 13" />
+        </>
+      );
+    case 'redo':
+      return (
+        <>
+          <path d="M21 7v6h-6" />
+          <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6.7 2.9L21 13" />
+        </>
+      );
+    case 'clear-formatting':
+      return (
+        <>
+          <path d="M4 7V4h16v3" />
+          <path d="M5 20h6" />
+          <path d="M13 4 8 20" />
+          <path d="m15 15 5 5" />
+          <path d="m20 15-5 5" />
+        </>
+      );
+    case 'horizontal-rule':
+      return (
+        <>
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </>
+      );
+    case 'code-block':
+      return (
+        <>
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <polyline points="9 9 7 12 9 15" />
+          <polyline points="15 9 17 12 15 15" />
+        </>
+      );
   }
 }
 

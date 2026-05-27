@@ -42,7 +42,20 @@ export type NavIcon =
   | 'heading-3'
   | 'list-bulleted'
   | 'list-numbered'
-  | 'quote';
+  | 'quote'
+  // Second wave (slice 11.5 expanded-toolbar follow-on)
+  | 'highlight'
+  | 'subscript'
+  | 'superscript'
+  | 'text-color'
+  | 'align-left'
+  | 'align-center'
+  | 'align-right'
+  | 'undo'
+  | 'redo'
+  | 'clear-formatting'
+  | 'horizontal-rule'
+  | 'code-block';
 
 export type NavItem = {
   /** Stable key — used for active-state matching and React keys. */

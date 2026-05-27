@@ -32,6 +32,11 @@ import type { Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Focus from '@tiptap/extension-focus';
+import Highlight from '@tiptap/extension-highlight';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import TextAlign from '@tiptap/extension-text-align';
+import { Color, TextStyle } from '@tiptap/extension-text-style';
 import { DragHandle } from '@tiptap/extension-drag-handle-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SlashCommand } from './slash-command';
@@ -42,6 +47,11 @@ import {
   type SlashMenuHandle,
 } from './slash-menu';
 import { NavIcon } from '@/components/nav/shared/nav-icon';
+import {
+  ColorSwatchPicker,
+  HIGHLIGHT_SWATCHES,
+  TEXT_COLOR_SWATCHES,
+} from './color-swatch-picker';
 import type { TiptapDoc } from './body-tiptap';
 import type { Node as PMNode } from '@tiptap/pm/model';
 
@@ -94,6 +104,17 @@ export function NoteBodyEditor({
         className: 'has-focus',
         mode: 'shallowest',
       }),
+      // Highlight (background tint) + Sub / Super for chemistry +
+      // text alignment (heading + paragraph; lists keep default).
+      Highlight.configure({ multicolor: true }),
+      Subscript,
+      Superscript,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      // Color requires TextStyle as its parent mark.
+      TextStyle,
+      Color,
       SlashCommand,
     ],
     content: initialDoc,
@@ -158,13 +179,6 @@ function BlockEditingArea({ editor }: { editor: Editor }) {
     if (!cur) return;
     setButtonMenu({
       position: cur.pos + cur.node.nodeSize,
-      rect: buttonRect,
-    });
-  }
-
-  function openMenuAtEnd(buttonRect: DOMRect) {
-    setButtonMenu({
-      position: editor.state.doc.content.size,
       rect: buttonRect,
     });
   }
@@ -245,18 +259,7 @@ function BlockEditingArea({ editor }: { editor: Editor }) {
         </DragHandle>
         <EditorContent editor={editor} className="lib-tiptap-body" />
       </div>
-      <button
-        type="button"
-        className="lib-tiptap-add-block-foot"
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={(e) =>
-          openMenuAtEnd(e.currentTarget.getBoundingClientRect())
-        }
-        title="Add a block at the end"
-      >
-        <span aria-hidden="true">+</span>
-        <span>Add block</span>
-      </button>
+      <BlockTray editor={editor} />
 
       {buttonMenu && (
         <SlashMenu
@@ -267,6 +270,63 @@ function BlockEditingArea({ editor }: { editor: Editor }) {
         />
       )}
     </>
+  );
+}
+
+// =====================================================================
+// Block tray — chip row at the foot of the editor
+// =====================================================================
+//
+// Shows every block type from the planning doc as a chip. Enabled
+// chips (the 6 text types in 11.5b) insert their block at the end
+// of the doc on click. Disabled chips display the slice number
+// they'll light up in; clicking them does nothing. Wraps on narrow
+// screens via `flex-wrap: wrap`.
+//
+// On an empty note the tray is the only chrome below the placeholder,
+// giving a new tutor an obvious "pick a block to start" affordance.
+// On a non-empty note it stays as the "add another block" tray.
+
+function BlockTray({ editor }: { editor: Editor }) {
+  return (
+    <div className="lib-tiptap-block-tray" aria-label="Insert block">
+      {SLASH_ITEMS.map((item) => {
+        const disabled = !!item.comingIn;
+        return (
+          <button
+            key={item.type}
+            type="button"
+            className={
+              disabled
+                ? 'lib-tiptap-block-chip is-disabled'
+                : 'lib-tiptap-block-chip'
+            }
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              if (disabled || !item.runAt) return;
+              item.runAt(editor, editor.state.doc.content.size);
+            }}
+            disabled={disabled}
+            title={
+              disabled
+                ? `${item.name} — coming in slice ${item.comingIn}`
+                : `Insert ${item.name}`
+            }
+            aria-disabled={disabled}
+          >
+            <span className="lib-tiptap-block-chip-ic" aria-hidden="true">
+              {item.iconSvg ? <NavIcon name={item.iconSvg} /> : item.icon}
+            </span>
+            <span className="lib-tiptap-block-chip-label">{item.name}</span>
+            {disabled && (
+              <span className="lib-tiptap-block-chip-pill">
+                {item.comingIn}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -283,14 +343,34 @@ function Toolbar({ editor }: { editor: Editor }) {
       isUnderline: editor.isActive('underline'),
       isStrike: editor.isActive('strike'),
       isCode: editor.isActive('code'),
+      isCodeBlock: editor.isActive('codeBlock'),
       isLink: editor.isActive('link'),
       isH2: editor.isActive('heading', { level: 2 }),
       isH3: editor.isActive('heading', { level: 3 }),
       isBulletList: editor.isActive('bulletList'),
       isOrderedList: editor.isActive('orderedList'),
       isBlockquote: editor.isActive('blockquote'),
+      isSubscript: editor.isActive('subscript'),
+      isSuperscript: editor.isActive('superscript'),
+      isAlignLeft: editor.isActive({ textAlign: 'left' }),
+      isAlignCenter: editor.isActive({ textAlign: 'center' }),
+      isAlignRight: editor.isActive({ textAlign: 'right' }),
+      isHighlight: editor.isActive('highlight'),
+      activeHighlight:
+        (editor.getAttributes('highlight').color as string | undefined) ?? null,
+      activeColor:
+        (editor.getAttributes('textStyle').color as string | undefined) ?? null,
+      canUndo: editor.can().undo(),
+      canRedo: editor.can().redo(),
     }),
   });
+
+  // Swatch picker state — only one open at a time. `kind`
+  // distinguishes which mark the picker is bound to.
+  const [swatchOpen, setSwatchOpen] = useState<null | {
+    kind: 'highlight' | 'color';
+    rect: DOMRect;
+  }>(null);
 
   const onToggleLink = useCallback(() => {
     if (state.isLink) {
@@ -351,6 +431,20 @@ function Toolbar({ editor }: { editor: Editor }) {
       >
         <NavIcon name="link" />
       </TbButton>
+      <TbButton
+        label="Subscript"
+        pressed={state.isSubscript}
+        onClick={() => editor.chain().focus().toggleSubscript().run()}
+      >
+        <NavIcon name="subscript" />
+      </TbButton>
+      <TbButton
+        label="Superscript"
+        pressed={state.isSuperscript}
+        onClick={() => editor.chain().focus().toggleSuperscript().run()}
+      >
+        <NavIcon name="superscript" />
+      </TbButton>
 
       <span className="lib-tiptap-tb-sep" aria-hidden="true" />
 
@@ -396,12 +490,130 @@ function Toolbar({ editor }: { editor: Editor }) {
       >
         <NavIcon name="quote" />
       </TbButton>
+      <TbButton
+        label="Code block"
+        pressed={state.isCodeBlock}
+        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+      >
+        <NavIcon name="code-block" />
+      </TbButton>
+      <TbButton
+        label="Horizontal rule"
+        pressed={false}
+        onClick={() => editor.chain().focus().setHorizontalRule().run()}
+      >
+        <NavIcon name="horizontal-rule" />
+      </TbButton>
+
+      <span className="lib-tiptap-tb-sep" aria-hidden="true" />
+
+      <TbButton
+        label="Highlight"
+        pressed={state.isHighlight}
+        onClick={(e) =>
+          setSwatchOpen({
+            kind: 'highlight',
+            rect: e.currentTarget.getBoundingClientRect(),
+          })
+        }
+      >
+        <NavIcon name="highlight" />
+      </TbButton>
+      <TbButton
+        label="Text colour"
+        pressed={!!state.activeColor}
+        onClick={(e) =>
+          setSwatchOpen({
+            kind: 'color',
+            rect: e.currentTarget.getBoundingClientRect(),
+          })
+        }
+      >
+        <NavIcon name="text-color" />
+      </TbButton>
+
+      <span className="lib-tiptap-tb-sep" aria-hidden="true" />
+
+      <TbButton
+        label="Align left"
+        pressed={state.isAlignLeft}
+        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+      >
+        <NavIcon name="align-left" />
+      </TbButton>
+      <TbButton
+        label="Align centre"
+        pressed={state.isAlignCenter}
+        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+      >
+        <NavIcon name="align-center" />
+      </TbButton>
+      <TbButton
+        label="Align right"
+        pressed={state.isAlignRight}
+        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+      >
+        <NavIcon name="align-right" />
+      </TbButton>
+
+      <span className="lib-tiptap-tb-sep" aria-hidden="true" />
+
+      <TbButton
+        label="Undo (⌘Z)"
+        pressed={false}
+        onClick={() => editor.chain().focus().undo().run()}
+        disabled={!state.canUndo}
+      >
+        <NavIcon name="undo" />
+      </TbButton>
+      <TbButton
+        label="Redo (⌘⇧Z)"
+        pressed={false}
+        onClick={() => editor.chain().focus().redo().run()}
+        disabled={!state.canRedo}
+      >
+        <NavIcon name="redo" />
+      </TbButton>
+      <TbButton
+        label="Clear formatting"
+        pressed={false}
+        onClick={() =>
+          editor.chain().focus().unsetAllMarks().clearNodes().run()
+        }
+      >
+        <NavIcon name="clear-formatting" />
+      </TbButton>
 
       <span className="lib-tiptap-tb-spacer" aria-hidden="true" />
 
       <span className="lib-tiptap-tb-hint" aria-hidden="true">
         Type <kbd>/</kbd> for blocks
       </span>
+
+      {swatchOpen && swatchOpen.kind === 'highlight' && (
+        <ColorSwatchPicker
+          swatches={HIGHLIGHT_SWATCHES}
+          activeValue={state.activeHighlight}
+          onPick={(value) =>
+            editor.chain().focus().setHighlight({ color: value }).run()
+          }
+          onRemove={() => editor.chain().focus().unsetHighlight().run()}
+          onClose={() => setSwatchOpen(null)}
+          anchorRect={swatchOpen.rect}
+        />
+      )}
+      {swatchOpen && swatchOpen.kind === 'color' && (
+        <ColorSwatchPicker
+          swatches={TEXT_COLOR_SWATCHES}
+          activeValue={state.activeColor}
+          onPick={(value) =>
+            editor.chain().focus().setColor(value).run()
+          }
+          onRemove={() => editor.chain().focus().unsetColor().run()}
+          onClose={() => setSwatchOpen(null)}
+          anchorRect={swatchOpen.rect}
+        />
+      )}
     </div>
   );
 }
@@ -410,11 +622,13 @@ function TbButton({
   label,
   pressed,
   onClick,
+  disabled,
   children,
 }: {
   label: string;
   pressed: boolean;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -423,6 +637,7 @@ function TbButton({
       className={pressed ? 'lib-tiptap-tb-btn is-on' : 'lib-tiptap-tb-btn'}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
       aria-pressed={pressed}
       title={label}
