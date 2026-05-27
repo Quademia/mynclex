@@ -62,6 +62,19 @@
   flex-direction: column;
 }
 
+/* Stop the flex algorithm from compressing direct children below their
+ * content size. Without this, any child with `min-height: 100%` (like
+ * the case-study wrapper's `.auth-cs-sandbox-wrap`) gets clamped to the
+ * parent's content-box height even when its content needs more — the
+ * inner grid then overflows visibly past the wrap's bottom edge while
+ * the footer renders at the compressed wrap's bottom, ending up in the
+ * middle of the still-painted content. `flex-shrink: 0` lets each
+ * wrap grow with its content; `margin-top: auto` on `.shell-footer`
+ * still pins the footer to the bottom of the scroll on short pages. */
+.product-content > * {
+  flex-shrink: 0;
+}
+
 .product-content > .shell-footer {
   margin-top: auto;
 }
