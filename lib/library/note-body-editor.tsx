@@ -41,6 +41,11 @@ import { DragHandle } from '@tiptap/extension-drag-handle-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SlashCommand } from './slash-command';
 import {
+  BlockGap,
+  BLOCK_GAP_CLICK_EVENT,
+  type BlockGapClickDetail,
+} from './block-gap';
+import {
   SlashMenu,
   SLASH_ITEMS,
   type SlashItem,
@@ -116,6 +121,10 @@ export function NoteBodyEditor({
       TextStyle,
       Color,
       SlashCommand,
+      // Inter-block "+ Add block" gap affordances. The widget
+      // dispatches a custom event the React side listens for to
+      // open the controlled SlashMenu.
+      BlockGap,
     ],
     content: initialDoc,
     editable,
@@ -159,9 +168,8 @@ export function NoteBodyEditor({
 
 function BlockEditingArea({ editor }: { editor: Editor }) {
   // The drag-handle extension fires `onNodeChange` whenever the
-  // currently-targeted block changes. We capture pos + node so the
-  // per-block "+" can insert relative to *that* block, not wherever
-  // the cursor happens to be.
+  // currently-targeted block changes. Kept so future affordances
+  // (block kebab in a later slice) can target the hovered block.
   const currentBlockRef = useRef<{ pos: number; node: PMNode } | null>(null);
 
   // Button-triggered menu state. When non-null, the controlled
@@ -173,15 +181,25 @@ function BlockEditingArea({ editor }: { editor: Editor }) {
     rect: DOMRect;
   }>(null);
   const menuRef = useRef<SlashMenuHandle | null>(null);
+  const editorRootRef = useRef<HTMLDivElement | null>(null);
 
-  function openMenuAfterCurrent(buttonRect: DOMRect) {
-    const cur = currentBlockRef.current;
-    if (!cur) return;
-    setButtonMenu({
-      position: cur.pos + cur.node.nodeSize,
-      rect: buttonRect,
-    });
-  }
+  // Listen for BlockGap-click custom events bubbling up from the
+  // gap widgets (rendered as ProseMirror decorations, outside React).
+  useEffect(() => {
+    const root = editorRootRef.current;
+    if (!root) return;
+    function onGapClick(e: Event) {
+      const ce = e as CustomEvent<BlockGapClickDetail>;
+      setButtonMenu({ position: ce.detail.position, rect: ce.detail.rect });
+    }
+    root.addEventListener(BLOCK_GAP_CLICK_EVENT, onGapClick as EventListener);
+    return () => {
+      root.removeEventListener(
+        BLOCK_GAP_CLICK_EVENT,
+        onGapClick as EventListener,
+      );
+    };
+  }, []);
 
   function pickItem(item: SlashItem) {
     if (!buttonMenu) return;
@@ -228,34 +246,20 @@ function BlockEditingArea({ editor }: { editor: Editor }) {
 
   return (
     <>
-      <div className="lib-tiptap-body-wrap">
+      <div className="lib-tiptap-body-wrap" ref={editorRootRef}>
         <DragHandle
           editor={editor}
           onNodeChange={({ node, pos }) => {
             currentBlockRef.current = node ? { node, pos } : null;
           }}
         >
-          <div className="lib-tiptap-block-affordances">
-            <button
-              type="button"
-              className="lib-tiptap-block-plus"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={(e) =>
-                openMenuAfterCurrent(e.currentTarget.getBoundingClientRect())
-              }
-              aria-label="Insert block below"
-              title="Insert block below"
-            >
-              +
-            </button>
-            <span
-              className="lib-tiptap-drag-handle"
-              aria-label="Drag to reorder"
-              title="Drag to reorder"
-            >
-              ⋮⋮
-            </span>
-          </div>
+          <span
+            className="lib-tiptap-drag-handle"
+            aria-label="Drag to reorder"
+            title="Drag to reorder"
+          >
+            ⋮⋮
+          </span>
         </DragHandle>
         <EditorContent editor={editor} className="lib-tiptap-body" />
       </div>

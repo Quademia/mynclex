@@ -8,7 +8,88 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-27):** **Library Slice 11.5 — Tiptap
+> **Last shipped (2026-05-27):** **Library Slice 11.5 follow-on
+> polish — editor full-feature build-out.** Stacks on top of the
+> just-shipped Tiptap scaffold (11.5a + 11.5b). Multiple discrete
+> improvements landed across the same session as a continuous
+> arc rather than separate slices — kept together because each
+> piece reshaped the editor's surface and they read as one
+> coherent "make the editor feel real" pass.
+>
+> - **`+` buttons → controlled menus** (no phantom slash). The
+>   per-block `+` and footer `+ Add block` no longer inject `/`
+>   into the doc; they open a React-state-controlled SlashMenu
+>   anchored to the button. SlashItem grows a `runAt(editor,
+>   position)` method for button-triggered insertion alongside
+>   the existing slash-triggered `run(editor, range)`.
+> - **Block hover + focus tint** via `@tiptap/extension-focus`
+>   (className: `has-focus`, mode: `shallowest`). CSS tints the
+>   hovered block (5% accent) + the focused block (7% accent;
+>   9% when hovered).
+> - **List bullets / numbers restored.** Tailwind's preflight
+>   clears `list-style` globally; explicit `disc` / `decimal` /
+>   `circle` / `lower-alpha` inside `.lib-tiptap-body`, with
+>   tight `li > p` margins so lists don't read loose.
+> - **Real SVG icons** for toolbar + slash menu. 23 new icons
+>   added to `<NavIcon>` across two waves (text marks first,
+>   expanded toolbar second). Lucide-derived paths (MIT) matching
+>   the existing icon style — no new dependency, all icons stay
+>   in one place.
+> - **Toolbar expansion.** Six more Tiptap extensions installed
+>   (`@tiptap/extension-highlight`, `-subscript`, `-superscript`,
+>   `-text-align`, `-color`, `-text-style`). New toolbar groups:
+>   **marks** (B / I / U / S / `</>` / link / sub / sup) ·
+>   **headings** (H2 / H3) · **blocks** (• / 1. / quote /
+>   code-block / hr) · **colour** (highlight + text colour —
+>   each opens a small swatch popover with 6 preset tints + a
+>   Remove pill) · **alignment** (L / C / R on heading +
+>   paragraph) · **actions** (undo / redo / clear formatting).
+> - **Block tray at the editor foot.** Replaces the dashed
+>   `+ Add block` button with a horizontal chip row of all 14
+>   block types. Six enabled chips insert at the end of the doc
+>   on click; eight disabled chips render dimmed with their
+>   target-slice badge (`11.6` / `11.7` etc.). Wraps on narrow
+>   screens.
+> - **Inter-block "+ Add block" gap affordances.** New
+>   `lib/library/block-gap.ts` Tiptap extension injects a
+>   ProseMirror widget decoration between every pair of top-level
+>   blocks. Hover-revealed dashed accent line with a "+ Add
+>   block" pill; click dispatches a custom event the editor
+>   catches and opens the controlled SlashMenu at that position.
+>   The per-block `+` next to the drag handle was removed — the
+>   gap affordance is the new mouse-driven insertion path.
+> - **Shared `usePopoverPosition` hook** (`lib/library/use-popover-position.ts`).
+>   Flip-above-when-clipped-below + horizontal clamp + max-height
+>   constraint. Used by both the SlashMenu (cursor-anchored) and
+>   the ColorSwatchPicker (button-anchored). DOM-mutation
+>   positioning rather than React state to avoid the layout-
+>   effect / setState re-render loop that bit the first
+>   implementation.
+>
+> **Files new (4):** `lib/library/block-gap.ts`,
+> `lib/library/color-swatch-picker.tsx`,
+> `lib/library/use-popover-position.ts`,
+> 12 new icons in `components/nav/shared/nav-icon.tsx`.
+>
+> **Files modified (5):** `lib/library/note-body-editor.tsx`
+> (six extensions + expanded toolbar + swatch popovers + block
+> tray + inter-block gap listener — per-block `+` removed),
+> `lib/library/slash-menu.tsx` (button-triggered `runAt` +
+> `iconSvg` field + position hook), `lib/library/color-swatch-picker.tsx`
+> (position hook), `styles/library.css` (toolbar + swatch
+> popover + block tray + gap + hover/focus tint + list bullets
+> + new icon sizing), `package.json` + `package-lock.json`
+> (7 new Tiptap deps total across the follow-on).
+>
+> **Next:** Library **11.6** (Standard visual blocks — Image /
+> PDF / Video / Table + Supabase Storage signed-URL pipeline +
+> auto-resize). Standing alternate: Payments **5.3** per the
+> rotation rule. As the visual-block slices land, their slash-
+> menu rows + block-tray chips light up automatically (they're
+> already wired as disabled placeholders with their slice
+> numbers).
+>
+> **Earlier shipped (2026-05-27):** **Library Slice 11.5 — Tiptap
 > editor scaffold (11.5a foundation + 11.5b block UX).** The
 > textarea body editor (11.2b) is replaced by a Tiptap-powered
 > rich block editor that reads like Notion: continuous prose

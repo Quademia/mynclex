@@ -21,6 +21,7 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import type { Editor, Range } from '@tiptap/react';
 import { NavIcon } from '@/components/nav/shared/nav-icon';
 import type { NavIcon as NavIconName } from '@/lib/nav/types';
+import { usePopoverPosition } from './use-popover-position';
 
 export type SlashItem = {
   type: string;
@@ -327,16 +328,11 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
       },
     }));
 
-    // Position the popover via the suggestion's cursor rect.
-    const rect = clientRect?.() ?? null;
-    const style: React.CSSProperties = rect
-      ? {
-          position: 'fixed',
-          left: rect.left,
-          top: rect.bottom + 6,
-          zIndex: 100,
-        }
-      : { display: 'none' };
+    // Position via the shared hook — handles flip + horizontal
+    // clamp when the anchor sits near the viewport edges.
+    const { ref: popoverRef, style } = usePopoverPosition({
+      getAnchorRect: () => clientRect?.() ?? null,
+    });
 
     // Group items for the rendered list.
     const groups: Record<string, SlashItem[]> = {};
@@ -350,14 +346,24 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
 
     if (items.length === 0) {
       return (
-        <div className="lib-slash-popover" style={style} role="listbox">
+        <div
+          ref={popoverRef}
+          className="lib-slash-popover"
+          style={style}
+          role="listbox"
+        >
           <div className="lib-slash-empty">No matches</div>
         </div>
       );
     }
 
     return (
-      <div className="lib-slash-popover" style={style} role="listbox">
+      <div
+        ref={popoverRef}
+        className="lib-slash-popover"
+        style={style}
+        role="listbox"
+      >
         {Object.entries(groups).map(([group, groupItems]) => (
           <div key={group} className="lib-slash-group">
             <div className="lib-slash-group-head">{group}</div>

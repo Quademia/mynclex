@@ -1677,40 +1677,6 @@
   min-height: 280px;
 }
 
-/* Cluster of per-block affordances rendered inside the
- * drag-handle's host element. The drag-handle extension positions
- * the cluster at the left edge of the hovered block; both children
- * (the "+" button and the ⋮⋮ glyph) inherit that positioning. */
-.lib-tiptap-block-affordances {
-  display: inline-flex;
-  align-items: center;
-  gap: 1px;
-  margin-right: 4px;
-}
-
-.lib-tiptap-block-plus {
-  appearance: none;
-  background: transparent;
-  border: none;
-  width: 20px;
-  height: 22px;
-  border-radius: 4px;
-  font-size: 16px;
-  line-height: 1;
-  color: var(--text-faint);
-  cursor: pointer;
-  user-select: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.12s, color 0.12s;
-}
-
-.lib-tiptap-block-plus:hover {
-  background: var(--bg);
-  color: var(--accent);
-}
-
 /* Drag handle — rendered as a child of the body wrap by
  * @tiptap/extension-drag-handle-react. The extension positions
  * its host element via inline transforms, so we only style the
@@ -1739,6 +1705,77 @@
 .lib-tiptap-drag-handle:active {
   cursor: grabbing;
   background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* Inter-block "+ Add block" gap (slice 11.5 follow-on).
+ * Rendered as a ProseMirror widget decoration between every pair
+ * of top-level blocks. Idle: a thin (~6px) transparent strip the
+ * cursor barely notices. Hover: expands to ~28px, shows a dashed
+ * accent line + "+ Add block" label, click opens the slash menu
+ * at that gap's position.
+ *
+ * The button sits inside the gap element. ProseMirror manages the
+ * DOM, so we style by class rather than React. */
+.lib-tiptap-gap {
+  display: block;
+  position: relative;
+  height: 6px;
+  margin: 0;
+}
+
+.lib-tiptap-gap-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 0.15s ease, height 0.15s ease;
+  /* Expand the clickable area without expanding the layout box —
+   * absolute positioning relative to the gap wrapper. */
+  position: absolute;
+  inset: -6px 0;
+}
+
+.lib-tiptap-gap:hover .lib-tiptap-gap-btn,
+.lib-tiptap-gap-btn:focus-visible {
+  opacity: 1;
+}
+
+.lib-tiptap-gap-line {
+  flex: 1;
+  height: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.lib-tiptap-gap-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--white));
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.lib-tiptap-gap-plus {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.lib-tiptap-gap-btn:hover .lib-tiptap-gap-label {
+  background: color-mix(in srgb, var(--accent) 14%, var(--white));
 }
 
 /* Block tray — chip row at the foot of the editor. Replaces the

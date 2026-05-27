@@ -10,6 +10,7 @@
 // below the trigger button. Click-outside + Esc close.
 
 import { useEffect, useRef } from 'react';
+import { usePopoverPosition } from './use-popover-position';
 
 export type ColorSwatch = {
   /** CSS colour passed to Tiptap's color/highlight commands. */
@@ -40,13 +41,19 @@ export function ColorSwatchPicker({
   onClose,
   anchorRect,
 }: ColorSwatchPickerProps) {
-  const rootRef = useRef<HTMLDivElement>(null);
+  // Positioning goes through the shared hook (flip + clamp).
+  const { ref: rootRef, style } = usePopoverPosition({
+    getAnchorRect: () => anchorRect,
+  });
+
+  // Click-outside + Esc still managed locally with our own ref.
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
       if (
-        rootRef.current &&
-        !rootRef.current.contains(e.target as Node)
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
       ) {
         onClose();
       }
@@ -65,16 +72,18 @@ export function ColorSwatchPicker({
     };
   }, [onClose]);
 
+  // Composite the two refs — the popover-position hook needs the
+  // element to measure, and our click-outside check needs it too.
+  function setRefs(el: HTMLDivElement | null) {
+    rootRef.current = el;
+    containerRef.current = el;
+  }
+
   return (
     <div
-      ref={rootRef}
+      ref={setRefs}
       className="lib-tiptap-swatch-pop"
-      style={{
-        position: 'fixed',
-        left: anchorRect.left,
-        top: anchorRect.bottom + 6,
-        zIndex: 100,
-      }}
+      style={style}
       role="dialog"
       aria-label="Pick a colour"
     >
