@@ -1,46 +1,61 @@
-// mynclex/lib/library/note-editor.tsx
-//
-// Tutor library note editor (slice 11.2b). Routed under
-// /tutor/library/note/[note_id]. Three-zone layout:
-//
-//   ┌──────────────────────────────────────────────────────┐
-//   │  Sticky toolbar: [← Back]  ……  [Saved] [Draft] [Publish]
-//   ├──────────────────────────────────────────────────────┤
-//   │  ┌────────────────────────────────┬───────────────┐  │
-//   │  │ Title (large serif)            │ Right rail    │  │
-//   │  │ Subtitle (italic)              │  • Status     │  │
-//   │  │ Description (small one-line)   │  • Outline    │  │
-//   │  │ ──────                          │  • Guards    │  │
-//   │  │ FOLDER [chip ▾]                 │              │  │
-//   │  │ PILLARS [chips] [+ Add]         │              │  │
-//   │  │ TAGS [chips] [+ tag input]      │              │  │
-//   │  │ ──────                          │              │  │
-//   │  │                                │              │  │
-//   │  │ [ Body textarea ]              │              │  │
-//   │  │                                │              │  │
-//   │  └────────────────────────────────┴───────────────┘  │
-//   └──────────────────────────────────────────────────────┘
-//
-// Save model for 11.2b: save-on-explicit-Save (the toolbar Save
-// button), no debounced autosave yet. The "Saved · just now" /
-// "Unsaved changes" badge reflects the dirty flag.
-//
-// Body is rendered + edited as a textarea. The schema stores the
-// body as a JSONB array of blocks; we flatten to plain text for
-// the textarea via bodyToText() and round-trip back via textToBody()
-// in a way that matches what slice 11.5's block editor will produce.
-
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+// mynclex/lib/library/note-editor.tsx
+//
+// Tutor library note editor. Slice 11.2b shipped this with a plain
+// textarea body + explicit Save button. Slice 11.5a swaps both:
+//
+//   • Body is the Tiptap rich block editor (<NoteBodyEditor>) —
+//     text-only blocks for now; visual / nursing-domain blocks land
+//     in 11.6+.
+//   • The Save button is gone — autosave on a 3-second debounce
+//     after the last edit. The toolbar badge reflects state.
+//   • The two-tabs `version_id` save guard is wired through
+//     `updateNoteAction`: every save carries the version_id the
+//     editor loaded with; if another tab has saved in between, the
+//     action returns `conflict: true` and the editor surfaces a
+//     reload-prompt toast.
+//
+// Layout (same three zones as 11.2b):
+//
+//   ┌────────────────────────────────────────────────────────┐
+//   │ Sticky toolbar: [breadcrumb]  …  [save badge] [Draft]…  │
+//   ├──────────────────────────────────┬─────────────────────┤
+//   │ Title (large serif)              │ Right rail          │
+//   │ Subtitle (italic)                │  • Status           │
+//   │ Description (small one-line)     │  • On shelves       │
+//   │ FOLDER · PILLARS · TAGS          │  • Outline          │
+//   │ ──── inline meta row ────         │  • Embedded qs      │
+//   │ ┌────── Tiptap inline toolbar ──┐ │  • Used in          │
+//   │ │  Block ▾  B I U S </>  • 1. " │ │  • Guards           │
+//   │ ├────────────────────────────────┤ │                    │
+//   │ │  Body — grows with content     │ │                    │
+//   │ │  (no internal scroll;          │ │                    │
+//   │ │   .product-content scrolls)    │ │                    │
+//   │ └────────────────────────────────┘ │                    │
+//   └──────────────────────────────────┴─────────────────────┘
+//
+// Note: the outer breadcrumb bar (top of the page) and the Tiptap
+// toolbar (between meta row and body) are two different toolbars.
+// Both are sticky in the .product-content scroll context — see
+// styles/library.css for the placements.
+
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { updateNoteAction } from './actions';
+import { NoteBodyEditor } from './note-body-editor';
 import { PillarPicker } from './pillar-picker';
 import { FolderPicker } from './folder-picker';
 import { TagInput } from './tag-input';
 import { formatRelative, pillarShortName } from './format';
+import {
+  bodyToTiptap,
+  deriveOutlineFromDoc,
+  tiptapToBody,
+  type TiptapDoc,
+} from './body-tiptap';
 import type {
   LibraryFolderWithCount,
   LibraryNoteForEdit,
@@ -57,52 +72,18 @@ const TITLE_MAX = 120;
 const SUBTITLE_MAX = 200;
 const DESC_MAX = 280;
 
-// =====================================================================
-// Body ⇄ textarea helpers
-// =====================================================================
-//
-// The schema stores `body` as a JSONB array of typed blocks. For
-// 11.2b we only ship one block shape — a single paragraph — but the
-// helpers are tolerant of multi-block bodies so future 11.5-edited
-// notes don't lose data if they're opened here.
-
-function bodyToText(body: unknown): string {
-  if (!Array.isArray(body) || body.length === 0) return '';
-  const out: string[] = [];
-  for (const block of body) {
-    if (!block || typeof block !== 'object') continue;
-    const b = block as {
-      type?: string;
-      content?: Array<{ text?: string }>;
-      text?: string;
-    };
-    if (b.type === 'paragraph' || b.type === 'quote' || b.type === 'callout') {
-      if (Array.isArray(b.content)) {
-        out.push(b.content.map((c) => c.text ?? '').join(''));
-      }
-    } else if (b.type === 'heading' || b.type === 'h3') {
-      if (b.text) out.push(b.text);
-    }
-  }
-  return out.join('\n\n');
-}
-
-function textToBody(text: string): unknown {
-  return [
-    {
-      id: `b_${Math.random().toString(36).slice(2, 10)}`,
-      type: 'paragraph',
-      content: [{ text }],
-    },
-  ];
-}
+// Debounce window for autosave. Planning doc § Autosave: "every 3
+// seconds of inactivity (debounced)."
+const AUTOSAVE_DEBOUNCE_MS = 3000;
 
 /**
- * Walks the body looking for `embedded_questions` blocks and totals
- * up their `item_ids[]` lengths. Returns {blocks: 0, questions: 0}
- * for any 11.2b note (textarea path never writes this block type).
- * Lights up automatically when slice 11.15's embed-picker ships and
- * starts producing these blocks.
+ * Walk the persisted body looking for `embedded_questions` blocks
+ * and total up their `item_ids[]` lengths. Always returns 0/0 in
+ * 11.5a (the picker that writes this block type lands with 11.15).
+ * Reads the persisted body (`note.body`), not the live editor doc —
+ * the live doc only carries the block types StarterKit knows about,
+ * so a future 11.15 note opened here would temporarily lose the
+ * embed count from the rail until 11.15 also lands.
  */
 function countEmbeds(body: unknown): { blocks: number; questions: number } {
   if (!Array.isArray(body)) return { blocks: 0, questions: 0 };
@@ -120,114 +101,300 @@ function countEmbeds(body: unknown): { blocks: number; questions: number } {
   return { blocks, questions };
 }
 
-
 // =====================================================================
 // The editor
 // =====================================================================
 
 export function NoteEditor({ note, folders }: NoteEditorProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showDiscard, setShowDiscard] = useState(false);
 
-  // Form state — every field is local until Save fires.
+  // Form state — non-body fields are plain useState because they
+  // re-render the parent cheaply. Body is special — see below.
   const [title, setTitle] = useState(note.title);
   const [subtitle, setSubtitle] = useState(note.subtitle ?? '');
   const [description, setDescription] = useState(note.description ?? '');
-  const [bodyText, setBodyText] = useState(() => bodyToText(note.body));
   const [pillars, setPillars] = useState<NclexPillar[]>(note.pillars);
   const [tags, setTags] = useState<string[]>(note.tags);
   const [folderId, setFolderId] = useState<string | null>(note.folder_id);
+
+  // Body state lives in a ref to avoid re-rendering the parent on
+  // every keystroke. `bodyEditVersion` increments on each edit and
+  // is what the autosave effect watches.
+  const initialDocRef = useRef<TiptapDoc>(bodyToTiptap(note.body));
+  const currentDocRef = useRef<TiptapDoc>(initialDocRef.current);
+  const [bodyEditVersion, setBodyEditVersion] = useState(0);
+
+  // Outline ticker — re-derive on each body edit. Cheap walk; no
+  // memoisation needed beyond the version dependency.
+  const [outline, setOutline] = useState(() =>
+    deriveOutlineFromDoc(initialDocRef.current),
+  );
+
+  function handleBodyUpdate(doc: TiptapDoc) {
+    currentDocRef.current = doc;
+    setBodyEditVersion((v) => v + 1);
+    setOutline(deriveOutlineFromDoc(doc));
+  }
+
+  // Save state. `saveState` is the user-visible badge; `inFlightRef`
+  // is the internal "a save is currently running" flag so we don't
+  // queue two saves at once. `savedState` is the baseline that
+  // dirty-tracking compares against; it's seeded from `note` at
+  // mount and updated to the latest committed values after every
+  // successful save (so post-save the editor flips back to
+  // "saved" instead of being treated as still-dirty).
+  type SavedBaseline = {
+    title: string;
+    subtitle: string | null;
+    description: string | null;
+    folder_id: string | null;
+    pillars: NclexPillar[];
+    tags: string[];
+    bodyVersion: number;
+  };
+  const [savedState, setSavedState] = useState<SavedBaseline>({
+    title: note.title,
+    subtitle: note.subtitle,
+    description: note.description,
+    folder_id: note.folder_id,
+    pillars: note.pillars,
+    tags: note.tags,
+    bodyVersion: 0,
+  });
+  const [saveState, setSaveState] = useState<
+    'saved' | 'saving' | 'dirty' | 'conflict'
+  >('saved');
+  const inFlightRef = useRef(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string>(note.updated_at);
+  const [expectedVersionId, setExpectedVersionId] = useState<string>(
+    note.version_id,
+  );
+  const [saveTick, setSaveTick] = useState(0);
 
   // Popover open state — sibling popovers should never both be open.
   const [folderOpen, setFolderOpen] = useState(false);
   const [pillarOpen, setPillarOpen] = useState(false);
 
-  // Where to navigate to once a DiscardConfirm is resolved. Set by
-  // crumb clicks (and used by the back-equivalent paths).
+  // Discard / leave-with-unsaved-changes guard.
   const [pendingNavHref, setPendingNavHref] = useState<string | null>(null);
 
-  // Save state — "saved" / "saving" / "dirty".
-  // `lastSavedAt` is the server-acknowledged save timestamp shown in
-  // the rail and the toolbar badge.
-  const [lastSavedAt, setLastSavedAt] = useState<string>(note.updated_at);
-  const [saveTick, setSaveTick] = useState(0);  // forces re-render of "X ago" copy
+  // Rail collapse — Notion-style two-state. localStorage persists
+  // the preference across sessions. Defaults expanded so a new
+  // tutor sees the full Status / On shelves / Outline rail.
+  const [railCollapsed, setRailCollapsed] = useState(false);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('mynclex.library.editor.rail-collapsed') === '1') {
+        setRailCollapsed(true);
+      }
+    } catch {
+      /* localStorage blocked — fine */
+    }
+  }, []);
+  function toggleRail() {
+    setRailCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(
+          'mynclex.library.editor.rail-collapsed',
+          next ? '1' : '0',
+        );
+      } catch {
+        /* localStorage blocked */
+      }
+      return next;
+    });
+  }
 
-  // Re-render the "saved Xs ago" copy every 30s so it stays honest
-  // without polling.
+  // Refresh "saved Xs ago" copy every 30s.
   useEffect(() => {
     const id = window.setInterval(() => setSaveTick((t) => t + 1), 30_000);
     return () => window.clearInterval(id);
   }, []);
 
-  // Dirty = any field diverges from what we last persisted.
-  const isDirty = useMemo(() => {
-    if (title !== note.title) return true;
-    if ((subtitle || null) !== note.subtitle) return true;
-    if ((description || null) !== note.description) return true;
-    if (folderId !== note.folder_id) return true;
-    if (!arraysEqual(pillars, note.pillars)) return true;
-    if (!arraysEqual(tags, note.tags)) return true;
-    if (bodyText !== bodyToText(note.body)) return true;
-    return false;
-  }, [title, subtitle, description, folderId, pillars, tags, bodyText, note]);
+  // ─────────────────────────────────────────────────────────
+  // Dirty detection
+  // ─────────────────────────────────────────────────────────
 
-  // Validation gates the Save button.
+  const isDirty = useMemo(() => {
+    if (title !== savedState.title) return true;
+    if ((subtitle || null) !== savedState.subtitle) return true;
+    if ((description || null) !== savedState.description) return true;
+    if (folderId !== savedState.folder_id) return true;
+    if (!arraysEqual(pillars, savedState.pillars)) return true;
+    if (!arraysEqual(tags, savedState.tags)) return true;
+    if (bodyEditVersion > savedState.bodyVersion) return true;
+    return false;
+  }, [
+    title,
+    subtitle,
+    description,
+    folderId,
+    pillars,
+    tags,
+    bodyEditVersion,
+    savedState,
+  ]);
+
+  // Server-side validation gates: title 2..120 + subtitle ≤ 200 +
+  // description ≤ 280 + ≥1 pillar. We don't autosave if validation
+  // fails — surface inline errors instead.
   const trimmedTitle = title.trim();
   const isTitleValid =
     trimmedTitle.length >= TITLE_MIN && trimmedTitle.length <= TITLE_MAX;
   const isSubtitleValid = subtitle.length <= SUBTITLE_MAX;
   const isDescValid = description.length <= DESC_MAX;
   const hasPillar = pillars.length >= 1;
-  const canSave =
-    isDirty && isTitleValid && isSubtitleValid && isDescValid && hasPillar && !isPending;
+  const canSave = isDirty && isTitleValid && isSubtitleValid && isDescValid && hasPillar;
 
-  // Browser warning when the tutor tries to leave with unsaved changes.
-  // The discard modal handles in-app navigation; this catches the
-  // close-tab / reload case.
+  // ─────────────────────────────────────────────────────────
+  // Debounced autosave
+  // ─────────────────────────────────────────────────────────
+  //
+  // Every dirty trigger (any form field change OR a body edit) bumps
+  // a dep in this effect; the previous timer is cleared and a fresh
+  // 3-second timer starts. When the timer fires we run the save —
+  // unless a save is already in flight, in which case we requeue
+  // after the in-flight one finishes (the next effect cycle picks
+  // it up because `inFlightRef` resets to false and `saveTick`
+  // re-runs deps).
+  //
+  // Conflict handling: if the action returns `conflict: true`, we
+  // stop autosaving and ask the tutor to reload. Last-write-wins
+  // with a guard is the v1 policy — no merge UI.
+
+  // Refs for the latest field values, read by runAutosave so the
+  // closure always sees the values at save-time rather than at
+  // effect-schedule time.
+  const fieldsRef = useRef({
+    title: trimmedTitle,
+    subtitle,
+    description,
+    folderId,
+    pillars,
+    tags,
+  });
+  useEffect(() => {
+    fieldsRef.current = {
+      title: trimmedTitle,
+      subtitle,
+      description,
+      folderId,
+      pillars,
+      tags,
+    };
+  }, [trimmedTitle, subtitle, description, folderId, pillars, tags]);
+
+  useEffect(() => {
+    // Don't schedule a save if: nothing's dirty, validation fails,
+    // a conflict toast is up, or a save is already in flight.
+    // `saveState` deliberately isn't in the dep array — using
+    // `inFlightRef` for in-flight gating avoids the re-render loop
+    // that would otherwise restart the debounce timer.
+    if (!canSave) return;
+    if (saveStateRef.current === 'conflict') return;
+    if (inFlightRef.current) return;
+
+    if (saveStateRef.current !== 'dirty') setSaveState('dirty');
+
+    const timer = window.setTimeout(() => {
+      void runAutosave();
+    }, AUTOSAVE_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    title,
+    subtitle,
+    description,
+    folderId,
+    pillars,
+    tags,
+    bodyEditVersion,
+    canSave,
+  ]);
+
+  // Mirror saveState into a ref so the autosave effect can read it
+  // without including it in deps (and triggering the timer-reset
+  // loop). The effect re-evaluates whenever any edit fires.
+  const saveStateRef = useRef(saveState);
+  useEffect(() => {
+    saveStateRef.current = saveState;
+  }, [saveState]);
+
+  async function runAutosave() {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    setSaveState('saving');
+    setError(null);
+
+    const f = fieldsRef.current;
+    const bodyVersionAtSave = bodyEditVersion;
+
+    const result = await updateNoteAction(note.note_id, {
+      title: f.title,
+      subtitle: f.subtitle.trim() || null,
+      description: f.description.trim() || null,
+      body: tiptapToBody(currentDocRef.current),
+      pillars: f.pillars,
+      tags: f.tags,
+      folder_id: f.folderId,
+      expected_version_id: expectedVersionId,
+    });
+
+    inFlightRef.current = false;
+
+    if (!result.ok) {
+      if (result.conflict) {
+        setSaveState('conflict');
+        setError(result.error);
+        return;
+      }
+      setSaveState('dirty');
+      setError(result.error);
+      return;
+    }
+
+    // Commit the new baseline so isDirty re-evaluates to false. If
+    // the user typed more during the save, the new bodyEditVersion
+    // is higher than bodyVersionAtSave — isDirty stays true and the
+    // effect schedules another autosave.
+    setSavedState({
+      title: f.title,
+      subtitle: f.subtitle.trim() || null,
+      description: f.description.trim() || null,
+      folder_id: f.folderId,
+      pillars: f.pillars,
+      tags: f.tags,
+      bodyVersion: bodyVersionAtSave,
+    });
+    setExpectedVersionId(result.version_id);
+    setLastSavedAt(result.updated_at);
+    setSaveState('saved');
+  }
+
+  // Browser warning when the tutor tries to leave with unsaved
+  // changes. The in-app DiscardConfirm catches breadcrumb leaves;
+  // this catches close-tab / reload.
   useEffect(() => {
     function onBeforeUnload(e: BeforeUnloadEvent) {
-      if (isDirty) {
+      if (isDirty || saveState === 'saving') {
         e.preventDefault();
       }
     }
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [isDirty]);
-
-  function handleSave() {
-    if (!canSave) return;
-    setError(null);
-    startTransition(async () => {
-      const result = await updateNoteAction(note.note_id, {
-        title: trimmedTitle,
-        subtitle: subtitle.trim() || null,
-        description: description.trim() || null,
-        body: textToBody(bodyText),
-        pillars,
-        tags,
-        folder_id: folderId,
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setLastSavedAt(new Date().toISOString());
-      // The server action already revalidates /tutor/library and
-      // /tutor/library/note/<id>; we don't need to navigate.
-    });
-  }
+  }, [isDirty, saveState]);
 
   /**
-   * Single navigation guard used by every leave-the-editor affordance
-   * — the breadcrumb crumbs (`Library`, folder name) and any future
-   * exit path. Honours the unsaved-changes rule: dirty + leave →
-   * DiscardConfirm; clean → straight nav.
+   * Single navigation guard used by every leave-the-editor
+   * affordance — breadcrumb crumbs + any future exit path. If the
+   * editor is dirty or a save is in flight, surface the
+   * DiscardConfirm; otherwise navigate straight.
    */
   function attemptLeave(href: string) {
-    if (isPending) return;
-    if (isDirty) {
+    if (isDirty || saveState === 'saving') {
       setPendingNavHref(href);
       setShowDiscard(true);
     } else {
@@ -240,40 +407,23 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
     [folderId, folders],
   );
 
-  // Auto-built outline from body text — split on blank lines + first
-  // line of each chunk that looks like a heading (#, ##, or all-caps).
-  // For 11.2b this is best-effort; 11.5's rich editor will populate
-  // a real outline from heading blocks.
-  const outline = useMemo(() => deriveOutline(bodyText), [bodyText]);
-
-  // Live counts for the right rail.
-  //
-  // Embedded-question count walks the PERSISTED body (`note.body`),
-  // not the current textarea state — the textarea-to-body round-trip
-  // flattens non-paragraph blocks, so reading the live state would
-  // always show 0 even for a future 11.15 note that genuinely has
-  // embed blocks. Reading the persisted body shows the real number
-  // the rail-card should display until the rich editor (slice 11.5)
-  // lets us round-trip every block type safely.
-  //
-  // "Used in" is the server-fetched rollup — frozen at load time
-  // since attachments are created from the programme curriculum
-  // side, not from this editor.
   const embedCounts = useMemo(() => countEmbeds(note.body), [note.body]);
   const usedInCount = note.used_in_count;
 
-  const saveBadge = isPending
-    ? { state: 'saving', label: 'Saving…' }
-    : isDirty
-      ? { state: 'dirty', label: 'Unsaved changes' }
-      : { state: 'saved', label: `Saved · ${formatRelative(lastSavedAt)}` };
-  // saveTick is intentionally unused below — it just causes this
-  // useMemo's neighbours to re-render so formatRelative is fresh.
+  const saveBadge =
+    saveState === 'saving'
+      ? { state: 'saving' as const, label: 'Saving…' }
+      : saveState === 'dirty'
+        ? { state: 'dirty' as const, label: 'Unsaved changes' }
+        : saveState === 'conflict'
+          ? { state: 'dirty' as const, label: 'Reload — newer version exists' }
+          : { state: 'saved' as const, label: `Saved · ${formatRelative(lastSavedAt)}` };
+  // saveTick keeps the relative copy fresh.
   void saveTick;
 
   return (
     <div className="lib-editor-shell">
-      {/* Sticky top toolbar */}
+      {/* Sticky outer toolbar — breadcrumb + save badge + status */}
       <div className="lib-editor-bar">
         <div className="lib-editor-bar-left">
           <nav className="lib-editor-crumb" aria-label="Library breadcrumb">
@@ -281,7 +431,6 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
               type="button"
               className="lib-crumb-link"
               onClick={() => attemptLeave('/tutor/library')}
-              disabled={isPending}
             >
               Library
             </button>
@@ -294,7 +443,6 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
                   onClick={() =>
                     attemptLeave(`/tutor/library?folder=${selectedFolder.folder_id}`)
                   }
-                  disabled={isPending}
                   title={selectedFolder.description ?? undefined}
                 >
                   {selectedFolder.name}
@@ -325,26 +473,29 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
           >
             Publish
           </button>
-          <button
-            type="button"
-            className="lib-btn lib-btn-primary"
-            onClick={handleSave}
-            disabled={!canSave}
-          >
-            {isPending ? 'Saving…' : 'Save'}
-          </button>
         </div>
       </div>
 
-      <div className="lib-editor-grid">
+      <div
+        className={
+          railCollapsed ? 'lib-editor-grid is-rail-collapsed' : 'lib-editor-grid'
+        }
+      >
         {/* Main editor pane */}
-        <div className="lib-editor-main">
-          {/* Each of title / subtitle / description is wrapped in a
-              hover-revealed edit affordance. Looks like display text
-              at rest; on hover or focus a subtle background tint +
-              ✎ icon at the end signal "you can edit this." The
-              pencil span has pointer-events:none so clicks fall
-              through to the input below. */}
+        <div className="lib-editor-main" style={{ position: 'relative' }}>
+          {railCollapsed && (
+            <button
+              type="button"
+              className="lib-rail-toggle lib-rail-restore"
+              onClick={toggleRail}
+              title="Show right rail"
+              aria-label="Show right rail"
+            >
+              «
+            </button>
+          )}
+          {/* Title / Subtitle / Description — same edit-cue hover
+              affordance as 11.2b (hover-revealed ✎). */}
           <div className="lib-editor-editable">
             <input
               type="text"
@@ -481,21 +632,30 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
             </div>
           </div>
 
-          {/* Body textarea — single-paragraph until 11.5's block editor. */}
-          <textarea
-            className="lib-editor-body"
-            value={bodyText}
-            onChange={(e) => setBodyText(e.target.value)}
-            placeholder="Start writing…
-The rich block editor with headings, lists, callouts, drug cards and embedded questions lands in slice 11.5. For now this is a plain textarea — your text is preserved when the rich editor arrives."
-            aria-label="Note body"
+          {/* Tiptap body editor — toolbar above + ProseMirror element. */}
+          <NoteBodyEditor
+            initialDoc={initialDocRef.current}
+            onUpdate={handleBodyUpdate}
           />
         </div>
 
-        {/* Right rail */}
+        {/* Right rail — sticky to viewport. The collapse toggle in
+            the Status section's head hides the rail entirely; a
+            restore button (rendered above) brings it back. */}
         <aside className="lib-editor-rail" aria-label="Note properties">
           <section className="lib-rail-section">
-            <div className="lib-rail-title">Status</div>
+            <div className="lib-rail-section-head">
+              <div className="lib-rail-title">Status</div>
+              <button
+                type="button"
+                className="lib-rail-toggle"
+                onClick={toggleRail}
+                title="Hide right rail"
+                aria-label="Hide right rail"
+              >
+                »
+              </button>
+            </div>
             <div className="lib-rail-row">
               <span className="lbl">State</span>
               <span className="lib-state-pill is-draft">Draft</span>
@@ -544,14 +704,16 @@ The rich block editor with headings, lists, callouts, drug cards and embedded qu
             <div className="lib-rail-title">Outline</div>
             {outline.length > 0 ? (
               <ul className="lib-rail-outline">
-                {outline.map((line, i) => (
-                  <li key={i}>{line}</li>
+                {outline.map((row, i) => (
+                  <li key={i} className={row.level === 3 ? 'is-h3' : 'is-h2'}>
+                    {row.text}
+                  </li>
                 ))}
               </ul>
             ) : (
               <p className="lib-rail-muted">
-                Auto-built from headings — lands properly with the
-                rich block editor (slice 11.5).
+                Add H2 / H3 headings in the body for an outline to
+                appear here.
               </p>
             )}
           </section>
@@ -601,9 +763,12 @@ The rich block editor with headings, lists, callouts, drug cards and embedded qu
           <section className="lib-rail-section">
             <div className="lib-rail-title">Guards</div>
             <ul className="lib-rail-guards">
-              <li>Save on explicit Save (debounced autosave with 11.5).</li>
+              <li>Autosave 3s after the last edit — no Save button.</li>
               <li>Title and ≥1 pillar required.</li>
-              <li>Two-tab save guard lands with the block editor (11.5).</li>
+              <li>
+                Two-tab save guard active. If another tab saves first,
+                this one stops autosaving and asks you to reload.
+              </li>
               <li>Alt-text preflight runs on Publish (11.10).</li>
             </ul>
           </section>
@@ -639,29 +804,5 @@ function arraysEqual<T>(a: T[], b: T[]): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
   return true;
-}
-
-/**
- * Best-effort outline derivation for the right rail. Treats lines
- * that look like markdown headings (#, ##) or all-caps short lines
- * as outline entries. Real outline lands with 11.5's rich editor.
- */
-function deriveOutline(text: string): string[] {
-  if (!text.trim()) return [];
-  const out: string[] = [];
-  for (const raw of text.split('\n')) {
-    const line = raw.trim();
-    if (!line) continue;
-    if (line.startsWith('## ')) out.push(line.slice(3));
-    else if (line.startsWith('# ')) out.push(line.slice(2));
-    else if (
-      line.length <= 60 &&
-      line === line.toUpperCase() &&
-      /[A-Z]/.test(line)
-    ) {
-      out.push(line);
-    }
-  }
-  return out.slice(0, 12);
 }
 

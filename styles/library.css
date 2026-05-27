@@ -1460,32 +1460,440 @@
 }
 
 
-/* ─── Body textarea ───────────────────────────────────── */
+/* ─── Tiptap body editor (slice 11.5a) ──────────────────
+ *
+ * Replaces the 11.2b textarea. The body has no internal scroll —
+ * it grows with content and the page (.product-content) scrolls.
+ * The inline toolbar is sticky to the viewport just under the
+ * outer breadcrumb bar so it stays reachable in long notes.
+ * ─────────────────────────────────────────────────────── */
 
-.lib-editor-body {
-  width: 100%;
-  min-height: 360px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 14px 16px;
-  font-family: inherit;
-  font-size: 14px;
-  color: var(--text);
-  line-height: 1.65;
-  resize: vertical;
+.lib-tiptap-shell {
+  display: flex;
+  flex-direction: column;
+}
+
+.lib-tiptap-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 6px 8px;
   background: var(--white);
-  outline: none;
-  transition: border-color 0.12s;
+  border: 1px solid var(--border);
+  border-radius: 8px 8px 0 0;
+  border-bottom: none;
+  /* Sticky to the .product-content scroll, parked under the outer
+   * breadcrumb bar (.lib-editor-bar). The breadcrumb bar is ~46px
+   * tall (10+10 padding + ~26px content); 46px places this toolbar
+   * flush against its underside. */
+  position: sticky;
+  top: 46px;
+  z-index: 15;
 }
 
-.lib-editor-body:focus {
-  border-color: var(--accent);
+.lib-tiptap-toolbar-skeleton {
+  min-height: 38px;
+  opacity: 0.6;
 }
 
-.lib-editor-body::placeholder {
+.lib-tiptap-tb-btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 4px 8px;
+  min-width: 30px;
+  height: 30px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.lib-tiptap-tb-btn:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.lib-tiptap-tb-btn.is-on {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 24%, transparent);
+  color: var(--accent);
+}
+
+.lib-tiptap-tb-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.lib-tiptap-tb-sep {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+.lib-tiptap-tb-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+.lib-tiptap-tb-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lib-tiptap-tb-hint kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--text);
+}
+
+/* Body wrapper holds the editable region + the drag-handle's
+ * absolutely-positioned anchor. position:relative gives the handle
+ * a containing block for its `left` calculations. */
+.lib-tiptap-body-wrap {
+  position: relative;
+}
+
+.lib-tiptap-body {
+  border: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  background: var(--white);
+  padding: 16px 24px 16px 36px;
+  /* No internal scroll — the body grows with content. The
+   * .product-content scroll (slice 2.9) carries the page. */
+  min-height: 280px;
+}
+
+/* Drag handle — rendered as a child of the body wrap by
+ * @tiptap/extension-drag-handle-react. The extension positions
+ * its host element via inline transforms, so we only style the
+ * inner glyph (the ⋮⋮ icon). */
+.lib-tiptap-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 22px;
+  margin-right: 4px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-faint);
+  cursor: grab;
+  user-select: none;
+  background: transparent;
+  transition: background 0.12s, color 0.12s;
+}
+
+.lib-tiptap-drag-handle:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.lib-tiptap-drag-handle:active {
+  cursor: grabbing;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.lib-tiptap-body-skeleton {
   color: var(--text-faint);
   font-style: italic;
-  line-height: 1.6;
+}
+
+/* ProseMirror produces the editable region inside .lib-tiptap-body.
+ * Style the rendered elements so the editor reads like a document. */
+.lib-tiptap-body .ProseMirror {
+  outline: none;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text);
+  min-height: 240px;
+}
+
+.lib-tiptap-body .ProseMirror:focus {
+  outline: none;
+}
+
+.lib-tiptap-body .ProseMirror p {
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0 0 10px;
+  text-wrap: pretty;
+}
+
+/* CD visual treatment — H2 26px serif, H3 20px serif, accent
+ * colour, generous top margin so blocks breathe. */
+.lib-tiptap-body .ProseMirror h2 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.018em;
+  color: var(--accent);
+  margin: 22px 0 6px;
+  scroll-margin-top: 110px;
+}
+
+.lib-tiptap-body .ProseMirror h3 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--accent);
+  margin: 16px 0 4px;
+  scroll-margin-top: 110px;
+}
+
+.lib-tiptap-body .ProseMirror ul,
+.lib-tiptap-body .ProseMirror ol {
+  margin: 0 0 12px;
+  padding-left: 24px;
+}
+
+.lib-tiptap-body .ProseMirror li {
+  margin-bottom: 4px;
+}
+
+.lib-tiptap-body .ProseMirror blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 12px 0;
+  padding: 4px 14px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.lib-tiptap-body .ProseMirror code {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 12.5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--accent-dark, var(--accent));
+}
+
+.lib-tiptap-body .ProseMirror pre {
+  background: color-mix(in srgb, var(--border) 30%, var(--white));
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 0 0 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  overflow-x: auto;
+}
+
+.lib-tiptap-body .ProseMirror pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+
+.lib-tiptap-body .ProseMirror a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.lib-tiptap-body .ProseMirror hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
+}
+
+/* Tiptap's Placeholder extension adds `is-empty` to every empty
+ * node and writes the placeholder text into a `data-placeholder`
+ * attribute. We render it via a ::before pseudo-element so the
+ * hint floats inline without taking layout space. */
+.lib-tiptap-body .ProseMirror .is-empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-faint);
+  font-style: italic;
+  pointer-events: none;
+  float: left;
+  height: 0;
+  width: 100%;
+}
+
+
+/* ─── Slash menu popover (slice 11.5b) ─────────────────── */
+
+.lib-slash-popover {
+  width: 320px;
+  max-height: 360px;
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  font-size: 13px;
+}
+
+.lib-slash-group {
+  margin-bottom: 6px;
+}
+
+.lib-slash-group:last-child {
+  margin-bottom: 0;
+}
+
+.lib-slash-group-head {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 6px 8px 4px;
+}
+
+.lib-slash-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.lib-slash-item.is-selected:not(.is-disabled) {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.lib-slash-item.is-disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.lib-slash-item.is-disabled .lib-slash-ic {
+  opacity: 0.55;
+}
+
+.lib-slash-ic {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.lib-slash-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.lib-slash-name {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.lib-slash-desc {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.lib-slash-pill {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.lib-slash-empty {
+  padding: 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+
+/* ─── Rail collapse (slice 11.5b) ──────────────────────── */
+
+/* When the editor's rail is collapsed, the grid swaps from
+ * "main + rail" to a single column. A small toggle floats just
+ * inside the right edge of the main column; click it to bring
+ * the rail back. */
+.lib-editor-grid.is-rail-collapsed {
+  grid-template-columns: 1fr;
+}
+
+.lib-editor-grid.is-rail-collapsed .lib-editor-rail {
+  display: none;
+}
+
+.lib-rail-toggle {
+  appearance: none;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+
+.lib-rail-toggle:hover {
+  background: var(--bg);
+  color: var(--accent);
+}
+
+.lib-rail-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.lib-rail-section-head .lib-rail-title {
+  margin-bottom: 0;
+}
+
+/* Restore-rail button — floats at top-right of the editor main pane
+ * when the rail is hidden, so the tutor can bring it back. */
+.lib-rail-restore {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
 }
 
 
@@ -1494,6 +1902,14 @@
 .lib-editor-rail {
   background: var(--bg);
   padding: 24px 18px 60px;
+  /* Sticky to viewport relative to .product-content scroll, parked
+   * under the breadcrumb bar (46px). Max-height is what's left of
+   * the viewport after the topbar (56px) and the breadcrumb (46px).
+   * The rail's own overflow-y handles long rail content. */
+  position: sticky;
+  top: 46px;
+  align-self: start;
+  max-height: calc(100vh - 56px - 46px);
   overflow-y: auto;
 }
 
@@ -1549,11 +1965,16 @@
 .lib-rail-outline li {
   font-size: 12.5px;
   color: var(--text);
-  padding: 3px 0;
+  padding: 3px 0 3px 8px;
   line-height: 1.4;
   border-left: 2px solid var(--accent);
-  padding-left: 8px;
   margin-bottom: 2px;
+}
+
+.lib-rail-outline li.is-h3 {
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .lib-rail-guards {

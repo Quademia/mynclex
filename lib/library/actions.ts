@@ -411,18 +411,20 @@ export async function createNoteAction(
 
 
 export type UpdateNoteResult =
-  | { ok: true; version_id: string }
-  | { ok: false; error: string };
+  | { ok: true; version_id: string; updated_at: string }
+  | { ok: false; error: string; conflict?: true };
 
 /**
  * Save the in-editor form. Rotates `version_id` on every successful
- * save — used by the two-tabs save-conflict guard in slice 11.5.
- * For 11.2b the UI doesn't yet send the previous version_id (the
- * editor is single-tab from the user's perspective), so the rotate
- * is forward-compat scaffolding.
+ * save. Slice 11.5 wires the two-tabs save-conflict guard: the
+ * editor sends the `expected_version_id` it loaded with, and the
+ * action rejects with `{ ok: false, conflict: true }` if the row's
+ * current version_id has moved on (i.e. another tab saved in between).
  *
  * `updated_at` is set explicitly so the lens-row "edited X ago" copy
- * is accurate the moment Save returns.
+ * is accurate the moment the save returns. Both the new version_id
+ * and the timestamp come back to the editor so it can update its
+ * own "loaded version" tracker without a refetch.
  */
 export async function updateNoteAction(
   noteId: string,
@@ -458,6 +460,11 @@ export async function updateNoteAction(
   const nextVersionId = crypto.randomUUID();
   const nowIso = new Date().toISOString();
 
+  // Conditional UPDATE — only rotates rows where the current
+  // version_id matches what the editor loaded with. If another tab
+  // saved in between, the WHERE clause filters this row out and
+  // .maybeSingle() returns null. We distinguish "stale guard" from
+  // "missing row" by a follow-up SELECT.
   const { data, error } = await supabase
     .from('nclex_tutor_library_notes')
     .update({
@@ -472,20 +479,36 @@ export async function updateNoteAction(
       updated_at: nowIso,
     })
     .eq('note_id', noteId)
-    .select('note_id, version_id')
+    .eq('version_id', input.expected_version_id)
+    .select('note_id, version_id, updated_at')
     .maybeSingle();
 
   if (error) return { ok: false, error: error.message };
   if (!data) {
+    // Either the note doesn't exist / isn't ours, or another save
+    // bumped the version_id. Probe with a plain ownership check.
+    const { data: probe } = await supabase
+      .from('nclex_tutor_library_notes')
+      .select('note_id')
+      .eq('note_id', noteId)
+      .maybeSingle();
+    if (!probe) {
+      return {
+        ok: false,
+        error: 'Note not found, or not yours to edit.',
+      };
+    }
     return {
       ok: false,
-      error: 'Note not found, or not yours to edit.',
+      conflict: true,
+      error:
+        'This note was saved in another tab. Reload to see the latest version.',
     };
   }
 
   revalidatePath('/tutor/library');
   revalidatePath(`/tutor/library/note/${noteId}`);
-  return { ok: true, version_id: data.version_id };
+  return { ok: true, version_id: data.version_id, updated_at: data.updated_at };
 }
 
 

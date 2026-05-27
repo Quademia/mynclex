@@ -1872,14 +1872,23 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   the shelf — deferred; most v1 shelves are small enough that
   the lens row carries the metadata, can land in a polish slice
   once a tutor with a big shelf asks.
-- ⬜ **11.5** Tiptap editor scaffold — starter-kit (paragraph,
-  heading, list, quote, marks) + slash command + `+` button +
-  drag handle + always-visible toolbar + autosave + `version_id`
-  save guard + `BroadcastChannel` two-tabs presence warning +
-  edit-propagation warning. Ship with text-only blocks; verify
-  the editor feel before adding custom nodes. **Provisional gate**
-  — if the framework's going badly, fall back to markdown textarea
-  and ship the rest of the library without rich blocks.
+- ✅ **(2026-05-27) 11.5** Tiptap editor scaffold — shipped as
+  11.5a (foundation: StarterKit + inline toolbar + autosave +
+  `version_id` save-conflict guard + body-shape adapter that
+  reads legacy 11.2b textarea notes) + 11.5b (slash command with
+  the full 12-block taxonomy as a real popover + per-block drag
+  handles via `@tiptap/extension-drag-handle-react` + placeholder
+  extension + CD visual treatment for H2/H3/quote + rail-collapse
+  toggle in the editor). The 6 text-block types are enabled; the
+  other 6 are listed in the slash menu as disabled "coming in
+  slice X" rows that light up as their slices ship. Block kebab
+  menu, BroadcastChannel pre-warning, and edit-propagation
+  warning **deferred** to a follow-on polish slice — Tiptap's
+  drag covers reorder, the version_id guard catches the bad
+  save, and the propagation warning needs the attachments
+  population from 11.11 to be meaningful. The provisional
+  markdown-fallback gate was not triggered — Tiptap rendered and
+  saved cleanly on first try.
 - ⬜ **11.6** Standard visual blocks — Image (Supabase Storage +
   on-demand signed URL pipeline + auto-resize) + PDF (link-card)
   + Video (YouTube/Vimeo/Loom embeds) + Table. Alt-text preflight

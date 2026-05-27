@@ -8,7 +8,113 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-27):** **Slice 2.9 — locked viewport
+> **Last shipped (2026-05-27):** **Library Slice 11.5 — Tiptap
+> editor scaffold (11.5a foundation + 11.5b block UX).** The
+> textarea body editor (11.2b) is replaced by a Tiptap-powered
+> rich block editor that reads like Notion: continuous prose
+> region that grows with the page, per-block drag handles on
+> hover, a slash-command menu, autosave on a 3-second debounce,
+> and a two-tabs save-conflict guard.
+>
+> - **Tiptap installed** (`@tiptap/react@3.23.6` +
+>   `@tiptap/starter-kit` + `@tiptap/extension-link` +
+>   `@tiptap/extension-underline` + `@tiptap/extension-placeholder`
+>   + `@tiptap/suggestion` + `@tiptap/extension-drag-handle-react`).
+>   StarterKit bundles link + underline configs so we don't
+>   manage them as separate extensions.
+> - **Body shape adapter.** New `lib/library/body-tiptap.ts`
+>   maps Tiptap's native `{ type: 'doc', content: [...] }`
+>   to/from the existing JSONB column. Legacy 11.2b notes
+>   (textarea-stored single-paragraph) upgrade transparently
+>   on load. The student read-mode renderer (slice 11.13)
+>   consumes the same shape — no migration needed.
+> - **NoteBodyEditor** (`lib/library/note-body-editor.tsx`).
+>   Client component wrapping `useEditor`. Always-visible
+>   inline toolbar (B / I / U / S / `<>` / 🔗 · H2 / H3 · • /
+>   1. / ❝) plus a "Type / for blocks" hint at the right
+>   edge. Toolbar is sticky to the viewport under the outer
+>   breadcrumb bar (slice 2.9 chrome). Body has no internal
+>   scroll — it grows with content and the `.product-content`
+>   scroll carries the page.
+> - **Slash command** (`lib/library/slash-command.ts` +
+>   `slash-menu.tsx`). Typing `/` opens a popover with all
+>   12 block types in 4 groups (Text & structure · Visual &
+>   media · Nursing-shaped · Interactive). The 6 text-block
+>   types are enabled in 11.5b; the other 6 render as
+>   disabled rows badged with their target slice (`11.6`,
+>   `11.7`, `11.8`, `11.9`, `11.15`) so tutors see the real
+>   shape from day one and the entries light up as their
+>   slices ship. Arrow keys + Enter + Esc all wired via
+>   Tiptap's Suggestion utility.
+> - **Per-block drag handles.** `@tiptap/extension-drag-handle-react`
+>   renders a `⋮⋮` glyph at the left edge of the currently-
+>   hovered block; drag to reorder. Alt+↑/↓ keyboard
+>   equivalents come for free via StarterKit's keymap.
+> - **Placeholder.** `@tiptap/extension-placeholder` writes
+>   "Type / for blocks, or just start writing…" on the empty
+>   editor and "Heading 2" / "Heading 3" inside empty
+>   headings. Replaces the 11.5a CSS pseudo-element hack.
+> - **Debounced autosave + dropped Save button.** Three
+>   seconds after the last keystroke the editor saves
+>   automatically. Badge cycles "Unsaved changes" → "Saving…"
+>   → "Saved · just now". The explicit Save button is gone.
+>   `savedState` baseline + `inFlightRef` keep the autosave
+>   loop free of restart cycles and the closure free of
+>   stale field values.
+> - **`version_id` save guard.** Every save sends the
+>   `expected_version_id` it loaded with; the action UPDATEs
+>   conditionally on it and rejects with `{ ok: false,
+>   conflict: true }` if a peer tab saved first. Last-write-
+>   wins with a guard — no merge UI; the second tab gets
+>   "this note was saved in another tab" copy and stops
+>   autosaving.
+> - **CD visual treatment.** H2 26px serif accent-coloured;
+>   H3 20px serif accent-coloured; paragraph 15px line-height
+>   1.65; quote with 3px accent left-border; inline code
+>   chip; accent-coloured links. Matches the CD prototype's
+>   look.
+> - **Rail collapse toggle.** `»` button at the top of the
+>   Status section hides the right rail entirely; body
+>   expands to full width and a `«` button on the main pane
+>   restores it. Preference persists in localStorage
+>   (`mynclex.library.editor.rail-collapsed`).
+> - **Outline reads live from doc headings.** Right rail's
+>   Outline section walks the current Tiptap doc for H2/H3
+>   blocks and renders them as a flat list, H3 indented +
+>   muted. Updates on every keystroke (cheap walk).
+>
+> **Files new (4):** `lib/library/body-tiptap.ts`,
+> `lib/library/note-body-editor.tsx`,
+> `lib/library/slash-command.ts`,
+> `lib/library/slash-menu.tsx`.
+>
+> **Files modified (6):** `lib/library/types.ts`
+> (`LibraryNoteUpdateValues.expected_version_id`),
+> `lib/library/actions.ts` (`updateNoteAction` conditional
+> UPDATE + conflict probe + `updated_at` in result),
+> `lib/library/note-editor.tsx` (autosave + savedState +
+> version_id ratchet + drop Save button + rail-collapse +
+> swap textarea for NoteBodyEditor + live outline from doc),
+> `styles/library.css` (Tiptap shell + sticky toolbar + body-
+> grows-with-page + ProseMirror block styling + slash menu
+> popover + drag-handle + rail-collapse), `package.json`
+> + `package-lock.json` (7 new Tiptap deps).
+>
+> **What's NOT in this slice** (queued for follow-on polish
+> when Tiptap proves out in real use):
+>   - Block kebab menu (Delete / Duplicate / Convert UI) —
+>     drag handle covers reorder; conversion runs through
+>     slash today.
+>   - `BroadcastChannel` pre-warning when the same note is
+>     opened in two tabs — the `version_id` guard catches the
+>     bad save; this is just an earlier warning.
+>   - "Attached to N programmes…" edit-propagation warning.
+>
+> **Next:** Library **11.6** (Standard visual blocks — Image
+> / PDF / Video / Table + Supabase Storage upload pipeline).
+> Standing alternate: Payments **5.3** per the rotation rule.
+>
+> **Earlier shipped (2026-05-27):** **Slice 2.9 — locked viewport
 > + railed sidebars + sidebar user bar.** The authenticated
 > shell stops growing with the page: topbar + sidebars are
 > pinned to the viewport, only the content pane scrolls. Every

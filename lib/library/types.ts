@@ -143,6 +143,13 @@ export type LibraryNoteCreateValues = {
  *
  * `body` is `unknown` so the editor can ship its own textarea-shape
  * → JSONB transform without leaking that into the type layer.
+ *
+ * `expected_version_id` (slice 11.5) is the version the editor
+ * loaded the note with. The action compares it against the row's
+ * current `version_id` and rejects the save with a stale-conflict
+ * error if they differ. Catches the same-tutor-two-tabs case
+ * where one tab saves and the other is still working off the
+ * older snapshot.
  */
 export type LibraryNoteUpdateValues = {
   title: string;
@@ -152,6 +159,7 @@ export type LibraryNoteUpdateValues = {
   pillars: NclexPillar[];
   tags: string[];
   folder_id: string | null;
+  expected_version_id: string;
 };
 
 // =====================================================================
