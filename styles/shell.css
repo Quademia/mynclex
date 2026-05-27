@@ -11,17 +11,26 @@
  * Shell layout skeleton
  * ───────────────────────────────────────────────────── */
 
+/* Locked viewport (slice 2.9). The whole shell is height-locked to
+ * the viewport; only the inner content pane scrolls. Topbar stays
+ * pinned at the top because nothing outside the shell can scroll.
+ * Each audience layout's `.product-layout` is the flex child that
+ * fills the remaining space, with its sidebar fixed and its
+ * `.product-content` carrying the page's own scroll. */
 .shell-root {
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--bg);
+  overflow: hidden;
 }
 
 .shell-body {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* ─────────────────────────────────────────────────────
@@ -29,8 +38,10 @@
  * ───────────────────────────────────────────────────── */
 
 .shell-topbar {
-  position: sticky;
-  top: 0;
+  /* Locked layout — topbar is a non-shrinking row at the top of
+   * the flex column; nothing above or beside it can scroll, so
+   * sticky positioning is unnecessary. */
+  flex-shrink: 0;
   z-index: 40;
   background: var(--white);
   border-bottom: 1px solid var(--border);

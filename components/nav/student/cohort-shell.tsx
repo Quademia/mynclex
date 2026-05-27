@@ -13,6 +13,9 @@
 
 import { loadChromeData } from '@/lib/shell/load-chrome-data';
 import { AppShell } from '@/components/shell/app-shell';
+import { Footer } from '@/components/shell/footer';
+import { SidebarFrame } from '@/components/nav/shared/sidebar-frame';
+import { SidebarUserBar } from '@/components/nav/shared/sidebar-user-bar';
 import { StudentSidebar } from './sidebar';
 import { ProductSwitcher } from './product-switcher';
 import { ProgrammeSwitcherTrigger } from './programme-switcher-trigger';
@@ -47,19 +50,32 @@ export async function StudentCohortShell({
       rightSlot={<ProductSwitcher hasProgrammeEnrolment={true} />}
     >
       <div className="product-layout">
-        <div className="sidebar-column">
-          <ProgrammeSwitcherTrigger
-            className="sidebar-switcher-btn"
-            ariaLabel="Switch to another programme"
-          >
-            <span className="sidebar-switcher-label">Switch programme</span>
-            <span className="sidebar-switcher-chev" aria-hidden="true">
-              ⇄
-            </span>
-          </ProgrammeSwitcherTrigger>
+        <SidebarFrame
+          ariaLabel="Cohort navigation"
+          header={
+            <ProgrammeSwitcherTrigger
+              className="sidebar-switcher-btn"
+              ariaLabel="Switch to another programme"
+            >
+              <span className="sidebar-switcher-label">Switch programme</span>
+              <span className="sidebar-switcher-chev" aria-hidden="true">
+                ⇄
+              </span>
+            </ProgrammeSwitcherTrigger>
+          }
+          userBar={
+            <SidebarUserBar
+              displayName={chrome.displayName}
+              email={chrome.email}
+            />
+          }
+        >
           <StudentSidebar items={items} />
-        </div>
-        <main className="product-content">{children}</main>
+        </SidebarFrame>
+        <main className="product-content">
+          {children}
+          <Footer />
+        </main>
       </div>
     </AppShell>
   );

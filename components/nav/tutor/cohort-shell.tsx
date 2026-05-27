@@ -13,6 +13,9 @@
 import { notFound } from 'next/navigation';
 import { loadChromeData } from '@/lib/shell/load-chrome-data';
 import { AppShell } from '@/components/shell/app-shell';
+import { Footer } from '@/components/shell/footer';
+import { SidebarFrame } from '@/components/nav/shared/sidebar-frame';
+import { SidebarUserBar } from '@/components/nav/shared/sidebar-user-bar';
 import { TutorCohortSidebar } from './cohort-sidebar';
 import { TutorCohortBackPill } from './cohort-back-pill';
 import { TUTOR_COHORT_NAV } from '@/lib/nav/tutor';
@@ -59,8 +62,21 @@ export async function TutorCohortShell({
       }
     >
       <div className="product-layout">
-        <TutorCohortSidebar items={items} cohortLabel={cohortLabel} />
-        <main className="product-content">{children}</main>
+        <SidebarFrame
+          ariaLabel="Cohort navigation"
+          userBar={
+            <SidebarUserBar
+              displayName={chrome.displayName}
+              email={chrome.email}
+            />
+          }
+        >
+          <TutorCohortSidebar items={items} cohortLabel={cohortLabel} />
+        </SidebarFrame>
+        <main className="product-content">
+          {children}
+          <Footer />
+        </main>
       </div>
     </AppShell>
   );

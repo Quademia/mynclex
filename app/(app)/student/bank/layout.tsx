@@ -18,6 +18,9 @@
 import { requireActiveBankSubscription } from '@/lib/access';
 import { loadChromeData } from '@/lib/shell/load-chrome-data';
 import { AppShell } from '@/components/shell/app-shell';
+import { Footer } from '@/components/shell/footer';
+import { SidebarFrame } from '@/components/nav/shared/sidebar-frame';
+import { SidebarUserBar } from '@/components/nav/shared/sidebar-user-bar';
 import { StudentSidebar } from '@/components/nav/student/sidebar';
 import { ProductSwitcher } from '@/components/nav/student/product-switcher';
 import { STUDENT_BANK_NAV } from '@/lib/nav/student';
@@ -49,8 +52,21 @@ export default async function BankLayout({
       rightSlot={<ProductSwitcher hasProgrammeEnrolment={hasProgrammeEnrolment} />}
     >
       <div className="product-layout">
-        <StudentSidebar items={STUDENT_BANK_NAV} />
-        <main className="product-content">{children}</main>
+        <SidebarFrame
+          ariaLabel="Bank navigation"
+          userBar={
+            <SidebarUserBar
+              displayName={chrome.displayName}
+              email={chrome.email}
+            />
+          }
+        >
+          <StudentSidebar items={STUDENT_BANK_NAV} />
+        </SidebarFrame>
+        <main className="product-content">
+          {children}
+          <Footer />
+        </main>
       </div>
     </AppShell>
   );

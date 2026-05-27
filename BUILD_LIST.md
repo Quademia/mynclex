@@ -8,7 +8,81 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-27):** **Tutor Library 11.4 follow-on —
+> **Last shipped (2026-05-27):** **Slice 2.9 — locked viewport
+> + railed sidebars + sidebar user bar.** The authenticated
+> shell stops growing with the page: topbar + sidebars are
+> pinned to the viewport, only the content pane scrolls. Every
+> audience sidebar (student bank / programme / cohort, tutor
+> global / programme / cohort, admin) gets a `«` collapse button
+> that shrinks it to a 56px icon rail. Each sidebar grows a new
+> bottom bar with the user's avatar + name → click opens a
+> placeholder popover for future settings / account / etc.
+>
+> - **Locked viewport.** `.shell-root` is now `height: 100dvh;
+>   overflow: hidden`. Topbar drops `position: sticky` (no
+>   longer needed in a locked layout). `.product-layout` fills
+>   the remaining flex space with `grid-template-columns: auto
+>   1fr` so the sidebar width is driven by its own CSS, and
+>   `.product-content` is the only scrollable region.
+> - **Sidebar collapse-to-rail.** New `<SidebarFrame>` client
+>   wrapper owns the column chrome and the global localStorage
+>   key `mynclex.sidebar.railed`. Collapsing on one sidebar
+>   carries to every other sidebar across the app — one
+>   preference shared everywhere. Listens for `storage` events
+>   so multi-tab stays in sync. Rail width is 56px; full
+>   viewport height stays the same as expanded (unlike the
+>   library's inner rail which is short — global rails are
+>   structural chrome, not page lists).
+> - **Sidebar user bar.** New `<SidebarUserBar>` placeholder
+>   pinned to the foot of every `<SidebarFrame>`. Avatar circle
+>   + name + ▾ chevron; click opens a popover above showing name
+>   + email + "Settings, account and more coming soon" stub.
+>   Railed mode collapses to just the avatar; popover anchors to
+>   the right of the rail instead of above. Topbar's user menu
+>   and role chip stay in place — the bottom bar does not
+>   replace them in this slice.
+> - **Footer lives inside the content scroll.** `<AppShell>`
+>   stopped rendering `<Footer />` itself. Each audience shell
+>   renders `<Footer />` as the last element inside
+>   `<main className="product-content">`. The picker (no
+>   sidebar) renders `<Footer />` at the end of its own scroll
+>   area. Visible at the bottom of the page content; never
+>   always-on.
+> - **Student switcher button moves into the frame's header
+>   slot.** The previous `.sidebar-column` wrapper used by
+>   student programme/cohort shells is retired — the switcher
+>   button is now passed into `<SidebarFrame>`'s `header` slot,
+>   so the frame owns all sidebar chrome consistently across
+>   audiences.
+> - **Public pages unaffected.** Public layout
+>   (`app/(public)/`) renders its own `<PublicNav />` +
+>   `<PublicFooter />` and bypasses `<AppShell>` entirely —
+>   landing / pricing pages still document-scroll normally.
+>
+> **Files new (2):** `components/nav/shared/sidebar-frame.tsx`,
+> `components/nav/shared/sidebar-user-bar.tsx`.
+>
+> **Files modified (12):** `styles/shell.css` (locked viewport
+> + dropped topbar sticky), `styles/nav.css` (`.product-layout`
+> filler + `.product-content` scroll + `.sidebar-frame` block +
+> `is-railed` rules + user-bar styles + picker scroll region),
+> `styles/student-curriculum.css` (retired `.sidebar-column`),
+> `components/shell/app-shell.tsx` (dropped `<Footer />`),
+> `components/nav/admin/admin-shell.tsx` +
+> `tutor/global-shell.tsx` + `tutor/programme-shell.tsx` +
+> `tutor/cohort-shell.tsx` + `student/programme-shell.tsx` +
+> `student/cohort-shell.tsx` (wrap inner sidebars in
+> `<SidebarFrame>`, render `<Footer />` inside content pane),
+> `app/(app)/student/bank/layout.tsx` (same),
+> `app/(app)/student/picker/page.tsx` (footer inside `.picker`).
+>
+> **Next:** Sam is gathering further sidebar customisation
+> ideas from Claude Design / Claude Desktop (per-programme,
+> per-cohort tailored chrome). Standing build candidates remain
+> Library **11.5** (Tiptap editor scaffold) and Payments **5.3**
+> per the alternate-features rotation.
+>
+> **Earlier shipped (2026-05-27):** **Tutor Library 11.4 follow-on —
 > Library Overview + system Views + sidebar polish (P2 +
 > sidebar improvements).** `/tutor/library` becomes a real
 > dashboard instead of the generic "Your library is empty" hero,

@@ -14,6 +14,9 @@
 import { notFound } from 'next/navigation';
 import { loadChromeData } from '@/lib/shell/load-chrome-data';
 import { AppShell } from '@/components/shell/app-shell';
+import { Footer } from '@/components/shell/footer';
+import { SidebarFrame } from '@/components/nav/shared/sidebar-frame';
+import { SidebarUserBar } from '@/components/nav/shared/sidebar-user-bar';
 import { TutorProgrammeSidebar } from './programme-sidebar';
 import { TutorBackPill } from './back-pill';
 import { TUTOR_PROGRAMME_NAV } from '@/lib/nav/tutor';
@@ -54,8 +57,21 @@ export async function TutorProgrammeShell({
       rightSlot={<TutorBackPill programmeTitle={programmeTitle} />}
     >
       <div className="product-layout">
-        <TutorProgrammeSidebar items={items} />
-        <main className="product-content">{children}</main>
+        <SidebarFrame
+          ariaLabel="Programme navigation"
+          userBar={
+            <SidebarUserBar
+              displayName={chrome.displayName}
+              email={chrome.email}
+            />
+          }
+        >
+          <TutorProgrammeSidebar items={items} />
+        </SidebarFrame>
+        <main className="product-content">
+          {children}
+          <Footer />
+        </main>
       </div>
     </AppShell>
   );

@@ -11,37 +11,21 @@
  *   - .student-unit*             → per-unit card
  *   - .student-block*            → block card inside a unit
  *   - .student-activity*         → activity card inside a unit/block
- *   - .sidebar-column            → wraps sidebar switcher + sidebar
  *   - .sidebar-switcher-btn      → "Switch programme" button atop sidebar
  *   - .programme-switcher-*      → overlay modal
+ *
+ * Slice 2.9: the previous `.sidebar-column` wrapper was retired —
+ * the student programme/cohort shells now pass the switcher button
+ * into <SidebarFrame>'s `header` slot, so the frame itself owns the
+ * column chrome (bg, border-right, full height). Switcher-btn
+ * styles below stay as they are; only the wrapper rules were
+ * removed.
  */
 
 /* ─────────────────────────────────────────────────────
- * Sidebar column (wraps switcher button + sidebar)
+ * Sidebar switcher button (rendered in SidebarFrame's header slot
+ * on student programme/cohort shells)
  * ───────────────────────────────────────────────────── */
-
-.sidebar-column {
-  background: var(--bg);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-}
-
-/* The .sidebar inside .sidebar-column drops its own border-right
- * (the column provides it) and its own background (the column
- * provides it). Standalone .sidebar callers (Bank) keep both. */
-.sidebar-column > .sidebar {
-  border-right: none;
-  background: transparent;
-}
-
-@media (max-width: 640px) {
-  .sidebar-column {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
 
 .sidebar-switcher-btn {
   display: flex;

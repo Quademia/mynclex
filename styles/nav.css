@@ -31,9 +31,16 @@
  * ───────────────────────────────────────────────────── */
 
 .product-layout {
+  /* Locked-viewport layout (slice 2.9). The sidebar's width is
+   * driven by its own CSS (the .sidebar-frame: 220px expanded,
+   * 56px railed), so the grid uses `auto 1fr` instead of a fixed
+   * left column. The layout fills its parent .shell-body via
+   * flex:1 + min-height:0; only .product-content scrolls. */
   display: grid;
-  grid-template-columns: 220px 1fr;
-  min-height: calc(100vh - 56px);
+  grid-template-columns: auto 1fr;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 640px) {
@@ -45,10 +52,251 @@
 .product-content {
   padding: 20px;
   background: var(--white);
+  /* The only scrollable region in the locked shell. */
+  overflow-y: auto;
+  min-height: 0;
 }
 
 /* ─────────────────────────────────────────────────────
- * Sidebar
+ * Sidebar frame (slice 2.9)
+ *
+ * Wraps every audience sidebar. Owns the column chrome (bg,
+ * border-right, width), the collapse-to-rail state class, the
+ * collapse toggle button, an optional header slot, and the user
+ * bar pinned at the bottom. The inner <aside class="sidebar">
+ * drops its own chrome (`.sidebar-frame > .sidebar` overrides
+ * below) and becomes a flex child that grows to fill — with its
+ * own overflow so long nav lists scroll internally without
+ * pushing the user bar off-screen.
+ * ───────────────────────────────────────────────────── */
+
+.sidebar-frame {
+  width: 220px;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* Width transition reads as polish, not jank, at 0.18s. */
+  transition: width 0.18s ease;
+}
+
+.sidebar-frame.is-railed {
+  width: 56px;
+}
+
+.sidebar-frame-toggle {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1;
+  height: 36px;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 14px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-frame-toggle:hover {
+  color: var(--accent);
+  background: var(--white);
+}
+
+.sidebar-frame.is-railed .sidebar-frame-toggle {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar-frame-header {
+  flex-shrink: 0;
+}
+
+.sidebar-frame-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Drop the inner audience aside's own column chrome — the frame
+ * owns it now. Two shapes are supported:
+ *   - Direct child:  <SidebarFrame> > <aside class="sidebar">
+ *   - Via wrapper:   <SidebarFrame> > .sidebar-column > <aside class="sidebar">
+ *     (the student programme/cohort shells nest the switcher above
+ *     the sidebar inside a .sidebar-column; the frame handles
+ *     that path via its `header` slot, so .sidebar-column inside
+ *     a frame collapses to invisible structure too). */
+.sidebar-frame > .sidebar,
+.sidebar-frame .sidebar-frame-body > .sidebar {
+  border-right: none;
+  background: transparent;
+  padding-top: 4px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Railed mode — hide labels and structural copy; centre the icons.
+ * The inner aside still renders all rows; CSS just hides the
+ * non-icon parts. */
+.sidebar-frame.is-railed .nav-label,
+.sidebar-frame.is-railed .nav-sub-list,
+.sidebar-frame.is-railed .nav-item-parent .caret,
+.sidebar-frame.is-railed .sidebar-header,
+.sidebar-frame.is-railed .sidebar-context,
+.sidebar-frame.is-railed .sidebar-footer,
+.sidebar-frame.is-railed .sidebar-switcher-label,
+.sidebar-frame.is-railed .sidebar-switcher-chev {
+  display: none;
+}
+
+.sidebar-frame.is-railed .nav-item,
+.sidebar-frame.is-railed .nav-item-parent {
+  justify-content: center;
+  padding: 9px 0;
+  gap: 0;
+  /* Keep the left-edge accent for active rows visually consistent
+   * — but pull it tight against the icon column. */
+  border-left-width: 3px;
+}
+
+.sidebar-frame.is-railed .sidebar-switcher-btn {
+  justify-content: center;
+  padding: 8px 0;
+  gap: 0;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Sidebar user bar (slice 2.9)
+ * Bottom band of the sidebar frame. Placeholder popover.
+ * ───────────────────────────────────────────────────── */
+
+.sidebar-user-bar {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  background: var(--white);
+  position: relative;
+}
+
+.sidebar-user-bar-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.sidebar-user-bar-trigger:hover {
+  background: var(--primary-light);
+}
+
+.sidebar-user-bar-avatar {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(45, 125, 114, 0.25);
+}
+
+.sidebar-user-bar-name {
+  flex: 1;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-user-bar-chev {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.sidebar-frame.is-railed .sidebar-user-bar-trigger {
+  justify-content: center;
+  padding: 10px 0;
+  gap: 0;
+}
+
+.sidebar-frame.is-railed .sidebar-user-bar-name,
+.sidebar-frame.is-railed .sidebar-user-bar-chev {
+  display: none;
+}
+
+.sidebar-user-bar-popover {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 12px;
+  right: 12px;
+  min-width: 220px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  padding: 8px;
+  z-index: 50;
+}
+
+.sidebar-frame.is-railed .sidebar-user-bar-popover {
+  left: calc(100% + 6px);
+  right: auto;
+  bottom: 0;
+  width: 240px;
+}
+
+.sidebar-user-bar-popover-header {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+
+.sidebar-user-bar-popover-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.sidebar-user-bar-popover-email {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.sidebar-user-bar-popover-stub {
+  padding: 12px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  font-style: italic;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Sidebar (inner audience aside — legacy + frame-aware)
  * ───────────────────────────────────────────────────── */
 
 .sidebar {
@@ -134,11 +382,17 @@
  * ───────────────────────────────────────────────────── */
 
 .picker {
+  /* In the locked shell (slice 2.9), the picker is the scrollable
+   * region (no sidebar, no .product-content). Flex-column with
+   * align-items:center lets picker-inner stay horizontally centered
+   * while the footer sits at the bottom of the same scroll. */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  min-height: calc(100vh - 56px);
-  padding: 40px 20px;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px 0;
   background: var(--bg);
 }
 
@@ -146,6 +400,11 @@
   max-width: 560px;
   width: 100%;
   text-align: center;
+}
+
+.picker > .shell-footer {
+  width: 100%;
+  margin-top: auto;
 }
 
 /* Stacked sections (Your programmes / Question Bank). Greeting + sub
