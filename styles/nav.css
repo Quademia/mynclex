@@ -55,6 +55,15 @@
   /* The only scrollable region in the locked shell. */
   overflow-y: auto;
   min-height: 0;
+  /* Flex column so the trailing <Footer /> can push to the bottom
+   * of the scroll area when page content is short. On tall pages
+   * the footer sits below content as normal flow. */
+  display: flex;
+  flex-direction: column;
+}
+
+.product-content > .shell-footer {
+  margin-top: auto;
 }
 
 /* ─────────────────────────────────────────────────────

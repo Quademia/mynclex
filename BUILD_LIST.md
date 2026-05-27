@@ -44,10 +44,13 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > - **Footer lives inside the content scroll.** `<AppShell>`
 >   stopped rendering `<Footer />` itself. Each audience shell
 >   renders `<Footer />` as the last element inside
->   `<main className="product-content">`. The picker (no
->   sidebar) renders `<Footer />` at the end of its own scroll
->   area. Visible at the bottom of the page content; never
->   always-on.
+>   `<main className="product-content">`. `.product-content` is a
+>   flex column; the footer carries `margin-top: auto` so on
+>   short pages it stays pinned at the bottom of the scroll area
+>   instead of getting glued right under one line of content. On
+>   tall pages it sits below content as normal flow and you
+>   scroll to it. The picker (no sidebar) uses the same trick
+>   inside `.picker`.
 > - **Student switcher button moves into the frame's header
 >   slot.** The previous `.sidebar-column` wrapper used by
 >   student programme/cohort shells is retired — the switcher
