@@ -96,13 +96,24 @@ export function bodyToTiptap(body: unknown): TiptapDoc {
 }
 
 /**
- * Persist Tiptap's JSONContent to the DB. Stored verbatim — no
- * conversion. Existing 11.2b notes get rewritten into this shape
- * on first save, which is fine since `bodyToTiptap` already
- * accepted the legacy shape on load.
+ * Persist Tiptap's JSONContent to the DB.
+ *
+ * We deep-clone through JSON before handing the doc off. Reason:
+ * ProseMirror builds each node's `attrs` with `Object.create(null)`
+ * (a null-prototype object) and `getJSON()` returns those objects
+ * by reference. When such an object crosses the React Server Action
+ * serialization boundary, the serializer silently drops it — so a
+ * `libImage` node's `{ assetId, alt, caption }` arrived at the
+ * server as a bare `{ type: 'libImage' }` and the image was lost on
+ * reload (slice 11.6a bug). `JSON.parse(JSON.stringify(...))`
+ * rebuilds every object with the normal `Object.prototype`, which
+ * survives the boundary intact. No shape conversion otherwise —
+ * existing 11.2b notes get rewritten into this shape on first save,
+ * which is fine since `bodyToTiptap` already accepted the legacy
+ * shape on load.
  */
 export function tiptapToBody(doc: TiptapDoc): unknown {
-  return doc;
+  return JSON.parse(JSON.stringify(doc));
 }
 
 /**

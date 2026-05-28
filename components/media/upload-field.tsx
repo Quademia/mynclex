@@ -18,7 +18,7 @@
 
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { uploadAssetAction } from '@/lib/media/actions';
 import { PURPOSE_CONFIG, type Purpose } from '@/lib/media/types';
@@ -34,11 +34,27 @@ interface UploadFieldProps {
   purpose: Purpose;
   /** Called once the upload completes successfully. */
   onUploaded?: (assetId: string, meta: { filename: string; sizeBytes: number }) => void;
+  /**
+   * Called with `true` when an upload (including any pre-upload
+   * transform) begins and `false` when it finishes — whether it
+   * succeeded, errored, or was rejected client-side. Lets a parent
+   * treat "upload in flight" as not-idle — e.g. the library editor
+   * suppresses autosave while an image is still uploading.
+   */
+  onUploadingChange?: (uploading: boolean) => void;
   /** Optional helper text shown under the picker — e.g. "PDF only. Word → File → Export → PDF." */
   hint?: string;
   /** Label above the picker. Defaults to "File". */
   label?: string;
   disabled?: boolean;
+  /**
+   * Optional pre-upload transform applied to the picked file before
+   * it's validated for size and sent to the server — e.g. the image
+   * resize helper. Type validation runs on the original (a transform
+   * preserves MIME type); size validation runs on the result so a
+   * large original that shrinks under the cap is accepted.
+   */
+  transform?: (file: File) => Promise<File>;
 }
 
 
@@ -52,13 +68,38 @@ function formatSize(bytes: number): string {
 export function UploadField({
   purpose,
   onUploaded,
+  onUploadingChange,
   hint,
   label = 'File',
   disabled = false,
+  transform,
 }: UploadFieldProps) {
   const config = PURPOSE_CONFIG[purpose];
   const inputRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<UploadState>({ kind: 'idle' });
+
+  // Whether we've told the parent an upload is in flight. Used so the
+  // matching `false` is emitted exactly once, on whichever exit path
+  // ends the upload — and never left dangling if this component
+  // unmounts mid-upload (the image block swaps the dropzone for the
+  // filled view the instant the assetId lands). A dangling `true`
+  // would leave a parent's in-flight counter stuck and, in the
+  // library editor, suppress autosave forever.
+  const uploadingSignalledRef = useRef(false);
+  const emitUploading = (next: boolean) => {
+    if (uploadingSignalledRef.current === next) return;
+    uploadingSignalledRef.current = next;
+    onUploadingChange?.(next);
+  };
+  useEffect(() => {
+    return () => {
+      if (uploadingSignalledRef.current) {
+        uploadingSignalledRef.current = false;
+        onUploadingChange?.(false);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Build the accept= string from the config. Browsers use it as a
   // hint in the file picker; it's not enforcement — that's in
@@ -85,16 +126,55 @@ export function UploadField({
       });
       return;
     }
-    if (file.size > config.maxSizeBytes) {
+
+    // Show progress immediately — a transform (e.g. image resize) can
+    // take a beat on a large file.
+    setState({ kind: 'uploading', filename: file.name, sizeBytes: file.size });
+    emitUploading(true);
+
+    let toUpload = file;
+    if (transform) {
+      try {
+        toUpload = await transform(file);
+      } catch {
+        setState({ kind: 'error', message: 'Could not process the file. Please try a different one.' });
+        emitUploading(false);
+        return;
+      }
+    }
+
+    // Size is checked on the file we'll actually upload — after any
+    // transform — so a large original that shrinks under the cap is
+    // accepted.
+    if (toUpload.size > config.maxSizeBytes) {
       setState({ kind: 'error', message: `File is too large. Max ${maxMb} MB.` });
+      emitUploading(false);
       return;
     }
 
-    setState({ kind: 'uploading', filename: file.name, sizeBytes: file.size });
+    setState({ kind: 'uploading', filename: toUpload.name, sizeBytes: toUpload.size });
 
-    const result = await uploadAssetAction(file, purpose);
+    let result;
+    try {
+      result = await uploadAssetAction(toUpload, purpose);
+    } catch (err) {
+      // A server action that throws (rather than returning {ok:false})
+      // rejects this await. Without this catch the UI would hang on
+      // "Uploading…" forever. Surface it instead.
+      console.error('uploadAssetAction threw', err);
+      setState({
+        kind: 'error',
+        message:
+          err instanceof Error
+            ? `Upload failed: ${err.message}`
+            : 'Upload failed unexpectedly. Please try again.',
+      });
+      emitUploading(false);
+      return;
+    }
     if (!result.ok) {
       setState({ kind: 'error', message: result.error });
+      emitUploading(false);
       return;
     }
 
@@ -104,6 +184,10 @@ export function UploadField({
       filename: result.originalFilename,
       sizeBytes: result.sizeBytes,
     });
+    // Signal "no longer uploading" *before* handing the assetId up —
+    // onUploaded may unmount this field (the image block swaps to its
+    // filled view), so emit while we're still mounted.
+    emitUploading(false);
     onUploaded?.(result.assetId, {
       filename: result.originalFilename,
       sizeBytes: result.sizeBytes,

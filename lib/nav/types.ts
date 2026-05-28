@@ -55,7 +55,9 @@ export type NavIcon =
   | 'redo'
   | 'clear-formatting'
   | 'horizontal-rule'
-  | 'code-block';
+  | 'code-block'
+  // Block icons (slice 11.6 — visual & media blocks)
+  | 'image';
 
 export type NavItem = {
   /** Stable key — used for active-state matching and React keys. */

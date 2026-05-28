@@ -1889,8 +1889,16 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   population from 11.11 to be meaningful. The provisional
   markdown-fallback gate was not triggered — Tiptap rendered and
   saved cleanly on first try.
-- ⬜ **11.6** Standard visual blocks — Image (Supabase Storage +
-  on-demand signed URL pipeline + auto-resize) + PDF (link-card)
+- ✅ **(2026-05-29) 11.6a** Image block. Atom node `libImage`
+  ({assetId, alt, caption}) backed by the shared media-asset
+  foundation: private `nclex-library-images` bucket, browser
+  auto-resize before upload, on-demand 1-hour signed URLs minted
+  via `getLibraryImageUrlAction`. Empty-state dropzone → filled
+  `<img>` + alt/caption fields. Autosave holds off while an upload
+  is in flight (upload ≠ inactivity). Alt-text collected but not
+  yet enforced (preflight lands in 11.10). See the body-tiptap
+  serialization gotcha in CLAUDE.md → Known Workarounds.
+- ⬜ **11.6b** Remaining standard visual blocks — PDF (link-card)
   + Video (YouTube/Vimeo/Loom embeds) + Table. Alt-text preflight
   wires into Publish (slice 11.10).
 - ⬜ **11.7** NCLEX domain block — Callout (5 tones + icons).

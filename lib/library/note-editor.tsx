@@ -45,6 +45,10 @@ import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { updateNoteAction } from './actions';
+import {
+  LIB_IMAGE_UPLOAD_EVENT,
+  type LibImageUploadDetail,
+} from './image-block';
 import { NoteBodyEditor } from './note-body-editor';
 import { PillarPicker } from './pillar-picker';
 import { FolderPicker } from './folder-picker';
@@ -172,6 +176,40 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
     note.version_id,
   );
   const [saveTick, setSaveTick] = useState(0);
+  // Bumped each time a save finishes. The autosave effect depends on
+  // it so that an edit which arrived *while a save was in flight*
+  // (and was therefore skipped by the `inFlightRef` guard) gets
+  // re-evaluated — and rescheduled — the moment the in-flight save
+  // completes. Without this, an edit landing mid-save is silently
+  // dropped (the image upload that finishes during the empty-block
+  // autosave was the symptom: its assetId was never persisted).
+  const [resaveNonce, setResaveNonce] = useState(0);
+
+  // Number of image uploads currently in flight (across all image
+  // blocks). While > 0 the autosave gate holds off — an upload isn't
+  // inactivity, and saving mid-upload would persist a not-yet-filled
+  // image block. The ref mirrors the state so `runAutosave` can read
+  // the live value without being re-created. When it drops back to 0
+  // the autosave effect re-runs (it's in the dep array) and, if the
+  // doc is dirty, schedules the deferred save.
+  const [uploadsInFlight, setUploadsInFlight] = useState(0);
+  const uploadsInFlightRef = useRef(0);
+  useEffect(() => {
+    function onUploadState(e: Event) {
+      const detail = (e as CustomEvent<LibImageUploadDetail>).detail;
+      setUploadsInFlight((n) => {
+        const next = Math.max(0, n + (detail.uploading ? 1 : -1));
+        uploadsInFlightRef.current = next;
+        return next;
+      });
+    }
+    window.addEventListener(LIB_IMAGE_UPLOAD_EVENT, onUploadState as EventListener);
+    return () =>
+      window.removeEventListener(
+        LIB_IMAGE_UPLOAD_EVENT,
+        onUploadState as EventListener,
+      );
+  }, []);
 
   // Popover open state — sibling popovers should never both be open.
   const [folderOpen, setFolderOpen] = useState(false);
@@ -296,6 +334,10 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
     if (!canSave) return;
     if (saveStateRef.current === 'conflict') return;
     if (inFlightRef.current) return;
+    // An image upload is in flight — don't schedule (and, via the
+    // cleanup of the previous run, cancel any pending timer). The save
+    // reschedules when the upload settles and bumps `uploadsInFlight`.
+    if (uploadsInFlightRef.current > 0) return;
 
     if (saveStateRef.current !== 'dirty') setSaveState('dirty');
 
@@ -313,6 +355,8 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
     tags,
     bodyEditVersion,
     canSave,
+    resaveNonce,
+    uploadsInFlight,
   ]);
 
   // Mirror saveState into a ref so the autosave effect can read it
@@ -325,6 +369,9 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
 
   async function runAutosave() {
     if (inFlightRef.current) return;
+    // Defer if a timer fired just as an upload began — the effect
+    // reschedules once the upload settles.
+    if (uploadsInFlightRef.current > 0) return;
     inFlightRef.current = true;
     setSaveState('saving');
     setError(null);
@@ -344,6 +391,12 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
     });
 
     inFlightRef.current = false;
+    // Re-poke the autosave effect now the in-flight save is done, in
+    // case an edit arrived while it was running (the effect would have
+    // bailed on the inFlightRef guard without scheduling). If nothing
+    // is dirty this is a harmless no-op; on conflict the effect's own
+    // guard suppresses the reschedule.
+    setResaveNonce((n) => n + 1);
 
     if (!result.ok) {
       if (result.conflict) {

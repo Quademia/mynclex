@@ -31,6 +31,15 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: findProjectRoot(__dirname),
   },
+  experimental: {
+    // File uploads (media-asset foundation) pass the file bytes
+    // through a Server Action, which caps the request body at 1 MB by
+    // default. Raise it to clear our largest bucket cap (PDF activities
+    // at 25 MB; library images at 5 MB) plus multipart overhead.
+    serverActions: {
+      bodySizeLimit: "30mb",
+    },
+  },
 };
 
 export default nextConfig;

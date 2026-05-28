@@ -180,14 +180,28 @@ export const SLASH_ITEMS: SlashItem[] = [
         .setTextSelection(position + 2)
         .run(),
   },
-  // Visual & media — disabled until their slices land
+  // Visual & media
   {
     type: 'image',
     name: 'Image',
     desc: 'Drop or upload an image',
     icon: '🖼',
+    iconSvg: 'image',
     group: 'Visual & media',
-    comingIn: '11.6',
+    comingIn: null,
+    run: (editor, range) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent({ type: 'libImage' })
+        .run(),
+    runAt: (editor, position) =>
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(position, { type: 'libImage' })
+        .run(),
   },
   {
     type: 'pdf',

@@ -40,6 +40,12 @@ function extensionForMime(mime: string): string {
   switch (mime) {
     case 'application/pdf':
       return 'pdf';
+    case 'image/png':
+      return 'png';
+    case 'image/jpeg':
+      return 'jpg';
+    case 'image/webp':
+      return 'webp';
     default:
       return 'bin';
   }
