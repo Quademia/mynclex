@@ -8,45 +8,746 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-24):** **Slice 8 UI rebuild — CD-driven polish
-> of the programme-enquiry surfaces.** Three PRs in one session, the day
-> after Slice 8 a/b/c shipped the data + plumbing layer. Sam pushed back
-> on the first card-stack tutor surface ("the interphase is not nice at
-> all"); brief went to Claude Design which returned 3 hi-fi prototype
-> variants per audience — we picked Tutor V1 (polished inbox) + Admin V1
-> (operations dashboard). **PR 1** = data layer: `urgencyTier(iso,
-> status)` + URGENCY_META in `lib/enquiries/format.ts`;
-> `lib/enquiries/aggregations.ts` with `computeTutorStats` +
-> `computeAdminStats` (pure functions over the row list — KPIs,
-> sparklines, per-tutor SLA scoreboard, channel mix);
-> `lib/enquiries/templates.ts` with four quick-reply templates +
-> `renderTemplate` helper. **PR 2** = tutor V1 polished inbox at
-> `/tutor/programme/<id>/enquiries`: KPI strip (5 cards) → toolbar
-> (filter chips + search) → split (day-grouped list with urgency-coloured
-> left strip + detail pane with reply bar + quick replies + auto-save
-> notes + close action). **The killer feature:** reply-bar CTAs
-> (WhatsApp / Call / Email) open the channel deep-link AND fire
-> `markContactedAction` in the same click — two steps collapsed to one.
-> React 19 strict-mode polish along the way: derived `selectedId` via
-> useMemo (no setState-in-effect); NotesEditor uses `key=enquiry_id` for
-> clean remount; Donut uses a reduce-based pre-compute pass (no
-> mid-render mutation). New `.ti-*` style family. **Width fix** in the
-> same PR: the page broke out of the inherited `.pp-page` 720px cap via
-> a new `.ti-page` wrapper (1480px). **PR 3** = admin V1 operations
-> dashboard at `/admin/enquiries`: KPI strip (4 cards w/ inline 8-week
-> sparklines + corner "X BREACHES" flag when NEW leads ≥24h old) →
-> insights row (tutor SLA scoreboard sorted by open work then volume +
-> channel mix donut + insight callout) → filterable table (status +
-> programme + tutor selects, SLA badges per row, "Open in tutor view ↗"
-> link). Inline Sparkline + Donut SVG components, no library dep. New
-> `.ao-*` style family. **Scope note** added to `lib/enquiries/types.ts`:
-> module is programme-only today; if a second enquiry type ever appears
-> (general support, institutional sales), the in-place refactor cost is
-> ~1-2 hrs — split into `lib/enquiries/{shared,programme,<new>}/` and DB
-> tables stay put. **Next:** rotate per the alternate-features rule —
-> tutor-quiz S4 (analytics) + progress-engine S5 (tutor analytics +
-> cohort dashboards) were enrolment-blocked, are now unblocked. 5.7
-> (My Payments) also queued.
+> **Last shipped (2026-05-27):** **Library Slice 11.5 follow-on
+> polish — editor full-feature build-out.** Stacks on top of the
+> just-shipped Tiptap scaffold (11.5a + 11.5b). Multiple discrete
+> improvements landed across the same session as a continuous
+> arc rather than separate slices — kept together because each
+> piece reshaped the editor's surface and they read as one
+> coherent "make the editor feel real" pass.
+>
+> - **`+` buttons → controlled menus** (no phantom slash). The
+>   per-block `+` and footer `+ Add block` no longer inject `/`
+>   into the doc; they open a React-state-controlled SlashMenu
+>   anchored to the button. SlashItem grows a `runAt(editor,
+>   position)` method for button-triggered insertion alongside
+>   the existing slash-triggered `run(editor, range)`.
+> - **Block hover + focus tint** via `@tiptap/extension-focus`
+>   (className: `has-focus`, mode: `shallowest`). CSS tints the
+>   hovered block (5% accent) + the focused block (7% accent;
+>   9% when hovered).
+> - **List bullets / numbers restored.** Tailwind's preflight
+>   clears `list-style` globally; explicit `disc` / `decimal` /
+>   `circle` / `lower-alpha` inside `.lib-tiptap-body`, with
+>   tight `li > p` margins so lists don't read loose.
+> - **Real SVG icons** for toolbar + slash menu. 23 new icons
+>   added to `<NavIcon>` across two waves (text marks first,
+>   expanded toolbar second). Lucide-derived paths (MIT) matching
+>   the existing icon style — no new dependency, all icons stay
+>   in one place.
+> - **Toolbar expansion.** Six more Tiptap extensions installed
+>   (`@tiptap/extension-highlight`, `-subscript`, `-superscript`,
+>   `-text-align`, `-color`, `-text-style`). New toolbar groups:
+>   **marks** (B / I / U / S / `</>` / link / sub / sup) ·
+>   **headings** (H2 / H3) · **blocks** (• / 1. / quote /
+>   code-block / hr) · **colour** (highlight + text colour —
+>   each opens a small swatch popover with 6 preset tints + a
+>   Remove pill) · **alignment** (L / C / R on heading +
+>   paragraph) · **actions** (undo / redo / clear formatting).
+> - **Block tray at the editor foot.** Replaces the dashed
+>   `+ Add block` button with a horizontal chip row of all 14
+>   block types. Six enabled chips insert at the end of the doc
+>   on click; eight disabled chips render dimmed with their
+>   target-slice badge (`11.6` / `11.7` etc.). Wraps on narrow
+>   screens.
+> - **Inter-block "+ Add block" gap affordances.** New
+>   `lib/library/block-gap.ts` Tiptap extension injects a
+>   ProseMirror widget decoration between every pair of top-level
+>   blocks. Hover-revealed dashed accent line with a "+ Add
+>   block" pill; click dispatches a custom event the editor
+>   catches and opens the controlled SlashMenu at that position.
+>   The per-block `+` next to the drag handle was removed — the
+>   gap affordance is the new mouse-driven insertion path.
+> - **Shared `usePopoverPosition` hook** (`lib/library/use-popover-position.ts`).
+>   Flip-above-when-clipped-below + horizontal clamp + max-height
+>   constraint. Used by both the SlashMenu (cursor-anchored) and
+>   the ColorSwatchPicker (button-anchored). DOM-mutation
+>   positioning rather than React state to avoid the layout-
+>   effect / setState re-render loop that bit the first
+>   implementation.
+>
+> **Files new (4):** `lib/library/block-gap.ts`,
+> `lib/library/color-swatch-picker.tsx`,
+> `lib/library/use-popover-position.ts`,
+> 12 new icons in `components/nav/shared/nav-icon.tsx`.
+>
+> **Files modified (5):** `lib/library/note-body-editor.tsx`
+> (six extensions + expanded toolbar + swatch popovers + block
+> tray + inter-block gap listener — per-block `+` removed),
+> `lib/library/slash-menu.tsx` (button-triggered `runAt` +
+> `iconSvg` field + position hook), `lib/library/color-swatch-picker.tsx`
+> (position hook), `styles/library.css` (toolbar + swatch
+> popover + block tray + gap + hover/focus tint + list bullets
+> + new icon sizing), `package.json` + `package-lock.json`
+> (7 new Tiptap deps total across the follow-on).
+>
+> **Next:** Library **11.6** (Standard visual blocks — Image /
+> PDF / Video / Table + Supabase Storage signed-URL pipeline +
+> auto-resize). Standing alternate: Payments **5.3** per the
+> rotation rule. As the visual-block slices land, their slash-
+> menu rows + block-tray chips light up automatically (they're
+> already wired as disabled placeholders with their slice
+> numbers).
+>
+> **Earlier shipped (2026-05-27):** **Library Slice 11.5 — Tiptap
+> editor scaffold (11.5a foundation + 11.5b block UX).** The
+> textarea body editor (11.2b) is replaced by a Tiptap-powered
+> rich block editor that reads like Notion: continuous prose
+> region that grows with the page, per-block drag handles on
+> hover, a slash-command menu, autosave on a 3-second debounce,
+> and a two-tabs save-conflict guard.
+>
+> - **Tiptap installed** (`@tiptap/react@3.23.6` +
+>   `@tiptap/starter-kit` + `@tiptap/extension-link` +
+>   `@tiptap/extension-underline` + `@tiptap/extension-placeholder`
+>   + `@tiptap/suggestion` + `@tiptap/extension-drag-handle-react`).
+>   StarterKit bundles link + underline configs so we don't
+>   manage them as separate extensions.
+> - **Body shape adapter.** New `lib/library/body-tiptap.ts`
+>   maps Tiptap's native `{ type: 'doc', content: [...] }`
+>   to/from the existing JSONB column. Legacy 11.2b notes
+>   (textarea-stored single-paragraph) upgrade transparently
+>   on load. The student read-mode renderer (slice 11.13)
+>   consumes the same shape — no migration needed.
+> - **NoteBodyEditor** (`lib/library/note-body-editor.tsx`).
+>   Client component wrapping `useEditor`. Always-visible
+>   inline toolbar (B / I / U / S / `<>` / 🔗 · H2 / H3 · • /
+>   1. / ❝) plus a "Type / for blocks" hint at the right
+>   edge. Toolbar is sticky to the viewport under the outer
+>   breadcrumb bar (slice 2.9 chrome). Body has no internal
+>   scroll — it grows with content and the `.product-content`
+>   scroll carries the page.
+> - **Slash command** (`lib/library/slash-command.ts` +
+>   `slash-menu.tsx`). Typing `/` opens a popover with all
+>   12 block types in 4 groups (Text & structure · Visual &
+>   media · Nursing-shaped · Interactive). The 6 text-block
+>   types are enabled in 11.5b; the other 6 render as
+>   disabled rows badged with their target slice (`11.6`,
+>   `11.7`, `11.8`, `11.9`, `11.15`) so tutors see the real
+>   shape from day one and the entries light up as their
+>   slices ship. Arrow keys + Enter + Esc all wired via
+>   Tiptap's Suggestion utility.
+> - **Per-block drag handles.** `@tiptap/extension-drag-handle-react`
+>   renders a `⋮⋮` glyph at the left edge of the currently-
+>   hovered block; drag to reorder. Alt+↑/↓ keyboard
+>   equivalents come for free via StarterKit's keymap.
+> - **Placeholder.** `@tiptap/extension-placeholder` writes
+>   "Type / for blocks, or just start writing…" on the empty
+>   editor and "Heading 2" / "Heading 3" inside empty
+>   headings. Replaces the 11.5a CSS pseudo-element hack.
+> - **Debounced autosave + dropped Save button.** Three
+>   seconds after the last keystroke the editor saves
+>   automatically. Badge cycles "Unsaved changes" → "Saving…"
+>   → "Saved · just now". The explicit Save button is gone.
+>   `savedState` baseline + `inFlightRef` keep the autosave
+>   loop free of restart cycles and the closure free of
+>   stale field values.
+> - **`version_id` save guard.** Every save sends the
+>   `expected_version_id` it loaded with; the action UPDATEs
+>   conditionally on it and rejects with `{ ok: false,
+>   conflict: true }` if a peer tab saved first. Last-write-
+>   wins with a guard — no merge UI; the second tab gets
+>   "this note was saved in another tab" copy and stops
+>   autosaving.
+> - **CD visual treatment.** H2 26px serif accent-coloured;
+>   H3 20px serif accent-coloured; paragraph 15px line-height
+>   1.65; quote with 3px accent left-border; inline code
+>   chip; accent-coloured links. Matches the CD prototype's
+>   look.
+> - **Rail collapse toggle.** `»` button at the top of the
+>   Status section hides the right rail entirely; body
+>   expands to full width and a `«` button on the main pane
+>   restores it. Preference persists in localStorage
+>   (`mynclex.library.editor.rail-collapsed`).
+> - **Outline reads live from doc headings.** Right rail's
+>   Outline section walks the current Tiptap doc for H2/H3
+>   blocks and renders them as a flat list, H3 indented +
+>   muted. Updates on every keystroke (cheap walk).
+>
+> **Files new (4):** `lib/library/body-tiptap.ts`,
+> `lib/library/note-body-editor.tsx`,
+> `lib/library/slash-command.ts`,
+> `lib/library/slash-menu.tsx`.
+>
+> **Files modified (6):** `lib/library/types.ts`
+> (`LibraryNoteUpdateValues.expected_version_id`),
+> `lib/library/actions.ts` (`updateNoteAction` conditional
+> UPDATE + conflict probe + `updated_at` in result),
+> `lib/library/note-editor.tsx` (autosave + savedState +
+> version_id ratchet + drop Save button + rail-collapse +
+> swap textarea for NoteBodyEditor + live outline from doc),
+> `styles/library.css` (Tiptap shell + sticky toolbar + body-
+> grows-with-page + ProseMirror block styling + slash menu
+> popover + drag-handle + rail-collapse), `package.json`
+> + `package-lock.json` (7 new Tiptap deps).
+>
+> **What's NOT in this slice** (queued for follow-on polish
+> when Tiptap proves out in real use):
+>   - Block kebab menu (Delete / Duplicate / Convert UI) —
+>     drag handle covers reorder; conversion runs through
+>     slash today.
+>   - `BroadcastChannel` pre-warning when the same note is
+>     opened in two tabs — the `version_id` guard catches the
+>     bad save; this is just an earlier warning.
+>   - "Attached to N programmes…" edit-propagation warning.
+>
+> **Next:** Library **11.6** (Standard visual blocks — Image
+> / PDF / Video / Table + Supabase Storage upload pipeline).
+> Standing alternate: Payments **5.3** per the rotation rule.
+>
+> **Earlier shipped (2026-05-27):** **Slice 2.9 — locked viewport
+> + railed sidebars + sidebar user bar.** The authenticated
+> shell stops growing with the page: topbar + sidebars are
+> pinned to the viewport, only the content pane scrolls. Every
+> audience sidebar (student bank / programme / cohort, tutor
+> global / programme / cohort, admin) gets a `«` collapse button
+> that shrinks it to a 56px icon rail. Each sidebar grows a new
+> bottom bar with the user's avatar + name → click opens a
+> placeholder popover for future settings / account / etc.
+>
+> - **Locked viewport.** `.shell-root` is now `height: 100dvh;
+>   overflow: hidden`. Topbar drops `position: sticky` (no
+>   longer needed in a locked layout). `.product-layout` fills
+>   the remaining flex space with `grid-template-columns: auto
+>   1fr` so the sidebar width is driven by its own CSS, and
+>   `.product-content` is the only scrollable region.
+> - **Sidebar collapse-to-rail.** New `<SidebarFrame>` client
+>   wrapper owns the column chrome and the global localStorage
+>   key `mynclex.sidebar.railed`. Collapsing on one sidebar
+>   carries to every other sidebar across the app — one
+>   preference shared everywhere. Listens for `storage` events
+>   so multi-tab stays in sync. Rail width is 56px; full
+>   viewport height stays the same as expanded (unlike the
+>   library's inner rail which is short — global rails are
+>   structural chrome, not page lists).
+> - **Sidebar user bar.** New `<SidebarUserBar>` placeholder
+>   pinned to the foot of every `<SidebarFrame>`. Avatar circle
+>   + name + ▾ chevron; click opens a popover above showing name
+>   + email + "Settings, account and more coming soon" stub.
+>   Railed mode collapses to just the avatar; popover anchors to
+>   the right of the rail instead of above. Topbar's user menu
+>   and role chip stay in place — the bottom bar does not
+>   replace them in this slice.
+> - **Footer lives inside the content scroll.** `<AppShell>`
+>   stopped rendering `<Footer />` itself. Each audience shell
+>   renders `<Footer />` as the last element inside
+>   `<main className="product-content">`. `.product-content` is a
+>   flex column; the footer carries `margin-top: auto` so on
+>   short pages it stays pinned at the bottom of the scroll area
+>   instead of getting glued right under one line of content. On
+>   tall pages it sits below content as normal flow and you
+>   scroll to it. The picker (no sidebar) uses the same trick
+>   inside `.picker`.
+> - **Student switcher button moves into the frame's header
+>   slot.** The previous `.sidebar-column` wrapper used by
+>   student programme/cohort shells is retired — the switcher
+>   button is now passed into `<SidebarFrame>`'s `header` slot,
+>   so the frame owns all sidebar chrome consistently across
+>   audiences.
+> - **Public pages unaffected.** Public layout
+>   (`app/(public)/`) renders its own `<PublicNav />` +
+>   `<PublicFooter />` and bypasses `<AppShell>` entirely —
+>   landing / pricing pages still document-scroll normally.
+>
+> **Files new (2):** `components/nav/shared/sidebar-frame.tsx`,
+> `components/nav/shared/sidebar-user-bar.tsx`.
+>
+> **Files modified (12):** `styles/shell.css` (locked viewport
+> + dropped topbar sticky), `styles/nav.css` (`.product-layout`
+> filler + `.product-content` scroll + `.sidebar-frame` block +
+> `is-railed` rules + user-bar styles + picker scroll region),
+> `styles/student-curriculum.css` (retired `.sidebar-column`),
+> `components/shell/app-shell.tsx` (dropped `<Footer />`),
+> `components/nav/admin/admin-shell.tsx` +
+> `tutor/global-shell.tsx` + `tutor/programme-shell.tsx` +
+> `tutor/cohort-shell.tsx` + `student/programme-shell.tsx` +
+> `student/cohort-shell.tsx` (wrap inner sidebars in
+> `<SidebarFrame>`, render `<Footer />` inside content pane),
+> `app/(app)/student/bank/layout.tsx` (same),
+> `app/(app)/student/picker/page.tsx` (footer inside `.picker`).
+>
+> **Next:** Sam is gathering further sidebar customisation
+> ideas from Claude Design / Claude Desktop (per-programme,
+> per-cohort tailored chrome). Standing build candidates remain
+> Library **11.5** (Tiptap editor scaffold) and Payments **5.3**
+> per the alternate-features rotation.
+>
+> **Earlier shipped (2026-05-27):** **Tutor Library 11.4 follow-on —
+> Library Overview + system Views + sidebar polish (P2 +
+> sidebar improvements).** `/tutor/library` becomes a real
+> dashboard instead of the generic "Your library is empty" hero,
+> three of the four system views light up, and the sidebar grows
+> a permanent Overview entry plus three small polish items Sam
+> flagged in the same session.
+>
+> - **Library Overview dashboard** at `/tutor/library` (no scope).
+>   Five stat cards across the top (Total notes · Folders ·
+>   Shelves · Drafts · Not in a programme), Recent activity + 
+>   Pillar coverage in a two-column grid, Quick links chip row at
+>   the bottom (All notes · Drafts · Not in a programme · All
+>   folders · All shelves).
+> - **System views (3 of 4 wired).** `?view=all-notes`,
+>   `?view=drafts`, `?view=used-nowhere` each render a
+>   view-specific header + a `<NoteLensRow>` list. **Recent**
+>   stays disabled until visit-tracking ships (needs
+>   `last_visited_at` populated by a future slice).
+> - **Sidebar Views + Pillars lens entries light up.** All notes
+>   / Drafts / Used nowhere become real Link rows with live
+>   counts; active row highlights when its URL matches. Pillars
+>   show real counts (multi-pillar notes count in each pillar).
+>   Recent stays disabled with a tooltip.
+> - **Overview sidebar entry.** New 🏠 Overview row sits at the
+>   top of the sidebar above the lens sections; active when no
+>   scope is set; railed mode shows just the glyph with a
+>   tooltip.
+> - **Lens header icons (expanded mode).** Each lens section
+>   header now carries its glyph in front of the label (☰ Views
+>   / 📁 Folders / 📚 Shelves / ◆ Pillars / # Tags) for
+>   consistency with the railed view.
+> - **Railed icons are clickable.** Views / Folders / Shelves
+>   icons in railed mode become Links to `?view=all-notes` /
+>   `?folder=all` / `?shelf=all` respectively. Pillars / Tags
+>   icons (no destination wired yet) expand the rail when
+>   clicked — keeps every icon clickable without faking a
+>   destination.
+> - **Stronger lens-section dividers.** Section divider colour
+>   bumped from 60%-faded `--border` to `--border-strong`, with
+>   12px top padding + 10px top margin for more breathing room.
+>
+> - **Data plumbing.** `fetchAllLensRowsForTutor` (wrapped in
+>   React's `cache()`) is the single source of truth — called by
+>   `getLibraryLensCounts`, `getLibraryOverviewStats`, and
+>   `getNotesForView` and deduplicated within one render. New
+>   `LibraryViewKey`, `LibraryViewCounts`, `LibraryOverviewStats`
+>   exported types. `getLibraryOverviewStats` parallelises three
+>   reads (notes + folder count + shelf count).
+> - **Routing.** Precedence: `?shelf=` > `?view=` > `?folder=` >
+>   no scope (overview). The bare `/tutor/library` URL renders
+>   the dashboard; all three system view URLs render
+>   `<NotesView>`; everything else unchanged.
+>
+> **Files new (2):** `lib/library/library-overview.tsx`,
+> `lib/library/notes-view.tsx`.
+>
+> **Files modified (5):** `lib/library/types.ts`
+> (`LibraryViewKey` + `LibraryViewCounts` + `LibraryOverviewStats`),
+> `lib/library/queries.ts` (cached `fetchAllLensRowsForTutor`
+> helper + `getLibraryLensCounts` + `getLibraryOverviewStats` +
+> `getNotesForView`), `lib/library/home-shell.tsx` (Overview
+> sidebar entry + lens-header icons + railed-icon Links +
+> expanded-rail handler + view-scope main pane branch),
+> `app/(app)/tutor/library/page.tsx` (4-way scope precedence +
+> parallel fetches), `styles/library.css` (SLICE 11.4 follow-on
+> P2 block + sidebar polish — `.lens-section-icon`,
+> stronger dividers, `.lens-rail-icon` as Link/button,
+> `.lens-home`, `.lib-overview`, `.lib-stat-card`,
+> `.lib-pillar-bars`, `.lib-quick-link`).
+>
+> **Deferred follow-on — All tags view.** Sam locked in the
+> design session: as tag vocabulary grows, an alphabetised browse
+> view (tag list with notes-per-tag) earns its keep. Slot when
+> there's a real tutor with enough tags to need it. Pillars
+> deliberately stay filter-only — fixed 8-item taxonomy doesn't
+> warrant its own page.
+>
+> **Earlier shipped (2026-05-27):** **Tutor Library 11.4 follow-on —
+> shared `<NoteLensRow>` + editor "On shelves" rail (P3 + P4
+> bundle).** Two related Sam complaints surfaced in the same
+> session, bundled because they share the same data plumbing — a
+> `shelf_memberships` projection (one pip per shelf with its
+> identity colour + title) on the note.
+>
+> - **Shared row component.** New
+>   `lib/library/note-lens-row.tsx` replaces three independently-
+>   evolved lens-row implementations (`.lib-note-row` in the folder
+>   list, `.lib-shelf-detail-row` in the shelf detail, with the
+>   carousel keeping its own compact card). Single canonical
+>   shape per the planning doc's lens-row spec: title + inline
+>   subtitle + description-or-subtitle fallback + meta line (📁
+>   folder · coloured shelf pips · pillar chips · #tags) + right
+>   column stacking Pub/Draft pill + `↳ used in N` + `edited Xd ago`.
+> - **Shelf pips, not a count badge.** One coloured 8px dot per
+>   shelf the note's on, carrying the shelf's identity colour.
+>   Title tooltip on hover. `excludeShelfId` prop hides the
+>   page-scope shelf's pip on shelf-detail rows so they don't
+>   render a redundant dot.
+> - **Right column three-stack.** Pub/Draft pill is always there;
+>   `↳ used in N` hides when zero; `edited Xd ago` always shows
+>   (relative formatter hoisted from `note-editor.tsx` into
+>   `format.ts`). Used-in count lights up automatically when
+>   slice 11.11 ships note-as-activity attachment.
+> - **`LibraryNoteLensRow` projection.** New canonical type;
+>   `LibraryNoteListRow` is now an alias; `LibraryShelfDetailNote`
+>   extends it (adds `position`). `getNotesForTutor` and
+>   `getShelfDetail` both return the new shape. The shelf-detail
+>   query is now two round trips (shelf + ordered note IDs, then
+>   batched lens-row data via `IN (...)`) — cleaner than the
+>   nested self-referencing PostgREST embed.
+> - **Editor "On shelves" rail.** New section between Status and
+>   Outline in the editor right rail. Each shelf renders as a
+>   clickable row (coloured pip + title) that links to
+>   `?shelf=<id>`. Empty state: "Not on any shelf yet. Add this
+>   note to a shelf from the All Shelves carousel or any shelf's
+>   detail page." Read-only by design — add/remove still happens
+>   from the shelf-side flows.
+>
+> **Files new (1):** `lib/library/note-lens-row.tsx`.
+>
+> **Files modified (7 code + 0 schema):** `lib/library/types.ts`
+> (`LibraryShelfPip` + `LibraryNoteLensRow` canonical; reshape
+> `LibraryNoteListRow` + `LibraryShelfDetailNote` + `LibraryNoteForEdit`),
+> `lib/library/queries.ts` (enriched projections + shared
+> embed-helpers + two-query `getShelfDetail`), `lib/library/format.ts`
+> (hoisted `formatRelative`), `lib/library/notes-list.tsx` (uses
+> `<NoteLensRow>`), `lib/library/shelf-detail.tsx` (uses
+> `<NoteLensRow>` with numberPrefix + excludeShelfId), `lib/library/note-editor.tsx`
+> (On shelves rail section + drop local formatRelative), `styles/library.css`
+> (SLICE 11.4 follow-on block — `.lib-note-lens-row`,
+> `.lib-shelf-pip`, `.lib-rail-shelves`).
+>
+> **Earlier shipped (2026-05-26):** **Tutor Library 11.4 follow-on —
+> folder kebab + editor edit-cue.** Two small UX gaps Sam flagged
+> while testing 11.4: folders had no edit/delete UI (only shelves
+> did), and the editor's title / subtitle / description inputs
+> looked like display text to a new tutor.
+>
+> - **Folder kebab.** `<FolderRows>` gains the hover-revealed
+>   `⋮` + popover menu pattern from `<ShelfRows>` — Edit / Delete
+>   entries, click-outside + Escape close.
+> - **Folder edit.** `<NewFolderModal>` refactored to a
+>   discriminated `variant: { mode: 'create' } | { mode: 'edit' }`
+>   mirroring `<NewShelfModal>`. Pre-fill from the folder; dup-check
+>   excludes self; mode-aware copy.
+> - **Folder delete with orphan-to-root.** New
+>   `deleteFolderAction` — UPDATE notes SET folder_id = NULL WHERE
+>   folder_id = ?, then DELETE folder. Notes survive intact
+>   (body, shelf memberships, programme attachments, visibility).
+>   Simple yes/no confirm with note-count-aware copy ("the N notes
+>   inside will move to Root — body content, shelf memberships,
+>   programme attachments and visibility settings are all kept").
+> - **Editor edit-cue.** Title / subtitle / description each
+>   wrapped in a `.lib-editor-editable` div with a hover- and
+>   focus-within-revealed `✎` icon at the right edge + a subtle
+>   accent tint on the field. Pencil has `pointer-events: none`
+>   so clicks fall through to the input. Solves the "looks like
+>   display text" complaint without restructuring.
+>
+> **Files new (1):** `lib/library/delete-folder-confirm.tsx`.
+>
+> **Files modified (5):** `lib/library/actions.ts`
+> (editFolderAction + deleteFolderAction),
+> `lib/library/new-folder-modal.tsx` (discriminated mode),
+> `lib/library/folder-rows.tsx` (kebab + edit/delete state),
+> `lib/library/home-shell.tsx` (variant prop),
+> `lib/library/note-editor.tsx` (editable wraps + pencil) +
+> `styles/library.css` (`.lib-editor-editable` block).
+>
+> **Earlier shipped (2026-05-26):** **Tutor Library Slice 11.4 —
+> per-shelf detail view (shelf scope).** Per-shelf URLs become
+> real: clicking a shelf row in the sidebar now lands at
+> `?shelf=<uuid>` on a dedicated numbered-list pane (the 11.3a
+> stub that routed everything to `?shelf=all` is gone).
+> `?shelf=all` keeps the carousel; an unknown UUID surfaces a
+> `<ShelfNotFound>` empty state mirroring `<FolderNotFound>`.
+>
+> - **Detail pane chrome.** Crumb `Library / Shelves / <title>` →
+>   title row with the shelf's identity dot + a `Shelf · curated`
+>   lens badge inline → sub-line composed of count + tagline +
+>   optional description paragraph below → `+ Add notes` primary
+>   button on the right.
+> - **Numbered list.** Ordered by `_shelf_memberships.position`.
+>   Each row carries the planning doc's "per-note lens row"
+>   shape: title (+ subtitle), description-or-subtitle fallback,
+>   inline meta (📁 folder · 📚 +N other-shelf badge · pillar
+>   chips · #tags), Pub/Draft pill on the right, and a 3px
+>   shelf-coloured accent bar on the left edge.
+> - **Reorder + remove tool group.** Floating ▲ ▼ ✕ on the right
+>   edge of each row, hover- and focus-within–revealed (visible
+>   for keyboard nav too). Arrows disabled at the boundaries.
+>   `preventDefault + stopPropagation` so the row's outer Link to
+>   the editor doesn't fire when clicking the affordances.
+> - **`reorderShelfMemberAction(shelfId, noteId, direction)`.**
+>   Pulls the ordered membership list once, swaps target with
+>   neighbour, writes two `UPDATE`s. There's no `UNIQUE` on
+>   `(shelf_id, position)` so an intermediate state can't collide.
+>   Boundary case (top row ▲ / bottom row ▼) returns ok:true
+>   no-op — the UI never blocks the button optimistically.
+> - **`getShelfDetail(shelfId)`.** Single round trip via
+>   PostgREST: shelves → memberships(position) → notes →
+>   folder(name) + memberships(count). `other_shelf_count`
+>   derives in JS as `totalMemberships - 1`. RLS-gated; null
+>   return covers both "doesn't exist" and "not yours" so the
+>   caller renders the same not-found state for either.
+> - **Empty shelf** offers a `+ Add notes to shelf` hero CTA that
+>   opens 11.3b's `<AddNotesToShelfModal>` directly — same picker
+>   the carousel uses.
+> - **`RemoveFromShelfConfirm` extracted.** Pulled out of
+>   `all-shelves-carousel.tsx` into its own file so the detail
+>   view and the carousel share the dialog. Pure refactor — no
+>   behaviour change on the carousel side.
+> - **Filter chips (pillar / tag) inside a shelf — deferred.**
+>   Most v1 shelves are small enough that the lens row carries
+>   the metadata; the chip filter slots in cleanly when a real
+>   tutor with a big shelf asks.
+>
+> **Files new (2):** `lib/library/shelf-detail.tsx`,
+> `lib/library/remove-from-shelf-confirm.tsx`.
+>
+> **Files modified (8):** `lib/library/types.ts` (LibraryShelfDetail
+> + LibraryShelfDetailNote projections), `lib/library/queries.ts`
+> (getShelfDetail), `lib/library/actions.ts`
+> (reorderShelfMemberAction), `lib/library/shelf-rows.tsx`
+> (per-shelf href + is-active class), `lib/library/home-shell.tsx`
+> (shelfDetail prop + branched main pane),
+> `lib/library/all-shelves-carousel.tsx` (imports the shared
+> confirm), `app/(app)/tutor/library/page.tsx` (3-way
+> shelf-scope branch + per-detail eligibles fetch), `styles/library.css`
+> (SLICE 11.4 block).
+>
+> **Earlier shipped (2026-05-26):** **Tutor Library Slice 11.3b —
+> Spotify-style All Shelves carousel + add-to-shelf flow.** Closes
+> the 11.3 sub-arc; the All Shelves view is now real. Each shelf
+> renders as a horizontal-scrolling row of note cards with the
+> shelf's identity colour as a left-edge bar; trailing dashed
+> `+ Add to shelf` tile opens a multi-select picker (search + folder
+> filter + status pill per row + smart eligibility). Hover-revealed
+> ✕ on each card removes the membership with a friendly confirm.
+> Both DRAFT and PUBLISHED notes are eligible (shelves don't gate
+> visibility — drafts on shelves are harmless).
+>
+> - **Two new server reads.** `getShelvesWithNotes()` joins
+>   `_shelf_memberships` → `_notes` via PostgREST embed; one round
+>   trip per page render with members ordered by membership.position.
+>   `getEligibleNotesForShelf(shelfId)` returns the picker rows with
+>   folder name + `other_shelf_count` joined in; sorted by
+>   updated_at desc.
+> - **Two new actions.** `attachNotesToShelfAction` bulk-INSERTs
+>   memberships with positions running from current count; catches
+>   23505 (race-attached duplicate) with friendly copy.
+>   `removeNoteFromShelfAction` DELETEs a single (shelf, note) row
+>   — composite-PK exact.
+> - **`<AllShelvesCarousel>`.** Replaces the 11.3a placeholder when
+>   any shelf scope is active and the tutor has ≥1 shelf. Empty-
+>   state hero with + New shelf CTA when the tutor has 0 shelves.
+>   Per-row: coloured dot + clickable title (links to `?shelf=<id>`
+>   — gains a real destination in 11.4) + count + tagline (italic,
+>   right-aligned, ellipsis-truncated). Carousel cards have a
+>   3px shelf-coloured left-edge bar.
+> - **`<AddNotesToShelfModal>`.** Multi-select picker with live
+>   search (title / subtitle / folder name), folder dropdown
+>   (Root + All + per-folder), Select all / Clear, per-row checkbox
+>   + title + subtitle + folder + "also on N shelves" badge + first
+>   pillar + Pub/Draft pill. Submit copy updates with selection
+>   count.
+> - **Per-card ✕ remove.** Hover-revealed in the card corner;
+>   click opens a reassuring confirm ("the note stays put, only the
+>   membership goes"); confirm calls `removeNoteFromShelfAction`.
+>   Mirrors the cohort-card overlay-link pattern.
+> - **Pre-fetched eligibles.** `page.tsx` runs
+>   `getEligibleNotesForShelf` for every shelf in parallel when the
+>   shelf scope is active — opening the picker is instant.
+> - **CSS — SLICE 11.3b block** in `styles/library.css` covers
+>   carousel layout (244px grid-auto-columns + scroll-snap), card
+>   chrome with the shelf-coloured accent bar, hover-✕, dashed
+>   add-tile, and the picker chrome.
+>
+> **Files new (2):** `lib/library/all-shelves-carousel.tsx`,
+> `lib/library/add-notes-to-shelf-modal.tsx`.
+>
+> **Files modified (5):** `lib/library/types.ts` (3 new projections),
+> `lib/library/queries.ts` (getShelvesWithNotes +
+> getEligibleNotesForShelf), `lib/library/actions.ts` (attach +
+> remove membership actions), `lib/library/home-shell.tsx` (carousel
+> mount + ShelvesEmptyHero), `app/(app)/tutor/library/page.tsx`
+> (shelf-scope-aware fetch shape + parallel eligibles), `styles/library.css`
+> (SLICE 11.3b CSS block).
+>
+> **Earlier shipped (2026-05-26):** **Slice 11.3a — shelf entity +
+> sidebar lens.** The Shelves lens stops being a placeholder
+> — real shelf rows, real counts, an All shelves entry, and full
+> create / edit / delete on the entity (hover-revealed kebab on each
+> row → menu). New tagline column on `nclex_tutor_library_shelves`
+> (separate from the existing description, which 11.4 will use for
+> the shelf detail page). CD-derived: 8-swatch palette + smart
+> default + live preview pill from the prototype's `NewShelfDialog`.
+>
+> - **Schema.** `db/migrations/20260617120000_slice_11_3a_shelf_tagline.sql`
+>   adds `tagline TEXT NULL` (applied to mynclex-dev). Two
+>   descriptive fields side-by-side now — `tagline` (short carousel
+>   header copy) + `description` (longer copy for the shelf detail
+>   page 11.4). Both optional; UI degrades on null.
+> - **Server boundary.** `getShelvesForTutor()` joins
+>   `nclex_tutor_library_shelf_memberships(count)` for per-shelf note
+>   counts — single round trip, mirrors the folder pattern.
+>   `page.tsx` runs the folders + shelves fetches in parallel
+>   (`Promise.all`); skips the per-folder notes fetch when a shelf
+>   scope is active (the main pane is shelves-only there).
+> - **Actions.** `createShelfAction` / `editShelfAction` /
+>   `deleteShelfAction` in `lib/library/actions.ts`. Validation
+>   chain: title 2..60 + dup-check + tagline ≤120 + description ≤600
+>   + colour ∈ SHELF_PALETTE. Delete catches FK 23503 (shelf attached
+>   to a programme via `_note_attachments`) and surfaces a specific
+>   "detach first" error — RESTRICT prevents the cascade today; the
+>   detach UI lands with 11.12.
+> - **Sidebar lens.** New `<ShelfRows>` wires real rows with the
+>   shelf's identity colour as a 9px square dot to the left, the
+>   title, the count to the right. Hover → kebab `⋮` opens a popover
+>   menu (Edit / Delete with click-outside + Escape close). 11.3a
+>   routes every per-shelf URL to `?shelf=all` — the per-shelf
+>   detail view ships in 11.4.
+> - **New shelf modal.** Discriminated union `{ mode: 'create' | 'edit' }`
+>   so the same modal handles both flows. Smart-default colour
+>   picks the first SHELF_PALETTE entry not already worn by an
+>   existing shelf (falls back to entry 0 above 8 shelves). Title +
+>   tagline + description + 8-swatch colour picker + live preview
+>   pill ("rail dot · per-note pip · attached-block border" copy
+>   explaining where the colour shows up).
+> - **Delete confirm.** Simple yes/no `DeleteShelfConfirm` (not
+>   type-to-confirm — cascade only drops membership rows; notes are
+>   untouched, and the shelf can be recreated trivially).
+> - **Main pane placeholder.** `ShelvesComingSoon` renders the 📚
+>   glyph + "All shelves" title + a hint explaining the carousel
+>   ships in 11.3b. Empty-state copy switches to "No shelves yet"
+>   when the tutor has none.
+> - **CSS.** New SLICE 11.3a block in `styles/library.css` covers
+>   the lens-item-wrap + shelf-dot + kebab + popover menu + swatch
+>   grid + preview pill + field hints + the two modal size variants.
+>
+> **Files new (3):** `lib/library/new-shelf-modal.tsx`,
+> `lib/library/shelf-rows.tsx`,
+> `db/migrations/20260617120000_slice_11_3a_shelf_tagline.sql`.
+>
+> **Files modified (5):** `lib/library/types.ts` (SHELF_PALETTE +
+> LibraryShelf / WithCount / FormValues), `lib/library/queries.ts`
+> (getShelvesForTutor), `lib/library/actions.ts` (create + edit +
+> delete shelf actions + validateShelf), `lib/library/home-shell.tsx`
+> (mount Shelves lens + + New shelf toolbar button + NewShelfModal +
+> ShelvesComingSoon main pane), `app/(app)/tutor/library/page.tsx`
+> (parallel folders + shelves fetch, `?shelf=` URL param, scope
+> precedence), `styles/library.css` (SLICE 11.3a CSS block).
+>
+> **Earlier shipped (2026-05-26):** Tutor Library Slice **11.2b** —
+> notes CRUD + dedicated editor route. Closes the 11.2 sub-arc; the
+> library now round-trips folders AND notes through real UI. The
+> Tiptap rich block editor is still 11.5; this slice ships a plain-
+> textarea body editor with the full chrome around it (breadcrumb,
+> meta row, right rail).
+>
+> - **+ New note flow.** `+ New note` (was disabled, said "Coming in
+>   11.2b") now opens a modal — title + folder dropdown +
+>   pillar multi-select (≥1 required, NCLEX domain values). Submit →
+>   `createNoteAction` → routes to the editor at
+>   `/tutor/library/note/<id>`. The folder dropdown defaults to the
+>   currently-selected folder in the home shell if one is open.
+> - **Editor route at `/tutor/library/note/[note_id]`.** Server
+>   component fetches the note (RLS-gated; 404 on miss) + the tutor's
+>   folders in parallel. Renders `<NoteEditor>` inside the existing
+>   tutor global chrome (no special layout — global sidebar stays).
+> - **Editor layout — CD-faithful three-zone.** Sticky toolbar
+>   (breadcrumb left, save badge + Draft pill + disabled Publish +
+>   Save right) → grid `1fr 240px` (main + rail) below. Hides the
+>   rail at ≤1080px. CD-prototype-derived defaults: 34px serif
+>   title, 16px italic serif subtitle, small one-line description,
+>   inline meta row of Folder / Pillars / Tags chips between the
+>   text headers and the body.
+> - **Body as a textarea.** The schema stores body as JSONB blocks;
+>   11.2b round-trips a single paragraph block via
+>   `bodyToText` / `textToBody` helpers in `note-editor.tsx`. When
+>   slice 11.5 ships the Tiptap rich editor it writes the same
+>   block shape so the persisted JSON survives the upgrade.
+> - **Inline meta row pickers.** New atoms — `pillar-picker.tsx`
+>   (popover with 8 NCLEX pillar checkboxes + short-form chip
+>   labels), `folder-picker.tsx` (popover folder list reused by the
+>   modal + the editor reparent), `tag-input.tsx` (chip row + free-
+>   text input; Enter / comma / Tab commits, Backspace pops). All
+>   popovers close on ESC + click-outside.
+> - **Right rail — 5 sections.** Status (Draft + visibility-coming +
+>   last-save timestamp with relative formatter that auto-refreshes
+>   every 30s); Outline (best-effort heading detection from textarea
+>   text); Embedded questions (count via body-walk for
+>   `embedded_questions` blocks — always 0 in 11.2b, lights up with
+>   11.15); Used in (real `nclex_tutor_library_note_attachments`
+>   count via PostgREST embed — always 0 in 11.2b, lights up with
+>   11.11); Guards (live explainer of the current save model).
+> - **Breadcrumb in the toolbar** (added during the same session
+>   after Sam flagged the inconsistency). Replaces the back arrow
+>   with `Library / <folder name> / <note title>` — clickable
+>   segments routed through a `attemptLeave(href)` guard that fires
+>   the `DiscardConfirm` modal when the editor is dirty. For root
+>   notes the middle segment is skipped. Folder-list + all-folders
+>   crumbs got the `Library` link too for consistency.
+> - **Save model.** Explicit Save button on the toolbar; debounced
+>   autosave waits for 11.5. Save badge has three states (saved /
+>   saving / dirty) with a coloured blip dot + relative-time copy.
+>   `version_id` rotates on every UPDATE (forward-compat scaffolding
+>   for the two-tabs guard in 11.5). `beforeunload` browser warning
+>   on close-tab when dirty.
+> - **Validation** mirrors at three layers: client modal (inline red
+>   copy), server action (auth check + length caps + pillar
+>   membership + tag length + dup-check), DB (CHECK constraint on
+>   `nclex_pillar` domain + ≥1 pillars + RLS).
+>
+> **Files new (8):** `lib/library/format.ts`,
+> `lib/library/pillar-picker.tsx`, `lib/library/folder-picker.tsx`,
+> `lib/library/tag-input.tsx`, `lib/library/new-note-modal.tsx`,
+> `lib/library/notes-list.tsx`, `lib/library/note-editor.tsx`,
+> `app/(app)/tutor/library/note/[note_id]/page.tsx`.
+>
+> **Files modified (7):** `lib/library/queries.ts` (note-list +
+> note-with-attachment-count reads), `lib/library/actions.ts`
+> (create + update + pillar / tag validators), `lib/library/types.ts`
+> (`NclexPillar` + `LibraryNote` + projections + form-value types),
+> `lib/library/home-shell.tsx` (wire `+ New note`, render
+> `<NotesList>` for selected folders, `<NewNoteModal>` mount,
+> remove the `SelectedFolderEmpty` placeholder),
+> `lib/library/all-folders-grid.tsx` + `lib/library/notes-list.tsx`
+> (clickable `Library` crumb), `app/(app)/tutor/library/page.tsx`
+> (fetch notes when a real folder is selected), `styles/library.css`
+> (notes list rows + meta chips + popovers + tag chips + editor
+> three-zone shell + breadcrumb).
+>
+> **Earlier shipped (2026-05-26):** Tutor Library Slice **11.2a** —
+> folder CRUD + folder lens data + the All-folders grid. The
+> sidebar's Folders lens stopped being a placeholder. Toolbar
+> `+ New folder` wired through a name + description modal. New
+> files: `lib/library/{types,queries,actions,folder-rows,
+> all-folders-grid,new-folder-modal}.tsx`. CD-derived design.
+>
+> **Earlier shipped (2026-05-25):** Tutor Library **Slice 11.1
+> foundation** + the **gap-review fold-back** into the canonical
+> planning doc. 11.1a shipped the schema migration (8 tables — the
+> 9th `nclex_library_embed_answers` was patched out + deferred to
+> 11.15); 11.1b shipped the chrome-only home shell at
+> `/tutor/library` with the 5-lens sidebar (Views / Folders /
+> Shelves / Pillars / Tags) and a collapse-to-rail control. The
+> gap-review pass closed 4 architectural decisions + 20 gap
+> resolutions (multi-value pillars, junction-table programme
+> visibility, atomic shelf attach, embedded-question caps, merged
+> note-state table, etc.). Full write-ups live in the git log
+> (`23c23e7`, `763872b`, plus the 7 gap-review commits) and the
+> canonical planning doc.
+>
+> **Next:** Slice **11.5** — Tiptap editor scaffold (starter-kit
+> blocks + slash command + `+` button + drag handle + always-
+> visible toolbar + autosave + `version_id` save guard +
+> `BroadcastChannel` two-tabs warning). Provisional gate: fall
+> back to a markdown textarea if Tiptap goes badly. Or rotate per
+> the alternate-features rule — Payments 5.3 is the live
+> alternate (5.1 + 5.2 shipped). Full library slice ladder +
+> status flags live in
+> [`docs/product-plan/tutor-library.md` → Build order](docs/product-plan/tutor-library.md#build-order-when-this-gets-queued)
+> — see Part 3 below.
+>
+> **Deferred follow-on — note deletion.** The schema is ready
+> (`nclex_tutor_library_note_attachments.note_id` is `ON DELETE
+> RESTRICT`; `_shelf_memberships.note_id` is `ON DELETE CASCADE`)
+> but there's no UI or `deleteNoteAction` yet. Surfaced 2026-05-26.
+> Shape when it lands: kebab on each note row in `<NotesList>` /
+> `<ShelfDetail>` + a Delete entry in a future editor toolbar
+> overflow menu + a `deleteNoteAction` that catches FK 23503 and
+> returns "detach from N units first." Pairs naturally with the
+> note-card-consistency slice (which is touching the same row
+> components anyway) or with Publish (11.10).
 >
 > **Earlier sessions:** the full per-session history lives in
 > [`SESSIONS.md`](SESSIONS.md), archived by month under `sessions/`.
@@ -1527,6 +2228,36 @@ invite-creating flow must create the profile + STUDENT role first.
 
 - Public self-serve tutor signup (tutors are manually vetted in v1).
 - Payment splits / marketplace billing between QAcademy and tutors.
+
+---
+
+## Part 3 — Library
+
+The **Tutor Library** is a sibling product surface to the Bank: where
+the Bank holds practice (questions), the Library holds teaching
+(notes). It lives in the tutor's global nav alongside Bank + Quizzes,
+attaches into programmes via Library Note / Shelf activity types,
+and is read-only on the student side (visibility-filtered by note,
+not by container).
+
+**Full slice ladder + status lives in the planning doc, not here** —
+single source of truth, no drift between this file and the
+canonical plan:
+
+- **[docs/product-plan/tutor-library.md → Build order](docs/product-plan/tutor-library.md#build-order-when-this-gets-queued)**
+  — every slice (currently numbered 11.1a through 11.17) with
+  ✅ / 🔨 / ⏭ / ⬜ status flags and per-slice scope.
+
+Slice numbering: **11.x** (the next free top-level slot — Bank
+occupies 1.x through 8.x, Programme 9.x and 10.x).
+
+Currently shipped: **11.1a** (schema foundation, ⚠️ committed
+unapplied) + **11.1b** (home shell chrome). **Next ⏭ is 11.2** —
+folder CRUD + real folder lens data.
+
+Build size estimate: ~6–8 weeks of focused work; markdown-textarea
+fallback gate at slice 11.5 (Tiptap editor) shaves ~2 weeks if the
+block editor proves painful.
 
 ---
 

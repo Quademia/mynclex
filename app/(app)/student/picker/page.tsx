@@ -22,6 +22,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { loadChromeData } from '@/lib/shell/load-chrome-data';
 import { AppShell } from '@/components/shell/app-shell';
+import { Footer } from '@/components/shell/footer';
 import { ProgrammeList } from '@/components/nav/student/programme-list';
 import { getMyAccessibleProgrammesAction } from '@/lib/programmes/student-actions';
 import { getMyBankAccess } from '@/lib/payments/entitlements';
@@ -87,6 +88,7 @@ export default async function PickerPage() {
             </Link>
           </section>
         </div>
+        <Footer />
       </div>
     </AppShell>
   );

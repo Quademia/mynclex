@@ -14,6 +14,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { loadChromeData } from '@/lib/shell/load-chrome-data';
 import { AppShell } from '@/components/shell/app-shell';
+import { Footer } from '@/components/shell/footer';
+import { SidebarFrame } from '@/components/nav/shared/sidebar-frame';
+import { SidebarUserBar } from '@/components/nav/shared/sidebar-user-bar';
 import { AdminSidebar } from './sidebar';
 import { ADMIN_NAV, filterAdminNav } from '@/lib/nav/admin';
 
@@ -43,8 +46,21 @@ export async function AdminShell({
       productLabel="· Admin"
     >
       <div className="product-layout">
-        <AdminSidebar items={visibleItems} totalCount={ADMIN_NAV.length} />
-        <main className="product-content">{children}</main>
+        <SidebarFrame
+          ariaLabel="Admin navigation"
+          userBar={
+            <SidebarUserBar
+              displayName={chrome.displayName}
+              email={chrome.email}
+            />
+          }
+        >
+          <AdminSidebar items={visibleItems} totalCount={ADMIN_NAV.length} />
+        </SidebarFrame>
+        <main className="product-content">
+          {children}
+          <Footer />
+        </main>
       </div>
     </AppShell>
   );

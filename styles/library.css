@@ -1,0 +1,3571 @@
+/* mynclex/styles/library.css
+ *
+ * Tutor library home — shell only (slice 11.1 part 2). Holds:
+ *   • .lib-page         — outer page frame (1480px max-width, like
+ *                          the Slice 8 enquiry surfaces, so the
+ *                          5-lens + main pane have room to breathe).
+ *   • .lib-toolbar      — top row: search input + + New folder / Note.
+ *   • .lib-body         — sidebar + main pane grid (200px + 1fr;
+ *                          collapses to 48px + 1fr when railed).
+ *   • .lens-side        — the 5-lens sidebar container.
+ *   • .lens-section     — one lens group (Views / Folders / etc.).
+ *   • .lens-item        — one entry inside a lens section.
+ *   • .lib-empty        — main pane empty-state hero.
+ *
+ * Tokens come from styles/tokens.css (--accent, --primary, --text,
+ * --text-dim, --bg-card, --border, etc.). The .lib-* style family
+ * lives entirely in this file — don't append library rules to
+ * dashboards.css or nav.css.
+ */
+
+
+/* ─── Page frame ────────────────────────────────────────── */
+
+.lib-page {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 20px 24px 80px;
+  width: 100%;
+}
+
+.lib-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.lib-page-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+.lib-page-subtitle {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+
+/* ─── Toolbar (search + actions) ────────────────────────── */
+
+.lib-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.lib-search {
+  flex: 1;
+  position: relative;
+  max-width: 480px;
+}
+
+.lib-search input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px 0 34px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.lib-search input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.lib-search input:disabled {
+  background: color-mix(in srgb, var(--bg-card) 60%, var(--border));
+  cursor: not-allowed;
+}
+
+.lib-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.lib-btn {
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lib-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.lib-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.lib-btn-primary {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+}
+
+.lib-btn-primary:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+
+/* ─── Body grid: sidebar + main pane ────────────────────── */
+
+.lib-body {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.lib-body.is-railed {
+  grid-template-columns: 48px 1fr;
+}
+
+
+/* ─── 5-lens sidebar ────────────────────────────────────── */
+
+.lens-side {
+  position: sticky;
+  top: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lens-rail-toggle {
+  align-self: flex-end;
+  margin: 0 8px 6px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lens-rail-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.lens-side.is-railed {
+  padding: 8px 4px;
+  align-items: center;
+}
+
+.lens-side.is-railed .lens-rail-toggle {
+  align-self: center;
+  margin: 0 0 6px;
+}
+
+.lens-section {
+  padding: 4px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lens-section + .lens-section {
+  border-top: 1px solid var(--border-strong);
+  padding-top: 12px;
+  margin-top: 10px;
+}
+
+.lens-section-icon {
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+}
+
+.lens-section-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 2px 4px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.lens-section-head:hover {
+  color: var(--text);
+}
+
+.lens-section-head .chev {
+  font-size: 9px;
+  transition: transform 120ms ease;
+  margin-left: auto;
+  color: var(--text-dim);
+}
+
+.lens-section.is-closed .chev {
+  transform: rotate(-90deg);
+}
+
+.lens-section.is-closed .lens-section-body {
+  display: none;
+}
+
+.lens-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.lens-item:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.lens-item.is-active {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.lens-item .ico {
+  width: 14px;
+  text-align: center;
+  opacity: 0.6;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.lens-item .cnt {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.lens-item .pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.lens-empty {
+  padding: 6px 6px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+
+/* ─── Railed (collapsed) sidebar variant ────────────────── */
+/* When the sidebar collapses to 48px, only the section icons
+   show; labels + counts hide. Tooltips on hover (native title
+   attribute, no custom tooltip). */
+
+.lens-side.is-railed .lens-section-head,
+.lens-side.is-railed .lens-item .label,
+.lens-side.is-railed .lens-item .cnt,
+.lens-side.is-railed .lens-empty {
+  display: none;
+}
+
+.lens-side.is-railed .lens-section + .lens-section {
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.lens-side.is-railed .lens-rail-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: 14px;
+  /* Cover both <Link> + <button> renderings — the button case
+     needs explicit border/background resets; the Link inherits
+     anchor defaults we want to override (text-decoration). */
+  background: transparent;
+  border: none;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s, color 0.12s;
+}
+
+.lens-side.is-railed .lens-rail-icon:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.lens-side:not(.is-railed) .lens-rail-icon {
+  display: none;
+}
+
+
+/* ─── Main pane — empty state hero ──────────────────────── */
+
+.lib-main {
+  min-width: 0;
+}
+
+.lib-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 24px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  gap: 14px;
+}
+
+.lib-empty-glyph {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  margin-bottom: 4px;
+}
+
+.lib-empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.lib-empty-sub {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin: 0;
+  max-width: 380px;
+  line-height: 1.55;
+}
+
+.lib-empty-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+
+/* ════════════════════════════════════════════════════════
+ * SLICE 11.2a — folders, all-folders grid, new-folder modal
+ * ════════════════════════════════════════════════════════ */
+
+/* Token bridge: the chrome shipped in 11.1b references --text-dim
+ * and --bg-card, which aren't defined in styles/tokens.css. Alias
+ * them here so library styles (existing + new) render consistently
+ * against the canonical token names. */
+.lib-page,
+.lib-modal-folder {
+  --text-dim: var(--text-muted);
+  --bg-card: var(--white);
+}
+
+/* ─── Sidebar lens-item active state ────────────────────── */
+
+.lens-item.is-active {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.lens-item.is-active .cnt {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.lens-item[href] {
+  /* <Link>-based lens items get the same affordance as button ones. */
+  text-decoration: none;
+}
+
+
+/* ─── Main-pane header (AllFoldersGrid + SelectedFolderEmpty) ─ */
+
+.lib-all-folders {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lib-pane-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.lib-pane-crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.lib-pane-crumb .sep {
+  color: var(--text-faint);
+}
+
+.lib-pane-crumb .b {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.lib-pane-crumb-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  border-radius: 3px;
+}
+
+.lib-pane-crumb-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.lib-pane-crumb-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.lib-pane-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+.lib-pane-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 640px;
+  line-height: 1.55;
+}
+
+
+/* ─── Folder cards grid ─────────────────────────────────── */
+
+.lib-folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.lib-folder-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s, box-shadow 0.12s;
+  text-align: left;
+  /* Reset button defaults for the .lib-folder-card-new variant. */
+  font: inherit;
+}
+
+.lib-folder-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.lib-folder-card-ic {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.lib-folder-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+  /* Two-line clamp for very long folder names. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lib-folder-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  /* Three-line clamp keeps cards even height. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+.lib-folder-card-meta {
+  margin-top: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-top: 6px;
+}
+
+.lib-folder-card-new {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--border-strong);
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-muted);
+  min-height: 120px;
+}
+
+.lib-folder-card-new:hover {
+  background: var(--bg);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.lib-folder-card-new .lib-folder-card-ic {
+  color: inherit;
+}
+
+.lib-folder-card-new .lib-folder-card-title {
+  color: inherit;
+  font-weight: 500;
+}
+
+
+/* ─── Inline empty state (used inside AllFoldersGrid) ────── */
+
+.lib-empty.lib-empty-inline {
+  padding: 32px 24px;
+  background: var(--bg);
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  min-height: 0;
+  margin: 0;
+}
+
+
+/* ════════════════════════════════════════════════════════
+ * New-folder modal — extends the prog-modal-* family
+ * ════════════════════════════════════════════════════════ */
+
+.lib-modal-folder {
+  max-width: 520px;
+}
+
+/* Subtitle below the modal title — explanatory copy. */
+.lib-modal-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 4px 0 0;
+  max-width: 440px;
+}
+
+/* "· optional" suffix on field labels — gray + non-bold. */
+.prog-field-optional {
+  font-weight: 400;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Textarea styling for the description field. The base .prog-input
+ * is built for single-line inputs; this variant relaxes the height
+ * constraint. */
+.lib-textarea {
+  height: auto;
+  min-height: 56px;
+  padding: 8px 12px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+/* Inline validation error under a form field. */
+.lib-field-error {
+  display: block;
+  font-size: 12px;
+  color: var(--danger);
+  margin-top: 6px;
+  line-height: 1.45;
+}
+
+/* Info card at the bottom of the modal. Subdued background + a
+ * small "i" badge on the left. */
+.lib-hint {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.lib-hint b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.lib-hint-icon {
+  flex: 0 0 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: Georgia, serif;
+  font-style: italic;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+
+/* ════════════════════════════════════════════════════════
+ * SLICE 11.2b — notes list, popovers, inline meta row, editor
+ * ════════════════════════════════════════════════════════ */
+
+/* ─── Notes list (per-folder lens rows) ──────────────────── */
+
+.lib-notes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lib-note-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s, box-shadow 0.12s;
+}
+
+.lib-note-row:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.lib-note-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.lib-note-title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lib-note-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.lib-note-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.lib-note-desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lib-note-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.lib-note-sep {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.lib-tag-inline {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--ff-mono, monospace);
+}
+
+.lib-note-row-side {
+  display: flex;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.lib-state-pill {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid;
+  line-height: 1;
+}
+
+.lib-state-pill.is-draft {
+  color: var(--text-muted);
+  border-color: var(--border-strong);
+  background: var(--bg);
+}
+
+.lib-state-pill.is-pub {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--white));
+}
+
+
+/* ─── Meta chips (folder/pillar/tag chips, used by modal + editor) ─ */
+
+.lib-meta-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lib-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  cursor: default;
+}
+
+.lib-meta-chip.is-on {
+  background: color-mix(in srgb, var(--accent) 10%, var(--white));
+  color: var(--accent);
+  border-color: var(--accent);
+  cursor: pointer;
+}
+
+.lib-meta-chip-x {
+  font-size: 14px;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.6;
+  margin-left: 2px;
+}
+
+.lib-meta-chip:hover .lib-meta-chip-x {
+  opacity: 1;
+}
+
+.lib-meta-chip-add {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  border: 1px dashed var(--accent);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.lib-meta-chip-add:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--white));
+}
+
+.lib-meta-chip-add:disabled {
+  color: var(--text-faint);
+  border-color: var(--border-strong);
+  cursor: not-allowed;
+}
+
+
+/* ─── Anchor + popover positioning (shared) ────────────── */
+
+.lib-anchor {
+  position: relative;
+  display: inline-block;
+}
+
+.lib-anchor-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.lib-anchor-trigger:hover {
+  border-color: var(--accent);
+}
+
+.lib-anchor-ic {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.lib-anchor-chev {
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+.lib-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 60;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  min-width: 280px;
+  max-width: 360px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.lib-popover-head {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 10px 12px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.lib-popover-body {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+
+/* ─── Pillar picker rows ───────────────────────────────── */
+
+.lib-pp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.lib-pp-row:hover {
+  background: var(--bg);
+}
+
+.lib-pp-row.is-on {
+  background: color-mix(in srgb, var(--accent) 8%, var(--white));
+  color: var(--accent);
+}
+
+.lib-pp-check {
+  flex: 0 0 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--white);
+}
+
+.lib-pp-row.is-on .lib-pp-check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.lib-pp-name {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.lib-pp-name .full {
+  font-weight: 500;
+}
+
+.lib-pp-name .short {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.lib-pp-row.is-on .lib-pp-name .short {
+  color: color-mix(in srgb, var(--accent) 60%, var(--text-muted));
+}
+
+
+/* ─── Folder picker rows ───────────────────────────────── */
+
+.lib-fp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.lib-fp-row:hover {
+  background: var(--bg);
+}
+
+.lib-fp-row.is-on {
+  background: color-mix(in srgb, var(--accent) 8%, var(--white));
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.lib-fp-ic {
+  font-size: 13px;
+  line-height: 1;
+  flex: 0 0 18px;
+}
+
+.lib-fp-name {
+  flex: 1;
+}
+
+.lib-fp-check {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.lib-fp-empty {
+  padding: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+
+/* ─── Tag input chips ──────────────────────────────────── */
+
+.lib-tag-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lib-tag-input-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.lib-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--ff-mono, monospace);
+}
+
+.lib-tag-chip-x {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+
+.lib-tag-chip-x:hover {
+  color: var(--danger);
+}
+
+.lib-tag-text {
+  flex: 1;
+  min-width: 80px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 12.5px;
+  color: var(--text);
+  padding: 3px 4px;
+  font-family: inherit;
+}
+
+.lib-tag-text::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+
+/* ════════════════════════════════════════════════════════
+ * Note editor — three-zone shell
+ * ════════════════════════════════════════════════════════ */
+
+.lib-editor-shell {
+  display: flex;
+  flex-direction: column;
+  max-width: 1480px;
+  margin: 0 auto;
+  width: 100%;
+  --text-dim: var(--text-muted);
+  --bg-card: var(--white);
+}
+
+.lib-editor-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lib-editor-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;            /* let the crumb shrink and truncate */
+  flex: 1 1 auto;
+}
+
+/* Editor breadcrumb — sits where the back arrow used to.
+   Long folder names and titles ellipsis-truncate so the save
+   badge and Publish button on the right always stay visible. */
+.lib-editor-crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--text-muted);
+  /* The whole crumb caps its width so the right toolbar items
+     have room. Individual segments truncate within this cap. */
+  max-width: 100%;
+}
+
+.lib-crumb-link {
+  background: transparent;
+  border: none;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lib-crumb-link:hover:not(:disabled) {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  text-decoration: underline;
+}
+
+.lib-crumb-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.lib-crumb-link:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.lib-crumb-sep {
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.lib-crumb-cur {
+  color: var(--text);
+  font-weight: 600;
+  padding: 4px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;
+  min-width: 0;
+}
+
+.lib-editor-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.lib-btn-accent {
+  background: var(--accent);
+  color: var(--white);
+  border: 1px solid var(--accent);
+}
+
+.lib-btn-accent:hover:not(:disabled) {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.lib-btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid transparent;
+}
+
+.lib-btn-ghost:hover {
+  background: var(--bg);
+}
+
+.lib-savebadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.lib-savebadge .blip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.lib-savebadge.is-saving .blip {
+  background: var(--warning);
+  animation: lib-pulse 1s ease-in-out infinite;
+}
+
+.lib-savebadge.is-dirty .blip {
+  background: var(--warning);
+}
+
+.lib-savebadge.is-dirty {
+  color: var(--warning);
+}
+
+@keyframes lib-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+
+/* ─── Editor grid: main + right rail ──────────────────── */
+
+.lib-editor-grid {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 0;
+  background: var(--bg);
+  min-height: 480px;
+}
+
+@media (max-width: 1080px) {
+  .lib-editor-grid {
+    grid-template-columns: 1fr;
+  }
+  .lib-editor-rail {
+    display: none;
+  }
+}
+
+.lib-editor-main {
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  padding: 28px 40px 80px;
+  min-width: 0;
+}
+
+@media (max-width: 1080px) {
+  .lib-editor-main {
+    border-right: none;
+  }
+}
+
+
+/* ─── Editor body inputs ──────────────────────────────── */
+
+/* Each of title / subtitle / description is wrapped in this
+   container. At rest the wrap is invisible; on hover or focus-within
+   it tints faintly and surfaces a ✎ icon at the right edge so a new
+   tutor reads "click to edit" rather than "this is display text."
+   The wrap reserves 30px on the right for the pencil; the inputs'
+   own margin-bottom values still drive the vertical rhythm. */
+.lib-editor-editable {
+  position: relative;
+  border-radius: 6px;
+  margin: -2px -10px 0;
+  padding: 2px 30px 2px 10px;
+  transition: background 0.14s;
+}
+
+.lib-editor-editable:hover,
+.lib-editor-editable:focus-within {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.lib-editor-pencil {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: var(--text-muted);
+  opacity: 0;
+  pointer-events: none; /* clicks fall through to the input behind */
+  transition: opacity 0.14s;
+}
+
+.lib-editor-editable:hover .lib-editor-pencil,
+.lib-editor-editable:focus-within .lib-editor-pencil {
+  opacity: 0.65;
+}
+
+.lib-editor-title {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 34px;
+  font-weight: 600;
+  color: var(--primary);
+  line-height: 1.15;
+  letter-spacing: -0.018em;
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.lib-editor-title::placeholder {
+  color: var(--text-faint);
+}
+
+.lib-editor-subtitle {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 16px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 8px;
+  padding: 0;
+}
+
+.lib-editor-subtitle::placeholder {
+  color: var(--text-faint);
+}
+
+.lib-editor-desc {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+  padding: 0;
+}
+
+.lib-editor-desc::placeholder {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+
+/* ─── Inline meta row ─────────────────────────────────── */
+
+.lib-editor-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 24px;
+  padding: 16px 0;
+  margin-bottom: 20px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.lib-meta-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lib-meta-block-tags {
+  flex: 1;
+  min-width: 200px;
+}
+
+.lib-meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+
+/* ─── Tiptap body editor (slice 11.5a) ──────────────────
+ *
+ * Replaces the 11.2b textarea. The body has no internal scroll —
+ * it grows with content and the page (.product-content) scrolls.
+ * The inline toolbar is sticky to the viewport just under the
+ * outer breadcrumb bar so it stays reachable in long notes.
+ * ─────────────────────────────────────────────────────── */
+
+.lib-tiptap-shell {
+  display: flex;
+  flex-direction: column;
+}
+
+.lib-tiptap-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 6px 8px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px 8px 0 0;
+  border-bottom: none;
+  /* Sticky to the .product-content scroll, parked under the outer
+   * breadcrumb bar (.lib-editor-bar). The breadcrumb bar is ~46px
+   * tall (10+10 padding + ~26px content); 46px places this toolbar
+   * flush against its underside. */
+  position: sticky;
+  top: 46px;
+  z-index: 15;
+}
+
+.lib-tiptap-toolbar-skeleton {
+  min-height: 38px;
+  opacity: 0.6;
+}
+
+.lib-tiptap-tb-btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 4px 8px;
+  min-width: 30px;
+  height: 30px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.lib-tiptap-tb-btn:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.lib-tiptap-tb-btn.is-on {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 24%, transparent);
+  color: var(--accent);
+}
+
+.lib-tiptap-tb-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.lib-tiptap-tb-sep {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+.lib-tiptap-tb-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+.lib-tiptap-tb-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lib-tiptap-tb-hint kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--text);
+}
+
+.lib-tiptap-tb-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lib-tiptap-tb-btn:disabled:hover {
+  background: transparent;
+}
+
+
+/* ─── Highlight + text-colour swatch popovers ─────────── */
+
+.lib-tiptap-swatch-pop {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  padding: 8px;
+  width: 188px;
+}
+
+.lib-tiptap-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.lib-tiptap-swatch {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--border-strong, #d1d5db) 60%, transparent);
+  border-radius: 4px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s, border-color 0.1s;
+}
+
+.lib-tiptap-swatch:hover {
+  transform: scale(1.08);
+  border-color: var(--accent);
+}
+
+.lib-tiptap-swatch.is-active {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.lib-tiptap-swatch-remove {
+  appearance: none;
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.lib-tiptap-swatch-remove:hover {
+  background: var(--white);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+
+/* ─── Editor body rendering for new marks ─────────────── */
+
+.lib-tiptap-body .ProseMirror mark {
+  /* Inline highlight; @tiptap/extension-highlight writes the
+   * picked colour into a `style="background-color: ..."` attribute
+   * which overrides this default. The rule here is a fallback for
+   * highlights without an explicit colour. */
+  background: #fef08a;
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+.lib-tiptap-body .ProseMirror sub {
+  vertical-align: sub;
+  font-size: 0.75em;
+}
+
+.lib-tiptap-body .ProseMirror sup {
+  vertical-align: super;
+  font-size: 0.75em;
+}
+
+/* The TextAlign extension writes alignment to `style="text-align:..."`
+ * on heading + paragraph. Browsers default to left, so left-aligned
+ * blocks need no rule — center/right/justify just work via inline
+ * style. We don't need any CSS here unless we want to add visual
+ * affordances. */
+
+/* Body wrapper holds the editable region + the drag-handle's
+ * absolutely-positioned anchor. position:relative gives the handle
+ * a containing block for its `left` calculations. */
+.lib-tiptap-body-wrap {
+  position: relative;
+}
+
+.lib-tiptap-body {
+  border: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  background: var(--white);
+  padding: 16px 24px 16px 36px;
+  /* No internal scroll — the body grows with content. The
+   * .product-content scroll (slice 2.9) carries the page. */
+  min-height: 280px;
+}
+
+/* Drag handle — rendered as a child of the body wrap by
+ * @tiptap/extension-drag-handle-react. The extension positions
+ * its host element via inline transforms, so we only style the
+ * inner glyph (the ⋮⋮ icon). */
+.lib-tiptap-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 22px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-faint);
+  cursor: grab;
+  user-select: none;
+  background: transparent;
+  transition: background 0.12s, color 0.12s;
+}
+
+.lib-tiptap-drag-handle:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.lib-tiptap-drag-handle:active {
+  cursor: grabbing;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* Inter-block "+ Add block" gap (slice 11.5 follow-on).
+ * Rendered as a ProseMirror widget decoration between every pair
+ * of top-level blocks. Idle: a thin (~6px) transparent strip the
+ * cursor barely notices. Hover: expands to ~28px, shows a dashed
+ * accent line + "+ Add block" label, click opens the slash menu
+ * at that gap's position.
+ *
+ * The button sits inside the gap element. ProseMirror manages the
+ * DOM, so we style by class rather than React. */
+.lib-tiptap-gap {
+  display: block;
+  position: relative;
+  height: 6px;
+  margin: 0;
+}
+
+.lib-tiptap-gap-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 0.15s ease, height 0.15s ease;
+  /* Expand the clickable area without expanding the layout box —
+   * absolute positioning relative to the gap wrapper. */
+  position: absolute;
+  inset: -6px 0;
+}
+
+.lib-tiptap-gap:hover .lib-tiptap-gap-btn,
+.lib-tiptap-gap-btn:focus-visible {
+  opacity: 1;
+}
+
+.lib-tiptap-gap-line {
+  flex: 1;
+  height: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.lib-tiptap-gap-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--white));
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.lib-tiptap-gap-plus {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.lib-tiptap-gap-btn:hover .lib-tiptap-gap-label {
+  background: color-mix(in srgb, var(--accent) 14%, var(--white));
+}
+
+/* Block tray — chip row at the foot of the editor. Replaces the
+ * "+ Add block" dashed button. Shows every block type from the
+ * planning doc as a clickable chip; enabled types insert at the
+ * end of the doc, disabled types ("coming in slice X") render
+ * dimmed with a slice-number pill. Wraps on narrow screens. */
+.lib-tiptap-block-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg) 50%, transparent);
+}
+
+.lib-tiptap-block-chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s, transform 0.08s;
+}
+
+.lib-tiptap-block-chip:hover:not(.is-disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, var(--white));
+}
+
+.lib-tiptap-block-chip:active:not(.is-disabled) {
+  transform: translateY(1px);
+}
+
+.lib-tiptap-block-chip.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  color: var(--text-muted);
+}
+
+.lib-tiptap-block-chip.is-disabled:hover {
+  background: var(--white);
+}
+
+.lib-tiptap-block-chip-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.lib-tiptap-block-chip-label {
+  font-weight: 500;
+}
+
+.lib-tiptap-block-chip-pill {
+  margin-left: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+.lib-tiptap-body-skeleton {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+/* ProseMirror produces the editable region inside .lib-tiptap-body.
+ * Style the rendered elements so the editor reads like a document. */
+.lib-tiptap-body .ProseMirror {
+  outline: none;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text);
+  min-height: 240px;
+}
+
+.lib-tiptap-body .ProseMirror:focus {
+  outline: none;
+}
+
+.lib-tiptap-body .ProseMirror p {
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0 0 10px;
+  text-wrap: pretty;
+}
+
+/* CD visual treatment — H2 26px serif, H3 20px serif, accent
+ * colour, generous top margin so blocks breathe. */
+.lib-tiptap-body .ProseMirror h2 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.018em;
+  color: var(--accent);
+  margin: 22px 0 6px;
+  scroll-margin-top: 110px;
+}
+
+.lib-tiptap-body .ProseMirror h3 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--accent);
+  margin: 16px 0 4px;
+  scroll-margin-top: 110px;
+}
+
+/* Restore list bullets / numbers — Tailwind's CSS reset (in
+ * @tailwindcss/postcss preflight) clears `list-style` globally
+ * because most app `<ul>`s are nav menus. The editor body wants
+ * the markers back. */
+.lib-tiptap-body .ProseMirror ul {
+  margin: 0 0 12px;
+  padding-left: 24px;
+  list-style-type: disc;
+}
+
+.lib-tiptap-body .ProseMirror ol {
+  margin: 0 0 12px;
+  padding-left: 24px;
+  list-style-type: decimal;
+}
+
+.lib-tiptap-body .ProseMirror ul ul {
+  list-style-type: circle;
+}
+
+.lib-tiptap-body .ProseMirror ol ol {
+  list-style-type: lower-alpha;
+}
+
+.lib-tiptap-body .ProseMirror li {
+  margin-bottom: 4px;
+}
+
+.lib-tiptap-body .ProseMirror li > p {
+  margin: 0;
+}
+
+.lib-tiptap-body .ProseMirror blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 12px 0;
+  padding: 4px 14px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.lib-tiptap-body .ProseMirror code {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 12.5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--accent-dark, var(--accent));
+}
+
+.lib-tiptap-body .ProseMirror pre {
+  background: color-mix(in srgb, var(--border) 30%, var(--white));
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 0 0 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  overflow-x: auto;
+}
+
+.lib-tiptap-body .ProseMirror pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+
+.lib-tiptap-body .ProseMirror a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.lib-tiptap-body .ProseMirror hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
+}
+
+/* Per-block hover + focus tint (slice 11.5 follow-on).
+ *
+ * Hover: a subtle tint on the block under the mouse — pairs with
+ * the drag handle that appears on the same hover.
+ * Focus: a stronger tint on the block containing the cursor —
+ * driven by @tiptap/extension-focus adding `.has-focus` to the
+ * shallowest enclosing block.
+ *
+ * Both tints fill the full block width (block-level elements span
+ * the body's content area) and round to 6px. Transitions kept
+ * short so the tint feels snappy. */
+.lib-tiptap-body .ProseMirror > * {
+  border-radius: 6px;
+  transition: background 0.12s;
+}
+
+.lib-tiptap-body .ProseMirror > *:hover {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.lib-tiptap-body .ProseMirror > .has-focus {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.lib-tiptap-body .ProseMirror > .has-focus:hover {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+
+/* Tiptap's Placeholder extension adds `is-empty` to every empty
+ * node and writes the placeholder text into a `data-placeholder`
+ * attribute. We render it via a ::before pseudo-element so the
+ * hint floats inline without taking layout space. */
+.lib-tiptap-body .ProseMirror .is-empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-faint);
+  font-style: italic;
+  pointer-events: none;
+  float: left;
+  height: 0;
+  width: 100%;
+}
+
+
+/* ─── Slash menu popover (slice 11.5b) ─────────────────── */
+
+.lib-slash-popover {
+  width: 320px;
+  max-height: 360px;
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  font-size: 13px;
+}
+
+.lib-slash-group {
+  margin-bottom: 6px;
+}
+
+.lib-slash-group:last-child {
+  margin-bottom: 0;
+}
+
+.lib-slash-group-head {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 6px 8px 4px;
+}
+
+.lib-slash-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.lib-slash-item.is-selected:not(.is-disabled) {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.lib-slash-item.is-disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.lib-slash-item.is-disabled .lib-slash-ic {
+  opacity: 0.55;
+}
+
+.lib-slash-ic {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.lib-slash-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.lib-slash-name {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.lib-slash-desc {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.lib-slash-pill {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.lib-slash-empty {
+  padding: 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+
+/* ─── Rail collapse (slice 11.5b) ──────────────────────── */
+
+/* When the editor's rail is collapsed, the grid swaps from
+ * "main + rail" to a single column. A small toggle floats just
+ * inside the right edge of the main column; click it to bring
+ * the rail back. */
+.lib-editor-grid.is-rail-collapsed {
+  grid-template-columns: 1fr;
+}
+
+.lib-editor-grid.is-rail-collapsed .lib-editor-rail {
+  display: none;
+}
+
+.lib-rail-toggle {
+  appearance: none;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+
+.lib-rail-toggle:hover {
+  background: var(--bg);
+  color: var(--accent);
+}
+
+.lib-rail-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.lib-rail-section-head .lib-rail-title {
+  margin-bottom: 0;
+}
+
+/* Restore-rail button — floats at top-right of the editor main pane
+ * when the rail is hidden, so the tutor can bring it back. */
+.lib-rail-restore {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
+
+/* ─── Right rail ──────────────────────────────────────── */
+
+.lib-editor-rail {
+  background: var(--bg);
+  padding: 24px 18px 60px;
+  /* Sticky to viewport relative to .product-content scroll, parked
+   * under the breadcrumb bar (46px). Max-height is what's left of
+   * the viewport after the topbar (56px) and the breadcrumb (46px).
+   * The rail's own overflow-y handles long rail content. */
+  position: sticky;
+  top: 46px;
+  align-self: start;
+  max-height: calc(100vh - 56px - 46px);
+  overflow-y: auto;
+}
+
+.lib-rail-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 14px 12px;
+  margin-bottom: 12px;
+}
+
+.lib-rail-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.lib-rail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.lib-rail-row:last-child {
+  margin-bottom: 0;
+}
+
+.lib-rail-row .lbl {
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
+
+.lib-rail-muted {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.lib-rail-outline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lib-rail-outline li {
+  font-size: 12.5px;
+  color: var(--text);
+  padding: 3px 0 3px 8px;
+  line-height: 1.4;
+  border-left: 2px solid var(--accent);
+  margin-bottom: 2px;
+}
+
+.lib-rail-outline li.is-h3 {
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.lib-rail-guards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.lib-rail-guards li {
+  padding: 2px 0;
+}
+
+
+/* ════════════════════════════════════════════════════════
+ * SLICE 11.3a — shelves: sidebar rows + new-shelf modal
+ * ════════════════════════════════════════════════════════ */
+
+.lib-modal-shelf,
+.lib-modal-shelf-delete {
+  --text-dim: var(--text-muted);
+  --bg-card: var(--white);
+}
+
+.lib-modal-shelf {
+  max-width: 540px;
+}
+
+.lib-modal-shelf-delete {
+  max-width: 460px;
+}
+
+
+/* ─── Sidebar shelf rows ─────────────────────────────────── */
+
+/* Wraps a shelf lens-item plus its kebab + popover menu so the
+   popover anchors against this container. */
+.lens-item-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Shelf-specific lens-item variant. Takes the full width of the
+   wrap minus the kebab, leaving the kebab in the dead-space at
+   the right edge. */
+.lens-item-shelf {
+  flex: 1;
+  min-width: 0;
+}
+
+.lens-shelf-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Kebab button — invisible until the row is hovered, then 16px
+   button with the active-state colour. */
+.lens-item-kebab {
+  width: 22px;
+  height: 22px;
+  margin-right: 2px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+  opacity: 0;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lens-item-wrap:hover .lens-item-kebab,
+.lens-item-kebab[aria-expanded='true'] {
+  opacity: 1;
+}
+
+.lens-item-kebab:hover,
+.lens-item-kebab[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+
+.lens-item-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 4px;
+  z-index: 30;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+}
+
+.lens-item-menu-btn {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 12.5px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.lens-item-menu-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.lens-item-menu-btn-danger {
+  color: #b91c1c;
+}
+
+.lens-item-menu-btn-danger:hover {
+  background: color-mix(in srgb, #b91c1c 10%, transparent);
+}
+
+
+/* ─── New shelf modal — colour picker ────────────────────── */
+
+.lib-shelf-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.lib-shelf-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 3px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  background-clip: padding-box;
+  transition: transform 0.08s ease;
+}
+
+.lib-shelf-swatch:hover {
+  transform: scale(1.05);
+}
+
+.lib-shelf-swatch.is-selected {
+  border-color: var(--white);
+  box-shadow: 0 0 0 2px var(--swatch-color, var(--accent));
+}
+
+.lib-shelf-swatch:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.lib-shelf-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  flex-wrap: wrap;
+}
+
+.lib-shelf-preview-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--white);
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.lib-shelf-preview-pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.lib-shelf-preview-where {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ─── Field-level hint copy under labels ─────────────────── */
+
+.lib-field-hint {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+
+/* ════════════════════════════════════════════════════════
+ * SLICE 11.3b — Spotify carousels + add-to-shelf picker
+ * ════════════════════════════════════════════════════════ */
+
+.lib-all-shelves {
+  --text-dim: var(--text-muted);
+  --bg-card: var(--white);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Spotify-style horizontal carousels ──────────────── */
+
+.lib-shelf-carousels {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  margin-top: 18px;
+}
+
+.lib-shelf-strip-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.lib-shelf-strip-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.lib-shelf-strip-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.lib-shelf-strip-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+.lib-shelf-strip-title:hover {
+  color: var(--primary);
+}
+
+.lib-shelf-strip-count {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.lib-shelf-strip-tagline {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-left: auto;
+  font-style: italic;
+  text-align: right;
+  /* Single-line truncation if the tagline is wordy. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 50%;
+}
+
+.lib-shelf-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 244px;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 2px 12px;
+  scroll-snap-type: x mandatory;
+}
+
+.lib-shelf-strip::-webkit-scrollbar {
+  height: 6px;
+}
+
+.lib-shelf-strip::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+
+/* ─── Per-note card ───────────────────────────────────── */
+
+.lib-shelf-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 14px 14px 16px;
+  cursor: pointer;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 168px;
+  transition:
+    transform 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
+  position: relative;
+  overflow: hidden;
+  border: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+/* Left-edge bar in the shelf's identity colour. */
+.lib-shelf-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--shelf-accent, var(--primary));
+}
+
+.lib-shelf-card {
+  /* Re-add the border on top of the reset above. */
+  border: 1px solid var(--border);
+}
+
+.lib-shelf-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.lib-shelf-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+
+.lib-shelf-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lib-shelf-card-pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lib-shelf-card-pill-pub {
+  background: color-mix(in srgb, #1f8a5b 14%, transparent);
+  color: #1f8a5b;
+}
+
+.lib-shelf-card-pill-draft {
+  background: color-mix(in srgb, var(--text-muted) 14%, transparent);
+  color: var(--text-muted);
+}
+
+.lib-shelf-card-title {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  /* 2-line clamp so a long title doesn't blow out the card. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lib-shelf-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lib-shelf-card-chips {
+  display: flex;
+  gap: 4px;
+  margin-top: auto;
+  flex-wrap: wrap;
+}
+
+.lib-shelf-card-chip {
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--text);
+  white-space: nowrap;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Hover-revealed ✕ remove button. */
+.lib-shelf-card-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: var(--white);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    background 0.15s,
+    color 0.15s;
+  z-index: 2;
+}
+
+.lib-shelf-card:hover .lib-shelf-card-remove {
+  opacity: 1;
+}
+
+.lib-shelf-card-remove:hover {
+  background: #b91c1c;
+  color: var(--white);
+  border-color: #b91c1c;
+}
+
+
+/* ─── Dashed + Add to shelf tile ──────────────────────── */
+
+.lib-shelf-card-add {
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 168px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  font-family: inherit;
+  scroll-snap-align: start;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.lib-shelf-card-add::before {
+  /* Override the coloured accent bar inherited from .lib-shelf-card. */
+  content: none;
+}
+
+.lib-shelf-card-add:hover {
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.lib-shelf-card-add-plus {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+
+/* ─── AddNotesToShelfModal — picker chrome ────────────── */
+
+.lib-modal-add-to-shelf {
+  max-width: 620px;
+  --text-dim: var(--text-muted);
+  --bg-card: var(--white);
+}
+
+.lib-modal-remove-from-shelf {
+  max-width: 460px;
+  --text-dim: var(--text-muted);
+  --bg-card: var(--white);
+}
+
+.lib-add-to-shelf-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lib-shelf-tag-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.lib-add-to-shelf-name {
+  font-style: normal;
+  font-weight: 600;
+}
+
+.lib-picker-toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.lib-picker-search {
+  flex: 1;
+}
+
+.lib-picker-folder {
+  width: auto;
+  min-width: 160px;
+}
+
+.lib-picker-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.lib-picker-summary-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.lib-picker-textbtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--primary);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.lib-picker-textbtn:hover {
+  text-decoration: underline;
+}
+
+.lib-picker-list {
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.lib-picker-empty {
+  padding: 28px 14px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.lib-picker-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: 10px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.lib-picker-row:last-child {
+  border-bottom: none;
+}
+
+.lib-picker-row:hover {
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+}
+
+.lib-picker-row.is-picked {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.lib-picker-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: transparent;
+  margin-top: 2px;
+  flex-shrink: 0;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.lib-picker-check.is-on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--white);
+}
+
+.lib-picker-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lib-picker-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.lib-picker-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.lib-picker-meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.lib-picker-meta .sep {
+  color: var(--border);
+}
+
+.lib-picker-status {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
+.lib-picker-status-pub {
+  background: color-mix(in srgb, #1f8a5b 14%, transparent);
+  color: #1f8a5b;
+}
+
+.lib-picker-status-draft {
+  background: color-mix(in srgb, var(--text-muted) 14%, transparent);
+  color: var(--text-muted);
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+ * SLICE 11.4 — per-shelf detail view (numbered notes list)
+ * ════════════════════════════════════════════════════════════════════
+ *
+ * Single-shelf scope at `?shelf=<uuid>`. Replaces the 11.3a stub that
+ * routed every shelf URL to the All Shelves carousel. The detail
+ * pane reuses the `.lib-pane-head` chrome (crumb + title + sub-line)
+ * with shelf-specific additions:
+ *   • a coloured identity dot to the left of the title
+ *   • a `Shelf · curated` lens badge inline with the title
+ *   • a tagline inline with the count in the sub-line
+ *   • an optional description paragraph below
+ *
+ * The body is an ordered list of rows. Each row is a clickable
+ * link to the editor with a number column + lens row + state pill,
+ * and a floating tool group on the right (hover-revealed) carrying
+ * up/down reorder arrows and a ✕ remove button.
+ */
+
+.lib-shelf-detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 0;
+}
+
+.lib-shelf-detail-title-row .lib-pane-title {
+  margin: 0;
+}
+
+.lib-shelf-detail-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.lib-shelf-detail-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  background: var(--bg);
+  line-height: 1;
+}
+
+.lib-pane-sub-sep {
+  margin: 0 6px;
+  color: var(--text-faint);
+}
+
+.lib-shelf-detail-tagline {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.lib-shelf-detail-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 6px 0 0;
+  max-width: 720px;
+}
+
+.lib-shelf-detail-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  counter-reset: shelf-row;
+}
+
+.lib-shelf-detail-row-wrap {
+  position: relative;
+}
+
+.lib-shelf-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 100px 14px 16px; /* room on the right for the tools */
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--shelf-accent, var(--border));
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s, box-shadow 0.12s;
+}
+
+.lib-shelf-detail-row:hover {
+  border-color: var(--accent);
+  border-left-color: var(--shelf-accent, var(--accent));
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.lib-shelf-detail-num {
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 28px;
+  text-align: right;
+  padding-top: 1px;
+  flex-shrink: 0;
+}
+
+.lib-shelf-detail-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.lib-shelf-detail-row-side {
+  display: flex;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+/* The tool group floats over the right edge of the row. Hover-
+   revealed: it's invisible by default, fades in when the row is
+   hovered, focus-within keeps it visible for keyboard users.
+   The row's right padding reserves the space so the row content
+   never reflows when the tools appear. */
+.lib-shelf-detail-row-tools {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+
+.lib-shelf-detail-row-wrap:hover .lib-shelf-detail-row-tools,
+.lib-shelf-detail-row-wrap:focus-within .lib-shelf-detail-row-tools {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lib-shelf-detail-arrow,
+.lib-shelf-detail-remove {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.lib-shelf-detail-arrow:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--white));
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.lib-shelf-detail-arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.lib-shelf-detail-remove {
+  margin-left: 6px;
+}
+
+.lib-shelf-detail-remove:hover {
+  background: color-mix(in srgb, #c43e3e 12%, var(--white));
+  color: #c43e3e;
+  border-color: #c43e3e;
+}
+
+/* Folder + other-shelf meta chip variants. The plain `.lib-meta-chip`
+   styles inherit; these add the inline icon spacing. */
+.lib-meta-chip-folder,
+.lib-meta-chip-shelf {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lib-meta-chip-folder > span[aria-hidden='true'],
+.lib-meta-chip-shelf > span[aria-hidden='true'] {
+  font-size: 11px;
+  line-height: 1;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+ * SLICE 11.4 follow-on — shared NoteLensRow + shelf pips + editor
+ * "On shelves" rail (P3 + P4 bundle)
+ * ════════════════════════════════════════════════════════════════════
+ *
+ * One canonical visual for every full-width note row — replaces
+ * `.lib-note-row` (notes-list) and `.lib-shelf-detail-row` (the row
+ * half of the shelf-detail layout). Each row carries the lens content
+ * (title + subtitle + description fallback + meta line of folder /
+ * shelf pips / pillars / tags) plus a right state column stacking
+ * Pub/Draft + ↳ used-in + edited timestamp.
+ *
+ * Shelf detail's per-row tools (▲ ▼ ✕) and number column are added
+ * by the wrapping <li class="lib-shelf-detail-row-wrap"> and an
+ * optional <span class="lib-note-lens-num"> prefix inside the row.
+ */
+
+.lib-note-lens-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s, box-shadow 0.12s;
+}
+
+.lib-note-lens-row:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.lib-note-lens-num {
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 28px;
+  text-align: right;
+  padding-top: 1px;
+  flex-shrink: 0;
+}
+
+.lib-note-lens-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.lib-note-lens-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.lib-state-used {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.lib-state-edited {
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Shelf pips — one coloured 8px dot per shelf the note's on. Cluster
+   sits inline with the rest of the meta row; each dot carries the
+   shelf's identity colour as its background. Tooltip on hover via
+   the native `title` attribute. */
+.lib-shelf-pip-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 4px;
+}
+
+.lib-shelf-pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* When a NoteLensRow lives inside a shelf-detail wrap, the row gains
+   the shelf's accent colour as a left edge bar + reserves room on the
+   right for the floating ▲ ▼ ✕ tool group. */
+.lib-shelf-detail-row-wrap .lib-note-lens-row {
+  padding-right: 100px;
+  border-left: 3px solid var(--shelf-accent, var(--border));
+}
+
+.lib-shelf-detail-row-wrap:hover .lib-note-lens-row {
+  border-left-color: var(--shelf-accent, var(--accent));
+}
+
+/* Editor rail — "On shelves" section. List of clickable rows; each
+   row is a pip + shelf title that links to ?shelf=<id>. */
+.lib-rail-shelves {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lib-rail-shelf-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 12.5px;
+  transition: background 0.12s;
+}
+
+.lib-rail-shelf-link:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.lib-rail-shelf-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+ * SLICE 11.4 follow-on (P2) — Library Overview + system Views
+ * ════════════════════════════════════════════════════════════════════
+ *
+ * `/tutor/library` (no scope) becomes a dashboard. Stat cards across
+ * the top, Recent + Pillar coverage side-by-side below, Quick links
+ * row at the bottom. The three system views (?view=<key>) reuse the
+ * existing `.lib-notes-list` for their note rendering — only the
+ * header chrome is bespoke (NotesView component).
+ */
+
+.lib-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.lib-stat-cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 1000px) {
+  .lib-stat-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .lib-stat-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.lib-stat-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lib-stat-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.lib-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lib-overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .lib-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lib-overview-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.lib-overview-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+
+/* Recent activity rows — compact, clickable into the editor. */
+.lib-recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lib-recent-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text);
+  transition: background 0.12s;
+}
+
+.lib-recent-row:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.lib-recent-title {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.lib-recent-meta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pillar coverage — horizontal bar per pillar, scaled to the
+   busiest pillar so gaps are visible at a glance. */
+.lib-pillar-bars {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lib-pillar-bar-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 32px;
+  gap: 10px;
+  align-items: center;
+}
+
+.lib-pillar-bar-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lib-pillar-bar-track {
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.lib-pillar-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.3s;
+  min-width: 2px;
+}
+
+.lib-pillar-bar-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Quick links — chip row at the bottom of the overview. */
+.lib-quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lib-quick-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.lib-quick-link:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--white));
+  color: var(--accent);
+}
+
+/* NotesView main pane — system view (All notes / Drafts / Used
+   nowhere). Just inherits the .lib-pane-head + .lib-notes-list
+   patterns; no bespoke layout. */
+.lib-notes-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Overview / Home entry — sits above the lens sections, distinct
+   from any lens but visually consistent with `.lens-item`. Bottom
+   margin separates it from the first lens section. */
+.lens-home {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.12s, color 0.12s;
+  margin-bottom: 10px;
+}
+
+.lens-home:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--accent);
+}
+
+.lens-home.is-active {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.lens-home-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.lens-side.is-railed .lens-home {
+  justify-content: center;
+  padding: 8px 0;
+  font-size: 0; /* hide any stray text in railed mode */
+}
+
+.lens-side.is-railed .lens-home-icon {
+  font-size: 16px;
+}

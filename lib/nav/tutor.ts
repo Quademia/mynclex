@@ -34,6 +34,11 @@ export const TUTOR_GLOBAL_NAV: NavItem[] = [
       { key: 'bank-trends', label: 'Trend datasets', icon: 'book', href: '/tutor/bank/trends' },
     ],
   },
+  // Slice 11.1 — tutor library landing. Sits between Bank and
+  // Quizzes as a sibling content-authoring surface (Bank = practice;
+  // Library = teaching). Icon `tutor` (a notes-page glyph) keeps it
+  // visually distinct from the adjacent `book` Bank entry.
+  { key: 'library',  label: 'Library',     icon: 'tutor', href: '/tutor/library' },
   { key: 'quizzes',  label: 'Quizzes',     icon: 'target', href: '/tutor/quizzes' },
   { key: 'students', label: 'My Students', icon: 'users', href: '/tutor/students' },
   { key: 'payments', label: 'Payments',    icon: 'card',  href: '/tutor/payments' },

@@ -6,6 +6,15 @@
 //   1. Refresh the Supabase auth cookie if it's close to expiring.
 //      (Without this, users get silently signed out after the token TTL.)
 //   2. Route guards — redirect based on auth state and path.
+//
+// Next.js 16 prints a `middleware → proxy` deprecation warning at dev
+// startup. We can't rename to proxy.ts yet — see the "Known
+// Workarounds" entry in CLAUDE.md. tl;dr: proxy.ts is Node-runtime
+// only, and the current `@opennextjs/cloudflare` (1.19.x) build
+// pipeline refuses Node middleware (`ERROR Node.js middleware is not
+// currently supported. Consider switching to Edge Middleware.`).
+// Re-rename when OpenNext catches up (tracking
+// cloudflare/workers-sdk#13755).
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';

@@ -29,7 +29,33 @@ export type NavIcon =
   | 'mail'
   | 'alert'
   | 'shield'
-  | 'settings';
+  | 'settings'
+  // Editor formatting icons (slice 11.5 follow-on) — paths drawn
+  // from Lucide (MIT) to match the existing icon style.
+  | 'bold'
+  | 'italic'
+  | 'underline'
+  | 'strikethrough'
+  | 'code'
+  | 'link'
+  | 'heading-2'
+  | 'heading-3'
+  | 'list-bulleted'
+  | 'list-numbered'
+  | 'quote'
+  // Second wave (slice 11.5 expanded-toolbar follow-on)
+  | 'highlight'
+  | 'subscript'
+  | 'superscript'
+  | 'text-color'
+  | 'align-left'
+  | 'align-center'
+  | 'align-right'
+  | 'undo'
+  | 'redo'
+  | 'clear-formatting'
+  | 'horizontal-rule'
+  | 'code-block';
 
 export type NavItem = {
   /** Stable key — used for active-state matching and React keys. */
