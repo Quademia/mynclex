@@ -8,7 +8,70 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-29):** **Library Slice 11.6a — Image
+> **Last shipped (2026-05-30):** **Library Slices 11.6b + 11.6c —
+> PDF + Video blocks, then the Table block.** The rest of the
+> standard visual blocks land, completing the 11.6 media set
+> (Image · PDF · Video · Table).
+>
+> - **11.6b — PDF block.** New private `nclex-library-pdfs` bucket
+>   (migration `20260619120000_slice_11_6b_library_pdfs.sql`),
+>   `LIBRARY_PDF` purpose in the media config. Atom node carries
+>   only the `assetId`; bytes live in Storage, 1-hour signed URLs
+>   minted on demand. NodeView renders an upload dropzone → filled
+>   link card (`lib/library/pdf-block.tsx` + `pdf-actions.ts`).
+> - **11.6b — Video block.** `lib/library/video-block.tsx` +
+>   `video-embed.ts`: paste a URL and the host is classified into a
+>   safe inline embed (YouTube / Vimeo), a link card (any other
+>   host), or rejected (unsafe URL). No uploads — videos are always
+>   external links.
+> - **Universal link fallback.** Both PDF and video degrade to a
+>   styled link card when an inline view isn't possible, so a tutor
+>   never hits a dead end.
+> - **Shared upload event.** `lib/library/block-upload-event.ts`
+>   factors the autosave "upload in flight" window-event out of the
+>   image block so PDF uploads gate autosave the same way.
+> - **11.6c — Table block.** Built on `@tiptap/extension-table` v3
+>   (`lib/library/table-block.ts` + `table-toolbar.tsx`). Floating
+>   contextual toolbar (BubbleMenu + Floating UI) anchored to the
+>   table: add/remove row & column, merge/split, header + sub-header
+>   row tagging, and six colour themes. Custom attrs (`colorTheme` on
+>   the table, `isSubheader` on rows) ride Tiptap's generic
+>   `updateAttributes` — no bespoke commands. No bonded title/subtitle:
+>   a tutor who wants a heading band merges the top row.
+> - **Colour-theme fix (the session's debugging headline).** Themes
+>   showed nothing at first: prosemirror-tables' `TableView` node
+>   view builds the `<table>` by hand and copies only `style`, so our
+>   `data-color` attribute never reached the DOM and the theme CSS
+>   couldn't match. With column resizing off the node view only adds
+>   this bug — disabling it (`addNodeView → null`) lets ProseMirror
+>   render from `renderHTML`, which emits `data-color`.
+> - **Note recovery.** A template note ("Normal Sinus Rhythm") saved
+>   during an abandoned title/subtitle experiment carried now-unknown
+>   `libTableFigure` nodes and wouldn't render (ProseMirror rejects
+>   unknown node types). Fixed in place via a backed-up jsonb
+>   transform: the figure → a heading (title) + paragraph (subtitle)
+>   + the table. No data lost.
+> - **Worktree cleanup.** Pruned 50 stale session worktrees + 51
+>   merged branches (incl. the retired `work` branch); only `main`,
+>   `prod`, and the active session branch remain.
+>
+> **Files new (8):** `db/migrations/20260619120000_slice_11_6b_library_pdfs.sql`,
+> `lib/library/block-upload-event.ts`, `lib/library/pdf-block.tsx`,
+> `lib/library/pdf-actions.ts`, `lib/library/video-block.tsx`,
+> `lib/library/video-embed.ts`, `lib/library/table-block.ts`,
+> `lib/library/table-toolbar.tsx`.
+>
+> **Files modified:** `lib/library/note-body-editor.tsx`,
+> `note-editor.tsx`, `slash-menu.tsx`, `image-block.tsx`,
+> `lib/media/types.ts`, `lib/nav/types.ts`,
+> `components/nav/shared/nav-icon.tsx`, `styles/library.css`,
+> `docs/product-plan/tutor-library.md`, `package.json` +
+> `package-lock.json` (`@tiptap/extension-table`).
+>
+> **Next:** Library **11.7** (the next block group on the slash-menu
+> roadmap) or Payments **5.3** per the alternate-features rotation.
+>
+> **Earlier shipped (2026-05-29):** **Library Slice 11.6a — Image
 > block.** First of the standard visual blocks. An atom Tiptap
 > node `libImage` ({ assetId, alt, caption }) backed by the shared
 > media-asset foundation.
