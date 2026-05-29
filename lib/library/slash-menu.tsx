@@ -208,16 +208,44 @@ export const SLASH_ITEMS: SlashItem[] = [
     name: 'PDF',
     desc: 'Link-card opens in new tab',
     icon: '📄',
+    iconSvg: 'file-text',
     group: 'Visual & media',
-    comingIn: '11.6',
+    comingIn: null,
+    run: (editor, range) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent({ type: 'libPdf' })
+        .run(),
+    runAt: (editor, position) =>
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(position, { type: 'libPdf' })
+        .run(),
   },
   {
     type: 'video',
     name: 'Video',
     desc: 'YouTube · Vimeo · Loom embed',
     icon: '🎬',
+    iconSvg: 'video',
     group: 'Visual & media',
-    comingIn: '11.6',
+    comingIn: null,
+    run: (editor, range) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent({ type: 'libVideo' })
+        .run(),
+    runAt: (editor, position) =>
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(position, { type: 'libVideo' })
+        .run(),
   },
   {
     type: 'table',

@@ -41,6 +41,8 @@ import { DragHandle } from '@tiptap/extension-drag-handle-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SlashCommand } from './slash-command';
 import { ImageBlock } from './image-block';
+import { PdfBlock } from './pdf-block';
+import { VideoBlock } from './video-block';
 import {
   BlockGap,
   BLOCK_GAP_CLICK_EVENT,
@@ -121,9 +123,11 @@ export function NoteBodyEditor({
       // Color requires TextStyle as its parent mark.
       TextStyle,
       Color,
-      // Visual blocks (slice 11.6). Image is the first — an atom block
-      // node backed by the media-asset foundation.
+      // Visual blocks (slice 11.6). Image + PDF are atom nodes backed
+      // by the media-asset foundation; Video is a storage-free embed.
       ImageBlock,
+      PdfBlock,
+      VideoBlock,
       SlashCommand,
       // Inter-block "+ Add block" gap affordances. The widget
       // dispatches a custom event the React side listens for to

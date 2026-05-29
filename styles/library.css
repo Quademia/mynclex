@@ -1995,6 +1995,536 @@
   text-align: center;
 }
 
+/* =====================================================================
+ * PDF block (slice 11.6b) — atom node `libPdf`
+ * ===================================================================== */
+.lib-pdf-block {
+  margin: 14px 0;
+}
+
+/* Empty state: upload dropzone before a PDF is chosen. */
+.lib-pdf-block.is-empty {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg) 50%, transparent);
+}
+
+.lib-pdf-uploader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+.lib-pdf-remove-empty {
+  align-self: flex-start;
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.lib-pdf-remove-empty:hover {
+  color: var(--danger, #c0392b);
+  text-decoration: underline;
+}
+
+/* Filled state: a link-card. */
+.lib-pdf-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+}
+
+.lib-pdf-block.is-selected .lib-pdf-card {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.lib-pdf-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.lib-pdf-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.lib-pdf-title-input {
+  width: 100%;
+  padding: 3px 6px;
+  margin: -3px -6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  background: transparent;
+}
+
+.lib-pdf-title-input:hover {
+  border-color: var(--border);
+}
+
+.lib-pdf-title-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--white);
+}
+
+.lib-pdf-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.lib-pdf-filename {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lib-pdf-error {
+  font-size: 12px;
+  color: var(--danger, #c0392b);
+}
+
+.lib-pdf-open {
+  flex: none;
+  appearance: none;
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.lib-pdf-open:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--white);
+}
+
+.lib-pdf-open:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.lib-pdf-remove {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.lib-pdf-card:hover .lib-pdf-remove,
+.lib-pdf-remove:focus-visible {
+  opacity: 1;
+}
+
+.lib-pdf-remove:hover {
+  color: var(--danger, #c0392b);
+  border-color: var(--danger, #c0392b);
+}
+
+/* =====================================================================
+ * Video block (slice 11.6b) — atom node `libVideo`
+ * ===================================================================== */
+.lib-video-block {
+  margin: 14px 0;
+}
+
+/* Empty state: URL paste + Embed. */
+.lib-video-block.is-empty {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg) 50%, transparent);
+}
+
+.lib-video-uploader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+.lib-video-uploader-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.lib-video-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.lib-video-url-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--white);
+}
+
+.lib-video-url-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.lib-video-embed-btn {
+  flex: none;
+  appearance: none;
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--white);
+  background: var(--accent);
+  cursor: pointer;
+}
+
+.lib-video-embed-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.lib-video-error {
+  font-size: 12px;
+  color: var(--danger, #c0392b);
+}
+
+.lib-video-remove-empty {
+  align-self: flex-start;
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.lib-video-remove-empty:hover {
+  color: var(--danger, #c0392b);
+  text-decoration: underline;
+}
+
+/* Filled state: responsive 16:9 iframe. */
+.lib-video-frame {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+}
+
+.lib-video-block.is-selected .lib-video-frame {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.lib-video-aspect {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.lib-video-iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.lib-video-state {
+  padding: 32px 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.lib-video-state.lib-video-error {
+  color: var(--danger, #c0392b);
+}
+
+.lib-video-tools {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.lib-video-frame:hover .lib-video-tools,
+.lib-video-tools:focus-within {
+  opacity: 1;
+}
+
+.lib-video-provider-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--white);
+  background: color-mix(in srgb, #000 55%, transparent);
+}
+
+.lib-video-replace {
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  background: color-mix(in srgb, var(--white) 90%, transparent);
+  cursor: pointer;
+}
+
+.lib-video-replace:hover {
+  background: var(--white);
+}
+
+.lib-video-remove {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--white) 90%, transparent);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lib-video-remove:hover {
+  color: var(--danger, #c0392b);
+  background: var(--white);
+}
+
+.lib-video-caption-input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  background: var(--white);
+}
+
+.lib-video-caption-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.lib-video-caption {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Link state: watch-card for a non-embeddable link (mirrors the PDF
+ * card). The video lives on a site we don't embed inline, so we link
+ * out instead of showing a blank iframe. */
+.lib-video-linkcard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+}
+
+.lib-video-block.is-selected .lib-video-linkcard {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.lib-video-linkcard-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.lib-video-linkcard-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.lib-video-linkcard-title-input {
+  width: 100%;
+  padding: 3px 6px;
+  margin: -3px -6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  background: transparent;
+}
+
+.lib-video-linkcard-title-input:hover {
+  border-color: var(--border);
+}
+
+.lib-video-linkcard-title-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--white);
+}
+
+.lib-video-linkcard-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.lib-video-linkcard-host {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lib-video-linkcard-open {
+  flex: none;
+  appearance: none;
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: transparent;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.lib-video-linkcard-open:hover {
+  background: var(--accent);
+  color: var(--white);
+}
+
+.lib-video-linkcard-replace {
+  flex: none;
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--white);
+  cursor: pointer;
+}
+
+.lib-video-linkcard-replace:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.lib-video-linkcard-remove {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.lib-video-linkcard:hover .lib-video-linkcard-remove,
+.lib-video-linkcard-remove:focus-visible {
+  opacity: 1;
+}
+
+.lib-video-linkcard-remove:hover {
+  color: var(--danger, #c0392b);
+  border-color: var(--danger, #c0392b);
+}
+
 /* ProseMirror produces the editable region inside .lib-tiptap-body.
  * Style the rendered elements so the editor reads like a document. */
 .lib-tiptap-body .ProseMirror {

@@ -33,16 +33,7 @@ import { useEffect, useState } from 'react';
 import { UploadField } from '@/components/media/upload-field';
 import { resizeImage } from '@/lib/media/resize-image';
 import { getLibraryImageUrlAction } from './image-actions';
-
-// Fired on `window` whenever an image block's upload starts (`true`)
-// or ends (`false`). The note editor counts these to suppress
-// autosave while an image is still uploading — uploading isn't
-// inactivity, and a save mid-upload would persist a not-yet-filled
-// image block. The matching save fires the moment the upload settles.
-export const LIB_IMAGE_UPLOAD_EVENT = 'lib-image-upload-state';
-export interface LibImageUploadDetail {
-  uploading: boolean;
-}
+import { emitBlockUpload } from './block-upload-event';
 
 export const ImageBlock = Node.create({
   name: 'libImage',
@@ -104,13 +95,7 @@ function ImageBlockView({
             hint="PNG, JPG or WebP. Large images are shrunk automatically (max 5 MB)."
             transform={(file) => resizeImage(file)}
             onUploaded={(id) => updateAttributes({ assetId: id })}
-            onUploadingChange={(uploading) => {
-              window.dispatchEvent(
-                new CustomEvent<LibImageUploadDetail>(LIB_IMAGE_UPLOAD_EVENT, {
-                  detail: { uploading },
-                }),
-              );
-            }}
+            onUploadingChange={emitBlockUpload}
             disabled={!editable}
           />
           {editable && (

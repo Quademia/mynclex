@@ -46,9 +46,9 @@ import { ErrorToast } from '@/lib/toast/error-toast';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { updateNoteAction } from './actions';
 import {
-  LIB_IMAGE_UPLOAD_EVENT,
-  type LibImageUploadDetail,
-} from './image-block';
+  LIB_BLOCK_UPLOAD_EVENT,
+  type LibBlockUploadDetail,
+} from './block-upload-event';
 import { NoteBodyEditor } from './note-body-editor';
 import { PillarPicker } from './pillar-picker';
 import { FolderPicker } from './folder-picker';
@@ -185,28 +185,28 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
   // autosave was the symptom: its assetId was never persisted).
   const [resaveNonce, setResaveNonce] = useState(0);
 
-  // Number of image uploads currently in flight (across all image
-  // blocks). While > 0 the autosave gate holds off — an upload isn't
-  // inactivity, and saving mid-upload would persist a not-yet-filled
-  // image block. The ref mirrors the state so `runAutosave` can read
-  // the live value without being re-created. When it drops back to 0
+  // Number of media uploads currently in flight (across all image
+  // and PDF blocks). While > 0 the autosave gate holds off — an
+  // upload isn't inactivity, and saving mid-upload would persist a
+  // not-yet-filled block. The ref mirrors the state so `runAutosave`
+  // can read the live value without being re-created. When it drops back to 0
   // the autosave effect re-runs (it's in the dep array) and, if the
   // doc is dirty, schedules the deferred save.
   const [uploadsInFlight, setUploadsInFlight] = useState(0);
   const uploadsInFlightRef = useRef(0);
   useEffect(() => {
     function onUploadState(e: Event) {
-      const detail = (e as CustomEvent<LibImageUploadDetail>).detail;
+      const detail = (e as CustomEvent<LibBlockUploadDetail>).detail;
       setUploadsInFlight((n) => {
         const next = Math.max(0, n + (detail.uploading ? 1 : -1));
         uploadsInFlightRef.current = next;
         return next;
       });
     }
-    window.addEventListener(LIB_IMAGE_UPLOAD_EVENT, onUploadState as EventListener);
+    window.addEventListener(LIB_BLOCK_UPLOAD_EVENT, onUploadState as EventListener);
     return () =>
       window.removeEventListener(
-        LIB_IMAGE_UPLOAD_EVENT,
+        LIB_BLOCK_UPLOAD_EVENT,
         onUploadState as EventListener,
       );
   }, []);
