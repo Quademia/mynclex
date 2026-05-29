@@ -43,6 +43,8 @@ import { SlashCommand } from './slash-command';
 import { ImageBlock } from './image-block';
 import { PdfBlock } from './pdf-block';
 import { VideoBlock } from './video-block';
+import { TABLE_EXTENSIONS } from './table-block';
+import { TableToolbar } from './table-toolbar';
 import {
   BlockGap,
   BLOCK_GAP_CLICK_EVENT,
@@ -124,10 +126,12 @@ export function NoteBodyEditor({
       TextStyle,
       Color,
       // Visual blocks (slice 11.6). Image + PDF are atom nodes backed
-      // by the media-asset foundation; Video is a storage-free embed.
+      // by the media-asset foundation; Video is a storage-free embed;
+      // Table is the Tiptap table extension + colorTheme/sub-header attrs.
       ImageBlock,
       PdfBlock,
       VideoBlock,
+      ...TABLE_EXTENSIONS,
       SlashCommand,
       // Inter-block "+ Add block" gap affordances. The widget
       // dispatches a custom event the React side listens for to
@@ -156,6 +160,7 @@ export function NoteBodyEditor({
   return (
     <div className="lib-tiptap-shell">
       <Toolbar editor={editor} />
+      <TableToolbar editor={editor} />
       <BlockEditingArea editor={editor} />
     </div>
   );

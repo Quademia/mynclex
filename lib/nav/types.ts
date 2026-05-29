@@ -58,7 +58,8 @@ export type NavIcon =
   | 'code-block'
   // Block icons (slice 11.6 — visual & media blocks)
   | 'image'
-  | 'file-text';
+  | 'file-text'
+  | 'table';
 
 export type NavItem = {
   /** Stable key — used for active-state matching and React keys. */

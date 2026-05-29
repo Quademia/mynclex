@@ -494,7 +494,7 @@ own typed content. Mirrors the bank's polymorphic-content approach.
 | `image` | `{ type, asset_id, alt, caption? }` | Alt text **required at publish** (not at block insert or autosave — drafts can have empty alt freely). 5MB cap, auto-resize to 1600px width on upload. Supabase Storage, signed URLs on-demand. See Publishing → Alt-text preflight. |
 | `pdf` | `{ type, asset_id, title, caption? }` | Same storage strategy as Image. Renders as a **link card with "Open" button** (not inline iframe — inline embeds are unreliable across browsers). |
 | `video` | `{ type, url, provider, caption? }` | External embeds only — YouTube + Vimeo + Loom in v1. Direct MP4 URLs render via `<video>`. No self-hosting. |
-| `table` | `{ type, header_row: bool, cells: [[...], ...] }` | Generic comparison table. Rich-text cell contents (bold / italic / link within a cell). No images in cells in v1. Standard add/remove row/column controls. **First to defer if editor work runs over.** |
+| `table` | Tiptap `@tiptap/extension-table` doc nodes (`table` → `tableRow` → `tableHeader`/`tableCell`) plus two custom attrs: `colorTheme` on the table (none/blue/green/red/amber/slate) and `isSubheader` on a row. | A general-purpose table — *not* framed as a comparison table; the tutor uses it for anything. Rich-text cell contents (bold / italic / link). No images in cells in v1. Contextual toolbar: add/remove row & column, **merge/split cells** (so the top row can be a single full-width heading band), optional header row, optional sub-header row, and a colour theme. Shipped in slice 11.6c. |
 
 ##### Group 3 — Nursing-shaped (the differentiators)
 

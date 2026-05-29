@@ -4233,3 +4233,252 @@
 .lens-side.is-railed .lens-home-icon {
   font-size: 16px;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Table block (slice 11.6c)
+   ═══════════════════════════════════════════════════════════
+   Built on @tiptap/extension-table. The <table> carries an optional
+   data-color theme; the first row's header cells render as <th>; any
+   row may carry data-subheader="true" for a second, lighter band.
+   Three visual levels stack: header (full tint + bold) → sub-header
+   (half tint) → body (faint zebra).  */
+
+/* ── In-editor table rendering ──────────────────────────── */
+.lib-tiptap-body .ProseMirror table {
+  /* Per-theme tints, neutral by default. Overridden by data-color. */
+  --tbl-header: var(--bg-soft);
+  --tbl-sub: color-mix(in srgb, var(--bg-soft) 55%, var(--white));
+  --tbl-zebra: color-mix(in srgb, var(--bg-soft) 30%, var(--white));
+  --tbl-edge: var(--border-strong);
+
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 14px 0;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.lib-tiptap-body .ProseMirror td,
+.lib-tiptap-body .ProseMirror th {
+  border: 1px solid var(--tbl-edge);
+  padding: 7px 10px;
+  vertical-align: top;
+  text-align: left;
+  position: relative;
+  min-width: 48px;
+}
+
+.lib-tiptap-body .ProseMirror th {
+  background: var(--tbl-header);
+  font-weight: 700;
+}
+
+/* Sub-header — any row the tutor flagged. Half the header tint. */
+.lib-tiptap-body .ProseMirror tr[data-subheader='true'] > td,
+.lib-tiptap-body .ProseMirror tr[data-subheader='true'] > th {
+  background: var(--tbl-sub);
+  font-weight: 600;
+}
+
+/* Zebra — even body rows only. Header (<th>) and flagged sub-header
+   rows opt out so the three levels stay distinct. */
+.lib-tiptap-body
+  .ProseMirror
+  tr:nth-of-type(even):not([data-subheader='true'])
+  > td {
+  background: var(--tbl-zebra);
+}
+
+.lib-tiptap-body .ProseMirror table p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Colour themes — set the three tint variables on the table. */
+.lib-tiptap-body .ProseMirror table[data-color='blue'],
+.lib-table-block-readonly table[data-color='blue'] {
+  --tbl-header: #dbeafe;
+  --tbl-sub: #eaf2fe;
+  --tbl-zebra: #f4f8ff;
+  --tbl-edge: #bcd3f5;
+}
+.lib-tiptap-body .ProseMirror table[data-color='green'],
+.lib-table-block-readonly table[data-color='green'] {
+  --tbl-header: #dcfce7;
+  --tbl-sub: #ebfbf0;
+  --tbl-zebra: #f4fdf7;
+  --tbl-edge: #b7e6c6;
+}
+.lib-tiptap-body .ProseMirror table[data-color='red'],
+.lib-table-block-readonly table[data-color='red'] {
+  --tbl-header: #fee2e2;
+  --tbl-sub: #fdecec;
+  --tbl-zebra: #fef5f5;
+  --tbl-edge: #f5c2c2;
+}
+.lib-tiptap-body .ProseMirror table[data-color='amber'],
+.lib-table-block-readonly table[data-color='amber'] {
+  --tbl-header: #fef3c7;
+  --tbl-sub: #fdf6db;
+  --tbl-zebra: #fefbed;
+  --tbl-edge: #ecd58c;
+}
+.lib-tiptap-body .ProseMirror table[data-color='slate'],
+.lib-table-block-readonly table[data-color='slate'] {
+  --tbl-header: #e2e8f0;
+  --tbl-sub: #eef1f6;
+  --tbl-zebra: #f6f8fb;
+  --tbl-edge: #c4cad4;
+}
+
+/* prosemirror-tables cell-selection highlight. */
+.lib-tiptap-body .ProseMirror .selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  pointer-events: none;
+}
+
+/* ── Contextual table toolbar ───────────────────────────── */
+/* A floating bar (Tiptap BubbleMenu) anchored to the table while the
+   cursor is inside it. Floating UI sets position/left/top + an inline
+   `width: max-content` on this element — we only style the look and cap
+   the width so the buttons wrap instead of overflowing a narrow
+   viewport. */
+.lib-table-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(17, 24, 39, 0.14);
+  max-width: calc(100vw - 24px);
+  z-index: 40;
+}
+
+.lib-table-tb-btn {
+  appearance: none;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 9px;
+  height: 28px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.lib-table-tb-btn:hover {
+  background: color-mix(in srgb, var(--accent) 9%, var(--white));
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+.lib-table-tb-btn.is-on {
+  background: color-mix(in srgb, var(--accent) 16%, var(--white));
+  border-color: color-mix(in srgb, var(--accent) 36%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.lib-table-tb-btn.is-danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 28%, var(--border));
+}
+
+.lib-table-tb-btn.is-danger:hover {
+  background: color-mix(in srgb, var(--danger) 9%, var(--white));
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+.lib-table-tb-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.lib-table-tb-btn:disabled:hover {
+  background: var(--white);
+  border-color: var(--border);
+}
+
+.lib-table-tb-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.lib-table-tb-sep {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  background: var(--border-strong);
+  margin: 0 3px;
+}
+
+.lib-table-tb-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+/* Colour swatches — one button per theme. */
+.lib-table-swatches {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lib-table-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s, box-shadow 0.12s;
+}
+
+.lib-table-swatch:hover {
+  transform: scale(1.12);
+}
+
+.lib-table-swatch.is-active {
+  box-shadow: 0 0 0 2px var(--white), 0 0 0 4px var(--accent);
+}
+
+/* None = a white chip with a diagonal slash to read as "no fill". */
+.lib-table-swatch.is-none {
+  background:
+    linear-gradient(
+      to top left,
+      transparent calc(50% - 1px),
+      var(--danger) calc(50% - 1px),
+      var(--danger) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    ),
+    var(--white);
+}
+.lib-table-swatch.is-blue {
+  background: #93c5fd;
+}
+.lib-table-swatch.is-green {
+  background: #86d9a3;
+}
+.lib-table-swatch.is-red {
+  background: #f5a3a3;
+}
+.lib-table-swatch.is-amber {
+  background: #f3d579;
+}
+.lib-table-swatch.is-slate {
+  background: #b3bdcc;
+}

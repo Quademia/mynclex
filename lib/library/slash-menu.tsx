@@ -250,10 +250,24 @@ export const SLASH_ITEMS: SlashItem[] = [
   {
     type: 'table',
     name: 'Table',
-    desc: 'Generic comparison table',
+    desc: 'Rows and columns — colour, header & sub-header',
     icon: '⊞',
+    iconSvg: 'table',
     group: 'Visual & media',
-    comingIn: '11.6',
+    comingIn: null,
+    run: (editor, range) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertTable({ rows: 3, cols: 3, withHeaderRow: false })
+        .run(),
+    runAt: (editor, position) =>
+      editor
+        .chain()
+        .focus(position)
+        .insertTable({ rows: 3, cols: 3, withHeaderRow: false })
+        .run(),
   },
   // Nursing-shaped — the differentiators
   {
