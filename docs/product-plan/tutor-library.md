@@ -508,6 +508,16 @@ own typed content. Mirrors the bank's polymorphic-content approach.
 - Header: drug name (required) + drug class (optional).
 - Body: ordered array of `{ label, value }` fields. New cards pre-populate with the 4 NCLEX-canonical fields: *Indications · Typical dose · Side effects · Nursing considerations*. Tutor can rename, reorder, add, or remove fields.
 - Field values are plain text, multi-line (line breaks render as breaks). No inline marks.
+  - **v2 follow-on (captured 2026-05-30):** Sam flagged twice that
+    inline formatting inside field values would feel more natural
+    (e.g. bolding a black-box warning or a critical dose). Parked for
+    V1 because it's a real rebuild — each plain `value` would become a
+    nested editable rich-text region (the same jump in complexity the
+    Table block had over the Image block), and add/remove/reorder
+    would operate on document nodes rather than a string array. Same
+    consideration applies to lab-values cells. Revisit if real tutors
+    ask. If we do it, go straight to full marks (bold/italic/etc.) —
+    the cost is the rich-text region itself, not the number of marks.
 - Schema:
   ```json
   {
