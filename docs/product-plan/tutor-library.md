@@ -2077,7 +2077,29 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
 > unbuilt entries are listed here **in build order**, which is:
 > **11.15 → 11.16 → 11.13 → 11.14 → 11.11 → 11.12 → 11.17.**
 
-- ⬜ **11.15** Embedded questions — full loop. *(Build order 1 —
+- 🔨 **11.15** Embedded questions. **Tutor authoring half SHIPPED
+  2026-05-30** (commits `21ce511` → `70b3f5c`). Sub-slices a–e:
+  (a) `parent_note_id` migration on both question tables +
+  `saveQuestionAction` passthrough + `getEmbeddableBankQuestions` /
+  `getEmbedRefCards`; (b) the `embedded_questions` atom node + block
+  shell + empty state + Add menu + slash row; (c) the pick-from-bank
+  modal (filters, multi-select, caps, empty-search) + reference-card
+  rendering (reorder / remove / Open-in-bank / Note-created chip);
+  (d) create-inline (type picker classic-4 → the existing bank editor,
+  Publish-on + note-stamped → Note-created card); (e) **config-driven
+  caps** — `embed_max_questions_per_block` / `embed_max_blocks_per_note`
+  in `nclex_config`, editable on `/admin/config` (new `integer` config
+  type), threaded server→client, enforced at the point of action
+  (picker per-block + insertion per-note), with a **grandfather-safe**
+  server backstop (checks the absolute ceilings 30/10, never the live
+  config, so lowering a limit never blocks an existing over-limit note
+  from saving). **Still deferred to 11.13** (student read view): the
+  inline player, submit, snapshot, and the `nclex_library_embed_answers`
+  table. Files: `lib/library/embed-{actions,block,pick-modal,create-flow}.tsx`
+  + edits to slash-menu / note-body-editor / note-editor / body-tiptap /
+  actions + `lib/bank/atoms/hidden-item-inputs` + the 4 classic editors
+  + `app/(app)/admin/config/*`. Migrations `20260621120000` (parent_note_id),
+  `20260622120000` (config seed). *(Build order 1 —
   directly library, tutor-side; lights up the slash menu's last
   disabled block.)* Multi-select picker in editor (tutor bank only),
   per-block 5/10 caps, per-note 20/50 caps (warn at 20, reject at 50,

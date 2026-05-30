@@ -8,7 +8,41 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-30):** **Library Slice 11.9 — Lab values
+> **Last shipped (2026-05-30):** **Library 11.10 Publish flow
+> (MERGED to `main`) + 11.15 Embedded-questions tutor authoring half
+> (built, on the session branch).**
+>
+> **11.10 — Publish flow + visibility + alt-text preflight (MERGED).**
+> Atomic publish RPC `nclex_set_library_note_publish` (migration
+> `20260620120000`); `publishNoteAction` / `unpublishNoteAction`;
+> Tutor-wide / Programme-scoped dialog; client alt-text preflight that
+> scrolls to the first undescribed image. The 11.1 DB floor (columns +
+> junction + triggers) meant this was almost all app-layer.
+>
+> **Build order re-sequenced (Sam):** finish the library *as a library*
+> first — **programme integration (11.11/11.12) builds LAST**. Numbers
+> kept as stable IDs; build order = 11.15 → 11.16 → 11.13 → 11.14 →
+> 11.11 → 11.12 → 11.17.
+>
+> **11.15 — Embedded questions, authoring half (a–e, NOT yet merged).**
+> The `embedded_questions` block: insert → **Add question** → *Pick from
+> my bank* (the quiz-picker filter pattern, multi-select, per-block cap)
+> **or** *Create a new question* (the existing bank editor, Publish-on +
+> `parent_note_id`-stamped → a reusable "Note-created" bank question).
+> v1 types = the 4 classic (MCQ/SATA/TF/SELECT_N). **Caps are admin
+> config** — `embed_max_questions_per_block` (10) + `embed_max_blocks_per_note`
+> (5) as editable `/admin/config` integer settings; enforced at the
+> point of action; **grandfather-safe** server backstop. Migrations
+> `20260621120000` (parent_note_id on both question tables) +
+> `20260622120000` (config seed).
+>
+> **Still deferred to 11.13** (student read view): the inline player,
+> submit, snapshot, and the `nclex_library_embed_answers` table.
+>
+> **Next:** Sam tests 11.15 → merge to `main`; then **11.16** (tag
+> manager + custom views + search) per the re-sequenced order.
+>
+> **Earlier shipped (2026-05-30):** **Library Slice 11.9 — Lab values
 > block.** Completes the three NCLEX-domain "nursing-shaped" blocks
 > (Callout · Drug card · Lab values). A sealed **atom node**
 > (`lab_values`) holding `{ title, columns: [{ label }], rows: [[…]] }`
