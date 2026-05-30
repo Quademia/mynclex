@@ -26,6 +26,7 @@ import { Node as TiptapNode } from '@tiptap/core';
 import {
   ReactNodeViewRenderer,
   NodeViewWrapper,
+  type Editor,
   type NodeViewProps,
 } from '@tiptap/react';
 import { useEffect, useRef, useState } from 'react';
@@ -36,7 +37,12 @@ import {
   EmbedPillar,
 } from './embed-pick-modal';
 import { EmbedCreateFlow } from './embed-create-flow';
-import { EMBED_BLOCK_HARD_CAP, EMBED_BLOCK_SOFT_CAP, type EmbedQuestionRow } from './types';
+import {
+  EMBED_BLOCK_HARD_CAP,
+  EMBED_BLOCK_SOFT_CAP,
+  EMBED_DEFAULT_MAX_BLOCKS,
+  type EmbedQuestionRow,
+} from './types';
 
 /** A fresh empty embedded-questions block for the slash menu / tray. */
 export function freshEmbed() {
@@ -53,10 +59,16 @@ export const EmbedQuestionsBlock = TiptapNode.create({
   draggable: false, // reordering goes through the global DragHandle
 
   addOptions() {
-    // Set via .configure({ noteId }) in note-body-editor; read in the
-    // NodeView so the "Create a new question" flow can stamp the new
-    // bank question with parent_note_id.
-    return { noteId: null as string | null };
+    // Set via .configure({ noteId, maxPerBlock, maxBlocks }) in
+    // note-body-editor (values come from nclex_config — slice 11.15e).
+    // noteId stamps parent_note_id on inline-created questions; the
+    // caps drive the point-of-action limits. Defaults here are the
+    // fallbacks if config wasn't threaded.
+    return {
+      noteId: null as string | null,
+      maxPerBlock: EMBED_BLOCK_HARD_CAP,
+      maxBlocks: EMBED_DEFAULT_MAX_BLOCKS,
+    };
   },
 
   addAttributes() {
@@ -79,11 +91,39 @@ export const EmbedQuestionsBlock = TiptapNode.create({
   },
 });
 
+// ── shared helpers for the insertion surfaces (slash menu / tray) ────
+
+/** The live caps configured on the embed block (from nclex_config). */
+export function getEmbedCapsFromEditor(editor: Editor): { maxPerBlock: number; maxBlocks: number } {
+  const ext = editor.extensionManager.extensions.find((e) => e.name === 'embedded_questions');
+  const opts = (ext?.options ?? {}) as { maxPerBlock?: number; maxBlocks?: number };
+  return {
+    maxPerBlock: opts.maxPerBlock ?? EMBED_BLOCK_HARD_CAP,
+    maxBlocks: opts.maxBlocks ?? EMBED_DEFAULT_MAX_BLOCKS,
+  };
+}
+
+/** How many embedded-questions blocks the note currently has. */
+export function countEmbedBlocks(editor: Editor): number {
+  let n = 0;
+  editor.state.doc.descendants((node) => {
+    if (node.type.name === 'embedded_questions') n += 1;
+  });
+  return n;
+}
+
+/** True when the note is already at its max number of embed blocks. */
+export function embedBlocksAtCap(editor: Editor): boolean {
+  return countEmbedBlocks(editor) >= getEmbedCapsFromEditor(editor).maxBlocks;
+}
+
 function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode, extension }: NodeViewProps) {
   const itemIds = (node.attrs.item_ids as string[]) ?? [];
   const editable = editor.isEditable;
   const isEmpty = itemIds.length === 0;
   const noteId = (extension.options.noteId as string | null) ?? null;
+  const maxPerBlock = (extension.options.maxPerBlock as number) ?? EMBED_BLOCK_HARD_CAP;
+  const blockFull = itemIds.length >= maxPerBlock;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [flow, setFlow] = useState<'pick' | 'create' | null>(null);
@@ -127,7 +167,7 @@ function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode, extens
   function addIds(ids: string[]) {
     const fresh = ids.filter((id) => !itemIds.includes(id));
     if (fresh.length === 0) return;
-    updateAttributes({ item_ids: [...itemIds, ...fresh].slice(0, EMBED_BLOCK_HARD_CAP) });
+    updateAttributes({ item_ids: [...itemIds, ...fresh].slice(0, maxPerBlock) });
     setFlow(null);
   }
 
@@ -150,10 +190,12 @@ function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode, extens
   }
 
   const total = itemIds.length;
-  const counterCls = total > EMBED_BLOCK_HARD_CAP ? ' full' : total > EMBED_BLOCK_SOFT_CAP ? ' warn' : '';
+  const counterCls = total >= maxPerBlock ? ' full' : total > EMBED_BLOCK_SOFT_CAP ? ' warn' : '';
 
   // The Add-question control (button + menu), reused by the empty state
-  // and the filled-block footer.
+  // and the filled-block footer. Disabled once the block hits its max
+  // — so neither Pick nor Create can push it over (no orphaned
+  // questions from a full block).
   function AddControl({ variant }: { variant: 'accent' | 'ghost' }) {
     return (
       <div className="eq-addwrap" ref={menuWrapRef}>
@@ -165,10 +207,14 @@ function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode, extens
               : 'eq-btn eq-btn--ghost eq-btn--sm'
           }
           onClick={() => setMenuOpen((o) => !o)}
+          disabled={blockFull}
+          title={blockFull ? `This block is full (max ${maxPerBlock}).` : undefined}
         >
           <span aria-hidden="true">＋</span> Add question
         </button>
-        {menuOpen && <AddMenu onPick={() => openFlow('pick')} onCreate={() => openFlow('create')} />}
+        {menuOpen && !blockFull && (
+          <AddMenu onPick={() => openFlow('pick')} onCreate={() => openFlow('create')} />
+        )}
       </div>
     );
   }
@@ -231,7 +277,7 @@ function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode, extens
                 <AddControl variant="ghost" />
                 <span className={`eq-counter${counterCls}`} style={{ marginLeft: 'auto' }}>
                   <span className="lbl">block</span>
-                  {total} / {EMBED_BLOCK_HARD_CAP}
+                  {total} / {maxPerBlock}
                 </span>
               </div>
             )}
@@ -240,7 +286,12 @@ function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode, extens
       </div>
 
       {flow === 'pick' && (
-        <EmbedPickModal existingIds={itemIds} onAdd={addIds} onClose={() => setFlow(null)} />
+        <EmbedPickModal
+          existingIds={itemIds}
+          maxPerBlock={maxPerBlock}
+          onAdd={addIds}
+          onClose={() => setFlow(null)}
+        />
       )}
       {flow === 'create' && (
         <EmbedCreateFlow

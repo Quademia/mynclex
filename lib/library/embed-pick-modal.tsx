@@ -25,7 +25,6 @@ import {
 } from '@/lib/bank/classifications';
 import { getEmbeddableBankQuestions } from './embed-actions';
 import {
-  EMBED_BLOCK_HARD_CAP,
   EMBED_BLOCK_SOFT_CAP,
   EMBED_QUESTION_TYPES,
   NCLEX_PILLARS,
@@ -79,11 +78,13 @@ function highlight(text: string, q: string) {
 interface EmbedPickModalProps {
   /** item_ids already in the block — excluded from the list + counted as the base. */
   existingIds: string[];
+  /** Per-block hard cap (from nclex_config, threaded through the block). */
+  maxPerBlock: number;
   onAdd: (ids: string[]) => void;
   onClose: () => void;
 }
 
-export function EmbedPickModal({ existingIds, onAdd, onClose }: EmbedPickModalProps) {
+export function EmbedPickModal({ existingIds, maxPerBlock, onAdd, onClose }: EmbedPickModalProps) {
   // Snapshot the block's current ids once so the fetch effect doesn't
   // depend on a fresh array each render.
   const baseRef = useRef(existingIds);
@@ -100,7 +101,7 @@ export function EmbedPickModal({ existingIds, onAdd, onClose }: EmbedPickModalPr
   const [diffF, setDiffF] = useState('');
 
   const total = base + selected.length;
-  const capFull = total >= EMBED_BLOCK_HARD_CAP;
+  const capFull = total >= maxPerBlock;
   const capWarn = total > EMBED_BLOCK_SOFT_CAP;
 
   // Re-fetch on filter change; debounce the search keystrokes.
@@ -137,7 +138,7 @@ export function EmbedPickModal({ existingIds, onAdd, onClose }: EmbedPickModalPr
   function toggle(id: string) {
     setSelected((s) => {
       if (s.includes(id)) return s.filter((x) => x !== id);
-      if (base + s.length >= EMBED_BLOCK_HARD_CAP) return s; // hard cap
+      if (base + s.length >= maxPerBlock) return s; // hard cap
       return [...s, id];
     });
   }
@@ -279,7 +280,7 @@ export function EmbedPickModal({ existingIds, onAdd, onClose }: EmbedPickModalPr
         {capFull ? (
           <div className="eq-hardstop">
             <div>
-              <b>Block is full — {EMBED_BLOCK_HARD_CAP} of {EMBED_BLOCK_HARD_CAP}.</b>{' '}
+              <b>Block is full — {maxPerBlock} of {maxPerBlock}.</b>{' '}
               That’s the hard limit per block. Remove one to swap, or split the
               rest into a second block below.
             </div>
@@ -299,7 +300,7 @@ export function EmbedPickModal({ existingIds, onAdd, onClose }: EmbedPickModalPr
           </span>
           <span className={`eq-counter${capFull ? ' full' : capWarn ? ' warn' : ''}`}>
             <span className="lbl">block</span>
-            {total} / {EMBED_BLOCK_HARD_CAP}
+            {total} / {maxPerBlock}
           </span>
           <span style={{ flex: 1 }} />
           <button className="eq-btn" onClick={onClose}>

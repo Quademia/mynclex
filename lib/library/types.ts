@@ -455,12 +455,20 @@ export const EMBED_QUESTION_TYPES = ['MCQ', 'SATA', 'TF', 'SELECT_N'] as const;
 export type EmbedQuestionType = (typeof EMBED_QUESTION_TYPES)[number];
 
 /**
- * Per-block cap on embedded questions. Soft nudge past 5, hard stop at
- * 10. Mirrors the planning doc. The per-NOTE caps (20 soft / 50 hard,
- * summed across blocks) are enforced at note save, not here.
+ * Caps on embedded questions. The HARD caps are admin-tunable via
+ * `nclex_config` (keys `embed_max_questions_per_block` /
+ * `embed_max_blocks_per_note`) — these constants are the fallback
+ * defaults used only if a config row is missing. The live values are
+ * read server-side (`getEmbedCaps`) and threaded into the editor.
+ *
+ * Enforcement is at the point of action (slice 11.15e): the picker
+ * stops the tutor at the per-block max; inserting a new block is
+ * disabled once the note holds the max blocks. Soft cap is a passive
+ * "consider a quiz" nudge in the picker, left as a fixed heuristic.
  */
 export const EMBED_BLOCK_SOFT_CAP = 5;
-export const EMBED_BLOCK_HARD_CAP = 10;
+export const EMBED_BLOCK_HARD_CAP = 10; // default for embed_max_questions_per_block
+export const EMBED_DEFAULT_MAX_BLOCKS = 5; // default for embed_max_blocks_per_note
 
 /**
  * One row in the embed picker / one reference card in a filled block.

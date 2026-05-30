@@ -74,6 +74,9 @@ interface NoteEditorProps {
   note: LibraryNoteForEdit;
   folders: LibraryFolderWithCount[];
   programmes: LibraryProgrammeOption[];
+  /** Admin-tunable embedded-questions caps (nclex_config — slice 11.15e). */
+  embedMaxPerBlock: number;
+  embedMaxBlocks: number;
 }
 
 const TITLE_MIN = 2;
@@ -114,7 +117,13 @@ function countEmbeds(body: unknown): { blocks: number; questions: number } {
 // The editor
 // =====================================================================
 
-export function NoteEditor({ note, folders, programmes }: NoteEditorProps) {
+export function NoteEditor({
+  note,
+  folders,
+  programmes,
+  embedMaxPerBlock,
+  embedMaxBlocks,
+}: NoteEditorProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [showDiscard, setShowDiscard] = useState(false);
@@ -802,6 +811,8 @@ export function NoteEditor({ note, folders, programmes }: NoteEditorProps) {
             initialDoc={initialDocRef.current}
             onUpdate={handleBodyUpdate}
             noteId={note.note_id}
+            maxPerBlock={embedMaxPerBlock}
+            maxBlocks={embedMaxBlocks}
           />
         </div>
 

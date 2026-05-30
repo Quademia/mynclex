@@ -202,3 +202,39 @@ export function countMissingAltImages(body: unknown): number {
   }
   return missing;
 }
+
+/**
+ * Summarise the embedded-questions blocks in a note body — used by the
+ * server-side cap backstop (slice 11.15e). Returns how many embed
+ * blocks the note has and the largest item_ids count in any one block.
+ * The UI prevents exceeding the caps at the point of action; this is
+ * the silent floor (it never fires in normal use).
+ */
+export function summarizeEmbeds(body: unknown): {
+  blocks: number;
+  maxInBlock: number;
+} {
+  let blocks = 0;
+  let maxInBlock = 0;
+
+  function walk(node: unknown): void {
+    if (!node || typeof node !== 'object') return;
+    const n = node as TiptapNode & { attrs?: { item_ids?: unknown } };
+    if (n.type === 'embedded_questions') {
+      blocks += 1;
+      const ids = n.attrs?.item_ids;
+      const len = Array.isArray(ids) ? ids.length : 0;
+      if (len > maxInBlock) maxInBlock = len;
+    }
+    if (Array.isArray(n.content)) {
+      for (const child of n.content) walk(child);
+    }
+  }
+
+  if (Array.isArray(body)) {
+    for (const node of body) walk(node);
+  } else {
+    walk(body);
+  }
+  return { blocks, maxInBlock };
+}

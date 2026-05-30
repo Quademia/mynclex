@@ -22,7 +22,8 @@ import {
   type LibraryVisibilityMode,
   type NclexPillar,
 } from './types';
-import { countMissingAltImages } from './body-tiptap';
+import { countMissingAltImages, summarizeEmbeds } from './body-tiptap';
+import { getEmbedCaps } from './embed-actions';
 
 export type CreateFolderResult =
   | { ok: true; folder_id: string }
@@ -434,6 +435,27 @@ export async function updateNoteAction(
 ): Promise<UpdateNoteResult> {
   const validationError = validateUpdate(input);
   if (validationError) return { ok: false, error: validationError };
+
+  // Embedded-questions cap backstop (slice 11.15e). The editor prevents
+  // exceeding these at the point of action, so this never fires in
+  // normal use — it's the silent floor in case the UI is bypassed. Caps
+  // are admin-tunable via nclex_config.
+  const embeds = summarizeEmbeds(input.body);
+  if (embeds.blocks > 0) {
+    const caps = await getEmbedCaps();
+    if (embeds.blocks > caps.maxBlocks) {
+      return {
+        ok: false,
+        error: `A note can have at most ${caps.maxBlocks} embedded-question block${caps.maxBlocks === 1 ? '' : 's'}.`,
+      };
+    }
+    if (embeds.maxInBlock > caps.maxPerBlock) {
+      return {
+        ok: false,
+        error: `An embedded-questions block can have at most ${caps.maxPerBlock} question${caps.maxPerBlock === 1 ? '' : 's'}.`,
+      };
+    }
+  }
 
   const supabase = await createClient();
   const {

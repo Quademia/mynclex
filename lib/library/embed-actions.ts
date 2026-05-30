@@ -15,10 +15,63 @@
 
 import { createClient } from '@/lib/supabase/server';
 import {
+  EMBED_BLOCK_HARD_CAP,
+  EMBED_DEFAULT_MAX_BLOCKS,
   EMBED_QUESTION_TYPES,
   type EmbedPickerFilters,
   type EmbedQuestionRow,
 } from './types';
+
+export interface EmbedCaps {
+  /** Max questions per embedded-questions block. */
+  maxPerBlock: number;
+  /** Max embedded-questions blocks per note. */
+  maxBlocks: number;
+}
+
+// Admin-input guard rails — must match the config-defs entries. Kept
+// here too so a stored value (or a missing row) can never produce an
+// out-of-range limit at the consuming end.
+const PER_BLOCK_MIN = 1;
+const PER_BLOCK_MAX = 30;
+const BLOCKS_MIN = 1;
+const BLOCKS_MAX = 10;
+
+function clampInt(raw: string | undefined, def: number, min: number, max: number): number {
+  const n = Number(raw);
+  if (!Number.isInteger(n)) return def;
+  return Math.min(max, Math.max(min, n));
+}
+
+/**
+ * The live embedded-questions caps from `nclex_config` (admin-tunable
+ * — see slice 11.15e). Falls back to the default constants when a row
+ * is missing/malformed, and clamps to the guard rails. `nclex_config`
+ * is public-SELECT, so the tutor's normal client can read it.
+ */
+export async function getEmbedCaps(): Promise<EmbedCaps> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('nclex_config')
+    .select('key, value')
+    .in('key', ['embed_max_questions_per_block', 'embed_max_blocks_per_note']);
+
+  const map = new Map((data ?? []).map((r) => [r.key as string, r.value as string]));
+  return {
+    maxPerBlock: clampInt(
+      map.get('embed_max_questions_per_block'),
+      EMBED_BLOCK_HARD_CAP,
+      PER_BLOCK_MIN,
+      PER_BLOCK_MAX,
+    ),
+    maxBlocks: clampInt(
+      map.get('embed_max_blocks_per_note'),
+      EMBED_DEFAULT_MAX_BLOCKS,
+      BLOCKS_MIN,
+      BLOCKS_MAX,
+    ),
+  };
+}
 
 const EMBED_TYPE_SET = new Set<string>(EMBED_QUESTION_TYPES);
 

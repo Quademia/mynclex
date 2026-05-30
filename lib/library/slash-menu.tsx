@@ -24,7 +24,11 @@ import type { NavIcon as NavIconName } from '@/lib/nav/types';
 import { usePopoverPosition } from './use-popover-position';
 import { CANONICAL_DRUG_FIELDS } from './drug-card-block';
 import { CANONICAL_LAB_COLUMNS } from './lab-values-block';
-import { freshEmbed } from './embed-block';
+import {
+  freshEmbed,
+  embedBlocksAtCap,
+  getEmbedCapsFromEditor,
+} from './embed-block';
 
 /** A fresh copy of the canonical fields for each new drug card. */
 function freshDrugCard() {
@@ -70,6 +74,13 @@ export type SlashItem = {
   group: 'Text & structure' | 'Visual & media' | 'Nursing-shaped' | 'Interactive';
   /** Slice that will enable this item. null = enabled now. */
   comingIn: string | null;
+  /**
+   * Dynamically disabled right now (slice 11.15e) — e.g. the
+   * embedded-questions item once the note holds its max blocks. Set by
+   * `filterSlashItems(query, editor)`; `disabledReason` is the hint.
+   */
+  disabledNow?: boolean;
+  disabledReason?: string;
   /**
    * Slash-triggered command. The user typed `/...` — `range` covers
    * the slash + the typed query, so the command deletes it then
@@ -358,19 +369,21 @@ export const SLASH_ITEMS: SlashItem[] = [
   {
     type: 'embedded_questions',
     name: 'Embedded questions',
-    desc: 'Pick 1–10 questions from your tutor bank — inline practice',
+    desc: 'Pick questions from your tutor bank — inline practice',
     icon: '✨',
     group: 'Interactive',
     comingIn: null,
-    run: (editor, range) =>
-      editor
-        .chain()
-        .focus()
-        .deleteRange(range)
-        .insertContent(freshEmbed())
-        .run(),
-    runAt: (editor, position) =>
-      editor.chain().focus().insertContentAt(position, freshEmbed()).run(),
+    // Airtight per-note block cap (slice 11.15e): no-op once the note
+    // already holds its max embed blocks. The menu/tray also disable
+    // this item, so this is the backstop.
+    run: (editor, range) => {
+      if (embedBlocksAtCap(editor)) return;
+      editor.chain().focus().deleteRange(range).insertContent(freshEmbed()).run();
+    },
+    runAt: (editor, position) => {
+      if (embedBlocksAtCap(editor)) return;
+      editor.chain().focus().insertContentAt(position, freshEmbed()).run();
+    },
   },
 ];
 
@@ -380,13 +393,31 @@ export const SLASH_ITEMS: SlashItem[] = [
  * sort to the top so the keyboard nav lands somewhere usable
  * regardless of typing.
  */
-export function filterSlashItems(query: string): SlashItem[] {
+export function filterSlashItems(query: string, editor?: Editor): SlashItem[] {
   const q = query.trim().toLowerCase();
-  if (!q) return SLASH_ITEMS;
-  return SLASH_ITEMS.filter(
-    (it) =>
-      it.name.toLowerCase().includes(q) || it.desc.toLowerCase().includes(q),
-  );
+  const base = !q
+    ? SLASH_ITEMS
+    : SLASH_ITEMS.filter(
+        (it) =>
+          it.name.toLowerCase().includes(q) || it.desc.toLowerCase().includes(q),
+      );
+
+  // Dynamically disable the embedded-questions row once the note holds
+  // its max embed blocks (slice 11.15e). Map to a new object so the
+  // shared SLASH_ITEMS array is never mutated.
+  if (editor && embedBlocksAtCap(editor)) {
+    const { maxBlocks } = getEmbedCapsFromEditor(editor);
+    return base.map((it) =>
+      it.type === 'embedded_questions'
+        ? {
+            ...it,
+            disabledNow: true,
+            disabledReason: `A note can have at most ${maxBlocks} question set${maxBlocks === 1 ? '' : 's'} — build a quiz for more.`,
+          }
+        : it,
+    );
+  }
+  return base;
 }
 
 // ─────────────────────────────────────────────────────────
@@ -419,7 +450,7 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
     function selectItem(index: number) {
       const it = items[index];
       if (!it) return;
-      if (it.comingIn) return; // disabled
+      if (it.comingIn || it.disabledNow) return; // disabled
       command(it);
     }
 
@@ -429,7 +460,7 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
         let next = prev;
         for (let i = 0; i < items.length; i++) {
           next = (next + dir + items.length) % items.length;
-          if (!items[next].comingIn) return next; // skip disabled
+          if (!items[next].comingIn && !items[next].disabledNow) return next; // skip disabled
         }
         return prev;
       });
@@ -495,7 +526,7 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
             {groupItems.map((it) => {
               const i = flatIndex++;
               const isSelected = i === selectedIndex;
-              const disabled = !!it.comingIn;
+              const disabled = !!it.comingIn || !!it.disabledNow;
               return (
                 <button
                   key={it.type}
@@ -523,14 +554,18 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
                     <div className="lib-slash-name">{it.name}</div>
                     <div className="lib-slash-desc">{it.desc}</div>
                   </div>
-                  {disabled && (
+                  {it.comingIn ? (
                     <span
                       className="lib-slash-pill"
                       title={`Lands in slice ${it.comingIn}`}
                     >
                       {it.comingIn}
                     </span>
-                  )}
+                  ) : it.disabledNow ? (
+                    <span className="lib-slash-pill" title={it.disabledReason}>
+                      Limit
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
