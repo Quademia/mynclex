@@ -471,6 +471,18 @@ export const EMBED_BLOCK_HARD_CAP = 10; // default for embed_max_questions_per_b
 export const EMBED_DEFAULT_MAX_BLOCKS = 5; // default for embed_max_blocks_per_note
 
 /**
+ * Absolute ceilings = the admin-input guard rails for the two config
+ * keys (the most either could ever be set to). The server save-backstop
+ * checks against THESE, not the live config value, so it's
+ * **grandfather-safe**: lowering a config limit never blocks a tutor
+ * from saving a note they built under a previous, higher limit. The
+ * live config value is enforced where the tutor acts (picker +
+ * insertion); this floor only catches physically absurd amounts.
+ */
+export const EMBED_ABS_MAX_PER_BLOCK = 30;
+export const EMBED_ABS_MAX_BLOCKS = 10;
+
+/**
  * One row in the embed picker / one reference card in a filled block.
  * `pillar` is the question's `client_needs_subcategory` (one of the 8
  * NCLEX pillars — the library's vocabulary). `is_note_created` is true

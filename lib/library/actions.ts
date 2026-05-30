@@ -13,6 +13,8 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import {
+  EMBED_ABS_MAX_BLOCKS,
+  EMBED_ABS_MAX_PER_BLOCK,
   NCLEX_PILLARS,
   SHELF_PALETTE,
   type LibraryFolderFormValues,
@@ -23,7 +25,6 @@ import {
   type NclexPillar,
 } from './types';
 import { countMissingAltImages, summarizeEmbeds } from './body-tiptap';
-import { getEmbedCaps } from './embed-actions';
 
 export type CreateFolderResult =
   | { ok: true; folder_id: string }
@@ -436,25 +437,26 @@ export async function updateNoteAction(
   const validationError = validateUpdate(input);
   if (validationError) return { ok: false, error: validationError };
 
-  // Embedded-questions cap backstop (slice 11.15e). The editor prevents
-  // exceeding these at the point of action, so this never fires in
-  // normal use — it's the silent floor in case the UI is bypassed. Caps
-  // are admin-tunable via nclex_config.
+  // Embedded-questions cap backstop (slice 11.15e) — GRANDFATHER-SAFE.
+  // We deliberately check the ABSOLUTE ceilings (the admin-input guard
+  // rails), NOT the live config value: lowering a config limit must
+  // never block a tutor from saving a note they built under a previous,
+  // higher limit. The live config value is enforced where the tutor
+  // *acts* (the picker + the block-insertion points). This floor only
+  // catches physically absurd amounts (e.g. a bypassed UI), bounded by
+  // what the config could ever be set to.
   const embeds = summarizeEmbeds(input.body);
-  if (embeds.blocks > 0) {
-    const caps = await getEmbedCaps();
-    if (embeds.blocks > caps.maxBlocks) {
-      return {
-        ok: false,
-        error: `A note can have at most ${caps.maxBlocks} embedded-question block${caps.maxBlocks === 1 ? '' : 's'}.`,
-      };
-    }
-    if (embeds.maxInBlock > caps.maxPerBlock) {
-      return {
-        ok: false,
-        error: `An embedded-questions block can have at most ${caps.maxPerBlock} question${caps.maxPerBlock === 1 ? '' : 's'}.`,
-      };
-    }
+  if (embeds.blocks > EMBED_ABS_MAX_BLOCKS) {
+    return {
+      ok: false,
+      error: `A note can have at most ${EMBED_ABS_MAX_BLOCKS} embedded-question blocks.`,
+    };
+  }
+  if (embeds.maxInBlock > EMBED_ABS_MAX_PER_BLOCK) {
+    return {
+      ok: false,
+      error: `An embedded-questions block can have at most ${EMBED_ABS_MAX_PER_BLOCK} questions.`,
+    };
   }
 
   const supabase = await createClient();
