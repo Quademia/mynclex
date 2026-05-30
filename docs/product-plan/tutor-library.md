@@ -2069,6 +2069,32 @@ their first 30 seconds with the library.
 
 ### Deferred follow-ons (post-build)
 
+- **Cohort-level note visibility** — *parked 2026-05-30, Sam's
+  call.* Today a note's visibility junction holds **programme** rows
+  only (`_note_visibility(note_id, programme_id)`), so the audience
+  granularity is: Tutor-wide → all programmes → all their cohorts;
+  Programme-scoped → chosen programmes → **every cohort under them,
+  present and future**. A note **cannot** be scoped to a single
+  cohort (e.g. "Cohort 5 yes, Cohort 6 no" within the same
+  programme). This is deliberate and *consistent with curriculum*,
+  which is also programme-grained (units/activities carry
+  `is_published` keyed to the programme; cohorts are schedule
+  instances that share one curriculum, not their own content). The
+  note-level model is the right primary design — a note is reusable
+  across many programmes, so its audience can't live "inside" a
+  single container the way a one-programme curriculum activity's can;
+  "Programme-scoped" already *is* the container-attachment model, with
+  "Tutor-wide" as an all-programmes shortcut. The only open question
+  is whether per-cohort granularity is ever wanted. If a real tutor
+  asks, the change is contained but **cross-cutting**: add an optional
+  `cohort_id` to the junction (a row = "note → programme, optionally
+  narrowed to this cohort") and teach `nclex_student_can_see_note` to
+  match on cohort enrolment — and decide the same per-cohort question
+  for curriculum at the same time, since the two should stay aligned.
+  Connects to the parked **access-window architecture** discussion
+  (both delivery modes / granularities surface together). Do **not**
+  build pre-emptively.
+
 - **All tags view** — when tag vocabulary grows enough that a
   tutor wants to browse by tag, ship `/tutor/library?view=all-tags`
   (or `?tag=all`) as an alphabetised list with notes-per-tag
