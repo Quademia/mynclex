@@ -17,12 +17,10 @@
 // to display data on demand.
 //
 // Build split:
-//   • 11.15b (this file's first cut) — atom node + block shell +
-//     empty state + the two-option "Add question" menu.
-//   • 11.15c — the pick-from-bank modal + the filled reference-card
+//   • 11.15b — atom node + block shell + empty state + Add menu.
+//   • 11.15c (this cut) — pick-from-bank modal + filled reference-card
 //     rendering (reorder / remove / Open-in-bank) + per-block caps.
-//   • 11.15d — the "Create a new question" path (type picker → the
-//     existing bank editor → Note-created card).
+//   • 11.15d — the "Create a new question" path.
 
 import { Node as TiptapNode } from '@tiptap/core';
 import {
@@ -31,7 +29,13 @@ import {
   type NodeViewProps,
 } from '@tiptap/react';
 import { useEffect, useRef, useState } from 'react';
-import { EMBED_BLOCK_HARD_CAP } from './types';
+import { getEmbedRefCards } from './embed-actions';
+import {
+  EmbedPickModal,
+  EmbedTypeBadge,
+  EmbedPillar,
+} from './embed-pick-modal';
+import { EMBED_BLOCK_HARD_CAP, EMBED_BLOCK_SOFT_CAP, type EmbedQuestionRow } from './types';
 
 /** A fresh empty embedded-questions block for the slash menu / tray. */
 export function freshEmbed() {
@@ -59,7 +63,6 @@ export const EmbedQuestionsBlock = TiptapNode.create({
   },
 
   renderHTML() {
-    // Atom marker only — the real payload is the JSON attrs above.
     return ['div', { 'data-embed-questions': '' }];
   },
 
@@ -73,18 +76,33 @@ function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode }: Node
   const editable = editor.isEditable;
   const isEmpty = itemIds.length === 0;
 
-  // "Add question" menu + which add-flow is open. The actual modals
-  // land in 11.15c (pick) and 11.15d (create); for now the menu opens
-  // and the flows are wired through these state hooks.
   const [menuOpen, setMenuOpen] = useState(false);
   const [flow, setFlow] = useState<'pick' | 'create' | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuWrapRef = useRef<HTMLDivElement>(null);
+
+  // Resolved reference-card data for the current item_ids (in order).
+  const [refs, setRefs] = useState<EmbedQuestionRow[]>([]);
+  const idsKey = itemIds.join(',');
+  useEffect(() => {
+    let cancelled = false;
+    if (itemIds.length === 0) {
+      setRefs([]);
+      return;
+    }
+    getEmbedRefCards(itemIds).then((data) => {
+      if (!cancelled) setRefs(data);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsKey]);
 
   // Close the Add menu on any outside pointerdown.
   useEffect(() => {
     if (!menuOpen) return;
     function onDown(e: PointerEvent) {
-      if (!menuRef.current || !menuRef.current.contains(e.target as Node)) {
+      if (!menuWrapRef.current || !menuWrapRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
       }
     }
@@ -97,12 +115,57 @@ function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode }: Node
     setFlow(which);
   }
 
+  function addIds(ids: string[]) {
+    const fresh = ids.filter((id) => !itemIds.includes(id));
+    if (fresh.length === 0) return;
+    updateAttributes({ item_ids: [...itemIds, ...fresh].slice(0, EMBED_BLOCK_HARD_CAP) });
+    setFlow(null);
+  }
+
+  function moveCard(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= itemIds.length) return;
+    const next = itemIds.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    setRefs((r) => {
+      const rn = r.slice();
+      [rn[i], rn[j]] = [rn[j], rn[i]];
+      return rn;
+    });
+    updateAttributes({ item_ids: next });
+  }
+
+  function removeCard(i: number) {
+    setRefs((r) => r.filter((_, idx) => idx !== i));
+    updateAttributes({ item_ids: itemIds.filter((_, idx) => idx !== i) });
+  }
+
+  const total = itemIds.length;
+  const counterCls = total > EMBED_BLOCK_HARD_CAP ? ' full' : total > EMBED_BLOCK_SOFT_CAP ? ' warn' : '';
+
+  // The Add-question control (button + menu), reused by the empty state
+  // and the filled-block footer.
+  function AddControl({ variant }: { variant: 'accent' | 'ghost' }) {
+    return (
+      <div className="eq-addwrap" ref={menuWrapRef}>
+        <button
+          type="button"
+          className={
+            variant === 'accent'
+              ? 'eq-btn eq-btn--accent'
+              : 'eq-btn eq-btn--ghost eq-btn--sm'
+          }
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          <span aria-hidden="true">＋</span> Add question
+        </button>
+        {menuOpen && <AddMenu onPick={() => openFlow('pick')} onCreate={() => openFlow('create')} />}
+      </div>
+    );
+  }
+
   return (
-    <NodeViewWrapper
-      as="div"
-      className="eq-block"
-      data-embed-questions=""
-    >
+    <NodeViewWrapper as="div" className="eq-block" data-embed-questions="">
       <span className="eq-block__tab" contentEditable={false}>
         <span aria-hidden="true">✦</span> Practice
       </span>
@@ -128,29 +191,56 @@ function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode }: Node
               Drop in 1–{EMBED_BLOCK_HARD_CAP} of your own bank questions as
               inline practice — a “now try these”.
             </div>
-            {editable && (
-              <div className="eq-addwrap" ref={menuRef}>
-                <button
-                  type="button"
-                  className="eq-btn eq-btn--accent"
-                  onClick={() => setMenuOpen((o) => !o)}
-                >
-                  <span aria-hidden="true">＋</span> Add question
-                </button>
-                {menuOpen && <AddMenu onPick={() => openFlow('pick')} onCreate={() => openFlow('create')} />}
-              </div>
-            )}
+            {editable && <AddControl variant="accent" />}
           </div>
         ) : (
-          // Filled reference-card rendering lands in 11.15c.
-          <FilledPlaceholder count={itemIds.length} />
-        )}
-
-        {/* Add-flow modals — built in 11.15c (pick) / 11.15d (create). */}
-        {flow && (
-          <FlowPlaceholder flow={flow} onClose={() => setFlow(null)} />
+          <>
+            <div className="eq-block__head">
+              <span className="eq-block__count">
+                <span aria-hidden="true">✦</span> {total} question{total === 1 ? '' : 's'}
+              </span>
+              <span className="eq-block__hint">
+                Reference cards · the live question shows for students only
+              </span>
+            </div>
+            <div className="eq-cards">
+              {refs.map((q, i) => (
+                <RefCard
+                  key={q.item_id}
+                  q={q}
+                  ord={i + 1}
+                  total={total}
+                  editable={editable}
+                  onUp={() => moveCard(i, -1)}
+                  onDown={() => moveCard(i, 1)}
+                  onRemove={() => removeCard(i)}
+                />
+              ))}
+            </div>
+            {editable && (
+              <div className="eq-block__foot">
+                <AddControl variant="ghost" />
+                <span className={`eq-counter${counterCls}`} style={{ marginLeft: 'auto' }}>
+                  <span className="lbl">block</span>
+                  {total} / {EMBED_BLOCK_HARD_CAP}
+                </span>
+              </div>
+            )}
+          </>
         )}
       </div>
+
+      {flow === 'pick' && (
+        <EmbedPickModal existingIds={itemIds} onAdd={addIds} onClose={() => setFlow(null)} />
+      )}
+      {flow === 'create' && (
+        <div className="eq-flow-stub">
+          Create-a-question flow — slice 11.15d.
+          <button type="button" className="eq-btn eq-btn--ghost eq-btn--sm" onClick={() => setFlow(null)}>
+            Close
+          </button>
+        </div>
+      )}
     </NodeViewWrapper>
   );
 }
@@ -178,28 +268,56 @@ function AddMenu({ onPick, onCreate }: { onPick: () => void; onCreate: () => voi
   );
 }
 
-// ── 11.15b placeholders (replaced in 11.15c / 11.15d) ────────────────
-
-function FilledPlaceholder({ count }: { count: number }) {
+/** One reference card in a filled block. */
+function RefCard({
+  q,
+  ord,
+  total,
+  editable,
+  onUp,
+  onDown,
+  onRemove,
+}: {
+  q: EmbedQuestionRow;
+  ord: number;
+  total: number;
+  editable: boolean;
+  onUp: () => void;
+  onDown: () => void;
+  onRemove: () => void;
+}) {
   return (
-    <div className="eq-block__head">
-      <span className="eq-block__count">
-        <span aria-hidden="true">✦</span> {count} question{count === 1 ? '' : 's'}
-      </span>
-      <span className="eq-block__hint">Reference cards land in slice 11.15c</span>
-    </div>
-  );
-}
-
-function FlowPlaceholder({ flow, onClose }: { flow: 'pick' | 'create'; onClose: () => void }) {
-  return (
-    <div className="eq-flow-stub">
-      {flow === 'pick'
-        ? 'Pick-from-bank modal — slice 11.15c.'
-        : 'Create-a-question flow — slice 11.15d.'}
-      <button type="button" className="eq-btn eq-btn--ghost eq-btn--sm" onClick={onClose}>
-        Close
-      </button>
+    <div className={`eq-card${q.is_note_created ? ' eq-card--note' : ''}`}>
+      <span className="eq-card__ord" aria-hidden="true">{ord}</span>
+      <div className="eq-card__top">
+        <span className="eq-id">{q.item_id}</span>
+        <EmbedTypeBadge type={q.question_type} />
+        <EmbedPillar name={q.pillar} />
+        {q.is_note_created && (
+          <span className="eq-chip-note">
+            <span aria-hidden="true">✎</span> Note-created
+          </span>
+        )}
+        {editable && (
+          <div className="eq-card__ctrl">
+            <button type="button" title="Move up" disabled={ord === 1} onClick={onUp}>↑</button>
+            <button type="button" title="Move down" disabled={ord === total} onClick={onDown}>↓</button>
+            <span className="eq-card__sep" />
+            <button type="button" className="rm" title="Remove from block" onClick={onRemove}>×</button>
+          </div>
+        )}
+      </div>
+      <div className="eq-card__bot">
+        <span className="eq-card__stem">{q.stem}</span>
+        <a
+          className="eq-open"
+          href="/tutor/bank/all"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Open in bank →
+        </a>
+      </div>
     </div>
   );
 }
