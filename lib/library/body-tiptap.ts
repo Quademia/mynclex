@@ -167,3 +167,38 @@ function collectText(node: TiptapNode): string {
   }
   return out;
 }
+
+/**
+ * Count `libImage` blocks whose `alt` attr is empty or whitespace —
+ * the alt-text publish preflight (slice 11.10). Walks the whole doc
+ * recursively (an image can sit anywhere a block is allowed). Accepts
+ * either a live TiptapDoc (client, from the editor) or the raw
+ * persisted JSONB (server, a `{ type:'doc', content }` object or the
+ * legacy 11.2b array) — anything not matching just contributes 0.
+ *
+ * Drafts may carry undescribed images freely; this count only gates
+ * the Publish action. Kept here (no @tiptap import) so the server
+ * action can reuse it as a backstop to the client preflight.
+ */
+export function countMissingAltImages(body: unknown): number {
+  let missing = 0;
+
+  function walk(node: unknown): void {
+    if (!node || typeof node !== 'object') return;
+    const n = node as TiptapNode;
+    if (n.type === 'libImage') {
+      const alt = typeof n.attrs?.alt === 'string' ? n.attrs.alt : '';
+      if (alt.trim().length === 0) missing += 1;
+    }
+    if (Array.isArray(n.content)) {
+      for (const child of n.content) walk(child);
+    }
+  }
+
+  if (Array.isArray(body)) {
+    for (const node of body) walk(node);
+  } else {
+    walk(body);
+  }
+  return missing;
+}

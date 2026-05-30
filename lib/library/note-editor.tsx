@@ -40,11 +40,11 @@
 // Both are sticky in the .product-content scroll context — see
 // styles/library.css for the placements.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
-import { updateNoteAction } from './actions';
+import { unpublishNoteAction, updateNoteAction } from './actions';
 import {
   LIB_BLOCK_UPLOAD_EVENT,
   type LibBlockUploadDetail,
@@ -53,9 +53,11 @@ import { NoteBodyEditor } from './note-body-editor';
 import { PillarPicker } from './pillar-picker';
 import { FolderPicker } from './folder-picker';
 import { TagInput } from './tag-input';
+import { PublishDialog, type PublishedState } from './publish-dialog';
 import { formatRelative, pillarShortName } from './format';
 import {
   bodyToTiptap,
+  countMissingAltImages,
   deriveOutlineFromDoc,
   tiptapToBody,
   type TiptapDoc,
@@ -63,12 +65,15 @@ import {
 import type {
   LibraryFolderWithCount,
   LibraryNoteForEdit,
+  LibraryProgrammeOption,
+  LibraryVisibilityMode,
   NclexPillar,
 } from './types';
 
 interface NoteEditorProps {
   note: LibraryNoteForEdit;
   folders: LibraryFolderWithCount[];
+  programmes: LibraryProgrammeOption[];
 }
 
 const TITLE_MIN = 2;
@@ -109,10 +114,91 @@ function countEmbeds(body: unknown): { blocks: number; questions: number } {
 // The editor
 // =====================================================================
 
-export function NoteEditor({ note, folders }: NoteEditorProps) {
+export function NoteEditor({ note, folders, programmes }: NoteEditorProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [showDiscard, setShowDiscard] = useState(false);
+
+  // ─────────────────────────────────────────────────────────
+  // Publish / visibility state (slice 11.10)
+  // ─────────────────────────────────────────────────────────
+  const [isPublished, setIsPublished] = useState(note.is_published);
+  const [visibilityMode, setVisibilityMode] = useState<LibraryVisibilityMode>(
+    note.visibility_mode,
+  );
+  const [visibilityProgrammeIds, setVisibilityProgrammeIds] = useState<string[]>(
+    note.visibility_programme_ids,
+  );
+  const [showPublish, setShowPublish] = useState(false);
+  const [unpublishPending, startUnpublish] = useTransition();
+
+  // Map scoped programme IDs → titles for the Status-rail display.
+  const programmeTitleById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of programmes) m.set(p.programme_id, p.title);
+    return m;
+  }, [programmes]);
+
+  const scopedProgrammeTitles = useMemo(
+    () =>
+      visibilityProgrammeIds.map(
+        (id) => programmeTitleById.get(id) ?? 'Unknown programme',
+      ),
+    [visibilityProgrammeIds, programmeTitleById],
+  );
+
+  // The Publish button's gate: scan the LIVE doc for images missing
+  // alt text. If any, block + scroll to the first offender's alt field
+  // instead of opening the dialog. (The server action re-checks the
+  // saved body as a backstop.)
+  function handlePublishClick() {
+    const missing = countMissingAltImages(currentDocRef.current);
+    if (missing > 0) {
+      setError(
+        missing === 1
+          ? '1 image is missing alt text — describe it, then publish.'
+          : `${missing} images are missing alt text — describe them, then publish.`,
+      );
+      scrollToFirstMissingAlt();
+      return;
+    }
+    setShowPublish(true);
+  }
+
+  function scrollToFirstMissingAlt() {
+    if (typeof document === 'undefined') return;
+    const main = document.querySelector('.lib-editor-main');
+    if (!main) return;
+    const figures = main.querySelectorAll('figure[data-lib-image]');
+    for (const fig of Array.from(figures)) {
+      const altInput = fig.querySelector<HTMLInputElement>('.lib-image-alt');
+      if (altInput && altInput.value.trim().length === 0) {
+        fig.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Focus after the scroll settles so the caret lands cleanly.
+        window.setTimeout(() => altInput.focus(), 250);
+        return;
+      }
+    }
+  }
+
+  function handlePublished(state: PublishedState) {
+    setIsPublished(state.is_published);
+    setVisibilityMode(state.visibility_mode);
+    setVisibilityProgrammeIds(state.programme_ids);
+  }
+
+  function handleUnpublish() {
+    if (unpublishPending) return;
+    setError(null);
+    startUnpublish(async () => {
+      const result = await unpublishNoteAction(note.note_id);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setIsPublished(false);
+    });
+  }
 
   // Form state — non-body fields are plain useState because they
   // re-render the parent cheaply. Body is special — see below.
@@ -517,15 +603,41 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
             <span className="blip" aria-hidden="true" />
             {saveBadge.label}
           </span>
-          <span className="lib-state-pill is-draft">Draft</span>
-          <button
-            type="button"
-            className="lib-btn lib-btn-accent"
-            disabled
-            title="Publish flow ships in slice 11.10"
+          <span
+            className={`lib-state-pill is-${isPublished ? 'pub' : 'draft'}`}
           >
-            Publish
-          </button>
+            {isPublished ? 'Published' : 'Draft'}
+          </span>
+          {isPublished ? (
+            <>
+              <button
+                type="button"
+                className="lib-btn lib-btn-ghost"
+                onClick={() => setShowPublish(true)}
+                title="Change who can read this note"
+              >
+                Visibility
+              </button>
+              <button
+                type="button"
+                className="lib-btn lib-btn-ghost"
+                onClick={handleUnpublish}
+                disabled={unpublishPending}
+                title="Hide this note from students — back to a private draft"
+              >
+                {unpublishPending ? 'Unpublishing…' : 'Unpublish'}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="lib-btn lib-btn-accent"
+              onClick={handlePublishClick}
+              title="Make this note visible to students"
+            >
+              Publish
+            </button>
+          )}
         </div>
       </div>
 
@@ -711,12 +823,37 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
             </div>
             <div className="lib-rail-row">
               <span className="lbl">State</span>
-              <span className="lib-state-pill is-draft">Draft</span>
+              <span
+                className={`lib-state-pill is-${
+                  isPublished ? 'pub' : 'draft'
+                }`}
+              >
+                {isPublished ? 'Published' : 'Draft'}
+              </span>
             </div>
             <div className="lib-rail-row">
               <span className="lbl">Visibility</span>
-              <span className="lib-rail-muted">Set on Publish (11.10)</span>
+              {isPublished ? (
+                visibilityMode === 'TUTOR_WIDE' ? (
+                  <span>Tutor-wide</span>
+                ) : (
+                  <span>
+                    Programme-scoped ({scopedProgrammeTitles.length})
+                  </span>
+                )
+              ) : (
+                <span className="lib-rail-muted">Draft — only you</span>
+              )}
             </div>
+            {isPublished &&
+              visibilityMode === 'PROGRAMME_SCOPED' &&
+              scopedProgrammeTitles.length > 0 && (
+                <ul className="lib-rail-scoped-progs">
+                  {scopedProgrammeTitles.map((t, i) => (
+                    <li key={i}>{t}</li>
+                  ))}
+                </ul>
+              )}
             <div className="lib-rail-row">
               <span className="lbl">Last save</span>
               <span>{formatRelative(lastSavedAt)}</span>
@@ -822,11 +959,24 @@ export function NoteEditor({ note, folders }: NoteEditorProps) {
                 Two-tab save guard active. If another tab saves first,
                 this one stops autosaving and asks you to reload.
               </li>
-              <li>Alt-text preflight runs on Publish (11.10).</li>
+              <li>Alt-text preflight runs on Publish.</li>
             </ul>
           </section>
         </aside>
       </div>
+
+      {showPublish && (
+        <PublishDialog
+          noteId={note.note_id}
+          noteTitle={title}
+          isPublished={isPublished}
+          programmes={programmes}
+          initialMode={visibilityMode}
+          initialProgrammeIds={visibilityProgrammeIds}
+          onClose={() => setShowPublish(false)}
+          onPublished={handlePublished}
+        />
+      )}
 
       <ErrorToast error={error} onDismiss={() => setError(null)} />
 

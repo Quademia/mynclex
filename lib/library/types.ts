@@ -117,10 +117,26 @@ export type LibraryNoteListRow = LibraryNoteLensRow;
  *
  * Kept as a separate type so the strict per-row `LibraryNote` shape
  * isn't polluted with derived counts.
+ *
+ * `visibility_programme_ids` (slice 11.10) lists the programme IDs in
+ * the note's visibility junction — empty for TUTOR_WIDE notes, ≥ 1 for
+ * PROGRAMME_SCOPED. The Publish dialog seeds its programme picker from
+ * this, and the Status rail renders the scoped programme names.
  */
 export type LibraryNoteForEdit = LibraryNote & {
   used_in_count: number;
   shelf_memberships: LibraryShelfPip[];
+  visibility_programme_ids: string[];
+};
+
+/**
+ * Slim programme option for the Publish dialog's programme picker
+ * (slice 11.10). Just identity + label — the dialog renders a
+ * checkbox list of the tutor's own programmes.
+ */
+export type LibraryProgrammeOption = {
+  programme_id: string;
+  title: string;
 };
 
 /**

@@ -1940,12 +1940,43 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   emphasised first column) on app tokens. Validation soft (publish
   preflight = 11.10). No DB change. `lib/library/lab-values-block.tsx`
   + shared `lib/library/auto-grow-textarea.tsx`.
-- ⬜ **11.10** Publish flow + visibility mode + status pills +
-  alt-text preflight. Wire draft/published + tutor-wide /
-  programme-scoped (multi-select picker writing to
-  `_note_visibility`) end-to-end. Publish runs the alt-text
-  preflight (refuses to publish if any image has empty `alt`,
-  click-through scrolls to the first offender).
+- ✅ **11.10** Publish flow + visibility mode + status pills +
+  alt-text preflight. Shipped 2026-05-30. Tutor-side only (student
+  consumption is 11.13/11.14). The DB floor was already in place from
+  11.1 (`is_published` + `visibility_mode` columns, the
+  `_note_visibility` junction, the same-tutor BEFORE trigger + the
+  deferred scoped-≥1 constraint trigger), so this slice is almost all
+  application-layer.
+  - **Atomic publish RPC** (`nclex_set_library_note_publish`,
+    migration `20260620120000_slice_11_10_publish_rpc.sql`). Flips
+    `is_published` + `visibility_mode` and rewrites the junction in one
+    transaction — the deferred constraint only validates at commit, so
+    a multi-REST-call approach would trip it or briefly over-expose a
+    scoped note. SECURITY INVOKER (house style): RLS + the existing
+    triggers enforce ownership / same-tutor / scoped-≥1; an explicit
+    `auth.uid()` ownership guard yields a clean error.
+  - **Actions** (`actions.ts`): `publishNoteAction` (doubles as the
+    re-scope path; runs an alt-text backstop on the saved body + a
+    same-tutor programme check, then calls the RPC),
+    `unpublishNoteAction` (plain `is_published = false` — junction
+    preserved so re-publish remembers the scope).
+  - **Publish dialog** (`lib/library/publish-dialog.tsx`): Tutor-wide
+    (default) / Programme-scoped radio + checkbox list of the tutor's
+    own programmes; seeds from the note's current scope on re-open.
+  - **Alt-text preflight** (client, in the editor): scans the LIVE doc
+    for `libImage` blocks with empty `alt`; blocks Publish with a
+    count and scrolls to the first offender + focuses its alt field
+    (via the `figure[data-lib-image]` / `.lib-image-alt` DOM handles).
+    `countMissingAltImages` lives in `body-tiptap.ts` (shared with the
+    server backstop).
+  - **Editor wiring**: live Publish button (draft) → Visibility +
+    Unpublish (published); the toolbar + Status-rail State pill reflect
+    real `is_published`; the rail's Visibility row shows Tutor-wide /
+    Programme-scoped (N) + the scoped programme names. `getNoteForEdit`
+    gained `visibility_programme_ids`; new
+    `getTutorProgrammesForPicker()` feeds the dialog.
+  - **Status pills** in lens rows already read `is_published`, so note
+    lists update for free.
 - ⬜ **11.11** Programme integration — Library Note path. Library
   Note as the 7th activity type, attach modal (single note),
   detach, used-in count.

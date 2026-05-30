@@ -15,7 +15,11 @@
 
 import { notFound } from 'next/navigation';
 import { NoteEditor } from '@/lib/library/note-editor';
-import { getFoldersForTutor, getNoteForEdit } from '@/lib/library/queries';
+import {
+  getFoldersForTutor,
+  getNoteForEdit,
+  getTutorProgrammesForPicker,
+} from '@/lib/library/queries';
 
 interface PageProps {
   params: Promise<{ note_id: string }>;
@@ -24,14 +28,16 @@ interface PageProps {
 export default async function TutorLibraryNoteEditorPage({ params }: PageProps) {
   const { note_id } = await params;
 
-  // Fetch the note and the folder list in parallel — the editor's
-  // folder reparent picker needs the full list.
-  const [note, folders] = await Promise.all([
+  // Fetch the note, the folder list and the tutor's programmes in
+  // parallel. Folders feed the reparent picker; programmes feed the
+  // Publish dialog's programme-scope checklist (slice 11.10).
+  const [note, folders, programmes] = await Promise.all([
     getNoteForEdit(note_id),
     getFoldersForTutor(),
+    getTutorProgrammesForPicker(),
   ]);
 
   if (!note) notFound();
 
-  return <NoteEditor note={note} folders={folders} />;
+  return <NoteEditor note={note} folders={folders} programmes={programmes} />;
 }

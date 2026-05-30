@@ -20,6 +20,7 @@ import type {
   LibraryNoteLensRow,
   LibraryNoteListRow,
   LibraryOverviewStats,
+  LibraryProgrammeOption,
   LibraryShelfCardNote,
   LibraryShelfDetail,
   LibraryShelfDetailNote,
@@ -255,7 +256,8 @@ export async function getNoteForEdit(
        nclex_tutor_library_note_attachments(count),
        nclex_tutor_library_shelf_memberships (
          nclex_tutor_library_shelves ( shelf_id, title, color )
-       )`,
+       ),
+       nclex_tutor_library_note_visibility ( programme_id )`,
     )
     .eq('note_id', noteId)
     .maybeSingle();
@@ -265,6 +267,7 @@ export async function getNoteForEdit(
   const raw = data as LibraryNote & {
     nclex_tutor_library_note_attachments?: AttachmentCountEmbed;
     nclex_tutor_library_shelf_memberships?: ShelfPipEmbed;
+    nclex_tutor_library_note_visibility?: { programme_id: string }[] | null;
   };
 
   const used_in_count = extractAttachmentCount(
@@ -273,22 +276,57 @@ export async function getNoteForEdit(
   const shelf_memberships = extractShelfPips(
     raw.nclex_tutor_library_shelf_memberships,
   );
+  const visibility_programme_ids = Array.isArray(
+    raw.nclex_tutor_library_note_visibility,
+  )
+    ? raw.nclex_tutor_library_note_visibility.map((v) => v.programme_id)
+    : [];
 
   // Strip the embeds before returning so the LibraryNote shape stays
   // clean — the derived fields live in the extension type.
   const {
     nclex_tutor_library_note_attachments: _attEmbed,
     nclex_tutor_library_shelf_memberships: _memEmbed,
+    nclex_tutor_library_note_visibility: _visEmbed,
     ...rest
   } = raw;
   void _attEmbed;
   void _memEmbed;
+  void _visEmbed;
 
   return {
     ...(rest as LibraryNote),
     used_in_count,
     shelf_memberships,
+    visibility_programme_ids,
   } satisfies LibraryNoteForEdit;
+}
+
+
+/**
+ * The signed-in tutor's own programmes, slimmed to `{ programme_id,
+ * title }` for the Publish dialog's programme-scope picker (slice
+ * 11.10). RLS on `nclex_programmes` scopes the read to the tutor's
+ * own rows (SUPER_ADMIN bypass aside), so the list is exactly the
+ * programmes a note may legally be scoped to — which the same-tutor
+ * trigger on the junction also enforces at write time.
+ *
+ * Ordered by title for a stable checkbox list. Returns [] when the
+ * tutor has no programmes yet (the dialog then disables the
+ * Programme-scoped option).
+ */
+export async function getTutorProgrammesForPicker(): Promise<
+  LibraryProgrammeOption[]
+> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('nclex_programmes')
+    .select('programme_id, title')
+    .order('title', { ascending: true });
+
+  if (error || !data) return [];
+  return data as LibraryProgrammeOption[];
 }
 
 
