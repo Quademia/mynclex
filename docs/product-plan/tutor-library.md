@@ -1233,17 +1233,35 @@ slash command does **not** jump straight into a picker.)
 2. **Create inline** — opens the **existing question editor**
    (`lib/bank/editors/*`, the same modal-based editor the bank uses);
    the saved question lands in `nclex_tutor_questions` stamped with a
-   new `parent_note_id` + `is_builder_visible = false`. This is the
-   **exact pattern case-study children (`parent_case_id` + join) and
-   trend children (`trend_id` column) already use** in
-   `saveQuestionAction` — a note-owned question authored with the real
-   editor that never clutters the general bank. The trend variant
-   (one parent column, no join) is the model.
+   new `parent_note_id`. It borrows the **parent-column linkage** from
+   the trend pattern (`trend_id` — one column, no join), reused in
+   `saveQuestionAction`.
+
+   **But — unlike case-study / trend children — an inline-created note
+   question stays `is_builder_visible = TRUE` and defaults to
+   published** (corrected 2026-05-30 with Sam). Reason: case/trend
+   children are *context-bound* (they reference "the client above" /
+   a specific dataset), so they're hidden to stop them being picked
+   into unrelated quizzes. A note question is a **standalone,
+   reusable** question — "which lab value indicates hypokalemia?" is
+   complete on its own. Hiding it would bury a real asset, especially
+   for a notes-first tutor effectively building their bank *through*
+   their notes. So:
+   - `parent_note_id` is an **origin label**, not a visibility gate
+     ("first created in this note") — drives a **"Note-created"** chip
+     + a bank filter, nothing more. Nullable, no cascade.
+   - The question is a **full bank citizen**: visible in the bank,
+     reusable in quizzes and other notes.
+   - **Defaults to published** so it's immediately embeddable — safe,
+     because a tutor question isn't public on its own and students see
+     it only once the *note* is published (an existing gate). The
+     tutor can unpublish it in the bank later.
 
 Either path appends the question's `item_id` to the block's
 `item_ids` array (membership + order within the block). A block can
-freely mix note-authored (`parent_note_id`, hidden) and bank-picked
-(visible, reusable) questions.
+freely mix note-created and previously-existing bank questions —
+both are real, reusable bank questions; the only difference is the
+**"Note-created"** origin chip on the ones born in this note.
 
 **`parent_note_id` column added to BOTH question tables.** The
 migration adds `parent_note_id` to `nclex_tutor_questions` *and*
@@ -2074,8 +2092,11 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   **Authoring design revised 2026-05-30 — see "Revised v1 authoring
   design" under the Embedded questions section:** empty-block-first;
   **Add question** → Pick existing (reused filter modal) **or** Create
-  inline (existing editor, trend pattern — `parent_note_id` +
-  builder-invisible). Migration adds `parent_note_id` to BOTH
+  inline (existing editor, parent-column linkage — `parent_note_id`;
+  but **builder-VISIBLE + default published**, a full reusable bank
+  question with a "Note-created" origin chip — unlike case/trend
+  children which hide because they're context-bound). Migration adds
+  `parent_note_id` to BOTH
   `nclex_tutor_questions` + `nclex_bank_items` (column symmetry). v1
   embeddable types = the 4 classic single-question types **MCQ / SATA /
   TF / SELECT_N** (NGN deferred — partial-credit grading, not a
