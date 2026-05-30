@@ -2192,6 +2192,17 @@ their first 30 seconds with the library.
 
 ### Deferred follow-ons (post-build)
 
+- **Tag filter on the question pickers** — *flagged 2026-05-30, Sam.*
+  The embed pick-from-bank modal (11.15c) reuses the quiz picker's
+  filter set (Type · Category · Difficulty · stem-search). Questions
+  already carry a `tags TEXT[]` column, so adding a **tag filter**
+  (e.g. a tutor tags questions "acid-base", "ABG", "hyperkalaemia" and
+  filters to them) is a clean enhancement — and because the embed
+  picker and quiz picker share the same filter shape, it would improve
+  **both** surfaces at once. Lands when tutors have enough tag
+  vocabulary to need it; pairs naturally with the library's own Tag
+  manager (slice 11.16). Do not build pre-emptively.
+
 - **Cohort-level note visibility** — *parked 2026-05-30, Sam's
   call.* Today a note's visibility junction holds **programme** rows
   only (`_note_visibility(note_id, programme_id)`), so the audience
