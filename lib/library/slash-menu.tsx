@@ -24,6 +24,7 @@ import type { NavIcon as NavIconName } from '@/lib/nav/types';
 import { usePopoverPosition } from './use-popover-position';
 import { CANONICAL_DRUG_FIELDS } from './drug-card-block';
 import { CANONICAL_LAB_COLUMNS } from './lab-values-block';
+import { freshEmbed } from './embed-block';
 
 /** A fresh copy of the canonical fields for each new drug card. */
 function freshDrugCard() {
@@ -360,7 +361,16 @@ export const SLASH_ITEMS: SlashItem[] = [
     desc: 'Pick 1–10 questions from your tutor bank — inline practice',
     icon: '✨',
     group: 'Interactive',
-    comingIn: '11.15',
+    comingIn: null,
+    run: (editor, range) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent(freshEmbed())
+        .run(),
+    runAt: (editor, position) =>
+      editor.chain().focus().insertContentAt(position, freshEmbed()).run(),
   },
 ];
 

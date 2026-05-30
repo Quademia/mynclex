@@ -46,6 +46,7 @@ import { VideoBlock } from './video-block';
 import { CalloutBlock } from './callout-block';
 import { DrugCardBlock } from './drug-card-block';
 import { LabValuesBlock } from './lab-values-block';
+import { EmbedQuestionsBlock } from './embed-block';
 import { TABLE_EXTENSIONS } from './table-block';
 import { TableToolbar } from './table-toolbar';
 import {
@@ -143,6 +144,10 @@ export function NoteBodyEditor({
       // Nursing-shaped block (slice 11.9). An atom node — an editable
       // lab-values grid (columns × rows); all data in attrs.
       LabValuesBlock,
+      // Interactive block (slice 11.15). An atom node holding only
+      // `item_ids` (tutor-bank questions, in order); editor shows static
+      // reference cards, the live player is student-side (11.13).
+      EmbedQuestionsBlock,
       ...TABLE_EXTENSIONS,
       SlashCommand,
       // Inter-block "+ Add block" gap affordances. The widget
