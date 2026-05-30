@@ -438,3 +438,58 @@ export type LibraryOverviewStats = {
   pillar_counts: Record<NclexPillar, number>;
   recent: LibraryNoteLensRow[];
 };
+
+
+// =====================================================================
+// Slice 11.15 — embedded questions (authoring side)
+// =====================================================================
+
+/**
+ * The question types embeddable in a library note in v1 — the four
+ * classic single-question types. The runner renders the 5 NGN types
+ * too, but they're built around partial credit which the embed answer
+ * model doesn't capture, so they're routed to quizzes instead (see the
+ * planning doc's "Revised v1 authoring design").
+ */
+export const EMBED_QUESTION_TYPES = ['MCQ', 'SATA', 'TF', 'SELECT_N'] as const;
+export type EmbedQuestionType = (typeof EMBED_QUESTION_TYPES)[number];
+
+/**
+ * Per-block cap on embedded questions. Soft nudge past 5, hard stop at
+ * 10. Mirrors the planning doc. The per-NOTE caps (20 soft / 50 hard,
+ * summed across blocks) are enforced at note save, not here.
+ */
+export const EMBED_BLOCK_SOFT_CAP = 5;
+export const EMBED_BLOCK_HARD_CAP = 10;
+
+/**
+ * One row in the embed picker / one reference card in a filled block.
+ * `pillar` is the question's `client_needs_subcategory` (one of the 8
+ * NCLEX pillars — the library's vocabulary). `is_note_created` is true
+ * when the question carries a `parent_note_id` (authored inline from
+ * some note) — drives the "Note-created" chip. Still a full reusable
+ * bank question regardless.
+ */
+export type EmbedQuestionRow = {
+  item_id: string;
+  question_type: string;
+  stem: string;
+  difficulty: string | null;
+  pillar: string | null;
+  created_at: string;
+  is_note_created: boolean;
+};
+
+/**
+ * Filter inputs for the pick-from-bank modal. Empty/omitted = no
+ * filter on that axis. `type` is one of EMBED_QUESTION_TYPES (the
+ * query falls back to the whole allowlist when blank); `pillar` is a
+ * `client_needs_subcategory`; `difficulty` is Easy/Medium/Hard; `q`
+ * searches the stem.
+ */
+export type EmbedPickerFilters = {
+  type?: string;
+  pillar?: string;
+  difficulty?: string;
+  q?: string;
+};
