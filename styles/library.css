@@ -4952,3 +4952,346 @@
 .lib-drug-add:hover {
   background: var(--primary-light);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Lab values block (slice 11.9)
+   ═══════════════════════════════════════════════════════════
+   An editable reference table — gradient header (🧪 + serif title),
+   a flexible columns × rows grid, inline column/row controls, and a
+   column-removal confirm. CD design on our app tokens. Not scoped to
+   `.ProseMirror`, so the read renderer (slice 11.13) reuses the look. */
+
+.lib-lab {
+  position: relative;
+  margin: 16px 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.lib-lab.ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.lib-lab-remove {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 2;
+  appearance: none;
+  background: var(--white);
+  border: 1px solid var(--border);
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s, border-color 0.12s;
+}
+.lib-lab:hover .lib-lab-remove,
+.lib-lab-remove:focus-visible {
+  opacity: 1;
+}
+.lib-lab-remove:hover {
+  color: var(--danger);
+  border-color: #fecaca;
+}
+
+/* ── Header band (🧪 + title) ───────────────────────────── */
+.lib-lab-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(180deg, var(--primary-light), var(--white));
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.lib-lab-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.lib-lab-title {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--primary);
+  letter-spacing: -0.012em;
+  padding: 2px 6px;
+  margin: -2px 32px -2px -6px; /* keep clear of the hover remove × */
+}
+.lib-lab-title:hover:not(:disabled) {
+  border-color: var(--border);
+}
+.lib-lab-title:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--white);
+}
+.lib-lab-title::placeholder {
+  color: var(--text-faint);
+}
+
+/* ── The grid ───────────────────────────────────────────── */
+.lib-lab-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.lib-lab-table th,
+.lib-lab-table td {
+  padding: 0;
+  position: relative;
+  vertical-align: top;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+.lib-lab-table th {
+  background: var(--bg-soft);
+}
+.lib-lab-table th:last-child,
+.lib-lab-table td:last-child {
+  border-right: none;
+}
+.lib-lab-table tr:last-child td {
+  border-bottom: none;
+}
+
+.lib-lab-col {
+  width: 100%;
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 8px 24px 8px 12px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  line-height: 1.35;
+  resize: none;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.lib-lab-col:focus {
+  outline: none;
+  background: #e6e9ee;
+}
+.lib-lab-col::placeholder {
+  color: var(--text-faint);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.lib-lab-col-x {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 18px;
+  height: 18px;
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: opacity 0.12s;
+}
+.lib-lab-table th:hover .lib-lab-col-x,
+.lib-lab-col-x:focus-visible {
+  opacity: 1;
+}
+.lib-lab-col-x:hover {
+  border-color: #fecaca;
+  color: var(--danger);
+}
+
+.lib-lab-cell {
+  width: 100%;
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.45;
+  resize: none;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.lib-lab-cell:focus {
+  outline: none;
+  background: #fafbfc;
+}
+.lib-lab-cell::placeholder {
+  color: var(--text-faint);
+}
+/* First column emphasised — the row's key. */
+.lib-lab-table tbody td:first-child .lib-lab-cell {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* ── Thin actions column (＋ add-column / row × ) ────────── */
+.lib-lab-actions-col {
+  width: 38px;
+  text-align: center;
+  vertical-align: middle;
+}
+th.lib-lab-actions-col {
+  background: var(--bg-soft);
+}
+.lib-lab-row-x-cell {
+  background: transparent;
+}
+
+.lib-lab-col-add {
+  width: 26px;
+  height: 26px;
+  appearance: none;
+  border: 1px dashed var(--border-strong);
+  background: var(--white);
+  border-radius: 6px;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+.lib-lab-col-add:hover {
+  background: var(--primary-light);
+}
+
+.lib-lab-row-x {
+  width: 22px;
+  height: 22px;
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: 5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  opacity: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: opacity 0.12s;
+}
+.lib-lab-table tbody tr:hover .lib-lab-row-x,
+.lib-lab-row-x:focus-visible {
+  opacity: 1;
+}
+.lib-lab-row-x:hover {
+  border-color: #fecaca;
+  color: var(--danger);
+}
+
+.lib-lab-add-row {
+  display: block;
+  width: 100%;
+  appearance: none;
+  border: none;
+  border-top: 1px dashed var(--border-strong);
+  background: var(--white);
+  color: var(--accent);
+  cursor: pointer;
+  padding: 9px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.lib-lab-add-row:hover {
+  background: var(--primary-light);
+}
+
+/* ── Column-removal confirm dialog ──────────────────────── */
+.lib-lab-confirm-back {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(17, 24, 39, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.lib-lab-confirm {
+  width: 400px;
+  max-width: 100%;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+  padding: 20px;
+}
+.lib-lab-confirm h3 {
+  font-size: 15px;
+  margin: 0 0 8px;
+  color: var(--text);
+}
+.lib-lab-confirm p {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+.lib-lab-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.lib-lab-btn-ghost,
+.lib-lab-btn-danger {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.lib-lab-btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+.lib-lab-btn-ghost:hover {
+  background: var(--bg);
+  border-color: var(--text-muted);
+}
+.lib-lab-btn-danger {
+  background: #fef2f2;
+  color: var(--danger);
+  border-color: #fecaca;
+}
+.lib-lab-btn-danger:hover {
+  background: #fee2e2;
+}

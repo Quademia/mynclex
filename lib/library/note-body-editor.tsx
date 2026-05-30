@@ -45,6 +45,7 @@ import { PdfBlock } from './pdf-block';
 import { VideoBlock } from './video-block';
 import { CalloutBlock } from './callout-block';
 import { DrugCardBlock } from './drug-card-block';
+import { LabValuesBlock } from './lab-values-block';
 import { TABLE_EXTENSIONS } from './table-block';
 import { TableToolbar } from './table-toolbar';
 import {
@@ -139,6 +140,9 @@ export function NoteBodyEditor({
       // Nursing-shaped block (slice 11.8). An atom node — a structured
       // drug reference card; all data in attrs, edited via a React form.
       DrugCardBlock,
+      // Nursing-shaped block (slice 11.9). An atom node — an editable
+      // lab-values grid (columns × rows); all data in attrs.
+      LabValuesBlock,
       ...TABLE_EXTENSIONS,
       SlashCommand,
       // Inter-block "+ Add block" gap affordances. The widget

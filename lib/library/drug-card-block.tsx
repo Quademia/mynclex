@@ -48,7 +48,7 @@ import {
   NodeViewWrapper,
   type NodeViewProps,
 } from '@tiptap/react';
-import { useRef, type ChangeEvent } from 'react';
+import { AutoGrowTextarea } from './auto-grow-textarea';
 
 export type DrugField = { label: string; value: string };
 
@@ -237,53 +237,5 @@ function DrugCardView({ node, updateAttributes, editor, deleteNode }: NodeViewPr
         )}
       </div>
     </NodeViewWrapper>
-  );
-}
-
-// Textarea that grows to fit its content so multi-line field values
-// aren't trapped behind an inner scrollbar.
-function AutoGrowTextarea({
-  value,
-  onChange,
-  className,
-  placeholder,
-  disabled,
-  singleLine = false,
-}: {
-  value: string;
-  onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
-  className?: string;
-  placeholder?: string;
-  disabled?: boolean;
-  /** Wrap visually but reject Enter — used for the field label. */
-  singleLine?: boolean;
-}) {
-  const ref = useRef<HTMLTextAreaElement | null>(null);
-
-  function resize(el: HTMLTextAreaElement) {
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
-  }
-
-  return (
-    <textarea
-      ref={(el) => {
-        ref.current = el;
-        if (el) resize(el);
-      }}
-      className={className}
-      value={value}
-      placeholder={placeholder}
-      disabled={disabled}
-      rows={1}
-      onMouseDown={(e) => e.stopPropagation()}
-      onKeyDown={(e) => {
-        if (singleLine && e.key === 'Enter') e.preventDefault();
-      }}
-      onChange={(e) => {
-        resize(e.currentTarget);
-        onChange(e);
-      }}
-    />
   );
 }

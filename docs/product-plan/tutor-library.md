@@ -1919,9 +1919,17 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   Validation soft (publish preflight = 11.10). No DB change — search
   indexing folds into the holistic search-sync cleanup.
   `lib/library/drug-card-block.tsx`.
-- ⬜ **11.9** NCLEX domain block — Lab values (extensible columns,
-  column-add/rename/remove with deletion warning, row add/remove;
-  NCLEX-canonical 4 columns pre-populated).
+- ✅ **11.9** NCLEX domain block — Lab values. Shipped 2026-05-30.
+  Atom node (`lab_values`) holding `{ title, columns:[{label}],
+  rows:[[…]] }`; edited via a React form inside the NodeView (2-D grid
+  of auto-grow cells). New tables pre-populate the 4 NCLEX-canonical
+  columns; tutor can rename, add, or remove columns and add/remove
+  rows. **Column removal warns** (wipes the column's values across all
+  rows); row removal immediate; last column/row can't be removed. CD
+  design (gradient header + 🧪 + serif title, grey column headers,
+  emphasised first column) on app tokens. Validation soft (publish
+  preflight = 11.10). No DB change. `lib/library/lab-values-block.tsx`
+  + shared `lib/library/auto-grow-textarea.tsx`.
 - ⬜ **11.10** Publish flow + visibility mode + status pills +
   alt-text preflight. Wire draft/published + tutor-wide /
   programme-scoped (multi-select picker writing to

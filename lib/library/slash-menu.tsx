@@ -23,6 +23,7 @@ import { NavIcon } from '@/components/nav/shared/nav-icon';
 import type { NavIcon as NavIconName } from '@/lib/nav/types';
 import { usePopoverPosition } from './use-popover-position';
 import { CANONICAL_DRUG_FIELDS } from './drug-card-block';
+import { CANONICAL_LAB_COLUMNS } from './lab-values-block';
 
 /** A fresh copy of the canonical fields for each new drug card. */
 function freshDrugCard() {
@@ -32,6 +33,20 @@ function freshDrugCard() {
       name: '',
       drug_class: '',
       fields: CANONICAL_DRUG_FIELDS.map((f) => ({ ...f })),
+    },
+  };
+}
+
+/** A fresh lab-values table: canonical columns + two blank rows. */
+function freshLabValues() {
+  const columns = CANONICAL_LAB_COLUMNS.map((c) => ({ ...c }));
+  const blankRow = () => Array(columns.length).fill('');
+  return {
+    type: 'lab_values',
+    attrs: {
+      title: '',
+      columns,
+      rows: [blankRow(), blankRow()],
     },
   };
 }
@@ -327,7 +342,16 @@ export const SLASH_ITEMS: SlashItem[] = [
     desc: 'Test · normal · if high · if low',
     icon: '🧪',
     group: 'Nursing-shaped',
-    comingIn: '11.9',
+    comingIn: null,
+    run: (editor, range) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent(freshLabValues())
+        .run(),
+    runAt: (editor, position) =>
+      editor.chain().focus().insertContentAt(position, freshLabValues()).run(),
   },
   // Interactive
   {

@@ -8,7 +8,50 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-30):** **Library Slice 11.8 — Drug card
+> **Last shipped (2026-05-30):** **Library Slice 11.9 — Lab values
+> block.** Completes the three NCLEX-domain "nursing-shaped" blocks
+> (Callout · Drug card · Lab values). A sealed **atom node**
+> (`lab_values`) holding `{ title, columns: [{ label }], rows: [[…]] }`
+> — an editable 2-D grid edited via a React form in the NodeView. New
+> tables seed the **4 NCLEX-canonical columns** (Test · Normal · If
+> high · If low) + two blank rows; the tutor can rename, add, or remove
+> columns and add/remove rows.
+>
+> - **Inline grid controls.** Hover a column header → × to remove it;
+>   a ＋ in the top-right header cell adds a column (every row gains a
+>   blank cell). Hover a row → × on the right removes it; a dashed
+>   **+ Add row** bar at the foot. The last column / last row lose
+>   their × (UI enforces the ≥1-column / ≥1-row floor).
+> - **Column-removal warning.** Removing a column fires a centred
+>   confirm ("This will delete the values in this column for all N
+>   rows…") — it's the destructive op (wipes data down the whole
+>   column). Row removal is immediate, matching drug-card field removal.
+> - **Auto-grow cells** (+ wrapping column labels) so long entries like
+>   "Respiratory alkalosis" don't clip. The `AutoGrowTextarea` is now a
+>   **shared** `lib/library/auto-grow-textarea.tsx` used by both the
+>   Drug card (11.8) and Lab values.
+> - **CD design on app tokens** (gradient header + 🧪 + serif title,
+>   grey uppercase column headers, emphasised navy first column), teal
+>   accent — not the mock's blue.
+> - **V1 plain text · soft validation · no DB change** — same posture
+>   as the drug card; search indexing folds into the holistic
+>   search-sync cleanup.
+>
+> **Files new (2):** `lib/library/lab-values-block.tsx`,
+> `lib/library/auto-grow-textarea.tsx`.
+>
+> **Files modified (5):** `lib/library/drug-card-block.tsx` (use the
+> shared textarea), `lib/library/note-body-editor.tsx` (register),
+> `lib/library/slash-menu.tsx` (enable the row + canonical seed),
+> `styles/library.css` (SLICE 11.9 block),
+> `docs/product-plan/tutor-library.md` (tick 11.9).
+>
+> **Next:** Library **11.10** (Publish flow + visibility + status pills
+> + alt-text/field preflight — the hard validation gate for every block
+> type), or rotate per the alternate-features rule. The slash menu's
+> last disabled row is **11.15** (Embedded questions).
+>
+> **Earlier shipped (2026-05-30):** **Library Slice 11.8 — Drug card
 > block.** Second of the three NCLEX-domain "nursing-shaped" blocks.
 > A sealed **atom node** (`drug_card`) holding `{ name, drug_class,
 > fields: [{ label, value }] }` — all data in the node's attrs, edited
