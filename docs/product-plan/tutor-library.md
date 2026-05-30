@@ -2214,6 +2214,18 @@ their first 30 seconds with the library.
 
 ### Deferred follow-ons (post-build)
 
+- **"Note · …" origin badge on the bank list** — *flagged 2026-05-30,
+  Sam.* A question created inline from a note (11.15d — `parent_note_id`
+  set) is a normal, builder-visible bank question, but the bank list
+  (`/tutor/bank/all`) shows **no indicator** of its note origin, unlike
+  case-study children ("In case · …") and trend children ("Trend · …"),
+  which both badge + link to their wrapper. Add a matching **"Note ·
+  {title}"** badge linking to `/tutor/library/note/<id>`. Small,
+  mirrors the existing pattern: bank-list query selects `parent_note_id`
+  (+ note title), `BankListRowSummary` carries it, the row renders the
+  badge. Makes the bank list honest about question provenance + lets a
+  tutor jump back to the source note.
+
 - **Tag filter on the question pickers** — *flagged 2026-05-30, Sam.*
   The embed pick-from-bank modal (11.15c) reuses the quiz picker's
   filter set (Type · Category · Difficulty · stem-search). Questions
