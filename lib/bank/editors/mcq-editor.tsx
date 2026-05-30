@@ -354,7 +354,7 @@ export function McqEditorBody({
       onSubmit={handleSubmit}
       onInput={onDirty}
     >
-      <HiddenItemInputs type="MCQ" itemId={initial.itemId} surface={initial.surface} />
+      <HiddenItemInputs type="MCQ" itemId={initial.itemId} surface={initial.surface} parentNoteId={initial.parentNoteId} />
 
       <ErrorToast error={error ?? clientError} onDismiss={dismissError} />
 

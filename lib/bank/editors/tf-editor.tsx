@@ -265,7 +265,7 @@ export function TfEditorBody({
       onSubmit={handleSubmit}
       onInput={onDirty}
     >
-      <HiddenItemInputs type="TF" itemId={initial.itemId} surface={initial.surface} />
+      <HiddenItemInputs type="TF" itemId={initial.itemId} surface={initial.surface} parentNoteId={initial.parentNoteId} />
 
       <ErrorToast error={error ?? clientError} onDismiss={dismissError} />
 

@@ -73,12 +73,19 @@ interface NoteBodyEditorProps {
   initialDoc: TiptapDoc;
   onUpdate: (doc: TiptapDoc) => void;
   editable?: boolean;
+  /**
+   * The note being edited. Threaded into the embedded-questions block
+   * (slice 11.15) so its "Create a new question" flow can stamp the
+   * new bank question with `parent_note_id`.
+   */
+  noteId?: string;
 }
 
 export function NoteBodyEditor({
   initialDoc,
   onUpdate,
   editable = true,
+  noteId,
 }: NoteBodyEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -146,8 +153,10 @@ export function NoteBodyEditor({
       LabValuesBlock,
       // Interactive block (slice 11.15). An atom node holding only
       // `item_ids` (tutor-bank questions, in order); editor shows static
-      // reference cards, the live player is student-side (11.13).
-      EmbedQuestionsBlock,
+      // reference cards, the live player is student-side (11.13). The
+      // noteId is threaded in so the "Create a new question" flow can
+      // stamp parent_note_id on the new bank question.
+      EmbedQuestionsBlock.configure({ noteId: noteId ?? null }),
       ...TABLE_EXTENSIONS,
       SlashCommand,
       // Inter-block "+ Add block" gap affordances. The widget

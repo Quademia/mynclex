@@ -35,6 +35,7 @@ import {
   EmbedTypeBadge,
   EmbedPillar,
 } from './embed-pick-modal';
+import { EmbedCreateFlow } from './embed-create-flow';
 import { EMBED_BLOCK_HARD_CAP, EMBED_BLOCK_SOFT_CAP, type EmbedQuestionRow } from './types';
 
 /** A fresh empty embedded-questions block for the slash menu / tray. */
@@ -50,6 +51,13 @@ export const EmbedQuestionsBlock = TiptapNode.create({
   group: 'block',
   atom: true,
   draggable: false, // reordering goes through the global DragHandle
+
+  addOptions() {
+    // Set via .configure({ noteId }) in note-body-editor; read in the
+    // NodeView so the "Create a new question" flow can stamp the new
+    // bank question with parent_note_id.
+    return { noteId: null as string | null };
+  },
 
   addAttributes() {
     return {
@@ -71,10 +79,11 @@ export const EmbedQuestionsBlock = TiptapNode.create({
   },
 });
 
-function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode }: NodeViewProps) {
+function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode, extension }: NodeViewProps) {
   const itemIds = (node.attrs.item_ids as string[]) ?? [];
   const editable = editor.isEditable;
   const isEmpty = itemIds.length === 0;
+  const noteId = (extension.options.noteId as string | null) ?? null;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [flow, setFlow] = useState<'pick' | 'create' | null>(null);
@@ -234,12 +243,11 @@ function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode }: Node
         <EmbedPickModal existingIds={itemIds} onAdd={addIds} onClose={() => setFlow(null)} />
       )}
       {flow === 'create' && (
-        <div className="eq-flow-stub">
-          Create-a-question flow — slice 11.15d.
-          <button type="button" className="eq-btn eq-btn--ghost eq-btn--sm" onClick={() => setFlow(null)}>
-            Close
-          </button>
-        </div>
+        <EmbedCreateFlow
+          noteId={noteId}
+          onCreated={(id) => addIds([id])}
+          onClose={() => setFlow(null)}
+        />
       )}
     </NodeViewWrapper>
   );

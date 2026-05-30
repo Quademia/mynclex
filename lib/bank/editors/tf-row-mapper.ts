@@ -26,6 +26,8 @@ import {
 export interface TfEditorInitial {
   itemId: string | null;
   surface: 'admin' | 'tutor';
+  /** Slice 11.15 — origin note when authored from a note's embed flow. */
+  parentNoteId?: string | null;
   mode: HousekeepingMode;
   instruction: string;
   stem: string;

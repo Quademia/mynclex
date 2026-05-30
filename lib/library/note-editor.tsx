@@ -801,6 +801,7 @@ export function NoteEditor({ note, folders, programmes }: NoteEditorProps) {
           <NoteBodyEditor
             initialDoc={initialDocRef.current}
             onUpdate={handleBodyUpdate}
+            noteId={note.note_id}
           />
         </div>
 

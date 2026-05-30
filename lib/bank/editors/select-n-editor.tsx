@@ -394,7 +394,7 @@ export function SelectNEditorBody({
       onSubmit={handleSubmit}
       onInput={onDirty}
     >
-      <HiddenItemInputs type="SELECT_N" itemId={initial.itemId} surface={initial.surface} />
+      <HiddenItemInputs type="SELECT_N" itemId={initial.itemId} surface={initial.surface} parentNoteId={initial.parentNoteId} />
 
       <ErrorToast error={error ?? clientError} onDismiss={dismissError} />
 

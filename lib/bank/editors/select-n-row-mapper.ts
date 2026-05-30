@@ -25,6 +25,8 @@ const DEFAULT_SELECT_COUNT = 2;
 export interface SelectNEditorInitial {
   itemId: string | null;
   surface: 'admin' | 'tutor';
+  /** Slice 11.15 — origin note when authored from a note's embed flow. */
+  parentNoteId?: string | null;
   mode: HousekeepingMode;
   instruction: string;
   stem: string;
