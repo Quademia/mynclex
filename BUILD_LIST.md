@@ -8,7 +8,51 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-30):** **Library Slice 11.7 — Callout
+> **Last shipped (2026-05-30):** **Library Slice 11.8 — Drug card
+> block.** Second of the three NCLEX-domain "nursing-shaped" blocks.
+> A sealed **atom node** (`drug_card`) holding `{ name, drug_class,
+> fields: [{ label, value }] }` — all data in the node's attrs, edited
+> via a React form inside the NodeView (the Image-block pattern, just a
+> bigger form). New cards pre-populate the **4 NCLEX-canonical fields**
+> (Indications · Typical dose · Side effects · Nursing considerations);
+> the tutor can rename, reorder, add, or remove any field.
+>
+> - **CD design on app tokens.** Built from Sam's new CD handoff (the
+>   sodium-bicarbonate card): white spec-sheet card, gradient header,
+>   💊 capsule + italic "Rx" flourish, Georgia-serif drug name, a grey
+>   label-column / value grid. The mock's indigo was mapped to our
+>   teal `--accent` + navy `--primary` per the standing rule.
+> - **Authoring interactions.** Per-field **▲▼ reorder** (drag
+>   deferred) + × remove, hover-revealed on the value cell; a dashed
+>   **+ Add field** bar at the foot; hover-the-card × removes the whole
+>   block (the Rx flourish dims so the × reads). Value boxes auto-grow;
+>   label cells **wrap** (auto-grow textarea, Enter suppressed, pasted
+>   newlines stripped) so a long label like "Nursing considerations"
+>   never clips.
+> - **V1 plain-text values.** No inline marks inside field values —
+>   the labels carry the emphasis. Going rich would have turned each
+>   value into a nested editable region (Table-block-level complexity);
+>   parked unless real tutors ask. (Discussed + decided with Sam.)
+> - **Soft validation.** Placeholders / required cues only; the hard
+>   gate (name required, ≥1 field, labels required) lands with the
+>   publish preflight in 11.10 — same model as image alt-text.
+> - **No DB change.** Like image/pdf/table, drug-card text isn't
+>   indexed yet — the slice-11.1 search helper reads the fields at the
+>   JSON top level but Tiptap nests them under `attrs`; folded into the
+>   future holistic search-sync cleanup.
+>
+> **Files new (1):** `lib/library/drug-card-block.tsx`.
+>
+> **Files modified (4):** `lib/library/note-body-editor.tsx` (register
+> the block), `lib/library/slash-menu.tsx` (enable the Drug-card row +
+> canonical-field seed), `styles/library.css` (SLICE 11.8 block),
+> `docs/product-plan/tutor-library.md` (tick 11.8).
+>
+> **Next:** Library **11.9** (Lab values — extensible columns + rows)
+> completes the nursing-shaped trio, or rotate per the alternate-
+> features rule.
+>
+> **Earlier shipped (2026-05-30):** **Library Slice 11.7 — Callout
 > block.** First of the three NCLEX-domain "nursing-shaped" blocks.
 > A Tiptap content node (`callout`, `inline*` rich text) carrying a
 > `tone` attr — Note · Tip · Warning · Critical · Memory — that drives

@@ -1909,9 +1909,16 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   hover-revealed × remove. No DB change — the slice-11.1
   `nclex_extract_body_text` helper already indexes `callout` content.
   `lib/library/callout-block.tsx`.
-- ⬜ **11.8** NCLEX domain block — Drug card (extensible field
-  array, drag-reorder, add-field, remove-field; NCLEX-canonical
-  4 fields pre-populated).
+- ✅ **11.8** NCLEX domain block — Drug card. Shipped 2026-05-30.
+  Atom node (`drug_card`) holding `{ name, drug_class, fields:[{label,
+  value}] }`; edited via a React form inside the NodeView. New cards
+  pre-populate the 4 NCLEX-canonical fields; tutor can rename, **▲▼
+  reorder** (drag deferred), add, remove. Plain-text multi-line values
+  (V1 — no inline marks). CD design (gradient header, 💊 + Rx, serif
+  name, label-column / value grid) on app tokens. Label cells wrap.
+  Validation soft (publish preflight = 11.10). No DB change — search
+  indexing folds into the holistic search-sync cleanup.
+  `lib/library/drug-card-block.tsx`.
 - ⬜ **11.9** NCLEX domain block — Lab values (extensible columns,
   column-add/rename/remove with deletion warning, row add/remove;
   NCLEX-canonical 4 columns pre-populated).

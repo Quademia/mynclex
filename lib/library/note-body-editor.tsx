@@ -44,6 +44,7 @@ import { ImageBlock } from './image-block';
 import { PdfBlock } from './pdf-block';
 import { VideoBlock } from './video-block';
 import { CalloutBlock } from './callout-block';
+import { DrugCardBlock } from './drug-card-block';
 import { TABLE_EXTENSIONS } from './table-block';
 import { TableToolbar } from './table-toolbar';
 import {
@@ -135,6 +136,9 @@ export function NoteBodyEditor({
       // Nursing-shaped block (slice 11.7). A content node holding rich
       // inline text, tinted by its `tone` attr.
       CalloutBlock,
+      // Nursing-shaped block (slice 11.8). An atom node — a structured
+      // drug reference card; all data in attrs, edited via a React form.
+      DrugCardBlock,
       ...TABLE_EXTENSIONS,
       SlashCommand,
       // Inter-block "+ Add block" gap affordances. The widget

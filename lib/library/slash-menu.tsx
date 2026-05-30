@@ -22,6 +22,19 @@ import type { Editor, Range } from '@tiptap/react';
 import { NavIcon } from '@/components/nav/shared/nav-icon';
 import type { NavIcon as NavIconName } from '@/lib/nav/types';
 import { usePopoverPosition } from './use-popover-position';
+import { CANONICAL_DRUG_FIELDS } from './drug-card-block';
+
+/** A fresh copy of the canonical fields for each new drug card. */
+function freshDrugCard() {
+  return {
+    type: 'drug_card',
+    attrs: {
+      name: '',
+      drug_class: '',
+      fields: CANONICAL_DRUG_FIELDS.map((f) => ({ ...f })),
+    },
+  };
+}
 
 export type SlashItem = {
   type: string;
@@ -297,7 +310,16 @@ export const SLASH_ITEMS: SlashItem[] = [
     desc: 'Indications · dose · side effects · nursing',
     icon: '💊',
     group: 'Nursing-shaped',
-    comingIn: '11.8',
+    comingIn: null,
+    run: (editor, range) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent(freshDrugCard())
+        .run(),
+    runAt: (editor, position) =>
+      editor.chain().focus().insertContentAt(position, freshDrugCard()).run(),
   },
   {
     type: 'lab_values',
