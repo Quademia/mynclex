@@ -43,6 +43,7 @@ import { SlashCommand } from './slash-command';
 import { ImageBlock } from './image-block';
 import { PdfBlock } from './pdf-block';
 import { VideoBlock } from './video-block';
+import { CalloutBlock } from './callout-block';
 import { TABLE_EXTENSIONS } from './table-block';
 import { TableToolbar } from './table-toolbar';
 import {
@@ -131,6 +132,9 @@ export function NoteBodyEditor({
       ImageBlock,
       PdfBlock,
       VideoBlock,
+      // Nursing-shaped block (slice 11.7). A content node holding rich
+      // inline text, tinted by its `tone` attr.
+      CalloutBlock,
       ...TABLE_EXTENSIONS,
       SlashCommand,
       // Inter-block "+ Add block" gap affordances. The widget

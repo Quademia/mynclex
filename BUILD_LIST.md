@@ -8,7 +8,44 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-30):** **Library Slices 11.6b + 11.6c —
+> **Last shipped (2026-05-30):** **Library Slice 11.7 — Callout
+> block.** First of the three NCLEX-domain "nursing-shaped" blocks.
+> A Tiptap content node (`callout`, `inline*` rich text) carrying a
+> `tone` attr — Note · Tip · Warning · Critical · Memory — that drives
+> the whole box colour (background + border + text) plus the header
+> icon + label. No custom title: the label *is* the tone.
+>
+> - **Header = deep-fill tab chip (CD-iterated with Sam).** The
+>   icon + tone label sit in a solid deep-tone chip (white text) that
+>   straddles the top-left edge of the box, over a 4px left accent +
+>   soft body tint. The chip doubles as the tone switcher: click it →
+>   5-tone dropdown → the chip, accent, and body re-colour together
+>   (Tiptap's generic `updateAttributes` — no bespoke command). A
+>   hover-revealed × in the top-right removes the block. Chosen over a
+>   full-width deep title-bar variant because the chip stays calm when
+>   several callouts stack down a long note and doesn't out-shout the
+>   page's H2/H3 headings.
+> - **No DB change.** The slice-11.1 `nclex_extract_body_text` search
+>   helper already had a `callout` branch expecting `inline*` content,
+>   so callout text is full-text searchable for free. (Naming the node
+>   plainly `callout` — not `libCallout` — is what lines it up with
+>   that helper.)
+> - **Enabled in the slash menu + block tray automatically.** Flipping
+>   the existing disabled `comingIn: '11.7'` row to live insert
+>   commands lights up both the `/callout` entry and the foot-of-editor
+>   chip off the same data.
+>
+> **Files new (1):** `lib/library/callout-block.tsx`.
+>
+> **Files modified (4):** `lib/library/note-body-editor.tsx` (register
+> the block), `lib/library/slash-menu.tsx` (enable the Callout row),
+> `styles/library.css` (SLICE 11.7 block — tone tints + tab chip +
+> tone menu + body), `docs/product-plan/tutor-library.md` (tick 11.7).
+>
+> **Next:** Library **11.8** (Drug card — extensible field array) or
+> Payments per the alternate-features rotation.
+>
+> **Earlier shipped (2026-05-30):** **Library Slices 11.6b + 11.6c —
 > PDF + Video blocks, then the Table block.** The rest of the
 > standard visual blocks land, completing the 11.6 media set
 > (Image · PDF · Video · Table).

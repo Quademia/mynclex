@@ -1901,7 +1901,14 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
 - ⬜ **11.6b** Remaining standard visual blocks — PDF (link-card)
   + Video (YouTube/Vimeo/Loom embeds) + Table. Alt-text preflight
   wires into Publish (slice 11.10).
-- ⬜ **11.7** NCLEX domain block — Callout (5 tones + icons).
+- ✅ **11.7** NCLEX domain block — Callout (5 tones + icons).
+  Shipped 2026-05-30. Content node (`callout`, `inline*`) with a
+  `tone` attr (note / tip / warning / critical / memory). Header is a
+  deep-fill **tab chip** straddling the top-left edge (icon + label),
+  doubling as the tone switcher; 4px left accent + soft body tint;
+  hover-revealed × remove. No DB change — the slice-11.1
+  `nclex_extract_body_text` helper already indexes `callout` content.
+  `lib/library/callout-block.tsx`.
 - ⬜ **11.8** NCLEX domain block — Drug card (extensible field
   array, drag-reorder, add-field, remove-field; NCLEX-canonical
   4 fields pre-populated).

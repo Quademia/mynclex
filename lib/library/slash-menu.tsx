@@ -276,7 +276,20 @@ export const SLASH_ITEMS: SlashItem[] = [
     desc: 'Note · Tip · Warning · Critical · Memory',
     icon: '💡',
     group: 'Nursing-shaped',
-    comingIn: '11.7',
+    comingIn: null,
+    run: (editor, range) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent({ type: 'callout', attrs: { tone: 'note' } })
+        .run(),
+    runAt: (editor, position) =>
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(position, { type: 'callout', attrs: { tone: 'note' } })
+        .run(),
   },
   {
     type: 'drug_card',

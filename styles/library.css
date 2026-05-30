@@ -4482,3 +4482,192 @@
 .lib-table-swatch.is-slate {
   background: #b3bdcc;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Callout block (slice 11.7)
+   ═══════════════════════════════════════════════════════════
+   A tinted box of emphasis holding rich inline text. The whole box
+   (background + border + text) is keyed off `data-tone`; the header
+   row carries the fixed icon + label and, in the editor, doubles as
+   the tone switcher. Tints are the muted study-material palette from
+   the CD mockup. Selectors are NOT scoped to `.ProseMirror`, so the
+   student read renderer (slice 11.13) gets the same tints for free
+   by emitting `.lib-callout[data-tone]`. */
+
+.lib-callout {
+  /* note / default tone */
+  --co-bg: #eef4fa;
+  --co-border: #93c5fd;
+  --co-text: #0c447c;
+
+  position: relative;
+  background: var(--co-bg);
+  border: 1px solid var(--co-border);
+  border-left-width: 4px;
+  border-radius: 8px;
+  /* Top margin clears the tab chip, which straddles the top edge. */
+  margin: 20px 0 14px;
+  padding: 22px 14px 13px;
+  color: var(--co-text);
+}
+
+.lib-callout[data-tone='tip'] {
+  --co-bg: #e6f1ef;
+  --co-border: #2d7d72;
+  --co-text: #085041;
+}
+.lib-callout[data-tone='warning'] {
+  --co-bg: #faeeda;
+  --co-border: #fac775;
+  --co-text: #633806;
+}
+.lib-callout[data-tone='critical'] {
+  --co-bg: #fce7e7;
+  --co-border: #f5a3a3;
+  --co-text: #7c1d1d;
+}
+.lib-callout[data-tone='memory'] {
+  --co-bg: #f0eefb;
+  --co-border: #b6a8e8;
+  --co-text: #3c2d75;
+}
+
+/* ── Tab chip (icon + label + tone switcher) ────────────── */
+/* Straddles the top-left edge of the box. The deep tone colour fills
+   the chip; white icon + label sit on it. Doubles as the tone switcher
+   in the editor (▾ caret + dropdown). */
+.lib-callout-tab-wrap {
+  position: absolute;
+  top: 0;
+  left: 12px;
+  transform: translateY(-50%);
+  user-select: none;
+}
+
+.lib-callout-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  appearance: none;
+  border: none;
+  padding: 4px 11px;
+  border-radius: 7px;
+  background: var(--co-text);
+  color: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  transition: filter 0.12s;
+}
+
+.lib-callout-tab:disabled {
+  cursor: default;
+}
+
+.lib-callout-tab:not(:disabled):hover {
+  filter: brightness(1.12);
+}
+
+.lib-callout-tab:focus-visible {
+  outline: 2px solid var(--co-text);
+  outline-offset: 2px;
+}
+
+.lib-callout-ic {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.lib-callout-caret {
+  margin-left: 3px;
+  font-size: 9px;
+  opacity: 0.85;
+}
+
+/* ── Remove × — top-right corner, hover-revealed ────────── */
+.lib-callout-remove {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0 4px;
+  border-radius: 5px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--co-text);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.12s, background 0.12s;
+}
+
+.lib-callout:hover .lib-callout-remove,
+.lib-callout-remove:focus-visible {
+  opacity: 0.7;
+}
+
+.lib-callout-remove:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--co-text) 12%, transparent);
+}
+
+/* ── Tone menu (popover under the tab) ──────────────────── */
+.lib-callout-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 30;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(17, 24, 39, 0.14);
+}
+
+.lib-callout-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 6px 8px;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.lib-callout-menu-item:hover {
+  background: var(--bg-soft);
+}
+
+.lib-callout-menu-item.is-active {
+  background: color-mix(in srgb, var(--accent) 12%, var(--white));
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ── Editable body — inline rich text, no nested blocks ──── */
+.lib-callout-body {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.lib-callout-body:focus {
+  outline: none;
+}
