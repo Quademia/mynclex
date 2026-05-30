@@ -1977,46 +1977,67 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
     `getTutorProgrammesForPicker()` feeds the dialog.
   - **Status pills** in lens rows already read `is_published`, so note
     lists update for free.
-- ⬜ **11.11** Programme integration — Library Note path. Library
-  Note as the 7th activity type, attach modal (single note),
-  detach, used-in count.
-- ⬜ **11.12** Programme integration — Shelf path (atomic activity).
-  Shelf as the 8th activity type, shelf-picker modal,
-  mixed-visibility attach-time dialog, **single-row atomic
-  attachment** (CHECK ensures `note_id` XOR `shelf_id`), grouped
-  block render via shelf-membership join, "Hide in this unit"
-  kebab writing `note_id` into `skipped_note_ids JSONB`, "your
-  tutor updated this shelf" hint on membership change.
-- ⬜ **11.13** Student read-mode renderer — full-page route at
+> **▶ Build sequence revised 2026-05-30 (Sam's call).** The library is
+> finished *as a library* first; **programme integration (11.11 +
+> 11.12) builds LAST** — it's a conjunction to the library, not part of
+> it. So the *directly-library* slices are prioritised. The slice
+> numbers below stay as **stable IDs** (referenced in code, commits and
+> other docs — e.g. the editor's slash menu renders "11.15" to tutors
+> for embedded questions), so they are **not** renumbered; instead the
+> unbuilt entries are listed here **in build order**, which is:
+> **11.15 → 11.16 → 11.13 → 11.14 → 11.11 → 11.12 → 11.17.**
+
+- ⬜ **11.15** Embedded questions — full loop. *(Build order 1 —
+  directly library, tutor-side; lights up the slash menu's last
+  disabled block.)* Multi-select picker in editor (tutor bank only),
+  per-block 5/10 caps, per-note 20/50 caps (warn at 20, reject at 50,
+  both at save), reference-card edit-mode rendering (one per question),
+  inline player read-mode rendering (Question 1 of N + Next +
+  end-of-set summary), submit → per-question write to
+  `nclex_library_embed_answers` keyed `(student_id, note_id,
+  block_id, question_index)` with snapshot, on-re-render show
+  submitted state. *(Tutor authoring side builds first; the student
+  inline player + submit half is realised together with 11.13's read
+  view, which is where the block renders in answering mode.)*
+- ⬜ **11.16** Tag manager + custom views + search. *(Build order 2 —
+  directly library, tutor-side, no dependencies — the cleanest
+  "finish the library" slice.)* Kebab on Tags lens opens *Manage tags*
+  (rename / delete / merge); custom view save/edit/delete from
+  toolbar; `tsvector`-backed search composing with chip filters via
+  AND.
+- ⬜ **11.13** Student read-mode renderer — *(Build order 3 — directly
+  library, student-reading side; where publish + visibility from 11.10
+  finally becomes visible to a student.)* full-page route at
   `/student/programme/[programme_id]/library/note/[note_id]` +
   Contents rail + scroll-spy writing `last_heading_id` to
   `nclex_library_note_state` + per-block rendering + Mark as done
   (writes `marked_done_at` with write-through to the progress
   engine when from a Library Note activity) + Bookmark toggle
   (writes `bookmarked_at`). Embedded-questions block renders in
-  answering mode (no submit yet — gated by 11.15).
-- ⬜ **11.14** Student library — same five-lens sidebar (read-only
+  answering mode; the submit loop is 11.15's.
+- ⬜ **11.14** Student library — *(Build order 4 — directly library,
+  student-reading side.)* same five-lens sidebar (read-only
   adaptations) with collapse-to-rail, visibility-filtered counts,
   empty-container hiding, Views adapted (**By unit** + **Bookmarked**
   replace Drafts / Used nowhere). Wired at
   `/student/programme/[programme_id]/library/` and the cohort
   sibling. Sidebar entry added to `STUDENT_PROGRAMME_DETAIL_NAV`
   + `STUDENT_COHORT_DETAIL_NAV`.
-- ⬜ **11.15** Embedded questions — full loop. Multi-select picker
-  in editor (tutor bank only), per-block 5/10 caps, per-note
-  20/50 caps (warn at 20, reject at 50, both at save), reference-
-  card edit-mode rendering (one per question), inline player
-  read-mode rendering (Question 1 of N + Next + end-of-set
-  summary), submit → per-question write to
-  `nclex_library_embed_answers` keyed `(student_id, note_id,
-  block_id, question_index)` with snapshot, on-re-render show
-  submitted state.
-- ⬜ **11.16** Tag manager + custom views + search. Kebab on Tags
-  lens opens *Manage tags* (rename / delete / merge); custom view
-  save/edit/delete from toolbar; `tsvector`-backed search
-  composing with chip filters via AND.
-- ⬜ **11.17** Polish — used-in click-through, save dialogs, all the
-  smaller affordances.
+- ⬜ **11.11** Programme integration — Library Note path. *(Build order
+  5 — ⏸ DEFERRED to last: conjunction to the library, not part of
+  it.)* Library Note as the 7th activity type, attach modal (single
+  note), detach, used-in count.
+- ⬜ **11.12** Programme integration — Shelf path (atomic activity).
+  *(Build order 6 — ⏸ DEFERRED to last: conjunction to the library.)*
+  Shelf as the 8th activity type, shelf-picker modal,
+  mixed-visibility attach-time dialog, **single-row atomic
+  attachment** (CHECK ensures `note_id` XOR `shelf_id`), grouped
+  block render via shelf-membership join, "Hide in this unit"
+  kebab writing `note_id` into `skipped_note_ids JSONB`, "your
+  tutor updated this shelf" hint on membership change.
+- ⬜ **11.17** Polish — *(Build order 7 — last; its used-in
+  click-through depends on the integration slices above.)* used-in
+  click-through, save dialogs, all the smaller affordances.
 
 ### Queued out-of-numbered-order slices (design-locked 2026-05-26)
 
