@@ -1205,6 +1205,78 @@ length 1 — nothing is lost. Multi-question is the natural shape for
 one reading break instead of three scattered widgets, cleaner
 authoring (multi-select picker once vs adding three blocks).
 
+#### Revised v1 authoring design (locked 2026-05-30 with Sam)
+
+The earlier drafts assumed pure bank-reference (the tutor must
+pre-author every question in their general bank, then pick it). That
+carries a real friction — a context-switch out of the note to create
++ publish questions before they can be embedded. The revised design
+keeps the reference model **but adds inline authoring**, reusing
+patterns the bank already ships, so the tutor never has to leave the
+note.
+
+**Empty-block-first.** Inserting the block drops an empty shell with
+a clear empty state (*"No questions yet"* + an **Add question**
+button), consistent with every other block (image / pdf). (The
+slash command does **not** jump straight into a picker.)
+
+**Two entry points behind "Add question":**
+
+1. **Pick existing** — a **modal** listing the tutor's published bank
+   questions with the bank filter bar (Type · Category · Difficulty ·
+   stem-search) reused from `lib/tutor-quiz/quiz-picker-filters.tsx`
+   (itself a reuse of `lib/bank/` filter styles). Multi-select, add
+   several at once. A modal — **not** a navigation to the standalone
+   picker page — so the tutor stays in the note. Pre-filtered by the
+   note's own pillars/tags so the most relevant questions surface
+   first.
+2. **Create inline** — opens the **existing question editor**
+   (`lib/bank/editors/*`, the same modal-based editor the bank uses);
+   the saved question lands in `nclex_tutor_questions` stamped with a
+   new `parent_note_id` + `is_builder_visible = false`. This is the
+   **exact pattern case-study children (`parent_case_id` + join) and
+   trend children (`trend_id` column) already use** in
+   `saveQuestionAction` — a note-owned question authored with the real
+   editor that never clutters the general bank. The trend variant
+   (one parent column, no join) is the model.
+
+Either path appends the question's `item_id` to the block's
+`item_ids` array (membership + order within the block). A block can
+freely mix note-authored (`parent_note_id`, hidden) and bank-picked
+(visible, reusable) questions.
+
+**`parent_note_id` column added to BOTH question tables.** The
+migration adds `parent_note_id` to `nclex_tutor_questions` *and*
+`nclex_bank_items`, preserving the two tables' existing column
+symmetry (both already carry `parent_case_id` + `trend_id`). On the
+tutor table it links to a real note; on the admin/bank table it's a
+dormant placeholder until/unless QAcademy ever introduces its own
+notes. Adding it to only one table would diverge the twins and break
+the shared `saveQuestionAction` code path.
+
+**No new question table, no new renderer.** Questions stay in
+`nclex_tutor_questions`; the student player reuses the existing
+runner (`lib/practice/runner/types/*`). The only schema change for
+authoring is the `parent_note_id` column.
+
+**v1 embeddable types — the 4 classic single-question types: MCQ,
+SATA, TF, SELECT_N.** The picker + inline editor are filtered to
+these. The runner can technically render the 5 NGN types too
+(`bowtie`, `matrix`, `highlight`, `cloze`, `drag-drop`), so the
+limit is **not** the renderer — it's that NGN types are built around
+**partial credit**, which the embed answer model's single
+`is_correct` boolean doesn't capture. Adding NGN later is therefore a
+*scoring* problem, not a rendering one — a clean v2 extension.
+
+**Deferred v2 follow-on already implied above:** the "Create inline"
+entry point *is* the inline-question-creation idea earlier parked for
+v2 — pulled into v1 because the case/trend pattern makes it cheap.
+
+**What stays deferred to 11.13 (student read view):** the inline
+player, submit, snapshot, and the `nclex_library_embed_answers`
+table. This slice (the authoring half) ships the block + the two
+entry points + reference cards + caps only.
+
 **Per-block caps.** Soft 5, hard 10 questions per block. Past 5
 nudges the tutor toward a quiz; past 10 is refused — at that size
 the content is a quiz, not a teaching break.
@@ -1999,6 +2071,15 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   submitted state. *(Tutor authoring side builds first; the student
   inline player + submit half is realised together with 11.13's read
   view, which is where the block renders in answering mode.)*
+  **Authoring design revised 2026-05-30 — see "Revised v1 authoring
+  design" under the Embedded questions section:** empty-block-first;
+  **Add question** → Pick existing (reused filter modal) **or** Create
+  inline (existing editor, trend pattern — `parent_note_id` +
+  builder-invisible). Migration adds `parent_note_id` to BOTH
+  `nclex_tutor_questions` + `nclex_bank_items` (column symmetry). v1
+  embeddable types = the 4 classic single-question types **MCQ / SATA /
+  TF / SELECT_N** (NGN deferred — partial-credit grading, not a
+  renderer limit). No new question table, no new renderer.
 - ⬜ **11.16** Tag manager + custom views + search. *(Build order 2 —
   directly library, tutor-side, no dependencies — the cleanest
   "finish the library" slice.)* Kebab on Tags lens opens *Manage tags*
