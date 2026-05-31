@@ -36,11 +36,9 @@ const SCROLL_OFFSET = 130; // px below the top a heading must pass to be "active
 export function ReadNoteView({
   note,
   basePath,
-  backLabel = 'Library',
 }: {
   note: StudentNoteRead;
   basePath: string;
-  backLabel?: string;
 }) {
   const blocks = useMemo(
     () => (note.body.content ?? []) as ReadNode[],
@@ -178,9 +176,24 @@ export function ReadNoteView({
       {/* Body */}
       <article className="lib-read-body">
         <div className="lib-read-toprow">
-          <Link href={basePath} className="lib-read-back">
-            ← Back to {backLabel}
-          </Link>
+          <nav className="lib-read-crumb" aria-label="Breadcrumb">
+            <Link href={basePath} className="lib-read-crumb-link">
+              Library
+            </Link>
+            {note.folder && (
+              <>
+                <span className="lib-read-crumb-sep" aria-hidden="true">
+                  /
+                </span>
+                <Link
+                  href={`${basePath}?folder=${note.folder.folder_id}`}
+                  className="lib-read-crumb-link"
+                >
+                  {note.folder.name}
+                </Link>
+              </>
+            )}
+          </nav>
           <button
             type="button"
             className={'lib-read-bookmark' + (bookmarked ? ' is-on' : '')}
@@ -196,15 +209,39 @@ export function ReadNoteView({
         {note.subtitle && <p className="lib-read-subtitle">{note.subtitle}</p>}
 
         <div className="lib-read-meta">
+          {note.shelves.map((s) => (
+            <Link
+              key={s.shelf_id}
+              href={`${basePath}?shelf=${s.shelf_id}`}
+              className="lib-meta-chip lib-meta-chip-shelf"
+              title={`On shelf: ${s.title}`}
+            >
+              <span
+                className="lib-meta-shelf-dot"
+                style={{ background: s.color }}
+                aria-hidden="true"
+              />
+              {s.title}
+            </Link>
+          ))}
           {note.pillars.map((p) => (
-            <span key={p} className="lib-meta-chip" title={p}>
+            <Link
+              key={p}
+              href={`${basePath}?pillar=${encodeURIComponent(p)}`}
+              className="lib-meta-chip"
+              title={p}
+            >
               {pillarShortName(p)}
-            </span>
+            </Link>
           ))}
           {note.tags.map((t) => (
-            <span key={t} className="lib-tag-inline">
+            <Link
+              key={t}
+              href={`${basePath}?tag=${encodeURIComponent(t)}`}
+              className="lib-tag-inline"
+            >
               #{t}
-            </span>
+            </Link>
           ))}
           <span className="lib-read-meta-spacer" />
           <span className="lib-read-meta-dim">

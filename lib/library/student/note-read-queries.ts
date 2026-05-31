@@ -21,6 +21,13 @@ export type StudentNoteReadState = {
   lastHeadingId: string | null;
 };
 
+export type StudentNoteFolder = { folder_id: string; name: string };
+export type StudentNoteShelf = {
+  shelf_id: string;
+  title: string;
+  color: string;
+};
+
 export type StudentNoteRead = {
   note_id: string;
   title: string;
@@ -30,8 +37,40 @@ export type StudentNoteRead = {
   updated_at: string;
   body: TiptapDoc;
   readingMinutes: number;
+  /** The note's home folder (breadcrumb), or null for a root note. */
+  folder: StudentNoteFolder | null;
+  /** Every shelf the note is on (cross-cutting; rendered as chips). */
+  shelves: StudentNoteShelf[];
   state: StudentNoteReadState;
 };
+
+// PostgREST embed shapes (mirror the list-side helpers).
+type FolderEmbed = { name: string } | { name: string }[] | null | undefined;
+type ShelfPipEmbed = {
+  nclex_tutor_library_shelves:
+    | { shelf_id: string; title: string; color: string }
+    | { shelf_id: string; title: string; color: string }[]
+    | null;
+}[];
+
+function extractFolderName(embed: FolderEmbed): string | null {
+  const f = Array.isArray(embed) ? embed[0] : embed;
+  return f?.name ?? null;
+}
+
+function extractShelves(
+  embed: ShelfPipEmbed | null | undefined,
+): StudentNoteShelf[] {
+  if (!Array.isArray(embed)) return [];
+  return embed
+    .map((m) => {
+      const s = m.nclex_tutor_library_shelves;
+      const shelf = Array.isArray(s) ? s[0] : s;
+      if (!shelf) return null;
+      return { shelf_id: shelf.shelf_id, title: shelf.title, color: shelf.color };
+    })
+    .filter((x): x is StudentNoteShelf => x != null);
+}
 
 // Walk the Tiptap doc collecting plain text, for the ~200-wpm reading
 // estimate. Text lives on `text` nodes; we ignore atoms (image / pdf /
@@ -61,7 +100,13 @@ export async function getStudentNoteForRead(
 
   const { data: note, error } = await supabase
     .from('nclex_tutor_library_notes')
-    .select('note_id, title, subtitle, pillars, tags, body, updated_at')
+    .select(
+      `note_id, title, subtitle, pillars, tags, body, updated_at, folder_id,
+       nclex_tutor_library_folders ( name ),
+       nclex_tutor_library_shelf_memberships (
+         nclex_tutor_library_shelves ( shelf_id, title, color )
+       )`,
+    )
     .eq('note_id', noteId)
     .maybeSingle();
 
@@ -75,7 +120,17 @@ export async function getStudentNoteForRead(
     tags: string[];
     body: unknown;
     updated_at: string;
+    folder_id: string | null;
+    nclex_tutor_library_folders: FolderEmbed;
+    nclex_tutor_library_shelf_memberships: ShelfPipEmbed;
   };
+
+  const folderName = extractFolderName(row.nclex_tutor_library_folders);
+  const folder =
+    row.folder_id && folderName
+      ? { folder_id: row.folder_id, name: folderName }
+      : null;
+  const shelves = extractShelves(row.nclex_tutor_library_shelf_memberships);
 
   const body = bodyToTiptap(row.body);
   const words = countWords(body);
@@ -104,6 +159,8 @@ export async function getStudentNoteForRead(
     updated_at: row.updated_at,
     body,
     readingMinutes,
+    folder,
+    shelves,
     state: {
       bookmarked: s?.bookmarked_at != null,
       done: s?.marked_done_at != null,

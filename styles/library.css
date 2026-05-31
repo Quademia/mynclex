@@ -6427,13 +6427,50 @@ th.lib-lab-actions-col {
   gap: 12px;
   margin-bottom: 18px;
 }
-.lib-read-back {
+.lib-read-crumb {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: 13px;
+  min-width: 0;
+}
+.lib-read-crumb-link {
   color: var(--text-muted);
   text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
 }
-.lib-read-back:hover {
+.lib-read-crumb-link:hover {
   color: var(--accent);
+}
+.lib-read-crumb-sep {
+  color: var(--border-strong);
+}
+
+/* Meta-row chips are links back to the library scoped to that
+   shelf / pillar / tag — keep the chip look, drop the link underline. */
+a.lib-meta-chip,
+a.lib-tag-inline {
+  text-decoration: none;
+  cursor: pointer;
+}
+a.lib-meta-chip:hover,
+a.lib-tag-inline:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.lib-meta-chip-shelf {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.lib-meta-shelf-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 .lib-read-bookmark {
   margin-left: auto;
