@@ -24,16 +24,16 @@ import type { LibraryNoteLensRow } from '../types';
 
 interface StudentNoteRowProps {
   note: LibraryNoteLensRow;
-  /** Programme scope — builds the read-view href. */
-  programmeId: string;
+  /** Route base for this library, e.g. `/student/programme/<id>/library`. */
+  basePath: string;
 }
 
-export function StudentNoteRow({ note, programmeId }: StudentNoteRowProps) {
+export function StudentNoteRow({ note, basePath }: StudentNoteRowProps) {
   const fallbackLine = lensRowFallback(note.description, note.subtitle);
 
   return (
     <Link
-      href={`/student/programme/${programmeId}/library/note/${note.note_id}`}
+      href={`${basePath}/note/${note.note_id}`}
       className="lib-note-lens-row"
     >
       <div className="lib-note-lens-main">

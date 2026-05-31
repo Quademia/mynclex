@@ -111,22 +111,36 @@ async function resolveProgrammeTutor(
 }
 
 /**
- * The student library snapshot for one programme. Returns null when the
- * programme can't be resolved (stale id / not enrolled) — the access
- * gate in the layout already covers the common case, but this keeps the
- * query honest if called directly.
+ * Resolve the tutor behind a cohort (tutor-led delivery). A cohort
+ * belongs to a programme; the programme names the tutor. Both rows are
+ * readable by an enrolled student via metadata-tier RLS. Returns null
+ * for a stale / non-enrolled cohort id.
+ */
+async function resolveCohortTutor(cohortId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('nclex_cohorts')
+    .select('programme_id')
+    .eq('cohort_id', cohortId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return resolveProgrammeTutor((data as { programme_id: string }).programme_id);
+}
+
+/**
+ * Build the snapshot for a resolved tutor. Shared by the programme
+ * (self-paced) and cohort (tutor-led) entry points — the library is the
+ * same surface in both delivery modes; only how we arrive at the tutor
+ * differs.
  *
- * Three RLS-gated reads run in parallel after the tutor is resolved:
+ * Three RLS-gated reads run in parallel:
  *   • folders  — the tutor's folders (student-visible)
  *   • shelves  — the tutor's shelves (student-visible)
  *   • notes    — published + visible notes, lens-row projection
  */
-export async function getStudentLibrarySnapshot(
-  programmeId: string,
-): Promise<StudentLibrarySnapshot | null> {
-  const tutorId = await resolveProgrammeTutor(programmeId);
-  if (!tutorId) return null;
-
+async function buildSnapshotForTutor(
+  tutorId: string,
+): Promise<StudentLibrarySnapshot> {
   const supabase = await createClient();
 
   const noteSelect = `
@@ -201,4 +215,31 @@ export async function getStudentLibrarySnapshot(
   });
 
   return { tutorId, folders, shelves, notes };
+}
+
+/**
+ * Student library snapshot for a self-paced programme. Returns null when
+ * the programme can't be resolved (stale id / not enrolled) — the layout
+ * access gate covers the common case; this keeps the query honest if
+ * called directly.
+ */
+export async function getStudentLibrarySnapshot(
+  programmeId: string,
+): Promise<StudentLibrarySnapshot | null> {
+  const tutorId = await resolveProgrammeTutor(programmeId);
+  if (!tutorId) return null;
+  return buildSnapshotForTutor(tutorId);
+}
+
+/**
+ * Student library snapshot for a tutor-led cohort. Resolves the cohort's
+ * programme → tutor, then builds the same snapshot. Returns null for a
+ * stale / non-enrolled cohort id.
+ */
+export async function getStudentLibrarySnapshotForCohort(
+  cohortId: string,
+): Promise<StudentLibrarySnapshot | null> {
+  const tutorId = await resolveCohortTutor(cohortId);
+  if (!tutorId) return null;
+  return buildSnapshotForTutor(tutorId);
 }

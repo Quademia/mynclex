@@ -59,6 +59,10 @@ export const STUDENT_PROGRAMME_DETAIL_NAV: NavItem[] = [
  */
 export const STUDENT_COHORT_DETAIL_NAV: NavItem[] = [
   { key: 'curriculum', label: 'Curriculum',   icon: 'layers', href: '/student/cohort/:cohortId/curriculum' },
+  // Tutor Library Slice 11.14b — student library, cohort (tutor-led)
+  // sibling of the programme route. Same `file-text` icon as the
+  // programme nav for consistency.
+  { key: 'library',    label: 'Library',      icon: 'file-text', href: '/student/cohort/:cohortId/library' },
   { key: 'quizzes',    label: 'Quizzes',      icon: 'book',   href: '/student/cohort/:cohortId/quizzes' },
   { key: 'history',    label: 'Quiz History', icon: 'clock',  href: '/student/cohort/:cohortId/history' },
 ];

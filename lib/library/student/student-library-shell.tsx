@@ -4,6 +4,11 @@
 // read-only mirror of the tutor's <LibraryHomeShell>, reusing the same
 // .lib-* / .lens-* CSS so the two surfaces read as one design system.
 //
+// Mounted on BOTH delivery modes via a `basePath` prop:
+//   • self-paced → /student/programme/[id]/library   (slice 11.14a)
+//   • tutor-led  → /student/cohort/[id]/library       (slice 11.14b)
+// Same surface; only the route base + how the tutor was resolved differ.
+//
 // What differs from the tutor shell (per the CD prototype's "Student
 // view"):
 //   • Views = All notes (active) · Recent · By unit · Bookmarked. The
@@ -26,44 +31,91 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import { NCLEX_PILLARS, type NclexPillar } from '../types';
 import { pillarShortName } from '../format';
 import { StudentNoteRow } from './student-note-row';
+import type { StudentLibraryScope } from './scope';
 import type {
   StudentLibrarySnapshot,
   StudentLibraryFolder,
   StudentLibraryShelf,
 } from './queries';
 
-// The active lens scope, resolved from the URL by the route.
-export type StudentLibraryScope =
-  | { kind: 'all-notes' }
-  | { kind: 'folder'; id: string }
-  | { kind: 'all-folders' }
-  | { kind: 'shelf'; id: string }
-  | { kind: 'all-shelves' }
-  | { kind: 'pillar'; id: NclexPillar }
-  | { kind: 'tag'; id: string };
-
 interface StudentLibraryShellProps {
   snapshot: StudentLibrarySnapshot;
-  programmeId: string;
+  /** Route base for this library, e.g. `/student/programme/<id>/library`. */
+  basePath: string;
   scope: StudentLibraryScope;
 }
 
-// Base path for every lens link — keeps the programme scope.
-function base(programmeId: string) {
-  return `/student/programme/${programmeId}/library`;
+const LS_RAILED = 'mynclex.studentlibrary.railed';
+const RAILED_EVENT = 'mynclex:studentlibrary:railed';
+
+// Collapse-to-rail preference, persisted in localStorage. Read via
+// useSyncExternalStore — the React-blessed way to subscribe to an
+// external store: SSR-safe (server snapshot = expanded, no hydration
+// mismatch) and free of the "setState in effect" cascade. Toggling
+// writes localStorage and fires an event so every mounted shell (and
+// other tabs, via the native `storage` event) re-reads.
+function railedSubscribe(cb: () => void) {
+  window.addEventListener('storage', cb);
+  window.addEventListener(RAILED_EVENT, cb);
+  return () => {
+    window.removeEventListener('storage', cb);
+    window.removeEventListener(RAILED_EVENT, cb);
+  };
 }
+function railedSnapshot(): boolean {
+  try {
+    return window.localStorage.getItem(LS_RAILED) === '1';
+  } catch {
+    return false;
+  }
+}
+function useRailed(): [boolean, () => void] {
+  const railed = useSyncExternalStore(
+    railedSubscribe,
+    railedSnapshot,
+    () => false,
+  );
+  const toggle = () => {
+    try {
+      window.localStorage.setItem(LS_RAILED, railedSnapshot() ? '0' : '1');
+    } catch {
+      /* ignore */
+    }
+    window.dispatchEvent(new Event(RAILED_EVENT));
+  };
+  return [railed, toggle];
+}
+
+type LensKey = 'views' | 'folders' | 'shelves' | 'pillars' | 'tags';
+const SECTION_GLYPH: Record<LensKey, string> = {
+  views: '☰',
+  folders: '📁',
+  shelves: '📚',
+  pillars: '◆',
+  tags: '#',
+};
+const SECTION_LABEL: Record<LensKey, string> = {
+  views: 'Views',
+  folders: 'Folders',
+  shelves: 'Shelves',
+  pillars: 'Pillars',
+  tags: 'Tags',
+};
 
 export function StudentLibraryShell({
   snapshot,
-  programmeId,
+  basePath,
   scope,
 }: StudentLibraryShellProps) {
   const { folders, shelves, notes } = snapshot;
-  const b = base(programmeId);
+
+  // Collapse-to-rail (slice 11.14b) — persisted preference shared across
+  // mounts + tabs. Default expanded on the server (no hydration mismatch).
+  const [railed, toggleRailed] = useRailed();
 
   // ── Derived counts (drive the sidebar + hide-empty) ───────────────
   const folderCount = useMemo(() => {
@@ -97,7 +149,7 @@ export function StudentLibraryShell({
     notes.forEach((n) => n.tags.forEach((t) => m.set(t, (m.get(t) ?? 0) + 1)));
     return Array.from(m.entries())
       .map(([name, count]) => ({ name, count }))
-      .sort((a, b2) => b2.count - a.count || a.name.localeCompare(b2.name));
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
   }, [notes]);
 
   // Hide-empty: only containers that hold a visible note appear.
@@ -111,6 +163,14 @@ export function StudentLibraryShell({
     (p) => (pillarCount.get(p) ?? 0) > 0,
   );
 
+  // Default landing per lens, used by the railed icons (Pillars / Tags
+  // have no single destination → expand the rail instead).
+  const railHref: Partial<Record<LensKey, string>> = {
+    views: `${basePath}?view=all-notes`,
+    folders: `${basePath}?folder=all`,
+    shelves: `${basePath}?shelf=all`,
+  };
+
   return (
     <div className="lib-page">
       <header className="lib-page-head">
@@ -123,102 +183,159 @@ export function StudentLibraryShell({
         </div>
       </header>
 
-      <div className="lib-body">
-        <aside className="lens-side" aria-label="Library lenses">
-          {/* Views */}
-          <LensSection title="Views" glyph="☰">
-            <LensLink
-              href={`${b}?view=all-notes`}
-              label="All notes"
-              count={notes.length}
-              active={scope.kind === 'all-notes'}
-            />
-            <LensDisabled
-              label="Recent"
-              hint="Lights up once you've opened a few notes."
-            />
-            <LensDisabled
-              label="By unit"
-              hint="Shows notes your tutor attaches to a unit — coming soon."
-            />
-            <LensDisabled
-              label="Bookmarked"
-              hint="Bookmark a note while reading to collect it here."
-            />
-          </LensSection>
+      <div className={`lib-body${railed ? ' is-railed' : ''}`}>
+        <aside
+          className={`lens-side${railed ? ' is-railed' : ''}`}
+          aria-label="Library lenses"
+        >
+          <button
+            className="lens-rail-toggle"
+            onClick={toggleRailed}
+            aria-label={railed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={railed ? 'Expand sidebar' : 'Collapse to icon rail'}
+          >
+            {railed ? '»' : '«'}
+          </button>
 
-          {/* Folders */}
-          {visibleFolders.length > 0 && (
-            <LensSection title="Folders" glyph="📁">
-              <LensLink
-                href={`${b}?folder=all`}
-                label="All folders"
-                count={visibleFolders.length}
-                active={scope.kind === 'all-folders'}
-              />
-              {visibleFolders.map((f) => (
+          {railed ? (
+            // Railed: one glyph per lens. Views / Folders / Shelves link to
+            // their default landing; Pillars / Tags expand the rail.
+            (['views', 'folders', 'shelves', 'pillars', 'tags'] as LensKey[])
+              .filter(
+                (k) =>
+                  k === 'views' ||
+                  (k === 'folders' && visibleFolders.length > 0) ||
+                  (k === 'shelves' && visibleShelves.length > 0) ||
+                  (k === 'pillars' && visiblePillars.length > 0) ||
+                  (k === 'tags' && tagCounts.length > 0),
+              )
+              .map((k) => {
+                const href = railHref[k];
+                return (
+                  <div className="lens-section" key={k}>
+                    {href ? (
+                      <Link
+                        href={href}
+                        className="lens-rail-icon"
+                        title={SECTION_LABEL[k]}
+                        aria-label={SECTION_LABEL[k]}
+                      >
+                        {SECTION_GLYPH[k]}
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        className="lens-rail-icon"
+                        title={`${SECTION_LABEL[k]} — click to expand`}
+                        aria-label={`Expand ${SECTION_LABEL[k]}`}
+                        onClick={toggleRailed}
+                      >
+                        {SECTION_GLYPH[k]}
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+          ) : (
+            <>
+              {/* Views */}
+              <LensSection title="Views" glyph={SECTION_GLYPH.views}>
                 <LensLink
-                  key={f.folder_id}
-                  href={`${b}?folder=${f.folder_id}`}
-                  label={f.name}
-                  count={folderCount.get(f.folder_id) ?? 0}
-                  active={scope.kind === 'folder' && scope.id === f.folder_id}
+                  href={`${basePath}?view=all-notes`}
+                  label="All notes"
+                  count={notes.length}
+                  active={scope.kind === 'all-notes'}
                 />
-              ))}
-            </LensSection>
-          )}
+                <LensDisabled
+                  label="Recent"
+                  hint="Lights up once you've opened a few notes."
+                />
+                <LensDisabled
+                  label="By unit"
+                  hint="Shows notes your tutor attaches to a unit — coming soon."
+                />
+                <LensDisabled
+                  label="Bookmarked"
+                  hint="Bookmark a note while reading to collect it here."
+                />
+              </LensSection>
 
-          {/* Shelves */}
-          {visibleShelves.length > 0 && (
-            <LensSection title="Shelves" glyph="📚">
-              <LensLink
-                href={`${b}?shelf=all`}
-                label="All shelves"
-                count={visibleShelves.length}
-                active={scope.kind === 'all-shelves'}
-              />
-              {visibleShelves.map((s) => (
-                <LensLink
-                  key={s.shelf_id}
-                  href={`${b}?shelf=${s.shelf_id}`}
-                  label={s.title}
-                  count={shelfCount.get(s.shelf_id) ?? 0}
-                  active={scope.kind === 'shelf' && scope.id === s.shelf_id}
-                  dotColor={s.color}
-                />
-              ))}
-            </LensSection>
-          )}
+              {/* Folders */}
+              {visibleFolders.length > 0 && (
+                <LensSection title="Folders" glyph={SECTION_GLYPH.folders}>
+                  <LensLink
+                    href={`${basePath}?folder=all`}
+                    label="All folders"
+                    count={visibleFolders.length}
+                    active={scope.kind === 'all-folders'}
+                  />
+                  {visibleFolders.map((f) => (
+                    <LensLink
+                      key={f.folder_id}
+                      href={`${basePath}?folder=${f.folder_id}`}
+                      label={f.name}
+                      count={folderCount.get(f.folder_id) ?? 0}
+                      active={
+                        scope.kind === 'folder' && scope.id === f.folder_id
+                      }
+                    />
+                  ))}
+                </LensSection>
+              )}
 
-          {/* Pillars */}
-          {visiblePillars.length > 0 && (
-            <LensSection title="Pillars" glyph="◆">
-              {visiblePillars.map((p) => (
-                <LensLink
-                  key={p}
-                  href={`${b}?pillar=${encodeURIComponent(p)}`}
-                  label={pillarShortName(p)}
-                  title={p}
-                  count={pillarCount.get(p) ?? 0}
-                  active={scope.kind === 'pillar' && scope.id === p}
-                />
-              ))}
-            </LensSection>
-          )}
+              {/* Shelves */}
+              {visibleShelves.length > 0 && (
+                <LensSection title="Shelves" glyph={SECTION_GLYPH.shelves}>
+                  <LensLink
+                    href={`${basePath}?shelf=all`}
+                    label="All shelves"
+                    count={visibleShelves.length}
+                    active={scope.kind === 'all-shelves'}
+                  />
+                  {visibleShelves.map((s) => (
+                    <LensLink
+                      key={s.shelf_id}
+                      href={`${basePath}?shelf=${s.shelf_id}`}
+                      label={s.title}
+                      count={shelfCount.get(s.shelf_id) ?? 0}
+                      active={scope.kind === 'shelf' && scope.id === s.shelf_id}
+                      dotColor={s.color}
+                    />
+                  ))}
+                </LensSection>
+              )}
 
-          {/* Tags */}
-          {tagCounts.length > 0 && (
-            <LensSection title="Tags" glyph="#">
-              {tagCounts.map((t) => (
-                <LensLink
-                  key={t.name}
-                  href={`${b}?tag=${encodeURIComponent(t.name)}`}
-                  label={`#${t.name}`}
-                  count={t.count}
-                  active={scope.kind === 'tag' && scope.id === t.name}
-                />
-              ))}
-            </LensSection>
+              {/* Pillars */}
+              {visiblePillars.length > 0 && (
+                <LensSection title="Pillars" glyph={SECTION_GLYPH.pillars}>
+                  {visiblePillars.map((p) => (
+                    <LensLink
+                      key={p}
+                      href={`${basePath}?pillar=${encodeURIComponent(p)}`}
+                      label={pillarShortName(p)}
+                      title={p}
+                      count={pillarCount.get(p) ?? 0}
+                      active={scope.kind === 'pillar' && scope.id === p}
+                    />
+                  ))}
+                </LensSection>
+              )}
+
+              {/* Tags */}
+              {tagCounts.length > 0 && (
+                <LensSection title="Tags" glyph={SECTION_GLYPH.tags}>
+                  {tagCounts.map((t) => (
+                    <LensLink
+                      key={t.name}
+                      href={`${basePath}?tag=${encodeURIComponent(t.name)}`}
+                      label={`#${t.name}`}
+                      count={t.count}
+                      active={scope.kind === 'tag' && scope.id === t.name}
+                    />
+                  ))}
+                </LensSection>
+              )}
+            </>
           )}
         </aside>
 
@@ -228,7 +345,7 @@ export function StudentLibraryShell({
             notes={notes}
             folders={folders}
             shelves={shelves}
-            programmeId={programmeId}
+            basePath={basePath}
           />
         </main>
       </div>
@@ -245,30 +362,20 @@ function MainPane({
   notes,
   folders,
   shelves,
-  programmeId,
+  basePath,
 }: {
   scope: StudentLibraryScope;
   notes: StudentLibrarySnapshot['notes'];
   folders: StudentLibraryFolder[];
   shelves: StudentLibraryShelf[];
-  programmeId: string;
+  basePath: string;
 }) {
   if (scope.kind === 'all-folders') {
-    return (
-      <FoldersGrid
-        folders={folders}
-        notes={notes}
-        programmeId={programmeId}
-      />
-    );
+    return <FoldersGrid folders={folders} notes={notes} basePath={basePath} />;
   }
   if (scope.kind === 'all-shelves') {
     return (
-      <ShelvesCarousel
-        shelves={shelves}
-        notes={notes}
-        programmeId={programmeId}
-      />
+      <ShelvesCarousel shelves={shelves} notes={notes} basePath={basePath} />
     );
   }
 
@@ -310,7 +417,7 @@ function MainPane({
       sub={sub}
       crumb={crumb}
       notes={list}
-      programmeId={programmeId}
+      basePath={basePath}
     />
   );
 }
@@ -321,13 +428,13 @@ function NotesPane({
   sub,
   crumb,
   notes,
-  programmeId,
+  basePath,
 }: {
   title: string;
   sub: string;
   crumb: string;
   notes: StudentLibrarySnapshot['notes'];
-  programmeId: string;
+  basePath: string;
 }) {
   const [q, setQ] = useState('');
   const filtered = useMemo(() => {
@@ -371,19 +478,13 @@ function NotesPane({
             🔍
           </div>
           <p className="lib-empty-sub">
-            {q.trim()
-              ? 'No notes match your search.'
-              : 'No notes here yet.'}
+            {q.trim() ? 'No notes match your search.' : 'No notes here yet.'}
           </p>
         </div>
       ) : (
         <div className="lib-notes-list">
           {filtered.map((n) => (
-            <StudentNoteRow
-              key={n.note_id}
-              note={n}
-              programmeId={programmeId}
-            />
+            <StudentNoteRow key={n.note_id} note={n} basePath={basePath} />
           ))}
         </div>
       )}
@@ -395,11 +496,11 @@ function NotesPane({
 function FoldersGrid({
   folders,
   notes,
-  programmeId,
+  basePath,
 }: {
   folders: StudentLibraryFolder[];
   notes: StudentLibrarySnapshot['notes'];
-  programmeId: string;
+  basePath: string;
 }) {
   const count = (fid: string) =>
     notes.filter((n) => n.folder_id === fid).length;
@@ -424,7 +525,7 @@ function FoldersGrid({
         {visible.map((f) => (
           <Link
             key={f.folder_id}
-            href={`${base(programmeId)}?folder=${f.folder_id}`}
+            href={`${basePath}?folder=${f.folder_id}`}
             className="lib-folder-card"
           >
             <div className="lib-folder-card-ic" aria-hidden="true">
@@ -435,8 +536,7 @@ function FoldersGrid({
               <div className="lib-folder-card-desc">{f.description}</div>
             )}
             <div className="lib-folder-card-meta">
-              {count(f.folder_id)} note
-              {count(f.folder_id) === 1 ? '' : 's'}
+              {count(f.folder_id)} note{count(f.folder_id) === 1 ? '' : 's'}
             </div>
           </Link>
         ))}
@@ -449,11 +549,11 @@ function FoldersGrid({
 function ShelvesCarousel({
   shelves,
   notes,
-  programmeId,
+  basePath,
 }: {
   shelves: StudentLibraryShelf[];
   notes: StudentLibrarySnapshot['notes'];
-  programmeId: string;
+  basePath: string;
 }) {
   const membersOf = (sid: string) =>
     notes.filter((n) => n.shelf_memberships.some((m) => m.shelf_id === sid));
@@ -485,7 +585,7 @@ function ShelvesCarousel({
                   style={{ background: s.color }}
                 />
                 <Link
-                  href={`${base(programmeId)}?shelf=${s.shelf_id}`}
+                  href={`${basePath}?shelf=${s.shelf_id}`}
                   className="lib-shelf-strip-title"
                 >
                   {s.title}
@@ -503,11 +603,9 @@ function ShelvesCarousel({
                 {members.map((n) => (
                   <Link
                     key={n.note_id}
-                    href={`${base(programmeId)}/note/${n.note_id}`}
+                    href={`${basePath}/note/${n.note_id}`}
                     className="lib-shelf-card lib-shelf-card-link"
-                    style={
-                      { '--shelf-accent': s.color } as React.CSSProperties
-                    }
+                    style={{ '--shelf-accent': s.color } as React.CSSProperties}
                   >
                     <div className="lib-shelf-card-title">{n.title}</div>
                     <div className="lib-shelf-card-desc">
