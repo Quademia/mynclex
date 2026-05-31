@@ -82,19 +82,20 @@ export function NoteLensRow({
               <span aria-hidden="true">📁</span> {note.folder_name}
             </span>
           )}
-          {pips.length > 0 && (
-            <span className="lib-shelf-pip-cluster" aria-label="On shelves">
-              {pips.map((s) => (
-                <span
-                  key={s.shelf_id}
-                  className="lib-shelf-pip"
-                  style={{ background: s.color }}
-                  title={s.title}
-                  aria-label={s.title}
-                />
-              ))}
+          {pips.map((s) => (
+            <span
+              key={s.shelf_id}
+              className="lib-meta-chip lib-meta-chip-shelf"
+              title={`On shelf: ${s.title}`}
+            >
+              <span
+                className="lib-meta-shelf-dot"
+                style={{ background: s.color }}
+                aria-hidden="true"
+              />
+              {s.title}
             </span>
-          )}
+          ))}
           {note.pillars.map((p) => (
             <span key={p} className="lib-meta-chip" title={p}>
               {pillarShortName(p)}
