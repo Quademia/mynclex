@@ -29,6 +29,8 @@ import { ErrorToast } from '@/lib/toast/error-toast';
 import { AddNotesToShelfModal } from './add-notes-to-shelf-modal';
 import { NoteLensRow } from './note-lens-row';
 import { RemoveFromShelfConfirm } from './remove-from-shelf-confirm';
+import { NewShelfModal } from './new-shelf-modal';
+import { DeleteShelfConfirm } from './delete-shelf-confirm';
 import { reorderShelfMemberAction } from './actions';
 import type {
   LibraryEligibleNote,
@@ -41,6 +43,8 @@ interface ShelfDetailProps {
   shelf: LibraryShelfDetail;
   /** For the AddNotesToShelfModal's folder-filter dropdown. */
   folders: Array<{ folder_id: string; name: string }>;
+  /** All shelves, for the edit modal's dup-check (11.16c follow-on). */
+  shelves: LibraryShelfWithCount[];
   /**
    * Eligibles for THIS shelf — pre-fetched so the picker opens
    * instantly. Empty array when the shelf already covers every
@@ -49,8 +53,15 @@ interface ShelfDetailProps {
   eligibles: LibraryEligibleNote[];
 }
 
-export function ShelfDetail({ shelf, folders, eligibles }: ShelfDetailProps) {
+export function ShelfDetail({
+  shelf,
+  folders,
+  shelves,
+  eligibles,
+}: ShelfDetailProps) {
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [removing, setRemoving] =
     useState<LibraryShelfDetailNote | null>(null);
 
@@ -114,13 +125,29 @@ export function ShelfDetail({ shelf, folders, eligibles }: ShelfDetailProps) {
             <p className="lib-shelf-detail-desc">{shelf.description}</p>
           )}
         </div>
-        <button
-          type="button"
-          className="lib-btn lib-btn-primary"
-          onClick={() => setAdding(true)}
-        >
-          + Add notes
-        </button>
+        <div className="lib-pane-actions">
+          <button
+            type="button"
+            className="lib-btn lib-btn-sm"
+            onClick={() => setEditing(true)}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            className="lib-btn lib-btn-sm lib-btn-danger"
+            onClick={() => setDeleting(true)}
+          >
+            Delete
+          </button>
+          <button
+            type="button"
+            className="lib-btn lib-btn-primary"
+            onClick={() => setAdding(true)}
+          >
+            + Add notes
+          </button>
+        </div>
       </header>
 
       {shelf.notes.length === 0 ? (
@@ -148,6 +175,22 @@ export function ShelfDetail({ shelf, folders, eligibles }: ShelfDetailProps) {
           folders={folders}
           eligibleNotes={eligibles}
           onClose={() => setAdding(false)}
+        />
+      )}
+
+      {editing && (
+        <NewShelfModal
+          existingShelves={shelves}
+          variant={{ mode: 'edit', shelf }}
+          onClose={() => setEditing(false)}
+        />
+      )}
+
+      {deleting && (
+        <DeleteShelfConfirm
+          shelf={shelf}
+          redirectTo="/tutor/library?shelf=all"
+          onClose={() => setDeleting(false)}
         />
       )}
 

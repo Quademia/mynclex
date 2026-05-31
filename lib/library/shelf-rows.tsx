@@ -108,7 +108,7 @@ function ShelfRow({ shelf, href, isActive, onEdit, onDelete }: ShelfRowProps) {
 
   // Fixed-position the menu off the kebab's rect so it escapes the
   // lens-scroll container's clipping (slice 11.16c-3).
-  const menuPos = usePopoverPosition({
+  const { ref: menuRef, style: menuStyle } = usePopoverPosition({
     getAnchorRect: () => kebabRef.current?.getBoundingClientRect() ?? null,
     gap: 4,
   });
@@ -164,8 +164,8 @@ function ShelfRow({ shelf, href, isActive, onEdit, onDelete }: ShelfRowProps) {
       </button>
       {menuOpen && (
         <div
-          ref={menuPos.ref}
-          style={{ ...menuPos.style, right: 'auto' }}
+          ref={menuRef}
+          style={{ ...menuStyle, right: 'auto' }}
           className="lens-item-menu"
           role="menu"
         >
