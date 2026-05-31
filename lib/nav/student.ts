@@ -39,6 +39,10 @@ export const STUDENT_BANK_NAV: NavItem[] = [
  */
 export const STUDENT_PROGRAMME_DETAIL_NAV: NavItem[] = [
   { key: 'curriculum', label: 'Curriculum',   icon: 'layers', href: '/student/programme/:programmeId/curriculum' },
+  // Tutor Library Slice 11.14 — the student-facing library (read-only
+  // mirror of the tutor library). Icon `file-text` (notes) — distinct
+  // from `book`, which Quizzes already uses in this same sidebar.
+  { key: 'library',    label: 'Library',      icon: 'file-text', href: '/student/programme/:programmeId/library' },
   // Tutor Quiz Slice 6 — programme-level quizzes. Icon `book`
   // (the student's mental model is "a quiz to take," and `target`
   // already represents Readiness Packs in the global bank nav —

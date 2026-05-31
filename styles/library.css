@@ -6293,3 +6293,34 @@ th.lib-lab-actions-col {
   gap: 8px;
   flex-shrink: 0;
 }
+
+/* =====================================================================
+   SLICE 11.14 — student library (front door)
+   =====================================================================
+
+   The student surface reuses the tutor library's .lib-* / .lens-*
+   chrome wholesale; the only new element is the in-pane client-side
+   search box that sits above the note list (the student has no
+   server-side full-text search — that's a tutor tool). */
+.lib-student-search {
+  margin-bottom: 14px;
+}
+
+.lib-student-search input {
+  width: 100%;
+  max-width: 420px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.lib-student-search input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint, rgba(13, 148, 136, 0.12));
+}
