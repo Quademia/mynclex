@@ -481,6 +481,7 @@ export function LibraryHomeShell({
                   folder_id: f.folder_id,
                   name: f.name,
                 }))}
+                shelves={shelves}
                 eligibles={eligibleByShelf[shelfDetail.shelf_id] ?? []}
               />
             ) : (
@@ -518,8 +519,8 @@ export function LibraryHomeShell({
           ) : selectedFolder ? (
             <NotesList
               notes={notes ?? []}
-              folderName={selectedFolder.name}
-              folderDescription={selectedFolder.description}
+              folder={selectedFolder}
+              folders={folders}
               onNewNote={openNewNote}
             />
           ) : selected != null && selected !== 'all' ? (

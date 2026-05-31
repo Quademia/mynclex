@@ -1,36 +1,42 @@
-// mynclex/lib/library/delete-folder-confirm.tsx
+// mynclex/lib/library/delete-shelf-confirm.tsx
 //
-// Confirm dialog for deleting a folder. Simple yes/no — not type-to-
-// confirm — because the action is non-destructive at the note level:
-// notes inside orphan to Root, keeping their body, shelf memberships,
-// programme attachments and visibility settings. The folder pointer
-// is the only thing that changes.
+// Confirmation dialog for deleting a shelf. Extracted from
+// shelf-rows.tsx (slice 11.16c follow-on) so both the sidebar kebab
+// AND the shelf detail pane can share one implementation — mirrors how
+// RemoveFromShelfConfirm was pulled out earlier.
 //
-// Body copy is note-count-aware: an empty folder gets a tighter
-// message; a folder with notes inside spells out exactly where they
-// go.
+// Simple yes/no destructive confirm. No type-to-confirm gate — the
+// delete is recoverable in spirit (the shelf can be recreated, and
+// notes themselves are untouched; only membership rows cascade away).
+// The DB has FK RESTRICT on `_note_attachments.shelf_id`, so a shelf
+// attached to a programme can't be deleted — the action surfaces a
+// specific error which we route through the toast.
+//
+// `redirectTo` (optional): when the caller is *viewing* the thing it's
+// deleting (the detail pane), pass a URL to navigate to on success —
+// the current URL would otherwise 404 on the gone shelf. The sidebar
+// kebab omits it and just router.refresh()es in place.
 
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
-import { deleteFolderAction } from './actions';
-import type { LibraryFolderWithCount } from './types';
+import { deleteShelfAction } from './actions';
+import type { LibraryShelf } from './types';
 
-interface DeleteFolderConfirmProps {
-  folder: LibraryFolderWithCount;
+interface DeleteShelfConfirmProps {
+  shelf: LibraryShelf;
   onClose: () => void;
-  /** Navigate here on success instead of refreshing in place — used
-   *  when the caller is viewing the folder it's deleting. */
+  /** Navigate here on success instead of refreshing in place. */
   redirectTo?: string;
 }
 
-export function DeleteFolderConfirm({
-  folder,
+export function DeleteShelfConfirm({
+  shelf,
   onClose,
   redirectTo,
-}: DeleteFolderConfirmProps) {
+}: DeleteShelfConfirmProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -46,7 +52,7 @@ export function DeleteFolderConfirm({
   async function handleDelete() {
     setPending(true);
     setError(null);
-    const result = await deleteFolderAction(folder.folder_id);
+    const result = await deleteShelfAction(shelf.shelf_id);
     if (!result.ok) {
       setError(result.error);
       setPending(false);
@@ -57,39 +63,30 @@ export function DeleteFolderConfirm({
     else router.refresh();
   }
 
-  const noteCount = folder.note_count;
-
   return (
     <>
       <div
         className="prog-modal-overlay"
         role="dialog"
         aria-modal="true"
-        aria-label={`Delete folder ${folder.name}`}
+        aria-label={`Delete shelf ${shelf.title}`}
         onClick={(e) => {
           if (e.target === e.currentTarget && !pending) onClose();
         }}
       >
-        <div className="prog-modal lib-modal-folder-delete">
+        <div className="prog-modal lib-modal-shelf-delete">
           <header className="prog-modal-header">
-            <h2 className="prog-modal-title">Delete folder?</h2>
+            <h2 className="prog-modal-title">Delete shelf?</h2>
           </header>
           <div className="prog-modal-body">
             <p>
-              Delete <b>{folder.name}</b>?
+              Delete <b>{shelf.title}</b>?
             </p>
-            {noteCount === 0 ? (
-              <p className="lib-modal-sub">
-                This folder is empty, so nothing else changes.
-              </p>
-            ) : (
-              <p className="lib-modal-sub">
-                The {noteCount} note{noteCount === 1 ? '' : 's'} inside
-                will move to <b>Root</b> — body content, shelf memberships,
-                programme attachments and visibility settings are all
-                kept. You can re-file them later if you want.
-              </p>
-            )}
+            <p className="lib-modal-sub">
+              The shelf and its membership rows go. Notes that were on
+              this shelf are untouched — they stay in their folders and
+              keep their visibility.
+            </p>
           </div>
           <footer className="prog-modal-footer">
             <button
@@ -106,7 +103,7 @@ export function DeleteFolderConfirm({
               onClick={handleDelete}
               disabled={pending}
             >
-              {pending ? 'Deleting…' : 'Delete folder'}
+              {pending ? 'Deleting…' : 'Delete shelf'}
             </button>
           </footer>
         </div>

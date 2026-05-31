@@ -6280,3 +6280,16 @@ th.lib-lab-actions-col {
 .lens-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* =====================================================================
+   SLICE 11.16c follow-on — pane-header Edit / Delete actions
+   ===================================================================== */
+
+/* Folder + shelf detail panes group their header actions (Edit /
+   Delete / primary) on the right, mirroring the saved-view pane. */
+.lib-pane-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
