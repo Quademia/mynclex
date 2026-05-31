@@ -42,6 +42,8 @@ import { NotesList } from './notes-list';
 import { NotesView } from './notes-view';
 import { SearchResults } from './search-results';
 import { ShelfDetail, ShelfNotFound } from './shelf-detail';
+import { TagRows } from './tag-rows';
+import { TagView } from './tag-view';
 import type {
   LibraryEligibleNote,
   LibraryFolderWithCount,
@@ -52,6 +54,7 @@ import type {
   LibraryShelfDetail,
   LibraryShelfWithCount,
   LibraryShelfWithNotes,
+  LibraryTagCount,
   LibraryViewCounts,
   LibraryViewKey,
   NclexPillar,
@@ -156,6 +159,18 @@ interface LibraryHomeShellProps {
    */
   pillarCounts: Record<NclexPillar, number>;
   /**
+   * Distinct tags + counts for the sidebar Tags lens (11.16b). Always
+   * present; empty array when the tutor has tagged nothing yet.
+   */
+  tagCounts: LibraryTagCount[];
+  /** The current `?tag=` URL value — null = no tag scope active. */
+  tagSelected: string | null;
+  /**
+   * Lens-row data for the active tag (when `tagSelected != null`).
+   * Empty array when the tag matches no notes.
+   */
+  tagNotes: LibraryNoteLensRow[] | null;
+  /**
    * Overview dashboard data — non-null only when no scope is
    * active (`/tutor/library` with no query params). Drives stat
    * cards + recent activity + pillar coverage + quick links.
@@ -190,6 +205,9 @@ export function LibraryHomeShell({
   viewNotes,
   viewCounts,
   pillarCounts,
+  tagCounts,
+  tagSelected,
+  tagNotes,
   overviewStats,
   searchQuery,
   searchFields,
@@ -284,7 +302,8 @@ export function LibraryHomeShell({
     searchQuery == null &&
     selected == null &&
     shelfSelected == null &&
-    viewSelected == null;
+    viewSelected == null &&
+    tagSelected == null;
 
   return (
     <div className="lib-page">
@@ -363,6 +382,8 @@ export function LibraryHomeShell({
               viewSelected={viewSelected}
               viewCounts={viewCounts}
               pillarCounts={pillarCounts}
+              tagCounts={tagCounts}
+              tagSelected={tagSelected}
             />
           ))}
         </aside>
@@ -412,6 +433,10 @@ export function LibraryHomeShell({
             // notes matching the view's filter — All notes / Drafts /
             // Used nowhere.
             <NotesView viewKey={viewSelected} notes={viewNotes ?? []} />
+          ) : tagSelected != null ? (
+            // Tag scope (?tag=<tag>). Lens-row list of notes carrying
+            // the tag (11.16b-1).
+            <TagView tag={tagSelected} notes={tagNotes ?? []} />
           ) : selected === 'all' ? (
             <AllFoldersGrid folders={folders} onNewFolder={openNewFolder} />
           ) : selectedFolder ? (
@@ -491,6 +516,8 @@ function LensSection({
   viewSelected,
   viewCounts,
   pillarCounts,
+  tagCounts,
+  tagSelected,
 }: {
   lens: LensKey;
   railed: boolean;
@@ -504,6 +531,8 @@ function LensSection({
   viewSelected: LibraryViewKey | null;
   viewCounts: LibraryViewCounts;
   pillarCounts: Record<NclexPillar, number>;
+  tagCounts: LibraryTagCount[];
+  tagSelected: string | null;
 }) {
   if (railed) {
     // Railed mode: one icon glyph per section. Views / Folders /
@@ -565,6 +594,8 @@ function LensSection({
           viewSelected,
           viewCounts,
           pillarCounts,
+          tagCounts,
+          tagSelected,
         )}
       </div>
     </div>
@@ -581,6 +612,8 @@ function renderLensBody(
   viewSelected: LibraryViewKey | null,
   viewCounts: LibraryViewCounts,
   pillarCounts: Record<NclexPillar, number>,
+  tagCounts: LibraryTagCount[],
+  tagSelected: string | null,
 ) {
   switch (lens) {
     case 'views':
@@ -637,11 +670,7 @@ function renderLensBody(
       );
 
     case 'tags':
-      return (
-        <div className="lens-empty">
-          Tags from your notes appear here.
-        </div>
-      );
+      return <TagRows tags={tagCounts} selected={tagSelected} />;
   }
 }
 

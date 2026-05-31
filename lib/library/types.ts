@@ -424,6 +424,15 @@ export type LibraryViewCounts = {
   used_nowhere: number;
 };
 
+/**
+ * One tag with the number of the tutor's notes carrying it. Powers
+ * the sidebar Tags lens (slice 11.16b) and the Manage-tags panel.
+ */
+export type LibraryTagCount = {
+  tag: string;
+  count: number;
+};
+
 
 // =====================================================================
 // Slice 11.16a — content search

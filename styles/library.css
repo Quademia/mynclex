@@ -410,6 +410,37 @@
 }
 
 
+/* ─── SLICE 11.16b — Tags lens rows ─────────────────────── */
+
+/* Tag vocabulary grows unbounded, so the list scrolls within the
+   sidebar instead of pushing the section open indefinitely. */
+.lens-tag-list {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.lens-item-tag .label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lens-tag-hash {
+  color: var(--text-dim);
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.lens-item-tag.is-active .lens-tag-hash {
+  color: var(--accent);
+  opacity: 1;
+}
+
+
 /* ─── Railed (collapsed) sidebar variant ────────────────── */
 /* When the sidebar collapses to 48px, only the section icons
    show; labels + counts hide. Tooltips on hover (native title

@@ -28,6 +28,7 @@ import type {
   LibraryShelfWithCount,
   LibraryShelfWithNotes,
   LibrarySearchFieldFlags,
+  LibraryTagCount,
   LibraryViewCounts,
   LibraryViewKey,
   NclexPillar,
@@ -872,6 +873,23 @@ function aggregatePillars(
 }
 
 /**
+ * Distinct tags across the tutor's notes with per-tag note counts,
+ * sorted by count desc then alphabetically. A note counts once per
+ * tag it carries. Powers the sidebar Tags lens (11.16b).
+ */
+function aggregateTags(rows: LibraryNoteLensRow[]): LibraryTagCount[] {
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    for (const tag of r.tags) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  }
+  return Array.from(counts.entries())
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+}
+
+/**
  * Counts powering the sidebar Views lens entries. Always called on
  * every render of `/tutor/library` so the lens lights up regardless
  * of which scope the tutor is in.
@@ -879,6 +897,7 @@ function aggregatePillars(
 export async function getLibraryLensCounts(): Promise<{
   view: LibraryViewCounts;
   pillars: Record<NclexPillar, number>;
+  tags: LibraryTagCount[];
 }> {
   const rows = await fetchAllLensRowsForTutor();
   return {
@@ -888,6 +907,7 @@ export async function getLibraryLensCounts(): Promise<{
       used_nowhere: rows.filter((r) => r.used_in_count === 0).length,
     },
     pillars: aggregatePillars(rows),
+    tags: aggregateTags(rows),
   };
 }
 
@@ -936,6 +956,19 @@ export async function getNotesForView(
     case 'used-nowhere':
       return rows.filter((r) => r.used_in_count === 0);
   }
+}
+
+
+/**
+ * Lens-row list for a single tag — every note the tutor owns that
+ * carries `tag`. Derived from the same cached row fetch as the
+ * system views (11.16b). Sorted newest-edit-first (the fetch order).
+ */
+export async function getNotesForTag(
+  tag: string,
+): Promise<LibraryNoteLensRow[]> {
+  const rows = await fetchAllLensRowsForTutor();
+  return rows.filter((r) => r.tags.includes(tag));
 }
 
 

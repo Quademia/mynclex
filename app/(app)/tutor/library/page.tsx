@@ -26,6 +26,7 @@ import {
   getFoldersForTutor,
   getLibraryLensCounts,
   getLibraryOverviewStats,
+  getNotesForTag,
   getNotesForTutor,
   getNotesForView,
   getShelfDetail,
@@ -45,6 +46,7 @@ interface PageProps {
     folder?: string | string[];
     shelf?: string | string[];
     view?: string | string[];
+    tag?: string | string[];
     q?: string | string[];
     qf?: string | string[];
   }>;
@@ -68,11 +70,12 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
   const selected = firstOrNull(params.folder);
   const shelfSelected = firstOrNull(params.shelf);
   const viewSelected = parseViewKey(firstOrNull(params.view));
+  const tagSelected = firstOrNull(params.tag);
   const searchQuery = (firstOrNull(params.q) ?? '').trim();
   const searchFields = decodeSearchFields(firstOrNull(params.qf));
 
-  // Branch dispatch — precedence: search > shelf > view > folder >
-  // none(overview). A live `?q=` takes the main pane over wholesale;
+  // Branch dispatch — precedence: search > shelf > view > tag > folder
+  // > none(overview). A live `?q=` takes the main pane over wholesale;
   // composing search with the other scopes (chip filters) lands in
   // slice 11.16c. Lens counts always fetched so the sidebar lights up
   // regardless of scope.
@@ -82,15 +85,22 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
     !searchScope && shelfSelected != null && shelfSelected !== 'all';
   const viewScope =
     !searchScope && shelfSelected == null && viewSelected != null;
+  const tagScope =
+    !searchScope &&
+    shelfSelected == null &&
+    viewSelected == null &&
+    tagSelected != null;
   const folderScope =
     !searchScope &&
     shelfSelected == null &&
     viewSelected == null &&
+    tagSelected == null &&
     selected != null;
   const overviewScope =
     !searchScope &&
     shelfSelected == null &&
     viewSelected == null &&
+    tagSelected == null &&
     selected == null;
 
   const [
@@ -99,6 +109,7 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
     shelvesWithNotes,
     shelfDetail,
     viewNotes,
+    tagNotes,
     overviewStats,
     lensCounts,
     searchNotes,
@@ -108,6 +119,7 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
     carouselScope ? getShelvesWithNotes() : Promise.resolve(null),
     detailScope ? getShelfDetail(shelfSelected) : Promise.resolve(null),
     viewScope ? getNotesForView(viewSelected) : Promise.resolve(null),
+    tagScope ? getNotesForTag(tagSelected) : Promise.resolve(null),
     overviewScope ? getLibraryOverviewStats() : Promise.resolve(null),
     getLibraryLensCounts(),
     searchScope
@@ -154,6 +166,9 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
       viewNotes={viewNotes}
       viewCounts={lensCounts.view}
       pillarCounts={lensCounts.pillars}
+      tagCounts={lensCounts.tags}
+      tagSelected={tagScope ? tagSelected : null}
+      tagNotes={tagNotes}
       overviewStats={overviewStats}
       searchQuery={searchScope ? searchQuery : null}
       searchFields={searchFields}
