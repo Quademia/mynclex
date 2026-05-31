@@ -14,11 +14,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { NoteLensRow } from './note-lens-row';
-import { NewNoteModal } from './new-note-modal';
 import { NewFolderModal } from './new-folder-modal';
 import { DeleteFolderConfirm } from './delete-folder-confirm';
-import { useState } from 'react';
 import type { LibraryFolderWithCount, LibraryNoteListRow } from './types';
 
 interface NotesListProps {
