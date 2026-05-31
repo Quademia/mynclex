@@ -46,6 +46,11 @@ import { ShelfDetail, ShelfNotFound } from './shelf-detail';
 import { TagRows } from './tag-rows';
 import { TagView } from './tag-view';
 import { ViewBuilder } from './view-builder';
+import { SavedViewPane, ViewNotFound } from './saved-view-pane';
+import type {
+  LibrarySavedView,
+  LibrarySavedViewWithCount,
+} from './view-filters';
 import type {
   LibraryEligibleNote,
   LibraryFolderWithCount,
@@ -183,6 +188,31 @@ interface LibraryHomeShellProps {
    */
   builderRows: LibraryNoteLensRow[] | null;
   /**
+   * Saved view to seed the builder in edit mode (`?view=<id>&edit=1`).
+   * Null for the create builder.
+   */
+  builderInitial: LibrarySavedView | null;
+  /**
+   * Every saved custom view the tutor owns (with live match counts) —
+   * powers the Views sidebar list. Always present (empty array when the
+   * tutor has saved none).
+   */
+  savedViews: LibrarySavedViewWithCount[];
+  /**
+   * True when a saved-view read pane (`?view=<uuid>`) is active.
+   */
+  savedViewActive: boolean;
+  /**
+   * The saved view being read — null surfaces the "View not found" pane
+   * when `savedViewActive` (stale / cross-tutor uuid).
+   */
+  savedView: LibrarySavedView | null;
+  /**
+   * Lens-row list the saved view's combo matches. Non-null only when
+   * `savedView` resolved.
+   */
+  savedViewNotes: LibraryNoteLensRow[] | null;
+  /**
    * Overview dashboard data — non-null only when no scope is
    * active (`/tutor/library` with no query params). Drives stat
    * cards + recent activity + pillar coverage + quick links.
@@ -222,6 +252,11 @@ export function LibraryHomeShell({
   tagNotes,
   builderActive,
   builderRows,
+  builderInitial,
+  savedViews,
+  savedViewActive,
+  savedView,
+  savedViewNotes,
   overviewStats,
   searchQuery,
   searchFields,
@@ -319,7 +354,13 @@ export function LibraryHomeShell({
     shelfSelected == null &&
     viewSelected == null &&
     tagSelected == null &&
-    !builderActive;
+    !builderActive &&
+    !savedViewActive;
+
+  // Which saved view (if any) is the active scope — drives the sidebar
+  // highlight for both the read pane and the seeded edit builder.
+  const activeSavedViewId =
+    savedView?.view_id ?? builderInitial?.view_id ?? null;
 
   return (
     <div className="lib-page">
@@ -401,6 +442,8 @@ export function LibraryHomeShell({
               tagCounts={tagCounts}
               tagSelected={tagSelected}
               builderActive={builderActive}
+              savedViews={savedViews}
+              activeSavedViewId={activeSavedViewId}
               onManageTags={() => setManageTagsOpen(true)}
             />
           ))}
@@ -452,12 +495,20 @@ export function LibraryHomeShell({
             // Used nowhere.
             <NotesView viewKey={viewSelected} notes={viewNotes ?? []} />
           ) : builderActive ? (
-            // Custom-view builder scope (?view=new). Filter chips over a
-            // live-filtered note list (slice 11.16c).
+            // Custom-view builder scope (?view=new | ?view=<id>&edit=1).
+            // Filter chips over a live-filtered note list + save (11.16c).
             <ViewBuilder
               allRows={builderRows ?? []}
               tagCounts={tagCounts}
+              initial={builderInitial}
             />
+          ) : savedViewActive ? (
+            // Saved custom view read pane (?view=<uuid>). Null = stale id.
+            savedView ? (
+              <SavedViewPane view={savedView} notes={savedViewNotes ?? []} />
+            ) : (
+              <ViewNotFound />
+            )
           ) : tagSelected != null ? (
             // Tag scope (?tag=<tag>). Lens-row list of notes carrying
             // the tag (11.16b-1).
@@ -550,6 +601,8 @@ function LensSection({
   tagCounts,
   tagSelected,
   builderActive,
+  savedViews,
+  activeSavedViewId,
   onManageTags,
 }: {
   lens: LensKey;
@@ -567,6 +620,8 @@ function LensSection({
   tagCounts: LibraryTagCount[];
   tagSelected: string | null;
   builderActive: boolean;
+  savedViews: LibrarySavedViewWithCount[];
+  activeSavedViewId: string | null;
   onManageTags: () => void;
 }) {
   if (railed) {
@@ -655,6 +710,8 @@ function LensSection({
           tagCounts,
           tagSelected,
           builderActive,
+          savedViews,
+          activeSavedViewId,
         )}
       </div>
     </div>
@@ -674,6 +731,8 @@ function renderLensBody(
   tagCounts: LibraryTagCount[],
   tagSelected: string | null,
   builderActive: boolean,
+  savedViews: LibrarySavedViewWithCount[],
+  activeSavedViewId: string | null,
 ) {
   switch (lens) {
     case 'views':
@@ -706,12 +765,23 @@ function renderLensBody(
             count={viewCounts.used_nowhere}
             isActive={viewSelected === 'used-nowhere'}
           />
+          {savedViews.map((v) => (
+            <LensItemLink
+              key={v.view_id}
+              href={`/tutor/library?view=${v.view_id}`}
+              label={v.name}
+              count={v.count}
+              isActive={activeSavedViewId === v.view_id}
+            />
+          ))}
           <Link
             href="/tutor/library?view=new"
             className={`lens-item lens-item-newview${
-              builderActive ? ' is-active' : ''
+              builderActive && activeSavedViewId == null ? ' is-active' : ''
             }`}
-            aria-current={builderActive ? 'page' : undefined}
+            aria-current={
+              builderActive && activeSavedViewId == null ? 'page' : undefined
+            }
           >
             <span className="label">+ New view</span>
           </Link>

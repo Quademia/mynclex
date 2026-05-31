@@ -30,6 +30,8 @@ import {
   getNotesForTag,
   getNotesForTutor,
   getNotesForView,
+  getSavedView,
+  getSavedViewsWithCounts,
   getShelfDetail,
   getShelvesForTutor,
   getShelvesWithNotes,
@@ -47,6 +49,7 @@ interface PageProps {
     folder?: string | string[];
     shelf?: string | string[];
     view?: string | string[];
+    edit?: string | string[];
     tag?: string | string[];
     q?: string | string[];
     qf?: string | string[];
@@ -72,6 +75,7 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
   const shelfSelected = firstOrNull(params.shelf);
   const viewParam = firstOrNull(params.view);
   const viewSelected = parseViewKey(viewParam);
+  const editMode = firstOrNull(params.edit) === '1';
   const tagSelected = firstOrNull(params.tag);
   const searchQuery = (firstOrNull(params.q) ?? '').trim();
   const searchFields = decodeSearchFields(firstOrNull(params.qf));
@@ -85,31 +89,44 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
   const carouselScope = !searchScope && shelfSelected === 'all';
   const detailScope =
     !searchScope && shelfSelected != null && shelfSelected !== 'all';
-  // Custom-view builder scope (slice 11.16c) — `?view=new` opens the
-  // filter builder. A saved-view uuid lands in c-2; for now any
-  // non-system, non-'new' view value falls through to overview.
-  const builderScope =
-    !searchScope && shelfSelected == null && viewParam === 'new';
   const viewScope =
     !searchScope && shelfSelected == null && viewSelected != null;
+  // Custom-view scopes (slice 11.16c). `?view=new` opens the create
+  // builder; `?view=<uuid>` is a saved view — read pane by default,
+  // `&edit=1` re-opens the builder seeded with it.
+  const builderCreateScope =
+    !searchScope && shelfSelected == null && viewParam === 'new';
+  const savedViewScope =
+    !searchScope &&
+    shelfSelected == null &&
+    viewSelected == null &&
+    viewParam != null &&
+    viewParam !== 'new';
+  const builderEditScope = savedViewScope && editMode;
+  const savedViewReadScope = savedViewScope && !editMode;
+  // Any builder render (create or seeded edit) needs the full row set.
+  const builderScope = builderCreateScope || builderEditScope;
   const tagScope =
     !searchScope &&
     shelfSelected == null &&
     viewSelected == null &&
-    !builderScope &&
+    !builderCreateScope &&
+    !savedViewScope &&
     tagSelected != null;
   const folderScope =
     !searchScope &&
     shelfSelected == null &&
     viewSelected == null &&
-    !builderScope &&
+    !builderCreateScope &&
+    !savedViewScope &&
     tagSelected == null &&
     selected != null;
   const overviewScope =
     !searchScope &&
     shelfSelected == null &&
     viewSelected == null &&
-    !builderScope &&
+    !builderCreateScope &&
+    !savedViewScope &&
     tagSelected == null &&
     selected == null;
 
@@ -121,6 +138,8 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
     viewNotes,
     tagNotes,
     builderRows,
+    savedViews,
+    savedViewData,
     overviewStats,
     lensCounts,
     searchNotes,
@@ -132,12 +151,33 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
     viewScope ? getNotesForView(viewSelected) : Promise.resolve(null),
     tagScope ? getNotesForTag(tagSelected) : Promise.resolve(null),
     builderScope ? getAllLensRowsForTutor() : Promise.resolve(null),
+    getSavedViewsWithCounts(),
+    savedViewScope
+      ? getSavedView(viewParam as string)
+      : Promise.resolve(null),
     overviewScope ? getLibraryOverviewStats() : Promise.resolve(null),
     getLibraryLensCounts(),
     searchScope
       ? searchNotesForTutor(searchQuery, searchFields)
       : Promise.resolve(null),
   ]);
+
+  // Resolve the custom-view render shape. In edit mode the builder is
+  // seeded from the saved view; a stale uuid (savedViewData null) falls
+  // through to the "View not found" pane either way.
+  const builderInitial = builderEditScope
+    ? (savedViewData?.view ?? null)
+    : null;
+  const builderActive =
+    builderCreateScope || (builderEditScope && builderInitial != null);
+  const savedView = savedViewReadScope
+    ? (savedViewData?.view ?? null)
+    : null;
+  const savedViewNotes = savedViewReadScope
+    ? (savedViewData?.notes ?? null)
+    : null;
+  const savedViewActive =
+    savedViewReadScope || (builderEditScope && builderInitial == null);
 
   // Folder list — only when a real folder is selected. The
   // overview / view / shelf scopes take the main pane over wholesale.
@@ -181,8 +221,13 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
       tagCounts={lensCounts.tags}
       tagSelected={tagScope ? tagSelected : null}
       tagNotes={tagNotes}
-      builderActive={builderScope}
+      builderActive={builderActive}
       builderRows={builderRows}
+      builderInitial={builderInitial}
+      savedViews={savedViews}
+      savedViewActive={savedViewActive}
+      savedView={savedView}
+      savedViewNotes={savedViewNotes}
       overviewStats={overviewStats}
       searchQuery={searchScope ? searchQuery : null}
       searchFields={searchFields}

@@ -1,26 +1,31 @@
 // mynclex/lib/library/view-builder.tsx
 //
-// Custom-view filter builder main pane (slice 11.16c-1). Mounted at
-// `?view=new`. A filter bar over three dimensions (status / pillars /
-// tags) with a live-filtered note list beneath — filtering happens in
-// the browser over the full row set passed in, so toggling a chip is
-// instant (no round trip).
+// Custom-view filter builder main pane (slice 11.16c). Mounted at
+// `?view=new` (create) or `?view=<uuid>&edit=1` (edit). A filter bar
+// over three dimensions (status / pillars / tags) with a live-filtered
+// note list beneath — filtering happens in the browser over the full
+// row set passed in, so toggling a chip is instant (no round trip).
 //
-// c-1 is filter + preview only. The "Save as view" button + seeding
-// from a saved view land in c-2 (`nclex_tutor_library_views`).
+// c-1 shipped filter + preview. c-2 adds the name input + Save (create
+// → createViewAction → land on the new view; edit → updateViewAction →
+// back to the view).
 
 'use client';
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ErrorToast } from '@/lib/toast/error-toast';
 import { NoteLensRow } from './note-lens-row';
 import { PillarPicker } from './pillar-picker';
 import { TagMultiPicker } from './tag-multi-picker';
 import { pillarShortName } from './format';
+import { createViewAction, updateViewAction } from './view-actions';
 import {
   applyViewFilters,
   isEmptyFilters,
   EMPTY_VIEW_FILTERS,
+  type LibrarySavedView,
   type LibraryViewFilters,
   type LibraryViewStatus,
 } from './view-filters';
@@ -33,7 +38,8 @@ import type {
 interface ViewBuilderProps {
   allRows: LibraryNoteLensRow[];
   tagCounts: LibraryTagCount[];
-  initialFilters?: LibraryViewFilters;
+  /** Non-null = edit an existing view; null/undefined = create. */
+  initial?: LibrarySavedView | null;
 }
 
 const STATUS_OPTIONS: { key: LibraryViewStatus; label: string }[] = [
@@ -42,16 +48,18 @@ const STATUS_OPTIONS: { key: LibraryViewStatus; label: string }[] = [
   { key: 'draft', label: 'Drafts' },
 ];
 
-export function ViewBuilder({
-  allRows,
-  tagCounts,
-  initialFilters,
-}: ViewBuilderProps) {
+export function ViewBuilder({ allRows, tagCounts, initial }: ViewBuilderProps) {
+  const router = useRouter();
+  const isEdit = initial != null;
+
   const [filters, setFilters] = useState<LibraryViewFilters>(
-    initialFilters ?? EMPTY_VIEW_FILTERS,
+    initial?.filters ?? EMPTY_VIEW_FILTERS,
   );
+  const [name, setName] = useState(initial?.name ?? '');
   const [pillarsOpen, setPillarsOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const matched = useMemo(
     () => applyViewFilters(allRows, filters),
@@ -59,6 +67,7 @@ export function ViewBuilder({
   );
 
   const empty = isEmptyFilters(filters);
+  const canSave = name.trim().length > 0 && !empty && !pending;
 
   function setStatus(status: LibraryViewStatus) {
     setFilters((f) => ({ ...f, status }));
@@ -79,6 +88,29 @@ export function ViewBuilder({
     setFilters(EMPTY_VIEW_FILTERS);
   }
 
+  async function save() {
+    if (!canSave) return;
+    setPending(true);
+    setError(null);
+    if (isEdit && initial) {
+      const result = await updateViewAction(initial.view_id, name, filters);
+      if (!result.ok) {
+        setPending(false);
+        setError(result.error);
+        return;
+      }
+      router.push(`/tutor/library?view=${initial.view_id}`);
+    } else {
+      const result = await createViewAction(name, filters);
+      if (!result.ok) {
+        setPending(false);
+        setError(result.error);
+        return;
+      }
+      router.push(`/tutor/library?view=${result.viewId}`);
+    }
+  }
+
   return (
     <div className="lib-notes-view lib-view-builder">
       <header className="lib-pane-head">
@@ -90,15 +122,55 @@ export function ViewBuilder({
             <span className="sep">/</span>
             <span className="b">Views</span>
             <span className="sep">/</span>
-            <span className="b">New view</span>
+            <span className="b">{isEdit ? 'Edit view' : 'New view'}</span>
           </div>
-          <h1 className="lib-pane-title">New view</h1>
+          <h1 className="lib-pane-title">{isEdit ? 'Edit view' : 'New view'}</h1>
           <p className="lib-pane-sub">
-            Combine filters to carve out a slice of your library. Saving
-            this combo as a reusable view lands next.
+            Combine filters to carve out a slice of your library, name it,
+            and it lives in the Views sidebar for one-click recall.
           </p>
         </div>
       </header>
+
+      {/* Name + Save row */}
+      <div className="lib-vb-save">
+        <input
+          type="text"
+          className="lib-vb-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Name this view (e.g. “Cohort 5 drafts”)"
+          maxLength={60}
+          aria-label="View name"
+        />
+        <button
+          type="button"
+          className="lib-btn lib-btn-primary"
+          onClick={save}
+          disabled={!canSave}
+          title={
+            empty
+              ? 'Add at least one filter to save a view'
+              : name.trim().length === 0
+                ? 'Give the view a name'
+                : undefined
+          }
+        >
+          {pending
+            ? 'Saving…'
+            : isEdit
+              ? 'Save changes'
+              : 'Save as view'}
+        </button>
+        {isEdit && initial && (
+          <Link
+            href={`/tutor/library?view=${initial.view_id}`}
+            className="lib-btn"
+          >
+            Cancel
+          </Link>
+        )}
+      </div>
 
       <div className="lib-vb-bar" role="group" aria-label="View filters">
         {/* Status segmented control */}
@@ -274,6 +346,8 @@ export function ViewBuilder({
           ))}
         </ul>
       )}
+
+      <ErrorToast error={error} onDismiss={() => setError(null)} />
     </div>
   );
 }

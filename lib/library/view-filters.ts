@@ -31,6 +31,23 @@ export type LibraryViewFilters = {
   tags: string[];
 };
 
+/**
+ * One saved custom view (slice 11.16c-2) — a named filter combo, one
+ * row in `nclex_tutor_library_views`. `filters` is the normalised
+ * `filters_json`. `position` drives sidebar order.
+ */
+export type LibrarySavedView = {
+  view_id: string;
+  name: string;
+  filters: LibraryViewFilters;
+  position: number;
+};
+
+/** A saved view plus the live count of notes its combo matches. */
+export type LibrarySavedViewWithCount = LibrarySavedView & {
+  count: number;
+};
+
 export const EMPTY_VIEW_FILTERS: LibraryViewFilters = {
   status: 'any',
   pillars: [],

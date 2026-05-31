@@ -12,6 +12,12 @@
 import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { NCLEX_PILLARS } from './types';
+import {
+  applyViewFilters,
+  normalizeFilters,
+  type LibrarySavedView,
+  type LibrarySavedViewWithCount,
+} from './view-filters';
 import type {
   LibraryEligibleNote,
   LibraryFolderWithCount,
@@ -981,6 +987,83 @@ export async function getNotesForTag(
  */
 export async function getAllLensRowsForTutor(): Promise<LibraryNoteLensRow[]> {
   return fetchAllLensRowsForTutor();
+}
+
+
+// =====================================================================
+// Slice 11.16c-2 — saved custom views
+// =====================================================================
+
+type SavedViewRow = {
+  view_id: string;
+  name: string;
+  filters_json: unknown;
+  position: number;
+};
+
+/**
+ * Every saved view the tutor owns, ordered by `position`, each with the
+ * live count of notes its filter combo matches. The count is computed
+ * in-app over the cached lens-row fetch (the same one the sidebar
+ * counts + system views use), so the whole sidebar — system views,
+ * pillar/tag counts, AND saved-view counts — costs a single notes read
+ * per render. RLS scopes the view rows to the tutor.
+ */
+export async function getSavedViewsWithCounts(): Promise<
+  LibrarySavedViewWithCount[]
+> {
+  const supabase = await createClient();
+  const [rows, { data, error }] = await Promise.all([
+    fetchAllLensRowsForTutor(),
+    supabase
+      .from('nclex_tutor_library_views')
+      .select('view_id, name, filters_json, position')
+      .order('position', { ascending: true }),
+  ]);
+  if (error || !data) return [];
+
+  return (data as SavedViewRow[]).map((r) => {
+    const filters = normalizeFilters(r.filters_json);
+    return {
+      view_id: r.view_id,
+      name: r.name,
+      filters,
+      position: r.position,
+      count: applyViewFilters(rows, filters).length,
+    } satisfies LibrarySavedViewWithCount;
+  });
+}
+
+/**
+ * One saved view + the lens-row list its combo matches. Returns `null`
+ * when the id doesn't match any of the tutor's views (RLS filters
+ * cross-tutor reads, so non-existent + not-yours both surface as
+ * `null` — caller renders a "View not found" pane). Mirrors
+ * `getShelfDetail`'s shape: the row read, then the filtered note set.
+ */
+export async function getSavedView(
+  viewId: string,
+): Promise<{ view: LibrarySavedView; notes: LibraryNoteLensRow[] } | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('nclex_tutor_library_views')
+    .select('view_id, name, filters_json, position')
+    .eq('view_id', viewId)
+    .maybeSingle();
+  if (error || !data) return null;
+
+  const row = data as SavedViewRow;
+  const filters = normalizeFilters(row.filters_json);
+  const rows = await fetchAllLensRowsForTutor();
+  return {
+    view: {
+      view_id: row.view_id,
+      name: row.name,
+      filters,
+      position: row.position,
+    },
+    notes: applyViewFilters(rows, filters),
+  };
 }
 
 

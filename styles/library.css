@@ -6122,3 +6122,126 @@ th.lib-lab-actions-col {
 .lens-item-newview .label { font-weight: 600; color: var(--accent); }
 
 .lens-item-newview.is-active .label { color: var(--white); }
+
+/* =====================================================================
+   SLICE 11.16c-2 — save / edit / saved-view pane
+   ===================================================================== */
+
+/* Small + danger button variants (used by the saved-view actions). */
+.lib-btn-sm {
+  padding: 5px 10px;
+  font-size: 12.5px;
+}
+
+.lib-btn-danger {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  color: var(--danger);
+}
+
+.lib-btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 8%, var(--white));
+  border-color: var(--danger);
+}
+
+/* Name + Save row in the builder */
+.lib-vb-save {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.lib-vb-name {
+  flex: 1;
+  min-width: 0;
+  max-width: 420px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: var(--white);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.lib-vb-name:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* Saved-view pane header layout */
+.lib-saved-view-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+}
+
+.lib-saved-view-head-main {
+  min-width: 0;
+}
+
+.lib-saved-view-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.lib-saved-view-rename {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 4px;
+}
+
+.lib-saved-view-rename input {
+  min-width: 220px;
+  height: 36px;
+  padding: 0 11px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--white);
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.lib-saved-view-rename input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* Read-only filter summary pills under the title */
+.lib-saved-view-summary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  vertical-align: middle;
+}
+
+.lib-sv-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.lib-sv-pill-pillar {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+.lib-modal-confirm {
+  max-width: 440px;
+}
