@@ -15,6 +15,7 @@
 
 import Link from 'next/link';
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -22,6 +23,7 @@ import {
   useTransition,
 } from 'react';
 import { RenderBlocks, extractHeadings } from './read-blocks';
+import { EmbedPlayGuardContext } from './embed-play-guard';
 import { pillarShortName, formatRelative } from '../format';
 import type { ReadNode } from './read-inline';
 import type { StudentNoteRead } from './note-read-queries';
@@ -32,6 +34,12 @@ import {
 } from './note-read-actions';
 
 const SCROLL_OFFSET = 130; // px below the top a heading must pass to be "active"
+
+// Shown when the student tries to leave the note mid-practice. Honest:
+// answers already submitted are saved; only the in-progress set restarts.
+const LEAVE_PRACTICE_MSG =
+  'You are in the middle of a practice set. Your answers so far are saved, ' +
+  'but you will start this set over next time. Leave anyway?';
 
 export function ReadNoteView({
   note,
@@ -52,6 +60,45 @@ export function ReadNoteView({
   const [bookmarked, setBookmarked] = useState(note.state.bookmarked);
   const [done, setDone] = useState(note.state.done);
   const [, startTransition] = useTransition();
+
+  // ── Leave-mid-practice guard ──
+  // Embed players report when their set is mid-run; while any is, warn
+  // before leaving (refresh/close via beforeunload + the note's own
+  // back / breadcrumb / chip links via a confirm). The global sidebar
+  // isn't intercepted (App Router has no clean nav-block hook).
+  const [playingBlocks, setPlayingBlocks] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const setBlockPlaying = useCallback((blockId: string, playing: boolean) => {
+    setPlayingBlocks((prev) => {
+      if (playing === prev.has(blockId)) return prev;
+      const next = new Set(prev);
+      if (playing) next.add(blockId);
+      else next.delete(blockId);
+      return next;
+    });
+  }, []);
+  const guardValue = useMemo(() => ({ setBlockPlaying }), [setBlockPlaying]);
+  const guardActive = playingBlocks.size > 0;
+
+  useEffect(() => {
+    if (!guardActive) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [guardActive]);
+
+  const onGuardedNav = useCallback(
+    (e: React.MouseEvent) => {
+      if (guardActive && !window.confirm(LEAVE_PRACTICE_MSG)) {
+        e.preventDefault();
+      }
+    },
+    [guardActive],
+  );
 
   // Resume on open — scroll to the deepest heading the student reached,
   // if it still exists. Runs once.
@@ -137,7 +184,8 @@ export function ReadNoteView({
     headings.length === 0 ? 0 : Math.round((sectionNum / headings.length) * 100);
 
   return (
-    <div className="lib-read-shell">
+    <EmbedPlayGuardContext.Provider value={guardValue}>
+      <div className="lib-read-shell">
       {/* Contents rail */}
       <aside className="lib-read-toc" aria-label="Contents">
         <div className="lib-read-toc-title">Contents</div>
@@ -177,7 +225,11 @@ export function ReadNoteView({
       <article className="lib-read-body">
         <div className="lib-read-toprow">
           <nav className="lib-read-crumb" aria-label="Breadcrumb">
-            <Link href={basePath} className="lib-read-crumb-link">
+            <Link
+              href={basePath}
+              className="lib-read-crumb-link"
+              onClick={onGuardedNav}
+            >
               Library
             </Link>
             {note.folder && (
@@ -188,6 +240,7 @@ export function ReadNoteView({
                 <Link
                   href={`${basePath}?folder=${note.folder.folder_id}`}
                   className="lib-read-crumb-link"
+                  onClick={onGuardedNav}
                 >
                   {note.folder.name}
                 </Link>
@@ -215,6 +268,7 @@ export function ReadNoteView({
               href={`${basePath}?shelf=${s.shelf_id}`}
               className="lib-meta-chip lib-meta-chip-shelf"
               title={`On shelf: ${s.title}`}
+              onClick={onGuardedNav}
             >
               <span
                 className="lib-meta-shelf-dot"
@@ -230,6 +284,7 @@ export function ReadNoteView({
               href={`${basePath}?pillar=${encodeURIComponent(p)}`}
               className="lib-meta-chip"
               title={p}
+              onClick={onGuardedNav}
             >
               {pillarShortName(p)}
             </Link>
@@ -239,6 +294,7 @@ export function ReadNoteView({
               key={t}
               href={`${basePath}?tag=${encodeURIComponent(t)}`}
               className="lib-tag-inline"
+              onClick={onGuardedNav}
             >
               #{t}
             </Link>
@@ -267,6 +323,7 @@ export function ReadNoteView({
           </button>
         </div>
       </article>
-    </div>
+      </div>
+    </EmbedPlayGuardContext.Provider>
   );
 }

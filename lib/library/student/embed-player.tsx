@@ -1,18 +1,18 @@
 // mynclex/lib/library/student/embed-player.tsx
 //
 // The inline embedded-questions player (slice 11.13b) — the read view's
-// "read → try → feedback → read on" practice break. Loads its block's
-// questions on mount (answerable content only, no key), walks them
-// sequentially, grades each via the secure submit action, and shows
-// inline feedback. Always a fresh pass on (re)open; each submit appends
-// to history (server-side).
+// "read → try → feedback → read on" practice break.
+//
+// Flow: an intro card ("Practice — N questions · Start") → a fresh pass
+// through the block (Question N-of-M → answer → Submit → inline feedback
+// → Next) → an end-of-set summary. Each pass is one "play" (a play_id
+// minted on Start, sent with every answer). On reopen it's always fresh,
+// with a "last time: X of Y" line on the intro card.
 //
 // The question rendering + green/red review styling are the EXISTING
-// bank-runner components (MCQ / TF / SATA / Select-N) + RationaleBlock,
-// so it matches the rest of the app. This file is just the player chrome
-// (Question N-of-M header, submit/next foot, end-of-set summary) + the
-// type dispatch. Type-dispatched from day one so future types (matrix,
-// highlight) slot in as a registry entry, not a rewrite.
+// bank-runner components (MCQ / TF / SATA / Select-N) + RationaleBlock;
+// this file is the player chrome + type dispatch + the "leaving mid-set"
+// guard hookup (reports mid-play to the read view via EmbedPlayGuard).
 
 'use client';
 
@@ -39,6 +39,7 @@ import type {
   SelectNContent,
   SelectNCorrect,
 } from '@/lib/bank/types';
+import { useEmbedPlayGuard } from './embed-play-guard';
 import {
   loadEmbedBlock,
   submitEmbedAnswer,
@@ -47,12 +48,13 @@ import {
 } from './embed-player-actions';
 
 type ReviewOk = Extract<EmbedSubmitResult, { ok: true }>;
+type LastPlay = { answered: number; correct: number } | null;
 
 type LoadState =
   | { status: 'loading' }
   | { status: 'empty' }
   | { status: 'error' }
-  | { status: 'ready'; questions: EmbedPlayQuestion[]; answeredBefore: boolean };
+  | { status: 'ready'; questions: EmbedPlayQuestion[]; lastPlay: LastPlay };
 
 export function EmbedPlayer({
   noteId,
@@ -75,7 +77,7 @@ export function EmbedPlayer({
         setLoad({
           status: 'ready',
           questions: res.questions,
-          answeredBefore: res.questions.some((q) => q.priorAttempts > 0),
+          lastPlay: res.lastPlay,
         });
       }
     });
@@ -101,7 +103,7 @@ export function EmbedPlayer({
       noteId={noteId}
       blockId={blockId}
       questions={load.questions}
-      answeredBefore={load.answeredBefore}
+      lastPlay={load.lastPlay}
     />
   );
 }
@@ -130,14 +132,18 @@ function EmbedPlayerRun({
   noteId,
   blockId,
   questions,
-  answeredBefore,
+  lastPlay,
 }: {
   noteId: string;
   blockId: string;
   questions: EmbedPlayQuestion[];
-  answeredBefore: boolean;
+  lastPlay: LastPlay;
 }) {
+  const guard = useEmbedPlayGuard();
   const total = questions.length;
+
+  const [phase, setPhase] = useState<'intro' | 'playing' | 'done'>('intro');
+  const [playId, setPlayId] = useState<string | null>(null);
   const [idx, setIdx] = useState(0);
   const [answer, setAnswer] = useState<BankItemAnswer>(
     initialAnswer(questions[0].questionType),
@@ -146,18 +152,31 @@ function EmbedPlayerRun({
   const [results, setResults] = useState<boolean[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
 
   const q = questions[idx];
 
+  // Mid-play = a started, unfinished pass with at least one answer in.
+  // Reported up so the read view can warn before the student leaves.
+  const midPlay = phase === 'playing' && results.length > 0;
+  useEffect(() => {
+    guard?.setBlockPlaying(blockId, midPlay);
+    return () => guard?.setBlockPlaying(blockId, false);
+  }, [guard, blockId, midPlay]);
+
+  function start() {
+    setPlayId(crypto.randomUUID());
+    setPhase('playing');
+  }
+
   async function onSubmit() {
-    if (review || submitting || !isComplete(q, answer)) return;
+    if (review || submitting || !playId || !isComplete(q, answer)) return;
     setSubmitting(true);
     setError(null);
     const res = await submitEmbedAnswer({
       noteId,
       blockId,
       itemId: q.itemId,
+      playId,
       answer,
     });
     setSubmitting(false);
@@ -177,11 +196,40 @@ function EmbedPlayerRun({
       setReview(null);
       setError(null);
     } else {
-      setDone(true);
+      setPhase('done');
     }
   }
 
-  if (done) {
+  // ── Intro / Start card ──
+  if (phase === 'intro') {
+    return (
+      <div className="eq-player eq-player--intro">
+        <div className="eq-intro-main">
+          <span className="eq-player-tab">
+            <span aria-hidden="true">✦</span> Practice
+          </span>
+          <div className="eq-intro-title">
+            {total} question{total === 1 ? '' : 's'}
+          </div>
+          <div className="eq-intro-sub">
+            {lastPlay
+              ? `Last time: ${lastPlay.correct} of ${lastPlay.answered} correct.`
+              : 'Test yourself on what you just read.'}
+          </div>
+        </div>
+        <button
+          type="button"
+          className="eq-player-btn eq-player-btn--submit"
+          onClick={start}
+        >
+          {lastPlay ? 'Start again' : 'Start'}
+        </button>
+      </div>
+    );
+  }
+
+  // ── End-of-set summary ──
+  if (phase === 'done') {
     const correct = results.filter(Boolean).length;
     return (
       <div className="eq-player eq-player--done">
@@ -200,6 +248,7 @@ function EmbedPlayerRun({
     );
   }
 
+  // ── Playing ──
   const doneCount = review ? idx + 1 : idx;
 
   return (
@@ -227,12 +276,6 @@ function EmbedPlayerRun({
           </span>
         )}
       </div>
-
-      {answeredBefore && idx === 0 && !review && results.length === 0 && (
-        <div className="eq-player-prior">
-          ↻ You&apos;ve practised this before — this is a fresh attempt.
-        </div>
-      )}
 
       <div className="eq-player-body">
         <div className="rn-stem">{q.stem}</div>

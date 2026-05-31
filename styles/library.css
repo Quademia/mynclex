@@ -6765,6 +6765,31 @@ a.lib-tag-inline:hover {
   font-size: 13px;
 }
 
+/* Intro / Start card — the calm "opt in to practise" state. */
+.eq-player--intro {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.eq-intro-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.eq-intro-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 4px;
+}
+.eq-intro-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.eq-player--intro .eq-player-btn {
+  flex-shrink: 0;
+}
+
 .eq-player-head {
   display: flex;
   align-items: center;

@@ -48,6 +48,13 @@ export type EmbedPlayQuestion = {
 export type EmbedBlockData = {
   blockId: string;
   questions: EmbedPlayQuestion[];
+  /**
+   * The student's most recent sitting (play) at this block, for the
+   * intro card's "last time: X of Y" line. `answered` = questions they
+   * answered in that play; `correct` = how many were right. Null if
+   * they've never played this block.
+   */
+  lastPlay: { answered: number; correct: number } | null;
 };
 
 export type EmbedSubmitResult =
@@ -103,7 +110,8 @@ export async function loadEmbedBlock(
   // 2. Locate the block + its current questions (server-authoritative).
   const block = findEmbedBlock((note as { body: unknown }).body, blockId);
   if (!block) return null;
-  if (block.itemIds.length === 0) return { blockId, questions: [] };
+  if (block.itemIds.length === 0)
+    return { blockId, questions: [], lastPlay: null };
 
   // 3. Answerable content via service role (no student RLS on questions).
   //    Select content but NOT correct / rationale — the key stays server-side
@@ -128,23 +136,39 @@ export async function loadEmbedBlock(
     ]),
   );
 
-  // 4. The student's prior attempts on this block (RLS = own rows).
+  // 4. The student's prior attempts on this block (RLS = own rows),
+  //    newest first.
   const { data: history } = await supabase
     .from('nclex_library_embed_answers')
-    .select('item_id, is_correct, submitted_at')
+    .select('item_id, is_correct, submitted_at, play_id')
     .eq('note_id', noteId)
     .eq('block_id', blockId)
     .order('submitted_at', { ascending: false });
 
-  const hist = new Map<string, { count: number; lastCorrect: boolean }>();
-  for (const h of (history ?? []) as Array<{
+  const rows = (history ?? []) as Array<{
     item_id: string;
     is_correct: boolean;
-  }>) {
+    play_id: string;
+  }>;
+
+  const hist = new Map<string, { count: number; lastCorrect: boolean }>();
+  for (const h of rows) {
     const cur = hist.get(h.item_id);
     if (cur) cur.count += 1;
     // First row seen per item is the latest (desc order).
     else hist.set(h.item_id, { count: 1, lastCorrect: h.is_correct });
+  }
+
+  // The most recent sitting = the play_id of the newest row; tally its
+  // answered + correct for the intro card's "last time" line.
+  let lastPlay: { answered: number; correct: number } | null = null;
+  if (rows.length > 0) {
+    const latestPlayId = rows[0].play_id;
+    const playRows = rows.filter((r) => r.play_id === latestPlayId);
+    lastPlay = {
+      answered: playRows.length,
+      correct: playRows.filter((r) => r.is_correct).length,
+    };
   }
 
   // 5. Assemble in the block's authored order; drop deleted / non-embed.
@@ -165,13 +189,15 @@ export async function loadEmbedBlock(
     });
   }
 
-  return { blockId, questions };
+  return { blockId, questions, lastPlay };
 }
 
 export async function submitEmbedAnswer(args: {
   noteId: string;
   blockId: string;
   itemId: string;
+  /** The current sitting's id — groups all answers from one Start→finish run. */
+  playId: string;
   answer: BankItemAnswer;
   timeSpentSec?: number | null;
 }): Promise<EmbedSubmitResult> {
@@ -237,6 +263,7 @@ export async function submitEmbedAnswer(args: {
       student_id: user.id,
       note_id: noteId,
       block_id: blockId,
+      play_id: args.playId,
       item_id: itemId,
       question_type: question.question_type,
       answer_json: args.answer,
