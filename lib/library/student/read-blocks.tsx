@@ -16,6 +16,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { RenderInline, type ReadNode } from './read-inline';
 import { ImageRead, PdfRead, VideoRead } from './read-media-blocks';
+import { EmbedPlayer } from './embed-player';
 import { CALLOUT_TONES, CALLOUT_TONE_META } from '../callout-block';
 import type { DrugField } from '../drug-card-block';
 import type { LabColumn } from '../lab-values-block';
@@ -192,10 +193,13 @@ function RenderBlock({
         />
       );
     case 'embedded_questions': {
-      const ids = Array.isArray(node.attrs?.item_ids)
-        ? (node.attrs!.item_ids as unknown[])
-        : [];
-      return <EmbedPlaceholder count={ids.length} />;
+      // The inline player (11.13b). block_id was backfilled onto every
+      // existing block + stamped on new ones; if somehow absent, skip
+      // rather than render an unkeyed, un-recordable player.
+      const blockId =
+        typeof node.attrs?.id === 'string' ? node.attrs.id : null;
+      if (!blockId) return null;
+      return <EmbedPlayer noteId={ctx.noteId} blockId={blockId} />;
     }
     default:
       return null;
@@ -363,21 +367,3 @@ function RenderTable({ node, ctx }: { node: ReadNode; ctx: ReadCtx }) {
   );
 }
 
-// ── Embedded questions — 13a placeholder (player lands in 13b) ────────
-function EmbedPlaceholder({ count }: { count: number }) {
-  return (
-    <div className="lib-read-embed-ph" aria-hidden="true">
-      <span className="lib-read-embed-ph-ic">✦</span>
-      <div>
-        <div className="lib-read-embed-ph-title">
-          {count > 0
-            ? `${count} practice question${count === 1 ? '' : 's'}`
-            : 'Practice questions'}
-        </div>
-        <div className="lib-read-embed-ph-sub">
-          Interactive practice arrives in the next update.
-        </div>
-      </div>
-    </div>
-  );
-}

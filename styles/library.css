@@ -6743,3 +6743,145 @@ a.lib-tag-inline:hover {
     display: none;
   }
 }
+
+/* =====================================================================
+   SLICE 11.13b — embedded-questions inline player
+   =====================================================================
+
+   The "practice break" card inside a note. The question + options +
+   review styling come from the shared bank-runner components (.rn-*,
+   styles/runner.css, loaded globally); this is just the player chrome. */
+.eq-player {
+  margin: 22px 0;
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--accent);
+  border-radius: 12px;
+  background: var(--bg-soft);
+  padding: 16px 18px;
+}
+
+.eq-player--state {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.eq-player-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.eq-player-tab {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.eq-player-dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+}
+.eq-player-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+.eq-player-dot.is-done {
+  background: var(--accent);
+}
+.eq-player-dot.is-current {
+  background: var(--white);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.eq-player-prior {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.eq-player-body {
+  /* The runner components bring their own .rn-* styling. Trim the
+     runner stem's large top margin inside this compact card. */
+}
+.eq-player-body .rn-stem {
+  font-size: 15px;
+  margin-top: 0;
+}
+
+.eq-player-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.eq-player-foot-spacer {
+  flex: 1 1 auto;
+}
+.eq-player-error {
+  color: var(--danger, #dc2626);
+  font-size: 12.5px;
+}
+.eq-player-btn {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.12s, background 0.12s;
+}
+.eq-player-btn--submit {
+  background: var(--accent);
+  color: #fff;
+}
+.eq-player-btn--submit:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+.eq-player-btn--submit:disabled {
+  background: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+.eq-player-btn--next {
+  background: var(--primary, var(--accent));
+  color: #fff;
+}
+.eq-player-btn--next:hover {
+  filter: brightness(0.96);
+}
+
+/* End-of-set summary. */
+.eq-player--done {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.eq-player-done-ic {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  font-size: 17px;
+  font-weight: 700;
+}
+.eq-player-done-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.eq-player-done-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
