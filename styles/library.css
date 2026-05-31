@@ -6245,3 +6245,38 @@ th.lib-lab-actions-col {
 .lib-modal-confirm {
   max-width: 440px;
 }
+
+/* =====================================================================
+   SLICE 11.16c-3 — sidebar scroll caps + pinned "All …" anchors
+   ===================================================================== */
+
+/* Folders / Shelves / Views per-item lists scroll within a capped
+   region so a big library can't push the sidebar to an absurd height.
+   The "All folders" / "All shelves" anchors and the system views +
+   "+ New view" entry sit OUTSIDE this wrapper, so they stay pinned
+   while only the unbounded portion scrolls. (Tags already self-caps
+   via .lens-tag-list.) The kebab row menus escape this clip via
+   fixed positioning (usePopoverPosition). */
+.lens-scroll {
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* Leave room on the right so the scrollbar doesn't sit over the
+     hover-revealed kebab. */
+  padding-right: 2px;
+}
+
+.lens-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lens-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-dim) 35%, transparent);
+  border-radius: 4px;
+}
+
+.lens-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}

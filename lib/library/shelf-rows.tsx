@@ -25,6 +25,7 @@ import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { deleteShelfAction } from './actions';
 import { NewShelfModal } from './new-shelf-modal';
+import { usePopoverPosition } from './use-popover-position';
 import type { LibraryShelfWithCount, LibraryShelf } from './types';
 
 interface ShelfRowsProps {
@@ -59,16 +60,20 @@ export function ShelfRows({ shelves, selected }: ShelfRowsProps) {
           No shelves yet — create one with + New shelf.
         </div>
       ) : (
-        shelves.map((s) => (
-          <ShelfRow
-            key={s.shelf_id}
-            shelf={s}
-            href={`/tutor/library?shelf=${s.shelf_id}`}
-            isActive={selected === s.shelf_id}
-            onEdit={() => setEditing(s)}
-            onDelete={() => setDeleting(s)}
-          />
-        ))
+        // Per-shelf rows scroll within a capped region; the "All
+        // shelves" anchor above stays pinned (slice 11.16c-3).
+        <div className="lens-scroll">
+          {shelves.map((s) => (
+            <ShelfRow
+              key={s.shelf_id}
+              shelf={s}
+              href={`/tutor/library?shelf=${s.shelf_id}`}
+              isActive={selected === s.shelf_id}
+              onEdit={() => setEditing(s)}
+              onDelete={() => setDeleting(s)}
+            />
+          ))}
+        </div>
       )}
 
       {editing && (
@@ -101,6 +106,14 @@ interface ShelfRowProps {
 function ShelfRow({ shelf, href, isActive, onEdit, onDelete }: ShelfRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const rowRef = useRef<HTMLDivElement | null>(null);
+  const kebabRef = useRef<HTMLButtonElement | null>(null);
+
+  // Fixed-position the menu off the kebab's rect so it escapes the
+  // lens-scroll container's clipping (slice 11.16c-3).
+  const menuPos = usePopoverPosition({
+    getAnchorRect: () => kebabRef.current?.getBoundingClientRect() ?? null,
+    gap: 4,
+  });
 
   // Click-outside + Escape close.
   useEffect(() => {
@@ -138,6 +151,7 @@ function ShelfRow({ shelf, href, isActive, onEdit, onDelete }: ShelfRowProps) {
       </Link>
       <button
         type="button"
+        ref={kebabRef}
         className="lens-item-kebab"
         aria-label={`Shelf actions for ${shelf.title}`}
         aria-haspopup="menu"
@@ -151,7 +165,12 @@ function ShelfRow({ shelf, href, isActive, onEdit, onDelete }: ShelfRowProps) {
         ⋮
       </button>
       {menuOpen && (
-        <div className="lens-item-menu" role="menu">
+        <div
+          ref={menuPos.ref}
+          style={{ ...menuPos.style, right: 'auto' }}
+          className="lens-item-menu"
+          role="menu"
+        >
           <button
             type="button"
             role="menuitem"

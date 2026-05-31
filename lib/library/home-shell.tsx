@@ -765,15 +765,22 @@ function renderLensBody(
             count={viewCounts.used_nowhere}
             isActive={viewSelected === 'used-nowhere'}
           />
-          {savedViews.map((v) => (
-            <LensItemLink
-              key={v.view_id}
-              href={`/tutor/library?view=${v.view_id}`}
-              label={v.name}
-              count={v.count}
-              isActive={activeSavedViewId === v.view_id}
-            />
-          ))}
+          {savedViews.length > 0 && (
+            // Saved views grow unbounded — scroll them within a capped
+            // region; the 4 system views above + "+ New view" below
+            // stay pinned (slice 11.16c-3).
+            <div className="lens-scroll">
+              {savedViews.map((v) => (
+                <LensItemLink
+                  key={v.view_id}
+                  href={`/tutor/library?view=${v.view_id}`}
+                  label={v.name}
+                  count={v.count}
+                  isActive={activeSavedViewId === v.view_id}
+                />
+              ))}
+            </div>
+          )}
           <Link
             href="/tutor/library?view=new"
             className={`lens-item lens-item-newview${
