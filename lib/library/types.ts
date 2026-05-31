@@ -424,6 +424,36 @@ export type LibraryViewCounts = {
   used_nowhere: number;
 };
 
+
+// =====================================================================
+// Slice 11.16a — content search
+// =====================================================================
+
+/**
+ * The four note fields the toolbar search can be scoped to. They map
+ * 1:1 to the A/B/C/D weights baked into `body_tsv` (title=A,
+ * subtitle=B, description=C, body=D), so the per-field filter is a
+ * pure weight mask — no extra storage.
+ */
+export type LibrarySearchField = 'title' | 'subtitle' | 'description' | 'body';
+
+export const LIBRARY_SEARCH_FIELDS: readonly LibrarySearchField[] = [
+  'title',
+  'subtitle',
+  'description',
+  'body',
+] as const;
+
+/** Per-field on/off flags for a search. All-true is the default. */
+export type LibrarySearchFieldFlags = Record<LibrarySearchField, boolean>;
+
+export const ALL_SEARCH_FIELDS_ON: LibrarySearchFieldFlags = {
+  title: true,
+  subtitle: true,
+  description: true,
+  body: true,
+};
+
 /**
  * Data feeding the Overview dashboard at `/tutor/library` (no
  * scope). Five stat cards + a Recent activity list (last 5 by

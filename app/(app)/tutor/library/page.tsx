@@ -31,7 +31,9 @@ import {
   getShelfDetail,
   getShelvesForTutor,
   getShelvesWithNotes,
+  searchNotesForTutor,
 } from '@/lib/library/queries';
+import { decodeSearchFields } from '@/lib/library/search-fields';
 import type {
   LibraryEligibleNote,
   LibraryViewKey,
@@ -43,6 +45,8 @@ interface PageProps {
     folder?: string | string[];
     shelf?: string | string[];
     view?: string | string[];
+    q?: string | string[];
+    qf?: string | string[];
   }>;
 }
 
@@ -64,17 +68,30 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
   const selected = firstOrNull(params.folder);
   const shelfSelected = firstOrNull(params.shelf);
   const viewSelected = parseViewKey(firstOrNull(params.view));
+  const searchQuery = (firstOrNull(params.q) ?? '').trim();
+  const searchFields = decodeSearchFields(firstOrNull(params.qf));
 
-  // Branch dispatch — precedence: shelf > view > folder > none(overview).
-  // Lens counts always fetched so the sidebar lights up regardless
-  // of scope.
-  const carouselScope = shelfSelected === 'all';
-  const detailScope = shelfSelected != null && shelfSelected !== 'all';
-  const viewScope = shelfSelected == null && viewSelected != null;
+  // Branch dispatch — precedence: search > shelf > view > folder >
+  // none(overview). A live `?q=` takes the main pane over wholesale;
+  // composing search with the other scopes (chip filters) lands in
+  // slice 11.16c. Lens counts always fetched so the sidebar lights up
+  // regardless of scope.
+  const searchScope = searchQuery.length > 0;
+  const carouselScope = !searchScope && shelfSelected === 'all';
+  const detailScope =
+    !searchScope && shelfSelected != null && shelfSelected !== 'all';
+  const viewScope =
+    !searchScope && shelfSelected == null && viewSelected != null;
   const folderScope =
-    shelfSelected == null && viewSelected == null && selected != null;
+    !searchScope &&
+    shelfSelected == null &&
+    viewSelected == null &&
+    selected != null;
   const overviewScope =
-    shelfSelected == null && viewSelected == null && selected == null;
+    !searchScope &&
+    shelfSelected == null &&
+    viewSelected == null &&
+    selected == null;
 
   const [
     folders,
@@ -84,6 +101,7 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
     viewNotes,
     overviewStats,
     lensCounts,
+    searchNotes,
   ] = await Promise.all([
     getFoldersForTutor(),
     getShelvesForTutor(),
@@ -92,6 +110,9 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
     viewScope ? getNotesForView(viewSelected) : Promise.resolve(null),
     overviewScope ? getLibraryOverviewStats() : Promise.resolve(null),
     getLibraryLensCounts(),
+    searchScope
+      ? searchNotesForTutor(searchQuery, searchFields)
+      : Promise.resolve(null),
   ]);
 
   // Folder list — only when a real folder is selected. The
@@ -134,6 +155,9 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
       viewCounts={lensCounts.view}
       pillarCounts={lensCounts.pillars}
       overviewStats={overviewStats}
+      searchQuery={searchScope ? searchQuery : null}
+      searchFields={searchFields}
+      searchNotes={searchNotes}
     />
   );
 }

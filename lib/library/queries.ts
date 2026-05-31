@@ -27,6 +27,7 @@ import type {
   LibraryShelfPip,
   LibraryShelfWithCount,
   LibraryShelfWithNotes,
+  LibrarySearchFieldFlags,
   LibraryViewCounts,
   LibraryViewKey,
   NclexPillar,
@@ -78,6 +79,60 @@ function extractAttachmentCount(embed: AttachmentCountEmbed): number {
   const arr = Array.isArray(embed) ? embed : embed ? [embed] : [];
   const first = arr[0];
   return first?.count ?? 0;
+}
+
+// The canonical `LibraryNoteLensRow` PostgREST select — folder name +
+// shelf-pip memberships + programme-attachment count, the shape every
+// full-width note row needs. (getNotesForTutor / getShelfDetail /
+// fetchAllLensRowsForTutor still inline their own copies; the search
+// query below uses this shared pair.)
+const LENS_ROW_SELECT = `
+  note_id, folder_id, title, subtitle, description,
+  tags, pillars, is_published, visibility_mode, updated_at,
+  nclex_tutor_library_folders ( name ),
+  nclex_tutor_library_shelf_memberships (
+    nclex_tutor_library_shelves ( shelf_id, title, color )
+  ),
+  nclex_tutor_library_note_attachments ( count )
+`;
+
+type LensRowEmbed = {
+  note_id: string;
+  folder_id: string | null;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  tags: string[];
+  pillars: NclexPillar[];
+  is_published: boolean;
+  visibility_mode: LibraryNoteLensRow['visibility_mode'];
+  updated_at: string;
+  nclex_tutor_library_folders: FolderEmbed;
+  nclex_tutor_library_shelf_memberships: ShelfPipEmbed;
+  nclex_tutor_library_note_attachments: AttachmentCountEmbed;
+};
+
+function mapLensRow(row: unknown): LibraryNoteLensRow {
+  const r = row as LensRowEmbed;
+  return {
+    note_id: r.note_id,
+    folder_id: r.folder_id,
+    folder_name: extractFolderName(r.nclex_tutor_library_folders),
+    title: r.title,
+    subtitle: r.subtitle,
+    description: r.description,
+    pillars: r.pillars,
+    tags: r.tags,
+    shelf_memberships: extractShelfPips(
+      r.nclex_tutor_library_shelf_memberships,
+    ),
+    is_published: r.is_published,
+    visibility_mode: r.visibility_mode,
+    updated_at: r.updated_at,
+    used_in_count: extractAttachmentCount(
+      r.nclex_tutor_library_note_attachments,
+    ),
+  } satisfies LibraryNoteLensRow;
 }
 
 /**
@@ -881,4 +936,75 @@ export async function getNotesForView(
     case 'used-nowhere':
       return rows.filter((r) => r.used_in_count === 0);
   }
+}
+
+
+// =====================================================================
+// Slice 11.16a — content search
+// =====================================================================
+
+/**
+ * Ranked full-text search over the tutor's own notes. Two round
+ * trips, mirroring `getShelfDetail`:
+ *   1. `nclex_search_library_notes` (SECURITY INVOKER, RLS-scoped)
+ *      returns matching note_ids ordered by `ts_rank` desc.
+ *   2. The canonical lens-row projection is batch-fetched for those
+ *      ids and re-ordered to match the ranking.
+ *
+ * `fields` masks which note fields count toward a match (title /
+ * subtitle / description / body) via the RPC's ts_rank weight array.
+ * Returns [] for an empty query or when every field is deselected —
+ * the UI guards against both, this is the belt-and-braces floor.
+ */
+export async function searchNotesForTutor(
+  query: string,
+  fields: LibrarySearchFieldFlags,
+): Promise<LibraryNoteLensRow[]> {
+  const trimmed = query.trim();
+  if (trimmed.length === 0) return [];
+  if (
+    !fields.title &&
+    !fields.subtitle &&
+    !fields.description &&
+    !fields.body
+  ) {
+    return [];
+  }
+
+  const supabase = await createClient();
+
+  // 1. Ranked note_ids from the FTS RPC.
+  const { data: ranked, error: rpcErr } = await supabase.rpc(
+    'nclex_search_library_notes',
+    {
+      p_query: trimmed,
+      p_title: fields.title,
+      p_subtitle: fields.subtitle,
+      p_description: fields.description,
+      p_body: fields.body,
+    },
+  );
+  if (rpcErr || !ranked) return [];
+
+  const orderedIds = (ranked as { note_id: string; rank: number }[]).map(
+    (r) => r.note_id,
+  );
+  if (orderedIds.length === 0) return [];
+
+  // 2. Lens-row projection for those notes, re-ordered by rank.
+  const { data, error } = await supabase
+    .from('nclex_tutor_library_notes')
+    .select(LENS_ROW_SELECT)
+    .in('note_id', orderedIds);
+  if (error || !data) return [];
+
+  const byId = new Map<string, LibraryNoteLensRow>();
+  for (const row of data) {
+    const lens = mapLensRow(row);
+    byId.set(lens.note_id, lens);
+  }
+
+  return orderedIds
+    .map((id) => byId.get(id))
+    .filter((x): x is LibraryNoteLensRow => x != null);
 }

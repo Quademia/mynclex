@@ -34,11 +34,13 @@ import { ShelfRows } from './shelf-rows';
 import { AllFoldersGrid } from './all-folders-grid';
 import { AllShelvesCarousel } from './all-shelves-carousel';
 import { LibraryOverview } from './library-overview';
+import { LibrarySearchBox } from './library-search-box';
 import { NewFolderModal } from './new-folder-modal';
 import { NewShelfModal } from './new-shelf-modal';
 import { NewNoteModal } from './new-note-modal';
 import { NotesList } from './notes-list';
 import { NotesView } from './notes-view';
+import { SearchResults } from './search-results';
 import { ShelfDetail, ShelfNotFound } from './shelf-detail';
 import type {
   LibraryEligibleNote,
@@ -46,6 +48,7 @@ import type {
   LibraryNoteLensRow,
   LibraryNoteListRow,
   LibraryOverviewStats,
+  LibrarySearchFieldFlags,
   LibraryShelfDetail,
   LibraryShelfWithCount,
   LibraryShelfWithNotes,
@@ -158,6 +161,20 @@ interface LibraryHomeShellProps {
    * cards + recent activity + pillar coverage + quick links.
    */
   overviewStats: LibraryOverviewStats | null;
+  /**
+   * The active search term — non-null only when `?q=` is set. When
+   * non-null, the search-results pane takes the main pane over
+   * (top precedence, ahead of every other scope).
+   */
+  searchQuery: string | null;
+  /** Current per-field search scope (Title / Subtitle / Description /
+   *  Body). Seeds the toolbar field chips; all-on by default. */
+  searchFields: LibrarySearchFieldFlags;
+  /**
+   * Ranked search results for `searchQuery` (null when not
+   * searching). Ordered title-matches-first by the server RPC.
+   */
+  searchNotes: LibraryNoteLensRow[] | null;
 }
 
 export function LibraryHomeShell({
@@ -174,6 +191,9 @@ export function LibraryHomeShell({
   viewCounts,
   pillarCounts,
   overviewStats,
+  searchQuery,
+  searchFields,
+  searchNotes,
 }: LibraryHomeShellProps) {
   // Default to expanded + all sections open. localStorage rehydration
   // happens in a useEffect (so first paint is consistent across
@@ -258,9 +278,13 @@ export function LibraryHomeShell({
       ? folders.find((f) => f.folder_id === selected) ?? null
       : null;
 
-  // Overview is the bare-URL destination — no scope set at all.
+  // Overview is the bare-URL destination — no scope set at all (and
+  // not while searching, which takes the pane over).
   const isOverviewActive =
-    selected == null && shelfSelected == null && viewSelected == null;
+    searchQuery == null &&
+    selected == null &&
+    shelfSelected == null &&
+    viewSelected == null;
 
   return (
     <div className="lib-page">
@@ -275,27 +299,10 @@ export function LibraryHomeShell({
       </header>
 
       <div className="lib-toolbar">
-        <div className="lib-search">
-          <svg
-            className="lib-search-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search notes…"
-            disabled
-            aria-label="Search notes"
-          />
-        </div>
+        <LibrarySearchBox
+          initialQuery={searchQuery ?? ''}
+          initialFields={searchFields}
+        />
         <button className="lib-btn" type="button" onClick={openNewFolder}>
           + New folder
         </button>
@@ -361,7 +368,14 @@ export function LibraryHomeShell({
         </aside>
 
         <main className="lib-main">
-          {shelfSelected != null ? (
+          {searchQuery != null ? (
+            // Search scope (?q=). Ranked lens-row list, top precedence.
+            <SearchResults
+              query={searchQuery}
+              fields={searchFields}
+              notes={searchNotes ?? []}
+            />
+          ) : shelfSelected != null ? (
             shelves.length === 0 ? (
               // Empty-state hero — tutor has no shelves at all. Any
               // ?shelf= URL is stale; route them to the create CTA.
