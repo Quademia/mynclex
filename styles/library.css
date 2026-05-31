@@ -1247,21 +1247,38 @@
   color: var(--danger);
 }
 
+/* Styled to read like the Pillars "+ Add pillar" chip: a dashed
+   accent pill that's always visible. Not flex:1 — it sits inline
+   among the chips as an obvious "add another" affordance, and widens
+   when focused to give room to type. */
 .lib-tag-text {
-  flex: 1;
-  min-width: 80px;
+  min-width: 96px;
   background: transparent;
-  border: none;
+  border: 1px dashed var(--accent);
+  border-radius: 999px;
   outline: none;
-  font-size: 12.5px;
+  font-size: 11.5px;
   color: var(--text);
-  padding: 3px 4px;
+  padding: 4px 9px;
   font-family: inherit;
+  transition: min-width 0.12s, border-color 0.12s, background 0.12s;
 }
 
 .lib-tag-text::placeholder {
-  color: var(--text-muted);
-  font-style: italic;
+  color: var(--accent);
+  font-weight: 500;
+  font-style: normal;
+  opacity: 1;
+}
+
+.lib-tag-text:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--white));
+}
+
+.lib-tag-text:focus {
+  min-width: 150px;
+  border-style: solid;
+  background: var(--bg-card);
 }
 
 

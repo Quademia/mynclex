@@ -95,7 +95,11 @@ export function TagInput({ value, onChange }: TagInputProps) {
           onBlur={() => {
             if (draft.trim().length > 0) commit(draft);
           }}
-          placeholder={value.length === 0 ? '+ tag' : ''}
+          // Always show the affordance — even once tags exist — so the
+          // "add another" field is never invisible. Mirrors the
+          // Pillars "+ Add pillar" chip next to it.
+          placeholder="+ Add tag"
+          title="Type a tag and press Enter"
           aria-label="Add tag"
           maxLength={TAG_MAX_LEN + 10}
         />
