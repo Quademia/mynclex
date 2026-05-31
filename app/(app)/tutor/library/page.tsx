@@ -22,6 +22,7 @@
 
 import { LibraryHomeShell } from '@/lib/library/home-shell';
 import {
+  getAllLensRowsForTutor,
   getEligibleNotesForShelf,
   getFoldersForTutor,
   getLibraryLensCounts,
@@ -69,7 +70,8 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const selected = firstOrNull(params.folder);
   const shelfSelected = firstOrNull(params.shelf);
-  const viewSelected = parseViewKey(firstOrNull(params.view));
+  const viewParam = firstOrNull(params.view);
+  const viewSelected = parseViewKey(viewParam);
   const tagSelected = firstOrNull(params.tag);
   const searchQuery = (firstOrNull(params.q) ?? '').trim();
   const searchFields = decodeSearchFields(firstOrNull(params.qf));
@@ -83,23 +85,31 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
   const carouselScope = !searchScope && shelfSelected === 'all';
   const detailScope =
     !searchScope && shelfSelected != null && shelfSelected !== 'all';
+  // Custom-view builder scope (slice 11.16c) — `?view=new` opens the
+  // filter builder. A saved-view uuid lands in c-2; for now any
+  // non-system, non-'new' view value falls through to overview.
+  const builderScope =
+    !searchScope && shelfSelected == null && viewParam === 'new';
   const viewScope =
     !searchScope && shelfSelected == null && viewSelected != null;
   const tagScope =
     !searchScope &&
     shelfSelected == null &&
     viewSelected == null &&
+    !builderScope &&
     tagSelected != null;
   const folderScope =
     !searchScope &&
     shelfSelected == null &&
     viewSelected == null &&
+    !builderScope &&
     tagSelected == null &&
     selected != null;
   const overviewScope =
     !searchScope &&
     shelfSelected == null &&
     viewSelected == null &&
+    !builderScope &&
     tagSelected == null &&
     selected == null;
 
@@ -110,6 +120,7 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
     shelfDetail,
     viewNotes,
     tagNotes,
+    builderRows,
     overviewStats,
     lensCounts,
     searchNotes,
@@ -120,6 +131,7 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
     detailScope ? getShelfDetail(shelfSelected) : Promise.resolve(null),
     viewScope ? getNotesForView(viewSelected) : Promise.resolve(null),
     tagScope ? getNotesForTag(tagSelected) : Promise.resolve(null),
+    builderScope ? getAllLensRowsForTutor() : Promise.resolve(null),
     overviewScope ? getLibraryOverviewStats() : Promise.resolve(null),
     getLibraryLensCounts(),
     searchScope
@@ -169,6 +181,8 @@ export default async function TutorLibraryPage({ searchParams }: PageProps) {
       tagCounts={lensCounts.tags}
       tagSelected={tagScope ? tagSelected : null}
       tagNotes={tagNotes}
+      builderActive={builderScope}
+      builderRows={builderRows}
       overviewStats={overviewStats}
       searchQuery={searchScope ? searchQuery : null}
       searchFields={searchFields}

@@ -45,6 +45,7 @@ import { SearchResults } from './search-results';
 import { ShelfDetail, ShelfNotFound } from './shelf-detail';
 import { TagRows } from './tag-rows';
 import { TagView } from './tag-view';
+import { ViewBuilder } from './view-builder';
 import type {
   LibraryEligibleNote,
   LibraryFolderWithCount,
@@ -172,6 +173,16 @@ interface LibraryHomeShellProps {
    */
   tagNotes: LibraryNoteLensRow[] | null;
   /**
+   * True when the custom-view builder scope (`?view=new`) is active —
+   * the main pane renders the filter builder (slice 11.16c).
+   */
+  builderActive: boolean;
+  /**
+   * Full lens-row set for the builder to filter client-side. Non-null
+   * only when `builderActive`.
+   */
+  builderRows: LibraryNoteLensRow[] | null;
+  /**
    * Overview dashboard data — non-null only when no scope is
    * active (`/tutor/library` with no query params). Drives stat
    * cards + recent activity + pillar coverage + quick links.
@@ -209,6 +220,8 @@ export function LibraryHomeShell({
   tagCounts,
   tagSelected,
   tagNotes,
+  builderActive,
+  builderRows,
   overviewStats,
   searchQuery,
   searchFields,
@@ -305,7 +318,8 @@ export function LibraryHomeShell({
     selected == null &&
     shelfSelected == null &&
     viewSelected == null &&
-    tagSelected == null;
+    tagSelected == null &&
+    !builderActive;
 
   return (
     <div className="lib-page">
@@ -386,6 +400,7 @@ export function LibraryHomeShell({
               pillarCounts={pillarCounts}
               tagCounts={tagCounts}
               tagSelected={tagSelected}
+              builderActive={builderActive}
               onManageTags={() => setManageTagsOpen(true)}
             />
           ))}
@@ -436,6 +451,13 @@ export function LibraryHomeShell({
             // notes matching the view's filter — All notes / Drafts /
             // Used nowhere.
             <NotesView viewKey={viewSelected} notes={viewNotes ?? []} />
+          ) : builderActive ? (
+            // Custom-view builder scope (?view=new). Filter chips over a
+            // live-filtered note list (slice 11.16c).
+            <ViewBuilder
+              allRows={builderRows ?? []}
+              tagCounts={tagCounts}
+            />
           ) : tagSelected != null ? (
             // Tag scope (?tag=<tag>). Lens-row list of notes carrying
             // the tag (11.16b-1).
@@ -527,6 +549,7 @@ function LensSection({
   pillarCounts,
   tagCounts,
   tagSelected,
+  builderActive,
   onManageTags,
 }: {
   lens: LensKey;
@@ -543,6 +566,7 @@ function LensSection({
   pillarCounts: Record<NclexPillar, number>;
   tagCounts: LibraryTagCount[];
   tagSelected: string | null;
+  builderActive: boolean;
   onManageTags: () => void;
 }) {
   if (railed) {
@@ -630,6 +654,7 @@ function LensSection({
           pillarCounts,
           tagCounts,
           tagSelected,
+          builderActive,
         )}
       </div>
     </div>
@@ -648,11 +673,14 @@ function renderLensBody(
   pillarCounts: Record<NclexPillar, number>,
   tagCounts: LibraryTagCount[],
   tagSelected: string | null,
+  builderActive: boolean,
 ) {
   switch (lens) {
     case 'views':
       // 3 of 4 system views are wired (P2 slice). Recent stays
-      // disabled until visit-tracking ships.
+      // disabled until visit-tracking ships. The "+ New view" entry
+      // opens the custom-view builder (slice 11.16c); saved custom
+      // views render between the system views and it in c-2.
       return (
         <>
           <LensItemLink
@@ -678,6 +706,15 @@ function renderLensBody(
             count={viewCounts.used_nowhere}
             isActive={viewSelected === 'used-nowhere'}
           />
+          <Link
+            href="/tutor/library?view=new"
+            className={`lens-item lens-item-newview${
+              builderActive ? ' is-active' : ''
+            }`}
+            aria-current={builderActive ? 'page' : undefined}
+          >
+            <span className="label">+ New view</span>
+          </Link>
         </>
       );
 

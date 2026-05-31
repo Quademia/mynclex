@@ -972,6 +972,18 @@ export async function getNotesForTag(
 }
 
 
+/**
+ * The full lens-row set for the tutor — feeds the custom-view builder
+ * (slice 11.16c), which filters client-side over every dimension on the
+ * projection (status / pillars / tags). Same cached fetch the views +
+ * counts already use, so a builder render adds no extra round trip when
+ * the sidebar counts are fetched in the same pass.
+ */
+export async function getAllLensRowsForTutor(): Promise<LibraryNoteLensRow[]> {
+  return fetchAllLensRowsForTutor();
+}
+
+
 // =====================================================================
 // Slice 11.16a — content search
 // =====================================================================
