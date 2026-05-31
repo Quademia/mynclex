@@ -46,3 +46,6 @@ next-env.d.ts
 
 # design scratch — disposable mocks not meant for the repo
 /docs/scratch/
+
+# Claude Code session-local state
+.claude/scheduled_tasks.lock
