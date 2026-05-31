@@ -8,11 +8,31 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **On the session branch (2026-05-31, NOT merged):** **Library
-> 11.16a (content search) + 11.16b (tags lens + manager).** Sam tested
-> + approved each piece at localhost; the whole 11.16 arc merges to
-> `main` together once 11.16c lands. 7 commits on
-> `claude/festive-engelbart-572b8c`.
+> **MERGED to `main` (2026-05-31):** **the whole Library 11.16 arc —
+> 11.16a (content search) + 11.16b (tags lens + manager) + 11.16c
+> (custom views + sidebar scroll-cap pass + folder/shelf pane
+> Edit/Delete).** 11.16a/b landed on `main` earlier in the day; 11.16c
+> (9 commits on `claude/heuristic-engelbart-c60f36`) fast-forwarded in
+> after Sam's approval. 11.16 is **done** — the library is now complete
+> "as a library." Next per the re-sequenced build order: **11.13**
+> (student read-mode renderer). Prod migrations for the arc at release:
+> `20260623120000` / `120100` / `120200` / `120300`.
+>
+> **11.16c — custom views.** Filter builder at `?view=new` (status /
+> pillars / tags; AND across dimensions, OR within; live in-browser
+> preview). Persisted to `nclex_tutor_library_views` (migration
+> `20260623120300`; UUID PK, `tutor_id → nclex_users`, `filters_json`
+> JSONB, `position`; self + admin RLS mirroring folders) — save / edit /
+> rename / delete; saved views render in the Views lens with live match
+> counts; `?view=<uuid>` read pane carries Edit / Rename / Delete.
+> Bundled: a sidebar scroll-cap pass (Folders / Shelves / Views scroll
+> within a 260px `.lens-scroll`; row kebab menus fixed-positioned out of
+> the clip via `usePopoverPosition`; "All …" anchors + system views +
+> "+ New view" pinned outside the scroll) and a consistency follow-on
+> giving the folder + shelf detail panes header Edit / Delete (red)
+> actions (`DeleteShelfConfirm` extracted; both delete confirms take an
+> optional `redirectTo` so detail-pane delete routes to `?folder=all` /
+> `?shelf=all`).
 >
 > **11.16a — content search.** Woke up the toolbar search box.
 > Headline was a latent indexer bug: `nclex_extract_body_text` (written

@@ -2123,7 +2123,7 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   embeddable types = the 4 classic single-question types **MCQ / SATA /
   TF / SELECT_N** (NGN deferred — partial-credit grading, not a
   renderer limit). No new question table, no new renderer.
-- 🔨 **11.16** Tag manager + custom views + search. *(Build order 2 —
+- ✅ **11.16** Tag manager + custom views + search. *(Build order 2 —
   directly library, tutor-side, no dependencies — the cleanest
   "finish the library" slice.)* Kebab on Tags lens opens *Manage tags*
   (rename / delete / merge); custom view save/edit/delete from
@@ -2144,12 +2144,22 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
     Manage-tags modal (rename / delete / merge via 3 SECURITY INVOKER
     bulk RPCs + `nclex_dedupe_tags` — migration `20260623120200`).
     Plus a tag-input discoverability fix in the editor.
-  - ⬜ **11.16c** — custom views (`nclex_tutor_library_views`): save a
+  - ✅ **11.16c (2026-05-31)** — custom views
+    (`nclex_tutor_library_views`, migration `20260623120300`): filter
+    builder (status / pillars / tags) at `?view=new` with live preview;
+    save / edit / rename / delete; saved views in the Views lens with
+    live counts; `?view=<uuid>` read pane. Bundled the sidebar
+    scroll-cap pass (Folders / Shelves / Views scroll within
+    `.lens-scroll`; row kebabs fixed-positioned out of the clip; "All …"
+    anchors pinned) + a follow-on that added Edit / Delete header
+    actions to the folder + shelf detail panes for consistency with the
+    saved-view pane. Whole 11.16 arc merged to `main`.
+  - ~~⬜ **11.16c** — custom views (`nclex_tutor_library_views`): save a
     filter combo, per-view edit/rename/delete. **Bundle with a sidebar
     scroll-cap pass** for Folders / Shelves / Views (Tags already
     capped; Views becomes unbounded here; float row kebabs out of the
     overflow container; pin the "All …" anchors). Then merge the 11.16
-    arc to `main`.
+    arc to `main`.~~ *(superseded — shipped above)*
 - ⬜ **11.13** Student read-mode renderer — *(Build order 3 — directly
   library, student-reading side; where publish + visibility from 11.10
   finally becomes visible to a student.)* full-page route at
