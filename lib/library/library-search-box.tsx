@@ -6,20 +6,23 @@
 // four per-field scope chips (Title / Subtitle / Description / Body).
 //
 // Behaviour:
-//   • Submit (Enter or the search button) navigates to
-//     `/tutor/library?q=<term>` (+ `&qf=` when the field scope is
-//     narrowed). An empty submit returns to the bare library home.
+//   • Live as-you-type — results update ~250 ms after the last
+//     keystroke once ≥ 2 characters are typed (router.replace, so the
+//     live updates don't pile up in browser history). Clearing the
+//     box returns to the library home.
+//   • Enter still works (router.push, so a deliberate search is a real
+//     history entry you can go Back from).
 //   • Toggling a field chip re-runs the search immediately when a
 //     query is already committed; otherwise it just seeds the next
 //     search. At least one field stays on — the toggle that would
 //     clear the last field is ignored.
 //
-// Search results, ranking, and the actual matching all live
-// server-side (the `nclex_search_library_notes` RPC); this component
-// only drives the URL.
+// Search matching itself is prefix-based and lives server-side (the
+// `nclex_search_library_notes` RPC); this component only drives the
+// URL.
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { encodeSearchFields } from './search-fields';
 import {
   LIBRARY_SEARCH_FIELDS,
@@ -45,22 +48,50 @@ export function LibrarySearchBox({
   const [value, setValue] = useState(initialQuery);
   const [fields, setFields] = useState<LibrarySearchFieldFlags>(initialFields);
 
-  function navigate(q: string, f: LibrarySearchFieldFlags) {
-    const trimmed = q.trim();
-    if (trimmed.length === 0) {
-      router.push('/tutor/library');
-      return;
-    }
-    const params = new URLSearchParams();
-    params.set('q', trimmed);
-    const qf = encodeSearchFields(f);
-    if (qf) params.set('qf', qf);
-    router.push(`/tutor/library?${params.toString()}`);
-  }
+  // What the URL currently reflects — guards the debounce against
+  // re-firing on mount and against redundant navigations.
+  const committedRef = useRef(initialQuery.trim());
+
+  const navigate = useCallback(
+    (q: string, f: LibrarySearchFieldFlags, mode: 'push' | 'replace') => {
+      const trimmed = q.trim();
+      committedRef.current = trimmed;
+      if (trimmed.length === 0) {
+        router[mode]('/tutor/library');
+        return;
+      }
+      const params = new URLSearchParams();
+      params.set('q', trimmed);
+      const qf = encodeSearchFields(f);
+      if (qf) params.set('qf', qf);
+      router[mode](`/tutor/library?${params.toString()}`);
+    },
+    [router],
+  );
+
+  // Live, debounced search as the tutor types. Depending on `fields`
+  // is safe: a field-only change leaves the query text equal to what
+  // the URL already holds, so the committedRef guard early-returns
+  // (the eager navigate in toggleField does that work instead).
+  useEffect(() => {
+    const trimmed = value.trim();
+    if (trimmed === committedRef.current) return; // already in the URL
+    const handle = setTimeout(() => {
+      if (trimmed.length === 0) {
+        navigate('', fields, 'replace');
+        return;
+      }
+      // Hold off on a single character — a 1-letter prefix matches
+      // almost everything. Keep showing prior results until ≥ 2 chars.
+      if (trimmed.length < 2) return;
+      navigate(trimmed, fields, 'replace');
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [value, fields, navigate]);
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    navigate(value, fields);
+    navigate(value, fields, 'push');
   }
 
   function toggleField(f: LibrarySearchField) {
@@ -69,12 +100,12 @@ export function LibrarySearchBox({
     // nothing, so ignore the toggle that would empty the set.
     if (!LIBRARY_SEARCH_FIELDS.some((k) => next[k])) return;
     setFields(next);
-    if (value.trim().length > 0) navigate(value, next);
+    if (value.trim().length > 0) navigate(value, next, 'replace');
   }
 
   function clear() {
     setValue('');
-    navigate('', fields);
+    navigate('', fields, 'replace');
   }
 
   return (
