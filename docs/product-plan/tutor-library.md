@@ -1096,18 +1096,21 @@ earlier one within the same session.
 6. End of set: a small summary card — *"You got 2 of 3 right."*
 7. Note continues below the block.
 
-*Re-entering the note later (after some questions submitted):*
-1. Note renders fully top-to-bottom.
-2. Each previously-submitted question shows submitted-answer +
-   feedback in read-only state (the snapshot, not the live question
-   — preserves the moment-of-submit content).
-3. New questions (added to the block after the student's last read)
-   render in answering mode when reached.
-4. Student scrolls unfettered — no gating, no re-answer.
+*Re-entering the note later (REVISED 2026-05-31 — always-fresh model):*
+1. Note renders fully top-to-bottom; the embed block shows the tutor's
+   **current** questions, **fresh and answerable** — there is no locked
+   "already answered" inline state.
+2. A reopen may show a quiet "last time: X of Y · try again" line built
+   from the most recent history row, but the questions themselves are
+   re-answerable (each new submit appends another history row).
+3. So edits / reorders / swaps to the block just appear as the current
+   set; past attempts live in history, frozen by their own snapshots.
 
-Same per-question-runner components as the main runner uses (with a
-`mode="library_embed"` variant). No re-answer button in v1. No
-"required to proceed" gating in v1.
+Same per-question-runner components as the main runner uses, in
+answering → review mode + the rationale panel. No "required to
+proceed" gating in v1. Re-answering IS allowed (the old "no re-answer /
+locked" draft is superseded — the live note is always a fresh practice
+pass; integrity lives in the append-only history, not in locking).
 
 #### Completion semantics
 
@@ -1290,10 +1293,12 @@ limit is **not** the renderer — it's that NGN types are built around
 entry point *is* the inline-question-creation idea earlier parked for
 v2 — pulled into v1 because the case/trend pattern makes it cheap.
 
-**What stays deferred to 11.13 (student read view):** the inline
+**What stays deferred to 11.13b (student player):** the inline
 player, submit, snapshot, and the `nclex_library_embed_answers`
-table. This slice (the authoring half) ships the block + the two
-entry points + reference cards + caps only.
+table (+ the embed-block stable `id` + backfill). This slice (11.15,
+the authoring half) ships the block + the two entry points + reference
+cards + caps only. (Note: 11.13**a** shipped the read view with the
+embed block as a placeholder; 11.13**b** is the player.)
 
 **Per-block caps.** Soft 5, hard 10 questions per block. Past 5
 nudges the tutor toward a quiz; past 10 is refused — at that size
@@ -1353,13 +1358,28 @@ Three reasons drove the separation:
 3. **Lighter rows.** Embed answers don't need status / duration /
    intent fields; a dedicated table can be slim.
 
-**Row shape:** `(student_id, note_id, block_id, question_index,
-item_id, snapshot_json, answer_json, is_correct, submitted_at)`
-with `UNIQUE (student_id, note_id, block_id, question_index)` —
-one row per question per student. A multi-question block produces
-multiple rows (one per array slot); a single-question block
-produces one. `ON DELETE RESTRICT` on the bank-item FK (see
-*Question deletion behaviour* below).
+**Row shape (REVISED 2026-05-31 — append-only history).** See the
+full column list in the schema block below. The table is an
+**append-only attempt log** — *no* unique constraint — fusing the
+answer fields from `nclex_attempt_answers` with the question-snapshot
+columns from `nclex_attempt_items` (inlined), plus `note_id` /
+`block_id`. `item_id` FKs to **`nclex_tutor_questions`** (not
+`nclex_bank_items` — embeds reference the tutor's own bank), `ON
+DELETE RESTRICT` (see *Question deletion behaviour* below).
+
+**The model (locked 2026-05-31, supersedes the earlier freeze-and-lock
+draft).** The live note is **always current and answerable** — opening
+or reopening a note shows the tutor's *current* questions, fresh. Each
+submit **appends** a row carrying its own frozen snapshot. There is no
+"locked, already-answered" state on the live page; **re-practising is
+allowed** (good for exam prep). History is the permanent record and the
+analytics source. This resolves every "tutor changed the questions"
+edge case cleanly: the live view is simply always current, and past
+attempts sit safely in history, each frozen by its own snapshot —
+nothing is ever re-displayed inline against a changed question, so
+there is no retroactive re-grading and no position-matching to do.
+A reopen may show a quiet "last time: X of Y · try again" from the
+most recent history row.
 
 A student's answer on an embedded question:
 - Does **not** count toward their main practice analytics
@@ -1390,17 +1410,22 @@ For text content (paragraphs, headings, callouts, drug cards, etc.),
 immediate visibility is fine — even desirable. The student sees the
 latest authoritative content.
 
-For embedded questions where a student has already submitted an
-answer, the *content + correct* snapshot at submit time **must** be
-preserved. Otherwise a tutor editing the question rationale after a
-student submits could retroactively change what the student is
-deemed right/wrong against.
+For embedded questions, each **historical attempt** must carry the
+*content + correct + rationale* snapshot as seen at submit time —
+otherwise a later tutor edit would make a past attempt incoherent (the
+student's recorded answer judged against a question that no longer
+matches what they saw).
 
-**Resolved** — same snapshot pattern the runner already uses for
-`nclex_attempt_items`: when the student submits an embed, capture
-`body_json` + `correct_options` + `rationale` at that moment into
-`nclex_library_embed_answers.snapshot_json`. Re-renders read from
-the snapshot, not the live question.
+**Resolved (2026-05-31)** — same snapshot pattern the runner uses for
+`nclex_attempt_items`, but **inlined into each history row** (embeds
+have no attempt_items sibling): on submit, capture
+`stem_snapshot` + `instruction_snapshot` + `content_snapshot_json` +
+`correct_answer_snapshot_json` + `rationale_snapshot` +
+`rationale_img_snapshot` + `marks_snapshot` into the appended
+`nclex_library_embed_answers` row. The **live note always renders the
+current question** (no inline re-render from a snapshot); the snapshot
+exists so the **history** view stays coherent across edits, per
+attempt.
 
 ### Question deletion behaviour
 
@@ -1627,30 +1652,57 @@ nclex_tutor_library_views
   -- views don't propagate to students.
 
 nclex_library_embed_answers
-  answer_id          TEXT PK
+  -- REVISED 2026-05-31 (13b design): an APPEND-ONLY attempt HISTORY log,
+  -- not one frozen row per question. The live note is always current +
+  -- answerable; every submit appends a row carrying its own snapshot.
+  -- Re-practising is allowed (good for exam prep); history is the
+  -- permanent record + the analytics source. There is NO unique
+  -- constraint — many rows per (student, note, block, question) is the
+  -- point.
+  --
+  -- Shape FUSES the two runner storage tables into one row (no session,
+  -- so no split): the ANSWER fields from `nclex_attempt_answers` + the
+  -- question SNAPSHOT columns from `nclex_attempt_items` (inlined,
+  -- since embeds have no attempt_items sibling) + note_id/block_id.
+  answer_id          UUID PK DEFAULT gen_random_uuid()
   student_id         UUID FK -> nclex_users(id) ON DELETE CASCADE
-  note_id            TEXT FK -> nclex_tutor_library_notes(note_id) ON DELETE CASCADE
-  block_id           TEXT NOT NULL                 -- the embedded_questions block's ID within the note
-  question_index     INTEGER NOT NULL              -- 0-based index into the block's item_ids[] array
-  item_id            TEXT FK -> nclex_bank_items(item_id) ON DELETE RESTRICT
-                     -- prevents deletion of a bank question while embed answers exist
+  note_id            UUID FK -> nclex_tutor_library_notes(note_id) ON DELETE CASCADE
+  block_id           TEXT NOT NULL                 -- the embedded_questions block's stable id within the note
+  item_id            TEXT FK -> nclex_tutor_questions(item_id) ON DELETE RESTRICT
+                     -- FK is to nclex_tutor_questions (embeds reference the
+                     -- tutor's own bank), NOT nclex_bank_items. RESTRICT so a
+                     -- question with recorded attempts can't be silently
+                     -- deleted out from under its history.
+  question_type      TEXT NOT NULL                 -- so review renders without re-reading the live question
+  -- Answer side (from nclex_attempt_answers):
   answer_json        JSONB NOT NULL                -- the student's submitted answer (per question type)
-  is_correct         BOOLEAN NOT NULL
-  snapshot_json      JSONB NOT NULL                -- content + correct + rationale at submit time
-                     -- preserves attempt integrity if the tutor edits the question later
-  submitted_at       TIMESTAMPTZ DEFAULT NOW()
+  is_correct         BOOLEAN NOT NULL              -- graded server-side via lib/scoring scoreAttempt()
+  score_awarded      NUMERIC NOT NULL              -- partial-credit signal (SATA / SELECT_N +/-)
+  time_spent_sec     INTEGER                       -- nullable; optional analytics
+  -- Question snapshot (from nclex_attempt_items, inlined + frozen at submit):
+  stem_snapshot                 TEXT NOT NULL
+  instruction_snapshot          TEXT
+  content_snapshot_json         JSONB NOT NULL     -- options as seen (answerable content)
+  correct_answer_snapshot_json  JSONB NOT NULL     -- key + per-option feedback as seen
+  rationale_snapshot            TEXT
+  rationale_img_snapshot        TEXT
+  marks_snapshot                NUMERIC NOT NULL
+  submitted_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 
-  UNIQUE (student_id, note_id, block_id, question_index)
-  -- One row per (student, embed-block, question slot). A multi-question
-  -- block produces N rows per student; a single-question block
-  -- produces 1. Distinct blocks of the same `item_id` in the same note
-  -- still distinguish via different `block_id`.
-
-  -- Deliberately NOT in nclex_attempts:
+  -- No UNIQUE constraint — append-only history. Rows are immutable
+  -- (insert-only; no UPDATE/DELETE except FK cascade on note/student).
+  -- "Latest attempt" = ORDER BY submitted_at DESC LIMIT 1 within
+  -- (student_id, note_id, block_id, item_id).
+  --
+  -- Deliberately NOT in nclex_attempts (still holds):
   --   1. No "session" semantic — embeds are one-shot, asynchronous
   --   2. Eliminates the recurring "forgot to filter LIBRARY_EMBED"
   --      pollution-risk bug class in analytics queries
   --   3. Lighter rows — no status/duration/intent fields needed
+  --
+  -- Why fuse the snapshot into the answer row (vs the runner's 2-table
+  -- split): each historical attempt must carry its OWN frozen snapshot
+  -- so "the tutor edited the question later" stays coherent per attempt.
 ```
 
 **Shelf attaches as one atomic row, not a fan-out.** When a tutor
@@ -2105,12 +2157,12 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   per-block 5/10 caps, per-note 20/50 caps (warn at 20, reject at 50,
   both at save), reference-card edit-mode rendering (one per question),
   inline player read-mode rendering (Question 1 of N + Next +
-  end-of-set summary), submit → per-question write to
-  `nclex_library_embed_answers` keyed `(student_id, note_id,
-  block_id, question_index)` with snapshot, on-re-render show
-  submitted state. *(Tutor authoring side builds first; the student
-  inline player + submit half is realised together with 11.13's read
-  view, which is where the block renders in answering mode.)*
+  end-of-set summary), submit → append to `nclex_library_embed_answers`.
+  *(REVISED 2026-05-31: the store is an append-only history log keyed by
+  question, not a frozen `question_index` row; see the table + the
+  "append-only history" model above. The student inline player + submit
+  half is **11.13b**, NOT bundled here — 11.15 shipped the tutor
+  authoring half only.)*
   **Authoring design revised 2026-05-30 — see "Revised v1 authoring
   design" under the Embedded questions section:** empty-block-first;
   **Add question** → Pick existing (reused filter modal) **or** Create
@@ -2160,24 +2212,41 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
     capped; Views becomes unbounded here; float row kebabs out of the
     overflow container; pin the "All …" anchors). Then merge the 11.16
     arc to `main`.~~ *(superseded — shipped above)*
-- ⬜ **11.13** Student read-mode renderer — *(Build order 3 — directly
-  library, student-reading side; where publish + visibility from 11.10
-  finally becomes visible to a student.)* full-page route at
-  `/student/programme/[programme_id]/library/note/[note_id]` +
-  Contents rail + scroll-spy writing `last_heading_id` to
-  `nclex_library_note_state` + per-block rendering + Mark as done
-  (writes `marked_done_at` with write-through to the progress
-  engine when from a Library Note activity) + Bookmark toggle
-  (writes `bookmarked_at`). Embedded-questions block renders in
-  answering mode; the submit loop is 11.15's.
-- ⬜ **11.14** Student library — *(Build order 4 — directly library,
-  student-reading side.)* same five-lens sidebar (read-only
-  adaptations) with collapse-to-rail, visibility-filtered counts,
-  empty-container hiding, Views adapted (**By unit** + **Bookmarked**
-  replace Drafts / Used nowhere). Wired at
-  `/student/programme/[programme_id]/library/` and the cohort
-  sibling. Sidebar entry added to `STUDENT_PROGRAMME_DETAIL_NAV`
-  + `STUDENT_COHORT_DETAIL_NAV`.
+- ✅ **11.13a (MERGED 2026-05-31)** Student read-mode renderer — full-page
+  route at `…/library/note/[note_id]` (programme + cohort siblings) +
+  Contents rail with scroll-spy + "section N of M" (writes
+  `last_heading_id` to `nclex_library_note_state`) + a CUSTOM per-block
+  read renderer (NOT Tiptap — `read-inline`/`read-blocks`/
+  `read-media-blocks`, reuses the editor's standalone `.lib-*` classes +
+  a `.lib-read-prose` mirror of the ProseMirror prose CSS, all formatting
+  marks reproduced) + Mark-as-done + Bookmark (`marked_done_at` /
+  `bookmarked_at`) + enrolment-gated signed-URL actions for image/PDF.
+  Breadcrumb (Library / folder) + clickable shelf/pillar/tag chips back
+  to the library. Embedded-questions block = placeholder. Progress-engine
+  write-through stays stubbed until 11.11.
+- ⏭ **11.13b** Embedded-questions player + attempt history — *(NEXT.)*
+  Create `nclex_library_embed_answers` (the fused append-only history
+  table above) + add a stable `id` to every embed block (+ backfill
+  existing notes). Two entitlement-gated server actions: **load** (note
+  RLS + block lookup → answerable content, no key) and **submit**
+  (service-role read of the question → `scoreAttempt` → append a
+  snapshotted history row → return feedback). The inline **player**
+  replaces the placeholder, reusing `lib/practice/runner` MCQ/SATA/TF/
+  SELECT_N in answering→review + rationale; always-fresh-on-reopen with
+  an optional "last time: X/Y · try again". v1: no option-shuffle, no
+  cap on stored attempts. The tutor analytics dashboard that consumes
+  this history is a separate later slice.
+- ✅ **11.14 a/b (MERGED 2026-05-31)** Student library — read-only
+  mirror of the tutor lensed home, scoped to the programme's tutor
+  (`lib/library/student/`). Five-lens sidebar (read-only adaptations,
+  hide-empty, collapse-to-rail), visibility filtered by RLS (no
+  migration — student-select policies already existed). Views = All
+  notes (live) + Recent / By unit / Bookmarked (placeholders pending
+  visit-tracking / 11.11 / bookmarks). Wired at
+  `/student/programme/[programme_id]/library/` (14a) **and the cohort
+  sibling** `/student/cohort/[cohort_id]/library/` (14b); shell
+  generalised `programmeId → basePath`. Sidebar entry added to
+  `STUDENT_PROGRAMME_DETAIL_NAV` + `STUDENT_COHORT_DETAIL_NAV`.
 - ⬜ **11.11** Programme integration — Library Note path. *(Build order
   5 — ⏸ DEFERRED to last: conjunction to the library, not part of
   it.)* Library Note as the 7th activity type, attach modal (single
