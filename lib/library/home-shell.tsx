@@ -35,6 +35,7 @@ import { AllFoldersGrid } from './all-folders-grid';
 import { AllShelvesCarousel } from './all-shelves-carousel';
 import { LibraryOverview } from './library-overview';
 import { LibrarySearchBox } from './library-search-box';
+import { ManageTagsModal } from './manage-tags-modal';
 import { NewFolderModal } from './new-folder-modal';
 import { NewShelfModal } from './new-shelf-modal';
 import { NewNoteModal } from './new-note-modal';
@@ -223,6 +224,7 @@ export function LibraryHomeShell({
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [newShelfOpen, setNewShelfOpen] = useState(false);
   const [newNoteOpen, setNewNoteOpen] = useState(false);
+  const [manageTagsOpen, setManageTagsOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -384,6 +386,7 @@ export function LibraryHomeShell({
               pillarCounts={pillarCounts}
               tagCounts={tagCounts}
               tagSelected={tagSelected}
+              onManageTags={() => setManageTagsOpen(true)}
             />
           ))}
         </aside>
@@ -487,6 +490,12 @@ export function LibraryHomeShell({
           onClose={() => setNewNoteOpen(false)}
         />
       )}
+      {manageTagsOpen && (
+        <ManageTagsModal
+          tags={tagCounts}
+          onClose={() => setManageTagsOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -518,6 +527,7 @@ function LensSection({
   pillarCounts,
   tagCounts,
   tagSelected,
+  onManageTags,
 }: {
   lens: LensKey;
   railed: boolean;
@@ -533,6 +543,7 @@ function LensSection({
   pillarCounts: Record<NclexPillar, number>;
   tagCounts: LibraryTagCount[];
   tagSelected: string | null;
+  onManageTags: () => void;
 }) {
   if (railed) {
     // Railed mode: one icon glyph per section. Views / Folders /
@@ -568,22 +579,45 @@ function LensSection({
     );
   }
 
+  const headBtn = (
+    <button
+      type="button"
+      className="lens-section-head"
+      onClick={onToggle}
+      aria-expanded={!closed}
+    >
+      <span className="lens-section-icon" aria-hidden="true">
+        {SECTION_RAIL_GLYPH[lens]}
+      </span>
+      <span>{SECTION_LABEL[lens]}</span>
+      <span className="chev" aria-hidden="true">
+        ▾
+      </span>
+    </button>
+  );
+
+  // The Tags lens grows a ⋮ "Manage tags" action in its header once
+  // the tutor has any tags. Other lenses render the bare toggle.
+  const showManage = lens === 'tags' && tagCounts.length > 0;
+
   return (
     <div className={`lens-section${closed ? ' is-closed' : ''}`}>
-      <button
-        type="button"
-        className="lens-section-head"
-        onClick={onToggle}
-        aria-expanded={!closed}
-      >
-        <span className="lens-section-icon" aria-hidden="true">
-          {SECTION_RAIL_GLYPH[lens]}
-        </span>
-        <span>{SECTION_LABEL[lens]}</span>
-        <span className="chev" aria-hidden="true">
-          ▾
-        </span>
-      </button>
+      {showManage ? (
+        <div className="lens-section-head-row">
+          {headBtn}
+          <button
+            type="button"
+            className="lens-section-action"
+            title="Manage tags"
+            aria-label="Manage tags"
+            onClick={onManageTags}
+          >
+            ⋮
+          </button>
+        </div>
+      ) : (
+        headBtn
+      )}
       <div className="lens-section-body">
         {renderLensBody(
           lens,

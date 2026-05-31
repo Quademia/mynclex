@@ -5749,3 +5749,194 @@ th.lib-lab-actions-col {
 /* 11.15b flow stub (replaced in 11.15c/d) */
 .eq-flow-stub { margin: 10px 14px 16px; padding: 12px 14px; border: 1px dashed var(--border-strong); border-radius: 9px; font-size: 12.5px; color: var(--text-muted); display: flex; align-items: center; gap: 12px; }
 .eq-flow-stub .eq-btn { margin-left: auto; }
+
+
+/* =====================================================================
+   SLICE 11.16b-2 — Tags lens header action + Manage-tags modal
+   ===================================================================== */
+
+/* Tags lens header grows a ⋮ action beside its collapse toggle. */
+.lens-section-head-row {
+  display: flex;
+  align-items: center;
+}
+.lens-section-head-row .lens-section-head {
+  flex: 1;
+  min-width: 0;
+}
+.lens-section-action {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.lens-section-action:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+
+/* Modal — reuses the shared prog-modal-* shell + prog-btn family. */
+.lib-modal-tags {
+  width: 540px;
+  max-width: 100%;
+}
+
+.lib-tag-status {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--white));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  color: var(--accent-deep, var(--accent));
+  font-size: 12.5px;
+}
+
+.lib-tag-merge-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 9px;
+  background: var(--bg-soft, var(--bg));
+  border: 1px solid var(--border);
+}
+.lib-tag-merge-label {
+  font-size: 12.5px;
+  color: var(--text);
+  font-weight: 500;
+}
+.lib-tag-merge-input {
+  flex: 1;
+  min-width: 120px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--white);
+  font-size: 12.5px;
+  color: var(--text);
+  font-family: inherit;
+}
+.lib-tag-merge-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.lib-tag-manage-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+
+.lib-tag-manage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.lib-tag-manage-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--border-soft, var(--border));
+}
+.lib-tag-manage-row:last-child {
+  border-bottom: none;
+}
+
+.lib-tag-check {
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.lib-tag-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lib-tag-count {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.lib-tag-row-actions {
+  flex-shrink: 0;
+  display: inline-flex;
+  gap: 4px;
+}
+.lib-tag-row-btn {
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+}
+.lib-tag-row-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.lib-tag-row-btn-danger:hover:not(:disabled) {
+  border-color: #fecaca;
+  color: var(--danger);
+}
+.lib-tag-row-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Inline rename + delete-confirm states take over the row body. */
+.lib-tag-rename,
+.lib-tag-confirm {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.lib-tag-rename-input {
+  flex: 1;
+  min-width: 120px;
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--white);
+  font-size: 12.5px;
+  color: var(--text);
+  font-family: inherit;
+}
+.lib-tag-rename-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.lib-tag-confirm-msg {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--text);
+}

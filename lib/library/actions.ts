@@ -1133,3 +1133,112 @@ export async function unpublishNoteAction(
   revalidatePath(`/tutor/library/note/${noteId}`);
   return { ok: true };
 }
+
+
+// =====================================================================
+// Slice 11.16b-2 — tag manager (rename / delete / merge)
+// =====================================================================
+
+export type TagOpResult =
+  | { ok: true; affected: number }
+  | { ok: false; error: string };
+
+/**
+ * Rename a tag across every one of the tutor's notes that carries it.
+ * Lowercased + trimmed to match the editor's tag rules; renaming onto
+ * an existing tag behaves as a merge (the RPC dedupes). The
+ * `nclex_rename_library_tag` RPC is SECURITY INVOKER, so RLS scopes
+ * the write to the tutor's own notes.
+ */
+export async function renameTagAction(
+  oldTag: string,
+  newTag: string,
+): Promise<TagOpResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const from = oldTag.trim();
+  const to = newTag.trim().toLowerCase();
+  if (from.length === 0 || to.length === 0) {
+    return { ok: false, error: 'Both the old and new tag are required.' };
+  }
+  if (to.length > TAG_MAX_LEN) {
+    return { ok: false, error: `Tags must be ${TAG_MAX_LEN} characters or fewer.` };
+  }
+  if (from === to) {
+    return { ok: false, error: 'The new tag is the same as the old one.' };
+  }
+
+  const { data, error } = await supabase.rpc('nclex_rename_library_tag', {
+    p_old: from,
+    p_new: to,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/tutor/library');
+  return { ok: true, affected: typeof data === 'number' ? data : 0 };
+}
+
+/**
+ * Delete a tag from every one of the tutor's notes that carries it.
+ */
+export async function deleteTagAction(tag: string): Promise<TagOpResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const t = tag.trim();
+  if (t.length === 0) return { ok: false, error: 'No tag given.' };
+
+  const { data, error } = await supabase.rpc('nclex_delete_library_tag', {
+    p_tag: t,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/tutor/library');
+  return { ok: true, affected: typeof data === 'number' ? data : 0 };
+}
+
+/**
+ * Merge several source tags into one target across all of the tutor's
+ * notes. Target is lowercased + trimmed; it may be one of the sources
+ * or a brand-new tag. The RPC dedupes the result.
+ */
+export async function mergeTagsAction(
+  sources: string[],
+  target: string,
+): Promise<TagOpResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const cleanSources = Array.from(
+    new Set(sources.map((s) => s.trim()).filter((s) => s.length > 0)),
+  );
+  const to = target.trim().toLowerCase();
+  if (cleanSources.length < 2) {
+    return { ok: false, error: 'Pick at least two tags to merge.' };
+  }
+  if (to.length === 0) {
+    return { ok: false, error: 'A target tag is required.' };
+  }
+  if (to.length > TAG_MAX_LEN) {
+    return { ok: false, error: `Tags must be ${TAG_MAX_LEN} characters or fewer.` };
+  }
+
+  const { data, error } = await supabase.rpc('nclex_merge_library_tags', {
+    p_sources: cleanSources,
+    p_target: to,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/tutor/library');
+  return { ok: true, affected: typeof data === 'number' ? data : 0 };
+}
