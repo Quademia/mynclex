@@ -8,7 +8,7 @@
 -- lens-row fetch — no view ever runs a stored query, so there's no
 -- query language to validate at the DB.
 --
--- Mirrors the folders table exactly: UUID PK, tutor_id → auth.users
+-- Mirrors the folders table exactly: UUID PK, tutor_id → nclex_users
 -- with ON DELETE CASCADE, a position column for sidebar ordering, and
 -- four self-scoped RLS policies (select / insert / update / delete) on
 -- `tutor_id = auth.uid()`. No SECURITY DEFINER RPCs — plain CRUD
@@ -18,7 +18,7 @@ BEGIN;
 
 CREATE TABLE nclex_tutor_library_views (
   view_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tutor_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  tutor_id     UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
   name         TEXT NOT NULL,
   filters_json JSONB NOT NULL DEFAULT '{}'::jsonb,
   position     INTEGER NOT NULL DEFAULT 0,
@@ -37,16 +37,20 @@ ALTER TABLE nclex_tutor_library_views ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY nclex_tutor_library_views_self_select
   ON nclex_tutor_library_views FOR SELECT
+  TO authenticated
   USING (tutor_id = (SELECT auth.uid()));
 CREATE POLICY nclex_tutor_library_views_self_insert
   ON nclex_tutor_library_views FOR INSERT
+  TO authenticated
   WITH CHECK (tutor_id = (SELECT auth.uid()));
 CREATE POLICY nclex_tutor_library_views_self_update
   ON nclex_tutor_library_views FOR UPDATE
+  TO authenticated
   USING (tutor_id = (SELECT auth.uid()))
   WITH CHECK (tutor_id = (SELECT auth.uid()));
 CREATE POLICY nclex_tutor_library_views_self_delete
   ON nclex_tutor_library_views FOR DELETE
+  TO authenticated
   USING (tutor_id = (SELECT auth.uid()));
 
 COMMIT;
