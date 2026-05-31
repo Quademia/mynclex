@@ -44,11 +44,17 @@ import {
   type EmbedQuestionRow,
 } from './types';
 
-/** A fresh empty embedded-questions block for the slash menu / tray. */
+/** A fresh empty embedded-questions block for the slash menu / tray.
+ *  Stamped with a stable id so student attempts (11.13b) can attribute
+ *  to this specific block. */
 export function freshEmbed() {
   return {
     type: 'embedded_questions',
-    attrs: { item_ids: [] as string[], source: 'TUTOR' },
+    attrs: {
+      id: crypto.randomUUID(),
+      item_ids: [] as string[],
+      source: 'TUTOR',
+    },
   };
 }
 
@@ -73,6 +79,11 @@ export const EmbedQuestionsBlock = TiptapNode.create({
 
   addAttributes() {
     return {
+      // Stable per-block id — generated on insert (freshEmbed) + self-healed
+      // in the NodeView; backfilled onto pre-existing blocks by migration
+      // 20260624120000. Student embed attempts are attributed to this id
+      // (slice 11.13b), so it must survive reorders/edits.
+      id: { default: null as string | null },
       item_ids: { default: [] as string[] },
       source: { default: 'TUTOR' },
     };
@@ -158,6 +169,15 @@ function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode, extens
     document.addEventListener('pointerdown', onDown, true);
     return () => document.removeEventListener('pointerdown', onDown, true);
   }, [menuOpen]);
+
+  // Self-heal: ensure the block carries a stable id (insert stamps one via
+  // freshEmbed; this catches odd paths like paste). Editable-only — the
+  // student read view never mutates the doc.
+  useEffect(() => {
+    if (editable && !node.attrs.id) {
+      updateAttributes({ id: crypto.randomUUID() });
+    }
+  }, [editable, node.attrs.id, updateAttributes]);
 
   function openFlow(which: 'pick' | 'create') {
     setMenuOpen(false);
