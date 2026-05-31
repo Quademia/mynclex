@@ -8,7 +8,48 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-30):** **Library 11.10 Publish flow
+> **On the session branch (2026-05-31, NOT merged):** **Library
+> 11.16a (content search) + 11.16b (tags lens + manager).** Sam tested
+> + approved each piece at localhost; the whole 11.16 arc merges to
+> `main` together once 11.16c lands. 7 commits on
+> `claude/festive-engelbart-572b8c`.
+>
+> **11.16a — content search.** Woke up the toolbar search box.
+> Headline was a latent indexer bug: `nclex_extract_body_text` (written
+> in 11.1, pre-Tiptap) expected a top-level array but the editor saves
+> a `{type:'doc',content:[...]}` object, so **every rich-editor note
+> had ZERO body text indexed** — and the per-block branches read wrong
+> keys for headings/lists/tables/drug_card/lab_values. Rewrote it as a
+> recursive walker + DROP/RE-ADD the `body_tsv` generated column to
+> force a retroactive backfill (migration `20260623120000`). Added the
+> `nclex_search_library_notes` RPC (`?q=`/`?qf=` scope, ts_rank, title
+> hits first) + per-field scope chips (weight mask, no extra storage).
+> **11.16a-2** made it prefix + live: PREFIX tsquery matching on
+> *english-stem OR literal-simple* (so "brady" finds bradycardia AND
+> "furosemide" still matches), debounced as-you-type (migration
+> `20260623120100`).
+>
+> **Tag-input discoverability fix** (not numbered): the editor's
+> "+ Add tag" affordance now always shows + reads as a dashed pill like
+> "+ Add pillar".
+>
+> **11.16b — tags.** **b-1**: the Tags lens lists distinct tags +
+> counts, clicking filters via `?tag=`. **b-2**: ⋮ → Manage-tags modal
+> with **rename / delete / merge** (3 SECURITY INVOKER bulk RPCs +
+> order-preserving dedupe helper, migration `20260623120200`;
+> RLS-scoped; affected-note counts surfaced).
+>
+> **Next session:** **11.16c — custom views** (save a filter combo as a
+> reusable sidebar view; per-view edit/rename/delete) **+ a sidebar
+> scroll-cap pass** for **Folders / Shelves / Views** (Tags already
+> capped; Views grows unbounded once custom views exist; fix the kebab-
+> popover clipping inside the scroll container via fixed positioning;
+> pin the "All …" anchors). Then **merge the whole 11.16 arc to
+> `main`**. Also captured: **tag autocomplete** in the editor to reduce
+> drift at source. 11.16 prod migrations at release: `20260623120000` /
+> `120100` / `120200`.
+>
+> **Earlier shipped (2026-05-30):** **Library 11.10 Publish flow
 > (MERGED to `main`) + 11.15 Embedded-questions tutor authoring half
 > (built, on the session branch).**
 >

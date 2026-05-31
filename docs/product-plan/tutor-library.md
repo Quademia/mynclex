@@ -2123,12 +2123,33 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   embeddable types = the 4 classic single-question types **MCQ / SATA /
   TF / SELECT_N** (NGN deferred — partial-credit grading, not a
   renderer limit). No new question table, no new renderer.
-- ⬜ **11.16** Tag manager + custom views + search. *(Build order 2 —
+- 🔨 **11.16** Tag manager + custom views + search. *(Build order 2 —
   directly library, tutor-side, no dependencies — the cleanest
   "finish the library" slice.)* Kebab on Tags lens opens *Manage tags*
   (rename / delete / merge); custom view save/edit/delete from
   toolbar; `tsvector`-backed search composing with chip filters via
   AND.
+  - ✅ **11.16a (2026-05-31, on session branch)** — content search.
+    Found + fixed the latent indexer bug (`nclex_extract_body_text`
+    expected a top-level array but the Tiptap editor saves a
+    `{type:'doc',content}` object → every rich-editor note had **zero
+    body text indexed**; rewritten as a recursive walker, `body_tsv`
+    column dropped/re-added to backfill — migration `20260623120000`).
+    `nclex_search_library_notes` RPC + `?q=`/`?qf=` scope + per-field
+    chips (weight mask). **11.16a-2**: prefix + live (english-stem OR
+    literal-simple prefix tsquery; debounced as-you-type — migration
+    `20260623120100`).
+  - ✅ **11.16b (2026-05-31, on session branch)** — tags. b-1:
+    clickable Tags lens (`aggregateTags` + `?tag=` filter). b-2:
+    Manage-tags modal (rename / delete / merge via 3 SECURITY INVOKER
+    bulk RPCs + `nclex_dedupe_tags` — migration `20260623120200`).
+    Plus a tag-input discoverability fix in the editor.
+  - ⬜ **11.16c** — custom views (`nclex_tutor_library_views`): save a
+    filter combo, per-view edit/rename/delete. **Bundle with a sidebar
+    scroll-cap pass** for Folders / Shelves / Views (Tags already
+    capped; Views becomes unbounded here; float row kebabs out of the
+    overflow container; pin the "All …" anchors). Then merge the 11.16
+    arc to `main`.
 - ⬜ **11.13** Student read-mode renderer — *(Build order 3 — directly
   library, student-reading side; where publish + visibility from 11.10
   finally becomes visible to a student.)* full-page route at
