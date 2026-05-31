@@ -253,7 +253,7 @@ export function LibraryHomeShell({
   builderActive,
   builderRows,
   builderInitial,
-  savedViews,
+  savedViews = [],
   savedViewActive,
   savedView,
   savedViewNotes,
