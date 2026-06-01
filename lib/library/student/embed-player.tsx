@@ -472,23 +472,25 @@ function ReviewPlay({
       </div>
 
       <div className="eq-player-foot">
-        <button
-          type="button"
-          className="eq-player-btn eq-player-btn--next"
-          disabled={i === 0}
-          onClick={() => setI((n) => Math.max(0, n - 1))}
-        >
-          ← Prev
-        </button>
+        {i > 0 && (
+          <button
+            type="button"
+            className="eq-player-btn eq-player-btn--next"
+            onClick={() => setI((n) => Math.max(0, n - 1))}
+          >
+            ← Prev
+          </button>
+        )}
         <span className="eq-player-foot-spacer" />
-        <button
-          type="button"
-          className="eq-player-btn eq-player-btn--next"
-          disabled={i + 1 >= questions.length}
-          onClick={() => setI((n) => Math.min(questions.length - 1, n + 1))}
-        >
-          Next →
-        </button>
+        {i + 1 < questions.length && (
+          <button
+            type="button"
+            className="eq-player-btn eq-player-btn--next"
+            onClick={() => setI((n) => Math.min(questions.length - 1, n + 1))}
+          >
+            Next →
+          </button>
+        )}
       </div>
     </div>
   );
