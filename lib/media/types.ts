@@ -23,7 +23,7 @@ export type AssetStatus = 'UPLOADING' | 'READY' | 'DELETED' | 'PURGED';
 // Free text in the DB; this union is the canonical TS-side list.
 // New consumer features extend this string union and add an entry
 // to PURPOSE_CONFIG below.
-export type Purpose = 'PDF_ACTIVITY';
+export type Purpose = 'PDF_ACTIVITY' | 'LIBRARY_IMAGE' | 'LIBRARY_PDF';
 
 
 // Per-purpose configuration. Drives:
@@ -50,12 +50,37 @@ export interface PurposeConfigEntry {
 }
 
 const TWENTY_FIVE_MB = 25 * 1024 * 1024;
+const FIVE_MB = 5 * 1024 * 1024;
 
 export const PURPOSE_CONFIG: Record<Purpose, PurposeConfigEntry> = {
   PDF_ACTIVITY: {
     bucket: 'nclex-pdf-activities',
     mediaType: 'PDF',
     storagePathPrefix: 'pdf_activity',
+    allowedMimeTypes: ['application/pdf'],
+    maxSizeBytes: TWENTY_FIVE_MB,
+    isPublic: false,
+  },
+  // Tutor library Image blocks (slice 11.6a). Uploads are downscaled
+  // in the browser (lib/media/resize-image.ts) before they reach the
+  // upload action, so the 5 MB cap is a generous ceiling rather than
+  // the common case. MIME list matches the bucket allow-list — only
+  // raster types the resize helper can re-encode (gif excluded).
+  LIBRARY_IMAGE: {
+    bucket: 'nclex-library-images',
+    mediaType: 'IMAGE',
+    storagePathPrefix: 'library_image',
+    allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+    maxSizeBytes: FIVE_MB,
+    isPublic: false,
+  },
+  // Tutor library PDF blocks (slice 11.6b). A link-card reference
+  // file — no browser-side transform, so the 25 MB cap is the real
+  // ceiling. Private bucket; the block mints a signed URL on click.
+  LIBRARY_PDF: {
+    bucket: 'nclex-library-pdfs',
+    mediaType: 'PDF',
+    storagePathPrefix: 'library_pdf',
     allowedMimeTypes: ['application/pdf'],
     maxSizeBytes: TWENTY_FIVE_MB,
     isPublic: false,

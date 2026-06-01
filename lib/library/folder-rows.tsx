@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { NewFolderModal } from './new-folder-modal';
 import { DeleteFolderConfirm } from './delete-folder-confirm';
+import { usePopoverPosition } from './use-popover-position';
 import type { LibraryFolder, LibraryFolderWithCount } from './types';
 
 interface FolderRowsProps {
@@ -51,15 +52,19 @@ export function FolderRows({ folders, selected }: FolderRowsProps) {
           No folders yet — create one with + New folder.
         </div>
       ) : (
-        folders.map((f) => (
-          <FolderRow
-            key={f.folder_id}
-            folder={f}
-            isActive={selected === f.folder_id}
-            onEdit={() => setEditing(f)}
-            onDelete={() => setDeleting(f)}
-          />
-        ))
+        // Per-folder rows scroll within a capped region; the "All
+        // folders" anchor above stays pinned (slice 11.16c-3).
+        <div className="lens-scroll">
+          {folders.map((f) => (
+            <FolderRow
+              key={f.folder_id}
+              folder={f}
+              isActive={selected === f.folder_id}
+              onEdit={() => setEditing(f)}
+              onDelete={() => setDeleting(f)}
+            />
+          ))}
+        </div>
       )}
 
       {editing && (
@@ -91,6 +96,14 @@ interface FolderRowProps {
 function FolderRow({ folder, isActive, onEdit, onDelete }: FolderRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const rowRef = useRef<HTMLDivElement | null>(null);
+  const kebabRef = useRef<HTMLButtonElement | null>(null);
+
+  // Fixed-position the menu off the kebab's rect so it escapes the
+  // lens-scroll container's clipping (slice 11.16c-3).
+  const { ref: menuRef, style: menuStyle } = usePopoverPosition({
+    getAnchorRect: () => kebabRef.current?.getBoundingClientRect() ?? null,
+    gap: 4,
+  });
 
   // Click-outside + Escape close.
   useEffect(() => {
@@ -123,6 +136,7 @@ function FolderRow({ folder, isActive, onEdit, onDelete }: FolderRowProps) {
       </Link>
       <button
         type="button"
+        ref={kebabRef}
         className="lens-item-kebab"
         aria-label={`Folder actions for ${folder.name}`}
         aria-haspopup="menu"
@@ -136,7 +150,12 @@ function FolderRow({ folder, isActive, onEdit, onDelete }: FolderRowProps) {
         ⋮
       </button>
       {menuOpen && (
-        <div className="lens-item-menu" role="menu">
+        <div
+          ref={menuRef}
+          style={{ ...menuStyle, right: 'auto' }}
+          className="lens-item-menu"
+          role="menu"
+        >
           <button
             type="button"
             role="menuitem"

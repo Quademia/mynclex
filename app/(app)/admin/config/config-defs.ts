@@ -9,7 +9,7 @@
 // only edit values. Pure data + pure helpers (no server imports) so both the
 // server action and the client board can use it.
 
-export type ConfigType = 'boolean' | 'percent';
+export type ConfigType = 'boolean' | 'percent' | 'integer';
 
 export interface ConfigDef {
   key: string;
@@ -21,6 +21,10 @@ export interface ConfigDef {
   // boolean only: a warning shown before turning the setting OFF, when doing
   // so is consequential.
   confirmOff?: string;
+  // integer only: inclusive admin-input guard rails (a typo can't set an
+  // absurd value). Within these the admin sets whatever they like.
+  min?: number;
+  max?: number;
 }
 
 export const CONFIG_DEFS: ConfigDef[] = [
@@ -41,6 +45,26 @@ export const CONFIG_DEFS: ConfigDef[] = [
       'Discount applied to the NCLEX Bank add-on when a student buys it alongside a programme at checkout.',
     type: 'percent',
     defaultValue: '0',
+  },
+  {
+    key: 'embed_max_questions_per_block',
+    label: 'Embedded questions — max per block',
+    description:
+      'The most questions a single embedded-questions block in a library note can hold. The picker stops the tutor at this number.',
+    type: 'integer',
+    defaultValue: '10',
+    min: 1,
+    max: 30,
+  },
+  {
+    key: 'embed_max_blocks_per_note',
+    label: 'Embedded questions — max blocks per note',
+    description:
+      'The most embedded-questions blocks a single library note can contain. Beyond this the “Embedded questions” block option is disabled. (Max questions per note = this × the per-block limit.)',
+    type: 'integer',
+    defaultValue: '5',
+    min: 1,
+    max: 10,
   },
 ];
 
@@ -66,7 +90,20 @@ export function formatConfigValue(def: ConfigDef, value: string): string {
       return value === 'true' ? 'On' : 'Off';
     case 'percent':
       return `${fractionToPercent(value)}%`;
+    case 'integer':
+      return value;
   }
+}
+
+// A stored integer-config string → number, clamped to its def's guard rails,
+// falling back to the default if missing / malformed. The single read path
+// for the consuming code so a bad row can never produce a bad limit.
+export function readIntegerConfig(def: ConfigDef, value: string | undefined): number {
+  const n = Number(value);
+  const min = def.min ?? 1;
+  const max = def.max ?? Number.MAX_SAFE_INTEGER;
+  if (!Number.isInteger(n)) return Number(def.defaultValue);
+  return Math.min(max, Math.max(min, n));
 }
 
 // Validate + normalise a stored-form value against its def. The action calls
@@ -85,6 +122,15 @@ export function validateConfigValue(
       // The consuming code treats this as a fraction in [0, 1).
       if (!Number.isFinite(n) || n < 0 || n >= 1) {
         return { ok: false, error: 'Discount must be between 0% and 99%.' };
+      }
+      return { ok: true, value: String(n) };
+    }
+    case 'integer': {
+      const n = Number(value);
+      const min = def.min ?? 1;
+      const max = def.max ?? Number.MAX_SAFE_INTEGER;
+      if (!Number.isInteger(n) || n < min || n > max) {
+        return { ok: false, error: `Must be a whole number between ${min} and ${max}.` };
       }
       return { ok: true, value: String(n) };
     }

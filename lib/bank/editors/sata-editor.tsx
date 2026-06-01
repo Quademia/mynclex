@@ -335,7 +335,7 @@ export function SataEditorBody({
       onSubmit={handleSubmit}
       onInput={onDirty}
     >
-      <HiddenItemInputs type="SATA" itemId={initial.itemId} surface={initial.surface} />
+      <HiddenItemInputs type="SATA" itemId={initial.itemId} surface={initial.surface} parentNoteId={initial.parentNoteId} />
 
       <ErrorToast error={error ?? clientError} onDismiss={dismissError} />
 

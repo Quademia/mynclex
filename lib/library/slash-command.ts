@@ -10,7 +10,7 @@
 // current block (or inserts a new block) per the item's `run`
 // command from slash-menu.tsx.
 
-import { Extension } from '@tiptap/core';
+import { Extension, type Editor } from '@tiptap/core';
 import Suggestion from '@tiptap/suggestion';
 import { ReactRenderer } from '@tiptap/react';
 import { SlashMenu, type SlashMenuHandle, filterSlashItems, type SlashItem } from './slash-menu';
@@ -28,9 +28,11 @@ export const SlashCommand = Extension.create({
         startOfLine: false,
         allowSpaces: false,
         // The Suggestion utility calls this to compute the items
-        // list as the user types after `/`.
-        items: ({ query }: { query: string }): SlashItem[] =>
-          filterSlashItems(query),
+        // list as the user types after `/`. `editor` lets the filter
+        // dynamically disable items (e.g. the embedded-questions row
+        // once the note holds its max blocks — slice 11.15e).
+        items: ({ query, editor }: { query: string; editor: Editor }): SlashItem[] =>
+          filterSlashItems(query, editor),
         // Render the popover via Tiptap's ReactRenderer.
         render: () => {
           let component: ReactRenderer<SlashMenuHandle> | null = null;

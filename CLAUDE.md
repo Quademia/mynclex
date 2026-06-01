@@ -222,6 +222,21 @@ slice.
 
 ## Known Workarounds
 
+- **ProseMirror/Tiptap node `attrs` are dropped crossing a Server
+  Action boundary — deep-clone the doc before sending.** Tiptap's
+  `editor.getJSON()` returns each node's `attrs` as the *live*
+  ProseMirror attrs object, which ProseMirror builds with
+  `Object.create(null)` (null prototype). When such an object is
+  passed as a React Server Action argument, the serializer silently
+  drops it — so a `libImage` node arrived server-side as a bare
+  `{ type: 'libImage' }` and the saved image vanished on reload
+  (slice 11.6a). Fix: round-trip the doc through
+  `JSON.parse(JSON.stringify(doc))` before it crosses the boundary,
+  which rebuilds every object with the normal `Object.prototype`.
+  Done in `lib/library/body-tiptap.ts` → `tiptapToBody`. Apply the
+  same clone to any future editor doc / PM-derived structure sent to
+  a Server Action.
+
 - **Production builds use webpack, not Turbopack.** The `build` and
   `cf:build` scripts pass `--webpack` to `next build`. Reason: Next.js 16
   defaults to Turbopack for production builds, but

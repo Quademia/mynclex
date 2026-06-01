@@ -12,6 +12,12 @@
 import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { NCLEX_PILLARS } from './types';
+import {
+  applyViewFilters,
+  normalizeFilters,
+  type LibrarySavedView,
+  type LibrarySavedViewWithCount,
+} from './view-filters';
 import type {
   LibraryEligibleNote,
   LibraryFolderWithCount,
@@ -20,12 +26,15 @@ import type {
   LibraryNoteLensRow,
   LibraryNoteListRow,
   LibraryOverviewStats,
+  LibraryProgrammeOption,
   LibraryShelfCardNote,
   LibraryShelfDetail,
   LibraryShelfDetailNote,
   LibraryShelfPip,
   LibraryShelfWithCount,
   LibraryShelfWithNotes,
+  LibrarySearchFieldFlags,
+  LibraryTagCount,
   LibraryViewCounts,
   LibraryViewKey,
   NclexPillar,
@@ -77,6 +86,60 @@ function extractAttachmentCount(embed: AttachmentCountEmbed): number {
   const arr = Array.isArray(embed) ? embed : embed ? [embed] : [];
   const first = arr[0];
   return first?.count ?? 0;
+}
+
+// The canonical `LibraryNoteLensRow` PostgREST select — folder name +
+// shelf-pip memberships + programme-attachment count, the shape every
+// full-width note row needs. (getNotesForTutor / getShelfDetail /
+// fetchAllLensRowsForTutor still inline their own copies; the search
+// query below uses this shared pair.)
+const LENS_ROW_SELECT = `
+  note_id, folder_id, title, subtitle, description,
+  tags, pillars, is_published, visibility_mode, updated_at,
+  nclex_tutor_library_folders ( name ),
+  nclex_tutor_library_shelf_memberships (
+    nclex_tutor_library_shelves ( shelf_id, title, color )
+  ),
+  nclex_tutor_library_note_attachments ( count )
+`;
+
+type LensRowEmbed = {
+  note_id: string;
+  folder_id: string | null;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  tags: string[];
+  pillars: NclexPillar[];
+  is_published: boolean;
+  visibility_mode: LibraryNoteLensRow['visibility_mode'];
+  updated_at: string;
+  nclex_tutor_library_folders: FolderEmbed;
+  nclex_tutor_library_shelf_memberships: ShelfPipEmbed;
+  nclex_tutor_library_note_attachments: AttachmentCountEmbed;
+};
+
+function mapLensRow(row: unknown): LibraryNoteLensRow {
+  const r = row as LensRowEmbed;
+  return {
+    note_id: r.note_id,
+    folder_id: r.folder_id,
+    folder_name: extractFolderName(r.nclex_tutor_library_folders),
+    title: r.title,
+    subtitle: r.subtitle,
+    description: r.description,
+    pillars: r.pillars,
+    tags: r.tags,
+    shelf_memberships: extractShelfPips(
+      r.nclex_tutor_library_shelf_memberships,
+    ),
+    is_published: r.is_published,
+    visibility_mode: r.visibility_mode,
+    updated_at: r.updated_at,
+    used_in_count: extractAttachmentCount(
+      r.nclex_tutor_library_note_attachments,
+    ),
+  } satisfies LibraryNoteLensRow;
 }
 
 /**
@@ -255,7 +318,8 @@ export async function getNoteForEdit(
        nclex_tutor_library_note_attachments(count),
        nclex_tutor_library_shelf_memberships (
          nclex_tutor_library_shelves ( shelf_id, title, color )
-       )`,
+       ),
+       nclex_tutor_library_note_visibility ( programme_id )`,
     )
     .eq('note_id', noteId)
     .maybeSingle();
@@ -265,6 +329,7 @@ export async function getNoteForEdit(
   const raw = data as LibraryNote & {
     nclex_tutor_library_note_attachments?: AttachmentCountEmbed;
     nclex_tutor_library_shelf_memberships?: ShelfPipEmbed;
+    nclex_tutor_library_note_visibility?: { programme_id: string }[] | null;
   };
 
   const used_in_count = extractAttachmentCount(
@@ -273,22 +338,57 @@ export async function getNoteForEdit(
   const shelf_memberships = extractShelfPips(
     raw.nclex_tutor_library_shelf_memberships,
   );
+  const visibility_programme_ids = Array.isArray(
+    raw.nclex_tutor_library_note_visibility,
+  )
+    ? raw.nclex_tutor_library_note_visibility.map((v) => v.programme_id)
+    : [];
 
   // Strip the embeds before returning so the LibraryNote shape stays
   // clean — the derived fields live in the extension type.
   const {
     nclex_tutor_library_note_attachments: _attEmbed,
     nclex_tutor_library_shelf_memberships: _memEmbed,
+    nclex_tutor_library_note_visibility: _visEmbed,
     ...rest
   } = raw;
   void _attEmbed;
   void _memEmbed;
+  void _visEmbed;
 
   return {
     ...(rest as LibraryNote),
     used_in_count,
     shelf_memberships,
+    visibility_programme_ids,
   } satisfies LibraryNoteForEdit;
+}
+
+
+/**
+ * The signed-in tutor's own programmes, slimmed to `{ programme_id,
+ * title }` for the Publish dialog's programme-scope picker (slice
+ * 11.10). RLS on `nclex_programmes` scopes the read to the tutor's
+ * own rows (SUPER_ADMIN bypass aside), so the list is exactly the
+ * programmes a note may legally be scoped to — which the same-tutor
+ * trigger on the junction also enforces at write time.
+ *
+ * Ordered by title for a stable checkbox list. Returns [] when the
+ * tutor has no programmes yet (the dialog then disables the
+ * Programme-scoped option).
+ */
+export async function getTutorProgrammesForPicker(): Promise<
+  LibraryProgrammeOption[]
+> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('nclex_programmes')
+    .select('programme_id, title')
+    .order('title', { ascending: true });
+
+  if (error || !data) return [];
+  return data as LibraryProgrammeOption[];
 }
 
 
@@ -779,6 +879,23 @@ function aggregatePillars(
 }
 
 /**
+ * Distinct tags across the tutor's notes with per-tag note counts,
+ * sorted by count desc then alphabetically. A note counts once per
+ * tag it carries. Powers the sidebar Tags lens (11.16b).
+ */
+function aggregateTags(rows: LibraryNoteLensRow[]): LibraryTagCount[] {
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    for (const tag of r.tags) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  }
+  return Array.from(counts.entries())
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+}
+
+/**
  * Counts powering the sidebar Views lens entries. Always called on
  * every render of `/tutor/library` so the lens lights up regardless
  * of which scope the tutor is in.
@@ -786,6 +903,7 @@ function aggregatePillars(
 export async function getLibraryLensCounts(): Promise<{
   view: LibraryViewCounts;
   pillars: Record<NclexPillar, number>;
+  tags: LibraryTagCount[];
 }> {
   const rows = await fetchAllLensRowsForTutor();
   return {
@@ -795,6 +913,7 @@ export async function getLibraryLensCounts(): Promise<{
       used_nowhere: rows.filter((r) => r.used_in_count === 0).length,
     },
     pillars: aggregatePillars(rows),
+    tags: aggregateTags(rows),
   };
 }
 
@@ -843,4 +962,177 @@ export async function getNotesForView(
     case 'used-nowhere':
       return rows.filter((r) => r.used_in_count === 0);
   }
+}
+
+
+/**
+ * Lens-row list for a single tag — every note the tutor owns that
+ * carries `tag`. Derived from the same cached row fetch as the
+ * system views (11.16b). Sorted newest-edit-first (the fetch order).
+ */
+export async function getNotesForTag(
+  tag: string,
+): Promise<LibraryNoteLensRow[]> {
+  const rows = await fetchAllLensRowsForTutor();
+  return rows.filter((r) => r.tags.includes(tag));
+}
+
+
+/**
+ * The full lens-row set for the tutor — feeds the custom-view builder
+ * (slice 11.16c), which filters client-side over every dimension on the
+ * projection (status / pillars / tags). Same cached fetch the views +
+ * counts already use, so a builder render adds no extra round trip when
+ * the sidebar counts are fetched in the same pass.
+ */
+export async function getAllLensRowsForTutor(): Promise<LibraryNoteLensRow[]> {
+  return fetchAllLensRowsForTutor();
+}
+
+
+// =====================================================================
+// Slice 11.16c-2 — saved custom views
+// =====================================================================
+
+type SavedViewRow = {
+  view_id: string;
+  name: string;
+  filters_json: unknown;
+  position: number;
+};
+
+/**
+ * Every saved view the tutor owns, ordered by `position`, each with the
+ * live count of notes its filter combo matches. The count is computed
+ * in-app over the cached lens-row fetch (the same one the sidebar
+ * counts + system views use), so the whole sidebar — system views,
+ * pillar/tag counts, AND saved-view counts — costs a single notes read
+ * per render. RLS scopes the view rows to the tutor.
+ */
+export async function getSavedViewsWithCounts(): Promise<
+  LibrarySavedViewWithCount[]
+> {
+  const supabase = await createClient();
+  const [rows, { data, error }] = await Promise.all([
+    fetchAllLensRowsForTutor(),
+    supabase
+      .from('nclex_tutor_library_views')
+      .select('view_id, name, filters_json, position')
+      .order('position', { ascending: true }),
+  ]);
+  if (error || !data) return [];
+
+  return (data as SavedViewRow[]).map((r) => {
+    const filters = normalizeFilters(r.filters_json);
+    return {
+      view_id: r.view_id,
+      name: r.name,
+      filters,
+      position: r.position,
+      count: applyViewFilters(rows, filters).length,
+    } satisfies LibrarySavedViewWithCount;
+  });
+}
+
+/**
+ * One saved view + the lens-row list its combo matches. Returns `null`
+ * when the id doesn't match any of the tutor's views (RLS filters
+ * cross-tutor reads, so non-existent + not-yours both surface as
+ * `null` — caller renders a "View not found" pane). Mirrors
+ * `getShelfDetail`'s shape: the row read, then the filtered note set.
+ */
+export async function getSavedView(
+  viewId: string,
+): Promise<{ view: LibrarySavedView; notes: LibraryNoteLensRow[] } | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('nclex_tutor_library_views')
+    .select('view_id, name, filters_json, position')
+    .eq('view_id', viewId)
+    .maybeSingle();
+  if (error || !data) return null;
+
+  const row = data as SavedViewRow;
+  const filters = normalizeFilters(row.filters_json);
+  const rows = await fetchAllLensRowsForTutor();
+  return {
+    view: {
+      view_id: row.view_id,
+      name: row.name,
+      filters,
+      position: row.position,
+    },
+    notes: applyViewFilters(rows, filters),
+  };
+}
+
+
+// =====================================================================
+// Slice 11.16a — content search
+// =====================================================================
+
+/**
+ * Ranked full-text search over the tutor's own notes. Two round
+ * trips, mirroring `getShelfDetail`:
+ *   1. `nclex_search_library_notes` (SECURITY INVOKER, RLS-scoped)
+ *      returns matching note_ids ordered by `ts_rank` desc.
+ *   2. The canonical lens-row projection is batch-fetched for those
+ *      ids and re-ordered to match the ranking.
+ *
+ * `fields` masks which note fields count toward a match (title /
+ * subtitle / description / body) via the RPC's ts_rank weight array.
+ * Returns [] for an empty query or when every field is deselected —
+ * the UI guards against both, this is the belt-and-braces floor.
+ */
+export async function searchNotesForTutor(
+  query: string,
+  fields: LibrarySearchFieldFlags,
+): Promise<LibraryNoteLensRow[]> {
+  const trimmed = query.trim();
+  if (trimmed.length === 0) return [];
+  if (
+    !fields.title &&
+    !fields.subtitle &&
+    !fields.description &&
+    !fields.body
+  ) {
+    return [];
+  }
+
+  const supabase = await createClient();
+
+  // 1. Ranked note_ids from the FTS RPC.
+  const { data: ranked, error: rpcErr } = await supabase.rpc(
+    'nclex_search_library_notes',
+    {
+      p_query: trimmed,
+      p_title: fields.title,
+      p_subtitle: fields.subtitle,
+      p_description: fields.description,
+      p_body: fields.body,
+    },
+  );
+  if (rpcErr || !ranked) return [];
+
+  const orderedIds = (ranked as { note_id: string; rank: number }[]).map(
+    (r) => r.note_id,
+  );
+  if (orderedIds.length === 0) return [];
+
+  // 2. Lens-row projection for those notes, re-ordered by rank.
+  const { data, error } = await supabase
+    .from('nclex_tutor_library_notes')
+    .select(LENS_ROW_SELECT)
+    .in('note_id', orderedIds);
+  if (error || !data) return [];
+
+  const byId = new Map<string, LibraryNoteLensRow>();
+  for (const row of data) {
+    const lens = mapLensRow(row);
+    byId.set(lens.note_id, lens);
+  }
+
+  return orderedIds
+    .map((id) => byId.get(id))
+    .filter((x): x is LibraryNoteLensRow => x != null);
 }

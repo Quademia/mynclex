@@ -21,11 +21,15 @@ import type { LibraryFolderWithCount } from './types';
 interface DeleteFolderConfirmProps {
   folder: LibraryFolderWithCount;
   onClose: () => void;
+  /** Navigate here on success instead of refreshing in place — used
+   *  when the caller is viewing the folder it's deleting. */
+  redirectTo?: string;
 }
 
 export function DeleteFolderConfirm({
   folder,
   onClose,
+  redirectTo,
 }: DeleteFolderConfirmProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +53,8 @@ export function DeleteFolderConfirm({
       return;
     }
     onClose();
-    router.refresh();
+    if (redirectTo) router.push(redirectTo);
+    else router.refresh();
   }
 
   const noteCount = folder.note_count;

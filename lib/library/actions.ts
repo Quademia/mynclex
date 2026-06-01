@@ -13,14 +13,18 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import {
+  EMBED_ABS_MAX_BLOCKS,
+  EMBED_ABS_MAX_PER_BLOCK,
   NCLEX_PILLARS,
   SHELF_PALETTE,
   type LibraryFolderFormValues,
   type LibraryNoteCreateValues,
   type LibraryNoteUpdateValues,
   type LibraryShelfFormValues,
+  type LibraryVisibilityMode,
   type NclexPillar,
 } from './types';
+import { countMissingAltImages, summarizeEmbeds } from './body-tiptap';
 
 export type CreateFolderResult =
   | { ok: true; folder_id: string }
@@ -432,6 +436,28 @@ export async function updateNoteAction(
 ): Promise<UpdateNoteResult> {
   const validationError = validateUpdate(input);
   if (validationError) return { ok: false, error: validationError };
+
+  // Embedded-questions cap backstop (slice 11.15e) — GRANDFATHER-SAFE.
+  // We deliberately check the ABSOLUTE ceilings (the admin-input guard
+  // rails), NOT the live config value: lowering a config limit must
+  // never block a tutor from saving a note they built under a previous,
+  // higher limit. The live config value is enforced where the tutor
+  // *acts* (the picker + the block-insertion points). This floor only
+  // catches physically absurd amounts (e.g. a bypassed UI), bounded by
+  // what the config could ever be set to.
+  const embeds = summarizeEmbeds(input.body);
+  if (embeds.blocks > EMBED_ABS_MAX_BLOCKS) {
+    return {
+      ok: false,
+      error: `A note can have at most ${EMBED_ABS_MAX_BLOCKS} embedded-question blocks.`,
+    };
+  }
+  if (embeds.maxInBlock > EMBED_ABS_MAX_PER_BLOCK) {
+    return {
+      ok: false,
+      error: `An embedded-questions block can have at most ${EMBED_ABS_MAX_PER_BLOCK} questions.`,
+    };
+  }
 
   const supabase = await createClient();
   const {
@@ -946,4 +972,273 @@ export async function removeNoteFromShelfAction(
 
   revalidatePath('/tutor/library');
   return { ok: true };
+}
+
+
+// =====================================================================
+// Slice 11.10 — publish flow + visibility
+// =====================================================================
+
+export type PublishNoteResult =
+  | { ok: true; is_published: boolean; visibility_mode: LibraryVisibilityMode }
+  | { ok: false; error: string; missingAlt?: number };
+
+/**
+ * Publish a note (or re-scope an already-published one — same code
+ * path; both end with `is_published = true`). The audience is set by
+ * `mode` + `programmeIds`:
+ *   • TUTOR_WIDE — every student in any of the tutor's programmes.
+ *     `programmeIds` is ignored / cleared.
+ *   • PROGRAMME_SCOPED — only students in the picked programmes;
+ *     `programmeIds` must be a non-empty subset of the tutor's own
+ *     programmes.
+ *
+ * The flag flip + junction rewrite happen atomically inside the
+ * `nclex_set_library_note_publish` RPC (the junction's deferred
+ * scoped-≥1 constraint only validates at commit — see the migration).
+ *
+ * Two preflights run app-side before the RPC:
+ *   1. Alt-text gate — the note's saved body must have no `libImage`
+ *      with empty alt. This backstops the editor's client-side
+ *      preflight (which also scrolls to the first offender); a bypass
+ *      of the client check still can't publish an undescribed image.
+ *   2. Same-tutor programme check — every scoped `programme_id` must
+ *      belong to this tutor. The junction's BEFORE trigger enforces
+ *      this in SQL too; the app check just yields a friendly error.
+ */
+export async function publishNoteAction(
+  noteId: string,
+  mode: LibraryVisibilityMode,
+  programmeIds: string[],
+): Promise<PublishNoteResult> {
+  if (mode !== 'TUTOR_WIDE' && mode !== 'PROGRAMME_SCOPED') {
+    return { ok: false, error: 'Pick a visibility option.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Load the note's saved body + ownership in one read (RLS-scoped).
+  const { data: note } = await supabase
+    .from('nclex_tutor_library_notes')
+    .select('note_id, body')
+    .eq('note_id', noteId)
+    .maybeSingle();
+  if (!note) {
+    return { ok: false, error: 'Note not found, or not yours to publish.' };
+  }
+
+  // Preflight 1 — alt-text gate.
+  const missingAlt = countMissingAltImages(note.body);
+  if (missingAlt > 0) {
+    return {
+      ok: false,
+      missingAlt,
+      error:
+        missingAlt === 1
+          ? '1 image is missing alt text. Describe it before publishing.'
+          : `${missingAlt} images are missing alt text. Describe them before publishing.`,
+    };
+  }
+
+  // Normalise the scope set: TUTOR_WIDE always sends an empty array.
+  let scopeIds: string[] = [];
+  if (mode === 'PROGRAMME_SCOPED') {
+    scopeIds = Array.from(new Set(programmeIds.filter((id) => id)));
+    if (scopeIds.length === 0) {
+      return {
+        ok: false,
+        error: 'Pick at least one programme, or choose Tutor-wide.',
+      };
+    }
+
+    // Preflight 2 — same-tutor programme check.
+    const { data: owned } = await supabase
+      .from('nclex_programmes')
+      .select('programme_id')
+      .in('programme_id', scopeIds);
+    const ownedSet = new Set((owned ?? []).map((p) => p.programme_id));
+    if (scopeIds.some((id) => !ownedSet.has(id))) {
+      return {
+        ok: false,
+        error: 'One of those programmes is no longer yours. Refresh and retry.',
+      };
+    }
+  }
+
+  const { data, error } = await supabase.rpc('nclex_set_library_note_publish', {
+    p_note_id: noteId,
+    p_is_published: true,
+    p_mode: mode,
+    p_programme_ids: scopeIds,
+  });
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/tutor/library');
+  revalidatePath(`/tutor/library/note/${noteId}`);
+
+  const result = (data ?? {}) as {
+    is_published?: boolean;
+    visibility_mode?: LibraryVisibilityMode;
+  };
+  return {
+    ok: true,
+    is_published: result.is_published ?? true,
+    visibility_mode: result.visibility_mode ?? mode,
+  };
+}
+
+
+export type UnpublishNoteResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Send a published note back to draft. Only the tutor sees drafts.
+ *
+ * A plain `is_published = false` UPDATE — the visibility junction is
+ * deliberately preserved (and `visibility_mode` left as-is) so a later
+ * re-publish remembers the audience the tutor last chose. Touching the
+ * junction isn't needed: the deferred scoped-≥1 trigger lives on the
+ * junction table, and a notes-row flag flip never fires it. RLS
+ * (`nclex_tutor_library_notes_self_update`, tutor_id = auth.uid())
+ * gates the write.
+ */
+export async function unpublishNoteAction(
+  noteId: string,
+): Promise<UnpublishNoteResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data, error } = await supabase
+    .from('nclex_tutor_library_notes')
+    .update({ is_published: false })
+    .eq('note_id', noteId)
+    .select('note_id')
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return { ok: false, error: 'Note not found, or not yours to edit.' };
+  }
+
+  revalidatePath('/tutor/library');
+  revalidatePath(`/tutor/library/note/${noteId}`);
+  return { ok: true };
+}
+
+
+// =====================================================================
+// Slice 11.16b-2 — tag manager (rename / delete / merge)
+// =====================================================================
+
+export type TagOpResult =
+  | { ok: true; affected: number }
+  | { ok: false; error: string };
+
+/**
+ * Rename a tag across every one of the tutor's notes that carries it.
+ * Lowercased + trimmed to match the editor's tag rules; renaming onto
+ * an existing tag behaves as a merge (the RPC dedupes). The
+ * `nclex_rename_library_tag` RPC is SECURITY INVOKER, so RLS scopes
+ * the write to the tutor's own notes.
+ */
+export async function renameTagAction(
+  oldTag: string,
+  newTag: string,
+): Promise<TagOpResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const from = oldTag.trim();
+  const to = newTag.trim().toLowerCase();
+  if (from.length === 0 || to.length === 0) {
+    return { ok: false, error: 'Both the old and new tag are required.' };
+  }
+  if (to.length > TAG_MAX_LEN) {
+    return { ok: false, error: `Tags must be ${TAG_MAX_LEN} characters or fewer.` };
+  }
+  if (from === to) {
+    return { ok: false, error: 'The new tag is the same as the old one.' };
+  }
+
+  const { data, error } = await supabase.rpc('nclex_rename_library_tag', {
+    p_old: from,
+    p_new: to,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/tutor/library');
+  return { ok: true, affected: typeof data === 'number' ? data : 0 };
+}
+
+/**
+ * Delete a tag from every one of the tutor's notes that carries it.
+ */
+export async function deleteTagAction(tag: string): Promise<TagOpResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const t = tag.trim();
+  if (t.length === 0) return { ok: false, error: 'No tag given.' };
+
+  const { data, error } = await supabase.rpc('nclex_delete_library_tag', {
+    p_tag: t,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/tutor/library');
+  return { ok: true, affected: typeof data === 'number' ? data : 0 };
+}
+
+/**
+ * Merge several source tags into one target across all of the tutor's
+ * notes. Target is lowercased + trimmed; it may be one of the sources
+ * or a brand-new tag. The RPC dedupes the result.
+ */
+export async function mergeTagsAction(
+  sources: string[],
+  target: string,
+): Promise<TagOpResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const cleanSources = Array.from(
+    new Set(sources.map((s) => s.trim()).filter((s) => s.length > 0)),
+  );
+  const to = target.trim().toLowerCase();
+  if (cleanSources.length < 2) {
+    return { ok: false, error: 'Pick at least two tags to merge.' };
+  }
+  if (to.length === 0) {
+    return { ok: false, error: 'A target tag is required.' };
+  }
+  if (to.length > TAG_MAX_LEN) {
+    return { ok: false, error: `Tags must be ${TAG_MAX_LEN} characters or fewer.` };
+  }
+
+  const { data, error } = await supabase.rpc('nclex_merge_library_tags', {
+    p_sources: cleanSources,
+    p_target: to,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/tutor/library');
+  return { ok: true, affected: typeof data === 'number' ? data : 0 };
 }

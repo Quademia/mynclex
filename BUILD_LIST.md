@@ -8,86 +8,384 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **Last shipped (2026-05-27):** **Library Slice 11.5 follow-on
-> polish — editor full-feature build-out.** Stacks on top of the
-> just-shipped Tiptap scaffold (11.5a + 11.5b). Multiple discrete
-> improvements landed across the same session as a continuous
-> arc rather than separate slices — kept together because each
-> piece reshaped the editor's surface and they read as one
-> coherent "make the editor feel real" pass.
+> **MERGED to `main` (2026-06-01):** **the whole student-reading side of
+> the library — 11.14a/b (student library front door) + 11.13a (note
+> read view) + 11.13b (embedded-questions player).** The library is now
+> a place students *read and practise*, not just one tutors author.
 >
-> - **`+` buttons → controlled menus** (no phantom slash). The
->   per-block `+` and footer `+ Add block` no longer inject `/`
->   into the doc; they open a React-state-controlled SlashMenu
->   anchored to the button. SlashItem grows a `runAt(editor,
->   position)` method for button-triggered insertion alongside
->   the existing slash-triggered `run(editor, range)`.
-> - **Block hover + focus tint** via `@tiptap/extension-focus`
->   (className: `has-focus`, mode: `shallowest`). CSS tints the
->   hovered block (5% accent) + the focused block (7% accent;
->   9% when hovered).
-> - **List bullets / numbers restored.** Tailwind's preflight
->   clears `list-style` globally; explicit `disc` / `decimal` /
->   `circle` / `lower-alpha` inside `.lib-tiptap-body`, with
->   tight `li > p` margins so lists don't read loose.
-> - **Real SVG icons** for toolbar + slash menu. 23 new icons
->   added to `<NavIcon>` across two waves (text marks first,
->   expanded toolbar second). Lucide-derived paths (MIT) matching
->   the existing icon style — no new dependency, all icons stay
->   in one place.
-> - **Toolbar expansion.** Six more Tiptap extensions installed
->   (`@tiptap/extension-highlight`, `-subscript`, `-superscript`,
->   `-text-align`, `-color`, `-text-style`). New toolbar groups:
->   **marks** (B / I / U / S / `</>` / link / sub / sup) ·
->   **headings** (H2 / H3) · **blocks** (• / 1. / quote /
->   code-block / hr) · **colour** (highlight + text colour —
->   each opens a small swatch popover with 6 preset tints + a
->   Remove pill) · **alignment** (L / C / R on heading +
->   paragraph) · **actions** (undo / redo / clear formatting).
-> - **Block tray at the editor foot.** Replaces the dashed
->   `+ Add block` button with a horizontal chip row of all 14
->   block types. Six enabled chips insert at the end of the doc
->   on click; eight disabled chips render dimmed with their
->   target-slice badge (`11.6` / `11.7` etc.). Wraps on narrow
->   screens.
-> - **Inter-block "+ Add block" gap affordances.** New
->   `lib/library/block-gap.ts` Tiptap extension injects a
->   ProseMirror widget decoration between every pair of top-level
->   blocks. Hover-revealed dashed accent line with a "+ Add
->   block" pill; click dispatches a custom event the editor
->   catches and opens the controlled SlashMenu at that position.
->   The per-block `+` next to the drag handle was removed — the
->   gap affordance is the new mouse-driven insertion path.
-> - **Shared `usePopoverPosition` hook** (`lib/library/use-popover-position.ts`).
->   Flip-above-when-clipped-below + horizontal clamp + max-height
->   constraint. Used by both the SlashMenu (cursor-anchored) and
->   the ColorSwatchPicker (button-anchored). DOM-mutation
->   positioning rather than React state to avoid the layout-
->   effect / setState re-render loop that bit the first
->   implementation.
+> - **11.14 a/b — student library (front door).** Read-only mirror of
+>   the tutor lensed home, scoped to the programme's tutor, in
+>   `lib/library/student/`. Five-lens sidebar (read-only adaptations,
+>   hide-empty, collapse-to-rail via `useSyncExternalStore`); RLS does
+>   the visibility filtering (no migration). Views = All notes (live) +
+>   Recent / By unit / Bookmarked (placeholders pending feeders). Wired
+>   on both delivery routes — `/student/programme/[id]/library` (14a)
+>   **and** `/student/cohort/[id]/library` (14b); shell generalised
+>   `programmeId → basePath`; shared `scope.ts` parser. Nav entry added
+>   to both `STUDENT_PROGRAMME_DETAIL_NAV` + `STUDENT_COHORT_DETAIL_NAV`.
+> - **11.13a — note read view.** Full-page route (programme + cohort
+>   siblings) + Contents rail (scroll-spy + "section N of M", writes
+>   `last_heading_id`) + a CUSTOM per-block read renderer (NOT Tiptap —
+>   `read-inline`/`read-blocks`/`read-media-blocks`, reuses the editor's
+>   standalone `.lib-*` classes + a `.lib-read-prose` mirror; every
+>   formatting mark reproduced) + Mark-as-done + Bookmark
+>   (`nclex_library_note_state`, no migration) + enrolment-gated
+>   signed-URL actions for image/PDF. Breadcrumb (Library / folder) +
+>   clickable shelf/pillar/tag chips back to the library; named shelf
+>   chips (dot + title) replace bare colour-dots on tutor + student rows.
+> - **11.13b — embedded-questions player + attempt history.** The
+>   differentiator. New `nclex_library_embed_answers` (migration
+>   `20260624120000`) — an **append-only attempt-history log** fusing the
+>   answer fields from `nclex_attempt_answers` with the snapshot columns
+>   from `nclex_attempt_items` (inlined) + note_id/block_id; FK item_id →
+>   `nclex_tutor_questions`. **`play_id`** (migration `20260624130000`)
+>   tags each sitting. Block ids backfilled + stamped on insert. Secure
+>   load/submit actions (answerable content, no key; server grades via
+>   `scoreAttempt`, freezes a snapshot). Player: intro/Start card → fresh
+>   pass (reuses bank-runner MCQ/TF/SATA/SELECT_N + RationaleBlock) →
+>   end summary; **always-fresh on reopen**, with the intro card listing
+>   **past sittings** each replayable read-only from its snapshot;
+>   leave-mid-set guard (beforeunload + the note's own links).
+>   Model locked in discussion: append-only history (not freeze-lock),
+>   re-practice allowed, no fabricated rows for skipped Qs, no
+>   block-until-finished. Tutor analytics dashboard that reads this is a
+>   later slice.
 >
-> **Files new (4):** `lib/library/block-gap.ts`,
-> `lib/library/color-swatch-picker.tsx`,
-> `lib/library/use-popover-position.ts`,
-> 12 new icons in `components/nav/shared/nav-icon.tsx`.
+> **Next per the re-sequenced build order: 11.11 → 11.12** (programme
+> integration — Library Note + Shelf as activity types) then **11.17**
+> (polish). Prod migrations to ship at next release for this arc:
+> `20260624120000` + `20260624130000`.
 >
-> **Files modified (5):** `lib/library/note-body-editor.tsx`
-> (six extensions + expanded toolbar + swatch popovers + block
-> tray + inter-block gap listener — per-block `+` removed),
-> `lib/library/slash-menu.tsx` (button-triggered `runAt` +
-> `iconSvg` field + position hook), `lib/library/color-swatch-picker.tsx`
-> (position hook), `styles/library.css` (toolbar + swatch
-> popover + block tray + gap + hover/focus tint + list bullets
-> + new icon sizing), `package.json` + `package-lock.json`
-> (7 new Tiptap deps total across the follow-on).
+> **MERGED to `main` (2026-05-31):** **the whole Library 11.16 arc —
+> 11.16a (content search) + 11.16b (tags lens + manager) + 11.16c
+> (custom views + sidebar scroll-cap pass + folder/shelf pane
+> Edit/Delete).** 11.16a/b landed on `main` earlier in the day; 11.16c
+> (9 commits on `claude/heuristic-engelbart-c60f36`) fast-forwarded in
+> after Sam's approval. 11.16 is **done** — the library is now complete
+> "as a library." Next per the re-sequenced build order: **11.13**
+> (student read-mode renderer). Prod migrations for the arc at release:
+> `20260623120000` / `120100` / `120200` / `120300`.
 >
-> **Next:** Library **11.6** (Standard visual blocks — Image /
-> PDF / Video / Table + Supabase Storage signed-URL pipeline +
-> auto-resize). Standing alternate: Payments **5.3** per the
-> rotation rule. As the visual-block slices land, their slash-
-> menu rows + block-tray chips light up automatically (they're
-> already wired as disabled placeholders with their slice
-> numbers).
+> **11.16c — custom views.** Filter builder at `?view=new` (status /
+> pillars / tags; AND across dimensions, OR within; live in-browser
+> preview). Persisted to `nclex_tutor_library_views` (migration
+> `20260623120300`; UUID PK, `tutor_id → nclex_users`, `filters_json`
+> JSONB, `position`; self + admin RLS mirroring folders) — save / edit /
+> rename / delete; saved views render in the Views lens with live match
+> counts; `?view=<uuid>` read pane carries Edit / Rename / Delete.
+> Bundled: a sidebar scroll-cap pass (Folders / Shelves / Views scroll
+> within a 260px `.lens-scroll`; row kebab menus fixed-positioned out of
+> the clip via `usePopoverPosition`; "All …" anchors + system views +
+> "+ New view" pinned outside the scroll) and a consistency follow-on
+> giving the folder + shelf detail panes header Edit / Delete (red)
+> actions (`DeleteShelfConfirm` extracted; both delete confirms take an
+> optional `redirectTo` so detail-pane delete routes to `?folder=all` /
+> `?shelf=all`).
+>
+> **11.16a — content search.** Woke up the toolbar search box.
+> Headline was a latent indexer bug: `nclex_extract_body_text` (written
+> in 11.1, pre-Tiptap) expected a top-level array but the editor saves
+> a `{type:'doc',content:[...]}` object, so **every rich-editor note
+> had ZERO body text indexed** — and the per-block branches read wrong
+> keys for headings/lists/tables/drug_card/lab_values. Rewrote it as a
+> recursive walker + DROP/RE-ADD the `body_tsv` generated column to
+> force a retroactive backfill (migration `20260623120000`). Added the
+> `nclex_search_library_notes` RPC (`?q=`/`?qf=` scope, ts_rank, title
+> hits first) + per-field scope chips (weight mask, no extra storage).
+> **11.16a-2** made it prefix + live: PREFIX tsquery matching on
+> *english-stem OR literal-simple* (so "brady" finds bradycardia AND
+> "furosemide" still matches), debounced as-you-type (migration
+> `20260623120100`).
+>
+> **Tag-input discoverability fix** (not numbered): the editor's
+> "+ Add tag" affordance now always shows + reads as a dashed pill like
+> "+ Add pillar".
+>
+> **11.16b — tags.** **b-1**: the Tags lens lists distinct tags +
+> counts, clicking filters via `?tag=`. **b-2**: ⋮ → Manage-tags modal
+> with **rename / delete / merge** (3 SECURITY INVOKER bulk RPCs +
+> order-preserving dedupe helper, migration `20260623120200`;
+> RLS-scoped; affected-note counts surfaced).
+>
+> **Next session:** **11.16c — custom views** (save a filter combo as a
+> reusable sidebar view; per-view edit/rename/delete) **+ a sidebar
+> scroll-cap pass** for **Folders / Shelves / Views** (Tags already
+> capped; Views grows unbounded once custom views exist; fix the kebab-
+> popover clipping inside the scroll container via fixed positioning;
+> pin the "All …" anchors). Then **merge the whole 11.16 arc to
+> `main`**. Also captured: **tag autocomplete** in the editor to reduce
+> drift at source. 11.16 prod migrations at release: `20260623120000` /
+> `120100` / `120200`.
+>
+> **Earlier shipped (2026-05-30):** **Library 11.10 Publish flow
+> (MERGED to `main`) + 11.15 Embedded-questions tutor authoring half
+> (built, on the session branch).**
+>
+> **11.10 — Publish flow + visibility + alt-text preflight (MERGED).**
+> Atomic publish RPC `nclex_set_library_note_publish` (migration
+> `20260620120000`); `publishNoteAction` / `unpublishNoteAction`;
+> Tutor-wide / Programme-scoped dialog; client alt-text preflight that
+> scrolls to the first undescribed image. The 11.1 DB floor (columns +
+> junction + triggers) meant this was almost all app-layer.
+>
+> **Build order re-sequenced (Sam):** finish the library *as a library*
+> first — **programme integration (11.11/11.12) builds LAST**. Numbers
+> kept as stable IDs; build order = 11.15 → 11.16 → 11.13 → 11.14 →
+> 11.11 → 11.12 → 11.17.
+>
+> **11.15 — Embedded questions, authoring half (a–e, NOT yet merged).**
+> The `embedded_questions` block: insert → **Add question** → *Pick from
+> my bank* (the quiz-picker filter pattern, multi-select, per-block cap)
+> **or** *Create a new question* (the existing bank editor, Publish-on +
+> `parent_note_id`-stamped → a reusable "Note-created" bank question).
+> v1 types = the 4 classic (MCQ/SATA/TF/SELECT_N). **Caps are admin
+> config** — `embed_max_questions_per_block` (10) + `embed_max_blocks_per_note`
+> (5) as editable `/admin/config` integer settings; enforced at the
+> point of action; **grandfather-safe** server backstop. Migrations
+> `20260621120000` (parent_note_id on both question tables) +
+> `20260622120000` (config seed).
+>
+> **Still deferred to 11.13** (student read view): the inline player,
+> submit, snapshot, and the `nclex_library_embed_answers` table.
+>
+> **Next:** Sam tests 11.15 → merge to `main`; then **11.16** (tag
+> manager + custom views + search) per the re-sequenced order.
+>
+> **Earlier shipped (2026-05-30):** **Library Slice 11.9 — Lab values
+> block.** Completes the three NCLEX-domain "nursing-shaped" blocks
+> (Callout · Drug card · Lab values). A sealed **atom node**
+> (`lab_values`) holding `{ title, columns: [{ label }], rows: [[…]] }`
+> — an editable 2-D grid edited via a React form in the NodeView. New
+> tables seed the **4 NCLEX-canonical columns** (Test · Normal · If
+> high · If low) + two blank rows; the tutor can rename, add, or remove
+> columns and add/remove rows.
+>
+> - **Inline grid controls.** Hover a column header → × to remove it;
+>   a ＋ in the top-right header cell adds a column (every row gains a
+>   blank cell). Hover a row → × on the right removes it; a dashed
+>   **+ Add row** bar at the foot. The last column / last row lose
+>   their × (UI enforces the ≥1-column / ≥1-row floor).
+> - **Column-removal warning.** Removing a column fires a centred
+>   confirm ("This will delete the values in this column for all N
+>   rows…") — it's the destructive op (wipes data down the whole
+>   column). Row removal is immediate, matching drug-card field removal.
+> - **Auto-grow cells** (+ wrapping column labels) so long entries like
+>   "Respiratory alkalosis" don't clip. The `AutoGrowTextarea` is now a
+>   **shared** `lib/library/auto-grow-textarea.tsx` used by both the
+>   Drug card (11.8) and Lab values.
+> - **CD design on app tokens** (gradient header + 🧪 + serif title,
+>   grey uppercase column headers, emphasised navy first column), teal
+>   accent — not the mock's blue.
+> - **V1 plain text · soft validation · no DB change** — same posture
+>   as the drug card; search indexing folds into the holistic
+>   search-sync cleanup.
+>
+> **Files new (2):** `lib/library/lab-values-block.tsx`,
+> `lib/library/auto-grow-textarea.tsx`.
+>
+> **Files modified (5):** `lib/library/drug-card-block.tsx` (use the
+> shared textarea), `lib/library/note-body-editor.tsx` (register),
+> `lib/library/slash-menu.tsx` (enable the row + canonical seed),
+> `styles/library.css` (SLICE 11.9 block),
+> `docs/product-plan/tutor-library.md` (tick 11.9).
+>
+> **Next:** Library **11.10** (Publish flow + visibility + status pills
+> + alt-text/field preflight — the hard validation gate for every block
+> type), or rotate per the alternate-features rule. The slash menu's
+> last disabled row is **11.15** (Embedded questions).
+>
+> **Earlier shipped (2026-05-30):** **Library Slice 11.8 — Drug card
+> block.** Second of the three NCLEX-domain "nursing-shaped" blocks.
+> A sealed **atom node** (`drug_card`) holding `{ name, drug_class,
+> fields: [{ label, value }] }` — all data in the node's attrs, edited
+> via a React form inside the NodeView (the Image-block pattern, just a
+> bigger form). New cards pre-populate the **4 NCLEX-canonical fields**
+> (Indications · Typical dose · Side effects · Nursing considerations);
+> the tutor can rename, reorder, add, or remove any field.
+>
+> - **CD design on app tokens.** Built from Sam's new CD handoff (the
+>   sodium-bicarbonate card): white spec-sheet card, gradient header,
+>   💊 capsule + italic "Rx" flourish, Georgia-serif drug name, a grey
+>   label-column / value grid. The mock's indigo was mapped to our
+>   teal `--accent` + navy `--primary` per the standing rule.
+> - **Authoring interactions.** Per-field **▲▼ reorder** (drag
+>   deferred) + × remove, hover-revealed on the value cell; a dashed
+>   **+ Add field** bar at the foot; hover-the-card × removes the whole
+>   block (the Rx flourish dims so the × reads). Value boxes auto-grow;
+>   label cells **wrap** (auto-grow textarea, Enter suppressed, pasted
+>   newlines stripped) so a long label like "Nursing considerations"
+>   never clips.
+> - **V1 plain-text values.** No inline marks inside field values —
+>   the labels carry the emphasis. Going rich would have turned each
+>   value into a nested editable region (Table-block-level complexity);
+>   parked unless real tutors ask. (Discussed + decided with Sam.)
+> - **Soft validation.** Placeholders / required cues only; the hard
+>   gate (name required, ≥1 field, labels required) lands with the
+>   publish preflight in 11.10 — same model as image alt-text.
+> - **No DB change.** Like image/pdf/table, drug-card text isn't
+>   indexed yet — the slice-11.1 search helper reads the fields at the
+>   JSON top level but Tiptap nests them under `attrs`; folded into the
+>   future holistic search-sync cleanup.
+>
+> **Files new (1):** `lib/library/drug-card-block.tsx`.
+>
+> **Files modified (4):** `lib/library/note-body-editor.tsx` (register
+> the block), `lib/library/slash-menu.tsx` (enable the Drug-card row +
+> canonical-field seed), `styles/library.css` (SLICE 11.8 block),
+> `docs/product-plan/tutor-library.md` (tick 11.8).
+>
+> **Next:** Library **11.9** (Lab values — extensible columns + rows)
+> completes the nursing-shaped trio, or rotate per the alternate-
+> features rule.
+>
+> **Earlier shipped (2026-05-30):** **Library Slice 11.7 — Callout
+> block.** First of the three NCLEX-domain "nursing-shaped" blocks.
+> A Tiptap content node (`callout`, `inline*` rich text) carrying a
+> `tone` attr — Note · Tip · Warning · Critical · Memory — that drives
+> the whole box colour (background + border + text) plus the header
+> icon + label. No custom title: the label *is* the tone.
+>
+> - **Header = deep-fill tab chip (CD-iterated with Sam).** The
+>   icon + tone label sit in a solid deep-tone chip (white text) that
+>   straddles the top-left edge of the box, over a 4px left accent +
+>   soft body tint. The chip doubles as the tone switcher: click it →
+>   5-tone dropdown → the chip, accent, and body re-colour together
+>   (Tiptap's generic `updateAttributes` — no bespoke command). A
+>   hover-revealed × in the top-right removes the block. Chosen over a
+>   full-width deep title-bar variant because the chip stays calm when
+>   several callouts stack down a long note and doesn't out-shout the
+>   page's H2/H3 headings.
+> - **No DB change.** The slice-11.1 `nclex_extract_body_text` search
+>   helper already had a `callout` branch expecting `inline*` content,
+>   so callout text is full-text searchable for free. (Naming the node
+>   plainly `callout` — not `libCallout` — is what lines it up with
+>   that helper.)
+> - **Enabled in the slash menu + block tray automatically.** Flipping
+>   the existing disabled `comingIn: '11.7'` row to live insert
+>   commands lights up both the `/callout` entry and the foot-of-editor
+>   chip off the same data.
+>
+> **Files new (1):** `lib/library/callout-block.tsx`.
+>
+> **Files modified (4):** `lib/library/note-body-editor.tsx` (register
+> the block), `lib/library/slash-menu.tsx` (enable the Callout row),
+> `styles/library.css` (SLICE 11.7 block — tone tints + tab chip +
+> tone menu + body), `docs/product-plan/tutor-library.md` (tick 11.7).
+>
+> **Next:** Library **11.8** (Drug card — extensible field array) or
+> Payments per the alternate-features rotation.
+>
+> **Earlier shipped (2026-05-30):** **Library Slices 11.6b + 11.6c —
+> PDF + Video blocks, then the Table block.** The rest of the
+> standard visual blocks land, completing the 11.6 media set
+> (Image · PDF · Video · Table).
+>
+> - **11.6b — PDF block.** New private `nclex-library-pdfs` bucket
+>   (migration `20260619120000_slice_11_6b_library_pdfs.sql`),
+>   `LIBRARY_PDF` purpose in the media config. Atom node carries
+>   only the `assetId`; bytes live in Storage, 1-hour signed URLs
+>   minted on demand. NodeView renders an upload dropzone → filled
+>   link card (`lib/library/pdf-block.tsx` + `pdf-actions.ts`).
+> - **11.6b — Video block.** `lib/library/video-block.tsx` +
+>   `video-embed.ts`: paste a URL and the host is classified into a
+>   safe inline embed (YouTube / Vimeo), a link card (any other
+>   host), or rejected (unsafe URL). No uploads — videos are always
+>   external links.
+> - **Universal link fallback.** Both PDF and video degrade to a
+>   styled link card when an inline view isn't possible, so a tutor
+>   never hits a dead end.
+> - **Shared upload event.** `lib/library/block-upload-event.ts`
+>   factors the autosave "upload in flight" window-event out of the
+>   image block so PDF uploads gate autosave the same way.
+> - **11.6c — Table block.** Built on `@tiptap/extension-table` v3
+>   (`lib/library/table-block.ts` + `table-toolbar.tsx`). Floating
+>   contextual toolbar (BubbleMenu + Floating UI) anchored to the
+>   table: add/remove row & column, merge/split, header + sub-header
+>   row tagging, and six colour themes. Custom attrs (`colorTheme` on
+>   the table, `isSubheader` on rows) ride Tiptap's generic
+>   `updateAttributes` — no bespoke commands. No bonded title/subtitle:
+>   a tutor who wants a heading band merges the top row.
+> - **Colour-theme fix (the session's debugging headline).** Themes
+>   showed nothing at first: prosemirror-tables' `TableView` node
+>   view builds the `<table>` by hand and copies only `style`, so our
+>   `data-color` attribute never reached the DOM and the theme CSS
+>   couldn't match. With column resizing off the node view only adds
+>   this bug — disabling it (`addNodeView → null`) lets ProseMirror
+>   render from `renderHTML`, which emits `data-color`.
+> - **Note recovery.** A template note ("Normal Sinus Rhythm") saved
+>   during an abandoned title/subtitle experiment carried now-unknown
+>   `libTableFigure` nodes and wouldn't render (ProseMirror rejects
+>   unknown node types). Fixed in place via a backed-up jsonb
+>   transform: the figure → a heading (title) + paragraph (subtitle)
+>   + the table. No data lost.
+> - **Worktree cleanup.** Pruned 50 stale session worktrees + 51
+>   merged branches (incl. the retired `work` branch); only `main`,
+>   `prod`, and the active session branch remain.
+>
+> **Files new (8):** `db/migrations/20260619120000_slice_11_6b_library_pdfs.sql`,
+> `lib/library/block-upload-event.ts`, `lib/library/pdf-block.tsx`,
+> `lib/library/pdf-actions.ts`, `lib/library/video-block.tsx`,
+> `lib/library/video-embed.ts`, `lib/library/table-block.ts`,
+> `lib/library/table-toolbar.tsx`.
+>
+> **Files modified:** `lib/library/note-body-editor.tsx`,
+> `note-editor.tsx`, `slash-menu.tsx`, `image-block.tsx`,
+> `lib/media/types.ts`, `lib/nav/types.ts`,
+> `components/nav/shared/nav-icon.tsx`, `styles/library.css`,
+> `docs/product-plan/tutor-library.md`, `package.json` +
+> `package-lock.json` (`@tiptap/extension-table`).
+>
+> **Next:** Library **11.7** (the next block group on the slash-menu
+> roadmap) or Payments **5.3** per the alternate-features rotation.
+>
+> **Earlier shipped (2026-05-29):** **Library Slice 11.6a — Image
+> block.** First of the standard visual blocks. An atom Tiptap
+> node `libImage` ({ assetId, alt, caption }) backed by the shared
+> media-asset foundation.
+>
+> - **Storage pipeline.** Private `nclex-library-images` bucket
+>   (migration `20260618120000_slice_11_6a_library_images.sql`),
+>   `LIBRARY_IMAGE` purpose in the media config (5 MB cap; PNG /
+>   JPG / WebP). Bytes uploaded via the shared `uploadAssetAction`;
+>   the doc stores only the `assetId`. URLs are minted on demand as
+>   1-hour signed URLs (`getLibraryImageUrlAction`) — nothing
+>   public, no URL persisted.
+> - **Browser auto-resize** (`lib/media/resize-image.ts`) shrinks
+>   large picks before upload so the 5 MB cap is rarely hit.
+> - **NodeView** (`lib/library/image-block.tsx`): empty-state
+>   dropzone (`<UploadField>`) → filled `<img>` + alt / caption
+>   inputs. Alt text collected but not enforced (preflight lands
+>   in 11.10).
+> - **Persistence bug fixed (the session's main work):** images
+>   vanished on reload because ProseMirror's null-prototype
+>   `attrs` object was silently dropped crossing the Server Action
+>   boundary. Fix: `tiptapToBody` now deep-clones the doc through
+>   JSON. See CLAUDE.md → Known Workarounds.
+> - **Autosave holds off while an upload is in flight.**
+>   `<UploadField>` gained an `onUploadingChange` callback; the
+>   image NodeView broadcasts it as a window event the note editor
+>   counts, gating autosave (upload ≠ inactivity). Plus a latent
+>   race fixed: an edit arriving mid-save is no longer dropped
+>   (`resaveNonce` re-poke).
+>
+> **Files new (4):** `db/migrations/20260618120000_slice_11_6a_library_images.sql`,
+> `lib/library/image-block.tsx`, `lib/library/image-actions.ts`,
+> `lib/media/resize-image.ts`.
+>
+> **Files modified (7):** `components/media/upload-field.tsx`
+> (`onUploadingChange`), `lib/library/body-tiptap.ts` (JSON clone),
+> `lib/library/note-body-editor.tsx` (ImageBlock registered),
+> `lib/library/note-editor.tsx` (upload-aware autosave gate +
+> `resaveNonce`), `lib/library/slash-menu.tsx` (Image enabled),
+> `lib/media/{types,actions}.ts` (`LIBRARY_IMAGE` purpose),
+> `components/nav/shared/nav-icon.tsx` + `styles/library.css`.
+>
+> **Next:** Library **11.6b** (PDF link-card + Video embeds +
+> Table — the rest of the standard visual blocks). Standing
+> alternate: Payments **5.3** per the rotation rule. As the
+> visual-block slices land, their slash-menu rows + block-tray
+> chips light up automatically (already wired as disabled
+> placeholders with their slice numbers).
 >
 > **Earlier shipped (2026-05-27):** **Library Slice 11.5 — Tiptap
 > editor scaffold (11.5a foundation + 11.5b block UX).** The

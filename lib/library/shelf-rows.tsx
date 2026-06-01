@@ -21,10 +21,9 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ErrorToast } from '@/lib/toast/error-toast';
-import { deleteShelfAction } from './actions';
 import { NewShelfModal } from './new-shelf-modal';
+import { DeleteShelfConfirm } from './delete-shelf-confirm';
+import { usePopoverPosition } from './use-popover-position';
 import type { LibraryShelfWithCount, LibraryShelf } from './types';
 
 interface ShelfRowsProps {
@@ -59,16 +58,20 @@ export function ShelfRows({ shelves, selected }: ShelfRowsProps) {
           No shelves yet — create one with + New shelf.
         </div>
       ) : (
-        shelves.map((s) => (
-          <ShelfRow
-            key={s.shelf_id}
-            shelf={s}
-            href={`/tutor/library?shelf=${s.shelf_id}`}
-            isActive={selected === s.shelf_id}
-            onEdit={() => setEditing(s)}
-            onDelete={() => setDeleting(s)}
-          />
-        ))
+        // Per-shelf rows scroll within a capped region; the "All
+        // shelves" anchor above stays pinned (slice 11.16c-3).
+        <div className="lens-scroll">
+          {shelves.map((s) => (
+            <ShelfRow
+              key={s.shelf_id}
+              shelf={s}
+              href={`/tutor/library?shelf=${s.shelf_id}`}
+              isActive={selected === s.shelf_id}
+              onEdit={() => setEditing(s)}
+              onDelete={() => setDeleting(s)}
+            />
+          ))}
+        </div>
       )}
 
       {editing && (
@@ -101,6 +104,14 @@ interface ShelfRowProps {
 function ShelfRow({ shelf, href, isActive, onEdit, onDelete }: ShelfRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const rowRef = useRef<HTMLDivElement | null>(null);
+  const kebabRef = useRef<HTMLButtonElement | null>(null);
+
+  // Fixed-position the menu off the kebab's rect so it escapes the
+  // lens-scroll container's clipping (slice 11.16c-3).
+  const { ref: menuRef, style: menuStyle } = usePopoverPosition({
+    getAnchorRect: () => kebabRef.current?.getBoundingClientRect() ?? null,
+    gap: 4,
+  });
 
   // Click-outside + Escape close.
   useEffect(() => {
@@ -138,6 +149,7 @@ function ShelfRow({ shelf, href, isActive, onEdit, onDelete }: ShelfRowProps) {
       </Link>
       <button
         type="button"
+        ref={kebabRef}
         className="lens-item-kebab"
         aria-label={`Shelf actions for ${shelf.title}`}
         aria-haspopup="menu"
@@ -151,7 +163,12 @@ function ShelfRow({ shelf, href, isActive, onEdit, onDelete }: ShelfRowProps) {
         ⋮
       </button>
       {menuOpen && (
-        <div className="lens-item-menu" role="menu">
+        <div
+          ref={menuRef}
+          style={{ ...menuStyle, right: 'auto' }}
+          className="lens-item-menu"
+          role="menu"
+        >
           <button
             type="button"
             role="menuitem"
@@ -181,91 +198,3 @@ function ShelfRow({ shelf, href, isActive, onEdit, onDelete }: ShelfRowProps) {
 }
 
 
-interface DeleteShelfConfirmProps {
-  shelf: LibraryShelf;
-  onClose: () => void;
-}
-
-/**
- * Simple yes/no destructive confirm. No type-to-confirm gate — the
- * delete is recoverable in spirit (the shelf can be recreated, and
- * notes themselves are untouched; only membership rows cascade
- * away). The DB has FK RESTRICT on `_note_attachments.shelf_id`, so
- * a shelf attached to a programme can't be deleted — the action
- * surfaces a specific error which we route through the toast.
- */
-function DeleteShelfConfirm({ shelf, onClose }: DeleteShelfConfirmProps) {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !pending) onClose();
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose, pending]);
-
-  async function handleDelete() {
-    setPending(true);
-    setError(null);
-    const result = await deleteShelfAction(shelf.shelf_id);
-    if (!result.ok) {
-      setError(result.error);
-      setPending(false);
-      return;
-    }
-    onClose();
-    router.refresh();
-  }
-
-  return (
-    <>
-      <div
-        className="prog-modal-overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Delete shelf ${shelf.title}`}
-        onClick={(e) => {
-          if (e.target === e.currentTarget && !pending) onClose();
-        }}
-      >
-        <div className="prog-modal lib-modal-shelf-delete">
-          <header className="prog-modal-header">
-            <h2 className="prog-modal-title">Delete shelf?</h2>
-          </header>
-          <div className="prog-modal-body">
-            <p>
-              Delete <b>{shelf.title}</b>?
-            </p>
-            <p className="lib-modal-sub">
-              The shelf and its membership rows go. Notes that were on
-              this shelf are untouched — they stay in their folders and
-              keep their visibility.
-            </p>
-          </div>
-          <footer className="prog-modal-footer">
-            <button
-              type="button"
-              className="prog-btn prog-btn-ghost"
-              onClick={onClose}
-              disabled={pending}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="prog-btn prog-btn-danger"
-              onClick={handleDelete}
-              disabled={pending}
-            >
-              {pending ? 'Deleting…' : 'Delete shelf'}
-            </button>
-          </footer>
-        </div>
-      </div>
-      <ErrorToast error={error} onDismiss={() => setError(null)} />
-    </>
-  );
-}

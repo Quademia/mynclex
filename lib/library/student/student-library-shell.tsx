@@ -1,0 +1,697 @@
+// mynclex/lib/library/student/student-library-shell.tsx
+//
+// The STUDENT library shell (slice 11.14 — the "front door"). A
+// read-only mirror of the tutor's <LibraryHomeShell>, reusing the same
+// .lib-* / .lens-* CSS so the two surfaces read as one design system.
+//
+// Mounted on BOTH delivery modes via a `basePath` prop:
+//   • self-paced → /student/programme/[id]/library   (slice 11.14a)
+//   • tutor-led  → /student/cohort/[id]/library       (slice 11.14b)
+// Same surface; only the route base + how the tutor was resolved differ.
+//
+// What differs from the tutor shell (per the CD prototype's "Student
+// view"):
+//   • Views = All notes (active) · Recent · By unit · Bookmarked. The
+//     last three are placeholders here — Recent needs visit tracking
+//     (slice 11.13 writes last_visited_at), By unit needs note-as-
+//     activity attachments (11.11), Bookmarked needs 11.13. They render
+//     disabled with a hint, exactly like the tutor's "Recent".
+//   • Folders / Shelves / Pillars / Tags hide-empty — only containers
+//     holding a visible note appear.
+//   • No authoring affordances (no New folder/note, no kebabs, no
+//     Save-as-view).
+//   • Note rows link to the read view (11.13) and drop the tutor's
+//     Pub/Draft · used-in · edited state column.
+//
+// Scope is URL-driven (mirrors the tutor route): the server parses
+// searchParams into `scope` and passes it in; lens entries are <Link>s.
+// Filtering of the snapshot's notes happens here, client-side — the set
+// is small (one tutor's published notes) and this matches the prototype.
+
+'use client';
+
+import Link from 'next/link';
+import { useMemo, useState, useSyncExternalStore } from 'react';
+import { NCLEX_PILLARS, type NclexPillar } from '../types';
+import { pillarShortName } from '../format';
+import { StudentNoteRow } from './student-note-row';
+import type { StudentLibraryScope } from './scope';
+import type {
+  StudentLibrarySnapshot,
+  StudentLibraryFolder,
+  StudentLibraryShelf,
+} from './queries';
+
+interface StudentLibraryShellProps {
+  snapshot: StudentLibrarySnapshot;
+  /** Route base for this library, e.g. `/student/programme/<id>/library`. */
+  basePath: string;
+  scope: StudentLibraryScope;
+}
+
+const LS_RAILED = 'mynclex.studentlibrary.railed';
+const RAILED_EVENT = 'mynclex:studentlibrary:railed';
+
+// Collapse-to-rail preference, persisted in localStorage. Read via
+// useSyncExternalStore — the React-blessed way to subscribe to an
+// external store: SSR-safe (server snapshot = expanded, no hydration
+// mismatch) and free of the "setState in effect" cascade. Toggling
+// writes localStorage and fires an event so every mounted shell (and
+// other tabs, via the native `storage` event) re-reads.
+function railedSubscribe(cb: () => void) {
+  window.addEventListener('storage', cb);
+  window.addEventListener(RAILED_EVENT, cb);
+  return () => {
+    window.removeEventListener('storage', cb);
+    window.removeEventListener(RAILED_EVENT, cb);
+  };
+}
+function railedSnapshot(): boolean {
+  try {
+    return window.localStorage.getItem(LS_RAILED) === '1';
+  } catch {
+    return false;
+  }
+}
+function useRailed(): [boolean, () => void] {
+  const railed = useSyncExternalStore(
+    railedSubscribe,
+    railedSnapshot,
+    () => false,
+  );
+  const toggle = () => {
+    try {
+      window.localStorage.setItem(LS_RAILED, railedSnapshot() ? '0' : '1');
+    } catch {
+      /* ignore */
+    }
+    window.dispatchEvent(new Event(RAILED_EVENT));
+  };
+  return [railed, toggle];
+}
+
+type LensKey = 'views' | 'folders' | 'shelves' | 'pillars' | 'tags';
+const SECTION_GLYPH: Record<LensKey, string> = {
+  views: '☰',
+  folders: '📁',
+  shelves: '📚',
+  pillars: '◆',
+  tags: '#',
+};
+const SECTION_LABEL: Record<LensKey, string> = {
+  views: 'Views',
+  folders: 'Folders',
+  shelves: 'Shelves',
+  pillars: 'Pillars',
+  tags: 'Tags',
+};
+
+export function StudentLibraryShell({
+  snapshot,
+  basePath,
+  scope,
+}: StudentLibraryShellProps) {
+  const { folders, shelves, notes } = snapshot;
+
+  // Collapse-to-rail (slice 11.14b) — persisted preference shared across
+  // mounts + tabs. Default expanded on the server (no hydration mismatch).
+  const [railed, toggleRailed] = useRailed();
+
+  // ── Derived counts (drive the sidebar + hide-empty) ───────────────
+  const folderCount = useMemo(() => {
+    const m = new Map<string, number>();
+    notes.forEach((n) => {
+      if (n.folder_id) m.set(n.folder_id, (m.get(n.folder_id) ?? 0) + 1);
+    });
+    return m;
+  }, [notes]);
+
+  const shelfCount = useMemo(() => {
+    const m = new Map<string, number>();
+    notes.forEach((n) =>
+      n.shelf_memberships.forEach((s) =>
+        m.set(s.shelf_id, (m.get(s.shelf_id) ?? 0) + 1),
+      ),
+    );
+    return m;
+  }, [notes]);
+
+  const pillarCount = useMemo(() => {
+    const m = new Map<NclexPillar, number>();
+    notes.forEach((n) =>
+      n.pillars.forEach((p) => m.set(p, (m.get(p) ?? 0) + 1)),
+    );
+    return m;
+  }, [notes]);
+
+  const tagCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    notes.forEach((n) => n.tags.forEach((t) => m.set(t, (m.get(t) ?? 0) + 1)));
+    return Array.from(m.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }, [notes]);
+
+  // Hide-empty: only containers that hold a visible note appear.
+  const visibleFolders = folders.filter(
+    (f) => (folderCount.get(f.folder_id) ?? 0) > 0,
+  );
+  const visibleShelves = shelves.filter(
+    (s) => (shelfCount.get(s.shelf_id) ?? 0) > 0,
+  );
+  const visiblePillars = NCLEX_PILLARS.filter(
+    (p) => (pillarCount.get(p) ?? 0) > 0,
+  );
+
+  // Default landing per lens, used by the railed icons (Pillars / Tags
+  // have no single destination → expand the rail instead).
+  const railHref: Partial<Record<LensKey, string>> = {
+    views: `${basePath}?view=all-notes`,
+    folders: `${basePath}?folder=all`,
+    shelves: `${basePath}?shelf=all`,
+  };
+
+  return (
+    <div className="lib-page">
+      <header className="lib-page-head">
+        <div>
+          <h1 className="lib-page-title">Library</h1>
+          <p className="lib-page-subtitle">
+            Teaching notes your tutor has shared for this programme — read,
+            practise the embedded questions, and revisit any time.
+          </p>
+        </div>
+      </header>
+
+      <div className={`lib-body${railed ? ' is-railed' : ''}`}>
+        <aside
+          className={`lens-side${railed ? ' is-railed' : ''}`}
+          aria-label="Library lenses"
+        >
+          <button
+            className="lens-rail-toggle"
+            onClick={toggleRailed}
+            aria-label={railed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={railed ? 'Expand sidebar' : 'Collapse to icon rail'}
+          >
+            {railed ? '»' : '«'}
+          </button>
+
+          {railed ? (
+            // Railed: one glyph per lens. Views / Folders / Shelves link to
+            // their default landing; Pillars / Tags expand the rail.
+            (['views', 'folders', 'shelves', 'pillars', 'tags'] as LensKey[])
+              .filter(
+                (k) =>
+                  k === 'views' ||
+                  (k === 'folders' && visibleFolders.length > 0) ||
+                  (k === 'shelves' && visibleShelves.length > 0) ||
+                  (k === 'pillars' && visiblePillars.length > 0) ||
+                  (k === 'tags' && tagCounts.length > 0),
+              )
+              .map((k) => {
+                const href = railHref[k];
+                return (
+                  <div className="lens-section" key={k}>
+                    {href ? (
+                      <Link
+                        href={href}
+                        className="lens-rail-icon"
+                        title={SECTION_LABEL[k]}
+                        aria-label={SECTION_LABEL[k]}
+                      >
+                        {SECTION_GLYPH[k]}
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        className="lens-rail-icon"
+                        title={`${SECTION_LABEL[k]} — click to expand`}
+                        aria-label={`Expand ${SECTION_LABEL[k]}`}
+                        onClick={toggleRailed}
+                      >
+                        {SECTION_GLYPH[k]}
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+          ) : (
+            <>
+              {/* Views */}
+              <LensSection title="Views" glyph={SECTION_GLYPH.views}>
+                <LensLink
+                  href={`${basePath}?view=all-notes`}
+                  label="All notes"
+                  count={notes.length}
+                  active={scope.kind === 'all-notes'}
+                />
+                <LensDisabled
+                  label="Recent"
+                  hint="Lights up once you've opened a few notes."
+                />
+                <LensDisabled
+                  label="By unit"
+                  hint="Shows notes your tutor attaches to a unit — coming soon."
+                />
+                <LensDisabled
+                  label="Bookmarked"
+                  hint="Bookmark a note while reading to collect it here."
+                />
+              </LensSection>
+
+              {/* Folders */}
+              {visibleFolders.length > 0 && (
+                <LensSection title="Folders" glyph={SECTION_GLYPH.folders}>
+                  <LensLink
+                    href={`${basePath}?folder=all`}
+                    label="All folders"
+                    count={visibleFolders.length}
+                    active={scope.kind === 'all-folders'}
+                  />
+                  {visibleFolders.map((f) => (
+                    <LensLink
+                      key={f.folder_id}
+                      href={`${basePath}?folder=${f.folder_id}`}
+                      label={f.name}
+                      count={folderCount.get(f.folder_id) ?? 0}
+                      active={
+                        scope.kind === 'folder' && scope.id === f.folder_id
+                      }
+                    />
+                  ))}
+                </LensSection>
+              )}
+
+              {/* Shelves */}
+              {visibleShelves.length > 0 && (
+                <LensSection title="Shelves" glyph={SECTION_GLYPH.shelves}>
+                  <LensLink
+                    href={`${basePath}?shelf=all`}
+                    label="All shelves"
+                    count={visibleShelves.length}
+                    active={scope.kind === 'all-shelves'}
+                  />
+                  {visibleShelves.map((s) => (
+                    <LensLink
+                      key={s.shelf_id}
+                      href={`${basePath}?shelf=${s.shelf_id}`}
+                      label={s.title}
+                      count={shelfCount.get(s.shelf_id) ?? 0}
+                      active={scope.kind === 'shelf' && scope.id === s.shelf_id}
+                      dotColor={s.color}
+                    />
+                  ))}
+                </LensSection>
+              )}
+
+              {/* Pillars */}
+              {visiblePillars.length > 0 && (
+                <LensSection title="Pillars" glyph={SECTION_GLYPH.pillars}>
+                  {visiblePillars.map((p) => (
+                    <LensLink
+                      key={p}
+                      href={`${basePath}?pillar=${encodeURIComponent(p)}`}
+                      label={pillarShortName(p)}
+                      title={p}
+                      count={pillarCount.get(p) ?? 0}
+                      active={scope.kind === 'pillar' && scope.id === p}
+                    />
+                  ))}
+                </LensSection>
+              )}
+
+              {/* Tags */}
+              {tagCounts.length > 0 && (
+                <LensSection title="Tags" glyph={SECTION_GLYPH.tags}>
+                  {tagCounts.map((t) => (
+                    <LensLink
+                      key={t.name}
+                      href={`${basePath}?tag=${encodeURIComponent(t.name)}`}
+                      label={`#${t.name}`}
+                      count={t.count}
+                      active={scope.kind === 'tag' && scope.id === t.name}
+                    />
+                  ))}
+                </LensSection>
+              )}
+            </>
+          )}
+        </aside>
+
+        <main className="lib-main">
+          <MainPane
+            scope={scope}
+            notes={notes}
+            folders={folders}
+            shelves={shelves}
+            basePath={basePath}
+          />
+        </main>
+      </div>
+    </div>
+  );
+}
+
+// =====================================================================
+// Main pane — branches on scope
+// =====================================================================
+
+function MainPane({
+  scope,
+  notes,
+  folders,
+  shelves,
+  basePath,
+}: {
+  scope: StudentLibraryScope;
+  notes: StudentLibrarySnapshot['notes'];
+  folders: StudentLibraryFolder[];
+  shelves: StudentLibraryShelf[];
+  basePath: string;
+}) {
+  if (scope.kind === 'all-folders') {
+    return <FoldersGrid folders={folders} notes={notes} basePath={basePath} />;
+  }
+  if (scope.kind === 'all-shelves') {
+    return (
+      <ShelvesCarousel shelves={shelves} notes={notes} basePath={basePath} />
+    );
+  }
+
+  // All the remaining scopes resolve to a filtered note list.
+  let title = 'All notes';
+  let sub = `${notes.length} note${notes.length === 1 ? '' : 's'} shared with you.`;
+  let crumb = 'All notes';
+  let list = notes;
+
+  if (scope.kind === 'folder') {
+    const f = folders.find((x) => x.folder_id === scope.id);
+    list = notes.filter((n) => n.folder_id === scope.id);
+    title = f?.name ?? 'Folder';
+    sub = f?.description ?? `${list.length} note${list.length === 1 ? '' : 's'}.`;
+    crumb = title;
+  } else if (scope.kind === 'shelf') {
+    const s = shelves.find((x) => x.shelf_id === scope.id);
+    list = notes.filter((n) =>
+      n.shelf_memberships.some((m) => m.shelf_id === scope.id),
+    );
+    title = s?.title ?? 'Shelf';
+    sub = s?.description ?? `${list.length} note${list.length === 1 ? '' : 's'}.`;
+    crumb = title;
+  } else if (scope.kind === 'pillar') {
+    list = notes.filter((n) => n.pillars.includes(scope.id));
+    title = scope.id;
+    sub = 'Notes classified under this NCLEX Client Needs sub-category.';
+    crumb = pillarShortName(scope.id);
+  } else if (scope.kind === 'tag') {
+    list = notes.filter((n) => n.tags.includes(scope.id));
+    title = `#${scope.id}`;
+    sub = `Notes tagged ${scope.id}.`;
+    crumb = `#${scope.id}`;
+  }
+
+  return (
+    <NotesPane
+      title={title}
+      sub={sub}
+      crumb={crumb}
+      notes={list}
+      basePath={basePath}
+    />
+  );
+}
+
+// A note list with a client-side search box over the scoped set.
+function NotesPane({
+  title,
+  sub,
+  crumb,
+  notes,
+  basePath,
+}: {
+  title: string;
+  sub: string;
+  crumb: string;
+  notes: StudentLibrarySnapshot['notes'];
+  basePath: string;
+}) {
+  const [q, setQ] = useState('');
+  const filtered = useMemo(() => {
+    const ql = q.trim().toLowerCase();
+    if (!ql) return notes;
+    return notes.filter(
+      (n) =>
+        n.title.toLowerCase().includes(ql) ||
+        (n.subtitle ?? '').toLowerCase().includes(ql) ||
+        (n.description ?? '').toLowerCase().includes(ql),
+    );
+  }, [q, notes]);
+
+  return (
+    <div className="lib-notes-view">
+      <div className="lib-pane-head">
+        <div>
+          <div className="lib-pane-crumb">
+            <span>Library</span>
+            <span className="sep">/</span>
+            <span className="b">{crumb}</span>
+          </div>
+          <h2 className="lib-pane-title">{title}</h2>
+          <p className="lib-pane-sub">{sub}</p>
+        </div>
+      </div>
+
+      <div className="lib-student-search">
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search these notes…"
+          aria-label="Search notes"
+        />
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="lib-empty lib-empty-inline">
+          <div className="lib-empty-glyph" aria-hidden="true">
+            🔍
+          </div>
+          <p className="lib-empty-sub">
+            {q.trim() ? 'No notes match your search.' : 'No notes here yet.'}
+          </p>
+        </div>
+      ) : (
+        <div className="lib-notes-list">
+          {filtered.map((n) => (
+            <StudentNoteRow key={n.note_id} note={n} basePath={basePath} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// All folders — read-only card grid (no "new folder" tile).
+function FoldersGrid({
+  folders,
+  notes,
+  basePath,
+}: {
+  folders: StudentLibraryFolder[];
+  notes: StudentLibrarySnapshot['notes'];
+  basePath: string;
+}) {
+  const count = (fid: string) =>
+    notes.filter((n) => n.folder_id === fid).length;
+  const visible = folders.filter((f) => count(f.folder_id) > 0);
+
+  return (
+    <div className="lib-all-folders">
+      <div className="lib-pane-head">
+        <div>
+          <div className="lib-pane-crumb">
+            <span>Library</span>
+            <span className="sep">/</span>
+            <span className="b">All folders</span>
+          </div>
+          <h2 className="lib-pane-title">All folders</h2>
+          <p className="lib-pane-sub">
+            Your tutor&apos;s filing bins. Open one to see its notes.
+          </p>
+        </div>
+      </div>
+      <div className="lib-folder-grid">
+        {visible.map((f) => (
+          <Link
+            key={f.folder_id}
+            href={`${basePath}?folder=${f.folder_id}`}
+            className="lib-folder-card"
+          >
+            <div className="lib-folder-card-ic" aria-hidden="true">
+              📁
+            </div>
+            <div className="lib-folder-card-title">{f.name}</div>
+            {f.description && (
+              <div className="lib-folder-card-desc">{f.description}</div>
+            )}
+            <div className="lib-folder-card-meta">
+              {count(f.folder_id)} note{count(f.folder_id) === 1 ? '' : 's'}
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// All shelves — read-only carousels (no "add to shelf" tile).
+function ShelvesCarousel({
+  shelves,
+  notes,
+  basePath,
+}: {
+  shelves: StudentLibraryShelf[];
+  notes: StudentLibrarySnapshot['notes'];
+  basePath: string;
+}) {
+  const membersOf = (sid: string) =>
+    notes.filter((n) => n.shelf_memberships.some((m) => m.shelf_id === sid));
+  const visible = shelves.filter((s) => membersOf(s.shelf_id).length > 0);
+
+  return (
+    <div className="lib-all-shelves">
+      <div className="lib-pane-head">
+        <div>
+          <div className="lib-pane-crumb">
+            <span>Library</span>
+            <span className="sep">/</span>
+            <span className="b">All shelves</span>
+          </div>
+          <h2 className="lib-pane-title">All shelves</h2>
+          <p className="lib-pane-sub">
+            Curated cross-cutting packs. Each shelf carries its own colour.
+          </p>
+        </div>
+      </div>
+      <div className="lib-shelf-carousels">
+        {visible.map((s) => {
+          const members = membersOf(s.shelf_id);
+          return (
+            <div key={s.shelf_id} className="lib-shelf-strip-wrap">
+              <div className="lib-shelf-strip-head">
+                <span
+                  className="lib-shelf-strip-dot"
+                  style={{ background: s.color }}
+                />
+                <Link
+                  href={`${basePath}?shelf=${s.shelf_id}`}
+                  className="lib-shelf-strip-title"
+                >
+                  {s.title}
+                </Link>
+                <span className="lib-shelf-strip-count">
+                  {members.length} note{members.length === 1 ? '' : 's'}
+                </span>
+                {s.description && (
+                  <span className="lib-shelf-strip-tagline">
+                    {s.description}
+                  </span>
+                )}
+              </div>
+              <div className="lib-shelf-strip">
+                {members.map((n) => (
+                  <Link
+                    key={n.note_id}
+                    href={`${basePath}/note/${n.note_id}`}
+                    className="lib-shelf-card lib-shelf-card-link"
+                    style={{ '--shelf-accent': s.color } as React.CSSProperties}
+                  >
+                    <div className="lib-shelf-card-title">{n.title}</div>
+                    <div className="lib-shelf-card-desc">
+                      {n.description || n.subtitle || ''}
+                    </div>
+                    <div className="lib-shelf-card-chips">
+                      {n.pillars.slice(0, 2).map((p) => (
+                        <span key={p} className="lib-shelf-card-chip" title={p}>
+                          {pillarShortName(p)}
+                        </span>
+                      ))}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// =====================================================================
+// Sidebar primitives
+// =====================================================================
+
+function LensSection({
+  title,
+  glyph,
+  children,
+}: {
+  title: string;
+  glyph: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="lens-section">
+      <div className="lens-section-head" aria-hidden="true">
+        <span className="lens-section-icon">{glyph}</span>
+        <span>{title}</span>
+      </div>
+      <div className="lens-section-body">{children}</div>
+    </div>
+  );
+}
+
+function LensLink({
+  href,
+  label,
+  count,
+  active,
+  title,
+  dotColor,
+}: {
+  href: string;
+  label: string;
+  count: number;
+  active: boolean;
+  title?: string;
+  dotColor?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`lens-item${active ? ' is-active' : ''}`}
+      aria-current={active ? 'page' : undefined}
+      title={title}
+    >
+      {dotColor && (
+        <span
+          className="lib-shelf-pip"
+          style={{ background: dotColor, marginRight: 6 }}
+          aria-hidden="true"
+        />
+      )}
+      <span className="label">{label}</span>
+      <span className="cnt">{count}</span>
+    </Link>
+  );
+}
+
+function LensDisabled({ label, hint }: { label: string; hint: string }) {
+  return (
+    <button type="button" className="lens-item" disabled title={hint}>
+      <span className="label">{label}</span>
+    </button>
+  );
+}

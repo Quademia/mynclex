@@ -494,7 +494,7 @@ own typed content. Mirrors the bank's polymorphic-content approach.
 | `image` | `{ type, asset_id, alt, caption? }` | Alt text **required at publish** (not at block insert or autosave — drafts can have empty alt freely). 5MB cap, auto-resize to 1600px width on upload. Supabase Storage, signed URLs on-demand. See Publishing → Alt-text preflight. |
 | `pdf` | `{ type, asset_id, title, caption? }` | Same storage strategy as Image. Renders as a **link card with "Open" button** (not inline iframe — inline embeds are unreliable across browsers). |
 | `video` | `{ type, url, provider, caption? }` | External embeds only — YouTube + Vimeo + Loom in v1. Direct MP4 URLs render via `<video>`. No self-hosting. |
-| `table` | `{ type, header_row: bool, cells: [[...], ...] }` | Generic comparison table. Rich-text cell contents (bold / italic / link within a cell). No images in cells in v1. Standard add/remove row/column controls. **First to defer if editor work runs over.** |
+| `table` | Tiptap `@tiptap/extension-table` doc nodes (`table` → `tableRow` → `tableHeader`/`tableCell`) plus two custom attrs: `colorTheme` on the table (none/blue/green/red/amber/slate) and `isSubheader` on a row. | A general-purpose table — *not* framed as a comparison table; the tutor uses it for anything. Rich-text cell contents (bold / italic / link). No images in cells in v1. Contextual toolbar: add/remove row & column, **merge/split cells** (so the top row can be a single full-width heading band), optional header row, optional sub-header row, and a colour theme. Shipped in slice 11.6c. |
 
 ##### Group 3 — Nursing-shaped (the differentiators)
 
@@ -508,6 +508,16 @@ own typed content. Mirrors the bank's polymorphic-content approach.
 - Header: drug name (required) + drug class (optional).
 - Body: ordered array of `{ label, value }` fields. New cards pre-populate with the 4 NCLEX-canonical fields: *Indications · Typical dose · Side effects · Nursing considerations*. Tutor can rename, reorder, add, or remove fields.
 - Field values are plain text, multi-line (line breaks render as breaks). No inline marks.
+  - **v2 follow-on (captured 2026-05-30):** Sam flagged twice that
+    inline formatting inside field values would feel more natural
+    (e.g. bolding a black-box warning or a critical dose). Parked for
+    V1 because it's a real rebuild — each plain `value` would become a
+    nested editable rich-text region (the same jump in complexity the
+    Table block had over the Image block), and add/remove/reorder
+    would operate on document nodes rather than a string array. Same
+    consideration applies to lab-values cells. Revisit if real tutors
+    ask. If we do it, go straight to full marks (bold/italic/etc.) —
+    the cost is the rich-text region itself, not the number of marks.
 - Schema:
   ```json
   {
@@ -1086,18 +1096,21 @@ earlier one within the same session.
 6. End of set: a small summary card — *"You got 2 of 3 right."*
 7. Note continues below the block.
 
-*Re-entering the note later (after some questions submitted):*
-1. Note renders fully top-to-bottom.
-2. Each previously-submitted question shows submitted-answer +
-   feedback in read-only state (the snapshot, not the live question
-   — preserves the moment-of-submit content).
-3. New questions (added to the block after the student's last read)
-   render in answering mode when reached.
-4. Student scrolls unfettered — no gating, no re-answer.
+*Re-entering the note later (REVISED 2026-05-31 — always-fresh model):*
+1. Note renders fully top-to-bottom; the embed block shows the tutor's
+   **current** questions, **fresh and answerable** — there is no locked
+   "already answered" inline state.
+2. A reopen may show a quiet "last time: X of Y · try again" line built
+   from the most recent history row, but the questions themselves are
+   re-answerable (each new submit appends another history row).
+3. So edits / reorders / swaps to the block just appear as the current
+   set; past attempts live in history, frozen by their own snapshots.
 
-Same per-question-runner components as the main runner uses (with a
-`mode="library_embed"` variant). No re-answer button in v1. No
-"required to proceed" gating in v1.
+Same per-question-runner components as the main runner uses, in
+answering → review mode + the rationale panel. No "required to
+proceed" gating in v1. Re-answering IS allowed (the old "no re-answer /
+locked" draft is superseded — the live note is always a fresh practice
+pass; integrity lives in the append-only history, not in locking).
 
 #### Completion semantics
 
@@ -1195,6 +1208,98 @@ length 1 — nothing is lost. Multi-question is the natural shape for
 one reading break instead of three scattered widgets, cleaner
 authoring (multi-select picker once vs adding three blocks).
 
+#### Revised v1 authoring design (locked 2026-05-30 with Sam)
+
+The earlier drafts assumed pure bank-reference (the tutor must
+pre-author every question in their general bank, then pick it). That
+carries a real friction — a context-switch out of the note to create
++ publish questions before they can be embedded. The revised design
+keeps the reference model **but adds inline authoring**, reusing
+patterns the bank already ships, so the tutor never has to leave the
+note.
+
+**Empty-block-first.** Inserting the block drops an empty shell with
+a clear empty state (*"No questions yet"* + an **Add question**
+button), consistent with every other block (image / pdf). (The
+slash command does **not** jump straight into a picker.)
+
+**Two entry points behind "Add question":**
+
+1. **Pick existing** — a **modal** listing the tutor's published bank
+   questions with the bank filter bar (Type · Category · Difficulty ·
+   stem-search) reused from `lib/tutor-quiz/quiz-picker-filters.tsx`
+   (itself a reuse of `lib/bank/` filter styles). Multi-select, add
+   several at once. A modal — **not** a navigation to the standalone
+   picker page — so the tutor stays in the note. Pre-filtered by the
+   note's own pillars/tags so the most relevant questions surface
+   first.
+2. **Create inline** — opens the **existing question editor**
+   (`lib/bank/editors/*`, the same modal-based editor the bank uses);
+   the saved question lands in `nclex_tutor_questions` stamped with a
+   new `parent_note_id`. It borrows the **parent-column linkage** from
+   the trend pattern (`trend_id` — one column, no join), reused in
+   `saveQuestionAction`.
+
+   **But — unlike case-study / trend children — an inline-created note
+   question stays `is_builder_visible = TRUE` and defaults to
+   published** (corrected 2026-05-30 with Sam). Reason: case/trend
+   children are *context-bound* (they reference "the client above" /
+   a specific dataset), so they're hidden to stop them being picked
+   into unrelated quizzes. A note question is a **standalone,
+   reusable** question — "which lab value indicates hypokalemia?" is
+   complete on its own. Hiding it would bury a real asset, especially
+   for a notes-first tutor effectively building their bank *through*
+   their notes. So:
+   - `parent_note_id` is an **origin label**, not a visibility gate
+     ("first created in this note") — drives a **"Note-created"** chip
+     + a bank filter, nothing more. Nullable, no cascade.
+   - The question is a **full bank citizen**: visible in the bank,
+     reusable in quizzes and other notes.
+   - **Defaults to published** so it's immediately embeddable — safe,
+     because a tutor question isn't public on its own and students see
+     it only once the *note* is published (an existing gate). The
+     tutor can unpublish it in the bank later.
+
+Either path appends the question's `item_id` to the block's
+`item_ids` array (membership + order within the block). A block can
+freely mix note-created and previously-existing bank questions —
+both are real, reusable bank questions; the only difference is the
+**"Note-created"** origin chip on the ones born in this note.
+
+**`parent_note_id` column added to BOTH question tables.** The
+migration adds `parent_note_id` to `nclex_tutor_questions` *and*
+`nclex_bank_items`, preserving the two tables' existing column
+symmetry (both already carry `parent_case_id` + `trend_id`). On the
+tutor table it links to a real note; on the admin/bank table it's a
+dormant placeholder until/unless QAcademy ever introduces its own
+notes. Adding it to only one table would diverge the twins and break
+the shared `saveQuestionAction` code path.
+
+**No new question table, no new renderer.** Questions stay in
+`nclex_tutor_questions`; the student player reuses the existing
+runner (`lib/practice/runner/types/*`). The only schema change for
+authoring is the `parent_note_id` column.
+
+**v1 embeddable types — the 4 classic single-question types: MCQ,
+SATA, TF, SELECT_N.** The picker + inline editor are filtered to
+these. The runner can technically render the 5 NGN types too
+(`bowtie`, `matrix`, `highlight`, `cloze`, `drag-drop`), so the
+limit is **not** the renderer — it's that NGN types are built around
+**partial credit**, which the embed answer model's single
+`is_correct` boolean doesn't capture. Adding NGN later is therefore a
+*scoring* problem, not a rendering one — a clean v2 extension.
+
+**Deferred v2 follow-on already implied above:** the "Create inline"
+entry point *is* the inline-question-creation idea earlier parked for
+v2 — pulled into v1 because the case/trend pattern makes it cheap.
+
+**What stays deferred to 11.13b (student player):** the inline
+player, submit, snapshot, and the `nclex_library_embed_answers`
+table (+ the embed-block stable `id` + backfill). This slice (11.15,
+the authoring half) ships the block + the two entry points + reference
+cards + caps only. (Note: 11.13**a** shipped the read view with the
+embed block as a placeholder; 11.13**b** is the player.)
+
 **Per-block caps.** Soft 5, hard 10 questions per block. Past 5
 nudges the tutor toward a quiz; past 10 is refused — at that size
 the content is a quiz, not a teaching break.
@@ -1253,13 +1358,28 @@ Three reasons drove the separation:
 3. **Lighter rows.** Embed answers don't need status / duration /
    intent fields; a dedicated table can be slim.
 
-**Row shape:** `(student_id, note_id, block_id, question_index,
-item_id, snapshot_json, answer_json, is_correct, submitted_at)`
-with `UNIQUE (student_id, note_id, block_id, question_index)` —
-one row per question per student. A multi-question block produces
-multiple rows (one per array slot); a single-question block
-produces one. `ON DELETE RESTRICT` on the bank-item FK (see
-*Question deletion behaviour* below).
+**Row shape (REVISED 2026-05-31 — append-only history).** See the
+full column list in the schema block below. The table is an
+**append-only attempt log** — *no* unique constraint — fusing the
+answer fields from `nclex_attempt_answers` with the question-snapshot
+columns from `nclex_attempt_items` (inlined), plus `note_id` /
+`block_id`. `item_id` FKs to **`nclex_tutor_questions`** (not
+`nclex_bank_items` — embeds reference the tutor's own bank), `ON
+DELETE RESTRICT` (see *Question deletion behaviour* below).
+
+**The model (locked 2026-05-31, supersedes the earlier freeze-and-lock
+draft).** The live note is **always current and answerable** — opening
+or reopening a note shows the tutor's *current* questions, fresh. Each
+submit **appends** a row carrying its own frozen snapshot. There is no
+"locked, already-answered" state on the live page; **re-practising is
+allowed** (good for exam prep). History is the permanent record and the
+analytics source. This resolves every "tutor changed the questions"
+edge case cleanly: the live view is simply always current, and past
+attempts sit safely in history, each frozen by its own snapshot —
+nothing is ever re-displayed inline against a changed question, so
+there is no retroactive re-grading and no position-matching to do.
+A reopen may show a quiet "last time: X of Y · try again" from the
+most recent history row.
 
 A student's answer on an embedded question:
 - Does **not** count toward their main practice analytics
@@ -1290,17 +1410,22 @@ For text content (paragraphs, headings, callouts, drug cards, etc.),
 immediate visibility is fine — even desirable. The student sees the
 latest authoritative content.
 
-For embedded questions where a student has already submitted an
-answer, the *content + correct* snapshot at submit time **must** be
-preserved. Otherwise a tutor editing the question rationale after a
-student submits could retroactively change what the student is
-deemed right/wrong against.
+For embedded questions, each **historical attempt** must carry the
+*content + correct + rationale* snapshot as seen at submit time —
+otherwise a later tutor edit would make a past attempt incoherent (the
+student's recorded answer judged against a question that no longer
+matches what they saw).
 
-**Resolved** — same snapshot pattern the runner already uses for
-`nclex_attempt_items`: when the student submits an embed, capture
-`body_json` + `correct_options` + `rationale` at that moment into
-`nclex_library_embed_answers.snapshot_json`. Re-renders read from
-the snapshot, not the live question.
+**Resolved (2026-05-31)** — same snapshot pattern the runner uses for
+`nclex_attempt_items`, but **inlined into each history row** (embeds
+have no attempt_items sibling): on submit, capture
+`stem_snapshot` + `instruction_snapshot` + `content_snapshot_json` +
+`correct_answer_snapshot_json` + `rationale_snapshot` +
+`rationale_img_snapshot` + `marks_snapshot` into the appended
+`nclex_library_embed_answers` row. The **live note always renders the
+current question** (no inline re-render from a snapshot); the snapshot
+exists so the **history** view stays coherent across edits, per
+attempt.
 
 ### Question deletion behaviour
 
@@ -1527,30 +1652,57 @@ nclex_tutor_library_views
   -- views don't propagate to students.
 
 nclex_library_embed_answers
-  answer_id          TEXT PK
+  -- REVISED 2026-05-31 (13b design): an APPEND-ONLY attempt HISTORY log,
+  -- not one frozen row per question. The live note is always current +
+  -- answerable; every submit appends a row carrying its own snapshot.
+  -- Re-practising is allowed (good for exam prep); history is the
+  -- permanent record + the analytics source. There is NO unique
+  -- constraint — many rows per (student, note, block, question) is the
+  -- point.
+  --
+  -- Shape FUSES the two runner storage tables into one row (no session,
+  -- so no split): the ANSWER fields from `nclex_attempt_answers` + the
+  -- question SNAPSHOT columns from `nclex_attempt_items` (inlined,
+  -- since embeds have no attempt_items sibling) + note_id/block_id.
+  answer_id          UUID PK DEFAULT gen_random_uuid()
   student_id         UUID FK -> nclex_users(id) ON DELETE CASCADE
-  note_id            TEXT FK -> nclex_tutor_library_notes(note_id) ON DELETE CASCADE
-  block_id           TEXT NOT NULL                 -- the embedded_questions block's ID within the note
-  question_index     INTEGER NOT NULL              -- 0-based index into the block's item_ids[] array
-  item_id            TEXT FK -> nclex_bank_items(item_id) ON DELETE RESTRICT
-                     -- prevents deletion of a bank question while embed answers exist
+  note_id            UUID FK -> nclex_tutor_library_notes(note_id) ON DELETE CASCADE
+  block_id           TEXT NOT NULL                 -- the embedded_questions block's stable id within the note
+  item_id            TEXT FK -> nclex_tutor_questions(item_id) ON DELETE RESTRICT
+                     -- FK is to nclex_tutor_questions (embeds reference the
+                     -- tutor's own bank), NOT nclex_bank_items. RESTRICT so a
+                     -- question with recorded attempts can't be silently
+                     -- deleted out from under its history.
+  question_type      TEXT NOT NULL                 -- so review renders without re-reading the live question
+  -- Answer side (from nclex_attempt_answers):
   answer_json        JSONB NOT NULL                -- the student's submitted answer (per question type)
-  is_correct         BOOLEAN NOT NULL
-  snapshot_json      JSONB NOT NULL                -- content + correct + rationale at submit time
-                     -- preserves attempt integrity if the tutor edits the question later
-  submitted_at       TIMESTAMPTZ DEFAULT NOW()
+  is_correct         BOOLEAN NOT NULL              -- graded server-side via lib/scoring scoreAttempt()
+  score_awarded      NUMERIC NOT NULL              -- partial-credit signal (SATA / SELECT_N +/-)
+  time_spent_sec     INTEGER                       -- nullable; optional analytics
+  -- Question snapshot (from nclex_attempt_items, inlined + frozen at submit):
+  stem_snapshot                 TEXT NOT NULL
+  instruction_snapshot          TEXT
+  content_snapshot_json         JSONB NOT NULL     -- options as seen (answerable content)
+  correct_answer_snapshot_json  JSONB NOT NULL     -- key + per-option feedback as seen
+  rationale_snapshot            TEXT
+  rationale_img_snapshot        TEXT
+  marks_snapshot                NUMERIC NOT NULL
+  submitted_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 
-  UNIQUE (student_id, note_id, block_id, question_index)
-  -- One row per (student, embed-block, question slot). A multi-question
-  -- block produces N rows per student; a single-question block
-  -- produces 1. Distinct blocks of the same `item_id` in the same note
-  -- still distinguish via different `block_id`.
-
-  -- Deliberately NOT in nclex_attempts:
+  -- No UNIQUE constraint — append-only history. Rows are immutable
+  -- (insert-only; no UPDATE/DELETE except FK cascade on note/student).
+  -- "Latest attempt" = ORDER BY submitted_at DESC LIMIT 1 within
+  -- (student_id, note_id, block_id, item_id).
+  --
+  -- Deliberately NOT in nclex_attempts (still holds):
   --   1. No "session" semantic — embeds are one-shot, asynchronous
   --   2. Eliminates the recurring "forgot to filter LIBRARY_EMBED"
   --      pollution-risk bug class in analytics queries
   --   3. Lighter rows — no status/duration/intent fields needed
+  --
+  -- Why fuse the snapshot into the answer row (vs the runner's 2-table
+  -- split): each historical attempt must carry its OWN frozen snapshot
+  -- so "the tutor edited the question later" stays coherent per attempt.
 ```
 
 **Shelf attaches as one atomic row, not a fan-out.** When a tutor
@@ -1889,63 +2041,234 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   population from 11.11 to be meaningful. The provisional
   markdown-fallback gate was not triggered — Tiptap rendered and
   saved cleanly on first try.
-- ⬜ **11.6** Standard visual blocks — Image (Supabase Storage +
-  on-demand signed URL pipeline + auto-resize) + PDF (link-card)
+- ✅ **(2026-05-29) 11.6a** Image block. Atom node `libImage`
+  ({assetId, alt, caption}) backed by the shared media-asset
+  foundation: private `nclex-library-images` bucket, browser
+  auto-resize before upload, on-demand 1-hour signed URLs minted
+  via `getLibraryImageUrlAction`. Empty-state dropzone → filled
+  `<img>` + alt/caption fields. Autosave holds off while an upload
+  is in flight (upload ≠ inactivity). Alt-text collected but not
+  yet enforced (preflight lands in 11.10). See the body-tiptap
+  serialization gotcha in CLAUDE.md → Known Workarounds.
+- ⬜ **11.6b** Remaining standard visual blocks — PDF (link-card)
   + Video (YouTube/Vimeo/Loom embeds) + Table. Alt-text preflight
   wires into Publish (slice 11.10).
-- ⬜ **11.7** NCLEX domain block — Callout (5 tones + icons).
-- ⬜ **11.8** NCLEX domain block — Drug card (extensible field
-  array, drag-reorder, add-field, remove-field; NCLEX-canonical
-  4 fields pre-populated).
-- ⬜ **11.9** NCLEX domain block — Lab values (extensible columns,
-  column-add/rename/remove with deletion warning, row add/remove;
-  NCLEX-canonical 4 columns pre-populated).
-- ⬜ **11.10** Publish flow + visibility mode + status pills +
-  alt-text preflight. Wire draft/published + tutor-wide /
-  programme-scoped (multi-select picker writing to
-  `_note_visibility`) end-to-end. Publish runs the alt-text
-  preflight (refuses to publish if any image has empty `alt`,
-  click-through scrolls to the first offender).
-- ⬜ **11.11** Programme integration — Library Note path. Library
-  Note as the 7th activity type, attach modal (single note),
-  detach, used-in count.
+- ✅ **11.7** NCLEX domain block — Callout (5 tones + icons).
+  Shipped 2026-05-30. Content node (`callout`, `inline*`) with a
+  `tone` attr (note / tip / warning / critical / memory). Header is a
+  deep-fill **tab chip** straddling the top-left edge (icon + label),
+  doubling as the tone switcher; 4px left accent + soft body tint;
+  hover-revealed × remove. No DB change — the slice-11.1
+  `nclex_extract_body_text` helper already indexes `callout` content.
+  `lib/library/callout-block.tsx`.
+- ✅ **11.8** NCLEX domain block — Drug card. Shipped 2026-05-30.
+  Atom node (`drug_card`) holding `{ name, drug_class, fields:[{label,
+  value}] }`; edited via a React form inside the NodeView. New cards
+  pre-populate the 4 NCLEX-canonical fields; tutor can rename, **▲▼
+  reorder** (drag deferred), add, remove. Plain-text multi-line values
+  (V1 — no inline marks). CD design (gradient header, 💊 + Rx, serif
+  name, label-column / value grid) on app tokens. Label cells wrap.
+  Validation soft (publish preflight = 11.10). No DB change — search
+  indexing folds into the holistic search-sync cleanup.
+  `lib/library/drug-card-block.tsx`.
+- ✅ **11.9** NCLEX domain block — Lab values. Shipped 2026-05-30.
+  Atom node (`lab_values`) holding `{ title, columns:[{label}],
+  rows:[[…]] }`; edited via a React form inside the NodeView (2-D grid
+  of auto-grow cells). New tables pre-populate the 4 NCLEX-canonical
+  columns; tutor can rename, add, or remove columns and add/remove
+  rows. **Column removal warns** (wipes the column's values across all
+  rows); row removal immediate; last column/row can't be removed. CD
+  design (gradient header + 🧪 + serif title, grey column headers,
+  emphasised first column) on app tokens. Validation soft (publish
+  preflight = 11.10). No DB change. `lib/library/lab-values-block.tsx`
+  + shared `lib/library/auto-grow-textarea.tsx`.
+- ✅ **11.10** Publish flow + visibility mode + status pills +
+  alt-text preflight. Shipped 2026-05-30. Tutor-side only (student
+  consumption is 11.13/11.14). The DB floor was already in place from
+  11.1 (`is_published` + `visibility_mode` columns, the
+  `_note_visibility` junction, the same-tutor BEFORE trigger + the
+  deferred scoped-≥1 constraint trigger), so this slice is almost all
+  application-layer.
+  - **Atomic publish RPC** (`nclex_set_library_note_publish`,
+    migration `20260620120000_slice_11_10_publish_rpc.sql`). Flips
+    `is_published` + `visibility_mode` and rewrites the junction in one
+    transaction — the deferred constraint only validates at commit, so
+    a multi-REST-call approach would trip it or briefly over-expose a
+    scoped note. SECURITY INVOKER (house style): RLS + the existing
+    triggers enforce ownership / same-tutor / scoped-≥1; an explicit
+    `auth.uid()` ownership guard yields a clean error.
+  - **Actions** (`actions.ts`): `publishNoteAction` (doubles as the
+    re-scope path; runs an alt-text backstop on the saved body + a
+    same-tutor programme check, then calls the RPC),
+    `unpublishNoteAction` (plain `is_published = false` — junction
+    preserved so re-publish remembers the scope).
+  - **Publish dialog** (`lib/library/publish-dialog.tsx`): Tutor-wide
+    (default) / Programme-scoped radio + checkbox list of the tutor's
+    own programmes; seeds from the note's current scope on re-open.
+  - **Alt-text preflight** (client, in the editor): scans the LIVE doc
+    for `libImage` blocks with empty `alt`; blocks Publish with a
+    count and scrolls to the first offender + focuses its alt field
+    (via the `figure[data-lib-image]` / `.lib-image-alt` DOM handles).
+    `countMissingAltImages` lives in `body-tiptap.ts` (shared with the
+    server backstop).
+  - **Editor wiring**: live Publish button (draft) → Visibility +
+    Unpublish (published); the toolbar + Status-rail State pill reflect
+    real `is_published`; the rail's Visibility row shows Tutor-wide /
+    Programme-scoped (N) + the scoped programme names. `getNoteForEdit`
+    gained `visibility_programme_ids`; new
+    `getTutorProgrammesForPicker()` feeds the dialog.
+  - **Status pills** in lens rows already read `is_published`, so note
+    lists update for free.
+> **▶ Build sequence revised 2026-05-30 (Sam's call).** The library is
+> finished *as a library* first; **programme integration (11.11 +
+> 11.12) builds LAST** — it's a conjunction to the library, not part of
+> it. So the *directly-library* slices are prioritised. The slice
+> numbers below stay as **stable IDs** (referenced in code, commits and
+> other docs — e.g. the editor's slash menu renders "11.15" to tutors
+> for embedded questions), so they are **not** renumbered; instead the
+> unbuilt entries are listed here **in build order**, which is:
+> **11.15 → 11.16 → 11.13 → 11.14 → 11.11 → 11.12 → 11.17.**
+
+- 🔨 **11.15** Embedded questions. **Tutor authoring half SHIPPED
+  2026-05-30** (commits `21ce511` → `70b3f5c`). Sub-slices a–e:
+  (a) `parent_note_id` migration on both question tables +
+  `saveQuestionAction` passthrough + `getEmbeddableBankQuestions` /
+  `getEmbedRefCards`; (b) the `embedded_questions` atom node + block
+  shell + empty state + Add menu + slash row; (c) the pick-from-bank
+  modal (filters, multi-select, caps, empty-search) + reference-card
+  rendering (reorder / remove / Open-in-bank / Note-created chip);
+  (d) create-inline (type picker classic-4 → the existing bank editor,
+  Publish-on + note-stamped → Note-created card); (e) **config-driven
+  caps** — `embed_max_questions_per_block` / `embed_max_blocks_per_note`
+  in `nclex_config`, editable on `/admin/config` (new `integer` config
+  type), threaded server→client, enforced at the point of action
+  (picker per-block + insertion per-note), with a **grandfather-safe**
+  server backstop (checks the absolute ceilings 30/10, never the live
+  config, so lowering a limit never blocks an existing over-limit note
+  from saving). **Still deferred to 11.13** (student read view): the
+  inline player, submit, snapshot, and the `nclex_library_embed_answers`
+  table. Files: `lib/library/embed-{actions,block,pick-modal,create-flow}.tsx`
+  + edits to slash-menu / note-body-editor / note-editor / body-tiptap /
+  actions + `lib/bank/atoms/hidden-item-inputs` + the 4 classic editors
+  + `app/(app)/admin/config/*`. Migrations `20260621120000` (parent_note_id),
+  `20260622120000` (config seed). *(Build order 1 —
+  directly library, tutor-side; lights up the slash menu's last
+  disabled block.)* Multi-select picker in editor (tutor bank only),
+  per-block 5/10 caps, per-note 20/50 caps (warn at 20, reject at 50,
+  both at save), reference-card edit-mode rendering (one per question),
+  inline player read-mode rendering (Question 1 of N + Next +
+  end-of-set summary), submit → append to `nclex_library_embed_answers`.
+  *(REVISED 2026-05-31: the store is an append-only history log keyed by
+  question, not a frozen `question_index` row; see the table + the
+  "append-only history" model above. The student inline player + submit
+  half is **11.13b**, NOT bundled here — 11.15 shipped the tutor
+  authoring half only.)*
+  **Authoring design revised 2026-05-30 — see "Revised v1 authoring
+  design" under the Embedded questions section:** empty-block-first;
+  **Add question** → Pick existing (reused filter modal) **or** Create
+  inline (existing editor, parent-column linkage — `parent_note_id`;
+  but **builder-VISIBLE + default published**, a full reusable bank
+  question with a "Note-created" origin chip — unlike case/trend
+  children which hide because they're context-bound). Migration adds
+  `parent_note_id` to BOTH
+  `nclex_tutor_questions` + `nclex_bank_items` (column symmetry). v1
+  embeddable types = the 4 classic single-question types **MCQ / SATA /
+  TF / SELECT_N** (NGN deferred — partial-credit grading, not a
+  renderer limit). No new question table, no new renderer.
+- ✅ **11.16** Tag manager + custom views + search. *(Build order 2 —
+  directly library, tutor-side, no dependencies — the cleanest
+  "finish the library" slice.)* Kebab on Tags lens opens *Manage tags*
+  (rename / delete / merge); custom view save/edit/delete from
+  toolbar; `tsvector`-backed search composing with chip filters via
+  AND.
+  - ✅ **11.16a (2026-05-31, on session branch)** — content search.
+    Found + fixed the latent indexer bug (`nclex_extract_body_text`
+    expected a top-level array but the Tiptap editor saves a
+    `{type:'doc',content}` object → every rich-editor note had **zero
+    body text indexed**; rewritten as a recursive walker, `body_tsv`
+    column dropped/re-added to backfill — migration `20260623120000`).
+    `nclex_search_library_notes` RPC + `?q=`/`?qf=` scope + per-field
+    chips (weight mask). **11.16a-2**: prefix + live (english-stem OR
+    literal-simple prefix tsquery; debounced as-you-type — migration
+    `20260623120100`).
+  - ✅ **11.16b (2026-05-31, on session branch)** — tags. b-1:
+    clickable Tags lens (`aggregateTags` + `?tag=` filter). b-2:
+    Manage-tags modal (rename / delete / merge via 3 SECURITY INVOKER
+    bulk RPCs + `nclex_dedupe_tags` — migration `20260623120200`).
+    Plus a tag-input discoverability fix in the editor.
+  - ✅ **11.16c (2026-05-31)** — custom views
+    (`nclex_tutor_library_views`, migration `20260623120300`): filter
+    builder (status / pillars / tags) at `?view=new` with live preview;
+    save / edit / rename / delete; saved views in the Views lens with
+    live counts; `?view=<uuid>` read pane. Bundled the sidebar
+    scroll-cap pass (Folders / Shelves / Views scroll within
+    `.lens-scroll`; row kebabs fixed-positioned out of the clip; "All …"
+    anchors pinned) + a follow-on that added Edit / Delete header
+    actions to the folder + shelf detail panes for consistency with the
+    saved-view pane. Whole 11.16 arc merged to `main`.
+  - ~~⬜ **11.16c** — custom views (`nclex_tutor_library_views`): save a
+    filter combo, per-view edit/rename/delete. **Bundle with a sidebar
+    scroll-cap pass** for Folders / Shelves / Views (Tags already
+    capped; Views becomes unbounded here; float row kebabs out of the
+    overflow container; pin the "All …" anchors). Then merge the 11.16
+    arc to `main`.~~ *(superseded — shipped above)*
+- ✅ **11.13a (MERGED 2026-05-31)** Student read-mode renderer — full-page
+  route at `…/library/note/[note_id]` (programme + cohort siblings) +
+  Contents rail with scroll-spy + "section N of M" (writes
+  `last_heading_id` to `nclex_library_note_state`) + a CUSTOM per-block
+  read renderer (NOT Tiptap — `read-inline`/`read-blocks`/
+  `read-media-blocks`, reuses the editor's standalone `.lib-*` classes +
+  a `.lib-read-prose` mirror of the ProseMirror prose CSS, all formatting
+  marks reproduced) + Mark-as-done + Bookmark (`marked_done_at` /
+  `bookmarked_at`) + enrolment-gated signed-URL actions for image/PDF.
+  Breadcrumb (Library / folder) + clickable shelf/pillar/tag chips back
+  to the library. Embedded-questions block = placeholder. Progress-engine
+  write-through stays stubbed until 11.11.
+- ✅ **11.13b (MERGED 2026-06-01)** Embedded-questions player + attempt
+  history. Created `nclex_library_embed_answers` (the fused append-only
+  history table above; migration `20260624120000`) + **`play_id`**
+  sitting tag (`20260624130000`) + stable embed-block `id` (backfilled +
+  stamped on insert). Two entitlement-gated server actions: **load**
+  (note RLS + block lookup → answerable content, no key, + the student's
+  past sittings) and **submit** (service-role read of the question →
+  `scoreAttempt` → append a snapshotted history row → return feedback).
+  The inline **player** (reuses `lib/practice/runner` MCQ/SATA/TF/
+  SELECT_N + RationaleBlock): intro/Start card → fresh pass → end
+  summary; **always-fresh on reopen**; the intro card lists **past
+  sittings**, each replayable in a read-only **review** state from its
+  own snapshot (`loadEmbedPlayReview`, student-own rows); Start again =
+  new play. Leave-mid-set guard (beforeunload + the note's own links via
+  an `EmbedPlayGuard` context). **Design locked in discussion (supersedes
+  the older freeze-lock draft):** append-only history, re-practice
+  allowed, no fabricated rows for skipped questions, no
+  block-until-finished. v1: no option-shuffle, no attempt cap. The tutor
+  analytics dashboard that consumes this history is a later slice.
+- ✅ **11.14 a/b (MERGED 2026-05-31)** Student library — read-only
+  mirror of the tutor lensed home, scoped to the programme's tutor
+  (`lib/library/student/`). Five-lens sidebar (read-only adaptations,
+  hide-empty, collapse-to-rail), visibility filtered by RLS (no
+  migration — student-select policies already existed). Views = All
+  notes (live) + Recent / By unit / Bookmarked (placeholders pending
+  visit-tracking / 11.11 / bookmarks). Wired at
+  `/student/programme/[programme_id]/library/` (14a) **and the cohort
+  sibling** `/student/cohort/[cohort_id]/library/` (14b); shell
+  generalised `programmeId → basePath`. Sidebar entry added to
+  `STUDENT_PROGRAMME_DETAIL_NAV` + `STUDENT_COHORT_DETAIL_NAV`.
+- ⬜ **11.11** Programme integration — Library Note path. *(Build order
+  5 — ⏸ DEFERRED to last: conjunction to the library, not part of
+  it.)* Library Note as the 7th activity type, attach modal (single
+  note), detach, used-in count.
 - ⬜ **11.12** Programme integration — Shelf path (atomic activity).
+  *(Build order 6 — ⏸ DEFERRED to last: conjunction to the library.)*
   Shelf as the 8th activity type, shelf-picker modal,
   mixed-visibility attach-time dialog, **single-row atomic
   attachment** (CHECK ensures `note_id` XOR `shelf_id`), grouped
   block render via shelf-membership join, "Hide in this unit"
   kebab writing `note_id` into `skipped_note_ids JSONB`, "your
   tutor updated this shelf" hint on membership change.
-- ⬜ **11.13** Student read-mode renderer — full-page route at
-  `/student/programme/[programme_id]/library/note/[note_id]` +
-  Contents rail + scroll-spy writing `last_heading_id` to
-  `nclex_library_note_state` + per-block rendering + Mark as done
-  (writes `marked_done_at` with write-through to the progress
-  engine when from a Library Note activity) + Bookmark toggle
-  (writes `bookmarked_at`). Embedded-questions block renders in
-  answering mode (no submit yet — gated by 11.15).
-- ⬜ **11.14** Student library — same five-lens sidebar (read-only
-  adaptations) with collapse-to-rail, visibility-filtered counts,
-  empty-container hiding, Views adapted (**By unit** + **Bookmarked**
-  replace Drafts / Used nowhere). Wired at
-  `/student/programme/[programme_id]/library/` and the cohort
-  sibling. Sidebar entry added to `STUDENT_PROGRAMME_DETAIL_NAV`
-  + `STUDENT_COHORT_DETAIL_NAV`.
-- ⬜ **11.15** Embedded questions — full loop. Multi-select picker
-  in editor (tutor bank only), per-block 5/10 caps, per-note
-  20/50 caps (warn at 20, reject at 50, both at save), reference-
-  card edit-mode rendering (one per question), inline player
-  read-mode rendering (Question 1 of N + Next + end-of-set
-  summary), submit → per-question write to
-  `nclex_library_embed_answers` keyed `(student_id, note_id,
-  block_id, question_index)` with snapshot, on-re-render show
-  submitted state.
-- ⬜ **11.16** Tag manager + custom views + search. Kebab on Tags
-  lens opens *Manage tags* (rename / delete / merge); custom view
-  save/edit/delete from toolbar; `tsvector`-backed search
-  composing with chip filters via AND.
-- ⬜ **11.17** Polish — used-in click-through, save dialogs, all the
-  smaller affordances.
+- ⬜ **11.17** Polish — *(Build order 7 — last; its used-in
+  click-through depends on the integration slices above.)* used-in
+  click-through, save dialogs, all the smaller affordances.
 
 ### Queued out-of-numbered-order slices (design-locked 2026-05-26)
 
@@ -1997,6 +2320,55 @@ their first 30 seconds with the library.
   `?shelf=` > `?view=` > `?folder=` > no scope (overview).
 
 ### Deferred follow-ons (post-build)
+
+- **"Note · …" origin badge on the bank list** — *flagged 2026-05-30,
+  Sam.* A question created inline from a note (11.15d — `parent_note_id`
+  set) is a normal, builder-visible bank question, but the bank list
+  (`/tutor/bank/all`) shows **no indicator** of its note origin, unlike
+  case-study children ("In case · …") and trend children ("Trend · …"),
+  which both badge + link to their wrapper. Add a matching **"Note ·
+  {title}"** badge linking to `/tutor/library/note/<id>`. Small,
+  mirrors the existing pattern: bank-list query selects `parent_note_id`
+  (+ note title), `BankListRowSummary` carries it, the row renders the
+  badge. Makes the bank list honest about question provenance + lets a
+  tutor jump back to the source note.
+
+- **Tag filter on the question pickers** — *flagged 2026-05-30, Sam.*
+  The embed pick-from-bank modal (11.15c) reuses the quiz picker's
+  filter set (Type · Category · Difficulty · stem-search). Questions
+  already carry a `tags TEXT[]` column, so adding a **tag filter**
+  (e.g. a tutor tags questions "acid-base", "ABG", "hyperkalaemia" and
+  filters to them) is a clean enhancement — and because the embed
+  picker and quiz picker share the same filter shape, it would improve
+  **both** surfaces at once. Lands when tutors have enough tag
+  vocabulary to need it; pairs naturally with the library's own Tag
+  manager (slice 11.16). Do not build pre-emptively.
+
+- **Cohort-level note visibility** — *parked 2026-05-30, Sam's
+  call.* Today a note's visibility junction holds **programme** rows
+  only (`_note_visibility(note_id, programme_id)`), so the audience
+  granularity is: Tutor-wide → all programmes → all their cohorts;
+  Programme-scoped → chosen programmes → **every cohort under them,
+  present and future**. A note **cannot** be scoped to a single
+  cohort (e.g. "Cohort 5 yes, Cohort 6 no" within the same
+  programme). This is deliberate and *consistent with curriculum*,
+  which is also programme-grained (units/activities carry
+  `is_published` keyed to the programme; cohorts are schedule
+  instances that share one curriculum, not their own content). The
+  note-level model is the right primary design — a note is reusable
+  across many programmes, so its audience can't live "inside" a
+  single container the way a one-programme curriculum activity's can;
+  "Programme-scoped" already *is* the container-attachment model, with
+  "Tutor-wide" as an all-programmes shortcut. The only open question
+  is whether per-cohort granularity is ever wanted. If a real tutor
+  asks, the change is contained but **cross-cutting**: add an optional
+  `cohort_id` to the junction (a row = "note → programme, optionally
+  narrowed to this cohort") and teach `nclex_student_can_see_note` to
+  match on cohort enrolment — and decide the same per-cohort question
+  for curriculum at the same time, since the two should stay aligned.
+  Connects to the parked **access-window architecture** discussion
+  (both delivery modes / granularities surface together). Do **not**
+  build pre-emptively.
 
 - **All tags view** — when tag vocabulary grows enough that a
   tutor wants to browse by tag, ship `/tutor/library?view=all-tags`

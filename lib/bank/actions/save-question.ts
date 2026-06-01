@@ -449,6 +449,17 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
   // so the column survives untouched on subsequent saves.
   const trendId = String(formData.get('trend_id') ?? '').trim();
 
+  // Note-context (slice 11.15): when invoked from a library note's
+  // embedded-questions "Create new question" flow, formData carries
+  // parent_note_id. Same one-column linkage as trend_id — BUT unlike
+  // case/trend children this is an *origin label only*: the question
+  // stays builder-visible + reusable (no is_builder_visible override
+  // here), it's just tagged with the note it was born in. The caller
+  // (the embed authoring UI) pre-checks Publish so it's immediately
+  // embeddable. The UPDATE branch never touches the column, so it
+  // survives later edits.
+  const parentNoteId = String(formData.get('parent_note_id') ?? '').trim();
+
   const row: Record<string, unknown> = { item_id, ...parsed };
   if (surface === 'tutor') {
     row.tutor_id = user.id;
@@ -458,6 +469,9 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
   }
   if (trendId) {
     row.trend_id = trendId;
+  }
+  if (parentNoteId) {
+    row.parent_note_id = parentNoteId;
   }
 
   const { error } = await supabase.from(cfg.table).insert(row);
@@ -499,6 +513,11 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
     const wrapperBaseUrl =
       surface === 'tutor' ? '/tutor/bank/trends' : '/admin/bank/trends';
     revalidatePath(`${wrapperBaseUrl}/${trendId}`);
+  }
+
+  if (parentNoteId) {
+    // The note editor re-reads its embed reference cards on revalidate.
+    revalidatePath(`/tutor/library/note/${parentNoteId}`);
   }
 
   revalidatePath(cfg.revalidate);

@@ -1,34 +1,45 @@
 // mynclex/lib/library/notes-list.tsx
 //
-// Per-folder (or root) notes list in the main pane.
+// Per-folder notes list (slice 11.2b). Rendered in the main pane when
+// a specific folder is selected (?folder=<uuid>). Mirrors the
+// AllFoldersGrid header pattern; lists the folder's notes as lens
+// rows via the shared <NoteLensRow>.
 //
-// Slice 11.2b shipped this with a bespoke row layout. The 11.4
-// follow-on slice consolidates every full-width note row onto the
-// shared `<NoteLensRow>` component — same data shape, same visual,
-// across folder list / shelf detail / future Views.
+// 11.16c follow-on: the header grows Edit + Delete actions so a tutor
+// managing the folder they're viewing doesn't have to round-trip to
+// the sidebar kebab. Both reuse the same modals the kebab does;
+// deleting from here navigates to All folders (the current URL would
+// 404 on the gone folder).
 
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { NoteLensRow } from './note-lens-row';
-import type { LibraryNoteListRow } from './types';
+import { NewFolderModal } from './new-folder-modal';
+import { DeleteFolderConfirm } from './delete-folder-confirm';
+import type { LibraryFolderWithCount, LibraryNoteListRow } from './types';
 
 interface NotesListProps {
   notes: LibraryNoteListRow[];
-  /** The folder this list is for — drives the header copy. Null = root. */
-  folderName: string | null;
-  folderDescription?: string | null;
+  /** The folder being viewed — drives the header + Edit/Delete. */
+  folder: LibraryFolderWithCount;
+  /** All folders, for the edit modal's dup-check. */
+  folders: LibraryFolderWithCount[];
   onNewNote: () => void;
 }
 
 export function NotesList({
   notes,
-  folderName,
-  folderDescription,
+  folder,
+  folders,
   onNewNote,
 }: NotesListProps) {
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   return (
-    <div className="lib-all-folders">
+    <div className="lib-notes-list-pane">
       <header className="lib-pane-head">
         <div>
           <div className="lib-pane-crumb">
@@ -36,42 +47,54 @@ export function NotesList({
               Library
             </Link>
             <span className="sep">/</span>
-            <span className="b">{folderName ?? 'Root'}</span>
+            <Link
+              href="/tutor/library?folder=all"
+              className="lib-pane-crumb-link"
+            >
+              Folders
+            </Link>
+            <span className="sep">/</span>
+            <span className="b">{folder.name}</span>
           </div>
-          <h2 className="lib-pane-title">{folderName ?? 'Root notes'}</h2>
-          {folderDescription && (
-            <p className="lib-pane-sub">{folderDescription}</p>
-          )}
-          {!folderName && !folderDescription && (
-            <p className="lib-pane-sub">
-              Notes not filed under any folder. Reparent any note from
-              its editor if you want it inside one.
-            </p>
+          <h1 className="lib-pane-title">{folder.name}</h1>
+          {folder.description && (
+            <p className="lib-pane-sub">{folder.description}</p>
           )}
         </div>
-        <button
-          type="button"
-          className="lib-btn lib-btn-primary"
-          onClick={onNewNote}
-        >
-          + New note
-        </button>
-      </header>
-
-      {notes.length === 0 ? (
-        <div className="lib-empty lib-empty-inline">
-          <div className="lib-empty-glyph" aria-hidden="true">📒</div>
-          <p className="lib-empty-sub">
-            This folder is empty. Create your first note to start
-            building this section of your library.
-          </p>
+        <div className="lib-pane-actions">
           <button
+            className="lib-btn lib-btn-sm"
             type="button"
+            onClick={() => setEditing(true)}
+          >
+            Edit
+          </button>
+          <button
+            className="lib-btn lib-btn-sm lib-btn-danger"
+            type="button"
+            onClick={() => setDeleting(true)}
+          >
+            Delete
+          </button>
+          <button
             className="lib-btn lib-btn-primary"
+            type="button"
             onClick={onNewNote}
           >
             + New note
           </button>
+        </div>
+      </header>
+
+      {notes.length === 0 ? (
+        <div className="lib-empty lib-empty-inline">
+          <div className="lib-empty-glyph" aria-hidden="true">
+            📁
+          </div>
+          <p className="lib-empty-sub">
+            This folder has no notes yet. Create one with{' '}
+            <strong>+ New note</strong>.
+          </p>
         </div>
       ) : (
         <ul className="lib-notes-list">
@@ -81,6 +104,22 @@ export function NotesList({
             </li>
           ))}
         </ul>
+      )}
+
+      {editing && (
+        <NewFolderModal
+          existingFolders={folders}
+          variant={{ mode: 'edit', folder }}
+          onClose={() => setEditing(false)}
+        />
+      )}
+
+      {deleting && (
+        <DeleteFolderConfirm
+          folder={folder}
+          redirectTo="/tutor/library?folder=all"
+          onClose={() => setDeleting(false)}
+        />
       )}
     </div>
   );

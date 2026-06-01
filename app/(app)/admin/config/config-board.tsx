@@ -30,6 +30,7 @@ export function ConfigBoard({ items }: { items: ConfigItem[] }) {
   const [toast, setToast] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
   const [confirmOff, setConfirmOff] = useState<ConfigDef | null>(null);
   const [editPercent, setEditPercent] = useState<{ def: ConfigDef; value: string } | null>(null);
+  const [editInteger, setEditInteger] = useState<{ def: ConfigDef; value: string } | null>(null);
 
   function save(def: ConfigDef, value: string) {
     setBusyKey(def.key);
@@ -38,6 +39,7 @@ export function ConfigBoard({ items }: { items: ConfigItem[] }) {
       setBusyKey(null);
       setConfirmOff(null);
       setEditPercent(null);
+      setEditInteger(null);
       if (!res.ok) {
         setToast({ tone: 'error', message: res.error });
         return;
@@ -93,7 +95,11 @@ export function ConfigBoard({ items }: { items: ConfigItem[] }) {
                     <button
                       type="button"
                       className="cfg-edit-btn"
-                      onClick={() => setEditPercent({ def, value })}
+                      onClick={() =>
+                        def.type === 'integer'
+                          ? setEditInteger({ def, value })
+                          : setEditPercent({ def, value })
+                      }
                       disabled={pending}
                     >
                       Edit
@@ -128,6 +134,17 @@ export function ConfigBoard({ items }: { items: ConfigItem[] }) {
             if (!pending) setEditPercent(null);
           }}
           onSave={(fraction) => save(editPercent.def, fraction)}
+        />
+      )}
+
+      {editInteger && (
+        <IntegerEditor
+          item={editInteger}
+          pending={pending}
+          onClose={() => {
+            if (!pending) setEditInteger(null);
+          }}
+          onSave={(value) => save(editInteger.def, value)}
         />
       )}
 
@@ -176,6 +193,51 @@ function PercentEditor({
           />
           <span className="cfg-field-suffix">%</span>
         </span>
+      </label>
+    </ConfigModal>
+  );
+}
+
+function IntegerEditor({
+  item,
+  pending,
+  onClose,
+  onSave,
+}: {
+  item: { def: ConfigDef; value: string };
+  pending: boolean;
+  onClose: () => void;
+  onSave: (value: string) => void;
+}) {
+  const min = item.def.min ?? 1;
+  const max = item.def.max ?? 999999;
+  const [n, setN] = useState<number>(parseInt(item.value, 10));
+  const valid = Number.isInteger(n) && n >= min && n <= max;
+
+  return (
+    <ConfigModal
+      title={`Edit “${item.def.label}”`}
+      body={item.def.description}
+      confirmLabel="Save"
+      pending={pending}
+      confirmDisabled={!valid}
+      onClose={onClose}
+      onConfirm={() => onSave(String(n))}
+    >
+      <label className="cfg-field">
+        <span className="cfg-field-label">
+          Value ({min}–{max})
+        </span>
+        <input
+          type="number"
+          min={min}
+          max={max}
+          step={1}
+          className="cfg-input"
+          value={Number.isNaN(n) ? '' : n}
+          onChange={(e) => setN(parseInt(e.target.value, 10))}
+          disabled={pending}
+        />
       </label>
     </ConfigModal>
   );

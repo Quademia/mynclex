@@ -40,6 +40,16 @@ import { Color, TextStyle } from '@tiptap/extension-text-style';
 import { DragHandle } from '@tiptap/extension-drag-handle-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SlashCommand } from './slash-command';
+import { ImageBlock } from './image-block';
+import { PdfBlock } from './pdf-block';
+import { VideoBlock } from './video-block';
+import { CalloutBlock } from './callout-block';
+import { DrugCardBlock } from './drug-card-block';
+import { LabValuesBlock } from './lab-values-block';
+import { EmbedQuestionsBlock, embedBlocksAtCap } from './embed-block';
+import { EMBED_BLOCK_HARD_CAP, EMBED_DEFAULT_MAX_BLOCKS } from './types';
+import { TABLE_EXTENSIONS } from './table-block';
+import { TableToolbar } from './table-toolbar';
 import {
   BlockGap,
   BLOCK_GAP_CLICK_EVENT,
@@ -64,12 +74,28 @@ interface NoteBodyEditorProps {
   initialDoc: TiptapDoc;
   onUpdate: (doc: TiptapDoc) => void;
   editable?: boolean;
+  /**
+   * The note being edited. Threaded into the embedded-questions block
+   * (slice 11.15) so its "Create a new question" flow can stamp the
+   * new bank question with `parent_note_id`.
+   */
+  noteId?: string;
+  /**
+   * Admin-tunable embedded-questions caps (from nclex_config — slice
+   * 11.15e), threaded into the block so its point-of-action limits use
+   * the live values. Defaults match the fallback constants.
+   */
+  maxPerBlock?: number;
+  maxBlocks?: number;
 }
 
 export function NoteBodyEditor({
   initialDoc,
   onUpdate,
   editable = true,
+  noteId,
+  maxPerBlock = EMBED_BLOCK_HARD_CAP,
+  maxBlocks = EMBED_DEFAULT_MAX_BLOCKS,
 }: NoteBodyEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -120,6 +146,33 @@ export function NoteBodyEditor({
       // Color requires TextStyle as its parent mark.
       TextStyle,
       Color,
+      // Visual blocks (slice 11.6). Image + PDF are atom nodes backed
+      // by the media-asset foundation; Video is a storage-free embed;
+      // Table is the Tiptap table extension + colorTheme/sub-header attrs.
+      ImageBlock,
+      PdfBlock,
+      VideoBlock,
+      // Nursing-shaped block (slice 11.7). A content node holding rich
+      // inline text, tinted by its `tone` attr.
+      CalloutBlock,
+      // Nursing-shaped block (slice 11.8). An atom node — a structured
+      // drug reference card; all data in attrs, edited via a React form.
+      DrugCardBlock,
+      // Nursing-shaped block (slice 11.9). An atom node — an editable
+      // lab-values grid (columns × rows); all data in attrs.
+      LabValuesBlock,
+      // Interactive block (slice 11.15). An atom node holding only
+      // `item_ids` (tutor-bank questions, in order); editor shows static
+      // reference cards, the live player is student-side (11.13). The
+      // noteId is threaded in so the "Create a new question" flow can
+      // stamp parent_note_id on the new bank question; the caps drive
+      // the point-of-action limits (admin-tunable via nclex_config).
+      EmbedQuestionsBlock.configure({
+        noteId: noteId ?? null,
+        maxPerBlock,
+        maxBlocks,
+      }),
+      ...TABLE_EXTENSIONS,
       SlashCommand,
       // Inter-block "+ Add block" gap affordances. The widget
       // dispatches a custom event the React side listens for to
@@ -148,6 +201,7 @@ export function NoteBodyEditor({
   return (
     <div className="lib-tiptap-shell">
       <Toolbar editor={editor} />
+      <TableToolbar editor={editor} />
       <BlockEditingArea editor={editor} />
     </div>
   );
@@ -292,10 +346,19 @@ function BlockEditingArea({ editor }: { editor: Editor }) {
 // On a non-empty note it stays as the "add another block" tray.
 
 function BlockTray({ editor }: { editor: Editor }) {
+  // Reactively track whether the note is at its embed-block cap so the
+  // "Embedded questions" chip disables live (slice 11.15e).
+  const embedAtCap =
+    useEditorState({
+      editor,
+      selector: ({ editor }: { editor: Editor }) => embedBlocksAtCap(editor),
+    }) ?? false;
+
   return (
     <div className="lib-tiptap-block-tray" aria-label="Insert block">
       {SLASH_ITEMS.map((item) => {
-        const disabled = !!item.comingIn;
+        const embedCapped = item.type === 'embedded_questions' && embedAtCap;
+        const disabled = !!item.comingIn || embedCapped;
         return (
           <button
             key={item.type}
@@ -312,9 +375,11 @@ function BlockTray({ editor }: { editor: Editor }) {
             }}
             disabled={disabled}
             title={
-              disabled
-                ? `${item.name} — coming in slice ${item.comingIn}`
-                : `Insert ${item.name}`
+              embedCapped
+                ? `${item.name} — this note is at its question-set limit`
+                : disabled
+                  ? `${item.name} — coming in slice ${item.comingIn}`
+                  : `Insert ${item.name}`
             }
             aria-disabled={disabled}
           >
@@ -322,11 +387,11 @@ function BlockTray({ editor }: { editor: Editor }) {
               {item.iconSvg ? <NavIcon name={item.iconSvg} /> : item.icon}
             </span>
             <span className="lib-tiptap-block-chip-label">{item.name}</span>
-            {disabled && (
-              <span className="lib-tiptap-block-chip-pill">
-                {item.comingIn}
-              </span>
-            )}
+            {item.comingIn ? (
+              <span className="lib-tiptap-block-chip-pill">{item.comingIn}</span>
+            ) : embedCapped ? (
+              <span className="lib-tiptap-block-chip-pill">Limit</span>
+            ) : null}
           </button>
         );
       })}

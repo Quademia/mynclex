@@ -96,13 +96,24 @@ export function bodyToTiptap(body: unknown): TiptapDoc {
 }
 
 /**
- * Persist Tiptap's JSONContent to the DB. Stored verbatim — no
- * conversion. Existing 11.2b notes get rewritten into this shape
- * on first save, which is fine since `bodyToTiptap` already
- * accepted the legacy shape on load.
+ * Persist Tiptap's JSONContent to the DB.
+ *
+ * We deep-clone through JSON before handing the doc off. Reason:
+ * ProseMirror builds each node's `attrs` with `Object.create(null)`
+ * (a null-prototype object) and `getJSON()` returns those objects
+ * by reference. When such an object crosses the React Server Action
+ * serialization boundary, the serializer silently drops it — so a
+ * `libImage` node's `{ assetId, alt, caption }` arrived at the
+ * server as a bare `{ type: 'libImage' }` and the image was lost on
+ * reload (slice 11.6a bug). `JSON.parse(JSON.stringify(...))`
+ * rebuilds every object with the normal `Object.prototype`, which
+ * survives the boundary intact. No shape conversion otherwise —
+ * existing 11.2b notes get rewritten into this shape on first save,
+ * which is fine since `bodyToTiptap` already accepted the legacy
+ * shape on load.
  */
 export function tiptapToBody(doc: TiptapDoc): unknown {
-  return doc;
+  return JSON.parse(JSON.stringify(doc));
 }
 
 /**
@@ -155,4 +166,75 @@ function collectText(node: TiptapNode): string {
     out += collectText(child);
   }
   return out;
+}
+
+/**
+ * Count `libImage` blocks whose `alt` attr is empty or whitespace —
+ * the alt-text publish preflight (slice 11.10). Walks the whole doc
+ * recursively (an image can sit anywhere a block is allowed). Accepts
+ * either a live TiptapDoc (client, from the editor) or the raw
+ * persisted JSONB (server, a `{ type:'doc', content }` object or the
+ * legacy 11.2b array) — anything not matching just contributes 0.
+ *
+ * Drafts may carry undescribed images freely; this count only gates
+ * the Publish action. Kept here (no @tiptap import) so the server
+ * action can reuse it as a backstop to the client preflight.
+ */
+export function countMissingAltImages(body: unknown): number {
+  let missing = 0;
+
+  function walk(node: unknown): void {
+    if (!node || typeof node !== 'object') return;
+    const n = node as TiptapNode;
+    if (n.type === 'libImage') {
+      const alt = typeof n.attrs?.alt === 'string' ? n.attrs.alt : '';
+      if (alt.trim().length === 0) missing += 1;
+    }
+    if (Array.isArray(n.content)) {
+      for (const child of n.content) walk(child);
+    }
+  }
+
+  if (Array.isArray(body)) {
+    for (const node of body) walk(node);
+  } else {
+    walk(body);
+  }
+  return missing;
+}
+
+/**
+ * Summarise the embedded-questions blocks in a note body — used by the
+ * server-side cap backstop (slice 11.15e). Returns how many embed
+ * blocks the note has and the largest item_ids count in any one block.
+ * The UI prevents exceeding the caps at the point of action; this is
+ * the silent floor (it never fires in normal use).
+ */
+export function summarizeEmbeds(body: unknown): {
+  blocks: number;
+  maxInBlock: number;
+} {
+  let blocks = 0;
+  let maxInBlock = 0;
+
+  function walk(node: unknown): void {
+    if (!node || typeof node !== 'object') return;
+    const n = node as TiptapNode & { attrs?: { item_ids?: unknown } };
+    if (n.type === 'embedded_questions') {
+      blocks += 1;
+      const ids = n.attrs?.item_ids;
+      const len = Array.isArray(ids) ? ids.length : 0;
+      if (len > maxInBlock) maxInBlock = len;
+    }
+    if (Array.isArray(n.content)) {
+      for (const child of n.content) walk(child);
+    }
+  }
+
+  if (Array.isArray(body)) {
+    for (const node of body) walk(node);
+  } else {
+    walk(body);
+  }
+  return { blocks, maxInBlock };
 }

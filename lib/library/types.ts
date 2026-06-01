@@ -117,10 +117,26 @@ export type LibraryNoteListRow = LibraryNoteLensRow;
  *
  * Kept as a separate type so the strict per-row `LibraryNote` shape
  * isn't polluted with derived counts.
+ *
+ * `visibility_programme_ids` (slice 11.10) lists the programme IDs in
+ * the note's visibility junction — empty for TUTOR_WIDE notes, ≥ 1 for
+ * PROGRAMME_SCOPED. The Publish dialog seeds its programme picker from
+ * this, and the Status rail renders the scoped programme names.
  */
 export type LibraryNoteForEdit = LibraryNote & {
   used_in_count: number;
   shelf_memberships: LibraryShelfPip[];
+  visibility_programme_ids: string[];
+};
+
+/**
+ * Slim programme option for the Publish dialog's programme picker
+ * (slice 11.10). Just identity + label — the dialog renders a
+ * checkbox list of the tutor's own programmes.
+ */
+export type LibraryProgrammeOption = {
+  programme_id: string;
+  title: string;
 };
 
 /**
@@ -409,6 +425,45 @@ export type LibraryViewCounts = {
 };
 
 /**
+ * One tag with the number of the tutor's notes carrying it. Powers
+ * the sidebar Tags lens (slice 11.16b) and the Manage-tags panel.
+ */
+export type LibraryTagCount = {
+  tag: string;
+  count: number;
+};
+
+
+// =====================================================================
+// Slice 11.16a — content search
+// =====================================================================
+
+/**
+ * The four note fields the toolbar search can be scoped to. They map
+ * 1:1 to the A/B/C/D weights baked into `body_tsv` (title=A,
+ * subtitle=B, description=C, body=D), so the per-field filter is a
+ * pure weight mask — no extra storage.
+ */
+export type LibrarySearchField = 'title' | 'subtitle' | 'description' | 'body';
+
+export const LIBRARY_SEARCH_FIELDS: readonly LibrarySearchField[] = [
+  'title',
+  'subtitle',
+  'description',
+  'body',
+] as const;
+
+/** Per-field on/off flags for a search. All-true is the default. */
+export type LibrarySearchFieldFlags = Record<LibrarySearchField, boolean>;
+
+export const ALL_SEARCH_FIELDS_ON: LibrarySearchFieldFlags = {
+  title: true,
+  subtitle: true,
+  description: true,
+  body: true,
+};
+
+/**
  * Data feeding the Overview dashboard at `/tutor/library` (no
  * scope). Five stat cards + a Recent activity list (last 5 by
  * `updated_at`) + an 8-row Pillar coverage breakdown.
@@ -421,4 +476,79 @@ export type LibraryOverviewStats = {
   used_nowhere: number;
   pillar_counts: Record<NclexPillar, number>;
   recent: LibraryNoteLensRow[];
+};
+
+
+// =====================================================================
+// Slice 11.15 — embedded questions (authoring side)
+// =====================================================================
+
+/**
+ * The question types embeddable in a library note in v1 — the four
+ * classic single-question types. The runner renders the 5 NGN types
+ * too, but they're built around partial credit which the embed answer
+ * model doesn't capture, so they're routed to quizzes instead (see the
+ * planning doc's "Revised v1 authoring design").
+ */
+export const EMBED_QUESTION_TYPES = ['MCQ', 'SATA', 'TF', 'SELECT_N'] as const;
+export type EmbedQuestionType = (typeof EMBED_QUESTION_TYPES)[number];
+
+/**
+ * Caps on embedded questions. The HARD caps are admin-tunable via
+ * `nclex_config` (keys `embed_max_questions_per_block` /
+ * `embed_max_blocks_per_note`) — these constants are the fallback
+ * defaults used only if a config row is missing. The live values are
+ * read server-side (`getEmbedCaps`) and threaded into the editor.
+ *
+ * Enforcement is at the point of action (slice 11.15e): the picker
+ * stops the tutor at the per-block max; inserting a new block is
+ * disabled once the note holds the max blocks. Soft cap is a passive
+ * "consider a quiz" nudge in the picker, left as a fixed heuristic.
+ */
+export const EMBED_BLOCK_SOFT_CAP = 5;
+export const EMBED_BLOCK_HARD_CAP = 10; // default for embed_max_questions_per_block
+export const EMBED_DEFAULT_MAX_BLOCKS = 5; // default for embed_max_blocks_per_note
+
+/**
+ * Absolute ceilings = the admin-input guard rails for the two config
+ * keys (the most either could ever be set to). The server save-backstop
+ * checks against THESE, not the live config value, so it's
+ * **grandfather-safe**: lowering a config limit never blocks a tutor
+ * from saving a note they built under a previous, higher limit. The
+ * live config value is enforced where the tutor acts (picker +
+ * insertion); this floor only catches physically absurd amounts.
+ */
+export const EMBED_ABS_MAX_PER_BLOCK = 30;
+export const EMBED_ABS_MAX_BLOCKS = 10;
+
+/**
+ * One row in the embed picker / one reference card in a filled block.
+ * `pillar` is the question's `client_needs_subcategory` (one of the 8
+ * NCLEX pillars — the library's vocabulary). `is_note_created` is true
+ * when the question carries a `parent_note_id` (authored inline from
+ * some note) — drives the "Note-created" chip. Still a full reusable
+ * bank question regardless.
+ */
+export type EmbedQuestionRow = {
+  item_id: string;
+  question_type: string;
+  stem: string;
+  difficulty: string | null;
+  pillar: string | null;
+  created_at: string;
+  is_note_created: boolean;
+};
+
+/**
+ * Filter inputs for the pick-from-bank modal. Empty/omitted = no
+ * filter on that axis. `type` is one of EMBED_QUESTION_TYPES (the
+ * query falls back to the whole allowlist when blank); `pillar` is a
+ * `client_needs_subcategory`; `difficulty` is Easy/Medium/Hard; `q`
+ * searches the stem.
+ */
+export type EmbedPickerFilters = {
+  type?: string;
+  pillar?: string;
+  difficulty?: string;
+  q?: string;
 };
