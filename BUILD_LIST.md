@@ -8,6 +8,41 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **ON SESSION BRANCH — NOT yet merged (2026-06-01, branch
+> `claude/elated-wiles-d0e067`):** three things, all built + typecheck/
+> lint-clean, awaiting Sam's test + merge approval:
+>
+> 1. **11.14c — student library "Study Home."** Hero-led landing (CD
+>    Variant A) replacing the flat All-notes dump: Continue-reading
+>    hero, stat tiles (read / bookmarked / practised / accuracy),
+>    Recent + Bookmarked lists, Browse. New scopes `home`(default) /
+>    `recent` / `bookmarked`; Recent + Bookmarked sidebar views now
+>    real. Visit-on-open stamp. No migration.
+>    (`lib/library/student/{home-queries,study-home,study-home-icons}`.)
+> 2. **11.11a + 11.11b — Library Note as a curriculum activity (Option
+>    C).** A Library Note attached to a unit is a first-class
+>    `nclex_programme_activities` row (new `LIBRARY_NOTE` type) **plus**
+>    its linked `nclex_tutor_library_note_attachments` row (joined by a
+>    new `activity_id` column). Tutor: picker tile + attach modal
+>    (search published notes + caption + Live/Draft on create AND edit)
+>    + edit/detach. Student curriculum renders the note → read view.
+>    Completion **derived** from `nclex_library_note_state` (11.11b
+>    fold-in), no progress-engine row. Migration `20260625120000`.
+>    **11.11c (embed-analytics dashboard) still ⬜.**
+> 3. **Cohort checklist → LIVE three-state model (supersedes the
+>    snapshot).** Driven by Sam after the snapshot's sync gap surfaced
+>    (a MOCK + the new library notes were invisible in existing
+>    cohorts). Checklist now = live programme template; a row is only an
+>    override created on first decision; each activity is Unconfigured /
+>    Included / Excluded via a `✓ Include / ✗ Exclude` segment;
+>    `(cohort_id, activity_id)` upserts; "N unconfigured · Include all"
+>    prompt. Seed-on-creation trigger dropped (migration
+>    `20260625130000`). Student side unchanged. See
+>    `curriculum-authoring-ux.md` §11 build-update note.
+>
+> Prod migrations to ship for this branch at release: `20260625120000`
+> + `20260625130000`.
+
 > **MERGED to `main` (2026-06-01):** **the whole student-reading side of
 > the library — 11.14a/b (student library front door) + 11.13a (note
 > read view) + 11.13b (embedded-questions player).** The library is now
