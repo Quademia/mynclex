@@ -74,6 +74,7 @@ const TYPE_LABELS: Record<ActivityType, string> = {
   MOCK: 'Mock assessment',
   PRACTICE_QUIZ: 'Practice quiz',
   LIBRARY_NOTE: 'Library note',
+  SHELF: 'Shelf',
 };
 
 // Discriminated body-state by activity type. The four editor-

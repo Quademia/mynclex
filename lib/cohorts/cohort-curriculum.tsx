@@ -70,6 +70,7 @@ const TYPE_LABEL = {
   MOCK: 'Mock',
   PRACTICE_QUIZ: 'Practice quiz',
   LIBRARY_NOTE: 'Library note',
+  SHELF: 'Shelf',
 } as const;
 
 // Save-status union per row. 'idle' is the default; transient

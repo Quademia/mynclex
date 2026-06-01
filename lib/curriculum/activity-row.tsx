@@ -30,6 +30,7 @@ const TYPE_LABEL: Record<ActivityType, string> = {
   MOCK: 'Mock',
   PRACTICE_QUIZ: 'Practice quiz',
   LIBRARY_NOTE: 'Library note',
+  SHELF: 'Shelf',
 };
 
 interface ActivityRowProps {

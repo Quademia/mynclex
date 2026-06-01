@@ -1136,3 +1136,143 @@
   font-weight: 400;
   margin-top: 2px;
 }
+
+/* =========================================================
+   SLICE 11.12 — Shelf attach / edit modal
+   Reuses the .lib-attach* frame above; these add the shelf
+   identity dot, the member-notes preview/list, the
+   visibility warning, and the per-note hide / make-visible
+   row actions.
+   ========================================================= */
+.lib-attach-row-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-top: 3px;
+}
+
+/* Member preview (create) + warning */
+.lib-shelf-preview {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: var(--bg);
+}
+.lib-shelf-warn {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  margin: 0 0 8px;
+}
+
+/* Member notes list (shared by create preview + edit) */
+.lib-shelf-members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lib-shelf-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 4px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+.lib-shelf-member:last-child {
+  border-bottom: none;
+}
+.lib-shelf-member.is-skipped {
+  opacity: 0.62;
+}
+.lib-shelf-member-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.lib-shelf-member-title {
+  font-weight: 600;
+  color: var(--text);
+}
+.lib-shelf-member.is-skipped .lib-shelf-member-title {
+  text-decoration: line-through;
+}
+.lib-shelf-member-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.lib-shelf-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 1px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.lib-shelf-tag.is-draft {
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.lib-shelf-tag.is-hidden {
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+}
+.lib-shelf-tag.is-blocked {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+/* Edit-mode list header + per-row actions */
+.lib-shelf-members-edit {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.lib-shelf-members-head {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.lib-shelf-member-actions {
+  flex: none;
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
+.lib-shelf-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.lib-shelf-link-btn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+.lib-shelf-link-btn.is-muted {
+  color: var(--text-muted);
+}
+.lib-shelf-link-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

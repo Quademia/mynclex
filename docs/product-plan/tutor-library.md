@@ -2340,14 +2340,53 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   > many-units (one done-mark → every unit reflects it, no fan-out write).
   > The older "write-through to `markActivityDone`" line below is
   > **superseded** by this.
-- ⬜ **11.12** Programme integration — Shelf path (atomic activity).
-  *(Build order 6 — ⏸ DEFERRED to last: conjunction to the library.)*
-  Shelf as the 8th activity type, shelf-picker modal,
-  mixed-visibility attach-time dialog, **single-row atomic
-  attachment** (CHECK ensures `note_id` XOR `shelf_id`), grouped
-  block render via shelf-membership join, "Hide in this unit"
-  kebab writing `note_id` into `skipped_note_ids JSONB`, "your
-  tutor updated this shelf" hint on membership change.
+- 🔨 **11.12** Programme integration — Shelf path (atomic activity).
+  *(Build order 6 — conjunction to the library. Same "Option C" model
+  as 11.11.)* Split into a / b / c for build (numbers are stable IDs).
+
+  **Decisions locked 2026-06-01 (with Sam):**
+  - A shelf attached to a unit is ONE first-class `SHELF` activity +
+    ONE attachment row (`shelf_id` set, `note_id` NULL — the slice-11.1
+    kind XOR CHECK), linked by `activity_id`. **Atomic** — never
+    one-activity-per-note. Migration is one line (add `SHELF` to the
+    activity-type CHECK); the attachment table already had `shelf_id` +
+    `skipped_note_ids` since 11.1 and `activity_id` since 11.11a.
+  - **Tutor card is uniform** (like every other activity); all shelf
+    detail — the member-notes list + per-note controls — lives in the
+    **edit modal**, matching how every activity behaves.
+  - **"Hide in this unit"** = a per-note toggle writing the note_id into
+    that attachment's `skipped_note_ids` (local to this placement,
+    reversible via Unhide, never touches shelf membership). Hidden notes
+    stay listed-but-muted in the modal.
+  - **Mixed visibility — "Option A" (full).** A shelf can hold notes
+    whose own visibility excludes the target programme. Warn at attach
+    (*"N of M notes won't be visible here"*); in the modal show a
+    DISTINCT state — "Not visible to this programme · Make visible
+    here" — never conflated with "Hidden here · Unhide". **Make visible
+    here** = the same op as editing the note to add this programme
+    (inserts a `_note_visibility` row; only ever widens; no-op for a
+    TUTOR_WIDE note). Students never see hidden OR blocked notes (absent
+    from the list + the count).
+  - **Live membership** — the shelf reads members at render time, so
+    adding/removing a note in the library updates every attachment. New
+    notes are opt-out (show unless skipped); the per-unit skip-list keeps
+    trimming the same notes as the shelf grows. A *"your tutor updated
+    this shelf"* hint (11.12c) explains a membership change to students.
+  - **Completion DERIVED** (no progress row) — a rollup of member
+    notes' `nclex_library_note_state.marked_done_at`, minus skipped (11.12b).
+  - **Student side** (11.12b): uniform card with "N of M notes done";
+    Open → a popup table-of-contents (each member note's own Open → the
+    11.13a read view + done ✓) plus **"Go to shelf"** → `?shelf=<id>`
+    in the student library (confirmed already built, slice 11.14).
+
+  - ✅ **11.12a (BUILT 2026-06-01)** Tutor authoring. `SHELF` type +
+    one-line migration (`20260626120000`); picker tile; uniform card;
+    shelf-picker attach modal (member preview + visibility warning);
+    edit modal (member-notes list with Hide/Unhide + "Make visible
+    here", caption, Live/Draft, Detach via `deleteActivityAction`).
+    New: `lib/curriculum/shelf-activity-actions.ts`, `shelf-attach-modal.tsx`.
+  - ⬜ **11.12b** Student grouped render + derived completion rollup.
+  - ⬜ **11.12c** "Your tutor updated this shelf" drift hint + polish.
 - ⬜ **11.17** Polish — *(Build order 7 — last; its used-in
   click-through depends on the integration slices above.)* used-in
   click-through, save dialogs, all the smaller affordances.

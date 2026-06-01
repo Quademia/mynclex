@@ -372,6 +372,8 @@ function activityTypeLabel(type: ProgrammeActivity['type']): string {
       return 'Practice quiz';
     case 'LIBRARY_NOTE':
       return 'Library note';
+    case 'SHELF':
+      return 'Shelf';
   }
 }
 

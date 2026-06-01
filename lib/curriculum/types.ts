@@ -54,9 +54,15 @@ export type ActivityType =
   // nclex_tutor_library_note_attachments row, NOT the payload — so the
   // payload is empty. The activity row carries identity / ordering /
   // publish / windows; completion is DERIVED from
-  // nclex_library_note_state (no progress-engine row). SHELF (the 8th
-  // type) follows in slice 11.12.
-  | 'LIBRARY_NOTE';
+  // nclex_library_note_state (no progress-engine row).
+  | 'LIBRARY_NOTE'
+  // Slice 11.12 — Shelf as a first-class activity (same "Option C"
+  // model). The pointer (which shelf) lives in the linked attachment row
+  // (shelf_id set, note_id NULL); the per-placement skipped_note_ids list
+  // lives there too. Membership is read LIVE; the shelf is ATOMIC (one
+  // activity, one attachment). Completion is DERIVED — a rollup of the
+  // member notes' reading state, minus skipped notes (slice 11.12b).
+  | 'SHELF';
 
 // PROVISIONAL payload shapes — refined when each editor ships.
 // The TEXT shape lands first in 9.3b; the rest follow in 9.3d.
@@ -108,6 +114,11 @@ export type ActivityPayloadPracticeQuiz = { quiz_id: string | null };
 // not here. Empty object keeps the discriminated union total.
 export type ActivityPayloadLibraryNote = Record<string, never>;
 
+// Slice 11.12 — Shelf carries no payload data either: the shelf it points
+// to (and the per-placement skipped_note_ids) live in the linked
+// attachment row, not here.
+export type ActivityPayloadShelf = Record<string, never>;
+
 export type ActivityPayload =
   | ActivityPayloadText
   | ActivityPayloadPdf
@@ -115,7 +126,8 @@ export type ActivityPayload =
   | ActivityPayloadOnlineLiveSession
   | ActivityPayloadMock
   | ActivityPayloadPracticeQuiz
-  | ActivityPayloadLibraryNote;
+  | ActivityPayloadLibraryNote
+  | ActivityPayloadShelf;
 
 export type ProgrammeActivity = {
   activity_id: string;
@@ -341,6 +353,7 @@ export const ACTIVITY_TYPES: ActivityType[] = [
   'MOCK',
   'PRACTICE_QUIZ',
   'LIBRARY_NOTE',
+  'SHELF',
 ];
 
 // =====================================================================
