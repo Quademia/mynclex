@@ -11,7 +11,6 @@ import type {
   CohortChecklistBodyEntry,
   CohortChecklistTree,
   CohortListRow,
-  NewTemplateActivity,
 } from './types';
 import type {
   DeliveryMode,
@@ -208,10 +207,11 @@ export async function getCohortChecklist(
     : programmeRaw;
   if (!programme) return null;
 
-  // Wave 2 — units, blocks, checklist rows, AND the full template
-  // activity list (to diff against the checklist for "new since this
-  // cohort was created"). Four parallel reads.
-  const [unitsResult, blocksResult, rowsResult, allActivitiesResult] =
+  // Wave 2 — units, blocks, the cohort's checklist OVERRIDE rows, and
+  // the full live template activity list. The checklist is the live
+  // template (4th read); override rows (3rd read) only supply
+  // inclusion + dates for activities the tutor has configured.
+  const [unitsResult, blocksResult, overridesResult, activitiesResult] =
     await Promise.all([
     supabase
       .from('nclex_programme_units')
@@ -233,21 +233,18 @@ export async function getCohortChecklist(
     supabase
       .from('nclex_cohort_checklist_items')
       .select(
-        `checklist_item_id, is_included, release_date, due_date,
-         close_date, source,
-         nclex_programme_activities!inner(
-           activity_id, unit_id, block_id, ordinal, type, title,
-           description, note, payload, is_published, created_at, updated_at
-         )`
+        `template_activity_id, is_included, release_date, due_date, close_date`
       )
       .eq('cohort_id', cohortId),
     supabase
       .from('nclex_programme_activities')
       .select(
-        `activity_id, unit_id, title, type,
+        `activity_id, unit_id, block_id, ordinal, type, title,
+         description, note, payload, is_published, created_at, updated_at,
          nclex_programme_units!inner(programme_id)`
       )
-      .eq('nclex_programme_units.programme_id', programme.programme_id),
+      .eq('nclex_programme_units.programme_id', programme.programme_id)
+      .order('ordinal', { ascending: true }),
   ]);
 
   const units = (unitsResult.data ?? []) as ProgrammeUnit[];
@@ -256,35 +253,60 @@ export async function getCohortChecklist(
       nclex_programme_units?: unknown; // strip embed before render
     }
   >;
-  type RawRow = {
-    checklist_item_id: string;
+
+  // Override rows, keyed by activity. Absence = unconfigured.
+  type OverrideRow = {
+    template_activity_id: string;
     is_included: boolean;
     release_date: string;
     due_date: string | null;
     close_date: string | null;
-    source: 'TEMPLATE' | 'COHORT_ONLY';
-    nclex_programme_activities: ProgrammeActivity | ProgrammeActivity[];
   };
-  const rawRows = (rowsResult.data ?? []) as RawRow[];
+  const overridesByActivity = new Map<string, OverrideRow>();
+  for (const o of (overridesResult.data ?? []) as OverrideRow[]) {
+    overridesByActivity.set(o.template_activity_id, o);
+  }
 
-  // Normalise the embed shape (PostgREST returns object | array).
-  const checklistRows: CohortChecklistActivityRow[] = rawRows
-    .map((r) => {
-      const activity = Array.isArray(r.nclex_programme_activities)
-        ? r.nclex_programme_activities[0]
-        : r.nclex_programme_activities;
-      if (!activity) return null;
+  // Week-pacing default release for an activity with no override.
+  const DAY_MS = 86_400_000;
+  const cohortStartMs = new Date(`${cohortRow.start_date}T00:00:00Z`).getTime();
+  const unitIndexById = new Map(units.map((u) => [u.unit_id, u.unit_index]));
+  const defaultRelease = (unitId: string): string => {
+    const unitIndex = unitIndexById.get(unitId) ?? 1;
+    return new Date(cohortStartMs + (unitIndex - 1) * 7 * DAY_MS)
+      .toISOString()
+      .slice(0, 10);
+  };
+
+  // Build one checklist row per LIVE template activity, attaching its
+  // override or computed defaults. This is the heart of the live model:
+  // the list is driven by the template, not by which rows exist.
+  const checklistRows: CohortChecklistActivityRow[] = (
+    (activitiesResult.data ?? []) as Array<
+      ProgrammeActivity & { nclex_programme_units?: unknown }
+    >
+  ).map((raw) => {
+    const { nclex_programme_units: _omit, ...activity } = raw;
+    const override = overridesByActivity.get(activity.activity_id);
+    if (override) {
       return {
-        checklist_item_id: r.checklist_item_id,
-        is_included: r.is_included,
-        release_date: r.release_date,
-        due_date: r.due_date,
-        close_date: r.close_date,
-        source: r.source,
-        activity,
+        activity: activity as ProgrammeActivity,
+        state: override.is_included ? 'included' : 'excluded',
+        release_date: override.release_date,
+        due_date: override.due_date,
+        close_date: override.close_date,
+        release_is_default: false,
       } satisfies CohortChecklistActivityRow;
-    })
-    .filter((r): r is CohortChecklistActivityRow => r !== null);
+    }
+    return {
+      activity: activity as ProgrammeActivity,
+      state: 'unconfigured',
+      release_date: defaultRelease(activity.unit_id),
+      due_date: null,
+      close_date: null,
+      release_is_default: true,
+    } satisfies CohortChecklistActivityRow;
+  });
 
   // Group: per unit → body entries (blocks + loose rows interleaved
   // by ordinal). Inside each block, in-block rows sorted by
@@ -364,30 +386,6 @@ export async function getCohortChecklist(
     return { unit, body };
   });
 
-  // New-since-creation: template activities with no checklist row in
-  // this cohort. The cohort is a snapshot at creation (slice 9.3f); the
-  // tutor pulls these in explicitly via the affordance.
-  const checklistActivityIds = new Set(
-    checklistRows.map((r) => r.activity.activity_id)
-  );
-  const unitIndexById = new Map(units.map((u) => [u.unit_id, u.unit_index]));
-  const newTemplateActivities = (
-    (allActivitiesResult.data ?? []) as Array<{
-      activity_id: string;
-      unit_id: string;
-      title: string;
-      type: NewTemplateActivity['type'];
-    }>
-  )
-    .filter((a) => !checklistActivityIds.has(a.activity_id))
-    .map((a) => ({
-      activity_id: a.activity_id,
-      title: a.title,
-      type: a.type,
-      unit_index: unitIndexById.get(a.unit_id) ?? 0,
-    }))
-    .sort((x, y) => x.unit_index - y.unit_index);
-
   return {
     cohort: {
       cohort_id: cohortRow.cohort_id,
@@ -403,6 +401,5 @@ export async function getCohortChecklist(
       delivery_mode: programme.delivery_mode,
     },
     units: unitTrees,
-    newTemplateActivities,
   };
 }

@@ -88,14 +88,25 @@ import type {
   ProgrammeUnit,
 } from '@/lib/curriculum/types';
 
+// Three-state cohort-checklist model. The checklist is the LIVE
+// programme template; a checklist row is only an *override*. So each
+// activity is one of:
+//   • unconfigured — no override row yet (renders with defaults)
+//   • included     — override row, is_included = true
+//   • excluded     — override row, is_included = false
+export type ChecklistActivityState = 'unconfigured' | 'included' | 'excluded';
+
 export type CohortChecklistActivityRow = {
-  checklist_item_id: string;
-  is_included: boolean;
+  activity: ProgrammeActivity;       // live-read from template
+  state: ChecklistActivityState;
+  // Dates are the stored override values when configured, else the
+  // computed week-pacing defaults (so the inputs always show something).
   release_date: string;
   due_date: string | null;
   close_date: string | null;
-  source: ChecklistItemSource;
-  activity: ProgrammeActivity;       // live-read from template
+  // true when release_date is the computed default (no stored row /
+  // release) — lets the UI show it faint vs. a solid configured date.
+  release_is_default: boolean;
 };
 
 // Block + its in-block checklist rows. Mirrors the curriculum-tab
@@ -123,18 +134,6 @@ export type CohortChecklistUnit = {
   body: CohortChecklistBodyEntry[];
 };
 
-// A template activity that exists in the programme but has NO
-// checklist row in this cohort yet — i.e. added after the cohort was
-// created. The cohort is a snapshot at creation (slice 9.3f), so these
-// don't auto-appear; the tutor pulls them in via the "add new template
-// activities" affordance. (Deferred 9.3f affordance, built 2026-06-01.)
-export type NewTemplateActivity = {
-  activity_id: string;
-  title: string;
-  type: ProgrammeActivity['type'];
-  unit_index: number;
-};
-
 // Top-level projection returned by getCohortChecklist(). Includes
 // the cohort identity + programme status fields needed to render
 // the per-row "Visible to students" derivation.
@@ -153,8 +152,4 @@ export type CohortChecklistTree = {
     delivery_mode: 'TUTOR_LED' | 'SELF_PACED';
   };
   units: CohortChecklistUnit[];
-  // Template activities added since this cohort was created (no
-  // checklist row yet). Empty when the cohort is in sync. Drives the
-  // "N new activities — add to this cohort" affordance.
-  newTemplateActivities: NewTemplateActivity[];
 };

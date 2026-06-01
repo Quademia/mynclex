@@ -47,13 +47,14 @@ import {
   ACTIVITY_TYPE_ICON,
 } from '@/lib/curriculum/format';
 import {
-  setChecklistItemIncludedAction,
-  setChecklistItemReleaseDateAction,
-  setChecklistItemDueDateAction,
-  setChecklistItemCloseDateAction,
-  addNewTemplateActivitiesToCohortAction,
+  setActivityIncludedAction,
+  setActivityReleaseDateAction,
+  setActivityDueDateAction,
+  setActivityCloseDateAction,
+  includeAllUnconfiguredActivitiesAction,
 } from './actions';
 import type {
+  ChecklistActivityState,
   CohortChecklistActivityRow,
   CohortChecklistBodyEntry,
   CohortChecklistTree,
@@ -88,17 +89,26 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
     null
   );
 
-  // "Add new template activities" affordance (deferred 9.3f). The cohort
-  // is a snapshot at creation; activities added to the programme after
-  // don't auto-appear. This pulls them in on demand.
-  const [addingNew, startAddNew] = useTransition();
-  const newCount = tree.newTemplateActivities.length;
-  function handleAddNewActivities() {
+  const cohortId = tree.cohort.cohort_id;
+
+  // Unconfigured count — activities the tutor hasn't decided on yet
+  // (no override row). Drives the "N unconfigured → Include all" prompt.
+  const unconfiguredCount = tree.units.reduce((sum, u) => {
+    for (const entry of u.body) {
+      if (entry.kind === 'block') {
+        sum += entry.rows.filter((r) => r.state === 'unconfigured').length;
+      } else if (entry.row.state === 'unconfigured') {
+        sum += 1;
+      }
+    }
+    return sum;
+  }, 0);
+
+  const [includingAll, startIncludeAll] = useTransition();
+  function handleIncludeAll() {
     setError(null);
-    startAddNew(async () => {
-      const res = await addNewTemplateActivitiesToCohortAction(
-        tree.cohort.cohort_id
-      );
+    startIncludeAll(async () => {
+      const res = await includeAllUnconfiguredActivitiesAction(cohortId);
       if (!res.ok) {
         setError(res.error);
         return;
@@ -146,20 +156,18 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
   // state pointing the tutor back to the curriculum tab.
   const hasAnyActivity = tree.units.some((u) => u.body.length > 0);
 
-  // Dead-end empty state only when there's nothing in the checklist AND
-  // nothing new to pull in. If new template activities exist, fall
-  // through to the main render so the "add to cohort" banner shows.
-  if (!hasAnyActivity && newCount === 0) {
+  // Dead-end empty state only when the programme genuinely has no
+  // activities at all.
+  if (!hasAnyActivity && unconfiguredCount === 0) {
     return (
       <section className="cohort-checklist-empty">
         <h2 className="cohort-checklist-empty-title">
           No activities in this programme yet.
         </h2>
         <p className="cohort-checklist-empty-sub">
-          Author your curriculum on the programme&apos;s Curriculum
-          tab. Activities you add will appear here automatically for
-          cohorts you create after that point. (Existing cohorts
-          don&apos;t auto-pick-up new template activities.)
+          Author your curriculum on the programme&apos;s Curriculum tab.
+          Every activity you add appears here automatically — you then
+          decide which to include in this cohort and when each opens.
         </p>
       </section>
     );
@@ -178,24 +186,25 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
           </p>
         </header>
 
-        {newCount > 0 && (
+        {unconfiguredCount > 0 && (
           <div className="cohort-checklist-new-banner" role="status">
             <div className="cohort-checklist-new-banner-text">
               <strong>
-                {newCount} new {newCount === 1 ? 'activity has' : 'activities have'}
+                {unconfiguredCount} unconfigured{' '}
+                {unconfiguredCount === 1 ? 'activity' : 'activities'}
               </strong>{' '}
-              been added to this programme since this cohort was created.
-              They&apos;re not in this cohort yet.
+              — not yet decided for this cohort, so students don&apos;t see
+              {unconfiguredCount === 1 ? ' it' : ' them'}. Include all, then
+              exclude any you don&apos;t want, or set each one individually
+              below.
             </div>
             <button
               type="button"
               className="prog-btn prog-btn-primary"
-              onClick={handleAddNewActivities}
-              disabled={addingNew}
+              onClick={handleIncludeAll}
+              disabled={includingAll}
             >
-              {addingNew
-                ? 'Adding…'
-                : `Add ${newCount === 1 ? 'it' : 'them'} to this cohort`}
+              {includingAll ? 'Including…' : 'Include all'}
             </button>
           </div>
         )}
@@ -242,14 +251,15 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
                 </p>
               ) : (
                 <div className="cohort-checklist-body">
-                  {u.body.map((entry, i) => (
+                  {u.body.map((entry) => (
                     <BodyEntry
                       key={
                         entry.kind === 'block'
                           ? `b-${entry.block.block_id}`
-                          : `l-${entry.row.checklist_item_id}-${i}`
+                          : `l-${entry.row.activity.activity_id}`
                       }
                       entry={entry}
+                      cohortId={cohortId}
                       onClickActivity={(a) => setEditActivity(a)}
                       onError={setError}
                       onMutated={() => router.refresh()}
@@ -280,12 +290,14 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
 
 function BodyEntry({
   entry,
+  cohortId,
   onClickActivity,
   onError,
   onMutated,
   markPending,
 }: {
   entry: CohortChecklistBodyEntry;
+  cohortId: string;
   onClickActivity: (a: ProgrammeActivity) => void;
   onError: (msg: string) => void;
   onMutated: () => void;
@@ -295,6 +307,7 @@ function BodyEntry({
     return (
       <ChecklistRow
         row={entry.row}
+        cohortId={cohortId}
         onClickActivity={onClickActivity}
         onError={onError}
         onMutated={onMutated}
@@ -328,8 +341,9 @@ function BodyEntry({
         <div className="cohort-checklist-block-rows">
           {entry.rows.map((r) => (
             <ChecklistRow
-              key={r.checklist_item_id}
+              key={r.activity.activity_id}
               row={r}
+              cohortId={cohortId}
               onClickActivity={onClickActivity}
               onError={onError}
               onMutated={onMutated}
@@ -360,19 +374,26 @@ type DateActionResult = { ok: true } | { ok: false; error: string };
 
 function ChecklistRow({
   row,
+  cohortId,
   onClickActivity,
   onError,
   onMutated,
   markPending,
 }: {
   row: CohortChecklistActivityRow;
+  cohortId: string;
   onClickActivity: (a: ProgrammeActivity) => void;
   onError: (msg: string) => void;
   onMutated: () => void;
   markPending: (id: string, isPending: boolean) => void;
 }) {
-  // Included toggle — its own optimistic state + transition.
-  const [included, setIncluded] = useState(row.is_included);
+  const activityId = row.activity.activity_id;
+
+  // Inclusion checkbox — checked = included. Unchecked spans two
+  // states: "unconfigured" (no row yet) and "excluded" (explicit row).
+  // The row's badge disambiguates; the publish gate is what actually
+  // keeps students out, so leaving something unconfigured is safe.
+  const [included, setIncluded] = useState(row.state === 'included');
   const [includedPending, startIncludedTransition] = useTransition();
 
   // Per-row visible save status, set by any of the four controls
@@ -405,7 +426,7 @@ function ChecklistRow({
     []
   );
 
-  const includedDirty = included !== row.is_included;
+  const includedDirty = included !== (row.state === 'included');
   const rowIsPending =
     includedPending ||
     includedDirty ||
@@ -414,20 +435,21 @@ function ChecklistRow({
     datePending.close;
 
   useEffect(() => {
-    markPending(row.checklist_item_id, rowIsPending);
+    markPending(activityId, rowIsPending);
     // Mark released on unmount too so a navigation doesn't leave a
     // stale entry in the parent's set.
     return () => {
-      markPending(row.checklist_item_id, false);
+      markPending(activityId, false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rowIsPending, row.checklist_item_id]);
+  }, [rowIsPending, activityId]);
 
   function saveIncluded(next: boolean) {
     setSaveStatus('saving');
     startIncludedTransition(async () => {
-      const result = await setChecklistItemIncludedAction(
-        row.checklist_item_id,
+      const result = await setActivityIncludedAction(
+        cohortId,
+        activityId,
         next
       );
       if (!result.ok) {
@@ -447,14 +469,20 @@ function ChecklistRow({
   }
 
   const a = row.activity;
-  const itemId = row.checklist_item_id;
+  // Display state: optimistic include wins; otherwise reflect the
+  // stored state (unconfigured vs excluded).
+  const displayState: ChecklistActivityState = includedDirty
+    ? included
+      ? 'included'
+      : 'excluded'
+    : row.state;
 
   return (
     <div
       className={
-        included
-          ? 'cohort-checklist-row'
-          : 'cohort-checklist-row is-excluded'
+        'cohort-checklist-row' +
+        (displayState === 'excluded' ? ' is-excluded' : '') +
+        (displayState === 'unconfigured' ? ' is-unconfigured' : '')
       }
     >
       <button
@@ -474,7 +502,12 @@ function ChecklistRow({
             >
               {unitStatusLabel(a.is_published)}
             </span>
-            {!included && (
+            {displayState === 'unconfigured' && (
+              <span className="cohort-checklist-unconfigured-badge">
+                Not set
+              </span>
+            )}
+            {displayState === 'excluded' && (
               <span className="cohort-checklist-excluded-badge">
                 Excluded from cohort
               </span>
@@ -496,9 +529,10 @@ function ChecklistRow({
             field="release"
             label="Opens"
             serverValue={row.release_date}
+            isDefault={row.release_is_default}
             nullable={false}
             action={(value) =>
-              setChecklistItemReleaseDateAction(itemId, value ?? '')
+              setActivityReleaseDateAction(cohortId, activityId, value ?? '')
             }
             onStatus={setSaveStatus}
             onError={onError}
@@ -510,7 +544,9 @@ function ChecklistRow({
             label="Due"
             serverValue={row.due_date}
             nullable
-            action={(value) => setChecklistItemDueDateAction(itemId, value)}
+            action={(value) =>
+              setActivityDueDateAction(cohortId, activityId, value)
+            }
             onStatus={setSaveStatus}
             onError={onError}
             onMutated={onMutated}
@@ -521,7 +557,9 @@ function ChecklistRow({
             label="Closes"
             serverValue={row.close_date}
             nullable
-            action={(value) => setChecklistItemCloseDateAction(itemId, value)}
+            action={(value) =>
+              setActivityCloseDateAction(cohortId, activityId, value)
+            }
             onStatus={setSaveStatus}
             onError={onError}
             onMutated={onMutated}
@@ -557,6 +595,7 @@ function ChecklistDateField({
   label,
   serverValue,
   nullable,
+  isDefault = false,
   action,
   onStatus,
   onError,
@@ -567,6 +606,9 @@ function ChecklistDateField({
   label: string;
   serverValue: string | null;
   nullable: boolean;
+  // true when serverValue is a computed default (no stored override) —
+  // renders faint so the tutor can tell it apart from a date they set.
+  isDefault?: boolean;
   action: (value: string | null) => Promise<DateActionResult>;
   onStatus: (status: RowSaveStatus) => void;
   onError: (msg: string) => void;
@@ -640,7 +682,10 @@ function ChecklistDateField({
       <span className="cohort-checklist-row-date-label">{label}</span>
       <input
         type="date"
-        className="cohort-checklist-row-date-input"
+        className={
+          'cohort-checklist-row-date-input' +
+          (isDefault && !isDirty ? ' is-default' : '')
+        }
         value={value}
         onChange={(e) => handleChange(e.target.value)}
         onBlur={handleBlur}

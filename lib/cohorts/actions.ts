@@ -167,34 +167,22 @@ export async function cancelCohortAction(
 }
 
 // =====================================================================
-// Slice 9.3f / 10.7 — Cohort checklist mutations
+// Cohort checklist mutations (three-state live model — see the
+// "Three-state checklist writes" block below for the per-action set)
 // =====================================================================
-//
-// Four narrow actions over `nclex_cohort_checklist_items`:
-//   • setChecklistItemIncludedAction    — toggles inclusion.
-//   • setChecklistItemReleaseDateAction — updates release_date.
-//   • setChecklistItemDueDateAction     — updates due_date (10.7).
-//   • setChecklistItemCloseDateAction   — updates close_date (10.7).
 //
 // RLS on the table gates writes to rows whose cohort belongs to a
 // programme the caller owns; the actions don't re-implement that
-// check at the app layer (would just shadow the policy). A
-// stale/mis-typed checklist_item_id surfaces as a generic
-// "not found or not yours" through the maybeSingle() return shape.
+// check at the app layer (would just shadow the policy).
 //
-// The three date actions each read the row's current window first,
-// then validate release <= due <= close (where set) before the
-// UPDATE — ordering is an app-layer rule, not a DB CHECK (a CHECK
-// would block moving release_date past an existing due/close).
+// Date edits validate release <= due <= close (where set) against the
+// effective values before writing — ordering is an app-layer rule, not
+// a DB CHECK (a CHECK would block moving release_date past an existing
+// due/close).
 
 type ChecklistMutationResult =
   | { ok: true }
   | { ok: false; error: string };
-
-export type SetChecklistItemIncludedResult = ChecklistMutationResult;
-export type SetChecklistItemReleaseDateResult = ChecklistMutationResult;
-export type SetChecklistItemDueDateResult = ChecklistMutationResult;
-export type SetChecklistItemCloseDateResult = ChecklistMutationResult;
 
 // Shape guard for a date input.
 function isDateString(value: string): boolean {
@@ -221,227 +209,195 @@ function validateWindowOrdering(
   return null;
 }
 
-export async function setChecklistItemIncludedAction(
-  checklist_item_id: string,
-  included: boolean
-): Promise<SetChecklistItemIncludedResult> {
+// =====================================================================
+// Three-state checklist writes (cohort-checklist live model)
+// =====================================================================
+//
+// The cohort checklist is no longer a snapshot: it is the live programme
+// template, where each activity is Unconfigured (no row) / Included
+// (row, is_included=true) / Excluded (row, is_included=false). A row is
+// written on the FIRST explicit tutor action (include/exclude or a date)
+// via these (cohort_id, activity_id)-keyed upserts. release_date is NOT
+// NULL, so any row gets stamped with the default week-pacing release
+// (start_date + (unit_index - 1) x 7d) unless the tutor sets one. Window
+// ordering (release <= due <= close) is validated against the effective
+// values. RLS gates writes via the tutor self_insert / self_update
+// policies.
+
+const DAY_MS = 86_400_000;
+
+// Default release date for an activity in a cohort (week-N pacing).
+// Null when the cohort or activity can't be resolved (not yours).
+async function defaultReleaseDate(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  cohortId: string,
+  activityId: string
+): Promise<string | null> {
+  const { data: cohort } = await supabase
+    .from('nclex_cohorts')
+    .select('start_date')
+    .eq('cohort_id', cohortId)
+    .maybeSingle();
+  if (!cohort) return null;
+  const { data: act } = await supabase
+    .from('nclex_programme_activities')
+    .select('activity_id, nclex_programme_units!inner(unit_index)')
+    .eq('activity_id', activityId)
+    .maybeSingle();
+  if (!act) return null;
+  const u = (act as {
+    nclex_programme_units: { unit_index: number } | { unit_index: number }[];
+  }).nclex_programme_units;
+  const unitIndex = (Array.isArray(u) ? u[0]?.unit_index : u?.unit_index) ?? 1;
+  const startMs = new Date(
+    `${(cohort as { start_date: string }).start_date}T00:00:00Z`
+  ).getTime();
+  return new Date(startMs + (unitIndex - 1) * 7 * DAY_MS)
+    .toISOString()
+    .slice(0, 10);
+}
+
+type ChecklistChange = Partial<{
+  is_included: boolean;
+  release_date: string;
+  due_date: string | null;
+  close_date: string | null;
+}>;
+
+// Ensure-and-apply: create the override row (with defaults) if absent,
+// else update it - applying `change` and validating window ordering
+// against the effective values.
+async function applyChecklistChange(
+  cohortId: string,
+  activityId: string,
+  change: ChecklistChange
+): Promise<ChecklistMutationResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
+  const { data: existing } = await supabase
     .from('nclex_cohort_checklist_items')
-    .update({ is_included: included, updated_at: nowIso })
-    .eq('checklist_item_id', checklist_item_id)
-    .select('cohort_id')
+    .select(
+      'checklist_item_id, is_included, release_date, due_date, close_date'
+    )
+    .eq('cohort_id', cohortId)
+    .eq('template_activity_id', activityId)
     .maybeSingle();
 
-  if (error) return { ok: false, error: error.message };
-  if (!data) {
-    return {
-      ok: false,
-      error: 'Checklist item not found or not yours to edit.',
-    };
+  const baseRelease =
+    (existing as { release_date: string } | null)?.release_date ??
+    (await defaultReleaseDate(supabase, cohortId, activityId));
+  if (baseRelease == null) {
+    return { ok: false, error: 'Cohort or activity not found, or not yours.' };
   }
 
-  revalidatePath(`/tutor/cohort/${data.cohort_id}/curriculum`);
+  const eff = {
+    release_date: change.release_date ?? baseRelease,
+    due_date:
+      change.due_date !== undefined
+        ? change.due_date
+        : (existing as { due_date: string | null } | null)?.due_date ?? null,
+    close_date:
+      change.close_date !== undefined
+        ? change.close_date
+        : (existing as { close_date: string | null } | null)?.close_date ??
+          null,
+    is_included:
+      change.is_included ??
+      (existing as { is_included: boolean } | null)?.is_included ??
+      true,
+  };
+
+  const orderError = validateWindowOrdering(
+    eff.release_date,
+    eff.due_date,
+    eff.close_date
+  );
+  if (orderError) return { ok: false, error: orderError };
+
+  const nowIso = new Date().toISOString();
+  if (existing) {
+    const { error } = await supabase
+      .from('nclex_cohort_checklist_items')
+      .update({ ...change, updated_at: nowIso })
+      .eq(
+        'checklist_item_id',
+        (existing as { checklist_item_id: string }).checklist_item_id
+      );
+    if (error) return { ok: false, error: 'Could not save the change.' };
+  } else {
+    const { error } = await supabase
+      .from('nclex_cohort_checklist_items')
+      .insert({
+        cohort_id: cohortId,
+        template_activity_id: activityId,
+        is_included: eff.is_included,
+        release_date: eff.release_date,
+        due_date: eff.due_date,
+        close_date: eff.close_date,
+      });
+    if (error) return { ok: false, error: 'Could not save the change.' };
+  }
+
+  revalidatePath(`/tutor/cohort/${cohortId}/curriculum`);
   return { ok: true };
 }
 
-export async function setChecklistItemReleaseDateAction(
-  checklist_item_id: string,
-  release_date: string // YYYY-MM-DD (required — release is NOT NULL)
-): Promise<SetChecklistItemReleaseDateResult> {
+export async function setActivityIncludedAction(
+  cohortId: string,
+  activityId: string,
+  included: boolean
+): Promise<ChecklistMutationResult> {
+  return applyChecklistChange(cohortId, activityId, { is_included: included });
+}
+
+export async function setActivityReleaseDateAction(
+  cohortId: string,
+  activityId: string,
+  release_date: string
+): Promise<ChecklistMutationResult> {
   if (!isDateString(release_date)) {
     return { ok: false, error: 'Release date must be a YYYY-MM-DD value.' };
   }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Not signed in.' };
-
-  // Read the current window so a moved release_date can be checked
-  // against any existing due/close date. RLS gates this read.
-  const { data: current } = await supabase
-    .from('nclex_cohort_checklist_items')
-    .select('due_date, close_date')
-    .eq('checklist_item_id', checklist_item_id)
-    .maybeSingle();
-  if (!current) {
-    return {
-      ok: false,
-      error: 'Checklist item not found or not yours to edit.',
-    };
-  }
-
-  const orderError = validateWindowOrdering(
-    release_date,
-    current.due_date,
-    current.close_date
-  );
-  if (orderError) return { ok: false, error: orderError };
-
-  const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
-    .from('nclex_cohort_checklist_items')
-    .update({ release_date, updated_at: nowIso })
-    .eq('checklist_item_id', checklist_item_id)
-    .select('cohort_id')
-    .maybeSingle();
-
-  if (error) return { ok: false, error: error.message };
-  if (!data) {
-    return {
-      ok: false,
-      error: 'Checklist item not found or not yours to edit.',
-    };
-  }
-
-  revalidatePath(`/tutor/cohort/${data.cohort_id}/curriculum`);
-  return { ok: true };
+  return applyChecklistChange(cohortId, activityId, { release_date });
 }
 
-// due_date — soft target. Nullable: passing null clears it. Does
-// NOT gate student access (that's close_date) — the student-side
-// just surfaces "Due <date>".
-export async function setChecklistItemDueDateAction(
-  checklist_item_id: string,
-  due_date: string | null // YYYY-MM-DD, or null to clear
-): Promise<SetChecklistItemDueDateResult> {
+export async function setActivityDueDateAction(
+  cohortId: string,
+  activityId: string,
+  due_date: string | null
+): Promise<ChecklistMutationResult> {
   if (due_date != null && !isDateString(due_date)) {
     return { ok: false, error: 'Due date must be a YYYY-MM-DD value.' };
   }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Not signed in.' };
-
-  const { data: current } = await supabase
-    .from('nclex_cohort_checklist_items')
-    .select('release_date, close_date')
-    .eq('checklist_item_id', checklist_item_id)
-    .maybeSingle();
-  if (!current) {
-    return {
-      ok: false,
-      error: 'Checklist item not found or not yours to edit.',
-    };
-  }
-
-  const orderError = validateWindowOrdering(
-    current.release_date,
-    due_date,
-    current.close_date
-  );
-  if (orderError) return { ok: false, error: orderError };
-
-  const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
-    .from('nclex_cohort_checklist_items')
-    .update({ due_date, updated_at: nowIso })
-    .eq('checklist_item_id', checklist_item_id)
-    .select('cohort_id')
-    .maybeSingle();
-
-  if (error) return { ok: false, error: error.message };
-  if (!data) {
-    return {
-      ok: false,
-      error: 'Checklist item not found or not yours to edit.',
-    };
-  }
-
-  revalidatePath(`/tutor/cohort/${data.cohort_id}/curriculum`);
-  return { ok: true };
+  return applyChecklistChange(cohortId, activityId, { due_date });
 }
 
-// close_date — hard gate. Nullable: passing null clears it. Once
-// past, the student-side activity locks ("Closed <date>").
-export async function setChecklistItemCloseDateAction(
-  checklist_item_id: string,
-  close_date: string | null // YYYY-MM-DD, or null to clear
-): Promise<SetChecklistItemCloseDateResult> {
+export async function setActivityCloseDateAction(
+  cohortId: string,
+  activityId: string,
+  close_date: string | null
+): Promise<ChecklistMutationResult> {
   if (close_date != null && !isDateString(close_date)) {
     return { ok: false, error: 'Close date must be a YYYY-MM-DD value.' };
   }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Not signed in.' };
-
-  const { data: current } = await supabase
-    .from('nclex_cohort_checklist_items')
-    .select('release_date, due_date')
-    .eq('checklist_item_id', checklist_item_id)
-    .maybeSingle();
-  if (!current) {
-    return {
-      ok: false,
-      error: 'Checklist item not found or not yours to edit.',
-    };
-  }
-
-  const orderError = validateWindowOrdering(
-    current.release_date,
-    current.due_date,
-    close_date
-  );
-  if (orderError) return { ok: false, error: orderError };
-
-  const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
-    .from('nclex_cohort_checklist_items')
-    .update({ close_date, updated_at: nowIso })
-    .eq('checklist_item_id', checklist_item_id)
-    .select('cohort_id')
-    .maybeSingle();
-
-  if (error) return { ok: false, error: error.message };
-  if (!data) {
-    return {
-      ok: false,
-      error: 'Checklist item not found or not yours to edit.',
-    };
-  }
-
-  revalidatePath(`/tutor/cohort/${data.cohort_id}/curriculum`);
-  return { ok: true };
+  return applyChecklistChange(cohortId, activityId, { close_date });
 }
 
-// =====================================================================
-// addNewTemplateActivitiesToCohortAction — the deferred 9.3f affordance
-// =====================================================================
-//
-// A cohort is a snapshot of the template at creation time (the seed
-// trigger runs once, AFTER INSERT ON nclex_cohorts). Activities added to
-// the programme afterwards have no checklist row in existing cohorts, so
-// they don't appear in the cohort checklist or to students. This action
-// is the explicit "pull the new template activities into this cohort"
-// path the 9.3f migration deferred: it inserts a checklist row for every
-// template activity missing one, with the same default release-date
-// pacing the seed trigger uses (start_date + (unit_index - 1) x 7 days),
-// is_included = true, source = 'TEMPLATE'. The tutor then curates
-// inclusion / release dates per row as normal.
-//
-// RLS: the tutor self_insert policy on nclex_cohort_checklist_items
-// already permits this (ownership via cohort -> programme -> tutor).
-
-export type AddNewTemplateActivitiesResult =
+// Include EVERY currently-unconfigured template activity in this cohort
+// in one click (the "N unconfigured -> Include all" affordance). Inserts
+// is_included=true rows with default release dates for activities with
+// no row yet; existing rows are untouched.
+export type IncludeAllResult =
   | { ok: true; added: number }
   | { ok: false; error: string };
 
-export async function addNewTemplateActivitiesToCohortAction(
+export async function includeAllUnconfiguredActivitiesAction(
   cohortId: string
-): Promise<AddNewTemplateActivitiesResult> {
+): Promise<IncludeAllResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -470,7 +426,10 @@ export async function addNewTemplateActivitiesToCohortAction(
     .select(
       'activity_id, nclex_programme_units!inner(programme_id, unit_index)'
     )
-    .eq('nclex_programme_units.programme_id', cohort.programme_id);
+    .eq(
+      'nclex_programme_units.programme_id',
+      (cohort as { programme_id: string }).programme_id
+    );
 
   type ActRow = {
     activity_id: string;
@@ -484,20 +443,21 @@ export async function addNewTemplateActivitiesToCohortAction(
   );
   if (missing.length === 0) return { ok: true, added: 0 };
 
-  const startMs = new Date(`${cohort.start_date}T00:00:00Z`).getTime();
-  const DAY_MS = 86_400_000;
+  const startMs = new Date(
+    `${(cohort as { start_date: string }).start_date}T00:00:00Z`
+  ).getTime();
   const rows = missing.map((a) => {
     const u = Array.isArray(a.nclex_programme_units)
       ? a.nclex_programme_units[0]
       : a.nclex_programme_units;
     const unitIndex = u?.unit_index ?? 1;
-    const releaseDate = new Date(startMs + (unitIndex - 1) * 7 * DAY_MS)
-      .toISOString()
-      .slice(0, 10);
     return {
       cohort_id: cohortId,
       template_activity_id: a.activity_id,
-      release_date: releaseDate,
+      is_included: true,
+      release_date: new Date(startMs + (unitIndex - 1) * 7 * DAY_MS)
+        .toISOString()
+        .slice(0, 10),
     };
   });
 
@@ -507,9 +467,7 @@ export async function addNewTemplateActivitiesToCohortAction(
       onConflict: 'cohort_id,template_activity_id',
       ignoreDuplicates: true,
     });
-  if (error) {
-    return { ok: false, error: 'Could not add the new activities.' };
-  }
+  if (error) return { ok: false, error: 'Could not include the activities.' };
 
   revalidatePath(`/tutor/cohort/${cohortId}/curriculum`);
   return { ok: true, added: rows.length };
