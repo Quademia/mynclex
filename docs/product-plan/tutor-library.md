@@ -2385,7 +2385,21 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
     edit modal (member-notes list with Hide/Unhide + "Make visible
     here", caption, Live/Draft, Detach via `deleteActivityAction`).
     New: `lib/curriculum/shelf-activity-actions.ts`, `shelf-attach-modal.tsx`.
-  - ⬜ **11.12b** Student grouped render + derived completion rollup.
+  - ✅ **11.12b (BUILT 2026-06-01)** Student grouped render + derived
+    completion rollup. `StudentActivity` gains `shelfId` + `shelfMembers`
+    (live, RLS-visible, non-skipped members each with the student's
+    derived done). `getShelfActivityState` (student-queries) resolves
+    them in both delivery paths; shelf `isDone` = ≥1 member AND all done.
+    Card shows "N of M notes done"; Open launches `ShelfViewer` — a
+    table-of-contents popup (each member -> the 11.13a read view, done
+    pip) + "Go to shelf" (-> `?shelf=<id>`, the 11.14 student shelf view).
+    Member visibility relies on the slice-11.1 `nclex_student_can_see_note`
+    RLS gate (student-level). New: `lib/curriculum/shelf-viewer.tsx`.
+    *Known edge (v1): a PROGRAMME_SCOPED member note scoped to programme
+    A surfaces in programme B's shelf for a student enrolled in BOTH
+    (RLS is student-level, not programme-level) — not a leak (they can
+    already see the note); shelf contents can differ per dual-enrolled
+    student. Same family as the 11.11 visibility follow-on.*
   - ⬜ **11.12c** "Your tutor updated this shelf" drift hint + polish.
 - ⬜ **11.17** Polish — *(Build order 7 — last; its used-in
   click-through depends on the integration slices above.)* used-in

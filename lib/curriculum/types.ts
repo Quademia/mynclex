@@ -384,6 +384,17 @@ export const ACTIVITY_TYPES: ActivityType[] = [
 //   CLOSED — past close_date ("Closed <date>")
 // Self-paced activities have no window — openState 'OPEN', all
 // three dates null.
+// Slice 11.12b — a shelf member as the student sees it in the shelf
+// popup: the note + the student's own derived done state. Already
+// filtered server-side to published + visible (RLS) + not-skipped before
+// it reaches the viewer.
+export type StudentShelfMember = {
+  note_id: string;
+  title: string;
+  subtitle: string | null;
+  isDone: boolean;
+};
+
 export type StudentActivity = ProgrammeActivity & {
   openState: 'LOCKED' | 'OPEN' | 'CLOSED';
   releaseDate: string | null; // YYYY-MM-DD; null for self-paced
@@ -406,6 +417,13 @@ export type StudentActivity = ProgrammeActivity & {
   // viewer can link "Open" through to the read view. Null for every
   // other activity type.
   libraryNoteId: string | null;
+  // Slice 11.12b — for SHELF activities: the shelf it points to (for the
+  // "Go to shelf" link) and its LIVE, student-visible, non-skipped member
+  // notes (each with the student's derived done state). Null for every
+  // other type. Completion is DERIVED — `isDone` above is the rollup
+  // (members.length > 0 AND every member done).
+  shelfId: string | null;
+  shelfMembers: StudentShelfMember[] | null;
 };
 
 export type StudentBodyEntry =

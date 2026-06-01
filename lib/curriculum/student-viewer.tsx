@@ -313,6 +313,16 @@ function ActivityCard({
         </p>
       )}
 
+      {/* Slice 11.12b — shelf progress meta ("N of M notes done"). The
+          shelf rolls up to DONE (the pill above) once all are read. */}
+      {activity.type === 'SHELF' && activity.shelfMembers && (
+        <p className="student-activity-shelf-meta">
+          {activity.shelfMembers.length === 0
+            ? 'No notes available yet'
+            : `${activity.shelfMembers.filter((m) => m.isDone).length} of ${activity.shelfMembers.length} note${activity.shelfMembers.length === 1 ? '' : 's'} done`}
+        </p>
+      )}
+
       {activity.openState === 'OPEN' && (
         <>
           {activity.dueDate && (

@@ -26,6 +26,7 @@ import { OnlineLiveSessionViewer } from './online-live-session-viewer';
 import { PdfViewer } from './pdf-viewer';
 import { TextViewer } from './text-viewer';
 import { QuizLaunchViewer } from './quiz-launch-viewer';
+import { ShelfViewer } from './shelf-viewer';
 import type {
   ActivityPayloadMock,
   ActivityPayloadPracticeQuiz,
@@ -85,6 +86,10 @@ export function ActivityAction({
     activity.type === 'EXTERNAL_LINK' ||
     activity.type === 'ONLINE_LIVE_SESSION' ||
     activity.type === 'PDF' ||
+    // Slice 11.12b — a shelf opens its table-of-contents popup, but only
+    // when it has at least one visible (published, non-skipped) note;
+    // an empty shelf shows a disabled Open.
+    (activity.type === 'SHELF' && (activity.shelfMembers?.length ?? 0) > 0) ||
     (isQuizActivity && quizId != null);
 
   return (
@@ -132,6 +137,13 @@ export function ActivityAction({
             onClose={() => setViewerOpen(false)}
           />
         )}
+      {viewerOpen && activity.type === 'SHELF' && (
+        <ShelfViewer
+          activity={activity}
+          libraryBasePath={libraryBasePath}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
     </div>
   );
 }
