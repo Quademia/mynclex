@@ -389,11 +389,12 @@ function ChecklistRow({
 }) {
   const activityId = row.activity.activity_id;
 
-  // Inclusion checkbox — checked = included. Unchecked spans two
-  // states: "unconfigured" (no row yet) and "excluded" (explicit row).
-  // The row's badge disambiguates; the publish gate is what actually
-  // keeps students out, so leaving something unconfigured is safe.
-  const [included, setIncluded] = useState(row.state === 'included');
+  // Inclusion decision — a three-state segment (Unconfigured / Included
+  // / Excluded). Optimistic state so a click reflects immediately;
+  // rolls back on a failed save. Unconfigured is never a *click target*
+  // (you decide Include or Exclude); it's just the pre-decision value.
+  const [optimisticState, setOptimisticState] =
+    useState<ChecklistActivityState>(row.state);
   const [includedPending, startIncludedTransition] = useTransition();
 
   // Per-row visible save status, set by any of the four controls
@@ -426,10 +427,10 @@ function ChecklistRow({
     []
   );
 
-  const includedDirty = included !== (row.state === 'included');
+  const stateDirty = optimisticState !== row.state;
   const rowIsPending =
     includedPending ||
-    includedDirty ||
+    stateDirty ||
     datePending.release ||
     datePending.due ||
     datePending.close;
@@ -444,16 +445,19 @@ function ChecklistRow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rowIsPending, activityId]);
 
-  function saveIncluded(next: boolean) {
+  function setDecision(next: 'included' | 'excluded') {
+    if (optimisticState === next) return; // no-op if already there
+    const prev = optimisticState;
+    setOptimisticState(next);
     setSaveStatus('saving');
     startIncludedTransition(async () => {
       const result = await setActivityIncludedAction(
         cohortId,
         activityId,
-        next
+        next === 'included'
       );
       if (!result.ok) {
-        setIncluded(!next); // rollback optimistic state
+        setOptimisticState(prev); // rollback
         setSaveStatus('failed');
         onError(result.error);
         return;
@@ -463,19 +467,8 @@ function ChecklistRow({
     });
   }
 
-  function handleToggleIncluded(next: boolean) {
-    setIncluded(next);
-    saveIncluded(next);
-  }
-
   const a = row.activity;
-  // Display state: optimistic include wins; otherwise reflect the
-  // stored state (unconfigured vs excluded).
-  const displayState: ChecklistActivityState = includedDirty
-    ? included
-      ? 'included'
-      : 'excluded'
-    : row.state;
+  const displayState = optimisticState;
 
   return (
     <div
@@ -566,15 +559,38 @@ function ChecklistRow({
             onPendingChange={onFieldPending}
           />
         </div>
-        <label className="cohort-checklist-row-toggle">
-          <input
-            type="checkbox"
-            checked={included}
-            onChange={(e) => handleToggleIncluded(e.target.checked)}
+        <div
+          className="cohort-checklist-decision"
+          role="group"
+          aria-label="Include in this cohort"
+        >
+          <button
+            type="button"
+            className={
+              'cohort-checklist-decision-btn is-include' +
+              (displayState === 'included' ? ' is-active' : '')
+            }
+            aria-pressed={displayState === 'included'}
             disabled={includedPending}
-          />
-          <span>Included</span>
-        </label>
+            onClick={() => setDecision('included')}
+            title="Include in this cohort"
+          >
+            ✓ Include
+          </button>
+          <button
+            type="button"
+            className={
+              'cohort-checklist-decision-btn is-exclude' +
+              (displayState === 'excluded' ? ' is-active' : '')
+            }
+            aria-pressed={displayState === 'excluded'}
+            disabled={includedPending}
+            onClick={() => setDecision('excluded')}
+            title="Exclude from this cohort"
+          >
+            ✗ Exclude
+          </button>
+        </div>
         <SaveStatusPill status={saveStatus} />
       </div>
     </div>

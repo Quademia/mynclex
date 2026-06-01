@@ -885,3 +885,41 @@
   color: var(--text-dim);
   font-style: italic;
 }
+
+/* Three-state Include / Exclude segment (replaces the include checkbox).
+   Neither active = unconfigured. */
+.cohort-checklist-decision {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.cohort-checklist-decision-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border: none;
+  background: var(--white);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.cohort-checklist-decision-btn + .cohort-checklist-decision-btn {
+  border-left: 1px solid var(--border);
+}
+.cohort-checklist-decision-btn:hover:not(:disabled) {
+  background: var(--bg);
+}
+.cohort-checklist-decision-btn.is-include.is-active {
+  background: var(--accent);
+  color: var(--white);
+}
+.cohort-checklist-decision-btn.is-exclude.is-active {
+  background: var(--text-muted);
+  color: var(--white);
+}
+.cohort-checklist-decision-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
