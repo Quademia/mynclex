@@ -45,16 +45,41 @@ export type EmbedPlayQuestion = {
   lastCorrect: boolean | null;
 };
 
+/** One past sitting (play) at this block — for the intro card's list. */
+export type EmbedSitting = {
+  playId: string;
+  /** Time of the latest answer in the sitting. */
+  at: string;
+  answered: number;
+  correct: number;
+};
+
 export type EmbedBlockData = {
   blockId: string;
   questions: EmbedPlayQuestion[];
   /**
-   * The student's most recent sitting (play) at this block, for the
-   * intro card's "last time: X of Y" line. `answered` = questions they
-   * answered in that play; `correct` = how many were right. Null if
-   * they've never played this block.
+   * The student's past sittings at this block, newest first. The intro
+   * card lists them (date + X/Y) and lets each be reviewed read-only.
+   * Empty if they've never played this block.
    */
-  lastPlay: { answered: number; correct: number } | null;
+  sittings: EmbedSitting[];
+};
+
+/** One question as the student answered it in a past sitting — read-only review. */
+export type EmbedReviewQuestion = {
+  itemId: string;
+  questionType: EmbedQuestionType;
+  stem: string;
+  instruction: string | null;
+  /** Frozen snapshot content + key — what they actually saw. */
+  content: unknown;
+  correct: unknown;
+  rationale: string | null;
+  rationaleImg: string | null;
+  marks: number;
+  studentAnswer: unknown;
+  isCorrect: boolean;
+  scoreAwarded: number;
 };
 
 export type EmbedSubmitResult =
@@ -111,7 +136,7 @@ export async function loadEmbedBlock(
   const block = findEmbedBlock((note as { body: unknown }).body, blockId);
   if (!block) return null;
   if (block.itemIds.length === 0)
-    return { blockId, questions: [], lastPlay: null };
+    return { blockId, questions: [], sittings: [] };
 
   // 3. Answerable content via service role (no student RLS on questions).
   //    Select content but NOT correct / rationale — the key stays server-side
@@ -148,6 +173,7 @@ export async function loadEmbedBlock(
   const rows = (history ?? []) as Array<{
     item_id: string;
     is_correct: boolean;
+    submitted_at: string;
     play_id: string;
   }>;
 
@@ -159,17 +185,29 @@ export async function loadEmbedBlock(
     else hist.set(h.item_id, { count: 1, lastCorrect: h.is_correct });
   }
 
-  // The most recent sitting = the play_id of the newest row; tally its
-  // answered + correct for the intro card's "last time" line.
-  let lastPlay: { answered: number; correct: number } | null = null;
-  if (rows.length > 0) {
-    const latestPlayId = rows[0].play_id;
-    const playRows = rows.filter((r) => r.play_id === latestPlayId);
-    lastPlay = {
-      answered: playRows.length,
-      correct: playRows.filter((r) => r.is_correct).length,
-    };
+  // Group rows into sittings by play_id. Rows are newest-first, so each
+  // play is first seen at its latest answer — giving sittings in
+  // newest-first order with `at` = the sitting's most recent answer.
+  const playMap = new Map<
+    string,
+    { at: string; answered: number; correct: number }
+  >();
+  for (const r of rows) {
+    const cur = playMap.get(r.play_id);
+    if (cur) {
+      cur.answered += 1;
+      if (r.is_correct) cur.correct += 1;
+    } else {
+      playMap.set(r.play_id, {
+        at: r.submitted_at,
+        answered: 1,
+        correct: r.is_correct ? 1 : 0,
+      });
+    }
   }
+  const sittings: EmbedSitting[] = Array.from(playMap.entries()).map(
+    ([playId, v]) => ({ playId, ...v }),
+  );
 
   // 5. Assemble in the block's authored order; drop deleted / non-embed.
   const questions: EmbedPlayQuestion[] = [];
@@ -189,7 +227,64 @@ export async function loadEmbedBlock(
     });
   }
 
-  return { blockId, questions, lastPlay };
+  return { blockId, questions, sittings };
+}
+
+/**
+ * The student's answers for one past sitting (play) — for read-only
+ * review. Reads the student's OWN history rows (RLS self_select), so the
+ * frozen snapshot (content + key + rationale + their answer) comes
+ * straight back; no service-role / live-question read needed. Ordered as
+ * they answered them.
+ */
+export async function loadEmbedPlayReview(
+  noteId: string,
+  blockId: string,
+  playId: string,
+): Promise<EmbedReviewQuestion[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('nclex_library_embed_answers')
+    .select(
+      'item_id, question_type, stem_snapshot, instruction_snapshot, content_snapshot_json, correct_answer_snapshot_json, rationale_snapshot, rationale_img_snapshot, marks_snapshot, answer_json, is_correct, score_awarded',
+    )
+    .eq('note_id', noteId)
+    .eq('block_id', blockId)
+    .eq('play_id', playId)
+    .order('submitted_at', { ascending: true });
+
+  if (error || !data) return [];
+
+  return data.map((row) => {
+    const r = row as {
+      item_id: string;
+      question_type: string;
+      stem_snapshot: string;
+      instruction_snapshot: string | null;
+      content_snapshot_json: unknown;
+      correct_answer_snapshot_json: unknown;
+      rationale_snapshot: string | null;
+      rationale_img_snapshot: string | null;
+      marks_snapshot: number;
+      answer_json: unknown;
+      is_correct: boolean;
+      score_awarded: number;
+    };
+    return {
+      itemId: r.item_id,
+      questionType: r.question_type as EmbedQuestionType,
+      stem: r.stem_snapshot,
+      instruction: r.instruction_snapshot,
+      content: r.content_snapshot_json,
+      correct: r.correct_answer_snapshot_json,
+      rationale: r.rationale_snapshot,
+      rationaleImg: r.rationale_img_snapshot,
+      marks: Number(r.marks_snapshot),
+      studentAnswer: r.answer_json,
+      isCorrect: r.is_correct,
+      scoreAwarded: r.score_awarded,
+    } satisfies EmbedReviewQuestion;
+  });
 }
 
 export async function submitEmbedAnswer(args: {

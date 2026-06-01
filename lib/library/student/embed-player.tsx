@@ -3,16 +3,17 @@
 // The inline embedded-questions player (slice 11.13b) — the read view's
 // "read → try → feedback → read on" practice break.
 //
-// Flow: an intro card ("Practice — N questions · Start") → a fresh pass
-// through the block (Question N-of-M → answer → Submit → inline feedback
-// → Next) → an end-of-set summary. Each pass is one "play" (a play_id
-// minted on Start, sent with every answer). On reopen it's always fresh,
-// with a "last time: X of Y" line on the intro card.
+// States:
+//   intro   — "Practice — N questions", a list of the student's past
+//             sittings (each reviewable), and Start / Start again.
+//   playing — a fresh pass: Question N-of-M → answer → Submit → feedback
+//             → Next. One pass = one play_id (minted on Start), sent with
+//             every answer.
+//   done    — end-of-set summary.
+//   review  — a past sitting replayed read-only from its frozen snapshots.
 //
 // The question rendering + green/red review styling are the EXISTING
-// bank-runner components (MCQ / TF / SATA / Select-N) + RationaleBlock;
-// this file is the player chrome + type dispatch + the "leaving mid-set"
-// guard hookup (reports mid-play to the read view via EmbedPlayGuard).
+// bank-runner components (MCQ / TF / SATA / Select-N) + RationaleBlock.
 
 'use client';
 
@@ -39,22 +40,26 @@ import type {
   SelectNContent,
   SelectNCorrect,
 } from '@/lib/bank/types';
+import { formatRelative } from '../format';
 import { useEmbedPlayGuard } from './embed-play-guard';
 import {
   loadEmbedBlock,
+  loadEmbedPlayReview,
   submitEmbedAnswer,
   type EmbedPlayQuestion,
+  type EmbedReviewQuestion,
+  type EmbedSitting,
   type EmbedSubmitResult,
 } from './embed-player-actions';
 
 type ReviewOk = Extract<EmbedSubmitResult, { ok: true }>;
-type LastPlay = { answered: number; correct: number } | null;
+type QuestionType = EmbedPlayQuestion['questionType'];
 
 type LoadState =
   | { status: 'loading' }
   | { status: 'empty' }
   | { status: 'error' }
-  | { status: 'ready'; questions: EmbedPlayQuestion[]; lastPlay: LastPlay };
+  | { status: 'ready'; questions: EmbedPlayQuestion[]; sittings: EmbedSitting[] };
 
 export function EmbedPlayer({
   noteId,
@@ -77,7 +82,7 @@ export function EmbedPlayer({
         setLoad({
           status: 'ready',
           questions: res.questions,
-          lastPlay: res.lastPlay,
+          sittings: res.sittings,
         });
       }
     });
@@ -103,12 +108,12 @@ export function EmbedPlayer({
       noteId={noteId}
       blockId={blockId}
       questions={load.questions}
-      lastPlay={load.lastPlay}
+      sittings={load.sittings}
     />
   );
 }
 
-function initialAnswer(type: EmbedPlayQuestion['questionType']): BankItemAnswer {
+function initialAnswer(type: QuestionType): BankItemAnswer {
   return type === 'MCQ' || type === 'TF' ? null : [];
 }
 
@@ -132,17 +137,19 @@ function EmbedPlayerRun({
   noteId,
   blockId,
   questions,
-  lastPlay,
+  sittings,
 }: {
   noteId: string;
   blockId: string;
   questions: EmbedPlayQuestion[];
-  lastPlay: LastPlay;
+  sittings: EmbedSitting[];
 }) {
   const guard = useEmbedPlayGuard();
   const total = questions.length;
 
-  const [phase, setPhase] = useState<'intro' | 'playing' | 'done'>('intro');
+  const [phase, setPhase] = useState<'intro' | 'playing' | 'done' | 'review'>(
+    'intro',
+  );
   const [playId, setPlayId] = useState<string | null>(null);
   const [idx, setIdx] = useState(0);
   const [answer, setAnswer] = useState<BankItemAnswer>(
@@ -153,10 +160,15 @@ function EmbedPlayerRun({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Review-of-past-sitting state.
+  const [reviewSitting, setReviewSitting] = useState<{
+    label: string;
+    questions: EmbedReviewQuestion[] | null; // null = loading
+  } | null>(null);
+
   const q = questions[idx];
 
   // Mid-play = a started, unfinished pass with at least one answer in.
-  // Reported up so the read view can warn before the student leaves.
   const midPlay = phase === 'playing' && results.length > 0;
   useEffect(() => {
     guard?.setBlockPlaying(blockId, midPlay);
@@ -165,7 +177,25 @@ function EmbedPlayerRun({
 
   function start() {
     setPlayId(crypto.randomUUID());
+    setIdx(0);
+    setAnswer(initialAnswer(questions[0].questionType));
+    setReview(null);
+    setResults([]);
+    setError(null);
     setPhase('playing');
+  }
+
+  function openReview(sitting: EmbedSitting, label: string) {
+    setReviewSitting({ label, questions: null });
+    setPhase('review');
+    loadEmbedPlayReview(noteId, blockId, sitting.playId).then((qs) => {
+      setReviewSitting((cur) => (cur ? { ...cur, questions: qs } : cur));
+    });
+  }
+
+  function closeReview() {
+    setReviewSitting(null);
+    setPhase('intro');
   }
 
   async function onSubmit() {
@@ -200,30 +230,67 @@ function EmbedPlayerRun({
     }
   }
 
-  // ── Intro / Start card ──
+  // ── Review of a past sitting ──
+  if (phase === 'review' && reviewSitting) {
+    return (
+      <ReviewPlay
+        label={reviewSitting.label}
+        questions={reviewSitting.questions}
+        onBack={closeReview}
+      />
+    );
+  }
+
+  // ── Intro / Start card (+ past sittings) ──
   if (phase === 'intro') {
     return (
       <div className="eq-player eq-player--intro">
-        <div className="eq-intro-main">
-          <span className="eq-player-tab">
-            <span aria-hidden="true">✦</span> Practice
-          </span>
-          <div className="eq-intro-title">
-            {total} question{total === 1 ? '' : 's'}
+        <div className="eq-intro-head">
+          <div className="eq-intro-main">
+            <span className="eq-player-tab">
+              <span aria-hidden="true">✦</span> Practice
+            </span>
+            <div className="eq-intro-title">
+              {total} question{total === 1 ? '' : 's'}
+            </div>
+            <div className="eq-intro-sub">
+              {sittings.length > 0
+                ? 'Practise again, or review a past attempt.'
+                : 'Test yourself on what you just read.'}
+            </div>
           </div>
-          <div className="eq-intro-sub">
-            {lastPlay
-              ? `Last time: ${lastPlay.correct} of ${lastPlay.answered} correct.`
-              : 'Test yourself on what you just read.'}
-          </div>
+          <button
+            type="button"
+            className="eq-player-btn eq-player-btn--submit"
+            onClick={start}
+          >
+            {sittings.length > 0 ? 'Start again' : 'Start'}
+          </button>
         </div>
-        <button
-          type="button"
-          className="eq-player-btn eq-player-btn--submit"
-          onClick={start}
-        >
-          {lastPlay ? 'Start again' : 'Start'}
-        </button>
+
+        {sittings.length > 0 && (
+          <ul className="eq-attempts">
+            {sittings.map((s, i) => (
+              <li key={s.playId} className="eq-attempt">
+                <span className="eq-attempt-label">
+                  Attempt {sittings.length - i}
+                </span>
+                <span className="eq-attempt-meta">
+                  {formatRelative(s.at)} · {s.correct}/{s.answered} correct
+                </span>
+                <button
+                  type="button"
+                  className="eq-attempt-review"
+                  onClick={() =>
+                    openReview(s, `Attempt ${sittings.length - i}`)
+                  }
+                >
+                  Review
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     );
   }
@@ -236,7 +303,7 @@ function EmbedPlayerRun({
         <span className="eq-player-done-ic" aria-hidden="true">
           ✓
         </span>
-        <div>
+        <div className="eq-player-done-main">
           <div className="eq-player-done-title">
             You got {correct} of {total} right.
           </div>
@@ -244,6 +311,13 @@ function EmbedPlayerRun({
             Your answers are saved. Reading continues below.
           </div>
         </div>
+        <button
+          type="button"
+          className="eq-attempt-review"
+          onClick={() => setPhase('intro')}
+        >
+          Done
+        </button>
       </div>
     );
   }
@@ -281,7 +355,13 @@ function EmbedPlayerRun({
         <div className="rn-stem">{q.stem}</div>
         {q.instruction && <p className="rn-instruction">{q.instruction}</p>}
 
-        <PerTypeRunner q={q} answer={answer} onChange={setAnswer} review={review} />
+        <PerTypeRunner
+          questionType={q.questionType}
+          content={q.content}
+          answer={answer}
+          onChange={setAnswer}
+          review={review}
+        />
 
         {review && (
           <RationaleBlock
@@ -320,87 +400,185 @@ function EmbedPlayerRun({
   );
 }
 
+// Read-only replay of one past sitting, paged question by question.
+function ReviewPlay({
+  label,
+  questions,
+  onBack,
+}: {
+  label: string;
+  questions: EmbedReviewQuestion[] | null;
+  onBack: () => void;
+}) {
+  const [i, setI] = useState(0);
+
+  if (questions === null) {
+    return <div className="eq-player eq-player--state">Loading attempt…</div>;
+  }
+  if (questions.length === 0) {
+    return (
+      <div className="eq-player">
+        <div className="eq-player-head">
+          <button type="button" className="eq-attempt-review" onClick={onBack}>
+            ← Back
+          </button>
+        </div>
+        <div className="eq-player-body">Nothing to review.</div>
+      </div>
+    );
+  }
+
+  const rq = questions[i];
+  const reviewObj: ReviewOk = {
+    ok: true,
+    isCorrect: rq.isCorrect,
+    scoreAwarded: rq.scoreAwarded,
+    marks: rq.marks,
+    correct: rq.correct,
+    rationale: rq.rationale,
+    rationaleImg: rq.rationaleImg,
+  };
+
+  return (
+    <div className="eq-player eq-player--review">
+      <div className="eq-player-head">
+        <button type="button" className="eq-attempt-review" onClick={onBack}>
+          ← Back
+        </button>
+        <span className="eq-player-tab eq-review-tab">
+          Reviewing {label} · Question {i + 1} of {questions.length}
+        </span>
+      </div>
+
+      <div className="eq-player-body">
+        <div className="rn-stem">{rq.stem}</div>
+        {rq.instruction && <p className="rn-instruction">{rq.instruction}</p>}
+
+        <PerTypeRunner
+          questionType={rq.questionType}
+          content={rq.content}
+          answer={rq.studentAnswer as BankItemAnswer}
+          onChange={() => {}}
+          review={reviewObj}
+        />
+
+        <RationaleBlock
+          isCorrect={rq.isCorrect}
+          scoreAwarded={rq.scoreAwarded}
+          marksMax={rq.marks}
+          rationale={rq.rationale}
+          rationaleImg={rq.rationaleImg}
+        />
+      </div>
+
+      <div className="eq-player-foot">
+        <button
+          type="button"
+          className="eq-player-btn eq-player-btn--next"
+          disabled={i === 0}
+          onClick={() => setI((n) => Math.max(0, n - 1))}
+        >
+          ← Prev
+        </button>
+        <span className="eq-player-foot-spacer" />
+        <button
+          type="button"
+          className="eq-player-btn eq-player-btn--next"
+          disabled={i + 1 >= questions.length}
+          onClick={() => setI((n) => Math.min(questions.length - 1, n + 1))}
+        >
+          Next →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Dispatch to the existing bank-runner component for this question's type,
-// in answering or review mode. Module-level (not nested in render).
+// in answering or review mode. Only needs the type + content (+ the
+// review payload in review mode), so it serves both live play and
+// past-sitting review.
 function PerTypeRunner({
-  q,
+  questionType,
+  content,
   answer,
   onChange,
   review,
 }: {
-  q: EmbedPlayQuestion;
+  questionType: QuestionType;
+  content: unknown;
   answer: BankItemAnswer;
   onChange: (next: BankItemAnswer) => void;
   review: ReviewOk | null;
 }) {
-  switch (q.questionType) {
+  switch (questionType) {
     case 'MCQ': {
-      const content = q.content as McqContent;
+      const c = content as McqContent;
       return review ? (
         <McqRunner
           mode="review"
-          content={content}
+          content={c}
           studentAnswer={answer as string | null}
           correct={review.correct as McqCorrect}
         />
       ) : (
         <McqRunner
           mode="answering"
-          content={content}
+          content={c}
           selected={answer as string | null}
           onChange={(id) => onChange(id)}
         />
       );
     }
     case 'TF': {
-      const content = q.content as TfContent;
+      const c = content as TfContent;
       return review ? (
         <TfRunner
           mode="review"
-          content={content}
+          content={c}
           studentAnswer={answer as string | null}
           correct={review.correct as TfCorrect}
         />
       ) : (
         <TfRunner
           mode="answering"
-          content={content}
+          content={c}
           selected={answer as string | null}
           onChange={(id) => onChange(id)}
         />
       );
     }
     case 'SATA': {
-      const content = q.content as SataContent;
+      const c = content as SataContent;
       return review ? (
         <SataRunner
           mode="review"
-          content={content}
+          content={c}
           studentAnswer={answer as string[]}
           correct={review.correct as SataCorrect}
         />
       ) : (
         <SataRunner
           mode="answering"
-          content={content}
+          content={c}
           selected={answer as string[]}
           onChange={(next) => onChange(next)}
         />
       );
     }
     case 'SELECT_N': {
-      const content = q.content as SelectNContent;
+      const c = content as SelectNContent;
       return review ? (
         <SelectNRunner
           mode="review"
-          content={content}
+          content={c}
           studentAnswer={answer as string[]}
           correct={review.correct as SelectNCorrect}
         />
       ) : (
         <SelectNRunner
           mode="answering"
-          content={content}
+          content={c}
           selected={answer as string[]}
           onChange={(next) => onChange(next)}
         />

@@ -6765,8 +6765,9 @@ a.lib-tag-inline:hover {
   font-size: 13px;
 }
 
-/* Intro / Start card — the calm "opt in to practise" state. */
-.eq-player--intro {
+/* Intro / Start card — the calm "opt in to practise" state, with the
+   student's past sittings listed below. */
+.eq-intro-head {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -6786,8 +6787,65 @@ a.lib-tag-inline:hover {
   color: var(--text-muted);
   margin-top: 2px;
 }
-.eq-player--intro .eq-player-btn {
+.eq-intro-head .eq-player-btn {
   flex-shrink: 0;
+}
+
+/* Past-sittings list. */
+.eq-attempts {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.eq-attempt {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+}
+.eq-attempt-label {
+  font-weight: 600;
+  color: var(--text);
+}
+.eq-attempt-meta {
+  flex: 1 1 auto;
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+.eq-attempt-review {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+.eq-attempt-review:hover {
+  text-decoration: underline;
+}
+.eq-attempt-review:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+/* End-of-set summary — make room for the "Done" button on the right. */
+.eq-player-done-main {
+  flex: 1 1 auto;
+}
+
+/* Review-of-past-sitting header. */
+.eq-review-tab {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 .eq-player-head {
