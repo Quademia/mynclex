@@ -841,3 +841,25 @@
   color: #991b1b;
   border-color: #fecaca;
 }
+
+/* Slice 9.3f follow-on — "new template activities" add banner. */
+.cohort-checklist-new-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  border: 1px solid var(--accent);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-light);
+}
+.cohort-checklist-new-banner-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.45;
+}
+.cohort-checklist-new-banner .prog-btn {
+  flex-shrink: 0;
+}

@@ -416,3 +416,101 @@ export async function setChecklistItemCloseDateAction(
   revalidatePath(`/tutor/cohort/${data.cohort_id}/curriculum`);
   return { ok: true };
 }
+
+// =====================================================================
+// addNewTemplateActivitiesToCohortAction — the deferred 9.3f affordance
+// =====================================================================
+//
+// A cohort is a snapshot of the template at creation time (the seed
+// trigger runs once, AFTER INSERT ON nclex_cohorts). Activities added to
+// the programme afterwards have no checklist row in existing cohorts, so
+// they don't appear in the cohort checklist or to students. This action
+// is the explicit "pull the new template activities into this cohort"
+// path the 9.3f migration deferred: it inserts a checklist row for every
+// template activity missing one, with the same default release-date
+// pacing the seed trigger uses (start_date + (unit_index - 1) x 7 days),
+// is_included = true, source = 'TEMPLATE'. The tutor then curates
+// inclusion / release dates per row as normal.
+//
+// RLS: the tutor self_insert policy on nclex_cohort_checklist_items
+// already permits this (ownership via cohort -> programme -> tutor).
+
+export type AddNewTemplateActivitiesResult =
+  | { ok: true; added: number }
+  | { ok: false; error: string };
+
+export async function addNewTemplateActivitiesToCohortAction(
+  cohortId: string
+): Promise<AddNewTemplateActivitiesResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data: cohort } = await supabase
+    .from('nclex_cohorts')
+    .select('cohort_id, programme_id, start_date')
+    .eq('cohort_id', cohortId)
+    .maybeSingle();
+  if (!cohort) return { ok: false, error: 'Cohort not found or not yours.' };
+
+  const { data: existing } = await supabase
+    .from('nclex_cohort_checklist_items')
+    .select('template_activity_id')
+    .eq('cohort_id', cohortId);
+  const have = new Set(
+    (existing ?? []).map(
+      (r) => (r as { template_activity_id: string }).template_activity_id
+    )
+  );
+
+  const { data: acts } = await supabase
+    .from('nclex_programme_activities')
+    .select(
+      'activity_id, nclex_programme_units!inner(programme_id, unit_index)'
+    )
+    .eq('nclex_programme_units.programme_id', cohort.programme_id);
+
+  type ActRow = {
+    activity_id: string;
+    nclex_programme_units:
+      | { unit_index: number }
+      | { unit_index: number }[]
+      | null;
+  };
+  const missing = ((acts ?? []) as ActRow[]).filter(
+    (a) => !have.has(a.activity_id)
+  );
+  if (missing.length === 0) return { ok: true, added: 0 };
+
+  const startMs = new Date(`${cohort.start_date}T00:00:00Z`).getTime();
+  const DAY_MS = 86_400_000;
+  const rows = missing.map((a) => {
+    const u = Array.isArray(a.nclex_programme_units)
+      ? a.nclex_programme_units[0]
+      : a.nclex_programme_units;
+    const unitIndex = u?.unit_index ?? 1;
+    const releaseDate = new Date(startMs + (unitIndex - 1) * 7 * DAY_MS)
+      .toISOString()
+      .slice(0, 10);
+    return {
+      cohort_id: cohortId,
+      template_activity_id: a.activity_id,
+      release_date: releaseDate,
+    };
+  });
+
+  const { error } = await supabase
+    .from('nclex_cohort_checklist_items')
+    .upsert(rows, {
+      onConflict: 'cohort_id,template_activity_id',
+      ignoreDuplicates: true,
+    });
+  if (error) {
+    return { ok: false, error: 'Could not add the new activities.' };
+  }
+
+  revalidatePath(`/tutor/cohort/${cohortId}/curriculum`);
+  return { ok: true, added: rows.length };
+}

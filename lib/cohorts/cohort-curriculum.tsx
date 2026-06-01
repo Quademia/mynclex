@@ -51,6 +51,7 @@ import {
   setChecklistItemReleaseDateAction,
   setChecklistItemDueDateAction,
   setChecklistItemCloseDateAction,
+  addNewTemplateActivitiesToCohortAction,
 } from './actions';
 import type {
   CohortChecklistActivityRow,
@@ -86,6 +87,25 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
   const [editActivity, setEditActivity] = useState<ProgrammeActivity | null>(
     null
   );
+
+  // "Add new template activities" affordance (deferred 9.3f). The cohort
+  // is a snapshot at creation; activities added to the programme after
+  // don't auto-appear. This pulls them in on demand.
+  const [addingNew, startAddNew] = useTransition();
+  const newCount = tree.newTemplateActivities.length;
+  function handleAddNewActivities() {
+    setError(null);
+    startAddNew(async () => {
+      const res = await addNewTemplateActivitiesToCohortAction(
+        tree.cohort.cohort_id
+      );
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
 
   // Pending tracking — Set of row IDs that are either dirty
   // (typed/clicked but not yet committed) or have a save in flight.
@@ -126,7 +146,10 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
   // state pointing the tutor back to the curriculum tab.
   const hasAnyActivity = tree.units.some((u) => u.body.length > 0);
 
-  if (!hasAnyActivity) {
+  // Dead-end empty state only when there's nothing in the checklist AND
+  // nothing new to pull in. If new template activities exist, fall
+  // through to the main render so the "add to cohort" banner shows.
+  if (!hasAnyActivity && newCount === 0) {
     return (
       <section className="cohort-checklist-empty">
         <h2 className="cohort-checklist-empty-title">
@@ -154,6 +177,28 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
             Curriculum tab — click any activity to edit it there.
           </p>
         </header>
+
+        {newCount > 0 && (
+          <div className="cohort-checklist-new-banner" role="status">
+            <div className="cohort-checklist-new-banner-text">
+              <strong>
+                {newCount} new {newCount === 1 ? 'activity has' : 'activities have'}
+              </strong>{' '}
+              been added to this programme since this cohort was created.
+              They&apos;re not in this cohort yet.
+            </div>
+            <button
+              type="button"
+              className="prog-btn prog-btn-primary"
+              onClick={handleAddNewActivities}
+              disabled={addingNew}
+            >
+              {addingNew
+                ? 'Adding…'
+                : `Add ${newCount === 1 ? 'it' : 'them'} to this cohort`}
+            </button>
+          </div>
+        )}
 
         {pendingCount > 0 && (
           <div

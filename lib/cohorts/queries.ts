@@ -11,6 +11,7 @@ import type {
   CohortChecklistBodyEntry,
   CohortChecklistTree,
   CohortListRow,
+  NewTemplateActivity,
 } from './types';
 import type {
   DeliveryMode,
@@ -207,9 +208,11 @@ export async function getCohortChecklist(
     : programmeRaw;
   if (!programme) return null;
 
-  // Wave 2 — units, blocks, and checklist rows joined to their
-  // template activities. Three parallel reads.
-  const [unitsResult, blocksResult, rowsResult] = await Promise.all([
+  // Wave 2 — units, blocks, checklist rows, AND the full template
+  // activity list (to diff against the checklist for "new since this
+  // cohort was created"). Four parallel reads.
+  const [unitsResult, blocksResult, rowsResult, allActivitiesResult] =
+    await Promise.all([
     supabase
       .from('nclex_programme_units')
       .select(
@@ -238,6 +241,13 @@ export async function getCohortChecklist(
          )`
       )
       .eq('cohort_id', cohortId),
+    supabase
+      .from('nclex_programme_activities')
+      .select(
+        `activity_id, unit_id, title, type,
+         nclex_programme_units!inner(programme_id)`
+      )
+      .eq('nclex_programme_units.programme_id', programme.programme_id),
   ]);
 
   const units = (unitsResult.data ?? []) as ProgrammeUnit[];
@@ -354,6 +364,30 @@ export async function getCohortChecklist(
     return { unit, body };
   });
 
+  // New-since-creation: template activities with no checklist row in
+  // this cohort. The cohort is a snapshot at creation (slice 9.3f); the
+  // tutor pulls these in explicitly via the affordance.
+  const checklistActivityIds = new Set(
+    checklistRows.map((r) => r.activity.activity_id)
+  );
+  const unitIndexById = new Map(units.map((u) => [u.unit_id, u.unit_index]));
+  const newTemplateActivities = (
+    (allActivitiesResult.data ?? []) as Array<{
+      activity_id: string;
+      unit_id: string;
+      title: string;
+      type: NewTemplateActivity['type'];
+    }>
+  )
+    .filter((a) => !checklistActivityIds.has(a.activity_id))
+    .map((a) => ({
+      activity_id: a.activity_id,
+      title: a.title,
+      type: a.type,
+      unit_index: unitIndexById.get(a.unit_id) ?? 0,
+    }))
+    .sort((x, y) => x.unit_index - y.unit_index);
+
   return {
     cohort: {
       cohort_id: cohortRow.cohort_id,
@@ -369,5 +403,6 @@ export async function getCohortChecklist(
       delivery_mode: programme.delivery_mode,
     },
     units: unitTrees,
+    newTemplateActivities,
   };
 }

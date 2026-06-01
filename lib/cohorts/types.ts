@@ -123,6 +123,18 @@ export type CohortChecklistUnit = {
   body: CohortChecklistBodyEntry[];
 };
 
+// A template activity that exists in the programme but has NO
+// checklist row in this cohort yet — i.e. added after the cohort was
+// created. The cohort is a snapshot at creation (slice 9.3f), so these
+// don't auto-appear; the tutor pulls them in via the "add new template
+// activities" affordance. (Deferred 9.3f affordance, built 2026-06-01.)
+export type NewTemplateActivity = {
+  activity_id: string;
+  title: string;
+  type: ProgrammeActivity['type'];
+  unit_index: number;
+};
+
 // Top-level projection returned by getCohortChecklist(). Includes
 // the cohort identity + programme status fields needed to render
 // the per-row "Visible to students" derivation.
@@ -141,4 +153,8 @@ export type CohortChecklistTree = {
     delivery_mode: 'TUTOR_LED' | 'SELF_PACED';
   };
   units: CohortChecklistUnit[];
+  // Template activities added since this cohort was created (no
+  // checklist row yet). Empty when the cohort is in sync. Drives the
+  // "N new activities — add to this cohort" affordance.
+  newTemplateActivities: NewTemplateActivity[];
 };
