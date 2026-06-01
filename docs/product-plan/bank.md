@@ -555,11 +555,15 @@ Full mockups deferred to when each feature is built.
   this is the next topic.
 - **Student enrolment flow** (still open) — independent of the bank,
   but the bank pricing (30/90/180-day packs) connects to enrolment.
-- **Tutor library** (parked feature) — sibling concept to the bank;
-  reusable teaching notes that can embed bank items inline as
-  `embedded_question` blocks (a new `nclex_attempts.source =
-  'LIBRARY_EMBED'` value keeps those answers out of student
-  analytics). See [tutor-library.md](tutor-library.md).
+- **Tutor library** (BUILT 2026) — sibling concept to the bank;
+  reusable teaching notes that embed the tutor's own bank questions
+  inline as `embedded_questions` blocks. Embed answers live in a
+  **dedicated `nclex_library_embed_answers` table** (append-only
+  attempt history, FK `item_id → nclex_tutor_questions`), **not** in
+  `nclex_attempts` — physical separation keeps them out of student
+  practice analytics (the earlier `nclex_attempts.source =
+  'LIBRARY_EMBED'` idea was rejected). See
+  [tutor-library.md](tutor-library.md).
 
 ---
 

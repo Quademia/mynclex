@@ -42,8 +42,9 @@ Cross-references into the main plan:
   [main.md](main.md).
 - **Activity types** — enumerated in Programme Structure
   (v1 = Text / PDF / External link / Practice quiz / Live session /
-  Mock; deferred to v2 = uploaded video files, written assignments,
-  Library Note).
+  Mock / **Library Note** / **Library Shelf** — the last two BUILT in
+  2026-06 as the 7th + 8th types, slices 11.11 / 11.12; deferred to v2
+  = uploaded video files, written assignments).
 - **Bank-based question selection** — [bank.md](bank.md).
 
 ---
@@ -656,8 +657,12 @@ will reuse with a `delivery_mode` prop or context.
   activity types, tutor actions).
 - [bank.md](bank.md) — question bank, source of the
   question-selection UI used by Mock and Practice quiz editors.
-- [tutor-library.md](tutor-library.md) — parked feature; will add
-  Library Note as the 7th activity type (and a 7th editor in the
-  table above) when queued for build.
+- [tutor-library.md](tutor-library.md) — BUILT. Adds **Library Note**
+  (7th type) + **Library Shelf** (8th type) as curriculum activities
+  ("Option C": a first-class `nclex_programme_activities` row linked to
+  a library attachment row by `activity_id`). These two don't use a
+  per-type editor in the standard activity modal — they have their own
+  attach modals (pick a published note / pick a shelf); shelf member
+  hide/unhide + "Make visible here" live in the shelf edit modal.
 - [mockups/curriculum-authoring-ux.html](mockups/curriculum-authoring-ux.html)
   — visual mockups from the 2026-04-20 session.

@@ -315,14 +315,22 @@ the editor screens.
   the tutor's private bank)
 - Live session (external video-call link; recording URL added after)
 - Mock assessment
+- **Library Note** — a single reusable note from the tutor's library,
+  attached to a unit (BUILT, slice 11.11; see
+  [tutor-library.md](tutor-library.md))
+- **Library Shelf** — a whole curated pack of notes, attached as one
+  atomic activity (BUILT, slice 11.12)
+
+> Library Note + Shelf were originally listed as v2-deferred; they
+> shipped in 2026-06 as the 7th + 8th activity types ("Option C" — a
+> first-class `nclex_programme_activities` row linked to a library
+> attachment row).
 
 #### Activity types deferred to v2
 
 - Uploaded video files (storage and bandwidth cost)
 - Written assignments with tutor grading (requires submission and
   feedback workflow)
-- Library Note (the 7th activity type, sourced from the tutor's
-  reusable notes library — see [tutor-library.md](tutor-library.md))
 
 ### Cohort layer
 
@@ -949,9 +957,9 @@ added here as they emerge.
     editors
   - `payments-and-enrolment.md` — student payment flows, product
     catalogue, and enrolment (both self-study and tutored)
-  - `tutor-library.md` — tutor's reusable teaching notes (parked
-    feature; will add Library Note as the 7th activity type when
-    queued for build)
+  - `tutor-library.md` — tutor's reusable teaching notes (BUILT;
+    adds Library Note + Shelf as the 7th + 8th activity types, slices
+    11.11 / 11.12)
   - `mockups/` — visual mockups (HTML reference files)
   - (future) `payments.md`, `registration.md`, etc.
 - `mynclex/db/` — database schema, RLS, migrations (to be populated)
