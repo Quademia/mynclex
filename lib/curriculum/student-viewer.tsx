@@ -122,6 +122,13 @@ function UnitSection({
   unit: StudentCurriculumTree['units'][number];
   tree: StudentCurriculumTree;
 }) {
+  // Slice 11.11a — base path for the library read view a LIBRARY_NOTE
+  // activity links to. Cohort route when tutor-led, programme route
+  // otherwise — both have a `/library/note/[id]` read view.
+  const libraryBasePath = tree.cohort
+    ? `/student/cohort/${tree.cohort.cohort_id}/library`
+    : `/student/programme/${tree.programme.programme_id}/library`;
+
   return (
     <section className="student-unit">
       <header className="student-unit-head">
@@ -149,6 +156,7 @@ function UnitSection({
                 entry={entry}
                 upNextActivityId={tree.upNextActivityId}
                 hasAnyDone={tree.hasAnyDone}
+                libraryBasePath={libraryBasePath}
               />
             ) : (
               <ActivityCard
@@ -156,6 +164,7 @@ function UnitSection({
                 activity={entry.activity}
                 upNextActivityId={tree.upNextActivityId}
                 hasAnyDone={tree.hasAnyDone}
+                libraryBasePath={libraryBasePath}
               />
             )
           )}
@@ -169,6 +178,7 @@ function BlockCard({
   entry,
   upNextActivityId,
   hasAnyDone,
+  libraryBasePath,
 }: {
   entry: Extract<
     StudentCurriculumTree['units'][number]['body'][number],
@@ -176,6 +186,7 @@ function BlockCard({
   >;
   upNextActivityId: string | null;
   hasAnyDone: boolean;
+  libraryBasePath: string;
 }) {
   return (
     <article className="student-block">
@@ -197,6 +208,7 @@ function BlockCard({
               activity={a}
               upNextActivityId={upNextActivityId}
               hasAnyDone={hasAnyDone}
+              libraryBasePath={libraryBasePath}
             />
           ))}
         </div>
@@ -209,10 +221,12 @@ function ActivityCard({
   activity,
   upNextActivityId,
   hasAnyDone,
+  libraryBasePath,
 }: {
   activity: StudentActivity;
   upNextActivityId: string | null;
   hasAnyDone: boolean;
+  libraryBasePath: string;
 }) {
   const locked = activity.openState !== 'OPEN';
   const overdue =
@@ -313,7 +327,7 @@ function ActivityCard({
               {overdue ? ' · overdue' : ''}
             </p>
           )}
-          <ActivityAction activity={activity} />
+          <ActivityAction activity={activity} libraryBasePath={libraryBasePath} />
         </>
       )}
 
@@ -356,6 +370,8 @@ function activityTypeLabel(type: ProgrammeActivity['type']): string {
       return 'Mock';
     case 'PRACTICE_QUIZ':
       return 'Practice quiz';
+    case 'LIBRARY_NOTE':
+      return 'Library note';
   }
 }
 

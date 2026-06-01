@@ -39,6 +39,7 @@ export const ACTIVITY_TYPE_ICON: Record<ActivityType, string> = {
   ONLINE_LIVE_SESSION: '🎥',
   MOCK: '🎯',
   PRACTICE_QUIZ: '✏️',
+  LIBRARY_NOTE: '📔',
 };
 
 /**
@@ -274,6 +275,10 @@ export function activityEstimatedMinutes(
       );
     case 'MOCK':
     case 'PRACTICE_QUIZ':
+      return null;
+    case 'LIBRARY_NOTE':
+      // Reading-time is derived on the note itself (read view); the
+      // curriculum row doesn't carry an estimate.
       return null;
   }
 }

@@ -19,6 +19,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { activityEstimatedMinutes } from './format';
 import { ExternalLinkViewer } from './external-link-viewer';
 import { OnlineLiveSessionViewer } from './online-live-session-viewer';
@@ -31,9 +32,40 @@ import type {
   StudentActivity,
 } from './types';
 
-export function ActivityAction({ activity }: { activity: StudentActivity }) {
+export function ActivityAction({
+  activity,
+  libraryBasePath,
+}: {
+  activity: StudentActivity;
+  // Slice 11.11a — base path (programme or cohort) for the library read
+  // view a LIBRARY_NOTE activity links to. Only the curriculum viewer
+  // passes it; other callers (none yet) can omit it.
+  libraryBasePath?: string;
+}) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const estMinutes = activityEstimatedMinutes(activity);
+
+  // Library Note opens the read view on its own page (not a modal) —
+  // render an "Open" link instead of the dispatch button.
+  if (activity.type === 'LIBRARY_NOTE') {
+    const href =
+      libraryBasePath && activity.libraryNoteId
+        ? `${libraryBasePath}/note/${activity.libraryNoteId}`
+        : null;
+    return (
+      <div className="student-activity-action">
+        {href ? (
+          <Link className="student-activity-launch" href={href}>
+            Open
+          </Link>
+        ) : (
+          <button type="button" className="student-activity-launch" disabled>
+            Open
+          </button>
+        )}
+      </div>
+    );
+  }
 
   // Which types have a wired-up viewer. Grows one entry per
   // per-type viewer slice. Mock + Practice quiz become launchable

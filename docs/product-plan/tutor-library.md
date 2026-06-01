@@ -1121,13 +1121,15 @@ note); the timestamp toggles set/clear when the student taps the
 button). Same table holds bookmarks + reading position — one source
 of truth for note-level student state.
 
-**Write-through to the progress engine** when the read came from a
-Library Note activity — the same action that stamps
-`marked_done_at` also calls the existing
-`markActivityDone` / `unmarkActivityDone` server actions so the
-curriculum tick fires. Consistent with the other passive-content
-activity types (Text, PDF, External link, Live session) — no new
-completion concept introduced.
+**Completion is DERIVED, not written through** *(SUPERSEDES the older
+"write-through to `markActivityDone`" wording — see the Option-C
+recording-model note under slice 11.11).* A Library-Note activity does
+NOT get a `nclex_student_activity_progress` row. `marked_done_at` in
+`nclex_library_note_state` is the single source of truth; the
+unit-progress query special-cases the `LIBRARY_NOTE` / `SHELF` activity
+types and reads the derived done from there. This avoids a fan-out
+write when one note is attached to several units (one done-mark, every
+unit reflects it automatically) and keeps note completion in one place.
 
 **Shelf-activity completion derives** from this table — a shelf
 attached to a unit is complete for the student when every member
@@ -2271,10 +2273,73 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   practised = distinct questions, accuracy = % across all attempts;
   per-row resume section text shown only for the Continue note (avoids N
   body fetches).
-- ⬜ **11.11** Programme integration — Library Note path. *(Build order
-  5 — ⏸ DEFERRED to last: conjunction to the library, not part of
-  it.)* Library Note as the 7th activity type, attach modal (single
+- 🔨 **11.11** Programme integration — Library Note path. *(Build order
+  5.)* Library Note as the 7th activity type, attach modal (single
   note), detach, used-in count.
+  - ✅ **11.11a (BUILT 2026-06-01)** Authoring + student render.
+    `LIBRARY_NOTE` activity type (migration `20260625120000` + the
+    `activity_id` link column on the attachment); picker tile; attach
+    modal (search published notes + caption + Live/Draft toggle, on both
+    create AND edit per the standard activity pattern); edit modal
+    (caption / publish / Open-in-library / Detach); detach reuses
+    `deleteActivityAction` (attachment cascades). Student curriculum
+    renders the note row with an "Open" link to the read view (programme
+    + cohort base paths). `used_in_count` + shelf delete-guard keep
+    working untouched (the point of Option C). New:
+    `lib/curriculum/library-note-actions.ts`,
+    `library-note-attach-modal.tsx`.
+  - ✅ **11.11b (BUILT 2026-06-01)** Progress fold-in. Library-note
+    completion is DERIVED from `nclex_library_note_state.marked_done_at`
+    (NOT the progress engine) and folded into the unit progress
+    counts via `getLibraryNoteActivityState` in `student-queries.ts`.
+  - ⬜ **11.11c** Tutor embed-analytics dashboard (reads
+    `nclex_library_embed_answers`). Home TBD (per-note tab vs
+    library-wide page) — decide at build.
+  - Known v1 follow-on: attaching a PROGRAMME_SCOPED note whose scope
+    excludes the target programme can 404 the student read view
+    (visibility-widen-on-attach not built; the shelf "mixed-visibility
+    attach dialog" is the eventual home for this).
+
+  > **Recording model — DECIDED 2026-06-01 (Sam), "Option C".** A long
+  > reconstruction settled the open question of *where* an attached
+  > Library Note / Shelf is recorded. The conclusion:
+  >
+  > **The note/shelf IS a first-class activity — it gets a row in
+  > `nclex_programme_activities` (new types `LIBRARY_NOTE` / `SHELF`) —
+  > AND keeps its `nclex_tutor_library_note_attachments` row, the two
+  > linked by a new `activity_id` column on the attachment.** Division of
+  > labour: the **activity row** carries identity + ordering (`ordinal`) +
+  > publish + cohort release windows + picker/reorder/detach chrome (all
+  > the activity-system machinery, keyed to `activity_id`, reused for
+  > free); the **attachment row** carries the library-specific detail
+  > (`note_id` XOR `shelf_id`, `skipped_note_ids`, the `ON DELETE
+  > RESTRICT` delete-protection FK). Attach = create both in one
+  > transaction; detach = delete the activity row, attachment cascades.
+  >
+  > **Why C over the alternatives.** The "atomic / no fan-out" decision
+  > only ruled out *N activity rows per shelf* — never "no activity row at
+  > all"; so a single activity row is allowed and desirable (the activity
+  > system has deep `activity_id`-keyed machinery — publish, cohort
+  > windows, ordering, up-next — that a parallel-only table would have to
+  > re-grow). Rejected **Option A** (attachments-only): forces every
+  > activity-machinery system to learn a second table and the attachments
+  > table has no publish/window columns. Rejected **Option B** (drop the
+  > attachments table, pointer in the activity payload): cleanest end
+  > state and matches the `pdf_asset_id`/`quiz_id` payload pattern, BUT
+  > would force re-engineering the existing FK-based "used in N" count
+  > (→ RPC) and the shelf delete-guard (→ action layer). C keeps both
+  > working untouched, at the cost of one extra (lock-stepped) row.
+  >
+  > **Completion stays DERIVED** (no change): a Library-Note / Shelf
+  > activity does **NOT** get a `nclex_student_activity_progress` row.
+  > "Done" lives once in `nclex_library_note_state.marked_done_at`; the
+  > unit-progress query special-cases these two activity types and reads
+  > the derived done (note = its own `marked_done_at`; shelf = rollup of
+  > member notes minus `skipped_note_ids`). This honours "one source of
+  > truth for note completion" and correctly handles one-note-attached-to-
+  > many-units (one done-mark → every unit reflects it, no fan-out write).
+  > The older "write-through to `markActivityDone`" line below is
+  > **superseded** by this.
 - ⬜ **11.12** Programme integration — Shelf path (atomic activity).
   *(Build order 6 — ⏸ DEFERRED to last: conjunction to the library.)*
   Shelf as the 8th activity type, shelf-picker modal,

@@ -26,6 +26,7 @@ const TILE_ORDER: ActivityType[] = [
   'ONLINE_LIVE_SESSION',
   'MOCK',
   'PRACTICE_QUIZ',
+  'LIBRARY_NOTE',
 ];
 
 // Icon is sourced from ACTIVITY_TYPE_ICON (shared) — only the
@@ -37,6 +38,7 @@ const TILE_COPY: Record<ActivityType, { label: string; sub: string }> = {
   ONLINE_LIVE_SESSION: { label: 'Online live session', sub: 'Tutorial / Q&A'    },
   MOCK:                { label: 'Mock assessment',     sub: 'Timed exam-style'  },
   PRACTICE_QUIZ:       { label: 'Practice quiz',       sub: 'Bank-drawn quiz'   },
+  LIBRARY_NOTE:        { label: 'Library note',        sub: 'Reusable note'     },
 };
 
 // All six types enabled as of 9.3d-d. MOCK + PRACTICE_QUIZ ship
@@ -50,6 +52,7 @@ const ENABLED_TYPES: ReadonlyArray<ActivityType> = [
   'ONLINE_LIVE_SESSION',
   'MOCK',
   'PRACTICE_QUIZ',
+  'LIBRARY_NOTE',
 ];
 
 interface ActivityPickerProps {

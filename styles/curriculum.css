@@ -997,3 +997,142 @@
   line-height: 1.5;
 }
 
+
+/* ════════════════════════════════════════════════════════════════════
+   SLICE 11.11a — Library-Note attach / edit modal
+   (rendered inside the shared .viewer-modal-* frame)
+   ════════════════════════════════════════════════════════════════════ */
+.lib-attach {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lib-attach-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--white);
+}
+.lib-attach-empty {
+  padding: 22px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 0;
+}
+.lib-attach-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+}
+.lib-attach-row:last-child {
+  border-bottom: none;
+}
+.lib-attach-row:hover {
+  background: var(--bg);
+}
+.lib-attach-row.is-selected {
+  background: var(--accent-light);
+}
+.lib-attach-row-ic {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.lib-attach-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.lib-attach-row-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lib-attach-row-meta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lib-attach-row-check {
+  color: var(--accent);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.lib-attach-caption {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.lib-attach-caption-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.lib-attach-optional {
+  font-weight: 400;
+  color: var(--text-dim);
+}
+.lib-attach-error {
+  color: var(--danger, #b91c1c);
+  font-size: 12.5px;
+  margin: 0;
+}
+.lib-attach-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.lib-attach-actions-split {
+  justify-content: space-between;
+}
+.lib-attach-actions-right {
+  display: flex;
+  gap: 10px;
+}
+.lib-attach-linked {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+.lib-attach-open {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.lib-attach-publish {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+.lib-attach-publish input {
+  margin-top: 2px;
+}
+.lib-attach-publish-sub {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-top: 2px;
+}

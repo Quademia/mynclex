@@ -48,7 +48,15 @@ export type ActivityType =
   | 'EXTERNAL_LINK'
   | 'ONLINE_LIVE_SESSION'
   | 'MOCK'
-  | 'PRACTICE_QUIZ';
+  | 'PRACTICE_QUIZ'
+  // Slice 11.11 — Library Note as a first-class activity ("Option C").
+  // The pointer (which note) lives in the linked
+  // nclex_tutor_library_note_attachments row, NOT the payload — so the
+  // payload is empty. The activity row carries identity / ordering /
+  // publish / windows; completion is DERIVED from
+  // nclex_library_note_state (no progress-engine row). SHELF (the 8th
+  // type) follows in slice 11.12.
+  | 'LIBRARY_NOTE';
 
 // PROVISIONAL payload shapes — refined when each editor ships.
 // The TEXT shape lands first in 9.3b; the rest follow in 9.3d.
@@ -95,13 +103,19 @@ export type ActivityPayloadOnlineLiveSession = {
 export type ActivityPayloadMock = { quiz_id: string | null };
 export type ActivityPayloadPracticeQuiz = { quiz_id: string | null };
 
+// Slice 11.11 — Library Note carries no payload data: the note it
+// points to lives in the linked attachment row (fetched by activity_id),
+// not here. Empty object keeps the discriminated union total.
+export type ActivityPayloadLibraryNote = Record<string, never>;
+
 export type ActivityPayload =
   | ActivityPayloadText
   | ActivityPayloadPdf
   | ActivityPayloadExternalLink
   | ActivityPayloadOnlineLiveSession
   | ActivityPayloadMock
-  | ActivityPayloadPracticeQuiz;
+  | ActivityPayloadPracticeQuiz
+  | ActivityPayloadLibraryNote;
 
 export type ProgrammeActivity = {
   activity_id: string;
@@ -326,6 +340,7 @@ export const ACTIVITY_TYPES: ActivityType[] = [
   'ONLINE_LIVE_SESSION',
   'MOCK',
   'PRACTICE_QUIZ',
+  'LIBRARY_NOTE',
 ];
 
 // =====================================================================
@@ -373,6 +388,11 @@ export type StudentActivity = ProgrammeActivity & {
   // types. Mutually exclusive with isDone (DONE means the latest
   // attempt was terminal; can't also be IN_PROGRESS).
   isInProgress: boolean;
+  // Slice 11.11a — for LIBRARY_NOTE activities, the id of the note this
+  // activity points to (resolved from the linked attachment row), so the
+  // viewer can link "Open" through to the read view. Null for every
+  // other activity type.
+  libraryNoteId: string | null;
 };
 
 export type StudentBodyEntry =

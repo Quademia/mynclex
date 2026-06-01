@@ -67,6 +67,7 @@ const TYPE_LABEL = {
   ONLINE_LIVE_SESSION: 'Online live session',
   MOCK: 'Mock',
   PRACTICE_QUIZ: 'Practice quiz',
+  LIBRARY_NOTE: 'Library note',
 } as const;
 
 // Save-status union per row. 'idle' is the default; transient

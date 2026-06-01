@@ -29,6 +29,7 @@ const TYPE_LABEL: Record<ActivityType, string> = {
   ONLINE_LIVE_SESSION: 'Online live session',
   MOCK: 'Mock',
   PRACTICE_QUIZ: 'Practice quiz',
+  LIBRARY_NOTE: 'Library note',
 };
 
 interface ActivityRowProps {

@@ -125,9 +125,15 @@ export async function getStudentSelfPacedCurriculum(
   // attempts in parallel (both scoped by RLS to auth.uid()'s own
   // rows). Slice 1 added the progress map; Slice 3 added the
   // IN_PROGRESS derivation.
-  const [progressMap, inProgressMap] = await Promise.all([
+  const [progressMap, inProgressMap, libraryState] = await Promise.all([
     getActivityProgressMap(filteredActivities.map((a) => a.activity_id)),
     getInProgressQuizAttempts(),
+    getLibraryNoteActivityState(
+      supabase,
+      filteredActivities
+        .filter((a) => a.type === 'LIBRARY_NOTE')
+        .map((a) => a.activity_id)
+    ),
   ]);
 
   const visibleActivities: StudentActivity[] = filteredActivities.map(
@@ -137,8 +143,16 @@ export async function getStudentSelfPacedCurriculum(
       releaseDate: null,
       dueDate: null,
       closeDate: null,
-      isDone: progressMap.has(activity.activity_id),
+      // LIBRARY_NOTE completion is DERIVED from the reading-state table
+      // (11.11b), never the progress engine; all other types read the
+      // progress map.
+      isDone:
+        activity.type === 'LIBRARY_NOTE'
+          ? libraryState.doneActivityIds.has(activity.activity_id)
+          : progressMap.has(activity.activity_id),
       isInProgress: isQuizActivityInProgress(activity, inProgressMap),
+      libraryNoteId:
+        libraryState.noteIdByActivity.get(activity.activity_id) ?? null,
     })
   );
 
@@ -250,7 +264,10 @@ export async function getStudentCohortCurriculum(
   // Two-pass: first build the visible-list shaped without progress
   // signals, then fetch progress + IN_PROGRESS for those ids in
   // parallel and attach.
-  type StagedActivity = Omit<StudentActivity, 'isDone' | 'isInProgress'>;
+  type StagedActivity = Omit<
+    StudentActivity,
+    'isDone' | 'isInProgress' | 'libraryNoteId'
+  >;
   const staged: StagedActivity[] = [];
   for (const r of rawRows) {
     const activity = Array.isArray(r.nclex_programme_activities)
@@ -290,15 +307,23 @@ export async function getStudentCohortCurriculum(
   // Progress engine — fetch progress + IN_PROGRESS map in parallel.
   // Same shape as self-paced; cohort mode reads the same progress
   // table (row attaches to template activity, not cohort).
-  const [progressMap, inProgressMap] = await Promise.all([
+  const [progressMap, inProgressMap, libraryState] = await Promise.all([
     getActivityProgressMap(staged.map((a) => a.activity_id)),
     getInProgressQuizAttempts(),
+    getLibraryNoteActivityState(
+      supabase,
+      staged.filter((a) => a.type === 'LIBRARY_NOTE').map((a) => a.activity_id)
+    ),
   ]);
 
   const visibleActivities: StudentActivity[] = staged.map((a) => ({
     ...a,
-    isDone: progressMap.has(a.activity_id),
+    isDone:
+      a.type === 'LIBRARY_NOTE'
+        ? libraryState.doneActivityIds.has(a.activity_id)
+        : progressMap.has(a.activity_id),
     isInProgress: isQuizActivityInProgress(a, inProgressMap),
+    libraryNoteId: libraryState.noteIdByActivity.get(a.activity_id) ?? null,
   }));
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
@@ -339,6 +364,61 @@ function stripUnitEmbed<T extends { nclex_programme_units?: unknown }>(
 ): Omit<T, 'nclex_programme_units'> {
   const { nclex_programme_units: _, ...rest } = row;
   return rest;
+}
+
+/**
+ * Slice 11.11a/b — for a set of LIBRARY_NOTE activity ids, resolve both:
+ *   • noteIdByActivity — activity_id → the note it points to (from the
+ *     linked attachment row), so the viewer can link the read view.
+ *   • doneActivityIds  — activity_ids whose note the student has marked
+ *     done (DERIVED from nclex_library_note_state.marked_done_at — these
+ *     activities never get a progress-engine row; "done" lives once on
+ *     the note's reading state). This is the 11.11b progress fold-in.
+ *
+ * Two RLS-scoped reads (attachments, then note_state). Empty input → no
+ * queries.
+ */
+async function getLibraryNoteActivityState(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  activityIds: string[]
+): Promise<{
+  noteIdByActivity: Map<string, string>;
+  doneActivityIds: Set<string>;
+}> {
+  const noteIdByActivity = new Map<string, string>();
+  const doneActivityIds = new Set<string>();
+  if (activityIds.length === 0) return { noteIdByActivity, doneActivityIds };
+
+  const { data: atts } = await supabase
+    .from('nclex_tutor_library_note_attachments')
+    .select('activity_id, note_id')
+    .in('activity_id', activityIds);
+  for (const r of (atts ?? []) as Array<{
+    activity_id: string;
+    note_id: string | null;
+  }>) {
+    if (r.note_id) noteIdByActivity.set(r.activity_id, r.note_id);
+  }
+
+  const noteIds = [...noteIdByActivity.values()];
+  if (noteIds.length === 0) return { noteIdByActivity, doneActivityIds };
+
+  const { data: states } = await supabase
+    .from('nclex_library_note_state')
+    .select('note_id, marked_done_at')
+    .in('note_id', noteIds);
+  const doneNotes = new Set<string>();
+  for (const s of (states ?? []) as Array<{
+    note_id: string;
+    marked_done_at: string | null;
+  }>) {
+    if (s.marked_done_at != null) doneNotes.add(s.note_id);
+  }
+  for (const [activityId, noteId] of noteIdByActivity) {
+    if (doneNotes.has(noteId)) doneActivityIds.add(activityId);
+  }
+
+  return { noteIdByActivity, doneActivityIds };
 }
 
 /**

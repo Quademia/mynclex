@@ -73,6 +73,7 @@ const TYPE_LABELS: Record<ActivityType, string> = {
   ONLINE_LIVE_SESSION: 'Online live session',
   MOCK: 'Mock assessment',
   PRACTICE_QUIZ: 'Practice quiz',
+  LIBRARY_NOTE: 'Library note',
 };
 
 // Discriminated body-state by activity type. The four editor-
