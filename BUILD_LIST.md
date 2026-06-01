@@ -8,40 +8,60 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **ON SESSION BRANCH — NOT yet merged (2026-06-01, branch
-> `claude/elated-wiles-d0e067`):** three things, all built + typecheck/
-> lint-clean, awaiting Sam's test + merge approval:
+> **MERGED to `main` (2026-06-01) — the whole programme-integration arc
+> for the library (11.11 + 11.12), plus the earlier 11.14c + cohort
+> three-state.** All built + typecheck/lint-clean + Sam-tested. `main`
+> is at the tip; **not yet released to `prod`.**
 >
-> 1. **11.14c — student library "Study Home."** Hero-led landing (CD
->    Variant A) replacing the flat All-notes dump: Continue-reading
->    hero, stat tiles (read / bookmarked / practised / accuracy),
->    Recent + Bookmarked lists, Browse. New scopes `home`(default) /
->    `recent` / `bookmarked`; Recent + Bookmarked sidebar views now
->    real. Visit-on-open stamp. No migration.
->    (`lib/library/student/{home-queries,study-home,study-home-icons}`.)
-> 2. **11.11a + 11.11b — Library Note as a curriculum activity (Option
->    C).** A Library Note attached to a unit is a first-class
->    `nclex_programme_activities` row (new `LIBRARY_NOTE` type) **plus**
->    its linked `nclex_tutor_library_note_attachments` row (joined by a
->    new `activity_id` column). Tutor: picker tile + attach modal
->    (search published notes + caption + Live/Draft on create AND edit)
->    + edit/detach. Student curriculum renders the note → read view.
->    Completion **derived** from `nclex_library_note_state` (11.11b
->    fold-in), no progress-engine row. Migration `20260625120000`.
->    **11.11c (embed-analytics dashboard) still ⬜.**
-> 3. **Cohort checklist → LIVE three-state model (supersedes the
->    snapshot).** Driven by Sam after the snapshot's sync gap surfaced
->    (a MOCK + the new library notes were invisible in existing
->    cohorts). Checklist now = live programme template; a row is only an
->    override created on first decision; each activity is Unconfigured /
->    Included / Excluded via a `✓ Include / ✗ Exclude` segment;
->    `(cohort_id, activity_id)` upserts; "N unconfigured · Include all"
->    prompt. Seed-on-creation trigger dropped (migration
->    `20260625130000`). Student side unchanged. See
->    `curriculum-authoring-ux.md` §11 build-update note.
+> - **11.12 — Shelf as a curriculum activity (a + b + c, the LAST library
+>   integration slice).** A shelf attached to a unit is a first-class
+>   `SHELF` activity + one attachment row (`shelf_id` set, `note_id`
+>   NULL), linked by `activity_id` — same atomic "Option C" model as the
+>   note. **11.12a** tutor authoring: uniform card + picker tile +
+>   shelf-picker attach modal (member preview + the "Option A"
+>   visibility warning) + edit modal (member-notes list with Hide/Unhide
+>   writing `skipped_note_ids` + "Make visible here" widening the note's
+>   own visibility) + caption/Live-Draft/Detach. **11.12b** student
+>   grouped render: `shelfMembers` resolved live (RLS-visible,
+>   non-skipped) with derived rollup completion; card "N of M done";
+>   Open → a table-of-contents popup (each member → 11.13a read view +
+>   done pip) + "Go to shelf" (→ `?shelf=` student view). **11.12c**
+>   "your tutor updated this shelf" drift hint: new
+>   `nclex_library_shelf_seen` per-(student, placement) seen-set diffed
+>   against the live set → amber "Updated" card chip + popup line,
+>   cleared on open. Migrations `20260626120000` (SHELF type) +
+>   `20260626130000` (shelf-seen table). New files:
+>   `lib/curriculum/{shelf-activity-actions.ts,shelf-attach-modal.tsx,shelf-viewer.tsx}`.
+>   **11.12 known v1 edge:** a PROGRAMME_SCOPED member note scoped to
+>   programme A surfaces in programme B's shelf for a student enrolled in
+>   BOTH (RLS visibility is student-level) — not a leak; same family as
+>   the 11.11 follow-on.
+> - **11.14c — student library "Study Home."** Hero-led landing
+>   (Continue-reading hero, stat tiles, Recent + Bookmarked lists,
+>   Browse). New scopes `home`(default)/`recent`/`bookmarked`; visit-on-
+>   open stamp. No migration.
+> - **11.11a + 11.11b — Library Note as a curriculum activity (Option
+>   C).** First-class `LIBRARY_NOTE` activity + linked attachment row
+>   (joined by `activity_id`). Tutor picker/attach/edit/detach; student
+>   curriculum renders the note → read view; completion **derived** from
+>   `nclex_library_note_state`. Migration `20260625120000`.
+>   **11.11c (tutor embed-analytics dashboard) still ⬜.**
+> - **Cohort checklist → LIVE three-state model.** Checklist = live
+>   programme template; a row is only an override created on first
+>   decision; each activity Unconfigured / Included / Excluded via a
+>   `✓ Include / ✗ Exclude` segment; `(cohort_id, activity_id)` upserts;
+>   seed-on-creation trigger dropped (migration `20260625130000`). See
+>   `curriculum-authoring-ux.md` §11.
 >
-> Prod migrations to ship for this branch at release: `20260625120000`
-> + `20260625130000`.
+> **Prod migrations to ship at next release (in order):**
+> `20260625120000` + `20260625130000` + `20260626120000` +
+> `20260626130000`.
+>
+> **Remaining in the library arc:** **11.11c** (tutor embed-analytics
+> dashboard — also lands the stubbed Mark-done → progress write-through)
+> and **11.17** (polish). The library is otherwise complete: authored,
+> read, practised, and fully integrated into programmes/cohorts as both
+> Note and Shelf activities.
 
 > **MERGED to `main` (2026-06-01):** **the whole student-reading side of
 > the library — 11.14a/b (student library front door) + 11.13a (note
