@@ -2224,18 +2224,25 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   Breadcrumb (Library / folder) + clickable shelf/pillar/tag chips back
   to the library. Embedded-questions block = placeholder. Progress-engine
   write-through stays stubbed until 11.11.
-- ⏭ **11.13b** Embedded-questions player + attempt history — *(NEXT.)*
-  Create `nclex_library_embed_answers` (the fused append-only history
-  table above) + add a stable `id` to every embed block (+ backfill
-  existing notes). Two entitlement-gated server actions: **load** (note
-  RLS + block lookup → answerable content, no key) and **submit**
-  (service-role read of the question → `scoreAttempt` → append a
-  snapshotted history row → return feedback). The inline **player**
-  replaces the placeholder, reusing `lib/practice/runner` MCQ/SATA/TF/
-  SELECT_N in answering→review + rationale; always-fresh-on-reopen with
-  an optional "last time: X/Y · try again". v1: no option-shuffle, no
-  cap on stored attempts. The tutor analytics dashboard that consumes
-  this history is a separate later slice.
+- ✅ **11.13b (MERGED 2026-06-01)** Embedded-questions player + attempt
+  history. Created `nclex_library_embed_answers` (the fused append-only
+  history table above; migration `20260624120000`) + **`play_id`**
+  sitting tag (`20260624130000`) + stable embed-block `id` (backfilled +
+  stamped on insert). Two entitlement-gated server actions: **load**
+  (note RLS + block lookup → answerable content, no key, + the student's
+  past sittings) and **submit** (service-role read of the question →
+  `scoreAttempt` → append a snapshotted history row → return feedback).
+  The inline **player** (reuses `lib/practice/runner` MCQ/SATA/TF/
+  SELECT_N + RationaleBlock): intro/Start card → fresh pass → end
+  summary; **always-fresh on reopen**; the intro card lists **past
+  sittings**, each replayable in a read-only **review** state from its
+  own snapshot (`loadEmbedPlayReview`, student-own rows); Start again =
+  new play. Leave-mid-set guard (beforeunload + the note's own links via
+  an `EmbedPlayGuard` context). **Design locked in discussion (supersedes
+  the older freeze-lock draft):** append-only history, re-practice
+  allowed, no fabricated rows for skipped questions, no
+  block-until-finished. v1: no option-shuffle, no attempt cap. The tutor
+  analytics dashboard that consumes this history is a later slice.
 - ✅ **11.14 a/b (MERGED 2026-05-31)** Student library — read-only
   mirror of the tutor lensed home, scoped to the programme's tutor
   (`lib/library/student/`). Five-lens sidebar (read-only adaptations,

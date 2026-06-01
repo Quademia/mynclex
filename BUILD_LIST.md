@@ -8,6 +8,54 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **MERGED to `main` (2026-06-01):** **the whole student-reading side of
+> the library — 11.14a/b (student library front door) + 11.13a (note
+> read view) + 11.13b (embedded-questions player).** The library is now
+> a place students *read and practise*, not just one tutors author.
+>
+> - **11.14 a/b — student library (front door).** Read-only mirror of
+>   the tutor lensed home, scoped to the programme's tutor, in
+>   `lib/library/student/`. Five-lens sidebar (read-only adaptations,
+>   hide-empty, collapse-to-rail via `useSyncExternalStore`); RLS does
+>   the visibility filtering (no migration). Views = All notes (live) +
+>   Recent / By unit / Bookmarked (placeholders pending feeders). Wired
+>   on both delivery routes — `/student/programme/[id]/library` (14a)
+>   **and** `/student/cohort/[id]/library` (14b); shell generalised
+>   `programmeId → basePath`; shared `scope.ts` parser. Nav entry added
+>   to both `STUDENT_PROGRAMME_DETAIL_NAV` + `STUDENT_COHORT_DETAIL_NAV`.
+> - **11.13a — note read view.** Full-page route (programme + cohort
+>   siblings) + Contents rail (scroll-spy + "section N of M", writes
+>   `last_heading_id`) + a CUSTOM per-block read renderer (NOT Tiptap —
+>   `read-inline`/`read-blocks`/`read-media-blocks`, reuses the editor's
+>   standalone `.lib-*` classes + a `.lib-read-prose` mirror; every
+>   formatting mark reproduced) + Mark-as-done + Bookmark
+>   (`nclex_library_note_state`, no migration) + enrolment-gated
+>   signed-URL actions for image/PDF. Breadcrumb (Library / folder) +
+>   clickable shelf/pillar/tag chips back to the library; named shelf
+>   chips (dot + title) replace bare colour-dots on tutor + student rows.
+> - **11.13b — embedded-questions player + attempt history.** The
+>   differentiator. New `nclex_library_embed_answers` (migration
+>   `20260624120000`) — an **append-only attempt-history log** fusing the
+>   answer fields from `nclex_attempt_answers` with the snapshot columns
+>   from `nclex_attempt_items` (inlined) + note_id/block_id; FK item_id →
+>   `nclex_tutor_questions`. **`play_id`** (migration `20260624130000`)
+>   tags each sitting. Block ids backfilled + stamped on insert. Secure
+>   load/submit actions (answerable content, no key; server grades via
+>   `scoreAttempt`, freezes a snapshot). Player: intro/Start card → fresh
+>   pass (reuses bank-runner MCQ/TF/SATA/SELECT_N + RationaleBlock) →
+>   end summary; **always-fresh on reopen**, with the intro card listing
+>   **past sittings** each replayable read-only from its snapshot;
+>   leave-mid-set guard (beforeunload + the note's own links).
+>   Model locked in discussion: append-only history (not freeze-lock),
+>   re-practice allowed, no fabricated rows for skipped Qs, no
+>   block-until-finished. Tutor analytics dashboard that reads this is a
+>   later slice.
+>
+> **Next per the re-sequenced build order: 11.11 → 11.12** (programme
+> integration — Library Note + Shelf as activity types) then **11.17**
+> (polish). Prod migrations to ship at next release for this arc:
+> `20260624120000` + `20260624130000`.
+>
 > **MERGED to `main` (2026-05-31):** **the whole Library 11.16 arc —
 > 11.16a (content search) + 11.16b (tags lens + manager) + 11.16c
 > (custom views + sidebar scroll-cap pass + folder/shelf pane
