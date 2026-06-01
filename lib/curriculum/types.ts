@@ -424,6 +424,11 @@ export type StudentActivity = ProgrammeActivity & {
   // (members.length > 0 AND every member done).
   shelfId: string | null;
   shelfMembers: StudentShelfMember[] | null;
+  // Slice 11.12c — set when the shelf's visible membership has CHANGED
+  // since the student last opened this placement (vs their seen-record in
+  // nclex_library_shelf_seen). null = no prior seen-row (first view) or
+  // unchanged. Drives the "Updated" card chip + the popup explainer line.
+  shelfUpdate: { added: number; removed: number } | null;
 };
 
 export type StudentBodyEntry =

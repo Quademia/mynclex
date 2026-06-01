@@ -253,6 +253,15 @@ function ActivityCard({
           {activityTypeLabel(activity.type)}
         </span>
         <h4 className="student-activity-title">{activity.title}</h4>
+        {/* Slice 11.12c — shelf drift chip. Shown when the shelf's
+            membership changed since the student last opened it; clears
+            when they open the popup (marks seen). Sits before the state
+            pill so the "Done/Up next" cascade still reads clearly. */}
+        {activity.type === 'SHELF' && activity.shelfUpdate && (
+          <span className="student-activity-shelf-updated" title="Your tutor changed this shelf since you last opened it">
+            Updated
+          </span>
+        )}
         {/* Pill cascade — see header comment for full priority order.
             Computed once into a local for readability. */}
         {(() => {

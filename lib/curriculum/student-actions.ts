@@ -91,3 +91,44 @@ export async function getStudentPdfActivityUrl(
     signed_url: url.url,
   };
 }
+
+// =====================================================================
+// Slice 11.12c — mark a shelf placement "seen"
+// =====================================================================
+//
+// Called when the student OPENS a shelf popup. Records the current
+// visible member set as their new "last seen" baseline, clearing the
+// "your tutor updated this shelf" drift hint until the membership changes
+// again. Self-only by RLS (nclex_library_shelf_seen.student_id =
+// auth.uid()); the note-ids come from the client's just-rendered visible
+// set — trusting them only affects the student's OWN hint accuracy, never
+// anyone else's data, so no server re-resolution is needed.
+
+export async function markShelfSeenAction(
+  activityId: string,
+  visibleNoteIds: string[]
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const cleanIds = Array.isArray(visibleNoteIds)
+    ? visibleNoteIds.filter((x): x is string => typeof x === 'string')
+    : [];
+
+  const { error } = await supabase
+    .from('nclex_library_shelf_seen')
+    .upsert(
+      {
+        student_id: user.id,
+        activity_id: activityId,
+        seen_note_ids: cleanIds,
+        seen_at: new Date().toISOString(),
+      },
+      { onConflict: 'student_id,activity_id' }
+    );
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}

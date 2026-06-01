@@ -164,6 +164,8 @@ export async function getStudentSelfPacedCurriculum(
       shelfId: shelfState.shelfIdByActivity.get(activity.activity_id) ?? null,
       shelfMembers:
         shelfState.membersByActivity.get(activity.activity_id) ?? null,
+      shelfUpdate:
+        shelfState.updateByActivity.get(activity.activity_id) ?? null,
     })
   );
 
@@ -277,7 +279,12 @@ export async function getStudentCohortCurriculum(
   // parallel and attach.
   type StagedActivity = Omit<
     StudentActivity,
-    'isDone' | 'isInProgress' | 'libraryNoteId' | 'shelfId' | 'shelfMembers'
+    | 'isDone'
+    | 'isInProgress'
+    | 'libraryNoteId'
+    | 'shelfId'
+    | 'shelfMembers'
+    | 'shelfUpdate'
   >;
   const staged: StagedActivity[] = [];
   for (const r of rawRows) {
@@ -343,6 +350,7 @@ export async function getStudentCohortCurriculum(
     libraryNoteId: libraryState.noteIdByActivity.get(a.activity_id) ?? null,
     shelfId: shelfState.shelfIdByActivity.get(a.activity_id) ?? null,
     shelfMembers: shelfState.membersByActivity.get(a.activity_id) ?? null,
+    shelfUpdate: shelfState.updateByActivity.get(a.activity_id) ?? null,
   }));
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
@@ -466,12 +474,14 @@ async function getShelfActivityState(
   shelfIdByActivity: Map<string, string>;
   membersByActivity: Map<string, StudentShelfMember[]>;
   doneActivityIds: Set<string>;
+  updateByActivity: Map<string, { added: number; removed: number }>;
 }> {
   const shelfIdByActivity = new Map<string, string>();
   const membersByActivity = new Map<string, StudentShelfMember[]>();
   const doneActivityIds = new Set<string>();
+  const updateByActivity = new Map<string, { added: number; removed: number }>();
   if (activityIds.length === 0) {
-    return { shelfIdByActivity, membersByActivity, doneActivityIds };
+    return { shelfIdByActivity, membersByActivity, doneActivityIds, updateByActivity };
   }
 
   // 1. The shelf attachments — shelf_id + this placement's skip-list.
@@ -493,7 +503,23 @@ async function getShelfActivityState(
     skippedByActivity.set(r.activity_id, new Set(normalizeSkipped(r.skipped_note_ids)));
   }
   if (shelfIds.length === 0) {
-    return { shelfIdByActivity, membersByActivity, doneActivityIds };
+    return { shelfIdByActivity, membersByActivity, doneActivityIds, updateByActivity };
+  }
+
+  // Slice 11.12c — the student's "last seen" visible-set per placement,
+  // for the drift hint. A row's absence means "never opened" (no hint).
+  const seenByActivity = new Map<string, Set<string>>();
+  const seenActivityIds = new Set<string>();
+  const { data: seenRows } = await supabase
+    .from('nclex_library_shelf_seen')
+    .select('activity_id, seen_note_ids')
+    .in('activity_id', [...shelfIdByActivity.keys()]);
+  for (const r of (seenRows ?? []) as Array<{
+    activity_id: string;
+    seen_note_ids: unknown;
+  }>) {
+    seenByActivity.set(r.activity_id, new Set(normalizeSkipped(r.seen_note_ids)));
+    seenActivityIds.add(r.activity_id);
   }
 
   // 2. Member notes per shelf (RLS drops notes the student can't see).
@@ -554,9 +580,23 @@ async function getShelfActivityState(
     if (list.length > 0 && list.every((m) => m.isDone)) {
       doneActivityIds.add(activityId);
     }
+
+    // Drift hint — only when the student has opened this placement before
+    // (a seen-row exists). added = current\seen, removed = seen\current.
+    if (seenActivityIds.has(activityId)) {
+      const seen = seenByActivity.get(activityId) ?? new Set<string>();
+      const currentIds = new Set(visible.map((n) => n.note_id));
+      let added = 0;
+      for (const id of currentIds) if (!seen.has(id)) added++;
+      let removed = 0;
+      for (const id of seen) if (!currentIds.has(id)) removed++;
+      if (added > 0 || removed > 0) {
+        updateByActivity.set(activityId, { added, removed });
+      }
+    }
   }
 
-  return { shelfIdByActivity, membersByActivity, doneActivityIds };
+  return { shelfIdByActivity, membersByActivity, doneActivityIds, updateByActivity };
 }
 
 // skipped_note_ids is JSONB; normalise (parsed array or JSON string) to

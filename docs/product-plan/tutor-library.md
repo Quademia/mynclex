@@ -2400,7 +2400,21 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
     (RLS is student-level, not programme-level) — not a leak (they can
     already see the note); shelf contents can differ per dual-enrolled
     student. Same family as the 11.11 visibility follow-on.*
-  - ⬜ **11.12c** "Your tutor updated this shelf" drift hint + polish.
+  - ✅ **11.12c (BUILT 2026-06-01)** "Your tutor updated this shelf"
+    drift hint. Since shelf membership is live, a tutor add/remove after
+    a student has worked the shelf flips it from done → incomplete; this
+    explains it. New `nclex_library_shelf_seen` (migration
+    `20260626130000`) — per-(student, PLACEMENT) seen-set, keyed on
+    `activity_id` not `shelf_id` (placements differ by skip-list);
+    student-owned, self-only RLS (mirrors `nclex_library_note_state`).
+    `getShelfActivityState` diffs the current visible set against the
+    stored seen-set → `shelfUpdate {added, removed}` (null when no prior
+    seen-row or unchanged). Surfaces as an amber **"Updated"** card chip
+    + a popup explainer line ("Your tutor added/removed N notes since you
+    last opened this shelf"). Opening the popup calls `markShelfSeenAction`
+    (upsert current visible set) then refreshes → chip clears; the popup
+    line is captured to local state so it doesn't flicker mid-read. The
+    whole **11.12 arc is now built** (a + b + c).
 - ⬜ **11.17** Polish — *(Build order 7 — last; its used-in
   click-through depends on the integration slices above.)* used-in
   click-through, save dialogs, all the smaller affordances.
