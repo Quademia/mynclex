@@ -13,6 +13,7 @@
 
 import { notFound } from 'next/navigation';
 import { getStudentLibrarySnapshotForCohort } from '@/lib/library/student/queries';
+import { getStudentLibraryHomeData } from '@/lib/library/student/home-queries';
 import { StudentLibraryShell } from '@/lib/library/student/student-library-shell';
 import { parseStudentLibraryScope } from '@/lib/library/student/scope';
 
@@ -39,11 +40,19 @@ export default async function StudentCohortLibraryPage({
   const snapshot = await getStudentLibrarySnapshotForCohort(cohort_id);
   if (!snapshot) notFound();
 
+  const scope = parseStudentLibraryScope(sp);
+  const needsHome =
+    scope.kind === 'home' ||
+    scope.kind === 'recent' ||
+    scope.kind === 'bookmarked';
+  const home = needsHome ? await getStudentLibraryHomeData(snapshot) : null;
+
   return (
     <StudentLibraryShell
       snapshot={snapshot}
       basePath={`/student/cohort/${cohort_id}/library`}
-      scope={parseStudentLibraryScope(sp)}
+      scope={scope}
+      home={home}
     />
   );
 }

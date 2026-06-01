@@ -2254,6 +2254,23 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
   sibling** `/student/cohort/[cohort_id]/library/` (14b); shell
   generalised `programmeId → basePath`. Sidebar entry added to
   `STUDENT_PROGRAMME_DETAIL_NAV` + `STUDENT_COHORT_DETAIL_NAV`.
+- ✅ **11.14c (BUILT 2026-06-01)** Student library "Study Home" — the
+  default landing (replaces the flat All-notes dump). Variant A
+  (hero-led) from the Claude Design handoff (`library-study-home/`), on
+  app tokens, read-only: Continue-reading hero (body-derived "section N
+  of M" + generated-initials placeholder thumbnail), 4 stat tiles (Notes
+  read · Bookmarked · Questions practised · Accuracy %), Recently-opened
+  + Bookmarked lists, Browse. New-student / caught-up / no-bookmarks /
+  no-practice empty states. **No migration** — feeders already existed
+  (`nclex_library_note_state` columns from 11.1, `nclex_library_embed_answers`
+  from 11.13b). New scopes `home` (default) / `recent` / `bookmarked`;
+  **Recent + Bookmarked sidebar views now real** (2 of the 3 placeholders
+  retired; "By unit" still pends 11.11). Visit-on-open stamp added to the
+  read view so every opened note surfaces in Recent/Continue. New:
+  `home-queries.ts`, `study-home.tsx`, `study-home-icons.tsx`. Decisions:
+  practised = distinct questions, accuracy = % across all attempts;
+  per-row resume section text shown only for the Continue note (avoids N
+  body fetches).
 - ⬜ **11.11** Programme integration — Library Note path. *(Build order
   5 — ⏸ DEFERRED to last: conjunction to the library, not part of
   it.)* Library Note as the 7th activity type, attach modal (single

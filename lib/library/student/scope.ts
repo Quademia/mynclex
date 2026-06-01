@@ -5,14 +5,18 @@
 // client shell share one definition.
 //
 // Scope precedence (mirrors the tutor route): shelf > view > pillar >
-// tag > folder > all-notes (default). Only the All-notes view is wired;
-// Recent / By unit / Bookmarked are disabled placeholders, so any other
-// `?view=` value falls through to All notes.
+// tag > folder > home (default). Wired views: home / all-notes / recent /
+// bookmarked. "By unit" stays a disabled placeholder (needs slice 11.11),
+// so `?view=by-unit` (or any unknown view) falls through to the Study Home.
 
 import { NCLEX_PILLARS, type NclexPillar } from '../types';
 
 export type StudentLibraryScope =
+  // The Study Home (slice 11.14c) — the default landing.
+  | { kind: 'home' }
   | { kind: 'all-notes' }
+  | { kind: 'recent' }
+  | { kind: 'bookmarked' }
   | { kind: 'folder'; id: string }
   | { kind: 'all-folders' }
   | { kind: 'shelf'; id: string }
@@ -47,9 +51,12 @@ export function parseStudentLibraryScope(params: {
       : { kind: 'shelf', id: shelf };
   }
   if (view != null) {
-    // Only 'all-notes' is wired; everything else (Recent / By unit /
-    // Bookmarked) falls through to the All notes list.
-    return { kind: 'all-notes' };
+    // Wired views: all-notes / recent / bookmarked. "by-unit" (and any
+    // unknown value) falls through to the Study Home.
+    if (view === 'all-notes') return { kind: 'all-notes' };
+    if (view === 'recent') return { kind: 'recent' };
+    if (view === 'bookmarked') return { kind: 'bookmarked' };
+    return { kind: 'home' };
   }
   if (pillar != null) {
     const decoded = decodeURIComponent(pillar);
@@ -66,5 +73,5 @@ export function parseStudentLibraryScope(params: {
       ? { kind: 'all-folders' }
       : { kind: 'folder', id: folder };
   }
-  return { kind: 'all-notes' };
+  return { kind: 'home' };
 }

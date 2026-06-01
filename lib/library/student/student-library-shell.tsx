@@ -35,7 +35,9 @@ import { useMemo, useState, useSyncExternalStore } from 'react';
 import { NCLEX_PILLARS, type NclexPillar } from '../types';
 import { pillarShortName } from '../format';
 import { StudentNoteRow } from './student-note-row';
+import { StudentStudyHome } from './study-home';
 import type { StudentLibraryScope } from './scope';
+import type { StudentLibraryHome } from './home-queries';
 import type {
   StudentLibrarySnapshot,
   StudentLibraryFolder,
@@ -47,6 +49,12 @@ interface StudentLibraryShellProps {
   /** Route base for this library, e.g. `/student/programme/<id>/library`. */
   basePath: string;
   scope: StudentLibraryScope;
+  /**
+   * Study-home payload — present only for the home / recent / bookmarked
+   * scopes (the route fetches it on demand). Drives the Study Home pane,
+   * the Recent / Bookmarked note lists, and their sidebar counts.
+   */
+  home: StudentLibraryHome | null;
 }
 
 const LS_RAILED = 'mynclex.studentlibrary.railed';
@@ -110,12 +118,25 @@ export function StudentLibraryShell({
   snapshot,
   basePath,
   scope,
+  home,
 }: StudentLibraryShellProps) {
   const { folders, shelves, notes } = snapshot;
 
   // Collapse-to-rail (slice 11.14b) — persisted preference shared across
   // mounts + tabs. Default expanded on the server (no hydration mismatch).
   const [railed, toggleRailed] = useRailed();
+
+  // Recent / Bookmarked counts for the Views lens — derivable only when
+  // the study-home payload is loaded (home / recent / bookmarked scopes).
+  // Off those scopes the entries render as plain links without a count.
+  const recentCount = home
+    ? Object.values(home.stateByNote).filter((s) => s.lastVisitedAt != null)
+        .length
+    : undefined;
+  const bookmarkCount = home
+    ? Object.values(home.stateByNote).filter((s) => s.bookmarkedAt != null)
+        .length
+    : undefined;
 
   // ── Derived counts (drive the sidebar + hide-empty) ───────────────
   const folderCount = useMemo(() => {
@@ -174,13 +195,27 @@ export function StudentLibraryShell({
   return (
     <div className="lib-page">
       <header className="lib-page-head">
-        <div>
-          <h1 className="lib-page-title">Library</h1>
-          <p className="lib-page-subtitle">
-            Teaching notes your tutor has shared for this programme — read,
-            practise the embedded questions, and revisit any time.
-          </p>
-        </div>
+        {scope.kind === 'home' && home ? (
+          <div>
+            <h1 className="lib-page-title">
+              {home.studentForename
+                ? `Welcome back, ${home.studentForename}`
+                : 'Library'}
+            </h1>
+            <p className="lib-page-subtitle">
+              {home.tutorName ? `Notes by ${home.tutorName} · ` : ''}
+              {notes.length} note{notes.length === 1 ? '' : 's'} shared with you.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <h1 className="lib-page-title">Library</h1>
+            <p className="lib-page-subtitle">
+              Teaching notes your tutor has shared for this programme — read,
+              practise the embedded questions, and revisit any time.
+            </p>
+          </div>
+        )}
       </header>
 
       <div className={`lib-body${railed ? ' is-railed' : ''}`}>
@@ -198,9 +233,20 @@ export function StudentLibraryShell({
           </button>
 
           {railed ? (
-            // Railed: one glyph per lens. Views / Folders / Shelves link to
-            // their default landing; Pillars / Tags expand the rail.
-            (['views', 'folders', 'shelves', 'pillars', 'tags'] as LensKey[])
+            // Railed: a Home glyph, then one glyph per lens. Views / Folders
+            // / Shelves link to their default landing; Pillars / Tags expand.
+            <>
+            <div className="lens-section">
+              <Link
+                href={basePath}
+                className={`lens-rail-icon${scope.kind === 'home' ? ' is-active' : ''}`}
+                title="Home"
+                aria-label="Home"
+              >
+                🏠
+              </Link>
+            </div>
+            {(['views', 'folders', 'shelves', 'pillars', 'tags'] as LensKey[])
               .filter(
                 (k) =>
                   k === 'views' ||
@@ -235,28 +281,38 @@ export function StudentLibraryShell({
                     )}
                   </div>
                 );
-              })
+              })}
+            </>
           ) : (
             <>
               {/* Views */}
               <LensSection title="Views" glyph={SECTION_GLYPH.views}>
+                <LensLink
+                  href={basePath}
+                  label="🏠 Home"
+                  active={scope.kind === 'home'}
+                />
                 <LensLink
                   href={`${basePath}?view=all-notes`}
                   label="All notes"
                   count={notes.length}
                   active={scope.kind === 'all-notes'}
                 />
-                <LensDisabled
+                <LensLink
+                  href={`${basePath}?view=recent`}
                   label="Recent"
-                  hint="Lights up once you've opened a few notes."
+                  count={recentCount}
+                  active={scope.kind === 'recent'}
                 />
                 <LensDisabled
                   label="By unit"
                   hint="Shows notes your tutor attaches to a unit — coming soon."
                 />
-                <LensDisabled
+                <LensLink
+                  href={`${basePath}?view=bookmarked`}
                   label="Bookmarked"
-                  hint="Bookmark a note while reading to collect it here."
+                  count={bookmarkCount}
+                  active={scope.kind === 'bookmarked'}
                 />
               </LensSection>
 
@@ -342,10 +398,12 @@ export function StudentLibraryShell({
         <main className="lib-main">
           <MainPane
             scope={scope}
+            snapshot={snapshot}
             notes={notes}
             folders={folders}
             shelves={shelves}
             basePath={basePath}
+            home={home}
           />
         </main>
       </div>
@@ -359,17 +417,65 @@ export function StudentLibraryShell({
 
 function MainPane({
   scope,
+  snapshot,
   notes,
   folders,
   shelves,
   basePath,
+  home,
 }: {
   scope: StudentLibraryScope;
+  snapshot: StudentLibrarySnapshot;
   notes: StudentLibrarySnapshot['notes'];
   folders: StudentLibraryFolder[];
   shelves: StudentLibraryShelf[];
   basePath: string;
+  home: StudentLibraryHome | null;
 }) {
+  // Study Home — the default landing.
+  if (scope.kind === 'home') {
+    if (home) {
+      return (
+        <StudentStudyHome home={home} snapshot={snapshot} basePath={basePath} />
+      );
+    }
+    // Defensive: home payload missing → fall through to the All-notes list.
+  }
+
+  // Recent / Bookmarked — filtered + ordered note lists derived from the
+  // student's reading state.
+  if ((scope.kind === 'recent' || scope.kind === 'bookmarked') && home) {
+    const state = home.stateByNote;
+    let list = notes.filter((n) => {
+      const s = state[n.note_id];
+      return scope.kind === 'recent'
+        ? s?.lastVisitedAt != null
+        : s?.bookmarkedAt != null;
+    });
+    list = [...list].sort((a, b) => {
+      const sa = state[a.note_id];
+      const sb = state[b.note_id];
+      const ka =
+        (scope.kind === 'recent' ? sa?.lastVisitedAt : sa?.bookmarkedAt) ?? '';
+      const kb =
+        (scope.kind === 'recent' ? sb?.lastVisitedAt : sb?.bookmarkedAt) ?? '';
+      return kb.localeCompare(ka);
+    });
+    return (
+      <NotesPane
+        title={scope.kind === 'recent' ? 'Recently opened' : 'Bookmarked'}
+        sub={
+          scope.kind === 'recent'
+            ? "Notes you've opened, most recent first."
+            : "Notes you've saved to revisit."
+        }
+        crumb={scope.kind === 'recent' ? 'Recent' : 'Bookmarked'}
+        notes={list}
+        basePath={basePath}
+      />
+    );
+  }
+
   if (scope.kind === 'all-folders') {
     return <FoldersGrid folders={folders} notes={notes} basePath={basePath} />;
   }
@@ -663,7 +769,8 @@ function LensLink({
 }: {
   href: string;
   label: string;
-  count: number;
+  /** Omit to render no count badge (e.g. the Home entry). */
+  count?: number;
   active: boolean;
   title?: string;
   dotColor?: string;
@@ -683,7 +790,7 @@ function LensLink({
         />
       )}
       <span className="label">{label}</span>
-      <span className="cnt">{count}</span>
+      {count != null && <span className="cnt">{count}</span>}
     </Link>
   );
 }
