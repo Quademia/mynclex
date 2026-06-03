@@ -8,10 +8,57 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **MERGED to `main` (2026-06-01) — the whole programme-integration arc
-> for the library (11.11 + 11.12), plus the earlier 11.14c + cohort
-> three-state.** All built + typecheck/lint-clean + Sam-tested. `main`
-> is at the tip; **not yet released to `prod`.**
+> **ON SESSION BRANCH (2026-06-03, NOT yet merged to `main`) — Cohort
+> Analytics: the tutor "how is my class doing" dashboard.** Built + Sam-
+> tested on dev; typecheck/lint-clean. Lives on a new **Analytics** tab in
+> the cohort workspace; the old cohort **"Students" tab was renamed
+> "Enrolments"** (it was always enrolment management). Code in
+> `lib/analytics/tutor/` (audience-grouped) + `styles/analytics.css`.
+> Built from the Claude Design "Cohort Analytics" handoff, mapped to app
+> navy/teal tokens.
+>
+> - **Slice 1 — completion (navy).** Health headline (avg-completion donut
+>   + plain-language line + status chips) · KPI strip (avg completion +
+>   weekly trend, on-track, need-attention, not-started) · per-student
+>   table (laggards-first, filter + sort, row → drill-in drawer) ·
+>   per-activity week bands. Denominator = released-so-far. Counts actively
+>   ENROLLED students. Completion fused across ALL 8 activity types: the 6
+>   progress-engine types + LIBRARY_NOTE/SHELF (derived from
+>   `nclex_library_note_state`). Overview gains a Class-progress teaser
+>   card (replaces the broken "Enrolled: coming soon"). **No new tab was
+>   needed for the completion data — but the CD-recommended dedicated tab
+>   won out** once both phases were in view.
+> - **Slice 2 — quiz performance (teal).** 5th KPI (avg quiz score + pass
+>   rate) · "failed last quiz" health-line flag · per-student "Latest quiz"
+>   score chip · per-quiz cards (class avg + pass rate, best attempt per
+>   student) · drawer per-quiz scores. **Keyed by `quiz_id`** (not the
+>   activity) and reads **both** PROGRAMME_ASSIGNED attempt shapes
+>   (activity-launched + standalone — see the `source_refs` gotcha in the
+>   build-phase memory).
+> - **Slice 2b — per-question miss-rate (teal).** "Hardest questions"
+>   re-teach signal from each student's best attempt's answers.
+>
+> **3 new migrations (applied to dev; ship to prod at next release, in
+> order):** `20260627120000` (note-state tutor read) + `20260628120000`
+> (attempts tutor read, both shapes) + `20260629120000` (answers/items
+> tutor read). All are tutor-read RLS policies scoped to the tutor's own
+> programmes — mirroring the progress-engine `tutor_read` pattern.
+>
+> **Analytics scope boundary (deliberately NOT built):** programme-level /
+> self-paced analytics (the "Results" placeholder — reuses this data
+> layer, different scope) · a per-student 360 view · CD's
+> completion×performance quadrant + score-distribution charts + sensitivity
+> toggle (trimmed; the per-student row carries the pairing). Captured as
+> follow-ons in `progress-engine.md`.
+>
+> ---
+>
+> **RELEASED to `prod` (2026-06-03, PR #24) — the whole programme-
+> integration arc for the library (11.11 + 11.12) + the earlier 11.14c +
+> cohort three-state + the Node 20 → Node 24 CI action bump.** Migrations
+> `20260625120000` + `20260625130000` + `20260626120000` +
+> `20260626130000` applied to prod (tracker at `20260626130000`); both prod
+> workflows green; prod Worker live.
 >
 > - **11.12 — Shelf as a curriculum activity (a + b + c, the LAST library
 >   integration slice).** A shelf attached to a unit is a first-class
@@ -53,7 +100,7 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   seed-on-creation trigger dropped (migration `20260625130000`). See
 >   `curriculum-authoring-ux.md` §11.
 >
-> **Prod migrations to ship at next release (in order):**
+> **Prod migrations (shipped in PR #24, 2026-06-03):**
 > `20260625120000` + `20260625130000` + `20260626120000` +
 > `20260626130000`.
 >

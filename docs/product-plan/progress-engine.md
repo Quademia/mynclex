@@ -746,12 +746,46 @@ retake feature (§10 future).
   dropped post-hoc): drop the "of M", show just the ordinal —
   avoids rendering the contradictory "3 of 2".
 
-### Future — Tutor analytics (blocked on enrolment)
+### Tutor analytics — BUILT 2026-06-03 (cohort-level), on session branch
 
-Not part of this arc. Tutor-quiz Slice 4 + cohort progress
-dashboards read from the engine, but the cohort-membership scoping
-(§6.2) requires the enrolment slice. Both ship together when
-enrolment lands.
+Unblocked once enrolment shipped. Built as the **Cohort Analytics** tab
+in the tutor cohort workspace (`lib/analytics/tutor/`), from the §6.2
+read patterns:
+
+- **Completion (Slice 1):** per-student (laggards-first) + per-activity
+  (week-banded) + a class-health headline + KPI strip, all derived at
+  read time. Denominator = released-so-far (fairer than % of the whole
+  programme mid-run). Completion fused across all 8 activity types — the
+  6 progress-engine types via the `*_tutor_read` policy, plus
+  LIBRARY_NOTE/SHELF derived from `nclex_library_note_state` (new tutor
+  read policy, migration `20260627120000`).
+- **Quiz performance (Slice 2):** per-quiz pass rate + class average +
+  per-student score chips, from each student's best terminal attempt.
+  Keyed by `quiz_id`, reading BOTH attempt shapes (see the
+  `nclex_attempts_source_refs` note below). Tutor read of attempts:
+  migration `20260628120000`.
+- **Per-question miss-rate (Slice 2b):** the re-teach signal. Tutor read
+  of answers/items: migration `20260629120000`.
+
+**`nclex_attempts_source_refs` (important for any future attempt
+analytics):** a PROGRAMME_ASSIGNED attempt is EITHER activity-launched
+(`programme_activity_id` set; `programme_id`/`quiz_id` NULL) OR standalone
+(`programme_id` + `quiz_id` set; `programme_activity_id` NULL) — never
+both. Any cross-attempt query/policy must handle both shapes.
+
+**Deferred follow-ons (NOT built):**
+- **Programme-level / self-paced analytics** — the `/tutor/programme/[id]/
+  results` placeholder. Reuses this exact data layer with a different
+  "who's in scope" filter (programme enrollees incl. `cohort_id` NULL).
+  The home for self-paced students (who have no cohort) + a cross-cohort
+  roll-up.
+- **Per-student 360 view** — the completion drawer is its seed.
+- **CD visualisations trimmed at build:** the completion×performance
+  quadrant, per-quiz score distribution, and the lenient/balanced/strict
+  sensitivity toggle (shipped hardcoded "balanced"). The per-student row
+  (completion bar + score chip) already carries the pairing.
+- **"Last active" = last completion** (Phase 1 reads completion only); a
+  truer last-seen would need a login/view signal.
 
 ## 10. Not in v1
 
