@@ -60,11 +60,23 @@ interface VisibleActivity {
   activityId: string;
   type: ActivityType;
   title: string;
+  /** Quiz this activity launches (MOCK / PRACTICE_QUIZ payload quiz_id). */
+  quizId: string | null;
   unitId: string;
   unitIndex: number;
   unitTitle: string;
   ordinal: number;
   released: boolean;
+}
+
+// Pull the quiz_id out of a quiz activity's payload (jsonb).
+function quizIdOf(type: ActivityType, payload: unknown): string | null {
+  if (type !== 'MOCK' && type !== 'PRACTICE_QUIZ') return null;
+  if (payload && typeof payload === 'object') {
+    const q = (payload as Record<string, unknown>).quiz_id;
+    if (typeof q === 'string') return q;
+  }
+  return null;
 }
 
 /**
@@ -108,7 +120,7 @@ export async function getCohortAnalytics(
       .select(
         `is_included, release_date, close_date,
          nclex_programme_activities!inner(
-           activity_id, unit_id, block_id, ordinal, type, title, is_published
+           activity_id, unit_id, block_id, ordinal, type, title, is_published, payload
          )`,
       )
       .eq('cohort_id', cohortId),
@@ -137,6 +149,7 @@ export async function getCohortAnalytics(
     type: ActivityType;
     title: string;
     is_published: boolean;
+    payload: unknown;
   };
   const rawRows = (rowsRes.data ?? []) as Array<{
     is_included: boolean;
@@ -173,6 +186,7 @@ export async function getCohortAnalytics(
       activityId: a.activity_id,
       type: a.type,
       title: a.title,
+      quizId: quizIdOf(a.type, a.payload),
       unitId: a.unit_id,
       unitIndex: unit.unit_index,
       unitTitle: unit.title,
@@ -376,6 +390,7 @@ export async function getCohortAnalytics(
         activityId: a.activityId,
         title: a.title,
         type: a.type,
+        quizId: a.quizId,
         unitIndex: a.unitIndex,
         unitTitle: a.unitTitle,
         released: a.released,
@@ -412,17 +427,31 @@ export async function getCohortAnalytics(
     1;
 
   // ── Phase 2 — quiz performance (only when the tab asks for it) ─────────
-  const performance = opts.includePerformance
-    ? await computePerformance(
-        supabase,
-        ctx.cohort.programme_id,
-        studentIds,
-        releasedActivities.filter(
-          (a): a is VisibleActivity & { type: 'MOCK' | 'PRACTICE_QUIZ' } =>
-            a.type === 'MOCK' || a.type === 'PRACTICE_QUIZ',
-        ),
-      )
-    : null;
+  // Quizzes are keyed by quiz_id, deduped across activities (the same quiz
+  // can be placed as more than one activity). Representative title/unit =
+  // the first released quiz activity referencing it, in curriculum order.
+  let performance: CohortQuizPerformance | null = null;
+  if (opts.includePerformance) {
+    const quizDefs = new Map<string, QuizDef>();
+    for (const a of activities) {
+      if (!a.released || !a.quizId) continue;
+      if (a.type !== 'MOCK' && a.type !== 'PRACTICE_QUIZ') continue;
+      if (!quizDefs.has(a.quizId)) {
+        quizDefs.set(a.quizId, {
+          quizId: a.quizId,
+          title: a.title,
+          type: a.type,
+          unitIndex: a.unitIndex,
+        });
+      }
+    }
+    performance = await computePerformance(
+      supabase,
+      ctx.cohort.programme_id,
+      studentIds,
+      [...quizDefs.values()],
+    );
+  }
 
   return {
     meta: {
@@ -442,57 +471,61 @@ export async function getCohortAnalytics(
   };
 }
 
+interface QuizDef {
+  quizId: string;
+  title: string;
+  type: 'MOCK' | 'PRACTICE_QUIZ';
+  unitIndex: number;
+}
+
 // ── Phase 2 — quiz performance computation ───────────────────────────────
-// Reads terminal (scored) PROGRAMME_ASSIGNED attempts for the cohort's quiz
-// activities (tutor reads them via the *_tutor_read policy from migration
-// 20260628120000), then derives per-quiz + per-student standing from each
-// student's BEST attempt per quiz (answers "have they demonstrated a pass").
+// Reads terminal (scored) PROGRAMME_ASSIGNED attempts for the cohort's quizzes
+// (tutor reads them via the *_tutor_read policy from migration 20260628120000),
+// then derives per-quiz + per-student standing from each student's BEST attempt
+// per quiz (answers "have they demonstrated a pass"). Keyed by quiz_id — which
+// every attempt carries — so it captures both activity-launched and standalone
+// attempts, and treats a quiz placed as several activities as one quiz.
 async function computePerformance(
   supabase: Awaited<ReturnType<typeof createClient>>,
   programmeId: string,
   studentIds: string[],
-  quizActivities: Array<{
-    activityId: string;
-    title: string;
-    type: 'MOCK' | 'PRACTICE_QUIZ';
-    unitIndex: number;
-  }>,
+  quizDefs: QuizDef[],
 ): Promise<CohortQuizPerformance> {
   const empty: CohortQuizPerformance = {
     quizzes: [],
     byStudent: {},
     summary: { avgQuizScore: null, passRate: null, attempts: 0, passes: 0, perfRisk: 0 },
   };
-  const quizActivityIds = quizActivities.map((a) => a.activityId);
-  if (quizActivityIds.length === 0 || studentIds.length === 0) return empty;
+  const quizIds = quizDefs.map((q) => q.quizId);
+  if (quizIds.length === 0 || studentIds.length === 0) return empty;
   const studentIdSet = new Set(studentIds);
 
   const { data: rows } = await supabase
     .from('nclex_attempts')
-    .select('student_id, programme_activity_id, final_score, pass_score, ended_at, status')
+    .select('student_id, quiz_id, final_score, pass_score, ended_at, status')
     .eq('programme_id', programmeId)
-    .in('programme_activity_id', quizActivityIds)
+    .in('quiz_id', quizIds)
     .in('status', ['COMPLETED', 'TIMED_OUT']);
 
   type AttRow = {
     student_id: string;
-    programme_activity_id: string | null;
+    quiz_id: string | null;
     final_score: number | null;
     pass_score: number | null;
     ended_at: string | null;
     status: string;
   };
 
-  // best[student|activity] = the highest-scoring terminal attempt.
+  // best[student|quiz] = the highest-scoring terminal attempt.
   const best = new Map<string, { score: number; passScore: number | null }>();
   // latest[student] = the student's most recent terminal attempt (any quiz).
   const latest = new Map<string, { score: number; passScore: number | null; endedAt: string }>();
 
   for (const r of (rows ?? []) as AttRow[]) {
     if (!studentIdSet.has(r.student_id)) continue;
-    if (r.final_score == null || !r.programme_activity_id) continue;
+    if (r.final_score == null || !r.quiz_id) continue;
     const score = r.final_score;
-    const bk = `${r.student_id}|${r.programme_activity_id}`;
+    const bk = `${r.student_id}|${r.quiz_id}`;
     const prevBest = best.get(bk);
     if (!prevBest || score > prevBest.score) {
       best.set(bk, { score, passScore: r.pass_score });
@@ -509,9 +542,9 @@ async function computePerformance(
     passScore != null && score >= passScore;
 
   // Per-quiz rows.
-  const quizzes: QuizPerfRow[] = quizActivities.map((q) => {
+  const quizzes: QuizPerfRow[] = quizDefs.map((q) => {
     const entries = studentIds
-      .map((sid) => best.get(`${sid}|${q.activityId}`))
+      .map((sid) => best.get(`${sid}|${q.quizId}`))
       .filter((e): e is { score: number; passScore: number | null } => !!e);
     const attempted = entries.length;
     const graded = entries.some((e) => e.passScore != null);
@@ -520,7 +553,7 @@ async function computePerformance(
       ? pct(entries.reduce((a, e) => a + e.score, 0) / attempted)
       : 0;
     return {
-      activityId: q.activityId,
+      quizId: q.quizId,
       title: q.title,
       type: q.type,
       unitIndex: q.unitIndex,
@@ -537,11 +570,11 @@ async function computePerformance(
   for (const sid of studentIds) {
     const bestScores: number[] = [];
     const scores: Record<string, { score: number; pass: boolean | null }> = {};
-    for (const q of quizActivities) {
-      const e = best.get(`${sid}|${q.activityId}`);
+    for (const q of quizDefs) {
+      const e = best.get(`${sid}|${q.quizId}`);
       if (e) {
         bestScores.push(e.score);
-        scores[q.activityId] = {
+        scores[q.quizId] = {
           score: pct(e.score),
           pass: e.passScore != null ? passedOf(e.score, e.passScore) : null,
         };

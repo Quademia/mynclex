@@ -25,6 +25,9 @@ export interface ActivityAnalyticsRow {
   activityId: string;
   title: string;
   type: ActivityType;
+  /** For MOCK / PRACTICE_QUIZ: the quiz this activity launches (payload
+   *  quiz_id), so the drawer can map a quiz row to its performance score. */
+  quizId: string | null;
   unitIndex: number;
   unitTitle: string;
   released: boolean;
@@ -65,9 +68,11 @@ export interface CohortAnalyticsSummary {
 
 // ── Phase 2 — quiz performance (teal) ──────────────────────────────────
 
-/** One quiz (MOCK / PRACTICE_QUIZ activity) the cohort has reached. */
+/** One quiz the cohort has reached. Keyed by quiz_id (NOT the curriculum
+ *  activity): attempts are identified by quiz_id regardless of launch path,
+ *  and the same quiz can be placed as more than one activity. */
 export interface QuizPerfRow {
-  activityId: string;
+  quizId: string;
   title: string;
   type: 'MOCK' | 'PRACTICE_QUIZ';
   unitIndex: number;
@@ -92,7 +97,7 @@ export interface StudentQuizPerf {
   latestPass: boolean | null;
   /** Latest graded attempt was a fail. Drives the "failed last quiz" flag. */
   failedLatest: boolean;
-  /** Per-quiz best score (activityId → score% + pass), for the drawer. */
+  /** Per-quiz best score (quizId → score% + pass), for the drawer. */
   scores: Record<string, { score: number; pass: boolean | null }>;
 }
 

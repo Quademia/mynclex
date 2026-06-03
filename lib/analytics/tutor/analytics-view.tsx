@@ -344,7 +344,7 @@ export function CohortAnalyticsView({ data }: { data: CohortAnalytics }) {
             {perf!.quizzes.map((q) => {
               const m = ACTIVITY_META[q.type];
               return (
-                <div key={q.activityId} className="an-quizcard">
+                <div key={q.quizId} className="an-quizcard">
                   <div className="qc-head">
                     <span className="an-tic quiz">{m.glyph}</span>
                     <div className="qc-title" title={q.title}>{q.title}</div>

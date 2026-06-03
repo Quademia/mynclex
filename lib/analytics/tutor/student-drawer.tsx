@@ -93,7 +93,7 @@ export function StudentDrawer({
                   const done = Object.prototype.hasOwnProperty.call(student.doneAt, a.activityId);
                   const locked = !a.released && !done;
                   const meta = ACTIVITY_META[a.type];
-                  const quizScore = meta.quiz ? quizPerf?.scores[a.activityId] : undefined;
+                  const quizScore = meta.quiz && a.quizId ? quizPerf?.scores[a.quizId] : undefined;
                   return (
                     <div key={a.activityId} className={`an-tl-row ${done ? '' : 'is-todo'}`}>
                       <span className={`an-tl-check ${done ? 'done' : locked ? 'locked' : 'todo'}`}>
