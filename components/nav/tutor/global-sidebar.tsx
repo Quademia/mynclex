@@ -44,7 +44,9 @@ function SidebarRow({ item, pathname }: { item: NavItem; pathname: string }) {
 }
 
 function FlatRow({ item, pathname }: { item: NavItem; pathname: string }) {
-  const isActive = pathname.startsWith(item.href);
+  const isActive = item.exact
+    ? pathname === item.href
+    : pathname.startsWith(item.href);
   return (
     <Link
       href={item.href}

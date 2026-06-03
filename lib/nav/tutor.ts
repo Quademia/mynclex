@@ -22,6 +22,9 @@
 import type { NavItem } from './types';
 
 export const TUTOR_GLOBAL_NAV: NavItem[] = [
+  // Home — the tutor's cross-programme landing (login lands here). `exact`
+  // so the row highlights only on `/tutor`, not every `/tutor/*` page.
+  { key: 'home', label: 'Home', icon: 'home', href: '/tutor', exact: true },
   { key: 'programmes', label: 'Programmes',  icon: 'calendar', href: '/tutor/programmes' },
   {
     key: 'bank',
