@@ -8,6 +8,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getCohortForShell } from '@/lib/cohorts/queries';
+import { getCohortAnalytics } from '@/lib/analytics/tutor/cohort-queries';
 import {
   cohortStatus,
   cohortStatusPillClass,
@@ -27,6 +28,11 @@ export default async function CohortOverviewPage({
   const { cohort_id } = await params;
   const ctx = await getCohortForShell(cohort_id);
   if (!ctx) notFound();
+
+  // Class-progress teaser (Slice 1) — replaces the old "coming soon"
+  // enrolment placeholder + links into the Analytics tab. Owned-cohort
+  // guaranteed by getCohortForShell above; null only on a race → skip.
+  const analytics = await getCohortAnalytics(cohort_id);
 
   const { cohort, programme } = ctx;
   const status = cohortStatus(cohort);
@@ -76,12 +82,49 @@ export default async function CohortOverviewPage({
             </div>
             <div>
               <dt>Enrolled</dt>
-              <dd className="cohort-overview-faint">
-                Coming soon — needs the enrolment table.
+              <dd>
+                {analytics
+                  ? `${analytics.summary.studentCount} ${
+                      analytics.summary.studentCount === 1 ? 'student' : 'students'
+                    }`
+                  : '—'}
               </dd>
             </div>
           </dl>
         </section>
+
+        {analytics && analytics.summary.studentCount > 0 && (
+          <section className="cohort-overview-card">
+            <h2 className="cohort-overview-card-title">Class progress</h2>
+            <p className="cohort-overview-prose">
+              <strong>{analytics.summary.avgCompletion}%</strong> average completion
+              of released work.{' '}
+              <strong>{analytics.summary.buckets.ontrack}</strong> on track
+              {analytics.summary.buckets.behind + analytics.summary.buckets.risk > 0 && (
+                <>
+                  {', '}
+                  <strong>
+                    {analytics.summary.buckets.behind + analytics.summary.buckets.risk}
+                  </strong>{' '}
+                  need attention
+                </>
+              )}
+              {analytics.summary.buckets.notstarted > 0 && (
+                <>
+                  {', '}
+                  <strong>{analytics.summary.buckets.notstarted}</strong> not started
+                </>
+              )}
+              .
+            </p>
+            <Link
+              href={`/tutor/cohort/${cohort_id}/analytics`}
+              className="cohort-overview-link"
+            >
+              View analytics →
+            </Link>
+          </section>
+        )}
 
         <section className="cohort-overview-card">
           <h2 className="cohort-overview-card-title">Programme</h2>

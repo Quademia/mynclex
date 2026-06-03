@@ -1,8 +1,10 @@
-// mynclex/app/(app)/tutor/cohort/[cohort_id]/students/page.tsx
+// mynclex/app/(app)/tutor/cohort/[cohort_id]/enrolments/page.tsx
 //
-// Cohort Students tab (Slice 1b). Roster of enrolled students +
-// off-platform "Add student". Ownership is gated inside both reads
-// (RLS-scoped); either returning null → 404.
+// Cohort Enrolments tab (formerly "Students"; renamed in the cohort-
+// analytics slice). The administrative roster of enrolled students +
+// waitlist + off-platform "Add student". Ownership is gated inside both
+// reads (RLS-scoped); either returning null → 404. "How students are
+// doing" lives in the sibling Analytics tab.
 
 import { notFound } from 'next/navigation';
 import { getCohortForShell } from '@/lib/cohorts/queries';

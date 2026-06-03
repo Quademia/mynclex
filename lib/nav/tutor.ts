@@ -83,7 +83,14 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
 export const TUTOR_COHORT_NAV: NavItem[] = [
   { key: 'overview',      label: 'Overview',      icon: 'home',   href: '/tutor/cohort/:cohortId/overview' },
   { key: 'curriculum',    label: 'Curriculum',    icon: 'layers', href: '/tutor/cohort/:cohortId/curriculum' },
-  { key: 'students',      label: 'Students',      icon: 'users',  href: '/tutor/cohort/:cohortId/students' },
+  // Enrolments (formerly "Students") — the administrative roster:
+  // who's in, waitlist, statuses, add-student. Renamed in the cohort-
+  // analytics slice so "Students"-style labelling is freed for a future
+  // per-student view; Analytics (below) is the how-they're-doing surface.
+  { key: 'enrolments',    label: 'Enrolments',    icon: 'users',  href: '/tutor/cohort/:cohortId/enrolments' },
+  // Cohort analytics — completion (Phase 1) + quiz performance (Phase 2).
+  // Sits next to Enrolments: who's in vs. how they're doing.
+  { key: 'analytics',     label: 'Analytics',     icon: 'chart',  href: '/tutor/cohort/:cohortId/analytics' },
   { key: 'sessions',      label: 'Sessions',      icon: 'video',  href: '/tutor/cohort/:cohortId/sessions' },
   { key: 'announcements', label: 'Announcements', icon: 'edit',   href: '/tutor/cohort/:cohortId/announcements' },
   { key: 'settings',      label: 'Settings',      icon: 'settings', href: '/tutor/cohort/:cohortId/settings' },

@@ -110,7 +110,7 @@ export async function addStudentAction(
   });
   if (!res.ok) return res;
 
-  revalidatePath(`/tutor/cohort/${cohortId}/students`);
+  revalidatePath(`/tutor/cohort/${cohortId}/enrolments`);
   return { ok: true, invited: res.invited, name: `${forename} ${surname}` };
 }
 
@@ -266,7 +266,7 @@ async function callTransition(
     };
   }
 
-  revalidatePath(`/tutor/cohort/${cohortId}/students`);
+  revalidatePath(`/tutor/cohort/${cohortId}/enrolments`);
   return { ok: true };
 }
 
@@ -431,7 +431,7 @@ export async function markInstallmentPaidAction(
     }
   }
 
-  revalidatePath(`/tutor/cohort/${cohortId}/students`);
+  revalidatePath(`/tutor/cohort/${cohortId}/enrolments`);
   return { ok: true };
 }
 
@@ -512,7 +512,7 @@ export async function giveMoreTimeAction(
     return { ok: false, error: 'Could not extend the deadline. Refresh and try again.' };
   }
 
-  revalidatePath(`/tutor/cohort/${cohortId}/students`);
+  revalidatePath(`/tutor/cohort/${cohortId}/enrolments`);
   return { ok: true };
 }
 
@@ -597,7 +597,7 @@ export async function convertWaitlistEntryAction(
     console.error('Waitlist convert: enrolment created but mark failed:', markErr.message);
   }
 
-  revalidatePath(`/tutor/cohort/${cohortId}/students`);
+  revalidatePath(`/tutor/cohort/${cohortId}/enrolments`);
   return { ok: true, invited: res.invited, name: fullName };
 }
 
@@ -638,7 +638,7 @@ export async function dismissWaitlistEntryAction(
     return { ok: false, error: 'Could not dismiss this entry. Refresh and try again.' };
   }
 
-  revalidatePath(`/tutor/cohort/${cohortId}/students`);
+  revalidatePath(`/tutor/cohort/${cohortId}/enrolments`);
   return { ok: true };
 }
 
