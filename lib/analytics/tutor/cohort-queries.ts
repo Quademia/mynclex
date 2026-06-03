@@ -433,9 +433,13 @@ export async function getCohortAnalytics(
   let performance: CohortQuizPerformance | null = null;
   if (opts.includePerformance) {
     const quizDefs = new Map<string, QuizDef>();
+    // activity_id → quiz_id, so activity-launched attempts (which carry only
+    // programme_activity_id) resolve to their quiz.
+    const activityToQuiz = new Map<string, string>();
     for (const a of activities) {
       if (!a.released || !a.quizId) continue;
       if (a.type !== 'MOCK' && a.type !== 'PRACTICE_QUIZ') continue;
+      activityToQuiz.set(a.activityId, a.quizId);
       if (!quizDefs.has(a.quizId)) {
         quizDefs.set(a.quizId, {
           quizId: a.quizId,
@@ -450,6 +454,7 @@ export async function getCohortAnalytics(
       ctx.cohort.programme_id,
       studentIds,
       [...quizDefs.values()],
+      activityToQuiz,
     );
   }
 
@@ -490,6 +495,7 @@ async function computePerformance(
   programmeId: string,
   studentIds: string[],
   quizDefs: QuizDef[],
+  activityToQuiz: Map<string, string>,
 ): Promise<CohortQuizPerformance> {
   const empty: CohortQuizPerformance = {
     quizzes: [],
@@ -499,16 +505,11 @@ async function computePerformance(
   const quizIds = quizDefs.map((q) => q.quizId);
   if (quizIds.length === 0 || studentIds.length === 0) return empty;
   const studentIdSet = new Set(studentIds);
-
-  const { data: rows } = await supabase
-    .from('nclex_attempts')
-    .select('student_id, quiz_id, final_score, pass_score, ended_at, status')
-    .eq('programme_id', programmeId)
-    .in('quiz_id', quizIds)
-    .in('status', ['COMPLETED', 'TIMED_OUT']);
+  const activityIds = [...activityToQuiz.keys()];
 
   type AttRow = {
     student_id: string;
+    programme_activity_id: string | null;
     quiz_id: string | null;
     final_score: number | null;
     pass_score: number | null;
@@ -516,26 +517,54 @@ async function computePerformance(
     status: string;
   };
 
+  // PROGRAMME_ASSIGNED attempts come in two mutually-exclusive shapes
+  // (nclex_attempts_source_refs) — read both, then map each to its quiz.
+  const [actRes, standaloneRes] = await Promise.all([
+    activityIds.length
+      ? supabase
+          .from('nclex_attempts')
+          .select('student_id, programme_activity_id, quiz_id, final_score, pass_score, ended_at, status')
+          .in('programme_activity_id', activityIds)
+          .in('status', ['COMPLETED', 'TIMED_OUT'])
+      : Promise.resolve({ data: [] as AttRow[] }),
+    supabase
+      .from('nclex_attempts')
+      .select('student_id, programme_activity_id, quiz_id, final_score, pass_score, ended_at, status')
+      .eq('programme_id', programmeId)
+      .in('quiz_id', quizIds)
+      .in('status', ['COMPLETED', 'TIMED_OUT']),
+  ]);
+
   // best[student|quiz] = the highest-scoring terminal attempt.
   const best = new Map<string, { score: number; passScore: number | null }>();
   // latest[student] = the student's most recent terminal attempt (any quiz).
   const latest = new Map<string, { score: number; passScore: number | null; endedAt: string }>();
 
-  for (const r of (rows ?? []) as AttRow[]) {
-    if (!studentIdSet.has(r.student_id)) continue;
-    if (r.final_score == null || !r.quiz_id) continue;
-    const score = r.final_score;
-    const bk = `${r.student_id}|${r.quiz_id}`;
-    const prevBest = best.get(bk);
-    if (!prevBest || score > prevBest.score) {
-      best.set(bk, { score, passScore: r.pass_score });
+  const ingest = (rows: AttRow[]) => {
+    for (const r of rows) {
+      if (!studentIdSet.has(r.student_id)) continue;
+      if (r.final_score == null) continue;
+      // Resolve the quiz: standalone carries quiz_id; activity-launched
+      // resolves through its activity.
+      const quizId =
+        r.quiz_id ??
+        (r.programme_activity_id ? activityToQuiz.get(r.programme_activity_id) ?? null : null);
+      if (!quizId) continue;
+      const score = r.final_score;
+      const bk = `${r.student_id}|${quizId}`;
+      const prevBest = best.get(bk);
+      if (!prevBest || score > prevBest.score) {
+        best.set(bk, { score, passScore: r.pass_score });
+      }
+      const endedAt = r.ended_at ?? '';
+      const prevLatest = latest.get(r.student_id);
+      if (!prevLatest || endedAt > prevLatest.endedAt) {
+        latest.set(r.student_id, { score, passScore: r.pass_score, endedAt });
+      }
     }
-    const endedAt = r.ended_at ?? '';
-    const prevLatest = latest.get(r.student_id);
-    if (!prevLatest || endedAt > prevLatest.endedAt) {
-      latest.set(r.student_id, { score, passScore: r.pass_score, endedAt });
-    }
-  }
+  };
+  ingest((actRes.data ?? []) as AttRow[]);
+  ingest((standaloneRes.data ?? []) as AttRow[]);
 
   const pct = (frac: number) => Math.round(frac * 100);
   const passedOf = (score: number, passScore: number | null) =>
