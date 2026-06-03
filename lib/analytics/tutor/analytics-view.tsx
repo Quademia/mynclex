@@ -12,7 +12,6 @@ import {
   Avatar,
   CompletionBar,
   Dial,
-  PhaseTag,
   Sparkline,
   StatusPill,
   ScoreChip,
@@ -158,9 +157,9 @@ export function CohortAnalyticsView({ data }: { data: CohortAnalytics }) {
       {/* ── KPI strip ── */}
       <div className={`an-kpis ${showPerf ? 'has-perf' : ''}`}>
         <div className="an-kpi">
-          <div className="k"><PhaseTag n={1} /></div>
+          <div className="k">Avg completion</div>
           <div className="an-kpi-big navy">{summary.avgCompletion}<span className="unit">%</span></div>
-          <div className="sub">Avg completion · of {meta.releasedCount} released so far</div>
+          <div className="sub">of {meta.releasedCount} activities released so far</div>
           <div className="an-spark"><Sparkline values={data.completionTrend} /></div>
         </div>
         <div className="an-kpi">
@@ -184,7 +183,7 @@ export function CohortAnalyticsView({ data }: { data: CohortAnalytics }) {
         </div>
         {showPerf && (
           <div className="an-kpi">
-            <div className="k"><PhaseTag n={2} /></div>
+            <div className="k">Avg quiz score</div>
             <div className="an-kpi-big teal">
               {perf!.summary.avgQuizScore ?? '—'}
               {perf!.summary.avgQuizScore != null && <span className="unit">%</span>}
@@ -192,7 +191,7 @@ export function CohortAnalyticsView({ data }: { data: CohortAnalytics }) {
             <div className="sub">
               {perf!.summary.passRate != null
                 ? `${perf!.summary.passRate}% pass rate (${perf!.summary.passes}/${perf!.summary.attempts})`
-                : `Avg quiz score · ${perf!.summary.attempts} attempts`}
+                : `${perf!.summary.attempts} attempts`}
             </div>
           </div>
         )}
@@ -203,7 +202,6 @@ export function CohortAnalyticsView({ data }: { data: CohortAnalytics }) {
         <div className="an-section-head">
           <div className="lhs">
             <h2>Per student</h2>
-            <PhaseTag n={1} />
             <span className="hint">Who is keeping up — laggards first</span>
           </div>
           <div className="an-tools">
@@ -237,7 +235,7 @@ export function CohortAnalyticsView({ data }: { data: CohortAnalytics }) {
                 <th style={{ width: showPerf ? '30%' : '34%' }}>Student</th>
                 <th style={{ width: showPerf ? '32%' : '40%' }}>Completion</th>
                 <th>Status</th>
-                {showPerf && <th>Latest quiz <PhaseTag n={2} /></th>}
+                {showPerf && <th>Latest quiz</th>}
                 <th className="num">Last active</th>
               </tr>
             </thead>
@@ -288,7 +286,6 @@ export function CohortAnalyticsView({ data }: { data: CohortAnalytics }) {
         <div className="an-section-head">
           <div className="lhs">
             <h2>Per activity</h2>
-            <PhaseTag n={1} />
             <span className="hint">What the class is lagging on</span>
           </div>
         </div>
@@ -336,7 +333,6 @@ export function CohortAnalyticsView({ data }: { data: CohortAnalytics }) {
           <div className="an-section-head">
             <div className="lhs">
               <h2>Quiz performance</h2>
-              <PhaseTag n={2} />
               <span className="hint">Pass rates &amp; class averages — best attempt per student</span>
             </div>
           </div>
@@ -378,7 +374,6 @@ export function CohortAnalyticsView({ data }: { data: CohortAnalytics }) {
           <div className="an-section-head">
             <div className="lhs">
               <h2>Hardest questions</h2>
-              <PhaseTag n={2} />
               <span className="hint">Where the class struggles most — a re-teach signal</span>
             </div>
           </div>

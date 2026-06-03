@@ -43,10 +43,6 @@ export function Avatar({ name }: { name: string }) {
   return <span className="an-avatar" aria-hidden>{initials(name)}</span>;
 }
 
-export function PhaseTag({ n }: { n: 1 | 2 }) {
-  return <span className={`an-phase p${n}`}>Phase {n}</span>;
-}
-
 /** SVG donut showing a 0–100 percentage. */
 export function Dial({
   pct,

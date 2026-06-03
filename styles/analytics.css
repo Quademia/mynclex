@@ -26,22 +26,6 @@
   padding-bottom: 40px;
 }
 
-/* ── Phase tag ───────────────────────────────────────────── */
-.an-phase {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-.an-phase.p1 { background: var(--navy-soft); color: var(--navy); }
-.an-phase.p2 { background: #e7f3f1; color: var(--teal); }
-
 /* ── Health headline ─────────────────────────────────────── */
 .an-health {
   display: flex;
