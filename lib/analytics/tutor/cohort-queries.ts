@@ -29,6 +29,7 @@ import type {
   CohortAnalytics,
   CohortQuizPerformance,
   CompletionStatus,
+  QuestionMissRate,
   QuizPerfRow,
   StudentAnalyticsRow,
   StudentQuizPerf,
@@ -500,6 +501,7 @@ async function computePerformance(
   const empty: CohortQuizPerformance = {
     quizzes: [],
     byStudent: {},
+    missRates: [],
     summary: { avgQuizScore: null, passRate: null, attempts: 0, passes: 0, perfRisk: 0 },
   };
   const quizIds = quizDefs.map((q) => q.quizId);
@@ -508,6 +510,7 @@ async function computePerformance(
   const activityIds = [...activityToQuiz.keys()];
 
   type AttRow = {
+    attempt_id: string;
     student_id: string;
     programme_activity_id: string | null;
     quiz_id: string | null;
@@ -519,24 +522,27 @@ async function computePerformance(
 
   // PROGRAMME_ASSIGNED attempts come in two mutually-exclusive shapes
   // (nclex_attempts_source_refs) — read both, then map each to its quiz.
+  const cols =
+    'attempt_id, student_id, programme_activity_id, quiz_id, final_score, pass_score, ended_at, status';
   const [actRes, standaloneRes] = await Promise.all([
     activityIds.length
       ? supabase
           .from('nclex_attempts')
-          .select('student_id, programme_activity_id, quiz_id, final_score, pass_score, ended_at, status')
+          .select(cols)
           .in('programme_activity_id', activityIds)
           .in('status', ['COMPLETED', 'TIMED_OUT'])
       : Promise.resolve({ data: [] as AttRow[] }),
     supabase
       .from('nclex_attempts')
-      .select('student_id, programme_activity_id, quiz_id, final_score, pass_score, ended_at, status')
+      .select(cols)
       .eq('programme_id', programmeId)
       .in('quiz_id', quizIds)
       .in('status', ['COMPLETED', 'TIMED_OUT']),
   ]);
 
+  type BestEntry = { score: number; passScore: number | null; attemptId: string };
   // best[student|quiz] = the highest-scoring terminal attempt.
-  const best = new Map<string, { score: number; passScore: number | null }>();
+  const best = new Map<string, BestEntry>();
   // latest[student] = the student's most recent terminal attempt (any quiz).
   const latest = new Map<string, { score: number; passScore: number | null; endedAt: string }>();
 
@@ -554,7 +560,7 @@ async function computePerformance(
       const bk = `${r.student_id}|${quizId}`;
       const prevBest = best.get(bk);
       if (!prevBest || score > prevBest.score) {
-        best.set(bk, { score, passScore: r.pass_score });
+        best.set(bk, { score, passScore: r.pass_score, attemptId: r.attempt_id });
       }
       const endedAt = r.ended_at ?? '';
       const prevLatest = latest.get(r.student_id);
@@ -566,6 +572,14 @@ async function computePerformance(
   ingest((actRes.data ?? []) as AttRow[]);
   ingest((standaloneRes.data ?? []) as AttRow[]);
 
+  // attempt_id → quiz_id for the best attempts (the per-question miss-rate
+  // 2b signal reads each student's best attempt's answers).
+  const attemptToQuizId = new Map<string, string>();
+  for (const [key, entry] of best) {
+    const quizId = key.slice(key.indexOf('|') + 1);
+    attemptToQuizId.set(entry.attemptId, quizId);
+  }
+
   const pct = (frac: number) => Math.round(frac * 100);
   const passedOf = (score: number, passScore: number | null) =>
     passScore != null && score >= passScore;
@@ -574,7 +588,7 @@ async function computePerformance(
   const quizzes: QuizPerfRow[] = quizDefs.map((q) => {
     const entries = studentIds
       .map((sid) => best.get(`${sid}|${q.quizId}`))
-      .filter((e): e is { score: number; passScore: number | null } => !!e);
+      .filter((e): e is BestEntry => !!e);
     const attempted = entries.length;
     const graded = entries.some((e) => e.passScore != null);
     const passed = entries.filter((e) => passedOf(e.score, e.passScore)).length;
@@ -631,9 +645,19 @@ async function computePerformance(
     : null;
   const perfRisk = Object.values(byStudent).filter((p) => p.failedLatest).length;
 
+  // Per-question miss-rate (2b) — from each student's best attempt's answers.
+  const quizTitleById = new Map(quizDefs.map((q) => [q.quizId, q.title]));
+  const missRates = await computeMissRates(
+    supabase,
+    [...attemptToQuizId.keys()],
+    attemptToQuizId,
+    quizTitleById,
+  );
+
   return {
     quizzes,
     byStudent,
+    missRates,
     summary: {
       avgQuizScore,
       passRate: gradedBest.length ? Math.round((passes / gradedBest.length) * 100) : null,
@@ -688,6 +712,94 @@ function weeklyTrend(
     if (wk >= 0 && wk < len) counts[wk] += 1;
   }
   return counts;
+}
+
+// ── Phase 2b — per-question miss-rate ("re-teach signal") ─────────────────
+// For each student's best attempt per quiz, join its items (item_id = the
+// question, stem_snapshot = its text) to its answers (is_correct), and
+// aggregate per question across the cohort. Tutor reads items/answers via the
+// *_tutor_read policies (migration 20260629120000). Returns the hardest
+// questions cohort-wide, sorted by miss-rate, capped to a useful few.
+async function computeMissRates(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  attemptIds: string[],
+  attemptToQuizId: Map<string, string>,
+  quizTitleById: Map<string, string>,
+): Promise<QuestionMissRate[]> {
+  if (attemptIds.length === 0) return [];
+
+  type ItemRow = {
+    attempt_item_id: string;
+    attempt_id: string;
+    item_id: string | null;
+    stem_snapshot: string | null;
+    question_type: string | null;
+  };
+  type AnswerRow = { attempt_item_id: string; is_correct: boolean | null };
+
+  const [itemsRes, answersRes] = await Promise.all([
+    supabase
+      .from('nclex_attempt_items')
+      .select('attempt_item_id, attempt_id, item_id, stem_snapshot, question_type')
+      .in('attempt_id', attemptIds),
+    supabase
+      .from('nclex_attempt_answers')
+      .select('attempt_item_id, is_correct')
+      .in('attempt_id', attemptIds),
+  ]);
+
+  // attempt_item_id → is_correct (only graded answers).
+  const correctByItem = new Map<string, boolean>();
+  for (const a of (answersRes.data ?? []) as AnswerRow[]) {
+    if (a.is_correct != null) correctByItem.set(a.attempt_item_id, a.is_correct);
+  }
+
+  // Aggregate per (quiz, question).
+  type Agg = {
+    itemId: string;
+    stem: string;
+    questionType: string;
+    quizId: string;
+    answered: number;
+    wrong: number;
+  };
+  const agg = new Map<string, Agg>();
+  for (const it of (itemsRes.data ?? []) as ItemRow[]) {
+    if (!it.item_id) continue;
+    const graded = correctByItem.get(it.attempt_item_id);
+    if (graded === undefined) continue; // not answered/graded on this attempt
+    const quizId = attemptToQuizId.get(it.attempt_id);
+    if (!quizId) continue;
+    const key = `${quizId}|${it.item_id}`;
+    const row =
+      agg.get(key) ??
+      {
+        itemId: it.item_id,
+        stem: it.stem_snapshot?.trim() || 'Untitled question',
+        questionType: it.question_type ?? '',
+        quizId,
+        answered: 0,
+        wrong: 0,
+      };
+    row.answered += 1;
+    if (graded === false) row.wrong += 1;
+    agg.set(key, row);
+  }
+
+  return [...agg.values()]
+    .filter((r) => r.answered > 0 && r.wrong > 0)
+    .map((r) => ({
+      itemId: r.itemId,
+      stem: r.stem,
+      questionType: r.questionType,
+      quizId: r.quizId,
+      quizTitle: quizTitleById.get(r.quizId) ?? 'Quiz',
+      answered: r.answered,
+      wrong: r.wrong,
+      missRate: Math.round((r.wrong / r.answered) * 100),
+    }))
+    .sort((a, b) => b.missRate - a.missRate || b.wrong - a.wrong)
+    .slice(0, 12);
 }
 
 function formatRange(start: string, end: string): string {

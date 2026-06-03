@@ -372,6 +372,33 @@ export function CohortAnalyticsView({ data }: { data: CohortAnalytics }) {
         </div>
       )}
 
+      {/* ── Hardest questions / re-teach signal (Phase 2b) ── */}
+      {showPerf && perf!.missRates.length > 0 && (
+        <div className="an-section">
+          <div className="an-section-head">
+            <div className="lhs">
+              <h2>Hardest questions</h2>
+              <PhaseTag n={2} />
+              <span className="hint">Where the class struggles most — a re-teach signal</span>
+            </div>
+          </div>
+          <div className="an-card an-miss">
+            {perf!.missRates.map((q) => (
+              <div key={`${q.quizId}-${q.itemId}`} className="an-miss-row">
+                <div className="an-miss-rate">{q.missRate}%</div>
+                <div className="an-miss-body">
+                  <div className="an-miss-stem" title={q.stem}>{q.stem}</div>
+                  <div className="an-miss-meta">{q.quizTitle} · {q.wrong} of {q.answered} missed</div>
+                </div>
+                <div className="an-miss-bar">
+                  <div className="track"><div className="fill" style={{ width: `${q.missRate}%` }} /></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {selected && (
         <StudentDrawer
           student={selected}

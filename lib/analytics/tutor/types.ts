@@ -101,9 +101,28 @@ export interface StudentQuizPerf {
   scores: Record<string, { score: number; pass: boolean | null }>;
 }
 
+/** Per-question difficulty within a quiz — the "re-teach signal" (2b). */
+export interface QuestionMissRate {
+  itemId: string;
+  stem: string;
+  questionType: string;
+  /** The quiz this question belongs to (for the cross-quiz ranked list). */
+  quizId: string;
+  quizTitle: string;
+  /** Distinct students who answered it. */
+  answered: number;
+  /** Of those, how many got it wrong. */
+  wrong: number;
+  /** wrong / answered, 0–100. */
+  missRate: number;
+}
+
 export interface CohortQuizPerformance {
   quizzes: QuizPerfRow[];
   byStudent: Record<string, StudentQuizPerf>;
+  /** Hardest questions across the cohort's quizzes, sorted by miss-rate
+   *  desc (2b). Empty when no per-answer data is readable yet. */
+  missRates: QuestionMissRate[];
   summary: {
     avgQuizScore: number | null;
     passRate: number | null;
