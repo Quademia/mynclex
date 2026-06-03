@@ -28,6 +28,8 @@ import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { ActivityPicker } from './activity-picker';
 import { ActivityModal } from './activity-modal';
+import { LibraryNoteAttachModal } from './library-note-attach-modal';
+import { ShelfAttachModal } from './shelf-attach-modal';
 import { ActivityRow } from './activity-row';
 import { BlockCard } from './block-card';
 import { BlockFormModal } from './block-form-modal';
@@ -100,6 +102,25 @@ export function UnitBuilder({
     kind: 'closed',
   });
 
+  // Library-Note attach / edit modal (slice 11.11a) — a separate flow
+  // from the standard ActivityModal: create = pick a note; edit =
+  // caption / publish / detach.
+  const [libraryNoteModal, setLibraryNoteModal] = useState<
+    | null
+    | { mode: 'create'; blockId: string | null }
+    | { mode: 'edit'; activityId: string }
+  >(null);
+
+  // Slice 11.12 — Shelf attach / edit modal. Same shape as the Library
+  // Note modal (its own flow, not the standard ActivityModal): create =
+  // pick a shelf; edit = member-notes hide/visibility + caption / publish
+  // / detach.
+  const [shelfModal, setShelfModal] = useState<
+    | null
+    | { mode: 'create'; blockId: string | null }
+    | { mode: 'edit'; activityId: string }
+  >(null);
+
   // Block edit / delete state.
   const [editBlockTarget, setEditBlockTarget] = useState<ProgrammeBlock | null>(
     null
@@ -150,6 +171,16 @@ export function UnitBuilder({
     const blockId =
       pickerScope.kind === 'block' ? pickerScope.blockId : null;
     setPickerScope(null);
+    // Library Note has its own attach flow (pick a note), not the
+    // standard per-type editor modal.
+    if (type === 'LIBRARY_NOTE') {
+      setLibraryNoteModal({ mode: 'create', blockId });
+      return;
+    }
+    if (type === 'SHELF') {
+      setShelfModal({ mode: 'create', blockId });
+      return;
+    }
     setModalState({ kind: 'create', type, blockId });
   }
 
@@ -190,6 +221,14 @@ export function UnitBuilder({
   // ─── Activity click / reorder / delete ──────────────
 
   function handleActivityClick(activity: ProgrammeActivity) {
+    if (activity.type === 'LIBRARY_NOTE') {
+      setLibraryNoteModal({ mode: 'edit', activityId: activity.activity_id });
+      return;
+    }
+    if (activity.type === 'SHELF') {
+      setShelfModal({ mode: 'edit', activityId: activity.activity_id });
+      return;
+    }
     setModalState({ kind: 'edit', activity });
   }
 
@@ -525,6 +564,40 @@ export function UnitBuilder({
           mode="edit"
           activity={modalState.activity}
           onClose={() => setModalState({ kind: 'closed' })}
+        />
+      )}
+
+      {libraryNoteModal?.mode === 'create' && (
+        <LibraryNoteAttachModal
+          mode="create"
+          unitId={unit.unit_id}
+          blockId={libraryNoteModal.blockId}
+          onClose={() => setLibraryNoteModal(null)}
+        />
+      )}
+
+      {libraryNoteModal?.mode === 'edit' && (
+        <LibraryNoteAttachModal
+          mode="edit"
+          activityId={libraryNoteModal.activityId}
+          onClose={() => setLibraryNoteModal(null)}
+        />
+      )}
+
+      {shelfModal?.mode === 'create' && (
+        <ShelfAttachModal
+          mode="create"
+          unitId={unit.unit_id}
+          blockId={shelfModal.blockId}
+          onClose={() => setShelfModal(null)}
+        />
+      )}
+
+      {shelfModal?.mode === 'edit' && (
+        <ShelfAttachModal
+          mode="edit"
+          activityId={shelfModal.activityId}
+          onClose={() => setShelfModal(null)}
         />
       )}
 

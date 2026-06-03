@@ -1233,3 +1233,134 @@ button.programme-switcher-item {
   text-align: center;
 }
 
+
+/* =========================================================
+   SLICE 11.12b — Shelf activity (student)
+   The "N of M notes done" card meta + the shelf table-of-
+   contents popup launched from "Open".
+   ========================================================= */
+.student-activity-shelf-meta {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.shelf-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.shelf-viewer-progress {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.shelf-viewer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.shelf-viewer-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 13px;
+  border-bottom: 1px solid var(--border);
+}
+.shelf-viewer-item:last-child {
+  border-bottom: none;
+}
+.shelf-viewer-item-state {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.shelf-viewer-item.is-done .shelf-viewer-item-state {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.shelf-viewer-item-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.shelf-viewer-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.shelf-viewer-item-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.shelf-viewer-open {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 5px 13px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+}
+.shelf-viewer-open:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+}
+.shelf-viewer-open:disabled {
+  color: var(--text-muted);
+  border-color: var(--border);
+  cursor: default;
+}
+.shelf-viewer-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+.shelf-viewer-go {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* SLICE 11.12c — shelf drift hint (card chip + popup line) */
+.student-activity-shelf-updated {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.shelf-viewer-update {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius);
+  padding: 8px 11px;
+}

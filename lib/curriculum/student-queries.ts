@@ -43,6 +43,7 @@ import type {
   ProgrammeBlock,
   ProgrammeUnit,
   StudentActivity,
+  StudentShelfMember,
   StudentBodyEntry,
   StudentCurriculumTree,
   StudentCurriculumUnit,
@@ -125,9 +126,21 @@ export async function getStudentSelfPacedCurriculum(
   // attempts in parallel (both scoped by RLS to auth.uid()'s own
   // rows). Slice 1 added the progress map; Slice 3 added the
   // IN_PROGRESS derivation.
-  const [progressMap, inProgressMap] = await Promise.all([
+  const [progressMap, inProgressMap, libraryState, shelfState] = await Promise.all([
     getActivityProgressMap(filteredActivities.map((a) => a.activity_id)),
     getInProgressQuizAttempts(),
+    getLibraryNoteActivityState(
+      supabase,
+      filteredActivities
+        .filter((a) => a.type === 'LIBRARY_NOTE')
+        .map((a) => a.activity_id)
+    ),
+    getShelfActivityState(
+      supabase,
+      filteredActivities
+        .filter((a) => a.type === 'SHELF')
+        .map((a) => a.activity_id)
+    ),
   ]);
 
   const visibleActivities: StudentActivity[] = filteredActivities.map(
@@ -137,8 +150,22 @@ export async function getStudentSelfPacedCurriculum(
       releaseDate: null,
       dueDate: null,
       closeDate: null,
-      isDone: progressMap.has(activity.activity_id),
+      // LIBRARY_NOTE + SHELF completion is DERIVED (11.11b / 11.12b),
+      // never the progress engine; all other types read the progress map.
+      isDone:
+        activity.type === 'LIBRARY_NOTE'
+          ? libraryState.doneActivityIds.has(activity.activity_id)
+          : activity.type === 'SHELF'
+            ? shelfState.doneActivityIds.has(activity.activity_id)
+            : progressMap.has(activity.activity_id),
       isInProgress: isQuizActivityInProgress(activity, inProgressMap),
+      libraryNoteId:
+        libraryState.noteIdByActivity.get(activity.activity_id) ?? null,
+      shelfId: shelfState.shelfIdByActivity.get(activity.activity_id) ?? null,
+      shelfMembers:
+        shelfState.membersByActivity.get(activity.activity_id) ?? null,
+      shelfUpdate:
+        shelfState.updateByActivity.get(activity.activity_id) ?? null,
     })
   );
 
@@ -250,7 +277,15 @@ export async function getStudentCohortCurriculum(
   // Two-pass: first build the visible-list shaped without progress
   // signals, then fetch progress + IN_PROGRESS for those ids in
   // parallel and attach.
-  type StagedActivity = Omit<StudentActivity, 'isDone' | 'isInProgress'>;
+  type StagedActivity = Omit<
+    StudentActivity,
+    | 'isDone'
+    | 'isInProgress'
+    | 'libraryNoteId'
+    | 'shelfId'
+    | 'shelfMembers'
+    | 'shelfUpdate'
+  >;
   const staged: StagedActivity[] = [];
   for (const r of rawRows) {
     const activity = Array.isArray(r.nclex_programme_activities)
@@ -290,15 +325,32 @@ export async function getStudentCohortCurriculum(
   // Progress engine — fetch progress + IN_PROGRESS map in parallel.
   // Same shape as self-paced; cohort mode reads the same progress
   // table (row attaches to template activity, not cohort).
-  const [progressMap, inProgressMap] = await Promise.all([
+  const [progressMap, inProgressMap, libraryState, shelfState] = await Promise.all([
     getActivityProgressMap(staged.map((a) => a.activity_id)),
     getInProgressQuizAttempts(),
+    getLibraryNoteActivityState(
+      supabase,
+      staged.filter((a) => a.type === 'LIBRARY_NOTE').map((a) => a.activity_id)
+    ),
+    getShelfActivityState(
+      supabase,
+      staged.filter((a) => a.type === 'SHELF').map((a) => a.activity_id)
+    ),
   ]);
 
   const visibleActivities: StudentActivity[] = staged.map((a) => ({
     ...a,
-    isDone: progressMap.has(a.activity_id),
+    isDone:
+      a.type === 'LIBRARY_NOTE'
+        ? libraryState.doneActivityIds.has(a.activity_id)
+        : a.type === 'SHELF'
+          ? shelfState.doneActivityIds.has(a.activity_id)
+          : progressMap.has(a.activity_id),
     isInProgress: isQuizActivityInProgress(a, inProgressMap),
+    libraryNoteId: libraryState.noteIdByActivity.get(a.activity_id) ?? null,
+    shelfId: shelfState.shelfIdByActivity.get(a.activity_id) ?? null,
+    shelfMembers: shelfState.membersByActivity.get(a.activity_id) ?? null,
+    shelfUpdate: shelfState.updateByActivity.get(a.activity_id) ?? null,
   }));
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
@@ -339,6 +391,227 @@ function stripUnitEmbed<T extends { nclex_programme_units?: unknown }>(
 ): Omit<T, 'nclex_programme_units'> {
   const { nclex_programme_units: _, ...rest } = row;
   return rest;
+}
+
+/**
+ * Slice 11.11a/b — for a set of LIBRARY_NOTE activity ids, resolve both:
+ *   • noteIdByActivity — activity_id → the note it points to (from the
+ *     linked attachment row), so the viewer can link the read view.
+ *   • doneActivityIds  — activity_ids whose note the student has marked
+ *     done (DERIVED from nclex_library_note_state.marked_done_at — these
+ *     activities never get a progress-engine row; "done" lives once on
+ *     the note's reading state). This is the 11.11b progress fold-in.
+ *
+ * Two RLS-scoped reads (attachments, then note_state). Empty input → no
+ * queries.
+ */
+async function getLibraryNoteActivityState(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  activityIds: string[]
+): Promise<{
+  noteIdByActivity: Map<string, string>;
+  doneActivityIds: Set<string>;
+}> {
+  const noteIdByActivity = new Map<string, string>();
+  const doneActivityIds = new Set<string>();
+  if (activityIds.length === 0) return { noteIdByActivity, doneActivityIds };
+
+  const { data: atts } = await supabase
+    .from('nclex_tutor_library_note_attachments')
+    .select('activity_id, note_id')
+    .in('activity_id', activityIds);
+  for (const r of (atts ?? []) as Array<{
+    activity_id: string;
+    note_id: string | null;
+  }>) {
+    if (r.note_id) noteIdByActivity.set(r.activity_id, r.note_id);
+  }
+
+  const noteIds = [...noteIdByActivity.values()];
+  if (noteIds.length === 0) return { noteIdByActivity, doneActivityIds };
+
+  const { data: states } = await supabase
+    .from('nclex_library_note_state')
+    .select('note_id, marked_done_at')
+    .in('note_id', noteIds);
+  const doneNotes = new Set<string>();
+  for (const s of (states ?? []) as Array<{
+    note_id: string;
+    marked_done_at: string | null;
+  }>) {
+    if (s.marked_done_at != null) doneNotes.add(s.note_id);
+  }
+  for (const [activityId, noteId] of noteIdByActivity) {
+    if (doneNotes.has(noteId)) doneActivityIds.add(activityId);
+  }
+
+  return { noteIdByActivity, doneActivityIds };
+}
+
+/**
+ * Slice 11.12b — for a set of SHELF activity ids, resolve their LIVE,
+ * student-visible member notes (each with the student's derived done
+ * state) plus the rollup completion. Returns:
+ *   • shelfIdByActivity — activity_id -> the shelf it points to (for the
+ *     "Go to shelf" link).
+ *   • membersByActivity — activity_id -> ordered visible members with
+ *     isDone. Visibility is enforced by RLS on the membership/note rows
+ *     (nclex_student_can_see_note: published + enrolled-tutor-programme),
+ *     and skipped notes (the attachment's skipped_note_ids) are dropped
+ *     here. So a member reaching the viewer is published + visible +
+ *     not-skipped.
+ *   • doneActivityIds — shelves that roll up to DONE (≥1 visible member
+ *     AND every visible member marked done). An empty shelf is NOT done.
+ *
+ * Three RLS-scoped reads: attachments (shelf_id + skipped_note_ids),
+ * memberships→notes (RLS filters to visible), then the student's
+ * note_state. Empty input -> no queries.
+ */
+async function getShelfActivityState(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  activityIds: string[]
+): Promise<{
+  shelfIdByActivity: Map<string, string>;
+  membersByActivity: Map<string, StudentShelfMember[]>;
+  doneActivityIds: Set<string>;
+  updateByActivity: Map<string, { added: number; removed: number }>;
+}> {
+  const shelfIdByActivity = new Map<string, string>();
+  const membersByActivity = new Map<string, StudentShelfMember[]>();
+  const doneActivityIds = new Set<string>();
+  const updateByActivity = new Map<string, { added: number; removed: number }>();
+  if (activityIds.length === 0) {
+    return { shelfIdByActivity, membersByActivity, doneActivityIds, updateByActivity };
+  }
+
+  // 1. The shelf attachments — shelf_id + this placement's skip-list.
+  const { data: atts } = await supabase
+    .from('nclex_tutor_library_note_attachments')
+    .select('activity_id, shelf_id, skipped_note_ids')
+    .in('activity_id', activityIds);
+
+  const skippedByActivity = new Map<string, Set<string>>();
+  const shelfIds: string[] = [];
+  for (const r of (atts ?? []) as Array<{
+    activity_id: string;
+    shelf_id: string | null;
+    skipped_note_ids: unknown;
+  }>) {
+    if (!r.shelf_id) continue;
+    shelfIdByActivity.set(r.activity_id, r.shelf_id);
+    shelfIds.push(r.shelf_id);
+    skippedByActivity.set(r.activity_id, new Set(normalizeSkipped(r.skipped_note_ids)));
+  }
+  if (shelfIds.length === 0) {
+    return { shelfIdByActivity, membersByActivity, doneActivityIds, updateByActivity };
+  }
+
+  // Slice 11.12c — the student's "last seen" visible-set per placement,
+  // for the drift hint. A row's absence means "never opened" (no hint).
+  const seenByActivity = new Map<string, Set<string>>();
+  const seenActivityIds = new Set<string>();
+  const { data: seenRows } = await supabase
+    .from('nclex_library_shelf_seen')
+    .select('activity_id, seen_note_ids')
+    .in('activity_id', [...shelfIdByActivity.keys()]);
+  for (const r of (seenRows ?? []) as Array<{
+    activity_id: string;
+    seen_note_ids: unknown;
+  }>) {
+    seenByActivity.set(r.activity_id, new Set(normalizeSkipped(r.seen_note_ids)));
+    seenActivityIds.add(r.activity_id);
+  }
+
+  // 2. Member notes per shelf (RLS drops notes the student can't see).
+  const { data: members } = await supabase
+    .from('nclex_tutor_library_shelf_memberships')
+    .select(
+      `shelf_id, position,
+       nclex_tutor_library_notes ( note_id, title, subtitle )`
+    )
+    .in('shelf_id', shelfIds)
+    .order('position', { ascending: true });
+
+  type MemberNote = { note_id: string; title: string; subtitle: string | null };
+  const membersByShelf = new Map<string, MemberNote[]>();
+  const allNoteIds = new Set<string>();
+  for (const r of (members ?? []) as Array<{
+    shelf_id: string;
+    position: number;
+    nclex_tutor_library_notes: MemberNote | MemberNote[] | null;
+  }>) {
+    const embed = r.nclex_tutor_library_notes;
+    const note = Array.isArray(embed) ? embed[0] : embed;
+    if (!note) continue; // RLS-filtered (not visible to this student)
+    const list = membersByShelf.get(r.shelf_id) ?? [];
+    list.push(note);
+    membersByShelf.set(r.shelf_id, list);
+    allNoteIds.add(note.note_id);
+  }
+
+  // 3. The student's done state across every member note.
+  const doneNotes = new Set<string>();
+  if (allNoteIds.size > 0) {
+    const { data: states } = await supabase
+      .from('nclex_library_note_state')
+      .select('note_id, marked_done_at')
+      .in('note_id', [...allNoteIds]);
+    for (const s of (states ?? []) as Array<{
+      note_id: string;
+      marked_done_at: string | null;
+    }>) {
+      if (s.marked_done_at != null) doneNotes.add(s.note_id);
+    }
+  }
+
+  // 4. Assemble per-activity member lists (drop skipped) + the rollup.
+  for (const [activityId, shelfId] of shelfIdByActivity) {
+    const skipped = skippedByActivity.get(activityId) ?? new Set<string>();
+    const visible = (membersByShelf.get(shelfId) ?? []).filter(
+      (n) => !skipped.has(n.note_id)
+    );
+    const list: StudentShelfMember[] = visible.map((n) => ({
+      note_id: n.note_id,
+      title: n.title,
+      subtitle: n.subtitle,
+      isDone: doneNotes.has(n.note_id),
+    }));
+    membersByActivity.set(activityId, list);
+    if (list.length > 0 && list.every((m) => m.isDone)) {
+      doneActivityIds.add(activityId);
+    }
+
+    // Drift hint — only when the student has opened this placement before
+    // (a seen-row exists). added = current\seen, removed = seen\current.
+    if (seenActivityIds.has(activityId)) {
+      const seen = seenByActivity.get(activityId) ?? new Set<string>();
+      const currentIds = new Set(visible.map((n) => n.note_id));
+      let added = 0;
+      for (const id of currentIds) if (!seen.has(id)) added++;
+      let removed = 0;
+      for (const id of seen) if (!currentIds.has(id)) removed++;
+      if (added > 0 || removed > 0) {
+        updateByActivity.set(activityId, { added, removed });
+      }
+    }
+  }
+
+  return { shelfIdByActivity, membersByActivity, doneActivityIds, updateByActivity };
+}
+
+// skipped_note_ids is JSONB; normalise (parsed array or JSON string) to
+// a string[]. Mirrors the helper in shelf-activity-actions.ts.
+function normalizeSkipped(raw: unknown): string[] {
+  let arr: unknown = raw;
+  if (typeof raw === 'string') {
+    try {
+      arr = JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(arr)) return [];
+  return arr.filter((x): x is string => typeof x === 'string');
 }
 
 /**

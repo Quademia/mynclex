@@ -42,8 +42,9 @@ Cross-references into the main plan:
   [main.md](main.md).
 - **Activity types** — enumerated in Programme Structure
   (v1 = Text / PDF / External link / Practice quiz / Live session /
-  Mock; deferred to v2 = uploaded video files, written assignments,
-  Library Note).
+  Mock / **Library Note** / **Library Shelf** — the last two BUILT in
+  2026-06 as the 7th + 8th types, slices 11.11 / 11.12; deferred to v2
+  = uploaded video files, written assignments).
 - **Bank-based question selection** — [bank.md](bank.md).
 
 ---
@@ -449,6 +450,40 @@ the programme's Curriculum tab).
 
 ### 11. Cohort curriculum — checklist view
 
+> **▶ BUILD UPDATE 2026-06-01 — the checklist is now a LIVE three-state
+> model (this supersedes the snapshot + "add from template" design
+> described in the rest of this section).** Decided with Sam after the
+> original snapshot model proved to have a sync problem: activities
+> added to the programme after a cohort was created never reached the
+> cohort (no checklist row was seeded for them), so they were invisible
+> in the cohort checklist *and* to students.
+>
+> **New model:** the checklist is the **live programme template** — every
+> current activity always renders. A checklist row
+> (`nclex_cohort_checklist_items`) is now only an **override**, created
+> on the tutor's first explicit decision. Each activity is one of:
+> - **Unconfigured** — no row yet. Renders with computed defaults
+>   (included-shaped but **hidden from students** until decided; the
+>   default release date shows faint). Counted in a header "N
+>   unconfigured · Include all" prompt.
+> - **Included** — override row, `is_included = true`.
+> - **Excluded** — override row, `is_included = false`.
+>
+> The row carries an explicit **`✓ Include` / `✗ Exclude`** segment
+> (neither active = unconfigured). Date/inclusion edits are
+> `(cohort_id, activity_id)` **upserts** — the row is born on first
+> touch; `release_date` defaults to the week-pacing below. **Completion
+> for Library-Note / Shelf activities is derived from
+> `nclex_library_note_state`, never the progress engine.** The
+> seed-on-cohort-creation trigger is **dropped** (migration
+> `20260625130000`); existing cohorts keep their prior rows; new cohorts
+> start all-unconfigured and the tutor uses **Include all**. Student
+> side is unchanged — it already reads included rows only, so
+> unconfigured/excluded are naturally hidden. The "Remove from this
+> cohort" / "+ Add from template" / "+ Add cohort-only" affordances
+> below are **not built** (cohort-only remains future; see the
+> `source = 'COHORT_ONLY'` column note in tutor-library.md).
+
 Inside a cohort. Shows the same unit → block → activity hierarchy
 as the programme-layer Unit Builder, but each row is a *checklist
 entry* pointing at a template activity (or a cohort-only entry)
@@ -622,8 +657,12 @@ will reuse with a `delivery_mode` prop or context.
   activity types, tutor actions).
 - [bank.md](bank.md) — question bank, source of the
   question-selection UI used by Mock and Practice quiz editors.
-- [tutor-library.md](tutor-library.md) — parked feature; will add
-  Library Note as the 7th activity type (and a 7th editor in the
-  table above) when queued for build.
+- [tutor-library.md](tutor-library.md) — BUILT. Adds **Library Note**
+  (7th type) + **Library Shelf** (8th type) as curriculum activities
+  ("Option C": a first-class `nclex_programme_activities` row linked to
+  a library attachment row by `activity_id`). These two don't use a
+  per-type editor in the standard activity modal — they have their own
+  attach modals (pick a published note / pick a shelf); shelf member
+  hide/unhide + "Make visible here" live in the shelf edit modal.
 - [mockups/curriculum-authoring-ux.html](mockups/curriculum-authoring-ux.html)
   — visual mockups from the 2026-04-20 session.

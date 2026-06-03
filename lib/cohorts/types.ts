@@ -88,14 +88,25 @@ import type {
   ProgrammeUnit,
 } from '@/lib/curriculum/types';
 
+// Three-state cohort-checklist model. The checklist is the LIVE
+// programme template; a checklist row is only an *override*. So each
+// activity is one of:
+//   • unconfigured — no override row yet (renders with defaults)
+//   • included     — override row, is_included = true
+//   • excluded     — override row, is_included = false
+export type ChecklistActivityState = 'unconfigured' | 'included' | 'excluded';
+
 export type CohortChecklistActivityRow = {
-  checklist_item_id: string;
-  is_included: boolean;
+  activity: ProgrammeActivity;       // live-read from template
+  state: ChecklistActivityState;
+  // Dates are the stored override values when configured, else the
+  // computed week-pacing defaults (so the inputs always show something).
   release_date: string;
   due_date: string | null;
   close_date: string | null;
-  source: ChecklistItemSource;
-  activity: ProgrammeActivity;       // live-read from template
+  // true when release_date is the computed default (no stored row /
+  // release) — lets the UI show it faint vs. a solid configured date.
+  release_is_default: boolean;
 };
 
 // Block + its in-block checklist rows. Mirrors the curriculum-tab

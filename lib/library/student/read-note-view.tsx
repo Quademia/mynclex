@@ -110,6 +110,15 @@ export function ReadNoteView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Stamp the visit on open (slice 11.14c) — upserts last_visited_at while
+  // preserving the existing resume position, so EVERY opened note surfaces
+  // in the Study Home's Recent / Continue-reading, not only those where the
+  // student scrolled past a heading. Fire-and-forget; runs once.
+  useEffect(() => {
+    void updateReadingPositionAction(note.note_id, note.state.lastHeadingId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Scroll-spy on the app-shell scroll region. Tracks the deepest
   // heading scrolled past and persists it (debounced) — never regressing
   // to an earlier heading within the session.

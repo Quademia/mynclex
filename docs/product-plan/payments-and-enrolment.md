@@ -1614,7 +1614,7 @@ packs not shown.
   covers commercial numbers; Roles covers who can pay for what).
 - [bank.md](bank.md) — the product that bank-pack subscriptions
   unlock access to.
-- [tutor-library.md](tutor-library.md) — parked feature; library
-  visibility for tutored students depends on the enrolment flow
-  defined here.
+- [tutor-library.md](tutor-library.md) — BUILT; library visibility
+  for tutored students depends on the enrolment flow defined here
+  (`nclex_student_can_see_note` checks active `nclex_enrolments`).
 - `mynclex/CLAUDE.md` — stack, conventions, extraction rule.

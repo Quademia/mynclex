@@ -13,6 +13,7 @@
 
 import { notFound } from 'next/navigation';
 import { getStudentLibrarySnapshot } from '@/lib/library/student/queries';
+import { getStudentLibraryHomeData } from '@/lib/library/student/home-queries';
 import { StudentLibraryShell } from '@/lib/library/student/student-library-shell';
 import { parseStudentLibraryScope } from '@/lib/library/student/scope';
 
@@ -39,11 +40,21 @@ export default async function StudentProgrammeLibraryPage({
   const snapshot = await getStudentLibrarySnapshot(programme_id);
   if (!snapshot) notFound();
 
+  const scope = parseStudentLibraryScope(sp);
+  // The study-home payload (state map + names + practice + continue) is
+  // only needed for the home / recent / bookmarked scopes — fetch on demand.
+  const needsHome =
+    scope.kind === 'home' ||
+    scope.kind === 'recent' ||
+    scope.kind === 'bookmarked';
+  const home = needsHome ? await getStudentLibraryHomeData(snapshot) : null;
+
   return (
     <StudentLibraryShell
       snapshot={snapshot}
       basePath={`/student/programme/${programme_id}/library`}
-      scope={parseStudentLibraryScope(sp)}
+      scope={scope}
+      home={home}
     />
   );
 }

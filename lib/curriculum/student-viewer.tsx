@@ -122,6 +122,13 @@ function UnitSection({
   unit: StudentCurriculumTree['units'][number];
   tree: StudentCurriculumTree;
 }) {
+  // Slice 11.11a — base path for the library read view a LIBRARY_NOTE
+  // activity links to. Cohort route when tutor-led, programme route
+  // otherwise — both have a `/library/note/[id]` read view.
+  const libraryBasePath = tree.cohort
+    ? `/student/cohort/${tree.cohort.cohort_id}/library`
+    : `/student/programme/${tree.programme.programme_id}/library`;
+
   return (
     <section className="student-unit">
       <header className="student-unit-head">
@@ -149,6 +156,7 @@ function UnitSection({
                 entry={entry}
                 upNextActivityId={tree.upNextActivityId}
                 hasAnyDone={tree.hasAnyDone}
+                libraryBasePath={libraryBasePath}
               />
             ) : (
               <ActivityCard
@@ -156,6 +164,7 @@ function UnitSection({
                 activity={entry.activity}
                 upNextActivityId={tree.upNextActivityId}
                 hasAnyDone={tree.hasAnyDone}
+                libraryBasePath={libraryBasePath}
               />
             )
           )}
@@ -169,6 +178,7 @@ function BlockCard({
   entry,
   upNextActivityId,
   hasAnyDone,
+  libraryBasePath,
 }: {
   entry: Extract<
     StudentCurriculumTree['units'][number]['body'][number],
@@ -176,6 +186,7 @@ function BlockCard({
   >;
   upNextActivityId: string | null;
   hasAnyDone: boolean;
+  libraryBasePath: string;
 }) {
   return (
     <article className="student-block">
@@ -197,6 +208,7 @@ function BlockCard({
               activity={a}
               upNextActivityId={upNextActivityId}
               hasAnyDone={hasAnyDone}
+              libraryBasePath={libraryBasePath}
             />
           ))}
         </div>
@@ -209,10 +221,12 @@ function ActivityCard({
   activity,
   upNextActivityId,
   hasAnyDone,
+  libraryBasePath,
 }: {
   activity: StudentActivity;
   upNextActivityId: string | null;
   hasAnyDone: boolean;
+  libraryBasePath: string;
 }) {
   const locked = activity.openState !== 'OPEN';
   const overdue =
@@ -239,6 +253,15 @@ function ActivityCard({
           {activityTypeLabel(activity.type)}
         </span>
         <h4 className="student-activity-title">{activity.title}</h4>
+        {/* Slice 11.12c — shelf drift chip. Shown when the shelf's
+            membership changed since the student last opened it; clears
+            when they open the popup (marks seen). Sits before the state
+            pill so the "Done/Up next" cascade still reads clearly. */}
+        {activity.type === 'SHELF' && activity.shelfUpdate && (
+          <span className="student-activity-shelf-updated" title="Your tutor changed this shelf since you last opened it">
+            Updated
+          </span>
+        )}
         {/* Pill cascade — see header comment for full priority order.
             Computed once into a local for readability. */}
         {(() => {
@@ -299,6 +322,16 @@ function ActivityCard({
         </p>
       )}
 
+      {/* Slice 11.12b — shelf progress meta ("N of M notes done"). The
+          shelf rolls up to DONE (the pill above) once all are read. */}
+      {activity.type === 'SHELF' && activity.shelfMembers && (
+        <p className="student-activity-shelf-meta">
+          {activity.shelfMembers.length === 0
+            ? 'No notes available yet'
+            : `${activity.shelfMembers.filter((m) => m.isDone).length} of ${activity.shelfMembers.length} note${activity.shelfMembers.length === 1 ? '' : 's'} done`}
+        </p>
+      )}
+
       {activity.openState === 'OPEN' && (
         <>
           {activity.dueDate && (
@@ -313,7 +346,7 @@ function ActivityCard({
               {overdue ? ' · overdue' : ''}
             </p>
           )}
-          <ActivityAction activity={activity} />
+          <ActivityAction activity={activity} libraryBasePath={libraryBasePath} />
         </>
       )}
 
@@ -356,6 +389,10 @@ function activityTypeLabel(type: ProgrammeActivity['type']): string {
       return 'Mock';
     case 'PRACTICE_QUIZ':
       return 'Practice quiz';
+    case 'LIBRARY_NOTE':
+      return 'Library note';
+    case 'SHELF':
+      return 'Shelf';
   }
 }
 

@@ -19,21 +19,54 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { activityEstimatedMinutes } from './format';
 import { ExternalLinkViewer } from './external-link-viewer';
 import { OnlineLiveSessionViewer } from './online-live-session-viewer';
 import { PdfViewer } from './pdf-viewer';
 import { TextViewer } from './text-viewer';
 import { QuizLaunchViewer } from './quiz-launch-viewer';
+import { ShelfViewer } from './shelf-viewer';
 import type {
   ActivityPayloadMock,
   ActivityPayloadPracticeQuiz,
   StudentActivity,
 } from './types';
 
-export function ActivityAction({ activity }: { activity: StudentActivity }) {
+export function ActivityAction({
+  activity,
+  libraryBasePath,
+}: {
+  activity: StudentActivity;
+  // Slice 11.11a — base path (programme or cohort) for the library read
+  // view a LIBRARY_NOTE activity links to. Only the curriculum viewer
+  // passes it; other callers (none yet) can omit it.
+  libraryBasePath?: string;
+}) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const estMinutes = activityEstimatedMinutes(activity);
+
+  // Library Note opens the read view on its own page (not a modal) —
+  // render an "Open" link instead of the dispatch button.
+  if (activity.type === 'LIBRARY_NOTE') {
+    const href =
+      libraryBasePath && activity.libraryNoteId
+        ? `${libraryBasePath}/note/${activity.libraryNoteId}`
+        : null;
+    return (
+      <div className="student-activity-action">
+        {href ? (
+          <Link className="student-activity-launch" href={href}>
+            Open
+          </Link>
+        ) : (
+          <button type="button" className="student-activity-launch" disabled>
+            Open
+          </button>
+        )}
+      </div>
+    );
+  }
 
   // Which types have a wired-up viewer. Grows one entry per
   // per-type viewer slice. Mock + Practice quiz become launchable
@@ -53,6 +86,10 @@ export function ActivityAction({ activity }: { activity: StudentActivity }) {
     activity.type === 'EXTERNAL_LINK' ||
     activity.type === 'ONLINE_LIVE_SESSION' ||
     activity.type === 'PDF' ||
+    // Slice 11.12b — a shelf opens its table-of-contents popup, but only
+    // when it has at least one visible (published, non-skipped) note;
+    // an empty shelf shows a disabled Open.
+    (activity.type === 'SHELF' && (activity.shelfMembers?.length ?? 0) > 0) ||
     (isQuizActivity && quizId != null);
 
   return (
@@ -100,6 +137,13 @@ export function ActivityAction({ activity }: { activity: StudentActivity }) {
             onClose={() => setViewerOpen(false)}
           />
         )}
+      {viewerOpen && activity.type === 'SHELF' && (
+        <ShelfViewer
+          activity={activity}
+          libraryBasePath={libraryBasePath}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
     </div>
   );
 }
