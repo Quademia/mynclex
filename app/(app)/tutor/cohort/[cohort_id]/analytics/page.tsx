@@ -18,7 +18,7 @@ export default async function CohortAnalyticsPage({
   params: Promise<{ cohort_id: string }>;
 }) {
   const { cohort_id } = await params;
-  const data = await getCohortAnalytics(cohort_id);
+  const data = await getCohortAnalytics(cohort_id, { includePerformance: true });
   if (!data) notFound();
 
   return (

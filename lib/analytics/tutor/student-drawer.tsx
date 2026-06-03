@@ -8,8 +8,12 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Avatar, StatusPill, ACTIVITY_META } from './atoms';
-import type { ActivityAnalyticsRow, StudentAnalyticsRow } from './types';
+import { Avatar, StatusPill, ScoreChip, ACTIVITY_META } from './atoms';
+import type {
+  ActivityAnalyticsRow,
+  StudentAnalyticsRow,
+  StudentQuizPerf,
+} from './types';
 import type { UnitLabel } from '@/lib/programmes/types';
 
 function unitWord(label: UnitLabel): string {
@@ -25,11 +29,13 @@ export function StudentDrawer({
   student,
   activities,
   unitLabel,
+  quizPerf,
   onClose,
 }: {
   student: StudentAnalyticsRow;
   activities: ActivityAnalyticsRow[];
   unitLabel: UnitLabel;
+  quizPerf: StudentQuizPerf | null;
   onClose: () => void;
 }) {
   // Esc closes; lock body scroll while open.
@@ -87,12 +93,14 @@ export function StudentDrawer({
                   const done = Object.prototype.hasOwnProperty.call(student.doneAt, a.activityId);
                   const locked = !a.released && !done;
                   const meta = ACTIVITY_META[a.type];
+                  const quizScore = meta.quiz ? quizPerf?.scores[a.activityId] : undefined;
                   return (
                     <div key={a.activityId} className={`an-tl-row ${done ? '' : 'is-todo'}`}>
                       <span className={`an-tl-check ${done ? 'done' : locked ? 'locked' : 'todo'}`}>
                         {done ? '✓' : locked ? '·' : ''}
                       </span>
                       <span className="t" title={meta.label}>{a.title}</span>
+                      {quizScore && <ScoreChip score={quizScore.score} pass={quizScore.pass} />}
                       <span className="when">
                         {done ? fmtWhen(student.doneAt[a.activityId]) : locked ? 'locked' : '—'}
                       </span>

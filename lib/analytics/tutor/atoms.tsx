@@ -128,3 +128,19 @@ export function CompletionBar({ pct, status }: { pct: number; status: Completion
 export function StatusPill({ status }: { status: CompletionStatus }) {
   return <span className={`an-pill ${status}`}>{STATUS_LABEL[status]}</span>;
 }
+
+/**
+ * Quiz score chip (Phase 2, teal). pass: true → green, false → red,
+ * null → neutral teal (ungraded). score null → faint dash.
+ */
+export function ScoreChip({
+  score,
+  pass = null,
+}: {
+  score: number | null;
+  pass?: boolean | null;
+}) {
+  if (score == null) return <span className="an-score none">—</span>;
+  const tone = pass === true ? 'pass' : pass === false ? 'fail' : 'ungraded';
+  return <span className={`an-score ${tone}`}>{score}%</span>;
+}

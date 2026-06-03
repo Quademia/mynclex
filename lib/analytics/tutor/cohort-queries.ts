@@ -27,8 +27,11 @@ import type { ActivityType } from '@/lib/curriculum/types';
 import type {
   ActivityAnalyticsRow,
   CohortAnalytics,
+  CohortQuizPerformance,
   CompletionStatus,
+  QuizPerfRow,
   StudentAnalyticsRow,
+  StudentQuizPerf,
 } from './types';
 
 // The 6 types whose completion lives in the progress engine. LIBRARY_NOTE
@@ -70,6 +73,7 @@ interface VisibleActivity {
  */
 export async function getCohortAnalytics(
   cohortId: string,
+  opts: { includePerformance?: boolean } = {},
 ): Promise<CohortAnalytics | null> {
   const ctx = await getCohortForShell(cohortId);
   if (!ctx) return null;
@@ -407,6 +411,19 @@ export async function getCohortAnalytics(
     units.reduce((mx, u) => Math.max(mx, u.unit_index), 0) ||
     1;
 
+  // ── Phase 2 — quiz performance (only when the tab asks for it) ─────────
+  const performance = opts.includePerformance
+    ? await computePerformance(
+        supabase,
+        ctx.cohort.programme_id,
+        studentIds,
+        releasedActivities.filter(
+          (a): a is VisibleActivity & { type: 'MOCK' | 'PRACTICE_QUIZ' } =>
+            a.type === 'MOCK' || a.type === 'PRACTICE_QUIZ',
+        ),
+      )
+    : null;
+
   return {
     meta: {
       cohortName: ctx.cohort.name ?? formatRange(ctx.cohort.start_date, ctx.cohort.end_date),
@@ -421,6 +438,147 @@ export async function getCohortAnalytics(
     students: studentRows,
     activities,
     completionTrend: weeklyTrend(allDoneTimestamps, ctx.cohort.start_date, totalUnits),
+    performance,
+  };
+}
+
+// ── Phase 2 — quiz performance computation ───────────────────────────────
+// Reads terminal (scored) PROGRAMME_ASSIGNED attempts for the cohort's quiz
+// activities (tutor reads them via the *_tutor_read policy from migration
+// 20260628120000), then derives per-quiz + per-student standing from each
+// student's BEST attempt per quiz (answers "have they demonstrated a pass").
+async function computePerformance(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  programmeId: string,
+  studentIds: string[],
+  quizActivities: Array<{
+    activityId: string;
+    title: string;
+    type: 'MOCK' | 'PRACTICE_QUIZ';
+    unitIndex: number;
+  }>,
+): Promise<CohortQuizPerformance> {
+  const empty: CohortQuizPerformance = {
+    quizzes: [],
+    byStudent: {},
+    summary: { avgQuizScore: null, passRate: null, attempts: 0, passes: 0, perfRisk: 0 },
+  };
+  const quizActivityIds = quizActivities.map((a) => a.activityId);
+  if (quizActivityIds.length === 0 || studentIds.length === 0) return empty;
+  const studentIdSet = new Set(studentIds);
+
+  const { data: rows } = await supabase
+    .from('nclex_attempts')
+    .select('student_id, programme_activity_id, final_score, pass_score, ended_at, status')
+    .eq('programme_id', programmeId)
+    .in('programme_activity_id', quizActivityIds)
+    .in('status', ['COMPLETED', 'TIMED_OUT']);
+
+  type AttRow = {
+    student_id: string;
+    programme_activity_id: string | null;
+    final_score: number | null;
+    pass_score: number | null;
+    ended_at: string | null;
+    status: string;
+  };
+
+  // best[student|activity] = the highest-scoring terminal attempt.
+  const best = new Map<string, { score: number; passScore: number | null }>();
+  // latest[student] = the student's most recent terminal attempt (any quiz).
+  const latest = new Map<string, { score: number; passScore: number | null; endedAt: string }>();
+
+  for (const r of (rows ?? []) as AttRow[]) {
+    if (!studentIdSet.has(r.student_id)) continue;
+    if (r.final_score == null || !r.programme_activity_id) continue;
+    const score = r.final_score;
+    const bk = `${r.student_id}|${r.programme_activity_id}`;
+    const prevBest = best.get(bk);
+    if (!prevBest || score > prevBest.score) {
+      best.set(bk, { score, passScore: r.pass_score });
+    }
+    const endedAt = r.ended_at ?? '';
+    const prevLatest = latest.get(r.student_id);
+    if (!prevLatest || endedAt > prevLatest.endedAt) {
+      latest.set(r.student_id, { score, passScore: r.pass_score, endedAt });
+    }
+  }
+
+  const pct = (frac: number) => Math.round(frac * 100);
+  const passedOf = (score: number, passScore: number | null) =>
+    passScore != null && score >= passScore;
+
+  // Per-quiz rows.
+  const quizzes: QuizPerfRow[] = quizActivities.map((q) => {
+    const entries = studentIds
+      .map((sid) => best.get(`${sid}|${q.activityId}`))
+      .filter((e): e is { score: number; passScore: number | null } => !!e);
+    const attempted = entries.length;
+    const graded = entries.some((e) => e.passScore != null);
+    const passed = entries.filter((e) => passedOf(e.score, e.passScore)).length;
+    const avgScore = attempted
+      ? pct(entries.reduce((a, e) => a + e.score, 0) / attempted)
+      : 0;
+    return {
+      activityId: q.activityId,
+      title: q.title,
+      type: q.type,
+      unitIndex: q.unitIndex,
+      attempted,
+      passed,
+      passRate: graded && attempted ? Math.round((passed / attempted) * 100) : null,
+      avgScore,
+      graded,
+    };
+  });
+
+  // Per-student standing.
+  const byStudent: Record<string, StudentQuizPerf> = {};
+  for (const sid of studentIds) {
+    const bestScores: number[] = [];
+    const scores: Record<string, { score: number; pass: boolean | null }> = {};
+    for (const q of quizActivities) {
+      const e = best.get(`${sid}|${q.activityId}`);
+      if (e) {
+        bestScores.push(e.score);
+        scores[q.activityId] = {
+          score: pct(e.score),
+          pass: e.passScore != null ? passedOf(e.score, e.passScore) : null,
+        };
+      }
+    }
+    const lt = latest.get(sid);
+    byStudent[sid] = {
+      avgScore: bestScores.length
+        ? pct(bestScores.reduce((a, b) => a + b, 0) / bestScores.length)
+        : null,
+      latestScore: lt ? pct(lt.score) : null,
+      latestPass: lt && lt.passScore != null ? passedOf(lt.score, lt.passScore) : null,
+      failedLatest: !!lt && lt.passScore != null && !passedOf(lt.score, lt.passScore),
+      scores,
+    };
+  }
+
+  // Cohort summary — over every best (student × quiz) entry.
+  const allBest = [...best.values()];
+  const attempts = allBest.length;
+  const gradedBest = allBest.filter((e) => e.passScore != null);
+  const passes = gradedBest.filter((e) => passedOf(e.score, e.passScore)).length;
+  const avgQuizScore = attempts
+    ? pct(allBest.reduce((a, e) => a + e.score, 0) / attempts)
+    : null;
+  const perfRisk = Object.values(byStudent).filter((p) => p.failedLatest).length;
+
+  return {
+    quizzes,
+    byStudent,
+    summary: {
+      avgQuizScore,
+      passRate: gradedBest.length ? Math.round((passes / gradedBest.length) * 100) : null,
+      attempts,
+      passes,
+      perfRisk,
+    },
   };
 }
 

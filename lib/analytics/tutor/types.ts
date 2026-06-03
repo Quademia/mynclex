@@ -63,6 +63,52 @@ export interface CohortAnalyticsSummary {
   stale: number;
 }
 
+// ── Phase 2 — quiz performance (teal) ──────────────────────────────────
+
+/** One quiz (MOCK / PRACTICE_QUIZ activity) the cohort has reached. */
+export interface QuizPerfRow {
+  activityId: string;
+  title: string;
+  type: 'MOCK' | 'PRACTICE_QUIZ';
+  unitIndex: number;
+  /** Students with ≥1 terminal (scored) attempt. */
+  attempted: number;
+  /** Best-attempt passes — only meaningful when graded. */
+  passed: number;
+  /** passed / attempted, 0–100; null when the quiz has no pass mark. */
+  passRate: number | null;
+  /** Mean of each student's best score, 0–100. */
+  avgScore: number;
+  graded: boolean;
+}
+
+/** A student's quiz standing, merged into their completion row by userId. */
+export interface StudentQuizPerf {
+  /** Mean of best scores across quizzes they've reached, 0–100; null = none. */
+  avgScore: number | null;
+  /** Most recent terminal attempt's score, 0–100; null = none. */
+  latestScore: number | null;
+  /** Whether that latest attempt passed (null = ungraded or none). */
+  latestPass: boolean | null;
+  /** Latest graded attempt was a fail. Drives the "failed last quiz" flag. */
+  failedLatest: boolean;
+  /** Per-quiz best score (activityId → score% + pass), for the drawer. */
+  scores: Record<string, { score: number; pass: boolean | null }>;
+}
+
+export interface CohortQuizPerformance {
+  quizzes: QuizPerfRow[];
+  byStudent: Record<string, StudentQuizPerf>;
+  summary: {
+    avgQuizScore: number | null;
+    passRate: number | null;
+    attempts: number;
+    passes: number;
+    /** Students whose most recent graded quiz was a fail. */
+    perfRisk: number;
+  };
+}
+
 export interface CohortAnalytics {
   meta: {
     cohortName: string;
@@ -78,4 +124,7 @@ export interface CohortAnalytics {
   activities: ActivityAnalyticsRow[];
   /** Weekly completion volume since cohort start — the headline sparkline. */
   completionTrend: number[];
+  /** Phase 2 — present only when requested (the Analytics tab); null on the
+   *  lighter Overview teaser read. */
+  performance: CohortQuizPerformance | null;
 }
