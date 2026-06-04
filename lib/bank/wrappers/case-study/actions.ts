@@ -198,6 +198,66 @@ export async function saveCaseMetadataAction(
   return { ok: true };
 }
 
+// "Publish all & publish case" — publishes every attached question, then
+// publishes the case. Offered from the wrapper's Publish toggle when all
+// 6 questions are present but one or more is still a draft. Safe because a
+// saved question row is always well-formed (so flipping the draft flag
+// can't surface a broken question), and case children can't leak as
+// standalone practice items (the student builder excludes
+// parent_case_id IS NOT NULL) — publishing them only makes them reachable
+// through this case. The curator opts into this explicitly; the wrapper
+// never publishes questions on its own. Save (saveCaseMetadataAction)
+// stays ungated.
+export async function publishCaseWithChildrenAction(
+  formData: FormData,
+): Promise<SaveResult> {
+  const surface = readSurface(formData);
+  const { supabase } = await requireBankCurator(surface);
+  const cfg = configFor(surface);
+
+  const case_id = String(formData.get('case_id') ?? '').trim();
+  if (!case_id) return { ok: false, error: 'Missing case_id.' };
+
+  // Resolve the attached question ids (positions 1-6).
+  const { data: joins, error: joinErr } = await supabase
+    .from(cfg.itemsTable)
+    .select('item_id, position')
+    .eq('case_id', case_id);
+  if (joinErr) return { ok: false, error: `Could not load questions: ${joinErr.message}` };
+
+  const inRange = (joins ?? []).filter(
+    (j) =>
+      typeof j.position === 'number' &&
+      j.position >= 1 &&
+      j.position <= 6 &&
+      typeof j.item_id === 'string' &&
+      j.item_id.length > 0,
+  );
+  const filled = new Set(inRange.map((j) => j.position as number)).size;
+  if (filled < 6) {
+    return {
+      ok: false,
+      error: `Publishing requires all 6 questions — only ${filled} attached.`,
+    };
+  }
+  const itemIds = inRange.map((j) => j.item_id as string);
+
+  // Publish the attached questions (idempotent — already-live ones stay live).
+  const qTable =
+    surface === 'tutor' ? 'nclex_tutor_questions' : 'nclex_bank_items';
+  const { error: pubErr } = await supabase
+    .from(qTable)
+    .update({ is_published: true, updated_at: new Date().toISOString() })
+    .in('item_id', itemIds);
+  if (pubErr) {
+    return { ok: false, error: `Could not publish the questions: ${pubErr.message}` };
+  }
+
+  // Persist the case (is_published on, from the form) through the normal
+  // metadata writer.
+  return saveCaseMetadataAction(formData);
+}
+
 // ─────────────────────────────────────────────────────────────
 // Chart-tab actions (upsert / delete / reorder)
 // ─────────────────────────────────────────────────────────────
