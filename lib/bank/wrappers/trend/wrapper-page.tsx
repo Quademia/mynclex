@@ -34,6 +34,7 @@ import {
 } from './actions';
 import { TrendDataTable } from './data-table';
 import { DeleteTrendConfirm } from './delete-trend-confirm';
+import { PublishNeedsDatasetNotice } from './publish-needs-dataset-notice';
 import type {
   SlotEditorInitial,
   SlotRow,
@@ -184,6 +185,13 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
   // ── Delete dialog ───────────────────────────────────────────
   const [showDelete, setShowDelete] = useState(false);
 
+  // ── Publish-needs-dataset offer ─────────────────────────────
+  // Holds the question's submitted FormData when the curator tries to
+  // publish a question while the dataset is still a draft. null = no
+  // pending offer.
+  const [pendingQuestionPublish, setPendingQuestionPublish] =
+    useState<FormData | null>(null);
+
   // ── Validation panel ────────────────────────────────────────
   // null = panel closed. Array = open with these issues. Re-clicking
   // Validate while open closes the panel.
@@ -285,6 +293,21 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
     if (isCreatingActive) {
       formData.set('trend_id', datasetRow.trend_id);
     }
+    // Reverse gate (mirror of the case study's): a trend question only
+    // reaches students when its dataset is published too. Block
+    // publishing the question while the dataset is still a draft, and
+    // offer to publish the dataset alongside it. We check the PERSISTED
+    // dataset flag (datasetRow.is_published) — an unsaved toggle doesn't
+    // count for delivery. Saving the question as a draft is never gated.
+    const publishingQuestion = formData.get('is_published') === 'on';
+    if (publishingQuestion && !datasetRow.is_published) {
+      setPendingQuestionPublish(formData);
+      return;
+    }
+    doSaveQuestion(formData);
+  }
+
+  function doSaveQuestion(formData: FormData) {
     setQuestionError(null);
     startQuestionTransition(async () => {
       const result = await saveQuestionAction(formData);
@@ -302,6 +325,40 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
         router.refresh();
       }
     });
+  }
+
+  // Confirm handler for the publish-needs-dataset offer: publish the
+  // dataset (save it live) first, then publish the question — so the
+  // question actually reaches students.
+  function onConfirmPublishWithDataset() {
+    const formData = pendingQuestionPublish;
+    if (!formData) return;
+    setPendingQuestionPublish(null);
+    setQuestionError(null);
+    startQuestionTransition(async () => {
+      const dsFd = buildWrapperFormData();
+      dsFd.set('is_published', 'on');
+      const dsResult = await saveTrendMetadataAction(dsFd);
+      if (!dsResult.ok) {
+        setQuestionError(`Couldn’t publish the dataset: ${dsResult.error}`);
+        return;
+      }
+      const qResult = await saveQuestionAction(formData);
+      if (!qResult.ok) {
+        setQuestionError(qResult.error);
+        return;
+      }
+      setIsPublished(true);
+      setEditorDirty(false);
+      if (isCreatingActive) {
+        setCreating(null);
+      }
+      router.refresh();
+    });
+  }
+
+  function onCancelPublishWithDataset() {
+    setPendingQuestionPublish(null);
   }
 
   function onEditorBodyDirty() {
@@ -755,6 +812,14 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
           issues={validationIssues}
           isPublished={isPublished}
           onClose={() => setValidationIssues(null)}
+        />
+      )}
+
+      {pendingQuestionPublish && (
+        <PublishNeedsDatasetNotice
+          pending={isQuestionPending}
+          onCancel={onCancelPublishWithDataset}
+          onPublishDataset={onConfirmPublishWithDataset}
         />
       )}
     </div>
