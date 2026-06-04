@@ -1014,6 +1014,7 @@ function DatasetView({
             label="Visible in student quiz builder"
             on={isBuilderVisible}
             onChange={onIsBuilderVisibleChange}
+            hint="No effect on trends — each question sets its own builder visibility."
           />
         </div>
       </section>
@@ -1035,20 +1036,25 @@ function VisibilityFlag({
   label,
   on,
   onChange,
+  hint,
 }: {
   label:    string;
   on:       boolean;
   onChange: (next: boolean) => void;
+  hint?:    string;
 }) {
   return (
-    <label className="auth-tr-visibility-row">
-      <input
-        type="checkbox"
-        checked={on}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <span>{label}</span>
-    </label>
+    <div className="auth-tr-visibility-item">
+      <label className="auth-tr-visibility-row">
+        <input
+          type="checkbox"
+          checked={on}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        <span>{label}</span>
+      </label>
+      {hint && <span className="auth-tr-visibility-hint">{hint}</span>}
+    </div>
   );
 }
 
