@@ -18,10 +18,13 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { ProgrammeLengthDecreaseConfirm } from '@/lib/overlays/programmes/programme-length-decrease-confirm';
 import { ErrorToast } from '@/lib/toast/error-toast';
+import { Segmented, Switch } from './form-controls';
+import { ProgIcon } from './prog-icon';
 import { createProgrammeAction, editProgrammeAction } from './actions';
 import type {
   Currency,
@@ -84,6 +87,9 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showDiscard, setShowDiscard] = useState(false);
+  // Drives the inline validation banner + per-field invalid styling once
+  // the tutor has tried to submit an incomplete form.
+  const [triedSubmit, setTriedSubmit] = useState(false);
 
   // Slice 9.1d — length-decrease confirmation. When the server
   // action returns `requiresConfirm` (tutor shrank length_units
@@ -138,17 +144,15 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
     initial?.access_window_days != null ? String(initial.access_window_days) : ''
   );
 
-  // Smart default: when delivery_mode changes in create mode AND
-  // tutor hasn't manually picked a label yet, flip the label.
-  useEffect(() => {
-    if (unitLabelTouched) return;
-    setUnitLabel(defaultUnitLabelFor(deliveryMode));
-  }, [deliveryMode, unitLabelTouched]);
-
-  useEffect(() => {
-    if (collectionModeTouched) return;
-    setCollectionMode(defaultCollectionFor(deliveryMode));
-  }, [deliveryMode, collectionModeTouched]);
+  // Smart defaults: when delivery mode changes (create mode only — the
+  // control is disabled in edit), flip the unit label + collection mode
+  // unless the tutor has already picked one. Done in the change handler
+  // (not an effect) since deliveryMode only ever changes here.
+  function handleDeliveryChange(mode: DeliveryMode) {
+    setDeliveryMode(mode);
+    if (!unitLabelTouched) setUnitLabel(defaultUnitLabelFor(mode));
+    if (!collectionModeTouched) setCollectionMode(defaultCollectionFor(mode));
+  }
 
   // Dirty tracking — gates the discard-confirm dialog. In create mode
   // dirty = any deviation from blank defaults; in edit mode dirty =
@@ -219,7 +223,7 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
 
   function handleSubmit(confirmDestructive: boolean = false) {
     if (!isFormValid) {
-      setError('Fill in the required fields.');
+      setTriedSubmit(true);
       return;
     }
     setError(null);
@@ -263,13 +267,14 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
     });
   }
 
-  const modalTitle = isEdit ? 'Edit programme' : 'New programme';
-  const submitLabel = isEdit
-    ? isPending
+  const eyebrow = isEdit ? 'Edit programme' : 'New programme';
+  const headerTitle = isEdit ? initial?.title || 'Edit programme' : 'Create a programme';
+  const submitText = isPending
+    ? isEdit
       ? 'Saving…'
-      : 'Save changes'
-    : isPending
-      ? 'Creating…'
+      : 'Creating…'
+    : isEdit
+      ? 'Save changes'
       : 'Create programme';
 
   // Label strings flip with unit_label.
@@ -280,20 +285,29 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
       ? 'How many weeks of curriculum.'
       : 'How many modules of curriculum.';
 
-  return (
+  // Portal to <body>: the modal is rendered inside a programme card, so
+  // without this its fixed overlay sits inside the card's stacking context
+  // (sibling cards paint over it + intercept clicks). document is always
+  // present — the modal only ever mounts on a client click.
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <>
       <div
         className="prog-modal-overlay"
         role="dialog"
         aria-modal="true"
-        aria-label={modalTitle}
+        aria-label={eyebrow}
         onClick={(e) => {
           if (e.target === e.currentTarget) attemptClose();
         }}
       >
         <div className="prog-modal">
           <header className="prog-modal-header">
-            <h2 className="prog-modal-title">{modalTitle}</h2>
+            <div>
+              <p className="prog-modal-eyebrow">{eyebrow}</p>
+              <h2 className="prog-modal-title">{headerTitle}</h2>
+            </div>
             <button
               type="button"
               className="prog-modal-close"
@@ -301,11 +315,22 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
               onClick={attemptClose}
               disabled={isPending}
             >
-              ✕
+              <ProgIcon name="x" size={18} />
             </button>
           </header>
 
           <div className="prog-modal-body">
+            {triedSubmit && !isFormValid && (
+              <div className="prog-error-banner" role="alert">
+                <ProgIcon name="alert" size={15} />
+                <span>
+                  {trimmedTitle.length === 0
+                    ? `Give your programme a title before you can ${isEdit ? 'save' : 'create'} it.`
+                    : 'Check the highlighted fields before you continue.'}
+                </span>
+              </div>
+            )}
+
             {/* IDENTITY */}
             <section className="prog-form-section">
               <h3 className="prog-form-section-title">Identity</h3>
@@ -316,7 +341,10 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
                 </span>
                 <input
                   type="text"
-                  className="prog-input"
+                  className={
+                    'prog-input' +
+                    (triedSubmit && trimmedTitle.length === 0 ? ' is-invalid' : '')
+                  }
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   disabled={isPending}
@@ -357,21 +385,20 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
             <section className="prog-form-section">
               <h3 className="prog-form-section-title">Shape</h3>
 
-              <label className="prog-field">
+              <div className="prog-field">
                 <span className="prog-field-label">
                   Delivery mode <span className="prog-required">*</span>
                 </span>
-                <select
-                  className="prog-input"
+                <Segmented<DeliveryMode>
                   value={deliveryMode}
-                  onChange={(e) =>
-                    setDeliveryMode(e.target.value as DeliveryMode)
-                  }
+                  onChange={handleDeliveryChange}
                   disabled={isPending || isEdit}
-                >
-                  <option value="TUTOR_LED">Tutor-led (cohorts)</option>
-                  <option value="SELF_PACED">Self-paced (no cohorts)</option>
-                </select>
+                  ariaLabel="Delivery mode"
+                  options={[
+                    { value: 'TUTOR_LED', label: 'Tutor-led' },
+                    { value: 'SELF_PACED', label: 'Self-paced' },
+                  ]}
+                />
                 <span className="prog-field-help">
                   {isEdit
                     ? 'Delivery mode is set at create-time and can’t be changed.'
@@ -379,30 +406,31 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
                       ? 'Students enrol per cohort with shared start/end dates.'
                       : 'Students enrol directly and progress at their own pace.'}
                 </span>
-              </label>
+              </div>
 
               <div className="prog-field-row">
-                <label className="prog-field">
+                <div className="prog-field">
                   <span className="prog-field-label">
                     Unit label <span className="prog-required">*</span>
                   </span>
-                  <select
-                    className="prog-input"
+                  <Segmented<UnitLabel>
                     value={unitLabel}
-                    onChange={(e) => {
-                      setUnitLabel(e.target.value as UnitLabel);
+                    onChange={(v) => {
+                      setUnitLabel(v);
                       setUnitLabelTouched(true);
                     }}
                     disabled={isPending}
-                  >
-                    <option value="WEEK">Weeks</option>
-                    <option value="MODULE">Modules</option>
-                  </select>
+                    ariaLabel="Unit label"
+                    options={[
+                      { value: 'WEEK', label: 'Weeks' },
+                      { value: 'MODULE', label: 'Modules' },
+                    ]}
+                  />
                   <span className="prog-field-help">
                     Renders curriculum units as &ldquo;Week N&rdquo; or
                     &ldquo;Module N&rdquo;.
                   </span>
-                </label>
+                </div>
 
                 <label className="prog-field">
                   <span className="prog-field-label">
@@ -428,24 +456,25 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
               <h3 className="prog-form-section-title">Pricing</h3>
 
               <div className="prog-field-row">
-                <label className="prog-field">
+                <div className="prog-field">
                   <span className="prog-field-label">
                     Currency <span className="prog-required">*</span>
                   </span>
-                  <select
-                    className="prog-input"
+                  <Segmented<Currency>
                     value={currency}
-                    onChange={(e) => setCurrency(e.target.value as Currency)}
+                    onChange={setCurrency}
                     disabled={isPending}
-                  >
-                    <option value="GHS">GHS (₵)</option>
-                    <option value="USD">USD ($)</option>
-                  </select>
+                    ariaLabel="Currency"
+                    options={[
+                      { value: 'GHS', label: 'GHS ₵' },
+                      { value: 'USD', label: 'USD $' },
+                    ]}
+                  />
                   <span className="prog-field-help">
                     The single currency you collect in. Students browsing in
                     another currency see an approximate equivalent later.
                   </span>
-                </label>
+                </div>
 
                 <label className="prog-field">
                   <span className="prog-field-label">
@@ -470,75 +499,71 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
                 </label>
               </div>
 
-              <label className="prog-toggle">
-                <input
-                  type="checkbox"
-                  checked={showPricePublicly}
-                  onChange={(e) => setShowPricePublicly(e.target.checked)}
+              <div className="prog-switch-field">
+                <div className="prog-switch-text">
+                  <span className="prog-switch-label">Show price on the public listing</span>
+                  <span className="prog-switch-help">
+                    When off, students see a &ldquo;Contact&rdquo; button instead.
+                  </span>
+                </div>
+                <Switch
+                  on={showPricePublicly}
+                  onChange={setShowPricePublicly}
                   disabled={isPending}
+                  ariaLabel="Show price on the public listing"
                 />
-                <span>Show price on the public listing</span>
-              </label>
-              <span className="prog-field-help prog-toggle-help">
-                Off → &ldquo;Contact&rdquo; button shown instead.
-              </span>
+              </div>
             </section>
 
             {/* ACCESS & COLLECTION */}
             <section className="prog-form-section">
               <h3 className="prog-form-section-title">Access &amp; collection</h3>
 
-              <div className="prog-field-row">
-                <label className="prog-field">
-                  <span className="prog-field-label">Online checkout</span>
-                  <select
-                    className="prog-input"
-                    value={collectionMode}
-                    onChange={(e) => {
-                      setCollectionMode(
-                        e.target.value as PaymentCollectionMode
-                      );
-                      setCollectionModeTouched(true);
-                    }}
-                    disabled={isPending}
-                  >
-                    <option value="ON_PLATFORM">
-                      On — show a Paystack &ldquo;Pay &amp; enrol&rdquo; button
-                    </option>
-                    <option value="OFF_PLATFORM">
-                      Off — enrol students manually
-                    </option>
-                  </select>
-                  <span className="prog-field-help">
-                    Controls only the public page&rsquo;s online checkout
-                    button. You can always add students by hand from your
-                    roster either way. (Online checkout goes live in a later
-                    release.)
+              <div className="prog-switch-field">
+                <div className="prog-switch-text">
+                  <span className="prog-switch-label">Online checkout</span>
+                  <span className="prog-switch-help">
+                    On → a Paystack &ldquo;Pay &amp; enrol&rdquo; button on the
+                    public page. Off → you enrol students manually. You can add
+                    students by hand either way. (Goes live in a later release.)
                   </span>
-                </label>
-
-                <label className="prog-field">
-                  <span className="prog-field-label">Access window (days)</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    className="prog-input"
-                    placeholder="Lifetime"
-                    value={accessWindowDays}
-                    onChange={(e) => setAccessWindowDays(e.target.value)}
-                    disabled={isPending}
-                  />
-                  <span className="prog-field-help">
-                    How long a student keeps access after enrolling. Blank =
-                    lifetime (while your subscription stays active).
-                  </span>
-                </label>
+                </div>
+                <Switch
+                  on={collectionMode === 'ON_PLATFORM'}
+                  onChange={(on) => {
+                    setCollectionMode(on ? 'ON_PLATFORM' : 'OFF_PLATFORM');
+                    setCollectionModeTouched(true);
+                  }}
+                  disabled={isPending}
+                  ariaLabel="Online checkout"
+                />
               </div>
+
+              <label className="prog-field" style={{ marginTop: '14px' }}>
+                <span className="prog-field-label">Access window (days)</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  className="prog-input"
+                  placeholder="Lifetime"
+                  value={accessWindowDays}
+                  onChange={(e) => setAccessWindowDays(e.target.value)}
+                  disabled={isPending}
+                />
+                <span className="prog-field-help">
+                  How long a student keeps access after enrolling. Blank =
+                  lifetime (while your subscription stays active).
+                </span>
+              </label>
             </section>
           </div>
 
           <footer className="prog-modal-footer">
+            <span className="prog-modal-footer-note">
+              <ProgIcon name="info" size={13} /> Changes save when you{' '}
+              {isEdit ? 'update' : 'create'}.
+            </span>
             <button
               type="button"
               className="prog-btn prog-btn-ghost"
@@ -551,9 +576,10 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
               type="button"
               className="prog-btn prog-btn-primary"
               onClick={() => handleSubmit(false)}
-              disabled={!isFormValid || isPending || (isEdit && !isDirty)}
+              disabled={isPending || (isEdit && !isDirty)}
             >
-              {submitLabel}
+              {isPending && <span className="prog-spinner" />}
+              {submitText}
             </button>
           </footer>
         </div>
@@ -588,6 +614,7 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
           onConfirm={() => handleSubmit(true)}
         />
       )}
-    </>
+    </>,
+    document.body,
   );
 }

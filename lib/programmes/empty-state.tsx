@@ -1,20 +1,22 @@
 // mynclex/lib/programmes/empty-state.tsx
 //
-// First-login empty state for the My Programmes list. Shows when
-// the tutor has zero programmes. CTA wires straight to
-// <NewProgrammeTrigger> (slice 9.1b).
+// First-login empty state for the Programmes list (zero programmes).
+// CD uplift: a rounded icon badge + warmer copy + the primary CTA that
+// wires straight to <NewProgrammeTrigger variant="empty">.
 
 import { NewProgrammeTrigger } from './new-programme-trigger';
+import { ProgIcon } from './prog-icon';
 
 export function ProgrammesEmpty() {
   return (
     <div className="programmes-empty">
-      <h2 className="programmes-empty-title">
-        You haven&apos;t created any programmes yet.
-      </h2>
+      <div className="programmes-empty-icon">
+        <ProgIcon name="calendar" size={28} />
+      </div>
+      <h2 className="programmes-empty-title">Create your first programme</h2>
       <p className="programmes-empty-sub">
-        Programmes organise weeks of curriculum and host live sessions for
-        a cohort of students.
+        A programme is a curriculum plus the cohorts of students you run it
+        with. Set it up once, then add cohorts whenever a new group starts.
       </p>
       <NewProgrammeTrigger variant="empty" />
     </div>

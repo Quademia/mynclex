@@ -312,7 +312,7 @@ function ProgrammeCard({ p }: { p: HomeProgramme }) {
   const healthLabel =
     p.health === 'on-track' ? 'On track' : p.health === 'watch' ? 'Needs a look' : '—';
   return (
-    <Link className="programme-card th-prog" href={`/tutor/programme/${p.programmeId}/overview`}>
+    <Link className="th-prog" href={`/tutor/programme/${p.programmeId}/overview`}>
       <div className="th-prog-head">
         <h3 className="programme-card-title">{p.title}</h3>
         <span className="programme-pill is-live">Live</span>

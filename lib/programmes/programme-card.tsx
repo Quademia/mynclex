@@ -1,38 +1,47 @@
 // mynclex/lib/programmes/programme-card.tsx
 //
-// Server component — pure presentation + a client-component edit
-// trigger. Uses the "overlay link" pattern so the whole card is a
-// hyperlink to /tutor/programme/<id>/overview while the in-card
-// Edit button stays interactive (z-index trick).
+// Server component — one programme card on the Programmes list. Uses
+// the "overlay link" pattern so the whole card opens the programme
+// (/tutor/programme/<id>/overview) while the Edit pencil + "Add first
+// cohort" button stay independently clickable (pointer-events handled
+// in CSS; the overlay link sits at z-index 1).
 //
-// Slice 9.2a: schedule line replaced by cohort-count line +
-// programme-length shape line (since dates now belong to cohorts).
-// Real per-cohort schedule rendering lands with the Cohorts tab
-// in 9.2c.
+// CD uplift (programmes list redesign): tagline under title, a shape
+// line, a completion meter + health (live tutor-led with an active
+// cohort), state-aware foot (self-paced / zero-cohort / draft / normal),
+// and a price. Completion data comes from getMyProgrammesForList.
 
 import Link from 'next/link';
-import type { ProgrammeListRow } from './types';
+import type { ProgrammeCardRow } from './types';
 import {
-  formatCohortCount,
+  formatHealthLabel,
   formatLength,
+  formatPrice,
   formatStatusLabel,
   statusPillClass,
 } from './format';
+import { ProgIcon } from './prog-icon';
 import { EditProgrammeTrigger } from './edit-programme-trigger';
 import { NewCohortTrigger } from '@/lib/cohorts/new-cohort-trigger';
 
-export function ProgrammeCard({ programme }: { programme: ProgrammeListRow }) {
-  const isMuted = programme.status === 'ARCHIVED';
-  const isSelfPaced = programme.delivery_mode === 'SELF_PACED';
-  // TUTOR_LED programmes with zero cohorts get the "+ Add first
-  // cohort" inline affordance instead of the cohort-count text —
-  // the entry point Sam picked (option a) so the action is
-  // discoverable without navigating into the programme.
-  const showAddFirstCohort =
-    !isSelfPaced && programme.cohort_count === 0;
+export function ProgrammeCard({ programme }: { programme: ProgrammeCardRow }) {
+  const archived = programme.status === 'ARCHIVED';
+  const draft = programme.status === 'DRAFT';
+  const live = programme.status === 'PUBLISHED';
+  const selfPaced = programme.delivery_mode === 'SELF_PACED';
+  // "Add first cohort" surfaces on any tutor-led programme with no cohort
+  // yet — draft OR live (you can set up cohorts before publishing; the
+  // Overview cohort-empty CTA behaves the same). Archived is excluded.
+  const zeroCohort = !selfPaced && !archived && programme.cohort_count === 0;
+  const hasMeter =
+    live && !selfPaced && programme.cohort_count > 0 && programme.avgCompletion != null && !!programme.health;
+
+  let cardCls = 'programme-card';
+  if (archived) cardCls += ' is-muted';
+  else if (draft) cardCls += ' is-draft';
 
   return (
-    <div className={`programme-card ${isMuted ? 'is-muted' : ''}`}>
+    <div className={cardCls}>
       <Link
         href={`/tutor/programme/${programme.programme_id}/overview`}
         className="programme-card-link"
@@ -42,36 +51,65 @@ export function ProgrammeCard({ programme }: { programme: ProgrammeListRow }) {
       </Link>
 
       <div className="programme-card-head">
-        <h2 className="programme-card-title">{programme.title}</h2>
+        <div className="programme-card-titlewrap">
+          <h2 className="programme-card-title">{programme.title}</h2>
+          {programme.tagline && (
+            <p className="programme-card-tagline">{programme.tagline}</p>
+          )}
+        </div>
         <div className="programme-card-actions">
           <span className={`programme-pill ${statusPillClass(programme.status)}`}>
             {formatStatusLabel(programme.status)}
           </span>
-          <EditProgrammeTrigger programme={programme} />
+          {!archived && <EditProgrammeTrigger programme={programme} />}
         </div>
       </div>
 
-      {programme.tagline && (
-        <p className="programme-card-tagline">{programme.tagline}</p>
+      <div className="programme-card-shape">
+        <ProgIcon name="layers" size={13} />
+        {formatLength(programme.length_units, programme.unit_label)}
+        {selfPaced ? ' · self-paced' : ''}
+      </div>
+
+      {hasMeter && (
+        <div className="programme-meter-row">
+          <div
+            className="programme-meter"
+            title={`${programme.avgCompletion}% average completion`}
+          >
+            <span
+              className={`programme-meter-fill health-${programme.health}`}
+              style={{ width: `${programme.avgCompletion}%` }}
+            />
+          </div>
+          <span className={`programme-health health-${programme.health}`}>
+            {formatHealthLabel(programme.health!)} · {programme.avgCompletion}% avg
+          </span>
+        </div>
       )}
 
       <div className="programme-card-foot">
-        <span className="programme-card-meta">
-          {formatLength(programme.length_units, programme.unit_label)}
-        </span>
-        {showAddFirstCohort ? (
+        {selfPaced ? (
+          <span className="programme-card-meta is-selfpaced">
+            <ProgIcon name="zap" size={13} /> Self-paced · {programme.students} enrolled
+          </span>
+        ) : zeroCohort ? (
           <NewCohortTrigger
             programmeId={programme.programme_id}
             programmeLengthUnits={programme.length_units}
             variant="card"
           />
         ) : (
-          <span className="programme-card-schedule">
-            {isSelfPaced
-              ? 'Self-paced'
-              : formatCohortCount(programme.cohort_count)}
+          <span className="programme-card-meta">
+            {programme.cohort_count} {programme.cohort_count === 1 ? 'cohort' : 'cohorts'} ·{' '}
+            {programme.students} students
           </span>
         )}
+        <span
+          className={'programme-card-price' + (programme.upfront_total_minor === 0 ? ' is-free' : '')}
+        >
+          {formatPrice(programme.upfront_total_minor, programme.price_currency)}
+        </span>
       </div>
     </div>
   );

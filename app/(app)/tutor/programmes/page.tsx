@@ -8,7 +8,7 @@
 // global sidebar) comes from this folder's layout.tsx via
 // <TutorGlobalShell>.
 
-import { getMyProgrammes } from '@/lib/programmes/queries';
+import { getMyProgrammesForList } from '@/lib/programmes/queries';
 import { ProgrammeList } from '@/lib/programmes/programme-list';
 import { ProgrammesEmpty } from '@/lib/programmes/empty-state';
 import { NewProgrammeTrigger } from '@/lib/programmes/new-programme-trigger';
@@ -16,7 +16,7 @@ import { NewProgrammeTrigger } from '@/lib/programmes/new-programme-trigger';
 export const dynamic = 'force-dynamic';
 
 export default async function TutorProgrammesPage() {
-  const programmes = await getMyProgrammes();
+  const programmes = await getMyProgrammesForList();
 
   return (
     <div className="programmes-page">
@@ -24,10 +24,10 @@ export default async function TutorProgrammesPage() {
         <div>
           <h1 className="programmes-title">Programmes</h1>
           <p className="programmes-sub">
-            Programmes you own or co-run.
+            Every programme you run — manage cohorts, pricing and publishing.
           </p>
         </div>
-        <NewProgrammeTrigger variant="header" />
+        {programmes.length > 0 && <NewProgrammeTrigger variant="header" />}
       </header>
 
       {programmes.length === 0 ? (

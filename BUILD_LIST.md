@@ -8,8 +8,32 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **ON SESSION BRANCH (2026-06-03, NOT yet merged to `main`) — Cohort
-> Analytics: the tutor "how is my class doing" dashboard.** Built + Sam-
+> **TOP-DOWN MVP SWEEP (2026-06-04).** Sam's review-and-polish pass toward
+> MVP, starting at the tutor's landing surface and moving outward. Two
+> surfaces done, both CD-designed → implemented:
+>
+> - **Tutor Home — `/tutor` (✅ MERGED to `main`, `bab82f0`).** Was a
+>   redirect; now a cross-programme triage dashboard: greeting + four KPI
+>   cards · "Needs your attention" (open enquiries + lagging cohorts) ·
+>   This week (live-session timeline) · Your programmes (completion meter +
+>   health) · Your workspace. Brand-new-tutor getting-started state. New
+>   `NavItem.exact` flag + "Home" sidebar entry. No migration (reuses
+>   `getCohortAnalytics` etc.). `lib/home/tutor/` + `styles/tutor-home.css`;
+>   spec `docs/product-plan/tutor-home.md`.
+> - **Programmes list + modals — `/tutor/programmes` (✅ on session branch
+>   this commit).** Search/filter/sort + richer cards (completion meter,
+>   students, price, "+ Add first cohort", archived disclosure) +
+>   `getMyProgrammesForList`. Both modals (programme + cohort, create/edit)
+>   restyled (eyebrow header, segmented controls, switch toggles, inline
+>   error banner) with all logic preserved, and **portaled to `document.body`**
+>   to escape the in-card stacking-context trap (twitch / bleed-through /
+>   click-through). No migration.
+>
+> **Next per the sweep:** continue outward from the Programmes list — the
+> programme **Overview** (detail landing) is still a placeholder.
+
+> **MERGED to `main` (2026-06-03) — Cohort Analytics: the tutor "how is my
+> class doing" dashboard.** Built + Sam-
 > tested on dev; typecheck/lint-clean. Lives on a new **Analytics** tab in
 > the cohort workspace; the old cohort **"Students" tab was renamed
 > "Enrolments"** (it was always enrolment management). Code in

@@ -12,9 +12,12 @@
 
 import { useState } from 'react';
 import { ProgrammeFormModal } from './programme-form-modal';
+import { ProgIcon } from './prog-icon';
 
 interface NewProgrammeTriggerProps {
-  variant?: 'header' | 'empty';
+  // 'header' — top-right of the list · 'empty' — empty-state CTA ·
+  // 'card' — the dashed "+ New programme" tile at the end of the grid.
+  variant?: 'header' | 'empty' | 'card';
 }
 
 export function NewProgrammeTrigger({
@@ -23,9 +26,13 @@ export function NewProgrammeTrigger({
   const [isOpen, setIsOpen] = useState(false);
 
   const buttonClass =
-    variant === 'header' ? 'programmes-new-btn' : 'programmes-empty-cta';
-  const buttonLabel =
-    variant === 'header' ? '+ New programme' : '+ Create your first programme';
+    variant === 'header'
+      ? 'programmes-new-btn'
+      : variant === 'card'
+        ? 'programmes-newcard'
+        : 'programmes-empty-cta';
+  const label =
+    variant === 'empty' ? 'Create your first programme' : 'New programme';
 
   return (
     <>
@@ -34,7 +41,7 @@ export function NewProgrammeTrigger({
         className={buttonClass}
         onClick={() => setIsOpen(true)}
       >
-        {buttonLabel}
+        <ProgIcon name="plus" size={variant === 'card' ? 20 : 15} /> {label}
       </button>
       {isOpen && (
         <ProgrammeFormModal mode="create" onClose={() => setIsOpen(false)} />

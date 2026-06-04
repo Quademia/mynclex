@@ -9,8 +9,11 @@
 // once the co-tutor join table lands; for v1 the creator is the sole
 // tutor.
 
-import { createClient } from '@/lib/supabase/server';
-import type { ProgrammeListRow } from './types';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { getCohortsForProgramme } from '@/lib/cohorts/queries';
+import { cohortStatus } from '@/lib/cohorts/format';
+import { getCohortAnalytics } from '@/lib/analytics/tutor/cohort-queries';
+import type { ProgrammeCardRow, ProgrammeListRow } from './types';
 
 export async function getMyProgrammes(): Promise<ProgrammeListRow[]> {
   const supabase = await createClient();
@@ -50,6 +53,80 @@ export async function getMyProgrammes(): Promise<ProgrammeListRow[]> {
     const cohort_count = nclex_cohorts?.[0]?.count ?? 0;
     const upfront_total_minor = upfront?.[0]?.total_price_minor ?? null;
     return { ...rest, cohort_count, upfront_total_minor } as ProgrammeListRow;
+  });
+}
+
+/**
+ * Enriched programme rows for the Programmes page cards — the base list
+ * plus read-time roll-ups:
+ *   • students — distinct ENROLLED count per programme (programme-level,
+ *     so it covers tutor-led + self-paced). Read with the service-role
+ *     client: enrolment rows aren't tutor-readable under RLS, but the
+ *     programme ids all come from getMyProgrammes (RLS-proven ownership),
+ *     so counting them is safe (same pattern as the cohort roster).
+ *   • avgCompletion / health — for live tutor-led programmes only, the
+ *     mean completion across their IN_PROGRESS cohorts (reuses the
+ *     analytics engine, so the numbers match the Analytics tab + Home).
+ *     null when there's no active cohort to measure → card shows no meter.
+ *
+ * Scale note: runs getCohortAnalytics once per active cohort — fine at
+ * v1 scale; cache if a tutor ever has enough to feel it.
+ */
+export async function getMyProgrammesForList(): Promise<ProgrammeCardRow[]> {
+  const programmes = await getMyProgrammes();
+  if (programmes.length === 0) return [];
+
+  const ids = programmes.map((p) => p.programme_id);
+
+  // ── Student counts (service role; ids are owner-proven) ──────────────
+  const admin = createServiceRoleClient();
+  const { data: enrolments } = await admin
+    .from('nclex_enrolments')
+    .select('programme_id, user_id')
+    .in('programme_id', ids)
+    .eq('status', 'ENROLLED');
+  const studentsByProgramme = new Map<string, Set<string>>();
+  for (const r of (enrolments ?? []) as Array<{ programme_id: string; user_id: string }>) {
+    const set = studentsByProgramme.get(r.programme_id) ?? new Set<string>();
+    set.add(r.user_id);
+    studentsByProgramme.set(r.programme_id, set);
+  }
+
+  // ── Completion roll-up for live tutor-led programmes ─────────────────
+  const measurable = programmes.filter(
+    (p) => p.status === 'PUBLISHED' && p.delivery_mode === 'TUTOR_LED' && p.cohort_count > 0,
+  );
+  const completionByProgramme = new Map<string, number>();
+  await Promise.all(
+    measurable.map(async (p) => {
+      const cohorts = await getCohortsForProgramme(p.programme_id);
+      const active = cohorts.filter((c) => cohortStatus(c) === 'IN_PROGRESS');
+      if (active.length === 0) return;
+      const analytics = await Promise.all(
+        active.map((c) =>
+          getCohortAnalytics(c.cohort_id, { includePerformance: false }),
+        ),
+      );
+      const avgs = analytics
+        .filter((a): a is NonNullable<typeof a> => a != null && a.summary.studentCount > 0)
+        .map((a) => a.summary.avgCompletion);
+      if (avgs.length === 0) return;
+      completionByProgramme.set(
+        p.programme_id,
+        Math.round(avgs.reduce((acc, n) => acc + n, 0) / avgs.length),
+      );
+    }),
+  );
+
+  return programmes.map((p) => {
+    const avg = completionByProgramme.get(p.programme_id);
+    const avgCompletion = avg ?? null;
+    return {
+      ...p,
+      students: studentsByProgramme.get(p.programme_id)?.size ?? 0,
+      avgCompletion,
+      health: avgCompletion == null ? null : avgCompletion >= 60 ? 'on-track' : 'watch',
+    };
   });
 }
 
