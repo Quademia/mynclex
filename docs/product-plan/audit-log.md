@@ -7,7 +7,8 @@ fold in library notes, quizzes, programmes and any future authored
 content (one trigger line each — see Step 3). Part of
 `mynclex/docs/product-plan/`.*
 
-Last updated: 2026-06-05 (Step 1 built + applied to dev — bank only)
+Last updated: 2026-06-05 (Step 2 — the readout — built across the bank
+lists, the case + trend wrapper topbars, and all 9 question editors)
 
 ---
 
@@ -94,23 +95,40 @@ write policies) → the history is **tamper-proof and append-only**.
   **Not retroactive** — existing content has no recorded creator; history
   accrues from now on.
 
-- **Step 2 — the readout (app-only, no DB): ⏭ NEXT.** "Created by X ·
-  Last edited by Y" columns on the wrapper **list pages** (start with the
-  4 wrapper lists — cases + trends, admin + tutor; then the
-  `/bank/all` question list). Read from the log: *created* = the
-  `created` / earliest row, *last edited* = the newest row; display
-  `changed_by_name` directly (no lookup). Columns show **"—"** for
-  pre-tracking content until each item is next edited. Layout TBD — start
-  with two columns; fold "last edited by" into the existing Updated
-  column if the tables feel cramped.
+- **Step 2 — the readout (app-only, no DB): ✅ BUILT.** "Created by X ·
+  Last edited by Y" + a 🕑 clock that opens the full append-only history
+  in a **body-portaled drawer**, across **three surfaces**:
+  - the **6 bank lists** (case/trend × admin/tutor + both `/bank/all`
+    question lists) — a stacked **"Authors"** column;
+  - the **case + trend wrapper editor topbars** — the wrapper's own
+    authorship, after the breadcrumb;
+  - **all 9 question editors** — a facts line atop each editor body,
+    covering both the standalone pop-up AND the embedded child-question
+    editor.
 
-- **Step 3 — later: ⬜.** Full contributor **timeline viewer** on the
-  editors. **Fold in other content** (library notes, quizzes,
-  programmes) — one trigger line each: `nclex_write_audit('<type>',
-  '<pk_col>', 'admin'|'tutor')`. Tutor-owned content needs an owner
-  column — if it isn't named `tutor_id`, pass it as a 4th trigger
-  argument (trivial generalization). Optional: extend to a full
-  field-level diff history.
+  *created* = the `created` row, *last edited* = the newest row, displaying
+  `changed_by_name` directly (no lookup). Each entity shows its **own**
+  history — a case's questions never roll up into the case row. Pre-tracking
+  content shows **"—"** until next edited (not retroactive).
+
+  Built as a product-wide, **entity-generic `lib/audit/` module**:
+  `authorship.ts` (batched facts), `timeline-actions.ts` (lazy timeline +
+  single-entity facts action), `history-drawer.tsx` (clock + drawer),
+  `authorship-line.tsx` (list-cell · inline · editor variants), and
+  `gates.ts` (a per-`entity_type` access-gate registry). Server-rendered
+  lists/wrappers pass facts as props; the client-mounted editors fetch
+  their own, so the same component is host-agnostic (pop-up or embedded).
+  Commits `6707eb1` (lists) · `b072df1` (wrappers) · `fb20b7b` (editors).
+
+- **Step 3 — later: ⬜.** The history **drawer already exists** (Step 2),
+  so the "timeline viewer" is essentially done. What remains is **folding
+  in other content** (library notes, quizzes, programmes): one trigger line
+  each — `nclex_write_audit('<type>', '<pk_col>', 'admin'|'tutor')` — **plus
+  one line in `lib/audit/gates.ts`** registering its access gate, then reuse
+  the same components with the new `entity_type`. Tutor-owned content needs
+  an owner column — if it isn't named `tutor_id`, pass it as a 4th trigger
+  argument (trivial generalization). Optional: extend to a full field-level
+  diff history.
 
 ## Related
 

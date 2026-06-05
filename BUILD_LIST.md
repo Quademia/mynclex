@@ -8,6 +8,34 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **AUTHORSHIP / AUDIT-LOG — STEP 2 (the readout) DONE (2026-06-05).** All
+> on the session branch. "Created by / Last edited by" + a history-drawer
+> clock now appear across every bank surface, reading the Step-1 logs (no
+> DB change):
+>
+> - **Lists (✅ `6707eb1`).** A stacked **Authors** column on all 6 bank
+>   lists (case/trend × admin/tutor + both `/bank/all` question lists).
+> - **Wrapper topbars (✅ `b072df1`).** Case + trend wrapper editors show
+>   the wrapper's own authorship after the breadcrumb.
+> - **Question editors (✅ `fb20b7b`).** A facts line + clock atop all 9
+>   editor bodies — covers the standalone pop-up AND the embedded
+>   child-question editor (each fetches its own facts; the drawer floats
+>   over the modal).
+> - **New product-wide `lib/audit/` module** — entity-generic (keyed on
+>   realm + `entity_type`) with a per-`entity_type` access-gate registry,
+>   so a new surface (library/quizzes/programmes) adds one trigger line +
+>   one gate line, no component code. Wrapper-only on lists (a case's
+>   questions never roll up). Not retroactive — pre-tracking rows show "—".
+> - **Bonus bugfix (✅ `9224ea7`).** Pre-existing question + case id
+>   auto-numbering collision (lexical-max + `parseInt` fell back to 1 on
+>   non-numeric/seed ids → pkey collision) — now scans for the true numeric
+>   max. Surfaced during testing; unrelated to the authorship work.
+>
+> Step 1 capture was merged earlier. **Step 3** (fold in
+> library/quizzes/programmes + optional field-level diffs) stays future —
+> the module + drawer are ready for it. Full design in
+> [audit-log.md](docs/product-plan/audit-log.md).
+
 > **BANK PUBLISH-INTEGRITY + AUTHORSHIP (2026-06-05).** A bank-curation
 > pass (all on the session branch, NOT yet merged to `main`). Triggered by
 > "track who created/updated a wrapper/question" but started with a
