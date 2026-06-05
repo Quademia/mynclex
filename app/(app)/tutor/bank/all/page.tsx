@@ -14,17 +14,13 @@ import {
   type BankListRowSummary,
 } from '@/lib/bank/bank-list-client';
 import { loadAuthorship } from '@/lib/audit/authorship';
-import { BankFilters } from '@/lib/bank/bank-filters';
 import {
   parseBankFilters,
   applyBankFilters,
   applyMembershipFilter,
   hasAnyBankFilter,
 } from '@/lib/bank/bank-list-query';
-import {
-  BankCounts,
-  type BankCompositionCounts,
-} from '@/lib/bank/bank-counts';
+import { BankBand, type BankBandCounts } from '@/lib/bank/bank-band';
 import {
   emptyMcqInitial,
   mcqRowToInitial,
@@ -89,6 +85,7 @@ interface FullTutorBankRow extends McqDbRow {
   parent_case_id: string | null;
   trend_id:       string | null;
   parent_note_id: string | null;
+  updated_at:     string;
   case:  { title: string } | null;
   trend: { title: string } | null;
 }
@@ -114,7 +111,7 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
     .from('nclex_tutor_questions')
     .select(
       MCQ_ROW_COLUMNS +
-      ', parent_case_id, trend_id, parent_note_id, ' +
+      ', parent_case_id, trend_id, parent_note_id, updated_at, ' +
       'trend:nclex_tutor_trend_datasets(title), ' +
       'case:nclex_tutor_case_studies(title)',
     );
@@ -130,47 +127,36 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
     .limit(500)
     .returns<FullTutorBankRow[]>();
 
-  // ── Composition counts ─────────────────────────────────────
-  type MembershipBucket = 'total' | 'standalone' | 'case' | 'trend';
-  const buildCountQuery = (
-    bucket: MembershipBucket,
-    applyNonMembership: boolean,
-  ) => {
-    let q = supabase
-      .from('nclex_tutor_questions')
-      .select('*', { count: 'exact', head: true });
-    if (bucket === 'standalone') {
-      q = q.is('parent_case_id', null).is('trend_id', null);
-    } else if (bucket === 'case') {
-      q = q.not('parent_case_id', 'is', null);
-    } else if (bucket === 'trend') {
-      q = q.not('trend_id', 'is', null);
-    }
-    if (applyNonMembership) {
-      q = applyBankFilters(q, filters);
-    }
-    return q;
-  };
-
+  // ── Band counts (whole-bank; the cards describe the population they
+  //    filter into, so they ignore the active filters — the "Showing X of
+  //    Y" line carries the filtered count). Eight parallel head-counts.
+  //    Composition buckets are mutually exclusive: note-born = has a
+  //    parent note AND no case/trend; standalone = none of the three.
+  const mk = () => supabase.from('nclex_tutor_questions').select('*', { count: 'exact', head: true });
   const [
-    totalAll, totalStandalone, totalCase, totalTrend,
-    filteredAll, filteredStandalone, filteredCase, filteredTrend,
+    cTotal, cStandalone, cCase, cTrend, cNote, cPublished, cDrafts, cFree,
   ] = await Promise.all([
-    buildCountQuery('total',      false),
-    buildCountQuery('standalone', false),
-    buildCountQuery('case',       false),
-    buildCountQuery('trend',      false),
-    buildCountQuery('total',      true),
-    buildCountQuery('standalone', true),
-    buildCountQuery('case',       true),
-    buildCountQuery('trend',      true),
+    mk(),
+    mk().is('parent_case_id', null).is('trend_id', null).is('parent_note_id', null),
+    mk().not('parent_case_id', 'is', null),
+    mk().not('trend_id', 'is', null),
+    mk().not('parent_note_id', 'is', null).is('parent_case_id', null).is('trend_id', null),
+    mk().eq('is_published', true),
+    mk().eq('is_published', false),
+    mk().eq('is_free_sample', true),
   ]);
 
-  const counts: BankCompositionCounts = {
-    total:       { filtered: filteredAll.count        ?? 0, total: totalAll.count        ?? 0 },
-    standalone:  { filtered: filteredStandalone.count ?? 0, total: totalStandalone.count ?? 0 },
-    caseLinked:  { filtered: filteredCase.count       ?? 0, total: totalCase.count       ?? 0 },
-    trendLinked: { filtered: filteredTrend.count      ?? 0, total: totalTrend.count      ?? 0 },
+  const bandCounts: BankBandCounts = {
+    total:       cTotal.count     ?? 0,
+    composition: {
+      standalone: cStandalone.count ?? 0,
+      case:       cCase.count       ?? 0,
+      trend:      cTrend.count      ?? 0,
+      note:       cNote.count       ?? 0,
+    },
+    published: cPublished.count ?? 0,
+    drafts:    cDrafts.count    ?? 0,
+    free:      cFree.count      ?? 0,
   };
 
   // ── Row mapping + per-type initials ────────────────────────
@@ -205,6 +191,7 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
     subcategory:    r.client_needs_subcategory ?? null,
     subject:        r.nursing_subject ?? null,
     bodySystem:     r.body_system ?? null,
+    updated_at:     r.updated_at,
     parent_case_id: r.parent_case_id,
     case_title:     r.case?.title ?? null,
     trend_id:       r.trend_id,
@@ -278,7 +265,7 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
           </div>
         </header>
 
-        <BankCounts counts={counts} />
+        <BankBand counts={bandCounts} filters={filters} baseUrl={BASE_URL} />
 
         {error && (
           <p className="auth-sandbox-error">
@@ -286,14 +273,14 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
           </p>
         )}
 
-        <BankFilters values={filters} baseUrl={BASE_URL} tagOptions={tagOptions} />
-
         <BankListClient
           surface="tutor"
           rows={summaryRows}
           authorshipById={authorship}
           hasAnyFilter={hasAnyFilter}
           baseUrl={BASE_URL}
+          filters={filters}
+          tagOptions={tagOptions}
           mcqInitialsById={mcqInitialsById}
           emptyMcqInitial={emptyMcqInitial('tutor')}
           tfInitialsById={tfInitialsById}

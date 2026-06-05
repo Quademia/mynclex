@@ -1,17 +1,24 @@
 // mynclex/lib/bank/bank-filters.tsx
 //
-// Filter bar above the bank list. LIVE-APPLY + FACETED: list axes are
-// multi-select checklists (OR within, AND across); on/off axes stay
-// single. Every change navigates (router.replace) — search debounced —
-// so the server re-queries and there's no "Apply" button. Shared by
-// /admin/bank/all and the tutor twin.
+// The Question Bank list's compact toolbar (2026-06 Claude Design "Bank
+// surfaces" redesign — the Hybrid). Replaces the old always-visible filter
+// grid with a single toolbar row: scoped search · Status segment · a
+// "Filters" popover holding every facet · a right slot (the "+ New
+// question" button). An active-filter chip row sits below.
 //
-// Param/value/apply logic lives in bank-list-query.ts — this file is the
-// UI only. Styles: .bank-filter-* / .bank-ms-* in styles/dashboards.css.
+// LIVE-APPLY + FACETED (unchanged logic): list axes are multi-select
+// (OR within, AND across); on/off axes (Free sample, Builder-visible) stay
+// single; Status is the segmented control. Every change navigates
+// (router.replace, search debounced) so the server re-queries — no Apply.
+//
+// Param/value/apply logic lives in bank-list-query.ts — this file is UI.
+// Rendered by BankListClient (so the whole toolbar is one row with the New
+// button + the sort/group controls). Styles: styles/bank-list.css (`bl-*`)
+// + the .bank-ms-* multi-select popovers from styles/dashboards.css.
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   QUESTION_TYPES,
@@ -30,6 +37,7 @@ import {
   emptyBankFilters,
   type BankFilterValues,
 } from '@/lib/bank/bank-list-query';
+import { SearchIcon } from '@/lib/bank/list-ui';
 
 const ALL_SUBCATEGORIES = Array.from(
   new Set(Object.values(CLIENT_NEEDS_SUBCATEGORIES).flat()),
@@ -38,24 +46,36 @@ const ALL_SUBCATEGORIES = Array.from(
 interface Opt { value: string; label: string }
 const toOpts = (xs: readonly string[]): Opt[] => xs.map((x) => ({ value: x, label: x }));
 
-// Keys whose value is a string[] (multi-select).
 type MultiKey =
   | 'type' | 'category' | 'subcategory' | 'subject' | 'bodySystem'
   | 'difficulty' | 'bloom' | 'membership' | 'tag';
 
-export function BankFilters({
+// Count of active facets shown inside the popover (everything except Status,
+// which is the segmented control, and the search box) — drives the button
+// badge.
+function facetCount(f: BankFilterValues): number {
+  return (
+    f.type.length + f.category.length + f.subcategory.length + f.subject.length +
+    f.bodySystem.length + f.difficulty.length + f.bloom.length + f.membership.length +
+    f.tag.length + (f.freeSample ? 1 : 0) + (f.builderVisible ? 1 : 0)
+  );
+}
+
+export function BankToolbar({
   values,
   baseUrl,
   tagOptions,
+  rightSlot,
 }: {
   values:     BankFilterValues;
   baseUrl:    string;
   tagOptions: string[];
+  /** Right-aligned slot — the "+ New question" button. */
+  rightSlot?: ReactNode;
 }) {
   const router = useRouter();
-  // Local mirror so controls feel instant; reconciled with incoming props
-  // via React's render-time "adjust state when a prop changes" pattern
-  // (compared by serialised signature — the server hands a fresh object).
+  // Local mirror so controls feel instant; reconciled when a fresh prop
+  // arrives (compared by serialised signature).
   const [local, setLocal] = useState<BankFilterValues>(values);
   const sig = serializeBankFilters(values);
   const [prevSig, setPrevSig] = useState(sig);
@@ -64,6 +84,8 @@ export function BankFilters({
     setLocal(values);
   }
 
+  const [showFacets, setShowFacets] = useState(false);
+
   function navigate(next: BankFilterValues) {
     const qs = serializeBankFilters(next);
     router.replace(qs ? `${baseUrl}?${qs}` : baseUrl, { scroll: false });
@@ -71,7 +93,6 @@ export function BankFilters({
 
   function setMulti(field: MultiKey, vals: string[]) {
     const next: BankFilterValues = { ...local, [field]: vals };
-    // Changing categories prunes now-orphaned subcategories.
     if (field === 'category') {
       const allowed = vals.length
         ? new Set(vals.flatMap((c) => CLIENT_NEEDS_SUBCATEGORIES[c as keyof typeof CLIENT_NEEDS_SUBCATEGORIES] ?? []))
@@ -88,7 +109,6 @@ export function BankFilters({
     navigate(next);
   }
 
-  // Search box is debounced.
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   function setSearch(q: string) {
     const next = { ...local, q };
@@ -128,113 +148,186 @@ export function BankFilters({
 
   const chips = describeActiveFilters(local);
   const active = hasAnyBankFilter(local);
+  const nFacets = facetCount(local);
+
+  const scopeLabel =
+    local.qf.length === 1
+      ? (SEARCH_SCOPES.find((s) => s.value === local.qf[0])?.label ?? 'Stem').toLowerCase()
+      : `${local.qf.length} fields`;
 
   return (
-    <div className="bank-filters">
-      <div className="bank-filter-grid">
-        <MultiSelect label="Type" selected={local.type}
-          options={QUESTION_TYPES.map((t) => ({ value: t.value, label: t.value }))}
-          onChange={(v) => setMulti('type', v)} />
-
-        <MultiSelect label="Category" selected={local.category}
-          options={toOpts(CLIENT_NEEDS_CATEGORIES)}
-          onChange={(v) => setMulti('category', v)} />
-
-        <MultiSelect label="Subcategory" selected={local.subcategory}
-          options={toOpts(subcategoryOptions)}
-          onChange={(v) => setMulti('subcategory', v)} />
-
-        <MultiSelect label="Nursing subject" selected={local.subject}
-          options={toOpts(NURSING_SUBJECTS)}
-          onChange={(v) => setMulti('subject', v)} />
-
-        <MultiSelect label="Body system" selected={local.bodySystem}
-          options={toOpts(BODY_SYSTEMS)}
-          onChange={(v) => setMulti('bodySystem', v)} />
-
-        <MultiSelect label="Difficulty" selected={local.difficulty}
-          options={toOpts(DIFFICULTY_LEVELS)}
-          onChange={(v) => setMulti('difficulty', v)} />
-
-        <MultiSelect label="Bloom level" selected={local.bloom}
-          options={toOpts(BLOOM_LEVELS)}
-          onChange={(v) => setMulti('bloom', v)} />
-
-        <MultiSelect label="Membership" selected={local.membership}
-          options={[
-            { value: 'standalone', label: 'Standalone' },
-            { value: 'case',       label: 'Case-linked' },
-            { value: 'trend',      label: 'Trend-linked' },
-          ]}
-          onChange={(v) => setMulti('membership', v)} />
-
-        <MultiSelect label="Tag" selected={local.tag}
-          options={toOpts(tagOptions)}
-          emptyHint="No tags yet"
-          onChange={(v) => setMulti('tag', v)} />
-
-        <SingleSelect label="Status" value={local.status}
-          options={[{ value: 'published', label: 'Published' }, { value: 'draft', label: 'Draft' }]}
-          onChange={(v) => setSingle('status', v)} />
-
-        <SingleSelect label="Free sample" value={local.freeSample} allLabel="Any"
-          options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
-          onChange={(v) => setSingle('freeSample', v)} />
-
-        <SingleSelect label="Builder-visible" value={local.builderVisible} allLabel="Any"
-          options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
-          onChange={(v) => setSingle('builderVisible', v)} />
-
-        {/* Scoped search — full-width row: [search-in checklist][ query ]. */}
-        <div className="bank-filter-group bank-filter-search">
-          <label className="bank-filter-label" htmlFor="bank-q">Search</label>
-          <div className="bank-search-row">
-            <MultiSelect
-              inline
-              label="Search in"
-              emptyLabel="Stem"
-              selected={local.qf}
-              options={SEARCH_SCOPES.map((s) => ({ value: s.value, label: s.label }))}
-              onChange={setSearchScopes}
-            />
-            <input
-              id="bank-q"
-              type="text"
-              className="bank-filter-input bank-search-input"
-              placeholder={`Search ${
-                local.qf.length === 1
-                  ? (SEARCH_SCOPES.find((s) => s.value === local.qf[0])?.label ?? 'Stem').toLowerCase()
-                  : `${local.qf.length} fields`
-              }…`}
-              value={local.q}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+    <>
+      <div className="bl-toolbar">
+        <div className="bl-search">
+          <SearchIcon />
+          <input
+            type="text"
+            placeholder={`Search ${scopeLabel}…`}
+            value={local.q}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search the bank"
+          />
         </div>
+
+        {/* Scope picker — which fields the search matches. */}
+        <MultiSelect
+          inline
+          label="Search in"
+          emptyLabel="Stem"
+          selected={local.qf}
+          options={SEARCH_SCOPES.map((s) => ({ value: s.value, label: s.label }))}
+          onChange={setSearchScopes}
+        />
+
+        <div className="bl-seg" role="group" aria-label="Status">
+          {['', 'published', 'draft'].map((s) => (
+            <button
+              key={s || 'all'}
+              type="button"
+              className={local.status === s ? 'on' : ''}
+              onClick={() => setSingle('status', s)}
+            >
+              {s === '' ? 'All' : s[0].toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        <div className="bl-filter-wrap">
+          <button type="button" className="bl-btn" onClick={() => setShowFacets((v) => !v)}>
+            <FilterIcon />
+            Filters
+            {nFacets > 0 && <span className="bl-filter-badge">{nFacets}</span>}
+          </button>
+          {showFacets && (
+            <FacetPopover
+              local={local}
+              tagOptions={tagOptions}
+              subcategoryOptions={subcategoryOptions}
+              setMulti={setMulti}
+              setSingle={setSingle}
+              onReset={reset}
+              onClose={() => setShowFacets(false)}
+            />
+          )}
+        </div>
+
+        <span className="bl-spacer" />
+        {rightSlot}
       </div>
 
       {active && (
-        <div className="bank-filter-active">
-          <span className="bank-filter-count">
+        <div className="bl-active">
+          <span className="bl-active-count">
             {chips.length} {chips.length === 1 ? 'filter' : 'filters'}
           </span>
           {chips.map((c) => (
             <button
               key={`${c.field}:${c.value ?? ''}`}
               type="button"
-              className="bank-filter-chip"
+              className="bl-active-chip"
               onClick={() => clearChip(c.field, c.value)}
               title="Remove this filter"
             >
-              {c.label}<span className="bank-filter-chip-x" aria-hidden="true">×</span>
+              {c.label}<span className="x" aria-hidden="true">×</span>
             </button>
           ))}
-          <button type="button" className="bank-filter-reset" onClick={reset}>
+          <button type="button" className="bl-active-clear" onClick={reset}>
             Clear all
           </button>
         </div>
       )}
+    </>
+  );
+}
+
+// ── Faceted popover (the full filter grid) ────────────────────────
+function FacetPopover({
+  local,
+  tagOptions,
+  subcategoryOptions,
+  setMulti,
+  setSingle,
+  onReset,
+  onClose,
+}: {
+  local:              BankFilterValues;
+  tagOptions:         string[];
+  subcategoryOptions: string[];
+  setMulti:           (field: MultiKey, vals: string[]) => void;
+  setSingle:          (field: 'freeSample' | 'builderVisible', v: string) => void;
+  onReset:            () => void;
+  onClose:            () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <div className="bl-facet-pop" ref={ref}>
+      <div className="bl-facet-grid">
+        <MultiSelect label="Type" selected={local.type}
+          options={QUESTION_TYPES.map((t) => ({ value: t.value, label: t.value }))}
+          onChange={(v) => setMulti('type', v)} />
+        <MultiSelect label="Category" selected={local.category}
+          options={toOpts(CLIENT_NEEDS_CATEGORIES)}
+          onChange={(v) => setMulti('category', v)} />
+        <MultiSelect label="Subcategory" selected={local.subcategory}
+          options={toOpts(subcategoryOptions)}
+          onChange={(v) => setMulti('subcategory', v)} />
+        <MultiSelect label="Nursing subject" selected={local.subject}
+          options={toOpts(NURSING_SUBJECTS)}
+          onChange={(v) => setMulti('subject', v)} />
+        <MultiSelect label="Body system" selected={local.bodySystem}
+          options={toOpts(BODY_SYSTEMS)}
+          onChange={(v) => setMulti('bodySystem', v)} />
+        <MultiSelect label="Difficulty" selected={local.difficulty}
+          options={toOpts(DIFFICULTY_LEVELS)}
+          onChange={(v) => setMulti('difficulty', v)} />
+        <MultiSelect label="Bloom level" selected={local.bloom}
+          options={toOpts(BLOOM_LEVELS)}
+          onChange={(v) => setMulti('bloom', v)} />
+        <MultiSelect label="Membership" selected={local.membership}
+          options={[
+            { value: 'standalone', label: 'Standalone' },
+            { value: 'case',       label: 'Case-linked' },
+            { value: 'trend',      label: 'Trend-linked' },
+            { value: 'note',       label: 'Note-born' },
+          ]}
+          onChange={(v) => setMulti('membership', v)} />
+        <MultiSelect label="Tag" selected={local.tag}
+          options={toOpts(tagOptions)}
+          emptyHint="No tags yet"
+          onChange={(v) => setMulti('tag', v)} />
+        <SingleSelect label="Free sample" value={local.freeSample} allLabel="Any"
+          options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
+          onChange={(v) => setSingle('freeSample', v)} />
+        <SingleSelect label="Builder-visible" value={local.builderVisible} allLabel="Any"
+          options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
+          onChange={(v) => setSingle('builderVisible', v)} />
+      </div>
+      <div className="bl-facet-foot">
+        <button type="button" className="bl-active-clear" onClick={onReset}>Reset all filters</button>
+        <button type="button" className="bl-btn bl-btn-primary" onClick={onClose}>Done</button>
+      </div>
     </div>
+  );
+}
+
+function FilterIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <line x1="4" y1="6" x2="20" y2="6" /><line x1="7" y1="12" x2="17" y2="12" /><line x1="10" y1="18" x2="14" y2="18" />
+    </svg>
   );
 }
 
@@ -296,7 +389,7 @@ function MultiSelect({
         aria-expanded={open}
         aria-haspopup="true"
       >
-        <span className="bank-ms-summary">{summary}</span>
+        <span className="bank-ms-summary">{inline ? `in: ${summary}` : summary}</span>
         <span className="bank-ms-caret" aria-hidden="true">▾</span>
       </button>
       {open && (

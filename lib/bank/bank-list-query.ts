@@ -199,6 +199,7 @@ function membershipLabel(m: string): string {
   if (m === 'standalone') return 'Standalone';
   if (m === 'case')       return 'Case-linked';
   if (m === 'trend')      return 'Trend-linked';
+  if (m === 'note')       return 'Note-born';
   return m;
 }
 
@@ -253,17 +254,22 @@ export function applyBankFilters<Q extends FilterableQuery<Q>>(
 }
 
 // Membership is OR'd across the chosen kinds, AND'd with the rest. Each
-// kind maps to a condition on the two nullable wrapper FKs; we build one
-// PostgREST or() group. Empty or all-three = no constraint.
+// kind maps to a condition on the three nullable origin FKs; we build one
+// PostgREST or() group. Empty or all-four = no constraint.
+//
+// The four kinds are mutually exclusive: note-born = has a parent note AND
+// no case/trend; standalone = none of the three. (Mirrors the composition
+// bar's buckets so the filter and the band agree.)
 export function applyMembershipFilter<Q extends { or: (filters: string) => Q }>(
   query: Q,
   membership: string[],
 ): Q {
-  if (membership.length === 0 || membership.length >= 3) return query;
+  if (membership.length === 0 || membership.length >= 4) return query;
   const parts: string[] = [];
-  if (membership.includes('standalone')) parts.push('and(parent_case_id.is.null,trend_id.is.null)');
+  if (membership.includes('standalone')) parts.push('and(parent_case_id.is.null,trend_id.is.null,parent_note_id.is.null)');
   if (membership.includes('case'))       parts.push('parent_case_id.not.is.null');
   if (membership.includes('trend'))      parts.push('trend_id.not.is.null');
+  if (membership.includes('note'))       parts.push('and(parent_note_id.not.is.null,parent_case_id.is.null,trend_id.is.null)');
   return query.or(parts.join(','));
 }
 

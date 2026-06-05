@@ -112,6 +112,7 @@ button.bl-stat:hover { border-color: var(--border-strong); box-shadow: var(--sha
 
 /* ── Compact toolbar (search + status seg + filters + new) ─────────── */
 .bl-toolbar {
+  position: relative; /* anchor for the Filters popover (docks to the right) */
   display: flex;
   align-items: center;
   gap: 10px;
@@ -393,10 +394,248 @@ button.bl-stat:hover { border-color: var(--border-strong); box-shadow: var(--sha
 .bl-qpill.pub { background: #e7f6ec; color: #15803d; }
 .bl-qpill.draft { background: var(--bg-soft); color: var(--text-muted); border: 1px solid var(--border); }
 
+/* ── Bank composition band (wide first card holds the bar) ─────────── */
+.bl-band-bank { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+.bl-comp { gap: 10px; }
+.bl-comp-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-soft);
+}
+.bl-comp-seg { height: 100%; transition: width 0.3s ease; }
+.bl-comp-seg.standalone { background: #b8c2cf; }
+.bl-comp-seg.case       { background: #6366f1; }
+.bl-comp-seg.trend      { background: var(--accent); }
+.bl-comp-seg.note       { background: #3b82f6; }
+.bl-comp-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.bl-comp-leg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.bl-comp-leg .sw { width: 10px; height: 10px; border-radius: 3px; }
+.bl-comp-leg .sw.standalone { background: #b8c2cf; }
+.bl-comp-leg .sw.case       { background: #6366f1; }
+.bl-comp-leg .sw.trend      { background: var(--accent); }
+.bl-comp-leg .sw.note       { background: #3b82f6; }
+.bl-comp-leg b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* ── Type pill (coloured square glyph + short label) ───────────────── */
+.bl-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 4px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.bl-type-sq {
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+}
+
+/* ── Difficulty chip ───────────────────────────────────────────────── */
+.bl-diff {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.bl-diff-Easy   { color: #15803d; background: #eaf6ee; border-color: #c5e7cf; }
+.bl-diff-Medium { color: #b45309; background: #fdf2e0; border-color: #f0d9b3; }
+.bl-diff-Hard   { color: #be123c; background: #fbe5ea; border-color: #f3c6d1; }
+
+/* ── Marks cell ────────────────────────────────────────────────────── */
+.bl-num {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: var(--text);
+}
+
+/* ── Two-row question card: columns row + full-width tag strip ─────── */
+/* The main row of a card with a strip drops its divider; the strip below
+   carries it, so the two rows read as one card. Hover spans both. */
+.bl-table tbody tr.bl-q-main.has-strip td { border-bottom: none; padding-bottom: 8px; }
+.bl-table tbody tr.bl-q-strip td {
+  padding-top: 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.bl-table tbody tr.bl-q-strip:last-child td { border-bottom: none; }
+.bl-table tbody tr.bl-q-main:hover td,
+.bl-table tbody tr.bl-q-main:hover + tr.bl-q-strip td { background: #fafbfc; }
+.bl-q-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+/* Origin badges (wrapper / note) on the strip. */
+.bl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 650;
+  padding: 3px 9px;
+  border-radius: 7px;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: filter 0.12s ease;
+}
+.bl-badge:hover { filter: brightness(0.96); }
+.bl-badge-case  { background: #efeefe; color: #4338ca; }
+.bl-badge-trend { background: #e3f0ec; color: var(--accent-dark); }
+.bl-badge-note  { background: #eaf2fe; color: #1d4ed8; }
+
+/* Classification tags on the strip. */
+.bl-class-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+.bl-class-tag.cat { color: var(--primary); background: var(--primary-light); border-color: #dbe7f0; }
+.bl-free {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #b45309;
+  background: #fdf2e0;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* Edit / Open action rendered as a button (not just a link). */
+button.bl-open { font: inherit; cursor: pointer; }
+
+/* ── Filters popover button + badge ───────────────────────────────── */
+/* No positioning here on purpose — the popover anchors to .bl-toolbar so it
+   docks to the toolbar's RIGHT edge (keeping the list visible while you
+   filter), not to this mid-toolbar button. */
+.bl-filter-badge {
+  background: var(--accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+}
+
+/* ── Faceted popover (all the deep filters) ───────────────────────── */
+.bl-facet-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 70;
+  width: 480px;
+  max-width: 92vw;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 12px;
+}
+.bl-facet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.bl-facet-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+/* Compact the facet controls inside the popover (tighter than the old
+   always-visible grid): smaller labels + slimmer triggers/selects. */
+.bl-facet-grid .bank-filter-group { gap: 3px; }
+.bl-facet-grid .bank-filter-label { font-size: 10px; letter-spacing: 0.04em; }
+.bl-facet-grid .bank-filter-input,
+.bl-facet-grid .bank-ms-trigger {
+  padding: 5px 8px;
+  font-size: 12.5px;
+}
+
+/* ── Active-filter chips ──────────────────────────────────────────── */
+.bl-active { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.bl-active-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.bl-active-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid #dbe7f0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 6px 4px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.bl-active-chip .x {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-muted);
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+.bl-active-chip:hover .x { background: rgba(220, 38, 38, 0.12); color: var(--danger); }
+.bl-active-clear {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.bl-active-clear:hover { color: var(--danger); }
+
+/* ── Sortable headers ─────────────────────────────────────────────── */
+.bl-table th.bl-sortable { cursor: pointer; user-select: none; }
+.bl-table th.bl-sortable:hover { color: var(--text); }
+.bl-sort-ind { margin-left: 5px; opacity: 0.4; font-size: 10px; }
+.bl-table th.is-sorted .bl-sort-ind { opacity: 1; color: var(--accent-dark); }
+
 /* ── Responsive ────────────────────────────────────────────────────── */
 @media (max-width: 980px) {
-  .bl-band { grid-template-columns: 1fr 1fr; }
+  .bl-band,
+  .bl-band-bank { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 600px) {
-  .bl-band { grid-template-columns: 1fr; }
+  .bl-band,
+  .bl-band-bank { grid-template-columns: 1fr; }
 }

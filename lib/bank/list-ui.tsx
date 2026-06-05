@@ -51,6 +51,38 @@ export function HealthFlag({ state, text }: { state: 'ok' | 'warn' | 'ghost'; te
   return <span className="bl-health"><span className="ico">▲</span>{text}</span>;
 }
 
+// Per-type pill metadata — short label, square glyph letter, and a colour
+// family (one hue per type, shared lightness so the set reads as a system).
+// Colours sit here (not CSS) so the whole type system is in one place.
+const TYPE_PILL: Record<string, { short: string; letter: string; color: string; bg: string }> = {
+  MCQ:       { short: 'MCQ',       letter: 'M', color: '#1e3a5f', bg: '#e8eef5' },
+  TF:        { short: 'TF',        letter: 'T', color: '#475569', bg: '#eceff3' },
+  SATA:      { short: 'SATA',      letter: 'S', color: '#235f56', bg: '#dcefe9' },
+  SELECT_N:  { short: 'Select N',  letter: 'N', color: '#0e7490', bg: '#d9eef2' },
+  MATRIX:    { short: 'Matrix',    letter: 'G', color: '#4338ca', bg: '#e6e6fb' },
+  BOWTIE:    { short: 'Bow-tie',   letter: 'B', color: '#7c3aed', bg: '#efe6fd' },
+  CLOZE:     { short: 'Cloze',     letter: 'C', color: '#b45309', bg: '#fbeedb' },
+  HIGHLIGHT: { short: 'Highlight', letter: 'H', color: '#be123c', bg: '#fbe2e8' },
+  DRAG_DROP: { short: 'Drag-drop', letter: 'D', color: '#15803d', bg: '#ddf0e2' },
+};
+
+/** Coloured type pill — a filled square glyph + the type's short label. */
+export function TypePill({ type }: { type: string }) {
+  const m = TYPE_PILL[type] ?? { short: type, letter: type.charAt(0), color: '#475569', bg: '#eceff3' };
+  return (
+    <span className="bl-type" style={{ background: m.bg, color: m.color }}>
+      <span className="bl-type-sq" style={{ background: m.color }}>{m.letter}</span>
+      {m.short}
+    </span>
+  );
+}
+
+/** Coloured difficulty chip (Easy / Medium / Hard); — when unset. */
+export function DiffChip({ difficulty }: { difficulty: string | null }) {
+  if (!difficulty) return <span className="bl-cell-mid">—</span>;
+  return <span className={`bl-diff bl-diff-${difficulty}`}>{difficulty}</span>;
+}
+
 /** Magnifier glyph for the toolbar search box. */
 export function SearchIcon() {
   return (
