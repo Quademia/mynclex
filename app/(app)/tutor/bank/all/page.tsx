@@ -245,23 +245,22 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner">
-        <div className="bank-header-row">
-          <Link href="/tutor" className="bank-back-link">
-            ← Tutor
-          </Link>
-        </div>
-
-        <header className="auth-list-page-header">
+        <header className="bl-page-head">
           <div>
-            <h1 className="auth-list-page-title">My Bank</h1>
+            <div className="bl-eyebrow">
+              <span className="bl-surface-chip tutor"><span className="dot" />Tutor bank</span>
+              Authoring
+            </div>
+            <h1 className="bl-page-title">My Bank</h1>
+            <p className="bl-page-sub">
+              Every standalone and wrapper-linked question in your private bank.
+              Filter, scan status, and jump straight into an editor.
+            </p>
           </div>
-          <div className="auth-list-toolbar">
-            <Link href="/tutor/bank/cases" className="auth-cs-btn subtle">
-              Case Studies →
-            </Link>
-            <Link href="/tutor/bank/trends" className="auth-cs-btn subtle">
-              Trend datasets →
-            </Link>
+          <div className="bl-head-actions">
+            <Link href="/tutor" className="bl-btn">← Tutor</Link>
+            <Link href="/tutor/bank/cases" className="bl-btn">Case Studies →</Link>
+            <Link href="/tutor/bank/trends" className="bl-btn">Trend datasets →</Link>
           </div>
         </header>
 

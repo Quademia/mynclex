@@ -210,6 +210,11 @@ export function BankListClient({
     setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
   }
 
+  // Group-by-membership — a pure view transform that piles the sorted rows
+  // into Standalone / Case / Trend / Note sections (sorting still applies
+  // within each section).
+  const [group, setGroup] = useState(false);
+
   function handleNewQuestion() {
     setFlash(null);
     setModal({ kind: 'picker' });
@@ -269,6 +274,130 @@ export function BankListClient({
     return null;
   }
 
+  // One question row (the two-row card). Shared by the flat + grouped
+  // renders so the markup lives in one place.
+  function renderRow(row: BankListRowSummary) {
+    const wrapperHref = wrapperHrefFor(row);
+    const hasStrip = Boolean(
+      row.parent_case_id || row.trend_id ||
+      (row.parent_note_id && row.note_title) ||
+      row.category || row.subcategory || row.subject || row.bodySystem,
+    );
+    return (
+      <Fragment key={row.item_id}>
+        <tr className={hasStrip ? 'bl-q-main has-strip' : 'bl-q-main'}>
+          <td className="bl-id"><code>{row.item_id}</code></td>
+          <td className="bl-col-title">
+            <HoverPeek className="bl-title" panel={
+              <div className="hover-peek">
+                {row.instruction && <div className="hover-peek-kicker">{row.instruction}</div>}
+                <p className="hover-peek-body">{row.stem}</p>
+              </div>
+            }>
+              {row.stem}
+            </HoverPeek>
+          </td>
+          <td><TypePill type={row.question_type} /></td>
+          <td><DiffChip difficulty={row.difficulty} /></td>
+          <td className="bl-num">{row.marks}</td>
+          <td>
+            {row.is_published
+              ? <span className="bl-status pub">Published</span>
+              : <span className="bl-status draft">Draft</span>}
+          </td>
+          <td className="bl-cell-mid">
+            {row.updated_at ? new Date(row.updated_at).toLocaleDateString() : '—'}
+          </td>
+          <td>
+            <AuthorshipCell
+              authorship={authorshipById[row.item_id]}
+              realm={surface}
+              entityType={auditEntityType}
+              entityId={row.item_id}
+              title={stemSnippet(row.stem, 60)}
+            />
+          </td>
+          <td className="bl-actions">
+            {wrapperHref ? (
+              <Link
+                href={wrapperHref}
+                className="bl-open"
+                title={
+                  row.parent_case_id
+                    ? 'Open the case wrapper with this question pre-selected'
+                    : 'Open the trend wrapper with this question pre-selected'
+                }
+              >
+                {row.parent_case_id ? 'Open in case editor' : 'Open in trend editor'}
+              </Link>
+            ) : rowEditable(row) ? (
+              <button
+                type="button"
+                className="bl-open"
+                onClick={() => handleEditRow(row)}
+              >
+                Edit
+              </button>
+            ) : (
+              <span
+                className="bl-cell-mid"
+                title={`The ${row.question_type} editor lands in a later slice`}
+              >
+                —
+              </span>
+            )}
+          </td>
+        </tr>
+
+        {/* Full-width tag strip — the lower half of the card.
+            Wrapper/Note origin badge (clickable) + classification
+            tags, laid out horizontally with room to breathe. */}
+        {hasStrip && (
+          <tr className="bl-q-strip">
+            {/* Empty cell under the ID column so the strip starts
+                aligned with the stem and runs to the actions. */}
+            <td aria-hidden="true" />
+            <td colSpan={8}>
+              <div className="bl-q-tags">
+                {row.parent_case_id && (
+                  <Link
+                    href={wrapperHref ?? '#'}
+                    className="bl-badge bl-badge-case"
+                    title="Open in case editor"
+                  >
+                    In case · {row.case_title ?? row.parent_case_id}
+                  </Link>
+                )}
+                {row.trend_id && (
+                  <Link
+                    href={wrapperHref ?? '#'}
+                    className="bl-badge bl-badge-trend"
+                    title="Open in trend editor"
+                  >
+                    Trend · {row.trend_title ?? row.trend_id}
+                  </Link>
+                )}
+                {row.parent_note_id && row.note_title && (
+                  <Link
+                    href={`${libraryBase}/note/${row.parent_note_id}`}
+                    className="bl-badge bl-badge-note"
+                    title="Open the library note this question was created in"
+                  >
+                    Note · {row.note_title}
+                  </Link>
+                )}
+                {row.category    && <span className="bl-class-tag cat">{row.category}</span>}
+                {row.subcategory && <span className="bl-class-tag">{row.subcategory}</span>}
+                {row.subject     && <span className="bl-class-tag">{row.subject}</span>}
+                {row.bodySystem  && <span className="bl-class-tag">{row.bodySystem}</span>}
+              </div>
+            </td>
+          </tr>
+        )}
+      </Fragment>
+    );
+  }
+
   return (
     <>
       {flash && (
@@ -290,6 +419,8 @@ export function BankListClient({
             + New question
           </button>
         }
+        group={group}
+        onGroupToggle={() => setGroup((v) => !v)}
       />
 
       <p className="bl-result">
@@ -335,127 +466,22 @@ export function BankListClient({
               </tr>
             </thead>
             <tbody>
-              {sortedRows.map((row) => {
-                const wrapperHref = wrapperHrefFor(row);
-                const hasStrip = Boolean(
-                  row.parent_case_id || row.trend_id ||
-                  (row.parent_note_id && row.note_title) ||
-                  row.category || row.subcategory || row.subject || row.bodySystem,
-                );
-                return (
-                  <Fragment key={row.item_id}>
-                    <tr className={hasStrip ? 'bl-q-main has-strip' : 'bl-q-main'}>
-                      <td className="bl-id"><code>{row.item_id}</code></td>
-                      <td className="bl-col-title">
-                        <HoverPeek className="bl-title" panel={
-                          <div className="hover-peek">
-                            {row.instruction && <div className="hover-peek-kicker">{row.instruction}</div>}
-                            <p className="hover-peek-body">{row.stem}</p>
-                          </div>
-                        }>
-                          {row.stem}
-                        </HoverPeek>
-                      </td>
-                      <td><TypePill type={row.question_type} /></td>
-                      <td><DiffChip difficulty={row.difficulty} /></td>
-                      <td className="bl-num">{row.marks}</td>
-                      <td>
-                        {row.is_published
-                          ? <span className="bl-status pub">Published</span>
-                          : <span className="bl-status draft">Draft</span>}
-                      </td>
-                      <td className="bl-cell-mid">
-                        {row.updated_at ? new Date(row.updated_at).toLocaleDateString() : '—'}
-                      </td>
-                      <td>
-                        <AuthorshipCell
-                          authorship={authorshipById[row.item_id]}
-                          realm={surface}
-                          entityType={auditEntityType}
-                          entityId={row.item_id}
-                          title={stemSnippet(row.stem, 60)}
-                        />
-                      </td>
-                      <td className="bl-actions">
-                        {wrapperHref ? (
-                          <Link
-                            href={wrapperHref}
-                            className="bl-open"
-                            title={
-                              row.parent_case_id
-                                ? 'Open the case wrapper with this question pre-selected'
-                                : 'Open the trend wrapper with this question pre-selected'
-                            }
-                          >
-                            {row.parent_case_id ? 'Open in case editor' : 'Open in trend editor'}
-                          </Link>
-                        ) : rowEditable(row) ? (
-                          <button
-                            type="button"
-                            className="bl-open"
-                            onClick={() => handleEditRow(row)}
-                          >
-                            Edit
-                          </button>
-                        ) : (
-                          <span
-                            className="bl-cell-mid"
-                            title={`The ${row.question_type} editor lands in a later slice`}
-                          >
-                            —
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-
-                    {/* Full-width tag strip — the lower half of the card.
-                        Wrapper/Note origin badge (clickable) + classification
-                        tags, laid out horizontally with room to breathe. */}
-                    {hasStrip && (
-                      <tr className="bl-q-strip">
-                        {/* Empty cell under the ID column so the strip starts
-                            aligned with the stem and runs to the actions. */}
-                        <td aria-hidden="true" />
-                        <td colSpan={8}>
-                          <div className="bl-q-tags">
-                            {row.parent_case_id && (
-                              <Link
-                                href={wrapperHref ?? '#'}
-                                className="bl-badge bl-badge-case"
-                                title="Open in case editor"
-                              >
-                                In case · {row.case_title ?? row.parent_case_id}
-                              </Link>
-                            )}
-                            {row.trend_id && (
-                              <Link
-                                href={wrapperHref ?? '#'}
-                                className="bl-badge bl-badge-trend"
-                                title="Open in trend editor"
-                              >
-                                Trend · {row.trend_title ?? row.trend_id}
-                              </Link>
-                            )}
-                            {row.parent_note_id && row.note_title && (
-                              <Link
-                                href={`${libraryBase}/note/${row.parent_note_id}`}
-                                className="bl-badge bl-badge-note"
-                                title="Open the library note this question was created in"
-                              >
-                                Note · {row.note_title}
-                              </Link>
-                            )}
-                            {row.category    && <span className="bl-class-tag cat">{row.category}</span>}
-                            {row.subcategory && <span className="bl-class-tag">{row.subcategory}</span>}
-                            {row.subject     && <span className="bl-class-tag">{row.subject}</span>}
-                            {row.bodySystem  && <span className="bl-class-tag">{row.bodySystem}</span>}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
+              {group
+                ? MEMBERSHIP_GROUPS.map((g) => {
+                    const groupRows = sortedRows.filter((r) => membershipKind(r) === g.key);
+                    if (groupRows.length === 0) return null;
+                    return (
+                      <Fragment key={`group-${g.key}`}>
+                        <tr className="bl-group-head">
+                          <td colSpan={9}>
+                            <span className="gh">{g.label}<span className="n">{groupRows.length}</span></span>
+                          </td>
+                        </tr>
+                        {groupRows.map(renderRow)}
+                      </Fragment>
+                    );
+                  })
+                : sortedRows.map(renderRow)}
             </tbody>
           </table>
         </div>
@@ -631,6 +657,25 @@ function stemSnippet(stem: string, maxLen = 110): string {
   const trimmed = stem.trim();
   if (trimmed.length <= maxLen) return trimmed;
   return trimmed.slice(0, maxLen).trimEnd() + '…';
+}
+
+// ── Group by membership ────────────────────────────────────────────
+// The four mutually-exclusive buckets (mirrors the composition bar +
+// membership filter): note-born = has a parent note AND no case/trend.
+type MembershipKind = 'standalone' | 'case' | 'trend' | 'note';
+
+const MEMBERSHIP_GROUPS: { key: MembershipKind; label: string }[] = [
+  { key: 'standalone', label: 'Standalone' },
+  { key: 'case',       label: 'Case-linked' },
+  { key: 'trend',      label: 'Trend-linked' },
+  { key: 'note',       label: 'Note-born' },
+];
+
+function membershipKind(r: BankListRowSummary): MembershipKind {
+  if (r.parent_case_id) return 'case';
+  if (r.trend_id)       return 'trend';
+  if (r.parent_note_id) return 'note';
+  return 'standalone';
 }
 
 // ── Client-side sort ───────────────────────────────────────────────

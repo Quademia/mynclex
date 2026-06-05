@@ -232,23 +232,22 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
     <main className="auth-list-page">
       <div className="auth-list-inner">
         {/* Back-link row — mirrors legacy. */}
-        <div className="bank-header-row">
-          <Link href="/admin/dashboard" className="bank-back-link">
-            ← Admin
-          </Link>
-        </div>
-
-        <header className="auth-list-page-header">
+        <header className="bl-page-head">
           <div>
-            <h1 className="auth-list-page-title">Question Bank</h1>
+            <div className="bl-eyebrow">
+              <span className="bl-surface-chip admin"><span className="dot" />Admin bank</span>
+              Authoring
+            </div>
+            <h1 className="bl-page-title">Question Bank</h1>
+            <p className="bl-page-sub">
+              Every standalone and wrapper-linked question in the shared bank.
+              Filter, scan status, and jump straight into an editor.
+            </p>
           </div>
-          <div className="auth-list-toolbar">
-            <Link href="/admin/bank/cases" className="auth-cs-btn subtle">
-              Case Studies →
-            </Link>
-            <Link href="/admin/bank/trends" className="auth-cs-btn subtle">
-              Trend datasets →
-            </Link>
+          <div className="bl-head-actions">
+            <Link href="/admin/dashboard" className="bl-btn">← Admin</Link>
+            <Link href="/admin/bank/cases" className="bl-btn">Case Studies →</Link>
+            <Link href="/admin/bank/trends" className="bl-btn">Trend datasets →</Link>
           </div>
         </header>
 

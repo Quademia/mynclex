@@ -52,6 +52,9 @@
 .bl-surface-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .bl-page-title { font-size: 25px; font-weight: 750; letter-spacing: -0.02em; color: var(--text); }
 .bl-page-sub { margin-top: 6px; font-size: 13.5px; line-height: 1.5; color: var(--text-muted); max-width: 640px; }
+/* Right-side header actions (← back · Case Studies → · Trend datasets →). */
+.bl-head-actions { display: flex; align-items: center; gap: 9px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+.bl-head-actions .bl-btn { text-decoration: none; }
 
 /* ── Overview / health band (stat cards) ───────────────────────────── */
 .bl-band {
@@ -139,6 +142,38 @@ button.bl-stat:hover { border-color: var(--border-strong); box-shadow: var(--sha
 }
 .bl-search input:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px #e3f0ec; }
 .bl-search input::placeholder { color: var(--text-faint); }
+/* Leave room for the trailing scope picker docked inside the field. */
+.bl-search input.has-scope { padding-right: 132px; }
+
+/* "Search in" scope picker — our MultiSelect, docked at the search field's
+   right edge with its dropdown right-aligned below. */
+.bl-search .bank-ms-inline {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.bl-search .bank-ms-inline .bank-ms-trigger {
+  min-width: 0;
+  padding: 4px 9px;
+  font-size: 12px;
+  border-radius: 7px;
+  background: var(--white);
+  border: 1px solid var(--border);
+}
+.bl-search .bank-ms-inline .bank-ms-trigger:hover { border-color: var(--accent); }
+/* Dropdown: right-aligned under the picker, options left-aligned & compact. */
+.bl-search .bank-ms-panel {
+  right: 0;
+  left: auto;
+  min-width: 160px;
+  align-items: stretch;
+  text-align: left;
+}
+.bl-search .bank-ms-panel .bank-ms-option {
+  justify-content: flex-start;
+  text-align: left;
+}
 
 .bl-seg { display: inline-flex; background: var(--bg-soft); border-radius: 9px; padding: 3px; gap: 2px; }
 .bl-seg button {
@@ -220,6 +255,9 @@ button.bl-stat:hover { border-color: var(--border-strong); box-shadow: var(--sha
 .bl-btn:hover { background: var(--bg-soft); }
 .bl-btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .bl-btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+/* Toggle button (Group) when active — filled navy. */
+.bl-btn.is-on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.bl-btn.is-on:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
 
 /* ── Result line ───────────────────────────────────────────────────── */
 .bl-result {
@@ -254,14 +292,14 @@ button.bl-stat:hover { border-color: var(--border-strong); box-shadow: var(--sha
 }
 .bl-table {
   width: 100%;
-  min-width: 880px;
+  min-width: 820px;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 13px;
 }
 .bl-table thead th {
   text-align: left;
-  padding: 11px 16px;
+  padding: 11px 12px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   font-size: 11px;
@@ -272,7 +310,7 @@ button.bl-stat:hover { border-color: var(--border-strong); box-shadow: var(--sha
   white-space: nowrap;
 }
 .bl-table tbody td {
-  padding: 13px 16px;
+  padding: 13px 12px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
@@ -288,7 +326,7 @@ button.bl-stat:hover { border-color: var(--border-strong); box-shadow: var(--sha
   border-radius: 6px;
   white-space: nowrap;
 }
-.bl-col-title { width: 38%; min-width: 280px; }
+.bl-col-title { width: 30%; min-width: 230px; }
 .bl-title {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -356,18 +394,23 @@ button.bl-stat:hover { border-color: var(--border-strong); box-shadow: var(--sha
   font-size: 11px;
   font-weight: 700;
   padding: 3px 9px 3px 8px;
-  border-radius: 999px;
+  border-radius: 12px;
   background: #fdf2e0;
   color: #b45309;
   border: 1px solid #f0d9b3;
-  white-space: nowrap;
 }
-.bl-health .ico { font-size: 11px; line-height: 1; }
+.bl-health .ico { font-size: 11px; line-height: 1; flex: none; }
+/* Let long labels ("Reaches nobody", "Hidden from builder") wrap to two
+   lines so the column stays narrow rather than forcing a wide pill. */
+.bl-health-text { white-space: normal; line-height: 1.2; max-width: 76px; }
 .bl-health.ok { background: #eaf6ee; color: #15803d; border-color: #c5e7cf; }
 .bl-health.ghost { background: transparent; border: none; color: var(--text-faint); font-weight: 600; }
 
-/* ── Attached bar (count + mini progress bar + published/draft pills) ─ */
-.bl-attbar { display: inline-flex; align-items: center; gap: 9px; }
+/* ── Attached bar — count + mini-bar on top, published/draft pills beneath
+   (stacked so the column stays narrow). ────────────────────────────── */
+.bl-attbar { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.bl-attbar-top { display: inline-flex; align-items: center; gap: 9px; }
+.bl-attbar-pills { display: inline-flex; flex-wrap: wrap; gap: 5px; }
 .bl-attbar .count {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -623,6 +666,32 @@ button.bl-open { font: inherit; cursor: pointer; }
   cursor: pointer;
 }
 .bl-active-clear:hover { color: var(--danger); }
+
+/* ── Group-by-membership section headers ──────────────────────────── */
+.bl-table tbody tr.bl-group-head td {
+  background: var(--bg-soft);
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.bl-table tbody tr.bl-group-head .gh {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+.bl-table tbody tr.bl-group-head .gh .n {
+  background: var(--white);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
 
 /* ── Sortable headers ─────────────────────────────────────────────── */
 .bl-table th.bl-sortable { cursor: pointer; user-select: none; }

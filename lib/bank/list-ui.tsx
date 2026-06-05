@@ -31,10 +31,16 @@ export function AttachedBar({
   const draft = Math.max(0, total - published);
   return (
     <span className="bl-attbar">
-      <span className="count">{total}{denom ? ` of ${denom}` : ''}</span>
-      <span className="bl-minibar"><span className="fill" style={{ width: `${pct}%` }} /></span>
-      {published > 0 && <span className="bl-qpill pub">{published} published</span>}
-      {draft > 0 && <span className="bl-qpill draft">{draft} draft</span>}
+      <span className="bl-attbar-top">
+        <span className="count">{total}{denom ? ` of ${denom}` : ''}</span>
+        <span className="bl-minibar"><span className="fill" style={{ width: `${pct}%` }} /></span>
+      </span>
+      {(published > 0 || draft > 0) && (
+        <span className="bl-attbar-pills">
+          {published > 0 && <span className="bl-qpill pub">{published} published</span>}
+          {draft > 0 && <span className="bl-qpill draft">{draft} draft</span>}
+        </span>
+      )}
     </span>
   );
 }
@@ -46,9 +52,9 @@ export function AttachedBar({
  *   ghost → draft; health N/A (—)
  */
 export function HealthFlag({ state, text }: { state: 'ok' | 'warn' | 'ghost'; text?: ReactNode }) {
-  if (state === 'ok') return <span className="bl-health ok"><span className="ico">✓</span>{text ?? 'Live'}</span>;
+  if (state === 'ok') return <span className="bl-health ok"><span className="ico">✓</span><span className="bl-health-text">{text ?? 'Live'}</span></span>;
   if (state === 'ghost') return <span className="bl-health ghost">{text ?? '—'}</span>;
-  return <span className="bl-health"><span className="ico">▲</span>{text}</span>;
+  return <span className="bl-health"><span className="ico">▲</span><span className="bl-health-text">{text}</span></span>;
 }
 
 // Per-type pill metadata — short label, square glyph letter, and a colour

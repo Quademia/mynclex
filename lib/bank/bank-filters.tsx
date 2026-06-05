@@ -66,12 +66,17 @@ export function BankToolbar({
   baseUrl,
   tagOptions,
   rightSlot,
+  group,
+  onGroupToggle,
 }: {
   values:     BankFilterValues;
   baseUrl:    string;
   tagOptions: string[];
   /** Right-aligned slot — the "+ New question" button. */
   rightSlot?: ReactNode;
+  /** Group-by-membership toggle state + handler (rendered when provided). */
+  group?:         boolean;
+  onGroupToggle?: () => void;
 }) {
   const router = useRouter();
   // Local mirror so controls feel instant; reconciled when a fresh prop
@@ -117,7 +122,8 @@ export function BankToolbar({
     timer.current = setTimeout(() => navigate(next), 400);
   }
   function setSearchScopes(qf: string[]) {
-    const next = { ...local, qf };
+    // Never drop below the default — at least one field is always searched.
+    const next = { ...local, qf: qf.length ? qf : ['stem'] };
     setLocal(next);
     if (next.q) navigate(next);
   }
@@ -151,8 +157,8 @@ export function BankToolbar({
   const nFacets = facetCount(local);
 
   const scopeLabel =
-    local.qf.length === 1
-      ? (SEARCH_SCOPES.find((s) => s.value === local.qf[0])?.label ?? 'Stem').toLowerCase()
+    local.qf.length <= 1
+      ? (SEARCH_SCOPES.find((s) => s.value === (local.qf[0] ?? 'stem'))?.label ?? 'Stem').toLowerCase()
       : `${local.qf.length} fields`;
 
   return (
@@ -161,23 +167,24 @@ export function BankToolbar({
         <div className="bl-search">
           <SearchIcon />
           <input
+            className="has-scope"
             type="text"
             placeholder={`Search ${scopeLabel}…`}
             value={local.q}
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Search the bank"
           />
+          {/* "Search in" scope picker — our MultiSelect dropdown, docked
+              inside the search field (trailing-right). */}
+          <MultiSelect
+            inline
+            label="Search in"
+            emptyLabel="Stem"
+            selected={local.qf}
+            options={SEARCH_SCOPES.map((s) => ({ value: s.value, label: s.label }))}
+            onChange={setSearchScopes}
+          />
         </div>
-
-        {/* Scope picker — which fields the search matches. */}
-        <MultiSelect
-          inline
-          label="Search in"
-          emptyLabel="Stem"
-          selected={local.qf}
-          options={SEARCH_SCOPES.map((s) => ({ value: s.value, label: s.label }))}
-          onChange={setSearchScopes}
-        />
 
         <div className="bl-seg" role="group" aria-label="Status">
           {['', 'published', 'draft'].map((s) => (
@@ -191,6 +198,18 @@ export function BankToolbar({
             </button>
           ))}
         </div>
+
+        {onGroupToggle && (
+          <button
+            type="button"
+            className={`bl-btn${group ? ' is-on' : ''}`}
+            onClick={onGroupToggle}
+            title="Group rows by membership"
+          >
+            <GroupIcon />
+            Group
+          </button>
+        )}
 
         <div className="bl-filter-wrap">
           <button type="button" className="bl-btn" onClick={() => setShowFacets((v) => !v)}>
@@ -211,7 +230,6 @@ export function BankToolbar({
           )}
         </div>
 
-        <span className="bl-spacer" />
         {rightSlot}
       </div>
 
@@ -327,6 +345,14 @@ function FilterIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
       <line x1="4" y1="6" x2="20" y2="6" /><line x1="7" y1="12" x2="17" y2="12" /><line x1="10" y1="18" x2="14" y2="18" />
+    </svg>
+  );
+}
+
+function GroupIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
     </svg>
   );
 }
