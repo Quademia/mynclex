@@ -49,3 +49,33 @@ export function AuthorshipCell({ authorship, realm, entityType, entityId, title 
     </div>
   );
 }
+
+/**
+ * Single-line variant for editor topbars (and, next slice, the question
+ * editor body). Same facts + clock as AuthorshipCell, laid out
+ * horizontally instead of stacked.
+ */
+export function AuthorshipInline({ authorship, realm, entityType, entityId, title }: AuthorshipCellProps) {
+  if (!authorship || !authorship.hasAny) {
+    return <span className="audit-inline audit-inline--empty">No change history yet</span>;
+  }
+
+  const { createdByName, lastEditedByName, hasEdits } = authorship;
+
+  return (
+    <span className="audit-inline">
+      <span className="audit-inline-fact">
+        <span className="audit-cell-label">Created</span>
+        <span className="audit-inline-name">{createdByName ?? '—'}</span>
+      </span>
+      {hasEdits && (
+        <span className="audit-inline-fact">
+          <span className="audit-inline-sep" aria-hidden="true">·</span>
+          <span className="audit-cell-label">Last edit</span>
+          <span className="audit-inline-name">{lastEditedByName ?? '—'}</span>
+        </span>
+      )}
+      <HistoryButton realm={realm} entityType={entityType} entityId={entityId} title={title} />
+    </span>
+  );
+}

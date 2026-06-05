@@ -55,6 +55,42 @@
   color: var(--text-faint);
 }
 
+/* ── Inline variant (editor topbars) ─────────────────────────────── */
+.audit-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.audit-inline--empty {
+  color: var(--text-faint);
+  font-style: italic;
+}
+.audit-inline-fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.audit-inline-sep {
+  margin-right: 3px;
+  color: var(--text-faint);
+}
+.audit-inline-name {
+  font-weight: 500;
+}
+/* Editor topbars (case + trend): sits right after the breadcrumb,
+   divided off with a left border so it reads as its own group. Same
+   treatment on both wrappers for consistency. */
+.audit-topbar-authors {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 14px;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+}
+
 /* The clock trigger. */
 .audit-history-btn {
   flex: none;

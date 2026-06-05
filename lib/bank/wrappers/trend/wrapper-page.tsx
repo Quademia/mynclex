@@ -50,6 +50,8 @@ import { saveQuestionAction } from '@/lib/bank/actions/save-question';
 import type { QuestionType } from '@/lib/bank/classifications';
 import { validateTrend, type ValidationIssue } from './validation';
 import { ValidationPanel } from './validation-panel';
+import { AuthorshipInline } from '@/lib/audit/authorship-line';
+import type { Authorship } from '@/lib/audit/authorship';
 
 import { McqEditorBody, McqPreview }             from '@/lib/bank/editors/mcq-editor';
 import { TfEditorBody, TfPreview }               from '@/lib/bank/editors/tf-editor';
@@ -87,6 +89,13 @@ interface Props {
    * trend-attached row directly into the right pill.
    */
   focusItemId?: string | null;
+  /**
+   * Authorship facts for the trend dataset wrapper row itself (created /
+   * last edited). Drives the topbar readout + its history drawer. Shows
+   * the dataset's own history — its attached questions carry theirs
+   * separately.
+   */
+  authorship?: Authorship | null;
 }
 
 type ActivePill = 'dataset' | number;  // integer = slot.position OR creating sentinel
@@ -119,7 +128,7 @@ interface CreatingState {
   editor:   SlotEditorInitial;
 }
 
-export function TrendWrapperPage({ data, focusItemId = null }: Props) {
+export function TrendWrapperPage({ data, focusItemId = null, authorship = null }: Props) {
   const { surface, datasetRow, slots } = data;
   const router = useRouter();
 
@@ -586,6 +595,15 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
             {(wrapperDirty || editorDirty) && (
               <span className="auth-cs-dirty-dot" title="Unsaved changes">●</span>
             )}
+          </span>
+          <span className="audit-topbar-authors">
+            <AuthorshipInline
+              authorship={authorship ?? undefined}
+              realm={surface}
+              entityType={surface === 'tutor' ? 'tutor_trend_dataset' : 'trend_dataset'}
+              entityId={datasetRow.trend_id}
+              title={datasetRow.title}
+            />
           </span>
         </div>
         <div className="auth-tr-topbar-right">

@@ -11,6 +11,7 @@ import { notFound } from 'next/navigation';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { loadTrend } from '@/lib/bank/wrappers/trend/load-trend';
 import { TrendWrapperPage } from '@/lib/bank/wrappers/trend/wrapper-page';
+import { loadAuthorship } from '@/lib/audit/authorship';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,5 +29,13 @@ export default async function AdminTrendPage({ params, searchParams }: PageParam
   const data = await loadTrend(supabase, 'admin', trend_id);
   if (!data) notFound();
 
-  return <TrendWrapperPage data={data} focusItemId={focusItemId} />;
+  const authorship = await loadAuthorship(supabase, 'admin', 'trend_dataset', [trend_id]);
+
+  return (
+    <TrendWrapperPage
+      data={data}
+      focusItemId={focusItemId}
+      authorship={authorship[trend_id]}
+    />
+  );
 }

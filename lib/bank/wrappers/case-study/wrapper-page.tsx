@@ -57,6 +57,8 @@ import {
   type TabSnapshot,
 } from './validation';
 import { ValidationPanel } from './validation-panel';
+import { AuthorshipInline } from '@/lib/audit/authorship-line';
+import type { Authorship } from '@/lib/audit/authorship';
 
 import { McqEditorBody, McqPreview }             from '@/lib/bank/editors/mcq-editor';
 import { TfEditorBody, TfPreview }               from '@/lib/bank/editors/tf-editor';
@@ -230,9 +232,16 @@ interface Props {
    * wrapper-attached row directly into the right pill.
    */
   focusItemId?: string | null;
+  /**
+   * Authorship facts for the case wrapper row itself (created / last
+   * edited). Drives the topbar readout + its history drawer. Undefined
+   * in sandbox mode (no real entity). Shows the wrapper's own history —
+   * its questions carry theirs separately.
+   */
+  authorship?: Authorship | null;
 }
 
-export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = null }: Props) {
+export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = null, authorship = null }: Props) {
   const { caseRow, tabs, slots, surface } = data;
   const router = useRouter();
 
@@ -832,6 +841,17 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
         })()}
         <span className="auth-cs-crumb-sep">›</span>
         <span className="auth-cs-crumb-current">{caseRow.title}</span>
+        {!sandboxMode && (
+          <span className="audit-topbar-authors">
+            <AuthorshipInline
+              authorship={authorship ?? undefined}
+              realm={surface}
+              entityType={surface === 'tutor' ? 'tutor_case_study' : 'case_study'}
+              entityId={caseRow.case_id}
+              title={caseRow.title}
+            />
+          </span>
+        )}
         <span className="auth-cs-mode-pill">
           {editorMode ? `Editor mode · Q${activeSlot}` : 'Wrapper mode'}
         </span>
