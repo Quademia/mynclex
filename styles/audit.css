@@ -80,6 +80,18 @@
 .audit-inline-name {
   font-weight: 500;
 }
+/* Question editor: thin facts line at the top of the body, above the
+   Content / Classification / Housekeeping tabs. A bottom rule divides it
+   from the tab strip. */
+.audit-editor-line {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
 /* Editor topbars (case + trend): sits right after the breadcrumb,
    divided off with a left border so it reads as its own group. Same
    treatment on both wrappers for consistency. */

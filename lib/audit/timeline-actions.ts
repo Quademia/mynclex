@@ -13,8 +13,35 @@
 
 'use server';
 
-import { AUDIT_TABLE, type AuditRealm } from './authorship';
+import { AUDIT_TABLE, loadAuthorship, type Authorship, type AuditRealm } from './authorship';
 import { resolveAuditGate } from './gates';
+
+const EMPTY_AUTHORSHIP: Authorship = {
+  createdByName:    null,
+  createdAt:        null,
+  lastEditedByName: null,
+  lastEditedAt:     null,
+  hasEdits:         false,
+  hasAny:           false,
+};
+
+/**
+ * Single-entity authorship facts, fetched on demand by surfaces that
+ * mount client-side with no server round-trip — the question editors,
+ * which open in a pop-up AND embedded in a wrapper. Reuses the batched
+ * loadAuthorship helper (for one id) behind the same per-entity-type
+ * gate as the timeline. Returns an all-empty record for entities that
+ * predate tracking.
+ */
+export async function loadAuthorshipFactsAction(
+  realm:      AuditRealm,
+  entityType: string,
+  entityId:   string,
+): Promise<Authorship> {
+  const { supabase } = await resolveAuditGate(entityType);
+  const map = await loadAuthorship(supabase, realm, entityType, [entityId]);
+  return map[entityId] ?? EMPTY_AUTHORSHIP;
+}
 
 export interface TimelineEntry {
   action:        'created' | 'updated';

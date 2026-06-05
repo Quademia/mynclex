@@ -10,7 +10,9 @@
 
 'use client';
 
+import { useEffect, useState } from 'react';
 import { HistoryButton } from './history-drawer';
+import { loadAuthorshipFactsAction } from './timeline-actions';
 import type { AuditRealm, Authorship } from './authorship';
 
 interface AuthorshipCellProps {
@@ -77,5 +79,56 @@ export function AuthorshipInline({ authorship, realm, entityType, entityId, titl
       )}
       <HistoryButton realm={realm} entityType={entityType} entityId={entityId} title={title} />
     </span>
+  );
+}
+
+interface EditorAuthorshipProps {
+  realm:      AuditRealm;
+  entityType: string;
+  /** The question's id. Falsy in create mode — nothing to show yet. */
+  itemId:     string | null;
+  /** Drawer header label — the question stem (may be blank/null). */
+  title:      string | null;
+}
+
+/**
+ * Editor-topbar readout for the question editors. Unlike the lists /
+ * wrapper topbars (server-rendered, facts passed as props), the editors
+ * mount client-side with no server round-trip and also render embedded
+ * inside the wrappers — so this fetches its OWN facts on open. That makes
+ * it host-agnostic: identical in the standalone pop-up and the embedded
+ * child-question editor. The clock still opens the shared drawer (which
+ * floats above the modal). New questions show nothing until first save.
+ */
+export function EditorAuthorship({ realm, entityType, itemId, title }: EditorAuthorshipProps) {
+  const [facts, setFacts]   = useState<Authorship | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!itemId) return;
+    let active = true;
+    loadAuthorshipFactsAction(realm, entityType, itemId)
+      .then((f) => { if (active) { setFacts(f); setLoaded(true); } })
+      .catch(() => { if (active) setLoaded(true); });
+    return () => { active = false; };
+  }, [realm, entityType, itemId]);
+
+  // New question — authorship begins on first save.
+  if (!itemId) return null;
+
+  return (
+    <div className="audit-editor-line">
+      {!loaded ? (
+        <span className="audit-inline audit-inline--empty">Loading history…</span>
+      ) : (
+        <AuthorshipInline
+          authorship={facts ?? undefined}
+          realm={realm}
+          entityType={entityType}
+          entityId={itemId}
+          title={title?.trim() || itemId}
+        />
+      )}
+    </div>
   );
 }
