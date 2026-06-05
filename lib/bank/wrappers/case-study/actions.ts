@@ -72,8 +72,15 @@ function readSurface(formData: FormData): Surface {
   return raw === 'tutor' ? 'tutor' : 'admin';
 }
 
-// Next 5-digit case_id for the given surface. Lexical sort works
-// because the suffix is fixed-width zero-padded.
+// Next 5-digit case_id for the given surface.
+//
+// Can't trust a single lexical-max row: manually-named / seed case_ids
+// (e.g. NCLEX_CS_TEST...) sort ABOVE the zero-padded numbers ('T' >
+// '0'), so the old lexical-max + parseInt gave NaN, fell back to 1, and
+// collided on NCLEX_CS_00001. Scan every id for this prefix and take the
+// true max over only the pure-digit suffixes — the auto-numbering
+// scheme's own ids. (Mirrors nextItemId in lib/bank/actions/save-question.ts
+// and the defensive nextTrendId.)
 async function nextCaseId(
   supabase: ServerSupabaseClient,
   surface: Surface,
@@ -83,21 +90,20 @@ async function nextCaseId(
   const { data, error } = await supabase
     .from(cfg.caseTable)
     .select('case_id')
-    .like('case_id', `${idPrefix}%`)
-    .order('case_id', { ascending: false })
-    .limit(1);
+    .like('case_id', `${idPrefix}%`);
 
   if (error) throw error;
 
-  let next = 1;
-  if (data && data.length > 0) {
-    const last = (data[0] as { case_id: string }).case_id;
-    const suffix = last.slice(idPrefix.length);
-    const n = parseInt(suffix, 10);
-    if (Number.isFinite(n)) next = n + 1;
+  let max = 0;
+  for (const r of (data ?? []) as Array<{ case_id: string }>) {
+    const suffix = r.case_id.slice(idPrefix.length);
+    if (/^\d+$/.test(suffix)) {
+      const n = parseInt(suffix, 10);
+      if (n > max) max = n;
+    }
   }
 
-  return `${idPrefix}${String(next).padStart(5, '0')}`;
+  return `${idPrefix}${String(max + 1).padStart(5, '0')}`;
 }
 
 // Insert a new case row with title 'Untitled case' and redirect to
