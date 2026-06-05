@@ -869,7 +869,21 @@
 }
 .auth-list-stem {
   color: var(--text);
-  max-width: 480px;
+  width: 50%;     /* the stem is the main content — give it the room */
+}
+/* 2-line clamp on the stem preview; the full text is on hover. */
+.bank-stem-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.5;
+}
+/* Cap the Authors column so it stops reserving width — the names
+   truncate (full on hover/in the editor) and the stem claims the room. */
+.auth-list-authors {
+  width: 160px;
+  max-width: 160px;
 }
 .auth-list-row-actions {
   text-align: right;

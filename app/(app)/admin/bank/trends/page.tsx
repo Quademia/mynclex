@@ -1,43 +1,41 @@
 // mynclex/app/(app)/admin/bank/trends/page.tsx
 //
-// Slice 13a — admin Trend datasets list. Reads
-// nclex_trend_datasets and renders a simple table. Each row links
-// to the [trend_id] page (currently a stub; the real wrapper page
-// lands in slice 13b).
-//
-// Companion to /admin/bank/trends/ (legacy list, kept working until
-// the slice-14 swap). Reuses .auth-list-* styles from
-// styles/authoring.css.
+// Admin Trend datasets list. Loads nclex_trend_datasets + a per-dataset
+// attached-question breakdown + authorship + a searchable text blob
+// (scenario + the dataset rows/timepoints), then hands everything to the
+// shared TrendsListClient (filter bar + filtered table).
 
-import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { kindDefaultLabel } from '@/lib/bank/wrappers/trend/kind-templates';
 import { KindPickerLauncher } from '@/lib/bank/wrappers/trend/kind-picker-modal';
-import { QuestionPills } from '@/lib/bank/wrappers/question-pills';
 import { loadAuthorship } from '@/lib/audit/authorship';
-import { AuthorshipCell } from '@/lib/audit/authorship-line';
+import {
+  TrendsListClient,
+  type TrendListRow,
+} from '@/lib/bank/wrappers/trend/trends-list-client';
 
 export const dynamic = 'force-dynamic';
 
-interface TrendRow {
+interface TrendDbRow {
   trend_id:     string;
   title:        string;
   kind:         string;
+  scenario:     string | null;
+  row_label:    string | null;
+  rows:         unknown;
+  timepoints:   unknown;
   is_published: boolean;
   updated_at:   string;
 }
 
-interface AttachedQuestionRow {
-  trend_id:     string | null;
-  is_published: boolean;
-}
+interface AttachedQuestionRow { trend_id: string | null; is_published: boolean }
 
 export default async function AdminTrendsV2ListPage() {
   const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
 
   const { data: trendRows, error: trendErr } = await supabase
     .from('nclex_trend_datasets')
-    .select('trend_id, title, kind, is_published, updated_at')
+    .select('trend_id, title, kind, scenario, row_label, rows, timepoints, is_published, updated_at')
     .order('updated_at', { ascending: false });
 
   if (trendErr) {
@@ -51,14 +49,11 @@ export default async function AdminTrendsV2ListPage() {
     );
   }
 
-  const trends = (trendRows ?? []) as TrendRow[];
+  const trends = (trendRows ?? []) as TrendDbRow[];
+  const ids = trends.map((t) => t.trend_id);
 
-  // Attached-question counts per dataset + published / draft breakdown.
-  // Pull bank items where trend_id matches any on this page and bucket
-  // in JS — small N.
   const attachedStats: Record<string, { total: number; published: number }> = {};
-  if (trends.length > 0) {
-    const ids = trends.map((t) => t.trend_id);
+  if (ids.length > 0) {
     const { data: itemRows } = await supabase
       .from('nclex_bank_items')
       .select('trend_id, is_published')
@@ -71,10 +66,20 @@ export default async function AdminTrendsV2ListPage() {
     }
   }
 
-  // Authorship facts for the dataset wrapper rows themselves.
-  const authorship = await loadAuthorship(
-    supabase, 'admin', 'trend_dataset', trends.map((t) => t.trend_id),
-  );
+  const authorship = await loadAuthorship(supabase, 'admin', 'trend_dataset', ids);
+
+  const rows: TrendListRow[] = trends.map((t) => ({
+    trend_id:     t.trend_id,
+    title:        t.title,
+    scenario:     t.scenario,
+    kind:         t.kind,
+    kindLabel:    kindDefaultLabel(t.kind),
+    is_published: t.is_published,
+    updated_at:   t.updated_at,
+    total:        attachedStats[t.trend_id]?.total ?? 0,
+    published:    attachedStats[t.trend_id]?.published ?? 0,
+    searchText:   buildTrendSearchText(t),
+  }));
 
   return (
     <main className="auth-list-page">
@@ -92,9 +97,7 @@ export default async function AdminTrendsV2ListPage() {
           </div>
         </header>
 
-        <p className="auth-list-count">{trends.length} dataset{trends.length === 1 ? '' : 's'}</p>
-
-        {trends.length === 0 ? (
+        {rows.length === 0 ? (
           <div className="auth-list-empty">
             <h3>No trend datasets yet</h3>
             <p>Click <strong>+ New trend dataset</strong> to create the first one.</p>
@@ -103,58 +106,18 @@ export default async function AdminTrendsV2ListPage() {
             </div>
           </div>
         ) : (
-          <table className="auth-list-table">
-            <thead>
-              <tr>
-                <th>Trend ID</th>
-                <th>Title</th>
-                <th>Kind</th>
-                <th>Attached</th>
-                <th>Status</th>
-                <th>Updated</th>
-                <th>Authors</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {trends.map((t) => (
-                <tr key={t.trend_id}>
-                  <td className="auth-list-item-id"><code>{t.trend_id}</code></td>
-                  <td>{t.title}</td>
-                  <td>{kindDefaultLabel(t.kind)}</td>
-                  <td>
-                    {attachedStats[t.trend_id]?.total ?? 0}
-                    <QuestionPills
-                      total={attachedStats[t.trend_id]?.total ?? 0}
-                      published={attachedStats[t.trend_id]?.published ?? 0}
-                    />
-                  </td>
-                  <td>
-                    {t.is_published
-                      ? <span className="auth-cs-tag ok">Published</span>
-                      : <span className="auth-cs-tag muted">Draft</span>}
-                  </td>
-                  <td>{new Date(t.updated_at).toLocaleDateString()}</td>
-                  <td>
-                    <AuthorshipCell
-                      authorship={authorship[t.trend_id]}
-                      realm="admin"
-                      entityType="trend_dataset"
-                      entityId={t.trend_id}
-                      title={t.title}
-                    />
-                  </td>
-                  <td className="auth-list-row-actions">
-                    <Link href={`/admin/bank/trends/${t.trend_id}`} className="auth-cs-btn tiny">
-                      Open →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TrendsListClient rows={rows} authorship={authorship} surface="admin" />
         )}
       </div>
     </main>
   );
+}
+
+// Lowercased searchable blob: title + scenario + row label + the dataset
+// rows/timepoints (JSON-flattened — substring search, tiny N).
+function buildTrendSearchText(t: TrendDbRow): string {
+  const parts: string[] = [t.title, t.scenario ?? '', t.row_label ?? ''];
+  if (t.rows) parts.push(JSON.stringify(t.rows));
+  if (t.timepoints) parts.push(JSON.stringify(t.timepoints));
+  return parts.join(' ').toLowerCase();
 }

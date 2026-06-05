@@ -453,6 +453,133 @@
   font-style: italic;
 }
 
+/* ── Two-row question card: columns row + full-width tag strip ────── */
+/* The main row of a card that has a strip drops its divider; the strip
+   below carries the single divider so the two rows read as one card. */
+.auth-list-table tbody tr.bank-q-main.has-strip td {
+  border-bottom: none;
+}
+.auth-list-table tbody tr.bank-q-strip td {
+  padding-top: 0;
+  padding-bottom: 13px;
+}
+/* Extend the row hover from the columns row down onto its strip. */
+.auth-list-table tbody tr.bank-q-main:hover + tr.bank-q-strip {
+  background: var(--bg);
+}
+
+/* The full-width strip: wrapper badge + classification tags in one row. */
+.bank-q-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.bank-class-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 7px;
+}
+/* The Client Needs category leads — give it the accent tint. */
+.bank-class-tag.cat {
+  color: var(--primary);
+  background: var(--primary-light);
+  border-color: var(--primary-light);
+}
+
+/* ── Hover-to-peek (list cell → content popover) ──────────────────── */
+.hover-peek-trigger {
+  cursor: help;
+}
+.hover-peek-trigger:hover {
+  text-decoration: underline dotted var(--text-faint);
+  text-underline-offset: 3px;
+}
+
+.hover-peek-panel {
+  position: fixed;
+  z-index: 200;
+  width: max-content;
+  max-width: 420px;
+  /* max-height is set inline from the available viewport space; the
+     content is never clamped — it scrolls if it exceeds that height. */
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  padding: 12px 14px;
+  animation: hover-peek-in 0.1s ease;
+}
+@keyframes hover-peek-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hover-peek-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+.hover-peek-kicker {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.hover-peek-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;   /* preserve scenario line breaks; full text, no clamp */
+}
+.hover-peek-empty {
+  margin: 0;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--text-faint);
+}
+.hover-peek-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+.hover-peek-chip {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 7px;
+}
+
+/* "Needs attention" checkbox — aligned to sit like a filter input. */
+.bank-attn-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.bank-attn-check input {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 /* Scoped search — full-width row: [search-in ▾][ query .......... ]. */
 .bank-filter-search {
   grid-column: 1 / -1;
@@ -4594,6 +4721,14 @@
   background: #eeedfe;
   color: #3c3489;
   border: 1px solid #afa9ec;
+}
+
+/* Library-note origin badge — blue, distinct from case (purple) + trend
+   (teal) so the three origins read apart at a glance. */
+.bank-badge-note {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
 }
 
 /* Clickable wrapper badge — applied to both .bank-badge-case and

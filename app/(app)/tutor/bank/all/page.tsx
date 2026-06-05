@@ -88,6 +88,7 @@ const BASE_URL = '/tutor/bank/all';
 interface FullTutorBankRow extends McqDbRow {
   parent_case_id: string | null;
   trend_id:       string | null;
+  parent_note_id: string | null;
   case:  { title: string } | null;
   trend: { title: string } | null;
 }
@@ -113,7 +114,7 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
     .from('nclex_tutor_questions')
     .select(
       MCQ_ROW_COLUMNS +
-      ', parent_case_id, trend_id, ' +
+      ', parent_case_id, trend_id, parent_note_id, ' +
       'trend:nclex_tutor_trend_datasets(title), ' +
       'case:nclex_tutor_case_studies(title)',
     );
@@ -175,18 +176,41 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
   // ── Row mapping + per-type initials ────────────────────────
   const fullRows = data ?? [];
 
+  // Resolve the source-note titles for the "Note · {title}" origin badge
+  // on questions born inside a library note (parent_note_id).
+  const noteIds = Array.from(
+    new Set(fullRows.map((r) => r.parent_note_id).filter((x): x is string => Boolean(x))),
+  );
+  const noteTitleById: Record<string, string> = {};
+  if (noteIds.length > 0) {
+    const { data: noteRows } = await supabase
+      .from('nclex_tutor_library_notes')
+      .select('note_id, title')
+      .in('note_id', noteIds);
+    for (const n of (noteRows ?? []) as { note_id: string; title: string }[]) {
+      noteTitleById[n.note_id] = n.title;
+    }
+  }
+
   const summaryRows: BankListRowSummary[] = fullRows.map((r) => ({
     item_id:        r.item_id,
     question_type:  r.question_type as QuestionType,
     stem:           r.stem ?? '',
+    instruction:    r.instruction ?? null,
     difficulty:     r.difficulty,
     is_published:   r.is_published,
     is_free_sample: r.is_free_sample,
     marks:          r.marks ?? 1,
+    category:       r.client_needs_category ?? null,
+    subcategory:    r.client_needs_subcategory ?? null,
+    subject:        r.nursing_subject ?? null,
+    bodySystem:     r.body_system ?? null,
     parent_case_id: r.parent_case_id,
     case_title:     r.case?.title ?? null,
     trend_id:       r.trend_id,
     trend_title:    r.trend?.title ?? null,
+    parent_note_id: r.parent_note_id ?? null,
+    note_title:     r.parent_note_id ? (noteTitleById[r.parent_note_id] ?? null) : null,
   }));
 
   const mcqInitialsById:       Record<string, McqEditorInitial>       = {};

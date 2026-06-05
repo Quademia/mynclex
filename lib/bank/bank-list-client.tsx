@@ -22,7 +22,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { McqEditor, type McqEditorInitial } from '@/lib/bank/editors/mcq-editor';
@@ -38,6 +38,7 @@ import { QuestionTypePicker } from '@/lib/bank/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/bank/classifications';
 import { AuthorshipCell } from '@/lib/audit/authorship-line';
 import type { Authorship } from '@/lib/audit/authorship';
+import { HoverPeek } from '@/lib/bank/hover-peek';
 
 /** Question types whose editors are wired into bank-list today. */
 const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set([
@@ -56,10 +57,17 @@ export interface BankListRowSummary {
   item_id:        string;
   question_type:  QuestionType;
   stem:           string;
+  instruction:    string | null;
   difficulty:     string | null;
   is_published:   boolean;
   is_free_sample: boolean;
   marks:          number;
+  // Classification — rendered as compact tags under the stem so you can
+  // tell what a question is about without opening it. Any may be null.
+  category:       string | null;
+  subcategory:    string | null;
+  subject:        string | null;
+  bodySystem:     string | null;
   // Wrapper attachment metadata. Both null on standalone rows. At
   // most one of {case, trend} is set on attached rows — questions
   // can belong to one wrapper at a time. Wrapper-attached rows show
@@ -69,6 +77,12 @@ export interface BankListRowSummary {
   case_title:     string | null;
   trend_id:       string | null;
   trend_title:    string | null;
+  // Library-note origin (born inside a note). Surface-aware: the title is
+  // resolved by the page from that surface's own library; null when there
+  // is no library to resolve it (e.g. admin today). Badge shows only when
+  // resolvable.
+  parent_note_id: string | null;
+  note_title:     string | null;
 }
 
 export interface BankListClientProps {
@@ -167,6 +181,8 @@ export function BankListClient({
   // in the admin log; tutor questions are tutor_question rows in the
   // tutor log. surface already matches the AuditRealm union.
   const auditEntityType = surface === 'admin' ? 'bank_item' : 'tutor_question';
+  // Surface-aware library base for the Note-origin badge link.
+  const libraryBase = surface === 'admin' ? '/admin/library' : '/tutor/library';
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' });
   // Brief flash after a successful save/delete — useful confirmation
   // for the curator since the modal closed without showing a "Saved"
@@ -282,104 +298,139 @@ export function BankListClient({
               <th>Difficulty</th>
               <th
                 className="auth-list-max"
-                title="Max possible score for the question (system-derived from the answer key)"
+                title="Marks — max possible score for the question (system-derived from the answer key)"
               >
-                Max
+                Marks
               </th>
               <th>Status</th>
-              <th>Authors</th>
+              <th className="auth-list-authors">Authors</th>
               <th aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => {
               const wrapperHref = wrapperHrefFor(row);
+              const hasStrip = Boolean(
+                row.parent_case_id || row.trend_id ||
+                (row.parent_note_id && row.note_title) ||
+                row.category || row.subcategory || row.subject || row.bodySystem,
+              );
               return (
-                <tr key={row.item_id}>
-                  <td className="auth-list-item-id"><code>{row.item_id}</code></td>
-                  <td className="auth-list-stem">
-                    {stemSnippet(row.stem)}
-                    {/* Wrapper badges — clickable, link to the wrapper
-                        page with focus=<item_id>. Only ever one of the
-                        two appears (a question can't belong to both
-                        a case and a trend at once). Title falls back
-                        to the raw ID if the FK join returned null. */}
-                    {row.parent_case_id && (
-                      <Link
-                        href={wrapperHref ?? '#'}
-                        className="bank-badge bank-badge-case bank-badge-link"
-                        title="Open in case editor"
-                        style={{ marginLeft: 8 }}
-                      >
-                        In case · {row.case_title ?? row.parent_case_id}
-                      </Link>
-                    )}
-                    {row.trend_id && (
-                      <Link
-                        href={wrapperHref ?? '#'}
-                        className="bank-badge bank-badge-trend bank-badge-link"
-                        title="Open in trend editor"
-                        style={{ marginLeft: 8 }}
-                      >
-                        Trend · {row.trend_title ?? row.trend_id}
-                      </Link>
-                    )}
-                  </td>
-                  <td>
-                    <span className="auth-pill auth-pill--type">{row.question_type}</span>
-                  </td>
-                  <td>{row.difficulty ?? '—'}</td>
-                  <td className="auth-list-max">{row.marks}</td>
-                  <td>
-                    <span
-                      className={
-                        'auth-pill ' +
-                        (row.is_published ? 'auth-pill--published' : 'auth-pill--draft')
-                      }
-                    >
-                      {row.is_published ? 'Published' : 'Draft'}
-                    </span>
-                  </td>
-                  <td>
-                    <AuthorshipCell
-                      authorship={authorshipById[row.item_id]}
-                      realm={surface}
-                      entityType={auditEntityType}
-                      entityId={row.item_id}
-                      title={stemSnippet(row.stem, 60)}
-                    />
-                  </td>
-                  <td className="auth-list-row-actions">
-                    {wrapperHref ? (
-                      <Link
-                        href={wrapperHref}
-                        className="auth-btn auth-btn-ghost auth-btn-sm"
-                        title={
-                          row.parent_case_id
-                            ? 'Open the case wrapper with this question pre-selected'
-                            : 'Open the trend wrapper with this question pre-selected'
+                <Fragment key={row.item_id}>
+                  <tr className={hasStrip ? 'bank-q-main has-strip' : 'bank-q-main'}>
+                    <td className="auth-list-item-id"><code>{row.item_id}</code></td>
+                    <td className="auth-list-stem">
+                      <HoverPeek className="bank-stem-text" panel={
+                        <div className="hover-peek">
+                          {row.instruction && <div className="hover-peek-kicker">{row.instruction}</div>}
+                          <p className="hover-peek-body">{row.stem}</p>
+                        </div>
+                      }>
+                        {row.stem}
+                      </HoverPeek>
+                    </td>
+                    <td>
+                      <span className="auth-pill auth-pill--type">{row.question_type}</span>
+                    </td>
+                    <td>{row.difficulty ?? '—'}</td>
+                    <td className="auth-list-max">{row.marks}</td>
+                    <td>
+                      <span
+                        className={
+                          'auth-pill ' +
+                          (row.is_published ? 'auth-pill--published' : 'auth-pill--draft')
                         }
                       >
-                        {row.parent_case_id ? 'Open in case editor' : 'Open in trend editor'}
-                      </Link>
-                    ) : rowEditable(row) ? (
-                      <button
-                        type="button"
-                        className="auth-btn auth-btn-ghost auth-btn-sm"
-                        onClick={() => handleEditRow(row)}
-                      >
-                        Edit
-                      </button>
-                    ) : (
-                      <span
-                        className="auth-list-row-disabled"
-                        title={`The ${row.question_type} editor lands in a later slice`}
-                      >
-                        —
+                        {row.is_published ? 'Published' : 'Draft'}
                       </span>
-                    )}
-                  </td>
-                </tr>
+                    </td>
+                    <td className="auth-list-authors">
+                      <AuthorshipCell
+                        authorship={authorshipById[row.item_id]}
+                        realm={surface}
+                        entityType={auditEntityType}
+                        entityId={row.item_id}
+                        title={stemSnippet(row.stem, 60)}
+                      />
+                    </td>
+                    <td className="auth-list-row-actions">
+                      {wrapperHref ? (
+                        <Link
+                          href={wrapperHref}
+                          className="auth-btn auth-btn-ghost auth-btn-sm"
+                          title={
+                            row.parent_case_id
+                              ? 'Open the case wrapper with this question pre-selected'
+                              : 'Open the trend wrapper with this question pre-selected'
+                          }
+                        >
+                          {row.parent_case_id ? 'Open in case editor' : 'Open in trend editor'}
+                        </Link>
+                      ) : rowEditable(row) ? (
+                        <button
+                          type="button"
+                          className="auth-btn auth-btn-ghost auth-btn-sm"
+                          onClick={() => handleEditRow(row)}
+                        >
+                          Edit
+                        </button>
+                      ) : (
+                        <span
+                          className="auth-list-row-disabled"
+                          title={`The ${row.question_type} editor lands in a later slice`}
+                        >
+                          —
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+
+                  {/* Full-width tag strip — the lower half of the card.
+                      Wrapper badge (clickable) + classification tags, laid
+                      out horizontally with room to breathe. */}
+                  {hasStrip && (
+                    <tr className="bank-q-strip">
+                      {/* Empty cell under the ID column so the strip starts
+                          aligned with the stem and runs to the actions. */}
+                      <td aria-hidden="true" />
+                      <td colSpan={7}>
+                        <div className="bank-q-tags">
+                          {row.parent_case_id && (
+                            <Link
+                              href={wrapperHref ?? '#'}
+                              className="bank-badge bank-badge-case bank-badge-link"
+                              title="Open in case editor"
+                            >
+                              In case · {row.case_title ?? row.parent_case_id}
+                            </Link>
+                          )}
+                          {row.trend_id && (
+                            <Link
+                              href={wrapperHref ?? '#'}
+                              className="bank-badge bank-badge-trend bank-badge-link"
+                              title="Open in trend editor"
+                            >
+                              Trend · {row.trend_title ?? row.trend_id}
+                            </Link>
+                          )}
+                          {row.parent_note_id && row.note_title && (
+                            <Link
+                              href={`${libraryBase}/note/${row.parent_note_id}`}
+                              className="bank-badge bank-badge-note bank-badge-link"
+                              title="Open the library note this question was created in"
+                            >
+                              Note · {row.note_title}
+                            </Link>
+                          )}
+                          {row.category    && <span className="bank-class-tag cat">{row.category}</span>}
+                          {row.subcategory && <span className="bank-class-tag">{row.subcategory}</span>}
+                          {row.subject     && <span className="bank-class-tag">{row.subject}</span>}
+                          {row.bodySystem  && <span className="bank-class-tag">{row.bodySystem}</span>}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>

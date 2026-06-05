@@ -92,6 +92,7 @@ const BASE_URL = '/admin/bank/all';
 interface FullBankRow extends McqDbRow {
   parent_case_id: string | null;
   trend_id:       string | null;
+  parent_note_id: string | null;
   case:  { title: string } | null;
   trend: { title: string } | null;
 }
@@ -112,7 +113,7 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
     .from('nclex_bank_items')
     .select(
       MCQ_ROW_COLUMNS +
-      ', parent_case_id, trend_id, ' +
+      ', parent_case_id, trend_id, parent_note_id, ' +
       'trend:nclex_trend_datasets(title), ' +
       'case:nclex_case_studies(title)',
     );
@@ -180,14 +181,22 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
     item_id:        r.item_id,
     question_type:  r.question_type as QuestionType,
     stem:           r.stem ?? '',
+    instruction:    r.instruction ?? null,
     difficulty:     r.difficulty,
     is_published:   r.is_published,
     is_free_sample: r.is_free_sample,
     marks:          r.marks ?? 1,
+    category:       r.client_needs_category ?? null,
+    subcategory:    r.client_needs_subcategory ?? null,
+    subject:        r.nursing_subject ?? null,
+    bodySystem:     r.body_system ?? null,
     parent_case_id: r.parent_case_id,
     case_title:     r.case?.title ?? null,
     trend_id:       r.trend_id,
     trend_title:    r.trend?.title ?? null,
+    // No admin library yet — origin badge stays unresolved (hidden).
+    parent_note_id: r.parent_note_id ?? null,
+    note_title:     null,
   }));
 
   const mcqInitialsById:       Record<string, McqEditorInitial>       = {};

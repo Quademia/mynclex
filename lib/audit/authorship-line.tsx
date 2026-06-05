@@ -36,13 +36,17 @@ export function AuthorshipCell({ authorship, realm, entityType, entityId, title 
   return (
     <div className="audit-cell">
       <div className="audit-cell-lines">
-        <span className="audit-cell-line">
-          <span className="audit-cell-label">Created</span>
+        {/* Labels dropped to save width — the clock has the full labelled
+            timeline; native tooltips disambiguate on hover. Top = creator,
+            muted line below = last editor. */}
+        <span className="audit-cell-line" title={`Created by ${createdByName ?? 'unknown'}`}>
           <span className="audit-cell-name">{createdByName ?? '—'}</span>
         </span>
         {hasEdits && (
-          <span className="audit-cell-line audit-cell-line--muted">
-            <span className="audit-cell-label">Last edit</span>
+          <span
+            className="audit-cell-line audit-cell-line--muted"
+            title={`Last edited by ${lastEditedByName ?? 'unknown'}`}
+          >
             <span className="audit-cell-name">{lastEditedByName ?? '—'}</span>
           </span>
         )}
