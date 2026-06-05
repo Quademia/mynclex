@@ -27,7 +27,6 @@ interface CaseDbRow {
   is_published:       boolean;
   is_builder_visible: boolean;
   is_free_sample:     boolean;
-  difficulty:         string | null;
   updated_at:         string;
 }
 
@@ -39,7 +38,7 @@ export default async function AdminCasesV2ListPage() {
 
   const { data: caseRows, error: caseErr } = await supabase
     .from('nclex_case_studies')
-    .select('case_id, title, scenario_summary, topic, subtopic, tags, is_published, is_builder_visible, is_free_sample, difficulty, updated_at')
+    .select('case_id, title, scenario_summary, topic, subtopic, tags, is_published, is_builder_visible, is_free_sample, updated_at')
     .order('updated_at', { ascending: false });
 
   if (caseErr) {
@@ -87,7 +86,6 @@ export default async function AdminCasesV2ListPage() {
     is_published:       c.is_published,
     is_builder_visible: c.is_builder_visible,
     is_free_sample:     c.is_free_sample,
-    difficulty:         c.difficulty,
     updated_at:         c.updated_at,
     total:          slotStats[c.case_id]?.total ?? 0,
     published:      slotStats[c.case_id]?.published ?? 0,
@@ -97,26 +95,18 @@ export default async function AdminCasesV2ListPage() {
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner">
-        <header className="auth-list-page-header">
+        <header className="bl-page-head">
           <div>
-            <h1 className="auth-list-page-title">Case Studies</h1>
-            <p className="auth-list-page-subtitle">
-              Multi-question NCLEX scenarios with a shared patient chart. Each
-              case groups up to 6 questions under one scenario plus its chart
-              tabs. Click a row to open the wrapper editor.
+            <div className="bl-eyebrow">
+              <span className="bl-surface-chip admin"><span className="dot" />Admin bank</span>
+              Wrapper · cases
+            </div>
+            <h1 className="bl-page-title">Case Studies</h1>
+            <p className="bl-page-sub">
+              Multi-question NCLEX scenarios with a shared patient chart — up to
+              six questions under one case. A case reaches students only when
+              published, builder-visible, and complete.
             </p>
-          </div>
-          <div className="auth-list-toolbar">
-            <form
-              action={async (fd: FormData) => {
-                'use server';
-                await createCaseAction(fd);
-              }}
-              style={{ display: 'inline' }}
-            >
-              <input type="hidden" name="surface" value="admin" />
-              <button type="submit" className="auth-cs-btn primary">+ New case study</button>
-            </form>
           </div>
         </header>
 
@@ -124,12 +114,37 @@ export default async function AdminCasesV2ListPage() {
           <div className="auth-list-empty">
             <h3>No case studies yet</h3>
             <p>Click <strong>+ New case study</strong> to create the first one.</p>
+            <div style={{ marginTop: 12 }}>
+              <NewCaseButton surface="admin" />
+            </div>
           </div>
         ) : (
-          <CasesListClient rows={rows} authorship={authorship} surface="admin" />
+          <CasesListClient
+            rows={rows}
+            authorship={authorship}
+            surface="admin"
+            newButton={<NewCaseButton surface="admin" />}
+          />
         )}
       </div>
     </main>
+  );
+}
+
+// "+ New case study" — a server-action form whose submit creates a draft
+// and redirects. Rendered in the redesigned toolbar slot + the empty state.
+function NewCaseButton({ surface }: { surface: 'admin' | 'tutor' }) {
+  return (
+    <form
+      action={async (fd: FormData) => {
+        'use server';
+        await createCaseAction(fd);
+      }}
+      style={{ display: 'inline' }}
+    >
+      <input type="hidden" name="surface" value={surface} />
+      <button type="submit" className="bl-btn bl-btn-primary">+ New case study</button>
+    </form>
   );
 }
 

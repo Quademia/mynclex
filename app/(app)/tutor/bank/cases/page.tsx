@@ -24,7 +24,6 @@ interface CaseDbRow {
   is_published:       boolean;
   is_builder_visible: boolean;
   is_free_sample:     boolean;
-  difficulty:         string | null;
   updated_at:         string;
 }
 
@@ -36,7 +35,7 @@ export default async function TutorCasesV2ListPage() {
 
   const { data: caseRows, error: caseErr } = await supabase
     .from('nclex_tutor_case_studies')
-    .select('case_id, title, scenario_summary, topic, subtopic, tags, is_published, is_builder_visible, is_free_sample, difficulty, updated_at')
+    .select('case_id, title, scenario_summary, topic, subtopic, tags, is_published, is_builder_visible, is_free_sample, updated_at')
     .eq('tutor_id', user.id)
     .order('updated_at', { ascending: false });
 
@@ -83,7 +82,6 @@ export default async function TutorCasesV2ListPage() {
     is_published:       c.is_published,
     is_builder_visible: c.is_builder_visible,
     is_free_sample:     c.is_free_sample,
-    difficulty:         c.difficulty,
     updated_at:         c.updated_at,
     total:          slotStats[c.case_id]?.total ?? 0,
     published:      slotStats[c.case_id]?.published ?? 0,
@@ -93,25 +91,18 @@ export default async function TutorCasesV2ListPage() {
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner">
-        <header className="auth-list-page-header">
+        <header className="bl-page-head">
           <div>
-            <h1 className="auth-list-page-title">Case Studies</h1>
-            <p className="auth-list-page-subtitle">
-              Your private NCLEX case studies. Each groups up to 6 questions
-              under a shared patient chart. Click a row to open the wrapper editor.
+            <div className="bl-eyebrow">
+              <span className="bl-surface-chip tutor"><span className="dot" />Tutor bank</span>
+              Wrapper · cases
+            </div>
+            <h1 className="bl-page-title">Case Studies</h1>
+            <p className="bl-page-sub">
+              Your private NCLEX case studies — up to six questions under a
+              shared patient chart. A case reaches students only when published,
+              builder-visible, and complete.
             </p>
-          </div>
-          <div className="auth-list-toolbar">
-            <form
-              action={async (fd: FormData) => {
-                'use server';
-                await createCaseAction(fd);
-              }}
-              style={{ display: 'inline' }}
-            >
-              <input type="hidden" name="surface" value="tutor" />
-              <button type="submit" className="auth-cs-btn primary">+ New case study</button>
-            </form>
           </div>
         </header>
 
@@ -119,12 +110,37 @@ export default async function TutorCasesV2ListPage() {
           <div className="auth-list-empty">
             <h3>No case studies yet</h3>
             <p>Click <strong>+ New case study</strong> to create the first one.</p>
+            <div style={{ marginTop: 12 }}>
+              <NewCaseButton surface="tutor" />
+            </div>
           </div>
         ) : (
-          <CasesListClient rows={rows} authorship={authorship} surface="tutor" />
+          <CasesListClient
+            rows={rows}
+            authorship={authorship}
+            surface="tutor"
+            newButton={<NewCaseButton surface="tutor" />}
+          />
         )}
       </div>
     </main>
+  );
+}
+
+// "+ New case study" — a server-action form whose submit creates a draft
+// and redirects. Rendered in the redesigned toolbar slot + the empty state.
+function NewCaseButton({ surface }: { surface: 'admin' | 'tutor' }) {
+  return (
+    <form
+      action={async (fd: FormData) => {
+        'use server';
+        await createCaseAction(fd);
+      }}
+      style={{ display: 'inline' }}
+    >
+      <input type="hidden" name="surface" value={surface} />
+      <button type="submit" className="bl-btn bl-btn-primary">+ New case study</button>
+    </form>
   );
 }
 

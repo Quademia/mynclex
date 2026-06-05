@@ -1,0 +1,402 @@
+/* mynclex/styles/bank-list.css
+ *
+ * Redesign of the three bank LIST surfaces — Trend datasets, Case studies,
+ * Question Bank — from the 2026-06 Claude Design "Bank surfaces" handoff.
+ * Built on the app tokens (navy = --primary, teal = --accent); the handoff's
+ * own palette maps onto ours almost 1:1.
+ *
+ * All classes are namespaced `bl-*` so the redesign can land ONE surface at a
+ * time while the not-yet-migrated surfaces keep their old styles. Once all
+ * three surfaces are on this system, the dead old rules (scattered in
+ * authoring.css / dashboards.css) get pruned in a cleanup pass.
+ *
+ * Loaded LAST in app/(app)/layout.tsx so it cleanly tops the old rules.
+ *
+ * Build order: Trend datasets first (this slice) → Case studies → Question
+ * Bank. The shared primitives (band / toolbar / table / status / health /
+ * attached-bar) get lifted into lib/bank/list-ui.tsx once Cases reuses them.
+ */
+
+/* ── Page header (eyebrow chip + title + subtitle) ─────────────────── */
+.bl-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+.bl-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 9px;
+}
+.bl-surface-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.bl-surface-chip.admin { background: var(--primary-light); color: var(--primary); }
+.bl-surface-chip.tutor { background: #e3f0ec; color: var(--accent-dark); }
+.bl-surface-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.bl-page-title { font-size: 25px; font-weight: 750; letter-spacing: -0.02em; color: var(--text); }
+.bl-page-sub { margin-top: 6px; font-size: 13.5px; line-height: 1.5; color: var(--text-muted); max-width: 640px; }
+
+/* ── Overview / health band (stat cards) ───────────────────────────── */
+.bl-band {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.bl-stat {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 15px 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+button.bl-stat {
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+button.bl-stat:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
+.bl-stat.is-on { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.bl-stat.warn.is-on { border-color: #b45309; box-shadow: 0 0 0 1px #b45309; }
+.bl-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.bl-stat-value {
+  font-size: 28px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1;
+}
+.bl-stat-value .sub { font-size: 13px; font-weight: 600; color: var(--text-faint); margin-left: 5px; }
+.bl-stat.warn .bl-stat-value { color: #b45309; }
+.bl-stat-foot { font-size: 11.5px; color: var(--text-muted); }
+.bl-stat-ico {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+.bl-stat-ico.warn { background: #fdf2e0; color: #b45309; }
+.bl-stat-ico.ok { background: #eaf6ee; color: #15803d; }
+
+/* ── Compact toolbar (search + status seg + filters + new) ─────────── */
+.bl-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+}
+.bl-search { position: relative; display: flex; align-items: center; flex: 1; min-width: 240px; }
+.bl-search svg { position: absolute; left: 11px; color: var(--text-faint); pointer-events: none; }
+.bl-search input {
+  width: 100%;
+  padding: 9px 12px 9px 34px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  transition: border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
+}
+.bl-search input:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px #e3f0ec; }
+.bl-search input::placeholder { color: var(--text-faint); }
+
+.bl-seg { display: inline-flex; background: var(--bg-soft); border-radius: 9px; padding: 3px; gap: 2px; }
+.bl-seg button {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  padding: 6px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.bl-seg button:hover { color: var(--text); }
+.bl-seg button.on { background: var(--white); color: var(--text); box-shadow: var(--shadow); }
+
+.bl-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+.bl-select:focus { outline: none; border-color: var(--accent); }
+
+.bl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border-strong);
+  background: var(--white);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+.bl-chip:hover { border-color: var(--accent); color: var(--accent-dark); }
+.bl-chip .n {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 11px;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  padding: 0 6px;
+  border-radius: 999px;
+}
+.bl-chip.warn { border-color: #f0d9b3; color: #b45309; }
+.bl-chip.warn .ico { font-size: 11px; line-height: 1; }
+.bl-chip.warn.on { background: #b45309; border-color: #b45309; color: #fff; }
+.bl-chip.warn.on .n { background: rgba(255, 255, 255, 0.22); color: #fff; }
+
+.bl-spacer { flex: 1; }
+
+.bl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border-strong);
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+.bl-btn:hover { background: var(--bg-soft); }
+.bl-btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.bl-btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+
+/* ── Result line ───────────────────────────────────────────────────── */
+.bl-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.bl-result b { color: var(--text); font-weight: 700; }
+.bl-result-clear {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.bl-result-clear:hover { color: var(--danger); }
+
+/* ── Table ─────────────────────────────────────────────────────────── */
+.bl-table-wrap {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow-x: auto;
+}
+.bl-table {
+  width: 100%;
+  min-width: 880px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+.bl-table thead th {
+  text-align: left;
+  padding: 11px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.bl-table tbody td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.bl-table tbody tr:last-child td { border-bottom: none; }
+.bl-table tbody tr:hover { background: #fafbfc; }
+.bl-id { width: 1%; white-space: nowrap; }
+.bl-id code {
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: 11.5px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  padding: 3px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.bl-col-title { width: 38%; min-width: 280px; }
+.bl-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.45;
+  color: var(--text);
+  font-weight: 650;
+}
+/* Chart-tab chips under a case title (up to 3 + overflow). */
+.bl-tabchips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.bl-tabchip {
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+.bl-cell-mid { white-space: nowrap; color: var(--text-muted); }
+.bl-actions { width: 1%; white-space: nowrap; text-align: right; }
+.bl-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border-strong);
+  background: var(--white);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+.bl-open:hover { background: var(--bg-soft); border-color: var(--accent); color: var(--accent-dark); }
+
+/* ── Status pill ───────────────────────────────────────────────────── */
+.bl-status-row { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.bl-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.bl-status.pub { background: #e7f6ec; color: #15803d; }
+.bl-status.draft { background: var(--bg-soft); color: var(--text-muted); border: 1px solid var(--border); }
+.bl-status.free { background: #fdf2e0; color: #b45309; }
+.bl-status.hidden { background: #f2eafc; color: #6d28d9; }
+
+/* ── Health flag (the "reaches nobody / incomplete" signal) ────────── */
+.bl-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px 3px 8px;
+  border-radius: 999px;
+  background: #fdf2e0;
+  color: #b45309;
+  border: 1px solid #f0d9b3;
+  white-space: nowrap;
+}
+.bl-health .ico { font-size: 11px; line-height: 1; }
+.bl-health.ok { background: #eaf6ee; color: #15803d; border-color: #c5e7cf; }
+.bl-health.ghost { background: transparent; border: none; color: var(--text-faint); font-weight: 600; }
+
+/* ── Attached bar (count + mini progress bar + published/draft pills) ─ */
+.bl-attbar { display: inline-flex; align-items: center; gap: 9px; }
+.bl-attbar .count {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+.bl-minibar {
+  display: inline-flex;
+  width: 60px;
+  height: 7px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-soft);
+  flex: none;
+}
+.bl-minibar .fill { background: var(--success); height: 100%; }
+.bl-qpill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.bl-qpill.pub { background: #e7f6ec; color: #15803d; }
+.bl-qpill.draft { background: var(--bg-soft); color: var(--text-muted); border: 1px solid var(--border); }
+
+/* ── Responsive ────────────────────────────────────────────────────── */
+@media (max-width: 980px) {
+  .bl-band { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .bl-band { grid-template-columns: 1fr; }
+}

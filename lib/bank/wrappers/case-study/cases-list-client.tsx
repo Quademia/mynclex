@@ -1,22 +1,29 @@
 // mynclex/lib/bank/wrappers/case-study/cases-list-client.tsx
 //
-// Client list + filter bar for the Case Studies list (shared by the
-// admin and tutor pages — the reuse axis is admin/tutor, not wrapper
-// type). Volume is tiny (single/double digits) so filtering is purely
-// client-side and instant: the page hands over every row with a
-// precomputed lowercased `searchText` blob (title + scenario + chart
-// tabs), and this component filters in the browser.
+// Case Studies list (shared by the admin + tutor pages — the reuse axis is
+// admin/tutor, not wrapper type). Volume is tiny (single/double digits) so
+// filtering is purely client-side and instant over a precomputed lowercased
+// `searchText` blob (title + scenario + chart tabs).
 //
-// Filters: content search · Status · Difficulty · "Needs attention"
-// (published but not deliverable — fewer than 6 child questions are
-// published, so it reaches no students; mirrors the publish gate).
+// 2026-06 redesign (Claude Design "Bank surfaces"): an overview/health band
+// on top (stat cards, "Needs attention" doubles as a filter), a compact
+// single-row toolbar (search · Status seg · Needs-attention chip · + New),
+// and a re-skinned table that adds a HEALTH column, an attached "N of 6"
+// mini-bar, chart-tab chips under the title, and an inline "Hidden" tag.
+// Shares list primitives with the Trends list via lib/bank/list-ui.tsx.
+// Styles: styles/bank-list.css (`bl-*`).
+//
+// Difficulty is deliberately NOT shown or filtered here: a case is a
+// container of up to 6 questions that each carry their own difficulty, so a
+// single difficulty on the wrapper is a weak signal. (The DB column stays —
+// the wrapper editor owns it; the list just doesn't read it.)
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { QuestionPills } from '@/lib/bank/wrappers/question-pills';
 import { HoverPeek } from '@/lib/bank/hover-peek';
+import { AttachedBar, HealthFlag, SearchIcon } from '@/lib/bank/list-ui';
 import { AuthorshipCell } from '@/lib/audit/authorship-line';
 import type { Authorship } from '@/lib/audit/authorship';
 
@@ -24,37 +31,45 @@ export interface CaseListRow {
   case_id:            string;
   title:              string;
   scenario:           string | null;  // for the hover peek
-  tabTitles:          string[];       // chart-tab names, for the peek
+  tabTitles:          string[];       // chart-tab names, for the chips + peek
   is_published:       boolean;
   is_builder_visible: boolean;
   is_free_sample:     boolean;
-  difficulty:         string | null;
   updated_at:         string;
   total:              number;   // attached question count
   published:          number;   // published question count
   searchText:         string;   // lowercased: title + scenario + chart text
 }
 
-// The delivery rule: a case reaches students only when it is published
-// AND builder-visible AND all 6 child questions are published. So a
-// published case that is hidden from the builder, or has fewer than 6
-// published children, is "live but reaches nobody".
+// The delivery rule: a case reaches students only when it is published AND
+// builder-visible AND all 6 child questions are published. So a published
+// case that is hidden from the builder, or has fewer than 6 published
+// children, is "live but reaches nobody".
 const needsAttention = (r: CaseListRow) =>
   r.is_published && (r.published < 6 || !r.is_builder_visible);
+
+// Why a published case isn't actually delivering — most-blocking first.
+function attentionReason(r: CaseListRow): string {
+  if (!r.is_builder_visible) return 'Hidden from builder';
+  if (r.published < 6) return `${r.published}/6 published`;
+  return 'Reaches nobody';
+}
 
 export function CasesListClient({
   rows,
   authorship,
   surface,
+  newButton,
 }: {
   rows:       CaseListRow[];
   authorship: Record<string, Authorship>;
   surface:    'admin' | 'tutor';
+  /** "+ New case study" form, rendered right-aligned in the toolbar. */
+  newButton?: ReactNode;
 }) {
-  const [q, setQ]                 = useState('');
-  const [status, setStatus]       = useState('');
-  const [difficulty, setDiff]     = useState('');
-  const [attn, setAttn]           = useState(false);
+  const [q, setQ]           = useState('');
+  const [status, setStatus] = useState('');
+  const [attn, setAttn]     = useState(false);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -62,68 +77,89 @@ export function CasesListClient({
       if (term && !r.searchText.includes(term)) return false;
       if (status === 'published' && !r.is_published) return false;
       if (status === 'draft' && r.is_published) return false;
-      if (difficulty && r.difficulty !== difficulty) return false;
       if (attn && !needsAttention(r)) return false;
       return true;
     });
-  }, [rows, q, status, difficulty, attn]);
+  }, [rows, q, status, attn]);
 
-  const active = Boolean(q || status || difficulty || attn);
+  // Band stats over ALL rows (the whole list), not the filtered view.
+  const total      = rows.length;
+  const liveCount  = useMemo(() => rows.filter((r) => r.is_published && !needsAttention(r)).length, [rows]);
+  const attnCount  = useMemo(() => rows.filter(needsAttention).length, [rows]);
+  const slotted    = useMemo(() => rows.reduce((s, r) => s + r.total, 0), [rows]);
+
+  const active = Boolean(q || status || attn);
   const basePath = surface === 'tutor' ? '/tutor/bank/cases' : '/admin/bank/cases';
   const entityType = surface === 'tutor' ? 'tutor_case_study' : 'case_study';
 
-  function clearAll() { setQ(''); setStatus(''); setDiff(''); setAttn(false); }
+  function clearAll() { setQ(''); setStatus(''); setAttn(false); }
 
   return (
     <>
-      <div className="bank-filters">
-        <div className="bank-filter-grid">
-          <div className="bank-filter-group bank-filter-search">
-            <label className="bank-filter-label" htmlFor="cf-q">Search</label>
-            <input
-              id="cf-q"
-              type="text"
-              className="bank-filter-input"
-              placeholder="Search title, scenario, chart contents…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-          </div>
-
-          <div className={`bank-filter-group${status ? ' is-set' : ''}`}>
-            <label className="bank-filter-label" htmlFor="cf-status">Status</label>
-            <select id="cf-status" className="bank-filter-input" value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="">All</option>
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
-            </select>
-          </div>
-
-          <div className={`bank-filter-group${difficulty ? ' is-set' : ''}`}>
-            <label className="bank-filter-label" htmlFor="cf-diff">Difficulty</label>
-            <select id="cf-diff" className="bank-filter-input" value={difficulty} onChange={(e) => setDiff(e.target.value)}>
-              <option value="">All</option>
-              <option value="Easy">Easy</option>
-              <option value="Medium">Medium</option>
-              <option value="Hard">Hard</option>
-            </select>
-          </div>
-
-          <div className={`bank-filter-group${attn ? ' is-set' : ''}`}>
-            <label className="bank-filter-label">Health</label>
-            <label className="bank-attn-check" title="Published, but reaches no students — fewer than 6 questions published, or hidden from the builder">
-              <input type="checkbox" checked={attn} onChange={(e) => setAttn(e.target.checked)} />
-              <span>Needs attention</span>
-            </label>
-          </div>
+      {/* ── Overview / health band ── */}
+      <div className="bl-band">
+        <div className="bl-stat">
+          <span className="bl-stat-label">Case studies</span>
+          <span className="bl-stat-value">{total}</span>
+          <span className="bl-stat-foot">Multi-question scenarios</span>
         </div>
-
-        <div className="bank-filter-active">
-          <span className="bank-filter-count">{filtered.length} of {rows.length}</span>
-          {active && (
-            <button type="button" className="bank-filter-reset" onClick={clearAll}>Clear</button>
-          )}
+        <div className="bl-stat">
+          <span className="bl-stat-label">Fully live</span>
+          <span className="bl-stat-value">{liveCount}<span className="sub">/ {total}</span></span>
+          <span className="bl-stat-foot">Published &amp; reaching students</span>
         </div>
+        <button
+          type="button"
+          className={`bl-stat warn${attn ? ' is-on' : ''}`}
+          onClick={() => setAttn((v) => !v)}
+        >
+          <span className="bl-stat-label"><span className="bl-stat-ico warn">▲</span>Needs attention</span>
+          <span className="bl-stat-value">{attnCount}</span>
+          <span className="bl-stat-foot">Live but incomplete or hidden — tap to filter</span>
+        </button>
+        <div className="bl-stat">
+          <span className="bl-stat-label">Questions slotted</span>
+          <span className="bl-stat-value">{slotted}<span className="sub">/ {total * 6}</span></span>
+          <span className="bl-stat-foot">Across all cases (max 6 each)</span>
+        </div>
+      </div>
+
+      {/* ── Compact toolbar ── */}
+      <div className="bl-toolbar">
+        <div className="bl-search">
+          <SearchIcon />
+          <input
+            type="text"
+            placeholder="Search title, scenario, chart contents…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            aria-label="Search case studies"
+          />
+        </div>
+        <div className="bl-seg" role="group" aria-label="Status">
+          {['', 'published', 'draft'].map((s) => (
+            <button key={s || 'all'} type="button" className={status === s ? 'on' : ''} onClick={() => setStatus(s)}>
+              {s === '' ? 'All' : s[0].toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className={`bl-chip warn${attn ? ' on' : ''}`}
+          onClick={() => setAttn((v) => !v)}
+          title="Published, but reaches no students — fewer than 6 questions published, or hidden from the builder"
+        >
+          <span className="ico">▲</span>Needs attention<span className="n">{attnCount}</span>
+        </button>
+        <span className="bl-spacer" />
+        {newButton}
+      </div>
+
+      <div className="bl-result">
+        Showing <b>{filtered.length}</b> of {rows.length} case studies
+        {active && (
+          <button type="button" className="bl-result-clear" onClick={clearAll}>Clear</button>
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -135,74 +171,91 @@ export function CasesListClient({
           </p>
         </div>
       ) : (
-        <table className="auth-list-table">
-          <thead>
-            <tr>
-              <th>Case ID</th>
-              <th>Title</th>
-              <th>Slots</th>
-              <th>Status</th>
-              <th>Difficulty</th>
-              <th>Updated</th>
-              <th>Authors</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((c) => (
-              <tr key={c.case_id}>
-                <td className="auth-list-item-id"><code>{c.case_id}</code></td>
-                <td>
-                  <HoverPeek panel={
-                    <div className="hover-peek">
-                      <div className="hover-peek-title">{c.title}</div>
-                      {c.scenario
-                        ? <p className="hover-peek-body">{c.scenario}</p>
-                        : <p className="hover-peek-empty">No scenario yet.</p>}
+        <div className="bl-table-wrap">
+          <table className="bl-table">
+            <thead>
+              <tr>
+                <th className="bl-id">Case ID</th>
+                <th className="bl-col-title">Title</th>
+                <th>Slots</th>
+                <th>Status</th>
+                <th>Health</th>
+                <th>Updated</th>
+                <th>Authors</th>
+                <th aria-label="Actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((c) => {
+                const bad = needsAttention(c);
+                return (
+                  <tr key={c.case_id}>
+                    <td className="bl-id"><code>{c.case_id}</code></td>
+                    <td className="bl-col-title">
+                      <HoverPeek className="bl-title" panel={
+                        <div className="hover-peek">
+                          <div className="hover-peek-title">{c.title}</div>
+                          {c.scenario
+                            ? <p className="hover-peek-body">{c.scenario}</p>
+                            : <p className="hover-peek-empty">No scenario yet.</p>}
+                          {c.tabTitles.length > 0 && (
+                            <div className="hover-peek-chips">
+                              {c.tabTitles.map((t, i) => (
+                                <span key={i} className="hover-peek-chip">{t}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      }>
+                        {c.title}
+                      </HoverPeek>
                       {c.tabTitles.length > 0 && (
-                        <div className="hover-peek-chips">
-                          {c.tabTitles.map((t, i) => (
-                            <span key={i} className="hover-peek-chip">{t}</span>
+                        <div className="bl-tabchips">
+                          {c.tabTitles.slice(0, 3).map((t, i) => (
+                            <span key={i} className="bl-tabchip">{t}</span>
                           ))}
+                          {c.tabTitles.length > 3 && (
+                            <span className="bl-tabchip">+{c.tabTitles.length - 3}</span>
+                          )}
                         </div>
                       )}
-                    </div>
-                  }>
-                    {c.title}
-                  </HoverPeek>
-                </td>
-                <td>
-                  {c.total} of 6
-                  <QuestionPills total={c.total} published={c.published} />
-                </td>
-                <td>
-                  {c.is_published
-                    ? <span className="auth-cs-tag ok">Published</span>
-                    : <span className="auth-cs-tag muted">Draft</span>}
-                  {c.is_free_sample && (
-                    <span className="auth-cs-tag info" style={{ marginLeft: 6 }}>Free sample</span>
-                  )}
-                </td>
-                <td>{c.difficulty ?? '—'}</td>
-                <td>{new Date(c.updated_at).toLocaleDateString()}</td>
-                <td>
-                  <AuthorshipCell
-                    authorship={authorship[c.case_id]}
-                    realm={surface}
-                    entityType={entityType}
-                    entityId={c.case_id}
-                    title={c.title}
-                  />
-                </td>
-                <td className="auth-list-row-actions">
-                  <Link href={`${basePath}/${c.case_id}`} className="auth-cs-btn tiny">
-                    Open →
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    </td>
+                    <td><AttachedBar total={c.total} published={c.published} denom={6} /></td>
+                    <td>
+                      <span className="bl-status-row">
+                        {c.is_published
+                          ? <span className="bl-status pub">Published</span>
+                          : <span className="bl-status draft">Draft</span>}
+                        {!c.is_builder_visible && <span className="bl-status hidden">Hidden</span>}
+                        {c.is_free_sample && <span className="bl-status free">Free</span>}
+                      </span>
+                    </td>
+                    <td>
+                      {bad
+                        ? <HealthFlag state="warn" text={attentionReason(c)} />
+                        : c.is_published
+                          ? <HealthFlag state="ok" />
+                          : <HealthFlag state="ghost" />}
+                    </td>
+                    <td className="bl-cell-mid">{new Date(c.updated_at).toLocaleDateString()}</td>
+                    <td>
+                      <AuthorshipCell
+                        authorship={authorship[c.case_id]}
+                        realm={surface}
+                        entityType={entityType}
+                        entityId={c.case_id}
+                        title={c.title}
+                      />
+                    </td>
+                    <td className="bl-actions">
+                      <Link href={`${basePath}/${c.case_id}`} className="bl-open">Open →</Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </>
   );

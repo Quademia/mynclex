@@ -84,16 +84,18 @@ export default async function TutorTrendsV2ListPage() {
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner">
-        <header className="auth-list-page-header">
+        <header className="bl-page-head">
           <div>
-            <h1 className="auth-list-page-title">Trend datasets</h1>
-            <p className="auth-list-page-subtitle">
+            <div className="bl-eyebrow">
+              <span className="bl-surface-chip tutor"><span className="dot" />Tutor bank</span>
+              Wrapper · trends
+            </div>
+            <h1 className="bl-page-title">Trend datasets</h1>
+            <p className="bl-page-sub">
               Your private time-series data panels (rows × timepoints) that
-              attach to bank questions. Click a row to open the wrapper editor.
+              attach to bank questions. A published dataset with no live question
+              reaches nobody.
             </p>
-          </div>
-          <div className="auth-list-toolbar">
-            <KindPickerLauncher surface="tutor" />
           </div>
         </header>
 
@@ -102,11 +104,16 @@ export default async function TutorTrendsV2ListPage() {
             <h3>No trend datasets yet</h3>
             <p>Click <strong>+ New trend dataset</strong> to create the first one.</p>
             <div style={{ marginTop: 12 }}>
-              <KindPickerLauncher surface="tutor" />
+              <KindPickerLauncher surface="tutor" triggerClassName="bl-btn bl-btn-primary" />
             </div>
           </div>
         ) : (
-          <TrendsListClient rows={rows} authorship={authorship} surface="tutor" />
+          <TrendsListClient
+            rows={rows}
+            authorship={authorship}
+            surface="tutor"
+            newButton={<KindPickerLauncher surface="tutor" triggerClassName="bl-btn bl-btn-primary" />}
+          />
         )}
       </div>
     </main>

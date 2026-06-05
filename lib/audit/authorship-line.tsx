@@ -31,29 +31,61 @@ export function AuthorshipCell({ authorship, realm, entityType, entityId, title 
     return <span className="audit-cell-empty">—</span>;
   }
 
-  const { createdByName, lastEditedByName, hasEdits } = authorship;
+  const { createdByName, createdAt, lastEditedByName, lastEditedAt, hasEdits } = authorship;
+
+  // Facepile: one avatar = same author throughout; a SECOND overlapping
+  // avatar appears only when a DIFFERENT person last edited it (handed
+  // off). Names move into hover tooltips + the history drawer, keeping the
+  // cell compact. Colours + initials derive from the captured name.
+  const creator = createdByName ?? 'Unknown';
+  const handedOff = hasEdits && !!lastEditedByName && lastEditedByName !== createdByName;
 
   return (
     <div className="audit-cell">
-      <div className="audit-cell-lines">
-        {/* Labels dropped to save width — the clock has the full labelled
-            timeline; native tooltips disambiguate on hover. Top = creator,
-            muted line below = last editor. */}
-        <span className="audit-cell-line" title={`Created by ${createdByName ?? 'unknown'}`}>
-          <span className="audit-cell-name">{createdByName ?? '—'}</span>
+      <span className="audit-facepile">
+        <span
+          className="audit-avatar"
+          style={{ background: avatarColor(creator) }}
+          title={`Created by ${creator}${createdAt ? ` · ${fmtAuditDate(createdAt)}` : ''}`}
+        >
+          {initials(creator)}
         </span>
-        {hasEdits && (
+        {handedOff && (
           <span
-            className="audit-cell-line audit-cell-line--muted"
-            title={`Last edited by ${lastEditedByName ?? 'unknown'}`}
+            className="audit-avatar"
+            style={{ background: avatarColor(lastEditedByName) }}
+            title={`Last edited by ${lastEditedByName}${lastEditedAt ? ` · ${fmtAuditDate(lastEditedAt)}` : ''}`}
           >
-            <span className="audit-cell-name">{lastEditedByName ?? '—'}</span>
+            {initials(lastEditedByName)}
           </span>
         )}
-      </div>
+      </span>
       <HistoryButton realm={realm} entityType={entityType} entityId={entityId} title={title} />
     </div>
   );
+}
+
+// ── Facepile helpers ───────────────────────────────────────────────
+// Deterministic avatar colour + initials from a captured name, so the
+// same person always reads as the same coloured circle across the lists.
+const AVATAR_COLORS = [
+  '#1e3a5f', '#2d7d72', '#4338ca', '#b45309',
+  '#be123c', '#0e7490', '#7c3aed', '#15803d',
+];
+function avatarColor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 997;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+function initials(name: string): string {
+  const parts = name.replace(/^Dr\.?\s*/i, '').split(/\s+/).filter(Boolean);
+  const i = parts.slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+  return i || '?';
+}
+function fmtAuditDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
 }
 
 /**

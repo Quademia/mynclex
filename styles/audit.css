@@ -8,33 +8,37 @@
  * App navy/teal tokens throughout — no bespoke colours.
  */
 
-/* ── "Authors" list cell ─────────────────────────────────────────── */
+/* ── "Authors" list cell — facepile (avatar circles) + clock ───────── */
 .audit-cell {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
 }
 
-.audit-cell-lines {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.audit-cell-line {
+/* Overlapping avatar stack: creator, then the last editor only when a
+   different person (handed off). Ringed so they read as distinct discs
+   where they overlap. */
+.audit-facepile {
   display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 13px;
-  line-height: 1.35;
-  color: var(--text);
+  align-items: center;
+}
+.audit-avatar {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--white), inset 0 0 0 1.5px rgba(255, 255, 255, 0.45);
+}
+.audit-avatar:not(:first-child) {
+  margin-left: -9px;
 }
 
-.audit-cell-line--muted .audit-cell-name {
-  color: var(--text-muted);
-}
-
+/* Used by the inline editor-topbar variant (kept as text names). */
 .audit-cell-label {
   flex: none;
   font-size: 10px;
@@ -42,13 +46,6 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-faint);
-}
-
-.audit-cell-name {
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .audit-cell-empty {
