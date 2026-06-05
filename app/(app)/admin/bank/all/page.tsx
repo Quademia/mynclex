@@ -80,6 +80,7 @@ import {
   type DragDropEditorInitial,
 } from '@/lib/bank/editors/drag-drop-row-mapper';
 import type { QuestionType } from '@/lib/bank/classifications';
+import { loadAuthorship } from '@/lib/audit/authorship';
 
 export const dynamic = 'force-dynamic';
 
@@ -252,6 +253,11 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
     }
   }
 
+  // Authorship facts per question (each row's own bank_item history).
+  const authorship = await loadAuthorship(
+    supabase, 'admin', 'bank_item', summaryRows.map((r) => r.item_id),
+  );
+
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner">
@@ -289,6 +295,7 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
         <BankListClient
           surface="admin"
           rows={summaryRows}
+          authorshipById={authorship}
           hasAnyFilter={hasAnyFilter}
           baseUrl={BASE_URL}
           mcqInitialsById={mcqInitialsById}

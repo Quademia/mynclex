@@ -13,6 +13,8 @@ import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { createCaseAction } from '@/lib/bank/wrappers/case-study/actions';
 import { QuestionPills } from '@/lib/bank/wrappers/question-pills';
+import { loadAuthorship } from '@/lib/audit/authorship';
+import { AuthorshipCell } from '@/lib/audit/authorship-line';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,6 +73,12 @@ export default async function AdminCasesV2ListPage() {
     }
   }
 
+  // Authorship facts (who created / last edited the case wrapper row
+  // itself — not its questions; those carry their own history).
+  const authorship = await loadAuthorship(
+    supabase, 'admin', 'case_study', cases.map((c) => c.case_id),
+  );
+
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner">
@@ -127,6 +135,7 @@ export default async function AdminCasesV2ListPage() {
                 <th>Status</th>
                 <th>Difficulty</th>
                 <th>Updated</th>
+                <th>Authors</th>
                 <th></th>
               </tr>
             </thead>
@@ -152,6 +161,15 @@ export default async function AdminCasesV2ListPage() {
                   </td>
                   <td>{c.difficulty ?? '—'}</td>
                   <td>{new Date(c.updated_at).toLocaleDateString()}</td>
+                  <td>
+                    <AuthorshipCell
+                      authorship={authorship[c.case_id]}
+                      realm="admin"
+                      entityType="case_study"
+                      entityId={c.case_id}
+                      title={c.title}
+                    />
+                  </td>
                   <td className="auth-list-row-actions">
                     <Link href={`/admin/bank/cases/${c.case_id}`} className="auth-cs-btn tiny">
                       Open →

@@ -35,6 +35,7 @@ import '@/styles/student-quizzes.css';
 import '@/styles/enrolments.css';
 import '@/styles/enquiries.css';
 import '@/styles/analytics.css';
+import '@/styles/audit.css';
 import '@/styles/tutor-home.css';
 import '@/styles/library.css';
 import '@/styles/profile.css';

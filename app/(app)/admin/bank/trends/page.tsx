@@ -14,6 +14,8 @@ import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { kindDefaultLabel } from '@/lib/bank/wrappers/trend/kind-templates';
 import { KindPickerLauncher } from '@/lib/bank/wrappers/trend/kind-picker-modal';
 import { QuestionPills } from '@/lib/bank/wrappers/question-pills';
+import { loadAuthorship } from '@/lib/audit/authorship';
+import { AuthorshipCell } from '@/lib/audit/authorship-line';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,6 +71,11 @@ export default async function AdminTrendsV2ListPage() {
     }
   }
 
+  // Authorship facts for the dataset wrapper rows themselves.
+  const authorship = await loadAuthorship(
+    supabase, 'admin', 'trend_dataset', trends.map((t) => t.trend_id),
+  );
+
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner">
@@ -105,6 +112,7 @@ export default async function AdminTrendsV2ListPage() {
                 <th>Attached</th>
                 <th>Status</th>
                 <th>Updated</th>
+                <th>Authors</th>
                 <th></th>
               </tr>
             </thead>
@@ -127,6 +135,15 @@ export default async function AdminTrendsV2ListPage() {
                       : <span className="auth-cs-tag muted">Draft</span>}
                   </td>
                   <td>{new Date(t.updated_at).toLocaleDateString()}</td>
+                  <td>
+                    <AuthorshipCell
+                      authorship={authorship[t.trend_id]}
+                      realm="admin"
+                      entityType="trend_dataset"
+                      entityId={t.trend_id}
+                      title={t.title}
+                    />
+                  </td>
                   <td className="auth-list-row-actions">
                     <Link href={`/admin/bank/trends/${t.trend_id}`} className="auth-cs-btn tiny">
                       Open →

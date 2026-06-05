@@ -9,6 +9,8 @@ import Link from 'next/link';
 import { requireBankCurator } from '@/lib/access';
 import { createCaseAction } from '@/lib/bank/wrappers/case-study/actions';
 import { QuestionPills } from '@/lib/bank/wrappers/question-pills';
+import { loadAuthorship } from '@/lib/audit/authorship';
+import { AuthorshipCell } from '@/lib/audit/authorship-line';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,6 +69,11 @@ export default async function TutorCasesV2ListPage() {
     }
   }
 
+  // Authorship facts for the case wrapper rows (tutor realm).
+  const authorship = await loadAuthorship(
+    supabase, 'tutor', 'tutor_case_study', cases.map((c) => c.case_id),
+  );
+
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner">
@@ -119,6 +126,7 @@ export default async function TutorCasesV2ListPage() {
                 <th>Status</th>
                 <th>Difficulty</th>
                 <th>Updated</th>
+                <th>Authors</th>
                 <th></th>
               </tr>
             </thead>
@@ -144,6 +152,15 @@ export default async function TutorCasesV2ListPage() {
                   </td>
                   <td>{c.difficulty ?? '—'}</td>
                   <td>{new Date(c.updated_at).toLocaleDateString()}</td>
+                  <td>
+                    <AuthorshipCell
+                      authorship={authorship[c.case_id]}
+                      realm="tutor"
+                      entityType="tutor_case_study"
+                      entityId={c.case_id}
+                      title={c.title}
+                    />
+                  </td>
                   <td className="auth-list-row-actions">
                     <Link href={`/tutor/bank/cases/${c.case_id}`} className="auth-cs-btn tiny">
                       Open →

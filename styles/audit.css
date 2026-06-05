@@ -1,0 +1,234 @@
+/* mynclex/styles/audit.css
+ *
+ * Product-wide authorship / change-history UI (see
+ * docs/product-plan/audit-log.md). Two pieces:
+ *   1. The "Authors" list cell — stacked created/last-edited + a clock.
+ *   2. The History drawer — a body-portaled, fixed panel sliding in
+ *      from the right with the full append-only timeline.
+ * App navy/teal tokens throughout — no bespoke colours.
+ */
+
+/* ── "Authors" list cell ─────────────────────────────────────────── */
+.audit-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.audit-cell-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.audit-cell-line {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.audit-cell-line--muted .audit-cell-name {
+  color: var(--text-muted);
+}
+
+.audit-cell-label {
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.audit-cell-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.audit-cell-empty {
+  color: var(--text-faint);
+}
+
+/* The clock trigger. */
+.audit-history-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.06s ease;
+}
+.audit-history-btn:hover {
+  border-color: var(--accent);
+  background: var(--primary-light);
+}
+.audit-history-btn:active {
+  transform: scale(0.94);
+}
+.audit-history-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ── History drawer ──────────────────────────────────────────────── */
+.audit-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;            /* above modals (auth-modal-overlay) */
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(17, 24, 39, 0.38);
+  animation: audit-fade-in 0.14s ease;
+}
+
+.audit-drawer {
+  width: min(420px, 92vw);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  box-shadow: var(--shadow-lg);
+  animation: audit-slide-in 0.18s ease;
+}
+
+@keyframes audit-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes audit-slide-in {
+  from { transform: translateX(24px); opacity: 0.6; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.audit-drawer-header {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.audit-drawer-eyebrow {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+
+.audit-drawer-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary);
+  line-height: 1.3;
+}
+
+.audit-drawer-close {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+.audit-drawer-close:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-soft);
+}
+
+.audit-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 24px;
+}
+
+.audit-drawer-muted {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+.audit-drawer-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--danger);
+}
+
+/* ── Timeline ────────────────────────────────────────────────────── */
+.audit-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.audit-timeline-row {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 0 0 16px 4px;
+}
+/* Connecting line between pips. */
+.audit-timeline-row::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 16px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--border);
+}
+.audit-timeline-row:last-child { padding-bottom: 0; }
+.audit-timeline-row:last-child::before { display: none; }
+
+.audit-timeline-pip {
+  flex: none;
+  position: relative;
+  z-index: 1;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px #fff;
+}
+.audit-timeline-pip.created {
+  background: var(--primary);
+}
+
+.audit-timeline-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.audit-timeline-action {
+  font-size: 13.5px;
+  color: var(--text);
+}
+
+.audit-timeline-when {
+  font-size: 12px;
+  color: var(--text-faint);
+}

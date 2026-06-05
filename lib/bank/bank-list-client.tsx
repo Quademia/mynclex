@@ -36,6 +36,8 @@ import { HighlightEditor, type HighlightEditorInitial } from '@/lib/bank/editors
 import { DragDropEditor, type DragDropEditorInitial } from '@/lib/bank/editors/drag-drop-editor';
 import { QuestionTypePicker } from '@/lib/bank/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/bank/classifications';
+import { AuthorshipCell } from '@/lib/audit/authorship-line';
+import type { Authorship } from '@/lib/audit/authorship';
 
 /** Question types whose editors are wired into bank-list today. */
 const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set([
@@ -72,6 +74,13 @@ export interface BankListRowSummary {
 export interface BankListClientProps {
   surface: 'admin' | 'tutor';
   rows: BankListRowSummary[];
+  /**
+   * Authorship facts (created / last-edited names) per item_id, resolved
+   * server-side from the audit log. Drives the "Authors" column + its
+   * history drawer. Each question shows its OWN history — wrapper-attached
+   * rows included; the wrapper's history is separate.
+   */
+  authorshipById: Record<string, Authorship>;
   /**
    * Whether any filter (search/type/category/difficulty/status/membership)
    * is currently applied. Drives the empty-state copy: "No questions yet"
@@ -131,6 +140,7 @@ type ModalState =
 export function BankListClient({
   surface,
   rows,
+  authorshipById,
   hasAnyFilter,
   baseUrl,
   mcqInitialsById,
@@ -153,6 +163,10 @@ export function BankListClient({
   emptyDragDropInitial,
 }: BankListClientProps) {
   const router = useRouter();
+  // Audit identity for this surface: admin questions are bank_item rows
+  // in the admin log; tutor questions are tutor_question rows in the
+  // tutor log. surface already matches the AuditRealm union.
+  const auditEntityType = surface === 'admin' ? 'bank_item' : 'tutor_question';
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' });
   // Brief flash after a successful save/delete — useful confirmation
   // for the curator since the modal closed without showing a "Saved"
@@ -273,6 +287,7 @@ export function BankListClient({
                 Max
               </th>
               <th>Status</th>
+              <th>Authors</th>
               <th aria-label="Actions" />
             </tr>
           </thead>
@@ -324,6 +339,15 @@ export function BankListClient({
                     >
                       {row.is_published ? 'Published' : 'Draft'}
                     </span>
+                  </td>
+                  <td>
+                    <AuthorshipCell
+                      authorship={authorshipById[row.item_id]}
+                      realm={surface}
+                      entityType={auditEntityType}
+                      entityId={row.item_id}
+                      title={stemSnippet(row.stem, 60)}
+                    />
                   </td>
                   <td className="auth-list-row-actions">
                     {wrapperHref ? (

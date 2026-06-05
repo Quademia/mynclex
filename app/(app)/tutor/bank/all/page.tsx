@@ -13,6 +13,7 @@ import {
   BankListClient,
   type BankListRowSummary,
 } from '@/lib/bank/bank-list-client';
+import { loadAuthorship } from '@/lib/audit/authorship';
 import {
   BankFilters,
   type BankFilterValues,
@@ -249,6 +250,11 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
     }
   }
 
+  // Authorship facts per question (each row's own tutor_question history).
+  const authorship = await loadAuthorship(
+    supabase, 'tutor', 'tutor_question', summaryRows.map((r) => r.item_id),
+  );
+
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner">
@@ -285,6 +291,7 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
         <BankListClient
           surface="tutor"
           rows={summaryRows}
+          authorshipById={authorship}
           hasAnyFilter={hasAnyFilter}
           baseUrl={BASE_URL}
           mcqInitialsById={mcqInitialsById}
