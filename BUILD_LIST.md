@@ -8,6 +8,49 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **BANK PUBLISH-INTEGRITY + AUTHORSHIP (2026-06-05).** A bank-curation
+> pass (all on the session branch, NOT yet merged to `main`). Triggered by
+> "track who created/updated a wrapper/question" but started with a
+> publish-correctness bug found en route.
+>
+> - **Case-study publish gate (✅ `fa9e9d1`).** A case only reaches
+>   students when the case is published AND all 6 child questions are
+>   individually published (the student-builder eligibility rule). The
+>   post-May per-question-housekeeping retrofit surfaced neither
+>   requirement, so a case could read "Published" yet stay invisible —
+>   confirmed live on dev (3 published cases with all-draft questions; all
+>   repaired through the new UI). The check sits on the **Publish toggle**,
+>   not Save (drafting stays frictionless): toggle on with draft questions
+>   → offers "Publish all & publish case" (`publishCaseWithChildrenAction`);
+>   <6 questions → plain block.
+> - **Trend publish gate (✅ `af2a865`).** The mirror image — a trend
+>   *question* reaches students only if its *dataset* is published too.
+>   Publishing a question while its dataset is a draft → offers "Publish
+>   dataset & question." (Case = wrapper checks children; trend = child
+>   checks wrapper.)
+> - **Trend wrapper polish (✅ `b463d12`).** Inline explainer on the
+>   dataset's "Visible in builder" toggle (a confirmed **no-op** for trends
+>   — delivery reads the question's flag + the dataset's *published* flag,
+>   never the dataset's builder flag) + a Validate **warning** when a
+>   published dataset has zero live questions (delivers nothing).
+> - **Wrapper-list published/draft pills (✅ `bc8f895`).** Each case/trend
+>   row shows a green/grey "N published · N draft" breakdown of its
+>   questions, so the "live but reaches nobody" state is visible from the
+>   list. 4 list pages + shared `lib/bank/wrappers/question-pills.tsx`.
+> - **Audit log — Step 1 (✅ `fe9730c`, applied to dev).** Authorship +
+>   change-history capture. Two realm-split append-only logs
+>   (`nclex_audit_log` + `nclex_tutor_audit_log`) + one shared trigger on
+>   the six content tables; stores `changed_by` (uuid) **and**
+>   `changed_by_name` (point-in-time, full name). Migration
+>   `20260630120000`. **⏭ NEXT: Step 2** = "Created by / Last edited by"
+>   columns on the wrapper lists. Full design + Steps 2-3 in
+>   [bank-audit-log.md](docs/product-plan/bank-audit-log.md).
+>
+> All admin + tutor twins. Publish/list work = no migration; audit = the
+> one migration above (ships to prod at next release, after the 3 analytics
+> migrations). Publish-eligibility model captured in the
+> `reference_bank_publish_eligibility` memory.
+
 > **TOP-DOWN MVP SWEEP (2026-06-04).** Sam's review-and-polish pass toward
 > MVP, starting at the tutor's landing surface and moving outward. Two
 > surfaces done, both CD-designed → implemented:
