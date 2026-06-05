@@ -8,6 +8,7 @@
 import Link from 'next/link';
 import { requireBankCurator } from '@/lib/access';
 import { createCaseAction } from '@/lib/bank/wrappers/case-study/actions';
+import { QuestionPills } from '@/lib/bank/wrappers/question-pills';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,9 +21,9 @@ interface CaseRow {
   updated_at:     string;
 }
 
-interface SlotCount {
-  case_id: string;
-  count:   number;
+interface CaseQuestionRow {
+  parent_case_id: string | null;
+  is_published:   boolean;
 }
 
 export default async function TutorCasesV2ListPage() {
@@ -47,15 +48,22 @@ export default async function TutorCasesV2ListPage() {
 
   const cases = (caseRows ?? []) as CaseRow[];
 
-  let slotCounts: Record<string, number> = {};
+  // Per-case question counts + published / draft breakdown, read from
+  // the case's own questions (parent_case_id) so the total and the
+  // published split come from one consistent source.
+  const slotStats: Record<string, { total: number; published: number }> = {};
   if (cases.length > 0) {
     const ids = cases.map((c) => c.case_id);
-    const { data: slotRows } = await supabase
-      .from('nclex_tutor_case_study_items')
-      .select('case_id')
-      .in('case_id', ids);
-    for (const row of (slotRows ?? []) as SlotCount[]) {
-      slotCounts[row.case_id] = (slotCounts[row.case_id] ?? 0) + 1;
+    const { data: qRows } = await supabase
+      .from('nclex_tutor_questions')
+      .select('parent_case_id, is_published')
+      .in('parent_case_id', ids);
+    for (const row of (qRows ?? []) as CaseQuestionRow[]) {
+      const cid = row.parent_case_id;
+      if (!cid) continue;
+      const s = (slotStats[cid] ??= { total: 0, published: 0 });
+      s.total += 1;
+      if (row.is_published) s.published += 1;
     }
   }
 
@@ -119,7 +127,13 @@ export default async function TutorCasesV2ListPage() {
                 <tr key={c.case_id}>
                   <td className="auth-list-item-id"><code>{c.case_id}</code></td>
                   <td>{c.title}</td>
-                  <td>{slotCounts[c.case_id] ?? 0} of 6</td>
+                  <td>
+                    {slotStats[c.case_id]?.total ?? 0} of 6
+                    <QuestionPills
+                      total={slotStats[c.case_id]?.total ?? 0}
+                      published={slotStats[c.case_id]?.published ?? 0}
+                    />
+                  </td>
                   <td>
                     {c.is_published
                       ? <span className="auth-cs-tag ok">Published</span>

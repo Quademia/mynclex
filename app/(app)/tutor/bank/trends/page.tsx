@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { requireBankCurator } from '@/lib/access';
 import { kindDefaultLabel } from '@/lib/bank/wrappers/trend/kind-templates';
 import { KindPickerLauncher } from '@/lib/bank/wrappers/trend/kind-picker-modal';
+import { QuestionPills } from '@/lib/bank/wrappers/question-pills';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,9 +21,9 @@ interface TrendRow {
   updated_at:   string;
 }
 
-interface AttachedCount {
-  trend_id: string;
-  count:    number;
+interface AttachedQuestionRow {
+  trend_id:     string | null;
+  is_published: boolean;
 }
 
 export default async function TutorTrendsV2ListPage() {
@@ -47,17 +48,19 @@ export default async function TutorTrendsV2ListPage() {
 
   const trends = (trendRows ?? []) as TrendRow[];
 
-  const attachedCounts: Record<string, number> = {};
+  // Attached-question counts per dataset + published / draft breakdown.
+  const attachedStats: Record<string, { total: number; published: number }> = {};
   if (trends.length > 0) {
     const ids = trends.map((t) => t.trend_id);
     const { data: itemRows } = await supabase
       .from('nclex_tutor_questions')
-      .select('trend_id')
+      .select('trend_id, is_published')
       .in('trend_id', ids);
-    for (const row of (itemRows ?? []) as AttachedCount[]) {
-      if (row.trend_id) {
-        attachedCounts[row.trend_id] = (attachedCounts[row.trend_id] ?? 0) + 1;
-      }
+    for (const row of (itemRows ?? []) as AttachedQuestionRow[]) {
+      if (!row.trend_id) continue;
+      const s = (attachedStats[row.trend_id] ??= { total: 0, published: 0 });
+      s.total += 1;
+      if (row.is_published) s.published += 1;
     }
   }
 
@@ -106,7 +109,13 @@ export default async function TutorTrendsV2ListPage() {
                   <td className="auth-list-item-id"><code>{t.trend_id}</code></td>
                   <td>{t.title}</td>
                   <td>{kindDefaultLabel(t.kind)}</td>
-                  <td>{attachedCounts[t.trend_id] ?? 0}</td>
+                  <td>
+                    {attachedStats[t.trend_id]?.total ?? 0}
+                    <QuestionPills
+                      total={attachedStats[t.trend_id]?.total ?? 0}
+                      published={attachedStats[t.trend_id]?.published ?? 0}
+                    />
+                  </td>
                   <td>
                     {t.is_published
                       ? <span className="auth-cs-tag ok">Published</span>
