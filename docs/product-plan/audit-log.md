@@ -1,20 +1,26 @@
-# Bank — Authorship & Change History (Audit Log)
+# Authorship & Change History (Audit Log)
 
-*Living document. Started 2026-06-05. Canonical home for the "who
-created / who last edited" + contributor-history work across authored
-content. Part of `mynclex/docs/product-plan/`.*
+*Living document. Started 2026-06-05. Canonical home for the
+**product-wide** "who created / who last edited" + contributor-history
+system across all authored content. **Built bank-first**, but designed to
+fold in library notes, quizzes, programmes and any future authored
+content (one trigger line each — see Step 3). Part of
+`mynclex/docs/product-plan/`.*
 
-Last updated: 2026-06-05 (Step 1 built + applied to dev)
+Last updated: 2026-06-05 (Step 1 built + applied to dev — bank only)
 
 ---
 
 ## Why
 
-Multiple people can hold `BANK_CURATE` and curate the shared QAcademy
-bank; the tutor side will gain **co-tutors** who edit a tutor's content.
-The content tables have `created_at` / `updated_at` (the *when*) but no
-record of *who* — zero attribution. We want **who created** + **who last
-edited**, and ideally the **full contributor history over time**.
+Authored content has many editors. Multiple people can hold `BANK_CURATE`
+and curate the shared QAcademy bank; the tutor side will gain
+**co-tutors**; and the same "who touched this" need applies to library
+notes, quizzes, and programmes. The content tables have `created_at` /
+`updated_at` (the *when*) but no record of *who* — zero attribution. We
+want **who created** + **who last edited**, and ideally the **full
+contributor history over time**, across *all* authored content — so the
+system is generic from day one, even though we wire up the **bank first**.
 
 ## Decision — an append-only audit LOG (not `created_by`/`updated_by` columns)
 

@@ -43,8 +43,9 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   the six content tables; stores `changed_by` (uuid) **and**
 >   `changed_by_name` (point-in-time, full name). Migration
 >   `20260630120000`. **⏭ NEXT: Step 2** = "Created by / Last edited by"
->   columns on the wrapper lists. Full design + Steps 2-3 in
->   [bank-audit-log.md](docs/product-plan/bank-audit-log.md).
+>   columns on the wrapper lists. Generic by design (built bank-first;
+>   library/quizzes/programmes fold in later). Full design + Steps 2-3 in
+>   [audit-log.md](docs/product-plan/audit-log.md).
 >
 > All admin + tutor twins. Publish/list work = no migration; audit = the
 > one migration above (ships to prod at next release, after the 3 analytics
