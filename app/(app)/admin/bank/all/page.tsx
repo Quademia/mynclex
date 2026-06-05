@@ -17,10 +17,13 @@ import {
   BankListClient,
   type BankListRowSummary,
 } from '@/lib/bank/bank-list-client';
+import { BankFilters } from '@/lib/bank/bank-filters';
 import {
-  BankFilters,
-  type BankFilterValues,
-} from '@/lib/bank/bank-filters';
+  parseBankFilters,
+  applyBankFilters,
+  applyMembershipFilter,
+  hasAnyBankFilter,
+} from '@/lib/bank/bank-list-query';
 import {
   BankCounts,
   type BankCompositionCounts,
@@ -94,33 +97,13 @@ interface FullBankRow extends McqDbRow {
 }
 
 interface PageProps {
-  searchParams?: Promise<{
-    type?:       string;
-    category?:   string;
-    difficulty?: string;
-    status?:     string;
-    membership?: string;
-    q?:          string;
-  }>;
+  searchParams?: Promise<Record<string, string | undefined>>;
 }
 
 export default async function AdminBankAllPage({ searchParams }: PageProps) {
   const sp = (await searchParams) ?? {};
-  const filters: BankFilterValues = {
-    type:       sp.type       ?? '',
-    category:   sp.category   ?? '',
-    difficulty: sp.difficulty ?? '',
-    status:     sp.status     ?? '',
-    membership: sp.membership ?? '',
-    q:          sp.q          ?? '',
-  };
-  const hasAnyFilter =
-    filters.type !== '' ||
-    filters.category !== '' ||
-    filters.difficulty !== '' ||
-    filters.status !== '' ||
-    filters.membership !== '' ||
-    filters.q !== '';
+  const filters = parseBankFilters(sp);
+  const hasAnyFilter = hasAnyBankFilter(filters);
 
   const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
 
@@ -132,30 +115,20 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
       ', parent_case_id, trend_id, ' +
       'trend:nclex_trend_datasets(title), ' +
       'case:nclex_case_studies(title)',
-    )
+    );
+
+  // All the non-membership filters + scoped search (shared helper).
+  query = applyBankFilters(query, filters);
+
+  // Membership filter (OR across the chosen kinds) — applied to the main
+  // query only. The composition-count queries below deliberately exclude
+  // it so all four chips stay informative when a membership is picked.
+  query = applyMembershipFilter(query, filters.membership);
+
+  const { data, error } = await query
     .order('item_id', { ascending: true })
-    .limit(500);
-
-  // Non-membership filters.
-  if (filters.type)       query = query.eq('question_type', filters.type);
-  if (filters.category)   query = query.eq('client_needs_category', filters.category);
-  if (filters.difficulty) query = query.eq('difficulty', filters.difficulty);
-  if (filters.status === 'published') query = query.eq('is_published', true);
-  if (filters.status === 'draft')     query = query.eq('is_published', false);
-  if (filters.q) query = query.ilike('stem', `%${filters.q}%`);
-
-  // Membership filter — applied to the main query only. The four
-  // composition-count queries below deliberately exclude this so all
-  // four chips stay informative when a membership is picked.
-  if (filters.membership === 'standalone') {
-    query = query.is('parent_case_id', null).is('trend_id', null);
-  } else if (filters.membership === 'case') {
-    query = query.not('parent_case_id', 'is', null);
-  } else if (filters.membership === 'trend') {
-    query = query.not('trend_id', 'is', null);
-  }
-
-  const { data, error } = await query.returns<FullBankRow[]>();
+    .limit(500)
+    .returns<FullBankRow[]>();
 
   // ── Composition counts (4 buckets × 2: total + filtered) ──
   type MembershipBucket = 'total' | 'standalone' | 'case' | 'trend';
@@ -174,12 +147,7 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
       q = q.not('trend_id', 'is', null);
     }
     if (applyNonMembership) {
-      if (filters.type)       q = q.eq('question_type', filters.type);
-      if (filters.category)   q = q.eq('client_needs_category', filters.category);
-      if (filters.difficulty) q = q.eq('difficulty', filters.difficulty);
-      if (filters.status === 'published') q = q.eq('is_published', true);
-      if (filters.status === 'draft')     q = q.eq('is_published', false);
-      if (filters.q) q = q.ilike('stem', `%${filters.q}%`);
+      q = applyBankFilters(q, filters);
     }
     return q;
   };
@@ -258,6 +226,12 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
     supabase, 'admin', 'bank_item', summaryRows.map((r) => r.item_id),
   );
 
+  // Distinct tags for the Tag filter (all questions, not just this page).
+  const { data: tagRows } = await supabase.from('nclex_bank_items').select('tags');
+  const tagOptions = Array.from(
+    new Set((tagRows ?? []).flatMap((r) => (r.tags as string[] | null) ?? [])),
+  ).sort((a, b) => a.localeCompare(b));
+
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner">
@@ -290,7 +264,7 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
           </p>
         )}
 
-        <BankFilters values={filters} baseUrl={BASE_URL} />
+        <BankFilters values={filters} baseUrl={BASE_URL} tagOptions={tagOptions} />
 
         <BankListClient
           surface="admin"

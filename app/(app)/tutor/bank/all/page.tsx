@@ -14,10 +14,13 @@ import {
   type BankListRowSummary,
 } from '@/lib/bank/bank-list-client';
 import { loadAuthorship } from '@/lib/audit/authorship';
+import { BankFilters } from '@/lib/bank/bank-filters';
 import {
-  BankFilters,
-  type BankFilterValues,
-} from '@/lib/bank/bank-filters';
+  parseBankFilters,
+  applyBankFilters,
+  applyMembershipFilter,
+  hasAnyBankFilter,
+} from '@/lib/bank/bank-list-query';
 import {
   BankCounts,
   type BankCompositionCounts,
@@ -90,33 +93,13 @@ interface FullTutorBankRow extends McqDbRow {
 }
 
 interface PageProps {
-  searchParams?: Promise<{
-    type?:       string;
-    category?:   string;
-    difficulty?: string;
-    status?:     string;
-    membership?: string;
-    q?:          string;
-  }>;
+  searchParams?: Promise<Record<string, string | undefined>>;
 }
 
 export default async function TutorBankAllPage({ searchParams }: PageProps) {
   const sp = (await searchParams) ?? {};
-  const filters: BankFilterValues = {
-    type:       sp.type       ?? '',
-    category:   sp.category   ?? '',
-    difficulty: sp.difficulty ?? '',
-    status:     sp.status     ?? '',
-    membership: sp.membership ?? '',
-    q:          sp.q          ?? '',
-  };
-  const hasAnyFilter =
-    filters.type !== '' ||
-    filters.category !== '' ||
-    filters.difficulty !== '' ||
-    filters.status !== '' ||
-    filters.membership !== '' ||
-    filters.q !== '';
+  const filters = parseBankFilters(sp);
+  const hasAnyFilter = hasAnyBankFilter(filters);
 
   const supabase = await createClient();
   const {
@@ -133,26 +116,18 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
       ', parent_case_id, trend_id, ' +
       'trend:nclex_tutor_trend_datasets(title), ' +
       'case:nclex_tutor_case_studies(title)',
-    )
+    );
+
+  // All the non-membership filters + scoped search (shared helper).
+  query = applyBankFilters(query, filters);
+
+  // Membership filter (OR across the chosen kinds) — main query only.
+  query = applyMembershipFilter(query, filters.membership);
+
+  const { data, error } = await query
     .order('item_id', { ascending: true })
-    .limit(500);
-
-  if (filters.type)       query = query.eq('question_type', filters.type);
-  if (filters.category)   query = query.eq('client_needs_category', filters.category);
-  if (filters.difficulty) query = query.eq('difficulty', filters.difficulty);
-  if (filters.status === 'published') query = query.eq('is_published', true);
-  if (filters.status === 'draft')     query = query.eq('is_published', false);
-  if (filters.q) query = query.ilike('stem', `%${filters.q}%`);
-
-  if (filters.membership === 'standalone') {
-    query = query.is('parent_case_id', null).is('trend_id', null);
-  } else if (filters.membership === 'case') {
-    query = query.not('parent_case_id', 'is', null);
-  } else if (filters.membership === 'trend') {
-    query = query.not('trend_id', 'is', null);
-  }
-
-  const { data, error } = await query.returns<FullTutorBankRow[]>();
+    .limit(500)
+    .returns<FullTutorBankRow[]>();
 
   // ── Composition counts ─────────────────────────────────────
   type MembershipBucket = 'total' | 'standalone' | 'case' | 'trend';
@@ -171,12 +146,7 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
       q = q.not('trend_id', 'is', null);
     }
     if (applyNonMembership) {
-      if (filters.type)       q = q.eq('question_type', filters.type);
-      if (filters.category)   q = q.eq('client_needs_category', filters.category);
-      if (filters.difficulty) q = q.eq('difficulty', filters.difficulty);
-      if (filters.status === 'published') q = q.eq('is_published', true);
-      if (filters.status === 'draft')     q = q.eq('is_published', false);
-      if (filters.q) q = q.ilike('stem', `%${filters.q}%`);
+      q = applyBankFilters(q, filters);
     }
     return q;
   };
@@ -255,6 +225,12 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
     supabase, 'tutor', 'tutor_question', summaryRows.map((r) => r.item_id),
   );
 
+  // Distinct tags for the Tag filter (the tutor's own questions; RLS-scoped).
+  const { data: tagRows } = await supabase.from('nclex_tutor_questions').select('tags');
+  const tagOptions = Array.from(
+    new Set((tagRows ?? []).flatMap((r) => (r.tags as string[] | null) ?? [])),
+  ).sort((a, b) => a.localeCompare(b));
+
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner">
@@ -286,7 +262,7 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
           </p>
         )}
 
-        <BankFilters values={filters} baseUrl={BASE_URL} />
+        <BankFilters values={filters} baseUrl={BASE_URL} tagOptions={tagOptions} />
 
         <BankListClient
           surface="tutor"
