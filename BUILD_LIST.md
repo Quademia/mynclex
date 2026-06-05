@@ -8,6 +8,44 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **BANK LIST PAGES — MVP SWEEP (2026-06-05).** Review-and-polish pass over
+> the bank's list surfaces (the bank slice of Sam's top-down MVP sweep).
+> All app-layer, no migration. Session branch.
+>
+> - **All-questions filter bar — rebuilt (✅ `1fd601c`).** Live-apply (no
+>   Apply button); wide faceted **multi-select** checklists (Type ·
+>   Category · Subcategory · Nursing subject · Body system · Difficulty ·
+>   Bloom · Membership · Tag — OR within a filter, AND across); on/off
+>   singles (Status · Free sample · Builder-visible); a **scoped
+>   multi-field search** (a "search in" checklist → one term OR-matched
+>   across the chosen text columns, term sanitised); + an active-filter
+>   chip row. All parse/serialise/apply logic in new
+>   `lib/bank/bank-list-query.ts` (shared by both pages).
+> - **Wrapper lists — filters + content search (✅).** New
+>   `CasesListClient` + `TrendsListClient` (shared admin/tutor):
+>   **content search** (title + scenario + chart/dataset text — blob built
+>   server-side) · Status · Difficulty (cases) / Kind (trends) · a
+>   **"Needs attention"** health filter (published-but-reaches-nobody —
+>   case = <6 published children OR builder-hidden; trend = 0 published
+>   questions). Client-side, live. The 4 wrapper list pages feed them.
+> - **Hover-to-peek (✅).** New reusable `lib/bank/hover-peek.tsx` — hover a
+>   stem/title → a body-portaled popover with the **full** content (no
+>   clamp), viewport-aware (flips up/down, caps to the screen + scrolls,
+>   hoverable). Wired into all three lists (question stem; case + trend
+>   titles → scenario + chart-tab/kind).
+> - **Questions list — two-row card + tags (✅).** Each question is now a
+>   card: the columns row + a **full-width strip** holding the
+>   wrapper/Note origin badges + the **classification tags** (Category ·
+>   Subcategory · Subject · Body system), so the stem cell is pure stem.
+>   "Max" → **"Marks"**. Stem **clamped to 2 lines** (full on hover) in a
+>   widened 50% column; Authors column capped + its CREATED/LAST-EDIT
+>   labels dropped (names + tooltips + the history clock carry it).
+> - **"Note · {title}" origin badge (✅).** Closes a deferred library
+>   follow-on: questions born in a library note (`parent_note_id`) show a
+>   blue **Note** badge linking to the source note. **Surface-aware** —
+>   each surface resolves from its own library; admin is threaded but
+>   unresolved until an admin library exists.
+
 > **AUTHORSHIP / AUDIT-LOG — STEP 2 (the readout) DONE (2026-06-05).** All
 > on the session branch. "Created by / Last edited by" + a history-drawer
 > clock now appear across every bank surface, reading the Step-1 logs (no
