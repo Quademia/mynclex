@@ -772,3 +772,241 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * QUIZ UI UPLIFT — 2026-06 Claude Design ("Quiz UI Uplift", List A +
+ * Editor A). Appended last so these rules top the originals above.
+ * Tokens only; the derived tints below introduce no new brand hues.
+ * ═══════════════════════════════════════════════════════════════════ */
+:root {
+  --q-shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --q-shadow-md: 0 6px 16px -4px rgba(16, 24, 40, 0.1),
+    0 2px 6px -2px rgba(16, 24, 40, 0.06);
+  --q-radius: 10px;
+  --q-radius-sm: 7px;
+  --q-mock-bg: #fff7ed;
+  --q-mock-fg: #9a3412;
+  --q-mock-bd: #fed7aa;
+  --q-mock-edge: #ea7a3c;
+  --q-prac-bg: #eef2ff;
+  --q-prac-fg: #3730a3;
+  --q-prac-bd: #c7d2fe;
+  --q-prac-edge: #6366f1;
+  --q-pub-bg: #ecfdf3;
+  --q-pub-fg: #067647;
+  --q-pub-bd: #abefc6;
+}
+
+/* ── List page header ──────────────────────────────────────────── */
+.quizzes-eyebrow {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+  margin-bottom: 5px;
+}
+.quizzes-title {
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.quizzes-sub {
+  font-size: 13.5px;
+  max-width: 56ch;
+}
+.quizzes-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  padding: 9px 15px;
+  border-radius: var(--q-radius-sm);
+  box-shadow: var(--q-shadow-xs);
+}
+.quizzes-new-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ── Grid ──────────────────────────────────────────────────────── */
+.quizzes-grid {
+  grid-template-columns: repeat(auto-fill, minmax(332px, 1fr));
+  gap: 14px;
+}
+
+/* ── Card — elevation, kind edge, body + footer tray ───────────── */
+.quiz-card {
+  position: relative;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--q-radius);
+  box-shadow: var(--q-shadow-xs);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.quiz-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--q-shadow-md);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+.quiz-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--q-prac-edge);
+}
+.quiz-card.is-mock::before {
+  background: var(--q-mock-edge);
+}
+.quiz-card.is-muted {
+  background: #fbfcfd;
+  opacity: 1;
+}
+.quiz-card.is-muted::before {
+  background: var(--border-strong);
+}
+
+.quiz-card-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 15px 17px 14px;
+}
+.quiz-card-head {
+  padding: 0;
+  padding-right: 26px; /* lane for the corner action (pencil / ⋯) */
+}
+.quiz-card-title {
+  font-size: 15.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.quiz-card-desc {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.quiz-card-foot {
+  margin-top: 0;
+  padding: 11px 17px;
+  border-top: 1px solid var(--border);
+  background: #fbfcfe;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+}
+.quiz-card-metaitem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+}
+.quiz-card-metaitem svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-faint);
+}
+.quiz-card-metaitem b {
+  color: var(--text);
+  font-weight: 650;
+}
+
+.quiz-card-used-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.quiz-card-used-chip svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-faint);
+}
+.quiz-card-used-chip.is-none {
+  color: var(--text-faint);
+}
+.quiz-card-used-chip b {
+  color: var(--text);
+  font-weight: 650;
+}
+
+/* ── Kind tag (card head) ──────────────────────────────────────── */
+.quiz-kind-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.quiz-kind-tag svg {
+  width: 12px;
+  height: 12px;
+}
+.quiz-kind-tag.is-mock {
+  background: var(--q-mock-bg);
+  color: var(--q-mock-fg);
+  border-color: var(--q-mock-bd);
+}
+.quiz-kind-tag.is-practice {
+  background: var(--q-prac-bg);
+  color: var(--q-prac-fg);
+  border-color: var(--q-prac-bd);
+}
+
+/* ── Status pill → dot + label ─────────────────────────────────── */
+.quiz-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  font-weight: 600;
+  font-size: 11.5px;
+}
+.quiz-pill::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+.quiz-pill.is-published {
+  background: var(--q-pub-bg);
+  color: var(--q-pub-fg);
+  border-color: var(--q-pub-bd);
+}
+
+/* ── Needs-questions flag — icon align ─────────────────────────── */
+.quiz-needs-q {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.quiz-needs-q svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ── Archived disclosure ───────────────────────────────────────── */
+.quizzes-archived-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+}
+.quizzes-archived-toggle svg {
+  width: 15px;
+  height: 15px;
+}

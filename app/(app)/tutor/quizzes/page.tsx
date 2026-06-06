@@ -23,10 +23,12 @@ export default async function TutorQuizzesPage() {
     <div className="quizzes-page">
       <header className="quizzes-head">
         <div>
+          <div className="quizzes-eyebrow">My quizzes</div>
           <h1 className="quizzes-title">Quizzes</h1>
           <p className="quizzes-sub">
-            Reusable Mock &amp; Practice question sets. Attach a
-            published quiz to any programme&apos;s curriculum.
+            Reusable Mock &amp; Practice question sets built from your own
+            bank. Publish a quiz to attach it to any programme&apos;s
+            curriculum.
           </p>
         </div>
         {quizzes.length > 0 && <NewQuizTrigger variant="header" />}
