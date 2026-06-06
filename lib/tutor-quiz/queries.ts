@@ -156,7 +156,10 @@ export async function getPickerQuestions(
   // top via applyQuizPickerFilters.
   let query = supabase
     .from('nclex_tutor_questions')
-    .select('item_id, question_type, stem, difficulty, client_needs_category')
+    .select(
+      `item_id, question_type, stem, difficulty, client_needs_category,
+       client_needs_subcategory, nursing_subject, body_system, topic, tags`,
+    )
     .eq('is_published', true)
     .is('parent_case_id', null)
     .is('trend_id', null)

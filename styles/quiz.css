@@ -1291,3 +1291,289 @@
   margin: 4px 2px;
   background: var(--border);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * EDITOR PAGE  (/tutor/quiz/[id]) — Editor A
+ * ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Header card ───────────────────────────────────────────────── */
+.quiz-editor-head {
+  display: block;
+  border-radius: var(--q-radius);
+  box-shadow: var(--q-shadow-xs);
+  padding: 18px 20px;
+}
+.quiz-editor-head-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.quiz-editor-title {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.quiz-editor-desc {
+  font-size: 13px;
+  margin-top: 7px;
+  line-height: 1.5;
+  max-width: 70ch;
+}
+.quiz-editor-head-actions svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* meta line → labelled stat chips */
+.quiz-editor-metachips {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+}
+.quiz-editor-metachips .chip {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 86px;
+}
+.quiz-editor-metachips .chip + .chip {
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+}
+.quiz-editor-metachips .k {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.quiz-editor-metachips .k svg {
+  width: 12px;
+  height: 12px;
+}
+.quiz-editor-metachips .v {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+/* ── Buttons / publish flag ────────────────────────────────────── */
+.quiz-btn svg {
+  width: 15px;
+  height: 15px;
+}
+.quiz-published-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+/* ── Zones — equal columns, separated headers ──────────────────── */
+.quiz-editor-columns {
+  gap: 16px;
+}
+.quiz-zone {
+  border-radius: var(--q-radius);
+  box-shadow: var(--q-shadow-xs);
+  padding: 0;
+  /* No overflow:hidden — the picker's Filters popover + multi-select
+     dropdowns are absolutely positioned inside the right zone and must
+     be free to overflow it. */
+}
+.quiz-zone-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.quiz-zone-title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quiz-zone-count {
+  background: var(--bg-soft);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.quiz-zone-hint {
+  margin: 3px 0 0;
+  padding: 0;
+  border: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.quiz-zone-used {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.quiz-zone-used svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-faint);
+}
+.quiz-zone-used b {
+  color: var(--text);
+  font-weight: 650;
+}
+.quiz-zone-empty {
+  padding: 24px 16px;
+  font-size: 13px;
+}
+.quiz-item-list,
+.quiz-picker-bar,
+.quiz-picker-list {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+.quiz-item-list {
+  padding-top: 13px;
+  padding-bottom: 13px;
+  gap: 8px;
+}
+
+/* ── Selected-question rows ────────────────────────────────────── */
+.quiz-item-row {
+  gap: 11px;
+  padding: 11px 12px;
+  border-radius: var(--q-radius-sm);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.quiz-item-row:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--q-shadow-xs);
+}
+.quiz-item-handle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.quiz-item-grip {
+  color: var(--text-faint);
+  cursor: grab;
+  display: inline-grid;
+  place-items: center;
+}
+.quiz-item-grip svg {
+  width: 15px;
+  height: 15px;
+}
+.quiz-item-position {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--bg-soft);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.quiz-item-stem {
+  font-size: 13px;
+}
+
+/* ── Chips ─────────────────────────────────────────────────────── */
+.quiz-type-chip {
+  border-radius: 5px;
+  font-weight: 700;
+}
+.quiz-diff-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+}
+.quiz-diff-chip::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--text-faint);
+}
+.quiz-diff-chip.is-easy::before {
+  background: #16a34a;
+}
+.quiz-diff-chip.is-medium::before {
+  background: #d97706;
+}
+.quiz-diff-chip.is-hard::before {
+  background: #dc2626;
+}
+
+/* ── Reorder / remove icon buttons ─────────────────────────────── */
+.quiz-icon-btn {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.quiz-icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Picker rows + selection ───────────────────────────────────── */
+.quiz-picker-row {
+  gap: 11px;
+  padding: 11px 12px;
+  border-radius: var(--q-radius-sm);
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.quiz-picker-row:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--q-shadow-xs);
+}
+.quiz-picker-row.is-checked {
+  border-color: var(--accent);
+  background: #e8f3f1;
+}
+.quiz-picker-row.is-added {
+  background: #fbfcfd;
+  opacity: 0.65;
+}
+.quiz-picker-check input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+.quiz-picker-bar {
+  padding-top: 11px;
+  padding-bottom: 9px;
+}
+.quiz-picker-count b {
+  color: var(--text);
+  font-weight: 700;
+}

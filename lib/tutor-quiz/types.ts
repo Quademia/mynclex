@@ -86,13 +86,20 @@ export type QuizItemRow = {
 };
 
 // One question row in the picker — the tutor's own published,
-// standalone questions, filtered by the picker's filter bar.
+// standalone questions, filtered by the picker's filter bar. The extra
+// classification fields feed the hover-peek panel (full stem + context)
+// — they're not all shown on the row itself.
 export type PickerQuestionRow = {
   item_id: string;
   question_type: QuestionType;
   stem: string;
   difficulty: string | null;
   client_needs_category: string | null;
+  client_needs_subcategory: string | null;
+  nursing_subject: string | null;
+  body_system: string | null;
+  topic: string | null;
+  tags: string[] | null;
 };
 
 // Picker filter values now live in quiz-picker-query.ts (faceted

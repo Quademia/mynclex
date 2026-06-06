@@ -14,6 +14,7 @@ import {
   getQuizDetail,
   getPickerQuestions,
   getPickerTagOptions,
+  getQuizProgrammeCount,
 } from '@/lib/tutor-quiz/queries';
 import { QuizEditor } from '@/lib/tutor-quiz/quiz-editor';
 import { parseQuizPickerFilters } from '@/lib/tutor-quiz/quiz-picker-query';
@@ -36,9 +37,10 @@ export default async function TutorQuizEditorPage({
   const detail = await getQuizDetail(id);
   if (!detail) notFound();
 
-  const [pickerQuestions, tagOptions] = await Promise.all([
+  const [pickerQuestions, tagOptions, usedCount] = await Promise.all([
     getPickerQuestions(filters),
     getPickerTagOptions(),
+    getQuizProgrammeCount(id),
   ]);
 
   return (
@@ -53,6 +55,7 @@ export default async function TutorQuizEditorPage({
         pickerQuestions={pickerQuestions}
         pickerFilters={filters}
         pickerTagOptions={tagOptions}
+        usedCount={usedCount}
       />
     </div>
   );
