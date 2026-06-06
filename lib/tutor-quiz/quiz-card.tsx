@@ -35,9 +35,19 @@ export function QuizCard({ quiz }: { quiz: QuizListRow }) {
       >
         <div className="quiz-card-head">
           <h2 className="quiz-card-title">{quiz.title}</h2>
-          <span className={`quiz-pill ${quizStatusPillClass(quiz.status)}`}>
-            {formatQuizStatus(quiz.status)}
-          </span>
+          <div className="quiz-card-head-pills">
+            {quiz.status === 'DRAFT' && quiz.item_count === 0 && (
+              <span
+                className="quiz-needs-q"
+                title="This quiz has no questions yet — add at least one to publish it."
+              >
+                Needs questions
+              </span>
+            )}
+            <span className={`quiz-pill ${quizStatusPillClass(quiz.status)}`}>
+              {formatQuizStatus(quiz.status)}
+            </span>
+          </div>
         </div>
 
         {quiz.description && (
