@@ -581,5 +581,45 @@ page · editor · lifecycle), after Slices 1–6 shipped. All app-layer —
   Status / Membership facet). The shared blocking-activities dialog
   (`ActivityBlockedDialog`) backs both delete + kind-switch.
 
-**Next (not built):** a Claude-Design visual pass over the quiz **list
-page** and the **editor** surfaces.
+**Next:** a Claude-Design visual pass over the quiz **list page** and the
+**editor** surfaces — built as §12 below.
+
+## 12. UI uplift — Claude Design (2026-06-06)
+
+A visual redesign of the quiz **list** (`/tutor/quizzes`) and **editor**
+(`/tutor/quiz/[id]`) from Sam's Claude Design "Quiz UI Uplift" handoff —
+**Option A** (List A refined card grid + Editor A refined two-column
+workbench), concept-not-source. **All app-layer, no migration. Merged to
+`main`.** New `lib/tutor-quiz/quiz-icons.tsx` (inline line-icon set);
+CSS appended to `styles/quiz.css` as an uplift block (tokens only, no new
+hues).
+
+- **List — cards.** Kind-coloured left edge (Mock=amber / Practice=indigo),
+  a kind tag + status dot-pill, a "Needs questions" flag, a bordered
+  footer tray with icon meta (questions · mode·duration) + the
+  used-in-programmes chip, elevation + hover lift.
+- **List — page header + stat strip + toolbar.** Eyebrow + larger title;
+  a 4-cell summary strip (Total · Published · In-progress · Questions
+  used); a toolbar (search · All/Published/Drafts segments · Kind filter ·
+  Sort) — all client-side over the existing `QuizListRow[]`, search
+  reaches archived too.
+- **List — card ⋯ menu.** Replaces the edit pencil with a full-lifecycle
+  dropdown (Edit details · Publish/Unpublish · Archive/Restore · Delete) —
+  pure composition over the existing actions + dialogs, so a tutor manages
+  a quiz without entering the editor. The in-use `LeavePublishedWarning`
+  was extracted to a shared module (editor header + card menu).
+- **Editor.** Header card with kind tag + labelled stat chips (Mode /
+  Duration / Pass / Attempts); rounded/elevated zones with separated
+  headers + a "N programmes" badge; item rows gain a visual drag grip
+  (reordering stays ↑/↓) + difficulty dots + SVG icon buttons; picker rows
+  show a teal `is-checked` selection state.
+- **Picker hover-peek.** Hovering a picker question's (still 2-line-clamped)
+  stem opens a body-portaled, viewport-aware popover with the **full stem +
+  classification** (Category · Subcategory · Subject · Body system · Topic ·
+  tags) — vet a question without opening it. Reuses the bank's generic
+  `HoverPeek` primitive; `getPickerQuestions` fetches the extra
+  classification columns.
+
+**Deliberately deferred:** the grid/table view toggle (List B table view)
+and real drag-and-drop reordering (the grip is visual-only) — both noted
+in the handoff, neither built.

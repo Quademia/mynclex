@@ -8,6 +8,29 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **TUTOR-QUIZ UI UPLIFT — CLAUDE DESIGN, OPTION A (2026-06-06).** Visual
+> redesign of the quiz **list** + **editor** from Sam's CD "Quiz UI
+> Uplift" handoff (List A card grid + Editor A workbench),
+> concept-not-source. **All app-layer, no migration. Merged to `main`.**
+> Detail in [tutor-quiz-system.md §12](docs/product-plan/tutor-quiz-system.md).
+>
+> - **List cards (✅).** Kind-coloured edge + kind tag, status dot-pill,
+>   footer tray w/ icon meta + used chip, hover lift. New
+>   `lib/tutor-quiz/quiz-icons.tsx`.
+> - **List header + stat strip + toolbar (✅).** Eyebrow + title; 4-cell
+>   summary strip; toolbar (search · status segments · Kind · Sort),
+>   client-side over `QuizListRow[]` (search reaches archived).
+> - **Card ⋯ menu (✅).** Replaces the pencil — Edit · Publish/Unpublish ·
+>   Archive/Restore · Delete, composing the existing actions/dialogs
+>   (shared `LeavePublishedWarning` extracted). Fixed a stacking-context
+>   bug that trapped the error toast under the topbar.
+> - **Editor (✅).** Kind tag + stat chips header; separated zone headers
+>   + "N programmes" badge; drag grip (visual) + difficulty dots + SVG
+>   icon buttons; teal picker selection.
+> - **Picker hover-peek (✅).** Hover a clamped stem → body-portaled
+>   popover w/ full stem + classification; reuses the bank's `HoverPeek`.
+> - **Deferred:** grid/table toggle (List B) + real drag-and-drop.
+
 > **TUTOR-QUIZ CREATION FLOW — HARDENING + RICH PICKER (2026-06-06).**
 > Review-and-polish pass over the quiz creation flow (list · editor ·
 > lifecycle), after Slices 1–6. **All app-layer, no migration. Merged to
