@@ -527,3 +527,59 @@ include/exclude on day one.
 - Dynamic / rule-based question selection (e.g. "10 random from
   Pharmacology"). v1 is manual selection only.
 - Slice 4 (progress / analytics integration).
+
+## 11. Creation-flow hardening (2026-06-06)
+
+A review-and-polish pass over the quiz **creation flow** itself (list
+page · editor · lifecycle), after Slices 1–6 shipped. All app-layer —
+**no migration, no schema change**. Merged to `main`. Lives in
+`lib/tutor-quiz/`.
+
+- **Publish gate (≥1 question).** A `PUBLISHED` quiz must always hold at
+  least one question. Enforced server-side in `updateQuizAction` /
+  `setQuizStatusAction` (block publishing an empty quiz) AND
+  `removeQuizItemAction` (block removing the last question from a
+  published quiz). Mirrors the bank's publish-integrity gates.
+- **Lifecycle controls on the editor header.** The buried 3-way Status
+  dropdown is replaced by explicit controls: **Publish** (Draft, gated on
+  ≥1 question) · **Unpublish** + **Archive** (Published) · **Restore to
+  draft** (Archived). New `setQuizStatusAction` (focused setter) +
+  `quizUsageAction` (programme count + activity links). Leaving Published
+  — Unpublish, or Archive while published — for a quiz that's **in use**
+  (live in programmes / linked to activities) **warns first** (students
+  lose launch access) then proceeds; never blocks. The meta modal's
+  Status field is gone (one source of truth per action).
+- **Delete a quiz (block, don't cascade).** New `deleteQuizAction` +
+  `quizDeletePreflightAction`. Deletion is **blocked** while the quiz is
+  linked to any curriculum activity (the §9.3 rule applied quiz-wide) —
+  the blocked dialog lists each programme · unit · activity. When clear,
+  a type-to-confirm dialog shows a "student results are kept" reassurance
+  (standalone attempt count). On delete: quiz-item refs + standalone
+  programme memberships cascade away; **student attempts survive** (their
+  snapshots are inlined; the `nclex_attempts.quiz_id` back-pointer nulls
+  via `ON DELETE SET NULL`). Reachable from a danger zone in the shared
+  edit modal — so from both the card pencil and the editor.
+- **Kind-switch block.** A Mock activity must link a Mock quiz
+  (Practice↔Practice). Switching a linked quiz's **Kind** is blocked
+  (only when the Kind actually changes) while it's linked to activities
+  of the other type — the same blocked-activities dialog. Closes the
+  one hole the link-time picker can't (it only checks at link time).
+- **"Needs questions" readiness cue.** A small amber tag on
+  `/tutor/quizzes` cards for a Draft with 0 questions — the one quiz
+  state that's a genuine "not usable yet" signal.
+- **Quick-edit pencil on quiz cards.** Edit a quiz's metadata from the
+  list (opens the shared `QuizFormModal`) without entering the editor.
+- **Rich question-picker filter.** The editor's "Add questions" picker
+  filter was upgraded from a 4-field GET-form to a **live-apply, faceted
+  toolbar** modelled on the bank list (NOT shared — a tailored copy in
+  `lib/tutor-quiz/quiz-picker-query.ts` + `quiz-picker-filters.tsx`):
+  multi-select facets (Type · Category · Subcategory · Nursing subject ·
+  Body system · Difficulty · Bloom · Tag — OR within, AND across) + a
+  **scoped search** (one term across chosen content columns: Stem ·
+  Instruction · Rationale · Topic · Subtopic) + active chips. Still
+  hard-scoped to the tutor's published, standalone questions (so no
+  Status / Membership facet). The shared blocking-activities dialog
+  (`ActivityBlockedDialog`) backs both delete + kind-switch.
+
+**Next (not built):** a Claude-Design visual pass over the quiz **list
+page** and the **editor** surfaces.

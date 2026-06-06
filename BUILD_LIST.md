@@ -8,6 +8,36 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **TUTOR-QUIZ CREATION FLOW — HARDENING + RICH PICKER (2026-06-06).**
+> Review-and-polish pass over the quiz creation flow (list · editor ·
+> lifecycle), after Slices 1–6. **All app-layer, no migration. Merged to
+> `main`.** Full detail in
+> [tutor-quiz-system.md §11](docs/product-plan/tutor-quiz-system.md).
+>
+> - **Publish gate (✅).** A Published quiz must hold ≥1 question —
+>   enforced on publish AND on removing the last question; surfaced in
+>   the modal.
+> - **Lifecycle controls on the editor header (✅).** Publish / Unpublish
+>   / Archive / Restore buttons replace the buried Status dropdown.
+>   Leaving Published for an **in-use** quiz warns first (students lose
+>   access); never blocks. New `setQuizStatusAction` + `quizUsageAction`.
+> - **Delete a quiz (✅).** Block-don't-cascade: blocked while linked to
+>   any curriculum activity (lists each placement); else type-to-confirm
+>   with a "results are kept" reassurance. Standalone memberships +
+>   item-refs cascade; **student attempts survive** (quiz_id back-pointer
+>   nulls). In a danger zone in the shared edit modal (card + editor).
+> - **Kind-switch block (✅).** Switching a linked quiz's Kind is blocked
+>   while mismatched activities exist (Mock slot ↔ Mock quiz).
+> - **"Needs questions" cue (✅)** on 0-question Draft cards; **quick-edit
+>   pencil (✅)** on every card (opens the shared meta modal).
+> - **Rich question-picker filter (✅).** The editor "Add questions"
+>   filter → a live-apply faceted toolbar (8 multi-select facets + scoped
+>   multi-field search + chips), modelled on the bank list but a tailored
+>   copy (`quiz-picker-query.ts`), hard-scoped to published + standalone.
+>
+> **⏭ NEXT (Sam):** a Claude-Design visual pass over the quiz **list
+> page** + the **editor** surfaces.
+
 > **BANK SURFACES — CLAUDE DESIGN REDESIGN + PAGINATION (2026-06-06).**
 > All three bank **list** surfaces rebuilt from Sam's CD "Bank surfaces"
 > handoff — **concept-not-source** (visual system only; our server-side
