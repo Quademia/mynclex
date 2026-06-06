@@ -188,7 +188,7 @@ export async function getQuizActivityLinks(
   const { data } = await supabase
     .from('nclex_programme_activities')
     .select(
-      `activity_id, title, payload, ordinal,
+      `activity_id, title, type, payload, ordinal,
        nclex_programme_units!inner(
          unit_index, title,
          nclex_programmes!inner(programme_id, title, unit_label)
@@ -202,6 +202,7 @@ export async function getQuizActivityLinks(
   for (const row of data as Array<{
     activity_id: string;
     title: string;
+    type: 'MOCK' | 'PRACTICE_QUIZ';
     payload: { quiz_id?: string | null } | null;
     ordinal: number;
     nclex_programme_units:
@@ -248,6 +249,7 @@ export async function getQuizActivityLinks(
     out.push({
       activity_id: row.activity_id,
       activity_title: row.title,
+      activity_type: row.type,
       programme_id: progRow.programme_id,
       programme_title: progRow.title,
       unit_index: unitRow.unit_index,

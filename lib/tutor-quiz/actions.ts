@@ -132,7 +132,21 @@ export async function createQuizAction(
 
 // ── Update ───────────────────────────────────────────────────────
 
-export type UpdateQuizResult = { ok: true } | { ok: false; error: string };
+export type UpdateQuizResult =
+  | { ok: true }
+  | {
+      ok: false;
+      error: string;
+      /** When a Kind switch is blocked: the mismatched activities the
+       *  tutor must re-point / unlink first. */
+      kindBlockingActivities?: QuizActivityLink[];
+    };
+
+// The quiz kind a given activity slot expects (MOCK↔MOCK,
+// PRACTICE_QUIZ↔PRACTICE).
+function expectedKindFor(type: 'MOCK' | 'PRACTICE_QUIZ'): QuizKind {
+  return type === 'MOCK' ? 'MOCK' : 'PRACTICE';
+}
 
 export async function updateQuizAction(
   quizId: string,
@@ -161,6 +175,40 @@ export async function updateQuizAction(
       return {
         ok: false,
         error: 'Add at least one question before publishing this quiz.',
+      };
+    }
+  }
+
+  // Kind-switch block. A Mock activity must link a Mock quiz (and
+  // Practice↔Practice). The activity editor enforces this at link
+  // time, but switching a linked quiz's Kind afterwards would leave
+  // those activities pointing at a wrong-kind quiz — a "Mock exam"
+  // slot silently delivering a Practice quiz. Block the switch while
+  // mismatched links exist (the tutor re-points / unlinks first).
+  // Only fires when the Kind actually changes.
+  const { data: currentQuiz } = await supabase
+    .from('nclex_tutor_quizzes')
+    .select('quiz_kind')
+    .eq('quiz_id', quizId)
+    .maybeSingle();
+  if (!currentQuiz) {
+    return { ok: false, error: 'Quiz not found or not yours to edit.' };
+  }
+  if (input.quiz_kind !== currentQuiz.quiz_kind) {
+    const links = await getQuizActivityLinks(quizId);
+    const mismatched = links.filter(
+      (a) => expectedKindFor(a.activity_type) !== input.quiz_kind,
+    );
+    if (mismatched.length > 0) {
+      const n = mismatched.length;
+      return {
+        ok: false,
+        error: `Can't change the Kind: this quiz is linked to ${n} ${
+          n === 1 ? 'activity' : 'activities'
+        } of the other type. Re-point or unlink ${
+          n === 1 ? 'it' : 'them'
+        } first.`,
+        kindBlockingActivities: mismatched,
       };
     }
   }

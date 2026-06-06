@@ -112,6 +112,10 @@ export type QuizPickerFilters = {
 export type QuizActivityLink = {
   activity_id: string;
   activity_title: string;
+  /** The activity's slot type — must match the quiz's kind
+   *  (MOCK↔MOCK, PRACTICE_QUIZ↔PRACTICE). Drives the kind-switch
+   *  block. */
+  activity_type: 'MOCK' | 'PRACTICE_QUIZ';
   programme_id: string;
   programme_title: string;
   unit_index: number;

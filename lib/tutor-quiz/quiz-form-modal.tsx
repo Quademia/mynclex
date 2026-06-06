@@ -17,6 +17,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { ErrorToast } from '@/lib/toast/error-toast';
+import { ActivityBlockedDialog } from './activity-blocked-dialog';
 import { QuizDeleteSection } from './quiz-delete-section';
 import { createQuizAction, updateQuizAction } from './actions';
 import {
@@ -26,6 +27,7 @@ import {
   quizModeHelp,
 } from './format';
 import type {
+  QuizActivityLink,
   QuizFormValues,
   QuizKind,
   QuizMode,
@@ -65,6 +67,10 @@ export function QuizFormModal(props: QuizFormModalProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showDiscard, setShowDiscard] = useState(false);
+  // Set when a Kind switch is blocked by mismatched activity links.
+  const [kindBlocked, setKindBlocked] = useState<QuizActivityLink[] | null>(
+    null,
+  );
 
   const isEdit = props.mode === 'edit';
   const initial = isEdit ? props.initial : null;
@@ -195,6 +201,8 @@ export function QuizFormModal(props: QuizFormModalProps) {
         if (result.ok) {
           props.onClose();
           router.refresh();
+        } else if (result.kindBlockingActivities?.length) {
+          setKindBlocked(result.kindBlockingActivities);
         } else {
           setError(result.error);
         }
@@ -438,6 +446,23 @@ export function QuizFormModal(props: QuizFormModalProps) {
             setShowDiscard(false);
             props.onClose();
           }}
+        />
+      )}
+
+      {kindBlocked && (
+        <ActivityBlockedDialog
+          title="Can't change the Kind"
+          body={
+            <>
+              This quiz is linked to {kindBlocked.length}{' '}
+              {kindBlocked.length === 1 ? 'activity' : 'activities'} of the
+              other type. Re-point or unlink{' '}
+              {kindBlocked.length === 1 ? 'it' : 'them'} from your
+              curriculum first, then change the Kind.
+            </>
+          }
+          activities={kindBlocked}
+          onClose={() => setKindBlocked(null)}
         />
       )}
     </>

@@ -16,10 +16,10 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DeleteConfirm } from '@/lib/overlays/bank/delete-confirm';
 import { ErrorToast } from '@/lib/toast/error-toast';
+import { ActivityBlockedDialog } from './activity-blocked-dialog';
 import { deleteQuizAction, quizDeletePreflightAction } from './actions';
 import type { QuizActivityLink } from './types';
 
@@ -116,51 +116,20 @@ export function QuizDeleteSection({
 
       {/* Blocked — still linked to one or more curriculum activities. */}
       {phase === 'blocked' && (
-        <div
-          className="prog-modal-overlay"
-          role="alertdialog"
-          aria-modal="true"
-          aria-label="Can't delete this quiz"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setPhase('idle');
-          }}
-        >
-          <div className="confirm-dialog">
-            <h2 className="confirm-dialog-title">Can&apos;t delete this quiz</h2>
-            <p className="confirm-dialog-body">
+        <ActivityBlockedDialog
+          title="Can't delete this quiz"
+          body={
+            <>
               <strong>{quizTitle}</strong> is still linked to{' '}
               {blocking.length}{' '}
               {blocking.length === 1 ? 'activity' : 'activities'} in your
-              curriculum. Unlink it from {blocking.length === 1 ? 'that' : 'those'}{' '}
-              first, then delete.
-            </p>
-            <ul className="quiz-blocking-list">
-              {blocking.map((a) => (
-                <li key={a.activity_id} className="quiz-blocking-item">
-                  <Link
-                    href={`/tutor/programme/${a.programme_id}/curriculum`}
-                    className="quiz-blocking-link"
-                  >
-                    {a.programme_title}
-                    <span className="quiz-blocking-where">
-                      {a.unit_title} · {a.activity_title || 'Untitled activity'}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <div className="confirm-dialog-actions">
-              <button
-                type="button"
-                className="prog-btn prog-btn-ghost"
-                onClick={() => setPhase('idle')}
-                autoFocus
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+              curriculum. Unlink it from{' '}
+              {blocking.length === 1 ? 'that' : 'those'} first, then delete.
+            </>
+          }
+          activities={blocking}
+          onClose={() => setPhase('idle')}
+        />
       )}
 
       {/* Clear — type-to-confirm. */}
