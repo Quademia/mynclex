@@ -95,14 +95,8 @@ export type PickerQuestionRow = {
   client_needs_category: string | null;
 };
 
-// Picker filter values — a subset of the bank filter set (no status
-// or membership: the picker is hard-scoped to published + standalone).
-export type QuizPickerFilters = {
-  type: string;
-  category: string;
-  difficulty: string;
-  q: string;
-};
+// Picker filter values now live in quiz-picker-query.ts (faceted
+// multi-select + scoped search), alongside their parse/apply logic.
 
 // One curriculum activity that references a quiz, used by the
 // delete-preflight to BLOCK deletion of a still-linked quiz (the

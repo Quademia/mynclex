@@ -13,20 +13,16 @@ import { notFound } from 'next/navigation';
 import {
   getQuizDetail,
   getPickerQuestions,
+  getPickerTagOptions,
 } from '@/lib/tutor-quiz/queries';
 import { QuizEditor } from '@/lib/tutor-quiz/quiz-editor';
-import type { QuizPickerFilters } from '@/lib/tutor-quiz/types';
+import { parseQuizPickerFilters } from '@/lib/tutor-quiz/quiz-picker-query';
 
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{
-    type?: string;
-    category?: string;
-    difficulty?: string;
-    q?: string;
-  }>;
+  searchParams?: Promise<Record<string, string | undefined>>;
 }
 
 export default async function TutorQuizEditorPage({
@@ -35,17 +31,15 @@ export default async function TutorQuizEditorPage({
 }: PageProps) {
   const { id } = await params;
   const sp = (await searchParams) ?? {};
-  const filters: QuizPickerFilters = {
-    type: sp.type ?? '',
-    category: sp.category ?? '',
-    difficulty: sp.difficulty ?? '',
-    q: sp.q ?? '',
-  };
+  const filters = parseQuizPickerFilters(sp);
 
   const detail = await getQuizDetail(id);
   if (!detail) notFound();
 
-  const pickerQuestions = await getPickerQuestions(filters);
+  const [pickerQuestions, tagOptions] = await Promise.all([
+    getPickerQuestions(filters),
+    getPickerTagOptions(),
+  ]);
 
   return (
     <div className="quiz-editor-page">
@@ -58,6 +52,7 @@ export default async function TutorQuizEditorPage({
         items={detail.items}
         pickerQuestions={pickerQuestions}
         pickerFilters={filters}
+        pickerTagOptions={tagOptions}
       />
     </div>
   );

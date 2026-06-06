@@ -5,12 +5,15 @@
 // scopes every read to the signed-in tutor's own quizzes.
 
 import { createClient } from '@/lib/supabase/server';
+import {
+  applyQuizPickerFilters,
+  type QuizPickerFilters,
+} from './quiz-picker-query';
 import type {
   PickerQuestionRow,
   QuizActivityLink,
   QuizItemRow,
   QuizListRow,
-  QuizPickerFilters,
   TutorQuiz,
 } from './types';
 
@@ -148,6 +151,9 @@ export async function getPickerQuestions(
 ): Promise<PickerQuestionRow[]> {
   const supabase = await createClient();
 
+  // Hard scope — the picker only ever offers the tutor's own published,
+  // standalone questions. The faceted filters + scoped search layer on
+  // top via applyQuizPickerFilters.
   let query = supabase
     .from('nclex_tutor_questions')
     .select('item_id, question_type, stem, difficulty, client_needs_category')
@@ -157,14 +163,35 @@ export async function getPickerQuestions(
     .order('item_id', { ascending: true })
     .limit(200);
 
-  if (filters.type) query = query.eq('question_type', filters.type);
-  if (filters.category)
-    query = query.eq('client_needs_category', filters.category);
-  if (filters.difficulty) query = query.eq('difficulty', filters.difficulty);
-  if (filters.q) query = query.ilike('stem', `%${filters.q}%`);
+  query = applyQuizPickerFilters(query, filters);
 
   const { data } = await query;
   return (data ?? []) as PickerQuestionRow[];
+}
+
+/**
+ * Distinct tags across the tutor's published, standalone questions —
+ * the option list for the picker's Tag facet. Returns a sorted unique
+ * list; [] on error. (Cap matches the picker pool.)
+ */
+export async function getPickerTagOptions(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('nclex_tutor_questions')
+    .select('tags')
+    .eq('is_published', true)
+    .is('parent_case_id', null)
+    .is('trend_id', null)
+    .limit(500);
+
+  const seen = new Set<string>();
+  for (const row of (data ?? []) as Array<{ tags: string[] | null }>) {
+    for (const t of row.tags ?? []) {
+      const v = t.trim();
+      if (v) seen.add(v);
+    }
+  }
+  return Array.from(seen).sort((a, b) => a.localeCompare(b));
 }
 
 /**

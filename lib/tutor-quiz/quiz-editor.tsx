@@ -36,11 +36,11 @@ import {
   formatQuizStatus,
   quizStatusPillClass,
 } from './format';
+import type { QuizPickerFilters } from './quiz-picker-query';
 import type {
   PickerQuestionRow,
   QuizFormValues,
   QuizItemRow,
-  QuizPickerFilters,
   TutorQuiz,
 } from './types';
 
@@ -54,11 +54,13 @@ export function QuizEditor({
   items,
   pickerQuestions,
   pickerFilters,
+  pickerTagOptions,
 }: {
   quiz: TutorQuiz;
   items: QuizItemRow[];
   pickerQuestions: PickerQuestionRow[];
   pickerFilters: QuizPickerFilters;
+  pickerTagOptions: string[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -258,7 +260,11 @@ export function QuizEditor({
           you want, then Add.
         </p>
 
-        <QuizPickerFilterBar values={pickerFilters} baseUrl={baseUrl} />
+        <QuizPickerFilterBar
+          values={pickerFilters}
+          baseUrl={baseUrl}
+          tagOptions={pickerTagOptions}
+        />
 
         {pickerQuestions.length === 0 ? (
           <p className="quiz-zone-empty">
