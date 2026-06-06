@@ -284,3 +284,19 @@ export async function getQuizAttemptCount(quizId: string): Promise<number> {
     .eq('quiz_id', quizId);
   return count ?? 0;
 }
+
+/**
+ * How many programmes this quiz is attached to (the §9.1 junction —
+ * which already includes activity-linked programmes via auto-mirror).
+ * Powers the "live in N programmes" warning shown before unpublishing
+ * / archiving a quiz students can currently launch. RLS on the
+ * junction scopes to the tutor's own programmes.
+ */
+export async function getQuizProgrammeCount(quizId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from('nclex_programme_quizzes')
+    .select('quiz_id', { count: 'exact', head: true })
+    .eq('quiz_id', quizId);
+  return count ?? 0;
+}

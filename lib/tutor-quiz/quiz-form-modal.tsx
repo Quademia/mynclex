@@ -38,9 +38,6 @@ type QuizFormModalProps =
       mode: 'edit';
       quizId: string;
       initial: QuizFormValues;
-      /** How many questions the quiz currently holds — gates the
-       *  "Published" status option (a quiz needs ≥1 question to publish). */
-      itemCount: number;
       onClose: () => void;
     };
 
@@ -71,10 +68,6 @@ export function QuizFormModal(props: QuizFormModalProps) {
 
   const isEdit = props.mode === 'edit';
   const initial = isEdit ? props.initial : null;
-  // A quiz needs ≥1 question to be Published — drives the disabled
-  // "Published" option + a guard on submit (server re-checks too).
-  const itemCount = isEdit ? props.itemCount : 0;
-  const canPublish = itemCount > 0;
 
   const [title, setTitle] = useState(initial?.title ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
@@ -99,9 +92,9 @@ export function QuizFormModal(props: QuizFormModalProps) {
   const [maxAttempts, setMaxAttempts] = useState(
     initial?.max_attempts != null ? String(initial.max_attempts) : '',
   );
-  const [status, setStatus] = useState<QuizStatus>(
-    initial?.status ?? 'DRAFT',
-  );
+  // Status is no longer edited here — the editor header's publish
+  // controls own it. Preserve the quiz's current status on save.
+  const status: QuizStatus = initial?.status ?? 'DRAFT';
 
   const allowedModes = QUIZ_MODES_BY_KIND[quizKind];
   const modeIsTimed = isTimedMode(mode);
@@ -156,9 +149,7 @@ export function QuizFormModal(props: QuizFormModalProps) {
     allowedModes.includes(mode) &&
     (!modeIsTimed || isPositiveIntString(durationMinutes)) &&
     isValidPercentString(passScorePercent) &&
-    (maxAttempts.trim() === '' || isPositiveIntString(maxAttempts)) &&
-    // Can't publish an empty quiz (the server enforces this too).
-    (status !== 'PUBLISHED' || canPublish);
+    (maxAttempts.trim() === '' || isPositiveIntString(maxAttempts));
 
   function attemptClose() {
     if (isPending) return;
@@ -402,45 +393,10 @@ export function QuizFormModal(props: QuizFormModalProps) {
               </div>
             </section>
 
-            {/* STATUS — edit mode only; create always lands as DRAFT */}
-            {isEdit && (
-              <section className="prog-form-section">
-                <h3 className="prog-form-section-title">Status</h3>
-                <label className="prog-field">
-                  <span className="prog-field-label">
-                    Lifecycle status
-                  </span>
-                  <select
-                    className="prog-input"
-                    value={status}
-                    onChange={(e) =>
-                      setStatus(e.target.value as QuizStatus)
-                    }
-                    disabled={isPending}
-                  >
-                    <option value="DRAFT">Draft</option>
-                    <option value="PUBLISHED" disabled={!canPublish}>
-                      Published
-                    </option>
-                    <option value="ARCHIVED">Archived</option>
-                  </select>
-                  <span className="prog-field-help">
-                    {canPublish ? (
-                      <>
-                        Only Published quizzes can be attached to a
-                        programme&apos;s curriculum. Archived quizzes drop
-                        out of the active list.
-                      </>
-                    ) : (
-                      <>
-                        Add at least one question before you can publish
-                        this quiz.
-                      </>
-                    )}
-                  </span>
-                </label>
-              </section>
-            )}
+            {/* Lifecycle status (publish / unpublish / archive) lives on
+                the editor header's QuizPublishControls now, not here —
+                one source of truth per action. The modal keeps the
+                quiz's current status untouched on save. */}
 
             {/* DANGER ZONE — delete (edit mode only). Reachable from
                 both the card pencil and the editor via this one modal. */}

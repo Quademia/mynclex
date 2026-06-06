@@ -6,9 +6,9 @@
 // sibling of the card's <Link> (a button can't live inside an anchor),
 // so the pencil opens the modal instead of navigating into the editor.
 //
-// All the modal's edit inputs already live on the list row (QuizListRow),
-// including item_count — which the publish gate reads to disable the
-// "Published" option on an empty quiz, same as inside the editor.
+// All the modal's edit inputs already live on the list row
+// (QuizListRow), so the pencil opens the meta form with no extra fetch.
+// Publishing itself lives on the editor header, not this modal.
 
 'use client';
 
@@ -53,7 +53,6 @@ export function EditQuizTrigger({ quiz }: { quiz: QuizListRow }) {
           mode="edit"
           quizId={quiz.quiz_id}
           initial={initial}
-          itemCount={quiz.item_count}
           onClose={() => setIsOpen(false)}
         />
       )}

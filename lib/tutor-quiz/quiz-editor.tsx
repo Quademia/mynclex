@@ -19,6 +19,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { QuizFormModal } from './quiz-form-modal';
+import { QuizPublishControls } from './quiz-publish-controls';
 import { QuizPickerFilterBar } from './quiz-picker-filters';
 import {
   addQuizItemsAction,
@@ -144,13 +145,20 @@ export function QuizEditor({
             {metaParts.join(' · ')}
           </p>
         </div>
-        <button
-          type="button"
-          className="quiz-btn quiz-btn-ghost"
-          onClick={() => setEditOpen(true)}
-        >
-          Edit details
-        </button>
+        <div className="quiz-editor-head-actions">
+          <button
+            type="button"
+            className="quiz-btn quiz-btn-ghost"
+            onClick={() => setEditOpen(true)}
+          >
+            Edit details
+          </button>
+          <QuizPublishControls
+            quizId={quiz.quiz_id}
+            status={quiz.status}
+            itemCount={items.length}
+          />
+        </div>
       </header>
 
       <div className="quiz-editor-columns">
@@ -337,7 +345,6 @@ export function QuizEditor({
           mode="edit"
           quizId={quiz.quiz_id}
           initial={editInitial}
-          itemCount={items.length}
           onClose={() => setEditOpen(false)}
         />
       )}

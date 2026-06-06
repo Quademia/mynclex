@@ -16,12 +16,17 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import type { ServerSupabaseClient } from '@/lib/access';
 import { QUIZ_MODES_BY_KIND, isTimedMode } from './format';
-import { getQuizActivityLinks, getQuizAttemptCount } from './queries';
+import {
+  getQuizActivityLinks,
+  getQuizAttemptCount,
+  getQuizProgrammeCount,
+} from './queries';
 import type {
   QuizActivityLink,
   QuizFormValues,
   QuizKind,
   QuizPickerOption,
+  QuizStatus,
 } from './types';
 
 // ── Validation ───────────────────────────────────────────────────
@@ -188,6 +193,89 @@ export async function updateQuizAction(
   revalidatePath('/tutor/quizzes');
   revalidatePath(`/tutor/quiz/${quizId}`);
   return { ok: true };
+}
+
+// ── Lifecycle status (publish / unpublish / archive / restore) ───
+// The editor header's status buttons. A focused setter — touches only
+// `status` — separate from updateQuizAction (full meta form). Going TO
+// Published re-applies the ≥1-question publish gate. Leaving Published
+// for an in-use quiz isn't blocked here; the UI warns first (see
+// quizUsageAction) since pulling a quiz is a legitimate tutor choice.
+
+export type SetQuizStatusResult = { ok: true } | { ok: false; error: string };
+
+export async function setQuizStatusAction(
+  quizId: string,
+  status: QuizStatus,
+): Promise<SetQuizStatusResult> {
+  if (!['DRAFT', 'PUBLISHED', 'ARCHIVED'].includes(status)) {
+    return { ok: false, error: 'Status is invalid.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  if (status === 'PUBLISHED') {
+    const { count } = await supabase
+      .from('nclex_tutor_quiz_items')
+      .select('quiz_item_id', { count: 'exact', head: true })
+      .eq('quiz_id', quizId);
+    if (!count || count < 1) {
+      return {
+        ok: false,
+        error: 'Add at least one question before publishing this quiz.',
+      };
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('nclex_tutor_quizzes')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('quiz_id', quizId)
+    .select('quiz_id')
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return { ok: false, error: 'Quiz not found or not yours to edit.' };
+  }
+
+  revalidatePath('/tutor/quizzes');
+  revalidatePath(`/tutor/quiz/${quizId}`);
+  return { ok: true };
+}
+
+// Usage snapshot for the "you're about to remove student access"
+// warning. Returns the activity links + the count of programmes the
+// quiz is attached to. "In use" = either is non-empty.
+
+export type QuizUsage = {
+  activityLinks: QuizActivityLink[];
+  programmeCount: number;
+};
+
+export type QuizUsageResult =
+  | { ok: true; usage: QuizUsage }
+  | { ok: false; error: string };
+
+export async function quizUsageAction(
+  quizId: string,
+): Promise<QuizUsageResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const [activityLinks, programmeCount] = await Promise.all([
+    getQuizActivityLinks(quizId),
+    getQuizProgrammeCount(quizId),
+  ]);
+
+  return { ok: true, usage: { activityLinks, programmeCount } };
 }
 
 // ── Delete ───────────────────────────────────────────────────────

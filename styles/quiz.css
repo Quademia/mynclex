@@ -335,6 +335,31 @@
   min-width: 0;
 }
 
+/* Header action cluster — Edit details + the lifecycle controls. */
+.quiz-editor-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.quiz-status-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* "● Published" state indicator next to the Unpublish/Archive actions. */
+.quiz-published-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--success, #15803d);
+  white-space: nowrap;
+}
+
 .quiz-editor-title-row {
   display: flex;
   align-items: center;
