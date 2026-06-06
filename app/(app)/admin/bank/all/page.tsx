@@ -19,9 +19,12 @@ import {
 } from '@/lib/bank/bank-list-client';
 import {
   parseBankFilters,
+  parseBankView,
+  bankViewLoadsAll,
   applyBankFilters,
   applyMembershipFilter,
   hasAnyBankFilter,
+  BANK_MAX_ROWS,
 } from '@/lib/bank/bank-list-query';
 import { BankBand, type BankBandCounts } from '@/lib/bank/bank-band';
 import {
@@ -101,6 +104,8 @@ interface PageProps {
 export default async function AdminBankAllPage({ searchParams }: PageProps) {
   const sp = (await searchParams) ?? {};
   const filters = parseBankFilters(sp);
+  const view = parseBankView(sp);
+  const loadAll = bankViewLoadsAll(view);
   const hasAnyFilter = hasAnyBankFilter(filters);
 
   const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
@@ -123,10 +128,23 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
   // it so all four chips stay informative when a membership is picked.
   query = applyMembershipFilter(query, filters.membership);
 
-  const { data, error } = await query
-    .order('item_id', { ascending: true })
-    .limit(500)
-    .returns<FullBankRow[]>();
+  // Server-side pagination: by default load one page (BANK_PAGE_SIZE) via
+  // .range(); a sort or group loads the whole matched set (≤ BANK_MAX_ROWS)
+  // so the client can sort/group it correctly.
+  const ordered = query.order('item_id', { ascending: true });
+  const { data, error } = await (
+    loadAll ? ordered.limit(BANK_MAX_ROWS) : ordered.range(0, view.limit - 1)
+  ).returns<FullBankRow[]>();
+
+  // Total rows matching the current filters — drives "Showing X of Y" +
+  // whether a "Load more" is offered.
+  let filteredCountQuery = supabase
+    .from('nclex_bank_items')
+    .select('*', { count: 'exact', head: true });
+  filteredCountQuery = applyBankFilters(filteredCountQuery, filters);
+  filteredCountQuery = applyMembershipFilter(filteredCountQuery, filters.membership);
+  const { count: filteredCount } = await filteredCountQuery;
+  const filteredTotal = filteredCount ?? 0;
 
   // ── Band counts (whole-bank; the cards describe the population they
   //    filter into, so they ignore the active filters — the "Showing X of
@@ -267,6 +285,8 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
           baseUrl={BASE_URL}
           filters={filters}
           tagOptions={tagOptions}
+          view={view}
+          filteredTotal={filteredTotal}
           mcqInitialsById={mcqInitialsById}
           emptyMcqInitial={emptyMcqInitial('admin')}
           tfInitialsById={tfInitialsById}

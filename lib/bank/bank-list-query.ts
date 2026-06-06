@@ -155,6 +155,63 @@ export function emptyBankFilters(): BankFilterValues {
   };
 }
 
+// ── List view-state (pagination + sort + group) ───────────────────
+// Separate from the filters (which narrow the set); these control HOW the
+// matched set is loaded + displayed. Pagination is server-side: by default
+// we load BANK_PAGE_SIZE rows and "Load more" grows the limit. Sort + group
+// need the WHOLE matched set to be correct, so either one loads it all (up
+// to BANK_MAX_ROWS); the client then sorts/groups it instantly (so e.g.
+// Difficulty's Easy→Medium→Hard rank works without a DB-side ordering).
+//
+// ⚠ KNOWN LIMITATION / FOLLOW-UP — move SORT fully server-side before the
+// bank exceeds BANK_MAX_ROWS. The "load all to sort/group" shortcut only
+// holds while every matched row fits under the cap; past ~500 questions a
+// sort would silently show just the first 500. At that scale: ORDER BY on
+// the server + keep pagination while sorted. Difficulty then needs a SQL
+// rank (a generated `difficulty_rank` column or an RPC with ORDER BY CASE),
+// since PostgREST can't order by an expression. Grouping likewise moves to
+// server-side bucket counts + per-bucket paging. (Sam: the bank WILL grow
+// past 500, so this is a real to-do, not hypothetical.)
+export const BANK_PAGE_SIZE = 50;
+export const BANK_MAX_ROWS  = 500;
+
+export interface BankView {
+  sort:  string;             // '' = default (item_id asc); else id|type|difficulty|marks|status|updated
+  dir:   'asc' | 'desc';
+  group: boolean;
+  limit: number;             // paginated page size (accumulates via Load more)
+}
+
+export function parseBankView(sp: Record<string, string | undefined>): BankView {
+  const raw = parseInt(sp.limit ?? '', 10);
+  const limit = Number.isFinite(raw) ? Math.min(BANK_MAX_ROWS, Math.max(BANK_PAGE_SIZE, raw)) : BANK_PAGE_SIZE;
+  return {
+    sort:  sp.sort ?? '',
+    dir:   sp.dir === 'desc' ? 'desc' : 'asc',
+    group: sp.group === '1',
+    limit,
+  };
+}
+
+/** A sort or a group needs the full matched set loaded (client does the rest). */
+export function bankViewLoadsAll(v: BankView): boolean {
+  return v.group || v.sort !== '';
+}
+
+/** Build the list URL from the filters + view (one place; used by every
+ *  navigating control — facets, sort headers, group toggle, Load more). */
+export function buildBankUrl(baseUrl: string, f: BankFilterValues, v: BankView): string {
+  const p = new URLSearchParams(serializeBankFilters(f));
+  if (v.sort) {
+    p.set('sort', v.sort);
+    if (v.dir === 'desc') p.set('dir', 'desc');
+  }
+  if (v.group) p.set('group', '1');
+  if (v.limit && v.limit !== BANK_PAGE_SIZE) p.set('limit', String(v.limit));
+  const s = p.toString();
+  return s ? `${baseUrl}?${s}` : baseUrl;
+}
+
 // ── Active-filter chips (one per chosen value) ────────────────────
 export interface ActiveFilterChip {
   field: keyof BankFilterValues;  // which field to clear / remove from

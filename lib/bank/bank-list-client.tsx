@@ -41,7 +41,13 @@ import type { Authorship } from '@/lib/audit/authorship';
 import { HoverPeek } from '@/lib/bank/hover-peek';
 import { TypePill, DiffChip } from '@/lib/bank/list-ui';
 import { BankToolbar } from '@/lib/bank/bank-filters';
-import type { BankFilterValues } from '@/lib/bank/bank-list-query';
+import {
+  buildBankUrl,
+  bankViewLoadsAll,
+  BANK_PAGE_SIZE,
+  type BankFilterValues,
+  type BankView,
+} from '@/lib/bank/bank-list-query';
 
 /** Question types whose editors are wired into bank-list today. */
 const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set([
@@ -116,6 +122,10 @@ export interface BankListClientProps {
   filters: BankFilterValues;
   /** Distinct tags for the Tag facet. */
   tagOptions: string[];
+  /** View state (sort / group / pagination limit) — read from the URL. */
+  view: BankView;
+  /** Total rows matching the current filters (for "Showing X of Y" + Load more). */
+  filteredTotal: number;
   /** Map of item_id → full editor initial, MCQ rows. */
   mcqInitialsById: Record<string, McqEditorInitial>;
   /** Empty initial used when the curator picks MCQ in create mode. */
@@ -168,6 +178,8 @@ export function BankListClient({
   baseUrl,
   filters,
   tagOptions,
+  view,
+  filteredTotal,
   mcqInitialsById,
   emptyMcqInitial,
   tfInitialsById,
@@ -200,20 +212,30 @@ export function BankListClient({
   // state of its own.
   const [flash, setFlash] = useState<string | null>(null);
 
-  // Client-side sort — a pure view transform over the (server-filtered)
-  // page of rows. Not a server round-trip; the loaded set is the whole
-  // result (hard-capped at 500, no pagination yet).
-  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'id', dir: 'asc' });
-  const sortedRows = useMemo(() => sortRows(rows, sort), [rows, sort]);
+  // Sort + group + pagination live in the URL (server-driven). Default is
+  // item_id asc, paginated. Sorting or grouping makes the server load the
+  // whole matched set (see bankViewLoadsAll); the client then sorts/groups
+  // it instantly — so Difficulty's Easy→Medium→Hard rank works client-side.
+  const effectiveSort: SortState = { key: (view.sort || 'id') as SortKey, dir: view.dir };
+  const sortedRows = useMemo(
+    () => sortRows(rows, { key: (view.sort || 'id') as SortKey, dir: view.dir }),
+    [rows, view.sort, view.dir],
+  );
+  const loadsAll = bankViewLoadsAll(view);
 
-  function toggleSort(key: SortKey) {
-    setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
+  function navigateView(next: BankView) {
+    router.replace(buildBankUrl(baseUrl, filters, next), { scroll: false });
   }
-
-  // Group-by-membership — a pure view transform that piles the sorted rows
-  // into Standalone / Case / Trend / Note sections (sorting still applies
-  // within each section).
-  const [group, setGroup] = useState(false);
+  function toggleSort(key: SortKey) {
+    const dir = effectiveSort.key === key && effectiveSort.dir === 'asc' ? 'desc' : 'asc';
+    navigateView({ ...view, sort: key, dir, limit: BANK_PAGE_SIZE });
+  }
+  function toggleGroup() {
+    navigateView({ ...view, group: !view.group, limit: BANK_PAGE_SIZE });
+  }
+  function loadMore() {
+    navigateView({ ...view, limit: view.limit + BANK_PAGE_SIZE });
+  }
 
   function handleNewQuestion() {
     setFlash(null);
@@ -410,6 +432,7 @@ export function BankListClient({
         values={filters}
         baseUrl={baseUrl}
         tagOptions={tagOptions}
+        view={view}
         rightSlot={
           <button
             type="button"
@@ -419,12 +442,13 @@ export function BankListClient({
             + New question
           </button>
         }
-        group={group}
-        onGroupToggle={() => setGroup((v) => !v)}
+        group={view.group}
+        onGroupToggle={toggleGroup}
       />
 
       <p className="bl-result">
-        <b>{rows.length}</b> {rows.length === 1 ? 'question' : 'questions'}
+        Showing <b>{rows.length}</b> of {filteredTotal} {filteredTotal === 1 ? 'question' : 'questions'}
+        {view.group && <span> · grouped by membership</span>}
       </p>
 
       {rows.length === 0 ? (
@@ -451,22 +475,22 @@ export function BankListClient({
           <table className="bl-table">
             <thead>
               <tr>
-                <SortableTh label="Item ID" sortKey="id" sort={sort} onSort={toggleSort} className="bl-id" />
+                <SortableTh label="Item ID" sortKey="id" sort={effectiveSort} onSort={toggleSort} className="bl-id" />
                 <th className="bl-col-title">Stem</th>
-                <SortableTh label="Type" sortKey="type" sort={sort} onSort={toggleSort} />
-                <SortableTh label="Difficulty" sortKey="difficulty" sort={sort} onSort={toggleSort} />
+                <SortableTh label="Type" sortKey="type" sort={effectiveSort} onSort={toggleSort} />
+                <SortableTh label="Difficulty" sortKey="difficulty" sort={effectiveSort} onSort={toggleSort} />
                 <SortableTh
-                  label="Marks" sortKey="marks" sort={sort} onSort={toggleSort} className="bl-num"
+                  label="Marks" sortKey="marks" sort={effectiveSort} onSort={toggleSort} className="bl-num"
                   title="Marks — max possible score for the question (system-derived from the answer key)"
                 />
-                <SortableTh label="Status" sortKey="status" sort={sort} onSort={toggleSort} />
-                <SortableTh label="Updated" sortKey="updated" sort={sort} onSort={toggleSort} />
+                <SortableTh label="Status" sortKey="status" sort={effectiveSort} onSort={toggleSort} />
+                <SortableTh label="Updated" sortKey="updated" sort={effectiveSort} onSort={toggleSort} />
                 <th>Authors</th>
                 <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
-              {group
+              {view.group
                 ? MEMBERSHIP_GROUPS.map((g) => {
                     const groupRows = sortedRows.filter((r) => membershipKind(r) === g.key);
                     if (groupRows.length === 0) return null;
@@ -484,6 +508,13 @@ export function BankListClient({
                 : sortedRows.map(renderRow)}
             </tbody>
           </table>
+          {!loadsAll && rows.length < filteredTotal && (
+            <div className="bl-loadmore">
+              <button type="button" className="bl-btn" onClick={loadMore}>
+                Load more <span className="bl-loadmore-n">{filteredTotal - rows.length} more</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 

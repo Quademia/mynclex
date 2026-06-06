@@ -32,10 +32,13 @@ import {
 import {
   SEARCH_SCOPES,
   serializeBankFilters,
+  buildBankUrl,
   hasAnyBankFilter,
   describeActiveFilters,
   emptyBankFilters,
+  BANK_PAGE_SIZE,
   type BankFilterValues,
+  type BankView,
 } from '@/lib/bank/bank-list-query';
 import { SearchIcon } from '@/lib/bank/list-ui';
 
@@ -65,6 +68,7 @@ export function BankToolbar({
   values,
   baseUrl,
   tagOptions,
+  view,
   rightSlot,
   group,
   onGroupToggle,
@@ -72,6 +76,8 @@ export function BankToolbar({
   values:     BankFilterValues;
   baseUrl:    string;
   tagOptions: string[];
+  /** Current view (sort/group/limit) — preserved across filter changes. */
+  view:       BankView;
   /** Right-aligned slot — the "+ New question" button. */
   rightSlot?: ReactNode;
   /** Group-by-membership toggle state + handler (rendered when provided). */
@@ -92,8 +98,9 @@ export function BankToolbar({
   const [showFacets, setShowFacets] = useState(false);
 
   function navigate(next: BankFilterValues) {
-    const qs = serializeBankFilters(next);
-    router.replace(qs ? `${baseUrl}?${qs}` : baseUrl, { scroll: false });
+    // Preserve sort + group across filter changes; reset pagination to the
+    // first page (a new filter set is a fresh page).
+    router.replace(buildBankUrl(baseUrl, next, { ...view, limit: BANK_PAGE_SIZE }), { scroll: false });
   }
 
   function setMulti(field: MultiKey, vals: string[]) {

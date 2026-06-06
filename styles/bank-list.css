@@ -570,6 +570,22 @@ button.bl-stat:hover { border-color: var(--border-strong); box-shadow: var(--sha
 /* Edit / Open action rendered as a button (not just a link). */
 button.bl-open { font: inherit; cursor: pointer; }
 
+/* "Show more" / "Load more" row beneath the table. */
+.bl-loadmore {
+  display: flex;
+  justify-content: center;
+  padding: 14px;
+  border-top: 1px solid var(--border);
+}
+.bl-loadmore-n {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
 /* ── Filters popover button + badge ───────────────────────────────── */
 /* No positioning here on purpose — the popover anchors to .bl-toolbar so it
    docks to the toolbar's RIGHT edge (keeping the list visible while you

@@ -87,6 +87,20 @@ export function TrendsListClient({
   const basePath = surface === 'tutor' ? '/tutor/bank/trends' : '/admin/bank/trends';
   const entityType = surface === 'tutor' ? 'tutor_trend_dataset' : 'trend_dataset';
 
+  // Display pagination — render PAGE_SIZE rows, reveal more on demand. Data
+  // is tiny today (loaded in full); this caps the render and sets the UX up
+  // for when datasets grow. Reset to the first page when the filters change.
+  const PAGE_SIZE = 50;
+  const [shown, setShown] = useState(PAGE_SIZE);
+  // Reset to the first page when the filter set changes (render-phase reset).
+  const filterSig = `${q}|${status}|${kind}|${attn}`;
+  const [prevFilterSig, setPrevFilterSig] = useState(filterSig);
+  if (filterSig !== prevFilterSig) {
+    setPrevFilterSig(filterSig);
+    setShown(PAGE_SIZE);
+  }
+  const visible = filtered.slice(0, shown);
+
   function clearAll() { setQ(''); setStatus(''); setKind(''); setAttn(false); }
 
   return (
@@ -157,7 +171,8 @@ export function TrendsListClient({
       </div>
 
       <div className="bl-result">
-        Showing <b>{filtered.length}</b> of {rows.length} datasets
+        Showing <b>{Math.min(shown, filtered.length)}</b> of {filtered.length} datasets
+        {filtered.length !== rows.length && <span> · {rows.length} total</span>}
         {active && (
           <button type="button" className="bl-result-clear" onClick={clearAll}>Clear</button>
         )}
@@ -188,7 +203,7 @@ export function TrendsListClient({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((t) => {
+              {visible.map((t) => {
                 const bad = needsAttention(t);
                 return (
                   <tr key={t.trend_id}>
@@ -240,6 +255,13 @@ export function TrendsListClient({
               })}
             </tbody>
           </table>
+          {filtered.length > shown && (
+            <div className="bl-loadmore">
+              <button type="button" className="bl-btn" onClick={() => setShown((s) => s + PAGE_SIZE)}>
+                Show more <span className="bl-loadmore-n">{filtered.length - shown} more</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </>

@@ -7,6 +7,7 @@
 //
 // Reuses .auth-list-* styles from styles/authoring.css.
 
+import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { createCaseAction } from '@/lib/bank/wrappers/case-study/actions';
 import { loadAuthorship } from '@/lib/audit/authorship';
@@ -107,6 +108,11 @@ export default async function AdminCasesV2ListPage() {
               six questions under one case. A case reaches students only when
               published, builder-visible, and complete.
             </p>
+          </div>
+          <div className="bl-head-actions">
+            <Link href="/admin/dashboard" className="bl-btn">← Admin</Link>
+            <Link href="/admin/bank/all" className="bl-btn">All questions →</Link>
+            <Link href="/admin/bank/trends" className="bl-btn">Trend datasets →</Link>
           </div>
         </header>
 

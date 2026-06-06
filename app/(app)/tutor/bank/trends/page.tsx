@@ -4,6 +4,7 @@
 // tutor_id (RLS enforces this too) and hands rows to the shared
 // TrendsListClient (filter bar + content search + filtered table).
 
+import Link from 'next/link';
 import { requireBankCurator } from '@/lib/access';
 import { kindDefaultLabel } from '@/lib/bank/wrappers/trend/kind-templates';
 import { KindPickerLauncher } from '@/lib/bank/wrappers/trend/kind-picker-modal';
@@ -96,6 +97,11 @@ export default async function TutorTrendsV2ListPage() {
               attach to bank questions. A published dataset with no live question
               reaches nobody.
             </p>
+          </div>
+          <div className="bl-head-actions">
+            <Link href="/tutor" className="bl-btn">← Tutor</Link>
+            <Link href="/tutor/bank/all" className="bl-btn">All questions →</Link>
+            <Link href="/tutor/bank/cases" className="bl-btn">Case Studies →</Link>
           </div>
         </header>
 

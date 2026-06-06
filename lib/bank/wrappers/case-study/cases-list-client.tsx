@@ -92,6 +92,19 @@ export function CasesListClient({
   const basePath = surface === 'tutor' ? '/tutor/bank/cases' : '/admin/bank/cases';
   const entityType = surface === 'tutor' ? 'tutor_case_study' : 'case_study';
 
+  // Display pagination — render PAGE_SIZE rows, reveal more on demand. Reset
+  // to the first page when the filters change.
+  const PAGE_SIZE = 50;
+  const [shown, setShown] = useState(PAGE_SIZE);
+  // Reset to the first page when the filter set changes (render-phase reset).
+  const filterSig = `${q}|${status}|${attn}`;
+  const [prevFilterSig, setPrevFilterSig] = useState(filterSig);
+  if (filterSig !== prevFilterSig) {
+    setPrevFilterSig(filterSig);
+    setShown(PAGE_SIZE);
+  }
+  const visible = filtered.slice(0, shown);
+
   function clearAll() { setQ(''); setStatus(''); setAttn(false); }
 
   return (
@@ -156,7 +169,8 @@ export function CasesListClient({
       </div>
 
       <div className="bl-result">
-        Showing <b>{filtered.length}</b> of {rows.length} case studies
+        Showing <b>{Math.min(shown, filtered.length)}</b> of {filtered.length} case studies
+        {filtered.length !== rows.length && <span> · {rows.length} total</span>}
         {active && (
           <button type="button" className="bl-result-clear" onClick={clearAll}>Clear</button>
         )}
@@ -186,7 +200,7 @@ export function CasesListClient({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((c) => {
+              {visible.map((c) => {
                 const bad = needsAttention(c);
                 return (
                   <tr key={c.case_id}>
@@ -255,6 +269,13 @@ export function CasesListClient({
               })}
             </tbody>
           </table>
+          {filtered.length > shown && (
+            <div className="bl-loadmore">
+              <button type="button" className="bl-btn" onClick={() => setShown((s) => s + PAGE_SIZE)}>
+                Show more <span className="bl-loadmore-n">{filtered.length - shown} more</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </>

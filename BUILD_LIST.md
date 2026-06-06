@@ -8,6 +8,48 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **BANK SURFACES — CLAUDE DESIGN REDESIGN + PAGINATION (2026-06-06).**
+> All three bank **list** surfaces rebuilt from Sam's CD "Bank surfaces"
+> handoff — **concept-not-source** (visual system only; our server-side
+> filtering, full filter set, and real data kept; CD's demo chrome not
+> built). **Merged to `main`.**
+>
+> - **Shared system.** New `styles/bank-list.css` (`bl-*`, loaded last,
+>   app tokens) + `lib/bank/list-ui.tsx` primitives (`AttachedBar`,
+>   `HealthFlag`, `TypePill`, `DiffChip`, `SearchIcon`). The shared
+>   `AuthorshipCell` (all 6 lists) → a **facepile** (creator + handed-off
+>   editor avatars; names in tooltips; 🕑 clock unchanged).
+> - **Trends + Cases.** Overview/health **band** (the attention card is
+>   also a filter) · compact toolbar (+ New in-toolbar) · new **Health**
+>   column + **Attached** cell. Cases: chart-tab chips under the title +
+>   inline **Hidden** tag; **Difficulty dropped** from the list (weak at
+>   wrapper level).
+> - **Question Bank — the Hybrid.** `BankBand` (composition bar w/ the new
+>   **Note** segment + clickable Published/Drafts/Free stat-card filters,
+>   whole-bank counts) · coloured type pills + difficulty chips + **Updated**
+>   column · grid → compact **`BankToolbar`** (scope picker docked **inside**
+>   the search field; right-docked **Filters popover** with all 11 facets
+>   incl. **Note-born** membership; active chips) · **sortable headers** +
+>   **Group-by-membership** toggle. Editor modal stack untouched.
+> - **Pagination.** Bank = **server-side**: 50 + **Load more** (`?limit`);
+>   **sort or group loads the whole matched set (≤500)** and the client
+>   sorts/groups instantly (so Difficulty's Easy→Medium→Hard rank works with
+>   no migration); filter change resets to page 1, keeps sort/group.
+>   Trends/Cases = **display pagination** (Show more; tiny data, no DB
+>   change).
+>
+>   **⚠ FOLLOW-UP — MOVE SORT SERVER-SIDE BEFORE >500 QUESTIONS.** The
+>   "load-all-to-sort" shortcut only holds under the `BANK_MAX_ROWS` (500)
+>   cap; past it, a sort would silently show just the first 500. Sam: the
+>   bank WILL exceed 500. At that scale → `ORDER BY` on the server + keep
+>   paging while sorted; Difficulty needs a SQL rank (generated column or
+>   RPC `ORDER BY CASE`, since PostgREST can't order by an expression);
+>   grouping → server-side bucket counts + per-bucket paging. Captured in
+>   `lib/bank/bank-list-query.ts`.
+> - **Deferred:** broad old-CSS prune (old `auth-*`/`bank-q-*` classes still
+>   used by non-list surfaces — grep-verify first); scope-dropdown option
+>   alignment (parked). Orphaned `bank-counts.tsx` removed this session.
+
 > **BANK LIST PAGES — MVP SWEEP (2026-06-05).** Review-and-polish pass over
 > the bank's list surfaces (the bank slice of Sam's top-down MVP sweep).
 > All app-layer, no migration. Session branch.

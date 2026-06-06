@@ -4,6 +4,7 @@
 // tutor_id (RLS enforces this DB-side too) and hands rows to the shared
 // CasesListClient (filter bar + content search + filtered table).
 
+import Link from 'next/link';
 import { requireBankCurator } from '@/lib/access';
 import { createCaseAction } from '@/lib/bank/wrappers/case-study/actions';
 import { loadAuthorship } from '@/lib/audit/authorship';
@@ -103,6 +104,11 @@ export default async function TutorCasesV2ListPage() {
               shared patient chart. A case reaches students only when published,
               builder-visible, and complete.
             </p>
+          </div>
+          <div className="bl-head-actions">
+            <Link href="/tutor" className="bl-btn">← Tutor</Link>
+            <Link href="/tutor/bank/all" className="bl-btn">All questions →</Link>
+            <Link href="/tutor/bank/trends" className="bl-btn">Trend datasets →</Link>
           </div>
         </header>
 

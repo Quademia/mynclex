@@ -5,6 +5,7 @@
 // (scenario + the dataset rows/timepoints), then hands everything to the
 // shared TrendsListClient (filter bar + filtered table).
 
+import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { kindDefaultLabel } from '@/lib/bank/wrappers/trend/kind-templates';
 import { KindPickerLauncher } from '@/lib/bank/wrappers/trend/kind-picker-modal';
@@ -95,6 +96,11 @@ export default async function AdminTrendsV2ListPage() {
               Time-series data panels (rows × timepoints) that attach to bank
               questions. A published dataset with no live question reaches nobody.
             </p>
+          </div>
+          <div className="bl-head-actions">
+            <Link href="/admin/dashboard" className="bl-btn">← Admin</Link>
+            <Link href="/admin/bank/all" className="bl-btn">All questions →</Link>
+            <Link href="/admin/bank/cases" className="bl-btn">Case Studies →</Link>
           </div>
         </header>
 
