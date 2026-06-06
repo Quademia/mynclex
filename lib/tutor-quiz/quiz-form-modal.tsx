@@ -17,6 +17,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { ErrorToast } from '@/lib/toast/error-toast';
+import { QuizDeleteSection } from './quiz-delete-section';
 import { createQuizAction, updateQuizAction } from './actions';
 import {
   QUIZ_MODES_BY_KIND,
@@ -37,6 +38,9 @@ type QuizFormModalProps =
       mode: 'edit';
       quizId: string;
       initial: QuizFormValues;
+      /** How many questions the quiz currently holds — gates the
+       *  "Published" status option (a quiz needs ≥1 question to publish). */
+      itemCount: number;
       onClose: () => void;
     };
 
@@ -67,6 +71,10 @@ export function QuizFormModal(props: QuizFormModalProps) {
 
   const isEdit = props.mode === 'edit';
   const initial = isEdit ? props.initial : null;
+  // A quiz needs ≥1 question to be Published — drives the disabled
+  // "Published" option + a guard on submit (server re-checks too).
+  const itemCount = isEdit ? props.itemCount : 0;
+  const canPublish = itemCount > 0;
 
   const [title, setTitle] = useState(initial?.title ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
@@ -148,7 +156,9 @@ export function QuizFormModal(props: QuizFormModalProps) {
     allowedModes.includes(mode) &&
     (!modeIsTimed || isPositiveIntString(durationMinutes)) &&
     isValidPercentString(passScorePercent) &&
-    (maxAttempts.trim() === '' || isPositiveIntString(maxAttempts));
+    (maxAttempts.trim() === '' || isPositiveIntString(maxAttempts)) &&
+    // Can't publish an empty quiz (the server enforces this too).
+    (status !== 'PUBLISHED' || canPublish);
 
   function attemptClose() {
     if (isPending) return;
@@ -409,16 +419,36 @@ export function QuizFormModal(props: QuizFormModalProps) {
                     disabled={isPending}
                   >
                     <option value="DRAFT">Draft</option>
-                    <option value="PUBLISHED">Published</option>
+                    <option value="PUBLISHED" disabled={!canPublish}>
+                      Published
+                    </option>
                     <option value="ARCHIVED">Archived</option>
                   </select>
                   <span className="prog-field-help">
-                    Only Published quizzes can be attached to a
-                    programme&apos;s curriculum. Archived quizzes drop
-                    out of the active list.
+                    {canPublish ? (
+                      <>
+                        Only Published quizzes can be attached to a
+                        programme&apos;s curriculum. Archived quizzes drop
+                        out of the active list.
+                      </>
+                    ) : (
+                      <>
+                        Add at least one question before you can publish
+                        this quiz.
+                      </>
+                    )}
                   </span>
                 </label>
               </section>
+            )}
+
+            {/* DANGER ZONE — delete (edit mode only). Reachable from
+                both the card pencil and the editor via this one modal. */}
+            {isEdit && (
+              <QuizDeleteSection
+                quizId={props.quizId}
+                quizTitle={initial?.title ?? trimmedTitle}
+              />
             )}
           </div>
 

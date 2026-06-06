@@ -11,6 +11,8 @@
 // Wording, button order, and the typed-DELETE gate all live here so
 // a future change ripples to every editor in one edit.
 
+import type { ReactNode } from 'react';
+
 interface DeleteConfirmProps {
   /** The item id being deleted, shown in the title. */
   itemId: string;
@@ -18,6 +20,9 @@ interface DeleteConfirmProps {
   deleteText: string;
   /** True while the delete server action is in flight. */
   pending?: boolean;
+  /** Optional reassurance/context block shown above the typed-DELETE
+   *  gate (e.g. "3 student attempts are kept"). */
+  note?: ReactNode;
   /** Called when the curator types into the confirmation input. */
   onTextChange: (text: string) => void;
   /** Called on Cancel button or backdrop click (only when not pending). */
@@ -30,6 +35,7 @@ export function DeleteConfirm({
   itemId,
   deleteText,
   pending = false,
+  note,
   onTextChange,
   onCancel,
   onConfirm,
@@ -54,6 +60,7 @@ export function DeleteConfirm({
         <p className="auth-delete-confirm-title">
           Delete <code>{itemId}</code>?
         </p>
+        {note && <div className="auth-delete-confirm-note">{note}</div>}
         <p className="auth-delete-confirm-hint">
           This is irreversible. Type <strong>DELETE</strong> to confirm.
         </p>

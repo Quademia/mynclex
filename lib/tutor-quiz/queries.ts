@@ -7,6 +7,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type {
   PickerQuestionRow,
+  QuizActivityLink,
   QuizItemRow,
   QuizListRow,
   QuizPickerFilters,
@@ -164,4 +165,122 @@ export async function getPickerQuestions(
 
   const { data } = await query;
   return (data ?? []) as PickerQuestionRow[];
+}
+
+/**
+ * Every curriculum activity (across ALL the tutor's programmes) that
+ * still references this quiz in its payload. Drives the delete
+ * preflight's BLOCK rule — a non-empty list means the quiz can't be
+ * deleted until it's unlinked from those activities (§9.3 applied
+ * quiz-wide). The global cousin of programme-quizzes'
+ * getBlockingActivities; RLS on _activities → _units → _programmes
+ * scopes the scan to the tutor's own programmes.
+ *
+ * The payload->>'quiz_id' filter is done in JS (the set is small) so
+ * we avoid a PostgREST JSON filter chain — same approach as the
+ * source-hint loader.
+ */
+export async function getQuizActivityLinks(
+  quizId: string,
+): Promise<QuizActivityLink[]> {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from('nclex_programme_activities')
+    .select(
+      `activity_id, title, payload, ordinal,
+       nclex_programme_units!inner(
+         unit_index, title,
+         nclex_programmes!inner(programme_id, title, unit_label)
+       )`,
+    )
+    .in('type', ['MOCK', 'PRACTICE_QUIZ']);
+
+  if (!data) return [];
+
+  const out: QuizActivityLink[] = [];
+  for (const row of data as Array<{
+    activity_id: string;
+    title: string;
+    payload: { quiz_id?: string | null } | null;
+    ordinal: number;
+    nclex_programme_units:
+      | {
+          unit_index: number;
+          title: string;
+          nclex_programmes:
+            | {
+                programme_id: string;
+                title: string;
+                unit_label: 'WEEK' | 'MODULE';
+              }
+            | Array<{
+                programme_id: string;
+                title: string;
+                unit_label: 'WEEK' | 'MODULE';
+              }>;
+        }
+      | Array<{
+          unit_index: number;
+          title: string;
+          nclex_programmes:
+            | {
+                programme_id: string;
+                title: string;
+                unit_label: 'WEEK' | 'MODULE';
+              }
+            | Array<{
+                programme_id: string;
+                title: string;
+                unit_label: 'WEEK' | 'MODULE';
+              }>;
+        }>;
+  }>) {
+    if (row.payload?.quiz_id !== quizId) continue;
+    const unitRow = Array.isArray(row.nclex_programme_units)
+      ? row.nclex_programme_units[0]
+      : row.nclex_programme_units;
+    if (!unitRow) continue;
+    const progRow = Array.isArray(unitRow.nclex_programmes)
+      ? unitRow.nclex_programmes[0]
+      : unitRow.nclex_programmes;
+    if (!progRow) continue;
+    out.push({
+      activity_id: row.activity_id,
+      activity_title: row.title,
+      programme_id: progRow.programme_id,
+      programme_title: progRow.title,
+      unit_index: unitRow.unit_index,
+      unit_label: progRow.unit_label ?? 'WEEK',
+      unit_title: unitRow.title,
+    });
+  }
+
+  // Stable order — programme, then unit, then activity ordinal.
+  out.sort(
+    (a, b) =>
+      a.programme_title.localeCompare(b.programme_title) ||
+      a.unit_index - b.unit_index,
+  );
+  return out;
+}
+
+/**
+ * Count of standalone student attempts directly tied to this quiz
+ * (nclex_attempts.quiz_id = quizId — the Slice-6 standalone launch
+ * shape). Powers the delete dialog's "results are kept" reassurance.
+ *
+ * Note: activity-linked attempts key off programme_activity_id, not
+ * quiz_id, so they aren't counted here — but at the moment the
+ * confirm dialog shows, the quiz has NO live activity links (the
+ * delete is blocked otherwise), so the standalone count is the
+ * accurate "attempts that point at this quiz" figure for that state.
+ */
+export async function getQuizAttemptCount(quizId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from('nclex_attempts')
+    .select('attempt_id', { count: 'exact', head: true })
+    .eq('quiz_id', quizId);
+  return count ?? 0;
 }

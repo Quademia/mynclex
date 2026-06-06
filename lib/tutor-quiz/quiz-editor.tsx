@@ -337,6 +337,7 @@ export function QuizEditor({
           mode="edit"
           quizId={quiz.quiz_id}
           initial={editInitial}
+          itemCount={items.length}
           onClose={() => setEditOpen(false)}
         />
       )}

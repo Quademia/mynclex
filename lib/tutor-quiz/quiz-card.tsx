@@ -20,37 +20,44 @@ import {
   quizStatusPillClass,
 } from './format';
 import { formatUsedInProgrammes } from '@/lib/programme-quizzes/format';
+import { EditQuizTrigger } from './edit-quiz-trigger';
 
 export function QuizCard({ quiz }: { quiz: QuizListRow }) {
   const isMuted = quiz.status === 'ARCHIVED';
 
+  // The pencil is a sibling of the link (a button can't be nested in an
+  // anchor), positioned into the card's top-right lane by .quiz-card-wrap.
   return (
-    <Link
-      href={`/tutor/quiz/${quiz.quiz_id}`}
-      className={`quiz-card ${isMuted ? 'is-muted' : ''}`}
-    >
-      <div className="quiz-card-head">
-        <h2 className="quiz-card-title">{quiz.title}</h2>
-        <span className={`quiz-pill ${quizStatusPillClass(quiz.status)}`}>
-          {formatQuizStatus(quiz.status)}
-        </span>
-      </div>
+    <div className="quiz-card-wrap">
+      <Link
+        href={`/tutor/quiz/${quiz.quiz_id}`}
+        className={`quiz-card ${isMuted ? 'is-muted' : ''}`}
+      >
+        <div className="quiz-card-head">
+          <h2 className="quiz-card-title">{quiz.title}</h2>
+          <span className={`quiz-pill ${quizStatusPillClass(quiz.status)}`}>
+            {formatQuizStatus(quiz.status)}
+          </span>
+        </div>
 
-      {quiz.description && (
-        <p className="quiz-card-desc">{quiz.description}</p>
-      )}
+        {quiz.description && (
+          <p className="quiz-card-desc">{quiz.description}</p>
+        )}
 
-      <UsedInProgrammesChip count={quiz.used_in_programmes} />
+        <UsedInProgrammesChip count={quiz.used_in_programmes} />
 
-      <div className="quiz-card-foot">
-        <span className="quiz-card-kind">
-          {formatQuizKind(quiz.quiz_kind)}
-        </span>
-        <span className="quiz-card-meta">
-          {formatItemCount(quiz.item_count)} · {formatQuizMode(quiz.mode)}
-        </span>
-      </div>
-    </Link>
+        <div className="quiz-card-foot">
+          <span className="quiz-card-kind">
+            {formatQuizKind(quiz.quiz_kind)}
+          </span>
+          <span className="quiz-card-meta">
+            {formatItemCount(quiz.item_count)} · {formatQuizMode(quiz.mode)}
+          </span>
+        </div>
+      </Link>
+
+      <EditQuizTrigger quiz={quiz} />
+    </div>
   );
 }
 

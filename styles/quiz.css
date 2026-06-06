@@ -69,6 +69,12 @@
 
 /* ─── Quiz card ───────────────────────────────────── */
 
+/* Positioning host so the meta-edit pencil can sit over the card as a
+   sibling of the <Link> (a button can't be nested inside an anchor). */
+.quiz-card-wrap {
+  position: relative;
+}
+
 .quiz-card {
   display: flex;
   flex-direction: column;
@@ -80,6 +86,42 @@
   color: inherit;
   text-decoration: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Always-visible but quiet quick-edit pencil, top-right corner. Present
+   by default (discoverable + touch-reachable); hover/focus is the
+   emphasis step, not an appear/disappear. The head reserves a lane
+   (padding-right below) so it never overlaps the status pill. This
+   corner is the future home of an archive/delete/duplicate ⋯ menu. */
+.quiz-card-edit {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease, background 0.15s ease;
+}
+.quiz-card-wrap:hover .quiz-card-edit {
+  opacity: 0.85;
+}
+.quiz-card-edit:hover,
+.quiz-card-edit:focus-visible {
+  opacity: 1;
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--white);
 }
 .quiz-card:hover {
   border-color: var(--border-strong);
@@ -99,6 +141,9 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+  /* Reserve the top-right lane for the hover pencil so the status pill
+     never sits under it. */
+  padding-right: 30px;
 }
 
 .quiz-card-title {
@@ -351,6 +396,77 @@
 }
 .quiz-btn-ghost:hover:not(:disabled) {
   background: var(--bg);
+}
+.quiz-btn-danger {
+  background: #fef2f2;
+  color: var(--danger);
+  border-color: #fecaca;
+}
+.quiz-btn-danger:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+/* ─── Danger zone (delete) — foot of the edit modal ─ */
+
+.quiz-danger-zone {
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.quiz-danger-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.quiz-danger-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--danger);
+  margin: 0 0 2px;
+}
+.quiz-danger-help {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.45;
+  max-width: 42ch;
+}
+
+/* Blocking-activities list inside the "can't delete" dialog. */
+.quiz-blocking-list {
+  list-style: none;
+  margin: 4px 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.quiz-blocking-link {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.quiz-blocking-link:hover {
+  border-color: var(--border-strong);
+  background: var(--bg);
+  text-decoration: none;
+}
+.quiz-blocking-where {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
 }
 
 /* ─── Editor zones — two-column layout ────────────── */

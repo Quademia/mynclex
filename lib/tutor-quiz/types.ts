@@ -104,6 +104,21 @@ export type QuizPickerFilters = {
   q: string;
 };
 
+// One curriculum activity that references a quiz, used by the
+// delete-preflight to BLOCK deletion of a still-linked quiz (the
+// §9.3 "block, don't cascade" rule, applied quiz-wide rather than
+// per-programme). Carries the programme + unit context so the
+// blocked dialog can point the tutor at each placement.
+export type QuizActivityLink = {
+  activity_id: string;
+  activity_title: string;
+  programme_id: string;
+  programme_title: string;
+  unit_index: number;
+  unit_label: 'WEEK' | 'MODULE';
+  unit_title: string;
+};
+
 // A quiz option as offered to the curriculum activity editor's
 // "Choose a quiz" selector (tutor-quiz Slice 2). The selector lists
 // the tutor's PUBLISHED quizzes of the matching kind; `status` is
