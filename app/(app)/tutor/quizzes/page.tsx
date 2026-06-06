@@ -11,6 +11,7 @@
 
 import { getMyQuizzes } from '@/lib/tutor-quiz/queries';
 import { QuizList } from '@/lib/tutor-quiz/quiz-list';
+import { QuizStatStrip } from '@/lib/tutor-quiz/quiz-stat-strip';
 import { QuizzesEmpty } from '@/lib/tutor-quiz/empty-state';
 import { NewQuizTrigger } from '@/lib/tutor-quiz/new-quiz-trigger';
 
@@ -37,7 +38,10 @@ export default async function TutorQuizzesPage() {
       {quizzes.length === 0 ? (
         <QuizzesEmpty />
       ) : (
-        <QuizList quizzes={quizzes} />
+        <>
+          <QuizStatStrip quizzes={quizzes} />
+          <QuizList quizzes={quizzes} />
+        </>
       )}
     </div>
   );
