@@ -1195,3 +1195,99 @@
   color: var(--text-muted);
   font-size: 13.5px;
 }
+
+/* ── Card ⋯ actions menu (corner) ──────────────────────────────── */
+/* NB: no z-index here on purpose — a positioned ancestor WITH a z-index
+   creates a stacking context that would trap the fixed toast/dialogs
+   rendered inside this component (they'd cap below the topbar). The
+   dropdown below carries its own z-index to sit above neighbour cards. */
+.quiz-card-menu {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+}
+.quiz-card-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+    background 0.15s ease;
+}
+.quiz-card-menu-btn svg {
+  width: 17px;
+  height: 17px;
+}
+.quiz-card-wrap:hover .quiz-card-menu-btn {
+  opacity: 0.9;
+}
+.quiz-card-menu-btn:hover,
+.quiz-card-menu.is-open .quiz-card-menu-btn {
+  opacity: 1;
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--white);
+}
+
+.quiz-card-menu-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  min-width: 192px;
+  padding: 5px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  box-shadow: var(--q-shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.quiz-card-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.quiz-card-menu-item svg {
+  width: 15px;
+  height: 15px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.quiz-card-menu-item:hover {
+  background: var(--bg-soft);
+}
+.quiz-card-menu-item.is-danger {
+  color: var(--danger);
+}
+.quiz-card-menu-item.is-danger svg {
+  color: var(--danger);
+}
+.quiz-card-menu-item.is-danger:hover {
+  background: #fef2f2;
+}
+.quiz-card-menu-sep {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--border);
+}

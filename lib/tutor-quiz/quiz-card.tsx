@@ -18,7 +18,7 @@ import {
   quizStatusPillClass,
 } from './format';
 import { QuizIcon } from './quiz-icons';
-import { EditQuizTrigger } from './edit-quiz-trigger';
+import { QuizCardMenu } from './quiz-card-menu';
 
 export function QuizCard({ quiz }: { quiz: QuizListRow }) {
   const isMuted = quiz.status === 'ARCHIVED';
@@ -80,7 +80,7 @@ export function QuizCard({ quiz }: { quiz: QuizListRow }) {
         </div>
       </Link>
 
-      <EditQuizTrigger quiz={quiz} />
+      <QuizCardMenu quiz={quiz} />
     </div>
   );
 }
