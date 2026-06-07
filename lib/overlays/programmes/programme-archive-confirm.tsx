@@ -15,6 +15,17 @@
 //
 // Re-uses the auth-delete-* class set (shared overlay styling) for
 // visual parity with the other destructive confirms in this app.
+//
+// Self-portals to <body>. Without this, when opened from inside a
+// programme card (the list ⋯ kebab) the fixed overlay is trapped in the
+// card's stacking context — no backdrop dim, and sibling card content
+// paints over the dialog. Portaling escapes to the top of the document,
+// the same fix ProgrammeFormModal uses. Harmless for the Overview
+// caller (which isn't inside a card).
+
+'use client';
+
+import { createPortal } from 'react-dom';
 
 interface ProgrammeArchiveConfirmProps {
   /** Title of the programme being archived — shown in the prompt. */
@@ -42,7 +53,10 @@ export function ProgrammeArchiveConfirm({
   onCancel,
   onConfirm,
 }: ProgrammeArchiveConfirmProps) {
-  return (
+  // document is always present — this only renders on a client click.
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       className="auth-delete-overlay"
       onClick={(e) => {
@@ -92,6 +106,7 @@ export function ProgrammeArchiveConfirm({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
