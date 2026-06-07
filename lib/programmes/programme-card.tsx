@@ -11,17 +11,19 @@
 // cohort), state-aware foot (self-paced / zero-cohort / draft / normal),
 // and a price. Completion data comes from getMyProgrammesForList.
 
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { ProgrammeCardRow } from './types';
 import {
   formatHealthLabel,
   formatLength,
   formatPrice,
+  formatShortDate,
   formatStatusLabel,
   statusPillClass,
 } from './format';
 import { ProgIcon } from './prog-icon';
-import { EditProgrammeTrigger } from './edit-programme-trigger';
+import { ProgrammeCardMenu } from './programme-card-menu';
 import { NewCohortTrigger } from '@/lib/cohorts/new-cohort-trigger';
 
 export function ProgrammeCard({ programme }: { programme: ProgrammeCardRow }) {
@@ -29,6 +31,7 @@ export function ProgrammeCard({ programme }: { programme: ProgrammeCardRow }) {
   const draft = programme.status === 'DRAFT';
   const live = programme.status === 'PUBLISHED';
   const selfPaced = programme.delivery_mode === 'SELF_PACED';
+  const modeClass = selfPaced ? 'mode-selfpaced' : 'mode-tutored';
   // "Add first cohort" surfaces on any tutor-led programme with no cohort
   // yet — draft OR live (you can set up cohorts before publishing; the
   // Overview cohort-empty CTA behaves the same). Archived is excluded.
@@ -36,9 +39,41 @@ export function ProgrammeCard({ programme }: { programme: ProgrammeCardRow }) {
   const hasMeter =
     live && !selfPaced && programme.cohort_count > 0 && programme.avgCompletion != null && !!programme.health;
 
+  // Tutor-led schedule / warning line — only when the programme has at
+  // least one cohort (the zero-cohort state shows the Add-cohort nudge in
+  // the foot instead). Self-paced + archived never show it.
+  let scheduleNode: ReactNode = null;
+  if (!selfPaced && !archived && !zeroCohort) {
+    if (!programme.hasOpenCohort) {
+      scheduleNode = (
+        <div className="programme-card-warn">
+          <ProgIcon name="alert" size={14} /> No open cohorts — students can’t
+          enrol yet
+        </div>
+      );
+    } else if (programme.nextCohortStart) {
+      scheduleNode = (
+        <div className="programme-card-schedule">
+          <ProgIcon name="calendar" size={13} /> Next cohort starts{' '}
+          <b>{formatShortDate(programme.nextCohortStart)}</b>
+        </div>
+      );
+    } else {
+      scheduleNode = (
+        <div className="programme-card-schedule">
+          <ProgIcon name="calendar" size={13} /> Cohort in progress
+        </div>
+      );
+    }
+  }
+
+  // Coloured mode edge on active cards only (archived stay quiet/muted).
   let cardCls = 'programme-card';
   if (archived) cardCls += ' is-muted';
-  else if (draft) cardCls += ' is-draft';
+  else {
+    cardCls += ` ${modeClass}`;
+    if (draft) cardCls += ' is-draft';
+  }
 
   return (
     <div className={cardCls}>
@@ -49,6 +84,11 @@ export function ProgrammeCard({ programme }: { programme: ProgrammeCardRow }) {
       >
         <span className="sr-only">Open {programme.title}</span>
       </Link>
+
+      <span className={`programme-card-mode ${modeClass}`}>
+        <ProgIcon name={selfPaced ? 'zap' : 'users'} size={12} />
+        {selfPaced ? 'Self-paced' : 'Tutor-led'}
+      </span>
 
       <div className="programme-card-head">
         <div className="programme-card-titlewrap">
@@ -61,7 +101,7 @@ export function ProgrammeCard({ programme }: { programme: ProgrammeCardRow }) {
           <span className={`programme-pill ${statusPillClass(programme.status)}`}>
             {formatStatusLabel(programme.status)}
           </span>
-          {!archived && <EditProgrammeTrigger programme={programme} />}
+          {!archived && <ProgrammeCardMenu programme={programme} />}
         </div>
       </div>
 
@@ -70,6 +110,8 @@ export function ProgrammeCard({ programme }: { programme: ProgrammeCardRow }) {
         {formatLength(programme.length_units, programme.unit_label)}
         {selfPaced ? ' · self-paced' : ''}
       </div>
+
+      {scheduleNode}
 
       {hasMeter && (
         <div className="programme-meter-row">

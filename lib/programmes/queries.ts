@@ -92,14 +92,39 @@ export async function getMyProgrammesForList(): Promise<ProgrammeCardRow[]> {
     studentsByProgramme.set(r.programme_id, set);
   }
 
-  // ── Completion roll-up for live tutor-led programmes ─────────────────
-  const measurable = programmes.filter(
-    (p) => p.status === 'PUBLISHED' && p.delivery_mode === 'TUTOR_LED' && p.cohort_count > 0,
+  // ── Cohort-derived signals for tutor-led programmes ──────────────────
+  // One cohort fetch per tutor-led programme with cohorts, reused for BOTH
+  // the schedule line (next start / has-open) and the completion roll-up
+  // (live programmes only). Self-paced + zero-cohort programmes skip this.
+  const tutorLedWithCohorts = programmes.filter(
+    (p) => p.delivery_mode === 'TUTOR_LED' && p.cohort_count > 0,
   );
   const completionByProgramme = new Map<string, number>();
+  const scheduleByProgramme = new Map<
+    string,
+    { hasOpenCohort: boolean; nextCohortStart: string | null }
+  >();
   await Promise.all(
-    measurable.map(async (p) => {
+    tutorLedWithCohorts.map(async (p) => {
       const cohorts = await getCohortsForProgramme(p.programme_id);
+
+      // Schedule: open = UPCOMING or IN_PROGRESS; next start = earliest
+      // upcoming start_date (ISO dates sort lexically).
+      const hasOpenCohort = cohorts.some((c) => {
+        const s = cohortStatus(c);
+        return s === 'UPCOMING' || s === 'IN_PROGRESS';
+      });
+      const upcomingStarts = cohorts
+        .filter((c) => cohortStatus(c) === 'UPCOMING')
+        .map((c) => c.start_date)
+        .sort();
+      scheduleByProgramme.set(p.programme_id, {
+        hasOpenCohort,
+        nextCohortStart: upcomingStarts[0] ?? null,
+      });
+
+      // Completion: live programmes only, averaged across IN_PROGRESS cohorts.
+      if (p.status !== 'PUBLISHED') return;
       const active = cohorts.filter((c) => cohortStatus(c) === 'IN_PROGRESS');
       if (active.length === 0) return;
       const analytics = await Promise.all(
@@ -121,11 +146,14 @@ export async function getMyProgrammesForList(): Promise<ProgrammeCardRow[]> {
   return programmes.map((p) => {
     const avg = completionByProgramme.get(p.programme_id);
     const avgCompletion = avg ?? null;
+    const schedule = scheduleByProgramme.get(p.programme_id);
     return {
       ...p,
       students: studentsByProgramme.get(p.programme_id)?.size ?? 0,
       avgCompletion,
       health: avgCompletion == null ? null : avgCompletion >= 60 ? 'on-track' : 'watch',
+      hasOpenCohort: schedule?.hasOpenCohort ?? false,
+      nextCohortStart: schedule?.nextCohortStart ?? null,
     };
   });
 }

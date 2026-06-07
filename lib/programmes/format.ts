@@ -10,6 +10,21 @@ import type { Currency, ProgrammeHealth, ProgrammeStatus, UnitLabel } from './ty
 
 const CURRENCY_SYMBOL: Record<Currency, string> = { GHS: '₵', USD: '$' };
 
+const MONTHS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/**
+ * Single ISO date ("2026-07-14") → "14 Jul 2026" for the card's
+ * "Next cohort starts {date}" line. Parsed component-wise to avoid the
+ * UTC-shift that `new Date(iso)` can introduce near midnight.
+ */
+export function formatShortDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${d} ${MONTHS[m - 1]} ${y}`;
+}
+
 /**
  * Card price line. `0` renders as "Free"; otherwise the currency
  * symbol + the whole-cedi/dollar amount (minor → major). Thousands

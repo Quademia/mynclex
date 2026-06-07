@@ -78,6 +78,15 @@ export type ProgrammeCardRow = ProgrammeListRow & {
   students: number;
   avgCompletion: number | null;
   health: ProgrammeHealth | null;
+  // Tutor-led schedule signal for the card (derived from nclex_cohorts at
+  // read time — no programme column). `hasOpenCohort` = any cohort that is
+  // UPCOMING or IN_PROGRESS (students can still enrol / are mid-run);
+  // false on a tutor-led programme whose cohorts have all ENDED/CANCELLED
+  // → the "no open cohorts" warning. `nextCohortStart` = the earliest
+  // upcoming cohort's start_date (ISO), or null when none is upcoming
+  // (self-paced, zero-cohort, or only in-progress/ended cohorts exist).
+  hasOpenCohort: boolean;
+  nextCohortStart: string | null;
 };
 
 // The form-payload shape — the editable subset of a programme.

@@ -329,7 +329,7 @@
 }
 .programme-card-actions,
 .programme-card .programme-card-add-cohort,
-.programme-card .programme-card-edit-btn {
+.programme-card .programme-card-menu {
   pointer-events: auto;
 }
 
@@ -541,6 +541,136 @@
   background: var(--bg);
   color: var(--text-faint);
   border-color: var(--border-strong);
+}
+
+/* ─── Mode identity (chip + coloured edge) ────────── */
+.programme-card.mode-tutored {
+  border-left: 3px solid var(--mode-tutored);
+}
+.programme-card.mode-selfpaced {
+  border-left: 3px solid var(--mode-selfpaced);
+}
+.programme-card-mode {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--primary-light);
+}
+.programme-card-mode.mode-tutored {
+  color: var(--mode-tutored);
+}
+.programme-card-mode.mode-selfpaced {
+  color: var(--mode-selfpaced);
+}
+
+/* Tutor-led schedule / no-open-cohort warning line */
+.programme-card-schedule,
+.programme-card-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.programme-card-schedule {
+  color: var(--text-muted);
+}
+.programme-card-schedule svg {
+  color: var(--mode-tutored);
+  flex-shrink: 0;
+}
+.programme-card-schedule b {
+  color: var(--text);
+  font-weight: 600;
+}
+.programme-card-warn {
+  color: #92400e;
+}
+.programme-card-warn svg {
+  color: #d97706;
+  flex-shrink: 0;
+}
+
+/* ─── Card ⋯ kebab menu (Edit · Publish · Archive) ── */
+.programme-card-menu {
+  position: relative;
+  display: inline-flex;
+}
+.programme-card-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.programme-card-menu-btn:hover,
+.programme-card-menu.is-open .programme-card-menu-btn {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--white);
+}
+.programme-card-menu-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.programme-card-menu-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  min-width: 168px;
+  padding: 5px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+}
+.programme-card-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.programme-card-menu-item svg {
+  width: 15px;
+  height: 15px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.programme-card-menu-item:hover {
+  background: var(--bg-soft);
+}
+.programme-card-menu-item.is-danger {
+  color: var(--danger);
+}
+.programme-card-menu-item.is-danger svg {
+  color: var(--danger);
+}
+.programme-card-menu-item.is-danger:hover {
+  background: #fef2f2;
 }
 
 /* ─── New programme tile (dashed) ─────────────────── */
