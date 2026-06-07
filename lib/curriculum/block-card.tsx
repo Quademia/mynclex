@@ -1,20 +1,18 @@
 // mynclex/lib/curriculum/block-card.tsx
 //
-// One block in the unit body. Renders:
-//   • Block header — title + Draft/Live pill + edit / delete / up
-//     / down controls
-//   • Stack of in-block activity rows (sortable within the block)
-//   • "+ Add activity to block" dashed button at the bottom
-//
-// Stateless about transitions — every interaction calls back to
-// <UnitBuilder>, which owns isPending state, error toast, and
-// modal orchestration. Mirrors the parent ↔ child shape used for
-// activity rows.
+// One block in the unit body. CD "Curriculum Workspace" restyle (.blk):
+// a tinted header band (grip + "Block" label + title + pill + move/⋯
+// controls), an optional description, then the in-block activity rows
+// and a dashed "Add activity to block". Stateless about transitions —
+// every interaction calls back to <UnitBuilder>.
 
 'use client';
 
 import type { ReactNode } from 'react';
 import { ActivityRow } from './activity-row';
+import { CurIcon } from './cur-icon';
+import { CurMenu } from './cur-menu';
+import type { CurMenuItem } from './cur-menu';
 import { unitStatusLabel, unitStatusPillClass } from './format';
 import type { ProgrammeActivity, ProgrammeBlock } from './types';
 
@@ -22,28 +20,21 @@ interface BlockCardProps {
   block: ProgrammeBlock;
   activities: ProgrammeActivity[];
 
-  // Unit-body reorder of the block as a whole.
   canMoveUp: boolean;
   canMoveDown: boolean;
   reorderPending: boolean;
   onReorder: (direction: 'up' | 'down') => void;
 
-  // Block-level actions.
   onEdit: () => void;
   onDelete: () => void;
   onAddActivity: () => void;
 
-  // Activity-level actions inside this block.
   onActivityClick: (activity: ProgrammeActivity) => void;
-  onActivityReorder: (
-    activity: ProgrammeActivity,
-    direction: 'up' | 'down'
-  ) => void;
+  onActivityReorder: (activity: ProgrammeActivity, direction: 'up' | 'down') => void;
   onActivityDelete: (activity: ProgrammeActivity) => void;
   onActivityMoveOut: (activity: ProgrammeActivity) => void;
 
-  // Slot for any move-into-block popover the parent might want to
-  // anchor here (unused today; reserved for future overflow menus).
+  // Slot for an inline activity-type picker scoped to this block.
   children?: ReactNode;
 }
 
@@ -65,97 +56,87 @@ export function BlockCard({
 }: BlockCardProps) {
   const isEmpty = activities.length === 0;
 
+  const menuItems: CurMenuItem[] = [
+    { label: 'Edit block', icon: 'pencil', onClick: onEdit },
+    {
+      label: 'Move up',
+      icon: 'arrowUp',
+      disabled: !canMoveUp || reorderPending,
+      onClick: () => onReorder('up'),
+    },
+    {
+      label: 'Move down',
+      icon: 'arrowDown',
+      disabled: !canMoveDown || reorderPending,
+      onClick: () => onReorder('down'),
+    },
+    { sep: true },
+    { label: 'Delete block', icon: 'trash', danger: true, onClick: onDelete },
+  ];
+
   return (
-    <article className="block-card">
-      <header className="block-card-head">
-        <div className="block-card-head-meta">
-          <span className="block-card-label">Block</span>
-          <span className={`unit-pill ${unitStatusPillClass(block.is_published)}`}>
+    <article className="blk">
+      <header className="blk-head">
+        <span className="blk-grip" aria-hidden="true">
+          <CurIcon name="grip" size={16} />
+        </span>
+        <span className="blk-titlewrap">
+          <span className="blk-label">Block</span>
+          <span className="blk-title">{block.title}</span>
+          <span className={`unit-pill ${unitStatusPillClass(block.is_published)} sm`}>
             {unitStatusLabel(block.is_published)}
           </span>
-        </div>
-
-        <h3 className="block-card-title">{block.title}</h3>
-
-        {block.description && (
-          <p className="block-card-desc">{block.description}</p>
-        )}
-
-        <div className="block-card-controls" role="group" aria-label="Block controls">
+        </span>
+        <div className="blk-controls" role="group" aria-label="Block controls">
           <button
             type="button"
-            className="block-card-action"
-            onClick={onEdit}
-            aria-label="Edit block"
-            title="Edit block"
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            className="activity-row-arrow"
+            className="cur-icon-btn"
             aria-label="Move block up"
-            onClick={() => onReorder('up')}
             disabled={!canMoveUp || reorderPending}
+            onClick={() => onReorder('up')}
           >
-            ↑
+            <CurIcon name="arrowUp" size={15} />
           </button>
           <button
             type="button"
-            className="activity-row-arrow"
+            className="cur-icon-btn"
             aria-label="Move block down"
-            onClick={() => onReorder('down')}
             disabled={!canMoveDown || reorderPending}
+            onClick={() => onReorder('down')}
           >
-            ↓
+            <CurIcon name="arrowDown" size={15} />
           </button>
-          <button
-            type="button"
-            className="activity-row-delete"
-            aria-label="Delete block"
-            onClick={onDelete}
-            title="Delete block"
-          >
-            ✕
-          </button>
+          <CurMenu items={menuItems} ariaLabel={`Actions for block ${block.title}`} />
         </div>
       </header>
 
-      <div className="block-card-body">
+      {block.description && <p className="blk-desc">{block.description}</p>}
+
+      <div className="blk-body">
         {isEmpty ? (
-          <p className="block-card-empty">
+          <p className="blk-empty">
             Empty block — add an activity below or it&apos;ll be removed.
           </p>
         ) : (
-          <div className="activity-list" role="list">
-            {activities.map((activity, idx) => {
-              const isFirst = idx === 0;
-              const isLast = idx === activities.length - 1;
-              return (
-                <ActivityRow
-                  key={activity.activity_id}
-                  activity={activity}
-                  canMoveUp={!isFirst}
-                  canMoveDown={!isLast}
-                  reorderPending={reorderPending}
-                  onClick={() => onActivityClick(activity)}
-                  onReorder={(direction) => onActivityReorder(activity, direction)}
-                  onDelete={() => onActivityDelete(activity)}
-                  onMoveOutOfBlock={() => onActivityMoveOut(activity)}
-                />
-              );
-            })}
-          </div>
+          activities.map((activity, idx) => (
+            <ActivityRow
+              key={activity.activity_id}
+              activity={activity}
+              canMoveUp={idx > 0}
+              canMoveDown={idx < activities.length - 1}
+              reorderPending={reorderPending}
+              onClick={() => onActivityClick(activity)}
+              onReorder={(direction) => onActivityReorder(activity, direction)}
+              onDelete={() => onActivityDelete(activity)}
+              onMoveOutOfBlock={() => onActivityMoveOut(activity)}
+            />
+          ))
         )}
 
         {children}
 
-        <button
-          type="button"
-          className="block-card-add"
-          onClick={onAddActivity}
-        >
-          + Add activity to block
+        <button type="button" className="blk-add" onClick={onAddActivity}>
+          <CurIcon name="plus" size={14} /> Add activity to block
         </button>
       </div>
     </article>

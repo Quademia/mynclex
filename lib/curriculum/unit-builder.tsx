@@ -43,12 +43,14 @@ import {
   deleteActivityAction,
   deleteBlockAction,
   deleteLastBlockActivityAction,
+  editUnitAction,
   moveActivityIntoBlockAction,
   moveActivityOutOfBlockAction,
   reorderActivityAction,
   reorderBlockAction,
 } from './actions';
 import { composeUnitBody } from './unit-body';
+import { CurIcon } from './cur-icon';
 import { unitLabel, unitStatusLabel, unitStatusPillClass } from './format';
 import type {
   ActivityType,
@@ -375,15 +377,36 @@ export function UnitBuilder({
     });
   }
 
+  // One-click Live/Draft toggle for the unit header — reuses
+  // editUnitAction with the current title/description (the full editor
+  // is still a click away via "Edit").
+  function handleUnitPublishToggle() {
+    setError(null);
+    startTransition(async () => {
+      const result = await editUnitAction(unit.unit_id, {
+        title: unit.title ?? '',
+        description: unit.description ?? '',
+        is_published: !unit.is_published,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
   // ─── Render ─────────────────────────────────────────
+
+  const unitTitle = unit.title?.trim();
 
   return (
     <>
       {/* ─── Unit header ────────────────────────────── */}
 
-      <header className="unit-detail-head">
-        <div className="unit-detail-head-meta">
-          <span className="unit-detail-head-index">
+      <header className="cur-detail-head">
+        <div className="cur-detail-eyebrow">
+          <span className="cur-detail-index">
             {unitLabel(unit.unit_index, programmeUnitLabel)}
           </span>
           <span className={`unit-pill ${unitStatusPillClass(unit.is_published)}`}>
@@ -391,34 +414,76 @@ export function UnitBuilder({
           </span>
         </div>
 
-        <h1 className="unit-detail-head-title">
-          {unit.title?.trim() || (
-            <span className="unit-detail-head-title-empty">Untitled</span>
-          )}
-        </h1>
+        <div className="cur-detail-titlerow">
+          <h1 className={'cur-detail-title' + (unitTitle ? '' : ' untitled')}>
+            {unitTitle || 'Untitled'}
+          </h1>
+          <div className="cur-detail-actions">
+            <button
+              type="button"
+              className="cur-btn-ghost-sm"
+              onClick={() => setEditUnitOpen(true)}
+              disabled={isPending}
+            >
+              <CurIcon name="pencil" size={14} /> Edit
+            </button>
+            {unit.is_published ? (
+              <button
+                type="button"
+                className="cur-btn-ghost-sm"
+                onClick={handleUnitPublishToggle}
+                disabled={isPending}
+              >
+                <CurIcon name="eyeOff" size={14} /> Unpublish
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="cur-btn-accent-sm"
+                onClick={handleUnitPublishToggle}
+                disabled={isPending}
+              >
+                <CurIcon name="publish" size={14} /> Publish
+              </button>
+            )}
+          </div>
+        </div>
 
         {unit.description && (
-          <p className="unit-detail-head-desc">{unit.description}</p>
+          <p className="cur-detail-desc">{unit.description}</p>
         )}
-
-        <div className="unit-detail-head-actions">
-          <button
-            type="button"
-            className="prog-btn prog-btn-ghost"
-            onClick={() => setEditUnitOpen(true)}
-          >
-            Edit unit
-          </button>
-        </div>
       </header>
 
       {/* ─── Body — interleaved blocks + loose rows ─── */}
 
-      <section className="unit-detail-body">
+      <section className="cur-detail-body">
         {body.length === 0 && !pickerScope && !addBlockOpen && (
-          <p className="unit-detail-empty">
-            No content yet. Add an activity or a block to start building.
-          </p>
+          <div className="cur-empty">
+            <div className="cur-empty-icon">
+              <CurIcon name="layers" size={24} />
+            </div>
+            <h2 className="cur-empty-title">Nothing here yet</h2>
+            <p className="cur-empty-sub">
+              Add your first activity — a reading, PDF, quiz or live
+              session — or group activities into a block.
+            </p>
+            <div className="cur-add-row cur-add-row-empty">
+              <button
+                type="button"
+                className="cur-add-btn"
+                onClick={openUnitPicker}
+              >
+                <CurIcon name="plus" size={14} /> Add activity
+              </button>
+              <button
+                type="button"
+                className="cur-add-btn"
+                onClick={openAddBlock}
+              >
+                <CurIcon name="plus" size={14} /> Add block
+              </button>
+            </div>
+          </div>
         )}
 
         {body.length > 0 && (
@@ -527,21 +592,21 @@ export function UnitBuilder({
 
         {/* ─── Bottom triggers (paired) ───────────────── */}
 
-        {!pickerScope && !addBlockOpen && (
-          <div className="unit-detail-add-row">
+        {body.length > 0 && !pickerScope && !addBlockOpen && (
+          <div className="cur-add-row">
             <button
               type="button"
-              className="unit-detail-add-btn"
+              className="cur-add-btn"
               onClick={openUnitPicker}
             >
-              + Add activity
+              <CurIcon name="plus" size={14} /> Add activity
             </button>
             <button
               type="button"
-              className="unit-detail-add-btn"
+              className="cur-add-btn"
               onClick={openAddBlock}
             >
-              + Add block
+              <CurIcon name="plus" size={14} /> Add block
             </button>
           </div>
         )}

@@ -1,25 +1,18 @@
 // mynclex/lib/curriculum/activity-row.tsx
 //
-// Shared row presentation for both loose activities (in the unit
-// body) and in-block activities (inside a block card). Same
-// shape, with the only variation being which contextual action
-// is available:
-//
-//   • Loose row → "Move into block →" button (only when the
-//     unit has at least one block)
-//   • In-block row → "Move out" button
-//
-// The component is purely presentational — every interaction is
-// a callback. Parent (UnitBuilder) owns transitions, error state,
-// and the move-into-block popover state.
+// Shared row presentation for both loose activities (in the unit body)
+// and in-block activities. CD "Curriculum Workspace" restyle (.act):
+// drag grip + a line-icon in a tinted square + title/pill + type label,
+// with move-up/down + a ⋯ menu (Edit · Move in/out of block · Delete)
+// revealed on hover. Purely presentational — every interaction is a
+// callback; the parent (UnitBuilder) owns transitions + modals.
 
 'use client';
 
-import {
-  unitStatusLabel,
-  unitStatusPillClass,
-  ACTIVITY_TYPE_ICON,
-} from './format';
+import { CurIcon, CUR_ACTIVITY_ICON } from './cur-icon';
+import { CurMenu } from './cur-menu';
+import type { CurMenuItem } from './cur-menu';
+import { unitStatusLabel, unitStatusPillClass } from './format';
 import type { ActivityType, ProgrammeActivity } from './types';
 
 const TYPE_LABEL: Record<ActivityType, string> = {
@@ -42,9 +35,8 @@ interface ActivityRowProps {
   onReorder: (direction: 'up' | 'down') => void;
   onDelete: () => void;
 
-  // Loose rows pass onMoveIntoBlock (only rendered if hasBlocks).
-  // In-block rows pass onMoveOutOfBlock instead. Mutually
-  // exclusive — never both on one row.
+  // Loose rows pass onMoveIntoBlock (only when hasBlocks). In-block
+  // rows pass onMoveOutOfBlock. Mutually exclusive.
   onMoveIntoBlock?: () => void;
   hasBlocks?: boolean;
   onMoveOutOfBlock?: () => void;
@@ -62,84 +54,81 @@ export function ActivityRow({
   hasBlocks,
   onMoveOutOfBlock,
 }: ActivityRowProps) {
+  const inBlock = !!onMoveOutOfBlock;
+
+  const menuItems: CurMenuItem[] = [
+    { label: 'Edit', icon: 'pencil', onClick },
+    ...(inBlock
+      ? [
+          {
+            label: 'Move out of block',
+            icon: 'arrowLeft',
+            onClick: onMoveOutOfBlock,
+          } as CurMenuItem,
+        ]
+      : hasBlocks && onMoveIntoBlock
+        ? [
+            {
+              label: 'Move into block',
+              icon: 'chevronRight',
+              onClick: onMoveIntoBlock,
+            } as CurMenuItem,
+          ]
+        : []),
+    { sep: true },
+    { label: 'Delete', icon: 'trash', danger: true, onClick: onDelete },
+  ];
+
   return (
-    <div className="activity-row">
-      <button
-        type="button"
-        className="activity-row-main"
-        onClick={onClick}
-      >
-        <span className="activity-row-icon" aria-hidden="true">
-          {ACTIVITY_TYPE_ICON[activity.type]}
-        </span>
-        <span className="activity-row-text">
-          <span className="activity-row-title-row">
-            <span className="activity-row-title">{activity.title}</span>
-            <span
-              className={`unit-pill ${unitStatusPillClass(activity.is_published)}`}
-            >
-              {unitStatusLabel(activity.is_published)}
-            </span>
+    <div className="act" onClick={onClick} role="button" tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+    >
+      <span className="act-grip" aria-hidden="true">
+        <CurIcon name="grip" size={16} />
+      </span>
+      <span className="act-icon" aria-hidden="true">
+        <CurIcon name={CUR_ACTIVITY_ICON[activity.type] ?? 'fileText'} size={15} />
+      </span>
+      <span className="act-text">
+        <span className="act-titlerow">
+          <span className="act-title">{activity.title}</span>
+          <span className={`unit-pill ${unitStatusPillClass(activity.is_published)} sm`}>
+            {unitStatusLabel(activity.is_published)}
           </span>
-          <span className="activity-row-meta">
-            {TYPE_LABEL[activity.type]}
-          </span>
         </span>
-      </button>
+        <span className="act-type">{TYPE_LABEL[activity.type]}</span>
+      </span>
 
       <div
-        className="activity-row-controls"
+        className="act-controls"
         role="group"
         aria-label="Row controls"
+        onClick={(e) => e.stopPropagation()}
       >
-        {onMoveIntoBlock && hasBlocks && (
-          <button
-            type="button"
-            className="activity-row-move"
-            onClick={onMoveIntoBlock}
-            aria-label="Move into block"
-            title="Move into a block"
-          >
-            ⤳
-          </button>
-        )}
-        {onMoveOutOfBlock && (
-          <button
-            type="button"
-            className="activity-row-move"
-            onClick={onMoveOutOfBlock}
-            aria-label="Move out as loose"
-            title="Move out of this block"
-          >
-            ⤴
-          </button>
-        )}
         <button
           type="button"
-          className="activity-row-arrow"
+          className="cur-icon-btn"
           aria-label="Move up"
-          onClick={() => onReorder('up')}
           disabled={!canMoveUp || reorderPending}
+          onClick={() => onReorder('up')}
         >
-          ↑
+          <CurIcon name="arrowUp" size={15} />
         </button>
         <button
           type="button"
-          className="activity-row-arrow"
+          className="cur-icon-btn"
           aria-label="Move down"
-          onClick={() => onReorder('down')}
           disabled={!canMoveDown || reorderPending}
+          onClick={() => onReorder('down')}
         >
-          ↓
+          <CurIcon name="arrowDown" size={15} />
         </button>
-        <button
-          type="button"
-          className="activity-row-delete"
-          aria-label="Delete activity"
-          onClick={onDelete}
-        >
-          ✕
-        </button>
+        <CurMenu items={menuItems} ariaLabel={`Actions for ${activity.title}`} />
       </div>
     </div>
   );
