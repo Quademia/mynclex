@@ -290,6 +290,15 @@ function WeekTimeline({ sessions }: { sessions: HomeSession[] }) {
           </div>
           <div className="th-tl-slots">
             {(byOffset.get(d.offset) ?? []).map((s) => (
+              // TODO (live-session planner redesign): re-point this to the
+              // cohort sessions surface — `/tutor/cohort/${s.cohortId}/sessions`
+              // — once sessions move from the programme template to the
+              // per-cohort planner. Today HomeSession has no cohortId
+              // (sessions are template-level), and the programme `/sessions`
+              // route is a placeholder kept alive solely for this link, so it
+              // stays here until the planner lands and getUpcomingSessions
+              // reads cohort-scoped schedules. See lib/nav/tutor.ts (programme
+              // nav declutter note) + the live-session-planner plan doc.
               <Link
                 key={s.activityId}
                 className="th-tl-chip"
