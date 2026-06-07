@@ -1,52 +1,42 @@
 // mynclex/app/(app)/tutor/programme/[programme_id]/curriculum/page.tsx
 //
-// Programme curriculum tab — Units Overview grid (slice 9.3a,
-// mockup screen 3). Read-only in this slice. Click-into-unit-
-// detail lands in 9.3b.
-//
-// The route URL segment is `curriculum` regardless of the
-// programme's unit_label (Week / Module). The unit-label
-// distinction shows on each unit card via unitLabel().
+// Curriculum index. The rail lives in the layout; this index just lands
+// the tutor on a unit — it redirects to the first unit so the workspace
+// always opens with something selected (2026-06 master-detail redesign;
+// replaces the old Units-grid page). A programme's length is ≥1 so a
+// unit almost always exists; the empty branch is defensive.
 
-import { notFound } from 'next/navigation';
-import { getProgrammeForShell } from '@/lib/programmes/queries';
+import { redirect } from 'next/navigation';
 import { getUnitsForProgramme } from '@/lib/curriculum/queries';
-import { UnitsGrid } from '@/lib/curriculum/units-grid';
+import { CurIcon } from '@/lib/curriculum/cur-icon';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ProgrammeCurriculumPage({
+export default async function CurriculumIndexPage({
   params,
 }: {
   params: Promise<{ programme_id: string }>;
 }) {
   const { programme_id } = await params;
-
-  const programme = await getProgrammeForShell(programme_id);
-  if (!programme) notFound();
-
   const units = await getUnitsForProgramme(programme_id);
 
-  const labelNoun =
-    programme.unit_label === 'WEEK' ? 'Weeks' : 'Modules';
+  if (units.length > 0) {
+    redirect(
+      `/tutor/programme/${programme_id}/curriculum/unit/${units[0].unit_id}`
+    );
+  }
 
   return (
-    <div className="curriculum-page">
-      <header className="curriculum-head">
-        <div>
-          <h1 className="curriculum-title">Curriculum</h1>
-          <p className="curriculum-sub">
-            {labelNoun} for this programme. Tap a unit to build out
-            its blocks and activities.
-          </p>
+    <div className="cur-detail-blank">
+      <div className="cur-empty">
+        <div className="cur-empty-icon">
+          <CurIcon name="layers" size={26} />
         </div>
-      </header>
-
-      <UnitsGrid
-        units={units}
-        programmeId={programme.programme_id}
-        programmeUnitLabel={programme.unit_label}
-      />
+        <h2 className="cur-empty-title">No units yet</h2>
+        <p className="cur-empty-sub">
+          Add a unit from the list on the left to start building.
+        </p>
+      </div>
     </div>
   );
 }

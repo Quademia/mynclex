@@ -928,6 +928,72 @@ export async function editUnitAction(
 }
 
 // =========================================================
+// appendUnitAction — add a unit by extending the programme
+// =========================================================
+//
+// Curriculum-workspace "Add unit" (2026-06). Units are still derived
+// from the programme's length (the units-vs-length decoupling is a
+// later, deliberately-deferred decision). So "add a unit" = bump
+// nclex_programmes.length_units by 1; the AFTER UPDATE reconcile
+// trigger appends the new trailing unit. We then look it up so the
+// rail can select it. Capped at the DB's 1–52 CHECK. Insert-anywhere,
+// delete, and reorder remain placeholders until that decoupling.
+
+export type AppendUnitResult =
+  | { ok: true; unit_id: string }
+  | { ok: false; error: string };
+
+export async function appendUnitAction(
+  programmeId: string
+): Promise<AppendUnitResult> {
+  const { supabase, user } = await getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Current length (RLS scopes to the tutor's own programme).
+  const { data: prog } = await supabase
+    .from('nclex_programmes')
+    .select('length_units')
+    .eq('programme_id', programmeId)
+    .maybeSingle();
+  if (!prog) return { ok: false, error: 'Programme not found or not yours.' };
+
+  const current = prog.length_units as number;
+  if (current >= 52) {
+    return { ok: false, error: 'A programme can have at most 52 units.' };
+  }
+  const next = current + 1;
+
+  // Bump length — the reconcile trigger appends unit_index = next.
+  const { data: updated, error: updErr } = await supabase
+    .from('nclex_programmes')
+    .update({ length_units: next, updated_at: new Date().toISOString() })
+    .eq('programme_id', programmeId)
+    .select('programme_id')
+    .maybeSingle();
+  if (updErr) return { ok: false, error: updErr.message };
+  if (!updated) {
+    return { ok: false, error: 'Programme not found or not yours.' };
+  }
+
+  // The trigger created the trailing unit — fetch it for the rail to select.
+  const { data: newUnit } = await supabase
+    .from('nclex_programme_units')
+    .select('unit_id')
+    .eq('programme_id', programmeId)
+    .eq('unit_index', next)
+    .maybeSingle();
+
+  revalidatePath(`/tutor/programme/${programmeId}/curriculum`);
+  if (newUnit) {
+    revalidatePath(
+      `/tutor/programme/${programmeId}/curriculum/unit/${newUnit.unit_id}`
+    );
+    return { ok: true, unit_id: newUnit.unit_id };
+  }
+  return { ok: false, error: 'Unit added — refresh to see it.' };
+}
+
+// =========================================================
 // SLICE 9.3c — Block actions
 // =========================================================
 
