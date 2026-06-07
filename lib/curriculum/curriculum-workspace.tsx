@@ -136,6 +136,7 @@ export function CurriculumWorkspace({
               label={label}
               selected={unit.unit_id === selectedId}
               onNavigate={closeRail}
+              onError={setError}
             />
           ))}
         </div>
@@ -173,17 +174,18 @@ function UnitRailItem({
   label,
   selected,
   onNavigate,
+  onError,
 }: {
   unit: UnitGridRow;
   programmeId: string;
   label: UnitLabel;
   selected: boolean;
   onNavigate?: () => void;
+  onError: (msg: string) => void;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [renameOpen, setRenameOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const heading = unitLabel(unit.unit_index, label);
   const customTitle = formatUnitTitle(unit, label);
@@ -192,7 +194,6 @@ function UnitRailItem({
   const href = `/tutor/programme/${programmeId}/curriculum/unit/${unit.unit_id}`;
 
   function togglePublish() {
-    setError(null);
     startTransition(async () => {
       const result = await editUnitAction(unit.unit_id, {
         title: unit.title ?? '',
@@ -200,7 +201,7 @@ function UnitRailItem({
         is_published: !unit.is_published,
       });
       if (!result.ok) {
-        setError(result.error);
+        onError(result.error);
         return;
       }
       router.refresh();
@@ -297,8 +298,6 @@ function UnitRailItem({
           onClose={() => setRenameOpen(false)}
         />
       )}
-
-      <ErrorToast error={error} onDismiss={() => setError(null)} />
     </div>
   );
 }
