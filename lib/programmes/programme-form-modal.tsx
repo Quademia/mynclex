@@ -45,7 +45,7 @@ type DecreaseImpact = {
 };
 
 type ProgrammeFormModalProps =
-  | { mode: 'create'; onClose: () => void }
+  | { mode: 'create'; deliveryMode: DeliveryMode; onClose: () => void }
   | {
       mode: 'edit';
       programmeId: string;
@@ -103,15 +103,22 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
   const isEdit = props.mode === 'edit';
   const initial = isEdit ? props.initial : null;
 
+  // Delivery mode is fixed for the life of the modal: in create mode it's
+  // chosen by which button opened the form (passed as a prop); in edit
+  // mode it's the programme's immutable stored value. It's no longer an
+  // editable field — see the Shape section (shown read-only in edit). The
+  // unit-label + collection-mode smart defaults are derived from it once,
+  // at init, instead of flipping reactively off a toggle.
+  const deliveryMode: DeliveryMode =
+    props.mode === 'edit' ? props.initial.delivery_mode : props.deliveryMode;
+  const tutored = deliveryMode === 'TUTOR_LED';
+
   // Form state — pre-populated from initial values in edit mode.
   const [title, setTitle] = useState(initial?.title ?? '');
   const [tagline, setTagline] = useState(initial?.tagline ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
-  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(
-    initial?.delivery_mode ?? 'TUTOR_LED'
-  );
   const [unitLabel, setUnitLabel] = useState<UnitLabel>(
-    initial?.unit_label ?? 'WEEK'
+    initial?.unit_label ?? defaultUnitLabelFor(deliveryMode)
   );
   // In create mode: track whether the tutor has manually picked a
   // unit label. If not, the smart default follows delivery_mode.
@@ -133,7 +140,7 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
     initial?.show_price_publicly ?? true
   );
   const [collectionMode, setCollectionMode] = useState<PaymentCollectionMode>(
-    initial?.payment_collection_mode ?? 'OFF_PLATFORM'
+    initial?.payment_collection_mode ?? defaultCollectionFor(deliveryMode)
   );
   // Smart default tracking, same shape as unitLabelTouched: in create
   // mode the collection mode follows delivery_mode until the tutor
@@ -143,16 +150,6 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
   const [accessWindowDays, setAccessWindowDays] = useState(
     initial?.access_window_days != null ? String(initial.access_window_days) : ''
   );
-
-  // Smart defaults: when delivery mode changes (create mode only — the
-  // control is disabled in edit), flip the unit label + collection mode
-  // unless the tutor has already picked one. Done in the change handler
-  // (not an effect) since deliveryMode only ever changes here.
-  function handleDeliveryChange(mode: DeliveryMode) {
-    setDeliveryMode(mode);
-    if (!unitLabelTouched) setUnitLabel(defaultUnitLabelFor(mode));
-    if (!collectionModeTouched) setCollectionMode(defaultCollectionFor(mode));
-  }
 
   // Dirty tracking — gates the discard-confirm dialog. In create mode
   // dirty = any deviation from blank defaults; in edit mode dirty =
@@ -180,7 +177,6 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
       title !== '' ||
       tagline !== '' ||
       description !== '' ||
-      deliveryMode !== 'TUTOR_LED' ||
       unitLabelTouched ||
       lengthUnits !== '' ||
       currency !== 'GHS' ||
@@ -267,7 +263,11 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
     });
   }
 
-  const eyebrow = isEdit ? 'Edit programme' : 'New programme';
+  const eyebrow = isEdit
+    ? 'Edit programme'
+    : tutored
+      ? 'New tutored programme'
+      : 'New self-paced course';
   const headerTitle = isEdit ? initial?.title || 'Edit programme' : 'Create a programme';
   const submitText = isPending
     ? isEdit
@@ -385,28 +385,23 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
             <section className="prog-form-section">
               <h3 className="prog-form-section-title">Shape</h3>
 
-              <div className="prog-field">
-                <span className="prog-field-label">
-                  Delivery mode <span className="prog-required">*</span>
-                </span>
-                <Segmented<DeliveryMode>
-                  value={deliveryMode}
-                  onChange={handleDeliveryChange}
-                  disabled={isPending || isEdit}
-                  ariaLabel="Delivery mode"
-                  options={[
-                    { value: 'TUTOR_LED', label: 'Tutor-led' },
-                    { value: 'SELF_PACED', label: 'Self-paced' },
-                  ]}
-                />
-                <span className="prog-field-help">
-                  {isEdit
-                    ? 'Delivery mode is set at create-time and can’t be changed.'
-                    : deliveryMode === 'TUTOR_LED'
-                      ? 'Students enrol per cohort with shared start/end dates.'
-                      : 'Students enrol directly and progress at their own pace.'}
-                </span>
-              </div>
+              {/* Delivery mode is no longer an editable field — it's chosen
+                  by which create button was clicked (create) or locked to
+                  the stored value (edit). Shown read-only in edit so the
+                  tutor can see what they're working on. */}
+              {isEdit && (
+                <div className="prog-field">
+                  <span className="prog-field-label">Delivery mode</span>
+                  <div className="prog-readout">
+                    <ProgIcon
+                      name={tutored ? 'users' : 'zap'}
+                      size={14}
+                    />
+                    <b>{tutored ? 'Tutor-led' : 'Self-paced'}</b>
+                    <span className="prog-readout-note">· set at creation</span>
+                  </div>
+                </div>
+              )}
 
               <div className="prog-field-row">
                 <div className="prog-field">

@@ -58,6 +58,118 @@
   background: var(--primary-dark);
 }
 
+/* ════════════════════════════════════════════════════
+ * Delivery-mode front split (segment + per-mode create)
+ * ════════════════════════════════════════════════════
+ * Two modes, one table underneath — separated only at the front so a
+ * tutor sees "these run in cohorts; these don't." Tutored reads navy
+ * (primary), self-paced reads teal (accent). On-brand, not CD's indigo.
+ */
+.programmes-page {
+  --mode-tutored: var(--primary);
+  --mode-selfpaced: var(--accent);
+}
+
+/* Header create buttons — one per mode (both on the All tab). */
+.programmes-create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.programmes-new-btn.is-tutored {
+  background: var(--mode-tutored);
+  border-color: var(--mode-tutored);
+}
+.programmes-new-btn.is-tutored:hover {
+  background: var(--primary-dark);
+}
+.programmes-new-btn.is-selfpaced {
+  background: var(--mode-selfpaced);
+  border-color: var(--mode-selfpaced);
+}
+.programmes-new-btn.is-selfpaced:hover {
+  background: var(--accent-dark);
+}
+
+/* Segmented control + the per-segment hint line. */
+.programmes-modebar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.programmes-segments {
+  display: inline-flex;
+  gap: 3px;
+  background: var(--bg-soft);
+  border-radius: 10px;
+  padding: 4px;
+}
+.programmes-segments button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 7px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+.programmes-segments button:hover {
+  color: var(--text);
+}
+.programmes-segments button.active {
+  background: var(--white);
+  color: var(--primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.09);
+}
+.seg-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.seg-dot.is-tutored {
+  background: var(--mode-tutored);
+}
+.seg-dot.is-selfpaced {
+  background: var(--mode-selfpaced);
+}
+.seg-count {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 1px 7px;
+  min-width: 20px;
+  text-align: center;
+}
+.programmes-segments button.active .seg-count {
+  color: var(--primary);
+  background: var(--primary-light);
+}
+.programmes-modebar-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.programmes-modebar-hint svg {
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+
 /* ─── Filter / sort row ───────────────────────────── */
 .programmes-controls {
   display: flex;
@@ -538,6 +650,87 @@
 .programmes-empty-cta:hover {
   background: var(--accent-dark);
 }
+/* Self-paced uses the default accent (teal); tutored goes navy. */
+.programmes-empty-cta.is-tutored {
+  background: var(--mode-tutored);
+  border-color: var(--mode-tutored);
+}
+.programmes-empty-cta.is-tutored:hover {
+  background: var(--primary-dark);
+}
+
+/* Onboarding (All tab, brand-new tutor): two mode choices side by side. */
+.programmes-empty.is-onboarding {
+  padding: 48px 28px 40px;
+}
+.programmes-onboard-modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 640px;
+  margin: 26px auto 0;
+  text-align: left;
+}
+.onboard-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+.onboard-mode.mode-tutored {
+  border-top: 3px solid var(--mode-tutored);
+}
+.onboard-mode.mode-selfpaced {
+  border-top: 3px solid var(--mode-selfpaced);
+}
+.onboard-mode-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  color: var(--white);
+}
+.onboard-mode.mode-tutored .onboard-mode-icon {
+  background: var(--mode-tutored);
+}
+.onboard-mode.mode-selfpaced .onboard-mode-icon {
+  background: var(--mode-selfpaced);
+}
+.onboard-mode-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 2px 0 0;
+}
+.onboard-mode-desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0 0 6px;
+}
+
+/* Dashed "+ New …" tile — subtle per-mode tint on hover. */
+.programmes-newcard.is-tutored:hover {
+  border-color: var(--mode-tutored);
+  color: var(--mode-tutored);
+  background: var(--primary-light);
+}
+.programmes-newcard.is-selfpaced:hover {
+  border-color: var(--mode-selfpaced);
+  color: var(--mode-selfpaced);
+  background: var(--primary-light);
+}
+
+/* Read-only delivery-mode line in the edit form's Shape section. */
+.prog-readout-note {
+  color: var(--text-muted);
+  font-weight: 400;
+}
 
 /* ════════════════════════════════════════════════════
  * Shared modal (programme + cohort)
@@ -957,7 +1150,8 @@
 
 @media (max-width: 640px) {
   .programmes-grid,
-  .programmes-archived-grid {
+  .programmes-archived-grid,
+  .programmes-onboard-modes {
     grid-template-columns: 1fr;
   }
   .prog-field-row {
