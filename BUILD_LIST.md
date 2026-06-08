@@ -20,6 +20,28 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > migration. Full design + the cohort finding in
 > [tutor-library.md](docs/product-plan/tutor-library.md) → "Still open".
 
+> **QUIZ TAGS + PROGRAMME QUIZ LIST REDESIGN (2026-06-09).** The whole
+> tutor-quiz **tags** arc end-to-end + the programme **Quizzes** tab CD
+> redesign. **One migration** (`20260701120000_quiz_tags`); rest
+> app-layer. **All merged to `main`** (ships to prod next release).
+> Detail in [tutor-quiz-system.md §13–14](docs/product-plan/tutor-quiz-system.md).
+>
+> - **Tags (✅ author→store→show→find).** `tags TEXT[]` on
+>   `nclex_tutor_quizzes`; chip input in the shared create/edit modal;
+>   Tags/Programmes/Activities **badge cluster + hover-peek** on the list
+>   card AND the editor header (CD "badges row", Layout B; peek opens
+>   down in the header); multi-select **Tags facet** on the toolbar + in
+>   search. `getMyQuizzes` fetches programme names + a list-wide
+>   activities scan; `used_in_programmes` kept (tutor Home untouched).
+> - **Programme quiz list — CD Option B "grouped rows" (✅).** Two groups
+>   (From the curriculum · Standalone) + a recontextualised badge cluster
+>   (Activities-here / Tags / **Other-programmes**). `getProgrammeQuizzes`
+>   grows to tags + full in-programme activities + other-programme names;
+>   `source-hint.tsx` retired.
+> - **Deferred (Sam's call):** tag filter inside the two quiz pickers;
+>   managed tag system; the 3 reviewed programme-list edges (redundant
+>   standalone marker, Remove-blocked-on-linked, no list filters).
+
 > **TUTOR-QUIZ UI UPLIFT — CLAUDE DESIGN, OPTION A (2026-06-06).** Visual
 > redesign of the quiz **list** + **editor** from Sam's CD "Quiz UI
 > Uplift" handoff (List A card grid + Editor A workbench),
