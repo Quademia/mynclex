@@ -13,6 +13,7 @@
 import { useMemo, useState } from 'react';
 import { QuizCard } from './quiz-card';
 import { QuizIcon } from './quiz-icons';
+import { QuizTagFilter } from './quiz-tag-filter';
 import type { QuizListRow } from './types';
 
 type StatusFilter = 'all' | 'PUBLISHED' | 'DRAFT';
@@ -24,6 +25,7 @@ export function QuizList({ quizzes }: { quizzes: QuizListRow[] }) {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [kind, setKind] = useState<KindFilter>('all');
+  const [tags, setTags] = useState<string[]>([]);
   const [sort, setSort] = useState<SortKey>('updated');
 
   const { active, archived } = useMemo(() => {
@@ -35,6 +37,17 @@ export function QuizList({ quizzes }: { quizzes: QuizListRow[] }) {
     }
     return { active, archived };
   }, [quizzes]);
+
+  // Distinct tags across ALL the tutor's quizzes (active + archived), so
+  // the facet can reach a tag that only lives on an archived quiz.
+  // Sorted; computed client-side from the loaded list — no query.
+  const allTags = useMemo(
+    () =>
+      Array.from(new Set(quizzes.flatMap((q) => q.tags))).sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [quizzes],
+  );
 
   // Segment counts run over the active set (archived is the disclosure).
   const counts = useMemo(
@@ -52,32 +65,26 @@ export function QuizList({ quizzes }: { quizzes: QuizListRow[] }) {
       .filter((r) => {
         if (status !== 'all' && r.status !== status) return false;
         if (kind !== 'all' && r.quiz_kind !== kind) return false;
-        if (
-          q &&
-          !r.title.toLowerCase().includes(q) &&
-          !(r.description ?? '').toLowerCase().includes(q)
-        )
+        if (tags.length > 0 && !r.tags.some((t) => tags.includes(t)))
           return false;
+        if (q && !matchesText(r, q)) return false;
         return true;
       })
       .sort((a, b) => sortQuizzes(a, b, sort));
-  }, [active, query, status, kind, sort]);
+  }, [active, query, status, kind, tags, sort]);
 
   const visibleArchived = useMemo(() => {
     const q = query.trim().toLowerCase();
     return archived
       .filter((r) => {
         if (kind !== 'all' && r.quiz_kind !== kind) return false;
-        if (
-          q &&
-          !r.title.toLowerCase().includes(q) &&
-          !(r.description ?? '').toLowerCase().includes(q)
-        )
+        if (tags.length > 0 && !r.tags.some((t) => tags.includes(t)))
           return false;
+        if (q && !matchesText(r, q)) return false;
         return true;
       })
       .sort((a, b) => sortQuizzes(a, b, sort));
-  }, [archived, query, kind, sort]);
+  }, [archived, query, kind, tags, sort]);
 
   return (
     <>
@@ -129,6 +136,14 @@ export function QuizList({ quizzes }: { quizzes: QuizListRow[] }) {
             <option value="PRACTICE">Practice</option>
           </select>
         </label>
+
+        {allTags.length > 0 && (
+          <QuizTagFilter
+            options={allTags}
+            selected={tags}
+            onChange={setTags}
+          />
+        )}
 
         <div className="quizzes-spacer" />
 
@@ -186,6 +201,16 @@ export function QuizList({ quizzes }: { quizzes: QuizListRow[] }) {
         </>
       )}
     </>
+  );
+}
+
+// Search matches title, description, OR any tag (so typing a tag in the
+// search box works, alongside the explicit Tags facet).
+function matchesText(r: QuizListRow, q: string): boolean {
+  return (
+    r.title.toLowerCase().includes(q) ||
+    (r.description ?? '').toLowerCase().includes(q) ||
+    r.tags.some((t) => t.toLowerCase().includes(q))
   );
 }
 

@@ -1388,6 +1388,74 @@
   flex: 1;
 }
 
+/* ── Tags multi-select facet (toolbar) ─────────────────────────────
+   Trigger reuses .quizzes-select so it matches the Kind / Sort
+   controls; the checklist popover is bespoke. */
+.quizzes-tagfilter {
+  position: relative;
+  display: inline-flex;
+}
+.quizzes-tagfilter-trigger {
+  cursor: pointer;
+}
+.quizzes-tagfilter.is-set .quizzes-tagfilter-trigger {
+  border-color: var(--accent);
+}
+.quizzes-tagfilter-summary {
+  font-weight: 600;
+  color: var(--text);
+}
+.quizzes-tagfilter-caret {
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.quizzes-tagfilter-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  min-width: 200px;
+  max-height: 280px;
+  overflow: auto;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--q-radius-sm);
+  box-shadow: var(--q-shadow-md);
+  padding: 6px;
+}
+.quizzes-tagfilter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+.quizzes-tagfilter-option:hover {
+  background: var(--bg-soft);
+}
+.quizzes-tagfilter-option input {
+  accent-color: var(--accent);
+}
+.quizzes-tagfilter-clear {
+  width: 100%;
+  margin-top: 4px;
+  padding: 7px 8px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: transparent;
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.quizzes-tagfilter-clear:hover {
+  color: var(--text);
+}
+
 /* filtered-empty note */
 .quizzes-empty-filtered {
   padding: 28px 0;
