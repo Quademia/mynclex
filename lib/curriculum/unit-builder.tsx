@@ -37,6 +37,7 @@ import { UnitFormModal } from './unit-form-modal';
 import { DeleteActivityConfirm } from '@/lib/overlays/curriculum/delete-activity-confirm';
 import { DeleteBlockConfirm } from '@/lib/overlays/curriculum/delete-block-confirm';
 import { UnpublishUnitConfirm } from '@/lib/overlays/curriculum/unpublish-unit-confirm';
+import { DeleteUnitConfirm } from '@/lib/overlays/curriculum/delete-unit-confirm';
 import { LastInBlockPrompt } from '@/lib/overlays/curriculum/last-in-block-prompt';
 import { MoveIntoBlockMenu } from '@/lib/overlays/curriculum/move-into-block-menu';
 import {
@@ -44,6 +45,7 @@ import {
   deleteActivityAction,
   deleteBlockAction,
   deleteLastBlockActivityAction,
+  deleteUnitAction,
   editUnitAction,
   moveActivityIntoBlockAction,
   moveActivityOutOfBlockAction,
@@ -150,6 +152,9 @@ export function UnitBuilder({
 
   // Unpublish-unit confirm (only when the programme is live).
   const [unpublishConfirmOpen, setUnpublishConfirmOpen] = useState(false);
+
+  // Delete-unit confirm.
+  const [deleteUnitOpen, setDeleteUnitOpen] = useState(false);
 
   // ─── Derived data ───────────────────────────────────
 
@@ -415,6 +420,23 @@ export function UnitBuilder({
     doUnitPublishToggle();
   }
 
+  // Delete the unit we're viewing → land on a valid unit via the
+  // curriculum index redirect. The action guards the last-unit case
+  // (surfaces as a toast).
+  function doDeleteUnit() {
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteUnitAction(unit.unit_id);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setDeleteUnitOpen(false);
+      router.push(`/tutor/programme/${unit.programme_id}/curriculum`);
+      router.refresh();
+    });
+  }
+
   // ─── Render ─────────────────────────────────────────
 
   const unitTitle = unit.title?.trim();
@@ -465,6 +487,14 @@ export function UnitBuilder({
                 <CurIcon name="publish" size={14} /> Publish
               </button>
             )}
+            <button
+              type="button"
+              className="cur-btn-danger-sm"
+              onClick={() => setDeleteUnitOpen(true)}
+              disabled={isPending}
+            >
+              <CurIcon name="trash" size={14} /> Delete
+            </button>
           </div>
         </div>
 
@@ -749,6 +779,17 @@ export function UnitBuilder({
           pending={isPending}
           onCancel={() => setUnpublishConfirmOpen(false)}
           onConfirm={doUnitPublishToggle}
+        />
+      )}
+
+      {deleteUnitOpen && (
+        <DeleteUnitConfirm
+          unitLabel={unitLabel(unit.unit_index, programmeUnitLabel)}
+          blockCount={blocks.length}
+          activityCount={activities.length}
+          pending={isPending}
+          onCancel={() => setDeleteUnitOpen(false)}
+          onConfirm={doDeleteUnit}
         />
       )}
 

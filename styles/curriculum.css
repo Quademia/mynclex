@@ -1135,7 +1135,8 @@
 
 /* Small header buttons */
 .cur-btn-ghost-sm,
-.cur-btn-accent-sm {
+.cur-btn-accent-sm,
+.cur-btn-danger-sm {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1166,8 +1167,19 @@
 .cur-btn-accent-sm:hover:not(:disabled) {
   background: var(--accent-dark);
 }
+/* Quiet danger — present but secondary next to Edit/Publish. */
+.cur-btn-danger-sm {
+  background: var(--white);
+  color: var(--danger);
+  border-color: var(--border);
+}
+.cur-btn-danger-sm:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: var(--danger);
+}
 .cur-btn-ghost-sm:disabled,
-.cur-btn-accent-sm:disabled {
+.cur-btn-accent-sm:disabled,
+.cur-btn-danger-sm:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
