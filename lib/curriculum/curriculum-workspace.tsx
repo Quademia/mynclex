@@ -30,7 +30,13 @@ import type { CurMenuItem } from './cur-menu';
 import { UnitFormModal } from './unit-form-modal';
 import { UnpublishUnitConfirm } from '@/lib/overlays/curriculum/unpublish-unit-confirm';
 import { AddUnitConfirm } from '@/lib/overlays/curriculum/add-unit-confirm';
-import { appendUnitAction, editUnitAction, reorderUnitAction } from './actions';
+import { DeleteUnitConfirm } from '@/lib/overlays/curriculum/delete-unit-confirm';
+import {
+  appendUnitAction,
+  deleteUnitAction,
+  editUnitAction,
+  reorderUnitAction,
+} from './actions';
 import {
   formatUnitCounts,
   formatUnitTitle,
@@ -219,6 +225,9 @@ function UnitRailItem({
   const [isPending, startTransition] = useTransition();
   const [renameOpen, setRenameOpen] = useState(false);
   const [unpublishOpen, setUnpublishOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const isOnlyUnit = !canMoveUp && !canMoveDown;
 
   const heading = unitLabel(unit.unit_index, label);
   const customTitle = formatUnitTitle(unit, label);
@@ -264,6 +273,23 @@ function UnitRailItem({
     });
   }
 
+  function doDelete() {
+    startTransition(async () => {
+      const result = await deleteUnitAction(unit.unit_id);
+      if (!result.ok) {
+        onError(result.error);
+        return;
+      }
+      setDeleteOpen(false);
+      // If the deleted unit was the open one, land on a valid unit via
+      // the index redirect; otherwise just refresh the rail in place.
+      if (selected) {
+        router.push(`/tutor/programme/${programmeId}/curriculum`);
+      }
+      router.refresh();
+    });
+  }
+
   const menuItems: CurMenuItem[] = [
     { label: 'Rename', icon: 'pencil', onClick: () => setRenameOpen(true) },
     {
@@ -288,8 +314,9 @@ function UnitRailItem({
       label: 'Delete',
       icon: 'trash',
       danger: true,
-      disabled: true,
-      hint: 'Deleting a unit is coming soon',
+      disabled: isOnlyUnit || isPending,
+      hint: isOnlyUnit ? 'A programme needs at least one unit' : undefined,
+      onClick: () => setDeleteOpen(true),
     },
   ];
 
@@ -361,6 +388,17 @@ function UnitRailItem({
           pending={isPending}
           onCancel={() => setUnpublishOpen(false)}
           onConfirm={doTogglePublish}
+        />
+      )}
+
+      {deleteOpen && (
+        <DeleteUnitConfirm
+          unitLabel={heading}
+          blockCount={unit.block_count}
+          activityCount={unit.activity_count}
+          pending={isPending}
+          onCancel={() => setDeleteOpen(false)}
+          onConfirm={doDelete}
         />
       )}
     </div>
