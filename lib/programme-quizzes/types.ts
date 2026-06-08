@@ -12,17 +12,34 @@ import type {
 } from '@/lib/tutor-quiz/types';
 
 // "Linked to Unit N · <unit title>" — derived at read time from
-// the activity LEFT JOIN. Null when no activity in this programme
-// references the quiz (standalone placement).
+// the activity LEFT JOIN. Retained for the legacy formatter; the
+// list now uses the richer `activities` array below.
 export type ProgrammeQuizSourceHint = {
   unit_index: number;
   unit_label: 'WEEK' | 'MODULE';
   unit_title: string;
 };
 
-// One row on the programme Quizzes list. Quiz fields are joined
-// from nclex_tutor_quizzes; `item_count` is the rolled-up question
-// count; `source_hint` is the activity-link derivation.
+// One curriculum activity IN THIS programme that references the quiz —
+// feeds the row's Activities badge + peek (2026-06 Claude Design
+// "grouped rows"). A quiz can be referenced by several activities; the
+// list shows them all.
+export type ProgrammeQuizActivityRef = {
+  activity_id: string;
+  title: string;
+  unit_index: number;
+  unit_label: 'WEEK' | 'MODULE';
+  unit_title: string;
+};
+
+// One row on the programme Quizzes list. Quiz fields are joined from
+// nclex_tutor_quizzes; `item_count` is the rolled-up question count.
+// The three derived context signals (2026-06 CD redesign):
+//   • activities       — curriculum activities IN this programme that
+//                        reference the quiz (empty = standalone)
+//   • tags             — the quiz's own tags
+//   • other_programmes — OTHER of the tutor's programmes the quiz is
+//                        also attached to (reuse context before Remove)
 export type ProgrammeQuizRow = {
   quiz_id: string;
   title: string;
@@ -35,7 +52,9 @@ export type ProgrammeQuizRow = {
   status: QuizStatus;
   item_count: number;
   added_at: string;
-  source_hint: ProgrammeQuizSourceHint | null;
+  tags: string[];
+  activities: ProgrammeQuizActivityRef[];
+  other_programmes: string[];
 };
 
 // One row in the "Add existing" picker — the tutor's own PUBLISHED

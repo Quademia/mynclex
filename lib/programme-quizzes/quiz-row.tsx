@@ -1,23 +1,24 @@
 // mynclex/lib/programme-quizzes/quiz-row.tsx
 //
-// One row on the programme Quizzes list. Title links into the
-// global quiz editor (same target as the global Quizzes card).
-// Status + kind pills reuse the .quiz-pill cadence established
-// in Slice 1. Remove button hands the row up to the parent view,
-// which decides confirm vs blocked.
+// One row on the programme Quizzes list (2026-06 Claude Design
+// "grouped rows"). Kind-coloured accent edge; title links into the
+// global quiz editor; kind + status pills; a meta line (mode ·
+// duration · N questions) followed by the recontextualised badge
+// cluster (activities-here / tags / other-programmes). Remove hands
+// the row up to the parent view, which decides confirm vs blocked.
 
 'use client';
 
 import Link from 'next/link';
 import {
-  formatItemCount,
+  formatDuration,
   formatQuizKind,
   formatQuizMode,
   formatQuizStatus,
   quizStatusPillClass,
 } from '@/lib/tutor-quiz/format';
 import type { ProgrammeQuizRow } from './types';
-import { SourceHint } from './source-hint';
+import { ProgrammeQuizBadges } from './programme-quiz-badges';
 
 export function QuizRow({
   quiz,
@@ -28,19 +29,24 @@ export function QuizRow({
   onRemove: (quiz: ProgrammeQuizRow) => void;
   removing: boolean;
 }) {
+  const isMock = quiz.quiz_kind === 'MOCK';
   const isMuted = quiz.status === 'ARCHIVED';
+  const durationLabel = formatDuration(quiz.duration_seconds);
 
   return (
-    <div className={`pq-row ${isMuted ? 'is-muted' : ''}`}>
-      <div className="pq-row-body">
-        <div className="pq-row-title-line">
-          <Link
-            href={`/tutor/quiz/${quiz.quiz_id}`}
-            className="pq-row-link"
-          >
-            <h3 className="pq-row-title">{quiz.title}</h3>
+    <div
+      className={`prow ${isMock ? 'is-mock' : 'is-practice'} ${
+        isMuted ? 'is-muted' : ''
+      }`}
+    >
+      <div className="prow-body">
+        <div className="prow-title-line">
+          <Link href={`/tutor/quiz/${quiz.quiz_id}`} className="prow-link">
+            <h3 className="prow-title">{quiz.title}</h3>
           </Link>
-          <span className={`quiz-pill-kind quiz-pill-kind-${quiz.quiz_kind.toLowerCase()}`}>
+          <span
+            className={`quiz-pill-kind quiz-pill-kind-${quiz.quiz_kind.toLowerCase()}`}
+          >
             {formatQuizKind(quiz.quiz_kind)}
           </span>
           <span className={`quiz-pill ${quizStatusPillClass(quiz.status)}`}>
@@ -48,19 +54,33 @@ export function QuizRow({
           </span>
         </div>
 
-        <div className="pq-row-meta">
-          <span>{formatQuizMode(quiz.mode)}</span>
-          <span aria-hidden="true">·</span>
-          <span>{formatItemCount(quiz.item_count)}</span>
+        <div className="prow-subline">
+          <span className="prow-meta-text">
+            <span>
+              {formatQuizMode(quiz.mode)}
+              {durationLabel ? ` · ${durationLabel}` : ''}
+            </span>
+            <span aria-hidden="true" className="dot-sep">
+              ·
+            </span>
+            <span>
+              <b>{quiz.item_count}</b>{' '}
+              {quiz.item_count === 1 ? 'question' : 'questions'}
+            </span>
+          </span>
+          <span className="prow-badge-sep" aria-hidden="true" />
+          <ProgrammeQuizBadges
+            activities={quiz.activities}
+            tags={quiz.tags}
+            otherProgrammes={quiz.other_programmes}
+          />
         </div>
-
-        <SourceHint hint={quiz.source_hint} />
       </div>
 
-      <div className="pq-row-right">
+      <div className="prow-right">
         <button
           type="button"
-          className="pq-row-remove"
+          className="prow-remove"
           onClick={() => onRemove(quiz)}
           disabled={removing}
           aria-label={`Remove ${quiz.title} from this programme`}

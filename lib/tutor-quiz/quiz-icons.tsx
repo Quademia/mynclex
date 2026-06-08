@@ -15,7 +15,8 @@ export type QuizIconName =
   | 'target' | 'sparkles' | 'check-circle' | 'pencil' | 'archive'
   | 'more' | 'chev-down' | 'chev-up-down' | 'chev-right' | 'alert'
   | 'arrow-up' | 'arrow-down' | 'grip' | 'check' | 'trash' | 'x'
-  | 'list' | 'repeat' | 'quiz' | 'hash' | 'layers';
+  | 'list' | 'repeat' | 'quiz' | 'hash' | 'layers'
+  | 'link' | 'dot' | 'unit';
 
 function inner(name: QuizIconName): ReactNode {
   switch (name) {
@@ -73,6 +74,12 @@ function inner(name: QuizIconName): ReactNode {
       return (<><line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" /><line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" /></>);
     case 'layers':
       return (<><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></>);
+    case 'link':
+      return (<><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72" /></>);
+    case 'dot':
+      return (<circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />);
+    case 'unit':
+      return (<><rect x="3" y="4" width="18" height="16" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="9" x2="9" y2="20" /></>);
   }
 }
 
