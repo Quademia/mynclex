@@ -29,6 +29,7 @@ import { CurMenu } from './cur-menu';
 import type { CurMenuItem } from './cur-menu';
 import { UnitFormModal } from './unit-form-modal';
 import { UnpublishUnitConfirm } from '@/lib/overlays/curriculum/unpublish-unit-confirm';
+import { AddUnitConfirm } from '@/lib/overlays/curriculum/add-unit-confirm';
 import { appendUnitAction, editUnitAction } from './actions';
 import {
   formatUnitCounts,
@@ -69,6 +70,7 @@ export function CurriculumWorkspace({
   const [narrow, setNarrow] = useState(false);
   const [railOpen, setRailOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addConfirmOpen, setAddConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -87,11 +89,18 @@ export function CurriculumWorkspace({
   const noun = label === 'WEEK' ? 'week' : 'module';
   const atCap = lengthUnits >= 52;
 
+  // Adding a unit bumps the programme's stated length — confirm first
+  // (the symmetric partner to the length-decrease confirm).
   function handleAddUnit() {
     if (atCap) {
       setError(`A programme can have at most 52 ${label === 'WEEK' ? 'weeks' : 'modules'}.`);
       return;
     }
+    setError(null);
+    setAddConfirmOpen(true);
+  }
+
+  function doAddUnit() {
     setError(null);
     startTransition(async () => {
       const result = await appendUnitAction(programmeId);
@@ -99,6 +108,7 @@ export function CurriculumWorkspace({
         setError(result.error);
         return;
       }
+      setAddConfirmOpen(false);
       router.push(
         `/tutor/programme/${programmeId}/curriculum/unit/${result.unit_id}`
       );
@@ -164,6 +174,16 @@ export function CurriculumWorkspace({
         )}
         {children}
       </div>
+
+      {addConfirmOpen && (
+        <AddUnitConfirm
+          unitLabel={label}
+          currentLength={lengthUnits}
+          pending={isPending}
+          onCancel={() => setAddConfirmOpen(false)}
+          onConfirm={doAddUnit}
+        />
+      )}
 
       <ErrorToast error={error} onDismiss={() => setError(null)} />
     </div>
