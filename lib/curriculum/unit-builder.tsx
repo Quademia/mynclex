@@ -36,6 +36,7 @@ import { BlockFormModal } from './block-form-modal';
 import { UnitFormModal } from './unit-form-modal';
 import { DeleteActivityConfirm } from '@/lib/overlays/curriculum/delete-activity-confirm';
 import { DeleteBlockConfirm } from '@/lib/overlays/curriculum/delete-block-confirm';
+import { UnpublishUnitConfirm } from '@/lib/overlays/curriculum/unpublish-unit-confirm';
 import { LastInBlockPrompt } from '@/lib/overlays/curriculum/last-in-block-prompt';
 import { MoveIntoBlockMenu } from '@/lib/overlays/curriculum/move-into-block-menu';
 import {
@@ -65,6 +66,8 @@ interface UnitBuilderProps {
   blocks: ProgrammeBlock[];
   activities: ProgrammeActivity[];
   programmeUnitLabel: UnitLabel;
+  // PUBLISHED programme → guard a silent unit unpublish.
+  programmePublished: boolean;
 }
 
 type PickerScope =
@@ -87,6 +90,7 @@ export function UnitBuilder({
   blocks,
   activities,
   programmeUnitLabel,
+  programmePublished,
 }: UnitBuilderProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -143,6 +147,9 @@ export function UnitBuilder({
   // Move-into-block picker.
   const [moveActivityTo, setMoveActivityTo] =
     useState<ProgrammeActivity | null>(null);
+
+  // Unpublish-unit confirm (only when the programme is live).
+  const [unpublishConfirmOpen, setUnpublishConfirmOpen] = useState(false);
 
   // ─── Derived data ───────────────────────────────────
 
@@ -380,7 +387,7 @@ export function UnitBuilder({
   // One-click Live/Draft toggle for the unit header — reuses
   // editUnitAction with the current title/description (the full editor
   // is still a click away via "Edit").
-  function handleUnitPublishToggle() {
+  function doUnitPublishToggle() {
     setError(null);
     startTransition(async () => {
       const result = await editUnitAction(unit.unit_id, {
@@ -392,8 +399,20 @@ export function UnitBuilder({
         setError(result.error);
         return;
       }
+      setUnpublishConfirmOpen(false);
       router.refresh();
     });
+  }
+
+  // Unpublishing a live unit while the programme is live pulls it
+  // from students — confirm first. Publishing (or any toggle in a
+  // draft programme) is silent.
+  function handleUnitPublishToggle() {
+    if (unit.is_published && programmePublished) {
+      setUnpublishConfirmOpen(true);
+      return;
+    }
+    doUnitPublishToggle();
   }
 
   // ─── Render ─────────────────────────────────────────
@@ -721,6 +740,15 @@ export function UnitBuilder({
           onMoveOut={() => handleLastInBlockChoice('preserve')}
           onDeleteBoth={() => handleLastInBlockChoice('cascade')}
           onCancel={() => setDeleteActivity(null)}
+        />
+      )}
+
+      {unpublishConfirmOpen && (
+        <UnpublishUnitConfirm
+          unitLabel={unitLabel(unit.unit_index, programmeUnitLabel)}
+          pending={isPending}
+          onCancel={() => setUnpublishConfirmOpen(false)}
+          onConfirm={doUnitPublishToggle}
         />
       )}
 

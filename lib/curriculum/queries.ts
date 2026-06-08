@@ -12,7 +12,7 @@ import type {
   UnitDetail,
   UnitGridRow,
 } from './types';
-import type { DeliveryMode, UnitLabel } from '@/lib/programmes/types';
+import type { DeliveryMode, UnitLabel, ProgrammeStatus } from '@/lib/programmes/types';
 
 /**
  * Units Overview grid query. One row per unit slot, with rolled-up
@@ -121,7 +121,7 @@ export async function getUnitDetail(
       `unit_id, programme_id, unit_index, title, description,
        is_published, created_at, updated_at,
        nclex_programmes!inner(
-         programme_id, delivery_mode, unit_label, length_units
+         programme_id, delivery_mode, unit_label, length_units, status
        )`
     )
     .eq('unit_id', unitId)
@@ -129,11 +129,15 @@ export async function getUnitDetail(
 
   if (error || !data) return null;
 
+  type EmbeddedProgramme = {
+    programme_id: string;
+    delivery_mode: DeliveryMode;
+    unit_label: UnitLabel;
+    length_units: number;
+    status: ProgrammeStatus;
+  };
   const programmeRaw = (data as typeof data & {
-    nclex_programmes:
-      | { programme_id: string; delivery_mode: DeliveryMode; unit_label: UnitLabel; length_units: number }
-      | Array<{ programme_id: string; delivery_mode: DeliveryMode; unit_label: UnitLabel; length_units: number }>
-      | null;
+    nclex_programmes: EmbeddedProgramme | Array<EmbeddedProgramme> | null;
   }).nclex_programmes;
   const programme = Array.isArray(programmeRaw) ? programmeRaw[0] : programmeRaw;
   if (!programme) return null;
@@ -183,6 +187,7 @@ export async function getUnitDetail(
       delivery_mode: programme.delivery_mode,
       unit_label: programme.unit_label,
       length_units: programme.length_units,
+      status: programme.status,
     },
   };
 }

@@ -28,6 +28,7 @@ import { CurIcon } from './cur-icon';
 import { CurMenu } from './cur-menu';
 import type { CurMenuItem } from './cur-menu';
 import { UnitFormModal } from './unit-form-modal';
+import { UnpublishUnitConfirm } from '@/lib/overlays/curriculum/unpublish-unit-confirm';
 import { appendUnitAction, editUnitAction } from './actions';
 import {
   formatUnitCounts,
@@ -43,6 +44,7 @@ interface CurriculumWorkspaceProps {
   programmeId: string;
   unitLabel: UnitLabel;
   lengthUnits: number;
+  programmePublished: boolean;
   units: UnitGridRow[];
   children: ReactNode;
 }
@@ -56,6 +58,7 @@ export function CurriculumWorkspace({
   programmeId,
   unitLabel: label,
   lengthUnits,
+  programmePublished,
   units,
   children,
 }: CurriculumWorkspaceProps) {
@@ -134,6 +137,7 @@ export function CurriculumWorkspace({
               unit={unit}
               programmeId={programmeId}
               label={label}
+              programmePublished={programmePublished}
               selected={unit.unit_id === selectedId}
               onNavigate={closeRail}
               onError={setError}
@@ -172,6 +176,7 @@ function UnitRailItem({
   unit,
   programmeId,
   label,
+  programmePublished,
   selected,
   onNavigate,
   onError,
@@ -179,13 +184,15 @@ function UnitRailItem({
   unit: UnitGridRow;
   programmeId: string;
   label: UnitLabel;
+  programmePublished: boolean;
   selected: boolean;
   onNavigate?: () => void;
   onError: (msg: string) => void;
 }) {
   const router = useRouter();
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
   const [renameOpen, setRenameOpen] = useState(false);
+  const [unpublishOpen, setUnpublishOpen] = useState(false);
 
   const heading = unitLabel(unit.unit_index, label);
   const customTitle = formatUnitTitle(unit, label);
@@ -193,7 +200,7 @@ function UnitRailItem({
   const isEmpty = unit.block_count === 0 && unit.activity_count === 0;
   const href = `/tutor/programme/${programmeId}/curriculum/unit/${unit.unit_id}`;
 
-  function togglePublish() {
+  function doTogglePublish() {
     startTransition(async () => {
       const result = await editUnitAction(unit.unit_id, {
         title: unit.title ?? '',
@@ -204,8 +211,20 @@ function UnitRailItem({
         onError(result.error);
         return;
       }
+      setUnpublishOpen(false);
       router.refresh();
     });
+  }
+
+  // Unpublishing a live unit while the programme is live pulls it
+  // from students — confirm first. Publishing (or any toggle in a
+  // draft programme) is silent.
+  function togglePublish() {
+    if (unit.is_published && programmePublished) {
+      setUnpublishOpen(true);
+      return;
+    }
+    doTogglePublish();
   }
 
   const menuItems: CurMenuItem[] = [
@@ -296,6 +315,15 @@ function UnitRailItem({
             is_published: unit.is_published,
           }}
           onClose={() => setRenameOpen(false)}
+        />
+      )}
+
+      {unpublishOpen && (
+        <UnpublishUnitConfirm
+          unitLabel={heading}
+          pending={isPending}
+          onCancel={() => setUnpublishOpen(false)}
+          onConfirm={doTogglePublish}
         />
       )}
     </div>

@@ -11,7 +11,7 @@
 // finalise when that type's editor ships (Text in 9.3b, the
 // remaining five in 9.3d).
 
-import type { UnitLabel, DeliveryMode } from '@/lib/programmes/types';
+import type { UnitLabel, DeliveryMode, ProgrammeStatus } from '@/lib/programmes/types';
 
 export type ProgrammeUnit = {
   unit_id: string;
@@ -163,6 +163,9 @@ export type CurriculumProgrammeContext = {
   unit_label: UnitLabel;
   delivery_mode: DeliveryMode;
   length_units: number;
+  // PUBLISHED means the programme is live to students — used to
+  // guard a silent unit unpublish (removes content from learners).
+  status: ProgrammeStatus;
 };
 
 // Slice 9.3b — Unit Builder.

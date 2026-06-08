@@ -32,6 +32,7 @@ export default async function UnitDetailPage({
         blocks={detail.blocks}
         activities={detail.activities}
         programmeUnitLabel={detail.programme.unit_label}
+        programmePublished={detail.programme.status === 'PUBLISHED'}
       />
     </div>
   );

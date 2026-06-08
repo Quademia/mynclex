@@ -8,7 +8,10 @@
 // here; the detail child fetches its own unit.
 
 import { notFound } from 'next/navigation';
-import { getProgrammeForShell } from '@/lib/programmes/queries';
+import {
+  getProgrammeForShell,
+  getProgrammeStatus,
+} from '@/lib/programmes/queries';
 import { getUnitsForProgramme } from '@/lib/curriculum/queries';
 import { CurriculumWorkspace } from '@/lib/curriculum/curriculum-workspace';
 
@@ -23,16 +26,22 @@ export default async function CurriculumLayout({
 }) {
   const { programme_id } = await params;
 
-  const programme = await getProgrammeForShell(programme_id);
+  const [programme, statusCtx, units] = await Promise.all([
+    getProgrammeForShell(programme_id),
+    getProgrammeStatus(programme_id),
+    getUnitsForProgramme(programme_id),
+  ]);
   if (!programme) notFound();
 
-  const units = await getUnitsForProgramme(programme_id);
+  // Live programme → guard a silent unit unpublish on the rail.
+  const programmePublished = statusCtx?.status === 'PUBLISHED';
 
   return (
     <CurriculumWorkspace
       programmeId={programme.programme_id}
       unitLabel={programme.unit_label}
       lengthUnits={programme.length_units}
+      programmePublished={programmePublished}
       units={units}
     >
       {children}
