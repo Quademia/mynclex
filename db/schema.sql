@@ -1150,6 +1150,11 @@ CREATE TABLE nclex_tutor_quizzes (
   status           TEXT NOT NULL DEFAULT 'DRAFT'
                    CHECK (status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')),
 
+  -- Free-text tutor taxonomy for identifying + searching quizzes
+  -- (migration 20260701120000). Mirrors the question tables' tags
+  -- column; the system doesn't prescribe meaning.
+  tags             TEXT[] NOT NULL DEFAULT '{}',
+
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 

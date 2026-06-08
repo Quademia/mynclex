@@ -33,6 +33,9 @@ export type TutorQuiz = {
   pass_score: number | null;
   max_attempts: number | null;
   status: QuizStatus;
+  /** Free-text tutor taxonomy for identifying + searching quizzes.
+   *  NOT NULL DEFAULT '{}' in the DB, so always an array. */
+  tags: string[];
   created_at: string;
   updated_at: string;
 };
@@ -52,6 +55,7 @@ export type QuizListRow = Pick<
   | 'pass_score'
   | 'max_attempts'
   | 'status'
+  | 'tags'
   | 'updated_at'
 > & {
   item_count: number;
@@ -71,6 +75,7 @@ export type QuizFormValues = Pick<
   | 'pass_score'
   | 'max_attempts'
   | 'status'
+  | 'tags'
 >;
 
 // One selected question inside a quiz — a quiz_item row joined to

@@ -19,6 +19,7 @@ import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { ActivityBlockedDialog } from './activity-blocked-dialog';
 import { QuizDeleteSection } from './quiz-delete-section';
+import { QuizTagInput } from './quiz-tag-input';
 import { createQuizAction, updateQuizAction } from './actions';
 import {
   QUIZ_MODES_BY_KIND,
@@ -62,6 +63,14 @@ function isValidPercentString(s: string): boolean {
   return Number.isFinite(n) && n >= 0 && n <= 100;
 }
 
+// Order-sensitive tag-array equality for dirty tracking. Tags are
+// kept in insertion order and lowercased, so a positional compare is
+// exact.
+function sameTags(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((t, i) => t === b[i]);
+}
+
 export function QuizFormModal(props: QuizFormModalProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -77,6 +86,7 @@ export function QuizFormModal(props: QuizFormModalProps) {
 
   const [title, setTitle] = useState(initial?.title ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
+  const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [quizKind, setQuizKind] = useState<QuizKind>(
     initial?.quiz_kind ?? 'PRACTICE',
   );
@@ -135,7 +145,8 @@ export function QuizFormModal(props: QuizFormModalProps) {
         durationMinutes !== initialMinutes ||
         passScorePercent !== initialPercent ||
         maxAttempts !== initialAttempts ||
-        status !== initial.status
+        status !== initial.status ||
+        !sameTags(tags, initial.tags ?? [])
       );
     }
     return (
@@ -145,7 +156,8 @@ export function QuizFormModal(props: QuizFormModalProps) {
       mode !== DEFAULT_MODE_FOR_KIND.PRACTICE ||
       durationMinutes !== '' ||
       passScorePercent !== '' ||
-      maxAttempts !== ''
+      maxAttempts !== '' ||
+      tags.length > 0
     );
   })();
 
@@ -194,6 +206,7 @@ export function QuizFormModal(props: QuizFormModalProps) {
         max_attempts:
           maxAttempts.trim() === '' ? null : parseInt(maxAttempts, 10),
         status: isEdit ? status : 'DRAFT',
+        tags,
       };
 
       if (isEdit) {
@@ -285,6 +298,20 @@ export function QuizFormModal(props: QuizFormModalProps) {
                   students before they start.
                 </span>
               </label>
+
+              <div className="prog-field">
+                <span className="prog-field-label">Tags</span>
+                <QuizTagInput
+                  value={tags}
+                  onChange={setTags}
+                  disabled={isPending}
+                />
+                <span className="prog-field-help">
+                  Optional labels to help you find and group your
+                  quizzes (e.g. a topic, an exam phase). Only you see
+                  them.
+                </span>
+              </div>
             </section>
 
             {/* FORMAT */}

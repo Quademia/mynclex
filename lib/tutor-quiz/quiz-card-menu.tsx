@@ -86,6 +86,7 @@ export function QuizCardMenu({ quiz }: { quiz: QuizListRow }) {
     pass_score: quiz.pass_score,
     max_attempts: quiz.max_attempts,
     status: quiz.status,
+    tags: quiz.tags,
   };
 
   function applyStatus(target: QuizStatus) {

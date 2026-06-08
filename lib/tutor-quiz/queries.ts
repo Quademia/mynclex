@@ -37,7 +37,7 @@ export async function getMyQuizzes(): Promise<QuizListRow[]> {
     .from('nclex_tutor_quizzes')
     .select(
       `quiz_id, title, description, quiz_kind, mode,
-       duration_seconds, pass_score, max_attempts, status, updated_at,
+       duration_seconds, pass_score, max_attempts, status, tags, updated_at,
        nclex_tutor_quiz_items(count),
        nclex_programme_quizzes(count)`,
     )

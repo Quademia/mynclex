@@ -88,6 +88,27 @@ function normalizeDuration(input: QuizFormValues): number | null {
   return isTimedMode(input.mode) ? input.duration_seconds : null;
 }
 
+// Tag hygiene at the trust boundary — the client already lowercases /
+// dedupes / caps, but a server action never trusts its input. Trim,
+// lowercase, drop empties, dedupe (order-preserving), clamp each to 40
+// chars and the set to 16 tags. Mirrors the client TagInput limits so
+// the two never disagree.
+const TAG_MAX_LEN = 40;
+const TAGS_MAX = 16;
+
+function normalizeTags(tags: string[] | null | undefined): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of tags ?? []) {
+    const t = raw.trim().toLowerCase().slice(0, TAG_MAX_LEN);
+    if (t.length === 0 || seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+    if (out.length >= TAGS_MAX) break;
+  }
+  return out;
+}
+
 // ── Create ───────────────────────────────────────────────────────
 
 export type CreateQuizResult =
@@ -118,6 +139,7 @@ export async function createQuizAction(
       pass_score: input.pass_score,
       max_attempts: input.max_attempts,
       status: input.status,
+      tags: normalizeTags(input.tags),
     })
     .select('quiz_id')
     .single();
@@ -227,6 +249,7 @@ export async function updateQuizAction(
       pass_score: input.pass_score,
       max_attempts: input.max_attempts,
       status: input.status,
+      tags: normalizeTags(input.tags),
       updated_at: new Date().toISOString(),
     })
     .eq('quiz_id', quizId)

@@ -123,6 +123,7 @@ export function QuizEditor({
     pass_score: quiz.pass_score,
     max_attempts: quiz.max_attempts,
     status: quiz.status,
+    tags: quiz.tags,
   };
 
   // Header meta — laid out as labelled stat chips (Mode / Duration /
