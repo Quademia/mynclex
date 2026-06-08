@@ -30,7 +30,7 @@ import type { CurMenuItem } from './cur-menu';
 import { UnitFormModal } from './unit-form-modal';
 import { UnpublishUnitConfirm } from '@/lib/overlays/curriculum/unpublish-unit-confirm';
 import { AddUnitConfirm } from '@/lib/overlays/curriculum/add-unit-confirm';
-import { appendUnitAction, editUnitAction } from './actions';
+import { appendUnitAction, editUnitAction, reorderUnitAction } from './actions';
 import {
   formatUnitCounts,
   formatUnitTitle,
@@ -141,13 +141,15 @@ export function CurriculumWorkspace({
           </button>
         </div>
         <div className="cur-rail-list">
-          {units.map((unit) => (
+          {units.map((unit, i) => (
             <UnitRailItem
               key={unit.unit_id}
               unit={unit}
               programmeId={programmeId}
               label={label}
               programmePublished={programmePublished}
+              canMoveUp={i > 0}
+              canMoveDown={i < units.length - 1}
               selected={unit.unit_id === selectedId}
               onNavigate={closeRail}
               onError={setError}
@@ -197,6 +199,8 @@ function UnitRailItem({
   programmeId,
   label,
   programmePublished,
+  canMoveUp,
+  canMoveDown,
   selected,
   onNavigate,
   onError,
@@ -205,6 +209,8 @@ function UnitRailItem({
   programmeId: string;
   label: UnitLabel;
   programmePublished: boolean;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
   selected: boolean;
   onNavigate?: () => void;
   onError: (msg: string) => void;
@@ -247,6 +253,17 @@ function UnitRailItem({
     doTogglePublish();
   }
 
+  function reorder(direction: 'up' | 'down') {
+    startTransition(async () => {
+      const result = await reorderUnitAction(unit.unit_id, direction);
+      if (!result.ok) {
+        onError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
   const menuItems: CurMenuItem[] = [
     { label: 'Rename', icon: 'pencil', onClick: () => setRenameOpen(true) },
     {
@@ -257,14 +274,14 @@ function UnitRailItem({
     {
       label: 'Move up',
       icon: 'arrowUp',
-      disabled: true,
-      hint: 'Reordering units is coming soon',
+      disabled: !canMoveUp || isPending,
+      onClick: () => reorder('up'),
     },
     {
       label: 'Move down',
       icon: 'arrowDown',
-      disabled: true,
-      hint: 'Reordering units is coming soon',
+      disabled: !canMoveDown || isPending,
+      onClick: () => reorder('down'),
     },
     { sep: true },
     {
