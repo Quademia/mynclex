@@ -14,7 +14,8 @@ import {
   getQuizDetail,
   getPickerQuestions,
   getPickerTagOptions,
-  getQuizProgrammeCount,
+  getQuizActivityLinks,
+  getQuizProgrammes,
 } from '@/lib/tutor-quiz/queries';
 import { QuizEditor } from '@/lib/tutor-quiz/quiz-editor';
 import { parseQuizPickerFilters } from '@/lib/tutor-quiz/quiz-picker-query';
@@ -37,11 +38,24 @@ export default async function TutorQuizEditorPage({
   const detail = await getQuizDetail(id);
   if (!detail) notFound();
 
-  const [pickerQuestions, tagOptions, usedCount] = await Promise.all([
-    getPickerQuestions(filters),
-    getPickerTagOptions(),
-    getQuizProgrammeCount(id),
-  ]);
+  const [pickerQuestions, tagOptions, programmes, activityLinks] =
+    await Promise.all([
+      getPickerQuestions(filters),
+      getPickerTagOptions(),
+      getQuizProgrammes(id),
+      getQuizActivityLinks(id),
+    ]);
+
+  // Map the (richer) activity-link shape down to the card-badge ref the
+  // shared QuizCardBadges peek expects.
+  const activities = activityLinks.map((a) => ({
+    activity_id: a.activity_id,
+    title: a.activity_title,
+    programme_title: a.programme_title,
+    unit_label: a.unit_label,
+    unit_index: a.unit_index,
+    unit_title: a.unit_title,
+  }));
 
   return (
     <div className="quiz-editor-page">
@@ -55,7 +69,8 @@ export default async function TutorQuizEditorPage({
         pickerQuestions={pickerQuestions}
         pickerFilters={filters}
         pickerTagOptions={tagOptions}
-        usedCount={usedCount}
+        programmes={programmes}
+        activities={activities}
       />
     </div>
   );

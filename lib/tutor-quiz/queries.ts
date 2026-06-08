@@ -443,3 +443,36 @@ export async function getQuizProgrammeCount(quizId: string): Promise<number> {
     .eq('quiz_id', quizId);
   return count ?? 0;
 }
+
+/**
+ * The programmes (id + name) a single quiz is attached to — the
+ * names version of getQuizProgrammeCount, for the quiz editor header's
+ * Programmes badge + peek. Resolved through the junction embed. RLS on
+ * the junction scopes to the tutor's own programmes. Returns [] on
+ * error.
+ */
+export async function getQuizProgrammes(
+  quizId: string,
+): Promise<QuizCardProgrammeRef[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('nclex_programme_quizzes')
+    .select('nclex_programmes(programme_id, title)')
+    .eq('quiz_id', quizId);
+
+  if (error || !data) return [];
+
+  return data
+    .map((j) => {
+      const p = (
+        j as {
+          nclex_programmes:
+            | QuizCardProgrammeRef
+            | QuizCardProgrammeRef[]
+            | null;
+        }
+      ).nclex_programmes;
+      return Array.isArray(p) ? p[0] : p;
+    })
+    .filter((p): p is QuizCardProgrammeRef => !!p);
+}

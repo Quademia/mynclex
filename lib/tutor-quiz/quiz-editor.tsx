@@ -22,6 +22,7 @@ import { QuizFormModal } from './quiz-form-modal';
 import { QuizPublishControls } from './quiz-publish-controls';
 import { QuizPickerFilterBar } from './quiz-picker-filters';
 import { QuizIcon } from './quiz-icons';
+import { QuizCardBadges } from './quiz-card-badges';
 import { HoverPeek } from '@/lib/bank/hover-peek';
 import {
   addQuizItemsAction,
@@ -40,6 +41,8 @@ import {
 import type { QuizPickerFilters } from './quiz-picker-query';
 import type {
   PickerQuestionRow,
+  QuizCardActivityRef,
+  QuizCardProgrammeRef,
   QuizFormValues,
   QuizItemRow,
   TutorQuiz,
@@ -95,15 +98,19 @@ export function QuizEditor({
   pickerQuestions,
   pickerFilters,
   pickerTagOptions,
-  usedCount,
+  programmes,
+  activities,
 }: {
   quiz: TutorQuiz;
   items: QuizItemRow[];
   pickerQuestions: PickerQuestionRow[];
   pickerFilters: QuizPickerFilters;
   pickerTagOptions: string[];
-  /** How many programmes this quiz is attached to (for the zone badge). */
-  usedCount: number;
+  /** Programmes this quiz is attached to + activities that reference it
+   *  — the header's Programmes / Activities context badges (with peeks).
+   *  Tags come from `quiz.tags`. */
+  programmes: QuizCardProgrammeRef[];
+  activities: QuizCardActivityRef[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -188,6 +195,14 @@ export function QuizEditor({
               <p className="quiz-editor-desc">{quiz.description}</p>
             )}
           </div>
+          <div className="quiz-editor-head-badges">
+            <QuizCardBadges
+              tags={quiz.tags}
+              programmes={programmes}
+              activities={activities}
+              direction="down"
+            />
+          </div>
           <div className="quiz-editor-head-actions">
             <button
               type="button"
@@ -251,12 +266,6 @@ export function QuizEditor({
               Use the arrows to reorder. Students see them in this order.
             </p>
           </div>
-          {usedCount > 0 && (
-            <span className="quiz-zone-used">
-              <QuizIcon name="programmes" />
-              <b>{usedCount}</b>&nbsp;{usedCount === 1 ? 'programme' : 'programmes'}
-            </span>
-          )}
         </div>
 
         {items.length === 0 ? (

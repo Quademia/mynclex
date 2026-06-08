@@ -89,7 +89,17 @@ function usePeek(hasContent: boolean) {
   };
 }
 
-function Peek({ open, children }: { open: boolean; children: ReactNode }) {
+type PeekDirection = 'up' | 'down';
+
+function Peek({
+  open,
+  direction,
+  children,
+}: {
+  open: boolean;
+  direction: PeekDirection;
+  children: ReactNode;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [shift, setShift] = useState(0);
 
@@ -110,7 +120,9 @@ function Peek({ open, children }: { open: boolean; children: ReactNode }) {
   return (
     <div
       ref={ref}
-      className={`qc-peek align-left ${open ? 'is-open' : ''}`}
+      className={`qc-peek align-left ${
+        direction === 'down' ? 'is-down' : 'is-up'
+      } ${open ? 'is-open' : ''}`}
       style={{ ['--shift' as string]: `${shift}px` }}
       role="tooltip"
     >
@@ -126,6 +138,7 @@ function CountBadge({
   one,
   many,
   zeroLabel,
+  direction,
   children,
 }: {
   type: 'tags' | 'programmes' | 'activities';
@@ -134,6 +147,7 @@ function CountBadge({
   one: string;
   many: string;
   zeroLabel: string;
+  direction: PeekDirection;
   children: ReactNode;
 }) {
   const has = count > 0;
@@ -162,7 +176,11 @@ function CountBadge({
           <span className="lbl">{zeroLabel}</span>
         )}
       </button>
-      {has && <Peek open={isOpen}>{children}</Peek>}
+      {has && (
+        <Peek open={isOpen} direction={direction}>
+          {children}
+        </Peek>
+      )}
     </span>
   );
 }
@@ -171,10 +189,14 @@ export function QuizCardBadges({
   tags,
   programmes,
   activities,
+  direction = 'up',
 }: {
   tags: string[];
   programmes: QuizCardProgrammeRef[];
   activities: QuizCardActivityRef[];
+  /** Which way the peek popovers open. Cards sit low → 'up' (default);
+   *  the editor header sits high → 'down'. */
+  direction?: PeekDirection;
 }) {
   return (
     <div className="qc-foot-badges">
@@ -185,6 +207,7 @@ export function QuizCardBadges({
         one="tag"
         many="tags"
         zeroLabel="No tags"
+        direction={direction}
       >
         <div className="qc-peek-title">
           <QuizIcon name="hash" />
@@ -206,6 +229,7 @@ export function QuizCardBadges({
         one="programme"
         many="programmes"
         zeroLabel="Unused"
+        direction={direction}
       >
         <div className="qc-peek-title">
           <QuizIcon name="programmes" />
@@ -229,6 +253,7 @@ export function QuizCardBadges({
         one="activity"
         many="activities"
         zeroLabel="No activities"
+        direction={direction}
       >
         <div className="qc-peek-title">
           <QuizIcon name="layers" />
