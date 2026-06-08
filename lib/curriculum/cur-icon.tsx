@@ -1,32 +1,17 @@
 // mynclex/lib/curriculum/cur-icon.tsx
 //
-// Line-icon set for the curriculum workspace (rail + detail pane).
-// Domain-local, matching the per-domain icon convention used by the
-// tutor Home (`th`) and quizzes (`QuizIcon`). Lucide-style glyphs,
-// `currentColor` stroke. Activity-type glyphs render as calm line icons
-// (the dense authoring tool) rather than the emoji used elsewhere; the
-// emoji source of truth (ACTIVITY_TYPE_ICON) stays in format.ts for the
-// student-facing surfaces.
+// Line-icon (UI) set for the curriculum workspace — rail + detail-pane
+// chrome (kebab, grip, arrows, publish/eye, add, etc.). Domain-local,
+// matching the per-domain icon convention used by the tutor Home (`th`)
+// and quizzes (`QuizIcon`). Lucide-style glyphs, `currentColor` stroke.
+//
+// Activity-TYPE icons are NOT here — those use the shared emoji set
+// (ACTIVITY_TYPE_ICON in format.ts) everywhere, so the unit's activity
+// rows match the activity picker.
 
 const GLYPHS: Record<string, string> = {
-  // ── activity types ──
-  fileText:
-    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/>',
-  file:
-    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
-  link:
-    '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
-  video:
-    '<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
-  target:
-    '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
-  clipboardCheck:
-    '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
-  book:
-    '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
   layers:
     '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
-  // ── ui ──
   plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
   x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
   check: '<polyline points="20 6 9 17 4 12"/>',
@@ -52,17 +37,6 @@ const GLYPHS: Record<string, string> = {
   menu: '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>',
   panelLeft:
     '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>',
-};
-
-export const CUR_ACTIVITY_ICON: Record<string, string> = {
-  TEXT: 'fileText',
-  PDF: 'file',
-  EXTERNAL_LINK: 'link',
-  ONLINE_LIVE_SESSION: 'video',
-  MOCK: 'target',
-  PRACTICE_QUIZ: 'clipboardCheck',
-  LIBRARY_NOTE: 'book',
-  SHELF: 'layers',
 };
 
 export function CurIcon({
