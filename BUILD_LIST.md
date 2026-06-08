@@ -8,6 +8,18 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **⏭ NEXT SESSION (set 2026-06-09) — PROGRAMME-LEVEL LIBRARY PAGE
+> (tutor side).** Tutor-quiz arc is done (tags end-to-end + the
+> programme quiz list "grouped rows" redesign). Next focus = a new
+> **Library tab** on the programme detail (parallel to Quizzes): "what
+> notes can students in this programme see?" — mirror the student
+> programme library, fed the per-programme entitlement set
+> (`TUTOR_WIDE ∪ PROGRAMME_SCOPED-to-this-programme`, published), plus a
+> tutor source badge + manage link. Library is **tutor-keyed** so the
+> programme is the right home (one tab covers all cohorts). Likely no
+> migration. Full design + the cohort finding in
+> [tutor-library.md](docs/product-plan/tutor-library.md) → "Still open".
+
 > **TUTOR-QUIZ UI UPLIFT — CLAUDE DESIGN, OPTION A (2026-06-06).** Visual
 > redesign of the quiz **list** + **editor** from Sam's CD "Quiz UI
 > Uplift" handoff (List A card grid + Editor A workbench),
