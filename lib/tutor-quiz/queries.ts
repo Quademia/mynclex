@@ -12,36 +12,129 @@ import {
 import type {
   PickerQuestionRow,
   QuizActivityLink,
+  QuizCardActivityRef,
+  QuizCardProgrammeRef,
   QuizItemRow,
   QuizListRow,
   TutorQuiz,
 } from './types';
 
+// Every curriculum activity (across ALL the tutor's programmes) that
+// references a quiz, grouped by quiz_id — feeds each card's Activities
+// badge + peek. One list-wide query (the per-quiz cousin is
+// getQuizActivityLinks); the activity→quiz link lives in payload JSON
+// so the grouping is done in JS, same as loadActivityHints. RLS on
+// _activities → _units → _programmes scopes the scan to the tutor's
+// own programmes. Each quiz's list is ordered (unit_index, ordinal).
+async function loadAllActivityRefs(): Promise<
+  Map<string, QuizCardActivityRef[]>
+> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('nclex_programme_activities')
+    .select(
+      `activity_id, title, payload, ordinal,
+       nclex_programme_units!inner(
+         unit_index, title,
+         nclex_programmes!inner(title, unit_label)
+       )`,
+    )
+    .in('type', ['MOCK', 'PRACTICE_QUIZ']);
+
+  if (error || !data) return new Map();
+
+  type Staged = { quizId: string; ordinal: number; ref: QuizCardActivityRef };
+  const staged: Staged[] = [];
+
+  for (const row of data as Array<{
+    activity_id: string;
+    title: string;
+    payload: { quiz_id?: string | null } | null;
+    ordinal: number;
+    nclex_programme_units:
+      | {
+          unit_index: number;
+          title: string;
+          nclex_programmes:
+            | { title: string; unit_label: 'WEEK' | 'MODULE' }
+            | Array<{ title: string; unit_label: 'WEEK' | 'MODULE' }>;
+        }
+      | Array<{
+          unit_index: number;
+          title: string;
+          nclex_programmes:
+            | { title: string; unit_label: 'WEEK' | 'MODULE' }
+            | Array<{ title: string; unit_label: 'WEEK' | 'MODULE' }>;
+        }>;
+  }>) {
+    const quizId = row.payload?.quiz_id;
+    if (!quizId) continue;
+    const unitRow = Array.isArray(row.nclex_programme_units)
+      ? row.nclex_programme_units[0]
+      : row.nclex_programme_units;
+    if (!unitRow) continue;
+    const progRow = Array.isArray(unitRow.nclex_programmes)
+      ? unitRow.nclex_programmes[0]
+      : unitRow.nclex_programmes;
+    staged.push({
+      quizId,
+      ordinal: row.ordinal,
+      ref: {
+        activity_id: row.activity_id,
+        title: row.title,
+        programme_title: progRow?.title ?? '',
+        unit_label: progRow?.unit_label ?? 'WEEK',
+        unit_index: unitRow.unit_index,
+        unit_title: unitRow.title,
+      },
+    });
+  }
+
+  // Stable per-quiz order: (unit_index ASC, ordinal ASC).
+  staged.sort(
+    (a, b) => a.ref.unit_index - b.ref.unit_index || a.ordinal - b.ordinal,
+  );
+
+  const out = new Map<string, QuizCardActivityRef[]>();
+  for (const s of staged) {
+    const list = out.get(s.quizId);
+    if (list) list.push(s.ref);
+    else out.set(s.quizId, [s.ref]);
+  }
+  return out;
+}
+
 /**
- * /tutor/quizzes list query. One row per quiz the tutor owns, with
- * the question-count rollup AND the "Used in N programmes" count
- * folded in via PostgREST embedded counts. Ordered most-recently-
- * updated first.
+ * /tutor/quizzes list query. One row per quiz the tutor owns, with the
+ * question-count rollup plus the programmes + activities the quiz is
+ * used in — the card's three footer badges (Tags / Programmes /
+ * Activities), each with a hover-peek list (2026-06 Claude Design
+ * "badges row"). Ordered most-recently-updated first.
  *
- * RLS scopes the SELECT to tutor_id = auth.uid() (SUPER_ADMIN
- * bypass via nclex_tutor_quizzes_superadmin). The programme-count
- * embed is added by Tutor Quiz Slice 5 — drives the "Used in N
- * programmes" chip on the card (§9.4.2).
+ * RLS scopes the SELECT to tutor_id = auth.uid() (SUPER_ADMIN bypass
+ * via nclex_tutor_quizzes_superadmin). Programme names come through the
+ * nclex_programme_quizzes junction embed; `used_in_programmes` is kept
+ * (= programmes.length) for existing readers. Activities come from a
+ * single list-wide scan (loadAllActivityRefs) grouped by quiz_id.
  *
  * Returns [] on error.
  */
 export async function getMyQuizzes(): Promise<QuizListRow[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from('nclex_tutor_quizzes')
-    .select(
-      `quiz_id, title, description, quiz_kind, mode,
-       duration_seconds, pass_score, max_attempts, status, tags, updated_at,
-       nclex_tutor_quiz_items(count),
-       nclex_programme_quizzes(count)`,
-    )
-    .order('updated_at', { ascending: false });
+  const [{ data, error }, activityRefs] = await Promise.all([
+    supabase
+      .from('nclex_tutor_quizzes')
+      .select(
+        `quiz_id, title, description, quiz_kind, mode,
+         duration_seconds, pass_score, max_attempts, status, tags, updated_at,
+         nclex_tutor_quiz_items(count),
+         nclex_programme_quizzes(nclex_programmes(programme_id, title))`,
+      )
+      .order('updated_at', { ascending: false }),
+    loadAllActivityRefs(),
+  ]);
 
   if (error || !data) return [];
 
@@ -52,12 +145,30 @@ export async function getMyQuizzes(): Promise<QuizListRow[]> {
       ...rest
     } = row as typeof row & {
       nclex_tutor_quiz_items: Array<{ count: number }> | null;
-      nclex_programme_quizzes: Array<{ count: number }> | null;
+      nclex_programme_quizzes: Array<{
+        nclex_programmes:
+          | QuizCardProgrammeRef
+          | QuizCardProgrammeRef[]
+          | null;
+      }> | null;
     };
+
+    const programmes: QuizCardProgrammeRef[] = (nclex_programme_quizzes ?? [])
+      .map((j) =>
+        Array.isArray(j.nclex_programmes)
+          ? j.nclex_programmes[0]
+          : j.nclex_programmes,
+      )
+      .filter((p): p is QuizCardProgrammeRef => !!p);
+
+    const quizId = (rest as { quiz_id: string }).quiz_id;
+
     return {
       ...rest,
       item_count: nclex_tutor_quiz_items?.[0]?.count ?? 0,
-      used_in_programmes: nclex_programme_quizzes?.[0]?.count ?? 0,
+      used_in_programmes: programmes.length,
+      programmes,
+      activities: activityRefs.get(quizId) ?? [],
     } as QuizListRow;
   });
 }

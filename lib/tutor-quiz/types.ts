@@ -40,10 +40,32 @@ export type TutorQuiz = {
   updated_at: string;
 };
 
+// One programme a quiz is attached to (via the nclex_programme_quizzes
+// junction) — id + display title. Feeds the card's Programmes badge
+// peek. The count (used_in_programmes) is just this list's length.
+export type QuizCardProgrammeRef = {
+  programme_id: string;
+  title: string;
+};
+
+// One curriculum activity that references a quiz (a MOCK / PRACTICE_QUIZ
+// slot with payload.quiz_id set) — feeds the card's Activities badge
+// peek. Activity title + the programme + unit it sits in.
+export type QuizCardActivityRef = {
+  activity_id: string;
+  title: string;
+  programme_title: string;
+  unit_label: 'WEEK' | 'MODULE';
+  unit_index: number;
+  unit_title: string;
+};
+
 // Projection for the /tutor/quizzes list — adds the question-count
 // rollup (count(quiz_items)) so each card renders without a second
-// round trip, plus the "Used in N programmes" count from the
-// junction (Tutor Quiz Slice 5, §9.4.2) for the membership chip.
+// round trip, plus the programmes + activities a quiz is used in (the
+// card's three footer badges, each with a hover-peek list — 2026-06
+// Claude Design "badges row"). `used_in_programmes` is kept (=
+// programmes.length) so existing readers (tutor Home) are unaffected.
 export type QuizListRow = Pick<
   TutorQuiz,
   | 'quiz_id'
@@ -60,6 +82,8 @@ export type QuizListRow = Pick<
 > & {
   item_count: number;
   used_in_programmes: number;
+  programmes: QuizCardProgrammeRef[];
+  activities: QuizCardActivityRef[];
 };
 
 // The editable subset — QuizFormModal's initial values in edit mode

@@ -15,7 +15,7 @@ export type QuizIconName =
   | 'target' | 'sparkles' | 'check-circle' | 'pencil' | 'archive'
   | 'more' | 'chev-down' | 'chev-up-down' | 'chev-right' | 'alert'
   | 'arrow-up' | 'arrow-down' | 'grip' | 'check' | 'trash' | 'x'
-  | 'list' | 'repeat' | 'quiz';
+  | 'list' | 'repeat' | 'quiz' | 'hash' | 'layers';
 
 function inner(name: QuizIconName): ReactNode {
   switch (name) {
@@ -69,6 +69,10 @@ function inner(name: QuizIconName): ReactNode {
       return (<><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></>);
     case 'quiz':
       return (<><path d="M9 11l3 3 8-8" /><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" /></>);
+    case 'hash':
+      return (<><line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" /><line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" /></>);
+    case 'layers':
+      return (<><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></>);
   }
 }
 

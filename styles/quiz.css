@@ -917,25 +917,209 @@
   font-weight: 650;
 }
 
-.quiz-card-used-chip {
+/* ── Card → overflow-visible so footer peeks escape. The editor link
+   (.quiz-card-hit) wraps the body + meta row; the badges row sits
+   outside it as an independent interactive strip. ───────────────── */
+.quiz-card.qc-vis {
+  overflow: visible;
+}
+.quiz-card.qc-vis::before {
+  border-radius: var(--q-radius) 0 0 var(--q-radius);
+}
+.quiz-card-hit {
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+}
+.quiz-card-hit:hover {
+  text-decoration: none;
+}
+/* Hold the card still while a peek is open — don't lift it out from
+   under the popover the tutor is reading. */
+.quiz-card-wrap:has(.qc-badge-host.is-open) .quiz-card.qc-vis,
+.quiz-card-wrap:has(.qc-badge-host.is-open) .quiz-card.qc-vis:hover {
+  transform: none;
+}
+
+/* Dedicated badges row (white, beneath the tinted meta row). */
+.qc-foot-row.is-badges {
+  background: var(--white);
+  padding: 8px 12px;
+  border-radius: 0 0 var(--q-radius) var(--q-radius);
+}
+
+/* ── Footer badge cluster (Tags / Programmes / Activities) ───────── */
+.qc-foot-badges {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-left: auto;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.qc-badge-host {
+  position: relative;
+  display: inline-flex;
+}
+.qc-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: inherit;
   font-size: 12px;
+  line-height: 1;
   color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s ease, color 0.14s ease;
 }
-.quiz-card-used-chip svg {
-  width: 14px;
-  height: 14px;
+.qc-badge svg {
+  width: 13.5px;
+  height: 13.5px;
   color: var(--text-faint);
+  flex-shrink: 0;
 }
-.quiz-card-used-chip.is-none {
-  color: var(--text-faint);
-}
-.quiz-card-used-chip b {
+.qc-badge b {
   color: var(--text);
   font-weight: 650;
+}
+.qc-badge:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.qc-badge.is-zero {
+  color: var(--text-faint);
+  cursor: default;
+}
+.qc-badge.is-zero svg {
+  color: #cdd3db;
+}
+.qc-badge:not(.is-zero):hover,
+.qc-badge-host.is-open .qc-badge {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
+/* ── Hover-peek popover ──────────────────────────────────────────── */
+.qc-peek {
+  position: absolute;
+  bottom: calc(100% + 9px);
+  width: 236px;
+  max-width: 80vw;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  box-shadow: var(--q-shadow-md);
+  padding: 11px 12px;
+  z-index: 60;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transform-origin: bottom center;
+  transition: opacity 0.13s ease, transform 0.13s ease;
+}
+.qc-peek.align-left {
+  left: calc(-6px + var(--shift, 0px));
+}
+.qc-badge-host.is-open .qc-peek {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.qc-peek::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  width: 11px;
+  height: 11px;
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transform: translateY(-6px) rotate(45deg);
+}
+.qc-peek.align-left::after {
+  left: 18px;
+}
+.qc-peek-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 9px;
+}
+.qc-peek-title svg {
+  width: 12px;
+  height: 12px;
+}
+.qc-peek-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.qc-tag-chip {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  color: var(--text);
+  font-weight: 500;
+}
+.qc-peek-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 196px;
+  overflow: auto;
+}
+.qc-peek-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--text);
+  padding: 4px 5px;
+  border-radius: 6px;
+}
+.qc-peek-row:hover {
+  background: var(--bg-soft);
+}
+.qc-peek-row svg {
+  width: 13px;
+  height: 13px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.qc-peek-row.is-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  padding: 6px 6px 7px;
+}
+.qc-peek-row-main {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.qc-peek-row-sub {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.qc-peek-row-sub svg {
+  width: 11px;
+  height: 11px;
+  color: var(--text-faint);
 }
 
 /* ── Kind tag (card head) ──────────────────────────────────────── */
