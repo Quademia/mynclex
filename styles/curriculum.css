@@ -1824,10 +1824,12 @@
   height: 28px;
   border-radius: 7px;
   background: var(--bg-soft);
-  color: var(--primary);
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  /* Holds the shared emoji activity icon (matches the activity picker). */
+  font-size: 15px;
+  line-height: 1;
 }
 .act-text {
   flex: 1;

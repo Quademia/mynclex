@@ -9,10 +9,14 @@
 
 'use client';
 
-import { CurIcon, CUR_ACTIVITY_ICON } from './cur-icon';
+import { CurIcon } from './cur-icon';
 import { CurMenu } from './cur-menu';
 import type { CurMenuItem } from './cur-menu';
-import { unitStatusLabel, unitStatusPillClass } from './format';
+import {
+  ACTIVITY_TYPE_ICON,
+  unitStatusLabel,
+  unitStatusPillClass,
+} from './format';
 import type { ActivityType, ProgrammeActivity } from './types';
 
 const TYPE_LABEL: Record<ActivityType, string> = {
@@ -92,7 +96,7 @@ export function ActivityRow({
         <CurIcon name="grip" size={16} />
       </span>
       <span className="act-icon" aria-hidden="true">
-        <CurIcon name={CUR_ACTIVITY_ICON[activity.type] ?? 'fileText'} size={15} />
+        {ACTIVITY_TYPE_ICON[activity.type]}
       </span>
       <span className="act-text">
         <span className="act-titlerow">
