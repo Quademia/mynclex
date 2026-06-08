@@ -457,6 +457,7 @@ export function UnitBuilder({
       {/* ─── Body — interleaved blocks + loose rows ─── */}
 
       <section className="cur-detail-body">
+        <div className="cur-detail-inner">
         {body.length === 0 && !pickerScope && !addBlockOpen && (
           <div className="cur-empty">
             <div className="cur-empty-icon">
@@ -610,6 +611,7 @@ export function UnitBuilder({
             </button>
           </div>
         )}
+        </div>
       </section>
 
       {/* ─── Modals + overlays ─────────────────────── */}

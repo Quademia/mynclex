@@ -1061,12 +1061,15 @@
 .cur-detail-host {
   flex: 1;
   min-width: 0;
-  overflow-y: auto;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 .cur-detail {
   width: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -1077,8 +1080,9 @@
   justify-content: center;
 }
 
-/* Detail header (unit) */
+/* Detail header (unit) — pinned; only the body below it scrolls. */
 .cur-detail-head {
+  flex-shrink: 0;
   padding: 18px 24px 16px;
   border-bottom: 1px solid var(--border);
 }
@@ -1168,9 +1172,15 @@
   cursor: not-allowed;
 }
 
-/* Detail body */
+/* Detail body — the scroll region (full-width so the scrollbar sits at the
+   pane edge); .cur-detail-inner caps the content width. */
 .cur-detail-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   padding: 18px 24px 52px;
+}
+.cur-detail-inner {
   max-width: 860px;
 }
 .cur-detail-body .unit-body-list {
@@ -1459,7 +1469,10 @@
   .cur-workspace {
     height: calc(100dvh - 76px);
   }
-  .cur-detail {
-    padding: 16px;
+  .cur-detail-head {
+    padding: 14px 16px 12px;
+  }
+  .cur-detail-body {
+    padding: 14px 16px 40px;
   }
 }
