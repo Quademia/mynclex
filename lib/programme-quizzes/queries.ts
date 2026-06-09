@@ -10,8 +10,8 @@ import { createClient } from '@/lib/supabase/server';
 import type {
   BlockingActivity,
   PickerQuizRow,
+  ProgrammeQuizActivityRef,
   ProgrammeQuizRow,
-  ProgrammeQuizSourceHint,
 } from './types';
 import type {
   QuizKind,
@@ -21,42 +21,24 @@ import type {
 import type { UnitLabel } from '@/lib/programmes/types';
 
 // =========================================================
-// getProgrammeQuizzes
+// loadActivitiesByQuiz
 // =========================================================
-// Lists every quiz attached to this programme via the junction.
-// Each row carries the joined quiz metadata + item count + a
-// derived "Linked to Unit N" / null source hint.
-//
-// Source hint derivation: a separate fetch of every MOCK /
-// PRACTICE_QUIZ activity in this programme that has a non-null
-// quiz_id in its payload. We pick the FIRST activity (by lowest
-// unit_index, then lowest ordinal) per quiz_id — there can be
-// more than one activity in a programme pointing at the same
-// quiz; the hint shows the primary placement. Returns [] on
-// error.
-
-type ProgrammeActivityHint = {
-  quiz_id: string;
-  unit_index: number;
-  ordinal: number;
-  unit_title: string;
-  unit_label: UnitLabel;
-};
-
-async function loadActivityHints(
+// Every MOCK / PRACTICE_QUIZ activity IN THIS programme that points
+// at a quiz, grouped by quiz_id — feeds each row's Activities badge
+// (the 2026-06 CD redesign: ALL linked activities, not just the
+// primary). The set is small (a programme has at most a few dozen
+// quiz activities), so the payload-JSON grouping is done in JS. RLS
+// on _activities → _units → _programmes scopes this to the tutor's
+// own programme. Each quiz's list is ordered (unit_index, ordinal).
+async function loadActivitiesByQuiz(
   programmeId: string,
-): Promise<Map<string, ProgrammeQuizSourceHint>> {
+): Promise<Map<string, ProgrammeQuizActivityRef[]>> {
   const supabase = await createClient();
 
-  // Pull every quiz-activity in this programme. The set is small
-  // (a programme has at most a few dozen quiz activities), so
-  // building the hint map in JS is cheaper than a PostgREST
-  // payload-JSON filter chain. RLS on _activities + _units +
-  // _programmes scopes this to the tutor's own programme.
   const { data, error } = await supabase
     .from('nclex_programme_activities')
     .select(
-      `activity_id, ordinal, payload, type,
+      `activity_id, ordinal, payload, type, title,
        nclex_programme_units!inner(
          programme_id, unit_index, title,
          nclex_programmes!inner(unit_label)
@@ -67,15 +49,22 @@ async function loadActivityHints(
 
   if (error || !data) return new Map();
 
-  const hints: ProgrammeActivityHint[] = [];
+  type Staged = {
+    quizId: string;
+    unit_index: number;
+    ordinal: number;
+    ref: ProgrammeQuizActivityRef;
+  };
+  const staged: Staged[] = [];
+
   for (const row of data as Array<{
     activity_id: string;
     ordinal: number;
     payload: { quiz_id?: string | null } | null;
     type: 'MOCK' | 'PRACTICE_QUIZ';
+    title: string;
     nclex_programme_units:
       | {
-          programme_id: string;
           unit_index: number;
           title: string;
           nclex_programmes:
@@ -83,7 +72,6 @@ async function loadActivityHints(
             | Array<{ unit_label: UnitLabel }>;
         }
       | Array<{
-          programme_id: string;
           unit_index: number;
           title: string;
           nclex_programmes:
@@ -100,30 +88,73 @@ async function loadActivityHints(
     const programmeRow = Array.isArray(unitRow.nclex_programmes)
       ? unitRow.nclex_programmes[0]
       : unitRow.nclex_programmes;
-    hints.push({
-      quiz_id: quizId,
+    staged.push({
+      quizId,
       unit_index: unitRow.unit_index,
       ordinal: row.ordinal,
-      unit_title: unitRow.title,
-      unit_label: programmeRow?.unit_label ?? 'WEEK',
+      ref: {
+        activity_id: row.activity_id,
+        title: row.title,
+        unit_index: unitRow.unit_index,
+        unit_label: programmeRow?.unit_label ?? 'WEEK',
+        unit_title: unitRow.title,
+      },
     });
   }
 
-  // Sort by (unit_index ASC, ordinal ASC) so the primary
-  // placement per quiz is the first row.
-  hints.sort(
-    (a, b) =>
-      a.unit_index - b.unit_index || a.ordinal - b.ordinal,
+  staged.sort(
+    (a, b) => a.unit_index - b.unit_index || a.ordinal - b.ordinal,
   );
 
-  const out = new Map<string, ProgrammeQuizSourceHint>();
-  for (const h of hints) {
-    if (out.has(h.quiz_id)) continue; // keep the first (primary)
-    out.set(h.quiz_id, {
-      unit_index: h.unit_index,
-      unit_label: h.unit_label,
-      unit_title: h.unit_title,
-    });
+  const out = new Map<string, ProgrammeQuizActivityRef[]>();
+  for (const s of staged) {
+    const list = out.get(s.quizId);
+    if (list) list.push(s.ref);
+    else out.set(s.quizId, [s.ref]);
+  }
+  return out;
+}
+
+// =========================================================
+// loadOtherProgrammes
+// =========================================================
+// For the given quizzes, the titles of the tutor's OTHER programmes
+// each quiz is also attached to (excluding the current one) — the
+// "reuse context" Other-programmes badge. RLS on the junction scopes
+// to the tutor's own programmes, so this is the tutor's own reuse, not
+// a cross-tenant leak. Returns an empty map for no quizzes.
+async function loadOtherProgrammes(
+  programmeId: string,
+  quizIds: string[],
+): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  if (quizIds.length === 0) return out;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('nclex_programme_quizzes')
+    .select('quiz_id, programme_id, nclex_programmes(title)')
+    .in('quiz_id', quizIds)
+    .neq('programme_id', programmeId);
+
+  if (error || !data) return out;
+
+  for (const row of data as Array<{
+    quiz_id: string;
+    programme_id: string;
+    nclex_programmes: { title: string } | Array<{ title: string }> | null;
+  }>) {
+    const p = Array.isArray(row.nclex_programmes)
+      ? row.nclex_programmes[0]
+      : row.nclex_programmes;
+    if (!p?.title) continue;
+    const list = out.get(row.quiz_id);
+    if (list) list.push(p.title);
+    else out.set(row.quiz_id, [p.title]);
+  }
+
+  for (const titles of out.values()) {
+    titles.sort((a, b) => a.localeCompare(b));
   }
   return out;
 }
@@ -133,24 +164,29 @@ export async function getProgrammeQuizzes(
 ): Promise<ProgrammeQuizRow[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from('nclex_programme_quizzes')
-    .select(
-      `added_at, quiz_id,
-       nclex_tutor_quizzes!inner(
-         quiz_id, title, description, quiz_kind, mode,
-         duration_seconds, pass_score, max_attempts, status,
-         nclex_tutor_quiz_items(count)
-       )`,
-    )
-    .eq('programme_id', programmeId)
-    .order('added_at', { ascending: false });
+  // Main query + the (programme-scoped) activities map run in parallel;
+  // the other-programmes lookup needs the resulting quiz ids, so it
+  // follows.
+  const [{ data, error }, activitiesByQuiz] = await Promise.all([
+    supabase
+      .from('nclex_programme_quizzes')
+      .select(
+        `added_at, quiz_id,
+         nclex_tutor_quizzes!inner(
+           quiz_id, title, description, quiz_kind, mode,
+           duration_seconds, pass_score, max_attempts, status, tags,
+           nclex_tutor_quiz_items(count)
+         )`,
+      )
+      .eq('programme_id', programmeId)
+      .order('added_at', { ascending: false }),
+    loadActivitiesByQuiz(programmeId),
+  ]);
 
   if (error || !data) return [];
 
-  const hints = await loadActivityHints(programmeId);
-
-  return data.flatMap((row) => {
+  // Base rows (without the cross-programme reuse field yet).
+  const base = data.flatMap((row) => {
     const raw = row as typeof row & {
       nclex_tutor_quizzes:
         | {
@@ -163,6 +199,7 @@ export async function getProgrammeQuizzes(
             pass_score: number | null;
             max_attempts: number | null;
             status: QuizStatus;
+            tags: string[] | null;
             nclex_tutor_quiz_items: Array<{ count: number }> | null;
           }
         | Array<{
@@ -175,6 +212,7 @@ export async function getProgrammeQuizzes(
             pass_score: number | null;
             max_attempts: number | null;
             status: QuizStatus;
+            tags: string[] | null;
             nclex_tutor_quiz_items: Array<{ count: number }> | null;
           }>
         | null;
@@ -196,10 +234,24 @@ export async function getProgrammeQuizzes(
         status: q.status,
         item_count: q.nclex_tutor_quiz_items?.[0]?.count ?? 0,
         added_at: raw.added_at,
-        source_hint: hints.get(q.quiz_id) ?? null,
-      } satisfies ProgrammeQuizRow,
+        tags: q.tags ?? [],
+        activities: activitiesByQuiz.get(q.quiz_id) ?? [],
+      },
     ];
   });
+
+  const otherByQuiz = await loadOtherProgrammes(
+    programmeId,
+    base.map((b) => b.quiz_id),
+  );
+
+  return base.map(
+    (b) =>
+      ({
+        ...b,
+        other_programmes: otherByQuiz.get(b.quiz_id) ?? [],
+      }) satisfies ProgrammeQuizRow,
+  );
 }
 
 // =========================================================

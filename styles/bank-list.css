@@ -1,0 +1,726 @@
+/* mynclex/styles/bank-list.css
+ *
+ * Redesign of the three bank LIST surfaces — Trend datasets, Case studies,
+ * Question Bank — from the 2026-06 Claude Design "Bank surfaces" handoff.
+ * Built on the app tokens (navy = --primary, teal = --accent); the handoff's
+ * own palette maps onto ours almost 1:1.
+ *
+ * All classes are namespaced `bl-*` so the redesign can land ONE surface at a
+ * time while the not-yet-migrated surfaces keep their old styles. Once all
+ * three surfaces are on this system, the dead old rules (scattered in
+ * authoring.css / dashboards.css) get pruned in a cleanup pass.
+ *
+ * Loaded LAST in app/(app)/layout.tsx so it cleanly tops the old rules.
+ *
+ * Build order: Trend datasets first (this slice) → Case studies → Question
+ * Bank. The shared primitives (band / toolbar / table / status / health /
+ * attached-bar) get lifted into lib/bank/list-ui.tsx once Cases reuses them.
+ */
+
+/* ── Page header (eyebrow chip + title + subtitle) ─────────────────── */
+.bl-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+.bl-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 9px;
+}
+.bl-surface-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.bl-surface-chip.admin { background: var(--primary-light); color: var(--primary); }
+.bl-surface-chip.tutor { background: #e3f0ec; color: var(--accent-dark); }
+.bl-surface-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.bl-page-title { font-size: 25px; font-weight: 750; letter-spacing: -0.02em; color: var(--text); }
+.bl-page-sub { margin-top: 6px; font-size: 13.5px; line-height: 1.5; color: var(--text-muted); max-width: 640px; }
+/* Right-side header actions (← back · Case Studies → · Trend datasets →). */
+.bl-head-actions { display: flex; align-items: center; gap: 9px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+.bl-head-actions .bl-btn { text-decoration: none; }
+
+/* ── Overview / health band (stat cards) ───────────────────────────── */
+.bl-band {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.bl-stat {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 15px 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+button.bl-stat {
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+button.bl-stat:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
+.bl-stat.is-on { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.bl-stat.warn.is-on { border-color: #b45309; box-shadow: 0 0 0 1px #b45309; }
+.bl-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.bl-stat-value {
+  font-size: 28px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1;
+}
+.bl-stat-value .sub { font-size: 13px; font-weight: 600; color: var(--text-faint); margin-left: 5px; }
+.bl-stat.warn .bl-stat-value { color: #b45309; }
+.bl-stat-foot { font-size: 11.5px; color: var(--text-muted); }
+.bl-stat-ico {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+.bl-stat-ico.warn { background: #fdf2e0; color: #b45309; }
+.bl-stat-ico.ok { background: #eaf6ee; color: #15803d; }
+
+/* ── Compact toolbar (search + status seg + filters + new) ─────────── */
+.bl-toolbar {
+  position: relative; /* anchor for the Filters popover (docks to the right) */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+}
+.bl-search { position: relative; display: flex; align-items: center; flex: 1; min-width: 240px; }
+.bl-search svg { position: absolute; left: 11px; color: var(--text-faint); pointer-events: none; }
+.bl-search input {
+  width: 100%;
+  padding: 9px 12px 9px 34px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  transition: border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
+}
+.bl-search input:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px #e3f0ec; }
+.bl-search input::placeholder { color: var(--text-faint); }
+/* Leave room for the trailing scope picker docked inside the field. */
+.bl-search input.has-scope { padding-right: 132px; }
+
+/* "Search in" scope picker — our MultiSelect, docked at the search field's
+   right edge with its dropdown right-aligned below. */
+.bl-search .bank-ms-inline {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.bl-search .bank-ms-inline .bank-ms-trigger {
+  min-width: 0;
+  padding: 4px 9px;
+  font-size: 12px;
+  border-radius: 7px;
+  background: var(--white);
+  border: 1px solid var(--border);
+}
+.bl-search .bank-ms-inline .bank-ms-trigger:hover { border-color: var(--accent); }
+/* Dropdown: right-aligned under the picker, options left-aligned & compact. */
+.bl-search .bank-ms-panel {
+  right: 0;
+  left: auto;
+  min-width: 160px;
+  align-items: stretch;
+  text-align: left;
+}
+.bl-search .bank-ms-panel .bank-ms-option {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.bl-seg { display: inline-flex; background: var(--bg-soft); border-radius: 9px; padding: 3px; gap: 2px; }
+.bl-seg button {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  padding: 6px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.bl-seg button:hover { color: var(--text); }
+.bl-seg button.on { background: var(--white); color: var(--text); box-shadow: var(--shadow); }
+
+.bl-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+.bl-select:focus { outline: none; border-color: var(--accent); }
+
+.bl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border-strong);
+  background: var(--white);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+.bl-chip:hover { border-color: var(--accent); color: var(--accent-dark); }
+.bl-chip .n {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 11px;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  padding: 0 6px;
+  border-radius: 999px;
+}
+.bl-chip.warn { border-color: #f0d9b3; color: #b45309; }
+.bl-chip.warn .ico { font-size: 11px; line-height: 1; }
+.bl-chip.warn.on { background: #b45309; border-color: #b45309; color: #fff; }
+.bl-chip.warn.on .n { background: rgba(255, 255, 255, 0.22); color: #fff; }
+
+.bl-spacer { flex: 1; }
+
+.bl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border-strong);
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+.bl-btn:hover { background: var(--bg-soft); }
+.bl-btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.bl-btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+/* Toggle button (Group) when active — filled navy. */
+.bl-btn.is-on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.bl-btn.is-on:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+
+/* ── Result line ───────────────────────────────────────────────────── */
+.bl-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.bl-result b { color: var(--text); font-weight: 700; }
+.bl-result-clear {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.bl-result-clear:hover { color: var(--danger); }
+
+/* ── Table ─────────────────────────────────────────────────────────── */
+.bl-table-wrap {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow-x: auto;
+}
+.bl-table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+.bl-table thead th {
+  text-align: left;
+  padding: 11px 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.bl-table tbody td {
+  padding: 13px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.bl-table tbody tr:last-child td { border-bottom: none; }
+.bl-table tbody tr:hover { background: #fafbfc; }
+.bl-id { width: 1%; white-space: nowrap; }
+.bl-id code {
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: 11.5px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  padding: 3px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.bl-col-title { width: 30%; min-width: 230px; }
+.bl-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.45;
+  color: var(--text);
+  font-weight: 650;
+}
+/* Chart-tab chips under a case title (up to 3 + overflow). */
+.bl-tabchips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.bl-tabchip {
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+.bl-cell-mid { white-space: nowrap; color: var(--text-muted); }
+.bl-actions { width: 1%; white-space: nowrap; text-align: right; }
+.bl-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border-strong);
+  background: var(--white);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+.bl-open:hover { background: var(--bg-soft); border-color: var(--accent); color: var(--accent-dark); }
+
+/* ── Status pill ───────────────────────────────────────────────────── */
+.bl-status-row { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.bl-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.bl-status.pub { background: #e7f6ec; color: #15803d; }
+.bl-status.draft { background: var(--bg-soft); color: var(--text-muted); border: 1px solid var(--border); }
+.bl-status.free { background: #fdf2e0; color: #b45309; }
+.bl-status.hidden { background: #f2eafc; color: #6d28d9; }
+
+/* ── Health flag (the "reaches nobody / incomplete" signal) ────────── */
+.bl-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px 3px 8px;
+  border-radius: 12px;
+  background: #fdf2e0;
+  color: #b45309;
+  border: 1px solid #f0d9b3;
+}
+.bl-health .ico { font-size: 11px; line-height: 1; flex: none; }
+/* Let long labels ("Reaches nobody", "Hidden from builder") wrap to two
+   lines so the column stays narrow rather than forcing a wide pill. */
+.bl-health-text { white-space: normal; line-height: 1.2; max-width: 76px; }
+.bl-health.ok { background: #eaf6ee; color: #15803d; border-color: #c5e7cf; }
+.bl-health.ghost { background: transparent; border: none; color: var(--text-faint); font-weight: 600; }
+
+/* ── Attached bar — count + mini-bar on top, published/draft pills beneath
+   (stacked so the column stays narrow). ────────────────────────────── */
+.bl-attbar { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.bl-attbar-top { display: inline-flex; align-items: center; gap: 9px; }
+.bl-attbar-pills { display: inline-flex; flex-wrap: wrap; gap: 5px; }
+.bl-attbar .count {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+.bl-minibar {
+  display: inline-flex;
+  width: 60px;
+  height: 7px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-soft);
+  flex: none;
+}
+.bl-minibar .fill { background: var(--success); height: 100%; }
+.bl-qpill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.bl-qpill.pub { background: #e7f6ec; color: #15803d; }
+.bl-qpill.draft { background: var(--bg-soft); color: var(--text-muted); border: 1px solid var(--border); }
+
+/* ── Bank composition band (wide first card holds the bar) ─────────── */
+.bl-band-bank { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+.bl-comp { gap: 10px; }
+.bl-comp-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-soft);
+}
+.bl-comp-seg { height: 100%; transition: width 0.3s ease; }
+.bl-comp-seg.standalone { background: #b8c2cf; }
+.bl-comp-seg.case       { background: #6366f1; }
+.bl-comp-seg.trend      { background: var(--accent); }
+.bl-comp-seg.note       { background: #3b82f6; }
+.bl-comp-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.bl-comp-leg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.bl-comp-leg .sw { width: 10px; height: 10px; border-radius: 3px; }
+.bl-comp-leg .sw.standalone { background: #b8c2cf; }
+.bl-comp-leg .sw.case       { background: #6366f1; }
+.bl-comp-leg .sw.trend      { background: var(--accent); }
+.bl-comp-leg .sw.note       { background: #3b82f6; }
+.bl-comp-leg b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* ── Type pill (coloured square glyph + short label) ───────────────── */
+.bl-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 4px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.bl-type-sq {
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+}
+
+/* ── Difficulty chip ───────────────────────────────────────────────── */
+.bl-diff {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.bl-diff-Easy   { color: #15803d; background: #eaf6ee; border-color: #c5e7cf; }
+.bl-diff-Medium { color: #b45309; background: #fdf2e0; border-color: #f0d9b3; }
+.bl-diff-Hard   { color: #be123c; background: #fbe5ea; border-color: #f3c6d1; }
+
+/* ── Marks cell ────────────────────────────────────────────────────── */
+.bl-num {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: var(--text);
+}
+
+/* ── Two-row question card: columns row + full-width tag strip ─────── */
+/* The main row of a card with a strip drops its divider; the strip below
+   carries it, so the two rows read as one card. Hover spans both. */
+.bl-table tbody tr.bl-q-main.has-strip td { border-bottom: none; padding-bottom: 8px; }
+.bl-table tbody tr.bl-q-strip td {
+  padding-top: 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.bl-table tbody tr.bl-q-strip:last-child td { border-bottom: none; }
+.bl-table tbody tr.bl-q-main:hover td,
+.bl-table tbody tr.bl-q-main:hover + tr.bl-q-strip td { background: #fafbfc; }
+.bl-q-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+/* Origin badges (wrapper / note) on the strip. */
+.bl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 650;
+  padding: 3px 9px;
+  border-radius: 7px;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: filter 0.12s ease;
+}
+.bl-badge:hover { filter: brightness(0.96); }
+.bl-badge-case  { background: #efeefe; color: #4338ca; }
+.bl-badge-trend { background: #e3f0ec; color: var(--accent-dark); }
+.bl-badge-note  { background: #eaf2fe; color: #1d4ed8; }
+
+/* Classification tags on the strip. */
+.bl-class-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+.bl-class-tag.cat { color: var(--primary); background: var(--primary-light); border-color: #dbe7f0; }
+.bl-free {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #b45309;
+  background: #fdf2e0;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* Edit / Open action rendered as a button (not just a link). */
+button.bl-open { font: inherit; cursor: pointer; }
+
+/* "Show more" / "Load more" row beneath the table. */
+.bl-loadmore {
+  display: flex;
+  justify-content: center;
+  padding: 14px;
+  border-top: 1px solid var(--border);
+}
+.bl-loadmore-n {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+/* ── Filters popover button + badge ───────────────────────────────── */
+/* No positioning here on purpose — the popover anchors to .bl-toolbar so it
+   docks to the toolbar's RIGHT edge (keeping the list visible while you
+   filter), not to this mid-toolbar button. */
+.bl-filter-badge {
+  background: var(--accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+}
+
+/* ── Faceted popover (all the deep filters) ───────────────────────── */
+.bl-facet-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 70;
+  width: 480px;
+  max-width: 92vw;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 12px;
+}
+.bl-facet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.bl-facet-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+/* Compact the facet controls inside the popover (tighter than the old
+   always-visible grid): smaller labels + slimmer triggers/selects. */
+.bl-facet-grid .bank-filter-group { gap: 3px; }
+.bl-facet-grid .bank-filter-label { font-size: 10px; letter-spacing: 0.04em; }
+.bl-facet-grid .bank-filter-input,
+.bl-facet-grid .bank-ms-trigger {
+  padding: 5px 8px;
+  font-size: 12.5px;
+}
+
+/* ── Active-filter chips ──────────────────────────────────────────── */
+.bl-active { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.bl-active-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.bl-active-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid #dbe7f0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 6px 4px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.bl-active-chip .x {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-muted);
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+.bl-active-chip:hover .x { background: rgba(220, 38, 38, 0.12); color: var(--danger); }
+.bl-active-clear {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.bl-active-clear:hover { color: var(--danger); }
+
+/* ── Group-by-membership section headers ──────────────────────────── */
+.bl-table tbody tr.bl-group-head td {
+  background: var(--bg-soft);
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.bl-table tbody tr.bl-group-head .gh {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+.bl-table tbody tr.bl-group-head .gh .n {
+  background: var(--white);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+/* ── Sortable headers ─────────────────────────────────────────────── */
+.bl-table th.bl-sortable { cursor: pointer; user-select: none; }
+.bl-table th.bl-sortable:hover { color: var(--text); }
+.bl-sort-ind { margin-left: 5px; opacity: 0.4; font-size: 10px; }
+.bl-table th.is-sorted .bl-sort-ind { opacity: 1; color: var(--accent-dark); }
+
+/* ── Responsive ────────────────────────────────────────────────────── */
+@media (max-width: 980px) {
+  .bl-band,
+  .bl-band-bank { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .bl-band,
+  .bl-band-bank { grid-template-columns: 1fr; }
+}

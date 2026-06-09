@@ -26,6 +26,7 @@ import type {
   ProgrammeQuizRow,
 } from './types';
 import { QuizRow } from './quiz-row';
+import { QuizIcon } from '@/lib/tutor-quiz/quiz-icons';
 import { AddExistingPicker } from '@/lib/overlays/programme-quizzes/add-existing-picker';
 import { RemoveQuizConfirm } from '@/lib/overlays/programme-quizzes/remove-quiz-confirm';
 import { RemoveQuizBlocked } from '@/lib/overlays/programme-quizzes/remove-quiz-blocked';
@@ -144,6 +145,25 @@ export function ProgrammeQuizzesView({
 
   const hasQuizzes = quizzes.length > 0;
 
+  // Group by linkage (2026-06 CD "grouped rows"): quizzes pulled in by a
+  // curriculum activity vs those attached directly for standalone
+  // practice. An empty group is omitted.
+  const linkedQuizzes = quizzes.filter((q) => q.activities.length > 0);
+  const standaloneQuizzes = quizzes.filter((q) => q.activities.length === 0);
+
+  const renderRow = (q: ProgrammeQuizRow) => (
+    <QuizRow
+      key={q.quiz_id}
+      quiz={q}
+      onRemove={handleRequestRemove}
+      removing={
+        pending &&
+        removeModal.kind === 'confirm' &&
+        removeModal.quiz.quiz_id === q.quiz_id
+      }
+    />
+  );
+
   return (
     <div className="pq-page">
       <header className="pq-head">
@@ -208,19 +228,37 @@ export function ProgrammeQuizzesView({
           </div>
         </div>
       ) : (
-        <div className="pq-list">
-          {quizzes.map((q) => (
-            <QuizRow
-              key={q.quiz_id}
-              quiz={q}
-              onRemove={handleRequestRemove}
-              removing={
-                pending &&
-                removeModal.kind === 'confirm' &&
-                removeModal.quiz.quiz_id === q.quiz_id
-              }
-            />
-          ))}
+        <div className="pq-groups">
+          {linkedQuizzes.length > 0 && (
+            <section className="pgroup">
+              <div className="pgroup-head">
+                <span className="pgroup-icn tone-linked">
+                  <QuizIcon name="link" />
+                </span>
+                <h2 className="pgroup-title">From the curriculum</h2>
+                <span className="pgroup-ct">{linkedQuizzes.length}</span>
+                <span className="pgroup-note">
+                  Pulled in automatically by curriculum activities.
+                </span>
+              </div>
+              <div className="prow-list">{linkedQuizzes.map(renderRow)}</div>
+            </section>
+          )}
+          {standaloneQuizzes.length > 0 && (
+            <section className="pgroup">
+              <div className="pgroup-head">
+                <span className="pgroup-icn">
+                  <QuizIcon name="dot" />
+                </span>
+                <h2 className="pgroup-title">Standalone</h2>
+                <span className="pgroup-ct">{standaloneQuizzes.length}</span>
+                <span className="pgroup-note">
+                  Attached directly for student practice.
+                </span>
+              </div>
+              <div className="prow-list">{standaloneQuizzes.map(renderRow)}</div>
+            </section>
+          )}
         </div>
       )}
 

@@ -19,7 +19,11 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { QuizFormModal } from './quiz-form-modal';
+import { QuizPublishControls } from './quiz-publish-controls';
 import { QuizPickerFilterBar } from './quiz-picker-filters';
+import { QuizIcon } from './quiz-icons';
+import { QuizCardBadges } from './quiz-card-badges';
+import { HoverPeek } from '@/lib/bank/hover-peek';
 import {
   addQuizItemsAction,
   moveQuizItemAction,
@@ -27,7 +31,6 @@ import {
 } from './actions';
 import {
   formatDuration,
-  formatItemCount,
   formatMaxAttempts,
   formatPassScore,
   formatQuizKind,
@@ -35,11 +38,13 @@ import {
   formatQuizStatus,
   quizStatusPillClass,
 } from './format';
+import type { QuizPickerFilters } from './quiz-picker-query';
 import type {
   PickerQuestionRow,
+  QuizCardActivityRef,
+  QuizCardProgrammeRef,
   QuizFormValues,
   QuizItemRow,
-  QuizPickerFilters,
   TutorQuiz,
 } from './types';
 
@@ -48,16 +53,64 @@ function stemPreview(stem: string): string {
   return trimmed.length > 0 ? trimmed : '(no stem)';
 }
 
+// Hover-peek panel for a picker question — the FULL stem (unclamped) +
+// its classification, so a tutor can read/vet a question without
+// opening it. The row's stem stays 2-line clamped; this just reveals
+// the rest on hover. Reuses the bank's HoverPeek primitive + CSS.
+function PickerPeekPanel({ q }: { q: PickerQuestionRow }) {
+  const chips = [
+    q.client_needs_category,
+    q.client_needs_subcategory,
+    q.nursing_subject,
+    q.body_system,
+    q.topic,
+  ].filter((c): c is string => Boolean(c));
+  const tags = q.tags ?? [];
+
+  return (
+    <>
+      <div className="hover-peek-kicker">
+        {q.question_type}
+        {q.difficulty ? ` · ${q.difficulty}` : ''}
+      </div>
+      <p className="hover-peek-body">{stemPreview(q.stem)}</p>
+      {(chips.length > 0 || tags.length > 0) && (
+        <div className="hover-peek-chips">
+          {chips.map((c) => (
+            <span key={c} className="hover-peek-chip">
+              {c}
+            </span>
+          ))}
+          {tags.map((t) => (
+            <span key={`tag-${t}`} className="hover-peek-chip">
+              #{t}
+            </span>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function QuizEditor({
   quiz,
   items,
   pickerQuestions,
   pickerFilters,
+  pickerTagOptions,
+  programmes,
+  activities,
 }: {
   quiz: TutorQuiz;
   items: QuizItemRow[];
   pickerQuestions: PickerQuestionRow[];
   pickerFilters: QuizPickerFilters;
+  pickerTagOptions: string[];
+  /** Programmes this quiz is attached to + activities that reference it
+   *  — the header's Programmes / Activities context badges (with peeks).
+   *  Tags come from `quiz.tags`. */
+  programmes: QuizCardProgrammeRef[];
+  activities: QuizCardActivityRef[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -77,16 +130,14 @@ export function QuizEditor({
     pass_score: quiz.pass_score,
     max_attempts: quiz.max_attempts,
     status: quiz.status,
+    tags: quiz.tags,
   };
 
-  // Meta line under the title — mode, duration (timed only), pass
-  // score (graded only), attempts.
-  const metaParts: string[] = [formatQuizMode(quiz.mode)];
+  // Header meta — laid out as labelled stat chips (Mode / Duration /
+  // Pass / Attempts). Duration only shows for timed modes.
+  const isMock = quiz.quiz_kind === 'MOCK';
   const durationLabel = formatDuration(quiz.duration_seconds);
-  if (durationLabel) metaParts.push(durationLabel);
   const passLabel = formatPassScore(quiz.pass_score);
-  if (passLabel) metaParts.push(`Pass ${passLabel}`);
-  metaParts.push(formatMaxAttempts(quiz.max_attempts));
 
   function runItemAction(action: () => Promise<{ ok: boolean; error?: string }>) {
     startTransition(async () => {
@@ -126,42 +177,96 @@ export function QuizEditor({
     <>
       {/* ── Header ─────────────────────────────────────────── */}
       <header className="quiz-editor-head">
-        <div className="quiz-editor-head-main">
-          <div className="quiz-editor-title-row">
-            <h1 className="quiz-editor-title">{quiz.title}</h1>
-            <span className={`quiz-pill ${quizStatusPillClass(quiz.status)}`}>
-              {formatQuizStatus(quiz.status)}
-            </span>
+        <div className="quiz-editor-head-top">
+          <div className="quiz-editor-head-main">
+            <div className="quiz-editor-title-row">
+              <span
+                className={`quiz-kind-tag ${isMock ? 'is-mock' : 'is-practice'}`}
+              >
+                <QuizIcon name={isMock ? 'target' : 'sparkles'} />
+                {formatQuizKind(quiz.quiz_kind)}
+              </span>
+              <h1 className="quiz-editor-title">{quiz.title}</h1>
+              <span className={`quiz-pill ${quizStatusPillClass(quiz.status)}`}>
+                {formatQuizStatus(quiz.status)}
+              </span>
+            </div>
+            {quiz.description && (
+              <p className="quiz-editor-desc">{quiz.description}</p>
+            )}
           </div>
-          {quiz.description && (
-            <p className="quiz-editor-desc">{quiz.description}</p>
-          )}
-          <p className="quiz-editor-meta">
-            <span className="quiz-editor-kind">
-              {formatQuizKind(quiz.quiz_kind)}
-            </span>
-            {' · '}
-            {metaParts.join(' · ')}
-          </p>
+          <div className="quiz-editor-head-badges">
+            <QuizCardBadges
+              tags={quiz.tags}
+              programmes={programmes}
+              activities={activities}
+              direction="down"
+            />
+          </div>
+          <div className="quiz-editor-head-actions">
+            <button
+              type="button"
+              className="quiz-btn quiz-btn-ghost"
+              onClick={() => setEditOpen(true)}
+            >
+              <QuizIcon name="pencil" />
+              Edit details
+            </button>
+            <QuizPublishControls
+              quizId={quiz.quiz_id}
+              status={quiz.status}
+              itemCount={items.length}
+            />
+          </div>
         </div>
-        <button
-          type="button"
-          className="quiz-btn quiz-btn-ghost"
-          onClick={() => setEditOpen(true)}
-        >
-          Edit details
-        </button>
+
+        <div className="quiz-editor-metachips">
+          <div className="chip">
+            <span className="k">
+              <QuizIcon name="list" />
+              Mode
+            </span>
+            <span className="v">{formatQuizMode(quiz.mode)}</span>
+          </div>
+          {durationLabel && (
+            <div className="chip">
+              <span className="k">
+                <QuizIcon name="timer" />
+                Duration
+              </span>
+              <span className="v">{durationLabel}</span>
+            </div>
+          )}
+          <div className="chip">
+            <span className="k">
+              <QuizIcon name="target" />
+              Pass score
+            </span>
+            <span className="v">{passLabel ?? 'Ungraded'}</span>
+          </div>
+          <div className="chip">
+            <span className="k">
+              <QuizIcon name="repeat" />
+              Attempts
+            </span>
+            <span className="v">{formatMaxAttempts(quiz.max_attempts)}</span>
+          </div>
+        </div>
       </header>
 
       <div className="quiz-editor-columns">
       {/* ── Left column: the quiz (selected questions) ───────── */}
       <section className="quiz-zone quiz-col-selected">
-        <h2 className="quiz-zone-title">
-          In this quiz{' '}
-          <span className="quiz-zone-count">
-            ({formatItemCount(items.length)})
-          </span>
-        </h2>
+        <div className="quiz-zone-head">
+          <div className="quiz-zone-head-l">
+            <h2 className="quiz-zone-title">
+              In this quiz <span className="quiz-zone-count">{items.length}</span>
+            </h2>
+            <p className="quiz-zone-hint">
+              Use the arrows to reorder. Students see them in this order.
+            </p>
+          </div>
+        </div>
 
         {items.length === 0 ? (
           <p className="quiz-zone-empty">
@@ -171,14 +276,21 @@ export function QuizEditor({
           <ol className="quiz-item-list">
             {items.map((item, index) => (
               <li key={item.quiz_item_id} className="quiz-item-row">
-                <span className="quiz-item-position">{item.position}</span>
+                <div className="quiz-item-handle">
+                  <span className="quiz-item-grip" aria-hidden="true">
+                    <QuizIcon name="grip" />
+                  </span>
+                  <span className="quiz-item-position">{item.position}</span>
+                </div>
                 <div className="quiz-item-body">
                   <div className="quiz-item-line">
                     <span className="quiz-type-chip">
                       {item.question_type}
                     </span>
                     {item.difficulty && (
-                      <span className="quiz-diff-chip">
+                      <span
+                        className={`quiz-diff-chip is-${item.difficulty.toLowerCase()}`}
+                      >
                         {item.difficulty}
                       </span>
                     )}
@@ -205,7 +317,7 @@ export function QuizEditor({
                       )
                     }
                   >
-                    ↑
+                    <QuizIcon name="arrow-up" />
                   </button>
                   <button
                     type="button"
@@ -219,7 +331,7 @@ export function QuizEditor({
                       )
                     }
                   >
-                    ↓
+                    <QuizIcon name="arrow-down" />
                   </button>
                   <button
                     type="button"
@@ -233,7 +345,7 @@ export function QuizEditor({
                       )
                     }
                   >
-                    ✕
+                    <QuizIcon name="x" />
                   </button>
                 </div>
               </li>
@@ -244,13 +356,21 @@ export function QuizEditor({
 
       {/* ── Right column: question picker ────────────────────── */}
       <section className="quiz-zone quiz-col-picker">
-        <h2 className="quiz-zone-title">Add questions</h2>
-        <p className="quiz-zone-hint">
-          Your published, standalone questions. Filter, tick the ones
-          you want, then Add.
-        </p>
+        <div className="quiz-zone-head">
+          <div className="quiz-zone-head-l">
+            <h2 className="quiz-zone-title">Add questions</h2>
+            <p className="quiz-zone-hint">
+              Your published, standalone questions. Filter, tick the ones
+              you want, then Add.
+            </p>
+          </div>
+        </div>
 
-        <QuizPickerFilterBar values={pickerFilters} baseUrl={baseUrl} />
+        <QuizPickerFilterBar
+          values={pickerFilters}
+          baseUrl={baseUrl}
+          tagOptions={pickerTagOptions}
+        />
 
         {pickerQuestions.length === 0 ? (
           <p className="quiz-zone-empty">
@@ -287,8 +407,8 @@ export function QuizEditor({
                   <li
                     key={q.item_id}
                     className={`quiz-picker-row ${
-                      alreadyAdded ? 'is-added' : ''
-                    }`}
+                      isChecked ? 'is-checked' : ''
+                    } ${alreadyAdded ? 'is-added' : ''}`}
                   >
                     <label className="quiz-picker-check">
                       <input
@@ -304,7 +424,9 @@ export function QuizEditor({
                           {q.question_type}
                         </span>
                         {q.difficulty && (
-                          <span className="quiz-diff-chip">
+                          <span
+                            className={`quiz-diff-chip is-${q.difficulty.toLowerCase()}`}
+                          >
                             {q.difficulty}
                           </span>
                         )}
@@ -314,9 +436,12 @@ export function QuizEditor({
                           </span>
                         )}
                       </div>
-                      <p className="quiz-item-stem">
+                      <HoverPeek
+                        className="quiz-item-stem"
+                        panel={<PickerPeekPanel q={q} />}
+                      >
                         {stemPreview(q.stem)}
-                      </p>
+                      </HoverPeek>
                     </div>
                     {alreadyAdded && (
                       <span className="quiz-picker-added">Added</span>

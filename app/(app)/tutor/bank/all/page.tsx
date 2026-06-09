@@ -13,14 +13,17 @@ import {
   BankListClient,
   type BankListRowSummary,
 } from '@/lib/bank/bank-list-client';
+import { loadAuthorship } from '@/lib/audit/authorship';
 import {
-  BankFilters,
-  type BankFilterValues,
-} from '@/lib/bank/bank-filters';
-import {
-  BankCounts,
-  type BankCompositionCounts,
-} from '@/lib/bank/bank-counts';
+  parseBankFilters,
+  parseBankView,
+  bankViewLoadsAll,
+  applyBankFilters,
+  applyMembershipFilter,
+  hasAnyBankFilter,
+  BANK_MAX_ROWS,
+} from '@/lib/bank/bank-list-query';
+import { BankBand, type BankBandCounts } from '@/lib/bank/bank-band';
 import {
   emptyMcqInitial,
   mcqRowToInitial,
@@ -84,38 +87,22 @@ const BASE_URL = '/tutor/bank/all';
 interface FullTutorBankRow extends McqDbRow {
   parent_case_id: string | null;
   trend_id:       string | null;
+  parent_note_id: string | null;
+  updated_at:     string;
   case:  { title: string } | null;
   trend: { title: string } | null;
 }
 
 interface PageProps {
-  searchParams?: Promise<{
-    type?:       string;
-    category?:   string;
-    difficulty?: string;
-    status?:     string;
-    membership?: string;
-    q?:          string;
-  }>;
+  searchParams?: Promise<Record<string, string | undefined>>;
 }
 
 export default async function TutorBankAllPage({ searchParams }: PageProps) {
   const sp = (await searchParams) ?? {};
-  const filters: BankFilterValues = {
-    type:       sp.type       ?? '',
-    category:   sp.category   ?? '',
-    difficulty: sp.difficulty ?? '',
-    status:     sp.status     ?? '',
-    membership: sp.membership ?? '',
-    q:          sp.q          ?? '',
-  };
-  const hasAnyFilter =
-    filters.type !== '' ||
-    filters.category !== '' ||
-    filters.difficulty !== '' ||
-    filters.status !== '' ||
-    filters.membership !== '' ||
-    filters.q !== '';
+  const filters = parseBankFilters(sp);
+  const view = parseBankView(sp);
+  const loadAll = bankViewLoadsAll(view);
+  const hasAnyFilter = hasAnyBankFilter(filters);
 
   const supabase = await createClient();
   const {
@@ -129,93 +116,105 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
     .from('nclex_tutor_questions')
     .select(
       MCQ_ROW_COLUMNS +
-      ', parent_case_id, trend_id, ' +
+      ', parent_case_id, trend_id, parent_note_id, updated_at, ' +
       'trend:nclex_tutor_trend_datasets(title), ' +
       'case:nclex_tutor_case_studies(title)',
-    )
-    .order('item_id', { ascending: true })
-    .limit(500);
+    );
 
-  if (filters.type)       query = query.eq('question_type', filters.type);
-  if (filters.category)   query = query.eq('client_needs_category', filters.category);
-  if (filters.difficulty) query = query.eq('difficulty', filters.difficulty);
-  if (filters.status === 'published') query = query.eq('is_published', true);
-  if (filters.status === 'draft')     query = query.eq('is_published', false);
-  if (filters.q) query = query.ilike('stem', `%${filters.q}%`);
+  // All the non-membership filters + scoped search (shared helper).
+  query = applyBankFilters(query, filters);
 
-  if (filters.membership === 'standalone') {
-    query = query.is('parent_case_id', null).is('trend_id', null);
-  } else if (filters.membership === 'case') {
-    query = query.not('parent_case_id', 'is', null);
-  } else if (filters.membership === 'trend') {
-    query = query.not('trend_id', 'is', null);
-  }
+  // Membership filter (OR across the chosen kinds) — main query only.
+  query = applyMembershipFilter(query, filters.membership);
 
-  const { data, error } = await query.returns<FullTutorBankRow[]>();
+  // Server-side pagination: default loads one page (BANK_PAGE_SIZE) via
+  // .range(); a sort or group loads the whole matched set (≤ BANK_MAX_ROWS)
+  // so the client can sort/group it correctly.
+  const ordered = query.order('item_id', { ascending: true });
+  const { data, error } = await (
+    loadAll ? ordered.limit(BANK_MAX_ROWS) : ordered.range(0, view.limit - 1)
+  ).returns<FullTutorBankRow[]>();
 
-  // ── Composition counts ─────────────────────────────────────
-  type MembershipBucket = 'total' | 'standalone' | 'case' | 'trend';
-  const buildCountQuery = (
-    bucket: MembershipBucket,
-    applyNonMembership: boolean,
-  ) => {
-    let q = supabase
-      .from('nclex_tutor_questions')
-      .select('*', { count: 'exact', head: true });
-    if (bucket === 'standalone') {
-      q = q.is('parent_case_id', null).is('trend_id', null);
-    } else if (bucket === 'case') {
-      q = q.not('parent_case_id', 'is', null);
-    } else if (bucket === 'trend') {
-      q = q.not('trend_id', 'is', null);
-    }
-    if (applyNonMembership) {
-      if (filters.type)       q = q.eq('question_type', filters.type);
-      if (filters.category)   q = q.eq('client_needs_category', filters.category);
-      if (filters.difficulty) q = q.eq('difficulty', filters.difficulty);
-      if (filters.status === 'published') q = q.eq('is_published', true);
-      if (filters.status === 'draft')     q = q.eq('is_published', false);
-      if (filters.q) q = q.ilike('stem', `%${filters.q}%`);
-    }
-    return q;
-  };
+  // Total rows matching the current filters — drives "Showing X of Y" + Load more.
+  let filteredCountQuery = supabase
+    .from('nclex_tutor_questions')
+    .select('*', { count: 'exact', head: true });
+  filteredCountQuery = applyBankFilters(filteredCountQuery, filters);
+  filteredCountQuery = applyMembershipFilter(filteredCountQuery, filters.membership);
+  const { count: filteredCount } = await filteredCountQuery;
+  const filteredTotal = filteredCount ?? 0;
 
+  // ── Band counts (whole-bank; the cards describe the population they
+  //    filter into, so they ignore the active filters — the "Showing X of
+  //    Y" line carries the filtered count). Eight parallel head-counts.
+  //    Composition buckets are mutually exclusive: note-born = has a
+  //    parent note AND no case/trend; standalone = none of the three.
+  const mk = () => supabase.from('nclex_tutor_questions').select('*', { count: 'exact', head: true });
   const [
-    totalAll, totalStandalone, totalCase, totalTrend,
-    filteredAll, filteredStandalone, filteredCase, filteredTrend,
+    cTotal, cStandalone, cCase, cTrend, cNote, cPublished, cDrafts, cFree,
   ] = await Promise.all([
-    buildCountQuery('total',      false),
-    buildCountQuery('standalone', false),
-    buildCountQuery('case',       false),
-    buildCountQuery('trend',      false),
-    buildCountQuery('total',      true),
-    buildCountQuery('standalone', true),
-    buildCountQuery('case',       true),
-    buildCountQuery('trend',      true),
+    mk(),
+    mk().is('parent_case_id', null).is('trend_id', null).is('parent_note_id', null),
+    mk().not('parent_case_id', 'is', null),
+    mk().not('trend_id', 'is', null),
+    mk().not('parent_note_id', 'is', null).is('parent_case_id', null).is('trend_id', null),
+    mk().eq('is_published', true),
+    mk().eq('is_published', false),
+    mk().eq('is_free_sample', true),
   ]);
 
-  const counts: BankCompositionCounts = {
-    total:       { filtered: filteredAll.count        ?? 0, total: totalAll.count        ?? 0 },
-    standalone:  { filtered: filteredStandalone.count ?? 0, total: totalStandalone.count ?? 0 },
-    caseLinked:  { filtered: filteredCase.count       ?? 0, total: totalCase.count       ?? 0 },
-    trendLinked: { filtered: filteredTrend.count      ?? 0, total: totalTrend.count      ?? 0 },
+  const bandCounts: BankBandCounts = {
+    total:       cTotal.count     ?? 0,
+    composition: {
+      standalone: cStandalone.count ?? 0,
+      case:       cCase.count       ?? 0,
+      trend:      cTrend.count      ?? 0,
+      note:       cNote.count       ?? 0,
+    },
+    published: cPublished.count ?? 0,
+    drafts:    cDrafts.count    ?? 0,
+    free:      cFree.count      ?? 0,
   };
 
   // ── Row mapping + per-type initials ────────────────────────
   const fullRows = data ?? [];
 
+  // Resolve the source-note titles for the "Note · {title}" origin badge
+  // on questions born inside a library note (parent_note_id).
+  const noteIds = Array.from(
+    new Set(fullRows.map((r) => r.parent_note_id).filter((x): x is string => Boolean(x))),
+  );
+  const noteTitleById: Record<string, string> = {};
+  if (noteIds.length > 0) {
+    const { data: noteRows } = await supabase
+      .from('nclex_tutor_library_notes')
+      .select('note_id, title')
+      .in('note_id', noteIds);
+    for (const n of (noteRows ?? []) as { note_id: string; title: string }[]) {
+      noteTitleById[n.note_id] = n.title;
+    }
+  }
+
   const summaryRows: BankListRowSummary[] = fullRows.map((r) => ({
     item_id:        r.item_id,
     question_type:  r.question_type as QuestionType,
     stem:           r.stem ?? '',
+    instruction:    r.instruction ?? null,
     difficulty:     r.difficulty,
     is_published:   r.is_published,
     is_free_sample: r.is_free_sample,
     marks:          r.marks ?? 1,
+    category:       r.client_needs_category ?? null,
+    subcategory:    r.client_needs_subcategory ?? null,
+    subject:        r.nursing_subject ?? null,
+    bodySystem:     r.body_system ?? null,
+    updated_at:     r.updated_at,
     parent_case_id: r.parent_case_id,
     case_title:     r.case?.title ?? null,
     trend_id:       r.trend_id,
     trend_title:    r.trend?.title ?? null,
+    parent_note_id: r.parent_note_id ?? null,
+    note_title:     r.parent_note_id ? (noteTitleById[r.parent_note_id] ?? null) : null,
   }));
 
   const mcqInitialsById:       Record<string, McqEditorInitial>       = {};
@@ -249,30 +248,40 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
     }
   }
 
+  // Authorship facts per question (each row's own tutor_question history).
+  const authorship = await loadAuthorship(
+    supabase, 'tutor', 'tutor_question', summaryRows.map((r) => r.item_id),
+  );
+
+  // Distinct tags for the Tag filter (the tutor's own questions; RLS-scoped).
+  const { data: tagRows } = await supabase.from('nclex_tutor_questions').select('tags');
+  const tagOptions = Array.from(
+    new Set((tagRows ?? []).flatMap((r) => (r.tags as string[] | null) ?? [])),
+  ).sort((a, b) => a.localeCompare(b));
+
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner">
-        <div className="bank-header-row">
-          <Link href="/tutor" className="bank-back-link">
-            ← Tutor
-          </Link>
-        </div>
-
-        <header className="auth-list-page-header">
+        <header className="bl-page-head">
           <div>
-            <h1 className="auth-list-page-title">My Bank</h1>
+            <div className="bl-eyebrow">
+              <span className="bl-surface-chip tutor"><span className="dot" />Tutor bank</span>
+              Authoring
+            </div>
+            <h1 className="bl-page-title">My Bank</h1>
+            <p className="bl-page-sub">
+              Every standalone and wrapper-linked question in your private bank.
+              Filter, scan status, and jump straight into an editor.
+            </p>
           </div>
-          <div className="auth-list-toolbar">
-            <Link href="/tutor/bank/cases" className="auth-cs-btn subtle">
-              Case Studies →
-            </Link>
-            <Link href="/tutor/bank/trends" className="auth-cs-btn subtle">
-              Trend datasets →
-            </Link>
+          <div className="bl-head-actions">
+            <Link href="/tutor" className="bl-btn">← Tutor</Link>
+            <Link href="/tutor/bank/cases" className="bl-btn">Case Studies →</Link>
+            <Link href="/tutor/bank/trends" className="bl-btn">Trend datasets →</Link>
           </div>
         </header>
 
-        <BankCounts counts={counts} />
+        <BankBand counts={bandCounts} filters={filters} baseUrl={BASE_URL} />
 
         {error && (
           <p className="auth-sandbox-error">
@@ -280,13 +289,16 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
           </p>
         )}
 
-        <BankFilters values={filters} baseUrl={BASE_URL} />
-
         <BankListClient
           surface="tutor"
           rows={summaryRows}
+          authorshipById={authorship}
           hasAnyFilter={hasAnyFilter}
           baseUrl={BASE_URL}
+          filters={filters}
+          tagOptions={tagOptions}
+          view={view}
+          filteredTotal={filteredTotal}
           mcqInitialsById={mcqInitialsById}
           emptyMcqInitial={emptyMcqInitial('tutor')}
           tfInitialsById={tfInitialsById}

@@ -17,9 +17,12 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { ErrorToast } from '@/lib/toast/error-toast';
+import { Switch } from '@/lib/programmes/form-controls';
+import { ProgIcon } from '@/lib/programmes/prog-icon';
 import { createCohortAction, editCohortAction } from './actions';
 import { formatDateRange } from './format';
 import type { CohortFormValues } from './types';
@@ -54,6 +57,7 @@ export function CohortFormModal(props: CohortFormModalProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showDiscard, setShowDiscard] = useState(false);
+  const [triedSubmit, setTriedSubmit] = useState(false);
 
   const isEdit = props.mode === 'edit';
   const initial = isEdit ? props.initial : null;
@@ -102,6 +106,7 @@ export function CohortFormModal(props: CohortFormModalProps) {
     cohortSizeNum === null ||
     (Number.isInteger(cohortSizeNum) && cohortSizeNum > 0);
   const isFormValid = Boolean(startDate) && isCohortSizeValid;
+  const startEmpty = startDate.trim() === '';
 
   function attemptClose() {
     if (isPending) return;
@@ -120,7 +125,7 @@ export function CohortFormModal(props: CohortFormModalProps) {
 
   function handleSubmit() {
     if (!isFormValid) {
-      setError('Pick a start date.');
+      setTriedSubmit(true);
       return;
     }
     setError(null);
@@ -145,29 +150,39 @@ export function CohortFormModal(props: CohortFormModalProps) {
     });
   }
 
-  const modalTitle = isEdit ? 'Edit cohort' : 'New cohort';
-  const submitLabel = isEdit
-    ? isPending
+  const eyebrow = isEdit ? 'Edit cohort' : 'New cohort';
+  const headerTitle = isEdit ? initial?.name || 'Edit cohort' : 'Add a cohort';
+  const submitText = isPending
+    ? isEdit
       ? 'Saving…'
-      : 'Save changes'
-    : isPending
-      ? 'Creating…'
+      : 'Creating…'
+    : isEdit
+      ? 'Save changes'
       : 'Create cohort';
 
-  return (
+  // Portal to <body>: this modal is rendered inside a programme card (the
+  // "+ Add first cohort" affordance), so without this its fixed overlay is
+  // trapped in the card's stacking context — sibling cards paint over it and
+  // steal clicks. document is always present (mounts only on a client click).
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <>
       <div
         className="prog-modal-overlay"
         role="dialog"
         aria-modal="true"
-        aria-label={modalTitle}
+        aria-label={eyebrow}
         onClick={(e) => {
           if (e.target === e.currentTarget) attemptClose();
         }}
       >
         <div className="prog-modal">
           <header className="prog-modal-header">
-            <h2 className="prog-modal-title">{modalTitle}</h2>
+            <div>
+              <p className="prog-modal-eyebrow">{eyebrow}</p>
+              <h2 className="prog-modal-title">{headerTitle}</h2>
+            </div>
             <button
               type="button"
               className="prog-modal-close"
@@ -175,11 +190,21 @@ export function CohortFormModal(props: CohortFormModalProps) {
               onClick={attemptClose}
               disabled={isPending}
             >
-              ✕
+              <ProgIcon name="x" size={18} />
             </button>
           </header>
 
           <div className="prog-modal-body">
+            {triedSubmit && startEmpty && (
+              <div className="prog-error-banner" role="alert">
+                <ProgIcon name="alert" size={15} />
+                <span>
+                  Pick a start date before you can {isEdit ? 'save' : 'create'}{' '}
+                  this cohort.
+                </span>
+              </div>
+            )}
+
             <section className="prog-form-section">
               <label className="prog-field">
                 <span className="prog-field-label">Cohort name</span>
@@ -190,11 +215,11 @@ export function CohortFormModal(props: CohortFormModalProps) {
                   onChange={(e) => setName(e.target.value)}
                   disabled={isPending}
                   autoFocus
+                  placeholder="e.g. September Intensive · Cohort A"
                 />
                 <span className="prog-field-help">
-                  Leave blank to auto-generate from dates
-                  (&ldquo;5 Jan – 27 Mar 2027&rdquo;). Override with names
-                  like &ldquo;Weekend Intensive&rdquo; if useful.
+                  Optional — leave blank to auto-generate from dates
+                  (&ldquo;5 Jan – 27 Mar 2027&rdquo;).
                 </span>
               </label>
 
@@ -205,7 +230,9 @@ export function CohortFormModal(props: CohortFormModalProps) {
                   </span>
                   <input
                     type="date"
-                    className="prog-input"
+                    className={
+                      'prog-input' + (triedSubmit && startEmpty ? ' is-invalid' : '')
+                    }
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     disabled={isPending}
@@ -214,10 +241,19 @@ export function CohortFormModal(props: CohortFormModalProps) {
 
                 <div className="prog-field">
                   <span className="prog-field-label">End date</span>
-                  <div className="cohort-end-date-readout">{endDateDisplay}</div>
+                  <div className="prog-readout">
+                    <ProgIcon name="check" size={14} />
+                    {startDate ? (
+                      <span>
+                        <b>{endDateDisplay}</b>
+                      </span>
+                    ) : (
+                      <span>auto: {programmeLengthUnits} weeks after start</span>
+                    )}
+                  </div>
                   <span className="prog-field-help">
-                    {programmeLengthUnits} weeks after start. To change
-                    this, edit the programme&apos;s length.
+                    Derived from the programme&rsquo;s {programmeLengthUnits}-week
+                    length.
                   </span>
                 </div>
               </div>
@@ -239,19 +275,20 @@ export function CohortFormModal(props: CohortFormModalProps) {
                 </label>
 
                 <div className="prog-field">
-                  <span className="prog-field-label">Late joiners</span>
-                  <label className="prog-toggle prog-toggle-inline">
-                    <input
-                      type="checkbox"
-                      checked={allowLateJoin}
-                      onChange={(e) => setAllowLateJoin(e.target.checked)}
+                  <span className="prog-field-label">Allow late joiners</span>
+                  <div className="prog-switch-inline">
+                    <Switch
+                      on={allowLateJoin}
+                      onChange={setAllowLateJoin}
                       disabled={isPending}
+                      ariaLabel="Allow late joiners"
                     />
-                    <span>Allow enrolment after start date</span>
-                  </label>
+                    <span className="prog-switch-label">
+                      {allowLateJoin ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
                   <span className="prog-field-help">
-                    Off → enrolment closes at start. On → you can add
-                    students anytime, no platform cutoff.
+                    Let students enrol after the start date.
                   </span>
                 </div>
               </div>
@@ -259,6 +296,10 @@ export function CohortFormModal(props: CohortFormModalProps) {
           </div>
 
           <footer className="prog-modal-footer">
+            <span className="prog-modal-footer-note">
+              <ProgIcon name="info" size={13} /> End date follows the programme
+              length.
+            </span>
             <button
               type="button"
               className="prog-btn prog-btn-ghost"
@@ -271,9 +312,10 @@ export function CohortFormModal(props: CohortFormModalProps) {
               type="button"
               className="prog-btn prog-btn-primary"
               onClick={handleSubmit}
-              disabled={!isFormValid || isPending || (isEdit && !isDirty)}
+              disabled={isPending || (isEdit && !isDirty)}
             >
-              {submitLabel}
+              {isPending && <span className="prog-spinner" />}
+              {submitText}
             </button>
           </footer>
         </div>
@@ -290,6 +332,7 @@ export function CohortFormModal(props: CohortFormModalProps) {
           }}
         />
       )}
-    </>
+    </>,
+    document.body,
   );
 }

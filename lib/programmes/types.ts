@@ -65,6 +65,30 @@ export type ProgrammeListRow = Pick<
   upfront_total_minor: number | null;
 };
 
+// Enriched list row for the Programmes page cards. Extends the base
+// list row with read-time roll-ups: distinct ENROLLED student count
+// (programme-level — works for tutor-led + self-paced) and, for live
+// tutor-led programmes with an active cohort, an average completion +
+// health band. `avgCompletion`/`health` are null when there's no active
+// cohort to measure (draft, self-paced, archived, or no in-progress run)
+// — the card then shows no completion meter.
+export type ProgrammeHealth = 'on-track' | 'watch';
+
+export type ProgrammeCardRow = ProgrammeListRow & {
+  students: number;
+  avgCompletion: number | null;
+  health: ProgrammeHealth | null;
+  // Tutor-led schedule signal for the card (derived from nclex_cohorts at
+  // read time — no programme column). `hasOpenCohort` = any cohort that is
+  // UPCOMING or IN_PROGRESS (students can still enrol / are mid-run);
+  // false on a tutor-led programme whose cohorts have all ENDED/CANCELLED
+  // → the "no open cohorts" warning. `nextCohortStart` = the earliest
+  // upcoming cohort's start_date (ISO), or null when none is upcoming
+  // (self-paced, zero-cohort, or only in-progress/ended cohorts exist).
+  hasOpenCohort: boolean;
+  nextCohortStart: string | null;
+};
+
 // The form-payload shape — the editable subset of a programme.
 // Used by ProgrammeFormModal in edit mode (initial values) and
 // as the input to createProgrammeAction / editProgrammeAction.

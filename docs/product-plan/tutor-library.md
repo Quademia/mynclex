@@ -2908,6 +2908,51 @@ at the top for the headline list):
 
 Still open:
 
+- **✅ SHIPPED 2026-06-09 (merged to `main`, not yet prod) —
+  Programme-level Library page (tutor side).** Built as designed below:
+  a read-only "student preview" Library tab on the programme detail, fed
+  the per-programme entitlement set (TUTOR_WIDE ∪ PROGRAMME_SCOPED-to-here,
+  published), with the tutor lens (preview banner + per-note visibility
+  chip "All students / This programme") AND the in-place read view
+  (faithful; nothing saved: inert bookmark/done, and **answerable-but-
+  unsaved** embedded questions — the tutor can answer + see rationale via
+  a grade-only action that writes no row, paged one-at-a-time).
+  No migration. The full version (lens, not pure mirror) was built. Code
+  in `lib/library/programme/`; route
+  `app/(app)/tutor/programme/[id]/library/` (+ `/note/[note_id]`). See
+  [sessions/2026-06.md](../../sessions/2026-06.md). Original design follows.
+
+- **Programme-level Library page (tutor side) — original design.**
+  Agreed in discussion 2026-06-08. A new **Library tab** on the
+  programme detail, parallel to the **Quizzes** tab: *"what notes can
+  students in this programme see?"* — the tutor-side mirror of the
+  student programme library (`/student/programme/[id]/library`).
+  - **What it shows:** the per-programme entitlement set =
+    `TUTOR_WIDE ∪ PROGRAMME_SCOPED-to-this-programme`, **published
+    only**. (The student's *actual* library is their tutor's whole
+    library across all their enrolments; "what a student in THIS
+    programme sees" is the narrower per-programme slice — the right
+    definition for a tutor preview.)
+  - **How:** reuse the student library's read-only lensed UI
+    (`lib/library/student/`) for fidelity, fed a tutor-computed set.
+    Add a thin **tutor lens** on top: a per-note source badge
+    ("Tutor-wide" / "This programme only") + a link to manage
+    visibility — so it's an audit surface, not just a passive mirror.
+    (Pure mirror is a valid simpler v1 if preferred.)
+  - **Cohort finding (the key architectural fact):** the student
+    library is **tutor-keyed**, NOT programme/cohort-keyed — both the
+    programme and cohort student routes resolve to the *tutor* and show
+    the same set (`buildSnapshotForTutor`). Visibility modes are
+    **TUTOR_WIDE / PROGRAMME_SCOPED only** (no `COHORT_SCOPED`). So a
+    cohort's library === its programme's library; the **programme** is
+    the correct home, and one programme-level tab covers all its
+    cohorts. Per-cohort note visibility stays the deferred follow-on.
+  - **Footprint:** read view over existing data — likely **no
+    migration** (a tutor-side query computing the entitlement set,
+    mirroring `nclex_student_can_see_note()`'s logic). New programme
+    route + a `NavItem` entry in `TUTOR_PROGRAMME_NAV`. "Ask before new
+    folders" applies if a new `lib/` subfolder is proposed.
+
 - **Lock-attached-shelf as snapshot** (v1.5) — for tutors who want
   "snapshot the shelf as it is today" rather than the auto-sync
   behaviour. The atomic-activity model handles auto-sync cleanly; a

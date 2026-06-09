@@ -76,6 +76,13 @@ export type NavItem = {
    */
   children?: NavItem[];
   /**
+   * When true, the row is "active" only on an exact pathname match
+   * rather than the default `pathname.startsWith(href)`. Used by index
+   * routes whose href is a prefix of every sibling (e.g. tutor Home at
+   * `/tutor`, which would otherwise highlight on every `/tutor/*` page).
+   */
+  exact?: boolean;
+  /**
    * Optional permission key required to see this item. Used by the admin
    * sidebar; ignored by audience configs that don't gate (student, tutor).
    *

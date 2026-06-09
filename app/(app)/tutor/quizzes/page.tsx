@@ -11,6 +11,7 @@
 
 import { getMyQuizzes } from '@/lib/tutor-quiz/queries';
 import { QuizList } from '@/lib/tutor-quiz/quiz-list';
+import { QuizStatStrip } from '@/lib/tutor-quiz/quiz-stat-strip';
 import { QuizzesEmpty } from '@/lib/tutor-quiz/empty-state';
 import { NewQuizTrigger } from '@/lib/tutor-quiz/new-quiz-trigger';
 
@@ -23,10 +24,12 @@ export default async function TutorQuizzesPage() {
     <div className="quizzes-page">
       <header className="quizzes-head">
         <div>
+          <div className="quizzes-eyebrow">My quizzes</div>
           <h1 className="quizzes-title">Quizzes</h1>
           <p className="quizzes-sub">
-            Reusable Mock &amp; Practice question sets. Attach a
-            published quiz to any programme&apos;s curriculum.
+            Reusable Mock &amp; Practice question sets built from your own
+            bank. Publish a quiz to attach it to any programme&apos;s
+            curriculum.
           </p>
         </div>
         {quizzes.length > 0 && <NewQuizTrigger variant="header" />}
@@ -35,7 +38,10 @@ export default async function TutorQuizzesPage() {
       {quizzes.length === 0 ? (
         <QuizzesEmpty />
       ) : (
-        <QuizList quizzes={quizzes} />
+        <>
+          <QuizStatStrip quizzes={quizzes} />
+          <QuizList quizzes={quizzes} />
+        </>
       )}
     </div>
   );

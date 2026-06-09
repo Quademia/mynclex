@@ -72,8 +72,15 @@ function readSurface(formData: FormData): Surface {
   return raw === 'tutor' ? 'tutor' : 'admin';
 }
 
-// Next 5-digit case_id for the given surface. Lexical sort works
-// because the suffix is fixed-width zero-padded.
+// Next 5-digit case_id for the given surface.
+//
+// Can't trust a single lexical-max row: manually-named / seed case_ids
+// (e.g. NCLEX_CS_TEST...) sort ABOVE the zero-padded numbers ('T' >
+// '0'), so the old lexical-max + parseInt gave NaN, fell back to 1, and
+// collided on NCLEX_CS_00001. Scan every id for this prefix and take the
+// true max over only the pure-digit suffixes — the auto-numbering
+// scheme's own ids. (Mirrors nextItemId in lib/bank/actions/save-question.ts
+// and the defensive nextTrendId.)
 async function nextCaseId(
   supabase: ServerSupabaseClient,
   surface: Surface,
@@ -83,21 +90,20 @@ async function nextCaseId(
   const { data, error } = await supabase
     .from(cfg.caseTable)
     .select('case_id')
-    .like('case_id', `${idPrefix}%`)
-    .order('case_id', { ascending: false })
-    .limit(1);
+    .like('case_id', `${idPrefix}%`);
 
   if (error) throw error;
 
-  let next = 1;
-  if (data && data.length > 0) {
-    const last = (data[0] as { case_id: string }).case_id;
-    const suffix = last.slice(idPrefix.length);
-    const n = parseInt(suffix, 10);
-    if (Number.isFinite(n)) next = n + 1;
+  let max = 0;
+  for (const r of (data ?? []) as Array<{ case_id: string }>) {
+    const suffix = r.case_id.slice(idPrefix.length);
+    if (/^\d+$/.test(suffix)) {
+      const n = parseInt(suffix, 10);
+      if (n > max) max = n;
+    }
   }
 
-  return `${idPrefix}${String(next).padStart(5, '0')}`;
+  return `${idPrefix}${String(max + 1).padStart(5, '0')}`;
 }
 
 // Insert a new case row with title 'Untitled case' and redirect to
@@ -196,6 +202,66 @@ export async function saveCaseMetadataAction(
 
   revalidatePath(`${cfg.baseUrl}/${case_id}`);
   return { ok: true };
+}
+
+// "Publish all & publish case" — publishes every attached question, then
+// publishes the case. Offered from the wrapper's Publish toggle when all
+// 6 questions are present but one or more is still a draft. Safe because a
+// saved question row is always well-formed (so flipping the draft flag
+// can't surface a broken question), and case children can't leak as
+// standalone practice items (the student builder excludes
+// parent_case_id IS NOT NULL) — publishing them only makes them reachable
+// through this case. The curator opts into this explicitly; the wrapper
+// never publishes questions on its own. Save (saveCaseMetadataAction)
+// stays ungated.
+export async function publishCaseWithChildrenAction(
+  formData: FormData,
+): Promise<SaveResult> {
+  const surface = readSurface(formData);
+  const { supabase } = await requireBankCurator(surface);
+  const cfg = configFor(surface);
+
+  const case_id = String(formData.get('case_id') ?? '').trim();
+  if (!case_id) return { ok: false, error: 'Missing case_id.' };
+
+  // Resolve the attached question ids (positions 1-6).
+  const { data: joins, error: joinErr } = await supabase
+    .from(cfg.itemsTable)
+    .select('item_id, position')
+    .eq('case_id', case_id);
+  if (joinErr) return { ok: false, error: `Could not load questions: ${joinErr.message}` };
+
+  const inRange = (joins ?? []).filter(
+    (j) =>
+      typeof j.position === 'number' &&
+      j.position >= 1 &&
+      j.position <= 6 &&
+      typeof j.item_id === 'string' &&
+      j.item_id.length > 0,
+  );
+  const filled = new Set(inRange.map((j) => j.position as number)).size;
+  if (filled < 6) {
+    return {
+      ok: false,
+      error: `Publishing requires all 6 questions — only ${filled} attached.`,
+    };
+  }
+  const itemIds = inRange.map((j) => j.item_id as string);
+
+  // Publish the attached questions (idempotent — already-live ones stay live).
+  const qTable =
+    surface === 'tutor' ? 'nclex_tutor_questions' : 'nclex_bank_items';
+  const { error: pubErr } = await supabase
+    .from(qTable)
+    .update({ is_published: true, updated_at: new Date().toISOString() })
+    .in('item_id', itemIds);
+  if (pubErr) {
+    return { ok: false, error: `Could not publish the questions: ${pubErr.message}` };
+  }
+
+  // Persist the case (is_published on, from the form) through the normal
+  // metadata writer.
+  return saveCaseMetadataAction(formData);
 }
 
 // ─────────────────────────────────────────────────────────────

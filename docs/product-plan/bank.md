@@ -442,6 +442,24 @@ its questions. There's no cross-case-study query that makes child
 tables (e.g. `case_study_notes`, `case_study_vitals`) worth the
 overhead. One row per case study, one JSONB column per tab.
 
+### Publishing & student eligibility (2026-06-05)
+
+A case study reaches students (via the custom-quiz builder's
+`nclex_count_eligible_items` eligibility) only when **the case is
+published AND builder-visible AND all 6 child questions are individually
+published**. Case children are *not* builder-visible on their own (they
+exist only inside the case), so the case is the unit that gets picked.
+
+Because the post-rebuild model puts the publish flag on **each question**
+(not the case wrapper), publishing the case alone would silently leave it
+invisible. The wrapper's **Publish toggle** therefore gates on its
+children: turning Published on while questions are still draft offers
+**"Publish all & publish case"** (publishes the 6 questions then the
+case); fewer than 6 questions blocks with a notice. The gate is on the
+**toggle**, not Save — drafting/saving stays frictionless. (Trend is the
+mirror image — see *Trend items → Attachment → Publish gate*.) Captured in
+the `reference_bank_publish_eligibility` memory.
+
 ---
 
 ## Readiness packs
@@ -725,6 +743,22 @@ the seed rows the editor inserted on create.
   in future slices); draft dataset + any question state (curator-only
   regardless). The save RPC does NOT enforce consistency between these
   flags — the curator has full control.
+- **Publish gate (2026-06-05).** A trend question reaches students only
+  when the **question is published AND its dataset is published** (the
+  student-builder eligibility joins through `td.is_published`). So the
+  wrapper now gates the **question's** publish: ticking Published on a
+  question while its dataset is a draft is blocked, offering "Publish
+  dataset & question" instead. This is the **mirror image** of the
+  case-study gate (case = wrapper checks its 6 children; trend = the
+  child question checks its wrapper). The gate is **wrapper-UI only** —
+  the save path stays ungated so drafts always save freely. The Validate
+  panel also warns when a published dataset has **zero** live questions
+  (reads "published" but delivers nothing). The dataset's
+  `is_builder_visible` flag is a **no-op** for trends — delivery never
+  reads it (only `td.is_published`); it's kept for wrapper uniformity
+  with an inline "no effect on trends" explainer. See
+  [audit-log.md](audit-log.md)'s sibling note and the
+  `reference_bank_publish_eligibility` memory.
 
 ### Delete semantics
 

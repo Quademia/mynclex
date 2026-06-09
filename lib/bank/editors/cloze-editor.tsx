@@ -37,6 +37,7 @@ import {
 import { ModalFrame } from '@/lib/bank/atoms/modal-frame';
 import { EditorActions } from '@/lib/bank/atoms/editor-actions';
 import { EditorTabs, TabPanel } from '@/lib/bank/atoms/editor-tabs';
+import { EditorAuthorship } from '@/lib/audit/authorship-line';
 import { StemField } from '@/lib/bank/atoms/stem-field';
 import { InstructionField } from '@/lib/bank/atoms/instruction-field';
 import { RationaleFields } from '@/lib/bank/atoms/rationale-fields';
@@ -692,6 +693,12 @@ export function ClozeEditorBody({
 
       <ErrorToast error={error ?? clientError} onDismiss={dismissError} />
 
+      <EditorAuthorship
+        realm={initial.surface}
+        entityType={initial.surface === 'tutor' ? 'tutor_question' : 'bank_item'}
+        itemId={initial.itemId}
+        title={initial.stem}
+      />
       <div className="auth-split">
         <div className="auth-edit">
           <EditorTabs

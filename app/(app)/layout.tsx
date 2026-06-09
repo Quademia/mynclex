@@ -34,8 +34,15 @@ import '@/styles/programme-quizzes.css';
 import '@/styles/student-quizzes.css';
 import '@/styles/enrolments.css';
 import '@/styles/enquiries.css';
+import '@/styles/analytics.css';
+import '@/styles/audit.css';
+import '@/styles/tutor-home.css';
 import '@/styles/library.css';
 import '@/styles/profile.css';
+// Loaded LAST: the bank LIST-surfaces redesign (Trends / Cases / Question
+// Bank). Namespaced `bl-*`; tops the old list rules during the staged
+// per-surface migration. See styles/bank-list.css.
+import '@/styles/bank-list.css';
 
 export const dynamic = 'force-dynamic';
 

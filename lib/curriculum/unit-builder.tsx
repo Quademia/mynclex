@@ -36,6 +36,8 @@ import { BlockFormModal } from './block-form-modal';
 import { UnitFormModal } from './unit-form-modal';
 import { DeleteActivityConfirm } from '@/lib/overlays/curriculum/delete-activity-confirm';
 import { DeleteBlockConfirm } from '@/lib/overlays/curriculum/delete-block-confirm';
+import { UnpublishUnitConfirm } from '@/lib/overlays/curriculum/unpublish-unit-confirm';
+import { DeleteUnitConfirm } from '@/lib/overlays/curriculum/delete-unit-confirm';
 import { LastInBlockPrompt } from '@/lib/overlays/curriculum/last-in-block-prompt';
 import { MoveIntoBlockMenu } from '@/lib/overlays/curriculum/move-into-block-menu';
 import {
@@ -43,12 +45,15 @@ import {
   deleteActivityAction,
   deleteBlockAction,
   deleteLastBlockActivityAction,
+  deleteUnitAction,
+  editUnitAction,
   moveActivityIntoBlockAction,
   moveActivityOutOfBlockAction,
   reorderActivityAction,
   reorderBlockAction,
 } from './actions';
 import { composeUnitBody } from './unit-body';
+import { CurIcon } from './cur-icon';
 import { unitLabel, unitStatusLabel, unitStatusPillClass } from './format';
 import type {
   ActivityType,
@@ -63,6 +68,8 @@ interface UnitBuilderProps {
   blocks: ProgrammeBlock[];
   activities: ProgrammeActivity[];
   programmeUnitLabel: UnitLabel;
+  // PUBLISHED programme → guard a silent unit unpublish.
+  programmePublished: boolean;
 }
 
 type PickerScope =
@@ -85,6 +92,7 @@ export function UnitBuilder({
   blocks,
   activities,
   programmeUnitLabel,
+  programmePublished,
 }: UnitBuilderProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -141,6 +149,12 @@ export function UnitBuilder({
   // Move-into-block picker.
   const [moveActivityTo, setMoveActivityTo] =
     useState<ProgrammeActivity | null>(null);
+
+  // Unpublish-unit confirm (only when the programme is live).
+  const [unpublishConfirmOpen, setUnpublishConfirmOpen] = useState(false);
+
+  // Delete-unit confirm.
+  const [deleteUnitOpen, setDeleteUnitOpen] = useState(false);
 
   // ─── Derived data ───────────────────────────────────
 
@@ -375,15 +389,65 @@ export function UnitBuilder({
     });
   }
 
+  // One-click Live/Draft toggle for the unit header — reuses
+  // editUnitAction with the current title/description (the full editor
+  // is still a click away via "Edit").
+  function doUnitPublishToggle() {
+    setError(null);
+    startTransition(async () => {
+      const result = await editUnitAction(unit.unit_id, {
+        title: unit.title ?? '',
+        description: unit.description ?? '',
+        is_published: !unit.is_published,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setUnpublishConfirmOpen(false);
+      router.refresh();
+    });
+  }
+
+  // Unpublishing a live unit while the programme is live pulls it
+  // from students — confirm first. Publishing (or any toggle in a
+  // draft programme) is silent.
+  function handleUnitPublishToggle() {
+    if (unit.is_published && programmePublished) {
+      setUnpublishConfirmOpen(true);
+      return;
+    }
+    doUnitPublishToggle();
+  }
+
+  // Delete the unit we're viewing → land on a valid unit via the
+  // curriculum index redirect. The action guards the last-unit case
+  // (surfaces as a toast).
+  function doDeleteUnit() {
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteUnitAction(unit.unit_id);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setDeleteUnitOpen(false);
+      router.push(`/tutor/programme/${unit.programme_id}/curriculum`);
+      router.refresh();
+    });
+  }
+
   // ─── Render ─────────────────────────────────────────
+
+  const unitTitle = unit.title?.trim();
 
   return (
     <>
       {/* ─── Unit header ────────────────────────────── */}
 
-      <header className="unit-detail-head">
-        <div className="unit-detail-head-meta">
-          <span className="unit-detail-head-index">
+      <header className="cur-detail-head">
+        <div className="cur-detail-eyebrow">
+          <span className="cur-detail-index">
             {unitLabel(unit.unit_index, programmeUnitLabel)}
           </span>
           <span className={`unit-pill ${unitStatusPillClass(unit.is_published)}`}>
@@ -391,34 +455,85 @@ export function UnitBuilder({
           </span>
         </div>
 
-        <h1 className="unit-detail-head-title">
-          {unit.title?.trim() || (
-            <span className="unit-detail-head-title-empty">Untitled</span>
-          )}
-        </h1>
+        <div className="cur-detail-titlerow">
+          <h1 className={'cur-detail-title' + (unitTitle ? '' : ' untitled')}>
+            {unitTitle || 'Untitled'}
+          </h1>
+          <div className="cur-detail-actions">
+            <button
+              type="button"
+              className="cur-btn-ghost-sm"
+              onClick={() => setEditUnitOpen(true)}
+              disabled={isPending}
+            >
+              <CurIcon name="pencil" size={14} /> Edit
+            </button>
+            {unit.is_published ? (
+              <button
+                type="button"
+                className="cur-btn-ghost-sm"
+                onClick={handleUnitPublishToggle}
+                disabled={isPending}
+              >
+                <CurIcon name="eyeOff" size={14} /> Unpublish
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="cur-btn-accent-sm"
+                onClick={handleUnitPublishToggle}
+                disabled={isPending}
+              >
+                <CurIcon name="publish" size={14} /> Publish
+              </button>
+            )}
+            <button
+              type="button"
+              className="cur-btn-danger-sm"
+              onClick={() => setDeleteUnitOpen(true)}
+              disabled={isPending}
+            >
+              <CurIcon name="trash" size={14} /> Delete
+            </button>
+          </div>
+        </div>
 
         {unit.description && (
-          <p className="unit-detail-head-desc">{unit.description}</p>
+          <p className="cur-detail-desc">{unit.description}</p>
         )}
-
-        <div className="unit-detail-head-actions">
-          <button
-            type="button"
-            className="prog-btn prog-btn-ghost"
-            onClick={() => setEditUnitOpen(true)}
-          >
-            Edit unit
-          </button>
-        </div>
       </header>
 
       {/* ─── Body — interleaved blocks + loose rows ─── */}
 
-      <section className="unit-detail-body">
+      <section className="cur-detail-body">
+        <div className="cur-detail-inner">
         {body.length === 0 && !pickerScope && !addBlockOpen && (
-          <p className="unit-detail-empty">
-            No content yet. Add an activity or a block to start building.
-          </p>
+          <div className="cur-empty">
+            <div className="cur-empty-icon">
+              <CurIcon name="layers" size={24} />
+            </div>
+            <h2 className="cur-empty-title">Nothing here yet</h2>
+            <p className="cur-empty-sub">
+              Add your first activity — a reading, PDF, quiz or live
+              session — or group activities into a block.
+            </p>
+            <div className="cur-add-row cur-add-row-empty">
+              <button
+                type="button"
+                className="cur-add-btn"
+                onClick={openUnitPicker}
+              >
+                <CurIcon name="plus" size={14} /> Add activity
+              </button>
+              <button
+                type="button"
+                className="cur-add-btn"
+                onClick={openAddBlock}
+              >
+                <CurIcon name="plus" size={14} /> Add block
+              </button>
+            </div>
+          </div>
         )}
 
         {body.length > 0 && (
@@ -527,24 +642,25 @@ export function UnitBuilder({
 
         {/* ─── Bottom triggers (paired) ───────────────── */}
 
-        {!pickerScope && !addBlockOpen && (
-          <div className="unit-detail-add-row">
+        {body.length > 0 && !pickerScope && !addBlockOpen && (
+          <div className="cur-add-row">
             <button
               type="button"
-              className="unit-detail-add-btn"
+              className="cur-add-btn"
               onClick={openUnitPicker}
             >
-              + Add activity
+              <CurIcon name="plus" size={14} /> Add activity
             </button>
             <button
               type="button"
-              className="unit-detail-add-btn"
+              className="cur-add-btn"
               onClick={openAddBlock}
             >
-              + Add block
+              <CurIcon name="plus" size={14} /> Add block
             </button>
           </div>
         )}
+        </div>
       </section>
 
       {/* ─── Modals + overlays ─────────────────────── */}
@@ -654,6 +770,26 @@ export function UnitBuilder({
           onMoveOut={() => handleLastInBlockChoice('preserve')}
           onDeleteBoth={() => handleLastInBlockChoice('cascade')}
           onCancel={() => setDeleteActivity(null)}
+        />
+      )}
+
+      {unpublishConfirmOpen && (
+        <UnpublishUnitConfirm
+          unitLabel={unitLabel(unit.unit_index, programmeUnitLabel)}
+          pending={isPending}
+          onCancel={() => setUnpublishConfirmOpen(false)}
+          onConfirm={doUnitPublishToggle}
+        />
+      )}
+
+      {deleteUnitOpen && (
+        <DeleteUnitConfirm
+          unitLabel={unitLabel(unit.unit_index, programmeUnitLabel)}
+          blockCount={blocks.length}
+          activityCount={activities.length}
+          pending={isPending}
+          onCancel={() => setDeleteUnitOpen(false)}
+          onConfirm={doDeleteUnit}
         />
       )}
 

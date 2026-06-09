@@ -869,7 +869,21 @@
 }
 .auth-list-stem {
   color: var(--text);
-  max-width: 480px;
+  width: 50%;     /* the stem is the main content — give it the room */
+}
+/* 2-line clamp on the stem preview; the full text is on hover. */
+.bank-stem-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.5;
+}
+/* Cap the Authors column so it stops reserving width — the names
+   truncate (full on hover/in the editor) and the stem claims the room. */
+.auth-list-authors {
+  width: 160px;
+  max-width: 160px;
 }
 .auth-list-row-actions {
   text-align: right;
@@ -1164,6 +1178,22 @@
   font-size: 13px;
   color: #991b1b;
   margin: 0;
+}
+
+/* Optional reassurance/context block above the typed-DELETE gate
+   (e.g. "3 student attempts are kept"). Calmer than the red hint. */
+.auth-delete-confirm-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  margin: 0;
+}
+.auth-delete-confirm-note strong {
+  color: var(--text);
 }
 
 .auth-delete-confirm-actions {
@@ -4940,6 +4970,19 @@
   gap: 8px;
   font-size: 13px;
   color: var(--text);
+}
+/* Wraps a visibility toggle plus an optional explainer line under it
+ * (e.g. the trend dataset's no-op "Visible in builder" flag). */
+.auth-tr-visibility-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.auth-tr-visibility-hint {
+  padding-left: 26px;        /* align under the label, past checkbox + gap */
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
 }
 .auth-tr-empty-msg {
   margin: 0;

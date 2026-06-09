@@ -527,3 +527,184 @@ include/exclude on day one.
 - Dynamic / rule-based question selection (e.g. "10 random from
   Pharmacology"). v1 is manual selection only.
 - Slice 4 (progress / analytics integration).
+
+## 11. Creation-flow hardening (2026-06-06)
+
+A review-and-polish pass over the quiz **creation flow** itself (list
+page · editor · lifecycle), after Slices 1–6 shipped. All app-layer —
+**no migration, no schema change**. Merged to `main`. Lives in
+`lib/tutor-quiz/`.
+
+- **Publish gate (≥1 question).** A `PUBLISHED` quiz must always hold at
+  least one question. Enforced server-side in `updateQuizAction` /
+  `setQuizStatusAction` (block publishing an empty quiz) AND
+  `removeQuizItemAction` (block removing the last question from a
+  published quiz). Mirrors the bank's publish-integrity gates.
+- **Lifecycle controls on the editor header.** The buried 3-way Status
+  dropdown is replaced by explicit controls: **Publish** (Draft, gated on
+  ≥1 question) · **Unpublish** + **Archive** (Published) · **Restore to
+  draft** (Archived). New `setQuizStatusAction` (focused setter) +
+  `quizUsageAction` (programme count + activity links). Leaving Published
+  — Unpublish, or Archive while published — for a quiz that's **in use**
+  (live in programmes / linked to activities) **warns first** (students
+  lose launch access) then proceeds; never blocks. The meta modal's
+  Status field is gone (one source of truth per action).
+- **Delete a quiz (block, don't cascade).** New `deleteQuizAction` +
+  `quizDeletePreflightAction`. Deletion is **blocked** while the quiz is
+  linked to any curriculum activity (the §9.3 rule applied quiz-wide) —
+  the blocked dialog lists each programme · unit · activity. When clear,
+  a type-to-confirm dialog shows a "student results are kept" reassurance
+  (standalone attempt count). On delete: quiz-item refs + standalone
+  programme memberships cascade away; **student attempts survive** (their
+  snapshots are inlined; the `nclex_attempts.quiz_id` back-pointer nulls
+  via `ON DELETE SET NULL`). Reachable from a danger zone in the shared
+  edit modal — so from both the card pencil and the editor.
+- **Kind-switch block.** A Mock activity must link a Mock quiz
+  (Practice↔Practice). Switching a linked quiz's **Kind** is blocked
+  (only when the Kind actually changes) while it's linked to activities
+  of the other type — the same blocked-activities dialog. Closes the
+  one hole the link-time picker can't (it only checks at link time).
+- **"Needs questions" readiness cue.** A small amber tag on
+  `/tutor/quizzes` cards for a Draft with 0 questions — the one quiz
+  state that's a genuine "not usable yet" signal.
+- **Quick-edit pencil on quiz cards.** Edit a quiz's metadata from the
+  list (opens the shared `QuizFormModal`) without entering the editor.
+- **Rich question-picker filter.** The editor's "Add questions" picker
+  filter was upgraded from a 4-field GET-form to a **live-apply, faceted
+  toolbar** modelled on the bank list (NOT shared — a tailored copy in
+  `lib/tutor-quiz/quiz-picker-query.ts` + `quiz-picker-filters.tsx`):
+  multi-select facets (Type · Category · Subcategory · Nursing subject ·
+  Body system · Difficulty · Bloom · Tag — OR within, AND across) + a
+  **scoped search** (one term across chosen content columns: Stem ·
+  Instruction · Rationale · Topic · Subtopic) + active chips. Still
+  hard-scoped to the tutor's published, standalone questions (so no
+  Status / Membership facet). The shared blocking-activities dialog
+  (`ActivityBlockedDialog`) backs both delete + kind-switch.
+
+**Next:** a Claude-Design visual pass over the quiz **list page** and the
+**editor** surfaces — built as §12 below.
+
+## 12. UI uplift — Claude Design (2026-06-06)
+
+A visual redesign of the quiz **list** (`/tutor/quizzes`) and **editor**
+(`/tutor/quiz/[id]`) from Sam's Claude Design "Quiz UI Uplift" handoff —
+**Option A** (List A refined card grid + Editor A refined two-column
+workbench), concept-not-source. **All app-layer, no migration. Merged to
+`main`.** New `lib/tutor-quiz/quiz-icons.tsx` (inline line-icon set);
+CSS appended to `styles/quiz.css` as an uplift block (tokens only, no new
+hues).
+
+- **List — cards.** Kind-coloured left edge (Mock=amber / Practice=indigo),
+  a kind tag + status dot-pill, a "Needs questions" flag, a bordered
+  footer tray with icon meta (questions · mode·duration) + the
+  used-in-programmes chip, elevation + hover lift.
+- **List — page header + stat strip + toolbar.** Eyebrow + larger title;
+  a 4-cell summary strip (Total · Published · In-progress · Questions
+  used); a toolbar (search · All/Published/Drafts segments · Kind filter ·
+  Sort) — all client-side over the existing `QuizListRow[]`, search
+  reaches archived too.
+- **List — card ⋯ menu.** Replaces the edit pencil with a full-lifecycle
+  dropdown (Edit details · Publish/Unpublish · Archive/Restore · Delete) —
+  pure composition over the existing actions + dialogs, so a tutor manages
+  a quiz without entering the editor. The in-use `LeavePublishedWarning`
+  was extracted to a shared module (editor header + card menu).
+- **Editor.** Header card with kind tag + labelled stat chips (Mode /
+  Duration / Pass / Attempts); rounded/elevated zones with separated
+  headers + a "N programmes" badge; item rows gain a visual drag grip
+  (reordering stays ↑/↓) + difficulty dots + SVG icon buttons; picker rows
+  show a teal `is-checked` selection state.
+- **Picker hover-peek.** Hovering a picker question's (still 2-line-clamped)
+  stem opens a body-portaled, viewport-aware popover with the **full stem +
+  classification** (Category · Subcategory · Subject · Body system · Topic ·
+  tags) — vet a question without opening it. Reuses the bank's generic
+  `HoverPeek` primitive; `getPickerQuestions` fetches the extra
+  classification columns.
+
+**Deliberately deferred:** the grid/table view toggle (List B table view)
+and real drag-and-drop reordering (the grip is visual-only) — both noted
+in the handoff, neither built.
+
+## 13. Quiz tags + context badges (2026-06-09)
+
+Quizzes gained free-text **tags** (tutor taxonomy for identification +
+search — the system doesn't prescribe meaning), and both the list card
+and the editor header gained a **three-badge context cluster** with a
+hover/click-pinned **peek**. Built in four parts (author → store → show
+→ find), each merged to `main` as it landed.
+
+- **Store.** `tags TEXT[] NOT NULL DEFAULT '{}'` on `nclex_tutor_quizzes`
+  (migration `20260701120000_quiz_tags` — the **one migration** of the
+  arc; ships to prod at the next release). Mirrors the question tables;
+  no RLS change; no index (filtering is client-side at quiz-list scale).
+- **Author.** A chip tag-input in the **Identity** section of the shared
+  `QuizFormModal` (so create AND edit get it). New `QuizTagInput`
+  (pattern lifted from the library note-tag input, restyled to the
+  `.prog-*` modal vocab — not coupled). Threaded through
+  `QuizFormValues` + create/update actions with server-side normalise
+  (trim / lowercase / dedupe, ≤40 chars, ≤16 tags). `tags` carried on
+  `QuizListRow`/`TutorQuiz` so editing from the card pencil round-trips
+  rather than blanking them.
+- **Show — list card (CD "badges row", Layout B).** The card footer
+  splits into a meta row + a dedicated **badges row** of three chip
+  badges, each with a hover-peek that reveals the actual list:
+  **Tags** (the `#tag` chips), **Programmes** (names the quiz is
+  attached to), **Activities** (the curriculum slots that use it —
+  title + programme · unit). Zero states are muted + non-interactive.
+  The card's editor link wraps the body + meta row; the **badges row
+  sits outside the link** (so a badge click pins a peek, not navigate);
+  card switched to `overflow:visible` so peeks escape. New client
+  `quiz-card-badges.tsx`; `getMyQuizzes` now fetches programme **names**
+  (via the junction embed) + a list-wide **activities** scan grouped by
+  quiz (`loadAllActivityRefs`). `used_in_programmes` kept (=
+  `programmes.length`) so the tutor Home is unaffected.
+- **Show — editor header.** The same three badges between the title
+  block and the action buttons, peeks opening **downward** (a
+  `direction` prop on the shared component). The duplicate "N
+  programmes" zone badge was removed. Editor page fetches
+  `getQuizProgrammes` (new, names version) + the existing
+  `getQuizActivityLinks`.
+- **Find.** A multi-select **Tags facet** on the `/tutor/quizzes`
+  toolbar (`QuizTagFilter`, styled like the Kind/Sort selects), OR
+  semantics, options derived client-side from the loaded list; renders
+  only when ≥1 tag exists. Tags also folded into the toolbar search.
+
+**Deferred / not built:** tag filtering inside the two quiz *pickers*
+(programme "Add existing" + curriculum quiz-link); a managed tag system
+(rename/merge/delete like the library); clickable tag chips → filter.
+
+## 14. Programme quiz list — "grouped rows" redesign (2026-06-09)
+
+The programme **Quizzes** tab (`/tutor/programme/[id]/quizzes`) rebuilt
+from Sam's Claude Design "Programme quiz list" handoff — **Option B
+(grouped rows)** over Option A (card grid). **All app-layer, no
+migration. Merged to `main`.**
+
+- **Grouping.** The flat row list becomes two labelled groups —
+  **"From the curriculum"** (quizzes pulled in by a linked activity)
+  and **"Standalone"** (attached directly for practice) — each with a
+  count + one-line note. An empty group is omitted. Makes the defining
+  programme relationship (scheduled vs floating) structural at a glance.
+- **Recontextualised badges.** The same badge + peek language as the
+  global card, re-pointed for "inside a programme":
+  **Activities** = the curriculum activities IN this programme that use
+  the quiz (peek lists *all*, generalising the old single source-hint;
+  0 → a neutral "Standalone" marker, no peek); **Tags** = the quiz's
+  tags; **Other programmes** = the tutor's OTHER programmes the quiz is
+  also attached to (reuse context before Remove; 0 → "Only here"). New
+  self-contained `ProgrammeQuizBadges` (auto-flip up/down peek, reuses
+  the shared `qc-*` CSS). `link`/`dot`/`unit` icons added.
+- **Data.** `getProgrammeQuizzes` now returns `tags`, the **full** list
+  of in-programme activities per quiz (`loadActivitiesByQuiz` — was a
+  single primary `source_hint`), and `other_programmes` names
+  (`loadOtherProgrammes`, RLS-scoped to the tutor's own programmes). The
+  single `source-hint.tsx` component is retired (folded into the
+  Activities badge).
+- **CSS.** `.prow*` / `.pgroup*` shells + programme badge tones
+  (`tone-linked`, `is-standalone`) appended to `programme-quizzes.css`;
+  the `qc-*` badge/peek base stays in `quiz.css` (loaded app-wide).
+
+**Reviewed, not changed (Sam's call, left as-is):** the redundant
+"Standalone" marker on rows already in the Standalone group; Remove
+being a guaranteed-blocked click on curriculum-linked rows (the blocked
+dialog still backstops it); and the absence of search/filter parity with
+the global list (fine until a programme has many quizzes).

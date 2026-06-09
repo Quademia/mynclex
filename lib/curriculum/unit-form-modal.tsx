@@ -11,6 +11,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { ErrorToast } from '@/lib/toast/error-toast';
@@ -82,7 +83,13 @@ export function UnitFormModal({
 
   const modalTitle = `Edit ${unitLabel(unitIndex, programmeUnitLabel)}`;
 
-  return (
+  // Portal to <body>: the modal can be mounted from inside the curriculum
+  // rail (an overflow/stacking context that traps a fixed overlay — and
+  // whose `.unit-item > *` rule would override position:fixed). Portaling
+  // escapes both. Harmless for the detail-pane caller.
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <>
       <div
         className="prog-modal-overlay"
@@ -189,6 +196,7 @@ export function UnitFormModal({
       )}
 
       <ErrorToast error={error} onDismiss={() => setError(null)} />
-    </>
+    </>,
+    document.body
   );
 }

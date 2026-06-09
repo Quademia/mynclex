@@ -1,72 +1,101 @@
 // mynclex/lib/tutor-quiz/quiz-card.tsx
 //
-// Server component — one card in the /tutor/quizzes grid. The whole
-// card is a link into the quiz editor; there's no in-card Edit
-// affordance (metadata editing lives on the editor page itself).
+// Server component — one card in the /tutor/quizzes grid (2026-06 Claude
+// Design "Quiz UI Uplift" — List A, then the "badges row" pass). Layout:
+// a padded head (kind tag · readiness flag · status pill) + title +
+// description, then a footer split into two rows — a meta row
+// (questions · mode · duration) and a dedicated badges row (Tags ·
+// Programmes · Activities, each with a hover-peek).
 //
-// Tutor Quiz Slice 5 — adds the "Used in N programmes" chip
-// (§9.4.2). Three tones: not-in-any-programme (muted), 1 (linked),
-// 2+ (linked, semibold). Forward-compat single-segment for v1; the
-// future "Used in 2 programmes, 1 readiness pack" shape extends
-// naturally.
+// Click model: the editor link wraps the head/title/description AND the
+// meta row, so most of the card opens the editor. The badges row sits
+// OUTSIDE the link as an independent interactive strip (its buttons pin
+// their peeks), and the ⋯ menu stays a corner sibling. The card switches
+// to overflow:visible so peeks escape its edge.
 
 import Link from 'next/link';
 import type { QuizListRow } from './types';
 import {
-  formatItemCount,
+  formatDuration,
   formatQuizKind,
   formatQuizMode,
   formatQuizStatus,
+  isTimedMode,
   quizStatusPillClass,
 } from './format';
-import { formatUsedInProgrammes } from '@/lib/programme-quizzes/format';
+import { QuizIcon } from './quiz-icons';
+import { QuizCardMenu } from './quiz-card-menu';
+import { QuizCardBadges } from './quiz-card-badges';
 
 export function QuizCard({ quiz }: { quiz: QuizListRow }) {
   const isMuted = quiz.status === 'ARCHIVED';
+  const isMock = quiz.quiz_kind === 'MOCK';
+  const needsQuestions = quiz.status === 'DRAFT' && quiz.item_count === 0;
+  const durationLabel = formatDuration(quiz.duration_seconds);
 
   return (
-    <Link
-      href={`/tutor/quiz/${quiz.quiz_id}`}
-      className={`quiz-card ${isMuted ? 'is-muted' : ''}`}
-    >
-      <div className="quiz-card-head">
-        <h2 className="quiz-card-title">{quiz.title}</h2>
-        <span className={`quiz-pill ${quizStatusPillClass(quiz.status)}`}>
-          {formatQuizStatus(quiz.status)}
-        </span>
+    <div className="quiz-card-wrap">
+      <div
+        className={`quiz-card qc-vis ${isMock ? 'is-mock' : 'is-practice'} ${
+          isMuted ? 'is-muted' : ''
+        }`}
+      >
+        <Link href={`/tutor/quiz/${quiz.quiz_id}`} className="quiz-card-hit">
+          <div className="quiz-card-body">
+            <div className="quiz-card-head">
+              <span
+                className={`quiz-kind-tag ${isMock ? 'is-mock' : 'is-practice'}`}
+              >
+                <QuizIcon name={isMock ? 'target' : 'sparkles'} />
+                {formatQuizKind(quiz.quiz_kind)}
+              </span>
+              <div className="quiz-card-head-pills">
+                {needsQuestions && (
+                  <span
+                    className="quiz-needs-q"
+                    title="This quiz has no questions yet — add at least one to publish it."
+                  >
+                    <QuizIcon name="alert" />
+                    Needs questions
+                  </span>
+                )}
+                <span className={`quiz-pill ${quizStatusPillClass(quiz.status)}`}>
+                  {formatQuizStatus(quiz.status)}
+                </span>
+              </div>
+            </div>
+
+            <h2 className="quiz-card-title">{quiz.title}</h2>
+
+            {quiz.description && (
+              <p className="quiz-card-desc">{quiz.description}</p>
+            )}
+          </div>
+
+          <div className="quiz-card-foot qc-foot-row is-meta">
+            <span className="quiz-card-metaitem">
+              <QuizIcon name="list-checks" />
+              <b>{quiz.item_count}</b>{' '}
+              {quiz.item_count === 1 ? 'question' : 'questions'}
+            </span>
+            <span className="quiz-card-metaitem">
+              <QuizIcon name={isTimedMode(quiz.mode) ? 'timer' : 'clock'} />
+              {formatQuizMode(quiz.mode)}
+              {durationLabel ? ` · ${durationLabel}` : ''}
+            </span>
+          </div>
+        </Link>
+
+        <div className="quiz-card-foot qc-foot-row is-badges">
+          <QuizCardBadges
+            tags={quiz.tags}
+            programmes={quiz.programmes}
+            activities={quiz.activities}
+          />
+        </div>
       </div>
 
-      {quiz.description && (
-        <p className="quiz-card-desc">{quiz.description}</p>
-      )}
-
-      <UsedInProgrammesChip count={quiz.used_in_programmes} />
-
-      <div className="quiz-card-foot">
-        <span className="quiz-card-kind">
-          {formatQuizKind(quiz.quiz_kind)}
-        </span>
-        <span className="quiz-card-meta">
-          {formatItemCount(quiz.item_count)} · {formatQuizMode(quiz.mode)}
-        </span>
-      </div>
-    </Link>
-  );
-}
-
-function UsedInProgrammesChip({ count }: { count: number }) {
-  // Three tones — none / one / many — drives the §9.4.2 chip.
-  const toneClass =
-    count === 0 ? 'is-none' : count === 1 ? 'is-some' : 'is-many';
-  const title =
-    count === 0
-      ? "This quiz isn't in any programme yet."
-      : count === 1
-        ? 'This quiz is attached to 1 programme.'
-        : `This quiz is attached to ${count} programmes.`;
-  return (
-    <span className={`quiz-card-used-chip ${toneClass}`} title={title}>
-      {formatUsedInProgrammes(count)}
-    </span>
+      <QuizCardMenu quiz={quiz} />
+    </div>
   );
 }

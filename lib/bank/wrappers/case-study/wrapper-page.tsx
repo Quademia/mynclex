@@ -36,10 +36,15 @@ import type {
   TabRow,
   WrapperData,
 } from './types';
-import { saveCaseMetadataAction, detachQuestionAction } from './actions';
+import {
+  saveCaseMetadataAction,
+  detachQuestionAction,
+  publishCaseWithChildrenAction,
+} from './actions';
 import { QuestionTypePicker } from '@/lib/bank/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/bank/classifications';
 import { DeleteCaseConfirm } from './delete-case-confirm';
+import { PublishBlockedNotice, type PublishBlockKind } from './publish-blocked-notice';
 import { TabRail } from './chart-tabs/tab-rail';
 import { NarrativeTabEditor } from './chart-tabs/narrative-tab';
 import { StructuredTabEditor } from './chart-tabs/structured-tab';
@@ -52,6 +57,8 @@ import {
   type TabSnapshot,
 } from './validation';
 import { ValidationPanel } from './validation-panel';
+import { AuthorshipInline } from '@/lib/audit/authorship-line';
+import type { Authorship } from '@/lib/audit/authorship';
 
 import { McqEditorBody, McqPreview }             from '@/lib/bank/editors/mcq-editor';
 import { TfEditorBody, TfPreview }               from '@/lib/bank/editors/tf-editor';
@@ -225,9 +232,16 @@ interface Props {
    * wrapper-attached row directly into the right pill.
    */
   focusItemId?: string | null;
+  /**
+   * Authorship facts for the case wrapper row itself (created / last
+   * edited). Drives the topbar readout + its history drawer. Undefined
+   * in sandbox mode (no real entity). Shows the wrapper's own history —
+   * its questions carry theirs separately.
+   */
+  authorship?: Authorship | null;
 }
 
-export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = null }: Props) {
+export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = null, authorship = null }: Props) {
   const { caseRow, tabs, slots, surface } = data;
   const router = useRouter();
 
@@ -289,6 +303,11 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
   } | null>(null);
   const [showDelete, setShowDelete] = useState(false);
   const [detachPending, setDetachPending] = useState<number | null>(null);
+  // Publish-blocked notice — shown when the curator tries to switch
+  // Publish on while the case isn't eligible (under 6 questions, or any
+  // attached question still a draft). null = closed.
+  const [publishBlock, setPublishBlock] =
+    useState<{ kind: PublishBlockKind; count: number } | null>(null);
 
   // ── Mode + view state ─────────────────────────────────────
   // If a focusItemId was passed (from ?focus= on the wrapper URL),
@@ -528,6 +547,67 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     });
   }
 
+  // Publish-toggle gate. Turning OFF is always allowed. Turning ON
+  // requires all 6 slots filled AND every attached question published —
+  // otherwise the case would read "Published" but never reach students
+  // (the student-builder eligibility rule). We block the flip and show
+  // the notice instead of letting it switch on. Publishing each question
+  // stays the curator's job; this only guards the case toggle. Save is
+  // untouched — drafting/saving stays frictionless.
+  function onTogglePublish(next: boolean) {
+    if (!next) {
+      setIsPublished(false);
+      return;
+    }
+    const populatedSlots = slots.filter((s) => s.item_id !== null);
+    if (populatedSlots.length < 6) {
+      setPublishBlock({ kind: 'incomplete', count: populatedSlots.length });
+      return;
+    }
+    // A slot counts as published only when its editor loaded and reports
+    // is_published — an unloaded editor can't be confirmed, so it blocks.
+    const notPublished = populatedSlots.filter(
+      (s) => !(s.editor !== null && s.editor.initial.is_published),
+    );
+    if (notPublished.length > 0) {
+      setPublishBlock({ kind: 'drafts', count: notPublished.length });
+      return;
+    }
+    setIsPublished(true);
+  }
+
+  // Confirm handler for the 'drafts' publish offer: publish all 6
+  // questions and the case in one server action, then sync local state.
+  // (Only the drafts notice exposes this — the 'incomplete' notice can't
+  // publish anything.)
+  function onConfirmPublishAll() {
+    setError(null);
+    const fd = new FormData();
+    fd.set('surface', surface);
+    fd.set('case_id', caseRow.case_id);
+    fd.set('title', title);
+    fd.set('scenario_summary', scenario);
+    fd.set('is_published', 'on');
+    if (isFreeSample)     fd.set('is_free_sample', 'on');
+    if (isBuilderVisible) fd.set('is_builder_visible', 'on');
+    for (const s of slots) {
+      if (s.item_id !== null) {
+        fd.set(`cjmm_${s.position}`, cjmmBySlot[s.position] ?? '');
+      }
+    }
+    startTransition(async () => {
+      const result = await publishCaseWithChildrenAction(fd);
+      if (!result.ok) {
+        setPublishBlock(null);
+        setError(result.error);
+      } else {
+        setIsPublished(true);
+        setPublishBlock(null);
+        router.refresh();
+      }
+    });
+  }
+
   function onCancel() {
     setTitle(caseRow.title);
     setScenario(caseRow.scenario_summary ?? '');
@@ -710,6 +790,16 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
         />
       )}
 
+      {publishBlock && (
+        <PublishBlockedNotice
+          kind={publishBlock.kind}
+          count={publishBlock.count}
+          pending={isPending}
+          onClose={() => setPublishBlock(null)}
+          onPublishAll={onConfirmPublishAll}
+        />
+      )}
+
       {showDelete && (
         <DeleteCaseConfirm
           surface={surface}
@@ -751,6 +841,17 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
         })()}
         <span className="auth-cs-crumb-sep">›</span>
         <span className="auth-cs-crumb-current">{caseRow.title}</span>
+        {!sandboxMode && (
+          <span className="audit-topbar-authors">
+            <AuthorshipInline
+              authorship={authorship ?? undefined}
+              realm={surface}
+              entityType={surface === 'tutor' ? 'tutor_case_study' : 'case_study'}
+              entityId={caseRow.case_id}
+              title={caseRow.title}
+            />
+          </span>
+        )}
         <span className="auth-cs-mode-pill">
           {editorMode ? `Editor mode · Q${activeSlot}` : 'Wrapper mode'}
         </span>
@@ -827,7 +928,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
                 </div>
                 <div className="auth-cs-visibility" role="group" aria-label="Visibility flags">
                   <div className="auth-cs-visibility-title">Visibility</div>
-                  <VisibilityRow label="Published" help="Live to students. Requires all 6 slots populated." on={isPublished} onChange={setIsPublished} />
+                  <VisibilityRow label="Published" help="Live to students. All 6 questions must be published first." on={isPublished} onChange={onTogglePublish} />
                   <VisibilityRow label="Free sample" help="Available without subscription." on={isFreeSample} onChange={setIsFreeSample} />
                   <VisibilityRow label="Visible in builder" help="Show in tutor programme builders." on={isBuilderVisible} onChange={setIsBuilderVisible} />
                 </div>

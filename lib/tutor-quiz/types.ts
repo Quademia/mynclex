@@ -33,14 +33,39 @@ export type TutorQuiz = {
   pass_score: number | null;
   max_attempts: number | null;
   status: QuizStatus;
+  /** Free-text tutor taxonomy for identifying + searching quizzes.
+   *  NOT NULL DEFAULT '{}' in the DB, so always an array. */
+  tags: string[];
   created_at: string;
   updated_at: string;
 };
 
+// One programme a quiz is attached to (via the nclex_programme_quizzes
+// junction) — id + display title. Feeds the card's Programmes badge
+// peek. The count (used_in_programmes) is just this list's length.
+export type QuizCardProgrammeRef = {
+  programme_id: string;
+  title: string;
+};
+
+// One curriculum activity that references a quiz (a MOCK / PRACTICE_QUIZ
+// slot with payload.quiz_id set) — feeds the card's Activities badge
+// peek. Activity title + the programme + unit it sits in.
+export type QuizCardActivityRef = {
+  activity_id: string;
+  title: string;
+  programme_title: string;
+  unit_label: 'WEEK' | 'MODULE';
+  unit_index: number;
+  unit_title: string;
+};
+
 // Projection for the /tutor/quizzes list — adds the question-count
 // rollup (count(quiz_items)) so each card renders without a second
-// round trip, plus the "Used in N programmes" count from the
-// junction (Tutor Quiz Slice 5, §9.4.2) for the membership chip.
+// round trip, plus the programmes + activities a quiz is used in (the
+// card's three footer badges, each with a hover-peek list — 2026-06
+// Claude Design "badges row"). `used_in_programmes` is kept (=
+// programmes.length) so existing readers (tutor Home) are unaffected.
 export type QuizListRow = Pick<
   TutorQuiz,
   | 'quiz_id'
@@ -52,10 +77,13 @@ export type QuizListRow = Pick<
   | 'pass_score'
   | 'max_attempts'
   | 'status'
+  | 'tags'
   | 'updated_at'
 > & {
   item_count: number;
   used_in_programmes: number;
+  programmes: QuizCardProgrammeRef[];
+  activities: QuizCardActivityRef[];
 };
 
 // The editable subset — QuizFormModal's initial values in edit mode
@@ -71,6 +99,7 @@ export type QuizFormValues = Pick<
   | 'pass_score'
   | 'max_attempts'
   | 'status'
+  | 'tags'
 >;
 
 // One selected question inside a quiz — a quiz_item row joined to
@@ -86,22 +115,42 @@ export type QuizItemRow = {
 };
 
 // One question row in the picker — the tutor's own published,
-// standalone questions, filtered by the picker's filter bar.
+// standalone questions, filtered by the picker's filter bar. The extra
+// classification fields feed the hover-peek panel (full stem + context)
+// — they're not all shown on the row itself.
 export type PickerQuestionRow = {
   item_id: string;
   question_type: QuestionType;
   stem: string;
   difficulty: string | null;
   client_needs_category: string | null;
+  client_needs_subcategory: string | null;
+  nursing_subject: string | null;
+  body_system: string | null;
+  topic: string | null;
+  tags: string[] | null;
 };
 
-// Picker filter values — a subset of the bank filter set (no status
-// or membership: the picker is hard-scoped to published + standalone).
-export type QuizPickerFilters = {
-  type: string;
-  category: string;
-  difficulty: string;
-  q: string;
+// Picker filter values now live in quiz-picker-query.ts (faceted
+// multi-select + scoped search), alongside their parse/apply logic.
+
+// One curriculum activity that references a quiz, used by the
+// delete-preflight to BLOCK deletion of a still-linked quiz (the
+// §9.3 "block, don't cascade" rule, applied quiz-wide rather than
+// per-programme). Carries the programme + unit context so the
+// blocked dialog can point the tutor at each placement.
+export type QuizActivityLink = {
+  activity_id: string;
+  activity_title: string;
+  /** The activity's slot type — must match the quiz's kind
+   *  (MOCK↔MOCK, PRACTICE_QUIZ↔PRACTICE). Drives the kind-switch
+   *  block. */
+  activity_type: 'MOCK' | 'PRACTICE_QUIZ';
+  programme_id: string;
+  programme_title: string;
+  unit_index: number;
+  unit_label: 'WEEK' | 'MODULE';
+  unit_title: string;
 };
 
 // A quiz option as offered to the curriculum activity editor's

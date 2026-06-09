@@ -161,6 +161,29 @@ const RULES: readonly Rule[] = [
     }
   },
 
+  // Published dataset whose questions are ALL still drafts → it reads
+  // "published" but reaches no students (a trend question is delivered
+  // only when both the question and its dataset are published). A mix of
+  // published + draft questions is fine (incremental publishing), so this
+  // fires only when none are live. Warning, not error — it doesn't block.
+  (s, out) => {
+    if (!s.is_published) return;
+    if (s.slots.length === 0) return;   // the zero-on-publish error covers this
+    const anyPublished = s.slots.some((slot) => slot.is_published);
+    if (!anyPublished) {
+      const n = s.slots.length;
+      out.push({
+        id:       'trend.questions.none_published',
+        severity: 'warning',
+        message:
+          `This dataset is published but none of its ${n} question` +
+          `${n === 1 ? '' : 's'} are — students won't see anything from it ` +
+          `yet. Publish a question to make it live.`,
+        target:   { kind: 'trend' },
+      });
+    }
+  },
+
   // No flags set anywhere — unusual for a trend dataset (curator
   // typically marks "red flag" cells for the questions to test).
   (s, out) => {

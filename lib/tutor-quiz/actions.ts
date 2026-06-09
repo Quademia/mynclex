@@ -16,7 +16,18 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import type { ServerSupabaseClient } from '@/lib/access';
 import { QUIZ_MODES_BY_KIND, isTimedMode } from './format';
-import type { QuizFormValues, QuizKind, QuizPickerOption } from './types';
+import {
+  getQuizActivityLinks,
+  getQuizAttemptCount,
+  getQuizProgrammeCount,
+} from './queries';
+import type {
+  QuizActivityLink,
+  QuizFormValues,
+  QuizKind,
+  QuizPickerOption,
+  QuizStatus,
+} from './types';
 
 // ── Validation ───────────────────────────────────────────────────
 // Re-validated server-side at the trust boundary — the client form
@@ -77,6 +88,27 @@ function normalizeDuration(input: QuizFormValues): number | null {
   return isTimedMode(input.mode) ? input.duration_seconds : null;
 }
 
+// Tag hygiene at the trust boundary — the client already lowercases /
+// dedupes / caps, but a server action never trusts its input. Trim,
+// lowercase, drop empties, dedupe (order-preserving), clamp each to 40
+// chars and the set to 16 tags. Mirrors the client TagInput limits so
+// the two never disagree.
+const TAG_MAX_LEN = 40;
+const TAGS_MAX = 16;
+
+function normalizeTags(tags: string[] | null | undefined): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of tags ?? []) {
+    const t = raw.trim().toLowerCase().slice(0, TAG_MAX_LEN);
+    if (t.length === 0 || seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+    if (out.length >= TAGS_MAX) break;
+  }
+  return out;
+}
+
 // ── Create ───────────────────────────────────────────────────────
 
 export type CreateQuizResult =
@@ -107,6 +139,7 @@ export async function createQuizAction(
       pass_score: input.pass_score,
       max_attempts: input.max_attempts,
       status: input.status,
+      tags: normalizeTags(input.tags),
     })
     .select('quiz_id')
     .single();
@@ -121,7 +154,21 @@ export async function createQuizAction(
 
 // ── Update ───────────────────────────────────────────────────────
 
-export type UpdateQuizResult = { ok: true } | { ok: false; error: string };
+export type UpdateQuizResult =
+  | { ok: true }
+  | {
+      ok: false;
+      error: string;
+      /** When a Kind switch is blocked: the mismatched activities the
+       *  tutor must re-point / unlink first. */
+      kindBlockingActivities?: QuizActivityLink[];
+    };
+
+// The quiz kind a given activity slot expects (MOCK↔MOCK,
+// PRACTICE_QUIZ↔PRACTICE).
+function expectedKindFor(type: 'MOCK' | 'PRACTICE_QUIZ'): QuizKind {
+  return type === 'MOCK' ? 'MOCK' : 'PRACTICE';
+}
 
 export async function updateQuizAction(
   quizId: string,
@@ -135,6 +182,58 @@ export async function updateQuizAction(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Publish gate — a PUBLISHED quiz must hold at least one question.
+  // A zero-question published quiz can be attached to an activity and
+  // launched, snapshotting nothing into a broken/empty attempt. Mirror
+  // of the bank's case/trend publish-integrity gates. Checked here (the
+  // trust boundary) AND surfaced in the modal (the option is disabled).
+  if (input.status === 'PUBLISHED') {
+    const { count } = await supabase
+      .from('nclex_tutor_quiz_items')
+      .select('quiz_item_id', { count: 'exact', head: true })
+      .eq('quiz_id', quizId);
+    if (!count || count < 1) {
+      return {
+        ok: false,
+        error: 'Add at least one question before publishing this quiz.',
+      };
+    }
+  }
+
+  // Kind-switch block. A Mock activity must link a Mock quiz (and
+  // Practice↔Practice). The activity editor enforces this at link
+  // time, but switching a linked quiz's Kind afterwards would leave
+  // those activities pointing at a wrong-kind quiz — a "Mock exam"
+  // slot silently delivering a Practice quiz. Block the switch while
+  // mismatched links exist (the tutor re-points / unlinks first).
+  // Only fires when the Kind actually changes.
+  const { data: currentQuiz } = await supabase
+    .from('nclex_tutor_quizzes')
+    .select('quiz_kind')
+    .eq('quiz_id', quizId)
+    .maybeSingle();
+  if (!currentQuiz) {
+    return { ok: false, error: 'Quiz not found or not yours to edit.' };
+  }
+  if (input.quiz_kind !== currentQuiz.quiz_kind) {
+    const links = await getQuizActivityLinks(quizId);
+    const mismatched = links.filter(
+      (a) => expectedKindFor(a.activity_type) !== input.quiz_kind,
+    );
+    if (mismatched.length > 0) {
+      const n = mismatched.length;
+      return {
+        ok: false,
+        error: `Can't change the Kind: this quiz is linked to ${n} ${
+          n === 1 ? 'activity' : 'activities'
+        } of the other type. Re-point or unlink ${
+          n === 1 ? 'it' : 'them'
+        } first.`,
+        kindBlockingActivities: mismatched,
+      };
+    }
+  }
 
   // RLS on UPDATE filters by tutor_id = auth.uid(); editing a quiz
   // that isn't yours updates 0 rows — surfaced generically so a
@@ -150,6 +249,7 @@ export async function updateQuizAction(
       pass_score: input.pass_score,
       max_attempts: input.max_attempts,
       status: input.status,
+      tags: normalizeTags(input.tags),
       updated_at: new Date().toISOString(),
     })
     .eq('quiz_id', quizId)
@@ -163,6 +263,180 @@ export async function updateQuizAction(
 
   revalidatePath('/tutor/quizzes');
   revalidatePath(`/tutor/quiz/${quizId}`);
+  return { ok: true };
+}
+
+// ── Lifecycle status (publish / unpublish / archive / restore) ───
+// The editor header's status buttons. A focused setter — touches only
+// `status` — separate from updateQuizAction (full meta form). Going TO
+// Published re-applies the ≥1-question publish gate. Leaving Published
+// for an in-use quiz isn't blocked here; the UI warns first (see
+// quizUsageAction) since pulling a quiz is a legitimate tutor choice.
+
+export type SetQuizStatusResult = { ok: true } | { ok: false; error: string };
+
+export async function setQuizStatusAction(
+  quizId: string,
+  status: QuizStatus,
+): Promise<SetQuizStatusResult> {
+  if (!['DRAFT', 'PUBLISHED', 'ARCHIVED'].includes(status)) {
+    return { ok: false, error: 'Status is invalid.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  if (status === 'PUBLISHED') {
+    const { count } = await supabase
+      .from('nclex_tutor_quiz_items')
+      .select('quiz_item_id', { count: 'exact', head: true })
+      .eq('quiz_id', quizId);
+    if (!count || count < 1) {
+      return {
+        ok: false,
+        error: 'Add at least one question before publishing this quiz.',
+      };
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('nclex_tutor_quizzes')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('quiz_id', quizId)
+    .select('quiz_id')
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return { ok: false, error: 'Quiz not found or not yours to edit.' };
+  }
+
+  revalidatePath('/tutor/quizzes');
+  revalidatePath(`/tutor/quiz/${quizId}`);
+  return { ok: true };
+}
+
+// Usage snapshot for the "you're about to remove student access"
+// warning. Returns the activity links + the count of programmes the
+// quiz is attached to. "In use" = either is non-empty.
+
+export type QuizUsage = {
+  activityLinks: QuizActivityLink[];
+  programmeCount: number;
+};
+
+export type QuizUsageResult =
+  | { ok: true; usage: QuizUsage }
+  | { ok: false; error: string };
+
+export async function quizUsageAction(
+  quizId: string,
+): Promise<QuizUsageResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const [activityLinks, programmeCount] = await Promise.all([
+    getQuizActivityLinks(quizId),
+    getQuizProgrammeCount(quizId),
+  ]);
+
+  return { ok: true, usage: { activityLinks, programmeCount } };
+}
+
+// ── Delete ───────────────────────────────────────────────────────
+// Two-step, "block, don't cascade" (§9.3 applied quiz-wide):
+//   1. quizDeletePreflightAction — gathers what the delete dialog
+//      needs: any curriculum activities still linked to the quiz
+//      (a non-empty list BLOCKS the delete) + the count of student
+//      attempts (for the "results are kept" reassurance line).
+//   2. deleteQuizAction — re-checks the block at the trust boundary,
+//      then deletes. The DB does the rest: quiz_items + standalone
+//      programme memberships cascade away; student attempts survive
+//      (their snapshots are inlined; only the quiz_id back-pointer
+//      nulls via ON DELETE SET NULL).
+
+export type QuizDeletePreflight =
+  | {
+      ok: true;
+      blockingActivities: QuizActivityLink[];
+      attemptCount: number;
+    }
+  | { ok: false; error: string };
+
+export async function quizDeletePreflightAction(
+  quizId: string,
+): Promise<QuizDeletePreflight> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Confirm the quiz is the caller's (RLS-scoped SELECT).
+  const { data: quizRow } = await supabase
+    .from('nclex_tutor_quizzes')
+    .select('quiz_id')
+    .eq('quiz_id', quizId)
+    .maybeSingle();
+  if (!quizRow) return { ok: false, error: 'Quiz not found or not yours.' };
+
+  const [blockingActivities, attemptCount] = await Promise.all([
+    getQuizActivityLinks(quizId),
+    getQuizAttemptCount(quizId),
+  ]);
+
+  return { ok: true, blockingActivities, attemptCount };
+}
+
+export type DeleteQuizResult =
+  | { ok: true }
+  | { ok: false; error: string; blockingActivities?: QuizActivityLink[] };
+
+export async function deleteQuizAction(
+  quizId: string,
+): Promise<DeleteQuizResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Re-check the block at the trust boundary — a stale client (or a
+  // concurrent activity link added after the preflight) must not slip
+  // a delete past the §9.3 rule.
+  const blockingActivities = await getQuizActivityLinks(quizId);
+  if (blockingActivities.length > 0) {
+    const n = blockingActivities.length;
+    return {
+      ok: false,
+      error: `This quiz is linked to ${n} ${
+        n === 1 ? 'activity' : 'activities'
+      }. Unlink it from those first.`,
+      blockingActivities,
+    };
+  }
+
+  // RLS on DELETE filters by tutor_id = auth.uid(); deleting a quiz
+  // that isn't yours removes 0 rows — surfaced generically.
+  const { data, error } = await supabase
+    .from('nclex_tutor_quizzes')
+    .delete()
+    .eq('quiz_id', quizId)
+    .select('quiz_id')
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return { ok: false, error: 'Quiz not found or not yours to delete.' };
+  }
+
+  revalidatePath('/tutor/quizzes');
   return { ok: true };
 }
 
@@ -289,6 +563,44 @@ export async function removeQuizItemAction(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Resolve the parent quiz (RLS-scoped through the item) so we can
+  // enforce the publish gate's other half: a PUBLISHED quiz must keep
+  // ≥1 question. Removing the last one would leave it published-but-
+  // empty — the same broken state the publish gate blocks. Make the
+  // tutor unpublish first.
+  const { data: itemRow } = await supabase
+    .from('nclex_tutor_quiz_items')
+    .select('quiz_id, nclex_tutor_quizzes!inner(status)')
+    .eq('quiz_item_id', quizItemId)
+    .maybeSingle();
+  if (!itemRow) {
+    return { ok: false, error: 'Question not found or not yours.' };
+  }
+  const parent = itemRow as typeof itemRow & {
+    quiz_id: string;
+    nclex_tutor_quizzes:
+      | { status: string }
+      | Array<{ status: string }>
+      | null;
+  };
+  const parentQuiz = Array.isArray(parent.nclex_tutor_quizzes)
+    ? parent.nclex_tutor_quizzes[0]
+    : parent.nclex_tutor_quizzes;
+
+  if (parentQuiz?.status === 'PUBLISHED') {
+    const { count } = await supabase
+      .from('nclex_tutor_quiz_items')
+      .select('quiz_item_id', { count: 'exact', head: true })
+      .eq('quiz_id', parent.quiz_id);
+    if ((count ?? 0) <= 1) {
+      return {
+        ok: false,
+        error:
+          'This is the last question in a published quiz. Unpublish it first, then remove the question.',
+      };
+    }
+  }
 
   const { data, error } = await supabase
     .from('nclex_tutor_quiz_items')

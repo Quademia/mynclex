@@ -894,6 +894,99 @@ export async function reorderActivityAction(
 }
 
 // =========================================================
+// reorderUnitAction — arrow-driven swap of two units
+// =========================================================
+// Swaps a unit with its neighbour (next-lower index for 'up',
+// next-higher for 'down') within the same programme. Unlike the
+// activity/block reorder, units carry a UNIQUE (programme_id,
+// unit_index) constraint AND a CHECK (unit_index >= 1), so the two
+// rows can't briefly hold the same index and we can't park one at
+// 0/-1. We park the moving unit at a guaranteed-free temp index
+// (current max + 1, always >= 1), settle the neighbour, then drop
+// the moving unit into the neighbour's old slot. Three sequential
+// UPDATEs; not transactional — a mid-swap failure would leave one
+// unit at the temp index (a recoverable gap, never a duplicate).
+//
+// Reordering changes a unit's position, which a cohort uses to
+// derive default unlock dates — that schedule shift is the intended
+// effect of restructuring the curriculum. Does NOT touch
+// length_units, so the reconcile trigger never fires.
+
+export type ReorderUnitResult = { ok: true } | { ok: false; error: string };
+
+export async function reorderUnitAction(
+  unitId: string,
+  direction: 'up' | 'down'
+): Promise<ReorderUnitResult> {
+  const { supabase, user } = await getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data: self, error: selfErr } = await supabase
+    .from('nclex_programme_units')
+    .select('unit_id, programme_id, unit_index')
+    .eq('unit_id', unitId)
+    .maybeSingle();
+  if (selfErr) return { ok: false, error: selfErr.message };
+  if (!self) return { ok: false, error: 'Unit not found or not yours.' };
+
+  const neighbourQuery = supabase
+    .from('nclex_programme_units')
+    .select('unit_id, unit_index')
+    .eq('programme_id', self.programme_id);
+
+  const { data: neighbour, error: nErr } =
+    direction === 'up'
+      ? await neighbourQuery
+          .lt('unit_index', self.unit_index)
+          .order('unit_index', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : await neighbourQuery
+          .gt('unit_index', self.unit_index)
+          .order('unit_index', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+  if (nErr) return { ok: false, error: nErr.message };
+  if (!neighbour) return { ok: true }; // already at the edge — no-op
+
+  // Guaranteed-free temp slot: current max index + 1.
+  const { data: maxRow } = await supabase
+    .from('nclex_programme_units')
+    .select('unit_index')
+    .eq('programme_id', self.programme_id)
+    .order('unit_index', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const tempIndex = (maxRow?.unit_index ?? self.unit_index) + 1;
+
+  const now = new Date().toISOString();
+
+  // 1. moving unit → temp (frees its real slot)
+  const step1 = await supabase
+    .from('nclex_programme_units')
+    .update({ unit_index: tempIndex, updated_at: now })
+    .eq('unit_id', self.unit_id);
+  if (step1.error) return { ok: false, error: step1.error.message };
+
+  // 2. neighbour → moving unit's old slot
+  const step2 = await supabase
+    .from('nclex_programme_units')
+    .update({ unit_index: self.unit_index, updated_at: now })
+    .eq('unit_id', neighbour.unit_id);
+  if (step2.error) return { ok: false, error: step2.error.message };
+
+  // 3. moving unit → neighbour's old slot
+  const step3 = await supabase
+    .from('nclex_programme_units')
+    .update({ unit_index: neighbour.unit_index, updated_at: now })
+    .eq('unit_id', self.unit_id);
+  if (step3.error) return { ok: false, error: step3.error.message };
+
+  refreshProgrammeCurriculumPaths(self.programme_id, self.unit_id);
+  return { ok: true };
+}
+
+// =========================================================
 // editUnitAction — title / description / is_published
 // =========================================================
 
@@ -924,6 +1017,165 @@ export async function editUnitAction(
   }
 
   refreshProgrammeCurriculumPaths(data.programme_id, unitId);
+  return { ok: true };
+}
+
+// =========================================================
+// appendUnitAction — add a unit by extending the programme
+// =========================================================
+//
+// Curriculum-workspace "Add unit" (2026-06). Units are still derived
+// from the programme's length (the units-vs-length decoupling is a
+// later, deliberately-deferred decision). So "add a unit" = bump
+// nclex_programmes.length_units by 1; the AFTER UPDATE reconcile
+// trigger appends the new trailing unit. We then look it up so the
+// rail can select it. Capped at the DB's 1–52 CHECK. Insert-anywhere,
+// delete, and reorder remain placeholders until that decoupling.
+
+export type AppendUnitResult =
+  | { ok: true; unit_id: string }
+  | { ok: false; error: string };
+
+export async function appendUnitAction(
+  programmeId: string
+): Promise<AppendUnitResult> {
+  const { supabase, user } = await getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Current length (RLS scopes to the tutor's own programme).
+  const { data: prog } = await supabase
+    .from('nclex_programmes')
+    .select('length_units')
+    .eq('programme_id', programmeId)
+    .maybeSingle();
+  if (!prog) return { ok: false, error: 'Programme not found or not yours.' };
+
+  const current = prog.length_units as number;
+  if (current >= 52) {
+    return { ok: false, error: 'A programme can have at most 52 units.' };
+  }
+  const next = current + 1;
+
+  // Bump length — the reconcile trigger appends unit_index = next.
+  const { data: updated, error: updErr } = await supabase
+    .from('nclex_programmes')
+    .update({ length_units: next, updated_at: new Date().toISOString() })
+    .eq('programme_id', programmeId)
+    .select('programme_id')
+    .maybeSingle();
+  if (updErr) return { ok: false, error: updErr.message };
+  if (!updated) {
+    return { ok: false, error: 'Programme not found or not yours.' };
+  }
+
+  // The trigger created the trailing unit — fetch it for the rail to select.
+  const { data: newUnit } = await supabase
+    .from('nclex_programme_units')
+    .select('unit_id')
+    .eq('programme_id', programmeId)
+    .eq('unit_index', next)
+    .maybeSingle();
+
+  revalidatePath(`/tutor/programme/${programmeId}/curriculum`);
+  if (newUnit) {
+    revalidatePath(
+      `/tutor/programme/${programmeId}/curriculum/unit/${newUnit.unit_id}`
+    );
+    return { ok: true, unit_id: newUnit.unit_id };
+  }
+  return { ok: false, error: 'Unit added — refresh to see it.' };
+}
+
+// =========================================================
+// deleteUnitAction — remove a unit + close the gap
+// =========================================================
+// Deletes one unit (its blocks/activities cascade via FK), shifts
+// every later unit's unit_index DOWN one (ascending, so each vacated
+// slot stays free under UNIQUE (programme_id, unit_index)), then drops
+// length_units by 1 to keep it == the unit count.
+//
+// Order is load-bearing: we renumber the tail BEFORE decrementing
+// length, so the reconcile trigger's decrease branch (DELETE WHERE
+// unit_index > new length) matches no rows and no-ops. That's what
+// lets middle-delete work WITHOUT touching the trigger or a migration.
+//
+// A programme must keep >= 1 unit (length_units CHECK 1..52), so the
+// last remaining unit can't be deleted.
+
+export type DeleteUnitResult = { ok: true } | { ok: false; error: string };
+
+export async function deleteUnitAction(
+  unitId: string
+): Promise<DeleteUnitResult> {
+  const { supabase, user } = await getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data: self, error: selfErr } = await supabase
+    .from('nclex_programme_units')
+    .select('unit_id, programme_id, unit_index')
+    .eq('unit_id', unitId)
+    .maybeSingle();
+  if (selfErr) return { ok: false, error: selfErr.message };
+  if (!self) return { ok: false, error: 'Unit not found or not yours.' };
+
+  // A programme must keep at least one unit.
+  const { count } = await supabase
+    .from('nclex_programme_units')
+    .select('unit_id', { count: 'exact', head: true })
+    .eq('programme_id', self.programme_id);
+  if ((count ?? 0) <= 1) {
+    return {
+      ok: false,
+      error:
+        'A programme must keep at least one unit. Add another before deleting this one.',
+    };
+  }
+
+  // 1. Delete the unit — blocks + activities cascade via FK.
+  const del = await supabase
+    .from('nclex_programme_units')
+    .delete()
+    .eq('unit_id', self.unit_id);
+  if (del.error) return { ok: false, error: del.error.message };
+
+  // 2. Close the gap: shift each later unit down one, ascending so
+  //    every target slot is already vacated (respects UNIQUE).
+  const { data: tail, error: tailErr } = await supabase
+    .from('nclex_programme_units')
+    .select('unit_id, unit_index')
+    .eq('programme_id', self.programme_id)
+    .gt('unit_index', self.unit_index)
+    .order('unit_index', { ascending: true });
+  if (tailErr) return { ok: false, error: tailErr.message };
+
+  const now = new Date().toISOString();
+  for (const u of tail ?? []) {
+    const r = await supabase
+      .from('nclex_programme_units')
+      .update({ unit_index: u.unit_index - 1, updated_at: now })
+      .eq('unit_id', u.unit_id);
+    if (r.error) return { ok: false, error: r.error.message };
+  }
+
+  // 3. Drop length to match the new count. Renumber-first means the
+  //    reconcile trigger's decrease branch matches nothing (no-op).
+  const { data: prog } = await supabase
+    .from('nclex_programmes')
+    .select('length_units')
+    .eq('programme_id', self.programme_id)
+    .maybeSingle();
+  if (prog) {
+    const r = await supabase
+      .from('nclex_programmes')
+      .update({
+        length_units: Math.max(1, (prog.length_units as number) - 1),
+        updated_at: now,
+      })
+      .eq('programme_id', self.programme_id);
+    if (r.error) return { ok: false, error: r.error.message };
+  }
+
+  refreshProgrammeCurriculumPaths(self.programme_id, self.unit_id);
   return { ok: true };
 }
 

@@ -13,20 +13,18 @@ import { notFound } from 'next/navigation';
 import {
   getQuizDetail,
   getPickerQuestions,
+  getPickerTagOptions,
+  getQuizActivityLinks,
+  getQuizProgrammes,
 } from '@/lib/tutor-quiz/queries';
 import { QuizEditor } from '@/lib/tutor-quiz/quiz-editor';
-import type { QuizPickerFilters } from '@/lib/tutor-quiz/types';
+import { parseQuizPickerFilters } from '@/lib/tutor-quiz/quiz-picker-query';
 
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{
-    type?: string;
-    category?: string;
-    difficulty?: string;
-    q?: string;
-  }>;
+  searchParams?: Promise<Record<string, string | undefined>>;
 }
 
 export default async function TutorQuizEditorPage({
@@ -35,17 +33,29 @@ export default async function TutorQuizEditorPage({
 }: PageProps) {
   const { id } = await params;
   const sp = (await searchParams) ?? {};
-  const filters: QuizPickerFilters = {
-    type: sp.type ?? '',
-    category: sp.category ?? '',
-    difficulty: sp.difficulty ?? '',
-    q: sp.q ?? '',
-  };
+  const filters = parseQuizPickerFilters(sp);
 
   const detail = await getQuizDetail(id);
   if (!detail) notFound();
 
-  const pickerQuestions = await getPickerQuestions(filters);
+  const [pickerQuestions, tagOptions, programmes, activityLinks] =
+    await Promise.all([
+      getPickerQuestions(filters),
+      getPickerTagOptions(),
+      getQuizProgrammes(id),
+      getQuizActivityLinks(id),
+    ]);
+
+  // Map the (richer) activity-link shape down to the card-badge ref the
+  // shared QuizCardBadges peek expects.
+  const activities = activityLinks.map((a) => ({
+    activity_id: a.activity_id,
+    title: a.activity_title,
+    programme_title: a.programme_title,
+    unit_label: a.unit_label,
+    unit_index: a.unit_index,
+    unit_title: a.unit_title,
+  }));
 
   return (
     <div className="quiz-editor-page">
@@ -58,6 +68,9 @@ export default async function TutorQuizEditorPage({
         items={detail.items}
         pickerQuestions={pickerQuestions}
         pickerFilters={filters}
+        pickerTagOptions={tagOptions}
+        programmes={programmes}
+        activities={activities}
       />
     </div>
   );

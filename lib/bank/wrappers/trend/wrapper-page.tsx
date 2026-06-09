@@ -34,6 +34,7 @@ import {
 } from './actions';
 import { TrendDataTable } from './data-table';
 import { DeleteTrendConfirm } from './delete-trend-confirm';
+import { PublishNeedsDatasetNotice } from './publish-needs-dataset-notice';
 import type {
   SlotEditorInitial,
   SlotRow,
@@ -49,6 +50,8 @@ import { saveQuestionAction } from '@/lib/bank/actions/save-question';
 import type { QuestionType } from '@/lib/bank/classifications';
 import { validateTrend, type ValidationIssue } from './validation';
 import { ValidationPanel } from './validation-panel';
+import { AuthorshipInline } from '@/lib/audit/authorship-line';
+import type { Authorship } from '@/lib/audit/authorship';
 
 import { McqEditorBody, McqPreview }             from '@/lib/bank/editors/mcq-editor';
 import { TfEditorBody, TfPreview }               from '@/lib/bank/editors/tf-editor';
@@ -86,6 +89,13 @@ interface Props {
    * trend-attached row directly into the right pill.
    */
   focusItemId?: string | null;
+  /**
+   * Authorship facts for the trend dataset wrapper row itself (created /
+   * last edited). Drives the topbar readout + its history drawer. Shows
+   * the dataset's own history — its attached questions carry theirs
+   * separately.
+   */
+  authorship?: Authorship | null;
 }
 
 type ActivePill = 'dataset' | number;  // integer = slot.position OR creating sentinel
@@ -118,7 +128,7 @@ interface CreatingState {
   editor:   SlotEditorInitial;
 }
 
-export function TrendWrapperPage({ data, focusItemId = null }: Props) {
+export function TrendWrapperPage({ data, focusItemId = null, authorship = null }: Props) {
   const { surface, datasetRow, slots } = data;
   const router = useRouter();
 
@@ -183,6 +193,13 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
 
   // ── Delete dialog ───────────────────────────────────────────
   const [showDelete, setShowDelete] = useState(false);
+
+  // ── Publish-needs-dataset offer ─────────────────────────────
+  // Holds the question's submitted FormData when the curator tries to
+  // publish a question while the dataset is still a draft. null = no
+  // pending offer.
+  const [pendingQuestionPublish, setPendingQuestionPublish] =
+    useState<FormData | null>(null);
 
   // ── Validation panel ────────────────────────────────────────
   // null = panel closed. Array = open with these issues. Re-clicking
@@ -285,6 +302,21 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
     if (isCreatingActive) {
       formData.set('trend_id', datasetRow.trend_id);
     }
+    // Reverse gate (mirror of the case study's): a trend question only
+    // reaches students when its dataset is published too. Block
+    // publishing the question while the dataset is still a draft, and
+    // offer to publish the dataset alongside it. We check the PERSISTED
+    // dataset flag (datasetRow.is_published) — an unsaved toggle doesn't
+    // count for delivery. Saving the question as a draft is never gated.
+    const publishingQuestion = formData.get('is_published') === 'on';
+    if (publishingQuestion && !datasetRow.is_published) {
+      setPendingQuestionPublish(formData);
+      return;
+    }
+    doSaveQuestion(formData);
+  }
+
+  function doSaveQuestion(formData: FormData) {
     setQuestionError(null);
     startQuestionTransition(async () => {
       const result = await saveQuestionAction(formData);
@@ -302,6 +334,40 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
         router.refresh();
       }
     });
+  }
+
+  // Confirm handler for the publish-needs-dataset offer: publish the
+  // dataset (save it live) first, then publish the question — so the
+  // question actually reaches students.
+  function onConfirmPublishWithDataset() {
+    const formData = pendingQuestionPublish;
+    if (!formData) return;
+    setPendingQuestionPublish(null);
+    setQuestionError(null);
+    startQuestionTransition(async () => {
+      const dsFd = buildWrapperFormData();
+      dsFd.set('is_published', 'on');
+      const dsResult = await saveTrendMetadataAction(dsFd);
+      if (!dsResult.ok) {
+        setQuestionError(`Couldn’t publish the dataset: ${dsResult.error}`);
+        return;
+      }
+      const qResult = await saveQuestionAction(formData);
+      if (!qResult.ok) {
+        setQuestionError(qResult.error);
+        return;
+      }
+      setIsPublished(true);
+      setEditorDirty(false);
+      if (isCreatingActive) {
+        setCreating(null);
+      }
+      router.refresh();
+    });
+  }
+
+  function onCancelPublishWithDataset() {
+    setPendingQuestionPublish(null);
   }
 
   function onEditorBodyDirty() {
@@ -530,6 +596,15 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
               <span className="auth-cs-dirty-dot" title="Unsaved changes">●</span>
             )}
           </span>
+          <span className="audit-topbar-authors">
+            <AuthorshipInline
+              authorship={authorship ?? undefined}
+              realm={surface}
+              entityType={surface === 'tutor' ? 'tutor_trend_dataset' : 'trend_dataset'}
+              entityId={datasetRow.trend_id}
+              title={datasetRow.title}
+            />
+          </span>
         </div>
         <div className="auth-tr-topbar-right">
           {onQuestionPill ? (
@@ -757,6 +832,14 @@ export function TrendWrapperPage({ data, focusItemId = null }: Props) {
           onClose={() => setValidationIssues(null)}
         />
       )}
+
+      {pendingQuestionPublish && (
+        <PublishNeedsDatasetNotice
+          pending={isQuestionPending}
+          onCancel={onCancelPublishWithDataset}
+          onPublishDataset={onConfirmPublishWithDataset}
+        />
+      )}
     </div>
   );
 }
@@ -949,6 +1032,7 @@ function DatasetView({
             label="Visible in student quiz builder"
             on={isBuilderVisible}
             onChange={onIsBuilderVisibleChange}
+            hint="No effect on trends — each question sets its own builder visibility."
           />
         </div>
       </section>
@@ -970,20 +1054,25 @@ function VisibilityFlag({
   label,
   on,
   onChange,
+  hint,
 }: {
   label:    string;
   on:       boolean;
   onChange: (next: boolean) => void;
+  hint?:    string;
 }) {
   return (
-    <label className="auth-tr-visibility-row">
-      <input
-        type="checkbox"
-        checked={on}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <span>{label}</span>
-    </label>
+    <div className="auth-tr-visibility-item">
+      <label className="auth-tr-visibility-row">
+        <input
+          type="checkbox"
+          checked={on}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        <span>{label}</span>
+      </label>
+      {hint && <span className="auth-tr-visibility-hint">{hint}</span>}
+    </div>
   );
 }
 

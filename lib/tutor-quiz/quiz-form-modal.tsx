@@ -17,6 +17,9 @@ import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { ErrorToast } from '@/lib/toast/error-toast';
+import { ActivityBlockedDialog } from './activity-blocked-dialog';
+import { QuizDeleteSection } from './quiz-delete-section';
+import { QuizTagInput } from './quiz-tag-input';
 import { createQuizAction, updateQuizAction } from './actions';
 import {
   QUIZ_MODES_BY_KIND,
@@ -25,6 +28,7 @@ import {
   quizModeHelp,
 } from './format';
 import type {
+  QuizActivityLink,
   QuizFormValues,
   QuizKind,
   QuizMode,
@@ -59,17 +63,30 @@ function isValidPercentString(s: string): boolean {
   return Number.isFinite(n) && n >= 0 && n <= 100;
 }
 
+// Order-sensitive tag-array equality for dirty tracking. Tags are
+// kept in insertion order and lowercased, so a positional compare is
+// exact.
+function sameTags(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((t, i) => t === b[i]);
+}
+
 export function QuizFormModal(props: QuizFormModalProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showDiscard, setShowDiscard] = useState(false);
+  // Set when a Kind switch is blocked by mismatched activity links.
+  const [kindBlocked, setKindBlocked] = useState<QuizActivityLink[] | null>(
+    null,
+  );
 
   const isEdit = props.mode === 'edit';
   const initial = isEdit ? props.initial : null;
 
   const [title, setTitle] = useState(initial?.title ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
+  const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [quizKind, setQuizKind] = useState<QuizKind>(
     initial?.quiz_kind ?? 'PRACTICE',
   );
@@ -91,9 +108,9 @@ export function QuizFormModal(props: QuizFormModalProps) {
   const [maxAttempts, setMaxAttempts] = useState(
     initial?.max_attempts != null ? String(initial.max_attempts) : '',
   );
-  const [status, setStatus] = useState<QuizStatus>(
-    initial?.status ?? 'DRAFT',
-  );
+  // Status is no longer edited here — the editor header's publish
+  // controls own it. Preserve the quiz's current status on save.
+  const status: QuizStatus = initial?.status ?? 'DRAFT';
 
   const allowedModes = QUIZ_MODES_BY_KIND[quizKind];
   const modeIsTimed = isTimedMode(mode);
@@ -128,7 +145,8 @@ export function QuizFormModal(props: QuizFormModalProps) {
         durationMinutes !== initialMinutes ||
         passScorePercent !== initialPercent ||
         maxAttempts !== initialAttempts ||
-        status !== initial.status
+        status !== initial.status ||
+        !sameTags(tags, initial.tags ?? [])
       );
     }
     return (
@@ -138,7 +156,8 @@ export function QuizFormModal(props: QuizFormModalProps) {
       mode !== DEFAULT_MODE_FOR_KIND.PRACTICE ||
       durationMinutes !== '' ||
       passScorePercent !== '' ||
-      maxAttempts !== ''
+      maxAttempts !== '' ||
+      tags.length > 0
     );
   })();
 
@@ -187,6 +206,7 @@ export function QuizFormModal(props: QuizFormModalProps) {
         max_attempts:
           maxAttempts.trim() === '' ? null : parseInt(maxAttempts, 10),
         status: isEdit ? status : 'DRAFT',
+        tags,
       };
 
       if (isEdit) {
@@ -194,6 +214,8 @@ export function QuizFormModal(props: QuizFormModalProps) {
         if (result.ok) {
           props.onClose();
           router.refresh();
+        } else if (result.kindBlockingActivities?.length) {
+          setKindBlocked(result.kindBlockingActivities);
         } else {
           setError(result.error);
         }
@@ -276,6 +298,20 @@ export function QuizFormModal(props: QuizFormModalProps) {
                   students before they start.
                 </span>
               </label>
+
+              <div className="prog-field">
+                <span className="prog-field-label">Tags</span>
+                <QuizTagInput
+                  value={tags}
+                  onChange={setTags}
+                  disabled={isPending}
+                />
+                <span className="prog-field-help">
+                  Optional labels to help you find and group your
+                  quizzes (e.g. a topic, an exam phase). Only you see
+                  them.
+                </span>
+              </div>
             </section>
 
             {/* FORMAT */}
@@ -392,33 +428,18 @@ export function QuizFormModal(props: QuizFormModalProps) {
               </div>
             </section>
 
-            {/* STATUS — edit mode only; create always lands as DRAFT */}
+            {/* Lifecycle status (publish / unpublish / archive) lives on
+                the editor header's QuizPublishControls now, not here —
+                one source of truth per action. The modal keeps the
+                quiz's current status untouched on save. */}
+
+            {/* DANGER ZONE — delete (edit mode only). Reachable from
+                both the card pencil and the editor via this one modal. */}
             {isEdit && (
-              <section className="prog-form-section">
-                <h3 className="prog-form-section-title">Status</h3>
-                <label className="prog-field">
-                  <span className="prog-field-label">
-                    Lifecycle status
-                  </span>
-                  <select
-                    className="prog-input"
-                    value={status}
-                    onChange={(e) =>
-                      setStatus(e.target.value as QuizStatus)
-                    }
-                    disabled={isPending}
-                  >
-                    <option value="DRAFT">Draft</option>
-                    <option value="PUBLISHED">Published</option>
-                    <option value="ARCHIVED">Archived</option>
-                  </select>
-                  <span className="prog-field-help">
-                    Only Published quizzes can be attached to a
-                    programme&apos;s curriculum. Archived quizzes drop
-                    out of the active list.
-                  </span>
-                </label>
-              </section>
+              <QuizDeleteSection
+                quizId={props.quizId}
+                quizTitle={initial?.title ?? trimmedTitle}
+              />
             )}
           </div>
 
@@ -452,6 +473,23 @@ export function QuizFormModal(props: QuizFormModalProps) {
             setShowDiscard(false);
             props.onClose();
           }}
+        />
+      )}
+
+      {kindBlocked && (
+        <ActivityBlockedDialog
+          title="Can't change the Kind"
+          body={
+            <>
+              This quiz is linked to {kindBlocked.length}{' '}
+              {kindBlocked.length === 1 ? 'activity' : 'activities'} of the
+              other type. Re-point or unlink{' '}
+              {kindBlocked.length === 1 ? 'it' : 'them'} from your
+              curriculum first, then change the Kind.
+            </>
+          }
+          activities={kindBlocked}
+          onClose={() => setKindBlocked(null)}
         />
       )}
     </>

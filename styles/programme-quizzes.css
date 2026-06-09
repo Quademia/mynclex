@@ -580,3 +580,218 @@
   border-color: #99f6e4;
   font-weight: 600;
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   GROUPED ROWS — 2026-06 Claude Design "Programme quiz list" (Option B)
+   Linked-vs-standalone groups + enhanced rows carrying the
+   recontextualised badge cluster. The qc-* badge/peek base lives in
+   styles/quiz.css (loaded app-wide); this file adds the row + group
+   shells and the programme-specific badge tones.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Groups ──────────────────────────────────────────────────────── */
+.pq-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pgroup {
+  margin-bottom: 22px;
+}
+.pgroup:last-child {
+  margin-bottom: 0;
+}
+.pgroup-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--border);
+}
+.pgroup-icn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+}
+.pgroup-icn svg {
+  width: 14px;
+  height: 14px;
+}
+.pgroup-icn.tone-linked {
+  background: #f0fdfa;
+  color: #0f766e;
+}
+.pgroup-title {
+  font-size: 13.5px;
+  font-weight: 680;
+  letter-spacing: -0.005em;
+  margin: 0;
+  color: var(--text);
+}
+.pgroup-ct {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.pgroup-note {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  margin-left: 4px;
+}
+
+/* ── Rows ────────────────────────────────────────────────────────── */
+.prow-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.prow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px 14px 19px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--q-radius);
+  box-shadow: var(--q-shadow-xs);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.prow:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--q-shadow-md);
+}
+.prow::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  border-radius: var(--q-radius) 0 0 var(--q-radius);
+  background: var(--q-prac-edge);
+}
+.prow.is-mock::before {
+  background: var(--q-mock-edge);
+}
+.prow.is-muted {
+  background: #fbfcfd;
+}
+.prow.is-muted::before {
+  background: var(--border-strong);
+}
+.prow-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.prow-title-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.prow-link {
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+.prow-link:hover .prow-title {
+  color: var(--primary);
+}
+.prow-title {
+  font-size: 15.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.25;
+}
+.prow-subline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.prow-meta-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.prow-meta-text b {
+  color: var(--text);
+  font-weight: 650;
+}
+.prow-meta-text .dot-sep {
+  color: var(--text-faint);
+}
+.prow-badge-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+}
+.prow-right {
+  flex-shrink: 0;
+}
+.prow-remove {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  padding: 6px 13px;
+  background: var(--white);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--q-radius-sm);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.prow-remove:not(:disabled):hover {
+  color: var(--danger);
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+.prow-remove:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ── Programme-specific badge tones (augment qc-* base in quiz.css) ── */
+.qc-badge.tone-linked {
+  color: #115e59;
+}
+.qc-badge.tone-linked svg {
+  color: #14b8a6;
+}
+.qc-badge.tone-linked b {
+  color: #0f766e;
+}
+.qc-badge.tone-linked:hover,
+.qc-badge-host.is-open .qc-badge.tone-linked {
+  background: #f0fdfa;
+}
+/* Standalone marker — neutral, non-interactive (no peek). */
+.qc-badge.is-standalone {
+  cursor: default;
+  color: var(--text-muted);
+}
+.qc-badge.is-standalone svg {
+  width: 9px;
+  height: 9px;
+  color: var(--text-faint);
+}
+.qc-badge.is-standalone:hover {
+  background: transparent;
+  color: var(--text-muted);
+}

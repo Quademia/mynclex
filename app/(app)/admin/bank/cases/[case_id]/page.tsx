@@ -12,6 +12,7 @@ import { notFound } from 'next/navigation';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { loadCase } from '@/lib/bank/wrappers/case-study/load-case';
 import { CaseStudyWrapperPage } from '@/lib/bank/wrappers/case-study/wrapper-page';
+import { loadAuthorship } from '@/lib/audit/authorship';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,5 +30,13 @@ export default async function AdminCaseStudyPage({ params, searchParams }: PageP
   const data = await loadCase(supabase, 'admin', case_id);
   if (!data) notFound();
 
-  return <CaseStudyWrapperPage data={data} focusItemId={focusItemId} />;
+  const authorship = await loadAuthorship(supabase, 'admin', 'case_study', [case_id]);
+
+  return (
+    <CaseStudyWrapperPage
+      data={data}
+      focusItemId={focusItemId}
+      authorship={authorship[case_id]}
+    />
+  );
 }

@@ -1,20 +1,23 @@
 /* mynclex/styles/programmes.css
  *
- * Programme list page (slice 9.1a). New domain file per CLAUDE.md
- * folder convention #5 — replaces the inline block previously in
- * nav.css. New classes for status pills, smart schedule line,
- * archived toggle, and empty-state CTA layered on top.
+ * Programmes list page + the shared programme/cohort modal. Rebuilt from
+ * the Claude Design "Tutor Programmes" handoff (list redesign + modal
+ * uplift), remapped to the app tokens. Class prefix `.programme(s)-` /
+ * `.prog-` so it can't collide with other domains.
  *
- * Class prefix `.programme(s)-` so it can't collide with other
- * domains.
+ * Layering note: the modal overlay stays at z-index 50 — BELOW the
+ * discard / length-decrease confirm overlays (z-index 70) so those
+ * dialogs render on top of the form when triggered.
  */
 
-/* ─── Page header ─────────────────────────────────── */
-
+/* ─── Page header + toolbar row ───────────────────── */
 .programmes-page {
-  max-width: 1080px;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
 }
-
 .programmes-head {
   display: flex;
   align-items: flex-start;
@@ -22,26 +25,27 @@
   gap: 16px;
   margin-bottom: 20px;
 }
-
 .programmes-title {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--text);
   margin: 0 0 4px;
   line-height: 1.2;
 }
-
 .programmes-sub {
   font-size: 13px;
   color: var(--text-muted);
   margin: 0;
 }
-
 .programmes-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 500;
-  padding: 8px 14px;
+  font-weight: 600;
+  padding: 9px 16px;
   background: var(--primary);
   color: var(--white);
   border: 1px solid var(--primary);
@@ -50,84 +54,322 @@
   white-space: nowrap;
   transition: background-color 0.15s ease;
 }
-.programmes-new-btn:hover:not(:disabled) {
+.programmes-new-btn:hover {
   background: var(--primary-dark);
 }
-.programmes-new-btn:disabled {
-  background: var(--bg);
-  border-color: var(--border);
+
+/* ════════════════════════════════════════════════════
+ * Delivery-mode front split (segment + per-mode create)
+ * ════════════════════════════════════════════════════
+ * Two modes, one table underneath — separated only at the front so a
+ * tutor sees "these run in cohorts; these don't." Tutored reads navy
+ * (primary), self-paced reads teal (accent). On-brand, not CD's indigo.
+ */
+.programmes-page {
+  --mode-tutored: var(--primary);
+  --mode-selfpaced: var(--accent);
+}
+
+/* Header create buttons — one per mode (both on the All tab). */
+.programmes-create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.programmes-new-btn.is-tutored {
+  background: var(--mode-tutored);
+  border-color: var(--mode-tutored);
+}
+.programmes-new-btn.is-tutored:hover {
+  background: var(--primary-dark);
+}
+.programmes-new-btn.is-selfpaced {
+  background: var(--mode-selfpaced);
+  border-color: var(--mode-selfpaced);
+}
+.programmes-new-btn.is-selfpaced:hover {
+  background: var(--accent-dark);
+}
+
+/* Segmented control + the per-segment hint line. */
+.programmes-modebar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.programmes-segments {
+  display: inline-flex;
+  gap: 3px;
+  background: var(--bg-soft);
+  border-radius: 10px;
+  padding: 4px;
+}
+.programmes-segments button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 7px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+.programmes-segments button:hover {
+  color: var(--text);
+}
+.programmes-segments button.active {
+  background: var(--white);
+  color: var(--primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.09);
+}
+.seg-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.seg-dot.is-tutored {
+  background: var(--mode-tutored);
+}
+.seg-dot.is-selfpaced {
+  background: var(--mode-selfpaced);
+}
+.seg-count {
+  font-size: 11.5px;
+  font-weight: 700;
   color: var(--text-faint);
-  cursor: not-allowed;
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 1px 7px;
+  min-width: 20px;
+  text-align: center;
+}
+.programmes-segments button.active .seg-count {
+  color: var(--primary);
+  background: var(--primary-light);
+}
+.programmes-modebar-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.programmes-modebar-hint svg {
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+
+/* ─── Filter / sort row ───────────────────────────── */
+.programmes-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.programmes-search {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  max-width: 340px;
+  display: flex;
+  align-items: center;
+}
+.programmes-search svg {
+  position: absolute;
+  left: 11px;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+.programmes-search input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  padding: 8px 12px 8px 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.programmes-search input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+.programmes-search input::placeholder {
+  color: var(--text-faint);
+}
+.programmes-filter {
+  display: flex;
+  gap: 3px;
+  background: var(--bg-soft);
+  border-radius: var(--radius);
+  padding: 3px;
+}
+.programmes-filter button {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.programmes-filter button:hover {
+  color: var(--text);
+}
+.programmes-filter button.active {
+  background: var(--white);
+  color: var(--primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.programmes-sort {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.programmes-sort select {
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  padding: 7px 26px 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
+    no-repeat right 8px center;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.programmes-sort select:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 /* ─── Card grid ───────────────────────────────────── */
-
 .programmes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px;
 }
-.programmes-grid.is-archived-bank {
-  margin-top: 12px;
+.programmes-no-match {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 24px 4px;
 }
 
 /* ─── Programme card ──────────────────────────────── */
-
 .programme-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
+  border-radius: 12px;
+  padding: 16px 18px;
   color: inherit;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
+/* NOTE: intentionally no `transform` on hover. The Edit / Add-first-cohort
+ * modals render as DOM descendants of the card, and a CSS transform on an
+ * ancestor makes it the containing block for `position: fixed` — which would
+ * anchor the modal overlay to the card instead of the viewport (it "sits on
+ * the card" and twitches). A shadow + border lift gives the hover feedback
+ * without trapping the fixed overlay. */
 .programme-card:hover {
   border-color: var(--border-strong);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-md);
+}
+.programme-card.is-draft {
+  background: var(--bg);
 }
 .programme-card.is-muted {
   background: var(--bg);
-  opacity: 0.85;
+  opacity: 0.82;
 }
 .programme-card.is-muted:hover {
   opacity: 1;
+  transform: none;
+  box-shadow: var(--shadow);
 }
 
-/* Overlay link — covers the whole card. The edit button (z:2) sits
- * above this and intercepts its own clicks. */
+/* Overlay link covers the whole card; actions sit above it. */
 .programme-card-link {
   position: absolute;
   inset: 0;
   z-index: 1;
-  border-radius: var(--radius);
+  border-radius: 12px;
   text-decoration: none;
+}
+.programme-card > *:not(.programme-card-link) {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+.programme-card-actions,
+.programme-card .programme-card-add-cohort,
+.programme-card .programme-card-menu {
+  pointer-events: auto;
 }
 
 .programme-card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
-
+.programme-card-titlewrap {
+  min-width: 0;
+}
+.programme-card-title {
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.3;
+}
+.programme-card-tagline {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 3px 0 0;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .programme-card-actions {
-  position: relative;
-  z-index: 2;
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
-
 .programme-card-edit-btn {
   background: transparent;
   border: 0;
-  padding: 4px 6px;
-  border-radius: var(--radius);
-  color: var(--text-muted);
+  padding: 5px;
+  border-radius: 7px;
+  color: var(--text-faint);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -135,16 +377,15 @@
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 .programme-card-edit-btn:hover {
-  background: var(--bg-soft);
-  color: var(--text);
+  background: var(--primary-light);
+  color: var(--accent);
 }
 .programme-card-edit-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
-/* Visually hidden — accessible label text for the overlay link.
- * Standard sr-only pattern. */
+/* Visually hidden label text for the overlay link. */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -157,44 +398,131 @@
   border: 0;
 }
 
-.programme-card-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text);
-  margin: 0;
-  line-height: 1.3;
-}
-
-.programme-card-tagline {
-  font-size: 12.5px;
+/* Shape line — length / module count */
+.programme-card-shape {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
   color: var(--text-muted);
-  margin: 0;
-  line-height: 1.4;
+}
+.programme-card-shape svg {
+  color: var(--text-faint);
 }
 
+/* Completion meter + health */
+.programme-meter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 1px;
+}
+.programme-meter {
+  height: 6px;
+  background: var(--bg-soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.programme-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+.programme-meter-fill.health-on-track {
+  background: var(--accent);
+}
+.programme-meter-fill.health-watch {
+  background: var(--warning);
+}
+.programme-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.programme-health::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.programme-health.health-on-track {
+  color: var(--accent);
+}
+.programme-health.health-on-track::before {
+  background: var(--accent);
+}
+.programme-health.health-watch {
+  color: var(--warning);
+}
+.programme-health.health-watch::before {
+  background: var(--warning);
+}
+
+/* Foot — stats + price */
 .programme-card-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-size: 12px;
+  font-size: 12.5px;
   margin-top: auto;
-  padding-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
 }
-
-.programme-card-meta,
-.programme-card-schedule {
+.programme-card-meta {
   color: var(--text-muted);
 }
+.programme-card-meta.is-selfpaced {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.programme-card-meta.is-selfpaced svg {
+  color: var(--accent);
+}
+.programme-card-meta.is-quiet {
+  color: var(--text-faint);
+}
+.programme-card-price {
+  font-weight: 700;
+  color: var(--text);
+}
+.programme-card-price.is-free {
+  color: var(--accent);
+}
 
-/* ─── Status pills ────────────────────────────────── */
+/* Zero-cohort inline nudge (NewCohortTrigger variant="card") */
+.programme-card-add-cohort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--primary-light);
+  border: 1px solid rgba(45, 125, 114, 0.25);
+  border-radius: 7px;
+  padding: 6px 11px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.programme-card-add-cohort:hover {
+  background: #e2f1ef;
+  border-color: var(--accent);
+}
 
+/* Status pills */
 .programme-pill {
   display: inline-block;
   padding: 2px 9px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   border: 1px solid transparent;
   white-space: nowrap;
   flex-shrink: 0;
@@ -205,175 +533,466 @@
   border-color: #bbf7d0;
 }
 .programme-pill.is-draft {
-  background: var(--bg-soft);
-  color: var(--text-muted);
-  border-color: var(--border);
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fcd34d;
 }
 .programme-pill.is-archived {
   background: var(--bg);
   color: var(--text-faint);
-  border-color: var(--border);
-}
-.programme-pill.is-cancelled {
-  background: #fef2f2;
-  color: #991b1b;
-  border-color: #fecaca;
+  border-color: var(--border-strong);
 }
 
-/* ─── Archived toggle ─────────────────────────────── */
+/* ─── Mode identity (chip + coloured edge) ────────── */
+.programme-card.mode-tutored {
+  border-left: 3px solid var(--mode-tutored);
+}
+.programme-card.mode-selfpaced {
+  border-left: 3px solid var(--mode-selfpaced);
+}
+.programme-card-mode {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--primary-light);
+}
+.programme-card-mode.mode-tutored {
+  color: var(--mode-tutored);
+}
+.programme-card-mode.mode-selfpaced {
+  color: var(--mode-selfpaced);
+}
 
-.programmes-archived-toggle {
-  font-family: inherit;
+/* Tutor-led schedule / no-open-cohort warning line */
+.programme-card-schedule,
+.programme-card-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
+}
+.programme-card-schedule {
   color: var(--text-muted);
-  background: transparent;
-  border: 0;
-  padding: 12px 0 8px;
-  cursor: pointer;
-  text-align: left;
-  display: block;
-  margin-top: 8px;
 }
-.programmes-archived-toggle:hover {
+.programme-card-schedule svg {
+  color: var(--mode-tutored);
+  flex-shrink: 0;
+}
+.programme-card-schedule b {
   color: var(--text);
-  text-decoration: underline;
-}
-
-/* ─── Empty state ─────────────────────────────────── */
-
-.programmes-empty {
-  text-align: center;
-  padding: 48px 24px;
-  background: var(--white);
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius);
-}
-.programmes-empty-title {
-  font-size: 16px;
   font-weight: 600;
+}
+.programme-card-warn {
+  color: #92400e;
+}
+.programme-card-warn svg {
+  color: #d97706;
+  flex-shrink: 0;
+}
+
+/* ─── Card ⋯ kebab menu (Edit · Publish · Archive) ── */
+.programme-card-menu {
+  position: relative;
+  display: inline-flex;
+}
+.programme-card-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.programme-card-menu-btn:hover,
+.programme-card-menu.is-open .programme-card-menu-btn {
   color: var(--text);
-  margin: 0 0 6px;
+  border-color: var(--border-strong);
+  background: var(--white);
 }
-.programmes-empty-sub {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin: 0 auto 18px;
-  max-width: 440px;
-  line-height: 1.5;
+.programme-card-menu-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
-.programmes-empty-cta {
+.programme-card-menu-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  min-width: 168px;
+  padding: 5px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+}
+.programme-card-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
-  padding: 8px 16px;
-  background: var(--primary);
-  color: var(--white);
-  border: 1px solid var(--primary);
-  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.programme-card-menu-item svg {
+  width: 15px;
+  height: 15px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.programme-card-menu-item:hover {
+  background: var(--bg-soft);
+}
+.programme-card-menu-item.is-danger {
+  color: var(--danger);
+}
+.programme-card-menu-item.is-danger svg {
+  color: var(--danger);
+}
+.programme-card-menu-item.is-danger:hover {
+  background: #fef2f2;
+}
+
+/* ─── New programme tile (dashed) ─────────────────── */
+.programmes-newcard {
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 150px;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.programmes-newcard:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--primary-light);
+}
+.programmes-newcard svg {
+  color: inherit;
+}
+
+/* ─── Archived section ────────────────────────────── */
+.programmes-archived {
+  margin-top: 26px;
+}
+.programmes-archived-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  padding: 6px 0;
   cursor: pointer;
 }
-.programmes-empty-cta:hover:not(:disabled) {
+.programmes-archived-toggle:hover {
+  color: var(--text);
+}
+.programmes-archived-toggle svg {
+  transition: transform 0.2s ease;
+}
+.programmes-archived-toggle.is-open svg {
+  transform: rotate(90deg);
+}
+.programmes-archived-grid {
+  margin-top: 14px;
+}
+
+/* ─── Empty state ─────────────────────────────────── */
+.programmes-empty {
+  text-align: center;
+  padding: 64px 28px;
+  background: var(--white);
+  border: 1px dashed var(--border-strong);
+  border-radius: 16px;
+}
+.programmes-empty-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: var(--primary-light);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  margin: 0 auto 18px;
+}
+.programmes-empty-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+.programmes-empty-sub {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin: 0 auto 22px;
+  max-width: 440px;
+  line-height: 1.55;
+}
+.programmes-empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 22px;
+  background: var(--accent);
+  color: var(--white);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.programmes-empty-cta:hover {
+  background: var(--accent-dark);
+}
+/* Self-paced uses the default accent (teal); tutored goes navy. */
+.programmes-empty-cta.is-tutored {
+  background: var(--mode-tutored);
+  border-color: var(--mode-tutored);
+}
+.programmes-empty-cta.is-tutored:hover {
   background: var(--primary-dark);
 }
-.programmes-empty-cta:disabled {
-  background: var(--bg);
-  border-color: var(--border);
-  color: var(--text-faint);
-  cursor: not-allowed;
+
+/* Onboarding (All tab, brand-new tutor): two mode choices side by side. */
+.programmes-empty.is-onboarding {
+  padding: 48px 28px 40px;
+}
+.programmes-onboard-modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 640px;
+  margin: 26px auto 0;
+  text-align: left;
+}
+.onboard-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+.onboard-mode.mode-tutored {
+  border-top: 3px solid var(--mode-tutored);
+}
+.onboard-mode.mode-selfpaced {
+  border-top: 3px solid var(--mode-selfpaced);
+}
+.onboard-mode-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  color: var(--white);
+}
+.onboard-mode.mode-tutored .onboard-mode-icon {
+  background: var(--mode-tutored);
+}
+.onboard-mode.mode-selfpaced .onboard-mode-icon {
+  background: var(--mode-selfpaced);
+}
+.onboard-mode-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 2px 0 0;
+}
+.onboard-mode-desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0 0 6px;
 }
 
-/* ─── New Programme modal (slice 9.1b) ────────────── */
+/* Dashed "+ New …" tile — subtle per-mode tint on hover. */
+.programmes-newcard.is-tutored:hover {
+  border-color: var(--mode-tutored);
+  color: var(--mode-tutored);
+  background: var(--primary-light);
+}
+.programmes-newcard.is-selfpaced:hover {
+  border-color: var(--mode-selfpaced);
+  color: var(--mode-selfpaced);
+  background: var(--primary-light);
+}
 
+/* Read-only delivery-mode line in the edit form's Shape section. */
+.prog-readout-note {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* ════════════════════════════════════════════════════
+ * Shared modal (programme + cohort)
+ * ════════════════════════════════════════════════════ */
 .prog-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
+  background: rgba(15, 23, 42, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 50;
   padding: 24px;
+  animation: prog-fade 0.15s ease;
 }
-
+@keyframes prog-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 .prog-modal {
   background: var(--white);
-  border-radius: var(--radius);
+  border-radius: 14px;
   box-shadow: var(--shadow-lg);
   width: 100%;
   max-width: 560px;
-  max-height: 85vh;
+  max-height: 88vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  animation: prog-pop 0.18s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
-
+/* Opacity-only entrance — deliberately NO transform. A moving transform
+ * here fights the inputs' autoFocus (the browser re-scrolls the focused
+ * field into view every frame while the modal animates), which shows up
+ * as the modal "twitching" on open. */
+@keyframes prog-pop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 .prog-modal-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 14px 18px;
+  gap: 12px;
+  padding: 18px 20px 16px;
   border-bottom: 1px solid var(--border);
 }
-
 .prog-modal-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
   color: var(--text);
   margin: 0;
+  letter-spacing: -0.01em;
 }
-
+.prog-modal-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 3px;
+}
 .prog-modal-close {
   background: transparent;
   border: 0;
   font-family: inherit;
-  font-size: 16px;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   cursor: pointer;
   color: var(--text-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
 }
 .prog-modal-close:hover:not(:disabled) {
-  background: var(--bg);
+  background: var(--bg-soft);
   color: var(--text);
 }
 .prog-modal-close:disabled {
-  cursor: not-allowed;
   opacity: 0.5;
+  cursor: not-allowed;
 }
-
 .prog-modal-body {
   flex: 1;
   overflow-y: auto;
-  padding: 18px;
+  padding: 20px;
 }
-
 .prog-modal-footer {
   display: flex;
+  align-items: center;
   gap: 8px;
   justify-content: flex-end;
-  padding: 12px 18px;
+  padding: 14px 20px;
   border-top: 1px solid var(--border);
   background: var(--bg);
 }
+.prog-modal-footer-note {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 
-/* Buttons */
-
+/* Footer buttons */
 .prog-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 500;
-  padding: 8px 16px;
+  font-weight: 600;
+  padding: 9px 18px;
   border: 1px solid transparent;
   border-radius: var(--radius);
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .prog-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 .prog-btn-primary {
@@ -390,73 +1009,102 @@
   border-color: var(--border);
 }
 .prog-btn-ghost:hover:not(:disabled) {
-  background: var(--bg);
+  background: var(--bg-soft);
+  border-color: var(--border-strong);
+}
+.prog-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: prog-spin 0.7s linear infinite;
+}
+@keyframes prog-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Validation banner */
+.prog-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 13px;
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  margin-bottom: 16px;
+  line-height: 1.45;
+}
+.prog-error-banner svg {
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
 /* Form sections */
-
 .prog-form-section + .prog-form-section {
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid var(--border);
 }
-
 .prog-form-section-title {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin: 0 0 12px;
+  margin: 0 0 14px;
 }
-
 .prog-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 10px;
+  gap: 5px;
+  margin-bottom: 14px;
 }
 .prog-field:last-child {
   margin-bottom: 0;
 }
-
 .prog-field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.prog-field-row:last-child {
+  margin-bottom: 0;
 }
 .prog-field-row .prog-field {
   margin-bottom: 0;
 }
-
 .prog-field-label {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--text);
 }
-
 .prog-required {
   color: var(--danger);
   margin-left: 2px;
 }
-
 .prog-field-help {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-muted);
   line-height: 1.4;
 }
-
 .prog-input,
 .prog-textarea {
   font-family: inherit;
   font-size: 13px;
   color: var(--text);
-  padding: 7px 10px;
+  padding: 9px 11px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--white);
   width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 .prog-input:focus,
 .prog-textarea:focus {
@@ -469,15 +1117,17 @@
   background: var(--bg);
   cursor: not-allowed;
 }
+.prog-input.is-invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px #fee2e2;
+}
 .prog-textarea {
   resize: vertical;
-  min-height: 80px;
-  font-family: inherit;
+  min-height: 78px;
   line-height: 1.5;
 }
 
 /* Currency-prefixed price input */
-
 .prog-price-input {
   position: relative;
   display: flex;
@@ -485,48 +1135,164 @@
 }
 .prog-price-prefix {
   position: absolute;
-  left: 10px;
+  left: 11px;
   font-size: 13px;
   color: var(--text-muted);
   pointer-events: none;
-  font-weight: 500;
+  font-weight: 600;
 }
 .prog-input-price {
-  padding-left: 22px;
+  padding-left: 26px;
 }
 
-/* Toggle */
-
-.prog-toggle {
+/* Read-only derived readout (cohort end date) */
+.prog-readout {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 9px 11px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 7px;
+  min-height: 38px;
+}
+.prog-readout svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.prog-readout b {
   color: var(--text);
-  margin-top: 12px;
-  cursor: pointer;
-}
-.prog-toggle input[type='checkbox'] {
-  cursor: pointer;
-  accent-color: var(--accent);
-}
-/* Inline modifier: used when the toggle sits inside a .prog-field
- * column (e.g. the cohort modal's late-join field). Drops the
- * default top margin since the parent column already provides
- * spacing. */
-.prog-toggle.prog-toggle-inline {
-  margin-top: 4px;
-}
-.prog-toggle-help {
-  margin-left: 24px;
-  margin-top: 2px;
+  font-weight: 600;
 }
 
-/* ─── Slice 9.3e — Programme status controls ──────── */
+/* ─── Segmented control (either/or choices) ───────── */
+.prog-seg {
+  display: inline-flex;
+  background: var(--bg-soft);
+  border-radius: 9px;
+  padding: 3px;
+  gap: 3px;
+  width: 100%;
+}
+.prog-seg button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+.prog-seg button:hover {
+  color: var(--text);
+}
+.prog-seg button.active {
+  background: var(--white);
+  color: var(--primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.prog-seg.is-disabled {
+  opacity: 0.6;
+}
+.prog-seg button:disabled {
+  cursor: not-allowed;
+}
 
-/* Status controls section at the top of the programme Overview
- * page. Sits above the existing placeholder + cohort-empty CTA.
- * Three rows visually: status pill row, action buttons, hint copy. */
+/* ─── Switch toggle (on/off) ──────────────────────── */
+.prog-switch-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+}
+.prog-switch-field + .prog-switch-field {
+  border-top: 1px solid var(--border);
+}
+.prog-switch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.prog-switch-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.prog-switch-help {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.prog-switch {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.18s ease;
+  padding: 0;
+}
+.prog-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.18s ease;
+}
+.prog-switch.is-on {
+  background: var(--accent);
+}
+.prog-switch.is-on::after {
+  transform: translateX(18px);
+}
+.prog-switch:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Inline switch inside a field column (cohort modal) */
+.prog-switch-inline {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 0;
+}
+.prog-switch-inline .prog-switch-label {
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .programmes-grid,
+  .programmes-archived-grid,
+  .programmes-onboard-modes {
+    grid-template-columns: 1fr;
+  }
+  .prog-field-row {
+    grid-template-columns: 1fr;
+  }
+  .programmes-head {
+    flex-direction: column;
+  }
+}
+
+/* ─── Slice 9.3e — Programme status controls (Overview) ─── */
 .programme-status-controls {
   display: flex;
   flex-direction: column;
@@ -537,13 +1303,11 @@
   border-radius: var(--radius);
   margin-bottom: 20px;
 }
-
 .programme-status-row {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-
 .programme-status-label {
   font-size: 12px;
   font-weight: 600;
@@ -551,10 +1315,6 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-
-/* Reuses the same .is-live / .is-draft tokens shared with the
- * programme card pill; adds .is-archived for the terminal state
- * (red-tinted, distinct from draft). */
 .programme-status-pill {
   display: inline-flex;
   align-items: center;
@@ -581,13 +1341,11 @@
   color: #991b1b;
   border-color: #fecaca;
 }
-
 .programme-status-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
-
 .programme-status-hint {
   margin: 0;
   font-size: 12px;

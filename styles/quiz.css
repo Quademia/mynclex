@@ -69,6 +69,12 @@
 
 /* ─── Quiz card ───────────────────────────────────── */
 
+/* Positioning host so the meta-edit pencil can sit over the card as a
+   sibling of the <Link> (a button can't be nested inside an anchor). */
+.quiz-card-wrap {
+  position: relative;
+}
+
 .quiz-card {
   display: flex;
   flex-direction: column;
@@ -80,6 +86,42 @@
   color: inherit;
   text-decoration: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Always-visible but quiet quick-edit pencil, top-right corner. Present
+   by default (discoverable + touch-reachable); hover/focus is the
+   emphasis step, not an appear/disappear. The head reserves a lane
+   (padding-right below) so it never overlaps the status pill. This
+   corner is the future home of an archive/delete/duplicate ⋯ menu. */
+.quiz-card-edit {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease, background 0.15s ease;
+}
+.quiz-card-wrap:hover .quiz-card-edit {
+  opacity: 0.85;
+}
+.quiz-card-edit:hover,
+.quiz-card-edit:focus-visible {
+  opacity: 1;
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--white);
 }
 .quiz-card:hover {
   border-color: var(--border-strong);
@@ -99,6 +141,9 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+  /* Reserve the top-right lane for the hover pencil so the status pill
+     never sits under it. */
+  padding-right: 30px;
 }
 
 .quiz-card-title {
@@ -165,6 +210,26 @@
   background: var(--bg);
   color: var(--text-faint);
   border-color: var(--border);
+}
+
+/* Readiness cue — a Draft with no questions can't be published yet.
+   The one quiz state worth flagging at a glance on the list. */
+.quiz-card-head-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.quiz-needs-q {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
 }
 
 /* ─── Kind pills (Mock = warm orange, Practice = indigo) ──
@@ -290,6 +355,31 @@
   min-width: 0;
 }
 
+/* Header action cluster — Edit details + the lifecycle controls. */
+.quiz-editor-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.quiz-status-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* "● Published" state indicator next to the Unpublish/Archive actions. */
+.quiz-published-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--success, #15803d);
+  white-space: nowrap;
+}
+
 .quiz-editor-title-row {
   display: flex;
   align-items: center;
@@ -351,6 +441,77 @@
 }
 .quiz-btn-ghost:hover:not(:disabled) {
   background: var(--bg);
+}
+.quiz-btn-danger {
+  background: #fef2f2;
+  color: var(--danger);
+  border-color: #fecaca;
+}
+.quiz-btn-danger:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+/* ─── Danger zone (delete) — foot of the edit modal ─ */
+
+.quiz-danger-zone {
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.quiz-danger-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.quiz-danger-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--danger);
+  margin: 0 0 2px;
+}
+.quiz-danger-help {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.45;
+  max-width: 42ch;
+}
+
+/* Blocking-activities list inside the "can't delete" dialog. */
+.quiz-blocking-list {
+  list-style: none;
+  margin: 4px 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.quiz-blocking-link {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.quiz-blocking-link:hover {
+  border-color: var(--border-strong);
+  background: var(--bg);
+  text-decoration: none;
+}
+.quiz-blocking-where {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
 }
 
 /* ─── Editor zones — two-column layout ────────────── */
@@ -610,4 +771,1165 @@
   color: var(--text-faint);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ * QUIZ UI UPLIFT — 2026-06 Claude Design ("Quiz UI Uplift", List A +
+ * Editor A). Appended last so these rules top the originals above.
+ * Tokens only; the derived tints below introduce no new brand hues.
+ * ═══════════════════════════════════════════════════════════════════ */
+:root {
+  --q-shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --q-shadow-md: 0 6px 16px -4px rgba(16, 24, 40, 0.1),
+    0 2px 6px -2px rgba(16, 24, 40, 0.06);
+  --q-radius: 10px;
+  --q-radius-sm: 7px;
+  --q-mock-bg: #fff7ed;
+  --q-mock-fg: #9a3412;
+  --q-mock-bd: #fed7aa;
+  --q-mock-edge: #ea7a3c;
+  --q-prac-bg: #eef2ff;
+  --q-prac-fg: #3730a3;
+  --q-prac-bd: #c7d2fe;
+  --q-prac-edge: #6366f1;
+  --q-pub-bg: #ecfdf3;
+  --q-pub-fg: #067647;
+  --q-pub-bd: #abefc6;
+}
+
+/* ── List page header ──────────────────────────────────────────── */
+.quizzes-eyebrow {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+  margin-bottom: 5px;
+}
+.quizzes-title {
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.quizzes-sub {
+  font-size: 13.5px;
+  max-width: 56ch;
+}
+.quizzes-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  padding: 9px 15px;
+  border-radius: var(--q-radius-sm);
+  box-shadow: var(--q-shadow-xs);
+}
+.quizzes-new-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ── Grid ──────────────────────────────────────────────────────── */
+.quizzes-grid {
+  grid-template-columns: repeat(auto-fill, minmax(332px, 1fr));
+  gap: 14px;
+}
+
+/* ── Card — elevation, kind edge, body + footer tray ───────────── */
+.quiz-card {
+  position: relative;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--q-radius);
+  box-shadow: var(--q-shadow-xs);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.quiz-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--q-shadow-md);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+.quiz-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--q-prac-edge);
+}
+.quiz-card.is-mock::before {
+  background: var(--q-mock-edge);
+}
+.quiz-card.is-muted {
+  background: #fbfcfd;
+  opacity: 1;
+}
+.quiz-card.is-muted::before {
+  background: var(--border-strong);
+}
+
+.quiz-card-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 15px 17px 14px;
+}
+.quiz-card-head {
+  padding: 0;
+  padding-right: 26px; /* lane for the corner action (pencil / ⋯) */
+}
+.quiz-card-title {
+  font-size: 15.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.quiz-card-desc {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.quiz-card-foot {
+  margin-top: 0;
+  padding: 11px 17px;
+  border-top: 1px solid var(--border);
+  background: #fbfcfe;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+}
+.quiz-card-metaitem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+}
+.quiz-card-metaitem svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-faint);
+}
+.quiz-card-metaitem b {
+  color: var(--text);
+  font-weight: 650;
+}
+
+/* ── Card → overflow-visible so footer peeks escape. The editor link
+   (.quiz-card-hit) wraps the body + meta row; the badges row sits
+   outside it as an independent interactive strip. ───────────────── */
+.quiz-card.qc-vis {
+  overflow: visible;
+}
+.quiz-card.qc-vis::before {
+  border-radius: var(--q-radius) 0 0 var(--q-radius);
+}
+.quiz-card-hit {
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+}
+.quiz-card-hit:hover {
+  text-decoration: none;
+}
+/* Hold the card still while a peek is open — don't lift it out from
+   under the popover the tutor is reading. */
+.quiz-card-wrap:has(.qc-badge-host.is-open) .quiz-card.qc-vis,
+.quiz-card-wrap:has(.qc-badge-host.is-open) .quiz-card.qc-vis:hover {
+  transform: none;
+}
+
+/* Dedicated badges row (white, beneath the tinted meta row). */
+.qc-foot-row.is-badges {
+  background: var(--white);
+  padding: 8px 12px;
+  border-radius: 0 0 var(--q-radius) var(--q-radius);
+}
+
+/* ── Footer badge cluster (Tags / Programmes / Activities) ───────── */
+.qc-foot-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.qc-badge-host {
+  position: relative;
+  display: inline-flex;
+}
+.qc-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.qc-badge svg {
+  width: 13.5px;
+  height: 13.5px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.qc-badge b {
+  color: var(--text);
+  font-weight: 650;
+}
+.qc-badge:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.qc-badge.is-zero {
+  color: var(--text-faint);
+  cursor: default;
+}
+.qc-badge.is-zero svg {
+  color: #cdd3db;
+}
+.qc-badge:not(.is-zero):hover,
+.qc-badge-host.is-open .qc-badge {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
+/* ── Hover-peek popover ──────────────────────────────────────────── */
+.qc-peek {
+  position: absolute;
+  width: 236px;
+  max-width: 80vw;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  box-shadow: var(--q-shadow-md);
+  padding: 11px 12px;
+  z-index: 60;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.13s ease, transform 0.13s ease;
+}
+.qc-peek.align-left {
+  left: calc(-6px + var(--shift, 0px));
+}
+/* Opens upward (cards sit low) vs downward (editor header sits high). */
+.qc-peek.is-up {
+  bottom: calc(100% + 9px);
+  transform: translateY(4px);
+  transform-origin: bottom center;
+}
+.qc-peek.is-down {
+  top: calc(100% + 9px);
+  transform: translateY(-4px);
+  transform-origin: top center;
+}
+.qc-badge-host.is-open .qc-peek {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.qc-peek::after {
+  content: '';
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  background: var(--white);
+}
+.qc-peek.is-up::after {
+  top: 100%;
+  transform: translateY(-6px) rotate(45deg);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.qc-peek.is-down::after {
+  bottom: 100%;
+  transform: translateY(6px) rotate(45deg);
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+}
+.qc-peek.align-left::after {
+  left: 18px;
+}
+.qc-peek-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 9px;
+}
+.qc-peek-title svg {
+  width: 12px;
+  height: 12px;
+}
+.qc-peek-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.qc-tag-chip {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  color: var(--text);
+  font-weight: 500;
+}
+.qc-peek-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 196px;
+  overflow: auto;
+}
+.qc-peek-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--text);
+  padding: 4px 5px;
+  border-radius: 6px;
+}
+.qc-peek-row:hover {
+  background: var(--bg-soft);
+}
+.qc-peek-row svg {
+  width: 13px;
+  height: 13px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.qc-peek-row.is-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  padding: 6px 6px 7px;
+}
+.qc-peek-row-main {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.qc-peek-row-sub {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.qc-peek-row-sub svg {
+  width: 11px;
+  height: 11px;
+  color: var(--text-faint);
+}
+
+/* ── Kind tag (card head) ──────────────────────────────────────── */
+.quiz-kind-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.quiz-kind-tag svg {
+  width: 12px;
+  height: 12px;
+}
+.quiz-kind-tag.is-mock {
+  background: var(--q-mock-bg);
+  color: var(--q-mock-fg);
+  border-color: var(--q-mock-bd);
+}
+.quiz-kind-tag.is-practice {
+  background: var(--q-prac-bg);
+  color: var(--q-prac-fg);
+  border-color: var(--q-prac-bd);
+}
+
+/* ── Status pill → dot + label ─────────────────────────────────── */
+.quiz-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  font-weight: 600;
+  font-size: 11.5px;
+}
+.quiz-pill::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+.quiz-pill.is-published {
+  background: var(--q-pub-bg);
+  color: var(--q-pub-fg);
+  border-color: var(--q-pub-bd);
+}
+
+/* ── Needs-questions flag — icon align ─────────────────────────── */
+.quiz-needs-q {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.quiz-needs-q svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ── Archived disclosure ───────────────────────────────────────── */
+.quizzes-archived-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+}
+.quizzes-archived-toggle svg {
+  width: 15px;
+  height: 15px;
+  transition: transform 0.15s ease;
+}
+.quizzes-archived-toggle.is-open svg {
+  transform: rotate(90deg);
+}
+
+/* ── Summary stat strip ────────────────────────────────────────── */
+.quizzes-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.quizzes-stat {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--q-radius);
+  padding: 14px 16px;
+  box-shadow: var(--q-shadow-xs);
+}
+.quizzes-stat-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.quizzes-stat-top .ic {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.quizzes-stat-top .ic svg {
+  width: 15px;
+  height: 15px;
+}
+.quizzes-stat-val {
+  font-size: 26px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  margin-top: 8px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.quizzes-stat-val small {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+.quizzes-stat .ic.navy {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.quizzes-stat .ic.green {
+  background: var(--q-pub-bg);
+  color: var(--q-pub-fg);
+}
+.quizzes-stat .ic.amber {
+  background: #fffbeb;
+  color: #b45309;
+}
+.quizzes-stat .ic.teal {
+  background: #e8f3f1;
+  color: var(--accent-dark);
+}
+
+/* ── Toolbar — search · status segments · kind · sort ──────────── */
+.quizzes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.quizzes-search {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+  max-width: 360px;
+}
+.quizzes-search svg {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+.quizzes-search input {
+  width: 100%;
+  padding: 9px 12px 9px 34px;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--q-radius-sm);
+  background: var(--white);
+  color: var(--text);
+}
+.quizzes-search input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px #e8f3f1;
+}
+.quizzes-seg {
+  display: inline-flex;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--q-radius-sm);
+  padding: 3px;
+  gap: 2px;
+}
+.quizzes-seg button {
+  border: 0;
+  background: transparent;
+  padding: 6px 11px;
+  border-radius: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.quizzes-seg button.is-active {
+  background: var(--white);
+  color: var(--text);
+  box-shadow: var(--q-shadow-xs);
+}
+.quizzes-seg .ct {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+.quizzes-seg button.is-active .ct {
+  color: var(--accent-dark);
+}
+.quizzes-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 36px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--q-radius-sm);
+  background: var(--white);
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.quizzes-select svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-faint);
+}
+.quizzes-select .lbl {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.quizzes-select select {
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  padding: 6px 0;
+  outline: none;
+}
+.quizzes-spacer {
+  flex: 1;
+}
+
+/* ── Tags multi-select facet (toolbar) ─────────────────────────────
+   Trigger reuses .quizzes-select so it matches the Kind / Sort
+   controls; the checklist popover is bespoke. */
+.quizzes-tagfilter {
+  position: relative;
+  display: inline-flex;
+}
+.quizzes-tagfilter-trigger {
+  cursor: pointer;
+}
+.quizzes-tagfilter.is-set .quizzes-tagfilter-trigger {
+  border-color: var(--accent);
+}
+.quizzes-tagfilter-summary {
+  font-weight: 600;
+  color: var(--text);
+}
+.quizzes-tagfilter-caret {
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.quizzes-tagfilter-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  min-width: 200px;
+  max-height: 280px;
+  overflow: auto;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--q-radius-sm);
+  box-shadow: var(--q-shadow-md);
+  padding: 6px;
+}
+.quizzes-tagfilter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+.quizzes-tagfilter-option:hover {
+  background: var(--bg-soft);
+}
+.quizzes-tagfilter-option input {
+  accent-color: var(--accent);
+}
+.quizzes-tagfilter-clear {
+  width: 100%;
+  margin-top: 4px;
+  padding: 7px 8px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: transparent;
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.quizzes-tagfilter-clear:hover {
+  color: var(--text);
+}
+
+/* filtered-empty note */
+.quizzes-empty-filtered {
+  padding: 28px 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13.5px;
+}
+
+/* ── Card ⋯ actions menu (corner) ──────────────────────────────── */
+/* NB: no z-index here on purpose — a positioned ancestor WITH a z-index
+   creates a stacking context that would trap the fixed toast/dialogs
+   rendered inside this component (they'd cap below the topbar). The
+   dropdown below carries its own z-index to sit above neighbour cards. */
+.quiz-card-menu {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+}
+.quiz-card-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+    background 0.15s ease;
+}
+.quiz-card-menu-btn svg {
+  width: 17px;
+  height: 17px;
+}
+.quiz-card-wrap:hover .quiz-card-menu-btn {
+  opacity: 0.9;
+}
+.quiz-card-menu-btn:hover,
+.quiz-card-menu.is-open .quiz-card-menu-btn {
+  opacity: 1;
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--white);
+}
+
+.quiz-card-menu-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  min-width: 192px;
+  padding: 5px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  box-shadow: var(--q-shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.quiz-card-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.quiz-card-menu-item svg {
+  width: 15px;
+  height: 15px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.quiz-card-menu-item:hover {
+  background: var(--bg-soft);
+}
+.quiz-card-menu-item.is-danger {
+  color: var(--danger);
+}
+.quiz-card-menu-item.is-danger svg {
+  color: var(--danger);
+}
+.quiz-card-menu-item.is-danger:hover {
+  background: #fef2f2;
+}
+.quiz-card-menu-sep {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ * EDITOR PAGE  (/tutor/quiz/[id]) — Editor A
+ * ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Header card ───────────────────────────────────────────────── */
+.quiz-editor-head {
+  display: block;
+  border-radius: var(--q-radius);
+  box-shadow: var(--q-shadow-xs);
+  padding: 18px 20px;
+}
+.quiz-editor-head-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+/* Quiz-level context badges (Tags / Programmes / Activities) sit
+   between the title block and the action buttons. margin-right:auto
+   keeps them left-grouped next to the title while pushing the actions
+   to the far right. */
+.quiz-editor-head-badges {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  margin-right: auto;
+  min-width: 0;
+}
+.quiz-editor-title {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.quiz-editor-desc {
+  font-size: 13px;
+  margin-top: 7px;
+  line-height: 1.5;
+  max-width: 70ch;
+}
+.quiz-editor-head-actions svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* meta line → labelled stat chips */
+.quiz-editor-metachips {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+}
+.quiz-editor-metachips .chip {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 86px;
+}
+.quiz-editor-metachips .chip + .chip {
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+}
+.quiz-editor-metachips .k {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.quiz-editor-metachips .k svg {
+  width: 12px;
+  height: 12px;
+}
+.quiz-editor-metachips .v {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+/* ── Buttons / publish flag ────────────────────────────────────── */
+.quiz-btn svg {
+  width: 15px;
+  height: 15px;
+}
+.quiz-published-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+/* ── Zones — equal columns, separated headers ──────────────────── */
+.quiz-editor-columns {
+  gap: 16px;
+}
+.quiz-zone {
+  border-radius: var(--q-radius);
+  box-shadow: var(--q-shadow-xs);
+  padding: 0;
+  /* No overflow:hidden — the picker's Filters popover + multi-select
+     dropdowns are absolutely positioned inside the right zone and must
+     be free to overflow it. */
+}
+.quiz-zone-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.quiz-zone-title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quiz-zone-count {
+  background: var(--bg-soft);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.quiz-zone-hint {
+  margin: 3px 0 0;
+  padding: 0;
+  border: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.quiz-zone-used {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.quiz-zone-used svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-faint);
+}
+.quiz-zone-used b {
+  color: var(--text);
+  font-weight: 650;
+}
+.quiz-zone-empty {
+  padding: 24px 16px;
+  font-size: 13px;
+}
+.quiz-item-list,
+.quiz-picker-bar,
+.quiz-picker-list {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+.quiz-item-list {
+  padding-top: 13px;
+  padding-bottom: 13px;
+  gap: 8px;
+}
+
+/* ── Selected-question rows ────────────────────────────────────── */
+.quiz-item-row {
+  gap: 11px;
+  padding: 11px 12px;
+  border-radius: var(--q-radius-sm);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.quiz-item-row:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--q-shadow-xs);
+}
+.quiz-item-handle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.quiz-item-grip {
+  color: var(--text-faint);
+  cursor: grab;
+  display: inline-grid;
+  place-items: center;
+}
+.quiz-item-grip svg {
+  width: 15px;
+  height: 15px;
+}
+.quiz-item-position {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--bg-soft);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.quiz-item-stem {
+  font-size: 13px;
+}
+
+/* ── Chips ─────────────────────────────────────────────────────── */
+.quiz-type-chip {
+  border-radius: 5px;
+  font-weight: 700;
+}
+.quiz-diff-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+}
+.quiz-diff-chip::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--text-faint);
+}
+.quiz-diff-chip.is-easy::before {
+  background: #16a34a;
+}
+.quiz-diff-chip.is-medium::before {
+  background: #d97706;
+}
+.quiz-diff-chip.is-hard::before {
+  background: #dc2626;
+}
+
+/* ── Reorder / remove icon buttons ─────────────────────────────── */
+.quiz-icon-btn {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.quiz-icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Picker rows + selection ───────────────────────────────────── */
+.quiz-picker-row {
+  gap: 11px;
+  padding: 11px 12px;
+  border-radius: var(--q-radius-sm);
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.quiz-picker-row:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--q-shadow-xs);
+}
+.quiz-picker-row.is-checked {
+  border-color: var(--accent);
+  background: #e8f3f1;
+}
+.quiz-picker-row.is-added {
+  background: #fbfcfd;
+  opacity: 0.65;
+}
+.quiz-picker-check input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+.quiz-picker-bar {
+  padding-top: 11px;
+  padding-bottom: 9px;
+}
+.quiz-picker-count b {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* ── Tag input (quiz create/edit form, Identity section) ───────────
+   Chip row + trailing free-text field. Mirrors the library note-tag
+   interaction, restyled to the .prog-* form vocabulary the modal
+   uses. */
+.quiz-tags-input {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.quiz-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--white);
+}
+.quiz-tags-row:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.quiz-tags-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 9px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.quiz-tags-chip-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.quiz-tags-chip-x:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--white);
+}
+.quiz-tags-chip-x:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.quiz-tags-text {
+  flex: 1 1 120px;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13.5px;
+  color: var(--text);
+  padding: 3px 2px;
+}
+.quiz-tags-text::placeholder {
+  color: var(--text-faint);
+}
+.quiz-tags-error {
+  font-size: 12px;
+  color: var(--danger);
 }

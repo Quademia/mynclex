@@ -5,39 +5,136 @@
 // scopes every read to the signed-in tutor's own quizzes.
 
 import { createClient } from '@/lib/supabase/server';
+import {
+  applyQuizPickerFilters,
+  type QuizPickerFilters,
+} from './quiz-picker-query';
 import type {
   PickerQuestionRow,
+  QuizActivityLink,
+  QuizCardActivityRef,
+  QuizCardProgrammeRef,
   QuizItemRow,
   QuizListRow,
-  QuizPickerFilters,
   TutorQuiz,
 } from './types';
 
+// Every curriculum activity (across ALL the tutor's programmes) that
+// references a quiz, grouped by quiz_id — feeds each card's Activities
+// badge + peek. One list-wide query (the per-quiz cousin is
+// getQuizActivityLinks); the activity→quiz link lives in payload JSON
+// so the grouping is done in JS, same as loadActivityHints. RLS on
+// _activities → _units → _programmes scopes the scan to the tutor's
+// own programmes. Each quiz's list is ordered (unit_index, ordinal).
+async function loadAllActivityRefs(): Promise<
+  Map<string, QuizCardActivityRef[]>
+> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('nclex_programme_activities')
+    .select(
+      `activity_id, title, payload, ordinal,
+       nclex_programme_units!inner(
+         unit_index, title,
+         nclex_programmes!inner(title, unit_label)
+       )`,
+    )
+    .in('type', ['MOCK', 'PRACTICE_QUIZ']);
+
+  if (error || !data) return new Map();
+
+  type Staged = { quizId: string; ordinal: number; ref: QuizCardActivityRef };
+  const staged: Staged[] = [];
+
+  for (const row of data as Array<{
+    activity_id: string;
+    title: string;
+    payload: { quiz_id?: string | null } | null;
+    ordinal: number;
+    nclex_programme_units:
+      | {
+          unit_index: number;
+          title: string;
+          nclex_programmes:
+            | { title: string; unit_label: 'WEEK' | 'MODULE' }
+            | Array<{ title: string; unit_label: 'WEEK' | 'MODULE' }>;
+        }
+      | Array<{
+          unit_index: number;
+          title: string;
+          nclex_programmes:
+            | { title: string; unit_label: 'WEEK' | 'MODULE' }
+            | Array<{ title: string; unit_label: 'WEEK' | 'MODULE' }>;
+        }>;
+  }>) {
+    const quizId = row.payload?.quiz_id;
+    if (!quizId) continue;
+    const unitRow = Array.isArray(row.nclex_programme_units)
+      ? row.nclex_programme_units[0]
+      : row.nclex_programme_units;
+    if (!unitRow) continue;
+    const progRow = Array.isArray(unitRow.nclex_programmes)
+      ? unitRow.nclex_programmes[0]
+      : unitRow.nclex_programmes;
+    staged.push({
+      quizId,
+      ordinal: row.ordinal,
+      ref: {
+        activity_id: row.activity_id,
+        title: row.title,
+        programme_title: progRow?.title ?? '',
+        unit_label: progRow?.unit_label ?? 'WEEK',
+        unit_index: unitRow.unit_index,
+        unit_title: unitRow.title,
+      },
+    });
+  }
+
+  // Stable per-quiz order: (unit_index ASC, ordinal ASC).
+  staged.sort(
+    (a, b) => a.ref.unit_index - b.ref.unit_index || a.ordinal - b.ordinal,
+  );
+
+  const out = new Map<string, QuizCardActivityRef[]>();
+  for (const s of staged) {
+    const list = out.get(s.quizId);
+    if (list) list.push(s.ref);
+    else out.set(s.quizId, [s.ref]);
+  }
+  return out;
+}
+
 /**
- * /tutor/quizzes list query. One row per quiz the tutor owns, with
- * the question-count rollup AND the "Used in N programmes" count
- * folded in via PostgREST embedded counts. Ordered most-recently-
- * updated first.
+ * /tutor/quizzes list query. One row per quiz the tutor owns, with the
+ * question-count rollup plus the programmes + activities the quiz is
+ * used in — the card's three footer badges (Tags / Programmes /
+ * Activities), each with a hover-peek list (2026-06 Claude Design
+ * "badges row"). Ordered most-recently-updated first.
  *
- * RLS scopes the SELECT to tutor_id = auth.uid() (SUPER_ADMIN
- * bypass via nclex_tutor_quizzes_superadmin). The programme-count
- * embed is added by Tutor Quiz Slice 5 — drives the "Used in N
- * programmes" chip on the card (§9.4.2).
+ * RLS scopes the SELECT to tutor_id = auth.uid() (SUPER_ADMIN bypass
+ * via nclex_tutor_quizzes_superadmin). Programme names come through the
+ * nclex_programme_quizzes junction embed; `used_in_programmes` is kept
+ * (= programmes.length) for existing readers. Activities come from a
+ * single list-wide scan (loadAllActivityRefs) grouped by quiz_id.
  *
  * Returns [] on error.
  */
 export async function getMyQuizzes(): Promise<QuizListRow[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from('nclex_tutor_quizzes')
-    .select(
-      `quiz_id, title, description, quiz_kind, mode,
-       duration_seconds, pass_score, max_attempts, status, updated_at,
-       nclex_tutor_quiz_items(count),
-       nclex_programme_quizzes(count)`,
-    )
-    .order('updated_at', { ascending: false });
+  const [{ data, error }, activityRefs] = await Promise.all([
+    supabase
+      .from('nclex_tutor_quizzes')
+      .select(
+        `quiz_id, title, description, quiz_kind, mode,
+         duration_seconds, pass_score, max_attempts, status, tags, updated_at,
+         nclex_tutor_quiz_items(count),
+         nclex_programme_quizzes(nclex_programmes(programme_id, title))`,
+      )
+      .order('updated_at', { ascending: false }),
+    loadAllActivityRefs(),
+  ]);
 
   if (error || !data) return [];
 
@@ -48,12 +145,30 @@ export async function getMyQuizzes(): Promise<QuizListRow[]> {
       ...rest
     } = row as typeof row & {
       nclex_tutor_quiz_items: Array<{ count: number }> | null;
-      nclex_programme_quizzes: Array<{ count: number }> | null;
+      nclex_programme_quizzes: Array<{
+        nclex_programmes:
+          | QuizCardProgrammeRef
+          | QuizCardProgrammeRef[]
+          | null;
+      }> | null;
     };
+
+    const programmes: QuizCardProgrammeRef[] = (nclex_programme_quizzes ?? [])
+      .map((j) =>
+        Array.isArray(j.nclex_programmes)
+          ? j.nclex_programmes[0]
+          : j.nclex_programmes,
+      )
+      .filter((p): p is QuizCardProgrammeRef => !!p);
+
+    const quizId = (rest as { quiz_id: string }).quiz_id;
+
     return {
       ...rest,
       item_count: nclex_tutor_quiz_items?.[0]?.count ?? 0,
-      used_in_programmes: nclex_programme_quizzes?.[0]?.count ?? 0,
+      used_in_programmes: programmes.length,
+      programmes,
+      activities: activityRefs.get(quizId) ?? [],
     } as QuizListRow;
   });
 }
@@ -147,21 +262,217 @@ export async function getPickerQuestions(
 ): Promise<PickerQuestionRow[]> {
   const supabase = await createClient();
 
+  // Hard scope — the picker only ever offers the tutor's own published,
+  // standalone questions. The faceted filters + scoped search layer on
+  // top via applyQuizPickerFilters.
   let query = supabase
     .from('nclex_tutor_questions')
-    .select('item_id, question_type, stem, difficulty, client_needs_category')
+    .select(
+      `item_id, question_type, stem, difficulty, client_needs_category,
+       client_needs_subcategory, nursing_subject, body_system, topic, tags`,
+    )
     .eq('is_published', true)
     .is('parent_case_id', null)
     .is('trend_id', null)
     .order('item_id', { ascending: true })
     .limit(200);
 
-  if (filters.type) query = query.eq('question_type', filters.type);
-  if (filters.category)
-    query = query.eq('client_needs_category', filters.category);
-  if (filters.difficulty) query = query.eq('difficulty', filters.difficulty);
-  if (filters.q) query = query.ilike('stem', `%${filters.q}%`);
+  query = applyQuizPickerFilters(query, filters);
 
   const { data } = await query;
   return (data ?? []) as PickerQuestionRow[];
+}
+
+/**
+ * Distinct tags across the tutor's published, standalone questions —
+ * the option list for the picker's Tag facet. Returns a sorted unique
+ * list; [] on error. (Cap matches the picker pool.)
+ */
+export async function getPickerTagOptions(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('nclex_tutor_questions')
+    .select('tags')
+    .eq('is_published', true)
+    .is('parent_case_id', null)
+    .is('trend_id', null)
+    .limit(500);
+
+  const seen = new Set<string>();
+  for (const row of (data ?? []) as Array<{ tags: string[] | null }>) {
+    for (const t of row.tags ?? []) {
+      const v = t.trim();
+      if (v) seen.add(v);
+    }
+  }
+  return Array.from(seen).sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Every curriculum activity (across ALL the tutor's programmes) that
+ * still references this quiz in its payload. Drives the delete
+ * preflight's BLOCK rule — a non-empty list means the quiz can't be
+ * deleted until it's unlinked from those activities (§9.3 applied
+ * quiz-wide). The global cousin of programme-quizzes'
+ * getBlockingActivities; RLS on _activities → _units → _programmes
+ * scopes the scan to the tutor's own programmes.
+ *
+ * The payload->>'quiz_id' filter is done in JS (the set is small) so
+ * we avoid a PostgREST JSON filter chain — same approach as the
+ * source-hint loader.
+ */
+export async function getQuizActivityLinks(
+  quizId: string,
+): Promise<QuizActivityLink[]> {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from('nclex_programme_activities')
+    .select(
+      `activity_id, title, type, payload, ordinal,
+       nclex_programme_units!inner(
+         unit_index, title,
+         nclex_programmes!inner(programme_id, title, unit_label)
+       )`,
+    )
+    .in('type', ['MOCK', 'PRACTICE_QUIZ']);
+
+  if (!data) return [];
+
+  const out: QuizActivityLink[] = [];
+  for (const row of data as Array<{
+    activity_id: string;
+    title: string;
+    type: 'MOCK' | 'PRACTICE_QUIZ';
+    payload: { quiz_id?: string | null } | null;
+    ordinal: number;
+    nclex_programme_units:
+      | {
+          unit_index: number;
+          title: string;
+          nclex_programmes:
+            | {
+                programme_id: string;
+                title: string;
+                unit_label: 'WEEK' | 'MODULE';
+              }
+            | Array<{
+                programme_id: string;
+                title: string;
+                unit_label: 'WEEK' | 'MODULE';
+              }>;
+        }
+      | Array<{
+          unit_index: number;
+          title: string;
+          nclex_programmes:
+            | {
+                programme_id: string;
+                title: string;
+                unit_label: 'WEEK' | 'MODULE';
+              }
+            | Array<{
+                programme_id: string;
+                title: string;
+                unit_label: 'WEEK' | 'MODULE';
+              }>;
+        }>;
+  }>) {
+    if (row.payload?.quiz_id !== quizId) continue;
+    const unitRow = Array.isArray(row.nclex_programme_units)
+      ? row.nclex_programme_units[0]
+      : row.nclex_programme_units;
+    if (!unitRow) continue;
+    const progRow = Array.isArray(unitRow.nclex_programmes)
+      ? unitRow.nclex_programmes[0]
+      : unitRow.nclex_programmes;
+    if (!progRow) continue;
+    out.push({
+      activity_id: row.activity_id,
+      activity_title: row.title,
+      activity_type: row.type,
+      programme_id: progRow.programme_id,
+      programme_title: progRow.title,
+      unit_index: unitRow.unit_index,
+      unit_label: progRow.unit_label ?? 'WEEK',
+      unit_title: unitRow.title,
+    });
+  }
+
+  // Stable order — programme, then unit, then activity ordinal.
+  out.sort(
+    (a, b) =>
+      a.programme_title.localeCompare(b.programme_title) ||
+      a.unit_index - b.unit_index,
+  );
+  return out;
+}
+
+/**
+ * Count of standalone student attempts directly tied to this quiz
+ * (nclex_attempts.quiz_id = quizId — the Slice-6 standalone launch
+ * shape). Powers the delete dialog's "results are kept" reassurance.
+ *
+ * Note: activity-linked attempts key off programme_activity_id, not
+ * quiz_id, so they aren't counted here — but at the moment the
+ * confirm dialog shows, the quiz has NO live activity links (the
+ * delete is blocked otherwise), so the standalone count is the
+ * accurate "attempts that point at this quiz" figure for that state.
+ */
+export async function getQuizAttemptCount(quizId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from('nclex_attempts')
+    .select('attempt_id', { count: 'exact', head: true })
+    .eq('quiz_id', quizId);
+  return count ?? 0;
+}
+
+/**
+ * How many programmes this quiz is attached to (the §9.1 junction —
+ * which already includes activity-linked programmes via auto-mirror).
+ * Powers the "live in N programmes" warning shown before unpublishing
+ * / archiving a quiz students can currently launch. RLS on the
+ * junction scopes to the tutor's own programmes.
+ */
+export async function getQuizProgrammeCount(quizId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from('nclex_programme_quizzes')
+    .select('quiz_id', { count: 'exact', head: true })
+    .eq('quiz_id', quizId);
+  return count ?? 0;
+}
+
+/**
+ * The programmes (id + name) a single quiz is attached to — the
+ * names version of getQuizProgrammeCount, for the quiz editor header's
+ * Programmes badge + peek. Resolved through the junction embed. RLS on
+ * the junction scopes to the tutor's own programmes. Returns [] on
+ * error.
+ */
+export async function getQuizProgrammes(
+  quizId: string,
+): Promise<QuizCardProgrammeRef[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('nclex_programme_quizzes')
+    .select('nclex_programmes(programme_id, title)')
+    .eq('quiz_id', quizId);
+
+  if (error || !data) return [];
+
+  return data
+    .map((j) => {
+      const p = (
+        j as {
+          nclex_programmes:
+            | QuizCardProgrammeRef
+            | QuizCardProgrammeRef[]
+            | null;
+        }
+      ).nclex_programmes;
+      return Array.isArray(p) ? p[0] : p;
+    })
+    .filter((p): p is QuizCardProgrammeRef => !!p);
 }

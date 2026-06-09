@@ -8,10 +8,355 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **MERGED to `main` (2026-06-01) — the whole programme-integration arc
-> for the library (11.11 + 11.12), plus the earlier 11.14c + cohort
-> three-state.** All built + typecheck/lint-clean + Sam-tested. `main`
-> is at the tip; **not yet released to `prod`.**
+> **⏭ NEXT SESSION — open.** The programme-level Library page (tutor
+> side) is **DONE** (see immediately below). No specific next pointer
+> set; rotate per the alternate-features rule. Candidates: library
+> **11.11c** (tutor embed-analytics dashboard + the stubbed Mark-done →
+> progress write-through) · **11.17** (library polish) · programme
+> **Overview** detail landing (still a placeholder) · a `main → prod`
+> **release** (a stack of merged-but-unreleased work has built up:
+> quiz tags + its migration, curriculum CD close-out, bank-surfaces
+> redesign, authorship Step 2, analytics migrations, and this).
+
+> **PROGRAMME LIBRARY TAB — tutor "student preview" (2026-06-09, ✅ MERGED
+> to `main`, not yet prod).** A new **Library tab** on the programme
+> detail (parallel to Quizzes) — a read-only **"student preview"** of the
+> notes students in THIS programme can see. From the CD "Programme
+> Library (tutor preview)" handoff; reuses the student library's
+> `.lib-*`/`.lens-*` system. **All app-layer, no migration.** One commit
+> (`61a50b7`), two slices. Detail in
+> [sessions/2026-06.md](sessions/2026-06.md); design in
+> [tutor-library.md → "Still open"](docs/product-plan/tutor-library.md).
+>
+> - **Key finding (✅).** The student read view gates on **RLS
+>   visibility**, which a tutor satisfies by **ownership** — so the body
+>   renderer + images + PDFs work unchanged; only the stateful pieces
+>   needed neutralising.
+> - **Slice 1 — list surface (✅).** `getProgrammeLibrarySnapshot` = the
+>   tutor-side mirror of `nclex_student_can_see_note()` keyed on the
+>   programme (`TUTOR_WIDE ∪ PROGRAMME_SCOPED-to-here`, published; scoped
+>   by the programme's `tutor_id` so a SUPER_ADMIN preview stays correct).
+>   Mirror of the student shell + 3 tutor recontextualisations — **preview
+>   banner**, per-note **visibility chip** (All students / This
+>   programme), **Preview Home** (content counts, not per-student
+>   progress; Recent/Bookmarked dropped). New scope parser; `library` nav
+>   entry in `TUTOR_PROGRAMME_NAV` after Curriculum.
+> - **Slice 2 — read view, faithful (nothing saved) (✅).**
+>   `getProgrammeNoteForRead` (ownership + explicit programme-entitlement
+>   gate). Read-view mirror with **inert** bookmark/done (no writes) +
+>   **answerable-but-unsaved embedded questions** (`embed-preview.tsx` +
+>   `embed-grade-action.ts`) — paged one-at-a-time (Prev/Next); the tutor
+>   can Check answer → feedback + rationale via a **grade-only** server
+>   action that scores but **writes no row** (no history, no progress);
+>   "preview, not saved" note; no key reaches the client. One **additive**
+>   `ReadCtx.renderEmbed?` seam on the shared `read-blocks.tsx` leaves the
+>   student path unchanged.
+> - **Deferred (noted):** visibility chip in the read header · "By unit"
+>   placeholder (needs 11.11) · per-cohort note visibility (library is
+>   tutor-keyed — one tab covers all cohorts).
+
+> **QUIZ TAGS + PROGRAMME QUIZ LIST REDESIGN (2026-06-09).** The whole
+> tutor-quiz **tags** arc end-to-end + the programme **Quizzes** tab CD
+> redesign. **One migration** (`20260701120000_quiz_tags`); rest
+> app-layer. **All merged to `main`** (ships to prod next release).
+> Detail in [tutor-quiz-system.md §13–14](docs/product-plan/tutor-quiz-system.md).
+>
+> - **Tags (✅ author→store→show→find).** `tags TEXT[]` on
+>   `nclex_tutor_quizzes`; chip input in the shared create/edit modal;
+>   Tags/Programmes/Activities **badge cluster + hover-peek** on the list
+>   card AND the editor header (CD "badges row", Layout B; peek opens
+>   down in the header); multi-select **Tags facet** on the toolbar + in
+>   search. `getMyQuizzes` fetches programme names + a list-wide
+>   activities scan; `used_in_programmes` kept (tutor Home untouched).
+> - **Programme quiz list — CD Option B "grouped rows" (✅).** Two groups
+>   (From the curriculum · Standalone) + a recontextualised badge cluster
+>   (Activities-here / Tags / **Other-programmes**). `getProgrammeQuizzes`
+>   grows to tags + full in-programme activities + other-programme names;
+>   `source-hint.tsx` retired.
+> - **Deferred (Sam's call):** tag filter inside the two quiz pickers;
+>   managed tag system; the 3 reviewed programme-list edges (redundant
+>   standalone marker, Remove-blocked-on-linked, no list filters).
+
+> **TUTOR-QUIZ UI UPLIFT — CLAUDE DESIGN, OPTION A (2026-06-06).** Visual
+> redesign of the quiz **list** + **editor** from Sam's CD "Quiz UI
+> Uplift" handoff (List A card grid + Editor A workbench),
+> concept-not-source. **All app-layer, no migration. Merged to `main`.**
+> Detail in [tutor-quiz-system.md §12](docs/product-plan/tutor-quiz-system.md).
+>
+> - **List cards (✅).** Kind-coloured edge + kind tag, status dot-pill,
+>   footer tray w/ icon meta + used chip, hover lift. New
+>   `lib/tutor-quiz/quiz-icons.tsx`.
+> - **List header + stat strip + toolbar (✅).** Eyebrow + title; 4-cell
+>   summary strip; toolbar (search · status segments · Kind · Sort),
+>   client-side over `QuizListRow[]` (search reaches archived).
+> - **Card ⋯ menu (✅).** Replaces the pencil — Edit · Publish/Unpublish ·
+>   Archive/Restore · Delete, composing the existing actions/dialogs
+>   (shared `LeavePublishedWarning` extracted). Fixed a stacking-context
+>   bug that trapped the error toast under the topbar.
+> - **Editor (✅).** Kind tag + stat chips header; separated zone headers
+>   + "N programmes" badge; drag grip (visual) + difficulty dots + SVG
+>   icon buttons; teal picker selection.
+> - **Picker hover-peek (✅).** Hover a clamped stem → body-portaled
+>   popover w/ full stem + classification; reuses the bank's `HoverPeek`.
+> - **Deferred:** grid/table toggle (List B) + real drag-and-drop.
+
+> **TUTOR-QUIZ CREATION FLOW — HARDENING + RICH PICKER (2026-06-06).**
+> Review-and-polish pass over the quiz creation flow (list · editor ·
+> lifecycle), after Slices 1–6. **All app-layer, no migration. Merged to
+> `main`.** Full detail in
+> [tutor-quiz-system.md §11](docs/product-plan/tutor-quiz-system.md).
+>
+> - **Publish gate (✅).** A Published quiz must hold ≥1 question —
+>   enforced on publish AND on removing the last question; surfaced in
+>   the modal.
+> - **Lifecycle controls on the editor header (✅).** Publish / Unpublish
+>   / Archive / Restore buttons replace the buried Status dropdown.
+>   Leaving Published for an **in-use** quiz warns first (students lose
+>   access); never blocks. New `setQuizStatusAction` + `quizUsageAction`.
+> - **Delete a quiz (✅).** Block-don't-cascade: blocked while linked to
+>   any curriculum activity (lists each placement); else type-to-confirm
+>   with a "results are kept" reassurance. Standalone memberships +
+>   item-refs cascade; **student attempts survive** (quiz_id back-pointer
+>   nulls). In a danger zone in the shared edit modal (card + editor).
+> - **Kind-switch block (✅).** Switching a linked quiz's Kind is blocked
+>   while mismatched activities exist (Mock slot ↔ Mock quiz).
+> - **"Needs questions" cue (✅)** on 0-question Draft cards; **quick-edit
+>   pencil (✅)** on every card (opens the shared meta modal).
+> - **Rich question-picker filter (✅).** The editor "Add questions"
+>   filter → a live-apply faceted toolbar (8 multi-select facets + scoped
+>   multi-field search + chips), modelled on the bank list but a tailored
+>   copy (`quiz-picker-query.ts`), hard-scoped to published + standalone.
+>
+> **⏭ NEXT (Sam):** a Claude-Design visual pass over the quiz **list
+> page** + the **editor** surfaces.
+
+> **BANK SURFACES — CLAUDE DESIGN REDESIGN + PAGINATION (2026-06-06).**
+> All three bank **list** surfaces rebuilt from Sam's CD "Bank surfaces"
+> handoff — **concept-not-source** (visual system only; our server-side
+> filtering, full filter set, and real data kept; CD's demo chrome not
+> built). **Merged to `main`.**
+>
+> - **Shared system.** New `styles/bank-list.css` (`bl-*`, loaded last,
+>   app tokens) + `lib/bank/list-ui.tsx` primitives (`AttachedBar`,
+>   `HealthFlag`, `TypePill`, `DiffChip`, `SearchIcon`). The shared
+>   `AuthorshipCell` (all 6 lists) → a **facepile** (creator + handed-off
+>   editor avatars; names in tooltips; 🕑 clock unchanged).
+> - **Trends + Cases.** Overview/health **band** (the attention card is
+>   also a filter) · compact toolbar (+ New in-toolbar) · new **Health**
+>   column + **Attached** cell. Cases: chart-tab chips under the title +
+>   inline **Hidden** tag; **Difficulty dropped** from the list (weak at
+>   wrapper level).
+> - **Question Bank — the Hybrid.** `BankBand` (composition bar w/ the new
+>   **Note** segment + clickable Published/Drafts/Free stat-card filters,
+>   whole-bank counts) · coloured type pills + difficulty chips + **Updated**
+>   column · grid → compact **`BankToolbar`** (scope picker docked **inside**
+>   the search field; right-docked **Filters popover** with all 11 facets
+>   incl. **Note-born** membership; active chips) · **sortable headers** +
+>   **Group-by-membership** toggle. Editor modal stack untouched.
+> - **Pagination.** Bank = **server-side**: 50 + **Load more** (`?limit`);
+>   **sort or group loads the whole matched set (≤500)** and the client
+>   sorts/groups instantly (so Difficulty's Easy→Medium→Hard rank works with
+>   no migration); filter change resets to page 1, keeps sort/group.
+>   Trends/Cases = **display pagination** (Show more; tiny data, no DB
+>   change).
+>
+>   **⚠ FOLLOW-UP — MOVE SORT SERVER-SIDE BEFORE >500 QUESTIONS.** The
+>   "load-all-to-sort" shortcut only holds under the `BANK_MAX_ROWS` (500)
+>   cap; past it, a sort would silently show just the first 500. Sam: the
+>   bank WILL exceed 500. At that scale → `ORDER BY` on the server + keep
+>   paging while sorted; Difficulty needs a SQL rank (generated column or
+>   RPC `ORDER BY CASE`, since PostgREST can't order by an expression);
+>   grouping → server-side bucket counts + per-bucket paging. Captured in
+>   `lib/bank/bank-list-query.ts`.
+> - **Deferred:** broad old-CSS prune (old `auth-*`/`bank-q-*` classes still
+>   used by non-list surfaces — grep-verify first); scope-dropdown option
+>   alignment (parked). Orphaned `bank-counts.tsx` removed this session.
+
+> **BANK LIST PAGES — MVP SWEEP (2026-06-05).** Review-and-polish pass over
+> the bank's list surfaces (the bank slice of Sam's top-down MVP sweep).
+> All app-layer, no migration. Session branch.
+>
+> - **All-questions filter bar — rebuilt (✅ `1fd601c`).** Live-apply (no
+>   Apply button); wide faceted **multi-select** checklists (Type ·
+>   Category · Subcategory · Nursing subject · Body system · Difficulty ·
+>   Bloom · Membership · Tag — OR within a filter, AND across); on/off
+>   singles (Status · Free sample · Builder-visible); a **scoped
+>   multi-field search** (a "search in" checklist → one term OR-matched
+>   across the chosen text columns, term sanitised); + an active-filter
+>   chip row. All parse/serialise/apply logic in new
+>   `lib/bank/bank-list-query.ts` (shared by both pages).
+> - **Wrapper lists — filters + content search (✅).** New
+>   `CasesListClient` + `TrendsListClient` (shared admin/tutor):
+>   **content search** (title + scenario + chart/dataset text — blob built
+>   server-side) · Status · Difficulty (cases) / Kind (trends) · a
+>   **"Needs attention"** health filter (published-but-reaches-nobody —
+>   case = <6 published children OR builder-hidden; trend = 0 published
+>   questions). Client-side, live. The 4 wrapper list pages feed them.
+> - **Hover-to-peek (✅).** New reusable `lib/bank/hover-peek.tsx` — hover a
+>   stem/title → a body-portaled popover with the **full** content (no
+>   clamp), viewport-aware (flips up/down, caps to the screen + scrolls,
+>   hoverable). Wired into all three lists (question stem; case + trend
+>   titles → scenario + chart-tab/kind).
+> - **Questions list — two-row card + tags (✅).** Each question is now a
+>   card: the columns row + a **full-width strip** holding the
+>   wrapper/Note origin badges + the **classification tags** (Category ·
+>   Subcategory · Subject · Body system), so the stem cell is pure stem.
+>   "Max" → **"Marks"**. Stem **clamped to 2 lines** (full on hover) in a
+>   widened 50% column; Authors column capped + its CREATED/LAST-EDIT
+>   labels dropped (names + tooltips + the history clock carry it).
+> - **"Note · {title}" origin badge (✅).** Closes a deferred library
+>   follow-on: questions born in a library note (`parent_note_id`) show a
+>   blue **Note** badge linking to the source note. **Surface-aware** —
+>   each surface resolves from its own library; admin is threaded but
+>   unresolved until an admin library exists.
+
+> **AUTHORSHIP / AUDIT-LOG — STEP 2 (the readout) DONE (2026-06-05).** All
+> on the session branch. "Created by / Last edited by" + a history-drawer
+> clock now appear across every bank surface, reading the Step-1 logs (no
+> DB change):
+>
+> - **Lists (✅ `6707eb1`).** A stacked **Authors** column on all 6 bank
+>   lists (case/trend × admin/tutor + both `/bank/all` question lists).
+> - **Wrapper topbars (✅ `b072df1`).** Case + trend wrapper editors show
+>   the wrapper's own authorship after the breadcrumb.
+> - **Question editors (✅ `fb20b7b`).** A facts line + clock atop all 9
+>   editor bodies — covers the standalone pop-up AND the embedded
+>   child-question editor (each fetches its own facts; the drawer floats
+>   over the modal).
+> - **New product-wide `lib/audit/` module** — entity-generic (keyed on
+>   realm + `entity_type`) with a per-`entity_type` access-gate registry,
+>   so a new surface (library/quizzes/programmes) adds one trigger line +
+>   one gate line, no component code. Wrapper-only on lists (a case's
+>   questions never roll up). Not retroactive — pre-tracking rows show "—".
+> - **Bonus bugfix (✅ `9224ea7`).** Pre-existing question + case id
+>   auto-numbering collision (lexical-max + `parseInt` fell back to 1 on
+>   non-numeric/seed ids → pkey collision) — now scans for the true numeric
+>   max. Surfaced during testing; unrelated to the authorship work.
+>
+> Step 1 capture was merged earlier. **Step 3** (fold in
+> library/quizzes/programmes + optional field-level diffs) stays future —
+> the module + drawer are ready for it. Full design in
+> [audit-log.md](docs/product-plan/audit-log.md).
+
+> **BANK PUBLISH-INTEGRITY + AUTHORSHIP (2026-06-05).** A bank-curation
+> pass (all on the session branch, NOT yet merged to `main`). Triggered by
+> "track who created/updated a wrapper/question" but started with a
+> publish-correctness bug found en route.
+>
+> - **Case-study publish gate (✅ `fa9e9d1`).** A case only reaches
+>   students when the case is published AND all 6 child questions are
+>   individually published (the student-builder eligibility rule). The
+>   post-May per-question-housekeeping retrofit surfaced neither
+>   requirement, so a case could read "Published" yet stay invisible —
+>   confirmed live on dev (3 published cases with all-draft questions; all
+>   repaired through the new UI). The check sits on the **Publish toggle**,
+>   not Save (drafting stays frictionless): toggle on with draft questions
+>   → offers "Publish all & publish case" (`publishCaseWithChildrenAction`);
+>   <6 questions → plain block.
+> - **Trend publish gate (✅ `af2a865`).** The mirror image — a trend
+>   *question* reaches students only if its *dataset* is published too.
+>   Publishing a question while its dataset is a draft → offers "Publish
+>   dataset & question." (Case = wrapper checks children; trend = child
+>   checks wrapper.)
+> - **Trend wrapper polish (✅ `b463d12`).** Inline explainer on the
+>   dataset's "Visible in builder" toggle (a confirmed **no-op** for trends
+>   — delivery reads the question's flag + the dataset's *published* flag,
+>   never the dataset's builder flag) + a Validate **warning** when a
+>   published dataset has zero live questions (delivers nothing).
+> - **Wrapper-list published/draft pills (✅ `bc8f895`).** Each case/trend
+>   row shows a green/grey "N published · N draft" breakdown of its
+>   questions, so the "live but reaches nobody" state is visible from the
+>   list. 4 list pages + shared `lib/bank/wrappers/question-pills.tsx`.
+> - **Audit log — Step 1 (✅ `fe9730c`, applied to dev).** Authorship +
+>   change-history capture. Two realm-split append-only logs
+>   (`nclex_audit_log` + `nclex_tutor_audit_log`) + one shared trigger on
+>   the six content tables; stores `changed_by` (uuid) **and**
+>   `changed_by_name` (point-in-time, full name). Migration
+>   `20260630120000`. **⏭ NEXT: Step 2** = "Created by / Last edited by"
+>   columns on the wrapper lists. Generic by design (built bank-first;
+>   library/quizzes/programmes fold in later). Full design + Steps 2-3 in
+>   [audit-log.md](docs/product-plan/audit-log.md).
+>
+> All admin + tutor twins. Publish/list work = no migration; audit = the
+> one migration above (ships to prod at next release, after the 3 analytics
+> migrations). Publish-eligibility model captured in the
+> `reference_bank_publish_eligibility` memory.
+
+> **TOP-DOWN MVP SWEEP (2026-06-04).** Sam's review-and-polish pass toward
+> MVP, starting at the tutor's landing surface and moving outward. Two
+> surfaces done, both CD-designed → implemented:
+>
+> - **Tutor Home — `/tutor` (✅ MERGED to `main`, `bab82f0`).** Was a
+>   redirect; now a cross-programme triage dashboard: greeting + four KPI
+>   cards · "Needs your attention" (open enquiries + lagging cohorts) ·
+>   This week (live-session timeline) · Your programmes (completion meter +
+>   health) · Your workspace. Brand-new-tutor getting-started state. New
+>   `NavItem.exact` flag + "Home" sidebar entry. No migration (reuses
+>   `getCohortAnalytics` etc.). `lib/home/tutor/` + `styles/tutor-home.css`;
+>   spec `docs/product-plan/tutor-home.md`.
+> - **Programmes list + modals — `/tutor/programmes` (✅ on session branch
+>   this commit).** Search/filter/sort + richer cards (completion meter,
+>   students, price, "+ Add first cohort", archived disclosure) +
+>   `getMyProgrammesForList`. Both modals (programme + cohort, create/edit)
+>   restyled (eyebrow header, segmented controls, switch toggles, inline
+>   error banner) with all logic preserved, and **portaled to `document.body`**
+>   to escape the in-card stacking-context trap (twitch / bleed-through /
+>   click-through). No migration.
+>
+> **Next per the sweep:** continue outward from the Programmes list — the
+> programme **Overview** (detail landing) is still a placeholder.
+
+> **MERGED to `main` (2026-06-03) — Cohort Analytics: the tutor "how is my
+> class doing" dashboard.** Built + Sam-
+> tested on dev; typecheck/lint-clean. Lives on a new **Analytics** tab in
+> the cohort workspace; the old cohort **"Students" tab was renamed
+> "Enrolments"** (it was always enrolment management). Code in
+> `lib/analytics/tutor/` (audience-grouped) + `styles/analytics.css`.
+> Built from the Claude Design "Cohort Analytics" handoff, mapped to app
+> navy/teal tokens.
+>
+> - **Slice 1 — completion (navy).** Health headline (avg-completion donut
+>   + plain-language line + status chips) · KPI strip (avg completion +
+>   weekly trend, on-track, need-attention, not-started) · per-student
+>   table (laggards-first, filter + sort, row → drill-in drawer) ·
+>   per-activity week bands. Denominator = released-so-far. Counts actively
+>   ENROLLED students. Completion fused across ALL 8 activity types: the 6
+>   progress-engine types + LIBRARY_NOTE/SHELF (derived from
+>   `nclex_library_note_state`). Overview gains a Class-progress teaser
+>   card (replaces the broken "Enrolled: coming soon"). **No new tab was
+>   needed for the completion data — but the CD-recommended dedicated tab
+>   won out** once both phases were in view.
+> - **Slice 2 — quiz performance (teal).** 5th KPI (avg quiz score + pass
+>   rate) · "failed last quiz" health-line flag · per-student "Latest quiz"
+>   score chip · per-quiz cards (class avg + pass rate, best attempt per
+>   student) · drawer per-quiz scores. **Keyed by `quiz_id`** (not the
+>   activity) and reads **both** PROGRAMME_ASSIGNED attempt shapes
+>   (activity-launched + standalone — see the `source_refs` gotcha in the
+>   build-phase memory).
+> - **Slice 2b — per-question miss-rate (teal).** "Hardest questions"
+>   re-teach signal from each student's best attempt's answers.
+>
+> **3 new migrations (applied to dev; ship to prod at next release, in
+> order):** `20260627120000` (note-state tutor read) + `20260628120000`
+> (attempts tutor read, both shapes) + `20260629120000` (answers/items
+> tutor read). All are tutor-read RLS policies scoped to the tutor's own
+> programmes — mirroring the progress-engine `tutor_read` pattern.
+>
+> **Analytics scope boundary (deliberately NOT built):** programme-level /
+> self-paced analytics (the "Results" placeholder — reuses this data
+> layer, different scope) · a per-student 360 view · CD's
+> completion×performance quadrant + score-distribution charts + sensitivity
+> toggle (trimmed; the per-student row carries the pairing). Captured as
+> follow-ons in `progress-engine.md`.
+>
+> ---
+>
+> **RELEASED to `prod` (2026-06-03, PR #24) — the whole programme-
+> integration arc for the library (11.11 + 11.12) + the earlier 11.14c +
+> cohort three-state + the Node 20 → Node 24 CI action bump.** Migrations
+> `20260625120000` + `20260625130000` + `20260626120000` +
+> `20260626130000` applied to prod (tracker at `20260626130000`); both prod
+> workflows green; prod Worker live.
 >
 > - **11.12 — Shelf as a curriculum activity (a + b + c, the LAST library
 >   integration slice).** A shelf attached to a unit is a first-class
@@ -53,7 +398,7 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   seed-on-creation trigger dropped (migration `20260625130000`). See
 >   `curriculum-authoring-ux.md` §11.
 >
-> **Prod migrations to ship at next release (in order):**
+> **Prod migrations (shipped in PR #24, 2026-06-03):**
 > `20260625120000` + `20260625130000` + `20260626120000` +
 > `20260626130000`.
 >

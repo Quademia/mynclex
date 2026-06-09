@@ -23,7 +23,14 @@ import type { LabColumn } from '../lab-values-block';
 
 export type ReadHeading = { id: string; level: 2 | 3; text: string };
 
-type ReadCtx = { noteId: string };
+// `renderEmbed` lets a host swap the embedded-questions leaf. The student
+// read view leaves it undefined → the interactive EmbedPlayer (default).
+// The tutor programme-library preview injects a read-only, non-writing
+// renderer (it shows what students answer, but never logs an attempt).
+type ReadCtx = {
+  noteId: string;
+  renderEmbed?: (noteId: string, blockId: string) => ReactNode;
+};
 
 function asString(v: unknown): string {
   return typeof v === 'string' ? v : '';
@@ -199,6 +206,7 @@ function RenderBlock({
       const blockId =
         typeof node.attrs?.id === 'string' ? node.attrs.id : null;
       if (!blockId) return null;
+      if (ctx.renderEmbed) return ctx.renderEmbed(ctx.noteId, blockId);
       return <EmbedPlayer noteId={ctx.noteId} blockId={blockId} />;
     }
     default:
