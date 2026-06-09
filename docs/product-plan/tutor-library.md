@@ -2908,7 +2908,19 @@ at the top for the headline list):
 
 Still open:
 
-- **⏭ NEXT SESSION — Programme-level Library page (tutor side).**
+- **✅ SHIPPED 2026-06-09 (merged to `main`, not yet prod) —
+  Programme-level Library page (tutor side).** Built as designed below:
+  a read-only "student preview" Library tab on the programme detail, fed
+  the per-programme entitlement set (TUTOR_WIDE ∪ PROGRAMME_SCOPED-to-here,
+  published), with the tutor lens (preview banner + per-note visibility
+  chip "All students / This programme") AND the in-place read view
+  (faithful & inert: inert bookmark/done, read-only embedded questions).
+  No migration. The full version (lens, not pure mirror) was built. Code
+  in `lib/library/programme/`; route
+  `app/(app)/tutor/programme/[id]/library/` (+ `/note/[note_id]`). See
+  [sessions/2026-06.md](../../sessions/2026-06.md). Original design follows.
+
+- **Programme-level Library page (tutor side) — original design.**
   Agreed in discussion 2026-06-08. A new **Library tab** on the
   programme detail, parallel to the **Quizzes** tab: *"what notes can
   students in this programme see?"* — the tutor-side mirror of the

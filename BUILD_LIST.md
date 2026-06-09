@@ -8,17 +8,49 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **⏭ NEXT SESSION (set 2026-06-09) — PROGRAMME-LEVEL LIBRARY PAGE
-> (tutor side).** Tutor-quiz arc is done (tags end-to-end + the
-> programme quiz list "grouped rows" redesign). Next focus = a new
-> **Library tab** on the programme detail (parallel to Quizzes): "what
-> notes can students in this programme see?" — mirror the student
-> programme library, fed the per-programme entitlement set
-> (`TUTOR_WIDE ∪ PROGRAMME_SCOPED-to-this-programme`, published), plus a
-> tutor source badge + manage link. Library is **tutor-keyed** so the
-> programme is the right home (one tab covers all cohorts). Likely no
-> migration. Full design + the cohort finding in
-> [tutor-library.md](docs/product-plan/tutor-library.md) → "Still open".
+> **⏭ NEXT SESSION — open.** The programme-level Library page (tutor
+> side) is **DONE** (see immediately below). No specific next pointer
+> set; rotate per the alternate-features rule. Candidates: library
+> **11.11c** (tutor embed-analytics dashboard + the stubbed Mark-done →
+> progress write-through) · **11.17** (library polish) · programme
+> **Overview** detail landing (still a placeholder) · a `main → prod`
+> **release** (a stack of merged-but-unreleased work has built up:
+> quiz tags + its migration, curriculum CD close-out, bank-surfaces
+> redesign, authorship Step 2, analytics migrations, and this).
+
+> **PROGRAMME LIBRARY TAB — tutor "student preview" (2026-06-09, ✅ MERGED
+> to `main`, not yet prod).** A new **Library tab** on the programme
+> detail (parallel to Quizzes) — a read-only **"student preview"** of the
+> notes students in THIS programme can see. From the CD "Programme
+> Library (tutor preview)" handoff; reuses the student library's
+> `.lib-*`/`.lens-*` system. **All app-layer, no migration.** One commit
+> (`61a50b7`), two slices. Detail in
+> [sessions/2026-06.md](sessions/2026-06.md); design in
+> [tutor-library.md → "Still open"](docs/product-plan/tutor-library.md).
+>
+> - **Key finding (✅).** The student read view gates on **RLS
+>   visibility**, which a tutor satisfies by **ownership** — so the body
+>   renderer + images + PDFs work unchanged; only the stateful pieces
+>   needed neutralising.
+> - **Slice 1 — list surface (✅).** `getProgrammeLibrarySnapshot` = the
+>   tutor-side mirror of `nclex_student_can_see_note()` keyed on the
+>   programme (`TUTOR_WIDE ∪ PROGRAMME_SCOPED-to-here`, published; scoped
+>   by the programme's `tutor_id` so a SUPER_ADMIN preview stays correct).
+>   Mirror of the student shell + 3 tutor recontextualisations — **preview
+>   banner**, per-note **visibility chip** (All students / This
+>   programme), **Preview Home** (content counts, not per-student
+>   progress; Recent/Bookmarked dropped). New scope parser; `library` nav
+>   entry in `TUTOR_PROGRAMME_NAV` after Curriculum.
+> - **Slice 2 — read view, faithful & inert (✅).**
+>   `getProgrammeNoteForRead` (ownership + explicit programme-entitlement
+>   gate). Read-view mirror with **inert** bookmark/done (no writes) +
+>   **read-only embedded questions** (`embed-preview.tsx` — answerable
+>   content only, no key to client, frozen runner, nothing logged). One
+>   **additive** `ReadCtx.renderEmbed?` seam on the shared
+>   `read-blocks.tsx` leaves the student path unchanged.
+> - **Deferred (noted):** embed paging vs stacked · visibility chip in the
+>   read header · "By unit" placeholder (needs 11.11) · per-cohort note
+>   visibility (library is tutor-keyed — one tab covers all cohorts).
 
 > **QUIZ TAGS + PROGRAMME QUIZ LIST REDESIGN (2026-06-09).** The whole
 > tutor-quiz **tags** arc end-to-end + the programme **Quizzes** tab CD
