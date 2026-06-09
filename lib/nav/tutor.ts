@@ -61,6 +61,11 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   // the programme collects off-platform (plans then don't apply).
   { key: 'payment-plans', label: 'Payment plans', icon: 'card',   href: '/tutor/programme/:programmeId/payment-plans' },
   { key: 'curriculum',  label: 'Curriculum',    icon: 'layers',   href: '/tutor/programme/:programmeId/curriculum' },
+  // Programme-level library preview — a read-only "student preview" of
+  // the notes students in this programme can see (TUTOR_WIDE ∪
+  // PROGRAMME_SCOPED-to-here). Icon `tutor` matches the global Library
+  // nav entry so the iconography family stays consistent across sidebars.
+  { key: 'library',     label: 'Library',       icon: 'tutor',    href: '/tutor/programme/:programmeId/library' },
   // Tutor Quiz Slice 5 — programme-level quiz membership. Icon
   // `target` matches the global Quizzes nav entry above so the
   // iconography family stays consistent across the two sidebars.

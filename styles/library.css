@@ -7534,3 +7534,137 @@ a.lib-tag-inline:hover {
     display: none;
   }
 }
+
+
+/* ─── PROGRAMME LIBRARY — tutor "student preview" (tlib-*) ───────────
+ *
+ * The tutor-only chrome layered on top of the reused student library
+ * shell: a preview banner above the page header, and a per-note-row
+ * visibility chip. Everything else (.lib-* / .lens-* / .lib-study-home)
+ * is shared verbatim with the student surface. App tokens — not the
+ * mock's indigo.
+ */
+
+.tlib-preview {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 15px;
+  margin-bottom: 18px;
+  background: var(--primary-light);
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
+  border-radius: var(--radius);
+  color: var(--primary);
+  font-size: 13px;
+}
+
+.tlib-preview-ic {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.tlib-preview-txt {
+  color: var(--primary-dark);
+}
+
+.tlib-preview-txt b {
+  font-weight: 700;
+}
+
+.tlib-preview-edit {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tlib-preview-edit:hover {
+  text-decoration: underline;
+}
+
+/* Visibility chip on each note row — "why does this appear?" */
+.tlib-vis {
+  align-self: center;
+  margin-left: 12px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+
+.tlib-vis svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Tutor-wide → primary (navy); reaches every student of this tutor. */
+.tlib-vis.is-wide {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+/* Programme-scoped → accent (teal); narrower, this programme only. */
+.tlib-vis.is-scoped {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent-dark);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* Read-only embedded-questions PREVIEW (tutor) — the inert counterpart
+ * to the student's <EmbedPlayer>. Reuses the .eq-player frame; lists
+ * every question statically, with the option list frozen so the tutor
+ * sees the choices students get but can't answer. */
+.eq-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.eq-preview-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.eq-preview-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.eq-preview-item {
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+.eq-preview-item:first-child {
+  border-top: none;
+  padding-top: 10px;
+}
+
+.eq-preview-qnum {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+/* Freeze the reused runner so it's a faithful but non-interactive
+   display — no hover, no clicks, no selection. The answer key never
+   reaches the client (loadEmbedBlock returns answerable content only). */
+.eq-preview-options {
+  margin-top: 10px;
+  pointer-events: none;
+  user-select: none;
+}
