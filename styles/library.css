@@ -7620,10 +7620,10 @@ a.lib-tag-inline:hover {
   border-color: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-/* Read-only embedded-questions PREVIEW (tutor) — the inert counterpart
- * to the student's <EmbedPlayer>. Reuses the .eq-player frame; lists
- * every question statically, with the option list frozen so the tutor
- * sees the choices students get but can't answer. */
+/* Answerable embedded-questions PREVIEW (tutor) — the no-save twin of the
+ * student's <EmbedPlayer>. Reuses the .eq-player frame; shows one question
+ * at a time (Prev/Next) and is fully interactive (Check answer → feedback
+ * + rationale), but nothing is persisted. */
 .eq-preview-head {
   display: flex;
   align-items: center;
@@ -7636,35 +7636,16 @@ a.lib-tag-inline:hover {
   color: var(--text-muted);
 }
 
-.eq-preview-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* The "not saved" reassurance, dimmer than the question counter. */
+.eq-preview-unsaved {
+  color: var(--text-faint);
 }
 
-.eq-preview-item {
-  padding: 16px 0;
-  border-top: 1px solid var(--border);
-}
-.eq-preview-item:first-child {
-  border-top: none;
-  padding-top: 10px;
-}
-
-.eq-preview-qnum {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-
-/* Freeze the reused runner so it's a faithful but non-interactive
-   display — no hover, no clicks, no selection. The answer key never
-   reaches the client (loadEmbedBlock returns answerable content only). */
-.eq-preview-options {
-  margin-top: 10px;
-  pointer-events: none;
-  user-select: none;
+/* The Check-answer row (before submit). Right-aligned button + any error. */
+.eq-preview-submit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 14px;
 }

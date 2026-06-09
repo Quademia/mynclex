@@ -41,16 +41,19 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   programme), **Preview Home** (content counts, not per-student
 >   progress; Recent/Bookmarked dropped). New scope parser; `library` nav
 >   entry in `TUTOR_PROGRAMME_NAV` after Curriculum.
-> - **Slice 2 — read view, faithful & inert (✅).**
+> - **Slice 2 — read view, faithful (nothing saved) (✅).**
 >   `getProgrammeNoteForRead` (ownership + explicit programme-entitlement
 >   gate). Read-view mirror with **inert** bookmark/done (no writes) +
->   **read-only embedded questions** (`embed-preview.tsx` — answerable
->   content only, no key to client, frozen runner, nothing logged). One
->   **additive** `ReadCtx.renderEmbed?` seam on the shared
->   `read-blocks.tsx` leaves the student path unchanged.
-> - **Deferred (noted):** embed paging vs stacked · visibility chip in the
->   read header · "By unit" placeholder (needs 11.11) · per-cohort note
->   visibility (library is tutor-keyed — one tab covers all cohorts).
+>   **answerable-but-unsaved embedded questions** (`embed-preview.tsx` +
+>   `embed-grade-action.ts`) — paged one-at-a-time (Prev/Next); the tutor
+>   can Check answer → feedback + rationale via a **grade-only** server
+>   action that scores but **writes no row** (no history, no progress);
+>   "preview, not saved" note; no key reaches the client. One **additive**
+>   `ReadCtx.renderEmbed?` seam on the shared `read-blocks.tsx` leaves the
+>   student path unchanged.
+> - **Deferred (noted):** visibility chip in the read header · "By unit"
+>   placeholder (needs 11.11) · per-cohort note visibility (library is
+>   tutor-keyed — one tab covers all cohorts).
 
 > **QUIZ TAGS + PROGRAMME QUIZ LIST REDESIGN (2026-06-09).** The whole
 > tutor-quiz **tags** arc end-to-end + the programme **Quizzes** tab CD

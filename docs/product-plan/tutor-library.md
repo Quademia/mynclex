@@ -2914,7 +2914,9 @@ Still open:
   the per-programme entitlement set (TUTOR_WIDE ∪ PROGRAMME_SCOPED-to-here,
   published), with the tutor lens (preview banner + per-note visibility
   chip "All students / This programme") AND the in-place read view
-  (faithful & inert: inert bookmark/done, read-only embedded questions).
+  (faithful; nothing saved: inert bookmark/done, and **answerable-but-
+  unsaved** embedded questions — the tutor can answer + see rationale via
+  a grade-only action that writes no row, paged one-at-a-time).
   No migration. The full version (lens, not pure mirror) was built. Code
   in `lib/library/programme/`; route
   `app/(app)/tutor/programme/[id]/library/` (+ `/note/[note_id]`). See
