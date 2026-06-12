@@ -9,11 +9,15 @@ where it's listed.
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
 > **⏭ NEXT SESSION — open.** Rotate per the alternate-features rule.
-> Candidates: **"Add student WITH a payment plan"** (queued 2026-06-12 —
-> needs a design discussion first: tutor-added ≠ off-platform money; a
-> hand-added student could pick one of the programme's plans so the
-> tile/installment-checkout/sweep/mark-paid machinery tracks them; open
-> q = does the schedule start 0-of-N or 1-of-N paid) · library
+> Candidates: **"Add student WITH a payment plan"** (⭐ DESIGN SETTLED
+> 2026-06-12, ready to build — full spec in
+> [payments-and-enrolment.md → "Settled 2026-06-12"](docs/product-plan/payments-and-enrolment.md):
+> plan picker + received-count 0..N + tutor-set first-payment grace in
+> the Add Student form, both rosters; snapshot frozen like checkout;
+> collection follows the programme's mode — QAcademy-collection students
+> pay from the tile incl. position 1, tutor-collection is tracking-only;
+> NEW GUARD needed on the installment checkout to refuse
+> tutor-collection programmes) · library
 > **11.11c** (tutor embed-analytics dashboard + the stubbed Mark-done →
 > progress write-through) · **11.17** (library polish) · programme
 > **Overview** detail landing (still a placeholder). Operational ⚠ from
