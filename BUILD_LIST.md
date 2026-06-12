@@ -21,8 +21,8 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > the prod Worker** — prod checkout will fail until it is (5-min fix,
 > needs the dashboard/wrangler).
 
-> **PAYMENT-HISTORY DRAWER + MONEY-SURFACE IA (2026-06-12, on session
-> branch, not yet merged).** Per-student payment history behind the
+> **PAYMENT-HISTORY DRAWER + MONEY-SURFACE IA (2026-06-12, ✅ MERGED to
+> `main`, not yet prod).** Per-student payment history behind the
 > roster's payment pill: body-portaled right-side drawer (audit
 > history-drawer pattern) — plan · k-of-N · received vs remaining ·
 > every position's state w/ channel (Paystack vs marked-by-tutor) ·
