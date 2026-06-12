@@ -66,7 +66,11 @@ export async function TutorProgrammeShell({
             />
           }
         >
-          <TutorProgrammeSidebar items={items} />
+          <TutorProgrammeSidebar
+            items={items}
+            programmeTitle={programmeTitle}
+            modeLabel={selfPaced ? 'Self-paced' : 'Tutor-led'}
+          />
         </SidebarFrame>
         <main className="product-content">
           {children}

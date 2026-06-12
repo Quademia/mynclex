@@ -83,6 +83,15 @@ export type NavItem = {
    */
   exact?: boolean;
   /**
+   * Optional section grouping. When set, sidebars that support sections
+   * render a divider + this label above the item (once per consecutive
+   * run of the same section). Used by the tutor programme sidebar to set
+   * the mode-specific "Delivery" group (Cohorts) apart from the tabs
+   * common to both delivery modes. Sidebars that don't support sections
+   * ignore it.
+   */
+  section?: string;
+  /**
    * Optional permission key required to see this item. Used by the admin
    * sidebar; ignored by audience configs that don't gate (student, tutor).
    *

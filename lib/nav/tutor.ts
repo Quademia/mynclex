@@ -55,7 +55,6 @@ export const TUTOR_GLOBAL_NAV: NavItem[] = [
  */
 export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   { key: 'overview',    label: 'Overview',      icon: 'home',     href: '/tutor/programme/:programmeId/overview' },
-  { key: 'cohorts',     label: 'Cohorts',       icon: 'users',    href: '/tutor/programme/:programmeId/cohorts' },
   // Payments Slice 7b — per-programme payment-plan config (upfront +
   // deposit + installments). Always shown; the page itself notes when
   // the programme collects off-platform (plans then don't apply).
@@ -80,6 +79,12 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   // filterable) + the cross-cohort Waitlist; self-paced shows the
   // cohortless rows.
   { key: 'enrolments',  label: 'Enrolments',    icon: 'users',    href: '/tutor/programme/:programmeId/enrolments' },
+  // Mode-specific tabs sit LAST, under a labelled "Delivery" divider
+  // (2026-06-12): the tabs common to both delivery modes keep identical
+  // positions on every programme, and the one entry that exists only on
+  // tutor-led — Cohorts, the doorway into the cohort workspace — stands
+  // apart. Any future single-mode tab joins this bottom section.
+  { key: 'cohorts',     label: 'Cohorts',       icon: 'users',    href: '/tutor/programme/:programmeId/cohorts', section: 'Delivery' },
   // Removed from the sidebar 2026-06-07 (MVP declutter): Live Sessions,
   // Assignments, Results. Their placeholder routes still exist (the tutor
   // Home "This week" block links to /sessions), so re-adding any is a
