@@ -34,7 +34,9 @@ import {
   type TransitionResult,
 } from './actions';
 import { initials, relativeTime } from './format';
-import { formatMoney } from '@/lib/strategies/format';
+import { describePlan, formatMoney, planLabel } from '@/lib/strategies/format';
+import type { Currency } from '@/lib/payments/types';
+import type { PaymentStrategy } from '@/lib/strategies/types';
 import {
   actionsForStatus,
   ENROLMENT_ACTION_META,
@@ -55,6 +57,10 @@ interface EnrolmentRosterViewProps {
   roster: EnrolmentRosterRow[];
   /** Cohort scope only; programme scope omits it (self-paced has no waitlist). */
   waitlist?: WaitlistEntry[];
+  /** The programme's active payment plans, for the Add Student plan picker
+   *  (add-with-plan, 2026-06-12). Empty = picker hidden. */
+  plans?: PaymentStrategy[];
+  currency?: Currency;
 }
 
 const ACTION_PAST_TENSE: Record<EnrolmentAction, string> = {
@@ -87,6 +93,8 @@ export function EnrolmentRosterView({
   contextName,
   roster,
   waitlist = [],
+  plans = [],
+  currency = 'GHS',
 }: EnrolmentRosterViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -557,6 +565,8 @@ export function EnrolmentRosterView({
         <AddStudentModal
           pending={pending}
           error={formError}
+          plans={plans}
+          currency={currency}
           onClose={closeAdd}
           onSubmit={handleSubmit}
         />
@@ -729,14 +739,31 @@ function WaitlistTab({
   );
 }
 
+// How many schedule positions a plan produces — mirrors the schedule
+// engine's shape rules (UPFRONT = 1, DEPOSIT = 2, EQUAL = its count).
+function planTotalPayments(p: PaymentStrategy): number {
+  switch (p.kind) {
+    case 'UPFRONT_FULL':
+      return 1;
+    case 'DEPOSIT_BALANCE':
+      return 2;
+    case 'EQUAL_INSTALLMENTS':
+      return p.installment_count ?? 1;
+  }
+}
+
 function AddStudentModal({
   pending,
   error,
+  plans,
+  currency,
   onClose,
   onSubmit,
 }: {
   pending: boolean;
   error: string | null;
+  plans: PaymentStrategy[];
+  currency: Currency;
   onClose: () => void;
   onSubmit: (formData: FormData) => void;
 }) {
@@ -744,6 +771,20 @@ function AddStudentModal({
   useEffect(() => {
     firstFieldRef.current?.focus();
   }, []);
+
+  // Add-with-plan (2026-06-12): optional plan + payments already received +
+  // first-payment grace when nothing's been received yet.
+  const [planId, setPlanId] = useState('');
+  const [received, setReceived] = useState(0);
+  const [graceDays, setGraceDays] = useState(7);
+  const chosen = plans.find((p) => p.strategy_id === planId) ?? null;
+  const totalPayments = chosen ? planTotalPayments(chosen) : 0;
+
+  function onPlanChange(id: string) {
+    setPlanId(id);
+    setReceived(0);
+    setGraceDays(7);
+  }
 
   return (
     <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
@@ -800,6 +841,84 @@ function AddStudentModal({
               disabled={pending}
             />
           </label>
+
+          {plans.length > 0 && (
+            <>
+              <label className="enrol-field">
+                <span className="enrol-field-label">Payment plan</span>
+                <select
+                  name="plan_strategy_id"
+                  className="enrol-input"
+                  value={planId}
+                  onChange={(e) => onPlanChange(e.target.value)}
+                  disabled={pending}
+                >
+                  <option value="">No plan — handled privately</option>
+                  {plans.map((p) => (
+                    <option key={p.strategy_id} value={p.strategy_id}>
+                      {planLabel(p)} · {formatMoney(currency, p.total_price_minor)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {chosen && (
+                <>
+                  <p className="enrol-modal-sub">{describePlan(chosen, currency)}</p>
+                  <div className="enrol-form-row">
+                    <label className="enrol-field">
+                      <span className="enrol-field-label">
+                        Payments already received
+                      </span>
+                      <input
+                        name="plan_received"
+                        type="number"
+                        min={0}
+                        max={totalPayments}
+                        className="enrol-input"
+                        value={Number.isNaN(received) ? '' : received}
+                        onChange={(e) => setReceived(parseInt(e.target.value, 10))}
+                        disabled={pending}
+                      />
+                    </label>
+                    {received === 0 && (
+                      <label className="enrol-field">
+                        <span className="enrol-field-label">
+                          First payment due within (days)
+                        </span>
+                        <input
+                          name="plan_grace_days"
+                          type="number"
+                          min={1}
+                          max={365}
+                          className="enrol-input"
+                          value={Number.isNaN(graceDays) ? '' : graceDays}
+                          onChange={(e) => setGraceDays(parseInt(e.target.value, 10))}
+                          disabled={pending}
+                        />
+                      </label>
+                    )}
+                  </div>
+                  <p className="enrol-modal-sub">
+                    {received >= totalPayments ? (
+                      <>Recorded as fully paid — nothing left to collect.</>
+                    ) : received > 0 ? (
+                      <>
+                        Payments you&apos;ve already collected are recorded as
+                        received directly (not through Paystack). The remaining{' '}
+                        {totalPayments - received} follow the plan&apos;s schedule.
+                      </>
+                    ) : (
+                      <>
+                        Their first payment falls due once you set them up — the
+                        days above are how long they have before access pauses.
+                      </>
+                    )}
+                  </p>
+                </>
+              )}
+            </>
+          )}
 
           {error && (
             <p className="enrol-form-error" role="alert">

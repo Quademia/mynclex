@@ -27,6 +27,7 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { buildSchedule, isOverdue } from '@/lib/payments/schedule';
+import type { Currency } from '@/lib/payments/types';
 import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
 import type { RosterScope } from './types';
 
@@ -35,6 +36,94 @@ export type AddStudentResult =
   | { ok: false; error: string };
 
 const ACTIVE_STATUSES = ['PENDING_APPROVAL', 'ENROLLED', 'PAUSED'];
+
+// ─────────────────────────────────────────────────────────────────
+// Add-with-a-payment-plan (settled 2026-06-12). The tutor optionally
+// attaches one of the programme's active plans at add time — snapshot
+// frozen exactly like checkout — plus "payments already received"
+// (recorded as synthetic OFF_PLATFORM rows, the Mark-paid mechanism
+// applied at add) and, when nothing's been received yet, a tutor-set
+// first-payment grace (a plan's position 1 is due at enrolment, so
+// without grace the student would be paused by that night's sweep).
+// ─────────────────────────────────────────────────────────────────
+
+type ResolvedPlan = {
+  strategyId: string;
+  snapshot: FrozenStrategySnapshot;
+  received: number; // 0..totalPayments — synthetic rows to record
+  graceUntilIso: string | null; // set when received = 0
+  graceDays: number | null;
+  currency: Currency;
+};
+
+// Parse + validate the plan fields from the Add Student form against the
+// programme's active plans. Reads through the AUTHED client — strategy RLS
+// is owner-scoped, so a foreign strategy id simply isn't found. Returns
+// null when no plan was chosen (today's no-tracking behaviour).
+async function resolvePlanInput(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  formData: FormData,
+  programmeId: string,
+  currency: Currency,
+): Promise<{ ok: true; plan: ResolvedPlan | null } | { ok: false; error: string }> {
+  const strategyId = String(formData.get('plan_strategy_id') ?? '').trim();
+  if (!strategyId) return { ok: true, plan: null };
+
+  const { data: strat } = await supabase
+    .from('nclex_programme_payment_strategies')
+    .select(
+      `strategy_id, programme_id, kind, label, total_price_minor,
+       initial_price_minor, installment_count, installment_interval_days,
+       balance_due_days_after_enrolment, is_active`,
+    )
+    .eq('strategy_id', strategyId)
+    .maybeSingle();
+  if (!strat || strat.programme_id !== programmeId || !strat.is_active) {
+    return { ok: false, error: 'That payment plan is not available.' };
+  }
+
+  const snapshot: FrozenStrategySnapshot = {
+    strategy_id: strat.strategy_id,
+    kind: strat.kind,
+    label: strat.label,
+    total_price_minor: strat.total_price_minor,
+    initial_price_minor: strat.initial_price_minor,
+    installment_count: strat.installment_count,
+    installment_interval_days: strat.installment_interval_days,
+    balance_due_days_after_enrolment: strat.balance_due_days_after_enrolment,
+    frozen_at: new Date().toISOString(),
+  };
+
+  const totalPayments = buildSchedule(snapshot, new Date(), 0).totalPayments;
+
+  const received = Math.trunc(Number(formData.get('plan_received') ?? 0));
+  if (!Number.isFinite(received) || received < 0 || received > totalPayments) {
+    return {
+      ok: false,
+      error: `Payments received must be between 0 and ${totalPayments} for this plan.`,
+    };
+  }
+
+  // With nothing received, the first payment is due at enrolment — the
+  // tutor must say how long the student has before the sweep pauses them.
+  let graceDays: number | null = null;
+  let graceUntilIso: string | null = null;
+  if (received === 0) {
+    graceDays = Math.trunc(Number(formData.get('plan_grace_days') ?? 0));
+    if (!Number.isFinite(graceDays) || graceDays < 1 || graceDays > 365) {
+      return {
+        ok: false,
+        error: 'Set how many days the student has to make their first payment (1–365).',
+      };
+    }
+    graceUntilIso = new Date(Date.now() + graceDays * 86_400_000).toISOString();
+  }
+
+  return {
+    ok: true,
+    plan: { strategyId, snapshot, received, graceUntilIso, graceDays, currency },
+  };
+}
 
 // The roster page an action should refresh — the cohort surface or its
 // self-paced programme-level twin.
@@ -89,7 +178,7 @@ export async function addStudentAction(
     .from('nclex_cohorts')
     .select(
       `cohort_id, programme_id, cancelled_at,
-       nclex_programmes!inner(programme_id, delivery_mode, access_window_days)`,
+       nclex_programmes!inner(programme_id, delivery_mode, access_window_days, price_currency)`,
     )
     .eq('cohort_id', cohortId)
     .maybeSingle();
@@ -106,6 +195,7 @@ export async function addStudentAction(
     programme_id: string;
     delivery_mode: string;
     access_window_days: number | null;
+    price_currency: Currency;
   };
   const programmeRaw = (
     cohortRow as typeof cohortRow & {
@@ -119,6 +209,14 @@ export async function addStudentAction(
     return { ok: false, error: 'Programme not found.' };
   }
 
+  const planRes = await resolvePlanInput(
+    supabase,
+    formData,
+    programme.programme_id,
+    programme.price_currency,
+  );
+  if (!planRes.ok) return planRes;
+
   const admin = createServiceRoleClient();
   const res = await inviteOrAttachAndEnrol(admin, {
     forename,
@@ -127,6 +225,7 @@ export async function addStudentAction(
     programmeId: programme.programme_id,
     cohortId,
     accessWindowDays: programme.access_window_days,
+    plan: planRes.plan,
     tutorId: tutor.id,
   });
   if (!res.ok) return res;
@@ -177,7 +276,7 @@ export async function addSelfPacedStudentAction(
   // "cancelled cohort" analogue).
   const { data: prog } = await supabase
     .from('nclex_programmes')
-    .select('programme_id, delivery_mode, status, access_window_days')
+    .select('programme_id, delivery_mode, status, access_window_days, price_currency')
     .eq('programme_id', programmeId)
     .maybeSingle();
   if (!prog) {
@@ -196,6 +295,14 @@ export async function addSelfPacedStudentAction(
     };
   }
 
+  const planRes = await resolvePlanInput(
+    supabase,
+    formData,
+    programmeId,
+    prog.price_currency as Currency,
+  );
+  if (!planRes.ok) return planRes;
+
   const admin = createServiceRoleClient();
   const res = await inviteOrAttachAndEnrol(admin, {
     forename,
@@ -204,6 +311,7 @@ export async function addSelfPacedStudentAction(
     programmeId,
     cohortId: null,
     accessWindowDays: prog.access_window_days,
+    plan: planRes.plan,
     tutorId: tutor.id,
   });
   if (!res.ok) return res;
@@ -230,12 +338,14 @@ async function inviteOrAttachAndEnrol(
     programmeId: string;
     cohortId: string | null; // NULL = self-paced (programme is the container)
     accessWindowDays: number | null; // programme's window; NULL = lifetime
+    plan?: ResolvedPlan | null; // optional payment plan to freeze on (2026-06-12)
     tutorId: string;
   },
 ): Promise<
   { ok: true; invited: boolean; enrolmentId: string } | { ok: false; error: string }
 > {
   const { forename, surname, email, programmeId, cohortId, accessWindowDays, tutorId } = args;
+  const plan = args.plan ?? null;
   const fullName = [forename, surname].filter(Boolean).join(' ');
 
   // Existing account? nclex_users.email is unique; a tutor-added or
@@ -311,6 +421,7 @@ async function inviteOrAttachAndEnrol(
     };
   }
 
+  const nowIso = new Date().toISOString();
   const { data: enrolRow, error: enrolErr } = await admin
     .from('nclex_enrolments')
     .insert({
@@ -323,6 +434,24 @@ async function inviteOrAttachAndEnrol(
       // Frozen from the programme's access window at enrolment time,
       // exactly like the paid path — NULL = lifetime-of-tutor-sub.
       access_expires_at: freezeAccessExpiry(accessWindowDays),
+      // Plan frozen identically to checkout, so the schedule engine /
+      // sweep / tile / Mark-paid can't tell a hand-added student apart.
+      strategy_id: plan?.strategyId ?? null,
+      strategy_snapshot_json: plan?.snapshot ?? null,
+      // First-payment grace (0 received): position 1 is due at enrolment,
+      // so without this the sweep would pause the student tonight.
+      installment_grace_until: plan?.graceUntilIso ?? null,
+      grace_history_json: plan?.graceUntilIso
+        ? [
+            {
+              granted_at: nowIso,
+              granted_by: tutorId,
+              days: plan.graceDays,
+              grace_until: plan.graceUntilIso,
+              at_add: true,
+            },
+          ]
+        : [],
     })
     .select('enrolment_id')
     .single();
@@ -334,6 +463,46 @@ async function inviteOrAttachAndEnrol(
       };
     }
     return { ok: false, error: enrolErr?.message ?? 'Could not enrol the student.' };
+  }
+
+  // "Payments already received" — money the tutor took by hand before the
+  // add. Recorded as synthetic OFF_PLATFORM rows (the Mark-paid mechanism
+  // applied at add time) so the schedule starts at the right position and
+  // the books reflect reality. Amounts come from the schedule engine, same
+  // as Mark-paid. Positions are PROGRAMME_INSTALLMENT rows carrying their
+  // index (incl. position 1 — tutor-added enrolments have no checkout, so
+  // no PROGRAMME_INITIAL row exists; paid-count logic reads both purposes
+  // and never the index, so the schedule is unaffected).
+  if (plan && plan.received > 0) {
+    const schedule = buildSchedule(plan.snapshot, new Date(nowIso), 0);
+    const groupId = crypto.randomUUID();
+    const rows = schedule.payments.slice(0, plan.received).map((p) => ({
+      paystack_reference: null,
+      checkout_group_id: groupId,
+      user_id: studentId,
+      email,
+      purpose: 'PROGRAMME_INSTALLMENT',
+      programme_id: programmeId,
+      cohort_id: null, // cohort_scope CHECK: cohort_id only on PROGRAMME_INITIAL.
+      strategy_id: plan.strategyId,
+      installment_index: p.index,
+      currency: plan.currency,
+      amount_minor: p.amountMinor,
+      status: 'ACTIVATED',
+      collection_channel: 'OFF_PLATFORM',
+      recorded_by_user_id: tutorId,
+      paid_at: nowIso,
+      activated_at: nowIso,
+      enrolment_id: enrolRow.enrolment_id,
+    }));
+    const { error: payErr } = await admin.from('nclex_payments').insert(rows);
+    if (payErr) {
+      // Roll the enrolment back rather than leave a half-recorded student
+      // (the tutor would re-add with the right numbers).
+      await admin.from('nclex_enrolments').delete().eq('enrolment_id', enrolRow.enrolment_id);
+      console.error('add-with-plan: received-payments insert failed:', payErr.message);
+      return { ok: false, error: 'Could not record the received payments. Try again.' };
+    }
   }
 
   return { ok: true, invited, enrolmentId: enrolRow.enrolment_id };

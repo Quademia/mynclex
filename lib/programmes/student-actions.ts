@@ -36,6 +36,9 @@ export type SwitcherProgramme = {
   // Self-paced only: the next payment owed on this enrolment, or null when
   // fully paid / no plan (Slice 7d).
   nextPayment: NextPaymentView | null;
+  // False on tutor-collection programmes — the next-payment pill shows but
+  // the Pay button doesn't (add-with-plan, 2026-06-12).
+  canPayOnline: boolean;
 };
 
 export type SwitcherCohort = {
@@ -49,6 +52,8 @@ export type SwitcherCohort = {
   status: EnrolmentStatus | null;
   // The next payment owed on this cohort enrolment, or null (Slice 7d).
   nextPayment: NextPaymentView | null;
+  // Inherited from the parent programme's collection mode.
+  canPayOnline: boolean;
 };
 
 // Active statuses win over terminal ones when a student has both a
@@ -69,7 +74,7 @@ export async function getMyAccessibleProgrammesAction(): Promise<{
     supabase
       .from('nclex_programmes')
       .select(
-        'programme_id, title, tagline, delivery_mode, unit_label, length_units, price_currency'
+        'programme_id, title, tagline, delivery_mode, unit_label, length_units, price_currency, payment_collection_mode'
       )
       .order('title', { ascending: true }),
     supabase
@@ -89,11 +94,18 @@ export async function getMyAccessibleProgrammesAction(): Promise<{
       .in('status', ['PAID', 'ACTIVATED']),
   ]);
 
-  type ProgrammeRow = Omit<SwitcherProgramme, 'cohorts' | 'status' | 'nextPayment'> & {
+  type ProgrammeRow = Omit<
+    SwitcherProgramme,
+    'cohorts' | 'status' | 'nextPayment' | 'canPayOnline'
+  > & {
     price_currency: Currency;
+    payment_collection_mode: string;
   };
   const programmes = (progRes.data ?? []) as ProgrammeRow[];
-  const cohorts = (cohortRes.data ?? []) as Omit<SwitcherCohort, 'status' | 'nextPayment'>[];
+  const cohorts = (cohortRes.data ?? []) as Omit<
+    SwitcherCohort,
+    'status' | 'nextPayment' | 'canPayOnline'
+  >[];
   const enrolments = (enrolRes.data ?? []) as {
     enrolment_id: string;
     programme_id: string;
@@ -147,6 +159,10 @@ export async function getMyAccessibleProgrammesAction(): Promise<{
     }
   }
 
+  const canPayByProgramme = new Map<string, boolean>(
+    programmes.map((p) => [p.programme_id, p.payment_collection_mode === 'ON_PLATFORM'])
+  );
+
   const cohortsByProgramme = new Map<string, SwitcherCohort[]>();
   for (const c of cohorts) {
     const arr = cohortsByProgramme.get(c.programme_id) ?? [];
@@ -154,16 +170,20 @@ export async function getMyAccessibleProgrammesAction(): Promise<{
       ...c,
       status: statusByKey.get(c.cohort_id) ?? null,
       nextPayment: nextPaymentByKey.get(c.cohort_id) ?? null,
+      canPayOnline: canPayByProgramme.get(c.programme_id) ?? true,
     });
     cohortsByProgramme.set(c.programme_id, arr);
   }
 
   return {
-    programmes: programmes.map(({ price_currency: _drop, ...p }) => ({
-      ...p,
-      cohorts: cohortsByProgramme.get(p.programme_id) ?? [],
-      status: statusByKey.get(`prog:${p.programme_id}`) ?? null,
-      nextPayment: nextPaymentByKey.get(`prog:${p.programme_id}`) ?? null,
-    })),
+    programmes: programmes.map(
+      ({ price_currency: _drop, payment_collection_mode, ...p }) => ({
+        ...p,
+        cohorts: cohortsByProgramme.get(p.programme_id) ?? [],
+        status: statusByKey.get(`prog:${p.programme_id}`) ?? null,
+        nextPayment: nextPaymentByKey.get(`prog:${p.programme_id}`) ?? null,
+        canPayOnline: payment_collection_mode === 'ON_PLATFORM',
+      })
+    ),
   };
 }

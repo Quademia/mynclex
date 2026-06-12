@@ -10,7 +10,7 @@
 
 import { notFound } from 'next/navigation';
 import { getProgrammeForShell } from '@/lib/programmes/queries';
-import { getProgrammeRoster } from '@/lib/enrolments/queries';
+import { getProgrammeRoster, getRosterPlanContext } from '@/lib/enrolments/queries';
 import { EnrolmentRosterView } from '@/lib/enrolments/enrolment-roster-view';
 
 export const dynamic = 'force-dynamic';
@@ -29,11 +29,15 @@ export default async function ProgrammeEnrolmentsPage({
   const roster = await getProgrammeRoster(programme_id);
   if (roster === null) notFound();
 
+  const planCtx = await getRosterPlanContext(programme_id);
+
   return (
     <EnrolmentRosterView
       scope={{ kind: 'PROGRAMME', programmeId: programme_id }}
       contextName={programme.title}
       roster={roster}
+      plans={planCtx.plans}
+      currency={planCtx.currency}
     />
   );
 }

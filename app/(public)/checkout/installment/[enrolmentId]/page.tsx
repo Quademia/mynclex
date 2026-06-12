@@ -45,10 +45,34 @@ export default async function InstallmentCheckoutPage({
 
   const { data: prog } = await supabase
     .from('nclex_programmes')
-    .select('title, price_currency')
+    .select('title, price_currency, payment_collection_mode')
     .eq('programme_id', enr.programme_id)
     .maybeSingle();
   if (!prog) notFound();
+
+  // Tutor-collection programmes are tracking-only (add-with-plan,
+  // 2026-06-12): the schedule shows what's owed, but money goes to the
+  // tutor directly — there's nothing to pay online here. init.ts enforces
+  // the same rule at charge time.
+  if (prog.payment_collection_mode !== 'ON_PLATFORM') {
+    return (
+      <main className="pub-content co-content">
+        <Link className="det-back" href={backHref}>
+          ← Back to my programmes
+        </Link>
+        <section className="co-card">
+          <h2>Your tutor collects payments directly</h2>
+          <p className="co-card-desc">
+            This programme doesn&apos;t take online payment. Pay your tutor the
+            way you agreed with them — they&apos;ll record it on your schedule.
+          </p>
+          <Link className="co-dup-btn" href={backHref}>
+            Back to my programmes →
+          </Link>
+        </section>
+      </main>
+    );
+  }
 
   // Settled payments so far (own PAID/ACTIVATED programme rows).
   const { count } = await supabase

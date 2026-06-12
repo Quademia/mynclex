@@ -19,7 +19,7 @@
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { nextPaymentView } from '@/lib/payments/schedule';
 import type { Currency } from '@/lib/payments/types';
-import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
+import type { FrozenStrategySnapshot, PaymentStrategy } from '@/lib/strategies/types';
 import type { EnrolmentRosterRow, EnrolmentStatus, WaitlistEntry } from './types';
 
 // Active statuses win over terminal ones when a student has both a past
@@ -234,6 +234,42 @@ async function readRoster(
       } satisfies EnrolmentRosterRow;
     })
     .filter((r): r is EnrolmentRosterRow => r !== null);
+}
+
+/**
+ * The programme's ACTIVE payment plans + currency, for the Add Student
+ * modal's plan picker (add-with-plan, 2026-06-12). Authed client —
+ * strategy RLS is owner-scoped, so a programme the tutor doesn't own
+ * yields no plans. Callers gate ownership via the roster read anyway
+ * (null → 404) before this.
+ */
+export async function getRosterPlanContext(
+  programmeId: string,
+): Promise<{ plans: PaymentStrategy[]; currency: Currency }> {
+  const supabase = await createClient();
+  const [{ data: prog }, { data: plans, error }] = await Promise.all([
+    supabase
+      .from('nclex_programmes')
+      .select('price_currency')
+      .eq('programme_id', programmeId)
+      .maybeSingle(),
+    supabase
+      .from('nclex_programme_payment_strategies')
+      .select(
+        `strategy_id, programme_id, kind, label,
+         total_price_minor, initial_price_minor,
+         installment_count, installment_interval_days,
+         balance_due_days_after_enrolment,
+         is_active, sort_order, created_at, updated_at`,
+      )
+      .eq('programme_id', programmeId)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
+  ]);
+  return {
+    plans: error || !plans ? [] : (plans as PaymentStrategy[]),
+    currency: ((prog?.price_currency as Currency | undefined) ?? 'GHS'),
+  };
 }
 
 /**
