@@ -8,24 +8,36 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **⏭ NEXT SESSION — set (2026-06-12 end-of-session): MOVE cohort
-> Enrolments to programme level.** Decided + planned, not built — full
-> plan in [payments-and-enrolment.md → "Settled 2026-06-12 (end of
-> session)"](docs/product-plan/payments-and-enrolment.md): programme
-> Enrolments page accepts tutor-led (roster across all cohorts) ·
-> cohort tag + filter · Waitlist tab moves up (cohort-badged) ·
-> add-student cohort picker · mode-driven summary cells · nav swap
-> (cohort Enrolments entry + route DELETED; cohort workspace gets a
-> pre-filtered "Manage enrolments →" link). Supersedes the morning's
-> "roster lives where students enrol" rule. Regression pass over
-> approve/waitlist/add/pause/grace/mark-paid at the new mount.
-> **Sequenced AHEAD of the global `/tutor/payments` transactions page**
-> (next after; settled same day: built ONCE globally w/ programme ·
-> cohort · channel · date filters). Then: library **11.11c** · **11.17**
-> · programme **Overview** · a `main → prod` **release** (carries all
-> 2026-06-12 slices; no migrations). Operational ⚠: **`PAYSTACK_SECRET_KEY`
-> is not set on the prod Worker** — prod checkout will fail until it is
-> (5-min fix, needs the dashboard/wrangler).
+> **⏭ NEXT: the global `/tutor/payments` transactions page** (settled
+> 2026-06-12: built ONCE globally w/ programme · cohort · channel ·
+> date filters — no per-programme money pages). Then: library
+> **11.11c** · **11.17** · programme **Overview** · a `main → prod`
+> **release** (carries all 2026-06-12 slices; no migrations).
+> Operational ⚠: **`PAYSTACK_SECRET_KEY` is not set on the prod
+> Worker** — prod checkout will fail until it is (5-min fix, needs the
+> dashboard/wrangler).
+
+> **ENROLMENTS MOVED TO PROGRAMME LEVEL (2026-06-12, ✅ MERGED to
+> `main`, not yet prod).** The settled plan
+> ([payments-and-enrolment.md → "Settled 2026-06-12 (end of
+> session)"](docs/product-plan/payments-and-enrolment.md), now carrying
+> the build note) shipped as written — **programme = people & money,
+> cohort = delivery**: programme Enrolments accepts tutor-led (roster
+> across all cohorts, cohort-tagged) · Waitlist tab moved up
+> (cohort-badged; convert targets the lead's own cohort) · add-student
+> cohort picker · mode-driven summary cells · cohort Enrolments entry +
+> route DELETED; cohort Overview links "Manage enrolments →"
+> pre-filtered. Plus 5 same-session extensions from Sam's testing:
+> **cohort ZOOM** (filter recomputes cards + chips + waitlist,
+> page-wide, w/ a scope line + Show-all exit — the deep link restores
+> the old cohort-scoped view) · **table width fix** (1400px page ·
+> overflow-x scroll + sticky Actions · row **⋯ menu**, body-portaled ·
+> zoom hides the Cohort column) · **convert-with-plan parity** (the
+> Convert dialog carries the Add-Student plan picker; shared
+> `PlanPickerFields`) · header **Students → Enrolments** ·
+> `RosterScope` retired. 6 commits `a1f454c` · `a040804` · `3be55c1` ·
+> `845ed76` · `8d08d02` · `474239d`; all app-layer, no migration.
+> Detail in [sessions/2026-06.md](sessions/2026-06.md).
 
 > **PAYMENT-HISTORY DRAWER + MONEY-SURFACE IA (2026-06-12, ✅ MERGED to
 > `main`, not yet prod).** Per-student payment history behind the
