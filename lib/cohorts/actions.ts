@@ -115,11 +115,11 @@ export async function editCohortAction(
   if (error) return { ok: false, error: error.message };
   if (!data) return { ok: false, error: 'Cohort not found or not yours to edit.' };
 
+  // The Cohorts page carries both the list and the in-page run detail
+  // (cohort-workspace fold) — one revalidate covers every ?cohort= view.
   revalidatePath('/tutor/programmes');
   revalidatePath(`/tutor/programme/${data.programme_id}/cohorts`);
   revalidatePath(`/tutor/programme/${data.programme_id}/overview`);
-  revalidatePath(`/tutor/cohort/${cohort_id}/overview`);
-  revalidatePath(`/tutor/cohort/${cohort_id}/settings`);
   return { ok: true };
 }
 
@@ -161,8 +161,6 @@ export async function cancelCohortAction(
 
   revalidatePath('/tutor/programmes');
   revalidatePath(`/tutor/programme/${data.programme_id}/cohorts`);
-  revalidatePath(`/tutor/cohort/${cohort_id}/overview`);
-  revalidatePath(`/tutor/cohort/${cohort_id}/settings`);
   return { ok: true };
 }
 
@@ -342,7 +340,20 @@ async function applyChecklistChange(
     if (error) return { ok: false, error: 'Could not save the change.' };
   }
 
-  revalidatePath(`/tutor/cohort/${cohortId}/curriculum`);
+  // The checklist renders inside the programme Cohorts page
+  // (?cohort=&tab=curriculum). The action only holds the cohort id,
+  // so resolve the parent programme for the revalidate (cheap
+  // RLS-scoped single-row read).
+  const { data: parent } = await supabase
+    .from('nclex_cohorts')
+    .select('programme_id')
+    .eq('cohort_id', cohortId)
+    .maybeSingle();
+  if (parent) {
+    revalidatePath(
+      `/tutor/programme/${(parent as { programme_id: string }).programme_id}/cohorts`
+    );
+  }
   return { ok: true };
 }
 
@@ -469,6 +480,8 @@ export async function includeAllUnconfiguredActivitiesAction(
     });
   if (error) return { ok: false, error: 'Could not include the activities.' };
 
-  revalidatePath(`/tutor/cohort/${cohortId}/curriculum`);
+  revalidatePath(
+    `/tutor/programme/${(cohort as { programme_id: string }).programme_id}/cohorts`
+  );
   return { ok: true, added: rows.length };
 }

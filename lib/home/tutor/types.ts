@@ -35,6 +35,9 @@ export type HomeEnquiry = {
 /** One cohort flagged as lagging on completion. */
 export type HomeBehindCohort = {
   cohortId: string;
+  /** Parent programme id — the row links into the programme Cohorts
+   * page's in-page run detail (?cohort=&tab=analytics). */
+  programmeId: string;
   /** Cohort display name (or its date range). */
   cohort: string;
   /** Parent programme title. */

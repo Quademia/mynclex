@@ -185,7 +185,7 @@ function EnquiryRow({ e }: { e: HomeEnquiry }) {
 
 function CohortRow({ c }: { c: HomeBehindCohort }) {
   return (
-    <Link className={`th-attn-item th-coh sev-${c.sev}`} href={`/tutor/cohort/${c.cohortId}/analytics`}>
+    <Link className={`th-attn-item th-coh sev-${c.sev}`} href={`/tutor/programme/${c.programmeId}/cohorts?cohort=${c.cohortId}&tab=analytics`}>
       <span className={`th-attn-dot th-coh-dot sev-${c.sev}`} />
       <div className="th-attn-body">
         <div className="th-attn-line1">
@@ -291,14 +291,15 @@ function WeekTimeline({ sessions }: { sessions: HomeSession[] }) {
           <div className="th-tl-slots">
             {(byOffset.get(d.offset) ?? []).map((s) => (
               // TODO (live-session planner redesign): re-point this to the
-              // cohort sessions surface — `/tutor/cohort/${s.cohortId}/sessions`
-              // — once sessions move from the programme template to the
-              // per-cohort planner. Today HomeSession has no cohortId
-              // (sessions are template-level), and the programme `/sessions`
-              // route is a placeholder kept alive solely for this link, so it
-              // stays here until the planner lands and getUpcomingSessions
-              // reads cohort-scoped schedules. See lib/nav/tutor.ts (programme
-              // nav declutter note) + the live-session-planner plan doc.
+              // cohort Sessions tab — `/tutor/programme/<pid>/cohorts?cohort=
+              // <cid>&tab=sessions` (the in-page run detail) — once sessions
+              // move from the programme template to the per-cohort planner.
+              // Today HomeSession has no cohortId (sessions are
+              // template-level), and the programme `/sessions` route is a
+              // placeholder kept alive solely for this link, so it stays here
+              // until the planner lands and getUpcomingSessions reads
+              // cohort-scoped schedules. See lib/nav/tutor.ts (programme nav
+              // declutter note) + the live-session-planner plan doc.
               <Link
                 key={s.activityId}
                 className="th-tl-chip"

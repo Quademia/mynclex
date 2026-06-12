@@ -129,6 +129,7 @@ export async function getTutorHomeData(): Promise<TutorHomeData> {
           : `avg ${summary.avgCompletion}% complete · ${lagging} falling behind`;
       behind.push({
         cohortId: cohort.cohortId,
+        programmeId: cohort.programmeId,
         cohort: data.meta.cohortName,
         programme: data.meta.programmeTitle,
         signal,
