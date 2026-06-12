@@ -913,6 +913,58 @@ produced this boundary:
   360 likely lives at the GLOBAL **My Students** page (placeholder
   kept). Restore is one nav line if ever wanted.
 
+#### Settled 2026-06-12 (end of session) — cohort Enrolments MOVE to programme level (planned, not yet built)
+
+Re-opened by Sam after the IA above settled, and **decided: the
+enrolment roster for BOTH delivery modes lives at programme level.**
+This supersedes the same morning's placement rule ("the roster lives
+where students enrol" — cohort for tutor-led, programme for
+self-paced), which is hereby retired. That rule was the right bridge —
+it de-risked the shipped cohort surface while building the scope-driven
+machinery (RosterScope view + actions + the programme mount) that now
+makes this move a modest slice instead of a rebuild.
+
+**Why the move wins:**
+- Enrolment work clusters at a cohort's **boundaries** (approve /
+  convert / add before the run; the odd overdue at the edges) — the
+  cohort roster's "in-context during delivery" advantage is strongest
+  exactly when the roster is used least, while the cost of two
+  locations-by-mode is paid permanently.
+- It completes the IA: **programme = people & money** (Enquiries →
+  Enrolments → Payment plans adjacent on one sidebar) · **cohort =
+  delivery** (Curriculum · Analytics · Sessions · Announcements).
+- The Enrolments tab simply always exists on a programme — no
+  mode-conditional nav.
+- Composes with the future global `/tutor/payments` page (global money
+  → programme people drill-down).
+- **Timing:** pre-launch, no tutor habits to break — relocating shipped
+  furniture is nearly free now and only gets dearer.
+
+**The build plan (one slice):**
+1. The programme Enrolments page **accepts tutor-led** (today it 404s
+   them): roster across ALL the programme's cohorts; self-paced
+   behaviour unchanged.
+2. Rows gain a **cohort tag + a cohort filter** in the toolbar (next to
+   the status chips).
+3. The **Waitlist tab moves up** with it — all cohorts' PENDING leads,
+   each badged with its cohort (Convert already reads the cohort off
+   the waitlist row; unchanged).
+4. **Add student** gains a joinable-cohort picker for tutor-led (the
+   action already takes a cohort id); self-paced keeps none.
+5. **Summary cells become mode-driven**: tutor-led programme = Enrolled
+   / Pending approval / Waitlist / Paused; self-paced keeps Enrolled /
+   Paused / Overdue / Expired.
+6. **Nav swap**: `enrolments` shows for BOTH modes on the programme
+   sidebar; the cohort sidebar's Enrolments entry AND its route folder
+   are **deleted** (routes aren't sacred); the cohort workspace gets a
+   "Manage enrolments →" link opening the programme page **pre-filtered
+   to that cohort** (`?cohort=` param).
+
+**Regression scope** (the real cost): approve / reject, waitlist
+convert / dismiss, add-student (with + without plan), pause / grace /
+Mark-paid — all retested at the new mount. **Sequenced AHEAD of the
+global payments page** — IA settles before more surfaces build on it.
+
 #### On-platform flow — full sequence (Settled 2026-05-18)
 
 When the tutor has opted into on-platform collection and a student

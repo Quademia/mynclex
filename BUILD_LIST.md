@@ -8,18 +8,24 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **⏭ NEXT SESSION — open.** Rotate per the alternate-features rule.
-> Candidates: the **global `/tutor/payments` transactions page** (settled
-> 2026-06-12: built ONCE at global level w/ programme · cohort · channel ·
-> date filters — see payments-and-enrolment.md § "tutor money surfaces";
-> the page is still the original placeholder) · library **11.11c** (tutor
-> embed-analytics dashboard + the stubbed Mark-done → progress
-> write-through) · **11.17** (library polish) · programme **Overview**
-> detail landing (still a placeholder) · a `main → prod` **release**
-> (carries all 2026-06-12 slices; no migrations). Operational ⚠ from
-> the 2026-06-12 payments review: **`PAYSTACK_SECRET_KEY` is not set on
-> the prod Worker** — prod checkout will fail until it is (5-min fix,
-> needs the dashboard/wrangler).
+> **⏭ NEXT SESSION — set (2026-06-12 end-of-session): MOVE cohort
+> Enrolments to programme level.** Decided + planned, not built — full
+> plan in [payments-and-enrolment.md → "Settled 2026-06-12 (end of
+> session)"](docs/product-plan/payments-and-enrolment.md): programme
+> Enrolments page accepts tutor-led (roster across all cohorts) ·
+> cohort tag + filter · Waitlist tab moves up (cohort-badged) ·
+> add-student cohort picker · mode-driven summary cells · nav swap
+> (cohort Enrolments entry + route DELETED; cohort workspace gets a
+> pre-filtered "Manage enrolments →" link). Supersedes the morning's
+> "roster lives where students enrol" rule. Regression pass over
+> approve/waitlist/add/pause/grace/mark-paid at the new mount.
+> **Sequenced AHEAD of the global `/tutor/payments` transactions page**
+> (next after; settled same day: built ONCE globally w/ programme ·
+> cohort · channel · date filters). Then: library **11.11c** · **11.17**
+> · programme **Overview** · a `main → prod` **release** (carries all
+> 2026-06-12 slices; no migrations). Operational ⚠: **`PAYSTACK_SECRET_KEY`
+> is not set on the prod Worker** — prod checkout will fail until it is
+> (5-min fix, needs the dashboard/wrangler).
 
 > **PAYMENT-HISTORY DRAWER + MONEY-SURFACE IA (2026-06-12, ✅ MERGED to
 > `main`, not yet prod).** Per-student payment history behind the
