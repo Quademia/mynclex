@@ -20,6 +20,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
   addSelfPacedStudentAction,
@@ -821,9 +822,10 @@ interface RowMenuItem {
 
 // The roster row's ⋯ menu (the quiz-card-menu pattern). Pure
 // composition — every item drives an existing confirm dialog/action
-// owned by the page. The pop is FIXED-positioned via
-// usePopoverPosition because the table container scrolls
-// (overflow-x: auto) and would clip an absolutely-positioned child.
+// owned by the page. The pop is BODY-PORTALED + fixed-positioned via
+// usePopoverPosition: the table container scrolls (overflow-x: auto)
+// and each sticky Actions cell is its own stacking context, so a pop
+// left inside the cell paints UNDER the rows below it.
 function RowActionsMenu({
   items,
   disabled,
@@ -832,7 +834,6 @@ function RowActionsMenu({
   disabled: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const { ref: popRef, style: popStyle } = usePopoverPosition({
     getAnchorRect: () => btnRef.current?.getBoundingClientRect() ?? null,
@@ -841,11 +842,11 @@ function RowActionsMenu({
   useEffect(() => {
     if (!open) return;
     function onDoc(e: MouseEvent) {
-      // The fixed pop is still a DOM child of the wrapper, so one
-      // contains() check covers button + menu.
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      // The pop lives under document.body (portal), so check both
+      // the button and the pop — DOM containment, not React tree.
+      const t = e.target as Node;
+      if (btnRef.current?.contains(t) || popRef.current?.contains(t)) return;
+      setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false);
@@ -856,10 +857,10 @@ function RowActionsMenu({
       document.removeEventListener('mousedown', onDoc);
       document.removeEventListener('keydown', onKey);
     };
-  }, [open]);
+  }, [open, popRef]);
 
   return (
-    <div ref={wrapRef} style={{ display: 'inline-flex' }}>
+    <>
       <button
         ref={btnRef}
         type="button"
@@ -872,25 +873,27 @@ function RowActionsMenu({
       >
         ⋯
       </button>
-      {open && (
-        <div className="cw-row-menu-pop" role="menu" ref={popRef} style={popStyle}>
-          {items.map((it) => (
-            <button
-              key={it.key}
-              type="button"
-              role="menuitem"
-              className={`cw-row-menu-item${it.danger ? ' is-danger' : ''}`}
-              onClick={() => {
-                setOpen(false);
-                it.onSelect();
-              }}
-            >
-              {it.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+      {open &&
+        createPortal(
+          <div className="cw-row-menu-pop" role="menu" ref={popRef} style={popStyle}>
+            {items.map((it) => (
+              <button
+                key={it.key}
+                type="button"
+                role="menuitem"
+                className={`cw-row-menu-item${it.danger ? ' is-danger' : ''}`}
+                onClick={() => {
+                  setOpen(false);
+                  it.onSelect();
+                }}
+              >
+                {it.label}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
 
