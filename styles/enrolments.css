@@ -34,6 +34,44 @@
 }
 
 /* summary cells */
+/* scope line — declares which cohort world the numbers below describe.
+   All-cohorts stays quiet; the zoomed state changed every count's
+   meaning, so it gets the teal tint + the "Show all" exit. */
+.cw-scope {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.cw-scope.zoomed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-radius: var(--radius);
+  color: #0f766e;
+}
+.cw-scope.zoomed strong {
+  color: #115e59;
+}
+.cw-scope-clear {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: #0f766e;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.cw-scope-clear:hover {
+  color: #115e59;
+}
+
 .cw-summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

@@ -154,6 +154,27 @@ export function EnrolmentRosterView({
       : 'ALL',
   );
 
+  // The cohort filter is a page-wide ZOOM (agreed 2026-06-12): it scopes
+  // the summary cards, the status chips, the roster table AND the
+  // waitlist tab (list + badge), so every number on screen describes the
+  // same world. Status chips + search stay table-only — the cards ARE
+  // status counts, so scoping them by status would be circular.
+  const zoomCohort =
+    tutorLed && cohortFilter !== 'ALL'
+      ? (cohorts.find((c) => c.cohort_id === cohortFilter) ?? null)
+      : null;
+
+  const scopedRoster = useMemo(
+    () =>
+      zoomCohort
+        ? roster.filter((r) => r.cohort_id === zoomCohort.cohort_id)
+        : roster,
+    [roster, zoomCohort],
+  );
+  const scopedWaitlist = zoomCohort
+    ? waitlist.filter((w) => w.cohort_id === zoomCohort.cohort_id)
+    : waitlist;
+
   const counts = useMemo(() => {
     const c: Record<EnrolmentStatus, number> = {
       PENDING_APPROVAL: 0,
@@ -163,19 +184,18 @@ export function EnrolmentRosterView({
       CANCELLED: 0,
       EXPIRED: 0,
     };
-    for (const r of roster) c[r.status] += 1;
+    for (const r of scopedRoster) c[r.status] += 1;
     return c;
-  }, [roster]);
+  }, [scopedRoster]);
 
   const visibleRoster = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return roster.filter((r) => {
+    return scopedRoster.filter((r) => {
       if (statusFilter !== 'ALL' && r.status !== statusFilter) return false;
-      if (cohortFilter !== 'ALL' && r.cohort_id !== cohortFilter) return false;
       if (q && !`${r.name} ${r.email}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [roster, statusFilter, cohortFilter, search]);
+  }, [scopedRoster, statusFilter, search]);
 
   function leadName(entry: WaitlistEntry) {
     return `${entry.forename} ${entry.surname}`.trim();
@@ -323,7 +343,7 @@ export function EnrolmentRosterView({
   // Self-paced summary swaps the cohort-flow cells (Pending approval /
   // Waitlist) for the states its roster actually produces. Overdue =
   // behind on an installment, paused or not yet.
-  const overdueCount = roster.filter((r) => r.nextPayment?.isOverdue).length;
+  const overdueCount = scopedRoster.filter((r) => r.nextPayment?.isOverdue).length;
   // Cancelled cohorts can't take new students (the action blocks them).
   const joinableCohorts = cohorts.filter((c) => !c.cancelled);
 
@@ -344,6 +364,30 @@ export function EnrolmentRosterView({
         </button>
       </header>
 
+      {/* Scope line — declares which cohort world every number below
+          describes, and (zoomed) carries the exit. Tutor-led only; the
+          all-cohorts state stays quiet, the zoomed state is the one
+          that changed every count's meaning, so it gets the tint. */}
+      {tutorLed &&
+        cohorts.length > 0 &&
+        (zoomCohort ? (
+          <div className="cw-scope zoomed">
+            <span>
+              Viewing enrolments for the <strong>{zoomCohort.label}</strong>{' '}
+              cohort
+            </span>
+            <button
+              type="button"
+              className="cw-scope-clear"
+              onClick={() => setCohortFilter('ALL')}
+            >
+              Show all cohorts
+            </button>
+          </div>
+        ) : (
+          <div className="cw-scope">Viewing enrolments across all cohorts</div>
+        ))}
+
       <div className="cw-summary">
         <SummaryCell k="Enrolled" v={counts.ENROLLED} sub="Active access" />
         {tutorLed ? (
@@ -353,7 +397,7 @@ export function EnrolmentRosterView({
               v={counts.PENDING_APPROVAL}
               sub="Awaiting your decision"
             />
-            <SummaryCell k="Waitlist" v={waitlist.length} sub="Off-platform leads" />
+            <SummaryCell k="Waitlist" v={scopedWaitlist.length} sub="Off-platform leads" />
             <SummaryCell k="Paused" v={counts.PAUSED} sub="Access on hold" />
           </>
         ) : (
@@ -374,7 +418,7 @@ export function EnrolmentRosterView({
             className={`cw-tab ${tab === 'roster' ? 'on' : ''}`}
             onClick={() => setTab('roster')}
           >
-            Roster <span className="cw-tab-count">{roster.length}</span>
+            Roster <span className="cw-tab-count">{scopedRoster.length}</span>
           </button>
           <button
             type="button"
@@ -384,8 +428,8 @@ export function EnrolmentRosterView({
             onClick={() => setTab('waitlist')}
           >
             Waitlist
-            {waitlist.length > 0 && (
-              <span className="cw-tab-count warn">{waitlist.length}</span>
+            {scopedWaitlist.length > 0 && (
+              <span className="cw-tab-count warn">{scopedWaitlist.length}</span>
             )}
           </button>
         </nav>
@@ -429,7 +473,7 @@ export function EnrolmentRosterView({
                   const on = statusFilter === chip;
                   const label =
                     chip === 'ALL' ? 'All' : ENROLMENT_STATUS_META[chip].label;
-                  const count = chip === 'ALL' ? roster.length : counts[chip];
+                  const count = chip === 'ALL' ? scopedRoster.length : counts[chip];
                   return (
                     <button
                       key={chip}
@@ -634,7 +678,8 @@ export function EnrolmentRosterView({
         )
       ) : (
         <WaitlistTab
-          waitlist={waitlist}
+          waitlist={scopedWaitlist}
+          zoomed={zoomCohort !== null}
           pending={pending}
           wlBusyId={wlBusyId}
           leadName={leadName}
@@ -749,13 +794,16 @@ function SummaryCell({ k, v, sub }: { k: string; v: number; sub: string }) {
 
 function WaitlistTab({
   waitlist,
+  zoomed,
   pending,
   wlBusyId,
   leadName,
   onConvert,
   onDismiss,
 }: {
+  /** Already cohort-scoped by the caller when zoomed. */
   waitlist: WaitlistEntry[];
+  zoomed: boolean;
   pending: boolean;
   wlBusyId: string | null;
   leadName: (e: WaitlistEntry) => string;
@@ -765,11 +813,22 @@ function WaitlistTab({
   if (waitlist.length === 0) {
     return (
       <div className="enrol-empty">
-        <h2 className="enrol-empty-title">No waitlist requests.</h2>
+        <h2 className="enrol-empty-title">
+          {zoomed ? 'No waitlist requests for this cohort.' : 'No waitlist requests.'}
+        </h2>
         <p className="enrol-empty-sub">
-          When someone fills in the &ldquo;Join the waitlist&rdquo; form on
-          this programme&apos;s public page, their request shows up here for
-          you to convert into an enrolment.
+          {zoomed ? (
+            <>
+              Other cohorts may still have requests — use &ldquo;Show all
+              cohorts&rdquo; above to see everything.
+            </>
+          ) : (
+            <>
+              When someone fills in the &ldquo;Join the waitlist&rdquo; form
+              on this programme&apos;s public page, their request shows up
+              here for you to convert into an enrolment.
+            </>
+          )}
         </p>
       </div>
     );
