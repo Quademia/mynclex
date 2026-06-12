@@ -8,18 +8,37 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **⏭ NEXT SESSION — open.** The programme-level Library page (tutor
-> side) is **DONE** (see immediately below). No specific next pointer
-> set; rotate per the alternate-features rule. Candidates: library
+> **⏭ NEXT SESSION — open.** Rotate per the alternate-features rule.
+> Candidates: **"Add student WITH a payment plan"** (queued 2026-06-12 —
+> needs a design discussion first: tutor-added ≠ off-platform money; a
+> hand-added student could pick one of the programme's plans so the
+> tile/installment-checkout/sweep/mark-paid machinery tracks them; open
+> q = does the schedule start 0-of-N or 1-of-N paid) · library
 > **11.11c** (tutor embed-analytics dashboard + the stubbed Mark-done →
 > progress write-through) · **11.17** (library polish) · programme
-> **Overview** detail landing (still a placeholder) · a `main → prod`
-> **release** (a stack of merged-but-unreleased work has built up:
-> quiz tags + its migration, curriculum CD close-out, bank-surfaces
-> redesign, authorship Step 2, analytics migrations, and this).
+> **Overview** detail landing (still a placeholder). Operational ⚠ from
+> the 2026-06-12 payments review: **`PAYSTACK_SECRET_KEY` is not set on
+> the prod Worker** — prod checkout will fail until it is (5-min fix,
+> needs the dashboard/wrangler).
+
+> **SELF-PACED ENROLMENTS TAB + access-window freeze (2026-06-12, ✅
+> MERGED to `main`, not yet prod).** The sweep's biggest find: self-paced
+> enrolments had **no tutor surface** (roster was cohort-only; no
+> cohortless manual-add → off-platform self-paced was a dead end). New
+> programme-level **Enrolments** tab (SELF_PACED only, sidebar
+> mode-filtered like the Cohorts rule): `EnrolmentRosterView` generalised
+> behind a `RosterScope` union — programme scope is roster-only
+> (Waitlist/PENDING_APPROVAL stay cohort concepts; summary = Enrolled /
+> Paused / Overdue / Expired), same lifecycle/payment actions (they were
+> already enrolment-scoped). New `addSelfPacedStudentAction`
+> (`cohort_id = NULL` rows). **Fix:** all tutor-add paths (cohort add,
+> waitlist convert, self-paced add) now freeze `access_expires_at` from
+> the programme's access window like the paid path — always-lifetime was
+> a Slice-1b leftover. All app-layer, no migration. Commit `0e31735`;
+> detail in [sessions/2026-06.md](sessions/2026-06.md).
 
 > **PROGRAMME LIBRARY TAB — tutor "student preview" (2026-06-09, ✅ MERGED
-> to `main`, not yet prod).** A new **Library tab** on the programme
+> to `main`; RELEASED to prod 2026-06-09, PR `4ed0766`).** A new **Library tab** on the programme
 > detail (parallel to Quizzes) — a read-only **"student preview"** of the
 > notes students in THIS programme can see. From the CD "Programme
 > Library (tutor preview)" handoff; reuses the student library's
