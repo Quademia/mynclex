@@ -35,6 +35,7 @@ import {
 } from './actions';
 import { initials, relativeTime } from './format';
 import { describePlan, formatMoney, planLabel } from '@/lib/strategies/format';
+import { PaymentHistoryDrawer } from './payment-history-drawer';
 import type { Currency } from '@/lib/payments/types';
 import type { PaymentStrategy } from '@/lib/strategies/types';
 import {
@@ -121,6 +122,7 @@ export function EnrolmentRosterView({
   } | null>(null);
   const [markPaidRow, setMarkPaidRow] = useState<EnrolmentRosterRow | null>(null);
   const [giveTimeRow, setGiveTimeRow] = useState<EnrolmentRosterRow | null>(null);
+  const [historyRow, setHistoryRow] = useState<EnrolmentRosterRow | null>(null);
 
   const [wlBusyId, setWlBusyId] = useState<string | null>(null);
   const [wlConvert, setWlConvert] = useState<WaitlistEntry | null>(null);
@@ -472,10 +474,13 @@ export function EnrolmentRosterView({
                           <td className="cw-muted">{relativeTime(row.enrolled_at)}</td>
                           <td>
                             {np ? (
-                              <span
-                                className={`cw-pay${
+                              <button
+                                type="button"
+                                className={`cw-pay cw-pay-btn${
                                   np.isOverdue ? ' overdue' : graced ? ' extended' : ''
                                 }`}
+                                onClick={() => setHistoryRow(row)}
+                                title="View payment history"
                               >
                                 {np.isOverdue ? 'Overdue · ' : graced ? 'Grace · ' : 'Next · '}
                                 {formatMoney(np.currency, np.amountMinor)}
@@ -484,9 +489,16 @@ export function EnrolmentRosterView({
                                   {np.isOverdue ? 'since' : graced ? 'until' : 'by'}{' '}
                                   {formatDueShort(graced ? np.graceUntilIso! : np.dueDateIso)}
                                 </span>
-                              </span>
+                              </button>
                             ) : row.paymentFullyPaid ? (
-                              <span className="cw-pay paid">Paid in full</span>
+                              <button
+                                type="button"
+                                className="cw-pay cw-pay-btn paid"
+                                onClick={() => setHistoryRow(row)}
+                                title="View payment history"
+                              >
+                                Paid in full
+                              </button>
                             ) : row.enrolment_source === 'TUTOR_ADDED' ? (
                               <span className="cw-pay offplatform">Off-platform</span>
                             ) : row.enrolment_source === 'ADMIN_GRANT' ? (
@@ -604,6 +616,13 @@ export function EnrolmentRosterView({
             if (!pending) setGiveTimeRow(null);
           }}
           onConfirm={(days) => runGiveTime(giveTimeRow, days)}
+        />
+      )}
+
+      {historyRow && (
+        <PaymentHistoryDrawer
+          row={historyRow}
+          onClose={() => setHistoryRow(null)}
         />
       )}
 

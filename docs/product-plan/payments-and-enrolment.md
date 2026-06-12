@@ -840,6 +840,48 @@ re-add while unpaid); **configured plans only** (no custom per-student
 amounts — a future feature if real tutors ask); no "change plan later";
 waitlist Convert stays one-click/no-plan (extend later if wanted).
 
+#### Parked 2026-06-12 — per-student schedule control (due-date editing)
+
+Discussed and **deliberately skipped for now** (Sam's call, same
+session as the add-with-plan build). Context: due dates are never
+stored — the engine + nightly sweep recompute them every time from
+(frozen snapshot rhythm × anchor date × settled-payment count), where
+the anchor is `enrolled_at`. The need: when a tutor adds a student (or
+a student self-enrols) at an awkward moment, the rhythm is right but
+it's bolted to the wrong starting day (enrolled the 28th but pays on
+the 1st; added weeks before the cohort starts; agreed a different
+first-payment date). Grace doesn't fix this — it spares only the
+*current* payment and leaves later dates keyed to the enrolment moment.
+
+Two options were laid out:
+
+- **Option A — editable schedule anchor (recommended when this is
+  built).** One nullable per-enrolment date, "schedule starts on…"
+  (default = `enrolled_at`); the whole schedule shifts together,
+  rhythm intact. Cheap: engine + sweep read
+  `COALESCE(schedule_anchor_at, enrolled_at)` (one TS line + one SQL
+  migration, kept in lockstep), an "Edit schedule start" roster action
+  with confirm + audit. Solves "starts on the wrong day" — the
+  dominant real case. **Bonus observation:** an anchor would be
+  semantically cleaner than the add-form's first-payment grace (grace
+  says "overdue but unpunished until X" while later dates stay keyed
+  to enrolment; an anchor says "the schedule starts when we agreed" and
+  moves everything coherently) — if A is built, consider reworking the
+  add-form grace field into a "first payment due on [date]" anchor.
+- **Option B — per-position hand-typed due dates.** Total freedom,
+  but a second source of truth every reader (tile, sweep, roster) must
+  honour, and it reopens the settled "due dates are computed from a
+  pattern, not typed as calendar dates" decision. Skip unless real
+  tutors demonstrate per-position need.
+
+**Amount editing stays off the table** (the Q3 of the same
+discussion): per-student amounts remain frozen-snapshot-only — the
+immutability is the integrity guarantee; "custom per-student plans" is
+its own future design.
+
+**Revisit trigger:** real tutors hitting schedule-misalignment in
+practice (expect it first around future-dated cohorts).
+
 #### On-platform flow — full sequence (Settled 2026-05-18)
 
 When the tutor has opted into on-platform collection and a student

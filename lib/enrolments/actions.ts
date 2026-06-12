@@ -928,6 +928,189 @@ export async function dismissWaitlistEntryAction(
   return { ok: true };
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Per-student payment history (2026-06-12). Read-only readout behind
+// the roster's payment pill: the full schedule (every position with
+// its state) + money totals + grace history + any refunded rows. The
+// data has always existed (frozen snapshot + payment rows + the
+// schedule engine) — this is the first surface that presents it.
+//
+// Ownership mirrors markInstallmentPaidAction: enrolment read via the
+// service role, then the parent programme read through the AUTHED
+// client (RLS returns it only for the owning tutor / SUPER_ADMIN).
+// ─────────────────────────────────────────────────────────────────
+
+export type PaymentHistoryItem = {
+  index: number;
+  amountMinor: number; // the row's real amount when paid; the plan's amount otherwise
+  dueDateIso: string;
+  state: 'PAID' | 'DUE' | 'UPCOMING';
+  paidAtIso: string | null;
+  channel: 'PAYSTACK' | 'OFF_PLATFORM' | null;
+  isOverdue: boolean; // DUE only
+  graceUntilIso: string | null; // DUE only — an active tutor-granted extension
+};
+
+export type PaymentHistoryView = {
+  planName: string;
+  currency: Currency;
+  totalMinor: number;
+  receivedMinor: number;
+  remainingMinor: number;
+  paidCount: number;
+  totalPayments: number;
+  enrolledAtIso: string;
+  items: PaymentHistoryItem[];
+  graceHistory: { grantedAtIso: string; days: number; graceUntilIso: string }[];
+  refunded: { amountMinor: number; whenIso: string | null }[];
+};
+
+export type PaymentHistoryResult =
+  | { ok: true; history: PaymentHistoryView }
+  | { ok: false; error: string };
+
+export async function getPaymentHistoryAction(
+  enrolmentId: string,
+): Promise<PaymentHistoryResult> {
+  const supabase = await createClient();
+  const {
+    data: { user: tutor },
+  } = await supabase.auth.getUser();
+  if (!tutor) return { ok: false, error: 'Not signed in.' };
+
+  const admin = createServiceRoleClient();
+  const { data: enr } = await admin
+    .from('nclex_enrolments')
+    .select(
+      `enrolment_id, programme_id, status, enrolled_at,
+       strategy_snapshot_json, installment_grace_until, grace_history_json`,
+    )
+    .eq('enrolment_id', enrolmentId)
+    .maybeSingle();
+  if (!enr) return { ok: false, error: 'Enrolment not found.' };
+
+  // Ownership gate: the row returns only for the owning tutor / SUPER_ADMIN.
+  const { data: owned } = await supabase
+    .from('nclex_programmes')
+    .select('programme_id, price_currency')
+    .eq('programme_id', enr.programme_id)
+    .maybeSingle();
+  if (!owned) return { ok: false, error: 'Not your programme.' };
+
+  const snapshot = enr.strategy_snapshot_json as FrozenStrategySnapshot | null;
+  if (!snapshot) return { ok: false, error: 'This enrolment has no payment plan.' };
+  const currency = owned.price_currency as Currency;
+
+  const { data: payRows } = await admin
+    .from('nclex_payments')
+    .select(
+      'amount_minor, status, paid_at, activated_at, collection_channel, installment_index',
+    )
+    .eq('enrolment_id', enr.enrolment_id)
+    .in('purpose', ['PROGRAMME_INITIAL', 'PROGRAMME_INSTALLMENT']);
+
+  type PayRow = {
+    amount_minor: number;
+    status: string;
+    paid_at: string | null;
+    activated_at: string | null;
+    collection_channel: 'PAYSTACK' | 'OFF_PLATFORM' | null;
+    installment_index: number | null;
+  };
+  const rows = (payRows ?? []) as PayRow[];
+
+  // Settled rows map onto schedule positions 1..k in order — the initial
+  // checkout row has a NULL index (implicitly position 1); synthetic and
+  // tile rows carry theirs. Sort by (index, when) and zip with positions.
+  const settled = rows
+    .filter((r) => r.status === 'PAID' || r.status === 'ACTIVATED')
+    .sort(
+      (a, b) =>
+        (a.installment_index ?? 1) - (b.installment_index ?? 1) ||
+        (a.paid_at ?? '').localeCompare(b.paid_at ?? ''),
+    );
+
+  const now = new Date();
+  const schedule = buildSchedule(snapshot, new Date(enr.enrolled_at), settled.length);
+  const graceUntil = enr.installment_grace_until
+    ? new Date(enr.installment_grace_until)
+    : null;
+  const graceActive = graceUntil != null && graceUntil.getTime() > now.getTime();
+
+  const items: PaymentHistoryItem[] = schedule.payments.map((p) => {
+    if (p.index <= settled.length) {
+      const row = settled[p.index - 1];
+      return {
+        index: p.index,
+        amountMinor: row.amount_minor,
+        dueDateIso: p.dueDate.toISOString(),
+        state: 'PAID' as const,
+        paidAtIso: row.paid_at ?? row.activated_at,
+        channel: row.collection_channel ?? 'PAYSTACK',
+        isOverdue: false,
+        graceUntilIso: null,
+      };
+    }
+    const isNext = p.index === settled.length + 1;
+    return {
+      index: p.index,
+      amountMinor: p.amountMinor,
+      dueDateIso: p.dueDate.toISOString(),
+      state: isNext ? ('DUE' as const) : ('UPCOMING' as const),
+      paidAtIso: null,
+      channel: null,
+      isOverdue: isNext && p.dueDate.getTime() < now.getTime() && !graceActive,
+      graceUntilIso: isNext && graceActive ? graceUntil!.toISOString() : null,
+    };
+  });
+
+  const receivedMinor = settled.reduce((sum, r) => sum + r.amount_minor, 0);
+
+  type GraceEntry = { granted_at?: string; days?: number; grace_until?: string };
+  const graceHistory = (Array.isArray(enr.grace_history_json)
+    ? (enr.grace_history_json as GraceEntry[])
+    : []
+  )
+    .filter((g) => g.granted_at && g.grace_until)
+    .map((g) => ({
+      grantedAtIso: g.granted_at!,
+      days: g.days ?? 0,
+      graceUntilIso: g.grace_until!,
+    }));
+
+  return {
+    ok: true,
+    history: {
+      planName: (snapshot.label ?? '').trim() || systemPlanName(snapshot.kind),
+      currency,
+      totalMinor: schedule.totalMinor,
+      receivedMinor,
+      remainingMinor: Math.max(0, schedule.totalMinor - receivedMinor),
+      paidCount: settled.length,
+      totalPayments: schedule.totalPayments,
+      enrolledAtIso: enr.enrolled_at,
+      items,
+      graceHistory,
+      refunded: rows
+        .filter((r) => r.status === 'REFUNDED')
+        .map((r) => ({ amountMinor: r.amount_minor, whenIso: r.paid_at })),
+    },
+  };
+}
+
+// Local mirror of lib/strategies/format.ts systemLabel — that module is
+// client-shared; this file is 'use server' and only needs the one string.
+function systemPlanName(kind: FrozenStrategySnapshot['kind']): string {
+  switch (kind) {
+    case 'UPFRONT_FULL':
+      return 'Pay in full';
+    case 'DEPOSIT_BALANCE':
+      return 'Deposit + balance';
+    case 'EQUAL_INSTALLMENTS':
+      return 'Equal installments';
+  }
+}
+
 // Adds the STUDENT role if the user doesn't already have it. Returns
 // an error object on failure, undefined on success. (A tutor or admin
 // can legitimately be a student in someone else's cohort, so we never
