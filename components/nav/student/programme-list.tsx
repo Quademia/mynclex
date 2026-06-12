@@ -121,7 +121,7 @@ export function ProgrammeList({
                   {inner}
                 </div>
               )}
-              <InstallmentCta next={p.nextPayment} />
+              <InstallmentCta next={p.nextPayment} canPayOnline={p.canPayOnline} />
             </li>
           );
         }
@@ -179,7 +179,7 @@ export function ProgrammeList({
                           </div>
                         )}
                         <LockedReason status={c.status} />
-                        <InstallmentCta next={c.nextPayment} />
+                        <InstallmentCta next={c.nextPayment} canPayOnline={c.canPayOnline} />
                       </li>
                     );
                   })}

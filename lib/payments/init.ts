@@ -131,10 +131,16 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
 
     const { data: prog, error: progErr } = await admin
       .from('nclex_programmes')
-      .select('programme_id, title, price_currency')
+      .select('programme_id, title, price_currency, payment_collection_mode')
       .eq('programme_id', enr.programme_id)
       .maybeSingle();
     if (progErr || !prog) return { ok: false, error: 'Programme not found.' };
+    // Tutor-collection programmes never take money through the platform —
+    // their plan-tracked enrolments (add-with-plan, 2026-06-12) are
+    // tracking-only; the tutor records money via Mark-paid instead.
+    if (prog.payment_collection_mode !== 'ON_PLATFORM') {
+      return { ok: false, error: 'This programme does not accept online payment.' };
+    }
 
     currency = prog.price_currency as Currency;
     resolvedUserId = user.id;

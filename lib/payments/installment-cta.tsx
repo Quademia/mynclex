@@ -20,7 +20,16 @@ function formatDue(iso: string): string {
   });
 }
 
-export function InstallmentCta({ next }: { next: NextPaymentView | null }) {
+export function InstallmentCta({
+  next,
+  canPayOnline = true,
+}: {
+  next: NextPaymentView | null;
+  // False on tutor-collection programmes (add-with-plan, 2026-06-12):
+  // the schedule still shows, but money goes to the tutor directly —
+  // no online Pay button.
+  canPayOnline?: boolean;
+}) {
   if (!next) return null;
 
   const amount = formatMoney(next.currency, next.amountMinor);
@@ -49,12 +58,16 @@ export function InstallmentCta({ next }: { next: NextPaymentView | null }) {
           · payment {next.index} of {next.totalPayments}
         </span>
       </span>
-      <Link
-        className="inst-cta-pay"
-        href={`/checkout/installment/${next.enrolmentId}`}
-      >
-        {next.isOverdue ? 'Pay now' : 'Pay'}
-      </Link>
+      {canPayOnline ? (
+        <Link
+          className="inst-cta-pay"
+          href={`/checkout/installment/${next.enrolmentId}`}
+        >
+          {next.isOverdue ? 'Pay now' : 'Pay'}
+        </Link>
+      ) : (
+        <span className="inst-cta-offline">Pay your tutor directly</span>
+      )}
     </div>
   );
 }

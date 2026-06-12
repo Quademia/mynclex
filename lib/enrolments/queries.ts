@@ -19,7 +19,7 @@
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { nextPaymentView } from '@/lib/payments/schedule';
 import type { Currency } from '@/lib/payments/types';
-import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
+import type { FrozenStrategySnapshot, PaymentStrategy } from '@/lib/strategies/types';
 import type { EnrolmentRosterRow, EnrolmentStatus, WaitlistEntry } from './types';
 
 // Active statuses win over terminal ones when a student has both a past
@@ -105,10 +105,48 @@ export async function getCohortRoster(
   ).nclex_programmes;
   const currency = (Array.isArray(ownedProg) ? ownedProg[0] : ownedProg)?.price_currency ?? 'GHS';
 
-  // Roster read via service role (student profiles are self-read-only
-  // under RLS). Ownership already proven above.
+  return readRoster({ column: 'cohort_id', id: cohortId, selfPaced: false }, currency);
+}
+
+/**
+ * Roster for a SELF-PACED programme — the programme is the enrolment
+ * container (rows with cohort_id IS NULL), so this is the programme-level
+ * twin of getCohortRoster. Same ownership-then-service-role pattern;
+ * null = not the caller's programme (page 404s).
+ */
+export async function getProgrammeRoster(
+  programmeId: string,
+): Promise<EnrolmentRosterRow[] | null> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  // Ownership gate (RLS-scoped): the programme row returns only for the
+  // owning tutor / SUPER_ADMIN.
+  const { data: owned } = await supabase
+    .from('nclex_programmes')
+    .select('programme_id, price_currency')
+    .eq('programme_id', programmeId)
+    .maybeSingle();
+  if (!owned) return null;
+  const currency = (owned.price_currency as Currency | null) ?? 'GHS';
+
+  return readRoster({ column: 'programme_id', id: programmeId, selfPaced: true }, currency);
+}
+
+// Shared roster read (service role — student profiles are self-read-only
+// under RLS; callers prove ownership first). Self-paced filters to the
+// cohortless rows so a tutor-led programme id can never leak cohort rows
+// through this path.
+async function readRoster(
+  scope: { column: 'cohort_id' | 'programme_id'; id: string; selfPaced: boolean },
+  currency: Currency,
+): Promise<EnrolmentRosterRow[]> {
   const admin = createServiceRoleClient();
-  const { data, error } = await admin
+  let query = admin
     .from('nclex_enrolments')
     // nclex_enrolments has three FKs to nclex_users (user_id,
     // enrolled_by_user_id, approved_by_user_id), so the embed MUST name
@@ -120,8 +158,9 @@ export async function getCohortRoster(
        strategy_snapshot_json, installment_grace_until,
        nclex_users!nclex_enrolments_user_id_fkey!inner(name, email)`,
     )
-    .eq('cohort_id', cohortId)
-    .order('enrolled_at', { ascending: false });
+    .eq(scope.column, scope.id);
+  if (scope.selfPaced) query = query.is('cohort_id', null);
+  const { data, error } = await query.order('enrolled_at', { ascending: false });
 
   if (error || !data) return [];
 
@@ -195,6 +234,42 @@ export async function getCohortRoster(
       } satisfies EnrolmentRosterRow;
     })
     .filter((r): r is EnrolmentRosterRow => r !== null);
+}
+
+/**
+ * The programme's ACTIVE payment plans + currency, for the Add Student
+ * modal's plan picker (add-with-plan, 2026-06-12). Authed client —
+ * strategy RLS is owner-scoped, so a programme the tutor doesn't own
+ * yields no plans. Callers gate ownership via the roster read anyway
+ * (null → 404) before this.
+ */
+export async function getRosterPlanContext(
+  programmeId: string,
+): Promise<{ plans: PaymentStrategy[]; currency: Currency }> {
+  const supabase = await createClient();
+  const [{ data: prog }, { data: plans, error }] = await Promise.all([
+    supabase
+      .from('nclex_programmes')
+      .select('price_currency')
+      .eq('programme_id', programmeId)
+      .maybeSingle(),
+    supabase
+      .from('nclex_programme_payment_strategies')
+      .select(
+        `strategy_id, programme_id, kind, label,
+         total_price_minor, initial_price_minor,
+         installment_count, installment_interval_days,
+         balance_due_days_after_enrolment,
+         is_active, sort_order, created_at, updated_at`,
+      )
+      .eq('programme_id', programmeId)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
+  ]);
+  return {
+    plans: error || !plans ? [] : (plans as PaymentStrategy[]),
+    currency: ((prog?.price_currency as Currency | undefined) ?? 'GHS'),
+  };
 }
 
 /**

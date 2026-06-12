@@ -74,12 +74,20 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   // (off-platform or price-hidden). Sits before Students in the funnel
   // order: enquiry → enrolment → student.
   { key: 'enquiries',   label: 'Enquiries',     icon: 'mail',     href: '/tutor/programme/:programmeId/enquiries' },
-  { key: 'students',    label: 'Students',      icon: 'users',    href: '/tutor/programme/:programmeId/students' },
+  // Self-paced roster — when there's no cohort layer the programme is
+  // the enrolment container, so it gets the same administrative
+  // Enrolments surface a cohort has. The shell hides this entry for
+  // tutor-led programmes (their enrolments live per cohort).
+  { key: 'enrolments',  label: 'Enrolments',    icon: 'users',    href: '/tutor/programme/:programmeId/enrolments' },
   // Removed from the sidebar 2026-06-07 (MVP declutter): Live Sessions,
   // Assignments, Results. Their placeholder routes still exist (the tutor
   // Home "This week" block links to /sessions), so re-adding any is a
   // one-line restore. Live Sessions returns via the cohort-planner
   // redesign; Results via programme-level analytics; Assignments is TBD.
+  // Removed 2026-06-12: Students — overtaken by Enrolments (admin roster,
+  // cohort + self-paced) and cohort Analytics (performance); the future
+  // per-student 360 likely lives at the GLOBAL My Students page instead.
+  // Placeholder route still exists; restoring is one line.
 ];
 
 /**

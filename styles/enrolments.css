@@ -270,6 +270,58 @@
 .cw-pay.extended .cw-pay-due {
   color: var(--warning);
 }
+/* Plan-tracked pills are clickable → the payment-history drawer. The
+ * permanent dotted underline hints "this does something"; the adjacent
+ * 🕑 button is the explicit affordance (same vocabulary as the audit
+ * history clock on the bank lists). */
+.cw-pay-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.cw-pay-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--border-strong, #cbd5e1);
+  text-underline-offset: 3px;
+}
+.cw-pay-btn:hover {
+  text-decoration-style: solid;
+  text-decoration-color: currentColor;
+}
+.cw-pay-history {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.06s ease;
+}
+.cw-pay-history:hover {
+  border-color: var(--accent, var(--primary));
+  background: var(--primary-light, #eef2ff);
+}
+.cw-pay-history:active {
+  transform: scale(0.94);
+}
+.cw-pay-history:focus-visible {
+  outline: 2px solid var(--accent, var(--primary));
+  outline-offset: 1px;
+}
 .cw-row-actions {
   display: flex;
   gap: 6px;
@@ -720,4 +772,232 @@
 .enrol-toast-close:hover {
   background: var(--bg);
   color: var(--text);
+}
+
+/* ─────────────────────────────────────────────────────
+ * Payment-history drawer (pmh-*) — the read-only readout
+ * behind the roster's payment pill. Mirrors the audit
+ * history-drawer geometry (styles/audit.css): body-portaled,
+ * fixed overlay, right-side slide-in panel.
+ * ───────────────────────────────────────────────────── */
+
+.pmh-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000; /* above the roster + its modals */
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(17, 24, 39, 0.38);
+  animation: pmh-fade-in 0.14s ease;
+}
+.pmh-drawer {
+  width: min(440px, 92vw);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  box-shadow: var(--shadow-lg);
+  animation: pmh-slide-in 0.18s ease;
+}
+@keyframes pmh-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pmh-slide-in {
+  from { transform: translateX(24px); opacity: 0.6; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.pmh-header {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.pmh-eyebrow {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.pmh-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+.pmh-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.pmh-close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.pmh-close:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.pmh-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 24px;
+}
+.pmh-muted {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.pmh-error {
+  font-size: 13px;
+  color: var(--danger);
+}
+
+.pmh-summary {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  margin-bottom: 16px;
+}
+.pmh-plan {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.pmh-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.pmh-totals strong {
+  color: var(--text);
+}
+.pmh-enrolled {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.pmh-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pmh-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.pmh-item.is-paid {
+  background: #f6fdf8;
+  border-color: #d3ecd9;
+}
+.pmh-item.is-due {
+  border-color: var(--accent);
+}
+.pmh-item.is-due.is-overdue {
+  border-color: var(--danger);
+  background: #fef5f5;
+}
+.pmh-item.is-upcoming {
+  opacity: 0.75;
+}
+.pmh-pip {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.pmh-item.is-paid .pmh-pip {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+.pmh-item.is-due .pmh-pip {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.pmh-item.is-due.is-overdue .pmh-pip {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.pmh-item-main {
+  flex: 1;
+  min-width: 0;
+}
+.pmh-item-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+.pmh-item-label {
+  font-weight: 600;
+  color: var(--text);
+}
+.pmh-item-amount {
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+.pmh-item-detail {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.pmh-item.is-due.is-overdue .pmh-item-detail {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.pmh-section {
+  margin-top: 18px;
+}
+.pmh-section-title {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.pmh-grace-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
 }

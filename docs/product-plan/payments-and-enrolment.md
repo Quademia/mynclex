@@ -2,7 +2,7 @@
 
 *Living document. Part of the `mynclex/docs/product-plan/` set —
 see [main.md](main.md) for the overall product plan.*
-Last updated: 2026-05-22 (Slice 7 — multi-strategy + installments — sub-sliced for build (7a–7e) and decisions locked; see *Tutored enrolment → Settled 2026-05-22*: (1) **upfront-full IS a strategy row** (auto-created + pre-selected, but deactivatable — reversed from a first-pass "keep it off the table" proposal after Sam noted a tutor must be able to turn upfront *off*); the strategies table therefore becomes the single source of truth for programme amounts and `nclex_programmes.price_minor` is **retired incrementally** (Phasing 2: backfill upfront rows in 7a, keep `price_minor` as display/charge source through 7b–7d, cut views+charge+display over to the plans and drop the column in 7e — no big-bang on live public pages), while `price_currency` **stays on the programme** (one currency per programme, plans inherit); (2) **the chosen plan is frozen onto the enrolment row** (`strategy_snapshot_json`) so a later tutor edit only affects future students (resolves handoff open-Q §12.2); (3) **due dates are computed from a tutor-set pattern**, not typed calendar dates — installments use count (2–12) + interval days, deposit+balance uses "balance due N days after deposit", anchored to the enrolment date for **both** self-paced and tutored (collapses the old "tutored anchors to cohort dates" note onto one code path); (4) **later installments are paid from the programme tile**, with the "My Payments" history page deferred to Slice 5.7. Deposit+balance is in v1; the pre-due-date reminder email is deferred (no transactional email infra yet — the nightly job flips status only). Previously 2026-05-20: Two Slice-3a build-time clarifications, from a tutor-form review with Sam — (1) **Self-paced no longer forced on-platform.** The "self-paced = on-platform only" rule (§"Payment-collection mode — on-platform only") is downgraded from a hard constraint to a *smart default*: off-platform self-paced works mechanically via the always-available manual tutor-add path (enrolment row with `cohort_id = NULL`), so forcing it only removed tutor flexibility for no technical gain. (2) **Collection mode reframed — not two exclusive methods.** Manual tutor-add is *always* available regardless of the setting; `payment_collection_mode` really only governs whether the public programme page shows an online Paystack "Pay & enrol" button. So "both" already happens when on-platform is on (online button for self-serve buyers + manual add still works for offline payers). The tutor form was relabelled accordingly ("Online checkout: On / Off"). No schema change — the enum already carries this meaning. Context: Slice 3a (this session) shipped the price-delta migration — `price_currency` / `price_minor` / `payment_collection_mode` / `access_window_days` added, dual `price_minor_ghs/usd` dropped, public-read RLS added. Previously 2026-05-19: Four planning gaps resolved in one pass — (1) **Self-paced discoverability**: gate is now delivery-mode-specific — tutor-led still needs ≥1 open cohort, self-paced is discoverable on PUBLISHED + active tutor alone (no cohort layer to gate on). (2) **Duplicate-email check timing**: the `auth.users` existence check fires at email entry, *before* Paystack — pause-and-login up front; the post-payment check is demoted to a defensive race-guard. (3) **Status-flip jobs**: `EXPIRED` / `PAUSED` transitions run as a Supabase `pg_cron` nightly SQL function (pure date comparisons, kept next to the data), not a Worker/GHA; reminder emails stay deferred to build. (4) **Programme price is single-currency**: tutor picks GHS *or* USD and sets one price (vs the bank's deliberate dual-currency); flagged that the live `nclex_programmes` dual `price_minor_ghs/usd` columns must migrate to `price_currency` + `price_minor` in build. Also reconciled two stale pre-revision sections that still contradicted settled policy: **"No waiting room"** now reflects the `PENDING_APPROVAL` gate (tile appears immediately but state depends on enrolment status; only off-platform + self-paced go live instantly) instead of "live immediately after payment for everyone"; the **Tutored "Edge cases" table** now reflects Pattern-C waitlist (soft cap, never "not purchasable", waitlist always open, tutor approval is the only gate) and the decoupled-bank model (no per-cohort bundled bank subscription, bank duration no longer tied to cohort end-date), and qualifies the zero-cohort hide rule to tutor-led only. The `nclex_enrolments` parallel-tables note updated to a programme link with optional `cohort_id` (NULL for self-paced). Context note from the session: most of the not-yet-built money/enrolment tables — `nclex_enrolments`, `nclex_subscriptions`, `nclex_payments`, `nclex_products`, `nclex_programme_enquiries`, payment-strategies — are treated as **greenfield**; the doc's older table sketches are illustrative, not binding, and will be re-planned to fit settled policy at build time. Previously 2026-05-18: Notification touchpoints explicitly deferred to build — every flow triggers notifications (paid → tutor notified, approve → student notified, installment reminders, etc.) but the full event catalogue, copy, and trigger wiring are intentionally not enumerated in planning. New "Finalised in build (not in planning)" section captures this so the gap isn't forgotten. Earlier today: Duplicate-email handling settled — cross-cutting rule for every purchase / enrolment flow. New "Duplicate-email handling" subsection added under *Shared infrastructure*. **On-platform student-initiated flows:** if the supplied email already has an `auth.users` row, checkout pauses with "log in to continue"; after login, the purchase / enrolment attaches to the existing account (bank stacks on existing access; programme enrolment row created normally). **Off-platform tutor-add:** existing user → no Supabase invite sent, enrolment row created immediately, notification email goes out ("You've been enrolled in X by Y. Log in to access"). Non-student roles (tutor / admin) don't block; STUDENT role auto-added if missing. **Self-collision guards:** tutor can't enrol themselves; can't double-enrol a student in the same cohort (other cohorts allowed). Notification-not-confirmation chosen because the tutor's action authorises the enrolment and Supabase already verified email ownership at signup. Earlier today: Programme listing price display settled — public card and detail page show the tutor's **upfront-full programme fee** as the canonical headline price (one number, in the tutor's configured currency). Multiple payment strategies (deposit, installments with surcharges) only appear at checkout, never on the listing. Small optional bank hint *"💡 Add NCLEX Bank Access from $18 at checkout (optional)"* sits beneath the headline. FX-converted hint based on student's currency toggle deferred as polish. Contact-first programmes (`show_price_publicly = FALSE`) unchanged. "Bundled checkout" wording removed from price-visibility section to match the decoupled model. Earlier today: Enrolment row lifecycle settled — six mutually-exclusive status values for `nclex_enrolments`: `PENDING_APPROVAL`, `ENROLLED`, `PAUSED`, `REJECTED`, `CANCELLED`, `EXPIRED`. New cross-cutting section added between Tutored / Self-paced enrolment sections and the access-window section, with status table, allowed transitions, and entry-point rules per flow. `COMPLETED` deliberately excluded — it's a progress-engine concept, not an enrolment-row concept. Tutor-sub-lapsed transition handled at read time, not as a status. Earlier today: Self-paced enrolment flow fleshed out end-to-end — now matches the rigour of the tutored on-platform flow. Explicit Supabase invite step for new accounts, status `ENROLLED` from moment of payment (no `PENDING_APPROVAL` — no tutor-approval gate), `cohort_id = NULL`, `enrolment_source = 'SELF_PAID'`. Access-window clock starts at enrolment moment. Bank opt-in (if ticked) activates as a separate subscription, independent of programme access. Earlier today: Programme enrolment flows fleshed out end-to-end — two concrete flows now documented step-by-step inside Tutored enrolment → Settled 2026-05-17. **On-platform flow:** student pays initial payment via Paystack → Supabase invite → student sets up account at `/welcome` → enrolment row created with status `PENDING_APPROVAL` and `enrolment_source = 'SELF_PAID'` → student sees "Pending tutor approval" on dashboard → tutor clicks Approve in cohort workspace → status flips to `ENROLLED`. Bank opt-in (if ticked) activates immediately and is not gated on tutor approval — it's QAcademy's product. **Off-platform flow:** tutor adds student from cohort workspace (typing name + email, or one-click-converting a waitlist entry the student created via the discovery page) → Supabase invite → student sets up account at `/welcome` → enrolment row created immediately with status `ENROLLED` and `enrolment_source = 'TUTOR_ADDED'`, no pending state (tutor is both approver and actor). Account-creation mechanism is Supabase `inviteUserByEmail` for both flows — same as standalone bank — no temp-password / WhatsApp credentials pattern. Bank opt-in card only shown in on-platform flow (off-platform students who want bank access buy it through the standalone self-study landing). New "Enrolment-source mapping" table added. Earlier today: Auth model alignment settled — MyNclex uses Supabase Auth as the source of identity: `auth.users` (Supabase-managed identity, holds email + hashed password + verification state) + `nclex_users` (our profile mirror, PK = `auth.users.id`, already in `db/schema.sql`). The Licensure-era custom user-table pattern is superseded. Pay-first flow updated to use Supabase's `inviteUserByEmail` (Option C) instead of a custom setup-token mechanism — Supabase ships token generation, email sending, link expiry, and resend out of the box; we only build the `/welcome` page. Trial signup uses `supabase.auth.signUp()` directly. Edge-cases section updated (no more "setup token expiry"; now "invite-link expiry" using the Supabase project setting). New "Identity model" subsection added under Shared infrastructure. Earlier today: Enrolment-source enum settled — three values for v1: `SELF_PAID` | `TUTOR_ADDED` | `ADMIN_GRANT`. Mutually exclusive; offline-paid folded into `TUTOR_ADDED` since we can't reliably know whether the tutor actually collected money. `TRIAL_CONVERTED` dropped (trials are for the bank, not programmes). Audit fields like `enrolled_by_user_id` live in separate columns, not encoded in the enum name. main.md updated in two places to match. Earlier today: Tutor monthly sub revisit closed — stays at $29/mo flat, single tier, USD only for v1; sits at the low end of the SaaS-tutor-platform market which suits a new vetted niche platform. Tiering (library/programme/quiz limits) stays deferred to v2. Previous touch 2026-05-17: Cohort full / waitlist behaviour settled — Pattern C: soft cap, `cohort_size` is a tutor-set planning target only, waitlist always open, tutor approval is the only hard gate. Earlier in this same day: Self-paced enrolment + Programme access window both settled — new top-level sections added for each. Self-paced: self-serve on-platform only, one access window per programme, same payment strategies as tutored but anchored to enrolment date, instant enrolment no tutor mediation. Access window cross-cutting: Pattern A adopted (tutor-set per programme, contingent on tutor maintaining the monthly sub — industry standard). Earlier in this same day: Programme enrolment model revised — old bundled-bank checkout dropped in favour of decoupled Option C (opt-in bank at 40% off + tutor-mediated enrolment + tutor-configurable payment strategies + on-platform vs off-platform collection toggle). Old "Bundled transaction" / "Auto-enrolment on payment" / "Tutor-added enrolment" subsections marked SUPERSEDED in-place; new "Settled 2026-05-17" subsection inside Tutored enrolment carries the revised model. Auth-model alignment + enrolment-source enum + tutor-sub revisit + waitlist behaviour all noted as Still open in that subsection. Earlier today: readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
+Last updated: 2026-06-12 (**Tutor-add with a payment plan — DESIGNED, not yet built** — see the new *Settled 2026-06-12* subsection under Tutored enrolment. Headline correction from Sam: **tutor-added ≠ off-platform money** — enrolment and collection are separate axes; a hand-added student inherits the programme's `payment_collection_mode`. Add form gains an optional plan picker (configured plans only) + "payments already received 0..N" (recorded as synthetic OFF_PLATFORM rows) + a tutor-set first-payment grace (reuses `installment_grace_until`); snapshot frozen identically to checkout so the whole schedule/sweep/tile/Mark-paid machinery applies; QAcademy-collection students can pay position 1 from the tile, tutor-collection is tracking-only (needs a new collection-mode guard on the installment checkout). Access immediate on add. Same session: the self-paced programme-level **Enrolments tab** shipped + ALL tutor-add paths now freeze `access_expires_at` from the programme's access window — the old always-lifetime was a Slice-1b leftover, not policy. Previously 2026-05-22: Slice 7 — multi-strategy + installments — sub-sliced for build (7a–7e) and decisions locked; see *Tutored enrolment → Settled 2026-05-22*: (1) **upfront-full IS a strategy row** (auto-created + pre-selected, but deactivatable — reversed from a first-pass "keep it off the table" proposal after Sam noted a tutor must be able to turn upfront *off*); the strategies table therefore becomes the single source of truth for programme amounts and `nclex_programmes.price_minor` is **retired incrementally** (Phasing 2: backfill upfront rows in 7a, keep `price_minor` as display/charge source through 7b–7d, cut views+charge+display over to the plans and drop the column in 7e — no big-bang on live public pages), while `price_currency` **stays on the programme** (one currency per programme, plans inherit); (2) **the chosen plan is frozen onto the enrolment row** (`strategy_snapshot_json`) so a later tutor edit only affects future students (resolves handoff open-Q §12.2); (3) **due dates are computed from a tutor-set pattern**, not typed calendar dates — installments use count (2–12) + interval days, deposit+balance uses "balance due N days after deposit", anchored to the enrolment date for **both** self-paced and tutored (collapses the old "tutored anchors to cohort dates" note onto one code path); (4) **later installments are paid from the programme tile**, with the "My Payments" history page deferred to Slice 5.7. Deposit+balance is in v1; the pre-due-date reminder email is deferred (no transactional email infra yet — the nightly job flips status only). Previously 2026-05-20: Two Slice-3a build-time clarifications, from a tutor-form review with Sam — (1) **Self-paced no longer forced on-platform.** The "self-paced = on-platform only" rule (§"Payment-collection mode — on-platform only") is downgraded from a hard constraint to a *smart default*: off-platform self-paced works mechanically via the always-available manual tutor-add path (enrolment row with `cohort_id = NULL`), so forcing it only removed tutor flexibility for no technical gain. (2) **Collection mode reframed — not two exclusive methods.** Manual tutor-add is *always* available regardless of the setting; `payment_collection_mode` really only governs whether the public programme page shows an online Paystack "Pay & enrol" button. So "both" already happens when on-platform is on (online button for self-serve buyers + manual add still works for offline payers). The tutor form was relabelled accordingly ("Online checkout: On / Off"). No schema change — the enum already carries this meaning. Context: Slice 3a (this session) shipped the price-delta migration — `price_currency` / `price_minor` / `payment_collection_mode` / `access_window_days` added, dual `price_minor_ghs/usd` dropped, public-read RLS added. Previously 2026-05-19: Four planning gaps resolved in one pass — (1) **Self-paced discoverability**: gate is now delivery-mode-specific — tutor-led still needs ≥1 open cohort, self-paced is discoverable on PUBLISHED + active tutor alone (no cohort layer to gate on). (2) **Duplicate-email check timing**: the `auth.users` existence check fires at email entry, *before* Paystack — pause-and-login up front; the post-payment check is demoted to a defensive race-guard. (3) **Status-flip jobs**: `EXPIRED` / `PAUSED` transitions run as a Supabase `pg_cron` nightly SQL function (pure date comparisons, kept next to the data), not a Worker/GHA; reminder emails stay deferred to build. (4) **Programme price is single-currency**: tutor picks GHS *or* USD and sets one price (vs the bank's deliberate dual-currency); flagged that the live `nclex_programmes` dual `price_minor_ghs/usd` columns must migrate to `price_currency` + `price_minor` in build. Also reconciled two stale pre-revision sections that still contradicted settled policy: **"No waiting room"** now reflects the `PENDING_APPROVAL` gate (tile appears immediately but state depends on enrolment status; only off-platform + self-paced go live instantly) instead of "live immediately after payment for everyone"; the **Tutored "Edge cases" table** now reflects Pattern-C waitlist (soft cap, never "not purchasable", waitlist always open, tutor approval is the only gate) and the decoupled-bank model (no per-cohort bundled bank subscription, bank duration no longer tied to cohort end-date), and qualifies the zero-cohort hide rule to tutor-led only. The `nclex_enrolments` parallel-tables note updated to a programme link with optional `cohort_id` (NULL for self-paced). Context note from the session: most of the not-yet-built money/enrolment tables — `nclex_enrolments`, `nclex_subscriptions`, `nclex_payments`, `nclex_products`, `nclex_programme_enquiries`, payment-strategies — are treated as **greenfield**; the doc's older table sketches are illustrative, not binding, and will be re-planned to fit settled policy at build time. Previously 2026-05-18: Notification touchpoints explicitly deferred to build — every flow triggers notifications (paid → tutor notified, approve → student notified, installment reminders, etc.) but the full event catalogue, copy, and trigger wiring are intentionally not enumerated in planning. New "Finalised in build (not in planning)" section captures this so the gap isn't forgotten. Earlier today: Duplicate-email handling settled — cross-cutting rule for every purchase / enrolment flow. New "Duplicate-email handling" subsection added under *Shared infrastructure*. **On-platform student-initiated flows:** if the supplied email already has an `auth.users` row, checkout pauses with "log in to continue"; after login, the purchase / enrolment attaches to the existing account (bank stacks on existing access; programme enrolment row created normally). **Off-platform tutor-add:** existing user → no Supabase invite sent, enrolment row created immediately, notification email goes out ("You've been enrolled in X by Y. Log in to access"). Non-student roles (tutor / admin) don't block; STUDENT role auto-added if missing. **Self-collision guards:** tutor can't enrol themselves; can't double-enrol a student in the same cohort (other cohorts allowed). Notification-not-confirmation chosen because the tutor's action authorises the enrolment and Supabase already verified email ownership at signup. Earlier today: Programme listing price display settled — public card and detail page show the tutor's **upfront-full programme fee** as the canonical headline price (one number, in the tutor's configured currency). Multiple payment strategies (deposit, installments with surcharges) only appear at checkout, never on the listing. Small optional bank hint *"💡 Add NCLEX Bank Access from $18 at checkout (optional)"* sits beneath the headline. FX-converted hint based on student's currency toggle deferred as polish. Contact-first programmes (`show_price_publicly = FALSE`) unchanged. "Bundled checkout" wording removed from price-visibility section to match the decoupled model. Earlier today: Enrolment row lifecycle settled — six mutually-exclusive status values for `nclex_enrolments`: `PENDING_APPROVAL`, `ENROLLED`, `PAUSED`, `REJECTED`, `CANCELLED`, `EXPIRED`. New cross-cutting section added between Tutored / Self-paced enrolment sections and the access-window section, with status table, allowed transitions, and entry-point rules per flow. `COMPLETED` deliberately excluded — it's a progress-engine concept, not an enrolment-row concept. Tutor-sub-lapsed transition handled at read time, not as a status. Earlier today: Self-paced enrolment flow fleshed out end-to-end — now matches the rigour of the tutored on-platform flow. Explicit Supabase invite step for new accounts, status `ENROLLED` from moment of payment (no `PENDING_APPROVAL` — no tutor-approval gate), `cohort_id = NULL`, `enrolment_source = 'SELF_PAID'`. Access-window clock starts at enrolment moment. Bank opt-in (if ticked) activates as a separate subscription, independent of programme access. Earlier today: Programme enrolment flows fleshed out end-to-end — two concrete flows now documented step-by-step inside Tutored enrolment → Settled 2026-05-17. **On-platform flow:** student pays initial payment via Paystack → Supabase invite → student sets up account at `/welcome` → enrolment row created with status `PENDING_APPROVAL` and `enrolment_source = 'SELF_PAID'` → student sees "Pending tutor approval" on dashboard → tutor clicks Approve in cohort workspace → status flips to `ENROLLED`. Bank opt-in (if ticked) activates immediately and is not gated on tutor approval — it's QAcademy's product. **Off-platform flow:** tutor adds student from cohort workspace (typing name + email, or one-click-converting a waitlist entry the student created via the discovery page) → Supabase invite → student sets up account at `/welcome` → enrolment row created immediately with status `ENROLLED` and `enrolment_source = 'TUTOR_ADDED'`, no pending state (tutor is both approver and actor). Account-creation mechanism is Supabase `inviteUserByEmail` for both flows — same as standalone bank — no temp-password / WhatsApp credentials pattern. Bank opt-in card only shown in on-platform flow (off-platform students who want bank access buy it through the standalone self-study landing). New "Enrolment-source mapping" table added. Earlier today: Auth model alignment settled — MyNclex uses Supabase Auth as the source of identity: `auth.users` (Supabase-managed identity, holds email + hashed password + verification state) + `nclex_users` (our profile mirror, PK = `auth.users.id`, already in `db/schema.sql`). The Licensure-era custom user-table pattern is superseded. Pay-first flow updated to use Supabase's `inviteUserByEmail` (Option C) instead of a custom setup-token mechanism — Supabase ships token generation, email sending, link expiry, and resend out of the box; we only build the `/welcome` page. Trial signup uses `supabase.auth.signUp()` directly. Edge-cases section updated (no more "setup token expiry"; now "invite-link expiry" using the Supabase project setting). New "Identity model" subsection added under Shared infrastructure. Earlier today: Enrolment-source enum settled — three values for v1: `SELF_PAID` | `TUTOR_ADDED` | `ADMIN_GRANT`. Mutually exclusive; offline-paid folded into `TUTOR_ADDED` since we can't reliably know whether the tutor actually collected money. `TRIAL_CONVERTED` dropped (trials are for the bank, not programmes). Audit fields like `enrolled_by_user_id` live in separate columns, not encoded in the enum name. main.md updated in two places to match. Earlier today: Tutor monthly sub revisit closed — stays at $29/mo flat, single tier, USD only for v1; sits at the low end of the SaaS-tutor-platform market which suits a new vetted niche platform. Tiering (library/programme/quiz limits) stays deferred to v2. Previous touch 2026-05-17: Cohort full / waitlist behaviour settled — Pattern C: soft cap, `cohort_size` is a tutor-set planning target only, waitlist always open, tutor approval is the only hard gate. Earlier in this same day: Self-paced enrolment + Programme access window both settled — new top-level sections added for each. Self-paced: self-serve on-platform only, one access window per programme, same payment strategies as tutored but anchored to enrolment date, instant enrolment no tutor mediation. Access window cross-cutting: Pattern A adopted (tutor-set per programme, contingent on tutor maintaining the monthly sub — industry standard). Earlier in this same day: Programme enrolment model revised — old bundled-bank checkout dropped in favour of decoupled Option C (opt-in bank at 40% off + tutor-mediated enrolment + tutor-configurable payment strategies + on-platform vs off-platform collection toggle). Old "Bundled transaction" / "Auto-enrolment on payment" / "Tutor-added enrolment" subsections marked SUPERSEDED in-place; new "Settled 2026-05-17" subsection inside Tutored enrolment carries the revised model. Auth-model alignment + enrolment-source enum + tutor-sub revisit + waitlist behaviour all noted as Still open in that subsection. Earlier today: readiness packs settled — 5 identical-shape packs (100 Q × 3hr 20min each), one shot per pack, permanent until activated, 21-day window on activation; 3-SKU standalone catalogue (Single / Select 3 / All 5) with prices fixed; bundle-into-bank tier counts settled (0/0/1/2/3/5 across the 6 bank tiers); credits model for bundled packs. Earlier today: bank pricing settled — 6-tier catalogue with GHS + USD prices fixed; readiness packs bundled into longer tiers with a 21-day activation window. Previous touch 2026-05-11: programme length surfaced as "weeks" or "modules" per the programme's `unit_label` (a separate tutor choice, not derived from delivery mode). Both tutor-led and self-paced ship in v1 — self-paced enrolment flow drafted in [curriculum-authoring-ux.md](curriculum-authoring-ux.md) → "Self-paced surface (screen 12+)" with full flow + access-window pricing finalised in build. Programme/cohort split from 2026-05-10 retained.)
 
 ---
 
@@ -45,6 +45,11 @@ this file.
   programme; the chosen plan is frozen onto the enrolment; due dates
   are computed from a tutor-set pattern anchored to the enrolment date
   for both modes; later installments are paid from the programme tile.
+- **Tutor-add with a payment plan — DESIGNED 2026-06-12, not yet
+  built.** Hand-added students can carry a frozen plan + already-received
+  count + tutor-set first-payment grace; collection follows the
+  programme's `payment_collection_mode`. See *Tutored enrolment →
+  Settled 2026-06-12*.
 - **Tutor monthly sub revisit, enrolment-source enum, auth model
   alignment — still open.**
 
@@ -787,6 +792,178 @@ The editable values behind all this (the `enrolment_sweep_enabled` flag, the
 `bank_optin_discount`) live in `nclex_config` and are now editable from the
 **System Config** admin page (`/admin/config`) — keys are code-defined and
 read-only, values are edited via typed controls.
+
+#### Settled 2026-06-12 — Tutor-add with a payment plan (designed, not yet built)
+
+Until now the manual tutor-add path created an enrolment with **no plan
+attached** — the platform recorded nothing about what the student owes
+("Off-platform" pill, no schedule, no sweep attention). That baked in a
+wrong conflation, corrected in this session's discussion (Sam):
+**tutor-added ≠ off-platform money.** Enrolling a student and collecting
+their money are separate things — the collection method is a
+programme-level decision the tutor already made at creation
+(`payment_collection_mode`), so a manually-added student simply
+**inherits it**. The settled design:
+
+1. **Add Student form gains two optional pieces** (cohort AND
+   self-paced rosters): a **plan picker** (the programme's active
+   plans — the same list checkout offers; the tutor records whatever
+   they agreed with the student in conversation) and **"payments
+   already received: 0..N"** (money already taken by hand — each one
+   recorded as a synthetic `OFF_PLATFORM` payment row, the Mark-paid
+   mechanism applied at add time; N-of-N = a fully-paid student
+   recorded for the books). Default stays "no plan" = exactly the old
+   behaviour.
+2. **Snapshot frozen as usual.** The chosen plan is snapshotted onto
+   the enrolment identically to checkout, so the schedule engine /
+   tile / sweep / grace / Mark-paid cannot tell a hand-added student
+   from a self-paid one.
+3. **Collection follows the programme's method.** QAcademy-collection →
+   the student's tile offers "Pay k of N" via Paystack (position 1
+   included — the installment checkout + activation path already route
+   it to the existing enrolment). Tutor-collection → **tracking-only**:
+   schedule + sweep + Mark-paid, but no online Pay button. Requires a
+   new **guard on the installment checkout** (refuse tutor-collection
+   programmes — previously unreachable, now reachable).
+4. **First-payment grace, tutor-set in the form.** A plan's position 1
+   is due at enrolment, so a 0-received add would be paused by that
+   night's sweep. The form (shown when received = 0) asks "first
+   payment due within X days" — stored in the existing
+   `installment_grace_until` field the sweep already respects.
+5. **Access is immediate** (ENROLLED on add, payment follows) — the
+   tutor's trust decision, bounded by the grace deadline + sweep.
+   "Pay before access" remains the public checkout's job.
+
+**Accepted v1 boundaries:** tutor picks the plan (the student's
+plan-freedom lives in the public checkout; wrong pick → cancel +
+re-add while unpaid); **configured plans only** (no custom per-student
+amounts — a future feature if real tutors ask); no "change plan later";
+waitlist Convert stays one-click/no-plan (extend later if wanted).
+
+#### Parked 2026-06-12 — per-student schedule control (due-date editing)
+
+Discussed and **deliberately skipped for now** (Sam's call, same
+session as the add-with-plan build). Context: due dates are never
+stored — the engine + nightly sweep recompute them every time from
+(frozen snapshot rhythm × anchor date × settled-payment count), where
+the anchor is `enrolled_at`. The need: when a tutor adds a student (or
+a student self-enrols) at an awkward moment, the rhythm is right but
+it's bolted to the wrong starting day (enrolled the 28th but pays on
+the 1st; added weeks before the cohort starts; agreed a different
+first-payment date). Grace doesn't fix this — it spares only the
+*current* payment and leaves later dates keyed to the enrolment moment.
+
+Two options were laid out:
+
+- **Option A — editable schedule anchor (recommended when this is
+  built).** One nullable per-enrolment date, "schedule starts on…"
+  (default = `enrolled_at`); the whole schedule shifts together,
+  rhythm intact. Cheap: engine + sweep read
+  `COALESCE(schedule_anchor_at, enrolled_at)` (one TS line + one SQL
+  migration, kept in lockstep), an "Edit schedule start" roster action
+  with confirm + audit. Solves "starts on the wrong day" — the
+  dominant real case. **Bonus observation:** an anchor would be
+  semantically cleaner than the add-form's first-payment grace (grace
+  says "overdue but unpunished until X" while later dates stay keyed
+  to enrolment; an anchor says "the schedule starts when we agreed" and
+  moves everything coherently) — if A is built, consider reworking the
+  add-form grace field into a "first payment due on [date]" anchor.
+- **Option B — per-position hand-typed due dates.** Total freedom,
+  but a second source of truth every reader (tile, sweep, roster) must
+  honour, and it reopens the settled "due dates are computed from a
+  pattern, not typed as calendar dates" decision. Skip unless real
+  tutors demonstrate per-position need.
+
+**Amount editing stays off the table** (the Q3 of the same
+discussion): per-student amounts remain frozen-snapshot-only — the
+immutability is the integrity guarantee; "custom per-student plans" is
+its own future design.
+
+**Revisit trigger:** real tutors hitting schedule-misalignment in
+practice (expect it first around future-dated cohorts).
+
+#### Settled 2026-06-12 — tutor money surfaces: who shows what (IA)
+
+Same session, after the per-student **payment-history drawer** shipped
+(click the roster's payment pill / 🕑 → right-side drawer: plan +
+k-of-N + received/remaining + every position's state with channel —
+"online via Paystack (QAcademy)" vs "off-platform — marked received by
+you" — + grace history + refunds). Discussing where money belongs
+produced this boundary:
+
+- **The roster (cohort/programme Enrolments) is an ACCESS-and-enrolment
+  page.** Payments appear there only as the thing that explains or
+  changes access (overdue → paused; Mark-paid → resumed; the per-student
+  drawer answers "what does this student owe?"). Cross-student money
+  does NOT accrete here.
+- **Payment plans tab = pricing config** ("what do I offer") — correctly
+  programme-level, stays put.
+- **The transactions list ("what money came in?") = the GLOBAL
+  `/tutor/payments` page, built ONCE with filters** (programme, cohort,
+  channel, date) — currently still a placeholder. No per-programme or
+  per-cohort payments pages: a filter is cheaper than a page, and at
+  1–3 programmes per tutor global-with-filters is the right zoom. If
+  tutors later want it one click from a programme workspace, a
+  programme tab can mount the same component pre-filtered (the roster's
+  scope pattern) — choosing global now closes no doors.
+- **The programme sidebar's `Students` placeholder was REMOVED**
+  (2026-06-12) — overtaken by Enrolments (admin roster) + cohort
+  Analytics (performance); on self-paced programmes the adjacent
+  Enrolments/Students pair invited confusion. The future per-student
+  360 likely lives at the GLOBAL **My Students** page (placeholder
+  kept). Restore is one nav line if ever wanted.
+
+#### Settled 2026-06-12 (end of session) — cohort Enrolments MOVE to programme level (planned, not yet built)
+
+Re-opened by Sam after the IA above settled, and **decided: the
+enrolment roster for BOTH delivery modes lives at programme level.**
+This supersedes the same morning's placement rule ("the roster lives
+where students enrol" — cohort for tutor-led, programme for
+self-paced), which is hereby retired. That rule was the right bridge —
+it de-risked the shipped cohort surface while building the scope-driven
+machinery (RosterScope view + actions + the programme mount) that now
+makes this move a modest slice instead of a rebuild.
+
+**Why the move wins:**
+- Enrolment work clusters at a cohort's **boundaries** (approve /
+  convert / add before the run; the odd overdue at the edges) — the
+  cohort roster's "in-context during delivery" advantage is strongest
+  exactly when the roster is used least, while the cost of two
+  locations-by-mode is paid permanently.
+- It completes the IA: **programme = people & money** (Enquiries →
+  Enrolments → Payment plans adjacent on one sidebar) · **cohort =
+  delivery** (Curriculum · Analytics · Sessions · Announcements).
+- The Enrolments tab simply always exists on a programme — no
+  mode-conditional nav.
+- Composes with the future global `/tutor/payments` page (global money
+  → programme people drill-down).
+- **Timing:** pre-launch, no tutor habits to break — relocating shipped
+  furniture is nearly free now and only gets dearer.
+
+**The build plan (one slice):**
+1. The programme Enrolments page **accepts tutor-led** (today it 404s
+   them): roster across ALL the programme's cohorts; self-paced
+   behaviour unchanged.
+2. Rows gain a **cohort tag + a cohort filter** in the toolbar (next to
+   the status chips).
+3. The **Waitlist tab moves up** with it — all cohorts' PENDING leads,
+   each badged with its cohort (Convert already reads the cohort off
+   the waitlist row; unchanged).
+4. **Add student** gains a joinable-cohort picker for tutor-led (the
+   action already takes a cohort id); self-paced keeps none.
+5. **Summary cells become mode-driven**: tutor-led programme = Enrolled
+   / Pending approval / Waitlist / Paused; self-paced keeps Enrolled /
+   Paused / Overdue / Expired.
+6. **Nav swap**: `enrolments` shows for BOTH modes on the programme
+   sidebar; the cohort sidebar's Enrolments entry AND its route folder
+   are **deleted** (routes aren't sacred); the cohort workspace gets a
+   "Manage enrolments →" link opening the programme page **pre-filtered
+   to that cohort** (`?cohort=` param).
+
+**Regression scope** (the real cost): approve / reject, waitlist
+convert / dismiss, add-student (with + without plan), pause / grace /
+Mark-paid — all retested at the new mount. **Sequenced AHEAD of the
+global payments page** — IA settles before more surfaces build on it.
 
 #### On-platform flow — full sequence (Settled 2026-05-18)
 

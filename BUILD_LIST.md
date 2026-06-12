@@ -8,18 +8,73 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **⏭ NEXT SESSION — open.** The programme-level Library page (tutor
-> side) is **DONE** (see immediately below). No specific next pointer
-> set; rotate per the alternate-features rule. Candidates: library
-> **11.11c** (tutor embed-analytics dashboard + the stubbed Mark-done →
-> progress write-through) · **11.17** (library polish) · programme
-> **Overview** detail landing (still a placeholder) · a `main → prod`
-> **release** (a stack of merged-but-unreleased work has built up:
-> quiz tags + its migration, curriculum CD close-out, bank-surfaces
-> redesign, authorship Step 2, analytics migrations, and this).
+> **⏭ NEXT SESSION — set (2026-06-12 end-of-session): MOVE cohort
+> Enrolments to programme level.** Decided + planned, not built — full
+> plan in [payments-and-enrolment.md → "Settled 2026-06-12 (end of
+> session)"](docs/product-plan/payments-and-enrolment.md): programme
+> Enrolments page accepts tutor-led (roster across all cohorts) ·
+> cohort tag + filter · Waitlist tab moves up (cohort-badged) ·
+> add-student cohort picker · mode-driven summary cells · nav swap
+> (cohort Enrolments entry + route DELETED; cohort workspace gets a
+> pre-filtered "Manage enrolments →" link). Supersedes the morning's
+> "roster lives where students enrol" rule. Regression pass over
+> approve/waitlist/add/pause/grace/mark-paid at the new mount.
+> **Sequenced AHEAD of the global `/tutor/payments` transactions page**
+> (next after; settled same day: built ONCE globally w/ programme ·
+> cohort · channel · date filters). Then: library **11.11c** · **11.17**
+> · programme **Overview** · a `main → prod` **release** (carries all
+> 2026-06-12 slices; no migrations). Operational ⚠: **`PAYSTACK_SECRET_KEY`
+> is not set on the prod Worker** — prod checkout will fail until it is
+> (5-min fix, needs the dashboard/wrangler).
+
+> **PAYMENT-HISTORY DRAWER + MONEY-SURFACE IA (2026-06-12, ✅ MERGED to
+> `main`, not yet prod).** Per-student payment history behind the
+> roster's payment pill: body-portaled right-side drawer (audit
+> history-drawer pattern) — plan · k-of-N · received vs remaining ·
+> every position's state w/ channel (Paystack vs marked-by-tutor) ·
+> grace history · refunds; `getPaymentHistoryAction` ownership-gated
+> like Mark-paid. Discoverability: 🕑 button + dotted underline on every
+> plan-tracked pill. Also settled the money IA (roster = ACCESS page;
+> transactions = GLOBAL payments page w/ filters, no per-programme
+> pages) and **removed the programme sidebar `Students` placeholder**
+> (overtaken by Enrolments + Analytics; per-student 360 → global My
+> Students later). Parked: due-date editing (Option A anchor vs B typed
+> dates — see plan doc). Commits `0851438` · `a795e65` · `9d6a8c6`.
+
+> **ADD STUDENT WITH A PAYMENT PLAN (2026-06-12, ✅ MERGED to `main`, not
+> yet prod).** Built same-day from the settled design
+> ([payments-and-enrolment.md → "Settled 2026-06-12"](docs/product-plan/payments-and-enrolment.md)).
+> Add Student modal (both rosters): optional **plan picker** (active
+> plans, same list as checkout) + **"payments already received 0..N"**
+> (synthetic OFF_PLATFORM ACTIVATED rows — Mark-paid applied at add;
+> enrolment rolled back if the insert fails) + **tutor-set first-payment
+> grace** at 0 received (reuses `installment_grace_until` + history
+> entry). Snapshot frozen identically to checkout → schedule/tile/sweep/
+> Mark-paid all apply unchanged. **Collection-mode guards** (new — plans
+> can now exist on tutor-collection programmes): `init.ts` installment
+> branch + the installment checkout page refuse non-ON_PLATFORM; the
+> student tile shows "Pay your tutor directly" instead of Pay
+> (`canPayOnline` through the switcher). All app-layer, no migration.
+> Commit `d283aa0`.
+
+> **SELF-PACED ENROLMENTS TAB + access-window freeze (2026-06-12, ✅
+> MERGED to `main`, not yet prod).** The sweep's biggest find: self-paced
+> enrolments had **no tutor surface** (roster was cohort-only; no
+> cohortless manual-add → off-platform self-paced was a dead end). New
+> programme-level **Enrolments** tab (SELF_PACED only, sidebar
+> mode-filtered like the Cohorts rule): `EnrolmentRosterView` generalised
+> behind a `RosterScope` union — programme scope is roster-only
+> (Waitlist/PENDING_APPROVAL stay cohort concepts; summary = Enrolled /
+> Paused / Overdue / Expired), same lifecycle/payment actions (they were
+> already enrolment-scoped). New `addSelfPacedStudentAction`
+> (`cohort_id = NULL` rows). **Fix:** all tutor-add paths (cohort add,
+> waitlist convert, self-paced add) now freeze `access_expires_at` from
+> the programme's access window like the paid path — always-lifetime was
+> a Slice-1b leftover. All app-layer, no migration. Commit `0e31735`;
+> detail in [sessions/2026-06.md](sessions/2026-06.md).
 
 > **PROGRAMME LIBRARY TAB — tutor "student preview" (2026-06-09, ✅ MERGED
-> to `main`, not yet prod).** A new **Library tab** on the programme
+> to `main`; RELEASED to prod 2026-06-09, PR `4ed0766`).** A new **Library tab** on the programme
 > detail (parallel to Quizzes) — a read-only **"student preview"** of the
 > notes students in THIS programme can see. From the CD "Programme
 > Library (tutor preview)" handoff; reuses the student library's
