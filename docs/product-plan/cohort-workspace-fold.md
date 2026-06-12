@@ -142,7 +142,70 @@ No migration.
 - `formatCohortName` etc. stay in `lib/cohorts/format.ts` — header
   reuses them.
 
+## Build steps
+
+Ordered so the app works at every commit; the old cohort world stays
+alive until the new surface is proven, then dies in one cut.
+
+### Step 1 — Build the run detail inside the Cohorts page (additive)
+
+The new surface lands complete while the old world still exists
+(reachable by direct URL) — nothing breaks if testing finds a problem.
+
+- Composer: `cohorts/page.tsx` reads `?cohort=` + `?tab=`; no param →
+  today's runs list; `?cohort=` → the run detail. Fetch only the
+  active tab's data (branch before fetching).
+- New `lib/cohorts/cohort-detail.tsx`: run header ("← All cohorts" +
+  name + status pill + dates + seats) + tab bar (plain `<Link>`s) +
+  pane switch.
+- Panes: Overview (cards minus Programme; "View analytics →" → tab
+  link) · Curriculum (`<CohortCurriculum>`) · Analytics
+  (`<CohortAnalyticsView>`) · Sessions (placeholder) · Settings
+  (edit + cancel cards). Bodies move from the old pages.
+- Guard: `?cohort=` must belong to THIS programme, else the
+  "Cohort not found" pane (with a back-to-list link).
+- Cohort cards (`cohort-list.tsx`) link to the new URL (gains
+  `programmeId` prop) — the entry point for testing.
+- Tab-bar + run-header CSS in `styles/cohorts.css`.
+
+**Checkpoint:** click a cohort card → run detail in place, programme
+sidebar still showing; all five tabs work; bad uuid → not-found pane.
+
+### Step 2 — Rewire the remaining inbound links + refreshes
+
+- `tutor-home.tsx` needs-attention link →
+  `/tutor/programme/<pid>/cohorts?cohort=<id>&tab=analytics` (home
+  query gains the cohort's `programme_id` if not already selected).
+- `lib/cohorts/actions.ts`: the 6 `revalidatePath('/tutor/cohort/…')`
+  calls → `/tutor/programme/<pid>/cohorts` (params don't matter to
+  revalidation). Each action looks up its cohort's `programme_id`
+  (one cheap owned-row query) or threads it from the caller.
+
+**Checkpoint:** edit/cancel a cohort + toggle a curriculum row from
+the NEW surface → changes appear without a manual refresh; tutor
+Home's lagging-cohort link lands on the new Analytics tab.
+
+### Step 3 — Demolition + redirect shim (the cut)
+
+- Delete `app/(app)/tutor/cohort/[cohort_id]/` (layout + 7 pages),
+  `cohort-shell.tsx` + `cohort-sidebar.tsx` + `cohort-back-pill.tsx`,
+  and `TUTOR_COHORT_NAV`.
+- Add the shim `app/(app)/tutor/cohort/[cohort_id]/[[...rest]]/page.tsx`:
+  look up the cohort's programme, map the old tab segment
+  (announcements → overview), `redirect()` to the new URL; unknown
+  cohort → 404.
+- Sweep: grep proves nothing references the old world; tsc + eslint
+  clean; old URLs redirect correctly.
+
+**Checkpoint:** an old `/tutor/cohort/<id>/analytics` URL lands on
+the new Analytics tab; the app has no route that swaps the sidebar.
+
+### Step 4 — Docs + session log
+
+- This doc's status flips to built; BUILD_LIST banner; session-log
+  entry in `sessions/2026-06.md`.
+
 ## Estimate
 
-One session, all app-layer. Comparable to the 2026-06-12 enrolments
-move.
+One session, all app-layer, no migration. Comparable to the
+2026-06-12 enrolments move. Steps 1–3 ≈ one commit each.
