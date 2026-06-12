@@ -807,6 +807,7 @@ export type ConvertWaitlistResult =
 
 export async function convertWaitlistEntryAction(
   waitlistId: string,
+  formData: FormData,
 ): Promise<ConvertWaitlistResult> {
   const supabase = await createClient();
   const {
@@ -830,25 +831,38 @@ export async function convertWaitlistEntryAction(
   const admin = createServiceRoleClient();
 
   // Cohort still joinable? (cancelled cohorts can't take enrolments.)
-  // The programme's access window rides along for the expiry freeze.
+  // The programme's access window rides along for the expiry freeze,
+  // its currency for the optional payment plan.
   const { data: cohortRow } = await admin
     .from('nclex_cohorts')
-    .select('cancelled_at, nclex_programmes!inner(access_window_days)')
+    .select('cancelled_at, nclex_programmes!inner(access_window_days, price_currency)')
     .eq('cohort_id', lead.cohort_id)
     .maybeSingle();
   if (!cohortRow) return { ok: false, error: 'Cohort not found.' };
   if (cohortRow.cancelled_at) {
     return { ok: false, error: 'This cohort is cancelled — enrolment is closed.' };
   }
+  type ConvProg = {
+    access_window_days: number | null;
+    price_currency: Currency;
+  };
   const convProgRaw = (
     cohortRow as typeof cohortRow & {
-      nclex_programmes:
-        | { access_window_days: number | null }
-        | { access_window_days: number | null }[]
-        | null;
+      nclex_programmes: ConvProg | ConvProg[] | null;
     }
   ).nclex_programmes;
   const convProg = Array.isArray(convProgRaw) ? convProgRaw[0] : convProgRaw;
+
+  // Optional payment plan (convert-with-plan, 2026-06-12) — the same
+  // section the Add Student modal carries; convert is the same trust
+  // moment, so money is recorded identically.
+  const planRes = await resolvePlanInput(
+    supabase,
+    formData,
+    lead.programme_id,
+    convProg?.price_currency ?? 'GHS',
+  );
+  if (!planRes.ok) return planRes;
 
   const fullName = [lead.forename, lead.surname].filter(Boolean).join(' ');
   const res = await inviteOrAttachAndEnrol(admin, {
@@ -858,6 +872,7 @@ export async function convertWaitlistEntryAction(
     programmeId: lead.programme_id,
     cohortId: lead.cohort_id,
     accessWindowDays: convProg?.access_window_days ?? null,
+    plan: planRes.plan,
     tutorId: tutor.id,
   });
   if (!res.ok) return res;

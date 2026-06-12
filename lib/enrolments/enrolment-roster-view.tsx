@@ -143,6 +143,9 @@ export function EnrolmentRosterView({
 
   const [wlBusyId, setWlBusyId] = useState<string | null>(null);
   const [wlConvert, setWlConvert] = useState<WaitlistEntry | null>(null);
+  // Convert errors render INSIDE the dialog (a plan-field mistake
+  // shouldn't close it and throw the tutor's input away).
+  const [wlError, setWlError] = useState<string | null>(null);
   const [wlDismiss, setWlDismiss] = useState<WaitlistEntry | null>(null);
 
   // Roster filtering. The cohort filter only exists for tutor-led; its
@@ -302,16 +305,17 @@ export function EnrolmentRosterView({
     });
   }
 
-  function runConvert(entry: WaitlistEntry) {
+  function runConvert(entry: WaitlistEntry, formData: FormData) {
+    setWlError(null);
     setWlBusyId(entry.waitlist_id);
     startTransition(async () => {
-      const res = await convertWaitlistEntryAction(entry.waitlist_id);
+      const res = await convertWaitlistEntryAction(entry.waitlist_id, formData);
       setWlBusyId(null);
-      setWlConvert(null);
       if (!res.ok) {
-        setToast({ tone: 'error', message: res.error });
+        setWlError(res.error);
         return;
       }
+      setWlConvert(null);
       setToast({
         tone: 'success',
         message: res.invited
@@ -704,7 +708,10 @@ export function EnrolmentRosterView({
           pending={pending}
           wlBusyId={wlBusyId}
           leadName={leadName}
-          onConvert={(entry) => setWlConvert(entry)}
+          onConvert={(entry) => {
+            setWlError(null);
+            setWlConvert(entry);
+          }}
           onDismiss={(entry) => setWlDismiss(entry)}
         />
       )}
@@ -773,11 +780,17 @@ export function EnrolmentRosterView({
           name={leadName(wlConvert)}
           email={wlConvert.email}
           cohortLabel={wlConvert.cohort_label}
+          plans={plans}
+          currency={currency}
+          error={wlError}
           pending={pending}
           onClose={() => {
-            if (!pending) setWlConvert(null);
+            if (!pending) {
+              setWlConvert(null);
+              setWlError(null);
+            }
           }}
-          onConfirm={() => runConvert(wlConvert)}
+          onSubmit={(formData) => runConvert(wlConvert, formData)}
         />
       )}
 
@@ -1014,6 +1027,115 @@ function planTotalPayments(p: PaymentStrategy): number {
   }
 }
 
+// The optional add-with-plan section (2026-06-12): plan picker +
+// "payments already received" + first-payment grace when nothing's
+// been received yet. Shared by the Add Student modal AND the waitlist
+// Convert dialog — both are the same trust moment (an off-platform
+// student being enrolled by hand), so they record money identically.
+// Renders nothing when the programme has no active plans. The host
+// <form> picks the values up via the plan_* field names.
+function PlanPickerFields({
+  plans,
+  currency,
+  pending,
+}: {
+  plans: PaymentStrategy[];
+  currency: Currency;
+  pending: boolean;
+}) {
+  const [planId, setPlanId] = useState('');
+  const [received, setReceived] = useState(0);
+  const [graceDays, setGraceDays] = useState(7);
+  const chosen = plans.find((p) => p.strategy_id === planId) ?? null;
+  const totalPayments = chosen ? planTotalPayments(chosen) : 0;
+
+  function onPlanChange(id: string) {
+    setPlanId(id);
+    setReceived(0);
+    setGraceDays(7);
+  }
+
+  if (plans.length === 0) return null;
+
+  return (
+    <>
+      <label className="enrol-field">
+        <span className="enrol-field-label">Payment plan</span>
+        <select
+          name="plan_strategy_id"
+          className="enrol-input"
+          value={planId}
+          onChange={(e) => onPlanChange(e.target.value)}
+          disabled={pending}
+        >
+          <option value="">No plan — handled privately</option>
+          {plans.map((p) => (
+            <option key={p.strategy_id} value={p.strategy_id}>
+              {planLabel(p)} · {formatMoney(currency, p.total_price_minor)}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {chosen && (
+        <>
+          <p className="enrol-modal-sub">{describePlan(chosen, currency)}</p>
+          <div className="enrol-form-row">
+            <label className="enrol-field">
+              <span className="enrol-field-label">
+                Payments already received
+              </span>
+              <input
+                name="plan_received"
+                type="number"
+                min={0}
+                max={totalPayments}
+                className="enrol-input"
+                value={Number.isNaN(received) ? '' : received}
+                onChange={(e) => setReceived(parseInt(e.target.value, 10))}
+                disabled={pending}
+              />
+            </label>
+            {received === 0 && (
+              <label className="enrol-field">
+                <span className="enrol-field-label">
+                  First payment due within (days)
+                </span>
+                <input
+                  name="plan_grace_days"
+                  type="number"
+                  min={1}
+                  max={365}
+                  className="enrol-input"
+                  value={Number.isNaN(graceDays) ? '' : graceDays}
+                  onChange={(e) => setGraceDays(parseInt(e.target.value, 10))}
+                  disabled={pending}
+                />
+              </label>
+            )}
+          </div>
+          <p className="enrol-modal-sub">
+            {received >= totalPayments ? (
+              <>Recorded as fully paid — nothing left to collect.</>
+            ) : received > 0 ? (
+              <>
+                Payments you&apos;ve already collected are recorded as
+                received directly (not through Paystack). The remaining{' '}
+                {totalPayments - received} follow the plan&apos;s schedule.
+              </>
+            ) : (
+              <>
+                Their first payment falls due once you set them up — the
+                days above are how long they have before access pauses.
+              </>
+            )}
+          </p>
+        </>
+      )}
+    </>
+  );
+}
+
 function AddStudentModal({
   pending,
   error,
@@ -1040,20 +1162,6 @@ function AddStudentModal({
   useEffect(() => {
     firstFieldRef.current?.focus();
   }, []);
-
-  // Add-with-plan (2026-06-12): optional plan + payments already received +
-  // first-payment grace when nothing's been received yet.
-  const [planId, setPlanId] = useState('');
-  const [received, setReceived] = useState(0);
-  const [graceDays, setGraceDays] = useState(7);
-  const chosen = plans.find((p) => p.strategy_id === planId) ?? null;
-  const totalPayments = chosen ? planTotalPayments(chosen) : 0;
-
-  function onPlanChange(id: string) {
-    setPlanId(id);
-    setReceived(0);
-    setGraceDays(7);
-  }
 
   // A tutor-led add needs a cohort to land in; with none joinable the
   // form can't submit (create a cohort first).
@@ -1149,83 +1257,7 @@ function AddStudentModal({
               </label>
             ))}
 
-          {plans.length > 0 && (
-            <>
-              <label className="enrol-field">
-                <span className="enrol-field-label">Payment plan</span>
-                <select
-                  name="plan_strategy_id"
-                  className="enrol-input"
-                  value={planId}
-                  onChange={(e) => onPlanChange(e.target.value)}
-                  disabled={pending}
-                >
-                  <option value="">No plan — handled privately</option>
-                  {plans.map((p) => (
-                    <option key={p.strategy_id} value={p.strategy_id}>
-                      {planLabel(p)} · {formatMoney(currency, p.total_price_minor)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              {chosen && (
-                <>
-                  <p className="enrol-modal-sub">{describePlan(chosen, currency)}</p>
-                  <div className="enrol-form-row">
-                    <label className="enrol-field">
-                      <span className="enrol-field-label">
-                        Payments already received
-                      </span>
-                      <input
-                        name="plan_received"
-                        type="number"
-                        min={0}
-                        max={totalPayments}
-                        className="enrol-input"
-                        value={Number.isNaN(received) ? '' : received}
-                        onChange={(e) => setReceived(parseInt(e.target.value, 10))}
-                        disabled={pending}
-                      />
-                    </label>
-                    {received === 0 && (
-                      <label className="enrol-field">
-                        <span className="enrol-field-label">
-                          First payment due within (days)
-                        </span>
-                        <input
-                          name="plan_grace_days"
-                          type="number"
-                          min={1}
-                          max={365}
-                          className="enrol-input"
-                          value={Number.isNaN(graceDays) ? '' : graceDays}
-                          onChange={(e) => setGraceDays(parseInt(e.target.value, 10))}
-                          disabled={pending}
-                        />
-                      </label>
-                    )}
-                  </div>
-                  <p className="enrol-modal-sub">
-                    {received >= totalPayments ? (
-                      <>Recorded as fully paid — nothing left to collect.</>
-                    ) : received > 0 ? (
-                      <>
-                        Payments you&apos;ve already collected are recorded as
-                        received directly (not through Paystack). The remaining{' '}
-                        {totalPayments - received} follow the plan&apos;s schedule.
-                      </>
-                    ) : (
-                      <>
-                        Their first payment falls due once you set them up — the
-                        days above are how long they have before access pauses.
-                      </>
-                    )}
-                  </p>
-                </>
-              )}
-            </>
-          )}
+          <PlanPickerFields plans={plans} currency={currency} pending={pending} />
 
           {error && (
             <p className="enrol-form-error" role="alert">
@@ -1503,16 +1535,22 @@ function WaitlistConvertConfirm({
   name,
   email,
   cohortLabel,
+  plans,
+  currency,
+  error,
   pending,
   onClose,
-  onConfirm,
+  onSubmit,
 }: {
   name: string;
   email: string;
   cohortLabel: string;
+  plans: PaymentStrategy[];
+  currency: Currency;
+  error: string | null;
   pending: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onSubmit: (formData: FormData) => void;
 }) {
   return (
     <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
@@ -1542,24 +1580,36 @@ function WaitlistConvertConfirm({
           Only do this once you&apos;ve confirmed their payment (or you&apos;re
           ready to let them in).
         </p>
-        <div className="enrol-modal-actions">
-          <button
-            type="button"
-            className="enrol-btn enrol-btn-ghost"
-            onClick={onClose}
-            disabled={pending}
-          >
-            Not yet
-          </button>
-          <button
-            type="button"
-            className="enrol-btn enrol-btn-primary"
-            onClick={onConfirm}
-            disabled={pending}
-          >
-            {pending ? 'Converting…' : 'Convert & enrol'}
-          </button>
-        </div>
+
+        {/* Same optional plan section as Add Student (convert is the
+            same trust moment) — one dialog, one confirmation. */}
+        <form action={onSubmit} className="enrol-form">
+          <PlanPickerFields plans={plans} currency={currency} pending={pending} />
+
+          {error && (
+            <p className="enrol-form-error" role="alert">
+              {error}
+            </p>
+          )}
+
+          <div className="enrol-modal-actions">
+            <button
+              type="button"
+              className="enrol-btn enrol-btn-ghost"
+              onClick={onClose}
+              disabled={pending}
+            >
+              Not yet
+            </button>
+            <button
+              type="submit"
+              className="enrol-btn enrol-btn-primary"
+              disabled={pending}
+            >
+              {pending ? 'Converting…' : 'Convert & enrol'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
