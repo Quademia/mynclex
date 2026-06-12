@@ -18,8 +18,8 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > dashboard/wrangler).
 
 > **COHORT WORKSPACE FOLDED INTO THE PROGRAMME + SIDEBAR IDENTITY
-> (2026-06-12, 🔨 on the session branch, awaiting Sam's merge
-> approval).** Two slices, same session, all app-layer, no migration.
+> (2026-06-12, ✅ MERGED to `main`, not yet prod).** Two slices, same
+> session, all app-layer, no migration.
 > **(1) Programme sidebar** (`d0646d7`): mode-specific tabs sit LAST
 > under a labelled **"Delivery"** divider (new `NavItem.section`), so
 > the common tabs hold identical positions on both delivery modes;
