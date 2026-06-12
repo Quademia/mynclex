@@ -9,7 +9,10 @@
 /* ─── Cohort workspace — Students surface (Slice 4 rework) ─── */
 
 .cw-page {
-  max-width: 1080px;
+  /* Was 1080px (the CD cohort-workspace cap) — widened 2026-06-12 when
+     the roster gained its 7th column (Cohort) and the Actions cell was
+     getting clipped. This view is the only .cw-page user. */
+  max-width: 1400px;
 }
 
 .cw-header {
@@ -247,16 +250,31 @@
   vertical-align: middle;
 }
 
-/* roster table */
+/* roster table — overflow-x scrolls (never silently clips; the old
+   overflow:hidden amputated the Actions column once the Cohort column
+   landed). The Actions column is sticky-right so the most-used cell
+   never needs a sideways scroll. */
 .cw-roster {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--white);
-  overflow: hidden;
+  overflow-x: auto;
 }
 .cw-roster table {
   width: 100%;
   border-collapse: collapse;
+}
+.cw-roster th:last-child,
+.cw-roster td:last-child {
+  position: sticky;
+  right: 0;
+  background: var(--white);
+  /* constant soft left edge so the pinned column reads as a layer
+     when the middle columns slide underneath it */
+  box-shadow: -10px 0 10px -10px rgba(15, 23, 42, 0.18);
+}
+.cw-roster th:last-child {
+  background: var(--bg);
 }
 .cw-roster th,
 .cw-roster td {
@@ -403,6 +421,61 @@
   display: flex;
   gap: 6px;
   justify-content: flex-end;
+  align-items: center;
+}
+
+/* row ⋯ menu — the quiz-card-menu pattern adapted to a table row.
+   The pop is fixed-positioned (usePopoverPosition) so the scrolling
+   .cw-roster container can't clip it. */
+.cw-row-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.cw-row-menu-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.cw-row-menu-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cw-row-menu-pop {
+  min-width: 170px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  padding: 4px;
+}
+.cw-row-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+.cw-row-menu-item:hover {
+  background: var(--bg);
+}
+.cw-row-menu-item.is-danger {
+  color: var(--danger);
 }
 
 /* avatar */

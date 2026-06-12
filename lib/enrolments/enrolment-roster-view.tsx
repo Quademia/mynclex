@@ -37,6 +37,7 @@ import {
 } from './actions';
 import { initials, relativeTime } from './format';
 import { describePlan, formatMoney, planLabel } from '@/lib/strategies/format';
+import { usePopoverPosition } from '@/lib/library/use-popover-position';
 import { PaymentHistoryDrawer } from './payment-history-drawer';
 import type { Currency } from '@/lib/payments/types';
 import type { DeliveryMode } from '@/lib/programmes/types';
@@ -346,6 +347,9 @@ export function EnrolmentRosterView({
   const overdueCount = scopedRoster.filter((r) => r.nextPayment?.isOverdue).length;
   // Cancelled cohorts can't take new students (the action blocks them).
   const joinableCohorts = cohorts.filter((c) => !c.cancelled);
+  // The Cohort column only earns its width in the all-cohorts view —
+  // zoomed, every row would repeat the tag the scope line already shows.
+  const showCohortCol = tutorLed && !zoomCohort;
 
   return (
     <div className="cw-page">
@@ -516,8 +520,8 @@ export function EnrolmentRosterView({
               <table>
                 <thead>
                   <tr>
-                    <th style={{ width: tutorLed ? '26%' : '30%' }}>Student</th>
-                    {tutorLed && <th>Cohort</th>}
+                    <th style={{ width: showCohortCol ? '26%' : '30%' }}>Student</th>
+                    {showCohortCol && <th>Cohort</th>}
                     <th>Status</th>
                     <th>Source</th>
                     <th>Enrolled</th>
@@ -528,20 +532,48 @@ export function EnrolmentRosterView({
                 <tbody>
                   {visibleRoster.length === 0 ? (
                     <tr>
-                      <td colSpan={tutorLed ? 7 : 6} className="cw-roster-empty">
+                      <td colSpan={showCohortCol ? 7 : 6} className="cw-roster-empty">
                         No students match this filter.
                       </td>
                     </tr>
                   ) : (
                     visibleRoster.map((row) => {
                       const meta = ENROLMENT_STATUS_META[row.status];
-                      const actions = actionsForStatus(row.status);
                       const rowBusy = busyId === row.enrolment_id && pending;
                       const np = row.nextPayment;
                       const graced = np?.graceUntilIso != null;
                       // "Give more time" applies to an overdue-paused student.
                       const canGiveTime =
                         row.status === 'PAUSED' && row.paused_reason === 'INSTALLMENT_OVERDUE';
+                      // Actions split (2026-06-12 width fix): the
+                      // time-sensitive pair stays inline — Approve (a
+                      // student is waiting) + Mark paid (the money
+                      // action) — everything else folds into the ⋯
+                      // menu, same composition move as the quiz cards.
+                      const rowActions = actionsForStatus(row.status);
+                      const showApprove = rowActions.includes('approve');
+                      const menuItems: RowMenuItem[] = rowActions
+                        .filter((a) => a !== 'approve')
+                        .map((a) => ({
+                          key: a,
+                          // Bare meta labels read wrong in a menu —
+                          // "Cancel" looks like "close this menu".
+                          label:
+                            a === 'cancel'
+                              ? 'Cancel enrolment'
+                              : a === 'reject'
+                                ? 'Reject request'
+                                : ENROLMENT_ACTION_META[a].label,
+                          danger: ENROLMENT_ACTION_META[a].tone === 'danger',
+                          onSelect: () => onActionClick(a, row),
+                        }));
+                      if (canGiveTime) {
+                        menuItems.splice(menuItems.length - 1, 0, {
+                          key: 'give-time',
+                          label: 'Give more time',
+                          onSelect: () => setGiveTimeRow(row),
+                        });
+                      }
                       return (
                         <tr key={row.enrolment_id}>
                           <td>
@@ -555,7 +587,7 @@ export function EnrolmentRosterView({
                               </span>
                             </div>
                           </td>
-                          {tutorLed && (
+                          {showCohortCol && (
                             <td>
                               {row.cohort_label ? (
                                 <span className="cw-cohort-tag">{row.cohort_label}</span>
@@ -623,33 +655,18 @@ export function EnrolmentRosterView({
                           </td>
                           <td>
                             <div className="cw-row-actions">
-                              {actions.length === 0 && !np && !canGiveTime ? (
+                              {!showApprove && !np && menuItems.length === 0 ? (
                                 <span className="cw-muted">—</span>
                               ) : (
                                 <>
-                                  {actions.map((action) => {
-                                    const am = ENROLMENT_ACTION_META[action];
-                                    return (
-                                      <button
-                                        key={action}
-                                        type="button"
-                                        className={`enrol-action enrol-action-${am.tone}`}
-                                        onClick={() => onActionClick(action, row)}
-                                        disabled={pending}
-                                      >
-                                        {rowBusy ? '…' : am.label}
-                                      </button>
-                                    );
-                                  })}
-                                  {canGiveTime && (
+                                  {showApprove && (
                                     <button
                                       type="button"
-                                      className="enrol-action enrol-action-neutral"
-                                      onClick={() => setGiveTimeRow(row)}
+                                      className="enrol-action enrol-action-primary"
+                                      onClick={() => onActionClick('approve', row)}
                                       disabled={pending}
-                                      title="Let them back in for longer without recording a payment"
                                     >
-                                      {rowBusy ? '…' : 'Give more time'}
+                                      {rowBusy ? '…' : 'Approve'}
                                     </button>
                                   )}
                                   {np && (
@@ -662,6 +679,9 @@ export function EnrolmentRosterView({
                                     >
                                       {rowBusy ? '…' : 'Mark paid'}
                                     </button>
+                                  )}
+                                  {menuItems.length > 0 && (
+                                    <RowActionsMenu items={menuItems} disabled={pending} />
                                   )}
                                 </>
                               )}
@@ -788,6 +808,88 @@ function SummaryCell({ k, v, sub }: { k: string; v: number; sub: string }) {
       <div className="cw-cell-k">{k}</div>
       <div className="cw-cell-v">{v}</div>
       <div className="cw-cell-sub">{sub}</div>
+    </div>
+  );
+}
+
+interface RowMenuItem {
+  key: string;
+  label: string;
+  danger?: boolean;
+  onSelect: () => void;
+}
+
+// The roster row's ⋯ menu (the quiz-card-menu pattern). Pure
+// composition — every item drives an existing confirm dialog/action
+// owned by the page. The pop is FIXED-positioned via
+// usePopoverPosition because the table container scrolls
+// (overflow-x: auto) and would clip an absolutely-positioned child.
+function RowActionsMenu({
+  items,
+  disabled,
+}: {
+  items: RowMenuItem[];
+  disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const { ref: popRef, style: popStyle } = usePopoverPosition({
+    getAnchorRect: () => btnRef.current?.getBoundingClientRect() ?? null,
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: MouseEvent) {
+      // The fixed pop is still a DOM child of the wrapper, so one
+      // contains() check covers button + menu.
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={wrapRef} style={{ display: 'inline-flex' }}>
+      <button
+        ref={btnRef}
+        type="button"
+        className="cw-row-menu-btn"
+        aria-label="More actions"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={() => setOpen((v) => !v)}
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className="cw-row-menu-pop" role="menu" ref={popRef} style={popStyle}>
+          {items.map((it) => (
+            <button
+              key={it.key}
+              type="button"
+              role="menuitem"
+              className={`cw-row-menu-item${it.danger ? ' is-danger' : ''}`}
+              onClick={() => {
+                setOpen(false);
+                it.onSelect();
+              }}
+            >
+              {it.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
