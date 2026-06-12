@@ -17,6 +17,27 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > Worker** — prod checkout will fail until it is (5-min fix, needs the
 > dashboard/wrangler).
 
+> **COHORT WORKSPACE FOLDED INTO THE PROGRAMME + SIDEBAR IDENTITY
+> (2026-06-12, 🔨 on the session branch, awaiting Sam's merge
+> approval).** Two slices, same session, all app-layer, no migration.
+> **(1) Programme sidebar** (`d0646d7`): mode-specific tabs sit LAST
+> under a labelled **"Delivery"** divider (new `NavItem.section`), so
+> the common tabs hold identical positions on both delivery modes;
+> header gains the **programme name** (2-line clamp) + a
+> **Tutor-led / Self-paced chip**. **(2) Cohort-workspace fold**
+> (planned in [cohort-workspace-fold.md](docs/product-plan/cohort-workspace-fold.md),
+> built same day, `48af9f1` · `989c075` · `ff40707`): the cohort run
+> detail now renders **in place on the programme Cohorts tab** — the
+> library pattern (`?cohort=` selects the run, `?tab=` picks Overview /
+> Curriculum / Analytics / Sessions placeholder / Settings; top tab
+> bar, run header, only the active tab's data fetched). The old
+> `/tutor/cohort/[id]` world (routes + shell + sidebar + back-pill +
+> `TUTOR_COHORT_NAV`) is **deleted**; a one-file redirect shim forwards
+> old URLs; tutor Home + cohort cards + action revalidates rewired.
+> *Cohort stops being a place and becomes a context* — no sidebar swap
+> anywhere in the tutor app. Announcements dropped until built;
+> Sessions kept (Live Session Planner lands there).
+
 > **ENROLMENTS MOVED TO PROGRAMME LEVEL (2026-06-12, ✅ MERGED to
 > `main`, not yet prod).** The settled plan
 > ([payments-and-enrolment.md → "Settled 2026-06-12 (end of

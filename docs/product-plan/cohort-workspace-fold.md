@@ -1,9 +1,14 @@
 # Cohort workspace fold — cohort becomes a surface inside the programme
 
-Settled with Sam 2026-06-12. Status: **planned, not yet built.**
+Settled with Sam 2026-06-12. Status: **BUILT same day** — steps 1–3
+shipped as planned in commits `48af9f1` (run detail folds in,
+additive) · `989c075` (inbound links + revalidates) · `ff40707`
+(demolition + redirect shim). All checkpoints held: the new surface
+serves with the programme sidebar fixed, old URLs forward through the
+shim, and the grep sweep found zero live references to the old world.
 
-This doc can be deleted once the fold ships (or kept as the record of
-the decision — Sam's call).
+This doc can be deleted now that the fold shipped (or kept as the
+record of the decision — Sam's call).
 
 ## The decision
 
