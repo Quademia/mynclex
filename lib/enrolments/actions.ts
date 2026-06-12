@@ -28,12 +28,30 @@ import { headers } from 'next/headers';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { buildSchedule, isOverdue } from '@/lib/payments/schedule';
 import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
+import type { RosterScope } from './types';
 
 export type AddStudentResult =
   | { ok: true; invited: boolean; name: string }
   | { ok: false; error: string };
 
 const ACTIVE_STATUSES = ['PENDING_APPROVAL', 'ENROLLED', 'PAUSED'];
+
+// The roster page an action should refresh — the cohort surface or its
+// self-paced programme-level twin.
+function rosterPath(scope: RosterScope): string {
+  return scope.kind === 'COHORT'
+    ? `/tutor/cohort/${scope.cohortId}/enrolments`
+    : `/tutor/programme/${scope.programmeId}/enrolments`;
+}
+
+// Freeze the access-window expiry at enrolment time, mirroring the paid
+// path (lib/payments/activate.ts). NULL window = lifetime-of-tutor-sub.
+// The nightly sweep reads the frozen column.
+function freezeAccessExpiry(accessWindowDays: number | null): string | null {
+  return accessWindowDays != null
+    ? new Date(Date.now() + accessWindowDays * 86_400_000).toISOString()
+    : null;
+}
 
 export async function addStudentAction(
   cohortId: string,
@@ -71,7 +89,7 @@ export async function addStudentAction(
     .from('nclex_cohorts')
     .select(
       `cohort_id, programme_id, cancelled_at,
-       nclex_programmes!inner(programme_id, delivery_mode)`,
+       nclex_programmes!inner(programme_id, delivery_mode, access_window_days)`,
     )
     .eq('cohort_id', cohortId)
     .maybeSingle();
@@ -84,12 +102,14 @@ export async function addStudentAction(
       error: 'This cohort is cancelled — enrolment is closed.',
     };
   }
+  type ProgRef = {
+    programme_id: string;
+    delivery_mode: string;
+    access_window_days: number | null;
+  };
   const programmeRaw = (
     cohortRow as typeof cohortRow & {
-      nclex_programmes:
-        | { programme_id: string; delivery_mode: string }
-        | { programme_id: string; delivery_mode: string }[]
-        | null;
+      nclex_programmes: ProgRef | ProgRef[] | null;
     }
   ).nclex_programmes;
   const programme = Array.isArray(programmeRaw)
@@ -106,6 +126,7 @@ export async function addStudentAction(
     email,
     programmeId: programme.programme_id,
     cohortId,
+    accessWindowDays: programme.access_window_days,
     tutorId: tutor.id,
   });
   if (!res.ok) return res;
@@ -114,12 +135,91 @@ export async function addStudentAction(
   return { ok: true, invited: res.invited, name: `${forename} ${surname}` };
 }
 
+/**
+ * Self-paced twin of addStudentAction — the programme is the enrolment
+ * container, so the tutor adds students from the programme-level
+ * Enrolments tab and the row is created with cohort_id = NULL. Same
+ * invite-or-attach mechanics, same ownership-then-service-role split.
+ */
+export async function addSelfPacedStudentAction(
+  programmeId: string,
+  formData: FormData,
+): Promise<AddStudentResult> {
+  const forename = String(formData.get('forename') ?? '').trim();
+  const surname = String(formData.get('surname') ?? '').trim();
+  const email = String(formData.get('email') ?? '')
+    .trim()
+    .toLowerCase();
+
+  if (!forename || !surname || !email) {
+    return { ok: false, error: 'Name and email are all required.' };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { ok: false, error: 'Enter a valid email address.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user: tutor },
+  } = await supabase.auth.getUser();
+  if (!tutor) return { ok: false, error: 'Not signed in.' };
+
+  if (email === (tutor.email ?? '').toLowerCase()) {
+    return {
+      ok: false,
+      error: "You can't enrol yourself in your own programme.",
+    };
+  }
+
+  // Ownership gate (RLS-scoped): the programme returns only for the
+  // owning tutor / SUPER_ADMIN. Must be self-paced (tutor-led enrolment
+  // goes through a cohort) and not archived (the cohort path's
+  // "cancelled cohort" analogue).
+  const { data: prog } = await supabase
+    .from('nclex_programmes')
+    .select('programme_id, delivery_mode, status, access_window_days')
+    .eq('programme_id', programmeId)
+    .maybeSingle();
+  if (!prog) {
+    return { ok: false, error: 'Programme not found, or not one of yours.' };
+  }
+  if (prog.delivery_mode !== 'SELF_PACED') {
+    return {
+      ok: false,
+      error: 'This programme is tutor-led — add students from a cohort.',
+    };
+  }
+  if (prog.status === 'ARCHIVED') {
+    return {
+      ok: false,
+      error: 'This programme is archived — enrolment is closed.',
+    };
+  }
+
+  const admin = createServiceRoleClient();
+  const res = await inviteOrAttachAndEnrol(admin, {
+    forename,
+    surname,
+    email,
+    programmeId,
+    cohortId: null,
+    accessWindowDays: prog.access_window_days,
+    tutorId: tutor.id,
+  });
+  if (!res.ok) return res;
+
+  revalidatePath(`/tutor/programme/${programmeId}/enrolments`);
+  return { ok: true, invited: res.invited, name: `${forename} ${surname}` };
+}
+
 // ─────────────────────────────────────────────────────────────────
-// Shared invite-or-attach + enrol (used by Add-student AND Convert-
-// waitlist). Caller MUST have already proven the acting tutor owns the
-// cohort. Existing account → attach + enrol; new email → Supabase
-// invite + profile + STUDENT role, then enrol. Returns the new
-// enrolment's id so the waitlist convert path can link it.
+// Shared invite-or-attach + enrol (used by Add-student — cohort AND
+// self-paced — plus Convert-waitlist). Caller MUST have already proven
+// the acting tutor owns the container (cohort or self-paced programme).
+// Existing account → attach + enrol; new email → Supabase invite +
+// profile + STUDENT role, then enrol. cohortId NULL = self-paced row.
+// Returns the new enrolment's id so the waitlist convert path can
+// link it.
 // ─────────────────────────────────────────────────────────────────
 async function inviteOrAttachAndEnrol(
   admin: ReturnType<typeof createServiceRoleClient>,
@@ -128,13 +228,14 @@ async function inviteOrAttachAndEnrol(
     surname: string;
     email: string; // already trimmed + lower-cased + validated
     programmeId: string;
-    cohortId: string;
+    cohortId: string | null; // NULL = self-paced (programme is the container)
+    accessWindowDays: number | null; // programme's window; NULL = lifetime
     tutorId: string;
   },
 ): Promise<
   { ok: true; invited: boolean; enrolmentId: string } | { ok: false; error: string }
 > {
-  const { forename, surname, email, programmeId, cohortId, tutorId } = args;
+  const { forename, surname, email, programmeId, cohortId, accessWindowDays, tutorId } = args;
   const fullName = [forename, surname].filter(Boolean).join(' ');
 
   // Existing account? nclex_users.email is unique; a tutor-added or
@@ -191,18 +292,22 @@ async function inviteOrAttachAndEnrol(
   }
 
   // Friendly pre-check for the active-enrolment guard (the partial
-  // unique index is the hard backstop).
-  const { data: dup } = await admin
+  // unique indexes are the hard backstop). Tutor-led keys on the
+  // cohort; self-paced keys on the programme's cohortless rows.
+  const container = cohortId ? 'cohort' : 'programme';
+  let dupQuery = admin
     .from('nclex_enrolments')
     .select('enrolment_id')
     .eq('user_id', studentId)
-    .eq('cohort_id', cohortId)
-    .in('status', ACTIVE_STATUSES)
-    .maybeSingle();
+    .in('status', ACTIVE_STATUSES);
+  dupQuery = cohortId
+    ? dupQuery.eq('cohort_id', cohortId)
+    : dupQuery.eq('programme_id', programmeId).is('cohort_id', null);
+  const { data: dup } = await dupQuery.maybeSingle();
   if (dup) {
     return {
       ok: false,
-      error: 'This student is already enrolled in this cohort.',
+      error: `This student is already enrolled in this ${container}.`,
     };
   }
 
@@ -215,8 +320,9 @@ async function inviteOrAttachAndEnrol(
       status: 'ENROLLED',
       enrolment_source: 'TUTOR_ADDED',
       enrolled_by_user_id: tutorId,
-      // access_expires_at left NULL = lifetime (programmes have no
-      // access_window_days column until the discovery slice).
+      // Frozen from the programme's access window at enrolment time,
+      // exactly like the paid path — NULL = lifetime-of-tutor-sub.
+      access_expires_at: freezeAccessExpiry(accessWindowDays),
     })
     .select('enrolment_id')
     .single();
@@ -224,7 +330,7 @@ async function inviteOrAttachAndEnrol(
     if (enrolErr?.code === '23505') {
       return {
         ok: false,
-        error: 'This student is already enrolled in this cohort.',
+        error: `This student is already enrolled in this ${container}.`,
       };
     }
     return { ok: false, error: enrolErr?.message ?? 'Could not enrol the student.' };
@@ -247,7 +353,7 @@ async function inviteOrAttachAndEnrol(
 export type TransitionResult = { ok: true } | { ok: false; error: string };
 
 async function callTransition(
-  cohortId: string,
+  scope: RosterScope,
   rpc: string,
   params: Record<string, unknown>,
 ): Promise<TransitionResult> {
@@ -266,54 +372,54 @@ async function callTransition(
     };
   }
 
-  revalidatePath(`/tutor/cohort/${cohortId}/enrolments`);
+  revalidatePath(rosterPath(scope));
   return { ok: true };
 }
 
 export async function approveEnrolmentAction(
-  cohortId: string,
+  scope: RosterScope,
   enrolmentId: string,
 ): Promise<TransitionResult> {
-  return callTransition(cohortId, 'nclex_approve_enrolment', {
+  return callTransition(scope, 'nclex_approve_enrolment', {
     p_enrolment_id: enrolmentId,
   });
 }
 
 export async function rejectEnrolmentAction(
-  cohortId: string,
+  scope: RosterScope,
   enrolmentId: string,
   note?: string,
 ): Promise<TransitionResult> {
-  return callTransition(cohortId, 'nclex_reject_enrolment', {
+  return callTransition(scope, 'nclex_reject_enrolment', {
     p_enrolment_id: enrolmentId,
     p_note: note?.trim() ? note.trim() : null,
   });
 }
 
 export async function pauseEnrolmentAction(
-  cohortId: string,
+  scope: RosterScope,
   enrolmentId: string,
 ): Promise<TransitionResult> {
-  return callTransition(cohortId, 'nclex_pause_enrolment', {
+  return callTransition(scope, 'nclex_pause_enrolment', {
     p_enrolment_id: enrolmentId,
   });
 }
 
 export async function resumeEnrolmentAction(
-  cohortId: string,
+  scope: RosterScope,
   enrolmentId: string,
 ): Promise<TransitionResult> {
-  return callTransition(cohortId, 'nclex_unpause_enrolment', {
+  return callTransition(scope, 'nclex_unpause_enrolment', {
     p_enrolment_id: enrolmentId,
   });
 }
 
 export async function cancelEnrolmentAction(
-  cohortId: string,
+  scope: RosterScope,
   enrolmentId: string,
   note?: string,
 ): Promise<TransitionResult> {
-  return callTransition(cohortId, 'nclex_cancel_enrolment', {
+  return callTransition(scope, 'nclex_cancel_enrolment', {
     p_enrolment_id: enrolmentId,
     p_note: note?.trim() ? note.trim() : null,
   });
@@ -335,7 +441,7 @@ export async function cancelEnrolmentAction(
 // ─────────────────────────────────────────────────────────────────
 
 export async function markInstallmentPaidAction(
-  cohortId: string,
+  scope: RosterScope,
   enrolmentId: string,
 ): Promise<TransitionResult> {
   const supabase = await createClient();
@@ -431,7 +537,7 @@ export async function markInstallmentPaidAction(
     }
   }
 
-  revalidatePath(`/tutor/cohort/${cohortId}/enrolments`);
+  revalidatePath(rosterPath(scope));
   return { ok: true };
 }
 
@@ -447,7 +553,7 @@ export async function markInstallmentPaidAction(
 // ─────────────────────────────────────────────────────────────────
 
 export async function giveMoreTimeAction(
-  cohortId: string,
+  scope: RosterScope,
   enrolmentId: string,
   days: number,
 ): Promise<TransitionResult> {
@@ -512,7 +618,7 @@ export async function giveMoreTimeAction(
     return { ok: false, error: 'Could not extend the deadline. Refresh and try again.' };
   }
 
-  revalidatePath(`/tutor/cohort/${cohortId}/enrolments`);
+  revalidatePath(rosterPath(scope));
   return { ok: true };
 }
 
@@ -560,15 +666,25 @@ export async function convertWaitlistEntryAction(
   const admin = createServiceRoleClient();
 
   // Cohort still joinable? (cancelled cohorts can't take enrolments.)
+  // The programme's access window rides along for the expiry freeze.
   const { data: cohortRow } = await admin
     .from('nclex_cohorts')
-    .select('cancelled_at')
+    .select('cancelled_at, nclex_programmes!inner(access_window_days)')
     .eq('cohort_id', lead.cohort_id)
     .maybeSingle();
   if (!cohortRow) return { ok: false, error: 'Cohort not found.' };
   if (cohortRow.cancelled_at) {
     return { ok: false, error: 'This cohort is cancelled — enrolment is closed.' };
   }
+  const convProgRaw = (
+    cohortRow as typeof cohortRow & {
+      nclex_programmes:
+        | { access_window_days: number | null }
+        | { access_window_days: number | null }[]
+        | null;
+    }
+  ).nclex_programmes;
+  const convProg = Array.isArray(convProgRaw) ? convProgRaw[0] : convProgRaw;
 
   const fullName = [lead.forename, lead.surname].filter(Boolean).join(' ');
   const res = await inviteOrAttachAndEnrol(admin, {
@@ -577,6 +693,7 @@ export async function convertWaitlistEntryAction(
     email: lead.email,
     programmeId: lead.programme_id,
     cohortId: lead.cohort_id,
+    accessWindowDays: convProg?.access_window_days ?? null,
     tutorId: tutor.id,
   });
   if (!res.ok) return res;

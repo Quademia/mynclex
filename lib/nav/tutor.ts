@@ -74,6 +74,11 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   // (off-platform or price-hidden). Sits before Students in the funnel
   // order: enquiry → enrolment → student.
   { key: 'enquiries',   label: 'Enquiries',     icon: 'mail',     href: '/tutor/programme/:programmeId/enquiries' },
+  // Self-paced roster — when there's no cohort layer the programme is
+  // the enrolment container, so it gets the same administrative
+  // Enrolments surface a cohort has. The shell hides this entry for
+  // tutor-led programmes (their enrolments live per cohort).
+  { key: 'enrolments',  label: 'Enrolments',    icon: 'users',    href: '/tutor/programme/:programmeId/enrolments' },
   { key: 'students',    label: 'Students',      icon: 'users',    href: '/tutor/programme/:programmeId/students' },
   // Removed from the sidebar 2026-06-07 (MVP declutter): Live Sessions,
   // Assignments, Results. Their placeholder routes still exist (the tutor

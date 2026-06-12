@@ -105,10 +105,48 @@ export async function getCohortRoster(
   ).nclex_programmes;
   const currency = (Array.isArray(ownedProg) ? ownedProg[0] : ownedProg)?.price_currency ?? 'GHS';
 
-  // Roster read via service role (student profiles are self-read-only
-  // under RLS). Ownership already proven above.
+  return readRoster({ column: 'cohort_id', id: cohortId, selfPaced: false }, currency);
+}
+
+/**
+ * Roster for a SELF-PACED programme — the programme is the enrolment
+ * container (rows with cohort_id IS NULL), so this is the programme-level
+ * twin of getCohortRoster. Same ownership-then-service-role pattern;
+ * null = not the caller's programme (page 404s).
+ */
+export async function getProgrammeRoster(
+  programmeId: string,
+): Promise<EnrolmentRosterRow[] | null> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  // Ownership gate (RLS-scoped): the programme row returns only for the
+  // owning tutor / SUPER_ADMIN.
+  const { data: owned } = await supabase
+    .from('nclex_programmes')
+    .select('programme_id, price_currency')
+    .eq('programme_id', programmeId)
+    .maybeSingle();
+  if (!owned) return null;
+  const currency = (owned.price_currency as Currency | null) ?? 'GHS';
+
+  return readRoster({ column: 'programme_id', id: programmeId, selfPaced: true }, currency);
+}
+
+// Shared roster read (service role — student profiles are self-read-only
+// under RLS; callers prove ownership first). Self-paced filters to the
+// cohortless rows so a tutor-led programme id can never leak cohort rows
+// through this path.
+async function readRoster(
+  scope: { column: 'cohort_id' | 'programme_id'; id: string; selfPaced: boolean },
+  currency: Currency,
+): Promise<EnrolmentRosterRow[]> {
   const admin = createServiceRoleClient();
-  const { data, error } = await admin
+  let query = admin
     .from('nclex_enrolments')
     // nclex_enrolments has three FKs to nclex_users (user_id,
     // enrolled_by_user_id, approved_by_user_id), so the embed MUST name
@@ -120,8 +158,9 @@ export async function getCohortRoster(
        strategy_snapshot_json, installment_grace_until,
        nclex_users!nclex_enrolments_user_id_fkey!inner(name, email)`,
     )
-    .eq('cohort_id', cohortId)
-    .order('enrolled_at', { ascending: false });
+    .eq(scope.column, scope.id);
+  if (scope.selfPaced) query = query.is('cohort_id', null);
+  const { data, error } = await query.order('enrolled_at', { ascending: false });
 
   if (error || !data) return [];
 

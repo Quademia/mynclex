@@ -7,6 +7,14 @@
 
 import type { NextPaymentView } from '@/lib/payments/schedule';
 
+/** Which container a roster surface manages — a tutor-led cohort or a
+ *  self-paced programme (cohort_id IS NULL rows). Drives the actions'
+ *  revalidate path and the view's container-specific chrome (the
+ *  waitlist tab and approval cell are cohort-only concepts). */
+export type RosterScope =
+  | { kind: 'COHORT'; cohortId: string }
+  | { kind: 'PROGRAMME'; programmeId: string };
+
 export type EnrolmentStatus =
   | 'PENDING_APPROVAL'
   | 'ENROLLED'

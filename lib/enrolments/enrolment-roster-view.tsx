@@ -1,20 +1,26 @@
 // mynclex/lib/enrolments/enrolment-roster-view.tsx
 //
-// Cohort workspace — Students surface (Slice 1b + Slice 4 rework to the
-// CD design at docs/product-plan/design-handoff/payments-and-enrolment/
-// prototypes/tutor-cohort-workspace.html).
+// Enrolment roster surface (Slice 1b + Slice 4 rework to the CD design
+// at docs/product-plan/design-handoff/payments-and-enrolment/
+// prototypes/tutor-cohort-workspace.html). Scope-driven: mounts on a
+// tutor-led COHORT (the cohort Enrolments tab) or a SELF_PACED
+// PROGRAMME (the programme Enrolments tab) — same table, same lifecycle
+// actions, same Add-student.
 //
-// Two sub-tabs: Roster (the enrolled/lifecycle table, with status filter
-// chips + search) and Waitlist (student-initiated off-platform leads,
-// Convert → enrolment / Dismiss). Summary cells up top. Avatars + relative
-// time per the prototype. The payment-era columns (Access · payment) are
-// PLACEHOLDERS until the on-platform / installments slices fill them.
+// Cohort scope keeps two sub-tabs: Roster (the enrolled/lifecycle table,
+// with status filter chips + search) and Waitlist (student-initiated
+// off-platform leads, Convert → enrolment / Dismiss). Programme scope is
+// roster-only — waitlists and PENDING_APPROVAL are cohort concepts
+// (self-paced rows are created already ENROLLED; its leads live in the
+// sibling Enquiries tab), so its summary swaps those cells for
+// Overdue / Expired.
 
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  addSelfPacedStudentAction,
   addStudentAction,
   approveEnrolmentAction,
   cancelEnrolmentAction,
@@ -38,14 +44,17 @@ import {
   type EnrolmentAction,
   type EnrolmentRosterRow,
   type EnrolmentStatus,
+  type RosterScope,
   type WaitlistEntry,
 } from './types';
 
 interface EnrolmentRosterViewProps {
-  cohortId: string;
-  cohortName: string;
+  scope: RosterScope;
+  /** Sub-heading under "Students" — the cohort name or programme title. */
+  contextName: string;
   roster: EnrolmentRosterRow[];
-  waitlist: WaitlistEntry[];
+  /** Cohort scope only; programme scope omits it (self-paced has no waitlist). */
+  waitlist?: WaitlistEntry[];
 }
 
 const ACTION_PAST_TENSE: Record<EnrolmentAction, string> = {
@@ -74,17 +83,19 @@ type Tab = 'roster' | 'waitlist';
 type StatusFilter = EnrolmentStatus | 'ALL';
 
 export function EnrolmentRosterView({
-  cohortId,
-  cohortName,
+  scope,
+  contextName,
   roster,
-  waitlist,
+  waitlist = [],
 }: EnrolmentRosterViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const isCohort = scope.kind === 'COHORT';
 
   const [tab, setTab] = useState<Tab>(
     // Land on Waitlist when there are leads waiting and no roster yet —
     // the action items come first. Otherwise default to Roster.
+    // (Programme scope has no waitlist, so this always lands on Roster.)
     waitlist.length > 0 && roster.length === 0 ? 'waitlist' : 'roster',
   );
 
@@ -139,7 +150,7 @@ export function EnrolmentRosterView({
 
   const ACTION_FN: Record<
     EnrolmentAction,
-    (cohortId: string, enrolmentId: string, note?: string) => Promise<TransitionResult>
+    (scope: RosterScope, enrolmentId: string, note?: string) => Promise<TransitionResult>
   > = {
     approve: approveEnrolmentAction,
     reject: rejectEnrolmentAction,
@@ -151,7 +162,7 @@ export function EnrolmentRosterView({
   function runAction(action: EnrolmentAction, row: EnrolmentRosterRow, note?: string) {
     setBusyId(row.enrolment_id);
     startTransition(async () => {
-      const res = await ACTION_FN[action](cohortId, row.enrolment_id, note);
+      const res = await ACTION_FN[action](scope, row.enrolment_id, note);
       setBusyId(null);
       setConfirm(null);
       if (!res.ok) {
@@ -171,7 +182,7 @@ export function EnrolmentRosterView({
   function runMarkPaid(row: EnrolmentRosterRow) {
     setBusyId(row.enrolment_id);
     startTransition(async () => {
-      const res = await markInstallmentPaidAction(cohortId, row.enrolment_id);
+      const res = await markInstallmentPaidAction(scope, row.enrolment_id);
       setBusyId(null);
       setMarkPaidRow(null);
       if (!res.ok) {
@@ -186,7 +197,7 @@ export function EnrolmentRosterView({
   function runGiveTime(row: EnrolmentRosterRow, days: number) {
     setBusyId(row.enrolment_id);
     startTransition(async () => {
-      const res = await giveMoreTimeAction(cohortId, row.enrolment_id, days);
+      const res = await giveMoreTimeAction(scope, row.enrolment_id, days);
       setBusyId(null);
       setGiveTimeRow(null);
       if (!res.ok) {
@@ -211,7 +222,10 @@ export function EnrolmentRosterView({
   function handleSubmit(formData: FormData) {
     setFormError(null);
     startTransition(async () => {
-      const res = await addStudentAction(cohortId, formData);
+      const res =
+        scope.kind === 'COHORT'
+          ? await addStudentAction(scope.cohortId, formData)
+          : await addSelfPacedStudentAction(scope.programmeId, formData);
       if (!res.ok) {
         setFormError(res.error);
         return;
@@ -228,9 +242,10 @@ export function EnrolmentRosterView({
   }
 
   function runConvert(entry: WaitlistEntry) {
+    if (scope.kind !== 'COHORT') return; // waitlists are cohort-only
     setWlBusyId(entry.waitlist_id);
     startTransition(async () => {
-      const res = await convertWaitlistEntryAction(cohortId, entry.waitlist_id);
+      const res = await convertWaitlistEntryAction(scope.cohortId, entry.waitlist_id);
       setWlBusyId(null);
       setWlConvert(null);
       if (!res.ok) {
@@ -248,9 +263,10 @@ export function EnrolmentRosterView({
   }
 
   function runDismiss(entry: WaitlistEntry) {
+    if (scope.kind !== 'COHORT') return; // waitlists are cohort-only
     setWlBusyId(entry.waitlist_id);
     startTransition(async () => {
-      const res = await dismissWaitlistEntryAction(cohortId, entry.waitlist_id);
+      const res = await dismissWaitlistEntryAction(scope.cohortId, entry.waitlist_id);
       setWlBusyId(null);
       setWlDismiss(null);
       if (!res.ok) {
@@ -267,13 +283,17 @@ export function EnrolmentRosterView({
     'ALL',
     ...STATUS_ORDER.filter((s) => counts[s] > 0),
   ];
+  // Programme-scope summary swaps the cohort-only cells (Pending
+  // approval / Waitlist) for the states a self-paced roster actually
+  // produces. Overdue = behind on an installment, paused or not yet.
+  const overdueCount = roster.filter((r) => r.nextPayment?.isOverdue).length;
 
   return (
     <div className="cw-page">
       <header className="cw-header">
         <div className="cw-header-titles">
           <h1 className="cw-title">Students</h1>
-          <p className="cw-sub">{cohortName}</p>
+          <p className="cw-sub">{contextName}</p>
         </div>
         <button
           type="button"
@@ -287,47 +307,70 @@ export function EnrolmentRosterView({
 
       <div className="cw-summary">
         <SummaryCell k="Enrolled" v={counts.ENROLLED} sub="Active access" />
-        <SummaryCell
-          k="Pending approval"
-          v={counts.PENDING_APPROVAL}
-          sub="Awaiting your decision"
-        />
-        <SummaryCell k="Waitlist" v={waitlist.length} sub="Off-platform leads" />
-        <SummaryCell k="Paused" v={counts.PAUSED} sub="Access on hold" />
+        {isCohort ? (
+          <>
+            <SummaryCell
+              k="Pending approval"
+              v={counts.PENDING_APPROVAL}
+              sub="Awaiting your decision"
+            />
+            <SummaryCell k="Waitlist" v={waitlist.length} sub="Off-platform leads" />
+            <SummaryCell k="Paused" v={counts.PAUSED} sub="Access on hold" />
+          </>
+        ) : (
+          <>
+            <SummaryCell k="Paused" v={counts.PAUSED} sub="Access on hold" />
+            <SummaryCell k="Overdue" v={overdueCount} sub="Behind on payment" />
+            <SummaryCell k="Expired" v={counts.EXPIRED} sub="Window ended" />
+          </>
+        )}
       </div>
 
-      <nav className="cw-tabs" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'roster'}
-          className={`cw-tab ${tab === 'roster' ? 'on' : ''}`}
-          onClick={() => setTab('roster')}
-        >
-          Roster <span className="cw-tab-count">{roster.length}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'waitlist'}
-          className={`cw-tab ${tab === 'waitlist' ? 'on' : ''}`}
-          onClick={() => setTab('waitlist')}
-        >
-          Waitlist
-          {waitlist.length > 0 && (
-            <span className="cw-tab-count warn">{waitlist.length}</span>
-          )}
-        </button>
-      </nav>
+      {isCohort && (
+        <nav className="cw-tabs" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'roster'}
+            className={`cw-tab ${tab === 'roster' ? 'on' : ''}`}
+            onClick={() => setTab('roster')}
+          >
+            Roster <span className="cw-tab-count">{roster.length}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'waitlist'}
+            className={`cw-tab ${tab === 'waitlist' ? 'on' : ''}`}
+            onClick={() => setTab('waitlist')}
+          >
+            Waitlist
+            {waitlist.length > 0 && (
+              <span className="cw-tab-count warn">{waitlist.length}</span>
+            )}
+          </button>
+        </nav>
+      )}
 
-      {tab === 'roster' ? (
+      {tab === 'roster' || !isCohort ? (
         !hasStudents ? (
           <div className="enrol-empty">
             <h2 className="enrol-empty-title">No students enrolled yet.</h2>
             <p className="enrol-empty-sub">
-              Add a student you&apos;re bringing in off-platform — type their
-              name and email and they&apos;ll be enrolled right away. Or
-              convert a request from the Waitlist tab.
+              {isCohort ? (
+                <>
+                  Add a student you&apos;re bringing in off-platform — type
+                  their name and email and they&apos;ll be enrolled right
+                  away. Or convert a request from the Waitlist tab.
+                </>
+              ) : (
+                <>
+                  Add a student you&apos;re bringing in off-platform — type
+                  their name and email and they&apos;ll be enrolled right
+                  away. Students who buy the programme from its public page
+                  appear here automatically.
+                </>
+              )}
             </p>
             <button
               type="button"
@@ -523,6 +566,7 @@ export function EnrolmentRosterView({
         <TransitionConfirm
           action={confirm.action}
           row={confirm.row}
+          containerNoun={isCohort ? 'cohort' : 'programme'}
           pending={pending}
           onClose={() => {
             if (!pending) setConfirm(null);
@@ -788,21 +832,22 @@ function AddStudentModal({
 
 const CONFIRM_COPY: Record<
   'pause' | 'reject' | 'cancel',
-  { title: (name: string) => string; body: string; confirmLabel: string }
+  { title: (name: string) => string; body: (noun: string) => string; confirmLabel: string }
 > = {
   pause: {
     title: (name) => `Pause ${name}'s access?`,
-    body: "They'll temporarily lose access to this cohort. You can resume them at any time.",
+    body: (noun) =>
+      `They'll temporarily lose access to this ${noun}. You can resume them at any time.`,
     confirmLabel: 'Pause access',
   },
   reject: {
     title: (name) => `Reject ${name}'s request?`,
-    body: 'This declines their pending enrolment request. You can add them again later.',
+    body: () => 'This declines their pending enrolment request. You can add them again later.',
     confirmLabel: 'Reject request',
   },
   cancel: {
     title: (name) => `Cancel ${name}'s enrolment?`,
-    body: "They'll lose access to this cohort. You can add them again later.",
+    body: (noun) => `They'll lose access to this ${noun}. You can add them again later.`,
     confirmLabel: 'Cancel enrolment',
   },
 };
@@ -810,12 +855,14 @@ const CONFIRM_COPY: Record<
 function TransitionConfirm({
   action,
   row,
+  containerNoun,
   pending,
   onClose,
   onConfirm,
 }: {
   action: EnrolmentAction;
   row: EnrolmentRosterRow;
+  containerNoun: 'cohort' | 'programme';
   pending: boolean;
   onClose: () => void;
   onConfirm: (note?: string) => void;
@@ -828,7 +875,7 @@ function TransitionConfirm({
     action === 'resume'
       ? {
           title: (name: string) => `Resume ${name}'s access?`,
-          body:
+          body: () =>
             row.paused_reason === 'INSTALLMENT_OVERDUE'
               ? "This lets them back in right now, but they're still behind on payment — tonight's automatic check will pause them again unless they pay or you give them more time."
               : 'This lifts the pause and restores their access.',
@@ -848,7 +895,7 @@ function TransitionConfirm({
         <h2 id="enrol-confirm-title" className="enrol-modal-title">
           {copy.title(row.name)}
         </h2>
-        <p className="enrol-modal-sub">{copy.body}</p>
+        <p className="enrol-modal-sub">{copy.body(containerNoun)}</p>
 
         {meta.note && (
           <label className="enrol-field">

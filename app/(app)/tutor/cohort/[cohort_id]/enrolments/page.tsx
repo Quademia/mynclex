@@ -32,8 +32,8 @@ export default async function CohortStudentsPage({
 
   return (
     <EnrolmentRosterView
-      cohortId={cohort_id}
-      cohortName={formatCohortName(ctx.cohort)}
+      scope={{ kind: 'COHORT', cohortId: cohort_id }}
+      contextName={formatCohortName(ctx.cohort)}
       roster={roster}
       waitlist={waitlist}
     />
