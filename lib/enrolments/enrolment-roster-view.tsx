@@ -360,7 +360,11 @@ export function EnrolmentRosterView({
     <div className="cw-page">
       <header className="cw-header">
         <div className="cw-header-titles">
-          <h1 className="cw-title">Students</h1>
+          {/* "Enrolments", not "Students" — matches the sidebar entry,
+              and "Students" is reserved for the future per-student
+              view (same rename the cohort tab got in the analytics
+              slice). */}
+          <h1 className="cw-title">Enrolments</h1>
           <p className="cw-sub">{contextName}</p>
         </div>
         <button
