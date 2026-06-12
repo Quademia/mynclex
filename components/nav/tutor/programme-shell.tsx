@@ -37,15 +37,11 @@ export async function TutorProgrammeShell({
   const programmeTitle = programme.title;
 
   // SELF_PACED programmes have no cohort layer (main.md §Self-paced
-  // surface), so the Cohorts sidebar entry hides for them. Conversely,
-  // Enrolments only shows for SELF_PACED — tutor-led enrolments are
-  // managed per cohort. Other tutor-led-only items (Live Sessions etc.)
-  // keep showing for now; their cohort-layer migration lands with
-  // later slices.
+  // surface), so the Cohorts sidebar entry hides for them. Enrolments
+  // shows for BOTH modes since the 2026-06-12 move to programme level.
   const selfPaced = programme.delivery_mode === 'SELF_PACED';
   const items = TUTOR_PROGRAMME_NAV
     .filter((item) => !(item.key === 'cohorts' && selfPaced))
-    .filter((item) => !(item.key === 'enrolments' && !selfPaced))
     .map((item) => ({
       ...item,
       href: item.href.replace(':programmeId', programmeId),

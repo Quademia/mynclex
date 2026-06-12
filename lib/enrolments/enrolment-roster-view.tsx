@@ -2,14 +2,16 @@
 //
 // Enrolment roster surface (Slice 1b + Slice 4 rework to the CD design
 // at docs/product-plan/design-handoff/payments-and-enrolment/
-// prototypes/tutor-cohort-workspace.html). Scope-driven: mounts on a
-// tutor-led COHORT (the cohort Enrolments tab) or a SELF_PACED
-// PROGRAMME (the programme Enrolments tab) — same table, same lifecycle
-// actions, same Add-student.
+// prototypes/tutor-cohort-workspace.html). Mounts ONCE, at programme
+// level, for both delivery modes (the cohort-level mount was retired
+// 2026-06-12 — payments-and-enrolment.md "Settled 2026-06-12") — same
+// table, same lifecycle actions, same Add-student.
 //
-// Cohort scope keeps two sub-tabs: Roster (the enrolled/lifecycle table,
-// with status filter chips + search) and Waitlist (student-initiated
-// off-platform leads, Convert → enrolment / Dismiss). Programme scope is
+// The chrome branches on DELIVERY MODE, not mount. Tutor-led keeps two
+// sub-tabs: Roster (every cohort's rows, cohort-tagged + filterable,
+// with status chips + search) and Waitlist (student-initiated
+// off-platform leads across all cohorts, cohort-badged, Convert →
+// enrolment / Dismiss); Add-student picks a cohort. Self-paced is
 // roster-only — waitlists and PENDING_APPROVAL are cohort concepts
 // (self-paced rows are created already ENROLLED; its leads live in the
 // sibling Enquiries tab), so its summary swaps those cells for
@@ -37,6 +39,7 @@ import { initials, relativeTime } from './format';
 import { describePlan, formatMoney, planLabel } from '@/lib/strategies/format';
 import { PaymentHistoryDrawer } from './payment-history-drawer';
 import type { Currency } from '@/lib/payments/types';
+import type { DeliveryMode } from '@/lib/programmes/types';
 import type { PaymentStrategy } from '@/lib/strategies/types';
 import {
   actionsForStatus,
@@ -44,20 +47,29 @@ import {
   ENROLMENT_SOURCE_LABEL,
   ENROLMENT_STATUS_META,
   PREFERRED_CONTACT_LABEL,
+  type CohortOption,
   type EnrolmentAction,
   type EnrolmentRosterRow,
   type EnrolmentStatus,
-  type RosterScope,
   type WaitlistEntry,
 } from './types';
 
 interface EnrolmentRosterViewProps {
-  scope: RosterScope;
-  /** Sub-heading under "Students" — the cohort name or programme title. */
+  programmeId: string;
+  /** TUTOR_LED gets the waitlist tab + cohort tag/filter/picker;
+   *  SELF_PACED stays roster-only. */
+  deliveryMode: DeliveryMode;
+  /** Sub-heading under "Students" — the programme title. */
   contextName: string;
   roster: EnrolmentRosterRow[];
-  /** Cohort scope only; programme scope omits it (self-paced has no waitlist). */
+  /** Tutor-led only; self-paced omits it (no waitlist concept). */
   waitlist?: WaitlistEntry[];
+  /** Tutor-led only: the programme's cohorts, newest first, for the
+   *  toolbar filter + the Add-student picker. */
+  cohorts?: CohortOption[];
+  /** Pre-select the cohort filter (the ?cohort= deep link from the
+   *  cohort workspace's "Manage enrolments →"). */
+  initialCohortId?: string;
   /** The programme's active payment plans, for the Add Student plan picker
    *  (add-with-plan, 2026-06-12). Empty = picker hidden. */
   plans?: PaymentStrategy[];
@@ -90,21 +102,24 @@ type Tab = 'roster' | 'waitlist';
 type StatusFilter = EnrolmentStatus | 'ALL';
 
 export function EnrolmentRosterView({
-  scope,
+  programmeId,
+  deliveryMode,
   contextName,
   roster,
   waitlist = [],
+  cohorts = [],
+  initialCohortId,
   plans = [],
   currency = 'GHS',
 }: EnrolmentRosterViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const isCohort = scope.kind === 'COHORT';
+  const tutorLed = deliveryMode === 'TUTOR_LED';
 
   const [tab, setTab] = useState<Tab>(
     // Land on Waitlist when there are leads waiting and no roster yet —
     // the action items come first. Otherwise default to Roster.
-    // (Programme scope has no waitlist, so this always lands on Roster.)
+    // (Self-paced has no waitlist, so this always lands on Roster.)
     waitlist.length > 0 && roster.length === 0 ? 'waitlist' : 'roster',
   );
 
@@ -128,9 +143,16 @@ export function EnrolmentRosterView({
   const [wlConvert, setWlConvert] = useState<WaitlistEntry | null>(null);
   const [wlDismiss, setWlDismiss] = useState<WaitlistEntry | null>(null);
 
-  // Roster filtering.
+  // Roster filtering. The cohort filter only exists for tutor-led; its
+  // initial value honours the ?cohort= deep link when it names a real
+  // cohort of this programme.
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [search, setSearch] = useState('');
+  const [cohortFilter, setCohortFilter] = useState<string>(
+    initialCohortId && cohorts.some((c) => c.cohort_id === initialCohortId)
+      ? initialCohortId
+      : 'ALL',
+  );
 
   const counts = useMemo(() => {
     const c: Record<EnrolmentStatus, number> = {
@@ -149,10 +171,11 @@ export function EnrolmentRosterView({
     const q = search.trim().toLowerCase();
     return roster.filter((r) => {
       if (statusFilter !== 'ALL' && r.status !== statusFilter) return false;
+      if (cohortFilter !== 'ALL' && r.cohort_id !== cohortFilter) return false;
       if (q && !`${r.name} ${r.email}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [roster, statusFilter, search]);
+  }, [roster, statusFilter, cohortFilter, search]);
 
   function leadName(entry: WaitlistEntry) {
     return `${entry.forename} ${entry.surname}`.trim();
@@ -160,7 +183,7 @@ export function EnrolmentRosterView({
 
   const ACTION_FN: Record<
     EnrolmentAction,
-    (scope: RosterScope, enrolmentId: string, note?: string) => Promise<TransitionResult>
+    (programmeId: string, enrolmentId: string, note?: string) => Promise<TransitionResult>
   > = {
     approve: approveEnrolmentAction,
     reject: rejectEnrolmentAction,
@@ -172,7 +195,7 @@ export function EnrolmentRosterView({
   function runAction(action: EnrolmentAction, row: EnrolmentRosterRow, note?: string) {
     setBusyId(row.enrolment_id);
     startTransition(async () => {
-      const res = await ACTION_FN[action](scope, row.enrolment_id, note);
+      const res = await ACTION_FN[action](programmeId, row.enrolment_id, note);
       setBusyId(null);
       setConfirm(null);
       if (!res.ok) {
@@ -192,7 +215,7 @@ export function EnrolmentRosterView({
   function runMarkPaid(row: EnrolmentRosterRow) {
     setBusyId(row.enrolment_id);
     startTransition(async () => {
-      const res = await markInstallmentPaidAction(scope, row.enrolment_id);
+      const res = await markInstallmentPaidAction(row.enrolment_id);
       setBusyId(null);
       setMarkPaidRow(null);
       if (!res.ok) {
@@ -207,7 +230,7 @@ export function EnrolmentRosterView({
   function runGiveTime(row: EnrolmentRosterRow, days: number) {
     setBusyId(row.enrolment_id);
     startTransition(async () => {
-      const res = await giveMoreTimeAction(scope, row.enrolment_id, days);
+      const res = await giveMoreTimeAction(row.enrolment_id, days);
       setBusyId(null);
       setGiveTimeRow(null);
       if (!res.ok) {
@@ -232,10 +255,16 @@ export function EnrolmentRosterView({
   function handleSubmit(formData: FormData) {
     setFormError(null);
     startTransition(async () => {
-      const res =
-        scope.kind === 'COHORT'
-          ? await addStudentAction(scope.cohortId, formData)
-          : await addSelfPacedStudentAction(scope.programmeId, formData);
+      // Tutor-led adds into the cohort picked in the modal; self-paced
+      // adds a cohortless row on the programme.
+      const cohortId = String(formData.get('cohort_id') ?? '');
+      if (tutorLed && !cohortId) {
+        setFormError('Choose which cohort to enrol them in.');
+        return;
+      }
+      const res = tutorLed
+        ? await addStudentAction(cohortId, formData)
+        : await addSelfPacedStudentAction(programmeId, formData);
       if (!res.ok) {
         setFormError(res.error);
         return;
@@ -252,10 +281,9 @@ export function EnrolmentRosterView({
   }
 
   function runConvert(entry: WaitlistEntry) {
-    if (scope.kind !== 'COHORT') return; // waitlists are cohort-only
     setWlBusyId(entry.waitlist_id);
     startTransition(async () => {
-      const res = await convertWaitlistEntryAction(scope.cohortId, entry.waitlist_id);
+      const res = await convertWaitlistEntryAction(entry.waitlist_id);
       setWlBusyId(null);
       setWlConvert(null);
       if (!res.ok) {
@@ -273,10 +301,9 @@ export function EnrolmentRosterView({
   }
 
   function runDismiss(entry: WaitlistEntry) {
-    if (scope.kind !== 'COHORT') return; // waitlists are cohort-only
     setWlBusyId(entry.waitlist_id);
     startTransition(async () => {
-      const res = await dismissWaitlistEntryAction(scope.cohortId, entry.waitlist_id);
+      const res = await dismissWaitlistEntryAction(entry.waitlist_id);
       setWlBusyId(null);
       setWlDismiss(null);
       if (!res.ok) {
@@ -293,10 +320,12 @@ export function EnrolmentRosterView({
     'ALL',
     ...STATUS_ORDER.filter((s) => counts[s] > 0),
   ];
-  // Programme-scope summary swaps the cohort-only cells (Pending
-  // approval / Waitlist) for the states a self-paced roster actually
-  // produces. Overdue = behind on an installment, paused or not yet.
+  // Self-paced summary swaps the cohort-flow cells (Pending approval /
+  // Waitlist) for the states its roster actually produces. Overdue =
+  // behind on an installment, paused or not yet.
   const overdueCount = roster.filter((r) => r.nextPayment?.isOverdue).length;
+  // Cancelled cohorts can't take new students (the action blocks them).
+  const joinableCohorts = cohorts.filter((c) => !c.cancelled);
 
   return (
     <div className="cw-page">
@@ -317,7 +346,7 @@ export function EnrolmentRosterView({
 
       <div className="cw-summary">
         <SummaryCell k="Enrolled" v={counts.ENROLLED} sub="Active access" />
-        {isCohort ? (
+        {tutorLed ? (
           <>
             <SummaryCell
               k="Pending approval"
@@ -336,7 +365,7 @@ export function EnrolmentRosterView({
         )}
       </div>
 
-      {isCohort && (
+      {tutorLed && (
         <nav className="cw-tabs" role="tablist">
           <button
             type="button"
@@ -362,16 +391,17 @@ export function EnrolmentRosterView({
         </nav>
       )}
 
-      {tab === 'roster' || !isCohort ? (
+      {tab === 'roster' || !tutorLed ? (
         !hasStudents ? (
           <div className="enrol-empty">
             <h2 className="enrol-empty-title">No students enrolled yet.</h2>
             <p className="enrol-empty-sub">
-              {isCohort ? (
+              {tutorLed ? (
                 <>
-                  Add a student you&apos;re bringing in off-platform — type
-                  their name and email and they&apos;ll be enrolled right
-                  away. Or convert a request from the Waitlist tab.
+                  Add a student you&apos;re bringing in off-platform — pick
+                  their cohort, type their name and email and they&apos;ll be
+                  enrolled right away. Or convert a request from the Waitlist
+                  tab.
                 </>
               ) : (
                 <>
@@ -412,20 +442,38 @@ export function EnrolmentRosterView({
                   );
                 })}
               </div>
-              <input
-                type="search"
-                className="cw-search"
-                placeholder="Search by name or email"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+              <div className="cw-toolbar-right">
+                {tutorLed && cohorts.length > 0 && (
+                  <select
+                    className="cw-cohort-select"
+                    aria-label="Filter by cohort"
+                    value={cohortFilter}
+                    onChange={(e) => setCohortFilter(e.target.value)}
+                  >
+                    <option value="ALL">All cohorts</option>
+                    {cohorts.map((c) => (
+                      <option key={c.cohort_id} value={c.cohort_id}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <input
+                  type="search"
+                  className="cw-search"
+                  placeholder="Search by name or email"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="cw-roster">
               <table>
                 <thead>
                   <tr>
-                    <th style={{ width: '30%' }}>Student</th>
+                    <th style={{ width: tutorLed ? '26%' : '30%' }}>Student</th>
+                    {tutorLed && <th>Cohort</th>}
                     <th>Status</th>
                     <th>Source</th>
                     <th>Enrolled</th>
@@ -436,7 +484,7 @@ export function EnrolmentRosterView({
                 <tbody>
                   {visibleRoster.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="cw-roster-empty">
+                      <td colSpan={tutorLed ? 7 : 6} className="cw-roster-empty">
                         No students match this filter.
                       </td>
                     </tr>
@@ -463,6 +511,15 @@ export function EnrolmentRosterView({
                               </span>
                             </div>
                           </td>
+                          {tutorLed && (
+                            <td>
+                              {row.cohort_label ? (
+                                <span className="cw-cohort-tag">{row.cohort_label}</span>
+                              ) : (
+                                <span className="cw-muted">—</span>
+                              )}
+                            </td>
+                          )}
                           <td>
                             <span className={`enrol-pill ${meta.pillClass}`}>
                               {meta.label}
@@ -590,6 +647,12 @@ export function EnrolmentRosterView({
         <AddStudentModal
           pending={pending}
           error={formError}
+          tutorLed={tutorLed}
+          cohorts={joinableCohorts}
+          // The active cohort filter pre-selects the picker — adding from
+          // a cohort-filtered view (the workspace deep link) lands in
+          // that cohort by default.
+          defaultCohortId={cohortFilter !== 'ALL' ? cohortFilter : ''}
           plans={plans}
           currency={currency}
           onClose={closeAdd}
@@ -601,7 +664,7 @@ export function EnrolmentRosterView({
         <TransitionConfirm
           action={confirm.action}
           row={confirm.row}
-          containerNoun={isCohort ? 'cohort' : 'programme'}
+          containerNoun={tutorLed ? 'cohort' : 'programme'}
           pending={pending}
           onClose={() => {
             if (!pending) setConfirm(null);
@@ -643,6 +706,7 @@ export function EnrolmentRosterView({
         <WaitlistConvertConfirm
           name={leadName(wlConvert)}
           email={wlConvert.email}
+          cohortLabel={wlConvert.cohort_label}
           pending={pending}
           onClose={() => {
             if (!pending) setWlConvert(null);
@@ -714,10 +778,11 @@ function WaitlistTab({
   return (
     <>
       <p className="cw-wl-intro">
-        People who asked to join this cohort from the public page — name,
-        email and how they&apos;d like to be contacted. Once they&apos;ve paid
-        you (or you&apos;re ready to let them in), <strong>Convert</strong>{' '}
-        sends an invite and enrols them.
+        People who asked to join one of this programme&apos;s cohorts from
+        the public page — name, email and how they&apos;d like to be
+        contacted. Once they&apos;ve paid you (or you&apos;re ready to let
+        them in), <strong>Convert</strong> sends an invite and enrols them
+        into the cohort they asked for.
       </p>
       <div className="cw-waitlist">
         {waitlist.map((entry) => {
@@ -733,6 +798,7 @@ function WaitlistTab({
                   <span className="cw-student-email">{entry.email}</span>
                   {entry.phone && <span className="cw-wl-phone">{entry.phone}</span>}
                   <div className="cw-wl-prefs">
+                    <span className="cw-cohort-tag">{entry.cohort_label}</span>
                     {entry.preferred_contact.map((p) => (
                       <span key={p} className="cw-pref-badge">
                         {PREFERRED_CONTACT_LABEL[p]}
@@ -787,6 +853,9 @@ function planTotalPayments(p: PaymentStrategy): number {
 function AddStudentModal({
   pending,
   error,
+  tutorLed,
+  cohorts,
+  defaultCohortId,
   plans,
   currency,
   onClose,
@@ -794,6 +863,10 @@ function AddStudentModal({
 }: {
   pending: boolean;
   error: string | null;
+  tutorLed: boolean;
+  /** Joinable (non-cancelled) cohorts — tutor-led only. */
+  cohorts: CohortOption[];
+  defaultCohortId: string;
   plans: PaymentStrategy[];
   currency: Currency;
   onClose: () => void;
@@ -817,6 +890,10 @@ function AddStudentModal({
     setReceived(0);
     setGraceDays(7);
   }
+
+  // A tutor-led add needs a cohort to land in; with none joinable the
+  // form can't submit (create a cohort first).
+  const noJoinableCohort = tutorLed && cohorts.length === 0;
 
   return (
     <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
@@ -873,6 +950,40 @@ function AddStudentModal({
               disabled={pending}
             />
           </label>
+
+          {tutorLed &&
+            (noJoinableCohort ? (
+              <p className="enrol-form-error" role="alert">
+                This programme has no cohort that can take enrolments yet —
+                create a cohort first, then add students into it.
+              </p>
+            ) : (
+              <label className="enrol-field">
+                <span className="enrol-field-label">Cohort</span>
+                <select
+                  name="cohort_id"
+                  className="enrol-input"
+                  defaultValue={
+                    cohorts.some((c) => c.cohort_id === defaultCohortId)
+                      ? defaultCohortId
+                      : cohorts.length === 1
+                        ? cohorts[0].cohort_id
+                        : ''
+                  }
+                  required
+                  disabled={pending}
+                >
+                  <option value="" disabled>
+                    Choose a cohort…
+                  </option>
+                  {cohorts.map((c) => (
+                    <option key={c.cohort_id} value={c.cohort_id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
 
           {plans.length > 0 && (
             <>
@@ -970,7 +1081,7 @@ function AddStudentModal({
             <button
               type="submit"
               className="enrol-btn enrol-btn-primary"
-              disabled={pending}
+              disabled={pending || noJoinableCohort}
             >
               {pending ? 'Adding…' : 'Add student'}
             </button>
@@ -1227,12 +1338,14 @@ function MarkPaidConfirm({
 function WaitlistConvertConfirm({
   name,
   email,
+  cohortLabel,
   pending,
   onClose,
   onConfirm,
 }: {
   name: string;
   email: string;
+  cohortLabel: string;
   pending: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -1256,8 +1369,9 @@ function WaitlistConvertConfirm({
             account (skipped if they already have one).
           </li>
           <li>
-            Add them to this cohort as <strong>Enrolled</strong> — they appear
-            in the roster and get access right away.
+            Add them to the <strong>{cohortLabel}</strong> cohort as{' '}
+            <strong>Enrolled</strong> — they appear in the roster and get
+            access right away.
           </li>
         </ul>
         <p className="enrol-modal-sub">

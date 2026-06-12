@@ -91,6 +91,14 @@ export default async function CohortOverviewPage({
               </dd>
             </div>
           </dl>
+          {/* The roster lives at programme level (2026-06-12 move);
+              ?cohort= pre-filters it to this cohort's students. */}
+          <Link
+            href={`/tutor/programme/${programme.programme_id}/enrolments?cohort=${cohort_id}`}
+            className="cohort-overview-link"
+          >
+            Manage enrolments →
+          </Link>
         </section>
 
         {analytics && analytics.summary.studentCount > 0 && (

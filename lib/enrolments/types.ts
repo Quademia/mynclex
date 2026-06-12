@@ -7,13 +7,22 @@
 
 import type { NextPaymentView } from '@/lib/payments/schedule';
 
-/** Which container a roster surface manages — a tutor-led cohort or a
- *  self-paced programme (cohort_id IS NULL rows). Drives the actions'
- *  revalidate path and the view's container-specific chrome (the
- *  waitlist tab and approval cell are cohort-only concepts). */
-export type RosterScope =
-  | { kind: 'COHORT'; cohortId: string }
-  | { kind: 'PROGRAMME'; programmeId: string };
+// The enrolment roster lives at PROGRAMME level for both delivery
+// modes (settled 2026-06-12 — payments-and-enrolment.md). Tutor-led
+// shows every cohort's rows (cohort-tagged); self-paced shows the
+// cohortless rows. The old RosterScope union (COHORT | PROGRAMME)
+// died with the cohort-level mount — actions now take the programme
+// id directly and the view branches on delivery mode, not mount.
+
+/** One cohort of a tutor-led programme, as the roster surface needs it —
+ *  the toolbar's cohort filter and the Add-student cohort picker.
+ *  Cancelled cohorts stay in the filter (their rows still exist) but
+ *  are excluded from the picker (enrolment is closed). */
+export interface CohortOption {
+  cohort_id: string;
+  label: string;
+  cancelled: boolean;
+}
 
 export type EnrolmentStatus =
   | 'PENDING_APPROVAL'
@@ -37,6 +46,11 @@ export interface EnrolmentRosterRow {
   enrolled_at: string;
   name: string;
   email: string;
+  // Which cohort the enrolment belongs to — NULL for self-paced rows.
+  // The label is the display name (custom name or date-range autogen),
+  // resolved server-side so the view never needs the cohort table.
+  cohort_id: string | null;
+  cohort_label: string | null;
   // Why a PAUSED row is paused — drives which actions/copy show (Give more
   // time + the futile-Resume warning apply to INSTALLMENT_OVERDUE). NULL
   // unless PAUSED.
@@ -65,12 +79,15 @@ export const PREFERRED_CONTACT_LABEL: Record<PreferredContact, string> = {
 /** Channels that need a phone number — used by the phone-required rule. */
 export const PHONE_CONTACT_METHODS: PreferredContact[] = ['CALL', 'SMS', 'WHATSAPP'];
 
-/** One PENDING student-initiated waitlist lead (Slice 4), shown in the
- *  cohort workspace. forename/surname/email are self-supplied (no
- *  account yet); phone + message are optional; preferred_contact says
- *  how they want to be reached. */
+/** One PENDING student-initiated waitlist lead (Slice 4), shown on the
+ *  programme Enrolments page (cohort-badged — leads always belong to a
+ *  cohort). forename/surname/email are self-supplied (no account yet);
+ *  phone + message are optional; preferred_contact says how they want
+ *  to be reached. */
 export interface WaitlistEntry {
   waitlist_id: string;
+  cohort_id: string;
+  cohort_label: string;
   forename: string;
   surname: string;
   email: string;
