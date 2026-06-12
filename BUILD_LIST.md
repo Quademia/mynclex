@@ -9,21 +9,30 @@ where it's listed.
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
 > **⏭ NEXT SESSION — open.** Rotate per the alternate-features rule.
-> Candidates: **"Add student WITH a payment plan"** (⭐ DESIGN SETTLED
-> 2026-06-12, ready to build — full spec in
-> [payments-and-enrolment.md → "Settled 2026-06-12"](docs/product-plan/payments-and-enrolment.md):
-> plan picker + received-count 0..N + tutor-set first-payment grace in
-> the Add Student form, both rosters; snapshot frozen like checkout;
-> collection follows the programme's mode — QAcademy-collection students
-> pay from the tile incl. position 1, tutor-collection is tracking-only;
-> NEW GUARD needed on the installment checkout to refuse
-> tutor-collection programmes) · library
-> **11.11c** (tutor embed-analytics dashboard + the stubbed Mark-done →
-> progress write-through) · **11.17** (library polish) · programme
-> **Overview** detail landing (still a placeholder). Operational ⚠ from
-> the 2026-06-12 payments review: **`PAYSTACK_SECRET_KEY` is not set on
-> the prod Worker** — prod checkout will fail until it is (5-min fix,
-> needs the dashboard/wrangler).
+> Candidates: library **11.11c** (tutor embed-analytics dashboard + the
+> stubbed Mark-done → progress write-through) · **11.17** (library
+> polish) · programme **Overview** detail landing (still a placeholder) ·
+> a `main → prod` **release** (carries both 2026-06-12 slices; no
+> migrations). Operational ⚠ from the 2026-06-12 payments review:
+> **`PAYSTACK_SECRET_KEY` is not set on the prod Worker** — prod
+> checkout will fail until it is (5-min fix, needs the
+> dashboard/wrangler).
+
+> **ADD STUDENT WITH A PAYMENT PLAN (2026-06-12, ✅ MERGED to `main`, not
+> yet prod).** Built same-day from the settled design
+> ([payments-and-enrolment.md → "Settled 2026-06-12"](docs/product-plan/payments-and-enrolment.md)).
+> Add Student modal (both rosters): optional **plan picker** (active
+> plans, same list as checkout) + **"payments already received 0..N"**
+> (synthetic OFF_PLATFORM ACTIVATED rows — Mark-paid applied at add;
+> enrolment rolled back if the insert fails) + **tutor-set first-payment
+> grace** at 0 received (reuses `installment_grace_until` + history
+> entry). Snapshot frozen identically to checkout → schedule/tile/sweep/
+> Mark-paid all apply unchanged. **Collection-mode guards** (new — plans
+> can now exist on tutor-collection programmes): `init.ts` installment
+> branch + the installment checkout page refuse non-ON_PLATFORM; the
+> student tile shows "Pay your tutor directly" instead of Pay
+> (`canPayOnline` through the switcher). All app-layer, no migration.
+> Commit `d283aa0`.
 
 > **SELF-PACED ENROLMENTS TAB + access-window freeze (2026-06-12, ✅
 > MERGED to `main`, not yet prod).** The sweep's biggest find: self-paced
