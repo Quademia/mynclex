@@ -9,14 +9,31 @@ where it's listed.
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
 > **⏭ NEXT SESSION — open.** Rotate per the alternate-features rule.
-> Candidates: library **11.11c** (tutor embed-analytics dashboard + the
-> stubbed Mark-done → progress write-through) · **11.17** (library
-> polish) · programme **Overview** detail landing (still a placeholder) ·
-> a `main → prod` **release** (carries both 2026-06-12 slices; no
-> migrations). Operational ⚠ from the 2026-06-12 payments review:
-> **`PAYSTACK_SECRET_KEY` is not set on the prod Worker** — prod
-> checkout will fail until it is (5-min fix, needs the
-> dashboard/wrangler).
+> Candidates: the **global `/tutor/payments` transactions page** (settled
+> 2026-06-12: built ONCE at global level w/ programme · cohort · channel ·
+> date filters — see payments-and-enrolment.md § "tutor money surfaces";
+> the page is still the original placeholder) · library **11.11c** (tutor
+> embed-analytics dashboard + the stubbed Mark-done → progress
+> write-through) · **11.17** (library polish) · programme **Overview**
+> detail landing (still a placeholder) · a `main → prod` **release**
+> (carries all 2026-06-12 slices; no migrations). Operational ⚠ from
+> the 2026-06-12 payments review: **`PAYSTACK_SECRET_KEY` is not set on
+> the prod Worker** — prod checkout will fail until it is (5-min fix,
+> needs the dashboard/wrangler).
+
+> **PAYMENT-HISTORY DRAWER + MONEY-SURFACE IA (2026-06-12, on session
+> branch, not yet merged).** Per-student payment history behind the
+> roster's payment pill: body-portaled right-side drawer (audit
+> history-drawer pattern) — plan · k-of-N · received vs remaining ·
+> every position's state w/ channel (Paystack vs marked-by-tutor) ·
+> grace history · refunds; `getPaymentHistoryAction` ownership-gated
+> like Mark-paid. Discoverability: 🕑 button + dotted underline on every
+> plan-tracked pill. Also settled the money IA (roster = ACCESS page;
+> transactions = GLOBAL payments page w/ filters, no per-programme
+> pages) and **removed the programme sidebar `Students` placeholder**
+> (overtaken by Enrolments + Analytics; per-student 360 → global My
+> Students later). Parked: due-date editing (Option A anchor vs B typed
+> dates — see plan doc). Commits `0851438` · `a795e65` · `9d6a8c6`.
 
 > **ADD STUDENT WITH A PAYMENT PLAN (2026-06-12, ✅ MERGED to `main`, not
 > yet prod).** Built same-day from the settled design

@@ -882,6 +882,37 @@ its own future design.
 **Revisit trigger:** real tutors hitting schedule-misalignment in
 practice (expect it first around future-dated cohorts).
 
+#### Settled 2026-06-12 — tutor money surfaces: who shows what (IA)
+
+Same session, after the per-student **payment-history drawer** shipped
+(click the roster's payment pill / 🕑 → right-side drawer: plan +
+k-of-N + received/remaining + every position's state with channel —
+"online via Paystack (QAcademy)" vs "off-platform — marked received by
+you" — + grace history + refunds). Discussing where money belongs
+produced this boundary:
+
+- **The roster (cohort/programme Enrolments) is an ACCESS-and-enrolment
+  page.** Payments appear there only as the thing that explains or
+  changes access (overdue → paused; Mark-paid → resumed; the per-student
+  drawer answers "what does this student owe?"). Cross-student money
+  does NOT accrete here.
+- **Payment plans tab = pricing config** ("what do I offer") — correctly
+  programme-level, stays put.
+- **The transactions list ("what money came in?") = the GLOBAL
+  `/tutor/payments` page, built ONCE with filters** (programme, cohort,
+  channel, date) — currently still a placeholder. No per-programme or
+  per-cohort payments pages: a filter is cheaper than a page, and at
+  1–3 programmes per tutor global-with-filters is the right zoom. If
+  tutors later want it one click from a programme workspace, a
+  programme tab can mount the same component pre-filtered (the roster's
+  scope pattern) — choosing global now closes no doors.
+- **The programme sidebar's `Students` placeholder was REMOVED**
+  (2026-06-12) — overtaken by Enrolments (admin roster) + cohort
+  Analytics (performance); on self-paced programmes the adjacent
+  Enrolments/Students pair invited confusion. The future per-student
+  360 likely lives at the GLOBAL **My Students** page (placeholder
+  kept). Restore is one nav line if ever wanted.
+
 #### On-platform flow — full sequence (Settled 2026-05-18)
 
 When the tutor has opted into on-platform collection and a student
