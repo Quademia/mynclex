@@ -270,7 +270,15 @@
 .cw-pay.extended .cw-pay-due {
   color: var(--warning);
 }
-/* Plan-tracked pills are clickable → the payment-history drawer. */
+/* Plan-tracked pills are clickable → the payment-history drawer. The
+ * permanent dotted underline hints "this does something"; the adjacent
+ * 🕑 button is the explicit affordance (same vocabulary as the audit
+ * history clock on the bank lists). */
+.cw-pay-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
 .cw-pay-btn {
   background: none;
   border: none;
@@ -278,10 +286,41 @@
   font: inherit;
   cursor: pointer;
   text-align: left;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--border-strong, #cbd5e1);
+  text-underline-offset: 3px;
 }
 .cw-pay-btn:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration-style: solid;
+  text-decoration-color: currentColor;
+}
+.cw-pay-history {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.06s ease;
+}
+.cw-pay-history:hover {
+  border-color: var(--accent, var(--primary));
+  background: var(--primary-light, #eef2ff);
+}
+.cw-pay-history:active {
+  transform: scale(0.94);
+}
+.cw-pay-history:focus-visible {
+  outline: 2px solid var(--accent, var(--primary));
+  outline-offset: 1px;
 }
 .cw-row-actions {
   display: flex;

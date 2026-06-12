@@ -473,32 +473,45 @@ export function EnrolmentRosterView({
                           </td>
                           <td className="cw-muted">{relativeTime(row.enrolled_at)}</td>
                           <td>
-                            {np ? (
-                              <button
-                                type="button"
-                                className={`cw-pay cw-pay-btn${
-                                  np.isOverdue ? ' overdue' : graced ? ' extended' : ''
-                                }`}
-                                onClick={() => setHistoryRow(row)}
-                                title="View payment history"
-                              >
-                                {np.isOverdue ? 'Overdue · ' : graced ? 'Grace · ' : 'Next · '}
-                                {formatMoney(np.currency, np.amountMinor)}
-                                <span className="cw-pay-due">
-                                  {' '}
-                                  {np.isOverdue ? 'since' : graced ? 'until' : 'by'}{' '}
-                                  {formatDueShort(graced ? np.graceUntilIso! : np.dueDateIso)}
-                                </span>
-                              </button>
-                            ) : row.paymentFullyPaid ? (
-                              <button
-                                type="button"
-                                className="cw-pay cw-pay-btn paid"
-                                onClick={() => setHistoryRow(row)}
-                                title="View payment history"
-                              >
-                                Paid in full
-                              </button>
+                            {np || row.paymentFullyPaid ? (
+                              <span className="cw-pay-cell">
+                                {np ? (
+                                  <button
+                                    type="button"
+                                    className={`cw-pay cw-pay-btn${
+                                      np.isOverdue ? ' overdue' : graced ? ' extended' : ''
+                                    }`}
+                                    onClick={() => setHistoryRow(row)}
+                                    title="View payment history"
+                                  >
+                                    {np.isOverdue ? 'Overdue · ' : graced ? 'Grace · ' : 'Next · '}
+                                    {formatMoney(np.currency, np.amountMinor)}
+                                    <span className="cw-pay-due">
+                                      {' '}
+                                      {np.isOverdue ? 'since' : graced ? 'until' : 'by'}{' '}
+                                      {formatDueShort(graced ? np.graceUntilIso! : np.dueDateIso)}
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="cw-pay cw-pay-btn paid"
+                                    onClick={() => setHistoryRow(row)}
+                                    title="View payment history"
+                                  >
+                                    Paid in full
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  className="cw-pay-history"
+                                  onClick={() => setHistoryRow(row)}
+                                  title="View payment history"
+                                  aria-label="View payment history"
+                                >
+                                  <span aria-hidden="true">🕑</span>
+                                </button>
+                              </span>
                             ) : row.enrolment_source === 'TUTOR_ADDED' ? (
                               <span className="cw-pay offplatform">Off-platform</span>
                             ) : row.enrolment_source === 'ADMIN_GRANT' ? (
