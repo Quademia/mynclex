@@ -3,8 +3,9 @@
 // Tutor nav configs. Two contexts, each with its own sidebar:
 //   - Global    — cross-programme: programmes list, private bank,
 //                 quizzes, students, payments, profile.
-//   - Programme — scoped to one programme: curriculum, sessions,
-//                 assignments, students, results.
+//   - Programme — scoped to one programme: curriculum, library,
+//                 quizzes, enquiries, enrolments + the Delivery
+//                 section (cohorts; the run detail is in-page).
 //
 // To add/remove/reorder a sidebar item, edit this file only.
 //
@@ -96,25 +97,8 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   // Placeholder route still exists; restoring is one line.
 ];
 
-/**
- * Cohort-scoped nav. Sibling world of the programme nav — opened
- * when a tutor clicks into a specific cohort run. Hrefs contain
- * ':cohortId' which the cohort layout replaces with the actual
- * [cohort_id] route param. Slice 9.2c set up the chrome; slice
- * 9.3f adds the Curriculum tab (the cohort's inclusion + release-
- * date controls over the programme's template activities).
- */
-export const TUTOR_COHORT_NAV: NavItem[] = [
-  { key: 'overview',      label: 'Overview',      icon: 'home',   href: '/tutor/cohort/:cohortId/overview' },
-  { key: 'curriculum',    label: 'Curriculum',    icon: 'layers', href: '/tutor/cohort/:cohortId/curriculum' },
-  // Enrolments moved UP to the programme sidebar 2026-06-12 (route
-  // deleted too) — the cohort workspace is delivery-only; its Overview
-  // links "Manage enrolments →" to the programme page pre-filtered to
-  // this cohort.
-  // Cohort analytics — completion (Phase 1) + quiz performance (Phase 2):
-  // how the students of this run are doing.
-  { key: 'analytics',     label: 'Analytics',     icon: 'chart',  href: '/tutor/cohort/:cohortId/analytics' },
-  { key: 'sessions',      label: 'Sessions',      icon: 'video',  href: '/tutor/cohort/:cohortId/sessions' },
-  { key: 'announcements', label: 'Announcements', icon: 'edit',   href: '/tutor/cohort/:cohortId/announcements' },
-  { key: 'settings',      label: 'Settings',      icon: 'settings', href: '/tutor/cohort/:cohortId/settings' },
-];
+// The cohort-scoped nav (TUTOR_COHORT_NAV) was retired in the
+// cohort-workspace fold (2026-06-12): the cohort run detail now
+// renders IN PLACE on the programme Cohorts page (?cohort= + ?tab=,
+// the library pattern), so a cohort no longer has its own sidebar.
+// Tab config lives in lib/cohorts/cohort-detail.tsx.
