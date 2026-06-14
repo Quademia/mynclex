@@ -8,8 +8,8 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **COHORT-SPECIFIC ACTIVITIES — SLICES 1–4 BUILT + MERGED to `main`
-> (2026-06-14; Sam-tested on dev). Only Slice 5 (polish) remains.** The
+> **COHORT-SPECIFIC ACTIVITIES — COMPLETE: SLICES 1–5 BUILT + MERGED to
+> `main` (2026-06-14; Sam-tested on dev; not yet released to prod).** The
 > cohort-only "escape valve": a tutor adds activities / blocks that live in
 > ONE cohort, on the cohort Curriculum tab, without touching the shared
 > programme template. **One migration for the whole feature**
@@ -33,9 +33,15 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   (render-side) build once prod was confirmed empty — **no migration**.
 >   In-block activities keep tight 1/2/3 ordinals (they only order
 >   themselves; reorder there is a swap).
+> - **Slice 5** (`9147677`) — **polish**: Note/Shelf attach nudge parity;
+>   the quiz-delete blocking dialog names the cohort (+ links to its
+>   Curriculum tab) for a cohort-only Mock; a discoverability hint; the
+>   reorder no-gap edge surfaces a friendly error. Verified the cohort
+>   analytics already counts cohort-only completions. Deliberately skipped
+>   (evaluated): in-block ordinal spacing + a per-row "Template" pill.
 >
-> The plan is **5 slices**: 1 schema+loose ✅ · 2 blocks ✅ · 3 reference
-> types ✅ · 4 ordering ✅ · 5 polish ⬜. Design + slices in
+> **All 5 slices ✅. Feature complete on `main`.** Only follow-up = the
+> `main → prod` **release** (carries `20260702120000`). Design + slices in
 > [cohort-specific-activities.md](docs/product-plan/cohort-specific-activities.md);
 > detail in [sessions/2026-06.md](sessions/2026-06.md).
 

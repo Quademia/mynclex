@@ -1,17 +1,19 @@
 # Cohort-specific activities — the cohort-only escape valve
 
-*Design agreed with Sam 2026-06-14. Status: **Slices 1–4 BUILT + MERGED to
-`main`** (2026-06-14; Sam-tested on dev). Slice 1 = schema (`cohort_id`
-migration) + loose self-contained activities (Text / PDF / External link);
-Slice 2 = cohort-only blocks; Slice 3 = reference types (3a Mock /
-Practice quiz · 3b Library Note / Shelf); Slice 4 = ordering / placement
-(up/down reorder, the **"store"** spaced-number model — one physically
-spaced number line, no migration). **Only Slice 5 (polish) remains.** One
-migration for the whole feature (`20260702120000`, on dev + `main`; ships
-to prod at the next release). Point 1 (where content lives) is accepted but
-Sam flagged he may revisit. Live sessions are explicitly **out of scope**
-here — they get their own treatment (the Live Session Planner), discussed
-separately.*
+*Design agreed with Sam 2026-06-14. Status: **COMPLETE — Slices 1–5 BUILT +
+MERGED to `main`** (2026-06-14; Sam-tested on dev; **not yet released to
+prod**). Slice 1 = schema (`cohort_id` migration) + loose self-contained
+activities (Text / PDF / External link); Slice 2 = cohort-only blocks;
+Slice 3 = reference types (3a Mock / Practice quiz · 3b Library Note /
+Shelf); Slice 4 = ordering / placement (up/down reorder, the **"store"**
+spaced-number model — one physically spaced number line, no migration);
+Slice 5 = polish (Note/Shelf nudge parity, quiz-delete cohort label,
+discoverability hint, reorder edge message; analytics verified to already
+count cohort-only completions). One migration for the whole feature
+(`20260702120000`, on dev + `main`; ships to prod at the next release).
+Point 1 (where content lives) is accepted but Sam flagged he may revisit.
+Live sessions are explicitly **out of scope** here — they get their own
+treatment (the Live Session Planner), discussed separately.*
 
 Part of the `mynclex/docs/product-plan/` set. The cohort-curriculum UX
 this plugs into lives in
@@ -430,9 +432,21 @@ Unit Builder UI, admin surfaces.
    disturbing template order. Add still drops at the bottom of the week,
    then reorder. Split out from Slice 2 (decided 2026-06-14 with Sam) so the
    ordering work can be built and tested on its own.
-5. **Slice 5 — polish.** Nudge/reminder refinements, empty states, any
-   analytics rollup that should count cohort-only completions, and the
-   remaining edge cases.
+5. **Slice 5 — polish. ✅ BUILT (2026-06-14).** Note/Shelf attach **nudge
+   parity** (the draft/live soft-warn now fires for attached Notes/Shelves
+   too, via an `onAttached` callback + a shared `nudgeForAdd`); the
+   **quiz-delete blocking dialog names the cohort** for a cohort-only Mock
+   activity (`QuizActivityLink` gains optional `cohort_id`/`cohort_name`,
+   resolved in one batch read; the link points to the cohort's Curriculum
+   tab); a **discoverability** line in the cohort Curriculum header about
+   adding cohort-only content; and the **reorder edge** (a no-whole-number
+   gap now surfaces a friendly error vs a silent no-op). **Analytics
+   verified** — the cohort dashboard already counts cohort-only completions
+   (it reads activities through the checklist, no `source` filter), so no
+   build there. **Deliberately not done** (evaluated, recommended against):
+   spacing the in-block ordinals (they're a separate per-block line where
+   1/2/3 is the correct representation) and a "Template" pill on every row
+   (clutter — the Cohort-only pill is the signal).
 
 ---
 
