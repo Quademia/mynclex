@@ -8,6 +8,25 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **COHORT-SPECIFIC ACTIVITIES — SLICES 1 + 2 BUILT (2026-06-14, on the
+> session branch; Sam-tested on dev; NOT yet merged to `main`).** The
+> cohort-only "escape valve": a tutor adds activities / blocks that live
+> in ONE cohort, on the cohort Curriculum tab, without touching the shared
+> programme template. **Slice 1** (`e803c6c`) — `cohort_id` migration
+> (`20260702120000`, on dev, **ships to prod next release**) + loose
+> Text/PDF/Link activities reusing the shared editor (publish via its
+> existing Status tick, default Draft) + soft-warn nudge + the stale
+> Draft-help-text fix; the leak-prevention `cohort_id IS NULL` filter on
+> the template-layer reads; `getCohortChecklist` cohort-scoped + flagged.
+> **Slice 2** (`da73a9b`) — cohort-only **blocks** (add · add-activity-
+> into-block · edit · delete-cascades) + the student blocks-read widen.
+> Both land at the **bottom of the week**; placement/reorder is the
+> dedicated **Slice 4**. The plan is now **5 slices**: 1 schema+loose ✅ ·
+> 2 blocks ✅ · 3 reference types (Mock/Quiz/Library/Shelf) · 4
+> ordering/placement · 5 polish. Design + slices in
+> [cohort-specific-activities.md](docs/product-plan/cohort-specific-activities.md);
+> detail in [sessions/2026-06.md](sessions/2026-06.md).
+
 > **⏭ NEXT: the global `/tutor/payments` transactions page** (settled
 > 2026-06-12: built ONCE globally w/ programme · cohort · channel ·
 > date filters — no per-programme money pages). Then: library

@@ -1,10 +1,13 @@
 # Cohort-specific activities — the cohort-only escape valve
 
-*Design agreed with Sam 2026-06-14. Status: **DESIGN AGREED, NOT YET
-BUILT.** Point 1 (where content lives) is accepted but Sam flagged he
-may revisit. Live sessions are explicitly **out of scope** here — they
-get their own treatment (the Live Session Planner), discussed
-separately.*
+*Design agreed with Sam 2026-06-14. Status: **Slices 1 + 2 BUILT**
+(2026-06-14, on the session branch — Sam-tested on dev, not yet merged to
+`main`): Slice 1 = schema (`cohort_id` migration) + loose self-contained
+activities (Text / PDF / External link); Slice 2 = cohort-only blocks.
+**Slices 3–5 pending** (reference types → ordering/placement → polish).
+Point 1 (where content lives) is accepted but Sam flagged he may revisit.
+Live sessions are explicitly **out of scope** here — they get their own
+treatment (the Live Session Planner), discussed separately.*
 
 Part of the `mynclex/docs/product-plan/` set. The cohort-curriculum UX
 this plugs into lives in
@@ -358,7 +361,7 @@ Unit Builder UI, admin surfaces.
 ## Slice breakdown (proposed)
 
 1. **Slice 1 — schema + cohort-only loose activities (self-contained
-   types).** Migration (`cohort_id` on activities + blocks); RLS review;
+   types). ✅ BUILT (2026-06-14).** Migration (`cohort_id` on activities + blocks); RLS review;
    the `cohort_id IS NULL` filter on the programme-layer queries;
    `getCohortChecklist` scoped to this cohort + cohort-only rows merged
    into the unit bodies; create / edit / delete for **Text / PDF /
@@ -369,7 +372,7 @@ Unit Builder UI, admin surfaces.
    Draft help-text fix**; new cohort-only activities **append at the
    bottom of their week** (free in-between placement deferred to Slice
    2); student loose-activity delivery verified. (No blocks yet.)
-2. **Slice 2 — cohort-only blocks.** "+ Add cohort-only block",
+2. **Slice 2 — cohort-only blocks. ✅ BUILT (2026-06-14).** "+ Add cohort-only block",
    add-activity-into-block, block edit/delete, ≥1-activity rule;
    student blocks read widened. Cohort-only blocks — like the loose
    activities in Slice 1 — land at the **bottom of the week** for now;
