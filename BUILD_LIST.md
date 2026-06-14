@@ -8,22 +8,34 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **COHORT-SPECIFIC ACTIVITIES — SLICES 1 + 2 BUILT (2026-06-14, on the
-> session branch; Sam-tested on dev; NOT yet merged to `main`).** The
-> cohort-only "escape valve": a tutor adds activities / blocks that live
-> in ONE cohort, on the cohort Curriculum tab, without touching the shared
-> programme template. **Slice 1** (`e803c6c`) — `cohort_id` migration
-> (`20260702120000`, on dev, **ships to prod next release**) + loose
-> Text/PDF/Link activities reusing the shared editor (publish via its
-> existing Status tick, default Draft) + soft-warn nudge + the stale
-> Draft-help-text fix; the leak-prevention `cohort_id IS NULL` filter on
-> the template-layer reads; `getCohortChecklist` cohort-scoped + flagged.
-> **Slice 2** (`da73a9b`) — cohort-only **blocks** (add · add-activity-
-> into-block · edit · delete-cascades) + the student blocks-read widen.
-> Both land at the **bottom of the week**; placement/reorder is the
-> dedicated **Slice 4**. The plan is now **5 slices**: 1 schema+loose ✅ ·
-> 2 blocks ✅ · 3 reference types (Mock/Quiz/Library/Shelf) · 4
-> ordering/placement · 5 polish. Design + slices in
+> **COHORT-SPECIFIC ACTIVITIES — SLICES 1–4 BUILT + MERGED to `main`
+> (2026-06-14; Sam-tested on dev). Only Slice 5 (polish) remains.** The
+> cohort-only "escape valve": a tutor adds activities / blocks that live in
+> ONE cohort, on the cohort Curriculum tab, without touching the shared
+> programme template. **One migration for the whole feature**
+> (`20260702120000`, on dev + `main`, **ships to prod next release**).
+> - **Slice 1** (`e803c6c`) — `cohort_id` schema + loose Text/PDF/Link via
+>   the shared editor (publish = its existing Status tick) + soft-warn +
+>   stale-help-text fix; `cohort_id IS NULL` leak filter on template reads.
+> - **Slice 2** (`da73a9b`) — cohort-only **blocks** (add / add-into-block
+>   / edit / delete-cascades) + student blocks-read widen.
+> - **Slice 3a** (`e8089f2`) — **Mock + Practice quiz** (shared editor;
+>   cohort-only quiz usage NOT mirrored programme-wide, but the quiz-delete
+>   guard still protects it). **Slice 3b** (`642e21b`) — **Library Note +
+>   Shelf** via cohort-aware attach modals (`cohortId` param +
+>   `lib/curriculum/cohort-attach.ts`).
+> - **Slice 4** (`008ce5c` → `06628cf`) — **ordering / placement**: up/down
+>   reorder arrows on cohort-only loose items, blocks, and in-block
+>   activities; wedge between template items; template never moves. Mechanic
+>   = the **"store"** spaced-number model (one physically spaced line,
+>   `UNIT_BODY_ORDINAL_STEP = 1e6`; template "add" → `max + STEP`; reorder =
+>   midpoint of new neighbours). Switched from an initial "treat"
+>   (render-side) build once prod was confirmed empty — **no migration**.
+>   In-block activities keep tight 1/2/3 ordinals (they only order
+>   themselves; reorder there is a swap).
+>
+> The plan is **5 slices**: 1 schema+loose ✅ · 2 blocks ✅ · 3 reference
+> types ✅ · 4 ordering ✅ · 5 polish ⬜. Design + slices in
 > [cohort-specific-activities.md](docs/product-plan/cohort-specific-activities.md);
 > detail in [sessions/2026-06.md](sessions/2026-06.md).
 

@@ -1,13 +1,17 @@
 # Cohort-specific activities — the cohort-only escape valve
 
-*Design agreed with Sam 2026-06-14. Status: **Slices 1 + 2 BUILT**
-(2026-06-14, on the session branch — Sam-tested on dev, not yet merged to
-`main`): Slice 1 = schema (`cohort_id` migration) + loose self-contained
-activities (Text / PDF / External link); Slice 2 = cohort-only blocks.
-**Slices 3–5 pending** (reference types → ordering/placement → polish).
-Point 1 (where content lives) is accepted but Sam flagged he may revisit.
-Live sessions are explicitly **out of scope** here — they get their own
-treatment (the Live Session Planner), discussed separately.*
+*Design agreed with Sam 2026-06-14. Status: **Slices 1–4 BUILT + MERGED to
+`main`** (2026-06-14; Sam-tested on dev). Slice 1 = schema (`cohort_id`
+migration) + loose self-contained activities (Text / PDF / External link);
+Slice 2 = cohort-only blocks; Slice 3 = reference types (3a Mock /
+Practice quiz · 3b Library Note / Shelf); Slice 4 = ordering / placement
+(up/down reorder, the **"store"** spaced-number model — one physically
+spaced number line, no migration). **Only Slice 5 (polish) remains.** One
+migration for the whole feature (`20260702120000`, on dev + `main`; ships
+to prod at the next release). Point 1 (where content lives) is accepted but
+Sam flagged he may revisit. Live sessions are explicitly **out of scope**
+here — they get their own treatment (the Live Session Planner), discussed
+separately.*
 
 Part of the `mynclex/docs/product-plan/` set. The cohort-curriculum UX
 this plugs into lives in
@@ -403,12 +407,16 @@ Unit Builder UI, admin surfaces.
    activities in Slice 1 — land at the **bottom of the week** for now;
    all reordering/placement is split out into its own slice (Slice 4
    below).
-3. **Slice 3 — reference types.** Extend creation to **Mock +
-   Practice quiz** (reuse the quiz picker), then **Library Note +
-   Shelf** (reuse their attach modals).
-4. **Slice 4 — ordering / placement (its own slice).** Build the
-   spaced-position-numbers model from *"Ordering"* above end to end, using
-   the **decided mechanic: "Gap the numbers", the *store* variant — one
+3. **Slice 3 — reference types. ✅ BUILT (2026-06-14).** Extend creation
+   to **Mock + Practice quiz** (3a — reuse the quiz picker; cohort-only
+   quiz usage is NOT mirrored into `nclex_programme_quizzes`, but the
+   quiz-delete guard still protects it), then **Library Note + Shelf** (3b
+   — reuse their attach modals, made cohort-aware via a `cohortId` param +
+   `lib/curriculum/cohort-attach.ts`).
+4. **Slice 4 — ordering / placement (its own slice). ✅ BUILT
+   (2026-06-14).** Built the spaced-position-numbers model from
+   *"Ordering"* above end to end, using the **decided mechanic: "Gap the
+   numbers", the *store* variant — one
    physically spaced number line, no migration** (prod empty; the template
    "add" rule spaces all future items; dev test rows re-spaced once). The
    template "add" helper returns `max + STEP` (`UNIT_BODY_ORDINAL_STEP =
