@@ -42,6 +42,8 @@ import { InfoToast } from '@/lib/toast/info-toast';
 import { ActivityModal } from '@/lib/curriculum/activity-modal';
 import { ActivityPicker } from '@/lib/curriculum/activity-picker';
 import { BlockFormModal } from '@/lib/curriculum/block-form-modal';
+import { LibraryNoteAttachModal } from '@/lib/curriculum/library-note-attach-modal';
+import { ShelfAttachModal } from '@/lib/curriculum/shelf-attach-modal';
 import { DeleteActivityConfirm } from '@/lib/overlays/curriculum/delete-activity-confirm';
 import { DeleteBlockConfirm } from '@/lib/overlays/curriculum/delete-block-confirm';
 import {
@@ -75,18 +77,31 @@ import type {
 } from '@/lib/curriculum/types';
 import type { UnitLabel } from '@/lib/programmes/types';
 
-// The activity types a tutor can add as a cohort-only activity through the
-// shared editor: the 3 self-contained types (Slice 1) + the 2 quiz types
-// (Slice 3a — the editor's quiz-selector handles their body). Library Note
-// + Shelf (Slice 3b) use their own attach modals, not this picker path;
-// live sessions are excluded by design (the Live Session Planner).
+// The activity types a tutor can add as a cohort-only activity. The 3
+// self-contained types (Slice 1) + the 2 quiz types (Slice 3a) go through
+// the shared editor; Library Note + Shelf (Slice 3b) route to their own
+// attach modals (handled in openAddActivity). Live sessions are excluded
+// by design (the Live Session Planner owns them).
 const COHORT_ONLY_TYPES: ActivityType[] = [
   'TEXT',
   'PDF',
   'EXTERNAL_LINK',
   'MOCK',
   'PRACTICE_QUIZ',
+  'LIBRARY_NOTE',
+  'SHELF',
 ];
+
+// The open Library-Note / Shelf attach modal (Slice 3b). create = attach a
+// new cohort-only note/shelf; edit = an existing cohort-only one.
+type AttachModalState =
+  | {
+      kind: 'note' | 'shelf';
+      mode: 'create';
+      unitId: string;
+      blockId: string | null;
+    }
+  | { kind: 'note' | 'shelf'; mode: 'edit'; activityId: string };
 
 const TYPE_LABEL = {
   TEXT: 'Text',
@@ -138,8 +153,40 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
   } | null>(null);
   const [creatingBlock, startCreateBlock] = useTransition();
   const [deletingBlock, startDeleteBlock] = useTransition();
+  // Library Note / Shelf attach modal (Slice 3b reference types).
+  const [attachModal, setAttachModal] = useState<AttachModalState | null>(null);
 
   const cohortId = tree.cohort.cohort_id;
+
+  // Route an "+ Add" pick: Library Note / Shelf open their own attach
+  // modals; every other type goes through the shared activity editor.
+  function openAddActivity(
+    unitId: string,
+    blockId: string | null,
+    type: ActivityType
+  ) {
+    if (type === 'LIBRARY_NOTE') {
+      setAttachModal({ kind: 'note', mode: 'create', unitId, blockId });
+    } else if (type === 'SHELF') {
+      setAttachModal({ kind: 'shelf', mode: 'create', unitId, blockId });
+    } else {
+      setCreateConfig({ unitId, type, blockId });
+    }
+  }
+
+  // Route a row click: a COHORT-ONLY Library Note / Shelf opens its attach
+  // edit modal (those types aren't editable in the shared editor);
+  // everything else — incl. template note/shelf rows — opens the shared
+  // editor as before.
+  function openEditActivity(a: ProgrammeActivity, isCohortOnly: boolean) {
+    if (isCohortOnly && a.type === 'LIBRARY_NOTE') {
+      setAttachModal({ kind: 'note', mode: 'edit', activityId: a.activity_id });
+    } else if (isCohortOnly && a.type === 'SHELF') {
+      setAttachModal({ kind: 'shelf', mode: 'edit', activityId: a.activity_id });
+    } else {
+      setEditActivity(a);
+    }
+  }
 
   function handleCreateBlock(unitId: string, title: string) {
     setError(null);
@@ -336,7 +383,7 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
                       }
                       entry={entry}
                       cohortId={cohortId}
-                      onClickActivity={(a) => setEditActivity(a)}
+                      onClickActivity={openEditActivity}
                       onError={setError}
                       onMutated={() => router.refresh()}
                       markPending={markPending}
@@ -344,9 +391,7 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
                       onDeleteBlock={(block, count) =>
                         setDeleteBlockTarget({ block, activityCount: count })
                       }
-                      onAddActivityToBlock={(unitId, blockId, type) =>
-                        setCreateConfig({ unitId, type, blockId })
-                      }
+                      onAddActivityToBlock={openAddActivity}
                     />
                   ))}
                 </div>
@@ -358,11 +403,7 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
                     types={COHORT_ONLY_TYPES}
                     title="Add a cohort-only activity"
                     onPick={(type) => {
-                      setCreateConfig({
-                        unitId: u.unit.unit_id,
-                        type,
-                        blockId: null,
-                      });
+                      openAddActivity(u.unit.unit_id, null, type);
                       setPickerUnitId(null);
                     }}
                     onCancel={() => setPickerUnitId(null)}
@@ -466,6 +507,40 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
         />
       )}
 
+      {attachModal?.kind === 'note' &&
+        (attachModal.mode === 'create' ? (
+          <LibraryNoteAttachModal
+            mode="create"
+            unitId={attachModal.unitId}
+            blockId={attachModal.blockId}
+            cohortId={cohortId}
+            onClose={() => setAttachModal(null)}
+          />
+        ) : (
+          <LibraryNoteAttachModal
+            mode="edit"
+            activityId={attachModal.activityId}
+            onClose={() => setAttachModal(null)}
+          />
+        ))}
+
+      {attachModal?.kind === 'shelf' &&
+        (attachModal.mode === 'create' ? (
+          <ShelfAttachModal
+            mode="create"
+            unitId={attachModal.unitId}
+            blockId={attachModal.blockId}
+            cohortId={cohortId}
+            onClose={() => setAttachModal(null)}
+          />
+        ) : (
+          <ShelfAttachModal
+            mode="edit"
+            activityId={attachModal.activityId}
+            onClose={() => setAttachModal(null)}
+          />
+        ))}
+
       <ErrorToast error={error} onDismiss={() => setError(null)} />
       <InfoToast message={nudge} onDismiss={() => setNudge(null)} />
     </>
@@ -497,7 +572,7 @@ function BodyEntry({
 }: {
   entry: CohortChecklistBodyEntry;
   cohortId: string;
-  onClickActivity: (a: ProgrammeActivity) => void;
+  onClickActivity: (a: ProgrammeActivity, isCohortOnly: boolean) => void;
   onError: (msg: string) => void;
   onMutated: () => void;
   markPending: (id: string, isPending: boolean) => void;
@@ -546,7 +621,7 @@ function BlockEntryCard({
 }: {
   entry: import('./types').CohortChecklistBlockEntry;
   cohortId: string;
-  onClickActivity: (a: ProgrammeActivity) => void;
+  onClickActivity: (a: ProgrammeActivity, isCohortOnly: boolean) => void;
   onError: (msg: string) => void;
   onMutated: () => void;
   markPending: (id: string, isPending: boolean) => void;
@@ -719,7 +794,7 @@ function ChecklistRow({
 }: {
   row: CohortChecklistActivityRow;
   cohortId: string;
-  onClickActivity: (a: ProgrammeActivity) => void;
+  onClickActivity: (a: ProgrammeActivity, isCohortOnly: boolean) => void;
   onError: (msg: string) => void;
   onMutated: () => void;
   markPending: (id: string, isPending: boolean) => void;
@@ -835,7 +910,7 @@ function ChecklistRow({
       <button
         type="button"
         className="cohort-checklist-row-main"
-        onClick={() => onClickActivity(a)}
+        onClick={() => onClickActivity(a, row.isCohortOnly)}
         title={
           row.isCohortOnly
             ? 'Edit this cohort-only activity'

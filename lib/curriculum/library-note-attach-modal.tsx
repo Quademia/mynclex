@@ -33,6 +33,9 @@ type Props =
       mode: 'create';
       unitId: string;
       blockId: string | null;
+      // Cohort-only attach (Slice 3b) — when set, the note attaches as a
+      // cohort-only activity in this cohort. null/undefined = template.
+      cohortId?: string | null;
       onClose: () => void;
     }
   | {
@@ -50,10 +53,12 @@ export function LibraryNoteAttachModal(props: Props) {
 function CreateModal({
   unitId,
   blockId,
+  cohortId = null,
   onClose,
 }: {
   unitId: string;
   blockId: string | null;
+  cohortId?: string | null;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -97,6 +102,7 @@ function CreateModal({
         selected,
         caption,
         published,
+        cohortId,
       );
       if (!res.ok) {
         setError(res.error);

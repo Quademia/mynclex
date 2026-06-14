@@ -414,7 +414,7 @@ export async function editActivityAction(
     })
     .eq('activity_id', activityId)
     .eq('type', values.type)
-    .select('activity_id, unit_id')
+    .select('activity_id, unit_id, cohort_id')
     .maybeSingle();
 
   if (error) return { ok: false, error: error.message };
@@ -452,8 +452,15 @@ export async function editActivityAction(
   // — the quiz might still be useful standalone or linked to
   // other activities; junction row stays until the tutor
   // explicitly removes from the Quizzes page (§9.3).
+  //
+  // EXCEPTION (cohort-specific activities, Slice 3a): a COHORT-ONLY quiz
+  // activity (cohort_id set) is a cohort-scoped use, NOT a programme-wide
+  // membership, so it is never mirrored — matching its create path. The
+  // quiz-delete guard scans activities directly, so the usage is still
+  // protected without the junction row.
   if (
     unitRow &&
+    (data as { cohort_id: string | null }).cohort_id == null &&
     (values.type === 'MOCK' || values.type === 'PRACTICE_QUIZ') &&
     values.quiz_id
   ) {
