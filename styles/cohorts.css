@@ -924,6 +924,77 @@
   cursor: default;
 }
 
+/* === Cohort-specific activities (Slice 1) ====================
+ * The cohort-only escape valve: a "+ Add" affordance per unit, a
+ * "Cohort-only" pill on the rows it produces, and a Delete control
+ * (cohort-only rows have no Include/Exclude — they're included by
+ * existing). See docs/product-plan/cohort-specific-activities.md. */
+
+/* Pill marking an activity that lives only in THIS run (vs a shared
+ * template row). Teal-outlined to read as additive, not a warning. */
+.cohort-checklist-cohort-only-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* Per-unit footer holding the "+ Add cohort-only activity" button
+ * (or the inline type picker when it's open). */
+.cohort-checklist-unit-foot {
+  margin-top: 10px;
+}
+.cohort-checklist-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: var(--radius);
+  border: 1px dashed var(--border-strong);
+  background: var(--white);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.cohort-checklist-add-btn:hover {
+  background: var(--bg);
+  border-color: var(--accent);
+}
+
+/* Delete control on a cohort-only row — quiet until hover (it's
+ * low-stakes but irreversible, so it routes through a confirm). */
+.cohort-checklist-delete-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.cohort-checklist-delete-btn:hover:not(:disabled) {
+  background: #fef2f2;
+  color: var(--danger);
+  border-color: #fecaca;
+}
+.cohort-checklist-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* === Cohort run detail (cohort-workspace fold, 2026-06-12) ====
  * The per-run detail rendered IN PLACE by the Cohorts tab when
  * `?cohort=` is set — run header + top tab bar + pane. Replaces

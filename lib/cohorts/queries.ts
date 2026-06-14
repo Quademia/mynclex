@@ -211,6 +211,12 @@ export async function getCohortChecklist(
   // the full live template activity list. The checklist is the live
   // template (4th read); override rows (3rd read) only supply
   // inclusion + dates for activities the tutor has configured.
+  // The blocks + activities reads cover BOTH the shared template
+  // (cohort_id IS NULL) AND this cohort's own cohort-only adds
+  // (cohort_id = this cohort) — never another cohort's. The `.or`
+  // scope is what keeps one cohort's escape-valve content out of
+  // every other cohort's checklist.
+  const cohortScope = `cohort_id.is.null,cohort_id.eq.${cohortId}`;
   const [unitsResult, blocksResult, overridesResult, activitiesResult] =
     await Promise.all([
     supabase
@@ -229,6 +235,7 @@ export async function getCohortChecklist(
          nclex_programme_units!inner(programme_id)`
       )
       .eq('nclex_programme_units.programme_id', programme.programme_id)
+      .or(cohortScope)
       .order('ordinal', { ascending: true }),
     supabase
       .from('nclex_cohort_checklist_items')
@@ -241,9 +248,11 @@ export async function getCohortChecklist(
       .select(
         `activity_id, unit_id, block_id, ordinal, type, title,
          description, note, payload, is_published, created_at, updated_at,
+         cohort_id,
          nclex_programme_units!inner(programme_id)`
       )
       .eq('nclex_programme_units.programme_id', programme.programme_id)
+      .or(cohortScope)
       .order('ordinal', { ascending: true }),
   ]);
 
@@ -283,10 +292,17 @@ export async function getCohortChecklist(
   // the list is driven by the template, not by which rows exist.
   const checklistRows: CohortChecklistActivityRow[] = (
     (activitiesResult.data ?? []) as Array<
-      ProgrammeActivity & { nclex_programme_units?: unknown }
+      ProgrammeActivity & {
+        nclex_programme_units?: unknown;
+        cohort_id?: string | null;
+      }
     >
   ).map((raw) => {
-    const { nclex_programme_units: _omit, ...activity } = raw;
+    // Strip the join embed AND cohort_id off the activity — cohort_id
+    // drives the isCohortOnly flag but isn't part of the ProgrammeActivity
+    // surface; the rest is a clean template-shaped activity row.
+    const { nclex_programme_units: _omit, cohort_id, ...activity } = raw;
+    const isCohortOnly = cohort_id != null;
     const override = overridesByActivity.get(activity.activity_id);
     if (override) {
       return {
@@ -296,6 +312,7 @@ export async function getCohortChecklist(
         due_date: override.due_date,
         close_date: override.close_date,
         release_is_default: false,
+        isCohortOnly,
       } satisfies CohortChecklistActivityRow;
     }
     return {
@@ -305,6 +322,7 @@ export async function getCohortChecklist(
       due_date: null,
       close_date: null,
       release_is_default: true,
+      isCohortOnly,
     } satisfies CohortChecklistActivityRow;
   });
 

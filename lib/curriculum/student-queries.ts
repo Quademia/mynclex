@@ -96,6 +96,11 @@ export async function getStudentSelfPacedCurriculum(
          nclex_programme_units!inner(programme_id)`
       )
       .eq('nclex_programme_units.programme_id', programmeId)
+      // Self-paced delivers the programme TEMPLATE — cohort-only rows
+      // (cohort_id set) only exist under tutor-led runs and never apply
+      // here. Defensive filter so they can never leak into a self-paced
+      // student's view.
+      .is('cohort_id', null)
       .order('ordinal', { ascending: true }),
   ]);
 

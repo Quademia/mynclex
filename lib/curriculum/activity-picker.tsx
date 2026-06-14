@@ -61,13 +61,25 @@ const ENABLED_TYPES: ReadonlyArray<ActivityType> = [
 interface ActivityPickerProps {
   onPick: (type: ActivityType) => void;
   onCancel: () => void;
+  // Optional override of which types to offer (defaults to the full
+  // grid). The cohort-only escape valve passes the self-contained subset
+  // (Text / PDF / External link) in Slice 1.
+  types?: ActivityType[];
+  // Optional header override (defaults to "Add an activity").
+  title?: string;
 }
 
-export function ActivityPicker({ onPick, onCancel }: ActivityPickerProps) {
+export function ActivityPicker({
+  onPick,
+  onCancel,
+  types,
+  title,
+}: ActivityPickerProps) {
+  const order = types ?? TILE_ORDER;
   return (
     <div className="activity-picker" role="group" aria-label="Pick an activity type">
       <header className="activity-picker-head">
-        <h4 className="activity-picker-title">Add an activity</h4>
+        <h4 className="activity-picker-title">{title ?? 'Add an activity'}</h4>
         <button
           type="button"
           className="activity-picker-cancel"
@@ -79,7 +91,7 @@ export function ActivityPicker({ onPick, onCancel }: ActivityPickerProps) {
       </header>
 
       <div className="activity-picker-grid">
-        {TILE_ORDER.map((type) => {
+        {order.map((type) => {
           const copy = TILE_COPY[type];
           const enabled = ENABLED_TYPES.includes(type);
           return (

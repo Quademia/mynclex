@@ -107,6 +107,13 @@ export type CohortChecklistActivityRow = {
   // true when release_date is the computed default (no stored row /
   // release) — lets the UI show it faint vs. a solid configured date.
   release_is_default: boolean;
+  // Cohort-specific activities (Slice 1). true when this activity is a
+  // COHORT-ONLY add (nclex_programme_activities.cohort_id = this cohort)
+  // rather than a shared template row. Cohort-only rows are born with an
+  // included checklist row, so their `state` is always 'included'; the
+  // UI keys off this flag (not `state`) to render the source pill +
+  // Draft/Live + Delete instead of the Include/Exclude segment.
+  isCohortOnly: boolean;
 };
 
 // Block + its in-block checklist rows. Mirrors the curriculum-tab

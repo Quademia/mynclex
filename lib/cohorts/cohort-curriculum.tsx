@@ -38,7 +38,10 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
+import { InfoToast } from '@/lib/toast/info-toast';
 import { ActivityModal } from '@/lib/curriculum/activity-modal';
+import { ActivityPicker } from '@/lib/curriculum/activity-picker';
+import { DeleteActivityConfirm } from '@/lib/overlays/curriculum/delete-activity-confirm';
 import {
   formatUnitTitle,
   unitLabel,
@@ -52,6 +55,8 @@ import {
   setActivityDueDateAction,
   setActivityCloseDateAction,
   includeAllUnconfiguredActivitiesAction,
+  createCohortOnlyActivityAction,
+  deleteCohortOnlyActivityAction,
 } from './actions';
 import type {
   ChecklistActivityState,
@@ -59,8 +64,13 @@ import type {
   CohortChecklistBodyEntry,
   CohortChecklistTree,
 } from './types';
-import type { ProgrammeActivity } from '@/lib/curriculum/types';
+import type { ActivityType, ProgrammeActivity } from '@/lib/curriculum/types';
 import type { UnitLabel } from '@/lib/programmes/types';
+
+// The activity types a tutor can add as a cohort-only activity in Slice 1
+// (the self-contained types). Blocks + reference types arrive in later
+// slices; live sessions are excluded by design (the Live Session Planner).
+const COHORT_ONLY_TYPES: ActivityType[] = ['TEXT', 'PDF', 'EXTERNAL_LINK'];
 
 const TYPE_LABEL = {
   TEXT: 'Text',
@@ -86,9 +96,18 @@ interface CohortCurriculumProps {
 export function CohortCurriculum({ tree }: CohortCurriculumProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [nudge, setNudge] = useState<string | null>(null);
   const [editActivity, setEditActivity] = useState<ProgrammeActivity | null>(
     null
   );
+  // Cohort-only "+ Add" flow: which unit's type picker is open, and the
+  // chosen (unit, type) that opens the shared activity editor in create
+  // mode wired to the cohort-only create action.
+  const [pickerUnitId, setPickerUnitId] = useState<string | null>(null);
+  const [createConfig, setCreateConfig] = useState<{
+    unitId: string;
+    type: ActivityType;
+  } | null>(null);
 
   const cohortId = tree.cohort.cohort_id;
 
@@ -152,18 +171,16 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [pendingCount]);
 
-  // The tree is empty if the programme has no activities yet
-  // (cohort got seeded with zero rows). Render a helpful empty
-  // state pointing the tutor back to the curriculum tab.
-  const hasAnyActivity = tree.units.some((u) => u.body.length > 0);
-
-  // Dead-end empty state only when the programme genuinely has no
-  // activities at all.
-  if (!hasAnyActivity && unconfiguredCount === 0) {
+  // Dead-end empty state only when the programme has no units at all
+  // (effectively never — every programme is backfilled with its
+  // length_units units). When units exist but hold no activities, we
+  // still render them: the tutor can author the template on the
+  // Curriculum tab AND add cohort-only activities to a unit right here.
+  if (tree.units.length === 0) {
     return (
       <section className="cohort-checklist-empty">
         <h2 className="cohort-checklist-empty-title">
-          No activities in this programme yet.
+          No units in this programme yet.
         </h2>
         <p className="cohort-checklist-empty-sub">
           Author your curriculum on the programme&apos;s Curriculum tab.
@@ -248,7 +265,7 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
 
               {u.body.length === 0 ? (
                 <p className="cohort-checklist-unit-empty">
-                  No activities in this unit.
+                  No activities in this unit yet.
                 </p>
               ) : (
                 <div className="cohort-checklist-body">
@@ -269,6 +286,28 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
                   ))}
                 </div>
               )}
+
+              <div className="cohort-checklist-unit-foot">
+                {pickerUnitId === u.unit.unit_id ? (
+                  <ActivityPicker
+                    types={COHORT_ONLY_TYPES}
+                    title="Add a cohort-only activity"
+                    onPick={(type) => {
+                      setCreateConfig({ unitId: u.unit.unit_id, type });
+                      setPickerUnitId(null);
+                    }}
+                    onCancel={() => setPickerUnitId(null)}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="cohort-checklist-add-btn"
+                    onClick={() => setPickerUnitId(u.unit.unit_id)}
+                  >
+                    + Add cohort-only activity
+                  </button>
+                )}
+              </div>
             </article>
           ))}
         </div>
@@ -282,7 +321,38 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
         />
       )}
 
+      {createConfig && (
+        <ActivityModal
+          mode="create"
+          unitId={createConfig.unitId}
+          type={createConfig.type}
+          blockId={null}
+          onCreate={async (values) => {
+            const res = await createCohortOnlyActivityAction(
+              cohortId,
+              createConfig.unitId,
+              values
+            );
+            // Soft-warn keyed off the editor's Status tick: if it landed
+            // Draft, nudge that students can't see it yet; if Live,
+            // confirm it's visible. Either way the modal closes + the
+            // tree refreshes; the persistent Draft pill on the new row
+            // carries the hidden state from here on.
+            if (res.ok) {
+              setNudge(
+                values.is_published
+                  ? 'Added to this cohort — it’s live for students now.'
+                  : 'Added — students can’t see it yet. Open it and tick Live when you’re ready.'
+              );
+            }
+            return res;
+          }}
+          onClose={() => setCreateConfig(null)}
+        />
+      )}
+
       <ErrorToast error={error} onDismiss={() => setError(null)} />
+      <InfoToast message={nudge} onDismiss={() => setNudge(null)} />
     </>
   );
 }
@@ -468,6 +538,23 @@ function ChecklistRow({
     });
   }
 
+  // Cohort-only rows (Slice 1) get a Delete instead of Include/Exclude —
+  // the activity exists only in this cohort, so removing it is a genuine
+  // delete (the COHORT_ONLY checklist row cascades with it).
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, startDelete] = useTransition();
+  function handleDelete() {
+    startDelete(async () => {
+      const result = await deleteCohortOnlyActivityAction(cohortId, activityId);
+      if (!result.ok) {
+        onError(result.error);
+        return;
+      }
+      setConfirmingDelete(false);
+      onMutated();
+    });
+  }
+
   const a = row.activity;
   const displayState = optimisticState;
 
@@ -483,7 +570,11 @@ function ChecklistRow({
         type="button"
         className="cohort-checklist-row-main"
         onClick={() => onClickActivity(a)}
-        title="Open template editor"
+        title={
+          row.isCohortOnly
+            ? 'Edit this cohort-only activity'
+            : 'Open template editor'
+        }
       >
         <span className="cohort-checklist-row-icon" aria-hidden="true">
           {ACTIVITY_TYPE_ICON[a.type]}
@@ -496,6 +587,11 @@ function ChecklistRow({
             >
               {unitStatusLabel(a.is_published)}
             </span>
+            {row.isCohortOnly && (
+              <span className="cohort-checklist-cohort-only-badge">
+                Cohort-only
+              </span>
+            )}
             {displayState === 'unconfigured' && (
               <span className="cohort-checklist-unconfigured-badge">
                 Not set
@@ -560,40 +656,67 @@ function ChecklistRow({
             onPendingChange={onFieldPending}
           />
         </div>
-        <div
-          className="cohort-checklist-decision"
-          role="group"
-          aria-label="Include in this cohort"
-        >
-          <button
-            type="button"
-            className={
-              'cohort-checklist-decision-btn is-include' +
-              (displayState === 'included' ? ' is-active' : '')
-            }
-            aria-pressed={displayState === 'included'}
-            disabled={includedPending}
-            onClick={() => setDecision('included')}
-            title="Include in this cohort"
+        {row.isCohortOnly ? (
+          <div
+            className="cohort-checklist-decision"
+            role="group"
+            aria-label="Cohort-only activity"
           >
-            ✓ Include
-          </button>
-          <button
-            type="button"
-            className={
-              'cohort-checklist-decision-btn is-exclude' +
-              (displayState === 'excluded' ? ' is-active' : '')
-            }
-            aria-pressed={displayState === 'excluded'}
-            disabled={includedPending}
-            onClick={() => setDecision('excluded')}
-            title="Exclude from this cohort"
+            <button
+              type="button"
+              className="cohort-checklist-delete-btn"
+              disabled={deleting}
+              onClick={() => setConfirmingDelete(true)}
+              title="Delete this cohort-only activity"
+            >
+              🗑 Delete
+            </button>
+          </div>
+        ) : (
+          <div
+            className="cohort-checklist-decision"
+            role="group"
+            aria-label="Include in this cohort"
           >
-            ✗ Exclude
-          </button>
-        </div>
+            <button
+              type="button"
+              className={
+                'cohort-checklist-decision-btn is-include' +
+                (displayState === 'included' ? ' is-active' : '')
+              }
+              aria-pressed={displayState === 'included'}
+              disabled={includedPending}
+              onClick={() => setDecision('included')}
+              title="Include in this cohort"
+            >
+              ✓ Include
+            </button>
+            <button
+              type="button"
+              className={
+                'cohort-checklist-decision-btn is-exclude' +
+                (displayState === 'excluded' ? ' is-active' : '')
+              }
+              aria-pressed={displayState === 'excluded'}
+              disabled={includedPending}
+              onClick={() => setDecision('excluded')}
+              title="Exclude from this cohort"
+            >
+              ✗ Exclude
+            </button>
+          </div>
+        )}
         <SaveStatusPill status={saveStatus} />
       </div>
+
+      {confirmingDelete && (
+        <DeleteActivityConfirm
+          activityTitle={a.title}
+          pending={deleting}
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={handleDelete}
+        />
+      )}
     </div>
   );
 }

@@ -56,6 +56,16 @@ type ActivityModalProps =
       type: ActivityType;
       // null → loose under the unit. Set → append to that block.
       blockId: string | null;
+      // Optional create override. When provided, Save calls this
+      // instead of the default template `createActivityAction` — the
+      // cohort Curriculum tab passes its cohort-only create here so the
+      // shared editor stays domain-agnostic (it never imports a cohorts
+      // action). Returns the same shape as createActivityAction.
+      onCreate?: (
+        values: ActivityFormValues
+      ) => Promise<
+        { ok: true; activity_id: string } | { ok: false; error: string }
+      >;
       onClose: () => void;
     }
   | {
@@ -465,7 +475,9 @@ export function ActivityModal(props: ActivityModalProps) {
     startTransition(async () => {
       const result = isEdit
         ? await editActivityAction(props.activity.activity_id, values)
-        : await createActivityAction(props.unitId, values, props.blockId);
+        : props.onCreate
+          ? await props.onCreate(values)
+          : await createActivityAction(props.unitId, values, props.blockId);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -561,8 +573,9 @@ export function ActivityModal(props: ActivityModalProps) {
                   <span>Live — student-visible in cohorts</span>
                 </label>
                 <span className="prog-field-help">
-                  Off → Draft. Draft activities don&apos;t surface in
-                  any cohort&apos;s checklist.
+                  Off → Draft. Draft activities still appear in your
+                  cohort checklists so you can manage them — students
+                  don&apos;t see them until you set them Live.
                 </span>
               </div>
             </section>

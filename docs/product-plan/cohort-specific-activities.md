@@ -119,7 +119,12 @@ cohort.**
 shape/count. Cohort-only content always lands inside an *existing*
 template unit. A whole extra unit for one cohort is out of scope.
 
-### Point 4 — Draft/Live, born Draft, with a "not visible yet" nudge
+### Point 4 — Draft/Live is the editor's existing Status tick; a soft-warn when it lands Draft
+
+*Refined 2026-06-14 at build kickoff: the earlier "born Draft (forced)"
+framing was wrong. Draft/Live is governed entirely by the activity
+editor's existing Status checkbox — there is no new control, no inline
+toggle, and we never override what the tutor ticked.*
 
 For a **template** activity, two independent switches gate student
 visibility: **Draft/Live** (`is_published`, a template-level "is this
@@ -134,17 +139,32 @@ cohort" are the same question. Therefore:
 - **No three-state Include/Exclude segment** on cohort-only rows. They
   are "included" by the fact that they exist (`is_included = true`,
   always).
-- **One visibility switch: Draft / Live** (reuses `is_published`).
-- **Born Draft, not Live.** A new cohort-only activity is saved but not
-  yet visible — because it uses the *same* activity editor as template
-  content, and auto-publishing a half-written handout is the wrong
-  default (Sam's call, overriding the earlier "born Live" idea).
-- **A "not visible yet" nudge.** Rather than silently leaving it hidden
-  (tutor forgets) or forcing it live (students see unfinished work), we
-  nudge — on save: *"Saved — not visible to students yet. Tick Live
-  when ready"* — plus a persistent **Draft** pill in the checklist so
-  the hidden state is always obvious. The tutor flips it Live whenever
-  it's ready.
+- **Draft/Live is the activity editor's existing Status checkbox** —
+  *not* a new control and *not* an inline toggle. Every activity editor
+  already carries "☐ Live — student-visible in cohorts" in its shell
+  (`activity-modal.tsx`); a cohort-only activity uses the same editor,
+  so the same tick governs it. The checklist row shows a Draft/Live
+  **status pill** (display only, already rendered from `is_published`);
+  to flip it, the tutor reopens the editor and ticks the box — exactly
+  the gesture used for any template activity.
+- **We don't force Draft or Live.** The editor's Status tick *defaults*
+  to unticked, so an activity the tutor doesn't touch lands as Draft —
+  but if they tick Live while creating it, it's born Live. The publish
+  state is always whatever the tutor left; we never override the editor.
+- **A soft-warn when it lands Draft.** Keyed off that resulting state:
+  if the saved activity is Draft, nudge — *"Saved — not visible to
+  students yet. Tick Live when ready"* — plus the persistent **Draft**
+  pill on the checklist row so the hidden state stays obvious. If the
+  tutor saved it Live, no nudge. The warning reflects the checkbox; it
+  isn't a separate rule.
+- **Fix the editor's stale help text along the way.** The Status field
+  currently reads *"Off → Draft. Draft activities don't surface in any
+  cohort's checklist."* — wrong since the 9.3f control-surface model:
+  drafts **do** appear in the tutor's checklist (so they can be
+  managed); students just don't see them. Correct it to something like
+  *"Draft activities still appear in your cohort checklists so you can
+  manage them — but students don't see them until you set them Live."*
+  Pure copy, no logic; folds into Slice 1.
 - **Delete** removes it for good (it only exists here).
 - **Dates** behave exactly like template items: born with a default
   release date (cohort start + the unit's week index); a future release
@@ -153,7 +173,7 @@ cohort" are the same question. Therefore:
 
 This keeps faith with Sam's "don't make me re-configure" instinct — the
 *only* deliberate step is the one he wants to be deliberate: choosing
-when it goes live.
+when it goes live, by the same tick he already knows.
 
 ---
 
@@ -338,11 +358,17 @@ Unit Builder UI, admin surfaces.
 ## Slice breakdown (proposed)
 
 1. **Slice 1 — schema + cohort-only loose activities (self-contained
-   types).** Migration; RLS review; the `cohort_id IS NULL` filter on
-   the programme-layer queries; create/edit/delete + Draft-Live + nudge
-   for **Text / PDF / External link** loose activities on the cohort
-   Curriculum tab; checklist merge; student loose-activity delivery
-   verified. (No blocks yet.)
+   types).** Migration (`cohort_id` on activities + blocks); RLS review;
+   the `cohort_id IS NULL` filter on the programme-layer queries;
+   `getCohortChecklist` scoped to this cohort + cohort-only rows merged
+   into the unit bodies; create / edit / delete for **Text / PDF /
+   External link** loose activities on the cohort Curriculum tab,
+   **reusing the existing activity editor** (publish via its existing
+   Status tick — default Draft, no forced state, no inline toggle); the
+   **soft-warn** when an activity is saved Draft; the editor's **stale
+   Draft help-text fix**; new cohort-only activities **append at the
+   bottom of their week** (free in-between placement deferred to Slice
+   2); student loose-activity delivery verified. (No blocks yet.)
 2. **Slice 2 — cohort-only blocks.** "+ Add cohort-only block",
    add-activity-into-block, block edit/delete, ≥1-activity rule;
    student blocks read widened; ordering across blocks + loose for

@@ -1087,6 +1087,22 @@
   color: #065f46;
 }
 
+/* Info variant — neutral guidance (e.g. the cohort-only "not visible
+ * yet" soft-warn). Teal accent, emoji icon (no coloured circle). */
+.auth-toast-info {
+  background: var(--white);
+  color: var(--primary);
+  border: 1px solid #cde6e2;
+  border-left: 4px solid var(--accent);
+}
+.auth-toast-info .auth-toast-icon {
+  background: transparent;
+  font-size: 16px;
+}
+.auth-toast-info .auth-toast-message {
+  color: var(--primary);
+}
+
 .auth-toast-icon {
   display: inline-flex;
   align-items: center;

@@ -10,6 +10,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import {
+  buildPayload,
+  validatePdfAssetForSave,
+} from '@/lib/curriculum/activity-payload';
+import type { ActivityFormValues } from '@/lib/curriculum/types';
 import type { CohortFormValues } from './types';
 
 export type CreateCohortInput = CohortFormValues;
@@ -440,7 +445,11 @@ export async function includeAllUnconfiguredActivitiesAction(
     .eq(
       'nclex_programme_units.programme_id',
       (cohort as { programme_id: string }).programme_id
-    );
+    )
+    // Only TEMPLATE activities are "unconfigured" and bulk-includable.
+    // Cohort-only adds (cohort_id set) are born with their own included
+    // checklist row, so "Include all" must never touch them.
+    .is('cohort_id', null);
 
   type ActRow = {
     activity_id: string;
@@ -484,4 +493,245 @@ export async function includeAllUnconfiguredActivitiesAction(
     `/tutor/programme/${(cohort as { programme_id: string }).programme_id}/cohorts`
   );
   return { ok: true, added: rows.length };
+}
+
+// =====================================================================
+// Cohort-specific activities — Slice 1 (loose, self-contained types)
+// =====================================================================
+//
+// A cohort-only activity is an ordinary nclex_programme_activities row
+// tagged with cohort_id = this cohort (so it belongs to one run and never
+// propagates), PLUS a COHORT_ONLY checklist row carrying its dates +
+// inclusion. The two rows are created together. It reuses the shared
+// activity editor + payload builder + every render path (Option A); the
+// only differences from a template activity are the cohort_id tag and
+// that its publish state (the editor's Status tick) is its single
+// student-visibility switch. See
+// docs/product-plan/cohort-specific-activities.md.
+//
+// RLS gates both writes: the activity via unit -> programme -> tutor, the
+// checklist row via cohort -> programme -> tutor. The actions add the
+// scope checks app code is responsible for (the unit belongs to the
+// cohort's programme; a delete only touches THIS cohort's own rows).
+
+type CohortActionsSupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
+// Bottom-of-week ordinal in THIS cohort's view: the max ordinal across
+// the unit's template blocks + loose activities AND this cohort's own
+// cohort-only ones, + 1. Scoped so another cohort's content can't shift
+// where this one's lands.
+async function nextCohortUnitBodyOrdinal(
+  supabase: CohortActionsSupabaseClient,
+  unitId: string,
+  cohortId: string
+): Promise<number> {
+  const scope = `cohort_id.is.null,cohort_id.eq.${cohortId}`;
+  const [b, a] = await Promise.all([
+    supabase
+      .from('nclex_programme_blocks')
+      .select('ordinal')
+      .eq('unit_id', unitId)
+      .or(scope)
+      .order('ordinal', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('nclex_programme_activities')
+      .select('ordinal')
+      .eq('unit_id', unitId)
+      .is('block_id', null)
+      .or(scope)
+      .order('ordinal', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  const blockMax = (b.data as { ordinal: number } | null)?.ordinal ?? 0;
+  const looseMax = (a.data as { ordinal: number } | null)?.ordinal ?? 0;
+  return Math.max(blockMax, looseMax) + 1;
+}
+
+export type CreateCohortActivityResult =
+  | { ok: true; activity_id: string }
+  | { ok: false; error: string };
+
+export async function createCohortOnlyActivityAction(
+  cohortId: string,
+  unitId: string,
+  values: ActivityFormValues
+): Promise<CreateCohortActivityResult> {
+  const title = values.title.trim();
+  if (title.length === 0) return { ok: false, error: 'Title is required.' };
+
+  // Slice 1 supports the three self-contained types only. Blocks +
+  // reference types (Mock / Practice quiz / Library Note / Shelf) come
+  // in later slices; live sessions are excluded by design (the Live
+  // Session Planner owns them).
+  if (
+    values.type !== 'TEXT' &&
+    values.type !== 'PDF' &&
+    values.type !== 'EXTERNAL_LINK'
+  ) {
+    return {
+      ok: false,
+      error: 'That activity type can’t be added as a cohort-only activity yet.',
+    };
+  }
+
+  const built = buildPayload(values);
+  if (!built.ok) return built;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // PDF asset ownership/readiness (defence in depth; RLS gates the row).
+  if (values.type === 'PDF') {
+    const v = await validatePdfAssetForSave(supabase, values.pdf_asset_id);
+    if (!v.ok) return v;
+  }
+
+  // Resolve the cohort (RLS scopes to the tutor's own).
+  const { data: cohort } = await supabase
+    .from('nclex_cohorts')
+    .select('cohort_id, programme_id, start_date')
+    .eq('cohort_id', cohortId)
+    .maybeSingle();
+  if (!cohort) return { ok: false, error: 'Cohort not found or not yours.' };
+
+  // Resolve the host unit + its index, and confirm it belongs to the
+  // cohort's programme (a cohort-only activity always lands inside a
+  // TEMPLATE unit of the same programme — never an extra unit, never
+  // another programme's unit). RLS already scopes the unit to the tutor.
+  const { data: unit } = await supabase
+    .from('nclex_programme_units')
+    .select('unit_id, programme_id, unit_index')
+    .eq('unit_id', unitId)
+    .maybeSingle();
+  if (!unit) return { ok: false, error: 'Unit not found or not yours.' };
+  if (
+    (unit as { programme_id: string }).programme_id !==
+    (cohort as { programme_id: string }).programme_id
+  ) {
+    return { ok: false, error: 'That unit belongs to a different programme.' };
+  }
+
+  const nextOrdinal = await nextCohortUnitBodyOrdinal(
+    supabase,
+    unitId,
+    cohortId
+  );
+
+  // Insert the activity row: cohort-only (cohort_id set), loose
+  // (block_id null). is_published comes straight from the editor's
+  // Status tick — we never force it.
+  const { data: activity, error: actErr } = await supabase
+    .from('nclex_programme_activities')
+    .insert({
+      unit_id: unitId,
+      block_id: null,
+      cohort_id: cohortId,
+      ordinal: nextOrdinal,
+      type: values.type,
+      title,
+      description: values.description.trim() || null,
+      note: values.note.trim() || null,
+      payload: built.payload,
+      is_published: values.is_published,
+    })
+    .select('activity_id')
+    .single();
+  if (actErr || !activity) {
+    return {
+      ok: false,
+      error: actErr?.message ?? 'Failed to add the activity.',
+    };
+  }
+
+  // The COHORT_ONLY checklist row carries the dates + inclusion. Born
+  // included with the week-pacing default release (cohort start +
+  // (unit_index - 1) × 7d), matching template seeding. If this insert
+  // fails, roll back the activity — a cohort-only activity with no
+  // checklist row would never reach the delivery path (which reads
+  // through the checklist).
+  const startMs = new Date(
+    `${(cohort as { start_date: string }).start_date}T00:00:00Z`
+  ).getTime();
+  const releaseDate = new Date(
+    startMs + ((unit as { unit_index: number }).unit_index - 1) * 7 * DAY_MS
+  )
+    .toISOString()
+    .slice(0, 10);
+
+  const { error: itemErr } = await supabase
+    .from('nclex_cohort_checklist_items')
+    .insert({
+      cohort_id: cohortId,
+      template_activity_id: activity.activity_id,
+      is_included: true,
+      release_date: releaseDate,
+      source: 'COHORT_ONLY',
+    });
+  if (itemErr) {
+    await supabase
+      .from('nclex_programme_activities')
+      .delete()
+      .eq('activity_id', activity.activity_id);
+    return {
+      ok: false,
+      error: 'Could not add the activity. Please try again.',
+    };
+  }
+
+  revalidatePath(
+    `/tutor/programme/${(cohort as { programme_id: string }).programme_id}/cohorts`
+  );
+  return { ok: true, activity_id: activity.activity_id };
+}
+
+export type DeleteCohortActivityResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function deleteCohortOnlyActivityAction(
+  cohortId: string,
+  activityId: string
+): Promise<DeleteCohortActivityResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Delete ONLY a row that is genuinely this cohort's own cohort-only
+  // activity — the cohort_id match refuses both shared template rows
+  // (cohort_id NULL) and any other cohort's. The COHORT_ONLY checklist
+  // row cascades via its template_activity_id FK (ON DELETE CASCADE).
+  const { data, error } = await supabase
+    .from('nclex_programme_activities')
+    .delete()
+    .eq('activity_id', activityId)
+    .eq('cohort_id', cohortId)
+    .select('activity_id')
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return {
+      ok: false,
+      error: 'Activity not found, or not a cohort-only activity you can delete.',
+    };
+  }
+
+  const { data: cohort } = await supabase
+    .from('nclex_cohorts')
+    .select('programme_id')
+    .eq('cohort_id', cohortId)
+    .maybeSingle();
+  if (cohort) {
+    revalidatePath(
+      `/tutor/programme/${(cohort as { programme_id: string }).programme_id}/cohorts`
+    );
+  }
+  return { ok: true };
 }
