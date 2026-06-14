@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 import {
   buildPayload,
   validatePdfAssetForSave,
+  validateQuizForActivity,
 } from '@/lib/curriculum/activity-payload';
 import type { ActivityFormValues } from '@/lib/curriculum/types';
 import type { CohortFormValues } from './types';
@@ -583,14 +584,16 @@ export async function createCohortOnlyActivityAction(
   const title = values.title.trim();
   if (title.length === 0) return { ok: false, error: 'Title is required.' };
 
-  // Slice 1 supports the three self-contained types only. Blocks +
-  // reference types (Mock / Practice quiz / Library Note / Shelf) come
-  // in later slices; live sessions are excluded by design (the Live
-  // Session Planner owns them).
+  // Slice 1 = the 3 self-contained types; Slice 3a adds the 2 quiz types.
+  // Library Note + Shelf use their own attach flow (Slice 3b), not this
+  // action; live sessions are excluded by design (the Live Session
+  // Planner owns them).
   if (
     values.type !== 'TEXT' &&
     values.type !== 'PDF' &&
-    values.type !== 'EXTERNAL_LINK'
+    values.type !== 'EXTERNAL_LINK' &&
+    values.type !== 'MOCK' &&
+    values.type !== 'PRACTICE_QUIZ'
   ) {
     return {
       ok: false,
@@ -610,6 +613,26 @@ export async function createCohortOnlyActivityAction(
   // PDF asset ownership/readiness (defence in depth; RLS gates the row).
   if (values.type === 'PDF') {
     const v = await validatePdfAssetForSave(supabase, values.pdf_asset_id);
+    if (!v.ok) return v;
+  }
+
+  // Quiz-activity: if a quiz is linked, verify it's the tutor's own quiz
+  // of the matching kind (published when the activity itself is being
+  // published). A cohort-only quiz activity is a COHORT-scoped use of the
+  // quiz, so — unlike the template create path — it is NOT mirrored into
+  // nclex_programme_quizzes (the programme-wide "used in" junction). The
+  // quiz-delete guard scans nclex_programme_activities directly, so this
+  // usage still protects the quiz from deletion without that mirror.
+  if (
+    (values.type === 'MOCK' || values.type === 'PRACTICE_QUIZ') &&
+    values.quiz_id
+  ) {
+    const v = await validateQuizForActivity(
+      supabase,
+      values.quiz_id,
+      values.type,
+      values.is_published
+    );
     if (!v.ok) return v;
   }
 

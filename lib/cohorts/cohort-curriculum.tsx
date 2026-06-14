@@ -75,10 +75,18 @@ import type {
 } from '@/lib/curriculum/types';
 import type { UnitLabel } from '@/lib/programmes/types';
 
-// The activity types a tutor can add as a cohort-only activity in Slice 1
-// (the self-contained types). Blocks + reference types arrive in later
-// slices; live sessions are excluded by design (the Live Session Planner).
-const COHORT_ONLY_TYPES: ActivityType[] = ['TEXT', 'PDF', 'EXTERNAL_LINK'];
+// The activity types a tutor can add as a cohort-only activity through the
+// shared editor: the 3 self-contained types (Slice 1) + the 2 quiz types
+// (Slice 3a — the editor's quiz-selector handles their body). Library Note
+// + Shelf (Slice 3b) use their own attach modals, not this picker path;
+// live sessions are excluded by design (the Live Session Planner).
+const COHORT_ONLY_TYPES: ActivityType[] = [
+  'TEXT',
+  'PDF',
+  'EXTERNAL_LINK',
+  'MOCK',
+  'PRACTICE_QUIZ',
+];
 
 const TYPE_LABEL = {
   TEXT: 'Text',
