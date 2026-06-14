@@ -123,6 +123,13 @@ export type CohortChecklistBlockEntry = {
   kind: 'block';
   block: ProgrammeBlock;
   rows: CohortChecklistActivityRow[];
+  // Cohort-specific activities (Slice 2). true when this block is a
+  // COHORT-ONLY block (nclex_programme_blocks.cohort_id = this cohort)
+  // rather than a shared template block. Drives the source pill + the
+  // Edit / Delete / "+ Add activity to block" controls; template blocks
+  // stay read-only in the checklist (they're authored on the Curriculum
+  // tab).
+  isCohortOnly: boolean;
 };
 
 export type CohortChecklistLooseEntry = {

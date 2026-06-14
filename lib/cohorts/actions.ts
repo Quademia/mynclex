@@ -550,6 +550,23 @@ async function nextCohortUnitBodyOrdinal(
   return Math.max(blockMax, looseMax) + 1;
 }
 
+// Next ordinal inside a single block — its children share one in-block
+// position line. A cohort-only block holds only cohort-only activities,
+// so no extra cohort filter is needed here.
+async function nextCohortBlockOrdinal(
+  supabase: CohortActionsSupabaseClient,
+  blockId: string
+): Promise<number> {
+  const { data } = await supabase
+    .from('nclex_programme_activities')
+    .select('ordinal')
+    .eq('block_id', blockId)
+    .order('ordinal', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return ((data as { ordinal: number } | null)?.ordinal ?? 0) + 1;
+}
+
 export type CreateCohortActivityResult =
   | { ok: true; activity_id: string }
   | { ok: false; error: string };
@@ -557,7 +574,11 @@ export type CreateCohortActivityResult =
 export async function createCohortOnlyActivityAction(
   cohortId: string,
   unitId: string,
-  values: ActivityFormValues
+  values: ActivityFormValues,
+  // Slice 2 — when set, create the activity INSIDE this cohort-only block
+  // (it must belong to THIS cohort + this unit). null = loose under the
+  // unit (the Slice 1 path).
+  blockId: string | null = null
 ): Promise<CreateCohortActivityResult> {
   const title = values.title.trim();
   if (title.length === 0) return { ok: false, error: 'Title is required.' };
@@ -617,20 +638,41 @@ export async function createCohortOnlyActivityAction(
     return { ok: false, error: 'That unit belongs to a different programme.' };
   }
 
-  const nextOrdinal = await nextCohortUnitBodyOrdinal(
-    supabase,
-    unitId,
-    cohortId
-  );
+  // When adding into a cohort-only block, validate it's THIS cohort's own
+  // block in THIS unit (the nesting rule: a cohort-only activity may only
+  // go loose or inside a cohort-only block — never a template block), and
+  // position it within that block. Otherwise it's loose and lands at the
+  // bottom of the week.
+  let nextOrdinal: number;
+  if (blockId !== null) {
+    const { data: block } = await supabase
+      .from('nclex_programme_blocks')
+      .select('block_id, unit_id, cohort_id')
+      .eq('block_id', blockId)
+      .maybeSingle();
+    if (
+      !block ||
+      (block as { unit_id: string }).unit_id !== unitId ||
+      (block as { cohort_id: string | null }).cohort_id !== cohortId
+    ) {
+      return {
+        ok: false,
+        error: 'That block isn’t a cohort-only block in this unit.',
+      };
+    }
+    nextOrdinal = await nextCohortBlockOrdinal(supabase, blockId);
+  } else {
+    nextOrdinal = await nextCohortUnitBodyOrdinal(supabase, unitId, cohortId);
+  }
 
-  // Insert the activity row: cohort-only (cohort_id set), loose
-  // (block_id null). is_published comes straight from the editor's
-  // Status tick — we never force it.
+  // Insert the activity row: cohort-only (cohort_id set); loose (block_id
+  // null) or inside the cohort-only block. is_published comes straight
+  // from the editor's Status tick — we never force it.
   const { data: activity, error: actErr } = await supabase
     .from('nclex_programme_activities')
     .insert({
       unit_id: unitId,
-      block_id: null,
+      block_id: blockId,
       cohort_id: cohortId,
       ordinal: nextOrdinal,
       type: values.type,
@@ -720,6 +762,128 @@ export async function deleteCohortOnlyActivityAction(
     return {
       ok: false,
       error: 'Activity not found, or not a cohort-only activity you can delete.',
+    };
+  }
+
+  const { data: cohort } = await supabase
+    .from('nclex_cohorts')
+    .select('programme_id')
+    .eq('cohort_id', cohortId)
+    .maybeSingle();
+  if (cohort) {
+    revalidatePath(
+      `/tutor/programme/${(cohort as { programme_id: string }).programme_id}/cohorts`
+    );
+  }
+  return { ok: true };
+}
+
+// =====================================================================
+// Cohort-specific activities — Slice 2 (cohort-only blocks)
+// =====================================================================
+//
+// A cohort-only block is one nclex_programme_blocks row tagged with
+// cohort_id = this cohort, sitting under a TEMPLATE unit. It holds only
+// cohort-only activities (created via createCohortOnlyActivityAction with
+// a blockId). Editing the block reuses the template editBlockAction (it
+// updates by block_id under RLS, and the modal's router.refresh() repaints
+// the cohort page). Create + delete are cohort-scoped here. Blocks land at
+// the bottom of the week for now — placement/reorder is Slice 4.
+
+export type CreateCohortBlockResult =
+  | { ok: true; block_id: string }
+  | { ok: false; error: string };
+
+export async function createCohortOnlyBlockAction(
+  cohortId: string,
+  unitId: string,
+  title: string
+): Promise<CreateCohortBlockResult> {
+  const trimmed = title.trim();
+  if (trimmed.length === 0) {
+    return { ok: false, error: 'Block title is required.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data: cohort } = await supabase
+    .from('nclex_cohorts')
+    .select('cohort_id, programme_id')
+    .eq('cohort_id', cohortId)
+    .maybeSingle();
+  if (!cohort) return { ok: false, error: 'Cohort not found or not yours.' };
+
+  const { data: unit } = await supabase
+    .from('nclex_programme_units')
+    .select('unit_id, programme_id')
+    .eq('unit_id', unitId)
+    .maybeSingle();
+  if (!unit) return { ok: false, error: 'Unit not found or not yours.' };
+  if (
+    (unit as { programme_id: string }).programme_id !==
+    (cohort as { programme_id: string }).programme_id
+  ) {
+    return { ok: false, error: 'That unit belongs to a different programme.' };
+  }
+
+  const nextOrdinal = await nextCohortUnitBodyOrdinal(supabase, unitId, cohortId);
+
+  // Born Draft (is_published default false in the DB), like the inline
+  // template block create — the tutor fills it, then flips it Live.
+  const { data: block, error } = await supabase
+    .from('nclex_programme_blocks')
+    .insert({
+      unit_id: unitId,
+      cohort_id: cohortId,
+      ordinal: nextOrdinal,
+      title: trimmed,
+    })
+    .select('block_id')
+    .single();
+  if (error || !block) {
+    return { ok: false, error: error?.message ?? 'Failed to add the block.' };
+  }
+
+  revalidatePath(
+    `/tutor/programme/${(cohort as { programme_id: string }).programme_id}/cohorts`
+  );
+  return { ok: true, block_id: block.block_id };
+}
+
+export type DeleteCohortBlockResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function deleteCohortOnlyBlockAction(
+  cohortId: string,
+  blockId: string
+): Promise<DeleteCohortBlockResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Delete ONLY this cohort's own cohort-only block (the cohort_id match
+  // refuses template blocks + other cohorts'). Child activities cascade
+  // via the block FK, and each child's COHORT_ONLY checklist row cascades
+  // via its template_activity_id FK — one DELETE cleans the whole subtree.
+  const { data, error } = await supabase
+    .from('nclex_programme_blocks')
+    .delete()
+    .eq('block_id', blockId)
+    .eq('cohort_id', cohortId)
+    .select('block_id')
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return {
+      ok: false,
+      error: 'Block not found, or not a cohort-only block you can delete.',
     };
   }
 

@@ -995,6 +995,76 @@
   cursor: default;
 }
 
+/* --- Slice 2: cohort-only blocks --- */
+
+/* The two-button add row (activity | block) under each week. */
+.cohort-checklist-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* A cohort-only block reads as additive — a teal left edge marks it apart
+ * from a template block (which is read-only here). */
+.cohort-checklist-block.is-cohort-only {
+  border-left: 3px solid var(--accent);
+}
+
+/* Edit / Delete on a cohort-only block header. */
+.cohort-checklist-block-controls {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.cohort-checklist-block-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.cohort-checklist-block-btn:hover:not(:disabled) {
+  background: var(--bg);
+  color: var(--primary);
+}
+.cohort-checklist-block-btn.is-danger:hover:not(:disabled) {
+  background: #fef2f2;
+  color: var(--danger);
+  border-color: #fecaca;
+}
+
+/* Foot of a cohort-only block — the "+ Add activity to block" affordance
+ * (or its inline picker). */
+.cohort-checklist-block-foot {
+  margin-top: 8px;
+}
+
+/* Inline block-title create form (the "+ Add cohort-only block" flow). */
+.cohort-checklist-block-create {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.cohort-checklist-block-create-input {
+  flex: 1 1 240px;
+  min-width: 0;
+  font-size: 13px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--primary);
+}
+.cohort-checklist-block-create-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 /* === Cohort run detail (cohort-workspace fold, 2026-06-12) ====
  * The per-run detail rendered IN PLACE by the Cohorts tab when
  * `?cohort=` is set — run header + top tab bar + pane. Replaces

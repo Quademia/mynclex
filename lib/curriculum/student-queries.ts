@@ -248,6 +248,11 @@ export async function getStudentCohortCurriculum(
          nclex_programme_units!inner(programme_id)`
       )
       .eq('nclex_programme_units.programme_id', programme.programme_id)
+      // Template blocks (cohort_id NULL) PLUS this cohort's own cohort-only
+      // blocks — never another cohort's. Activities already arrive
+      // cohort-scoped via the checklist; this is what lets an in-block
+      // cohort-only activity find its parent block in the render.
+      .or(`cohort_id.is.null,cohort_id.eq.${cohortId}`)
       .order('ordinal', { ascending: true }),
     supabase
       .from('nclex_cohort_checklist_items')

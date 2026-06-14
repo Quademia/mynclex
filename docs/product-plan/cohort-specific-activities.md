@@ -226,10 +226,10 @@ then `created_at`).
   number that drops it at the top, bottom, or wedged between two
   template items.
 
-**Insertion mechanics (build decision to finalise).** The current
-template numbering is tight (1, 2, 3 …), which leaves no integer gap to
-slot a cohort-only item *between* two template items. Two robust
-options, pick at build:
+**Insertion mechanics (finalised in Slice 4 — its own slice).** The
+current template numbering is tight (1, 2, 3 …), which leaves no integer
+gap to slot a cohort-only item *between* two template items. Two robust
+options, pick when Slice 4 is built:
 - **Gap the numbers** — store/treat template ordinals as spaced (e.g.
   10, 20, 30) so cohort-only items land in the gaps (5, 25). A one-time
   re-space preserves order, so it changes nothing any cohort sees.
@@ -371,14 +371,24 @@ Unit Builder UI, admin surfaces.
    2); student loose-activity delivery verified. (No blocks yet.)
 2. **Slice 2 — cohort-only blocks.** "+ Add cohort-only block",
    add-activity-into-block, block edit/delete, ≥1-activity rule;
-   student blocks read widened; ordering across blocks + loose for
-   cohort-only items (finalise the gap/renumber strategy here).
+   student blocks read widened. Cohort-only blocks — like the loose
+   activities in Slice 1 — land at the **bottom of the week** for now;
+   all reordering/placement is split out into its own slice (Slice 4
+   below).
 3. **Slice 3 — reference types.** Extend creation to **Mock +
    Practice quiz** (reuse the quiz picker), then **Library Note +
    Shelf** (reuse their attach modals).
-4. **Slice 4 — polish.** Ordering edge cases, nudge/reminder
-   refinements, empty/▸states, any analytics rollup that should count
-   cohort-only completions.
+4. **Slice 4 — ordering / placement (its own slice).** Build the
+   spaced-position-numbers model from *"Ordering"* above end to end:
+   finalise the mechanic (pre-space vs on-demand renumber), re-space the
+   template ordinals as needed, and add the reorder/placement UI so a
+   cohort-only item — loose **or** a block — can sit at the top, the
+   bottom, or **wedged between two template items**, all without ever
+   disturbing template order. Split out from Slice 2 (decided 2026-06-14
+   with Sam) so the ordering work can be built and tested on its own.
+5. **Slice 5 — polish.** Nudge/reminder refinements, empty states, any
+   analytics rollup that should count cohort-only completions, and the
+   remaining edge cases.
 
 ---
 

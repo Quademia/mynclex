@@ -41,7 +41,9 @@ import { ErrorToast } from '@/lib/toast/error-toast';
 import { InfoToast } from '@/lib/toast/info-toast';
 import { ActivityModal } from '@/lib/curriculum/activity-modal';
 import { ActivityPicker } from '@/lib/curriculum/activity-picker';
+import { BlockFormModal } from '@/lib/curriculum/block-form-modal';
 import { DeleteActivityConfirm } from '@/lib/overlays/curriculum/delete-activity-confirm';
+import { DeleteBlockConfirm } from '@/lib/overlays/curriculum/delete-block-confirm';
 import {
   formatUnitTitle,
   unitLabel,
@@ -57,6 +59,8 @@ import {
   includeAllUnconfiguredActivitiesAction,
   createCohortOnlyActivityAction,
   deleteCohortOnlyActivityAction,
+  createCohortOnlyBlockAction,
+  deleteCohortOnlyBlockAction,
 } from './actions';
 import type {
   ChecklistActivityState,
@@ -64,7 +68,11 @@ import type {
   CohortChecklistBodyEntry,
   CohortChecklistTree,
 } from './types';
-import type { ActivityType, ProgrammeActivity } from '@/lib/curriculum/types';
+import type {
+  ActivityType,
+  ProgrammeActivity,
+  ProgrammeBlock,
+} from '@/lib/curriculum/types';
 import type { UnitLabel } from '@/lib/programmes/types';
 
 // The activity types a tutor can add as a cohort-only activity in Slice 1
@@ -100,16 +108,58 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
   const [editActivity, setEditActivity] = useState<ProgrammeActivity | null>(
     null
   );
-  // Cohort-only "+ Add" flow: which unit's type picker is open, and the
-  // chosen (unit, type) that opens the shared activity editor in create
-  // mode wired to the cohort-only create action.
+  // Cohort-only "+ Add" flow. pickerUnitId = which unit's activity-type
+  // picker is open; addingBlockUnitId = which unit's "+ Add block" title
+  // input is open; createConfig = the chosen (unit, type, block) that opens
+  // the shared activity editor in create mode (blockId set → the activity
+  // is created inside that cohort-only block).
   const [pickerUnitId, setPickerUnitId] = useState<string | null>(null);
+  const [addingBlockUnitId, setAddingBlockUnitId] = useState<string | null>(
+    null
+  );
   const [createConfig, setCreateConfig] = useState<{
     unitId: string;
     type: ActivityType;
+    blockId: string | null;
   } | null>(null);
+  // Cohort-only block edit / delete (Slice 2).
+  const [editBlock, setEditBlock] = useState<ProgrammeBlock | null>(null);
+  const [deleteBlockTarget, setDeleteBlockTarget] = useState<{
+    block: ProgrammeBlock;
+    activityCount: number;
+  } | null>(null);
+  const [creatingBlock, startCreateBlock] = useTransition();
+  const [deletingBlock, startDeleteBlock] = useTransition();
 
   const cohortId = tree.cohort.cohort_id;
+
+  function handleCreateBlock(unitId: string, title: string) {
+    setError(null);
+    startCreateBlock(async () => {
+      const res = await createCohortOnlyBlockAction(cohortId, unitId, title);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setAddingBlockUnitId(null);
+      router.refresh();
+    });
+  }
+
+  function handleDeleteBlock() {
+    if (!deleteBlockTarget) return;
+    setError(null);
+    const blockId = deleteBlockTarget.block.block_id;
+    startDeleteBlock(async () => {
+      const res = await deleteCohortOnlyBlockAction(cohortId, blockId);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setDeleteBlockTarget(null);
+      router.refresh();
+    });
+  }
 
   // Unconfigured count — activities the tutor hasn't decided on yet
   // (no override row). Drives the "N unconfigured → Include all" prompt.
@@ -282,6 +332,13 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
                       onError={setError}
                       onMutated={() => router.refresh()}
                       markPending={markPending}
+                      onEditBlock={(block) => setEditBlock(block)}
+                      onDeleteBlock={(block, count) =>
+                        setDeleteBlockTarget({ block, activityCount: count })
+                      }
+                      onAddActivityToBlock={(unitId, blockId, type) =>
+                        setCreateConfig({ unitId, type, blockId })
+                      }
                     />
                   ))}
                 </div>
@@ -293,19 +350,46 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
                     types={COHORT_ONLY_TYPES}
                     title="Add a cohort-only activity"
                     onPick={(type) => {
-                      setCreateConfig({ unitId: u.unit.unit_id, type });
+                      setCreateConfig({
+                        unitId: u.unit.unit_id,
+                        type,
+                        blockId: null,
+                      });
                       setPickerUnitId(null);
                     }}
                     onCancel={() => setPickerUnitId(null)}
                   />
+                ) : addingBlockUnitId === u.unit.unit_id ? (
+                  <CohortBlockCreate
+                    pending={creatingBlock}
+                    onCreate={(title) =>
+                      handleCreateBlock(u.unit.unit_id, title)
+                    }
+                    onCancel={() => setAddingBlockUnitId(null)}
+                  />
                 ) : (
-                  <button
-                    type="button"
-                    className="cohort-checklist-add-btn"
-                    onClick={() => setPickerUnitId(u.unit.unit_id)}
-                  >
-                    + Add cohort-only activity
-                  </button>
+                  <div className="cohort-checklist-add-row">
+                    <button
+                      type="button"
+                      className="cohort-checklist-add-btn"
+                      onClick={() => {
+                        setPickerUnitId(u.unit.unit_id);
+                        setAddingBlockUnitId(null);
+                      }}
+                    >
+                      + Add cohort-only activity
+                    </button>
+                    <button
+                      type="button"
+                      className="cohort-checklist-add-btn"
+                      onClick={() => {
+                        setAddingBlockUnitId(u.unit.unit_id);
+                        setPickerUnitId(null);
+                      }}
+                    >
+                      + Add cohort-only block
+                    </button>
+                  </div>
                 )}
               </div>
             </article>
@@ -326,12 +410,13 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
           mode="create"
           unitId={createConfig.unitId}
           type={createConfig.type}
-          blockId={null}
+          blockId={createConfig.blockId}
           onCreate={async (values) => {
             const res = await createCohortOnlyActivityAction(
               cohortId,
               createConfig.unitId,
-              values
+              values,
+              createConfig.blockId
             );
             // Soft-warn keyed off the editor's Status tick: if it landed
             // Draft, nudge that students can't see it yet; if Live,
@@ -351,6 +436,28 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
         />
       )}
 
+      {editBlock && (
+        <BlockFormModal
+          blockId={editBlock.block_id}
+          initial={{
+            title: editBlock.title,
+            description: editBlock.description ?? '',
+            is_published: editBlock.is_published,
+          }}
+          onClose={() => setEditBlock(null)}
+        />
+      )}
+
+      {deleteBlockTarget && (
+        <DeleteBlockConfirm
+          blockTitle={deleteBlockTarget.block.title}
+          activityCount={deleteBlockTarget.activityCount}
+          pending={deletingBlock}
+          onCancel={() => setDeleteBlockTarget(null)}
+          onConfirm={handleDeleteBlock}
+        />
+      )}
+
       <ErrorToast error={error} onDismiss={() => setError(null)} />
       <InfoToast message={nudge} onDismiss={() => setNudge(null)} />
     </>
@@ -359,6 +466,16 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
 
 // ---------- Body entry: block or loose row ----------
 
+type BlockCallbacks = {
+  onEditBlock: (block: ProgrammeBlock) => void;
+  onDeleteBlock: (block: ProgrammeBlock, activityCount: number) => void;
+  onAddActivityToBlock: (
+    unitId: string,
+    blockId: string,
+    type: ActivityType
+  ) => void;
+};
+
 function BodyEntry({
   entry,
   cohortId,
@@ -366,6 +483,9 @@ function BodyEntry({
   onError,
   onMutated,
   markPending,
+  onEditBlock,
+  onDeleteBlock,
+  onAddActivityToBlock,
 }: {
   entry: CohortChecklistBodyEntry;
   cohortId: string;
@@ -373,7 +493,7 @@ function BodyEntry({
   onError: (msg: string) => void;
   onMutated: () => void;
   markPending: (id: string, isPending: boolean) => void;
-}) {
+} & BlockCallbacks) {
   if (entry.kind === 'loose') {
     return (
       <ChecklistRow
@@ -388,29 +508,95 @@ function BodyEntry({
   }
 
   return (
-    <div className="cohort-checklist-block">
+    <BlockEntryCard
+      entry={entry}
+      cohortId={cohortId}
+      onClickActivity={onClickActivity}
+      onError={onError}
+      onMutated={onMutated}
+      markPending={markPending}
+      onEditBlock={onEditBlock}
+      onDeleteBlock={onDeleteBlock}
+      onAddActivityToBlock={onAddActivityToBlock}
+    />
+  );
+}
+
+// A block in the cohort checklist. Template blocks render read-only (they
+// are authored on the programme Curriculum tab). Cohort-only blocks carry
+// the source pill + Edit / Delete + a "+ Add activity to block" picker.
+function BlockEntryCard({
+  entry,
+  cohortId,
+  onClickActivity,
+  onError,
+  onMutated,
+  markPending,
+  onEditBlock,
+  onDeleteBlock,
+  onAddActivityToBlock,
+}: {
+  entry: import('./types').CohortChecklistBlockEntry;
+  cohortId: string;
+  onClickActivity: (a: ProgrammeActivity) => void;
+  onError: (msg: string) => void;
+  onMutated: () => void;
+  markPending: (id: string, isPending: boolean) => void;
+} & BlockCallbacks) {
+  const { block, rows, isCohortOnly } = entry;
+  const [blockPickerOpen, setBlockPickerOpen] = useState(false);
+
+  return (
+    <div
+      className={
+        'cohort-checklist-block' + (isCohortOnly ? ' is-cohort-only' : '')
+      }
+    >
       <header className="cohort-checklist-block-head">
-        <span className="cohort-checklist-block-title">
-          {entry.block.title}
-        </span>
+        <span className="cohort-checklist-block-title">{block.title}</span>
         <span
-          className={`unit-pill ${unitStatusPillClass(entry.block.is_published)}`}
+          className={`unit-pill ${unitStatusPillClass(block.is_published)}`}
         >
-          {unitStatusLabel(entry.block.is_published)}
+          {unitStatusLabel(block.is_published)}
         </span>
+        {isCohortOnly && (
+          <span className="cohort-checklist-cohort-only-badge">
+            Cohort-only
+          </span>
+        )}
+        {isCohortOnly && (
+          <span className="cohort-checklist-block-controls">
+            <button
+              type="button"
+              className="cohort-checklist-block-btn"
+              onClick={() => onEditBlock(block)}
+              title="Edit this block"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="cohort-checklist-block-btn is-danger"
+              onClick={() => onDeleteBlock(block, rows.length)}
+              title="Delete this block"
+            >
+              Delete
+            </button>
+          </span>
+        )}
       </header>
-      {entry.block.description && (
-        <p className="cohort-checklist-block-desc">
-          {entry.block.description}
-        </p>
+      {block.description && (
+        <p className="cohort-checklist-block-desc">{block.description}</p>
       )}
-      {entry.rows.length === 0 ? (
+      {rows.length === 0 ? (
         <p className="cohort-checklist-block-empty">
-          No activities in this block.
+          {isCohortOnly
+            ? 'No activities in this block yet — add one below.'
+            : 'No activities in this block.'}
         </p>
       ) : (
         <div className="cohort-checklist-block-rows">
-          {entry.rows.map((r) => (
+          {rows.map((r) => (
             <ChecklistRow
               key={r.activity.activity_id}
               row={r}
@@ -423,6 +609,78 @@ function BodyEntry({
           ))}
         </div>
       )}
+      {isCohortOnly && (
+        <div className="cohort-checklist-block-foot">
+          {blockPickerOpen ? (
+            <ActivityPicker
+              types={COHORT_ONLY_TYPES}
+              title="Add an activity to this block"
+              onPick={(type) => {
+                onAddActivityToBlock(block.unit_id, block.block_id, type);
+                setBlockPickerOpen(false);
+              }}
+              onCancel={() => setBlockPickerOpen(false)}
+            />
+          ) : (
+            <button
+              type="button"
+              className="cohort-checklist-add-btn"
+              onClick={() => setBlockPickerOpen(true)}
+            >
+              + Add activity to block
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Inline "+ Add cohort-only block" title input — mirrors the template's
+// inline block create (just name it; description + Live/Draft come later
+// via the block edit modal).
+function CohortBlockCreate({
+  pending,
+  onCreate,
+  onCancel,
+}: {
+  pending: boolean;
+  onCreate: (title: string) => void;
+  onCancel: () => void;
+}) {
+  const [title, setTitle] = useState('');
+  const trimmed = title.trim();
+  return (
+    <div className="cohort-checklist-block-create">
+      <input
+        type="text"
+        className="cohort-checklist-block-create-input"
+        placeholder="Block title — e.g. Pre-tutorial reading"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        autoFocus
+        disabled={pending}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && trimmed) onCreate(trimmed);
+          if (e.key === 'Escape') onCancel();
+        }}
+      />
+      <button
+        type="button"
+        className="prog-btn prog-btn-primary"
+        disabled={pending || trimmed === ''}
+        onClick={() => onCreate(trimmed)}
+      >
+        {pending ? 'Adding…' : 'Add block'}
+      </button>
+      <button
+        type="button"
+        className="prog-btn prog-btn-ghost"
+        disabled={pending}
+        onClick={onCancel}
+      >
+        Cancel
+      </button>
     </div>
   );
 }

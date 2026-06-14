@@ -231,7 +231,7 @@ export async function getCohortChecklist(
       .from('nclex_programme_blocks')
       .select(
         `block_id, unit_id, ordinal, title, description,
-         is_published, created_at, updated_at,
+         is_published, created_at, updated_at, cohort_id,
          nclex_programme_units!inner(programme_id)`
       )
       .eq('nclex_programme_units.programme_id', programme.programme_id)
@@ -260,8 +260,14 @@ export async function getCohortChecklist(
   const blocks = (blocksResult.data ?? []) as Array<
     ProgrammeBlock & {
       nclex_programme_units?: unknown; // strip embed before render
+      cohort_id?: string | null; // drives isCohortOnly, not on ProgrammeBlock
     }
   >;
+  // Which blocks are cohort-only (cohort_id set) vs shared template.
+  const isCohortOnlyByBlock = new Map<string, boolean>();
+  for (const b of blocks) {
+    isCohortOnlyByBlock.set(b.block_id, b.cohort_id != null);
+  }
 
   // Override rows, keyed by activity. Absence = unconfigured.
   type OverrideRow = {
@@ -396,7 +402,12 @@ export async function getCohortChecklist(
         const blockRows = (rowsByBlock.get(e.block.block_id) ?? []).sort(
           (x, y) => x.activity.ordinal - y.activity.ordinal
         );
-        return { kind: 'block', block: e.block, rows: blockRows };
+        return {
+          kind: 'block',
+          block: e.block,
+          rows: blockRows,
+          isCohortOnly: isCohortOnlyByBlock.get(e.block.block_id) ?? false,
+        };
       }
       return { kind: 'loose', row: e.row };
     });
