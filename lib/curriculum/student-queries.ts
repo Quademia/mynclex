@@ -30,6 +30,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { isVisibleToStudents, activityOpenState } from './format';
+import { effectiveOrdinal } from './unit-body';
 import {
   getActivityProgressMap,
   getInProgressQuizAttempts,
@@ -244,7 +245,7 @@ export async function getStudentCohortCurriculum(
       .from('nclex_programme_blocks')
       .select(
         `block_id, unit_id, ordinal, title, description, is_published,
-         created_at, updated_at,
+         created_at, updated_at, cohort_id,
          nclex_programme_units!inner(programme_id)`
       )
       .eq('nclex_programme_units.programme_id', programme.programme_id)
@@ -260,24 +261,35 @@ export async function getStudentCohortCurriculum(
         `is_included, release_date, due_date, close_date,
          nclex_programme_activities!inner(
            activity_id, unit_id, block_id, ordinal, type, title,
-           description, note, payload, is_published, created_at, updated_at
+           description, note, payload, is_published, created_at, updated_at,
+           cohort_id
          )`
       )
       .eq('cohort_id', cohortId),
   ]);
 
   const units = (unitsRes.data ?? []) as ProgrammeUnit[];
+  // cohort-only block ids (Slice 4) — for the effective-ordinal merge. Built
+  // from the raw read before the embed is stripped.
+  const cohortOnlyBlockIds = new Set<string>(
+    ((blocksRes.data ?? []) as Array<{ block_id: string; cohort_id: string | null }>)
+      .filter((b) => b.cohort_id != null)
+      .map((b) => b.block_id)
+  );
   const blocks = (blocksRes.data ?? []).map(stripUnitEmbed) as ProgrammeBlock[];
 
   // Normalise the embed shape (PostgREST returns object | array).
+  type RawActivity = ProgrammeActivity & { cohort_id: string | null };
   type RawRow = {
     is_included: boolean;
     release_date: string;
     due_date: string | null;
     close_date: string | null;
-    nclex_programme_activities: ProgrammeActivity | ProgrammeActivity[];
+    nclex_programme_activities: RawActivity | RawActivity[];
   };
   const rawRows = (rowsRes.data ?? []) as RawRow[];
+  // cohort-only activity ids (Slice 4) — for the effective-ordinal merge.
+  const cohortOnlyActivityIds = new Set<string>();
 
   // Apply the student visibility filter at the row level. Publish
   // + inclusion gates HIDE an activity (dropped here). The release
@@ -298,10 +310,14 @@ export async function getStudentCohortCurriculum(
   >;
   const staged: StagedActivity[] = [];
   for (const r of rawRows) {
-    const activity = Array.isArray(r.nclex_programme_activities)
+    const raw = Array.isArray(r.nclex_programme_activities)
       ? r.nclex_programme_activities[0]
       : r.nclex_programme_activities;
-    if (!activity) continue;
+    if (!raw) continue;
+    // Strip cohort_id off the activity (it drives the merge scaling, not
+    // the StudentActivity surface).
+    const { cohort_id, ...activity } = raw;
+    if (cohort_id != null) cohortOnlyActivityIds.add(activity.activity_id);
 
     const unitPublished =
       units.find((u) => u.unit_id === activity.unit_id)?.is_published ?? false;
@@ -363,7 +379,13 @@ export async function getStudentCohortCurriculum(
     shelfUpdate: shelfState.updateByActivity.get(a.activity_id) ?? null,
   }));
 
-  const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
+  const unitTrees = composeUnitTrees(
+    units,
+    blocks,
+    visibleActivities,
+    cohortOnlyBlockIds,
+    cohortOnlyActivityIds
+  );
   const decoratedUnits = decorateUnitsWithProgress(unitTrees);
   const { upNextActivityId, whereILeftOffUnitIndex, hasAnyDone } =
     deriveProgrammeSignals(decoratedUnits, progressMap, inProgressMap);
@@ -639,7 +661,12 @@ function normalizeSkipped(raw: unknown): string[] {
 function composeUnitTrees(
   units: ProgrammeUnit[],
   blocks: ProgrammeBlock[],
-  visibleActivities: StudentActivity[]
+  visibleActivities: StudentActivity[],
+  // Slice 4 — which blocks/activities are cohort-only, so the unit-body
+  // merge can use EFFECTIVE ordinals (template ×scale; cohort-only as-is).
+  // Empty for self-paced (all template — uniform scaling preserves order).
+  cohortOnlyBlockIds: Set<string> = new Set(),
+  cohortOnlyActivityIds: Set<string> = new Set()
 ): StudentCurriculumUnit[] {
   const blocksByUnit = new Map<string, ProgrammeBlock[]>();
   for (const b of blocks) {
@@ -672,18 +699,31 @@ function composeUnitTrees(
       }
     }
 
-    // Compose: blocks + loose activities interleaved by ordinal.
+    // Compose: blocks + loose activities interleaved by EFFECTIVE ordinal
+    // (Slice 4) so cohort-only items land exactly where the tutor placed
+    // them relative to template items.
     type Sortable =
-      | { kind: 'block'; ordinal: number; block: ProgrammeBlock }
-      | { kind: 'loose'; ordinal: number; activity: StudentActivity };
+      | { kind: 'block'; sortKey: number; block: ProgrammeBlock }
+      | { kind: 'loose'; sortKey: number; activity: StudentActivity };
     const sortables: Sortable[] = [];
     for (const b of unitBlocks) {
-      sortables.push({ kind: 'block', ordinal: b.ordinal, block: b });
+      sortables.push({
+        kind: 'block',
+        sortKey: effectiveOrdinal(b.ordinal, cohortOnlyBlockIds.has(b.block_id)),
+        block: b,
+      });
     }
     for (const a of looseActivities) {
-      sortables.push({ kind: 'loose', ordinal: a.ordinal, activity: a });
+      sortables.push({
+        kind: 'loose',
+        sortKey: effectiveOrdinal(
+          a.ordinal,
+          cohortOnlyActivityIds.has(a.activity_id)
+        ),
+        activity: a,
+      });
     }
-    sortables.sort((a, b) => a.ordinal - b.ordinal);
+    sortables.sort((a, b) => a.sortKey - b.sortKey);
 
     const body: StudentBodyEntry[] = sortables.map((e) => {
       if (e.kind === 'block') {

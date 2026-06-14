@@ -12,6 +12,27 @@ import type {
   UnitBodyEntry,
 } from './types';
 
+// Cohort-specific activities, Slice 4 — spaced position numbers ("Gap the
+// numbers / treat" variant). Template ordinals stay tight (1, 2, 3 …); at
+// the cohort merge sites we TREAT them as spaced by scaling ×this factor,
+// so a cohort-only item can store its number directly in the gapped space
+// (e.g. 1_500_000 to sit between template 1 and 2) and sort into place —
+// without the template's stored numbers ever changing. 1e6 leaves ~20
+// midpoint inserts of headroom per gap before integers run out, well
+// within INTEGER range for realistic unit sizes. See
+// docs/product-plan/cohort-specific-activities.md → "Ordering".
+export const TEMPLATE_ORDINAL_SCALE = 1_000_000;
+
+// Effective sort position for an item in a COHORT unit-body merge: template
+// items scale up into the gapped space; cohort-only items already store
+// their number in that space, so they're used as-is.
+export function effectiveOrdinal(
+  ordinal: number,
+  isCohortOnly: boolean
+): number {
+  return isCohortOnly ? ordinal : ordinal * TEMPLATE_ORDINAL_SCALE;
+}
+
 /**
  * Merge blocks + activities into the ordered unit-body sequence.
  *

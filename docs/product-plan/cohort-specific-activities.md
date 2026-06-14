@@ -229,22 +229,32 @@ then `created_at`).
   number that drops it at the top, bottom, or wedged between two
   template items.
 
-**Insertion mechanics (finalised in Slice 4 — its own slice).** The
-current template numbering is tight (1, 2, 3 …), which leaves no integer
-gap to slot a cohort-only item *between* two template items. Two robust
-options, pick when Slice 4 is built:
-- **Gap the numbers** — store/treat template ordinals as spaced (e.g.
-  10, 20, 30) so cohort-only items land in the gaps (5, 25). A one-time
-  re-space preserves order, so it changes nothing any cohort sees.
-- **On-demand local renumber** — when no integer gap exists, renumber
-  the surrounding items to open one. Must only ever renumber
-  *cohort-only* rows, never template rows.
+**Insertion mechanics — DECIDED for Slice 4: "Gap the numbers", the
+*treat* (render-side) variant. No migration.** The current template
+numbering is tight (1, 2, 3 …), which leaves no integer gap to slot a
+cohort-only item *between* two template items. The two robust options the
+design weighed were:
+- **Gap the numbers** — *store* template ordinals as spaced (a one-time
+  re-space migration) **or** *treat* them as spaced at render (multiply by
+  a large factor when merging, leaving the stored values untouched).
+- **On-demand local renumber** — when no integer gap exists, renumber the
+  surrounding items to open one. Must only ever renumber *cohort-only*
+  rows, never template rows.
 
-Either keeps the invariant: **template numbers never change relative to
-each other for any cohort.** (The existing tie-tolerance + blocks-first
-tiebreaker already covers the common cases — top, bottom, between a
-block and a loose item — so the gap strategy is the belt-and-braces for
-arbitrary placement.)
+**Chosen (2026-06-14, with Sam): "Gap the numbers", the *treat* variant.**
+Because the feature isn't on prod yet there is no migration to ship and —
+more importantly — it touches **nothing** in the template path: the two
+cohort merge sites (`getCohortChecklist` + the student cohort delivery)
+scale template ordinals by a large factor (e.g. ×1e6) when sorting, and a
+cohort-only item simply stores its number **in that scaled space** (e.g.
+1.5e6 to sit between template 1 and 2). Reordering rewrites only the
+cohort-only row's number to the midpoint of its new neighbours.
+
+This keeps the invariant: **template numbers never change — they aren't
+even written.** Per the note below, the existing tie-tolerance +
+blocks-first tiebreaker already covers the common cases (top, bottom,
+between a block and a loose item), so the scaled-number scheme is the
+belt-and-braces specifically for **wedging between two template items**.
 
 ---
 
@@ -382,13 +392,19 @@ Unit Builder UI, admin surfaces.
    Practice quiz** (reuse the quiz picker), then **Library Note +
    Shelf** (reuse their attach modals).
 4. **Slice 4 — ordering / placement (its own slice).** Build the
-   spaced-position-numbers model from *"Ordering"* above end to end:
-   finalise the mechanic (pre-space vs on-demand renumber), re-space the
-   template ordinals as needed, and add the reorder/placement UI so a
-   cohort-only item — loose **or** a block — can sit at the top, the
-   bottom, or **wedged between two template items**, all without ever
-   disturbing template order. Split out from Slice 2 (decided 2026-06-14
-   with Sam) so the ordering work can be built and tested on its own.
+   spaced-position-numbers model from *"Ordering"* above end to end, using
+   the **decided mechanic: "Gap the numbers", the *treat* (render-side)
+   variant — no migration**. The two cohort merge sites scale template
+   ordinals ×1e6 when sorting; cohort-only items store their number in that
+   scaled space; reorder rewrites only the cohort-only row to the midpoint
+   of its new neighbours. Add the reorder UI (**up/down arrows**, matching
+   the template Unit Builder) on loose cohort-only items, cohort-only
+   blocks, and activities inside a cohort-only block — so a cohort-only
+   item can sit at the top, the bottom, or **wedged between two template
+   items**, all without ever disturbing template order. Add still drops at
+   the bottom of the week, then reorder. Split out from Slice 2 (decided
+   2026-06-14 with Sam) so the ordering work can be built and tested on its
+   own.
 5. **Slice 5 — polish.** Nudge/reminder refinements, empty states, any
    analytics rollup that should count cohort-only completions, and the
    remaining edge cases.

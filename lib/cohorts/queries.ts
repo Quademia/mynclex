@@ -17,6 +17,7 @@ import type {
   ProgrammeStatus,
   UnitLabel,
 } from '@/lib/programmes/types';
+import { effectiveOrdinal } from '@/lib/curriculum/unit-body';
 import type {
   ProgrammeActivity,
   ProgrammeBlock,
@@ -377,25 +378,37 @@ export async function getCohortChecklist(
       }
     }
 
-    // Compose the body: blocks + loose rows interleaved by ordinal.
-    // Blocks carry their own ordinal; loose rows use the activity's
-    // ordinal (which lives in the same unit-body sequence per the
-    // 9.3c reorder model).
+    // Compose the body: blocks + loose rows interleaved by EFFECTIVE
+    // ordinal (Slice 4). Template items scale ×TEMPLATE_ORDINAL_SCALE;
+    // cohort-only items store their number already in that gapped space —
+    // so a cohort-only item sits top / bottom / wedged between template
+    // items exactly where its number places it.
     type Sortable =
-      | { kind: 'block'; ordinal: number; block: ProgrammeBlock }
+      | { kind: 'block'; sortKey: number; block: ProgrammeBlock }
       | {
           kind: 'loose';
-          ordinal: number;
+          sortKey: number;
           row: CohortChecklistActivityRow;
         };
     const sortables: Sortable[] = [];
     for (const b of unitBlocks) {
-      sortables.push({ kind: 'block', ordinal: b.ordinal, block: b });
+      sortables.push({
+        kind: 'block',
+        sortKey: effectiveOrdinal(
+          b.ordinal,
+          isCohortOnlyByBlock.get(b.block_id) ?? false
+        ),
+        block: b,
+      });
     }
     for (const r of looseRows) {
-      sortables.push({ kind: 'loose', ordinal: r.activity.ordinal, row: r });
+      sortables.push({
+        kind: 'loose',
+        sortKey: effectiveOrdinal(r.activity.ordinal, r.isCohortOnly),
+        row: r,
+      });
     }
-    sortables.sort((a, b) => a.ordinal - b.ordinal);
+    sortables.sort((a, b) => a.sortKey - b.sortKey);
 
     const body: CohortChecklistBodyEntry[] = sortables.map((e) => {
       if (e.kind === 'block') {

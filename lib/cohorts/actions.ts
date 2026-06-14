@@ -15,6 +15,10 @@ import {
   validatePdfAssetForSave,
   validateQuizForActivity,
 } from '@/lib/curriculum/activity-payload';
+import {
+  effectiveOrdinal,
+  TEMPLATE_ORDINAL_SCALE,
+} from '@/lib/curriculum/unit-body';
 import type { ActivityFormValues } from '@/lib/curriculum/types';
 import type { CohortFormValues } from './types';
 
@@ -517,38 +521,50 @@ export async function includeAllUnconfiguredActivitiesAction(
 
 type CohortActionsSupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
-// Bottom-of-week ordinal in THIS cohort's view: the max ordinal across
-// the unit's template blocks + loose activities AND this cohort's own
-// cohort-only ones, + 1. Scoped so another cohort's content can't shift
-// where this one's lands.
+// Bottom-of-week ordinal in THIS cohort's view, in the EFFECTIVE
+// (scaled) space (Slice 4). Template items' effective position is
+// ordinal × SCALE; cohort-only items store their number already in that
+// space. Bottom = max(effective of every item in this cohort's view) +
+// SCALE — one full gap past the last item, template or cohort-only.
+//
+// Reads the template max (cohort_id IS NULL) and this cohort's cohort-only
+// max separately so each can be scaled correctly. Scoped so another
+// cohort's content can't shift where this one's lands.
 async function nextCohortUnitBodyOrdinal(
   supabase: CohortActionsSupabaseClient,
   unitId: string,
   cohortId: string
 ): Promise<number> {
-  const scope = `cohort_id.is.null,cohort_id.eq.${cohortId}`;
-  const [b, a] = await Promise.all([
-    supabase
-      .from('nclex_programme_blocks')
-      .select('ordinal')
-      .eq('unit_id', unitId)
-      .or(scope)
+  const maxOrdinal = async (
+    table: 'nclex_programme_blocks' | 'nclex_programme_activities',
+    cohortOnly: boolean
+  ): Promise<number> => {
+    const base = supabase.from(table).select('ordinal').eq('unit_id', unitId);
+    const looseScoped =
+      table === 'nclex_programme_activities' ? base.is('block_id', null) : base;
+    const scoped = cohortOnly
+      ? looseScoped.eq('cohort_id', cohortId)
+      : looseScoped.is('cohort_id', null);
+    const { data } = await scoped
       .order('ordinal', { ascending: false })
       .limit(1)
-      .maybeSingle(),
-    supabase
-      .from('nclex_programme_activities')
-      .select('ordinal')
-      .eq('unit_id', unitId)
-      .is('block_id', null)
-      .or(scope)
-      .order('ordinal', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .maybeSingle();
+    return (data as { ordinal: number } | null)?.ordinal ?? 0;
+  };
+
+  const [tBlock, tLoose, cBlock, cLoose] = await Promise.all([
+    maxOrdinal('nclex_programme_blocks', false),
+    maxOrdinal('nclex_programme_activities', false),
+    maxOrdinal('nclex_programme_blocks', true),
+    maxOrdinal('nclex_programme_activities', true),
   ]);
-  const blockMax = (b.data as { ordinal: number } | null)?.ordinal ?? 0;
-  const looseMax = (a.data as { ordinal: number } | null)?.ordinal ?? 0;
-  return Math.max(blockMax, looseMax) + 1;
+  const templateMax = Math.max(tBlock, tLoose); // raw template ordinal
+  const cohortOnlyMax = Math.max(cBlock, cLoose); // already in scaled space
+  const effectiveMax = Math.max(
+    templateMax * TEMPLATE_ORDINAL_SCALE,
+    cohortOnlyMax
+  );
+  return effectiveMax + TEMPLATE_ORDINAL_SCALE;
 }
 
 // Next ordinal inside a single block — its children share one in-block
@@ -920,5 +936,238 @@ export async function deleteCohortOnlyBlockAction(
       `/tutor/programme/${(cohort as { programme_id: string }).programme_id}/cohorts`
     );
   }
+  return { ok: true };
+}
+
+// =====================================================================
+// Cohort-specific activities — Slice 4 (reorder, spaced position numbers)
+// =====================================================================
+//
+// Reorder a COHORT-ONLY item (loose activity or block) within its week by
+// rewriting ONLY its own number to the midpoint of the gap it lands in, in
+// the EFFECTIVE (scaled) space — template numbers are never touched, so
+// other cohorts are unaffected. An in-block cohort-only activity reorders
+// by a plain swap with its sibling (a cohort-only block holds only
+// cohort-only activities, all in one scale).
+
+type UnitBodyItem = {
+  kind: 'block' | 'loose';
+  id: string;
+  effective: number;
+};
+
+// Load the unit body (template + THIS cohort's cohort-only blocks/loose
+// activities) as one list sorted by effective position.
+async function loadCohortUnitBody(
+  supabase: CohortActionsSupabaseClient,
+  unitId: string,
+  cohortId: string
+): Promise<UnitBodyItem[]> {
+  const scope = `cohort_id.is.null,cohort_id.eq.${cohortId}`;
+  const [blocksRes, looseRes] = await Promise.all([
+    supabase
+      .from('nclex_programme_blocks')
+      .select('block_id, ordinal, cohort_id')
+      .eq('unit_id', unitId)
+      .or(scope),
+    supabase
+      .from('nclex_programme_activities')
+      .select('activity_id, ordinal, cohort_id')
+      .eq('unit_id', unitId)
+      .is('block_id', null)
+      .or(scope),
+  ]);
+  const items: UnitBodyItem[] = [];
+  for (const b of (blocksRes.data ?? []) as Array<{
+    block_id: string;
+    ordinal: number;
+    cohort_id: string | null;
+  }>) {
+    items.push({
+      kind: 'block',
+      id: b.block_id,
+      effective: effectiveOrdinal(b.ordinal, b.cohort_id != null),
+    });
+  }
+  for (const a of (looseRes.data ?? []) as Array<{
+    activity_id: string;
+    ordinal: number;
+    cohort_id: string | null;
+  }>) {
+    items.push({
+      kind: 'loose',
+      id: a.activity_id,
+      effective: effectiveOrdinal(a.ordinal, a.cohort_id != null),
+    });
+  }
+  items.sort((x, y) => x.effective - y.effective);
+  return items;
+}
+
+// New number for a cohort-only item moving one step up/down in the merged
+// list — the midpoint of the gap it lands in. Returns null on a no-op
+// (already at the edge) or when the gap has no integer left (extremely
+// rare with SCALE spacing — the UI then just doesn't move it).
+function newOrdinalForMove(
+  items: UnitBodyItem[],
+  kind: 'block' | 'loose',
+  movingId: string,
+  direction: 'up' | 'down'
+): number | null {
+  const i = items.findIndex((it) => it.kind === kind && it.id === movingId);
+  if (i === -1) return null;
+  const j = direction === 'up' ? i - 1 : i + 1;
+  if (j < 0 || j >= items.length) return null; // edge — no-op
+
+  let lower: number;
+  let upper: number;
+  if (direction === 'up') {
+    // Land ABOVE item j → between items[j-1] and items[j].
+    lower = j - 1 >= 0 ? items[j - 1].effective : 0;
+    upper = items[j].effective;
+  } else {
+    // Land BELOW item j → between items[j] and items[j+1].
+    lower = items[j].effective;
+    upper =
+      j + 1 < items.length
+        ? items[j + 1].effective
+        : lower + 2 * TEMPLATE_ORDINAL_SCALE;
+  }
+
+  if (lower <= 0) {
+    const top = Math.floor(upper / 2);
+    return top >= 1 && top < upper ? top : null;
+  }
+  const mid = Math.floor((lower + upper) / 2);
+  return mid > lower && mid < upper ? mid : null;
+}
+
+async function revalidateCohortPath(
+  supabase: CohortActionsSupabaseClient,
+  cohortId: string
+): Promise<void> {
+  const { data: cohort } = await supabase
+    .from('nclex_cohorts')
+    .select('programme_id')
+    .eq('cohort_id', cohortId)
+    .maybeSingle();
+  if (cohort) {
+    revalidatePath(
+      `/tutor/programme/${(cohort as { programme_id: string }).programme_id}/cohorts`
+    );
+  }
+}
+
+export type ReorderCohortResult = { ok: true } | { ok: false; error: string };
+
+export async function reorderCohortOnlyActivityAction(
+  cohortId: string,
+  activityId: string,
+  direction: 'up' | 'down'
+): Promise<ReorderCohortResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // Must be THIS cohort's own cohort-only activity.
+  const { data: self } = await supabase
+    .from('nclex_programme_activities')
+    .select('activity_id, unit_id, block_id, ordinal, cohort_id')
+    .eq('activity_id', activityId)
+    .maybeSingle();
+  if (!self || (self as { cohort_id: string | null }).cohort_id !== cohortId) {
+    return {
+      ok: false,
+      error: 'Activity not found, or not a cohort-only activity you can move.',
+    };
+  }
+  const blockId = (self as { block_id: string | null }).block_id;
+  const unitId = (self as { unit_id: string }).unit_id;
+  const ordinal = (self as { ordinal: number }).ordinal;
+
+  if (blockId !== null) {
+    // In-block: swap with the adjacent sibling (all in-block children of a
+    // cohort-only block are cohort-only, one scale → a plain swap).
+    const neighbourQ = supabase
+      .from('nclex_programme_activities')
+      .select('activity_id, ordinal')
+      .eq('block_id', blockId);
+    const { data: neighbour } =
+      direction === 'up'
+        ? await neighbourQ
+            .lt('ordinal', ordinal)
+            .order('ordinal', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : await neighbourQ
+            .gt('ordinal', ordinal)
+            .order('ordinal', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+    if (!neighbour) return { ok: true }; // edge — no-op
+    const now = new Date().toISOString();
+    await supabase
+      .from('nclex_programme_activities')
+      .update({
+        ordinal: (neighbour as { ordinal: number }).ordinal,
+        updated_at: now,
+      })
+      .eq('activity_id', activityId);
+    await supabase
+      .from('nclex_programme_activities')
+      .update({ ordinal, updated_at: now })
+      .eq('activity_id', (neighbour as { activity_id: string }).activity_id);
+  } else {
+    // Loose: midpoint move in the unit-body merged list.
+    const items = await loadCohortUnitBody(supabase, unitId, cohortId);
+    const newOrdinal = newOrdinalForMove(items, 'loose', activityId, direction);
+    if (newOrdinal === null) return { ok: true }; // edge / no room — no-op
+    await supabase
+      .from('nclex_programme_activities')
+      .update({ ordinal: newOrdinal, updated_at: new Date().toISOString() })
+      .eq('activity_id', activityId)
+      .eq('cohort_id', cohortId);
+  }
+
+  await revalidateCohortPath(supabase, cohortId);
+  return { ok: true };
+}
+
+export async function reorderCohortOnlyBlockAction(
+  cohortId: string,
+  blockId: string,
+  direction: 'up' | 'down'
+): Promise<ReorderCohortResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data: self } = await supabase
+    .from('nclex_programme_blocks')
+    .select('block_id, unit_id, cohort_id')
+    .eq('block_id', blockId)
+    .maybeSingle();
+  if (!self || (self as { cohort_id: string | null }).cohort_id !== cohortId) {
+    return {
+      ok: false,
+      error: 'Block not found, or not a cohort-only block you can move.',
+    };
+  }
+  const unitId = (self as { unit_id: string }).unit_id;
+
+  const items = await loadCohortUnitBody(supabase, unitId, cohortId);
+  const newOrdinal = newOrdinalForMove(items, 'block', blockId, direction);
+  if (newOrdinal === null) return { ok: true }; // edge / no room — no-op
+  await supabase
+    .from('nclex_programme_blocks')
+    .update({ ordinal: newOrdinal, updated_at: new Date().toISOString() })
+    .eq('block_id', blockId)
+    .eq('cohort_id', cohortId);
+
+  await revalidateCohortPath(supabase, cohortId);
   return { ok: true };
 }

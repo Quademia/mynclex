@@ -63,6 +63,8 @@ import {
   deleteCohortOnlyActivityAction,
   createCohortOnlyBlockAction,
   deleteCohortOnlyBlockAction,
+  reorderCohortOnlyActivityAction,
+  reorderCohortOnlyBlockAction,
 } from './actions';
 import type {
   ChecklistActivityState,
@@ -102,6 +104,46 @@ type AttachModalState =
       blockId: string | null;
     }
   | { kind: 'note' | 'shelf'; mode: 'edit'; activityId: string };
+
+// Reorder control for a cohort-only item (Slice 4). Undefined on template
+// rows/blocks — they're reordered on the programme Curriculum tab, not here.
+type ReorderCtl = {
+  canUp: boolean;
+  canDown: boolean;
+  pending: boolean;
+  onMove: (direction: 'up' | 'down') => void;
+};
+
+function ReorderArrows({ canUp, canDown, pending, onMove }: ReorderCtl) {
+  return (
+    <span
+      className="cohort-checklist-reorder"
+      role="group"
+      aria-label="Reorder within the week"
+    >
+      <button
+        type="button"
+        className="cohort-checklist-reorder-btn"
+        disabled={!canUp || pending}
+        onClick={() => onMove('up')}
+        aria-label="Move up"
+        title="Move up"
+      >
+        ▲
+      </button>
+      <button
+        type="button"
+        className="cohort-checklist-reorder-btn"
+        disabled={!canDown || pending}
+        onClick={() => onMove('down')}
+        aria-label="Move down"
+        title="Move down"
+      >
+        ▼
+      </button>
+    </span>
+  );
+}
 
 const TYPE_LABEL = {
   TEXT: 'Text',
@@ -155,8 +197,31 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
   const [deletingBlock, startDeleteBlock] = useTransition();
   // Library Note / Shelf attach modal (Slice 3b reference types).
   const [attachModal, setAttachModal] = useState<AttachModalState | null>(null);
+  // Reorder of cohort-only items (Slice 4).
+  const [reordering, startReorder] = useTransition();
 
   const cohortId = tree.cohort.cohort_id;
+
+  // Move a cohort-only item (loose activity / in-block activity / block)
+  // one step within its week. Template items never move.
+  function handleReorder(
+    kind: 'activity' | 'block',
+    id: string,
+    direction: 'up' | 'down'
+  ) {
+    setError(null);
+    startReorder(async () => {
+      const res =
+        kind === 'activity'
+          ? await reorderCohortOnlyActivityAction(cohortId, id, direction)
+          : await reorderCohortOnlyBlockAction(cohortId, id, direction);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
 
   // Route an "+ Add" pick: Library Note / Shelf open their own attach
   // modals; every other type goes through the shared activity editor.
@@ -374,26 +439,56 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
                 </p>
               ) : (
                 <div className="cohort-checklist-body">
-                  {u.body.map((entry) => (
-                    <BodyEntry
-                      key={
-                        entry.kind === 'block'
-                          ? `b-${entry.block.block_id}`
-                          : `l-${entry.row.activity.activity_id}`
-                      }
-                      entry={entry}
-                      cohortId={cohortId}
-                      onClickActivity={openEditActivity}
-                      onError={setError}
-                      onMutated={() => router.refresh()}
-                      markPending={markPending}
-                      onEditBlock={(block) => setEditBlock(block)}
-                      onDeleteBlock={(block, count) =>
-                        setDeleteBlockTarget({ block, activityCount: count })
-                      }
-                      onAddActivityToBlock={openAddActivity}
-                    />
-                  ))}
+                  {u.body.map((entry, idx) => {
+                    // Only cohort-only items reorder here; template items
+                    // move on the Curriculum tab. Position is the entry's
+                    // index in the merged body — it can move past template
+                    // items (the action computes a between-number).
+                    const entryIsCohortOnly =
+                      entry.kind === 'loose'
+                        ? entry.row.isCohortOnly
+                        : entry.isCohortOnly;
+                    const reorder: ReorderCtl | undefined = entryIsCohortOnly
+                      ? {
+                          canUp: idx > 0,
+                          canDown: idx < u.body.length - 1,
+                          pending: reordering,
+                          onMove: (direction) =>
+                            handleReorder(
+                              entry.kind === 'block' ? 'block' : 'activity',
+                              entry.kind === 'block'
+                                ? entry.block.block_id
+                                : entry.row.activity.activity_id,
+                              direction
+                            ),
+                        }
+                      : undefined;
+                    return (
+                      <BodyEntry
+                        key={
+                          entry.kind === 'block'
+                            ? `b-${entry.block.block_id}`
+                            : `l-${entry.row.activity.activity_id}`
+                        }
+                        entry={entry}
+                        cohortId={cohortId}
+                        onClickActivity={openEditActivity}
+                        onError={setError}
+                        onMutated={() => router.refresh()}
+                        markPending={markPending}
+                        onEditBlock={(block) => setEditBlock(block)}
+                        onDeleteBlock={(block, count) =>
+                          setDeleteBlockTarget({ block, activityCount: count })
+                        }
+                        onAddActivityToBlock={openAddActivity}
+                        reorder={reorder}
+                        onReorderActivity={(activityId, direction) =>
+                          handleReorder('activity', activityId, direction)
+                        }
+                        reorderPending={reordering}
+                      />
+                    );
+                  })}
                 </div>
               )}
 
@@ -569,6 +664,9 @@ function BodyEntry({
   onEditBlock,
   onDeleteBlock,
   onAddActivityToBlock,
+  reorder,
+  onReorderActivity,
+  reorderPending,
 }: {
   entry: CohortChecklistBodyEntry;
   cohortId: string;
@@ -576,6 +674,12 @@ function BodyEntry({
   onError: (msg: string) => void;
   onMutated: () => void;
   markPending: (id: string, isPending: boolean) => void;
+  // Slice 4 — reorder of this entry (undefined for template entries).
+  reorder?: ReorderCtl;
+  // Reorder of an activity INSIDE a cohort-only block (BlockEntryCard
+  // builds per-row controls from this).
+  onReorderActivity: (activityId: string, direction: 'up' | 'down') => void;
+  reorderPending: boolean;
 } & BlockCallbacks) {
   if (entry.kind === 'loose') {
     return (
@@ -586,6 +690,7 @@ function BodyEntry({
         onError={onError}
         onMutated={onMutated}
         markPending={markPending}
+        reorder={reorder}
       />
     );
   }
@@ -601,6 +706,9 @@ function BodyEntry({
       onEditBlock={onEditBlock}
       onDeleteBlock={onDeleteBlock}
       onAddActivityToBlock={onAddActivityToBlock}
+      reorder={reorder}
+      onReorderActivity={onReorderActivity}
+      reorderPending={reorderPending}
     />
   );
 }
@@ -618,6 +726,9 @@ function BlockEntryCard({
   onEditBlock,
   onDeleteBlock,
   onAddActivityToBlock,
+  reorder,
+  onReorderActivity,
+  reorderPending,
 }: {
   entry: import('./types').CohortChecklistBlockEntry;
   cohortId: string;
@@ -625,6 +736,9 @@ function BlockEntryCard({
   onError: (msg: string) => void;
   onMutated: () => void;
   markPending: (id: string, isPending: boolean) => void;
+  reorder?: ReorderCtl;
+  onReorderActivity: (activityId: string, direction: 'up' | 'down') => void;
+  reorderPending: boolean;
 } & BlockCallbacks) {
   const { block, rows, isCohortOnly } = entry;
   const [blockPickerOpen, setBlockPickerOpen] = useState(false);
@@ -649,6 +763,7 @@ function BlockEntryCard({
         )}
         {isCohortOnly && (
           <span className="cohort-checklist-block-controls">
+            {reorder && <ReorderArrows {...reorder} />}
             <button
               type="button"
               className="cohort-checklist-block-btn"
@@ -679,7 +794,7 @@ function BlockEntryCard({
         </p>
       ) : (
         <div className="cohort-checklist-block-rows">
-          {rows.map((r) => (
+          {rows.map((r, m) => (
             <ChecklistRow
               key={r.activity.activity_id}
               row={r}
@@ -688,6 +803,17 @@ function BlockEntryCard({
               onError={onError}
               onMutated={onMutated}
               markPending={markPending}
+              reorder={
+                isCohortOnly
+                  ? {
+                      canUp: m > 0,
+                      canDown: m < rows.length - 1,
+                      pending: reorderPending,
+                      onMove: (direction) =>
+                        onReorderActivity(r.activity.activity_id, direction),
+                    }
+                  : undefined
+              }
             />
           ))}
         </div>
@@ -791,6 +917,7 @@ function ChecklistRow({
   onError,
   onMutated,
   markPending,
+  reorder,
 }: {
   row: CohortChecklistActivityRow;
   cohortId: string;
@@ -798,6 +925,8 @@ function ChecklistRow({
   onError: (msg: string) => void;
   onMutated: () => void;
   markPending: (id: string, isPending: boolean) => void;
+  // Slice 4 — reorder arrows (undefined for template rows).
+  reorder?: ReorderCtl;
 }) {
   const activityId = row.activity.activity_id;
 
@@ -907,6 +1036,7 @@ function ChecklistRow({
         (displayState === 'unconfigured' ? ' is-unconfigured' : '')
       }
     >
+      {reorder && <ReorderArrows {...reorder} />}
       <button
         type="button"
         className="cohort-checklist-row-main"

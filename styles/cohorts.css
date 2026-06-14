@@ -1065,6 +1065,40 @@
   border-color: var(--accent);
 }
 
+/* --- Slice 4: reorder arrows on cohort-only items --- */
+.cohort-checklist-reorder {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  flex-shrink: 0;
+  align-self: center;
+}
+.cohort-checklist-reorder-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 14px;
+  padding: 0;
+  font-size: 8px;
+  line-height: 1;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.cohort-checklist-reorder-btn:hover:not(:disabled) {
+  background: var(--bg);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.cohort-checklist-reorder-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 /* === Cohort run detail (cohort-workspace fold, 2026-06-12) ====
  * The per-run detail rendered IN PLACE by the Cohorts tab when
  * `?cohort=` is set — run header + top tab bar + pane. Replaces
