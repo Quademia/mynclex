@@ -982,19 +982,26 @@ async function loadCohortUnitBody(
 }
 
 // New number for a cohort-only item moving one step up/down in the merged
-// list — the midpoint of the gap it lands in. Returns null on a no-op
-// (already at the edge) or when the gap has no integer left (extremely
-// rare with STEP spacing — the UI then just doesn't move it).
+// list — the midpoint of the gap it lands in. Distinguishes a legit
+// EDGE (already at the top/bottom — a silent no-op) from the rare NOGAP
+// (the gap has no whole number left — surfaced to the tutor; reachable
+// only after ~20 inserts into the exact same spot, so essentially never
+// via the one-step arrows).
+type MoveResult =
+  | { kind: 'ok'; ordinal: number }
+  | { kind: 'edge' }
+  | { kind: 'nogap' };
+
 function newOrdinalForMove(
   items: UnitBodyItem[],
   kind: 'block' | 'loose',
   movingId: string,
   direction: 'up' | 'down'
-): number | null {
+): MoveResult {
   const i = items.findIndex((it) => it.kind === kind && it.id === movingId);
-  if (i === -1) return null;
+  if (i === -1) return { kind: 'edge' };
   const j = direction === 'up' ? i - 1 : i + 1;
-  if (j < 0 || j >= items.length) return null; // edge — no-op
+  if (j < 0 || j >= items.length) return { kind: 'edge' };
 
   let lower: number;
   let upper: number;
@@ -1013,11 +1020,18 @@ function newOrdinalForMove(
 
   if (lower <= 0) {
     const top = Math.floor(upper / 2);
-    return top >= 1 && top < upper ? top : null;
+    return top >= 1 && top < upper
+      ? { kind: 'ok', ordinal: top }
+      : { kind: 'nogap' };
   }
   const mid = Math.floor((lower + upper) / 2);
-  return mid > lower && mid < upper ? mid : null;
+  return mid > lower && mid < upper
+    ? { kind: 'ok', ordinal: mid }
+    : { kind: 'nogap' };
 }
+
+const NOGAP_ERROR =
+  'Couldn’t move it there — the items here are packed too tightly. Try moving a neighbour first.';
 
 async function revalidateCohortPath(
   supabase: CohortActionsSupabaseClient,
@@ -1099,11 +1113,12 @@ export async function reorderCohortOnlyActivityAction(
   } else {
     // Loose: midpoint move in the unit-body merged list.
     const items = await loadCohortUnitBody(supabase, unitId, cohortId);
-    const newOrdinal = newOrdinalForMove(items, 'loose', activityId, direction);
-    if (newOrdinal === null) return { ok: true }; // edge / no room — no-op
+    const move = newOrdinalForMove(items, 'loose', activityId, direction);
+    if (move.kind === 'edge') return { ok: true }; // already at the edge
+    if (move.kind === 'nogap') return { ok: false, error: NOGAP_ERROR };
     await supabase
       .from('nclex_programme_activities')
-      .update({ ordinal: newOrdinal, updated_at: new Date().toISOString() })
+      .update({ ordinal: move.ordinal, updated_at: new Date().toISOString() })
       .eq('activity_id', activityId)
       .eq('cohort_id', cohortId);
   }
@@ -1137,11 +1152,12 @@ export async function reorderCohortOnlyBlockAction(
   const unitId = (self as { unit_id: string }).unit_id;
 
   const items = await loadCohortUnitBody(supabase, unitId, cohortId);
-  const newOrdinal = newOrdinalForMove(items, 'block', blockId, direction);
-  if (newOrdinal === null) return { ok: true }; // edge / no room — no-op
+  const move = newOrdinalForMove(items, 'block', blockId, direction);
+  if (move.kind === 'edge') return { ok: true }; // already at the edge
+  if (move.kind === 'nogap') return { ok: false, error: NOGAP_ERROR };
   await supabase
     .from('nclex_programme_blocks')
-    .update({ ordinal: newOrdinal, updated_at: new Date().toISOString() })
+    .update({ ordinal: move.ordinal, updated_at: new Date().toISOString() })
     .eq('block_id', blockId)
     .eq('cohort_id', cohortId);
 

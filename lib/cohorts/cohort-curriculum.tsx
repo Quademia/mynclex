@@ -202,6 +202,17 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
 
   const cohortId = tree.cohort.cohort_id;
 
+  // Soft-warn keyed off the publish state, shared by every "add a
+  // cohort-only item" path (editor types + Note/Shelf attach). If it landed
+  // Draft, nudge that students can't see it yet; if Live, confirm.
+  function nudgeForAdd(published: boolean) {
+    setNudge(
+      published
+        ? 'Added to this cohort — it’s live for students now.'
+        : 'Added — students can’t see it yet. Open it and tick Live when you’re ready.'
+    );
+  }
+
   // Move a cohort-only item (loose activity / in-block activity / block)
   // one step within its week. Template items never move.
   function handleReorder(
@@ -370,7 +381,9 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
             Toggle inclusion and set each activity&apos;s window —
             opens, due, closes — for this cohort. Due and close are
             optional. Content edits flow from the programme&apos;s
-            Curriculum tab — click any activity to edit it there.
+            Curriculum tab — click any activity to edit it there. You can
+            also add <strong>cohort-only</strong> activities and blocks
+            (below each week) that live only in this run.
           </p>
         </header>
 
@@ -562,18 +575,10 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
               values,
               createConfig.blockId
             );
-            // Soft-warn keyed off the editor's Status tick: if it landed
-            // Draft, nudge that students can't see it yet; if Live,
-            // confirm it's visible. Either way the modal closes + the
-            // tree refreshes; the persistent Draft pill on the new row
-            // carries the hidden state from here on.
-            if (res.ok) {
-              setNudge(
-                values.is_published
-                  ? 'Added to this cohort — it’s live for students now.'
-                  : 'Added — students can’t see it yet. Open it and tick Live when you’re ready.'
-              );
-            }
+            // Soft-warn keyed off the editor's Status tick (the modal
+            // closes + the tree refreshes; the persistent Draft pill on the
+            // new row carries the hidden state from here on).
+            if (res.ok) nudgeForAdd(values.is_published);
             return res;
           }}
           onClose={() => setCreateConfig(null)}
@@ -609,6 +614,7 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
             unitId={attachModal.unitId}
             blockId={attachModal.blockId}
             cohortId={cohortId}
+            onAttached={nudgeForAdd}
             onClose={() => setAttachModal(null)}
           />
         ) : (
@@ -626,6 +632,7 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
             unitId={attachModal.unitId}
             blockId={attachModal.blockId}
             cohortId={cohortId}
+            onAttached={nudgeForAdd}
             onClose={() => setAttachModal(null)}
           />
         ) : (

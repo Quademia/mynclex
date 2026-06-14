@@ -45,6 +45,9 @@ type Props =
       // Cohort-only attach (Slice 3b) — when set, the shelf attaches as a
       // cohort-only activity in this cohort. null/undefined = template.
       cohortId?: string | null;
+      // Slice 5 — called after a successful attach with the published state,
+      // so the cohort surface can show the same draft/live nudge.
+      onAttached?: (published: boolean) => void;
       onClose: () => void;
     }
   | {
@@ -69,11 +72,13 @@ function CreateModal({
   unitId,
   blockId,
   cohortId = null,
+  onAttached,
   onClose,
 }: {
   unitId: string;
   blockId: string | null;
   cohortId?: string | null;
+  onAttached?: (published: boolean) => void;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -149,6 +154,7 @@ function CreateModal({
         setError(res.error);
         return;
       }
+      onAttached?.(published);
       onClose();
       router.refresh();
     });
