@@ -15,10 +15,7 @@ import {
   validatePdfAssetForSave,
   validateQuizForActivity,
 } from '@/lib/curriculum/activity-payload';
-import {
-  effectiveOrdinal,
-  TEMPLATE_ORDINAL_SCALE,
-} from '@/lib/curriculum/unit-body';
+import { UNIT_BODY_ORDINAL_STEP } from '@/lib/curriculum/unit-body';
 import type { ActivityFormValues } from '@/lib/curriculum/types';
 import type { CohortFormValues } from './types';
 
@@ -521,50 +518,39 @@ export async function includeAllUnconfiguredActivitiesAction(
 
 type CohortActionsSupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
-// Bottom-of-week ordinal in THIS cohort's view, in the EFFECTIVE
-// (scaled) space (Slice 4). Template items' effective position is
-// ordinal × SCALE; cohort-only items store their number already in that
-// space. Bottom = max(effective of every item in this cohort's view) +
-// SCALE — one full gap past the last item, template or cohort-only.
-//
-// Reads the template max (cohort_id IS NULL) and this cohort's cohort-only
-// max separately so each can be scaled correctly. Scoped so another
-// cohort's content can't shift where this one's lands.
+// Bottom-of-week ordinal in THIS cohort's view (Slice 4 — one spaced
+// number line). Template + cohort-only items share the same scale, so the
+// bottom is just the max ordinal across the unit's template items AND this
+// cohort's own cohort-only ones, + a full STEP. Scoped so another cohort's
+// content can't shift where this one's lands.
 async function nextCohortUnitBodyOrdinal(
   supabase: CohortActionsSupabaseClient,
   unitId: string,
   cohortId: string
 ): Promise<number> {
-  const maxOrdinal = async (
-    table: 'nclex_programme_blocks' | 'nclex_programme_activities',
-    cohortOnly: boolean
-  ): Promise<number> => {
-    const base = supabase.from(table).select('ordinal').eq('unit_id', unitId);
-    const looseScoped =
-      table === 'nclex_programme_activities' ? base.is('block_id', null) : base;
-    const scoped = cohortOnly
-      ? looseScoped.eq('cohort_id', cohortId)
-      : looseScoped.is('cohort_id', null);
-    const { data } = await scoped
+  const scope = `cohort_id.is.null,cohort_id.eq.${cohortId}`;
+  const [b, a] = await Promise.all([
+    supabase
+      .from('nclex_programme_blocks')
+      .select('ordinal')
+      .eq('unit_id', unitId)
+      .or(scope)
       .order('ordinal', { ascending: false })
       .limit(1)
-      .maybeSingle();
-    return (data as { ordinal: number } | null)?.ordinal ?? 0;
-  };
-
-  const [tBlock, tLoose, cBlock, cLoose] = await Promise.all([
-    maxOrdinal('nclex_programme_blocks', false),
-    maxOrdinal('nclex_programme_activities', false),
-    maxOrdinal('nclex_programme_blocks', true),
-    maxOrdinal('nclex_programme_activities', true),
+      .maybeSingle(),
+    supabase
+      .from('nclex_programme_activities')
+      .select('ordinal')
+      .eq('unit_id', unitId)
+      .is('block_id', null)
+      .or(scope)
+      .order('ordinal', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
-  const templateMax = Math.max(tBlock, tLoose); // raw template ordinal
-  const cohortOnlyMax = Math.max(cBlock, cLoose); // already in scaled space
-  const effectiveMax = Math.max(
-    templateMax * TEMPLATE_ORDINAL_SCALE,
-    cohortOnlyMax
-  );
-  return effectiveMax + TEMPLATE_ORDINAL_SCALE;
+  const blockMax = (b.data as { ordinal: number } | null)?.ordinal ?? 0;
+  const looseMax = (a.data as { ordinal: number } | null)?.ordinal ?? 0;
+  return Math.max(blockMax, looseMax) + UNIT_BODY_ORDINAL_STEP;
 }
 
 // Next ordinal inside a single block — its children share one in-block
@@ -944,20 +930,21 @@ export async function deleteCohortOnlyBlockAction(
 // =====================================================================
 //
 // Reorder a COHORT-ONLY item (loose activity or block) within its week by
-// rewriting ONLY its own number to the midpoint of the gap it lands in, in
-// the EFFECTIVE (scaled) space — template numbers are never touched, so
+// rewriting ONLY its own number to the midpoint of the gap it lands in,
+// on the one spaced number line — template rows are never rewritten, so
 // other cohorts are unaffected. An in-block cohort-only activity reorders
 // by a plain swap with its sibling (a cohort-only block holds only
-// cohort-only activities, all in one scale).
+// cohort-only activities).
 
 type UnitBodyItem = {
   kind: 'block' | 'loose';
   id: string;
-  effective: number;
+  ordinal: number;
 };
 
 // Load the unit body (template + THIS cohort's cohort-only blocks/loose
-// activities) as one list sorted by effective position.
+// activities) as one list sorted by position. Template + cohort-only share
+// one spaced number line (Slice 4), so the stored ordinal IS the position.
 async function loadCohortUnitBody(
   supabase: CohortActionsSupabaseClient,
   unitId: string,
@@ -967,12 +954,12 @@ async function loadCohortUnitBody(
   const [blocksRes, looseRes] = await Promise.all([
     supabase
       .from('nclex_programme_blocks')
-      .select('block_id, ordinal, cohort_id')
+      .select('block_id, ordinal')
       .eq('unit_id', unitId)
       .or(scope),
     supabase
       .from('nclex_programme_activities')
-      .select('activity_id, ordinal, cohort_id')
+      .select('activity_id, ordinal')
       .eq('unit_id', unitId)
       .is('block_id', null)
       .or(scope),
@@ -981,33 +968,23 @@ async function loadCohortUnitBody(
   for (const b of (blocksRes.data ?? []) as Array<{
     block_id: string;
     ordinal: number;
-    cohort_id: string | null;
   }>) {
-    items.push({
-      kind: 'block',
-      id: b.block_id,
-      effective: effectiveOrdinal(b.ordinal, b.cohort_id != null),
-    });
+    items.push({ kind: 'block', id: b.block_id, ordinal: b.ordinal });
   }
   for (const a of (looseRes.data ?? []) as Array<{
     activity_id: string;
     ordinal: number;
-    cohort_id: string | null;
   }>) {
-    items.push({
-      kind: 'loose',
-      id: a.activity_id,
-      effective: effectiveOrdinal(a.ordinal, a.cohort_id != null),
-    });
+    items.push({ kind: 'loose', id: a.activity_id, ordinal: a.ordinal });
   }
-  items.sort((x, y) => x.effective - y.effective);
+  items.sort((x, y) => x.ordinal - y.ordinal);
   return items;
 }
 
 // New number for a cohort-only item moving one step up/down in the merged
 // list — the midpoint of the gap it lands in. Returns null on a no-op
 // (already at the edge) or when the gap has no integer left (extremely
-// rare with SCALE spacing — the UI then just doesn't move it).
+// rare with STEP spacing — the UI then just doesn't move it).
 function newOrdinalForMove(
   items: UnitBodyItem[],
   kind: 'block' | 'loose',
@@ -1023,15 +1000,15 @@ function newOrdinalForMove(
   let upper: number;
   if (direction === 'up') {
     // Land ABOVE item j → between items[j-1] and items[j].
-    lower = j - 1 >= 0 ? items[j - 1].effective : 0;
-    upper = items[j].effective;
+    lower = j - 1 >= 0 ? items[j - 1].ordinal : 0;
+    upper = items[j].ordinal;
   } else {
     // Land BELOW item j → between items[j] and items[j+1].
-    lower = items[j].effective;
+    lower = items[j].ordinal;
     upper =
       j + 1 < items.length
-        ? items[j + 1].effective
-        : lower + 2 * TEMPLATE_ORDINAL_SCALE;
+        ? items[j + 1].ordinal
+        : lower + 2 * UNIT_BODY_ORDINAL_STEP;
   }
 
   if (lower <= 0) {

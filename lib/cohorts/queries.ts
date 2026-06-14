@@ -17,7 +17,6 @@ import type {
   ProgrammeStatus,
   UnitLabel,
 } from '@/lib/programmes/types';
-import { effectiveOrdinal } from '@/lib/curriculum/unit-body';
 import type {
   ProgrammeActivity,
   ProgrammeBlock,
@@ -378,37 +377,25 @@ export async function getCohortChecklist(
       }
     }
 
-    // Compose the body: blocks + loose rows interleaved by EFFECTIVE
-    // ordinal (Slice 4). Template items scale ×TEMPLATE_ORDINAL_SCALE;
-    // cohort-only items store their number already in that gapped space —
-    // so a cohort-only item sits top / bottom / wedged between template
-    // items exactly where its number places it.
+    // Compose the body: blocks + loose rows interleaved by ordinal
+    // (Slice 4 — template + cohort-only items share ONE spaced number
+    // line, so a cohort-only item sits top / bottom / wedged between
+    // template items exactly where its stored number places it).
     type Sortable =
-      | { kind: 'block'; sortKey: number; block: ProgrammeBlock }
+      | { kind: 'block'; ordinal: number; block: ProgrammeBlock }
       | {
           kind: 'loose';
-          sortKey: number;
+          ordinal: number;
           row: CohortChecklistActivityRow;
         };
     const sortables: Sortable[] = [];
     for (const b of unitBlocks) {
-      sortables.push({
-        kind: 'block',
-        sortKey: effectiveOrdinal(
-          b.ordinal,
-          isCohortOnlyByBlock.get(b.block_id) ?? false
-        ),
-        block: b,
-      });
+      sortables.push({ kind: 'block', ordinal: b.ordinal, block: b });
     }
     for (const r of looseRows) {
-      sortables.push({
-        kind: 'loose',
-        sortKey: effectiveOrdinal(r.activity.ordinal, r.isCohortOnly),
-        row: r,
-      });
+      sortables.push({ kind: 'loose', ordinal: r.activity.ordinal, row: r });
     }
-    sortables.sort((a, b) => a.sortKey - b.sortKey);
+    sortables.sort((a, b) => a.ordinal - b.ordinal);
 
     const body: CohortChecklistBodyEntry[] = sortables.map((e) => {
       if (e.kind === 'block') {

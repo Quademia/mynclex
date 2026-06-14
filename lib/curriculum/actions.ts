@@ -28,6 +28,7 @@ import {
   validatePdfAssetForSave,
   validateQuizForActivity,
 } from './activity-payload';
+import { UNIT_BODY_ORDINAL_STEP } from './unit-body';
 import type {
   ActivityFormValues,
   BlockFormValues,
@@ -107,9 +108,12 @@ function refreshProgrammeCurriculumPaths(programmeId: string, unitId: string) {
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 // Compute the next ordinal at the unit-body layer — the position
-// after every existing block + loose activity in the unit. The
-// unit body's ordinal space is shared across both tables; this
-// reads both and takes max+1.
+// after every existing TEMPLATE block + loose activity in the unit.
+// The unit body's ordinal space is shared across both tables; this
+// reads both and takes max + STEP, leaving a full gap so cohort-only
+// items (Slice 4) can later slot a number in between. Scoped to
+// `cohort_id IS NULL` so a new template item positions among template
+// items, never after some cohort's own additions.
 async function nextUnitBodyOrdinal(
   supabase: SupabaseClient,
   unitId: string
@@ -119,6 +123,7 @@ async function nextUnitBodyOrdinal(
       .from('nclex_programme_blocks')
       .select('ordinal')
       .eq('unit_id', unitId)
+      .is('cohort_id', null)
       .order('ordinal', { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -127,13 +132,14 @@ async function nextUnitBodyOrdinal(
       .select('ordinal')
       .eq('unit_id', unitId)
       .is('block_id', null)
+      .is('cohort_id', null)
       .order('ordinal', { ascending: false })
       .limit(1)
       .maybeSingle(),
   ]);
   const blockMax = b.data?.ordinal ?? 0;
   const looseMax = a.data?.ordinal ?? 0;
-  return Math.max(blockMax, looseMax) + 1;
+  return Math.max(blockMax, looseMax) + UNIT_BODY_ORDINAL_STEP;
 }
 
 // Compute the next ordinal inside a single block — scoped to

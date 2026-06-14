@@ -241,20 +241,35 @@ design weighed were:
   surrounding items to open one. Must only ever renumber *cohort-only*
   rows, never template rows.
 
-**Chosen (2026-06-14, with Sam): "Gap the numbers", the *treat* variant.**
-Because the feature isn't on prod yet there is no migration to ship and —
-more importantly — it touches **nothing** in the template path: the two
-cohort merge sites (`getCohortChecklist` + the student cohort delivery)
-scale template ordinals by a large factor (e.g. ×1e6) when sorting, and a
-cohort-only item simply stores its number **in that scaled space** (e.g.
-1.5e6 to sit between template 1 and 2). Reordering rewrites only the
-cohort-only row's number to the midpoint of its new neighbours.
+**Chosen (2026-06-14, with Sam): "Gap the numbers", the *store* variant.**
+Initially built as *treat* (scale at render), then switched to *store*
+once we confirmed **prod is completely empty** (0 programmes / units /
+blocks / activities) — which removed *treat*'s only real advantage
+(avoiding a rewrite of live template data). With no data anywhere, the
+cheapest moment to pick the cleaner foundation is now, so:
 
-This keeps the invariant: **template numbers never change — they aren't
-even written.** Per the note below, the existing tie-tolerance +
-blocks-first tiebreaker already covers the common cases (top, bottom,
-between a block and a loose item), so the scaled-number scheme is the
-belt-and-braces specifically for **wedging between two template items**.
+- Template + cohort-only items share **one physically spaced number line**.
+  A new unit-body item lands a full STEP (`UNIT_BODY_ORDINAL_STEP = 1e6`)
+  past the last one — template stored as 1e6, 2e6, 3e6; a cohort-only item
+  takes a real number in a gap (1.5e6 to sit between template 1 and 2).
+- The constant + spacing live in `lib/curriculum/unit-body.ts`; the
+  template "add" helper (`nextUnitBodyOrdinal`) returns `max + STEP`. The
+  two cohort merge sites just **sort by the raw stored number** — no
+  read-time scaling, no "is this cohort-only?" branching, and the student
+  delivery needs no extra plumbing (this is why *store* is the *simpler*
+  code).
+- Reordering rewrites **only the cohort-only row's** number to the
+  midpoint of its new neighbours; an in-block cohort-only activity swaps
+  with its sibling. Template rows are never rewritten.
+- **No migration ships:** prod is empty, the new "add" rule spaces all
+  future items, and the existing dev test rows were re-spaced once with a
+  one-off `UPDATE` (×1e6).
+
+This keeps the invariant: **template numbers never change relative to each
+other, and the reorder never writes a template row.** Per the note below,
+the existing tie-tolerance + blocks-first tiebreaker covers the common
+cases (top, bottom, between a block and a loose item); the spaced numbers
+are the belt-and-braces for **wedging between two template items**.
 
 ---
 
@@ -393,18 +408,20 @@ Unit Builder UI, admin surfaces.
    Shelf** (reuse their attach modals).
 4. **Slice 4 — ordering / placement (its own slice).** Build the
    spaced-position-numbers model from *"Ordering"* above end to end, using
-   the **decided mechanic: "Gap the numbers", the *treat* (render-side)
-   variant — no migration**. The two cohort merge sites scale template
-   ordinals ×1e6 when sorting; cohort-only items store their number in that
-   scaled space; reorder rewrites only the cohort-only row to the midpoint
-   of its new neighbours. Add the reorder UI (**up/down arrows**, matching
-   the template Unit Builder) on loose cohort-only items, cohort-only
-   blocks, and activities inside a cohort-only block — so a cohort-only
-   item can sit at the top, the bottom, or **wedged between two template
-   items**, all without ever disturbing template order. Add still drops at
-   the bottom of the week, then reorder. Split out from Slice 2 (decided
-   2026-06-14 with Sam) so the ordering work can be built and tested on its
-   own.
+   the **decided mechanic: "Gap the numbers", the *store* variant — one
+   physically spaced number line, no migration** (prod empty; the template
+   "add" rule spaces all future items; dev test rows re-spaced once). The
+   template "add" helper returns `max + STEP` (`UNIT_BODY_ORDINAL_STEP =
+   1e6`); cohort-only items take a real number in a gap; the two cohort
+   merge sites sort by the raw stored number (no read-time scaling); reorder
+   rewrites only the cohort-only row to the midpoint of its new neighbours.
+   Add the reorder UI (**up/down arrows**, matching the template Unit
+   Builder) on loose cohort-only items, cohort-only blocks, and activities
+   inside a cohort-only block — so a cohort-only item can sit at the top,
+   the bottom, or **wedged between two template items**, all without ever
+   disturbing template order. Add still drops at the bottom of the week,
+   then reorder. Split out from Slice 2 (decided 2026-06-14 with Sam) so the
+   ordering work can be built and tested on its own.
 5. **Slice 5 — polish.** Nudge/reminder refinements, empty states, any
    analytics rollup that should count cohort-only completions, and the
    remaining edge cases.
