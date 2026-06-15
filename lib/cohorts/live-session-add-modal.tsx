@@ -19,7 +19,6 @@ import { useRouter } from 'next/navigation';
 import { unitLabel } from '@/lib/curriculum/format';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { createCohortOnlyLiveSessionAction } from './actions';
-import { setLiveSessionScheduleAction } from './live-session-actions';
 import type { LiveSessionPlatform } from '@/lib/curriculum/types';
 import type { PlannerUnit } from './live-session-queries';
 import type { UnitLabel } from '@/lib/programmes/types';
@@ -105,41 +104,31 @@ export function LiveSessionAddModal({
       recordingUrl.trim() !== '';
 
     startTransition(async () => {
+      // ONE atomic call — the marker + its schedule are created together,
+      // schedule validated first. On any error nothing is created and the
+      // modal stays open with everything intact (so a bad URL is just an
+      // inline fix, never lost input or an orphan unscheduled session).
       const created = await createCohortOnlyLiveSessionAction(cohortId, unitId, {
         title: t,
         typicalDurationMinutes: durationMinutes,
         isPublished,
+        schedule: hasSchedule
+          ? {
+              scheduledAt: scheduledIso,
+              durationMinutes: null, // falls back to the marker's typical duration
+              platform: platform === '' ? null : platform,
+              joinUrl: joinUrl.trim() || null,
+              meetingId: meetingId.trim() || null,
+              passcode: passcode.trim() || null,
+              joiningInstructions: instructions.trim() || null,
+              recordingUrl: recordingUrl.trim() || null,
+            }
+          : null,
       });
       if (!created.ok) {
         setError(created.error);
-        return;
+        return; // keep the modal open, fields untouched
       }
-
-      if (hasSchedule) {
-        const sched = await setLiveSessionScheduleAction(
-          cohortId,
-          created.activity_id,
-          {
-            scheduledAt: scheduledIso,
-            durationMinutes: null, // falls back to the marker's typical duration
-            platform: platform === '' ? null : platform,
-            joinUrl: joinUrl.trim() || null,
-            meetingId: meetingId.trim() || null,
-            passcode: passcode.trim() || null,
-            joiningInstructions: instructions.trim() || null,
-            recordingUrl: recordingUrl.trim() || null,
-          }
-        );
-        if (!sched.ok) {
-          // The marker was created; only the schedule failed. Surface it but
-          // still close + refresh so the new (unscheduled) session shows.
-          setError(`Session added, but the schedule didn't save: ${sched.error}`);
-          onClose();
-          router.refresh();
-          return;
-        }
-      }
-
       onClose();
       router.refresh();
     });

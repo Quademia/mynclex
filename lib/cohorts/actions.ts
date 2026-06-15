@@ -16,6 +16,10 @@ import {
   validateQuizForActivity,
 } from '@/lib/curriculum/activity-payload';
 import { UNIT_BODY_ORDINAL_STEP } from '@/lib/curriculum/unit-body';
+import {
+  validateScheduleInput,
+  type LiveSessionScheduleInput,
+} from './live-session-schedule';
 import type { ActivityFormValues } from '@/lib/curriculum/types';
 import type { CohortFormValues } from './types';
 
@@ -761,14 +765,18 @@ export type CreateCohortLiveSessionInput = {
   title: string;
   typicalDurationMinutes: number | null;
   isPublished: boolean;
+  // The per-run schedule to create alongside the marker (the "+ Add
+  // session" flow fills it in the same step). null = create unscheduled.
+  schedule: LiveSessionScheduleInput | null;
 };
 
-// Slice 2 — the "+ Add session" one-off (Option B). Creates a COHORT-ONLY
-// live-session MARKER (the planner owns live-session creation; tutors never
-// pick it in the cohort-only activity picker). The schedule itself is set
-// separately by the client via setLiveSessionScheduleAction once this
-// returns the new marker's id. Born loose in the chosen week, included,
-// with the editor's Live/Draft choice. See
+// Slice 2 — the "+ Add session" one-off (Option B). ATOMIC: creates a
+// COHORT-ONLY live-session MARKER and (optionally) its planner schedule row
+// in one step, validating the schedule FIRST so a bad field never leaves an
+// orphan unscheduled marker behind (the bug from the original two-call
+// build). The planner owns live-session creation — tutors never pick "live
+// session" in the cohort-only activity picker. Born loose in the chosen
+// week, included, with the editor's Live/Draft choice. See
 // docs/product-plan/live-session-planner.md.
 export async function createCohortOnlyLiveSessionAction(
   cohortId: string,
@@ -786,6 +794,16 @@ export async function createCohortOnlyLiveSessionAction(
       ok: false,
       error: 'Typical duration must be a positive number, or blank.',
     };
+  }
+
+  // Validate the schedule BEFORE touching the DB — if a field is bad, we
+  // return the error and nothing is created (no orphan, no data loss; the
+  // client keeps the form open with everything intact).
+  let scheduleRow: ReturnType<typeof validateScheduleInput> | null = null;
+  if (input.schedule) {
+    const v = validateScheduleInput(input.schedule);
+    if (!v.ok) return { ok: false, error: v.error };
+    scheduleRow = v;
   }
 
   const supabase = await createClient();
@@ -843,6 +861,15 @@ export async function createCohortOnlyLiveSessionAction(
     };
   }
 
+  // Roll the marker back if anything downstream fails — its FK cascades
+  // wipe the checklist row + any planner row, leaving no orphan.
+  const rollback = async () => {
+    await supabase
+      .from('nclex_programme_activities')
+      .delete()
+      .eq('activity_id', activity.activity_id);
+  };
+
   const startMs = new Date(
     `${(cohort as { start_date: string }).start_date}T00:00:00Z`
   ).getTime();
@@ -862,14 +889,29 @@ export async function createCohortOnlyLiveSessionAction(
       source: 'COHORT_ONLY',
     });
   if (itemErr) {
-    await supabase
-      .from('nclex_programme_activities')
-      .delete()
-      .eq('activity_id', activity.activity_id);
+    await rollback();
     return {
       ok: false,
       error: 'Could not add the session. Please try again.',
     };
+  }
+
+  // The schedule (already validated above) lands in the same step.
+  if (scheduleRow && scheduleRow.ok) {
+    const { error: schedErr } = await supabase
+      .from('nclex_cohort_live_sessions')
+      .insert({
+        cohort_id: cohortId,
+        marker_activity_id: activity.activity_id,
+        ...scheduleRow.row,
+      });
+    if (schedErr) {
+      await rollback();
+      return {
+        ok: false,
+        error: 'Could not save the session schedule. Please try again.',
+      };
+    }
   }
 
   revalidatePath(
