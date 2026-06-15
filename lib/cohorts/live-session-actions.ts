@@ -10,13 +10,8 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import {
-  validateScheduleInput,
-  type LiveSessionScheduleInput,
-} from './live-session-schedule';
-
-// Re-export so existing importers keep their path.
-export type { LiveSessionScheduleInput };
+import { validateScheduleInput } from './live-session-schedule';
+import type { LiveSessionScheduleInput } from './live-session-schedule';
 
 export type ScheduleResult = { ok: true } | { ok: false; error: string };
 

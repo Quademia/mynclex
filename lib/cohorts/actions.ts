@@ -16,10 +16,8 @@ import {
   validateQuizForActivity,
 } from '@/lib/curriculum/activity-payload';
 import { UNIT_BODY_ORDINAL_STEP } from '@/lib/curriculum/unit-body';
-import {
-  validateScheduleInput,
-  type LiveSessionScheduleInput,
-} from './live-session-schedule';
+import { validateScheduleInput } from './live-session-schedule';
+import type { LiveSessionScheduleInput } from './live-session-schedule';
 import type { ActivityFormValues } from '@/lib/curriculum/types';
 import type { CohortFormValues } from './types';
 
