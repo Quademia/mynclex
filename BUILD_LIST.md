@@ -8,6 +8,31 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **LIVE SESSIONS (marker / planner split) — SLICES 1 + 2 BUILT + MERGED to
+> `main` (2026-06-15; Sam-tested on dev; not yet released to prod).** A live
+> session is an EVENT, not content — its date/link/recording are per-cohort.
+> **Migration `20260703120000`** (ships to prod next release). Design +
+> slices in
+> [live-session-planner.md](docs/product-plan/live-session-planner.md).
+> - **Slice 1a** — events out of progress: no completion / no done pill (a
+>   neutral 📅 Event chip), out of the "Up next" pointer + the manual-mark
+>   types, matched in the tutor cohort analytics.
+> - **Slice 1b** — template **MARKER** (title + typical duration) + per-cohort
+>   **PLANNER** (`nclex_cohort_live_sessions`): the Sessions tab + reworked
+>   schedule editor (platform · join URL · meeting ID · passcode ·
+>   instructions); student viewer + tutor Home read the planner ("Date to be
+>   announced" when unscheduled); self-paced live sessions removed (tutor-led
+>   only, blurred in the picker).
+> - **Slice 2** — "needs scheduling →" cue on the checklist; **"+ Add
+>   session"** one-off (atomic: cohort-only marker + schedule, validated
+>   first) + Remove; live session also added to the **cohort-only curriculum
+>   picker** as a marker (the symmetric second entry — add now, schedule
+>   later via the cue); forgiving URLs (auto-`https://`). Plus a `'use server'`
+>   type-re-export gotcha fixed (see the memory).
+> - **⏭ NEXT: Slice 3 — attendance → derived completion** (tutor-marked
+>   presence writes a derived `ATTENDANCE` row; live sessions re-enter the
+>   progress picture under "only verified completion counts").
+
 > **COHORT-SPECIFIC ACTIVITIES — COMPLETE: SLICES 1–5 BUILT + MERGED to
 > `main` (2026-06-14; Sam-tested on dev; not yet released to prod).** The
 > cohort-only "escape valve": a tutor adds activities / blocks that live in

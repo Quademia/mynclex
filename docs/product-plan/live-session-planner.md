@@ -2,10 +2,12 @@
 
 *Design agreed with Sam 2026-06-06, deepened + open decisions resolved
 2026-06-14, completion model + curriculum-placement finalised 2026-06-15.
-Status: **DESIGN FINALISED, BUILD STARTING** — the marker/planner split
-first; **attendance → derived completion confirmed as the next slice.**
-Timing (Sam, 2026-06-08): build during the cohort-level MVP sweep — it
-lives mostly on the cohort side.*
+Status: **Slices 1 + 2 BUILT + MERGED to `main` 2026-06-15** (Sam-tested on
+dev) — the marker/planner split, the integrity "needs scheduling" cue, and
+the one-off "+ Add session" flow. **NOT yet released to prod** (carries
+migration `20260703120000`). **Slice 3 — attendance → derived completion —
+is the confirmed next slice.** Timing (Sam, 2026-06-08): it lives mostly on
+the cohort side.*
 
 Part of the `mynclex/docs/product-plan/` set. Hosts on the cohort
 **Sessions** tab (kept as a placeholder by the cohort-workspace fold for
@@ -297,16 +299,25 @@ library attachments) — small blast radius by design.
 
 ---
 
-## Slice breakdown (proposed)
+## Slice breakdown
 
-1. **Slice 1 — marker/planner split + schedule.** Migration (new table +
-   gut the payload); the cohort Sessions tab lists markers + the reworked
-   schedule editor (richer connection fields); student viewer + tutor
-   Home read from the planner with "Date TBA" fallback; completion
-   exclusion.
-2. **Slice 2 — integrity + one-offs.** "Needs scheduling" cue on the
-   checklist; "+ Add session" one-off flow (auto-creates the cohort-only
-   marker, Option B).
+1. **Slice 1 — marker/planner split + schedule. ✅ BUILT (1a + 1b).**
+   *1a* — live sessions treated as events: removed from the completion
+   denominator + the "Up next" pointer + the manual-mark types, no done
+   pill (a neutral 📅 Event chip instead), matched in the tutor cohort
+   analytics. *1b* — migration `20260703120000` (new `nclex_cohort_live_sessions`
+   table + RLS; gut the payload to a `typical_duration_minutes` marker;
+   self-paced live sessions removed — tutor-led only, blurred in the
+   picker); the Sessions tab planner + reworked schedule editor (platform /
+   join URL / meeting ID / passcode / instructions); student viewer + tutor
+   Home read from the planner with "Date to be announced" fallback.
+2. **Slice 2 — integrity + one-offs. ✅ BUILT.** "Needs scheduling →" cue on
+   the cohort checklist (links to the Sessions tab; advisory). "+ Add
+   session" one-off flow (Option B — atomic: cohort-only marker + schedule
+   in one validated step) + "Remove" for cohort-only sessions. Live sessions
+   also added to the **cohort-only curriculum picker** as a marker (the
+   symmetric second entry point — add now, schedule later via the cue).
+   Forgiving URLs (auto-`https://`).
 3. **Slice 3 — attendance → derived completion (CONFIRMED next, 2026-06-15).**
    Tutor-marked attendance (manual, no integration) writes a derived
    `ATTENDANCE` completion row for present students; live sessions
