@@ -328,6 +328,17 @@ library attachments) — small blast radius by design.
 4. **V2 — managed sessions system.** Calendar, reminders, integrations,
    recordings library, attendance via API.
 
+> **▶ CAPTURE (Sam, 2026-06-15): the STUDENT side needs a dedicated Sessions
+> (+ attendance) page.** Today a student only meets live sessions scattered
+> through the curriculum weeks (the 📅 Event rows). They need a single
+> student-facing **Sessions** surface — a list / calendar of *their* live
+> sessions across the whole programme: **upcoming** (date + join details) and
+> **past** (recording), read from the per-cohort planner. Once attendance
+> (Slice 3) exists, the same page shows the student their own **attendance
+> record** per session. It's the read-only, personalised mirror of the tutor
+> Sessions tab. Build as its own slice — likely **alongside or just after
+> Slice 3** (attendance), since the two share the surface. NOT yet built.
+
 ---
 
 ## Sibling — pricing is the same pattern (separate, later)
