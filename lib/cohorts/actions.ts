@@ -592,12 +592,16 @@ export async function createCohortOnlyActivityAction(
 
   // Slice 1 = the 3 self-contained types; Slice 3a adds the 2 quiz types.
   // Library Note + Shelf use their own attach flow (Slice 3b), not this
-  // action; live sessions are excluded by design (the Live Session
-  // Planner owns them).
+  // action. ONLINE_LIVE_SESSION is allowed: a cohort-only live session is
+  // just a cohort-only MARKER (title + typical duration via buildPayload,
+  // no schedule) — same as a template marker. The tutor schedules it
+  // per-cohort on the Sessions tab (the "+ Add session" flow is the
+  // alternative entry that also schedules in one step).
   if (
     values.type !== 'TEXT' &&
     values.type !== 'PDF' &&
     values.type !== 'EXTERNAL_LINK' &&
+    values.type !== 'ONLINE_LIVE_SESSION' &&
     values.type !== 'MOCK' &&
     values.type !== 'PRACTICE_QUIZ'
   ) {

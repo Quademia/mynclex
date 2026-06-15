@@ -83,12 +83,17 @@ import type { UnitLabel } from '@/lib/programmes/types';
 // The activity types a tutor can add as a cohort-only activity. The 3
 // self-contained types (Slice 1) + the 2 quiz types (Slice 3a) go through
 // the shared editor; Library Note + Shelf (Slice 3b) route to their own
-// attach modals (handled in openAddActivity). Live sessions are excluded
-// by design (the Live Session Planner owns them).
+// attach modals (handled in openAddActivity). Online live session goes
+// through the shared editor too — it creates a cohort-only MARKER (title +
+// typical duration, no schedule), exactly like a template marker; the tutor
+// then sets the per-cohort time/link on the Sessions tab (the "needs
+// scheduling →" cue links there). "+ Add session" on the Sessions tab is
+// the alternative one-step entry that also schedules.
 const COHORT_ONLY_TYPES: ActivityType[] = [
   'TEXT',
   'PDF',
   'EXTERNAL_LINK',
+  'ONLINE_LIVE_SESSION',
   'MOCK',
   'PRACTICE_QUIZ',
   'LIBRARY_NOTE',
