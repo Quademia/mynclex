@@ -752,6 +752,21 @@ button.programme-switcher-item {
   box-sizing: border-box;
 }
 
+/* Live session — an EVENT, not a task. A neutral navy-tinted chip with a
+   📅 glyph; no completion semantics (the "only verified completion counts"
+   rule). Marks the row as an event so the absent task-pill reads as
+   deliberate. See docs/product-plan/live-session-planner.md. */
+.student-activity-state.is-event {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+  color: var(--primary);
+}
+
+.student-activity-state.is-event .student-activity-state-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
 .student-activity-locked {
   display: flex;
   align-items: center;

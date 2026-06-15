@@ -2,7 +2,7 @@
 //
 // Cohort analytics — Phase 1 (completion). Assembles the cohort's effective
 // curriculum (included + student-visible activities, with release state),
-// reads completion across ALL 8 activity types, and derives the per-student
+// reads completion across the task activity types — live sessions are events, excluded — and derives the per-student
 // and per-activity rollups the dashboard renders.
 //
 // Completion has three sources, fused here into one done/not-done grid:
@@ -35,13 +35,16 @@ import type {
   StudentQuizPerf,
 } from './types';
 
-// The 6 types whose completion lives in the progress engine. LIBRARY_NOTE
-// and SHELF are derived from note-state and handled separately below.
+// The progress-engine types counted in completion. LIBRARY_NOTE and SHELF
+// are derived from note-state and handled separately below.
+// ONLINE_LIVE_SESSION is intentionally absent — a live session is an EVENT,
+// excluded from completion analytics in v1 (it never enters `visible`; see
+// the build loop). Attendance-derived completion (a later slice) reintroduces
+// it. See docs/product-plan/live-session-planner.md.
 const PROGRESS_TYPES = new Set<ActivityType>([
   'TEXT',
   'PDF',
   'EXTERNAL_LINK',
-  'ONLINE_LIVE_SESSION',
   'MOCK',
   'PRACTICE_QUIZ',
 ]);
@@ -165,6 +168,9 @@ export async function getCohortAnalytics(
       ? r.nclex_programme_activities[0]
       : r.nclex_programme_activities;
     if (!a) continue;
+    // Live sessions are events — excluded from completion analytics in v1
+    // (no completion-denominator contribution), matching the student side.
+    if (a.type === 'ONLINE_LIVE_SESSION') continue;
     const unit = unitById.get(a.unit_id);
     if (!unit) continue;
     const blockPublished =

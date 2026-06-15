@@ -20,7 +20,6 @@
 
 import { ViewerModalShell } from './viewer-modal-shell';
 import { providerLabelFor, safeHttpUrl } from './format';
-import { MarkDoneButton } from '@/lib/progress/mark-done-button';
 import type {
   ActivityPayloadOnlineLiveSession,
   StudentActivity,
@@ -156,24 +155,11 @@ export function OnlineLiveSessionViewer({
           </a>
         )}
 
-        {/* Mark-as-done gated on session status: marking attendance
-            only makes sense after the session ends (Q2 of Slice 2).
-            Disabled with a tooltip while UPCOMING or LIVE; enabled
-            once status flips to ENDED. Status === null (no
-            scheduled_at on the activity payload) leaves the button
-            available since the gate has no meaning then. */}
-        <MarkDoneButton
-          activityId={activity.activity_id}
-          isDone={activity.isDone}
-          disabled={status === 'UPCOMING' || status === 'LIVE'}
-          disabledReason={
-            status === 'UPCOMING'
-              ? 'Available after the session ends.'
-              : status === 'LIVE'
-              ? 'Available after the session ends.'
-              : undefined
-          }
-        />
+        {/* No "mark as done" — a live session is an event, not a task,
+            and does not count toward progress in v1 (the "only verified
+            completion counts" rule). Completion will be DERIVED from
+            tutor-marked attendance in a later slice, never self-marked.
+            See docs/product-plan/live-session-planner.md. */}
       </div>
     </ViewerModalShell>
   );

@@ -155,14 +155,18 @@ export async function getStudentSelfPacedCurriculum(
       releaseDate: null,
       dueDate: null,
       closeDate: null,
-      // LIBRARY_NOTE + SHELF completion is DERIVED (11.11b / 11.12b),
-      // never the progress engine; all other types read the progress map.
+      // ONLINE_LIVE_SESSION is an EVENT, never "done" in v1 (the "only
+      // verified completion counts" rule; attendance-derived completion
+      // lands in a later slice). LIBRARY_NOTE + SHELF completion is DERIVED
+      // (11.11b / 11.12b); all other types read the progress map.
       isDone:
-        activity.type === 'LIBRARY_NOTE'
-          ? libraryState.doneActivityIds.has(activity.activity_id)
-          : activity.type === 'SHELF'
-            ? shelfState.doneActivityIds.has(activity.activity_id)
-            : progressMap.has(activity.activity_id),
+        activity.type === 'ONLINE_LIVE_SESSION'
+          ? false
+          : activity.type === 'LIBRARY_NOTE'
+            ? libraryState.doneActivityIds.has(activity.activity_id)
+            : activity.type === 'SHELF'
+              ? shelfState.doneActivityIds.has(activity.activity_id)
+              : progressMap.has(activity.activity_id),
       isInProgress: isQuizActivityInProgress(activity, inProgressMap),
       libraryNoteId:
         libraryState.noteIdByActivity.get(activity.activity_id) ?? null,
@@ -351,11 +355,13 @@ export async function getStudentCohortCurriculum(
   const visibleActivities: StudentActivity[] = staged.map((a) => ({
     ...a,
     isDone:
-      a.type === 'LIBRARY_NOTE'
-        ? libraryState.doneActivityIds.has(a.activity_id)
-        : a.type === 'SHELF'
-          ? shelfState.doneActivityIds.has(a.activity_id)
-          : progressMap.has(a.activity_id),
+      a.type === 'ONLINE_LIVE_SESSION'
+        ? false // event, not a task — never counts in v1 (see self-paced note)
+        : a.type === 'LIBRARY_NOTE'
+          ? libraryState.doneActivityIds.has(a.activity_id)
+          : a.type === 'SHELF'
+            ? shelfState.doneActivityIds.has(a.activity_id)
+            : progressMap.has(a.activity_id),
     isInProgress: isQuizActivityInProgress(a, inProgressMap),
     libraryNoteId: libraryState.noteIdByActivity.get(a.activity_id) ?? null,
     shelfId: shelfState.shelfIdByActivity.get(a.activity_id) ?? null,
@@ -758,7 +764,13 @@ function decorateUnitsWithProgress(
   units: StudentCurriculumUnit[]
 ): StudentCurriculumUnit[] {
   return units.map((u) => {
-    const activities = flattenUnitActivities(u);
+    // Live sessions are EVENTS, not tasks — excluded from the completion
+    // count entirely in v1 (numerator AND denominator), so they never drag
+    // a student's % down. Attendance-derived completion (a later slice) will
+    // bring them back in. See docs/product-plan/live-session-planner.md.
+    const activities = flattenUnitActivities(u).filter(
+      (a) => a.type !== 'ONLINE_LIVE_SESSION'
+    );
     const total = activities.length;
     const done = activities.filter((a) => a.isDone).length;
     const pct = total === 0 ? null : Math.round((done / total) * 100);
@@ -798,6 +810,11 @@ function deriveProgrammeSignals(
   for (const u of units) {
     const activities = flattenUnitActivities(u);
     for (const a of activities) {
+      // Live sessions are events — never a completion target. Skipping them
+      // keeps the "Up next" pointer from freezing on a session that can never
+      // be marked done (no verified-completion path in v1), and keeps them
+      // out of hasAnyDone / where-I-left-off.
+      if (a.type === 'ONLINE_LIVE_SESSION') continue;
       if (a.isDone) {
         hasAnyDone = true;
         const ts = progressMap.get(a.activity_id)?.completed_at;

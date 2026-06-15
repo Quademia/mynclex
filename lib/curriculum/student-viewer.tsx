@@ -35,6 +35,10 @@
 // stays visible even when the body is empty.
 //
 // Progress engine, Slices 1-3 — row state pill cascade:
+//   0. Event (📅 neutral)    — ONLINE_LIVE_SESSION: an event, not a
+//                              task. No completion semantics in v1 (the
+//                              "only verified completion counts" rule);
+//                              wins over the cascade below.
 //   1. Done (green ✓)        — terminal, wins over everything
 //   2. In progress (amber)   — quiz row with an IN_PROGRESS attempt
 //                              (derived; never for manual types)
@@ -265,6 +269,23 @@ function ActivityCard({
         {/* Pill cascade — see header comment for full priority order.
             Computed once into a local for readability. */}
         {(() => {
+          // Live session — an EVENT, not a task. No completion pill
+          // (Done / Up next / Not started don't apply); a neutral event
+          // chip marks it so the absent task-pill reads as deliberate.
+          // See docs/product-plan/live-session-planner.md.
+          if (activity.type === 'ONLINE_LIVE_SESSION') {
+            return (
+              <span className="student-activity-state is-event">
+                <span
+                  className="student-activity-state-icon"
+                  aria-hidden="true"
+                >
+                  📅
+                </span>
+                <span className="student-activity-state-label">Event</span>
+              </span>
+            );
+          }
           if (activity.isDone) {
             return (
               <span className="student-activity-state is-done">
