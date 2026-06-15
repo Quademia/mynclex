@@ -1,9 +1,11 @@
 # Live sessions — template marker + cohort planner
 
 *Design agreed with Sam 2026-06-06, deepened + open decisions resolved
-2026-06-14. Status: **DESIGN AGREED, NOT YET BUILT.** Timing (Sam,
-2026-06-08): build during the cohort-level MVP sweep — it lives mostly
-on the cohort side.*
+2026-06-14, completion model + curriculum-placement finalised 2026-06-15.
+Status: **DESIGN FINALISED, BUILD STARTING** — the marker/planner split
+first; **attendance → derived completion confirmed as the next slice.**
+Timing (Sam, 2026-06-08): build during the cohort-level MVP sweep — it
+lives mostly on the cohort side.*
 
 Part of the `mynclex/docs/product-plan/` set. Hosts on the cohort
 **Sessions** tab (kept as a placeholder by the cohort-workspace fold for
@@ -159,21 +161,81 @@ is where you resolve it.
 
 ---
 
-## Completion — a live session does NOT count (v1)
+## Completion — only *verified* completion counts (the governing rule)
 
-Attendance happens off-platform (Zoom/Meet) and we can't reliably track
-who showed up in v1. So a live session is **excluded from the completion
-denominator** — it never drags a student's progress % down — and renders
-**without a done-checkbox** (it's an event, not a task). No self-report,
-no fake "watched the recording" proxy.
+*Finalised with Sam 2026-06-15.* The earlier framing ("a live session
+doesn't count toward progress") was really a special case of one constant
+rule:
 
-> **▶ CAPTURE (Sam, 2026-06-14): build an attendance mechanism soon.**
-> Attendance is pulled *forward* from the broad V2 bucket into a
-> near-term follow-on. Once it exists, live sessions may count toward
-> completion / engagement. Open: *how* — tutor-marked attendance
-> (manual, ships without any integration) vs. integration-pulled
-> attendance (Zoom API, part of the managed system). Likely tutor-marked
-> first. Design when queued.
+> **Only *verified* completion counts toward a student's progress.**
+
+That same rule already governs every existing activity type — it's just
+applied to whatever trustworthy signal each type has:
+
+- **Quizzes** → verified by a submitted attempt. A DB trigger writes the
+  progress row, and the manual "mark done" action is *rejected* for quiz
+  types, so a done-with-zero-attempts quiz can't exist.
+  `completion_source = 'QUIZ_ATTEMPT'`.
+- **Readings / PDFs / links** → low-stakes, nothing to game, so the
+  student's own tick is accepted. `completion_source = 'MANUAL'`.
+- **Live sessions** → the only signal available *in v1* is student
+  self-report of attendance, which is **not verifiable** → so a live
+  session **does not count toward progress in v1**, and renders **without
+  a done-checkbox** (it's an event, not a task).
+
+**This is not a position we later reverse — the evidence arrives in
+stages.** A live session is excluded today because there is *nothing to
+verify yet*, not because a live session is philosophically "not progress."
+The moment a verifiable signal exists (tutor-marked attendance — below),
+the *same* rule pulls live sessions *into* the progress picture.
+
+**What we deliberately do NOT build:** a student self-mark for live
+sessions (the optional "I attended" bookmark was considered and dropped).
+It's the one *fake* signal, and deriving completion from real attendance
+supersedes it. Concretely, this build **removes `ONLINE_LIVE_SESSION` from
+`MANUAL_TYPES`** in [lib/progress/actions.ts](../../lib/progress/actions.ts)
+(today it is incorrectly there) — and we never add it back; attendance
+arrives as a *derived* source instead.
+
+### Attendance → derived completion (CONFIRMED: the NEXT slice)
+
+*Confirmed by Sam 2026-06-15 — attendance is the next slice after the
+marker/planner split.* Live-session completion will be **derived from
+tutor-marked attendance**, exactly the way quiz completion is derived from
+a submitted attempt:
+
+- A new `completion_source = 'ATTENDANCE'` on
+  `nclex_student_activity_progress`. The table already carries the
+  `marked_by` + `attempt_id` columns, built in anticipation of
+  non-self-marked completion (*"v1 always self-marked"*) — so the seam
+  exists.
+- When the tutor marks a student **present**, a derived progress row is
+  written for that `(student, live-session activity_id)`. Like quizzes,
+  the manual action stays rejected, so **fake self-marking is impossible**.
+- This is *why we keep the marker in the curriculum* (see the next
+  section): deriving completion into the progress engine needs the
+  `activity_id` bridge, which only exists because the live session stays
+  an activity. The two decisions reinforce each other.
+
+**Bonus the verified signal unlocks — the *incomplete* state also becomes
+meaningful.** With self-report, an unticked session is noise ("they
+forgot"). With tutor-marked attendance, an **absent** student genuinely
+shows the session incomplete — *"missed the Week 3 tutorial"* — a real
+engagement signal the tutor wants. So deriving from attendance makes both
+the done **and** the not-done state honest.
+
+**Parked for the attendance slice (decide at build, not now):**
+
+- *Missed-live-but-watched-the-recording* — does the recording count as
+  completion? Lean **no** for the first attendance pass (only verifiable
+  live presence counts; the recording is a catch-up resource). Revisit
+  only if/when we track video plays (the V2 recordings library).
+- *Denominator timing for an un-held session* — an upcoming session that
+  hasn't happened yet shouldn't drag a student's % down before it occurs
+  (it isn't completable yet). Settle the exact treatment (akin to a
+  not-yet-due item) when building attendance.
+- *How attendance is captured* — tutor-marked (manual, ships with no
+  integration) first; integration-pulled (Zoom API) is later V2.
 
 ---
 
@@ -245,8 +307,13 @@ library attachments) — small blast radius by design.
 2. **Slice 2 — integrity + one-offs.** "Needs scheduling" cue on the
    checklist; "+ Add session" one-off flow (auto-creates the cohort-only
    marker, Option B).
-3. **Slice 3 — attendance (near-term follow-on).** Tutor-marked
-   attendance first; decide whether/how it feeds completion.
+3. **Slice 3 — attendance → derived completion (CONFIRMED next, 2026-06-15).**
+   Tutor-marked attendance (manual, no integration) writes a derived
+   `ATTENDANCE` completion row for present students; live sessions
+   re-enter the progress picture under the "only verified completion
+   counts" rule, and an absence reads as a real "missed it" signal. Settle
+   the parked questions here (recording-watched, un-held-session
+   denominator timing).
 4. **V2 — managed sessions system.** Calendar, reminders, integrations,
    recordings library, attendance via API.
 
@@ -267,6 +334,36 @@ work. Canonical home:
 [payments-and-enrolment.md](payments-and-enrolment.md).
 
 ---
+
+## Why NOT move live sessions out of the curriculum entirely (settled 2026-06-15)
+
+Considered: drop the marker too, so live sessions touch the curriculum
+**not at all** — they'd live wholly on the Sessions tab as a standalone
+calendar. Tempting (total separation; the progress question vanishes by
+construction; less to build). **Rejected** because a MyNclex tutored
+programme is built around *"pre/post tutorial tasks"* — the live tutorial
+is the **anchor of the week**, with pre-work and post-work arranged around
+it (pre-read → live call → post-quiz). Ripping it out of the curriculum:
+
+- leaves a **hole in the week** — the student opens Week 3, sees a
+  pre-read and a post-quiz with the call missing, and must mentally stitch
+  the Thursday call from another tab into the sequence;
+- **hurts discoverability** — students live in the curriculum; a separate
+  tab is easy to ignore;
+- **loses the template backbone** — the tutor can no longer author the
+  rhythm once ("every Week 3 has a live tutorial") and just schedule it
+  per cohort; each intake's sessions become ad-hoc re-entries.
+
+The marker model already moves *all the per-run data* out (to the Sessions
+tab) while keeping a lightweight pointer in the curriculum — so the student
+sees the call **both** inline in the week **and** in the consolidated
+Sessions list. Moving out completely keeps only the second. It also keeps
+the `activity_id` bridge that derived attendance-completion depends on (see
+the Completion section). **Caveat:** this holds because MyNclex tutorials
+are scheduled, syllabus-woven sessions. If a tutor's live sessions were
+instead incidental drop-in / office-hours calls with no curriculum
+position, a standalone calendar would be the better fit — not the v1
+assumption.
 
 ## Why NOT full copy-per-cohort (settled 2026-06-06)
 
