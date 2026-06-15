@@ -47,6 +47,8 @@ import type {
   StudentBodyEntry,
   StudentCurriculumTree,
   StudentCurriculumUnit,
+  LiveSessionSchedule,
+  LiveSessionPlatform,
 } from './types';
 import type { DeliveryMode, UnitLabel } from '@/lib/programmes/types';
 
@@ -175,6 +177,8 @@ export async function getStudentSelfPacedCurriculum(
         shelfState.membersByActivity.get(activity.activity_id) ?? null,
       shelfUpdate:
         shelfState.updateByActivity.get(activity.activity_id) ?? null,
+      // Self-paced has no live sessions (tutor-led only, Slice 1b).
+      liveSession: null,
     })
   );
 
@@ -299,6 +303,7 @@ export async function getStudentCohortCurriculum(
     | 'shelfId'
     | 'shelfMembers'
     | 'shelfUpdate'
+    | 'liveSession'
   >;
   const staged: StagedActivity[] = [];
   for (const r of rawRows) {
@@ -339,18 +344,26 @@ export async function getStudentCohortCurriculum(
   // Progress engine — fetch progress + IN_PROGRESS map in parallel.
   // Same shape as self-paced; cohort mode reads the same progress
   // table (row attaches to template activity, not cohort).
-  const [progressMap, inProgressMap, libraryState, shelfState] = await Promise.all([
-    getActivityProgressMap(staged.map((a) => a.activity_id)),
-    getInProgressQuizAttempts(),
-    getLibraryNoteActivityState(
-      supabase,
-      staged.filter((a) => a.type === 'LIBRARY_NOTE').map((a) => a.activity_id)
-    ),
-    getShelfActivityState(
-      supabase,
-      staged.filter((a) => a.type === 'SHELF').map((a) => a.activity_id)
-    ),
-  ]);
+  const [progressMap, inProgressMap, libraryState, shelfState, liveSessionMap] =
+    await Promise.all([
+      getActivityProgressMap(staged.map((a) => a.activity_id)),
+      getInProgressQuizAttempts(),
+      getLibraryNoteActivityState(
+        supabase,
+        staged.filter((a) => a.type === 'LIBRARY_NOTE').map((a) => a.activity_id)
+      ),
+      getShelfActivityState(
+        supabase,
+        staged.filter((a) => a.type === 'SHELF').map((a) => a.activity_id)
+      ),
+      getCohortLiveSessionSchedules(
+        supabase,
+        cohortId,
+        staged
+          .filter((a) => a.type === 'ONLINE_LIVE_SESSION')
+          .map((a) => a.activity_id)
+      ),
+    ]);
 
   const visibleActivities: StudentActivity[] = staged.map((a) => ({
     ...a,
@@ -367,6 +380,12 @@ export async function getStudentCohortCurriculum(
     shelfId: shelfState.shelfIdByActivity.get(a.activity_id) ?? null,
     shelfMembers: shelfState.membersByActivity.get(a.activity_id) ?? null,
     shelfUpdate: shelfState.updateByActivity.get(a.activity_id) ?? null,
+    // Live sessions (Slice 1b) — this cohort's per-run schedule, or null
+    // (unscheduled → "Date to be announced"). Null for other types.
+    liveSession:
+      a.type === 'ONLINE_LIVE_SESSION'
+        ? liveSessionMap.get(a.activity_id) ?? null
+        : null,
   }));
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
@@ -628,6 +647,65 @@ function normalizeSkipped(raw: unknown): string[] {
   }
   if (!Array.isArray(arr)) return [];
   return arr.filter((x): x is string => typeof x === 'string');
+}
+
+// Live-session platforms accepted from a planner row (defensive cast).
+const LIVE_SESSION_PLATFORMS: ReadonlySet<string> = new Set([
+  'ZOOM',
+  'GOOGLE_MEET',
+  'MS_TEAMS',
+  'OTHER',
+]);
+
+/**
+ * Slice 1b — for a set of live-session marker activity ids, fetch this
+ * cohort's per-run schedules (nclex_cohort_live_sessions). Returns a map
+ * activity_id → LiveSessionSchedule; a marker absent from the map is
+ * unscheduled for the cohort ("Date to be announced"). RLS scopes the
+ * read to the student's active cohort enrolment. Empty input → no query.
+ */
+async function getCohortLiveSessionSchedules(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  cohortId: string,
+  markerActivityIds: string[]
+): Promise<Map<string, LiveSessionSchedule>> {
+  const map = new Map<string, LiveSessionSchedule>();
+  if (markerActivityIds.length === 0) return map;
+
+  const { data } = await supabase
+    .from('nclex_cohort_live_sessions')
+    .select(
+      `marker_activity_id, scheduled_at, duration_minutes, platform,
+       join_url, meeting_id, passcode, joining_instructions, recording_url`
+    )
+    .eq('cohort_id', cohortId)
+    .in('marker_activity_id', markerActivityIds);
+
+  for (const r of (data ?? []) as Array<{
+    marker_activity_id: string;
+    scheduled_at: string | null;
+    duration_minutes: number | null;
+    platform: string | null;
+    join_url: string | null;
+    meeting_id: string | null;
+    passcode: string | null;
+    joining_instructions: string | null;
+    recording_url: string | null;
+  }>) {
+    map.set(r.marker_activity_id, {
+      scheduledAt: r.scheduled_at,
+      durationMinutes: r.duration_minutes,
+      platform: LIVE_SESSION_PLATFORMS.has(r.platform ?? '')
+        ? (r.platform as LiveSessionPlatform)
+        : null,
+      joinUrl: r.join_url,
+      meetingId: r.meeting_id,
+      passcode: r.passcode,
+      joiningInstructions: r.joining_instructions,
+      recordingUrl: r.recording_url,
+    });
+  }
+  return map;
 }
 
 /**

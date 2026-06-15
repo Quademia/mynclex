@@ -13,12 +13,12 @@
 // `tab=overview` is the default and omits the param for clean URLs.
 
 import Link from 'next/link';
-import { Placeholder } from '@/components/nav/shared/placeholder';
 import { getCohortAnalytics } from '@/lib/analytics/tutor/cohort-queries';
 import { CohortAnalyticsView } from '@/lib/analytics/tutor/analytics-view';
 import { getCohortChecklist, getCohortForShell } from './queries';
 import { CohortCurriculum } from './cohort-curriculum';
 import { CohortOverviewPane } from './cohort-overview-pane';
+import { CohortSessionsPane } from './cohort-sessions-pane';
 import { CohortSettingsPane } from './cohort-settings-pane';
 import {
   cohortStatus,
@@ -179,11 +179,7 @@ async function CohortDetailPane({
     }
     case 'sessions':
       return (
-        <Placeholder
-          title="Sessions"
-          subtitle="This cohort"
-          description="Live-session schedule for this run. Lands with the session-scheduling slice."
-        />
+        <CohortSessionsPane programmeId={programmeId} cohortId={cohortId} />
       );
     case 'settings':
       return (

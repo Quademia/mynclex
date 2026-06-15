@@ -1,20 +1,15 @@
 // mynclex/lib/curriculum/online-live-session-viewer.tsx
 //
-// Slice 10.3 — the Online live session activity viewer. Second of
-// the per-type viewers; a modal, like External link, reusing
-// <ViewerModalShell> and its shared .viewer-modal-* vocabulary.
+// The Online live session activity viewer — a modal, like External
+// link. Slice 1b: it reads the per-run schedule from this cohort's
+// PLANNER row (activity.liveSession), not the template payload. The
+// template only carries a "typical duration" hint (used as a fallback
+// when the planner row has no duration). When the marker is
+// unscheduled for the cohort, it shows "Date to be announced".
 //
-// Shows the session's when + duration in the STUDENT's local zone
-// (the tutor stored it as UTC), the provider, a primary "Join
-// session" button, and the recording link once the tutor has
-// added it. A simple status line — Upcoming / Happening now /
-// Ended — tells the student at a glance whether the join link or
-// the recording is the relevant one. It's derived from the start
-// time + duration vs. now; no extra data, computed once when the
-// modal opens.
-//
-// Renders entirely from the `activity` the list already loaded —
-// no new query, no new route.
+// A live session is an EVENT, not a task — there is no "mark as done"
+// (it doesn't count toward progress in v1; attendance-derived
+// completion comes later). See docs/product-plan/live-session-planner.md.
 
 'use client';
 
@@ -22,6 +17,7 @@ import { ViewerModalShell } from './viewer-modal-shell';
 import { providerLabelFor, safeHttpUrl } from './format';
 import type {
   ActivityPayloadOnlineLiveSession,
+  LiveSessionPlatform,
   StudentActivity,
 } from './types';
 
@@ -31,6 +27,13 @@ const STATUS_LABEL: Record<SessionStatus, string> = {
   UPCOMING: 'Upcoming',
   LIVE: 'Happening now',
   ENDED: 'Ended',
+};
+
+const PLATFORM_LABEL: Record<LiveSessionPlatform, string> = {
+  ZOOM: 'Zoom',
+  GOOGLE_MEET: 'Google Meet',
+  MS_TEAMS: 'Microsoft Teams',
+  OTHER: 'Other',
 };
 
 // "Wednesday, 20 May 2026, 17:00" — in the student's locale + zone.
@@ -60,30 +63,36 @@ export function OnlineLiveSessionViewer({
   onClose: () => void;
 }) {
   const payload = activity.payload as ActivityPayloadOnlineLiveSession;
-  const joinUrl = safeHttpUrl(payload.join_url);
-  const recordingUrl = safeHttpUrl(payload.recording_url);
-  const provider = joinUrl
-    ? providerLabelFor(new URL(joinUrl).hostname)
-    : null;
+  const schedule = activity.liveSession;
 
-  // scheduled_at is UTC ISO; the browser renders it in the
-  // student's own zone. duration_minutes drives the end time.
-  const start = payload.scheduled_at ? new Date(payload.scheduled_at) : null;
+  const joinUrl = safeHttpUrl(schedule?.joinUrl ?? undefined);
+  const recordingUrl = safeHttpUrl(schedule?.recordingUrl ?? undefined);
+  const platformLabel = schedule?.platform
+    ? PLATFORM_LABEL[schedule.platform]
+    : joinUrl
+      ? providerLabelFor(new URL(joinUrl).hostname)
+      : null;
+
+  // scheduled_at is UTC ISO; the browser renders it in the student's
+  // own zone. Duration falls back from the planner override to the
+  // marker's typical-duration hint.
+  const start = schedule?.scheduledAt ? new Date(schedule.scheduledAt) : null;
   const startValid = start !== null && !isNaN(start.getTime());
   const durationMin =
-    typeof payload.duration_minutes === 'number' &&
-    payload.duration_minutes > 0
-      ? payload.duration_minutes
-      : null;
+    schedule?.durationMinutes != null && schedule.durationMinutes > 0
+      ? schedule.durationMinutes
+      : typeof payload.typical_duration_minutes === 'number' &&
+          payload.typical_duration_minutes > 0
+        ? payload.typical_duration_minutes
+        : null;
   const end =
     startValid && durationMin
       ? new Date(start!.getTime() + durationMin * 60_000)
       : null;
 
-  // Status — Upcoming / Happening now / Ended, snapshotted when
-  // the modal opens. With no duration set, the end falls back to
-  // the start instant (a session reads as Ended right after it
-  // starts) — an acceptable edge for a session with no duration.
+  // Status — Upcoming / Happening now / Ended, snapshotted when the
+  // modal opens. With no duration the end falls back to the start
+  // instant (reads as Ended right after it starts).
   let status: SessionStatus | null = null;
   if (startValid) {
     const now = Date.now();
@@ -93,6 +102,9 @@ export function OnlineLiveSessionViewer({
     else if (now <= endMs) status = 'LIVE';
     else status = 'ENDED';
   }
+
+  const hasConnectionExtras =
+    !!schedule?.meetingId || !!schedule?.passcode;
 
   return (
     <ViewerModalShell title={activity.title} onClose={onClose}>
@@ -124,10 +136,12 @@ export function OnlineLiveSessionViewer({
             </div>
           </div>
         ) : (
-          <p className="viewer-modal-broken">
-            Session details aren&apos;t available yet — ask your tutor to
-            check.
-          </p>
+          <div className="live-session-tba">
+            <span aria-hidden="true">📅</span>
+            <span>
+              Date to be announced — your tutor will post the time here.
+            </span>
+          </div>
         )}
 
         {joinUrl && (
@@ -138,10 +152,33 @@ export function OnlineLiveSessionViewer({
             rel="noopener noreferrer"
           >
             <span>Join session ↗</span>
-            {provider && (
-              <span className="viewer-modal-cta-sub">{provider}</span>
+            {platformLabel && (
+              <span className="viewer-modal-cta-sub">{platformLabel}</span>
             )}
           </a>
+        )}
+
+        {hasConnectionExtras && (
+          <dl className="live-session-connection">
+            {schedule?.meetingId && (
+              <div className="live-session-connection-row">
+                <dt>Meeting ID</dt>
+                <dd>{schedule.meetingId}</dd>
+              </div>
+            )}
+            {schedule?.passcode && (
+              <div className="live-session-connection-row">
+                <dt>Passcode</dt>
+                <dd>{schedule.passcode}</dd>
+              </div>
+            )}
+          </dl>
+        )}
+
+        {schedule?.joiningInstructions && (
+          <p className="live-session-instructions">
+            {schedule.joiningInstructions}
+          </p>
         )}
 
         {recordingUrl && (

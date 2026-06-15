@@ -1387,3 +1387,52 @@ button.programme-switcher-item {
   border-radius: var(--radius);
   padding: 8px 11px;
 }
+
+/* Live session viewer — Slice 1b: "Date to be announced" (unscheduled),
+   plus connection details (meeting ID / passcode) + joining instructions. */
+.live-session-tba {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin: 10px 0;
+}
+
+.live-session-connection {
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.live-session-connection-row {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.live-session-connection-row dt {
+  color: var(--text-muted);
+  min-width: 84px;
+  margin: 0;
+}
+
+.live-session-connection-row dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.live-session-instructions {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}

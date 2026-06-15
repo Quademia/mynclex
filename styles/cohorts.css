@@ -1179,3 +1179,188 @@
   margin: 0 0 14px;
   max-width: 480px;
 }
+
+/* =====================================================================
+ * Live Session Planner — cohort Sessions tab (Slice 1b)
+ * ===================================================================== */
+.cohort-sessions-head {
+  margin-bottom: 16px;
+}
+
+.cohort-sessions-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+.cohort-sessions-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 560px;
+  line-height: 1.5;
+}
+
+.cohort-sessions-empty {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  text-align: center;
+  background: var(--bg-soft);
+}
+
+.cohort-sessions-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.cohort-sessions-empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.cohort-sessions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cohort-session-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  padding: 14px 16px;
+}
+
+.cohort-session-main {
+  min-width: 0;
+}
+
+.cohort-session-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.cohort-session-week {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.cohort-session-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.cohort-session-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.cohort-session-when {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.cohort-session-when-date {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.cohort-session-chip {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.cohort-session-unscheduled {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.cohort-session-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cohort-session-status {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+.cohort-session-status.is-scheduled {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+}
+
+.cohort-session-status.is-unscheduled {
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+}
+
+/* Schedule editor modal extras */
+.ls-modal-intro {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+.ls-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.ls-clear-btn {
+  margin-right: auto;
+  color: var(--danger, #b91c1c);
+}
+
+@media (max-width: 560px) {
+  .ls-field-grid {
+    grid-template-columns: 1fr;
+  }
+  .cohort-session-row {
+    flex-direction: column;
+  }
+  .cohort-session-actions {
+    align-self: flex-start;
+  }
+}

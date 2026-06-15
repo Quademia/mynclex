@@ -90,11 +90,31 @@ export type ActivityPayloadExternalLink = {
   estimated_minutes?: number;
 };
 
+// Live sessions: marker/planner split (Slice 1b). The template
+// activity is now a MARKER — it carries only an optional "typical
+// duration" hint (a design property shared across cohorts). The
+// per-run schedule (date / connection / recording) lives on the
+// cohort planner row (nclex_cohort_live_sessions), NOT here. See
+// docs/product-plan/live-session-planner.md.
 export type ActivityPayloadOnlineLiveSession = {
-  scheduled_at?: string;       // ISO UTC timestamp
-  duration_minutes?: number;
-  join_url?: string;
-  recording_url?: string;
+  typical_duration_minutes?: number;
+};
+
+// Connection platform for a scheduled live session (planner row).
+export type LiveSessionPlatform = 'ZOOM' | 'GOOGLE_MEET' | 'MS_TEAMS' | 'OTHER';
+
+// A cohort's per-run schedule for a live-session marker — one row in
+// nclex_cohort_live_sessions. On a StudentActivity, `null` means the
+// marker is unscheduled for this cohort ("Date to be announced").
+export type LiveSessionSchedule = {
+  scheduledAt: string | null;          // UTC ISO
+  durationMinutes: number | null;      // override; falls back to the marker's typical
+  platform: LiveSessionPlatform | null;
+  joinUrl: string | null;
+  meetingId: string | null;
+  passcode: string | null;
+  joiningInstructions: string | null;
+  recordingUrl: string | null;
 };
 
 // Slice 9.3d-d — future-link shape. MOCK and PRACTICE_QUIZ are
@@ -259,28 +279,20 @@ export type PdfActivityPreview = {
   signed_url: string;
 };
 
-// --- Slice 9.3d-a — Online live session ---
+// --- Slice 9.3d-a — Online live session (marker, Slice 1b) ---
 
-// Raw editor body state. `scheduled_at` here is the raw
-// datetime-local input value ("YYYY-MM-DDTHH:MM", local time, no
-// TZ); the modal converts to UTC ISO before save. The string-
-// shaped duration_minutes mirrors the pattern used for Text /
-// External link.
+// Raw editor body state. After the marker/planner split the template
+// editor holds ONLY the optional "typical duration" hint — the
+// date / link / recording moved to the per-cohort planner. The
+// string-shaped value mirrors the free-text-number pattern used for
+// Text / External link.
 export type OnlineLiveSessionActivityBodyValues = {
-  scheduled_at: string;       // "YYYY-MM-DDTHH:MM" local
-  duration_minutes: string;
-  join_url: string;
-  recording_url: string;
+  typical_duration_minutes: string;
 };
 
 // Parsed/validated form payload sent to the server action.
-// `scheduled_at` here is UTC ISO. `recording_url` is nullable —
-// tutor fills it after the session airs.
 export type OnlineLiveSessionActivityFormValues = ActivityCommonFormValues & {
-  scheduled_at: string;       // UTC ISO
-  duration_minutes: number;
-  join_url: string;
-  recording_url: string | null;
+  typical_duration_minutes: number | null;
 };
 
 // --- Tutor-quiz Slice 2 — Mock + Practice quiz (functional) ---
@@ -427,6 +439,12 @@ export type StudentActivity = ProgrammeActivity & {
   // (members.length > 0 AND every member done).
   shelfId: string | null;
   shelfMembers: StudentShelfMember[] | null;
+  // Live sessions (Slice 1b) — for an ONLINE_LIVE_SESSION marker, this
+  // cohort's per-run schedule (from the planner row), or null when the
+  // marker is unscheduled for the cohort ("Date to be announced"). The
+  // marker's typical-duration hint stays on `payload`. Null for every
+  // other activity type (and for self-paced, which has no live sessions).
+  liveSession: LiveSessionSchedule | null;
   // Slice 11.12c — set when the shelf's visible membership has CHANGED
   // since the student last opened this placement (vs their seen-record in
   // nclex_library_shelf_seen). null = no prior seen-row (first view) or

@@ -115,37 +115,27 @@ export function buildPayload(
       };
     }
     case 'ONLINE_LIVE_SESSION': {
-      const when = validateScheduledAt(values.scheduled_at);
-      if (!when.ok) return when;
-
-      if (
-        !Number.isInteger(values.duration_minutes) ||
-        values.duration_minutes <= 0
-      ) {
-        return {
-          ok: false,
-          error: 'Duration must be a positive whole number of minutes.',
-        };
+      // Marker only (Slice 1b) — the template carries just an optional
+      // "typical duration" hint. The per-run schedule (date / link /
+      // recording) lives on the cohort planner, validated separately by
+      // the live-session schedule action.
+      if (values.typical_duration_minutes != null) {
+        if (
+          !Number.isInteger(values.typical_duration_minutes) ||
+          values.typical_duration_minutes <= 0
+        ) {
+          return {
+            ok: false,
+            error: 'Typical duration must be a positive whole number of minutes.',
+          };
+        }
       }
-
-      const join = validateHttpUrl(values.join_url, 'Join URL');
-      if (!join.ok) return join;
-
-      let recordingClean: string | null = null;
-      if (values.recording_url != null && values.recording_url.trim() !== '') {
-        const rec = validateHttpUrl(values.recording_url, 'Recording URL');
-        if (!rec.ok) return rec;
-        recordingClean = rec.url;
-      }
-
       return {
         ok: true,
-        payload: {
-          scheduled_at: when.iso,
-          duration_minutes: values.duration_minutes,
-          join_url: join.url,
-          ...(recordingClean ? { recording_url: recordingClean } : {}),
-        },
+        payload:
+          values.typical_duration_minutes != null
+            ? { typical_duration_minutes: values.typical_duration_minutes }
+            : {},
       };
     }
     case 'MOCK':

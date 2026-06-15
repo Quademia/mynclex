@@ -198,22 +198,25 @@ export async function getTutorHomeData(): Promise<TutorHomeData> {
   };
 }
 
-// ── Live sessions: ONLINE_LIVE_SESSION activities, next 7 days ───────────
-// scheduled_at is a UTC ISO timestamp in the activity payload, set at the
-// programme-template level (so it's shared across a programme's cohorts) —
-// hence labelled by programme, not cohort. RLS scopes the read to the
-// tutor's own programmes. Day/time use the server clock (UTC on the
-// Cloudflare runtime ≈ the GHA-core-audience zone); revisit for multi-TZ.
+// ── Live sessions: scheduled cohort sessions, next 7 days ────────────────
+// Reads the per-cohort PLANNER (nclex_cohort_live_sessions, Slice 1b),
+// joined to the cohort + parent programme + the marker activity for its
+// title. RLS scopes the read to the tutor's own cohorts. Each chip is
+// labelled by cohort and links to that cohort's Sessions tab. Day/time use
+// the server clock (UTC on the Cloudflare runtime ≈ the GHA-core-audience
+// zone); revisit for multi-TZ.
 async function getUpcomingSessions(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<HomeSession[]> {
   const { data, error } = await supabase
-    .from('nclex_programme_activities')
+    .from('nclex_cohort_live_sessions')
     .select(
-      `activity_id, title, payload,
-       nclex_programme_units!inner( nclex_programmes!inner( programme_id, title ) )`,
+      `marker_activity_id, scheduled_at, cohort_id,
+       nclex_cohorts!inner( name, programme_id,
+         nclex_programmes!inner( programme_id, title ) ),
+       nclex_programme_activities!inner( title )`,
     )
-    .eq('type', 'ONLINE_LIVE_SESSION');
+    .not('scheduled_at', 'is', null);
 
   if (error || !data) return [];
 
@@ -222,15 +225,14 @@ async function getUpcomingSessions(
   const out: HomeSession[] = [];
 
   for (const row of data as Array<{
-    activity_id: string;
-    title: string;
-    payload: unknown;
-    nclex_programme_units: unknown;
+    marker_activity_id: string;
+    scheduled_at: string | null;
+    cohort_id: string;
+    nclex_cohorts: unknown;
+    nclex_programme_activities: unknown;
   }>) {
-    const scheduledAt =
-      payloadString(row.payload, 'scheduled_at');
-    if (!scheduledAt) continue;
-    const when = new Date(scheduledAt);
+    if (!row.scheduled_at) continue;
+    const when = new Date(row.scheduled_at);
     const ms = when.getTime();
     if (Number.isNaN(ms) || ms < now.getTime()) continue; // past → skip
 
@@ -238,12 +240,25 @@ async function getUpcomingSessions(
     const offset = Math.round((dayMid - todayMid) / DAY_MS);
     if (offset < 0 || offset > 6) continue; // outside the 7-day window
 
-    const prog = programmeFromEmbed(row.nclex_programme_units);
+    const cohort = pickOne(row.nclex_cohorts) as
+      | { name: string | null; programme_id: string; nclex_programmes: unknown }
+      | null;
+    const programme = cohort
+      ? (pickOne(cohort.nclex_programmes) as
+          | { programme_id: string; title: string }
+          | null)
+      : null;
+    const marker = pickOne(row.nclex_programme_activities) as
+      | { title: string }
+      | null;
+
     out.push({
-      activityId: row.activity_id,
-      title: row.title,
-      programmeId: prog.programmeId,
-      programme: prog.title,
+      activityId: row.marker_activity_id,
+      title: marker?.title ?? 'Live session',
+      programmeId: programme?.programme_id ?? '',
+      programme: programme?.title ?? 'Programme',
+      cohortId: row.cohort_id,
+      cohortName: cohort?.name ?? null,
       dayLabel: dayLabel(offset, when),
       timeLabel: timeLabel(when),
       offset,
@@ -302,28 +317,10 @@ async function getWorkspace(): Promise<HomeWorkspace> {
 
 // ── helpers ──────────────────────────────────────────────────────────────
 
-function payloadString(payload: unknown, key: string): string | null {
-  if (payload && typeof payload === 'object') {
-    const v = (payload as Record<string, unknown>)[key];
-    if (typeof v === 'string' && v.length > 0) return v;
-  }
-  return null;
-}
-
-function programmeFromEmbed(unitsEmbed: unknown): { programmeId: string; title: string } {
-  const unit = Array.isArray(unitsEmbed) ? unitsEmbed[0] : unitsEmbed;
-  if (unit && typeof unit === 'object') {
-    const prog = (unit as Record<string, unknown>).nclex_programmes;
-    const p = Array.isArray(prog) ? prog[0] : prog;
-    if (p && typeof p === 'object') {
-      const rec = p as Record<string, unknown>;
-      return {
-        programmeId: typeof rec.programme_id === 'string' ? rec.programme_id : '',
-        title: typeof rec.title === 'string' ? rec.title : 'Programme',
-      };
-    }
-  }
-  return { programmeId: '', title: 'Programme' };
+// PostgREST returns an embedded to-one relationship as an object or a
+// single-element array depending on inference; normalise to one row.
+function pickOne(embed: unknown): unknown {
+  return Array.isArray(embed) ? embed[0] : embed;
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
