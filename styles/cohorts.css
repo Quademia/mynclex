@@ -1364,3 +1364,72 @@
     align-self: flex-start;
   }
 }
+
+/* Slice 2 — "Needs scheduling" cue on a live-session checklist row. Soft
+   amber link to the Sessions tab; advisory, never blocks. */
+.cohort-checklist-needs-schedule {
+  flex-shrink: 0;
+  align-self: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  border-radius: 999px;
+  padding: 3px 10px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.cohort-checklist-needs-schedule:hover {
+  background: color-mix(in srgb, var(--warning) 20%, transparent);
+}
+
+/* Slice 2 — "+ Add session" one-off button on the Sessions tab. */
+.cohort-sessions-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cohort-sessions-add-modal-hint {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+.cohort-sessions-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+.cohort-session-remove {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.cohort-session-remove:hover {
+  color: #b91c1c;
+  background: color-mix(in srgb, #b91c1c 8%, transparent);
+}
+
+.cohort-session-confirm {
+  max-width: 440px;
+}
+
+.cohort-session-confirm-text {
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.55;
+  margin: 0;
+}

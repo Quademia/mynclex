@@ -31,9 +31,17 @@ export type PlannerSession = {
   schedule: LiveSessionSchedule | null;
 };
 
+export type PlannerUnit = {
+  unitId: string;
+  unitIndex: number;
+  title: string | null;
+};
+
 export type CohortSessionsPlanner = {
   cohort: { cohort_id: string; name: string | null; start_date: string };
   programme: { programme_id: string; title: string; unit_label: UnitLabel };
+  // Weeks/modules in the programme — drives the "+ Add session" week picker.
+  units: PlannerUnit[];
   sessions: PlannerSession[];
 };
 
@@ -108,7 +116,12 @@ export async function getCohortSessionsPlanner(
   // this cohort's planner rows. The `.or` scope keeps another cohort's
   // cohort-only markers out.
   const cohortScope = `cohort_id.is.null,cohort_id.eq.${cohortId}`;
-  const [activitiesRes, plannerRes] = await Promise.all([
+  const [unitsRes, activitiesRes, plannerRes] = await Promise.all([
+    supabase
+      .from('nclex_programme_units')
+      .select('unit_id, unit_index, title')
+      .eq('programme_id', programme.programme_id)
+      .order('unit_index', { ascending: true }),
     supabase
       .from('nclex_programme_activities')
       .select(
@@ -172,6 +185,18 @@ export async function getCohortSessionsPlanner(
   // Curriculum order: by week, then position within the week.
   sessions.sort((x, y) => x.unitIndex - y.unitIndex || x.ordinal - y.ordinal);
 
+  const units: PlannerUnit[] = (
+    (unitsRes.data ?? []) as Array<{
+      unit_id: string;
+      unit_index: number;
+      title: string | null;
+    }>
+  ).map((u) => ({
+    unitId: u.unit_id,
+    unitIndex: u.unit_index,
+    title: u.title,
+  }));
+
   return {
     cohort: {
       cohort_id: cohortRow.cohort_id,
@@ -183,6 +208,7 @@ export async function getCohortSessionsPlanner(
       title: programme.title,
       unit_label: programme.unit_label,
     },
+    units,
     sessions,
   };
 }

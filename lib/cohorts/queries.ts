@@ -217,8 +217,13 @@ export async function getCohortChecklist(
   // scope is what keeps one cohort's escape-valve content out of
   // every other cohort's checklist.
   const cohortScope = `cohort_id.is.null,cohort_id.eq.${cohortId}`;
-  const [unitsResult, blocksResult, overridesResult, activitiesResult] =
-    await Promise.all([
+  const [
+    unitsResult,
+    blocksResult,
+    overridesResult,
+    activitiesResult,
+    liveSessionsResult,
+  ] = await Promise.all([
     supabase
       .from('nclex_programme_units')
       .select(
@@ -254,9 +259,22 @@ export async function getCohortChecklist(
       .eq('nclex_programme_units.programme_id', programme.programme_id)
       .or(cohortScope)
       .order('ordinal', { ascending: true }),
+    supabase
+      .from('nclex_cohort_live_sessions')
+      .select('marker_activity_id')
+      .eq('cohort_id', cohortId)
+      .not('scheduled_at', 'is', null),
   ]);
 
   const units = (unitsResult.data ?? []) as ProgrammeUnit[];
+
+  // Slice 2 — live-session markers with a scheduled planner row for this
+  // cohort (scheduled_at set). Drives the per-row "Needs scheduling →" cue.
+  const scheduledMarkerIds = new Set<string>(
+    (
+      (liveSessionsResult.data ?? []) as Array<{ marker_activity_id: string }>
+    ).map((r) => r.marker_activity_id)
+  );
   const blocks = (blocksResult.data ?? []) as Array<
     ProgrammeBlock & {
       nclex_programme_units?: unknown; // strip embed before render
@@ -319,6 +337,10 @@ export async function getCohortChecklist(
         close_date: override.close_date,
         release_is_default: false,
         isCohortOnly,
+        liveSessionScheduled:
+          activity.type === 'ONLINE_LIVE_SESSION'
+            ? scheduledMarkerIds.has(activity.activity_id)
+            : null,
       } satisfies CohortChecklistActivityRow;
     }
     return {
@@ -329,6 +351,10 @@ export async function getCohortChecklist(
       close_date: null,
       release_is_default: true,
       isCohortOnly,
+      liveSessionScheduled:
+        activity.type === 'ONLINE_LIVE_SESSION'
+          ? scheduledMarkerIds.has(activity.activity_id)
+          : null,
     } satisfies CohortChecklistActivityRow;
   });
 

@@ -757,6 +757,127 @@ export async function createCohortOnlyActivityAction(
   return { ok: true, activity_id: activity.activity_id };
 }
 
+export type CreateCohortLiveSessionInput = {
+  title: string;
+  typicalDurationMinutes: number | null;
+  isPublished: boolean;
+};
+
+// Slice 2 — the "+ Add session" one-off (Option B). Creates a COHORT-ONLY
+// live-session MARKER (the planner owns live-session creation; tutors never
+// pick it in the cohort-only activity picker). The schedule itself is set
+// separately by the client via setLiveSessionScheduleAction once this
+// returns the new marker's id. Born loose in the chosen week, included,
+// with the editor's Live/Draft choice. See
+// docs/product-plan/live-session-planner.md.
+export async function createCohortOnlyLiveSessionAction(
+  cohortId: string,
+  unitId: string,
+  input: CreateCohortLiveSessionInput
+): Promise<CreateCohortActivityResult> {
+  const title = input.title.trim();
+  if (title.length === 0) return { ok: false, error: 'Title is required.' };
+  if (
+    input.typicalDurationMinutes != null &&
+    (!Number.isInteger(input.typicalDurationMinutes) ||
+      input.typicalDurationMinutes <= 0)
+  ) {
+    return {
+      ok: false,
+      error: 'Typical duration must be a positive number, or blank.',
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data: cohort } = await supabase
+    .from('nclex_cohorts')
+    .select('cohort_id, programme_id, start_date')
+    .eq('cohort_id', cohortId)
+    .maybeSingle();
+  if (!cohort) return { ok: false, error: 'Cohort not found or not yours.' };
+
+  const { data: unit } = await supabase
+    .from('nclex_programme_units')
+    .select('unit_id, programme_id, unit_index')
+    .eq('unit_id', unitId)
+    .maybeSingle();
+  if (!unit) return { ok: false, error: 'Week not found or not yours.' };
+  if (
+    (unit as { programme_id: string }).programme_id !==
+    (cohort as { programme_id: string }).programme_id
+  ) {
+    return { ok: false, error: 'That week belongs to a different programme.' };
+  }
+
+  const nextOrdinal = await nextCohortUnitBodyOrdinal(supabase, unitId, cohortId);
+  const payload =
+    input.typicalDurationMinutes != null
+      ? { typical_duration_minutes: input.typicalDurationMinutes }
+      : {};
+
+  const { data: activity, error: actErr } = await supabase
+    .from('nclex_programme_activities')
+    .insert({
+      unit_id: unitId,
+      block_id: null,
+      cohort_id: cohortId,
+      ordinal: nextOrdinal,
+      type: 'ONLINE_LIVE_SESSION',
+      title,
+      description: null,
+      note: null,
+      payload,
+      is_published: input.isPublished,
+    })
+    .select('activity_id')
+    .single();
+  if (actErr || !activity) {
+    return {
+      ok: false,
+      error: actErr?.message ?? 'Failed to add the session.',
+    };
+  }
+
+  const startMs = new Date(
+    `${(cohort as { start_date: string }).start_date}T00:00:00Z`
+  ).getTime();
+  const releaseDate = new Date(
+    startMs + ((unit as { unit_index: number }).unit_index - 1) * 7 * DAY_MS
+  )
+    .toISOString()
+    .slice(0, 10);
+
+  const { error: itemErr } = await supabase
+    .from('nclex_cohort_checklist_items')
+    .insert({
+      cohort_id: cohortId,
+      template_activity_id: activity.activity_id,
+      is_included: true,
+      release_date: releaseDate,
+      source: 'COHORT_ONLY',
+    });
+  if (itemErr) {
+    await supabase
+      .from('nclex_programme_activities')
+      .delete()
+      .eq('activity_id', activity.activity_id);
+    return {
+      ok: false,
+      error: 'Could not add the session. Please try again.',
+    };
+  }
+
+  revalidatePath(
+    `/tutor/programme/${(cohort as { programme_id: string }).programme_id}/cohorts`
+  );
+  return { ok: true, activity_id: activity.activity_id };
+}
+
 export type DeleteCohortActivityResult =
   | { ok: true }
   | { ok: false; error: string };

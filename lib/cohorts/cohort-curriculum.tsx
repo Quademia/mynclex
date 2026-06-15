@@ -36,7 +36,8 @@ import {
   useState,
   useTransition,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { InfoToast } from '@/lib/toast/info-toast';
 import { ActivityModal } from '@/lib/curriculum/activity-modal';
@@ -1035,6 +1036,18 @@ function ChecklistRow({
   const a = row.activity;
   const displayState = optimisticState;
 
+  // Slice 2 integrity cue — an included + published live-session marker
+  // with no scheduled planner row for this cohort. Soft "Needs scheduling"
+  // link to the Sessions tab (never blocks). The cohort curriculum always
+  // renders at /tutor/programme/<pid>/cohorts, so usePathname gives the
+  // base for the ?cohort=&tab=sessions link without threading programmeId.
+  const pathname = usePathname();
+  const needsScheduling =
+    a.type === 'ONLINE_LIVE_SESSION' &&
+    a.is_published &&
+    displayState !== 'excluded' &&
+    row.liveSessionScheduled === false;
+
   return (
     <div
       className={
@@ -1086,6 +1099,16 @@ function ChecklistRow({
           </span>
         </span>
       </button>
+
+      {needsScheduling && (
+        <Link
+          className="cohort-checklist-needs-schedule"
+          href={`${pathname}?cohort=${cohortId}&tab=sessions`}
+          title="This live session has no time set for this cohort"
+        >
+          ⚠ Needs scheduling →
+        </Link>
+      )}
 
       <div className="cohort-checklist-row-controls">
         <div

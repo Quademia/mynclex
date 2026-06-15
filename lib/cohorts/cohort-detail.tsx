@@ -178,9 +178,7 @@ async function CohortDetailPane({
       return <CohortAnalyticsView data={data} />;
     }
     case 'sessions':
-      return (
-        <CohortSessionsPane programmeId={programmeId} cohortId={cohortId} />
-      );
+      return <CohortSessionsPane cohortId={cohortId} />;
     case 'settings':
       return (
         <CohortSettingsPane cohort={ctx.cohort} programme={ctx.programme} />

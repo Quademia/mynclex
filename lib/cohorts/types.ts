@@ -114,6 +114,11 @@ export type CohortChecklistActivityRow = {
   // UI keys off this flag (not `state`) to render the source pill +
   // Draft/Live + Delete instead of the Include/Exclude segment.
   isCohortOnly: boolean;
+  // Live sessions integrity (Slice 2). For an ONLINE_LIVE_SESSION marker:
+  // true when this cohort has a scheduled planner row (scheduled_at set),
+  // false when unscheduled — drives the "Needs scheduling →" cue. null for
+  // every other activity type.
+  liveSessionScheduled: boolean | null;
 };
 
 // Block + its in-block checklist rows. Mirrors the curriculum-tab
