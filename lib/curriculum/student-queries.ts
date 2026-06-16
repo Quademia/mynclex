@@ -185,7 +185,7 @@ export async function getStudentSelfPacedCurriculum(
   );
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
-  const decoratedUnits = decorateUnitsWithProgress(unitTrees);
+  const decoratedUnits = decorateUnitsWithProgress(unitTrees, Date.now());
   const { upNextActivityId, whereILeftOffUnitIndex, hasAnyDone } =
     deriveProgrammeSignals(decoratedUnits, progressMap, inProgressMap);
 
@@ -407,7 +407,7 @@ export async function getStudentCohortCurriculum(
   }));
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
-  const decoratedUnits = decorateUnitsWithProgress(unitTrees);
+  const decoratedUnits = decorateUnitsWithProgress(unitTrees, Date.now());
   const { upNextActivityId, whereILeftOffUnitIndex, hasAnyDone } =
     deriveProgrammeSignals(decoratedUnits, progressMap, inProgressMap);
 
@@ -899,25 +899,54 @@ function flattenUnitActivities(
   return out;
 }
 
+// A live session is "held" once its scheduled start + duration is in the
+// past. Falls back to a 90-min default when the planner gives no duration.
+// Unscheduled (no date) → never held.
+const LIVE_SESSION_DEFAULT_MIN = 90;
+function isLiveSessionHeld(a: StudentActivity, nowMs: number): boolean {
+  const sched = a.liveSession?.scheduledAt;
+  if (!sched) return false;
+  const start = new Date(sched).getTime();
+  if (Number.isNaN(start)) return false;
+  const dur = a.liveSession?.durationMinutes ?? LIVE_SESSION_DEFAULT_MIN;
+  return start + dur * 60_000 < nowMs;
+}
+
 /**
  * Per-unit progress counts. Total = visible activities in unit;
  * LOCKED / CLOSED count toward the denominator per §7 — they're
  * part of the curriculum, just inaccessible right now. Pct rounded
  * to integer; null when total = 0.
+ *
+ * Live sessions (Slice 4 — attendance into the %): a live session counts
+ * ONLY once it's HELD and the student was MARKED — PRESENT counts as done
+ * (numerator + denominator), ABSENT is in the denominator (not done),
+ * EXCUSED / not-yet-held / unmarked stay out entirely (never drag the %
+ * down before it's real). The verified-completion rule, applied to the only
+ * trustworthy signal a live session has. See live-session-planner.md.
  */
 function decorateUnitsWithProgress(
-  units: StudentCurriculumUnit[]
+  units: StudentCurriculumUnit[],
+  nowMs: number
 ): StudentCurriculumUnit[] {
   return units.map((u) => {
-    // Live sessions are EVENTS, not tasks — excluded from the completion
-    // count entirely in v1 (numerator AND denominator), so they never drag
-    // a student's % down. Attendance-derived completion (a later slice) will
-    // bring them back in. See docs/product-plan/live-session-planner.md.
-    const activities = flattenUnitActivities(u).filter(
-      (a) => a.type !== 'ONLINE_LIVE_SESSION'
-    );
-    const total = activities.length;
-    const done = activities.filter((a) => a.isDone).length;
+    let total = 0;
+    let done = 0;
+    for (const a of flattenUnitActivities(u)) {
+      if (a.type === 'ONLINE_LIVE_SESSION') {
+        if (!isLiveSessionHeld(a, nowMs)) continue;
+        if (a.attendance === 'PRESENT') {
+          total += 1;
+          done += 1;
+        } else if (a.attendance === 'ABSENT') {
+          total += 1;
+        }
+        // EXCUSED / unmarked → excluded from the denominator.
+        continue;
+      }
+      total += 1;
+      if (a.isDone) done += 1;
+    }
     const pct = total === 0 ? null : Math.round((done / total) * 100);
     return { ...u, progressDone: done, progressTotal: total, progressPct: pct };
   });

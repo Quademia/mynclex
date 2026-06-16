@@ -2,8 +2,9 @@
 //
 // Cohort analytics — Phase 1 (completion). Assembles the cohort's effective
 // curriculum (included + student-visible activities, with release state),
-// reads completion across the task activity types — live sessions are events, excluded — and derives the per-student
-// and per-activity rollups the dashboard renders.
+// reads completion across the activity types — including live sessions,
+// which fold in per-student via held + tutor-marked attendance (Slice 4) —
+// and derives the per-student and per-activity rollups the dashboard renders.
 //
 // Completion has three sources, fused here into one done/not-done grid:
 //   • 6 "normal" types  → a row in nclex_student_activity_progress
@@ -24,6 +25,7 @@ import { getCohortForShell } from '@/lib/cohorts/queries';
 import { getCohortRoster } from '@/lib/enrolments/queries';
 import { isVisibleToStudents, activityOpenState } from '@/lib/curriculum/format';
 import type { ActivityType } from '@/lib/curriculum/types';
+import type { AttendanceStatus } from '@/lib/cohorts/attendance-format';
 import type {
   ActivityAnalyticsRow,
   CohortAnalytics,
@@ -35,12 +37,12 @@ import type {
   StudentQuizPerf,
 } from './types';
 
-// The progress-engine types counted in completion. LIBRARY_NOTE and SHELF
-// are derived from note-state and handled separately below.
-// ONLINE_LIVE_SESSION is intentionally absent — a live session is an EVENT,
-// excluded from completion analytics in v1 (it never enters `visible`; see
-// the build loop). Attendance-derived completion (a later slice) reintroduces
-// it. See docs/product-plan/live-session-planner.md.
+// The progress-engine types counted in completion via a progress row.
+// LIBRARY_NOTE and SHELF are derived from note-state; ONLINE_LIVE_SESSION
+// is derived from tutor-marked attendance (Slice 4 — held + marked folds
+// into the per-student denominator). All three are handled separately
+// below, so ONLINE_LIVE_SESSION is intentionally absent from this set.
+// See docs/product-plan/live-session-planner.md.
 const PROGRESS_TYPES = new Set<ActivityType>([
   'TEXT',
   'PDF',
@@ -71,6 +73,28 @@ interface VisibleActivity {
   unitTitle: string;
   ordinal: number;
   released: boolean;
+}
+
+// Live-session markers fold into completion per-student (held + marked),
+// so they're kept out of the uniform `visible` denominator and handled
+// separately. See live-session-planner.md (Slice 4 — attendance into %).
+interface LiveVisibleActivity {
+  activityId: string;
+  title: string;
+  unitIndex: number;
+  unitTitle: string;
+  ordinal: number;
+  typicalMinutes: number | null;
+}
+
+const LIVE_SESSION_DEFAULT_MIN = 90;
+
+function typicalDurationOf(payload: unknown): number | null {
+  if (payload && typeof payload === 'object') {
+    const v = (payload as Record<string, unknown>).typical_duration_minutes;
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+  }
+  return null;
 }
 
 // Pull the quiz_id out of a quiz activity's payload (jsonb).
@@ -163,14 +187,12 @@ export async function getCohortAnalytics(
   }>;
 
   const visible: VisibleActivity[] = [];
+  const liveVisible: LiveVisibleActivity[] = [];
   for (const r of rawRows) {
     const a = Array.isArray(r.nclex_programme_activities)
       ? r.nclex_programme_activities[0]
       : r.nclex_programme_activities;
     if (!a) continue;
-    // Live sessions are events — excluded from completion analytics in v1
-    // (no completion-denominator contribution), matching the student side.
-    if (a.type === 'ONLINE_LIVE_SESSION') continue;
     const unit = unitById.get(a.unit_id);
     if (!unit) continue;
     const blockPublished =
@@ -186,6 +208,19 @@ export async function getCohortAnalytics(
         cohortIncluded: r.is_included,
       })
     ) {
+      continue;
+    }
+    // Live sessions fold into completion per-student (held + marked) — kept
+    // out of the uniform `visible` denominator and added in the rollup below.
+    if (a.type === 'ONLINE_LIVE_SESSION') {
+      liveVisible.push({
+        activityId: a.activity_id,
+        title: a.title,
+        unitIndex: unit.unit_index,
+        unitTitle: unit.title,
+        ordinal: a.ordinal,
+        typicalMinutes: typicalDurationOf(a.payload),
+      });
       continue;
     }
     const released = activityOpenState(r.release_date, r.close_date) !== 'LOCKED';
@@ -303,6 +338,61 @@ export async function getCohortAnalytics(
     noteDone.set(`${r.student_id}|${r.note_id}`, r.marked_done_at);
   }
 
+  // ── Live-session attendance (Slice 4 — attendance into the %) ───────────
+  // held state per marker + each student's PRESENT/ABSENT/EXCUSED. Bridges
+  // attendance (keyed by the planner session) to the marker via the
+  // planner's marker_activity_id; the tutor reads both via their own RLS.
+  const liveHeldByActivity = new Map<string, boolean>();
+  const liveStatus = new Map<string, AttendanceStatus>(); // `${student}|${activityId}`
+  if (liveVisible.length > 0) {
+    const liveIds = liveVisible.map((l) => l.activityId);
+    const typicalById = new Map(
+      liveVisible.map((l) => [l.activityId, l.typicalMinutes]),
+    );
+    const { data: plannerRows } = await supabase
+      .from('nclex_cohort_live_sessions')
+      .select('session_id, marker_activity_id, scheduled_at, duration_minutes')
+      .eq('cohort_id', cohortId)
+      .in('marker_activity_id', liveIds);
+
+    const markerBySession = new Map<string, string>();
+    const sessionIds: string[] = [];
+    const nowMs = Date.now();
+    for (const p of (plannerRows ?? []) as Array<{
+      session_id: string;
+      marker_activity_id: string;
+      scheduled_at: string | null;
+      duration_minutes: number | null;
+    }>) {
+      markerBySession.set(p.session_id, p.marker_activity_id);
+      sessionIds.push(p.session_id);
+      const start = p.scheduled_at ? new Date(p.scheduled_at).getTime() : NaN;
+      const dur =
+        p.duration_minutes ??
+        typicalById.get(p.marker_activity_id) ??
+        LIVE_SESSION_DEFAULT_MIN;
+      if (!Number.isNaN(start) && start + dur * 60_000 < nowMs) {
+        liveHeldByActivity.set(p.marker_activity_id, true);
+      }
+    }
+
+    if (sessionIds.length > 0) {
+      const { data: attRows } = await supabase
+        .from('nclex_cohort_session_attendance')
+        .select('session_id, student_id, status')
+        .in('session_id', sessionIds);
+      for (const r of (attRows ?? []) as Array<{
+        session_id: string;
+        student_id: string;
+        status: AttendanceStatus;
+      }>) {
+        if (!studentIdSet.has(r.student_id)) continue;
+        const marker = markerBySession.get(r.session_id);
+        if (marker) liveStatus.set(`${r.student_id}|${marker}`, r.status);
+      }
+    }
+  }
+
   // Resolve done + timestamp for one (student, activity) across all sources.
   function doneFor(studentId: string, a: VisibleActivity): string | null | false {
     if (PROGRESS_TYPES.has(a.type)) {
@@ -361,9 +451,30 @@ export async function getCohortAnalytics(
       }
     }
 
-    const completionPct = releasedCount
-      ? Math.round((doneReleased / releasedCount) * 100)
-      : 0;
+    // Live sessions (Slice 4) — held + marked fold into the denominator
+    // per-student: PRESENT counts done, ABSENT counts toward the denominator
+    // only, EXCUSED / not-yet-held / unmarked are excluded (never drag down).
+    let liveDenom = 0;
+    let liveDone = 0;
+    for (const ls of liveVisible) {
+      if (!liveHeldByActivity.get(ls.activityId)) continue;
+      const st = liveStatus.get(`${s.user_id}|${ls.activityId}`);
+      if (st === 'PRESENT') {
+        liveDenom += 1;
+        liveDone += 1;
+        doneAt[ls.activityId] = null;
+        activityDoneCount.set(
+          ls.activityId,
+          (activityDoneCount.get(ls.activityId) ?? 0) + 1,
+        );
+      } else if (st === 'ABSENT') {
+        liveDenom += 1;
+      }
+    }
+
+    const denom = releasedCount + liveDenom;
+    const doneCount = doneReleased + liveDone;
+    const completionPct = denom ? Math.round((doneCount / denom) * 100) : 0;
     const programmePct = totalCount
       ? Math.round((doneAll / totalCount) * 100)
       : 0;
@@ -376,22 +487,42 @@ export async function getCohortAnalytics(
       userId: s.user_id,
       name: s.name,
       email: s.email,
-      doneCount: doneReleased,
-      releasedCount,
+      doneCount,
+      releasedCount: denom,
       completionPct,
       programmePct,
-      status: classify(completionPct, doneReleased),
+      status: classify(completionPct, doneCount),
       lastActiveDays,
       doneAt,
     });
   }
 
   // ── Per-activity rows (week-banded by unit) ────────────────────────────
+  // Normal + live activities interleaved in curriculum order. A live row's
+  // doneCount = students marked PRESENT; total = class size (so it reads as
+  // an attendance rate); released = held.
   const studentCount = students.length;
-  const activities: ActivityAnalyticsRow[] = visible
-    .slice()
-    .sort((a, b) => a.unitIndex - b.unitIndex || a.ordinal - b.ordinal)
-    .map((a) => {
+  type ActSortable =
+    | { kind: 'normal'; unitIndex: number; ordinal: number; a: VisibleActivity }
+    | { kind: 'live'; unitIndex: number; ordinal: number; l: LiveVisibleActivity };
+  const actSortables: ActSortable[] = [
+    ...visible.map((a) => ({
+      kind: 'normal' as const,
+      unitIndex: a.unitIndex,
+      ordinal: a.ordinal,
+      a,
+    })),
+    ...liveVisible.map((l) => ({
+      kind: 'live' as const,
+      unitIndex: l.unitIndex,
+      ordinal: l.ordinal,
+      l,
+    })),
+  ].sort((x, y) => x.unitIndex - y.unitIndex || x.ordinal - y.ordinal);
+
+  const activities: ActivityAnalyticsRow[] = actSortables.map((e) => {
+    if (e.kind === 'normal') {
+      const a = e.a;
       const doneC = activityDoneCount.get(a.activityId) ?? 0;
       return {
         activityId: a.activityId,
@@ -405,7 +536,22 @@ export async function getCohortAnalytics(
         total: studentCount,
         pct: studentCount ? Math.round((doneC / studentCount) * 100) : 0,
       };
-    });
+    }
+    const l = e.l;
+    const doneC = activityDoneCount.get(l.activityId) ?? 0;
+    return {
+      activityId: l.activityId,
+      title: l.title,
+      type: 'ONLINE_LIVE_SESSION' as ActivityType,
+      quizId: null,
+      unitIndex: l.unitIndex,
+      unitTitle: l.unitTitle,
+      released: liveHeldByActivity.get(l.activityId) ?? false,
+      doneCount: doneC,
+      total: studentCount,
+      pct: studentCount ? Math.round((doneC / studentCount) * 100) : 0,
+    };
+  });
 
   // ── Summary + headline figures ─────────────────────────────────────────
   const buckets: Record<CompletionStatus, number> = {
