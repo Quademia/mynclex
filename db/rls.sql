@@ -975,6 +975,132 @@ CREATE POLICY nclex_cohort_checklist_items_student_select
 
 
 -- =========================================================
+-- nclex_cohort_live_sessions (Live sessions Slice 1b, 2026-06-15)
+-- =========================================================
+-- Tutor side: ownership chain schedule -> cohort -> programme -> tutor
+-- (mirrors nclex_cohort_checklist_items). Student side: an ACTIVELY
+-- enrolled student of the cohort may read its schedules (the student
+-- viewer reads them). SUPER_ADMIN bypass. Origin migration:
+-- db/migrations/20260703120000_live_session_marker_planner.sql.
+
+ALTER TABLE nclex_cohort_live_sessions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_cohort_live_sessions_self_select
+  ON nclex_cohort_live_sessions FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_cohorts c
+      JOIN nclex_programmes p ON p.programme_id = c.programme_id
+      WHERE c.cohort_id = nclex_cohort_live_sessions.cohort_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_cohort_live_sessions_self_insert
+  ON nclex_cohort_live_sessions FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_cohorts c
+      JOIN nclex_programmes p ON p.programme_id = c.programme_id
+      WHERE c.cohort_id = nclex_cohort_live_sessions.cohort_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_cohort_live_sessions_self_update
+  ON nclex_cohort_live_sessions FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_cohorts c
+      JOIN nclex_programmes p ON p.programme_id = c.programme_id
+      WHERE c.cohort_id = nclex_cohort_live_sessions.cohort_id
+        AND p.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_cohorts c
+      JOIN nclex_programmes p ON p.programme_id = c.programme_id
+      WHERE c.cohort_id = nclex_cohort_live_sessions.cohort_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_cohort_live_sessions_self_delete
+  ON nclex_cohort_live_sessions FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_cohorts c
+      JOIN nclex_programmes p ON p.programme_id = c.programme_id
+      WHERE c.cohort_id = nclex_cohort_live_sessions.cohort_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_cohort_live_sessions_student_select
+  ON nclex_cohort_live_sessions FOR SELECT
+  TO authenticated
+  USING (nclex_has_active_cohort_enrolment(cohort_id));
+
+CREATE POLICY nclex_cohort_live_sessions_admin_all
+  ON nclex_cohort_live_sessions FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- =========================================================
+-- nclex_cohort_session_attendance (Live sessions Slice 3, 2026-06-16)
+-- =========================================================
+-- Tutor: full CRUD on registers for sessions in their own programmes
+-- (chain attendance -> session -> cohort -> programme -> tutor). Student:
+-- read OWN rows only (the student Sessions page shows a student their own
+-- attendance record). SUPER_ADMIN bypass. Origin migration:
+-- db/migrations/20260704120000_live_session_attendance.sql.
+
+ALTER TABLE nclex_cohort_session_attendance ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_cohort_session_attendance_tutor_all
+  ON nclex_cohort_session_attendance FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM nclex_cohort_live_sessions s
+      JOIN nclex_cohorts c ON c.cohort_id = s.cohort_id
+      JOIN nclex_programmes p ON p.programme_id = c.programme_id
+      WHERE s.session_id = nclex_cohort_session_attendance.session_id
+        AND p.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM nclex_cohort_live_sessions s
+      JOIN nclex_cohorts c ON c.cohort_id = s.cohort_id
+      JOIN nclex_programmes p ON p.programme_id = c.programme_id
+      WHERE s.session_id = nclex_cohort_session_attendance.session_id
+        AND p.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_cohort_session_attendance_student_select
+  ON nclex_cohort_session_attendance FOR SELECT
+  TO authenticated
+  USING (student_id = auth.uid());
+
+CREATE POLICY nclex_cohort_session_attendance_admin_all
+  ON nclex_cohort_session_attendance FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- =========================================================
 -- nclex_media_assets (Slice 9.3d-b, 2026-05-13)
 -- =========================================================
 -- Narrow, owner-based gates. Cross-feature read access (an

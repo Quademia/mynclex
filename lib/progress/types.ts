@@ -12,7 +12,12 @@
 //   QUIZ_ATTEMPT — written by the nclex_progress_on_attempt_terminal
 //                  trigger when a programme attempt becomes terminal.
 //   MANUAL       — written by Slice 2's mark/un-mark server actions.
-export type CompletionSource = 'QUIZ_ATTEMPT' | 'MANUAL';
+//   ATTENDANCE   — written by the nclex_progress_on_attendance trigger
+//                  when a tutor marks a student PRESENT at a live
+//                  session (live-session attendance, Slice 3). Like
+//                  QUIZ_ATTEMPT it's derived (never student-self-marked);
+//                  carries marked_by (the tutor) and no attempt_id.
+export type CompletionSource = 'QUIZ_ATTEMPT' | 'MANUAL' | 'ATTENDANCE';
 
 // One progress row as the curriculum-side reads care about it.
 // (progress_id, student_id, marked_by, created_at, updated_at are

@@ -53,6 +53,15 @@ export function parseCohortDetailTab(raw: string | null): CohortDetailTab {
     : 'overview';
 }
 
+// Sessions has two sub-tabs (Schedule | Attendance), carried by ?stab=.
+// Schedule is the default and omits the param.
+export const SESSIONS_SUBTABS = ['schedule', 'attendance'] as const;
+export type SessionsSubTab = (typeof SESSIONS_SUBTABS)[number];
+
+export function parseSessionsSubTab(raw: string | null): SessionsSubTab {
+  return raw === 'attendance' ? 'attendance' : 'schedule';
+}
+
 /** Tab href — the default tab omits ?tab= for clean URLs. */
 export function cohortTabHref(
   programmeId: string,
@@ -67,10 +76,12 @@ export async function CohortDetail({
   programmeId,
   cohortId,
   tab,
+  sessionsSubTab = 'schedule',
 }: {
   programmeId: string;
   cohortId: string;
   tab: CohortDetailTab;
+  sessionsSubTab?: SessionsSubTab;
 }) {
   const listHref = `/tutor/programme/${programmeId}/cohorts`;
 
@@ -134,6 +145,7 @@ export async function CohortDetail({
         programmeId={programmeId}
         cohortId={cohortId}
         tab={tab}
+        sessionsSubTab={sessionsSubTab}
         ctx={ctx}
       />
     </div>
@@ -146,11 +158,13 @@ async function CohortDetailPane({
   programmeId,
   cohortId,
   tab,
+  sessionsSubTab,
   ctx,
 }: {
   programmeId: string;
   cohortId: string;
   tab: CohortDetailTab;
+  sessionsSubTab: SessionsSubTab;
   ctx: NonNullable<Awaited<ReturnType<typeof getCohortForShell>>>;
 }) {
   switch (tab) {
@@ -178,7 +192,13 @@ async function CohortDetailPane({
       return <CohortAnalyticsView data={data} />;
     }
     case 'sessions':
-      return <CohortSessionsPane cohortId={cohortId} />;
+      return (
+        <CohortSessionsPane
+          programmeId={programmeId}
+          cohortId={cohortId}
+          subTab={sessionsSubTab}
+        />
+      );
     case 'settings':
       return (
         <CohortSettingsPane cohort={ctx.cohort} programme={ctx.programme} />

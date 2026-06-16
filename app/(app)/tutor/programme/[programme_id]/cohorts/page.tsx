@@ -24,6 +24,7 @@ import { CohortList } from '@/lib/cohorts/cohort-list';
 import {
   CohortDetail,
   parseCohortDetailTab,
+  parseSessionsSubTab,
 } from '@/lib/cohorts/cohort-detail';
 import { NewCohortTrigger } from '@/lib/cohorts/new-cohort-trigger';
 
@@ -43,6 +44,7 @@ export default async function ProgrammeCohortsPage({
   searchParams: Promise<{
     cohort?: string | string[];
     tab?: string | string[];
+    stab?: string | string[];
   }>;
 }) {
   const { programme_id } = await params;
@@ -61,6 +63,7 @@ export default async function ProgrammeCohortsPage({
           programmeId={programme_id}
           cohortId={cohortSelected}
           tab={parseCohortDetailTab(firstOrNull(sp.tab))}
+          sessionsSubTab={parseSessionsSubTab(firstOrNull(sp.stab))}
         />
       </div>
     );

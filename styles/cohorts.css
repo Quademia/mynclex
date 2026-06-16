@@ -1433,3 +1433,584 @@
   line-height: 1.55;
   margin: 0;
 }
+
+/* =====================================================================
+ * Sessions sub-tabs (Schedule | Attendance) — Slice 3
+ * ===================================================================== */
+.cohort-subtabs {
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid var(--border);
+  margin: 4px 0 18px;
+}
+
+.cohort-subtab {
+  padding: 9px 2px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.cohort-subtab:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.cohort-subtab.active {
+  color: var(--primary);
+  border-bottom-color: var(--accent);
+}
+
+/* =====================================================================
+ * Attendance surface — Sessions → Attendance sub-tab (Slice 3)
+ * ===================================================================== */
+.att {
+  display: block;
+}
+
+/* summary band */
+.att-band {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.att-next {
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.att-next-eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.att-next-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 7px 0 2px;
+}
+
+.att-next-when {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.att-next-countdown {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 11px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.att-next-none {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 10px;
+}
+
+.att-stat {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.att-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.att-stat-num {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--primary);
+  margin-top: 6px;
+  line-height: 1;
+}
+
+.att-stat-num-green {
+  color: var(--success);
+}
+
+.att-stat-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* engagement flags */
+.att-flags {
+  background: color-mix(in srgb, var(--warning) 10%, var(--white));
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.att-flags-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--warning) 70%, #000);
+  margin-bottom: 10px;
+}
+
+.att-flags-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.att-flag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--white);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  border-radius: 999px;
+  padding: 4px 11px 4px 5px;
+}
+
+.att-flag-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--warning) 22%, var(--white));
+  color: color-mix(in srgb, var(--warning) 75%, #000);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.att-flag-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.att-flag-missed {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--warning) 65%, #000);
+}
+
+/* sessions to mark */
+.att-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  margin: 4px 2px 10px;
+}
+
+.att-empty {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  text-align: center;
+  background: var(--bg-soft);
+}
+
+.att-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.att-empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.att-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.att-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.att-card-pending {
+  border-color: color-mix(in srgb, var(--danger, #b91c1c) 40%, transparent);
+}
+
+.att-card-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 54px;
+}
+
+.att-card-week {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+}
+
+.att-card-day {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+  margin-top: 2px;
+}
+
+.att-card-month {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.att-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.att-card-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.att-card-when {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.att-rec {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.att-rec-on {
+  color: var(--success);
+}
+
+.att-rec-off {
+  color: var(--text-muted);
+}
+
+.att-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.att-card-result {
+  text-align: right;
+}
+
+.att-card-present {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.att-rate {
+  display: inline-block;
+  width: 56px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+  margin-top: 5px;
+}
+
+.att-rate-fill {
+  display: block;
+  height: 100%;
+  background: var(--success);
+}
+
+.att-pending-pill {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--danger, #b91c1c);
+  background: color-mix(in srgb, var(--danger, #b91c1c) 10%, transparent);
+  border-radius: 999px;
+  padding: 5px 11px;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .att-band {
+    grid-template-columns: 1fr;
+  }
+  .att-card {
+    flex-wrap: wrap;
+  }
+}
+
+/* =====================================================================
+ * RosterDrawer — generic right-side roster marking drawer (Slice 3)
+ * Structure is generic; per-option colour comes from the caller via
+ * optionClassName (.att-opt-* here).
+ * ===================================================================== */
+@keyframes rd-slide-in {
+  from { transform: translateX(18px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.rd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.rd-panel {
+  width: 480px;
+  max-width: 92vw;
+  height: 100%;
+  background: var(--white);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  animation: rd-slide-in 0.2s ease;
+}
+
+.rd-head {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rd-head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rd-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+}
+
+.rd-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 4px 0 0;
+}
+
+.rd-subtitle {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.rd-close {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.rd-summary {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 13px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--primary);
+  background: var(--accent-light, color-mix(in srgb, var(--accent) 12%, transparent));
+  padding: 6px 13px;
+  border-radius: 999px;
+}
+
+.rd-subbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bg-soft);
+}
+
+.rd-modenote {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.rd-markall {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--success) 40%, transparent);
+  background: color-mix(in srgb, var(--success) 10%, var(--white));
+  color: color-mix(in srgb, var(--success) 75%, #000);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rd-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 16px 16px;
+}
+
+.rd-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--bg-soft);
+}
+
+.rd-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.rd-name {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rd-seg {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.rd-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 24px 0;
+}
+
+.rd-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+}
+
+.rd-footnote {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.rd-done {
+  height: 38px;
+  padding: 0 20px;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rd-done:hover {
+  background: var(--primary-dark);
+}
+
+/* attendance option buttons (the segmented P/A/E control) */
+.att-opt {
+  min-width: 64px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.att-opt--present.is-active {
+  background: color-mix(in srgb, var(--success) 12%, var(--white));
+  border-color: color-mix(in srgb, var(--success) 45%, transparent);
+  color: color-mix(in srgb, var(--success) 75%, #000);
+}
+
+.att-opt--absent.is-active {
+  background: color-mix(in srgb, var(--danger, #b91c1c) 10%, var(--white));
+  border-color: color-mix(in srgb, var(--danger, #b91c1c) 45%, transparent);
+  color: var(--danger, #b91c1c);
+}
+
+.att-opt--excused.is-active {
+  background: color-mix(in srgb, var(--warning) 14%, var(--white));
+  border-color: color-mix(in srgb, var(--warning) 45%, transparent);
+  color: color-mix(in srgb, var(--warning) 72%, #000);
+}
