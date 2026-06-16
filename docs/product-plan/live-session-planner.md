@@ -266,12 +266,25 @@ props-driven **`RosterDrawer`** (decoupled from attendance — any future
 "mark a status per person" surface can reuse it; lives in `lib/cohorts/`).
 Built on app navy/teal tokens.
 
-**Deliberately NOT in this round (follow-ons):** the cohort **Analytics**
-completion grid still excludes live sessions — fusing them in needs the
-held+marked denominator threaded through `lib/analytics/tutor/cohort-queries.ts`;
-the derived progress rows are already there for it. The student **streak**
-🔥 and the **"what to bring"** session-prep attachment from the prototype
-were deferred.
+**Deliberately NOT in this round (follow-ons):**
+
+- **The student curriculum does NOT yet reflect attendance.** A PRESENT
+  mark writes the derived completion row, but the student curriculum still
+  renders every live session as a neutral 📅 **event with no "done" state**
+  — `done` is hard-coded `false` for `ONLINE_LIVE_SESSION` in
+  `lib/curriculum/student-queries.ts` (the Slice-1a "events out of progress"
+  decision), and the student viewer shows the 📅 Event chip. So from the
+  *student's* side nothing changes when a tutor marks them present — the
+  completion is recorded but invisible to them. **Whether/how an attended
+  session surfaces back on the curriculum (an "Attended ✓" tick? an
+  attended badge on the event row? counting it in the completion %?) is a
+  Slice 3b decision** — it was *not* changed here.
+- The cohort **Analytics** completion grid still excludes live sessions —
+  fusing them in needs the held+marked denominator threaded through
+  `lib/analytics/tutor/cohort-queries.ts`; the derived progress rows are
+  already there for it.
+- The student **streak** 🔥 and the **"what to bring"** session-prep
+  attachment from the prototype were deferred.
 
 ---
 
@@ -360,10 +373,16 @@ library attachments) — small blast radius by design.
    denominator). Sessions tab → Schedule | Attendance sub-tabs; roster-sweep
    `RosterDrawer`; summary band + missed-≥2 flags. Parked questions resolved
    (recording doesn't count; held+marked denominator; manual marking).
-3b. **Slice 3b — the student Sessions page + streak. ⏭ NEXT.** The
-   read-only personalised mirror (see the capture below): the student's own
-   live sessions across the programme (upcoming + past + their attendance
-   record + streak 🔥), reading the planner + their own attendance rows.
+3b. **Slice 3b — the student Sessions page + streak + curriculum
+   reflection. ⏭ NEXT.** The read-only personalised mirror (see the capture
+   below): the student's own live sessions across the programme (upcoming +
+   past + their attendance record + streak 🔥), reading the planner + their
+   own attendance rows. **Includes the decision left open by Slice 3:**
+   whether/how an attended session shows back on the student *curriculum*
+   (an "Attended ✓" tick? an attended badge on the 📅 event row? counting it
+   in the completion %?) — today the curriculum hard-codes live sessions to
+   "not done" (Slice 1a), so the recorded attendance is invisible to the
+   student until this slice changes it.
 4. **V2 — managed sessions system.** Calendar, reminders, integrations,
    recordings library, attendance via API. Plus the cohort-analytics
    completion-grid fusion (live sessions into the % grid).
