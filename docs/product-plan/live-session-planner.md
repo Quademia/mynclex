@@ -2,12 +2,14 @@
 
 *Design agreed with Sam 2026-06-06, deepened + open decisions resolved
 2026-06-14, completion model + curriculum-placement finalised 2026-06-15.
-Status: **Slices 1 + 2 BUILT + MERGED to `main` 2026-06-15** (Sam-tested on
-dev) — the marker/planner split, the integrity "needs scheduling" cue, and
-the one-off "+ Add session" flow. **NOT yet released to prod** (carries
-migration `20260703120000`). **Slice 3 — attendance → derived completion —
-is the confirmed next slice.** Timing (Sam, 2026-06-08): it lives mostly on
-the cohort side.*
+Status: **Slices 1 + 2 MERGED to `main` 2026-06-15** — the marker/planner
+split, the integrity "needs scheduling" cue, and the one-off "+ Add session"
+flow. **Slice 3 — attendance → derived completion (tutor side) — BUILT
+2026-06-16** on the session branch from the CD "Sessions & Attendance"
+prototype; Sam-testing on dev, NOT yet merged to `main`. **NOT yet released
+to prod** (carries migrations `20260703120000` + `20260704120000`). The
+student-facing Sessions page + streak is the next phase (Slice 3b, below).
+Timing (Sam, 2026-06-08): attendance lives mostly on the cohort side.*
 
 Part of the `mynclex/docs/product-plan/` set. Hosts on the cohort
 **Sessions** tab (kept as a placeholder by the cohort-workspace fold for
@@ -199,25 +201,42 @@ supersedes it. Concretely, this build **removes `ONLINE_LIVE_SESSION` from
 (today it is incorrectly there) — and we never add it back; attendance
 arrives as a *derived* source instead.
 
-### Attendance → derived completion (CONFIRMED: the NEXT slice)
+### Attendance → derived completion (BUILT — tutor side, 2026-06-16)
 
-*Confirmed by Sam 2026-06-15 — attendance is the next slice after the
-marker/planner split.* Live-session completion will be **derived from
-tutor-marked attendance**, exactly the way quiz completion is derived from
-a submitted attempt:
+*Built 2026-06-16 on the session branch from the CD "Sessions & Attendance"
+prototype; Sam-testing on dev, not yet merged. Migration `20260704120000`.*
+Live-session completion is **derived from tutor-marked attendance**, exactly
+the way quiz completion is derived from a submitted attempt.
 
-- A new `completion_source = 'ATTENDANCE'` on
-  `nclex_student_activity_progress`. The table already carries the
-  `marked_by` + `attempt_id` columns, built in anticipation of
-  non-self-marked completion (*"v1 always self-marked"*) — so the seam
-  exists.
-- When the tutor marks a student **present**, a derived progress row is
-  written for that `(student, live-session activity_id)`. Like quizzes,
-  the manual action stays rejected, so **fake self-marking is impossible**.
-- This is *why we keep the marker in the curriculum* (see the next
-  section): deriving completion into the progress engine needs the
-  `activity_id` bridge, which only exists because the live session stays
-  an activity. The two decisions reinforce each other.
+**Three marking states (Excused added in the CD design, 2026-06-16):**
+- **Present** → derives an `ATTENDANCE` completion row (counts toward
+  progress).
+- **Absent** → no completion row; a real "missed Week N" signal.
+- **Excused** → no completion row, and **removed from that session's %
+  denominator** — a legitimate absence (sick, time-zone, on shift) is never
+  penalised. ("Late" was considered and dropped — friction without changing
+  what counts.)
+
+**How it's wired:**
+- New `completion_source = 'ATTENDANCE'` on
+  `nclex_student_activity_progress` (the `marked_by` + `attempt_id` columns
+  were already there from the progress-engine foundation; the two CHECK
+  constraints were widened to accept it).
+- A new register table **`nclex_cohort_session_attendance`** — one row per
+  (planner session, student), status PRESENT/ABSENT/EXCUSED + `marked_by` +
+  `marked_at`. This is **Option B** (the full honest register: present /
+  absent / not-yet-marked), chosen over deriving present-only, so "absent"
+  is a stored fact and the surface seeds the V2 attendance work.
+- A `SECURITY DEFINER` trigger **`nclex_progress_on_attendance`** writes the
+  derived progress row on PRESENT and removes it on ABSENT/EXCUSED/delete.
+  SECURITY DEFINER is required because the *tutor* writes a *student's*
+  progress row, which the student-own RLS would otherwise block; it's safe
+  because the trigger only fires from attendance writes, themselves
+  RLS-gated to the owning tutor. The student manual mark stays rejected for
+  live sessions, so **fake self-marking is impossible**.
+- This is *why we keep the marker in the curriculum* — deriving completion
+  needs the `activity_id` bridge, which only exists because the live session
+  stays an activity. The two decisions reinforce each other.
 
 **Bonus the verified signal unlocks — the *incomplete* state also becomes
 meaningful.** With self-report, an unticked session is noise ("they
@@ -226,18 +245,33 @@ shows the session incomplete — *"missed the Week 3 tutorial"* — a real
 engagement signal the tutor wants. So deriving from attendance makes both
 the done **and** the not-done state honest.
 
-**Parked for the attendance slice (decide at build, not now):**
+**Parked questions — resolved at build (2026-06-16):**
 
-- *Missed-live-but-watched-the-recording* — does the recording count as
-  completion? Lean **no** for the first attendance pass (only verifiable
-  live presence counts; the recording is a catch-up resource). Revisit
-  only if/when we track video plays (the V2 recordings library).
-- *Denominator timing for an un-held session* — an upcoming session that
-  hasn't happened yet shouldn't drag a student's % down before it occurs
-  (it isn't completable yet). Settle the exact treatment (akin to a
-  not-yet-due item) when building attendance.
-- *How attendance is captured* — tutor-marked (manual, ships with no
-  integration) first; integration-pulled (Zoom API) is later V2.
+- *Missed-live-but-watched-the-recording* — **does not count.** Only the
+  tutor's live mark counts; the recording is a catch-up resource. Revisit
+  if/when we track video plays (the V2 recordings library).
+- *Denominator timing for an un-held session* — **resolved (CD rule):** a
+  session counts only once it's **held and marked**; a future session never
+  drags a student's % down; excused students drop out of that session's
+  denominator.
+- *How attendance is captured* — **tutor-marked (manual)**, no integration:
+  the roster-sweep drawer ("Mark all present" → un-tick the no-shows).
+  Integration-pulled (Zoom API) stays V2.
+
+**What shipped on the tutor side.** The cohort **Sessions** tab splits into
+**Schedule | Attendance** sub-tabs (`?stab=`). Attendance = a summary band
+(next / held / avg attendance), a "missed ≥2 sessions" engagement-flag row,
+and a "Sessions to mark" list (held sessions only); each opens a reusable,
+props-driven **`RosterDrawer`** (decoupled from attendance — any future
+"mark a status per person" surface can reuse it; lives in `lib/cohorts/`).
+Built on app navy/teal tokens.
+
+**Deliberately NOT in this round (follow-ons):** the cohort **Analytics**
+completion grid still excludes live sessions — fusing them in needs the
+held+marked denominator threaded through `lib/analytics/tutor/cohort-queries.ts`;
+the derived progress rows are already there for it. The student **streak**
+🔥 and the **"what to bring"** session-prep attachment from the prototype
+were deferred.
 
 ---
 
@@ -318,15 +352,21 @@ library attachments) — small blast radius by design.
    also added to the **cohort-only curriculum picker** as a marker (the
    symmetric second entry point — add now, schedule later via the cue).
    Forgiving URLs (auto-`https://`).
-3. **Slice 3 — attendance → derived completion (CONFIRMED next, 2026-06-15).**
-   Tutor-marked attendance (manual, no integration) writes a derived
-   `ATTENDANCE` completion row for present students; live sessions
-   re-enter the progress picture under the "only verified completion
-   counts" rule, and an absence reads as a real "missed it" signal. Settle
-   the parked questions here (recording-watched, un-held-session
-   denominator timing).
+3. **Slice 3 — attendance → derived completion. ✅ BUILT (tutor side,
+   2026-06-16; session branch, Sam-testing, not merged).** Migration
+   `20260704120000`: the `nclex_cohort_session_attendance` register + the
+   `nclex_progress_on_attendance` trigger + the widened progress CHECKs.
+   Three states (Present / Absent / Excused; Excused excluded from the
+   denominator). Sessions tab → Schedule | Attendance sub-tabs; roster-sweep
+   `RosterDrawer`; summary band + missed-≥2 flags. Parked questions resolved
+   (recording doesn't count; held+marked denominator; manual marking).
+3b. **Slice 3b — the student Sessions page + streak. ⏭ NEXT.** The
+   read-only personalised mirror (see the capture below): the student's own
+   live sessions across the programme (upcoming + past + their attendance
+   record + streak 🔥), reading the planner + their own attendance rows.
 4. **V2 — managed sessions system.** Calendar, reminders, integrations,
-   recordings library, attendance via API.
+   recordings library, attendance via API. Plus the cohort-analytics
+   completion-grid fusion (live sessions into the % grid).
 
 > **▶ CAPTURE (Sam, 2026-06-15): the STUDENT side needs a dedicated Sessions
 > (+ attendance) page.** Today a student only meets live sessions scattered
@@ -336,8 +376,9 @@ library attachments) — small blast radius by design.
 > **past** (recording), read from the per-cohort planner. Once attendance
 > (Slice 3) exists, the same page shows the student their own **attendance
 > record** per session. It's the read-only, personalised mirror of the tutor
-> Sessions tab. Build as its own slice — likely **alongside or just after
-> Slice 3** (attendance), since the two share the surface. NOT yet built.
+> Sessions tab. **This is now the next phase (Slice 3b)** — the tutor
+> attendance side is built (2026-06-16), and the streak 🔥 from the CD
+> prototype lands here too. NOT yet built.
 
 ---
 
