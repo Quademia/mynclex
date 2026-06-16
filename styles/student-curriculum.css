@@ -767,6 +767,32 @@ button.programme-switcher-item {
   line-height: 1;
 }
 
+/* Live-session attendance badges (Slice 3b) — shown on the event row once
+ * the tutor marks the student. The completion % is unchanged; these are
+ * status badges, not "done" pills. */
+.student-activity-state.is-attended {
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+}
+
+.student-activity-state.is-missed {
+  background: color-mix(in srgb, var(--danger, #b91c1c) 10%, transparent);
+  color: var(--danger, #b91c1c);
+}
+
+.student-activity-state.is-excused {
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  color: color-mix(in srgb, var(--warning) 72%, #000);
+}
+
+.student-activity-state.is-attended .student-activity-state-icon,
+.student-activity-state.is-missed .student-activity-state-icon,
+.student-activity-state.is-excused .student-activity-state-icon {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .student-activity-locked {
   display: flex;
   align-items: center;

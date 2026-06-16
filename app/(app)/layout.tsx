@@ -28,6 +28,7 @@ import '@/styles/cohorts.css';
 import '@/styles/strategies.css';
 import '@/styles/curriculum.css';
 import '@/styles/student-curriculum.css';
+import '@/styles/student-sessions.css';
 import '@/styles/media.css';
 import '@/styles/quiz.css';
 import '@/styles/programme-quizzes.css';

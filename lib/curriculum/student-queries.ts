@@ -38,6 +38,7 @@ import type {
   ActivityProgressMap,
   InProgressQuizMap,
 } from '@/lib/progress/types';
+import type { AttendanceStatus } from '@/lib/cohorts/attendance-format';
 import type {
   ProgrammeActivity,
   ProgrammeBlock,
@@ -179,6 +180,7 @@ export async function getStudentSelfPacedCurriculum(
         shelfState.updateByActivity.get(activity.activity_id) ?? null,
       // Self-paced has no live sessions (tutor-led only, Slice 1b).
       liveSession: null,
+      attendance: null,
     })
   );
 
@@ -304,6 +306,7 @@ export async function getStudentCohortCurriculum(
     | 'shelfMembers'
     | 'shelfUpdate'
     | 'liveSession'
+    | 'attendance'
   >;
   const staged: StagedActivity[] = [];
   for (const r of rawRows) {
@@ -344,26 +347,34 @@ export async function getStudentCohortCurriculum(
   // Progress engine — fetch progress + IN_PROGRESS map in parallel.
   // Same shape as self-paced; cohort mode reads the same progress
   // table (row attaches to template activity, not cohort).
-  const [progressMap, inProgressMap, libraryState, shelfState, liveSessionMap] =
-    await Promise.all([
-      getActivityProgressMap(staged.map((a) => a.activity_id)),
-      getInProgressQuizAttempts(),
-      getLibraryNoteActivityState(
-        supabase,
-        staged.filter((a) => a.type === 'LIBRARY_NOTE').map((a) => a.activity_id)
-      ),
-      getShelfActivityState(
-        supabase,
-        staged.filter((a) => a.type === 'SHELF').map((a) => a.activity_id)
-      ),
-      getCohortLiveSessionSchedules(
-        supabase,
-        cohortId,
-        staged
-          .filter((a) => a.type === 'ONLINE_LIVE_SESSION')
-          .map((a) => a.activity_id)
-      ),
-    ]);
+  const liveSessionActivityIds = staged
+    .filter((a) => a.type === 'ONLINE_LIVE_SESSION')
+    .map((a) => a.activity_id);
+  const [
+    progressMap,
+    inProgressMap,
+    libraryState,
+    shelfState,
+    liveSessionMap,
+    liveAttendanceMap,
+  ] = await Promise.all([
+    getActivityProgressMap(staged.map((a) => a.activity_id)),
+    getInProgressQuizAttempts(),
+    getLibraryNoteActivityState(
+      supabase,
+      staged.filter((a) => a.type === 'LIBRARY_NOTE').map((a) => a.activity_id)
+    ),
+    getShelfActivityState(
+      supabase,
+      staged.filter((a) => a.type === 'SHELF').map((a) => a.activity_id)
+    ),
+    getCohortLiveSessionSchedules(supabase, cohortId, liveSessionActivityIds),
+    getStudentCohortAttendanceByActivity(
+      supabase,
+      cohortId,
+      liveSessionActivityIds
+    ),
+  ]);
 
   const visibleActivities: StudentActivity[] = staged.map((a) => ({
     ...a,
@@ -385,6 +396,13 @@ export async function getStudentCohortCurriculum(
     liveSession:
       a.type === 'ONLINE_LIVE_SESSION'
         ? liveSessionMap.get(a.activity_id) ?? null
+        : null,
+    // Live sessions (Slice 3b) — the student's own tutor-marked attendance,
+    // surfaced as the curriculum's "Attended / Missed / Excused" event-row
+    // badge. Null for other types (and unmarked live sessions).
+    attendance:
+      a.type === 'ONLINE_LIVE_SESSION'
+        ? liveAttendanceMap.get(a.activity_id) ?? null
         : null,
   }));
 
@@ -704,6 +722,55 @@ async function getCohortLiveSessionSchedules(
       joiningInstructions: r.joining_instructions,
       recordingUrl: r.recording_url,
     });
+  }
+  return map;
+}
+
+/**
+ * Slice 3b — for a set of live-session marker activity ids, fetch the
+ * CALLING student's own tutor-marked attendance per marker (PRESENT /
+ * ABSENT / EXCUSED), keyed activity_id → status. Bridges attendance (keyed
+ * by the planner session) back to the marker via the planner's
+ * marker_activity_id. RLS scopes the attendance read to the student's own
+ * rows. Empty input → no query. Drives the curriculum event-row badge; the
+ * completion % is unchanged (that fold-in is a later coordinated pass).
+ */
+async function getStudentCohortAttendanceByActivity(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  cohortId: string,
+  markerActivityIds: string[]
+): Promise<Map<string, AttendanceStatus>> {
+  const map = new Map<string, AttendanceStatus>();
+  if (markerActivityIds.length === 0) return map;
+
+  const { data: planner } = await supabase
+    .from('nclex_cohort_live_sessions')
+    .select('session_id, marker_activity_id')
+    .eq('cohort_id', cohortId)
+    .in('marker_activity_id', markerActivityIds);
+
+  const markerBySession = new Map<string, string>();
+  const sessionIds: string[] = [];
+  for (const r of (planner ?? []) as Array<{
+    session_id: string;
+    marker_activity_id: string;
+  }>) {
+    markerBySession.set(r.session_id, r.marker_activity_id);
+    sessionIds.push(r.session_id);
+  }
+  if (sessionIds.length === 0) return map;
+
+  const { data: att } = await supabase
+    .from('nclex_cohort_session_attendance')
+    .select('session_id, status')
+    .in('session_id', sessionIds);
+
+  for (const a of (att ?? []) as Array<{
+    session_id: string;
+    status: AttendanceStatus;
+  }>) {
+    const marker = markerBySession.get(a.session_id);
+    if (marker) map.set(marker, a.status);
   }
   return map;
 }

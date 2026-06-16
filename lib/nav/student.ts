@@ -59,6 +59,10 @@ export const STUDENT_PROGRAMME_DETAIL_NAV: NavItem[] = [
  */
 export const STUDENT_COHORT_DETAIL_NAV: NavItem[] = [
   { key: 'curriculum', label: 'Curriculum',   icon: 'layers', href: '/student/cohort/:cohortId/curriculum' },
+  // Live sessions Slice 3b — the student "My sessions" page (cohort-only;
+  // self-paced has no live sessions, so this entry is NOT on the programme
+  // nav). `calendar` icon — sessions are scheduled events.
+  { key: 'sessions',   label: 'Sessions',     icon: 'calendar', href: '/student/cohort/:cohortId/sessions' },
   // Tutor Library Slice 11.14b — student library, cohort (tutor-led)
   // sibling of the programme route. Same `file-text` icon as the
   // programme nav for consistency.

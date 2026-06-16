@@ -274,6 +274,40 @@ function ActivityCard({
           // chip marks it so the absent task-pill reads as deliberate.
           // See docs/product-plan/live-session-planner.md.
           if (activity.type === 'ONLINE_LIVE_SESSION') {
+            // Slice 3b — once the tutor marks attendance, reflect it on the
+            // event row (Attended / Missed / Excused). Until then (and for
+            // upcoming sessions), the neutral 📅 event chip. The completion
+            // % is unchanged — attendance-in-% is a later coordinated pass.
+            if (activity.attendance === 'PRESENT') {
+              return (
+                <span className="student-activity-state is-attended">
+                  <span className="student-activity-state-icon" aria-hidden="true">
+                    ✓
+                  </span>
+                  <span className="student-activity-state-label">Attended</span>
+                </span>
+              );
+            }
+            if (activity.attendance === 'ABSENT') {
+              return (
+                <span className="student-activity-state is-missed">
+                  <span className="student-activity-state-icon" aria-hidden="true">
+                    ✕
+                  </span>
+                  <span className="student-activity-state-label">Missed</span>
+                </span>
+              );
+            }
+            if (activity.attendance === 'EXCUSED') {
+              return (
+                <span className="student-activity-state is-excused">
+                  <span className="student-activity-state-icon" aria-hidden="true">
+                    –
+                  </span>
+                  <span className="student-activity-state-label">Excused</span>
+                </span>
+              );
+            }
             return (
               <span className="student-activity-state is-event">
                 <span

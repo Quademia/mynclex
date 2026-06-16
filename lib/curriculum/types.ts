@@ -445,6 +445,13 @@ export type StudentActivity = ProgrammeActivity & {
   // marker's typical-duration hint stays on `payload`. Null for every
   // other activity type (and for self-paced, which has no live sessions).
   liveSession: LiveSessionSchedule | null;
+  // Live sessions (Slice 3b) — for an ONLINE_LIVE_SESSION marker, the
+  // student's OWN tutor-marked attendance status for this cohort's session
+  // ('PRESENT' | 'ABSENT' | 'EXCUSED'), or null when unmarked / not yet
+  // held. Drives the curriculum's "Attended / Missed / Excused" badge on the
+  // event row (the completion % is unchanged — that fold-in is a later
+  // coordinated pass). Null for every other activity type.
+  attendance: 'PRESENT' | 'ABSENT' | 'EXCUSED' | null;
   // Slice 11.12c — set when the shelf's visible membership has CHANGED
   // since the student last opened this placement (vs their seen-record in
   // nclex_library_shelf_seen). null = no prior seen-row (first view) or
