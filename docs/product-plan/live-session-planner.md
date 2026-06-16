@@ -2,14 +2,15 @@
 
 *Design agreed with Sam 2026-06-06, deepened + open decisions resolved
 2026-06-14, completion model + curriculum-placement finalised 2026-06-15.
-Status: **Slices 1 + 2 MERGED to `main` 2026-06-15** — the marker/planner
-split, the integrity "needs scheduling" cue, and the one-off "+ Add session"
-flow. **Slice 3 — attendance → derived completion (tutor side) — BUILT
-2026-06-16** on the session branch from the CD "Sessions & Attendance"
-prototype; Sam-testing on dev, NOT yet merged to `main`. **NOT yet released
-to prod** (carries migrations `20260703120000` + `20260704120000`). The
-student-facing Sessions page + streak is the next phase (Slice 3b, below).
-Timing (Sam, 2026-06-08): attendance lives mostly on the cohort side.*
+Status: **Slices 1 + 2 MERGED to `main` 2026-06-15.** **Slices 3 + 3b + 4
+BUILT 2026-06-16** on the session branch (Sam-testing on dev, NOT yet merged
+to `main`): tutor attendance (Slice 3, migration `20260704120000`), the
+student Sessions page + curriculum badge (3b), and folding attendance into
+the completion % across the student curriculum + tutor analytics (Slice 4 —
+app-layer, no migration). **NOT yet released to prod** (carries migrations
+`20260703120000` + `20260704120000`). Next un-built = **V2 managed sessions**
+(Slice 5). Timing (Sam, 2026-06-08): attendance lives mostly on the cohort
+side.*
 
 Part of the `mynclex/docs/product-plan/` set. Hosts on the cohort
 **Sessions** tab (kept as a placeholder by the cohort-workspace fold for
@@ -266,25 +267,17 @@ props-driven **`RosterDrawer`** (decoupled from attendance — any future
 "mark a status per person" surface can reuse it; lives in `lib/cohorts/`).
 Built on app navy/teal tokens.
 
-**Deliberately NOT in this round (follow-ons):**
+**Follow-ons — status after Slices 3b + 4:**
 
-- **The student curriculum does NOT yet reflect attendance.** A PRESENT
-  mark writes the derived completion row, but the student curriculum still
-  renders every live session as a neutral 📅 **event with no "done" state**
-  — `done` is hard-coded `false` for `ONLINE_LIVE_SESSION` in
-  `lib/curriculum/student-queries.ts` (the Slice-1a "events out of progress"
-  decision), and the student viewer shows the 📅 Event chip. So from the
-  *student's* side nothing changes when a tutor marks them present — the
-  completion is recorded but invisible to them. **Whether/how an attended
-  session surfaces back on the curriculum (an "Attended ✓" tick? an
-  attended badge on the event row? counting it in the completion %?) is a
-  Slice 3b decision** — it was *not* changed here.
-- The cohort **Analytics** completion grid still excludes live sessions —
-  fusing them in needs the held+marked denominator threaded through
-  `lib/analytics/tutor/cohort-queries.ts`; the derived progress rows are
-  already there for it.
-- The student **streak** 🔥 and the **"what to bring"** session-prep
-  attachment from the prototype were deferred.
+- **Student curriculum reflects attendance — ✅ done (Slice 3b).** The 📅
+  event row shows **Attended / Missed / Excused** once the tutor marks the
+  student (was hard-coded "not done" in Slice 1a).
+- **Attendance counts toward the completion % — ✅ done (Slice 4).** Folded
+  into both the student curriculum % and the tutor cohort-analytics %, under
+  the held + marked, excused-excluded, per-student denominator rule.
+- **Student streak 🔥 — ✅ done (Slice 3b)** on the student Sessions page.
+- **"What to bring" session-prep attachment — still deferred.** A net-new
+  link from a session to a curriculum resource (e.g. a PDF); not v1.
 
 ---
 
@@ -373,19 +366,29 @@ library attachments) — small blast radius by design.
    denominator). Sessions tab → Schedule | Attendance sub-tabs; roster-sweep
    `RosterDrawer`; summary band + missed-≥2 flags. Parked questions resolved
    (recording doesn't count; held+marked denominator; manual marking).
-3b. **Slice 3b — the student Sessions page + streak + curriculum
-   reflection. ⏭ NEXT.** The read-only personalised mirror (see the capture
-   below): the student's own live sessions across the programme (upcoming +
-   past + their attendance record + streak 🔥), reading the planner + their
-   own attendance rows. **Includes the decision left open by Slice 3:**
-   whether/how an attended session shows back on the student *curriculum*
-   (an "Attended ✓" tick? an attended badge on the 📅 event row? counting it
-   in the completion %?) — today the curriculum hard-codes live sessions to
-   "not done" (Slice 1a), so the recorded attendance is invisible to the
-   student until this slice changes it.
-4. **V2 — managed sessions system.** Calendar, reminders, integrations,
-   recordings library, attendance via API. Plus the cohort-analytics
-   completion-grid fusion (live sessions into the % grid).
+3b. **Slice 3b — student Sessions page + streak + curriculum badge. ✅ BUILT
+   (2026-06-16; session branch, Sam-testing, not merged).** The read-only
+   personalised mirror: a student "My sessions" tab
+   (`/student/cohort/[id]/sessions`) — attendance record card + streak 🔥 +
+   next-session panel (join details) + a List ⇄ Timeline toggle, reading the
+   planner + their own attendance rows. Plus the curriculum **badge**: a live
+   session's 📅 event row shows **Attended / Missed / Excused** once the tutor
+   marks the student (was hard-coded "not done", Slice 1a). No DB work.
+   *Decision settled with Slice 4:* the curriculum keeps the badge look; the
+   completion-% change lives in Slice 4.
+4. **Slice 4 — attendance into the completion %. ✅ BUILT (2026-06-16;
+   session branch, not merged).** Held + marked live sessions now count
+   toward completion, consistently across the **student curriculum %** AND
+   the **tutor cohort-analytics %**. Per-student denominator: PRESENT = done
+   (numerator + denominator), ABSENT = denominator only, EXCUSED /
+   not-yet-held / unmarked excluded (never drags the % down before it's
+   real). App-layer, no migration. The Attended/Missed/Excused badge is
+   unchanged — only the math. ("Up next" still skips live sessions — not
+   self-actionable.)
+5. **V2 — managed sessions system.** Calendar, reminders, integrations
+   (Zoom/Meet API — auto-create meetings, auto-pull recordings + attendance),
+   a searchable recordings library, reschedule/cancel notices. The far
+   horizon; built to *extend* the thin planner, not replace it.
 
 > **▶ CAPTURE (Sam, 2026-06-15): the STUDENT side needs a dedicated Sessions
 > (+ attendance) page.** Today a student only meets live sessions scattered
