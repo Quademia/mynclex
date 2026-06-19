@@ -1,7 +1,10 @@
 # Journey Tracker
 
 *Planning document. Captures the design conversation of 2026-06-19.*
-Last updated: 2026-06-19 (**corrects the access model** — admins keep
+Last updated: 2026-06-19 (**rebuilds the default starter templates from
+web research** — full US (Ghana→US, RN + EB-3) pipeline with sub-steps,
+plus UK NMC and Canada NNAS outlines; replaces the simplified
+tutor-sketch seed. Earlier same-day: **corrects the access model** — admins keep
 normal oversight; there is no special admin blind spot, only
 relationship-scoped tutor↔student access. Adds **bank-only self-managed
 tracker**, **tutor-saved custom templates**. Earlier same-day rounds
@@ -117,8 +120,8 @@ mostly tracks documents and deadlines.
 So the pipeline is **not** a fixed, platform-imposed set of phases.
 Instead:
 
-- QAcademy ships a sensible **starter template** per destination (the
-  Ghana→US template seeded from the real tutor example below).
+- QAcademy ships a sensible **starter template** per destination (US,
+  UK, Canada — see *The default starter templates* below).
 - Each tutor **starts from a template and customises** — rename,
   reorder, add, and remove stages — to match how *they* actually work.
 - A tutor can **save their own custom templates** (v1) and reuse them
@@ -343,25 +346,108 @@ A **board-style grid** showing every student's stage at once (pipeline
 view across the whole caseload) is a natural later view, but it's **v2**.
 v1 = list → case file.
 
-## The default template (Ghana → US, v1 seed)
+## The default starter templates
 
-Seeded directly from a practising tutor's real workflow. This is the
-*starter* a tutor customises — not a fixed pipeline:
+> **Researched 2026-06-19.** The first draft seeded the Ghana→US
+> template from one tutor's (simplified) account. It's since been
+> rebuilt against published guidance from CGFNS/TruMerit, NCSBN/NCLEX,
+> USCIS, the UK NMC, and Canada's NNAS (sources at the foot of this
+> section). Sam (a nurse) should still sanity-check the specifics —
+> regulatory detail shifts and varies by state/province.
 
-1. **CGFNS application** — open the account, start the credentials
-   evaluation.
-2. **Ghana NMC → CGFNS verification** — get the Ghana Nursing &
-   Midwifery Council to send the required license/education documents to
-   CGFNS.
-3. **CGFNS biometrics** — identity verification.
-4. **State board registration** — apply to the chosen US state board of
-   nursing (path to the Authorization to Test).
-5. **Sit the NCLEX** — schedule and write the exam. *(The exam-prep
-   programme/cohort plugs in around here.)*
-6. **…and onward** — VisaScreen, visa / retrogression, endorsement, etc.
+These are **starters** a tutor customises — not fixed pipelines. The
+shape (stages → sub-steps) is identical across destinations; the
+contents differ. **US is the v1 default** (the core Ghana→US audience);
+UK and Canada outlines are captured here too.
 
-Other destination templates (UK NMC, Canada NNAS) are future seeds;
-shape is identical, contents differ.
+### USA (Ghana → US, RN by licensure + EB-3) — v1 default
+
+The realistic end-to-end pipeline. The exam-prep stage is where a
+MyNclex programme/cohort plugs in.
+
+0. **Plan & destination** — confirm US; **choose the licensure state**
+   (matters a lot for IENs: some states waive the SSN requirement —
+   e.g. NY, IL, MN — and ~⅔ of states require CGFNS Certification before
+   the NCLEX).
+1. **Credential evaluation (CGFNS CES)** — recommended *before* NCLEX.
+   - Open a CGFNS/TruMerit account; request the **CES Professional
+     Report**.
+   - Nursing school sends **transcripts / proof of education** to CGFNS.
+   - **Ghana Nursing & Midwifery Council** validates the
+     licence/registration directly to CGFNS.
+   - (State-dependent) **CGFNS Certification Program / Qualifying Exam**.
+   - Receive the CES report.
+2. **English proficiency** — *conditional* (often skippable for
+   Ghana-educated nurses, as Ghana is English-medium, but state/CGFNS
+   rules vary). TOEFL / IELTS / OET / PTE; send scores onward.
+3. **State board of nursing application** — apply to the chosen state
+   board, declare intent to be licensed by examination, submit the CES
+   report, English scores, and identity documents.
+4. **Prepare for the NCLEX-RN** — the study phase. *(A MyNclex
+   self-study bank subscription or a tutor's programme/cohort plugs in
+   here.)*
+5. **Register & sit the NCLEX-RN** — two coordinated registrations.
+   - Register with **Pearson VUE** and pay the exam fee (US $200).
+   - The board makes the candidate **eligible** in Pearson VUE.
+   - Receive the **Authorization to Test (ATT)** (≈90-day validity).
+   - **Schedule** at a Pearson VUE centre and **sit** the exam.
+   - Receive results.
+6. **RN licensure issued** — the state board issues the RN licence.
+7. **VisaScreen certificate (CGFNS)** — required by US federal law for an
+   occupational visa; bundles credential review + English + proof of
+   NCLEX (or CGFNS Qualifying Exam) pass.
+8. **Immigration — EB-3 (Schedule A)** — the longest, most uncertain leg.
+   - Secure a **US employer job offer / sponsor**.
+   - Employer files **Form I-140** (nurses use **Schedule A**, skipping
+     PERM labour certification).
+   - **Priority date / Visa Bulletin** wait — **retrogression** can add
+     years depending on country.
+   - **National Visa Center (NVC)** processing — fees + civil documents.
+   - **Consular interview + medical exam** at the US embassy.
+   - **Immigrant visa issued** → relocate / port-of-entry → green card.
+   - **Begin employment.**
+
+### UK (NMC registration) — outline
+
+0. **Plan & destination** — confirm UK route.
+1. **NMC account & eligibility** — create the NMC online account, start
+   the application.
+2. **English proficiency** — IELTS Academic (7.0, no band < 6.5) or OET
+   (B), unless trained in a recognised English-majority country.
+3. **Test of Competence Part 1 — CBT** — computer-based test at Pearson
+   VUE worldwide (pass valid 2 years).
+4. **Qualification & identity verification** — document checks, Ghana
+   N&MC registration verification.
+5. **Test of Competence Part 2 — OSCE** — hands-on clinical exam, taken
+   **in the UK** at an approved centre.
+6. **Registration & PIN** — final application; NMC issues the PIN.
+7. **Visa** — Health and Care Worker visa via an employer Certificate of
+   Sponsorship (separate immigration leg).
+
+### Canada (NNAS → provincial regulator) — outline
+
+0. **Plan & destination** — confirm Canada; choose target province.
+1. **NNAS application** — create the NNAS account (IENs cannot apply to a
+   regulator directly); submit documents.
+2. **Credential evaluation** — NNAS assesses education/clinical hours
+   (≈12–16 weeks); issues the **NNAS Advisory Report**.
+3. **Apply to the provincial/territorial regulator** — the regulator
+   re-assesses using the NNAS report.
+4. **English proficiency** — IELTS / CELBAN, if required.
+5. **NCLEX-RN** — most provinces require it (same NCLEX as the US).
+6. **Jurisprudence exam** — province-specific, where required.
+7. **Provincial registration** — licence to practise.
+8. **Immigration** — Express Entry / Provincial Nominee / work permit
+   (separate leg).
+
+### Sources
+
+CGFNS/TruMerit (steps to working in the US; CES; VisaScreen;
+certification), NCSBN/NCLEX (the 8-step NCLEX process; Pearson VUE; ATT),
+USCIS / EB-3 Schedule A guidance, UK NMC / RCN (CBT, OSCE, English),
+Canada NNAS / provincial regulators, plus practitioner guides
+(registerednursing.org, Connetics USA, NEAC). Compiled via web research
+2026-06-19; treat regulatory specifics as living, not authoritative.
 
 ## Open questions
 
@@ -394,8 +480,10 @@ see below.)
 
 ## Deferred (not v1, unless re-opened)
 
-- Multi-destination starter templates beyond the first Ghana→US seed
-  (UK NMC, Canada NNAS). *(Tutor-authored custom templates ARE in v1 —
+- Starter templates for destinations **beyond US / UK / Canada** (the
+  three are now researched — see *The default starter templates*).
+  Whether UK and Canada **ship in v1** or follow the US default is a
+  scope call for build. *(Tutor-authored custom templates ARE in v1 —
   see Configurable.)*
 - Any automated integration with external bodies (CGFNS, boards) —
   everything is manually tracked in v1.
