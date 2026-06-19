@@ -1,8 +1,10 @@
 # Journey Tracker
 
 *Planning document. Captures the design conversation of 2026-06-19.*
-Last updated: 2026-06-19 (**rebuilds the default starter templates from
-web research** — full US (Ghana→US, RN + EB-3) pipeline with sub-steps,
+Last updated: 2026-06-19 (**adds the case-file / pathway / template /
+document-vault model** — one case file per student containing one or
+more pathways, over a shared document vault. Earlier same-day:
+**rebuilds the default starter templates from web research** — full US (Ghana→US, RN + EB-3) pipeline with sub-steps,
 plus UK NMC and Canada NNAS outlines; replaces the simplified
 tutor-sketch seed. Earlier same-day: **corrects the access model** — admins keep
 normal oversight; there is no special admin blind spot, only
@@ -305,21 +307,60 @@ naming so the v1 shape doesn't foreclose it.
 ## Relationship model
 
 The journey is a **tutor↔student relationship (the "case")** that exists
-in its own right — broader than, and containing, any programme.
+in its own right — broader than, and containing, any programme. A case
+holds **one or more pathways** (US, UK, Canada, or a tutor's custom one),
+each an instance of a template, over a **shared document vault**.
 
 ```
+Template                  — reusable blueprint (QAcademy starters: US/UK/
+                            Canada; or a tutor's own custom). NOT student-specific.
+  ↓ instantiated as
 Tutor
   ↓ takes on
-Journey / Case            — the tutor↔student relationship
+Journey / Case            — the tutor↔student relationship; ONE per student
+  ├─ Document vault       — the student's docs, held at case level, shared
+  │                         across every pathway (upload once, reference anywhere)
+  ↓ has one or more
+Pathway                   — a live instance of a template inside the case
+                            (e.g. "US pathway" + "Canada pathway" side by side)
   ↓ has many
-Stage                     — configurable from a template; the sellable unit
+Stage                     — configurable from the template; the sellable unit
   ↓ has many (optional)
 Sub-step                  — the actionable leaf; carries the rich detail
                             (the exam-prep stage instead plugs in ↓)
 Programme / Cohort enrolment   — plugs into ONE stage, doesn't own the case
 ```
 
-Why this shape (vs. tying the journey to a programme enrolment):
+### Why the case *contains* pathways (not the other way round)
+
+One case file per student, holding multiple pathways — rather than a
+separate case per pathway — for three reasons:
+
+- **Hedging is normal.** Ghana→migration nurses commonly pursue **US and
+  Canada (sometimes UK) at once**, because visa timelines and
+  retrogression are uncertain. Multi-pathway is the common case, not an
+  edge case.
+- **Pathways share artefacts.** The **NCLEX-RN is the same exam for the
+  US and Canada**; transcripts, the Ghana N&MC verification, and English
+  scores are reusable too. A case-level document vault means a document
+  is uploaded once and any stage in any pathway references it — no
+  re-uploading, no double-tracking.
+- **It matches the working surface.** "Open a student, see their whole
+  journey" (see *Tutor's working surface*) stays true even when the
+  journey forks across two countries — both pathways live in the one
+  case file.
+
+### v1 simplification — side-by-side, not shared-node
+
+A stage like *Sit the NCLEX* genuinely serves two pathways at once. v1
+keeps this simple: **documents are shared at the case level, but stages
+run side by side** — the NCLEX stage appears in each pathway and the
+tutor marks each. True **shared-stage de-duplication** (one NCLEX node
+feeding both pathways) and the related rule that a **shared service
+isn't charged twice** are deferred — noted so the v1 shape doesn't
+foreclose them. See *Deferred*.
+
+### Why the case (not the programme) is the root
 
 - A tutor can manage a student's **credentialing before any course
   exists.**
@@ -334,9 +375,10 @@ So the programme/cohort is a child of the exam-prep stage, not the root.
 
 The tutor works the journey **one student at a time** — an **individual
 case file** is the primary surface. Open a student, see and manage their
-whole journey: every stage and sub-step, statuses, the documents
-checklist, the back-and-forth, and the service/payment state for that
-relationship.
+whole journey: **every pathway they're on** (e.g. US + Canada), and
+within each, every stage and sub-step, statuses, the documents (from the
+shared case-level vault), the back-and-forth, and the service/payment
+state for that relationship.
 
 To get *into* a case, v1 needs only a **simple list/index** of the
 tutor's students (a way to pick whose file to open) — not a dense
@@ -474,6 +516,10 @@ see below.)
   *Bank-only students* below.
 - **Tutors can save their own custom templates** — not just customise
   QAcademy's starter per student. See *Configurable, not hard-coded*.
+- **One case file per student, containing one or more pathways**, over a
+  shared document vault. A student can be on multiple pathways (US +
+  Canada); the tutor manages them all from the one case file. See
+  *Relationship model*.
 - **No special admin blind spot.** Admins keep normal platform oversight;
   the access model is relationship-scoped, not admin-blind. See *Access
   model*.
@@ -497,6 +543,11 @@ see below.)
 - **Deeper nesting** below sub-steps (v1 is two levels: stage → sub-step).
 - **Board / pipeline grid** of all students at once (v1 is a simple
   list → individual case file — see *Tutor's working surface*).
+- **Shared-stage de-duplication across pathways** — v1 runs pathways
+  side by side (the shared NCLEX stage appears in each); a single shared
+  stage node feeding multiple pathways, plus the rule that a **shared
+  service isn't charged twice**, is deferred. See *Relationship model →
+  v1 simplification*.
 
 ## Relationship to main.md
 
