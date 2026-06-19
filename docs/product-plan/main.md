@@ -107,14 +107,17 @@ where you are."* Headline shape:
   The tracker is the tool they run that work through. Both tutor and
   student act on a case (requests, uploads, status, a who-did-what
   trail).
-- **Bank-only students self-manage.** A student with no tutor gets a
-  simple self-managed version of the tracker; it upgrades to the full
-  tutor-managed case when a tutor takes them on. (This is the only piece
-  of the old "students self-update" model that survives.)
+- **Two tiers.** A light, read-mostly **Pathway Guide** for *every*
+  student (account-level, persists past bank-pack expiry, doubles as the
+  onboarding spine) and the rich tutor-run **Managed Case**. They share
+  one template spine; the guide upgrades to a managed case when a tutor
+  takes the student on. Bank-only students get the guide only; Tier 1 is
+  free (a funnel/retention surface).
 - **Configurable, not hard-coded.** No fixed phase list. QAcademy ships
   per-destination **starter templates** (e.g. the Ghana→US pipeline:
-  CGFNS application → Ghana NMC verification → biometrics → state-board
-  registration → sit the NCLEX → onward); tutors customise per student
+  CGFNS credential evaluation → English (conditional) → state-board
+  application → NCLEX → licensure → VisaScreen → EB-3 immigration);
+  tutors customise per student
   and can save their own reusable templates.
 - **Rich stages with sub-steps.** A stage holds a documents checklist,
   reference numbers, dates, uploads, and a status lifecycle

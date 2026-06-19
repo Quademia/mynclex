@@ -1,7 +1,11 @@
 # Journey Tracker
 
 *Planning document. Captures the design conversation of 2026-06-19.*
-Last updated: 2026-06-19 (**adds the case-file / pathway / template /
+Last updated: 2026-06-19 (**splits the journey into two tiers** — a light
+read-mostly **Pathway Guide** for every student, account-level and
+persistent past bank expiry, as the onboarding spine, + the rich tutor
+**Managed Case**; both ship in v1. Adds **entry points & onboarding**.
+Earlier same-day: **adds the case-file / pathway / template /
 document-vault model** — one case file per student containing one or
 more pathways, over a shared document vault. Earlier same-day:
 **rebuilds the default starter templates from web research** — full US (Ghana→US, RN + EB-3) pipeline with sub-steps,
@@ -51,6 +55,63 @@ journey is the parent; a Phase-4 exam-prep programme plugs into one
 *stage* of it. This is the opposite of nesting the journey under a
 programme, and it matters for the data model (see *Relationship model*).
 
+## Two tiers: Pathway Guide and Managed Case
+
+The journey is **two different products sharing one spine** — a
+distinction added 2026-06-19 once it was clear a self-study student and a
+tutored student need very different things.
+
+| | **Tier 1 — Pathway Guide** | **Tier 2 — Managed Case** |
+|---|---|---|
+| For | Every student (incl. bank-only / no tutor) | Tutored students |
+| Nature | **Read-mostly** roadmap the student follows + lightly self-marks | **Rich, two-sided** case the tutor manages |
+| Has | The pathway stages as orientation; "where you are / what's next" | Stages + sub-steps, document vault, priced services, the back-and-forth |
+| Owned/run by | QAcademy content (the template), student self-marks | The tutor (case manager); both parties act |
+| Lives | **Account-level, always available** (see persistence) | Inside the case once a tutor takes the student on |
+
+**The shared spine is the template.** The same researched US/UK/Canada
+pathways (see *The default starter templates*) power both: as a
+**read-only roadmap** for Tier 1, and as the **customisable blueprint** a
+tutor turns into a managed case for Tier 2. The pathway content is
+authored once; both tiers render it.
+
+**Why two tiers.** A full self-managed *case* (vault, services,
+back-and-forth) isn't realistic for a self-study student — they won't
+maintain it. But a *roadmap they follow* is both feasible and valuable,
+and it makes the journey part of **every** student's experience rather
+than a tutored-only feature. v1 builds both (option B); Tier 1 is cheap
+because it reuses Tier 2's template content.
+
+### Persistence — not gated by bank access
+
+**Critical:** the Pathway Guide is **account-level and always available
+to any registered student, regardless of whether they hold an active
+bank pack.** The migration journey runs 12–30 months; a bank pack is
+30/90/180 days. So:
+
+- When a bank pack lapses, the **bank content** (questions) locks — but
+  the student's **pathway roadmap stays**.
+- That makes the guide a **retention hook**: a lapsed student still sees
+  "you're at credential evaluation; NCLEX is next" on every login — the
+  nudge to renew the bank pack or take on a tutor.
+
+### Upgrade path
+
+A student's Tier-1 guide **upgrades into a Tier-2 managed case** when a
+tutor takes them on (invite + consent — see *Getting onto a journey*).
+The tutor "adopts" the existing guide; how much self-marked history
+carries over is a build detail.
+
+### Monetisation note
+
+A roadmap on its own is hard to charge for (the steps are googleable).
+Its value is as a **free funnel + retention surface** that sells what
+students *do* pay for — bank packs, tutors, and (v2) QAcademy-brokered
+services. So Tier 1 is **free** in v1. A low-cost "guided pathway"
+add-on (reminders, deadlines, document checklists on top of the free
+roadmap) is a candidate for the v2 monetisation seam — decided in the
+Pricing topic, not here.
+
 ## Who owns what
 
 This is the heart of the reframe, and it differs sharply from the old
@@ -70,10 +131,12 @@ main.md framing.
   The tracker is the tool they manage that work through. The tutor owns
   the relationship and does (or guides) the work.
 
-- **The student = an active participant, not a spectator.** The student
-  acts on their own journey too — uploads documents, marks steps they've
-  done themselves, asks questions. This two-sided interaction is the
-  whole point (see *Both parties act*).
+- **The student = an active participant, not a spectator.** In a
+  tutor-managed case (Tier 2), the student acts on their own journey too
+  — uploads documents, marks steps they've done themselves, asks
+  questions. This two-sided interaction is the whole point (see *Both
+  parties act*). (A bank-only student instead self-marks a read-mostly
+  guide — Tier 1; see *Two tiers*.)
 
 ### Why "tutor as agent" rather than "QAcademy as concierge"
 
@@ -136,21 +199,23 @@ Instead:
 This is a direct revision of the old main.md framing, which hard-coded
 phases 0–7 as a fixed platform structure.
 
-## Bank-only students
+## Bank-only students (the Tier-1 detail)
 
-The journey is a **universal student surface**, not a tutored-only one.
-A student with no tutor (bank-only / self-study) gets a **simple,
-self-managed tracker**: they see the stages, set their own statuses, keep
-their own notes and documents, and move themselves along. No service
-menu, no payments, no two-sided back-and-forth — just the student's own
-view of where they are. (This is essentially the old self-update model
-from main.md, kept as the baseline for the untutored case.)
+The Pathway Guide (Tier 1 — see *Two tiers*) is the bank-only /
+no-tutor student's whole journey experience. Specifics:
 
-When a tutor later takes the student on, the journey **upgrades** into
-the full tutor-managed case (services, packages, shared workspace). The
-exact hand-over mechanics — whether the self-managed history carries
-over, and how a tutor "adopts" an existing self-managed journey — are a
-build detail.
+- It's a **read-mostly roadmap**: the student sees the pathway stages for
+  their destination, "where you are / what's next", and **lightly
+  self-marks** progress. **No** document vault, **no** service menu, **no**
+  payments, **no** two-sided back-and-forth — that machinery is Tier 2
+  (tutor) only. Expecting a self-study student to maintain a full case
+  isn't realistic; a guide they follow is.
+- It's **account-level and persists past bank-pack expiry** (see *Two
+  tiers → Persistence*) — the roadmap is orientation/retention, not bank
+  content.
+- It's created at **onboarding** when the student picks a destination
+  (see *Getting onto a journey*), and **upgrades** to a Tier-2 managed
+  case if a tutor later takes them on.
 
 ## Rich stages, not light
 
@@ -388,6 +453,46 @@ A **board-style grid** showing every student's stage at once (pipeline
 view across the whole caseload) is a natural later view, but it's **v2**.
 v1 = list → case file.
 
+## Getting onto a journey (entry points & onboarding)
+
+A journey comes into existence three ways. The first makes the Pathway
+Guide part of onboarding; the other two create or upgrade to a managed
+case.
+
+1. **Self-start at onboarding (Tier 1).** A new student is asked
+   *"Where are you headed — US, UK, or Canada?"* and their **Tier-1
+   Pathway Guide** appears, seeded from that destination's template. The
+   same screen is the natural place to show how the **bank** and a
+   **tutor** accelerate the journey. A student who picks no destination
+   simply has no active journey yet — it doesn't clutter the account.
+2. **A tutor takes the student on (→ Tier 2).** Because tutors hold the
+   real-world relationship, the **tutor initiates**: adds the student by
+   email from their case list. The student gets an **invite and must
+   accept** — consent matters (personal migration data + they'll be
+   charged for services). On acceptance, a fresh managed case is created,
+   or the student's existing Tier-1 guide is **adopted** and upgraded.
+3. **Programme-enrolment bridge (→ Tier 2).** Enrolling in a tutor's
+   programme/cohort — **self-paid** or **tutor-added** (the existing
+   `enrolment_source` values on `nclex_enrolments`) — is itself a
+   tutor↔student link. It creates/links a managed case with that tutor,
+   seeded with the exam-prep stage the programme plugs into.
+
+**Rules that fall out:**
+
+- **Consent to attach a tutor.** A tutor can't silently latch onto a
+  student's journey; the student accepts the link. (Admins can see the
+  data per the access model, but the *working relationship* is
+  consented.)
+- **One managing tutor per case in v1.** A case has a single
+  case-manager tutor (programme co-tutors may view, mirroring the
+  programme co-tutor rule). Switching tutors is a **reassignment**, not
+  two simultaneous cases. Multiple independent tutors per student is
+  deferred.
+- **Student-initiated "find/request a tutor"** (a marketplace-style
+  request inbox) is **deferred to v2** — it leans into the public
+  self-serve marketplace CLAUDE.md parks. v1 link-forming is
+  tutor-initiated + the programme bridge.
+
 ## The default starter templates
 
 > **Researched 2026-06-19.** The first draft seeded the Ghana→US
@@ -511,9 +616,15 @@ see below.)
   card payment via a connected processor — deferred (see *Deferred*).
 - **Tutor's primary surface is the individual case file** — see *Tutor's
   working surface*. A board-style grid of all students is a v2 idea.
-- **Bank-only (no-tutor) students get a simple self-managed tracker** —
-  the journey is a universal student surface, not tutor-only. See
-  *Bank-only students* below.
+- **Two tiers, both in v1 (option B).** A light, read-mostly **Pathway
+  Guide** for every student (account-level, persists past bank expiry,
+  the onboarding spine) + the rich tutor-run **Managed Case**. They share
+  the template spine. Tier 1 is free; paid guidance is a v2/Pricing
+  question. See *Two tiers*.
+- **Entry points & onboarding.** Self-start at onboarding (Tier 1);
+  tutor-adds-with-consent and the programme-enrolment bridge (→ Tier 2).
+  One managing tutor per case; student-initiated tutor requests deferred.
+  See *Getting onto a journey*.
 - **Tutors can save their own custom templates** — not just customise
   QAcademy's starter per student. See *Configurable, not hard-coded*.
 - **One case file per student, containing one or more pathways**, over a
@@ -548,6 +659,12 @@ see below.)
   stage node feeding multiple pathways, plus the rule that a **shared
   service isn't charged twice**, is deferred. See *Relationship model →
   v1 simplification*.
+- **Paid "guided pathway" tier** — reminders/deadlines/document
+  checklists layered on the free Tier-1 guide; a v2 monetisation
+  candidate, decided in the Pricing topic. See *Two tiers → Monetisation*.
+- **Student-initiated "find/request a tutor"** marketplace inbox (v1
+  link-forming is tutor-initiated + the programme bridge). See *Getting
+  onto a journey*.
 
 ## Relationship to main.md
 
