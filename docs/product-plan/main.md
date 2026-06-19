@@ -107,12 +107,14 @@ where you are."* Headline shape:
   The tracker is the tool they run that work through. Both tutor and
   student act on a case (requests, uploads, status, a who-did-what
   trail).
-- **Two tiers.** A light, read-mostly **Pathway Guide** for *every*
-  student (account-level, persists past bank-pack expiry, doubles as the
-  onboarding spine) and the rich tutor-run **Managed Case**. They share
+- **Two tiers.** A light, **self-managed** **Pathway Guide** for *every*
+  student — they tailor their own roadmap and self-mark (no tutor
+  machinery) — account-level, persists past bank-pack expiry, doubles as
+  the onboarding spine; and the rich tutor-run **Managed Case**. They share
   one template spine; the guide upgrades to a managed case when a tutor
-  takes the student on. Bank-only students get the guide only; Tier 1 is
-  free (a funnel/retention surface).
+  takes the student on (the student's edits + self-marks carry over).
+  Bank-only students get the guide only; Tier 1 is free (a funnel/retention
+  surface).
 - **Configurable, not hard-coded.** No fixed phase list. QAcademy ships
   per-destination **starter templates** (e.g. the Ghana→US pipeline:
   CGFNS credential evaluation → English (conditional) → state-board

@@ -7,7 +7,9 @@ customise at the **template** level (build once, reuse for most students),
 saved custom template**; adds a tutor **template-management surface** (a
 "My Pathways" page/tab); and confirms a pathway is an **independent
 instance** so per-student step/sub-step edits stay local — mirroring the
-cohort-specific-activities escape valve. Earlier same-day: **splits the
+cohort-specific-activities escape valve. Also makes **Tier 1 self-managed
+light** — the bank-only student edits their own guide instance and
+self-marks, not just reads it. Earlier same-day: **splits the
 journey into two tiers** — a light
 read-mostly **Pathway Guide** for every student, account-level and
 persistent past bank expiry, as the onboarding spine, + the rich tutor
@@ -71,23 +73,28 @@ tutored student need very different things.
 | | **Tier 1 — Pathway Guide** | **Tier 2 — Managed Case** |
 |---|---|---|
 | For | Every student (incl. bank-only / no tutor) | Tutored students |
-| Nature | **Read-mostly** roadmap the student follows + lightly self-marks | **Rich, two-sided** case the tutor manages |
-| Has | The pathway stages as orientation; "where you are / what's next" | Stages + sub-steps, document vault, priced services, the back-and-forth |
-| Owned/run by | QAcademy content (the template), student self-marks | The tutor (case manager); both parties act |
+| Nature | **Self-managed light** — the student tailors the roadmap and self-marks; no tutor machinery | **Rich, two-sided** case the tutor manages |
+| Has | An **editable** roadmap of stages + **self-marked** progress; "where you are / what's next" | Stages + sub-steps, document vault, priced services, the back-and-forth |
+| Owned/run by | The **student** runs their own instance (edits + self-marks); QAcademy provides the template | The tutor (case manager); both parties act |
 | Lives | **Account-level, always available** (see persistence) | Inside the case once a tutor takes the student on |
 
 **The shared spine is the template.** The same researched US/UK/Canada
 pathways (see *The default starter templates*) power both: as a
-**read-only roadmap** for Tier 1, and as the **customisable blueprint** a
-tutor turns into a managed case for Tier 2. The pathway content is
-authored once; both tiers render it.
+**self-managed roadmap** the student edits + self-marks for Tier 1, and as
+the **customisable blueprint** a tutor turns into a managed case for
+Tier 2. The pathway content is authored once; both tiers render it as an
+**independent, editable instance** — Tier 1 with student-only powers,
+Tier 2 with the full case machinery.
 
 **Why two tiers.** A full self-managed *case* (vault, services,
 back-and-forth) isn't realistic for a self-study student — they won't
-maintain it. But a *roadmap they follow* is both feasible and valuable,
-and it makes the journey part of **every** student's experience rather
-than a tutored-only feature. v1 builds both (option B); Tier 1 is cheap
-because it reuses Tier 2's template content.
+maintain it. But a *roadmap they tailor and tick off* is both feasible and
+valuable. The dividing line is the **heavy machinery** (vault / services /
+money / two-sided case), **not** editability — a Tier-1 student can still
+edit their own roadmap and self-mark progress; they just don't get the
+case machinery. It makes the journey part of **every** student's
+experience rather than a tutored-only feature. v1 builds both (option B);
+Tier 1 is cheap because it reuses Tier 2's template content.
 
 ### Persistence — not gated by bank access
 
@@ -106,8 +113,13 @@ bank pack.** The migration journey runs 12–30 months; a bank pack is
 
 A student's Tier-1 guide **upgrades into a Tier-2 managed case** when a
 tutor takes them on (invite + consent — see *Getting onto a journey*).
-The tutor "adopts" the existing guide; how much self-marked history
-carries over is a build detail.
+Because a Tier-1 guide is already an **independent, editable instance**
+(the same shape as a Tier-2 pathway — see *Relationship model*), the tutor
+**"adopts" it in place**: the student's own **customised steps and
+self-marked progress carry over**, and the case simply gains the tutor
+powers (vault, services, back-and-forth). It's the same instance levelling
+up, not a throwaway view being replaced. (The precise carry-over mechanics
+are a build detail.)
 
 ### Monetisation note
 
@@ -223,12 +235,15 @@ phases 0–7 as a fixed platform structure.
 The Pathway Guide (Tier 1 — see *Two tiers*) is the bank-only /
 no-tutor student's whole journey experience. Specifics:
 
-- It's a **read-mostly roadmap**: the student sees the pathway stages for
-  their destination, "where you are / what's next", and **lightly
-  self-marks** progress. **No** document vault, **no** service menu, **no**
-  payments, **no** two-sided back-and-forth — that machinery is Tier 2
-  (tutor) only. Expecting a self-study student to maintain a full case
-  isn't realistic; a guide they follow is.
+- It's a **self-managed light roadmap**: the student sees the pathway
+  stages for their destination, "where you are / what's next", **edits
+  their own copy** (add / remove / reorder steps and sub-steps to fit
+  their situation — full editing of *their* instance, never the QAcademy
+  template), and **self-marks** steps complete. What it does **not** carry
+  is the tutor machinery: **no** document vault, **no** service menu,
+  **no** payments, **no** two-sided back-and-forth — that's Tier 2 only.
+  Expecting a self-study student to maintain a full *case* isn't realistic;
+  a roadmap they tailor and tick off is.
 - It's **account-level and persists past bank-pack expiry** (see *Two
   tiers → Persistence*) — the roadmap is orientation/retention, not bank
   content.
@@ -714,6 +729,13 @@ see below.)
   or other students), and template edits don't retro-propagate to
   already-assigned pathways — mirroring cohort-specific activities. See
   *Relationship model → A pathway is an independent instance*.
+- **Tier 1 is self-managed light, not read-only.** A bank-only student can
+  **edit their own guide** (add/remove/reorder steps — full editing of
+  *their* instance, never the QAcademy template) and **self-mark**
+  progress. The tier line is the heavy machinery (vault / services / money
+  / back-and-forth = Tier 2), not editability. On upgrade, the student's
+  customisations + self-marks carry over (the same instance gains tutor
+  powers). See *Two tiers* + *Bank-only students*.
 
 ## Deferred (not v1, unless re-opened)
 
