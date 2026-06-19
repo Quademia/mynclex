@@ -305,6 +305,22 @@ Why this shape (vs. tying the journey to a programme enrolment):
 
 So the programme/cohort is a child of the exam-prep stage, not the root.
 
+## Tutor's working surface
+
+The tutor works the journey **one student at a time** — an **individual
+case file** is the primary surface. Open a student, see and manage their
+whole journey: every stage and sub-step, statuses, the documents
+checklist, the back-and-forth, and the service/payment state for that
+relationship.
+
+To get *into* a case, v1 needs only a **simple list/index** of the
+tutor's students (a way to pick whose file to open) — not a dense
+dashboard.
+
+A **board-style grid** showing every student's stage at once (pipeline
+view across the whole caseload) is a natural later view, but it's **v2**.
+v1 = list → case file.
+
 ## The default template (Ghana → US, v1 seed)
 
 Seeded directly from a practising tutor's real workflow. This is the
@@ -329,40 +345,34 @@ shape is identical, contents differ.
 
 Not yet decided — flagged so they're not silently assumed:
 
-1. **Tutor's primary view: case file vs. board.** When a tutor opens
-   this, do they see **one student's journey at a time** (a case file you
-   open per person), or a **board of all their students** at once (every
-   student's stage in a grid)? Both probably exist eventually; the
-   question is which to design first. *(Raised, not yet answered.)*
-
-2. **The no-tutor / bank-only student.** Does a student with no tutor get
+1. **The no-tutor / bank-only student.** Does a student with no tutor get
    a basic **self-service view** of the stages (the old self-update
    model, as a baseline), or does the journey only light up once a tutor
    takes them on? *(Parked.)*
 
-3. **Collection depth — invoice-only vs in-app card.** v1 leans to
-   invoicing + paid-tracking, with money moving by the tutor's own means
-   (see *Stages as priced services → Money*). Whether to also let a
-   student pay **in-app by card via the tutor's own connected processor**
-   is undecided — leaning no for v1 (build cost, marketplace-billing
-   deferral, privacy-wall tension). *(Open.)*
-
-4. **Template authorship.** Confirmed QAcademy ships the neutral
+2. **Template authorship.** Confirmed QAcademy ships the neutral
    per-destination starter templates (no student data). Whether tutors
    can also save *their own* reusable templates is open.
 
-5. **Aggregate visibility to QAcademy.** The privacy wall blocks case
+3. **Aggregate visibility to QAcademy.** The privacy wall blocks case
    contents from admins. Whether *non-identifying aggregates* (counts,
    stage distributions) are surfaced to QAcademy at all is undecided —
    default to nothing until there's a reason.
 
-6. **Document storage + RLS specifics.** Rich stages include uploads;
+4. **Document storage + RLS specifics.** Rich stages include uploads;
    the exact bucket layout and two-party storage policy are a build
    decision.
 
-**Resolved this session:** service scope is **per-relationship** (the
-tutor's menu of offerable services is standing; *which* a given student
-takes is decided per relationship) — see *Stages as priced services*.
+**Resolved this session:**
+
+- **Service scope is per-relationship** — the tutor's menu of offerable
+  services is standing; *which* a given student takes is decided per
+  relationship. See *Stages as priced services*.
+- **Collection depth: invoice + paid-tracking only in v1.** No in-app
+  card payment via a connected processor — deferred (see *Deferred*).
+- **Tutor's primary surface is the individual case file** — see *Tutor's
+  working surface* below. A board-style grid of all students is a v2
+  idea.
 
 ## Deferred (not v1, unless re-opened)
 
@@ -380,6 +390,8 @@ takes is decided per relationship) — see *Stages as priced services*.
 - **On-platform commission / escrow** — the v2 monetisation seam; the
   v1 shape leaves room for it but does not build it.
 - **Deeper nesting** below sub-steps (v1 is two levels: stage → sub-step).
+- **Board / pipeline grid** of all students at once (v1 is a simple
+  list → individual case file — see *Tutor's working surface*).
 
 ## Relationship to main.md
 
