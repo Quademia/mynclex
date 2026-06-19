@@ -1,11 +1,12 @@
 # Journey Tracker
 
 *Planning document. Captures the design conversation of 2026-06-19.*
-Last updated: 2026-06-19 (initial draft — establishes the Journey
-Tracker as the product's third pillar; **revises and supersedes the
-"Journey Tracker" section in [main.md](main.md) lines 81–113**, which
-described an earlier, different framing. See *Relationship to main.md*
-at the foot of this file.)
+Last updated: 2026-06-19 (adds **stages as priced services**, **packages**,
+**off-platform collection tooling**, and **sub-steps under a stage**.
+Initial draft same day established the Journey Tracker as the product's
+third pillar; **revises and supersedes the "Journey Tracker" section in
+[main.md](main.md) lines 81–113**, which described an earlier, different
+framing. See *Relationship to main.md* at the foot of this file.)
 
 > **Status: planning / design phase.** No schema or code yet. Table
 > names, JSONB shapes, and RLS specifics shown here are illustrative —
@@ -139,6 +140,37 @@ The reason to go rich: a tutor's day-to-day question isn't only "what
 step are they on" — it's "which specific documents are we still waiting
 on, and what's overdue."
 
+## Stages and sub-steps
+
+A stage can contain **sub-steps**. *Credential evaluation* isn't one
+action — it's open CGFNS account → request Ghana NMC verification →
+submit transcripts → biometrics → receive the CES report. So the tracker
+is two levels deep.
+
+This is deliberately the **same shape as the curriculum's optional
+`Block` layer** (`Unit → Block → Activity` in [main.md](main.md)) — a
+familiar pattern, applied here:
+
+- A stage is **either flat** (its own status, docs, and dates — no
+  sub-steps) **or has sub-steps**. Sub-steps are optional, exactly like
+  curriculum blocks.
+- When a stage has sub-steps, its **status rolls up** from them — "3 of
+  5 done · waiting on CGFNS" — rather than being set directly.
+- The **rich detail** (documents checklist, reference numbers, dates,
+  waiting-status) lives at whichever level is the **leaf**: the sub-step
+  if the stage has any, otherwise the stage itself.
+- **Two levels only in v1** (Stage → Sub-step). No deeper nesting.
+
+The hierarchy:
+
+```
+Journey / Case
+  ↓ has many
+Stage                 — the sellable / serviceable unit (see priced services)
+  ↓ has many (optional)
+Sub-step              — the actionable leaf; carries the rich detail
+```
+
 ## Stages are mostly "waiting on someone else"
 
 A key realisation from the real-world example: most stages aren't work
@@ -175,6 +207,76 @@ uploads, and hand-offs. Each stage becomes a small collaborative space:
 This shared, two-party model is exactly why the privacy wall above is
 scoped to *student + assigned tutor*: those are the only two actors.
 
+## Stages as priced services
+
+Tutors don't just *track* these stages — they **sell them**. In the
+tutor's own words, the stages are "services they provide and charge
+for." This is the commercial half of the *"here's what I can help you
+with"* menu: each offered stage carries *"…and here's my charge."* So
+the service menu and the stage list are one object, with a price hanging
+off each stage.
+
+### The service menu
+
+- A stage can be flagged **"I offer this as a service"** (a toggle), with
+  a **price**, the **currency** (the tutor's own — see *Money* below),
+  and a short **what's-included** note.
+- **Per relationship, each stage is one of two things:**
+  - **Self-handled** — the student does it themselves; no charge; the
+    tracker just follows along.
+  - **Tutor-serviced** — the tutor does/guides it for the agreed price.
+
+  This resolves the earlier open question about per-tutor vs
+  per-relationship service scope: the menu of *offerable* services is the
+  tutor's, but **which stages a given student takes** is decided per
+  relationship.
+- **Pricing sits at the stage level** — the stage is the sellable unit.
+  Per-sub-step pricing is deferred to v2.
+
+### Packages (v1)
+
+A tutor can bundle several stages into a named **package** at a package
+price — e.g. *"Full US migration support."* The student can buy the
+**package** or pick services **à la carte**. Per-stage prices still exist
+underneath; a package is just a named bundle with its own price. (Full
+package payment was explicitly confirmed for v1.)
+
+### Money — off-platform, platform-tracked
+
+**QAcademy never touches the money and takes no cut.** The tutor
+collects; QAcademy is not a party to the transaction. This matches the
+settled revenue model (tutor fees stay off-platform — [main.md](main.md)
+→ Pricing) and **protects the privacy wall**: if funds ran through any
+QAcademy-owned processor, QAcademy would see who paid whom for what,
+breaking "blind to the case."
+
+But the platform **does** give tutors a *system to collect through* — it
+just isn't a till:
+
+- The tutor raises a **structured payment request / invoice** against a
+  stage or a package — amount, currency, what's-included.
+- The case carries a **paid / unpaid status** the tutor (or student)
+  sets, inside the two-party wall like everything else in the case.
+- The actual money moves by **the tutor's own means** (bank, mobile
+  money, their own payment link). The platform records the agreement and
+  the trail; it does not process the charge.
+
+> **Open — collection depth.** Whether v1 also lets a student pay
+> **in-app by card via the tutor's own connected processor** (money still
+> settling to the tutor, QAcademy not a party) is undecided. Leaning
+> **no** for v1: per-tutor processor onboarding is substantial, edges
+> into the marketplace-billing CLAUDE.md defers to v2, and any
+> QAcademy-visible transaction metadata is in tension with the privacy
+> wall. v1 = invoicing + paid-tracking only. See *Open questions*.
+
+### The v2 monetisation seam
+
+This priced-services structure is exactly where an on-platform
+commission / escrow model would bolt on later, **if** QAcademy ever
+chose to monetise the journey. Not built in v1 — the "platform tutors
+rent, not a commission-taking middleman" positioning holds — but worth
+naming so the v1 shape doesn't foreclose it.
+
 ## Relationship model
 
 The journey is a **tutor↔student relationship (the "case")** that exists
@@ -185,8 +287,10 @@ Tutor
   ↓ takes on
 Journey / Case            — the tutor↔student relationship
   ↓ has many
-Stage                     — configurable; tutor-customised from a template
-  ↓ (the exam-prep stage)
+Stage                     — configurable from a template; the sellable unit
+  ↓ has many (optional)
+Sub-step                  — the actionable leaf; carries the rich detail
+                            (the exam-prep stage instead plugs in ↓)
 Programme / Cohort enrolment   — plugs into ONE stage, doesn't own the case
 ```
 
@@ -236,11 +340,12 @@ Not yet decided — flagged so they're not silently assumed:
    model, as a baseline), or does the journey only light up once a tutor
    takes them on? *(Parked.)*
 
-3. **Service-scope configuration — per-tutor vs per-relationship.** Is
-   "what I can help you with" a standing **per-tutor** menu, or
-   customised **per student** (tutor helps student A with everything but
-   student B with only exam prep)? Leaning per-relationship with a
-   per-tutor default. *(Open.)*
+3. **Collection depth — invoice-only vs in-app card.** v1 leans to
+   invoicing + paid-tracking, with money moving by the tutor's own means
+   (see *Stages as priced services → Money*). Whether to also let a
+   student pay **in-app by card via the tutor's own connected processor**
+   is undecided — leaning no for v1 (build cost, marketplace-billing
+   deferral, privacy-wall tension). *(Open.)*
 
 4. **Template authorship.** Confirmed QAcademy ships the neutral
    per-destination starter templates (no student data). Whether tutors
@@ -255,6 +360,10 @@ Not yet decided — flagged so they're not silently assumed:
    the exact bucket layout and two-party storage policy are a build
    decision.
 
+**Resolved this session:** service scope is **per-relationship** (the
+tutor's menu of offerable services is standing; *which* a given student
+takes is decided per relationship) — see *Stages as priced services*.
+
 ## Deferred (not v1, unless re-opened)
 
 - Multi-destination template library beyond the first Ghana→US seed.
@@ -264,6 +373,13 @@ Not yet decided — flagged so they're not silently assumed:
   everything is manually tracked in v1.
 - Document review/approval workflows beyond upload + the two-party
   back-and-forth.
+- **In-app card collection** via the tutor's own connected processor
+  (v1 is invoice + paid-tracking only — pending the *collection depth*
+  open question).
+- **Per-sub-step pricing** (v1 prices at the stage level only).
+- **On-platform commission / escrow** — the v2 monetisation seam; the
+  v1 shape leaves room for it but does not build it.
+- **Deeper nesting** below sub-steps (v1 is two levels: stage → sub-step).
 
 ## Relationship to main.md
 
@@ -278,6 +394,8 @@ different design:
 | Pipeline | Fixed phases 0–7 (hard-coded) | Configurable; template + tutor customisation |
 | Stage depth | Phase state + checklist | Rich (docs, refs, dates, uploads, back-and-forth) |
 | Tutor's role | Can *view* enrolled students' journey | *Owns* and *manages* the journey |
+| Charging | Not addressed | Stages are priced services + packages; off-platform collection, platform-tracked |
+| Structure depth | Flat phases | Stage → optional sub-step (two levels) |
 | Relationship to programme | Programme plugs into Phase 4 (retained ✓) | Same — programme is a child of the exam stage |
 
 The one piece that carries over unchanged: **the programme plugs into
