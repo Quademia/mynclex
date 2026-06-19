@@ -1,12 +1,15 @@
 # Journey Tracker
 
 *Planning document. Captures the design conversation of 2026-06-19.*
-Last updated: 2026-06-19 (adds **stages as priced services**, **packages**,
-**off-platform collection tooling**, and **sub-steps under a stage**.
-Initial draft same day established the Journey Tracker as the product's
-third pillar; **revises and supersedes the "Journey Tracker" section in
-[main.md](main.md) lines 81–113**, which described an earlier, different
-framing. See *Relationship to main.md* at the foot of this file.)
+Last updated: 2026-06-19 (**corrects the access model** — admins keep
+normal oversight; there is no special admin blind spot, only
+relationship-scoped tutor↔student access. Adds **bank-only self-managed
+tracker**, **tutor-saved custom templates**. Earlier same-day rounds
+added priced services, packages, off-platform collection tooling, and
+sub-steps, and established the Journey Tracker as the product's third
+pillar. **Revises and supersedes the "Journey Tracker" section in
+[main.md](main.md) lines 81–113.** See *Relationship to main.md* at the
+foot of this file.)
 
 > **Status: planning / design phase.** No schema or code yet. Table
 > names, JSONB shapes, and RLS specifics shown here are illustrative —
@@ -49,10 +52,11 @@ This is the heart of the reframe, and it differs sharply from the old
 main.md framing.
 
 - **QAcademy = the platform / tool-maker.** It builds the system and
-  ships a neutral, per-destination **starter template** of stages (which
-  contains *no student data*). QAcademy does **not** run anyone's
-  journey and **does not see any individual student's journey details or
-  documents.** It is deliberately blind to the case contents.
+  ships neutral, per-destination **starter templates** of stages. It is
+  **not the migration agent** and does **not run** anyone's journey — it
+  provides the rails, the tutor does the work. (This is a *positioning*
+  point, not an access-control wall: QAcademy admins retain normal
+  platform oversight — see *Access model*.)
 
 - **The tutor = the migration agent / case manager.** In real life,
   MyNclex's tutors already do this work — they help students with CGFNS
@@ -75,33 +79,32 @@ with the real-world relationships and the agent role. So the journey is a
 **tutor-delivered service on QAcademy rails**, not a QAcademy-run
 service.
 
-## The privacy wall (non-negotiable)
+## Access model
 
-"QAcademy doesn't see student details" is an **engineering constraint**,
-not just a value statement — and it's unusual enough to call out loudly
-because it inverts the app's normal posture.
+> **Corrected 2026-06-19.** An earlier draft of this section claimed a
+> "privacy wall" blinding even super-admins from journey contents. That
+> over-read the intent. **Admins retain normal platform oversight** — as
+> they do everywhere else in MyNclex. "QAcademy doesn't get involved in
+> student details" is a *positioning* statement (QAcademy isn't the
+> migration agent), not a special RLS carve-out against admins.
 
-Everywhere else in MyNclex, a SUPER_ADMIN can ultimately read
-everything. **The journey tables are the exception.** A student's
-journey contents — stage statuses, notes, the back-and-forth, and
-(later) uploaded documents — are visible to **exactly two parties: the
-student, and their assigned tutor.** Not other tutors. Not admins. Not
-super-admin.
+A journey case is operationally a **tutor↔student workspace** — those
+are the two parties who *act* on it day to day. Visibility:
 
-Implications to bake in from the very first table (cheaper now than
-retrofitting):
+- **The student** — reads and acts on their own case.
+- **The assigned tutor(s)** — read and act on the cases of *their* own
+  students.
+- **Other tutors** — **no** access to cases that aren't theirs (a tutor
+  never sees another tutor's students' journeys).
+- **Admin / super-admin** — full oversight, same as everywhere else in
+  the platform. No special blind spot.
 
-- RLS on the journey tables grants read/write to the student who owns
-  the case and the tutor(s) assigned to it — and to **no admin role**.
-- Any platform-level analytics or admin views must operate on
-  **non-identifying aggregates at most** (e.g. counts), never on case
-  contents. Whether even aggregates are exposed is an open question.
-- Uploaded documents land in a storage bucket with the same two-party
-  policy, not the general `nclex_` asset buckets.
-
-This is a deliberate, slightly unusual permission stance. It's the one
-rule most likely to be violated by habit ("admins can see everything"),
-so it's written first.
+So the RLS shape is **relationship-scoped, not admin-blind**: rows are
+visible to the owning student and the assigned tutor(s), tutor-to-tutor
+isolation holds, and admin roles keep their normal reach. This mirrors
+how the rest of MyNclex already gates tutor-private data (cf. the
+`nclex_tutor_*` parallel-ownership model in [bank.md](bank.md)) — it is
+**not** a new or unusual permission stance.
 
 ## Configurable, not hard-coded
 
@@ -116,13 +119,33 @@ Instead:
 
 - QAcademy ships a sensible **starter template** per destination (the
   Ghana→US template seeded from the real tutor example below).
-- Each tutor **starts from the template and customises** — rename,
+- Each tutor **starts from a template and customises** — rename,
   reorder, add, and remove stages — to match how *they* actually work.
+- A tutor can **save their own custom templates** (v1) and reuse them
+  across students — not just tweak QAcademy's starter each time. So the
+  template pool is: QAcademy's per-destination starters **plus** each
+  tutor's own saved templates (private to that tutor).
 - A tutor is never staring at a blank page, but is never boxed into
   someone else's pipeline either.
 
 This is a direct revision of the old main.md framing, which hard-coded
 phases 0–7 as a fixed platform structure.
+
+## Bank-only students
+
+The journey is a **universal student surface**, not a tutored-only one.
+A student with no tutor (bank-only / self-study) gets a **simple,
+self-managed tracker**: they see the stages, set their own statuses, keep
+their own notes and documents, and move themselves along. No service
+menu, no payments, no two-sided back-and-forth — just the student's own
+view of where they are. (This is essentially the old self-update model
+from main.md, kept as the baseline for the untutored case.)
+
+When a tutor later takes the student on, the journey **upgrades** into
+the full tutor-managed case (services, packages, shared workspace). The
+exact hand-over mechanics — whether the self-managed history carries
+over, and how a tutor "adopts" an existing self-managed journey — are a
+build detail.
 
 ## Rich stages, not light
 
@@ -204,8 +227,9 @@ uploads, and hand-offs. Each stage becomes a small collaborative space:
   trail. That audit log is what makes the uploads and hand-offs
   trustworthy.
 
-This shared, two-party model is exactly why the privacy wall above is
-scoped to *student + assigned tutor*: those are the only two actors.
+The tutor and the student are the two parties who *act* on a case — which
+is why the *Access model* above scopes the working relationship to them
+(with admin oversight intact, and other tutors excluded).
 
 ## Stages as priced services
 
@@ -245,10 +269,11 @@ package payment was explicitly confirmed for v1.)
 
 **QAcademy never touches the money and takes no cut.** The tutor
 collects; QAcademy is not a party to the transaction. This matches the
-settled revenue model (tutor fees stay off-platform — [main.md](main.md)
-→ Pricing) and **protects the privacy wall**: if funds ran through any
-QAcademy-owned processor, QAcademy would see who paid whom for what,
-breaking "blind to the case."
+settled revenue model — tutor fees stay off-platform, in the tutor's own
+currency, with no payment splits and QAcademy not acting as a middleman
+([main.md](main.md) → Pricing). It also keeps the marketplace-billing
+machinery (connected accounts, splits) firmly in v2, where CLAUDE.md
+parks it.
 
 But the platform **does** give tutors a *system to collect through* — it
 just isn't a till:
@@ -256,18 +281,15 @@ just isn't a till:
 - The tutor raises a **structured payment request / invoice** against a
   stage or a package — amount, currency, what's-included.
 - The case carries a **paid / unpaid status** the tutor (or student)
-  sets, inside the two-party wall like everything else in the case.
+  sets, recorded in the case like everything else.
 - The actual money moves by **the tutor's own means** (bank, mobile
   money, their own payment link). The platform records the agreement and
   the trail; it does not process the charge.
 
-> **Open — collection depth.** Whether v1 also lets a student pay
-> **in-app by card via the tutor's own connected processor** (money still
-> settling to the tutor, QAcademy not a party) is undecided. Leaning
-> **no** for v1: per-tutor processor onboarding is substantial, edges
-> into the marketplace-billing CLAUDE.md defers to v2, and any
-> QAcademy-visible transaction metadata is in tension with the privacy
-> wall. v1 = invoicing + paid-tracking only. See *Open questions*.
+> **Decided (v1): invoicing + paid-tracking only.** No in-app card
+> payment via the tutor's own connected processor — per-tutor processor
+> onboarding is substantial and edges into the marketplace-billing
+> machinery CLAUDE.md defers to v2. Revisit then.
 
 ### The v2 monetisation seam
 
@@ -345,23 +367,12 @@ shape is identical, contents differ.
 
 Not yet decided — flagged so they're not silently assumed:
 
-1. **The no-tutor / bank-only student.** Does a student with no tutor get
-   a basic **self-service view** of the stages (the old self-update
-   model, as a baseline), or does the journey only light up once a tutor
-   takes them on? *(Parked.)*
+1. **Document storage + RLS specifics.** Rich stages include uploads;
+   the exact bucket layout and relationship-scoped storage policy are a
+   build decision.
 
-2. **Template authorship.** Confirmed QAcademy ships the neutral
-   per-destination starter templates (no student data). Whether tutors
-   can also save *their own* reusable templates is open.
-
-3. **Aggregate visibility to QAcademy.** The privacy wall blocks case
-   contents from admins. Whether *non-identifying aggregates* (counts,
-   stage distributions) are surfaced to QAcademy at all is undecided —
-   default to nothing until there's a reason.
-
-4. **Document storage + RLS specifics.** Rich stages include uploads;
-   the exact bucket layout and two-party storage policy are a build
-   decision.
+(Everything raised in this planning conversation is otherwise resolved —
+see below.)
 
 **Resolved this session:**
 
@@ -371,21 +382,27 @@ Not yet decided — flagged so they're not silently assumed:
 - **Collection depth: invoice + paid-tracking only in v1.** No in-app
   card payment via a connected processor — deferred (see *Deferred*).
 - **Tutor's primary surface is the individual case file** — see *Tutor's
-  working surface* below. A board-style grid of all students is a v2
-  idea.
+  working surface*. A board-style grid of all students is a v2 idea.
+- **Bank-only (no-tutor) students get a simple self-managed tracker** —
+  the journey is a universal student surface, not tutor-only. See
+  *Bank-only students* below.
+- **Tutors can save their own custom templates** — not just customise
+  QAcademy's starter per student. See *Configurable, not hard-coded*.
+- **No special admin blind spot.** Admins keep normal platform oversight;
+  the access model is relationship-scoped, not admin-blind. See *Access
+  model*.
 
 ## Deferred (not v1, unless re-opened)
 
-- Multi-destination template library beyond the first Ghana→US seed.
-- Tutor-authored reusable templates (vs. only customising the
-  QAcademy starter).
+- Multi-destination starter templates beyond the first Ghana→US seed
+  (UK NMC, Canada NNAS). *(Tutor-authored custom templates ARE in v1 —
+  see Configurable.)*
 - Any automated integration with external bodies (CGFNS, boards) —
   everything is manually tracked in v1.
-- Document review/approval workflows beyond upload + the two-party
+- Document review/approval workflows beyond upload + the tutor↔student
   back-and-forth.
 - **In-app card collection** via the tutor's own connected processor
-  (v1 is invoice + paid-tracking only — pending the *collection depth*
-  open question).
+  (v1 is invoice + paid-tracking only).
 - **Per-sub-step pricing** (v1 prices at the stage level only).
 - **On-platform commission / escrow** — the v2 monetisation seam; the
   v1 shape leaves room for it but does not build it.
@@ -401,9 +418,9 @@ different design:
 
 | Topic | Old main.md framing | This document |
 |---|---|---|
-| Who runs it | QAcademy provides structure; students self-update | Tutor is the case manager; both tutor + student act |
-| QAcademy's role | Provides guidance content, *can* be involved | Platform only; **blind to case contents** |
-| Pipeline | Fixed phases 0–7 (hard-coded) | Configurable; template + tutor customisation |
+| Who runs it | QAcademy provides structure; students self-update | Tutored: tutor is case manager (both act). Bank-only: student self-manages |
+| QAcademy's role | Provides guidance content, *can* be involved | Platform / tool-maker; not the migration agent (admins keep normal oversight) |
+| Pipeline | Fixed phases 0–7 (hard-coded) | Configurable; QAcademy starter templates + tutor customisation + tutor-saved custom templates |
 | Stage depth | Phase state + checklist | Rich (docs, refs, dates, uploads, back-and-forth) |
 | Tutor's role | Can *view* enrolled students' journey | *Owns* and *manages* the journey |
 | Charging | Not addressed | Stages are priced services + packages; off-platform collection, platform-tracked |
