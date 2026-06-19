@@ -116,9 +116,13 @@ where you are."* Headline shape:
 - **Configurable, not hard-coded.** No fixed phase list. QAcademy ships
   per-destination **starter templates** (e.g. the Ghana→US pipeline:
   CGFNS credential evaluation → English (conditional) → state-board
-  application → NCLEX → licensure → VisaScreen → EB-3 immigration);
-  tutors customise per student
-  and can save their own reusable templates.
+  application → NCLEX → licensure → VisaScreen → EB-3 immigration).
+  Tutors customise **at the template level** (shape once, reuse for most
+  students) — cloning a starter into their own saved template — and
+  assign it as-is, adding **student-specific** steps only for the
+  exceptions (a pathway is an independent instance; per-student edits
+  don't touch the template). A dedicated **"My Pathways" tab** is where
+  tutors manage those templates.
 - **Rich stages with sub-steps.** A stage holds a documents checklist,
   reference numbers, dates, uploads, and a status lifecycle
   (`not started → in progress → submitted/waiting → complete`). A stage

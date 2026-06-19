@@ -1,7 +1,14 @@
 # Journey Tracker
 
 *Planning document. Captures the design conversation of 2026-06-19.*
-Last updated: 2026-06-19 (**splits the journey into two tiers** — a light
+Last updated: 2026-06-19 (**sharpens the template model** — tutors
+customise at the **template** level (build once, reuse for most students),
+*not* per student; a tutor can **clone a QAcademy starter into their own
+saved custom template**; adds a tutor **template-management surface** (a
+"My Pathways" page/tab); and confirms a pathway is an **independent
+instance** so per-student step/sub-step edits stay local — mirroring the
+cohort-specific-activities escape valve. Earlier same-day: **splits the
+journey into two tiers** — a light
 read-mostly **Pathway Guide** for every student, account-level and
 persistent past bank expiry, as the onboarding spine, + the rich tutor
 **Managed Case**; both ship in v1. Adds **entry points & onboarding**.
@@ -187,12 +194,24 @@ Instead:
 
 - QAcademy ships a sensible **starter template** per destination (US,
   UK, Canada — see *The default starter templates* below).
-- Each tutor **starts from a template and customises** — rename,
-  reorder, add, and remove stages — to match how *they* actually work.
-- A tutor can **save their own custom templates** (v1) and reuse them
-  across students — not just tweak QAcademy's starter each time. So the
-  template pool is: QAcademy's per-destination starters **plus** each
-  tutor's own saved templates (private to that tutor).
+- **Customisation lives at the template level, not per student.** A tutor
+  does the shaping **once** — rename, reorder, add, and remove stages — to
+  match how *they* work, then **reuses** that template across most of
+  their students. The everyday per-student action is simply **assign a
+  template as-is**, not rebuild one each time. (This corrects an earlier
+  "customise per student" framing, which would be far too much work.)
+- **Clone-and-save-as.** A tutor can take a QAcademy starter (or any
+  template), **modify it, and save it as a new custom template of their
+  own**. The clone is an **independent snapshot** — later edits to
+  QAcademy's starter don't change the tutor's saved copy. So the template
+  pool is: QAcademy's per-destination starters **plus** each tutor's own
+  saved templates (private to that tutor).
+- **One-off student needs use the escape valve, not a new template.**
+  When a specific student needs extra steps/sub-steps, the tutor edits
+  *that student's pathway instance* directly (see *Relationship model → A
+  pathway is an independent instance*) — no template is touched. The
+  effort curve: heavy once (template), light per student (assign),
+  occasional targeted tweak (escape valve).
 - A tutor is never staring at a blank page, but is never boxed into
   someone else's pipeline either.
 
@@ -374,7 +393,8 @@ naming so the v1 shape doesn't foreclose it.
 The journey is a **tutor↔student relationship (the "case")** that exists
 in its own right — broader than, and containing, any programme. A case
 holds **one or more pathways** (US, UK, Canada, or a tutor's custom one),
-each an instance of a template, over a **shared document vault**.
+each an **independent instance** (a snapshot copy) of a template, over a
+**shared document vault**.
 
 ```
 Template                  — reusable blueprint (QAcademy starters: US/UK/
@@ -386,8 +406,9 @@ Journey / Case            — the tutor↔student relationship; ONE per student
   ├─ Document vault       — the student's docs, held at case level, shared
   │                         across every pathway (upload once, reference anywhere)
   ↓ has one or more
-Pathway                   — a live instance of a template inside the case
-                            (e.g. "US pathway" + "Canada pathway" side by side)
+Pathway                   — a live, independent instance (snapshot copy) of a
+                            template inside the case (e.g. "US pathway" +
+                            "Canada pathway" side by side)
   ↓ has many
 Stage                     — configurable from the template; the sellable unit
   ↓ has many (optional)
@@ -395,6 +416,27 @@ Sub-step                  — the actionable leaf; carries the rich detail
                             (the exam-prep stage instead plugs in ↓)
 Programme / Cohort enrolment   — plugs into ONE stage, doesn't own the case
 ```
+
+### A pathway is an independent instance — per-student edits stay local
+
+Assigning a template to a student **copies** it into a pathway; from that
+moment the pathway is its own thing. Two rules follow:
+
+- **Per-student edits don't touch the template.** Once a student is on a
+  pathway, the tutor can **add or change steps and sub-steps for that
+  student only** — the outlier/specific cases. Those edits never flow back
+  to the source template, and never affect the tutor's other students.
+- **Template edits don't retro-propagate.** Editing a template later does
+  **not** rewrite pathways already assigned from it — assignment is a
+  one-time copy, not a live link.
+
+This is deliberately the **same model as cohort-specific activities** in
+programmes (a built, proven pattern): the template (like the programme)
+is shaped once and reused; a per-instance escape valve absorbs one-off
+needs without disturbing the shared blueprint. The carryover detail to
+settle in build is *how* a copy is stored (snapshot of the stage/sub-step
+rows vs. a tagged override layer) — the cohort model's "store" approach is
+the obvious starting reference.
 
 ### Why the case *contains* pathways (not the other way round)
 
@@ -452,6 +494,27 @@ dashboard.
 A **board-style grid** showing every student's stage at once (pipeline
 view across the whole caseload) is a natural later view, but it's **v2**.
 v1 = list → case file.
+
+### Two surfaces: the case file and the template manager
+
+The case file above is where a tutor works a **student**. A second,
+separate surface is where a tutor works their **templates**:
+
+- **A "My Pathways" (templates) page/tab.** A dedicated tutor surface to
+  **create, clone-from-a-starter, edit, organise, and delete** reusable
+  templates — the tutor's own template library, independent of any one
+  student. This is where the build-once shaping from *Configurable, not
+  hard-coded* actually happens.
+- Because the customisation lives here (not per student), the day-to-day
+  per-student action stays light: open a student → **assign a template** →
+  occasionally add a student-specific step (the escape valve).
+
+> **Terminology.** This page manages **templates** — the reusable
+> blueprints. A **pathway** is the live per-student instance created when
+> a template is assigned. The tutor-facing UI may well *say* "pathways"
+> (it reads more naturally than "templates"), but the two concepts stay
+> distinct in the model: edit a template here and it changes future
+> assignments; edit a pathway in a case and it changes only that student.
 
 ## Getting onto a journey (entry points & onboarding)
 
@@ -634,6 +697,23 @@ see below.)
 - **No special admin blind spot.** Admins keep normal platform oversight;
   the access model is relationship-scoped, not admin-blind. See *Access
   model*.
+- **Customisation is at the template level, not per student** (refinement
+  of the earlier "customise per student" wording). A tutor shapes a
+  template once and reuses it; assigning as-is is the common path;
+  per-student edits are the exception. See *Configurable, not hard-coded*.
+- **Clone-and-save-as.** A tutor can fork a QAcademy starter (or any
+  template) into a new **independent** custom template of their own
+  (a snapshot — QAcademy's later edits don't touch it). See *Configurable,
+  not hard-coded*.
+- **A tutor template-management surface** — a "My Pathways" page/tab is a
+  second tutor surface alongside the per-student case file, where the
+  reusable templates are created/cloned/edited/deleted. See *Tutor's
+  working surface → Two surfaces*.
+- **A pathway is an independent instance.** Assigning a template copies
+  it; per-student step/sub-step edits stay local (don't touch the template
+  or other students), and template edits don't retro-propagate to
+  already-assigned pathways — mirroring cohort-specific activities. See
+  *Relationship model → A pathway is an independent instance*.
 
 ## Deferred (not v1, unless re-opened)
 
