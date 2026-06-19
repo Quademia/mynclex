@@ -430,10 +430,11 @@ different design:
 The one piece that carries over unchanged: **the programme plugs into
 the exam-prep stage.** Everything else here supersedes the old section.
 
-**Action needed (not yet done):** reconcile `main.md` — either trim its
-Journey Tracker section to a pointer at this file, or rewrite it to
-match. That's a larger edit to a settled doc and is left for Sam's
-explicit go-ahead.
+**Reconciled 2026-06-19.** `main.md`'s Journey Tracker section was
+rewritten to a concise overview matching this design and pointing here;
+its dashboard wording (phase → stage) and the "admin-authored phase
+content" open item were updated to the template model, and this file was
+added to its Related Files list.
 
 ## Related files
 

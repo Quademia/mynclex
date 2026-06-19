@@ -1,7 +1,13 @@
 # MyNclex — Product Plan
 
 *Living document. Filled in as decisions get made.*
-Last updated: 2026-05-11 (curriculum architecture rework — modules renamed to **blocks**; weeks abstracted to a generic **units** layer; activities can live loose under a unit or inside a block; **delivery modes** introduced — tutor-led cohort vs self-paced — **both ship in v1**; **unit label is an independent tutor choice** (Week / Module), decoupled from delivery mode, with smart defaults. Programme/cohort split from 2026-05-10 retained.)
+Last updated: 2026-06-19 (Journey Tracker reframed as the product's
+**third pillar** — a tutor↔student case-management layer with
+configurable rich stages, stages-as-priced-services, and a
+relationship-scoped access model; full design in
+[journey-tracker.md](journey-tracker.md). The old "fixed phases 0–7,
+QAcademy-provided" section is superseded.)
+Earlier: 2026-05-11 (curriculum architecture rework — modules renamed to **blocks**; weeks abstracted to a generic **units** layer; activities can live loose under a unit or inside a block; **delivery modes** introduced — tutor-led cohort vs self-paced — **both ship in v1**; **unit label is an independent tutor choice** (Week / Module), decoupled from delivery mode, with smart defaults. Programme/cohort split from 2026-05-10 retained.)
 
 ---
 
@@ -80,37 +86,58 @@ MyNclex has four roles. A single user can hold more than one role
 
 ## Journey Tracker
 
-Every MyNclex student gets a Journey Tracker — a built-in,
-always-on view of where they are in the international nurse licensure
-process. QAcademy provides the structure and guidance content.
-Students self-update their progress. QAcademy does not act as a
-migration service provider; students do the paperwork themselves.
+> **Reframed 2026-06-19.** The Journey Tracker is now the product's
+> **third pillar** (alongside the Bank and Programmes) — a
+> tutor↔student case-management layer for the whole licensure journey,
+> *broader than* and *containing* a programme. This section is the
+> overview; the full design lives in
+> [journey-tracker.md](journey-tracker.md). It supersedes the earlier
+> "fixed phases 0–7, QAcademy-provided, student-self-update" framing.
 
-### Phases (v1 builds 0–6; Phase 7 deferred to v2)
+The Journey Tracker is the tooling a tutor uses to tell a student
+*"here's what I can help you with on your NCLEX journey, and here's
+where you are."* Headline shape:
 
-0. **Destination & plan** — pick country and state/region; everything
-   downstream branches on this choice.
-1. **Credential evaluation** — CGFNS (US), NMC verification (UK),
-   NNAS (Canada), or country equivalent.
-2. **English proficiency** — conditional phase; skippable for nurses
-   educated in English.
-3. **State Board / Regulator application** — apply to chosen
-   jurisdiction's nursing authority.
-4. **Exam prep** — the core study phase. Self-study with the bank, or
-   enrol in a tutor's programme. Tutor programmes plug in here.
-5. **ATT & exam booking** — receive Authorization to Test, register
-   with Pearson VUE, sit NCLEX-RN.
-6. **Licensure** — receive state/regulator licence.
-7. **Migration** *(v2)* — VisaScreen, visa application, relocation.
-   Deferred; this is where higher-margin optional services may sit.
+- **Third pillar.** Bank (questions) · Programmes (structured prep) ·
+  **Journey** (the tutor-managed case). A programme plugs into the
+  exam-prep *stage* of a journey — the journey is the parent, not the
+  programme.
+- **Tutor as case manager.** MyNclex's tutors already act as migration
+  agents in real life (CGFNS registration, board applications, etc.).
+  The tracker is the tool they run that work through. Both tutor and
+  student act on a case (requests, uploads, status, a who-did-what
+  trail).
+- **Bank-only students self-manage.** A student with no tutor gets a
+  simple self-managed version of the tracker; it upgrades to the full
+  tutor-managed case when a tutor takes them on. (This is the only piece
+  of the old "students self-update" model that survives.)
+- **Configurable, not hard-coded.** No fixed phase list. QAcademy ships
+  per-destination **starter templates** (e.g. the Ghana→US pipeline:
+  CGFNS application → Ghana NMC verification → biometrics → state-board
+  registration → sit the NCLEX → onward); tutors customise per student
+  and can save their own reusable templates.
+- **Rich stages with sub-steps.** A stage holds a documents checklist,
+  reference numbers, dates, uploads, and a status lifecycle
+  (`not started → in progress → submitted/waiting → complete`). A stage
+  can expand into sub-steps (two levels), with status rolling up.
+- **Stages as priced services + packages.** Tutors offer stages as paid
+  services (à la carte or bundled into a package). **QAcademy takes no
+  cut and never touches the money** — collection is off-platform; the
+  platform provides invoicing + paid-tracking only.
+- **Access is relationship-scoped.** A case is visible to the student
+  and their assigned tutor(s); other tutors are excluded; **admins keep
+  normal platform oversight** (no special blind spot).
 
 ### Tracker ↔ tutor programme link
 
-Tutor programmes plug into Phase 4 (Exam prep). Enrolling in a
-programme updates the tracker's Phase 4 state. Tutors can see their
-enrolled students' wider journey status (e.g. whether a student is
-still waiting on credential verification), so coaching accounts for
-the full picture.
+A tutor programme plugs into the **exam-prep stage** of the journey.
+Enrolling in a programme updates that stage; the programme/cohort is a
+child of the stage, not the root of the journey. A student can be
+managed through credentialing before any course exists, or keep a tutor
+for later stages after exam prep ends.
+
+See **[journey-tracker.md](journey-tracker.md)** for the full design,
+data-model shape, open items, and deferrals.
 
 ## Programme Structure
 
@@ -457,7 +484,7 @@ cohort:
 - Overall cohort progress %
 - Next live session (date + join link)
 - Most recent mock assessment score
-- Journey tracker snapshot (current phase, % through it)
+- Journey tracker snapshot (current stage, % through it)
 
 A student enrolled in multiple cohorts sees a cohort switcher; one
 dashboard per cohort.
@@ -578,9 +605,11 @@ deliberately narrow.
 
 ### Open items within programme structure
 
-- Journey-tracker phase content (rich text + checklist per destination
-  country) is an admin-authored content task, handled during build,
-  not in planning.
+- Journey-tracker **starter-template content** (the per-destination
+  default stages QAcademy ships) is a content task handled during build,
+  not in planning. (Note: this is a neutral *starter* tutors customise —
+  not a fixed admin-authored pipeline. See
+  [journey-tracker.md](journey-tracker.md).)
 - Revenue model is parked in the Pricing topic.
 - Cohort-only *content overrides* (a cohort changes the body of a
   template activity for itself only) are deliberately not in v1 —
@@ -957,6 +986,9 @@ added here as they emerge.
     editors
   - `payments-and-enrolment.md` — student payment flows, product
     catalogue, and enrolment (both self-study and tutored)
+  - `journey-tracker.md` — the Journey Tracker (third pillar):
+    tutor↔student case management, configurable rich stages,
+    stages-as-priced-services, access model
   - `tutor-library.md` — tutor's reusable teaching notes (BUILT;
     adds Library Note + Shelf as the 7th + 8th activity types, slices
     11.11 / 11.12)
