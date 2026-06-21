@@ -29,12 +29,24 @@ import {
   nextStudentSession,
   studentAttendanceRecord,
 } from '@/lib/cohorts/student/sessions-format';
+import { getProgrammeHistoryAttempts } from '@/lib/practice/history/programme-queries';
+import { getStudentProgrammeQuizzes } from '@/lib/student-quizzes/queries';
+import { getStudentLibrarySnapshot } from '@/lib/library/student/queries';
+import { getStudentLibraryHomeData } from '@/lib/library/student/home-queries';
+import type { ProgrammeHistoryAttempt } from '@/lib/practice/history/programme-types';
+import type { StudentQuizRow } from '@/lib/student-quizzes/types';
+import type {
+  ActivityProgressMap,
+} from '@/lib/progress/types';
 import type {
   StudentActivity,
   StudentCurriculumTree,
 } from '@/lib/curriculum/types';
 import type {
   OverviewContinue,
+  OverviewLibrary,
+  OverviewQuizzes,
+  OverviewRecentItem,
   OverviewStreak,
   StudentOverviewData,
 } from './types';
@@ -53,10 +65,17 @@ export async function getStudentProgrammeOverview(
   if (!tree) return null;
 
   const nowMs = Date.now();
-  const [firstName, streak] = await Promise.all([
-    readFirstName(),
-    computeStudyStreak(tree, nowMs),
-  ]);
+  const basePath = basePathFor(tree);
+  const [firstName, progressMap, attempts, quizRows, library] =
+    await Promise.all([
+      readFirstName(),
+      getActivityProgressMap(collectActivityIds(tree)),
+      getProgrammeHistoryAttempts(programmeId),
+      getStudentProgrammeQuizzes(programmeId),
+      buildLibrary(programmeId, `${basePath}/library`),
+    ]);
+
+  const streak = studyStreakFromMap(progressMap, nowMs);
 
   return {
     mode: 'self',
@@ -65,6 +84,10 @@ export async function getStudentProgrammeOverview(
     heroStreak: streak.current,
     nextSession: null,
     studyStreak: streak,
+    recent: buildRecentActivity(tree, progressMap, attempts),
+    quizzes: buildQuizzes(quizRows, attempts, basePath),
+    library,
+    attendance: null,
     nowMs,
   };
 }
@@ -80,7 +103,21 @@ export async function getStudentCohortOverview(
   if (!tree) return null;
 
   const nowMs = Date.now();
-  const firstName = await readFirstName();
+  const programmeId = tree.programme.programme_id;
+  const basePath = basePathFor(tree);
+
+  // Quiz / library / history reads scope to the PROGRAMME (attempts attach
+  // to the template programme via the activity, not the cohort; the library
+  // is tutor-keyed) — so the same programme-level helpers serve both modes.
+  const [firstName, progressMap, attempts, quizRows, library] =
+    await Promise.all([
+      readFirstName(),
+      getActivityProgressMap(collectActivityIds(tree)),
+      getProgrammeHistoryAttempts(programmeId),
+      getStudentProgrammeQuizzes(programmeId),
+      buildLibrary(programmeId, `${basePath}/library`),
+    ]);
+
   const sessions = sessionsData?.sessions ?? [];
   const record = studentAttendanceRecord(sessions);
   const next = nextStudentSession(sessions, nowMs);
@@ -100,6 +137,19 @@ export async function getStudentCohortOverview(
         }
       : null,
     studyStreak: null,
+    recent: buildRecentActivity(tree, progressMap, attempts),
+    quizzes: buildQuizzes(quizRows, attempts, basePath),
+    library,
+    // The card only earns its place once the cohort actually has live
+    // sessions; otherwise it would read "0 attended" forever.
+    attendance:
+      sessions.length > 0
+        ? {
+            attended: record.attended,
+            held: record.held,
+            streak: record.streak,
+          }
+        : null,
     nowMs,
   };
 }
@@ -107,6 +157,14 @@ export async function getStudentCohortOverview(
 // ─────────────────────────────────────────────────────────
 // Shared core (mode-agnostic fields)
 // ─────────────────────────────────────────────────────────
+
+// basePath for either delivery mode: /student/cohort/<id> (tutor-led) or
+// /student/programme/<id> (self-paced).
+function basePathFor(tree: StudentCurriculumTree): string {
+  return tree.cohort
+    ? `/student/cohort/${tree.cohort.cohort_id}`
+    : `/student/programme/${tree.programme.programme_id}`;
+}
 
 function coreFields(
   tree: StudentCurriculumTree,
@@ -117,17 +175,20 @@ function coreFields(
   | 'heroStreak'
   | 'nextSession'
   | 'studyStreak'
+  | 'recent'
+  | 'quizzes'
+  | 'library'
+  | 'attendance'
   | 'nowMs'
 > {
   const agg = aggregateProgress(tree);
-  const basePath = tree.cohort
-    ? `/student/cohort/${tree.cohort.cohort_id}`
-    : `/student/programme/${tree.programme.programme_id}`;
+  const basePath = basePathFor(tree);
 
   return {
     basePath,
     curriculumHref: `${basePath}/curriculum`,
     libraryBasePath: `${basePath}/library`,
+    quizHistoryHref: `${basePath}/history`,
     programmeTitle: tree.programme.title,
     cohortName: tree.cohort?.name ?? null,
     overallPct: agg.overallPct,
@@ -198,21 +259,10 @@ function indexActivities(
   return map;
 }
 
-// ─────────────────────────────────────────────────────────
-// Study streak (self-paced)
-// ─────────────────────────────────────────────────────────
-
-// Consecutive UTC days with ≥1 completed activity in this programme. UTC
-// day buckets match the calendar day for the core audience (Ghana, UTC+0).
-//
-// v1 scope: counts completions in nclex_student_activity_progress (TEXT /
-// PDF / link / quizzes). LIBRARY_NOTE / SHELF "done" lives elsewhere
-// (note-state) and isn't folded in yet — a minor undercount for
-// reading-heavy days; revisit if it matters.
-async function computeStudyStreak(
-  tree: StudentCurriculumTree,
-  nowMs: number,
-): Promise<OverviewStreak> {
+// Every non-live activity id in the tree — the set whose progress rows we
+// read once and reuse for both the study streak and the recent feed. Live
+// sessions never get a progress row, so they're excluded.
+function collectActivityIds(tree: StudentCurriculumTree): string[] {
   const ids: string[] = [];
   for (const u of tree.units) {
     for (const entry of u.body) {
@@ -222,9 +272,27 @@ async function computeStudyStreak(
       }
     }
   }
-  const map = await getActivityProgressMap(ids);
+  return ids;
+}
+
+// ─────────────────────────────────────────────────────────
+// Study streak (self-paced)
+// ─────────────────────────────────────────────────────────
+
+// Consecutive UTC days with ≥1 completed activity in this programme, from
+// an already-fetched progress map. UTC day buckets match the calendar day
+// for the core audience (Ghana, UTC+0).
+//
+// v1 scope: counts completions in nclex_student_activity_progress (TEXT /
+// PDF / link / quizzes). LIBRARY_NOTE / SHELF "done" lives elsewhere
+// (note-state) and isn't folded in yet — a minor undercount for
+// reading-heavy days; revisit if it matters.
+function studyStreakFromMap(
+  progressMap: ActivityProgressMap,
+  nowMs: number,
+): OverviewStreak {
   const times: string[] = [];
-  for (const row of map.values()) {
+  for (const row of progressMap.values()) {
     if (row.completed_at) times.push(row.completed_at);
   }
   return studyStreak(times, nowMs);
@@ -266,6 +334,168 @@ function studyStreak(completedAtIso: string[], nowMs: number): OverviewStreak {
     cursor -= 1;
   }
   return { current, best };
+}
+
+// ─────────────────────────────────────────────────────────
+// Recent activity (both modes)
+// ─────────────────────────────────────────────────────────
+
+// Merge quiz attempts (score / in-progress) with non-quiz activity
+// completions into one feed, newest first, capped at 5. Quiz activities
+// are represented by their attempts (which carry the score); their
+// progress completion is skipped so they don't double up.
+function buildRecentActivity(
+  tree: StudentCurriculumTree,
+  progressMap: ActivityProgressMap,
+  attempts: ProgrammeHistoryAttempt[],
+): OverviewRecentItem[] {
+  const label = tree.programme.unit_label;
+  const events: Array<{ ts: string; item: OverviewRecentItem }> = [];
+
+  // Quiz attempts — in-progress (resume signal) + scored terminal.
+  // Abandoned attempts with no score are dropped (noise).
+  for (const a of attempts) {
+    let pill: string;
+    let pillKind: OverviewRecentItem['pillKind'];
+    if (a.status === 'IN_PROGRESS') {
+      pill = 'In progress';
+      pillKind = 'prog';
+    } else if (
+      a.final_score != null &&
+      (a.status === 'COMPLETED' || a.status === 'TIMED_OUT')
+    ) {
+      pill = `${Math.round(a.final_score * 100)}%`;
+      pillKind =
+        a.pass_score != null
+          ? a.final_score >= a.pass_score
+            ? 'score-pass'
+            : 'score-fail'
+          : 'score';
+    } else {
+      continue;
+    }
+    events.push({
+      ts: a.created_at,
+      item: {
+        key: `att-${a.attempt_id}`,
+        icon: ACTIVITY_TYPE_ICON[a.activity_type],
+        title: a.activity_title,
+        meta: `${unitLabel(a.unit_index, label)} · ${activityTypeLabel(a.activity_type)}`,
+        pill,
+        pillKind,
+      },
+    });
+  }
+
+  // Non-quiz completions — from the progress map, joined to the tree for
+  // title / type / unit. Quiz + live-session types excluded (quizzes are
+  // covered by attempts above; live sessions aren't "completions").
+  const idx = indexActivities(tree);
+  for (const [activityId, row] of progressMap) {
+    const hit = idx.get(activityId);
+    if (!hit) continue;
+    const t = hit.activity.type;
+    if (t === 'MOCK' || t === 'PRACTICE_QUIZ' || t === 'ONLINE_LIVE_SESSION') {
+      continue;
+    }
+    events.push({
+      ts: row.completed_at,
+      item: {
+        key: `done-${activityId}`,
+        icon: ACTIVITY_TYPE_ICON[t],
+        title: hit.activity.title,
+        meta: `${unitLabel(hit.unitIndex, label)} · ${activityTypeLabel(t)}`,
+        pill: 'Done',
+        pillKind: 'done',
+      },
+    });
+  }
+
+  events.sort((a, b) => b.ts.localeCompare(a.ts));
+  return events.slice(0, 5).map((e) => e.item);
+}
+
+// ─────────────────────────────────────────────────────────
+// Quizzes snapshot (both modes)
+// ─────────────────────────────────────────────────────────
+
+// Counts + resume target from the student quiz rows; last-mock score from
+// the attempt history (newest first). null when no quizzes are attached.
+function buildQuizzes(
+  quizRows: StudentQuizRow[],
+  attempts: ProgrammeHistoryAttempt[],
+  basePath: string,
+): OverviewQuizzes | null {
+  if (quizRows.length === 0) return null;
+
+  let done = 0;
+  let inProgress = 0;
+  let resume: OverviewQuizzes['resume'] = null;
+  for (const r of quizRows) {
+    if (r.state === 'DONE') done += 1;
+    else if (r.state === 'IN_PROGRESS') {
+      inProgress += 1;
+      // The quizzes page carries the actual Resume affordance; deep-link
+      // there rather than re-implement attempt routing here.
+      if (!resume) resume = { title: r.title, href: `${basePath}/quizzes` };
+    }
+  }
+
+  let lastMockScore: number | null = null;
+  let lastMockPassed: boolean | null = null;
+  for (const a of attempts) {
+    if (
+      a.activity_type === 'MOCK' &&
+      a.status === 'COMPLETED' &&
+      a.final_score != null
+    ) {
+      lastMockScore = Math.round(a.final_score * 100);
+      lastMockPassed =
+        a.pass_score != null ? a.final_score >= a.pass_score : null;
+      break;
+    }
+  }
+
+  return {
+    total: quizRows.length,
+    done,
+    inProgress,
+    resume,
+    lastMockScore,
+    lastMockPassed,
+    allHref: `${basePath}/quizzes`,
+  };
+}
+
+// ─────────────────────────────────────────────────────────
+// Library snapshot (both modes)
+// ─────────────────────────────────────────────────────────
+
+// Continue-reading note + bookmarked / recently-opened counts, reusing the
+// student library snapshot + Study-Home derivation. null when no notes are
+// visible to this student. Library is tutor-keyed, so the programme id
+// resolves the right library for both delivery modes.
+async function buildLibrary(
+  programmeId: string,
+  libraryHref: string,
+): Promise<OverviewLibrary | null> {
+  const snapshot = await getStudentLibrarySnapshot(programmeId);
+  if (!snapshot || snapshot.notes.length === 0) return null;
+
+  const home = await getStudentLibraryHomeData(snapshot);
+  const states = Object.values(home.stateByNote);
+  const bookmarked = states.filter((s) => s.bookmarkedAt != null).length;
+  const recentlyOpened = states.filter((s) => s.lastVisitedAt != null).length;
+
+  let continueTitle: string | null = null;
+  if (home.continueProgress) {
+    const note = snapshot.notes.find(
+      (n) => n.note_id === home.continueProgress!.noteId,
+    );
+    continueTitle = note?.title ?? null;
+  }
+
+  return { continueTitle, bookmarked, recentlyOpened, href: libraryHref };
 }
 
 // ─────────────────────────────────────────────────────────

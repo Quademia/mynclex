@@ -18,7 +18,13 @@ import Link from 'next/link';
 import { ActivityAction } from '@/lib/curriculum/activity-action';
 import { NextSessionCard } from './next-session-card';
 import type { RailUnit } from '@/lib/curriculum/student-curriculum-pane';
-import type { StudentOverviewData } from './types';
+import type {
+  OverviewAttendance,
+  OverviewLibrary,
+  OverviewQuizzes,
+  OverviewRecentItem,
+  StudentOverviewData,
+} from './types';
 
 const RING_R = 50;
 const RING_CIRC = 2 * Math.PI * RING_R;
@@ -99,7 +105,9 @@ export function StudentOverview({ data }: { data: StudentOverviewData }) {
               unitNoun={data.unitNoun}
             />
           )}
-          {/* Slice 2: Recent activity */}
+          {data.recent.length > 0 && (
+            <RecentActivity items={data.recent} historyHref={data.quizHistoryHref} />
+          )}
         </div>
 
         <div className="sho-col-rail">
@@ -115,7 +123,9 @@ export function StudentOverview({ data }: { data: StudentOverviewData }) {
               curriculumHref={data.curriculumHref}
             />
           )}
-          {/* Slice 2: Quizzes · Library · Attendance */}
+          {data.quizzes && <QuizzesCard quizzes={data.quizzes} />}
+          {data.library && <LibraryCard library={data.library} />}
+          {data.attendance && <AttendanceCard attendance={data.attendance} />}
         </div>
       </div>
     </div>
@@ -248,6 +258,137 @@ function WeekTag({ week }: { week: RailUnit }) {
     <span className={'sho-week-tag' + (week.status === 'up-next' ? ' is-up-next' : '')}>
       {week.pct == null ? '—' : `${week.pct}%`}
     </span>
+  );
+}
+
+// ── Recent activity (main column) ────────────────────────────
+function RecentActivity({
+  items,
+  historyHref,
+}: {
+  items: OverviewRecentItem[];
+  historyHref: string;
+}) {
+  return (
+    <section className="sho-card">
+      <div className="sho-card-head">
+        <h2 className="sho-card-title">Recent activity</h2>
+        <Link className="sho-card-link" href={historyHref}>
+          Quiz history →
+        </Link>
+      </div>
+      <div className="sho-recent">
+        {items.map((r) => (
+          <div key={r.key} className="sho-recent-row">
+            <span className="sho-recent-icon" aria-hidden="true">
+              {r.icon}
+            </span>
+            <div className="sho-recent-body">
+              <div className="sho-recent-title">{r.title}</div>
+              <div className="sho-recent-meta">{r.meta}</div>
+            </div>
+            <span className={`sho-recent-pill is-${r.pillKind}`}>{r.pill}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Quizzes snapshot (rail) ──────────────────────────────────
+function QuizzesCard({ quizzes }: { quizzes: OverviewQuizzes }) {
+  return (
+    <section className="sho-card">
+      <div className="sho-card-head">
+        <h2 className="sho-card-title">Quizzes</h2>
+        <Link className="sho-card-link" href={quizzes.allHref}>
+          All →
+        </Link>
+      </div>
+      <div className="sho-quiz-summary">
+        {quizzes.done} of {quizzes.total} done
+        {quizzes.inProgress > 0 ? ` · ${quizzes.inProgress} in progress` : ''}
+      </div>
+      {quizzes.resume && (
+        <Link className="sho-quiz-resume" href={quizzes.resume.href}>
+          <span className="sho-quiz-resume-icon" aria-hidden="true">
+            🎯
+          </span>
+          <div className="sho-quiz-resume-body">
+            <div className="sho-quiz-resume-title">{quizzes.resume.title}</div>
+            <div className="sho-quiz-resume-meta">In progress</div>
+          </div>
+          <span className="sho-quiz-resume-btn">Resume</span>
+        </Link>
+      )}
+      {quizzes.lastMockScore != null && (
+        <div className="sho-quiz-last">
+          Last mock:{' '}
+          <strong
+            className={
+              quizzes.lastMockPassed === false
+                ? 'sho-score is-fail'
+                : 'sho-score is-pass'
+            }
+          >
+            {quizzes.lastMockScore}%
+          </strong>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── Library snapshot (rail) ──────────────────────────────────
+function LibraryCard({ library }: { library: OverviewLibrary }) {
+  return (
+    <section className="sho-card">
+      <div className="sho-card-head">
+        <h2 className="sho-card-title">Library</h2>
+        <Link className="sho-card-link" href={library.href}>
+          Open →
+        </Link>
+      </div>
+      {library.continueTitle ? (
+        <Link className="sho-lib-continue" href={library.href}>
+          <span className="sho-lib-icon" aria-hidden="true">
+            📔
+          </span>
+          <div className="sho-lib-body">
+            <div className="sho-lib-eyebrow">Continue reading</div>
+            <div className="sho-lib-title">{library.continueTitle}</div>
+          </div>
+        </Link>
+      ) : (
+        <div className="sho-lib-empty">No note in progress yet.</div>
+      )}
+      <div className="sho-lib-meta">
+        ⭐ {library.bookmarked} bookmarked · {library.recentlyOpened} recently
+        opened
+      </div>
+    </section>
+  );
+}
+
+// ── Attendance (cohort rail) ─────────────────────────────────
+function AttendanceCard({ attendance }: { attendance: OverviewAttendance }) {
+  return (
+    <section className="sho-card">
+      <h2 className="sho-card-title sho-card-title-solo">Attendance</h2>
+      <div className="sho-att">
+        <span className="sho-att-stat">
+          <span className="sho-att-num">
+            {attendance.attended} of {attendance.held}
+          </span>
+          <span className="sho-att-label">sessions attended</span>
+        </span>
+        <span className="sho-att-divider" aria-hidden="true" />
+        <span className="sho-att-stat">
+          <span className="sho-att-num">🔥 {attendance.streak}</span>
+          <span className="sho-att-label">in a row</span>
+        </span>
+      </div>
+    </section>
   );
 }
 

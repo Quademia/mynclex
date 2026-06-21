@@ -51,6 +51,46 @@ export type OverviewNextSession = {
 // run ever. See overview-queries.ts → studyStreak().
 export type OverviewStreak = { current: number; best: number };
 
+// ── Slice 2 — supporting cards ───────────────────────────────
+
+// One row of the "Recent activity" feed (newest first). Merges quiz
+// attempts (score / in-progress) with non-quiz activity completions.
+export type OverviewRecentItem = {
+  key: string;
+  icon: string; // per-type emoji
+  title: string;
+  meta: string; // "Week 2 · Mock"
+  pill: string; // "In progress" | "88%" | "Done"
+  pillKind: 'prog' | 'score-pass' | 'score-fail' | 'score' | 'done';
+};
+
+// The Quizzes snapshot card. null when the programme has no quizzes.
+export type OverviewQuizzes = {
+  total: number;
+  done: number;
+  inProgress: number;
+  resume: { title: string; href: string } | null;
+  lastMockScore: number | null; // %, most recent completed Mock
+  lastMockPassed: boolean | null; // null = no pass threshold set
+  allHref: string;
+};
+
+// The Library snapshot card. null when no notes are visible to the
+// student in this programme/cohort.
+export type OverviewLibrary = {
+  continueTitle: string | null; // most recent unfinished note
+  bookmarked: number;
+  recentlyOpened: number;
+  href: string;
+};
+
+// The Attendance card (cohort mode only). null for self-paced.
+export type OverviewAttendance = {
+  attended: number; // PRESENT
+  held: number; // PRESENT + ABSENT (excused excluded)
+  streak: number;
+};
+
 export type StudentOverviewData = {
   mode: StudentOverviewMode;
 
@@ -74,11 +114,18 @@ export type StudentOverviewData = {
   unitNoun: 'week' | 'module';
   heroStreak: number; // attendance streak (cohort) | study streak (self)
 
-  // Sections.
+  // Sections — Slice 1 (the spine).
   weeks: RailUnit[]; // "Your weeks" — empty for single-unit programmes
   continue: OverviewContinue | null; // null = all caught up / nothing open
   nextSession: OverviewNextSession | null; // cohort only
   studyStreak: OverviewStreak | null; // self only
+
+  // Sections — Slice 2 (the supporting cards).
+  recent: OverviewRecentItem[]; // up to 5, newest first
+  quizzes: OverviewQuizzes | null; // null when no quizzes attached
+  library: OverviewLibrary | null; // null when no visible notes
+  attendance: OverviewAttendance | null; // cohort only
+  quizHistoryHref: string; // basePath + /history
 
   // Request-time "now" (stamped server-side) for the next-session
   // countdown — keeps it stable through render.
