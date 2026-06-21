@@ -14,6 +14,14 @@
   max-width: 880px;
 }
 
+/* A selected cohort's detail uses a wider container than the 880px
+ * list — the Curriculum two-pane + the Analytics/Sessions dashboards
+ * use the room, and one width keeps the frame steady across tabs.
+ * Single-column panes (e.g. Settings cards) cap their own content. */
+.cohorts-page.is-wide {
+  max-width: 1240px;
+}
+
 .cohorts-head {
   display: flex;
   align-items: flex-start;
@@ -370,6 +378,9 @@
   flex-direction: column;
   gap: 10px;
   margin-bottom: 12px;
+  /* Stay a tidy column in the wider cohort-detail container rather than
+   * stretching full width. */
+  max-width: 620px;
 }
 .cohort-settings-card.is-danger {
   border-color: #fecaca;
@@ -530,12 +541,184 @@
   font-size: 13px;
   color: var(--text-muted);
   line-height: 1.5;
+  max-width: 78ch;
 }
 
 .cohort-checklist-units {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* ─── Two-pane: week rail + detail (2026-06 redesign) ───────
+ *
+ * The cohort Curriculum tab sits below the run header + cohort tab
+ * bar, inside the page-scrolling .product-content. Rather than a
+ * fragile fixed-height frame, the rail is STICKY (the library
+ * pattern this surface family already uses) and the detail flows
+ * with the page. Mobile (≤768px) drops sticky for a drill-in — see
+ * the @media block at the foot of this file.
+ * ───────────────────────────────────────────────────────── */
+.ccp {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.ccp-rail {
+  width: 300px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  max-height: calc(100dvh - 72px);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+  display: flex;
+  flex-direction: column;
+}
+
+.ccp-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ccp-rail-head-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.ccp-rail-head-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+
+.ccp-rail-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ccp-rail-item {
+  appearance: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.12s;
+}
+
+.ccp-rail-item:hover {
+  border-color: var(--accent);
+}
+
+.ccp-rail-item.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--white));
+  box-shadow: inset 3px 0 0 0 var(--accent);
+}
+
+.ccp-rail-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ccp-rail-item-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ccp-rail-item-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ccp-rail-item.is-active .ccp-rail-item-label {
+  color: var(--accent);
+}
+
+.ccp-rail-item-top .unit-pill {
+  margin-left: auto;
+}
+
+.ccp-rail-item-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.ccp-rail-item-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ccp-rail-count {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.ccp-rail-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+
+.ccp-rail-badge.is-notset {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.ccp-rail-badge.is-excluded {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+.ccp-detail {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ccp-detail-summary {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* "← Weeks" back link — mobile drill-in only (hidden on desktop). */
+.ccp-back {
+  display: none;
 }
 
 /* Single unit panel. */
@@ -638,9 +821,14 @@
 
 /* Single activity row. Title button on the left (click-to-edit),
  * release-date + included controls on the right. */
+/* Two-pane (2026-06): the row STACKS — title line on top, the
+ * Opens/Due/Closes + Include/Exclude controls wrap onto their own line
+ * below (the controls carry flex-basis:100%). The old side-by-side
+ * layout crushed the title in the narrower detail pane. */
 .cohort-checklist-row {
   display: flex;
-  align-items: stretch;
+  flex-wrap: wrap;
+  align-items: center;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -721,15 +909,17 @@
   white-space: nowrap;
 }
 
-/* Row controls — the activity-window group + include toggle. */
+/* Row controls — the activity-window group + include toggle. Sit on
+ * their own line BELOW the title (flex-basis:100%), indented to line up
+ * under the title text (past the icon). No side divider / fill now that
+ * they're stacked rather than a right-hand panel. */
 .cohort-checklist-row-controls {
+  flex: 1 1 100%;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 8px 12px;
-  border-left: 1px solid var(--border);
-  background: var(--bg-soft);
+  padding: 0 12px 10px 44px;
 }
 
 /* The activity-window group — three labelled date inputs (Opens /
@@ -2013,4 +2203,69 @@
   background: color-mix(in srgb, var(--warning) 14%, var(--white));
   border-color: color-mix(in srgb, var(--warning) 45%, transparent);
   color: color-mix(in srgb, var(--warning) 72%, #000);
+}
+
+/* ─────────────────────────────────────────────────────
+ * Cohort curriculum — mobile two-pane drill-in (≤768px)
+ *
+ * The sticky desktop rail becomes a normal-flow week LIST; the
+ * .is-entered class on .ccp (set when a week is opened) shows one
+ * half at a time. The on-screen "← Weeks" link returns to the
+ * list. The per-activity date/Include controls wrap so they don't
+ * overflow a phone width.
+ * ───────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .ccp {
+    display: block;
+  }
+
+  .ccp-rail {
+    position: static;
+    width: auto;
+    max-height: none;
+    overflow: visible;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .ccp-rail-head {
+    padding: 0 0 8px;
+    border-bottom: none;
+  }
+
+  .ccp-rail-list {
+    padding: 0;
+    overflow: visible;
+  }
+
+  .ccp:not(.is-entered) .ccp-detail {
+    display: none;
+  }
+
+  .ccp.is-entered .ccp-rail {
+    display: none;
+  }
+
+  .ccp-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 6px 0;
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    cursor: pointer;
+  }
+
+  /* Let the per-activity window (dates) + Include/Exclude wrap rather
+   * than overflow a phone width. */
+  .cohort-checklist-row-controls,
+  .cohort-checklist-row-window {
+    flex-wrap: wrap;
+  }
 }
