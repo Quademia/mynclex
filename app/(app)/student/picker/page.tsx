@@ -23,7 +23,7 @@ import { createClient } from '@/lib/supabase/server';
 import { loadChromeData } from '@/lib/shell/load-chrome-data';
 import { AppShell } from '@/components/shell/app-shell';
 import { Footer } from '@/components/shell/footer';
-import { ProgrammeList } from '@/components/nav/student/programme-list';
+import { ProgrammeCards } from '@/components/nav/student/programme-cards';
 import { getMyAccessibleProgrammesAction } from '@/lib/programmes/student-actions';
 import { getMyBankAccess } from '@/lib/payments/entitlements';
 
@@ -47,11 +47,14 @@ export default async function PickerPage() {
 
   const bankAccess = await getMyBankAccess();
   const bankHref = bankAccess.active ? '/student/bank/dashboard' : '/bank-access';
-  const bankSubLine = bankAccess.active
+  // The rail shows the access state prominently when active; when there's
+  // no access the CTA ("Get access") carries it, so the status line hides.
+  const bankStatusLine = bankAccess.active
     ? bankAccess.lifetime
       ? 'Lifetime access'
       : `${bankAccess.daysLeft} day${bankAccess.daysLeft === 1 ? '' : 's'} left`
-    : 'Get access →';
+    : null;
+  const bankCtaLabel = bankAccess.active ? 'Open the bank' : 'Get access';
 
   return (
     <AppShell
@@ -66,27 +69,38 @@ export default async function PickerPage() {
           <div className="picker-greeting">Welcome back, {firstName}</div>
           <div className="picker-sub">Where would you like to go?</div>
 
-          <section className="picker-section">
-            <h2 className="picker-section-title">Your programmes</h2>
-            {programmes.length > 0 ? (
-              <ProgrammeList programmes={programmes} />
-            ) : (
-              <div className="picker-card empty is-disabled" aria-disabled="true">
-                <div className="picker-card-title">No programmes yet</div>
-                <div className="picker-card-sub">
-                  Browse programmes — coming soon
+          <div className="picker-rails">
+            {/* Programmes lane */}
+            <div className="picker-lane">
+              <h2 className="picker-lane-title">Your programmes</h2>
+              {programmes.length > 0 ? (
+                <ProgrammeCards programmes={programmes} />
+              ) : (
+                <div className="pcard pcard-empty-state">
+                  <div className="pcard-title">No programmes yet</div>
+                  <p className="pcard-tagline">
+                    When you enrol in a programme, it&apos;ll show up here.
+                  </p>
                 </div>
-              </div>
-            )}
-          </section>
+              )}
+            </div>
 
-          <section className="picker-section">
-            <h2 className="picker-section-title">Question Bank</h2>
-            <Link href={bankHref} className="picker-card">
-              <div className="picker-card-title">Self-study practice</div>
-              <div className="picker-card-sub">{bankSubLine}</div>
-            </Link>
-          </section>
+            {/* Question Bank rail — the constant entry point */}
+            <aside className="picker-bank-rail">
+              <div className="bank-rail-eyebrow">Question Bank</div>
+              <div className="bank-rail-title">Self-study practice</div>
+              {bankStatusLine && (
+                <div className="bank-rail-status">{bankStatusLine}</div>
+              )}
+              <p className="bank-rail-desc">
+                Thousands of NCLEX-style questions. Practise any time — no
+                schedule, no cohort.
+              </p>
+              <Link href={bankHref} className="bank-rail-cta">
+                {bankCtaLabel} <span aria-hidden="true">→</span>
+              </Link>
+            </aside>
+          </div>
         </div>
         <Footer />
       </div>
