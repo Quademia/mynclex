@@ -23,6 +23,7 @@ import { SidebarUserBar } from '@/components/nav/shared/sidebar-user-bar';
 import { StudentSidebar } from './sidebar';
 import { ProductSwitcher } from './product-switcher';
 import { ProgrammeSwitcherTrigger } from './programme-switcher-trigger';
+import { MobileNav } from '@/components/shell/mobile/mobile-nav';
 import { STUDENT_PROGRAMME_DETAIL_NAV } from '@/lib/nav/student';
 import { requireStudentProgrammeAccess } from '@/lib/access';
 
@@ -53,6 +54,17 @@ export async function StudentProgrammeShell({
       availableRoles={chrome.roles}
       productLabel="· Programme"
       rightSlot={<ProductSwitcher hasProgrammeEnrolment={true} />}
+      mobileNav={
+        <MobileNav
+          displayName={chrome.displayName}
+          email={chrome.email}
+          viewingAs={chrome.viewingAs}
+          availableRoles={chrome.roles}
+          items={items}
+          centerSlot={<ProductSwitcher hasProgrammeEnrolment={true} />}
+          profileHref="/student/bank/profile"
+        />
+      }
     >
       <div className="product-layout">
         <SidebarFrame

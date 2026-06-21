@@ -20,6 +20,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import {
+  resolveCohortForAttach,
+  insertCohortOnlyChecklistRow,
+} from './cohort-attach';
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -112,6 +116,10 @@ export async function attachLibraryNoteAction(
   noteId: string,
   caption: string,
   isPublished: boolean,
+  // Cohort-only attach (Slice 3b). When set, the activity is tagged with
+  // this cohort, a COHORT_ONLY checklist row is created, and a block (if
+  // given) must be THIS cohort's own cohort-only block. null = template.
+  cohortId: string | null = null,
 ): Promise<AttachResult> {
   const { supabase, user } = await getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
@@ -128,23 +136,42 @@ export async function attachLibraryNoteAction(
     return { ok: false, error: 'Only a published note can be attached.' };
   }
 
-  // Resolve the unit's programme (RLS scopes to own); verify the block
-  // belongs to the unit when attaching inside one.
+  // Resolve the unit's programme (RLS scopes to own) + index (for the
+  // cohort release-date default); verify the block when attaching inside
+  // one.
   const { data: unitRow } = await supabase
     .from('nclex_programme_units')
-    .select('unit_id, programme_id')
+    .select('unit_id, programme_id, unit_index')
     .eq('unit_id', unitId)
     .maybeSingle();
   if (!unitRow) return { ok: false, error: 'Unit not found or not yours.' };
 
+  // Cohort-only: the cohort must belong to the unit's programme.
+  const cohort = await resolveCohortForAttach(
+    supabase,
+    cohortId,
+    (unitRow as { programme_id: string }).programme_id,
+  );
+  if (!cohort.ok) return cohort;
+
   if (blockId !== null) {
     const { data: blockRow } = await supabase
       .from('nclex_programme_blocks')
-      .select('block_id, unit_id')
+      .select('block_id, unit_id, cohort_id')
       .eq('block_id', blockId)
       .maybeSingle();
     if (!blockRow || blockRow.unit_id !== unitId) {
       return { ok: false, error: 'Block not found or not yours.' };
+    }
+    // A cohort-only attach into a block requires THIS cohort's own block.
+    if (
+      cohortId !== null &&
+      (blockRow as { cohort_id: string | null }).cohort_id !== cohortId
+    ) {
+      return {
+        ok: false,
+        error: 'That block isn’t a cohort-only block in this cohort.',
+      };
     }
   }
 
@@ -153,12 +180,13 @@ export async function attachLibraryNoteAction(
   // 1. The activity row — draft by default; title mirrors the note's,
   //    caption rides the activity's `note` field (the "directive to the
   //    student" slot), payload empty (the pointer lives on the
-  //    attachment).
+  //    attachment). cohort_id NULL for template, set for cohort-only.
   const { data: act, error: actErr } = await supabase
     .from('nclex_programme_activities')
     .insert({
       unit_id: unitId,
       block_id: blockId,
+      cohort_id: cohortId,
       ordinal,
       type: 'LIBRARY_NOTE',
       title: note.title,
@@ -192,6 +220,28 @@ export async function attachLibraryNoteAction(
       .delete()
       .eq('activity_id', act.activity_id);
     return { ok: false, error: 'Failed to attach note.' };
+  }
+
+  // 3. Cohort-only: the COHORT_ONLY checklist row carries delivery +
+  //    dates. On failure roll back the activity (cascades the attachment)
+  //    so the delivery path never sees a cohort-only activity with no row.
+  if (cohortId !== null) {
+    const item = await insertCohortOnlyChecklistRow(
+      supabase,
+      cohortId,
+      act.activity_id,
+      (unitRow as { unit_index: number }).unit_index,
+      cohort.startDate,
+    );
+    if (!item.ok) {
+      await supabase
+        .from('nclex_programme_activities')
+        .delete()
+        .eq('activity_id', act.activity_id);
+      return { ok: false, error: item.error };
+    }
+    revalidatePath(`/tutor/programme/${unitRow.programme_id}/cohorts`);
+    return { ok: true, activity_id: act.activity_id };
   }
 
   refreshCurriculum(unitRow.programme_id, unitId);

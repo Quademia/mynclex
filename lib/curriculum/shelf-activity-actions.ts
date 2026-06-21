@@ -23,6 +23,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import {
+  resolveCohortForAttach,
+  insertCohortOnlyChecklistRow,
+} from './cohort-attach';
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -253,6 +257,10 @@ export async function attachShelfAction(
   shelfId: string,
   caption: string,
   isPublished: boolean,
+  // Cohort-only attach (Slice 3b). When set, the activity is tagged with
+  // this cohort, a COHORT_ONLY checklist row is created, and a block (if
+  // given) must be THIS cohort's own cohort-only block. null = template.
+  cohortId: string | null = null,
 ): Promise<AttachResult> {
   const { supabase, user } = await getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
@@ -266,19 +274,36 @@ export async function attachShelfAction(
 
   const { data: unitRow } = await supabase
     .from('nclex_programme_units')
-    .select('unit_id, programme_id')
+    .select('unit_id, programme_id, unit_index')
     .eq('unit_id', unitId)
     .maybeSingle();
   if (!unitRow) return { ok: false, error: 'Unit not found or not yours.' };
 
+  // Cohort-only: the cohort must belong to the unit's programme.
+  const cohort = await resolveCohortForAttach(
+    supabase,
+    cohortId,
+    (unitRow as { programme_id: string }).programme_id,
+  );
+  if (!cohort.ok) return cohort;
+
   if (blockId !== null) {
     const { data: blockRow } = await supabase
       .from('nclex_programme_blocks')
-      .select('block_id, unit_id')
+      .select('block_id, unit_id, cohort_id')
       .eq('block_id', blockId)
       .maybeSingle();
     if (!blockRow || blockRow.unit_id !== unitId) {
       return { ok: false, error: 'Block not found or not yours.' };
+    }
+    if (
+      cohortId !== null &&
+      (blockRow as { cohort_id: string | null }).cohort_id !== cohortId
+    ) {
+      return {
+        ok: false,
+        error: 'That block isn’t a cohort-only block in this cohort.',
+      };
     }
   }
 
@@ -286,12 +311,14 @@ export async function attachShelfAction(
 
   // 1. The activity row — draft by default; title mirrors the shelf's,
   //    caption rides the activity's `note` field, payload empty (the
-  //    pointer lives on the attachment).
+  //    pointer lives on the attachment). cohort_id NULL for template, set
+  //    for cohort-only.
   const { data: act, error: actErr } = await supabase
     .from('nclex_programme_activities')
     .insert({
       unit_id: unitId,
       block_id: blockId,
+      cohort_id: cohortId,
       ordinal,
       type: 'SHELF',
       title: (shelf as { title: string }).title,
@@ -326,6 +353,29 @@ export async function attachShelfAction(
       .delete()
       .eq('activity_id', act.activity_id);
     return { ok: false, error: 'Failed to attach shelf.' };
+  }
+
+  // 3. Cohort-only: the COHORT_ONLY checklist row carries delivery +
+  //    dates. On failure roll back the activity (cascades the attachment).
+  if (cohortId !== null) {
+    const item = await insertCohortOnlyChecklistRow(
+      supabase,
+      cohortId,
+      act.activity_id,
+      (unitRow as { unit_index: number }).unit_index,
+      cohort.startDate,
+    );
+    if (!item.ok) {
+      await supabase
+        .from('nclex_programme_activities')
+        .delete()
+        .eq('activity_id', act.activity_id);
+      return { ok: false, error: item.error };
+    }
+    revalidatePath(
+      `/tutor/programme/${(unitRow as { programme_id: string }).programme_id}/cohorts`,
+    );
+    return { ok: true, activity_id: act.activity_id };
   }
 
   refreshCurriculum((unitRow as { programme_id: string }).programme_id, unitId);

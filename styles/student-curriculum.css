@@ -752,6 +752,47 @@ button.programme-switcher-item {
   box-sizing: border-box;
 }
 
+/* Live session — an EVENT, not a task. A neutral navy-tinted chip with a
+   📅 glyph; no completion semantics (the "only verified completion counts"
+   rule). Marks the row as an event so the absent task-pill reads as
+   deliberate. See docs/product-plan/live-session-planner.md. */
+.student-activity-state.is-event {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+  color: var(--primary);
+}
+
+.student-activity-state.is-event .student-activity-state-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* Live-session attendance badges (Slice 3b) — shown on the event row once
+ * the tutor marks the student. The completion % is unchanged; these are
+ * status badges, not "done" pills. */
+.student-activity-state.is-attended {
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+}
+
+.student-activity-state.is-missed {
+  background: color-mix(in srgb, var(--danger, #b91c1c) 10%, transparent);
+  color: var(--danger, #b91c1c);
+}
+
+.student-activity-state.is-excused {
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  color: color-mix(in srgb, var(--warning) 72%, #000);
+}
+
+.student-activity-state.is-attended .student-activity-state-icon,
+.student-activity-state.is-missed .student-activity-state-icon,
+.student-activity-state.is-excused .student-activity-state-icon {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .student-activity-locked {
   display: flex;
   align-items: center;
@@ -1371,4 +1412,53 @@ button.programme-switcher-item {
   border: 1px solid #fde68a;
   border-radius: var(--radius);
   padding: 8px 11px;
+}
+
+/* Live session viewer — Slice 1b: "Date to be announced" (unscheduled),
+   plus connection details (meeting ID / passcode) + joining instructions. */
+.live-session-tba {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin: 10px 0;
+}
+
+.live-session-connection {
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.live-session-connection-row {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.live-session-connection-row dt {
+  color: var(--text-muted);
+  min-width: 84px;
+  margin: 0;
+}
+
+.live-session-connection-row dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.live-session-instructions {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  white-space: pre-wrap;
 }

@@ -5,7 +5,9 @@ was reverted (commit `fde8db3`). Captures the architecture for the
 fresh attempt — what's being rebuilt, the principles guiding it, and
 the shape of the new code.*
 
-Last updated: 2026-04-28 (initial draft)
+Last updated: 2026-06-15 (added the "Rich-content relook" discussion
+capture at the end — a NEW, larger direction that, unlike this 2026-04-28
+rebuild, *would* change the content data model; see that section + bank.md)
 
 ---
 
@@ -599,3 +601,154 @@ the slice plan:
 The slice plan — `docs/product-plan/questions-and-wrappers-rebuild-slice-plan.md`
 — breaks this architecture into a build order. To be drafted after
 this strategic plan settles.
+
+---
+
+## Rich-content relook — discussion capture (2026-06-15)
+
+> **STATUS: DISCUSSION ONLY — not a build plan, not approved.** Captured
+> from a working session with Sam so we can resume later. This is a
+> *new, larger direction* than the 2026-04-28 rebuild above: that
+> rebuild deliberately preserved the data model ("Nothing in this
+> rebuild changes that data model"). **This direction would change the
+> content format** — so its data-model half belongs in
+> [bank.md](bank.md), cross-referenced below.
+
+### What triggered it
+
+Sam brought in two real NGN content corpora to test our editors against:
+
+- The **University of Maryland "Next Gen NCLEX Test Bank Project"** —
+  ~60 authored case studies across 5 clinical categories (`.docx`), each
+  a uniform template: case summary + 6 questions walking the Clinical
+  Judgment Measurement Model (Recognize → Analyze → Prioritize →
+  Generate → Take action → Evaluate) + a stand-alone **Trend** or
+  **Bowtie** item. (Local only: `F:\Mynclex\Maryland`.)
+- The **official NCSBN NGN sample test packet** (`NGNTestPacket_121324.pdf`).
+
+Reading the source against our editors surfaced a structural mismatch
+that is **bank-wide**, not trend-specific.
+
+### Finding 1 — Trend is modelled as a single flat grid
+
+`nclex_trend_datasets` stores **one** rectangular table (`timepoints[]` ×
+`rows[]` of `metric / values[] / flags[] / ref_range?`). There is **no
+trend-charts child table** — contrast case studies, which have
+`nclex_case_study_tabs`. The editor
+([lib/bank/wrappers/trend/data-table.tsx](../../lib/bank/wrappers/trend/data-table.tsx))
+already does add/remove column + row, rename headers, per-cell flag,
+ref-range toggle — but only for that *one* grid.
+
+Real NGN trends are **multi-chart**: the stimulus is an arbitrary set of
+heterogeneous chart tabs over time — e.g. TB trend = Nurses' Notes
+(narrative, 2 dates) + Labs (table) + Orders (list); Dehydration trend =
+Phase Sheet (key/value card) + Nurses' Notes (narrative) + Vital Signs
+(5-column time grid) + Labs. Gestational diabetes = a single Lab table
+with `26 weeks / 30 weeks` **time-as-columns**. Today these get
+**flattened into one synthetic grid** — losing the narrative notes,
+reference ranges, orders, and per-chart timelines. Per-cell `flags`
+(abnormal/borderline) are **author-side only** — the student does not
+see them pre-submit ([types.ts:24](../../lib/bank/wrappers/trend/types.ts)).
+
+**A Trend's stimulus is structurally identical to a Case Study's
+stimulus** — N tabs of mixed shapes — differing only in (a) time lives
+*inside* the charts (columns / dated narrative) rather than via
+progressive disclosure, and (b) it's followed by ≥1 question, not the
+6-step CJMM. So the right model unifies them onto one chart engine.
+
+### Finding 2 — Case study is multi-tab, but every tab is single-shape
+
+Case studies *do* have the multi-tab model trends lack
+([tab-types.ts](../../lib/bank/wrappers/case-study/chart-tabs/tab-types.ts)),
+but each tab is locked to **one** shape: `narrative` (stacked cards =
+Time + optional dropdown + a plain `<textarea>` body) **or** `structured`
+(a **flat** table; built-ins fixed-column, `custom_grid` curator-column).
+So:
+
+- **A tab cannot mix prose + a table** — yet the source does this
+  constantly (a heading + a paragraph + a flowsheet in one chart;
+  NCSBN "Flow Sheet" + "Nurses' Notes" on one screen).
+- **Tables are flat** — no merged cells, no `Urinalysis:` sub-headers,
+  no Phase-Sheet key/value layout.
+- **No rich text anywhere** — the narrative body is a bare textarea.
+
+### Finding 3 — Root cause is bank-wide: raw `<input>` / `<textarea>`
+
+Every authoring surface is built on plain HTML fields, so there is
+**zero rich text across the entire bank**, and the densest surfaces
+can't even hold a second line:
+
+- **Single-line `<input>` (no line breaks):** every structured
+  chart-table cell (case + trend); every answer **option** and its
+  **per-option feedback** ([sata-editor.tsx:148](../../lib/bank/editors/sata-editor.tsx) —
+  MCQ/matrix/cloze share the pattern).
+- **Plain `<textarea>` (line breaks, but no formatting):** stem,
+  rationale, narrative body.
+
+### What the source needs that we cannot capture today
+
+Verified by re-parsing the `.docx` runs (bold/italic/underline/highlight):
+
+- **Bold / italic / underline** — section labels, timestamps, emphasis,
+  citations.
+- **Highlight (yellow)** — and it is **not cosmetic**: in Highlight-type
+  items the yellow *is the answer key* woven into the passage, and on
+  flowsheets it marks the significant/changing values. Our `HIGHLIGHT`
+  editor lives in a *separate box* from the chart it should highlight.
+- **In-note structure / patient location** — bolded setting/transition
+  labels ("ED → now on the ward", "Admission Note", "Weekly Visit 1",
+  "Day 1 1100:"), section sub-headers, anatomical locations. Today we
+  capture only a Time field; these want to live *as part of a paragraph
+  in the same cell*.
+- **Lists** (Orders are bulleted) and **paragraph / newline** support
+  inside cells.
+
+### Conclusion — the whole bank authoring area needs a relook
+
+One root cause (plain HTML fields) produces every gap. The fix is to
+**swap the content primitive (plain text → rich content), not rewrite
+the bank** — keep classification, housekeeping, lifecycle, audit, the
+dual preview, and the save pipeline. The rich editor already exists one
+folder over: the **tutor library's Tiptap editor** (`lib/library/`) —
+headings, lists, marks, merge-capable tables, the lab-values grid — does
+most of this already.
+
+**The ladder (cheapest → deepest):**
+
+1. **Stop the bleeding** — make chart-table cells multi-line.
+2. **Rich-text fields** — bold / italic / lists / **highlight** on
+   stems, options, narrative bodies (reuse the library marks).
+3. **Chart = document** — each case/trend tab becomes a rich document
+   (prose **+** flexible tables, mixed); trends gain the multi-chart
+   model. Point the library editor at the bank.
+4. **Answer-bound highlight** — the genuinely *new* architecture:
+   highlight that *is* the answer key, living inside the chart. Fuses
+   stimulus and question, which the current design keeps strictly apart.
+
+**Cautions before this becomes a build:**
+
+- It's not just editors — it touches a storage **format**, a
+  student-facing **read renderer** (library has one; the bank runner
+  would need it), and a **migration** of existing plain-text rows.
+- **Now is the cheapest moment** — prod holds only ~71 questions, 7
+  case studies, 2 trend datasets (checked 2026-06-15). Cost rises every
+  week.
+- It's its own arc and **competes with live threads** (live-session
+  Slice 3, the global payments page). Deserves a dedicated design pass
+  (and likely a Claude Design prototype) before any slice.
+
+### Cross-reference — data-model half lives in bank.md
+
+The format decision (rich-content storage shape — e.g. Tiptap/portable
+JSON — for chart bodies + stems/options; a trend **charts** child table
+mirroring `nclex_case_study_tabs`; how answer-bound highlight is stored)
+is a **data-model** change and should be written up in
+[bank.md](bank.md) when this direction is picked up. This section is the
+authoring-surface (UX) half.
+
+### To continue
+
+Sam's issue list isn't exhausted — trend multi-chart and the
+formatting/line-break gaps are the items discussed so far. Resume by
+finishing the catalogue, then deciding whether to promote this into a
+real design doc + slice plan.

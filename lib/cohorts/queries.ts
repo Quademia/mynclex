@@ -211,8 +211,19 @@ export async function getCohortChecklist(
   // the full live template activity list. The checklist is the live
   // template (4th read); override rows (3rd read) only supply
   // inclusion + dates for activities the tutor has configured.
-  const [unitsResult, blocksResult, overridesResult, activitiesResult] =
-    await Promise.all([
+  // The blocks + activities reads cover BOTH the shared template
+  // (cohort_id IS NULL) AND this cohort's own cohort-only adds
+  // (cohort_id = this cohort) — never another cohort's. The `.or`
+  // scope is what keeps one cohort's escape-valve content out of
+  // every other cohort's checklist.
+  const cohortScope = `cohort_id.is.null,cohort_id.eq.${cohortId}`;
+  const [
+    unitsResult,
+    blocksResult,
+    overridesResult,
+    activitiesResult,
+    liveSessionsResult,
+  ] = await Promise.all([
     supabase
       .from('nclex_programme_units')
       .select(
@@ -225,10 +236,11 @@ export async function getCohortChecklist(
       .from('nclex_programme_blocks')
       .select(
         `block_id, unit_id, ordinal, title, description,
-         is_published, created_at, updated_at,
+         is_published, created_at, updated_at, cohort_id,
          nclex_programme_units!inner(programme_id)`
       )
       .eq('nclex_programme_units.programme_id', programme.programme_id)
+      .or(cohortScope)
       .order('ordinal', { ascending: true }),
     supabase
       .from('nclex_cohort_checklist_items')
@@ -241,18 +253,39 @@ export async function getCohortChecklist(
       .select(
         `activity_id, unit_id, block_id, ordinal, type, title,
          description, note, payload, is_published, created_at, updated_at,
+         cohort_id,
          nclex_programme_units!inner(programme_id)`
       )
       .eq('nclex_programme_units.programme_id', programme.programme_id)
+      .or(cohortScope)
       .order('ordinal', { ascending: true }),
+    supabase
+      .from('nclex_cohort_live_sessions')
+      .select('marker_activity_id')
+      .eq('cohort_id', cohortId)
+      .not('scheduled_at', 'is', null),
   ]);
 
   const units = (unitsResult.data ?? []) as ProgrammeUnit[];
+
+  // Slice 2 — live-session markers with a scheduled planner row for this
+  // cohort (scheduled_at set). Drives the per-row "Needs scheduling →" cue.
+  const scheduledMarkerIds = new Set<string>(
+    (
+      (liveSessionsResult.data ?? []) as Array<{ marker_activity_id: string }>
+    ).map((r) => r.marker_activity_id)
+  );
   const blocks = (blocksResult.data ?? []) as Array<
     ProgrammeBlock & {
       nclex_programme_units?: unknown; // strip embed before render
+      cohort_id?: string | null; // drives isCohortOnly, not on ProgrammeBlock
     }
   >;
+  // Which blocks are cohort-only (cohort_id set) vs shared template.
+  const isCohortOnlyByBlock = new Map<string, boolean>();
+  for (const b of blocks) {
+    isCohortOnlyByBlock.set(b.block_id, b.cohort_id != null);
+  }
 
   // Override rows, keyed by activity. Absence = unconfigured.
   type OverrideRow = {
@@ -283,10 +316,17 @@ export async function getCohortChecklist(
   // the list is driven by the template, not by which rows exist.
   const checklistRows: CohortChecklistActivityRow[] = (
     (activitiesResult.data ?? []) as Array<
-      ProgrammeActivity & { nclex_programme_units?: unknown }
+      ProgrammeActivity & {
+        nclex_programme_units?: unknown;
+        cohort_id?: string | null;
+      }
     >
   ).map((raw) => {
-    const { nclex_programme_units: _omit, ...activity } = raw;
+    // Strip the join embed AND cohort_id off the activity — cohort_id
+    // drives the isCohortOnly flag but isn't part of the ProgrammeActivity
+    // surface; the rest is a clean template-shaped activity row.
+    const { nclex_programme_units: _omit, cohort_id, ...activity } = raw;
+    const isCohortOnly = cohort_id != null;
     const override = overridesByActivity.get(activity.activity_id);
     if (override) {
       return {
@@ -296,6 +336,11 @@ export async function getCohortChecklist(
         due_date: override.due_date,
         close_date: override.close_date,
         release_is_default: false,
+        isCohortOnly,
+        liveSessionScheduled:
+          activity.type === 'ONLINE_LIVE_SESSION'
+            ? scheduledMarkerIds.has(activity.activity_id)
+            : null,
       } satisfies CohortChecklistActivityRow;
     }
     return {
@@ -305,6 +350,11 @@ export async function getCohortChecklist(
       due_date: null,
       close_date: null,
       release_is_default: true,
+      isCohortOnly,
+      liveSessionScheduled:
+        activity.type === 'ONLINE_LIVE_SESSION'
+          ? scheduledMarkerIds.has(activity.activity_id)
+          : null,
     } satisfies CohortChecklistActivityRow;
   });
 
@@ -353,10 +403,10 @@ export async function getCohortChecklist(
       }
     }
 
-    // Compose the body: blocks + loose rows interleaved by ordinal.
-    // Blocks carry their own ordinal; loose rows use the activity's
-    // ordinal (which lives in the same unit-body sequence per the
-    // 9.3c reorder model).
+    // Compose the body: blocks + loose rows interleaved by ordinal
+    // (Slice 4 — template + cohort-only items share ONE spaced number
+    // line, so a cohort-only item sits top / bottom / wedged between
+    // template items exactly where its stored number places it).
     type Sortable =
       | { kind: 'block'; ordinal: number; block: ProgrammeBlock }
       | {
@@ -378,7 +428,12 @@ export async function getCohortChecklist(
         const blockRows = (rowsByBlock.get(e.block.block_id) ?? []).sort(
           (x, y) => x.activity.ordinal - y.activity.ordinal
         );
-        return { kind: 'block', block: e.block, rows: blockRows };
+        return {
+          kind: 'block',
+          block: e.block,
+          rows: blockRows,
+          isCohortOnly: isCohortOnlyByBlock.get(e.block.block_id) ?? false,
+        };
       }
       return { kind: 'loose', row: e.row };
     });

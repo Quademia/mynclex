@@ -3,13 +3,21 @@
 // Progress engine — Slice 2 (manual completion).
 //
 // Two student-side server actions: mark / un-mark an activity as
-// done. Used by the per-type viewers for the 4 MANUAL activity
-// types (TEXT, PDF, EXTERNAL_LINK, ONLINE_LIVE_SESSION). Quiz
-// types (MOCK, PRACTICE_QUIZ) are written by the DB trigger
-// installed in Slice 1 — those types REJECT the manual server
-// action so a "marked-done" quiz with zero attempts can't exist
-// (would break tutor analytics and history). See
+// done. Used by the per-type viewers for the 3 MANUAL activity
+// types (TEXT, PDF, EXTERNAL_LINK). Quiz types (MOCK,
+// PRACTICE_QUIZ) are written by the DB trigger installed in
+// Slice 1 — those types REJECT the manual server action so a
+// "marked-done" quiz with zero attempts can't exist (would break
+// tutor analytics and history). See
 // docs/product-plan/progress-engine.md §5.2.
+//
+// Live-session split (2026-06-15): ONLINE_LIVE_SESSION was REMOVED
+// from MANUAL_TYPES. A live session is an event, not a task, and
+// does not count toward progress in v1 — the "only verified
+// completion counts" rule. When tutor-marked attendance ships, a
+// live session's completion will be DERIVED (a new ATTENDANCE
+// source), never self-marked. See
+// docs/product-plan/live-session-planner.md.
 //
 // Auth + visibility — caller's auth.uid() identifies the student;
 // the nclex_student_activity_progress_student_own RLS policy
@@ -33,7 +41,6 @@ const MANUAL_TYPES = new Set([
   'TEXT',
   'PDF',
   'EXTERNAL_LINK',
-  'ONLINE_LIVE_SESSION',
 ]);
 
 export type MarkResult = { ok: true } | { ok: false; error: string };

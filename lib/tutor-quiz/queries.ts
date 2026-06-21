@@ -329,7 +329,7 @@ export async function getQuizActivityLinks(
   const { data } = await supabase
     .from('nclex_programme_activities')
     .select(
-      `activity_id, title, type, payload, ordinal,
+      `activity_id, title, type, payload, ordinal, cohort_id,
        nclex_programme_units!inner(
          unit_index, title,
          nclex_programmes!inner(programme_id, title, unit_label)
@@ -346,6 +346,7 @@ export async function getQuizActivityLinks(
     type: 'MOCK' | 'PRACTICE_QUIZ';
     payload: { quiz_id?: string | null } | null;
     ordinal: number;
+    cohort_id: string | null;
     nclex_programme_units:
       | {
           unit_index: number;
@@ -396,7 +397,30 @@ export async function getQuizActivityLinks(
       unit_index: unitRow.unit_index,
       unit_label: progRow.unit_label ?? 'WEEK',
       unit_title: unitRow.title,
+      cohort_id: row.cohort_id,
+      cohort_name: null,
     });
+  }
+
+  // Slice 5 — name the cohort for any COHORT-ONLY links so the blocked
+  // dialog can point the tutor to the right run. One batch read; RLS scopes
+  // cohorts to the tutor's own.
+  const cohortIds = [
+    ...new Set(out.map((l) => l.cohort_id).filter((id): id is string => !!id)),
+  ];
+  if (cohortIds.length > 0) {
+    const { data: cohorts } = await supabase
+      .from('nclex_cohorts')
+      .select('cohort_id, name')
+      .in('cohort_id', cohortIds);
+    const nameById = new Map(
+      ((cohorts ?? []) as Array<{ cohort_id: string; name: string | null }>).map(
+        (c) => [c.cohort_id, c.name],
+      ),
+    );
+    for (const l of out) {
+      if (l.cohort_id) l.cohort_name = nameById.get(l.cohort_id) ?? null;
+    }
   }
 
   // Stable order — programme, then unit, then activity ordinal.

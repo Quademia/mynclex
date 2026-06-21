@@ -61,7 +61,7 @@ import type {
   ProgrammeBlock,
   ProgrammeUnit,
 } from './types';
-import type { UnitLabel } from '@/lib/programmes/types';
+import type { UnitLabel, DeliveryMode } from '@/lib/programmes/types';
 
 interface UnitBuilderProps {
   unit: ProgrammeUnit;
@@ -70,6 +70,9 @@ interface UnitBuilderProps {
   programmeUnitLabel: UnitLabel;
   // PUBLISHED programme → guard a silent unit unpublish.
   programmePublished: boolean;
+  // Drives the picker's self-paced blur of the Online live session tile
+  // (Slice 1b) — live sessions are scheduled per cohort, tutor-led only.
+  programmeDeliveryMode: DeliveryMode;
 }
 
 type PickerScope =
@@ -93,6 +96,7 @@ export function UnitBuilder({
   activities,
   programmeUnitLabel,
   programmePublished,
+  programmeDeliveryMode,
 }: UnitBuilderProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -568,6 +572,7 @@ export function UnitBuilder({
                           <ActivityPicker
                             onPick={handlePick}
                             onCancel={closePicker}
+                            deliveryMode={programmeDeliveryMode}
                           />
                         </div>
                       )}
@@ -599,7 +604,11 @@ export function UnitBuilder({
         {/* ─── Unit-scope picker (loose entry point) ──── */}
 
         {pickerScope?.kind === 'unit' && (
-          <ActivityPicker onPick={handlePick} onCancel={closePicker} />
+          <ActivityPicker
+            onPick={handlePick}
+            onCancel={closePicker}
+            deliveryMode={programmeDeliveryMode}
+          />
         )}
 
         {/* ─── Inline + Add block form ────────────────── */}

@@ -107,6 +107,18 @@ export type CohortChecklistActivityRow = {
   // true when release_date is the computed default (no stored row /
   // release) — lets the UI show it faint vs. a solid configured date.
   release_is_default: boolean;
+  // Cohort-specific activities (Slice 1). true when this activity is a
+  // COHORT-ONLY add (nclex_programme_activities.cohort_id = this cohort)
+  // rather than a shared template row. Cohort-only rows are born with an
+  // included checklist row, so their `state` is always 'included'; the
+  // UI keys off this flag (not `state`) to render the source pill +
+  // Draft/Live + Delete instead of the Include/Exclude segment.
+  isCohortOnly: boolean;
+  // Live sessions integrity (Slice 2). For an ONLINE_LIVE_SESSION marker:
+  // true when this cohort has a scheduled planner row (scheduled_at set),
+  // false when unscheduled — drives the "Needs scheduling →" cue. null for
+  // every other activity type.
+  liveSessionScheduled: boolean | null;
 };
 
 // Block + its in-block checklist rows. Mirrors the curriculum-tab
@@ -116,6 +128,13 @@ export type CohortChecklistBlockEntry = {
   kind: 'block';
   block: ProgrammeBlock;
   rows: CohortChecklistActivityRow[];
+  // Cohort-specific activities (Slice 2). true when this block is a
+  // COHORT-ONLY block (nclex_programme_blocks.cohort_id = this cohort)
+  // rather than a shared template block. Drives the source pill + the
+  // Edit / Delete / "+ Add activity to block" controls; template blocks
+  // stay read-only in the checklist (they're authored on the Curriculum
+  // tab).
+  isCohortOnly: boolean;
 };
 
 export type CohortChecklistLooseEntry = {

@@ -18,6 +18,7 @@
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { nextPaymentView } from '@/lib/payments/schedule';
+import { formatCohortName } from '@/lib/cohorts/format';
 import type { Currency } from '@/lib/payments/types';
 import type { FrozenStrategySnapshot, PaymentStrategy } from '@/lib/strategies/types';
 import type { EnrolmentRosterRow, EnrolmentStatus, WaitlistEntry } from './types';
@@ -109,10 +110,11 @@ export async function getCohortRoster(
 }
 
 /**
- * Roster for a SELF-PACED programme — the programme is the enrolment
- * container (rows with cohort_id IS NULL), so this is the programme-level
- * twin of getCohortRoster. Same ownership-then-service-role pattern;
- * null = not the caller's programme (page 404s).
+ * Roster for a programme — the single roster mount for BOTH delivery
+ * modes (the cohort-level mount was retired 2026-06-12). Self-paced
+ * reads the cohortless rows; tutor-led reads every cohort's rows
+ * (cohort-tagged). Same ownership-then-service-role pattern as
+ * getCohortRoster; null = not the caller's programme (page 404s).
  */
 export async function getProgrammeRoster(
   programmeId: string,
@@ -128,19 +130,26 @@ export async function getProgrammeRoster(
   // owning tutor / SUPER_ADMIN.
   const { data: owned } = await supabase
     .from('nclex_programmes')
-    .select('programme_id, price_currency')
+    .select('programme_id, price_currency, delivery_mode')
     .eq('programme_id', programmeId)
     .maybeSingle();
   if (!owned) return null;
   const currency = (owned.price_currency as Currency | null) ?? 'GHS';
 
-  return readRoster({ column: 'programme_id', id: programmeId, selfPaced: true }, currency);
+  return readRoster(
+    {
+      column: 'programme_id',
+      id: programmeId,
+      selfPaced: owned.delivery_mode === 'SELF_PACED',
+    },
+    currency,
+  );
 }
 
 // Shared roster read (service role — student profiles are self-read-only
 // under RLS; callers prove ownership first). Self-paced filters to the
-// cohortless rows so a tutor-led programme id can never leak cohort rows
-// through this path.
+// cohortless rows; a tutor-led programme read deliberately spans every
+// cohort's rows (the programme page tags + filters them by cohort).
 async function readRoster(
   scope: { column: 'cohort_id' | 'programme_id'; id: string; selfPaced: boolean },
   currency: Currency,
@@ -152,11 +161,13 @@ async function readRoster(
     // enrolled_by_user_id, approved_by_user_id), so the embed MUST name
     // the constraint — an unqualified nclex_users!inner is ambiguous and
     // PostgREST errors (which this function would swallow into an empty
-    // roster). Follow the user_id FK explicitly.
+    // roster). Follow the user_id FK explicitly. The cohort embed is a
+    // LEFT join (cohort_id is NULL on self-paced rows).
     .select(
-      `enrolment_id, user_id, status, enrolment_source, enrolled_at, paused_reason,
+      `enrolment_id, user_id, cohort_id, status, enrolment_source, enrolled_at, paused_reason,
        strategy_snapshot_json, installment_grace_until,
-       nclex_users!nclex_enrolments_user_id_fkey!inner(name, email)`,
+       nclex_users!nclex_enrolments_user_id_fkey!inner(name, email),
+       nclex_cohorts(name, start_date, end_date)`,
     )
     .eq(scope.column, scope.id);
   if (scope.selfPaced) query = query.is('cohort_id', null);
@@ -164,9 +175,11 @@ async function readRoster(
 
   if (error || !data) return [];
 
+  type RawCohort = { name: string | null; start_date: string; end_date: string };
   type RawRow = {
     enrolment_id: string;
     user_id: string;
+    cohort_id: string | null;
     status: EnrolmentRosterRow['status'];
     enrolment_source: EnrolmentRosterRow['enrolment_source'];
     enrolled_at: string;
@@ -177,6 +190,7 @@ async function readRoster(
       | { name: string; email: string }
       | { name: string; email: string }[]
       | null;
+    nclex_cohorts: RawCohort | RawCohort[] | null;
   };
 
   const rows = data as RawRow[];
@@ -204,6 +218,9 @@ async function readRoster(
         ? r.nclex_users[0]
         : r.nclex_users;
       if (!profile) return null;
+      const cohort = Array.isArray(r.nclex_cohorts)
+        ? r.nclex_cohorts[0]
+        : r.nclex_cohorts;
       // A plan only "shows" payment state for active enrolments. With a plan,
       // a null next-payment means fully paid; without one it just means
       // "no payment plan" (bare dash).
@@ -229,6 +246,8 @@ async function readRoster(
         paused_reason: r.paused_reason,
         name: profile.name,
         email: profile.email,
+        cohort_id: r.cohort_id,
+        cohort_label: cohort ? formatCohortName(cohort) : null,
         nextPayment,
         paymentFullyPaid: hasPlan && nextPayment === null,
       } satisfies EnrolmentRosterRow;
@@ -273,23 +292,51 @@ export async function getRosterPlanContext(
 }
 
 /**
- * PENDING student-initiated waitlist leads for a cohort (Slice 4).
- * Unlike the roster, the waitlist row itself is readable by the owning
- * tutor (RLS policy nclex_cohort_waitlist_tutor_select), so the authed
- * client suffices — no service-role hop. Callers gate ownership via
- * getCohortRoster (returns null → 404) before reaching this.
+ * PENDING student-initiated waitlist leads across ALL the programme's
+ * cohorts (the Enrolments page moved to programme level 2026-06-12;
+ * each lead carries its cohort badge). Unlike the roster, the waitlist
+ * row itself is readable by the owning tutor — the RLS policy
+ * nclex_cohort_waitlist_tutor_select is keyed on the lead's
+ * programme_id ownership — so the authed client suffices, no
+ * service-role hop. Callers gate ownership via getProgrammeRoster
+ * (returns null → 404) before reaching this.
  */
-export async function getCohortWaitlist(
-  cohortId: string,
+export async function getProgrammeWaitlist(
+  programmeId: string,
 ): Promise<WaitlistEntry[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('nclex_cohort_waitlist')
-    .select('waitlist_id, forename, surname, email, phone, preferred_contact, message, created_at')
-    .eq('cohort_id', cohortId)
+    .select(
+      `waitlist_id, cohort_id, forename, surname, email, phone,
+       preferred_contact, message, created_at,
+       nclex_cohorts(name, start_date, end_date)`,
+    )
+    .eq('programme_id', programmeId)
     .eq('status', 'PENDING')
     .order('created_at', { ascending: true });
 
   if (error || !data) return [];
-  return data as WaitlistEntry[];
+
+  type RawCohort = { name: string | null; start_date: string; end_date: string };
+  type RawLead = Omit<WaitlistEntry, 'cohort_label'> & {
+    nclex_cohorts: RawCohort | RawCohort[] | null;
+  };
+  return (data as RawLead[]).map((lead) => {
+    const cohort = Array.isArray(lead.nclex_cohorts)
+      ? lead.nclex_cohorts[0]
+      : lead.nclex_cohorts;
+    return {
+      waitlist_id: lead.waitlist_id,
+      cohort_id: lead.cohort_id,
+      cohort_label: cohort ? formatCohortName(cohort) : '—',
+      forename: lead.forename,
+      surname: lead.surname,
+      email: lead.email,
+      phone: lead.phone,
+      preferred_contact: lead.preferred_contact,
+      message: lead.message,
+      created_at: lead.created_at,
+    } satisfies WaitlistEntry;
+  });
 }

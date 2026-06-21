@@ -3,8 +3,9 @@
 // Tutor nav configs. Two contexts, each with its own sidebar:
 //   - Global    — cross-programme: programmes list, private bank,
 //                 quizzes, students, payments, profile.
-//   - Programme — scoped to one programme: curriculum, sessions,
-//                 assignments, students, results.
+//   - Programme — scoped to one programme: curriculum, library,
+//                 quizzes, enquiries, enrolments + the Delivery
+//                 section (cohorts; the run detail is in-page).
 //
 // To add/remove/reorder a sidebar item, edit this file only.
 //
@@ -55,7 +56,6 @@ export const TUTOR_GLOBAL_NAV: NavItem[] = [
  */
 export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   { key: 'overview',    label: 'Overview',      icon: 'home',     href: '/tutor/programme/:programmeId/overview' },
-  { key: 'cohorts',     label: 'Cohorts',       icon: 'users',    href: '/tutor/programme/:programmeId/cohorts' },
   // Payments Slice 7b — per-programme payment-plan config (upfront +
   // deposit + installments). Always shown; the page itself notes when
   // the programme collects off-platform (plans then don't apply).
@@ -74,11 +74,18 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   // (off-platform or price-hidden). Sits before Students in the funnel
   // order: enquiry → enrolment → student.
   { key: 'enquiries',   label: 'Enquiries',     icon: 'mail',     href: '/tutor/programme/:programmeId/enquiries' },
-  // Self-paced roster — when there's no cohort layer the programme is
-  // the enrolment container, so it gets the same administrative
-  // Enrolments surface a cohort has. The shell hides this entry for
-  // tutor-led programmes (their enrolments live per cohort).
+  // The enrolment roster for BOTH delivery modes (moved up from the
+  // cohort workspace 2026-06-12 — programme = people & money, cohort =
+  // delivery). Tutor-led shows every cohort's rows (cohort-tagged +
+  // filterable) + the cross-cohort Waitlist; self-paced shows the
+  // cohortless rows.
   { key: 'enrolments',  label: 'Enrolments',    icon: 'users',    href: '/tutor/programme/:programmeId/enrolments' },
+  // Mode-specific tabs sit LAST, under a labelled "Delivery" divider
+  // (2026-06-12): the tabs common to both delivery modes keep identical
+  // positions on every programme, and the one entry that exists only on
+  // tutor-led — Cohorts, the doorway into the cohort workspace — stands
+  // apart. Any future single-mode tab joins this bottom section.
+  { key: 'cohorts',     label: 'Cohorts',       icon: 'users',    href: '/tutor/programme/:programmeId/cohorts', section: 'Delivery' },
   // Removed from the sidebar 2026-06-07 (MVP declutter): Live Sessions,
   // Assignments, Results. Their placeholder routes still exist (the tutor
   // Home "This week" block links to /sessions), so re-adding any is a
@@ -90,26 +97,8 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   // Placeholder route still exists; restoring is one line.
 ];
 
-/**
- * Cohort-scoped nav. Sibling world of the programme nav — opened
- * when a tutor clicks into a specific cohort run. Hrefs contain
- * ':cohortId' which the cohort layout replaces with the actual
- * [cohort_id] route param. Slice 9.2c set up the chrome; slice
- * 9.3f adds the Curriculum tab (the cohort's inclusion + release-
- * date controls over the programme's template activities).
- */
-export const TUTOR_COHORT_NAV: NavItem[] = [
-  { key: 'overview',      label: 'Overview',      icon: 'home',   href: '/tutor/cohort/:cohortId/overview' },
-  { key: 'curriculum',    label: 'Curriculum',    icon: 'layers', href: '/tutor/cohort/:cohortId/curriculum' },
-  // Enrolments (formerly "Students") — the administrative roster:
-  // who's in, waitlist, statuses, add-student. Renamed in the cohort-
-  // analytics slice so "Students"-style labelling is freed for a future
-  // per-student view; Analytics (below) is the how-they're-doing surface.
-  { key: 'enrolments',    label: 'Enrolments',    icon: 'users',  href: '/tutor/cohort/:cohortId/enrolments' },
-  // Cohort analytics — completion (Phase 1) + quiz performance (Phase 2).
-  // Sits next to Enrolments: who's in vs. how they're doing.
-  { key: 'analytics',     label: 'Analytics',     icon: 'chart',  href: '/tutor/cohort/:cohortId/analytics' },
-  { key: 'sessions',      label: 'Sessions',      icon: 'video',  href: '/tutor/cohort/:cohortId/sessions' },
-  { key: 'announcements', label: 'Announcements', icon: 'edit',   href: '/tutor/cohort/:cohortId/announcements' },
-  { key: 'settings',      label: 'Settings',      icon: 'settings', href: '/tutor/cohort/:cohortId/settings' },
-];
+// The cohort-scoped nav (TUTOR_COHORT_NAV) was retired in the
+// cohort-workspace fold (2026-06-12): the cohort run detail now
+// renders IN PLACE on the programme Cohorts page (?cohort= + ?tab=,
+// the library pattern), so a cohort no longer has its own sidebar.
+// Tab config lives in lib/cohorts/cohort-detail.tsx.

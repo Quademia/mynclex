@@ -42,12 +42,23 @@ export function ActivityBlockedDialog({
           {activities.map((a) => (
             <li key={a.activity_id} className="quiz-blocking-item">
               <Link
-                href={`/tutor/programme/${a.programme_id}/curriculum`}
+                href={
+                  a.cohort_id
+                    ? `/tutor/programme/${a.programme_id}/cohorts?cohort=${a.cohort_id}&tab=curriculum`
+                    : `/tutor/programme/${a.programme_id}/curriculum`
+                }
                 className="quiz-blocking-link"
               >
                 {a.programme_title}
                 <span className="quiz-blocking-where">
                   {a.unit_title} · {a.activity_title || 'Untitled activity'}
+                  {a.cohort_id && (
+                    <span className="quiz-blocking-cohort">
+                      {' '}
+                      · Cohort-only
+                      {a.cohort_name ? `: ${a.cohort_name}` : ''}
+                    </span>
+                  )}
                 </span>
               </Link>
             </li>

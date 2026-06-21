@@ -913,7 +913,7 @@ produced this boundary:
   360 likely lives at the GLOBAL **My Students** page (placeholder
   kept). Restore is one nav line if ever wanted.
 
-#### Settled 2026-06-12 (end of session) — cohort Enrolments MOVE to programme level (planned, not yet built)
+#### Settled 2026-06-12 (end of session) — cohort Enrolments MOVE to programme level (✅ BUILT 2026-06-12, next session — see the build note below)
 
 Re-opened by Sam after the IA above settled, and **decided: the
 enrolment roster for BOTH delivery modes lives at programme level.**
@@ -964,6 +964,37 @@ makes this move a modest slice instead of a rebuild.
 convert / dismiss, add-student (with + without plan), pause / grace /
 Mark-paid — all retested at the new mount. **Sequenced AHEAD of the
 global payments page** — IA settles before more surfaces build on it.
+
+**BUILD NOTE (2026-06-12, the following session).** The plan above
+shipped as written (6 commits, all app-layer, no migration), plus
+five discussed-and-agreed extensions that fell out of Sam's testing:
+
+1. **Cohort ZOOM (gamma attempts-page "window" pattern).** The cohort
+   filter is page-wide, not table-only: picking a cohort recomputes
+   the summary cards AND the status chips, and scopes the Waitlist
+   tab (list + badge). Status chips + search stay table-only (cards
+   ARE status counts — scoping by status would be circular). A
+   **scope line** under the header declares the world — quiet
+   "across all cohorts" / teal-tinted "for the X cohort" with a
+   **Show all cohorts** exit. The workspace deep link therefore lands
+   showing that cohort's own counts — the old cohort page reborn.
+2. **Table width fix** (the 7th column overflowed the CD-era 1080px
+   cap and `overflow:hidden` silently amputated Actions): `.cw-page`
+   → 1400px · `overflow-x:auto` + **sticky Actions column** · row
+   actions collapsed to a **⋯ menu** (Approve + Mark paid stay
+   inline; menu body-portaled — sticky cells are stacking contexts) ·
+   Cohort column hidden when zoomed.
+3. **Convert-with-plan parity.** The waitlist Convert dialog carries
+   the same optional plan picker as Add Student (one dialog, one
+   confirmation; shared `PlanPickerFields`; plan threaded through
+   `inviteOrAttachAndEnrol`, so snapshot/sweep/Mark-paid/history all
+   behave identically). Closed the gap the add-with-plan slice
+   created — converted leads were permanently plan-less.
+4. **Header rename** Students → **Enrolments** (matches the sidebar;
+   "Students" stays reserved for the future per-student view).
+5. `RosterScope` union retired — actions take a plain `programmeId`
+   (every mount is programme-level now); waitlist convert/dismiss
+   take just the `waitlistId` and read cohort/programme off the lead.
 
 #### On-platform flow — full sequence (Settled 2026-05-18)
 

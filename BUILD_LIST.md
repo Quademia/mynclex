@@ -8,24 +8,148 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **⏭ NEXT SESSION — set (2026-06-12 end-of-session): MOVE cohort
-> Enrolments to programme level.** Decided + planned, not built — full
-> plan in [payments-and-enrolment.md → "Settled 2026-06-12 (end of
-> session)"](docs/product-plan/payments-and-enrolment.md): programme
-> Enrolments page accepts tutor-led (roster across all cohorts) ·
-> cohort tag + filter · Waitlist tab moves up (cohort-badged) ·
-> add-student cohort picker · mode-driven summary cells · nav swap
-> (cohort Enrolments entry + route DELETED; cohort workspace gets a
-> pre-filtered "Manage enrolments →" link). Supersedes the morning's
-> "roster lives where students enrol" rule. Regression pass over
-> approve/waitlist/add/pause/grace/mark-paid at the new mount.
-> **Sequenced AHEAD of the global `/tutor/payments` transactions page**
-> (next after; settled same day: built ONCE globally w/ programme ·
-> cohort · channel · date filters). Then: library **11.11c** · **11.17**
-> · programme **Overview** · a `main → prod` **release** (carries all
-> 2026-06-12 slices; no migrations). Operational ⚠: **`PAYSTACK_SECRET_KEY`
-> is not set on the prod Worker** — prod checkout will fail until it is
-> (5-min fix, needs the dashboard/wrangler).
+> **MOBILE NAVIGATION — SLICES 1–3 COMPLETE: BUILT + MERGED to `main`
+> (2026-06-21; Sam-tested on dev; app-layer, no migration; not yet released
+> to prod).** Made the navs mobile-friendly at **≤768px** — the first piece of a
+> standing **"surfaces must be mobile-friendly, especially student surfaces"**
+> direction (now CLAUDE.md UI Convention #3). Built from the Claude Design
+> "Mobile Navigation Redesign" prototype, concept-not-source. Design + slices in
+> [mobile-responsive.md](docs/product-plan/mobile-responsive.md).
+> - **Decisions:** breakpoint **768px**; **students → hybrid** (slide-in drawer +
+>   additive bottom-tab bar); **tutor & admin → drawer only** (extend to tabs
+>   later off the student build); **the drawer is always the COMPLETE menu**,
+>   tabs are additive shortcuts; **Profile → the account sheet**.
+> - **Slice 1 — drawer + account sheet (ALL audiences).** New
+>   `components/shell/mobile/` (`mobile-nav.tsx` + `account-sheet.tsx`);
+>   `AppShell` `mobileNav` slot; all 6 shell renderers wired; new
+>   `styles/mobile-nav.css` (hides desktop topbar + sidebar ≤768); `menu`+`x`
+>   icons. Account sheet reuses `switchRoleAction` + `/logout`. **Tutor & admin
+>   are mobile-done after this.**
+> - **Slice 2 — student bottom tabs (hybrid).** `NavItem.mobileTab?` +
+>   `tabLabel?`; 4 tabs flagged per student context; `bottom-tabs.tsx` (renders
+>   only where `mobileTab` rows exist); `:has(.m-tabbar)` content offset.
+> - **Slice 3 — polish + convention.** Focus-on-open; scroll-lock moved inside
+>   the ≤768 breakpoint (bug fix) + resize-to-desktop close; convention into
+>   `CLAUDE.md` + permanent `mobile-responsive.md`.
+> - **Deferred:** tutor/admin bottom tabs; non-nav content reflow
+>   (tables/editors); picker + `(focused)` mobile treatment; full focus-trap;
+>   programme-name drawer header.
+
+> **LIVE SESSIONS — ATTENDANCE ARC COMPLETE: SLICES 3 + 3b + 4 BUILT + MERGED
+> to `main` (2026-06-16; Sam-tested on dev; not yet released to prod).**
+> Tutor-marked attendance is the "only verified completion counts" signal for
+> live sessions. Builds on the Slice 1 + 2 marker/planner split (merged
+> 2026-06-15). **Migration `20260704120000`** (ships to prod next release,
+> after `20260703120000`). Built from the CD "Sessions & Attendance"
+> prototype. Design + slices in
+> [live-session-planner.md](docs/product-plan/live-session-planner.md).
+> - **Slice 3 — tutor attendance** (`20260704120000`): the
+>   `nclex_cohort_session_attendance` register (PRESENT/ABSENT/EXCUSED) + RLS +
+>   a SECURITY DEFINER trigger (`nclex_progress_on_attendance`) deriving an
+>   `ATTENDANCE` progress row on present (widened the progress CHECKs).
+>   Sessions tab → **Schedule | Attendance** sub-tabs (`?stab=`); summary band +
+>   missed-≥2 engagement flags + a reusable props-driven **`RosterDrawer`**
+>   (roster sweep). Three states; **Excused excluded from the denominator**.
+>   Also back-ported the planner table + RLS the prior session missed.
+> - **Slice 3b — student side** (no DB work): a **"My sessions"** tab
+>   (`/student/cohort/[id]/sessions`) — record card + **streak 🔥** +
+>   next-session panel + **List ⇄ Timeline**; plus the curriculum **badge**
+>   (Attended/Missed/Excused on the 📅 event row).
+> - **Slice 4 — attendance into the %** (app-layer): held + marked live
+>   sessions now count toward completion, consistently across the **student
+>   curriculum %** AND the **tutor cohort-analytics %** (per-student
+>   denominator; badge look unchanged, only the maths).
+> - **⏭ NEXT: Slice 5 — V2 managed sessions** (calendar, reminders, Zoom/Meet
+>   API, recordings library) + the deferred "what to bring" attachment.
+
+> **COHORT-SPECIFIC ACTIVITIES — COMPLETE: SLICES 1–5 BUILT + MERGED to
+> `main` (2026-06-14; Sam-tested on dev; not yet released to prod).** The
+> cohort-only "escape valve": a tutor adds activities / blocks that live in
+> ONE cohort, on the cohort Curriculum tab, without touching the shared
+> programme template. **One migration for the whole feature**
+> (`20260702120000`, on dev + `main`, **ships to prod next release**).
+> - **Slice 1** (`e803c6c`) — `cohort_id` schema + loose Text/PDF/Link via
+>   the shared editor (publish = its existing Status tick) + soft-warn +
+>   stale-help-text fix; `cohort_id IS NULL` leak filter on template reads.
+> - **Slice 2** (`da73a9b`) — cohort-only **blocks** (add / add-into-block
+>   / edit / delete-cascades) + student blocks-read widen.
+> - **Slice 3a** (`e8089f2`) — **Mock + Practice quiz** (shared editor;
+>   cohort-only quiz usage NOT mirrored programme-wide, but the quiz-delete
+>   guard still protects it). **Slice 3b** (`642e21b`) — **Library Note +
+>   Shelf** via cohort-aware attach modals (`cohortId` param +
+>   `lib/curriculum/cohort-attach.ts`).
+> - **Slice 4** (`008ce5c` → `06628cf`) — **ordering / placement**: up/down
+>   reorder arrows on cohort-only loose items, blocks, and in-block
+>   activities; wedge between template items; template never moves. Mechanic
+>   = the **"store"** spaced-number model (one physically spaced line,
+>   `UNIT_BODY_ORDINAL_STEP = 1e6`; template "add" → `max + STEP`; reorder =
+>   midpoint of new neighbours). Switched from an initial "treat"
+>   (render-side) build once prod was confirmed empty — **no migration**.
+>   In-block activities keep tight 1/2/3 ordinals (they only order
+>   themselves; reorder there is a swap).
+> - **Slice 5** (`9147677`) — **polish**: Note/Shelf attach nudge parity;
+>   the quiz-delete blocking dialog names the cohort (+ links to its
+>   Curriculum tab) for a cohort-only Mock; a discoverability hint; the
+>   reorder no-gap edge surfaces a friendly error. Verified the cohort
+>   analytics already counts cohort-only completions. Deliberately skipped
+>   (evaluated): in-block ordinal spacing + a per-row "Template" pill.
+>
+> **All 5 slices ✅. Feature complete on `main`.** Only follow-up = the
+> `main → prod` **release** (carries `20260702120000`). Design + slices in
+> [cohort-specific-activities.md](docs/product-plan/cohort-specific-activities.md);
+> detail in [sessions/2026-06.md](sessions/2026-06.md).
+
+> **⏭ NEXT: the global `/tutor/payments` transactions page** (settled
+> 2026-06-12: built ONCE globally w/ programme · cohort · channel ·
+> date filters — no per-programme money pages). Then: library
+> **11.11c** · **11.17** · programme **Overview** · a `main → prod`
+> **release** (carries all 2026-06-12 slices; no migrations).
+> Operational ⚠: **`PAYSTACK_SECRET_KEY` is not set on the prod
+> Worker** — prod checkout will fail until it is (5-min fix, needs the
+> dashboard/wrangler).
+
+> **COHORT WORKSPACE FOLDED INTO THE PROGRAMME + SIDEBAR IDENTITY
+> (2026-06-12, ✅ MERGED to `main`, not yet prod).** Two slices, same
+> session, all app-layer, no migration.
+> **(1) Programme sidebar** (`d0646d7`): mode-specific tabs sit LAST
+> under a labelled **"Delivery"** divider (new `NavItem.section`), so
+> the common tabs hold identical positions on both delivery modes;
+> header gains the **programme name** (2-line clamp) + a
+> **Tutor-led / Self-paced chip**. **(2) Cohort-workspace fold**
+> (planned in [cohort-workspace-fold.md](docs/product-plan/cohort-workspace-fold.md),
+> built same day, `48af9f1` · `989c075` · `ff40707`): the cohort run
+> detail now renders **in place on the programme Cohorts tab** — the
+> library pattern (`?cohort=` selects the run, `?tab=` picks Overview /
+> Curriculum / Analytics / Sessions placeholder / Settings; top tab
+> bar, run header, only the active tab's data fetched). The old
+> `/tutor/cohort/[id]` world (routes + shell + sidebar + back-pill +
+> `TUTOR_COHORT_NAV`) is **deleted**; a one-file redirect shim forwards
+> old URLs; tutor Home + cohort cards + action revalidates rewired.
+> *Cohort stops being a place and becomes a context* — no sidebar swap
+> anywhere in the tutor app. Announcements dropped until built;
+> Sessions kept (Live Session Planner lands there).
+
+> **ENROLMENTS MOVED TO PROGRAMME LEVEL (2026-06-12, ✅ MERGED to
+> `main`, not yet prod).** The settled plan
+> ([payments-and-enrolment.md → "Settled 2026-06-12 (end of
+> session)"](docs/product-plan/payments-and-enrolment.md), now carrying
+> the build note) shipped as written — **programme = people & money,
+> cohort = delivery**: programme Enrolments accepts tutor-led (roster
+> across all cohorts, cohort-tagged) · Waitlist tab moved up
+> (cohort-badged; convert targets the lead's own cohort) · add-student
+> cohort picker · mode-driven summary cells · cohort Enrolments entry +
+> route DELETED; cohort Overview links "Manage enrolments →"
+> pre-filtered. Plus 5 same-session extensions from Sam's testing:
+> **cohort ZOOM** (filter recomputes cards + chips + waitlist,
+> page-wide, w/ a scope line + Show-all exit — the deep link restores
+> the old cohort-scoped view) · **table width fix** (1400px page ·
+> overflow-x scroll + sticky Actions · row **⋯ menu**, body-portaled ·
+> zoom hides the Cohort column) · **convert-with-plan parity** (the
+> Convert dialog carries the Add-Student plan picker; shared
+> `PlanPickerFields`) · header **Students → Enrolments** ·
+> `RosterScope` retired. 6 commits `a1f454c` · `a040804` · `3be55c1` ·
+> `845ed76` · `8d08d02` · `474239d`; all app-layer, no migration.
+> Detail in [sessions/2026-06.md](sessions/2026-06.md).
 
 > **PAYMENT-HISTORY DRAWER + MONEY-SURFACE IA (2026-06-12, ✅ MERGED to
 > `main`, not yet prod).** Per-student payment history behind the

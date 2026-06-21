@@ -36,9 +36,17 @@ import {
   useState,
   useTransition,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { ErrorToast } from '@/lib/toast/error-toast';
+import { InfoToast } from '@/lib/toast/info-toast';
 import { ActivityModal } from '@/lib/curriculum/activity-modal';
+import { ActivityPicker } from '@/lib/curriculum/activity-picker';
+import { BlockFormModal } from '@/lib/curriculum/block-form-modal';
+import { LibraryNoteAttachModal } from '@/lib/curriculum/library-note-attach-modal';
+import { ShelfAttachModal } from '@/lib/curriculum/shelf-attach-modal';
+import { DeleteActivityConfirm } from '@/lib/overlays/curriculum/delete-activity-confirm';
+import { DeleteBlockConfirm } from '@/lib/overlays/curriculum/delete-block-confirm';
 import {
   formatUnitTitle,
   unitLabel,
@@ -52,6 +60,12 @@ import {
   setActivityDueDateAction,
   setActivityCloseDateAction,
   includeAllUnconfiguredActivitiesAction,
+  createCohortOnlyActivityAction,
+  deleteCohortOnlyActivityAction,
+  createCohortOnlyBlockAction,
+  deleteCohortOnlyBlockAction,
+  reorderCohortOnlyActivityAction,
+  reorderCohortOnlyBlockAction,
 } from './actions';
 import type {
   ChecklistActivityState,
@@ -59,8 +73,83 @@ import type {
   CohortChecklistBodyEntry,
   CohortChecklistTree,
 } from './types';
-import type { ProgrammeActivity } from '@/lib/curriculum/types';
+import type {
+  ActivityType,
+  ProgrammeActivity,
+  ProgrammeBlock,
+} from '@/lib/curriculum/types';
 import type { UnitLabel } from '@/lib/programmes/types';
+
+// The activity types a tutor can add as a cohort-only activity. The 3
+// self-contained types (Slice 1) + the 2 quiz types (Slice 3a) go through
+// the shared editor; Library Note + Shelf (Slice 3b) route to their own
+// attach modals (handled in openAddActivity). Online live session goes
+// through the shared editor too — it creates a cohort-only MARKER (title +
+// typical duration, no schedule), exactly like a template marker; the tutor
+// then sets the per-cohort time/link on the Sessions tab (the "needs
+// scheduling →" cue links there). "+ Add session" on the Sessions tab is
+// the alternative one-step entry that also schedules.
+const COHORT_ONLY_TYPES: ActivityType[] = [
+  'TEXT',
+  'PDF',
+  'EXTERNAL_LINK',
+  'ONLINE_LIVE_SESSION',
+  'MOCK',
+  'PRACTICE_QUIZ',
+  'LIBRARY_NOTE',
+  'SHELF',
+];
+
+// The open Library-Note / Shelf attach modal (Slice 3b). create = attach a
+// new cohort-only note/shelf; edit = an existing cohort-only one.
+type AttachModalState =
+  | {
+      kind: 'note' | 'shelf';
+      mode: 'create';
+      unitId: string;
+      blockId: string | null;
+    }
+  | { kind: 'note' | 'shelf'; mode: 'edit'; activityId: string };
+
+// Reorder control for a cohort-only item (Slice 4). Undefined on template
+// rows/blocks — they're reordered on the programme Curriculum tab, not here.
+type ReorderCtl = {
+  canUp: boolean;
+  canDown: boolean;
+  pending: boolean;
+  onMove: (direction: 'up' | 'down') => void;
+};
+
+function ReorderArrows({ canUp, canDown, pending, onMove }: ReorderCtl) {
+  return (
+    <span
+      className="cohort-checklist-reorder"
+      role="group"
+      aria-label="Reorder within the week"
+    >
+      <button
+        type="button"
+        className="cohort-checklist-reorder-btn"
+        disabled={!canUp || pending}
+        onClick={() => onMove('up')}
+        aria-label="Move up"
+        title="Move up"
+      >
+        ▲
+      </button>
+      <button
+        type="button"
+        className="cohort-checklist-reorder-btn"
+        disabled={!canDown || pending}
+        onClick={() => onMove('down')}
+        aria-label="Move down"
+        title="Move down"
+      >
+        ▼
+      </button>
+    </span>
+  );
+}
 
 const TYPE_LABEL = {
   TEXT: 'Text',
@@ -86,11 +175,128 @@ interface CohortCurriculumProps {
 export function CohortCurriculum({ tree }: CohortCurriculumProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [nudge, setNudge] = useState<string | null>(null);
   const [editActivity, setEditActivity] = useState<ProgrammeActivity | null>(
     null
   );
+  // Cohort-only "+ Add" flow. pickerUnitId = which unit's activity-type
+  // picker is open; addingBlockUnitId = which unit's "+ Add block" title
+  // input is open; createConfig = the chosen (unit, type, block) that opens
+  // the shared activity editor in create mode (blockId set → the activity
+  // is created inside that cohort-only block).
+  const [pickerUnitId, setPickerUnitId] = useState<string | null>(null);
+  const [addingBlockUnitId, setAddingBlockUnitId] = useState<string | null>(
+    null
+  );
+  const [createConfig, setCreateConfig] = useState<{
+    unitId: string;
+    type: ActivityType;
+    blockId: string | null;
+  } | null>(null);
+  // Cohort-only block edit / delete (Slice 2).
+  const [editBlock, setEditBlock] = useState<ProgrammeBlock | null>(null);
+  const [deleteBlockTarget, setDeleteBlockTarget] = useState<{
+    block: ProgrammeBlock;
+    activityCount: number;
+  } | null>(null);
+  const [creatingBlock, startCreateBlock] = useTransition();
+  const [deletingBlock, startDeleteBlock] = useTransition();
+  // Library Note / Shelf attach modal (Slice 3b reference types).
+  const [attachModal, setAttachModal] = useState<AttachModalState | null>(null);
+  // Reorder of cohort-only items (Slice 4).
+  const [reordering, startReorder] = useTransition();
 
   const cohortId = tree.cohort.cohort_id;
+
+  // Soft-warn keyed off the publish state, shared by every "add a
+  // cohort-only item" path (editor types + Note/Shelf attach). If it landed
+  // Draft, nudge that students can't see it yet; if Live, confirm.
+  function nudgeForAdd(published: boolean) {
+    setNudge(
+      published
+        ? 'Added to this cohort — it’s live for students now.'
+        : 'Added — students can’t see it yet. Open it and tick Live when you’re ready.'
+    );
+  }
+
+  // Move a cohort-only item (loose activity / in-block activity / block)
+  // one step within its week. Template items never move.
+  function handleReorder(
+    kind: 'activity' | 'block',
+    id: string,
+    direction: 'up' | 'down'
+  ) {
+    setError(null);
+    startReorder(async () => {
+      const res =
+        kind === 'activity'
+          ? await reorderCohortOnlyActivityAction(cohortId, id, direction)
+          : await reorderCohortOnlyBlockAction(cohortId, id, direction);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  // Route an "+ Add" pick: Library Note / Shelf open their own attach
+  // modals; every other type goes through the shared activity editor.
+  function openAddActivity(
+    unitId: string,
+    blockId: string | null,
+    type: ActivityType
+  ) {
+    if (type === 'LIBRARY_NOTE') {
+      setAttachModal({ kind: 'note', mode: 'create', unitId, blockId });
+    } else if (type === 'SHELF') {
+      setAttachModal({ kind: 'shelf', mode: 'create', unitId, blockId });
+    } else {
+      setCreateConfig({ unitId, type, blockId });
+    }
+  }
+
+  // Route a row click: a COHORT-ONLY Library Note / Shelf opens its attach
+  // edit modal (those types aren't editable in the shared editor);
+  // everything else — incl. template note/shelf rows — opens the shared
+  // editor as before.
+  function openEditActivity(a: ProgrammeActivity, isCohortOnly: boolean) {
+    if (isCohortOnly && a.type === 'LIBRARY_NOTE') {
+      setAttachModal({ kind: 'note', mode: 'edit', activityId: a.activity_id });
+    } else if (isCohortOnly && a.type === 'SHELF') {
+      setAttachModal({ kind: 'shelf', mode: 'edit', activityId: a.activity_id });
+    } else {
+      setEditActivity(a);
+    }
+  }
+
+  function handleCreateBlock(unitId: string, title: string) {
+    setError(null);
+    startCreateBlock(async () => {
+      const res = await createCohortOnlyBlockAction(cohortId, unitId, title);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setAddingBlockUnitId(null);
+      router.refresh();
+    });
+  }
+
+  function handleDeleteBlock() {
+    if (!deleteBlockTarget) return;
+    setError(null);
+    const blockId = deleteBlockTarget.block.block_id;
+    startDeleteBlock(async () => {
+      const res = await deleteCohortOnlyBlockAction(cohortId, blockId);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setDeleteBlockTarget(null);
+      router.refresh();
+    });
+  }
 
   // Unconfigured count — activities the tutor hasn't decided on yet
   // (no override row). Drives the "N unconfigured → Include all" prompt.
@@ -152,18 +358,16 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [pendingCount]);
 
-  // The tree is empty if the programme has no activities yet
-  // (cohort got seeded with zero rows). Render a helpful empty
-  // state pointing the tutor back to the curriculum tab.
-  const hasAnyActivity = tree.units.some((u) => u.body.length > 0);
-
-  // Dead-end empty state only when the programme genuinely has no
-  // activities at all.
-  if (!hasAnyActivity && unconfiguredCount === 0) {
+  // Dead-end empty state only when the programme has no units at all
+  // (effectively never — every programme is backfilled with its
+  // length_units units). When units exist but hold no activities, we
+  // still render them: the tutor can author the template on the
+  // Curriculum tab AND add cohort-only activities to a unit right here.
+  if (tree.units.length === 0) {
     return (
       <section className="cohort-checklist-empty">
         <h2 className="cohort-checklist-empty-title">
-          No activities in this programme yet.
+          No units in this programme yet.
         </h2>
         <p className="cohort-checklist-empty-sub">
           Author your curriculum on the programme&apos;s Curriculum tab.
@@ -183,7 +387,9 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
             Toggle inclusion and set each activity&apos;s window —
             opens, due, closes — for this cohort. Due and close are
             optional. Content edits flow from the programme&apos;s
-            Curriculum tab — click any activity to edit it there.
+            Curriculum tab — click any activity to edit it there. You can
+            also add <strong>cohort-only</strong> activities and blocks
+            (below each week) that live only in this run.
           </p>
         </header>
 
@@ -248,27 +454,107 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
 
               {u.body.length === 0 ? (
                 <p className="cohort-checklist-unit-empty">
-                  No activities in this unit.
+                  No activities in this unit yet.
                 </p>
               ) : (
                 <div className="cohort-checklist-body">
-                  {u.body.map((entry) => (
-                    <BodyEntry
-                      key={
-                        entry.kind === 'block'
-                          ? `b-${entry.block.block_id}`
-                          : `l-${entry.row.activity.activity_id}`
-                      }
-                      entry={entry}
-                      cohortId={cohortId}
-                      onClickActivity={(a) => setEditActivity(a)}
-                      onError={setError}
-                      onMutated={() => router.refresh()}
-                      markPending={markPending}
-                    />
-                  ))}
+                  {u.body.map((entry, idx) => {
+                    // Only cohort-only items reorder here; template items
+                    // move on the Curriculum tab. Position is the entry's
+                    // index in the merged body — it can move past template
+                    // items (the action computes a between-number).
+                    const entryIsCohortOnly =
+                      entry.kind === 'loose'
+                        ? entry.row.isCohortOnly
+                        : entry.isCohortOnly;
+                    const reorder: ReorderCtl | undefined = entryIsCohortOnly
+                      ? {
+                          canUp: idx > 0,
+                          canDown: idx < u.body.length - 1,
+                          pending: reordering,
+                          onMove: (direction) =>
+                            handleReorder(
+                              entry.kind === 'block' ? 'block' : 'activity',
+                              entry.kind === 'block'
+                                ? entry.block.block_id
+                                : entry.row.activity.activity_id,
+                              direction
+                            ),
+                        }
+                      : undefined;
+                    return (
+                      <BodyEntry
+                        key={
+                          entry.kind === 'block'
+                            ? `b-${entry.block.block_id}`
+                            : `l-${entry.row.activity.activity_id}`
+                        }
+                        entry={entry}
+                        cohortId={cohortId}
+                        onClickActivity={openEditActivity}
+                        onError={setError}
+                        onMutated={() => router.refresh()}
+                        markPending={markPending}
+                        onEditBlock={(block) => setEditBlock(block)}
+                        onDeleteBlock={(block, count) =>
+                          setDeleteBlockTarget({ block, activityCount: count })
+                        }
+                        onAddActivityToBlock={openAddActivity}
+                        reorder={reorder}
+                        onReorderActivity={(activityId, direction) =>
+                          handleReorder('activity', activityId, direction)
+                        }
+                        reorderPending={reordering}
+                      />
+                    );
+                  })}
                 </div>
               )}
+
+              <div className="cohort-checklist-unit-foot">
+                {pickerUnitId === u.unit.unit_id ? (
+                  <ActivityPicker
+                    types={COHORT_ONLY_TYPES}
+                    title="Add a cohort-only activity"
+                    onPick={(type) => {
+                      openAddActivity(u.unit.unit_id, null, type);
+                      setPickerUnitId(null);
+                    }}
+                    onCancel={() => setPickerUnitId(null)}
+                  />
+                ) : addingBlockUnitId === u.unit.unit_id ? (
+                  <CohortBlockCreate
+                    pending={creatingBlock}
+                    onCreate={(title) =>
+                      handleCreateBlock(u.unit.unit_id, title)
+                    }
+                    onCancel={() => setAddingBlockUnitId(null)}
+                  />
+                ) : (
+                  <div className="cohort-checklist-add-row">
+                    <button
+                      type="button"
+                      className="cohort-checklist-add-btn"
+                      onClick={() => {
+                        setPickerUnitId(u.unit.unit_id);
+                        setAddingBlockUnitId(null);
+                      }}
+                    >
+                      + Add cohort-only activity
+                    </button>
+                    <button
+                      type="button"
+                      className="cohort-checklist-add-btn"
+                      onClick={() => {
+                        setAddingBlockUnitId(u.unit.unit_id);
+                        setPickerUnitId(null);
+                      }}
+                    >
+                      + Add cohort-only block
+                    </button>
+                  </div>
+                )}
+              </div>
             </article>
           ))}
         </div>
@@ -282,12 +568,104 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
         />
       )}
 
+      {createConfig && (
+        <ActivityModal
+          mode="create"
+          unitId={createConfig.unitId}
+          type={createConfig.type}
+          blockId={createConfig.blockId}
+          onCreate={async (values) => {
+            const res = await createCohortOnlyActivityAction(
+              cohortId,
+              createConfig.unitId,
+              values,
+              createConfig.blockId
+            );
+            // Soft-warn keyed off the editor's Status tick (the modal
+            // closes + the tree refreshes; the persistent Draft pill on the
+            // new row carries the hidden state from here on).
+            if (res.ok) nudgeForAdd(values.is_published);
+            return res;
+          }}
+          onClose={() => setCreateConfig(null)}
+        />
+      )}
+
+      {editBlock && (
+        <BlockFormModal
+          blockId={editBlock.block_id}
+          initial={{
+            title: editBlock.title,
+            description: editBlock.description ?? '',
+            is_published: editBlock.is_published,
+          }}
+          onClose={() => setEditBlock(null)}
+        />
+      )}
+
+      {deleteBlockTarget && (
+        <DeleteBlockConfirm
+          blockTitle={deleteBlockTarget.block.title}
+          activityCount={deleteBlockTarget.activityCount}
+          pending={deletingBlock}
+          onCancel={() => setDeleteBlockTarget(null)}
+          onConfirm={handleDeleteBlock}
+        />
+      )}
+
+      {attachModal?.kind === 'note' &&
+        (attachModal.mode === 'create' ? (
+          <LibraryNoteAttachModal
+            mode="create"
+            unitId={attachModal.unitId}
+            blockId={attachModal.blockId}
+            cohortId={cohortId}
+            onAttached={nudgeForAdd}
+            onClose={() => setAttachModal(null)}
+          />
+        ) : (
+          <LibraryNoteAttachModal
+            mode="edit"
+            activityId={attachModal.activityId}
+            onClose={() => setAttachModal(null)}
+          />
+        ))}
+
+      {attachModal?.kind === 'shelf' &&
+        (attachModal.mode === 'create' ? (
+          <ShelfAttachModal
+            mode="create"
+            unitId={attachModal.unitId}
+            blockId={attachModal.blockId}
+            cohortId={cohortId}
+            onAttached={nudgeForAdd}
+            onClose={() => setAttachModal(null)}
+          />
+        ) : (
+          <ShelfAttachModal
+            mode="edit"
+            activityId={attachModal.activityId}
+            onClose={() => setAttachModal(null)}
+          />
+        ))}
+
       <ErrorToast error={error} onDismiss={() => setError(null)} />
+      <InfoToast message={nudge} onDismiss={() => setNudge(null)} />
     </>
   );
 }
 
 // ---------- Body entry: block or loose row ----------
+
+type BlockCallbacks = {
+  onEditBlock: (block: ProgrammeBlock) => void;
+  onDeleteBlock: (block: ProgrammeBlock, activityCount: number) => void;
+  onAddActivityToBlock: (
+    unitId: string,
+    blockId: string,
+    type: ActivityType
+  ) => void;
+};
 
 function BodyEntry({
   entry,
@@ -296,14 +674,26 @@ function BodyEntry({
   onError,
   onMutated,
   markPending,
+  onEditBlock,
+  onDeleteBlock,
+  onAddActivityToBlock,
+  reorder,
+  onReorderActivity,
+  reorderPending,
 }: {
   entry: CohortChecklistBodyEntry;
   cohortId: string;
-  onClickActivity: (a: ProgrammeActivity) => void;
+  onClickActivity: (a: ProgrammeActivity, isCohortOnly: boolean) => void;
   onError: (msg: string) => void;
   onMutated: () => void;
   markPending: (id: string, isPending: boolean) => void;
-}) {
+  // Slice 4 — reorder of this entry (undefined for template entries).
+  reorder?: ReorderCtl;
+  // Reorder of an activity INSIDE a cohort-only block (BlockEntryCard
+  // builds per-row controls from this).
+  onReorderActivity: (activityId: string, direction: 'up' | 'down') => void;
+  reorderPending: boolean;
+} & BlockCallbacks) {
   if (entry.kind === 'loose') {
     return (
       <ChecklistRow
@@ -313,34 +703,111 @@ function BodyEntry({
         onError={onError}
         onMutated={onMutated}
         markPending={markPending}
+        reorder={reorder}
       />
     );
   }
 
   return (
-    <div className="cohort-checklist-block">
+    <BlockEntryCard
+      entry={entry}
+      cohortId={cohortId}
+      onClickActivity={onClickActivity}
+      onError={onError}
+      onMutated={onMutated}
+      markPending={markPending}
+      onEditBlock={onEditBlock}
+      onDeleteBlock={onDeleteBlock}
+      onAddActivityToBlock={onAddActivityToBlock}
+      reorder={reorder}
+      onReorderActivity={onReorderActivity}
+      reorderPending={reorderPending}
+    />
+  );
+}
+
+// A block in the cohort checklist. Template blocks render read-only (they
+// are authored on the programme Curriculum tab). Cohort-only blocks carry
+// the source pill + Edit / Delete + a "+ Add activity to block" picker.
+function BlockEntryCard({
+  entry,
+  cohortId,
+  onClickActivity,
+  onError,
+  onMutated,
+  markPending,
+  onEditBlock,
+  onDeleteBlock,
+  onAddActivityToBlock,
+  reorder,
+  onReorderActivity,
+  reorderPending,
+}: {
+  entry: import('./types').CohortChecklistBlockEntry;
+  cohortId: string;
+  onClickActivity: (a: ProgrammeActivity, isCohortOnly: boolean) => void;
+  onError: (msg: string) => void;
+  onMutated: () => void;
+  markPending: (id: string, isPending: boolean) => void;
+  reorder?: ReorderCtl;
+  onReorderActivity: (activityId: string, direction: 'up' | 'down') => void;
+  reorderPending: boolean;
+} & BlockCallbacks) {
+  const { block, rows, isCohortOnly } = entry;
+  const [blockPickerOpen, setBlockPickerOpen] = useState(false);
+
+  return (
+    <div
+      className={
+        'cohort-checklist-block' + (isCohortOnly ? ' is-cohort-only' : '')
+      }
+    >
       <header className="cohort-checklist-block-head">
-        <span className="cohort-checklist-block-title">
-          {entry.block.title}
-        </span>
+        <span className="cohort-checklist-block-title">{block.title}</span>
         <span
-          className={`unit-pill ${unitStatusPillClass(entry.block.is_published)}`}
+          className={`unit-pill ${unitStatusPillClass(block.is_published)}`}
         >
-          {unitStatusLabel(entry.block.is_published)}
+          {unitStatusLabel(block.is_published)}
         </span>
+        {isCohortOnly && (
+          <span className="cohort-checklist-cohort-only-badge">
+            Cohort-only
+          </span>
+        )}
+        {isCohortOnly && (
+          <span className="cohort-checklist-block-controls">
+            {reorder && <ReorderArrows {...reorder} />}
+            <button
+              type="button"
+              className="cohort-checklist-block-btn"
+              onClick={() => onEditBlock(block)}
+              title="Edit this block"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="cohort-checklist-block-btn is-danger"
+              onClick={() => onDeleteBlock(block, rows.length)}
+              title="Delete this block"
+            >
+              Delete
+            </button>
+          </span>
+        )}
       </header>
-      {entry.block.description && (
-        <p className="cohort-checklist-block-desc">
-          {entry.block.description}
-        </p>
+      {block.description && (
+        <p className="cohort-checklist-block-desc">{block.description}</p>
       )}
-      {entry.rows.length === 0 ? (
+      {rows.length === 0 ? (
         <p className="cohort-checklist-block-empty">
-          No activities in this block.
+          {isCohortOnly
+            ? 'No activities in this block yet — add one below.'
+            : 'No activities in this block.'}
         </p>
       ) : (
         <div className="cohort-checklist-block-rows">
-          {entry.rows.map((r) => (
+          {rows.map((r, m) => (
             <ChecklistRow
               key={r.activity.activity_id}
               row={r}
@@ -349,10 +816,93 @@ function BodyEntry({
               onError={onError}
               onMutated={onMutated}
               markPending={markPending}
+              reorder={
+                isCohortOnly
+                  ? {
+                      canUp: m > 0,
+                      canDown: m < rows.length - 1,
+                      pending: reorderPending,
+                      onMove: (direction) =>
+                        onReorderActivity(r.activity.activity_id, direction),
+                    }
+                  : undefined
+              }
             />
           ))}
         </div>
       )}
+      {isCohortOnly && (
+        <div className="cohort-checklist-block-foot">
+          {blockPickerOpen ? (
+            <ActivityPicker
+              types={COHORT_ONLY_TYPES}
+              title="Add an activity to this block"
+              onPick={(type) => {
+                onAddActivityToBlock(block.unit_id, block.block_id, type);
+                setBlockPickerOpen(false);
+              }}
+              onCancel={() => setBlockPickerOpen(false)}
+            />
+          ) : (
+            <button
+              type="button"
+              className="cohort-checklist-add-btn"
+              onClick={() => setBlockPickerOpen(true)}
+            >
+              + Add activity to block
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Inline "+ Add cohort-only block" title input — mirrors the template's
+// inline block create (just name it; description + Live/Draft come later
+// via the block edit modal).
+function CohortBlockCreate({
+  pending,
+  onCreate,
+  onCancel,
+}: {
+  pending: boolean;
+  onCreate: (title: string) => void;
+  onCancel: () => void;
+}) {
+  const [title, setTitle] = useState('');
+  const trimmed = title.trim();
+  return (
+    <div className="cohort-checklist-block-create">
+      <input
+        type="text"
+        className="cohort-checklist-block-create-input"
+        placeholder="Block title — e.g. Pre-tutorial reading"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        autoFocus
+        disabled={pending}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && trimmed) onCreate(trimmed);
+          if (e.key === 'Escape') onCancel();
+        }}
+      />
+      <button
+        type="button"
+        className="prog-btn prog-btn-primary"
+        disabled={pending || trimmed === ''}
+        onClick={() => onCreate(trimmed)}
+      >
+        {pending ? 'Adding…' : 'Add block'}
+      </button>
+      <button
+        type="button"
+        className="prog-btn prog-btn-ghost"
+        disabled={pending}
+        onClick={onCancel}
+      >
+        Cancel
+      </button>
     </div>
   );
 }
@@ -380,13 +930,16 @@ function ChecklistRow({
   onError,
   onMutated,
   markPending,
+  reorder,
 }: {
   row: CohortChecklistActivityRow;
   cohortId: string;
-  onClickActivity: (a: ProgrammeActivity) => void;
+  onClickActivity: (a: ProgrammeActivity, isCohortOnly: boolean) => void;
   onError: (msg: string) => void;
   onMutated: () => void;
   markPending: (id: string, isPending: boolean) => void;
+  // Slice 4 — reorder arrows (undefined for template rows).
+  reorder?: ReorderCtl;
 }) {
   const activityId = row.activity.activity_id;
 
@@ -468,8 +1021,37 @@ function ChecklistRow({
     });
   }
 
+  // Cohort-only rows (Slice 1) get a Delete instead of Include/Exclude —
+  // the activity exists only in this cohort, so removing it is a genuine
+  // delete (the COHORT_ONLY checklist row cascades with it).
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, startDelete] = useTransition();
+  function handleDelete() {
+    startDelete(async () => {
+      const result = await deleteCohortOnlyActivityAction(cohortId, activityId);
+      if (!result.ok) {
+        onError(result.error);
+        return;
+      }
+      setConfirmingDelete(false);
+      onMutated();
+    });
+  }
+
   const a = row.activity;
   const displayState = optimisticState;
+
+  // Slice 2 integrity cue — an included + published live-session marker
+  // with no scheduled planner row for this cohort. Soft "Needs scheduling"
+  // link to the Sessions tab (never blocks). The cohort curriculum always
+  // renders at /tutor/programme/<pid>/cohorts, so usePathname gives the
+  // base for the ?cohort=&tab=sessions link without threading programmeId.
+  const pathname = usePathname();
+  const needsScheduling =
+    a.type === 'ONLINE_LIVE_SESSION' &&
+    a.is_published &&
+    displayState !== 'excluded' &&
+    row.liveSessionScheduled === false;
 
   return (
     <div
@@ -479,11 +1061,16 @@ function ChecklistRow({
         (displayState === 'unconfigured' ? ' is-unconfigured' : '')
       }
     >
+      {reorder && <ReorderArrows {...reorder} />}
       <button
         type="button"
         className="cohort-checklist-row-main"
-        onClick={() => onClickActivity(a)}
-        title="Open template editor"
+        onClick={() => onClickActivity(a, row.isCohortOnly)}
+        title={
+          row.isCohortOnly
+            ? 'Edit this cohort-only activity'
+            : 'Open template editor'
+        }
       >
         <span className="cohort-checklist-row-icon" aria-hidden="true">
           {ACTIVITY_TYPE_ICON[a.type]}
@@ -496,6 +1083,11 @@ function ChecklistRow({
             >
               {unitStatusLabel(a.is_published)}
             </span>
+            {row.isCohortOnly && (
+              <span className="cohort-checklist-cohort-only-badge">
+                Cohort-only
+              </span>
+            )}
             {displayState === 'unconfigured' && (
               <span className="cohort-checklist-unconfigured-badge">
                 Not set
@@ -512,6 +1104,16 @@ function ChecklistRow({
           </span>
         </span>
       </button>
+
+      {needsScheduling && (
+        <Link
+          className="cohort-checklist-needs-schedule"
+          href={`${pathname}?cohort=${cohortId}&tab=sessions`}
+          title="This live session has no time set for this cohort"
+        >
+          ⚠ Needs scheduling →
+        </Link>
+      )}
 
       <div className="cohort-checklist-row-controls">
         <div
@@ -560,40 +1162,67 @@ function ChecklistRow({
             onPendingChange={onFieldPending}
           />
         </div>
-        <div
-          className="cohort-checklist-decision"
-          role="group"
-          aria-label="Include in this cohort"
-        >
-          <button
-            type="button"
-            className={
-              'cohort-checklist-decision-btn is-include' +
-              (displayState === 'included' ? ' is-active' : '')
-            }
-            aria-pressed={displayState === 'included'}
-            disabled={includedPending}
-            onClick={() => setDecision('included')}
-            title="Include in this cohort"
+        {row.isCohortOnly ? (
+          <div
+            className="cohort-checklist-decision"
+            role="group"
+            aria-label="Cohort-only activity"
           >
-            ✓ Include
-          </button>
-          <button
-            type="button"
-            className={
-              'cohort-checklist-decision-btn is-exclude' +
-              (displayState === 'excluded' ? ' is-active' : '')
-            }
-            aria-pressed={displayState === 'excluded'}
-            disabled={includedPending}
-            onClick={() => setDecision('excluded')}
-            title="Exclude from this cohort"
+            <button
+              type="button"
+              className="cohort-checklist-delete-btn"
+              disabled={deleting}
+              onClick={() => setConfirmingDelete(true)}
+              title="Delete this cohort-only activity"
+            >
+              🗑 Delete
+            </button>
+          </div>
+        ) : (
+          <div
+            className="cohort-checklist-decision"
+            role="group"
+            aria-label="Include in this cohort"
           >
-            ✗ Exclude
-          </button>
-        </div>
+            <button
+              type="button"
+              className={
+                'cohort-checklist-decision-btn is-include' +
+                (displayState === 'included' ? ' is-active' : '')
+              }
+              aria-pressed={displayState === 'included'}
+              disabled={includedPending}
+              onClick={() => setDecision('included')}
+              title="Include in this cohort"
+            >
+              ✓ Include
+            </button>
+            <button
+              type="button"
+              className={
+                'cohort-checklist-decision-btn is-exclude' +
+                (displayState === 'excluded' ? ' is-active' : '')
+              }
+              aria-pressed={displayState === 'excluded'}
+              disabled={includedPending}
+              onClick={() => setDecision('excluded')}
+              title="Exclude from this cohort"
+            >
+              ✗ Exclude
+            </button>
+          </div>
+        )}
         <SaveStatusPill status={saveStatus} />
       </div>
+
+      {confirmingDelete && (
+        <DeleteActivityConfirm
+          activityTitle={a.title}
+          pending={deleting}
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={handleDelete}
+        />
+      )}
     </div>
   );
 }

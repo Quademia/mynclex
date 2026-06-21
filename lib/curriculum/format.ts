@@ -270,9 +270,11 @@ export function activityEstimatedMinutes(
         ).estimated_minutes ?? null
       );
     case 'ONLINE_LIVE_SESSION':
+      // The marker carries only a "typical duration" hint (the per-run
+      // schedule lives on the cohort planner). Used for the row's "~N min".
       return (
         (activity.payload as ActivityPayloadOnlineLiveSession)
-          .duration_minutes ?? null
+          .typical_duration_minutes ?? null
       );
     case 'MOCK':
     case 'PRACTICE_QUIZ':

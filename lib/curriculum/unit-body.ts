@@ -12,6 +12,17 @@ import type {
   UnitBodyEntry,
 } from './types';
 
+// Cohort-specific activities, Slice 4 — spaced position numbers ("Gap the
+// numbers", the STORE variant). Template items and cohort-only items share
+// ONE number line, stored physically spaced: every new unit-body item
+// (template or cohort-only) lands a full STEP past the last one, so a
+// cohort-only item can later take a number in the gap (e.g. 1_500_000
+// between 1_000_000 and 2_000_000) by rewriting only its own row — its
+// neighbours never move. STEP leaves ~20 midpoint inserts of headroom per
+// gap before whole numbers run out, well within INTEGER for realistic unit
+// sizes. See docs/product-plan/cohort-specific-activities.md → "Ordering".
+export const UNIT_BODY_ORDINAL_STEP = 1_000_000;
+
 /**
  * Merge blocks + activities into the ordered unit-body sequence.
  *

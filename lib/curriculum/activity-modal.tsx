@@ -56,6 +56,16 @@ type ActivityModalProps =
       type: ActivityType;
       // null → loose under the unit. Set → append to that block.
       blockId: string | null;
+      // Optional create override. When provided, Save calls this
+      // instead of the default template `createActivityAction` — the
+      // cohort Curriculum tab passes its cohort-only create here so the
+      // shared editor stays domain-agnostic (it never imports a cohorts
+      // action). Returns the same shape as createActivityAction.
+      onCreate?: (
+        values: ActivityFormValues
+      ) => Promise<
+        { ok: true; activity_id: string } | { ok: false; error: string }
+      >;
       onClose: () => void;
     }
   | {
@@ -106,15 +116,7 @@ function emptyBody(type: ActivityType): EditorBodyState {
     case 'EXTERNAL_LINK':
       return { type, values: { url: '', estimated_minutes: '' } };
     case 'ONLINE_LIVE_SESSION':
-      return {
-        type,
-        values: {
-          scheduled_at: '',
-          duration_minutes: '',
-          join_url: '',
-          recording_url: '',
-        },
-      };
+      return { type, values: { typical_duration_minutes: '' } };
     case 'MOCK':
       return { type, values: { quiz_id: null } };
     case 'PRACTICE_QUIZ':
@@ -155,18 +157,13 @@ function bodyFromActivity(activity: ProgrammeActivity): EditorBodyState {
           estimated_minutes: asNumStr(p.estimated_minutes),
         },
       };
-    case 'ONLINE_LIVE_SESSION': {
-      const iso = asStr(p.scheduled_at);
+    case 'ONLINE_LIVE_SESSION':
       return {
         type: 'ONLINE_LIVE_SESSION',
         values: {
-          scheduled_at: iso ? utcIsoToLocalInput(iso) : '',
-          duration_minutes: asNumStr(p.duration_minutes),
-          join_url: asStr(p.join_url),
-          recording_url: asStr(p.recording_url),
+          typical_duration_minutes: asNumStr(p.typical_duration_minutes),
         },
       };
-    }
     case 'MOCK':
       return {
         type: 'MOCK',
@@ -180,17 +177,6 @@ function bodyFromActivity(activity: ProgrammeActivity): EditorBodyState {
     default:
       return { type: 'UNSUPPORTED' };
   }
-}
-
-// UTC ISO → local "YYYY-MM-DDTHH:MM" for the datetime-local input.
-function utcIsoToLocalInput(iso: string): string {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return '';
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return (
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
-    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
-  );
 }
 
 // ---------- Dirty comparison ----------
@@ -217,10 +203,7 @@ function bodyEqual(a: EditorBodyState, b: EditorBodyState): boolean {
   }
   if (a.type === 'ONLINE_LIVE_SESSION' && b.type === 'ONLINE_LIVE_SESSION') {
     return (
-      a.values.scheduled_at === b.values.scheduled_at &&
-      a.values.duration_minutes === b.values.duration_minutes &&
-      a.values.join_url === b.values.join_url &&
-      a.values.recording_url === b.values.recording_url
+      a.values.typical_duration_minutes === b.values.typical_duration_minutes
     );
   }
   if (a.type === 'MOCK' && b.type === 'MOCK') {
@@ -409,47 +392,17 @@ export function ActivityModal(props: ActivityModalProps) {
     }
 
     if (body.type === 'ONLINE_LIVE_SESSION') {
-      const sched = body.values.scheduled_at.trim();
-      if (sched.length === 0) {
-        setError('Session date and time are required.');
+      // Marker only — the per-run schedule lives on the cohort planner.
+      const durRaw = body.values.typical_duration_minutes.trim();
+      const dur = durRaw === '' ? null : parseInt(durRaw, 10);
+      if (dur !== null && (!Number.isInteger(dur) || dur < 1)) {
+        setError('Typical duration must be a positive number, or blank.');
         return null;
       }
-      let scheduledIso: string;
-      const d = new Date(sched);
-      if (isNaN(d.getTime())) {
-        setError('Session date/time is not valid.');
-        return null;
-      }
-      scheduledIso = d.toISOString();
-
-      const durRaw = body.values.duration_minutes.trim();
-      if (durRaw === '') {
-        setError('Duration is required.');
-        return null;
-      }
-      const dur = parseInt(durRaw, 10);
-      if (!Number.isInteger(dur) || dur < 1) {
-        setError('Duration must be a positive whole number of minutes.');
-        return null;
-      }
-
-      const joinUrl = body.values.join_url.trim();
-      if (joinUrl.length === 0) {
-        setError('Join URL is required.');
-        return null;
-      }
-
-      const recordingUrlTrimmed = body.values.recording_url.trim();
-      const recording_url =
-        recordingUrlTrimmed === '' ? null : recordingUrlTrimmed;
-
       return {
         type: 'ONLINE_LIVE_SESSION',
         ...common,
-        scheduled_at: scheduledIso,
-        duration_minutes: dur,
-        join_url: joinUrl,
-        recording_url,
+        typical_duration_minutes: dur,
       };
     }
 
@@ -465,7 +418,9 @@ export function ActivityModal(props: ActivityModalProps) {
     startTransition(async () => {
       const result = isEdit
         ? await editActivityAction(props.activity.activity_id, values)
-        : await createActivityAction(props.unitId, values, props.blockId);
+        : props.onCreate
+          ? await props.onCreate(values)
+          : await createActivityAction(props.unitId, values, props.blockId);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -561,8 +516,9 @@ export function ActivityModal(props: ActivityModalProps) {
                   <span>Live — student-visible in cohorts</span>
                 </label>
                 <span className="prog-field-help">
-                  Off → Draft. Draft activities don&apos;t surface in
-                  any cohort&apos;s checklist.
+                  Off → Draft. Draft activities still appear in your
+                  cohort checklists so you can manage them — students
+                  don&apos;t see them until you set them Live.
                 </span>
               </div>
             </section>

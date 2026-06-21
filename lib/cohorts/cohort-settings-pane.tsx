@@ -1,28 +1,22 @@
-// mynclex/app/(app)/tutor/cohort/[cohort_id]/settings/page.tsx
+// mynclex/lib/cohorts/cohort-settings-pane.tsx
 //
-// Cohort Settings tab — Edit + Cancel. Edit reuses
-// <CohortFormModal> in edit mode (modal pattern matches programme
-// edit). Cancel is a simple confirm dialog — soft cancellation
-// sets cancelled_at; reversible by admin later.
+// Settings pane of the in-page cohort run detail — Edit + Cancel.
+// Body moved from the old /tutor/cohort/[id]/settings page in the
+// cohort-workspace fold; the old page header dropped (the run header
+// + active tab carry the context).
 
-import { notFound } from 'next/navigation';
-import { getCohortForShell } from '@/lib/cohorts/queries';
-import { formatCohortName } from '@/lib/cohorts/format';
-import { EditCohortTrigger } from '@/lib/cohorts/edit-cohort-trigger';
-import { CancelCohortConfirm } from '@/lib/cohorts/cancel-cohort-confirm';
+import type { CohortShellContext } from './queries';
+import { formatCohortName } from './format';
+import { EditCohortTrigger } from './edit-cohort-trigger';
+import { CancelCohortConfirm } from './cancel-cohort-confirm';
 
-export const dynamic = 'force-dynamic';
-
-export default async function CohortSettingsPage({
-  params,
+export function CohortSettingsPane({
+  cohort,
+  programme,
 }: {
-  params: Promise<{ cohort_id: string }>;
+  cohort: CohortShellContext['cohort'];
+  programme: CohortShellContext['programme'];
 }) {
-  const { cohort_id } = await params;
-  const ctx = await getCohortForShell(cohort_id);
-  if (!ctx) notFound();
-
-  const { cohort, programme } = ctx;
   const isCancelled = cohort.cancelled_at != null;
   const cohortLabel = formatCohortName(cohort);
 
@@ -36,14 +30,7 @@ export default async function CohortSettingsPage({
   };
 
   return (
-    <div className="cohort-page">
-      <header className="cohort-page-head">
-        <div>
-          <h1 className="cohort-page-title">Settings</h1>
-          <p className="cohort-page-sub">{cohortLabel}</p>
-        </div>
-      </header>
-
+    <>
       <section className="cohort-settings-card">
         <h2 className="cohort-settings-card-title">Edit cohort</h2>
         <p className="cohort-settings-card-body">
@@ -84,6 +71,6 @@ export default async function CohortSettingsPage({
           />
         )}
       </section>
-    </div>
+    </>
   );
 }

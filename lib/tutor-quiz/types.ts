@@ -151,6 +151,13 @@ export type QuizActivityLink = {
   unit_index: number;
   unit_label: 'WEEK' | 'MODULE';
   unit_title: string;
+  // Cohort-specific activities, Slice 5 — set when the linked activity is a
+  // COHORT-ONLY quiz activity (it lives on one cohort's Curriculum tab, not
+  // the programme template). null/undefined = a template activity. Lets the
+  // "can't delete this quiz" dialog name the cohort + link to the right
+  // place. Optional so the programme-quizzes producer needs no change.
+  cohort_id?: string | null;
+  cohort_name?: string | null;
 };
 
 // A quiz option as offered to the curriculum activity editor's

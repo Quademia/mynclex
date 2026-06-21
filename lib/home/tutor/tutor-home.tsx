@@ -185,7 +185,7 @@ function EnquiryRow({ e }: { e: HomeEnquiry }) {
 
 function CohortRow({ c }: { c: HomeBehindCohort }) {
   return (
-    <Link className={`th-attn-item th-coh sev-${c.sev}`} href={`/tutor/cohort/${c.cohortId}/analytics`}>
+    <Link className={`th-attn-item th-coh sev-${c.sev}`} href={`/tutor/programme/${c.programmeId}/cohorts?cohort=${c.cohortId}&tab=analytics`}>
       <span className={`th-attn-dot th-coh-dot sev-${c.sev}`} />
       <div className="th-attn-body">
         <div className="th-attn-line1">
@@ -290,23 +290,20 @@ function WeekTimeline({ sessions }: { sessions: HomeSession[] }) {
           </div>
           <div className="th-tl-slots">
             {(byOffset.get(d.offset) ?? []).map((s) => (
-              // TODO (live-session planner redesign): re-point this to the
-              // cohort sessions surface — `/tutor/cohort/${s.cohortId}/sessions`
-              // — once sessions move from the programme template to the
-              // per-cohort planner. Today HomeSession has no cohortId
-              // (sessions are template-level), and the programme `/sessions`
-              // route is a placeholder kept alive solely for this link, so it
-              // stays here until the planner lands and getUpcomingSessions
-              // reads cohort-scoped schedules. See lib/nav/tutor.ts (programme
-              // nav declutter note) + the live-session-planner plan doc.
+              // Slice 1b — schedules are per-cohort now, so the chip links
+              // straight to that cohort's Sessions tab (the in-page run
+              // detail). Keyed by cohort+marker since a marker can recur
+              // across cohorts in the same week.
               <Link
-                key={s.activityId}
+                key={`${s.cohortId}:${s.activityId}`}
                 className="th-tl-chip"
-                href={`/tutor/programme/${s.programmeId}/sessions`}
+                href={`/tutor/programme/${s.programmeId}/cohorts?cohort=${s.cohortId}&tab=sessions`}
               >
                 <span className="th-tl-chip-time">{s.timeLabel}</span>
                 <span className="th-tl-chip-title">{s.title}</span>
-                <span className="th-tl-chip-cohort">{s.programme}</span>
+                <span className="th-tl-chip-cohort">
+                  {s.cohortName ?? s.programme}
+                </span>
               </Link>
             ))}
           </div>

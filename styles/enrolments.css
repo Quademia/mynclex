@@ -9,7 +9,10 @@
 /* ─── Cohort workspace — Students surface (Slice 4 rework) ─── */
 
 .cw-page {
-  max-width: 1080px;
+  /* Was 1080px (the CD cohort-workspace cap) — widened 2026-06-12 when
+     the roster gained its 7th column (Cohort) and the Actions cell was
+     getting clipped. This view is the only .cw-page user. */
+  max-width: 1400px;
 }
 
 .cw-header {
@@ -34,6 +37,44 @@
 }
 
 /* summary cells */
+/* scope line — declares which cohort world the numbers below describe.
+   All-cohorts stays quiet; the zoomed state changed every count's
+   meaning, so it gets the teal tint + the "Show all" exit. */
+.cw-scope {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.cw-scope.zoomed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-radius: var(--radius);
+  color: #0f766e;
+}
+.cw-scope.zoomed strong {
+  color: #115e59;
+}
+.cw-scope-clear {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: #0f766e;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.cw-scope-clear:hover {
+  color: #115e59;
+}
+
 .cw-summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -169,17 +210,71 @@
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
+/* right-hand toolbar group — cohort filter (tutor-led) + search */
+.cw-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cw-cohort-select {
+  font-family: inherit;
+  font-size: 13px;
+  height: 32px;
+  max-width: 220px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--text);
+}
+.cw-cohort-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+/* which cohort an enrolment / waitlist lead belongs to (tutor-led) */
+.cw-cohort-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
 
-/* roster table */
+/* roster table — overflow-x scrolls (never silently clips; the old
+   overflow:hidden amputated the Actions column once the Cohort column
+   landed). The Actions column is sticky-right so the most-used cell
+   never needs a sideways scroll. */
 .cw-roster {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--white);
-  overflow: hidden;
+  overflow-x: auto;
 }
 .cw-roster table {
   width: 100%;
   border-collapse: collapse;
+}
+.cw-roster th:last-child,
+.cw-roster td:last-child {
+  position: sticky;
+  right: 0;
+  background: var(--white);
+  /* constant soft left edge so the pinned column reads as a layer
+     when the middle columns slide underneath it */
+  box-shadow: -10px 0 10px -10px rgba(15, 23, 42, 0.18);
+}
+.cw-roster th:last-child {
+  background: var(--bg);
 }
 .cw-roster th,
 .cw-roster td {
@@ -326,6 +421,61 @@
   display: flex;
   gap: 6px;
   justify-content: flex-end;
+  align-items: center;
+}
+
+/* row ⋯ menu — the quiz-card-menu pattern adapted to a table row.
+   The pop is fixed-positioned (usePopoverPosition) so the scrolling
+   .cw-roster container can't clip it. */
+.cw-row-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.cw-row-menu-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.cw-row-menu-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cw-row-menu-pop {
+  min-width: 170px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  padding: 4px;
+}
+.cw-row-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+.cw-row-menu-item:hover {
+  background: var(--bg);
+}
+.cw-row-menu-item.is-danger {
+  color: var(--danger);
 }
 
 /* avatar */

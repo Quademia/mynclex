@@ -1,8 +1,8 @@
 // mynclex/lib/cohorts/cohort-list.tsx
 //
-// Cohort list + card for the Cohorts tab (slice 9.2b). Each card
-// is clickable into the cohort detail subtree
-// (`/tutor/cohort/[id]/overview`) — slice 9.2c. Same overlay-link
+// Cohort list + card for the Cohorts tab (slice 9.2b). Each card is
+// clickable into the run's IN-PAGE detail (`?cohort=` on the same
+// route — the cohort-workspace fold, 2026-06-12). Same overlay-link
 // pattern as <ProgrammeCard> so the whole card surface is the
 // click target.
 
@@ -17,7 +17,13 @@ import {
   formatDateRange,
 } from './format';
 
-export function CohortList({ cohorts }: { cohorts: CohortListRow[] }) {
+export function CohortList({
+  programmeId,
+  cohorts,
+}: {
+  programmeId: string;
+  cohorts: CohortListRow[];
+}) {
   return (
     <div className="cohort-list">
       {cohorts.map((cohort) => {
@@ -29,7 +35,7 @@ export function CohortList({ cohorts }: { cohorts: CohortListRow[] }) {
         return (
           <article key={cohort.cohort_id} className="cohort-card">
             <Link
-              href={`/tutor/cohort/${cohort.cohort_id}/overview`}
+              href={`/tutor/programme/${programmeId}/cohorts?cohort=${cohort.cohort_id}`}
               className="cohort-card-link"
               aria-label={`Open ${display}`}
             >

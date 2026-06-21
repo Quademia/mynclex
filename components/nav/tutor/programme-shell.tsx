@@ -19,6 +19,7 @@ import { SidebarFrame } from '@/components/nav/shared/sidebar-frame';
 import { SidebarUserBar } from '@/components/nav/shared/sidebar-user-bar';
 import { TutorProgrammeSidebar } from './programme-sidebar';
 import { TutorBackPill } from './back-pill';
+import { MobileNav } from '@/components/shell/mobile/mobile-nav';
 import { TUTOR_PROGRAMME_NAV } from '@/lib/nav/tutor';
 import { getProgrammeForShell } from '@/lib/programmes/queries';
 
@@ -37,15 +38,11 @@ export async function TutorProgrammeShell({
   const programmeTitle = programme.title;
 
   // SELF_PACED programmes have no cohort layer (main.md §Self-paced
-  // surface), so the Cohorts sidebar entry hides for them. Conversely,
-  // Enrolments only shows for SELF_PACED — tutor-led enrolments are
-  // managed per cohort. Other tutor-led-only items (Live Sessions etc.)
-  // keep showing for now; their cohort-layer migration lands with
-  // later slices.
+  // surface), so the Cohorts sidebar entry hides for them. Enrolments
+  // shows for BOTH modes since the 2026-06-12 move to programme level.
   const selfPaced = programme.delivery_mode === 'SELF_PACED';
   const items = TUTOR_PROGRAMME_NAV
     .filter((item) => !(item.key === 'cohorts' && selfPaced))
-    .filter((item) => !(item.key === 'enrolments' && !selfPaced))
     .map((item) => ({
       ...item,
       href: item.href.replace(':programmeId', programmeId),
@@ -59,6 +56,16 @@ export async function TutorProgrammeShell({
       availableRoles={chrome.roles}
       productLabel="· Tutor"
       rightSlot={<TutorBackPill programmeTitle={programmeTitle} />}
+      mobileNav={
+        <MobileNav
+          displayName={chrome.displayName}
+          email={chrome.email}
+          viewingAs={chrome.viewingAs}
+          availableRoles={chrome.roles}
+          items={items}
+          profileHref="/tutor/profile"
+        />
+      }
     >
       <div className="product-layout">
         <SidebarFrame
@@ -70,7 +77,11 @@ export async function TutorProgrammeShell({
             />
           }
         >
-          <TutorProgrammeSidebar items={items} />
+          <TutorProgrammeSidebar
+            items={items}
+            programmeTitle={programmeTitle}
+            modeLabel={selfPaced ? 'Self-paced' : 'Tutor-led'}
+          />
         </SidebarFrame>
         <main className="product-content">
           {children}

@@ -35,6 +35,9 @@ export type HomeEnquiry = {
 /** One cohort flagged as lagging on completion. */
 export type HomeBehindCohort = {
   cohortId: string;
+  /** Parent programme id — the row links into the programme Cohorts
+   * page's in-page run detail (?cohort=&tab=analytics). */
+  programmeId: string;
   /** Cohort display name (or its date range). */
   cohort: string;
   /** Parent programme title. */
@@ -49,11 +52,17 @@ export type HomeBehindCohort = {
 
 /** One upcoming live session within the next 7 days. */
 export type HomeSession = {
+  /** The live-session marker activity. */
   activityId: string;
   title: string;
   programmeId: string;
-  /** Parent programme title (live sessions are template-level). */
+  /** Parent programme title. */
   programme: string;
+  /** Cohort this scheduled session belongs to (Slice 1b — schedules
+   * are per-cohort, so the chip links to the cohort's Sessions tab). */
+  cohortId: string;
+  /** Cohort display name, or null when unnamed. */
+  cohortName: string | null;
   /** "Today" / "Tomorrow" / weekday short. */
   dayLabel: string;
   /** Local clock time, e.g. "6:00 PM". */

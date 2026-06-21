@@ -14,6 +14,7 @@
 'use client';
 
 import type { ActivityType } from './types';
+import type { DeliveryMode } from '@/lib/programmes/types';
 import { ACTIVITY_TYPE_ICON } from './format';
 
 // Tile copy per type. Mirrors curriculum-authoring-ux.md §6.
@@ -61,13 +62,33 @@ const ENABLED_TYPES: ReadonlyArray<ActivityType> = [
 interface ActivityPickerProps {
   onPick: (type: ActivityType) => void;
   onCancel: () => void;
+  // Optional override of which types to offer (defaults to the full
+  // grid). The cohort-only escape valve passes the self-contained subset
+  // (Text / PDF / External link) in Slice 1.
+  types?: ActivityType[];
+  // Optional header override (defaults to "Add an activity").
+  title?: string;
+  // Programme delivery mode. On a SELF_PACED programme the Online live
+  // session tile is shown but BLURRED + disabled (Slice 1b) — a live
+  // session is an event scheduled per cohort, and self-paced has no
+  // cohorts, so there'd be nowhere to schedule it. Blurring (vs hiding)
+  // keeps the picker shape stable and signals "tutor-led only".
+  deliveryMode?: DeliveryMode;
 }
 
-export function ActivityPicker({ onPick, onCancel }: ActivityPickerProps) {
+export function ActivityPicker({
+  onPick,
+  onCancel,
+  types,
+  title,
+  deliveryMode,
+}: ActivityPickerProps) {
+  const order = types ?? TILE_ORDER;
+  const isSelfPaced = deliveryMode === 'SELF_PACED';
   return (
     <div className="activity-picker" role="group" aria-label="Pick an activity type">
       <header className="activity-picker-head">
-        <h4 className="activity-picker-title">Add an activity</h4>
+        <h4 className="activity-picker-title">{title ?? 'Add an activity'}</h4>
         <button
           type="button"
           className="activity-picker-cancel"
@@ -79,9 +100,17 @@ export function ActivityPicker({ onPick, onCancel }: ActivityPickerProps) {
       </header>
 
       <div className="activity-picker-grid">
-        {TILE_ORDER.map((type) => {
+        {order.map((type) => {
           const copy = TILE_COPY[type];
-          const enabled = ENABLED_TYPES.includes(type);
+          const comingSoon = !ENABLED_TYPES.includes(type);
+          const lockedForSelfPaced =
+            isSelfPaced && type === 'ONLINE_LIVE_SESSION';
+          const enabled = !comingSoon && !lockedForSelfPaced;
+          const subText = comingSoon
+            ? 'Coming soon'
+            : lockedForSelfPaced
+              ? 'Tutor-led only'
+              : copy.sub;
           return (
             <button
               key={type}
@@ -89,19 +118,24 @@ export function ActivityPicker({ onPick, onCancel }: ActivityPickerProps) {
               className={
                 enabled
                   ? 'activity-picker-tile'
-                  : 'activity-picker-tile is-disabled'
+                  : lockedForSelfPaced
+                    ? 'activity-picker-tile is-locked'
+                    : 'activity-picker-tile is-disabled'
               }
               onClick={() => enabled && onPick(type)}
               disabled={!enabled}
               aria-label={copy.label}
+              title={
+                lockedForSelfPaced
+                  ? 'Live sessions are scheduled per cohort, so they’re available on tutor-led programmes only.'
+                  : undefined
+              }
             >
               <span className="activity-picker-tile-icon" aria-hidden="true">
                 {ACTIVITY_TYPE_ICON[type]}
               </span>
               <span className="activity-picker-tile-label">{copy.label}</span>
-              <span className="activity-picker-tile-sub">
-                {enabled ? copy.sub : 'Coming soon'}
-              </span>
+              <span className="activity-picker-tile-sub">{subText}</span>
             </button>
           );
         })}

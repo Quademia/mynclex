@@ -38,6 +38,7 @@ import type {
   ActivityProgressMap,
   InProgressQuizMap,
 } from '@/lib/progress/types';
+import type { AttendanceStatus } from '@/lib/cohorts/attendance-format';
 import type {
   ProgrammeActivity,
   ProgrammeBlock,
@@ -47,6 +48,8 @@ import type {
   StudentBodyEntry,
   StudentCurriculumTree,
   StudentCurriculumUnit,
+  LiveSessionSchedule,
+  LiveSessionPlatform,
 } from './types';
 import type { DeliveryMode, UnitLabel } from '@/lib/programmes/types';
 
@@ -96,6 +99,11 @@ export async function getStudentSelfPacedCurriculum(
          nclex_programme_units!inner(programme_id)`
       )
       .eq('nclex_programme_units.programme_id', programmeId)
+      // Self-paced delivers the programme TEMPLATE — cohort-only rows
+      // (cohort_id set) only exist under tutor-led runs and never apply
+      // here. Defensive filter so they can never leak into a self-paced
+      // student's view.
+      .is('cohort_id', null)
       .order('ordinal', { ascending: true }),
   ]);
 
@@ -150,14 +158,18 @@ export async function getStudentSelfPacedCurriculum(
       releaseDate: null,
       dueDate: null,
       closeDate: null,
-      // LIBRARY_NOTE + SHELF completion is DERIVED (11.11b / 11.12b),
-      // never the progress engine; all other types read the progress map.
+      // ONLINE_LIVE_SESSION is an EVENT, never "done" in v1 (the "only
+      // verified completion counts" rule; attendance-derived completion
+      // lands in a later slice). LIBRARY_NOTE + SHELF completion is DERIVED
+      // (11.11b / 11.12b); all other types read the progress map.
       isDone:
-        activity.type === 'LIBRARY_NOTE'
-          ? libraryState.doneActivityIds.has(activity.activity_id)
-          : activity.type === 'SHELF'
-            ? shelfState.doneActivityIds.has(activity.activity_id)
-            : progressMap.has(activity.activity_id),
+        activity.type === 'ONLINE_LIVE_SESSION'
+          ? false
+          : activity.type === 'LIBRARY_NOTE'
+            ? libraryState.doneActivityIds.has(activity.activity_id)
+            : activity.type === 'SHELF'
+              ? shelfState.doneActivityIds.has(activity.activity_id)
+              : progressMap.has(activity.activity_id),
       isInProgress: isQuizActivityInProgress(activity, inProgressMap),
       libraryNoteId:
         libraryState.noteIdByActivity.get(activity.activity_id) ?? null,
@@ -166,11 +178,14 @@ export async function getStudentSelfPacedCurriculum(
         shelfState.membersByActivity.get(activity.activity_id) ?? null,
       shelfUpdate:
         shelfState.updateByActivity.get(activity.activity_id) ?? null,
+      // Self-paced has no live sessions (tutor-led only, Slice 1b).
+      liveSession: null,
+      attendance: null,
     })
   );
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
-  const decoratedUnits = decorateUnitsWithProgress(unitTrees);
+  const decoratedUnits = decorateUnitsWithProgress(unitTrees, Date.now());
   const { upNextActivityId, whereILeftOffUnitIndex, hasAnyDone } =
     deriveProgrammeSignals(decoratedUnits, progressMap, inProgressMap);
 
@@ -243,6 +258,11 @@ export async function getStudentCohortCurriculum(
          nclex_programme_units!inner(programme_id)`
       )
       .eq('nclex_programme_units.programme_id', programme.programme_id)
+      // Template blocks (cohort_id NULL) PLUS this cohort's own cohort-only
+      // blocks — never another cohort's. Activities already arrive
+      // cohort-scoped via the checklist; this is what lets an in-block
+      // cohort-only activity find its parent block in the render.
+      .or(`cohort_id.is.null,cohort_id.eq.${cohortId}`)
       .order('ordinal', { ascending: true }),
     supabase
       .from('nclex_cohort_checklist_items')
@@ -285,6 +305,8 @@ export async function getStudentCohortCurriculum(
     | 'shelfId'
     | 'shelfMembers'
     | 'shelfUpdate'
+    | 'liveSession'
+    | 'attendance'
   >;
   const staged: StagedActivity[] = [];
   for (const r of rawRows) {
@@ -325,7 +347,17 @@ export async function getStudentCohortCurriculum(
   // Progress engine — fetch progress + IN_PROGRESS map in parallel.
   // Same shape as self-paced; cohort mode reads the same progress
   // table (row attaches to template activity, not cohort).
-  const [progressMap, inProgressMap, libraryState, shelfState] = await Promise.all([
+  const liveSessionActivityIds = staged
+    .filter((a) => a.type === 'ONLINE_LIVE_SESSION')
+    .map((a) => a.activity_id);
+  const [
+    progressMap,
+    inProgressMap,
+    libraryState,
+    shelfState,
+    liveSessionMap,
+    liveAttendanceMap,
+  ] = await Promise.all([
     getActivityProgressMap(staged.map((a) => a.activity_id)),
     getInProgressQuizAttempts(),
     getLibraryNoteActivityState(
@@ -336,25 +368,46 @@ export async function getStudentCohortCurriculum(
       supabase,
       staged.filter((a) => a.type === 'SHELF').map((a) => a.activity_id)
     ),
+    getCohortLiveSessionSchedules(supabase, cohortId, liveSessionActivityIds),
+    getStudentCohortAttendanceByActivity(
+      supabase,
+      cohortId,
+      liveSessionActivityIds
+    ),
   ]);
 
   const visibleActivities: StudentActivity[] = staged.map((a) => ({
     ...a,
     isDone:
-      a.type === 'LIBRARY_NOTE'
-        ? libraryState.doneActivityIds.has(a.activity_id)
-        : a.type === 'SHELF'
-          ? shelfState.doneActivityIds.has(a.activity_id)
-          : progressMap.has(a.activity_id),
+      a.type === 'ONLINE_LIVE_SESSION'
+        ? false // event, not a task — never counts in v1 (see self-paced note)
+        : a.type === 'LIBRARY_NOTE'
+          ? libraryState.doneActivityIds.has(a.activity_id)
+          : a.type === 'SHELF'
+            ? shelfState.doneActivityIds.has(a.activity_id)
+            : progressMap.has(a.activity_id),
     isInProgress: isQuizActivityInProgress(a, inProgressMap),
     libraryNoteId: libraryState.noteIdByActivity.get(a.activity_id) ?? null,
     shelfId: shelfState.shelfIdByActivity.get(a.activity_id) ?? null,
     shelfMembers: shelfState.membersByActivity.get(a.activity_id) ?? null,
     shelfUpdate: shelfState.updateByActivity.get(a.activity_id) ?? null,
+    // Live sessions (Slice 1b) — this cohort's per-run schedule, or null
+    // (unscheduled → "Date to be announced"). Null for other types.
+    liveSession:
+      a.type === 'ONLINE_LIVE_SESSION'
+        ? liveSessionMap.get(a.activity_id) ?? null
+        : null,
+    // Live sessions (Slice 3b) — the student's own tutor-marked attendance,
+    // surfaced as the curriculum's "Attended / Missed / Excused" event-row
+    // badge. Null for other types (and unmarked live sessions).
+    attendance:
+      a.type === 'ONLINE_LIVE_SESSION'
+        ? liveAttendanceMap.get(a.activity_id) ?? null
+        : null,
   }));
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
-  const decoratedUnits = decorateUnitsWithProgress(unitTrees);
+  const decoratedUnits = decorateUnitsWithProgress(unitTrees, Date.now());
   const { upNextActivityId, whereILeftOffUnitIndex, hasAnyDone } =
     deriveProgrammeSignals(decoratedUnits, progressMap, inProgressMap);
 
@@ -614,6 +667,114 @@ function normalizeSkipped(raw: unknown): string[] {
   return arr.filter((x): x is string => typeof x === 'string');
 }
 
+// Live-session platforms accepted from a planner row (defensive cast).
+const LIVE_SESSION_PLATFORMS: ReadonlySet<string> = new Set([
+  'ZOOM',
+  'GOOGLE_MEET',
+  'MS_TEAMS',
+  'OTHER',
+]);
+
+/**
+ * Slice 1b — for a set of live-session marker activity ids, fetch this
+ * cohort's per-run schedules (nclex_cohort_live_sessions). Returns a map
+ * activity_id → LiveSessionSchedule; a marker absent from the map is
+ * unscheduled for the cohort ("Date to be announced"). RLS scopes the
+ * read to the student's active cohort enrolment. Empty input → no query.
+ */
+async function getCohortLiveSessionSchedules(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  cohortId: string,
+  markerActivityIds: string[]
+): Promise<Map<string, LiveSessionSchedule>> {
+  const map = new Map<string, LiveSessionSchedule>();
+  if (markerActivityIds.length === 0) return map;
+
+  const { data } = await supabase
+    .from('nclex_cohort_live_sessions')
+    .select(
+      `marker_activity_id, scheduled_at, duration_minutes, platform,
+       join_url, meeting_id, passcode, joining_instructions, recording_url`
+    )
+    .eq('cohort_id', cohortId)
+    .in('marker_activity_id', markerActivityIds);
+
+  for (const r of (data ?? []) as Array<{
+    marker_activity_id: string;
+    scheduled_at: string | null;
+    duration_minutes: number | null;
+    platform: string | null;
+    join_url: string | null;
+    meeting_id: string | null;
+    passcode: string | null;
+    joining_instructions: string | null;
+    recording_url: string | null;
+  }>) {
+    map.set(r.marker_activity_id, {
+      scheduledAt: r.scheduled_at,
+      durationMinutes: r.duration_minutes,
+      platform: LIVE_SESSION_PLATFORMS.has(r.platform ?? '')
+        ? (r.platform as LiveSessionPlatform)
+        : null,
+      joinUrl: r.join_url,
+      meetingId: r.meeting_id,
+      passcode: r.passcode,
+      joiningInstructions: r.joining_instructions,
+      recordingUrl: r.recording_url,
+    });
+  }
+  return map;
+}
+
+/**
+ * Slice 3b — for a set of live-session marker activity ids, fetch the
+ * CALLING student's own tutor-marked attendance per marker (PRESENT /
+ * ABSENT / EXCUSED), keyed activity_id → status. Bridges attendance (keyed
+ * by the planner session) back to the marker via the planner's
+ * marker_activity_id. RLS scopes the attendance read to the student's own
+ * rows. Empty input → no query. Drives the curriculum event-row badge; the
+ * completion % is unchanged (that fold-in is a later coordinated pass).
+ */
+async function getStudentCohortAttendanceByActivity(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  cohortId: string,
+  markerActivityIds: string[]
+): Promise<Map<string, AttendanceStatus>> {
+  const map = new Map<string, AttendanceStatus>();
+  if (markerActivityIds.length === 0) return map;
+
+  const { data: planner } = await supabase
+    .from('nclex_cohort_live_sessions')
+    .select('session_id, marker_activity_id')
+    .eq('cohort_id', cohortId)
+    .in('marker_activity_id', markerActivityIds);
+
+  const markerBySession = new Map<string, string>();
+  const sessionIds: string[] = [];
+  for (const r of (planner ?? []) as Array<{
+    session_id: string;
+    marker_activity_id: string;
+  }>) {
+    markerBySession.set(r.session_id, r.marker_activity_id);
+    sessionIds.push(r.session_id);
+  }
+  if (sessionIds.length === 0) return map;
+
+  const { data: att } = await supabase
+    .from('nclex_cohort_session_attendance')
+    .select('session_id, status')
+    .in('session_id', sessionIds);
+
+  for (const a of (att ?? []) as Array<{
+    session_id: string;
+    status: AttendanceStatus;
+  }>) {
+    const marker = markerBySession.get(a.session_id);
+    if (marker) map.set(marker, a.status);
+  }
+  return map;
+}
+
 /**
  * Compose units + blocks + visible activities into the student
  * unit→body tree. Mirrors composeUnitBody() on the tutor side but
@@ -662,7 +823,9 @@ function composeUnitTrees(
       }
     }
 
-    // Compose: blocks + loose activities interleaved by ordinal.
+    // Compose: blocks + loose activities interleaved by ordinal (Slice 4 —
+    // template + cohort-only items share one spaced number line, so a
+    // cohort-only item lands exactly where the tutor placed it).
     type Sortable =
       | { kind: 'block'; ordinal: number; block: ProgrammeBlock }
       | { kind: 'loose'; ordinal: number; activity: StudentActivity };
@@ -736,19 +899,54 @@ function flattenUnitActivities(
   return out;
 }
 
+// A live session is "held" once its scheduled start + duration is in the
+// past. Falls back to a 90-min default when the planner gives no duration.
+// Unscheduled (no date) → never held.
+const LIVE_SESSION_DEFAULT_MIN = 90;
+function isLiveSessionHeld(a: StudentActivity, nowMs: number): boolean {
+  const sched = a.liveSession?.scheduledAt;
+  if (!sched) return false;
+  const start = new Date(sched).getTime();
+  if (Number.isNaN(start)) return false;
+  const dur = a.liveSession?.durationMinutes ?? LIVE_SESSION_DEFAULT_MIN;
+  return start + dur * 60_000 < nowMs;
+}
+
 /**
  * Per-unit progress counts. Total = visible activities in unit;
  * LOCKED / CLOSED count toward the denominator per §7 — they're
  * part of the curriculum, just inaccessible right now. Pct rounded
  * to integer; null when total = 0.
+ *
+ * Live sessions (Slice 4 — attendance into the %): a live session counts
+ * ONLY once it's HELD and the student was MARKED — PRESENT counts as done
+ * (numerator + denominator), ABSENT is in the denominator (not done),
+ * EXCUSED / not-yet-held / unmarked stay out entirely (never drag the %
+ * down before it's real). The verified-completion rule, applied to the only
+ * trustworthy signal a live session has. See live-session-planner.md.
  */
 function decorateUnitsWithProgress(
-  units: StudentCurriculumUnit[]
+  units: StudentCurriculumUnit[],
+  nowMs: number
 ): StudentCurriculumUnit[] {
   return units.map((u) => {
-    const activities = flattenUnitActivities(u);
-    const total = activities.length;
-    const done = activities.filter((a) => a.isDone).length;
+    let total = 0;
+    let done = 0;
+    for (const a of flattenUnitActivities(u)) {
+      if (a.type === 'ONLINE_LIVE_SESSION') {
+        if (!isLiveSessionHeld(a, nowMs)) continue;
+        if (a.attendance === 'PRESENT') {
+          total += 1;
+          done += 1;
+        } else if (a.attendance === 'ABSENT') {
+          total += 1;
+        }
+        // EXCUSED / unmarked → excluded from the denominator.
+        continue;
+      }
+      total += 1;
+      if (a.isDone) done += 1;
+    }
     const pct = total === 0 ? null : Math.round((done / total) * 100);
     return { ...u, progressDone: done, progressTotal: total, progressPct: pct };
   });
@@ -786,6 +984,11 @@ function deriveProgrammeSignals(
   for (const u of units) {
     const activities = flattenUnitActivities(u);
     for (const a of activities) {
+      // Live sessions are events — never a completion target. Skipping them
+      // keeps the "Up next" pointer from freezing on a session that can never
+      // be marked done (no verified-completion path in v1), and keeps them
+      // out of hasAnyDone / where-I-left-off.
+      if (a.type === 'ONLINE_LIVE_SESSION') continue;
       if (a.isDone) {
         hasAnyDone = true;
         const ts = progressMap.get(a.activity_id)?.completed_at;

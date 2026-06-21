@@ -480,9 +480,19 @@ the programme's Curriculum tab).
 > start all-unconfigured and the tutor uses **Include all**. Student
 > side is unchanged — it already reads included rows only, so
 > unconfigured/excluded are naturally hidden. The "Remove from this
-> cohort" / "+ Add from template" / "+ Add cohort-only" affordances
-> below are **not built** (cohort-only remains future; see the
-> `source = 'COHORT_ONLY'` column note in tutor-library.md).
+> cohort" / "+ Add from template" affordances below are **not built**.
+>
+> **▶ Cohort-only activities — DESIGN AGREED 2026-06-14 (not yet
+> built).** The "+ Add cohort-only" escape valve is now fully designed:
+> cohort-only activities + blocks are ordinary `nclex_programme_*` rows
+> tagged with a `cohort_id` (Option A), born *included* and *Draft*
+> (a nudge reminds the tutor to tick Live), supported for 7 of the 8
+> activity types (live session excluded → its own planner), added on
+> this very screen (the cohort Curriculum tab). Full design + slice
+> breakdown in
+> [cohort-specific-activities.md](cohort-specific-activities.md). The
+> `source = 'COHORT_ONLY'` enum scaffolding already exists in
+> `lib/cohorts/types.ts`.
 
 Inside a cohort. Shows the same unit → block → activity hierarchy
 as the programme-layer Unit Builder, but each row is a *checklist

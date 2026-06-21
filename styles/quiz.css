@@ -513,6 +513,12 @@
   font-weight: 400;
   color: var(--text-muted);
 }
+/* Cohort-only marker on a blocking activity (Slice 5) — the link points to
+ * the cohort's Curriculum tab, so flag which run it's in. */
+.quiz-blocking-cohort {
+  color: var(--accent);
+  font-weight: 600;
+}
 
 /* ─── Editor zones — two-column layout ────────────── */
 

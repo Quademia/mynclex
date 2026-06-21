@@ -1027,6 +1027,97 @@ CREATE INDEX idx_nclex_cohort_checklist_activity
 
 
 -- =========================================================
+-- Cohort live-session planner (Live sessions Slice 1b, 2026-06-15)
+-- =========================================================
+-- A live session is an EVENT, not content — its date, connection
+-- details, and recording are PER-RUN. The TEMPLATE marker (an
+-- ONLINE_LIVE_SESSION activity) keeps only identity + position + an
+-- optional typical_duration_minutes; this per-(cohort, marker) table
+-- holds the per-run schedule. A marker with no row = "unscheduled" for
+-- that cohort. Origin migration:
+-- db/migrations/20260703120000_live_session_marker_planner.sql.
+
+CREATE TABLE nclex_cohort_live_sessions (
+  session_id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  cohort_id            UUID NOT NULL
+                       REFERENCES nclex_cohorts(cohort_id)
+                       ON DELETE CASCADE,
+
+  -- The live-session MARKER this schedule belongs to (template or
+  -- cohort-only). CASCADE removes the schedule when the marker goes.
+  marker_activity_id   UUID NOT NULL
+                       REFERENCES nclex_programme_activities(activity_id)
+                       ON DELETE CASCADE,
+
+  scheduled_at         TIMESTAMPTZ,         -- UTC; NULL = unscheduled
+  duration_minutes     INTEGER,             -- override; falls back to the marker's typical
+  platform             TEXT
+                       CHECK (platform IS NULL OR platform IN
+                         ('ZOOM', 'GOOGLE_MEET', 'MS_TEAMS', 'OTHER')),
+  join_url             TEXT,
+  meeting_id           TEXT,
+  passcode             TEXT,
+  joining_instructions TEXT,
+  recording_url        TEXT,                -- filled after the session airs
+
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  UNIQUE (cohort_id, marker_activity_id),
+
+  CONSTRAINT nclex_cohort_live_sessions_duration_positive
+    CHECK (duration_minutes IS NULL OR duration_minutes > 0)
+);
+
+CREATE INDEX idx_nclex_cohort_live_sessions_cohort
+  ON nclex_cohort_live_sessions(cohort_id);
+CREATE INDEX idx_nclex_cohort_live_sessions_marker
+  ON nclex_cohort_live_sessions(marker_activity_id);
+
+
+-- =========================================================
+-- Cohort session attendance register (Live sessions Slice 3, 2026-06-16)
+-- =========================================================
+-- One row per (planner session, student). Tutor-marked attendance is the
+-- "only verified completion counts" signal for live sessions: PRESENT
+-- derives an ATTENDANCE row in nclex_student_activity_progress (via the
+-- nclex_progress_on_attendance() trigger, tracked in the migration, not
+-- mirrored here); ABSENT / EXCUSED derive nothing (EXCUSED also drops out
+-- of the % denominator at read time). Origin migration:
+-- db/migrations/20260704120000_live_session_attendance.sql.
+
+CREATE TABLE nclex_cohort_session_attendance (
+  attendance_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  session_id      UUID NOT NULL
+                  REFERENCES nclex_cohort_live_sessions(session_id)
+                  ON DELETE CASCADE,
+  student_id      UUID NOT NULL
+                  REFERENCES nclex_users(id)
+                  ON DELETE CASCADE,
+
+  status          TEXT NOT NULL
+                  CHECK (status IN ('PRESENT', 'ABSENT', 'EXCUSED')),
+
+  marked_by       UUID
+                  REFERENCES nclex_users(id)
+                  ON DELETE SET NULL,
+  marked_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  UNIQUE (session_id, student_id)
+);
+
+CREATE INDEX idx_nclex_cohort_session_attendance_session
+  ON nclex_cohort_session_attendance(session_id);
+CREATE INDEX idx_nclex_cohort_session_attendance_student
+  ON nclex_cohort_session_attendance(student_id);
+
+
+-- =========================================================
 -- Media assets (Slice 9.3d-b, 2026-05-13)
 -- =========================================================
 -- Centralised media-asset control records. The file bytes live in
@@ -1253,7 +1344,9 @@ CREATE INDEX idx_nclex_programme_quizzes_quiz
 -- Quiz completion is written by the
 -- nclex_progress_on_attempt_terminal() trigger function (tracked in
 -- the migration, not mirrored here). Manual completion is written
--- by Slice 2 server actions. Origin migration:
+-- by Slice 2 server actions. ATTENDANCE completion (live sessions,
+-- Slice 3) is written by the nclex_progress_on_attendance() trigger
+-- (also migration-tracked). Origin migration:
 -- db/migrations/20260518120000_progress_engine_1_foundation.sql.
 
 CREATE TABLE nclex_student_activity_progress (
@@ -1271,7 +1364,7 @@ CREATE TABLE nclex_student_activity_progress (
                      ON DELETE CASCADE,
 
   completion_source  TEXT NOT NULL
-                     CHECK (completion_source IN ('QUIZ_ATTEMPT', 'MANUAL')),
+                     CHECK (completion_source IN ('QUIZ_ATTEMPT', 'MANUAL', 'ATTENDANCE')),
 
   -- Populated only for QUIZ_ATTEMPT. ON DELETE CASCADE is the void
   -- cascade — hard-deleting an attempt removes its progress row.
@@ -1282,7 +1375,9 @@ CREATE TABLE nclex_student_activity_progress (
   -- NEVER updated on retake — DONE is a one-time state transition.
   completed_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  -- Reserved for v2 tutor-marked attendance; v1 always NULL.
+  -- Who marked the row. NULL = self-marked by student_id (MANUAL).
+  -- Set to the tutor for ATTENDANCE rows (live-session attendance,
+  -- Slice 3) — the verified-completion signal.
   marked_by          UUID
                      REFERENCES nclex_users(id)
                      ON DELETE SET NULL,
@@ -1294,7 +1389,7 @@ CREATE TABLE nclex_student_activity_progress (
 
   CONSTRAINT nclex_student_activity_progress_source_consistent CHECK (
     (completion_source = 'QUIZ_ATTEMPT' AND attempt_id IS NOT NULL)
-    OR (completion_source = 'MANUAL' AND attempt_id IS NULL)
+    OR (completion_source IN ('MANUAL', 'ATTENDANCE') AND attempt_id IS NULL)
   )
 );
 

@@ -59,7 +59,11 @@ export type NavIcon =
   // Block icons (slice 11.6 — visual & media blocks)
   | 'image'
   | 'file-text'
-  | 'table';
+  | 'table'
+  // Mobile-nav chrome (2026-06) — hamburger + close glyphs for the
+  // ≤768px drawer/topbar.
+  | 'menu'
+  | 'x';
 
 export type NavItem = {
   /** Stable key — used for active-state matching and React keys. */
@@ -83,6 +87,15 @@ export type NavItem = {
    */
   exact?: boolean;
   /**
+   * Optional section grouping. When set, sidebars that support sections
+   * render a divider + this label above the item (once per consecutive
+   * run of the same section). Used by the tutor programme sidebar to set
+   * the mode-specific "Delivery" group (Cohorts) apart from the tabs
+   * common to both delivery modes. Sidebars that don't support sections
+   * ignore it.
+   */
+  section?: string;
+  /**
    * Optional permission key required to see this item. Used by the admin
    * sidebar; ignored by audience configs that don't gate (student, tutor).
    *
@@ -98,4 +111,20 @@ export type NavItem = {
    * lib/nav/admin.ts for the canonical mapping.
    */
   permission?: string | null;
+  /**
+   * When true, this item is promoted to the mobile bottom-tab bar
+   * (≤768px) as an additive shortcut — it still renders as an ordinary
+   * row in the drawer. Used by the student nav configs (hybrid pattern);
+   * tutor/admin are drawer-only so they leave this unset. Consumed by
+   * the mobile bottom-tab bar (mobile-nav Slice 2). At most 4 per
+   * context, in array order.
+   */
+  mobileTab?: boolean;
+  /**
+   * Optional short label for the mobile bottom-tab cell, where the full
+   * `label` is too long to fit (e.g. "Question Bank" → "Practice",
+   * "Quiz History" → "History"). Falls back to `label`. Only consulted
+   * for `mobileTab` rows.
+   */
+  tabLabel?: string;
 };
