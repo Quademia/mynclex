@@ -118,7 +118,10 @@ export function StudentCurriculumViewer({
 // per-activity pill cascade at the unit level: done (100%) > up-next
 // (holds the programme's Up-next activity) > locked (has activities but
 // none currently OPEN) > open (empty unit or in-progress/not-started).
-function buildRail(tree: StudentCurriculumTree): RailUnit[] {
+//
+// Exported so the Student Overview's "Your weeks" rail reuses the exact
+// same status logic (single source of truth for the per-unit badge).
+export function buildRail(tree: StudentCurriculumTree): RailUnit[] {
   return tree.units.map((u) => {
     let containsUpNext = false;
     let anyOpen = false;
@@ -469,7 +472,10 @@ function ActivityCard({
   );
 }
 
-function activityTypeLabel(type: ProgrammeActivity['type']): string {
+// Exported so the Student Overview's Continue banner labels the activity
+// the same way the curriculum does (student-facing wording — "Reading",
+// not "Text").
+export function activityTypeLabel(type: ProgrammeActivity['type']): string {
   switch (type) {
     case 'TEXT':
       return 'Reading';

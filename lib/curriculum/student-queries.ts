@@ -186,8 +186,13 @@ export async function getStudentSelfPacedCurriculum(
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
   const decoratedUnits = decorateUnitsWithProgress(unitTrees, Date.now());
-  const { upNextActivityId, whereILeftOffUnitIndex, hasAnyDone } =
-    deriveProgrammeSignals(decoratedUnits, progressMap, inProgressMap);
+  const {
+    upNextActivityId,
+    whereILeftOffUnitIndex,
+    hasAnyDone,
+    continueActivityId,
+    continueIsResume,
+  } = deriveProgrammeSignals(decoratedUnits, progressMap, inProgressMap);
 
   return {
     programme: {
@@ -201,6 +206,8 @@ export async function getStudentSelfPacedCurriculum(
     upNextActivityId,
     whereILeftOffUnitIndex,
     hasAnyDone,
+    continueActivityId,
+    continueIsResume,
   };
 }
 
@@ -408,8 +415,13 @@ export async function getStudentCohortCurriculum(
 
   const unitTrees = composeUnitTrees(units, blocks, visibleActivities);
   const decoratedUnits = decorateUnitsWithProgress(unitTrees, Date.now());
-  const { upNextActivityId, whereILeftOffUnitIndex, hasAnyDone } =
-    deriveProgrammeSignals(decoratedUnits, progressMap, inProgressMap);
+  const {
+    upNextActivityId,
+    whereILeftOffUnitIndex,
+    hasAnyDone,
+    continueActivityId,
+    continueIsResume,
+  } = deriveProgrammeSignals(decoratedUnits, progressMap, inProgressMap);
 
   return {
     programme: {
@@ -427,6 +439,8 @@ export async function getStudentCohortCurriculum(
     upNextActivityId,
     whereILeftOffUnitIndex,
     hasAnyDone,
+    continueActivityId,
+    continueIsResume,
   };
 }
 
@@ -973,10 +987,13 @@ function deriveProgrammeSignals(
   upNextActivityId: string | null;
   whereILeftOffUnitIndex: number | null;
   hasAnyDone: boolean;
+  continueActivityId: string | null;
+  continueIsResume: boolean;
 } {
   let upNextActivityId: string | null = null;
   let mostRecentInProgressTs: string | null = null;
   let mostRecentInProgressUnitIndex: number | null = null;
+  let mostRecentInProgressActivityId: string | null = null;
   let mostRecentDoneTs: string | null = null;
   let mostRecentDoneUnitIndex: number | null = null;
   let hasAnyDone = false;
@@ -1001,6 +1018,7 @@ function deriveProgrammeSignals(
         if (ts && (!mostRecentInProgressTs || ts > mostRecentInProgressTs)) {
           mostRecentInProgressTs = ts;
           mostRecentInProgressUnitIndex = u.unit.unit_index;
+          mostRecentInProgressActivityId = a.activity_id;
         }
       } else if (a.openState === 'OPEN' && upNextActivityId === null) {
         // First NOT_STARTED-and-not-in-progress OPEN row in
@@ -1013,5 +1031,17 @@ function deriveProgrammeSignals(
   const whereILeftOffUnitIndex =
     mostRecentInProgressUnitIndex ?? mostRecentDoneUnitIndex ?? null;
 
-  return { upNextActivityId, whereILeftOffUnitIndex, hasAnyDone };
+  // Continue pointer (home banner): resume an in-progress quiz first,
+  // else point at Up next. See StudentCurriculumTree.continueActivityId.
+  const continueActivityId =
+    mostRecentInProgressActivityId ?? upNextActivityId;
+  const continueIsResume = mostRecentInProgressActivityId !== null;
+
+  return {
+    upNextActivityId,
+    whereILeftOffUnitIndex,
+    hasAnyDone,
+    continueActivityId,
+    continueIsResume,
+  };
 }
