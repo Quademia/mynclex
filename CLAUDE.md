@@ -187,6 +187,31 @@ slice.
    inline banners; silent destruction is unrecoverable. Backdrop
    click should map to the safe option (Cancel / Keep editing).
 
+3. **Surfaces must be mobile-friendly — student surfaces are the
+   priority.** Every authenticated surface has to work on a phone, not
+   just desktop. The core audience (Ghanaian nurses) is phone-first, so
+   **student** surfaces especially must be usable at narrow widths;
+   tutor/admin must at least be navigable and not broken. The
+   breakpoint is **768px** — below it, mobile layout applies; above it,
+   the desktop layout is untouched.
+   - **Navigation is already solved — don't hand-roll it per surface.**
+     The shared **mobile-nav system** lives in
+     `components/shell/mobile/` (+ `styles/mobile-nav.css`), wired
+     through `AppShell`'s `mobileNav` slot. At ≤768px it hides the
+     desktop topbar + sidebar and renders: a slide-in **drawer** (the
+     complete menu, every audience), an **account sheet** (consolidated
+     user menu + role switch + sign-out), and — for **students** only —
+     an additive **bottom-tab bar**. Tabs come from `NavItem.mobileTab`
+     (≤4 per context, with optional `tabLabel`) in `lib/nav/*`. A new
+     audience surface gets mobile nav for free by going through a shell
+     that renders `<MobileNav>`.
+   - **For non-nav content** (tables, forms, editors, dashboards),
+     reflow/stack at ≤768px rather than letting it overflow. New CSS
+     goes in the surface's own stylesheet with a `@media
+     (max-width: 768px)` block.
+   - Full design + slice history:
+     `docs/product-plan/mobile-responsive.md`.
+
 ## Non-Negotiable Rules
 
 1. **Table prefix: `nclex_`** on every MyNclex database object (tables,

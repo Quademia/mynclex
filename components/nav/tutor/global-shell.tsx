@@ -15,6 +15,7 @@ import { Footer } from '@/components/shell/footer';
 import { SidebarFrame } from '@/components/nav/shared/sidebar-frame';
 import { SidebarUserBar } from '@/components/nav/shared/sidebar-user-bar';
 import { TutorGlobalSidebar } from './global-sidebar';
+import { MobileNav } from '@/components/shell/mobile/mobile-nav';
 import { TUTOR_GLOBAL_NAV } from '@/lib/nav/tutor';
 
 export async function TutorGlobalShell({
@@ -31,6 +32,16 @@ export async function TutorGlobalShell({
       viewingAs={chrome.viewingAs}
       availableRoles={chrome.roles}
       productLabel="· Tutor"
+      mobileNav={
+        <MobileNav
+          displayName={chrome.displayName}
+          email={chrome.email}
+          viewingAs={chrome.viewingAs}
+          availableRoles={chrome.roles}
+          items={TUTOR_GLOBAL_NAV}
+          profileHref="/tutor/profile"
+        />
+      }
     >
       <div className="product-layout">
         <SidebarFrame

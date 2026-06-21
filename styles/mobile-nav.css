@@ -1,0 +1,564 @@
+/* mynclex/styles/mobile-nav.css
+ *
+ * Mobile navigation chrome (≤768px). Loaded LAST in
+ * app/(app)/layout.tsx so its breakpoint rules win over nav.css.
+ *
+ * The whole `m-*` layer is desktop-first hidden (display:none) and
+ * switched on only inside the ≤768px media query, which also hides the
+ * desktop topbar + sidebar. Above 768px nothing here renders, so the
+ * desktop shell is completely untouched.
+ *
+ * Pattern: students get topbar + drawer + account sheet + (Slice 2)
+ * bottom tabs; tutor/admin get topbar + drawer + account sheet. The
+ * drawer is always the COMPLETE menu; tabs (Slice 2) are additive.
+ *
+ * All colours/spacings come from tokens.css.
+ */
+
+/* ─────────────────────────────────────────────────────
+ * Roots — hidden on desktop, switched on at ≤768px
+ * ───────────────────────────────────────────────────── */
+
+.m-topbar,
+.m-backdrop,
+.m-drawer,
+.m-sheet,
+.m-tabbar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Desktop chrome steps aside — but ONLY in shells that actually render
+   * a mobile topbar. Pages that use the shell without a <MobileNav>
+   * (e.g. the student picker) keep their desktop topbar so they're never
+   * left header-less on a phone. (:has guards the swap.) */
+  .shell-root:has(.m-topbar) .shell-topbar {
+    display: none;
+  }
+  .product-layout {
+    grid-template-columns: 1fr;
+  }
+  .product-layout > .sidebar-frame {
+    display: none;
+  }
+  .product-content {
+    padding: 16px;
+  }
+
+  /* Mobile chrome takes over. */
+  .m-topbar {
+    display: flex;
+  }
+  .m-backdrop {
+    display: block;
+  }
+  .m-drawer,
+  .m-sheet {
+    display: flex;
+  }
+  .m-tabbar {
+    display: flex;
+  }
+  /* Reserve space so content + footer never sit under the tab bar.
+   * Scoped to shells that actually have a tab bar (students). */
+  .shell-root:has(.m-tabbar) .product-content {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+
+  /* Lock the page scroll while a drawer/sheet is open. The only
+   * scrollable region in the locked shell is .product-content. Kept
+   * INSIDE the breakpoint so a lingering lock class can never freeze
+   * the desktop layout (e.g. open drawer → resize wide). */
+  body.m-nav-locked .product-content {
+    overflow: hidden;
+  }
+}
+
+/* ─────────────────────────────────────────────────────
+ * Mobile topbar
+ * ───────────────────────────────────────────────────── */
+
+.m-topbar {
+  flex-shrink: 0;
+  height: 54px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  z-index: 30;
+}
+
+.m-icon-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+.m-icon-btn:active {
+  background: var(--bg-soft);
+}
+.m-icon-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.m-topbar-center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.m-wordmark {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--primary);
+}
+.m-wordmark-accent {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.m-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  border: 1px solid rgba(45, 125, 114, 0.25);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Backdrop (shared by drawer + sheet)
+ * ───────────────────────────────────────────────────── */
+
+.m-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.26s ease;
+  z-index: 45;
+}
+.m-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.m-backdrop-sheet {
+  z-index: 55;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Drawer
+ * ───────────────────────────────────────────────────── */
+
+.m-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 300px;
+  max-width: 86%;
+  flex-direction: column;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  transform: translateX(-104%);
+  transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 46;
+}
+.m-drawer.is-open {
+  transform: translateX(0);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+}
+
+.m-drawer-close-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 8px 0;
+  flex-shrink: 0;
+}
+
+.m-drawer-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.m-drawer-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.m-role-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--primary-light);
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(45, 125, 114, 0.25);
+  flex-shrink: 0;
+}
+
+.m-drawer-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 0;
+  scrollbar-width: thin;
+}
+
+.m-nav-section {
+  padding: 14px 18px 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.m-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-left: 3px solid transparent;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 12px 18px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.m-nav-row:hover {
+  background: rgba(0, 0, 0, 0.03);
+  text-decoration: none;
+}
+.m-nav-row.is-active {
+  border-left-color: var(--accent);
+  background: var(--white);
+  color: var(--primary);
+  font-weight: 600;
+}
+.m-nav-row.is-child {
+  padding-left: 50px;
+  font-size: 13.5px;
+}
+.m-nav-row svg {
+  flex-shrink: 0;
+}
+.m-nav-label {
+  flex: 1;
+}
+.m-nav-chev {
+  color: var(--text-faint);
+  display: inline-flex;
+  transition: transform 0.15s ease;
+}
+.m-nav-chev.is-open {
+  transform: rotate(180deg);
+}
+
+.m-drawer-userbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-top: 1px solid var(--border);
+  background: var(--white);
+  font-family: inherit;
+  padding: 12px 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.m-userbar-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(45, 125, 114, 0.25);
+  flex-shrink: 0;
+}
+.m-userbar-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m-userbar-chev {
+  color: var(--text-faint);
+  display: inline-flex;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Account sheet
+ * ───────────────────────────────────────────────────── */
+
+.m-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  flex-direction: column;
+  background: var(--white);
+  border-radius: 20px 20px 0 0;
+  transform: translateY(106%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.18);
+  max-height: 82%;
+  z-index: 56;
+}
+.m-sheet.is-open {
+  transform: translateY(0);
+}
+
+.m-sheet-grip {
+  width: 38px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border-strong);
+  margin: 10px auto 0;
+  flex-shrink: 0;
+}
+.m-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px 8px;
+  flex-shrink: 0;
+}
+.m-sheet-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.m-sheet-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--bg-soft);
+  border: none;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.m-sheet-body {
+  overflow-y: auto;
+  padding: 4px 0 calc(22px + env(safe-area-inset-bottom));
+}
+
+.m-account-head {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 6px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+.m-account-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--accent);
+  font-size: 16px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(45, 125, 114, 0.25);
+  flex-shrink: 0;
+}
+.m-account-id {
+  flex: 1;
+  min-width: 0;
+}
+.m-account-name {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.m-account-email {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-account-row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--text);
+  padding: 13px 20px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.m-account-row:hover {
+  background: var(--bg);
+  text-decoration: none;
+}
+.m-account-row.is-danger {
+  color: var(--danger);
+}
+.m-account-row.is-disabled {
+  color: var(--text-faint);
+  cursor: default;
+}
+.m-account-row.is-disabled:hover {
+  background: transparent;
+}
+.m-account-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.m-account-row.is-danger .m-account-ico {
+  background: #fef2f2;
+  color: var(--danger);
+}
+.m-account-label {
+  flex: 1;
+}
+.m-account-soon {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-faint);
+}
+.m-account-switch {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+.m-account-switch-label {
+  padding: 10px 20px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.m-account-form {
+  margin: 0;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Bottom tab bar (students — additive shortcuts)
+ * ───────────────────────────────────────────────────── */
+
+.m-tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  align-items: stretch;
+  background: var(--white);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 20;
+}
+
+.m-tab {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 2px 6px;
+  color: var(--text-faint);
+  text-decoration: none;
+}
+.m-tab:hover {
+  text-decoration: none;
+}
+.m-tab.is-active {
+  color: var(--accent);
+}
+
+.m-tab-ico {
+  position: relative;
+  display: flex;
+}
+.m-tab-ico svg {
+  width: 23px;
+  height: 23px;
+}
+.m-tab-dot {
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.m-tab-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.m-tab.is-active .m-tab-label {
+  font-weight: 700;
+}

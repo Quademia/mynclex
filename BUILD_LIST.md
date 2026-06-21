@@ -8,6 +8,33 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **MOBILE NAVIGATION — SLICES 1–3 COMPLETE: BUILT + MERGED to `main`
+> (2026-06-21; Sam-tested on dev; app-layer, no migration; not yet released
+> to prod).** Made the navs mobile-friendly at **≤768px** — the first piece of a
+> standing **"surfaces must be mobile-friendly, especially student surfaces"**
+> direction (now CLAUDE.md UI Convention #3). Built from the Claude Design
+> "Mobile Navigation Redesign" prototype, concept-not-source. Design + slices in
+> [mobile-responsive.md](docs/product-plan/mobile-responsive.md).
+> - **Decisions:** breakpoint **768px**; **students → hybrid** (slide-in drawer +
+>   additive bottom-tab bar); **tutor & admin → drawer only** (extend to tabs
+>   later off the student build); **the drawer is always the COMPLETE menu**,
+>   tabs are additive shortcuts; **Profile → the account sheet**.
+> - **Slice 1 — drawer + account sheet (ALL audiences).** New
+>   `components/shell/mobile/` (`mobile-nav.tsx` + `account-sheet.tsx`);
+>   `AppShell` `mobileNav` slot; all 6 shell renderers wired; new
+>   `styles/mobile-nav.css` (hides desktop topbar + sidebar ≤768); `menu`+`x`
+>   icons. Account sheet reuses `switchRoleAction` + `/logout`. **Tutor & admin
+>   are mobile-done after this.**
+> - **Slice 2 — student bottom tabs (hybrid).** `NavItem.mobileTab?` +
+>   `tabLabel?`; 4 tabs flagged per student context; `bottom-tabs.tsx` (renders
+>   only where `mobileTab` rows exist); `:has(.m-tabbar)` content offset.
+> - **Slice 3 — polish + convention.** Focus-on-open; scroll-lock moved inside
+>   the ≤768 breakpoint (bug fix) + resize-to-desktop close; convention into
+>   `CLAUDE.md` + permanent `mobile-responsive.md`.
+> - **Deferred:** tutor/admin bottom tabs; non-nav content reflow
+>   (tables/editors); picker + `(focused)` mobile treatment; full focus-trap;
+>   programme-name drawer header.
+
 > **LIVE SESSIONS — ATTENDANCE ARC COMPLETE: SLICES 3 + 3b + 4 BUILT + MERGED
 > to `main` (2026-06-16; Sam-tested on dev; not yet released to prod).**
 > Tutor-marked attendance is the "only verified completion counts" signal for

@@ -44,6 +44,9 @@ import '@/styles/profile.css';
 // Bank). Namespaced `bl-*`; tops the old list rules during the staged
 // per-surface migration. See styles/bank-list.css.
 import '@/styles/bank-list.css';
+// Loaded after nav.css so its ≤768px breakpoint rules win: the mobile
+// navigation chrome (drawer + bottom tabs + account sheet).
+import '@/styles/mobile-nav.css';
 
 export const dynamic = 'force-dynamic';
 

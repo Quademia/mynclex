@@ -25,6 +25,7 @@ export function AppShell({
   availableRoles,
   productLabel,
   rightSlot,
+  mobileNav,
   children,
 }: {
   displayName: string;
@@ -33,6 +34,15 @@ export function AppShell({
   availableRoles: Role[];
   productLabel?: string;
   rightSlot?: React.ReactNode;
+  /**
+   * Optional mobile chrome (≤768px). Each audience shell passes a
+   * configured <MobileNav> built from its own nav data. Mirrors the
+   * rightSlot pattern: the shell stays audience-agnostic and just
+   * renders the slot. The desktop <Topbar> above is hidden by CSS at
+   * ≤768px; <MobileNav> renders its own mobile topbar + drawer +
+   * account sheet. Omitted on surfaces without a sidebar (picker).
+   */
+  mobileNav?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -45,6 +55,7 @@ export function AppShell({
         productLabel={productLabel}
         rightSlot={rightSlot}
       />
+      {mobileNav}
       <div className="shell-body">{children}</div>
     </div>
   );

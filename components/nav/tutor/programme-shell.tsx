@@ -19,6 +19,7 @@ import { SidebarFrame } from '@/components/nav/shared/sidebar-frame';
 import { SidebarUserBar } from '@/components/nav/shared/sidebar-user-bar';
 import { TutorProgrammeSidebar } from './programme-sidebar';
 import { TutorBackPill } from './back-pill';
+import { MobileNav } from '@/components/shell/mobile/mobile-nav';
 import { TUTOR_PROGRAMME_NAV } from '@/lib/nav/tutor';
 import { getProgrammeForShell } from '@/lib/programmes/queries';
 
@@ -55,6 +56,16 @@ export async function TutorProgrammeShell({
       availableRoles={chrome.roles}
       productLabel="· Tutor"
       rightSlot={<TutorBackPill programmeTitle={programmeTitle} />}
+      mobileNav={
+        <MobileNav
+          displayName={chrome.displayName}
+          email={chrome.email}
+          viewingAs={chrome.viewingAs}
+          availableRoles={chrome.roles}
+          items={items}
+          profileHref="/tutor/profile"
+        />
+      }
     >
       <div className="product-layout">
         <SidebarFrame

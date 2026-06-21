@@ -43,11 +43,10 @@
   overflow: hidden;
 }
 
-@media (max-width: 640px) {
-  .product-layout {
-    grid-template-columns: 1fr;
-  }
-}
+/* Mobile (≤768px) layout is now owned by styles/mobile-nav.css, which
+ * hides this desktop sidebar entirely and swaps in the drawer/tab
+ * chrome. (The old ≤640px "stack the sidebar on top" rule was removed
+ * 2026-06-21 when the mobile-nav redesign landed.) */
 
 .product-content {
   padding: 20px;

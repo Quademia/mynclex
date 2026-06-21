@@ -23,6 +23,7 @@ import { SidebarFrame } from '@/components/nav/shared/sidebar-frame';
 import { SidebarUserBar } from '@/components/nav/shared/sidebar-user-bar';
 import { StudentSidebar } from '@/components/nav/student/sidebar';
 import { ProductSwitcher } from '@/components/nav/student/product-switcher';
+import { MobileNav } from '@/components/shell/mobile/mobile-nav';
 import { STUDENT_BANK_NAV } from '@/lib/nav/student';
 
 export const dynamic = 'force-dynamic';
@@ -50,6 +51,17 @@ export default async function BankLayout({
       availableRoles={chrome.roles}
       productLabel="· Bank"
       rightSlot={<ProductSwitcher hasProgrammeEnrolment={hasProgrammeEnrolment} />}
+      mobileNav={
+        <MobileNav
+          displayName={chrome.displayName}
+          email={chrome.email}
+          viewingAs={chrome.viewingAs}
+          availableRoles={chrome.roles}
+          items={STUDENT_BANK_NAV}
+          centerSlot={<ProductSwitcher hasProgrammeEnrolment={hasProgrammeEnrolment} />}
+          profileHref="/student/bank/profile"
+        />
+      }
     >
       <div className="product-layout">
         <SidebarFrame

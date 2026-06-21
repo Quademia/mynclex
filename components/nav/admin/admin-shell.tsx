@@ -18,6 +18,7 @@ import { Footer } from '@/components/shell/footer';
 import { SidebarFrame } from '@/components/nav/shared/sidebar-frame';
 import { SidebarUserBar } from '@/components/nav/shared/sidebar-user-bar';
 import { AdminSidebar } from './sidebar';
+import { MobileNav } from '@/components/shell/mobile/mobile-nav';
 import { ADMIN_NAV, filterAdminNav } from '@/lib/nav/admin';
 
 export async function AdminShell({
@@ -44,6 +45,15 @@ export async function AdminShell({
       viewingAs={chrome.viewingAs}
       availableRoles={chrome.roles}
       productLabel="· Admin"
+      mobileNav={
+        <MobileNav
+          displayName={chrome.displayName}
+          email={chrome.email}
+          viewingAs={chrome.viewingAs}
+          availableRoles={chrome.roles}
+          items={visibleItems}
+        />
+      }
     >
       <div className="product-layout">
         <SidebarFrame
