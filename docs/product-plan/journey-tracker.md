@@ -1,7 +1,15 @@
 # Journey Tracker
 
 *Planning document. Captures the design conversation of 2026-06-19.*
-Last updated: 2026-06-19 (**sharpens the template model** — tutors
+Last updated: 2026-06-21 (**architecture decision:** build the Journey
+Tracker as a **bounded, neutrally-named (`journey_*`) module inside the
+MyNclex repo now, with intent to extract it into a standalone QAcademy
+platform product later** — it's a generic case-management engine, not an
+NCLEX feature. Gamma's folder-per-product model doesn't port to the Next
+stack; the separation mechanism here is a clean module boundary + one-way
+deps + an NCLEX-at-the-seam adapter + a documented `nclex_`-prefix exception,
+not a folder. See the new *Architecture* section. Earlier (2026-06-19):
+**sharpens the template model** — tutors
 customise at the **template** level (build once, reuse for most students),
 *not* per student; a tutor can **clone a QAcademy starter into their own
 saved custom template**; adds a tutor **template-management surface** (a
@@ -63,6 +71,76 @@ A programme/cohort enrolment is **not** the parent of the journey. The
 journey is the parent; a Phase-4 exam-prep programme plugs into one
 *stage* of it. This is the opposite of nesting the journey under a
 programme, and it matters for the data model (see *Relationship model*).
+
+## Architecture: a bounded module now, a standalone product later
+
+*Added 2026-06-21.* A decision sits on top of everything below: the Journey
+Tracker is **not really an NCLEX feature — it's a generic case-management /
+guided-process engine** (pathways → stages → sub-steps → documents →
+tutor-managed cases → templates). NCLEX prep is just one stage that plugs
+in. The same engine serves UK NMC, Canada NNAS, "study-abroad guidance," or
+any tutor-defined service — and the first two of those are literally the
+sibling products (MyNMCLicensure, MyTeacher). One student's journey could
+even run NCLEX (US) **and** NMC (UK) as parallel options. So the journey is
+**platform-level, not MyNclex-level** — it sits above any single product.
+
+**The decision: build it inside the MyNclex repo first, as a self-contained,
+neutrally-named module, with the explicit intent to extract it into a
+standalone QAcademy product later.** Build the concrete NCLEX journey first
+to validate the shape; generalise by *extraction* once a second vertical
+actually pulls on it — not by abstracting up-front (the
+premature-generalisation trap). Same "first product, then migrate the rest"
+playbook MyNclex itself runs on this stack.
+
+**Why a module, not a gamma-style separate folder.** The legacy
+`qacademy-gamma` repo keeps each product (`mynmclicensure/`, `myteacher/`)
+as a sibling *folder* — but that works only because gamma is **static
+HTML/JS** (every folder is independently servable, zero build coupling) and
+the products are **independent** (a `product-select.html` launcher picks
+one; no runtime integration). Neither holds here: MyNclex is a single
+**Next.js app** (one build / one `app/` dir / one deploy — and it was split
+into its own repo precisely to leave gamma's shared monorepo), and the
+journey tracker is the **opposite of independent** — it's the parent layer
+the NCLEX product plugs into, used inside the same logged-in app. A sibling
+folder/app would force a monorepo of Next apps (heavy, re-creating what
+MyNclex left) *and* fight the tight in-app integration the journey needs
+now. On this stack the separation mechanism is a **clean module boundary**,
+not a folder.
+
+**What "extractable module" means concretely** — hold these from day one, or
+"extract later" becomes "rewrite later":
+
+1. **Neutral schema + naming.** Journey tables take a neutral prefix —
+   **`journey_*`** (or a `qa_*` platform prefix), **not** `nclex_journey_*`.
+   This is a *deliberate, documented exception* to the CLAUDE.md `nclex_`
+   non-negotiable (flagged there too). The journey is the one part of this
+   repo intentionally *not* MyNclex's to keep.
+2. **One-way dependency.** MyNclex may reference the journey module (an
+   NCLEX programme plugs into an exam-prep stage); the journey module must
+   **never** import MyNclex / NCLEX domain code. Same rule as
+   `lib/practice` → `lib/bank`: the edge depends on the core, never the
+   reverse.
+3. **NCLEX lives at the seam, not in the core.** The journey core only
+   knows "a stage can link to an external resource." A thin **adapter** says
+   "for NCLEX, that resource is a MyNclex programme/cohort." The core stays
+   domain-agnostic; the NCLEX-specific bit is a pluggable edge.
+4. **Its own folder boundary.** `lib/journey/`, its own routes, its own CSS
+   — so the "what moves out" set is obvious. The module's own extraction
+   test: `cp -r` the journey folders + the `journey_*` tables → it stands
+   alone.
+
+**The extraction target is gamma-shaped — on the new stack.** Gamma already
+proves the end-state pattern: a **shared DB + multiple products + a
+launcher**. When the journey graduates it looks like that — its own app (or
+*the* platform app) with neutral `journey_*` tables in the shared Supabase,
+NCLEX/NMC/Teacher as verticals plugging into stages. We're sequencing the
+instinct, not abandoning it: **module now → that platform later.**
+
+**Brand ≠ architecture.** None of this requires renaming MyNclex.
+"MyNclex" stays the consumer brand for the nursing-NCLEX vertical even as
+the codebase grows a generic platform underneath — a generic platform can
+present *as* MyNclex to students. The rename/extraction happens only when a
+second vertical pulls, not now.
 
 ## Two tiers: Pathway Guide and Managed Case
 
