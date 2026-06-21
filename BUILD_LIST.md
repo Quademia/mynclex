@@ -8,6 +8,31 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **CURRICULUM TWO-PANE REDESIGN — STUDENT + TUTOR COHORT: BUILT + MERGED to
+> `main` (2026-06-21; Sam-tested on dev; app-layer, no migration; not yet
+> released to prod).** Both curriculum surfaces rebuilt as a **two-pane (week
+> rail + detail)** from the Claude Design "Curriculum Design Update" prototype
+> (round 2 — CD restored the cohort **reorder arrows** + added the mobile
+> treatment). Mobile = **drill-in** (week list → tap → full detail + "← Weeks"
+> back), NOT CD's horizontal week-strip (cramped on a phone — Sam's call). The
+> 3rd prototype, **Student Overview, is deferred** to a later session.
+> - **Slice 1 — Student Curriculum.** Horizontal `<StudentUnitTabs>` → two-pane
+>   `lib/curriculum/student-curriculum-pane.tsx` (rail: Done / Up next / 🔒 +
+>   progress bar + %). Detail **reuses the existing activity-card render
+>   verbatim** — a layout swap, not a card rewrite. Selected week on the existing
+>   `?unit=N`; desktop full-height frame `calc(100dvh − 96px)`;
+>   `student-unit-tabs.tsx` deleted; 1-unit programmes keep the simple card.
+> - **Slice 2 — Tutor Cohort Curriculum.** Flat stack → two-pane, reusing every
+>   control + modal (Include/Exclude, Opens/Due/Closes, save-safety, cohort-only
+>   adds, reorder arrows, banners). Selected week = **local state** (no re-fetch
+>   per click); **sticky rail + page-scroll** (the library pattern — the cohort
+>   detail sits under a tall run-header/tab bar). Activity row **stacks** (title
+>   on top, dates/Include below) per the prototype. The whole cohort detail now
+>   uses a **1240px** container (one width across all tabs — no jump; Settings
+>   cards self-cap at 620px); the cohort list stays 880px.
+> - **⏭ NEXT (curriculum arc): Student Overview** — the deferred 3rd prototype
+>   (mode-aware programme/cohort home); build when Sam calls it.
+
 > **MOBILE NAVIGATION — SLICES 1–3 COMPLETE: BUILT + MERGED to `main`
 > (2026-06-21; Sam-tested on dev; app-layer, no migration; not yet released
 > to prod).** Made the navs mobile-friendly at **≤768px** — the first piece of a
