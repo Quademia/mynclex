@@ -900,6 +900,13 @@ CREATE TABLE nclex_programme_blocks (
                    REFERENCES nclex_programme_units(unit_id)
                    ON DELETE CASCADE,
 
+  -- Cohort-specific activities (Slice 1, 20260702120000): NULL =
+  -- template block (shared by every cohort of the programme); set =
+  -- cohort-only block (belongs to that one run, never propagates).
+  cohort_id        UUID
+                   REFERENCES nclex_cohorts(cohort_id)
+                   ON DELETE CASCADE,
+
   -- Position within the unit body (shares a numeric space with
   -- loose activities' ordinal; reorder renumbers both atomically).
   ordinal          INTEGER NOT NULL CHECK (ordinal >= 1),
@@ -915,6 +922,12 @@ CREATE TABLE nclex_programme_blocks (
 
 CREATE INDEX idx_nclex_programme_blocks_unit
   ON nclex_programme_blocks(unit_id);
+
+-- Partial — only cohort-only blocks carry a non-NULL cohort_id
+-- (20260702120000).
+CREATE INDEX idx_nclex_programme_blocks_cohort
+  ON nclex_programme_blocks(cohort_id)
+  WHERE cohort_id IS NOT NULL;
 
 
 -- The `description` column and the ONLINE_LIVE_SESSION type name
@@ -933,6 +946,14 @@ CREATE TABLE nclex_programme_activities (
   -- Optional parent block. NULL -> loose under the unit.
   block_id         UUID
                    REFERENCES nclex_programme_blocks(block_id)
+                   ON DELETE CASCADE,
+
+  -- Cohort-specific activities (Slice 1, 20260702120000): NULL =
+  -- template activity; set = cohort-only (one run). Per-cohort scoping
+  -- is enforced in the TS delivery layer (students read THROUGH the
+  -- cohort-keyed checklist), so no extra RLS was needed.
+  cohort_id        UUID
+                   REFERENCES nclex_cohorts(cohort_id)
                    ON DELETE CASCADE,
 
   -- Position within immediate parent (unit body or block).
@@ -972,6 +993,12 @@ CREATE INDEX idx_nclex_programme_activities_unit
 CREATE INDEX idx_nclex_programme_activities_block
   ON nclex_programme_activities(block_id)
   WHERE block_id IS NOT NULL;
+
+-- Partial — only cohort-only activities carry a non-NULL cohort_id
+-- (20260702120000).
+CREATE INDEX idx_nclex_programme_activities_cohort
+  ON nclex_programme_activities(cohort_id)
+  WHERE cohort_id IS NOT NULL;
 
 
 -- =========================================================
