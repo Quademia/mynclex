@@ -408,98 +408,199 @@ button.programme-switcher-item {
   gap: 20px;
 }
 
-/* ─── Unit tabs (Slice 10.8) ──────────────────────────
+/* ─── Two-pane: week rail + detail (2026-06 redesign) ────
  *
- * Horizontal strip at the top of the curriculum view; one
- * unit visible at a time. Selected tab carries an accent
- * underline. Tabs overflow horizontally (scroll still works
- * via touchpad / swipe) when a programme has many units.
- * Hidden entirely when the programme has 0 or 1 units (the
- * server viewer decides).
+ * Replaces the old horizontal unit-tabs. A full-height frame
+ * (calc(100dvh − 96px) = 56px topbar + 40px .product-content
+ * padding) whose rail and detail scroll independently — the
+ * same proven full-height pattern as the tutor .cur-workspace.
+ * Used only for 2+ units (.student-curriculum.is-pane); the
+ * 0/1-unit cases keep the default scrolling layout.
  *
- * Layout (after the 2026-05-15 Interpretation A redesign):
- * the tab strip is a standalone strip with no card chrome of
- * its own — sits above the body card with a small gap. The
- * unit body BELOW keeps the standard .student-unit card
- * chrome (border + bg + rounded + padding). Tabs and body
- * read as two separate surfaces, not one wrapped container.
+ * Mobile (≤768px) drops the fixed frame for normal page flow
+ * and DRILLS IN: the week LIST when there's no ?unit, the full
+ * DETAIL (with a "← Weeks" back link) once a week is entered.
+ * See the @media block at the foot of this file.
  * ──────────────────────────────────────────────────── */
 
-.student-unit-tabs {
-  /* No chrome — just a structural wrapper. */
-}
-
-.student-unit-tabs-strip {
+.student-curriculum.is-pane {
+  max-width: none;
+  padding: 0;
+  height: calc(100dvh - 96px);
   display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  overflow-y: hidden;        /* kill the 1px vertical-overflow scrollbar
-                                caused by the tabs' margin-bottom:-1px trick
-                                — overflow-x:auto promotes y from visible
-                                to auto per spec, so we pin it explicitly. */
-  scroll-behavior: smooth;
-  scroll-snap-type: x mandatory;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 16px;       /* gap between strip and body card */
-  /* Hide the horizontal scrollbar visually but keep scroll behaviour
-   * (touchpad / swipe / keyboard) so a long programme still works. */
-  scrollbar-width: none;     /* Firefox */
-}
-.student-unit-tabs-strip::-webkit-scrollbar {
-  display: none;             /* Chrome / Safari / Edge */
+  flex-direction: column;
 }
 
-.student-unit-tab {
-  flex: 0 0 auto;
-  scroll-snap-align: start;
+.student-curriculum.is-pane .student-curriculum-head {
+  flex-shrink: 0;
+  margin-bottom: 14px;
+}
+
+.scp {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ── Week rail ── */
+.scp-rail {
+  width: 300px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-soft);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.scp-rail-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scp-rail-item {
   appearance: none;
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;       /* overlap the strip's bottom line */
-  padding: 12px 14px 13px;
-  font-size: 13px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  padding: 11px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  transition: border-color 0.12s;
+}
+
+.scp-rail-item:hover {
+  border-color: var(--accent);
+}
+
+.scp-rail-item.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+  box-shadow: inset 3px 0 0 0 var(--accent);
+}
+
+.scp-rail-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.scp-rail-item-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scp-rail-item-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.scp-rail-item.is-active .scp-rail-item-label {
+  color: var(--accent);
+}
+
+.scp-rail-flag {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.scp-rail-flag.is-done {
+  color: var(--success);
+}
+
+.scp-rail-flag.is-up-next {
+  color: var(--accent);
+}
+
+.scp-rail-flag.is-locked {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.scp-rail-item-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.scp-rail-item-prog {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scp-rail-bar {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.scp-rail-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.scp-rail-pct {
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color 0.15s, border-color 0.15s;
-}
-.student-unit-tab:hover {
-  color: var(--text);
-}
-.student-unit-tab.is-active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-.student-unit-tab:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-  border-radius: 2px;
+  min-width: 30px;
+  text-align: right;
 }
 
-/* Progress engine Slice 3 — per-unit % done suffix in each tab.
- * Muted relative to the unit label so it informs without competing.
- * The wrapper span exists primarily to keep the label compact
- * when the pct is omitted (zero-activity unit). */
-.student-unit-tab-label {
-  /* deliberately empty — defaults to button's font weight + colour */
+/* ── Detail pane ── */
+.scp-detail {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.student-unit-tab-pct {
-  margin-left: 6px;
-  font-weight: 500;
-  color: var(--text-faint);
+/* "← Weeks" back link — mobile drill-in only (hidden on desktop). */
+.scp-back {
+  display: none;
 }
 
-.student-unit-tab.is-active .student-unit-tab-pct {
-  color: color-mix(in srgb, var(--accent) 70%, var(--text-faint));
+.scp-detail-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 22px 40px;
 }
 
-/* Panel container — no chrome of its own; the inner
- * .student-unit keeps its default card chrome. */
-.student-unit-tab-panels {
-  /* deliberately empty */
+/* In the detail pane the unit sheds its standalone card chrome — the
+ * pane IS the container. The block + activity cards inside keep theirs. */
+.scp-detail .student-unit {
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
 }
 
 /* ─── Unit card ─────────────────────────────────────── */
@@ -538,6 +639,38 @@ button.programme-switcher-item {
   color: var(--text-muted);
   margin: 0;
   line-height: 1.5;
+}
+
+/* Unit progress bar in the detail header (2026-06 two-pane redesign).
+ * Mirrors the rail item's mini bar at a larger size. */
+.student-unit-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  max-width: 420px;
+}
+
+.student-unit-progress-bar {
+  flex: 1;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  overflow: hidden;
+}
+
+.student-unit-progress-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.student-unit-progress-pct {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-dark);
+  white-space: nowrap;
 }
 
 .student-unit-empty {
@@ -1461,4 +1594,73 @@ button.programme-switcher-item {
   color: var(--text);
   line-height: 1.5;
   white-space: pre-wrap;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Student curriculum — mobile two-pane drill-in (≤768px)
+ *
+ * The desktop full-height rail+detail frame is dropped for
+ * normal page flow (the shell's .product-content carries the
+ * scroll and already reserves space for the student bottom-tab
+ * bar). The .is-entered class on .scp — set when ?unit is in
+ * the URL — decides which half shows:
+ *   • not entered → week LIST (rail full-width, detail hidden)
+ *   • entered     → week DETAIL full-width + "← Weeks" back link
+ *                   (rail hidden)
+ * ───────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .student-curriculum.is-pane {
+    height: auto;
+    display: block;
+  }
+
+  .scp {
+    display: block;
+    height: auto;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .scp-rail {
+    width: auto;
+    border-right: none;
+    background: transparent;
+  }
+
+  .scp-rail-list {
+    overflow: visible;
+    padding: 0;
+  }
+
+  .scp-detail,
+  .scp-detail-scroll {
+    overflow: visible;
+    padding: 0;
+  }
+
+  /* Drill-in: show one half at a time. */
+  .scp:not(.is-entered) .scp-detail {
+    display: none;
+  }
+
+  .scp.is-entered .scp-rail {
+    display: none;
+  }
+
+  .scp-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 6px 0;
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    cursor: pointer;
+  }
 }

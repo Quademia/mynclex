@@ -58,7 +58,8 @@ import {
   ACTIVITY_TYPE_ICON,
 } from './format';
 import { ActivityAction } from './activity-action';
-import { StudentUnitTabs } from './student-unit-tabs';
+import { StudentCurriculumPane } from './student-curriculum-pane';
+import type { RailUnit } from './student-curriculum-pane';
 import type {
   ProgrammeActivity,
   StudentActivity,
@@ -70,14 +71,15 @@ export function StudentCurriculumViewer({
 }: {
   tree: StudentCurriculumTree;
 }) {
-  const unitNoun = tree.programme.unit_label === 'WEEK' ? 'Weeks' : 'Modules';
+  const unitNoun = tree.programme.unit_label === 'WEEK' ? 'week' : 'module';
+  const isPane = tree.units.length > 1;
 
   return (
-    <div className="student-curriculum">
+    <div className={'student-curriculum' + (isPane ? ' is-pane' : '')}>
       <header className="student-curriculum-head">
-        <h1 className="student-curriculum-title">{tree.programme.title}</h1>
+        <h1 className="student-curriculum-title">Curriculum</h1>
         <p className="student-curriculum-sub">
-          {unitNoun} in this programme. Tap an activity to open it.
+          Work through each {unitNoun} — your progress saves as you go.
           {tree.cohort && tree.cohort.name
             ? ` Cohort: ${tree.cohort.name}.`
             : null}
@@ -89,34 +91,61 @@ export function StudentCurriculumViewer({
           No content has been published yet.
         </div>
       ) : tree.units.length === 1 ? (
-        // Single unit — render the section directly, no tabs (per
-        // Slice 10.8 design decision: tabs add noise when there's
-        // only one unit).
+        // Single unit — render the section directly, no rail (a
+        // one-item rail adds noise; same call as the old tabs).
         <div className="student-curriculum-units">
           <UnitSection unit={tree.units[0]} tree={tree} />
         </div>
       ) : (
-        // 2+ units — wrap with the client tabs component. Children
-        // are server-rendered <UnitSection> nodes, one per tab; the
-        // wrapper shows only the selected one.
-        // Slice 3 — pass `pct` per tab (drives the "· NN%" suffix)
-        // and `defaultIndex` (Where I left off; falls back to Unit 1
-        // inside the wrapper when null).
-        <StudentUnitTabs
-          tabs={tree.units.map((u) => ({
-            index: u.unit.unit_index,
-            label: unitLabel(u.unit.unit_index, tree.programme.unit_label),
-            pct: u.progressPct,
-          }))}
+        // 2+ units — the two-pane rail/detail. Children are
+        // server-rendered <UnitSection> nodes, one per unit, in order;
+        // the client pane shows only the selected one (others stay
+        // mounted, hidden) and owns the selection + mobile drill-in.
+        <StudentCurriculumPane
+          rail={buildRail(tree)}
           defaultIndex={tree.whereILeftOffUnitIndex}
         >
           {tree.units.map((u) => (
             <UnitSection key={u.unit.unit_id} unit={u} tree={tree} />
           ))}
-        </StudentUnitTabs>
+        </StudentCurriculumPane>
       )}
     </div>
   );
+}
+
+// Per-unit rail metadata for <StudentCurriculumPane>. Status mirrors the
+// per-activity pill cascade at the unit level: done (100%) > up-next
+// (holds the programme's Up-next activity) > locked (has activities but
+// none currently OPEN) > open (empty unit or in-progress/not-started).
+function buildRail(tree: StudentCurriculumTree): RailUnit[] {
+  return tree.units.map((u) => {
+    let containsUpNext = false;
+    let anyOpen = false;
+    for (const entry of u.body) {
+      const acts =
+        entry.kind === 'block' ? entry.activities : [entry.activity];
+      for (const a of acts) {
+        if (a.activity_id === tree.upNextActivityId) containsUpNext = true;
+        if (a.openState === 'OPEN') anyOpen = true;
+      }
+    }
+
+    let status: RailUnit['status'];
+    if (u.progressTotal === 0) status = 'open';
+    else if (u.progressPct === 100) status = 'done';
+    else if (containsUpNext) status = 'up-next';
+    else if (!anyOpen) status = 'locked';
+    else status = 'open';
+
+    return {
+      index: u.unit.unit_index,
+      label: unitLabel(u.unit.unit_index, tree.programme.unit_label),
+      title: formatUnitTitle(u.unit, tree.programme.unit_label),
+      pct: u.progressPct,
+      status,
+    };
+  });
 }
 
 function UnitSection({
@@ -144,6 +173,16 @@ function UnitSection({
         </h2>
         {unit.unit.description && (
           <p className="student-unit-desc">{unit.unit.description}</p>
+        )}
+        {unit.progressPct !== null && (
+          <div className="student-unit-progress">
+            <span className="student-unit-progress-bar">
+              <span style={{ width: `${unit.progressPct}%` }} />
+            </span>
+            <span className="student-unit-progress-pct">
+              {unit.progressPct}% complete
+            </span>
+          </div>
         )}
       </header>
 
