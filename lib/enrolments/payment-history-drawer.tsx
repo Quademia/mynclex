@@ -6,6 +6,11 @@
 // fixed-position, so it floats above the roster identically from either
 // mount (cohort or programme scope). History = readout → drawer; the
 // roster's decision dialogs (Mark paid, Give more time) stay modals.
+//
+// Keyed by enrolment_id (+ the payer's name/email for the header), so
+// it's caller-agnostic: the roster opens it from a row, and the global
+// tutor Payments page opens it from the 🕑 in a payment's Purpose cell
+// (Slice 2). getPaymentHistoryAction gates ownership server-side.
 
 'use client';
 
@@ -16,7 +21,6 @@ import {
   getPaymentHistoryAction,
   type PaymentHistoryView,
 } from './actions';
-import type { EnrolmentRosterRow } from './types';
 
 function formatDay(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', {
@@ -27,10 +31,14 @@ function formatDay(iso: string): string {
 }
 
 export function PaymentHistoryDrawer({
-  row,
+  enrolmentId,
+  name,
+  email,
   onClose,
 }: {
-  row: EnrolmentRosterRow;
+  enrolmentId: string;
+  name: string;
+  email: string;
   onClose: () => void;
 }) {
   const [history, setHistory] = useState<PaymentHistoryView | null>(null);
@@ -38,7 +46,7 @@ export function PaymentHistoryDrawer({
 
   useEffect(() => {
     let alive = true;
-    getPaymentHistoryAction(row.enrolment_id).then((res) => {
+    getPaymentHistoryAction(enrolmentId).then((res) => {
       if (!alive) return;
       if (res.ok) setHistory(res.history);
       else setError(res.error);
@@ -46,7 +54,7 @@ export function PaymentHistoryDrawer({
     return () => {
       alive = false;
     };
-  }, [row.enrolment_id]);
+  }, [enrolmentId]);
 
   // Escape closes, matching the modal-frame convention.
   useEffect(() => {
@@ -70,13 +78,13 @@ export function PaymentHistoryDrawer({
         className="pmh-drawer"
         role="dialog"
         aria-modal="true"
-        aria-label={`Payment history — ${row.name}`}
+        aria-label={`Payment history — ${name}`}
       >
         <header className="pmh-header">
           <div>
             <p className="pmh-eyebrow">Payment history</p>
-            <h2 className="pmh-title">{row.name}</h2>
-            <p className="pmh-sub">{row.email}</p>
+            <h2 className="pmh-title">{name}</h2>
+            <p className="pmh-sub">{email}</p>
           </div>
           <button
             type="button"

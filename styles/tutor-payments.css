@@ -1,0 +1,639 @@
+/* mynclex/styles/tutor-payments.css
+ *
+ * The global tutor Payments ledger (/tutor/payments). Namespaced
+ * `tpay-`. Built from the CD "Tutor Payments v1.1" prototype, mapped to
+ * the app tokens (styles/tokens.css). Desktop = table; ≤768px = cards
+ * (toggled by the breakpoint, both rendered). See
+ * lib/payments/tutor/tutor-payments-view.tsx.
+ */
+
+.tpay-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 24px 60px;
+}
+
+/* ── Header ── */
+.tpay-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.tpay-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.tpay-eyebrow-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  background: #e3f0ec;
+  color: var(--accent-dark);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.tpay-eyebrow-chip .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.tpay-title {
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.15;
+}
+.tpay-sub {
+  margin-top: 5px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 520px;
+}
+.tpay-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  color: #374151;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 14px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+  flex: none;
+  margin-top: 4px;
+}
+.tpay-export:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--text-faint);
+}
+.tpay-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Summary band ── */
+.tpay-band {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.tpay-stat {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tpay-stat-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.tpay-stat-ic {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  flex: none;
+}
+.tpay-stat-ic.is-ghs { background: #f0fdf4; color: #15803d; }
+.tpay-stat-ic.is-usd { background: #eff6ff; color: #1d4ed8; }
+.tpay-stat-ic.is-online { background: #e3f0ec; color: var(--accent-dark); font-size: 13px; }
+.tpay-stat-ic.is-off { background: #fef3c7; color: #92400e; }
+.tpay-stat-num {
+  font-size: 26px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.tpay-stat-foot {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* ── Filter toolbar ── */
+.tpay-toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+}
+.tpay-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 240px;
+}
+.tpay-search-ic {
+  position: absolute;
+  left: 11px;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+.tpay-search input {
+  width: 100%;
+  padding: 8px 12px 8px 32px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+}
+.tpay-search input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--white);
+  box-shadow: 0 0 0 3px #e3f0ec;
+}
+.tpay-search input::placeholder { color: var(--text-faint); }
+
+.tpay-seg {
+  display: inline-flex;
+  background: var(--bg-soft);
+  border-radius: 9px;
+  padding: 3px;
+  gap: 2px;
+  flex: none;
+}
+.tpay-seg-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tpay-seg-btn:hover:not(.is-on) { color: #374151; }
+.tpay-seg-btn.is-on {
+  background: var(--white);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+}
+
+.tpay-select {
+  padding: 7px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: var(--white);
+  font-size: 13px;
+  font-family: inherit;
+  color: #374151;
+  cursor: pointer;
+  flex: none;
+  max-width: 220px;
+}
+.tpay-select:focus { outline: none; border-color: var(--accent); }
+
+/* ── Active chips ── */
+.tpay-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.tpay-chips-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.tpay-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid #dbe7f0;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 6px 4px 11px;
+  border-radius: 999px;
+}
+.tpay-chip-x {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--text-faint);
+  font-size: 14px;
+  line-height: 1;
+}
+.tpay-chip-x:hover { background: rgba(220, 38, 38, 0.1); color: var(--danger); }
+.tpay-clear {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.tpay-clear:hover { color: var(--danger); }
+
+/* ── Result count ── */
+.tpay-count {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.tpay-count strong { color: var(--text); font-weight: 700; }
+
+/* ── Rollup scorecards (Programme + Cohort) ── */
+.tpay-rollups { margin-bottom: 14px; }
+.tpay-rollups.is-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.tpay-rollup {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+.tpay-rollup-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+.tpay-rollup-kind {
+  flex: none;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+  background: #e3f0ec;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.tpay-rollup-kind.is-cohort { color: #1d4ed8; background: #eff6ff; }
+.tpay-rollup-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tpay-rollup-top {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.tpay-rollup-total {
+  font-size: 22px;
+  font-weight: 750;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.tpay-rollup-total.is-empty {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: normal;
+}
+.tpay-rollup-sub { font-size: 12.5px; color: var(--text-muted); }
+.tpay-rollup-bar {
+  height: 5px;
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+  background: var(--border);
+  margin-bottom: 8px;
+}
+.tpay-rollup-bar span { height: 100%; transition: width 0.3s ease; }
+.tpay-rollup-bar .is-online { background: var(--accent); }
+.tpay-rollup-bar .is-off { background: var(--warning); }
+.tpay-rollup-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.tpay-rollup-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.tpay-rollup-legend .dot { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+.tpay-rollup-legend .dot.is-online { background: var(--accent); }
+.tpay-rollup-legend .dot.is-off { background: var(--warning); }
+
+/* ── Desktop table ── */
+.tpay-table-wrap {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  overflow-x: auto;
+}
+.tpay-table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.tpay-table thead th {
+  text-align: left;
+  padding: 11px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.tpay-table th.ta-right, .tpay-table td.ta-right { text-align: right; }
+.tpay-table tbody td {
+  padding: 13px 16px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+}
+.tpay-table tbody tr:hover:not(.tpay-month-row) { background: #fafbfc; }
+.tpay-table tbody tr.is-refunded { background: #fffafa; }
+
+.tpay-month-row td {
+  padding: 9px 16px 6px !important;
+  background: var(--bg);
+  border-top: 1px solid #f0f0f0;
+}
+.tpay-month-label {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-right: 8px;
+}
+.tpay-month-count {
+  font-size: 10.5px;
+  font-weight: 700;
+  background: #f3f4f6;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 7px;
+  height: 16px;
+  line-height: 14px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ── Cells ── */
+.tpay-payer { display: flex; align-items: center; gap: 10px; }
+.tpay-payer-id { min-width: 0; }
+.tpay-avatar {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 11px;
+  display: grid;
+  place-items: center;
+}
+.tpay-avatar.is-refunded { background: #fef2f2; color: var(--danger); }
+.tpay-name { font-weight: 600; color: var(--text); white-space: nowrap; }
+.tpay-email { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; margin-top: 1px; }
+
+.tpay-prog {
+  font-weight: 600;
+  color: var(--text);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tpay-prog-cohort { margin-top: 3px; }
+.tpay-cohort-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  white-space: nowrap;
+  display: inline-block;
+}
+.tpay-cohort-tag.is-selfpaced {
+  background: #f3f4f6;
+  border-color: var(--border);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.tpay-purpose-cell { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.tpay-purpose { font-size: 13px; color: #374151; font-weight: 500; }
+.tpay-inst {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: #f3f4f6;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 6px;
+}
+/* 🕑 — "there's a payment history behind this" cue. Present only when a
+ * frozen plan exists (row.hasHistory); opens the shared history drawer. */
+.tpay-clock {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text-faint);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  line-height: 1;
+  padding: 0;
+}
+.tpay-clock:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: #f0fdfa;
+}
+
+.tpay-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.tpay-pill.is-online { background: #e3f0ec; color: var(--accent-dark); border: 1px solid #a3ccc7; }
+.tpay-pill.is-off { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+
+.tpay-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.tpay-status .pip { font-size: 7px; line-height: 1; }
+.tpay-status.is-received { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.tpay-status.is-refunded { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+
+.tpay-amount {
+  font-size: 14px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.tpay-amount.is-refunded { color: var(--danger); }
+.tpay-date { font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+/* ── Mobile cards (hidden on desktop) ── */
+.tpay-cards { display: none; }
+.tpay-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.tpay-card.is-refunded { background: #fffafa; }
+.tpay-card-top { display: flex; align-items: flex-start; gap: 10px; }
+.tpay-card-amt { text-align: right; flex: none; padding-left: 8px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.tpay-card-div { margin: 10px 0; border-top: 1px solid #f3f4f6; }
+.tpay-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 5px 0 7px;
+}
+.tpay-card-meta .sep { color: var(--border-strong); font-size: 11px; }
+.tpay-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tpay-month-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 0 8px;
+}
+.tpay-month-head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #f3f4f6;
+}
+
+/* ── Empty state ── */
+.tpay-empty {
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--white);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+.tpay-empty-ic { font-size: 36px; margin-bottom: 12px; opacity: 0.2; line-height: 1; }
+.tpay-empty-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.tpay-empty-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+.tpay-empty-btn {
+  display: inline-flex;
+  align-items: center;
+  background: var(--primary);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tpay-empty-btn:hover { background: var(--primary-dark); }
+
+/* ── ≤768px: stack the band, swap table → cards ── */
+@media (max-width: 768px) {
+  .tpay-page { padding: 16px 14px 48px; }
+  .tpay-band { grid-template-columns: 1fr 1fr; }
+  .tpay-rollups.is-pair { grid-template-columns: 1fr; }
+  .tpay-search { flex: 1 1 100%; min-width: 0; }
+  .tpay-table-wrap { display: none; }
+  .tpay-cards { display: block; }
+}

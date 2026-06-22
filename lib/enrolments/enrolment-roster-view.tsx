@@ -774,7 +774,9 @@ export function EnrolmentRosterView({
 
       {historyRow && (
         <PaymentHistoryDrawer
-          row={historyRow}
+          enrolmentId={historyRow.enrolment_id}
+          name={historyRow.name}
+          email={historyRow.email}
           onClose={() => setHistoryRow(null)}
         />
       )}
