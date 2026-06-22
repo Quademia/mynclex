@@ -795,7 +795,12 @@ duration — but at a subsidised price, not free.
   expired bank access.
 - Subsidy price is set globally by admin. Tutors do not control it.
 - Cohort-level pricing variation (early-bird, holiday promo, foundation-
-  vs polished-cohort tiers) is deferred to v2 — for now, the
+  vs polished-cohort tiers) — **DESIGNED 2026-06-22, build pending**: a
+  cohort can carry its own plan set (clone-and-edit) via a `cohort_id`
+  override on the strategies table + a Programme-pricing ↔ Custom toggle
+  on a new cohort Payment-plans pane (see
+  [payments-and-enrolment.md](payments-and-enrolment.md) → *Designed
+  2026-06-22 — cohort-level payment plans*). Until it's built, the
   programme's price is the price for every cohort of that programme.
 
 ### Provisional numbers
