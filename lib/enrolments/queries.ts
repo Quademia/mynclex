@@ -264,34 +264,48 @@ async function readRoster(
  */
 export async function getRosterPlanContext(
   programmeId: string,
-): Promise<{ plans: PaymentStrategy[]; currency: Currency }> {
+): Promise<{
+  plans: PaymentStrategy[];
+  currency: Currency;
+  plansByCohort: Record<string, PaymentStrategy[]>;
+}> {
   const supabase = await createClient();
-  const [{ data: prog }, { data: plans, error }] = await Promise.all([
+  const [{ data: prog }, { data: all, error }] = await Promise.all([
     supabase
       .from('nclex_programmes')
       .select('price_currency')
       .eq('programme_id', programmeId)
       .maybeSingle(),
-    // Programme-default plans only (cohort_id IS NULL) for the add-student
-    // picker. Cohort-aware add (a cohort's own plans) lands with the cohort
-    // Payment-plans pane (Slice 2).
+    // All active plans, both scopes — partitioned below into the programme
+    // defaults + a per-cohort map, so the Add-student / Convert pickers can
+    // offer a custom cohort's own plans (cohort-aware add, 2026-06-22).
     supabase
       .from('nclex_programme_payment_strategies')
       .select(
-        `strategy_id, programme_id, kind, label,
+        `strategy_id, programme_id, cohort_id, kind, label,
          total_price_minor, initial_price_minor,
          installment_count, installment_interval_days,
          balance_due_days_after_enrolment,
          is_active, sort_order, created_at, updated_at`,
       )
       .eq('programme_id', programmeId)
-      .is('cohort_id', null)
       .eq('is_active', true)
       .order('sort_order', { ascending: true }),
   ]);
+
+  const rows = (error || !all ? [] : all) as (PaymentStrategy & {
+    cohort_id: string | null;
+  })[];
+  const plans = rows.filter((r) => r.cohort_id == null);
+  const plansByCohort: Record<string, PaymentStrategy[]> = {};
+  for (const r of rows) {
+    if (r.cohort_id != null) (plansByCohort[r.cohort_id] ??= []).push(r);
+  }
+
   return {
-    plans: error || !plans ? [] : (plans as PaymentStrategy[]),
-    currency: ((prog?.price_currency as Currency | undefined) ?? 'GHS'),
+    plans,
+    currency: (prog?.price_currency as Currency | undefined) ?? 'GHS',
+    plansByCohort,
   };
 }
 

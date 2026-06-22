@@ -21,6 +21,7 @@ import { CohortOverviewPane } from './cohort-overview-pane';
 import { CohortSessionsPane } from './cohort-sessions-pane';
 import { CohortSettingsPane } from './cohort-settings-pane';
 import { CohortPaymentPlansPane } from '@/lib/strategies/cohort-payment-plans-pane';
+import { getCohortHasCustomPricing } from '@/lib/strategies/queries';
 import {
   cohortStatus,
   cohortStatusPillClass,
@@ -91,7 +92,10 @@ export async function CohortDetail({
   // Ownership is RLS-gated inside the query (null = unknown or not
   // mine); the programme check catches a cohort id pasted under the
   // wrong programme's URL.
-  const ctx = await getCohortForShell(cohortId);
+  const [ctx, hasCustomPricing] = await Promise.all([
+    getCohortForShell(cohortId),
+    getCohortHasCustomPricing(cohortId),
+  ]);
   if (!ctx || ctx.cohort.programme_id !== programmeId) {
     return (
       <div className="cohort-detail-missing">
@@ -126,9 +130,19 @@ export async function CohortDetail({
             {cohort.allow_late_join && ' · Late join on'}
           </p>
         </div>
-        <span className={`cohort-pill ${cohortStatusPillClass(status)}`}>
-          {formatCohortStatusLabel(status)}
-        </span>
+        <div className="cohort-detail-pills">
+          {hasCustomPricing && (
+            <span
+              className="cohort-pill is-custom-pricing"
+              title="This cohort has its own payment plans"
+            >
+              Custom pricing
+            </span>
+          )}
+          <span className={`cohort-pill ${cohortStatusPillClass(status)}`}>
+            {formatCohortStatusLabel(status)}
+          </span>
+        </div>
       </header>
 
       <nav className="cohort-tabs" aria-label="Cohort sections">

@@ -72,9 +72,13 @@ interface EnrolmentRosterViewProps {
   /** Pre-select the cohort filter (the ?cohort= deep link from the
    *  cohort workspace's "Manage enrolments →"). */
   initialCohortId?: string;
-  /** The programme's active payment plans, for the Add Student plan picker
-   *  (add-with-plan, 2026-06-12). Empty = picker hidden. */
+  /** The programme's active DEFAULT payment plans, for the Add Student plan
+   *  picker (add-with-plan, 2026-06-12). Empty = picker hidden. */
   plans?: PaymentStrategy[];
+  /** Per-cohort custom plan sets (cohort-aware add/convert, 2026-06-22).
+   *  A cohort on custom pricing offers its own plans; the picker uses
+   *  plansByCohort[cohortId] ?? plans. */
+  plansByCohort?: Record<string, PaymentStrategy[]>;
   currency?: Currency;
 }
 
@@ -112,6 +116,7 @@ export function EnrolmentRosterView({
   cohorts = [],
   initialCohortId,
   plans = [],
+  plansByCohort = {},
   currency = 'GHS',
 }: EnrolmentRosterViewProps) {
   const router = useRouter();
@@ -731,6 +736,7 @@ export function EnrolmentRosterView({
           // that cohort by default.
           defaultCohortId={cohortFilter !== 'ALL' ? cohortFilter : ''}
           plans={plans}
+          plansByCohort={plansByCohort}
           currency={currency}
           onClose={closeAdd}
           onSubmit={handleSubmit}
@@ -786,7 +792,11 @@ export function EnrolmentRosterView({
           name={leadName(wlConvert)}
           email={wlConvert.email}
           cohortLabel={wlConvert.cohort_label}
-          plans={plans}
+          plans={
+            wlConvert.cohort_id
+              ? (plansByCohort[wlConvert.cohort_id] ?? plans)
+              : plans
+          }
           currency={currency}
           error={wlError}
           pending={pending}
@@ -1149,6 +1159,7 @@ function AddStudentModal({
   cohorts,
   defaultCohortId,
   plans,
+  plansByCohort,
   currency,
   onClose,
   onSubmit,
@@ -1160,6 +1171,7 @@ function AddStudentModal({
   cohorts: CohortOption[];
   defaultCohortId: string;
   plans: PaymentStrategy[];
+  plansByCohort: Record<string, PaymentStrategy[]>;
   currency: Currency;
   onClose: () => void;
   onSubmit: (formData: FormData) => void;
@@ -1172,6 +1184,20 @@ function AddStudentModal({
   // A tutor-led add needs a cohort to land in; with none joinable the
   // form can't submit (create a cohort first).
   const noJoinableCohort = tutorLed && cohorts.length === 0;
+
+  // Controlled cohort so the plan picker can switch to a custom cohort's
+  // own plans (cohort-aware add, 2026-06-22).
+  const [cohortId, setCohortId] = useState(
+    cohorts.some((c) => c.cohort_id === defaultCohortId)
+      ? defaultCohortId
+      : cohorts.length === 1
+        ? cohorts[0].cohort_id
+        : ''
+  );
+  const effectivePlans =
+    tutorLed && cohortId && plansByCohort[cohortId]
+      ? plansByCohort[cohortId]
+      : plans;
 
   return (
     <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
@@ -1241,13 +1267,8 @@ function AddStudentModal({
                 <select
                   name="cohort_id"
                   className="enrol-input"
-                  defaultValue={
-                    cohorts.some((c) => c.cohort_id === defaultCohortId)
-                      ? defaultCohortId
-                      : cohorts.length === 1
-                        ? cohorts[0].cohort_id
-                        : ''
-                  }
+                  value={cohortId}
+                  onChange={(e) => setCohortId(e.target.value)}
                   required
                   disabled={pending}
                 >
@@ -1263,7 +1284,12 @@ function AddStudentModal({
               </label>
             ))}
 
-          <PlanPickerFields plans={plans} currency={currency} pending={pending} />
+          <PlanPickerFields
+            key={cohortId}
+            plans={effectivePlans}
+            currency={currency}
+            pending={pending}
+          />
 
           {error && (
             <p className="enrol-form-error" role="alert">

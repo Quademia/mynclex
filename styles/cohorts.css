@@ -172,6 +172,19 @@
   color: #991b1b;
   border-color: #fecaca;
 }
+/* Per-cohort custom pricing badge (2026-06-22) — teal, matches the accent. */
+.cohort-pill.is-custom-pricing {
+  background: #e3f0ec;
+  color: var(--accent-dark);
+  border-color: #a3ccc7;
+}
+/* Header pill cluster (custom-pricing badge + status). */
+.cohort-detail-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 
 /* ─── Empty state ─────────────────────────────────── */
 

@@ -68,6 +68,20 @@ export async function getPaymentPlansContext(
   };
 }
 
+// At-a-glance "is this cohort on custom pricing?" — ≥1 active plan row of
+// its own. Used for the cohort-header badge. RLS owner-scoped.
+export async function getCohortHasCustomPricing(
+  cohortId: string
+): Promise<boolean> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from('nclex_programme_payment_strategies')
+    .select('strategy_id', { count: 'exact', head: true })
+    .eq('cohort_id', cohortId)
+    .eq('is_active', true);
+  return (count ?? 0) > 0;
+}
+
 // The cohort Payment-plans pane (per-cohort override, 2026-06-22). Returns
 // the cohort's parent-programme pricing context + BOTH plan sets: the
 // programme defaults (cohort_id IS NULL — the read-only preview / clone

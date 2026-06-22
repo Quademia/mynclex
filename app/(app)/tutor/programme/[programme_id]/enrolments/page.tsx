@@ -61,6 +61,7 @@ export default async function ProgrammeEnrolmentsPage({
       cohorts={cohorts}
       initialCohortId={cohort}
       plans={planCtx.plans}
+      plansByCohort={planCtx.plansByCohort}
       currency={planCtx.currency}
     />
   );
