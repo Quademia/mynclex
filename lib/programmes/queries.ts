@@ -41,6 +41,7 @@ export async function getMyProgrammes(): Promise<ProgrammeListRow[]> {
        upfront:nclex_programme_payment_strategies(total_price_minor)`
     )
     .eq('upfront.kind', 'UPFRONT_FULL')
+    .is('upfront.cohort_id', null) // programme-default upfront, not a cohort override
     .order('updated_at', { ascending: false });
 
   if (error || !data) return [];

@@ -29,6 +29,9 @@ export async function getPaymentPlansContext(
 
   if (error || !prog) return null;
 
+  // Programme-default plans only (cohort_id IS NULL). A cohort's own
+  // override plans (cohort_id set) live behind the cohort Payment-plans
+  // pane — they must not leak into the programme tab.
   const { data: strategies } = await supabase
     .from('nclex_programme_payment_strategies')
     .select(
@@ -39,6 +42,7 @@ export async function getPaymentPlansContext(
        is_active, sort_order, created_at, updated_at`
     )
     .eq('programme_id', programmeId)
+    .is('cohort_id', null)
     .order('sort_order', { ascending: true });
 
   return {

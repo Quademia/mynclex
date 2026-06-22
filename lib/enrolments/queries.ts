@@ -272,6 +272,9 @@ export async function getRosterPlanContext(
       .select('price_currency')
       .eq('programme_id', programmeId)
       .maybeSingle(),
+    // Programme-default plans only (cohort_id IS NULL) for the add-student
+    // picker. Cohort-aware add (a cohort's own plans) lands with the cohort
+    // Payment-plans pane (Slice 2).
     supabase
       .from('nclex_programme_payment_strategies')
       .select(
@@ -282,6 +285,7 @@ export async function getRosterPlanContext(
          is_active, sort_order, created_at, updated_at`,
       )
       .eq('programme_id', programmeId)
+      .is('cohort_id', null)
       .eq('is_active', true)
       .order('sort_order', { ascending: true }),
   ]);

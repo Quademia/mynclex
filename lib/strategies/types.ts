@@ -61,6 +61,7 @@ export type StrategyFormValues = {
 export type PublicPaymentPlan = {
   strategy_id: string;
   programme_id: string;
+  cohort_id: string | null; // per-cohort override; NULL = programme default
   kind: StrategyKind;
   label: string | null;
   total_price_minor: number;

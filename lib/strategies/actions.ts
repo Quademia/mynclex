@@ -188,22 +188,27 @@ export async function setStrategyActiveAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // Resolve the plan's programme (RLS-scoped read).
+  // Resolve the plan's programme + scope (RLS-scoped read).
   const { data: target } = await supabase
     .from('nclex_programme_payment_strategies')
-    .select('programme_id, is_active')
+    .select('programme_id, cohort_id, is_active')
     .eq('strategy_id', strategyId)
     .maybeSingle();
   if (!target) return { ok: false, error: 'Plan not found or not yours.' };
   if (target.is_active === active) return { ok: true }; // no-op
 
   if (!active) {
-    // Block deactivating the last active plan.
-    const { count } = await supabase
+    // Block deactivating the last active plan IN THE SAME SCOPE — a
+    // programme's defaults (cohort_id IS NULL) or a single cohort's set.
+    let countQuery = supabase
       .from('nclex_programme_payment_strategies')
       .select('strategy_id', { count: 'exact', head: true })
       .eq('programme_id', target.programme_id)
       .eq('is_active', true);
+    countQuery = target.cohort_id
+      ? countQuery.eq('cohort_id', target.cohort_id)
+      : countQuery.is('cohort_id', null);
+    const { count } = await countQuery;
     if ((count ?? 0) <= 1) {
       return {
         ok: false,

@@ -65,6 +65,7 @@ async function syncUpfrontStrategy(
       updated_at: nowIso,
     })
     .eq('programme_id', programmeId)
+    .is('cohort_id', null) // the programme-default upfront, not a cohort override
     .eq('kind', 'UPFRONT_FULL')
     .select('strategy_id')
     .maybeSingle();

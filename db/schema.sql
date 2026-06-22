@@ -1444,6 +1444,11 @@ CREATE TABLE nclex_programme_payment_strategies (
   strategy_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   programme_id         UUID NOT NULL
                        REFERENCES nclex_programmes(programme_id) ON DELETE CASCADE,
+  -- Per-cohort override (2026-06-22, migration 20260705120000): NULL = the
+  -- programme default (every existing row); set = this cohort's own plan
+  -- (clone-and-edit). Checkout reads a cohort's rows if any, else defaults.
+  cohort_id            UUID
+                       REFERENCES nclex_cohorts(cohort_id) ON DELETE CASCADE,
   kind                 TEXT NOT NULL
                        CHECK (kind IN ('UPFRONT_FULL','DEPOSIT_BALANCE','EQUAL_INSTALLMENTS')),
   label                TEXT,                                      -- optional tutor display name
@@ -1476,8 +1481,17 @@ CREATE TABLE nclex_programme_payment_strategies (
 );
 CREATE INDEX idx_nclex_pps_programme_sort
   ON nclex_programme_payment_strategies (programme_id, sort_order);
+-- One programme-default plan per kind, one cohort-override plan per kind
+-- (per-cohort pricing, migration 20260705120000).
 CREATE UNIQUE INDEX idx_nclex_pps_programme_kind
-  ON nclex_programme_payment_strategies (programme_id, kind);
+  ON nclex_programme_payment_strategies (programme_id, kind)
+  WHERE cohort_id IS NULL;
+CREATE UNIQUE INDEX idx_nclex_pps_cohort_kind
+  ON nclex_programme_payment_strategies (cohort_id, kind)
+  WHERE cohort_id IS NOT NULL;
+CREATE INDEX idx_nclex_pps_cohort_sort
+  ON nclex_programme_payment_strategies (cohort_id, sort_order)
+  WHERE cohort_id IS NOT NULL;
 
 
 -- =========================================================
