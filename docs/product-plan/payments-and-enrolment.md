@@ -900,12 +900,39 @@ produced this boundary:
   programme-level, stays put.
 - **The transactions list ("what money came in?") = the GLOBAL
   `/tutor/payments` page, built ONCE with filters** (programme, cohort,
-  channel, date) — currently still a placeholder. No per-programme or
-  per-cohort payments pages: a filter is cheaper than a page, and at
-  1–3 programmes per tutor global-with-filters is the right zoom. If
-  tutors later want it one click from a programme workspace, a
-  programme tab can mount the same component pre-filtered (the roster's
-  scope pattern) — choosing global now closes no doors.
+  channel, date) — **✅ BUILT 2026-06-22 (on `main`, not yet prod); see
+  the build note below.** No per-programme or per-cohort payments pages:
+  a filter is cheaper than a page, and at 1–3 programmes per tutor
+  global-with-filters is the right zoom. If tutors later want it one
+  click from a programme workspace, a programme tab can mount the same
+  component pre-filtered (the roster's scope pattern) — choosing global
+  now closes no doors.
+
+**BUILD NOTE (2026-06-22) — global `/tutor/payments` shipped.** Built from
+the CD "Tutor Payments v1.1" prototype; all app-layer, **no migration**
+(reads existing `nclex_payments`). Ownership gate = the tutor's own
+programmes (RLS), then a service-role read of programme-fee payments only
+(`PROGRAMME_INITIAL`/`INSTALLMENT`; `PAID`/`ACTIVATED`/`SETUP_REQUIRED` =
+"received", `REFUNDED` distinct; bank/readiness/optin excluded — that's
+QAcademy's money). Cohort + plan total resolved via the enrolment (a
+payment row only carries `cohort_id` on the initial position). Reuses the
+roster's ownership-then-service-role pattern, so **no new RLS**.
+- **Shows money that ARRIVED only** — "owed / upcoming" is never a row; it
+  lives in the per-student history drawer (the 🕑 in the Purpose cell,
+  which reuses the roster's drawer keyed by `enrolment_id` — generalised
+  to `{ enrolmentId, name, email }`). The clock shows only when a frozen
+  plan exists (its presence is the cue), including on refunded rows.
+- **Rollup scorecards** — programme + cohort, side by side when a cohort
+  is selected; fixed-scope received totals + an online-vs-off-platform
+  bar; the programme card pairs from the cohort's parent automatically.
+- **The Cohort filter lists payment-less cohorts** (the data layer fetches
+  the tutor's cohorts; scoped to the selected programme, programme-
+  prefixed under "All programmes"), so a tutor can drill into a cohort and
+  confirm "nothing collected here" via a named empty state + a "No
+  payments yet" scorecard. v1 kept Export CSV (filtered rows) + load-all
+  (no pagination yet — same call as the roster).
+- Code: `lib/payments/tutor/` (`queries.ts` · `tutor-payments-view.tsx` ·
+  `csv.ts` · `types.ts`) + `styles/tutor-payments.css`. Commit `4bca8dc`.
 - **The programme sidebar's `Students` placeholder was REMOVED**
   (2026-06-12) — overtaken by Enrolments (admin roster) + cohort
   Analytics (performance); on self-paced programmes the adjacent

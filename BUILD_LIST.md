@@ -156,14 +156,40 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > [cohort-specific-activities.md](docs/product-plan/cohort-specific-activities.md);
 > detail in [sessions/2026-06.md](sessions/2026-06.md).
 
-> **⏭ NEXT: the global `/tutor/payments` transactions page** (settled
-> 2026-06-12: built ONCE globally w/ programme · cohort · channel ·
-> date filters — no per-programme money pages). Then: library
-> **11.11c** · **11.17** · programme **Overview** · a `main → prod`
-> **release** (carries all 2026-06-12 slices; no migrations).
-> Operational ⚠: **`PAYSTACK_SECRET_KEY` is not set on the prod
-> Worker** — prod checkout will fail until it is (5-min fix, needs the
-> dashboard/wrangler).
+> **GLOBAL `/tutor/payments` PAGE — BUILT + MERGED to `main`
+> (2026-06-22; Sam-tested on dev; app-layer, no migration; not yet
+> released to prod).** The "what money came in?" ledger across all of a
+> tutor's programmes (the settled 2026-06-12 IA — built ONCE globally w/
+> programme · cohort · channel · date filters; no per-programme money
+> pages). From the CD "Tutor Payments v1.1" prototype. Design + build
+> note in
+> [payments-and-enrolment.md](docs/product-plan/payments-and-enrolment.md)
+> → "Settled 2026-06-12 — tutor money surfaces (IA)".
+> - **Read** (no migration): owned-programmes RLS gate → service-role read
+>   of programme-fee payments (`PROGRAMME_INITIAL`/`INSTALLMENT`;
+>   PAID/ACTIVATED/SETUP_REQUIRED = "received", REFUNDED distinct;
+>   bank/readiness excluded), joined to payer + cohort/plan via the
+>   enrolment. New `lib/payments/tutor/` + `styles/tutor-payments.css`.
+> - **Ledger:** summary band (GHS/USD received + online/off counts) ·
+>   always-visible filter toolbar (search · programme · channel · status ·
+>   cohort · date) · chips · month-grouped table (desktop) / cards
+>   (mobile) · Export CSV · empty state.
+> - **History drill-in:** a 🕑 in the Purpose cell (only when a frozen plan
+>   exists) opens the existing per-student drawer, generalised to
+>   `{ enrolmentId, name, email }` so the roster + this page share it.
+> - **Rollup scorecards:** programme + cohort, side by side when a cohort
+>   is selected (fixed-scope received totals + channel composition).
+> - **Cohort filter lists payment-less cohorts too** (scoped to the
+>   selected programme; programme-prefixed in All mode) → a named empty
+>   state + a "No payments yet" cohort card confirm "nothing collected
+>   here."
+>
+> **⏭ NEXT:** library **11.11c** · **11.17** · programme **Overview** · a
+> `main → prod` **release** (carries the large unreleased stack since the
+> last release — quiz-tags, audit, cohort-analytics ×3, cohort-activities,
+> live-session ×2 migrations). Operational ⚠: **`PAYSTACK_SECRET_KEY` is
+> not set on the prod Worker** — prod checkout fails until it is (5-min
+> fix, needs the dashboard/wrangler).
 
 > **COHORT WORKSPACE FOLDED INTO THE PROGRAMME + SIDEBAR IDENTITY
 > (2026-06-12, ✅ MERGED to `main`, not yet prod).** Two slices, same
