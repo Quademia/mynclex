@@ -156,6 +156,37 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > [cohort-specific-activities.md](docs/product-plan/cohort-specific-activities.md);
 > detail in [sessions/2026-06.md](sessions/2026-06.md).
 
+> **COHORT-LEVEL PAYMENT PLANS (per-cohort override) — BUILT: Slices 1–3
+> on the session branch (2026-06-22; Sam-tested on dev; app-layer + one
+> migration `20260705120000`; not yet merged to `main`).** A cohort can
+> carry its OWN payment-plan set instead of the programme's — early-bird,
+> founding-cohort, price-rise. Same Option-A pattern as cohort-specific
+> activities (a nullable `cohort_id` on `nclex_programme_payment_strategies`).
+> Design + build note in
+> [payments-and-enrolment.md](docs/product-plan/payments-and-enrolment.md)
+> → *Cohort-level payment plans → BUILD NOTE*.
+> - **Slice 1 — schema + cohort-aware reads** (`1fe6f6a`): the migration
+>   (`cohort_id` + partial unique indexes + the public + headline views) and
+>   every programme-default read scoped to `cohort_id IS NULL`. Invisible.
+> - **Slice 2a — the cohort Pricing tab** (`3753610`): inherit (read-only
+>   preview) ↔ custom (clone the programme's plans → editable via the reused
+>   plan editor + a cohort full-price box) ↔ revert. "Custom" = the cohort
+>   has ACTIVE plan rows; revert = **deactivate** (FK-safe — strategy_id is
+>   referenced `ON DELETE RESTRICT` by enrolments + payments, so we never
+>   delete); re-enable reuses.
+> - **Slice 2b — cohort-aware student checkout** (`29b1e0e`): the picker
+>   shows the chosen cohort's effective plans (custom else programme); the
+>   frozen snapshot carries the price through end-to-end.
+> - **Slice 3 — tutor pickers + badge** (`3783143`): add-with-plan +
+>   waitlist-convert pickers cohort-aware; a "Custom pricing" badge on the
+>   cohort header. The global `/tutor/payments` page + drawer needed no
+>   change (snapshot-based). Currency stays programme-level; discovery
+>   headline stays programme-default.
+>
+> **⏭ NEXT:** the `main` merge (with Sam's OK), then the broader sweep
+> (library 11.11c/11.17, programme Overview) + the `main → prod` release
+> (now also carries migration `20260705120000`).
+
 > **GLOBAL `/tutor/payments` PAGE — BUILT + MERGED to `main`
 > (2026-06-22; Sam-tested on dev; app-layer, no migration; not yet
 > released to prod).** The "what money came in?" ledger across all of a
