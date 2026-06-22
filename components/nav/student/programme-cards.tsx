@@ -84,7 +84,7 @@ function SelfPacedFoot({ programme: p }: { programme: SwitcherProgramme }) {
       <div className="pcard-foot">
         <Link
           className="pcard-enter"
-          href={`/student/programme/${p.programme_id}/curriculum`}
+          href={`/student/programme/${p.programme_id}/overview`}
         >
           Open <span aria-hidden="true">→</span>
         </Link>
@@ -125,7 +125,7 @@ function TutorLedCohorts({ programme: p }: { programme: SwitcherProgramme }) {
                 {canEnter && (
                   <Link
                     className="pcard-enter is-sm"
-                    href={`/student/cohort/${c.cohort_id}/curriculum`}
+                    href={`/student/cohort/${c.cohort_id}/overview`}
                   >
                     Enter <span aria-hidden="true">→</span>
                   </Link>

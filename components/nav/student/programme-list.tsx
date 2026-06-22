@@ -92,7 +92,7 @@ export function ProgrammeList({
                   type="button"
                   className="programme-switcher-item is-clickable"
                   onClick={() =>
-                    go(`/student/programme/${p.programme_id}/curriculum`)
+                    go(`/student/programme/${p.programme_id}/overview`)
                   }
                 >
                   {inner}
@@ -149,7 +149,7 @@ export function ProgrammeList({
                             type="button"
                             className="programme-switcher-cohort"
                             onClick={() =>
-                              go(`/student/cohort/${c.cohort_id}/curriculum`)
+                              go(`/student/cohort/${c.cohort_id}/overview`)
                             }
                           >
                             {cohortInner}

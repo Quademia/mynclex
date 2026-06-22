@@ -105,9 +105,7 @@ export function StudentOverview({ data }: { data: StudentOverviewData }) {
               unitNoun={data.unitNoun}
             />
           )}
-          {data.recent.length > 0 && (
-            <RecentActivity items={data.recent} historyHref={data.quizHistoryHref} />
-          )}
+          <RecentActivity items={data.recent} historyHref={data.quizHistoryHref} />
         </div>
 
         <div className="sho-col-rail">
@@ -277,8 +275,17 @@ function RecentActivity({
           Quiz history →
         </Link>
       </div>
-      <div className="sho-recent">
-        {items.map((r) => (
+      {items.length === 0 ? (
+        // Unlike the Quizzes / Library cards (which hide on a structural
+        // absence), Recent activity is only EMPTY until the student does
+        // something — so it always renders with a guiding empty state.
+        <div className="sho-recent-empty">
+          No activity yet — your completed activities and quiz attempts will
+          show up here.
+        </div>
+      ) : (
+        <div className="sho-recent">
+          {items.map((r) => (
           <div key={r.key} className="sho-recent-row">
             <span className="sho-recent-icon" aria-hidden="true">
               {r.icon}
@@ -289,8 +296,9 @@ function RecentActivity({
             </div>
             <span className={`sho-recent-pill is-${r.pillKind}`}>{r.pill}</span>
           </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

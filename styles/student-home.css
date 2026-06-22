@@ -327,6 +327,12 @@
 
 /* ── Recent activity ──────────────────────────────────────── */
 .sho-recent { display: flex; flex-direction: column; }
+.sho-recent-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 6px 0 2px;
+  line-height: 1.5;
+}
 .sho-recent-row {
   display: flex;
   align-items: center;
