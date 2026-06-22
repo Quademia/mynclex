@@ -104,3 +104,20 @@ export type PaymentPlansContext = {
   };
   strategies: PaymentStrategy[];
 };
+
+// What the cohort Payment-plans pane loads (per-cohort override,
+// 2026-06-22). A cohort is "custom" when it has ≥1 ACTIVE plan row of its
+// own; otherwise it inherits the programme defaults (shown read-only).
+// cohortStrategies carries the cohort's rows (active + inactive) for the
+// editor; programmeStrategies is the inherited preview.
+export type CohortPaymentPlansContext = {
+  cohortId: string;
+  programmeId: string;
+  currency: Currency;
+  collectionMode: PaymentCollectionMode;
+  programmeStatus: ProgrammeStatus;
+  isCustom: boolean;
+  upfrontMinor: number | null; // the cohort's current upfront total (custom)
+  programmeStrategies: PaymentStrategy[];
+  cohortStrategies: PaymentStrategy[];
+};

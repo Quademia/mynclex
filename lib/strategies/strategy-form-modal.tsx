@@ -30,6 +30,8 @@ type StrategyFormModalProps =
   | {
       mode: 'create';
       programmeId: string;
+      // Per-cohort override: when set, the new plan is scoped to the cohort.
+      cohortId?: string | null;
       kind: EditableStrategyKind;
       currency: Currency;
       programmePriceMinor: number;
@@ -195,7 +197,7 @@ export function StrategyFormModal(props: StrategyFormModalProps) {
     startTransition(async () => {
       const result = isEdit
         ? await editStrategyAction(props.strategy.strategy_id, values)
-        : await createStrategyAction(props.programmeId, values);
+        : await createStrategyAction(props.programmeId, values, props.cohortId);
       if (!result.ok) {
         setError(result.error);
         return;

@@ -107,7 +107,10 @@ function buildRow(
 
 export async function createStrategyAction(
   programmeId: string,
-  input: StrategyFormValues
+  input: StrategyFormValues,
+  // Per-cohort override (2026-06-22): when set, the plan belongs to this
+  // cohort's custom set rather than the programme defaults.
+  cohortId?: string | null
 ): Promise<StrategyActionResult> {
   const built = buildRow(input);
   if (!built.ok) return built;
@@ -120,12 +123,18 @@ export async function createStrategyAction(
 
   const { error } = await supabase
     .from('nclex_programme_payment_strategies')
-    .insert({ programme_id: programmeId, is_active: true, ...built.row })
+    .insert({
+      programme_id: programmeId,
+      cohort_id: cohortId ?? null,
+      is_active: true,
+      ...built.row,
+    })
     .select('strategy_id')
     .single();
 
   if (error) {
-    // UNIQUE(programme_id, kind) → a plan of this kind already exists.
+    // Partial UNIQUE on (programme_id|cohort_id, kind) → a plan of this kind
+    // already exists in this scope.
     if (error.code === '23505') {
       return {
         ok: false,
@@ -135,7 +144,11 @@ export async function createStrategyAction(
     return { ok: false, error: error.message };
   }
 
-  revalidatePath(`/tutor/programme/${programmeId}/payment-plans`);
+  revalidatePath(
+    cohortId
+      ? `/tutor/programme/${programmeId}/cohorts`
+      : `/tutor/programme/${programmeId}/payment-plans`
+  );
   return { ok: true };
 }
 
@@ -228,5 +241,168 @@ export async function setStrategyActiveAction(
   if (!data) return { ok: false, error: 'Plan not found or not yours.' };
 
   revalidatePath(`/tutor/programme/${data.programme_id}/payment-plans`);
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Per-cohort custom pricing (2026-06-22). A cohort is "custom" when it has
+// ACTIVE plan rows of its own; otherwise it inherits the programme
+// defaults. We never DELETE plan rows (enrolments + payments reference
+// strategy_id ON DELETE RESTRICT), so revert = deactivate, and re-enable
+// reuses any existing rows. Ownership is RLS-enforced (writes WITH CHECK
+// walk programme.tutor_id; a cohort that isn't the caller's resolves to no
+// programme and the action errors out).
+// ─────────────────────────────────────────────────────────────────────
+
+async function cohortProgrammeId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  cohortId: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('nclex_cohorts')
+    .select('programme_id')
+    .eq('cohort_id', cohortId)
+    .maybeSingle();
+  return (data?.programme_id as string | undefined) ?? null;
+}
+
+// Turn ON custom pricing for a cohort. If the cohort already has rows (from
+// a prior custom stint), reactivate them (reuse); otherwise clone the
+// programme's CURRENT active plans into the cohort's own set.
+export async function enableCohortCustomPricingAction(
+  cohortId: string
+): Promise<StrategyActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const programmeId = await cohortProgrammeId(supabase, cohortId);
+  if (!programmeId) return { ok: false, error: 'Cohort not found or not yours.' };
+
+  const { data: existing } = await supabase
+    .from('nclex_programme_payment_strategies')
+    .select('strategy_id, is_active')
+    .eq('cohort_id', cohortId);
+
+  if (existing && existing.length > 0) {
+    // Already custom? (≥1 active) → no-op. Else reactivate the prior set.
+    if (existing.some((r) => r.is_active)) return { ok: true };
+    const { error } = await supabase
+      .from('nclex_programme_payment_strategies')
+      .update({ is_active: true, updated_at: new Date().toISOString() })
+      .eq('cohort_id', cohortId);
+    if (error) return { ok: false, error: error.message };
+    revalidatePath(`/tutor/programme/${programmeId}/cohorts`);
+    return { ok: true };
+  }
+
+  // Fresh: clone the programme's active default plans.
+  const { data: defaults } = await supabase
+    .from('nclex_programme_payment_strategies')
+    .select(
+      `kind, label, total_price_minor, initial_price_minor,
+       installment_count, installment_interval_days,
+       balance_due_days_after_enrolment, sort_order`
+    )
+    .eq('programme_id', programmeId)
+    .is('cohort_id', null)
+    .eq('is_active', true);
+
+  if (!defaults || defaults.length === 0) {
+    return { ok: false, error: 'This programme has no active plans to copy yet.' };
+  }
+
+  const rows = defaults.map((d) => ({
+    ...d,
+    programme_id: programmeId,
+    cohort_id: cohortId,
+    is_active: true,
+  }));
+  const { error } = await supabase
+    .from('nclex_programme_payment_strategies')
+    .insert(rows);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/tutor/programme/${programmeId}/cohorts`);
+  return { ok: true };
+}
+
+// Revert a cohort to programme pricing — deactivate all its rows (kept, not
+// deleted, so enrolled students' references survive and a later re-enable
+// can reuse them).
+export async function disableCohortCustomPricingAction(
+  cohortId: string
+): Promise<StrategyActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const programmeId = await cohortProgrammeId(supabase, cohortId);
+  if (!programmeId) return { ok: false, error: 'Cohort not found or not yours.' };
+
+  const { error } = await supabase
+    .from('nclex_programme_payment_strategies')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('cohort_id', cohortId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/tutor/programme/${programmeId}/cohorts`);
+  return { ok: true };
+}
+
+// Set a custom cohort's full (upfront) price — the cohort equivalent of the
+// programme price box. Upserts the cohort's UPFRONT_FULL row.
+export async function setCohortUpfrontAction(
+  cohortId: string,
+  priceMinor: number
+): Promise<StrategyActionResult> {
+  if (!Number.isInteger(priceMinor) || priceMinor <= 0) {
+    return { ok: false, error: 'Full price must be greater than zero.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const programmeId = await cohortProgrammeId(supabase, cohortId);
+  if (!programmeId) return { ok: false, error: 'Cohort not found or not yours.' };
+
+  const nowIso = new Date().toISOString();
+  const { data } = await supabase
+    .from('nclex_programme_payment_strategies')
+    .update({
+      total_price_minor: priceMinor,
+      initial_price_minor: priceMinor,
+      is_active: true,
+      updated_at: nowIso,
+    })
+    .eq('cohort_id', cohortId)
+    .eq('kind', 'UPFRONT_FULL')
+    .select('strategy_id')
+    .maybeSingle();
+
+  if (!data) {
+    const { error } = await supabase
+      .from('nclex_programme_payment_strategies')
+      .insert({
+        programme_id: programmeId,
+        cohort_id: cohortId,
+        kind: 'UPFRONT_FULL',
+        label: null,
+        total_price_minor: priceMinor,
+        initial_price_minor: priceMinor,
+        is_active: true,
+        sort_order: 0,
+      });
+    if (error) return { ok: false, error: error.message };
+  }
+
+  revalidatePath(`/tutor/programme/${programmeId}/cohorts`);
   return { ok: true };
 }

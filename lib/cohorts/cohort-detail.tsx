@@ -20,6 +20,7 @@ import { CohortCurriculum } from './cohort-curriculum';
 import { CohortOverviewPane } from './cohort-overview-pane';
 import { CohortSessionsPane } from './cohort-sessions-pane';
 import { CohortSettingsPane } from './cohort-settings-pane';
+import { CohortPaymentPlansPane } from '@/lib/strategies/cohort-payment-plans-pane';
 import {
   cohortStatus,
   cohortStatusPillClass,
@@ -34,6 +35,7 @@ export const COHORT_DETAIL_TABS = [
   'curriculum',
   'analytics',
   'sessions',
+  'pricing',
   'settings',
 ] as const;
 
@@ -44,6 +46,7 @@ const TAB_LABEL: Record<CohortDetailTab, string> = {
   curriculum: 'Curriculum',
   analytics: 'Analytics',
   sessions: 'Sessions',
+  pricing: 'Pricing',
   settings: 'Settings',
 };
 
@@ -199,6 +202,8 @@ async function CohortDetailPane({
           subTab={sessionsSubTab}
         />
       );
+    case 'pricing':
+      return <CohortPaymentPlansPane cohortId={cohortId} />;
     case 'settings':
       return (
         <CohortSettingsPane cohort={ctx.cohort} programme={ctx.programme} />
