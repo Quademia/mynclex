@@ -104,7 +104,8 @@ export function ProgrammeCheckout({
   programmeTitle,
   currency,
   programmeMinor,
-  plans,
+  defaultPlans,
+  plansByCohort,
   bankTiers,
   discountPct,
   accountEmail,
@@ -115,7 +116,11 @@ export function ProgrammeCheckout({
   programmeTitle: string;
   currency: Currency;
   programmeMinor: number;
-  plans: PublicPaymentPlan[];
+  // Programme-default plans + a per-cohort map for cohorts on custom
+  // pricing (per-cohort override, 2026-06-22). The picker uses the chosen
+  // cohort's plans when it has them, else the defaults.
+  defaultPlans: PublicPaymentPlan[];
+  plansByCohort: Record<string, PublicPaymentPlan[]>;
   bankTiers: BankTier[];
   discountPct: number;
   accountEmail: string | null;
@@ -124,10 +129,26 @@ export function ProgrammeCheckout({
   const bankAvailable = bankTiers.length > 0;
   const defaultTierIdx = Math.max(0, bankTiers.findIndex((t) => t.days === 90));
 
-  const [cohortId, setCohortId] = useState(cohorts[0]?.id ?? '');
-  const [planId, setPlanId] = useState<string | null>(defaultPlanId(plans));
+  // Effective plans for a cohort: its custom set if any, else the defaults.
+  const plansFor = (cid: string): PublicPaymentPlan[] =>
+    (!selfPaced && plansByCohort[cid]) || defaultPlans;
+
+  const initialCohortId = cohorts[0]?.id ?? '';
+  const [cohortId, setCohortId] = useState(initialCohortId);
+  const [planId, setPlanId] = useState<string | null>(
+    defaultPlanId(plansFor(initialCohortId))
+  );
   const [bankOn, setBankOn] = useState(false);
   const [bankTierIdx, setBankTierIdx] = useState(defaultTierIdx);
+
+  // Switching cohort can swap the plan set (custom vs default), so re-pick
+  // the default plan for the new cohort.
+  function changeCohort(next: string) {
+    setCohortId(next);
+    setPlanId(defaultPlanId(plansFor(next)));
+  }
+
+  const plans = plansFor(cohortId);
 
   // Selected plan (null only when the programme has no plans — defensive
   // fallback to the programme's full price, no strategy).
@@ -204,7 +225,7 @@ export function ProgrammeCheckout({
               <select
                 className="co-input"
                 value={cohortId}
-                onChange={(e) => setCohortId(e.target.value)}
+                onChange={(e) => changeCohort(e.target.value)}
               >
                 {cohorts.map((c) => (
                   <option key={c.id} value={c.id}>

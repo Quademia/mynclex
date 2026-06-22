@@ -49,3 +49,29 @@ export async function getPublicPaymentPlans(
   if (error || !data) return [];
   return data as PublicPaymentPlan[];
 }
+
+// Checkout reads ALL of a programme's active public plans in one go and
+// partitions them: the programme defaults, plus a per-cohort map for any
+// cohort running CUSTOM pricing. The checkout client picks the cohort
+// client-side, so it switches between these without a round-trip:
+// byCohort[selectedCohort] ?? defaultPlans (the view is active-only, so a
+// cohort appears in byCohort only when it has active custom plans).
+export async function getCheckoutPlansByScope(programmeId: string): Promise<{
+  defaultPlans: PublicPaymentPlan[];
+  byCohort: Record<string, PublicPaymentPlan[]>;
+}> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('nclex_public_payment_strategies')
+    .select(PLAN_COLS)
+    .eq('programme_id', programmeId)
+    .order('sort_order', { ascending: true });
+
+  const rows = (data ?? []) as PublicPaymentPlan[];
+  const defaultPlans = rows.filter((r) => r.cohort_id == null);
+  const byCohort: Record<string, PublicPaymentPlan[]> = {};
+  for (const r of rows) {
+    if (r.cohort_id != null) (byCohort[r.cohort_id] ??= []).push(r);
+  }
+  return { defaultPlans, byCohort };
+}
