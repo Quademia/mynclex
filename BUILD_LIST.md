@@ -8,6 +8,38 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **STUDENT OVERVIEW HOME — COMPLETE: SLICES 1 + 2 BUILT + MERGED to `main`
+> (2026-06-22; Sam-tested on dev; app-layer, no migration; not yet released to
+> prod).** The deferred 3rd Claude Design prototype from the curriculum arc — the
+> **mode-aware student programme/cohort home** — now the **landing surface**.
+> Mode is **fixed by the route** (programme = self-paced · cohort = tutor-led),
+> not a runtime toggle: one shared view + a per-route loader. New
+> **`lib/home/student/`** (parallel to `lib/home/tutor/`) + `styles/student-home.css`
+> (`sho-`, ≤768px reflow). **Completes the curriculum two-pane arc.**
+> - **Scaffolding.** New `overview/page.tsx` under programme + cohort; both index
+>   redirects flipped `/curriculum → /overview`; **Overview added first** in both
+>   navs (`lib/nav/student.ts`); mobile bottom-tab bar **rebalanced to ≤4**
+>   (Overview = first tab; Quiz History off the programme bar, Quizzes off the
+>   cohort bar — both still in the drawer).
+> - **Slice 1 — the spine (`1d4eaff`).** Hero (mode chip + cohort name, greeting,
+>   progress **ring** = overall %, 3 stats: activities / weeks / streak) ·
+>   **Continue banner** · **Your weeks** · **primary rail card** (next live
+>   session [cohort] / **study streak** [self]). Headline %/weeks/activities
+>   **aggregate the curriculum tree** (no new counting); `buildRail` exported for
+>   single-sourced unit status. Added **additive `continueActivityId` /
+>   `continueIsResume`** to `StudentCurriculumTree` (resume in-progress quiz, else
+>   up-next); the Continue CTA reuses `<ActivityAction>` for a real launch. Study
+>   streak (self, new) = consecutive UTC days with a completion.
+> - **Slice 2 — supporting cards (`293090f`).** **Recent activity** (quiz attempts
+>   + non-quiz completions merged, newest 5) · **Quizzes** snapshot (done /
+>   in-progress + resume + last-mock score) · **Library** snapshot (continue-
+>   reading + bookmarked / recent) · **Attendance** (cohort only). Both modes use
+>   the **programme-level** quiz/history/library helpers; progress map fetched
+>   once, shared by recent + streak; cards self-hide when empty.
+> - **v1 simplifications (in code):** resume deep-links to the Quizzes page; study
+>   streak excludes library-note "done" (lives in note-state); recent lists each
+>   attempt as its own event. Detail in [sessions/2026-06.md](sessions/2026-06.md).
+
 > **CURRICULUM TWO-PANE REDESIGN — STUDENT + TUTOR COHORT: BUILT + MERGED to
 > `main` (2026-06-21; Sam-tested on dev; app-layer, no migration; not yet
 > released to prod).** Both curriculum surfaces rebuilt as a **two-pane (week
@@ -30,8 +62,8 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   on top, dates/Include below) per the prototype. The whole cohort detail now
 >   uses a **1240px** container (one width across all tabs — no jump; Settings
 >   cards self-cap at 620px); the cohort list stays 880px.
-> - **⏭ NEXT (curriculum arc): Student Overview** — the deferred 3rd prototype
->   (mode-aware programme/cohort home); build when Sam calls it.
+> - **✅ Student Overview — DONE** (2026-06-22; see the banner above). The
+>   curriculum two-pane arc is now complete.
 
 > **MOBILE NAVIGATION — SLICES 1–3 COMPLETE: BUILT + MERGED to `main`
 > (2026-06-21; Sam-tested on dev; app-layer, no migration; not yet released
