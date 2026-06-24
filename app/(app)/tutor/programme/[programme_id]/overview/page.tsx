@@ -55,10 +55,10 @@ export default async function ProgrammeOverviewPage({
       />
 
       <section className="programme-overview-policy">
-        <h2 className="programme-overview-policy-title">Access policy</h2>
         <PaymentGatingToggle
           programmeId={programme_id}
           enabled={status.payment_gates_access}
+          compact
         />
       </section>
 

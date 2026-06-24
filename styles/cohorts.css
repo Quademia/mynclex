@@ -2284,18 +2284,12 @@
 }
 
 /* Access policy card on the programme Overview (2026-06-24) — the shared
-   <PaymentGatingToggle>; one of its mount points. */
+   <PaymentGatingToggle> (compact: just the labelled toggle). */
 .programme-overview-policy {
   max-width: 880px;
   margin: 18px auto 0;
-  padding: 2px 18px 8px;
+  padding: 0 18px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--white);
-}
-.programme-overview-policy-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  margin: 12px 0 0;
 }

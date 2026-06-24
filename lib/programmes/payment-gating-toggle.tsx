@@ -27,10 +27,16 @@ export function PaymentGatingToggle({
   programmeId,
   enabled,
   className,
+  compact = false,
 }: {
   programmeId: string;
   enabled: boolean;
   className?: string;
+  // Dense surfaces (Enrolments roster, Overview) pass compact: just the
+  // label + toggle, no help paragraph. The confirm dialog still explains the
+  // consequence on flip. Config surfaces (Payment plans, edit modal) keep the
+  // full help (compact = false).
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [on, setOn] = useState(enabled);
@@ -75,11 +81,13 @@ export function PaymentGatingToggle({
       <div className="prog-switch-field">
         <div className="prog-switch-text">
           <span className="prog-switch-label">Pause access for late payments</span>
-          <span className="prog-switch-help">
-            On → a student overdue on a deposit/instalment plan is paused until they pay or
-            you give them more time. Off → you track payments without ever locking a student
-            out of this programme.
-          </span>
+          {!compact && (
+            <span className="prog-switch-help">
+              On → a student overdue on a deposit/instalment plan is paused until they pay or
+              you give them more time. Off → you track payments without ever locking a student
+              out of this programme.
+            </span>
+          )}
         </div>
         <Switch
           on={on}

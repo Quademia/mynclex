@@ -393,7 +393,7 @@ export function EnrolmentRosterView({
           one of its several surfaces; the same shared control + action runs on
           the Payment plans page, Overview, and the edit modal. */}
       <div className="enrol-access-policy">
-        <PaymentGatingToggle programmeId={programmeId} enabled={paymentGatesAccess} />
+        <PaymentGatingToggle programmeId={programmeId} enabled={paymentGatesAccess} compact />
       </div>
 
       {/* Scope line — declares which cohort world every number below
