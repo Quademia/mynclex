@@ -126,6 +126,9 @@ export default async function CheckoutCallbackPage({
       body = receipt?.email
         ? `We've emailed a setup link to ${receipt.email}. Open it to finish creating your account and unlock your access.`
         : 'Check your email for a link to finish setting up your account — your access unlocks once you do.';
+      if (receipt?.isTutorLed) {
+        body += ' Once you finish setup, your tutor approves your place (usually within 24 hours).';
+      }
       primary = null;
       secondary = { href: '/programmes', label: 'Browse more programmes' };
       note = "Can't find it? Check your spam folder.";

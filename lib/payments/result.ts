@@ -41,6 +41,11 @@ export type PaymentReceipt = {
   // Where "Try again" sends a failed buyer — back to the thing they were
   // buying (the programme detail / the bank store). Null when unknown.
   retryHref: string | null;
+  // True when the order includes a tutor-led programme — so the screen can
+  // tell a pay-first guest their tutor still has to approve their place once
+  // they finish account setup (the "awaiting tutor" step they don't reach on
+  // this screen, since a guest has no enrolment yet).
+  isTutorLed: boolean;
 };
 
 type Row = {
@@ -223,6 +228,12 @@ export async function getPaymentReceipt(reference: string): Promise<PaymentRecei
   let destinationLabel: string | null = null;
   let retryHref: string | null = null;
 
+  const isTutorLed = rows.some((r) => {
+    if (r.purpose !== 'PROGRAMME_INITIAL' && r.purpose !== 'PROGRAMME_INSTALLMENT') return false;
+    const prog = r.programme_id ? progById.get(r.programme_id) : undefined;
+    return !!prog && prog.deliveryMode !== 'SELF_PACED';
+  });
+
   const progRow = rows.find((r) => r.purpose === 'PROGRAMME_INITIAL' || r.purpose === 'PROGRAMME_INSTALLMENT');
   if (progRow?.programme_id) {
     const prog = progById.get(progRow.programme_id);
@@ -250,5 +261,6 @@ export async function getPaymentReceipt(reference: string): Promise<PaymentRecei
     destinationHref,
     destinationLabel,
     retryHref,
+    isTutorLed,
   };
 }
