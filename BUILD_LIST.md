@@ -8,6 +8,46 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **PAYMENT RESULT SCREEN + APPROVE-CONFIRM + PAYMENT-GATED-ACCESS TOGGLE —
+> BUILT + MERGED to `main` (2026-06-24 second session, `65d21a7`; Sam-tested on
+> dev; all app-layer + ONE migration `20260706120000` on dev + `main`, NOT yet
+> prod).** Three pieces:
+> - **Payment confirmation page → a real result screen (Slices 1+2).** The bare
+>   `/checkout/callback` rebuilt into an on-brand result card: status icon +
+>   heading + tone pill + **order/receipt summary** + **"📸 screenshot for your
+>   records"** (no transactional email, so the summary IS the receipt) +
+>   per-outcome next-step. New `lib/payments/result.ts` `getPaymentReceipt`
+>   (service-role read by reference; joins programme/product/cohort/plan; "of N"
+>   from the frozen snapshot; destination + retry hrefs; `isTutorLed`). `.cr-*`
+>   on `checkout.css` (tone via `--tone` + `color-mix`). **Slice 2:** `verify.ts`
+>   maps Paystack **terminal** states (failed/abandoned/reversed) → **FAILED**
+>   (a declined card now reads "didn't go through", not "waiting"); session-aware
+>   CTA; PENDING auto-recheck island; resend-setup-email deferred to the email
+>   arc (support fallback + `EMAIL-TRIGGER` marker). Plumbing untouched.
+>   `d568adc` · `8bdd968` · `e9ca097`.
+> - **Approve-confirm dialog (`290bc23`).** Approve was the only roster lifecycle
+>   action firing with no confirm — now a misclick-guard dialog (reuses
+>   `TransitionConfirm`).
+> - **Payment-gated access — per-programme tutor toggle** (`66e3f7d` · `ccedab5`
+>   · `09f7252` · `65d21a7`). A tutor can decide, per programme, whether a missed
+>   payment pauses access. **Single chokepoint:** access = `status=ENROLLED`, and
+>   only the nightly sweep's step 4a pauses for missed payment — so migration
+>   `20260706120000` adds `payment_gates_access` (default TRUE) + the sweep skips
+>   gating-off programmes. **ONE** action (RLS flip + auto-resume of
+>   `INSTALLMENT_OVERDUE` pauses on turn-off, leaving `TUTOR_MANUAL`) + **ONE**
+>   shared self-saving `<PaymentGatingToggle>` (switch + direction-aware confirm
+>   + toast), mounted on **4 surfaces** (Enrolments roster inline · Payment plans
+>   · Overview · edit modal; `compact` on the dense ones). Design in
+>   [payments-and-enrolment.md](docs/product-plan/payments-and-enrolment.md) →
+>   "Settled 2026-06-24". Also captured: **every payment emails BOTH student +
+>   tutor** (`payment.tutor_received` P3→P1 in
+>   [transactional-email.md](docs/product-plan/transactional-email.md), `4620a2d`).
+>
+> **⏭ Session wrapped mid-stream — more to pick up next time.** Operational ⚠:
+> the `main → prod` release now carries `20260705120000` (cohort payment plans)
+> **+ `20260706120000`** (this); **`PAYSTACK_SECRET_KEY` still not on the prod
+> Worker** — prod checkout broken until set.
+
 > **CHECKOUT STEP-WIZARD + PAY-FIRST FIX — BUILT + MERGED to `main`
 > (2026-06-24; Sam-tested on dev; app-layer, no migration; not yet released to
 > prod).** Came out of the payments E2E pass. Two changes:
