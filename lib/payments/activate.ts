@@ -369,10 +369,21 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
         error: 'Payment recorded, but we could not send the setup email. Please contact support.',
       };
     }
-    await admin
+    // Mark the group "awaiting setup". We deliberately do NOT link user_id
+    // here: the invited account exists in auth.users but has no nclex_users
+    // profile row yet (that's created at /welcome), and nclex_payments.user_id
+    // FKs to nclex_users — so writing it now violates the FK and the whole
+    // update is rejected. The user_id link is set when /welcome runs
+    // activateGroup → grantAndActivateRow against the real profile (it resolves
+    // the buyer by email and stamps user_id on the ACTIVATED row). Surfacing
+    // the error rather than swallowing it: the invite is already out and
+    // /welcome re-matches the still-PAID row by email, so this is non-fatal,
+    // but we log it so a real failure doesn't go unnoticed.
+    const { error: updErr } = await admin
       .from('nclex_payments')
-      .update({ status: 'SETUP_REQUIRED', user_id: invite.user.id })
+      .update({ status: 'SETUP_REQUIRED' })
       .eq('checkout_group_id', rows[0].checkout_group_id);
+    if (updErr) console.error('Pay-first SETUP_REQUIRED update failed:', updErr.message);
     return { ok: true, outcome: 'INVITE_SENT' };
   }
 
