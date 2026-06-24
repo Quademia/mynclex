@@ -8,6 +8,60 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **TUTOR PROGRAMME OVERVIEW PAGE — BUILT + MERGED to `main` (2026-06-24
+> third session, `e02b2ab` + `1308364`; Sam-tested on dev; all app-layer, NO
+> migration; NOT yet prod).** The **"built LAST" surface** — the tutor
+> programme detail landing (`/tutor/programme/[id]/overview`, previously a
+> `<Placeholder>`) — rebuilt from the CD **"Overview — A Card Grid"** prototype
+> (concept-not-source). The deferral lifted now that everything the page
+> summarises is in place.
+> - **The reuse insight:** the Overview is **the tutor Home scoped to one
+>   programme** — `getTutorHomeData`'s derive-at-read-time approach narrowed to
+>   one programme. So it's almost entirely read-assembly + a CSS surface. New
+>   `lib/home/tutor/programme-overview-{types,queries,view}.tsx` reuse
+>   `getMyProgrammes` · roster · enquiries · curriculum · library · quizzes ·
+>   plans · `getTutorPayments` + per-cohort `getCohortAnalytics`. **Mode is
+>   fixed by `delivery_mode`** (TUTOR_LED vs SELF_PACED), not a toggle.
+> - **Two forks settled with Sam up front:** keep the real "↑N students this
+>   week" delta, **drop "completion vs last week"** (no historical snapshot →
+>   would be fabricated); **reuse `ProgrammeFormModal` (edit)** for the header
+>   Edit button.
+> - **Slice 1 (`e02b2ab`) — header + KPI strip + sections grid.** Header
+>   (name/mode/status + meta: length · tagline · price · next session ·
+>   revenue) + a new client action cluster
+>   (`lib/programmes/programme-overview-actions.tsx`: compact
+>   **PaymentGatingToggle** · **Publish**[draft] · **Edit** · **Archive**,
+>   reusing the existing actions + `ProgrammeArchiveConfirm`;
+>   `ProgrammeStatusControls` left intact for the Programmes-list card menu) +
+>   a 4-card mode-aware KPI strip (tutor-led: Students↑ / Active cohorts +
+>   attention / Avg completion / Enquiries; self-paced: Students / Revenue /
+>   Overdue / Enquiries — **self-paced avg-completion deliberately omitted**:
+>   needs an unbuilt programme-level analytics aggregator, not fabricated) + a
+>   5-card sections grid (Curriculum · Library · Quizzes · Payments ·
+>   Enrolments → their tabs); kept the zero-cohort "+ Add your first cohort"
+>   CTA.
+> - **Slice 2 (`1308364`) — the two-column work row.** Tutor-led **Active
+>   cohorts** panel (per-cohort health rows — chip On track / Watch / Just
+>   started, bar + %, "N lagging" + "action needed" on Watch, Open/Review → the
+>   folded cohort workspace `?cohort=`; **reuses the cohort-health rows already
+>   computed for the completion KPI — zero extra reads**) · self-paced
+>   **Enrolment health** panel (Active / Overdue / Paused / Expired tiles +
+>   recently-enrolled, reusing `ENROLMENT_STATUS_META` pills) · both modes an
+>   **Enquiries** panel (open, newest first, unread dot, 2-line clamp,
+>   Reply / View all). New `styles/programme-overview.css` (`pov-`, app tokens,
+>   ≤768px reflow), registered in `app/(app)/layout.tsx`.
+> - **v1 cuts (noted):** self-paced avg-completion deferred; the mock's cohort
+>   "N active today" dropped (no last-24h source) → rows show date range +
+>   student count; "recently enrolled" detail = "Paid in full" / "On a payment
+>   plan" (not a price). First load is a few seconds (per-cohort analytics +
+>   payments ledger — the tutor-Home cost profile).
+>
+> **⏭ NEXT:** back to the parked **payments-E2E thread** (global
+> `/tutor/enquiries` + the public lead-capture-rules rethink). The `main →
+> prod` release now also carries this (app-layer) atop the unreleased migration
+> stack (`…20260705120000` + `20260706120000`); **`PAYSTACK_SECRET_KEY` still
+> not on the prod Worker.**
+
 > **PAYMENT RESULT SCREEN + APPROVE-CONFIRM + PAYMENT-GATED-ACCESS TOGGLE —
 > BUILT + MERGED to `main` (2026-06-24 second session, `65d21a7`; Sam-tested on
 > dev; all app-layer + ONE migration `20260706120000` on dev + `main`, NOT yet
