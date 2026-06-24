@@ -8,6 +8,36 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **CHECKOUT STEP-WIZARD + PAY-FIRST FIX — BUILT + MERGED to `main`
+> (2026-06-24; Sam-tested on dev; app-layer, no migration; not yet released to
+> prod).** Came out of the payments E2E pass. Two changes:
+> - **Checkout step-wizard (`887e57d`).** The programme checkout's left column
+>   is now a **step wizard** (① cohort + plan → ② bank, skippable → ③ email),
+>   one step at a time + stepper + Back/Next — so the email field is no longer
+>   buried in a long mixed scroll. The **right rail stays as-is** (live order
+>   summary + Pay; it's not a step). **Pay is gated** — disabled until payable
+>   (valid non-duplicate email + cohort), with a hint of what's left. Steps are
+>   **dynamic** (self-paced drops cohort, single plan hides the picker, no
+>   discount drops the bank step). **Mobile (≤820px):** the rail's Pay folds into
+>   a **fixed bottom bar** (running total + Next/Pay). Built into the shared
+>   `CheckoutShell` behind an opt-in `steps` prop → **bank checkout untouched**
+>   (it gains the same gated-Pay only). New `CheckoutStep` type + `co-step*` /
+>   `co-mobile-bar` CSS.
+> - **Pay-first guest bookkeeping fix (`f56ea37`).** Found in E2E Track B: after
+>   a successful pay-first invite the payment stayed `PAID`/unlinked instead of
+>   `SETUP_REQUIRED`. Cause: the invite-branch update set `status` **and**
+>   `user_id` together, but `payments.user_id` FKs to `nclex_users` (no profile
+>   until `/welcome`) → FK violation, silently swallowed. Fix: set status only at
+>   invite (user_id linked at `/welcome`); surface the error.
+>
+> **Payments E2E testing COMPLETE** (Track A 2026-06-23 + Track B 2026-06-24,
+> all pass). **⏭ NEXT:** payments-E2E-driven improvements — **global
+> `/tutor/enquiries`** + the **public lead-capture-rules rethink** (both
+> discussed + parked this session). Detail in
+> [sessions/2026-06.md](sessions/2026-06.md). Operational ⚠:
+> **`PAYSTACK_SECRET_KEY` still not on the prod Worker** — prod checkout broken
+> until set.
+
 > **STUDENT OVERVIEW HOME — COMPLETE: SLICES 1 + 2 BUILT + MERGED to `main`
 > (2026-06-22; Sam-tested on dev; app-layer, no migration; not yet released to
 > prod).** The deferred 3rd Claude Design prototype from the curriculum arc — the
