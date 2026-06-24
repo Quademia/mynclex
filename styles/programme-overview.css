@@ -272,6 +272,265 @@
   display: flex;
 }
 
+/* ── WORK ROW (cohort / enrolment health + enquiries) ────────────── */
+.pov-work {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 15px;
+  align-items: start;
+}
+.pov-panel {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+.pov-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.pov-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.pov-panel-ic {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--primary-light);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.pov-panel-ic--amber { background: #fff7ed; color: var(--warning); }
+.pov-panel-count {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--primary-light);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.pov-panel-count--amber {
+  color: var(--warning);
+  background: #fff7ed;
+  border: 1px solid rgba(217, 119, 6, 0.2);
+}
+.pov-panel-link {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.pov-panel-link:hover { text-decoration: underline; }
+.pov-panel-empty {
+  font-size: 12.5px;
+  color: var(--text-faint);
+  padding: 6px 2px 2px;
+}
+
+/* avatar (shared by enquiries + recent enrolments) */
+.pov-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ── Cohort rows ─────────────────────────────────────────────────── */
+.pov-cohort-list { display: flex; flex-direction: column; gap: 8px; }
+.pov-cohort {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.pov-cohort.is-watch {
+  border-color: #fcd34d;
+  border-left: 3px solid var(--warning);
+  background: #fffdf7;
+}
+.pov-cohort-main { flex: 1; min-width: 0; }
+.pov-cohort-toprow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.pov-cohort-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.pov-cohort-name-text { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.pov-cohort-chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px 7px;
+  border: 1px solid transparent;
+}
+.pov-cohort-chip.is-ontrack { color: #166534; background: #f0fdf4; border-color: #bbf7d0; }
+.pov-cohort-chip.is-watch { color: #92400e; background: #fffbeb; border-color: #fcd34d; }
+.pov-cohort-chip.is-fresh { color: var(--text-muted); background: var(--bg-soft); border-color: var(--border); }
+.pov-cohort-chip.is-none { color: var(--text-faint); background: var(--bg-soft); border-color: var(--border); }
+.pov-cohort-lag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--danger);
+  background: #fef2f2;
+  border-radius: 4px;
+  padding: 1px 5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.pov-cohort-flag {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--warning);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.pov-cohort-meta { font-size: 12px; color: var(--text-faint); margin-bottom: 9px; }
+.pov-cohort-bar { display: flex; align-items: center; gap: 10px; }
+.pov-cohort-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.pov-cohort-fill { height: 100%; border-radius: 999px; }
+.pov-cohort-fill.is-ontrack { background: linear-gradient(90deg, var(--accent), #4eada1); }
+.pov-cohort-fill.is-watch { background: linear-gradient(90deg, var(--warning), #f59e0b); }
+.pov-cohort-fill.is-fresh,
+.pov-cohort-fill.is-none { background: var(--border-strong); }
+.pov-cohort-pct {
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 32px;
+  text-align: right;
+}
+.pov-cohort-pct.is-ontrack { color: var(--accent); }
+.pov-cohort-pct.is-watch { color: var(--warning); }
+.pov-cohort-pct.is-fresh,
+.pov-cohort-pct.is-none { color: var(--text-faint); }
+.pov-cohort-btn {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 13px;
+  background: var(--primary);
+  color: var(--white);
+  border-radius: 7px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.pov-cohort-btn:hover { background: var(--primary-dark); text-decoration: none; }
+.pov-cohort-btn.is-watch { background: var(--warning); }
+.pov-cohort-btn.is-watch:hover { background: #b45309; }
+
+/* ── Enrolment-health tiles + recent list ────────────────────────── */
+.pov-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.pov-tile {
+  padding: 14px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+}
+.pov-tile.is-danger { border-color: #fecaca; background: #fef2f2; }
+.pov-tile-val { font-size: 24px; font-weight: 700; color: var(--text); line-height: 1; }
+.pov-tile.is-danger .pov-tile-val { color: var(--danger); }
+.pov-tile.is-muted .pov-tile-val { color: var(--text-faint); }
+.pov-tile-label { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+.pov-recent-eyebrow {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+.pov-recent-list { display: flex; flex-direction: column; gap: 7px; }
+.pov-recent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+.pov-recent-body { flex: 1; min-width: 0; }
+.pov-recent-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.pov-recent-sub { font-size: 11.5px; color: var(--text-faint); }
+
+/* ── Enquiry items ───────────────────────────────────────────────── */
+.pov-enq-list { display: flex; flex-direction: column; gap: 8px; }
+.pov-enq {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  position: relative;
+}
+.pov-enq-dot {
+  position: absolute;
+  top: 14px;
+  left: -4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warning);
+  border: 2px solid var(--white);
+}
+.pov-enq-body { flex: 1; min-width: 0; }
+.pov-enq-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.pov-enq-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.pov-enq-ago { font-size: 11px; color: var(--text-faint); flex-shrink: 0; }
+.pov-enq-msg {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* The zero-cohort CTA renders in its own .pov wrapper below the grid so it
  * shares the page width; nudge it down a touch. */
 .pov-empty-wrap { margin-top: 4px; }
@@ -282,4 +541,5 @@
   .pov-actions { width: 100%; justify-content: flex-start; }
   .pov-kpis { grid-template-columns: repeat(2, 1fr); }
   .pov-sections-grid { grid-template-columns: repeat(2, 1fr); }
+  .pov-work { grid-template-columns: 1fr; }
 }

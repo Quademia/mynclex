@@ -15,7 +15,14 @@ import {
   formatStatusLabel,
   statusPillClass,
 } from '@/lib/programmes/format';
-import type { ProgrammeOverviewData } from './programme-overview-types';
+import { ENROLMENT_STATUS_META } from '@/lib/enrolments/types';
+import type {
+  CohortHealthRow,
+  CohortHealthStatus,
+  EnquiryPreview,
+  EnrolmentHealth,
+  ProgrammeOverviewData,
+} from './programme-overview-types';
 
 // Local inline glyphs (24×24, stroke). Kept here rather than in ProgIcon —
 // these are Overview-specific section/KPI icons, not programmes-list chrome.
@@ -207,6 +214,20 @@ export function ProgrammeOverview({ data }: { data: ProgrammeOverviewData }) {
         </Link>
       </div>
 
+      {/* ── WORK ROW (mode-aware) ──────────────────────────────── */}
+      <div className="pov-work">
+        {tutored ? (
+          <CohortsPanel cohorts={data.cohorts} programmeId={id} />
+        ) : (
+          <EnrolmentHealthPanel health={data.enrolmentHealth} programmeId={id} />
+        )}
+        <EnquiriesPanel
+          enquiries={data.enquiries}
+          openCount={kpis.enquiriesOpen}
+          programmeId={id}
+        />
+      </div>
+
       {/* ── SECTIONS GRID ──────────────────────────────────────── */}
       <section className="pov-sections">
         <div className="pov-sections-eyebrow">Programme sections</div>
@@ -279,5 +300,217 @@ function SectionCard({
         <Icon name="arrow" size={12} />
       </span>
     </Link>
+  );
+}
+
+// ── Cohort health panel (TUTOR_LED) ──────────────────────────────────
+const COHORT_CHIP: Record<CohortHealthStatus, { label: string; cls: string }> = {
+  'on-track': { label: 'On track', cls: 'is-ontrack' },
+  watch: { label: 'Watch', cls: 'is-watch' },
+  'just-started': { label: 'Just started', cls: 'is-fresh' },
+  'no-data': { label: 'No students yet', cls: 'is-none' },
+};
+
+function CohortsPanel({
+  cohorts,
+  programmeId,
+}: {
+  cohorts: CohortHealthRow[];
+  programmeId: string;
+}) {
+  return (
+    <div className="pov-panel">
+      <div className="pov-panel-head">
+        <div className="pov-panel-title">
+          <span className="pov-panel-ic">
+            <Icon name="cohorts" size={13} />
+          </span>
+          Active cohorts
+          {cohorts.length > 0 && (
+            <span className="pov-panel-count">{cohorts.length}</span>
+          )}
+        </div>
+        <Link
+          href={`/tutor/programme/${programmeId}/cohorts`}
+          className="pov-panel-link"
+        >
+          View all →
+        </Link>
+      </div>
+      {cohorts.length === 0 ? (
+        <p className="pov-panel-empty">No cohorts are running right now.</p>
+      ) : (
+        <div className="pov-cohort-list">
+          {cohorts.map((c) => (
+            <CohortRow key={c.cohortId} c={c} programmeId={programmeId} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CohortRow({
+  c,
+  programmeId,
+}: {
+  c: CohortHealthRow;
+  programmeId: string;
+}) {
+  const chip = COHORT_CHIP[c.status];
+  const watch = c.status === 'watch';
+  return (
+    <div className={`pov-cohort${watch ? ' is-watch' : ''}`}>
+      <div className="pov-cohort-main">
+        <div className="pov-cohort-toprow">
+          <div className="pov-cohort-name">
+            <span className="pov-cohort-name-text">{c.name}</span>
+            <span className={`pov-cohort-chip ${chip.cls}`}>{chip.label}</span>
+            {watch && c.laggingCount > 0 && (
+              <span className="pov-cohort-lag">{c.laggingCount} lagging</span>
+            )}
+          </div>
+          {watch && <span className="pov-cohort-flag">action needed</span>}
+        </div>
+        <div className="pov-cohort-meta">
+          {c.dateRange} · {c.students} student{c.students === 1 ? '' : 's'}
+        </div>
+        <div className="pov-cohort-bar">
+          <div className="pov-cohort-track">
+            <div
+              className={`pov-cohort-fill ${chip.cls}`}
+              style={{ width: `${c.completionPct}%` }}
+            />
+          </div>
+          <span className={`pov-cohort-pct ${chip.cls}`}>{c.completionPct}%</span>
+        </div>
+      </div>
+      <Link
+        href={`/tutor/programme/${programmeId}/cohorts?cohort=${c.cohortId}`}
+        className={`pov-cohort-btn${watch ? ' is-watch' : ''}`}
+      >
+        {watch ? 'Review →' : 'Open →'}
+      </Link>
+    </div>
+  );
+}
+
+// ── Enrolment health panel (SELF_PACED) ──────────────────────────────
+function EnrolmentHealthPanel({
+  health,
+  programmeId,
+}: {
+  health: EnrolmentHealth;
+  programmeId: string;
+}) {
+  const tiles: Array<{ label: string; value: number; cls: string }> = [
+    { label: 'Active', value: health.active, cls: '' },
+    { label: 'Overdue', value: health.overdue, cls: 'is-danger' },
+    { label: 'Paused', value: health.paused, cls: '' },
+    { label: 'Expired', value: health.expired, cls: 'is-muted' },
+  ];
+  return (
+    <div className="pov-panel">
+      <div className="pov-panel-head">
+        <div className="pov-panel-title">
+          <span className="pov-panel-ic">
+            <Icon name="users" size={13} />
+          </span>
+          Enrolment health
+        </div>
+        <Link
+          href={`/tutor/programme/${programmeId}/enrolments`}
+          className="pov-panel-link"
+        >
+          Manage →
+        </Link>
+      </div>
+      <div className="pov-tiles">
+        {tiles.map((t) => (
+          <div key={t.label} className={`pov-tile ${t.cls}`}>
+            <div className="pov-tile-val">{t.value}</div>
+            <div className="pov-tile-label">{t.label}</div>
+          </div>
+        ))}
+      </div>
+      <div className="pov-recent-eyebrow">Recently enrolled</div>
+      {health.recent.length === 0 ? (
+        <p className="pov-panel-empty">No enrolments yet.</p>
+      ) : (
+        <div className="pov-recent-list">
+          {health.recent.map((r) => {
+            const meta = ENROLMENT_STATUS_META[r.status];
+            return (
+              <div key={r.enrolmentId} className="pov-recent">
+                <span className="pov-avatar">{r.initials}</span>
+                <div className="pov-recent-body">
+                  <div className="pov-recent-name">{r.name}</div>
+                  <div className="pov-recent-sub">
+                    {r.agoLabel}
+                    {r.detail ? ` · ${r.detail}` : ''}
+                  </div>
+                </div>
+                <span className={`enrol-pill ${meta.pillClass}`}>{meta.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Enquiries panel (both modes) ─────────────────────────────────────
+function EnquiriesPanel({
+  enquiries,
+  openCount,
+  programmeId,
+}: {
+  enquiries: EnquiryPreview[];
+  openCount: number;
+  programmeId: string;
+}) {
+  const enquiriesHref = `/tutor/programme/${programmeId}/enquiries`;
+  return (
+    <div className="pov-panel">
+      <div className="pov-panel-head">
+        <div className="pov-panel-title">
+          <span className="pov-panel-ic pov-panel-ic--amber">
+            <Icon name="mail" size={13} />
+          </span>
+          Enquiries
+          {openCount > 0 && (
+            <span className="pov-panel-count pov-panel-count--amber">
+              {openCount} open
+            </span>
+          )}
+        </div>
+        <Link href={enquiriesHref} className="pov-panel-link">
+          View all →
+        </Link>
+      </div>
+      {enquiries.length === 0 ? (
+        <p className="pov-panel-empty">No open enquiries right now.</p>
+      ) : (
+        <div className="pov-enq-list">
+          {enquiries.map((e) => (
+            <div key={e.enquiryId} className="pov-enq">
+              {e.fresh && <span className="pov-enq-dot" aria-hidden="true" />}
+              <span className="pov-avatar">{e.initials}</span>
+              <div className="pov-enq-body">
+                <div className="pov-enq-top">
+                  <span className="pov-enq-name">{e.name}</span>
+                  <span className="pov-enq-ago">{e.agoLabel}</span>
+                </div>
+                <p className="pov-enq-msg">{e.message}</p>
+                <Link href={enquiriesHref} className="pov-panel-link">
+                  Reply →
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

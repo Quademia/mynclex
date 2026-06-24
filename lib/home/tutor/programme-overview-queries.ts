@@ -36,7 +36,9 @@ import type { Currency, ProgrammeFormValues } from '@/lib/programmes/types';
 import type {
   CohortHealthRow,
   CohortHealthStatus,
+  EnquiryPreview,
   ProgrammeOverviewData,
+  RecentEnrolment,
 } from './programme-overview-types';
 
 const DAY_MS = 86_400_000;
@@ -44,6 +46,10 @@ const CURRENCY_SYMBOL: Record<Currency, string> = { GHS: '₵', USD: '$' };
 // A running cohort younger than this reads as "Just started" regardless of
 // its (necessarily low) completion — so a fresh cohort isn't flagged "watch".
 const JUST_STARTED_DAYS = 10;
+// Work-panel caps (the panels are short; the "View all →" link is the
+// overflow path to the full queue / roster).
+const MAX_ENQUIRIES = 4;
+const MAX_RECENT_ENROLMENTS = 4;
 
 export async function getProgrammeOverview(
   programmeId: string,
@@ -69,10 +75,11 @@ export async function getProgrammeOverview(
       getTutorPayments(),
     ]);
 
-  // ── Roster-derived figures (students / overdue / expired) ──────────────
+  // ── Roster-derived figures (students / overdue / paused / expired) ─────
   const enrolledIds = new Set<string>();
   const newThisWeekIds = new Set<string>();
   let overdue = 0;
+  let pausedManual = 0;
   let expired = 0;
   const weekAgo = Date.now() - 7 * DAY_MS;
   for (const r of roster ?? []) {
@@ -81,18 +88,48 @@ export async function getProgrammeOverview(
       if (new Date(r.enrolled_at).getTime() >= weekAgo) {
         newThisWeekIds.add(r.user_id);
       }
-    } else if (r.status === 'PAUSED' && r.paused_reason === 'INSTALLMENT_OVERDUE') {
-      overdue += 1;
+    } else if (r.status === 'PAUSED') {
+      if (r.paused_reason === 'INSTALLMENT_OVERDUE') overdue += 1;
+      else pausedManual += 1;
     } else if (r.status === 'EXPIRED') {
       expired += 1;
     }
   }
   const studentsEnrolled = enrolledIds.size;
 
+  // Recently-enrolled list (self-paced panel) — roster is already newest
+  // first; keep the live (enrolled / paused) rows.
+  const recentEnrolments: RecentEnrolment[] = (roster ?? [])
+    .filter((r) => r.status === 'ENROLLED' || r.status === 'PAUSED')
+    .slice(0, MAX_RECENT_ENROLMENTS)
+    .map((r) => ({
+      enrolmentId: r.enrolment_id,
+      name: r.name,
+      initials: initialsOf(r.name),
+      agoLabel: `Enrolled ${relativeTime(r.enrolled_at)}`,
+      detail: r.paymentFullyPaid
+        ? 'Paid in full'
+        : r.nextPayment
+          ? 'On a payment plan'
+          : null,
+      status: r.status,
+    }));
+
   // ── Open enquiries (NEW / CONTACTED — same rule as Home) ───────────────
-  const enquiriesOpen = enquiries.filter(
+  const openEnquiries = enquiries.filter(
     (e) => e.status === 'NEW' || e.status === 'CONTACTED',
-  ).length;
+  );
+  const enquiriesOpen = openEnquiries.length;
+  const enquiryPreviews: EnquiryPreview[] = openEnquiries
+    .slice(0, MAX_ENQUIRIES)
+    .map((e) => ({
+      enquiryId: e.enquiry_id,
+      name: e.name,
+      initials: initialsOf(e.name),
+      agoLabel: relativeTime(e.created_at),
+      message: e.message ?? '',
+      fresh: e.status === 'NEW',
+    }));
 
   // ── Sections counts ────────────────────────────────────────────────────
   const curriculumActivities = units.reduce((sum, u) => sum + u.activity_count, 0);
@@ -230,6 +267,14 @@ export async function getProgrammeOverview(
       enrolments: { active: studentsEnrolled, expired },
     },
     cohorts,
+    enquiries: enquiryPreviews,
+    enrolmentHealth: {
+      active: studentsEnrolled,
+      overdue,
+      paused: pausedManual,
+      expired,
+      recent: recentEnrolments,
+    },
   };
 }
 
@@ -272,6 +317,34 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function formatMoneyMinor(minor: number, currency: Currency): string {
   return `${CURRENCY_SYMBOL[currency]}${Math.round(minor / 100).toLocaleString()}`;
+}
+
+// "Ama Osei" → "AO"; single name → first two letters; empty → "?".
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// ISO → "2h ago" / "Yesterday" / "3 days ago" / "2 weeks ago". Mirrors the
+// tutor Home's relativeTime (kept local — home-queries doesn't export it).
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return '';
+  const diff = Date.now() - then;
+  if (diff < 60_000) return 'just now';
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days} days ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+  const months = Math.floor(days / 30);
+  return `${months} month${months === 1 ? '' : 's'} ago`;
 }
 
 // "2026-03-14" + "2026-06-20" → "Mar – Jun 2026" (or "Mar 2026 – Jan 2027"

@@ -17,6 +17,7 @@ import type {
   ProgrammeStatus,
   UnitLabel,
 } from '@/lib/programmes/types';
+import type { EnrolmentStatus } from '@/lib/enrolments/types';
 
 // ── Header ────────────────────────────────────────────────────────────
 // Identity + meta line + the action cluster's seed data. formValues feeds
@@ -83,6 +84,39 @@ export type CohortHealthRow = {
   status: CohortHealthStatus;
 };
 
+// ── Work-row panels (Slice 2) ────────────────────────────────────────
+// One open enquiry preview (both modes). fresh = NEW (vs CONTACTED) —
+// drives the unread dot.
+export type EnquiryPreview = {
+  enquiryId: string;
+  name: string;
+  initials: string;
+  agoLabel: string;
+  message: string;
+  fresh: boolean;
+};
+
+// One row in the self-paced "recently enrolled" list.
+export type RecentEnrolment = {
+  enrolmentId: string;
+  name: string;
+  initials: string;
+  agoLabel: string;
+  detail: string | null;
+  status: EnrolmentStatus;
+};
+
+// Self-paced enrolment-health panel — status tiles + recent enrolments.
+// (overdue = a missed installment paused them; paused = a manual tutor
+// pause; mirrors the roster's PAUSED split.)
+export type EnrolmentHealth = {
+  active: number;
+  overdue: number;
+  paused: number;
+  expired: number;
+  recent: RecentEnrolment[];
+};
+
 export type ProgrammeOverviewData = {
   header: ProgrammeOverviewHeader;
   kpis: ProgrammeOverviewKpis;
@@ -90,4 +124,8 @@ export type ProgrammeOverviewData = {
   // TUTOR_LED: in-progress cohorts, worst health first. Empty for
   // self-paced (the view shows the enrolment-health panel instead).
   cohorts: CohortHealthRow[];
+  // Open enquiries (NEW / CONTACTED), newest first, capped — both modes.
+  enquiries: EnquiryPreview[];
+  // Self-paced work panel (tutor-led shows the cohorts panel instead).
+  enrolmentHealth: EnrolmentHealth;
 };
