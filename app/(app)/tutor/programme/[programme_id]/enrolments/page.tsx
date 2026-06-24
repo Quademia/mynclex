@@ -63,6 +63,7 @@ export default async function ProgrammeEnrolmentsPage({
       plans={planCtx.plans}
       plansByCohort={planCtx.plansByCohort}
       currency={planCtx.currency}
+      paymentGatesAccess={planCtx.paymentGatesAccess}
     />
   );
 }

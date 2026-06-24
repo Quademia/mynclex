@@ -243,3 +243,19 @@
 .pp-upfront-row .prog-input {
   max-width: 200px;
 }
+
+/* Access policy card on the Payment plans page (2026-06-24) — the shared
+   <PaymentGatingToggle> (does a missed payment pause access here?). */
+.pp-access-policy {
+  margin-top: 22px;
+  padding: 2px 18px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+}
+.pp-access-policy-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 12px 0 0;
+}

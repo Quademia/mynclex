@@ -268,12 +268,13 @@ export async function getRosterPlanContext(
   plans: PaymentStrategy[];
   currency: Currency;
   plansByCohort: Record<string, PaymentStrategy[]>;
+  paymentGatesAccess: boolean;
 }> {
   const supabase = await createClient();
   const [{ data: prog }, { data: all, error }] = await Promise.all([
     supabase
       .from('nclex_programmes')
-      .select('price_currency')
+      .select('price_currency, payment_gates_access')
       .eq('programme_id', programmeId)
       .maybeSingle(),
     // All active plans, both scopes — partitioned below into the programme
@@ -306,6 +307,9 @@ export async function getRosterPlanContext(
     plans,
     currency: (prog?.price_currency as Currency | undefined) ?? 'GHS',
     plansByCohort,
+    // Default TRUE if the row is somehow missing — fail to the safe (gating-on)
+    // default rather than silently disabling enforcement.
+    paymentGatesAccess: (prog?.payment_gates_access as boolean | undefined) ?? true,
   };
 }
 

@@ -1151,3 +1151,14 @@
   font-size: 12px;
   color: var(--text-muted);
 }
+
+/* Access policy strip — one mount of the shared <PaymentGatingToggle>
+   (2026-06-24). Sits under the roster header, where paused rows are
+   visible; the inner .prog-switch-field carries the vertical padding. */
+.enrol-access-policy {
+  margin: 0 0 18px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+}

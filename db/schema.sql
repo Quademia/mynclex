@@ -795,6 +795,14 @@ CREATE TABLE nclex_programmes (
   -- enrolled_at; the deferred EXPIRED/PAUSED pg_cron sweep reads this.
   access_window_days    INTEGER
                         CHECK (access_window_days IS NULL OR access_window_days > 0),
+  -- Does a missed payment gate access on this programme? TRUE (default) =
+  -- the nightly sweep PAUSEs students overdue on a deposit/installment plan
+  -- (today's behaviour). FALSE = a tutor opt-out: missed payments never
+  -- pause access here (money is still tracked, just not enforced). Read by
+  -- the sweep's pause step; toggling it off also auto-resumes the
+  -- programme's payment-paused students (app action). See
+  -- payments-and-enrolment.md "Settled 2026-06-24".
+  payment_gates_access  BOOLEAN NOT NULL DEFAULT TRUE,
 
   -- Lifecycle. CANCELLED moved to nclex_cohorts.cancelled_at.
   status                TEXT NOT NULL DEFAULT 'DRAFT'

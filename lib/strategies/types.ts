@@ -101,6 +101,8 @@ export type PaymentPlansContext = {
     price_currency: Currency;
     payment_collection_mode: PaymentCollectionMode;
     status: ProgrammeStatus;
+    // Does a missed payment gate access? Drives the Access-policy toggle.
+    payment_gates_access: boolean;
   };
   strategies: PaymentStrategy[];
 };

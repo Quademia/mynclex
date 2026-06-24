@@ -40,6 +40,7 @@ import { initials, relativeTime } from './format';
 import { describePlan, formatMoney, planLabel } from '@/lib/strategies/format';
 import { usePopoverPosition } from '@/lib/library/use-popover-position';
 import { PaymentHistoryDrawer } from './payment-history-drawer';
+import { PaymentGatingToggle } from '@/lib/programmes/payment-gating-toggle';
 import type { Currency } from '@/lib/payments/types';
 import type { DeliveryMode } from '@/lib/programmes/types';
 import type { PaymentStrategy } from '@/lib/strategies/types';
@@ -80,6 +81,10 @@ interface EnrolmentRosterViewProps {
    *  plansByCohort[cohortId] ?? plans. */
   plansByCohort?: Record<string, PaymentStrategy[]>;
   currency?: Currency;
+  /** Does a missed payment pause access on this programme? Drives the
+   *  Access-policy toggle in the header (one of its several mount points;
+   *  same shared control + action everywhere). */
+  paymentGatesAccess?: boolean;
 }
 
 const ACTION_PAST_TENSE: Record<EnrolmentAction, string> = {
@@ -118,6 +123,7 @@ export function EnrolmentRosterView({
   plans = [],
   plansByCohort = {},
   currency = 'GHS',
+  paymentGatesAccess = true,
 }: EnrolmentRosterViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -381,6 +387,14 @@ export function EnrolmentRosterView({
           + Add student
         </button>
       </header>
+
+      {/* Access policy — the per-programme "does a missed payment pause
+          access?" toggle. Mounted here (where the tutor SEES paused rows) as
+          one of its several surfaces; the same shared control + action runs on
+          the Payment plans page, Overview, and the edit modal. */}
+      <div className="enrol-access-policy">
+        <PaymentGatingToggle programmeId={programmeId} enabled={paymentGatesAccess} />
+      </div>
 
       {/* Scope line — declares which cohort world every number below
           describes, and (zoomed) carries the exit. Tutor-led only; the

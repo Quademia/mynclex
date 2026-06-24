@@ -63,6 +63,14 @@ this file.
   default. "Custom" = the cohort has active plan rows; revert =
   deactivate (no delete, FK-safe). See *Tutored enrolment →
   Cohort-level payment plans → BUILD NOTE*.
+- **Payment-gated access is now a tutor choice — DESIGNED 2026-06-24, not
+  yet built.** A per-programme `payment_gates_access` toggle (default on =
+  today's behaviour): off → the nightly sweep stops auto-pausing that
+  programme's students for late payment (money is still tracked, just not
+  enforced), and currently payment-paused students are auto-resumed (manual
+  pauses untouched), behind a consequence-explaining confirm modal. Targets
+  the single chokepoint (sweep step 4a); the access gate is unchanged. See
+  *Tutored enrolment → Settled 2026-06-24*.
 - **Tutor monthly sub revisit, enrolment-source enum, auth model
   alignment — still open.**
 
@@ -805,6 +813,83 @@ The editable values behind all this (the `enrolment_sweep_enabled` flag, the
 `bank_optin_discount`) live in `nclex_config` and are now editable from the
 **System Config** admin page (`/admin/config`) — keys are code-defined and
 read-only, values are edited via typed controls.
+
+#### Settled 2026-06-24 — Tutor choice: let payment gate access (per programme; designed, not built)
+
+**The question.** Today, access is coupled to payment: a student on a
+deposit/installment plan whose next payment goes overdue is paused (loses
+content access) by the nightly sweep. Good as a default — but some tutors won't
+want a late payment to lock a student out, or won't want payment to control
+access at all (e.g. trust-based / off-platform-collected arrangements). So the
+tutor should be able to **decide, per programme, whether the system gates
+access by payments made.**
+
+**Why this is a small, contained change.** Access itself is gated purely on
+enrolment `status = 'ENROLLED'` (+ the access window) — see *enrolments
+access-gating*. The **only** automated thing that flips a paid-up student out
+of `ENROLLED` for a *missed payment* is sweep step 4a
+(`nclex_enrolment_nightly_sweep`, ENROLLED→PAUSED on overdue). That single
+chokepoint is the whole coupling, so the change targets just it — the RLS
+access gate doesn't change at all.
+
+**The decisions (all locked 2026-06-24):**
+
+1. **Scope = per programme**, not per tutor. A nullable/boolean flag on
+   `nclex_programmes` (proposed `payment_gates_access BOOLEAN NOT NULL DEFAULT
+   true`). Default `true` = today's behaviour, so existing programmes are
+   unchanged. Lives with the programme's other money settings (collection mode,
+   access window, plans). A tutor can gate one programme and not another. (A
+   tutor-wide switch was considered and rejected as less flexible.)
+
+2. **Off = stop enforcing, keep tracking.** When off, sweep 4a **skips** that
+   programme's enrolments — they're never auto-paused for late payment. Plans,
+   schedules, due dates, the "overdue" indicators on the roster/analytics all
+   keep computing and showing (the money story is still tracked and nudge-able);
+   only the *enforcement* (the pause) is suppressed. Full-pay students are
+   unaffected either way (no installments to miss).
+
+3. **Turning it OFF auto-resumes the already-paused.** Flipping the toggle off
+   immediately **resumes** that programme's enrolments currently `PAUSED` with
+   `paused_reason = 'INSTALLMENT_OVERDUE'` (so the change takes effect now, not
+   "from tonight"). A tutor's **manual** pauses (`TUTOR_MANUAL`) are **not**
+   touched — only the tutor lifts those. (No real users yet, so this is about
+   correct behaviour, not a data migration.)
+
+4. **A confirm modal explains the toggle, both directions.** Off → "students
+   currently paused for a late payment will regain access, and future late
+   payments won't pause anyone on this programme." On → "students who are behind
+   on payment may be paused by tonight's check." (Consequence-explaining
+   confirmation, consistent with the other pause-resolution actions.)
+
+5. **Out of scope: the access window.** This switch governs the *missed-payment
+   pause* only. The separate access-window expiry (ENROLLED/PAUSED→EXPIRED past
+   `access_expires_at`, sweep 4b) is a different lever — how *long* access
+   lasts — and is untouched.
+
+6. **One action, surfaced in several places (Settled 2026-06-24).** The toggle
+   can live in *multiple* surfaces; what matters is that **the same action
+   fires wherever it's triggered**. So it's built as ONE canonical server
+   action + ONE shared toggle-with-confirm component, mounted on: (A) the
+   programme **edit modal** → *Access & collection* section; (B) the **Payment
+   plans** page → an *Access policy* card; (C) the programme **Overview**; and
+   (D) the **Enrolments** roster (`EnrolmentRosterView`) — arguably the most
+   contextual home, since that's where the tutor *sees* a student in "Paused —
+   payment overdue," so the control sits next to its visible effect. Crucially
+   the toggle is **always its own self-contained immediate action+confirm** —
+   even inside the edit modal it does NOT ride that modal's batched "Save
+   changes"; that's what keeps it identical everywhere (and avoids entangling a
+   live-consequence action with a generic settings save). Because it's one
+   component, adding/removing a placement later is a one-line change.
+
+**Build shape (≈1 slice, app-layer + one migration).** (a) Migration: add the
+column + update `nclex_enrolment_nightly_sweep()` 4a to join `nclex_programmes`
+and skip where `payment_gates_access = false`. (b) ONE server action —
+`setProgrammePaymentGating(programmeId, enabled)`: ownership-check → flip the
+flag → on turn-off, auto-resume that programme's `INSTALLMENT_OVERDUE` pauses
+(leave `TUTOR_MANUAL`) → return the affected count for the confirm/result copy.
+(c) ONE shared toggle+confirm component, mounted on the four surfaces above
+(edit modal · Payment plans · Overview · Enrolments roster). Default `true`
+means zero behaviour change until a tutor opts out.
 
 #### Settled 2026-06-12 — Tutor-add with a payment plan (designed, not yet built)
 
