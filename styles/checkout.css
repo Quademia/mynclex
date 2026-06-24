@@ -484,6 +484,30 @@ label.co-strat:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px
 
 .cr-note { margin-top: 14px; font-size: 12px; color: var(--ink-faint); }
 
+.cr-recheck {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-mute);
+}
+.cr-recheck-dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--warning);
+  animation: cr-pulse 1.2s ease-in-out infinite;
+}
+@keyframes cr-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cr-recheck-dot { animation: none; }
+}
+
 @media (max-width: 768px) {
   .cr-card { margin: 24px auto; padding: 22px 20px; }
   .cr-actions { flex-direction: column; align-items: stretch; }

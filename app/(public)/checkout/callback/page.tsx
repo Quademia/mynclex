@@ -7,14 +7,20 @@
 // email yet, so we ask them to screenshot it), and the one right next step
 // for that outcome.
 //
-// Slice 1 (2026-06-24): the redesigned screen + the receipt loader. The live
-// bits — session-aware deep-links, "resend setup email", and PENDING
-// auto-recheck — are Slice 2; for now PENDING offers a manual refresh.
+// Slice 1 (2026-06-24): the redesigned screen + the receipt loader.
+// Slice 2 (2026-06-24): the live bits — session-aware next-step (logged-in →
+// straight in; logged-out → "log in to continue"), the PENDING auto-recheck
+// island, and (via verify.ts) a genuinely declined charge now lands here as
+// "didn't go through" rather than "waiting". A one-click "resend setup email"
+// is deliberately NOT built — it's a transactional-email concern (deferred);
+// the setup-email state offers a contact-support fallback instead.
 
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
 import { settlePayment } from '@/lib/payments/settle';
 import { getPaymentReceipt } from '@/lib/payments/result';
 import type { Currency } from '@/lib/payments/types';
+import { PendingRecheck } from './pending-recheck';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,6 +98,18 @@ export default async function CheckoutCallbackPage({
   const result = reference ? await settlePayment(reference) : null;
   const receipt = reference ? await getPaymentReceipt(reference) : null;
 
+  // Is the buyer signed in on this device? Drives the next-step: a logged-in
+  // buyer goes straight to what they unlocked; a guest is sent to log in
+  // first (the deep-link target is auth-gated anyway). getUser revalidates the
+  // token — never getSession (rule #4).
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const loggedIn = !!user;
+
+  const isPending = !!result && !result.ok && result.status === 'PENDING';
+
   // ── view model ──────────────────────────────────────────────────────
   let tone: Tone = 'danger';
   let icon: IconName = 'help';
@@ -117,7 +135,9 @@ export default async function CheckoutCallbackPage({
       heading = 'Payment received';
       body =
         'Your enrolment is in — your tutor approves it shortly (usually within 24 hours), and the programme unlocks once they do.';
-      primary = { href: dest, label: 'Track your enrolment' };
+      primary = loggedIn
+        ? { href: dest, label: 'Track your enrolment' }
+        : { href: '/login', label: 'Log in to track your enrolment' };
     } else if (result.status === 'INVITE_SENT') {
       tone = 'info';
       icon = 'mail';
@@ -130,8 +150,19 @@ export default async function CheckoutCallbackPage({
         body += ' Once you finish setup, your tutor approves your place (usually within 24 hours).';
       }
       primary = null;
-      secondary = { href: '/programmes', label: 'Browse more programmes' };
-      note = "Can't find it? Check your spam folder.";
+      // EMAIL-TRIGGER[payment.setup_link_resend]: a one-click "resend setup
+      // email" belongs to the deferred transactional-email arc (the invite
+      // itself is sent by Supabase auth, but re-sending it isn't cleanly
+      // available without our own mailer). Until then, support is the path if
+      // the invite is lost.
+      secondary = {
+        href: `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(
+          'My setup email — ' + (receipt?.reference ?? reference)
+        )}`,
+        label: 'Email support',
+        external: true,
+      };
+      note = "Can't find it? Check your spam folder, or email support and we'll help you finish setting up.";
     } else {
       // ACCESS_READY or ALREADY.
       tone = 'success';
@@ -142,7 +173,9 @@ export default async function CheckoutCallbackPage({
         result.status === 'ALREADY'
           ? 'This payment was already confirmed and your access is set up.'
           : 'Your payment is confirmed and your access is ready.';
-      primary = { href: dest, label: receipt?.destinationLabel ?? 'Go to my learning' };
+      primary = loggedIn
+        ? { href: dest, label: receipt?.destinationLabel ?? 'Go to my learning' }
+        : { href: '/login', label: 'Log in to continue' };
     }
   } else if (result) {
     if (result.status === 'PENDING') {
@@ -247,6 +280,8 @@ export default async function CheckoutCallbackPage({
             <span aria-hidden="true">📸</span> Take a screenshot of this page for your records.
           </p>
         )}
+
+        {isPending && <PendingRecheck />}
 
         {(primary || secondary) && (
           <div className="cr-actions">
