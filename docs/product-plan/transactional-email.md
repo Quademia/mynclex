@@ -6,7 +6,8 @@ that should send an email**, so that when we build the email arc post-MVP
 nothing is missed. See [main.md](main.md) and
 [payments-and-enrolment.md](payments-and-enrolment.md).*
 
-Last updated: 2026-06-22 (created).
+Last updated: 2026-06-24 (payment emails: tutor-side notification firmed to a
+required P1 — every payment notifies BOTH student and tutor).
 
 ---
 
@@ -105,7 +106,14 @@ content release, or account state, ask "should this notify someone?" — if yes:
 | `payment.installment_overdue` | An installment passes its due date unpaid | student | Overdue notice + grace info | P1 | ✅ (state) / ⬜ (job) |
 | `payment.grace_set` | Tutor grants a first-payment / installment grace | student | "Your tutor extended your due date to X" | P2 | ✅ |
 | `payment.refunded` | A payment is refunded | student | Refund confirmation | P2 | ✅ |
-| `payment.tutor_received` | A student payment lands | tutor | "Ama paid GHS X for Cohort Y" (optional digest) | P3 | ✅ |
+| `payment.tutor_received` | A student payment lands — Paystack success OR tutor "mark paid" | tutor | "Ama paid GHS X for Cohort Y" — payer, amount, plan, cohort. **Required on every payment** (the tutor-side half of the pair below); per-event vs digest is a delivery choice (see open questions) | P1 | ✅ |
+
+> **Every payment notifies BOTH sides.** A received payment is a paired send:
+> `payment.received` (the student's receipt) **and** `payment.tutor_received`
+> (the tutor's "money's in"). Both are P1 — neither side should be left in the
+> dark when money moves. Applies to the same anchor (Paystack success and the
+> tutor "mark paid" path); the tutor-side cadence (per-event vs daily digest) is
+> the only open delivery question, not whether it's sent.
 
 ### Live sessions
 
