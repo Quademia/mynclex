@@ -40,6 +40,7 @@ import '@/styles/enquiries.css';
 import '@/styles/analytics.css';
 import '@/styles/audit.css';
 import '@/styles/tutor-home.css';
+import '@/styles/programme-overview.css';
 import '@/styles/library.css';
 import '@/styles/profile.css';
 // Loaded LAST: the bank LIST-surfaces redesign (Trends / Cases / Question
