@@ -378,23 +378,27 @@ export function EnrolmentRosterView({
           <h1 className="cw-title">Enrolments</h1>
           <p className="cw-sub">{contextName}</p>
         </div>
-        <button
-          type="button"
-          className="enrol-btn enrol-btn-primary"
-          onClick={openAdd}
-          disabled={pending}
-        >
-          + Add student
-        </button>
+        {/* Access policy sits inline with Add student — one of its mount
+            points (compact label + toggle, where the tutor SEES paused rows).
+            Same shared control + action as the Payment plans page, Overview,
+            and the edit modal. */}
+        <div className="cw-header-actions">
+          <PaymentGatingToggle
+            programmeId={programmeId}
+            enabled={paymentGatesAccess}
+            compact
+            className="enrol-header-policy"
+          />
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-primary"
+            onClick={openAdd}
+            disabled={pending}
+          >
+            + Add student
+          </button>
+        </div>
       </header>
-
-      {/* Access policy — the per-programme "does a missed payment pause
-          access?" toggle. Mounted here (where the tutor SEES paused rows) as
-          one of its several surfaces; the same shared control + action runs on
-          the Payment plans page, Overview, and the edit modal. */}
-      <div className="enrol-access-policy">
-        <PaymentGatingToggle programmeId={programmeId} enabled={paymentGatesAccess} compact />
-      </div>
 
       {/* Scope line — declares which cohort world every number below
           describes, and (zoomed) carries the exit. Tutor-led only; the
