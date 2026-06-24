@@ -75,6 +75,7 @@ export function ProgrammeCardMenu({ programme }: { programme: ProgrammeCardRow }
     show_price_publicly: programme.show_price_publicly,
     payment_collection_mode: programme.payment_collection_mode,
     access_window_days: programme.access_window_days,
+    payment_gates_access: programme.payment_gates_access,
     // upfront_total_minor is nullable (transient no-plan case); the form
     // treats it as the canonical full-price field, so coalesce to 0.
     upfront_total_minor: programme.upfront_total_minor ?? 0,

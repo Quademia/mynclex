@@ -24,6 +24,7 @@ import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
 import { ProgrammeLengthDecreaseConfirm } from '@/lib/overlays/programmes/programme-length-decrease-confirm';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { Segmented, Switch } from './form-controls';
+import { PaymentGatingToggle } from './payment-gating-toggle';
 import { ProgIcon } from './prog-icon';
 import { createProgrammeAction, editProgrammeAction } from './actions';
 import type {
@@ -551,6 +552,23 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
                   lifetime (while your subscription stays active).
                 </span>
               </label>
+
+              {/* Payment-gating toggle — the shared control (also on the
+                  Payment plans page, Enrolments roster, and Overview). It
+                  saves on its own (with a confirm), separate from this
+                  modal's Save changes, so it only appears once the programme
+                  exists (edit mode). */}
+              {props.mode === 'edit' && (
+                <div style={{ marginTop: '14px' }}>
+                  <PaymentGatingToggle
+                    programmeId={props.programmeId}
+                    enabled={props.initial.payment_gates_access}
+                  />
+                  <span className="prog-field-help">
+                    This applies straight away — it isn&apos;t part of Save changes.
+                  </span>
+                </div>
+              )}
             </section>
           </div>
 

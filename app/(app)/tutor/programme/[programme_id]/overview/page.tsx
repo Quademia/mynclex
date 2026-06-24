@@ -23,6 +23,7 @@ import {
 import { getCohortCountForProgramme } from '@/lib/cohorts/queries';
 import { NewCohortTrigger } from '@/lib/cohorts/new-cohort-trigger';
 import { ProgrammeStatusControls } from '@/lib/programmes/programme-status-controls';
+import { PaymentGatingToggle } from '@/lib/programmes/payment-gating-toggle';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +53,14 @@ export default async function ProgrammeOverviewPage({
         subtitle="Programme home"
         description="Next live session, announcements, weekly progress, cohort size."
       />
+
+      <section className="programme-overview-policy">
+        <h2 className="programme-overview-policy-title">Access policy</h2>
+        <PaymentGatingToggle
+          programmeId={programme_id}
+          enabled={status.payment_gates_access}
+        />
+      </section>
 
       {programme.delivery_mode === 'TUTOR_LED' && cohortCount === 0 && (
         <div className="programme-overview-cohorts-empty">

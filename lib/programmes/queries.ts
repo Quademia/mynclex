@@ -35,7 +35,7 @@ export async function getMyProgrammes(): Promise<ProgrammeListRow[]> {
       `programme_id, title, tagline, description,
        delivery_mode, unit_label, length_units,
        price_currency, show_price_publicly,
-       payment_collection_mode, access_window_days,
+       payment_collection_mode, access_window_days, payment_gates_access,
        status, updated_at,
        nclex_cohorts(count),
        upfront:nclex_programme_payment_strategies(total_price_minor)`
@@ -210,6 +210,9 @@ export type ProgrammeStatusContext = {
   status: import('./types').ProgrammeStatus;
   published_at: string | null;
   archived_at: string | null;
+  // Carried for the Overview's payment-gating toggle (one of its mount
+  // points). The publish/archive controls ignore it.
+  payment_gates_access: boolean;
 };
 
 export async function getProgrammeStatus(
@@ -218,7 +221,7 @@ export async function getProgrammeStatus(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('nclex_programmes')
-    .select('programme_id, title, status, published_at, archived_at')
+    .select('programme_id, title, status, published_at, archived_at, payment_gates_access')
     .eq('programme_id', programmeId)
     .maybeSingle();
 
