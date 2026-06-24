@@ -13,7 +13,12 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckoutShell, money, type OrderLine } from '@/components/checkout/checkout-shell';
+import {
+  CheckoutShell,
+  money,
+  type OrderLine,
+  type CheckoutStep,
+} from '@/components/checkout/checkout-shell';
 import { systemLabel, installmentSplit } from '@/lib/strategies/format';
 import type { PublicPaymentPlan } from '@/lib/strategies/types';
 import type { Currency } from '@/lib/payments/types';
@@ -183,12 +188,147 @@ export function ProgrammeCheckout({
       : 'Programme content unlocks once the tutor approves your enrolment (usually within 24 h).') +
     (selectedTier ? ' Bank access is ready straight away.' : '');
 
+  // ── Wizard steps ──────────────────────────────────────────────────
+  // The left column steps through cohort+plan → bank (skippable) → email
+  // (the email step is appended by CheckoutShell). Steps are built from what's
+  // actually offered, so empty steps never show: self-paced drops the cohort,
+  // a single plan hides the picker, no discount means no bank step.
+  const cohortCard = !selfPaced ? (
+    <section className="co-card" key="cohort">
+      <h2>Your cohort</h2>
+      <label className="co-field">
+        <span className="co-field-label">Cohort</span>
+        {singleCohort ? (
+          <span className="co-fixed-cohort">{cohorts[0].label}</span>
+        ) : (
+          <select
+            className="co-input"
+            value={cohortId}
+            onChange={(e) => changeCohort(e.target.value)}
+          >
+            {cohorts.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        )}
+      </label>
+    </section>
+  ) : null;
+
+  // payment plan — picker shows only when 2+ plans are offered
+  const planCard = showPicker ? (
+    <section className="co-card" key="plan">
+      <div className="co-card-head">
+        <h2>Choose how to pay</h2>
+      </div>
+      <div className="co-strats">
+        {plans.map((p) => {
+          const on = p.strategy_id === planId;
+          return (
+            <label key={p.strategy_id} className={`co-strat${on ? ' on' : ''}`}>
+              <input
+                type="radio"
+                name="payment-plan"
+                className="co-radio-input"
+                checked={on}
+                onChange={() => setPlanId(p.strategy_id)}
+              />
+              <span className="co-radio" aria-hidden="true" />
+              <span className="co-strat-meta">
+                <span className="nm">{planTitle(p)}</span>
+                <span className="sub">{planSub(p, currency)}</span>
+              </span>
+              <span className="co-strat-price">
+                {money(p.initial_price_minor, currency)}
+                {p.kind !== 'UPFRONT_FULL' && <span className="co-strat-now"> now</span>}
+              </span>
+            </label>
+          );
+        })}
+      </div>
+    </section>
+  ) : null;
+
+  // bank opt-in — live
+  const bankCard = (
+    <section className="co-card co-bank" key="bank">
+      <div className="co-card-head">
+        <h2>
+          Add NCLEX Bank access <span className="co-off-tag">{discountPct}% OFF</span>
+        </h2>
+        <label className="co-bank-toggle">
+          <input type="checkbox" checked={bankOn} onChange={(e) => setBankOn(e.target.checked)} />
+          <span>I want to add bank access</span>
+        </label>
+      </div>
+      <p className="co-card-desc">
+        Recommended add-on, not required. The full QAcademy question bank, {discountPct}% off the
+        standalone price — stacks on any access you already have.
+      </p>
+
+      {bankOn ? (
+        <>
+          <div className="co-bank-grid">
+            {bankTiers.map((t, i) => (
+              <button
+                key={t.productId}
+                type="button"
+                className={`co-bank-tier${i === bankTierIdx ? ' on' : ''}`}
+                onClick={() => setBankTierIdx(i)}
+              >
+                <span className="days">{t.days} days</span>
+                <span className="price">
+                  {money(t.discountedMinor, currency)}
+                  <span className="strike">{money(t.standaloneMinor, currency)}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="co-bank-note">
+            Bank access activates immediately on payment — not gated on tutor approval. New
+            duration stacks on any existing access.
+          </p>
+        </>
+      ) : (
+        <p className="co-bank-empty">
+          Tick the box above to pick a duration. Bank access is a separate QAcademy
+          subscription — independent of programme enrolment.
+        </p>
+      )}
+    </section>
+  );
+
+  const planStepHasContent = cohortCard !== null || planCard !== null;
+  const planStepTitle =
+    cohortCard && planCard ? 'Cohort & plan' : cohortCard ? 'Your cohort' : 'How to pay';
+
+  const steps: CheckoutStep[] = [];
+  if (planStepHasContent) {
+    steps.push({
+      id: 'plan',
+      title: planStepTitle,
+      complete: true,
+      content: (
+        <>
+          {cohortCard}
+          {planCard}
+        </>
+      ),
+    });
+  }
+  if (bankAvailable) {
+    steps.push({ id: 'bank', title: 'Bank access', complete: true, content: bankCard });
+  }
+
   return (
     <CheckoutShell
       accountEmail={accountEmail}
       currency={currency}
       lineItems={lineItems}
       railHint={railHint}
+      steps={steps}
       buildTarget={() => ({
         kind: 'PROGRAMME',
         programmeId,
@@ -212,119 +352,6 @@ export function ProgrammeCheckout({
           {selectedTier && <li>Your bank access is active right away.</li>}
         </>
       }
-    >
-      {/* cohort */}
-      {!selfPaced && (
-        <section className="co-card">
-          <h2>Your cohort</h2>
-          <label className="co-field">
-            <span className="co-field-label">Cohort</span>
-            {singleCohort ? (
-              <span className="co-fixed-cohort">{cohorts[0].label}</span>
-            ) : (
-              <select
-                className="co-input"
-                value={cohortId}
-                onChange={(e) => changeCohort(e.target.value)}
-              >
-                {cohorts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            )}
-          </label>
-        </section>
-      )}
-
-      {/* payment plan — picker shows only when 2+ plans are offered */}
-      {showPicker && (
-        <section className="co-card">
-          <div className="co-card-head">
-            <h2>Choose how to pay</h2>
-          </div>
-          <div className="co-strats">
-            {plans.map((p) => {
-              const on = p.strategy_id === planId;
-              return (
-                <label
-                  key={p.strategy_id}
-                  className={`co-strat${on ? ' on' : ''}`}
-                >
-                  <input
-                    type="radio"
-                    name="payment-plan"
-                    className="co-radio-input"
-                    checked={on}
-                    onChange={() => setPlanId(p.strategy_id)}
-                  />
-                  <span className="co-radio" aria-hidden="true" />
-                  <span className="co-strat-meta">
-                    <span className="nm">{planTitle(p)}</span>
-                    <span className="sub">{planSub(p, currency)}</span>
-                  </span>
-                  <span className="co-strat-price">
-                    {money(p.initial_price_minor, currency)}
-                    {p.kind !== 'UPFRONT_FULL' && (
-                      <span className="co-strat-now"> now</span>
-                    )}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* bank opt-in — live */}
-      {bankAvailable && (
-        <section className="co-card co-bank">
-          <div className="co-card-head">
-            <h2>
-              Add NCLEX Bank access <span className="co-off-tag">{discountPct}% OFF</span>
-            </h2>
-            <label className="co-bank-toggle">
-              <input type="checkbox" checked={bankOn} onChange={(e) => setBankOn(e.target.checked)} />
-              <span>I want to add bank access</span>
-            </label>
-          </div>
-          <p className="co-card-desc">
-            Recommended add-on, not required. The full QAcademy question bank, {discountPct}% off the
-            standalone price — stacks on any access you already have.
-          </p>
-
-          {bankOn ? (
-            <>
-              <div className="co-bank-grid">
-                {bankTiers.map((t, i) => (
-                  <button
-                    key={t.productId}
-                    type="button"
-                    className={`co-bank-tier${i === bankTierIdx ? ' on' : ''}`}
-                    onClick={() => setBankTierIdx(i)}
-                  >
-                    <span className="days">{t.days} days</span>
-                    <span className="price">
-                      {money(t.discountedMinor, currency)}
-                      <span className="strike">{money(t.standaloneMinor, currency)}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <p className="co-bank-note">
-                Bank access activates immediately on payment — not gated on tutor approval. New
-                duration stacks on any existing access.
-              </p>
-            </>
-          ) : (
-            <p className="co-bank-empty">
-              Tick the box above to pick a duration. Bank access is a separate QAcademy
-              subscription — independent of programme enrolment.
-            </p>
-          )}
-        </section>
-      )}
-    </CheckoutShell>
+    />
   );
 }
