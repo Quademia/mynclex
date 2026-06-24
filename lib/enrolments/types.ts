@@ -167,7 +167,9 @@ export const ENROLMENT_ACTION_META: Record<
     note: boolean;
   }
 > = {
-  approve: { label: 'Approve', tone: 'primary', confirm: false, note: false },
+  // Approve confirms too (2026-06-24) — not because it's access-removing, but
+  // as a misclick guard: it sits inline next to Reject and is time-sensitive.
+  approve: { label: 'Approve', tone: 'primary', confirm: true, note: false },
   // Resume now confirms — it has a non-obvious consequence (an overdue student
   // gets re-paused by tonight's sweep), so the dialog spells that out.
   resume: { label: 'Resume', tone: 'primary', confirm: true, note: false },

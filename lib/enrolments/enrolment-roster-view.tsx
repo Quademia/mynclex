@@ -1321,9 +1321,15 @@ function AddStudentModal({
 }
 
 const CONFIRM_COPY: Record<
-  'pause' | 'reject' | 'cancel',
+  'approve' | 'pause' | 'reject' | 'cancel',
   { title: (name: string) => string; body: (noun: string) => string; confirmLabel: string }
 > = {
+  approve: {
+    title: (name) => `Approve ${name}'s enrolment?`,
+    body: (noun) =>
+      `This unlocks the ${noun} for them right away. You can pause or cancel later if you need to.`,
+    confirmLabel: 'Approve enrolment',
+  },
   pause: {
     title: (name) => `Pause ${name}'s access?`,
     body: (noun) =>
@@ -1371,7 +1377,7 @@ function TransitionConfirm({
               : 'This lifts the pause and restores their access.',
           confirmLabel: 'Resume access',
         }
-      : CONFIRM_COPY[action as 'pause' | 'reject' | 'cancel'];
+      : CONFIRM_COPY[action as 'approve' | 'pause' | 'reject' | 'cancel'];
 
   return (
     <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
