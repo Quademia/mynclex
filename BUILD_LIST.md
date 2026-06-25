@@ -8,6 +8,40 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **LIBRARY 11.11c — TUTOR "QUESTION ANALYTICS" — BUILT + MERGED to `main`
+> (2026-06-26; Sam-tested on dev; all app-layer, NO migration; not yet
+> prod).** The reading-check analytics over `nclex_library_embed_answers`,
+> built from the Claude Design "QAcademy Nurses Analytics" prototype
+> (concept-not-source; the *2nd* CD prototype — the 1st was rejected for
+> flattening the Practice-block layer). New `lib/library/analytics/` module
+> + `styles/embed-analytics.css`. A **standalone** `/tutor/library/analytics`
+> route (light sidebar = "← Library" + the 4-band "reading lens" legend),
+> reached from a 📊 entry in the library sidebar.
+> - **Overview** — KPIs · cross-note **Re-teach signal** (most-missed
+>   questions) · **Notes** table (weakest-block flagged).
+> - **Per-note drill-in** — **Questions** (block-grouped collapsible rows +
+>   full **answer distribution** w/ KEY / TOP-MISS + "first-try → after
+>   re-practice (+lift)"), **Roster** (reader × block **heatmap**, grouped
+>   by cohort / self-paced), **Readers** (list) → **reader report** (picks
+>   vs key, recovery).
+> - **Scope switcher** — All readers / each cohort / Self-paced, on the
+>   Overview + every tab; cohorts in a **dropdown** (scales). Reader names +
+>   cohort segment via a new `resolveReaderSegments` (ownership →
+>   service-role over `nclex_users` + `nclex_enrolments`).
+> - **Enabler (already merged `ab90da2`):** the `embedded_questions` block
+>   gained an optional **title** — the block label the analytics groups by.
+> - **Deferred:** median time / time-on-block (dev seed had placeholder
+>   timing); the Mark-done → progress write-through stub (untouched); the
+>   **student side** (practice dashboard / metacognition — next session;
+>   the practice itself stays the 11.13b player by decision); + Sam's
+>   "areas of improvement" list (TBD).
+>
+> **⏭ NEXT:** Sam's improvement passes + the **student side** (own
+> session) → 11.17 polish → the big `main → prod` **release** (this rides
+> atop the large unreleased stack; ⚠ `PAYSTACK_SECRET_KEY` still not on
+> prod). Detail in
+> [tutor-library.md](docs/product-plan/tutor-library.md) → 11.11c.
+
 > **TUTOR PROGRAMME OVERVIEW PAGE — BUILT + MERGED to `main` (2026-06-24
 > third session, `e02b2ab` + `1308364`; Sam-tested on dev; all app-layer, NO
 > migration; NOT yet prod).** The **"built LAST" surface** — the tutor

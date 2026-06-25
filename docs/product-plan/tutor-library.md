@@ -116,10 +116,14 @@ tags/views, student read view + embedded-questions player + Study Home)
 and is fully integrated into programmes as both **Library Note** and
 **Shelf** activities (11.11 + 11.12). The directly-library half is
 RELEASED to prod; the programme-integration half is on `main` pending
-the next prod release. **Only two slices remain:** 11.11c (tutor
-embed-analytics dashboard + the stubbed Mark-done → progress
-write-through) and 11.17 (polish). See the slice log under *Build
-order* for per-slice status; that log is the current source of truth.
+the next prod release. **11.11c (the tutor embed-analytics dashboard) was
+BUILT 2026-06-26** — see its slice entry below. **What remains:** 11.17
+(polish) + the 11.11c **Mark-done → progress write-through** stub (the
+analytics shipped, but that progress sub-item was NOT touched this
+session) + a list of "areas of improvement" Sam flagged + the **student
+side** (a practice dashboard / metacognition), deferred to a later
+session. See the slice log under *Build order* for per-slice status; that
+log is the current source of truth.
 
 **No QAcademy-side library in v1.** The decision to leave self-study
 students with rationales-as-teaching is deliberate; the library is a
@@ -2515,9 +2519,49 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
     completion is DERIVED from `nclex_library_note_state.marked_done_at`
     (NOT the progress engine) and folded into the unit progress
     counts via `getLibraryNoteActivityState` in `student-queries.ts`.
-  - ⬜ **11.11c** Tutor embed-analytics dashboard (reads
-    `nclex_library_embed_answers`). Home TBD (per-note tab vs
-    library-wide page) — decide at build.
+  - ✅ **11.11c (BUILT 2026-06-26)** Tutor "Question analytics" — the
+    reading-check analytics over `nclex_library_embed_answers`. Built from
+    the Claude Design "QAcademy Nurses Analytics" prototype (concept-not-
+    source; the *2nd* CD prototype — the 1st was rejected for flattening
+    the block layer). **All app-layer, no migration.** New
+    `lib/library/analytics/` module + `styles/embed-analytics.css`.
+    - **Home decided: a STANDALONE route** `/tutor/library/analytics`
+      (with a light sidebar = "← Library" + the 4-band "reading lens"
+      legend), NOT folded into the note-list chrome — chosen because the
+      surface grows a drill-in that wants real routes. Reached from a 📊
+      "Question analytics" entry in the library lens sidebar.
+    - **Overview** — KPI strip · cross-note **"Re-teach signal"**
+      (most-missed questions, re-teach targets) · "Notes with embedded
+      questions" table (weakest-block flagged). A note/question row links
+      into the drill-in (`?q=` pre-opens the question).
+    - **Per-note drill-in** (`/note/[id]`, `?tab=`) — **Questions**
+      (block-grouped collapsible rows: first-try accuracy + full
+      first-attempt **answer distribution** with KEY / TOP-MISS badges +
+      a "First try → After re-practice (+lift)" convergence read),
+      **Roster** (reader × block first-try **heatmap**, grouped by cohort
+      / self-paced), **Readers** (per-reader list).
+    - **Reader report** (`?reader=`) — one reader's per-question picks vs
+      the key, recovery on re-practice.
+    - **Scope switcher** (All readers / each cohort / Self-paced) on the
+      Overview + every per-note tab — filters every figure. Cohorts in a
+      **dropdown** (compact at scale); All + Self-paced stay buttons.
+      Reader names + cohort segment via a new `resolveReaderSegments`
+      (ownership-then-service-role over `nclex_users` + `nclex_enrolments`,
+      active ENROLLED membership; the embed-answers `*_tutor_select` RLS
+      already gates the answer rows). The 4-band lens (78/60/45) is
+      tunable.
+    - **Enabler shipped same arc:** the `embedded_questions` block gained
+      an optional **title** (`ab90da2`, merged) — the block label the
+      analytics groups by (falls back to "Practice N").
+    - **Deferrals (on record):** (a) **median time** (Questions footer) +
+      **time-on-block** (report) — omitted because the dev seed used a
+      placeholder `time_spent_sec`; they return with real timing data.
+      (b) The **Mark-done → progress write-through** stub (the other half
+      of 11.11c's original scope) was NOT touched. (c) The **student side**
+      (practice dashboard / metacognition from the CD prototype) is a
+      later session — the student practice itself stays the existing
+      11.13b player by decision. (d) Sam's "areas of improvement" list
+      (TBD) to revisit.
   - Known v1 follow-on: attaching a PROGRAMME_SCOPED note whose scope
     excludes the target programme can 404 the student read view
     (visibility-widen-on-attach not built; the shelf "mixed-visibility
