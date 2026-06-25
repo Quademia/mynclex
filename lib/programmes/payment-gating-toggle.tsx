@@ -60,7 +60,7 @@ export function PaymentGatingToggle({
       setOn(res.enabled);
       if (res.enabled) {
         setInfo(
-          'Payment now gates access — students overdue on a payment plan may be paused by tonight’s check.'
+          'Payment now gates access — students overdue on a payment plan may be paused automatically at the next payment check.'
         );
       } else if (res.resumedCount > 0) {
         const n = res.resumedCount;
@@ -149,7 +149,7 @@ function GatingConfirm({
         </p>
         <p className="auth-delete-confirm-hint">
           {turningOn
-            ? 'Students who are behind on a payment plan may be paused by tonight’s automatic check. You can turn this back off any time.'
+            ? 'Students who are behind on a payment plan may be paused automatically at the next payment check. You can turn this back off any time.'
             : 'Students currently paused for a late payment will regain access immediately, and future late payments won’t pause anyone on this programme. Students you paused by hand stay paused. You can turn this back on any time.'}
         </p>
         <div className="auth-delete-confirm-actions">

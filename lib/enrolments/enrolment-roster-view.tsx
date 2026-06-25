@@ -1391,7 +1391,7 @@ function TransitionConfirm({
           title: (name: string) => `Resume ${name}'s access?`,
           body: () =>
             row.paused_reason === 'INSTALLMENT_OVERDUE'
-              ? "This lets them back in right now, but they're still behind on payment — tonight's automatic check will pause them again unless they pay or you give them more time."
+              ? "This lets them back in right now, but they're still behind on payment — they'll be paused again automatically at the next payment check unless they pay or you give them more time."
               : 'This lifts the pause and restores their access.',
           confirmLabel: 'Resume access',
         }
