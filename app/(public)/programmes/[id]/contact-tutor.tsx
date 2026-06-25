@@ -1,20 +1,21 @@
-// mynclex/app/(public)/programmes/[id]/enquiry-cta.tsx
+// mynclex/app/(public)/programmes/[id]/contact-tutor.tsx
 //
-// Public "Contact tutor" CTA (Slice 8a). Sits in the detail rail for
-// programmes with no on-page commitment path — off-platform self-paced
-// (no cohorts to waitlist against) and price-hidden programmes of any
-// delivery mode (the tutor wants a conversation before quoting). The
-// page decides eligibility; this just renders the button + modal.
+// Universal "Contact the tutor" section (2026-06-25). Sits at the BOTTOM of
+// every programme detail page (after the About sections) — whether the
+// programme is enrol-able, waitlist-able, or neither. The point: contact is
+// universal, not gated behind the CTA branch. A visitor can ask about
+// anything (fit, schedule, pricing, joining) regardless of how they'd pay.
 //
-// Modal shape mirrors waitlist-cta.tsx (same chrome, same contact-
-// preference checkbox group, same conditional-phone-required, same
-// "thanks — we'll be in touch" success screen) so the two flows feel
-// like the same family. CONTACT_OPTIONS is imported from the shared
-// module so the two forms can't drift.
+// Generalised from the old rail-only EnquiryCta: same form + modal chrome as
+// waitlist-cta.tsx so the flows feel like one family, plus an optional
+// "which cohort?" field when the programme has joinable cohorts (folded into
+// the message server-side). Screens where contact is the PRIMARY path
+// (price-hidden / no open cohort) get a rail button that anchors to #contact-
+// tutor; the page owns that.
 //
-// Submission goes through submitEnquiryAction → nclex_submit_enquiry
-// RPC, which is anon-grantable, validates programme eligibility, and
-// is idempotent on (programme, email).
+// Submission goes through submitEnquiryAction → nclex_submit_enquiry RPC,
+// which now accepts any published programme (20260707120000) and is
+// idempotent on (programme, email) while a lead is open.
 
 'use client';
 
@@ -25,18 +26,21 @@ import {
   preferredContactNeedsPhone,
 } from '@/lib/discovery/contact-options';
 
-export function EnquiryCta({
+export interface ContactCohortOption {
+  id: string;
+  label: string;
+}
+
+export function ContactTutor({
   programmeId,
   tutorName,
-  reason,
+  cohorts,
 }: {
   programmeId: string;
   tutorName: string;
-  // Short copy explaining why we're showing this instead of an Enrol
-  // button — flips between the price-hidden case ("Reach out about
-  // pricing and joining") and the off-platform-with-price case ("This
-  // tutor collects fees directly — reach out to enrol").
-  reason: 'PRICE_HIDDEN' | 'OFF_PLATFORM';
+  // Joinable cohorts → an optional "which cohort?" field. Empty for
+  // self-paced / no-cohort programmes (the field is hidden).
+  cohorts: ContactCohortOption[];
 }) {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
@@ -65,23 +69,29 @@ export function EnquiryCta({
     });
   }
 
-  const blurb =
-    reason === 'PRICE_HIDDEN'
-      ? `${tutorName} prefers to talk before sharing the price. Leave your details and they'll be in touch.`
-      : `${tutorName} collects fees directly — reach out and they'll guide you through enrolling.`;
-
   return (
-    <div className="wl-cta">
-      <h3 className="wl-cta-title">Contact {tutorName}</h3>
-      <p className="wl-cta-blurb">{blurb}</p>
-      <button type="button" className="wl-cta-btn" onClick={openForm}>
-        Contact tutor
-      </button>
+    <section id="contact-tutor" className="det-contact">
+      <div className="det-contact-card">
+        <h2 className="det-contact-title">Have a question?</h2>
+        <p className="det-contact-blurb">
+          Message {tutorName} about anything — whether this programme is right
+          for you, the schedule, pricing, or joining a future cohort. No account
+          needed; they&apos;ll reply via your preferred channel.
+        </p>
+        <button
+          type="button"
+          className="pub-btn-primary det-contact-btn"
+          onClick={openForm}
+        >
+          Message {tutorName}
+        </button>
+      </div>
 
       {open && (
-        <EnquiryModal
+        <ContactModal
           programmeId={programmeId}
           tutorName={tutorName}
+          cohorts={cohorts}
           done={done}
           error={error}
           pending={pending}
@@ -89,13 +99,14 @@ export function EnquiryCta({
           onSubmit={handleSubmit}
         />
       )}
-    </div>
+    </section>
   );
 }
 
-function EnquiryModal({
+function ContactModal({
   programmeId,
   tutorName,
+  cohorts,
   done,
   error,
   pending,
@@ -104,6 +115,7 @@ function EnquiryModal({
 }: {
   programmeId: string;
   tutorName: string;
+  cohorts: ContactCohortOption[];
   done: boolean;
   error: string | null;
   pending: boolean;
@@ -136,7 +148,7 @@ function EnquiryModal({
         className="wl-modal"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="enquiry-modal-title"
+        aria-labelledby="contact-modal-title"
         onClick={(e) => e.stopPropagation()}
       >
         {done ? (
@@ -144,11 +156,11 @@ function EnquiryModal({
             <div className="wl-done-icon" aria-hidden="true">
               ✓
             </div>
-            <h2 id="enquiry-modal-title" className="wl-modal-title">
+            <h2 id="contact-modal-title" className="wl-modal-title">
               Message sent
             </h2>
             <p className="wl-modal-sub">
-              {tutorName} can see your enquiry and will reach out via your
+              {tutorName} can see your message and will reach out via your
               preferred channel. No need to do anything else for now.
             </p>
             <div className="wl-actions">
@@ -159,8 +171,8 @@ function EnquiryModal({
           </div>
         ) : (
           <>
-            <h2 id="enquiry-modal-title" className="wl-modal-title">
-              Contact {tutorName}
+            <h2 id="contact-modal-title" className="wl-modal-title">
+              Message {tutorName}
             </h2>
             <p className="wl-modal-sub">
               Leave your details and {tutorName} will get back to you. No
@@ -194,6 +206,28 @@ function EnquiryModal({
                   disabled={pending}
                 />
               </label>
+
+              {cohorts.length > 0 && (
+                <label className="wl-field">
+                  <span className="wl-field-label">
+                    Which cohort interests you?{' '}
+                    <span className="wl-optional">(optional)</span>
+                  </span>
+                  <select
+                    name="cohortInterest"
+                    className="wl-input"
+                    defaultValue=""
+                    disabled={pending}
+                  >
+                    <option value="">Just asking / not sure yet</option>
+                    {cohorts.map((c) => (
+                      <option key={c.id} value={c.label}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
 
               <fieldset className="wl-field wl-prefset">
                 <legend className="wl-field-label">

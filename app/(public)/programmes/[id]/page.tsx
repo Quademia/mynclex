@@ -28,7 +28,7 @@ import {
   yearsTutoringLabel,
 } from '@/lib/discovery/format';
 import { WaitlistCta } from './waitlist-cta';
-import { EnquiryCta } from './enquiry-cta';
+import { ContactTutor } from './contact-tutor';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,7 +56,6 @@ export default async function ProgrammeDetailPage({
     programme.headline_price_minor
   );
   const showPrice = programme.show_price_publicly;
-  const ctaLabel = selfPaced ? 'Start now' : 'Enrol';
 
   // Sub-line under the headline price. Off-platform programmes don't take
   // online payment; on-platform ones note whether plans are available and
@@ -85,15 +84,14 @@ export default async function ProgrammeDetailPage({
             : `Starts ${formatCohortDateLong(c.start_date)}`,
         }));
 
-  // CTA branching (Slice 8a — see BUILD_LIST §"Slice 8 scope refinement"):
-  // three mutually-exclusive end-states for the rail.
-  //   canEnrol    — on-platform with a real price and an open path (existing).
-  //   canWaitlist — tutor-led off-platform with joinable cohorts (Slice 4).
-  //   canEnquire  — every other case where the programme is still RPC-eligible:
-  //                 off-platform OR price hidden. Catches price-hidden any-mode,
-  //                 off-platform self-paced, AND tutor-led off-platform when it
-  //                 has no joinable cohort right now (which would otherwise be
-  //                 a dead-end "Enrolment isn't open" page).
+  // Rail CTA — two real actions, everything else routes to the universal
+  // Contact section (2026-06-25, no dead-ends):
+  //   canEnrol    — on-platform with a real price and an open path → checkout.
+  //   canWaitlist — tutor-led off-platform with joinable cohorts → waitlist.
+  //   railContact — all else (price-hidden, off-platform self-paced, tutor-led
+  //                 with no open cohort) → a rail button anchoring to the
+  //                 bottom Contact section. Contact itself is universal — it
+  //                 shows on EVERY programme, including enrol/waitlist ones.
   const isPriceHidden = !showPrice;
   const isOffPlatform = !isOnPlatform;
 
@@ -104,14 +102,13 @@ export default async function ProgrammeDetailPage({
     (selfPaced || waitlistCohorts.length > 0);
   const canWaitlist =
     !selfPaced && isOffPlatform && showPrice && waitlistCohorts.length > 0;
-  const canEnquire =
-    !canEnrol && !canWaitlist && (isOffPlatform || isPriceHidden);
 
-  // Picks the modal's blurb wording — "talk before pricing" vs "tutor
-  // collects directly" — so the message matches why we're showing the form.
-  const enquiryReason: 'PRICE_HIDDEN' | 'OFF_PLATFORM' = isPriceHidden
-    ? 'PRICE_HIDDEN'
-    : 'OFF_PLATFORM';
+  // Everything that's neither enrol nor waitlist routes to the universal
+  // Contact section at the page bottom — no dead-ends. Covers price-hidden
+  // (any mode), off-platform self-paced, and tutor-led with no open cohort
+  // (incl. the old on-platform "enrolment isn't open" stub). The rail shows a
+  // short reason + a button anchoring down to #contact-tutor.
+  const railContact = !canEnrol && !canWaitlist;
 
   // Short note under the Enrol button: the soonest joinable cohort for
   // tutor-led (no seat counts — the public view omits them by design).
@@ -134,6 +131,14 @@ export default async function ProgrammeDetailPage({
   const yrs = yearsTutoringLabel(prof?.years_experience);
   const headerSub = [prof?.headline, yrs].filter(Boolean).join(' · ');
   const personFirst = (programme.tutor_name ?? '').trim().split(/\s+/)[0] || 'the tutor';
+
+  // The reason shown in the rail when contact is the path (railContact) —
+  // matches WHY there's no enrol/waitlist button.
+  const railContactNote = isPriceHidden
+    ? `${personFirst} prefers to talk before sharing the price.`
+    : !selfPaced && !nextJoinable
+      ? 'No cohort is scheduled yet — message the tutor to be notified when the next one opens.'
+      : `Reach out to ${personFirst} to get started.`;
 
   return (
     <main className="pub-content">
@@ -295,10 +300,10 @@ export default async function ProgrammeDetailPage({
               <div className="price price-contact">Contact for price</div>
             )}
 
-            {/* Rail CTA — only shows the disabled "coming soon" stub when
-                no other path applies (i.e. we'd otherwise dead-end). When
-                canEnquire / canWaitlist, the dedicated CTA card below the
-                rail takes over so we don't double-up on call-to-action. */}
+            {/* Rail CTA: Enrol (checkout) when payable, else a "Message
+                {tutor} ↓" button that anchors to the universal Contact
+                section. Waitlist programmes show neither here — their card
+                renders below the rail. */}
             {canEnrol ? (
               <div className="det-cta">
                 <Link className="pub-btn-primary" href={`/checkout/programme/${id}`}>
@@ -308,14 +313,12 @@ export default async function ProgrammeDetailPage({
                   {selfPaced ? 'No cohort wait · instant access' : nextCohortNote}
                 </p>
               </div>
-            ) : !canEnquire && !canWaitlist ? (
+            ) : railContact ? (
               <div className="det-cta">
-                <button type="button" className="pub-btn-primary" disabled>
-                  {ctaLabel}
-                </button>
-                <p className="det-cta-note">
-                  Enrolment isn&apos;t open right now — check back soon.
-                </p>
+                <a className="pub-btn-primary" href="#contact-tutor">
+                  Message {personFirst} ↓
+                </a>
+                <p className="det-cta-note">{railContactNote}</p>
               </div>
             ) : null}
 
@@ -355,15 +358,16 @@ export default async function ProgrammeDetailPage({
           {canWaitlist && (
             <WaitlistCta cohorts={waitlistCohorts} tutorName={personFirst} />
           )}
-          {canEnquire && (
-            <EnquiryCta
-              programmeId={id}
-              tutorName={personFirst}
-              reason={enquiryReason}
-            />
-          )}
         </aside>
       </div>
+
+      {/* Universal contact — every programme, whether enrol-able or not.
+          The rail's "Message {tutor} ↓" button (railContact) anchors here. */}
+      <ContactTutor
+        programmeId={id}
+        tutorName={personFirst}
+        cohorts={waitlistCohorts}
+      />
     </main>
   );
 }
