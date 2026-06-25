@@ -25,7 +25,9 @@
 'use client';
 
 import { useState, useTransition, type ReactNode } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { checkEmail, startPaymentAction } from '@/lib/payments/actions';
+import { loginHref } from '@/lib/auth/safe-next';
 import type { CheckoutTarget, Currency } from '@/lib/payments/types';
 
 export interface OrderLine {
@@ -83,6 +85,16 @@ export function CheckoutShell({
   const [pending, startTransition] = useTransition();
   const [activeStep, setActiveStep] = useState(0);
 
+  // Current checkout URL — so the dup panel can send a returning student to
+  // /login and bring them right back here (loginHref guards the path).
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // `busy` locks the email FIELD while the dup-check is in flight. It must NOT
+  // gate the Pay button: doing so let the email's onBlur dup-check (fired by the
+  // very click on Pay) disable the button a beat before the click landed, so the
+  // first click was swallowed and a second was needed. Pay now gates on
+  // `pending` only, and pay() re-checks the email itself (see below).
   const busy = pending || checkingEmail;
   const totalMinor = lineItems.reduce((sum, li) => sum + li.amountMinor, 0);
 
@@ -100,6 +112,13 @@ export function CheckoutShell({
       : dupExists
         ? 'Log in to continue with this email'
         : null;
+
+  // Where the "Log in to continue" link points: back to this checkout, with
+  // the typed email prefilled. After signing in, loginAction returns them here.
+  const returnPath = searchParams?.toString()
+    ? `${pathname}?${searchParams.toString()}`
+    : pathname;
+  const loginUrl = loginHref(returnPath, emailValid ? { email: emailValue } : undefined);
 
   // Dup-check on blur: an existing account pauses checkout (log in instead).
   // A logged-in buyer's own email is skipped — they ARE that account.
@@ -142,6 +161,26 @@ export function CheckoutShell({
     }
 
     startTransition(async () => {
+      // Re-confirm the email isn't an existing account before paying as a guest.
+      // The onBlur check may still be in flight (or never ran) when Pay is
+      // clicked — and Pay no longer disables while it runs — so this is the
+      // reliable guard. A logged-in buyer's own email is skipped: they ARE that
+      // account. A network hiccup here falls through to init.ts as the backstop.
+      const isOwnEmail =
+        accountEmail != null && value === accountEmail.trim().toLowerCase();
+      if (!isOwnEmail) {
+        try {
+          const { exists } = await checkEmail(value);
+          if (exists) {
+            setDupExists(true);
+            setError('This email already has an account — log in to continue.');
+            return;
+          }
+        } catch {
+          // ignore — proceed; the server re-validates identity at activation.
+        }
+      }
+
       const res = await startPaymentAction({ email: value, target: buildTarget() });
       if (!res.ok) {
         setError(res.error);
@@ -174,7 +213,7 @@ export function CheckoutShell({
             if (dupExists) setDupExists(false);
           }}
           onBlur={onEmailBlur}
-          disabled={pending}
+          disabled={busy}
         />
         <span className="co-field-help">
           We&apos;ll email your receipt and your account-setup link here. We&apos;ll ask your
@@ -186,7 +225,7 @@ export function CheckoutShell({
         <div className="co-dup" role="alert">
           <h4>This email already has a MyNclex account.</h4>
           <p>Log in to continue — we&apos;ll bring your existing account into this checkout.</p>
-          <a className="co-dup-btn" href="/login">
+          <a className="co-dup-btn" href={loginUrl}>
             Log in to continue →
           </a>
         </div>
@@ -306,11 +345,11 @@ export function CheckoutShell({
             type="button"
             className="co-pay-btn"
             onClick={pay}
-            disabled={busy || !canPay}
+            disabled={pending || !canPay}
           >
             {pending ? 'Starting…' : 'Pay with Paystack →'}
           </button>
-          {!busy && !canPay && payBlockedReason && (
+          {!pending && !canPay && payBlockedReason && (
             <p className="co-pay-hint">{payBlockedReason}</p>
           )}
         </div>
@@ -345,7 +384,7 @@ export function CheckoutShell({
               type="button"
               className="co-mobile-btn"
               onClick={pay}
-              disabled={busy || !canPay}
+              disabled={pending || !canPay}
             >
               {pending ? 'Starting…' : 'Pay with Paystack →'}
             </button>

@@ -1,28 +1,29 @@
 // mynclex/app/login/page.tsx
+//
+// Server component: reads an optional `next` return path + `email` prefill from
+// the URL (used when another surface — e.g. checkout's "log in to continue" —
+// sent the user here), validates `next`, and hands both to the client form.
+// `next` is forwarded on the Create-one link too, so it survives if they
+// register instead.
 
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
-import { loginAction } from './actions';
+import { LoginForm } from './login-form';
+import { safeNext } from '@/lib/auth/safe-next';
 import '@/styles/tokens.css';
 import '@/styles/auth.css';
 
-export default function LoginPage() {
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string; email?: string }>;
+}) {
+  const sp = await searchParams;
+  const next = safeNext(sp.next) ?? undefined;
+  const initialEmail = typeof sp.email === 'string' ? sp.email : undefined;
 
-  async function handleSubmit(formData: FormData) {
-    setError(null);
-    setSubmitting(true);
-
-    const result = await loginAction(formData);
-
-    if (!result?.ok && result?.error) {
-      setError(result.error);
-    }
-    setSubmitting(false);
-  }
+  const registerHref = next
+    ? `/register?next=${encodeURIComponent(next)}`
+    : '/register';
 
   return (
     <main className="auth-main">
@@ -32,38 +33,10 @@ export default function LoginPage() {
           <p className="auth-subtitle">Sign in to continue your NCLEX-RN prep.</p>
         </div>
 
-        <form className="auth-form" action={handleSubmit}>
-          <div className="auth-field">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-            />
-          </div>
-
-          <div className="auth-field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-            />
-          </div>
-
-          {error && <div className="auth-error">{error}</div>}
-
-          <button type="submit" className="auth-submit" disabled={submitting}>
-            {submitting ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
+        <LoginForm next={next} initialEmail={initialEmail} />
 
         <div className="auth-footer">
-          Don&apos;t have an account? <Link href="/register">Create one</Link>
+          Don&apos;t have an account? <Link href={registerHref}>Create one</Link>
         </div>
       </section>
     </main>
