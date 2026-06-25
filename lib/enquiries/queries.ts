@@ -74,3 +74,18 @@ export async function getEnquiriesForTutor(): Promise<EnquiryWithProgramme[]> {
     };
   });
 }
+
+// Count of NEW (untouched) enquiries across the tutor's own programmes —
+// the "unread" badge on the global Enquiries nav item. RLS scopes the count
+// to owned programmes; `head: true` fetches the count with no rows. Returns
+// 0 on error so a hiccup never blocks the shell from rendering.
+export async function getNewEnquiryCountForTutor(): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from('nclex_programme_enquiries')
+    .select('enquiry_id', { count: 'exact', head: true })
+    .eq('status', 'NEW');
+
+  if (error || count == null) return 0;
+  return count;
+}

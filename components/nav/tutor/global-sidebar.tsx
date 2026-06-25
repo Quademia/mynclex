@@ -23,27 +23,55 @@ import { useMemo, useState } from 'react';
 import type { NavItem } from '@/lib/nav/types';
 import { NavIcon } from '@/components/nav/shared/nav-icon';
 
-export function TutorGlobalSidebar({ items }: { items: NavItem[] }) {
+export function TutorGlobalSidebar({
+  items,
+  badges,
+}: {
+  items: NavItem[];
+  // Per-NavItem.key count badges (e.g. { enquiries: 3 }). > 0 → a pill.
+  badges?: Record<string, number>;
+}) {
   const pathname = usePathname() ?? '';
   return (
     <aside className="sidebar" aria-label="Tutor navigation">
       {items.map((item) => (
-        <SidebarRow key={item.key} item={item} pathname={pathname} />
+        <SidebarRow
+          key={item.key}
+          item={item}
+          pathname={pathname}
+          badge={badges?.[item.key]}
+        />
       ))}
     </aside>
   );
 }
 
-function SidebarRow({ item, pathname }: { item: NavItem; pathname: string }) {
+function SidebarRow({
+  item,
+  pathname,
+  badge,
+}: {
+  item: NavItem;
+  pathname: string;
+  badge?: number;
+}) {
   // Split into two components below so React Hook order stays stable
   // — flat rows have no hooks; parent rows always call useMemo + useState.
   if (item.children?.length) {
     return <ParentRow item={item} pathname={pathname} />;
   }
-  return <FlatRow item={item} pathname={pathname} />;
+  return <FlatRow item={item} pathname={pathname} badge={badge} />;
 }
 
-function FlatRow({ item, pathname }: { item: NavItem; pathname: string }) {
+function FlatRow({
+  item,
+  pathname,
+  badge,
+}: {
+  item: NavItem;
+  pathname: string;
+  badge?: number;
+}) {
   const isActive = item.exact
     ? pathname === item.href
     : pathname.startsWith(item.href);
@@ -55,6 +83,11 @@ function FlatRow({ item, pathname }: { item: NavItem; pathname: string }) {
     >
       <NavIcon name={item.icon} />
       <span className="nav-label">{item.label}</span>
+      {badge && badge > 0 ? (
+        <span className="nav-badge" aria-label={`${badge} new`}>
+          {badge > 9 ? '9+' : badge}
+        </span>
+      ) : null}
     </Link>
   );
 }

@@ -286,6 +286,24 @@
   transform: rotate(180deg);
 }
 
+/* Count badge in a drawer row (e.g. new enquiries). The flex:1 label
+   pushes it to the trailing edge; hidden at 0 (component renders nothing). */
+.m-nav-badge {
+  flex-shrink: 0;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .m-drawer-userbar {
   display: flex;
   align-items: center;

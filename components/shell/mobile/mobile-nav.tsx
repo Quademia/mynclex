@@ -74,6 +74,7 @@ export function MobileNav({
   centerSlot,
   drawerHeader,
   profileHref,
+  badges,
 }: {
   displayName: string;
   email: string;
@@ -86,6 +87,8 @@ export function MobileNav({
   drawerHeader?: React.ReactNode;
   /** Account-sheet Profile target; omit where no route exists yet (admin). */
   profileHref?: string;
+  /** Per-NavItem.key count badges (e.g. { enquiries: 3 }) shown in the drawer. */
+  badges?: Record<string, number>;
 }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -208,6 +211,7 @@ export function MobileNav({
         </div>,
       );
     } else {
+      const badge = badges?.[item.key];
       navRows.push(
         <Link
           key={item.key}
@@ -217,6 +221,11 @@ export function MobileNav({
         >
           <NavIcon name={item.icon} />
           <span className="m-nav-label">{item.label}</span>
+          {badge && badge > 0 ? (
+            <span className="m-nav-badge" aria-label={`${badge} new`}>
+              {badge > 9 ? '9+' : badge}
+            </span>
+          ) : null}
         </Link>,
       );
     }
