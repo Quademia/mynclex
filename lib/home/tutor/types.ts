@@ -36,7 +36,8 @@ export type HomeEnquiry = {
 export type HomeBehindCohort = {
   cohortId: string;
   /** Parent programme id — the row links into the programme Cohorts
-   * page's in-page run detail (?cohort=&tab=analytics). */
+   * page's in-page run detail (?cohort=), whose Overview landing is the
+   * analytics dashboard. */
   programmeId: string;
   /** Cohort display name (or its date range). */
   cohort: string;

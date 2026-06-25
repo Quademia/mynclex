@@ -380,6 +380,25 @@
   text-decoration: underline;
 }
 
+/* Overview landing = the merged analytics dashboard. A slim action row sits
+   above it (enrolment count + Manage enrolments), and a cancelled banner when
+   relevant — so class health stays the focal point. */
+.cohort-overview .cohort-overview-card.is-cancelled {
+  margin-bottom: 14px;
+}
+.cohort-overview-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.cohort-overview-enrolled {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 /* Settings tab — bordered "panels" stacked vertically */
 
 .cohort-settings-card {

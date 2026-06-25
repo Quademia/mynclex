@@ -185,7 +185,7 @@ function EnquiryRow({ e }: { e: HomeEnquiry }) {
 
 function CohortRow({ c }: { c: HomeBehindCohort }) {
   return (
-    <Link className={`th-attn-item th-coh sev-${c.sev}`} href={`/tutor/programme/${c.programmeId}/cohorts?cohort=${c.cohortId}&tab=analytics`}>
+    <Link className={`th-attn-item th-coh sev-${c.sev}`} href={`/tutor/programme/${c.programmeId}/cohorts?cohort=${c.cohortId}`}>
       <span className={`th-attn-dot th-coh-dot sev-${c.sev}`} />
       <div className="th-attn-body">
         <div className="th-attn-line1">

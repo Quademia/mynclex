@@ -17,7 +17,6 @@ import { getCohortAnalytics } from '@/lib/analytics/tutor/cohort-queries';
 import { CohortAnalyticsView } from '@/lib/analytics/tutor/analytics-view';
 import { getCohortChecklist, getCohortForShell } from './queries';
 import { CohortCurriculum } from './cohort-curriculum';
-import { CohortOverviewPane } from './cohort-overview-pane';
 import { CohortSessionsPane } from './cohort-sessions-pane';
 import { CohortSettingsPane } from './cohort-settings-pane';
 import { CohortPaymentPlansPane } from '@/lib/strategies/cohort-payment-plans-pane';
@@ -31,10 +30,13 @@ import {
   formatDateRange,
 } from './format';
 
+// Analytics folded INTO Overview (2026-06-25): the Overview landing now IS
+// the cohort analytics dashboard, plus a slim enrolment action + cancelled
+// banner. An old `&tab=analytics` URL falls through parse → 'overview', so
+// existing deep links keep working without a redirect.
 export const COHORT_DETAIL_TABS = [
   'overview',
   'curriculum',
-  'analytics',
   'sessions',
   'pricing',
   'settings',
@@ -45,7 +47,6 @@ export type CohortDetailTab = (typeof COHORT_DETAIL_TABS)[number];
 const TAB_LABEL: Record<CohortDetailTab, string> = {
   overview: 'Overview',
   curriculum: 'Curriculum',
-  analytics: 'Analytics',
   sessions: 'Sessions',
   pricing: 'Pricing',
   settings: 'Settings',
@@ -186,13 +187,49 @@ async function CohortDetailPane({
 }) {
   switch (tab) {
     case 'overview': {
-      const analytics = await getCohortAnalytics(cohortId);
+      // The merged landing: the cohort analytics dashboard, topped with a
+      // cancelled banner (when relevant) + a slim enrolment action so the
+      // run's health is the first thing the eye lands on.
+      const analytics = await getCohortAnalytics(cohortId, {
+        includePerformance: true,
+      });
+      const status = cohortStatus(ctx.cohort);
+      const enrolmentsHref = `/tutor/programme/${programmeId}/enrolments?cohort=${cohortId}`;
+      const seatBit =
+        ctx.cohort.cohort_size != null ? ` · ${ctx.cohort.cohort_size} seats` : '';
       return (
-        <CohortOverviewPane
-          programmeId={programmeId}
-          cohort={ctx.cohort}
-          analytics={analytics}
-        />
+        <div className="cohort-overview">
+          {status === 'CANCELLED' && ctx.cohort.cancelled_at && (
+            <section className="cohort-overview-card is-cancelled">
+              <h2 className="cohort-overview-card-title">Cancelled</h2>
+              <p className="cohort-overview-prose">
+                This cohort was cancelled on{' '}
+                {new Date(ctx.cohort.cancelled_at).toLocaleDateString()}. Students
+                lose access; new enrolments are blocked. Contact an admin to
+                reinstate it if needed.
+              </p>
+            </section>
+          )}
+
+          <div className="cohort-overview-actions">
+            <span className="cohort-overview-enrolled">
+              {analytics
+                ? `${analytics.summary.studentCount} enrolled${seatBit}`
+                : 'Enrolment'}
+            </span>
+            <Link href={enrolmentsHref} className="cohort-overview-link">
+              Manage enrolments →
+            </Link>
+          </div>
+
+          {analytics ? (
+            <CohortAnalyticsView data={analytics} />
+          ) : (
+            <p className="an-note">
+              Analytics will appear once this cohort has students.
+            </p>
+          )}
+        </div>
       );
     }
     case 'curriculum': {
@@ -200,13 +237,6 @@ async function CohortDetailPane({
       // Guarded above; null only on a race (cohort deleted mid-request).
       if (!tree) return null;
       return <CohortCurriculum tree={tree} />;
-    }
-    case 'analytics': {
-      const data = await getCohortAnalytics(cohortId, {
-        includePerformance: true,
-      });
-      if (!data) return null;
-      return <CohortAnalyticsView data={data} />;
     }
     case 'sessions':
       return (
