@@ -63,9 +63,12 @@ type LoadState =
 export function EmbedPreview({
   noteId,
   blockId,
+  title,
 }: {
   noteId: string;
   blockId: string;
+  /** Optional tutor-given name for this practice checkpoint. */
+  title?: string;
 }) {
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
 
@@ -98,6 +101,7 @@ export function EmbedPreview({
     <EmbedPreviewPaged
       noteId={noteId}
       blockId={blockId}
+      title={title}
       questions={load.questions}
     />
   );
@@ -126,10 +130,12 @@ function isComplete(q: EmbedPlayQuestion, answer: BankItemAnswer): boolean {
 function EmbedPreviewPaged({
   noteId,
   blockId,
+  title,
   questions,
 }: {
   noteId: string;
   blockId: string;
+  title?: string;
   questions: EmbedPlayQuestion[];
 }) {
   const total = questions.length;
@@ -189,6 +195,9 @@ function EmbedPreviewPaged({
         <span className="eq-player-tab">
           <span aria-hidden="true">✦</span> Practice
         </span>
+        {title && title.trim() && (
+          <span className="eq-preview-title">{title}</span>
+        )}
         <span className="eq-preview-note">
           {total > 1 ? `Question ${idx + 1} of ${total}` : `${total} question`}
           <span className="eq-preview-unsaved"> · preview, not saved</span>
