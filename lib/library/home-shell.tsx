@@ -422,6 +422,18 @@ export function LibraryHomeShell({
             {!railed && <span className="label">Overview</span>}
           </Link>
 
+          {/* Question analytics — the reading-check analytics over the
+              embedded-questions blocks (slice 11.11c). A peer of Overview;
+              its own route (so never "active" on this notes page). */}
+          <Link
+            href="/tutor/library/analytics"
+            className="lens-home"
+            title={railed ? 'Question analytics' : undefined}
+          >
+            <span className="lens-home-icon" aria-hidden="true">📊</span>
+            {!railed && <span className="label">Question analytics</span>}
+          </Link>
+
           {ALL_SECTIONS.map((key) => (
             <LensSection
               key={key}
