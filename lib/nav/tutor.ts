@@ -44,6 +44,10 @@ export const TUTOR_GLOBAL_NAV: NavItem[] = [
   // visually distinct from the adjacent `book` Bank entry.
   { key: 'library',  label: 'Library',     icon: 'tutor', href: '/tutor/library' },
   { key: 'quizzes',  label: 'Quizzes',     icon: 'target', href: '/tutor/quizzes' },
+  // Global lead inbox — every enquiry across all the tutor's programmes
+  // (peer of the global Payments ledger). Sits before Students in the
+  // funnel order: enquiry → enrolment → student → payment.
+  { key: 'enquiries', label: 'Enquiries',  icon: 'mail',  href: '/tutor/enquiries' },
   { key: 'students', label: 'My Students', icon: 'users', href: '/tutor/students' },
   { key: 'payments', label: 'Payments',    icon: 'card',  href: '/tutor/payments' },
   { key: 'profile',  label: 'Profile',     icon: 'user',  href: '/tutor/profile' },

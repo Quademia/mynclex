@@ -1,11 +1,15 @@
-// mynclex/app/(app)/tutor/programme/[programme_id]/enquiries/enquiries-panel.tsx
+// mynclex/lib/enquiries/enquiries-panel.tsx
 //
 // Tutor enquiry queue UI (Slice 8 — V1 polished inbox, CD-driven rebuild).
+// Shared by the per-programme tab AND the global /tutor/enquiries inbox
+// (2026-06-25). The programme dimension is ADDITIVE: pass `showProgramme`
+// + `programmes` to get a programme column + filter (global inbox); omit
+// them and it renders exactly as the per-programme tab always did.
 //
 // Three sections stacked vertically:
 //   1. KPI strip — 5 cards (Needs reply now / Open / Avg response / Converted /
 //      Top channel). Read straight from computeTutorStats on the server.
-//   2. Toolbar — filter chips + free-text search.
+//   2. Toolbar — filter chips + (global) programme filter + free-text search.
 //   3. Split — day-grouped list (left, urgency strip per row) + detail pane
 //      (right): head + reply bar + message + quick replies + notes + footer.
 //
@@ -17,7 +21,9 @@
 // Notes auto-save with a 800ms debounce.
 //
 // All data flows from the rows fetched once on the server; selection +
-// filter + search + notes-draft are pure client state.
+// filter + search + notes-draft are pure client state. The status actions
+// key off enquiry_id (programme-agnostic) + re-check ownership server-side,
+// so the same actions serve both the per-programme and global surfaces.
 
 'use client';
 
@@ -40,17 +46,22 @@ import type { TutorEnquiryStats } from '@/lib/enquiries/aggregations';
 import type { ContactChannel } from '@/lib/discovery/contact-options';
 import { QUICK_REPLY_TEMPLATES, renderTemplate, type QuickReplyTemplate } from '@/lib/enquiries/templates';
 
+// A row the panel can render. The global inbox carries the parent
+// programme's title (for the column + filter + quick-reply context); the
+// per-programme page leaves it undefined.
+type PanelEnquiry = Enquiry & { programme_title?: string };
+
 type FilterKey = 'OPEN' | 'NEW' | 'CONTACTED' | 'CONVERTED' | 'CLOSED' | 'ALL';
 
 const OPEN_STATUSES: ReadonlySet<EnquiryStatus> = new Set(['NEW', 'CONTACTED']);
 
-function matchesFilter(e: Enquiry, filter: FilterKey): boolean {
+function matchesFilter(e: PanelEnquiry, filter: FilterKey): boolean {
   if (filter === 'ALL') return true;
   if (filter === 'OPEN') return OPEN_STATUSES.has(e.status);
   return e.status === filter;
 }
 
-function matchesSearch(e: Enquiry, q: string): boolean {
+function matchesSearch(e: PanelEnquiry, q: string): boolean {
   if (!q) return true;
   const needle = q.toLowerCase();
   return (
@@ -139,12 +150,20 @@ function Icon({ name, className }: { name: 'whatsapp' | 'phone' | 'mail' | 'chec
 export function EnquiriesPanel({
   enquiries,
   stats,
+  showProgramme = false,
+  emptyMessage,
 }: {
-  // programmeId isn't read here — server actions revalidate the right
-  // route from each enquiry's own programme_id. Kept off the props.
-  programmeId: string;
-  enquiries: Enquiry[];
+  enquiries: PanelEnquiry[];
   stats: TutorEnquiryStats;
+  // Global inbox: render a per-row programme label + thread the programme
+  // name into quick replies. The per-programme page omits it and renders
+  // unchanged. The PROGRAMME scope itself lives one level up (the header
+  // picker drives ?programme=), so the panel always renders the set it's
+  // handed. `emptyMessage` overrides the "no enquiries at all" copy — the
+  // global page passes a programme-named one when scoped to a lead-free
+  // programme.
+  showProgramme?: boolean;
+  emptyMessage?: string;
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<FilterKey>('OPEN');
@@ -214,7 +233,7 @@ export function EnquiriesPanel({
   // Reply-bar shared behaviour: open a channel + flip to CONTACTED. The
   // server action errors with "only new" when already CONTACTED; we
   // suppress that since the channel-open is the main action.
-  function openChannelAndMarkContacted(href: string, enquiry: Enquiry) {
+  function openChannelAndMarkContacted(href: string, enquiry: PanelEnquiry) {
     if (typeof window !== 'undefined') {
       window.open(href, '_blank', 'noopener,noreferrer');
     }
@@ -275,12 +294,15 @@ export function EnquiriesPanel({
             selectedId={selectedId}
             onSelect={setSelectedId}
             totalCount={enquiries.length}
+            showProgramme={showProgramme}
+            emptyMessage={emptyMessage}
           />
         </aside>
         <section className="ti-detail-col" aria-label="Enquiry detail">
           {selected ? (
             <EnquiryDetail
               enquiry={selected}
+              showProgramme={showProgramme}
               pending={actionPending}
               onOpenChannel={(href) => openChannelAndMarkContacted(href, selected)}
               onMarkContactedOnly={() => runAction(() => markContactedAction(selected.enquiry_id))}
@@ -289,7 +311,11 @@ export function EnquiriesPanel({
             />
           ) : (
             <div className="ti-detail-empty">
-              {enquiries.length === 0 ? 'No enquiries to show yet.' : 'Select an enquiry on the left.'}
+              {enquiries.length === 0
+                ? 'No enquiries to show yet.'
+                : shown.length === 0
+                  ? 'Nothing matches the current filter.'
+                  : 'Select an enquiry on the left.'}
             </div>
           )}
         </section>
@@ -393,24 +419,29 @@ function EnquiryList({
   selectedId,
   onSelect,
   totalCount,
+  showProgramme,
+  emptyMessage,
 }: {
-  rows: Enquiry[];
+  rows: PanelEnquiry[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   totalCount: number;
+  showProgramme: boolean;
+  emptyMessage?: string;
 }) {
   if (rows.length === 0) {
     return (
       <div className="ti-list-empty">
         {totalCount === 0
-          ? "No enquiries yet. They'll appear here when students send a message from your programme's public page."
+          ? (emptyMessage ??
+            "No enquiries yet. They'll appear here when students send a message from a programme's public page.")
           : 'No enquiries match this filter or search.'}
       </div>
     );
   }
 
   // Group by day bucket, preserving the source order within each group.
-  const groups: Record<DayBucket, Enquiry[]> = {
+  const groups: Record<DayBucket, PanelEnquiry[]> = {
     Today: [], Yesterday: [], 'This week': [], Older: [],
   };
   for (const e of rows) groups[dayBucket(e.created_at)].push(e);
@@ -434,6 +465,7 @@ function EnquiryList({
                   enquiry={e}
                   active={e.enquiry_id === selectedId}
                   onSelect={() => onSelect(e.enquiry_id)}
+                  showProgramme={showProgramme}
                 />
               ))}
             </ul>
@@ -448,10 +480,12 @@ function EnquiryRow({
   enquiry,
   active,
   onSelect,
+  showProgramme,
 }: {
-  enquiry: Enquiry;
+  enquiry: PanelEnquiry;
   active: boolean;
   onSelect: () => void;
+  showProgramme: boolean;
 }) {
   const tier = urgencyTier(enquiry.created_at, enquiry.status);
   const pill = statusPill(enquiry.status);
@@ -472,6 +506,9 @@ function EnquiryRow({
             <span className="ti-row-when">{relTime(enquiry.created_at)}</span>
           </span>
           <span className="ti-row-snippet">{snippet}</span>
+          {showProgramme && enquiry.programme_title && (
+            <span className="ti-row-programme">{enquiry.programme_title}</span>
+          )}
           <span className="ti-row-meta">
             <span className={`ti-pill ti-pill-${pill.tone}`}>{pill.label}</span>
             {enquiry.preferred_contact.slice(0, 2).map((ch) => (
@@ -506,13 +543,15 @@ function EnquiryRow({
 
 function EnquiryDetail({
   enquiry,
+  showProgramme,
   pending,
   onOpenChannel,
   onMarkContactedOnly,
   onMarkClosed,
   onSaveNotes,
 }: {
-  enquiry: Enquiry;
+  enquiry: PanelEnquiry;
+  showProgramme: boolean;
   pending: boolean;
   onOpenChannel: (href: string) => void;
   onMarkContactedOnly: () => void;
@@ -566,6 +605,12 @@ function EnquiryDetail({
                 <>
                   <span className="ti-detail-sub-sep">·</span>
                   <span>Contacted {relTime(enquiry.contacted_at)}</span>
+                </>
+              )}
+              {showProgramme && enquiry.programme_title && (
+                <>
+                  <span className="ti-detail-sub-sep">·</span>
+                  <span className="ti-detail-programme">{enquiry.programme_title}</span>
                 </>
               )}
             </div>
@@ -708,17 +753,17 @@ function QuickReplies({
   disabled,
   onPick,
 }: {
-  enquiry: Enquiry;
+  enquiry: PanelEnquiry;
   disabled: boolean;
   onPick: (href: string) => void;
 }) {
-  // Programme + tutor names are not in the row today — the template
-  // placeholders fall back gracefully when those values aren't yet
-  // populated. Down the line we can pass them in as props.
+  // Programme name comes through on the global inbox (per-programme page
+  // leaves it blank); the tutor name still threads in later. Template
+  // placeholders fall back gracefully when a value isn't populated.
   const ctx = {
     name: enquiry.name.split(/\s+/)[0] ?? enquiry.name,
     tutor: '',           // filled in later when we thread tutor name through
-    programme: '',       // ditto for programme title
+    programme: enquiry.programme_title ?? '',
   };
 
   // Pick the best channel to open for a template, given the lead's

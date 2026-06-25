@@ -56,6 +56,8 @@ async function updateEnquiry(
     .eq('enquiry_id', enquiryId);
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/tutor/programme/${programmeId}/enquiries`);
+  // The same enquiry also shows on the global inbox — refresh both.
+  revalidatePath('/tutor/enquiries');
   return { ok: true };
 }
 

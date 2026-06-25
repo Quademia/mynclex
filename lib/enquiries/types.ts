@@ -55,3 +55,9 @@ export type Enquiry = {
   created_at: string;
   updated_at: string;
 };
+
+// The same row plus its parent programme's title — the shape the GLOBAL
+// tutor enquiries inbox reads (leads across every programme, with a
+// programme column + filter). The per-programme page uses the bare Enquiry
+// (it already knows which programme it's in).
+export type EnquiryWithProgramme = Enquiry & { programme_title: string };

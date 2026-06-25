@@ -882,6 +882,56 @@
   font-family: inherit;
 }
 
+/* Global inbox extras (only the global /tutor/enquiries renders these):
+   a programme SCOPE picker in the page header + a per-row / detail
+   programme label. The per-programme tab omits them all. */
+.ti-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ti-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.ti-scope-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.ti-scope-select {
+  height: 36px;
+  max-width: 260px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  padding: 0 12px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+}
+.ti-row-programme {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ti-detail-programme {
+  font-weight: 600;
+  color: var(--text);
+}
+
 /* Split — list + detail. */
 .ti-split {
   display: grid;

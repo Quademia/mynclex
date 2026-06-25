@@ -12,7 +12,7 @@
 import { getProgrammeForShell } from '@/lib/programmes/queries';
 import { getEnquiriesForProgramme } from '@/lib/enquiries/queries';
 import { computeTutorStats } from '@/lib/enquiries/aggregations';
-import { EnquiriesPanel } from './enquiries-panel';
+import { EnquiriesPanel } from '@/lib/enquiries/enquiries-panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,11 +41,7 @@ export default async function ProgrammeEnquiriesPage({
         </p>
       </header>
 
-      <EnquiriesPanel
-        programmeId={programme_id}
-        enquiries={enquiries}
-        stats={stats}
-      />
+      <EnquiriesPanel enquiries={enquiries} stats={stats} />
     </div>
   );
 }
