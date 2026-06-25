@@ -917,6 +917,48 @@
   font-family: inherit;
   cursor: pointer;
 }
+
+/* Scope strip — the "what am I viewing" banner under the header. Faintly
+   accent-tinted so it reads as a status bar, not body text. Scope + lead
+   count on the left, channel tip on the right; stacks on a narrow screen. */
+.ti-scope-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 20px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--white));
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+  border-radius: 10px;
+}
+.ti-scope-strip-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--text);
+}
+.ti-scope-strip-ic {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.ti-scope-strip-view strong {
+  font-weight: 700;
+}
+.ti-scope-strip-count {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.ti-scope-strip-tip {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
 .ti-row-programme {
   display: block;
   margin-top: 3px;

@@ -201,8 +201,9 @@ export function ProgrammeOverview({ data }: { data: ProgrammeOverviewData }) {
           </>
         )}
 
-        {/* 4 — Open enquiries (both modes, amber) */}
-        <Link href={href('enquiries')} className="pov-kpi is-amber">
+        {/* 4 — Open enquiries (both modes, amber). Enquiries live on the
+            global inbox now, pre-scoped to this programme. */}
+        <Link href={`/tutor/enquiries?programme=${id}`} className="pov-kpi is-amber">
           <div className="pov-kpi-top">
             <span className="pov-kpi-ic">
               <Icon name="mail" />
@@ -470,7 +471,7 @@ function EnquiriesPanel({
   openCount: number;
   programmeId: string;
 }) {
-  const enquiriesHref = `/tutor/programme/${programmeId}/enquiries`;
+  const enquiriesHref = `/tutor/enquiries?programme=${programmeId}`;
   return (
     <div className="pov-panel">
       <div className="pov-panel-head">

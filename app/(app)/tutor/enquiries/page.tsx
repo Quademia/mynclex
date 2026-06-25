@@ -14,7 +14,8 @@
 //
 // No migration / service-role: RLS scopes the read to owned programmes; the
 // parent (app)/tutor/layout.tsx holds the TUTOR role gate. The per-programme
-// tab (/tutor/programme/<id>/enquiries) stays for now — additive global view.
+// tab was folded into this inbox (2026-06-25) — its old route is now a
+// redirect shim to /tutor/enquiries?programme=<id>.
 
 import { getEnquiriesForTutor } from '@/lib/enquiries/queries';
 import { computeTutorStats } from '@/lib/enquiries/aggregations';
@@ -66,23 +67,54 @@ export default async function TutorEnquiriesPage({
     : allEnquiries;
   const stats = computeTutorStats(enquiries);
 
+  const leadCount = enquiries.length;
+
   return (
     <div className="ti-page">
       <header className="pp-page-head ti-page-head">
-        <div>
-          <h1 className="pp-page-title">Enquiries</h1>
-          <p className="pp-page-sub">
-            {selectedTitle
-              ? `Leads for ${selectedTitle}.`
-              : 'Every lead across all your programmes, newest first.'}{' '}
-            WhatsApp is the fastest channel for this audience — replies under 4
-            hours convert ~3× more often.
-          </p>
-        </div>
+        <h1 className="pp-page-title">Enquiries</h1>
         {programmes.length > 1 && (
           <ProgrammeScopePicker current={selectedId ?? 'ALL'} programmes={programmes} />
         )}
       </header>
+
+      {/* Scope strip — makes "what am I viewing" unmissable: current scope +
+          lead count on the left, the channel tip on the right (stacks on
+          mobile). */}
+      <div className="ti-scope-strip">
+        <span className="ti-scope-strip-main">
+          <svg
+            className="ti-scope-strip-ic"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <path d="m2 7 10 6 10-6" />
+          </svg>
+          <span className="ti-scope-strip-view">
+            {selectedTitle ? (
+              <>
+                Showing: <strong>{selectedTitle}</strong>
+              </>
+            ) : (
+              <>
+                Showing <strong>all programmes</strong>
+              </>
+            )}
+          </span>
+          <span className="ti-scope-strip-count">
+            · {leadCount} {leadCount === 1 ? 'lead' : 'leads'}
+          </span>
+        </span>
+        <span className="ti-scope-strip-tip">
+          WhatsApp replies under 4 hours convert ~3× more often.
+        </span>
+      </div>
 
       <EnquiriesPanel
         enquiries={enquiries}

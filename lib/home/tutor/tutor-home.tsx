@@ -176,7 +176,7 @@ function EnquiryRow({ e }: { e: HomeEnquiry }) {
           {e.programme} · {e.ago}
         </div>
       </div>
-      <Link className="th-attn-cta" href={`/tutor/programme/${e.programmeId}/enquiries`}>
+      <Link className="th-attn-cta" href={`/tutor/enquiries?programme=${e.programmeId}`}>
         Reply
       </Link>
     </div>
