@@ -68,7 +68,7 @@ export function PracticeNoteView({ note, basePath }: PracticeNoteViewProps) {
   }
 
   return (
-    <div className="mpr-wrap">
+    <div className="mpr-wrap is-detail">
       <Link href={`${basePath}/practice`} className="mpr-back">
         ← My practice
       </Link>

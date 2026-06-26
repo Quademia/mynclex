@@ -15,9 +15,15 @@
   --mpr-wobbly: #c98a16;
   --mpr-reteach: #d4453b;
 
-  max-width: 600px;
+  /* Index: a roomy container that fills desktop (the note list flows into
+     a 2-up grid below); collapses to a single phone column ≤768px. */
+  max-width: 1000px;
   margin: 0 auto;
   padding: 22px 18px 64px;
+}
+/* Reflection: reading-heavy, so a comfortable single reading column. */
+.mpr-wrap.is-detail {
+  max-width: 780px;
 }
 
 .mpr-back {
@@ -107,9 +113,15 @@
   margin: 26px 0 11px;
 }
 .mpr-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 10px;
+}
+/* Fill desktop width with a 2-up grid of note cards. */
+@media (min-width: 769px) {
+  .mpr-list {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .mpr-note {
