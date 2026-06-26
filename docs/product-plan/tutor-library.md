@@ -117,13 +117,14 @@ and is fully integrated into programmes as both **Library Note** and
 **Shelf** activities (11.11 + 11.12). The directly-library half is
 RELEASED to prod; the programme-integration half is on `main` pending
 the next prod release. **11.11c (the tutor embed-analytics dashboard) was
-BUILT 2026-06-26** — see its slice entry below. **What remains:** 11.17
-(polish) + the 11.11c **Mark-done → progress write-through** stub (the
-analytics shipped, but that progress sub-item was NOT touched this
-session) + a list of "areas of improvement" Sam flagged + the **student
-side** (a practice dashboard / metacognition), deferred to a later
-session. See the slice log under *Build order* for per-slice status; that
-log is the current source of truth.
+BUILT 2026-06-26** — see its slice entry below. The **student side** of
+11.11c — a "My practice" reflection surface — was **BUILT 2026-06-26
+(second session)**, also app-layer/no-migration, on `main`; see its slice
+entry below. **What remains:** 11.17 (polish) + the 11.11c **Mark-done →
+progress write-through** stub (the analytics shipped, but that progress
+sub-item was NOT touched) + a list of "areas of improvement" Sam flagged.
+See the slice log under *Build order* for per-slice status; that log is
+the current source of truth.
 
 **No QAcademy-side library in v1.** The decision to leave self-study
 students with rationales-as-teaching is deliberate; the library is a
@@ -2558,10 +2559,56 @@ under top-level **11.x** (the canonical product slot per BUILD_LIST.md).
       placeholder `time_spent_sec`; they return with real timing data.
       (b) The **Mark-done → progress write-through** stub (the other half
       of 11.11c's original scope) was NOT touched. (c) The **student side**
-      (practice dashboard / metacognition from the CD prototype) is a
-      later session — the student practice itself stays the existing
-      11.13b player by decision. (d) Sam's "areas of improvement" list
-      (TBD) to revisit.
+      was **BUILT 2026-06-26 (second session)** — see the *My practice*
+      entry below. (d) Sam's "areas of improvement" list (TBD) to revisit.
+
+  - ✅ **My practice — student side of 11.11c (BUILT 2026-06-26, second
+    session; on `main`, app-layer, no migration).** From the CD "QAcademy
+    Nurses Analytics" prototype's *student* half. The first prototype was
+    judged **overcooked** (a phone "preview-as-student" wrapper, a second
+    practice runner, a strength-by-topic hero); we cut all three. The
+    insight: most of the student experience **already exists** in the
+    11.13b in-note player (answer → feedback + rationale + past-sittings
+    review), so the real gap was just a **cross-note roll-up** + a
+    **signpost back into the note**. **No new runner** — Sam's call:
+    "retake takes them to the note to practise," so practice keeps one
+    home (the note).
+    - **Placement.** A practice-first lens **inside the existing student
+      library**, both contexts (`…/programme/[id]/library/practice` +
+      `…/cohort/[id]/library/practice`, each with a `/[note_id]` detail).
+      Reached from a new **🎯 My practice** entry in the library lens
+      sidebar (expanded + railed). No new top-level nav / mobile tab.
+    - **Slice 1 — index** (`87fc461`). New `lib/library/student/
+      practice-queries.ts` — the single-reader read: visible notes WITH
+      practice blocks (RLS-gated, narrowed to the library's tutor),
+      left-joined to the student's OWN embed answers (RLS self). Per
+      (note, block, item) first-try + recovered (latest correct); per
+      note answered / first-correct / to-review. The index view
+      (`practice-index-view.tsx`): stat strip (Notes practised ·
+      Questions answered · First-try %) + two-state note list (practised
+      → score + "N to review"/"Looks solid"; not-started → "N questions ·
+      not started · Practise →") + empty state. First-try % is scoped to
+      answered questions, so not-started notes don't drag it down.
+    - **Slice 2 — reflection + signposting** (`fb1dc07`).
+      `getStudentPracticeNote` — answered questions read entirely from the
+      student's own snapshotted answer rows (their pick, the correct
+      answer, the rationale, first-try + recovered); never-answered
+      question stems via service role, gated by the entitlement-proving
+      note read (the embed-player pattern). The view
+      (`practice-note-view.tsx`): a 3-state verdict (not-started /
+      has-misses / all-solid), questions grouped by block, each marked
+      correct / recovered / missed / unanswered with your-answer vs
+      correct + a "Why" on misses; a primary CTA + per-block "Practise →"
+      cues. **Practice has one home — the note:** every practice action
+      deep-links to `…/note/<id>#practice-<blockId>`; `read-blocks.tsx`
+      now anchors each embed block as `practice-<blockId>` (scroll-margin
+      80px). New `styles/student-practice.css` (`.mpr-*`; bands mirror the
+      reading lens). Desktop-width fix (`f074d7c`): the index runs a 2-up
+      grid in a 1000px container (it was a narrow 600px phone column),
+      the reflection a 780px reading column.
+    - **Deferred:** the existing time-metric gap (unchanged); a
+      Study-Home / Overview cross-link into My practice (light Slice 3
+      polish, not built).
   - Known v1 follow-on: attaching a PROGRAMME_SCOPED note whose scope
     excludes the target programme can 404 the student read view
     (visibility-widen-on-attach not built; the shelf "mixed-visibility

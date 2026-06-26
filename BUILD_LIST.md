@@ -8,6 +8,46 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **LIBRARY — STUDENT "MY PRACTICE" (student side of 11.11c) — BUILT +
+> MERGED to `main` (2026-06-26, second session; Sam-tested on dev; all
+> app-layer, NO migration; not yet prod).** The deferred student half of
+> 11.11c, from the CD "QAcademy Nurses Analytics" prototype's *student*
+> view. The first cut was judged **overcooked** (a phone "preview-as-
+> student" wrapper, a second practice runner, a strength-by-topic hero) —
+> all cut. The realisation: the student practice experience **already
+> exists** in the 11.13b in-note player, so the only gap was a **cross-
+> note roll-up** + a **signpost back into the note**. **No new runner** —
+> "retake takes them to the note to practise" (practice keeps one home).
+> - **Placement:** a practice-first lens **inside the existing student
+>   library**, both contexts — `…/programme/[id]/library/practice` and
+>   `…/cohort/[id]/library/practice` (each + a `/[note_id]` detail) —
+>   reached from a new **🎯 My practice** entry in the library sidebar.
+> - **Slice 1 — index** (`87fc461`): `practice-queries.ts` (single-reader
+>   read: visible notes WITH practice blocks × the student's own embed
+>   answers, RLS self) + the index view (stat strip Notes practised ·
+>   Questions answered · First-try % + two-state note list: practised →
+>   score + "N to review"/"Looks solid"; not-started → "N questions ·
+>   Practise →"). First-try % scoped to answered only.
+> - **Slice 2 — reflection + signposting** (`fb1dc07`):
+>   `getStudentPracticeNote` (answered Qs from the student's own
+>   snapshots; never-answered stems via service role, entitlement-gated
+>   by the note read) + the note view — 3-state verdict, questions grouped
+>   by block (correct / recovered / missed / unanswered, your-answer vs
+>   correct + a "Why" on misses), a primary CTA + per-block "Practise →"
+>   cues. **Practice has one home — the note:** every action deep-links to
+>   `…/note/<id>#practice-<blockId>` (the read view now anchors each embed
+>   block). New `styles/student-practice.css` (`.mpr-*`).
+> - **Desktop-width fix** (`f074d7c`): index → 2-up grid in a 1000px
+>   container (was a narrow 600px phone column); reflection → 780px column.
+> - **Deferred:** the existing time-metric gap; a Study-Home / Overview
+>   cross-link into My practice (light polish, not built).
+>
+> **⏭ NEXT:** 11.17 polish + the 11.11c Mark-done→progress write-through
+> stub + Sam's "areas of improvement" list → the big `main → prod`
+> **release** (this rides the large unreleased stack; ⚠ `PAYSTACK_SECRET_KEY`
+> still not on prod). Detail in
+> [tutor-library.md](docs/product-plan/tutor-library.md) → *My practice*.
+
 > **LIBRARY 11.11c — TUTOR "QUESTION ANALYTICS" — BUILT + MERGED to `main`
 > (2026-06-26; Sam-tested on dev; all app-layer, NO migration; not yet
 > prod).** The reading-check analytics over `nclex_library_embed_answers`,
