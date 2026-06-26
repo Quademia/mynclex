@@ -43,6 +43,7 @@ import '@/styles/tutor-home.css';
 import '@/styles/programme-overview.css';
 import '@/styles/library.css';
 import '@/styles/embed-analytics.css';
+import '@/styles/student-practice.css';
 import '@/styles/profile.css';
 // Loaded LAST: the bank LIST-surfaces redesign (Trends / Cases / Question
 // Bank). Namespaced `bl-*`; tops the old list rules during the staged
