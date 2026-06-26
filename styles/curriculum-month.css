@@ -1,0 +1,415 @@
+/* mynclex/styles/curriculum-month.css
+ *
+ * Curriculum "Month" view (CD "Monthly Curriculum View", Variant B
+ * "Programme schedule"). The additive schedule lens shared by the tutor
+ * cohort-curriculum (Slice 1) and the student curriculum (Slice 2).
+ * Class prefix: .cmv-*. App tokens for chrome; a small per-type palette
+ * (defined here — the app has no activity-type colours elsewhere) carries
+ * the legend's information design.
+ *
+ * Layout = a header band (title + range + legend) above a bordered,
+ * page-scrolling list of WEEK ROWS (label column + day-groups). The
+ * whole cohort fits in one scroll by design (no month paging).
+ */
+
+.cmv {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── View toggle (Checklist | Month) ─────────────────────────────── */
+
+.cmv-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--white);
+}
+.cmv-toggle-btn {
+  height: 30px;
+  padding: 0 13px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+}
+.cmv-toggle-btn:hover {
+  background: var(--bg-soft);
+}
+.cmv-toggle-btn.is-on {
+  background: var(--primary);
+  color: var(--white);
+  font-weight: 600;
+}
+.cmv-toggle-btn.is-on:hover {
+  background: var(--primary-dark);
+}
+
+/* ── Header band ─────────────────────────────────────────────────── */
+
+.cmv-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cmv-band-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cmv-band-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.cmv-band-range {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.cmv-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cmv-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.cmv-legend-sw {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border-left: 3px solid var(--sw-ac, var(--border-strong));
+  background: var(--sw-bg, var(--bg-soft));
+}
+
+/* ── Week-row list ───────────────────────────────────────────────── */
+
+.cmv-scroll {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  overflow: hidden;
+}
+
+.cmv-monthband {
+  padding: 5px 14px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+}
+
+.cmv-week {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+}
+.cmv-week:last-child {
+  border-bottom: none;
+}
+/* Student-only week states (Slice 2). */
+.cmv-week.is-done {
+  border-left-color: var(--success);
+}
+.cmv-week.is-current {
+  border-left-color: var(--accent);
+}
+.cmv-week.is-locked {
+  opacity: 0.6;
+}
+
+.cmv-week-label {
+  width: 50px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 2px;
+}
+.cmv-week-num {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text);
+}
+.cmv-week-bar {
+  height: 3px;
+  width: 40px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+.cmv-week-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.cmv-daygroups {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.cmv-week-empty {
+  font-size: 12px;
+  color: var(--text-faint);
+  font-style: italic;
+  padding-top: 2px;
+}
+
+.cmv-daygroup {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 132px;
+}
+.cmv-daylabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  margin-bottom: 2px;
+}
+.cmv-daylabel.is-today {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ── Chips ───────────────────────────────────────────────────────── */
+
+.cmv-chip {
+  --chip-ac: var(--text-muted);
+  --chip-bg: var(--bg-soft);
+  --chip-bd: var(--border);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  padding: 3px 6px;
+  border: 1px solid var(--chip-bd);
+  border-left: 3px solid var(--chip-ac);
+  border-radius: 0 4px 4px 0;
+  background: var(--chip-bg);
+  min-height: 24px;
+  overflow: hidden;
+}
+button.cmv-chip {
+  cursor: pointer;
+  transition: box-shadow 0.12s ease, transform 0.04s ease;
+}
+button.cmv-chip:hover {
+  box-shadow: var(--shadow);
+}
+button.cmv-chip:active {
+  transform: translateY(0.5px);
+}
+button.cmv-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.cmv-chip-ic {
+  font-size: 11px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.cmv-chip-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cmv-chip-block {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--chip-ac);
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+.cmv-chip-undated {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  font-weight: 700;
+}
+.cmv-chip.is-undated .cmv-chip-title {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Inline tags inside a chip */
+.cmv-chip-tag {
+  flex-shrink: 0;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+  border-radius: 3px;
+  padding: 0 4px;
+}
+.cmv-chip-tag.is-excl {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+}
+.cmv-chip-tag.is-due {
+  background: #fef3c7;
+  color: #92400e;
+}
+.cmv-chip-tag.is-upnext {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+/* ── Type → colour families (the legend) ─────────────────────────── */
+
+.cmv-chip.is-live,
+.cmv-legend-sw.is-live {
+  --chip-ac: #2b3d89;
+  --chip-bg: #eaedf8;
+  --chip-bd: #c3cde8;
+  --sw-ac: #2b3d89;
+  --sw-bg: #eaedf8;
+}
+.cmv-chip.is-quiz,
+.cmv-legend-sw.is-quiz {
+  --chip-ac: #92400e;
+  --chip-bg: #fef3c7;
+  --chip-bd: #f3d997;
+  --sw-ac: #92400e;
+  --sw-bg: #fef3c7;
+}
+.cmv-chip.is-mock,
+.cmv-legend-sw.is-mock {
+  --chip-ac: #991b1b;
+  --chip-bg: #fee2e2;
+  --chip-bd: #f6b9b9;
+  --sw-ac: #991b1b;
+  --sw-bg: #fee2e2;
+}
+.cmv-chip.is-note,
+.cmv-legend-sw.is-note {
+  --chip-ac: #065f46;
+  --chip-bg: #d1fae5;
+  --chip-bd: #8fe3c2;
+  --sw-ac: #065f46;
+  --sw-bg: #d1fae5;
+}
+.cmv-chip.is-shelf,
+.cmv-legend-sw.is-shelf {
+  --chip-ac: #5b21b6;
+  --chip-bg: #ede9fe;
+  --chip-bd: #c9bbf5;
+  --sw-ac: #5b21b6;
+  --sw-bg: #ede9fe;
+}
+.cmv-chip.is-content,
+.cmv-legend-sw.is-content {
+  --chip-ac: #475569;
+  --chip-bg: #f1f5f9;
+  --chip-bd: #cbd5e1;
+  --sw-ac: #475569;
+  --sw-bg: #f8fafc;
+}
+
+/* ── Variant overrides (win over the family) ─────────────────────── */
+
+.cmv-chip.is-excluded {
+  --chip-ac: var(--text-faint);
+  --chip-bg: var(--bg-soft);
+  --chip-bd: var(--border);
+  opacity: 0.7;
+}
+.cmv-chip.is-excluded .cmv-chip-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+.cmv-legend-sw.is-excluded {
+  --sw-ac: var(--border-strong);
+  --sw-bg: var(--bg-soft);
+}
+
+/* Student-only chip variants (Slice 2). */
+.cmv-chip.is-done {
+  --chip-ac: var(--success);
+  --chip-bg: #dcfce7;
+  --chip-bd: #a7e3bd;
+}
+.cmv-chip.is-up-next {
+  box-shadow: 0 0 0 1px var(--primary-light);
+}
+.cmv-chip.is-locked {
+  --chip-ac: var(--border-strong);
+  --chip-bg: var(--bg-soft);
+  --chip-bd: var(--border);
+  opacity: 0.6;
+}
+.cmv-chip.is-locked .cmv-chip-title {
+  color: var(--text-faint);
+}
+.cmv-legend-sw.is-done {
+  --sw-ac: var(--success);
+  --sw-bg: #dcfce7;
+}
+.cmv-legend-sw.is-locked {
+  --sw-ac: var(--border-strong);
+  --sw-bg: var(--bg-soft);
+}
+
+/* ── Mobile reflow (≤768px) ──────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .cmv-band {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .cmv-week {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .cmv-week-label {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    width: auto;
+  }
+  .cmv-daygroups {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  .cmv-daygroup {
+    width: 100%;
+    min-width: 0;
+  }
+}

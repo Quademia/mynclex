@@ -55,6 +55,11 @@ import {
   ACTIVITY_TYPE_ICON,
 } from '@/lib/curriculum/format';
 import {
+  CurriculumMonthView,
+  type MonthChip,
+} from '@/lib/curriculum/month-view';
+import { buildCohortMonthWeeks, cohortRangeLabel } from './month-model';
+import {
   setActivityIncludedAction,
   setActivityReleaseDateAction,
   setActivityDueDateAction,
@@ -232,6 +237,22 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
   // stays on the same week).
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [entered, setEntered] = useState(false);
+
+  // Curriculum Month view (Slice 1) — an additive schedule lens beside
+  // the list/two-pane. LOCAL state (not a URL param) for the same reason
+  // as `selectedUnitId`: this component already holds the whole tree, and
+  // the Month view needs no new data, so a URL param would only trigger a
+  // wasteful re-fetch. 'list' = the existing two-pane (default, untouched).
+  const [view, setView] = useState<'list' | 'month'>('list');
+
+  // Jump from a Month-view chip back to the list, scrolled to that
+  // activity's week — the tutor "spot on the calendar → fix in the list"
+  // path. View-only: the calendar never edits.
+  function openInList(chip: MonthChip) {
+    setView('list');
+    setSelectedUnitId(chip.unitId);
+    setEntered(true);
+  }
 
   const cohortId = tree.cohort.cohort_id;
 
@@ -429,15 +450,41 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
     <>
       <section className="cohort-checklist">
         <header className="cohort-checklist-head">
-          <h2 className="cohort-checklist-title">Cohort curriculum</h2>
-          <p className="cohort-checklist-hint">
-            Toggle inclusion and set each activity&apos;s window —
-            opens, due, closes — for this cohort. Due and close are
-            optional. Content edits flow from the programme&apos;s
-            Curriculum tab — click any activity to edit it there. You can
-            also add <strong>cohort-only</strong> activities and blocks
-            (below each week) that live only in this run.
-          </p>
+          <div className="cohort-checklist-head-text">
+            <h2 className="cohort-checklist-title">Cohort curriculum</h2>
+            <p className="cohort-checklist-hint">
+              Toggle inclusion and set each activity&apos;s window —
+              opens, due, closes — for this cohort. Due and close are
+              optional. Content edits flow from the programme&apos;s
+              Curriculum tab — click any activity to edit it there. You can
+              also add <strong>cohort-only</strong> activities and blocks
+              (below each week) that live only in this run.
+            </p>
+          </div>
+          <div
+            className="cmv-toggle"
+            role="tablist"
+            aria-label="Curriculum view"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'list'}
+              className={'cmv-toggle-btn' + (view === 'list' ? ' is-on' : '')}
+              onClick={() => setView('list')}
+            >
+              Checklist
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'month'}
+              className={'cmv-toggle-btn' + (view === 'month' ? ' is-on' : '')}
+              onClick={() => setView('month')}
+            >
+              Month
+            </button>
+          </div>
         </header>
 
         {unconfiguredCount > 0 && (
@@ -477,6 +524,14 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
           </div>
         )}
 
+        {view === 'month' ? (
+          <CurriculumMonthView
+            weeks={buildCohortMonthWeeks(tree)}
+            rangeLabel={cohortRangeLabel(tree)}
+            audience="tutor"
+            onChipClick={openInList}
+          />
+        ) : (
         <div className={'ccp' + (entered ? ' is-entered' : '')}>
           <aside className="ccp-rail" aria-label="Weeks">
             <div className="ccp-rail-head">
@@ -676,6 +731,7 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
             </article>
           </div>
         </div>
+        )}
       </section>
 
       {editActivity && (
