@@ -22,7 +22,7 @@
 // "to review". Nothing here is cached; it recomputes each load, so a
 // re-practice in the note is reflected immediately.
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { bodyToTiptap } from '../body-tiptap';
 
 /** A practice block lifted from a note body, in reading order. */
@@ -282,4 +282,263 @@ export async function getStudentPracticeIndexForCohort(
   const tutorId = await resolveCohortTutor(cohortId);
   if (!tutorId) return null;
   return buildIndexForTutor(tutorId);
+}
+
+// ── Per-note reflection (Slice 2) ────────────────────────────────────
+
+/** A reader's standing on one embedded question. */
+export type PracticeQuestionState =
+  | 'correct' // right first try
+  | 'recovered' // missed first, latest attempt correct
+  | 'missed' // missed first, not yet recovered
+  | 'unanswered'; // never reached/answered
+
+export interface PracticeQuestion {
+  itemId: string;
+  stem: string;
+  state: PracticeQuestionState;
+  /** The option(s) the student chose on their first attempt (joined text). */
+  youText: string | null;
+  /** The correct option(s) (joined text) — shown on misses + recoveries. */
+  correctText: string | null;
+  /** The rationale — shown only on unrecovered misses. */
+  rationale: string | null;
+}
+
+export interface PracticeNoteBlock {
+  blockId: string;
+  label: string;
+  /** Does this block hold an unrecovered miss? (Drives the per-block cue.) */
+  hasReview: boolean;
+  questions: PracticeQuestion[];
+}
+
+export interface StudentPracticeNote {
+  noteId: string;
+  title: string;
+  started: boolean;
+  answered: number;
+  firstCorrect: number;
+  toReview: number;
+  total: number;
+  blockCount: number;
+  blocks: PracticeNoteBlock[];
+  /** The block the primary CTA should land on (first miss block, else first). */
+  practiceBlockId: string | null;
+}
+
+// --- snapshot option helpers (mirror lib/library/analytics) ----------
+
+function optionList(content: unknown): Array<{ id: string; text: string }> {
+  const opts = (content as { options?: Array<{ id: string; text: string }> })
+    ?.options;
+  return Array.isArray(opts) ? opts : [];
+}
+
+function selectedIdSet(answer: unknown): Set<string> {
+  if (typeof answer === 'string') return new Set([answer]);
+  if (Array.isArray(answer)) {
+    return new Set(
+      (answer as unknown[]).filter((x): x is string => typeof x === 'string'),
+    );
+  }
+  return new Set();
+}
+
+function correctIdSet(type: string, correctSnap: unknown): Set<string> {
+  if (type === 'SATA' || type === 'SELECT_N') {
+    const arr = (correctSnap as { answers?: unknown })?.answers;
+    return new Set(
+      Array.isArray(arr)
+        ? arr.filter((x): x is string => typeof x === 'string')
+        : [],
+    );
+  }
+  const a = (correctSnap as { answer?: unknown })?.answer;
+  return new Set(typeof a === 'string' ? [a] : []);
+}
+
+function textsFor(content: unknown, ids: Set<string>): string | null {
+  const texts = optionList(content)
+    .filter((o) => ids.has(o.id))
+    .map((o) => o.text);
+  return texts.length ? texts.join(', ') : null;
+}
+
+/**
+ * The per-note reflection (Slice 2) for the signed-in student: their
+ * questions grouped by block, each with their first pick, the correct
+ * answer, and the rationale on misses. Answered questions read entirely
+ * from the student's OWN snapshotted answer rows (RLS self); un-answered
+ * questions need only their stem, fetched via service role once the note
+ * read has proved entitlement (the embed-player pattern). Returns null if
+ * the note isn't readable (→ 404).
+ */
+export async function getStudentPracticeNote(
+  noteId: string,
+): Promise<StudentPracticeNote | null> {
+  const supabase = await createClient();
+
+  // Entitlement — RLS returns the note only if the student may read it.
+  const { data: note } = await supabase
+    .from('nclex_tutor_library_notes')
+    .select('note_id, title, body')
+    .eq('note_id', noteId)
+    .maybeSingle();
+  if (!note) return null;
+  const nrow = note as { note_id: string; title: string; body: unknown };
+
+  const blocks = extractPracticeBlocks(nrow.body);
+  const blockById = new Map(blocks.map((b) => [b.blockId, b]));
+  const allItemIds = [...new Set(blocks.flatMap((b) => b.itemIds))];
+
+  // The student's own answers for this note (RLS self), oldest-first.
+  const { data: answerRows } = await supabase
+    .from('nclex_library_embed_answers')
+    .select(
+      'block_id, item_id, is_correct, submitted_at, answer_json, content_snapshot_json, correct_answer_snapshot_json, rationale_snapshot, stem_snapshot, question_type',
+    )
+    .eq('note_id', noteId)
+    .order('submitted_at', { ascending: true });
+  const answers = (answerRows ?? []) as Array<{
+    block_id: string;
+    item_id: string;
+    is_correct: boolean;
+    submitted_at: string;
+    answer_json: unknown;
+    content_snapshot_json: unknown;
+    correct_answer_snapshot_json: unknown;
+    rationale_snapshot: string | null;
+    stem_snapshot: string | null;
+    question_type: string;
+  }>;
+
+  interface Entry {
+    firstCorrect: boolean;
+    lastCorrect: boolean;
+    firstAnswer: unknown;
+    content: unknown;
+    correctSnap: unknown;
+    rationale: string | null;
+    stem: string | null;
+    type: string;
+  }
+  const entries = new Map<string, Entry>(); // block|item
+  const stemByItem = new Map<string, string>();
+  for (const a of answers) {
+    if (!blockById.has(a.block_id)) continue;
+    const key = `${a.block_id}|${a.item_id}`;
+    const cur = entries.get(key);
+    if (!cur) {
+      entries.set(key, {
+        firstCorrect: a.is_correct,
+        lastCorrect: a.is_correct,
+        firstAnswer: a.answer_json,
+        content: a.content_snapshot_json,
+        correctSnap: a.correct_answer_snapshot_json,
+        rationale: a.rationale_snapshot,
+        stem: a.stem_snapshot,
+        type: a.question_type,
+      });
+    } else {
+      cur.lastCorrect = a.is_correct;
+    }
+    if (a.stem_snapshot && !stemByItem.has(a.item_id)) {
+      stemByItem.set(a.item_id, a.stem_snapshot.trim());
+    }
+  }
+
+  // Stems for never-answered questions (service role; entitlement already
+  // proven by the note read above) — so a not-started note still lists
+  // its questions.
+  const missingStems = allItemIds.filter((id) => !stemByItem.has(id));
+  if (missingStems.length > 0) {
+    const admin = createServiceRoleClient();
+    const { data: qRows } = await admin
+      .from('nclex_tutor_questions')
+      .select('item_id, stem')
+      .in('item_id', missingStems);
+    for (const q of (qRows ?? []) as Array<{ item_id: string; stem: string }>) {
+      stemByItem.set(q.item_id, (q.stem ?? '').trim());
+    }
+  }
+
+  let answered = 0;
+  let firstCorrect = 0;
+  let toReview = 0;
+  let total = 0;
+  let practiceBlockId: string | null = null;
+
+  const outBlocks: PracticeNoteBlock[] = blocks.map((b) => {
+    let hasReview = false;
+    const questions: PracticeQuestion[] = b.itemIds.map((itemId) => {
+      total += 1;
+      const stem = (stemByItem.get(itemId) ?? '').trim() || 'Untitled question';
+      const e = entries.get(`${b.blockId}|${itemId}`);
+      if (!e) {
+        return {
+          itemId,
+          stem,
+          state: 'unanswered',
+          youText: null,
+          correctText: null,
+          rationale: null,
+        };
+      }
+      answered += 1;
+      const youText = textsFor(e.content, selectedIdSet(e.firstAnswer));
+      const correctText = textsFor(e.content, correctIdSet(e.type, e.correctSnap));
+      if (e.firstCorrect) {
+        firstCorrect += 1;
+        return {
+          itemId,
+          stem,
+          state: 'correct',
+          youText,
+          correctText: null,
+          rationale: null,
+        };
+      }
+      if (e.lastCorrect) {
+        return {
+          itemId,
+          stem,
+          state: 'recovered',
+          youText,
+          correctText,
+          rationale: null,
+        };
+      }
+      toReview += 1;
+      hasReview = true;
+      return {
+        itemId,
+        stem,
+        state: 'missed',
+        youText,
+        correctText,
+        rationale: e.rationale,
+      };
+    });
+    if (hasReview && practiceBlockId === null) practiceBlockId = b.blockId;
+    return { blockId: b.blockId, label: b.label, hasReview, questions };
+  });
+
+  // Nothing to review → land practice on the first block.
+  if (practiceBlockId === null && blocks.length > 0) {
+    practiceBlockId = blocks[0].blockId;
+  }
+
+  return {
+    noteId,
+    title: nrow.title,
+    started: answered > 0,
+    answered,
+    firstCorrect,
+    toReview,
+    total,
+    blockCount: blocks.length,
+    blocks: outBlocks,
+    practiceBlockId,
+  };
 }

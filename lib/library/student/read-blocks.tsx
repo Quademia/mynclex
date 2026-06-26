@@ -209,8 +209,13 @@ function RenderBlock({
       const title =
         typeof node.attrs?.title === 'string' ? node.attrs.title : '';
       if (ctx.renderEmbed) return ctx.renderEmbed(ctx.noteId, blockId, title);
+      // Anchor so "My practice" can deep-link to this block
+      // (…/note/<id>#practice-<blockId>). scroll-margin keeps it clear of
+      // any sticky chrome.
       return (
-        <EmbedPlayer noteId={ctx.noteId} blockId={blockId} title={title} />
+        <div id={`practice-${blockId}`} style={{ scrollMarginTop: '80px' }}>
+          <EmbedPlayer noteId={ctx.noteId} blockId={blockId} title={title} />
+        </div>
       );
     }
     default:

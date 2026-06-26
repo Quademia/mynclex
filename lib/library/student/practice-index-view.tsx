@@ -96,9 +96,9 @@ function PracticeNoteCard({
   note: PracticeNoteRow;
   basePath: string;
 }) {
-  // Slice 1 interim: a row opens the note (where the player lives). Slice 2
-  // repoints this to the per-note reflection page.
-  const href = `${basePath}/note/${note.noteId}`;
+  // A row opens the per-note reflection (verdict + your breakdown + the
+  // practice signpost).
+  const href = `${basePath}/practice/${note.noteId}`;
 
   const accPct = note.answered
     ? Math.round((note.firstCorrect / note.answered) * 100)
