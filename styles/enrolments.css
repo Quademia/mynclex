@@ -1151,3 +1151,20 @@
   font-size: 12px;
   color: var(--text-muted);
 }
+
+/* Access policy inline in the roster header (2026-06-24) — one mount of the
+   shared <PaymentGatingToggle>, sitting on the same level as "Add student"
+   rather than a full-width strip. */
+.cw-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+/* Size the toggle to content inline (drop the form-row vertical padding +
+   tighten the label↔switch gap) so it reads as a compact header control. */
+.enrol-header-policy .prog-switch-field {
+  padding: 0;
+  gap: 10px;
+}

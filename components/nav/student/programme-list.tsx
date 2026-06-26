@@ -20,6 +20,8 @@ import type { SwitcherProgramme } from '@/lib/programmes/student-actions';
 import { InstallmentCta } from '@/lib/payments/installment-cta';
 import {
   ENROLMENT_STATUS_META,
+  ENROLMENT_LOCKED_REASON,
+  canEnterStatus as canEnter,
   type EnrolmentStatus,
 } from '@/lib/enrolments/types';
 
@@ -29,29 +31,11 @@ function StatusPill({ status }: { status: EnrolmentStatus | null }) {
   return <span className={`enrol-pill ${meta.pillClass}`}>{meta.label}</span>;
 }
 
-// Only ENROLLED opens programme content. Every other status (and the
-// null "no row" case, which the tightened RLS shouldn't return) is
-// shown but not enterable.
-function canEnter(status: EnrolmentStatus | null): boolean {
-  return status === 'ENROLLED';
-}
-
-// Short why-it's-locked line shown under a non-enterable row. Keyed by
-// status; ENROLLED never renders one. Mirrors the lifecycle tiles in
-// payments-and-enrolment.md.
-const LOCKED_REASON: Record<Exclude<EnrolmentStatus, 'ENROLLED'>, string> = {
-  PENDING_APPROVAL: 'Waiting for your tutor to approve your enrolment.',
-  PAUSED: 'Access paused — a payment is overdue. Your tutor can restore it.',
-  REJECTED: 'Your enrolment request was declined.',
-  CANCELLED: 'This enrolment was cancelled.',
-  EXPIRED: 'Your access window has ended.',
-};
-
 function LockedReason({ status }: { status: EnrolmentStatus | null }) {
   if (!status || status === 'ENROLLED') return null;
   return (
     <div className="programme-switcher-locked-reason">
-      {LOCKED_REASON[status]}
+      {ENROLMENT_LOCKED_REASON[status]}
     </div>
   );
 }
@@ -108,7 +92,7 @@ export function ProgrammeList({
                   type="button"
                   className="programme-switcher-item is-clickable"
                   onClick={() =>
-                    go(`/student/programme/${p.programme_id}/curriculum`)
+                    go(`/student/programme/${p.programme_id}/overview`)
                   }
                 >
                   {inner}
@@ -165,7 +149,7 @@ export function ProgrammeList({
                             type="button"
                             className="programme-switcher-cohort"
                             onClick={() =>
-                              go(`/student/cohort/${c.cohort_id}/curriculum`)
+                              go(`/student/cohort/${c.cohort_id}/overview`)
                             }
                           >
                             {cohortInner}

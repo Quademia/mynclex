@@ -514,4 +514,16 @@ export type StudentCurriculumTree = {
   // (§8.1). TRUE when at least one activity in this programme is
   // DONE for this student.
   hasAnyDone: boolean;
+
+  // Student Overview (2026-06) — the "Pick up where you left off"
+  // pointer for the home banner. Prefers the most recently active
+  // IN_PROGRESS quiz (resume), falling back to upNextActivityId (the
+  // first not-started OPEN row). null when there's nothing to do next
+  // (everything done / nothing open). continueIsResume is TRUE only in
+  // the resume case, so the banner can flip its copy ("Resume" vs
+  // "Up next" / "Start here"). Distinct from upNextActivityId, which
+  // deliberately SKIPS in-progress quizzes (they own a separate pill in
+  // the curriculum); the home banner wants the opposite priority.
+  continueActivityId: string | null;
+  continueIsResume: boolean;
 };

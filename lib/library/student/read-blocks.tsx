@@ -29,7 +29,7 @@ export type ReadHeading = { id: string; level: 2 | 3; text: string };
 // renderer (it shows what students answer, but never logs an attempt).
 type ReadCtx = {
   noteId: string;
-  renderEmbed?: (noteId: string, blockId: string) => ReactNode;
+  renderEmbed?: (noteId: string, blockId: string, title: string) => ReactNode;
 };
 
 function asString(v: unknown): string {
@@ -206,8 +206,12 @@ function RenderBlock({
       const blockId =
         typeof node.attrs?.id === 'string' ? node.attrs.id : null;
       if (!blockId) return null;
-      if (ctx.renderEmbed) return ctx.renderEmbed(ctx.noteId, blockId);
-      return <EmbedPlayer noteId={ctx.noteId} blockId={blockId} />;
+      const title =
+        typeof node.attrs?.title === 'string' ? node.attrs.title : '';
+      if (ctx.renderEmbed) return ctx.renderEmbed(ctx.noteId, blockId, title);
+      return (
+        <EmbedPlayer noteId={ctx.noteId} blockId={blockId} title={title} />
+      );
     }
     default:
       return null;

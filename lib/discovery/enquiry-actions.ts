@@ -26,7 +26,14 @@ export async function submitEnquiryAction(
   const phoneRaw = String(formData.get('phone') ?? '').trim();
   const phone = phoneRaw === '' ? null : phoneRaw;
   const messageRaw = String(formData.get('message') ?? '').trim();
-  const message = messageRaw === '' ? null : messageRaw;
+  const baseMessage = messageRaw === '' ? null : messageRaw;
+  // Optional "which cohort interests you?" from the contact form (programmes
+  // with cohorts). Folded into the message so it shows in the inbox without a
+  // schema change — the lead is still programme-scoped.
+  const cohortInterest = String(formData.get('cohortInterest') ?? '').trim();
+  const message = cohortInterest
+    ? `Interested in: ${cohortInterest}${baseMessage ? `\n\n${baseMessage}` : ''}`
+    : baseMessage;
 
   // Preferred-contact checkboxes (name="preferred"); keep only allowed
   // values, default to EMAIL when none ticked.

@@ -7,10 +7,14 @@
 import { createClient } from '@/lib/supabase/server';
 import type { PublicProgramme, PublicUnit, PublicCohort } from './types';
 
-// The discovery list. The view already gates on PUBLISHED + active
-// tutor; here we apply the LIST-only open-cohort rule: tutor-led shows
-// only with >= 1 open cohort, self-paced always shows (no cohort layer
-// to gate on). Sorted by soonest cohort, self-paced (no date) last.
+// The discovery list. The view already gates on PUBLISHED + active tutor;
+// we now show EVERY published programme — including tutor-led ones with no
+// open cohort yet (2026-06-25). They sort last (no next-cohort date) and the
+// card reads "Not scheduled yet", but they stay discoverable so a prospect
+// can open them and express interest via the detail page's universal Contact
+// section. (Previously a tutor-led programme with no open cohort was hidden,
+// which dead-ended discovery — inconsistent with the no-dead-ends contact
+// model.) Sorted by soonest cohort, undated last.
 export async function getDiscoveryProgrammes(): Promise<PublicProgramme[]> {
   const supabase = await createClient();
 
@@ -21,9 +25,7 @@ export async function getDiscoveryProgrammes(): Promise<PublicProgramme[]> {
 
   if (error || !data) return [];
 
-  return (data as PublicProgramme[]).filter(
-    (p) => p.delivery_mode === 'SELF_PACED' || p.open_cohort_count > 0
-  );
+  return data as PublicProgramme[];
 }
 
 // Single programme for the detail page. Reads the same public view by

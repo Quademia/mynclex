@@ -45,7 +45,25 @@ export async function verifyPayment(reference: string): Promise<VerifyResult> {
     const tx = v.data;
 
     if (tx.status !== 'success') {
-      // Leave the rows INIT — the buyer may not have completed payment yet.
+      // Paystack has terminal-failure states (the charge will NOT complete on
+      // this reference — a retry gets a fresh one) and transient ones (still
+      // processing). Terminal → mark the group FAILED so the result screen
+      // says "didn't go through" instead of "still waiting", and a re-hit
+      // short-circuits. Transient → leave the rows INIT and report PENDING, so
+      // the screen's auto-recheck can pick up the flip to success.
+      const TERMINAL_FAILURE = new Set(['failed', 'abandoned', 'reversed']);
+      if (TERMINAL_FAILURE.has(tx.status)) {
+        await admin
+          .from('nclex_payments')
+          .update({ status: 'FAILED', paystack_payload_json: { verify: v } })
+          .eq('paystack_reference', ref)
+          .eq('status', 'INIT');
+        return {
+          ok: false,
+          status: 'FAILED',
+          error: 'Your payment did not go through, and you were not charged.',
+        };
+      }
       return { ok: false, status: 'PENDING', error: `Payment not completed (status: ${tx.status}).` };
     }
 

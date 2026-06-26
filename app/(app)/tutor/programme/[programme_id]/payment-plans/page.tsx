@@ -13,6 +13,7 @@
 import { notFound } from 'next/navigation';
 import { getPaymentPlansContext } from '@/lib/strategies/queries';
 import { PaymentPlansPanel } from '@/lib/strategies/payment-plans-panel';
+import { PaymentGatingToggle } from '@/lib/programmes/payment-gating-toggle';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,14 @@ export default async function PaymentPlansPage({
         currency={ctx.programme.price_currency}
         strategies={ctx.strategies}
       />
+
+      <section className="pp-access-policy">
+        <h2 className="pp-access-policy-title">Access policy</h2>
+        <PaymentGatingToggle
+          programmeId={ctx.programme.programme_id}
+          enabled={ctx.programme.payment_gates_access}
+        />
+      </section>
     </div>
   );
 }

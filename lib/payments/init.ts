@@ -224,6 +224,7 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
         .from('nclex_programme_payment_strategies')
         .select('strategy_id, initial_price_minor')
         .eq('programme_id', prog.programme_id)
+        .is('cohort_id', null) // programme-default upfront (cohort overrides excluded)
         .eq('kind', 'UPFRONT_FULL')
         .eq('is_active', true)
         .maybeSingle();

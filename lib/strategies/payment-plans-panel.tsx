@@ -38,10 +38,15 @@ export function PaymentPlansPanel({
   programmeId,
   currency,
   strategies,
+  cohortId,
 }: {
   programmeId: string;
   currency: Currency;
   strategies: PaymentStrategy[];
+  // Per-cohort override: when set, the panel edits a cohort's custom plan
+  // set (creates are cohort-scoped; the upfront note points "above" to the
+  // cohort full-price box rather than the programme settings).
+  cohortId?: string;
 }) {
   // Default-Total source for the add/edit modal (slice 7e — replaces the
   // retired nclex_programmes.price_minor). The UPFRONT_FULL plan is the
@@ -101,7 +106,9 @@ export function PaymentPlansPanel({
                 <p className="pp-card-desc">{describePlan(s, currency)}</p>
                 {isUpfront && (
                   <p className="pp-card-note">
-                    The full price is set in the programme&apos;s settings.
+                    {cohortId
+                      ? 'The full price is set in the box above.'
+                      : "The full price is set in the programme's settings."}
                   </p>
                 )}
               </div>
@@ -152,6 +159,7 @@ export function PaymentPlansPanel({
         <StrategyFormModal
           mode="create"
           programmeId={programmeId}
+          cohortId={cohortId}
           kind={modal.kind}
           currency={currency}
           programmePriceMinor={programmePriceMinor}

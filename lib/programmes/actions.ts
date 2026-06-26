@@ -12,7 +12,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import type {
   Currency,
   DeliveryMode,
@@ -65,6 +65,7 @@ async function syncUpfrontStrategy(
       updated_at: nowIso,
     })
     .eq('programme_id', programmeId)
+    .is('cohort_id', null) // the programme-default upfront, not a cohort override
     .eq('kind', 'UPFRONT_FULL')
     .select('strategy_id')
     .maybeSingle();
@@ -365,6 +366,75 @@ export async function editProgrammeAction(
   revalidatePath(`/tutor/programme/${programme_id}/curriculum`);
   revalidatePath(`/tutor/programme/${programme_id}/payment-plans`);
   return { ok: true };
+}
+
+// =====================================================================
+// setProgrammePaymentGatingAction — "does payment gate access here?"
+// =====================================================================
+//
+// The per-programme tutor choice (Settled 2026-06-24). `enabled = true`
+// keeps the default (the nightly sweep PAUSEs students overdue on a
+// deposit/installment plan); `false` opts out — missed payments never
+// pause access on this programme. Money is still tracked everywhere; only
+// the enforcement is suppressed (the sweep's pause step reads the flag).
+//
+// Turning it OFF also auto-resumes the programme's students currently
+// paused FOR LATE PAYMENT (paused_reason = 'INSTALLMENT_OVERDUE'), so the
+// change takes effect now rather than from tonight. TUTOR_MANUAL pauses are
+// left untouched — only the tutor lifts those.
+//
+// Ownership: the programme UPDATE is RLS-scoped (tutor_id = auth.uid(), or
+// a SUPER_ADMIN bypass) — 0 rows back = not theirs. With ownership thereby
+// proven, the cross-table resume uses the service role (the per-student
+// auth-gated resume RPC needs a session; this is a bulk policy action — the
+// same "validated, then service-role write" pattern as activate.ts).
+
+export type PaymentGatingResult =
+  | { ok: true; enabled: boolean; resumedCount: number }
+  | { ok: false; error: string };
+
+export async function setProgrammePaymentGatingAction(
+  programmeId: string,
+  enabled: boolean
+): Promise<PaymentGatingResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data, error } = await supabase
+    .from('nclex_programmes')
+    .update({ payment_gates_access: enabled, updated_at: new Date().toISOString() })
+    .eq('programme_id', programmeId)
+    .select('programme_id')
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: 'Programme not found or not yours to edit.' };
+
+  let resumedCount = 0;
+  if (!enabled) {
+    const admin = createServiceRoleClient();
+    const { data: resumed } = await admin
+      .from('nclex_enrolments')
+      .update({
+        status: 'ENROLLED',
+        paused_at: null,
+        paused_reason: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('programme_id', programmeId)
+      .eq('status', 'PAUSED')
+      .eq('paused_reason', 'INSTALLMENT_OVERDUE')
+      .select('enrolment_id');
+    resumedCount = resumed?.length ?? 0;
+  }
+
+  revalidatePath('/tutor/programmes');
+  revalidatePath(`/tutor/programme/${programmeId}/overview`);
+  revalidatePath(`/tutor/programme/${programmeId}/payment-plans`);
+  revalidatePath(`/tutor/programme/${programmeId}/enrolments`);
+  return { ok: true, enabled, resumedCount };
 }
 
 // =====================================================================

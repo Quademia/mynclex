@@ -54,11 +54,15 @@ export default async function ProgrammeCohortsPage({
   if (!programme) notFound();
   if (programme.delivery_mode === 'SELF_PACED') notFound();
 
-  // A run is selected → its detail renders in place of the list.
+  // A run is selected → its detail renders in place of the list. The
+  // whole detail uses a wider container than the 880px list: the
+  // Curriculum tab is a two-pane and Analytics/Sessions are
+  // dashboard/table surfaces that benefit from the room — and one
+  // width keeps the frame steady when switching tabs.
   const cohortSelected = firstOrNull(sp.cohort);
   if (cohortSelected) {
     return (
-      <div className="cohorts-page">
+      <div className="cohorts-page is-wide">
         <CohortDetail
           programmeId={programme_id}
           cohortId={cohortSelected}

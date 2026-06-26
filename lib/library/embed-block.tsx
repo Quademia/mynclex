@@ -52,6 +52,7 @@ export function freshEmbed() {
     type: 'embedded_questions',
     attrs: {
       id: crypto.randomUUID(),
+      title: '',
       item_ids: [] as string[],
       source: 'TUTOR',
     },
@@ -84,6 +85,11 @@ export const EmbedQuestionsBlock = TiptapNode.create({
       // 20260624120000. Student embed attempts are attributed to this id
       // (slice 11.13b), so it must survive reorders/edits.
       id: { default: null as string | null },
+      // Optional tutor-given name for this practice checkpoint ("Check
+      // yourself: ABG interpretation"). Shown on the student player + tutor
+      // preview, and used as the block's label in reading-check analytics
+      // (falls back to "Practice N" by reading order when blank).
+      title: { default: '' },
       item_ids: { default: [] as string[] },
       source: { default: 'TUTOR' },
     };
@@ -130,6 +136,7 @@ export function embedBlocksAtCap(editor: Editor): boolean {
 
 function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode, extension }: NodeViewProps) {
   const itemIds = (node.attrs.item_ids as string[]) ?? [];
+  const title = (node.attrs.title as string) ?? '';
   const editable = editor.isEditable;
   const isEmpty = itemIds.length === 0;
   const noteId = (extension.options.noteId as string | null) ?? null;
@@ -258,6 +265,22 @@ function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode, extens
       )}
 
       <div contentEditable={false}>
+        {(editable || title) && (
+          <div className="eq-block__title-row">
+            {editable ? (
+              <input
+                type="text"
+                className="eq-block__title-input"
+                value={title}
+                placeholder="Name this practice (optional)"
+                onMouseDown={(e) => e.stopPropagation()}
+                onChange={(e) => updateAttributes({ title: e.target.value })}
+              />
+            ) : (
+              <div className="eq-block__title-static">{title}</div>
+            )}
+          </div>
+        )}
         {isEmpty ? (
           <div className="eq-empty">
             <span className="eq-empty__icon" aria-hidden="true">✦</span>

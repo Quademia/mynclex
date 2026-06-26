@@ -162,6 +162,24 @@ const TYPE_LABEL = {
   SHELF: 'Shelf',
 } as const;
 
+// Per-week activity tallies for the rail + the detail summary line:
+// total visible activities, plus how many are still unconfigured
+// ("not set") or excluded for this cohort.
+function unitCounts(u: CohortChecklistTree['units'][number]) {
+  let total = 0;
+  let notSet = 0;
+  let excluded = 0;
+  for (const entry of u.body) {
+    const rows = entry.kind === 'block' ? entry.rows : [entry.row];
+    for (const r of rows) {
+      total += 1;
+      if (r.state === 'unconfigured') notSet += 1;
+      if (r.state === 'excluded') excluded += 1;
+    }
+  }
+  return { total, notSet, excluded };
+}
+
 // Save-status union per row. 'idle' is the default; transient
 // 'saving' while an action is in flight; 'saved' flashes briefly
 // after success then returns to idle; 'failed' is sticky until the
@@ -206,7 +224,25 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
   // Reorder of cohort-only items (Slice 4).
   const [reordering, startReorder] = useTransition();
 
+  // Two-pane (2026-06 redesign): which week's detail is shown + the
+  // mobile "entered a week" flag for the drill-in. LOCAL state, not a
+  // URL param — this component already holds the whole cohort tree, so a
+  // URL param would re-fetch it on every week click. Local state is
+  // instant and survives the router.refresh() after a save (the tutor
+  // stays on the same week).
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [entered, setEntered] = useState(false);
+
   const cohortId = tree.cohort.cohort_id;
+
+  // Select a week's detail (rail click). On mobile this also "enters"
+  // the week (the drill-in); collapse any add-flow left open elsewhere.
+  function selectUnit(unitId: string) {
+    setSelectedUnitId(unitId);
+    setEntered(true);
+    setPickerUnitId(null);
+    setAddingBlockUnitId(null);
+  }
 
   // Soft-warn keyed off the publish state, shared by every "add a
   // cohort-only item" path (editor types + Note/Shelf attach). If it landed
@@ -378,6 +414,17 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
     );
   }
 
+  // The week whose detail is shown — the selection, falling back to the
+  // first week (initial load, or if a selected week somehow disappears).
+  const selectedUnit =
+    tree.units.find((u) => u.unit.unit_id === selectedUnitId) ?? tree.units[0];
+  const selCounts = unitCounts(selectedUnit);
+  const selSummary = [
+    `${selCounts.total} ${selCounts.total === 1 ? 'activity' : 'activities'}`,
+  ];
+  if (selCounts.excluded > 0) selSummary.push(`${selCounts.excluded} excluded`);
+  if (selCounts.notSet > 0) selSummary.push(`${selCounts.notSet} not set`);
+
   return (
     <>
       <section className="cohort-checklist">
@@ -430,35 +477,106 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
           </div>
         )}
 
-        <div className="cohort-checklist-units">
-          {tree.units.map((u) => (
-            <article key={u.unit.unit_id} className="cohort-checklist-unit">
+        <div className={'ccp' + (entered ? ' is-entered' : '')}>
+          <aside className="ccp-rail" aria-label="Weeks">
+            <div className="ccp-rail-head">
+              <span className="ccp-rail-head-title">Weeks</span>
+              <span className="ccp-rail-head-count">
+                {tree.units.length} {tree.units.length === 1 ? 'week' : 'weeks'}
+              </span>
+            </div>
+            <div className="ccp-rail-list" role="tablist" aria-label="Weeks">
+              {tree.units.map((u) => {
+                const c = unitCounts(u);
+                const isSel = u.unit.unit_id === selectedUnit.unit.unit_id;
+                return (
+                  <button
+                    key={u.unit.unit_id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isSel}
+                    className={'ccp-rail-item' + (isSel ? ' is-active' : '')}
+                    onClick={() => selectUnit(u.unit.unit_id)}
+                  >
+                    <span className="ccp-rail-item-top">
+                      <span className="ccp-rail-item-label">
+                        {unitLabel(u.unit.unit_index, tree.programme.unit_label)}
+                      </span>
+                      <span
+                        className={`unit-pill ${unitStatusPillClass(
+                          u.unit.is_published
+                        )}`}
+                      >
+                        {unitStatusLabel(u.unit.is_published)}
+                      </span>
+                    </span>
+                    <span className="ccp-rail-item-title">
+                      {formatUnitTitle(u.unit, tree.programme.unit_label)}
+                    </span>
+                    <span className="ccp-rail-item-meta">
+                      <span className="ccp-rail-count">
+                        {c.total} {c.total === 1 ? 'activity' : 'activities'}
+                      </span>
+                      {c.notSet > 0 && (
+                        <span className="ccp-rail-badge is-notset">
+                          {c.notSet} not set
+                        </span>
+                      )}
+                      {c.excluded > 0 && (
+                        <span className="ccp-rail-badge is-excluded">
+                          {c.excluded} excluded
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
+          <div className="ccp-detail">
+            <button
+              type="button"
+              className="ccp-back"
+              onClick={() => setEntered(false)}
+            >
+              ← Weeks
+            </button>
+            <article className="cohort-checklist-unit ccp-detail-unit">
               <header className="cohort-checklist-unit-head">
                 <span className="cohort-checklist-unit-index">
-                  {unitLabel(u.unit.unit_index, tree.programme.unit_label)}
+                  {unitLabel(
+                    selectedUnit.unit.unit_index,
+                    tree.programme.unit_label
+                  )}
                 </span>
                 <span
-                  className={`unit-pill ${unitStatusPillClass(u.unit.is_published)}`}
+                  className={`unit-pill ${unitStatusPillClass(
+                    selectedUnit.unit.is_published
+                  )}`}
                 >
-                  {unitStatusLabel(u.unit.is_published)}
+                  {unitStatusLabel(selectedUnit.unit.is_published)}
+                </span>
+                <span className="ccp-detail-summary">
+                  {selSummary.join(' · ')}
                 </span>
               </header>
               <h3 className="cohort-checklist-unit-title">
-                {formatUnitTitle(u.unit, tree.programme.unit_label)}
+                {formatUnitTitle(selectedUnit.unit, tree.programme.unit_label)}
               </h3>
-              {u.unit.description && (
+              {selectedUnit.unit.description && (
                 <p className="cohort-checklist-unit-desc">
-                  {u.unit.description}
+                  {selectedUnit.unit.description}
                 </p>
               )}
 
-              {u.body.length === 0 ? (
+              {selectedUnit.body.length === 0 ? (
                 <p className="cohort-checklist-unit-empty">
                   No activities in this unit yet.
                 </p>
               ) : (
                 <div className="cohort-checklist-body">
-                  {u.body.map((entry, idx) => {
+                  {selectedUnit.body.map((entry, idx) => {
                     // Only cohort-only items reorder here; template items
                     // move on the Curriculum tab. Position is the entry's
                     // index in the merged body — it can move past template
@@ -470,7 +588,7 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
                     const reorder: ReorderCtl | undefined = entryIsCohortOnly
                       ? {
                           canUp: idx > 0,
-                          canDown: idx < u.body.length - 1,
+                          canDown: idx < selectedUnit.body.length - 1,
                           pending: reordering,
                           onMove: (direction) =>
                             handleReorder(
@@ -512,21 +630,21 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
               )}
 
               <div className="cohort-checklist-unit-foot">
-                {pickerUnitId === u.unit.unit_id ? (
+                {pickerUnitId === selectedUnit.unit.unit_id ? (
                   <ActivityPicker
                     types={COHORT_ONLY_TYPES}
                     title="Add a cohort-only activity"
                     onPick={(type) => {
-                      openAddActivity(u.unit.unit_id, null, type);
+                      openAddActivity(selectedUnit.unit.unit_id, null, type);
                       setPickerUnitId(null);
                     }}
                     onCancel={() => setPickerUnitId(null)}
                   />
-                ) : addingBlockUnitId === u.unit.unit_id ? (
+                ) : addingBlockUnitId === selectedUnit.unit.unit_id ? (
                   <CohortBlockCreate
                     pending={creatingBlock}
                     onCreate={(title) =>
-                      handleCreateBlock(u.unit.unit_id, title)
+                      handleCreateBlock(selectedUnit.unit.unit_id, title)
                     }
                     onCancel={() => setAddingBlockUnitId(null)}
                   />
@@ -536,7 +654,7 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
                       type="button"
                       className="cohort-checklist-add-btn"
                       onClick={() => {
-                        setPickerUnitId(u.unit.unit_id);
+                        setPickerUnitId(selectedUnit.unit.unit_id);
                         setAddingBlockUnitId(null);
                       }}
                     >
@@ -546,7 +664,7 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
                       type="button"
                       className="cohort-checklist-add-btn"
                       onClick={() => {
-                        setAddingBlockUnitId(u.unit.unit_id);
+                        setAddingBlockUnitId(selectedUnit.unit.unit_id);
                         setPickerUnitId(null);
                       }}
                     >
@@ -556,7 +674,7 @@ export function CohortCurriculum({ tree }: CohortCurriculumProps) {
                 )}
               </div>
             </article>
-          ))}
+          </div>
         </div>
       </section>
 

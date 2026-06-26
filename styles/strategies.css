@@ -163,3 +163,99 @@
 .prog-btn-secondary:hover:not(:disabled) {
   background: var(--bg-soft);
 }
+
+/* ── Cohort Payment-plans pane (per-cohort override, 2026-06-22) ── */
+
+/* "Custom pricing is on" banner — accent-tinted, revert button on the right. */
+.pp-custom-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border: 1px solid #a3ccc7;
+  border-left: 3px solid var(--accent);
+  background: #e3f0ec;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--accent-dark);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.pp-custom-banner strong {
+  color: var(--text);
+}
+
+/* Inherited (programme pricing) note above the read-only preview. */
+.pp-inherit-banner {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.pp-list-readonly {
+  margin-bottom: 8px;
+}
+.pp-empty {
+  font-size: 14px;
+  color: var(--text-muted);
+  padding: 12px 0;
+}
+.pp-enable-row {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* Inline revert confirm (inside the custom banner). */
+.pp-revert-confirm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.pp-revert-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+/* Cohort full-price box (the cohort equivalent of the programme price box). */
+.pp-upfront-box {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  background: var(--white);
+  margin-bottom: 16px;
+}
+.pp-upfront-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.pp-upfront-row .prog-input {
+  max-width: 200px;
+}
+
+/* Access policy card on the Payment plans page (2026-06-24) — the shared
+   <PaymentGatingToggle> (does a missed payment pause access here?). */
+.pp-access-policy {
+  margin-top: 22px;
+  padding: 2px 18px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+}
+.pp-access-policy-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 12px 0 0;
+}

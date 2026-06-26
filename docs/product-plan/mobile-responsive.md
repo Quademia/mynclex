@@ -91,12 +91,30 @@ Everything is additive to the existing shell; desktop is unchanged.
 - **Slice 3** (polish: scroll-lock fix, resize-close, focus-on-open) +
   this doc + the CLAUDE.md convention.
 
+## Non-nav content reflow (started 2026-06-21)
+
+The first non-nav surfaces to get a mobile pass are the **curriculum
+two-panes** (student + tutor cohort). The established pattern for a
+desktop rail+detail on a phone is a **drill-in**, not a shrunk
+side-by-side (CD's mock used a cramped horizontal week-strip — rejected):
+
+- No selection → the **list** (the rail) full-width.
+- A selection → the **detail** full-width + a "← Weeks" back link; the
+  rail hides.
+- Driven by the surface's existing selection state — the student uses the
+  `?unit=N` URL param (so the phone back button returns to the list); the
+  tutor cohort uses local state + the on-screen back link. Toggled purely
+  by CSS in the surface's own stylesheet (`@media (max-width: 768px)` +
+  an `is-entered` class on the pane).
+
+Reuse this drill-in for future two-pane surfaces.
+
 ## Not done (future)
 
 - Tutor/admin bottom tabs (deferred by design).
-- Non-nav content surfaces (tables/editors) still need their own
-  per-surface `@media (max-width: 768px)` passes — this work was nav
-  only.
+- Remaining non-nav content surfaces (bank tables, editors, dashboards)
+  still need their own per-surface `@media (max-width: 768px)` passes —
+  the curriculum two-panes are done; the rest are pending.
 - Picker + `(focused)` mobile treatment.
 - Full focus-trap (Tab cycling) in the drawer/sheet — currently
   focus-on-open only.

@@ -41,14 +41,19 @@ export function formatCohortDate(isoDate: string): string {
 }
 
 // The "when" line on a card: self-paced starts anytime; tutor-led shows
-// the next upcoming cohort, or "In progress" when only a late-join
-// cohort is open.
+// the next upcoming cohort, "In progress" when only a late-join cohort is
+// open, or "Not scheduled yet" when there's no open cohort at all (still
+// discoverable → express interest on the detail page).
 export function whenLabel(p: PublicProgramme): { k: string; v: string } {
   if (p.delivery_mode === 'SELF_PACED') return { k: 'Start', v: 'Anytime' };
   if (p.next_cohort_start) {
     return { k: 'Next cohort', v: formatCohortDate(p.next_cohort_start) };
   }
-  return { k: 'Cohort', v: 'In progress' };
+  // An open cohort with no future start = a late-join run already underway.
+  if (p.open_cohort_count > 0) return { k: 'Cohort', v: 'In progress' };
+  // No open cohort at all — discoverable, but you express interest rather
+  // than join now.
+  return { k: 'Next cohort', v: 'Not scheduled yet' };
 }
 
 // "8 weeks" / "6 modules" from length + unit label.

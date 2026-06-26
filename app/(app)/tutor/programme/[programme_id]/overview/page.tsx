@@ -1,28 +1,23 @@
 // mynclex/app/(app)/tutor/programme/[programme_id]/overview/page.tsx
 //
-// Programme Overview. Currently a placeholder for the real overview
-// content (next live session, weekly progress, etc.) — that lands in
-// a later slice.
+// Programme Overview — the programme detail landing. Rebuilt from the CD
+// "Overview — A Card Grid" prototype (the "built LAST" surface, now that
+// everything it summarises is in place). Mode-aware (TUTOR_LED vs
+// SELF_PACED) via the programme's delivery_mode.
 //
-// Slice 9.2b layers an empty-state CTA on top of the placeholder
-// when the TUTOR_LED programme has zero cohorts: tutors landing
-// here see an obvious "+ Add your first cohort" call rather than
-// having to navigate to the Cohorts tab and find it there.
+// Slice 1: header (status / gating / Edit / Archive) + KPI strip +
+// sections grid, assembled by lib/home/tutor/getProgrammeOverview. The
+// two-column work row (cohort / enrolment health + enquiries) is Slice 2.
 //
-// Slice 9.3e adds the Publish / Archive status controls. Renders
-// at the top of the page — high-impact action, deserves prime
-// position. Independent of the cohort-empty CTA below it (the
-// CTA is TUTOR_LED-only; status controls apply to every mode).
+// The zero-cohort "+ Add your first cohort" CTA is preserved for a brand-
+// new TUTOR_LED programme — its KPIs/panels are empty, so the first action
+// is to spin up a cohort.
 
 import { notFound } from 'next/navigation';
-import { Placeholder } from '@/components/nav/shared/placeholder';
-import {
-  getProgrammeForShell,
-  getProgrammeStatus,
-} from '@/lib/programmes/queries';
+import { getProgrammeOverview } from '@/lib/home/tutor/programme-overview-queries';
+import { ProgrammeOverview } from '@/lib/home/tutor/programme-overview';
 import { getCohortCountForProgramme } from '@/lib/cohorts/queries';
 import { NewCohortTrigger } from '@/lib/cohorts/new-cohort-trigger';
-import { ProgrammeStatusControls } from '@/lib/programmes/programme-status-controls';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,41 +28,36 @@ export default async function ProgrammeOverviewPage({
 }) {
   const { programme_id } = await params;
 
-  // Three parallel reads — shell context for the page itself,
-  // status context for the controls, cohort count for the empty
-  // CTA. All RLS-scoped to this tutor.
-  const [programme, status, cohortCount] = await Promise.all([
-    getProgrammeForShell(programme_id),
-    getProgrammeStatus(programme_id),
+  const [data, cohortCount] = await Promise.all([
+    getProgrammeOverview(programme_id),
     getCohortCountForProgramme(programme_id),
   ]);
-  if (!programme || !status) notFound();
+  if (!data) notFound();
+
+  const showEmptyCohortCta =
+    data.header.deliveryMode === 'TUTOR_LED' && cohortCount === 0;
 
   return (
     <>
-      <ProgrammeStatusControls programme={status} />
+      <ProgrammeOverview data={data} />
 
-      <Placeholder
-        title="Overview"
-        subtitle="Programme home"
-        description="Next live session, announcements, weekly progress, cohort size."
-      />
-
-      {programme.delivery_mode === 'TUTOR_LED' && cohortCount === 0 && (
-        <div className="programme-overview-cohorts-empty">
-          <h2 className="programme-overview-cohorts-empty-title">
-            No cohorts yet.
-          </h2>
-          <p className="programme-overview-cohorts-empty-sub">
-            Spin up a cohort when you&apos;re ready to enrol students.
-            The curriculum on this programme will be available to every
-            cohort you create.
-          </p>
-          <NewCohortTrigger
-            programmeId={programme_id}
-            programmeLengthUnits={programme.length_units}
-            variant="empty"
-          />
+      {showEmptyCohortCta && (
+        <div className="pov pov-empty-wrap">
+          <div className="programme-overview-cohorts-empty">
+            <h2 className="programme-overview-cohorts-empty-title">
+              No cohorts yet.
+            </h2>
+            <p className="programme-overview-cohorts-empty-sub">
+              Spin up a cohort when you&apos;re ready to enrol students. The
+              curriculum on this programme will be available to every cohort you
+              create.
+            </p>
+            <NewCohortTrigger
+              programmeId={programme_id}
+              programmeLengthUnits={data.header.lengthUnits}
+              variant="empty"
+            />
+          </div>
         </div>
       )}
     </>

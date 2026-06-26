@@ -47,7 +47,6 @@ async function readOwnedEnquiry(
 async function updateEnquiry(
   enquiryId: string,
   patch: Record<string, unknown>,
-  programmeId: string,
 ): Promise<EnquiryActionResult> {
   const admin = createServiceRoleClient();
   const { error } = await admin
@@ -55,7 +54,9 @@ async function updateEnquiry(
     .update({ ...patch, updated_at: new Date().toISOString() })
     .eq('enquiry_id', enquiryId);
   if (error) return { ok: false, error: error.message };
-  revalidatePath(`/tutor/programme/${programmeId}/enquiries`);
+  // Enquiries now live only on the global inbox (the per-programme tab is a
+  // redirect shim). Refresh it so the list + the nav badge re-derive.
+  revalidatePath('/tutor/enquiries');
   return { ok: true };
 }
 
@@ -67,11 +68,10 @@ export async function markContactedAction(
   if (enquiry.status !== 'NEW') {
     return { ok: false, error: 'Only new enquiries can be marked as contacted.' };
   }
-  return updateEnquiry(
-    enquiryId,
-    { status: 'CONTACTED' as EnquiryStatus, contacted_at: new Date().toISOString() },
-    enquiry.programme_id,
-  );
+  return updateEnquiry(enquiryId, {
+    status: 'CONTACTED' as EnquiryStatus,
+    contacted_at: new Date().toISOString(),
+  });
 }
 
 export async function markClosedAction(
@@ -82,11 +82,7 @@ export async function markClosedAction(
   if (enquiry.status === 'CONVERTED' || enquiry.status === 'CLOSED') {
     return { ok: false, error: 'This enquiry is already closed.' };
   }
-  return updateEnquiry(
-    enquiryId,
-    { status: 'CLOSED' as EnquiryStatus },
-    enquiry.programme_id,
-  );
+  return updateEnquiry(enquiryId, { status: 'CLOSED' as EnquiryStatus });
 }
 
 export async function saveAdminNotesAction(
@@ -96,9 +92,5 @@ export async function saveAdminNotesAction(
   const enquiry = await readOwnedEnquiry(enquiryId);
   if (!enquiry) return { ok: false, error: 'Enquiry not found or not yours.' };
   const trimmed = notes.trim();
-  return updateEnquiry(
-    enquiryId,
-    { admin_notes: trimmed === '' ? null : trimmed },
-    enquiry.programme_id,
-  );
+  return updateEnquiry(enquiryId, { admin_notes: trimmed === '' ? null : trimmed });
 }

@@ -61,6 +61,7 @@ export type StrategyFormValues = {
 export type PublicPaymentPlan = {
   strategy_id: string;
   programme_id: string;
+  cohort_id: string | null; // per-cohort override; NULL = programme default
   kind: StrategyKind;
   label: string | null;
   total_price_minor: number;
@@ -100,6 +101,25 @@ export type PaymentPlansContext = {
     price_currency: Currency;
     payment_collection_mode: PaymentCollectionMode;
     status: ProgrammeStatus;
+    // Does a missed payment gate access? Drives the Access-policy toggle.
+    payment_gates_access: boolean;
   };
   strategies: PaymentStrategy[];
+};
+
+// What the cohort Payment-plans pane loads (per-cohort override,
+// 2026-06-22). A cohort is "custom" when it has ≥1 ACTIVE plan row of its
+// own; otherwise it inherits the programme defaults (shown read-only).
+// cohortStrategies carries the cohort's rows (active + inactive) for the
+// editor; programmeStrategies is the inherited preview.
+export type CohortPaymentPlansContext = {
+  cohortId: string;
+  programmeId: string;
+  currency: Currency;
+  collectionMode: PaymentCollectionMode;
+  programmeStatus: ProgrammeStatus;
+  isCustom: boolean;
+  upfrontMinor: number | null; // the cohort's current upfront total (custom)
+  programmeStrategies: PaymentStrategy[];
+  cohortStrategies: PaymentStrategy[];
 };

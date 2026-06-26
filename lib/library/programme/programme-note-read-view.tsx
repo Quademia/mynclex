@@ -85,8 +85,8 @@ export function ProgrammeNoteReadView({
   const progressPct =
     headings.length === 0 ? 0 : Math.round((sectionNum / headings.length) * 100);
 
-  const renderEmbed = (noteId: string, blockId: string) => (
-    <EmbedPreview noteId={noteId} blockId={blockId} />
+  const renderEmbed = (noteId: string, blockId: string, title: string) => (
+    <EmbedPreview noteId={noteId} blockId={blockId} title={title} />
   );
 
   return (

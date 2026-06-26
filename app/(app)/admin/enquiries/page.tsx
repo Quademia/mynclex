@@ -17,8 +17,10 @@
 // the 8 trailing weeks; tutor scoreboard groups by tutor_name.
 //
 // Status changes (mark Contacted / Closed / notes) intentionally NOT
-// surfaced here — those belong on /tutor/programme/<id>/enquiries.
-// Each row's "Open in tutor view ↗" link hops the admin there.
+// surfaced here — those belong on the tutor's enquiry inbox. Each row's
+// "Open in tutor view ↗" link hops the admin to /tutor/programme/<id>/
+// enquiries, which now redirects to the global /tutor/enquiries inbox
+// pre-scoped to that programme.
 
 import { requireAdminPermission, PERM_PROGRAMMES_VIEW } from '@/lib/access';
 import { createServiceRoleClient } from '@/lib/supabase/server';

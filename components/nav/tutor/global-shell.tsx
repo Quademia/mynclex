@@ -17,13 +17,21 @@ import { SidebarUserBar } from '@/components/nav/shared/sidebar-user-bar';
 import { TutorGlobalSidebar } from './global-sidebar';
 import { MobileNav } from '@/components/shell/mobile/mobile-nav';
 import { TUTOR_GLOBAL_NAV } from '@/lib/nav/tutor';
+import { getNewEnquiryCountForTutor } from '@/lib/enquiries/queries';
 
 export async function TutorGlobalShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const chrome = await loadChromeData();
+  // Chrome + the "new enquiries" nav badge in one parallel pass. The count
+  // is RLS-scoped to the tutor's own programmes (keyed to the 'enquiries'
+  // NavItem); 0 → no pill.
+  const [chrome, newEnquiries] = await Promise.all([
+    loadChromeData(),
+    getNewEnquiryCountForTutor(),
+  ]);
+  const navBadges = newEnquiries > 0 ? { enquiries: newEnquiries } : undefined;
 
   return (
     <AppShell
@@ -40,6 +48,7 @@ export async function TutorGlobalShell({
           availableRoles={chrome.roles}
           items={TUTOR_GLOBAL_NAV}
           profileHref="/tutor/profile"
+          badges={navBadges}
         />
       }
     >
@@ -53,7 +62,7 @@ export async function TutorGlobalShell({
             />
           }
         >
-          <TutorGlobalSidebar items={TUTOR_GLOBAL_NAV} />
+          <TutorGlobalSidebar items={TUTOR_GLOBAL_NAV} badges={navBadges} />
         </SidebarFrame>
         <main className="product-content">
           {children}

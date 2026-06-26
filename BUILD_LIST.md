@@ -8,6 +8,221 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **LIBRARY 11.11c — TUTOR "QUESTION ANALYTICS" — BUILT + MERGED to `main`
+> (2026-06-26; Sam-tested on dev; all app-layer, NO migration; not yet
+> prod).** The reading-check analytics over `nclex_library_embed_answers`,
+> built from the Claude Design "QAcademy Nurses Analytics" prototype
+> (concept-not-source; the *2nd* CD prototype — the 1st was rejected for
+> flattening the Practice-block layer). New `lib/library/analytics/` module
+> + `styles/embed-analytics.css`. A **standalone** `/tutor/library/analytics`
+> route (light sidebar = "← Library" + the 4-band "reading lens" legend),
+> reached from a 📊 entry in the library sidebar.
+> - **Overview** — KPIs · cross-note **Re-teach signal** (most-missed
+>   questions) · **Notes** table (weakest-block flagged).
+> - **Per-note drill-in** — **Questions** (block-grouped collapsible rows +
+>   full **answer distribution** w/ KEY / TOP-MISS + "first-try → after
+>   re-practice (+lift)"), **Roster** (reader × block **heatmap**, grouped
+>   by cohort / self-paced), **Readers** (list) → **reader report** (picks
+>   vs key, recovery).
+> - **Scope switcher** — All readers / each cohort / Self-paced, on the
+>   Overview + every tab; cohorts in a **dropdown** (scales). Reader names +
+>   cohort segment via a new `resolveReaderSegments` (ownership →
+>   service-role over `nclex_users` + `nclex_enrolments`).
+> - **Enabler (already merged `ab90da2`):** the `embedded_questions` block
+>   gained an optional **title** — the block label the analytics groups by.
+> - **Deferred:** median time / time-on-block (dev seed had placeholder
+>   timing); the Mark-done → progress write-through stub (untouched); the
+>   **student side** (practice dashboard / metacognition — next session;
+>   the practice itself stays the 11.13b player by decision); + Sam's
+>   "areas of improvement" list (TBD).
+>
+> **⏭ NEXT:** Sam's improvement passes + the **student side** (own
+> session) → 11.17 polish → the big `main → prod` **release** (this rides
+> atop the large unreleased stack; ⚠ `PAYSTACK_SECRET_KEY` still not on
+> prod). Detail in
+> [tutor-library.md](docs/product-plan/tutor-library.md) → 11.11c.
+
+> **TUTOR PROGRAMME OVERVIEW PAGE — BUILT + MERGED to `main` (2026-06-24
+> third session, `e02b2ab` + `1308364`; Sam-tested on dev; all app-layer, NO
+> migration; NOT yet prod).** The **"built LAST" surface** — the tutor
+> programme detail landing (`/tutor/programme/[id]/overview`, previously a
+> `<Placeholder>`) — rebuilt from the CD **"Overview — A Card Grid"** prototype
+> (concept-not-source). The deferral lifted now that everything the page
+> summarises is in place.
+> - **The reuse insight:** the Overview is **the tutor Home scoped to one
+>   programme** — `getTutorHomeData`'s derive-at-read-time approach narrowed to
+>   one programme. So it's almost entirely read-assembly + a CSS surface. New
+>   `lib/home/tutor/programme-overview-{types,queries,view}.tsx` reuse
+>   `getMyProgrammes` · roster · enquiries · curriculum · library · quizzes ·
+>   plans · `getTutorPayments` + per-cohort `getCohortAnalytics`. **Mode is
+>   fixed by `delivery_mode`** (TUTOR_LED vs SELF_PACED), not a toggle.
+> - **Two forks settled with Sam up front:** keep the real "↑N students this
+>   week" delta, **drop "completion vs last week"** (no historical snapshot →
+>   would be fabricated); **reuse `ProgrammeFormModal` (edit)** for the header
+>   Edit button.
+> - **Slice 1 (`e02b2ab`) — header + KPI strip + sections grid.** Header
+>   (name/mode/status + meta: length · tagline · price · next session ·
+>   revenue) + a new client action cluster
+>   (`lib/programmes/programme-overview-actions.tsx`: compact
+>   **PaymentGatingToggle** · **Publish**[draft] · **Edit** · **Archive**,
+>   reusing the existing actions + `ProgrammeArchiveConfirm`;
+>   `ProgrammeStatusControls` left intact for the Programmes-list card menu) +
+>   a 4-card mode-aware KPI strip (tutor-led: Students↑ / Active cohorts +
+>   attention / Avg completion / Enquiries; self-paced: Students / Revenue /
+>   Overdue / Enquiries — **self-paced avg-completion deliberately omitted**:
+>   needs an unbuilt programme-level analytics aggregator, not fabricated) + a
+>   5-card sections grid (Curriculum · Library · Quizzes · Payments ·
+>   Enrolments → their tabs); kept the zero-cohort "+ Add your first cohort"
+>   CTA.
+> - **Slice 2 (`1308364`) — the two-column work row.** Tutor-led **Active
+>   cohorts** panel (per-cohort health rows — chip On track / Watch / Just
+>   started, bar + %, "N lagging" + "action needed" on Watch, Open/Review → the
+>   folded cohort workspace `?cohort=`; **reuses the cohort-health rows already
+>   computed for the completion KPI — zero extra reads**) · self-paced
+>   **Enrolment health** panel (Active / Overdue / Paused / Expired tiles +
+>   recently-enrolled, reusing `ENROLMENT_STATUS_META` pills) · both modes an
+>   **Enquiries** panel (open, newest first, unread dot, 2-line clamp,
+>   Reply / View all). New `styles/programme-overview.css` (`pov-`, app tokens,
+>   ≤768px reflow), registered in `app/(app)/layout.tsx`.
+> - **v1 cuts (noted):** self-paced avg-completion deferred; the mock's cohort
+>   "N active today" dropped (no last-24h source) → rows show date range +
+>   student count; "recently enrolled" detail = "Paid in full" / "On a payment
+>   plan" (not a price). First load is a few seconds (per-cohort analytics +
+>   payments ledger — the tutor-Home cost profile).
+>
+> **⏭ NEXT:** back to the parked **payments-E2E thread** (global
+> `/tutor/enquiries` + the public lead-capture-rules rethink). The `main →
+> prod` release now also carries this (app-layer) atop the unreleased migration
+> stack (`…20260705120000` + `20260706120000`); **`PAYSTACK_SECRET_KEY` still
+> not on the prod Worker.**
+
+> **PAYMENT RESULT SCREEN + APPROVE-CONFIRM + PAYMENT-GATED-ACCESS TOGGLE —
+> BUILT + MERGED to `main` (2026-06-24 second session, `65d21a7`; Sam-tested on
+> dev; all app-layer + ONE migration `20260706120000` on dev + `main`, NOT yet
+> prod).** Three pieces:
+> - **Payment confirmation page → a real result screen (Slices 1+2).** The bare
+>   `/checkout/callback` rebuilt into an on-brand result card: status icon +
+>   heading + tone pill + **order/receipt summary** + **"📸 screenshot for your
+>   records"** (no transactional email, so the summary IS the receipt) +
+>   per-outcome next-step. New `lib/payments/result.ts` `getPaymentReceipt`
+>   (service-role read by reference; joins programme/product/cohort/plan; "of N"
+>   from the frozen snapshot; destination + retry hrefs; `isTutorLed`). `.cr-*`
+>   on `checkout.css` (tone via `--tone` + `color-mix`). **Slice 2:** `verify.ts`
+>   maps Paystack **terminal** states (failed/abandoned/reversed) → **FAILED**
+>   (a declined card now reads "didn't go through", not "waiting"); session-aware
+>   CTA; PENDING auto-recheck island; resend-setup-email deferred to the email
+>   arc (support fallback + `EMAIL-TRIGGER` marker). Plumbing untouched.
+>   `d568adc` · `8bdd968` · `e9ca097`.
+> - **Approve-confirm dialog (`290bc23`).** Approve was the only roster lifecycle
+>   action firing with no confirm — now a misclick-guard dialog (reuses
+>   `TransitionConfirm`).
+> - **Payment-gated access — per-programme tutor toggle** (`66e3f7d` · `ccedab5`
+>   · `09f7252` · `65d21a7`). A tutor can decide, per programme, whether a missed
+>   payment pauses access. **Single chokepoint:** access = `status=ENROLLED`, and
+>   only the nightly sweep's step 4a pauses for missed payment — so migration
+>   `20260706120000` adds `payment_gates_access` (default TRUE) + the sweep skips
+>   gating-off programmes. **ONE** action (RLS flip + auto-resume of
+>   `INSTALLMENT_OVERDUE` pauses on turn-off, leaving `TUTOR_MANUAL`) + **ONE**
+>   shared self-saving `<PaymentGatingToggle>` (switch + direction-aware confirm
+>   + toast), mounted on **4 surfaces** (Enrolments roster inline · Payment plans
+>   · Overview · edit modal; `compact` on the dense ones). Design in
+>   [payments-and-enrolment.md](docs/product-plan/payments-and-enrolment.md) →
+>   "Settled 2026-06-24". Also captured: **every payment emails BOTH student +
+>   tutor** (`payment.tutor_received` P3→P1 in
+>   [transactional-email.md](docs/product-plan/transactional-email.md), `4620a2d`).
+>
+> **⏭ Session wrapped mid-stream — more to pick up next time.** Operational ⚠:
+> the `main → prod` release now carries `20260705120000` (cohort payment plans)
+> **+ `20260706120000`** (this); **`PAYSTACK_SECRET_KEY` still not on the prod
+> Worker** — prod checkout broken until set.
+
+> **CHECKOUT STEP-WIZARD + PAY-FIRST FIX — BUILT + MERGED to `main`
+> (2026-06-24; Sam-tested on dev; app-layer, no migration; not yet released to
+> prod).** Came out of the payments E2E pass. Two changes:
+> - **Checkout step-wizard (`887e57d`).** The programme checkout's left column
+>   is now a **step wizard** (① cohort + plan → ② bank, skippable → ③ email),
+>   one step at a time + stepper + Back/Next — so the email field is no longer
+>   buried in a long mixed scroll. The **right rail stays as-is** (live order
+>   summary + Pay; it's not a step). **Pay is gated** — disabled until payable
+>   (valid non-duplicate email + cohort), with a hint of what's left. Steps are
+>   **dynamic** (self-paced drops cohort, single plan hides the picker, no
+>   discount drops the bank step). **Mobile (≤820px):** the rail's Pay folds into
+>   a **fixed bottom bar** (running total + Next/Pay). Built into the shared
+>   `CheckoutShell` behind an opt-in `steps` prop → **bank checkout untouched**
+>   (it gains the same gated-Pay only). New `CheckoutStep` type + `co-step*` /
+>   `co-mobile-bar` CSS.
+> - **Pay-first guest bookkeeping fix (`f56ea37`).** Found in E2E Track B: after
+>   a successful pay-first invite the payment stayed `PAID`/unlinked instead of
+>   `SETUP_REQUIRED`. Cause: the invite-branch update set `status` **and**
+>   `user_id` together, but `payments.user_id` FKs to `nclex_users` (no profile
+>   until `/welcome`) → FK violation, silently swallowed. Fix: set status only at
+>   invite (user_id linked at `/welcome`); surface the error.
+>
+> **Payments E2E testing COMPLETE** (Track A 2026-06-23 + Track B 2026-06-24,
+> all pass). **⏭ NEXT:** payments-E2E-driven improvements — **global
+> `/tutor/enquiries`** + the **public lead-capture-rules rethink** (both
+> discussed + parked this session). Detail in
+> [sessions/2026-06.md](sessions/2026-06.md). Operational ⚠:
+> **`PAYSTACK_SECRET_KEY` still not on the prod Worker** — prod checkout broken
+> until set.
+
+> **STUDENT OVERVIEW HOME — COMPLETE: SLICES 1 + 2 BUILT + MERGED to `main`
+> (2026-06-22; Sam-tested on dev; app-layer, no migration; not yet released to
+> prod).** The deferred 3rd Claude Design prototype from the curriculum arc — the
+> **mode-aware student programme/cohort home** — now the **landing surface**.
+> Mode is **fixed by the route** (programme = self-paced · cohort = tutor-led),
+> not a runtime toggle: one shared view + a per-route loader. New
+> **`lib/home/student/`** (parallel to `lib/home/tutor/`) + `styles/student-home.css`
+> (`sho-`, ≤768px reflow). **Completes the curriculum two-pane arc.**
+> - **Scaffolding.** New `overview/page.tsx` under programme + cohort; both index
+>   redirects flipped `/curriculum → /overview`; **Overview added first** in both
+>   navs (`lib/nav/student.ts`); mobile bottom-tab bar **rebalanced to ≤4**
+>   (Overview = first tab; Quiz History off the programme bar, Quizzes off the
+>   cohort bar — both still in the drawer).
+> - **Slice 1 — the spine (`1d4eaff`).** Hero (mode chip + cohort name, greeting,
+>   progress **ring** = overall %, 3 stats: activities / weeks / streak) ·
+>   **Continue banner** · **Your weeks** · **primary rail card** (next live
+>   session [cohort] / **study streak** [self]). Headline %/weeks/activities
+>   **aggregate the curriculum tree** (no new counting); `buildRail` exported for
+>   single-sourced unit status. Added **additive `continueActivityId` /
+>   `continueIsResume`** to `StudentCurriculumTree` (resume in-progress quiz, else
+>   up-next); the Continue CTA reuses `<ActivityAction>` for a real launch. Study
+>   streak (self, new) = consecutive UTC days with a completion.
+> - **Slice 2 — supporting cards (`293090f`).** **Recent activity** (quiz attempts
+>   + non-quiz completions merged, newest 5) · **Quizzes** snapshot (done /
+>   in-progress + resume + last-mock score) · **Library** snapshot (continue-
+>   reading + bookmarked / recent) · **Attendance** (cohort only). Both modes use
+>   the **programme-level** quiz/history/library helpers; progress map fetched
+>   once, shared by recent + streak; cards self-hide when empty.
+> - **v1 simplifications (in code):** resume deep-links to the Quizzes page; study
+>   streak excludes library-note "done" (lives in note-state); recent lists each
+>   attempt as its own event. Detail in [sessions/2026-06.md](sessions/2026-06.md).
+
+> **CURRICULUM TWO-PANE REDESIGN — STUDENT + TUTOR COHORT: BUILT + MERGED to
+> `main` (2026-06-21; Sam-tested on dev; app-layer, no migration; not yet
+> released to prod).** Both curriculum surfaces rebuilt as a **two-pane (week
+> rail + detail)** from the Claude Design "Curriculum Design Update" prototype
+> (round 2 — CD restored the cohort **reorder arrows** + added the mobile
+> treatment). Mobile = **drill-in** (week list → tap → full detail + "← Weeks"
+> back), NOT CD's horizontal week-strip (cramped on a phone — Sam's call). The
+> 3rd prototype, **Student Overview, is deferred** to a later session.
+> - **Slice 1 — Student Curriculum.** Horizontal `<StudentUnitTabs>` → two-pane
+>   `lib/curriculum/student-curriculum-pane.tsx` (rail: Done / Up next / 🔒 +
+>   progress bar + %). Detail **reuses the existing activity-card render
+>   verbatim** — a layout swap, not a card rewrite. Selected week on the existing
+>   `?unit=N`; desktop full-height frame `calc(100dvh − 96px)`;
+>   `student-unit-tabs.tsx` deleted; 1-unit programmes keep the simple card.
+> - **Slice 2 — Tutor Cohort Curriculum.** Flat stack → two-pane, reusing every
+>   control + modal (Include/Exclude, Opens/Due/Closes, save-safety, cohort-only
+>   adds, reorder arrows, banners). Selected week = **local state** (no re-fetch
+>   per click); **sticky rail + page-scroll** (the library pattern — the cohort
+>   detail sits under a tall run-header/tab bar). Activity row **stacks** (title
+>   on top, dates/Include below) per the prototype. The whole cohort detail now
+>   uses a **1240px** container (one width across all tabs — no jump; Settings
+>   cards self-cap at 620px); the cohort list stays 880px.
+> - **✅ Student Overview — DONE** (2026-06-22; see the banner above). The
+>   curriculum two-pane arc is now complete.
+
 > **MOBILE NAVIGATION — SLICES 1–3 COMPLETE: BUILT + MERGED to `main`
 > (2026-06-21; Sam-tested on dev; app-layer, no migration; not yet released
 > to prod).** Made the navs mobile-friendly at **≤768px** — the first piece of a
@@ -99,14 +314,71 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > [cohort-specific-activities.md](docs/product-plan/cohort-specific-activities.md);
 > detail in [sessions/2026-06.md](sessions/2026-06.md).
 
-> **⏭ NEXT: the global `/tutor/payments` transactions page** (settled
-> 2026-06-12: built ONCE globally w/ programme · cohort · channel ·
-> date filters — no per-programme money pages). Then: library
-> **11.11c** · **11.17** · programme **Overview** · a `main → prod`
-> **release** (carries all 2026-06-12 slices; no migrations).
-> Operational ⚠: **`PAYSTACK_SECRET_KEY` is not set on the prod
-> Worker** — prod checkout will fail until it is (5-min fix, needs the
-> dashboard/wrangler).
+> **COHORT-LEVEL PAYMENT PLANS (per-cohort override) — BUILT: Slices 1–3
+> on the session branch (2026-06-22; Sam-tested on dev; app-layer + one
+> migration `20260705120000`; not yet merged to `main`).** A cohort can
+> carry its OWN payment-plan set instead of the programme's — early-bird,
+> founding-cohort, price-rise. Same Option-A pattern as cohort-specific
+> activities (a nullable `cohort_id` on `nclex_programme_payment_strategies`).
+> Design + build note in
+> [payments-and-enrolment.md](docs/product-plan/payments-and-enrolment.md)
+> → *Cohort-level payment plans → BUILD NOTE*.
+> - **Slice 1 — schema + cohort-aware reads** (`1fe6f6a`): the migration
+>   (`cohort_id` + partial unique indexes + the public + headline views) and
+>   every programme-default read scoped to `cohort_id IS NULL`. Invisible.
+> - **Slice 2a — the cohort Pricing tab** (`3753610`): inherit (read-only
+>   preview) ↔ custom (clone the programme's plans → editable via the reused
+>   plan editor + a cohort full-price box) ↔ revert. "Custom" = the cohort
+>   has ACTIVE plan rows; revert = **deactivate** (FK-safe — strategy_id is
+>   referenced `ON DELETE RESTRICT` by enrolments + payments, so we never
+>   delete); re-enable reuses.
+> - **Slice 2b — cohort-aware student checkout** (`29b1e0e`): the picker
+>   shows the chosen cohort's effective plans (custom else programme); the
+>   frozen snapshot carries the price through end-to-end.
+> - **Slice 3 — tutor pickers + badge** (`3783143`): add-with-plan +
+>   waitlist-convert pickers cohort-aware; a "Custom pricing" badge on the
+>   cohort header. The global `/tutor/payments` page + drawer needed no
+>   change (snapshot-based). Currency stays programme-level; discovery
+>   headline stays programme-default.
+>
+> **⏭ NEXT:** the `main` merge (with Sam's OK), then the broader sweep
+> (library 11.11c/11.17, programme Overview) + the `main → prod` release
+> (now also carries migration `20260705120000`).
+
+> **GLOBAL `/tutor/payments` PAGE — BUILT + MERGED to `main`
+> (2026-06-22; Sam-tested on dev; app-layer, no migration; not yet
+> released to prod).** The "what money came in?" ledger across all of a
+> tutor's programmes (the settled 2026-06-12 IA — built ONCE globally w/
+> programme · cohort · channel · date filters; no per-programme money
+> pages). From the CD "Tutor Payments v1.1" prototype. Design + build
+> note in
+> [payments-and-enrolment.md](docs/product-plan/payments-and-enrolment.md)
+> → "Settled 2026-06-12 — tutor money surfaces (IA)".
+> - **Read** (no migration): owned-programmes RLS gate → service-role read
+>   of programme-fee payments (`PROGRAMME_INITIAL`/`INSTALLMENT`;
+>   PAID/ACTIVATED/SETUP_REQUIRED = "received", REFUNDED distinct;
+>   bank/readiness excluded), joined to payer + cohort/plan via the
+>   enrolment. New `lib/payments/tutor/` + `styles/tutor-payments.css`.
+> - **Ledger:** summary band (GHS/USD received + online/off counts) ·
+>   always-visible filter toolbar (search · programme · channel · status ·
+>   cohort · date) · chips · month-grouped table (desktop) / cards
+>   (mobile) · Export CSV · empty state.
+> - **History drill-in:** a 🕑 in the Purpose cell (only when a frozen plan
+>   exists) opens the existing per-student drawer, generalised to
+>   `{ enrolmentId, name, email }` so the roster + this page share it.
+> - **Rollup scorecards:** programme + cohort, side by side when a cohort
+>   is selected (fixed-scope received totals + channel composition).
+> - **Cohort filter lists payment-less cohorts too** (scoped to the
+>   selected programme; programme-prefixed in All mode) → a named empty
+>   state + a "No payments yet" cohort card confirm "nothing collected
+>   here."
+>
+> **⏭ NEXT:** library **11.11c** · **11.17** · programme **Overview** · a
+> `main → prod` **release** (carries the large unreleased stack since the
+> last release — quiz-tags, audit, cohort-analytics ×3, cohort-activities,
+> live-session ×2 migrations). Operational ⚠: **`PAYSTACK_SECRET_KEY` is
+> not set on the prod Worker** — prod checkout fails until it is (5-min
+> fix, needs the dashboard/wrangler).
 
 > **COHORT WORKSPACE FOLDED INTO THE PROGRAMME + SIDEBAR IDENTITY
 > (2026-06-12, ✅ MERGED to `main`, not yet prod).** Two slices, same

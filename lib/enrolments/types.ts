@@ -116,6 +116,27 @@ export const ENROLMENT_SOURCE_LABEL: Record<EnrolmentSource, string> = {
   ADMIN_GRANT: 'Admin grant',
 };
 
+/** Only an ENROLLED enrolment opens programme/cohort content. Every other
+ *  status (and the null "no row" case) is shown but not enterable. Shared by
+ *  the picker cards + the switch-popup list so the gating reads identically. */
+export function canEnterStatus(status: EnrolmentStatus | null): boolean {
+  return status === 'ENROLLED';
+}
+
+/** Short why-it's-locked line under a non-enterable row, keyed by status.
+ *  ENROLLED never shows one. Mirrors the lifecycle tiles in
+ *  payments-and-enrolment.md. Shared by the picker cards + the switch-popup. */
+export const ENROLMENT_LOCKED_REASON: Record<
+  Exclude<EnrolmentStatus, 'ENROLLED'>,
+  string
+> = {
+  PENDING_APPROVAL: 'Waiting for your tutor to approve your enrolment.',
+  PAUSED: 'Access paused — a payment is overdue. Your tutor can restore it.',
+  REJECTED: 'Your enrolment request was declined.',
+  CANCELLED: 'This enrolment was cancelled.',
+  EXPIRED: 'Your access window has ended.',
+};
+
 /** The lifecycle transitions a tutor can drive from the roster (Slice 2a).
  *  EXPIRED is excluded — that's the nightly sweep's job, not a button. */
 export type EnrolmentAction = 'approve' | 'reject' | 'pause' | 'resume' | 'cancel';
@@ -146,7 +167,9 @@ export const ENROLMENT_ACTION_META: Record<
     note: boolean;
   }
 > = {
-  approve: { label: 'Approve', tone: 'primary', confirm: false, note: false },
+  // Approve confirms too (2026-06-24) — not because it's access-removing, but
+  // as a misclick guard: it sits inline next to Reject and is time-sensitive.
+  approve: { label: 'Approve', tone: 'primary', confirm: true, note: false },
   // Resume now confirms — it has a non-obvious consequence (an overdue student
   // gets re-paused by tonight's sweep), so the dialog spells that out.
   resume: { label: 'Resume', tone: 'primary', confirm: true, note: false },

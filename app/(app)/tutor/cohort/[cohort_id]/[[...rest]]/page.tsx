@@ -7,10 +7,10 @@
 //
 //   /tutor/cohort/<id>                → ?cohort=<id>            (overview)
 //   /tutor/cohort/<id>/curriculum     → ?cohort=<id>&tab=curriculum
-//   /tutor/cohort/<id>/analytics      → ?cohort=<id>&tab=analytics
 //   /tutor/cohort/<id>/sessions       → ?cohort=<id>&tab=sessions
 //   /tutor/cohort/<id>/settings       → ?cohort=<id>&tab=settings
 //   /tutor/cohort/<id>/overview       → ?cohort=<id>            (default)
+//   /tutor/cohort/<id>/analytics      → ?cohort=<id>  (folded into Overview)
 //   /tutor/cohort/<id>/announcements  → ?cohort=<id>  (tab dropped)
 //
 // RLS scopes the lookup to the tutor's own cohorts — unknown ids,
@@ -22,8 +22,9 @@ import { createClient } from '@/lib/supabase/server';
 export const dynamic = 'force-dynamic';
 
 // Old tab segments that exist as tabs on the folded surface; anything
-// else (overview, announcements, junk) falls back to the default tab.
-const CARRIED_TABS = new Set(['curriculum', 'analytics', 'sessions', 'settings']);
+// else (overview, analytics [now folded into Overview], announcements, junk)
+// falls back to the default tab.
+const CARRIED_TABS = new Set(['curriculum', 'sessions', 'settings']);
 
 export default async function TutorCohortRedirectPage({
   params,

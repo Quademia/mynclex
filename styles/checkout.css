@@ -235,7 +235,281 @@ label.co-strat:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px
 
 .co-next ol { padding-left: 18px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; }
 
+.co-pay-hint { margin-top: 8px; font-size: 11.5px; color: var(--ink-mute); text-align: center; line-height: 1.4; }
+
+/* ── step wizard (left column; programme checkout, 2026-06-24) ───────── */
+.co-wizard { display: flex; flex-direction: column; gap: 14px; }
+
+.co-steps {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.co-step { flex: 1 1 0; min-width: 0; }
+.co-step-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.co-step-btn:hover { border-color: var(--ink-mute); }
+.co-step.active .co-step-btn { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.co-step-num {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg-sunk);
+  color: var(--ink-mute);
+}
+.co-step.done .co-step-num { background: var(--accent-soft); color: var(--accent-strong); }
+.co-step.active .co-step-num { background: var(--accent); color: #fff; }
+.co-step-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.co-step.active .co-step-label { color: var(--ink); }
+
+.co-step-body { display: flex; flex-direction: column; gap: 14px; }
+
+.co-step-nav { display: flex; align-items: center; gap: 10px; min-height: 38px; }
+.co-step-back,
+.co-step-next {
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: inherit;
+}
+.co-step-back { background: #fff; border: 1px solid var(--line); color: var(--ink-soft); }
+.co-step-back:hover { border-color: var(--ink-mute); }
+.co-step-next { background: var(--accent); border: none; color: #fff; margin-left: auto; }
+.co-step-next:hover { background: var(--accent-dark); }
+.co-step-finish-hint { margin-left: auto; font-size: 12.5px; color: var(--ink-mute); }
+
+/* ── mobile sticky action bar (≤768px; Slice 2) ─────────────────────── */
+.co-mobile-bar {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+}
+.co-mobile-total { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.co-mobile-total .lbl {
+  font-size: 11px;
+  color: var(--ink-mute);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.co-mobile-total .v { font-size: 18px; font-weight: 700; color: var(--ink); }
+.co-mobile-btn {
+  flex: none;
+  padding: 13px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.co-mobile-btn:hover:not(:disabled) { background: var(--accent-dark); }
+.co-mobile-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
 @media (max-width: 820px) {
   .co-grid { grid-template-columns: 1fr; }
   .co-rail { position: static; }
+  /* Wizard only: the sticky bar owns the Pay action on mobile, so the rail's
+     own Pay button + the in-flow forward buttons would just duplicate it.
+     Scoped to .co-grid-wizard so the bank checkout (no wizard, no bar) keeps
+     its rail Pay button on mobile. */
+  .co-grid-wizard { padding-bottom: 84px; }
+  .co-grid-wizard .co-rail .co-pay-btn,
+  .co-grid-wizard .co-pay-hint,
+  .co-grid-wizard .co-step-next,
+  .co-grid-wizard .co-step-finish-hint { display: none; }
+  .co-grid-wizard .co-mobile-bar { display: flex; }
+}
+
+/* ── payment result screen (checkout callback, 2026-06-24) ───────────────
+   The post-Paystack "did it work?" screen. One card whose tone (success /
+   info / warning / danger) is set on .cr-card via the --tone custom property;
+   the icon disc + status pill tint themselves from it with color-mix, so a
+   new state is one modifier class. Reuses the public-group bridge vars. */
+.cr-card {
+  --tone: var(--accent);
+  max-width: 520px;
+  margin: 48px auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 26px 28px;
+}
+.cr-tone-success { --tone: var(--success); }
+.cr-tone-info    { --tone: var(--accent); }
+.cr-tone-warning { --tone: var(--warning); }
+.cr-tone-danger  { --tone: var(--danger); }
+
+.cr-head { display: flex; gap: 14px; align-items: flex-start; }
+.cr-icon {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 13%, #fff);
+}
+.cr-head-main { flex: 1; min-width: 0; }
+.cr-heading { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
+.cr-body { margin-top: 5px; font-size: 13.5px; color: var(--ink-mute); line-height: 1.55; }
+.cr-pill {
+  flex: none;
+  align-self: flex-start;
+  font-family: var(--mono, monospace);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 13%, #fff);
+}
+
+.cr-receipt {
+  margin-top: 20px;
+  background: var(--bg-sunk);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.cr-receipt-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+  margin-bottom: 10px;
+}
+.cr-line { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.cr-line + .cr-line { margin-top: 9px; }
+.cr-line-main { min-width: 0; }
+.cr-line-name { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.cr-line-meta { font-size: 12px; color: var(--ink-mute); margin-top: 1px; }
+.cr-line-amt { font-size: 14px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.cr-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.cr-total-v { font-size: 18px; font-weight: 700; }
+.cr-ref {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+.cr-ref code { font-family: var(--mono, monospace); font-size: 11.5px; color: var(--ink-mute); }
+
+.cr-shot {
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--ink-mute);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.cr-actions { margin-top: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.cr-btn {
+  display: inline-block;
+  padding: 11px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border-radius: var(--radius);
+}
+.cr-btn:hover { background: var(--accent-dark); text-decoration: none; }
+.cr-btn-ghost {
+  display: inline-block;
+  padding: 11px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.cr-btn-ghost:hover { border-color: var(--ink-mute); text-decoration: none; }
+
+.cr-note { margin-top: 14px; font-size: 12px; color: var(--ink-faint); }
+
+.cr-recheck {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-mute);
+}
+.cr-recheck-dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--warning);
+  animation: cr-pulse 1.2s ease-in-out infinite;
+}
+@keyframes cr-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cr-recheck-dot { animation: none; }
+}
+
+@media (max-width: 768px) {
+  .cr-card { margin: 24px auto; padding: 22px 20px; }
+  .cr-actions { flex-direction: column; align-items: stretch; }
+  .cr-btn, .cr-btn-ghost { text-align: center; }
 }

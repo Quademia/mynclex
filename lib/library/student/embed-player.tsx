@@ -64,9 +64,12 @@ type LoadState =
 export function EmbedPlayer({
   noteId,
   blockId,
+  title,
 }: {
   noteId: string;
   blockId: string;
+  /** Optional tutor-given name for this practice checkpoint. */
+  title?: string;
 }) {
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
 
@@ -107,6 +110,7 @@ export function EmbedPlayer({
     <EmbedPlayerRun
       noteId={noteId}
       blockId={blockId}
+      title={title}
       questions={load.questions}
       sittings={load.sittings}
     />
@@ -136,11 +140,13 @@ function isComplete(q: EmbedPlayQuestion, answer: BankItemAnswer): boolean {
 function EmbedPlayerRun({
   noteId,
   blockId,
+  title,
   questions,
   sittings,
 }: {
   noteId: string;
   blockId: string;
+  title?: string;
   questions: EmbedPlayQuestion[];
   sittings: EmbedSitting[];
 }) {
@@ -251,9 +257,14 @@ function EmbedPlayerRun({
               <span aria-hidden="true">✦</span> Practice
             </span>
             <div className="eq-intro-title">
-              {total} question{total === 1 ? '' : 's'}
+              {title && title.trim()
+                ? title
+                : `${total} question${total === 1 ? '' : 's'}`}
             </div>
             <div className="eq-intro-sub">
+              {title && title.trim()
+                ? `${total} question${total === 1 ? '' : 's'} · `
+                : ''}
               {sittings.length > 0
                 ? 'Practise again, or review a past attempt.'
                 : 'Test yourself on what you just read.'}

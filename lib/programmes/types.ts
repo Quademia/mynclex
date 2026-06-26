@@ -29,6 +29,10 @@ export type Programme = {
   show_price_publicly: boolean;
   payment_collection_mode: PaymentCollectionMode;
   access_window_days: number | null;
+  // Does a missed payment gate access? TRUE (default) = the nightly sweep
+  // pauses students overdue on a plan; FALSE = a tutor opt-out (track money
+  // without locking anyone out). See payments-and-enrolment.md 2026-06-24.
+  payment_gates_access: boolean;
   status: ProgrammeStatus;
   published_at: string | null;
   archived_at: string | null;
@@ -58,6 +62,7 @@ export type ProgrammeListRow = Pick<
   | 'show_price_publicly'
   | 'payment_collection_mode'
   | 'access_window_days'
+  | 'payment_gates_access'
   | 'status'
   | 'updated_at'
 > & {
@@ -107,6 +112,7 @@ export type ProgrammeFormValues = Pick<
   | 'show_price_publicly'
   | 'payment_collection_mode'
   | 'access_window_days'
+  | 'payment_gates_access'
 > & {
   // Full-price authoring — mirrored to the UPFRONT_FULL plan by the action.
   upfront_total_minor: number;

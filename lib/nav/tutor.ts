@@ -44,6 +44,10 @@ export const TUTOR_GLOBAL_NAV: NavItem[] = [
   // visually distinct from the adjacent `book` Bank entry.
   { key: 'library',  label: 'Library',     icon: 'tutor', href: '/tutor/library' },
   { key: 'quizzes',  label: 'Quizzes',     icon: 'target', href: '/tutor/quizzes' },
+  // Global lead inbox — every enquiry across all the tutor's programmes
+  // (peer of the global Payments ledger). Sits before Students in the
+  // funnel order: enquiry → enrolment → student → payment.
+  { key: 'enquiries', label: 'Enquiries',  icon: 'mail',  href: '/tutor/enquiries' },
   { key: 'students', label: 'My Students', icon: 'users', href: '/tutor/students' },
   { key: 'payments', label: 'Payments',    icon: 'card',  href: '/tutor/payments' },
   { key: 'profile',  label: 'Profile',     icon: 'user',  href: '/tutor/profile' },
@@ -70,10 +74,10 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   // `target` matches the global Quizzes nav entry above so the
   // iconography family stays consistent across the two sidebars.
   { key: 'quizzes',     label: 'Quizzes',       icon: 'target',   href: '/tutor/programme/:programmeId/quizzes' },
-  // Slice 8b — lead queue for programmes that surface a Contact form
-  // (off-platform or price-hidden). Sits before Students in the funnel
-  // order: enquiry → enrolment → student.
-  { key: 'enquiries',   label: 'Enquiries',     icon: 'mail',     href: '/tutor/programme/:programmeId/enquiries' },
+  // Enquiries folded into the GLOBAL /tutor/enquiries inbox (2026-06-25):
+  // the per-programme tab is gone; the programme Overview's enquiries panel
+  // links to /tutor/enquiries?programme=<id> (pre-scoped). The old route is
+  // a redirect shim for bookmarks + the admin "open in tutor view" link.
   // The enrolment roster for BOTH delivery modes (moved up from the
   // cohort workspace 2026-06-12 — programme = people & money, cohort =
   // delivery). Tutor-led shows every cohort's rows (cohort-tagged +

@@ -40,6 +40,7 @@ import { initials, relativeTime } from './format';
 import { describePlan, formatMoney, planLabel } from '@/lib/strategies/format';
 import { usePopoverPosition } from '@/lib/library/use-popover-position';
 import { PaymentHistoryDrawer } from './payment-history-drawer';
+import { PaymentGatingToggle } from '@/lib/programmes/payment-gating-toggle';
 import type { Currency } from '@/lib/payments/types';
 import type { DeliveryMode } from '@/lib/programmes/types';
 import type { PaymentStrategy } from '@/lib/strategies/types';
@@ -72,10 +73,18 @@ interface EnrolmentRosterViewProps {
   /** Pre-select the cohort filter (the ?cohort= deep link from the
    *  cohort workspace's "Manage enrolments →"). */
   initialCohortId?: string;
-  /** The programme's active payment plans, for the Add Student plan picker
-   *  (add-with-plan, 2026-06-12). Empty = picker hidden. */
+  /** The programme's active DEFAULT payment plans, for the Add Student plan
+   *  picker (add-with-plan, 2026-06-12). Empty = picker hidden. */
   plans?: PaymentStrategy[];
+  /** Per-cohort custom plan sets (cohort-aware add/convert, 2026-06-22).
+   *  A cohort on custom pricing offers its own plans; the picker uses
+   *  plansByCohort[cohortId] ?? plans. */
+  plansByCohort?: Record<string, PaymentStrategy[]>;
   currency?: Currency;
+  /** Does a missed payment pause access on this programme? Drives the
+   *  Access-policy toggle in the header (one of its several mount points;
+   *  same shared control + action everywhere). */
+  paymentGatesAccess?: boolean;
 }
 
 const ACTION_PAST_TENSE: Record<EnrolmentAction, string> = {
@@ -112,7 +121,9 @@ export function EnrolmentRosterView({
   cohorts = [],
   initialCohortId,
   plans = [],
+  plansByCohort = {},
   currency = 'GHS',
+  paymentGatesAccess = true,
 }: EnrolmentRosterViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -367,14 +378,26 @@ export function EnrolmentRosterView({
           <h1 className="cw-title">Enrolments</h1>
           <p className="cw-sub">{contextName}</p>
         </div>
-        <button
-          type="button"
-          className="enrol-btn enrol-btn-primary"
-          onClick={openAdd}
-          disabled={pending}
-        >
-          + Add student
-        </button>
+        {/* Access policy sits inline with Add student — one of its mount
+            points (compact label + toggle, where the tutor SEES paused rows).
+            Same shared control + action as the Payment plans page, Overview,
+            and the edit modal. */}
+        <div className="cw-header-actions">
+          <PaymentGatingToggle
+            programmeId={programmeId}
+            enabled={paymentGatesAccess}
+            compact
+            className="enrol-header-policy"
+          />
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-primary"
+            onClick={openAdd}
+            disabled={pending}
+          >
+            + Add student
+          </button>
+        </div>
       </header>
 
       {/* Scope line — declares which cohort world every number below
@@ -731,6 +754,7 @@ export function EnrolmentRosterView({
           // that cohort by default.
           defaultCohortId={cohortFilter !== 'ALL' ? cohortFilter : ''}
           plans={plans}
+          plansByCohort={plansByCohort}
           currency={currency}
           onClose={closeAdd}
           onSubmit={handleSubmit}
@@ -774,7 +798,9 @@ export function EnrolmentRosterView({
 
       {historyRow && (
         <PaymentHistoryDrawer
-          row={historyRow}
+          enrolmentId={historyRow.enrolment_id}
+          name={historyRow.name}
+          email={historyRow.email}
           onClose={() => setHistoryRow(null)}
         />
       )}
@@ -784,7 +810,11 @@ export function EnrolmentRosterView({
           name={leadName(wlConvert)}
           email={wlConvert.email}
           cohortLabel={wlConvert.cohort_label}
-          plans={plans}
+          plans={
+            wlConvert.cohort_id
+              ? (plansByCohort[wlConvert.cohort_id] ?? plans)
+              : plans
+          }
           currency={currency}
           error={wlError}
           pending={pending}
@@ -1147,6 +1177,7 @@ function AddStudentModal({
   cohorts,
   defaultCohortId,
   plans,
+  plansByCohort,
   currency,
   onClose,
   onSubmit,
@@ -1158,6 +1189,7 @@ function AddStudentModal({
   cohorts: CohortOption[];
   defaultCohortId: string;
   plans: PaymentStrategy[];
+  plansByCohort: Record<string, PaymentStrategy[]>;
   currency: Currency;
   onClose: () => void;
   onSubmit: (formData: FormData) => void;
@@ -1170,6 +1202,20 @@ function AddStudentModal({
   // A tutor-led add needs a cohort to land in; with none joinable the
   // form can't submit (create a cohort first).
   const noJoinableCohort = tutorLed && cohorts.length === 0;
+
+  // Controlled cohort so the plan picker can switch to a custom cohort's
+  // own plans (cohort-aware add, 2026-06-22).
+  const [cohortId, setCohortId] = useState(
+    cohorts.some((c) => c.cohort_id === defaultCohortId)
+      ? defaultCohortId
+      : cohorts.length === 1
+        ? cohorts[0].cohort_id
+        : ''
+  );
+  const effectivePlans =
+    tutorLed && cohortId && plansByCohort[cohortId]
+      ? plansByCohort[cohortId]
+      : plans;
 
   return (
     <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
@@ -1239,13 +1285,8 @@ function AddStudentModal({
                 <select
                   name="cohort_id"
                   className="enrol-input"
-                  defaultValue={
-                    cohorts.some((c) => c.cohort_id === defaultCohortId)
-                      ? defaultCohortId
-                      : cohorts.length === 1
-                        ? cohorts[0].cohort_id
-                        : ''
-                  }
+                  value={cohortId}
+                  onChange={(e) => setCohortId(e.target.value)}
                   required
                   disabled={pending}
                 >
@@ -1261,7 +1302,12 @@ function AddStudentModal({
               </label>
             ))}
 
-          <PlanPickerFields plans={plans} currency={currency} pending={pending} />
+          <PlanPickerFields
+            key={cohortId}
+            plans={effectivePlans}
+            currency={currency}
+            pending={pending}
+          />
 
           {error && (
             <p className="enrol-form-error" role="alert">
@@ -1293,9 +1339,15 @@ function AddStudentModal({
 }
 
 const CONFIRM_COPY: Record<
-  'pause' | 'reject' | 'cancel',
+  'approve' | 'pause' | 'reject' | 'cancel',
   { title: (name: string) => string; body: (noun: string) => string; confirmLabel: string }
 > = {
+  approve: {
+    title: (name) => `Approve ${name}'s enrolment?`,
+    body: (noun) =>
+      `This unlocks the ${noun} for them right away. You can pause or cancel later if you need to.`,
+    confirmLabel: 'Approve enrolment',
+  },
   pause: {
     title: (name) => `Pause ${name}'s access?`,
     body: (noun) =>
@@ -1339,11 +1391,11 @@ function TransitionConfirm({
           title: (name: string) => `Resume ${name}'s access?`,
           body: () =>
             row.paused_reason === 'INSTALLMENT_OVERDUE'
-              ? "This lets them back in right now, but they're still behind on payment — tonight's automatic check will pause them again unless they pay or you give them more time."
+              ? "This lets them back in right now, but they're still behind on payment — they'll be paused again automatically at the next payment check unless they pay or you give them more time."
               : 'This lifts the pause and restores their access.',
           confirmLabel: 'Resume access',
         }
-      : CONFIRM_COPY[action as 'pause' | 'reject' | 'cancel'];
+      : CONFIRM_COPY[action as 'approve' | 'pause' | 'reject' | 'cancel'];
 
   return (
     <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">

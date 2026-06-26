@@ -215,9 +215,19 @@ slice.
 ## Non-Negotiable Rules
 
 1. **Table prefix: `nclex_`** on every MyNclex database object (tables,
-   RPCs, policies, storage buckets). No exceptions. This is the extraction
+   RPCs, policies, storage buckets). This is the extraction
    mechanism — the day MyNclex moves to its own Supabase project, every
    `nclex_*` object goes, nothing else.
+   - **Documented exception — the Journey Tracker (`journey_*`).** The
+     Journey Tracker is a *generic, platform-level* case-management engine
+     (not an NCLEX feature) that we will build as a bounded module inside
+     this repo now and **extract into a standalone QAcademy product later**.
+     So its database objects deliberately use a neutral **`journey_*`** (or
+     `qa_*`) prefix, **not** `nclex_*`, and its code keeps a one-way
+     dependency (MyNclex → journey, never the reverse) with the
+     NCLEX-specific bit behind an adapter. Do **not** "fix" `journey_*` to
+     `nclex_*`. Rationale + the full module/extraction contract:
+     `docs/product-plan/journey-tracker.md` → *Architecture*.
 
 2. **No imports from sibling products.** MyNclex never imports code from
    `mynmclicensure/` or `myteacher/`. Vice versa. Copy-paste is allowed if

@@ -795,6 +795,14 @@ CREATE TABLE nclex_programmes (
   -- enrolled_at; the deferred EXPIRED/PAUSED pg_cron sweep reads this.
   access_window_days    INTEGER
                         CHECK (access_window_days IS NULL OR access_window_days > 0),
+  -- Does a missed payment gate access on this programme? TRUE (default) =
+  -- the nightly sweep PAUSEs students overdue on a deposit/installment plan
+  -- (today's behaviour). FALSE = a tutor opt-out: missed payments never
+  -- pause access here (money is still tracked, just not enforced). Read by
+  -- the sweep's pause step; toggling it off also auto-resumes the
+  -- programme's payment-paused students (app action). See
+  -- payments-and-enrolment.md "Settled 2026-06-24".
+  payment_gates_access  BOOLEAN NOT NULL DEFAULT TRUE,
 
   -- Lifecycle. CANCELLED moved to nclex_cohorts.cancelled_at.
   status                TEXT NOT NULL DEFAULT 'DRAFT'
@@ -900,6 +908,13 @@ CREATE TABLE nclex_programme_blocks (
                    REFERENCES nclex_programme_units(unit_id)
                    ON DELETE CASCADE,
 
+  -- Cohort-specific activities (Slice 1, 20260702120000): NULL =
+  -- template block (shared by every cohort of the programme); set =
+  -- cohort-only block (belongs to that one run, never propagates).
+  cohort_id        UUID
+                   REFERENCES nclex_cohorts(cohort_id)
+                   ON DELETE CASCADE,
+
   -- Position within the unit body (shares a numeric space with
   -- loose activities' ordinal; reorder renumbers both atomically).
   ordinal          INTEGER NOT NULL CHECK (ordinal >= 1),
@@ -915,6 +930,12 @@ CREATE TABLE nclex_programme_blocks (
 
 CREATE INDEX idx_nclex_programme_blocks_unit
   ON nclex_programme_blocks(unit_id);
+
+-- Partial — only cohort-only blocks carry a non-NULL cohort_id
+-- (20260702120000).
+CREATE INDEX idx_nclex_programme_blocks_cohort
+  ON nclex_programme_blocks(cohort_id)
+  WHERE cohort_id IS NOT NULL;
 
 
 -- The `description` column and the ONLINE_LIVE_SESSION type name
@@ -933,6 +954,14 @@ CREATE TABLE nclex_programme_activities (
   -- Optional parent block. NULL -> loose under the unit.
   block_id         UUID
                    REFERENCES nclex_programme_blocks(block_id)
+                   ON DELETE CASCADE,
+
+  -- Cohort-specific activities (Slice 1, 20260702120000): NULL =
+  -- template activity; set = cohort-only (one run). Per-cohort scoping
+  -- is enforced in the TS delivery layer (students read THROUGH the
+  -- cohort-keyed checklist), so no extra RLS was needed.
+  cohort_id        UUID
+                   REFERENCES nclex_cohorts(cohort_id)
                    ON DELETE CASCADE,
 
   -- Position within immediate parent (unit body or block).
@@ -972,6 +1001,12 @@ CREATE INDEX idx_nclex_programme_activities_unit
 CREATE INDEX idx_nclex_programme_activities_block
   ON nclex_programme_activities(block_id)
   WHERE block_id IS NOT NULL;
+
+-- Partial — only cohort-only activities carry a non-NULL cohort_id
+-- (20260702120000).
+CREATE INDEX idx_nclex_programme_activities_cohort
+  ON nclex_programme_activities(cohort_id)
+  WHERE cohort_id IS NOT NULL;
 
 
 -- =========================================================
@@ -1417,6 +1452,11 @@ CREATE TABLE nclex_programme_payment_strategies (
   strategy_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   programme_id         UUID NOT NULL
                        REFERENCES nclex_programmes(programme_id) ON DELETE CASCADE,
+  -- Per-cohort override (2026-06-22, migration 20260705120000): NULL = the
+  -- programme default (every existing row); set = this cohort's own plan
+  -- (clone-and-edit). Checkout reads a cohort's rows if any, else defaults.
+  cohort_id            UUID
+                       REFERENCES nclex_cohorts(cohort_id) ON DELETE CASCADE,
   kind                 TEXT NOT NULL
                        CHECK (kind IN ('UPFRONT_FULL','DEPOSIT_BALANCE','EQUAL_INSTALLMENTS')),
   label                TEXT,                                      -- optional tutor display name
@@ -1449,8 +1489,17 @@ CREATE TABLE nclex_programme_payment_strategies (
 );
 CREATE INDEX idx_nclex_pps_programme_sort
   ON nclex_programme_payment_strategies (programme_id, sort_order);
+-- One programme-default plan per kind, one cohort-override plan per kind
+-- (per-cohort pricing, migration 20260705120000).
 CREATE UNIQUE INDEX idx_nclex_pps_programme_kind
-  ON nclex_programme_payment_strategies (programme_id, kind);
+  ON nclex_programme_payment_strategies (programme_id, kind)
+  WHERE cohort_id IS NULL;
+CREATE UNIQUE INDEX idx_nclex_pps_cohort_kind
+  ON nclex_programme_payment_strategies (cohort_id, kind)
+  WHERE cohort_id IS NOT NULL;
+CREATE INDEX idx_nclex_pps_cohort_sort
+  ON nclex_programme_payment_strategies (cohort_id, sort_order)
+  WHERE cohort_id IS NOT NULL;
 
 
 -- =========================================================

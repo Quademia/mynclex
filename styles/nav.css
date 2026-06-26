@@ -398,6 +398,26 @@
   flex-shrink: 0;
 }
 
+/* Count badge on a nav row (e.g. new enquiries). Pushed to the row's
+   trailing edge; the component renders nothing at 0, so there's no empty
+   pill. Caps at "9+" in markup. */
+.nav-badge {
+  margin-left: auto;
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 /* ─────────────────────────────────────────────────────
  * Picker landing
  * ───────────────────────────────────────────────────── */
@@ -418,9 +438,10 @@
 }
 
 .picker-inner {
-  max-width: 560px;
+  /* Rails layout wants width for two lanes; greeting + content left-align. */
+  max-width: 1000px;
   width: 100%;
-  text-align: center;
+  text-align: left;
 }
 
 .picker > .shell-footer {
@@ -428,96 +449,296 @@
   margin-top: auto;
 }
 
-/* Stacked sections (Your programmes / Question Bank). Greeting + sub
- * stay centered; section bodies are left-aligned. */
-.picker-section {
-  text-align: left;
-  margin-top: 28px;
-}
-
-.picker-section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  margin: 0 0 10px;
-}
-
 .picker-greeting {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
   margin-bottom: 4px;
   color: var(--primary);
+  letter-spacing: -0.01em;
 }
 
 .picker-sub {
   font-size: 13px;
   color: var(--text-muted);
-  margin-bottom: 24px;
+  margin-bottom: 22px;
 }
 
-.picker-grid {
+/* ── Rails layout: programmes lane + the constant Bank rail ── */
+.picker-rails {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 320px);
+  gap: 22px;
+  align-items: start;
+}
+
+.picker-lane-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+
+/* ── Rich programme cards (<ProgrammeCards>) ── */
+.pcards {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
-@media (max-width: 640px) {
-  .picker-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.picker-card {
-  display: block;
+.pcard {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px 16px;
-  text-align: left;
-  cursor: pointer;
-  text-decoration: none;
-  color: inherit;
-  font: inherit;
-  width: 100%;
-  transition: border-color 0.15s ease, transform 0.1s ease;
+  border-radius: 13px;
+  padding: 16px 17px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.picker-card:hover {
-  border-color: var(--accent);
-  transform: translateY(-1px);
+.pcard-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pcard-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid;
+}
+
+.pcard-chip.is-self {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+.pcard-chip.is-tutor {
+  background: var(--primary-light);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* The enrolment status pill (.enrol-pill) sits at the right of the head. */
+.pcard-head .enrol-pill {
+  margin-left: auto;
+}
+
+.pcard-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: -0.01em;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.pcard-tagline {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+.pcard-meta {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  margin: 8px 0 0;
+}
+
+.pcard-empty {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-muted);
+  margin: 12px 0 0;
+}
+
+.pcard-foot {
+  margin-top: 14px;
+}
+
+.pcard-locked-reason {
+  font-size: 11.5px;
+  color: var(--warning);
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+/* Enter / Open button (navy). */
+.pcard-enter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.pcard-enter:hover {
+  background: var(--primary-dark, #142d4c);
   text-decoration: none;
 }
 
-.picker-card.empty {
+.pcard-enter.is-sm {
+  padding: 7px 14px;
+  font-size: 12.5px;
+}
+
+/* Tutor-led: cohort rows nested in the programme card. */
+.pcard-cohorts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.pcard-cohort {
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 12px 13px;
+  background: var(--bg-soft);
+}
+
+.pcard-cohort-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pcard-cohort-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pcard-cohort-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pcard-cohort-dates {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.pcard-cohort-right {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+}
+
+/* Empty-programmes state card. */
+.pcard-empty-state {
   border-style: dashed;
   border-color: #d1d5db;
 }
 
-/* Non-interactive card (e.g. the "coming soon" empty programmes state). */
-.picker-card.is-disabled {
-  cursor: default;
+/* ── Bank rail — the constant entry point, given hero treatment ── */
+.picker-bank-rail {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: linear-gradient(
+    160deg,
+    var(--primary) 0%,
+    var(--primary-dark, #142d4c) 100%
+  );
+  box-shadow: 0 12px 30px rgba(20, 45, 76, 0.22);
+  padding: 24px 22px;
+  color: #fff;
 }
 
-.picker-card.is-disabled:hover {
-  border-color: #d1d5db;
-  transform: none;
+.picker-bank-rail::after {
+  content: "";
+  position: absolute;
+  right: -60px;
+  bottom: -70px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--accent) 30%, transparent),
+    transparent 70%
+  );
+  pointer-events: none;
 }
 
-.picker-card-title {
-  font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 8px;
-  color: var(--text);
+.bank-rail-eyebrow {
+  position: relative;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 50%, #fff);
 }
 
-.picker-card.empty .picker-card-title {
-  color: var(--text-muted);
+.bank-rail-title {
+  position: relative;
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 10px;
 }
 
-.picker-card-sub {
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.5;
+.bank-rail-status {
+  position: relative;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-top: 14px;
+}
+
+.bank-rail-desc {
+  position: relative;
+  font-size: 12.5px;
+  color: #aab9cc;
+  line-height: 1.55;
+  margin: 12px 0 0;
+}
+
+.bank-rail-cta {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 20px;
+  padding: 11px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.bank-rail-cta:hover {
+  background: var(--accent-dark);
+  text-decoration: none;
+}
+
+/* Mobile (≤768px): the two lanes stack — programmes first, bank rail
+ * full-width below. The picker keeps its desktop topbar on a phone
+ * (no bottom-tab nav), so this is a straight reflow. */
+@media (max-width: 768px) {
+  .picker-rails {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
 }
 
 /* ─────────────────────────────────────────────────────
