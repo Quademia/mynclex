@@ -246,6 +246,16 @@ export function StudentLibraryShell({
                 🏠
               </Link>
             </div>
+            <div className="lens-section">
+              <Link
+                href={`${basePath}/practice`}
+                className="lens-rail-icon"
+                title="My practice"
+                aria-label="My practice"
+              >
+                🎯
+              </Link>
+            </div>
             {(['views', 'folders', 'shelves', 'pillars', 'tags'] as LensKey[])
               .filter(
                 (k) =>
@@ -297,6 +307,11 @@ export function StudentLibraryShell({
                   label="All notes"
                   count={notes.length}
                   active={scope.kind === 'all-notes'}
+                />
+                <LensLink
+                  href={`${basePath}/practice`}
+                  label="🎯 My practice"
+                  active={false}
                 />
                 <LensLink
                   href={`${basePath}?view=recent`}

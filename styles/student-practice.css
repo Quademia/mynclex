@@ -1,0 +1,434 @@
+/* mynclex/styles/student-practice.css
+ *
+ * "My practice" — the student-facing embedded-question reflection
+ * (Slice 1: index). A focused, mobile-first column reached from the
+ * library. Uses app tokens; the four first-try bands mirror the tutor
+ * analytics' reading lens so the two surfaces read as one system.
+ *
+ * Prefix: .mpr-  (my-practice)
+ */
+
+.mpr-wrap {
+  /* reading-lens band inks (match embed-analytics.css) */
+  --mpr-strong: #2f9e54;
+  --mpr-holding: #2f5fd0;
+  --mpr-wobbly: #c98a16;
+  --mpr-reteach: #d4453b;
+
+  /* Index: a roomy container that fills desktop (the note list flows into
+     a 2-up grid below); collapses to a single phone column ≤768px. */
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 22px 18px 64px;
+}
+/* Reflection: reading-heavy, so a comfortable single reading column. */
+.mpr-wrap.is-detail {
+  max-width: 780px;
+}
+
+.mpr-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 4px 0;
+}
+.mpr-back:hover {
+  color: var(--text);
+}
+
+.mpr-head {
+  margin-top: 6px;
+}
+.mpr-head h1 {
+  font-size: 26px;
+  letter-spacing: -0.025em;
+  margin: 0;
+  color: var(--text);
+}
+.mpr-head p {
+  margin: 7px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── stat strip ─────────────────────────────────────────────────── */
+.mpr-stats {
+  display: flex;
+  margin-top: 20px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(20, 19, 16, 0.04);
+}
+.mpr-stat {
+  flex: 1;
+  padding: 14px 6px;
+  text-align: center;
+}
+.mpr-stat + .mpr-stat {
+  border-left: 1px solid var(--border);
+}
+.mpr-stat-val {
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.mpr-stat-val.is-strong {
+  color: var(--mpr-strong);
+}
+.mpr-stat-val.is-holding {
+  color: var(--mpr-holding);
+}
+.mpr-stat-val.is-wobbly {
+  color: var(--mpr-wobbly);
+}
+.mpr-stat-val.is-reteach {
+  color: var(--mpr-reteach);
+}
+.mpr-stat-lbl {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-top: 4px;
+  line-height: 1.3;
+}
+
+/* ── note list ──────────────────────────────────────────────────── */
+.mpr-section-label {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 26px 0 11px;
+}
+.mpr-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+/* Fill desktop width with a 2-up grid of note cards. */
+@media (min-width: 769px) {
+  .mpr-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.mpr-note {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 15px 16px;
+  box-shadow: 0 1px 2px rgba(20, 19, 16, 0.04);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s;
+}
+.mpr-note:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 4px 14px -8px rgba(20, 19, 16, 0.25);
+  transform: translateY(-1px);
+}
+
+.mpr-note-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--border-strong);
+}
+.mpr-note.is-review .mpr-note-dot {
+  background: var(--mpr-reteach);
+}
+.mpr-note.is-solid .mpr-note-dot {
+  background: var(--mpr-strong);
+}
+
+.mpr-note-main {
+  flex: 1;
+  min-width: 0;
+}
+.mpr-note-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.mpr-note-sub {
+  display: block;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.mpr-note-sub.is-review {
+  color: var(--mpr-reteach);
+}
+.mpr-note-sub.is-solid {
+  color: var(--mpr-strong);
+}
+
+.mpr-note-right {
+  flex: none;
+  text-align: right;
+}
+.mpr-practise {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 5px 11px;
+}
+.mpr-score-val {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.mpr-score.is-strong .mpr-score-val {
+  color: var(--mpr-strong);
+}
+.mpr-score.is-holding .mpr-score-val {
+  color: var(--mpr-holding);
+}
+.mpr-score.is-wobbly .mpr-score-val {
+  color: var(--mpr-wobbly);
+}
+.mpr-score.is-reteach .mpr-score-val {
+  color: var(--mpr-reteach);
+}
+.mpr-score-lbl {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  margin-top: 1px;
+}
+
+/* ── per-note reflection (Slice 2) ──────────────────────────────── */
+.mpr-detail-title {
+  font-size: 22px;
+  letter-spacing: -0.025em;
+  margin: 8px 0 0;
+  color: var(--text);
+}
+
+.mpr-verdict {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 14px 16px;
+  background: var(--bg-soft);
+}
+.mpr-verdict.is-review {
+  background: #fbf3e1;
+  border-color: #ecd9a6;
+}
+.mpr-verdict.is-solid {
+  background: #eaf7ee;
+  border-color: #b5dcc0;
+}
+.mpr-verdict-head {
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.mpr-verdict.is-review .mpr-verdict-head {
+  color: #6b4f00;
+}
+.mpr-verdict.is-solid .mpr-verdict-head {
+  color: #1f5c2a;
+}
+.mpr-verdict-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+.mpr-block {
+  margin-top: 4px;
+}
+.mpr-block-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 22px 0 10px;
+}
+.mpr-block-label {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.mpr-block-practise {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+  flex: none;
+}
+.mpr-block-practise:hover {
+  text-decoration: underline;
+}
+
+.mpr-q {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: 11px;
+  padding: 13px 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 2px rgba(20, 19, 16, 0.04);
+}
+.mpr-q.is-correct {
+  border-left-color: var(--mpr-strong);
+}
+.mpr-q.is-recovered {
+  border-left-color: var(--mpr-wobbly);
+}
+.mpr-q.is-missed {
+  border-left-color: var(--mpr-reteach);
+}
+.mpr-q.is-unanswered {
+  border-left-color: var(--border-strong);
+}
+.mpr-q-mark {
+  font-size: 13px;
+  line-height: 1.5;
+  flex: none;
+  width: 15px;
+  text-align: center;
+  color: var(--border-strong);
+}
+.mpr-q.is-correct .mpr-q-mark,
+.mpr-q.is-recovered .mpr-q-mark {
+  color: var(--mpr-strong);
+}
+.mpr-q.is-recovered .mpr-q-mark {
+  color: var(--mpr-wobbly);
+}
+.mpr-q.is-missed .mpr-q-mark {
+  color: var(--mpr-reteach);
+}
+.mpr-q-body {
+  flex: 1;
+  min-width: 0;
+}
+.mpr-q-stem {
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.45;
+}
+.mpr-q-you {
+  margin-top: 7px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.mpr-q-correct {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: #1f5c2a;
+}
+.mpr-q-why {
+  margin-top: 9px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 9px 11px;
+}
+.mpr-q-why-label {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+.mpr-q-why-body {
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.mpr-detail-foot {
+  margin-top: 20px;
+}
+.mpr-cta {
+  display: block;
+  width: 100%;
+  text-align: center;
+  border: 0;
+  border-radius: 14px;
+  padding: 15px;
+  font-size: 14.5px;
+  font-weight: 600;
+  background: var(--accent);
+  color: var(--white);
+  text-decoration: none;
+  box-shadow: 0 6px 18px -8px rgba(26, 24, 21, 0.4);
+}
+.mpr-cta.is-outline {
+  background: var(--white);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  box-shadow: none;
+}
+.mpr-read-link {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+}
+.mpr-read-link:hover {
+  text-decoration: underline;
+}
+
+/* ── empty state ────────────────────────────────────────────────── */
+.mpr-empty {
+  margin-top: 40px;
+  text-align: center;
+  padding: 32px 16px;
+}
+.mpr-empty-glyph {
+  font-size: 34px;
+  opacity: 0.5;
+}
+.mpr-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 14px 0 0;
+}
+.mpr-empty-sub {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 340px;
+  margin: 6px auto 0;
+}
