@@ -164,10 +164,20 @@ interface Props {
   audience: 'tutor' | 'student';
   /**
    * Tutor (Slice 1) — chip click jumps to that activity's week in the
-   * list view to edit it. Omitted for the student (Slice 2 wires launch
-   * via `renderChipExtras` / a launch element instead).
+   * list view to edit it. Omitted for the student.
    */
   onChipClick?: (chip: MonthChip) => void;
+  /**
+   * Student (Slice 2) — wrap a chip in its own launch trigger. Receives
+   * the shared chip skin (`className` + `inner`); returns the clickable
+   * element (e.g. an <ActivityAction> chip). When provided it wins over
+   * `onChipClick`. Locked/closed chips are rendered plain by the caller.
+   */
+  renderChip?: (args: {
+    chip: MonthChip;
+    className: string;
+    inner: React.ReactNode;
+  }) => React.ReactNode;
 }
 
 export function CurriculumMonthView({
@@ -175,6 +185,7 @@ export function CurriculumMonthView({
   rangeLabel,
   audience,
   onChipClick,
+  renderChip,
 }: Props) {
   const legend = audience === 'tutor' ? TUTOR_LEGEND : STUDENT_LEGEND;
 
@@ -236,6 +247,7 @@ export function CurriculumMonthView({
                           key={chip.id}
                           chip={chip}
                           onClick={onChipClick}
+                          renderChip={renderChip}
                         />
                       ))}
                     </div>
@@ -253,20 +265,25 @@ export function CurriculumMonthView({
 function Chip({
   chip,
   onClick,
+  renderChip,
 }: {
   chip: MonthChip;
   onClick?: (chip: MonthChip) => void;
+  renderChip?: (args: {
+    chip: MonthChip;
+    className: string;
+    inner: React.ReactNode;
+  }) => React.ReactNode;
 }) {
   const family = CHIP_FAMILY[chip.type];
   const cls =
     `cmv-chip is-${family} is-${chip.variant}` +
     (chip.undated ? ' is-undated' : '');
-  const clickable = !!onClick && chip.variant !== 'locked';
 
   const inner = (
     <>
       <span className="cmv-chip-ic" aria-hidden="true">
-        {ACTIVITY_TYPE_ICON[chip.type]}
+        {chip.variant === 'done' ? '✓' : ACTIVITY_TYPE_ICON[chip.type]}
       </span>
       {chip.variant === 'excluded' && (
         <span className="cmv-chip-tag is-excl">excl</span>
@@ -295,6 +312,13 @@ function Chip({
     </>
   );
 
+  // Student (Slice 2) — the caller owns the chip's clickable wrapper.
+  if (renderChip) {
+    return <>{renderChip({ chip, className: cls, inner })}</>;
+  }
+
+  // Tutor (Slice 1) — chip click jumps to the list (locked never clickable).
+  const clickable = !!onClick && chip.variant !== 'locked';
   if (clickable) {
     return (
       <button

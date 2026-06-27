@@ -376,6 +376,24 @@ button.programme-switcher-item {
 
 .student-curriculum-head {
   margin-bottom: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.student-curriculum-head-text {
+  min-width: 0;
+}
+/* Month view (Slice 2) — the schedule needs more width than the 880px
+ * reading column. */
+.student-curriculum.is-month {
+  max-width: 1180px;
+}
+@media (max-width: 768px) {
+  .student-curriculum-head {
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 
 .student-curriculum-title {

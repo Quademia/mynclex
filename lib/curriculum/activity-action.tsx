@@ -15,6 +15,14 @@
 //
 // It also owns the open/close state for any modal it launches, so
 // the list views carry zero modal machinery.
+//
+// Month view (Slice 2) — the `asChip` seam. When provided, the trigger
+// is the supplied chip element (className + children) INSTEAD of the
+// default est-time + "Open" button, but ActivityAction still owns the
+// per-type dispatch + modals. This keeps the calendar's tap-to-launch on
+// the SAME single launch path as the list view (a LIBRARY_NOTE chip is a
+// Link; every other type is a button opening its viewer). Callers only
+// pass `asChip` for OPEN activities — locked/closed chips render plain.
 
 'use client';
 
@@ -33,15 +41,28 @@ import type {
   StudentActivity,
 } from './types';
 
+/**
+ * When set, ActivityAction renders this chip as its launch trigger
+ * (Month view) instead of the default action area. `className` +
+ * `children` are the shared chip skin; `title` is the hover tooltip.
+ */
+export type ActivityActionChip = {
+  className: string;
+  children: React.ReactNode;
+  title?: string;
+};
+
 export function ActivityAction({
   activity,
   libraryBasePath,
+  asChip,
 }: {
   activity: StudentActivity;
   // Slice 11.11a — base path (programme or cohort) for the library read
   // view a LIBRARY_NOTE activity links to. Only the curriculum viewer
   // passes it; other callers (none yet) can omit it.
   libraryBasePath?: string;
+  asChip?: ActivityActionChip;
 }) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const estMinutes = activityEstimatedMinutes(activity);
@@ -53,6 +74,17 @@ export function ActivityAction({
       libraryBasePath && activity.libraryNoteId
         ? `${libraryBasePath}/note/${activity.libraryNoteId}`
         : null;
+    if (asChip) {
+      return href ? (
+        <Link className={asChip.className} href={href} title={asChip.title}>
+          {asChip.children}
+        </Link>
+      ) : (
+        <div className={asChip.className} title={asChip.title}>
+          {asChip.children}
+        </div>
+      );
+    }
     return (
       <div className="student-activity-action">
         {href ? (
@@ -93,18 +125,32 @@ export function ActivityAction({
     (isQuizActivity && quizId != null);
 
   return (
-    <div className="student-activity-action">
-      {estMinutes != null && (
-        <span className="student-activity-est">~{estMinutes} min</span>
+    <div className={asChip ? 'cmv-chip-launch' : 'student-activity-action'}>
+      {asChip ? (
+        <button
+          type="button"
+          className={asChip.className}
+          title={asChip.title}
+          disabled={!isLaunchable}
+          onClick={() => setViewerOpen(true)}
+        >
+          {asChip.children}
+        </button>
+      ) : (
+        <>
+          {estMinutes != null && (
+            <span className="student-activity-est">~{estMinutes} min</span>
+          )}
+          <button
+            type="button"
+            className="student-activity-launch"
+            disabled={!isLaunchable}
+            onClick={() => setViewerOpen(true)}
+          >
+            Open
+          </button>
+        </>
       )}
-      <button
-        type="button"
-        className="student-activity-launch"
-        disabled={!isLaunchable}
-        onClick={() => setViewerOpen(true)}
-      >
-        Open
-      </button>
 
       {viewerOpen && activity.type === 'EXTERNAL_LINK' && (
         <ExternalLinkViewer

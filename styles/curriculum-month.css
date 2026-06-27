@@ -220,19 +220,38 @@
   min-height: 24px;
   overflow: hidden;
 }
-button.cmv-chip {
+button.cmv-chip,
+a.cmv-chip {
   cursor: pointer;
   transition: box-shadow 0.12s ease, transform 0.04s ease;
 }
-button.cmv-chip:hover {
+a.cmv-chip,
+a.cmv-chip:hover {
+  text-decoration: none;
+  color: inherit;
+}
+button.cmv-chip:hover,
+a.cmv-chip:hover {
   box-shadow: var(--shadow);
 }
-button.cmv-chip:active {
+button.cmv-chip:active,
+a.cmv-chip:active {
   transform: translateY(0.5px);
 }
-button.cmv-chip:focus-visible {
+button.cmv-chip:focus-visible,
+a.cmv-chip:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+button.cmv-chip:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* Student launch wrapper (ActivityAction asChip) — the wrapper div must
+ * not disturb the day-group flow; the chip button/link inside IS the chip. */
+.cmv-chip-launch {
+  display: contents;
 }
 
 .cmv-chip-ic {
