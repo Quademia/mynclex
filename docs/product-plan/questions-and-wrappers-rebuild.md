@@ -5,7 +5,15 @@ was reverted (commit `fde8db3`). Captures the architecture for the
 fresh attempt — what's being rebuilt, the principles guiding it, and
 the shape of the new code.*
 
-Last updated: 2026-06-15 (added the "Rich-content relook" discussion
+Last updated: 2026-06-27 (added the "Case-study wrapper rebuild —
+locked decisions" section: design pass on the rich-content relook,
+focused on the case-study wrapper; decisions 1–12 locked [incl. the
+unified per-row reveal model, heading as a structural role, narrative
+entry headers as free-text chips, bank-wide rich text, custom-tabs-first
+build order, and rung 4 closed as needing nothing special], reveal
+resolved, ONE risk left to pressure-test (merge-table authoring UX),
+no build yet)
+Previously: 2026-06-15 (added the "Rich-content relook" discussion
 capture at the end — a NEW, larger direction that, unlike this 2026-04-28
 rebuild, *would* change the content data model; see that section + bank.md)
 
@@ -752,3 +760,208 @@ Sam's issue list isn't exhausted — trend multi-chart and the
 formatting/line-break gaps are the items discussed so far. Resume by
 finishing the catalogue, then deciding whether to promote this into a
 real design doc + slice plan.
+
+---
+
+## Case-study wrapper rebuild — locked decisions (2026-06-27)
+
+> **STATUS: DESIGN PASS — decisions 1–6 LOCKED with Sam, nothing built.**
+> Picks up the relook above and turns it into a foundation. Sam's framing:
+> this is effectively *rebuilding the curating code — take the time, get
+> it right.* We work the open list (below) against these fixed decisions
+> rather than re-litigating them.
+
+### Evidence base (analysed this session)
+
+Five real specimens, read in full against the live editors + the student
+runner:
+
+- **Maryland case studies:** Home-Safety-I, Home-Safety-II, Acute-Asthma,
+  Acute-Respiratory-Distress (`.docx`, local `F:\Mynclex\Maryland`).
+- **Official NCSBN packet:** `NGNTestPacket_121324.pdf`.
+
+Key confirmations from the source markup itself:
+
+- **The amber (`FFC000`) cell shading in the Word files marks the tabs.**
+  What reads as "stacked sections" in a flat text dump is really separate,
+  colour-coded tab regions — Asthma = `Nurses' Notes · Vital Signs ·
+  Laboratory Report · Diagnostic Reports · Orders`; ARDS = `Nurses' Notes ·
+  Laboratory Report · Orders`. This is the NCSBN tabbed rendering. → our
+  tab model is the right target, and **one tab = one shape** is how the
+  authors themselves segmented.
+- **All nine of our question types appear** across the corpus (SATA,
+  Matrix 2-/3-col, MCQ, Cloze dropdown, Drag-drop, Bowtie, Highlight). The
+  gap is **not** the answer types — it is the **stimulus (wrappers) + the
+  absence of rich text**.
+- A "trend" Maryland files (ARDS, HS-II) is a **narrative Nurses' Notes
+  over dated visits**, not a numeric grid — our flat-grid trend model
+  cannot hold it. Confirms a trend's stimulus *is* a case's stimulus.
+- The case is **6 questions** — the Maryland files just ship an *extra
+  standalone* bow-tie/trend alongside; it is not a 7th case slot.
+
+### The locked decisions
+
+1. **Scope = the case-study wrapper first.** Trend is **not** designed
+   separately. Once a tab can hold rich narrative *or* a do-anything
+   table, a trend's stimulus is a case stimulus with such a tab, so the
+   trend wrapper is later rebuilt to **reuse the same tab/stimulus
+   engine** rather than designed afresh.
+
+2. **Two gaps drive everything:** (A) the content primitive is plain text
+   → make it **rich** (reuse the library Tiptap primitive); (B) there is
+   no flexible table → add **one**.
+
+3. **Enrich, don't replace.** Keep the existing **entry/row structure**
+   (so the reveal mechanism and answer-target addresses survive); **keep
+   the built-in templates** (Vital Signs, Labs, Nurses' Notes, Orders,
+   H&P, Diagnostics) **but make them fully editable** (today only
+   `custom_grid` can add/rename/remove columns); the **custom table is the
+   gold** (the flexible workhorse).
+
+4. **One tab = one shape — no mixing prose + table in a single tab.**
+   Confirmed by the amber tab-markers (the authors split sections into
+   separate tabs) and the NCSBN tabbed rendering. A tab is either rich
+   **narrative cards** or **one table**. (A sentence above a table = a
+   small tab-level intro field, not a mixed document.)
+
+5. **The custom table = a single enhanced grid** with:
+   - **merged cells (colspan + rowspan)** — required for the Phase Sheet
+     (`Name | Paul | Gender | Male`, language spanning) and richer stacked
+     layouts;
+   - an **optional header column** (left-side labels — H&P
+     `Body System → Findings`, Orders `Category → list`);
+   - **rich, multi-line cells** (lists inside a cell, two-line refs,
+     bold/emphasis);
+   - **relaxed column bounds** (drop the 2–10 cap).
+
+   One powerful grid — **not** a zoo of purpose-built preset modes (that
+   is how we got the six rigid built-ins we are escaping). **Framed to
+   curators as a "custom table"** (merge cells + make them rich), not a
+   rigid "rows × columns" grid — but it keeps an **underlying row
+   structure**, because reveal pins to rows (decision 7). Merging doesn't
+   abolish rows; it lets a cell *span* them.
+
+   The narrative/free-text tab + rich text covers the prose shapes
+   (Nurses' Notes); the existing rows/cols grid + rich cells still works
+   unchanged; the custom (merge + rich) table is the new superset for
+   irregular layouts (Phase Sheet).
+
+6. **Progressive reveal stays ROWS-ONLY.** The "visible at" control
+   belongs to a **row**; columns are always shown. If a source draws time
+   across the top (columns), the curator **transposes** it so each moment
+   is a row. Column-level reveal was considered and rejected: it roughly
+   doubles the reveal + answer-binding complexity for a benefit the
+   transpose convention already provides.
+   - **Merge × reveal rule:** a row's "visible at" governs the whole row;
+     if cells span rows, those rows share one "visible at." No collision
+     in practice — row-spanning is used on **static** panels (Phase Sheet,
+     H&P, Orders) where every row is visible at once, while progressive
+     reveal is used on time-series tables that don't span rows.
+
+7. **One reveal model for every tab type — "visible at" per row.** The
+   same mechanism drives all stimulus: a **narrative card**, a **simple
+   grid row**, and a **custom/merge table row** each reveal at their own
+   "visible at." Two real cases fall out for free: **static panels** leave
+   every row at "from Q1" (the table appears whole, zero curator effort);
+   **time-series** tables set "visible at" per row as the case advances.
+   This is a *simplification* — one concept, not three.
+
+8. **"Heading" is a structural ROLE, not just bold text — and header rows
+   get DERIVED reveal.** Rich text lets a curator mark a cell as a
+   heading, and headings are not only the top row (Phase Sheet left labels
+   `Name`/`Gender`; H&P `Cardiac`/`Neurologic`). Two cases:
+   - **Heading *cells* inside a data row** (left labels) → reveal **with
+     their row**; no special treatment, "visible at" belongs to the row.
+   - **A whole heading *row*** (a column-header `Time | BP | HR`, or a
+     section divider) → **exempt from independent "visible at."** Its
+     visibility is **derived** from the data rows it heads (a column
+     header appears when the table's first data row appears), so the
+     header never shows without its data or hides while data shows.
+
+   Why it must be a role, not a font weight: today the column header is
+   *implicit* (the column labels), never a data row, so reveal never
+   touched it. The moment the table goes freeform ("any cell can be a
+   heading"), the header *becomes* a row — and reveal would wrongly gate
+   it unless we mark it as a heading and treat it specially. This is the
+   seam where "freeform table" meets "progressive reveal."
+
+9. **A narrative entry's header = free-text label CHIPS (0..N), not a
+   typed-field schema.** Today an entry has a single hardcoded **Time**
+   field. Real notes anchor on time *and/or* date, location, day, setting
+   ("Emergency Department / Day 1 / 0900"). The generalisation: the
+   curator adds **any number of small free-text labels**, rendered as a
+   chip row above the body. **The current "Time" is just one such chip,
+   pre-labelled** (a sensible default). A chip is plain free text — if the
+   curator wants "Status: Active" they type it; no label/value schema, no
+   predefined field taxonomy (that would re-introduce the rigidity we are
+   escaping; the corpus has no consistent field set). Rich text owns the
+   **body** (inline emphasis, transitions like "ED → ward", sub-headers);
+   chips own the **scannable anchor** (what rich-text-inline can't do —
+   lift the when/where out into a chip for timeline scanning).
+   - The built-in typed extras (`orders.status`, `history.section`,
+     `diagnostics.test_type`) become **suggested default chips**, not
+     hardcoded fields — unifying built-in + custom narrative under one
+     chip mechanism.
+
+10. **Rich text is BANK-WIDE — every text field gets it.** Not just the
+    wrapper. The blanket rule covers the **stimulus** (narrative bodies,
+    table cells, header chips, scenario summary) **and the questions
+    themselves** (stems, every answer **option**, per-option **feedback**,
+    **rationale**). The tutor wants to bold/emphasise in the scenario and
+    the main stem too. One primitive (the library Tiptap field), applied
+    everywhere a plain `<input>`/`<textarea>` is today.
+
+11. **Build order: CUSTOM tabs first, then revisit the templates.** New
+    tabs are added as **custom tabs** — a custom **narrative** tab or a
+    custom **table** (simple or merge). We build and prove those first;
+    **once they work**, we do a second pass on the six built-in templates
+    to bring them up to the same capability (decision 3 — fully editable).
+    So the tab-shape "choice" surfaces as *which kind of custom tab you
+    add*, and template polish is a later, separate slice — not a blocker.
+
+12. **Rung 4 (answer-bound highlight) needs NOTHING special — CLOSED.**
+    We do **not** fuse the stimulus and the question, and we build **no**
+    mechanism. Our existing `HIGHLIGHT` type already works on its own
+    passage; the stimulus/question separation stays. If a curator wants a
+    highlight question based on a tab's content, **they simply author it
+    that way themselves** (put the content in the highlight question) — a
+    rare case and ordinary curator practice, not a feature. The NCSBN
+    "highlight the priority orders" examples are real but few; we do not
+    complicate the design for them. This removes rung 4 as a risk and as a
+    "new architecture."
+
+### Reveal — RESOLVED (decisions 6–8)
+
+The progressive-reveal mechanics for the merge table — the part that
+worried us — are now settled: one reveal model (per-row), header rows
+exempt (derived). Reveal is no longer an open risk.
+
+### One real risk to pressure-test (before calling the solution "found")
+
+The architecture holds against all five specimens. Rung 4 is now closed
+(decision 12), so **one** thing is *enabled* by the design but not yet
+*proven*:
+
+1. **The merge-table AUTHORING UX (the remaining risk).** We've decided
+   merge is *supported*; we have not shown a non-coding tutor can actually
+   *build* the Phase Sheet without it feeling like wrestling Excel. The HS2
+   grid didn't degrade because merge was impossible — it degraded because
+   the curator reached for the *easiest* tool (a text box). If the merge
+   editor is fiddly, curators keep dumping text blobs even with the
+   feature present. **"Curate accurately" depends on the editor being
+   easy, not just capable.** → de-risk with a Claude Design prototype.
+
+### Still open (execution detail, after the risk)
+
+- **Gap A detail** — exactly which fields become rich (stems, answer
+  options + per-option feedback, rationale, narrative bodies, table cells,
+  scenario) and the **blast radius** of pointing the library Tiptap
+  primitive at the bank.
+- **The grid spec** — header-row/cell behaviour, merge mechanics,
+  rich-cell scope, bounds.
+- **Storage / data-model + snapshot** — the rich-content storage shape and
+  the attempt-snapshot changes (the **bank.md** half; see cross-reference
+  above) + a **migration** of existing plain-text rows + a rich renderer
+  in the runner.
+- **Standalone bow-tie / trend** handling (after the case-study wrapper).
+- **The slice plan** + the Claude Design prototype.
