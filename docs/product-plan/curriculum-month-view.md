@@ -1,6 +1,8 @@
 # Curriculum — Month view (Variant B "Programme schedule")
 
-Status: **PLAN — agreed shape, not yet built** (2026-06-26).
+Status: **BUILT — Slices 1 + 2 on the session branch** (2026-06-27;
+Sam-tested pending; all app-layer, NO migration). Tutor Slice 1 committed
++ Sam-approved on dev; student Slice 2 committed, awaiting test.
 Design: Claude Design "Monthly Curriculum View" prototype
 (`Monthly Curriculum View.dc.html`), **concept-not-source**. We build
 **Variant B** (the "Programme schedule" frames — week rows × day-groups),
@@ -116,24 +118,34 @@ yet" cue so it reads as unscheduled, not genuinely due that day.
 
 ## Slices
 
-**Slice 1 — Tutor Month view (validates the layout).**
-- New shared layout + chip renderer + date→week-bucketing helper (files
-  in `lib/curriculum/`, no new folder; styles in
-  `styles/curriculum-month.css`).
-- Toggle on the cohort Curriculum tab; `?cv=` state. Build from the
-  tutor data already loaded there (included + excluded, block refs).
-- Chip click → switch to the existing view at that activity's week.
-- Mobile reflow.
-- *Why first: proves the calendar layout cheaply with no launch logic.*
+**Slice 1 — Tutor Month view (validates the layout). ✅ BUILT.**
+- Shared presentational `lib/curriculum/month-view.tsx`
+  (`CurriculumMonthView` + the `MonthWeek`/chip model + date helpers) +
+  tutor adapter `lib/cohorts/month-model.ts` + `styles/curriculum-month.css`.
+- **Checklist | Month** toggle on the cohort Curriculum tab. State =
+  **local** (not a URL param) — the component already holds the whole
+  tree and the Month view needs no new data, so a URL param would only
+  force a wasteful re-fetch (same reasoning as the existing local
+  `selectedUnitId`). Built from the tutor data already loaded there
+  (included + excluded + unconfigured, block refs).
+- Chip click → flips to Checklist at that activity's week (`openInList`).
+- Mobile reflow. No new folder.
 
-**Slice 2 — Student Month view (reuses the layout, adds the verbs).**
-- Reuse Slice 1's layout + chip renderer.
+**Slice 2 — Student Month view (reuses the layout, adds the verbs). ✅ BUILT.**
+- Reuses Slice 1's `CurriculumMonthView` via a `renderChip` seam +
+  done-icon ✓ swap. New `lib/curriculum/student-month-model.ts` (adapter,
+  returns weeks + the flat activity list) + `student-curriculum-shell.tsx`
+  (client: the **{Weeks} | Month** toggle + launch wiring).
 - Student chip states (done ✓ / up-next ↑ / due / locked) + **tap-to-
-  launch via `<ActivityAction>`** (the documented reuse); locked not
-  tappable.
-- Per-week progress bar + row border state (reuse the rail's per-unit %).
-- Toggle "Weeks | Month" on the student cohort curriculum page; `?cv=`.
-- Month bands + mobile stack.
+  launch via `<ActivityAction asChip>`** — the SAME launch path as the
+  list (a `LIBRARY_NOTE` is a Link, every other type opens its viewer);
+  an `asChip` seam was added to `activity-action.tsx`. Locked/closed
+  chips render plain (not launchable).
+- Per-week progress bar + row border state (reuse the per-unit %).
+- Cohort-only: the shell mounts only when `tree.cohort` is set;
+  self-paced (`cohort: null`) renders the plain header + body, unchanged.
+- Wrapper widens to 1180px in Month view (`is-month`); month bands +
+  mobile stack via the shared CSS.
 
 ## Open items / deferred
 - Tutor chip-click target: v1 = switch to the existing view scrolled to
