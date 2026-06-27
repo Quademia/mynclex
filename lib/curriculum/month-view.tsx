@@ -89,52 +89,9 @@ const CHIP_FAMILY: Record<ActivityType, string> = {
   EXTERNAL_LINK: 'content',
 };
 
-// ── Date helpers (shared with the adapters) ─────────────────────────
-// Parse YYYY-MM-DD at local noon so day arithmetic never rolls a TZ
-// boundary. All placement maths are day-granular.
-
-const MON = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
-const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-export function parseISODate(s: string): Date {
-  const [y, m, d] = s.split('-').map(Number);
-  return new Date(y, m - 1, d, 12, 0, 0, 0);
-}
-
-export function addDays(d: Date, n: number): Date {
-  const r = new Date(d);
-  r.setDate(r.getDate() + n);
-  return r;
-}
-
-export function isoOf(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-
-/** "Aug 2" — short month + day, no leading zero. */
-export function shortDate(d: Date): string {
-  return `${MON[d.getMonth()]} ${d.getDate()}`;
-}
-
-/** "Mon 2" — day-of-week + date. */
-export function dayGroupLabel(d: Date): string {
-  return `${DOW[d.getDay()]} ${d.getDate()}`;
-}
-
-/** "AUG 2027" — month band divider. */
-export function monthBandLabel(d: Date): string {
-  return `${MON[d.getMonth()].toUpperCase()} ${d.getFullYear()}`;
-}
-
-/** Today at local noon — for isToday comparisons (client render). */
-export function todayLocal(): Date {
-  const n = new Date();
-  return new Date(n.getFullYear(), n.getMonth(), n.getDate(), 12, 0, 0, 0);
-}
+// Date helpers (parseISODate / monthBandLabel / todayLocal / …) live in
+// ./month-dates — a NON-client module, so the server-side student adapter
+// can call them too.
 
 // ── Legend ──────────────────────────────────────────────────────────
 

@@ -25,9 +25,11 @@ import {
   parseISODate,
   shortDate,
   todayLocal,
-  type MonthChip,
-  type MonthDayGroup,
-  type MonthWeek,
+} from '@/lib/curriculum/month-dates';
+import type {
+  MonthChip,
+  MonthDayGroup,
+  MonthWeek,
 } from '@/lib/curriculum/month-view';
 import { unitLabel } from '@/lib/curriculum/format';
 import type {

@@ -25,10 +25,12 @@ import {
   parseISODate,
   shortDate,
   todayLocal,
-  type MonthChip,
-  type MonthChipVariant,
-  type MonthDayGroup,
-  type MonthWeek,
+} from './month-dates';
+import type {
+  MonthChip,
+  MonthChipVariant,
+  MonthDayGroup,
+  MonthWeek,
 } from './month-view';
 import { unitLabel } from './format';
 import type { StudentActivity, StudentCurriculumTree } from './types';
