@@ -465,9 +465,12 @@ function stripUnitEmbed<T extends { nclex_programme_units?: unknown }>(
  *   • noteIdByActivity — activity_id → the note it points to (from the
  *     linked attachment row), so the viewer can link the read view.
  *   • doneActivityIds  — activity_ids whose note the student has marked
- *     done (DERIVED from nclex_library_note_state.marked_done_at — these
- *     activities never get a progress-engine row; "done" lives once on
- *     the note's reading state). This is the 11.11b progress fold-in.
+ *     done (DERIVED from nclex_library_note_state.marked_done_at — the
+ *     curriculum % + cohort-analytics read done from note-state, not the
+ *     progress row). NB: marking a note done ALSO mirrors a MANUAL
+ *     progress row per activity now (note-read-actions.ts →
+ *     syncNoteActivityProgress) so the Overview streak/recent credit
+ *     reading; this derivation stays the source for the curriculum view.
  *
  * Two RLS-scoped reads (attachments, then note_state). Empty input → no
  * queries.
