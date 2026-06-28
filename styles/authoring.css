@@ -5306,9 +5306,17 @@
 
 /* The new editors override .cs-entries-pane's `overflow: hidden` so the
  * sticky toolbar's scroll container is the real one (.auth-cs-pane-left),
- * not this clipped pane — otherwise sticky never engages. */
+ * not this clipped pane — otherwise sticky never engages.
+ *
+ * `min-width: 0` pins this pane to its 1fr grid track in .cs-chart-layout.
+ * Without it a grid item defaults to min-width:auto and grows to fit a wide
+ * table — which (with overflow:visible removing the clip) spills the table +
+ * toolbar over the preview pane AND stops .mt-grid-scroll from ever scrolling
+ * (its container already grew to fit). With it, a wide table scrolls inside
+ * .mt-grid-scroll and the toolbar stays within the column. */
 .mt-pane {
   overflow: visible;
+  min-width: 0;
 }
 
 .mt-kind-tag {
