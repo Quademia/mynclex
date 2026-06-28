@@ -1447,6 +1447,21 @@ renders the stem itself** (the `isStemTakeover` branch in
 Decide each one's stem treatment when its editor is opened; their answer fields
 still go rich per the checklist.
 
+### Slice 6 — parked / deferred
+
+- **Curator discoverability of formatting affordances.** The rich toolset has
+  hidden conventions tutors won't find on their own — most notably
+  **`Shift+Enter` for a line break** (vs `Enter` = new paragraph, which adds
+  paragraph spacing). The capability works today (HardBreak is in StarterKit;
+  `RichRender` draws the `<br>`); the gap is purely *telling curators*. When
+  picked up: a small hint and/or a line-break toolbar button, possibly folded
+  into a broader "how to format" cue for the whole toolbar. **No behaviour
+  change** — do NOT remap `Enter` (paragraph = the universal convention).
+  (Sam confirmed Shift+Enter on dev 2026-06-29; deferred the discoverability
+  fix.)
+- **Indent** (list nesting + paragraph indent) — raised, then set aside in
+  favour of alignment. Revisit if a real specimen needs it.
+
 ### Slice 7 (LAST) — media block in the narrative body
 
 Add an image / ECG / wound-photo block to the **narrative body** only
