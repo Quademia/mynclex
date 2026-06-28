@@ -5454,8 +5454,11 @@
 
 /* grid */
 .mt-grid-scroll {
+  /* Grid line — deliberately stronger than --border so it stays visible
+     against the heading-cell shading (which is primary @ 12%). */
+  --mt-line: color-mix(in srgb, var(--primary) 34%, var(--white));
   overflow-x: auto;
-  border: 1px solid var(--border);
+  border: 1px solid var(--mt-line);
   border-radius: 10px;
 }
 .mt-grid {
@@ -5469,7 +5472,7 @@
   vertical-align: middle;
   text-align: center;
   background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--mt-line);
 }
 .mt-gutter-auto {
   display: inline-block;
@@ -5496,7 +5499,7 @@
 }
 
 .mt-cell {
-  border: 1px solid var(--border);
+  border: 1px solid var(--mt-line);
   background: var(--white);
   padding: 0;
   vertical-align: top;
@@ -5651,4 +5654,53 @@
 }
 .mt-swatch.is-head {
   background: color-mix(in srgb, var(--primary) 12%, var(--white));
+}
+
+/* ─────────────────────────────────────────────────────
+ * Rich-content relook — Slice 3: read-only student render
+ * (lib/authoring/table/merge-table-view.tsx). `mtv-*`. Used in the
+ * curator preview pane and the student runner.
+ * ───────────────────────────────────────────────────── */
+
+.mtv-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.mtv-scroll {
+  /* Same stronger grid line as the editor (see .mt-grid-scroll). */
+  --mt-line: color-mix(in srgb, var(--primary) 34%, var(--white));
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--mt-line);
+  border-radius: 8px;
+}
+.mtv-table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: auto;
+}
+.mtv-cell {
+  border: 1px solid var(--mt-line);
+  background: var(--white);
+  padding: 8px 11px;
+  vertical-align: top;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.mtv-cell.is-head {
+  background: color-mix(in srgb, var(--primary) 12%, var(--white));
+  font-weight: 700;
+  color: var(--primary);
+}
+/* a row that first appears at the current question gets a soft amber edge */
+.mtv-cell.just-revealed {
+  border-left: 3px solid var(--warning);
+}
+.mtv-empty {
+  color: var(--text-muted);
+}
+.mtv-cell .auth-rich {
+  line-height: 1.5;
 }

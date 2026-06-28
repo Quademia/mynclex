@@ -28,6 +28,7 @@ import type {
   ChartEntry,
 } from '@/lib/bank/wrappers/case-study/types';
 import { asMergeTab } from '@/lib/authoring/table/merge-table-model';
+import { MergeTableView } from '@/lib/authoring/table/merge-table-view';
 
 interface Props {
   tab:             TabRow;
@@ -35,10 +36,11 @@ interface Props {
 }
 
 export function ChartTabBody({ tab, currentPosition }: Props) {
-  // A v2 custom table renders through its own (Slice 3) student renderer —
-  // not the entries-array path below.
-  if (asMergeTab(tab.entries)) {
-    return <div className="empty">Custom table — student view coming soon.</div>;
+  // A v2 custom table renders through its own student renderer (the list of
+  // tables, with per-row reveal) — not the entries-array path below.
+  const mergeTab = asMergeTab(tab.entries);
+  if (mergeTab) {
+    return <MergeTableView tab={mergeTab} currentPosition={currentPosition} />;
   }
 
   // Strict visibility — a backward-nav student should see only what

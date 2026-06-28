@@ -26,6 +26,7 @@ import {
   removeTable,
   isTableEmpty,
   isTabEmpty,
+  studentRows,
   type MergeTable,
 } from './merge-table-model';
 
@@ -215,6 +216,38 @@ describe('cell content + reveal', () => {
     let t = emptyTable(2, 2);
     t = setVisibleFrom(t, 1, 3);
     expect(t.rows[1].visibleFrom).toBe(3);
+  });
+});
+
+describe('studentRows (reveal + span correction)', () => {
+  it('hides a header row until its data appears, then shows both', () => {
+    let t = emptyTable(2, 2);
+    t = toggleHeading(t, selRect(t, { a: { r: 0, c: 0 }, f: { r: 0, c: 1 } })!); // row 0 = header
+    t = setVisibleFrom(t, 1, 3); // the data row appears at Q3
+    expect(studentRows(t, 1)).toHaveLength(0);        // nothing yet (header derived-hidden)
+    const at3 = studentRows(t, 3);
+    expect(at3).toHaveLength(2);                       // header + data
+    // the data row's cells are flagged just-revealed at Q3
+    expect(at3[1].cells[0].justRevealed).toBe(true);
+  });
+
+  it('shrinks a merged cell that spans a hidden row to the visible span', () => {
+    let t = emptyTable(3, 2);
+    t = merge(t, selRect(t, { a: { r: 0, c: 0 }, f: { r: 2, c: 0 } })!); // col 0 spans 3 rows
+    t = setVisibleFrom(t, 1, 5); // middle row hidden until Q5
+    const rows = studentRows(t, 1);
+    expect(rows).toHaveLength(2);                      // rows 0 and 2 visible
+    const spanned = rows[0].cells.find((c) => c.rowSpan === 2);
+    expect(spanned).toBeTruthy();                      // 3-row merge → effective 2 visible rows
+  });
+
+  it('reveals later rows as the question advances', () => {
+    let t = emptyTable(3, 1);
+    t = setVisibleFrom(t, 1, 2);
+    t = setVisibleFrom(t, 2, 4);
+    expect(studentRows(t, 1)).toHaveLength(1);
+    expect(studentRows(t, 2)).toHaveLength(2);
+    expect(studentRows(t, 4)).toHaveLength(3);
   });
 });
 

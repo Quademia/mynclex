@@ -37,6 +37,7 @@ import type { TabRow } from '@/lib/bank/wrappers/case-study/types';
 import { ChartTabBody } from './chart-tab-body';
 import { RichRender } from '@/lib/authoring/rich-render';
 import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
+import { asMergeTab, tabHasVisibleContent } from '@/lib/authoring/table/merge-table-model';
 
 interface Props {
   caseSnap:         CaseSnapshot;
@@ -55,12 +56,17 @@ export function CasePanel({
   // shape. Coerce here so the rest of the component can lean on TabRow.
   const tabs = (caseSnap.tabs_snapshot_json ?? []) as TabRow[];
 
-  // Tab-row filter: a tab appears iff at least one entry is visible.
+  // Tab-row filter: a tab appears iff at least one entry/row is visible.
+  // A v2 custom table (object entries) uses its own reveal check.
   const visibleTabs = tabs
-    .filter((t) =>
-      Array.isArray(t.entries) &&
-      t.entries.some((e) => Number(e?.visible_from) <= currentPosition),
-    )
+    .filter((t) => {
+      const mt = asMergeTab(t.entries);
+      if (mt) return tabHasVisibleContent(mt, currentPosition);
+      return (
+        Array.isArray(t.entries) &&
+        t.entries.some((e) => Number(e?.visible_from) <= currentPosition)
+      );
+    })
     .sort((a, b) => a.display_order - b.display_order);
 
   const [activeId, setActiveId] = useState<string>(

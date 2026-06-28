@@ -58,6 +58,7 @@ import { NarrativeTabEditor } from './chart-tabs/narrative-tab';
 import { StructuredTabEditor } from './chart-tabs/structured-tab';
 import { getTabType } from './chart-tabs/tab-types';
 import { MergeTableEditor } from '@/lib/authoring/table/merge-table-editor';
+import { MergeTableView } from '@/lib/authoring/table/merge-table-view';
 import {
   asMergeTab,
   isTabEmpty,
@@ -662,7 +663,11 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     return liveEntries.filter((e) => Number(e.visible_from) <= activeSlot);
   }, [activeChartTab, activeChartDraft, activeSlot]);
 
-  const activeTabIsMergeTable = !!activeChartTab && !!asMergeTab(activeChartTab.entries);
+  // Live merge-table tab for the preview pane (reflects unsaved edits via
+  // the draft). Non-null only for a custom-table tab.
+  const previewMergeTab = activeChartTab
+    ? asMergeTab(activeChartDraft?.entries ?? activeChartTab.entries)
+    : null;
   const previewHiddenCount = useMemo(() => {
     if (!activeChartTab) return 0;
     const all = activeChartDraft?.entries ?? activeChartTab.entries;
@@ -1179,11 +1184,8 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
             <div className="auth-cs-chart-content auth-cs-preview-chart">
               {!activeChartTab ? (
                 <p className="auth-cs-empty-msg">No tabs on this case.</p>
-              ) : activeTabIsMergeTable ? (
-                <p className="auth-cs-empty-msg">
-                  Custom table — the student preview arrives in the next step.
-                  Build it in the editor on the left.
-                </p>
+              ) : previewMergeTab ? (
+                <MergeTableView tab={previewMergeTab} currentPosition={activeSlot} />
               ) : (
                 <>
                   <PreviewChartView tab={activeChartTab} entries={previewEntries} />

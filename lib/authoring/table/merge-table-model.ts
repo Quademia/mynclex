@@ -556,6 +556,81 @@ export function asMergeTab(entries: unknown): MergeTabData | null {
   return null;
 }
 
+// ── student render plan (Slice 3) ─────────────────────────────
+//
+// Compute the rows a student sees for a given question position, with the
+// merge spans corrected to cover only the VISIBLE rows. Mirrors the adopted
+// prototype's renderStudentTable. Pure + tested — the reveal/span maths is
+// the bug-prone part, kept out of the view.
+
+export interface StudentCell {
+  cell:         MergeCell;
+  colSpan:      number;
+  rowSpan:      number;  // effective span over visible rows
+  justRevealed: boolean; // first appears at exactly this question (q > 1)
+}
+
+export interface StudentRow {
+  id:    string;
+  cells: StudentCell[];
+}
+
+/**
+ * The visible, span-corrected rows for question `q` (1..6). A data row shows
+ * when its `visibleFrom ≤ q`; a header row shows when any data row shows
+ * (derived). Returns [] when nothing is visible yet.
+ */
+export function studentRows(t: MergeTable, q: number): StudentRow[] {
+  const header: boolean[] = [];
+  const visible: boolean[] = [];
+  let anyData = false;
+  for (let r = 0; r < t.rows.length; r++) {
+    const h = isHeaderRow(t, r);
+    header[r] = h;
+    if (!h) {
+      const vis = (t.rows[r].visibleFrom || 1) <= q;
+      visible[r] = vis;
+      if (vis) anyData = true;
+    }
+  }
+  for (let r = 0; r < t.rows.length; r++) if (header[r]) visible[r] = anyData;
+
+  const visibleIdx: number[] = [];
+  for (let r = 0; r < t.rows.length; r++) if (visible[r]) visibleIdx.push(r);
+  const visSet = new Set(visibleIdx);
+  const occupied: boolean[][] = visibleIdx.map(() => new Array(t.cols).fill(false));
+
+  const out: StudentRow[] = [];
+  for (let pi = 0; pi < visibleIdx.length; pi++) {
+    const r = visibleIdx[pi];
+    const cells: StudentCell[] = [];
+    for (let c = 0; c < t.cols; c++) {
+      if (occupied[pi][c]) continue;
+      const cell = t.grid[r][c];
+      if (cell.covered) continue;
+      // Effective rowspan = how many of the rows it spans are visible.
+      let rs = 0;
+      for (let rr = r; rr < r + cell.rowspan; rr++) if (visSet.has(rr)) rs++;
+      if (rs === 0) continue;
+      const cs = cell.colspan;
+      for (let dr = 0; dr < rs; dr++) {
+        for (let dc = 0; dc < cs; dc++) {
+          if (occupied[pi + dr]) occupied[pi + dr][c + dc] = true;
+        }
+      }
+      const justRevealed = !header[r] && (t.rows[r].visibleFrom || 1) === q && q > 1;
+      cells.push({ cell, colSpan: cs, rowSpan: rs, justRevealed });
+    }
+    out.push({ id: t.rows[r].id, cells });
+  }
+  return out;
+}
+
+/** True when any table in the tab has a visible row at question `q`. */
+export function tabHasVisibleContent(tab: MergeTabData, q: number): boolean {
+  return tab.tables.some((t) => studentRows(t, q).length > 0);
+}
+
 // ── plain-text cell helpers (Slice 2a edits cells as plain text) ──
 /** A cell's content as a single plain-text string. */
 export function cellText(cell: MergeCell): string {
