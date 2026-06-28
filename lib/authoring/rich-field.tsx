@@ -26,6 +26,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Highlight from '@tiptap/extension-highlight';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
+import TextAlign from '@tiptap/extension-text-align';
 import { Color, TextStyle } from '@tiptap/extension-text-style';
 import { NavIcon } from '@/components/nav/shared/nav-icon';
 import {
@@ -74,6 +75,9 @@ export function RichField({
       Highlight.configure({ multicolor: true }),
       Subscript,
       Superscript,
+      // Block alignment (left / centre / right) on paragraphs + headings.
+      // Stored as a `textAlign` node attr; RichRender mirrors it.
+      TextAlign.configure({ types: ['heading', 'paragraph'], defaultAlignment: 'left' }),
       TextStyle,
       Color,
     ],
@@ -134,6 +138,9 @@ function Toolbar({ editor }: { editor: Editor }) {
       isSubscript: editor.isActive('subscript'),
       isBulletList: editor.isActive('bulletList'),
       isOrderedList: editor.isActive('orderedList'),
+      alignLeft: editor.isActive({ textAlign: 'left' }),
+      alignCenter: editor.isActive({ textAlign: 'center' }),
+      alignRight: editor.isActive({ textAlign: 'right' }),
     }),
   });
 
@@ -200,6 +207,30 @@ function Toolbar({ editor }: { editor: Editor }) {
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
       >
         <NavIcon name="list-numbered" />
+      </TbButton>
+
+      <span className="auth-rf-sep" aria-hidden="true" />
+
+      <TbButton
+        label="Align left"
+        pressed={state.alignLeft}
+        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+      >
+        <NavIcon name="align-left" />
+      </TbButton>
+      <TbButton
+        label="Align centre"
+        pressed={state.alignCenter}
+        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+      >
+        <NavIcon name="align-center" />
+      </TbButton>
+      <TbButton
+        label="Align right"
+        pressed={state.alignRight}
+        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+      >
+        <NavIcon name="align-right" />
       </TbButton>
 
       <span className="auth-rf-sep" aria-hidden="true" />

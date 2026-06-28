@@ -34,6 +34,21 @@ export const INLINE_TOOLS: InlineTool[] = [
   { icon: 'list-numbered', label: 'Numbered list', mark: 'orderedList',   run: (e) => e.chain().focus().toggleOrderedList().run() },
 ];
 
+// Block alignment — left / centre / right on the focused paragraph or heading.
+// Separate from INLINE_TOOLS because "active" is a node-attr check
+// (`isActive({ textAlign })`), not a mark.
+interface AlignTool {
+  icon:  NavIconName;
+  label: string;
+  value: 'left' | 'center' | 'right';
+}
+
+export const ALIGN_TOOLS: AlignTool[] = [
+  { icon: 'align-left',   label: 'Align left',   value: 'left' },
+  { icon: 'align-center', label: 'Align centre', value: 'center' },
+  { icon: 'align-right',  label: 'Align right',  value: 'right' },
+];
+
 // Highlight + Text colour live in <ColorMarkButtons>; these stubs mirror
 // them in the disabled state so the toolbar keeps shape.
 const COLOR_STUBS: Array<{ icon: NavIconName; label: string }> = [
@@ -48,6 +63,7 @@ export function InlineTools({ editor, buttonClassName }: { editor: Editor; butto
     selector: ({ editor }) => {
       const m: Record<string, boolean> = {};
       for (const tool of INLINE_TOOLS) m[tool.mark] = editor.isActive(tool.mark);
+      for (const a of ALIGN_TOOLS) m[`align:${a.value}`] = editor.isActive({ textAlign: a.value });
       return m;
     },
   });
@@ -67,6 +83,20 @@ export function InlineTools({ editor, buttonClassName }: { editor: Editor; butto
           <NavIcon name={tool.icon} />
         </button>
       ))}
+      {ALIGN_TOOLS.map((a) => (
+        <button
+          key={a.label}
+          type="button"
+          className={`${buttonClassName}${active[`align:${a.value}`] ? ' is-active' : ''}`}
+          title={a.label}
+          aria-label={a.label}
+          aria-pressed={active[`align:${a.value}`]}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor.chain().focus().setTextAlign(a.value).run()}
+        >
+          <NavIcon name={a.icon} />
+        </button>
+      ))}
       <ColorMarkButtons editor={editor} buttonClassName={buttonClassName} />
     </>
   );
@@ -82,7 +112,7 @@ export function InlineToolsDisabled({
 }) {
   return (
     <>
-      {[...INLINE_TOOLS, ...COLOR_STUBS].map((tool) => (
+      {[...INLINE_TOOLS, ...ALIGN_TOOLS, ...COLOR_STUBS].map((tool) => (
         <button
           key={tool.label}
           type="button"

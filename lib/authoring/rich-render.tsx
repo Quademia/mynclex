@@ -11,8 +11,17 @@
 // Mark handling mirrors the library's student read renderer
 // (lib/library/student/read-inline.tsx) so the two surfaces stay consistent.
 
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, type CSSProperties, type ReactNode } from 'react';
 import type { RichDoc, RichNode, RichMark } from './rich-doc';
+
+// Mirror a block node's alignment (set by the TextAlign extension). Left is
+// the default, so only centre / right / justify need an inline style.
+function alignStyle(node: RichNode): CSSProperties | undefined {
+  const a = node.attrs?.textAlign;
+  return typeof a === 'string' && a !== 'left'
+    ? { textAlign: a as CSSProperties['textAlign'] }
+    : undefined;
+}
 
 function colorAttr(mark: RichMark | undefined): string | undefined {
   const c = mark?.attrs?.color;
@@ -97,7 +106,7 @@ function RenderBlock({ node, k }: { node: RichNode; k: string }): ReactNode {
   switch (node.type) {
     case 'paragraph':
       return (
-        <p key={k}>
+        <p key={k} style={alignStyle(node)}>
           <RenderInline content={node.content} />
         </p>
       );
@@ -105,7 +114,7 @@ function RenderBlock({ node, k }: { node: RichNode; k: string }): ReactNode {
       const level = (node.attrs?.level as number | undefined) ?? 2;
       const Tag = (level === 3 ? 'h3' : 'h2') as 'h2' | 'h3';
       return (
-        <Tag key={k}>
+        <Tag key={k} style={alignStyle(node)}>
           <RenderInline content={node.content} />
         </Tag>
       );
