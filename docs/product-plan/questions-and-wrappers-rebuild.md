@@ -1282,9 +1282,92 @@ the generic rich model.
 
 ### Slice 6 — rich text across the questions  *(was Slice 5)*
 
-Point the Slice-1 primitive at the **question** fields — stems, every answer
-**option**, per-option **feedback**, **rationale** — across all 9 item types.
-The bank-wide migration of those columns (string → Tiptap JSON) lands here.
+Point the Slice-1 primitive at the **question** fields — the stem, every
+answer **option**, per-option **feedback**, and the **rationale** — across the
+9 item types. This is where rich text reaches the questions themselves (the
+chart/stimulus side was Slices 1–5).
+
+> **STATUS: DESIGN LOCKED (2026-06-28), nothing built.** Six decisions settled
+> with Sam in a discussion pass + a code read of the editors and both runners.
+> Build is **per editor, one at a time, end-to-end** (author → both renders →
+> raw-JSON sweep → Sam-tests on dev → merge), per the usual loop.
+
+**Locked decisions:**
+
+1. **Storage = read-coerce, NO migration.** Old plain-text rows are wrapped as
+   paragraphs on read (`parseRichDoc`); new saves write Tiptap JSON into the
+   **existing** columns. Same proven path as the Slice-1 scenario field — no
+   `ALTER TABLE`, no data transform. (Overrides the original "bank-wide column
+   migration lands here" note — the migration is unnecessary; read-coercion
+   covers every legacy row transparently. The stem/rationale are plain TEXT
+   columns; options/feedback are plain strings inside the existing `content` /
+   `correct` JSONB — none need a schema change.)
+2. **Scope = bank items + tutor questions, together — and it's cheap.** The 9
+   editors (`lib/bank/editors/*`) are **surface-aware** and already write to
+   either `nclex_bank_items` or `nclex_tutor_questions` off one `save-question`
+   action; the per-type **runner components** (`lib/practice/runner/types/*`)
+   are **reused** by the library embed player (`lib/library/student/embed-player.tsx`)
+   and the tutor preview. So one editor change covers both tables, and one
+   runner-component change covers both the practice runner **and** the library
+   reading-checks. The only genuinely separate spots are the type-agnostic
+   **stem + rationale render hosts** (practice `runner-question-area.tsx` vs the
+   two library hosts) — one-time swaps in the foundation.
+3. **Toolbar = ONE roving toolbar per editor.** The Content tab stacks many
+   rich fields (a 4-option MCQ ≈ stem + 4 option texts + 4 feedbacks + rationale
+   ≈ 10), so per-field toolbars (the Slice-1 scenario style) would be a wall of
+   duplicated toolbars + ~10 live editors. Instead reuse the **merge-table /
+   narrative roving pattern**: one sticky toolbar at the top of the Content tab,
+   one live editor at a time following focus, unfocused fields render static.
+   `RichField` already supports it (`hideToolbar` + `onEditor`); the shared
+   toolbar is `lib/authoring/inline-tools.tsx` (`InlineTools` /
+   `InlineToolsDisabled`).
+4. **Rich stems decided per editor.** The 6 "normal" types (MCQ, TF, SATA,
+   Select-N, Matrix, Bowtie) get fully rich stems. The 3 **marker-bearing**
+   types store structural markers in the stem — Cloze `{1}`, Highlight `[[…]]`,
+   Drag-drop-sentence `[N]` (and Cloze silently renumbers on save) — so each
+   one's stem treatment is decided when we open that editor. Their
+   options/choices/tokens + rationale still go rich.
+5. **Per-editor, end-to-end, opportunistic.** Each editor is taken on its own:
+   apply the rich treatment AND any other improvements that surface while we're
+   in it (the editors share a skeleton, so a fix often generalises). Test on dev
+   and merge before the next.
+6. **Instruction field — kept PLAIN** (a short directive cue like "Select all
+   that apply"; not prose). Revisit only if a real need appears.
+
+**The shared editor skeleton (why the above composes):** every editor is
+`ModalFrame → split(edit | preview) → Tabs(Content · Classification ·
+Housekeeping)`; the Content tab stacks `Instruction → Stem → Options(per-type
+rows of text + feedback) → Rationale`, with Instruction/Stem/Rationale coming
+from shared atoms (`lib/bank/atoms/`). Classification + Housekeeping hold no
+rich fields. The form is **FormData-based** — each rich field writes its
+serialized JSON into a hidden `<input name="…">` so the existing save path is
+untouched (the Slice-1 scenario bridge).
+
+**Subslices** (each Sam-tested on dev + merged to `main` individually):
+
+- **Slice 6a — Foundation + MCQ (+ TF).**
+  - *Foundation:* a roving rich-field wrapper + an editor-level sticky toolbar
+    on the Content tab (reusing `inline-tools.tsx`); the hidden-input FormData
+    bridge generalised from the scenario field; the type-agnostic **stem
+    chrome** + **`RationaleBlock`** made rich across all three render hosts
+    (practice `runner-question-area.tsx` + library `embed-player.tsx` /
+    `embed-preview.tsx`); the curator **preview pane** renders rich.
+  - *MCQ:* stem + each option text + each per-option feedback + rationale go
+    rich in the editor; `McqRunner` renders rich options/feedback (covers
+    practice + library); sweep MCQ's raw-JSON readers (lists, hover-peeks,
+    search blobs, quiz pickers) with `richTextToPlain`.
+  - *TF:* rides along — same shape, locked True/False options.
+- **Slice 6b — SATA + Select-N.** Same option-list shape as MCQ; quick.
+- **Slice 6c — Matrix + Bowtie.** Grid row/column labels + bow-tie token
+  labels become rich; stems are "normal" (fully rich).
+- **Slice 6d — Cloze.** Decide the stem treatment (carries `{N}` markers +
+  silent renumbering) when opened; the per-blank choices + rationale go rich.
+- **Slice 6e — Highlight.** Decide the stem treatment (the passage carries the
+  `[[…]]` answer-key brackets — likely stays special); rationale rich. (Note:
+  answer-bound highlight — "rung 4" — stays closed; this is just rich text,
+  not fusing the highlight key into a chart.)
+- **Slice 6f — Drag-drop.** ORDERED vs SENTENCE; tokens/slot hints rich; the
+  SENTENCE stem carries `[N]` markers → decide treatment when opened.
 
 ### Slice 7 (LAST) — media block in the narrative body
 
