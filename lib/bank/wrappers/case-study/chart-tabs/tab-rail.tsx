@@ -22,7 +22,6 @@ import { createPortal } from 'react-dom';
 import { BUILT_IN_TABS, type BuiltInTabType } from './tab-types';
 import { reorderTabsAction, upsertTabAction } from '../actions';
 import type { CaseStudyTabRow, Surface } from '../types';
-import { CUSTOM_GRID_MIN_COLUMNS } from '../types';
 import { emptyTab } from '@/lib/authoring/table/merge-table-model';
 import { emptyNarrativeTab } from '@/lib/authoring/narrative/narrative-model';
 import { structuredToMergeTab } from '@/lib/authoring/migrate-v1-tabs';
@@ -43,11 +42,10 @@ function seedEntriesForBuiltIn(t: BuiltInTabType): string {
   return JSON.stringify(emptyNarrativeTab());
 }
 
-// New custom tabs come in three shapes during the transition: a free-text
-// narrative, the legacy rows-and-columns grid, or the new custom merge
-// table (rich-content relook). The legacy grid stays available until the
-// merge table fully replaces it (Slice 6).
-type NewTabShape = 'free_text' | 'rows_cols' | 'merge_table';
+// New custom tabs come in two shapes: a free-text narrative or the custom
+// merge table (rich-content relook). The legacy rows-and-columns grid was
+// retired in Slice 5.7 — the merge table is a superset of it.
+type NewTabShape = 'free_text' | 'merge_table';
 
 interface RailProps {
   surface:       Surface;
@@ -256,26 +254,17 @@ function AddTabPopover({
       setErr('Tab name is required.');
       return;
     }
-    // Three shapes — all keep custom_shape within the DB CHECK
+    // Two custom shapes — both keep custom_shape within the DB CHECK
     // (free_text / rows_cols), so no migration:
     //   free_text   → custom_narrative carrying a blank v2 narrative.
-    //   rows_cols   → custom_grid v1, pre-seeded with blank columns.
     //   merge_table → custom_grid carrying a blank v2 merge table in entries.
+    // The old v1 "rows & columns" grid was retired in Slice 5.7 — the rich
+    // "Custom table" (merge_table) is a superset of it.
     let tab_key = 'custom_narrative';
     let custom_shape = 'free_text';
     let entries = JSON.stringify(emptyNarrativeTab());
-    let columns_def = '[]';
-    if (shape === 'rows_cols') {
-      tab_key = 'custom_grid';
-      custom_shape = 'rows_cols';
-      entries = '[]';
-      columns_def = JSON.stringify(
-        Array.from({ length: CUSTOM_GRID_MIN_COLUMNS }, (_, i) => ({
-          id: `c${i + 1}`,
-          label: `Column ${i + 1}`,
-        })),
-      );
-    } else if (shape === 'merge_table') {
+    const columns_def = '[]';
+    if (shape === 'merge_table') {
       tab_key = 'custom_grid';
       custom_shape = 'rows_cols';
       entries = JSON.stringify(emptyTab());
@@ -334,20 +323,6 @@ function AddTabPopover({
             <div className="cs-shape-choice-title">Free text</div>
             <div className="cs-shape-choice-desc">
               Stacked cards with Time, a body, and visible-from. Same as Nurses&rsquo; Notes.
-            </div>
-          </span>
-        </label>
-        <label className={shape === 'rows_cols' ? 'active' : ''}>
-          <input
-            type="radio"
-            name="cs-custom-shape"
-            checked={shape === 'rows_cols'}
-            onChange={() => setShape('rows_cols')}
-          />
-          <span>
-            <div className="cs-shape-choice-title">Rows &amp; columns</div>
-            <div className="cs-shape-choice-desc">
-              Curator-defined columns plus a locked Visible-from. Like Vitals or Labs.
             </div>
           </span>
         </label>
