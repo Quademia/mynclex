@@ -1349,9 +1349,13 @@ untouched (the Slice-1 scenario bridge).
 
 **Subslices** (each Sam-tested on dev + merged to `main` individually):
 
-- **Slice 6a — Foundation + MCQ (+ TF).** ✅ FOUNDATION + MCQ BUILT
-  (`ce0917c`, session branch, Sam-tested on dev; tsc + eslint + 94 vitest
-  clean). **TF still pending** (rides along once MCQ is confirmed in real use).
+- **Slice 6a — Foundation + MCQ + TF.** ✅ BUILT (`ce0917c` foundation+MCQ;
+  TF the MCQ mirror; session branch, Sam-tested on dev; tsc + eslint + 94
+  vitest clean). **TF specifics:** its runner is a thin `<McqRunner>` wrapper
+  so it was already rich (no runner change); `parseTf` enforces the exact
+  "True"/"False" option labels server-side, so option *text* stays plain and
+  only the per-option **feedback** is rich. Editor + both wrapper preview call
+  sites only.
   - *Foundation (built once, reused by every later editor — see checklist
     below):* `lib/authoring/roving-rich.tsx` (`RovingProvider` / `RovingToolbar`
     / `RovingRichField` — live editor when focused, static text otherwise,

@@ -1207,8 +1207,8 @@ function ActiveQuestionPreview({
     case 'TF':
       return (
         <TfPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
           options={editor.initial.options}
           correctId={editor.initial.correct_id}
           viewMode={viewMode}
