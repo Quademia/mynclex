@@ -1079,47 +1079,59 @@ when each type migrates):
 (Since prod has no real users and only a handful of cases, even the
 manual re-authoring is small and low-stakes.)
 
-### Slice 1 — the rich-text primitive in the bank (de-risk the round-trip)
+> **PROGRESS (2026-06-28): Slices 1 + 2 + 3 + 4 BUILT.** 1, 2a/2b/2c, 3 are
+> on `main` (commits `f32f0f0`..`a3c8498`); 4 on the session branch. The
+> custom merge table + the rich narrative tab are complete end-to-end
+> (author + student render). **Slices 5 ↔ 6 SWAPPED (Sam, 2026-06-28):**
+> do the built-in templates next (keeps us in the chart/stimulus area,
+> reusing the editors just built), then the question fields. New order below.
+
+### Slice 1 — the rich-text primitive in the bank (de-risk the round-trip) ✅ BUILT
 
 Bring the library Tiptap field in as a **reusable bank rich field +
-read renderer**. Prove it on **one simple field first** (the scenario, or a
-single stem): editor → Server Action save → snapshot → student render,
-end-to-end, including the ProseMirror-attrs deep-clone gotcha
-(CLAUDE.md "Known Workarounds"). This validates Tiptap-in-bank before the
-hard table.
+read renderer**. Proven on the **scenario** field: editor → Server Action
+save → reload → student render, end-to-end (the FormData-string path
+sidesteps the ProseMirror-attrs deep-clone gotcha; clone helper kept for the
+later object-arg fields). Lives in `lib/authoring/` (rich-field / rich-render
+/ rich-doc).
 
-### Slice 2 — the custom merge-table editor (authoring)
+### Slice 2 — the custom merge-table editor (authoring) ✅ BUILT (2a/2b/2c)
 
-Build the editor from prototype v2: type-in-cell, **drag-select → Merge**,
-**Split (subdivide *and* un-merge)**, **Heading** (role), **+Row / +Col**,
-**Delete row / col**, rich cells (the Slice-1 field), and the **per-row
-"Appears" gutter** (header rows show "auto"). One tab = one table.
+The merge-table editor from prototype v2: type-in-cell, **drag/shift-select →
+Merge**, **Split (subdivide *and* un-merge)**, **Heading** (role), +Row/+Col,
+Delete row/col, the per-row **"Appears" gutter** (header rows show "auto"),
+rich cells (roving rich field) + the in-cell toolbar (incl. highlight + text
+colour). **2c: a tab holds a LIST of tables** (`asMergeTab` upgrades the old
+single-table shape). `lib/authoring/table/`.
 
-### Slice 3 — the student render of the custom table
+### Slice 3 — the student render of the custom table ✅ BUILT
 
-Read-only renderer inside the case stimulus panel: colspan/rowspan, covered
-cells, heading styling, and **per-row progressive reveal** (`visibleFrom ≤
-currentQuestion`, header rows derived). Mobile = horizontal scroll for now.
+Read-only renderer (`merge-table-view.tsx`): colspan/rowspan, covered cells,
+heading styling, **per-row reveal** with merge spans corrected to the visible
+rows (`studentRows`, tested). Wired into the curator preview + the runner.
+Mobile = horizontal scroll.
 
-### Slice 4 — the narrative tab (rich body + chips)
+### Slice 4 — the narrative tab (rich body + chips) ✅ BUILT
 
-Rebuild the narrative tab editor + render: a rich **body** + **free-text
-chips** (generalising "Time"), per-row "visible at". Built-in narrative tab
-extras become suggested default chips.
+The v2 narrative tab (`lib/authoring/narrative/`): entry cards = free-text
+**chips** (generalising "Time") + a rich **body** (roving) + per-entry reveal;
+one **sticky** toolbar. Render wired into preview + runner. New "Free text"
+tabs use it; existing v1 narrative + built-in narratives stay on the old
+editor until the templates slice.
 
-### Slice 5 — rich text across the questions
-
-Point the Slice-1 primitive at the **question** fields — stems, every
-answer **option**, per-option **feedback**, **rationale** — across all 9
-item types, plus the **scenario**. The bank-wide migration of those columns
-(string → Tiptap JSON) lands here.
-
-### Slice 6 — upgrade the built-in templates
+### Slice 5 — upgrade the built-in templates  *(was Slice 6)*
 
 Bring the six built-in tab templates (Vital Signs, Labs, Nurses' Notes,
 Orders, H&P, Diagnostics) up to the custom-table/narrative capability —
-**fully editable** (add/rename/remove columns; merge; rich cells), keeping
-them as convenient presets.
+**fully editable** (add/rename/remove columns; merge; rich cells; narrative
+chips), keeping them as convenient presets. Carries the **v1 → v2 migration**
+of existing built-in tab rows (staged-migration decision D3).
+
+### Slice 6 — rich text across the questions  *(was Slice 5)*
+
+Point the Slice-1 primitive at the **question** fields — stems, every answer
+**option**, per-option **feedback**, **rationale** — across all 9 item types.
+The bank-wide migration of those columns (string → Tiptap JSON) lands here.
 
 ### Slice 7 (LAST) — media block in the narrative body
 
