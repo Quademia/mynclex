@@ -1456,6 +1456,24 @@ renders the stem itself** (the `isStemTakeover` branch in
 Decide each one's stem treatment when its editor is opened; their answer fields
 still go rich per the checklist.
 
+### Slice 6 — per-editor "other work": validation philosophy (settled 2026-06-29)
+
+Each editor's per-type pass is also the moment to review its **validity /
+publish rules** (the "other work" beyond rich text). Guiding principle, settled
+with Sam on SATA/Select-N: **prefer advisory hints over hard blocks.** The
+Maryland / NCSBN corpus showed curators legitimately deviate from textbook
+NCLEX norms (option counts, distractor ratios), so over-constraining the parser
+fights real authoring. Reserve **hard rules** for the genuinely-broken
+(structural integrity — e.g. a correct answer must reference a real option);
+use a **soft hint/warning** for the merely-unusual (e.g. "NCLEX SATA usually has
+5–6 options").
+
+- **SATA / Select-N — reviewed, NO change (Sam, 2026-06-29).** Current rules
+  judged fine: stem required · 2–10 non-empty options · SATA ≥1 correct (up to
+  all) · Select-N exactly N (1…options) · category required · marks auto. A
+  distractor requirement and a higher min-option floor were considered and
+  **declined** — curator freedom wins; the most we'd do is *advise*, not block.
+
 ### Slice 6 — parked / deferred
 
 - **Curator discoverability of formatting affordances.** The rich toolset has
