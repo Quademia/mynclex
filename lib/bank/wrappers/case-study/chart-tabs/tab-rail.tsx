@@ -31,8 +31,11 @@ import { structuredToMergeTab } from '@/lib/authoring/migrate-v1-tabs';
 // A handled built-in seeds its v2 blob (so clicking it in the picker drops the
 // new rich editor, pre-shaped); the rest keep the v1 empty array until their
 // own sub-slice. Same shape the migration converter produces for empty tabs.
+//   - structured built-ins (Vital Signs 5.1, Lab Results 5.2) → merge table,
+//     column titles seeded as the heading row;
+//   - narrative built-ins land in 5.3+.
 function seedEntriesForBuiltIn(t: BuiltInTabType): string {
-  if (t.tab_key === 'vital_signs') {
+  if (t.shape === 'structured') {
     return JSON.stringify(structuredToMergeTab(t.columns ?? [], []));
   }
   return '[]';
