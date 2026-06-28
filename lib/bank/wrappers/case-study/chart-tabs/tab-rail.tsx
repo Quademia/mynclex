@@ -19,12 +19,24 @@
 
 import { useState, useEffect, useRef, useTransition } from 'react';
 import { createPortal } from 'react-dom';
-import { BUILT_IN_TABS } from './tab-types';
+import { BUILT_IN_TABS, type BuiltInTabType } from './tab-types';
 import { reorderTabsAction, upsertTabAction } from '../actions';
 import type { CaseStudyTabRow, Surface } from '../types';
 import { CUSTOM_GRID_MIN_COLUMNS } from '../types';
 import { emptyTab } from '@/lib/authoring/table/merge-table-model';
 import { emptyNarrativeTab } from '@/lib/authoring/narrative/narrative-model';
+import { structuredToMergeTab } from '@/lib/authoring/migrate-v1-tabs';
+
+// Slice 5 — built-ins are upgraded to the v2 editors one template at a time.
+// A handled built-in seeds its v2 blob (so clicking it in the picker drops the
+// new rich editor, pre-shaped); the rest keep the v1 empty array until their
+// own sub-slice. Same shape the migration converter produces for empty tabs.
+function seedEntriesForBuiltIn(t: BuiltInTabType): string {
+  if (t.tab_key === 'vital_signs') {
+    return JSON.stringify(structuredToMergeTab(t.columns ?? [], []));
+  }
+  return '[]';
+}
 
 // New custom tabs come in three shapes during the transition: a free-text
 // narrative, the legacy rows-and-columns grid, or the new custom merge
@@ -216,15 +228,15 @@ function AddTabPopover({
     }
   }, [customMode]);
 
-  function addBuiltIn(tab_key: string, default_title: string) {
+  function addBuiltIn(t: BuiltInTabType) {
     const fd = new FormData();
     fd.set('surface', surface);
     fd.set('case_id', case_id);
-    fd.set('tab_key', tab_key);
-    fd.set('title', default_title);
+    fd.set('tab_key', t.tab_key);
+    fd.set('title', t.default_title);
     fd.set('display_order', String(nextDisplayOrder));
     fd.set('is_custom', 'false');
-    fd.set('entries', '[]');
+    fd.set('entries', seedEntriesForBuiltIn(t));
     fd.set('columns_def', '[]');
     startTransition(async () => {
       const res = await upsertTabAction(fd);
@@ -384,7 +396,7 @@ function AddTabPopover({
               className={used ? 'cs-popover-item used' : 'cs-popover-item'}
               onClick={() => {
                 if (used || pending) return;
-                addBuiltIn(t.tab_key, t.default_title);
+                addBuiltIn(t);
               }}
               role="button"
               aria-disabled={used}
