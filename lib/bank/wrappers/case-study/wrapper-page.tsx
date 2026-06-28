@@ -1374,9 +1374,13 @@ function ActiveQuestionPreview({
     case 'SATA':
       return (
         <SataPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
-          options={editor.initial.options}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
+          options={editor.initial.options.map((o) => ({
+            id: o.id,
+            text: parseRichDoc(o.text),
+            feedback: parseRichDoc(o.feedback),
+          }))}
           correctIds={new Set(editor.initial.correct_ids)}
           viewMode={viewMode}
           onViewModeChange={onViewModeChange}
@@ -1385,9 +1389,13 @@ function ActiveQuestionPreview({
     case 'SELECT_N':
       return (
         <SelectNPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
-          options={editor.initial.options}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
+          options={editor.initial.options.map((o) => ({
+            id: o.id,
+            text: parseRichDoc(o.text),
+            feedback: parseRichDoc(o.feedback),
+          }))}
           selectCount={editor.initial.select_count}
           correctIds={new Set(editor.initial.correct_ids)}
           viewMode={viewMode}

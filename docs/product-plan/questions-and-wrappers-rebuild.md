@@ -1368,7 +1368,12 @@ untouched (the Slice-1 scenario bridge).
     `<RovingToolbar>`; instruction/stem/each option text/each feedback/rationale
     are rich; `McqPreview` + `McqRunner` render rich.
   - *TF:* rides along — same shape, locked True/False options.
-- **Slice 6b — SATA + Select-N.** Same option-list shape as MCQ; quick.
+- **Slice 6b — SATA + Select-N.** ✅ BUILT (session branch; tsc + eslint + 94
+  vitest clean). MCQ mirror with editable option text + feedback (both rich);
+  per-type runners (`sata.tsx` / `select-n.tsx`) got the same `opt.text` +
+  feedback `RichRender inline` swap; four wrapper preview call sites converted.
+  Select-N's `select_count` stays a plain number; SATA/Select-N housekeeping
+  `liveMarks` unchanged. Parsers confirmed opaque (`.trim()` for empty only).
 - **Slice 6c — Matrix + Bowtie.** Grid row/column labels + bow-tie token
   labels become rich; stems are "normal" (fully rich).
 - **Slice 6d — Cloze.** Decide the stem treatment (carries `{N}` markers +
