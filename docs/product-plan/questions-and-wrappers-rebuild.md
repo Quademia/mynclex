@@ -1217,6 +1217,19 @@ each v1 blob to its v2 equivalent. Grounded in real dev blobs:
 5. Prod conversion ships **at release**, as a migration file, after dev is
    proven (re-census prod first).
 
+#### Noted behaviour change — Lab Results flag highlight (settled 2026-06-28)
+
+The old curator **preview** (`PreviewChartView` → `labFlagClass`) auto-coloured
+abnormal Lab Results rows (amber for H/L, red for Critical) as a curator "take
+notice" cue — *preview only; the student runner always showed the flag as plain
+text*. Once Labs converts to a v2 merge table, both preview and runner render
+through the generic `MergeTableView`, which has no "Flag column" concept, so
+that automatic highlight is **intentionally dropped** (Sam's call, 2026-06-28).
+Replacement = **manual rich emphasis**: the curator bolds/colours/highlights
+whatever cells matter, on any table (a superset of the old Labs-only cue). The
+flag *values* are untouched. Not a regression to "fix" — a deliberate trade for
+the generic rich model.
+
 #### Open-on-build (verify during the slice)
 
 - The merge-table model's **derived heading-row** behaviour (all-heading row →
