@@ -132,6 +132,14 @@ describe('add / delete', () => {
     expect(t.rows.length).toBe(3);
     expect(t.cols).toBe(3);
     expect(rendered(t)).toBe(9);
+    expect(allCellIdsUnique(t)).toBe(true);
+  });
+
+  it('keeps cell ids unique across repeated addRow / addCol', () => {
+    let t = emptyTable(2, 3);
+    for (let i = 0; i < 4; i++) t = addRow(t);
+    for (let i = 0; i < 2; i++) t = addCol(t);
+    expect(allCellIdsUnique(t)).toBe(true);
   });
 
   it('deletes a row band but never the last row', () => {

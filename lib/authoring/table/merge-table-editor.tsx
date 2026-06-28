@@ -49,6 +49,7 @@ import {
   setVisibleFrom,
   setCellContent,
   tableMeta,
+  dedupeCellIds,
   VF_MAX,
 } from './merge-table-model';
 
@@ -83,6 +84,16 @@ export function MergeTableEditor({
     const up = () => setDragging(false);
     window.addEventListener('mouseup', up);
     return () => window.removeEventListener('mouseup', up);
+  }, []);
+
+  // One-time heal on open: re-id duplicate cell ids from tables saved before
+  // the id-batch bug was fixed. dedupeCellIds is a no-op when ids are clean,
+  // so this only fires (marking the tab dirty for a save) when needed.
+  useEffect(() => {
+    const fixed = dedupeCellIds(draftTable);
+    if (fixed !== draftTable) onDraftChange({ title: draftTitle, table: fixed });
+    // Mount-only heal; deps intentionally omitted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const t = draftTable;

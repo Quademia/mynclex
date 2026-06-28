@@ -320,8 +320,12 @@ export function toggleHeading(prev: MergeTableData, rect: SelRect): MergeTableDa
 
 export function addRow(prev: MergeTableData): MergeTableData {
   const t = clone(prev);
+  // Build the row's cells in a temp array (pushed into the grid only after
+  // the loop) — so seed a running id counter from the current max, else
+  // every cell in the new row would get the same id (React key collision).
+  let nextNum = maxNumericSuffix('c', allCellIds(t)) + 1;
   const cells: MergeCell[] = [];
-  for (let c = 0; c < t.cols; c++) cells.push(blankCell(nextCellId(t)));
+  for (let c = 0; c < t.cols; c++) cells.push(blankCell('c' + nextNum++));
   t.rows.push({ id: nextRowId(t), visibleFrom: 1 });
   t.grid.push(cells);
   return t;
@@ -421,6 +425,32 @@ export function isTableEmpty(t: MergeTableData): boolean {
     }
   }
   return true;
+}
+
+/**
+ * Re-id every cell uniquely IF the table has any duplicate cell ids.
+ * Returns the same object when ids are already unique (no churn), else a
+ * repaired clone. Heals tables saved before the addRow/subdivide id-batch
+ * bug was fixed (duplicate ids break React keys + the roving cell editor).
+ * Cell ids are internal only (reveal pins to rows, not cells), so a
+ * wholesale re-id is safe.
+ */
+export function dedupeCellIds(t: MergeTableData): MergeTableData {
+  const seen = new Set<string>();
+  let hasDup = false;
+  for (const row of t.grid) {
+    for (const c of row) {
+      if (seen.has(c.id)) { hasDup = true; break; }
+      seen.add(c.id);
+    }
+    if (hasDup) break;
+  }
+  if (!hasDup) return t;
+
+  const fixed = clone(t);
+  let n = 0;
+  for (const row of fixed.grid) for (const c of row) c.id = 'c' + n++;
+  return fixed;
 }
 
 // ── type guard / parse ────────────────────────────────────────
