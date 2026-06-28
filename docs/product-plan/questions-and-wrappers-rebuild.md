@@ -12,8 +12,10 @@ unified per-row reveal model, heading as a structural role, narrative
 entry headers as free-text chips, bank-wide rich text, custom-tabs-first
 build order, rung 4 closed, and the editing toolset reused from the
 library], reveal resolved, and the merge-table authoring risk RETIRED by a
-Claude Design prototype now adopted as the build basis with refinements;
-no build yet)
+Claude Design prototype now adopted as the build basis with refinements,
+and a first-pass slice plan (Slices 0–7) appended with Slice 0's three
+data-model decisions now settled (constrained-doc+roving-editor cells;
+existing-JSONB storage + `v` stamp; staged migration); no build yet)
 Previously: 2026-06-15 (added the "Rich-content relook" discussion
 capture at the end — a NEW, larger direction that, unlike this 2026-04-28
 rebuild, *would* change the content data model; see that section + bank.md)
@@ -1010,3 +1012,123 @@ decisions 3–10; notably the gutter shows **"auto"** on header rows
   in the runner.
 - **Standalone bow-tie / trend** handling (after the case-study wrapper).
 - **The slice plan** + the Claude Design prototype.
+
+---
+
+## Slice plan — case-study wrapper rich-content rebuild (2026-06-27)
+
+> **STATUS: PLAN — nothing built.** First-pass build sequence off the 13
+> locked decisions + the adopted prototype (v2). Order follows decision 11
+> (custom tabs first, templates later, media last). Slice 0 is the
+> foundation; its internal data-model choices are a **proposal to settle**
+> before any code. Each slice is Sam-tested on dev and merged to `main`
+> individually, per the usual loop.
+
+### Slice 0 — data model + storage + migration (FOUNDATION, design-first)
+
+Everything hangs on this. **The three internal decisions are SETTLED
+(2026-06-27):**
+
+**Decision 1 — cell content = a constrained rich doc + a roving editor.**
+A cell needs **paragraphs + lists + inline marks** (the Orders cell has a
+bulleted list; lab cells have two lines), so its *storage format* is a
+**small, constrained Tiptap doc** — block-capable but **no heavy blocks**
+(no images / nested tables / block-headings in a cell). For performance the
+editor uses **one roving Tiptap instance** that mounts into the focused
+cell while the others render as static formatted text — never dozens of
+live editors on one big table. (Same rich format is reused everywhere a
+plain `<input>`/`<textarea>` is today: cells, narrative bodies, stems,
+options, feedback, rationale, scenario.)
+
+**Decision 2 — store the new shape in the existing JSONB; no structural DB
+change.** `nclex_case_study_tabs` keeps its columns; only the **shape inside
+`entries` / `columns_def` evolves** — no new columns, no new tables, no
+`ALTER TABLE`. The migration is a **data transform**, not a table rebuild.
+A small **`v` version stamp inside the blob** (`v: 2`) marks new-shape rows
+so old (`v: 1`) and new can coexist (see Decision 3) and future format
+changes stay clean. The shapes:
+  - **Table tab** → `{ v, rows[] (each { id, visibleFrom }), grid[][] of
+    cells { id, content(JSON), heading, colspan, rowspan, covered } }`.
+    Header-row = derived (all non-covered cells in the row are `heading`).
+    Mirrors prototype v2 exactly.
+  - **Narrative tab** → `{ v, entries[] of { id, visibleFrom,
+    chips: string[], body(JSON) } }` (chips generalise today's `time`).
+  - **Snapshot:** the attempt snapshot already copies the tabs JSONB, so it
+    carries the new shape for free; the runner renderer reads it.
+  - **Questions** (stems / options / per-option feedback / rationale) live
+    on `nclex_bank_items` / `nclex_tutor_questions`; those text columns move
+    string → Tiptap JSON in **Slice 5** (bank-wide blast radius).
+
+**Decision 3 — STAGED migration, matched to the build order.** Migrate
+**custom tabs now** (Slice 0) to `v: 2`; **leave the built-in templates in
+their old shape** (`v: 1`) until **Slice 6** rebuilds them, then migrate
+those. The `v` stamp is what lets old templates and new custom tabs coexist
+during the build — this is where it earns its keep. The mapping (applied
+when each type migrates):
+  - **Notes-style** (Nurses' Notes, Orders, H&P, Diagnostics, custom
+    free-text) → narrative: `time` → first chip; each extra field →
+    `"label: value"` chip; `body` string → rich paragraphs.
+  - **Table-style** (Vital Signs, Labs, custom grid) → table: column titles
+    → a **heading row**; each cell string → Tiptap; `visible_from` → the
+    row's `visibleFrom`.
+  - **HS2-style exception** — `custom_narrative` blobs that are really
+    tables (the Phase Sheet) can't be auto-detected → migrate to a rich
+    paragraph, then **manually re-author** the few affected cases as merge
+    tables.
+
+(Since prod has no real users and only a handful of cases, even the
+manual re-authoring is small and low-stakes.)
+
+### Slice 1 — the rich-text primitive in the bank (de-risk the round-trip)
+
+Bring the library Tiptap field in as a **reusable bank rich field +
+read renderer**. Prove it on **one simple field first** (the scenario, or a
+single stem): editor → Server Action save → snapshot → student render,
+end-to-end, including the ProseMirror-attrs deep-clone gotcha
+(CLAUDE.md "Known Workarounds"). This validates Tiptap-in-bank before the
+hard table.
+
+### Slice 2 — the custom merge-table editor (authoring)
+
+Build the editor from prototype v2: type-in-cell, **drag-select → Merge**,
+**Split (subdivide *and* un-merge)**, **Heading** (role), **+Row / +Col**,
+**Delete row / col**, rich cells (the Slice-1 field), and the **per-row
+"Appears" gutter** (header rows show "auto"). One tab = one table.
+
+### Slice 3 — the student render of the custom table
+
+Read-only renderer inside the case stimulus panel: colspan/rowspan, covered
+cells, heading styling, and **per-row progressive reveal** (`visibleFrom ≤
+currentQuestion`, header rows derived). Mobile = horizontal scroll for now.
+
+### Slice 4 — the narrative tab (rich body + chips)
+
+Rebuild the narrative tab editor + render: a rich **body** + **free-text
+chips** (generalising "Time"), per-row "visible at". Built-in narrative tab
+extras become suggested default chips.
+
+### Slice 5 — rich text across the questions
+
+Point the Slice-1 primitive at the **question** fields — stems, every
+answer **option**, per-option **feedback**, **rationale** — across all 9
+item types, plus the **scenario**. The bank-wide migration of those columns
+(string → Tiptap JSON) lands here.
+
+### Slice 6 — upgrade the built-in templates
+
+Bring the six built-in tab templates (Vital Signs, Labs, Nurses' Notes,
+Orders, H&P, Diagnostics) up to the custom-table/narrative capability —
+**fully editable** (add/rename/remove columns; merge; rich cells), keeping
+them as convenient presets.
+
+### Slice 7 (LAST) — media block in the narrative body
+
+Add an image / ECG / wound-photo block to the **narrative body** only
+(reuse the library's media block). Closes the arc.
+
+### Cross-cutting (every slice)
+
+Classification / housekeeping / lifecycle / audit / publish-eligibility /
+dual preview / save pipeline are **kept** (decision 3 — enrich, not
+rewrite). Trend is **not** touched here; it reuses this engine in a later
+arc once the case-study wrapper is proven.
