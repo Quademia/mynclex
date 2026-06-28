@@ -1133,11 +1133,16 @@ dual preview / save pipeline are **kept** (decision 3 — enrich, not
 rewrite). Trend is **not** touched here; it reuses this engine in a later
 arc once the case-study wrapper is proven.
 
-### Deferred candidate — multiple tables per custom tab (2026-06-28)
+### Multiple tables per custom tab — ADOPTED, built in Slice 2c (2026-06-28)
 
-> **STATUS: NOTED, not scheduled. Revisit only once the single-table custom
-> table (Slices 2a/2b/3) is proven.** Captured from a working session with
-> Sam after he saw the merge-table editor.
+> **STATUS: BUILT (Slice 2c).** Originally parked, then pulled forward the
+> same session: Sam reasoned it affects the student render + preview, so
+> doing it before Slice 3 avoids a shape migration + a second render/editor
+> pass. A custom-table tab now stores a **list of tables** (`{ v:2, tables:[…] }`);
+> `asMergeTab` upgrades the old single-table shape transparently. The editor
+> gained "+ Add another table" / remove-table and a table-aware selection;
+> one shared toolbar still acts on whichever cell (in whichever table) is
+> focused. Slice 3 renders the list. Rationale below kept for the record.
 
 The idea: let a custom-table tab hold a **list of tables** (an "+ Add table"
 affordance), the way a free-text tab holds a list of entry cards — so one

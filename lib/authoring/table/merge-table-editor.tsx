@@ -2,22 +2,19 @@
 
 // mynclex/lib/authoring/table/merge-table-editor.tsx
 //
-// Rich-content relook — Slice 2a (structure mechanics).
+// Rich-content relook — Slices 2a–2c.
 //
-// The custom merge-table authoring editor, built from the adopted Claude
-// Design "Case Study Merge Table" prototype. One tab = one table. The
-// curator types in cells, drag- or shift-selects a range, and uses the
-// Structure toolbar to Merge / Split (subdivide + un-merge) / Heading /
-// +Row / +Col / Delete. A per-row "Appears" gutter sets which question each
-// row first shows at; header rows derive their visibility and show "auto".
+// The custom-table authoring editor, built from the adopted Claude Design
+// "Case Study Merge Table" prototype. A custom tab holds an ordered LIST of
+// tables (Slice 2c); each table is the merge grid. The curator types rich
+// content in cells, drag/shift-selects a range, and uses one shared toolbar
+// (Structure + In cell) that acts on whichever cell — in whichever table —
+// is focused. A per-row "Appears" gutter sets which question each row first
+// shows at; a row of all-heading cells is a derived header row ("auto").
 //
-// Slice 2a scope: the structure + plain-text cells. Slice 2b swaps the cell
-// editor to the roving rich field and wires the "In cell" toolbar group
-// (rendered here disabled so the final toolbar shape is visible now).
-//
-// Cells are edited with a roving plain <textarea>: only the single selected
-// cell shows the editable field; every other cell renders static text, so
-// drag-selecting a range never fights an editor for the mouse.
+// Cells use the roving rich field: only the single focused cell mounts a
+// live editor; the rest render static formatted text, so drag-selecting a
+// range never fights an editor for the mouse.
 
 import { useEffect, useState } from 'react';
 import { useEditorState, type Editor } from '@tiptap/react';
@@ -29,7 +26,8 @@ import { isEmptyRichDoc, type RichDoc } from '../rich-doc';
 import { NavIcon } from '@/components/nav/shared/nav-icon';
 import type { NavIcon as NavIconName } from '@/lib/nav/types';
 import {
-  type MergeTableData,
+  type MergeTabData,
+  type MergeTable,
   type CellPos,
   type SelRect,
   selRect,
@@ -49,7 +47,10 @@ import {
   setVisibleFrom,
   setCellContent,
   tableMeta,
-  dedupeCellIds,
+  addTable,
+  removeTable,
+  replaceTable,
+  dedupeTabCellIds,
   VF_MAX,
 } from './merge-table-model';
 
@@ -58,16 +59,18 @@ interface Props {
   case_id:         string;
   tab:             CaseStudyTabRow;
   draftTitle:      string;
-  draftTable:      MergeTableData;
-  onDraftChange:   (next: { title: string; table: MergeTableData }) => void;
+  draftTab:        MergeTabData;
+  onDraftChange:   (next: { title: string; tab: MergeTabData }) => void;
   previewPosition: number | null;
 }
 
-type Sel = { a: CellPos; f: CellPos } | null;
+// Selection carries the table index it belongs to — a range never spans
+// two tables.
+type Sel = { ti: number; a: CellPos; f: CellPos } | null;
 
 export function MergeTableEditor({
   surface, case_id, tab,
-  draftTitle, draftTable, onDraftChange,
+  draftTitle, draftTab, onDraftChange,
   previewPosition,
 }: Props) {
   const [sel, setSel] = useState<Sel>(null);
@@ -75,11 +78,9 @@ export function MergeTableEditor({
   const [splitOpen, setSplitOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  // The focused cell's live Tiptap editor — drives the in-cell toolbar.
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
 
-  // End any drag when the mouse releases anywhere (so a single-cell select
-  // settles and its editable field can mount).
+  // End any drag when the mouse releases anywhere.
   useEffect(() => {
     const up = () => setDragging(false);
     window.addEventListener('mouseup', up);
@@ -87,106 +88,115 @@ export function MergeTableEditor({
   }, []);
 
   // One-time heal on open: re-id duplicate cell ids from tables saved before
-  // the id-batch bug was fixed. dedupeCellIds is a no-op when ids are clean,
-  // so this only fires (marking the tab dirty for a save) when needed.
+  // the id-batch bug was fixed (no-op when ids are clean).
   useEffect(() => {
-    const fixed = dedupeCellIds(draftTable);
-    if (fixed !== draftTable) onDraftChange({ title: draftTitle, table: fixed });
+    const fixed = dedupeTabCellIds(draftTab);
+    if (fixed !== draftTab) onDraftChange({ title: draftTitle, tab: fixed });
     // Mount-only heal; deps intentionally omitted.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const t = draftTable;
-  const rect = selRect(t, sel);
+  const tables = draftTab.tables;
+  const activeTi = sel?.ti ?? null;
+  const activeTable = activeTi !== null ? tables[activeTi] ?? null : null;
+  const rect = activeTable && sel ? selRect(activeTable, { a: sel.a, f: sel.f }) : null;
 
   function clearErr() {
     if (err) setErr(null);
   }
-  function pushTitle(title: string) {
+  function pushTab(nextTab: MergeTabData, nextSel?: Sel) {
     clearErr();
-    onDraftChange({ title, table: t });
-  }
-  function pushTable(next: MergeTableData, nextSel?: Sel) {
-    clearErr();
-    onDraftChange({ title: draftTitle, table: next });
+    onDraftChange({ title: draftTitle, tab: nextTab });
     if (nextSel !== undefined) setSel(nextSel);
     setSplitOpen(false);
   }
+  // Apply a grid op (which returns a new table) to a given table index.
+  function pushTable(ti: number, nextTable: MergeTable, nextSel?: Sel) {
+    pushTab(replaceTable(draftTab, ti, nextTable), nextSel);
+  }
 
-  // ── selection gestures ──
-  function onCellDown(e: React.MouseEvent, r: number, c: number) {
+  // ── selection gestures (table-aware) ──
+  function onCellDown(e: React.MouseEvent, ti: number, r: number, c: number) {
     setDragging(true);
     setSplitOpen(false);
-    if (e.shiftKey && sel) setSel({ a: sel.a, f: { r, c } });
-    else setSel({ a: { r, c }, f: { r, c } });
+    if (e.shiftKey && sel && sel.ti === ti) setSel({ ti, a: sel.a, f: { r, c } });
+    else setSel({ ti, a: { r, c }, f: { r, c } });
   }
-  function onCellEnter(r: number, c: number) {
+  function onCellEnter(ti: number, r: number, c: number) {
     if (!dragging) return;
-    setSel((s) => (s ? { a: s.a, f: { r, c } } : { a: { r, c }, f: { r, c } }));
+    // Only extend within the anchor's table — no cross-table ranges.
+    setSel((s) => (s && s.ti === ti ? { ti, a: s.a, f: { r, c } } : s));
   }
 
   // The single cell currently in edit mode (sole selection, settled).
   const activePos: CellPos | null =
     !dragging && sel && sel.a.r === sel.f.r && sel.a.c === sel.f.c ? sel.a : null;
-  const activeCell =
-    activePos && !t.grid[activePos.r]?.[activePos.c]?.covered
-      ? t.grid[activePos.r][activePos.c]
-      : null;
 
-  // ── toolbar enable flags ──
+  // ── toolbar enable flags (against the active table) ──
   const hasSel = !!rect;
   const area = rect ? (rect.bot - rect.top + 1) * (rect.right - rect.left + 1) : 0;
-  const origins = rect ? originsIn(t, rect) : [];
+  const origins = rect && activeTable ? originsIn(activeTable, rect) : [];
   const canMerge = !!rect && area > 1 && origins.length >= 2;
   const single = !!rect && rect.bot === rect.top && rect.right === rect.left;
-  const singleCell = single && rect ? t.grid[rect.top][rect.left] : null;
+  const singleCell = single && rect && activeTable ? activeTable.grid[rect.top][rect.left] : null;
   const merged = !!singleCell && isMerged(singleCell);
   const splitEnabled = !!singleCell;
 
-  // ── structural op handlers ──
+  // ── structure ops (act on the active table) ──
   function doMerge() {
-    if (!rect) return;
-    pushTable(merge(t, rect), { a: { r: rect.top, c: rect.left }, f: { r: rect.top, c: rect.left } });
+    if (!rect || activeTi === null || !activeTable) return;
+    pushTable(activeTi, merge(activeTable, rect), {
+      ti: activeTi, a: { r: rect.top, c: rect.left }, f: { r: rect.top, c: rect.left },
+    });
   }
   function doSplit() {
-    if (!singleCell || !rect) return;
-    if (merged) {
-      pushTable(unmerge(t, rect.top, rect.left));
-    } else {
-      setSplitOpen((o) => !o);
-    }
+    if (!singleCell || !rect || activeTi === null || !activeTable) return;
+    if (merged) pushTable(activeTi, unmerge(activeTable, rect.top, rect.left));
+    else setSplitOpen((o) => !o);
   }
   function doSubdivideCols(n: number) {
-    if (!rect) return;
-    pushTable(subdivideCols(t, rect.top, rect.left, n));
+    if (!rect || activeTi === null || !activeTable) return;
+    pushTable(activeTi, subdivideCols(activeTable, rect.top, rect.left, n));
   }
   function doSubdivideRows(n: number) {
-    if (!rect) return;
-    pushTable(subdivideRows(t, rect.top, rect.left, n));
+    if (!rect || activeTi === null || !activeTable) return;
+    pushTable(activeTi, subdivideRows(activeTable, rect.top, rect.left, n));
   }
   function doHeading() {
-    if (!rect) return;
-    pushTable(toggleHeading(t, rect));
-  }
-  function doAddRow() {
-    pushTable(addRow(t), { a: { r: t.rows.length, c: 0 }, f: { r: t.rows.length, c: 0 } });
-  }
-  function doAddCol() {
-    pushTable(addCol(t));
+    if (!rect || activeTi === null || !activeTable) return;
+    pushTable(activeTi, toggleHeading(activeTable, rect));
   }
   function doDelRows() {
-    if (!rect) return;
-    pushTable(deleteRows(t, rect), null);
+    if (!rect || activeTi === null || !activeTable) return;
+    pushTable(activeTi, deleteRows(activeTable, rect), null);
   }
   function doDelCols() {
-    if (!rect) return;
-    pushTable(deleteCols(t, rect), null);
+    if (!rect || activeTi === null || !activeTable) return;
+    pushTable(activeTi, deleteCols(activeTable, rect), null);
   }
-  function onVF(r: number, v: number) {
-    pushTable(setVisibleFrom(t, r, v));
+
+  // ── per-table ops ──
+  function onAddRow(ti: number) {
+    const next = addRow(tables[ti]);
+    pushTable(ti, next, { ti, a: { r: next.rows.length - 1, c: 0 }, f: { r: next.rows.length - 1, c: 0 } });
   }
-  function onCellInput(r: number, c: number, doc: RichDoc) {
-    pushTable(setCellContent(t, r, c, doc));
+  function onAddCol(ti: number) {
+    pushTable(ti, addCol(tables[ti]));
+  }
+  function onVF(ti: number, r: number, v: number) {
+    pushTable(ti, setVisibleFrom(tables[ti], r, v));
+  }
+  function onCellInput(ti: number, r: number, c: number, doc: RichDoc) {
+    pushTable(ti, setCellContent(tables[ti], r, c, doc));
+  }
+
+  // ── tab-level ops ──
+  function onAddTable() {
+    pushTab(addTable(draftTab), null);
+  }
+  function onRemoveTable(ti: number) {
+    if (!window.confirm(`Remove table ${ti + 1} from this tab? Its content will be lost.`)) return;
+    pushTab(removeTable(draftTab, ti), null);
   }
 
   // ── save / delete ──
@@ -198,7 +208,7 @@ export function MergeTableEditor({
       .finally(() => setPending(false));
   }
   function onDelete(fd: FormData) {
-    if (!confirmDelete(draftTitle, t.rows.length)) return;
+    if (!confirmDeleteTab(draftTitle)) return;
     setErr(null);
     setPending(true);
     deleteTabAction(fd)
@@ -206,7 +216,6 @@ export function MergeTableEditor({
       .finally(() => setPending(false));
   }
 
-  const meta = tableMeta(t);
   const hint = selectionHint({ rect, canMerge, merged, single, singleCell });
 
   return (
@@ -220,13 +229,13 @@ export function MergeTableEditor({
               className="cs-rename-input"
               type="text"
               value={draftTitle}
-              onChange={(e) => pushTitle(e.target.value)}
+              onChange={(e) => { clearErr(); onDraftChange({ title: e.target.value, tab: draftTab }); }}
               placeholder="Tab title"
               aria-label="Tab title"
             />
           </div>
           <div className="cs-entries-desc">
-            {meta.rows} {meta.rows === 1 ? 'row' : 'rows'} · {meta.merged} merged · {meta.headings} headings
+            {tables.length} {tables.length === 1 ? 'table' : 'tables'}
           </div>
         </div>
         <div className="cs-entries-actions">
@@ -245,7 +254,7 @@ export function MergeTableEditor({
             <input type="hidden" name="custom_shape"  value="rows_cols" />
             <input type="hidden" name="display_order" value={String(tab.display_order)} />
             <input type="hidden" name="title"         value={draftTitle} />
-            <input type="hidden" name="entries"       value={JSON.stringify(t)} />
+            <input type="hidden" name="entries"       value={JSON.stringify(draftTab)} />
             <input type="hidden" name="columns_def"   value="[]" />
             <button type="submit" className="cs-btn primary" disabled={pending}>
               {pending ? 'Saving…' : 'Save tab'}
@@ -256,7 +265,7 @@ export function MergeTableEditor({
 
       {err && <div className="cs-error">{err}</div>}
 
-      {/* toolbar */}
+      {/* toolbar — one shared bar acting on the focused cell, in any table */}
       <div className="mt-toolbar">
         <span className="mt-tb-group-label">Structure</span>
         <button type="button" className="mt-tb-btn" disabled={!canMerge}
@@ -287,8 +296,6 @@ export function MergeTableEditor({
         </span>
         <button type="button" className="mt-tb-btn" disabled={!hasSel}
           onClick={doHeading} title="Mark the selected cells as headings (a role — left labels too, not only the top row)">⬚ Heading</button>
-        <button type="button" className="mt-tb-btn" onClick={doAddRow} title="Add a row at the bottom">+ Row</button>
-        <button type="button" className="mt-tb-btn" onClick={doAddCol} title="Add a column at the right">+ Col</button>
         <button type="button" className="mt-tb-btn danger" disabled={!hasSel}
           onClick={doDelRows} title="Delete the selected row(s)">Delete row</button>
         <button type="button" className="mt-tb-btn danger" disabled={!hasSel}
@@ -296,15 +303,93 @@ export function MergeTableEditor({
 
         <span className="mt-tb-sep" />
         <span className="mt-tb-group-label">In cell</span>
-        {/* In-cell rich tools drive the focused cell's editor; greyed when
-            no cell is being edited. */}
         {activeEditor ? <InCellTools editor={activeEditor} /> : <InCellToolsDisabled />}
       </div>
 
       {/* selection hint */}
       <div className={`mt-hint${hint.tone ? ' ' + hint.tone : ''}`}>{hint.text}</div>
 
-      {/* grid */}
+      {/* the tables */}
+      {tables.map((tbl, ti) => (
+        <TableBlock
+          key={tbl.id}
+          table={tbl}
+          index={ti}
+          single={tables.length === 1}
+          rect={ti === activeTi ? rect : null}
+          activePos={ti === activeTi ? activePos : null}
+          previewPosition={previewPosition}
+          onCellDown={onCellDown}
+          onCellEnter={onCellEnter}
+          onCellInput={onCellInput}
+          onVF={onVF}
+          onEditor={setActiveEditor}
+          onAddRow={onAddRow}
+          onAddCol={onAddCol}
+          onRemove={onRemoveTable}
+        />
+      ))}
+
+      {/* add a table to this tab */}
+      <div className="mt-add-table-row">
+        <button type="button" className="mt-add-table-btn" onClick={onAddTable}>
+          + Add another table
+        </button>
+      </div>
+
+      <div className="mt-legend">
+        <span className="mt-legend-item"><span className="mt-swatch is-head" /> Heading cell</span>
+        <span className="mt-legend-item"><span className="mt-swatch" /> Data cell</span>
+        <span className="mt-legend-item"><code>Appears</code> = which question the row first shows at · header rows are derived</span>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// One table — its header (label + remove), grid, and add row/col footer.
+// ─────────────────────────────────────────────────────────────
+
+function TableBlock({
+  table, index, single, rect, activePos, previewPosition,
+  onCellDown, onCellEnter, onCellInput, onVF, onEditor, onAddRow, onAddCol, onRemove,
+}: {
+  table:           MergeTable;
+  index:           number;
+  single:          boolean;
+  rect:            SelRect | null;
+  activePos:       CellPos | null;
+  previewPosition: number | null;
+  onCellDown:      (e: React.MouseEvent, ti: number, r: number, c: number) => void;
+  onCellEnter:     (ti: number, r: number, c: number) => void;
+  onCellInput:     (ti: number, r: number, c: number, doc: RichDoc) => void;
+  onVF:            (ti: number, r: number, v: number) => void;
+  onEditor:        (e: Editor | null) => void;
+  onAddRow:        (ti: number) => void;
+  onAddCol:        (ti: number) => void;
+  onRemove:        (ti: number) => void;
+}) {
+  const t = table;
+  const meta = tableMeta(t);
+  const activeCell =
+    activePos && !t.grid[activePos.r]?.[activePos.c]?.covered
+      ? t.grid[activePos.r][activePos.c]
+      : null;
+
+  return (
+    <div className="mt-table-block">
+      <div className="mt-table-head">
+        <span className="mt-table-label">
+          {single ? 'Table' : `Table ${index + 1}`}
+          <span className="mt-table-meta"> · {meta.rows} {meta.rows === 1 ? 'row' : 'rows'} · {meta.merged} merged · {meta.headings} headings</span>
+        </span>
+        {!single && (
+          <button type="button" className="mt-table-remove" onClick={() => onRemove(index)} title="Remove this table">
+            Remove table
+          </button>
+        )}
+      </div>
+
       <div className="mt-grid-scroll">
         <table className="mt-grid">
           <tbody>
@@ -312,7 +397,6 @@ export function MergeTableEditor({
               const headerRow = isHeaderRow(t, r);
               const rowHidden = previewPosition !== null && !headerRow && row.visibleFrom > previewPosition;
               const tds: React.ReactNode[] = [];
-              // gutter
               tds.push(
                 <td key="g" className="mt-gutter">
                   {headerRow ? (
@@ -321,7 +405,7 @@ export function MergeTableEditor({
                     <select
                       className={`mt-gutter-vf${row.visibleFrom > 1 ? ' is-later' : ''}`}
                       value={row.visibleFrom}
-                      onChange={(e) => onVF(r, Number(e.target.value))}
+                      onChange={(e) => onVF(index, r, Number(e.target.value))}
                       title="Which question this row first appears at"
                     >
                       {Array.from({ length: VF_MAX }, (_, i) => i + 1).map((n) => (
@@ -347,8 +431,8 @@ export function MergeTableEditor({
                       (selected ? ' is-sel' : '') +
                       (rowHidden ? ' is-hidden' : '')
                     }
-                    onMouseDown={(e) => { if (!isActive) onCellDown(e, r, c); }}
-                    onMouseEnter={() => onCellEnter(r, c)}
+                    onMouseDown={(e) => { if (!isActive) onCellDown(e, index, r, c); }}
+                    onMouseEnter={() => onCellEnter(index, r, c)}
                   >
                     {isActive ? (
                       <div className="mt-cell-edit">
@@ -356,8 +440,8 @@ export function MergeTableEditor({
                           key={cell.id}
                           value={cell.content}
                           hideToolbar
-                          onEditor={setActiveEditor}
-                          onChange={(doc) => onCellInput(r, c, doc)}
+                          onEditor={onEditor}
+                          onChange={(doc) => onCellInput(index, r, c, doc)}
                           placeholder={cell.heading ? 'Label' : 'Type…'}
                           ariaLabel={`Cell row ${r + 1} column ${c + 1}`}
                         />
@@ -380,15 +464,9 @@ export function MergeTableEditor({
         </table>
       </div>
 
-      {/* footer add buttons + legend */}
       <div className="mt-foot-actions">
-        <button type="button" className="mt-foot-btn" onClick={doAddRow}>+ Row</button>
-        <button type="button" className="mt-foot-btn" onClick={doAddCol}>+ Column</button>
-      </div>
-      <div className="mt-legend">
-        <span className="mt-legend-item"><span className="mt-swatch is-head" /> Heading cell</span>
-        <span className="mt-legend-item"><span className="mt-swatch" /> Data cell</span>
-        <span className="mt-legend-item"><code>Appears</code> = which question the row first shows at · header rows are derived</span>
+        <button type="button" className="mt-foot-btn" onClick={() => onAddRow(index)}>+ Row</button>
+        <button type="button" className="mt-foot-btn" onClick={() => onAddCol(index)}>+ Column</button>
       </div>
     </div>
   );
@@ -492,9 +570,6 @@ function selectionHint(o: {
   return { text: 'Click a cell to type. Drag across cells (or shift-click) to select a range, then Merge.', tone: '' };
 }
 
-function confirmDelete(title: string, rowCount: number): boolean {
-  if (rowCount === 0) return true;
-  return window.confirm(
-    `Delete the "${title || 'Untitled'}" tab? Its ${rowCount} ${rowCount === 1 ? 'row' : 'rows'} will be lost.`,
-  );
+function confirmDeleteTab(title: string): boolean {
+  return window.confirm(`Delete the "${title || 'Untitled'}" tab? Everything in it will be lost.`);
 }

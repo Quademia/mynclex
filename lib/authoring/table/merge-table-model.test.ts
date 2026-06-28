@@ -20,20 +20,24 @@ import {
   setCellContent,
   cellText,
   plainToCellContent,
-  asMergeTable,
+  asMergeTab,
+  emptyTab,
+  addTable,
+  removeTable,
   isTableEmpty,
-  type MergeTableData,
+  isTabEmpty,
+  type MergeTable,
 } from './merge-table-model';
 
 // Count non-covered (rendered) cells.
-function rendered(t: MergeTableData): number {
+function rendered(t: MergeTable): number {
   let n = 0;
   for (const row of t.grid) for (const c of row) if (!c.covered) n++;
   return n;
 }
 
 // Every cell id in the grid must be unique (React keys depend on it).
-function allCellIdsUnique(t: MergeTableData): boolean {
+function allCellIdsUnique(t: MergeTable): boolean {
   const ids = t.grid.flat().map((c) => c.id);
   return new Set(ids).size === ids.length;
 }
@@ -41,13 +45,41 @@ function allCellIdsUnique(t: MergeTableData): boolean {
 describe('emptyTable', () => {
   it('is a uniform grid of blank 1×1 cells at Q1', () => {
     const t = emptyTable(2, 3);
-    expect(t.v).toBe(2);
+    expect(t.id).toBeTruthy();
     expect(t.cols).toBe(3);
     expect(t.rows).toHaveLength(2);
     expect(t.grid.flat()).toHaveLength(6);
     expect(rendered(t)).toBe(6);
     expect(t.rows.every((r) => r.visibleFrom === 1)).toBe(true);
     expect(isTableEmpty(t)).toBe(true);
+  });
+});
+
+describe('tab (list of tables)', () => {
+  it('emptyTab starts with one table and is empty', () => {
+    const tab = emptyTab();
+    expect(tab.v).toBe(2);
+    expect(tab.tables).toHaveLength(1);
+    expect(isTabEmpty(tab)).toBe(true);
+  });
+
+  it('addTable appends a table with a fresh id; removeTable keeps ≥1', () => {
+    let tab = emptyTab();
+    tab = addTable(tab);
+    expect(tab.tables).toHaveLength(2);
+    expect(tab.tables[0].id).not.toBe(tab.tables[1].id);
+    tab = removeTable(tab, 0);
+    expect(tab.tables).toHaveLength(1);
+    tab = removeTable(tab, 0);
+    expect(tab.tables).toHaveLength(1); // never removes the last table
+  });
+
+  it('asMergeTab upgrades the legacy single-table shape into a one-table list', () => {
+    const legacy = { v: 2, cols: 2, rows: [{ id: 'r0', visibleFrom: 1 }], grid: [[{ id: 'c0', content: { type: 'doc', content: [] }, heading: false, colspan: 1, rowspan: 1, covered: false }, { id: 'c1', content: { type: 'doc', content: [] }, heading: false, colspan: 1, rowspan: 1, covered: false }]] };
+    const tab = asMergeTab(legacy);
+    expect(tab).toBeTruthy();
+    expect(tab!.tables).toHaveLength(1);
+    expect(tab!.tables[0].id).toBe('t0');
   });
 });
 
@@ -186,11 +218,11 @@ describe('cell content + reveal', () => {
   });
 });
 
-describe('asMergeTable guard', () => {
-  it('accepts a v2 object, rejects an array or junk', () => {
-    expect(asMergeTable(emptyTable())).toBeTruthy();
-    expect(asMergeTable([{ visible_from: 1 }])).toBeNull();
-    expect(asMergeTable(null)).toBeNull();
-    expect(asMergeTable({ v: 1 })).toBeNull();
+describe('asMergeTab guard', () => {
+  it('accepts a v2 tab, rejects an array or junk', () => {
+    expect(asMergeTab(emptyTab())).toBeTruthy();
+    expect(asMergeTab([{ visible_from: 1 }])).toBeNull();
+    expect(asMergeTab(null)).toBeNull();
+    expect(asMergeTab({ v: 1 })).toBeNull();
   });
 });

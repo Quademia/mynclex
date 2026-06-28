@@ -37,11 +37,19 @@ export interface MergeRow {
   visibleFrom: number; // 1..6 — the question this row first appears at
 }
 
-export interface MergeTableData {
-  v:    2;
+// One table. The grid algebra (merge/split/…) operates on this.
+export interface MergeTable {
+  id:   string;
   cols: number;
   rows: MergeRow[];
   grid: MergeCell[][]; // rows.length × cols (covered cells included)
+}
+
+// A custom-table TAB's data: an ordered list of tables. This is what's
+// stored in nclex_case_study_tabs.entries, stamped `v: 2`.
+export interface MergeTabData {
+  v:      2;
+  tables: MergeTable[];
 }
 
 export interface CellPos { r: number; c: number }
@@ -67,17 +75,17 @@ function maxNumericSuffix(prefix: string, ids: string[]): number {
   return max;
 }
 
-function allCellIds(t: MergeTableData): string[] {
+function allCellIds(t: MergeTable): string[] {
   const out: string[] = [];
   for (const row of t.grid) for (const cell of row) out.push(cell.id);
   return out;
 }
 
-function nextCellId(t: MergeTableData): string {
+function nextCellId(t: MergeTable): string {
   return 'c' + (maxNumericSuffix('c', allCellIds(t)) + 1);
 }
 
-function nextRowId(t: MergeTableData): string {
+function nextRowId(t: MergeTable): string {
   return 'r' + (maxNumericSuffix('r', t.rows.map((r) => r.id)) + 1);
 }
 
@@ -94,7 +102,7 @@ function blankCell(id: string, heading = false): MergeCell {
 }
 
 /** A fresh blank table — `rows × cols` of empty 1×1 cells, all at Q1. */
-export function emptyTable(rows = 2, cols = 3): MergeTableData {
+export function emptyTable(rows = 2, cols = 3, id = 't0'): MergeTable {
   let cid = 0;
   const grid: MergeCell[][] = [];
   const rowList: MergeRow[] = [];
@@ -104,16 +112,64 @@ export function emptyTable(rows = 2, cols = 3): MergeTableData {
     for (let c = 0; c < cols; c++) rowCells.push(blankCell('c' + cid++));
     grid.push(rowCells);
   }
-  return { v: MT_VERSION, cols, rows: rowList, grid };
+  return { id, cols, rows: rowList, grid };
 }
 
-function clone(t: MergeTableData): MergeTableData {
-  return JSON.parse(JSON.stringify(t)) as MergeTableData;
+/** A fresh blank custom-table TAB — one table to start. */
+export function emptyTab(): MergeTabData {
+  return { v: MT_VERSION, tables: [emptyTable(2, 3, 't0')] };
+}
+
+function clone(t: MergeTable): MergeTable {
+  return JSON.parse(JSON.stringify(t)) as MergeTable;
+}
+
+function cloneTab(tab: MergeTabData): MergeTabData {
+  return JSON.parse(JSON.stringify(tab)) as MergeTabData;
+}
+
+// ── tab-level ops (the list of tables) ────────────────────────
+function nextTableId(tab: MergeTabData): string {
+  let max = 0;
+  for (const t of tab.tables) {
+    if (t.id.startsWith('t')) {
+      const n = parseInt(t.id.slice(1), 10);
+      if (Number.isFinite(n) && n > max) max = n;
+    }
+  }
+  return 't' + (max + 1);
+}
+
+/** Append a new blank table to the tab. */
+export function addTable(prev: MergeTabData): MergeTabData {
+  const tab = cloneTab(prev);
+  tab.tables.push(emptyTable(2, 3, nextTableId(tab)));
+  return tab;
+}
+
+/** Remove the table at `ti`. Keeps at least one table. */
+export function removeTable(prev: MergeTabData, ti: number): MergeTabData {
+  if (prev.tables.length <= 1) return prev;
+  const tab = cloneTab(prev);
+  tab.tables.splice(ti, 1);
+  return tab;
+}
+
+/** Replace the table at `ti` (used after a grid op returns a new table). */
+export function replaceTable(prev: MergeTabData, ti: number, table: MergeTable): MergeTabData {
+  const tab = cloneTab(prev);
+  if (ti >= 0 && ti < tab.tables.length) tab.tables[ti] = table;
+  return tab;
+}
+
+/** True when every table in the tab is empty. */
+export function isTabEmpty(tab: MergeTabData): boolean {
+  return tab.tables.every(isTableEmpty);
 }
 
 // ── header-row detection (derived) ────────────────────────────
 /** A row is a header row when every non-covered cell in it is a heading. */
-export function isHeaderRow(t: MergeTableData, r: number): boolean {
+export function isHeaderRow(t: MergeTable, r: number): boolean {
   let count = 0;
   for (let c = 0; c < t.cols; c++) {
     const cell = t.grid[r]?.[c];
@@ -125,7 +181,7 @@ export function isHeaderRow(t: MergeTableData, r: number): boolean {
 }
 
 // ── selection rectangle (expanded to cover full merged spans) ──
-export function selRect(t: MergeTableData, sel: { a: CellPos; f: CellPos } | null): SelRect | null {
+export function selRect(t: MergeTable, sel: { a: CellPos; f: CellPos } | null): SelRect | null {
   if (!sel) return null;
   const safe = (p: CellPos): CellPos | null => {
     const cc = t.grid[p.r]?.[p.c];
@@ -163,7 +219,7 @@ export function selRect(t: MergeTableData, sel: { a: CellPos; f: CellPos } | nul
   return { top, left, bot, right };
 }
 
-export function isSelected(t: MergeTableData, r: number, c: number, rect: SelRect | null): boolean {
+export function isSelected(t: MergeTable, r: number, c: number, rect: SelRect | null): boolean {
   if (!rect) return false;
   const cell = t.grid[r][c];
   return (
@@ -175,7 +231,7 @@ export function isSelected(t: MergeTableData, r: number, c: number, rect: SelRec
 }
 
 /** The origin (non-covered) cells inside a selection rectangle. */
-export function originsIn(t: MergeTableData, rect: SelRect): Array<{ r: number; c: number; cell: MergeCell }> {
+export function originsIn(t: MergeTable, rect: SelRect): Array<{ r: number; c: number; cell: MergeCell }> {
   const out: Array<{ r: number; c: number; cell: MergeCell }> = [];
   for (let r = rect.top; r <= rect.bot; r++) {
     for (let c = rect.left; c <= rect.right; c++) {
@@ -188,7 +244,7 @@ export function originsIn(t: MergeTableData, rect: SelRect): Array<{ r: number; 
 }
 
 // Origin cell covering logical position (ri, col) — walks the spans.
-function findOrigin(t: MergeTableData, ri: number, col: number): { cell: MergeCell; r: number; c: number } | null {
+function findOrigin(t: MergeTable, ri: number, col: number): { cell: MergeCell; r: number; c: number } | null {
   for (let r = 0; r <= ri; r++) {
     for (let c = 0; c <= col; c++) {
       const cell = t.grid[r][c];
@@ -202,7 +258,7 @@ function findOrigin(t: MergeTableData, ri: number, col: number): { cell: MergeCe
 // ── structural ops (all pure — return a new table) ────────────
 
 /** Merge the cells in `rect` into the top-left origin. */
-export function merge(prev: MergeTableData, rect: SelRect): MergeTableData {
+export function merge(prev: MergeTable, rect: SelRect): MergeTable {
   if (rect.bot === rect.top && rect.right === rect.left) return prev; // nothing to merge
   const t = clone(prev);
   const tl = t.grid[rect.top][rect.left];
@@ -218,7 +274,7 @@ export function merge(prev: MergeTableData, rect: SelRect): MergeTableData {
 }
 
 /** Un-merge a merged cell back into a plain grid of 1×1 cells. */
-export function unmerge(prev: MergeTableData, r: number, c: number): MergeTableData {
+export function unmerge(prev: MergeTable, r: number, c: number): MergeTable {
   const t = clone(prev);
   const cell = t.grid[r]?.[c];
   if (!cell || cell.covered) return prev;
@@ -239,7 +295,7 @@ export function isMerged(cell: MergeCell): boolean {
 
 // Subdivide one cell horizontally by inserting a fine sub-column. Other
 // rows keep their look: the cell covering the boundary bumps colspan +1.
-function insertSubColumn(t: MergeTableData, targetRow: number, cellCol: number): void {
+function insertSubColumn(t: MergeTable, targetRow: number, cellCol: number): void {
   const cell = t.grid[targetRow][cellCol];
   const insAt = cellCol + cell.colspan;
   const bumped = new Set<MergeCell>();
@@ -258,7 +314,7 @@ function insertSubColumn(t: MergeTableData, targetRow: number, cellCol: number):
 }
 
 // Subdivide one cell vertically by inserting a fine sub-row.
-function insertSubRow(t: MergeTableData, targetRow: number, cellCol: number): void {
+function insertSubRow(t: MergeTable, targetRow: number, cellCol: number): void {
   const cell = t.grid[targetRow][cellCol];
   const insAt = targetRow + cell.rowspan;
   // The new row's cells are built into `newRow` and spliced in only after
@@ -290,7 +346,7 @@ function insertSubRow(t: MergeTableData, targetRow: number, cellCol: number): vo
 }
 
 /** Subdivide a plain cell into `n` columns. */
-export function subdivideCols(prev: MergeTableData, r: number, c: number, n: number): MergeTableData {
+export function subdivideCols(prev: MergeTable, r: number, c: number, n: number): MergeTable {
   const t = clone(prev);
   const cell = t.grid[r]?.[c];
   if (!cell || cell.covered) return prev;
@@ -299,7 +355,7 @@ export function subdivideCols(prev: MergeTableData, r: number, c: number, n: num
 }
 
 /** Subdivide a plain cell into `n` rows. */
-export function subdivideRows(prev: MergeTableData, r: number, c: number, n: number): MergeTableData {
+export function subdivideRows(prev: MergeTable, r: number, c: number, n: number): MergeTable {
   const t = clone(prev);
   const cell = t.grid[r]?.[c];
   if (!cell || cell.covered) return prev;
@@ -308,7 +364,7 @@ export function subdivideRows(prev: MergeTableData, r: number, c: number, n: num
 }
 
 /** Toggle the heading role on the origin cells in `rect`. */
-export function toggleHeading(prev: MergeTableData, rect: SelRect): MergeTableData {
+export function toggleHeading(prev: MergeTable, rect: SelRect): MergeTable {
   const t = clone(prev);
   const origins = originsIn(t, rect);
   if (origins.length === 0) return prev;
@@ -318,7 +374,7 @@ export function toggleHeading(prev: MergeTableData, rect: SelRect): MergeTableDa
   return t;
 }
 
-export function addRow(prev: MergeTableData): MergeTableData {
+export function addRow(prev: MergeTable): MergeTable {
   const t = clone(prev);
   // Build the row's cells in a temp array (pushed into the grid only after
   // the loop) — so seed a running id counter from the current max, else
@@ -331,7 +387,7 @@ export function addRow(prev: MergeTableData): MergeTableData {
   return t;
 }
 
-export function addCol(prev: MergeTableData): MergeTableData {
+export function addCol(prev: MergeTable): MergeTable {
   const t = clone(prev);
   for (let r = 0; r < t.rows.length; r++) t.grid[r].push(blankCell(nextCellId(t)));
   t.cols += 1;
@@ -339,7 +395,7 @@ export function addCol(prev: MergeTableData): MergeTableData {
 }
 
 /** Delete the row band in `rect` (splits any merge crossing the band). Keeps ≥1 row. */
-export function deleteRows(prev: MergeTableData, rect: SelRect): MergeTableData {
+export function deleteRows(prev: MergeTable, rect: SelRect): MergeTable {
   const t = clone(prev);
   if (t.rows.length - (rect.bot - rect.top + 1) < 1) return prev;
   for (let r = 0; r < t.rows.length; r++) {
@@ -356,7 +412,7 @@ export function deleteRows(prev: MergeTableData, rect: SelRect): MergeTableData 
 }
 
 /** Delete the column band in `rect`. Keeps ≥1 column. */
-export function deleteCols(prev: MergeTableData, rect: SelRect): MergeTableData {
+export function deleteCols(prev: MergeTable, rect: SelRect): MergeTable {
   const t = clone(prev);
   if (t.cols - (rect.right - rect.left + 1) < 1) return prev;
   for (let r = 0; r < t.rows.length; r++) {
@@ -374,7 +430,7 @@ export function deleteCols(prev: MergeTableData, rect: SelRect): MergeTableData 
 }
 
 // In-place un-merge (used by delete-row/col before removing the band).
-function splitInPlace(t: MergeTableData, r: number, c: number): void {
+function splitInPlace(t: MergeTable, r: number, c: number): void {
   const cell = t.grid[r][c];
   for (let dr = 0; dr < cell.rowspan; dr++) {
     for (let dc = 0; dc < cell.colspan; dc++) {
@@ -386,7 +442,7 @@ function splitInPlace(t: MergeTableData, r: number, c: number): void {
   cell.rowspan = 1;
 }
 
-export function setVisibleFrom(prev: MergeTableData, r: number, v: number): MergeTableData {
+export function setVisibleFrom(prev: MergeTable, r: number, v: number): MergeTable {
   const t = clone(prev);
   if (!t.rows[r]) return prev;
   t.rows[r].visibleFrom = v;
@@ -394,7 +450,7 @@ export function setVisibleFrom(prev: MergeTableData, r: number, v: number): Merg
 }
 
 /** Replace a single cell's content. */
-export function setCellContent(prev: MergeTableData, r: number, c: number, content: RichDoc): MergeTableData {
+export function setCellContent(prev: MergeTable, r: number, c: number, content: RichDoc): MergeTable {
   const t = clone(prev);
   const cell = t.grid[r]?.[c];
   if (!cell || cell.covered) return prev;
@@ -403,7 +459,7 @@ export function setCellContent(prev: MergeTableData, r: number, c: number, conte
 }
 
 // ── summaries / guards ────────────────────────────────────────
-export function tableMeta(t: MergeTableData): { rows: number; merged: number; headings: number } {
+export function tableMeta(t: MergeTable): { rows: number; merged: number; headings: number } {
   let merged = 0;
   let headings = 0;
   for (const row of t.grid) {
@@ -417,7 +473,7 @@ export function tableMeta(t: MergeTableData): { rows: number; merged: number; he
 }
 
 /** True when no non-covered cell has any typed content. */
-export function isTableEmpty(t: MergeTableData): boolean {
+export function isTableEmpty(t: MergeTable): boolean {
   for (const row of t.grid) {
     for (const cell of row) {
       if (cell.covered) continue;
@@ -435,7 +491,7 @@ export function isTableEmpty(t: MergeTableData): boolean {
  * Cell ids are internal only (reveal pins to rows, not cells), so a
  * wholesale re-id is safe.
  */
-export function dedupeCellIds(t: MergeTableData): MergeTableData {
+export function dedupeCellIds(t: MergeTable): MergeTable {
   const seen = new Set<string>();
   let hasDup = false;
   for (const row of t.grid) {
@@ -453,19 +509,50 @@ export function dedupeCellIds(t: MergeTableData): MergeTableData {
   return fixed;
 }
 
+/** Heal duplicate cell ids in every table of a tab (no-op when clean). */
+export function dedupeTabCellIds(tab: MergeTabData): MergeTabData {
+  let changed = false;
+  const tables = tab.tables.map((t) => {
+    const fixed = dedupeCellIds(t);
+    if (fixed !== t) changed = true;
+    return fixed;
+  });
+  return changed ? { ...tab, tables } : tab;
+}
+
 // ── type guard / parse ────────────────────────────────────────
 /** Narrow an unknown `entries` JSONB value to a v2 merge table, else null. */
-export function asMergeTable(entries: unknown): MergeTableData | null {
-  if (
-    entries &&
-    typeof entries === 'object' &&
-    !Array.isArray(entries) &&
-    (entries as { v?: unknown }).v === MT_VERSION &&
-    Array.isArray((entries as { grid?: unknown }).grid) &&
-    Array.isArray((entries as { rows?: unknown }).rows)
-  ) {
-    return entries as MergeTableData;
+/**
+ * Narrow an unknown `entries` JSONB value to a v2 merge-table TAB (a list of
+ * tables), else null. Upgrades the original single-table shape
+ * (`{ v, cols, rows, grid }`, pre-multi-table) into a one-element list so
+ * existing tabs keep working — and ensures every table has an id.
+ */
+export function asMergeTab(entries: unknown): MergeTabData | null {
+  if (!entries || typeof entries !== 'object' || Array.isArray(entries)) return null;
+  const obj = entries as Record<string, unknown>;
+  if (obj.v !== MT_VERSION) return null;
+
+  // New shape: { v, tables: [...] }.
+  if (Array.isArray(obj.tables)) {
+    const tables = (obj.tables as MergeTable[]).map((t, i) => ({
+      ...t,
+      id: t.id ?? 't' + i,
+    }));
+    return { v: MT_VERSION, tables };
   }
+
+  // Legacy single-table shape: { v, cols, rows, grid } → wrap as one table.
+  if (Array.isArray(obj.grid) && Array.isArray(obj.rows)) {
+    const t: MergeTable = {
+      id: 't0',
+      cols: (obj.cols as number) ?? (obj.grid as unknown[][])[0]?.length ?? 1,
+      rows: obj.rows as MergeRow[],
+      grid: obj.grid as MergeCell[][],
+    };
+    return { v: MT_VERSION, tables: [t] };
+  }
+
   return null;
 }
 

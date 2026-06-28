@@ -5560,6 +5560,59 @@
 }
 
 /* footer */
+/* per-table block (Slice 2c — a tab holds a list of tables) */
+.mt-table-block {
+  margin-bottom: 18px;
+}
+.mt-table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.mt-table-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.mt-table-meta {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.mt-table-remove {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--danger);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 4px 9px;
+  cursor: pointer;
+}
+.mt-table-remove:hover {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+.mt-add-table-row {
+  padding: 4px 0 10px;
+  border-top: 1px dashed var(--border);
+  margin-top: 4px;
+}
+.mt-add-table-btn {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: transparent;
+  border: 1px dashed var(--accent);
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.mt-add-table-btn:hover {
+  background: var(--primary-light);
+}
+
 .mt-foot-actions {
   display: flex;
   gap: 8px;

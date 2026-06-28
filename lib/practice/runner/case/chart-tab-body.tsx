@@ -27,7 +27,7 @@ import type {
   TabColumn,
   ChartEntry,
 } from '@/lib/bank/wrappers/case-study/types';
-import { asMergeTable } from '@/lib/authoring/table/merge-table-model';
+import { asMergeTab } from '@/lib/authoring/table/merge-table-model';
 
 interface Props {
   tab:             TabRow;
@@ -35,9 +35,9 @@ interface Props {
 }
 
 export function ChartTabBody({ tab, currentPosition }: Props) {
-  // A v2 custom merge table renders through its own (Slice 3) student
-  // renderer — not the entries-array path below.
-  if (asMergeTable(tab.entries)) {
+  // A v2 custom table renders through its own (Slice 3) student renderer —
+  // not the entries-array path below.
+  if (asMergeTab(tab.entries)) {
     return <div className="empty">Custom table — student view coming soon.</div>;
   }
 

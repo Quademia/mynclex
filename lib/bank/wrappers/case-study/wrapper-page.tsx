@@ -59,9 +59,9 @@ import { StructuredTabEditor } from './chart-tabs/structured-tab';
 import { getTabType } from './chart-tabs/tab-types';
 import { MergeTableEditor } from '@/lib/authoring/table/merge-table-editor';
 import {
-  asMergeTable,
-  isTableEmpty,
-  type MergeTableData,
+  asMergeTab,
+  isTabEmpty,
+  type MergeTabData,
 } from '@/lib/authoring/table/merge-table-model';
 import {
   validateCase,
@@ -124,7 +124,7 @@ const FORM_ID_BY_TYPE: Record<string, string> = {
 // for a v2 custom merge table.
 interface TabDraft {
   title:       string;
-  entries:     CaseStudyEntry[] | MergeTableData;
+  entries:     CaseStudyEntry[] | MergeTabData;
   columns_def: CaseStudyTabColumn[];
 }
 
@@ -381,13 +381,13 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     const tabSnapshots: TabSnapshot[] = tabs.map((t) => {
       const d = drafts[t.tab_id];
       const rawEntries = d?.entries ?? t.entries;
-      const mt = asMergeTable(rawEntries);
-      // A merge table represents itself to validation as one Q1 entry when
+      const mt = asMergeTab(rawEntries);
+      // A custom table represents itself to validation as one Q1 entry when
       // it has content (so the "no entries" / "no Q1 entry" checks don't
       // false-fire), or an empty list when blank (so the empty-tab warning
       // still fires correctly).
       const entries: CaseStudyEntry[] = mt
-        ? (isTableEmpty(mt) ? [] : [{ visible_from: 1 }])
+        ? (isTabEmpty(mt) ? [] : [{ visible_from: 1 }])
         : (rawEntries as CaseStudyEntry[]);
       return {
         tab_id:  t.tab_id,
@@ -662,7 +662,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     return liveEntries.filter((e) => Number(e.visible_from) <= activeSlot);
   }, [activeChartTab, activeChartDraft, activeSlot]);
 
-  const activeTabIsMergeTable = !!activeChartTab && !!asMergeTable(activeChartTab.entries);
+  const activeTabIsMergeTable = !!activeChartTab && !!asMergeTab(activeChartTab.entries);
   const previewHiddenCount = useMemo(() => {
     if (!activeChartTab) return 0;
     const all = activeChartDraft?.entries ?? activeChartTab.entries;
@@ -1239,20 +1239,20 @@ function ActiveChartTabEditor({
   onDraftChange:   (next: TabDraft) => void;
   previewPosition: number | null;
 }) {
-  // A v2 custom merge table is a custom_grid tab whose entries hold the
-  // `{ v:2, … }` object. Route it to the new editor before the v1
+  // A v2 custom table is a custom_grid tab whose entries hold the
+  // `{ v:2, tables:[…] }` object. Route it to the new editor before the v1
   // structured branch (which also matches custom_grid).
-  const mergeTable = asMergeTable(tab.entries);
-  if (mergeTable) {
-    const draftTable = asMergeTable(draft.entries) ?? mergeTable;
+  const mergeTab = asMergeTab(tab.entries);
+  if (mergeTab) {
+    const draftTab = asMergeTab(draft.entries) ?? mergeTab;
     return (
       <MergeTableEditor
         surface={surface}
         case_id={case_id}
         tab={tab}
         draftTitle={draft.title}
-        draftTable={draftTable}
-        onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.table, columns_def: [] })}
+        draftTab={draftTab}
+        onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.tab, columns_def: [] })}
         previewPosition={previewPosition}
       />
     );

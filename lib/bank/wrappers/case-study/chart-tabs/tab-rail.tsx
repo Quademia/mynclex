@@ -23,7 +23,7 @@ import { BUILT_IN_TABS } from './tab-types';
 import { reorderTabsAction, upsertTabAction } from '../actions';
 import type { CaseStudyTabRow, Surface } from '../types';
 import { CUSTOM_GRID_MIN_COLUMNS } from '../types';
-import { emptyTable } from '@/lib/authoring/table/merge-table-model';
+import { emptyTab } from '@/lib/authoring/table/merge-table-model';
 
 // New custom tabs come in three shapes during the transition: a free-text
 // narrative, the legacy rows-and-columns grid, or the new custom merge
@@ -259,7 +259,7 @@ function AddTabPopover({
     } else if (shape === 'merge_table') {
       tab_key = 'custom_grid';
       custom_shape = 'rows_cols';
-      entries = JSON.stringify(emptyTable());
+      entries = JSON.stringify(emptyTab());
     }
 
     const fd = new FormData();
