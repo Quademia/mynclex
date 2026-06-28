@@ -135,9 +135,14 @@ export function NarrativeTabEditorV2({
             <input type="hidden" name="surface"       value={surface} />
             <input type="hidden" name="case_id"       value={case_id} />
             <input type="hidden" name="tab_id"        value={tab.tab_id} />
-            <input type="hidden" name="tab_key"       value="custom_narrative" />
-            <input type="hidden" name="is_custom"     value="true" />
-            <input type="hidden" name="custom_shape"  value="free_text" />
+            {/* Post the tab's OWN identity, not a hardcoded custom one — a
+                built-in (Nurses' Notes etc.) routed into this v2 editor must
+                stay a built-in on save, not silently become a custom tab. */}
+            <input type="hidden" name="tab_key"       value={tab.tab_key} />
+            <input type="hidden" name="is_custom"     value={tab.is_custom ? 'true' : 'false'} />
+            {tab.custom_shape && (
+              <input type="hidden" name="custom_shape" value={tab.custom_shape} />
+            )}
             <input type="hidden" name="display_order" value={String(tab.display_order)} />
             <input type="hidden" name="title"         value={draftTitle} />
             <input type="hidden" name="entries"       value={JSON.stringify(draftNarrative)} />
