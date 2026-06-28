@@ -30,7 +30,6 @@ import type {
   CaseStudyEntry,
   CaseStudyTabColumn,
   CaseStudyTabRow,
-  ChartEntry,
   SlotEditorInitial,
   SlotRow,
   TabRow,
@@ -54,9 +53,6 @@ import {
 import { DeleteCaseConfirm } from './delete-case-confirm';
 import { PublishBlockedNotice, type PublishBlockKind } from './publish-blocked-notice';
 import { TabRail } from './chart-tabs/tab-rail';
-import { NarrativeTabEditor } from './chart-tabs/narrative-tab';
-import { StructuredTabEditor } from './chart-tabs/structured-tab';
-import { getTabType } from './chart-tabs/tab-types';
 import { MergeTableEditor } from '@/lib/authoring/table/merge-table-editor';
 import { MergeTableView } from '@/lib/authoring/table/merge-table-view';
 import {
@@ -663,28 +659,13 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     setError(null);
   }
 
-  const previewEntries = useMemo<ChartEntry[]>(() => {
-    if (!activeChartTab) return [];
-    const liveEntries = activeChartDraft?.entries ?? activeChartTab.entries;
-    // A v2 merge table isn't an entries array — its student preview lands
-    // in Slice 3. Until then the preview pane shows a placeholder.
-    if (!Array.isArray(liveEntries)) return [];
-    return liveEntries.filter((e) => Number(e.visible_from) <= activeSlot);
-  }, [activeChartTab, activeChartDraft, activeSlot]);
-
-  // Live merge-table tab for the preview pane (reflects unsaved edits via
-  // the draft). Non-null only for a custom-table tab.
+  // Live v2 tab for the preview pane (reflects unsaved edits via the draft).
+  // Every chart tab is v2 (Slice 5): a custom merge table or a narrative tab.
   const liveActiveEntries = activeChartTab
     ? (activeChartDraft?.entries ?? activeChartTab.entries)
     : null;
   const previewMergeTab = liveActiveEntries ? asMergeTab(liveActiveEntries) : null;
   const previewNarrativeTab = liveActiveEntries ? asNarrativeTab(liveActiveEntries) : null;
-  const previewHiddenCount = useMemo(() => {
-    if (!activeChartTab) return 0;
-    const all = activeChartDraft?.entries ?? activeChartTab.entries;
-    if (!Array.isArray(all)) return 0;
-    return all.length - previewEntries.length;
-  }, [activeChartTab, activeChartDraft, previewEntries]);
 
   const populated = slots.filter((s) => s.item_id !== null).length;
   const activeSlotData = slots[activeSlot - 1] ?? null;
@@ -1200,14 +1181,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
               ) : previewNarrativeTab ? (
                 <NarrativeView tab={previewNarrativeTab} currentPosition={activeSlot} />
               ) : (
-                <>
-                  <PreviewChartView tab={activeChartTab} entries={previewEntries} />
-                  {previewHiddenCount > 0 && (
-                    <p className="auth-cs-preview-hidden-note">
-                      {previewHiddenCount} entry/entries hidden — visible_from {'>'} Q{activeSlot}
-                    </p>
-                  )}
-                </>
+                <p className="auth-cs-empty-msg">This tab can&apos;t be previewed.</p>
               )}
             </div>
           </div>
@@ -1236,7 +1210,8 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
 }
 
 // ───────────────────────────────────────────────────────────
-// ActiveChartTabEditor — picks NarrativeTabEditor / StructuredTabEditor
+// ActiveChartTabEditor — routes the active tab to its v2 editor by entries
+// shape: MergeTableEditor (custom table) or NarrativeTabEditorV2 (narrative).
 // ───────────────────────────────────────────────────────────
 
 function ActiveChartTabEditor({
@@ -1292,43 +1267,9 @@ function ActiveChartTabEditor({
     );
   }
 
-  const builtIn = getTabType(tab.tab_key);
-  const isNarrative =
-    (builtIn && builtIn.shape === 'narrative') ||
-    tab.tab_key === 'custom_narrative';
-  const isStructured =
-    (builtIn && builtIn.shape === 'structured') ||
-    tab.tab_key === 'custom_grid';
-
-  if (isNarrative) {
-    return (
-      <NarrativeTabEditor
-        surface={surface}
-        case_id={case_id}
-        tab={tab}
-        builtIn={builtIn}
-        draftTitle={draft.title}
-        draftEntries={draft.entries as CaseStudyEntry[]}
-        onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.entries, columns_def: draft.columns_def })}
-        previewPosition={previewPosition}
-      />
-    );
-  }
-  if (isStructured) {
-    return (
-      <StructuredTabEditor
-        surface={surface}
-        case_id={case_id}
-        tab={tab}
-        builtIn={builtIn}
-        draftTitle={draft.title}
-        draftEntries={draft.entries as CaseStudyEntry[]}
-        draftColumns={draft.columns_def}
-        onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.entries, columns_def: p.columns_def })}
-        previewPosition={previewPosition}
-      />
-    );
-  }
+  // Every chart tab is v2 (Slice 5) — a custom merge table or a narrative tab,
+  // both handled above. A tab matching neither shape is malformed metadata;
+  // show a neutral message rather than crash.
   return (
     <div className="cs-entries-pane">
       <div className="cs-entries-empty">
@@ -1527,134 +1468,6 @@ function ActiveQuestionPreview({
       );
     }
   }
-}
-
-// ───────────────────────────────────────────────────────────
-// PreviewChartView — read-only render in the right pane.
-//
-// Tier 1 of the chart preview build-out:
-//   - Resolves the BuiltInTabType so we know which extras (status,
-//     section, test_type) to render and whether time is omitted.
-//   - Renders entries in the order the curator entered them. Time
-//     is free text (8am vs 08:00 vs "Day 2 morning") so lexical
-//     sort isn't safe — the curator owns ordering.
-//   - Lab Results: rows where `flag` is H / L / Critical get a
-//     coloured background — amber for H/L, red for Critical.
-//   - Narrative cards: render extras per the tab type. H&P shows
-//     section as the card header in place of time. Orders shows a
-//     status chip on the time row. Diagnostics shows the test_type
-//     as a label between time and body.
-// ───────────────────────────────────────────────────────────
-
-function labFlagClass(flag: unknown): string {
-  if (typeof flag !== 'string') return '';
-  const f = flag.trim().toLowerCase();
-  if (f === 'critical' || f === 'crit' || f === '!!') return 'auth-cs-preview-lab-critical';
-  if (f === 'h' || f === 'l' || f === 'high' || f === 'low') return 'auth-cs-preview-lab-flag';
-  return '';
-}
-
-function PreviewChartView({
-  tab,
-  entries,
-}: {
-  tab:     TabRow;
-  entries: ChartEntry[];
-}) {
-  if (entries.length === 0) {
-    return <p className="auth-cs-empty-msg">Nothing visible on this tab at this slot yet.</p>;
-  }
-
-  const builtIn = getTabType(tab.tab_key);
-  const omitTime = builtIn?.omit_time ?? false;
-  const extraFields = builtIn?.extra_fields ?? [];
-  const isLabResults = tab.tab_key === 'lab_results';
-
-  // Effective columns — built-in structured tabs (Vital Signs, Lab
-  // Results) store columns_def: [] in the DB because the columns are
-  // defined once in the BuiltInTabType registry. Custom grids carry
-  // their columns on the row itself.
-  const effectiveColumns: CaseStudyTabColumn[] =
-    tab.is_custom
-      ? tab.columns_def
-      : (builtIn?.columns ?? []).map((c) => ({ id: c.id, label: c.label }));
-
-  const isStructured =
-    (!tab.is_custom && effectiveColumns.length > 0) ||
-    (tab.is_custom && tab.custom_shape === 'rows_cols');
-
-  if (isStructured) {
-    return (
-      <table className="auth-cs-vs-table">
-        <thead><tr>{effectiveColumns.map((c) => <th key={c.id}>{c.label}</th>)}</tr></thead>
-        <tbody>
-          {entries.map((entry, idx) => {
-            const rowClass = isLabResults ? labFlagClass(entry.flag) : '';
-            return (
-              <tr key={idx} className={rowClass}>
-                {effectiveColumns.map((c) => (
-                  <td key={c.id}>{String(entry[c.id] ?? '—')}</td>
-                ))}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    );
-  }
-
-  // Narrative branch — section / status / test_type extras handled
-  // per tab type. H&P uses section as the card header in place of
-  // time; Orders shows a status chip on the time row; Diagnostics
-  // shows test_type as a label.
-  const sectionField   = extraFields.find((f) => f.id === 'section');
-  const statusField    = extraFields.find((f) => f.id === 'status');
-  const testTypeField  = extraFields.find((f) => f.id === 'test_type');
-
-  return (
-    <div className="auth-cs-preview-narrative">
-      {entries.map((entry, idx) => {
-        const time = !omitTime && typeof entry.time === 'string' ? entry.time : '';
-        const body = typeof entry.body === 'string' ? entry.body : '';
-        const sectionVal  = sectionField  ? String(entry.section  ?? '').trim() : '';
-        const statusVal   = statusField   ? String(entry.status   ?? '').trim() : '';
-        const testTypeVal = testTypeField ? String(entry.test_type ?? '').trim() : '';
-
-        // Header line — H&P uses section, others use time + extras
-        // inline. Skip the header row entirely if there's nothing to
-        // show (e.g. custom narrative or untimed Nurses' Note).
-        const hasHeader =
-          time.length > 0 ||
-          sectionVal.length > 0 ||
-          statusVal.length > 0 ||
-          testTypeVal.length > 0;
-
-        return (
-          <div key={idx} className="auth-cs-preview-narrative-card">
-            {hasHeader && (
-              <div className="auth-cs-preview-narrative-head">
-                {sectionVal && (
-                  <span className="auth-cs-preview-section">{sectionVal}</span>
-                )}
-                {time && (
-                  <span className="auth-cs-preview-time">{time}</span>
-                )}
-                {testTypeVal && (
-                  <span className="auth-cs-preview-test-type">{testTypeVal}</span>
-                )}
-                {statusVal && (
-                  <span className={`auth-cs-preview-status auth-cs-preview-status-${statusVal.toLowerCase().replace(/\s+/g, '-')}`}>
-                    {statusVal}
-                  </span>
-                )}
-              </div>
-            )}
-            {body && <div className="auth-cs-preview-narrative-body">{body}</div>}
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 // ───────────────────────────────────────────────────────────

@@ -5717,9 +5717,30 @@
   font-weight: 700;
   color: var(--primary);
 }
-/* a row that first appears at the current question gets a soft amber edge */
+/* A row/card that first appears at the current question briefly flashes a
+   teal "just appeared" edge + tint, then fades to nothing (~1.8s) — reads as
+   "new/changed" (not a warning) and leaves no permanent mark. Box-shadow, so
+   no layout shift. Shared by the merge table + narrative card. */
+@keyframes auth-reveal-flash {
+  0% {
+    box-shadow: inset 3px 0 0 0 var(--accent);
+    background-color: color-mix(in srgb, var(--accent) 16%, var(--white));
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 transparent;
+    background-color: var(--white);
+  }
+}
 .mtv-cell.just-revealed {
-  border-left: 3px solid var(--warning);
+  animation: auth-reveal-flash 1.8s ease-out forwards;
+}
+/* Reduced-motion: no animation — a static, subtle teal edge instead. */
+@media (prefers-reduced-motion: reduce) {
+  .mtv-cell.just-revealed,
+  .nv-card.just-revealed {
+    animation: none;
+    box-shadow: inset 3px 0 0 0 var(--accent);
+  }
 }
 .mtv-empty {
   color: var(--text-muted);
@@ -5863,7 +5884,7 @@
   padding: 10px 12px;
 }
 .nv-card.just-revealed {
-  border-left: 3px solid var(--warning);
+  animation: auth-reveal-flash 1.8s ease-out forwards;
 }
 .nv-chips {
   display: flex;
