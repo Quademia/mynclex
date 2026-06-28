@@ -1349,18 +1349,20 @@ untouched (the Slice-1 scenario bridge).
 
 **Subslices** (each Sam-tested on dev + merged to `main` individually):
 
-- **Slice 6a — Foundation + MCQ (+ TF).**
-  - *Foundation:* a roving rich-field wrapper + an editor-level sticky toolbar
-    on the Content tab (reusing `inline-tools.tsx`); the hidden-input FormData
-    bridge generalised from the scenario field; the type-agnostic
-    **instruction + stem chrome** + **`RationaleBlock`** made rich across all
-    three render hosts
-    (practice `runner-question-area.tsx` + library `embed-player.tsx` /
-    `embed-preview.tsx`); the curator **preview pane** renders rich.
-  - *MCQ:* stem + each option text + each per-option feedback + rationale go
-    rich in the editor; `McqRunner` renders rich options/feedback (covers
-    practice + library); sweep MCQ's raw-JSON readers (lists, hover-peeks,
-    search blobs, quiz pickers) with `richTextToPlain`.
+- **Slice 6a — Foundation + MCQ (+ TF).** ✅ FOUNDATION + MCQ BUILT
+  (`ce0917c`, session branch, Sam-tested on dev; tsc + eslint + 94 vitest
+  clean). **TF still pending** (rides along once MCQ is confirmed in real use).
+  - *Foundation (built once, reused by every later editor — see checklist
+    below):* `lib/authoring/roving-rich.tsx` (`RovingProvider` / `RovingToolbar`
+    / `RovingRichField` — live editor when focused, static text otherwise,
+    hidden-input FormData bridge); `rich-atoms.tsx` (`RichInstructionField` /
+    `RichStemField` / `RichRationaleFields`, alongside the plain atoms);
+    `rich-render.tsx` gained an `inline` mode (flatten blocks → `<br>`-joined
+    phrasing, valid inside `<button>` options + `<p>` instructions);
+    `rich-field.tsx` gained `autofocus`.
+  - *MCQ:* the Content tab is wrapped in `<RovingProvider>` + a sticky
+    `<RovingToolbar>`; instruction/stem/each option text/each feedback/rationale
+    are rich; `McqPreview` + `McqRunner` render rich.
   - *TF:* rides along — same shape, locked True/False options.
 - **Slice 6b — SATA + Select-N.** Same option-list shape as MCQ; quick.
 - **Slice 6c — Matrix + Bowtie.** Grid row/column labels + bow-tie token
@@ -1373,6 +1375,77 @@ untouched (the Slice-1 scenario bridge).
   not fusing the highlight key into a chart.)
 - **Slice 6f — Drag-drop.** ORDERED vs SENTENCE; tokens/slot hints rich; the
   SENTENCE stem carries `[N]` markers → decide treatment when opened.
+
+### Slice 6 — blast radius: what's SHARED vs PER-EDITOR
+
+> Captured after 6a (2026-06-28): the foundation pulled in more linked surfaces
+> than the editor file alone. This split is the checklist for 6b–6f so no
+> surface is missed. **The rule: anything keyed on stem / instruction /
+> rationale is DONE (shared across all types); anything keyed on a type's own
+> ANSWER fields repeats per editor.**
+
+**SHARED — built once in 6a, do NOT redo per editor:**
+
+- The roving system (`roving-rich.tsx`), the rich atoms (`rich-atoms.tsx`),
+  `RichRender`'s `inline` mode, `RichField`'s `autofocus`.
+- **Type-agnostic RENDER hosts already rich:** stem + instruction in
+  `runner-question-area.tsx`, `embed-player.tsx`, `embed-preview.tsx`;
+  rationale via `RationaleBlock` (`rationale.tsx`). A new editor's stem /
+  instruction / rationale already render rich everywhere — no work.
+- **Stem/instruction/rationale RAW-JSON sweep at the source mappers (global,
+  every type):** `app/(app)/{admin,tutor}/bank/all/page.tsx` (bank list),
+  `lib/library/embed-actions.ts` (pick modal + embed card),
+  `lib/library/analytics/queries.ts`, `lib/tutor-quiz/queries.ts` +
+  `quiz-editor.tsx` `stemPreview`, `lib/library/student/practice-queries.ts`,
+  `lib/analytics/tutor/cohort-queries.ts`, the case-study wrapper slot list.
+  `richTextToPlain` is idempotent on plain text, so these already cover every
+  future type's stem.
+
+**PER-EDITOR — repeat for each of SATA · Select-N · Matrix · Bowtie · Cloze ·
+Highlight · Drag-drop (and TF):**
+
+1. **Editor** (`lib/bank/editors/<type>-editor.tsx`): wrap the Content tab in
+   `<RovingProvider>` + a sticky `<RovingToolbar>`; swap the plain
+   instruction/stem/rationale atoms for the **rich atoms**; convert the type's
+   **own answer fields** to `<RovingRichField inline>`. The field per type:
+   - SATA / Select-N → option text + per-option feedback (same `content.options`
+     shape as MCQ).
+   - Matrix → row labels + column labels + per-row feedback.
+   - Bowtie → each wing's token labels + per-token feedback.
+   - Cloze → per-blank choice text + per-choice feedback (stem markers: see §3).
+   - Highlight → (chunks live in the passage; mostly a stem-treatment decision).
+   - Drag-drop → token text + slot target/hint + per-slot feedback.
+   State → `RichDoc` seeded via `parseRichDoc`; "empty/required" checks via
+   `isEmptyRichDoc` (relies on `serializeRichDoc` → `''` for empty).
+2. **Preview** (the type's exported `<XxxPreview>`): render its fields rich —
+   block for the stem, `inline` for options / labels / tokens.
+3. **Per-type runner** (`lib/practice/runner/types/<type>.tsx`): render the
+   type's answer text + feedback rich (`inline`). Covers the practice runner
+   AND — for the 4 **library-embeddable** types only (MCQ/TF/SATA/Select-N) —
+   the library player + tutor preview, because they reuse these components.
+   Matrix / Bowtie / Cloze / Highlight / Drag-drop are **not** embeddable, so
+   they have a narrower render surface (no library player).
+4. **Wrapper preview call site:** `ActiveQuestionPreview` in **both**
+   `lib/bank/wrappers/case-study/wrapper-page.tsx` **and**
+   `lib/bank/wrappers/trend/wrapper-page.tsx` — convert that type's preview
+   props from string → `RichDoc` (`parseRichDoc`), exactly like the MCQ case.
+5. **Parser sanity** (`lib/bank/parsers/<type>.ts`): confirm it treats the text
+   as opaque (just `.trim()` for empty detection — satisfied by the `''`-for-
+   empty contract). No change expected; verify, don't assume.
+6. **Type-specific raw-JSON sweep:** stem/instruction/rationale are already
+   global (above). Only the type's **own answer text shown as a plain string**
+   needs a check. Known: the embed **analytics answer-distribution** reads
+   `content.options[].text` — already swept generically, so it covers
+   MCQ/SATA/Select-N (shared options shape). The non-options types aren't
+   embeddable, so they don't reach embed analytics. Grep the type's answer
+   text for any other plain display before calling it done.
+
+**Marker-stem types (Cloze 6d / Highlight 6e / Drag-drop-SENTENCE 6f):** their
+stem is parsed for markers (`{N}` / `[[…]]` / `[N]`) and the **per-type runner
+renders the stem itself** (the `isStemTakeover` branch in
+`runner-question-area.tsx`), so the shared stem render doesn't apply to them.
+Decide each one's stem treatment when its editor is opened; their answer fields
+still go rich per the checklist.
 
 ### Slice 7 (LAST) — media block in the narrative body
 
