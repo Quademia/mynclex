@@ -39,7 +39,7 @@ function seedEntriesForBuiltIn(t: BuiltInTabType): string {
   if (t.shape === 'structured') {
     return JSON.stringify(structuredToMergeTab(t.columns ?? [], []));
   }
-  if (t.tab_key === 'nurses_notes') {
+  if (t.tab_key === 'nurses_notes' || t.tab_key === 'orders') {
     return JSON.stringify(emptyNarrativeTab());
   }
   return '[]';
