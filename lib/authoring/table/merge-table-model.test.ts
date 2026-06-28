@@ -32,6 +32,12 @@ function rendered(t: MergeTableData): number {
   return n;
 }
 
+// Every cell id in the grid must be unique (React keys depend on it).
+function allCellIdsUnique(t: MergeTableData): boolean {
+  const ids = t.grid.flat().map((c) => c.id);
+  return new Set(ids).size === ids.length;
+}
+
 describe('emptyTable', () => {
   it('is a uniform grid of blank 1×1 cells at Q1', () => {
     const t = emptyTable(2, 3);
@@ -90,6 +96,15 @@ describe('subdivide', () => {
     const t0 = emptyTable(2, 2);
     const t = subdivideRows(t0, 0, 0, 2);
     expect(t.rows.length).toBe(3);
+    expect(allCellIdsUnique(t)).toBe(true);
+  });
+
+  it('keeps cell ids unique after repeated subdivides (React-key safety)', () => {
+    let t = emptyTable(2, 3);
+    t = subdivideRows(t, 0, 1, 3);
+    t = subdivideCols(t, 1, 0, 2);
+    t = subdivideRows(t, 0, 0, 2);
+    expect(allCellIdsUnique(t)).toBe(true);
   });
 });
 

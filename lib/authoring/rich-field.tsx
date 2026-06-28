@@ -20,13 +20,19 @@
 
 import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
 import type { Editor } from '@tiptap/react';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Highlight from '@tiptap/extension-highlight';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
+import { Color, TextStyle } from '@tiptap/extension-text-style';
 import { NavIcon } from '@/components/nav/shared/nav-icon';
+import {
+  ColorSwatchPicker,
+  HIGHLIGHT_SWATCHES,
+  TEXT_COLOR_SWATCHES,
+} from '@/lib/library/color-swatch-picker';
 import type { RichDoc } from './rich-doc';
 
 interface RichFieldProps {
@@ -36,6 +42,12 @@ interface RichFieldProps {
   onChange: (doc: RichDoc) => void;
   placeholder?: string;
   ariaLabel?: string;
+  /** Suppress the built-in toolbar — the host drives the editor through
+   *  its own toolbar (e.g. the roving merge-table cell). */
+  hideToolbar?: boolean;
+  /** Hand the live editor instance up to the host (and `null` on unmount)
+   *  so an external toolbar can dispatch commands to it. */
+  onEditor?: (editor: Editor | null) => void;
 }
 
 export function RichField({
@@ -43,6 +55,8 @@ export function RichField({
   onChange,
   placeholder = 'Start writing…',
   ariaLabel = 'Rich text editor',
+  hideToolbar = false,
+  onEditor,
 }: RichFieldProps) {
   const editor = useEditor({
     extensions: [
@@ -50,11 +64,13 @@ export function RichField({
       // bullet + ordered lists, paragraph, hard break, history.
       StarterKit,
       Placeholder.configure({ placeholder }),
-      // Background-tint emphasis (cosmetic — abnormal values etc.). Single
-      // default colour for Slice 1; the swatch palette comes with cells.
-      Highlight,
+      // Background-tint emphasis (cosmetic — abnormal values etc.), with a
+      // colour swatch palette. Text colour needs TextStyle as its parent.
+      Highlight.configure({ multicolor: true }),
       Subscript,
       Superscript,
+      TextStyle,
+      Color,
     ],
     content: value,
     editable: true,
@@ -64,10 +80,20 @@ export function RichField({
     },
   });
 
+  // Hand the editor up to a host toolbar (external-toolbar mode) when it
+  // becomes ready, and `null` on unmount. `onEditor` should be a stable
+  // callback (e.g. a useState setter) so this only fires on editor change.
+  useEffect(() => {
+    onEditor?.(editor ?? null);
+    return () => onEditor?.(null);
+  }, [editor, onEditor]);
+
   if (!editor) {
     return (
       <div className="auth-rich-field">
-        <div className="auth-rf-toolbar auth-rf-toolbar-skeleton" aria-hidden="true" />
+        {!hideToolbar && (
+          <div className="auth-rf-toolbar auth-rf-toolbar-skeleton" aria-hidden="true" />
+        )}
         <div className="auth-rf-body auth-rf-body-skeleton" aria-hidden="true">
           Loading editor…
         </div>
@@ -77,7 +103,7 @@ export function RichField({
 
   return (
     <div className="auth-rich-field">
-      <Toolbar editor={editor} />
+      {!hideToolbar && <Toolbar editor={editor} />}
       <EditorContent
         editor={editor}
         className="auth-rf-body"
@@ -103,7 +129,6 @@ function Toolbar({ editor }: { editor: Editor }) {
       isSubscript: editor.isActive('subscript'),
       isBulletList: editor.isActive('bulletList'),
       isOrderedList: editor.isActive('orderedList'),
-      isHighlight: editor.isActive('highlight'),
     }),
   });
 
@@ -174,14 +199,83 @@ function Toolbar({ editor }: { editor: Editor }) {
 
       <span className="auth-rf-sep" aria-hidden="true" />
 
-      <TbButton
-        label="Highlight"
-        pressed={state.isHighlight}
-        onClick={() => editor.chain().focus().toggleHighlight().run()}
+      <ColorMarkButtons editor={editor} buttonClassName="auth-rf-btn" />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Highlight + text-colour swatch buttons. Shared by this field's own
+// toolbar and the merge-table's in-cell toolbar (which passes its own
+// button class). Reuses the library's swatch picker + dark-mode-safe
+// palettes.
+// ─────────────────────────────────────────────────────────────
+
+export function ColorMarkButtons({
+  editor,
+  buttonClassName,
+}: {
+  editor: Editor;
+  buttonClassName: string;
+}) {
+  const [pop, setPop] = useState<null | { kind: 'highlight' | 'color'; rect: DOMRect }>(null);
+  const state = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      isHighlight: editor.isActive('highlight'),
+      highlightColor: (editor.getAttributes('highlight').color as string | undefined) ?? null,
+      textColor: (editor.getAttributes('textStyle').color as string | undefined) ?? null,
+    }),
+  });
+
+  function toggle(kind: 'highlight' | 'color', e: ReactMouseEvent<HTMLButtonElement>) {
+    e.preventDefault(); // keep the editor selection while opening the picker
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPop((p) => (p?.kind === kind ? null : { kind, rect }));
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className={`${buttonClassName}${state.isHighlight ? ' is-active' : ''}`}
+        title="Highlight"
+        aria-label="Highlight"
+        onMouseDown={(e) => toggle('highlight', e)}
       >
         <NavIcon name="highlight" />
-      </TbButton>
-    </div>
+      </button>
+      <button
+        type="button"
+        className={`${buttonClassName}${state.textColor ? ' is-active' : ''}`}
+        title="Text colour"
+        aria-label="Text colour"
+        onMouseDown={(e) => toggle('color', e)}
+      >
+        <NavIcon name="text-color" />
+      </button>
+
+      {pop?.kind === 'highlight' && (
+        <ColorSwatchPicker
+          swatches={HIGHLIGHT_SWATCHES}
+          activeValue={state.highlightColor}
+          onPick={(v) => editor.chain().focus().toggleHighlight({ color: v }).run()}
+          onRemove={() => editor.chain().focus().unsetHighlight().run()}
+          onClose={() => setPop(null)}
+          anchorRect={pop.rect}
+        />
+      )}
+      {pop?.kind === 'color' && (
+        <ColorSwatchPicker
+          swatches={TEXT_COLOR_SWATCHES}
+          activeValue={state.textColor}
+          onPick={(v) => editor.chain().focus().setColor(v).run()}
+          onRemove={() => editor.chain().focus().unsetColor().run()}
+          onClose={() => setPop(null)}
+          anchorRect={pop.rect}
+        />
+      )}
+    </>
   );
 }
 

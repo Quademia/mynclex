@@ -20,8 +20,14 @@
 // drag-selecting a range never fights an editor for the mouse.
 
 import { useEffect, useState } from 'react';
+import { useEditorState, type Editor } from '@tiptap/react';
 import { deleteTabAction, upsertTabAction } from '../../bank/wrappers/case-study/actions';
 import type { CaseStudyTabRow, Surface } from '../../bank/wrappers/case-study/types';
+import { RichField, ColorMarkButtons } from '../rich-field';
+import { RichRender } from '../rich-render';
+import { isEmptyRichDoc, type RichDoc } from '../rich-doc';
+import { NavIcon } from '@/components/nav/shared/nav-icon';
+import type { NavIcon as NavIconName } from '@/lib/nav/types';
 import {
   type MergeTableData,
   type CellPos,
@@ -43,8 +49,6 @@ import {
   setVisibleFrom,
   setCellContent,
   tableMeta,
-  cellText,
-  plainToCellContent,
   VF_MAX,
 } from './merge-table-model';
 
@@ -70,6 +74,8 @@ export function MergeTableEditor({
   const [splitOpen, setSplitOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // The focused cell's live Tiptap editor — drives the in-cell toolbar.
+  const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
 
   // End any drag when the mouse releases anywhere (so a single-cell select
   // settles and its editable field can mount).
@@ -168,8 +174,8 @@ export function MergeTableEditor({
   function onVF(r: number, v: number) {
     pushTable(setVisibleFrom(t, r, v));
   }
-  function onCellInput(r: number, c: number, text: string) {
-    pushTable(setCellContent(t, r, c, plainToCellContent(text)));
+  function onCellInput(r: number, c: number, doc: RichDoc) {
+    pushTable(setCellContent(t, r, c, doc));
   }
 
   // ── save / delete ──
@@ -279,13 +285,9 @@ export function MergeTableEditor({
 
         <span className="mt-tb-sep" />
         <span className="mt-tb-group-label">In cell</span>
-        {/* In-cell rich tools land in Slice 2b — shown disabled so the
-            toolbar's final shape is visible now. */}
-        {IN_CELL_STUBS.map((s) => (
-          <button key={s.label} type="button" className="mt-tb-btn mt-tb-rich" disabled
-            title="Rich formatting — coming in the next step"
-            dangerouslySetInnerHTML={{ __html: s.html }} />
-        ))}
+        {/* In-cell rich tools drive the focused cell's editor; greyed when
+            no cell is being edited. */}
+        {activeEditor ? <InCellTools editor={activeEditor} /> : <InCellToolsDisabled />}
       </div>
 
       {/* selection hint */}
@@ -338,18 +340,24 @@ export function MergeTableEditor({
                     onMouseEnter={() => onCellEnter(r, c)}
                   >
                     {isActive ? (
-                      <textarea
-                        className="mt-cell-input"
-                        autoFocus
-                        value={cellText(cell)}
-                        placeholder={cell.heading ? 'Label' : 'Type…'}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onChange={(e) => onCellInput(r, c, e.target.value)}
-                        aria-label={`Cell row ${r + 1} column ${c + 1}`}
-                      />
+                      <div className="mt-cell-edit">
+                        <RichField
+                          key={cell.id}
+                          value={cell.content}
+                          hideToolbar
+                          onEditor={setActiveEditor}
+                          onChange={(doc) => onCellInput(r, c, doc)}
+                          placeholder={cell.heading ? 'Label' : 'Type…'}
+                          ariaLabel={`Cell row ${r + 1} column ${c + 1}`}
+                        />
+                      </div>
                     ) : (
                       <div className="mt-cell-static">
-                        {cellText(cell) || <span className="mt-cell-ph">{cell.heading ? 'Label' : '—'}</span>}
+                        {isEmptyRichDoc(cell.content) ? (
+                          <span className="mt-cell-ph">{cell.heading ? 'Label' : '—'}</span>
+                        ) : (
+                          <RichRender doc={cell.content} />
+                        )}
                       </div>
                     )}
                   </td>,
@@ -375,17 +383,83 @@ export function MergeTableEditor({
   );
 }
 
-// ── helpers ──
+// ── in-cell rich tools (drive the focused cell's editor) ──
 
-const IN_CELL_STUBS = [
-  { label: 'Bold',      html: '<b>B</b>' },
-  { label: 'Italic',    html: '<i>I</i>' },
-  { label: 'Underline', html: '<span style="text-decoration:underline">U</span>' },
-  { label: 'Strike',    html: '<span style="text-decoration:line-through">S</span>' },
-  { label: 'Bulleted',  html: '•' },
-  { label: 'Numbered',  html: '1.' },
-  { label: 'Highlight', html: '<span style="background:#ffe8a3;color:#5b4708;padding:0 3px;border-radius:2px">H</span>' },
+interface InCellTool {
+  icon:  NavIconName;
+  label: string;
+  mark:  string;                       // editor.isActive(mark) key
+  run:   (e: Editor) => void;
+}
+
+const IN_CELL_TOOLS: InCellTool[] = [
+  { icon: 'bold',          label: 'Bold',          mark: 'bold',          run: (e) => e.chain().focus().toggleBold().run() },
+  { icon: 'italic',        label: 'Italic',        mark: 'italic',        run: (e) => e.chain().focus().toggleItalic().run() },
+  { icon: 'underline',     label: 'Underline',     mark: 'underline',     run: (e) => e.chain().focus().toggleUnderline().run() },
+  { icon: 'strikethrough', label: 'Strikethrough', mark: 'strike',        run: (e) => e.chain().focus().toggleStrike().run() },
+  { icon: 'superscript',   label: 'Superscript',   mark: 'superscript',   run: (e) => e.chain().focus().toggleSuperscript().run() },
+  { icon: 'subscript',     label: 'Subscript',     mark: 'subscript',     run: (e) => e.chain().focus().toggleSubscript().run() },
+  { icon: 'list-bulleted', label: 'Bullet list',   mark: 'bulletList',    run: (e) => e.chain().focus().toggleBulletList().run() },
+  { icon: 'list-numbered', label: 'Numbered list', mark: 'orderedList',   run: (e) => e.chain().focus().toggleOrderedList().run() },
 ];
+
+// Highlight + Text colour live in <ColorMarkButtons>; these stubs mirror
+// them in the disabled (no-cell-focused) state so the toolbar keeps shape.
+const COLOR_STUBS: Array<{ icon: NavIconName; label: string }> = [
+  { icon: 'highlight',  label: 'Highlight' },
+  { icon: 'text-color', label: 'Text colour' },
+];
+
+function InCellTools({ editor }: { editor: Editor }) {
+  const active = useEditorState({
+    editor,
+    selector: ({ editor }) => {
+      const m: Record<string, boolean> = {};
+      for (const tool of IN_CELL_TOOLS) m[tool.mark] = editor.isActive(tool.mark);
+      return m;
+    },
+  });
+  return (
+    <>
+      {IN_CELL_TOOLS.map((tool) => (
+        <button
+          key={tool.label}
+          type="button"
+          className={`mt-tb-btn mt-tb-rich${active[tool.mark] ? ' is-active' : ''}`}
+          title={tool.label}
+          aria-label={tool.label}
+          aria-pressed={active[tool.mark]}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => tool.run(editor)}
+        >
+          <NavIcon name={tool.icon} />
+        </button>
+      ))}
+      <ColorMarkButtons editor={editor} buttonClassName="mt-tb-btn mt-tb-rich" />
+    </>
+  );
+}
+
+function InCellToolsDisabled() {
+  return (
+    <>
+      {[...IN_CELL_TOOLS, ...COLOR_STUBS].map((tool) => (
+        <button
+          key={tool.label}
+          type="button"
+          className="mt-tb-btn mt-tb-rich"
+          disabled
+          title="Click into a cell to format its text"
+          aria-label={tool.label}
+        >
+          <NavIcon name={tool.icon} />
+        </button>
+      ))}
+    </>
+  );
+}
+
+// ── helpers ──
 
 function selectionHint(o: {
   rect: SelRect | null;

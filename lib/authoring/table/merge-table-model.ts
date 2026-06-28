@@ -261,19 +261,24 @@ function insertSubColumn(t: MergeTableData, targetRow: number, cellCol: number):
 function insertSubRow(t: MergeTableData, targetRow: number, cellCol: number): void {
   const cell = t.grid[targetRow][cellCol];
   const insAt = targetRow + cell.rowspan;
+  // The new row's cells are built into `newRow` and spliced in only after
+  // the loop, so they aren't yet in the grid — seed a running id counter
+  // from the current max so each cell gets a unique id (not all the same).
+  let nextNum = maxNumericSuffix('c', allCellIds(t)) + 1;
+  const newId = (): string => 'c' + nextNum++;
   const newRow: MergeCell[] = [];
   const bumped = new Set<MergeCell>();
   for (let k = 0; k < t.cols; k++) {
     if (k === cellCol) {
-      const nc = blankCell(nextCellId(t));
+      const nc = blankCell(newId());
       nc.colspan = cell.colspan;
       newRow.push(nc);
     } else if (k > cellCol && k < cellCol + cell.colspan) {
-      const cv = blankCell(nextCellId(t));
+      const cv = blankCell(newId());
       cv.covered = true;
       newRow.push(cv);
     } else {
-      const cv = blankCell(nextCellId(t));
+      const cv = blankCell(newId());
       cv.covered = true;
       newRow.push(cv);
       const o = findOrigin(t, targetRow, k);

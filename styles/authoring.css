@@ -5529,22 +5529,34 @@
 .mt-cell-ph {
   color: #b0b9c4;
 }
-.mt-cell-input {
-  display: block;
-  width: 100%;
-  min-height: 40px;
+/* roving rich cell — the Slice-1 RichField, made seamless inside a cell */
+.mt-cell-edit .auth-rich-field {
   border: none;
-  outline: none;
-  resize: vertical;
-  padding: 9px 11px;
-  font-family: inherit;
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: var(--text);
+  border-radius: 0;
   background: transparent;
 }
-.mt-cell.is-head .mt-cell-input {
+.mt-cell-edit .auth-rf-body {
+  min-height: 40px;
+  padding: 9px 11px;
+  font-size: 13.5px;
+}
+.mt-cell.is-head .mt-cell-edit .auth-rf-body {
   font-weight: 700;
+}
+/* static rendered cell content */
+.mt-cell-static .auth-rich {
+  line-height: 1.5;
+}
+
+/* in-cell rich toolbar buttons */
+.mt-tb-btn.is-active {
+  color: var(--accent);
+  background: var(--primary-light);
+  border-color: var(--accent);
+}
+.mt-tb-rich svg {
+  width: 15px;
+  height: 15px;
 }
 
 /* footer */
