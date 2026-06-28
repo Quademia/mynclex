@@ -7,11 +7,12 @@ the shape of the new code.*
 
 Last updated: 2026-06-27 (added the "Case-study wrapper rebuild —
 locked decisions" section: design pass on the rich-content relook,
-focused on the case-study wrapper; decisions 1–12 locked [incl. the
+focused on the case-study wrapper; decisions 1–13 locked [incl. the
 unified per-row reveal model, heading as a structural role, narrative
 entry headers as free-text chips, bank-wide rich text, custom-tabs-first
-build order, and rung 4 closed as needing nothing special], reveal
-resolved, ONE risk left to pressure-test (merge-table authoring UX),
+build order, rung 4 closed, and the editing toolset reused from the
+library], reveal resolved, and the merge-table authoring risk RETIRED by a
+Claude Design prototype now adopted as the build basis with refinements;
 no build yet)
 Previously: 2026-06-15 (added the "Rich-content relook" discussion
 capture at the end — a NEW, larger direction that, unlike this 2026-04-28
@@ -930,26 +931,70 @@ Key confirmations from the source markup itself:
     complicate the design for them. This removes rung 4 as a risk and as a
     "new architecture."
 
+13. **The editing toolset — reuse the library's, scope it per surface.**
+    The library Tiptap editor already ships the full inline set
+    ([note-body-editor.tsx](../../lib/library/note-body-editor.tsx)); we do
+    not build new tools, we choose which to expose. The prototype's three
+    (Bold/Italic/List) were just a concept.
+    - **Core inline (table cells + narrative bodies):** Bold, Italic,
+      Underline, Strikethrough, Superscript, Subscript, Bullet list,
+      Numbered list, **Highlight** (cosmetic emphasis — marking an abnormal
+      value; distinct from rung-4 answer-highlight).
+    - **Plus (agreed):** Text colour, Blockquote, Text-align.
+    - **Media block (image / ECG / wound photo) in the NARRATIVE body** —
+      agreed (the library already supports it), built as the **final piece
+      of the wrapper arc**.
+    - **Table-structure tools:** Merge, Split (subdivide *and* un-merge),
+      Heading, +Row / +Col, Delete row / col.
+    - **Not in a table cell:** block nodes (media, nested tables, callouts,
+      drug cards, block-headings) — media lives only in the narrative body;
+      a cell's "heading" is the structural role (decision 8), not a
+      block-heading.
+    - **Impl note — text colour:** use a small **dark-mode-safe swatch
+      palette** (like the library's highlight swatches), not a free hex
+      picker, so coloured text stays legible in both themes.
+
 ### Reveal — RESOLVED (decisions 6–8)
 
 The progressive-reveal mechanics for the merge table — the part that
 worried us — are now settled: one reveal model (per-row), header rows
 exempt (derived). Reveal is no longer an open risk.
 
-### One real risk to pressure-test (before calling the solution "found")
+### The merge-table authoring risk — RETIRED by the CD prototype (2026-06-27)
 
-The architecture holds against all five specimens. Rung 4 is now closed
-(decision 12), so **one** thing is *enabled* by the design but not yet
-*proven*:
+The remaining risk was: can a non-coding tutor build the Phase Sheet
+without it feeling like wrestling Excel? A Claude Design prototype
+("Case Study Merge Table") answered it — **yes**. It realises the custom
+merge-table editor (drag-select → Merge / Split, Heading toggle, rich
+contenteditable cells, a per-row "Appears" gutter) **and** the student
+render (device toggle + a "viewing at Q1–6" stepper that reveals rows
+progressively). The interaction is the Word/Google-Docs table model
+(drag-select to merge), not a raw spreadsheet — learnable. It maps 1:1 to
+decisions 3–10; notably the gutter shows **"auto"** on header rows
+(decision 8's derived reveal, realised). **Adopted as the build basis
+(concept-not-source).**
 
-1. **The merge-table AUTHORING UX (the remaining risk).** We've decided
-   merge is *supported*; we have not shown a non-coding tutor can actually
-   *build* the Phase Sheet without it feeling like wrestling Excel. The HS2
-   grid didn't degrade because merge was impossible — it degraded because
-   the curator reached for the *easiest* tool (a text box). If the merge
-   editor is fiddly, curators keep dumping text blobs even with the
-   feature present. **"Curate accurately" depends on the editor being
-   easy, not just capable.** → de-risk with a Claude Design prototype.
+**Refinements agreed on the prototype (fold into the build):**
+
+- **Header column folds into heading cells (refines decision 5).** There
+  is no separate "header column" toggle — a left-label column is just
+  *heading cells*, and a header *row* is auto-detected when every cell in
+  the row is a heading. Cleaner than the original "optional header column"
+  wording; this is the model.
+- **Split must SUBDIVIDE a plain cell, not only un-merge.** The prototype's
+  Split only un-merges an already-merged cell, so "4 columns on top, 2
+  below" needs a clunky workaround (build 4 cols, merge the bottom pairs).
+  Fix: **Split = subdivide a 1×1 cell into N columns/rows** (Word/Docs
+  model) *as well as* un-merge a merged cell. Under the hood it stays a
+  **uniform grid** — subdividing one cell inserts a fine sub-column and the
+  other rows' cells auto-bump colspan +1 to keep their look; the curator
+  only ever sees "1 cell → 2."
+- **Rich cells = the library Tiptap field, not `execCommand`** (the
+  prototype fakes rich text with `contenteditable`+`execCommand`; the real
+  build uses decision 10's primitive). A Tiptap instance *per cell* may be
+  heavy → consider a lightweight rich field. Build concern, not design.
+- **Mobile = horizontal scroll for now** (the prototype shows "‹ swipe
+  sideways ›"); consider key-value reflow later for phone-first students.
 
 ### Still open (execution detail, after the risk)
 
