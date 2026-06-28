@@ -1331,8 +1331,12 @@ chart/stimulus side was Slices 1–5).
    apply the rich treatment AND any other improvements that surface while we're
    in it (the editors share a skeleton, so a fix often generalises). Test on dev
    and merge before the next.
-6. **Instruction field — kept PLAIN** (a short directive cue like "Select all
-   that apply"; not prose). Revisit only if a real need appears.
+6. **Instruction field — ALSO rich** (Sam, 2026-06-28). It's the *first* field
+   on the Content tab, so the roving toolbar sits directly above it — leaving
+   it the one plain field under a rich-text toolbar would feel arbitrary.
+   Instruction renders in the same type-agnostic chrome as the stem (above the
+   prompt, both runners + preview), so it folds into the 6a foundation with no
+   per-type cost.
 
 **The shared editor skeleton (why the above composes):** every editor is
 `ModalFrame → split(edit | preview) → Tabs(Content · Classification ·
@@ -1348,8 +1352,9 @@ untouched (the Slice-1 scenario bridge).
 - **Slice 6a — Foundation + MCQ (+ TF).**
   - *Foundation:* a roving rich-field wrapper + an editor-level sticky toolbar
     on the Content tab (reusing `inline-tools.tsx`); the hidden-input FormData
-    bridge generalised from the scenario field; the type-agnostic **stem
-    chrome** + **`RationaleBlock`** made rich across all three render hosts
+    bridge generalised from the scenario field; the type-agnostic
+    **instruction + stem chrome** + **`RationaleBlock`** made rich across all
+    three render hosts
     (practice `runner-question-area.tsx` + library `embed-player.tsx` /
     `embed-preview.tsx`); the curator **preview pane** renders rich.
   - *MCQ:* stem + each option text + each per-option feedback + rationale go
