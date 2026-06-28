@@ -33,10 +33,14 @@ import { structuredToMergeTab } from '@/lib/authoring/migrate-v1-tabs';
 // own sub-slice. Same shape the migration converter produces for empty tabs.
 //   - structured built-ins (Vital Signs 5.1, Lab Results 5.2) → merge table,
 //     column titles seeded as the heading row;
-//   - narrative built-ins land in 5.3+.
+//   - narrative built-ins (Nurses' Notes 5.3; Orders/H&P/Diagnostics 5.4–5.6)
+//     → a v2 narrative tab; the rest stay v1 until their sub-slice.
 function seedEntriesForBuiltIn(t: BuiltInTabType): string {
   if (t.shape === 'structured') {
     return JSON.stringify(structuredToMergeTab(t.columns ?? [], []));
+  }
+  if (t.tab_key === 'nurses_notes') {
+    return JSON.stringify(emptyNarrativeTab());
   }
   return '[]';
 }

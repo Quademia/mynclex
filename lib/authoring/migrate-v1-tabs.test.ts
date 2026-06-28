@@ -6,8 +6,10 @@ import { describe, it, expect } from 'vitest';
 import {
   structuredToMergeTable,
   structuredToMergeTab,
+  narrativeToV2,
   type V1Column,
   type V1StructuredEntry,
+  type V1NarrativeEntry,
 } from './migrate-v1-tabs';
 import {
   asMergeTab,
@@ -16,6 +18,8 @@ import {
   studentRows,
   type MergeTable,
 } from './table/merge-table-model';
+import { asNarrativeTab } from './narrative/narrative-model';
+import { richDocToPlain } from './rich-doc';
 
 // The Vital Signs registry columns (from tab-types.ts).
 const VITALS_COLS: V1Column[] = [
@@ -125,5 +129,57 @@ describe('structuredToMergeTab — full v2 tab', () => {
     ];
     const t = structuredToMergeTable([{ id: 'time', label: 'Time' }], weird);
     expect(t.rows.map((r) => r.visibleFrom)).toEqual([1, 1, 6, 1, 1]);
+  });
+});
+
+// Real dev blob — NCLEX_CS_HS1 "Nurses' Notes" (time = free text, multi-line
+// bodies). Nurses' Notes carries no typed extras → only a Time chip.
+const NURSES_HS1: V1NarrativeEntry[] = [
+  { time: '1000', visible_from: 1, body: 'Initial post-discharge visit.\n\nAssessment:\n• Alert and oriented' },
+  { time: '3-month follow-up', visible_from: 6, body: 'Met with client and his son. No falls since the last visit.' },
+];
+
+describe('narrativeToV2 — Nurses’ Notes (Time-only chips)', () => {
+  const TIME_ONLY = [{ id: 'time' }];
+
+  it('turns the Time value into the first (only) chip', () => {
+    const tab = narrativeToV2(TIME_ONLY, NURSES_HS1);
+    expect(tab.v).toBe(2);
+    expect(tab.entries).toHaveLength(2);
+    expect(tab.entries[0].chips).toEqual(['1000']);
+    expect(tab.entries[1].chips).toEqual(['3-month follow-up']); // free text survives
+  });
+
+  it('carries the body across as rich text, preserving line breaks as paragraphs', () => {
+    const tab = narrativeToV2(TIME_ONLY, NURSES_HS1);
+    const body0 = tab.entries[0].body;
+    expect(body0.type).toBe('doc');
+    // multi-line body → multiple paragraphs (blank line → empty paragraph)
+    expect(body0.content.length).toBeGreaterThan(1);
+    expect(richDocToPlain(body0)).toContain('Alert and oriented');
+  });
+
+  it('maps visible_from and round-trips through asNarrativeTab', () => {
+    const tab = narrativeToV2(TIME_ONLY, NURSES_HS1);
+    expect(tab.entries.map((e) => e.visibleFrom)).toEqual([1, 6]);
+    const round = asNarrativeTab(JSON.parse(JSON.stringify(tab)));
+    expect(round).not.toBeNull();
+    expect(round!.entries).toHaveLength(2);
+  });
+
+  it('drops empty/missing chip sources, and prefixes typed extras', () => {
+    const entries: V1NarrativeEntry[] = [
+      { time: '', status: 'Active', visible_from: 2, body: 'x' },   // no time chip; Status chip
+      { time: '0800', status: '', visible_from: 1, body: 'y' },     // time chip; no status chip
+    ];
+    const tab = narrativeToV2([{ id: 'time' }, { id: 'status', prefix: 'Status: ' }], entries);
+    expect(tab.entries[0].chips).toEqual(['Status: Active']);
+    expect(tab.entries[1].chips).toEqual(['0800']);
+  });
+
+  it('empty entries → a fresh single-entry seed tab', () => {
+    const tab = narrativeToV2([{ id: 'time' }], []);
+    expect(tab.entries).toHaveLength(1);
+    expect(tab.entries[0].chips).toEqual([]);
   });
 });

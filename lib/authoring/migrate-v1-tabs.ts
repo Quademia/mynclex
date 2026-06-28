@@ -26,6 +26,12 @@ import {
   VF_MIN,
   VF_MAX,
 } from './table/merge-table-model';
+import {
+  type NarrativeEntry,
+  type NarrativeTabData,
+  NT_VERSION,
+  emptyNarrativeTab,
+} from './narrative/narrative-model';
 import { parseRichDoc, type RichDoc } from './rich-doc';
 
 // ── shared helpers ────────────────────────────────────────────
@@ -112,4 +118,58 @@ export function structuredToMergeTab(
   entries: readonly V1StructuredEntry[],
 ): MergeTabData {
   return { v: MT_VERSION, tables: [structuredToMergeTable(columns, entries)] };
+}
+
+// ── narrative → narrative v2 ──────────────────────────────────
+
+/** A v1 narrative entry: a `time` (or omit-time tab), zero+ typed extras
+ *  (status/section/test_type), a `body`, and a `visible_from`. */
+export type V1NarrativeEntry = Record<string, unknown> & {
+  body?:         unknown;
+  visible_from?: unknown;
+};
+
+/**
+ * One source for a chip on the converted entry. `id` is the v1 field to read;
+ * `prefix` is prepended to the value — '' for Time (the value stands alone as
+ * the anchor, e.g. "0800"), 'Status: '/'Section: '/'Test: ' for the typed
+ * extras (so "Active" reads as "Status: Active"). Empty values produce no chip.
+ * Matches decision 9 (time → 1st chip [value], extras → "Label: value" chips).
+ */
+export interface V1ChipField {
+  id:      string;
+  prefix?: string;
+}
+
+/**
+ * Convert a v1 narrative tab (built-in nurses_notes/orders/history/diagnostics,
+ * or a custom free-text tab) into a v2 narrative tab:
+ *   - each entry's Time + typed extras become free-text chips (in `chipFields`
+ *     order; empties dropped);
+ *   - `body` becomes a rich doc (one paragraph per line, so existing line
+ *     breaks survive);
+ *   - `visible_from` carries to `visibleFrom`.
+ *
+ * When `entries` is empty, returns a fresh single-entry tab (the seed shape) so
+ * the tab opens with somewhere to type.
+ */
+export function narrativeToV2(
+  chipFields: readonly V1ChipField[],
+  entries: readonly V1NarrativeEntry[],
+): NarrativeTabData {
+  if (entries.length === 0) return emptyNarrativeTab();
+  const list: NarrativeEntry[] = entries.map((e, i) => {
+    const chips: string[] = [];
+    for (const f of chipFields) {
+      const v = String(e[f.id] ?? '').trim();
+      if (v) chips.push((f.prefix ?? '') + v);
+    }
+    return {
+      id:          'e' + i,
+      visibleFrom: clampVf(e.visible_from),
+      chips,
+      body:        parseRichDoc(String(e.body ?? '')),
+    };
+  });
+  return { v: NT_VERSION, entries: list };
 }
