@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { createCaseAction } from '@/lib/bank/wrappers/case-study/actions';
 import { loadAuthorship } from '@/lib/audit/authorship';
+import { richTextToPlain } from '@/lib/authoring/rich-doc';
 import {
   CasesListClient,
   type CaseListRow,
@@ -82,7 +83,7 @@ export default async function AdminCasesV2ListPage() {
   const rows: CaseListRow[] = cases.map((c) => ({
     case_id:            c.case_id,
     title:              c.title,
-    scenario:           c.scenario_summary,
+    scenario:           richTextToPlain(c.scenario_summary) || null,
     tabTitles:          (tabsByCase[c.case_id] ?? []).map((t) => t.title ?? '').filter(Boolean),
     is_published:       c.is_published,
     is_builder_visible: c.is_builder_visible,
@@ -159,7 +160,7 @@ function NewCaseButton({ surface }: { surface: 'admin' | 'tutor' }) {
 // for the chart entries (substring search; tiny N so cost is irrelevant).
 function buildCaseSearchText(c: CaseDbRow, tabs: TabRow[]): string {
   const parts: string[] = [
-    c.title, c.scenario_summary ?? '', c.topic ?? '', c.subtopic ?? '',
+    c.title, richTextToPlain(c.scenario_summary), c.topic ?? '', c.subtopic ?? '',
     ...(c.tags ?? []),
   ];
   for (const t of tabs) {

@@ -5172,3 +5172,129 @@
 .auth-tr-visibility-row input[type="checkbox"] {
   cursor: pointer;
 }
+
+/* ─────────────────────────────────────────────────────
+ * Rich-content relook — Slice 1
+ *
+ * The reusable bank rich field (lib/authoring/rich-field.tsx) + the
+ * read-only renderer (rich-render.tsx). `auth-rf-*` = editor chrome;
+ * `auth-rich` = rendered output. Shared by every field that moves from
+ * plain text to rich content across the later slices.
+ * ───────────────────────────────────────────────────── */
+
+.auth-rich-field {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  overflow: hidden;
+}
+
+/* Toolbar */
+.auth-rf-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.auth-rf-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 4px;
+  background: var(--border);
+}
+.auth-rf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.auth-rf-btn:hover {
+  background: var(--white);
+  border-color: var(--border);
+  color: var(--text);
+}
+.auth-rf-btn.is-active {
+  background: var(--primary-light);
+  border-color: var(--primary-light);
+  color: var(--primary);
+}
+.auth-rf-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Editor body (Tiptap ProseMirror surface) */
+.auth-rf-body {
+  padding: 10px 12px;
+  min-height: 96px;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+.auth-rf-body .ProseMirror {
+  outline: none;
+  min-height: 72px;
+}
+.auth-rf-body .ProseMirror > * + * {
+  margin-top: 0.5em;
+}
+.auth-rf-body .ProseMirror ul,
+.auth-rf-body .ProseMirror ol {
+  padding-left: 1.4em;
+}
+.auth-rf-body .ProseMirror ul { list-style: disc; }
+.auth-rf-body .ProseMirror ol { list-style: decimal; }
+/* Placeholder (extension-placeholder) */
+.auth-rf-body .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
+/* Loading skeleton */
+.auth-rf-toolbar-skeleton {
+  height: 38px;
+}
+.auth-rf-body-skeleton {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Read-only rendered output ── */
+.auth-rich {
+  line-height: 1.55;
+  color: var(--text);
+}
+.auth-rich > * + * {
+  margin-top: 0.5em;
+}
+.auth-rich ul,
+.auth-rich ol {
+  padding-left: 1.4em;
+  margin: 0.4em 0;
+}
+.auth-rich ul { list-style: disc; }
+.auth-rich ol { list-style: decimal; }
+.auth-rich blockquote {
+  margin: 0.5em 0;
+  padding-left: 0.9em;
+  border-left: 3px solid var(--border);
+  color: var(--text-muted);
+}
+.auth-rich mark {
+  padding: 0 0.1em;
+  border-radius: 2px;
+}

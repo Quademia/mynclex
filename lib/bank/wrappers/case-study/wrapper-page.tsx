@@ -43,6 +43,14 @@ import {
 } from './actions';
 import { QuestionTypePicker } from '@/lib/bank/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/bank/classifications';
+import { RichField } from '@/lib/authoring/rich-field';
+import { RichRender } from '@/lib/authoring/rich-render';
+import {
+  parseRichDoc,
+  serializeRichDoc,
+  isEmptyRichDoc,
+  type RichDoc,
+} from '@/lib/authoring/rich-doc';
 import { DeleteCaseConfirm } from './delete-case-confirm';
 import { PublishBlockedNotice, type PublishBlockKind } from './publish-blocked-notice';
 import { TabRail } from './chart-tabs/tab-rail';
@@ -247,7 +255,17 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
 
   // ── Wrapper-metadata state (12c-1) ────────────────────────
   const [title, setTitle] = useState(caseRow.title);
-  const [scenario, setScenario] = useState(caseRow.scenario_summary ?? '');
+  // Scenario is now rich content (Slice 1). Parse the stored value once:
+  // a JSON rich-doc reads back as itself; a legacy plain-text scenario is
+  // wrapped as paragraphs. The serialized baseline drives dirty-tracking
+  // (comparing docs by their stored string, so a no-op load isn't "dirty").
+  const [scenario, setScenario] = useState<RichDoc>(() =>
+    parseRichDoc(caseRow.scenario_summary),
+  );
+  const initialScenarioSerialized = useMemo(
+    () => serializeRichDoc(parseRichDoc(caseRow.scenario_summary)),
+    [caseRow.scenario_summary],
+  );
   const [isPublished, setIsPublished] = useState(caseRow.is_published);
   const [isFreeSample, setIsFreeSample] = useState(caseRow.is_free_sample);
   const [isBuilderVisible, setIsBuilderVisible] = useState(caseRow.is_builder_visible);
@@ -377,7 +395,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
 
     return {
       title,
-      scenario_summary: scenario,
+      scenario_summary: serializeRichDoc(scenario),
       is_published:     isPublished,
       tabs:             tabSnapshots,
       slots:            slotSnapshots,
@@ -493,7 +511,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
 
   const dirty = useMemo(() => {
     if (title !== caseRow.title) return true;
-    if (scenario !== (caseRow.scenario_summary ?? '')) return true;
+    if (serializeRichDoc(scenario) !== initialScenarioSerialized) return true;
     if (isPublished !== caseRow.is_published) return true;
     if (isFreeSample !== caseRow.is_free_sample) return true;
     if (isBuilderVisible !== caseRow.is_builder_visible) return true;
@@ -501,7 +519,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
       if ((cjmmBySlot[s.position] ?? '') !== (s.cjmm_step ?? '')) return true;
     }
     return false;
-  }, [title, scenario, isPublished, isFreeSample, isBuilderVisible, cjmmBySlot, caseRow, slots]);
+  }, [title, scenario, initialScenarioSerialized, isPublished, isFreeSample, isBuilderVisible, cjmmBySlot, caseRow, slots]);
 
   // Combined dirty signal — used by the leave-page guard on the
   // ← Back link and the Case Studies breadcrumb. True if any
@@ -531,7 +549,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     fd.set('surface', surface);
     fd.set('case_id', caseRow.case_id);
     fd.set('title', title);
-    fd.set('scenario_summary', scenario);
+    fd.set('scenario_summary', serializeRichDoc(scenario));
     if (isPublished)      fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
     if (isBuilderVisible) fd.set('is_builder_visible', 'on');
@@ -586,7 +604,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     fd.set('surface', surface);
     fd.set('case_id', caseRow.case_id);
     fd.set('title', title);
-    fd.set('scenario_summary', scenario);
+    fd.set('scenario_summary', serializeRichDoc(scenario));
     fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
     if (isBuilderVisible) fd.set('is_builder_visible', 'on');
@@ -610,7 +628,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
 
   function onCancel() {
     setTitle(caseRow.title);
-    setScenario(caseRow.scenario_summary ?? '');
+    setScenario(parseRichDoc(caseRow.scenario_summary));
     setIsPublished(caseRow.is_published);
     setIsFreeSample(caseRow.is_free_sample);
     setIsBuilderVisible(caseRow.is_builder_visible);
@@ -924,7 +942,12 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
                 </div>
                 <div className="auth-cs-field">
                   <label className="auth-cs-field-label">Scenario</label>
-                  <textarea className="auth-cs-field-textarea" rows={4} value={scenario} onChange={(e) => setScenario(e.target.value)} />
+                  <RichField
+                    value={scenario}
+                    onChange={setScenario}
+                    placeholder="Describe the patient and clinical context…"
+                    ariaLabel="Scenario summary"
+                  />
                 </div>
                 <div className="auth-cs-visibility" role="group" aria-label="Visibility flags">
                   <div className="auth-cs-visibility-title">Visibility</div>
@@ -1109,7 +1132,9 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
             <div className="auth-cs-preview-section-label">
               Chart context · what the student sees at Q{activeSlot}
             </div>
-            {scenario && <p className="auth-cs-preview-scenario">{scenario}</p>}
+            {!isEmptyRichDoc(scenario) && (
+              <RichRender doc={scenario} className="auth-cs-preview-scenario" />
+            )}
             <div className="auth-cs-chart-tabs">
               {tabs.map((t) => (
                 <button
