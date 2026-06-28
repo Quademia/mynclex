@@ -43,12 +43,34 @@ import {
 } from './actions';
 import { QuestionTypePicker } from '@/lib/bank/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/bank/classifications';
+import { RichField } from '@/lib/authoring/rich-field';
+import { RichRender } from '@/lib/authoring/rich-render';
+import {
+  parseRichDoc,
+  serializeRichDoc,
+  isEmptyRichDoc,
+  type RichDoc,
+} from '@/lib/authoring/rich-doc';
 import { DeleteCaseConfirm } from './delete-case-confirm';
 import { PublishBlockedNotice, type PublishBlockKind } from './publish-blocked-notice';
 import { TabRail } from './chart-tabs/tab-rail';
 import { NarrativeTabEditor } from './chart-tabs/narrative-tab';
 import { StructuredTabEditor } from './chart-tabs/structured-tab';
 import { getTabType } from './chart-tabs/tab-types';
+import { MergeTableEditor } from '@/lib/authoring/table/merge-table-editor';
+import { MergeTableView } from '@/lib/authoring/table/merge-table-view';
+import {
+  asMergeTab,
+  isTabEmpty,
+  type MergeTabData,
+} from '@/lib/authoring/table/merge-table-model';
+import { NarrativeTabEditorV2 } from '@/lib/authoring/narrative/narrative-tab-editor';
+import { NarrativeView } from '@/lib/authoring/narrative/narrative-view';
+import {
+  asNarrativeTab,
+  isNarrativeEmpty,
+  type NarrativeTabData,
+} from '@/lib/authoring/narrative/narrative-model';
 import {
   validateCase,
   type ValidationIssue,
@@ -105,10 +127,12 @@ const FORM_ID_BY_TYPE: Record<string, string> = {
   DRAG_DROP: 'auth-drag-drop-form',
 };
 
-// Per-tab in-flight draft. Mirrors legacy editor.tsx.
+// Per-tab in-flight draft. Mirrors legacy editor.tsx. `entries` is a
+// ChartEntry[] for built-in / v1 custom tabs, or a MergeTableData object
+// for a v2 custom merge table.
 interface TabDraft {
   title:       string;
-  entries:     CaseStudyEntry[];
+  entries:     CaseStudyEntry[] | MergeTabData | NarrativeTabData;
   columns_def: CaseStudyTabColumn[];
 }
 
@@ -247,7 +271,17 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
 
   // ── Wrapper-metadata state (12c-1) ────────────────────────
   const [title, setTitle] = useState(caseRow.title);
-  const [scenario, setScenario] = useState(caseRow.scenario_summary ?? '');
+  // Scenario is now rich content (Slice 1). Parse the stored value once:
+  // a JSON rich-doc reads back as itself; a legacy plain-text scenario is
+  // wrapped as paragraphs. The serialized baseline drives dirty-tracking
+  // (comparing docs by their stored string, so a no-op load isn't "dirty").
+  const [scenario, setScenario] = useState<RichDoc>(() =>
+    parseRichDoc(caseRow.scenario_summary),
+  );
+  const initialScenarioSerialized = useMemo(
+    () => serializeRichDoc(parseRichDoc(caseRow.scenario_summary)),
+    [caseRow.scenario_summary],
+  );
   const [isPublished, setIsPublished] = useState(caseRow.is_published);
   const [isFreeSample, setIsFreeSample] = useState(caseRow.is_free_sample);
   const [isBuilderVisible, setIsBuilderVisible] = useState(caseRow.is_builder_visible);
@@ -354,10 +388,21 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
   function buildValidationState(): ValidationState {
     const tabSnapshots: TabSnapshot[] = tabs.map((t) => {
       const d = drafts[t.tab_id];
+      const rawEntries = d?.entries ?? t.entries;
+      const mt = asMergeTab(rawEntries);
+      const nt = mt ? null : asNarrativeTab(rawEntries);
+      // A v2 custom table / narrative represents itself to validation as one
+      // Q1 entry when it has content (so the "no entries"/"no Q1 entry"
+      // checks don't false-fire), or an empty list when blank (so the
+      // empty-tab warning still fires correctly).
+      const entries: CaseStudyEntry[] =
+        mt ? (isTabEmpty(mt) ? [] : [{ visible_from: 1 }])
+        : nt ? (isNarrativeEmpty(nt) ? [] : [{ visible_from: 1 }])
+        : (rawEntries as CaseStudyEntry[]);
       return {
         tab_id:  t.tab_id,
-        title:   d?.title   ?? t.title,
-        entries: d?.entries ?? t.entries,
+        title:   d?.title ?? t.title,
+        entries,
       };
     });
 
@@ -377,7 +422,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
 
     return {
       title,
-      scenario_summary: scenario,
+      scenario_summary: serializeRichDoc(scenario),
       is_published:     isPublished,
       tabs:             tabSnapshots,
       slots:            slotSnapshots,
@@ -493,7 +538,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
 
   const dirty = useMemo(() => {
     if (title !== caseRow.title) return true;
-    if (scenario !== (caseRow.scenario_summary ?? '')) return true;
+    if (serializeRichDoc(scenario) !== initialScenarioSerialized) return true;
     if (isPublished !== caseRow.is_published) return true;
     if (isFreeSample !== caseRow.is_free_sample) return true;
     if (isBuilderVisible !== caseRow.is_builder_visible) return true;
@@ -501,7 +546,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
       if ((cjmmBySlot[s.position] ?? '') !== (s.cjmm_step ?? '')) return true;
     }
     return false;
-  }, [title, scenario, isPublished, isFreeSample, isBuilderVisible, cjmmBySlot, caseRow, slots]);
+  }, [title, scenario, initialScenarioSerialized, isPublished, isFreeSample, isBuilderVisible, cjmmBySlot, caseRow, slots]);
 
   // Combined dirty signal — used by the leave-page guard on the
   // ← Back link and the Case Studies breadcrumb. True if any
@@ -531,7 +576,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     fd.set('surface', surface);
     fd.set('case_id', caseRow.case_id);
     fd.set('title', title);
-    fd.set('scenario_summary', scenario);
+    fd.set('scenario_summary', serializeRichDoc(scenario));
     if (isPublished)      fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
     if (isBuilderVisible) fd.set('is_builder_visible', 'on');
@@ -586,7 +631,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     fd.set('surface', surface);
     fd.set('case_id', caseRow.case_id);
     fd.set('title', title);
-    fd.set('scenario_summary', scenario);
+    fd.set('scenario_summary', serializeRichDoc(scenario));
     fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
     if (isBuilderVisible) fd.set('is_builder_visible', 'on');
@@ -610,7 +655,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
 
   function onCancel() {
     setTitle(caseRow.title);
-    setScenario(caseRow.scenario_summary ?? '');
+    setScenario(parseRichDoc(caseRow.scenario_summary));
     setIsPublished(caseRow.is_published);
     setIsFreeSample(caseRow.is_free_sample);
     setIsBuilderVisible(caseRow.is_builder_visible);
@@ -621,8 +666,25 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
   const previewEntries = useMemo<ChartEntry[]>(() => {
     if (!activeChartTab) return [];
     const liveEntries = activeChartDraft?.entries ?? activeChartTab.entries;
+    // A v2 merge table isn't an entries array — its student preview lands
+    // in Slice 3. Until then the preview pane shows a placeholder.
+    if (!Array.isArray(liveEntries)) return [];
     return liveEntries.filter((e) => Number(e.visible_from) <= activeSlot);
   }, [activeChartTab, activeChartDraft, activeSlot]);
+
+  // Live merge-table tab for the preview pane (reflects unsaved edits via
+  // the draft). Non-null only for a custom-table tab.
+  const liveActiveEntries = activeChartTab
+    ? (activeChartDraft?.entries ?? activeChartTab.entries)
+    : null;
+  const previewMergeTab = liveActiveEntries ? asMergeTab(liveActiveEntries) : null;
+  const previewNarrativeTab = liveActiveEntries ? asNarrativeTab(liveActiveEntries) : null;
+  const previewHiddenCount = useMemo(() => {
+    if (!activeChartTab) return 0;
+    const all = activeChartDraft?.entries ?? activeChartTab.entries;
+    if (!Array.isArray(all)) return 0;
+    return all.length - previewEntries.length;
+  }, [activeChartTab, activeChartDraft, previewEntries]);
 
   const populated = slots.filter((s) => s.item_id !== null).length;
   const activeSlotData = slots[activeSlot - 1] ?? null;
@@ -924,7 +986,12 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
                 </div>
                 <div className="auth-cs-field">
                   <label className="auth-cs-field-label">Scenario</label>
-                  <textarea className="auth-cs-field-textarea" rows={4} value={scenario} onChange={(e) => setScenario(e.target.value)} />
+                  <RichField
+                    value={scenario}
+                    onChange={setScenario}
+                    placeholder="Describe the patient and clinical context…"
+                    ariaLabel="Scenario summary"
+                  />
                 </div>
                 <div className="auth-cs-visibility" role="group" aria-label="Visibility flags">
                   <div className="auth-cs-visibility-title">Visibility</div>
@@ -1109,7 +1176,9 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
             <div className="auth-cs-preview-section-label">
               Chart context · what the student sees at Q{activeSlot}
             </div>
-            {scenario && <p className="auth-cs-preview-scenario">{scenario}</p>}
+            {!isEmptyRichDoc(scenario) && (
+              <RichRender doc={scenario} className="auth-cs-preview-scenario" />
+            )}
             <div className="auth-cs-chart-tabs">
               {tabs.map((t) => (
                 <button
@@ -1124,15 +1193,21 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
               ))}
             </div>
             <div className="auth-cs-chart-content auth-cs-preview-chart">
-              {activeChartTab ? (
-                <PreviewChartView tab={activeChartTab} entries={previewEntries} />
-              ) : (
+              {!activeChartTab ? (
                 <p className="auth-cs-empty-msg">No tabs on this case.</p>
-              )}
-              {activeChartTab && previewEntries.length < (activeChartDraft?.entries ?? activeChartTab.entries).length && (
-                <p className="auth-cs-preview-hidden-note">
-                  {(activeChartDraft?.entries ?? activeChartTab.entries).length - previewEntries.length} entry/entries hidden — visible_from {'>'} Q{activeSlot}
-                </p>
+              ) : previewMergeTab ? (
+                <MergeTableView tab={previewMergeTab} currentPosition={activeSlot} />
+              ) : previewNarrativeTab ? (
+                <NarrativeView tab={previewNarrativeTab} currentPosition={activeSlot} />
+              ) : (
+                <>
+                  <PreviewChartView tab={activeChartTab} entries={previewEntries} />
+                  {previewHiddenCount > 0 && (
+                    <p className="auth-cs-preview-hidden-note">
+                      {previewHiddenCount} entry/entries hidden — visible_from {'>'} Q{activeSlot}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -1179,6 +1254,44 @@ function ActiveChartTabEditor({
   onDraftChange:   (next: TabDraft) => void;
   previewPosition: number | null;
 }) {
+  // A v2 custom table is a custom_grid tab whose entries hold the
+  // `{ v:2, tables:[…] }` object. Route it to the new editor before the v1
+  // structured branch (which also matches custom_grid).
+  const mergeTab = asMergeTab(tab.entries);
+  if (mergeTab) {
+    const draftTab = asMergeTab(draft.entries) ?? mergeTab;
+    return (
+      <MergeTableEditor
+        surface={surface}
+        case_id={case_id}
+        tab={tab}
+        draftTitle={draft.title}
+        draftTab={draftTab}
+        onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.tab, columns_def: [] })}
+        previewPosition={previewPosition}
+      />
+    );
+  }
+
+  // A v2 custom narrative is a custom_narrative tab whose entries hold the
+  // `{ v:2, entries:[…] }` object. Route it to the new editor before the v1
+  // narrative branch.
+  const narrativeTab = asNarrativeTab(tab.entries);
+  if (narrativeTab) {
+    const draftNarrative = asNarrativeTab(draft.entries) ?? narrativeTab;
+    return (
+      <NarrativeTabEditorV2
+        surface={surface}
+        case_id={case_id}
+        tab={tab}
+        draftTitle={draft.title}
+        draftNarrative={draftNarrative}
+        onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.tab, columns_def: [] })}
+        previewPosition={previewPosition}
+      />
+    );
+  }
+
   const builtIn = getTabType(tab.tab_key);
   const isNarrative =
     (builtIn && builtIn.shape === 'narrative') ||
@@ -1195,7 +1308,7 @@ function ActiveChartTabEditor({
         tab={tab}
         builtIn={builtIn}
         draftTitle={draft.title}
-        draftEntries={draft.entries}
+        draftEntries={draft.entries as CaseStudyEntry[]}
         onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.entries, columns_def: draft.columns_def })}
         previewPosition={previewPosition}
       />
@@ -1209,7 +1322,7 @@ function ActiveChartTabEditor({
         tab={tab}
         builtIn={builtIn}
         draftTitle={draft.title}
-        draftEntries={draft.entries}
+        draftEntries={draft.entries as CaseStudyEntry[]}
         draftColumns={draft.columns_def}
         onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.entries, columns_def: p.columns_def })}
         previewPosition={previewPosition}

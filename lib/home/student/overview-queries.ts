@@ -283,10 +283,12 @@ function collectActivityIds(tree: StudentCurriculumTree): string[] {
 // an already-fetched progress map. UTC day buckets match the calendar day
 // for the core audience (Ghana, UTC+0).
 //
-// v1 scope: counts completions in nclex_student_activity_progress (TEXT /
-// PDF / link / quizzes). LIBRARY_NOTE / SHELF "done" lives elsewhere
-// (note-state) and isn't folded in yet — a minor undercount for
-// reading-heavy days; revisit if it matters.
+// Counts completions in nclex_student_activity_progress (TEXT / PDF /
+// link / quizzes). LIBRARY_NOTE done is now folded in too: marking a note
+// done mirrors a MANUAL progress row per pointing activity (see
+// note-read-actions.ts → syncNoteActivityProgress), so reading-heavy days
+// count. SHELF "done" (a member rollup) still lives only in shelf-state
+// and isn't folded in — a minor remaining undercount.
 function studyStreakFromMap(
   progressMap: ActivityProgressMap,
   nowMs: number,

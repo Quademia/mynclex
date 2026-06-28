@@ -27,6 +27,10 @@ import type {
   TabColumn,
   ChartEntry,
 } from '@/lib/bank/wrappers/case-study/types';
+import { asMergeTab } from '@/lib/authoring/table/merge-table-model';
+import { MergeTableView } from '@/lib/authoring/table/merge-table-view';
+import { asNarrativeTab } from '@/lib/authoring/narrative/narrative-model';
+import { NarrativeView } from '@/lib/authoring/narrative/narrative-view';
 
 interface Props {
   tab:             TabRow;
@@ -34,10 +38,21 @@ interface Props {
 }
 
 export function ChartTabBody({ tab, currentPosition }: Props) {
+  // v2 custom tabs render through their own student renderers (per-row /
+  // per-entry reveal) — not the entries-array path below.
+  const mergeTab = asMergeTab(tab.entries);
+  if (mergeTab) {
+    return <MergeTableView tab={mergeTab} currentPosition={currentPosition} />;
+  }
+  const narrativeTab = asNarrativeTab(tab.entries);
+  if (narrativeTab) {
+    return <NarrativeView tab={narrativeTab} currentPosition={currentPosition} />;
+  }
+
   // Strict visibility — a backward-nav student should see only what
   // would have been visible at currentPosition the first time they
   // arrived at it.
-  const visibleEntries = tab.entries.filter(
+  const visibleEntries = (tab.entries as ChartEntry[]).filter(
     (e) => Number(e.visible_from) <= currentPosition,
   );
 

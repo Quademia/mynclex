@@ -5,7 +5,18 @@ was reverted (commit `fde8db3`). Captures the architecture for the
 fresh attempt — what's being rebuilt, the principles guiding it, and
 the shape of the new code.*
 
-Last updated: 2026-06-15 (added the "Rich-content relook" discussion
+Last updated: 2026-06-27 (added the "Case-study wrapper rebuild —
+locked decisions" section: design pass on the rich-content relook,
+focused on the case-study wrapper; decisions 1–13 locked [incl. the
+unified per-row reveal model, heading as a structural role, narrative
+entry headers as free-text chips, bank-wide rich text, custom-tabs-first
+build order, rung 4 closed, and the editing toolset reused from the
+library], reveal resolved, and the merge-table authoring risk RETIRED by a
+Claude Design prototype now adopted as the build basis with refinements,
+and a first-pass slice plan (Slices 0–7) appended with Slice 0's three
+data-model decisions now settled (constrained-doc+roving-editor cells;
+existing-JSONB storage + `v` stamp; staged migration); no build yet)
+Previously: 2026-06-15 (added the "Rich-content relook" discussion
 capture at the end — a NEW, larger direction that, unlike this 2026-04-28
 rebuild, *would* change the content data model; see that section + bank.md)
 
@@ -752,3 +763,536 @@ Sam's issue list isn't exhausted — trend multi-chart and the
 formatting/line-break gaps are the items discussed so far. Resume by
 finishing the catalogue, then deciding whether to promote this into a
 real design doc + slice plan.
+
+---
+
+## Case-study wrapper rebuild — locked decisions (2026-06-27)
+
+> **STATUS: DESIGN PASS — decisions 1–6 LOCKED with Sam, nothing built.**
+> Picks up the relook above and turns it into a foundation. Sam's framing:
+> this is effectively *rebuilding the curating code — take the time, get
+> it right.* We work the open list (below) against these fixed decisions
+> rather than re-litigating them.
+
+### Evidence base (analysed this session)
+
+Five real specimens, read in full against the live editors + the student
+runner:
+
+- **Maryland case studies:** Home-Safety-I, Home-Safety-II, Acute-Asthma,
+  Acute-Respiratory-Distress (`.docx`, local `F:\Mynclex\Maryland`).
+- **Official NCSBN packet:** `NGNTestPacket_121324.pdf`.
+
+Key confirmations from the source markup itself:
+
+- **The amber (`FFC000`) cell shading in the Word files marks the tabs.**
+  What reads as "stacked sections" in a flat text dump is really separate,
+  colour-coded tab regions — Asthma = `Nurses' Notes · Vital Signs ·
+  Laboratory Report · Diagnostic Reports · Orders`; ARDS = `Nurses' Notes ·
+  Laboratory Report · Orders`. This is the NCSBN tabbed rendering. → our
+  tab model is the right target, and **one tab = one shape** is how the
+  authors themselves segmented.
+- **All nine of our question types appear** across the corpus (SATA,
+  Matrix 2-/3-col, MCQ, Cloze dropdown, Drag-drop, Bowtie, Highlight). The
+  gap is **not** the answer types — it is the **stimulus (wrappers) + the
+  absence of rich text**.
+- A "trend" Maryland files (ARDS, HS-II) is a **narrative Nurses' Notes
+  over dated visits**, not a numeric grid — our flat-grid trend model
+  cannot hold it. Confirms a trend's stimulus *is* a case's stimulus.
+- The case is **6 questions** — the Maryland files just ship an *extra
+  standalone* bow-tie/trend alongside; it is not a 7th case slot.
+
+### The locked decisions
+
+1. **Scope = the case-study wrapper first.** Trend is **not** designed
+   separately. Once a tab can hold rich narrative *or* a do-anything
+   table, a trend's stimulus is a case stimulus with such a tab, so the
+   trend wrapper is later rebuilt to **reuse the same tab/stimulus
+   engine** rather than designed afresh.
+
+2. **Two gaps drive everything:** (A) the content primitive is plain text
+   → make it **rich** (reuse the library Tiptap primitive); (B) there is
+   no flexible table → add **one**.
+
+3. **Enrich, don't replace.** Keep the existing **entry/row structure**
+   (so the reveal mechanism and answer-target addresses survive); **keep
+   the built-in templates** (Vital Signs, Labs, Nurses' Notes, Orders,
+   H&P, Diagnostics) **but make them fully editable** (today only
+   `custom_grid` can add/rename/remove columns); the **custom table is the
+   gold** (the flexible workhorse).
+
+4. **One tab = one shape — no mixing prose + table in a single tab.**
+   Confirmed by the amber tab-markers (the authors split sections into
+   separate tabs) and the NCSBN tabbed rendering. A tab is either rich
+   **narrative cards** or **one table**. (A sentence above a table = a
+   small tab-level intro field, not a mixed document.)
+
+5. **The custom table = a single enhanced grid** with:
+   - **merged cells (colspan + rowspan)** — required for the Phase Sheet
+     (`Name | Paul | Gender | Male`, language spanning) and richer stacked
+     layouts;
+   - an **optional header column** (left-side labels — H&P
+     `Body System → Findings`, Orders `Category → list`);
+   - **rich, multi-line cells** (lists inside a cell, two-line refs,
+     bold/emphasis);
+   - **relaxed column bounds** (drop the 2–10 cap).
+
+   One powerful grid — **not** a zoo of purpose-built preset modes (that
+   is how we got the six rigid built-ins we are escaping). **Framed to
+   curators as a "custom table"** (merge cells + make them rich), not a
+   rigid "rows × columns" grid — but it keeps an **underlying row
+   structure**, because reveal pins to rows (decision 7). Merging doesn't
+   abolish rows; it lets a cell *span* them.
+
+   The narrative/free-text tab + rich text covers the prose shapes
+   (Nurses' Notes); the existing rows/cols grid + rich cells still works
+   unchanged; the custom (merge + rich) table is the new superset for
+   irregular layouts (Phase Sheet).
+
+6. **Progressive reveal stays ROWS-ONLY.** The "visible at" control
+   belongs to a **row**; columns are always shown. If a source draws time
+   across the top (columns), the curator **transposes** it so each moment
+   is a row. Column-level reveal was considered and rejected: it roughly
+   doubles the reveal + answer-binding complexity for a benefit the
+   transpose convention already provides.
+   - **Merge × reveal rule:** a row's "visible at" governs the whole row;
+     if cells span rows, those rows share one "visible at." No collision
+     in practice — row-spanning is used on **static** panels (Phase Sheet,
+     H&P, Orders) where every row is visible at once, while progressive
+     reveal is used on time-series tables that don't span rows.
+
+7. **One reveal model for every tab type — "visible at" per row.** The
+   same mechanism drives all stimulus: a **narrative card**, a **simple
+   grid row**, and a **custom/merge table row** each reveal at their own
+   "visible at." Two real cases fall out for free: **static panels** leave
+   every row at "from Q1" (the table appears whole, zero curator effort);
+   **time-series** tables set "visible at" per row as the case advances.
+   This is a *simplification* — one concept, not three.
+
+8. **"Heading" is a structural ROLE, not just bold text — and header rows
+   get DERIVED reveal.** Rich text lets a curator mark a cell as a
+   heading, and headings are not only the top row (Phase Sheet left labels
+   `Name`/`Gender`; H&P `Cardiac`/`Neurologic`). Two cases:
+   - **Heading *cells* inside a data row** (left labels) → reveal **with
+     their row**; no special treatment, "visible at" belongs to the row.
+   - **A whole heading *row*** (a column-header `Time | BP | HR`, or a
+     section divider) → **exempt from independent "visible at."** Its
+     visibility is **derived** from the data rows it heads (a column
+     header appears when the table's first data row appears), so the
+     header never shows without its data or hides while data shows.
+
+   Why it must be a role, not a font weight: today the column header is
+   *implicit* (the column labels), never a data row, so reveal never
+   touched it. The moment the table goes freeform ("any cell can be a
+   heading"), the header *becomes* a row — and reveal would wrongly gate
+   it unless we mark it as a heading and treat it specially. This is the
+   seam where "freeform table" meets "progressive reveal."
+
+9. **A narrative entry's header = free-text label CHIPS (0..N), not a
+   typed-field schema.** Today an entry has a single hardcoded **Time**
+   field. Real notes anchor on time *and/or* date, location, day, setting
+   ("Emergency Department / Day 1 / 0900"). The generalisation: the
+   curator adds **any number of small free-text labels**, rendered as a
+   chip row above the body. **The current "Time" is just one such chip,
+   pre-labelled** (a sensible default). A chip is plain free text — if the
+   curator wants "Status: Active" they type it; no label/value schema, no
+   predefined field taxonomy (that would re-introduce the rigidity we are
+   escaping; the corpus has no consistent field set). Rich text owns the
+   **body** (inline emphasis, transitions like "ED → ward", sub-headers);
+   chips own the **scannable anchor** (what rich-text-inline can't do —
+   lift the when/where out into a chip for timeline scanning).
+   - The built-in typed extras (`orders.status`, `history.section`,
+     `diagnostics.test_type`) become **suggested default chips**, not
+     hardcoded fields — unifying built-in + custom narrative under one
+     chip mechanism.
+
+10. **Rich text is BANK-WIDE — every text field gets it.** Not just the
+    wrapper. The blanket rule covers the **stimulus** (narrative bodies,
+    table cells, header chips, scenario summary) **and the questions
+    themselves** (stems, every answer **option**, per-option **feedback**,
+    **rationale**). The tutor wants to bold/emphasise in the scenario and
+    the main stem too. One primitive (the library Tiptap field), applied
+    everywhere a plain `<input>`/`<textarea>` is today.
+
+11. **Build order: CUSTOM tabs first, then revisit the templates.** New
+    tabs are added as **custom tabs** — a custom **narrative** tab or a
+    custom **table** (simple or merge). We build and prove those first;
+    **once they work**, we do a second pass on the six built-in templates
+    to bring them up to the same capability (decision 3 — fully editable).
+    So the tab-shape "choice" surfaces as *which kind of custom tab you
+    add*, and template polish is a later, separate slice — not a blocker.
+
+12. **Rung 4 (answer-bound highlight) needs NOTHING special — CLOSED.**
+    We do **not** fuse the stimulus and the question, and we build **no**
+    mechanism. Our existing `HIGHLIGHT` type already works on its own
+    passage; the stimulus/question separation stays. If a curator wants a
+    highlight question based on a tab's content, **they simply author it
+    that way themselves** (put the content in the highlight question) — a
+    rare case and ordinary curator practice, not a feature. The NCSBN
+    "highlight the priority orders" examples are real but few; we do not
+    complicate the design for them. This removes rung 4 as a risk and as a
+    "new architecture."
+
+13. **The editing toolset — reuse the library's, scope it per surface.**
+    The library Tiptap editor already ships the full inline set
+    ([note-body-editor.tsx](../../lib/library/note-body-editor.tsx)); we do
+    not build new tools, we choose which to expose. The prototype's three
+    (Bold/Italic/List) were just a concept.
+    - **Core inline (table cells + narrative bodies):** Bold, Italic,
+      Underline, Strikethrough, Superscript, Subscript, Bullet list,
+      Numbered list, **Highlight** (cosmetic emphasis — marking an abnormal
+      value; distinct from rung-4 answer-highlight).
+    - **Plus (agreed):** Text colour, Blockquote, Text-align.
+    - **Media block (image / ECG / wound photo) in the NARRATIVE body** —
+      agreed (the library already supports it), built as the **final piece
+      of the wrapper arc**.
+    - **Table-structure tools:** Merge, Split (subdivide *and* un-merge),
+      Heading, +Row / +Col, Delete row / col.
+    - **Not in a table cell:** block nodes (media, nested tables, callouts,
+      drug cards, block-headings) — media lives only in the narrative body;
+      a cell's "heading" is the structural role (decision 8), not a
+      block-heading.
+    - **Impl note — text colour:** use a small **dark-mode-safe swatch
+      palette** (like the library's highlight swatches), not a free hex
+      picker, so coloured text stays legible in both themes.
+
+### Reveal — RESOLVED (decisions 6–8)
+
+The progressive-reveal mechanics for the merge table — the part that
+worried us — are now settled: one reveal model (per-row), header rows
+exempt (derived). Reveal is no longer an open risk.
+
+### The merge-table authoring risk — RETIRED by the CD prototype (2026-06-27)
+
+The remaining risk was: can a non-coding tutor build the Phase Sheet
+without it feeling like wrestling Excel? A Claude Design prototype
+("Case Study Merge Table") answered it — **yes**. It realises the custom
+merge-table editor (drag-select → Merge / Split, Heading toggle, rich
+contenteditable cells, a per-row "Appears" gutter) **and** the student
+render (device toggle + a "viewing at Q1–6" stepper that reveals rows
+progressively). The interaction is the Word/Google-Docs table model
+(drag-select to merge), not a raw spreadsheet — learnable. It maps 1:1 to
+decisions 3–10; notably the gutter shows **"auto"** on header rows
+(decision 8's derived reveal, realised). **Adopted as the build basis
+(concept-not-source).**
+
+**Refinements agreed on the prototype (fold into the build):**
+
+- **Header column folds into heading cells (refines decision 5).** There
+  is no separate "header column" toggle — a left-label column is just
+  *heading cells*, and a header *row* is auto-detected when every cell in
+  the row is a heading. Cleaner than the original "optional header column"
+  wording; this is the model.
+- **Split must SUBDIVIDE a plain cell, not only un-merge.** The prototype's
+  Split only un-merges an already-merged cell, so "4 columns on top, 2
+  below" needs a clunky workaround (build 4 cols, merge the bottom pairs).
+  Fix: **Split = subdivide a 1×1 cell into N columns/rows** (Word/Docs
+  model) *as well as* un-merge a merged cell. Under the hood it stays a
+  **uniform grid** — subdividing one cell inserts a fine sub-column and the
+  other rows' cells auto-bump colspan +1 to keep their look; the curator
+  only ever sees "1 cell → 2."
+- **Rich cells = the library Tiptap field, not `execCommand`** (the
+  prototype fakes rich text with `contenteditable`+`execCommand`; the real
+  build uses decision 10's primitive). A Tiptap instance *per cell* may be
+  heavy → consider a lightweight rich field. Build concern, not design.
+- **Mobile = horizontal scroll for now** (the prototype shows "‹ swipe
+  sideways ›"); consider key-value reflow later for phone-first students.
+
+### Still open (execution detail, after the risk)
+
+- **Gap A detail** — exactly which fields become rich (stems, answer
+  options + per-option feedback, rationale, narrative bodies, table cells,
+  scenario) and the **blast radius** of pointing the library Tiptap
+  primitive at the bank.
+- **The grid spec** — header-row/cell behaviour, merge mechanics,
+  rich-cell scope, bounds.
+- **Storage / data-model + snapshot** — the rich-content storage shape and
+  the attempt-snapshot changes (the **bank.md** half; see cross-reference
+  above) + a **migration** of existing plain-text rows + a rich renderer
+  in the runner.
+- **Standalone bow-tie / trend** handling (after the case-study wrapper).
+- **The slice plan** + the Claude Design prototype.
+
+---
+
+## Slice plan — case-study wrapper rich-content rebuild (2026-06-27)
+
+> **STATUS: PLAN — nothing built.** First-pass build sequence off the 13
+> locked decisions + the adopted prototype (v2). Order follows decision 11
+> (custom tabs first, templates later, media last). Slice 0 is the
+> foundation; its internal data-model choices are a **proposal to settle**
+> before any code. Each slice is Sam-tested on dev and merged to `main`
+> individually, per the usual loop.
+
+### Slice 0 — data model + storage + migration (FOUNDATION, design-first)
+
+Everything hangs on this. **The three internal decisions are SETTLED
+(2026-06-27):**
+
+**Decision 1 — cell content = a constrained rich doc + a roving editor.**
+A cell needs **paragraphs + lists + inline marks** (the Orders cell has a
+bulleted list; lab cells have two lines), so its *storage format* is a
+**small, constrained Tiptap doc** — block-capable but **no heavy blocks**
+(no images / nested tables / block-headings in a cell). For performance the
+editor uses **one roving Tiptap instance** that mounts into the focused
+cell while the others render as static formatted text — never dozens of
+live editors on one big table. (Same rich format is reused everywhere a
+plain `<input>`/`<textarea>` is today: cells, narrative bodies, stems,
+options, feedback, rationale, scenario.)
+
+**Decision 2 — store the new shape in the existing JSONB; no structural DB
+change.** `nclex_case_study_tabs` keeps its columns; only the **shape inside
+`entries` / `columns_def` evolves** — no new columns, no new tables, no
+`ALTER TABLE`. The migration is a **data transform**, not a table rebuild.
+A small **`v` version stamp inside the blob** (`v: 2`) marks new-shape rows
+so old (`v: 1`) and new can coexist (see Decision 3) and future format
+changes stay clean. The shapes:
+  - **Table tab** → `{ v, rows[] (each { id, visibleFrom }), grid[][] of
+    cells { id, content(JSON), heading, colspan, rowspan, covered } }`.
+    Header-row = derived (all non-covered cells in the row are `heading`).
+    Mirrors prototype v2 exactly.
+  - **Narrative tab** → `{ v, entries[] of { id, visibleFrom,
+    chips: string[], body(JSON) } }` (chips generalise today's `time`).
+  - **Snapshot:** the attempt snapshot already copies the tabs JSONB, so it
+    carries the new shape for free; the runner renderer reads it.
+  - **Questions** (stems / options / per-option feedback / rationale) live
+    on `nclex_bank_items` / `nclex_tutor_questions`; those text columns move
+    string → Tiptap JSON in **Slice 5** (bank-wide blast radius).
+
+**Decision 3 — STAGED migration, matched to the build order.** Migrate
+**custom tabs now** (Slice 0) to `v: 2`; **leave the built-in templates in
+their old shape** (`v: 1`) until **Slice 6** rebuilds them, then migrate
+those. The `v` stamp is what lets old templates and new custom tabs coexist
+during the build — this is where it earns its keep. The mapping (applied
+when each type migrates):
+  - **Notes-style** (Nurses' Notes, Orders, H&P, Diagnostics, custom
+    free-text) → narrative: `time` → first chip; each extra field →
+    `"label: value"` chip; `body` string → rich paragraphs.
+  - **Table-style** (Vital Signs, Labs, custom grid) → table: column titles
+    → a **heading row**; each cell string → Tiptap; `visible_from` → the
+    row's `visibleFrom`.
+  - **HS2-style exception** — `custom_narrative` blobs that are really
+    tables (the Phase Sheet) can't be auto-detected → migrate to a rich
+    paragraph, then **manually re-author** the few affected cases as merge
+    tables.
+
+(Since prod has no real users and only a handful of cases, even the
+manual re-authoring is small and low-stakes.)
+
+> **PROGRESS (2026-06-28): Slices 1 + 2 + 3 + 4 BUILT.** 1, 2a/2b/2c, 3 are
+> on `main` (commits `f32f0f0`..`a3c8498`); 4 on the session branch. The
+> custom merge table + the rich narrative tab are complete end-to-end
+> (author + student render). **Slices 5 ↔ 6 SWAPPED (Sam, 2026-06-28):**
+> do the built-in templates next (keeps us in the chart/stimulus area,
+> reusing the editors just built), then the question fields. New order below.
+
+### Slice 1 — the rich-text primitive in the bank (de-risk the round-trip) ✅ BUILT
+
+Bring the library Tiptap field in as a **reusable bank rich field +
+read renderer**. Proven on the **scenario** field: editor → Server Action
+save → reload → student render, end-to-end (the FormData-string path
+sidesteps the ProseMirror-attrs deep-clone gotcha; clone helper kept for the
+later object-arg fields). Lives in `lib/authoring/` (rich-field / rich-render
+/ rich-doc).
+
+### Slice 2 — the custom merge-table editor (authoring) ✅ BUILT (2a/2b/2c)
+
+The merge-table editor from prototype v2: type-in-cell, **drag/shift-select →
+Merge**, **Split (subdivide *and* un-merge)**, **Heading** (role), +Row/+Col,
+Delete row/col, the per-row **"Appears" gutter** (header rows show "auto"),
+rich cells (roving rich field) + the in-cell toolbar (incl. highlight + text
+colour). **2c: a tab holds a LIST of tables** (`asMergeTab` upgrades the old
+single-table shape). `lib/authoring/table/`.
+
+### Slice 3 — the student render of the custom table ✅ BUILT
+
+Read-only renderer (`merge-table-view.tsx`): colspan/rowspan, covered cells,
+heading styling, **per-row reveal** with merge spans corrected to the visible
+rows (`studentRows`, tested). Wired into the curator preview + the runner.
+Mobile = horizontal scroll.
+
+### Slice 4 — the narrative tab (rich body + chips) ✅ BUILT
+
+The v2 narrative tab (`lib/authoring/narrative/`): entry cards = free-text
+**chips** (generalising "Time") + a rich **body** (roving) + per-entry reveal;
+one **sticky** toolbar. Render wired into preview + runner. New "Free text"
+tabs use it; existing v1 narrative + built-in narratives stay on the old
+editor until the templates slice.
+
+### Slice 5 — upgrade the built-in templates  *(was Slice 6)*
+
+> **PLAN AGREED 2026-06-28** (design pass with Sam; no code yet). Scope,
+> mapping, and method below are settled. Build order + open-on-build notes
+> at the end.
+
+Bring the six built-in tab templates (Vital Signs, Labs, Nurses' Notes,
+Orders, H&P, Diagnostics) onto the **new v2 editors already built in
+Slices 2–4** — keeping them as the same six **convenient named presets** in
+the "+ Add chart tab" picker, but now **fully editable** rich tabs (rich
+cells, merge, add/remove rows+cols, narrative chips). Carries the **v1 → v2
+migration** of all existing v1 tab rows (staged-migration decision D3,
+extended — see scope).
+
+#### The enabling fact — routing is shape-based, not name-based
+
+`asMergeTab()` / `asNarrativeTab()` decide v2 **purely from the saved blob
+shape** (`entries` is an object stamped `v: 2`), ignoring `tab_key`. Both the
+editor dispatcher (`ActiveChartTabEditor` in `wrapper-page.tsx`) and the
+student runner (`chart-tab-body.tsx`) check those **before** the v1 built-in
+/ custom fallbacks. So **the moment a tab's `entries` becomes a v2 object it
+auto-routes to the new editor + the new student view — no new component, no
+`tab_key` special-casing.** This is why Slice 5 is mostly a *data* job, not a
+*code* job. Today, the two generations coexist safely by shape:
+
+| Shape | NEW v2 editor (built; used by…) | OLD v1 editor (used by…) |
+|---|---|---|
+| Narrative | new free-text custom tabs | `nurses_notes`, `orders`, `history`, `diagnostics` + old `custom_narrative` |
+| Table | new "Custom table" custom tabs | `vital_signs`, `lab_results` + old `custom_grid` |
+
+#### Scope — migrate **all** v1 rows, then delete the old editors
+
+Settled with Sam: migrate everything, not just the built-ins, so the old
+editors can be **removed entirely** (one editor per shape; no dual path).
+Dev row census (2026-06-28):
+
+- **15 built-in v1 rows** — `nurses_notes`×4, `vital_signs`×3,
+  `lab_results`×2, `orders`×2, `history`×2, `diagnostics`×2.
+- **12 legacy custom v1 rows** — `custom_grid`×7, `custom_narrative`×5
+  (created before Slices 2–4; new custom tabs are already v2).
+- **2 already-v2 rows** (our test tabs) — left as-is.
+
+→ **27 rows to convert.** After conversion, nothing renders v1, so we delete
+`chart-tabs/structured-tab.tsx` + `chart-tabs/narrative-tab.tsx` and the v1
+branches of both dispatchers. (Prod has its own, smaller census — re-count at
+release; the converter is the same.)
+
+#### Part A — new built-ins are born v2 (code)
+
+`tab-types.ts` keeps the six-entry registry (names + picker order stay), but
+each built-in gains a **seed**: clicking it in `AddTabPopover` inserts a
+pre-shaped **v2** blob instead of today's empty `[]`.
+
+- `vital_signs` / `lab_results` → **merge table** seeded with **one heading
+  row** of the registry columns (Vitals: Time·BP·HR·RR·SpO₂·Temp·Pain; Labs:
+  Time·Test·Value·Unit·Reference·Flag), then empty data rows — fully editable.
+- `nurses_notes` / `orders` / `history` / `diagnostics` → **narrative tab**
+  seeded with **suggested default chips** from the old typed fields (Time;
+  Orders→`Status`; H&P→`Section` and no Time; Diagnostics→`Test`), then a
+  rich body.
+
+`addBuiltIn()` swaps its `entries: '[]'` for the per-key seed. The "Already
+added" single-add rule stays. Built-in = a **named v2 starting layout**
+(decision 3 — enrich, fully editable).
+
+#### Part B — convert the 27 existing rows (data; the live-data step)
+
+A **pure converter** (`lib/authoring/migrate-v1-tabs.ts`, unit-tested) maps
+each v1 blob to its v2 equivalent. Grounded in real dev blobs:
+
+- **Structured → merge table** (`vital_signs`, `lab_results`, `custom_grid`):
+  column titles (registry for built-ins; `columns_def` for grids) → a
+  **heading row**; each entry's per-column value → a rich-text cell (plain
+  string wrapped as a one-paragraph `RichDoc`); `visible_from` → the row's
+  `visibleFrom`. *e.g.* `{time:08:00, bp:110/68, hr:88, … visible_from:1}` →
+  row `[08:00 | 110/68 | 88 | …]` at Q1. Heading row is exempt from its own
+  `visibleFrom` (decision 8 — derived).
+- **Narrative → narrative v2** (`nurses_notes`, `orders`, `history`,
+  `diagnostics`, `custom_narrative`): `time` + each typed extra
+  (`status`/`section`/`test_type`) present-and-non-empty → a **chip**;
+  `body` → a one-paragraph rich body; `visible_from` → `visibleFrom`. *e.g.*
+  `{time:07:30, status:Active, body:"0.9% NS 1 L bolus…", visible_from:1}` →
+  card with chips `[07:30] [Active]`, rich body, at Q1.
+- **Empty tabs** (e.g. an `orders` tab with `entries:[]`) → the matching empty
+  v2 seed (Part A's seed), so they open straight into the new editor.
+
+#### Method — the careful (test-first) path (Sam's call)
+
+1. Write the converter as a **pure function**; unit-test it against **copies
+   of all 27 real dev blobs** (no DB writes) — assert structure, chips,
+   reveal positions, cell text survive.
+2. Eyeball a handful of converted tabs in the **editor + runner preview** on
+   dev (read the converted JSON into the new views; still no writes).
+3. Only then **apply to dev data** (back up each v1 blob first — reversible).
+4. Wire Part A; delete the two old editors + their dispatcher branches.
+5. Prod conversion ships **at release**, as a migration file, after dev is
+   proven (re-census prod first).
+
+#### Noted behaviour change — Lab Results flag highlight (settled 2026-06-28)
+
+The old curator **preview** (`PreviewChartView` → `labFlagClass`) auto-coloured
+abnormal Lab Results rows (amber for H/L, red for Critical) as a curator "take
+notice" cue — *preview only; the student runner always showed the flag as plain
+text*. Once Labs converts to a v2 merge table, both preview and runner render
+through the generic `MergeTableView`, which has no "Flag column" concept, so
+that automatic highlight is **intentionally dropped** (Sam's call, 2026-06-28).
+Replacement = **manual rich emphasis**: the curator bolds/colours/highlights
+whatever cells matter, on any table (a superset of the old Labs-only cue). The
+flag *values* are untouched. Not a regression to "fix" — a deliberate trade for
+the generic rich model.
+
+#### Open-on-build (verify during the slice)
+
+- The merge-table model's **derived heading-row** behaviour (all-heading row →
+  no independent `visibleFrom`) — confirm the seeded/converted heading row
+  reveals correctly in `studentRows`.
+- **Attempt snapshots** already coerce both shapes (`case-panel.tsx` handles
+  "new JSON shape and any legacy snapshot transparently") — confirm a
+  converted tab's snapshot still renders for in-flight attempts.
+- The add-tab **"Rows & columns" custom option** (v1 grid) becomes redundant
+  once `custom_grid` is v2 — drop it from the picker (the "Custom table" merge
+  option supersedes it); keep "Free text" + "Custom table".
+
+### Slice 6 — rich text across the questions  *(was Slice 5)*
+
+Point the Slice-1 primitive at the **question** fields — stems, every answer
+**option**, per-option **feedback**, **rationale** — across all 9 item types.
+The bank-wide migration of those columns (string → Tiptap JSON) lands here.
+
+### Slice 7 (LAST) — media block in the narrative body
+
+Add an image / ECG / wound-photo block to the **narrative body** only
+(reuse the library's media block). Closes the arc.
+
+### Cross-cutting (every slice)
+
+Classification / housekeeping / lifecycle / audit / publish-eligibility /
+dual preview / save pipeline are **kept** (decision 3 — enrich, not
+rewrite). Trend is **not** touched here; it reuses this engine in a later
+arc once the case-study wrapper is proven.
+
+### Multiple tables per custom tab — ADOPTED, built in Slice 2c (2026-06-28)
+
+> **STATUS: BUILT (Slice 2c).** Originally parked, then pulled forward the
+> same session: Sam reasoned it affects the student render + preview, so
+> doing it before Slice 3 avoids a shape migration + a second render/editor
+> pass. A custom-table tab now stores a **list of tables** (`{ v:2, tables:[…] }`);
+> `asMergeTab` upgrades the old single-table shape transparently. The editor
+> gained "+ Add another table" / remove-table and a table-aware selection;
+> one shared toolbar still acts on whichever cell (in whichever table) is
+> focused. Slice 3 renders the list. Rationale below kept for the record.
+
+The idea: let a custom-table tab hold a **list of tables** (an "+ Add table"
+affordance), the way a free-text tab holds a list of entry cards — so one
+tab could stack, e.g., two distinct tables.
+
+- **Why it's clean, not a hack.** It's *symmetric to free text*, which
+  already stores its entries as a list. A multi-table tab would just store
+  a **list of MergeTableData** instead of one — an **additive** change to
+  the v2 shape (`entries` becomes an array of tables), so it needs no
+  rework of what Slice 2 builds. Reveal is unaffected: each row keeps its
+  own `visibleFrom` regardless of how many tables sit in the tab.
+- **Why it's deferred.** It reopens **decisions 4 + 5** ("one tab = one
+  shape", "the custom table = a single grid"), which we chose for
+  simplicity and which the corpus supported (the amber tab-markers showed
+  NCSBN authors split each section into a **separate tab**). And much of the
+  need is already covered two ways: **(a)** two tabs (the NCSBN-native
+  split), and **(b)** the merge table's own irregularity (merge/subdivide
+  can already make one grid *look* like two — the Phase Sheet is one
+  irregular table, not two).
+- **The gate before building it.** Find a real Maryland/NCSBN specimen where
+  a single tab genuinely needs two distinct tables that neither two-tabs nor
+  one merge table expresses well. Best moment to look: Slice 4 (narrative
+  tab) / Slice 6 (templates), staring at the real content again. If such a
+  case shows up → generalise `entries` to a list of tables + an "+ Add
+  table" button + per-table toolbar focus. If not → the single-table model
+  holds.

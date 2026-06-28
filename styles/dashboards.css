@@ -3228,6 +3228,53 @@
   max-height: 70vh;
   overflow-y: auto;
 }
+
+/* Add-chart-tab picker as a centred modal (body-portaled via the shared
+ * .auth-modal-overlay backdrop) — replaces the anchored .cs-popover, which
+ * got clipped inside the narrow chart-tab rail. */
+.cs-tab-add-modal {
+  background: var(--white);
+  width: min(440px, 92vw);
+  max-height: 86vh;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.cs-tab-add-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.cs-tab-add-modal-head h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.cs-tab-add-modal-close {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+}
+.cs-tab-add-modal-close:hover {
+  color: var(--text);
+  background: var(--bg);
+}
+.cs-tab-add-modal-body {
+  padding: 14px 16px;
+  overflow-y: auto;
+}
+
 .cs-popover h4 {
   font-size: 12.5px;
   font-weight: 600;

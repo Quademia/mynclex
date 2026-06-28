@@ -5172,3 +5172,715 @@
 .auth-tr-visibility-row input[type="checkbox"] {
   cursor: pointer;
 }
+
+/* ─────────────────────────────────────────────────────
+ * Rich-content relook — Slice 1
+ *
+ * The reusable bank rich field (lib/authoring/rich-field.tsx) + the
+ * read-only renderer (rich-render.tsx). `auth-rf-*` = editor chrome;
+ * `auth-rich` = rendered output. Shared by every field that moves from
+ * plain text to rich content across the later slices.
+ * ───────────────────────────────────────────────────── */
+
+.auth-rich-field {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  overflow: hidden;
+}
+
+/* Toolbar */
+.auth-rf-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.auth-rf-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 4px;
+  background: var(--border);
+}
+.auth-rf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.auth-rf-btn:hover {
+  background: var(--white);
+  border-color: var(--border);
+  color: var(--text);
+}
+.auth-rf-btn.is-active {
+  background: var(--primary-light);
+  border-color: var(--primary-light);
+  color: var(--primary);
+}
+.auth-rf-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Editor body (Tiptap ProseMirror surface) */
+.auth-rf-body {
+  padding: 10px 12px;
+  min-height: 96px;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+.auth-rf-body .ProseMirror {
+  outline: none;
+  min-height: 72px;
+}
+.auth-rf-body .ProseMirror > * + * {
+  margin-top: 0.5em;
+}
+.auth-rf-body .ProseMirror ul,
+.auth-rf-body .ProseMirror ol {
+  padding-left: 1.4em;
+}
+.auth-rf-body .ProseMirror ul { list-style: disc; }
+.auth-rf-body .ProseMirror ol { list-style: decimal; }
+/* Placeholder (extension-placeholder) */
+.auth-rf-body .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
+/* Loading skeleton */
+.auth-rf-toolbar-skeleton {
+  height: 38px;
+}
+.auth-rf-body-skeleton {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Read-only rendered output ── */
+.auth-rich {
+  line-height: 1.55;
+  color: var(--text);
+}
+.auth-rich > * + * {
+  margin-top: 0.5em;
+}
+.auth-rich ul,
+.auth-rich ol {
+  padding-left: 1.4em;
+  margin: 0.4em 0;
+}
+.auth-rich ul { list-style: disc; }
+.auth-rich ol { list-style: decimal; }
+.auth-rich blockquote {
+  margin: 0.5em 0;
+  padding-left: 0.9em;
+  border-left: 3px solid var(--border);
+  color: var(--text-muted);
+}
+.auth-rich mark {
+  padding: 0 0.1em;
+  border-radius: 2px;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Rich-content relook — Slice 2a: custom merge-table editor
+ * (lib/authoring/table/merge-table-editor.tsx). `mt-*` throughout.
+ * ───────────────────────────────────────────────────── */
+
+/* The new editors override .cs-entries-pane's `overflow: hidden` so the
+ * sticky toolbar's scroll container is the real one (.auth-cs-pane-left),
+ * not this clipped pane — otherwise sticky never engages.
+ *
+ * `min-width: 0` pins this pane to its 1fr grid track in .cs-chart-layout.
+ * Without it a grid item defaults to min-width:auto and grows to fit a wide
+ * table — which (with overflow:visible removing the clip) spills the table +
+ * toolbar over the preview pane AND stops .mt-grid-scroll from ever scrolling
+ * (its container already grew to fit). With it, a wide table scrolls inside
+ * .mt-grid-scroll and the toolbar stays within the column. */
+.mt-pane {
+  overflow: visible;
+  min-width: 0;
+}
+
+.mt-kind-tag {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--white);
+  background: var(--accent);
+  padding: 3px 7px;
+  border-radius: 5px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* toolbar */
+.mt-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  margin-bottom: 10px;
+  /* Sticky so it stays reachable when scrolling a long stack of tables /
+     entry cards (Sam's concern). The page scrolls here, and the wrapper's
+     back/title bar (.auth-cs-page-topbar) is page-sticky at top:0 (~38px,
+     z-index 20) — so park this toolbar just below it, not behind it.
+     Opaque bg so content scrolls under it. */
+  position: sticky;
+  top: 46px;
+  z-index: 6;
+}
+.mt-tb-group-label {
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-right: 2px;
+}
+.mt-tb-sep {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+  margin: 0 4px;
+}
+.mt-tb-btn {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 11px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.mt-tb-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.mt-tb-btn.is-open {
+  color: var(--accent);
+  background: var(--primary-light);
+  border-color: var(--accent);
+}
+.mt-tb-btn.danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.mt-tb-btn:disabled {
+  color: #b6bfca;
+  background: #f4f6f8;
+  border-color: #e7ebf0;
+  cursor: default;
+}
+.mt-tb-rich {
+  min-width: 32px;
+  padding: 6px 9px;
+}
+
+/* split sub-menu */
+.mt-tb-split {
+  position: relative;
+  display: inline-flex;
+}
+.mt-split-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  padding: 11px 12px;
+  width: 214px;
+}
+.mt-split-menu-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.mt-split-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.mt-split-row-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  width: 58px;
+}
+.mt-split-opt {
+  width: 30px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.mt-split-opt:hover {
+  border-color: var(--accent);
+}
+.mt-split-menu-note {
+  margin-top: 9px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* selection hint */
+.mt-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  margin-bottom: 10px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+.mt-hint.accent {
+  color: var(--accent);
+  background: var(--primary-light);
+  border-color: var(--accent);
+}
+
+/* grid */
+.mt-grid-scroll {
+  /* Grid line — deliberately stronger than --border so it stays visible
+     against the heading-cell shading (which is primary @ 12%). */
+  --mt-line: color-mix(in srgb, var(--primary) 34%, var(--white));
+  overflow-x: auto;
+  border: 1px solid var(--mt-line);
+  border-radius: 10px;
+}
+.mt-grid {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: auto;
+}
+.mt-gutter {
+  width: 72px;
+  padding: 0 8px;
+  vertical-align: middle;
+  text-align: center;
+  background: var(--bg);
+  border-bottom: 1px solid var(--mt-line);
+}
+.mt-gutter-auto {
+  display: inline-block;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: 5px;
+  padding: 3px 6px;
+}
+.mt-gutter-vf {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--primary-light);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 4px;
+  cursor: pointer;
+}
+.mt-gutter-vf.is-later {
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 45%, transparent);
+}
+
+.mt-cell {
+  border: 1px solid var(--mt-line);
+  background: var(--white);
+  padding: 0;
+  vertical-align: top;
+  position: relative;
+  cursor: cell;
+  min-width: 92px;
+}
+.mt-cell.is-head {
+  background: color-mix(in srgb, var(--primary) 12%, var(--white));
+}
+.mt-cell.is-sel {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  background: var(--primary-light);
+}
+.mt-cell.is-hidden {
+  opacity: 0.45;
+}
+.mt-cell-static {
+  min-height: 22px;
+  padding: 9px 11px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: var(--text);
+}
+.mt-cell.is-head .mt-cell-static {
+  font-weight: 700;
+}
+.mt-cell-ph {
+  color: #b0b9c4;
+}
+/* roving rich cell — the Slice-1 RichField, made seamless inside a cell */
+.mt-cell-edit .auth-rich-field {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+.mt-cell-edit .auth-rf-body {
+  min-height: 40px;
+  padding: 9px 11px;
+  font-size: 13.5px;
+}
+.mt-cell.is-head .mt-cell-edit .auth-rf-body {
+  font-weight: 700;
+}
+/* static rendered cell content */
+.mt-cell-static .auth-rich {
+  line-height: 1.5;
+}
+
+/* in-cell rich toolbar buttons */
+.mt-tb-btn.is-active {
+  color: var(--accent);
+  background: var(--primary-light);
+  border-color: var(--accent);
+}
+.mt-tb-rich svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* footer */
+/* per-table block (Slice 2c — a tab holds a list of tables) */
+.mt-table-block {
+  margin-bottom: 18px;
+}
+.mt-table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.mt-table-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.mt-table-meta {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.mt-table-remove {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--danger);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 4px 9px;
+  cursor: pointer;
+}
+.mt-table-remove:hover {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+.mt-add-table-row {
+  padding: 4px 0 10px;
+  border-top: 1px dashed var(--border);
+  margin-top: 4px;
+}
+.mt-add-table-btn {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: transparent;
+  border: 1px dashed var(--accent);
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.mt-add-table-btn:hover {
+  background: var(--primary-light);
+}
+
+.mt-foot-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 0 4px;
+}
+.mt-foot-btn {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--primary-light);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.mt-legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 11px 0 2px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.mt-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mt-swatch {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  display: inline-block;
+}
+.mt-swatch.is-head {
+  background: color-mix(in srgb, var(--primary) 12%, var(--white));
+}
+
+/* ─────────────────────────────────────────────────────
+ * Rich-content relook — Slice 3: read-only student render
+ * (lib/authoring/table/merge-table-view.tsx). `mtv-*`. Used in the
+ * curator preview pane and the student runner.
+ * ───────────────────────────────────────────────────── */
+
+.mtv-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.mtv-scroll {
+  /* Same stronger grid line as the editor (see .mt-grid-scroll). */
+  --mt-line: color-mix(in srgb, var(--primary) 34%, var(--white));
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--mt-line);
+  border-radius: 8px;
+}
+.mtv-table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: auto;
+}
+.mtv-cell {
+  border: 1px solid var(--mt-line);
+  background: var(--white);
+  padding: 8px 11px;
+  vertical-align: top;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.mtv-cell.is-head {
+  background: color-mix(in srgb, var(--primary) 12%, var(--white));
+  font-weight: 700;
+  color: var(--primary);
+}
+/* a row that first appears at the current question gets a soft amber edge */
+.mtv-cell.just-revealed {
+  border-left: 3px solid var(--warning);
+}
+.mtv-empty {
+  color: var(--text-muted);
+}
+.mtv-cell .auth-rich {
+  line-height: 1.5;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Rich-content relook — Slice 4: narrative tab
+ *   editor   = nt-*  (lib/authoring/narrative/narrative-tab-editor.tsx)
+ *   render   = nv-*  (narrative-view.tsx)
+ * ───────────────────────────────────────────────────── */
+
+/* editor cards */
+.nt-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.nt-card.is-hidden {
+  opacity: 0.5;
+}
+.nt-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.nt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.nt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 4px 2px 8px;
+}
+.nt-chip input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  width: 7em;
+  min-width: 3em;
+}
+.nt-chip-del {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 3px;
+  border-radius: 999px;
+}
+.nt-chip-del:hover {
+  color: var(--danger);
+}
+.nt-chip-add {
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.nt-chip-add:hover {
+  border-color: var(--accent);
+  background: var(--primary-light);
+}
+.nt-card-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.nt-entry-del {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 7px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.nt-entry-del:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+/* body — roving rich field (active) / static (click to edit) */
+.nt-body-edit .auth-rich-field {
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+}
+.nt-body-static {
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  cursor: text;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.nt-body-static:hover {
+  border-color: var(--accent);
+}
+.nt-body-ph {
+  color: var(--text-muted);
+}
+.nt-add-row {
+  padding: 4px 0 10px;
+}
+
+/* read-only render */
+.nv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.nv-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  padding: 10px 12px;
+}
+.nv-card.just-revealed {
+  border-left: 3px solid var(--warning);
+}
+.nv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.nv-chip {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-light);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.nv-body {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+}

@@ -3,6 +3,8 @@
 // Wrapper-page row shapes for the case-study editor.
 
 import type { CjmmStep } from '../../classifications';
+import type { MergeTabData } from '@/lib/authoring/table/merge-table-model';
+import type { NarrativeTabData } from '@/lib/authoring/narrative/narrative-model';
 import type { McqEditorInitial }      from '../../editors/mcq-row-mapper';
 import type { TfEditorInitial }       from '../../editors/tf-row-mapper';
 import type { SataEditorInitial }     from '../../editors/sata-row-mapper';
@@ -74,6 +76,11 @@ export interface ChartEntry {
 }
 
 // nclex_case_study_tabs row.
+//
+// `entries` is normally a ChartEntry[] (built-in + v1 custom tabs). A v2
+// custom table (rich-content relook) stores a MergeTabData object here
+// instead (a list of tables) — the editor branches on the shape. See
+// asMergeTab() in lib/authoring/table/merge-table-model.
 export interface TabRow {
   tab_id:        string;
   case_id:       string;
@@ -83,7 +90,7 @@ export interface TabRow {
   is_custom:     boolean;
   custom_shape:  'free_text' | 'rows_cols' | null;
   columns_def:   TabColumn[];
-  entries:       ChartEntry[];
+  entries:       ChartEntry[] | MergeTabData | NarrativeTabData;
 }
 
 // One of the six slots on a case. position is fixed 1-6 (schema

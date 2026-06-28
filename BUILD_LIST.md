@@ -8,6 +8,40 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **CURRICULUM — MONTH VIEW (CD "Monthly Curriculum View", Variant B
+> "Programme schedule") — BUILT: Slices 1 + 2 on the session branch
+> (2026-06-27; all app-layer, NO migration; tsc + eslint clean; tutor
+> Slice 1 Sam-approved on dev, student Slice 2 awaiting test; NOT merged
+> to `main`).** An **additive** schedule lens beside the existing
+> curriculum view — a "Month" toggle that re-draws the SAME activities on
+> a timeline (week rows × day-groups, month bands, type-coloured chips).
+> The existing two-pane / checklist is untouched. **Cohort-only** (driven
+> by per-cohort dates; self-paced has no timeline). No migration — a pure
+> re-projection of data already loaded. Variant B chosen over the month
+> grid (A): reuses our week grouping, no month paging for a multi-month
+> cohort, fewer edge cases, better mobile. Plan +
+> rationale: [curriculum-month-view.md](docs/product-plan/curriculum-month-view.md).
+> - **Slice 1 — Tutor (verb: *inspect*)** (`4ca31d5`): shared
+>   `lib/curriculum/month-view.tsx` (`CurriculumMonthView` + model + date
+>   helpers) + tutor adapter `lib/cohorts/month-model.ts` +
+>   `styles/curriculum-month.css`. **Checklist | Month** toggle on the
+>   cohort Curriculum tab (local view state — no re-fetch). Chips carry
+>   block refs (B1/B2) + "excl"/"due" tags; **click → jump to that
+>   activity's week in the Checklist** to edit (view-only).
+> - **Slice 2 — Student (verb: *do*)**: reuses the layout via a
+>   `renderChip` seam + done-icon ✓ swap. New
+>   `student-month-model.ts` + `student-curriculum-shell.tsx` (the
+>   **{Weeks} | Month** toggle). Chips show done ✓ / up-next ↑ / due /
+>   locked + a per-week progress bar; **tap an OPEN chip → launches it**
+>   via a new `asChip` seam on `<ActivityAction>` (ONE launch path — note
+>   = Link, others = viewer). Locked/closed render plain. Self-paced
+>   unchanged.
+>
+> **⏭ NEXT:** Sam tests Slice 2 on dev → (with approval) merge both to
+> `main`. Then back to the library thread (11.17 + the Mark-done→progress
+> stub) → the big `main → prod` release (⚠ `PAYSTACK_SECRET_KEY` still not
+> on prod).
+
 > **LIBRARY — STUDENT "MY PRACTICE" (student side of 11.11c) — BUILT +
 > MERGED to `main` (2026-06-26, second session; Sam-tested on dev; all
 > app-layer, NO migration; not yet prod).** The deferred student half of

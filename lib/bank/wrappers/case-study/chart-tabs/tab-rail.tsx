@@ -18,10 +18,34 @@
 'use client';
 
 import { useState, useEffect, useRef, useTransition } from 'react';
-import { BUILT_IN_TABS, customKeyForShape, type CustomShape } from './tab-types';
+import { createPortal } from 'react-dom';
+import { BUILT_IN_TABS, type BuiltInTabType } from './tab-types';
 import { reorderTabsAction, upsertTabAction } from '../actions';
 import type { CaseStudyTabRow, Surface } from '../types';
-import { CUSTOM_GRID_MIN_COLUMNS } from '../types';
+import { emptyTab } from '@/lib/authoring/table/merge-table-model';
+import { emptyNarrativeTab } from '@/lib/authoring/narrative/narrative-model';
+import { structuredToMergeTab } from '@/lib/authoring/migrate-v1-tabs';
+
+// Slice 5 — built-ins are upgraded to the v2 editors one template at a time.
+// A handled built-in seeds its v2 blob (so clicking it in the picker drops the
+// new rich editor, pre-shaped); the rest keep the v1 empty array until their
+// own sub-slice. Same shape the migration converter produces for empty tabs.
+//   - structured built-ins (Vital Signs 5.1, Lab Results 5.2) → merge table,
+//     column titles seeded as the heading row;
+//   - narrative built-ins (Nurses' Notes 5.3; Orders/H&P/Diagnostics 5.4–5.6)
+//     → a v2 narrative tab; the rest stay v1 until their sub-slice.
+function seedEntriesForBuiltIn(t: BuiltInTabType): string {
+  if (t.shape === 'structured') {
+    return JSON.stringify(structuredToMergeTab(t.columns ?? [], []));
+  }
+  // All four narrative built-ins now seed a blank v2 narrative tab.
+  return JSON.stringify(emptyNarrativeTab());
+}
+
+// New custom tabs come in two shapes: a free-text narrative or the custom
+// merge table (rich-content relook). The legacy rows-and-columns grid was
+// retired in Slice 5.7 — the merge table is a superset of it.
+type NewTabShape = 'free_text' | 'merge_table';
 
 interface RailProps {
   surface:       Surface;
@@ -139,7 +163,11 @@ export function TabRail({
             surface={surface}
             case_id={case_id}
             alreadyAddedKeys={alreadyAddedKeys}
-            nextDisplayOrder={tabs.length}
+            // max(existing display_order) + 1 — NOT tabs.length, which
+            // collides with the UNIQUE(case_id, display_order) constraint
+            // whenever the existing orders are 1-based or have a gap from
+            // a deleted tab (which every case does).
+            nextDisplayOrder={tabs.reduce((m, t) => Math.max(m, t.display_order), -1) + 1}
             onClose={() => setAddOpen(false)}
           />
         )}
@@ -172,7 +200,7 @@ function AddTabPopover({
 }: PopoverProps) {
   const [customMode, setCustomMode] = useState(false);
   const [customName, setCustomName] = useState('');
-  const [shape, setShape] = useState<CustomShape>('free_text');
+  const [shape, setShape] = useState<NewTabShape>('free_text');
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -203,15 +231,15 @@ function AddTabPopover({
     }
   }, [customMode]);
 
-  function addBuiltIn(tab_key: string, default_title: string) {
+  function addBuiltIn(t: BuiltInTabType) {
     const fd = new FormData();
     fd.set('surface', surface);
     fd.set('case_id', case_id);
-    fd.set('tab_key', tab_key);
-    fd.set('title', default_title);
+    fd.set('tab_key', t.tab_key);
+    fd.set('title', t.default_title);
     fd.set('display_order', String(nextDisplayOrder));
     fd.set('is_custom', 'false');
-    fd.set('entries', '[]');
+    fd.set('entries', seedEntriesForBuiltIn(t));
     fd.set('columns_def', '[]');
     startTransition(async () => {
       const res = await upsertTabAction(fd);
@@ -226,18 +254,21 @@ function AddTabPopover({
       setErr('Tab name is required.');
       return;
     }
-    const tab_key = customKeyForShape(shape);
-    // custom_grid needs at least CUSTOM_GRID_MIN_COLUMNS columns to be
-    // usable. Pre-seed with two blank columns so curators can start
-    // renaming immediately rather than hitting "no rows" until they
-    // add columns manually.
-    const columns_def =
-      shape === 'rows_cols'
-        ? Array.from({ length: CUSTOM_GRID_MIN_COLUMNS }, (_, i) => ({
-            id: `c${i + 1}`,
-            label: `Column ${i + 1}`,
-          }))
-        : [];
+    // Two custom shapes — both keep custom_shape within the DB CHECK
+    // (free_text / rows_cols), so no migration:
+    //   free_text   → custom_narrative carrying a blank v2 narrative.
+    //   merge_table → custom_grid carrying a blank v2 merge table in entries.
+    // The old v1 "rows & columns" grid was retired in Slice 5.7 — the rich
+    // "Custom table" (merge_table) is a superset of it.
+    let tab_key = 'custom_narrative';
+    let custom_shape = 'free_text';
+    let entries = JSON.stringify(emptyNarrativeTab());
+    const columns_def = '[]';
+    if (shape === 'merge_table') {
+      tab_key = 'custom_grid';
+      custom_shape = 'rows_cols';
+      entries = JSON.stringify(emptyTab());
+    }
 
     const fd = new FormData();
     fd.set('surface', surface);
@@ -246,9 +277,9 @@ function AddTabPopover({
     fd.set('title', name);
     fd.set('display_order', String(nextDisplayOrder));
     fd.set('is_custom', 'true');
-    fd.set('custom_shape', shape);
-    fd.set('entries', '[]');
-    fd.set('columns_def', JSON.stringify(columns_def));
+    fd.set('custom_shape', custom_shape);
+    fd.set('entries', entries);
+    fd.set('columns_def', columns_def);
     startTransition(async () => {
       const res = await upsertTabAction(fd);
       if (!res.ok) setErr(res.error);
@@ -256,108 +287,86 @@ function AddTabPopover({
     });
   }
 
-  // ── Step 2: custom-form sub-screen ──────────────────────────
-  if (customMode) {
-    const nameTrimmed = customName.trim();
-    const canSubmit = nameTrimmed.length > 0 && !pending;
-    return (
-      <div className="cs-popover auth-cs-popover-with-close" role="dialog" aria-label="New custom tab">
+  const nameTrimmed = customName.trim();
+  const canSubmit = nameTrimmed.length > 0 && !pending;
+
+  // ── Body content per step ───────────────────────────────────
+  const body = customMode ? (
+    <>
+      <div className="cs-popover-custom">
+        <input
+          ref={nameInputRef}
+          type="text"
+          value={customName}
+          placeholder="Tab name, e.g. Imaging"
+          onChange={(e) => {
+            setCustomName(e.target.value);
+            if (err) setErr(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && canSubmit) {
+              e.preventDefault();
+              addCustom();
+            }
+          }}
+        />
+      </div>
+      <div className="cs-shape-choice" style={{ marginTop: 10 }}>
+        <label className={shape === 'free_text' ? 'active' : ''}>
+          <input
+            type="radio"
+            name="cs-custom-shape"
+            checked={shape === 'free_text'}
+            onChange={() => setShape('free_text')}
+          />
+          <span>
+            <div className="cs-shape-choice-title">Free text</div>
+            <div className="cs-shape-choice-desc">
+              Stacked cards with Time, a body, and visible-from. Same as Nurses&rsquo; Notes.
+            </div>
+          </span>
+        </label>
+        <label className={shape === 'merge_table' ? 'active' : ''}>
+          <input
+            type="radio"
+            name="cs-custom-shape"
+            checked={shape === 'merge_table'}
+            onChange={() => setShape('merge_table')}
+          />
+          <span>
+            <div className="cs-shape-choice-title">Custom table</div>
+            <div className="cs-shape-choice-desc">
+              A flexible table — merge cells, mark headings, set when each row
+              appears. For irregular charts like a Phase Sheet.
+            </div>
+          </span>
+        </label>
+      </div>
+      {err && <div className="cs-error">{err}</div>}
+      <div className="cs-popover-footer">
         <button
           type="button"
-          className="auth-cs-popover-close"
-          aria-label="Close"
-          onClick={onClose}
+          className="cs-btn"
+          onClick={() => {
+            setCustomMode(false);
+            setErr(null);
+          }}
           disabled={pending}
         >
-          ×
+          ← Back
         </button>
-        <h4>New custom tab</h4>
-        <div className="cs-popover-custom">
-          <input
-            ref={nameInputRef}
-            type="text"
-            value={customName}
-            placeholder="Tab name, e.g. Imaging"
-            onChange={(e) => {
-              setCustomName(e.target.value);
-              if (err) setErr(null);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && canSubmit) {
-                e.preventDefault();
-                addCustom();
-              }
-            }}
-          />
-        </div>
-        <div className="cs-shape-choice" style={{ marginTop: 10 }}>
-          <label className={shape === 'free_text' ? 'active' : ''}>
-            <input
-              type="radio"
-              name="cs-custom-shape"
-              checked={shape === 'free_text'}
-              onChange={() => setShape('free_text')}
-            />
-            <span>
-              <div className="cs-shape-choice-title">Free text</div>
-              <div className="cs-shape-choice-desc">
-                Stacked cards with Time, a body, and visible-from. Same as Nurses&rsquo; Notes.
-              </div>
-            </span>
-          </label>
-          <label className={shape === 'rows_cols' ? 'active' : ''}>
-            <input
-              type="radio"
-              name="cs-custom-shape"
-              checked={shape === 'rows_cols'}
-              onChange={() => setShape('rows_cols')}
-            />
-            <span>
-              <div className="cs-shape-choice-title">Rows &amp; columns</div>
-              <div className="cs-shape-choice-desc">
-                Curator-defined columns plus a locked Visible-from. Like Vitals or Labs.
-              </div>
-            </span>
-          </label>
-        </div>
-        {err && <div className="cs-error">{err}</div>}
-        <div className="cs-popover-footer">
-          <button
-            type="button"
-            className="cs-btn"
-            onClick={() => {
-              setCustomMode(false);
-              setErr(null);
-            }}
-            disabled={pending}
-          >
-            ← Back
-          </button>
-          <button
-            type="button"
-            className="cs-btn primary"
-            onClick={addCustom}
-            disabled={!canSubmit}
-          >
-            {pending ? 'Adding…' : 'Add tab'}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="cs-btn primary"
+          onClick={addCustom}
+          disabled={!canSubmit}
+        >
+          {pending ? 'Adding…' : 'Add tab'}
+        </button>
       </div>
-    );
-  }
-
-  return (
-    <div className="cs-popover auth-cs-popover-with-close" role="dialog" aria-label="Add chart tab">
-      <button
-        type="button"
-        className="auth-cs-popover-close"
-        aria-label="Close"
-        onClick={onClose}
-        disabled={pending}
-      >
-        ×
-      </button>
-      <h4>Add a chart tab</h4>
+    </>
+  ) : (
+    <>
       <div className="cs-popover-list">
         {BUILT_IN_TABS.map((t) => {
           const used = alreadyAddedKeys.has(t.tab_key);
@@ -367,7 +376,7 @@ function AddTabPopover({
               className={used ? 'cs-popover-item used' : 'cs-popover-item'}
               onClick={() => {
                 if (used || pending) return;
-                addBuiltIn(t.tab_key, t.default_title);
+                addBuiltIn(t);
               }}
               role="button"
               aria-disabled={used}
@@ -391,6 +400,38 @@ function AddTabPopover({
         + Create custom tab
       </button>
       {err && <div className="cs-error">{err}</div>}
-    </div>
+    </>
+  );
+
+  // Centred modal, portaled to <body> so the pane's overflow can't clip it
+  // (the anchored popover got cropped inside the narrow rail).
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div
+      className="auth-modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label={customMode ? 'New custom tab' : 'Add a chart tab'}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="cs-tab-add-modal">
+        <header className="cs-tab-add-modal-head">
+          <h4>{customMode ? 'New custom tab' : 'Add a chart tab'}</h4>
+          <button
+            type="button"
+            className="cs-tab-add-modal-close"
+            aria-label="Close"
+            onClick={onClose}
+            disabled={pending}
+          >
+            ✕
+          </button>
+        </header>
+        <div className="cs-tab-add-modal-body">{body}</div>
+      </div>
+    </div>,
+    document.body,
   );
 }

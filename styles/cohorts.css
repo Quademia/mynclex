@@ -557,8 +557,22 @@
 
 .cohort-checklist-head {
   display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.cohort-checklist-head-text {
+  display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+}
+@media (max-width: 768px) {
+  .cohort-checklist-head {
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 
 .cohort-checklist-title {

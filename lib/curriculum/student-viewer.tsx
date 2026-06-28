@@ -59,6 +59,11 @@ import {
 } from './format';
 import { ActivityAction } from './activity-action';
 import { StudentCurriculumPane } from './student-curriculum-pane';
+import { StudentCurriculumShell } from './student-curriculum-shell';
+import {
+  buildStudentMonthWeeks,
+  studentRangeLabel,
+} from './student-month-model';
 import type { RailUnit } from './student-curriculum-pane';
 import type {
   ProgrammeActivity,
@@ -74,6 +79,53 @@ export function StudentCurriculumViewer({
   const unitNoun = tree.programme.unit_label === 'WEEK' ? 'week' : 'module';
   const isPane = tree.units.length > 1;
 
+  // The Weeks body — the existing single-section / two-pane render. Shared
+  // by both the plain (self-paced) layout and the Month-toggle shell.
+  const weeksBody =
+    tree.units.length === 0 ? (
+      <div className="student-curriculum-empty">
+        No content has been published yet.
+      </div>
+    ) : tree.units.length === 1 ? (
+      // Single unit — render the section directly, no rail (a
+      // one-item rail adds noise; same call as the old tabs).
+      <div className="student-curriculum-units">
+        <UnitSection unit={tree.units[0]} tree={tree} />
+      </div>
+    ) : (
+      // 2+ units — the two-pane rail/detail. Children are
+      // server-rendered <UnitSection> nodes, one per unit, in order;
+      // the client pane shows only the selected one (others stay
+      // mounted, hidden) and owns the selection + mobile drill-in.
+      <StudentCurriculumPane
+        rail={buildRail(tree)}
+        defaultIndex={tree.whereILeftOffUnitIndex}
+      >
+        {tree.units.map((u) => (
+          <UnitSection key={u.unit.unit_id} unit={u} tree={tree} />
+        ))}
+      </StudentCurriculumPane>
+    );
+
+  // Month view (Slice 2) — only in a cohort context (tutor-led) with
+  // content. Self-paced has no timeline; render the plain header + body.
+  if (tree.cohort && tree.units.length > 0) {
+    const { weeks, activities } = buildStudentMonthWeeks(tree);
+    const libraryBasePath = `/student/cohort/${tree.cohort.cohort_id}/library`;
+    return (
+      <StudentCurriculumShell
+        isPane={isPane}
+        unitNoun={tree.programme.unit_label === 'WEEK' ? 'Weeks' : 'Modules'}
+        cohortName={tree.cohort.name}
+        weeksBody={weeksBody}
+        monthWeeks={weeks}
+        activities={activities}
+        libraryBasePath={libraryBasePath}
+        rangeLabel={studentRangeLabel(tree)}
+      />
+    );
+  }
+
   return (
     <div className={'student-curriculum' + (isPane ? ' is-pane' : '')}>
       <header className="student-curriculum-head">
@@ -85,31 +137,7 @@ export function StudentCurriculumViewer({
             : null}
         </p>
       </header>
-
-      {tree.units.length === 0 ? (
-        <div className="student-curriculum-empty">
-          No content has been published yet.
-        </div>
-      ) : tree.units.length === 1 ? (
-        // Single unit — render the section directly, no rail (a
-        // one-item rail adds noise; same call as the old tabs).
-        <div className="student-curriculum-units">
-          <UnitSection unit={tree.units[0]} tree={tree} />
-        </div>
-      ) : (
-        // 2+ units — the two-pane rail/detail. Children are
-        // server-rendered <UnitSection> nodes, one per unit, in order;
-        // the client pane shows only the selected one (others stay
-        // mounted, hidden) and owns the selection + mobile drill-in.
-        <StudentCurriculumPane
-          rail={buildRail(tree)}
-          defaultIndex={tree.whereILeftOffUnitIndex}
-        >
-          {tree.units.map((u) => (
-            <UnitSection key={u.unit.unit_id} unit={u} tree={tree} />
-          ))}
-        </StudentCurriculumPane>
-      )}
+      {weeksBody}
     </div>
   );
 }
