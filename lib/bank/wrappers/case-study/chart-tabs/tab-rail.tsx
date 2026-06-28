@@ -18,6 +18,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useTransition } from 'react';
+import { createPortal } from 'react-dom';
 import { BUILT_IN_TABS } from './tab-types';
 import { reorderTabsAction, upsertTabAction } from '../actions';
 import type { CaseStudyTabRow, Surface } from '../types';
@@ -278,123 +279,100 @@ function AddTabPopover({
     });
   }
 
-  // ── Step 2: custom-form sub-screen ──────────────────────────
-  if (customMode) {
-    const nameTrimmed = customName.trim();
-    const canSubmit = nameTrimmed.length > 0 && !pending;
-    return (
-      <div className="cs-popover auth-cs-popover-with-close" role="dialog" aria-label="New custom tab">
+  const nameTrimmed = customName.trim();
+  const canSubmit = nameTrimmed.length > 0 && !pending;
+
+  // ── Body content per step ───────────────────────────────────
+  const body = customMode ? (
+    <>
+      <div className="cs-popover-custom">
+        <input
+          ref={nameInputRef}
+          type="text"
+          value={customName}
+          placeholder="Tab name, e.g. Imaging"
+          onChange={(e) => {
+            setCustomName(e.target.value);
+            if (err) setErr(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && canSubmit) {
+              e.preventDefault();
+              addCustom();
+            }
+          }}
+        />
+      </div>
+      <div className="cs-shape-choice" style={{ marginTop: 10 }}>
+        <label className={shape === 'free_text' ? 'active' : ''}>
+          <input
+            type="radio"
+            name="cs-custom-shape"
+            checked={shape === 'free_text'}
+            onChange={() => setShape('free_text')}
+          />
+          <span>
+            <div className="cs-shape-choice-title">Free text</div>
+            <div className="cs-shape-choice-desc">
+              Stacked cards with Time, a body, and visible-from. Same as Nurses&rsquo; Notes.
+            </div>
+          </span>
+        </label>
+        <label className={shape === 'rows_cols' ? 'active' : ''}>
+          <input
+            type="radio"
+            name="cs-custom-shape"
+            checked={shape === 'rows_cols'}
+            onChange={() => setShape('rows_cols')}
+          />
+          <span>
+            <div className="cs-shape-choice-title">Rows &amp; columns</div>
+            <div className="cs-shape-choice-desc">
+              Curator-defined columns plus a locked Visible-from. Like Vitals or Labs.
+            </div>
+          </span>
+        </label>
+        <label className={shape === 'merge_table' ? 'active' : ''}>
+          <input
+            type="radio"
+            name="cs-custom-shape"
+            checked={shape === 'merge_table'}
+            onChange={() => setShape('merge_table')}
+          />
+          <span>
+            <div className="cs-shape-choice-title">Custom table</div>
+            <div className="cs-shape-choice-desc">
+              A flexible table — merge cells, mark headings, set when each row
+              appears. For irregular charts like a Phase Sheet.
+            </div>
+          </span>
+        </label>
+      </div>
+      {err && <div className="cs-error">{err}</div>}
+      <div className="cs-popover-footer">
         <button
           type="button"
-          className="auth-cs-popover-close"
-          aria-label="Close"
-          onClick={onClose}
+          className="cs-btn"
+          onClick={() => {
+            setCustomMode(false);
+            setErr(null);
+          }}
           disabled={pending}
         >
-          ×
+          ← Back
         </button>
-        <h4>New custom tab</h4>
-        <div className="cs-popover-custom">
-          <input
-            ref={nameInputRef}
-            type="text"
-            value={customName}
-            placeholder="Tab name, e.g. Imaging"
-            onChange={(e) => {
-              setCustomName(e.target.value);
-              if (err) setErr(null);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && canSubmit) {
-                e.preventDefault();
-                addCustom();
-              }
-            }}
-          />
-        </div>
-        <div className="cs-shape-choice" style={{ marginTop: 10 }}>
-          <label className={shape === 'free_text' ? 'active' : ''}>
-            <input
-              type="radio"
-              name="cs-custom-shape"
-              checked={shape === 'free_text'}
-              onChange={() => setShape('free_text')}
-            />
-            <span>
-              <div className="cs-shape-choice-title">Free text</div>
-              <div className="cs-shape-choice-desc">
-                Stacked cards with Time, a body, and visible-from. Same as Nurses&rsquo; Notes.
-              </div>
-            </span>
-          </label>
-          <label className={shape === 'rows_cols' ? 'active' : ''}>
-            <input
-              type="radio"
-              name="cs-custom-shape"
-              checked={shape === 'rows_cols'}
-              onChange={() => setShape('rows_cols')}
-            />
-            <span>
-              <div className="cs-shape-choice-title">Rows &amp; columns</div>
-              <div className="cs-shape-choice-desc">
-                Curator-defined columns plus a locked Visible-from. Like Vitals or Labs.
-              </div>
-            </span>
-          </label>
-          <label className={shape === 'merge_table' ? 'active' : ''}>
-            <input
-              type="radio"
-              name="cs-custom-shape"
-              checked={shape === 'merge_table'}
-              onChange={() => setShape('merge_table')}
-            />
-            <span>
-              <div className="cs-shape-choice-title">Custom table</div>
-              <div className="cs-shape-choice-desc">
-                A flexible table — merge cells, mark headings, set when each row
-                appears. For irregular charts like a Phase Sheet.
-              </div>
-            </span>
-          </label>
-        </div>
-        {err && <div className="cs-error">{err}</div>}
-        <div className="cs-popover-footer">
-          <button
-            type="button"
-            className="cs-btn"
-            onClick={() => {
-              setCustomMode(false);
-              setErr(null);
-            }}
-            disabled={pending}
-          >
-            ← Back
-          </button>
-          <button
-            type="button"
-            className="cs-btn primary"
-            onClick={addCustom}
-            disabled={!canSubmit}
-          >
-            {pending ? 'Adding…' : 'Add tab'}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="cs-btn primary"
+          onClick={addCustom}
+          disabled={!canSubmit}
+        >
+          {pending ? 'Adding…' : 'Add tab'}
+        </button>
       </div>
-    );
-  }
-
-  return (
-    <div className="cs-popover auth-cs-popover-with-close" role="dialog" aria-label="Add chart tab">
-      <button
-        type="button"
-        className="auth-cs-popover-close"
-        aria-label="Close"
-        onClick={onClose}
-        disabled={pending}
-      >
-        ×
-      </button>
-      <h4>Add a chart tab</h4>
+    </>
+  ) : (
+    <>
       <div className="cs-popover-list">
         {BUILT_IN_TABS.map((t) => {
           const used = alreadyAddedKeys.has(t.tab_key);
@@ -428,6 +406,38 @@ function AddTabPopover({
         + Create custom tab
       </button>
       {err && <div className="cs-error">{err}</div>}
-    </div>
+    </>
+  );
+
+  // Centred modal, portaled to <body> so the pane's overflow can't clip it
+  // (the anchored popover got cropped inside the narrow rail).
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div
+      className="auth-modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label={customMode ? 'New custom tab' : 'Add a chart tab'}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="cs-tab-add-modal">
+        <header className="cs-tab-add-modal-head">
+          <h4>{customMode ? 'New custom tab' : 'Add a chart tab'}</h4>
+          <button
+            type="button"
+            className="cs-tab-add-modal-close"
+            aria-label="Close"
+            onClick={onClose}
+            disabled={pending}
+          >
+            ✕
+          </button>
+        </header>
+        <div className="cs-tab-add-modal-body">{body}</div>
+      </div>
+    </div>,
+    document.body,
   );
 }
