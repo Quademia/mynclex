@@ -1119,11 +1119,49 @@ one **sticky** toolbar. Render wired into preview + runner. New "Free text"
 tabs use it; existing v1 narrative + built-in narratives stay on the old
 editor until the templates slice.
 
-### Slice 5 — upgrade the built-in templates  *(was Slice 6)*
+### Slice 5 — upgrade the built-in templates  *(was Slice 6)* ✅ SHIPPED TO PROD (2026-06-28)
 
-> **PLAN AGREED 2026-06-28** (design pass with Sam; no code yet). Scope,
-> mapping, and method below are settled. Build order + open-on-build notes
-> at the end.
+> **✅ COMPLETE — built, converted (dev + prod), released to prod 2026-06-28.**
+> Built as **sub-slices, one template at a time** (Sam's call): **5.1** Vital
+> Signs · **5.2** Lab Results (structured converter) · **5.3** Nurses' Notes
+> (narrative converter) · **5.4** Orders · **5.5** H&P · **5.6** Diagnostics ·
+> **5.7a** convert the 12 legacy custom tabs + drop the v1 "Rows & columns"
+> picker option · **5.7b** delete the old v1 editors. Commits `7f99be6`…
+> `ec27a94` (+ the `3e070ae` flash polish). Released to prod across PR #30 (the
+> v2 render code) and PR #31 (5.7b + flash).
+>
+> **What actually shipped vs the plan below:**
+> - **Census was 28, not 27** — `vital_signs` was **4** rows, not 3 (16
+>   built-in + 12 custom on dev; prod independently had 28: nurses_notes×6,
+>   orders×1, diagnostics×1, vital_signs×2, custom grid×10, custom free_text×8 —
+>   no lab_results/history on prod).
+> - **Prod data was converted by the curl pipeline, NOT a migration file** (the
+>   plan's "step 5" guess). Order: release the v2 *render* code to prod first
+>   (old editors kept as the safety net) → back up prod tabs → dump via
+>   PostgREST → run the **tested** converter → `curl PATCH` each → deep-compare
+>   `ALL MATCH` → only then 5.7b deletes the old editors. Reason: the converter
+>   is complex JSON best produced by the tested TS function, not hand-written
+>   SQL (a hand-pasted blob dropped a grid row on dev — caught by deep-compare).
+> - **Three fixes/extras not in the plan:** (a) the v2 editors **hardcoded
+>   custom tab_key/is_custom on save** → a saved built-in silently became a
+>   custom tab + broke the picker's "Already added" guard → both editors now
+>   post the tab's own identity (`b41ab74`); (b) **wide-table horizontal scroll**
+>   — `.mt-pane{min-width:0}` so a wide table scrolls instead of overflowing the
+>   pane + covering the preview (`f534072`); (c) the **just-revealed cue** went
+>   from a constant warning-orange border to a **teal fade-flash** (`3e070ae`).
+> - **Case TITLE stays plain text** (decided 2026-06-28): titles are labels used
+>   in many plain contexts (lists, breadcrumbs, `<title>`, search, sort); the
+>   only real need is super/subscript units, which plain **Unicode** (SpO₂, HCO₃⁻)
+>   covers AND survives flattening — rich markup wouldn't. The scenario going
+>   rich (Slice 1) was the content win; the title is not content.
+> - **Attempt-snapshot edge case — verified non-issue:** the runner is now
+>   v2-only, so a case attempt snapshotted *before* conversion would render its
+>   charts empty. Checked prod `nclex_attempt_case_snapshots` = **0 rows** (no
+>   case attempts ever taken on prod), and every new snapshot is v2. (Minor dead
+>   code left: the v1-array branch in `case-panel.tsx`'s visible-tab filter is
+>   now unreachable — harmless, could be pruned later.)
+>
+> Original agreed plan kept below for the record. ↓
 
 Bring the six built-in tab templates (Vital Signs, Labs, Nurses' Notes,
 Orders, H&P, Diagnostics) onto the **new v2 editors already built in
