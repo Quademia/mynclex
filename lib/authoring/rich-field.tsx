@@ -48,6 +48,9 @@ interface RichFieldProps {
   /** Hand the live editor instance up to the host (and `null` on unmount)
    *  so an external toolbar can dispatch commands to it. */
   onEditor?: (editor: Editor | null) => void;
+  /** Focus the editor (caret to end) as soon as it mounts. Used by the
+   *  roving field so clicking a static field drops the caret straight in. */
+  autofocus?: boolean;
 }
 
 export function RichField({
@@ -57,8 +60,10 @@ export function RichField({
   ariaLabel = 'Rich text editor',
   hideToolbar = false,
   onEditor,
+  autofocus = false,
 }: RichFieldProps) {
   const editor = useEditor({
+    autofocus: autofocus ? 'end' : false,
     extensions: [
       // StarterKit (v3) supplies Bold / Italic / Underline / Strike,
       // bullet + ordered lists, paragraph, hard break, history.

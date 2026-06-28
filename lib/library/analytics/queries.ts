@@ -16,6 +16,7 @@
 // note is read self-paced, so we never imply a whole-class denominator.
 
 import { createClient } from '@/lib/supabase/server';
+import { richTextToPlain } from '@/lib/authoring/rich-doc';
 import { bodyToTiptap } from '../body-tiptap';
 import { tierOf } from './types';
 import { resolveReaderSegments } from './readers';
@@ -200,7 +201,7 @@ export async function getEmbedAnalyticsOverview(
       cur.attempts += 1;
     }
     if (a.stem_snapshot && !stemByItem.has(a.item_id)) {
-      stemByItem.set(a.item_id, a.stem_snapshot.trim());
+      stemByItem.set(a.item_id, richTextToPlain(a.stem_snapshot));
     }
   }
 
@@ -427,7 +428,7 @@ function buildOptions(g: QGroup): OptionDist[] {
   if (opts.length === 0) return [];
   const keys = correctIdSet(g.type, g.correctSnap);
   const counts = opts.map((o) => ({
-    text: o.text,
+    text: richTextToPlain(o.text),
     key: keys.has(o.id),
     count: g.firstAnswers.filter((a) => selected(a, o.id)).length,
   }));
@@ -555,7 +556,7 @@ export async function getEmbedAnalyticsNote(
       item_id: string;
       stem: string;
       question_type: string;
-    }>).map((q) => [q.item_id, { stem: q.stem, type: q.question_type }]),
+    }>).map((q) => [q.item_id, { stem: richTextToPlain(q.stem), type: q.question_type }]),
   );
 
   const { data: answerRows } = await supabase
@@ -979,7 +980,7 @@ export async function getEmbedReaderReport(
       correct: unknown;
     }>).map((q) => [
       q.item_id,
-      { stem: q.stem, type: q.question_type, content: q.content, correct: q.correct },
+      { stem: richTextToPlain(q.stem), type: q.question_type, content: q.content, correct: q.correct },
     ]),
   );
 
@@ -1059,7 +1060,7 @@ export async function getEmbedReaderReport(
       const keys = correctIdSet(type, correctSrc);
       const options: ReportOption[] = opts.map((o, i) => ({
         letter: String.fromCharCode(65 + i),
-        text: o.text,
+        text: richTextToPlain(o.text),
         isKey: keys.has(o.id),
         isYou: e ? selected(e.firstAnswer, o.id) : false,
       }));

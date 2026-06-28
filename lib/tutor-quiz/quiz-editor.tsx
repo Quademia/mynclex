@@ -17,6 +17,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { richTextToPlain } from '@/lib/authoring/rich-doc';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { QuizFormModal } from './quiz-form-modal';
 import { QuizPublishControls } from './quiz-publish-controls';
@@ -49,7 +50,9 @@ import type {
 } from './types';
 
 function stemPreview(stem: string): string {
-  const trimmed = stem.trim();
+  // Coerce rich-content stems (Tiptap JSON) to readable text; idempotent on
+  // plain strings, so it's safe whatever the source.
+  const trimmed = richTextToPlain(stem).trim();
   return trimmed.length > 0 ? trimmed : '(no stem)';
 }
 

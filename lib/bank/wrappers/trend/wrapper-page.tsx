@@ -54,6 +54,7 @@ import { AuthorshipInline } from '@/lib/audit/authorship-line';
 import type { Authorship } from '@/lib/audit/authorship';
 
 import { McqEditorBody, McqPreview }             from '@/lib/bank/editors/mcq-editor';
+import { parseRichDoc }                          from '@/lib/authoring/rich-doc';
 import { TfEditorBody, TfPreview }               from '@/lib/bank/editors/tf-editor';
 import { SataEditorBody, SataPreview }           from '@/lib/bank/editors/sata-editor';
 import { SelectNEditorBody, SelectNPreview }     from '@/lib/bank/editors/select-n-editor';
@@ -1191,9 +1192,13 @@ function ActiveQuestionPreview({
     case 'MCQ':
       return (
         <McqPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
-          options={editor.initial.options}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
+          options={editor.initial.options.map((o) => ({
+            id: o.id,
+            text: parseRichDoc(o.text),
+            feedback: parseRichDoc(o.feedback),
+          }))}
           correctId={editor.initial.correct_id}
           viewMode={viewMode}
           onViewModeChange={onViewModeChange}

@@ -5,6 +5,7 @@
 // scopes every read to the signed-in tutor's own quizzes.
 
 import { createClient } from '@/lib/supabase/server';
+import { richTextToPlain } from '@/lib/authoring/rich-doc';
 import {
   applyQuizPickerFilters,
   type QuizPickerFilters,
@@ -236,7 +237,7 @@ export async function getQuizDetail(
       position: raw.position,
       item_id: raw.item_id,
       question_type: (q?.question_type ?? 'MCQ') as QuizItemRow['question_type'],
-      stem: q?.stem ?? '',
+      stem: richTextToPlain(q?.stem ?? ''),
       difficulty: q?.difficulty ?? null,
       client_needs_category: q?.client_needs_category ?? null,
     };

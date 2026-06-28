@@ -5299,6 +5299,88 @@
   border-radius: 2px;
 }
 
+/* Inline rendered output — option text/feedback, instruction lines, and any
+ * other phrasing-only context. Keeps the inline marks, no block margins. */
+.auth-rich-inline {
+  line-height: 1.5;
+}
+.auth-rich-inline mark {
+  padding: 0 0.1em;
+  border-radius: 2px;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Rich-content relook — Slice 6: roving rich fields in the question editors
+ * (lib/authoring/roving-rich.tsx + rich-atoms.tsx). ONE sticky toolbar per
+ * editor drives whichever field is focused; unfocused fields render static
+ * formatted text and swap to the live editor on click.
+ * ───────────────────────────────────────────────────── */
+
+/* Sticky editor-level toolbar at the top of the Content tab. */
+.auth-roving-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 8px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.auth-roving-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-right: 6px;
+}
+
+/* Static (unfocused) field — reads like a text input; click drops the caret in. */
+.auth-rrf-static {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--white);
+  cursor: text;
+  transition: border-color 0.15s ease;
+}
+.auth-rrf-static:hover { border-color: var(--accent); }
+.auth-rrf-static:focus { outline: none; border-color: var(--accent); }
+.auth-rrf-ph { color: var(--text-muted); }
+
+/* Active (focused) field — the live rich editor with no inner toolbar (the
+ * page toolbar drives it). Accent ring marks which field is live. */
+.auth-rrf-edit .auth-rich-field {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+.auth-rrf-edit .auth-rf-body {
+  min-height: 0;
+  padding: 7px 10px;
+}
+.auth-rrf-edit .auth-rf-body .ProseMirror {
+  min-height: 22px;
+}
+
+/* Per-field heights: stem + rationale are multi-line; options compact. */
+.auth-rrf-stem.auth-rrf-static { min-height: 84px; }
+.auth-rrf-rationale.auth-rrf-static { min-height: 64px; }
+.auth-rrf-stem.auth-rrf-edit .auth-rf-body .ProseMirror,
+.auth-rrf-rationale.auth-rrf-edit .auth-rf-body .ProseMirror { min-height: 56px; }
+.auth-rrf-option.auth-rrf-static,
+.auth-rrf-option-fb.auth-rrf-static { min-height: 34px; padding: 6px 10px; font-size: 13px; }
+.auth-rrf-instruction.auth-rrf-static { min-height: 34px; }
+
 /* ─────────────────────────────────────────────────────
  * Rich-content relook — Slice 2a: custom merge-table editor
  * (lib/authoring/table/merge-table-editor.tsx). `mt-*` throughout.

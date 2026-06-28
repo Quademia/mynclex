@@ -14,6 +14,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { richTextToPlain } from '@/lib/authoring/rich-doc';
 import {
   EMBED_BLOCK_HARD_CAP,
   EMBED_DEFAULT_MAX_BLOCKS,
@@ -92,7 +93,7 @@ function mapRow(r: RawRow): EmbedQuestionRow {
   return {
     item_id: r.item_id,
     question_type: r.question_type,
-    stem: r.stem,
+    stem: richTextToPlain(r.stem),
     difficulty: r.difficulty ?? null,
     pillar: r.client_needs_subcategory ?? null,
     created_at: r.created_at,
