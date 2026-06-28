@@ -1121,11 +1121,113 @@ editor until the templates slice.
 
 ### Slice 5 — upgrade the built-in templates  *(was Slice 6)*
 
+> **PLAN AGREED 2026-06-28** (design pass with Sam; no code yet). Scope,
+> mapping, and method below are settled. Build order + open-on-build notes
+> at the end.
+
 Bring the six built-in tab templates (Vital Signs, Labs, Nurses' Notes,
-Orders, H&P, Diagnostics) up to the custom-table/narrative capability —
-**fully editable** (add/rename/remove columns; merge; rich cells; narrative
-chips), keeping them as convenient presets. Carries the **v1 → v2 migration**
-of existing built-in tab rows (staged-migration decision D3).
+Orders, H&P, Diagnostics) onto the **new v2 editors already built in
+Slices 2–4** — keeping them as the same six **convenient named presets** in
+the "+ Add chart tab" picker, but now **fully editable** rich tabs (rich
+cells, merge, add/remove rows+cols, narrative chips). Carries the **v1 → v2
+migration** of all existing v1 tab rows (staged-migration decision D3,
+extended — see scope).
+
+#### The enabling fact — routing is shape-based, not name-based
+
+`asMergeTab()` / `asNarrativeTab()` decide v2 **purely from the saved blob
+shape** (`entries` is an object stamped `v: 2`), ignoring `tab_key`. Both the
+editor dispatcher (`ActiveChartTabEditor` in `wrapper-page.tsx`) and the
+student runner (`chart-tab-body.tsx`) check those **before** the v1 built-in
+/ custom fallbacks. So **the moment a tab's `entries` becomes a v2 object it
+auto-routes to the new editor + the new student view — no new component, no
+`tab_key` special-casing.** This is why Slice 5 is mostly a *data* job, not a
+*code* job. Today, the two generations coexist safely by shape:
+
+| Shape | NEW v2 editor (built; used by…) | OLD v1 editor (used by…) |
+|---|---|---|
+| Narrative | new free-text custom tabs | `nurses_notes`, `orders`, `history`, `diagnostics` + old `custom_narrative` |
+| Table | new "Custom table" custom tabs | `vital_signs`, `lab_results` + old `custom_grid` |
+
+#### Scope — migrate **all** v1 rows, then delete the old editors
+
+Settled with Sam: migrate everything, not just the built-ins, so the old
+editors can be **removed entirely** (one editor per shape; no dual path).
+Dev row census (2026-06-28):
+
+- **15 built-in v1 rows** — `nurses_notes`×4, `vital_signs`×3,
+  `lab_results`×2, `orders`×2, `history`×2, `diagnostics`×2.
+- **12 legacy custom v1 rows** — `custom_grid`×7, `custom_narrative`×5
+  (created before Slices 2–4; new custom tabs are already v2).
+- **2 already-v2 rows** (our test tabs) — left as-is.
+
+→ **27 rows to convert.** After conversion, nothing renders v1, so we delete
+`chart-tabs/structured-tab.tsx` + `chart-tabs/narrative-tab.tsx` and the v1
+branches of both dispatchers. (Prod has its own, smaller census — re-count at
+release; the converter is the same.)
+
+#### Part A — new built-ins are born v2 (code)
+
+`tab-types.ts` keeps the six-entry registry (names + picker order stay), but
+each built-in gains a **seed**: clicking it in `AddTabPopover` inserts a
+pre-shaped **v2** blob instead of today's empty `[]`.
+
+- `vital_signs` / `lab_results` → **merge table** seeded with **one heading
+  row** of the registry columns (Vitals: Time·BP·HR·RR·SpO₂·Temp·Pain; Labs:
+  Time·Test·Value·Unit·Reference·Flag), then empty data rows — fully editable.
+- `nurses_notes` / `orders` / `history` / `diagnostics` → **narrative tab**
+  seeded with **suggested default chips** from the old typed fields (Time;
+  Orders→`Status`; H&P→`Section` and no Time; Diagnostics→`Test`), then a
+  rich body.
+
+`addBuiltIn()` swaps its `entries: '[]'` for the per-key seed. The "Already
+added" single-add rule stays. Built-in = a **named v2 starting layout**
+(decision 3 — enrich, fully editable).
+
+#### Part B — convert the 27 existing rows (data; the live-data step)
+
+A **pure converter** (`lib/authoring/migrate-v1-tabs.ts`, unit-tested) maps
+each v1 blob to its v2 equivalent. Grounded in real dev blobs:
+
+- **Structured → merge table** (`vital_signs`, `lab_results`, `custom_grid`):
+  column titles (registry for built-ins; `columns_def` for grids) → a
+  **heading row**; each entry's per-column value → a rich-text cell (plain
+  string wrapped as a one-paragraph `RichDoc`); `visible_from` → the row's
+  `visibleFrom`. *e.g.* `{time:08:00, bp:110/68, hr:88, … visible_from:1}` →
+  row `[08:00 | 110/68 | 88 | …]` at Q1. Heading row is exempt from its own
+  `visibleFrom` (decision 8 — derived).
+- **Narrative → narrative v2** (`nurses_notes`, `orders`, `history`,
+  `diagnostics`, `custom_narrative`): `time` + each typed extra
+  (`status`/`section`/`test_type`) present-and-non-empty → a **chip**;
+  `body` → a one-paragraph rich body; `visible_from` → `visibleFrom`. *e.g.*
+  `{time:07:30, status:Active, body:"0.9% NS 1 L bolus…", visible_from:1}` →
+  card with chips `[07:30] [Active]`, rich body, at Q1.
+- **Empty tabs** (e.g. an `orders` tab with `entries:[]`) → the matching empty
+  v2 seed (Part A's seed), so they open straight into the new editor.
+
+#### Method — the careful (test-first) path (Sam's call)
+
+1. Write the converter as a **pure function**; unit-test it against **copies
+   of all 27 real dev blobs** (no DB writes) — assert structure, chips,
+   reveal positions, cell text survive.
+2. Eyeball a handful of converted tabs in the **editor + runner preview** on
+   dev (read the converted JSON into the new views; still no writes).
+3. Only then **apply to dev data** (back up each v1 blob first — reversible).
+4. Wire Part A; delete the two old editors + their dispatcher branches.
+5. Prod conversion ships **at release**, as a migration file, after dev is
+   proven (re-census prod first).
+
+#### Open-on-build (verify during the slice)
+
+- The merge-table model's **derived heading-row** behaviour (all-heading row →
+  no independent `visibleFrom`) — confirm the seeded/converted heading row
+  reveals correctly in `studentRows`.
+- **Attempt snapshots** already coerce both shapes (`case-panel.tsx` handles
+  "new JSON shape and any legacy snapshot transparently") — confirm a
+  converted tab's snapshot still renders for in-flight attempts.
+- The add-tab **"Rows & columns" custom option** (v1 grid) becomes redundant
+  once `custom_grid` is v2 — drop it from the picker (the "Custom table" merge
+  option supersedes it); keep "Free text" + "Custom table".
 
 ### Slice 6 — rich text across the questions  *(was Slice 5)*
 
