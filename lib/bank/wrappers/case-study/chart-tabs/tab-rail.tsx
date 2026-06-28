@@ -39,10 +39,8 @@ function seedEntriesForBuiltIn(t: BuiltInTabType): string {
   if (t.shape === 'structured') {
     return JSON.stringify(structuredToMergeTab(t.columns ?? [], []));
   }
-  if (t.tab_key === 'nurses_notes' || t.tab_key === 'orders' || t.tab_key === 'history') {
-    return JSON.stringify(emptyNarrativeTab());
-  }
-  return '[]';
+  // All four narrative built-ins now seed a blank v2 narrative tab.
+  return JSON.stringify(emptyNarrativeTab());
 }
 
 // New custom tabs come in three shapes during the transition: a free-text
