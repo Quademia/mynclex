@@ -17,9 +17,10 @@
 // 'custom_grid' (curator-defined columns).
 
 // ─────────────────────────────────────────────────────────────
-// Shape discriminator. Drives which editor renders the entries:
-//   - 'narrative'  → stacked entry cards (NarrativeTabEditor)
-//   - 'structured' → table with typed columns (StructuredTabEditor)
+// Shape discriminator. Since Slice 5 it only drives how a built-in seeds
+// its v2 blob when added from the picker (seedEntriesForBuiltIn):
+//   - 'narrative'  → a blank v2 narrative tab
+//   - 'structured' → a v2 merge table seeded with the columns as a heading row
 // ─────────────────────────────────────────────────────────────
 
 export type TabShape = 'narrative' | 'structured';
