@@ -38,6 +38,7 @@ import { ChartTabBody } from './chart-tab-body';
 import { RichRender } from '@/lib/authoring/rich-render';
 import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
 import { asMergeTab, tabHasVisibleContent } from '@/lib/authoring/table/merge-table-model';
+import { asNarrativeTab, narrativeTabHasVisibleContent } from '@/lib/authoring/narrative/narrative-model';
 
 interface Props {
   caseSnap:         CaseSnapshot;
@@ -62,6 +63,8 @@ export function CasePanel({
     .filter((t) => {
       const mt = asMergeTab(t.entries);
       if (mt) return tabHasVisibleContent(mt, currentPosition);
+      const nt = asNarrativeTab(t.entries);
+      if (nt) return narrativeTabHasVisibleContent(nt, currentPosition);
       return (
         Array.isArray(t.entries) &&
         t.entries.some((e) => Number(e?.visible_from) <= currentPosition)

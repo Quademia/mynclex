@@ -24,6 +24,7 @@ import { reorderTabsAction, upsertTabAction } from '../actions';
 import type { CaseStudyTabRow, Surface } from '../types';
 import { CUSTOM_GRID_MIN_COLUMNS } from '../types';
 import { emptyTab } from '@/lib/authoring/table/merge-table-model';
+import { emptyNarrativeTab } from '@/lib/authoring/narrative/narrative-model';
 
 // New custom tabs come in three shapes during the transition: a free-text
 // narrative, the legacy rows-and-columns grid, or the new custom merge
@@ -240,16 +241,17 @@ function AddTabPopover({
     }
     // Three shapes — all keep custom_shape within the DB CHECK
     // (free_text / rows_cols), so no migration:
-    //   free_text   → custom_narrative, empty.
+    //   free_text   → custom_narrative carrying a blank v2 narrative.
     //   rows_cols   → custom_grid v1, pre-seeded with blank columns.
     //   merge_table → custom_grid carrying a blank v2 merge table in entries.
     let tab_key = 'custom_narrative';
     let custom_shape = 'free_text';
-    let entries = '[]';
+    let entries = JSON.stringify(emptyNarrativeTab());
     let columns_def = '[]';
     if (shape === 'rows_cols') {
       tab_key = 'custom_grid';
       custom_shape = 'rows_cols';
+      entries = '[]';
       columns_def = JSON.stringify(
         Array.from({ length: CUSTOM_GRID_MIN_COLUMNS }, (_, i) => ({
           id: `c${i + 1}`,

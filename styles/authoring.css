@@ -5304,6 +5304,13 @@
  * (lib/authoring/table/merge-table-editor.tsx). `mt-*` throughout.
  * ───────────────────────────────────────────────────── */
 
+/* The new editors override .cs-entries-pane's `overflow: hidden` so the
+ * sticky toolbar's scroll container is the real one (.auth-cs-pane-left),
+ * not this clipped pane — otherwise sticky never engages. */
+.mt-pane {
+  overflow: visible;
+}
+
 .mt-kind-tag {
   display: inline-block;
   font-size: 10px;
@@ -5329,6 +5336,14 @@
   border-radius: var(--radius);
   background: var(--bg);
   margin-bottom: 10px;
+  /* Sticky so it stays reachable when scrolling a long stack of tables /
+     entry cards (Sam's concern). The page scrolls here, and the wrapper's
+     back/title bar (.auth-cs-page-topbar) is page-sticky at top:0 (~38px,
+     z-index 20) — so park this toolbar just below it, not behind it.
+     Opaque bg so content scrolls under it. */
+  position: sticky;
+  top: 46px;
+  z-index: 6;
 }
 .mt-tb-group-label {
   font-size: 9.5px;
@@ -5703,4 +5718,161 @@
 }
 .mtv-cell .auth-rich {
   line-height: 1.5;
+}
+
+/* ─────────────────────────────────────────────────────
+ * Rich-content relook — Slice 4: narrative tab
+ *   editor   = nt-*  (lib/authoring/narrative/narrative-tab-editor.tsx)
+ *   render   = nv-*  (narrative-view.tsx)
+ * ───────────────────────────────────────────────────── */
+
+/* editor cards */
+.nt-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.nt-card.is-hidden {
+  opacity: 0.5;
+}
+.nt-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.nt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.nt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 4px 2px 8px;
+}
+.nt-chip input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  width: 7em;
+  min-width: 3em;
+}
+.nt-chip-del {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 3px;
+  border-radius: 999px;
+}
+.nt-chip-del:hover {
+  color: var(--danger);
+}
+.nt-chip-add {
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.nt-chip-add:hover {
+  border-color: var(--accent);
+  background: var(--primary-light);
+}
+.nt-card-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.nt-entry-del {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 7px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.nt-entry-del:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+/* body — roving rich field (active) / static (click to edit) */
+.nt-body-edit .auth-rich-field {
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+}
+.nt-body-static {
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  cursor: text;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.nt-body-static:hover {
+  border-color: var(--accent);
+}
+.nt-body-ph {
+  color: var(--text-muted);
+}
+.nt-add-row {
+  padding: 4px 0 10px;
+}
+
+/* read-only render */
+.nv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.nv-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  padding: 10px 12px;
+}
+.nv-card.just-revealed {
+  border-left: 3px solid var(--warning);
+}
+.nv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.nv-chip {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-light);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.nv-body {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
 }

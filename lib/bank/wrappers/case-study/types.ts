@@ -4,6 +4,7 @@
 
 import type { CjmmStep } from '../../classifications';
 import type { MergeTabData } from '@/lib/authoring/table/merge-table-model';
+import type { NarrativeTabData } from '@/lib/authoring/narrative/narrative-model';
 import type { McqEditorInitial }      from '../../editors/mcq-row-mapper';
 import type { TfEditorInitial }       from '../../editors/tf-row-mapper';
 import type { SataEditorInitial }     from '../../editors/sata-row-mapper';
@@ -89,7 +90,7 @@ export interface TabRow {
   is_custom:     boolean;
   custom_shape:  'free_text' | 'rows_cols' | null;
   columns_def:   TabColumn[];
-  entries:       ChartEntry[] | MergeTabData;
+  entries:       ChartEntry[] | MergeTabData | NarrativeTabData;
 }
 
 // One of the six slots on a case. position is fixed 1-6 (schema

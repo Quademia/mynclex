@@ -17,14 +17,13 @@
 // range never fights an editor for the mouse.
 
 import { useEffect, useState } from 'react';
-import { useEditorState, type Editor } from '@tiptap/react';
+import type { Editor } from '@tiptap/react';
 import { deleteTabAction, upsertTabAction } from '../../bank/wrappers/case-study/actions';
 import type { CaseStudyTabRow, Surface } from '../../bank/wrappers/case-study/types';
-import { RichField, ColorMarkButtons } from '../rich-field';
+import { RichField } from '../rich-field';
 import { RichRender } from '../rich-render';
 import { isEmptyRichDoc, type RichDoc } from '../rich-doc';
-import { NavIcon } from '@/components/nav/shared/nav-icon';
-import type { NavIcon as NavIconName } from '@/lib/nav/types';
+import { InlineTools, InlineToolsDisabled } from '../inline-tools';
 import {
   type MergeTabData,
   type MergeTable,
@@ -303,7 +302,9 @@ export function MergeTableEditor({
 
         <span className="mt-tb-sep" />
         <span className="mt-tb-group-label">In cell</span>
-        {activeEditor ? <InCellTools editor={activeEditor} /> : <InCellToolsDisabled />}
+        {activeEditor
+          ? <InlineTools editor={activeEditor} buttonClassName="mt-tb-btn mt-tb-rich" />
+          : <InlineToolsDisabled buttonClassName="mt-tb-btn mt-tb-rich" hint="Click into a cell to format its text" />}
       </div>
 
       {/* selection hint */}
@@ -469,82 +470,6 @@ function TableBlock({
         <button type="button" className="mt-foot-btn" onClick={() => onAddCol(index)}>+ Column</button>
       </div>
     </div>
-  );
-}
-
-// ── in-cell rich tools (drive the focused cell's editor) ──
-
-interface InCellTool {
-  icon:  NavIconName;
-  label: string;
-  mark:  string;                       // editor.isActive(mark) key
-  run:   (e: Editor) => void;
-}
-
-const IN_CELL_TOOLS: InCellTool[] = [
-  { icon: 'bold',          label: 'Bold',          mark: 'bold',          run: (e) => e.chain().focus().toggleBold().run() },
-  { icon: 'italic',        label: 'Italic',        mark: 'italic',        run: (e) => e.chain().focus().toggleItalic().run() },
-  { icon: 'underline',     label: 'Underline',     mark: 'underline',     run: (e) => e.chain().focus().toggleUnderline().run() },
-  { icon: 'strikethrough', label: 'Strikethrough', mark: 'strike',        run: (e) => e.chain().focus().toggleStrike().run() },
-  { icon: 'superscript',   label: 'Superscript',   mark: 'superscript',   run: (e) => e.chain().focus().toggleSuperscript().run() },
-  { icon: 'subscript',     label: 'Subscript',     mark: 'subscript',     run: (e) => e.chain().focus().toggleSubscript().run() },
-  { icon: 'list-bulleted', label: 'Bullet list',   mark: 'bulletList',    run: (e) => e.chain().focus().toggleBulletList().run() },
-  { icon: 'list-numbered', label: 'Numbered list', mark: 'orderedList',   run: (e) => e.chain().focus().toggleOrderedList().run() },
-];
-
-// Highlight + Text colour live in <ColorMarkButtons>; these stubs mirror
-// them in the disabled (no-cell-focused) state so the toolbar keeps shape.
-const COLOR_STUBS: Array<{ icon: NavIconName; label: string }> = [
-  { icon: 'highlight',  label: 'Highlight' },
-  { icon: 'text-color', label: 'Text colour' },
-];
-
-function InCellTools({ editor }: { editor: Editor }) {
-  const active = useEditorState({
-    editor,
-    selector: ({ editor }) => {
-      const m: Record<string, boolean> = {};
-      for (const tool of IN_CELL_TOOLS) m[tool.mark] = editor.isActive(tool.mark);
-      return m;
-    },
-  });
-  return (
-    <>
-      {IN_CELL_TOOLS.map((tool) => (
-        <button
-          key={tool.label}
-          type="button"
-          className={`mt-tb-btn mt-tb-rich${active[tool.mark] ? ' is-active' : ''}`}
-          title={tool.label}
-          aria-label={tool.label}
-          aria-pressed={active[tool.mark]}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => tool.run(editor)}
-        >
-          <NavIcon name={tool.icon} />
-        </button>
-      ))}
-      <ColorMarkButtons editor={editor} buttonClassName="mt-tb-btn mt-tb-rich" />
-    </>
-  );
-}
-
-function InCellToolsDisabled() {
-  return (
-    <>
-      {[...IN_CELL_TOOLS, ...COLOR_STUBS].map((tool) => (
-        <button
-          key={tool.label}
-          type="button"
-          className="mt-tb-btn mt-tb-rich"
-          disabled
-          title="Click into a cell to format its text"
-          aria-label={tool.label}
-        >
-          <NavIcon name={tool.icon} />
-        </button>
-      ))}
-    </>
   );
 }
 

@@ -64,6 +64,13 @@ import {
   isTabEmpty,
   type MergeTabData,
 } from '@/lib/authoring/table/merge-table-model';
+import { NarrativeTabEditorV2 } from '@/lib/authoring/narrative/narrative-tab-editor';
+import { NarrativeView } from '@/lib/authoring/narrative/narrative-view';
+import {
+  asNarrativeTab,
+  isNarrativeEmpty,
+  type NarrativeTabData,
+} from '@/lib/authoring/narrative/narrative-model';
 import {
   validateCase,
   type ValidationIssue,
@@ -125,7 +132,7 @@ const FORM_ID_BY_TYPE: Record<string, string> = {
 // for a v2 custom merge table.
 interface TabDraft {
   title:       string;
-  entries:     CaseStudyEntry[] | MergeTabData;
+  entries:     CaseStudyEntry[] | MergeTabData | NarrativeTabData;
   columns_def: CaseStudyTabColumn[];
 }
 
@@ -383,12 +390,14 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
       const d = drafts[t.tab_id];
       const rawEntries = d?.entries ?? t.entries;
       const mt = asMergeTab(rawEntries);
-      // A custom table represents itself to validation as one Q1 entry when
-      // it has content (so the "no entries" / "no Q1 entry" checks don't
-      // false-fire), or an empty list when blank (so the empty-tab warning
-      // still fires correctly).
-      const entries: CaseStudyEntry[] = mt
-        ? (isTabEmpty(mt) ? [] : [{ visible_from: 1 }])
+      const nt = mt ? null : asNarrativeTab(rawEntries);
+      // A v2 custom table / narrative represents itself to validation as one
+      // Q1 entry when it has content (so the "no entries"/"no Q1 entry"
+      // checks don't false-fire), or an empty list when blank (so the
+      // empty-tab warning still fires correctly).
+      const entries: CaseStudyEntry[] =
+        mt ? (isTabEmpty(mt) ? [] : [{ visible_from: 1 }])
+        : nt ? (isNarrativeEmpty(nt) ? [] : [{ visible_from: 1 }])
         : (rawEntries as CaseStudyEntry[]);
       return {
         tab_id:  t.tab_id,
@@ -665,9 +674,11 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
 
   // Live merge-table tab for the preview pane (reflects unsaved edits via
   // the draft). Non-null only for a custom-table tab.
-  const previewMergeTab = activeChartTab
-    ? asMergeTab(activeChartDraft?.entries ?? activeChartTab.entries)
+  const liveActiveEntries = activeChartTab
+    ? (activeChartDraft?.entries ?? activeChartTab.entries)
     : null;
+  const previewMergeTab = liveActiveEntries ? asMergeTab(liveActiveEntries) : null;
+  const previewNarrativeTab = liveActiveEntries ? asNarrativeTab(liveActiveEntries) : null;
   const previewHiddenCount = useMemo(() => {
     if (!activeChartTab) return 0;
     const all = activeChartDraft?.entries ?? activeChartTab.entries;
@@ -1186,6 +1197,8 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
                 <p className="auth-cs-empty-msg">No tabs on this case.</p>
               ) : previewMergeTab ? (
                 <MergeTableView tab={previewMergeTab} currentPosition={activeSlot} />
+              ) : previewNarrativeTab ? (
+                <NarrativeView tab={previewNarrativeTab} currentPosition={activeSlot} />
               ) : (
                 <>
                   <PreviewChartView tab={activeChartTab} entries={previewEntries} />
@@ -1254,6 +1267,25 @@ function ActiveChartTabEditor({
         tab={tab}
         draftTitle={draft.title}
         draftTab={draftTab}
+        onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.tab, columns_def: [] })}
+        previewPosition={previewPosition}
+      />
+    );
+  }
+
+  // A v2 custom narrative is a custom_narrative tab whose entries hold the
+  // `{ v:2, entries:[…] }` object. Route it to the new editor before the v1
+  // narrative branch.
+  const narrativeTab = asNarrativeTab(tab.entries);
+  if (narrativeTab) {
+    const draftNarrative = asNarrativeTab(draft.entries) ?? narrativeTab;
+    return (
+      <NarrativeTabEditorV2
+        surface={surface}
+        case_id={case_id}
+        tab={tab}
+        draftTitle={draft.title}
+        draftNarrative={draftNarrative}
         onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.tab, columns_def: [] })}
         previewPosition={previewPosition}
       />
