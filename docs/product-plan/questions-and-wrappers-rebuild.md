@@ -1132,3 +1132,35 @@ Classification / housekeeping / lifecycle / audit / publish-eligibility /
 dual preview / save pipeline are **kept** (decision 3 — enrich, not
 rewrite). Trend is **not** touched here; it reuses this engine in a later
 arc once the case-study wrapper is proven.
+
+### Deferred candidate — multiple tables per custom tab (2026-06-28)
+
+> **STATUS: NOTED, not scheduled. Revisit only once the single-table custom
+> table (Slices 2a/2b/3) is proven.** Captured from a working session with
+> Sam after he saw the merge-table editor.
+
+The idea: let a custom-table tab hold a **list of tables** (an "+ Add table"
+affordance), the way a free-text tab holds a list of entry cards — so one
+tab could stack, e.g., two distinct tables.
+
+- **Why it's clean, not a hack.** It's *symmetric to free text*, which
+  already stores its entries as a list. A multi-table tab would just store
+  a **list of MergeTableData** instead of one — an **additive** change to
+  the v2 shape (`entries` becomes an array of tables), so it needs no
+  rework of what Slice 2 builds. Reveal is unaffected: each row keeps its
+  own `visibleFrom` regardless of how many tables sit in the tab.
+- **Why it's deferred.** It reopens **decisions 4 + 5** ("one tab = one
+  shape", "the custom table = a single grid"), which we chose for
+  simplicity and which the corpus supported (the amber tab-markers showed
+  NCSBN authors split each section into a **separate tab**). And much of the
+  need is already covered two ways: **(a)** two tabs (the NCSBN-native
+  split), and **(b)** the merge table's own irregularity (merge/subdivide
+  can already make one grid *look* like two — the Phase Sheet is one
+  irregular table, not two).
+- **The gate before building it.** Find a real Maryland/NCSBN specimen where
+  a single tab genuinely needs two distinct tables that neither two-tabs nor
+  one merge table expresses well. Best moment to look: Slice 4 (narrative
+  tab) / Slice 6 (templates), staring at the real content again. If such a
+  case shows up → generalise `entries` to a list of tables + an "+ Add
+  table" button + per-table toolbar focus. If not → the single-table model
+  holds.

@@ -347,7 +347,11 @@ export async function upsertTabAction(formData: FormData): Promise<SaveResult> {
   let entries: unknown;
   try {
     entries = JSON.parse(entriesRaw);
-    if (!Array.isArray(entries)) throw new Error('not array');
+    // v1 tabs store a ChartEntry[] array; the v2 custom merge table
+    // (rich-content relook) stores a single `{ v:2, … }` object. Accept
+    // either — both are valid JSONB; the editor knows which it is.
+    const ok = Array.isArray(entries) || (entries !== null && typeof entries === 'object');
+    if (!ok) throw new Error('bad shape');
   } catch {
     return { ok: false, error: 'Invalid entries JSON.' };
   }

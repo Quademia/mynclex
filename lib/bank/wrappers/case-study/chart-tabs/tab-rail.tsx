@@ -18,10 +18,17 @@
 'use client';
 
 import { useState, useEffect, useRef, useTransition } from 'react';
-import { BUILT_IN_TABS, customKeyForShape, type CustomShape } from './tab-types';
+import { BUILT_IN_TABS } from './tab-types';
 import { reorderTabsAction, upsertTabAction } from '../actions';
 import type { CaseStudyTabRow, Surface } from '../types';
 import { CUSTOM_GRID_MIN_COLUMNS } from '../types';
+import { emptyTable } from '@/lib/authoring/table/merge-table-model';
+
+// New custom tabs come in three shapes during the transition: a free-text
+// narrative, the legacy rows-and-columns grid, or the new custom merge
+// table (rich-content relook). The legacy grid stays available until the
+// merge table fully replaces it (Slice 6).
+type NewTabShape = 'free_text' | 'rows_cols' | 'merge_table';
 
 interface RailProps {
   surface:       Surface;
@@ -139,7 +146,11 @@ export function TabRail({
             surface={surface}
             case_id={case_id}
             alreadyAddedKeys={alreadyAddedKeys}
-            nextDisplayOrder={tabs.length}
+            // max(existing display_order) + 1 — NOT tabs.length, which
+            // collides with the UNIQUE(case_id, display_order) constraint
+            // whenever the existing orders are 1-based or have a gap from
+            // a deleted tab (which every case does).
+            nextDisplayOrder={tabs.reduce((m, t) => Math.max(m, t.display_order), -1) + 1}
             onClose={() => setAddOpen(false)}
           />
         )}
@@ -172,7 +183,7 @@ function AddTabPopover({
 }: PopoverProps) {
   const [customMode, setCustomMode] = useState(false);
   const [customName, setCustomName] = useState('');
-  const [shape, setShape] = useState<CustomShape>('free_text');
+  const [shape, setShape] = useState<NewTabShape>('free_text');
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -226,18 +237,29 @@ function AddTabPopover({
       setErr('Tab name is required.');
       return;
     }
-    const tab_key = customKeyForShape(shape);
-    // custom_grid needs at least CUSTOM_GRID_MIN_COLUMNS columns to be
-    // usable. Pre-seed with two blank columns so curators can start
-    // renaming immediately rather than hitting "no rows" until they
-    // add columns manually.
-    const columns_def =
-      shape === 'rows_cols'
-        ? Array.from({ length: CUSTOM_GRID_MIN_COLUMNS }, (_, i) => ({
-            id: `c${i + 1}`,
-            label: `Column ${i + 1}`,
-          }))
-        : [];
+    // Three shapes — all keep custom_shape within the DB CHECK
+    // (free_text / rows_cols), so no migration:
+    //   free_text   → custom_narrative, empty.
+    //   rows_cols   → custom_grid v1, pre-seeded with blank columns.
+    //   merge_table → custom_grid carrying a blank v2 merge table in entries.
+    let tab_key = 'custom_narrative';
+    let custom_shape = 'free_text';
+    let entries = '[]';
+    let columns_def = '[]';
+    if (shape === 'rows_cols') {
+      tab_key = 'custom_grid';
+      custom_shape = 'rows_cols';
+      columns_def = JSON.stringify(
+        Array.from({ length: CUSTOM_GRID_MIN_COLUMNS }, (_, i) => ({
+          id: `c${i + 1}`,
+          label: `Column ${i + 1}`,
+        })),
+      );
+    } else if (shape === 'merge_table') {
+      tab_key = 'custom_grid';
+      custom_shape = 'rows_cols';
+      entries = JSON.stringify(emptyTable());
+    }
 
     const fd = new FormData();
     fd.set('surface', surface);
@@ -246,9 +268,9 @@ function AddTabPopover({
     fd.set('title', name);
     fd.set('display_order', String(nextDisplayOrder));
     fd.set('is_custom', 'true');
-    fd.set('custom_shape', shape);
-    fd.set('entries', '[]');
-    fd.set('columns_def', JSON.stringify(columns_def));
+    fd.set('custom_shape', custom_shape);
+    fd.set('entries', entries);
+    fd.set('columns_def', columns_def);
     startTransition(async () => {
       const res = await upsertTabAction(fd);
       if (!res.ok) setErr(res.error);
@@ -316,6 +338,21 @@ function AddTabPopover({
               <div className="cs-shape-choice-title">Rows &amp; columns</div>
               <div className="cs-shape-choice-desc">
                 Curator-defined columns plus a locked Visible-from. Like Vitals or Labs.
+              </div>
+            </span>
+          </label>
+          <label className={shape === 'merge_table' ? 'active' : ''}>
+            <input
+              type="radio"
+              name="cs-custom-shape"
+              checked={shape === 'merge_table'}
+              onChange={() => setShape('merge_table')}
+            />
+            <span>
+              <div className="cs-shape-choice-title">Custom table</div>
+              <div className="cs-shape-choice-desc">
+                A flexible table — merge cells, mark headings, set when each row
+                appears. For irregular charts like a Phase Sheet.
               </div>
             </span>
           </label>

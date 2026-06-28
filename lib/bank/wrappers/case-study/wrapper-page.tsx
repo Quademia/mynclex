@@ -57,6 +57,12 @@ import { TabRail } from './chart-tabs/tab-rail';
 import { NarrativeTabEditor } from './chart-tabs/narrative-tab';
 import { StructuredTabEditor } from './chart-tabs/structured-tab';
 import { getTabType } from './chart-tabs/tab-types';
+import { MergeTableEditor } from '@/lib/authoring/table/merge-table-editor';
+import {
+  asMergeTable,
+  isTableEmpty,
+  type MergeTableData,
+} from '@/lib/authoring/table/merge-table-model';
 import {
   validateCase,
   type ValidationIssue,
@@ -113,10 +119,12 @@ const FORM_ID_BY_TYPE: Record<string, string> = {
   DRAG_DROP: 'auth-drag-drop-form',
 };
 
-// Per-tab in-flight draft. Mirrors legacy editor.tsx.
+// Per-tab in-flight draft. Mirrors legacy editor.tsx. `entries` is a
+// ChartEntry[] for built-in / v1 custom tabs, or a MergeTableData object
+// for a v2 custom merge table.
 interface TabDraft {
   title:       string;
-  entries:     CaseStudyEntry[];
+  entries:     CaseStudyEntry[] | MergeTableData;
   columns_def: CaseStudyTabColumn[];
 }
 
@@ -372,10 +380,19 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
   function buildValidationState(): ValidationState {
     const tabSnapshots: TabSnapshot[] = tabs.map((t) => {
       const d = drafts[t.tab_id];
+      const rawEntries = d?.entries ?? t.entries;
+      const mt = asMergeTable(rawEntries);
+      // A merge table represents itself to validation as one Q1 entry when
+      // it has content (so the "no entries" / "no Q1 entry" checks don't
+      // false-fire), or an empty list when blank (so the empty-tab warning
+      // still fires correctly).
+      const entries: CaseStudyEntry[] = mt
+        ? (isTableEmpty(mt) ? [] : [{ visible_from: 1 }])
+        : (rawEntries as CaseStudyEntry[]);
       return {
         tab_id:  t.tab_id,
-        title:   d?.title   ?? t.title,
-        entries: d?.entries ?? t.entries,
+        title:   d?.title ?? t.title,
+        entries,
       };
     });
 
@@ -639,8 +656,19 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
   const previewEntries = useMemo<ChartEntry[]>(() => {
     if (!activeChartTab) return [];
     const liveEntries = activeChartDraft?.entries ?? activeChartTab.entries;
+    // A v2 merge table isn't an entries array — its student preview lands
+    // in Slice 3. Until then the preview pane shows a placeholder.
+    if (!Array.isArray(liveEntries)) return [];
     return liveEntries.filter((e) => Number(e.visible_from) <= activeSlot);
   }, [activeChartTab, activeChartDraft, activeSlot]);
+
+  const activeTabIsMergeTable = !!activeChartTab && !!asMergeTable(activeChartTab.entries);
+  const previewHiddenCount = useMemo(() => {
+    if (!activeChartTab) return 0;
+    const all = activeChartDraft?.entries ?? activeChartTab.entries;
+    if (!Array.isArray(all)) return 0;
+    return all.length - previewEntries.length;
+  }, [activeChartTab, activeChartDraft, previewEntries]);
 
   const populated = slots.filter((s) => s.item_id !== null).length;
   const activeSlotData = slots[activeSlot - 1] ?? null;
@@ -1149,15 +1177,22 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
               ))}
             </div>
             <div className="auth-cs-chart-content auth-cs-preview-chart">
-              {activeChartTab ? (
-                <PreviewChartView tab={activeChartTab} entries={previewEntries} />
-              ) : (
+              {!activeChartTab ? (
                 <p className="auth-cs-empty-msg">No tabs on this case.</p>
-              )}
-              {activeChartTab && previewEntries.length < (activeChartDraft?.entries ?? activeChartTab.entries).length && (
-                <p className="auth-cs-preview-hidden-note">
-                  {(activeChartDraft?.entries ?? activeChartTab.entries).length - previewEntries.length} entry/entries hidden — visible_from {'>'} Q{activeSlot}
+              ) : activeTabIsMergeTable ? (
+                <p className="auth-cs-empty-msg">
+                  Custom table — the student preview arrives in the next step.
+                  Build it in the editor on the left.
                 </p>
+              ) : (
+                <>
+                  <PreviewChartView tab={activeChartTab} entries={previewEntries} />
+                  {previewHiddenCount > 0 && (
+                    <p className="auth-cs-preview-hidden-note">
+                      {previewHiddenCount} entry/entries hidden — visible_from {'>'} Q{activeSlot}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -1204,6 +1239,25 @@ function ActiveChartTabEditor({
   onDraftChange:   (next: TabDraft) => void;
   previewPosition: number | null;
 }) {
+  // A v2 custom merge table is a custom_grid tab whose entries hold the
+  // `{ v:2, … }` object. Route it to the new editor before the v1
+  // structured branch (which also matches custom_grid).
+  const mergeTable = asMergeTable(tab.entries);
+  if (mergeTable) {
+    const draftTable = asMergeTable(draft.entries) ?? mergeTable;
+    return (
+      <MergeTableEditor
+        surface={surface}
+        case_id={case_id}
+        tab={tab}
+        draftTitle={draft.title}
+        draftTable={draftTable}
+        onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.table, columns_def: [] })}
+        previewPosition={previewPosition}
+      />
+    );
+  }
+
   const builtIn = getTabType(tab.tab_key);
   const isNarrative =
     (builtIn && builtIn.shape === 'narrative') ||
@@ -1220,7 +1274,7 @@ function ActiveChartTabEditor({
         tab={tab}
         builtIn={builtIn}
         draftTitle={draft.title}
-        draftEntries={draft.entries}
+        draftEntries={draft.entries as CaseStudyEntry[]}
         onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.entries, columns_def: draft.columns_def })}
         previewPosition={previewPosition}
       />
@@ -1234,7 +1288,7 @@ function ActiveChartTabEditor({
         tab={tab}
         builtIn={builtIn}
         draftTitle={draft.title}
-        draftEntries={draft.entries}
+        draftEntries={draft.entries as CaseStudyEntry[]}
         draftColumns={draft.columns_def}
         onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.entries, columns_def: p.columns_def })}
         previewPosition={previewPosition}

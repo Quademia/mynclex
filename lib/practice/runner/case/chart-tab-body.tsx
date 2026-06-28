@@ -27,6 +27,7 @@ import type {
   TabColumn,
   ChartEntry,
 } from '@/lib/bank/wrappers/case-study/types';
+import { asMergeTable } from '@/lib/authoring/table/merge-table-model';
 
 interface Props {
   tab:             TabRow;
@@ -34,10 +35,16 @@ interface Props {
 }
 
 export function ChartTabBody({ tab, currentPosition }: Props) {
+  // A v2 custom merge table renders through its own (Slice 3) student
+  // renderer — not the entries-array path below.
+  if (asMergeTable(tab.entries)) {
+    return <div className="empty">Custom table — student view coming soon.</div>;
+  }
+
   // Strict visibility — a backward-nav student should see only what
   // would have been visible at currentPosition the first time they
   // arrived at it.
-  const visibleEntries = tab.entries.filter(
+  const visibleEntries = (tab.entries as ChartEntry[]).filter(
     (e) => Number(e.visible_from) <= currentPosition,
   );
 

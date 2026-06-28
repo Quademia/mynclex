@@ -141,7 +141,12 @@ export function isEmptyRichDoc(doc: RichDoc | null | undefined): boolean {
  * those surfaces from showing raw JSON once a field goes rich.
  */
 export function richTextToPlain(raw: string | null | undefined): string {
-  const doc = parseRichDoc(raw);
+  return richDocToPlain(parseRichDoc(raw));
+}
+
+/** Flatten an already-parsed doc to readable plain text (block text joined
+ *  by newlines). The doc-level companion to `richTextToPlain`. */
+export function richDocToPlain(doc: RichDoc): string {
   const lines: string[] = [];
 
   function inlineText(node: RichNode): string {
