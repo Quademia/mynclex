@@ -11,7 +11,9 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > **BANK RICH-CONTENT — SLICE 6: rich text across the QUESTION fields —
 > 🔨 IN PROGRESS (6a + alignment + 6b BUILT + MERGED to `main` 2026-06-29;
 > all app-layer, NO migration; tsc + eslint + 94 vitest clean; Sam-tested on
-> dev; NOT on prod).** Pointing the Slice-1 rich primitive at the question
+> dev; **RELEASED to PROD 2026-06-29** [PR #32 → merge `3a2d124`; migrate-prod
+> no-op + deploy-prod both green; prod serving 200]).** Pointing the Slice-1
+> rich primitive at the question
 > fields (stem · options · per-option feedback · rationale) across the 9 item
 > types, after the chart/stimulus side shipped in Slices 1–5. **Read-coerce,
 > no migration** (old plain text → paragraphs on read; new saves write Tiptap
