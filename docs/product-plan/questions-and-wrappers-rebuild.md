@@ -1402,8 +1402,9 @@ untouched (the Slice-1 scenario bridge).
     requirements. Bow-tie: the fixed **2 + 1 + 2 = 5** is the item type's
     definition (the runner renders exactly 5 slots), not a soft norm like SATA's
     option count. Nothing to soften.
-- **Slice 6d — Cloze.** Decide the stem treatment (carries `{N}` markers +
-  silent renumbering) when opened; the per-blank choices + rationale go rich.
+- **Slice 6d — Cloze.** ⏭ NEXT. Stem-treatment design **discussed 2026-06-29,
+  leaning decoupled — pending Sam's final confirm** (see the design subsection
+  below). Per-blank choices + rationale go rich (the easy half, like options).
 - **Slice 6e — Highlight.** Decide the stem treatment (the passage carries the
   `[[…]]` answer-key brackets — likely stays special); rationale rich. (Note:
   answer-bound highlight — "rung 4" — stays closed; this is just rich text,
@@ -1565,6 +1566,67 @@ per-cell**.
 snapshot + a new `MATRIX_MR` value in the type registry) — bigger than rich text,
 independent of the 6c rich-text work. Sequencing TBD by Sam (next, or after 6d
 Cloze in the alternate-features rotation). Not built yet.
+
+### Slice 6d — Cloze stem treatment (design discussion 2026-06-29 — LEANING decoupled, not yet locked)
+
+Read the whole Cloze pipeline (editor / parser / runner / preview / row-mapper).
+**How it works today:** the stem is a plain text string with literal `{N}`
+markers; marker `{N}` ↔ blank card `bN`. Four places **regex-scan that string** —
+(1) editor live (`parseStemMarkers`, which blanks are in-stem vs orphan), (2) the
+parser (`parseCloze`: extract marker order, reject dupes, drop orphans, **two-phase
+renumber** `{1}{3}`→`{1}{2}`, validate choices), (3) the runner (`parseStem` splits
+the string → text/`<select>` segments; CLOZE **takes over** stem rendering — the
+shared stem host steps aside), (4) the editor + wrapper preview (same split). "+Add
+blank" is a `<textarea>` cursor-splice; deleting a marker greys its card as an
+"orphan — re-type `{N}` to reconnect". Scoring works off `content.blanks` +
+`correct.answers` (keyed `bN`), not the prose.
+
+**The fit insight:** the scoring/answer-key/parser layer barely needs to
+move — it only needs blank *order* + `content`/`correct`, which we keep producing.
+And storing a stem as a rich doc is **already what 6a did** for every other type's
+stem (rich JSON in the `stem` col, read-coerced). Cloze's only new wrinkle is
+*where the blanks live* in that rich stem.
+
+**Two options for the stem (the whole debate):**
+
+- **Option A — blank = a custom atomic Tiptap node (chip).** A non-editable pill
+  in the doc; structurally **unbreakable** (can't format/split it). Cost: couples a
+  domain concept (a scored slot) to the editor library **and** is the one piece of
+  genuinely new tech (custom Node + React NodeView — we've done custom *marks*, not
+  *nodes*). Would want a small spike first.
+- **Option B — blank stays plain `{N}` text inside the rich prose (DECOUPLED).**
+  The marker is just text the parser understands; Tiptap only formats prose. We
+  honour "don't format the blank" at the **boundary, not by policing keystrokes**:
+  on save/read, walk the doc and **strip any marks off the `{N}` markers**; the
+  runner always draws a clean dropdown at each marker regardless of marks; a
+  **mangled** marker (`{ 1}`) is caught by **validation** ("blank 1 looks broken"),
+  not physically prevented. **No custom node, no new tech, blank stays
+  library-independent** (how Moodle / H5P do cloze).
+
+**The trade:** A = "literally unbreakable" at the cost of coupling + new tech; B =
+decoupled + simple, giving up only that a broken marker becomes a *validation
+message* instead of being prevented outright.
+
+**LEAN (2026-06-29, to confirm next session): Option B (decoupled `{N}`-text +
+normalize-at-boundary + validate).** Sam pushed back on coupling the blank to
+Tiptap; it also fits the project's advise-don't-over-engineer ethos, and means
+6e/6f (Highlight `[[…]]`, Drag-drop `[N]`) follow the same "markers stay text,
+normalize + validate" rule — no node anywhere. With B the build is roughly
+**6c-sized**: stem becomes a normal rich field (like every stem since 6a) + a small
+normalize-and-validate pass for the markers + the choices going rich. **No spike
+needed.**
+
+**Two sub-decisions still to settle when the slice opens:**
+1. **Orphan/reconnect UX.** With markers staying text, today's "re-type `{N}` to
+   reconnect" still *works* — but if we ever went chip-route it wouldn't. Either
+   way, lean: keep delete-marker → orphan-card recovery as-is for B (it's free),
+   or simplify to delete = drop-blank (confirm if it has choices). Decide on open.
+2. **Confirm stem stored as rich doc** (yes — that's the point, to deliver
+   formatted prose; consistent with 6a).
+
+**Minor noted:** a Cloze stem in a bank-list hover-peek flattens to prose; under B
+the `{N}` markers survive as text (fine), under A a chip has no text (would show
+gaps). Another point for B.
 
 ### Slice 6 — parked / deferred
 
