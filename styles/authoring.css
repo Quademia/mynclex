@@ -5424,6 +5424,14 @@
 .auth-rrf-mx-row.auth-rrf-edit .auth-rf-body .ProseMirror,
 .auth-rrf-mx-fb.auth-rrf-edit .auth-rf-body .ProseMirror { min-height: 20px; }
 
+/* Bow-tie wing token text + feedback (Slice 6c-ii). Compact boxed
+ * fields stacked in the token row; feedback is a touch smaller + muted. */
+.auth-rrf-bt-token.auth-rrf-static,
+.auth-rrf-bt-token-fb.auth-rrf-static { min-height: 34px; padding: 6px 10px; font-size: 13px; }
+.auth-rrf-bt-token-fb.auth-rrf-static { font-size: 12px; color: var(--text-muted); }
+.auth-rrf-bt-token.auth-rrf-edit .auth-rf-body .ProseMirror,
+.auth-rrf-bt-token-fb.auth-rrf-edit .auth-rf-body .ProseMirror { min-height: 20px; }
+
 /* ─────────────────────────────────────────────────────
  * Rich-content relook — Slice 2a: custom merge-table editor
  * (lib/authoring/table/merge-table-editor.tsx). `mt-*` throughout.

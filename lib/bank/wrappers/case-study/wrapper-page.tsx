@@ -1335,6 +1335,17 @@ function ActiveQuestionEditorBody({
 // PreviewToggle handles the Student / Answer-key switch.
 // ───────────────────────────────────────────────────────────
 
+// BOWTIE preview takes rich token docs; map the stored string token
+// text/feedback through parseRichDoc (labels + correct stay plain).
+function toRichToken(t: { id: string; text: string; feedback: string; correct: boolean }) {
+  return {
+    id: t.id,
+    text: parseRichDoc(t.text),
+    feedback: parseRichDoc(t.feedback),
+    correct: t.correct,
+  };
+}
+
 function ActiveQuestionPreview({
   editor,
   viewMode,
@@ -1425,14 +1436,14 @@ function ActiveQuestionPreview({
     case 'BOWTIE':
       return (
         <BowtiePreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
           leftLabel={editor.initial.left_label}
-          leftTokens={editor.initial.left_tokens}
+          leftTokens={editor.initial.left_tokens.map(toRichToken)}
           centreLabel={editor.initial.centre_label}
-          centreTokens={editor.initial.centre_tokens}
+          centreTokens={editor.initial.centre_tokens.map(toRichToken)}
           rightLabel={editor.initial.right_label}
-          rightTokens={editor.initial.right_tokens}
+          rightTokens={editor.initial.right_tokens.map(toRichToken)}
           viewMode={viewMode}
           onViewModeChange={onViewModeChange}
         />

@@ -52,6 +52,8 @@ import type {
   BowtieToken,
 } from '@/lib/bank/types';
 import type { BowtieAnswer } from '@/lib/scoring';
+import { RichRender } from '@/lib/authoring/rich-render';
+import { parseRichDoc } from '@/lib/authoring/rich-doc';
 
 type WingKey = 'left' | 'centre' | 'right';
 
@@ -362,7 +364,11 @@ function Slot({
         </span>
       )}
       <span className="rn-bt-slot-text">
-        {tokenText ?? (isReview ? '(skipped)' : 'tap')}
+        {tokenText != null ? (
+          <RichRender doc={parseRichDoc(tokenText)} inline />
+        ) : (
+          isReview ? '(skipped)' : 'tap'
+        )}
       </span>
     </button>
   );
@@ -447,7 +453,7 @@ function PoolOrFeedbackColumn(props: PoolOrFeedbackColumnProps) {
                 onClick={() => onTokenClick(t.id)}
                 aria-pressed={isArmed}
               >
-                {t.text}
+                <RichRender doc={parseRichDoc(t.text)} inline />
               </button>
             </li>
           );
@@ -478,10 +484,16 @@ function FeedbackTokenItem({
   return (
     <li className="rn-bt-fb-item">
       <div className={`rn-bt-fb-pill ${stateCls}`}>
-        <span className="rn-bt-fb-text">{token.text}</span>
+        <span className="rn-bt-fb-text">
+          <RichRender doc={parseRichDoc(token.text)} inline />
+        </span>
         {verdict && <span className="rn-bt-fb-verdict">{verdict}</span>}
       </div>
-      {feedback && <div className="rn-bt-fb-rationale">{feedback}</div>}
+      {feedback && (
+        <div className="rn-bt-fb-rationale">
+          <RichRender doc={parseRichDoc(feedback)} inline />
+        </div>
+      )}
     </li>
   );
 }
