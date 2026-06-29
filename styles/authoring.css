@@ -5381,6 +5381,49 @@
 .auth-rrf-option-fb.auth-rrf-static { min-height: 34px; padding: 6px 10px; font-size: 13px; }
 .auth-rrf-instruction.auth-rrf-static { min-height: 34px; }
 
+/* Matrix grid cells (Slice 6c). The rich field lives inside a tight
+ * table cell, so the static view drops the boxed input look for a flat,
+ * borderless cell with a dashed hover hint — matching the plain <input>
+ * styling the grid used before. The edit view keeps the accent ring so
+ * the live cell is obvious. */
+.auth-rrf-mx-corner.auth-rrf-static,
+.auth-rrf-mx-col.auth-rrf-static,
+.auth-rrf-mx-row.auth-rrf-static,
+.auth-rrf-mx-fb.auth-rrf-static {
+  min-height: 30px;
+  padding: 4px 6px;
+  border: 1px dashed transparent;
+  background: transparent;
+  border-radius: 4px;
+}
+.auth-rrf-mx-corner.auth-rrf-static:hover,
+.auth-rrf-mx-col.auth-rrf-static:hover,
+.auth-rrf-mx-row.auth-rrf-static:hover,
+.auth-rrf-mx-fb.auth-rrf-static:hover { border-color: var(--accent); }
+
+.auth-rrf-mx-corner.auth-rrf-static {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-color: var(--border);
+  background: var(--white);
+}
+.auth-rrf-mx-col.auth-rrf-static {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: center;
+}
+.auth-rrf-mx-row.auth-rrf-static { font-size: 13px; color: var(--text); }
+.auth-rrf-mx-fb.auth-rrf-static { font-size: 12px; color: var(--text-muted); }
+
+.auth-rrf-mx-corner.auth-rrf-edit .auth-rf-body .ProseMirror,
+.auth-rrf-mx-col.auth-rrf-edit .auth-rf-body .ProseMirror,
+.auth-rrf-mx-row.auth-rrf-edit .auth-rf-body .ProseMirror,
+.auth-rrf-mx-fb.auth-rrf-edit .auth-rf-body .ProseMirror { min-height: 20px; }
+
 /* ─────────────────────────────────────────────────────
  * Rich-content relook — Slice 2a: custom merge-table editor
  * (lib/authoring/table/merge-table-editor.tsx). `mt-*` throughout.

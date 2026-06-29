@@ -1249,11 +1249,18 @@ function ActiveQuestionPreview({
     case 'MATRIX':
       return (
         <MatrixPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
-          rowLabel={editor.initial.row_label}
-          rows={editor.initial.rows}
-          columns={editor.initial.columns}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
+          rowLabel={parseRichDoc(editor.initial.row_label)}
+          rows={editor.initial.rows.map((r) => ({
+            id: r.id,
+            text: parseRichDoc(r.text),
+            feedback: parseRichDoc(r.feedback),
+          }))}
+          columns={editor.initial.columns.map((c) => ({
+            id: c.id,
+            text: parseRichDoc(c.text),
+          }))}
           correct={editor.initial.correct}
           viewMode={viewMode}
           onViewModeChange={onViewModeChange}
