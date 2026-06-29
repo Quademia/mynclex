@@ -1374,8 +1374,34 @@ untouched (the Slice-1 scenario bridge).
   feedback `RichRender inline` swap; four wrapper preview call sites converted.
   Select-N's `select_count` stays a plain number; SATA/Select-N housekeeping
   `liveMarks` unchanged. Parsers confirmed opaque (`.trim()` for empty only).
-- **Slice 6c — Matrix + Bowtie.** Grid row/column labels + bow-tie token
-  labels become rich; stems are "normal" (fully rich).
+- **Slice 6c — Matrix + Bowtie.** ✅ BUILT (session branch `claude/laughing-chaum-7acc6b`;
+  6c-i Matrix `4d5afbf`, 6c-ii Bow-tie `0ae3048`; tsc + eslint + 94 vitest clean;
+  Sam-tested both on dev). Stems are "normal" (fully rich).
+  - **6c-i Matrix:** the editable corner (row-axis label), every column header,
+    every row label, and per-row feedback go rich; grid state moved
+    string → `RichDoc`, validation via `isEmptyRichDoc`. Runner
+    (`matrix.tsx`) + both wrapper previews render rich (aria-labels flattened
+    via `richTextToPlain`). New `auth-rrf-mx-*` cell styling.
+  - **6c-ii Bow-tie:** each wing's **token text + per-token feedback** go rich;
+    **wing labels stay plain** (preset-driven picks, not prose — the lean Sam
+    accepted). Runner (`bowtie.tsx`) renders slot text / pool tokens / per-token
+    feedback rich; both wrapper previews map tokens via a `toRichToken` helper.
+  - **Foundation tweak:** `RovingRichField` gained an optional `noHiddenInput`
+    flag. Bow-tie is **tab-gated** (only the active wing mounts) but serialises
+    all three wings from one always-rendered `HiddenSerialisers`; the rich token
+    fields are editing-UI only (`noHiddenInput`) while `HiddenSerialisers` emits
+    the serialized rich docs. Non-breaking (defaults off; every shipped editor
+    unchanged).
+  - **Not library-embeddable** → no embed-player / embed-analytics surface;
+    render surface is just the per-type runner + the two wrapper previews.
+    Parsers confirmed opaque (`.trim()` only). Read-coerce, no migration.
+  - **Validation review (settled 2026-06-29):** both reviewed, **NO change** —
+    their rules are *structural integrity*, not NCLEX-norm over-constraints, so
+    the advise-don't-block principle leaves them as-is. Matrix: row-axis label +
+    ≥1 correct column per row + min 2×2 grid are all scoreability/shape
+    requirements. Bow-tie: the fixed **2 + 1 + 2 = 5** is the item type's
+    definition (the runner renders exactly 5 slots), not a soft norm like SATA's
+    option count. Nothing to soften.
 - **Slice 6d — Cloze.** Decide the stem treatment (carries `{N}` markers +
   silent renumbering) when opened; the per-blank choices + rationale go rich.
 - **Slice 6e — Highlight.** Decide the stem treatment (the passage carries the

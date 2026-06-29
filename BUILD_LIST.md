@@ -37,12 +37,22 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > - **6b — SATA + Select-N ✅.** Option-list mirror (option text + feedback
 >   rich); per-type runners + four wrapper preview call sites; Select-N keeps
 >   `select_count` plain.
+> - **6c — Matrix + Bowtie ✅** (session branch `claude/laughing-chaum-7acc6b`;
+>   6c-i Matrix `4d5afbf`, 6c-ii Bow-tie `0ae3048`; tsc + eslint + 94 vitest
+>   clean; Sam-tested both on dev; NOT yet merged to `main`). Matrix: corner /
+>   column / row labels + per-row feedback rich. Bow-tie: token text + per-token
+>   feedback rich, **wing labels stay plain**. Foundation: `RovingRichField`
+>   gained `noHiddenInput` (bow-tie serialises all 3 tab-gated wings from one
+>   always-rendered serialiser). Neither type is library-embeddable. Validation
+>   reviewed → **no change** (their rules are structural, not NCLEX-norm).
 > - **Validation philosophy (settled):** advise > hard-block — SATA/Select-N
->   publish rules reviewed + left unchanged (curators legitimately deviate from
->   NCLEX norms). Parked: curator discoverability of `Shift+Enter` line breaks.
-> - **⏭ NEXT: 6c — Matrix + Bowtie**, then 6d Cloze / 6e Highlight / 6f
->   Drag-drop (the marker-stem types — stem treatment decided per editor). ⚠
->   `PAYSTACK_SECRET_KEY` still not on the prod Worker.
+>   **and now Matrix/Bow-tie** publish rules reviewed + left unchanged (curators
+>   legitimately deviate from NCLEX norms; the bow-tie 2+1+2 and matrix grid
+>   rules are structural, not norm-constraints). Parked: curator discoverability
+>   of `Shift+Enter` line breaks.
+> - **⏭ NEXT: 6d Cloze**, then 6e Highlight / 6f Drag-drop (the marker-stem
+>   types — stem treatment decided per editor). ⚠ `PAYSTACK_SECRET_KEY` still
+>   not on the prod Worker.
 
 > **CURRICULUM — MONTH VIEW (CD "Monthly Curriculum View", Variant B
 > "Programme schedule") — BUILT: Slices 1 + 2 on the session branch
