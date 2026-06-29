@@ -8,6 +8,40 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **BANK RICH-CONTENT — SLICE 6: rich text across the QUESTION fields —
+> 🔨 IN PROGRESS (6a + alignment + 6b BUILT + MERGED to `main` 2026-06-29;
+> all app-layer, NO migration; tsc + eslint + 94 vitest clean; Sam-tested on
+> dev; NOT on prod).** Pointing the Slice-1 rich primitive at the question
+> fields (stem · options · per-option feedback · rationale) across the 9 item
+> types, after the chart/stimulus side shipped in Slices 1–5. **Read-coerce,
+> no migration** (old plain text → paragraphs on read; new saves write Tiptap
+> JSON into the existing columns). **One roving toolbar per editor** (reuses
+> the merge-table/narrative pattern). Covers **bank items + tutor questions**
+> at once (shared editors + runner components). Full design + the
+> **SHARED-vs-PER-EDITOR blast-radius checklist** (the map for the remaining
+> editors) in
+> [questions-and-wrappers-rebuild.md](docs/product-plan/questions-and-wrappers-rebuild.md)
+> → "Slice 6".
+> - **6a — Foundation + MCQ + TF ✅.** New `lib/authoring/` foundation
+>   (`roving-rich.tsx` + `rich-atoms.tsx` + `rich-render.tsx` `inline` mode +
+>   `rich-field.tsx` `autofocus`); MCQ end-to-end (editor + shared
+>   stem/instruction/rationale render hosts + `McqRunner` + a `richTextToPlain`
+>   raw-JSON sweep across lists/embeds/analytics/quiz/practice); TF the MCQ
+>   mirror (runner already wraps `McqRunner`; option labels stay plain, only
+>   feedback rich). Instruction field is also rich.
+> - **Text alignment ✅** (shared toolset): wired `@tiptap/extension-text-align`
+>   + Align left/centre/right into both toolbars (wrapper + questions);
+>   `RichRender` mirrors it. Block-level; non-breaking on the prod wrapper.
+> - **6b — SATA + Select-N ✅.** Option-list mirror (option text + feedback
+>   rich); per-type runners + four wrapper preview call sites; Select-N keeps
+>   `select_count` plain.
+> - **Validation philosophy (settled):** advise > hard-block — SATA/Select-N
+>   publish rules reviewed + left unchanged (curators legitimately deviate from
+>   NCLEX norms). Parked: curator discoverability of `Shift+Enter` line breaks.
+> - **⏭ NEXT: 6c — Matrix + Bowtie**, then 6d Cloze / 6e Highlight / 6f
+>   Drag-drop (the marker-stem types — stem treatment decided per editor). ⚠
+>   `PAYSTACK_SECRET_KEY` still not on the prod Worker.
+
 > **CURRICULUM — MONTH VIEW (CD "Monthly Curriculum View", Variant B
 > "Programme schedule") — BUILT: Slices 1 + 2 on the session branch
 > (2026-06-27; all app-layer, NO migration; tsc + eslint clean; tutor
