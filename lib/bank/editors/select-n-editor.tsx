@@ -1,17 +1,12 @@
 // mynclex/lib/bank/editors/select-n-editor.tsx
 //
-// SELECT_N (Select Exactly N) editor — fourth concrete editor in the
-// rebuild. Variant of SATA: same checkbox option list, plus a "Number
-// to select" input that constrains how many options the student must
-// tick. The form posts `name="select_count"` alongside the option /
-// correct_id arrays so the server-side parser can enforce the count.
+// SELECT_N (Select Exactly N) editor — SATA plus a "Number to select"
+// input that constrains how many options the student must tick.
 //
-// Behaviour notes:
-//   - select_count is clamped to [1, optionsWithText] in the editor;
-//     the parser re-checks server-side.
-//   - A red "exactly N must be ticked" hint replaces SATA's "at least
-//     one" hint.
-//   - Content tab is incomplete unless tickedCount === select_count.
+// Slice 6b: the content fields (instruction, stem, every option text +
+// per-option feedback, rationale) are RICH, driven by the one roving toolbar
+// on the Content tab. The select_count field stays a plain number. Read-coerce,
+// no migration.
 
 'use client';
 
@@ -26,9 +21,6 @@ import { ModalFrame } from '@/lib/bank/atoms/modal-frame';
 import { EditorActions } from '@/lib/bank/atoms/editor-actions';
 import { EditorTabs, TabPanel } from '@/lib/bank/atoms/editor-tabs';
 import { EditorAuthorship } from '@/lib/audit/authorship-line';
-import { StemField } from '@/lib/bank/atoms/stem-field';
-import { InstructionField } from '@/lib/bank/atoms/instruction-field';
-import { RationaleFields } from '@/lib/bank/atoms/rationale-fields';
 import { ClassificationFields } from '@/lib/bank/atoms/classification-fields';
 import { HousekeepingFields } from '@/lib/bank/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/bank/atoms/hidden-item-inputs';
@@ -49,19 +41,36 @@ import {
   deleteQuestionAction,
   type DeleteResult,
 } from '@/lib/bank/actions/delete-question';
+import {
+  RovingProvider,
+  RovingToolbar,
+  RovingRichField,
+} from '@/lib/authoring/roving-rich';
+import {
+  RichInstructionField,
+  RichStemField,
+  RichRationaleFields,
+} from '@/lib/authoring/rich-atoms';
+import { RichRender } from '@/lib/authoring/rich-render';
+import {
+  parseRichDoc,
+  isEmptyRichDoc,
+  richTextToPlain,
+  type RichDoc,
+} from '@/lib/authoring/rich-doc';
 import type { SelectNEditorInitial } from './select-n-row-mapper';
 
 export type { SelectNEditorInitial };
 
 // ─────────────────────────────────────────────────────────────
-// SelectNOptionList — checkbox option list (private). Same shape as
-// SATA's, hint copy reflects the exact-count requirement.
+// SelectNOptionList — checkbox option list (private). Rich text +
+// feedback; hint copy reflects the exact-count requirement.
 // ─────────────────────────────────────────────────────────────
 
 interface OptionRow {
   id: string;
-  text: string;
-  feedback: string;
+  text: RichDoc;
+  feedback: RichDoc;
 }
 
 interface SelectNOptionListProps {
@@ -82,7 +91,7 @@ function SelectNOptionList({
   function addOption() {
     if (options.length >= MAX_OPTIONS) return;
     const nextLetter = OPTION_LETTERS[options.length];
-    onChange([...options, { id: nextLetter, text: '', feedback: '' }], correctIds);
+    onChange([...options, { id: nextLetter, text: emptyDoc(), feedback: emptyDoc() }], correctIds);
   }
 
   function removeOption(idx: number) {
@@ -98,14 +107,14 @@ function SelectNOptionList({
     }
   }
 
-  function updateText(idx: number, text: string) {
+  function updateText(idx: number, text: RichDoc) {
     onChange(
       options.map((o, i) => (i === idx ? { ...o, text } : o)),
       correctIds,
     );
   }
 
-  function updateFeedback(idx: number, feedback: string) {
+  function updateFeedback(idx: number, feedback: RichDoc) {
     onChange(
       options.map((o, i) => (i === idx ? { ...o, feedback } : o)),
       correctIds,
@@ -151,23 +160,25 @@ function SelectNOptionList({
           </div>
           <div className="auth-option-letter">{opt.id}</div>
           <div className="auth-option-fields">
-            <input
-              type="text"
+            <RovingRichField
+              fieldKey={`opt:${opt.id}:text`}
               name="option_text"
               value={opt.text}
-              onChange={(e) => updateText(idx, e.target.value)}
+              onChange={(doc) => updateText(idx, doc)}
+              inline
+              className="auth-rrf-option"
+              ariaLabel={`Option ${opt.id} text`}
               placeholder={`Option ${opt.id} text…`}
-              disabled={disabled}
-              className="auth-input"
             />
-            <input
-              type="text"
+            <RovingRichField
+              fieldKey={`opt:${opt.id}:fb`}
               name="option_feedback"
               value={opt.feedback}
-              onChange={(e) => updateFeedback(idx, e.target.value)}
+              onChange={(doc) => updateFeedback(idx, doc)}
+              inline
+              className="auth-rrf-option-fb"
+              ariaLabel={`Option ${opt.id} feedback`}
               placeholder="Per-option feedback (optional)…"
-              disabled={disabled}
-              className="auth-input auth-input--sm"
             />
             <input type="hidden" name="option_id" value={opt.id} />
           </div>
@@ -188,8 +199,8 @@ function SelectNOptionList({
 
 // ─────────────────────────────────────────────────────────────
 // SelectNCountField — number input + helper hint. Posts as
-// `name="select_count"`. Clamped to [1, optionsWithText] in the
-// editor; the server parser re-checks.
+// `name="select_count"`. Clamped to [1, optionsWithText] in the editor;
+// the server parser re-checks.
 // ─────────────────────────────────────────────────────────────
 
 interface SelectNCountFieldProps {
@@ -223,15 +234,13 @@ function SelectNCountField({ value, max, disabled, onChange }: SelectNCountField
 }
 
 // ─────────────────────────────────────────────────────────────
-// SelectNPreview — dual-mode preview (private). Renders the "Select
-// N" instruction line above the checkbox option list. Answer-key
-// view highlights every option in `correctIds` with a filled green
-// checkbox + "✓ Correct" pill.
+// SelectNPreview — dual-mode preview (private). "Select N" line above
+// the checkbox option list; answer-key view highlights correctIds.
 // ─────────────────────────────────────────────────────────────
 
 interface SelectNPreviewProps {
-  instruction: string;
-  stem: string;
+  instruction: RichDoc;
+  stem: RichDoc;
   options: OptionRow[];
   selectCount: number;
   correctIds: Set<string>;
@@ -260,11 +269,17 @@ export function SelectNPreview({
         <PreviewToggle value={viewMode} onChange={onViewModeChange} />
       </div>
       <div className="auth-preview-card-body">
-        {instruction.trim() && (
-          <p className="auth-preview-instruction">{instruction}</p>
+        {!isEmptyRichDoc(instruction) && (
+          <p className="auth-preview-instruction">
+            <RichRender doc={instruction} inline />
+          </p>
         )}
         <div className="auth-preview-stem">
-          {stem.trim() || <span className="auth-preview-placeholder">Stem appears here…</span>}
+          {isEmptyRichDoc(stem) ? (
+            <span className="auth-preview-placeholder">Stem appears here…</span>
+          ) : (
+            <RichRender doc={stem} />
+          )}
         </div>
         <p className="auth-preview-select-n">
           Select exactly <strong>{selectCount}</strong>.
@@ -291,8 +306,10 @@ export function SelectNPreview({
                 />
                 <span className="auth-preview-letter">{opt.id}.</span>
                 <span className="auth-preview-text">
-                  {opt.text.trim() || (
+                  {isEmptyRichDoc(opt.text) ? (
                     <span className="auth-preview-placeholder">Option {opt.id} text…</span>
+                  ) : (
+                    <RichRender doc={opt.text} inline />
                   )}
                 </span>
                 {isCorrect && (
@@ -334,10 +351,17 @@ export function SelectNEditorBody({
   const [clientError, setClientError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
 
-  const [stem, setStem] = useState(initial.stem);
-  const [instruction, setInstruction] = useState(initial.instruction);
+  const [stem, setStem] = useState<RichDoc>(() => parseRichDoc(initial.stem));
+  const [instruction, setInstruction] = useState<RichDoc>(() => parseRichDoc(initial.instruction));
+  const [rationale, setRationale] = useState<RichDoc>(() => parseRichDoc(initial.rationale));
   const [options, setOptions] = useState<OptionRow[]>(() =>
-    initial.options.length > 0 ? initial.options : defaultOptionRows(),
+    initial.options.length > 0
+      ? initial.options.map((o) => ({
+          id: o.id,
+          text: parseRichDoc(o.text),
+          feedback: parseRichDoc(o.feedback),
+        }))
+      : defaultOptionRows(),
   );
   const [correctIds, setCorrectIds] = useState<Set<string>>(
     () => new Set(initial.correct_ids),
@@ -345,18 +369,21 @@ export function SelectNEditorBody({
   const [selectCount, setSelectCount] = useState<number>(initial.select_count);
   const [category, setCategory] = useState(initial.client_needs_category);
 
-  const optionsWithText = options.filter((o) => o.text.trim().length > 0).length;
+  function markDirty() {
+    onDirty?.();
+  }
 
-  // Clamp selectCount to the current options-with-text upper bound
-  // for display only; saved value is whatever's in the input + parser
-  // re-validates server-side.
+  const optionsWithText = options.filter((o) => !isEmptyRichDoc(o.text)).length;
+
+  // Clamp selectCount to the current options-with-text upper bound for
+  // display only; saved value is whatever's in the input + parser re-validates.
   const effectiveCount = Math.min(
     Math.max(1, selectCount),
     Math.max(1, optionsWithText),
   );
 
   const contentIncomplete =
-    !stem.trim() ||
+    isEmptyRichDoc(stem) ||
     optionsWithText < MIN_OPTIONS ||
     correctIds.size !== effectiveCount;
   const classificationIncomplete = !category;
@@ -403,91 +430,102 @@ export function SelectNEditorBody({
         realm={initial.surface}
         entityType={initial.surface === 'tutor' ? 'tutor_question' : 'bank_item'}
         itemId={initial.itemId}
-        title={initial.stem}
+        title={richTextToPlain(initial.stem)}
       />
-      <div className="auth-split">
-        <div className="auth-edit">
-          <EditorTabs
-            tabs={[
-              { id: 'content',        label: 'Content',        incomplete: contentIncomplete },
-              { id: 'classification', label: 'Classification', incomplete: classificationIncomplete },
-              { id: 'housekeeping',   label: 'Housekeeping' },
-            ]}
-            active={tab}
-            onChange={(id) => setTab(id as typeof tab)}
-          >
-            <TabPanel id="content">
-              <InstructionField value={instruction} onChange={setInstruction} />
-              <StemField value={stem} onChange={setStem} />
-              <SelectNOptionList
-                options={options}
-                correctIds={correctIds}
-                selectCount={effectiveCount}
-                onChange={(opts, cids) => {
-                  setOptions(opts);
-                  setCorrectIds(cids);
-                }}
-                disabled={pending}
-              />
-              <SelectNCountField
-                value={selectCount}
-                max={Math.max(1, optionsWithText)}
-                disabled={pending}
-                onChange={setSelectCount}
-              />
-              <RationaleFields
-                defaultRationale={initial.rationale}
-                defaultRationaleImg={initial.rationale_img}
-              />
-            </TabPanel>
+      <RovingProvider>
+        <div className="auth-split">
+          <div className="auth-edit">
+            <EditorTabs
+              tabs={[
+                { id: 'content',        label: 'Content',        incomplete: contentIncomplete },
+                { id: 'classification', label: 'Classification', incomplete: classificationIncomplete },
+                { id: 'housekeeping',   label: 'Housekeeping' },
+              ]}
+              active={tab}
+              onChange={(id) => setTab(id as typeof tab)}
+            >
+              <TabPanel id="content">
+                <RovingToolbar hint="Click into a field to format it" />
+                <RichInstructionField
+                  value={instruction}
+                  onChange={(doc) => { setInstruction(doc); markDirty(); }}
+                />
+                <RichStemField
+                  value={stem}
+                  onChange={(doc) => { setStem(doc); markDirty(); }}
+                />
+                <SelectNOptionList
+                  options={options}
+                  correctIds={correctIds}
+                  selectCount={effectiveCount}
+                  onChange={(opts, cids) => {
+                    setOptions(opts);
+                    setCorrectIds(cids);
+                    markDirty();
+                  }}
+                  disabled={pending}
+                />
+                <SelectNCountField
+                  value={selectCount}
+                  max={Math.max(1, optionsWithText)}
+                  disabled={pending}
+                  onChange={(n) => { setSelectCount(n); markDirty(); }}
+                />
+                <RichRationaleFields
+                  rationale={rationale}
+                  onRationaleChange={(doc) => { setRationale(doc); markDirty(); }}
+                  defaultRationaleImg={initial.rationale_img}
+                />
+              </TabPanel>
 
-            <TabPanel id="classification">
-              <ClassificationFields
-                category={category}
-                onCategoryChange={setCategory}
-                defaults={{
-                  client_needs_subcategory: initial.client_needs_subcategory,
-                  nursing_subject: initial.nursing_subject,
-                  body_system: initial.body_system,
-                  topic: initial.topic,
-                  subtopic: initial.subtopic,
-                  difficulty: initial.difficulty,
-                  bloom_level: initial.bloom_level,
-                  tags: initial.tags,
-                }}
-              />
-            </TabPanel>
+              <TabPanel id="classification">
+                <ClassificationFields
+                  category={category}
+                  onCategoryChange={setCategory}
+                  defaults={{
+                    client_needs_subcategory: initial.client_needs_subcategory,
+                    nursing_subject: initial.nursing_subject,
+                    body_system: initial.body_system,
+                    topic: initial.topic,
+                    subtopic: initial.subtopic,
+                    difficulty: initial.difficulty,
+                    bloom_level: initial.bloom_level,
+                    tags: initial.tags,
+                  }}
+                />
+              </TabPanel>
 
-            <TabPanel id="housekeeping">
-              <HousekeepingFields
-                mode={initial.mode}
-                questionType="SELECT_N"
-                defaults={{
-                  marks: liveMarks,
-                  question_ref: initial.question_ref,
-                  batch_id: initial.batch_id,
-                  is_published: initial.is_published,
-                  is_free_sample: initial.is_free_sample,
-                  is_builder_visible: initial.is_builder_visible,
-                  shuffle_options: initial.shuffle_options,
-                }}
-              />
-            </TabPanel>
-          </EditorTabs>
+              <TabPanel id="housekeeping">
+                <HousekeepingFields
+                  mode={initial.mode}
+                  questionType="SELECT_N"
+                  defaults={{
+                    marks: liveMarks,
+                    question_ref: initial.question_ref,
+                    batch_id: initial.batch_id,
+                    is_published: initial.is_published,
+                    is_free_sample: initial.is_free_sample,
+                    is_builder_visible: initial.is_builder_visible,
+                    shuffle_options: initial.shuffle_options,
+                  }}
+                />
+              </TabPanel>
+            </EditorTabs>
+          </div>
+
+          <div className="auth-preview">
+            <SelectNPreview
+              instruction={instruction}
+              stem={stem}
+              options={options}
+              selectCount={effectiveCount}
+              correctIds={correctIds}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+          </div>
         </div>
-
-        <div className="auth-preview">
-          <SelectNPreview
-            instruction={instruction}
-            stem={stem}
-            options={options}
-            selectCount={effectiveCount}
-            correctIds={correctIds}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-          />
-        </div>
-      </div>
+      </RovingProvider>
     </form>
   );
 }
@@ -611,10 +649,14 @@ export function SelectNEditor({ initial, onClose, onSaved, onDeleted }: SelectNE
 // Defaults
 // ─────────────────────────────────────────────────────────────
 
+function emptyDoc(): RichDoc {
+  return { type: 'doc', content: [{ type: 'paragraph' }] };
+}
+
 function defaultOptionRows(): OptionRow[] {
   return Array.from({ length: DEFAULT_OPTIONS }, (_, i) => ({
     id: OPTION_LETTERS[i],
-    text: '',
-    feedback: '',
+    text: emptyDoc(),
+    feedback: emptyDoc(),
   }));
 }

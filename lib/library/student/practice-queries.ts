@@ -23,6 +23,7 @@
 // re-practice in the note is reflected immediately.
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { richTextToPlain } from '@/lib/authoring/rich-doc';
 import { bodyToTiptap } from '../body-tiptap';
 
 /** A practice block lifted from a note body, in reading order. */
@@ -361,7 +362,7 @@ function correctIdSet(type: string, correctSnap: unknown): Set<string> {
 function textsFor(content: unknown, ids: Set<string>): string | null {
   const texts = optionList(content)
     .filter((o) => ids.has(o.id))
-    .map((o) => o.text);
+    .map((o) => richTextToPlain(o.text));
   return texts.length ? texts.join(', ') : null;
 }
 
@@ -436,15 +437,15 @@ export async function getStudentPracticeNote(
         firstAnswer: a.answer_json,
         content: a.content_snapshot_json,
         correctSnap: a.correct_answer_snapshot_json,
-        rationale: a.rationale_snapshot,
-        stem: a.stem_snapshot,
+        rationale: a.rationale_snapshot ? richTextToPlain(a.rationale_snapshot) : null,
+        stem: richTextToPlain(a.stem_snapshot),
         type: a.question_type,
       });
     } else {
       cur.lastCorrect = a.is_correct;
     }
     if (a.stem_snapshot && !stemByItem.has(a.item_id)) {
-      stemByItem.set(a.item_id, a.stem_snapshot.trim());
+      stemByItem.set(a.item_id, richTextToPlain(a.stem_snapshot));
     }
   }
 
@@ -459,7 +460,7 @@ export async function getStudentPracticeNote(
       .select('item_id, stem')
       .in('item_id', missingStems);
     for (const q of (qRows ?? []) as Array<{ item_id: string; stem: string }>) {
-      stemByItem.set(q.item_id, (q.stem ?? '').trim());
+      stemByItem.set(q.item_id, richTextToPlain(q.stem ?? ''));
     }
   }
 

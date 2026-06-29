@@ -21,6 +21,8 @@
 
 import type { SataContent, SataCorrect } from '@/lib/bank/types';
 import type { SataAnswer } from '@/lib/scoring';
+import { RichRender } from '@/lib/authoring/rich-render';
+import { parseRichDoc } from '@/lib/authoring/rich-doc';
 
 type SataRunnerProps = {
   content: SataContent;
@@ -94,9 +96,9 @@ export function SataRunner(props: SataRunnerProps) {
             <span className="rn-opt-letter" aria-hidden="true">{opt.id}</span>
 
             <div className="rn-opt-body">
-              <div>{opt.text}</div>
+              <div><RichRender doc={parseRichDoc(opt.text)} inline /></div>
               {feedback && (
-                <div className="rn-opt-fb">{feedback}</div>
+                <div className="rn-opt-fb"><RichRender doc={parseRichDoc(feedback)} inline /></div>
               )}
             </div>
 

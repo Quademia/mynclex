@@ -21,6 +21,7 @@
 // getCohortRoster / getCohortForShell.
 
 import { createClient } from '@/lib/supabase/server';
+import { richTextToPlain } from '@/lib/authoring/rich-doc';
 import { getCohortForShell } from '@/lib/cohorts/queries';
 import { getCohortRoster } from '@/lib/enrolments/queries';
 import { isVisibleToStudents, activityOpenState } from '@/lib/curriculum/format';
@@ -927,7 +928,7 @@ async function computeMissRates(
       agg.get(key) ??
       {
         itemId: it.item_id,
-        stem: it.stem_snapshot?.trim() || 'Untitled question',
+        stem: richTextToPlain(it.stem_snapshot ?? '') || 'Untitled question',
         questionType: it.question_type ?? '',
         quizId,
         answered: 0,

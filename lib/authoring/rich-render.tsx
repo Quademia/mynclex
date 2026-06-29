@@ -11,8 +11,17 @@
 // Mark handling mirrors the library's student read renderer
 // (lib/library/student/read-inline.tsx) so the two surfaces stay consistent.
 
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, type CSSProperties, type ReactNode } from 'react';
 import type { RichDoc, RichNode, RichMark } from './rich-doc';
+
+// Mirror a block node's alignment (set by the TextAlign extension). Left is
+// the default, so only centre / right / justify need an inline style.
+function alignStyle(node: RichNode): CSSProperties | undefined {
+  const a = node.attrs?.textAlign;
+  return typeof a === 'string' && a !== 'left'
+    ? { textAlign: a as CSSProperties['textAlign'] }
+    : undefined;
+}
 
 function colorAttr(mark: RichMark | undefined): string | undefined {
   const c = mark?.attrs?.color;
@@ -97,7 +106,7 @@ function RenderBlock({ node, k }: { node: RichNode; k: string }): ReactNode {
   switch (node.type) {
     case 'paragraph':
       return (
-        <p key={k}>
+        <p key={k} style={alignStyle(node)}>
           <RenderInline content={node.content} />
         </p>
       );
@@ -105,7 +114,7 @@ function RenderBlock({ node, k }: { node: RichNode; k: string }): ReactNode {
       const level = (node.attrs?.level as number | undefined) ?? 2;
       const Tag = (level === 3 ? 'h3' : 'h2') as 'h2' | 'h3';
       return (
-        <Tag key={k}>
+        <Tag key={k} style={alignStyle(node)}>
           <RenderInline content={node.content} />
         </Tag>
       );
@@ -157,17 +166,64 @@ function RenderBlocks({
   );
 }
 
+// ── Inline flattening ──
+// Some hosts can't take block elements (a rich field rendered inside a
+// <button> option or a <p> instruction line — block-in-phrasing is invalid
+// HTML). For those, `inline` mode keeps the inline marks (bold / highlight /
+// …) but flattens block structure to lines joined by <br>. Lists/blockquotes
+// recurse so their text survives.
+function collectLines(
+  nodes: RichNode[] | undefined,
+  lines: ReactNode[],
+  keyBase: string,
+): void {
+  if (!nodes) return;
+  nodes.forEach((node, i) => {
+    const k = `${keyBase}-${i}`;
+    if (
+      node.type === 'bulletList' ||
+      node.type === 'orderedList' ||
+      node.type === 'listItem' ||
+      node.type === 'blockquote'
+    ) {
+      collectLines(node.content, lines, k);
+    } else {
+      lines.push(<RenderInline key={k} content={node.content} />);
+    }
+  });
+}
+
 /**
  * Render a stored rich document read-only. `doc` is the parsed RichDoc
  * (use `parseRichDoc` on the raw column value first).
+ *
+ * `inline` flattens block structure to a single phrasing-content run (lines
+ * joined by <br>) — use it where a block element would be invalid (inside a
+ * <button> option, a <p> instruction, a table cell that must stay inline).
  */
 export function RichRender({
   doc,
   className,
+  inline = false,
 }: {
   doc: RichDoc;
   className?: string;
+  inline?: boolean;
 }) {
+  if (inline) {
+    const lines: ReactNode[] = [];
+    collectLines(doc.content, lines, 'l');
+    return (
+      <span className={className ? `auth-rich-inline ${className}` : 'auth-rich-inline'}>
+        {lines.map((ln, i) => (
+          <Fragment key={i}>
+            {i > 0 && <br />}
+            {ln}
+          </Fragment>
+        ))}
+      </span>
+    );
+  }
   return (
     <div className={className ? `auth-rich ${className}` : 'auth-rich'}>
       <RenderBlocks nodes={doc.content} prefix="b" />

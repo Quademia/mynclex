@@ -29,6 +29,8 @@ import {
   isSataComplete,
   isSelectNComplete,
 } from '@/lib/practice/runner';
+import { RichRender } from '@/lib/authoring/rich-render';
+import { parseRichDoc } from '@/lib/authoring/rich-doc';
 import type { BankItemAnswer } from '@/lib/scoring';
 import type {
   McqContent,
@@ -363,8 +365,10 @@ function EmbedPlayerRun({
       </div>
 
       <div className="eq-player-body">
-        <div className="rn-stem">{q.stem}</div>
-        {q.instruction && <p className="rn-instruction">{q.instruction}</p>}
+        <div className="rn-stem"><RichRender doc={parseRichDoc(q.stem)} /></div>
+        {q.instruction && (
+          <p className="rn-instruction"><RichRender doc={parseRichDoc(q.instruction)} inline /></p>
+        )}
 
         <PerTypeRunner
           questionType={q.questionType}
@@ -462,8 +466,10 @@ function ReviewPlay({
       </div>
 
       <div className="eq-player-body">
-        <div className="rn-stem">{rq.stem}</div>
-        {rq.instruction && <p className="rn-instruction">{rq.instruction}</p>}
+        <div className="rn-stem"><RichRender doc={parseRichDoc(rq.stem)} /></div>
+        {rq.instruction && (
+          <p className="rn-instruction"><RichRender doc={parseRichDoc(rq.instruction)} inline /></p>
+        )}
 
         <PerTypeRunner
           questionType={rq.questionType}

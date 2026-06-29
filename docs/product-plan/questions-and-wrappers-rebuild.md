@@ -1119,11 +1119,49 @@ one **sticky** toolbar. Render wired into preview + runner. New "Free text"
 tabs use it; existing v1 narrative + built-in narratives stay on the old
 editor until the templates slice.
 
-### Slice 5 — upgrade the built-in templates  *(was Slice 6)*
+### Slice 5 — upgrade the built-in templates  *(was Slice 6)* ✅ SHIPPED TO PROD (2026-06-28)
 
-> **PLAN AGREED 2026-06-28** (design pass with Sam; no code yet). Scope,
-> mapping, and method below are settled. Build order + open-on-build notes
-> at the end.
+> **✅ COMPLETE — built, converted (dev + prod), released to prod 2026-06-28.**
+> Built as **sub-slices, one template at a time** (Sam's call): **5.1** Vital
+> Signs · **5.2** Lab Results (structured converter) · **5.3** Nurses' Notes
+> (narrative converter) · **5.4** Orders · **5.5** H&P · **5.6** Diagnostics ·
+> **5.7a** convert the 12 legacy custom tabs + drop the v1 "Rows & columns"
+> picker option · **5.7b** delete the old v1 editors. Commits `7f99be6`…
+> `ec27a94` (+ the `3e070ae` flash polish). Released to prod across PR #30 (the
+> v2 render code) and PR #31 (5.7b + flash).
+>
+> **What actually shipped vs the plan below:**
+> - **Census was 28, not 27** — `vital_signs` was **4** rows, not 3 (16
+>   built-in + 12 custom on dev; prod independently had 28: nurses_notes×6,
+>   orders×1, diagnostics×1, vital_signs×2, custom grid×10, custom free_text×8 —
+>   no lab_results/history on prod).
+> - **Prod data was converted by the curl pipeline, NOT a migration file** (the
+>   plan's "step 5" guess). Order: release the v2 *render* code to prod first
+>   (old editors kept as the safety net) → back up prod tabs → dump via
+>   PostgREST → run the **tested** converter → `curl PATCH` each → deep-compare
+>   `ALL MATCH` → only then 5.7b deletes the old editors. Reason: the converter
+>   is complex JSON best produced by the tested TS function, not hand-written
+>   SQL (a hand-pasted blob dropped a grid row on dev — caught by deep-compare).
+> - **Three fixes/extras not in the plan:** (a) the v2 editors **hardcoded
+>   custom tab_key/is_custom on save** → a saved built-in silently became a
+>   custom tab + broke the picker's "Already added" guard → both editors now
+>   post the tab's own identity (`b41ab74`); (b) **wide-table horizontal scroll**
+>   — `.mt-pane{min-width:0}` so a wide table scrolls instead of overflowing the
+>   pane + covering the preview (`f534072`); (c) the **just-revealed cue** went
+>   from a constant warning-orange border to a **teal fade-flash** (`3e070ae`).
+> - **Case TITLE stays plain text** (decided 2026-06-28): titles are labels used
+>   in many plain contexts (lists, breadcrumbs, `<title>`, search, sort); the
+>   only real need is super/subscript units, which plain **Unicode** (SpO₂, HCO₃⁻)
+>   covers AND survives flattening — rich markup wouldn't. The scenario going
+>   rich (Slice 1) was the content win; the title is not content.
+> - **Attempt-snapshot edge case — verified non-issue:** the runner is now
+>   v2-only, so a case attempt snapshotted *before* conversion would render its
+>   charts empty. Checked prod `nclex_attempt_case_snapshots` = **0 rows** (no
+>   case attempts ever taken on prod), and every new snapshot is v2. (Minor dead
+>   code left: the v1-array branch in `case-panel.tsx`'s visible-tab filter is
+>   now unreachable — harmless, could be pruned later.)
+>
+> Original agreed plan kept below for the record. ↓
 
 Bring the six built-in tab templates (Vital Signs, Labs, Nurses' Notes,
 Orders, H&P, Diagnostics) onto the **new v2 editors already built in
@@ -1244,9 +1282,212 @@ the generic rich model.
 
 ### Slice 6 — rich text across the questions  *(was Slice 5)*
 
-Point the Slice-1 primitive at the **question** fields — stems, every answer
-**option**, per-option **feedback**, **rationale** — across all 9 item types.
-The bank-wide migration of those columns (string → Tiptap JSON) lands here.
+Point the Slice-1 primitive at the **question** fields — the stem, every
+answer **option**, per-option **feedback**, and the **rationale** — across the
+9 item types. This is where rich text reaches the questions themselves (the
+chart/stimulus side was Slices 1–5).
+
+> **STATUS: DESIGN LOCKED (2026-06-28), nothing built.** Six decisions settled
+> with Sam in a discussion pass + a code read of the editors and both runners.
+> Build is **per editor, one at a time, end-to-end** (author → both renders →
+> raw-JSON sweep → Sam-tests on dev → merge), per the usual loop.
+
+**Locked decisions:**
+
+1. **Storage = read-coerce, NO migration.** Old plain-text rows are wrapped as
+   paragraphs on read (`parseRichDoc`); new saves write Tiptap JSON into the
+   **existing** columns. Same proven path as the Slice-1 scenario field — no
+   `ALTER TABLE`, no data transform. (Overrides the original "bank-wide column
+   migration lands here" note — the migration is unnecessary; read-coercion
+   covers every legacy row transparently. The stem/rationale are plain TEXT
+   columns; options/feedback are plain strings inside the existing `content` /
+   `correct` JSONB — none need a schema change.)
+2. **Scope = bank items + tutor questions, together — and it's cheap.** The 9
+   editors (`lib/bank/editors/*`) are **surface-aware** and already write to
+   either `nclex_bank_items` or `nclex_tutor_questions` off one `save-question`
+   action; the per-type **runner components** (`lib/practice/runner/types/*`)
+   are **reused** by the library embed player (`lib/library/student/embed-player.tsx`)
+   and the tutor preview. So one editor change covers both tables, and one
+   runner-component change covers both the practice runner **and** the library
+   reading-checks. The only genuinely separate spots are the type-agnostic
+   **stem + rationale render hosts** (practice `runner-question-area.tsx` vs the
+   two library hosts) — one-time swaps in the foundation.
+3. **Toolbar = ONE roving toolbar per editor.** The Content tab stacks many
+   rich fields (a 4-option MCQ ≈ stem + 4 option texts + 4 feedbacks + rationale
+   ≈ 10), so per-field toolbars (the Slice-1 scenario style) would be a wall of
+   duplicated toolbars + ~10 live editors. Instead reuse the **merge-table /
+   narrative roving pattern**: one sticky toolbar at the top of the Content tab,
+   one live editor at a time following focus, unfocused fields render static.
+   `RichField` already supports it (`hideToolbar` + `onEditor`); the shared
+   toolbar is `lib/authoring/inline-tools.tsx` (`InlineTools` /
+   `InlineToolsDisabled`).
+4. **Rich stems decided per editor.** The 6 "normal" types (MCQ, TF, SATA,
+   Select-N, Matrix, Bowtie) get fully rich stems. The 3 **marker-bearing**
+   types store structural markers in the stem — Cloze `{1}`, Highlight `[[…]]`,
+   Drag-drop-sentence `[N]` (and Cloze silently renumbers on save) — so each
+   one's stem treatment is decided when we open that editor. Their
+   options/choices/tokens + rationale still go rich.
+5. **Per-editor, end-to-end, opportunistic.** Each editor is taken on its own:
+   apply the rich treatment AND any other improvements that surface while we're
+   in it (the editors share a skeleton, so a fix often generalises). Test on dev
+   and merge before the next.
+6. **Instruction field — ALSO rich** (Sam, 2026-06-28). It's the *first* field
+   on the Content tab, so the roving toolbar sits directly above it — leaving
+   it the one plain field under a rich-text toolbar would feel arbitrary.
+   Instruction renders in the same type-agnostic chrome as the stem (above the
+   prompt, both runners + preview), so it folds into the 6a foundation with no
+   per-type cost.
+
+**The shared editor skeleton (why the above composes):** every editor is
+`ModalFrame → split(edit | preview) → Tabs(Content · Classification ·
+Housekeeping)`; the Content tab stacks `Instruction → Stem → Options(per-type
+rows of text + feedback) → Rationale`, with Instruction/Stem/Rationale coming
+from shared atoms (`lib/bank/atoms/`). Classification + Housekeeping hold no
+rich fields. The form is **FormData-based** — each rich field writes its
+serialized JSON into a hidden `<input name="…">` so the existing save path is
+untouched (the Slice-1 scenario bridge).
+
+**Subslices** (each Sam-tested on dev + merged to `main` individually):
+
+- **Slice 6a — Foundation + MCQ + TF.** ✅ BUILT (`ce0917c` foundation+MCQ;
+  TF the MCQ mirror; session branch, Sam-tested on dev; tsc + eslint + 94
+  vitest clean). **TF specifics:** its runner is a thin `<McqRunner>` wrapper
+  so it was already rich (no runner change); `parseTf` enforces the exact
+  "True"/"False" option labels server-side, so option *text* stays plain and
+  only the per-option **feedback** is rich. Editor + both wrapper preview call
+  sites only.
+  - *Foundation (built once, reused by every later editor — see checklist
+    below):* `lib/authoring/roving-rich.tsx` (`RovingProvider` / `RovingToolbar`
+    / `RovingRichField` — live editor when focused, static text otherwise,
+    hidden-input FormData bridge); `rich-atoms.tsx` (`RichInstructionField` /
+    `RichStemField` / `RichRationaleFields`, alongside the plain atoms);
+    `rich-render.tsx` gained an `inline` mode (flatten blocks → `<br>`-joined
+    phrasing, valid inside `<button>` options + `<p>` instructions);
+    `rich-field.tsx` gained `autofocus`.
+  - *MCQ:* the Content tab is wrapped in `<RovingProvider>` + a sticky
+    `<RovingToolbar>`; instruction/stem/each option text/each feedback/rationale
+    are rich; `McqPreview` + `McqRunner` render rich.
+  - *TF:* rides along — same shape, locked True/False options.
+- **Slice 6b — SATA + Select-N.** ✅ BUILT (session branch; tsc + eslint + 94
+  vitest clean). MCQ mirror with editable option text + feedback (both rich);
+  per-type runners (`sata.tsx` / `select-n.tsx`) got the same `opt.text` +
+  feedback `RichRender inline` swap; four wrapper preview call sites converted.
+  Select-N's `select_count` stays a plain number; SATA/Select-N housekeeping
+  `liveMarks` unchanged. Parsers confirmed opaque (`.trim()` for empty only).
+- **Slice 6c — Matrix + Bowtie.** Grid row/column labels + bow-tie token
+  labels become rich; stems are "normal" (fully rich).
+- **Slice 6d — Cloze.** Decide the stem treatment (carries `{N}` markers +
+  silent renumbering) when opened; the per-blank choices + rationale go rich.
+- **Slice 6e — Highlight.** Decide the stem treatment (the passage carries the
+  `[[…]]` answer-key brackets — likely stays special); rationale rich. (Note:
+  answer-bound highlight — "rung 4" — stays closed; this is just rich text,
+  not fusing the highlight key into a chart.)
+- **Slice 6f — Drag-drop.** ORDERED vs SENTENCE; tokens/slot hints rich; the
+  SENTENCE stem carries `[N]` markers → decide treatment when opened.
+
+### Slice 6 — blast radius: what's SHARED vs PER-EDITOR
+
+> Captured after 6a (2026-06-28): the foundation pulled in more linked surfaces
+> than the editor file alone. This split is the checklist for 6b–6f so no
+> surface is missed. **The rule: anything keyed on stem / instruction /
+> rationale is DONE (shared across all types); anything keyed on a type's own
+> ANSWER fields repeats per editor.**
+
+**SHARED — built once in 6a, do NOT redo per editor:**
+
+- The roving system (`roving-rich.tsx`), the rich atoms (`rich-atoms.tsx`),
+  `RichRender`'s `inline` mode, `RichField`'s `autofocus`.
+- **Type-agnostic RENDER hosts already rich:** stem + instruction in
+  `runner-question-area.tsx`, `embed-player.tsx`, `embed-preview.tsx`;
+  rationale via `RationaleBlock` (`rationale.tsx`). A new editor's stem /
+  instruction / rationale already render rich everywhere — no work.
+- **Stem/instruction/rationale RAW-JSON sweep at the source mappers (global,
+  every type):** `app/(app)/{admin,tutor}/bank/all/page.tsx` (bank list),
+  `lib/library/embed-actions.ts` (pick modal + embed card),
+  `lib/library/analytics/queries.ts`, `lib/tutor-quiz/queries.ts` +
+  `quiz-editor.tsx` `stemPreview`, `lib/library/student/practice-queries.ts`,
+  `lib/analytics/tutor/cohort-queries.ts`, the case-study wrapper slot list.
+  `richTextToPlain` is idempotent on plain text, so these already cover every
+  future type's stem.
+
+**PER-EDITOR — repeat for each of SATA · Select-N · Matrix · Bowtie · Cloze ·
+Highlight · Drag-drop (and TF):**
+
+1. **Editor** (`lib/bank/editors/<type>-editor.tsx`): wrap the Content tab in
+   `<RovingProvider>` + a sticky `<RovingToolbar>`; swap the plain
+   instruction/stem/rationale atoms for the **rich atoms**; convert the type's
+   **own answer fields** to `<RovingRichField inline>`. The field per type:
+   - SATA / Select-N → option text + per-option feedback (same `content.options`
+     shape as MCQ).
+   - Matrix → row labels + column labels + per-row feedback.
+   - Bowtie → each wing's token labels + per-token feedback.
+   - Cloze → per-blank choice text + per-choice feedback (stem markers: see §3).
+   - Highlight → (chunks live in the passage; mostly a stem-treatment decision).
+   - Drag-drop → token text + slot target/hint + per-slot feedback.
+   State → `RichDoc` seeded via `parseRichDoc`; "empty/required" checks via
+   `isEmptyRichDoc` (relies on `serializeRichDoc` → `''` for empty).
+2. **Preview** (the type's exported `<XxxPreview>`): render its fields rich —
+   block for the stem, `inline` for options / labels / tokens.
+3. **Per-type runner** (`lib/practice/runner/types/<type>.tsx`): render the
+   type's answer text + feedback rich (`inline`). Covers the practice runner
+   AND — for the 4 **library-embeddable** types only (MCQ/TF/SATA/Select-N) —
+   the library player + tutor preview, because they reuse these components.
+   Matrix / Bowtie / Cloze / Highlight / Drag-drop are **not** embeddable, so
+   they have a narrower render surface (no library player).
+4. **Wrapper preview call site:** `ActiveQuestionPreview` in **both**
+   `lib/bank/wrappers/case-study/wrapper-page.tsx` **and**
+   `lib/bank/wrappers/trend/wrapper-page.tsx` — convert that type's preview
+   props from string → `RichDoc` (`parseRichDoc`), exactly like the MCQ case.
+5. **Parser sanity** (`lib/bank/parsers/<type>.ts`): confirm it treats the text
+   as opaque (just `.trim()` for empty detection — satisfied by the `''`-for-
+   empty contract). No change expected; verify, don't assume.
+6. **Type-specific raw-JSON sweep:** stem/instruction/rationale are already
+   global (above). Only the type's **own answer text shown as a plain string**
+   needs a check. Known: the embed **analytics answer-distribution** reads
+   `content.options[].text` — already swept generically, so it covers
+   MCQ/SATA/Select-N (shared options shape). The non-options types aren't
+   embeddable, so they don't reach embed analytics. Grep the type's answer
+   text for any other plain display before calling it done.
+
+**Marker-stem types (Cloze 6d / Highlight 6e / Drag-drop-SENTENCE 6f):** their
+stem is parsed for markers (`{N}` / `[[…]]` / `[N]`) and the **per-type runner
+renders the stem itself** (the `isStemTakeover` branch in
+`runner-question-area.tsx`), so the shared stem render doesn't apply to them.
+Decide each one's stem treatment when its editor is opened; their answer fields
+still go rich per the checklist.
+
+### Slice 6 — per-editor "other work": validation philosophy (settled 2026-06-29)
+
+Each editor's per-type pass is also the moment to review its **validity /
+publish rules** (the "other work" beyond rich text). Guiding principle, settled
+with Sam on SATA/Select-N: **prefer advisory hints over hard blocks.** The
+Maryland / NCSBN corpus showed curators legitimately deviate from textbook
+NCLEX norms (option counts, distractor ratios), so over-constraining the parser
+fights real authoring. Reserve **hard rules** for the genuinely-broken
+(structural integrity — e.g. a correct answer must reference a real option);
+use a **soft hint/warning** for the merely-unusual (e.g. "NCLEX SATA usually has
+5–6 options").
+
+- **SATA / Select-N — reviewed, NO change (Sam, 2026-06-29).** Current rules
+  judged fine: stem required · 2–10 non-empty options · SATA ≥1 correct (up to
+  all) · Select-N exactly N (1…options) · category required · marks auto. A
+  distractor requirement and a higher min-option floor were considered and
+  **declined** — curator freedom wins; the most we'd do is *advise*, not block.
+
+### Slice 6 — parked / deferred
+
+- **Curator discoverability of formatting affordances.** The rich toolset has
+  hidden conventions tutors won't find on their own — most notably
+  **`Shift+Enter` for a line break** (vs `Enter` = new paragraph, which adds
+  paragraph spacing). The capability works today (HardBreak is in StarterKit;
+  `RichRender` draws the `<br>`); the gap is purely *telling curators*. When
+  picked up: a small hint and/or a line-break toolbar button, possibly folded
+  into a broader "how to format" cue for the whole toolbar. **No behaviour
+  change** — do NOT remap `Enter` (paragraph = the universal convention).
+  (Sam confirmed Shift+Enter on dev 2026-06-29; deferred the discoverability
+  fix.)
+- **Indent** (list nesting + paragraph indent) — raised, then set aside in
+  favour of alignment. Revisit if a real specimen needs it.
 
 ### Slice 7 (LAST) — media block in the narrative body
 

@@ -4,7 +4,7 @@
 // every piece needed to author an MCQ:
 //
 //   - McqOptionList    : private — the option-list edit row
-//                        (radio, text, feedback, remove).
+//                        (radio, rich text, rich feedback, remove).
 //   - McqPreview       : private — the live pre-submit student view.
 //   - McqEditorBody    : exported — the two-pane edit + preview body.
 //                        Mountable anywhere (modal, wrapper-page pane).
@@ -16,11 +16,12 @@
 //                        the typed-DELETE confirmation, and closes
 //                        the modal on success.
 //
-// Slice 2: actions are live. Save and Delete buttons run real server
-// actions against nclex_bank_items (admin) or nclex_tutor_questions
-// (tutor). The form ID is shared between the body's <form> and the
-// header's <button form="…"> so the Save button sits outside the
-// form in the modal header but still submits it.
+// Slice 6a: the content fields (instruction, stem, every option text +
+// per-option feedback, rationale) are RICH. The Content tab carries ONE
+// roving toolbar (lib/authoring/roving-rich.tsx) that drives whichever field
+// is focused. Each rich field stores its document as JSON in a hidden input,
+// so the FormData save path is unchanged — the stem/option/feedback/rationale
+// columns now hold Tiptap JSON (read-coerced on the way back; no migration).
 
 'use client';
 
@@ -35,9 +36,6 @@ import { ModalFrame } from '@/lib/bank/atoms/modal-frame';
 import { EditorActions } from '@/lib/bank/atoms/editor-actions';
 import { EditorTabs, TabPanel } from '@/lib/bank/atoms/editor-tabs';
 import { EditorAuthorship } from '@/lib/audit/authorship-line';
-import { StemField } from '@/lib/bank/atoms/stem-field';
-import { InstructionField } from '@/lib/bank/atoms/instruction-field';
-import { RationaleFields } from '@/lib/bank/atoms/rationale-fields';
 import { ClassificationFields } from '@/lib/bank/atoms/classification-fields';
 import { HousekeepingFields } from '@/lib/bank/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/bank/atoms/hidden-item-inputs';
@@ -58,6 +56,23 @@ import {
   deleteQuestionAction,
   type DeleteResult,
 } from '@/lib/bank/actions/delete-question';
+import {
+  RovingProvider,
+  RovingToolbar,
+  RovingRichField,
+} from '@/lib/authoring/roving-rich';
+import {
+  RichInstructionField,
+  RichStemField,
+  RichRationaleFields,
+} from '@/lib/authoring/rich-atoms';
+import { RichRender } from '@/lib/authoring/rich-render';
+import {
+  parseRichDoc,
+  isEmptyRichDoc,
+  richTextToPlain,
+  type RichDoc,
+} from '@/lib/authoring/rich-doc';
 import type { McqEditorInitial } from './mcq-row-mapper';
 
 // Re-export the shape so existing client callers can keep importing
@@ -68,12 +83,13 @@ export type { McqEditorInitial };
 
 // ─────────────────────────────────────────────────────────────
 // McqOptionList — option-list editor (private to this file).
+// Text + feedback are rich docs driven by the roving toolbar.
 // ─────────────────────────────────────────────────────────────
 
 interface OptionRow {
   id: string;
-  text: string;
-  feedback: string;
+  text: RichDoc;
+  feedback: RichDoc;
 }
 
 interface McqOptionListProps {
@@ -87,7 +103,7 @@ function McqOptionList({ options, correctId, onChange, disabled }: McqOptionList
   function addOption() {
     if (options.length >= MAX_OPTIONS) return;
     const nextLetter = OPTION_LETTERS[options.length];
-    onChange([...options, { id: nextLetter, text: '', feedback: '' }], correctId);
+    onChange([...options, { id: nextLetter, text: emptyDoc(), feedback: emptyDoc() }], correctId);
   }
 
   function removeOption(idx: number) {
@@ -99,14 +115,14 @@ function McqOptionList({ options, correctId, onChange, disabled }: McqOptionList
     );
   }
 
-  function updateText(idx: number, text: string) {
+  function updateText(idx: number, text: RichDoc) {
     onChange(
       options.map((o, i) => (i === idx ? { ...o, text } : o)),
       correctId,
     );
   }
 
-  function updateFeedback(idx: number, feedback: string) {
+  function updateFeedback(idx: number, feedback: RichDoc) {
     onChange(
       options.map((o, i) => (i === idx ? { ...o, feedback } : o)),
       correctId,
@@ -147,23 +163,25 @@ function McqOptionList({ options, correctId, onChange, disabled }: McqOptionList
           </div>
           <div className="auth-option-letter">{opt.id}</div>
           <div className="auth-option-fields">
-            <input
-              type="text"
+            <RovingRichField
+              fieldKey={`opt:${opt.id}:text`}
               name="option_text"
               value={opt.text}
-              onChange={(e) => updateText(idx, e.target.value)}
+              onChange={(doc) => updateText(idx, doc)}
+              inline
+              className="auth-rrf-option"
+              ariaLabel={`Option ${opt.id} text`}
               placeholder={`Option ${opt.id} text…`}
-              disabled={disabled}
-              className="auth-input"
             />
-            <input
-              type="text"
+            <RovingRichField
+              fieldKey={`opt:${opt.id}:fb`}
               name="option_feedback"
               value={opt.feedback}
-              onChange={(e) => updateFeedback(idx, e.target.value)}
+              onChange={(doc) => updateFeedback(idx, doc)}
+              inline
+              className="auth-rrf-option-fb"
+              ariaLabel={`Option ${opt.id} feedback`}
               placeholder="Per-option feedback (optional)…"
-              disabled={disabled}
-              className="auth-input auth-input--sm"
             />
             <input type="hidden" name="option_id" value={opt.id} />
           </div>
@@ -186,12 +204,12 @@ function McqOptionList({ options, correctId, onChange, disabled }: McqOptionList
 // McqPreview — dual-mode preview (private).
 // Student view: empty radios.
 // Answer-key view: option matching `correctId` highlighted with a
-// filled green radio + "✓ Correct" pill.
+// filled green radio + "✓ Correct" pill. All content rendered rich.
 // ─────────────────────────────────────────────────────────────
 
 interface McqPreviewProps {
-  instruction: string;
-  stem: string;
+  instruction: RichDoc;
+  stem: RichDoc;
   options: OptionRow[];
   correctId: string;
   viewMode: PreviewViewMode;
@@ -218,11 +236,17 @@ export function McqPreview({
         <PreviewToggle value={viewMode} onChange={onViewModeChange} />
       </div>
       <div className="auth-preview-card-body">
-        {instruction.trim() && (
-          <p className="auth-preview-instruction">{instruction}</p>
+        {!isEmptyRichDoc(instruction) && (
+          <p className="auth-preview-instruction">
+            <RichRender doc={instruction} inline />
+          </p>
         )}
         <div className="auth-preview-stem">
-          {stem.trim() || <span className="auth-preview-placeholder">Stem appears here…</span>}
+          {isEmptyRichDoc(stem) ? (
+            <span className="auth-preview-placeholder">Stem appears here…</span>
+          ) : (
+            <RichRender doc={stem} />
+          )}
         </div>
         <ol className="auth-preview-options">
           {options.length === 0 && (
@@ -246,8 +270,10 @@ export function McqPreview({
                 />
                 <span className="auth-preview-letter">{opt.id}.</span>
                 <span className="auth-preview-text">
-                  {opt.text.trim() || (
+                  {isEmptyRichDoc(opt.text) ? (
                     <span className="auth-preview-placeholder">Option {opt.id} text…</span>
+                  ) : (
+                    <RichRender doc={opt.text} inline />
                   )}
                 </span>
                 {isCorrect && (
@@ -276,10 +302,10 @@ export interface McqEditorBodyProps {
   pending: boolean;
   onSubmit: (formData: FormData) => void;
   /**
-   * Optional. Called from the form's onInput on every keystroke
-   * or input event so the host's dirty guard can flip dirty=true.
-   * No-op when omitted (e.g. when embedded somewhere that doesn't
-   * track dirty state).
+   * Optional. Called on every edit so the host's dirty guard can flip
+   * dirty=true. Native inputs fire the form's onInput; rich fields write
+   * their value through React (no input event), so the rich change
+   * handlers call this explicitly.
    */
   onDirty?: () => void;
   /**
@@ -309,20 +335,34 @@ export function McqEditorBody({
   // the correct option highlights as expected.
   const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
 
-  const [stem, setStem] = useState(initial.stem);
-  const [instruction, setInstruction] = useState(initial.instruction);
+  // Content state — all rich. Seed from the stored column values via
+  // parseRichDoc (legacy plain text wraps as paragraphs; no migration).
+  const [stem, setStem] = useState<RichDoc>(() => parseRichDoc(initial.stem));
+  const [instruction, setInstruction] = useState<RichDoc>(() => parseRichDoc(initial.instruction));
+  const [rationale, setRationale] = useState<RichDoc>(() => parseRichDoc(initial.rationale));
   const [options, setOptions] = useState<OptionRow[]>(() =>
-    initial.options.length > 0 ? initial.options : defaultOptionRows(),
+    initial.options.length > 0
+      ? initial.options.map((o) => ({
+          id: o.id,
+          text: parseRichDoc(o.text),
+          feedback: parseRichDoc(o.feedback),
+        }))
+      : defaultOptionRows(),
   );
   const [correctId, setCorrectId] = useState<string>(initial.correct_id);
   // Lifted out of <ClassificationFields> so the tab strip can show a
   // red-dot indicator when the required Client Needs category is unset.
   const [category, setCategory] = useState(initial.client_needs_category);
 
+  // Rich-edit wrappers also flip the dirty guard (no input event fires).
+  function markDirty() {
+    onDirty?.();
+  }
+
   // Per-tab incompleteness — drives the red-dot indicator.
-  const optionsWithText = options.filter((o) => o.text.trim().length > 0).length;
+  const optionsWithText = options.filter((o) => !isEmptyRichDoc(o.text)).length;
   const contentIncomplete =
-    !stem.trim() || !correctId || optionsWithText < MIN_OPTIONS;
+    isEmptyRichDoc(stem) || !correctId || optionsWithText < MIN_OPTIONS;
   const classificationIncomplete = !category;
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -363,84 +403,95 @@ export function McqEditorBody({
         realm={initial.surface}
         entityType={initial.surface === 'tutor' ? 'tutor_question' : 'bank_item'}
         itemId={initial.itemId}
-        title={initial.stem}
+        title={richTextToPlain(initial.stem)}
       />
-      <div className="auth-split">
-        <div className="auth-edit">
-          <EditorTabs
-            tabs={[
-              { id: 'content',        label: 'Content',        incomplete: contentIncomplete },
-              { id: 'classification', label: 'Classification', incomplete: classificationIncomplete },
-              { id: 'housekeeping',   label: 'Housekeeping' },
-            ]}
-            active={tab}
-            onChange={(id) => setTab(id as typeof tab)}
-          >
-            <TabPanel id="content">
-              <InstructionField value={instruction} onChange={setInstruction} />
-              <StemField value={stem} onChange={setStem} />
-              <McqOptionList
-                options={options}
-                correctId={correctId}
-                onChange={(opts, cid) => {
-                  setOptions(opts);
-                  setCorrectId(cid);
-                }}
-                disabled={pending}
-              />
-              <RationaleFields
-                defaultRationale={initial.rationale}
-                defaultRationaleImg={initial.rationale_img}
-              />
-            </TabPanel>
+      <RovingProvider>
+        <div className="auth-split">
+          <div className="auth-edit">
+            <EditorTabs
+              tabs={[
+                { id: 'content',        label: 'Content',        incomplete: contentIncomplete },
+                { id: 'classification', label: 'Classification', incomplete: classificationIncomplete },
+                { id: 'housekeeping',   label: 'Housekeeping' },
+              ]}
+              active={tab}
+              onChange={(id) => setTab(id as typeof tab)}
+            >
+              <TabPanel id="content">
+                <RovingToolbar hint="Click into a field to format it" />
+                <RichInstructionField
+                  value={instruction}
+                  onChange={(doc) => { setInstruction(doc); markDirty(); }}
+                />
+                <RichStemField
+                  value={stem}
+                  onChange={(doc) => { setStem(doc); markDirty(); }}
+                />
+                <McqOptionList
+                  options={options}
+                  correctId={correctId}
+                  onChange={(opts, cid) => {
+                    setOptions(opts);
+                    setCorrectId(cid);
+                    markDirty();
+                  }}
+                  disabled={pending}
+                />
+                <RichRationaleFields
+                  rationale={rationale}
+                  onRationaleChange={(doc) => { setRationale(doc); markDirty(); }}
+                  defaultRationaleImg={initial.rationale_img}
+                />
+              </TabPanel>
 
-            <TabPanel id="classification">
-              <ClassificationFields
-                category={category}
-                onCategoryChange={setCategory}
-                defaults={{
-                  client_needs_subcategory: initial.client_needs_subcategory,
-                  nursing_subject: initial.nursing_subject,
-                  body_system: initial.body_system,
-                  topic: initial.topic,
-                  subtopic: initial.subtopic,
-                  difficulty: initial.difficulty,
-                  bloom_level: initial.bloom_level,
-                  tags: initial.tags,
-                }}
-              />
-            </TabPanel>
+              <TabPanel id="classification">
+                <ClassificationFields
+                  category={category}
+                  onCategoryChange={setCategory}
+                  defaults={{
+                    client_needs_subcategory: initial.client_needs_subcategory,
+                    nursing_subject: initial.nursing_subject,
+                    body_system: initial.body_system,
+                    topic: initial.topic,
+                    subtopic: initial.subtopic,
+                    difficulty: initial.difficulty,
+                    bloom_level: initial.bloom_level,
+                    tags: initial.tags,
+                  }}
+                />
+              </TabPanel>
 
-            <TabPanel id="housekeeping">
-              <HousekeepingFields
-                mode={initial.mode}
-                questionType="MCQ"
-                defaults={{
-                  // Per bank-marks-and-scoring §5.2: MCQ max is fixed at 1.
-                  marks: 1,
-                  question_ref: initial.question_ref,
-                  batch_id: initial.batch_id,
-                  is_published: initial.is_published,
-                  is_free_sample: initial.is_free_sample,
-                  is_builder_visible: initial.is_builder_visible,
-                  shuffle_options: initial.shuffle_options,
-                }}
-              />
-            </TabPanel>
-          </EditorTabs>
+              <TabPanel id="housekeeping">
+                <HousekeepingFields
+                  mode={initial.mode}
+                  questionType="MCQ"
+                  defaults={{
+                    // Per bank-marks-and-scoring §5.2: MCQ max is fixed at 1.
+                    marks: 1,
+                    question_ref: initial.question_ref,
+                    batch_id: initial.batch_id,
+                    is_published: initial.is_published,
+                    is_free_sample: initial.is_free_sample,
+                    is_builder_visible: initial.is_builder_visible,
+                    shuffle_options: initial.shuffle_options,
+                  }}
+                />
+              </TabPanel>
+            </EditorTabs>
+          </div>
+
+          <div className="auth-preview">
+            <McqPreview
+              instruction={instruction}
+              stem={stem}
+              options={options}
+              correctId={correctId}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+          </div>
         </div>
-
-        <div className="auth-preview">
-          <McqPreview
-            instruction={instruction}
-            stem={stem}
-            options={options}
-            correctId={correctId}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-          />
-        </div>
-      </div>
+      </RovingProvider>
     </form>
   );
 }
@@ -579,10 +630,14 @@ export function McqEditor({ initial, onClose, onSaved, onDeleted }: McqEditorPro
 // Defaults
 // ─────────────────────────────────────────────────────────────
 
+function emptyDoc(): RichDoc {
+  return { type: 'doc', content: [{ type: 'paragraph' }] };
+}
+
 function defaultOptionRows(): OptionRow[] {
   return Array.from({ length: DEFAULT_OPTIONS }, (_, i) => ({
     id: OPTION_LETTERS[i],
-    text: '',
-    feedback: '',
+    text: emptyDoc(),
+    feedback: emptyDoc(),
   }));
 }

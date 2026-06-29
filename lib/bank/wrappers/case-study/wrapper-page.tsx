@@ -48,6 +48,7 @@ import {
   parseRichDoc,
   serializeRichDoc,
   isEmptyRichDoc,
+  richTextToPlain,
   type RichDoc,
 } from '@/lib/authoring/rich-doc';
 import { DeleteCaseConfirm } from './delete-case-confirm';
@@ -411,7 +412,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
         position:      s.position,
         has_item:      s.item_id !== null,
         question_type: s.question_type,
-        stem:          s.stem ?? '',
+        stem:          richTextToPlain(s.stem),
         cjmm_step,
       };
     });
@@ -1347,9 +1348,13 @@ function ActiveQuestionPreview({
     case 'MCQ':
       return (
         <McqPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
-          options={editor.initial.options}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
+          options={editor.initial.options.map((o) => ({
+            id: o.id,
+            text: parseRichDoc(o.text),
+            feedback: parseRichDoc(o.feedback),
+          }))}
           correctId={editor.initial.correct_id}
           viewMode={viewMode}
           onViewModeChange={onViewModeChange}
@@ -1358,8 +1363,8 @@ function ActiveQuestionPreview({
     case 'TF':
       return (
         <TfPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
           options={editor.initial.options}
           correctId={editor.initial.correct_id}
           viewMode={viewMode}
@@ -1369,9 +1374,13 @@ function ActiveQuestionPreview({
     case 'SATA':
       return (
         <SataPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
-          options={editor.initial.options}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
+          options={editor.initial.options.map((o) => ({
+            id: o.id,
+            text: parseRichDoc(o.text),
+            feedback: parseRichDoc(o.feedback),
+          }))}
           correctIds={new Set(editor.initial.correct_ids)}
           viewMode={viewMode}
           onViewModeChange={onViewModeChange}
@@ -1380,9 +1389,13 @@ function ActiveQuestionPreview({
     case 'SELECT_N':
       return (
         <SelectNPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
-          options={editor.initial.options}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
+          options={editor.initial.options.map((o) => ({
+            id: o.id,
+            text: parseRichDoc(o.text),
+            feedback: parseRichDoc(o.feedback),
+          }))}
           selectCount={editor.initial.select_count}
           correctIds={new Set(editor.initial.correct_ids)}
           viewMode={viewMode}

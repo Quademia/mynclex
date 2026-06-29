@@ -10,6 +10,9 @@
 
 'use client';
 
+import { RichRender } from '@/lib/authoring/rich-render';
+import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
+
 interface Props {
   isCorrect:    boolean;
   scoreAwarded: number;
@@ -36,8 +39,8 @@ export function RationaleBlock({
         </span>
       </div>
       <div className="rn-rationale-body">
-        {rationale ? (
-          <p>{rationale}</p>
+        {rationale && !isEmptyRichDoc(parseRichDoc(rationale)) ? (
+          <RichRender doc={parseRichDoc(rationale)} />
         ) : (
           <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
             No rationale was captured for this question.

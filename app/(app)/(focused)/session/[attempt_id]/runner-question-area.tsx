@@ -86,6 +86,8 @@ import {
   BowtieRunner,
   RationaleBlock,
 } from '@/lib/practice/runner';
+import { RichRender } from '@/lib/authoring/rich-render';
+import { parseRichDoc } from '@/lib/authoring/rich-doc';
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   MCQ:       'Multiple choice',
@@ -172,14 +174,20 @@ export function RunnerQuestionArea(props: Props) {
 
         if (isStemTakeover) {
           return item.instruction_snapshot ? (
-            <p className="rn-instruction">{item.instruction_snapshot}</p>
+            <p className="rn-instruction">
+              <RichRender doc={parseRichDoc(item.instruction_snapshot)} inline />
+            </p>
           ) : null;
         }
         return (
           <>
-            <div className="rn-stem">{item.stem_snapshot}</div>
+            <div className="rn-stem">
+              <RichRender doc={parseRichDoc(item.stem_snapshot)} />
+            </div>
             {item.instruction_snapshot && (
-              <p className="rn-instruction">{item.instruction_snapshot}</p>
+              <p className="rn-instruction">
+                <RichRender doc={parseRichDoc(item.instruction_snapshot)} inline />
+              </p>
             )}
           </>
         );

@@ -12,6 +12,7 @@
 //   - No pagination yet. Hard-cap at 500 rows.
 
 import Link from 'next/link';
+import { richTextToPlain } from '@/lib/authoring/rich-doc';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import {
   BankListClient,
@@ -184,8 +185,8 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
   const summaryRows: BankListRowSummary[] = fullRows.map((r) => ({
     item_id:        r.item_id,
     question_type:  r.question_type as QuestionType,
-    stem:           r.stem ?? '',
-    instruction:    r.instruction ?? null,
+    stem:           richTextToPlain(r.stem),
+    instruction:    r.instruction ? richTextToPlain(r.instruction) : null,
     difficulty:     r.difficulty,
     is_published:   r.is_published,
     is_free_sample: r.is_free_sample,
