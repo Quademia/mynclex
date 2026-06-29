@@ -1499,6 +1499,72 @@ use a **soft hint/warning** for the merely-unusual (e.g. "NCLEX SATA usually has
   all) · Select-N exactly N (1…options) · category required · marks auto. A
   distractor requirement and a higher min-option floor were considered and
   **declined** — curator freedom wins; the most we'd do is *advise*, not block.
+- **Matrix / Bow-tie — reviewed, NO change (Sam, 2026-06-29).** Their rules are
+  *structural integrity*, not NCLEX-norm over-constraints, so advise-don't-block
+  leaves them as-is. Matrix: row-axis label required · min 2×2 / max 10×6 grid ·
+  every filled row needs exactly one correct column · category required · marks
+  auto. (The 10-row / 6-col caps were explicitly judged *good* caps — they
+  protect table usability, and nobody's hit them.) Bow-tie: the fixed
+  **2 + 1 + 2 = 5** is the item type's definition (the runner renders exactly 5
+  slots), not a soft norm like SATA's option count. Nothing to soften. **But the
+  Matrix per-editor pass surfaced a real *capability* gap → its own slice
+  below.** *(Parked sub-point for a later pass: the Matrix row-axis label being
+  hard-required is arguably a clarity-aid that could be softened to advice — Sam
+  flagged it as "the part we'll discuss further"; no change for now.)*
+
+### Matrix Multiple Response — new item type (planned; surfaced during 6c)
+
+The Matrix per-editor "other work" (2026-06-29) surfaced that **NCLEX Matrix
+comes in two distinct NGN item types, and we've only built one:**
+
+- **Matrix Multiple Choice** — exactly **one** correct column per row (radio per
+  row; forced single pick; all-or-nothing per-row scoring). **This is our
+  existing `MATRIX` type.** ✅ built (and now rich, 6c-i).
+- **Matrix Multiple Response** — a row can have **one or more** correct columns
+  (checkbox per row; free selection; per-cell partial-credit scoring). ❌ **not
+  built.** Sam has confirmed real MR matrix items in the Maryland / NCSBN corpus,
+  so this is a genuine gap, not hypothetical.
+
+**Key clarification (why they stay two types, not one):** an MR row *may* carry a
+single correct column, which makes its **answer key** look like an MC row — but
+its **control** (checkbox vs radio) and **scoring** (per-cell partial vs
+all-or-nothing) still differ, so a one-correct MR row is not an MC row. A pure
+MR-only build can NOT give true single-response *behaviour* for free (checkboxes
+let the student over-select); you'd have to re-introduce a mode flag, at which
+point you've rebuilt the distinction anyway.
+
+**Decision — Option B, a separate self-contained type (Sam, 2026-06-29).** Build
+`MATRIX_MR` as its **own editor type**, consistent with how the bank already
+splits **MCQ (radio) vs SATA (checkbox)** into separate self-contained editors.
+Mental model: *MC matrix = a stack of MCQ rows; MR matrix = a stack of SATA rows*
+sharing column headers — which also tells us the scoring model is **SATA-style
+per-cell**.
+
+- **Clean separation (Sam's explicit call):** do **NOT** share the grid /
+  parser / runner / scoring with `MATRIX` even though they look similar — mirror,
+  don't import, so the two types never move each other unexpectedly. Share **only**
+  the genuinely cross-cutting plumbing every editor already uses: the generic
+  field atoms (instruction / stem / rationale / classification / housekeeping),
+  the `lib/authoring/` roving rich-text foundation, the modal frame, save/delete
+  actions, dual preview, dirty-guard.
+- **Born rich:** built on the roving foundation from the start (the grid is
+  already rich from 6c) — no rich-text catch-up needed.
+- **Existing `MATRIX` (Multiple Choice) stays completely untouched.**
+
+**Open questions to settle one-at-a-time when the slice opens:**
+1. **Per-row correct count** — must every row have ≥1 correct, or can a row
+   legitimately have *none* correct (an "all-false" row)? Lean: allow 0 (SATA
+   per-row), but confirm against the corpus.
+2. **Scoring** — per-cell partial credit, SATA-style; slot into
+   `bank-marks-and-scoring`.
+3. **Submit gate** — must the student make ≥1 selection per row, or can a row be
+   left blank?
+4. **Max correct per row / bounds.**
+
+**Scope:** a full slice (own editor + parser + runner + **scoring** + attempt
+snapshot + a new `MATRIX_MR` value in the type registry) — bigger than rich text,
+independent of the 6c rich-text work. Sequencing TBD by Sam (next, or after 6d
+Cloze in the alternate-features rotation). Not built yet.
 
 ### Slice 6 — parked / deferred
 

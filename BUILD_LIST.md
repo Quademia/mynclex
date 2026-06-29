@@ -50,6 +50,14 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   legitimately deviate from NCLEX norms; the bow-tie 2+1+2 and matrix grid
 >   rules are structural, not norm-constraints). Parked: curator discoverability
 >   of `Shift+Enter` line breaks.
+> - **Surfaced during 6c → new planned slice: Matrix Multiple Response.** NGN
+>   Matrix is two item types; we've only built Multiple Choice (one correct per
+>   row). **Matrix Multiple Response** (1+ correct per row, checkbox, SATA-style
+>   per-cell scoring) is a real corpus gap. Decision: build as a **separate
+>   self-contained `MATRIX_MR` type** (Sam — mirror don't share, like MCQ/SATA);
+>   existing `MATRIX` untouched. Own editor + parser + runner + scoring +
+>   snapshot. Sequencing TBD. Full write-up + 4 open questions in
+>   questions-and-wrappers-rebuild.md → "Matrix Multiple Response — new item type".
 > - **⏭ NEXT: 6d Cloze**, then 6e Highlight / 6f Drag-drop (the marker-stem
 >   types — stem treatment decided per editor). ⚠ `PAYSTACK_SECRET_KEY` still
 >   not on the prod Worker.
