@@ -58,9 +58,9 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   existing `MATRIX` untouched. Own editor + parser + runner + scoring +
 >   snapshot. Sequencing TBD. Full write-up + 4 open questions in
 >   questions-and-wrappers-rebuild.md → "Matrix Multiple Response — new item type".
-> - **6d — Cloze ✅ BUILT** (session branch off `main`; `599b776` 6d-i +
->   `0e972da` 6d-ii; tsc + eslint + 94 vitest clean; NOT yet merged — awaiting
->   Sam's dev test). **Option B (decoupled markers), locked 2026-06-30.** Stem
+> - **6d — Cloze ✅ BUILT + MERGED to `main`** (`599b776` 6d-i + `0e972da` 6d-ii;
+>   Sam-tested on dev; NOT yet prod). **Option B (decoupled markers), locked
+>   2026-06-30.** Stem
 >   rich with `{N}` markers staying plain text inside the prose; new shared
 >   **`RichRenderWithSlots`** splices the dropdowns into the formatted sentence
 >   (one source for runner + preview); new `cloze-stem-doc.ts` boundary helpers
@@ -82,9 +82,27 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   floor/ceiling to 1–10, seed new questions at 2. Plan in
 >   questions-and-wrappers-rebuild.md → "Cloze validation rules — relax to
 >   advise > block".
-> - **⏭ NEXT: 6e Highlight / 6f Drag-drop** (the remaining marker-stem types —
->   same "markers stay text, normalize + validate" rule). ⚠ `PAYSTACK_SECRET_KEY`
->   still not on the prod Worker.
+> - **6e — Highlight ✅ BUILT + MERGED to `main`** (`557bc68` 6e-i + `26d0631`
+>   6e-ii; tsc + eslint + 94 vitest clean; Sam-tested on dev; NOT yet prod;
+>   all app-layer, NO migration). **Option B (decoupled markers)** like Cloze —
+>   the passage (stem) becomes a rich field with the `[[chunk]]` markers staying
+>   plain text inside the formatted prose. **6e-i:** new `highlight-stem-doc.ts`
+>   (bracket sibling of `cloze-stem-doc` — scan / normalize-strip-marks-off-
+>   bracket / unwrap; NO renumber, chunk IDs are positional); the shared
+>   `RichRenderWithSlots` splices the clickable chunks into the formatted
+>   passage (one source for runner + preview); Wrap/Insert + Clear-all rewired to
+>   the rich editor selection via a RovingBridge; instruction + rationale rich.
+>   The editor's chunk model was reworked to be **text-keyed + fully derived**
+>   during render (removes a setState-in-effect; matches the parser's text-keyed
+>   decision semantics; removed-then-retyped bracket recovers its decision).
+>   **6e-ii:** per-chunk feedback rich (`noHiddenInput` + HiddenSerialisers
+>   pattern); **chunk text stays plain** (Sam's call — it's a clickable token the
+>   runner styles, kept mark-free by the decoupled rule). Validation reviewed →
+>   no change (2–12 chunks / ≥1 correct / ≥1 wrong are structural). NO migration
+>   (read-coerce).
+> - **⏭ NEXT: 6f Drag-drop** (the last marker-stem type — ORDERED vs SENTENCE;
+>   the SENTENCE stem carries `[N]` markers → same "markers stay text, normalize
+>   + validate" rule). ⚠ `PAYSTACK_SECRET_KEY` still not on the prod Worker.
 
 > **CURRICULUM — MONTH VIEW (CD "Monthly Curriculum View", Variant B
 > "Programme schedule") — BUILT: Slices 1 + 2 on the session branch

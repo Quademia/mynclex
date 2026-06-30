@@ -1405,10 +1405,19 @@ untouched (the Slice-1 scenario bridge).
 - **Slice 6d — Cloze.** ⏭ NEXT. Stem-treatment design **discussed 2026-06-29,
   leaning decoupled — pending Sam's final confirm** (see the design subsection
   below). Per-blank choices + rationale go rich (the easy half, like options).
-- **Slice 6e — Highlight.** Decide the stem treatment (the passage carries the
-  `[[…]]` answer-key brackets — likely stays special); rationale rich. (Note:
-  answer-bound highlight — "rung 4" — stays closed; this is just rich text,
-  not fusing the highlight key into a chart.)
+- **Slice 6e — Highlight. ✅ BUILT + MERGED to `main`** (`557bc68` 6e-i +
+  `26d0631` 6e-ii; Sam-tested on dev; NOT yet prod; app-layer, NO migration).
+  **Option B (decoupled markers)** like Cloze — the passage (stem) is a rich
+  field; the `[[chunk]]` markers stay plain text inside the formatted prose;
+  the shared `RichRenderWithSlots` splices the clickable chunks in. New
+  `highlight-stem-doc.ts` (bracket sibling of `cloze-stem-doc`, no renumber —
+  chunk IDs are positional). Per-chunk feedback rich; **chunk text stays plain**
+  (a clickable token the runner styles, kept mark-free by the decoupled rule —
+  Sam's call). Editor chunk model reworked to text-keyed + fully derived (no
+  setState-in-effect; matches the parser's text-keyed decisions). Validation
+  reviewed → no change (structural: 2–12 chunks / ≥1 correct / ≥1 wrong). Answer-
+  bound highlight ("rung 4") stays closed — this is just rich text, not fusing
+  the highlight key into a chart. See the build subsection below.
 - **Slice 6f — Drag-drop.** ORDERED vs SENTENCE; tokens/slot hints rich; the
   SENTENCE stem carries `[N]` markers → decide treatment when opened.
 
