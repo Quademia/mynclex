@@ -226,13 +226,20 @@ export const BT_RIGHT_PRESETS = [
   'Expected outcomes',
 ] as const;
 
-// Cloze bounds (Family B — Slice 1.8)
+// Cloze bounds (Family B — Slice 1.8; relaxed 2026-06-30 under advise > block)
 // Stem contains {N} markers; each marker maps to a blank card with
 // 2–5 choices, exactly one correct.
-export const CLOZE_MIN_BLANKS  = 2;
-export const CLOZE_MAX_BLANKS  = 6;
+// HARD bounds (block Save): 1–10 blanks. A single-blank cloze is a legitimate
+// NCLEX item (the corpus already has one), so the floor is the structural
+// minimum of 1, not the textbook norm. The 2–6 "most items" range is a
+// RECOMMENDATION surfaced as an amber advisory in the editor — it never blocks.
+export const CLOZE_MIN_BLANKS  = 1;
+export const CLOZE_MAX_BLANKS  = 10;
 export const CLOZE_MIN_CHOICES = 2;
 export const CLOZE_MAX_CHOICES = 5;
+// Advisory band (editor nudge only — NOT enforced by the parser).
+export const CLOZE_RECOMMENDED_MIN_BLANKS = 2;
+export const CLOZE_RECOMMENDED_MAX_BLANKS = 6;
 
 // Highlight bounds (Family B — Slice 1.9)
 // Passage contains [[chunk]] double-bracket spans. Each span is a

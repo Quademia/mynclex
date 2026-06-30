@@ -34,6 +34,8 @@ import {
   CLOZE_MAX_BLANKS,
   CLOZE_MIN_CHOICES,
   CLOZE_MAX_CHOICES,
+  CLOZE_RECOMMENDED_MIN_BLANKS,
+  CLOZE_RECOMMENDED_MAX_BLANKS,
 } from '@/lib/bank/classifications';
 import { ModalFrame } from '@/lib/bank/atoms/modal-frame';
 import { EditorActions } from '@/lib/bank/atoms/editor-actions';
@@ -566,16 +568,21 @@ export function ClozeEditorBody({
   // parser's renumbering, so they map 1:1 to correct.answers keys.
   const liveMarks = activeBlanks.length;
 
-  // Marker counter shown on the toolbar.
+  // Marker counter shown on the toolbar. Advise > block: red only outside the
+  // HARD 1–10 range (which blocks Save), amber inside it but outside the 2–6
+  // RECOMMENDED band (saves fine — just a nudge), green in the sweet spot.
   const counterText = `${markerOrder.length} blank${markerOrder.length === 1 ? '' : 's'}`;
+  const blankCountAdvisory =
+    markerOrder.length >= CLOZE_MIN_BLANKS &&
+    markerOrder.length <= CLOZE_MAX_BLANKS &&
+    (markerOrder.length < CLOZE_RECOMMENDED_MIN_BLANKS ||
+      markerOrder.length > CLOZE_RECOMMENDED_MAX_BLANKS);
   const counterClass: ValidityState =
-    markerOrder.length === 0
+    markerOrder.length < CLOZE_MIN_BLANKS || markerOrder.length > CLOZE_MAX_BLANKS
       ? 'err'
-      : markerOrder.length < CLOZE_MIN_BLANKS
+      : blankCountAdvisory
         ? 'warn'
-        : markerOrder.length > CLOZE_MAX_BLANKS
-          ? 'err'
-          : 'ok';
+        : 'ok';
 
   // ─────────────────────────────────────────────────────────────
   // Toolbar actions
@@ -800,9 +807,11 @@ export function ClozeEditorBody({
                   Click into the stem above to write it. Use <code>{'{1}'}</code>,{' '}
                   <code>{'{2}'}</code>, … markers, or click{' '}
                   <strong>+ Add blank</strong> to insert the next one at
-                  the cursor. Formatting on a marker is tidied away on save;
-                  gaps like <code>{'{1} {3}'}</code> are auto-renumbered to{' '}
-                  <code>{'{1} {2}'}</code>.
+                  the cursor. Add {CLOZE_MIN_BLANKS}–{CLOZE_MAX_BLANKS} blanks —
+                  most NCLEX cloze items use {CLOZE_RECOMMENDED_MIN_BLANKS}–
+                  {CLOZE_RECOMMENDED_MAX_BLANKS}. Formatting on a marker is tidied
+                  away on save; gaps like <code>{'{1} {3}'}</code> are
+                  auto-renumbered to <code>{'{1} {2}'}</code>.
                 </p>
 
                 <div className="auth-cz-toolbar">
@@ -826,6 +835,17 @@ export function ClozeEditorBody({
                     {counterText}
                   </span>
                 </div>
+
+                {/* Soft advisory — the count is within the saveable 1–10 range
+                    but outside the 2–6 norm. Nudges, never blocks. */}
+                {blankCountAdvisory && (
+                  <p className="auth-cz-advisory">
+                    Most NCLEX cloze items use {CLOZE_RECOMMENDED_MIN_BLANKS}–
+                    {CLOZE_RECOMMENDED_MAX_BLANKS} blanks. This one has{' '}
+                    {markerOrder.length} — that&apos;s fine to save, just
+                    unusual.
+                  </p>
+                )}
 
                 {/* Tab strip — one tab per blank (active first, then
                     orphans). Status dot reflects per-blank validity. */}
