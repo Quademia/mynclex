@@ -1567,7 +1567,48 @@ snapshot + a new `MATRIX_MR` value in the type registry) — bigger than rich te
 independent of the 6c rich-text work. Sequencing TBD by Sam (next, or after 6d
 Cloze in the alternate-features rotation). Not built yet.
 
-### Slice 6d — Cloze stem treatment (design discussion 2026-06-29 — **LOCKED 2026-06-30: Option B, decoupled**)
+### Slice 6d — Cloze stem treatment (design discussion 2026-06-29 — **LOCKED 2026-06-30: Option B, decoupled** — **BUILT 2026-06-30: 6d-i + 6d-ii**)
+
+**BUILT 2026-06-30 (session branch off `main`; `599b776` 6d-i + `0e972da` 6d-ii;
+tsc + eslint + 94 vitest clean; NOT yet merged — awaiting Sam's dev test).**
+- **6d-i — stem rich + the marker engine** (`599b776`). Stem becomes a rich
+  field; `{N}` markers stay plain text inside the prose (Option B). New shared
+  **`RichRenderWithSlots`** (in `lib/authoring/rich-render.tsx`) renders a rich
+  doc with interactive slots spliced at a marker pattern — **one source for
+  both the runner and the editor preview**. New **`lib/bank/editors/cloze-stem-doc.ts`**
+  boundary helpers: `clozeMarkerOrder` / `clozeStemScanText` (read markers from
+  a doc), `normalizeClozeStem` (strip marks off `{N}` + isolate each marker —
+  the auto-tidy), `renumberClozeStem` (renumber markers in the doc to match the
+  parser), `stripMarkersFromDoc` / `appendMarkerToDoc` (Clear-all / +Add-blank).
+  Parser (`parseCloze`) now returns `order` so save can renumber the doc in
+  lockstep. Save normalises the doc → scans for markers → runs the existing
+  parser for ordering/validation/content → renumbers the doc → stores the JSON
+  (not the parser's flat scan string). Instruction + rationale also rich.
+  `+Add blank` inserts at the caret via the roving editor (a `RovingBridge`
+  lifts the active editor to the body) or appends + focuses the stem as a
+  fallback. **Read-coerce, NO migration.**
+- **6d-ii — per-choice feedback rich** (`0e972da`). Feedback in the blank cards
+  → `RovingRichField` (`noHiddenInput`, the Bow-tie pattern: one
+  HiddenSerialisers covers all blanks since only the active card mounts).
+  Runner's `ClozeFeedbackList` read-coerces + RichRenders it. **Choice TEXT
+  stays plain** — it renders in a native `<select>`, which can't show
+  formatting (the agreed constraint; same rule as Select-N count / Bow-tie wing
+  labels). Reuses `.auth-rrf-option-fb` sizing.
+- **Validation reviewed → no new code.** A mangled marker (`{ 1}` with a space)
+  isn't detected → its card becomes an **orphan** (the existing "not in stem"
+  cue) → dropped on save → if active blanks drop below the min, the existing
+  **"at least 2 blanks"** structural guard hard-blocks. So the structural guards
+  already cover it; consistent with advise > block (the block here is
+  structural — a broken marker corrupts the blank mapping).
+- **Blast-radius sweep clean.** Both bank lists already `richTextToPlain(r.stem)`
+  (6a) so the rich Cloze stem shows plain with `{N}` surviving as text; runner
+  stem/instruction/feedback + both wrapper previews coerce; scoring reads the
+  answer maps, not text; search `ilike`s the column (same as every 6a rich stem,
+  no new regression). Cloze feedback is shown only in the runner review + the
+  editor.
+- **⏭ remaining for the slice:** Sam's dev test → (with approval) merge to
+  `main`. Optional: seed a couple of rich-stem Cloze test Qs on dev.
+
 
 **LOCKED (2026-06-30):** Option B (decoupled `{N}`-text + normalize-at-boundary +
 validate) is final. Sam confirmed after re-explaining in plain terms. Sub-question

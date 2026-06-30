@@ -58,9 +58,23 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   existing `MATRIX` untouched. Own editor + parser + runner + scoring +
 >   snapshot. Sequencing TBD. Full write-up + 4 open questions in
 >   questions-and-wrappers-rebuild.md → "Matrix Multiple Response — new item type".
-> - **⏭ NEXT: 6d Cloze**, then 6e Highlight / 6f Drag-drop (the marker-stem
->   types — stem treatment decided per editor). ⚠ `PAYSTACK_SECRET_KEY` still
->   not on the prod Worker.
+> - **6d — Cloze ✅ BUILT** (session branch off `main`; `599b776` 6d-i +
+>   `0e972da` 6d-ii; tsc + eslint + 94 vitest clean; NOT yet merged — awaiting
+>   Sam's dev test). **Option B (decoupled markers), locked 2026-06-30.** Stem
+>   rich with `{N}` markers staying plain text inside the prose; new shared
+>   **`RichRenderWithSlots`** splices the dropdowns into the formatted sentence
+>   (one source for runner + preview); new `cloze-stem-doc.ts` boundary helpers
+>   (marker-order / normalize-tidy / renumber-in-doc); save normalises → parses
+>   → renumbers the doc → stores JSON. Instruction + rationale rich. **6d-ii:**
+>   per-choice feedback rich (Bow-tie `noHiddenInput` pattern); **choice text
+>   stays plain** (native dropdown can't format). Validation reviewed → existing
+>   structural guards cover a mangled marker (→ orphan → min-blanks block); no
+>   new code. NO migration (read-coerce). The in-editor "box / chip" look for
+>   markers is **parked** as optional cosmetic polish (pure presentation, safe
+>   to add later).
+> - **⏭ NEXT: 6e Highlight / 6f Drag-drop** (the remaining marker-stem types —
+>   same "markers stay text, normalize + validate" rule). ⚠ `PAYSTACK_SECRET_KEY`
+>   still not on the prod Worker.
 
 > **CURRICULUM — MONTH VIEW (CD "Monthly Curriculum View", Variant B
 > "Programme schedule") — BUILT: Slices 1 + 2 on the session branch
