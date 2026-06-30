@@ -1609,6 +1609,48 @@ tsc + eslint + 94 vitest clean; NOT yet merged — awaiting Sam's dev test).**
 - **⏭ remaining for the slice:** Sam's dev test → (with approval) merge to
   `main`. Optional: seed a couple of rich-stem Cloze test Qs on dev.
 
+#### Cloze validation rules — relax to advise > block (PLANNED — own focused session, 2026-06-30)
+
+The first review of the Cloze editor's validation under the advise > block
+philosophy (Cloze was built in the original rebuild, before that philosophy was
+set in 6b). Decided with Sam, **not yet built — own focused session.**
+
+**Current rules** (`lib/bank/classifications.ts` + `lib/bank/parsers/cloze.ts`):
+`CLOZE_MIN_BLANKS=2`, `CLOZE_MAX_BLANKS=6`, `CLOZE_MIN_CHOICES=2`,
+`CLOZE_MAX_CHOICES=5`; exactly one correct per blank; unique markers; no
+duplicate choice text/ids. Today the editor blocks *Save* on **anything** that
+isn't a clean `ok` — block and advice are fused.
+
+**The trigger:** a **single-blank** Cloze is a legitimate NGN item and the
+corpus already has one — `NCLEX_CLZ_TB_Q3` (1 blank, published). The current
+min-2 rule would **block a curator from saving it**. Classic over-block.
+
+**The change (decided):**
+- `CLOZE_MIN_BLANKS` **2 → 1** (hard floor — 0 blanks isn't a cloze).
+- `CLOZE_MAX_BLANKS` **6 → 10** (hard ceiling).
+- Choice caps **2–5 unchanged** (Sam: caps are fine).
+- **New advisory: recommend 2–6 blanks** — a static editor line ("Add 1–10
+  blanks. Most NCLEX cloze items use 2–6.") + the blank-count chip goes **amber
+  at 1 or 7–10** (saves fine, just nudges), green at 2–6, red only at 0 or >10.
+
+**Implementation notes (the real work):**
+1. **Split block from advice in the editor** — today `contentIncomplete =
+   validity !== 'ok'` gates Save, so a "warn" also blocks. Separate a
+   **hard-blocking** check (stem empty · 0 blanks · >10 blanks · a blank with
+   <2 / >5 choices · a blank with no correct) from an **advisory** check (count
+   is 1 or 7–10). Only the former gates Save.
+2. **Parser floor/ceiling → 1–10** (`parseCloze` min/max), the structural
+   backstop; the 2–6 norm lives ONLY in the editor UI, never in the parser.
+3. **Seed new questions at 2 blanks** (the recommended default), not the new
+   floor of 1 — so "+ New Cloze" starts in the sweet spot. (`emptyClozeInitial`
+   currently seeds `CLOZE_MIN_BLANKS`; decouple the seed count from the floor.)
+4. Re-word the existing blanks help line to state the 1–10 hard range + the 2–6
+   recommendation.
+
+Small, contained: two constants, the editor block/advice split, the parser
+bounds, the seed default, the help copy. See
+[[feedback_curator_validation_advise_not_block]].
+
 
 **LOCKED (2026-06-30):** Option B (decoupled `{N}`-text + normalize-at-boundary +
 validate) is final. Sam confirmed after re-explaining in plain terms. Sub-question

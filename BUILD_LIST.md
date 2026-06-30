@@ -72,6 +72,16 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   new code. NO migration (read-coerce). The in-editor "box / chip" look for
 >   markers is **parked** as optional cosmetic polish (pure presentation, safe
 >   to add later).
+> - **Cloze validation relax — PLANNED (own focused session, not built).** First
+>   review of the Cloze editor rules under advise > block. Decided with Sam:
+>   `CLOZE_MIN_BLANKS` **2 → 1** (a 1-blank cloze is legitimate — `NCLEX_CLZ_TB_Q3`
+>   already is one, and the editor currently blocks saving it), `CLOZE_MAX_BLANKS`
+>   **6 → 10**, choice caps 2–5 unchanged; add a **2–6 advisory** (static line +
+>   amber count chip at 1 or 7–10, saves fine). Real work = split block-from-advice
+>   in the editor (Save currently gates on any non-`ok`), move the parser
+>   floor/ceiling to 1–10, seed new questions at 2. Plan in
+>   questions-and-wrappers-rebuild.md → "Cloze validation rules — relax to
+>   advise > block".
 > - **⏭ NEXT: 6e Highlight / 6f Drag-drop** (the remaining marker-stem types —
 >   same "markers stay text, normalize + validate" rule). ⚠ `PAYSTACK_SECRET_KEY`
 >   still not on the prod Worker.
