@@ -79,6 +79,11 @@ import {
   type DragClozeSlotInput,
   type DragClozeTokenInput,
 } from '@/lib/bank/parsers/drag-cloze';
+import {
+  parseDragOrder,
+  type DragOrderSlotInput,
+  type DragOrderTokenInput,
+} from '@/lib/bank/parsers/drag-order';
 
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
@@ -187,6 +192,7 @@ const SUPPORTED_TYPES = new Set<QuestionType>([
   'HIGHLIGHT',
   'DRAG_DROP',
   'DRAG_CLOZE',
+  'DRAG_ORDER',
 ]);
 
 interface ParsedQuestion {
@@ -444,6 +450,31 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
         });
         if (!dczResult.ok) return dczResult;
         return { ...dczResult, stem: serializeRichDoc(dczStemDoc) };
+      }
+      case 'DRAG_ORDER': {
+        // Ranked-response sibling of DRAG_DROP's ORDERED mode — no subtype, no
+        // stem markers. Slots are a curator-ordered list; the stem is a plain
+        // rich prompt stored as-is.
+        const slotIds        = formData.getAll('do_slot_id').map(String);
+        const slotTargets    = formData.getAll('do_slot_target_text').map(String);
+        const slotAssigned   = formData.getAll('do_slot_assigned_token_id').map(String);
+        const tokenIds       = formData.getAll('do_token_id').map(String);
+        const tokenTexts     = formData.getAll('do_token_text').map(String);
+        const tokenFeedbacks = formData.getAll('do_token_feedback').map(String);
+        const doSlots: DragOrderSlotInput[] = slotIds.map((id, i) => ({
+          id,
+          target_text: slotTargets[i] ?? '',
+          assigned_token_id: slotAssigned[i] ?? '',
+        }));
+        const doTokens: DragOrderTokenInput[] = tokenIds.map((id, i) => ({
+          id,
+          text: tokenTexts[i] ?? '',
+          feedback: tokenFeedbacks[i] ?? '',
+        }));
+        const doResult = parseDragOrder({ slots: doSlots, tokens: doTokens });
+        if (!doResult.ok) return doResult;
+        // No markers to normalise — store the rich stem prompt as-is.
+        return { ...doResult, stem: serializeRichDoc(parseRichDoc(stem)) };
       }
       default:
         return parseMcq(optionIds, optionTexts, optionFeedbacks, correctIds);

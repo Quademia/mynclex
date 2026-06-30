@@ -242,6 +242,34 @@ export interface DragClozeCorrect {
 }
 
 // ─────────────────────────────────────────────────────────────
+// DRAG_ORDER — the ranked-response type split out of DRAG_DROP (2026-06-30).
+// The student drags tokens into curator-defined ranked positions (1st, 2nd, …).
+// No stem markers — the stem is a plain rich prompt; slots are an ordered list.
+// Same slot/token/feedback shape as DRAG_DROP's ORDERED mode, minus the
+// `subtype` discriminator. Feedback is token-keyed (every token explainable).
+// ─────────────────────────────────────────────────────────────
+
+export interface DragOrderSlot {
+  id: string;             // 's1', 's2', ... — render order = rank
+  target_text: string;    // position label, e.g. "1st action"
+}
+
+export interface DragOrderToken {
+  id: string;             // 't1', 't2', ...
+  text: string;
+}
+
+export interface DragOrderContent {
+  slots: DragOrderSlot[];
+  tokens: DragOrderToken[];
+}
+
+export interface DragOrderCorrect {
+  slots: Record<string, string>;              // slotId -> correct tokenId
+  feedback?: Record<string, string>;          // sparse — tokenId -> feedback
+}
+
+// ─────────────────────────────────────────────────────────────
 // Discriminated union — narrow on question_type to get the right shape.
 // ─────────────────────────────────────────────────────────────
 
@@ -255,7 +283,8 @@ export type BankItemContent =
   | ClozeContent
   | HighlightContent
   | DragDropContent
-  | DragClozeContent;
+  | DragClozeContent
+  | DragOrderContent;
 
 export type BankItemCorrect =
   | McqCorrect
@@ -267,4 +296,5 @@ export type BankItemCorrect =
   | ClozeCorrect
   | HighlightCorrect
   | DragDropCorrect
-  | DragClozeCorrect;
+  | DragClozeCorrect
+  | DragOrderCorrect;

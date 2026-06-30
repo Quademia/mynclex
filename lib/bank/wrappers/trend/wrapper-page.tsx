@@ -76,6 +76,10 @@ import {
   DragClozePreview,
   extractActiveMarkers as extractDragClozeMarkers,
 } from '@/lib/bank/editors/drag-cloze-editor';
+import {
+  DragOrderEditorBody,
+  DragOrderPreview,
+} from '@/lib/bank/editors/drag-order-editor';
 import { emptyMcqInitial }       from '@/lib/bank/editors/mcq-row-mapper';
 import { emptyTfInitial }        from '@/lib/bank/editors/tf-row-mapper';
 import { emptySataInitial }      from '@/lib/bank/editors/sata-row-mapper';
@@ -86,6 +90,7 @@ import { emptyClozeInitial }     from '@/lib/bank/editors/cloze-row-mapper';
 import { emptyHighlightInitial } from '@/lib/bank/editors/highlight-row-mapper';
 import { emptyDragDropInitial }  from '@/lib/bank/editors/drag-drop-row-mapper';
 import { emptyDragClozeInitial } from '@/lib/bank/editors/drag-cloze-row-mapper';
+import { emptyDragOrderInitial } from '@/lib/bank/editors/drag-order-row-mapper';
 
 interface Props {
   data: WrapperData;
@@ -120,6 +125,7 @@ const FORM_ID_BY_TYPE: Record<string, string> = {
   HIGHLIGHT: 'auth-highlight-form',
   DRAG_DROP: 'auth-drag-drop-form',
   DRAG_CLOZE: 'auth-drag-cloze-form',
+  DRAG_ORDER: 'auth-drag-order-form',
 };
 
 // Pending navigation while a discard dialog is open.
@@ -537,6 +543,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
       case 'HIGHLIGHT': return { kind: 'HIGHLIGHT', initial: emptyHighlightInitial(surface) };
       case 'DRAG_DROP': return { kind: 'DRAG_DROP', initial: emptyDragDropInitial(surface)  };
       case 'DRAG_CLOZE': return { kind: 'DRAG_CLOZE', initial: emptyDragClozeInitial(surface) };
+      case 'DRAG_ORDER': return { kind: 'DRAG_ORDER', initial: emptyDragOrderInitial(surface) };
     }
   }
 
@@ -1118,6 +1125,7 @@ function EditorBodyForKind({
     case 'HIGHLIGHT': return <HighlightEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
     case 'DRAG_DROP': return <DragDropEditorBody  initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
     case 'DRAG_CLOZE': return <DragClozeEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
+    case 'DRAG_ORDER': return <DragOrderEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
   }
 }
 
@@ -1365,5 +1373,16 @@ function ActiveQuestionPreview({
         />
       );
     }
+    case 'DRAG_ORDER':
+      return (
+        <DragOrderPreview
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
+          slots={editor.initial.slots}
+          tokens={editor.initial.tokens}
+          viewMode={viewMode}
+          onViewModeChange={onViewModeChange}
+        />
+      );
   }
 }

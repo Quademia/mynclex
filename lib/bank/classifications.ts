@@ -28,6 +28,7 @@ export const QUESTION_TYPES = [
   { value: 'HIGHLIGHT', label: 'Highlight — Click correct findings in a passage' },
   { value: 'DRAG_DROP', label: 'Drag-drop — Ordered list or Sentence slots' },
   { value: 'DRAG_CLOZE', label: 'Drag-and-drop cloze — fill the sentence' },
+  { value: 'DRAG_ORDER', label: 'Drag to order — ranked response' },
 ] as const;
 
 export type QuestionType = (typeof QUESTION_TYPES)[number]['value'];
@@ -45,6 +46,7 @@ export const ITEM_ID_PREFIX: Record<QuestionType, string> = {
   HIGHLIGHT: 'NCLEX_HL_',
   DRAG_DROP: 'NCLEX_DD_',
   DRAG_CLOZE: 'NCLEX_DCZ_',
+  DRAG_ORDER: 'NCLEX_DO_',
 };
 
 // Tutor-side prefix: all tutor questions use NCLEX_TUT_<TYPE>_NNNNN.
@@ -61,6 +63,7 @@ export const TUTOR_ITEM_ID_PREFIX: Record<QuestionType, string> = {
   HIGHLIGHT: 'NCLEX_TUT_HL_',
   DRAG_DROP: 'NCLEX_TUT_DD_',
   DRAG_CLOZE: 'NCLEX_TUT_DCZ_',
+  DRAG_ORDER: 'NCLEX_TUT_DO_',
 };
 
 // Case Study ID prefixes (Slice 1.11a).
@@ -295,3 +298,15 @@ export const DCZ_TOKEN_POOL_MAX_OVER_SLOTS = 4;   // pool cap = slots + this
 export const DCZ_TOKEN_POOL_RECOMMENDED_MIN = 4;  // NCLEX 4-floor — advisory
 export const DCZ_TOKEN_POOL_ABSOLUTE_MAX   = 10;  // NCLEX ceiling
 export const DCZ_TOKEN_POOL_MIN_EXTRA      = 1;   // ≥1 distractor — the real hard floor
+
+// Drag-to-order bounds (DRAG_ORDER — the ranked-response type split out of
+// DRAG_DROP, 2026-06-30). Own constants for full decoupling from DRAG_DROP.
+// Values mirror the drag-drop ORDERED rules: same advise > block stance.
+export const DO_MIN_SLOTS                 = 2;   // structural floor (a 2-item ordering is valid)
+export const DO_MAX_SLOTS                 = 8;
+export const DO_DEFAULT_SLOTS             = 3;   // new-item seed = the recommended count
+export const DO_RECOMMENDED_MIN_SLOTS     = 3;   // advisory floor (editor nudge only)
+export const DO_TOKEN_POOL_MAX_OVER_SLOTS = 4;   // pool cap = slots + this
+export const DO_TOKEN_POOL_RECOMMENDED_MIN = 4;  // NCLEX 4-floor — advisory
+export const DO_TOKEN_POOL_ABSOLUTE_MAX   = 10;  // NCLEX ceiling
+export const DO_TOKEN_POOL_MIN_EXTRA      = 1;   // ≥1 distractor — the real hard floor

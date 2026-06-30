@@ -65,6 +65,10 @@ import {
   type DragClozeDbRow,
   dragClozeRowToInitial,
 } from '../../editors/drag-cloze-row-mapper';
+import {
+  type DragOrderDbRow,
+  dragOrderRowToInitial,
+} from '../../editors/drag-order-row-mapper';
 
 interface SurfaceConfig {
   caseTable:     'nclex_case_studies' | 'nclex_tutor_case_studies';
@@ -145,6 +149,8 @@ function rowToSlotEditor(
       return { kind: 'DRAG_DROP', initial: dragDropRowToInitial(row as DragDropDbRow, sf) };
     case 'DRAG_CLOZE':
       return { kind: 'DRAG_CLOZE', initial: dragClozeRowToInitial(row as DragClozeDbRow, sf) };
+    case 'DRAG_ORDER':
+      return { kind: 'DRAG_ORDER', initial: dragOrderRowToInitial(row as DragOrderDbRow, sf) };
     default:
       return null;
   }

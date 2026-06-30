@@ -131,6 +131,8 @@ function formatMarksLabel(questionType: QuestionType, marks: number): string {
       return `Max: ${marks} — count of slots`;
     case 'DRAG_CLOZE':
       return `Max: ${marks} — count of blanks`;
+    case 'DRAG_ORDER':
+      return `Max: ${marks} — count of slots`;
     case 'BOWTIE':
       return `Max: 5 — fixed (2 + 1 + 2)`;
   }

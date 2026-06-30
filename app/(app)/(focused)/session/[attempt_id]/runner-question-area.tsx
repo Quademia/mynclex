@@ -61,6 +61,8 @@ import type {
   DragDropCorrect,
   DragClozeContent,
   DragClozeCorrect,
+  DragOrderContent,
+  DragOrderCorrect,
   BowtieContent,
   BowtieCorrect,
 } from '@/lib/bank/types';
@@ -74,6 +76,7 @@ import type {
   ClozeAnswer,
   DragDropAnswer,
   DragClozeAnswer,
+  DragOrderAnswer,
   BowtieAnswer,
   BankItemAnswer,
 } from '@/lib/scoring';
@@ -87,6 +90,7 @@ import {
   ClozeRunner,
   DragDropRunner,
   DragClozeRunner,
+  DragOrderRunner,
   BowtieRunner,
   RationaleBlock,
 } from '@/lib/practice/runner';
@@ -103,6 +107,7 @@ const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   CLOZE:     'Cloze',
   DRAG_DROP: 'Drag-drop',
   DRAG_CLOZE: 'Drag-and-drop cloze',
+  DRAG_ORDER: 'Drag to order',
   BOWTIE:    'Bow-tie',
 };
 
@@ -439,6 +444,32 @@ function PerTypeRunner(props: Props) {
           content={content}
           studentAnswer={(props.answerRow.answer_json as DragClozeAnswer | undefined) ?? {}}
           correct={props.unseal.correct as DragClozeCorrect}
+        />
+      );
+    }
+
+    case 'DRAG_ORDER': {
+      const content = item.content_snapshot_json as unknown as DragOrderContent;
+
+      if (props.itemMode === 'answering') {
+        return (
+          <DragOrderRunner
+            mode="answering"
+            stem={item.stem_snapshot}
+            content={content}
+            selected={(props.pendingAnswer as DragOrderAnswer | undefined) ?? {}}
+            onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
+          />
+        );
+      }
+
+      return (
+        <DragOrderRunner
+          mode="review"
+          stem={item.stem_snapshot}
+          content={content}
+          studentAnswer={(props.answerRow.answer_json as DragOrderAnswer | undefined) ?? {}}
+          correct={props.unseal.correct as DragOrderCorrect}
         />
       );
     }

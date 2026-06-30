@@ -67,6 +67,10 @@ import {
   type DragClozeDbRow,
   dragClozeRowToInitial,
 } from '../../editors/drag-cloze-row-mapper';
+import {
+  type DragOrderDbRow,
+  dragOrderRowToInitial,
+} from '../../editors/drag-order-row-mapper';
 
 interface SurfaceConfig {
   datasetTable:  'nclex_trend_datasets' | 'nclex_tutor_trend_datasets';
@@ -126,6 +130,8 @@ function rowToSlotEditor(
       return { kind: 'DRAG_DROP', initial: dragDropRowToInitial(row as DragDropDbRow, sf) };
     case 'DRAG_CLOZE':
       return { kind: 'DRAG_CLOZE', initial: dragClozeRowToInitial(row as DragClozeDbRow, sf) };
+    case 'DRAG_ORDER':
+      return { kind: 'DRAG_ORDER', initial: dragOrderRowToInitial(row as DragOrderDbRow, sf) };
     default:
       return null;
   }

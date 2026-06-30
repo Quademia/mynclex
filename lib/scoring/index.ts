@@ -23,6 +23,7 @@ export type {
   ClozeAnswer,
   DragDropAnswer,
   DragClozeAnswer,
+  DragOrderAnswer,
   BowtieAnswer,
   BankItemAnswer,
   ScoreResult,

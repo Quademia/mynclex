@@ -35,6 +35,7 @@ import { ClozeEditor, type ClozeEditorInitial } from '@/lib/bank/editors/cloze-e
 import { HighlightEditor, type HighlightEditorInitial } from '@/lib/bank/editors/highlight-editor';
 import { DragDropEditor, type DragDropEditorInitial } from '@/lib/bank/editors/drag-drop-editor';
 import { DragClozeEditor, type DragClozeEditorInitial } from '@/lib/bank/editors/drag-cloze-editor';
+import { DragOrderEditor, type DragOrderEditorInitial } from '@/lib/bank/editors/drag-order-editor';
 import { QuestionTypePicker } from '@/lib/bank/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/bank/classifications';
 import { AuthorshipCell } from '@/lib/audit/authorship-line';
@@ -62,6 +63,7 @@ const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set([
   'HIGHLIGHT',
   'DRAG_DROP',
   'DRAG_CLOZE',
+  'DRAG_ORDER',
 ]);
 
 export interface BankListRowSummary {
@@ -168,6 +170,10 @@ export interface BankListClientProps {
   dragClozeInitialsById: Record<string, DragClozeEditorInitial>;
   /** Empty initial used when the curator picks DRAG_CLOZE in create mode. */
   emptyDragClozeInitial: DragClozeEditorInitial;
+  /** Map of item_id → full editor initial, DRAG_ORDER rows. */
+  dragOrderInitialsById: Record<string, DragOrderEditorInitial>;
+  /** Empty initial used when the curator picks DRAG_ORDER in create mode. */
+  emptyDragOrderInitial: DragOrderEditorInitial;
 }
 
 type ModalState =
@@ -206,6 +212,8 @@ export function BankListClient({
   emptyDragDropInitial,
   dragClozeInitialsById,
   emptyDragClozeInitial,
+  dragOrderInitialsById,
+  emptyDragOrderInitial,
 }: BankListClientProps) {
   const router = useRouter();
   // Audit identity for this surface: admin questions are bank_item rows
@@ -601,6 +609,13 @@ export function BankListClient({
           onSaved={handleSaved}
         />
       )}
+      {modal.kind === 'editor-create' && modal.type === 'DRAG_ORDER' && (
+        <DragOrderEditor
+          initial={emptyDragOrderInitial}
+          onClose={handleClose}
+          onSaved={handleSaved}
+        />
+      )}
 
       {/* Edit-mode dispatch — one branch per editable type, gated on
           the matching initials map having a row for the current id. */}
@@ -699,6 +714,16 @@ export function BankListClient({
         dragClozeInitialsById[modal.itemId] && (
           <DragClozeEditor
             initial={dragClozeInitialsById[modal.itemId]}
+            onClose={handleClose}
+            onSaved={handleSaved}
+            onDeleted={handleDeleted}
+          />
+        )}
+      {modal.kind === 'editor-edit' &&
+        modal.type === 'DRAG_ORDER' &&
+        dragOrderInitialsById[modal.itemId] && (
+          <DragOrderEditor
+            initial={dragOrderInitialsById[modal.itemId]}
             onClose={handleClose}
             onSaved={handleSaved}
             onDeleted={handleDeleted}

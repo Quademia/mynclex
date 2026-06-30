@@ -73,7 +73,7 @@ CREATE TABLE nclex_bank_items (
   item_id                   TEXT PRIMARY KEY,
   question_type             TEXT NOT NULL CHECK (question_type IN
                               ('MCQ','TF','SATA','SELECT_N','MATRIX',
-                               'HIGHLIGHT','CLOZE','DRAG_DROP','DRAG_CLOZE','BOWTIE')),
+                               'HIGHLIGHT','CLOZE','DRAG_DROP','DRAG_CLOZE','DRAG_ORDER','BOWTIE')),
 
   -- Common content shell
   stem                      TEXT NOT NULL,
@@ -214,7 +214,7 @@ CREATE TABLE nclex_tutor_questions (
   tutor_id                  UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
   question_type             TEXT NOT NULL CHECK (question_type IN
                               ('MCQ','TF','SATA','SELECT_N','MATRIX',
-                               'HIGHLIGHT','CLOZE','DRAG_DROP','DRAG_CLOZE','BOWTIE')),
+                               'HIGHLIGHT','CLOZE','DRAG_DROP','DRAG_CLOZE','DRAG_ORDER','BOWTIE')),
 
   stem                      TEXT NOT NULL,
   rationale                 TEXT,
@@ -610,7 +610,7 @@ CREATE TABLE nclex_attempt_items (
   -- Snapshot — granular columns (queryable / stable shape)
   question_type              TEXT NOT NULL CHECK (question_type IN
                                ('MCQ','TF','SATA','SELECT_N','MATRIX',
-                                'HIGHLIGHT','CLOZE','DRAG_DROP','DRAG_CLOZE','BOWTIE')),
+                                'HIGHLIGHT','CLOZE','DRAG_DROP','DRAG_CLOZE','DRAG_ORDER','BOWTIE')),
   stem_snapshot              TEXT NOT NULL,
   instruction_snapshot       TEXT,
   rationale_snapshot         TEXT,
