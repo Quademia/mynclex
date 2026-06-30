@@ -46,7 +46,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type {
   DragDropContent,
   DragDropCorrect,
@@ -54,6 +54,8 @@ import type {
   DragDropToken,
 } from '@/lib/bank/types';
 import type { DragDropAnswer } from '@/lib/scoring';
+import { parseRichDoc } from '@/lib/authoring/rich-doc';
+import { RichRenderWithSlots } from '@/lib/authoring/rich-render';
 
 type DragDropRunnerProps = {
   stem:    string;
@@ -80,36 +82,6 @@ export function isDragDropComplete(
     if (!answer[s.id]) return false;
   }
   return true;
-}
-
-
-type Segment =
-  | { kind: 'plain'; text: string }
-  | { kind: 'slot';  idx: number; slot: DragDropSlot };
-
-// SENTENCE stem parser — matches `[N]` markers (distinct from CLOZE's
-// `{N}` and HIGHLIGHT's `[[..]]`). The i-th match maps to slots[i].
-// Synthetic fallback if counts desync.
-function parseStem(stem: string, slots: DragDropSlot[]): Segment[] {
-  const out:    Segment[] = [];
-  const re      = /\[(\d+)\]/g;
-  let lastIdx   = 0;
-  let slotIdx   = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = re.exec(stem)) !== null) {
-    if (match.index > lastIdx) {
-      out.push({ kind: 'plain', text: stem.slice(lastIdx, match.index) });
-    }
-    const s = slots[slotIdx] ?? { id: `_s${slotIdx + 1}`, target_text: '' };
-    out.push({ kind: 'slot', idx: slotIdx, slot: s });
-    lastIdx  = match.index + match[0].length;
-    slotIdx += 1;
-  }
-  if (lastIdx < stem.length) {
-    out.push({ kind: 'plain', text: stem.slice(lastIdx) });
-  }
-  return out;
 }
 
 
@@ -185,43 +157,43 @@ export function DragDropRunner(props: DragDropRunnerProps) {
     hintText = `${filledCount} of ${totalCount} slots filled · tap a token to continue.`;
   }
 
-  // SENTENCE stem segments (only computed for that subtype).
-  const segments = useMemo(
-    () => (content.subtype === 'SENTENCE' ? parseStem(stem, content.slots) : []),
-    [content.subtype, stem, content.slots],
-  );
+  // SENTENCE stem is a rich doc (Slice 6f) with [N] markers as plain text
+  // inside it; read-coerced so legacy plain stems still render. The i-th [N]
+  // maps positionally to content.slots[i].
+  const stemDoc = useMemo(() => parseRichDoc(stem), [stem]);
 
   return (
     <>
       {!isReview && <div className="rn-dd-hint">{hintText}</div>}
 
       {content.subtype === 'SENTENCE' && (
-        <div className="rn-dd-stem">
-          {segments.map((seg, i) => {
-            if (seg.kind === 'plain') {
-              return <span key={i}>{seg.text}</span>;
-            }
-            const placedTokenId = currentAnswer[seg.slot.id];
+        <RichRenderWithSlots
+          className="rn-dd-stem"
+          doc={stemDoc}
+          pattern={/\[(\d+)\]/}
+          renderSlot={(_key: string, index: number): ReactNode => {
+            const slot =
+              content.slots[index] ?? { id: `_s${index + 1}`, target_text: '' };
+            const placedTokenId = currentAnswer[slot.id];
             const placedToken   = placedTokenId ? tokenById.get(placedTokenId) : undefined;
             const isCorrect     = isReview && correctAnswer
-              ? placedTokenId === correctAnswer.slots[seg.slot.id]
+              ? placedTokenId === correctAnswer.slots[slot.id]
               : false;
             const isArmedTarget =
               !isReview && armedTokenId !== null && !placedTokenId;
 
             return (
               <SlotInline
-                key={i}
-                slotIdx={seg.idx}
+                slotIdx={index}
                 placedToken={placedToken}
                 isReview={isReview}
                 isCorrect={isCorrect}
                 isArmedTarget={isArmedTarget}
-                onClick={() => handleSlotClick(seg.slot.id)}
+                onClick={() => handleSlotClick(slot.id)}
               />
             );
-          })}
-        </div>
+          }}
+        />
       )}
 
       {content.subtype === 'ORDERED' && (

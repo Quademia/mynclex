@@ -41,7 +41,8 @@
 
 'use client';
 
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Editor } from '@tiptap/react';
 import {
   MIN_DD_SLOTS,
   MAX_DD_SLOTS,
@@ -54,9 +55,27 @@ import { ModalFrame } from '@/lib/bank/atoms/modal-frame';
 import { EditorActions } from '@/lib/bank/atoms/editor-actions';
 import { EditorTabs, TabPanel } from '@/lib/bank/atoms/editor-tabs';
 import { EditorAuthorship } from '@/lib/audit/authorship-line';
-import { StemField } from '@/lib/bank/atoms/stem-field';
-import { InstructionField } from '@/lib/bank/atoms/instruction-field';
-import { RationaleFields } from '@/lib/bank/atoms/rationale-fields';
+import {
+  RovingProvider,
+  RovingToolbar,
+  useRoving,
+} from '@/lib/authoring/roving-rich';
+import {
+  RichStemField,
+  RichInstructionField,
+  RichRationaleFields,
+} from '@/lib/authoring/rich-atoms';
+import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
+import {
+  parseRichDoc,
+  richTextToPlain,
+  isEmptyRichDoc,
+  type RichDoc,
+} from '@/lib/authoring/rich-doc';
+import {
+  dragDropStemScanText,
+  appendMarkerToDoc,
+} from './drag-drop-stem-doc';
 import { ClassificationFields } from '@/lib/bank/atoms/classification-fields';
 import { HousekeepingFields } from '@/lib/bank/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/bank/atoms/hidden-item-inputs';
@@ -90,7 +109,6 @@ export type { DragDropEditorInitial };
 // Single-bracket positive integer, e.g. [1] [12]. Shared with the parser
 // at lib/bank/parsers/drag-drop.ts. Inside-bracket value is captured.
 const MARKER_RE = /\[(\d+)\]/g;
-const STEM_DOM_ID = 'bank-stem';
 const FORM_ID = 'auth-drag-drop-form';
 
 type ValidityState = 'ok' | 'warn' | 'err';
@@ -197,8 +215,8 @@ function contentValidity(
 // ─────────────────────────────────────────────────────────────
 
 interface DragDropPreviewProps {
-  instruction: string;
-  stem: string;
+  instruction: RichDoc;
+  stem: RichDoc;
   subtype: DragDropSubtype;
   slots: DragDropEditorSlot[];
   tokens: DragDropEditorToken[];
@@ -285,13 +303,13 @@ export function DragDropPreview({
     );
   }
 
-  // SENTENCE student/answer-key: render passage interleaved with
-  // inline boxes at each [N]. Off-card markers (sN with no card)
-  // shouldn't happen here because the editor auto-creates cards on
-  // marker insertion, but we render a "?" placeholder if so for
-  // robustness during transient state.
+  // SENTENCE student/answer-key: render the rich passage with an inline drop
+  // box spliced in at each [N] marker (the shared RichRenderWithSlots — same
+  // engine the runner uses). Off-card markers (sN with no card) shouldn't
+  // happen because the editor auto-creates cards on marker insertion, but we
+  // render a "?" placeholder if so for robustness during transient state.
   function renderSentencePassage() {
-    if (stem.trim() === '') {
+    if (isEmptyRichDoc(stem)) {
       return (
         <em className="auth-dd-preview-placeholder">
           Write the sentence above. Use <code>[1]</code>, <code>[2]</code>, …
@@ -299,43 +317,39 @@ export function DragDropPreview({
         </em>
       );
     }
-    const parts: React.ReactNode[] = [];
-    let cursor = 0;
-    let key = 0;
-    for (const m of stem.matchAll(MARKER_RE)) {
-      const idx = m.index ?? 0;
-      const text = stem.slice(cursor, idx);
-      if (text) parts.push(<span key={`t${cursor}`}>{text}</span>);
-      const n = parseInt(m[1], 10);
+    const renderSlot = (nStr: string): React.ReactNode => {
+      const n = parseInt(nStr, 10);
       const slot = slots.find((s) => slotIdToN(s.id) === n);
-      if (slot && Number.isFinite(n) && n >= 1 && n <= MAX_DD_SLOTS) {
-        const token = slot.assigned_token_id
-          ? tokenById.get(slot.assigned_token_id)
-          : null;
-        const filled = viewMode === 'answer-key' && token;
-        parts.push(
-          <span
-            key={`box${key++}`}
-            className={
-              'auth-dd-preview-inline-box' +
-              (filled ? ' auth-dd-preview-inline-box-filled' : '')
-            }
-          >
-            {filled ? token!.text || '(empty)' : `[${n}]`}
-          </span>,
-        );
-      } else {
-        parts.push(
-          <span key={`box${key++}`} className="auth-dd-preview-inline-box auth-dd-preview-inline-box-bad">
-            [{m[1]}?]
-          </span>,
+      if (!slot || !Number.isFinite(n) || n < 1 || n > MAX_DD_SLOTS) {
+        return (
+          <span className="auth-dd-preview-inline-box auth-dd-preview-inline-box-bad">
+            [{nStr}?]
+          </span>
         );
       }
-      cursor = idx + m[0].length;
-    }
-    const tail = stem.slice(cursor);
-    if (tail) parts.push(<span key="tail">{tail}</span>);
-    return <p className="auth-dd-preview-passage">{parts}</p>;
+      const token = slot.assigned_token_id
+        ? tokenById.get(slot.assigned_token_id)
+        : null;
+      const filled = viewMode === 'answer-key' && token;
+      return (
+        <span
+          className={
+            'auth-dd-preview-inline-box' +
+            (filled ? ' auth-dd-preview-inline-box-filled' : '')
+          }
+        >
+          {filled ? token!.text || '(empty)' : `[${n}]`}
+        </span>
+      );
+    };
+    return (
+      <RichRenderWithSlots
+        className="auth-dd-preview-passage"
+        doc={stem}
+        pattern={/\[(\d+)\]/}
+        renderSlot={renderSlot}
+      />
+    );
   }
 
   const headerText =
@@ -350,19 +364,21 @@ export function DragDropPreview({
         <PreviewToggle value={viewMode} onChange={onViewModeChange} />
       </div>
       <div className="auth-preview-card-body">
-        {instruction.trim() && (
-          <p className="auth-dd-preview-instruction">{instruction}</p>
+        {!isEmptyRichDoc(instruction) && (
+          <div className="auth-dd-preview-instruction">
+            <RichRender doc={instruction} inline />
+          </div>
         )}
 
         {subtype === 'SENTENCE' ? (
           renderSentencePassage()
-        ) : stem.trim() === '' ? (
+        ) : isEmptyRichDoc(stem) ? (
           <em className="auth-dd-preview-placeholder">
             Write the prompt above (e.g.{' '}
             <code>Place these steps in order…</code>).
           </em>
         ) : (
-          <p className="auth-dd-preview-passage">{stem}</p>
+          <RichRender doc={stem} className="auth-dd-preview-passage" />
         )}
 
         {/* Slot list — ORDERED renders a numbered stack; SENTENCE
@@ -595,6 +611,28 @@ function HiddenSerialisers({
 }
 
 // ─────────────────────────────────────────────────────────────
+// RovingBridge — lifts the roving toolbar's active field + editor up to the
+// editor body (which sits outside the provider) so "Insert slot marker" can
+// splice at the caret / focus the stem. Renders nothing. (The Cloze pattern.)
+// ─────────────────────────────────────────────────────────────
+
+function RovingBridge({
+  onChange,
+}: {
+  onChange: (
+    key: string | null,
+    editor: Editor | null,
+    setActiveKey: (k: string | null) => void,
+  ) => void;
+}) {
+  const { activeKey, activeEditor, setActiveKey } = useRoving();
+  useEffect(() => {
+    onChange(activeKey, activeEditor, setActiveKey);
+  }, [activeKey, activeEditor, setActiveKey, onChange]);
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────
 // DragDropEditorBody — two-pane edit + preview body. Mountable
 // anywhere (modal host or sandbox).
 // ─────────────────────────────────────────────────────────────
@@ -625,12 +663,40 @@ export function DragDropEditorBody({
   // assignment.
   const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
 
-  const [stem, setStem] = useState(initial.stem);
-  const [instruction, setInstruction] = useState(initial.instruction);
+  // Stem / instruction / rationale are rich docs (Slice 6f). Read-coerce via
+  // parseRichDoc (legacy plain text wraps as paragraphs; no migration). For
+  // SENTENCE the [N] markers live as plain text inside the stem doc (Option B,
+  // decoupled).
+  const [stem, setStem] = useState<RichDoc>(() => parseRichDoc(initial.stem));
+  const [instruction, setInstruction] = useState<RichDoc>(() =>
+    parseRichDoc(initial.instruction),
+  );
+  const [rationale, setRationale] = useState<RichDoc>(() =>
+    parseRichDoc(initial.rationale),
+  );
   const [subtype, setSubtype] = useState<DragDropSubtype>(initial.subtype);
   const [slots, setSlots] = useState<DragDropEditorSlot[]>(initial.slots);
   const [tokens, setTokens] = useState<DragDropEditorToken[]>(initial.tokens);
   const [category, setCategory] = useState(initial.client_needs_category);
+
+  // Bridge to the roving toolbar's live editor, so "Insert slot marker" can
+  // splice [N] at the caret when the stem is the focused field, and focus the
+  // stem (setActiveKey) on the append fallback (see handleInsertMarker below).
+  const rovingRef = useRef<{
+    key: string | null;
+    editor: Editor | null;
+    setActiveKey: ((k: string | null) => void) | null;
+  }>({ key: null, editor: null, setActiveKey: null });
+  const setRoving = useCallback(
+    (
+      key: string | null,
+      editor: Editor | null,
+      setActiveKey: (k: string | null) => void,
+    ) => {
+      rovingRef.current = { key, editor, setActiveKey };
+    },
+    [],
+  );
 
   // The slots editor is paned: only one slot's card renders at a time,
   // with a tab strip above letting the curator switch. Initial active
@@ -646,12 +712,15 @@ export function DragDropEditorBody({
   // creation directly inside the stem-change handler instead of via
   // useEffect — avoids the React 19 set-state-in-effect anti-pattern.
   const activeMarkers = useMemo(
-    () => (subtype === 'SENTENCE' ? extractActiveMarkers(stem) : new Set<number>()),
+    () =>
+      subtype === 'SENTENCE'
+        ? extractActiveMarkers(dragDropStemScanText(stem))
+        : new Set<number>(),
     [stem, subtype],
   );
 
-  function reconcileSlotsToStem(stemValue: string) {
-    const markers = extractActiveMarkers(stemValue);
+  function reconcileSlotsToStem(stemDoc: RichDoc) {
+    const markers = extractActiveMarkers(dragDropStemScanText(stemDoc));
     let firstFreshId: string | null = null;
     setSlots((prev) => {
       const haveIds = new Set(prev.map((s) => s.id));
@@ -681,7 +750,7 @@ export function DragDropEditorBody({
     }
   }
 
-  function handleStemChange(next: string) {
+  function handleStemChange(next: RichDoc) {
     setStem(next);
     if (subtype === 'SENTENCE') reconcileSlotsToStem(next);
   }
@@ -744,11 +813,13 @@ export function DragDropEditorBody({
     setSubtype(next);
     if (next === 'SENTENCE') {
       // Seed a starter stem only if the curator had nothing typed.
-      const seededStem = stem.trim() === '' ? sentenceSeedStem() : stem;
+      const seededStem = isEmptyRichDoc(stem)
+        ? parseRichDoc(sentenceSeedStem())
+        : stem;
       if (seededStem !== stem) setStem(seededStem);
       // SENTENCE slots come from markers — derive them from the
       // current stem value rather than wait for an effect to fire.
-      const markers = extractActiveMarkers(seededStem);
+      const markers = extractActiveMarkers(dragDropStemScanText(seededStem));
       const seedSlots = Array.from(markers)
         .sort((a, b) => a - b)
         .map((n) => ({
@@ -809,34 +880,34 @@ export function DragDropEditorBody({
   // ─────────────────────────────────────────────────────────────
 
   function handleInsertMarker() {
-    const stemEl = document.getElementById(STEM_DOM_ID) as HTMLTextAreaElement | null;
-    if (!stemEl) return;
-    const usedMarkers = extractActiveMarkers(stem);
+    const usedMarkers = extractActiveMarkers(dragDropStemScanText(stem));
     const n = nextFreeMarkerN(usedMarkers);
     if (n === null) {
       window.alert(`Already at the ${MAX_DD_SLOTS}-marker maximum.`);
       return;
     }
-    const start = stemEl.selectionStart ?? stem.length;
-    const end = stemEl.selectionEnd ?? stem.length;
-    const before = stem.slice(0, start);
-    const after = stem.slice(end);
-    const padded =
-      before.length > 0 && !/\s$/.test(before) ? ` [${n}]` : `[${n}]`;
-    const next = before + padded + after;
-    setStem(next);
-    reconcileSlotsToStem(next);
-    // The toolbar click is an explicit "add new slot" action — focus
-    // its tab so the curator lands on the new slot card.
+    const marker = `[${n}]`;
+    const roving = rovingRef.current;
+    // When the stem is the live (focused) roving field, splice the marker at
+    // the caret via Tiptap (its onChange → handleStemChange → reconcile creates
+    // the slot). Otherwise append it to the end of the stem doc, reconcile, and
+    // focus the field — a clean text marker the curator can drag into place.
+    if (roving.key === 'stem' && roving.editor && !roving.editor.isDestroyed) {
+      const ed = roving.editor;
+      const { from } = ed.state.selection;
+      const before =
+        from > 0 ? ed.state.doc.textBetween(Math.max(0, from - 1), from, ' ') : '';
+      const needsSpace = before !== '' && !/\s/.test(before);
+      ed.chain().focus().insertContent(`${needsSpace ? ' ' : ''}${marker}`).run();
+    } else {
+      const next = appendMarkerToDoc(stem, marker);
+      setStem(next);
+      reconcileSlotsToStem(next);
+      roving.setActiveKey?.('stem');
+    }
+    // The toolbar click is an explicit "add new slot" action — focus its tab so
+    // the curator lands on the new slot card once reconcile creates it.
     setActiveSlotId(`s${n}`);
-
-    requestAnimationFrame(() => {
-      const el = document.getElementById(STEM_DOM_ID) as HTMLTextAreaElement | null;
-      if (!el) return;
-      const caret = before.length + padded.length;
-      el.focus();
-      el.setSelectionRange(caret, caret);
-    });
 
     onDirty?.();
   }
@@ -991,9 +1062,11 @@ export function DragDropEditorBody({
         realm={initial.surface}
         entityType={initial.surface === 'tutor' ? 'tutor_question' : 'bank_item'}
         itemId={initial.itemId}
-        title={initial.stem}
+        title={richTextToPlain(initial.stem)}
       />
-      <div className="auth-split">
+      <RovingProvider>
+        <RovingBridge onChange={setRoving} />
+        <div className="auth-split">
         <div className="auth-edit">
           <EditorTabs
             tabs={[
@@ -1013,11 +1086,15 @@ export function DragDropEditorBody({
             onChange={(id) => setTab(id as typeof tab)}
           >
             <TabPanel id="content">
-              <InstructionField
+              <RovingToolbar hint="Click into a field to format it" />
+              <RichInstructionField
                 value={instruction}
-                onChange={setInstruction}
+                onChange={(doc) => { setInstruction(doc); onDirty?.(); }}
               />
-              <StemField value={stem} onChange={handleStemChange} />
+              <RichStemField
+                value={stem}
+                onChange={(doc) => { handleStemChange(doc); onDirty?.(); }}
+              />
 
               {/* Subtype picker — radio bar */}
               <div className="auth-fg">
@@ -1284,8 +1361,9 @@ export function DragDropEditorBody({
                 tokens={tokens}
               />
 
-              <RationaleFields
-                defaultRationale={initial.rationale}
+              <RichRationaleFields
+                rationale={rationale}
+                onRationaleChange={(doc) => { setRationale(doc); onDirty?.(); }}
                 defaultRationaleImg={initial.rationale_img}
               />
             </TabPanel>
@@ -1337,7 +1415,8 @@ export function DragDropEditorBody({
             onViewModeChange={setViewMode}
           />
         </div>
-      </div>
+        </div>
+      </RovingProvider>
     </form>
   );
 }

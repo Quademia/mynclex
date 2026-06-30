@@ -56,6 +56,10 @@ import {
   normalizeHighlightStem,
   highlightStemScanText,
 } from '@/lib/bank/editors/highlight-stem-doc';
+import {
+  normalizeDragDropStem,
+  dragDropStemScanText,
+} from '@/lib/bank/editors/drag-drop-stem-doc';
 import { computeMarksFromKey } from '@/lib/scoring';
 import {
   parseHighlight,
@@ -384,12 +388,21 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
           id,
           text: tokenTexts[i] ?? '',
         }));
-        return parseDragDrop({
-          stem,
+        // The stem is a rich doc (JSON). For SENTENCE the [N] markers live as
+        // plain text inside it (Slice 6f, Option B); normalise (strip any marks
+        // off a marker + isolate), scan its flattened text for the parser, then
+        // store the doc JSON. No renumber — markers are byte-preserved (the
+        // parser keeps gaps like [1] [3]). ORDERED stems carry no markers — the
+        // normalise is a no-op and the scan text is just the flattened prose.
+        const ddStemDoc = normalizeDragDropStem(parseRichDoc(stem));
+        const ddResult = parseDragDrop({
+          stem: dragDropStemScanText(ddStemDoc),
           subtype,
           slots: ddSlots,
           tokens: ddTokens,
         });
+        if (!ddResult.ok) return ddResult;
+        return { ...ddResult, stem: serializeRichDoc(ddStemDoc) };
       }
       default:
         return parseMcq(optionIds, optionTexts, optionFeedbacks, correctIds);

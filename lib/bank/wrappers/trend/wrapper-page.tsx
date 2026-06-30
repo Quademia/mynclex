@@ -54,7 +54,7 @@ import { AuthorshipInline } from '@/lib/audit/authorship-line';
 import type { Authorship } from '@/lib/audit/authorship';
 
 import { McqEditorBody, McqPreview }             from '@/lib/bank/editors/mcq-editor';
-import { parseRichDoc }                          from '@/lib/authoring/rich-doc';
+import { parseRichDoc, richTextToPlain }         from '@/lib/authoring/rich-doc';
 import { TfEditorBody, TfPreview }               from '@/lib/bank/editors/tf-editor';
 import { SataEditorBody, SataPreview }           from '@/lib/bank/editors/sata-editor';
 import { SelectNEditorBody, SelectNPreview }     from '@/lib/bank/editors/select-n-editor';
@@ -1325,12 +1325,12 @@ function ActiveQuestionPreview({
     case 'DRAG_DROP': {
       const activeMarkers =
         editor.initial.subtype === 'SENTENCE'
-          ? extractActiveMarkers(editor.initial.stem)
+          ? extractActiveMarkers(richTextToPlain(editor.initial.stem))
           : new Set<number>();
       return (
         <DragDropPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
           subtype={editor.initial.subtype}
           slots={editor.initial.slots}
           tokens={editor.initial.tokens}

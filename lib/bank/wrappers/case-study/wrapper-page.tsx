@@ -1484,12 +1484,12 @@ function ActiveQuestionPreview({
     case 'DRAG_DROP': {
       const activeMarkers =
         editor.initial.subtype === 'SENTENCE'
-          ? extractActiveMarkers(editor.initial.stem)
+          ? extractActiveMarkers(richTextToPlain(editor.initial.stem))
           : new Set<number>();
       return (
         <DragDropPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
           subtype={editor.initial.subtype}
           slots={editor.initial.slots}
           tokens={editor.initial.tokens}
