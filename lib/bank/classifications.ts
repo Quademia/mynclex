@@ -241,14 +241,19 @@ export const CLOZE_MAX_CHOICES = 5;
 export const CLOZE_RECOMMENDED_MIN_BLANKS = 2;
 export const CLOZE_RECOMMENDED_MAX_BLANKS = 6;
 
-// Highlight bounds (Family B — Slice 1.9)
+// Highlight bounds (Family B — Slice 1.9; relaxed 2026-06-30 under advise > block)
 // Passage contains [[chunk]] double-bracket spans. Each span is a
 // chunk card. At least one correct AND one wrong (distractor) chunk
 // required so students can't "click everything = 100%".
-export const HIGHLIGHT_MIN_CHUNKS  = 3;
+// HARD floor is the STRUCTURAL minimum of 2 (≥1 correct + ≥1 wrong already
+// forces it) — the old 3 was a textbook norm, not a requirement. The "most
+// items have 3+" norm is an amber advisory in the editor; it never blocks.
+export const HIGHLIGHT_MIN_CHUNKS  = 2;
 export const HIGHLIGHT_MAX_CHUNKS  = 12;
 export const HIGHLIGHT_MIN_CORRECT = 1;
 export const HIGHLIGHT_MIN_WRONG   = 1;
+// Advisory floor (editor nudge only — NOT enforced by the parser).
+export const HIGHLIGHT_RECOMMENDED_MIN_CHUNKS = 3;
 
 // Drag-drop bounds (Family B — Slice 1.10)
 // Two subtypes: ORDERED (ranked positions) and SENTENCE ([N] markers

@@ -37,6 +37,7 @@ import {
   HIGHLIGHT_MAX_CHUNKS,
   HIGHLIGHT_MIN_CORRECT,
   HIGHLIGHT_MIN_WRONG,
+  HIGHLIGHT_RECOMMENDED_MIN_CHUNKS,
 } from '@/lib/bank/classifications';
 import { ModalFrame } from '@/lib/bank/atoms/modal-frame';
 import { EditorActions } from '@/lib/bank/atoms/editor-actions';
@@ -554,17 +555,22 @@ export function HighlightEditorBody({
   // by decision === 'correct', and activeChunks is already in-passage only.
   const liveMarks = summary.correct;
 
-  // Toolbar counter
+  // Soft advisory: the chunk count is within the saveable 2–12 range but below
+  // the 3+ norm (i.e. exactly 2). Nudges, never blocks (advise > block).
+  const chunkCountAdvisory =
+    summary.total >= HIGHLIGHT_MIN_CHUNKS &&
+    summary.total <= HIGHLIGHT_MAX_CHUNKS &&
+    summary.total < HIGHLIGHT_RECOMMENDED_MIN_CHUNKS;
+
+  // Toolbar counter — red outside the hard 2–12 range (blocks Save), amber
+  // inside it but below the 3+ norm or with an undecided chunk, green when
+  // clean and in the recommended range.
   const counterClass: ValidityState =
-    summary.total === 0
+    summary.total < HIGHLIGHT_MIN_CHUNKS || summary.total > HIGHLIGHT_MAX_CHUNKS
       ? 'err'
-      : summary.total < HIGHLIGHT_MIN_CHUNKS
+      : summary.undecided > 0 || chunkCountAdvisory
         ? 'warn'
-        : summary.total > HIGHLIGHT_MAX_CHUNKS
-          ? 'err'
-          : summary.undecided > 0
-            ? 'warn'
-            : 'ok';
+        : 'ok';
   const counterText = `${summary.total} chunk${summary.total === 1 ? '' : 's'} detected`;
 
   // ─────────────────────────────────────────────────────────────
@@ -717,8 +723,12 @@ export function HighlightEditorBody({
                     <code>[K+]</code> are literal passage text. Select
                     text and click <strong>Wrap / Insert</strong> to
                     bracket it; click with no selection to drop an empty{' '}
-                    <code>[[]]</code> at the cursor. Formatting on a chunk
-                    is tidied away on save (the clickable text stays plain).
+                    <code>[[]]</code> at the cursor. Add{' '}
+                    {HIGHLIGHT_MIN_CHUNKS}–{HIGHLIGHT_MAX_CHUNKS} findings (at
+                    least one correct + one distractor) — most items have{' '}
+                    {HIGHLIGHT_RECOMMENDED_MIN_CHUNKS} or more. Formatting on a
+                    chunk is tidied away on save (the clickable text stays
+                    plain).
                   </p>
 
                   <div className="auth-hl-toolbar">
@@ -748,12 +758,14 @@ export function HighlightEditorBody({
                     </span>
                   </div>
 
-                  {/* Bounds summary */}
+                  {/* Bounds summary. The chunk-count item shows green only at
+                      the 3+ norm (amber at the saveable-but-lean 2); the (2–12)
+                      label is the hard range. */}
                   <div className="auth-hl-bounds">
                     <span
                       className={
                         'auth-hl-bounds-item auth-hl-' +
-                        (summary.total >= HIGHLIGHT_MIN_CHUNKS &&
+                        (summary.total >= HIGHLIGHT_RECOMMENDED_MIN_CHUNKS &&
                         summary.total <= HIGHLIGHT_MAX_CHUNKS
                           ? 'ok'
                           : 'warn')
@@ -790,6 +802,17 @@ export function HighlightEditorBody({
                       {summary.undecided} undecided
                     </span>
                   </div>
+
+                  {/* Soft advisory — count is within the saveable 2–12 range
+                      but below the 3+ norm. Nudges, never blocks. */}
+                  {chunkCountAdvisory && (
+                    <p className="auth-hl-advisory">
+                      Most NCLEX highlight items have{' '}
+                      {HIGHLIGHT_RECOMMENDED_MIN_CHUNKS} or more findings. This
+                      one has {summary.total} — that&apos;s fine to save, just
+                      lean.
+                    </p>
+                  )}
 
                   {/* Stacked chunk cards (active first, then orphans). */}
                   <div className="auth-hl-chunks-wrap">

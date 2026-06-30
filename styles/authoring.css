@@ -1996,9 +1996,11 @@
 .auth-cz-marker-count.auth-cz-warn { color: var(--warning); border-color: #fde68a; background: #fffbeb; }
 .auth-cz-marker-count.auth-cz-err  { color: var(--danger);  border-color: #fecaca; background: #fef2f2; }
 
-/* Soft blank-count advisory (advise > block) — saveable, just outside the
-   2–6 norm. Amber, sits below the toolbar. */
-.auth-cz-advisory {
+/* Soft count advisory (advise > block) — saveable, just outside the norm.
+   Amber, sits below the toolbar. Shared by the marker editors (Cloze blank
+   count, Highlight chunk count, …). */
+.auth-cz-advisory,
+.auth-hl-advisory {
   margin: 8px 0 0;
   padding: 8px 12px;
   font-size: 12px;
