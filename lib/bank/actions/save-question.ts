@@ -117,6 +117,24 @@ async function nextItemId(
 ): Promise<string> {
   const cfg = surfaceConfig(surface);
   const prefix = cfg.prefix[type];
+
+  // Tutor surface: RLS scopes a tutor to their OWN rows
+  // (nclex_tutor_questions_tutor_own = tutor_id = auth.uid()), so a
+  // client-side max+1 only counts the caller's questions and collides with
+  // other tutors' ids on the pkey. Defer to a SECURITY DEFINER RPC that scans
+  // the whole table. The admin/bank surface keeps the direct scan below —
+  // curators can read every bank item, so its count is already whole-table.
+  if (surface === 'tutor') {
+    const { data, error } = await supabase.rpc('nclex_next_tutor_item_id', {
+      p_prefix: prefix,
+    });
+    if (error) throw error;
+    if (typeof data !== 'string' || data.length === 0) {
+      throw new Error('nclex_next_tutor_item_id returned no id');
+    }
+    return data;
+  }
+
   const { data, error } = await supabase
     .from(cfg.table)
     .select('item_id')
