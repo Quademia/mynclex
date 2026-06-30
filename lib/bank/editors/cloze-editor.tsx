@@ -42,6 +42,7 @@ import { EditorAuthorship } from '@/lib/audit/authorship-line';
 import {
   RovingProvider,
   RovingToolbar,
+  RovingRichField,
   useRoving,
 } from '@/lib/authoring/roving-rich';
 import {
@@ -52,8 +53,10 @@ import {
 import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
 import {
   parseRichDoc,
+  serializeRichDoc,
   richTextToPlain,
   isEmptyRichDoc,
+  EMPTY_RICH_DOC,
   type RichDoc,
 } from '@/lib/authoring/rich-doc';
 import {
@@ -251,7 +254,7 @@ interface BlankCardProps {
   onAddChoice: () => void;
   onRemoveChoice: (cid: string) => void;
   onChoiceText: (cid: string, text: string) => void;
-  onChoiceFeedback: (cid: string, fb: string) => void;
+  onChoiceFeedback: (cid: string, fb: RichDoc) => void;
   onCorrect: (cid: string) => void;
 }
 
@@ -333,13 +336,21 @@ function BlankCard({
                 placeholder="Choice text (what the student picks)…"
                 disabled={disabled}
               />
-              <input
-                type="text"
-                className="auth-input auth-cz-choice-feedback"
+              {/* Feedback is rich (shows in the review feedback prose). The
+                  active blank card owns the live editor; the editor's single
+                  HiddenSerialisers serialises every blank's feedback, so this
+                  field uses noHiddenInput to avoid double-emitting (the
+                  Bow-tie pattern). */}
+              <RovingRichField
+                fieldKey={`cz-fb-${blank.id}-${c.id}`}
+                name={`cloze_choice_feedback_${blank.id}`}
                 value={c.feedback}
-                onChange={(e) => onChoiceFeedback(c.id, e.target.value)}
+                onChange={(doc) => onChoiceFeedback(c.id, doc)}
+                inline
+                noHiddenInput
+                className="auth-rrf-option-fb"
+                ariaLabel="Per-choice feedback"
                 placeholder="Per-choice feedback (optional)…"
-                disabled={disabled}
               />
             </div>
             <button
@@ -406,7 +417,7 @@ function HiddenSerialisers({ blanks }: { blanks: ClozeEditorBlank[] }) {
               <input
                 type="hidden"
                 name={`cloze_choice_feedback_${b.id}`}
-                value={c.feedback}
+                value={serializeRichDoc(c.feedback)}
               />
             </Fragment>
           ))}
@@ -616,7 +627,7 @@ export function ClozeEditorBody({
           choices: Array.from({ length: CLOZE_MIN_CHOICES }, (_, i) => ({
             id: `c${i + 1}`,
             text: '',
-            feedback: '',
+            feedback: { ...EMPTY_RICH_DOC },
           })),
           correct_id: 'c1',
           in_stem: true,
@@ -661,7 +672,10 @@ export function ClozeEditorBody({
       while (used.has(`c${n}`)) n++;
       return {
         ...b,
-        choices: [...b.choices, { id: `c${n}`, text: '', feedback: '' }],
+        choices: [
+          ...b.choices,
+          { id: `c${n}`, text: '', feedback: { ...EMPTY_RICH_DOC } },
+        ],
       };
     });
   }
@@ -685,7 +699,7 @@ export function ClozeEditorBody({
     }));
   }
 
-  function setChoiceFeedback(blankId: string, choiceId: string, feedback: string) {
+  function setChoiceFeedback(blankId: string, choiceId: string, feedback: RichDoc) {
     updateBlank(blankId, (b) => ({
       ...b,
       choices: b.choices.map((c) =>
@@ -888,9 +902,10 @@ export function ClozeEditorBody({
                       onChoiceText={(cid, text) =>
                         setChoiceText(activeBlank.id, cid, text)
                       }
-                      onChoiceFeedback={(cid, fb) =>
-                        setChoiceFeedback(activeBlank.id, cid, fb)
-                      }
+                      onChoiceFeedback={(cid, fb) => {
+                        setChoiceFeedback(activeBlank.id, cid, fb);
+                        onDirty?.();
+                      }}
                       onCorrect={(cid) => setCorrect(activeBlank.id, cid)}
                     />
                   ) : null}

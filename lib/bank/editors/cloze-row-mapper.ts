@@ -15,6 +15,11 @@
 
 import type { HousekeepingMode } from '@/lib/bank/atoms/housekeeping-fields';
 import { CLOZE_MIN_BLANKS, CLOZE_MIN_CHOICES } from '@/lib/bank/classifications';
+import {
+  parseRichDoc,
+  EMPTY_RICH_DOC,
+  type RichDoc,
+} from '@/lib/authoring/rich-doc';
 import { type McqDbRow, MCQ_ROW_COLUMNS } from './mcq-row-mapper';
 
 // ─────────────────────────────────────────────────────────────
@@ -26,8 +31,11 @@ import { type McqDbRow, MCQ_ROW_COLUMNS } from './mcq-row-mapper';
 
 export interface ClozeEditorChoice {
   id: string;
+  // Choice text stays PLAIN — it renders inside a native <select> dropdown,
+  // which can't display formatting (Slice 6d decision). Feedback is rich: it
+  // shows in the review feedback prose, which is real formatted HTML.
   text: string;
-  feedback: string;
+  feedback: RichDoc;
 }
 
 export interface ClozeEditorBlank {
@@ -104,7 +112,7 @@ export function emptyClozeInitial(surface: 'admin' | 'tutor'): ClozeEditorInitia
     choices: Array.from({ length: CLOZE_MIN_CHOICES }, (_, j) => ({
       id: `c${j + 1}`,
       text: '',
-      feedback: '',
+      feedback: { ...EMPTY_RICH_DOC },
     })),
     correct_id: 'c1',
     in_stem: true,
@@ -159,7 +167,7 @@ export function clozeRowToInitial(
       choices: (b.choices ?? []).map((c) => ({
         id: c.id,
         text: c.text,
-        feedback: fbForBlank[c.id] ?? '',
+        feedback: parseRichDoc(fbForBlank[c.id] ?? ''),
       })),
       correct_id: answers[b.id] ?? '',
       in_stem: true,

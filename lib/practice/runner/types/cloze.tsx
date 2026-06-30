@@ -44,8 +44,8 @@ import type {
   ClozeBlank,
 } from '@/lib/bank/types';
 import type { ClozeAnswer } from '@/lib/scoring';
-import { parseRichDoc } from '@/lib/authoring/rich-doc';
-import { RichRenderWithSlots } from '@/lib/authoring/rich-render';
+import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
+import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
 
 type ClozeRunnerProps = {
   stem:    string;
@@ -238,14 +238,18 @@ function ClozeFeedbackList({ blanks, studentAnswer, correct }: FeedbackListProps
             <p className="rn-cloze-feedback-rationales">
               {b.choices.map((c) => {
                 const isCorrect = c.id === correctId;
-                const fb        = blankFeedback?.[c.id];
+                // Feedback is a rich doc (Slice 6d-ii), read-coerced so legacy
+                // plain feedback still renders. Choice label stays plain.
+                const fbRaw = blankFeedback?.[c.id];
+                const fbDoc = fbRaw ? parseRichDoc(fbRaw) : null;
+                const hasFb = fbDoc !== null && !isEmptyRichDoc(fbDoc);
                 return (
                   <span
                     key={c.id}
                     className={`rn-cloze-feedback-item${isCorrect ? ' right' : ''}`}
                   >
                     <span className="rn-cloze-feedback-label">{c.text}</span>
-                    {fb && <> — {fb}</>}
+                    {hasFb && <> — <RichRender doc={fbDoc} inline /></>}
                   </span>
                 );
               })}
