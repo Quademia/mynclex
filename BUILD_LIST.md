@@ -72,16 +72,32 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   new code. NO migration (read-coerce). The in-editor "box / chip" look for
 >   markers is **parked** as optional cosmetic polish (pure presentation, safe
 >   to add later).
-> - **Cloze validation relax — PLANNED (own focused session, not built).** First
->   review of the Cloze editor rules under advise > block. Decided with Sam:
+> **EDITORS' "OTHER WORK" SWEEP — advise > block + UX consistency, per-editor
+> (2026-06-30, IN PROGRESS).** After all 9 question editors went rich, Sam
+> opened a per-editor pass for the *non-rich* improvements: validation under
+> advise > block (relax the genuine over-blocks, keep the structural rules) +
+> any UX rough edges. **Cloze first ✅; Highlight + Drag-drop next** (their
+> min floors — Highlight 3 chunks, Drag-drop 3 slots — are the same
+> norm-as-floor over-block as Cloze's min-2; structural minimum is 2 for both).
+> Then the trend stimulus rich-content arc.
+> - **Cloze ✅ BUILT + MERGED to `main`** (`6cf394c` relax + `ee5820c`
+>   auto-create; Sam-tested on dev; NOT yet prod; app-layer, NO migration; tsc
+>   + eslint + 94 vitest clean). **(1) Validation relax — advise > block:**
 >   `CLOZE_MIN_BLANKS` **2 → 1** (a 1-blank cloze is legitimate — `NCLEX_CLZ_TB_Q3`
->   already is one, and the editor currently blocks saving it), `CLOZE_MAX_BLANKS`
->   **6 → 10**, choice caps 2–5 unchanged; add a **2–6 advisory** (static line +
->   amber count chip at 1 or 7–10, saves fine). Real work = split block-from-advice
->   in the editor (Save currently gates on any non-`ok`), move the parser
->   floor/ceiling to 1–10, seed new questions at 2. Plan in
->   questions-and-wrappers-rebuild.md → "Cloze validation rules — relax to
->   advise > block".
+>   is one, and the editor was blocking it), `CLOZE_MAX_BLANKS` **6 → 10**
+>   (both flow into the parser, which reads the constants); choice caps 2–5
+>   unchanged. New `CLOZE_RECOMMENDED_{MIN,MAX}_BLANKS = 2..6` drive an
+>   **editor-only advisory** — the blank-count chip is red outside 1–10 (blocks
+>   Save), **amber at 1 or 7–10** (saves, just nudges), green at 2–6; a soft
+>   advisory line + reworded help. Save still blocks the real structural breaks
+>   (stem empty · 0/>10 blanks · a blank with <2/>5 choices or no correct).
+>   "+ New Cloze" seeds the recommended 2, decoupled from the floor of 1. **(2)
+>   UX consistency — typing `{N}` auto-creates its card:** Cloze required the
+>   explicit "+ Add blank" and silently ignored a hand-typed marker (orphan →
+>   save-fail); now `reconcileBlanksToStem` (wired into the stem onChange, like
+>   Drag-drop) creates the card on type, matching Highlight `[[chunk]]` +
+>   Drag-drop `[N]`. "+ Add blank" unchanged + still works; orphan reconnect
+>   unchanged.
 > - **6e — Highlight ✅ BUILT + MERGED to `main`** (`557bc68` 6e-i + `26d0631`
 >   6e-ii; tsc + eslint + 94 vitest clean; Sam-tested on dev; NOT yet prod;
 >   all app-layer, NO migration). **Option B (decoupled markers)** like Cloze —

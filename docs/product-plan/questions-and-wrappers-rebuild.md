@@ -1629,11 +1629,24 @@ tsc + eslint + 94 vitest clean; NOT yet merged — awaiting Sam's dev test).**
 - **⏭ remaining for the slice:** Sam's dev test → (with approval) merge to
   `main`. Optional: seed a couple of rich-stem Cloze test Qs on dev.
 
-#### Cloze validation rules — relax to advise > block (PLANNED — own focused session, 2026-06-30)
+#### Cloze validation rules — relax to advise > block (✅ BUILT + MERGED 2026-06-30)
+
+**✅ BUILT + MERGED to `main`** (`6cf394c` relax + `ee5820c` auto-create;
+Sam-tested on dev; NOT yet prod; app-layer, NO migration). The first of the
+**editors' "other work" sweep** — per-editor validation under advise > block +
+UX consistency, opened after all 9 editors went rich. As built: the two
+constants moved to **1–10** (hard, flow into the parser), `CLOZE_RECOMMENDED_
+{MIN,MAX}_BLANKS = 2..6` drive an **editor-only** advisory (red outside 1–10 =
+blocks; amber at 1 or 7–10 = saves + nudges; green 2–6), the help line reworded,
+the seed decoupled to the recommended 2. Plus a UX-consistency fix surfaced in
+the same pass: typing `{N}` now **auto-creates its blank card**
+(`reconcileBlanksToStem` on the stem onChange, mirroring Highlight `[[chunk]]` +
+Drag-drop `[N]`); "+ Add blank" unchanged. **Next in the sweep:** Highlight
+(min 3→2 chunks) + Drag-drop (min 3→2 slots) — same norm-as-floor over-block.
 
 The first review of the Cloze editor's validation under the advise > block
 philosophy (Cloze was built in the original rebuild, before that philosophy was
-set in 6b). Decided with Sam, **not yet built — own focused session.**
+set in 6b). Decided with Sam.
 
 **Current rules** (`lib/bank/classifications.ts` + `lib/bank/parsers/cloze.ts`):
 `CLOZE_MIN_BLANKS=2`, `CLOZE_MAX_BLANKS=6`, `CLOZE_MIN_CHOICES=2`,
