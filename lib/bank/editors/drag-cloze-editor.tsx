@@ -790,7 +790,7 @@ export function DragClozeEditorBody({
   // Bounds meter colour states (per pill). Advise > block: 'err' marks a
   // structural break that blocks Save; 'warn' is a norm nudge that saves fine.
   // Slot meter:
-  //   err  — outside the structural 2–8 range.
+  //   err  — outside the structural 1–8 range (a single-blank cloze is valid).
   //   warn — valid but below the recommended 3 (a norm, not a wall).
   const slotMeterState: ValidityState =
     summary.activeSlotCount < DCZ_MIN_SLOTS ||

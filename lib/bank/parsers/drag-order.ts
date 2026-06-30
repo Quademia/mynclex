@@ -75,9 +75,9 @@ export function parseDragOrder(input: DragOrderParseInput): DragOrderParseResult
     return { ok: false, error: 'Every token must have non-empty text.' };
   }
 
-  // Structural floor: one token per slot + at least one distractor. The
-  // NCSBN 4-item minimum is a norm, surfaced as an editor advisory — not
-  // enforced here (a 2-slot item is legitimate with 3 tokens).
+  // Structural floor: one token per position. Distractors are OPTIONAL for an
+  // ordered-response item (DO_TOKEN_POOL_MIN_EXTRA = 0), so the floor is just
+  // the slot count; extra distractor tokens are allowed up to the cap.
   const tokenFloor = activeSlotCount + DO_TOKEN_POOL_MIN_EXTRA;
   const tokenCap = Math.min(
     activeSlotCount + DO_TOKEN_POOL_MAX_OVER_SLOTS,
@@ -86,7 +86,7 @@ export function parseDragOrder(input: DragOrderParseInput): DragOrderParseResult
   if (formTokens.length < tokenFloor) {
     return {
       ok: false,
-      error: `Token pool must have at least ${tokenFloor} tokens (${activeSlotCount} for slots + ${DO_TOKEN_POOL_MIN_EXTRA} distractor${DO_TOKEN_POOL_MIN_EXTRA === 1 ? '' : 's'}). Found ${formTokens.length}.`,
+      error: `Token pool must have at least one token per position (${tokenFloor} for ${activeSlotCount} slot${activeSlotCount === 1 ? '' : 's'}). Found ${formTokens.length}.`,
     };
   }
   if (formTokens.length > tokenCap) {

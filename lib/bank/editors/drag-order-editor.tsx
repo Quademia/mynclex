@@ -31,7 +31,6 @@ import {
   DO_MAX_SLOTS,
   DO_RECOMMENDED_MIN_SLOTS,
   DO_TOKEN_POOL_MAX_OVER_SLOTS,
-  DO_TOKEN_POOL_RECOMMENDED_MIN,
   DO_TOKEN_POOL_ABSOLUTE_MAX,
   DO_TOKEN_POOL_MIN_EXTRA,
 } from '@/lib/bank/classifications';
@@ -109,10 +108,8 @@ function nextFreeTokenN(used: Set<string>): number {
 interface BoundsSummary {
   activeSlotCount: number;
   tokenCount: number;
-  tokenFloor: number;             // HARD pool minimum (slots + ≥1 distractor)
-  tokenRecommendedFloor: number;  // advisory pool minimum (NCLEX 4-floor norm)
-  tokenCap: number;               // pool maximum (NCLEX 10 ceiling)
-  tokenRecommended: number;       // soft target ≈ 2 × slots, capped at tokenCap
+  tokenFloor: number;             // HARD pool minimum = slots (distractors optional)
+  tokenCap: number;               // pool maximum (slots + extras, NCLEX 10 ceiling)
   distractorCount: number;
   unassignedActive: number;
 }
@@ -124,26 +121,19 @@ function summarise(
   // ORDERED — every slot is active (no markers, no orphans).
   const activeSlotCount = slots.length;
   const tokenCount = tokens.length;
-  // HARD floor — one token per slot + at least one distractor.
+  // HARD floor — one token per position. Distractors are OPTIONAL for an
+  // ordered-response item (classically you arrange exactly the given items),
+  // so DO_TOKEN_POOL_MIN_EXTRA is 0 and there is no pool-size recommendation.
   const tokenFloor = activeSlotCount + DO_TOKEN_POOL_MIN_EXTRA;
-  // Advisory floor — the NCSBN 4-item norm (nudge only, doesn't block).
-  const tokenRecommendedFloor = Math.max(
-    tokenFloor,
-    DO_TOKEN_POOL_RECOMMENDED_MIN,
-  );
   const tokenCap = Math.min(
     activeSlotCount + DO_TOKEN_POOL_MAX_OVER_SLOTS,
     DO_TOKEN_POOL_ABSOLUTE_MAX,
   );
-  // Soft 2x target — falls back to the cap when 2x exceeds NCLEX's 10.
-  const tokenRecommended = Math.min(activeSlotCount * 2, tokenCap);
   return {
     activeSlotCount,
     tokenCount,
     tokenFloor,
-    tokenRecommendedFloor,
     tokenCap,
-    tokenRecommended,
     distractorCount: Math.max(0, tokenCount - activeSlotCount),
     unassignedActive: slots.filter(
       (s) => s.assigned_token_id.trim() === '',
@@ -651,35 +641,20 @@ export function DragOrderEditorBody({
   const slotCountAdvisory =
     summary.activeSlotCount >= DO_MIN_SLOTS &&
     summary.activeSlotCount < DO_RECOMMENDED_MIN_SLOTS;
-  // Token meter:
-  //   err  — pool below the structural floor (no distractor) or over cap
-  //          (or some token has empty text).
-  //   warn — pool valid but below the NCLEX 4-floor norm OR the 2×
-  //          recommendation.
-  //   ok   — meets or exceeds both.
+  // Token meter (ordered-response): one token per position is the only hard
+  // rule. Distractors are OPTIONAL, so there is no pool-size nudge — green
+  // whenever the pool is in [slots, cap].
+  //   err  — fewer tokens than positions, over cap, or a token has empty text.
+  //   ok   — otherwise.
   const tokenMeterState: ValidityState =
     summary.tokenCount < summary.tokenFloor ||
     summary.tokenCount > summary.tokenCap ||
     tokenTextEmpty
       ? 'err'
-      : summary.tokenCount < summary.tokenRecommendedFloor ||
-          summary.tokenCount < summary.tokenRecommended
-        ? 'warn'
-        : 'ok';
-  // Distractor meter mirrors the token meter for the distractor count
-  // specifically — below the structural ≥1 is err; below the recommended
-  // amount is warn; meeting the recommendation is ok.
-  const distractorRecommended = Math.max(
-    0,
-    summary.tokenRecommended - summary.activeSlotCount,
-  );
-  const distractorRequired = DO_TOKEN_POOL_MIN_EXTRA;
-  const distractorMeterState: ValidityState =
-    summary.distractorCount < distractorRequired
-      ? 'err'
-      : summary.distractorCount < distractorRecommended
-        ? 'warn'
-        : 'ok';
+      : 'ok';
+  // Distractor meter is informational only — distractors are optional for an
+  // ordering item, so it never errs or warns.
+  const distractorMeterState: ValidityState = 'ok';
   const assignmentMeterState: ValidityState =
     summary.unassignedActive > 0 ? 'warn' : 'ok';
 
@@ -766,7 +741,7 @@ export function DragOrderEditorBody({
                   </span>
                   <span
                     className={`auth-dd-bounds-item auth-dd-${tokenMeterState}`}
-                    title={`At least ${summary.tokenFloor} required, ${summary.tokenCap} max. NCLEX uses ${DO_TOKEN_POOL_RECOMMENDED_MIN}+; recommended ≈${summary.tokenRecommended} (2× slots).`}
+                    title={`One token per position (${summary.tokenFloor} needed). Up to ${summary.tokenCap} allowed if you add optional distractors.`}
                   >
                     {summary.tokenCount} token
                     {summary.tokenCount === 1 ? '' : 's'} (
@@ -774,10 +749,10 @@ export function DragOrderEditorBody({
                   </span>
                   <span
                     className={`auth-dd-bounds-item auth-dd-${distractorMeterState}`}
-                    title={`At least ${distractorRequired} required. Recommended: ${distractorRecommended}.`}
+                    title="Distractors are optional for an ordering item."
                   >
                     {summary.distractorCount} distractor
-                    {summary.distractorCount === 1 ? '' : 's'} (≥{distractorRequired})
+                    {summary.distractorCount === 1 ? '' : 's'} (optional)
                   </span>
                   <span
                     className={`auth-dd-bounds-item auth-dd-${assignmentMeterState}`}
@@ -869,13 +844,11 @@ export function DragOrderEditorBody({
                   </button>
                 </div>
                 <p className="auth-hint">
-                  Every slot needs its token plus at least one distractor. For
-                  this question:{' '}
+                  One token per position — for this question:{' '}
                   <strong>{summary.tokenFloor} required, {summary.tokenCap} max</strong>.
-                  NCLEX pools typically hold{' '}
-                  <strong>{DO_TOKEN_POOL_RECOMMENDED_MIN}–{DO_TOKEN_POOL_ABSOLUTE_MAX}</strong>{' '}
-                  tokens; we recommend ≈ {summary.tokenRecommended} (about 2× slots)
-                  so students can&apos;t solve by elimination.
+                  Distractors (extra tokens that don&apos;t belong in the order)
+                  are <strong>optional</strong>: add a few if you want students to
+                  rule them out, or none for a pure ordering task.
                 </p>
                 <div className="auth-dd-tokens-wrap">
                   {tokens.map((t) => {

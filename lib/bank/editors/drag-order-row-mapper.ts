@@ -22,11 +22,7 @@
 //   - Token IDs are 't1', 't2', … unique within the question.
 
 import type { HousekeepingMode } from '@/lib/bank/atoms/housekeeping-fields';
-import {
-  DO_DEFAULT_SLOTS,
-  DO_TOKEN_POOL_RECOMMENDED_MIN,
-  DO_TOKEN_POOL_MIN_EXTRA,
-} from '@/lib/bank/classifications';
+import { DO_DEFAULT_SLOTS } from '@/lib/bank/classifications';
 import {
   parseRichDoc,
   EMPTY_RICH_DOC,
@@ -125,14 +121,10 @@ export function emptyDragOrderInitial(
     target_text: ordinalLabel(n),
     assigned_token_id: '',
   }));
-  // Seed enough tokens to meet the recommended NCLEX floor (≥4 in pool +
-  // ≥1 distractor) for the default 3-slot scaffold: 3 slots → 4 seeded tokens.
-  const seedTokenCount = Math.max(
-    DO_DEFAULT_SLOTS + DO_TOKEN_POOL_MIN_EXTRA,
-    DO_TOKEN_POOL_RECOMMENDED_MIN,
-  );
+  // Seed one token per position — a clean pure-ordering scaffold (distractors
+  // are optional, so we don't seed any; the curator adds them if wanted).
   const tokens: DragOrderEditorToken[] = Array.from(
-    { length: seedTokenCount },
+    { length: DO_DEFAULT_SLOTS },
     (_, i) => ({ id: `t${i + 1}`, text: '', feedback: { ...EMPTY_RICH_DOC } }),
   );
 

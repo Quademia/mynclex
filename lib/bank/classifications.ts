@@ -291,7 +291,7 @@ export const DD_TOKEN_POOL_MIN_EXTRA      = 1;   // ≥1 distractor — the real
 // DRAG_DROP, 2026-06-30). Its own constants so the type is fully decoupled from
 // DRAG_DROP (which is retired once DRAG_ORDER also lands). Values mirror the
 // drag-drop SENTENCE rules: same advise > block stance.
-export const DCZ_MIN_SLOTS                 = 2;   // structural floor (a 2-blank sentence is valid)
+export const DCZ_MIN_SLOTS                 = 1;   // a single-blank drag-cloze is valid (mirrors CLOZE)
 export const DCZ_MAX_SLOTS                 = 8;
 export const DCZ_RECOMMENDED_MIN_SLOTS     = 3;   // advisory floor (editor nudge only)
 export const DCZ_TOKEN_POOL_MAX_OVER_SLOTS = 4;   // pool cap = slots + this
@@ -307,6 +307,8 @@ export const DO_MAX_SLOTS                 = 8;
 export const DO_DEFAULT_SLOTS             = 3;   // new-item seed = the recommended count
 export const DO_RECOMMENDED_MIN_SLOTS     = 3;   // advisory floor (editor nudge only)
 export const DO_TOKEN_POOL_MAX_OVER_SLOTS = 4;   // pool cap = slots + this
-export const DO_TOKEN_POOL_RECOMMENDED_MIN = 4;  // NCLEX 4-floor — advisory
 export const DO_TOKEN_POOL_ABSOLUTE_MAX   = 10;  // NCLEX ceiling
-export const DO_TOKEN_POOL_MIN_EXTRA      = 1;   // ≥1 distractor — the real hard floor
+// Ordered-response items are classically "arrange exactly these N" — distractors
+// are OPTIONAL, not required. So the hard token floor is `slots` (MIN_EXTRA=0);
+// extra distractor tokens are allowed up to the cap but never forced or nagged.
+export const DO_TOKEN_POOL_MIN_EXTRA      = 0;   // distractors optional — floor = slots
