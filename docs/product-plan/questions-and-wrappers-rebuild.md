@@ -1584,8 +1584,12 @@ per-cell**.
 
 **Scope:** a full slice (own editor + parser + runner + **scoring** + attempt
 snapshot + a new `MATRIX_MR` value in the type registry) — bigger than rich text,
-independent of the 6c rich-text work. Sequencing TBD by Sam (next, or after 6d
-Cloze in the alternate-features rotation). Not built yet.
+independent of the 6c rich-text work. **⏭ NEXT SESSION (Sam, 2026-06-30):** build
+`MATRIX_MR`. Follow the **"Adding a new question type — wiring checklist"** at the
+end of this doc — but re-grep `MATRIX` across the codebase first, since new wiring
+sites may have appeared since the checklist was snapshotted. Mirror `MATRIX`
+(don't share); settle the 4 open questions above one-at-a-time with Sam when the
+slice opens. Not built yet.
 
 ### Slice 6d — Cloze stem treatment (design discussion 2026-06-29 — **LOCKED 2026-06-30: Option B, decoupled** — **BUILT 2026-06-30: 6d-i + 6d-ii**)
 
@@ -1824,3 +1828,117 @@ tab could stack, e.g., two distinct tables.
   case shows up → generalise `entries` to a list of tables + an "+ Add
   table" button + per-table toolbar focus. If not → the single-table model
   holds.
+
+## DRAG_DROP split — DRAG_CLOZE + DRAG_ORDER (2026-06-30)
+
+`DRAG_DROP` was a single type with a `subtype: 'ORDERED' | 'SENTENCE'` mode
+switch; the two modes had drifted enough that we split them into two clean,
+self-contained types (Sam's call — same "mirror, don't share" philosophy as
+MCQ↔SATA and Matrix-MR):
+
+- **`DRAG_CLOZE`** — the SENTENCE mode (stem with `[N]` markers, drag tokens into
+  blanks). Built additively; mirror of the drag-drop sentence paths.
+- **`DRAG_ORDER`** — the ORDERED mode (drag tokens into ranked positions; plain
+  prompt, no markers). Built additively; mirror of the drag-drop ordered paths.
+
+Both are **on the session branch, additive — `DRAG_DROP` is left 100% intact**
+(still offers both modes; the picker temporarily shows all three drag entries).
+
+**Per-type validation (reviewed once separated, advise > block):**
+- `DRAG_CLOZE`: min **1** blank (mirrors `CLOZE`); **≥1 distractor required**
+  (fill-in norm). Max 8 blanks; 3-blank advisory.
+- `DRAG_ORDER`: min **2** positions (can't order one); **distractors OPTIONAL**
+  (an ordered-response item is classically "arrange exactly these N" — the floor
+  is `slots`, no pool-size nag; a fresh item seeds one token per position). Max 8;
+  3-slot advisory.
+
+**Legacy `DRAG_DROP` is NOT deleted.** The decouple (migrate the handful of old
+`DRAG_DROP` rows onto the two new types + delete the `DRAG_DROP`
+editor/parser/runner/type) is **deferred until the new types have been used for
+real and Sam is happy** — not on a fixed schedule. Until then `DRAG_DROP` is a
+frozen legacy type that still authors + renders + scores. When the decouple runs,
+it's the symmetric reverse of the checklist below (remove the `DRAG_DROP` line at
+each site; data move: bank dev 6/6, prod 1/2 by subtype; prod has 0 attempts).
+
+## Adding a new question type — wiring checklist (snapshot as of 2026-06-30)
+
+Built from the `DRAG_CLOZE` + `DRAG_ORDER` builds. **This is a map of where a
+type plugs in *today* — treat it as a starting point, not gospel.** At the next
+build, re-grep an existing reference type (e.g. `DRAG_DROP`) across the codebase
+to catch any wiring site added since this was written; new features may have
+introduced new registries.
+
+**Approach that worked:** (1) lay the foundation (constants + types + scoring)
+first so the new files compile against real symbols; (2) write the new mirror
+files (copy a reference type, strip what differs); (3) wire registration — do the
+**runtime whitelists explicitly** (see ⚠), then let `tsc` list the rest; (4) gate
+on tsc + eslint + vitest **+ a manual click-through** (the runtime whitelists only
+fail on real interaction, never at compile time).
+
+### New files (mirror a reference type; copy then strip)
+- `lib/bank/editors/<type>-editor.tsx`
+- `lib/bank/editors/<type>-row-mapper.ts`
+- `lib/bank/parsers/<type>.ts`
+- `lib/practice/runner/types/<type>.tsx`
+- `lib/bank/editors/<type>-stem-doc.ts` — **only if the stem carries markers**
+  (Cloze `{N}` / Highlight `[[ ]]` / drag-cloze `[N]`). ORDERED-style types skip it.
+
+### ⚠ Runtime whitelists — `tsc` CANNOT catch these (they no-op / throw at runtime)
+These bit us on `DRAG_CLOZE` (picker showed it, click did nothing; then save threw
+"unsupported"). Do them first, every time:
+- `lib/bank/atoms/question-type-picker.tsx` → `ENABLED_TYPES`
+- `lib/bank/bank-list-client.tsx` → `EDITABLE_TYPES` (gates the pick handler)
+- `lib/bank/actions/save-question.ts` → `SUPPORTED_TYPES`
+- `lib/practice/builder/filter-config.ts` → `QTYPE_OPTIONS` (has a **length-sync
+  guard** that throws at module load if it drifts from `QUESTION_TYPES`)
+
+### `tsc`-caught (the compiler lists each if missed — `Record<QuestionType>` maps + exhaustive switches)
+- `lib/bank/classifications.ts` → `QUESTION_TYPES` + `ITEM_ID_PREFIX` +
+  `TUTOR_ITEM_ID_PREFIX` + new bounds constants
+- `lib/bank/types.ts` → `<Type>Content` / `<Type>Correct` + both unions
+  (`BankItemContent` / `BankItemCorrect`)
+- `lib/scoring/types.ts` (`<Type>Answer` + `BankItemAnswer` union) →
+  `lib/scoring/index.ts` (export) → `lib/scoring/dispatch.ts`
+  (`computeMarksFromKey` + `scoreAttempt` — reuse an existing scorer if shape matches)
+- `app/(app)/(focused)/session/[attempt_id]/runner.tsx` (submit-gate switch)
+- `app/(app)/(focused)/session/[attempt_id]/runner-question-area.tsx`
+  (`QUESTION_TYPE_LABELS` map + the render switch + **the stem-takeover decision**:
+  marker/stem-rendering types are added to `isStemTakeover`; ordered/option types
+  are not)
+- `lib/practice/runner/index.ts` (export the runner + `is<Type>Complete`)
+- `lib/bank/atoms/housekeeping-fields.tsx` (`formatMarksLabel` switch)
+- case-study + trend wrappers — **×2 each**: `types.ts` (`SlotEditorInitial`
+  union), `load-case.ts` / `load-trend.ts` (row→initial case), `wrapper-page.tsx`
+  (`FORM_ID_BY_TYPE` + `emptyEditorOf` + the editor-body render switch + the
+  preview render switch)
+
+### Plumbing (no compiler signal — mirror the reference type's lines)
+- `lib/bank/actions/save-question.ts` (the parser `case`: read the form fields →
+  call the parser → set `stem`)
+- `lib/bank/bank-list-client.tsx` (editor import, two props
+  `<type>InitialsById` + `empty<Type>Initial`, the create + edit modal blocks)
+- `app/(app)/admin/bank/all/page.tsx` + `app/(app)/tutor/bank/all/page.tsx`
+  (row-mapper import, the initials-map decl, the `row.question_type === ...` build
+  branch, the two props passed to `<BankListClient>`)
+- `lib/bank/list-ui.tsx` → `TYPE_PILL` (label / letter / colour)
+
+### Database
+- New migration: add the value to the **three** `question_type` CHECK constraints
+  (`nclex_bank_items`, `nclex_tutor_questions`, `nclex_attempt_items`) — additive,
+  drop+re-add each. Apply to dev via MCP; mirror the constraints in `db/schema.sql`.
+
+### Intentionally NOT wired (verify these stay limited per the reference type)
+- `lib/library/types.ts` → `EMBED_QUESTION_TYPES` is **MCQ/SATA/TF/SELECT_N only**.
+  Drag-family types are **not** library-note-embeddable; matching the reference
+  type (DRAG_DROP) means leaving these alone.
+
+### Verification gate
+`npx tsc --noEmit` (0) · `npx eslint <changed files>` (0) · `npx vitest run`
+(green) · **manual click-through on dev**: pick from "+ New question" → editor
+opens → author → save → take → review, on **both** admin and tutor bank, plus the
+case-study/trend embed pickers. The manual pass is non-negotiable because the
+runtime whitelists never surface at compile time.
+
+### The id-generator is already generic
+`nclex_next_tutor_item_id(p_prefix text)` takes a prefix, so a new
+`ITEM_ID_PREFIX` / `TUTOR_ITEM_ID_PREFIX` entry needs no RPC change.
