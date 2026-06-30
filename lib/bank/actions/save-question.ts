@@ -186,6 +186,7 @@ const SUPPORTED_TYPES = new Set<QuestionType>([
   'CLOZE',
   'HIGHLIGHT',
   'DRAG_DROP',
+  'DRAG_CLOZE',
 ]);
 
 interface ParsedQuestion {
