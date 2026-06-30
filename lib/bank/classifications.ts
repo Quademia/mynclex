@@ -27,6 +27,8 @@ export const QUESTION_TYPES = [
   { value: 'CLOZE', label: 'Cloze — Fill-in-the-blank sentence' },
   { value: 'HIGHLIGHT', label: 'Highlight — Click correct findings in a passage' },
   { value: 'DRAG_DROP', label: 'Drag-drop — Ordered list or Sentence slots' },
+  { value: 'DRAG_CLOZE', label: 'Drag-and-drop cloze — fill the sentence' },
+  { value: 'DRAG_ORDER', label: 'Drag to order — ranked response' },
 ] as const;
 
 export type QuestionType = (typeof QUESTION_TYPES)[number]['value'];
@@ -43,6 +45,8 @@ export const ITEM_ID_PREFIX: Record<QuestionType, string> = {
   CLOZE: 'NCLEX_CLZ_',
   HIGHLIGHT: 'NCLEX_HL_',
   DRAG_DROP: 'NCLEX_DD_',
+  DRAG_CLOZE: 'NCLEX_DCZ_',
+  DRAG_ORDER: 'NCLEX_DO_',
 };
 
 // Tutor-side prefix: all tutor questions use NCLEX_TUT_<TYPE>_NNNNN.
@@ -58,6 +62,8 @@ export const TUTOR_ITEM_ID_PREFIX: Record<QuestionType, string> = {
   CLOZE:     'NCLEX_TUT_CLZ_',
   HIGHLIGHT: 'NCLEX_TUT_HL_',
   DRAG_DROP: 'NCLEX_TUT_DD_',
+  DRAG_CLOZE: 'NCLEX_TUT_DCZ_',
+  DRAG_ORDER: 'NCLEX_TUT_DO_',
 };
 
 // Case Study ID prefixes (Slice 1.11a).
@@ -226,40 +232,83 @@ export const BT_RIGHT_PRESETS = [
   'Expected outcomes',
 ] as const;
 
-// Cloze bounds (Family B — Slice 1.8)
+// Cloze bounds (Family B — Slice 1.8; relaxed 2026-06-30 under advise > block)
 // Stem contains {N} markers; each marker maps to a blank card with
 // 2–5 choices, exactly one correct.
-export const CLOZE_MIN_BLANKS  = 2;
-export const CLOZE_MAX_BLANKS  = 6;
+// HARD bounds (block Save): 1–10 blanks. A single-blank cloze is a legitimate
+// NCLEX item (the corpus already has one), so the floor is the structural
+// minimum of 1, not the textbook norm. The 2–6 "most items" range is a
+// RECOMMENDATION surfaced as an amber advisory in the editor — it never blocks.
+export const CLOZE_MIN_BLANKS  = 1;
+export const CLOZE_MAX_BLANKS  = 10;
 export const CLOZE_MIN_CHOICES = 2;
 export const CLOZE_MAX_CHOICES = 5;
+// Advisory band (editor nudge only — NOT enforced by the parser).
+export const CLOZE_RECOMMENDED_MIN_BLANKS = 2;
+export const CLOZE_RECOMMENDED_MAX_BLANKS = 6;
 
-// Highlight bounds (Family B — Slice 1.9)
+// Highlight bounds (Family B — Slice 1.9; relaxed 2026-06-30 under advise > block)
 // Passage contains [[chunk]] double-bracket spans. Each span is a
 // chunk card. At least one correct AND one wrong (distractor) chunk
 // required so students can't "click everything = 100%".
-export const HIGHLIGHT_MIN_CHUNKS  = 3;
+// HARD floor is the STRUCTURAL minimum of 2 (≥1 correct + ≥1 wrong already
+// forces it) — the old 3 was a textbook norm, not a requirement. The "most
+// items have 3+" norm is an amber advisory in the editor; it never blocks.
+export const HIGHLIGHT_MIN_CHUNKS  = 2;
 export const HIGHLIGHT_MAX_CHUNKS  = 12;
 export const HIGHLIGHT_MIN_CORRECT = 1;
 export const HIGHLIGHT_MIN_WRONG   = 1;
+// Advisory floor (editor nudge only — NOT enforced by the parser).
+export const HIGHLIGHT_RECOMMENDED_MIN_CHUNKS = 3;
 
-// Drag-drop bounds (Family B — Slice 1.10)
+// Drag-drop bounds (Family B — Slice 1.10; relaxed 2026-06-30 under advise > block)
 // Two subtypes: ORDERED (ranked positions) and SENTENCE ([N] markers
 // in the stem). Both use the same slot + token shape.
 //
-// Pool sizing matches the actual NCLEX NGN Extended Drag-and-Drop spec:
-// "between 4 and 10 items to drag and drop" with "more response options
-// than answer spaces" (i.e. ≥1 distractor). Slot count itself isn't
-// fixed by NCSBN; we keep 3-8 to give curators flexibility while staying
-// in NGN-shaped territory.
+// What's STRUCTURAL (hard-blocks Save):
+//   - slot count in [MIN_DD_SLOTS, MAX_DD_SLOTS] (2..8). The floor is the
+//     structural minimum of 2 — a 2-item ordering / 2-blank sentence is a
+//     legitimate item. The old 3 was a textbook norm, not a requirement.
+//   - token pool ≥ slots + DD_TOKEN_POOL_MIN_EXTRA (i.e. ≥1 distractor, so
+//     a student can't solve by dropping everything) and ≤ the cap.
 //
-// Soft target (recommended, not enforced): pool ≈ 2 × slots, capped by
-// DD_TOKEN_POOL_ABSOLUTE_MAX. The bounds meter colours flag pools below
-// the recommendation but valid as 'warn', and below the floor as 'err'.
-export const MIN_DD_SLOTS                 = 3;
+// What's a NORM (editor advisory only — amber nudge, never blocks):
+//   - DD_RECOMMENDED_MIN_SLOTS (3): most NGN drag-drop items have 3+ slots.
+//   - DD_TOKEN_POOL_RECOMMENDED_MIN (4): the NCSBN "between 4 and 10 items"
+//     spec floor. Now a recommendation, not a wall — a 2-slot item only
+//     needs 3 tokens structurally.
+//   - Soft target pool ≈ 2 × slots (capped at the NCLEX 10 ceiling).
+export const MIN_DD_SLOTS                 = 2;   // structural floor (was 3 — a norm)
 export const MAX_DD_SLOTS                 = 8;
-export const DEFAULT_DD_SLOTS             = 3;
+export const DEFAULT_DD_SLOTS             = 3;   // new-item seed = the recommended count
+export const DD_RECOMMENDED_MIN_SLOTS     = 3;   // advisory floor (editor nudge only)
 export const DD_TOKEN_POOL_MAX_OVER_SLOTS = 4;   // pool cap = slots + this
-export const DD_TOKEN_POOL_ABSOLUTE_MIN   = 4;   // NCLEX floor — never fewer than 4 tokens
+export const DD_TOKEN_POOL_RECOMMENDED_MIN = 4;  // NCLEX 4-floor — advisory now (was a hard floor)
 export const DD_TOKEN_POOL_ABSOLUTE_MAX   = 10;  // NCLEX ceiling — never more than 10
-export const DD_TOKEN_POOL_MIN_EXTRA      = 1;   // ≥1 distractor — pool > slots
+export const DD_TOKEN_POOL_MIN_EXTRA      = 1;   // ≥1 distractor — the real hard floor (pool > slots)
+
+// Drag-and-drop cloze bounds (DRAG_CLOZE — the sentence-blanks type split out of
+// DRAG_DROP, 2026-06-30). Its own constants so the type is fully decoupled from
+// DRAG_DROP (which is retired once DRAG_ORDER also lands). Values mirror the
+// drag-drop SENTENCE rules: same advise > block stance.
+export const DCZ_MIN_SLOTS                 = 1;   // a single-blank drag-cloze is valid (mirrors CLOZE)
+export const DCZ_MAX_SLOTS                 = 8;
+export const DCZ_RECOMMENDED_MIN_SLOTS     = 3;   // advisory floor (editor nudge only)
+export const DCZ_TOKEN_POOL_MAX_OVER_SLOTS = 4;   // pool cap = slots + this
+export const DCZ_TOKEN_POOL_RECOMMENDED_MIN = 4;  // NCLEX 4-floor — advisory
+export const DCZ_TOKEN_POOL_ABSOLUTE_MAX   = 10;  // NCLEX ceiling
+export const DCZ_TOKEN_POOL_MIN_EXTRA      = 1;   // ≥1 distractor — the real hard floor
+
+// Drag-to-order bounds (DRAG_ORDER — the ranked-response type split out of
+// DRAG_DROP, 2026-06-30). Own constants for full decoupling from DRAG_DROP.
+// Values mirror the drag-drop ORDERED rules: same advise > block stance.
+export const DO_MIN_SLOTS                 = 2;   // structural floor (a 2-item ordering is valid)
+export const DO_MAX_SLOTS                 = 8;
+export const DO_DEFAULT_SLOTS             = 3;   // new-item seed = the recommended count
+export const DO_RECOMMENDED_MIN_SLOTS     = 3;   // advisory floor (editor nudge only)
+export const DO_TOKEN_POOL_MAX_OVER_SLOTS = 4;   // pool cap = slots + this
+export const DO_TOKEN_POOL_ABSOLUTE_MAX   = 10;  // NCLEX ceiling
+// Ordered-response items are classically "arrange exactly these N" — distractors
+// are OPTIONAL, not required. So the hard token floor is `slots` (MIN_EXTRA=0);
+// extra distractor tokens are allowed up to the cap but never forced or nagged.
+export const DO_TOKEN_POOL_MIN_EXTRA      = 0;   // distractors optional — floor = slots

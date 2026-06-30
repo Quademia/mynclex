@@ -2,11 +2,14 @@
 //
 // HIGHLIGHT runner — passage with [[bracketed]] clickable chunks.
 //
-// The stem field on the item carries the passage text WITH double-
-// bracket markers around clickable spans. Single brackets are literal
-// passage text (medical notation like [K+] = 3.2 stays intact). The
-// runner parses the stem positionally and matches the i-th [[..]] to
-// content.chunks[i] to get the chunk ID for click handling.
+// The stem field on the item carries the passage as a RICH doc (Slice 6e)
+// with double-bracket markers around clickable spans living as PLAIN TEXT
+// inside the formatted prose (Option B, decoupled). Single brackets are
+// literal passage text (medical notation like [K+] = 3.2 stays intact). The
+// shared RichRenderWithSlots renders the formatted passage and splices a
+// clickable chunk at the i-th [[..]], matched positionally to
+// content.chunks[i] to get the chunk ID for click handling. Legacy plain
+// stems read-coerce through parseRichDoc — no migration.
 //
 // Visual language mirrors the highlight-editor's preview palette
 // (auth-hl-preview-chunk) so curators see roughly the same render
@@ -31,13 +34,15 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import type {
   HighlightContent,
   HighlightCorrect,
   HighlightChunk,
 } from '@/lib/bank/types';
 import type { HighlightAnswer } from '@/lib/scoring';
+import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
+import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
 
 type HighlightRunnerProps = {
   stem:    string;
@@ -59,52 +64,14 @@ export function isHighlightComplete(_answer: HighlightAnswer | undefined): boole
   return true; // zero allowed
 }
 
-type Segment =
-  | { kind: 'plain'; text: string }
-  | { kind: 'chunk'; idx: number; id: string; text: string };
-
-// Splits the stem into a sequence of plain-text and chunk segments.
-// The i-th [[..]] in the stem maps to content.chunks[i] for its ID.
-// Curator-side editor enforces that the markup count matches chunks
-// length; if they desync (corrupt snapshot), we fall back to a
-// synthetic ID so the chunk still renders as something clickable.
-function parseStem(stem: string, chunks: HighlightChunk[]): Segment[] {
-  const out:    Segment[] = [];
-  const regex = /\[\[(.*?)\]\]/g;
-
-  let lastIdx  = 0;
-  let chunkIdx = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(stem)) !== null) {
-    if (match.index > lastIdx) {
-      out.push({ kind: 'plain', text: stem.slice(lastIdx, match.index) });
-    }
-    const c = chunks[chunkIdx];
-    out.push({
-      kind: 'chunk',
-      idx:  chunkIdx,
-      id:   c?.id ?? `_h${chunkIdx + 1}`,
-      text: match[1],
-    });
-    lastIdx  = match.index + match[0].length;
-    chunkIdx += 1;
-  }
-
-  if (lastIdx < stem.length) {
-    out.push({ kind: 'plain', text: stem.slice(lastIdx) });
-  }
-  return out;
-}
-
 export function HighlightRunner(props: HighlightRunnerProps) {
   const { stem, content } = props;
   const isReview = props.mode === 'review';
 
-  const segments = useMemo(
-    () => parseStem(stem, content.chunks),
-    [stem, content.chunks],
-  );
+  // The stem is a rich doc (Slice 6e) with [[chunk]] markers as plain text
+  // inside it; read-coerced so legacy plain stems still render. The i-th
+  // marker maps positionally to content.chunks[i].
+  const stemDoc = useMemo(() => parseRichDoc(stem), [stem]);
 
   const correctSet =
     isReview ? new Set(props.correct.correct_ids) : null;
@@ -118,6 +85,46 @@ export function HighlightRunner(props: HighlightRunnerProps) {
     else              next.add(id);
     props.onChange(Array.from(next));
   }
+
+  // Render the clickable chunk spliced in at the i-th [[..]] marker. The
+  // marker's inner text is `inner`; its ID comes positionally from
+  // content.chunks[i] (a desync on a corrupt snapshot falls back to a
+  // synthetic ID so the chunk still renders as something).
+  const renderSlot = (inner: string, i: number): ReactNode => {
+    const chunk: HighlightChunk | undefined = content.chunks[i];
+    const id = chunk?.id ?? `_h${i + 1}`;
+    const isPicked  = studentSet.has(id);
+    const isCorrect = correctSet?.has(id) ?? false;
+
+    // In review mode, neutral chunks (not picked, not correct) render as
+    // plain text — no clickable chrome competing for attention with the
+    // chunks that participated.
+    if (isReview && !isPicked && !isCorrect) {
+      return <>{inner}</>;
+    }
+
+    const cls = ['rn-highlight-chunk'];
+    if (isReview) {
+      cls.push('locked');
+      if      (isCorrect && isPicked)   cls.push('right');
+      else if (!isCorrect && isPicked)  cls.push('wrong');
+      else if (isCorrect && !isPicked)  cls.push('missed');
+    } else if (isPicked) {
+      cls.push('sel');
+    }
+
+    return (
+      <button
+        type="button"
+        className={cls.join(' ')}
+        disabled={isReview}
+        onClick={isReview ? undefined : () => toggle(id)}
+        aria-pressed={!isReview ? isPicked : undefined}
+      >
+        {inner}
+      </button>
+    );
+  };
 
   return (
     <>
@@ -141,46 +148,12 @@ export function HighlightRunner(props: HighlightRunnerProps) {
         </div>
       )}
 
-      <div className="rn-highlight-stem">
-        {segments.map((seg, i) => {
-          if (seg.kind === 'plain') {
-            return <span key={i}>{seg.text}</span>;
-          }
-
-          const isPicked  = studentSet.has(seg.id);
-          const isCorrect = correctSet?.has(seg.id) ?? false;
-
-          // In review mode, neutral chunks (not picked, not correct)
-          // render as plain text — no clickable chrome competing for
-          // attention with the chunks that participated.
-          if (isReview && !isPicked && !isCorrect) {
-            return <span key={i}>{seg.text}</span>;
-          }
-
-          const cls = ['rn-highlight-chunk'];
-          if (isReview) {
-            cls.push('locked');
-            if      (isCorrect && isPicked)   cls.push('right');
-            else if (!isCorrect && isPicked)  cls.push('wrong');
-            else if (isCorrect && !isPicked)  cls.push('missed');
-          } else if (isPicked) {
-            cls.push('sel');
-          }
-
-          return (
-            <button
-              key={i}
-              type="button"
-              className={cls.join(' ')}
-              disabled={isReview}
-              onClick={isReview ? undefined : () => toggle(seg.id)}
-              aria-pressed={!isReview ? isPicked : undefined}
-            >
-              {seg.text}
-            </button>
-          );
-        })}
-      </div>
+      <RichRenderWithSlots
+        className="rn-highlight-stem"
+        doc={stemDoc}
+        pattern={/\[\[(.+?)\]\]/}
+        renderSlot={renderSlot}
+      />
 
       {isReview && (
         <HighlightFeedbackList
@@ -219,7 +192,11 @@ function HighlightFeedbackList({
       {items.map((c) => {
         const isPicked  = studentSet.has(c.id);
         const isCorrect = correctSet.has(c.id);
-        const fb = feedback?.[c.id];
+        // Feedback is a rich doc (Slice 6e-ii), read-coerced so legacy plain
+        // feedback still renders. Chunk label (c.text) stays plain.
+        const fbRaw = feedback?.[c.id];
+        const fbDoc = fbRaw ? parseRichDoc(fbRaw) : null;
+        const hasFb = fbDoc !== null && !isEmptyRichDoc(fbDoc);
 
         let icon: string;
         let iconCls: string;
@@ -232,7 +209,7 @@ function HighlightFeedbackList({
             <span className={`rn-highlight-feedback-icon ${iconCls}`}>{icon}</span>
             <span className="rn-highlight-feedback-text">
               <strong>{c.text}</strong>
-              {fb ? <> — {fb}</> : null}
+              {hasFb ? <> — <RichRender doc={fbDoc} inline /></> : null}
             </span>
           </div>
         );

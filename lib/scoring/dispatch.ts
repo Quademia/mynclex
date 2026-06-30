@@ -17,6 +17,8 @@ import type {
   HighlightCorrect,
   ClozeCorrect,
   DragDropCorrect,
+  DragClozeCorrect,
+  DragOrderCorrect,
   BowtieCorrect,
   BankItemCorrect,
 } from '@/lib/bank/types';
@@ -55,6 +57,10 @@ export function computeMarksFromKey(
       return Object.keys((correct as ClozeCorrect).answers).length;
     case 'DRAG_DROP':
       return Object.keys((correct as DragDropCorrect).slots).length;
+    case 'DRAG_CLOZE':
+      return Object.keys((correct as DragClozeCorrect).slots).length;
+    case 'DRAG_ORDER':
+      return Object.keys((correct as DragOrderCorrect).slots).length;
     case 'BOWTIE':
       // Fixed: 2 left + 1 centre + 2 right.
       return 5;
@@ -110,6 +116,18 @@ export function scoreAttempt(
 
     case 'DRAG_DROP': {
       const c = correct as DragDropCorrect;
+      const r = scorePerSlot(c.slots, answer as Record<string, string>);
+      return { score_awarded: r.score_awarded, is_correct: r.is_correct };
+    }
+
+    case 'DRAG_CLOZE': {
+      const c = correct as DragClozeCorrect;
+      const r = scorePerSlot(c.slots, answer as Record<string, string>);
+      return { score_awarded: r.score_awarded, is_correct: r.is_correct };
+    }
+
+    case 'DRAG_ORDER': {
+      const c = correct as DragOrderCorrect;
       const r = scorePerSlot(c.slots, answer as Record<string, string>);
       return { score_awarded: r.score_awarded, is_correct: r.is_correct };
     }

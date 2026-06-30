@@ -185,7 +185,11 @@ export interface HighlightCorrect {
 // to the slot in the student runner). Tokens are the draggable pool;
 // the pool may contain distractors so tokens.length >= slots.length.
 // correct.slots is the rubric (slotId → tokenId, 1:1 for active slots).
-// feedback is sparse — only slots with non-empty feedback appear.
+// feedback is sparse + keyed by TOKEN id — every token (the correct ones
+// AND the distractors) can carry its own explanation. A correct token's
+// feedback surfaces at its slot in review; a distractor's surfaces in the
+// distractor strip. (Moved off slots 2026-06-30 so distractors can be
+// explained, like every other type's per-option feedback.)
 // ─────────────────────────────────────────────────────────────
 
 export interface DragDropSlot {
@@ -206,7 +210,63 @@ export interface DragDropContent {
 
 export interface DragDropCorrect {
   slots: Record<string, string>;              // slotId -> correct tokenId
-  feedback?: Record<string, string>;          // sparse — slotId -> feedback
+  feedback?: Record<string, string>;          // sparse — tokenId -> feedback
+}
+
+// ─────────────────────────────────────────────────────────────
+// DRAG_CLOZE — the sentence-blanks type split out of DRAG_DROP (2026-06-30).
+// The stem carries inline [N] markers; each maps to a slot the student drags
+// a token into. Same slot/token/feedback shape as DRAG_DROP's SENTENCE mode,
+// minus the `subtype` discriminator (this type is always sentence). Feedback
+// is token-keyed (every token — answer or distractor — can be explained).
+// ─────────────────────────────────────────────────────────────
+
+export interface DragClozeSlot {
+  id: string;             // 's1', 's2', ... — s1 ↔ marker [1]
+  target_text: string;    // optional hint shown by the slot in the runner
+}
+
+export interface DragClozeToken {
+  id: string;             // 't1', 't2', ...
+  text: string;
+}
+
+export interface DragClozeContent {
+  slots: DragClozeSlot[];
+  tokens: DragClozeToken[];
+}
+
+export interface DragClozeCorrect {
+  slots: Record<string, string>;              // slotId -> correct tokenId
+  feedback?: Record<string, string>;          // sparse — tokenId -> feedback
+}
+
+// ─────────────────────────────────────────────────────────────
+// DRAG_ORDER — the ranked-response type split out of DRAG_DROP (2026-06-30).
+// The student drags tokens into curator-defined ranked positions (1st, 2nd, …).
+// No stem markers — the stem is a plain rich prompt; slots are an ordered list.
+// Same slot/token/feedback shape as DRAG_DROP's ORDERED mode, minus the
+// `subtype` discriminator. Feedback is token-keyed (every token explainable).
+// ─────────────────────────────────────────────────────────────
+
+export interface DragOrderSlot {
+  id: string;             // 's1', 's2', ... — render order = rank
+  target_text: string;    // position label, e.g. "1st action"
+}
+
+export interface DragOrderToken {
+  id: string;             // 't1', 't2', ...
+  text: string;
+}
+
+export interface DragOrderContent {
+  slots: DragOrderSlot[];
+  tokens: DragOrderToken[];
+}
+
+export interface DragOrderCorrect {
+  slots: Record<string, string>;              // slotId -> correct tokenId
+  feedback?: Record<string, string>;          // sparse — tokenId -> feedback
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -222,7 +282,9 @@ export type BankItemContent =
   | BowtieContent
   | ClozeContent
   | HighlightContent
-  | DragDropContent;
+  | DragDropContent
+  | DragClozeContent
+  | DragOrderContent;
 
 export type BankItemCorrect =
   | McqCorrect
@@ -233,4 +295,6 @@ export type BankItemCorrect =
   | BowtieCorrect
   | ClozeCorrect
   | HighlightCorrect
-  | DragDropCorrect;
+  | DragDropCorrect
+  | DragClozeCorrect
+  | DragOrderCorrect;

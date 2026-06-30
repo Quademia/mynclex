@@ -1,22 +1,16 @@
-// mynclex/lib/bank/runner/types/drag-drop.tsx
+// mynclex/lib/practice/runner/types/drag-cloze.tsx
 //
-// DRAG_DROP runner — two subtypes share one component:
-//   ORDERED   : numbered slot list (1st, 2nd, ...) below the stem; the
-//               curator's `slot.target_text` is the slot's label and
-//               students tap-to-place tokens from a pool.
-//   SENTENCE  : stem-takeover (like HIGHLIGHT and CLOZE). The stem
-//               carries `[N]` markers (single brackets, distinct from
-//               CLOZE's `{N}`) which become inline drop boxes flowing
-//               inside the prose. Token pool sits below the stem.
+// DRAG_CLOZE runner — sentence-mode drag-and-drop cloze.
 //
-// Curator-side parser auto-renumbers `[N]` markers on save and maps
-// blank IDs positionally (the i-th `[N]` ↔ content.slots[i]). If a
-// snapshot desyncs we fall back to a synthetic slot with no choices —
-// same defensive pattern as HIGHLIGHT / CLOZE.
+// The stem carries `[N]` markers (single brackets, distinct from CLOZE's
+// `{N}`) which become inline drop boxes flowing inside the prose. Token pool
+// sits below the stem. The i-th `[N]` ↔ content.slots[i] positionally; if a
+// snapshot desyncs we fall back to a synthetic slot — same defensive pattern
+// as HIGHLIGHT / CLOZE.
 //
 // Interaction model — CLICK-TO-PLACE, not real HTML5 drag-and-drop.
 // The audience is phone-first and HTML5 DnD's touch story is bad. The
-// type is named DRAG_DROP for product reasons but the implementation is
+// type is named DRAG_CLOZE for product reasons but the implementation is
 // tap-token-then-tap-slot, which is fully accessible and works on every
 // device:
 //   • Tap a token in the pool      → token becomes "armed" (lift +
@@ -38,44 +32,44 @@
 //
 // Review-mode prose mirrors CLOZE: per-slot verdict header
 // (`<num> CORRECT / WRONG / SKIPPED`) coloured by state, then the
-// rationale prose. Feedback is keyed by TOKEN (not slot) since 2026-06-30,
-// so a slot's rationale is the rationale on its CORRECT token, and every
-// distractor carries its own rationale (shown in the distractor strip).
-// For wrong/skipped slots we still prepend "Correct answer: <token text>."
+// rationale prose. Feedback is keyed by TOKEN (not slot), so a slot's
+// rationale is the rationale on its CORRECT token, and every distractor
+// carries its own rationale (shown in the distractor strip). For
+// wrong/skipped slots we still prepend "Correct answer: <token text>."
 // so the answer key reaches the student even with no authored rationale.
 
 'use client';
 
 import { useMemo, useState, type ReactNode } from 'react';
 import type {
-  DragDropContent,
-  DragDropCorrect,
-  DragDropSlot,
-  DragDropToken,
+  DragClozeContent,
+  DragClozeCorrect,
+  DragClozeSlot,
+  DragClozeToken,
 } from '@/lib/bank/types';
-import type { DragDropAnswer } from '@/lib/scoring';
+import type { DragClozeAnswer } from '@/lib/scoring';
 import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
 import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
 
-type DragDropRunnerProps = {
+type DragClozeRunnerProps = {
   stem:    string;
-  content: DragDropContent;
+  content: DragClozeContent;
 } & (
   | {
       mode:     'answering';
-      selected: DragDropAnswer;
-      onChange: (next: DragDropAnswer) => void;
+      selected: DragClozeAnswer;
+      onChange: (next: DragClozeAnswer) => void;
     }
   | {
       mode:          'review';
-      studentAnswer: DragDropAnswer;
-      correct:       DragDropCorrect;
+      studentAnswer: DragClozeAnswer;
+      correct:       DragClozeCorrect;
     }
 );
 
-export function isDragDropComplete(
-  answer:  DragDropAnswer | undefined,
-  content: DragDropContent,
+export function isDragClozeComplete(
+  answer:  DragClozeAnswer | undefined,
+  content: DragClozeContent,
 ): boolean {
   if (!answer) return false;
   for (const s of content.slots) {
@@ -85,18 +79,18 @@ export function isDragDropComplete(
 }
 
 
-export function DragDropRunner(props: DragDropRunnerProps) {
+export function DragClozeRunner(props: DragClozeRunnerProps) {
   const { stem, content } = props;
   const isReview          = props.mode === 'review';
   const [armedTokenId, setArmedTokenId] = useState<string | null>(null);
 
   // Convenience handles to the right answer / rubric for the active mode.
-  const currentAnswer: DragDropAnswer       = isReview ? props.studentAnswer : props.selected;
-  const correctAnswer: DragDropCorrect | null = isReview ? props.correct : null;
+  const currentAnswer: DragClozeAnswer        = isReview ? props.studentAnswer : props.selected;
+  const correctAnswer: DragClozeCorrect | null = isReview ? props.correct : null;
 
   // Lookup maps (stable identities for cheap renders).
   const tokenById = useMemo(() => {
-    const m = new Map<string, DragDropToken>();
+    const m = new Map<string, DragClozeToken>();
     for (const t of content.tokens) m.set(t.id, t);
     return m;
   }, [content.tokens]);
@@ -157,71 +151,42 @@ export function DragDropRunner(props: DragDropRunnerProps) {
     hintText = `${filledCount} of ${totalCount} slots filled · tap a token to continue.`;
   }
 
-  // SENTENCE stem is a rich doc (Slice 6f) with [N] markers as plain text
-  // inside it; read-coerced so legacy plain stems still render. The i-th [N]
-  // maps positionally to content.slots[i].
+  // The stem is a rich doc with [N] markers as plain text inside it;
+  // read-coerced so legacy plain stems still render. The i-th [N] maps
+  // positionally to content.slots[i].
   const stemDoc = useMemo(() => parseRichDoc(stem), [stem]);
 
   return (
     <>
       {!isReview && <div className="rn-dd-hint">{hintText}</div>}
 
-      {content.subtype === 'SENTENCE' && (
-        <RichRenderWithSlots
-          className="rn-dd-stem"
-          doc={stemDoc}
-          pattern={/\[(\d+)\]/}
-          renderSlot={(_key: string, index: number): ReactNode => {
-            const slot =
-              content.slots[index] ?? { id: `_s${index + 1}`, target_text: '' };
-            const placedTokenId = currentAnswer[slot.id];
-            const placedToken   = placedTokenId ? tokenById.get(placedTokenId) : undefined;
-            const isCorrect     = isReview && correctAnswer
-              ? placedTokenId === correctAnswer.slots[slot.id]
-              : false;
-            const isArmedTarget =
-              !isReview && armedTokenId !== null && !placedTokenId;
+      <RichRenderWithSlots
+        className="rn-dd-stem"
+        doc={stemDoc}
+        pattern={/\[(\d+)\]/}
+        renderSlot={(_key: string, index: number): ReactNode => {
+          const slot =
+            content.slots[index] ?? { id: `_s${index + 1}`, target_text: '' };
+          const placedTokenId = currentAnswer[slot.id];
+          const placedToken   = placedTokenId ? tokenById.get(placedTokenId) : undefined;
+          const isCorrect     = isReview && correctAnswer
+            ? placedTokenId === correctAnswer.slots[slot.id]
+            : false;
+          const isArmedTarget =
+            !isReview && armedTokenId !== null && !placedTokenId;
 
-            return (
-              <SlotInline
-                slotIdx={index}
-                placedToken={placedToken}
-                isReview={isReview}
-                isCorrect={isCorrect}
-                isArmedTarget={isArmedTarget}
-                onClick={() => handleSlotClick(slot.id)}
-              />
-            );
-          }}
-        />
-      )}
-
-      {content.subtype === 'ORDERED' && (
-        <div className="rn-dd-slots">
-          {content.slots.map((slot, idx) => {
-            const placedTokenId = currentAnswer[slot.id];
-            const placedToken   = placedTokenId ? tokenById.get(placedTokenId) : undefined;
-            const isCorrect     = isReview && correctAnswer
-              ? placedTokenId === correctAnswer.slots[slot.id]
-              : false;
-            const isArmedTarget =
-              !isReview && armedTokenId !== null && !placedTokenId;
-
-            return (
-              <SlotRow
-                key={slot.id}
-                idx={idx}
-                slot={slot}
-                placedToken={placedToken}
-                isReview={isReview}
-                isCorrect={isCorrect}
-                isArmedTarget={isArmedTarget}
-                onClick={() => handleSlotClick(slot.id)}
-              />
-            );
-          })}
-        </div>
-      )}
+          return (
+            <SlotInline
+              slotIdx={index}
+              placedToken={placedToken}
+              isReview={isReview}
+              isCorrect={isCorrect}
+              isArmedTarget={isArmedTarget}
+              onClick={() => handleSlotClick(slot.id)}
+            />
+          );
+        }}
+      />
 
       {!isReview && (
         <div className="rn-dd-pool">
@@ -245,8 +210,7 @@ export function DragDropRunner(props: DragDropRunnerProps) {
       )}
 
       {isReview && correctAnswer && (
-        <DragDropFeedbackList
-          subtype={content.subtype}
+        <DragClozeFeedbackList
           slots={content.slots}
           tokens={content.tokens}
           studentAnswer={props.studentAnswer}
@@ -264,7 +228,7 @@ export function DragDropRunner(props: DragDropRunnerProps) {
 
 interface SlotInlineProps {
   slotIdx:       number;
-  placedToken:   DragDropToken | undefined;
+  placedToken:   DragClozeToken | undefined;
   isReview:      boolean;
   isCorrect:     boolean;
   isArmedTarget: boolean;
@@ -305,125 +269,30 @@ function SlotInline({
 }
 
 
-interface SlotRowProps {
-  idx:           number;
-  slot:          DragDropSlot;
-  placedToken:   DragDropToken | undefined;
-  isReview:      boolean;
-  isCorrect:     boolean;
-  isArmedTarget: boolean;
-  onClick:       () => void;
-}
-function SlotRow({
-  idx, slot, placedToken, isReview, isCorrect, isArmedTarget, onClick,
-}: SlotRowProps) {
-  const cls = ['rn-dd-slot-row'];
-  if (placedToken) cls.push('filled');
-  if (!isReview && isArmedTarget) cls.push('armed-target');
-  if (isReview) {
-    cls.push('locked');
-    if      (!placedToken) cls.push('skipped');
-    else if (isCorrect)    cls.push('right');
-    else                   cls.push('wrong');
-  }
-
-  return (
-    <button
-      type="button"
-      className={cls.join(' ')}
-      onClick={isReview ? undefined : onClick}
-      disabled={isReview}
-      aria-label={`Slot ${idx + 1}: ${slot.target_text || 'unlabelled'}`}
-    >
-      <span className="rn-dd-slot-num" aria-hidden="true">{idx + 1}</span>
-      {slot.target_text && (
-        <span className="rn-dd-slot-label">{slot.target_text}</span>
-      )}
-      <span className="rn-dd-slot-drop">
-        {isReview && placedToken && (
-          <span className="rn-dd-slot-mark" aria-hidden="true">
-            {isCorrect ? '✓' : '✕'}
-          </span>
-        )}
-        <span className="rn-dd-slot-text">
-          {placedToken ? placedToken.text : (isReview ? '(skipped)' : 'tap to place')}
-        </span>
-      </span>
-    </button>
-  );
-}
-
-
 interface FeedbackListProps {
-  subtype:       'ORDERED' | 'SENTENCE';
-  slots:         DragDropSlot[];
-  tokens:        DragDropToken[];
-  studentAnswer: DragDropAnswer;
-  correct:       DragDropCorrect;
+  slots:         DragClozeSlot[];
+  tokens:        DragClozeToken[];
+  studentAnswer: DragClozeAnswer;
+  correct:       DragClozeCorrect;
 }
-function DragDropFeedbackList({
-  subtype, slots, tokens, studentAnswer, correct,
+function DragClozeFeedbackList({
+  slots, tokens, studentAnswer, correct,
 }: FeedbackListProps) {
   if (slots.length === 0) return null;
 
-  const tokenById = new Map<string, DragDropToken>();
+  const tokenById = new Map<string, DragClozeToken>();
   for (const t of tokens) tokenById.set(t.id, t);
 
   // Distractors — tokens that aren't the rubric answer for any slot.
   // Surfaced as a strip at the bottom of the feedback area so students
   // can name what was a "trap" option, even if they correctly left it
-  // in the pool. (Sam, 2026-05-08.)
+  // in the pool.
   const correctTokenIds = new Set(Object.values(correct.slots));
   const distractors     = tokens.filter((t) => !correctTokenIds.has(t.id));
 
-  // ORDERED: single unified feedback block. For each slot in canonical
-  // order, render a green answer-key card (number + target_text +
-  // correct token) with the rationale stacked beneath it. The student's
-  // own pick verdict already lives in the stem slot rows above, so we
-  // don't repeat "you placed X" here — the comparison is "stem (your
-  // picks) vs feedback (the correct order)". (Sam, 2026-05-08.)
-  if (subtype === 'ORDERED') {
-    return (
-      <div className="rn-dd-feedback ordered">
-        <div className="rn-dd-feedback-heading">Correct order</div>
-        {slots.map((s, idx) => {
-          const correctTokenId = correct.slots[s.id];
-          const correctToken   = correctTokenId ? tokenById.get(correctTokenId) : undefined;
-          // Feedback is a rich doc keyed by the correct TOKEN, read-coerced so
-          // legacy plain feedback still renders. Slot label + token text plain.
-          const fbRaw          = correctTokenId ? correct.feedback?.[correctTokenId] : undefined;
-          const fbDoc          = fbRaw ? parseRichDoc(fbRaw) : null;
-          const hasFb          = fbDoc !== null && !isEmptyRichDoc(fbDoc);
-
-          return (
-            <div key={s.id} className="rn-dd-feedback-row-card">
-              <div className="rn-dd-feedback-row-head">
-                <span className="rn-dd-feedback-row-num" aria-hidden="true">{idx + 1}</span>
-                {s.target_text && (
-                  <span className="rn-dd-feedback-row-label">{s.target_text}</span>
-                )}
-                <span className="rn-dd-feedback-row-token">
-                  {correctToken?.text ?? correctTokenId ?? '—'}
-                </span>
-              </div>
-              {hasFb && (
-                <div className="rn-dd-feedback-row-rationale">
-                  <RichRender doc={fbDoc} inline />
-                </div>
-              )}
-            </div>
-          );
-        })}
-        <DistractorStrip distractors={distractors} feedback={correct.feedback} />
-      </div>
-    );
-  }
-
-  // SENTENCE: per-slot verdict prose (1 CORRECT / 2 WRONG / 3 SKIPPED).
-  // Slot order is sentence position, not a priority ranking, so the
-  // canonical-card pattern doesn't add anything here. The student's
-  // pick stays in the stem inline-pill, and the feedback strip names
-  // each slot's verdict + rationale.
+  // Per-slot verdict prose (1 CORRECT / 2 WRONG / 3 SKIPPED). Slot order is
+  // sentence position. The student's pick stays in the stem inline-pill, and
+  // the feedback strip names each slot's verdict + rationale.
   return (
     <div className="rn-dd-feedback">
       {slots.map((s, idx) => {
@@ -472,7 +341,7 @@ function DistractorStrip({
   distractors,
   feedback,
 }: {
-  distractors: DragDropToken[];
+  distractors: DragClozeToken[];
   feedback?: Record<string, string>;
 }) {
   if (distractors.length === 0) return null;

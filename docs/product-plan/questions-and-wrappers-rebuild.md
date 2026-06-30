@@ -1374,16 +1374,63 @@ untouched (the Slice-1 scenario bridge).
   feedback `RichRender inline` swap; four wrapper preview call sites converted.
   Select-N's `select_count` stays a plain number; SATA/Select-N housekeeping
   `liveMarks` unchanged. Parsers confirmed opaque (`.trim()` for empty only).
-- **Slice 6c — Matrix + Bowtie.** Grid row/column labels + bow-tie token
-  labels become rich; stems are "normal" (fully rich).
-- **Slice 6d — Cloze.** Decide the stem treatment (carries `{N}` markers +
-  silent renumbering) when opened; the per-blank choices + rationale go rich.
-- **Slice 6e — Highlight.** Decide the stem treatment (the passage carries the
-  `[[…]]` answer-key brackets — likely stays special); rationale rich. (Note:
-  answer-bound highlight — "rung 4" — stays closed; this is just rich text,
-  not fusing the highlight key into a chart.)
-- **Slice 6f — Drag-drop.** ORDERED vs SENTENCE; tokens/slot hints rich; the
-  SENTENCE stem carries `[N]` markers → decide treatment when opened.
+- **Slice 6c — Matrix + Bowtie.** ✅ BUILT (session branch `claude/laughing-chaum-7acc6b`;
+  6c-i Matrix `4d5afbf`, 6c-ii Bow-tie `0ae3048`; tsc + eslint + 94 vitest clean;
+  Sam-tested both on dev). Stems are "normal" (fully rich).
+  - **6c-i Matrix:** the editable corner (row-axis label), every column header,
+    every row label, and per-row feedback go rich; grid state moved
+    string → `RichDoc`, validation via `isEmptyRichDoc`. Runner
+    (`matrix.tsx`) + both wrapper previews render rich (aria-labels flattened
+    via `richTextToPlain`). New `auth-rrf-mx-*` cell styling.
+  - **6c-ii Bow-tie:** each wing's **token text + per-token feedback** go rich;
+    **wing labels stay plain** (preset-driven picks, not prose — the lean Sam
+    accepted). Runner (`bowtie.tsx`) renders slot text / pool tokens / per-token
+    feedback rich; both wrapper previews map tokens via a `toRichToken` helper.
+  - **Foundation tweak:** `RovingRichField` gained an optional `noHiddenInput`
+    flag. Bow-tie is **tab-gated** (only the active wing mounts) but serialises
+    all three wings from one always-rendered `HiddenSerialisers`; the rich token
+    fields are editing-UI only (`noHiddenInput`) while `HiddenSerialisers` emits
+    the serialized rich docs. Non-breaking (defaults off; every shipped editor
+    unchanged).
+  - **Not library-embeddable** → no embed-player / embed-analytics surface;
+    render surface is just the per-type runner + the two wrapper previews.
+    Parsers confirmed opaque (`.trim()` only). Read-coerce, no migration.
+  - **Validation review (settled 2026-06-29):** both reviewed, **NO change** —
+    their rules are *structural integrity*, not NCLEX-norm over-constraints, so
+    the advise-don't-block principle leaves them as-is. Matrix: row-axis label +
+    ≥1 correct column per row + min 2×2 grid are all scoreability/shape
+    requirements. Bow-tie: the fixed **2 + 1 + 2 = 5** is the item type's
+    definition (the runner renders exactly 5 slots), not a soft norm like SATA's
+    option count. Nothing to soften.
+- **Slice 6d — Cloze.** ⏭ NEXT. Stem-treatment design **discussed 2026-06-29,
+  leaning decoupled — pending Sam's final confirm** (see the design subsection
+  below). Per-blank choices + rationale go rich (the easy half, like options).
+- **Slice 6e — Highlight. ✅ BUILT + MERGED to `main`** (`557bc68` 6e-i +
+  `26d0631` 6e-ii; Sam-tested on dev; NOT yet prod; app-layer, NO migration).
+  **Option B (decoupled markers)** like Cloze — the passage (stem) is a rich
+  field; the `[[chunk]]` markers stay plain text inside the formatted prose;
+  the shared `RichRenderWithSlots` splices the clickable chunks in. New
+  `highlight-stem-doc.ts` (bracket sibling of `cloze-stem-doc`, no renumber —
+  chunk IDs are positional). Per-chunk feedback rich; **chunk text stays plain**
+  (a clickable token the runner styles, kept mark-free by the decoupled rule —
+  Sam's call). Editor chunk model reworked to text-keyed + fully derived (no
+  setState-in-effect; matches the parser's text-keyed decisions). Validation
+  reviewed → no change (structural: 2–12 chunks / ≥1 correct / ≥1 wrong). Answer-
+  bound highlight ("rung 4") stays closed — this is just rich text, not fusing
+  the highlight key into a chart. See the build subsection below.
+- **Slice 6f — Drag-drop. ✅ BUILT + MERGED to `main`** (`cb4bc56` 6f-i +
+  `25147eb` 6f-ii; Sam-tested on dev [both subtypes]; NOT yet prod; app-layer,
+  NO migration). The **last marker-stem type.** ORDERED gets a normal rich
+  prompt stem; SENTENCE keeps its `[N]` markers as plain text inside the rich
+  prose (Option B, like Cloze `{N}`). New `drag-drop-stem-doc.ts` (Cloze
+  sibling, `[N]` pattern, **no renumber** — the parser preserves markers
+  byte-identical). `RichRenderWithSlots` splices the inline drop-boxes; "Insert
+  slot marker" rewired to the rich caret via a RovingBridge. Per-slot feedback
+  rich; **token chips + slot labels stay plain** (Sam's call — short draggable
+  items; the editor assigns the correct token via a native dropdown). Validation
+  reviewed → no change (structural / NCLEX 4–10 token window, already advisory).
+  **This completes the marker-stem arc (6d/6e/6f) — all nine question types now
+  author + render rich.**
 
 ### Slice 6 — blast radius: what's SHARED vs PER-EDITOR
 
@@ -1473,6 +1520,250 @@ use a **soft hint/warning** for the merely-unusual (e.g. "NCLEX SATA usually has
   all) · Select-N exactly N (1…options) · category required · marks auto. A
   distractor requirement and a higher min-option floor were considered and
   **declined** — curator freedom wins; the most we'd do is *advise*, not block.
+- **Matrix / Bow-tie — reviewed, NO change (Sam, 2026-06-29).** Their rules are
+  *structural integrity*, not NCLEX-norm over-constraints, so advise-don't-block
+  leaves them as-is. Matrix: row-axis label required · min 2×2 / max 10×6 grid ·
+  every filled row needs exactly one correct column · category required · marks
+  auto. (The 10-row / 6-col caps were explicitly judged *good* caps — they
+  protect table usability, and nobody's hit them.) Bow-tie: the fixed
+  **2 + 1 + 2 = 5** is the item type's definition (the runner renders exactly 5
+  slots), not a soft norm like SATA's option count. Nothing to soften. **But the
+  Matrix per-editor pass surfaced a real *capability* gap → its own slice
+  below.** *(Parked sub-point for a later pass: the Matrix row-axis label being
+  hard-required is arguably a clarity-aid that could be softened to advice — Sam
+  flagged it as "the part we'll discuss further"; no change for now.)*
+
+### Matrix Multiple Response — new item type (planned; surfaced during 6c)
+
+The Matrix per-editor "other work" (2026-06-29) surfaced that **NCLEX Matrix
+comes in two distinct NGN item types, and we've only built one:**
+
+- **Matrix Multiple Choice** — exactly **one** correct column per row (radio per
+  row; forced single pick; all-or-nothing per-row scoring). **This is our
+  existing `MATRIX` type.** ✅ built (and now rich, 6c-i).
+- **Matrix Multiple Response** — a row can have **one or more** correct columns
+  (checkbox per row; free selection; per-cell partial-credit scoring). ❌ **not
+  built.** Sam has confirmed real MR matrix items in the Maryland / NCSBN corpus,
+  so this is a genuine gap, not hypothetical.
+
+**Key clarification (why they stay two types, not one):** an MR row *may* carry a
+single correct column, which makes its **answer key** look like an MC row — but
+its **control** (checkbox vs radio) and **scoring** (per-cell partial vs
+all-or-nothing) still differ, so a one-correct MR row is not an MC row. A pure
+MR-only build can NOT give true single-response *behaviour* for free (checkboxes
+let the student over-select); you'd have to re-introduce a mode flag, at which
+point you've rebuilt the distinction anyway.
+
+**Decision — Option B, a separate self-contained type (Sam, 2026-06-29).** Build
+`MATRIX_MR` as its **own editor type**, consistent with how the bank already
+splits **MCQ (radio) vs SATA (checkbox)** into separate self-contained editors.
+Mental model: *MC matrix = a stack of MCQ rows; MR matrix = a stack of SATA rows*
+sharing column headers — which also tells us the scoring model is **SATA-style
+per-cell**.
+
+- **Clean separation (Sam's explicit call):** do **NOT** share the grid /
+  parser / runner / scoring with `MATRIX` even though they look similar — mirror,
+  don't import, so the two types never move each other unexpectedly. Share **only**
+  the genuinely cross-cutting plumbing every editor already uses: the generic
+  field atoms (instruction / stem / rationale / classification / housekeeping),
+  the `lib/authoring/` roving rich-text foundation, the modal frame, save/delete
+  actions, dual preview, dirty-guard.
+- **Born rich:** built on the roving foundation from the start (the grid is
+  already rich from 6c) — no rich-text catch-up needed.
+- **Existing `MATRIX` (Multiple Choice) stays completely untouched.**
+
+**Open questions to settle one-at-a-time when the slice opens:**
+1. **Per-row correct count** — must every row have ≥1 correct, or can a row
+   legitimately have *none* correct (an "all-false" row)? Lean: allow 0 (SATA
+   per-row), but confirm against the corpus.
+2. **Scoring** — per-cell partial credit, SATA-style; slot into
+   `bank-marks-and-scoring`.
+3. **Submit gate** — must the student make ≥1 selection per row, or can a row be
+   left blank?
+4. **Max correct per row / bounds.**
+
+**Scope:** a full slice (own editor + parser + runner + **scoring** + attempt
+snapshot + a new `MATRIX_MR` value in the type registry) — bigger than rich text,
+independent of the 6c rich-text work. **⏭ NEXT SESSION (Sam, 2026-06-30):** build
+`MATRIX_MR`. Follow the **"Adding a new question type — wiring checklist"** at the
+end of this doc — but re-grep `MATRIX` across the codebase first, since new wiring
+sites may have appeared since the checklist was snapshotted. Mirror `MATRIX`
+(don't share); settle the 4 open questions above one-at-a-time with Sam when the
+slice opens. Not built yet.
+
+### Slice 6d — Cloze stem treatment (design discussion 2026-06-29 — **LOCKED 2026-06-30: Option B, decoupled** — **BUILT 2026-06-30: 6d-i + 6d-ii**)
+
+**BUILT 2026-06-30 (session branch off `main`; `599b776` 6d-i + `0e972da` 6d-ii;
+tsc + eslint + 94 vitest clean; NOT yet merged — awaiting Sam's dev test).**
+- **6d-i — stem rich + the marker engine** (`599b776`). Stem becomes a rich
+  field; `{N}` markers stay plain text inside the prose (Option B). New shared
+  **`RichRenderWithSlots`** (in `lib/authoring/rich-render.tsx`) renders a rich
+  doc with interactive slots spliced at a marker pattern — **one source for
+  both the runner and the editor preview**. New **`lib/bank/editors/cloze-stem-doc.ts`**
+  boundary helpers: `clozeMarkerOrder` / `clozeStemScanText` (read markers from
+  a doc), `normalizeClozeStem` (strip marks off `{N}` + isolate each marker —
+  the auto-tidy), `renumberClozeStem` (renumber markers in the doc to match the
+  parser), `stripMarkersFromDoc` / `appendMarkerToDoc` (Clear-all / +Add-blank).
+  Parser (`parseCloze`) now returns `order` so save can renumber the doc in
+  lockstep. Save normalises the doc → scans for markers → runs the existing
+  parser for ordering/validation/content → renumbers the doc → stores the JSON
+  (not the parser's flat scan string). Instruction + rationale also rich.
+  `+Add blank` inserts at the caret via the roving editor (a `RovingBridge`
+  lifts the active editor to the body) or appends + focuses the stem as a
+  fallback. **Read-coerce, NO migration.**
+- **6d-ii — per-choice feedback rich** (`0e972da`). Feedback in the blank cards
+  → `RovingRichField` (`noHiddenInput`, the Bow-tie pattern: one
+  HiddenSerialisers covers all blanks since only the active card mounts).
+  Runner's `ClozeFeedbackList` read-coerces + RichRenders it. **Choice TEXT
+  stays plain** — it renders in a native `<select>`, which can't show
+  formatting (the agreed constraint; same rule as Select-N count / Bow-tie wing
+  labels). Reuses `.auth-rrf-option-fb` sizing.
+- **Validation reviewed → no new code.** A mangled marker (`{ 1}` with a space)
+  isn't detected → its card becomes an **orphan** (the existing "not in stem"
+  cue) → dropped on save → if active blanks drop below the min, the existing
+  **"at least 2 blanks"** structural guard hard-blocks. So the structural guards
+  already cover it; consistent with advise > block (the block here is
+  structural — a broken marker corrupts the blank mapping).
+- **Blast-radius sweep clean.** Both bank lists already `richTextToPlain(r.stem)`
+  (6a) so the rich Cloze stem shows plain with `{N}` surviving as text; runner
+  stem/instruction/feedback + both wrapper previews coerce; scoring reads the
+  answer maps, not text; search `ilike`s the column (same as every 6a rich stem,
+  no new regression). Cloze feedback is shown only in the runner review + the
+  editor.
+- **⏭ remaining for the slice:** Sam's dev test → (with approval) merge to
+  `main`. Optional: seed a couple of rich-stem Cloze test Qs on dev.
+
+#### Cloze validation rules — relax to advise > block (✅ BUILT + MERGED 2026-06-30)
+
+**✅ BUILT + MERGED to `main`** (`6cf394c` relax + `ee5820c` auto-create;
+Sam-tested on dev; NOT yet prod; app-layer, NO migration). The first of the
+**editors' "other work" sweep** — per-editor validation under advise > block +
+UX consistency, opened after all 9 editors went rich. As built: the two
+constants moved to **1–10** (hard, flow into the parser), `CLOZE_RECOMMENDED_
+{MIN,MAX}_BLANKS = 2..6` drive an **editor-only** advisory (red outside 1–10 =
+blocks; amber at 1 or 7–10 = saves + nudges; green 2–6), the help line reworded,
+the seed decoupled to the recommended 2. Plus a UX-consistency fix surfaced in
+the same pass: typing `{N}` now **auto-creates its blank card**
+(`reconcileBlanksToStem` on the stem onChange, mirroring Highlight `[[chunk]]` +
+Drag-drop `[N]`); "+ Add blank" unchanged. **Highlight ✅ BUILT + MERGED**
+(`7afcd20`): `HIGHLIGHT_MIN_CHUNKS` 3→2 (the structural floor — ≥1 correct +
+≥1 wrong already forces 2; the old 3 was a norm), amber advisory at 2, max
+stays 12, structural rules unchanged. **Next in the sweep:** Drag-drop
+(`MIN_DD_SLOTS` 3→2) — then the trend stimulus arc.
+
+The first review of the Cloze editor's validation under the advise > block
+philosophy (Cloze was built in the original rebuild, before that philosophy was
+set in 6b). Decided with Sam.
+
+**Current rules** (`lib/bank/classifications.ts` + `lib/bank/parsers/cloze.ts`):
+`CLOZE_MIN_BLANKS=2`, `CLOZE_MAX_BLANKS=6`, `CLOZE_MIN_CHOICES=2`,
+`CLOZE_MAX_CHOICES=5`; exactly one correct per blank; unique markers; no
+duplicate choice text/ids. Today the editor blocks *Save* on **anything** that
+isn't a clean `ok` — block and advice are fused.
+
+**The trigger:** a **single-blank** Cloze is a legitimate NGN item and the
+corpus already has one — `NCLEX_CLZ_TB_Q3` (1 blank, published). The current
+min-2 rule would **block a curator from saving it**. Classic over-block.
+
+**The change (decided):**
+- `CLOZE_MIN_BLANKS` **2 → 1** (hard floor — 0 blanks isn't a cloze).
+- `CLOZE_MAX_BLANKS` **6 → 10** (hard ceiling).
+- Choice caps **2–5 unchanged** (Sam: caps are fine).
+- **New advisory: recommend 2–6 blanks** — a static editor line ("Add 1–10
+  blanks. Most NCLEX cloze items use 2–6.") + the blank-count chip goes **amber
+  at 1 or 7–10** (saves fine, just nudges), green at 2–6, red only at 0 or >10.
+
+**Implementation notes (the real work):**
+1. **Split block from advice in the editor** — today `contentIncomplete =
+   validity !== 'ok'` gates Save, so a "warn" also blocks. Separate a
+   **hard-blocking** check (stem empty · 0 blanks · >10 blanks · a blank with
+   <2 / >5 choices · a blank with no correct) from an **advisory** check (count
+   is 1 or 7–10). Only the former gates Save.
+2. **Parser floor/ceiling → 1–10** (`parseCloze` min/max), the structural
+   backstop; the 2–6 norm lives ONLY in the editor UI, never in the parser.
+3. **Seed new questions at 2 blanks** (the recommended default), not the new
+   floor of 1 — so "+ New Cloze" starts in the sweet spot. (`emptyClozeInitial`
+   currently seeds `CLOZE_MIN_BLANKS`; decouple the seed count from the floor.)
+4. Re-word the existing blanks help line to state the 1–10 hard range + the 2–6
+   recommendation.
+
+Small, contained: two constants, the editor block/advice split, the parser
+bounds, the seed default, the help copy. See
+[[feedback_curator_validation_advise_not_block]].
+
+
+**LOCKED (2026-06-30):** Option B (decoupled `{N}`-text + normalize-at-boundary +
+validate) is final. Sam confirmed after re-explaining in plain terms. Sub-question
+raised + settled: *make the in-editor marker look like a box / dropdown chip rather
+than raw `{N}`?* — split into **Flavour 1 (cosmetic "sticker"** = a painted-on
+decoration over the still-plain `{N}` text; storage stays decoupled, real
+protection still the auto-clean + validate net; small editor add-on) vs **Flavour 2
+(a real locked tile** = Option A's custom node by another name — reopens the
+new-tech we chose B to avoid). **Decision: build plain B first; the box-sticker
+(Flavour 1) is PARKED as optional cosmetic polish** — it's pure presentation, safe
+to add at any later time without touching marker logic, so we judge raw `{N}`
+against the real formatted stem before deciding if the sticker is worth it. Flavour
+2 stays rejected.
+
+
+Read the whole Cloze pipeline (editor / parser / runner / preview / row-mapper).
+**How it works today:** the stem is a plain text string with literal `{N}`
+markers; marker `{N}` ↔ blank card `bN`. Four places **regex-scan that string** —
+(1) editor live (`parseStemMarkers`, which blanks are in-stem vs orphan), (2) the
+parser (`parseCloze`: extract marker order, reject dupes, drop orphans, **two-phase
+renumber** `{1}{3}`→`{1}{2}`, validate choices), (3) the runner (`parseStem` splits
+the string → text/`<select>` segments; CLOZE **takes over** stem rendering — the
+shared stem host steps aside), (4) the editor + wrapper preview (same split). "+Add
+blank" is a `<textarea>` cursor-splice; deleting a marker greys its card as an
+"orphan — re-type `{N}` to reconnect". Scoring works off `content.blanks` +
+`correct.answers` (keyed `bN`), not the prose.
+
+**The fit insight:** the scoring/answer-key/parser layer barely needs to
+move — it only needs blank *order* + `content`/`correct`, which we keep producing.
+And storing a stem as a rich doc is **already what 6a did** for every other type's
+stem (rich JSON in the `stem` col, read-coerced). Cloze's only new wrinkle is
+*where the blanks live* in that rich stem.
+
+**Two options for the stem (the whole debate):**
+
+- **Option A — blank = a custom atomic Tiptap node (chip).** A non-editable pill
+  in the doc; structurally **unbreakable** (can't format/split it). Cost: couples a
+  domain concept (a scored slot) to the editor library **and** is the one piece of
+  genuinely new tech (custom Node + React NodeView — we've done custom *marks*, not
+  *nodes*). Would want a small spike first.
+- **Option B — blank stays plain `{N}` text inside the rich prose (DECOUPLED).**
+  The marker is just text the parser understands; Tiptap only formats prose. We
+  honour "don't format the blank" at the **boundary, not by policing keystrokes**:
+  on save/read, walk the doc and **strip any marks off the `{N}` markers**; the
+  runner always draws a clean dropdown at each marker regardless of marks; a
+  **mangled** marker (`{ 1}`) is caught by **validation** ("blank 1 looks broken"),
+  not physically prevented. **No custom node, no new tech, blank stays
+  library-independent** (how Moodle / H5P do cloze).
+
+**The trade:** A = "literally unbreakable" at the cost of coupling + new tech; B =
+decoupled + simple, giving up only that a broken marker becomes a *validation
+message* instead of being prevented outright.
+
+**LEAN (2026-06-29, to confirm next session): Option B (decoupled `{N}`-text +
+normalize-at-boundary + validate).** Sam pushed back on coupling the blank to
+Tiptap; it also fits the project's advise-don't-over-engineer ethos, and means
+6e/6f (Highlight `[[…]]`, Drag-drop `[N]`) follow the same "markers stay text,
+normalize + validate" rule — no node anywhere. With B the build is roughly
+**6c-sized**: stem becomes a normal rich field (like every stem since 6a) + a small
+normalize-and-validate pass for the markers + the choices going rich. **No spike
+needed.**
+
+**Two sub-decisions still to settle when the slice opens:**
+1. **Orphan/reconnect UX.** With markers staying text, today's "re-type `{N}` to
+   reconnect" still *works* — but if we ever went chip-route it wouldn't. Either
+   way, lean: keep delete-marker → orphan-card recovery as-is for B (it's free),
+   or simplify to delete = drop-blank (confirm if it has choices). Decide on open.
+2. **Confirm stem stored as rich doc** (yes — that's the point, to deliver
+   formatted prose; consistent with 6a).
+
+**Minor noted:** a Cloze stem in a bank-list hover-peek flattens to prose; under B
+the `{N}` markers survive as text (fine), under A a chip has no text (would show
+gaps). Another point for B.
 
 ### Slice 6 — parked / deferred
 
@@ -1537,3 +1828,117 @@ tab could stack, e.g., two distinct tables.
   case shows up → generalise `entries` to a list of tables + an "+ Add
   table" button + per-table toolbar focus. If not → the single-table model
   holds.
+
+## DRAG_DROP split — DRAG_CLOZE + DRAG_ORDER (2026-06-30)
+
+`DRAG_DROP` was a single type with a `subtype: 'ORDERED' | 'SENTENCE'` mode
+switch; the two modes had drifted enough that we split them into two clean,
+self-contained types (Sam's call — same "mirror, don't share" philosophy as
+MCQ↔SATA and Matrix-MR):
+
+- **`DRAG_CLOZE`** — the SENTENCE mode (stem with `[N]` markers, drag tokens into
+  blanks). Built additively; mirror of the drag-drop sentence paths.
+- **`DRAG_ORDER`** — the ORDERED mode (drag tokens into ranked positions; plain
+  prompt, no markers). Built additively; mirror of the drag-drop ordered paths.
+
+Both are **on the session branch, additive — `DRAG_DROP` is left 100% intact**
+(still offers both modes; the picker temporarily shows all three drag entries).
+
+**Per-type validation (reviewed once separated, advise > block):**
+- `DRAG_CLOZE`: min **1** blank (mirrors `CLOZE`); **≥1 distractor required**
+  (fill-in norm). Max 8 blanks; 3-blank advisory.
+- `DRAG_ORDER`: min **2** positions (can't order one); **distractors OPTIONAL**
+  (an ordered-response item is classically "arrange exactly these N" — the floor
+  is `slots`, no pool-size nag; a fresh item seeds one token per position). Max 8;
+  3-slot advisory.
+
+**Legacy `DRAG_DROP` is NOT deleted.** The decouple (migrate the handful of old
+`DRAG_DROP` rows onto the two new types + delete the `DRAG_DROP`
+editor/parser/runner/type) is **deferred until the new types have been used for
+real and Sam is happy** — not on a fixed schedule. Until then `DRAG_DROP` is a
+frozen legacy type that still authors + renders + scores. When the decouple runs,
+it's the symmetric reverse of the checklist below (remove the `DRAG_DROP` line at
+each site; data move: bank dev 6/6, prod 1/2 by subtype; prod has 0 attempts).
+
+## Adding a new question type — wiring checklist (snapshot as of 2026-06-30)
+
+Built from the `DRAG_CLOZE` + `DRAG_ORDER` builds. **This is a map of where a
+type plugs in *today* — treat it as a starting point, not gospel.** At the next
+build, re-grep an existing reference type (e.g. `DRAG_DROP`) across the codebase
+to catch any wiring site added since this was written; new features may have
+introduced new registries.
+
+**Approach that worked:** (1) lay the foundation (constants + types + scoring)
+first so the new files compile against real symbols; (2) write the new mirror
+files (copy a reference type, strip what differs); (3) wire registration — do the
+**runtime whitelists explicitly** (see ⚠), then let `tsc` list the rest; (4) gate
+on tsc + eslint + vitest **+ a manual click-through** (the runtime whitelists only
+fail on real interaction, never at compile time).
+
+### New files (mirror a reference type; copy then strip)
+- `lib/bank/editors/<type>-editor.tsx`
+- `lib/bank/editors/<type>-row-mapper.ts`
+- `lib/bank/parsers/<type>.ts`
+- `lib/practice/runner/types/<type>.tsx`
+- `lib/bank/editors/<type>-stem-doc.ts` — **only if the stem carries markers**
+  (Cloze `{N}` / Highlight `[[ ]]` / drag-cloze `[N]`). ORDERED-style types skip it.
+
+### ⚠ Runtime whitelists — `tsc` CANNOT catch these (they no-op / throw at runtime)
+These bit us on `DRAG_CLOZE` (picker showed it, click did nothing; then save threw
+"unsupported"). Do them first, every time:
+- `lib/bank/atoms/question-type-picker.tsx` → `ENABLED_TYPES`
+- `lib/bank/bank-list-client.tsx` → `EDITABLE_TYPES` (gates the pick handler)
+- `lib/bank/actions/save-question.ts` → `SUPPORTED_TYPES`
+- `lib/practice/builder/filter-config.ts` → `QTYPE_OPTIONS` (has a **length-sync
+  guard** that throws at module load if it drifts from `QUESTION_TYPES`)
+
+### `tsc`-caught (the compiler lists each if missed — `Record<QuestionType>` maps + exhaustive switches)
+- `lib/bank/classifications.ts` → `QUESTION_TYPES` + `ITEM_ID_PREFIX` +
+  `TUTOR_ITEM_ID_PREFIX` + new bounds constants
+- `lib/bank/types.ts` → `<Type>Content` / `<Type>Correct` + both unions
+  (`BankItemContent` / `BankItemCorrect`)
+- `lib/scoring/types.ts` (`<Type>Answer` + `BankItemAnswer` union) →
+  `lib/scoring/index.ts` (export) → `lib/scoring/dispatch.ts`
+  (`computeMarksFromKey` + `scoreAttempt` — reuse an existing scorer if shape matches)
+- `app/(app)/(focused)/session/[attempt_id]/runner.tsx` (submit-gate switch)
+- `app/(app)/(focused)/session/[attempt_id]/runner-question-area.tsx`
+  (`QUESTION_TYPE_LABELS` map + the render switch + **the stem-takeover decision**:
+  marker/stem-rendering types are added to `isStemTakeover`; ordered/option types
+  are not)
+- `lib/practice/runner/index.ts` (export the runner + `is<Type>Complete`)
+- `lib/bank/atoms/housekeeping-fields.tsx` (`formatMarksLabel` switch)
+- case-study + trend wrappers — **×2 each**: `types.ts` (`SlotEditorInitial`
+  union), `load-case.ts` / `load-trend.ts` (row→initial case), `wrapper-page.tsx`
+  (`FORM_ID_BY_TYPE` + `emptyEditorOf` + the editor-body render switch + the
+  preview render switch)
+
+### Plumbing (no compiler signal — mirror the reference type's lines)
+- `lib/bank/actions/save-question.ts` (the parser `case`: read the form fields →
+  call the parser → set `stem`)
+- `lib/bank/bank-list-client.tsx` (editor import, two props
+  `<type>InitialsById` + `empty<Type>Initial`, the create + edit modal blocks)
+- `app/(app)/admin/bank/all/page.tsx` + `app/(app)/tutor/bank/all/page.tsx`
+  (row-mapper import, the initials-map decl, the `row.question_type === ...` build
+  branch, the two props passed to `<BankListClient>`)
+- `lib/bank/list-ui.tsx` → `TYPE_PILL` (label / letter / colour)
+
+### Database
+- New migration: add the value to the **three** `question_type` CHECK constraints
+  (`nclex_bank_items`, `nclex_tutor_questions`, `nclex_attempt_items`) — additive,
+  drop+re-add each. Apply to dev via MCP; mirror the constraints in `db/schema.sql`.
+
+### Intentionally NOT wired (verify these stay limited per the reference type)
+- `lib/library/types.ts` → `EMBED_QUESTION_TYPES` is **MCQ/SATA/TF/SELECT_N only**.
+  Drag-family types are **not** library-note-embeddable; matching the reference
+  type (DRAG_DROP) means leaving these alone.
+
+### Verification gate
+`npx tsc --noEmit` (0) · `npx eslint <changed files>` (0) · `npx vitest run`
+(green) · **manual click-through on dev**: pick from "+ New question" → editor
+opens → author → save → take → review, on **both** admin and tutor bank, plus the
+case-study/trend embed pickers. The manual pass is non-negotiable because the
+runtime whitelists never surface at compile time.
+
+### The id-generator is already generic
+`nclex_next_tutor_item_id(p_prefix text)` takes a prefix, so a new
+`ITEM_ID_PREFIX` / `TUTOR_ITEM_ID_PREFIX` entry needs no RPC change.

@@ -14,7 +14,15 @@
 // Per-choice IDs are 'c1', 'c2', … unique within a blank only.
 
 import type { HousekeepingMode } from '@/lib/bank/atoms/housekeeping-fields';
-import { CLOZE_MIN_BLANKS, CLOZE_MIN_CHOICES } from '@/lib/bank/classifications';
+import {
+  CLOZE_RECOMMENDED_MIN_BLANKS,
+  CLOZE_MIN_CHOICES,
+} from '@/lib/bank/classifications';
+import {
+  parseRichDoc,
+  EMPTY_RICH_DOC,
+  type RichDoc,
+} from '@/lib/authoring/rich-doc';
 import { type McqDbRow, MCQ_ROW_COLUMNS } from './mcq-row-mapper';
 
 // ─────────────────────────────────────────────────────────────
@@ -26,8 +34,11 @@ import { type McqDbRow, MCQ_ROW_COLUMNS } from './mcq-row-mapper';
 
 export interface ClozeEditorChoice {
   id: string;
+  // Choice text stays PLAIN — it renders inside a native <select> dropdown,
+  // which can't display formatting (Slice 6d decision). Feedback is rich: it
+  // shows in the review feedback prose, which is real formatted HTML.
   text: string;
-  feedback: string;
+  feedback: RichDoc;
 }
 
 export interface ClozeEditorBlank {
@@ -84,18 +95,19 @@ export const CLOZE_ROW_COLUMNS = MCQ_ROW_COLUMNS;
 
 // ─────────────────────────────────────────────────────────────
 // Empty initial — used by the bank-list "+ New question" flow.
-// Pre-seeds CLOZE_MIN_BLANKS markers in the stem AND matching blank
-// cards in state, both active. This communicates the "minimum 2
-// blanks" rule visibly through the tab strip (two active tabs
-// awaiting choices) instead of hiding it until save-time validation.
-// The curator edits the stem and replaces the placeholder markers
-// in their natural sentence flow.
+// Pre-seeds the RECOMMENDED minimum (2) markers in the stem AND
+// matching blank cards in state, both active. This opens the editor
+// in the 2–6 sweet spot (the hard floor is 1, but a fresh cloze
+// shouldn't start at the bare minimum). The curator edits the stem
+// and replaces the placeholder markers in their natural sentence flow.
 // ─────────────────────────────────────────────────────────────
 
 export function emptyClozeInitial(surface: 'admin' | 'tutor'): ClozeEditorInitial {
-  // Build a starter stem like "{1} {2}" plus matching b1, b2 cards.
+  // Build a starter stem like "{1} {2}" plus matching b1, b2 cards. Seed the
+  // RECOMMENDED minimum (2), not the hard floor (1) — "+ New Cloze" should open
+  // in the sweet spot, not at the bare structural minimum.
   const seedMarkerNumbers = Array.from(
-    { length: CLOZE_MIN_BLANKS },
+    { length: CLOZE_RECOMMENDED_MIN_BLANKS },
     (_, i) => i + 1,
   );
   const stem = seedMarkerNumbers.map((n) => `{${n}}`).join(' ');
@@ -104,7 +116,7 @@ export function emptyClozeInitial(surface: 'admin' | 'tutor'): ClozeEditorInitia
     choices: Array.from({ length: CLOZE_MIN_CHOICES }, (_, j) => ({
       id: `c${j + 1}`,
       text: '',
-      feedback: '',
+      feedback: { ...EMPTY_RICH_DOC },
     })),
     correct_id: 'c1',
     in_stem: true,
@@ -159,7 +171,7 @@ export function clozeRowToInitial(
       choices: (b.choices ?? []).map((c) => ({
         id: c.id,
         text: c.text,
-        feedback: fbForBlank[c.id] ?? '',
+        feedback: parseRichDoc(fbForBlank[c.id] ?? ''),
       })),
       correct_id: answers[b.id] ?? '',
       in_stem: true,

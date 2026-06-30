@@ -46,6 +46,24 @@ import {
   parseCloze,
   type ClozeBlankInput,
 } from '@/lib/bank/parsers/cloze';
+import { parseRichDoc, serializeRichDoc } from '@/lib/authoring/rich-doc';
+import {
+  normalizeClozeStem,
+  clozeStemScanText,
+  renumberClozeStem,
+} from '@/lib/bank/editors/cloze-stem-doc';
+import {
+  normalizeHighlightStem,
+  highlightStemScanText,
+} from '@/lib/bank/editors/highlight-stem-doc';
+import {
+  normalizeDragDropStem,
+  dragDropStemScanText,
+} from '@/lib/bank/editors/drag-drop-stem-doc';
+import {
+  normalizeDragClozeStem,
+  dragClozeStemScanText,
+} from '@/lib/bank/editors/drag-cloze-stem-doc';
 import { computeMarksFromKey } from '@/lib/scoring';
 import {
   parseHighlight,
@@ -56,6 +74,16 @@ import {
   type DragDropSlotInput,
   type DragDropTokenInput,
 } from '@/lib/bank/parsers/drag-drop';
+import {
+  parseDragCloze,
+  type DragClozeSlotInput,
+  type DragClozeTokenInput,
+} from '@/lib/bank/parsers/drag-cloze';
+import {
+  parseDragOrder,
+  type DragOrderSlotInput,
+  type DragOrderTokenInput,
+} from '@/lib/bank/parsers/drag-order';
 
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
@@ -111,6 +139,24 @@ async function nextItemId(
 ): Promise<string> {
   const cfg = surfaceConfig(surface);
   const prefix = cfg.prefix[type];
+
+  // Tutor surface: RLS scopes a tutor to their OWN rows
+  // (nclex_tutor_questions_tutor_own = tutor_id = auth.uid()), so a
+  // client-side max+1 only counts the caller's questions and collides with
+  // other tutors' ids on the pkey. Defer to a SECURITY DEFINER RPC that scans
+  // the whole table. The admin/bank surface keeps the direct scan below —
+  // curators can read every bank item, so its count is already whole-table.
+  if (surface === 'tutor') {
+    const { data, error } = await supabase.rpc('nclex_next_tutor_item_id', {
+      p_prefix: prefix,
+    });
+    if (error) throw error;
+    if (typeof data !== 'string' || data.length === 0) {
+      throw new Error('nclex_next_tutor_item_id returned no id');
+    }
+    return data;
+  }
+
   const { data, error } = await supabase
     .from(cfg.table)
     .select('item_id')
@@ -145,6 +191,8 @@ const SUPPORTED_TYPES = new Set<QuestionType>([
   'CLOZE',
   'HIGHLIGHT',
   'DRAG_DROP',
+  'DRAG_CLOZE',
+  'DRAG_ORDER',
 ]);
 
 interface ParsedQuestion {
@@ -288,7 +336,17 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
             correct_id: String(formData.get(`cloze_correct_${bid}`) ?? ''),
           });
         }
-        return parseCloze({ stem, blanks });
+        // The stem is a rich doc (JSON) with the {N} markers as plain text
+        // inside it (Slice 6d, Option B). Normalise it (strip any marks
+        // clinging to a marker + isolate each one), scan its flattened text
+        // for the markers, run the existing parser for ordering / validation /
+        // content, then renumber the DOC to match — and store the doc JSON,
+        // not the parser's flattened scan string.
+        const stemDoc = normalizeClozeStem(parseRichDoc(stem));
+        const result = parseCloze({ stem: clozeStemScanText(stemDoc), blanks });
+        if (!result.ok) return result;
+        const renumberedDoc = renumberClozeStem(stemDoc, result.order);
+        return { ...result, stem: serializeRichDoc(renumberedDoc) };
       }
       case 'HIGHLIGHT': {
         // Five parallel arrays per chunk card. Orphans (in_passage !==
@@ -310,7 +368,19 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
           feedback: chunkFeedbacks[i] ?? '',
           in_passage: chunkInPassages[i] === 'true',
         }));
-        return parseHighlight({ stem, chunks: hlChunks });
+        // The stem is a rich doc (JSON) with the [[chunk]] markers as plain
+        // text inside it (Slice 6e, Option B). Normalise it (strip any marks
+        // clinging to a bracket + isolate each one — this enforces "chunk text
+        // stays plain"), scan its flattened text for the parser, then store the
+        // doc JSON, not the parser's flattened scan string. No renumber —
+        // Highlight chunk IDs are positional, the prose carries no numbers.
+        const hlStemDoc = normalizeHighlightStem(parseRichDoc(stem));
+        const hlResult = parseHighlight({
+          stem: highlightStemScanText(hlStemDoc),
+          chunks: hlChunks,
+        });
+        if (!hlResult.ok) return hlResult;
+        return { ...hlResult, stem: serializeRichDoc(hlStemDoc) };
       }
       case 'DRAG_DROP': {
         // Parallel slot + token arrays. The parser re-derives "active"
@@ -321,25 +391,90 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
         const slotIds        = formData.getAll('dd_slot_id').map(String);
         const slotTargets    = formData.getAll('dd_slot_target_text').map(String);
         const slotAssigned   = formData.getAll('dd_slot_assigned_token_id').map(String);
-        const slotFeedbacks  = formData.getAll('dd_slot_feedback').map(String);
         const tokenIds       = formData.getAll('dd_token_id').map(String);
         const tokenTexts     = formData.getAll('dd_token_text').map(String);
+        const tokenFeedbacks = formData.getAll('dd_token_feedback').map(String);
         const ddSlots: DragDropSlotInput[] = slotIds.map((id, i) => ({
           id,
           target_text: slotTargets[i] ?? '',
           assigned_token_id: slotAssigned[i] ?? '',
-          feedback: slotFeedbacks[i] ?? '',
         }));
         const ddTokens: DragDropTokenInput[] = tokenIds.map((id, i) => ({
           id,
           text: tokenTexts[i] ?? '',
+          feedback: tokenFeedbacks[i] ?? '',
         }));
-        return parseDragDrop({
-          stem,
+        // The stem is a rich doc (JSON). For SENTENCE the [N] markers live as
+        // plain text inside it (Slice 6f, Option B); normalise (strip any marks
+        // off a marker + isolate), scan its flattened text for the parser, then
+        // store the doc JSON. No renumber — markers are byte-preserved (the
+        // parser keeps gaps like [1] [3]). ORDERED stems carry no markers — the
+        // normalise is a no-op and the scan text is just the flattened prose.
+        const ddStemDoc = normalizeDragDropStem(parseRichDoc(stem));
+        const ddResult = parseDragDrop({
+          stem: dragDropStemScanText(ddStemDoc),
           subtype,
           slots: ddSlots,
           tokens: ddTokens,
         });
+        if (!ddResult.ok) return ddResult;
+        return { ...ddResult, stem: serializeRichDoc(ddStemDoc) };
+      }
+      case 'DRAG_CLOZE': {
+        // Like DRAG_DROP SENTENCE, but a standalone type — no subtype. The
+        // stem carries [N] markers as plain text; slots derive from them.
+        const slotIds        = formData.getAll('dcz_slot_id').map(String);
+        const slotTargets    = formData.getAll('dcz_slot_target_text').map(String);
+        const slotAssigned   = formData.getAll('dcz_slot_assigned_token_id').map(String);
+        const tokenIds       = formData.getAll('dcz_token_id').map(String);
+        const tokenTexts     = formData.getAll('dcz_token_text').map(String);
+        const tokenFeedbacks = formData.getAll('dcz_token_feedback').map(String);
+        const dczSlots: DragClozeSlotInput[] = slotIds.map((id, i) => ({
+          id,
+          target_text: slotTargets[i] ?? '',
+          assigned_token_id: slotAssigned[i] ?? '',
+        }));
+        const dczTokens: DragClozeTokenInput[] = tokenIds.map((id, i) => ({
+          id,
+          text: tokenTexts[i] ?? '',
+          feedback: tokenFeedbacks[i] ?? '',
+        }));
+        // Stem is a rich doc with [N] markers as plain text (Option B). Normalise
+        // (strip marks off markers + isolate), scan its flattened text for the
+        // parser, then store the doc JSON. No renumber — markers are byte-preserved.
+        const dczStemDoc = normalizeDragClozeStem(parseRichDoc(stem));
+        const dczResult = parseDragCloze({
+          stem: dragClozeStemScanText(dczStemDoc),
+          slots: dczSlots,
+          tokens: dczTokens,
+        });
+        if (!dczResult.ok) return dczResult;
+        return { ...dczResult, stem: serializeRichDoc(dczStemDoc) };
+      }
+      case 'DRAG_ORDER': {
+        // Ranked-response sibling of DRAG_DROP's ORDERED mode — no subtype, no
+        // stem markers. Slots are a curator-ordered list; the stem is a plain
+        // rich prompt stored as-is.
+        const slotIds        = formData.getAll('do_slot_id').map(String);
+        const slotTargets    = formData.getAll('do_slot_target_text').map(String);
+        const slotAssigned   = formData.getAll('do_slot_assigned_token_id').map(String);
+        const tokenIds       = formData.getAll('do_token_id').map(String);
+        const tokenTexts     = formData.getAll('do_token_text').map(String);
+        const tokenFeedbacks = formData.getAll('do_token_feedback').map(String);
+        const doSlots: DragOrderSlotInput[] = slotIds.map((id, i) => ({
+          id,
+          target_text: slotTargets[i] ?? '',
+          assigned_token_id: slotAssigned[i] ?? '',
+        }));
+        const doTokens: DragOrderTokenInput[] = tokenIds.map((id, i) => ({
+          id,
+          text: tokenTexts[i] ?? '',
+          feedback: tokenFeedbacks[i] ?? '',
+        }));
+        const doResult = parseDragOrder({ slots: doSlots, tokens: doTokens });
+        if (!doResult.ok) return doResult;
+        // No markers to normalise — store the rich stem prompt as-is.
+        return { ...doResult, stem: serializeRichDoc(parseRichDoc(stem)) };
       }
       default:
         return parseMcq(optionIds, optionTexts, optionFeedbacks, correctIds);

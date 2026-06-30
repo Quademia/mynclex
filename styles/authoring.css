@@ -1996,6 +1996,21 @@
 .auth-cz-marker-count.auth-cz-warn { color: var(--warning); border-color: #fde68a; background: #fffbeb; }
 .auth-cz-marker-count.auth-cz-err  { color: var(--danger);  border-color: #fecaca; background: #fef2f2; }
 
+/* Soft count advisory (advise > block) — saveable, just outside the norm.
+   Amber, sits below the toolbar. Shared by the marker editors (Cloze blank
+   count, Highlight chunk count, …). */
+.auth-cz-advisory,
+.auth-hl-advisory,
+.auth-dd-advisory {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--warning);
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+}
+
 /* Tab strip — one tab per blank (active first, then orphans).
    Mirrors the BOWTIE wing tabs pattern but with dynamic count. */
 .auth-cz-tabs {
@@ -2541,12 +2556,8 @@
   padding: 10px 14px;
 }
 
-.auth-hl-chunk-feedback {
-  width: 100%;
-  font-size: 13px;
-  background: var(--bg);
-  resize: vertical;
-}
+/* Per-chunk feedback is a rich roving field (Slice 6e-ii) — styled by
+   .auth-rrf-option-fb (shared with Cloze choice feedback). */
 
 /* Preview pane — passage with chunks rendered as styled spans. */
 .auth-hl-preview-instruction {
@@ -2886,24 +2897,67 @@
   font-size: 14px;
 }
 
-.auth-dd-slot-feedback {
-  font-family: inherit;
-  resize: vertical;
-}
+/* Per-slot feedback is a rich roving field (Slice 6f-ii) — styled by
+   .auth-rrf-option-fb (shared with Cloze choice / Highlight chunk feedback). */
 
 /* Token pool */
 .auth-dd-tokens-wrap {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   margin-top: 4px;
+}
+
+/* Each token is now a small card: the id/text/role/remove row on top, an
+   optional rich feedback field beneath (feedback moved off slots so every
+   token — answer or distractor — can be explained, 2026-06-30). */
+.auth-dd-token-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
 }
 
 .auth-dd-token-row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
   gap: 10px;
   align-items: center;
+}
+
+/* Role badge — reflects whether this token is currently assigned to a slot
+   (Answer) or sitting in the pool as a trap (Distractor). Recomputes live. */
+.auth-dd-token-role {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.auth-dd-token-role.is-correct {
+  color: var(--success);
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+.auth-dd-token-role.is-distractor {
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.auth-dd-token-fb {
+  margin: 0;
+}
+
+/* Note under the slot's Correct-token select, pointing the curator to the
+   token pool for the explanation. */
+.auth-dd-slot-fb-note {
+  margin-top: 6px;
 }
 
 .auth-dd-token-id {
@@ -5380,6 +5434,57 @@
 .auth-rrf-option.auth-rrf-static,
 .auth-rrf-option-fb.auth-rrf-static { min-height: 34px; padding: 6px 10px; font-size: 13px; }
 .auth-rrf-instruction.auth-rrf-static { min-height: 34px; }
+
+/* Matrix grid cells (Slice 6c). The rich field lives inside a tight
+ * table cell, so the static view drops the boxed input look for a flat,
+ * borderless cell with a dashed hover hint — matching the plain <input>
+ * styling the grid used before. The edit view keeps the accent ring so
+ * the live cell is obvious. */
+.auth-rrf-mx-corner.auth-rrf-static,
+.auth-rrf-mx-col.auth-rrf-static,
+.auth-rrf-mx-row.auth-rrf-static,
+.auth-rrf-mx-fb.auth-rrf-static {
+  min-height: 30px;
+  padding: 4px 6px;
+  border: 1px dashed transparent;
+  background: transparent;
+  border-radius: 4px;
+}
+.auth-rrf-mx-corner.auth-rrf-static:hover,
+.auth-rrf-mx-col.auth-rrf-static:hover,
+.auth-rrf-mx-row.auth-rrf-static:hover,
+.auth-rrf-mx-fb.auth-rrf-static:hover { border-color: var(--accent); }
+
+.auth-rrf-mx-corner.auth-rrf-static {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-color: var(--border);
+  background: var(--white);
+}
+.auth-rrf-mx-col.auth-rrf-static {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: center;
+}
+.auth-rrf-mx-row.auth-rrf-static { font-size: 13px; color: var(--text); }
+.auth-rrf-mx-fb.auth-rrf-static { font-size: 12px; color: var(--text-muted); }
+
+.auth-rrf-mx-corner.auth-rrf-edit .auth-rf-body .ProseMirror,
+.auth-rrf-mx-col.auth-rrf-edit .auth-rf-body .ProseMirror,
+.auth-rrf-mx-row.auth-rrf-edit .auth-rf-body .ProseMirror,
+.auth-rrf-mx-fb.auth-rrf-edit .auth-rf-body .ProseMirror { min-height: 20px; }
+
+/* Bow-tie wing token text + feedback (Slice 6c-ii). Compact boxed
+ * fields stacked in the token row; feedback is a touch smaller + muted. */
+.auth-rrf-bt-token.auth-rrf-static,
+.auth-rrf-bt-token-fb.auth-rrf-static { min-height: 34px; padding: 6px 10px; font-size: 13px; }
+.auth-rrf-bt-token-fb.auth-rrf-static { font-size: 12px; color: var(--text-muted); }
+.auth-rrf-bt-token.auth-rrf-edit .auth-rf-body .ProseMirror,
+.auth-rrf-bt-token-fb.auth-rrf-edit .auth-rf-body .ProseMirror { min-height: 20px; }
 
 /* ─────────────────────────────────────────────────────
  * Rich-content relook — Slice 2a: custom merge-table editor

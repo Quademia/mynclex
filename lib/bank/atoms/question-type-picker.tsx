@@ -23,6 +23,8 @@ const ENABLED_TYPES: ReadonlySet<QuestionType> = new Set([
   'CLOZE',
   'HIGHLIGHT',
   'DRAG_DROP',
+  'DRAG_CLOZE',
+  'DRAG_ORDER',
 ]);
 
 interface QuestionTypePickerProps {

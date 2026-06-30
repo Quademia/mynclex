@@ -42,8 +42,8 @@ import type {
   SataAnswer,
   SelectNAnswer,
 } from '@/lib/scoring';
-import type { SelectNContent, MatrixContent, ClozeContent, DragDropContent } from '@/lib/bank/types';
-import type { MatrixAnswer, HighlightAnswer, ClozeAnswer, DragDropAnswer, BowtieAnswer } from '@/lib/scoring';
+import type { SelectNContent, MatrixContent, ClozeContent, DragDropContent, DragClozeContent, DragOrderContent } from '@/lib/bank/types';
+import type { MatrixAnswer, HighlightAnswer, ClozeAnswer, DragDropAnswer, DragClozeAnswer, DragOrderAnswer, BowtieAnswer } from '@/lib/scoring';
 import {
   isMcqComplete,
   isSataComplete,
@@ -52,6 +52,8 @@ import {
   isHighlightComplete,
   isClozeComplete,
   isDragDropComplete,
+  isDragClozeComplete,
+  isDragOrderComplete,
   isBowtieComplete,
 } from '@/lib/practice/runner';
 import { ErrorToast } from '@/lib/toast/error-toast';
@@ -1125,6 +1127,36 @@ function getSubmitGate(
         canSubmit:   ok,
         submitValue: ok ? (a as BankItemAnswer) : null,
         hint:        ok ? undefined : `${filled} of ${total} slots filled — finish all to submit`,
+      };
+    }
+
+    case 'DRAG_CLOZE': {
+      const content = item.content_snapshot_json as unknown as DragClozeContent;
+      const a = pending as DragClozeAnswer | undefined;
+      const ok = isDragClozeComplete(a, content);
+      const filled = a
+        ? content.slots.filter((s) => Boolean(a[s.id])).length
+        : 0;
+      const total = content.slots.length;
+      return {
+        canSubmit:   ok,
+        submitValue: ok ? (a as BankItemAnswer) : null,
+        hint:        ok ? undefined : `${filled} of ${total} blanks filled — finish all to submit`,
+      };
+    }
+
+    case 'DRAG_ORDER': {
+      const content = item.content_snapshot_json as unknown as DragOrderContent;
+      const a = pending as DragOrderAnswer | undefined;
+      const ok = isDragOrderComplete(a, content);
+      const filled = a
+        ? content.slots.filter((s) => Boolean(a[s.id])).length
+        : 0;
+      const total = content.slots.length;
+      return {
+        canSubmit:   ok,
+        submitValue: ok ? (a as BankItemAnswer) : null,
+        hint:        ok ? undefined : `${filled} of ${total} positions filled — finish all to submit`,
       };
     }
 

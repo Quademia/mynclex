@@ -88,14 +88,23 @@ import { BowtieEditorBody, BowtiePreview }       from '@/lib/bank/editors/bowtie
 import {
   ClozeEditorBody,
   ClozePreview,
-  parseStemMarkers,
 } from '@/lib/bank/editors/cloze-editor';
+import { clozeMarkerOrder } from '@/lib/bank/editors/cloze-stem-doc';
 import { HighlightEditorBody, HighlightPreview } from '@/lib/bank/editors/highlight-editor';
 import {
   DragDropEditorBody,
   DragDropPreview,
   extractActiveMarkers,
 } from '@/lib/bank/editors/drag-drop-editor';
+import {
+  DragClozeEditorBody,
+  DragClozePreview,
+  extractActiveMarkers as extractDragClozeMarkers,
+} from '@/lib/bank/editors/drag-cloze-editor';
+import {
+  DragOrderEditorBody,
+  DragOrderPreview,
+} from '@/lib/bank/editors/drag-order-editor';
 import { emptyMcqInitial }       from '@/lib/bank/editors/mcq-row-mapper';
 import { emptyTfInitial }        from '@/lib/bank/editors/tf-row-mapper';
 import { emptySataInitial }      from '@/lib/bank/editors/sata-row-mapper';
@@ -105,6 +114,8 @@ import { emptyBowtieInitial }    from '@/lib/bank/editors/bowtie-row-mapper';
 import { emptyClozeInitial }     from '@/lib/bank/editors/cloze-row-mapper';
 import { emptyHighlightInitial } from '@/lib/bank/editors/highlight-row-mapper';
 import { emptyDragDropInitial }  from '@/lib/bank/editors/drag-drop-row-mapper';
+import { emptyDragClozeInitial } from '@/lib/bank/editors/drag-cloze-row-mapper';
+import { emptyDragOrderInitial } from '@/lib/bank/editors/drag-order-row-mapper';
 import type { PreviewViewMode } from '@/lib/bank/atoms/preview-toggle';
 
 type WrapperTab = 'content' | 'chart';
@@ -122,6 +133,8 @@ const FORM_ID_BY_TYPE: Record<string, string> = {
   CLOZE:     'auth-cloze-form',
   HIGHLIGHT: 'auth-highlight-form',
   DRAG_DROP: 'auth-drag-drop-form',
+  DRAG_CLOZE: 'auth-drag-cloze-form',
+  DRAG_ORDER: 'auth-drag-order-form',
 };
 
 // Per-tab in-flight draft. Mirrors legacy editor.tsx. `entries` is a
@@ -450,6 +463,8 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
       case 'CLOZE':     return { kind: 'CLOZE',     initial: emptyClozeInitial(surface)     };
       case 'HIGHLIGHT': return { kind: 'HIGHLIGHT', initial: emptyHighlightInitial(surface) };
       case 'DRAG_DROP': return { kind: 'DRAG_DROP', initial: emptyDragDropInitial(surface)  };
+      case 'DRAG_CLOZE': return { kind: 'DRAG_CLOZE', initial: emptyDragClozeInitial(surface) };
+      case 'DRAG_ORDER': return { kind: 'DRAG_ORDER', initial: emptyDragOrderInitial(surface) };
     }
   }
 
@@ -1323,6 +1338,10 @@ function ActiveQuestionEditorBody({
       return <HighlightEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
     case 'DRAG_DROP':
       return <DragDropEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
+    case 'DRAG_CLOZE':
+      return <DragClozeEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
+    case 'DRAG_ORDER':
+      return <DragOrderEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
   }
 }
 
@@ -1334,6 +1353,17 @@ function ActiveQuestionEditorBody({
 // a follow-up state-callback slice). The preview's own internal
 // PreviewToggle handles the Student / Answer-key switch.
 // ───────────────────────────────────────────────────────────
+
+// BOWTIE preview takes rich token docs; map the stored string token
+// text/feedback through parseRichDoc (labels + correct stay plain).
+function toRichToken(t: { id: string; text: string; feedback: string; correct: boolean }) {
+  return {
+    id: t.id,
+    text: parseRichDoc(t.text),
+    feedback: parseRichDoc(t.feedback),
+    correct: t.correct,
+  };
+}
 
 function ActiveQuestionPreview({
   editor,
@@ -1405,11 +1435,18 @@ function ActiveQuestionPreview({
     case 'MATRIX':
       return (
         <MatrixPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
-          rowLabel={editor.initial.row_label}
-          rows={editor.initial.rows}
-          columns={editor.initial.columns}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
+          rowLabel={parseRichDoc(editor.initial.row_label)}
+          rows={editor.initial.rows.map((r) => ({
+            id: r.id,
+            text: parseRichDoc(r.text),
+            feedback: parseRichDoc(r.feedback),
+          }))}
+          columns={editor.initial.columns.map((c) => ({
+            id: c.id,
+            text: parseRichDoc(c.text),
+          }))}
           correct={editor.initial.correct}
           viewMode={viewMode}
           onViewModeChange={onViewModeChange}
@@ -1418,23 +1455,24 @@ function ActiveQuestionPreview({
     case 'BOWTIE':
       return (
         <BowtiePreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
           leftLabel={editor.initial.left_label}
-          leftTokens={editor.initial.left_tokens}
+          leftTokens={editor.initial.left_tokens.map(toRichToken)}
           centreLabel={editor.initial.centre_label}
-          centreTokens={editor.initial.centre_tokens}
+          centreTokens={editor.initial.centre_tokens.map(toRichToken)}
           rightLabel={editor.initial.right_label}
-          rightTokens={editor.initial.right_tokens}
+          rightTokens={editor.initial.right_tokens.map(toRichToken)}
           viewMode={viewMode}
           onViewModeChange={onViewModeChange}
         />
       );
     case 'CLOZE': {
-      // CLOZE preview needs derived state: markerOrder from the stem
-      // and a Map of blanks keyed by id. Mirrors what ClozeEditorBody
+      // CLOZE preview needs derived state: markerOrder from the rich stem
+      // doc and a Map of blanks keyed by id. Mirrors what ClozeEditorBody
       // does internally before it passes to ClozePreview.
-      const markerOrder = parseStemMarkers(editor.initial.stem);
+      const stemDoc = parseRichDoc(editor.initial.stem);
+      const markerOrder = clozeMarkerOrder(stemDoc);
       const presentSet = new Set(markerOrder.map((n) => `b${n}`));
       const blanksWithInStem = editor.initial.blanks.map((b) => ({
         ...b,
@@ -1443,8 +1481,8 @@ function ActiveQuestionPreview({
       const blanksById = new Map(blanksWithInStem.map((b) => [b.id, b]));
       return (
         <ClozePreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stemDoc={stemDoc}
           markerOrder={markerOrder}
           blanksById={blanksById}
           viewMode={viewMode}
@@ -1455,8 +1493,8 @@ function ActiveQuestionPreview({
     case 'HIGHLIGHT':
       return (
         <HighlightPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
           chunks={editor.initial.chunks}
           viewMode={viewMode}
           onViewModeChange={onViewModeChange}
@@ -1465,12 +1503,12 @@ function ActiveQuestionPreview({
     case 'DRAG_DROP': {
       const activeMarkers =
         editor.initial.subtype === 'SENTENCE'
-          ? extractActiveMarkers(editor.initial.stem)
+          ? extractActiveMarkers(richTextToPlain(editor.initial.stem))
           : new Set<number>();
       return (
         <DragDropPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
           subtype={editor.initial.subtype}
           slots={editor.initial.slots}
           tokens={editor.initial.tokens}
@@ -1480,6 +1518,33 @@ function ActiveQuestionPreview({
         />
       );
     }
+    case 'DRAG_CLOZE': {
+      const activeMarkers = extractDragClozeMarkers(
+        richTextToPlain(editor.initial.stem),
+      );
+      return (
+        <DragClozePreview
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
+          slots={editor.initial.slots}
+          tokens={editor.initial.tokens}
+          activeMarkers={activeMarkers}
+          viewMode={viewMode}
+          onViewModeChange={onViewModeChange}
+        />
+      );
+    }
+    case 'DRAG_ORDER':
+      return (
+        <DragOrderPreview
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
+          slots={editor.initial.slots}
+          tokens={editor.initial.tokens}
+          viewMode={viewMode}
+          onViewModeChange={onViewModeChange}
+        />
+      );
   }
 }
 

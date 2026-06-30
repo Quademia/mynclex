@@ -52,7 +52,7 @@ interface RovingState {
 
 const RovingCtx = createContext<RovingState | null>(null);
 
-function useRoving(): RovingState {
+export function useRoving(): RovingState {
   const ctx = useContext(RovingCtx);
   if (!ctx) {
     throw new Error('RovingRichField / RovingToolbar must be used inside <RovingProvider>.');
@@ -110,6 +110,14 @@ interface RovingRichFieldProps {
   className?:  string;
   /** Render the static view inline (for tight rows — option text/feedback). */
   inline?:     boolean;
+  /**
+   * Suppress the built-in hidden `<input>`. Use when the host owns form
+   * serialization separately and would otherwise double-emit this `name`
+   * (e.g. BOWTIE, where one always-rendered serialiser covers all three
+   * tab-gated wings while the editor only mounts the active wing's fields).
+   * The host must then serialize the doc itself via `serializeRichDoc`.
+   */
+  noHiddenInput?: boolean;
 }
 
 export function RovingRichField({
@@ -121,6 +129,7 @@ export function RovingRichField({
   ariaLabel,
   className,
   inline = false,
+  noHiddenInput = false,
 }: RovingRichFieldProps) {
   const { activeKey, setActiveKey, setActiveEditor } = useRoving();
   const isActive = activeKey === fieldKey;
@@ -129,8 +138,11 @@ export function RovingRichField({
   return (
     <>
       {/* FormData bridge — always present so the value submits regardless of
-          which field currently holds focus. */}
-      <input type="hidden" name={name} value={serializeRichDoc(value)} />
+          which field currently holds focus. Suppressed when the host owns
+          serialization (see noHiddenInput). */}
+      {!noHiddenInput && (
+        <input type="hidden" name={name} value={serializeRichDoc(value)} />
+      )}
 
       {isActive ? (
         <div className={wrapCls('auth-rrf-edit')}>

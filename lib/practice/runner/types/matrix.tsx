@@ -21,6 +21,8 @@
 
 import type { MatrixContent, MatrixCorrect } from '@/lib/bank/types';
 import type { MatrixAnswer } from '@/lib/scoring';
+import { RichRender } from '@/lib/authoring/rich-render';
+import { parseRichDoc, richTextToPlain } from '@/lib/authoring/rich-doc';
 
 type MatrixRunnerProps = {
   content: MatrixContent;
@@ -66,9 +68,13 @@ export function MatrixRunner(props: MatrixRunnerProps) {
     <div className="rn-matrix">
       {/* Header row */}
       <div className="rn-matrix-row head" style={{ gridTemplateColumns: gridTpl }}>
-        <div className="rn-matrix-row-label-head">{content.row_label}</div>
+        <div className="rn-matrix-row-label-head">
+          <RichRender doc={parseRichDoc(content.row_label)} inline />
+        </div>
         {content.columns.map((col) => (
-          <div key={col.id} className="rn-matrix-col-head">{col.text}</div>
+          <div key={col.id} className="rn-matrix-col-head">
+            <RichRender doc={parseRichDoc(col.text)} inline />
+          </div>
         ))}
       </div>
 
@@ -81,9 +87,11 @@ export function MatrixRunner(props: MatrixRunnerProps) {
               className="rn-matrix-row"
               style={{ gridTemplateColumns: gridTpl }}
               role={isReview ? undefined : 'radiogroup'}
-              aria-label={row.text}
+              aria-label={richTextToPlain(row.text)}
             >
-              <div className="rn-matrix-row-label">{row.text}</div>
+              <div className="rn-matrix-row-label">
+                <RichRender doc={parseRichDoc(row.text)} inline />
+              </div>
               {content.columns.map((col) => {
                 const isPicked      = studentPick === col.id;
                 const isCorrectCell = isReview && correctPick === col.id;
@@ -103,7 +111,7 @@ export function MatrixRunner(props: MatrixRunnerProps) {
                     className={cls.join(' ')}
                     role={isReview ? undefined : 'radio'}
                     aria-checked={!isReview ? isPicked : undefined}
-                    aria-label={`${row.text} — ${col.text}`}
+                    aria-label={`${richTextToPlain(row.text)} — ${richTextToPlain(col.text)}`}
                     disabled={isReview}
                     onClick={isReview ? undefined : () => pick(row.id, col.id)}
                   />
@@ -111,7 +119,9 @@ export function MatrixRunner(props: MatrixRunnerProps) {
               })}
             </div>
             {isReview && feedback?.[row.id] && (
-              <div className="rn-matrix-row-foot">{feedback[row.id]}</div>
+              <div className="rn-matrix-row-foot">
+                <RichRender doc={parseRichDoc(feedback[row.id])} inline />
+              </div>
             )}
           </div>
         );

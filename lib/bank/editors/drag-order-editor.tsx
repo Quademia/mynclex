@@ -1,56 +1,38 @@
-// mynclex/lib/bank/editors/drag-drop-editor.tsx
+// mynclex/lib/bank/editors/drag-order-editor.tsx
 //
-// DRAG_DROP editor — ninth and last concrete editor in the rebuild.
-// Two subtypes:
+// DRAG_ORDER editor — the ORDERED half of the old DRAG_DROP type, split
+// into its own standalone type. The student ranks tokens into positions
+// (1st, 2nd, …). All slot cards are always active; the curator clicks
+// "+ Slot" to add up to DO_MAX_SLOTS. There are NO stem markers — the stem
+// is a plain rich prompt — and NO subtype switch (SENTENCE now lives in
+// DRAG_CLOZE).
 //
-//   ORDERED  — student ranks tokens into positions (1st, 2nd, …).
-//              All slot cards are always active; the curator clicks
-//              "+ Slot" to add up to MAX_DD_SLOTS.
-//
-//   SENTENCE — stem contains [N] markers (single brackets, unlike
-//              HIGHLIGHT's [[double]]); each marker maps to one slot.
-//              A slot card is "active" iff its id (sN) matches an
-//              active marker in the stem. Orphans (card in state,
-//              marker no longer in stem) stay in editor state but
-//              render dimmed and are dropped on save by the parser.
-//
-// Layout: paned slot cards. A tab strip lists every slot (one tab
-// each, with a status dot for assigned/unassigned) and a single slot
-// card renders below for the active tab. Mirrors the CLOZE pattern
-// from slice 8 — keeps the editor pane from becoming a long scroll
-// when all 8 slots are populated. Token pool is stacked below the
+// Layout: paned slot cards. A tab strip lists every slot (one tab each,
+// with a status dot for assigned/unassigned) and a single slot card renders
+// below for the active tab. Keeps the editor pane from becoming a long
+// scroll when all 8 slots are populated. Token pool is stacked below the
 // slot panel (still always visible since slot dropdowns reference it).
 //
-// Stem ↔ editor sync: stem is controlled state passed in/out of
-// <StemField>, the same pattern HIGHLIGHT (slice 9) uses. The "+ Slot
-// marker" toolbar button still touches the DOM for cursor position,
-// matching HIGHLIGHT's handleWrapOrInsert.
+// Dual-mode preview ships from day one. Default view: student.
 //
-// Dual-mode preview ships from day one (slices 8-10 build with the
-// PreviewToggle atom; slice 11 back-fills MCQ/TF/SATA/SELECT_N/MATRIX).
-// Default view: student.
-//
-// FormData contract (must match save-question.ts DRAG_DROP branch):
-//   dd_subtype                (single value: 'ORDERED'|'SENTENCE')
-//   dd_slot_id                (parallel array, incl. orphans for SENTENCE)
-//   dd_slot_target_text       (parallel)
-//   dd_slot_assigned_token_id (parallel; '' = unassigned)
-//   dd_token_id               (parallel, no orphan concept)
-//   dd_token_text             (parallel)
-//   dd_token_feedback         (parallel; rich — every token can be explained)
+// FormData contract (must match save-question.ts DRAG_ORDER branch):
+//   do_slot_id                (parallel array)
+//   do_slot_target_text       (parallel)
+//   do_slot_assigned_token_id (parallel; '' = unassigned)
+//   do_token_id               (parallel)
+//   do_token_text             (parallel)
+//   do_token_feedback         (parallel; rich — every token can be explained)
 
 'use client';
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Editor } from '@tiptap/react';
+import { Fragment, useState } from 'react';
 import {
-  MIN_DD_SLOTS,
-  MAX_DD_SLOTS,
-  DD_RECOMMENDED_MIN_SLOTS,
-  DD_TOKEN_POOL_MAX_OVER_SLOTS,
-  DD_TOKEN_POOL_RECOMMENDED_MIN,
-  DD_TOKEN_POOL_ABSOLUTE_MAX,
-  DD_TOKEN_POOL_MIN_EXTRA,
+  DO_MIN_SLOTS,
+  DO_MAX_SLOTS,
+  DO_RECOMMENDED_MIN_SLOTS,
+  DO_TOKEN_POOL_MAX_OVER_SLOTS,
+  DO_TOKEN_POOL_ABSOLUTE_MAX,
+  DO_TOKEN_POOL_MIN_EXTRA,
 } from '@/lib/bank/classifications';
 import { ModalFrame } from '@/lib/bank/atoms/modal-frame';
 import { EditorActions } from '@/lib/bank/atoms/editor-actions';
@@ -60,14 +42,13 @@ import {
   RovingProvider,
   RovingToolbar,
   RovingRichField,
-  useRoving,
 } from '@/lib/authoring/roving-rich';
 import {
   RichStemField,
   RichInstructionField,
   RichRationaleFields,
 } from '@/lib/authoring/rich-atoms';
-import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
+import { RichRender } from '@/lib/authoring/rich-render';
 import {
   parseRichDoc,
   serializeRichDoc,
@@ -76,10 +57,6 @@ import {
   EMPTY_RICH_DOC,
   type RichDoc,
 } from '@/lib/authoring/rich-doc';
-import {
-  dragDropStemScanText,
-  appendMarkerToDoc,
-} from './drag-drop-stem-doc';
 import { ClassificationFields } from '@/lib/bank/atoms/classification-fields';
 import { HousekeepingFields } from '@/lib/bank/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/bank/atoms/hidden-item-inputs';
@@ -102,18 +79,14 @@ import {
 } from '@/lib/bank/actions/delete-question';
 import {
   ordinalLabel,
-  type DragDropEditorInitial,
-  type DragDropEditorSlot,
-  type DragDropEditorToken,
-  type DragDropSubtype,
-} from './drag-drop-row-mapper';
+  type DragOrderEditorInitial,
+  type DragOrderEditorSlot,
+  type DragOrderEditorToken,
+} from './drag-order-row-mapper';
 
-export type { DragDropEditorInitial };
+export type { DragOrderEditorInitial };
 
-// Single-bracket positive integer, e.g. [1] [12]. Shared with the parser
-// at lib/bank/parsers/drag-drop.ts. Inside-bracket value is captured.
-const MARKER_RE = /\[(\d+)\]/g;
-const FORM_ID = 'auth-drag-drop-form';
+const FORM_ID = 'auth-drag-order-form';
 
 type ValidityState = 'ok' | 'warn' | 'err';
 
@@ -121,25 +94,9 @@ type ValidityState = 'ok' | 'warn' | 'err';
 // Helpers (private).
 // ─────────────────────────────────────────────────────────────
 
-export function extractActiveMarkers(stem: string): Set<number> {
-  const out = new Set<number>();
-  for (const m of stem.matchAll(MARKER_RE)) {
-    const n = parseInt(m[1], 10);
-    if (Number.isFinite(n) && n >= 1 && n <= MAX_DD_SLOTS) out.add(n);
-  }
-  return out;
-}
-
 function slotIdToN(slotId: string): number {
   const n = parseInt(slotId.slice(1), 10);
   return Number.isFinite(n) ? n : NaN;
-}
-
-function nextFreeMarkerN(used: Set<number>): number | null {
-  for (let n = 1; n <= MAX_DD_SLOTS; n++) {
-    if (!used.has(n)) return n;
-  }
-  return null;
 }
 
 function nextFreeTokenN(used: Set<string>): number {
@@ -148,55 +105,37 @@ function nextFreeTokenN(used: Set<string>): number {
   return n;
 }
 
-// SENTENCE seed — produces a starter stem that visibly demonstrates
-// the [N] marker syntax + min-3 rule, matching HIGHLIGHT's pre-seed
-// philosophy. Used when the curator switches to SENTENCE subtype on
-// an empty stem.
-function sentenceSeedStem(): string {
-  return 'Step one: [1]. Step two: [2]. Step three: [3].';
-}
-
 interface BoundsSummary {
   activeSlotCount: number;
   tokenCount: number;
-  tokenFloor: number;             // HARD pool minimum (slots + ≥1 distractor)
-  tokenRecommendedFloor: number;  // advisory pool minimum (NCLEX 4-floor norm)
-  tokenCap: number;               // pool maximum (NCLEX 10 ceiling)
-  tokenRecommended: number;       // soft target ≈ 2 × slots, capped at tokenCap
+  tokenFloor: number;             // HARD pool minimum = slots (distractors optional)
+  tokenCap: number;               // pool maximum (slots + extras, NCLEX 10 ceiling)
   distractorCount: number;
   unassignedActive: number;
 }
 
 function summarise(
-  slots: DragDropEditorSlot[],
-  tokens: DragDropEditorToken[],
-  isActive: (s: DragDropEditorSlot) => boolean,
+  slots: DragOrderEditorSlot[],
+  tokens: DragOrderEditorToken[],
 ): BoundsSummary {
-  const activeSlots = slots.filter(isActive);
-  const activeSlotCount = activeSlots.length;
+  // ORDERED — every slot is active (no markers, no orphans).
+  const activeSlotCount = slots.length;
   const tokenCount = tokens.length;
-  // HARD floor — one token per slot + at least one distractor.
-  const tokenFloor = activeSlotCount + DD_TOKEN_POOL_MIN_EXTRA;
-  // Advisory floor — the NCSBN 4-item norm (nudge only, doesn't block).
-  const tokenRecommendedFloor = Math.max(
-    tokenFloor,
-    DD_TOKEN_POOL_RECOMMENDED_MIN,
-  );
+  // HARD floor — one token per position. Distractors are OPTIONAL for an
+  // ordered-response item (classically you arrange exactly the given items),
+  // so DO_TOKEN_POOL_MIN_EXTRA is 0 and there is no pool-size recommendation.
+  const tokenFloor = activeSlotCount + DO_TOKEN_POOL_MIN_EXTRA;
   const tokenCap = Math.min(
-    activeSlotCount + DD_TOKEN_POOL_MAX_OVER_SLOTS,
-    DD_TOKEN_POOL_ABSOLUTE_MAX,
+    activeSlotCount + DO_TOKEN_POOL_MAX_OVER_SLOTS,
+    DO_TOKEN_POOL_ABSOLUTE_MAX,
   );
-  // Soft 2x target — falls back to the cap when 2x exceeds NCLEX's 10.
-  const tokenRecommended = Math.min(activeSlotCount * 2, tokenCap);
   return {
     activeSlotCount,
     tokenCount,
     tokenFloor,
-    tokenRecommendedFloor,
     tokenCap,
-    tokenRecommended,
     distractorCount: Math.max(0, tokenCount - activeSlotCount),
-    unassignedActive: activeSlots.filter(
+    unassignedActive: slots.filter(
       (s) => s.assigned_token_id.trim() === '',
     ).length,
   };
@@ -206,8 +145,8 @@ function contentValidity(
   s: BoundsSummary,
   tokenTextEmpty: boolean,
 ): ValidityState {
-  if (s.activeSlotCount < MIN_DD_SLOTS) return 'err';
-  if (s.activeSlotCount > MAX_DD_SLOTS) return 'err';
+  if (s.activeSlotCount < DO_MIN_SLOTS) return 'err';
+  if (s.activeSlotCount > DO_MAX_SLOTS) return 'err';
   if (s.tokenCount < s.tokenFloor) return 'err';
   if (s.tokenCount > s.tokenCap) return 'err';
   if (tokenTextEmpty) return 'err';
@@ -216,74 +155,44 @@ function contentValidity(
 }
 
 // ─────────────────────────────────────────────────────────────
-// DragDropPreview — dual-mode preview rendered in the right pane.
-// Student view: ORDERED → numbered empty slot rows + token pool;
-// SENTENCE → passage with empty inline boxes at each [N] + token
-// pool. Answer-key view: each slot filled with its correct token;
-// remaining tokens shown as "distractor" tags.
+// DragOrderPreview — dual-mode preview rendered in the right pane.
+// Student view: numbered empty slot rows + token pool. Answer-key view:
+// each slot filled with its correct token; remaining tokens shown as
+// "distractor" tags.
 // ─────────────────────────────────────────────────────────────
 
-interface DragDropPreviewProps {
+interface DragOrderPreviewProps {
   instruction: RichDoc;
   stem: RichDoc;
-  subtype: DragDropSubtype;
-  slots: DragDropEditorSlot[];
-  tokens: DragDropEditorToken[];
-  activeMarkers: Set<number>;
+  slots: DragOrderEditorSlot[];
+  tokens: DragOrderEditorToken[];
   viewMode: PreviewViewMode;
   onViewModeChange: (next: PreviewViewMode) => void;
 }
 
-export function DragDropPreview({
+export function DragOrderPreview({
   instruction,
   stem,
-  subtype,
   slots,
   tokens,
-  activeMarkers,
   viewMode,
   onViewModeChange,
-}: DragDropPreviewProps) {
-  const tokenById = useMemo(() => {
-    const m = new Map<string, DragDropEditorToken>();
-    for (const t of tokens) m.set(t.id, t);
-    return m;
-  }, [tokens]);
+}: DragOrderPreviewProps) {
+  const tokenById = new Map<string, DragOrderEditorToken>();
+  for (const t of tokens) tokenById.set(t.id, t);
 
-  // Active slots in the order the parser will persist them: form order
-  // for ORDERED; passage order (sN sorted by N) for SENTENCE (matches
-  // the parser's "form order with active filter" — SENTENCE slot cards
-  // are kept sorted by N inside the editor, so form order == passage
-  // order here).
-  const activeSlots = useMemo(
-    () =>
-      slots.filter((s) => {
-        if (subtype === 'ORDERED') return true;
-        const n = slotIdToN(s.id);
-        return Number.isFinite(n) && activeMarkers.has(n);
-      }),
-    [slots, subtype, activeMarkers],
-  );
+  // Tokens used by any slot — distractors are the rest in the runner.
+  const usedTokenIds = new Set<string>();
+  for (const s of slots) {
+    if (s.assigned_token_id) usedTokenIds.add(s.assigned_token_id);
+  }
 
-  // Tokens NOT used by any active slot — distractors in the runner.
-  const usedTokenIds = useMemo(() => {
-    const used = new Set<string>();
-    for (const s of activeSlots) {
-      if (s.assigned_token_id) used.add(s.assigned_token_id);
-    }
-    return used;
-  }, [activeSlots]);
-
-  function renderSlotBox(slot: DragDropEditorSlot, displayIndex: number) {
+  function renderSlotBox(slot: DragOrderEditorSlot, displayIndex: number) {
     const token =
       slot.assigned_token_id ? tokenById.get(slot.assigned_token_id) : null;
     const filled = viewMode === 'answer-key' && token;
-    const labelN =
-      subtype === 'SENTENCE' ? slotIdToN(slot.id) : displayIndex + 1;
-    const numberLabel =
-      subtype === 'SENTENCE'
-        ? `[${labelN}]`
-        : slot.target_text.trim() || ordinalLabel(labelN);
+    const labelN = displayIndex + 1;
+    const numberLabel = slot.target_text.trim() || ordinalLabel(labelN);
 
     return (
       <div
@@ -303,61 +212,12 @@ export function DragDropPreview({
             <span className="auth-dd-preview-slot-empty">drop here</span>
           )}
         </span>
-        {subtype === 'ORDERED' && slot.target_text.trim() && (
+        {slot.target_text.trim() && (
           <span className="auth-dd-preview-slot-hint">
             {slot.target_text}
           </span>
         )}
       </div>
-    );
-  }
-
-  // SENTENCE student/answer-key: render the rich passage with an inline drop
-  // box spliced in at each [N] marker (the shared RichRenderWithSlots — same
-  // engine the runner uses). Off-card markers (sN with no card) shouldn't
-  // happen because the editor auto-creates cards on marker insertion, but we
-  // render a "?" placeholder if so for robustness during transient state.
-  function renderSentencePassage() {
-    if (isEmptyRichDoc(stem)) {
-      return (
-        <em className="auth-dd-preview-placeholder">
-          Write the sentence above. Use <code>[1]</code>, <code>[2]</code>, …
-          to mark each drop slot.
-        </em>
-      );
-    }
-    const renderSlot = (nStr: string): React.ReactNode => {
-      const n = parseInt(nStr, 10);
-      const slot = slots.find((s) => slotIdToN(s.id) === n);
-      if (!slot || !Number.isFinite(n) || n < 1 || n > MAX_DD_SLOTS) {
-        return (
-          <span className="auth-dd-preview-inline-box auth-dd-preview-inline-box-bad">
-            [{nStr}?]
-          </span>
-        );
-      }
-      const token = slot.assigned_token_id
-        ? tokenById.get(slot.assigned_token_id)
-        : null;
-      const filled = viewMode === 'answer-key' && token;
-      return (
-        <span
-          className={
-            'auth-dd-preview-inline-box' +
-            (filled ? ' auth-dd-preview-inline-box-filled' : '')
-          }
-        >
-          {filled ? token!.text || '(empty)' : `[${n}]`}
-        </span>
-      );
-    };
-    return (
-      <RichRenderWithSlots
-        className="auth-dd-preview-passage"
-        doc={stem}
-        pattern={/\[(\d+)\]/}
-        renderSlot={renderSlot}
-      />
     );
   }
 
@@ -379,9 +239,7 @@ export function DragDropPreview({
           </div>
         )}
 
-        {subtype === 'SENTENCE' ? (
-          renderSentencePassage()
-        ) : isEmptyRichDoc(stem) ? (
+        {isEmptyRichDoc(stem) ? (
           <em className="auth-dd-preview-placeholder">
             Write the prompt above (e.g.{' '}
             <code>Place these steps in order…</code>).
@@ -390,21 +248,17 @@ export function DragDropPreview({
           <RichRender doc={stem} className="auth-dd-preview-passage" />
         )}
 
-        {/* Slot list — ORDERED renders a numbered stack; SENTENCE
-            already renders boxes inline above, so this section only
-            shows for ORDERED. */}
-        {subtype === 'ORDERED' && (
-          <div className="auth-dd-preview-slots">
-            {activeSlots.length === 0 ? (
-              <em className="auth-dd-preview-placeholder">
-                Add slots in the editor — at least {MIN_DD_SLOTS} ranked
-                positions ({DD_RECOMMENDED_MIN_SLOTS}+ recommended).
-              </em>
-            ) : (
-              activeSlots.map((s, i) => renderSlotBox(s, i))
-            )}
-          </div>
-        )}
+        {/* Slot list — a numbered stack. */}
+        <div className="auth-dd-preview-slots">
+          {slots.length === 0 ? (
+            <em className="auth-dd-preview-placeholder">
+              Add slots in the editor — at least {DO_MIN_SLOTS} ranked
+              positions ({DO_RECOMMENDED_MIN_SLOTS}+ recommended).
+            </em>
+          ) : (
+            slots.map((s, i) => renderSlotBox(s, i))
+          )}
+        </div>
 
         {/* Token pool — always shown. Used tokens dim in answer-key
             view; unused remain as distractors. */}
@@ -448,19 +302,15 @@ export function DragDropPreview({
 }
 
 // ─────────────────────────────────────────────────────────────
-// SlotCard — one card per slot. Active for ORDERED (always) or
-// SENTENCE-with-marker; orphan cards render dimmed for SENTENCE-
-// without-marker. Curator picks the correct token via a <select>;
-// feedback is optional.
+// SlotCard — one card per slot. ORDERED slots are always active.
+// Curator picks the correct token via a <select>; the position label is
+// optional.
 // ─────────────────────────────────────────────────────────────
 
 interface SlotCardProps {
-  slot: DragDropEditorSlot;
-  subtype: DragDropSubtype;
-  isActive: boolean;
-  isOrphan: boolean;
+  slot: DragOrderEditorSlot;
   showRemove: boolean;
-  availableTokens: DragDropEditorToken[];
+  availableTokens: DragOrderEditorToken[];
   disabled: boolean;
   onTargetText: (next: string) => void;
   onAssignedToken: (next: string) => void;
@@ -469,9 +319,6 @@ interface SlotCardProps {
 
 function SlotCard({
   slot,
-  subtype,
-  isActive,
-  isOrphan,
   showRemove,
   availableTokens,
   disabled,
@@ -481,27 +328,15 @@ function SlotCard({
 }: SlotCardProps) {
   const cardClass =
     'auth-dd-slot-card' +
-    (isOrphan
-      ? ' auth-dd-slot-card-orphan'
-      : slot.assigned_token_id
-        ? ' auth-dd-slot-card-filled'
-        : ' auth-dd-slot-card-empty');
-
-  // Show all tokens, but disable already-assigned-elsewhere ones in
-  // the dropdown so the curator can see the full pool while editing.
-  const idLabel =
-    subtype === 'SENTENCE' ? `[${slot.id.slice(1)}]` : slot.id;
+    (slot.assigned_token_id
+      ? ' auth-dd-slot-card-filled'
+      : ' auth-dd-slot-card-empty');
 
   return (
     <div className={cardClass}>
       <div className="auth-dd-slot-head">
         <div className="auth-dd-slot-title">
-          <span className="auth-dd-slot-id">{idLabel}</span>
-          {isOrphan && (
-            <span className="auth-dd-orphan-badge">
-              will be dropped on save
-            </span>
-          )}
+          <span className="auth-dd-slot-id">{slot.id}</span>
         </div>
         {showRemove && onRemove && (
           <button
@@ -516,30 +351,16 @@ function SlotCard({
         )}
       </div>
 
-      {isOrphan && (
-        <p className="auth-dd-orphan-tip">
-          Re-type <code>[{slot.id.slice(1)}]</code> in the stem to
-          reconnect this card. Otherwise its assignment is discarded
-          on save.
-        </p>
-      )}
-
       <div className="auth-dd-slot-body">
         <div className="auth-fg">
-          <label className="auth-label">
-            {subtype === 'ORDERED' ? 'Position label' : 'Hint (optional)'}
-          </label>
+          <label className="auth-label">Position label</label>
           <input
             type="text"
             value={slot.target_text}
             onChange={(e) => onTargetText(e.target.value)}
-            placeholder={
-              subtype === 'ORDERED'
-                ? 'e.g. 1st action'
-                : 'e.g. most likely diagnosis'
-            }
+            placeholder="e.g. 1st action"
             className="auth-input"
-            disabled={disabled || !isActive}
+            disabled={disabled}
           />
         </div>
 
@@ -549,7 +370,7 @@ function SlotCard({
             value={slot.assigned_token_id}
             onChange={(e) => onAssignedToken(e.target.value)}
             className="auth-input auth-dd-slot-select"
-            disabled={disabled || !isActive}
+            disabled={disabled}
           >
             <option value="">— pick a token —</option>
             {availableTokens.map((t) => (
@@ -569,42 +390,38 @@ function SlotCard({
 }
 
 // ─────────────────────────────────────────────────────────────
-// HiddenSerialisers — emit FormData inputs for every slot (active +
-// orphan) and every token. The parser filters orphans by re-deriving
-// active slot IDs from the stem's [N] markers, so we don't need an
-// in_stem flag.
+// HiddenSerialisers — emit FormData inputs for every slot and every
+// token. Token feedback is emitted in lockstep here (the RovingRichField
+// uses noHiddenInput).
 // ─────────────────────────────────────────────────────────────
 
 function HiddenSerialisers({
-  subtype,
   slots,
   tokens,
 }: {
-  subtype: DragDropSubtype;
-  slots: DragDropEditorSlot[];
-  tokens: DragDropEditorToken[];
+  slots: DragOrderEditorSlot[];
+  tokens: DragOrderEditorToken[];
 }) {
   return (
     <>
-      <input type="hidden" name="dd_subtype" value={subtype} />
       {slots.map((s) => (
         <Fragment key={`hid-slot-${s.id}`}>
-          <input type="hidden" name="dd_slot_id" value={s.id} />
-          <input type="hidden" name="dd_slot_target_text" value={s.target_text} />
+          <input type="hidden" name="do_slot_id" value={s.id} />
+          <input type="hidden" name="do_slot_target_text" value={s.target_text} />
           <input
             type="hidden"
-            name="dd_slot_assigned_token_id"
+            name="do_slot_assigned_token_id"
             value={s.assigned_token_id}
           />
         </Fragment>
       ))}
       {tokens.map((t) => (
         <Fragment key={`hid-tok-${t.id}`}>
-          <input type="hidden" name="dd_token_id" value={t.id} />
-          <input type="hidden" name="dd_token_text" value={t.text} />
+          <input type="hidden" name="do_token_id" value={t.id} />
+          <input type="hidden" name="do_token_text" value={t.text} />
           <input
             type="hidden"
-            name="dd_token_feedback"
+            name="do_token_feedback"
             value={serializeRichDoc(t.feedback)}
           />
         </Fragment>
@@ -614,34 +431,12 @@ function HiddenSerialisers({
 }
 
 // ─────────────────────────────────────────────────────────────
-// RovingBridge — lifts the roving toolbar's active field + editor up to the
-// editor body (which sits outside the provider) so "Insert slot marker" can
-// splice at the caret / focus the stem. Renders nothing. (The Cloze pattern.)
-// ─────────────────────────────────────────────────────────────
-
-function RovingBridge({
-  onChange,
-}: {
-  onChange: (
-    key: string | null,
-    editor: Editor | null,
-    setActiveKey: (k: string | null) => void,
-  ) => void;
-}) {
-  const { activeKey, activeEditor, setActiveKey } = useRoving();
-  useEffect(() => {
-    onChange(activeKey, activeEditor, setActiveKey);
-  }, [activeKey, activeEditor, setActiveKey, onChange]);
-  return null;
-}
-
-// ─────────────────────────────────────────────────────────────
-// DragDropEditorBody — two-pane edit + preview body. Mountable
+// DragOrderEditorBody — two-pane edit + preview body. Mountable
 // anywhere (modal host or sandbox).
 // ─────────────────────────────────────────────────────────────
 
-export interface DragDropEditorBodyProps {
-  initial: DragDropEditorInitial;
+export interface DragOrderEditorBodyProps {
+  initial: DragOrderEditorInitial;
   error: string | null;
   pending: boolean;
   onSubmit: (formData: FormData) => void;
@@ -649,27 +444,26 @@ export interface DragDropEditorBodyProps {
   onErrorDismiss?: () => void;
 }
 
-export function DragDropEditorBody({
+export function DragOrderEditorBody({
   initial,
   error,
   pending,
   onSubmit,
   onDirty,
   onErrorDismiss,
-}: DragDropEditorBodyProps) {
+}: DragOrderEditorBodyProps) {
   const [tab, setTab] = useState<
     'content' | 'classification' | 'housekeeping'
   >('content');
   const [clientError, setClientError] = useState<string | null>(null);
-  // DRAG_DROP defaults to 'student' — curator usually previews the
+  // DRAG_ORDER defaults to 'student' — curator usually previews the
   // pool + empty slots first, then flips to answer-key to verify the
   // assignment.
   const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
 
-  // Stem / instruction / rationale are rich docs (Slice 6f). Read-coerce via
-  // parseRichDoc (legacy plain text wraps as paragraphs; no migration). For
-  // SENTENCE the [N] markers live as plain text inside the stem doc (Option B,
-  // decoupled).
+  // Stem / instruction / rationale are rich docs. Read-coerce via
+  // parseRichDoc (legacy plain text wraps as paragraphs; no migration). The
+  // ORDERED stem is a plain prompt — no markers.
   const [stem, setStem] = useState<RichDoc>(() => parseRichDoc(initial.stem));
   const [instruction, setInstruction] = useState<RichDoc>(() =>
     parseRichDoc(initial.instruction),
@@ -677,178 +471,33 @@ export function DragDropEditorBody({
   const [rationale, setRationale] = useState<RichDoc>(() =>
     parseRichDoc(initial.rationale),
   );
-  const [subtype, setSubtype] = useState<DragDropSubtype>(initial.subtype);
-  const [slots, setSlots] = useState<DragDropEditorSlot[]>(initial.slots);
-  const [tokens, setTokens] = useState<DragDropEditorToken[]>(initial.tokens);
+  const [slots, setSlots] = useState<DragOrderEditorSlot[]>(initial.slots);
+  const [tokens, setTokens] = useState<DragOrderEditorToken[]>(initial.tokens);
   const [category, setCategory] = useState(initial.client_needs_category);
-
-  // Bridge to the roving toolbar's live editor, so "Insert slot marker" can
-  // splice [N] at the caret when the stem is the focused field, and focus the
-  // stem (setActiveKey) on the append fallback (see handleInsertMarker below).
-  const rovingRef = useRef<{
-    key: string | null;
-    editor: Editor | null;
-    setActiveKey: ((k: string | null) => void) | null;
-  }>({ key: null, editor: null, setActiveKey: null });
-  const setRoving = useCallback(
-    (
-      key: string | null,
-      editor: Editor | null,
-      setActiveKey: (k: string | null) => void,
-    ) => {
-      rovingRef.current = { key, editor, setActiveKey };
-    },
-    [],
-  );
 
   // The slots editor is paned: only one slot's card renders at a time,
   // with a tab strip above letting the curator switch. Initial active
-  // = first slot's id (or null on a fresh SENTENCE flow with empty
-  // stem). Mirrors the CLOZE pattern from slice 8.
+  // = first slot's id.
   const [activeSlotId, setActiveSlotId] = useState<string | null>(
     () => initial.slots[0]?.id ?? null,
   );
 
-  // SENTENCE — auto-create a slot card whenever a new [N] appears in
-  // the stem; preserve existing cards as orphans when their marker is
-  // edited out. Stem is controlled (via <StemField>) so we sync slot
-  // creation directly inside the stem-change handler instead of via
-  // useEffect — avoids the React 19 set-state-in-effect anti-pattern.
-  const activeMarkers = useMemo(
-    () =>
-      subtype === 'SENTENCE'
-        ? extractActiveMarkers(dragDropStemScanText(stem))
-        : new Set<number>(),
-    [stem, subtype],
-  );
-
-  function reconcileSlotsToStem(stemDoc: RichDoc) {
-    const markers = extractActiveMarkers(dragDropStemScanText(stemDoc));
-    let firstFreshId: string | null = null;
-    setSlots((prev) => {
-      const haveIds = new Set(prev.map((s) => s.id));
-      const fresh: DragDropEditorSlot[] = [];
-      for (const n of markers) {
-        const id = `s${n}`;
-        if (!haveIds.has(id)) {
-          fresh.push({
-            id,
-            target_text: '',
-            assigned_token_id: '',
-          });
-          if (!firstFreshId) firstFreshId = id;
-        }
-      }
-      if (fresh.length === 0) return prev;
-      const next = [...prev, ...fresh];
-      next.sort((a, b) => slotIdToN(a.id) - slotIdToN(b.id));
-      return next;
-    });
-    // Auto-switch the tab to the newly created slot if there was no
-    // active one yet (covers the empty-stem SENTENCE start-up). Don't
-    // hijack the tab if the curator was viewing a different slot.
-    if (firstFreshId && activeSlotId === null) {
-      setActiveSlotId(firstFreshId);
-    }
-  }
-
-  function handleStemChange(next: RichDoc) {
-    setStem(next);
-    if (subtype === 'SENTENCE') reconcileSlotsToStem(next);
-  }
-
-  // Derived: which slots are active right now.
-  function isSlotActive(slot: DragDropEditorSlot): boolean {
-    if (subtype === 'ORDERED') return true;
-    const n = slotIdToN(slot.id);
-    return Number.isFinite(n) && activeMarkers.has(n);
-  }
-
   const tokenTextEmpty = tokens.some((t) => t.text.trim() === '');
-  const summary = summarise(slots, tokens, isSlotActive);
+  const summary = summarise(slots, tokens);
   const validity = contentValidity(summary, tokenTextEmpty);
   const contentIncomplete = validity !== 'ok';
   const classificationIncomplete = !category;
 
-  // Live marks for the Housekeeping readout. Per bank-marks-and-scoring §5.2:
-  // DRAG_DROP max = count of active slots. ORDERED counts every form slot;
-  // SENTENCE counts only slots whose [N] marker is in the stem (parser drops
-  // orphans). summary.activeSlotCount matches the parser's `correct.slots`
-  // key count exactly.
+  // Live marks for the Housekeeping readout: DRAG_ORDER max = count of slots.
+  // summary.activeSlotCount matches the parser's `correct.slots` key count.
   const liveMarks = summary.activeSlotCount;
 
   // ─────────────────────────────────────────────────────────────
-  // Subtype switching — clears slots + tokens (with confirm), keeps
-  // stem text. Switching to SENTENCE on an empty stem seeds three [N]
-  // markers so the curator sees the syntax and the min-3 rule from
-  // open. Switching to ORDERED rebuilds the default 3-slot scaffold.
-  // ─────────────────────────────────────────────────────────────
-
-  function defaultOrderedSlots(): DragDropEditorSlot[] {
-    return [1, 2, 3].map((n) => ({
-      id: `s${n}`,
-      target_text: ordinalLabel(n),
-      assigned_token_id: '',
-    }));
-  }
-
-  function defaultSeedTokens(): DragDropEditorToken[] {
-    // Seed enough tokens to satisfy the NCLEX floor for the default
-    // 3-slot scaffold: 4 tokens = 3 correct + 1 distractor.
-    return [1, 2, 3, 4].map((n) => ({
-      id: `t${n}`,
-      text: '',
-      feedback: { ...EMPTY_RICH_DOC },
-    }));
-  }
-
-  function handleSubtypeChange(next: DragDropSubtype) {
-    if (subtype === next) return;
-    const hasData =
-      slots.some((s) => s.assigned_token_id || s.target_text) ||
-      tokens.some((t) => t.text || !isEmptyRichDoc(t.feedback));
-    if (
-      hasData &&
-      !window.confirm(
-        'Switching subtype will clear all slots and tokens. The stem text is kept (unless empty, in which case a starter is seeded). Continue?',
-      )
-    ) {
-      return;
-    }
-    setSubtype(next);
-    if (next === 'SENTENCE') {
-      // Seed a starter stem only if the curator had nothing typed.
-      const seededStem = isEmptyRichDoc(stem)
-        ? parseRichDoc(sentenceSeedStem())
-        : stem;
-      if (seededStem !== stem) setStem(seededStem);
-      // SENTENCE slots come from markers — derive them from the
-      // current stem value rather than wait for an effect to fire.
-      const markers = extractActiveMarkers(dragDropStemScanText(seededStem));
-      const seedSlots = Array.from(markers)
-        .sort((a, b) => a - b)
-        .map((n) => ({
-          id: `s${n}`,
-          target_text: '',
-          assigned_token_id: '',
-        }));
-      setSlots(seedSlots);
-      setActiveSlotId(seedSlots[0]?.id ?? null);
-    } else {
-      const orderedSlots = defaultOrderedSlots();
-      setSlots(orderedSlots);
-      setActiveSlotId(orderedSlots[0]?.id ?? null);
-    }
-    setTokens(defaultSeedTokens());
-    onDirty?.();
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // ORDERED-only: + Slot / × Remove
+  // + Slot / × Remove
   // ─────────────────────────────────────────────────────────────
 
   function addOrderedSlot() {
-    if (summary.activeSlotCount >= MAX_DD_SLOTS) return;
+    if (summary.activeSlotCount >= DO_MAX_SLOTS) return;
     const used = new Set(
       slots.map((s) => slotIdToN(s.id)).filter(Number.isFinite),
     );
@@ -879,49 +528,12 @@ export function DragDropEditorBody({
   }
 
   // ─────────────────────────────────────────────────────────────
-  // SENTENCE-only: insert [N] at the cursor in the stem textarea.
-  // ─────────────────────────────────────────────────────────────
-
-  function handleInsertMarker() {
-    const usedMarkers = extractActiveMarkers(dragDropStemScanText(stem));
-    const n = nextFreeMarkerN(usedMarkers);
-    if (n === null) {
-      window.alert(`Already at the ${MAX_DD_SLOTS}-marker maximum.`);
-      return;
-    }
-    const marker = `[${n}]`;
-    const roving = rovingRef.current;
-    // When the stem is the live (focused) roving field, splice the marker at
-    // the caret via Tiptap (its onChange → handleStemChange → reconcile creates
-    // the slot). Otherwise append it to the end of the stem doc, reconcile, and
-    // focus the field — a clean text marker the curator can drag into place.
-    if (roving.key === 'stem' && roving.editor && !roving.editor.isDestroyed) {
-      const ed = roving.editor;
-      const { from } = ed.state.selection;
-      const before =
-        from > 0 ? ed.state.doc.textBetween(Math.max(0, from - 1), from, ' ') : '';
-      const needsSpace = before !== '' && !/\s/.test(before);
-      ed.chain().focus().insertContent(`${needsSpace ? ' ' : ''}${marker}`).run();
-    } else {
-      const next = appendMarkerToDoc(stem, marker);
-      setStem(next);
-      reconcileSlotsToStem(next);
-      roving.setActiveKey?.('stem');
-    }
-    // The toolbar click is an explicit "add new slot" action — focus its tab so
-    // the curator lands on the new slot card once reconcile creates it.
-    setActiveSlotId(`s${n}`);
-
-    onDirty?.();
-  }
-
-  // ─────────────────────────────────────────────────────────────
   // Per-slot mutations
   // ─────────────────────────────────────────────────────────────
 
   function setSlotField(
     slotId: string,
-    patch: Partial<DragDropEditorSlot>,
+    patch: Partial<DragOrderEditorSlot>,
   ) {
     setSlots((prev) =>
       prev.map((s) => (s.id === slotId ? { ...s, ...patch } : s)),
@@ -933,7 +545,7 @@ export function DragDropEditorBody({
   // ─────────────────────────────────────────────────────────────
 
   function addToken() {
-    if (tokens.length >= DD_TOKEN_POOL_ABSOLUTE_MAX) return;
+    if (tokens.length >= DO_TOKEN_POOL_ABSOLUTE_MAX) return;
     const used = new Set(tokens.map((t) => t.id));
     const n = nextFreeTokenN(used);
     setTokens((prev) => [
@@ -971,7 +583,7 @@ export function DragDropEditorBody({
   // For each slot's <select>: tokens NOT assigned to a different slot
   // (so duplicates can't be picked through the UI). The current slot's
   // own assignment stays selectable.
-  function tokensAvailableFor(slotId: string): DragDropEditorToken[] {
+  function tokensAvailableFor(slotId: string): DragOrderEditorToken[] {
     const takenElsewhere = new Set<string>();
     for (const s of slots) {
       if (s.id !== slotId && s.assigned_token_id) {
@@ -1007,9 +619,6 @@ export function DragDropEditorBody({
     onErrorDismiss?.();
   }
 
-  // Split slots for tab-strip rendering — actives first, orphans tail.
-  const activeSlots = slots.filter(isSlotActive);
-  const orphanSlots = slots.filter((s) => !isSlotActive(s));
   // The single slot card that's currently visible. Falls back to the
   // first slot if `activeSlotId` is stale (e.g. it pointed at a slot
   // that was removed).
@@ -1022,45 +631,30 @@ export function DragDropEditorBody({
   //   err  — outside the structural 2–8 range.
   //   warn — valid but below the recommended 3 (a norm, not a wall).
   const slotMeterState: ValidityState =
-    summary.activeSlotCount < MIN_DD_SLOTS ||
-    summary.activeSlotCount > MAX_DD_SLOTS
+    summary.activeSlotCount < DO_MIN_SLOTS ||
+    summary.activeSlotCount > DO_MAX_SLOTS
       ? 'err'
-      : summary.activeSlotCount < DD_RECOMMENDED_MIN_SLOTS
+      : summary.activeSlotCount < DO_RECOMMENDED_MIN_SLOTS
         ? 'warn'
         : 'ok';
   // Slot-count advisory line: in-range but below the recommended count.
   const slotCountAdvisory =
-    summary.activeSlotCount >= MIN_DD_SLOTS &&
-    summary.activeSlotCount < DD_RECOMMENDED_MIN_SLOTS;
-  // Token meter:
-  //   err  — pool below the structural floor (no distractor) or over cap
-  //          (or some token has empty text).
-  //   warn — pool valid but below the NCLEX 4-floor norm OR the 2×
-  //          recommendation.
-  //   ok   — meets or exceeds both.
+    summary.activeSlotCount >= DO_MIN_SLOTS &&
+    summary.activeSlotCount < DO_RECOMMENDED_MIN_SLOTS;
+  // Token meter (ordered-response): one token per position is the only hard
+  // rule. Distractors are OPTIONAL, so there is no pool-size nudge — green
+  // whenever the pool is in [slots, cap].
+  //   err  — fewer tokens than positions, over cap, or a token has empty text.
+  //   ok   — otherwise.
   const tokenMeterState: ValidityState =
     summary.tokenCount < summary.tokenFloor ||
     summary.tokenCount > summary.tokenCap ||
     tokenTextEmpty
       ? 'err'
-      : summary.tokenCount < summary.tokenRecommendedFloor ||
-          summary.tokenCount < summary.tokenRecommended
-        ? 'warn'
-        : 'ok';
-  // Distractor meter mirrors the token meter for the distractor count
-  // specifically — below the structural ≥1 is err; below the recommended
-  // amount is warn; meeting the recommendation is ok.
-  const distractorRecommended = Math.max(
-    0,
-    summary.tokenRecommended - summary.activeSlotCount,
-  );
-  const distractorRequired = DD_TOKEN_POOL_MIN_EXTRA;
-  const distractorMeterState: ValidityState =
-    summary.distractorCount < distractorRequired
-      ? 'err'
-      : summary.distractorCount < distractorRecommended
-        ? 'warn'
-        : 'ok';
+      : 'ok';
+  // Distractor meter is informational only — distractors are optional for an
+  // ordering item, so it never errs or warns.
+  const distractorMeterState: ValidityState = 'ok';
   const assignmentMeterState: ValidityState =
     summary.unassignedActive > 0 ? 'warn' : 'ok';
 
@@ -1073,7 +667,7 @@ export function DragDropEditorBody({
       onInput={onDirty}
     >
       <HiddenItemInputs
-        type="DRAG_DROP"
+        type="DRAG_ORDER"
         itemId={initial.itemId}
         surface={initial.surface}
       />
@@ -1087,7 +681,6 @@ export function DragDropEditorBody({
         title={richTextToPlain(initial.stem)}
       />
       <RovingProvider>
-        <RovingBridge onChange={setRoving} />
         <div className="auth-split">
         <div className="auth-edit">
           <EditorTabs
@@ -1115,83 +708,23 @@ export function DragDropEditorBody({
               />
               <RichStemField
                 value={stem}
-                onChange={(doc) => { handleStemChange(doc); onDirty?.(); }}
+                onChange={(doc) => { setStem(doc); onDirty?.(); }}
               />
-
-              {/* Subtype picker — radio bar */}
-              <div className="auth-fg">
-                <label className="auth-label">Subtype *</label>
-                <div
-                  className="auth-dd-subtype-bar"
-                  role="radiogroup"
-                  aria-label="Drag-drop subtype"
-                >
-                  {(['ORDERED', 'SENTENCE'] as const).map((st) => (
-                    <button
-                      key={st}
-                      type="button"
-                      role="radio"
-                      aria-checked={subtype === st}
-                      className={
-                        subtype === st
-                          ? 'auth-dd-subtype-opt auth-dd-subtype-opt-active'
-                          : 'auth-dd-subtype-opt'
-                      }
-                      onClick={() => handleSubtypeChange(st)}
-                      disabled={pending}
-                    >
-                      {st === 'ORDERED' ? 'Ordered list' : 'Sentence slots'}
-                    </button>
-                  ))}
-                </div>
-                <p className="auth-hint">
-                  {subtype === 'ORDERED'
-                    ? 'Curator-defined ranked positions (1st, 2nd, …). Add up to ' +
-                      MAX_DD_SLOTS +
-                      ' slots.'
-                    : 'Stem carries [1], [2], … markers. Each marker maps to one slot. Use single brackets — double [[…]] is HIGHLIGHT syntax.'}
-                </p>
-              </div>
-
-              {/* SENTENCE-only marker toolbar */}
-              {subtype === 'SENTENCE' && (
-                <div className="auth-fg">
-                  <div className="auth-dd-toolbar">
-                    <button
-                      type="button"
-                      className="auth-btn auth-btn-primary"
-                      onClick={handleInsertMarker}
-                      disabled={
-                        pending ||
-                        summary.activeSlotCount >= MAX_DD_SLOTS
-                      }
-                    >
-                      [N] Insert slot marker
-                    </button>
-                    <span className="auth-hint">
-                      Inserts the next free <code>[N]</code> at the
-                      cursor in the stem. Max {MAX_DD_SLOTS}.
-                    </span>
-                  </div>
-                </div>
-              )}
 
               <div className="auth-fg">
                 <div className="auth-label-row">
                   <label className="auth-label">Slots *</label>
-                  {subtype === 'ORDERED' && (
-                    <button
-                      type="button"
-                      className="auth-btn auth-btn-ghost auth-btn-sm"
-                      onClick={addOrderedSlot}
-                      disabled={
-                        pending ||
-                        summary.activeSlotCount >= MAX_DD_SLOTS
-                      }
-                    >
-                      + Slot
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className="auth-btn auth-btn-ghost auth-btn-sm"
+                    onClick={addOrderedSlot}
+                    disabled={
+                      pending ||
+                      summary.activeSlotCount >= DO_MAX_SLOTS
+                    }
+                  >
+                    + Slot
+                  </button>
                 </div>
 
                 {/* Bounds meter — slot + token + distractor pills colour-code
@@ -1200,15 +733,15 @@ export function DragDropEditorBody({
                 <div className="auth-dd-bounds">
                   <span
                     className={`auth-dd-bounds-item auth-dd-${slotMeterState}`}
-                    title={`Structural range ${MIN_DD_SLOTS}–${MAX_DD_SLOTS}. Most items use ${DD_RECOMMENDED_MIN_SLOTS}+.`}
+                    title={`Structural range ${DO_MIN_SLOTS}–${DO_MAX_SLOTS}. Most items use ${DO_RECOMMENDED_MIN_SLOTS}+.`}
                   >
                     {summary.activeSlotCount} slot
-                    {summary.activeSlotCount === 1 ? '' : 's'} ({MIN_DD_SLOTS}
-                    –{MAX_DD_SLOTS})
+                    {summary.activeSlotCount === 1 ? '' : 's'} ({DO_MIN_SLOTS}
+                    –{DO_MAX_SLOTS})
                   </span>
                   <span
                     className={`auth-dd-bounds-item auth-dd-${tokenMeterState}`}
-                    title={`At least ${summary.tokenFloor} required, ${summary.tokenCap} max. NCLEX uses ${DD_TOKEN_POOL_RECOMMENDED_MIN}+; recommended ≈${summary.tokenRecommended} (2× slots).`}
+                    title={`One token per position (${summary.tokenFloor} needed). Up to ${summary.tokenCap} allowed if you add optional distractors.`}
                   >
                     {summary.tokenCount} token
                     {summary.tokenCount === 1 ? '' : 's'} (
@@ -1216,10 +749,10 @@ export function DragDropEditorBody({
                   </span>
                   <span
                     className={`auth-dd-bounds-item auth-dd-${distractorMeterState}`}
-                    title={`At least ${distractorRequired} required. Recommended: ${distractorRecommended}.`}
+                    title="Distractors are optional for an ordering item."
                   >
                     {summary.distractorCount} distractor
-                    {summary.distractorCount === 1 ? '' : 's'} (≥{distractorRequired})
+                    {summary.distractorCount === 1 ? '' : 's'} (optional)
                   </span>
                   <span
                     className={`auth-dd-bounds-item auth-dd-${assignmentMeterState}`}
@@ -1232,29 +765,22 @@ export function DragDropEditorBody({
                     recommended norm. Nudges, never blocks. */}
                 {slotCountAdvisory && (
                   <p className="auth-dd-advisory">
-                    Most NCLEX drag-drop items use {DD_RECOMMENDED_MIN_SLOTS} or
+                    Most NCLEX drag-to-order items use {DO_RECOMMENDED_MIN_SLOTS} or
                     more slots. This one has {summary.activeSlotCount} — that&apos;s
                     fine to save, just unusual.
                   </p>
                 )}
 
-                {/* Tab strip — one tab per slot (actives first, then
-                    orphans). Status dot reflects per-slot validity:
-                    green when a token is assigned, amber when empty.
-                    Orphan tabs use a dashed warning style. */}
+                {/* Tab strip — one tab per slot. Status dot reflects per-slot
+                    validity: green when a token is assigned, amber when empty. */}
                 {slots.length > 0 && (
                   <div className="auth-dd-tabs" role="tablist">
-                    {activeSlots.map((s, i) => {
+                    {slots.map((s, i) => {
                       const isActive = s.id === activeSlotId;
                       const dot: ValidityState = s.assigned_token_id
                         ? 'ok'
                         : 'warn';
-                      const labelN =
-                        subtype === 'SENTENCE' ? slotIdToN(s.id) : i + 1;
-                      const tabLabel =
-                        subtype === 'SENTENCE'
-                          ? `[${labelN}]`
-                          : `Slot ${labelN}`;
+                      const tabLabel = `Slot ${i + 1}`;
                       return (
                         <button
                           type="button"
@@ -1273,28 +799,6 @@ export function DragDropEditorBody({
                         </button>
                       );
                     })}
-                    {orphanSlots.map((s) => {
-                      const isActive = s.id === activeSlotId;
-                      const n = slotIdToN(s.id);
-                      return (
-                        <button
-                          type="button"
-                          role="tab"
-                          key={s.id}
-                          aria-selected={isActive}
-                          className={
-                            'auth-dd-tab auth-dd-tab-orphan' +
-                            (isActive ? ' auth-dd-tab-active' : '')
-                          }
-                          onClick={() => setActiveSlotId(s.id)}
-                          disabled={pending}
-                          title="This slot's marker is no longer in the stem. Click to view; re-type the marker to reconnect."
-                        >
-                          <span className="auth-dd-tab-dot auth-dd-warn" />
-                          {`[${n}]`} · orphan
-                        </button>
-                      );
-                    })}
                   </div>
                 )}
 
@@ -1302,21 +806,13 @@ export function DragDropEditorBody({
                 <div className="auth-dd-slot-panel-wrap">
                   {slots.length === 0 ? (
                     <div className="auth-dd-slots-empty">
-                      {subtype === 'SENTENCE'
-                        ? 'Type [1], [2], … in the stem (or click "+ Insert slot marker") to create slots.'
-                        : 'No slots yet — click "+ Slot" to add one.'}
+                      No slots yet — click &quot;+ Slot&quot; to add one.
                     </div>
                   ) : activeSlot ? (
                     <SlotCard
                       key={activeSlot.id}
                       slot={activeSlot}
-                      subtype={subtype}
-                      isActive={isSlotActive(activeSlot)}
-                      isOrphan={!isSlotActive(activeSlot)}
-                      showRemove={
-                        subtype === 'ORDERED' &&
-                        summary.activeSlotCount > MIN_DD_SLOTS
-                      }
+                      showRemove={summary.activeSlotCount > DO_MIN_SLOTS}
                       availableTokens={tokensAvailableFor(activeSlot.id)}
                       disabled={pending}
                       onTargetText={(v) =>
@@ -1325,11 +821,7 @@ export function DragDropEditorBody({
                       onAssignedToken={(v) =>
                         setSlotField(activeSlot.id, { assigned_token_id: v })
                       }
-                      onRemove={
-                        subtype === 'ORDERED'
-                          ? () => removeOrderedSlot(activeSlot.id)
-                          : undefined
-                      }
+                      onRemove={() => removeOrderedSlot(activeSlot.id)}
                     />
                   ) : null}
                 </div>
@@ -1345,20 +837,18 @@ export function DragDropEditorBody({
                     onClick={addToken}
                     disabled={
                       pending ||
-                      tokens.length >= DD_TOKEN_POOL_ABSOLUTE_MAX
+                      tokens.length >= DO_TOKEN_POOL_ABSOLUTE_MAX
                     }
                   >
                     + Token
                   </button>
                 </div>
                 <p className="auth-hint">
-                  Every slot needs its token plus at least one distractor. For
-                  this question:{' '}
+                  One token per position — for this question:{' '}
                   <strong>{summary.tokenFloor} required, {summary.tokenCap} max</strong>.
-                  NCLEX pools typically hold{' '}
-                  <strong>{DD_TOKEN_POOL_RECOMMENDED_MIN}–{DD_TOKEN_POOL_ABSOLUTE_MAX}</strong>{' '}
-                  tokens; we recommend ≈ {summary.tokenRecommended} (about 2× slots)
-                  so students can&apos;t solve by elimination.
+                  Distractors (extra tokens that don&apos;t belong in the order)
+                  are <strong>optional</strong>: add a few if you want students to
+                  rule them out, or none for a pure ordering task.
                 </p>
                 <div className="auth-dd-tokens-wrap">
                   {tokens.map((t) => {
@@ -1403,8 +893,8 @@ export function DragDropEditorBody({
                       <div className="auth-fg auth-dd-token-fb">
                         <label className="auth-label">Feedback (optional)</label>
                         <RovingRichField
-                          fieldKey={`dd-fb-${t.id}`}
-                          name="dd_token_feedback"
+                          fieldKey={`do-fb-${t.id}`}
+                          name="do_token_feedback"
                           value={t.feedback}
                           onChange={(v) => updateTokenFeedback(t.id, v)}
                           inline
@@ -1425,7 +915,6 @@ export function DragDropEditorBody({
               </div>
 
               <HiddenSerialisers
-                subtype={subtype}
                 slots={slots}
                 tokens={tokens}
               />
@@ -1457,7 +946,7 @@ export function DragDropEditorBody({
             <TabPanel id="housekeeping">
               <HousekeepingFields
                 mode={initial.mode}
-                questionType="DRAG_DROP"
+                questionType="DRAG_ORDER"
                 defaults={{
                   marks: liveMarks,
                   question_ref: initial.question_ref,
@@ -1473,13 +962,11 @@ export function DragDropEditorBody({
         </div>
 
         <div className="auth-preview">
-          <DragDropPreview
+          <DragOrderPreview
             instruction={instruction}
             stem={stem}
-            subtype={subtype}
             slots={slots}
             tokens={tokens}
-            activeMarkers={activeMarkers}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
           />
@@ -1491,23 +978,23 @@ export function DragDropEditorBody({
 }
 
 // ─────────────────────────────────────────────────────────────
-// DragDropEditor — default standalone modal host. Same wiring as
+// DragOrderEditor — default standalone modal host. Same wiring as
 // the other editors.
 // ─────────────────────────────────────────────────────────────
 
-export interface DragDropEditorProps {
-  initial: DragDropEditorInitial;
+export interface DragOrderEditorProps {
+  initial: DragOrderEditorInitial;
   onClose: () => void;
   onSaved?: (result: { item_id: string; created: boolean }) => void;
   onDeleted?: (item_id: string) => void;
 }
 
-export function DragDropEditor({
+export function DragOrderEditor({
   initial,
   onClose,
   onSaved,
   onDeleted,
-}: DragDropEditorProps) {
+}: DragOrderEditorProps) {
   const isEdit = initial.itemId !== null;
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteText, setDeleteText] = useState('');
@@ -1568,8 +1055,8 @@ export function DragDropEditor({
     <ModalFrame
       title={
         isEdit
-          ? `Edit Drag-drop — ${initial.itemId}`
-          : 'New Drag-drop question'
+          ? `Edit Drag to order — ${initial.itemId}`
+          : 'New Drag-to-order question'
       }
       onClose={pending ? () => undefined : guard.requestClose}
       actions={
@@ -1600,7 +1087,7 @@ export function DragDropEditor({
           onConfirm={confirmDelete}
         />
       )}
-      <DragDropEditorBody
+      <DragOrderEditorBody
         initial={initial}
         error={error}
         pending={pending}

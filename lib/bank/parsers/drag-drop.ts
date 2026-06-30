@@ -14,14 +14,15 @@
 //   1. subtype must be 'ORDERED' or 'SENTENCE'.
 //   2. For SENTENCE: extract [N] via /\[(\d+)\]/g; N must be 1..8 and
 //      unique; reject otherwise.
-//   3. Active slot count must be in [MIN_DD_SLOTS, MAX_DD_SLOTS] (3..8).
+//   3. Active slot count must be in [MIN_DD_SLOTS, MAX_DD_SLOTS] (2..8).
 //   4. Token count must satisfy
-//        tokens.length >= max(activeSlots.length + DD_TOKEN_POOL_MIN_EXTRA,
-//                             DD_TOKEN_POOL_ABSOLUTE_MIN)
+//        tokens.length >= activeSlots.length + DD_TOKEN_POOL_MIN_EXTRA
 //        tokens.length <= min(activeSlots.length + DD_TOKEN_POOL_MAX_OVER_SLOTS,
 //                             DD_TOKEN_POOL_ABSOLUTE_MAX)
-//      i.e. always ≥1 distractor and within the NCLEX 4–10 NGN window.
-//      Every token must have non-empty text.
+//      i.e. always ≥1 distractor (the structural floor) and not over the
+//      NCLEX 10 ceiling. The NCSBN "4+ items" minimum is a curator-facing
+//      advisory in the editor, not enforced here. Every token must have
+//      non-empty text.
 //   5. Every active slot has assigned_token_id pointing at a real token.
 //      No token_id may be assigned to more than one active slot.
 //
@@ -35,7 +36,6 @@ import {
   MIN_DD_SLOTS,
   MAX_DD_SLOTS,
   DD_TOKEN_POOL_MAX_OVER_SLOTS,
-  DD_TOKEN_POOL_ABSOLUTE_MIN,
   DD_TOKEN_POOL_ABSOLUTE_MAX,
   DD_TOKEN_POOL_MIN_EXTRA,
 } from '@/lib/bank/classifications';
@@ -45,12 +45,12 @@ export interface DragDropSlotInput {
   id: string;
   target_text: string;
   assigned_token_id: string;
-  feedback: string;
 }
 
 export interface DragDropTokenInput {
   id: string;
   text: string;
+  feedback: string;   // rich-doc JSON (or ''); shown in review, sparse on save
 }
 
 export interface DragDropParseInput {
@@ -124,22 +124,18 @@ export function parseDragDrop(input: DragDropParseInput): DragDropParseResult {
     return { ok: false, error: 'Every token must have non-empty text.' };
   }
 
-  const tokenFloor = Math.max(
-    activeSlotCount + DD_TOKEN_POOL_MIN_EXTRA,
-    DD_TOKEN_POOL_ABSOLUTE_MIN,
-  );
+  // Structural floor: one token per slot + at least one distractor. The
+  // NCSBN 4-item minimum is a norm, surfaced as an editor advisory — not
+  // enforced here (a 2-slot item is legitimate with 3 tokens).
+  const tokenFloor = activeSlotCount + DD_TOKEN_POOL_MIN_EXTRA;
   const tokenCap = Math.min(
     activeSlotCount + DD_TOKEN_POOL_MAX_OVER_SLOTS,
     DD_TOKEN_POOL_ABSOLUTE_MAX,
   );
   if (formTokens.length < tokenFloor) {
-    const distractorsNeeded = Math.max(
-      DD_TOKEN_POOL_MIN_EXTRA,
-      DD_TOKEN_POOL_ABSOLUTE_MIN - activeSlotCount,
-    );
     return {
       ok: false,
-      error: `Token pool must have at least ${tokenFloor} tokens (${activeSlotCount} for slots + ${distractorsNeeded} distractor${distractorsNeeded === 1 ? '' : 's'}). Found ${formTokens.length}.`,
+      error: `Token pool must have at least ${tokenFloor} tokens (${activeSlotCount} for slots + ${DD_TOKEN_POOL_MIN_EXTRA} distractor${DD_TOKEN_POOL_MIN_EXTRA === 1 ? '' : 's'}). Found ${formTokens.length}.`,
     };
   }
   if (formTokens.length > tokenCap) {
@@ -212,12 +208,13 @@ export function parseDragDrop(input: DragDropParseInput): DragDropParseResult {
     correctSlots[slot.id] = slot.assigned_token_id.trim();
   }
 
-  // correct.feedback: sparse — only non-empty, only active slots.
+  // correct.feedback: sparse — keyed by TOKEN id, only non-empty. Every
+  // token (correct or distractor) may carry feedback; tokens are never
+  // dropped (unlike orphan slots), so we keep all non-empty entries.
   const feedback: Record<string, string> = {};
-  for (const slot of formSlots) {
-    if (!activeSlotIds.has(slot.id)) continue;
-    const fb = slot.feedback.trim();
-    if (fb !== '') feedback[slot.id] = fb;
+  for (const tok of formTokens) {
+    const fb = tok.feedback.trim();
+    if (fb !== '') feedback[tok.id] = fb;
   }
 
   const correct: DragDropCorrect = {

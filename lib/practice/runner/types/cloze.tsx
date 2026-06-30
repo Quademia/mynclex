@@ -37,13 +37,15 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import type {
   ClozeContent,
   ClozeCorrect,
   ClozeBlank,
 } from '@/lib/bank/types';
 import type { ClozeAnswer } from '@/lib/scoring';
+import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
+import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
 
 type ClozeRunnerProps = {
   stem:    string;
@@ -76,51 +78,16 @@ export function isClozeComplete(
   return true;
 }
 
-type Segment =
-  | { kind: 'plain'; text: string }
-  | { kind: 'blank'; idx: number; blank: ClozeBlank };
-
-// Splits the stem into a sequence of plain-text and blank-slot segments.
-// The i-th `{N}` marker maps to content.blanks[i]. Curator-side parser
-// renumbers gaps on save, so by the time we render a snapshot this
-// positional mapping holds. If counts desync (corrupt snapshot), we
-// fall back to a synthetic blank with an empty choice list — same
-// defensive pattern as HIGHLIGHT.
-function parseStem(stem: string, blanks: ClozeBlank[]): Segment[] {
-  const out:    Segment[] = [];
-  const regex = /\{(\d+)\}/g;
-
-  let lastIdx = 0;
-  let blankIdx = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(stem)) !== null) {
-    if (match.index > lastIdx) {
-      out.push({ kind: 'plain', text: stem.slice(lastIdx, match.index) });
-    }
-    const b = blanks[blankIdx] ?? {
-      id: `_b${blankIdx + 1}`,
-      choices: [],
-    };
-    out.push({ kind: 'blank', idx: blankIdx, blank: b });
-    lastIdx   = match.index + match[0].length;
-    blankIdx += 1;
-  }
-
-  if (lastIdx < stem.length) {
-    out.push({ kind: 'plain', text: stem.slice(lastIdx) });
-  }
-  return out;
-}
-
 export function ClozeRunner(props: ClozeRunnerProps) {
   const { stem, content } = props;
   const isReview = props.mode === 'review';
 
-  const segments = useMemo(
-    () => parseStem(stem, content.blanks),
-    [stem, content.blanks],
-  );
+  // The stem is a rich doc (Slice 6d) with {N} markers as plain text inside
+  // it; read-coerced so legacy plain stems still render. The i-th marker maps
+  // positionally to content.blanks[i] (the curator-side parser renumbers gaps
+  // on save). A count desync (corrupt snapshot) falls back to a synthetic
+  // empty blank — same defensive pattern as before.
+  const stemDoc = useMemo(() => parseRichDoc(stem), [stem]);
 
   const filledCount = isReview
     ? Object.values(props.studentAnswer).filter(Boolean).length
@@ -134,6 +101,69 @@ export function ClozeRunner(props: ClozeRunnerProps) {
     else                 next[blankId] = choiceId;
     props.onChange(next);
   }
+
+  // Render one blank slot for the i-th marker. Persistent superscript number
+  // (both modes) matches the "Blank N" headers in the feedback prose so a
+  // student can map a dropdown / pill back to its rationale entry.
+  const renderSlot = (_key: string, i: number): ReactNode => {
+    const blank: ClozeBlank = content.blanks[i] ?? { id: `_b${i + 1}`, choices: [] };
+    const num = (
+      <span className="rn-cloze-blank-num" aria-hidden="true">
+        {i + 1}
+      </span>
+    );
+
+    if (!isReview) {
+      const value = props.selected[blank.id] ?? '';
+      return (
+        <span className="rn-cloze-blank-wrap">
+          {num}
+          <select
+            className={`rn-cloze-select${value ? ' sel' : ''}`}
+            value={value}
+            onChange={(e) => setBlank(blank.id, e.target.value)}
+            aria-label={`Blank ${i + 1}`}
+          >
+            <option value="">— choose —</option>
+            {blank.choices.map((c) => (
+              <option key={c.id} value={c.id}>{c.text}</option>
+            ))}
+          </select>
+        </span>
+      );
+    }
+
+    // Review mode — render an inline pill instead of a <select>.
+    const pickedId = props.studentAnswer[blank.id];
+    const correctId = props.correct.answers[blank.id];
+    const pickedChoice = blank.choices.find((c) => c.id === pickedId);
+    const isCorrect = !!pickedId && pickedId === correctId;
+
+    if (!pickedId) {
+      return (
+        <span className="rn-cloze-blank-wrap">
+          {num}
+          <span className="rn-cloze-pill skipped" aria-label={`Blank ${i + 1} skipped`}>
+            (skipped)
+          </span>
+        </span>
+      );
+    }
+    return (
+      <span className="rn-cloze-blank-wrap">
+        {num}
+        <span
+          className={`rn-cloze-pill ${isCorrect ? 'right' : 'wrong'}`}
+          aria-label={`Blank ${i + 1} ${isCorrect ? 'correct' : 'wrong'}`}
+        >
+          <span className="rn-cloze-pill-mark" aria-hidden="true">
+            {isCorrect ? '✓' : '✕'}
+          </span>
+          {pickedChoice?.text ?? pickedId}
+        </span>
+      </span>
+    );
+  };
 
   return (
     <>
@@ -154,74 +184,12 @@ export function ClozeRunner(props: ClozeRunnerProps) {
         </div>
       )}
 
-      <div className="rn-cloze-stem">
-        {segments.map((seg, i) => {
-          if (seg.kind === 'plain') {
-            return <span key={i}>{seg.text}</span>;
-          }
-
-          // Persistent superscript number before every blank (both modes).
-          // Matches the "Blank N" headers in the post-answer feedback prose
-          // so students can map a dropdown / pill back to its rationale
-          // entry without counting positions.
-          const num = (
-            <span className="rn-cloze-blank-num" aria-hidden="true">
-              {seg.idx + 1}
-            </span>
-          );
-
-          if (!isReview) {
-            const value = props.selected[seg.blank.id] ?? '';
-            return (
-              <span key={i} className="rn-cloze-blank-wrap">
-                {num}
-                <select
-                  className={`rn-cloze-select${value ? ' sel' : ''}`}
-                  value={value}
-                  onChange={(e) => setBlank(seg.blank.id, e.target.value)}
-                  aria-label={`Blank ${seg.idx + 1}`}
-                >
-                  <option value="">— choose —</option>
-                  {seg.blank.choices.map((c) => (
-                    <option key={c.id} value={c.id}>{c.text}</option>
-                  ))}
-                </select>
-              </span>
-            );
-          }
-
-          // Review mode — render an inline pill instead of a <select>.
-          const pickedId = props.studentAnswer[seg.blank.id];
-          const correctId = props.correct.answers[seg.blank.id];
-          const pickedChoice = seg.blank.choices.find((c) => c.id === pickedId);
-          const isCorrect    = !!pickedId && pickedId === correctId;
-
-          if (!pickedId) {
-            return (
-              <span key={i} className="rn-cloze-blank-wrap">
-                {num}
-                <span className="rn-cloze-pill skipped" aria-label={`Blank ${seg.idx + 1} skipped`}>
-                  (skipped)
-                </span>
-              </span>
-            );
-          }
-          return (
-            <span key={i} className="rn-cloze-blank-wrap">
-              {num}
-              <span
-                className={`rn-cloze-pill ${isCorrect ? 'right' : 'wrong'}`}
-                aria-label={`Blank ${seg.idx + 1} ${isCorrect ? 'correct' : 'wrong'}`}
-              >
-                <span className="rn-cloze-pill-mark" aria-hidden="true">
-                  {isCorrect ? '✓' : '✕'}
-                </span>
-                {pickedChoice?.text ?? pickedId}
-              </span>
-            </span>
-          );
-        })}
-      </div>
+      <RichRenderWithSlots
+        className="rn-cloze-stem"
+        doc={stemDoc}
+        pattern={/\{(\d+)\}/}
+        renderSlot={renderSlot}
+      />
 
       {isReview && (
         <ClozeFeedbackList
@@ -270,14 +238,18 @@ function ClozeFeedbackList({ blanks, studentAnswer, correct }: FeedbackListProps
             <p className="rn-cloze-feedback-rationales">
               {b.choices.map((c) => {
                 const isCorrect = c.id === correctId;
-                const fb        = blankFeedback?.[c.id];
+                // Feedback is a rich doc (Slice 6d-ii), read-coerced so legacy
+                // plain feedback still renders. Choice label stays plain.
+                const fbRaw = blankFeedback?.[c.id];
+                const fbDoc = fbRaw ? parseRichDoc(fbRaw) : null;
+                const hasFb = fbDoc !== null && !isEmptyRichDoc(fbDoc);
                 return (
                   <span
                     key={c.id}
                     className={`rn-cloze-feedback-item${isCorrect ? ' right' : ''}`}
                   >
                     <span className="rn-cloze-feedback-label">{c.text}</span>
-                    {fb && <> — {fb}</>}
+                    {hasFb && <> — <RichRender doc={fbDoc} inline /></>}
                   </span>
                 );
               })}

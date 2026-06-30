@@ -79,6 +79,18 @@ import {
   type DragDropDbRow,
   type DragDropEditorInitial,
 } from '@/lib/bank/editors/drag-drop-row-mapper';
+import {
+  emptyDragClozeInitial,
+  dragClozeRowToInitial,
+  type DragClozeDbRow,
+  type DragClozeEditorInitial,
+} from '@/lib/bank/editors/drag-cloze-row-mapper';
+import {
+  emptyDragOrderInitial,
+  dragOrderRowToInitial,
+  type DragOrderDbRow,
+  type DragOrderEditorInitial,
+} from '@/lib/bank/editors/drag-order-row-mapper';
 import type { QuestionType } from '@/lib/bank/classifications';
 
 export const dynamic = 'force-dynamic';
@@ -227,6 +239,8 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
   const clozeInitialsById:     Record<string, ClozeEditorInitial>     = {};
   const highlightInitialsById: Record<string, HighlightEditorInitial> = {};
   const dragDropInitialsById:  Record<string, DragDropEditorInitial>  = {};
+  const dragClozeInitialsById: Record<string, DragClozeEditorInitial> = {};
+  const dragOrderInitialsById: Record<string, DragOrderEditorInitial> = {};
   for (const row of fullRows) {
     if (row.question_type === 'MCQ') {
       mcqInitialsById[row.item_id] = mcqRowToInitial(row, 'tutor');
@@ -246,6 +260,10 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
       highlightInitialsById[row.item_id] = highlightRowToInitial(row as unknown as HighlightDbRow, 'tutor');
     } else if (row.question_type === 'DRAG_DROP') {
       dragDropInitialsById[row.item_id] = dragDropRowToInitial(row as unknown as DragDropDbRow, 'tutor');
+    } else if (row.question_type === 'DRAG_CLOZE') {
+      dragClozeInitialsById[row.item_id] = dragClozeRowToInitial(row as unknown as DragClozeDbRow, 'tutor');
+    } else if (row.question_type === 'DRAG_ORDER') {
+      dragOrderInitialsById[row.item_id] = dragOrderRowToInitial(row as unknown as DragOrderDbRow, 'tutor');
     }
   }
 
@@ -318,6 +336,10 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
           emptyHighlightInitial={emptyHighlightInitial('tutor')}
           dragDropInitialsById={dragDropInitialsById}
           emptyDragDropInitial={emptyDragDropInitial('tutor')}
+          dragClozeInitialsById={dragClozeInitialsById}
+          emptyDragClozeInitial={emptyDragClozeInitial('tutor')}
+          dragOrderInitialsById={dragOrderInitialsById}
+          emptyDragOrderInitial={emptyDragOrderInitial('tutor')}
         />
       </div>
     </main>

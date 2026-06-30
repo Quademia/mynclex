@@ -12,6 +12,11 @@
 // IDs are 'h1', 'h2', … assigned in passage order by parseHighlight.
 
 import type { HousekeepingMode } from '@/lib/bank/atoms/housekeeping-fields';
+import {
+  parseRichDoc,
+  EMPTY_RICH_DOC,
+  type RichDoc,
+} from '@/lib/authoring/rich-doc';
 import { type McqDbRow, MCQ_ROW_COLUMNS } from './mcq-row-mapper';
 
 // ─────────────────────────────────────────────────────────────
@@ -26,9 +31,12 @@ export type HighlightDecision = 'correct' | 'wrong' | 'undecided';
 
 export interface HighlightEditorChunk {
   id: string;            // 'h1', 'h2', ...
+  // Chunk text stays PLAIN — it's the clickable token the runner styles, and
+  // the decoupled-marker rule keeps it mark-free (Slice 6e decision). Feedback
+  // is rich: it shows in the review feedback prose, real formatted HTML.
   text: string;          // text between [[ and ]]
   decision: HighlightDecision;
-  feedback: string;
+  feedback: RichDoc;
   in_passage: boolean;
 }
 
@@ -93,7 +101,7 @@ export function emptyHighlightInitial(surface: 'admin' | 'tutor'): HighlightEdit
     id: `h${i + 1}`,
     text: t,
     decision: 'undecided',
-    feedback: '',
+    feedback: { ...EMPTY_RICH_DOC },
     in_passage: true,
   }));
 
@@ -143,7 +151,7 @@ export function highlightRowToInitial(
     id: c.id,
     text: c.text,
     decision: correctSet.has(c.id) ? 'correct' : 'wrong',
-    feedback: feedbackMap[c.id] ?? '',
+    feedback: parseRichDoc(feedbackMap[c.id] ?? ''),
     in_passage: true,
   }));
 

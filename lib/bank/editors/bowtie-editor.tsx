@@ -5,23 +5,33 @@
 // label, own token pool, and own correct-count target. NCLEX bow-tie
 // scoring: pick exactly 2 left + 1 centre + 2 right = 5 correct.
 //
+// Slice 6c-ii: each wing's TOKEN TEXT and per-token FEEDBACK go RICH,
+// driven by the one roving toolbar on the Content tab, alongside the
+// shared instruction/stem/rationale atoms. Wing LABELS stay plain —
+// they're preset-driven picks ("Actions to take", "Condition"…), not
+// content prose. Read-coerce, no migration.
+//
+// Form-data architecture note: the editor is tab-based (only the active
+// wing's panel is mounted), but ALL form serialization happens in the
+// always-rendered <HiddenSerialisers>. The rich token fields therefore
+// use `noHiddenInput` — they're the editing UI only; HiddenSerialisers
+// emits the serialized rich docs for every wing so inactive wings'
+// data survives a save.
+//
 // UX:
 //   - Two-pane split (consistent with all other editors). Left pane
 //     holds the wings editor; right pane holds the answer-key preview.
 //   - The wings editor itself is tab-based: only one wing's panel
 //     renders at a time. Tabs carry status dots (green/amber/red)
 //     based on per-wing validity.
-//   - Hidden inputs for ALL three wings are emitted regardless of
-//     which tab is active, so switching tabs and saving doesn't
-//     drop inactive wings' data.
 //   - Capacity enforcement is soft on Left/Right (ticking a 3rd
 //     auto-unticks the oldest); strict on Centre (radio semantics).
 //
 // FormData contract (must match parseBowtie() byte-for-byte):
 //   bowtie_left_label / bowtie_centre_label / bowtie_right_label
 //   bowtie_<wing>_token_id        (parallel arrays per wing)
-//   bowtie_<wing>_token_text      (parallel)
-//   bowtie_<wing>_token_feedback  (parallel)
+//   bowtie_<wing>_token_text      (parallel; serialized rich-doc JSON)
+//   bowtie_<wing>_token_feedback  (parallel; serialized rich-doc JSON)
 //   bowtie_left_correct           (repeated, one per ticked left token)
 //   bowtie_right_correct          (repeated, one per ticked right token)
 //   bowtie_centre_correct         (single value, the radio-picked id)
@@ -42,9 +52,6 @@ import { ModalFrame } from '@/lib/bank/atoms/modal-frame';
 import { EditorActions } from '@/lib/bank/atoms/editor-actions';
 import { EditorTabs, TabPanel } from '@/lib/bank/atoms/editor-tabs';
 import { EditorAuthorship } from '@/lib/audit/authorship-line';
-import { StemField } from '@/lib/bank/atoms/stem-field';
-import { InstructionField } from '@/lib/bank/atoms/instruction-field';
-import { RationaleFields } from '@/lib/bank/atoms/rationale-fields';
 import { ClassificationFields } from '@/lib/bank/atoms/classification-fields';
 import { HousekeepingFields } from '@/lib/bank/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/bank/atoms/hidden-item-inputs';
@@ -65,15 +72,44 @@ import {
   deleteQuestionAction,
   type DeleteResult,
 } from '@/lib/bank/actions/delete-question';
-import type {
-  BowtieEditorInitial,
-  BowtieEditorToken,
-} from './bowtie-row-mapper';
+import {
+  RovingProvider,
+  RovingToolbar,
+  RovingRichField,
+} from '@/lib/authoring/roving-rich';
+import {
+  RichInstructionField,
+  RichStemField,
+  RichRationaleFields,
+} from '@/lib/authoring/rich-atoms';
+import { RichRender } from '@/lib/authoring/rich-render';
+import {
+  parseRichDoc,
+  serializeRichDoc,
+  isEmptyRichDoc,
+  richTextToPlain,
+  type RichDoc,
+} from '@/lib/authoring/rich-doc';
+import type { BowtieEditorInitial } from './bowtie-row-mapper';
 
 export type { BowtieEditorInitial };
 
 type WingKey = 'left' | 'centre' | 'right';
 type ValidityState = 'ok' | 'warn' | 'err';
+
+// Editor-state token — text + feedback are rich docs; the label stays a
+// plain string (preset-driven). `correct` lives on the token row so the
+// serialiser only emits a "correct" input for ticked tokens.
+interface WingToken {
+  id: string;          // 'lt1', 'ct1', 'rt1', ...
+  text: RichDoc;
+  feedback: RichDoc;
+  correct: boolean;
+}
+
+function emptyDoc(): RichDoc {
+  return { type: 'doc', content: [{ type: 'paragraph' }] };
+}
 
 // ─────────────────────────────────────────────────────────────
 // Small helpers (private).
@@ -83,9 +119,9 @@ function tokenIdPrefix(wing: WingKey): 'lt' | 'ct' | 'rt' {
   return wing === 'left' ? 'lt' : wing === 'centre' ? 'ct' : 'rt';
 }
 
-function validWing(tokens: BowtieEditorToken[], required: number): ValidityState {
+function validWing(tokens: WingToken[], required: number): ValidityState {
   const correctCount = tokens.filter((t) => t.correct).length;
-  const filledCount = tokens.filter((t) => t.text.trim()).length;
+  const filledCount = tokens.filter((t) => !isEmptyRichDoc(t.text)).length;
   if (correctCount === required && filledCount >= required) return 'ok';
   if (correctCount > required || filledCount === 0) return 'err';
   return 'warn';
@@ -94,7 +130,9 @@ function validWing(tokens: BowtieEditorToken[], required: number): ValidityState
 // ─────────────────────────────────────────────────────────────
 // WingPanel — the editor for a single wing (private).
 // Only renders when its tab is active; HiddenSerialisers takes
-// care of inactive wings' form-data persistence.
+// care of inactive wings' form-data persistence. The token text +
+// feedback are RovingRichFields with `noHiddenInput` (the serialiser
+// owns the form values).
 // ─────────────────────────────────────────────────────────────
 
 interface WingPanelProps {
@@ -105,10 +143,10 @@ interface WingPanelProps {
   requiredCorrect: number;
   useRadio: boolean;
   label: string;
-  tokens: BowtieEditorToken[];
+  tokens: WingToken[];
   disabled: boolean;
   onLabelChange: (next: string) => void;
-  onTokensChange: (next: BowtieEditorToken[]) => void;
+  onTokensChange: (next: WingToken[]) => void;
 }
 
 function WingPanel({
@@ -137,7 +175,7 @@ function WingPanel({
     if (tokens.length >= BT_WING_MAX_TOKENS) return;
     onTokensChange([
       ...tokens,
-      { id: nextId(), text: '', feedback: '', correct: false },
+      { id: nextId(), text: emptyDoc(), feedback: emptyDoc(), correct: false },
     ]);
   }
 
@@ -146,11 +184,11 @@ function WingPanel({
     onTokensChange(tokens.filter((_, i) => i !== idx));
   }
 
-  function updateText(idx: number, text: string) {
+  function updateText(idx: number, text: RichDoc) {
     onTokensChange(tokens.map((t, i) => (i === idx ? { ...t, text } : t)));
   }
 
-  function updateFeedback(idx: number, feedback: string) {
+  function updateFeedback(idx: number, feedback: RichDoc) {
     onTokensChange(tokens.map((t, i) => (i === idx ? { ...t, feedback } : t)));
   }
 
@@ -237,21 +275,27 @@ function WingPanel({
               />
             </div>
             <div className="auth-bt-wing-token-fields">
-              <input
-                type="text"
+              <RovingRichField
+                fieldKey={`bt:${tk.id}:text`}
+                name={`bowtie_${wingKey}_token_text`}
                 value={tk.text}
-                onChange={(e) => updateText(idx, e.target.value)}
+                onChange={(doc) => updateText(idx, doc)}
+                inline
+                noHiddenInput
+                className="auth-rrf-bt-token"
+                ariaLabel={`${title} token text`}
                 placeholder="Token text (what the student sees)…"
-                disabled={disabled}
-                className="auth-input"
               />
-              <input
-                type="text"
+              <RovingRichField
+                fieldKey={`bt:${tk.id}:fb`}
+                name={`bowtie_${wingKey}_token_feedback`}
                 value={tk.feedback}
-                onChange={(e) => updateFeedback(idx, e.target.value)}
+                onChange={(doc) => updateFeedback(idx, doc)}
+                inline
+                noHiddenInput
+                className="auth-rrf-bt-token-fb"
+                ariaLabel={`${title} token feedback`}
                 placeholder="Per-token feedback (optional)…"
-                disabled={disabled}
-                className="auth-input auth-input--sm"
               />
             </div>
             <button
@@ -284,16 +328,17 @@ function WingPanel({
 // ─────────────────────────────────────────────────────────────
 // HiddenSerialisers — emits hidden inputs for ALL three wings,
 // regardless of which tab is active. This is the only reason
-// inactive wings' state survives a save.
+// inactive wings' state survives a save, AND the single source of
+// the rich token docs (the WingPanel fields use noHiddenInput).
 // ─────────────────────────────────────────────────────────────
 
 interface HiddenSerialisersProps {
   leftLabel: string;
-  leftTokens: BowtieEditorToken[];
+  leftTokens: WingToken[];
   centreLabel: string;
-  centreTokens: BowtieEditorToken[];
+  centreTokens: WingToken[];
   rightLabel: string;
-  rightTokens: BowtieEditorToken[];
+  rightTokens: WingToken[];
 }
 
 function HiddenSerialisers({
@@ -312,8 +357,8 @@ function HiddenSerialisers({
       {leftTokens.map((t) => (
         <Fragment key={`hl-${t.id}`}>
           <input type="hidden" name="bowtie_left_token_id" value={t.id} />
-          <input type="hidden" name="bowtie_left_token_text" value={t.text} />
-          <input type="hidden" name="bowtie_left_token_feedback" value={t.feedback} />
+          <input type="hidden" name="bowtie_left_token_text" value={serializeRichDoc(t.text)} />
+          <input type="hidden" name="bowtie_left_token_feedback" value={serializeRichDoc(t.feedback)} />
           {t.correct && (
             <input type="hidden" name="bowtie_left_correct" value={t.id} />
           )}
@@ -324,8 +369,8 @@ function HiddenSerialisers({
       {centreTokens.map((t) => (
         <Fragment key={`hc-${t.id}`}>
           <input type="hidden" name="bowtie_centre_token_id" value={t.id} />
-          <input type="hidden" name="bowtie_centre_token_text" value={t.text} />
-          <input type="hidden" name="bowtie_centre_token_feedback" value={t.feedback} />
+          <input type="hidden" name="bowtie_centre_token_text" value={serializeRichDoc(t.text)} />
+          <input type="hidden" name="bowtie_centre_token_feedback" value={serializeRichDoc(t.feedback)} />
         </Fragment>
       ))}
       <input type="hidden" name="bowtie_centre_correct" value={centreCorrect} />
@@ -334,8 +379,8 @@ function HiddenSerialisers({
       {rightTokens.map((t) => (
         <Fragment key={`hr-${t.id}`}>
           <input type="hidden" name="bowtie_right_token_id" value={t.id} />
-          <input type="hidden" name="bowtie_right_token_text" value={t.text} />
-          <input type="hidden" name="bowtie_right_token_feedback" value={t.feedback} />
+          <input type="hidden" name="bowtie_right_token_text" value={serializeRichDoc(t.text)} />
+          <input type="hidden" name="bowtie_right_token_feedback" value={serializeRichDoc(t.feedback)} />
           {t.correct && (
             <input type="hidden" name="bowtie_right_correct" value={t.id} />
           )}
@@ -349,28 +394,25 @@ function HiddenSerialisers({
 // BowtiePreview — dual-mode preview (right pane).
 //
 //   - viewMode 'answer-key' : shows the curator's correct picks per
-//                             wing as filled coloured chips (the
-//                             original BOWTIE preview).
+//                             wing as filled coloured chips.
 //   - viewMode 'student'    : shows three columns of all tokens with
 //                             a "Pick N" tag per column. Each token
 //                             renders as a neutral chip — none
 //                             selected, matching what the student
 //                             sees before answering.
 //
-// Slice 7 is the first editor with a dual-mode preview. The
-// <PreviewToggle> is rendered in the card header; state lives in
-// BowtieEditorBody.
+// Token text is rich; wing labels are plain.
 // ─────────────────────────────────────────────────────────────
 
 interface BowtiePreviewProps {
-  instruction: string;
-  stem: string;
+  instruction: RichDoc;
+  stem: RichDoc;
   leftLabel: string;
-  leftTokens: BowtieEditorToken[];
+  leftTokens: WingToken[];
   centreLabel: string;
-  centreTokens: BowtieEditorToken[];
+  centreTokens: WingToken[];
   rightLabel: string;
-  rightTokens: BowtieEditorToken[];
+  rightTokens: WingToken[];
   viewMode: PreviewViewMode;
   onViewModeChange: (next: PreviewViewMode) => void;
 }
@@ -398,11 +440,17 @@ export function BowtiePreview({
         <PreviewToggle value={viewMode} onChange={onViewModeChange} />
       </div>
 
-      {instruction.trim() && (
-        <p className="auth-preview-instruction">{instruction}</p>
+      {!isEmptyRichDoc(instruction) && (
+        <p className="auth-preview-instruction">
+          <RichRender doc={instruction} inline />
+        </p>
       )}
       <div className="auth-preview-stem">
-        {stem.trim() || <span className="auth-preview-placeholder">Stem appears here…</span>}
+        {isEmptyRichDoc(stem) ? (
+          <span className="auth-preview-placeholder">Stem appears here…</span>
+        ) : (
+          <RichRender doc={stem} />
+        )}
       </div>
 
       {viewMode === 'answer-key' ? (
@@ -428,9 +476,8 @@ export function BowtiePreview({
   );
 }
 
-// Answer-key body — extracted so the preview component above stays
-// readable. Renders the correct picks per wing as filled chips with
-// "(not yet picked)" placeholders for empty slots.
+// Answer-key body — renders the correct picks per wing as filled chips
+// with "(not yet picked)" placeholders for empty slots.
 function BowtieAnswerKeyView({
   leftLabel,
   leftTokens,
@@ -443,10 +490,10 @@ function BowtieAnswerKeyView({
   const centreCorrect = centreTokens.filter((t) => t.correct);
   const rightCorrect  = rightTokens.filter((t) => t.correct);
 
-  function chip(text: string, wing: WingKey, key: string) {
+  function chip(text: RichDoc, wing: WingKey, key: string) {
     return (
       <div key={key} className={`auth-bt-preview-chip auth-bt-preview-chip-${wing}`}>
-        {text || <em>(empty)</em>}
+        {isEmptyRichDoc(text) ? <em>(empty)</em> : <RichRender doc={text} inline />}
       </div>
     );
   }
@@ -478,23 +525,8 @@ function BowtieAnswerKeyView({
   );
 }
 
-// Student-view body — matches the canonical NGN bow-tie pre-submit
-// layout (see docs/product-plan/mockups/ngn-primer.html §4):
-//
-//   1. Drawer at the top: a single flat pool of all tokens, neutral
-//      chip styling, labelled "Drag tokens from here:". Tokens are
-//      concatenated left → centre → right; deterministic order is
-//      fine for an authoring preview. The runner shuffles them.
-//   2. Bow-tie diagram below: three columns with their wing labels
-//      and empty slot placeholders (2 / 1 / 2). The student sees
-//      the labels (so they know what kind of token each slot wants)
-//      but no chips are filled in pre-submit.
-//
-// Runtime contract note: token IDs (lt*/ct*/rt*) are unique-id
-// hygiene only, NOT wing-routing. Per-slot scoring is identity-based:
-// a slot is correct iff the placed token's id is in that slot's
-// correct array. Cross-wing misplacement is always wrong by
-// construction (left correct tokens never appear in correct.right).
+// Student-view body — a flat token drawer + the three labelled wing
+// columns with empty slot placeholders (2 / 1 / 2).
 function BowtieStudentView({
   leftLabel,
   leftTokens,
@@ -504,9 +536,9 @@ function BowtieStudentView({
   rightTokens,
 }: Omit<BowtiePreviewProps, 'instruction' | 'stem' | 'viewMode' | 'onViewModeChange'>) {
   const allTokens = [
-    ...leftTokens.filter((t) => t.text.trim().length > 0),
-    ...centreTokens.filter((t) => t.text.trim().length > 0),
-    ...rightTokens.filter((t) => t.text.trim().length > 0),
+    ...leftTokens.filter((t) => !isEmptyRichDoc(t.text)),
+    ...centreTokens.filter((t) => !isEmptyRichDoc(t.text)),
+    ...rightTokens.filter((t) => !isEmptyRichDoc(t.text)),
   ];
 
   function emptySlot(key: string) {
@@ -525,7 +557,7 @@ function BowtieStudentView({
           <div className="auth-bt-student-drawer-tokens">
             {allTokens.map((t) => (
               <span key={t.id} className="auth-bt-student-token">
-                {t.text}
+                <RichRender doc={t.text} inline />
               </span>
             ))}
           </div>
@@ -580,30 +612,41 @@ export function BowtieEditorBody({
   const [activeWing, setActiveWing] = useState<WingKey>('left');
   // BOWTIE defaults to answer-key — the curator usually checks "did
   // I pick the right 5?" before "does the student see this clearly?".
-  // The toggle lets them flip; other editors will default to 'student'
-  // when they're migrated to the dual-mode preview.
   const [viewMode, setViewMode] = useState<PreviewViewMode>('answer-key');
 
-  const [stem, setStem] = useState(initial.stem);
-  const [instruction, setInstruction] = useState(initial.instruction);
+  const [stem, setStem] = useState<RichDoc>(() => parseRichDoc(initial.stem));
+  const [instruction, setInstruction] = useState<RichDoc>(() => parseRichDoc(initial.instruction));
+  const [rationale, setRationale] = useState<RichDoc>(() => parseRichDoc(initial.rationale));
+
+  const hydrateTokens = (raw: BowtieEditorInitial['left_tokens']): WingToken[] =>
+    raw.map((t) => ({
+      id: t.id,
+      text: parseRichDoc(t.text),
+      feedback: parseRichDoc(t.feedback),
+      correct: t.correct,
+    }));
 
   const [leftLabel, setLeftLabel] = useState(initial.left_label);
-  const [leftTokens, setLeftTokens] = useState<BowtieEditorToken[]>(initial.left_tokens);
+  const [leftTokens, setLeftTokens] = useState<WingToken[]>(() => hydrateTokens(initial.left_tokens));
 
   const [centreLabel, setCentreLabel] = useState(initial.centre_label);
-  const [centreTokens, setCentreTokens] = useState<BowtieEditorToken[]>(initial.centre_tokens);
+  const [centreTokens, setCentreTokens] = useState<WingToken[]>(() => hydrateTokens(initial.centre_tokens));
 
   const [rightLabel, setRightLabel] = useState(initial.right_label);
-  const [rightTokens, setRightTokens] = useState<BowtieEditorToken[]>(initial.right_tokens);
+  const [rightTokens, setRightTokens] = useState<WingToken[]>(() => hydrateTokens(initial.right_tokens));
 
   const [category, setCategory] = useState(initial.client_needs_category);
+
+  function markDirty() {
+    onDirty?.();
+  }
 
   const leftValid   = validWing(leftTokens,   BT_LEFT_CORRECT);
   const centreValid = validWing(centreTokens, BT_CENTRE_CORRECT);
   const rightValid  = validWing(rightTokens,  BT_RIGHT_CORRECT);
 
   const contentIncomplete =
-    !stem.trim() ||
+    isEmptyRichDoc(stem) ||
     leftValid !== 'ok' ||
     centreValid !== 'ok' ||
     rightValid !== 'ok' ||
@@ -650,178 +693,188 @@ export function BowtieEditorBody({
         realm={initial.surface}
         entityType={initial.surface === 'tutor' ? 'tutor_question' : 'bank_item'}
         itemId={initial.itemId}
-        title={initial.stem}
+        title={richTextToPlain(initial.stem)}
       />
-      <div className="auth-split">
-        <div className="auth-edit">
-          <EditorTabs
-            tabs={[
-              { id: 'content',        label: 'Content',        incomplete: contentIncomplete },
-              { id: 'classification', label: 'Classification', incomplete: classificationIncomplete },
-              { id: 'housekeeping',   label: 'Housekeeping' },
-            ]}
-            active={tab}
-            onChange={(id) => setTab(id as typeof tab)}
-          >
-            <TabPanel id="content">
-              <InstructionField value={instruction} onChange={setInstruction} />
-              <StemField value={stem} onChange={setStem} />
-
-              <div className="auth-fg">
-                <label className="auth-label">Bow-tie wings *</label>
-                <p className="auth-hint">
-                  Click a tab to edit that wing. Green dot = correctly filled;
-                  amber = missing a correct pick; red = too many or no tokens yet.
-                </p>
-
-                <div className="auth-bt-tabs" role="tablist">
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={activeWing === 'left'}
-                    className={`auth-bt-tab auth-bt-tab-left ${activeWing === 'left' ? 'auth-bt-tab-active' : ''}`}
-                    onClick={() => setActiveWing('left')}
-                    disabled={pending}
-                  >
-                    <span className={`auth-bt-tab-dot auth-bt-${leftValid}`} />
-                    Left wing — {leftLabel || '(no label)'}
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={activeWing === 'centre'}
-                    className={`auth-bt-tab auth-bt-tab-centre ${activeWing === 'centre' ? 'auth-bt-tab-active' : ''}`}
-                    onClick={() => setActiveWing('centre')}
-                    disabled={pending}
-                  >
-                    <span className={`auth-bt-tab-dot auth-bt-${centreValid}`} />
-                    Centre — {centreLabel || '(no label)'}
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={activeWing === 'right'}
-                    className={`auth-bt-tab auth-bt-tab-right ${activeWing === 'right' ? 'auth-bt-tab-active' : ''}`}
-                    onClick={() => setActiveWing('right')}
-                    disabled={pending}
-                  >
-                    <span className={`auth-bt-tab-dot auth-bt-${rightValid}`} />
-                    Right wing — {rightLabel || '(no label)'}
-                  </button>
-                </div>
-
-                <div className="auth-bt-wings-wrap">
-                  {activeWing === 'left' && (
-                    <WingPanel
-                      wingKey="left"
-                      title="Left wing"
-                      subtitle={`Exactly ${BT_LEFT_CORRECT} correct · up to ${BT_WING_MAX_TOKENS} tokens`}
-                      presets={BT_LEFT_PRESETS}
-                      requiredCorrect={BT_LEFT_CORRECT}
-                      useRadio={false}
-                      label={leftLabel}
-                      tokens={leftTokens}
-                      disabled={pending}
-                      onLabelChange={setLeftLabel}
-                      onTokensChange={setLeftTokens}
-                    />
-                  )}
-                  {activeWing === 'centre' && (
-                    <WingPanel
-                      wingKey="centre"
-                      title="Centre"
-                      subtitle={`Exactly ${BT_CENTRE_CORRECT} correct · up to ${BT_WING_MAX_TOKENS} tokens`}
-                      presets={BT_CENTRE_PRESETS}
-                      requiredCorrect={BT_CENTRE_CORRECT}
-                      useRadio={true}
-                      label={centreLabel}
-                      tokens={centreTokens}
-                      disabled={pending}
-                      onLabelChange={setCentreLabel}
-                      onTokensChange={setCentreTokens}
-                    />
-                  )}
-                  {activeWing === 'right' && (
-                    <WingPanel
-                      wingKey="right"
-                      title="Right wing"
-                      subtitle={`Exactly ${BT_RIGHT_CORRECT} correct · up to ${BT_WING_MAX_TOKENS} tokens`}
-                      presets={BT_RIGHT_PRESETS}
-                      requiredCorrect={BT_RIGHT_CORRECT}
-                      useRadio={false}
-                      label={rightLabel}
-                      tokens={rightTokens}
-                      disabled={pending}
-                      onLabelChange={setRightLabel}
-                      onTokensChange={setRightTokens}
-                    />
-                  )}
-                </div>
-
-                <HiddenSerialisers
-                  leftLabel={leftLabel} leftTokens={leftTokens}
-                  centreLabel={centreLabel} centreTokens={centreTokens}
-                  rightLabel={rightLabel} rightTokens={rightTokens}
+      <RovingProvider>
+        <div className="auth-split">
+          <div className="auth-edit">
+            <EditorTabs
+              tabs={[
+                { id: 'content',        label: 'Content',        incomplete: contentIncomplete },
+                { id: 'classification', label: 'Classification', incomplete: classificationIncomplete },
+                { id: 'housekeeping',   label: 'Housekeeping' },
+              ]}
+              active={tab}
+              onChange={(id) => setTab(id as typeof tab)}
+            >
+              <TabPanel id="content">
+                <RovingToolbar hint="Click into a field to format it" />
+                <RichInstructionField
+                  value={instruction}
+                  onChange={(doc) => { setInstruction(doc); markDirty(); }}
                 />
-              </div>
+                <RichStemField
+                  value={stem}
+                  onChange={(doc) => { setStem(doc); markDirty(); }}
+                />
 
-              <RationaleFields
-                defaultRationale={initial.rationale}
-                defaultRationaleImg={initial.rationale_img}
-              />
-            </TabPanel>
+                <div className="auth-fg">
+                  <label className="auth-label">Bow-tie wings *</label>
+                  <p className="auth-hint">
+                    Click a tab to edit that wing. Green dot = correctly filled;
+                    amber = missing a correct pick; red = too many or no tokens yet.
+                  </p>
 
-            <TabPanel id="classification">
-              <ClassificationFields
-                category={category}
-                onCategoryChange={setCategory}
-                defaults={{
-                  client_needs_subcategory: initial.client_needs_subcategory,
-                  nursing_subject: initial.nursing_subject,
-                  body_system: initial.body_system,
-                  topic: initial.topic,
-                  subtopic: initial.subtopic,
-                  difficulty: initial.difficulty,
-                  bloom_level: initial.bloom_level,
-                  tags: initial.tags,
-                }}
-              />
-            </TabPanel>
+                  <div className="auth-bt-tabs" role="tablist">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activeWing === 'left'}
+                      className={`auth-bt-tab auth-bt-tab-left ${activeWing === 'left' ? 'auth-bt-tab-active' : ''}`}
+                      onClick={() => setActiveWing('left')}
+                      disabled={pending}
+                    >
+                      <span className={`auth-bt-tab-dot auth-bt-${leftValid}`} />
+                      Left wing — {leftLabel || '(no label)'}
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activeWing === 'centre'}
+                      className={`auth-bt-tab auth-bt-tab-centre ${activeWing === 'centre' ? 'auth-bt-tab-active' : ''}`}
+                      onClick={() => setActiveWing('centre')}
+                      disabled={pending}
+                    >
+                      <span className={`auth-bt-tab-dot auth-bt-${centreValid}`} />
+                      Centre — {centreLabel || '(no label)'}
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activeWing === 'right'}
+                      className={`auth-bt-tab auth-bt-tab-right ${activeWing === 'right' ? 'auth-bt-tab-active' : ''}`}
+                      onClick={() => setActiveWing('right')}
+                      disabled={pending}
+                    >
+                      <span className={`auth-bt-tab-dot auth-bt-${rightValid}`} />
+                      Right wing — {rightLabel || '(no label)'}
+                    </button>
+                  </div>
 
-            <TabPanel id="housekeeping">
-              <HousekeepingFields
-                mode={initial.mode}
-                questionType="BOWTIE"
-                defaults={{
-                  // Per bank-marks-and-scoring §4.2/§5.2: BOWTIE max is fixed at 5.
-                  marks: 5,
-                  question_ref: initial.question_ref,
-                  batch_id: initial.batch_id,
-                  is_published: initial.is_published,
-                  is_free_sample: initial.is_free_sample,
-                  is_builder_visible: initial.is_builder_visible,
-                  shuffle_options: initial.shuffle_options,
-                }}
-              />
-            </TabPanel>
-          </EditorTabs>
+                  <div className="auth-bt-wings-wrap">
+                    {activeWing === 'left' && (
+                      <WingPanel
+                        wingKey="left"
+                        title="Left wing"
+                        subtitle={`Exactly ${BT_LEFT_CORRECT} correct · up to ${BT_WING_MAX_TOKENS} tokens`}
+                        presets={BT_LEFT_PRESETS}
+                        requiredCorrect={BT_LEFT_CORRECT}
+                        useRadio={false}
+                        label={leftLabel}
+                        tokens={leftTokens}
+                        disabled={pending}
+                        onLabelChange={(v) => { setLeftLabel(v); markDirty(); }}
+                        onTokensChange={(v) => { setLeftTokens(v); markDirty(); }}
+                      />
+                    )}
+                    {activeWing === 'centre' && (
+                      <WingPanel
+                        wingKey="centre"
+                        title="Centre"
+                        subtitle={`Exactly ${BT_CENTRE_CORRECT} correct · up to ${BT_WING_MAX_TOKENS} tokens`}
+                        presets={BT_CENTRE_PRESETS}
+                        requiredCorrect={BT_CENTRE_CORRECT}
+                        useRadio={true}
+                        label={centreLabel}
+                        tokens={centreTokens}
+                        disabled={pending}
+                        onLabelChange={(v) => { setCentreLabel(v); markDirty(); }}
+                        onTokensChange={(v) => { setCentreTokens(v); markDirty(); }}
+                      />
+                    )}
+                    {activeWing === 'right' && (
+                      <WingPanel
+                        wingKey="right"
+                        title="Right wing"
+                        subtitle={`Exactly ${BT_RIGHT_CORRECT} correct · up to ${BT_WING_MAX_TOKENS} tokens`}
+                        presets={BT_RIGHT_PRESETS}
+                        requiredCorrect={BT_RIGHT_CORRECT}
+                        useRadio={false}
+                        label={rightLabel}
+                        tokens={rightTokens}
+                        disabled={pending}
+                        onLabelChange={(v) => { setRightLabel(v); markDirty(); }}
+                        onTokensChange={(v) => { setRightTokens(v); markDirty(); }}
+                      />
+                    )}
+                  </div>
+
+                  <HiddenSerialisers
+                    leftLabel={leftLabel} leftTokens={leftTokens}
+                    centreLabel={centreLabel} centreTokens={centreTokens}
+                    rightLabel={rightLabel} rightTokens={rightTokens}
+                  />
+                </div>
+
+                <RichRationaleFields
+                  rationale={rationale}
+                  onRationaleChange={(doc) => { setRationale(doc); markDirty(); }}
+                  defaultRationaleImg={initial.rationale_img}
+                />
+              </TabPanel>
+
+              <TabPanel id="classification">
+                <ClassificationFields
+                  category={category}
+                  onCategoryChange={setCategory}
+                  defaults={{
+                    client_needs_subcategory: initial.client_needs_subcategory,
+                    nursing_subject: initial.nursing_subject,
+                    body_system: initial.body_system,
+                    topic: initial.topic,
+                    subtopic: initial.subtopic,
+                    difficulty: initial.difficulty,
+                    bloom_level: initial.bloom_level,
+                    tags: initial.tags,
+                  }}
+                />
+              </TabPanel>
+
+              <TabPanel id="housekeeping">
+                <HousekeepingFields
+                  mode={initial.mode}
+                  questionType="BOWTIE"
+                  defaults={{
+                    // Per bank-marks-and-scoring §4.2/§5.2: BOWTIE max is fixed at 5.
+                    marks: 5,
+                    question_ref: initial.question_ref,
+                    batch_id: initial.batch_id,
+                    is_published: initial.is_published,
+                    is_free_sample: initial.is_free_sample,
+                    is_builder_visible: initial.is_builder_visible,
+                    shuffle_options: initial.shuffle_options,
+                  }}
+                />
+              </TabPanel>
+            </EditorTabs>
+          </div>
+
+          <div className="auth-preview">
+            <BowtiePreview
+              instruction={instruction}
+              stem={stem}
+              leftLabel={leftLabel}
+              leftTokens={leftTokens}
+              centreLabel={centreLabel}
+              centreTokens={centreTokens}
+              rightLabel={rightLabel}
+              rightTokens={rightTokens}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+          </div>
         </div>
-
-        <div className="auth-preview">
-          <BowtiePreview
-            instruction={instruction}
-            stem={stem}
-            leftLabel={leftLabel}
-            leftTokens={leftTokens}
-            centreLabel={centreLabel}
-            centreTokens={centreTokens}
-            rightLabel={rightLabel}
-            rightTokens={rightTokens}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-          />
-        </div>
-      </div>
+      </RovingProvider>
     </form>
   );
 }
