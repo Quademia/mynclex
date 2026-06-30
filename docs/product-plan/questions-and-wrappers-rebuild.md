@@ -1641,8 +1641,11 @@ blocks; amber at 1 or 7–10 = saves + nudges; green 2–6), the help line rewor
 the seed decoupled to the recommended 2. Plus a UX-consistency fix surfaced in
 the same pass: typing `{N}` now **auto-creates its blank card**
 (`reconcileBlanksToStem` on the stem onChange, mirroring Highlight `[[chunk]]` +
-Drag-drop `[N]`); "+ Add blank" unchanged. **Next in the sweep:** Highlight
-(min 3→2 chunks) + Drag-drop (min 3→2 slots) — same norm-as-floor over-block.
+Drag-drop `[N]`); "+ Add blank" unchanged. **Highlight ✅ BUILT + MERGED**
+(`7afcd20`): `HIGHLIGHT_MIN_CHUNKS` 3→2 (the structural floor — ≥1 correct +
+≥1 wrong already forces 2; the old 3 was a norm), amber advisory at 2, max
+stays 12, structural rules unchanged. **Next in the sweep:** Drag-drop
+(`MIN_DD_SLOTS` 3→2) — then the trend stimulus arc.
 
 The first review of the Cloze editor's validation under the advise > block
 philosophy (Cloze was built in the original rebuild, before that philosophy was

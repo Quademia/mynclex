@@ -76,7 +76,7 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > (2026-06-30, IN PROGRESS).** After all 9 question editors went rich, Sam
 > opened a per-editor pass for the *non-rich* improvements: validation under
 > advise > block (relax the genuine over-blocks, keep the structural rules) +
-> any UX rough edges. **Cloze first ✅; Highlight + Drag-drop next** (their
+> any UX rough edges. **Cloze ✅ · Highlight ✅ · Drag-drop ⏭ NEXT** (their
 > min floors — Highlight 3 chunks, Drag-drop 3 slots — are the same
 > norm-as-floor over-block as Cloze's min-2; structural minimum is 2 for both).
 > Then the trend stimulus rich-content arc.
@@ -98,6 +98,19 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   Drag-drop) creates the card on type, matching Highlight `[[chunk]]` +
 >   Drag-drop `[N]`. "+ Add blank" unchanged + still works; orphan reconnect
 >   unchanged.
+> - **Highlight ✅ BUILT + MERGED to `main`** (`7afcd20`; Sam-tested on dev; NOT
+>   yet prod; app-layer, NO migration; tsc + eslint + 94 vitest clean).
+>   `HIGHLIGHT_MIN_CHUNKS` **3 → 2** — the min-3 was a textbook norm; the genuine
+>   structural floor is 2, already forced by the "≥1 correct AND ≥1 wrong" rule
+>   (one finding + one distractor). New `HIGHLIGHT_RECOMMENDED_MIN_CHUNKS = 3`
+>   drives an editor-only advisory: count chip + bounds red outside 2–12
+>   (blocks), **amber at 2** (saves, nudges), green 3–12; soft advisory line at
+>   2; help reworded. **Max stays 12** (Sam). Structural rules unchanged (≥1
+>   correct · ≥1 wrong · every chunk decided). Seed already opens at 3. Shared
+>   the amber advisory CSS with Cloze.
+> - **⏭ NEXT: Drag-drop** — `MIN_DD_SLOTS` 3 → 2 (a 2-item ordering / 2-blank
+>   sentence is valid; the NCLEX 4–10 token-pool window is already advisory).
+>   Then the **trend stimulus** rich-content arc.
 > - **6e — Highlight ✅ BUILT + MERGED to `main`** (`557bc68` 6e-i + `26d0631`
 >   6e-ii; tsc + eslint + 94 vitest clean; Sam-tested on dev; NOT yet prod;
 >   all app-layer, NO migration). **Option B (decoupled markers)** like Cloze —
