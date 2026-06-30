@@ -251,6 +251,19 @@ export function RichRender({
 
 type SlotRenderer = (key: string, index: number) => ReactNode;
 
+// A plain, mutable walk cursor. These are NOT React components — they're
+// helper functions invoked synchronously within RichRenderWithSlots's single
+// render pass, so `next()` increments exactly once per marker in document
+// order. (An earlier version made these React components sharing the counter;
+// StrictMode / concurrent double-invocation then over-counted the index,
+// producing nondeterministic blank numbers + out-of-range slots — a hydration
+// mismatch and empty dropdowns. Plain functions keep the count deterministic.)
+interface SlotCursor {
+  pattern: RegExp;
+  renderSlot: SlotRenderer;
+  n: number;
+}
+
 function renderMarkedText(
   text: string,
   marks: RichMark[] | undefined,
@@ -263,17 +276,7 @@ function renderMarkedText(
   return <Fragment key={key}>{el}</Fragment>;
 }
 
-function InlineWithSlots({
-  content,
-  pattern,
-  renderSlot,
-  nextIndex,
-}: {
-  content?: RichNode[];
-  pattern: RegExp;
-  renderSlot: SlotRenderer;
-  nextIndex: () => number;
-}): ReactNode {
+function inlineWithSlots(content: RichNode[] | undefined, cur: SlotCursor): ReactNode {
   if (!content || content.length === 0) return null;
   const out: ReactNode[] = [];
   content.forEach((node, i) => {
@@ -283,7 +286,7 @@ function InlineWithSlots({
     }
     if (typeof node.text !== 'string') return;
     const text = node.text;
-    const re = new RegExp(pattern.source, 'g');
+    const re = new RegExp(cur.pattern.source, 'g');
     let last = 0;
     let part = 0;
     let m: RegExpExecArray | null;
@@ -293,10 +296,10 @@ function InlineWithSlots({
           renderMarkedText(text.slice(last, m.index), node.marks, `t${i}-${part++}`),
         );
       }
+      const idx = cur.n;
+      cur.n += 1;
       out.push(
-        <Fragment key={`s${i}-${m.index}`}>
-          {renderSlot(m[1], nextIndex())}
-        </Fragment>,
+        <Fragment key={`s${i}-${m.index}`}>{cur.renderSlot(m[1], idx)}</Fragment>,
       );
       last = m.index + m[0].length;
       if (m[0].length === 0) re.lastIndex++; // guard against a zero-width match
@@ -308,32 +311,12 @@ function InlineWithSlots({
   return <>{out}</>;
 }
 
-function BlockWithSlots({
-  node,
-  k,
-  pattern,
-  renderSlot,
-  nextIndex,
-}: {
-  node: RichNode;
-  k: string;
-  pattern: RegExp;
-  renderSlot: SlotRenderer;
-  nextIndex: () => number;
-}): ReactNode {
-  const inline = (
-    <InlineWithSlots
-      content={node.content}
-      pattern={pattern}
-      renderSlot={renderSlot}
-      nextIndex={nextIndex}
-    />
-  );
+function blockWithSlots(node: RichNode, k: string, cur: SlotCursor): ReactNode {
   switch (node.type) {
     case 'paragraph':
       return (
         <p key={k} style={alignStyle(node)}>
-          {inline}
+          {inlineWithSlots(node.content, cur)}
         </p>
       );
     case 'heading': {
@@ -341,69 +324,30 @@ function BlockWithSlots({
       const Tag = (level === 3 ? 'h3' : 'h2') as 'h2' | 'h3';
       return (
         <Tag key={k} style={alignStyle(node)}>
-          {inline}
+          {inlineWithSlots(node.content, cur)}
         </Tag>
       );
     }
     case 'bulletList':
-      return (
-        <ul key={k}>
-          <BlocksWithSlots nodes={node.content} prefix={k} pattern={pattern} renderSlot={renderSlot} nextIndex={nextIndex} />
-        </ul>
-      );
+      return <ul key={k}>{blocksWithSlots(node.content, k, cur)}</ul>;
     case 'orderedList':
-      return (
-        <ol key={k}>
-          <BlocksWithSlots nodes={node.content} prefix={k} pattern={pattern} renderSlot={renderSlot} nextIndex={nextIndex} />
-        </ol>
-      );
+      return <ol key={k}>{blocksWithSlots(node.content, k, cur)}</ol>;
     case 'listItem':
-      return (
-        <li key={k}>
-          <BlocksWithSlots nodes={node.content} prefix={k} pattern={pattern} renderSlot={renderSlot} nextIndex={nextIndex} />
-        </li>
-      );
+      return <li key={k}>{blocksWithSlots(node.content, k, cur)}</li>;
     case 'blockquote':
-      return (
-        <blockquote key={k}>
-          <BlocksWithSlots nodes={node.content} prefix={k} pattern={pattern} renderSlot={renderSlot} nextIndex={nextIndex} />
-        </blockquote>
-      );
+      return <blockquote key={k}>{blocksWithSlots(node.content, k, cur)}</blockquote>;
     default:
-      return (
-        <BlocksWithSlots key={k} nodes={node.content} prefix={k} pattern={pattern} renderSlot={renderSlot} nextIndex={nextIndex} />
-      );
+      return <Fragment key={k}>{blocksWithSlots(node.content, k, cur)}</Fragment>;
   }
 }
 
-function BlocksWithSlots({
-  nodes,
-  prefix,
-  pattern,
-  renderSlot,
-  nextIndex,
-}: {
-  nodes?: RichNode[];
-  prefix: string;
-  pattern: RegExp;
-  renderSlot: SlotRenderer;
-  nextIndex: () => number;
-}): ReactNode {
+function blocksWithSlots(
+  nodes: RichNode[] | undefined,
+  prefix: string,
+  cur: SlotCursor,
+): ReactNode {
   if (!nodes || nodes.length === 0) return null;
-  return (
-    <>
-      {nodes.map((node, i) => (
-        <BlockWithSlots
-          key={`${prefix}-${i}`}
-          k={`${prefix}-${i}`}
-          node={node}
-          pattern={pattern}
-          renderSlot={renderSlot}
-          nextIndex={nextIndex}
-        />
-      ))}
-    </>
-  );
+  return <>{nodes.map((node, i) => blockWithSlots(node, `${prefix}-${i}`, cur))}</>;
 }
 
 /**
@@ -421,17 +365,10 @@ export function RichRenderWithSlots({
   renderSlot: SlotRenderer;
   className?: string;
 }) {
-  let n = 0;
-  const nextIndex = () => n++;
+  const cur: SlotCursor = { pattern, renderSlot, n: 0 };
   return (
     <div className={className ? `auth-rich ${className}` : 'auth-rich'}>
-      <BlocksWithSlots
-        nodes={doc.content}
-        prefix="b"
-        pattern={pattern}
-        renderSlot={renderSlot}
-        nextIndex={nextIndex}
-      />
+      {blocksWithSlots(doc.content, 'b', cur)}
     </div>
   );
 }
