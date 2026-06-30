@@ -61,6 +61,7 @@ const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set([
   'CLOZE',
   'HIGHLIGHT',
   'DRAG_DROP',
+  'DRAG_CLOZE',
 ]);
 
 export interface BankListRowSummary {
