@@ -22,6 +22,7 @@ export type {
   MatrixAnswer,
   ClozeAnswer,
   DragDropAnswer,
+  DragClozeAnswer,
   BowtieAnswer,
   BankItemAnswer,
   ScoreResult,

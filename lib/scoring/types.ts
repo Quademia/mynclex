@@ -26,6 +26,10 @@ export type ClozeAnswer = Record<string, string>;
 // slotId -> tokenId; missing slots = skipped
 export type DragDropAnswer = Record<string, string>;
 
+// DRAG_CLOZE — same wire shape as DragDropAnswer (slotId -> tokenId); a
+// separate name so the new type is self-contained as DRAG_DROP is retired.
+export type DragClozeAnswer = Record<string, string>;
+
 // Each wing array holds the student's picks for that wing. centre is one
 // pick or null. UI constraints (2 / 1 / 2) mean wings shouldn't exceed
 // these counts at submission time, but the scoring math is defensive
@@ -50,6 +54,7 @@ export type BankItemAnswer =
   | HighlightAnswer
   | ClozeAnswer
   | DragDropAnswer
+  | DragClozeAnswer
   | BowtieAnswer;
 
 // The result every scoring path produces.

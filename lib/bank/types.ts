@@ -214,6 +214,34 @@ export interface DragDropCorrect {
 }
 
 // ─────────────────────────────────────────────────────────────
+// DRAG_CLOZE — the sentence-blanks type split out of DRAG_DROP (2026-06-30).
+// The stem carries inline [N] markers; each maps to a slot the student drags
+// a token into. Same slot/token/feedback shape as DRAG_DROP's SENTENCE mode,
+// minus the `subtype` discriminator (this type is always sentence). Feedback
+// is token-keyed (every token — answer or distractor — can be explained).
+// ─────────────────────────────────────────────────────────────
+
+export interface DragClozeSlot {
+  id: string;             // 's1', 's2', ... — s1 ↔ marker [1]
+  target_text: string;    // optional hint shown by the slot in the runner
+}
+
+export interface DragClozeToken {
+  id: string;             // 't1', 't2', ...
+  text: string;
+}
+
+export interface DragClozeContent {
+  slots: DragClozeSlot[];
+  tokens: DragClozeToken[];
+}
+
+export interface DragClozeCorrect {
+  slots: Record<string, string>;              // slotId -> correct tokenId
+  feedback?: Record<string, string>;          // sparse — tokenId -> feedback
+}
+
+// ─────────────────────────────────────────────────────────────
 // Discriminated union — narrow on question_type to get the right shape.
 // ─────────────────────────────────────────────────────────────
 
@@ -226,7 +254,8 @@ export type BankItemContent =
   | BowtieContent
   | ClozeContent
   | HighlightContent
-  | DragDropContent;
+  | DragDropContent
+  | DragClozeContent;
 
 export type BankItemCorrect =
   | McqCorrect
@@ -237,4 +266,5 @@ export type BankItemCorrect =
   | BowtieCorrect
   | ClozeCorrect
   | HighlightCorrect
-  | DragDropCorrect;
+  | DragDropCorrect
+  | DragClozeCorrect;

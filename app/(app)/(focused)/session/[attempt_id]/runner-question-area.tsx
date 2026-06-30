@@ -59,6 +59,8 @@ import type {
   ClozeCorrect,
   DragDropContent,
   DragDropCorrect,
+  DragClozeContent,
+  DragClozeCorrect,
   BowtieContent,
   BowtieCorrect,
 } from '@/lib/bank/types';
@@ -71,6 +73,7 @@ import type {
   HighlightAnswer,
   ClozeAnswer,
   DragDropAnswer,
+  DragClozeAnswer,
   BowtieAnswer,
   BankItemAnswer,
 } from '@/lib/scoring';
@@ -83,6 +86,7 @@ import {
   HighlightRunner,
   ClozeRunner,
   DragDropRunner,
+  DragClozeRunner,
   BowtieRunner,
   RationaleBlock,
 } from '@/lib/practice/runner';
@@ -98,6 +102,7 @@ const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   HIGHLIGHT: 'Highlight',
   CLOZE:     'Cloze',
   DRAG_DROP: 'Drag-drop',
+  DRAG_CLOZE: 'Drag-and-drop cloze',
   BOWTIE:    'Bow-tie',
 };
 
@@ -169,6 +174,7 @@ export function RunnerQuestionArea(props: Props) {
         const isStemTakeover =
           item.question_type === 'HIGHLIGHT' ||
           item.question_type === 'CLOZE' ||
+          item.question_type === 'DRAG_CLOZE' ||
           (item.question_type === 'DRAG_DROP' &&
             (item.content_snapshot_json as unknown as DragDropContent).subtype === 'SENTENCE');
 
@@ -407,6 +413,32 @@ function PerTypeRunner(props: Props) {
           content={content}
           studentAnswer={(props.answerRow.answer_json as DragDropAnswer | undefined) ?? {}}
           correct={props.unseal.correct as DragDropCorrect}
+        />
+      );
+    }
+
+    case 'DRAG_CLOZE': {
+      const content = item.content_snapshot_json as unknown as DragClozeContent;
+
+      if (props.itemMode === 'answering') {
+        return (
+          <DragClozeRunner
+            mode="answering"
+            stem={item.stem_snapshot}
+            content={content}
+            selected={(props.pendingAnswer as DragClozeAnswer | undefined) ?? {}}
+            onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
+          />
+        );
+      }
+
+      return (
+        <DragClozeRunner
+          mode="review"
+          stem={item.stem_snapshot}
+          content={content}
+          studentAnswer={(props.answerRow.answer_json as DragClozeAnswer | undefined) ?? {}}
+          correct={props.unseal.correct as DragClozeCorrect}
         />
       );
     }

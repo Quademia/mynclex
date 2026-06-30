@@ -61,6 +61,10 @@ import {
   type DragDropDbRow,
   dragDropRowToInitial,
 } from '../../editors/drag-drop-row-mapper';
+import {
+  type DragClozeDbRow,
+  dragClozeRowToInitial,
+} from '../../editors/drag-cloze-row-mapper';
 
 interface SurfaceConfig {
   caseTable:     'nclex_case_studies' | 'nclex_tutor_case_studies';
@@ -139,6 +143,8 @@ function rowToSlotEditor(
       return { kind: 'HIGHLIGHT', initial: highlightRowToInitial(row as HighlightDbRow, sf) };
     case 'DRAG_DROP':
       return { kind: 'DRAG_DROP', initial: dragDropRowToInitial(row as DragDropDbRow, sf) };
+    case 'DRAG_CLOZE':
+      return { kind: 'DRAG_CLOZE', initial: dragClozeRowToInitial(row as DragClozeDbRow, sf) };
     default:
       return null;
   }
@@ -200,7 +206,7 @@ export async function loadCase(
     .map((row) => row.item_id as string)
     .filter((id): id is string => typeof id === 'string' && id.length > 0);
 
-  let questionsById: Record<string, unknown> = {};
+  const questionsById: Record<string, unknown> = {};
   if (itemIds.length > 0) {
     const { data: qData, error: qErr } = await supabase
       .from(cfg.questionTable)

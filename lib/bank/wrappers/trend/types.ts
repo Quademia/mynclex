@@ -16,6 +16,7 @@ import type { BowtieEditorInitial }   from '../../editors/bowtie-row-mapper';
 import type { ClozeEditorInitial }    from '../../editors/cloze-row-mapper';
 import type { HighlightEditorInitial } from '../../editors/highlight-row-mapper';
 import type { DragDropEditorInitial } from '../../editors/drag-drop-row-mapper';
+import type { DragClozeEditorInitial } from '../../editors/drag-cloze-row-mapper';
 
 // Surface discriminator. Same convention as case-study/types.ts.
 export type Surface = 'admin' | 'tutor';
@@ -77,7 +78,8 @@ export type SlotEditorInitial =
   | { kind: 'BOWTIE';     initial: BowtieEditorInitial    }
   | { kind: 'CLOZE';      initial: ClozeEditorInitial     }
   | { kind: 'HIGHLIGHT';  initial: HighlightEditorInitial }
-  | { kind: 'DRAG_DROP';  initial: DragDropEditorInitial  };
+  | { kind: 'DRAG_DROP';  initial: DragDropEditorInitial  }
+  | { kind: 'DRAG_CLOZE'; initial: DragClozeEditorInitial };
 
 // One attached question on a trend dataset. Position is a 1-based
 // display index derived from creation order — there's no `position`

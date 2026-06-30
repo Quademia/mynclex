@@ -60,6 +60,10 @@ import {
   normalizeDragDropStem,
   dragDropStemScanText,
 } from '@/lib/bank/editors/drag-drop-stem-doc';
+import {
+  normalizeDragClozeStem,
+  dragClozeStemScanText,
+} from '@/lib/bank/editors/drag-cloze-stem-doc';
 import { computeMarksFromKey } from '@/lib/scoring';
 import {
   parseHighlight,
@@ -70,6 +74,11 @@ import {
   type DragDropSlotInput,
   type DragDropTokenInput,
 } from '@/lib/bank/parsers/drag-drop';
+import {
+  parseDragCloze,
+  type DragClozeSlotInput,
+  type DragClozeTokenInput,
+} from '@/lib/bank/parsers/drag-cloze';
 
 const VALID_CATEGORIES = new Set<string>(CLIENT_NEEDS_CATEGORIES);
 const VALID_DIFFICULTIES = new Set<string>(DIFFICULTY_LEVELS);
@@ -403,6 +412,37 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
         });
         if (!ddResult.ok) return ddResult;
         return { ...ddResult, stem: serializeRichDoc(ddStemDoc) };
+      }
+      case 'DRAG_CLOZE': {
+        // Like DRAG_DROP SENTENCE, but a standalone type — no subtype. The
+        // stem carries [N] markers as plain text; slots derive from them.
+        const slotIds        = formData.getAll('dcz_slot_id').map(String);
+        const slotTargets    = formData.getAll('dcz_slot_target_text').map(String);
+        const slotAssigned   = formData.getAll('dcz_slot_assigned_token_id').map(String);
+        const tokenIds       = formData.getAll('dcz_token_id').map(String);
+        const tokenTexts     = formData.getAll('dcz_token_text').map(String);
+        const tokenFeedbacks = formData.getAll('dcz_token_feedback').map(String);
+        const dczSlots: DragClozeSlotInput[] = slotIds.map((id, i) => ({
+          id,
+          target_text: slotTargets[i] ?? '',
+          assigned_token_id: slotAssigned[i] ?? '',
+        }));
+        const dczTokens: DragClozeTokenInput[] = tokenIds.map((id, i) => ({
+          id,
+          text: tokenTexts[i] ?? '',
+          feedback: tokenFeedbacks[i] ?? '',
+        }));
+        // Stem is a rich doc with [N] markers as plain text (Option B). Normalise
+        // (strip marks off markers + isolate), scan its flattened text for the
+        // parser, then store the doc JSON. No renumber — markers are byte-preserved.
+        const dczStemDoc = normalizeDragClozeStem(parseRichDoc(stem));
+        const dczResult = parseDragCloze({
+          stem: dragClozeStemScanText(dczStemDoc),
+          slots: dczSlots,
+          tokens: dczTokens,
+        });
+        if (!dczResult.ok) return dczResult;
+        return { ...dczResult, stem: serializeRichDoc(dczStemDoc) };
       }
       default:
         return parseMcq(optionIds, optionTexts, optionFeedbacks, correctIds);
