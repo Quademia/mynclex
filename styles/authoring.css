@@ -2000,7 +2000,8 @@
    Amber, sits below the toolbar. Shared by the marker editors (Cloze blank
    count, Highlight chunk count, …). */
 .auth-cz-advisory,
-.auth-hl-advisory {
+.auth-hl-advisory,
+.auth-dd-advisory {
   margin: 8px 0 0;
   padding: 8px 12px;
   font-size: 12px;

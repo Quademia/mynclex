@@ -46,8 +46,9 @@ import type { Editor } from '@tiptap/react';
 import {
   MIN_DD_SLOTS,
   MAX_DD_SLOTS,
+  DD_RECOMMENDED_MIN_SLOTS,
   DD_TOKEN_POOL_MAX_OVER_SLOTS,
-  DD_TOKEN_POOL_ABSOLUTE_MIN,
+  DD_TOKEN_POOL_RECOMMENDED_MIN,
   DD_TOKEN_POOL_ABSOLUTE_MAX,
   DD_TOKEN_POOL_MIN_EXTRA,
 } from '@/lib/bank/classifications';
@@ -158,7 +159,8 @@ function sentenceSeedStem(): string {
 interface BoundsSummary {
   activeSlotCount: number;
   tokenCount: number;
-  tokenFloor: number;             // pool minimum (≥1 distractor + NCLEX 4 floor)
+  tokenFloor: number;             // HARD pool minimum (slots + ≥1 distractor)
+  tokenRecommendedFloor: number;  // advisory pool minimum (NCLEX 4-floor norm)
   tokenCap: number;               // pool maximum (NCLEX 10 ceiling)
   tokenRecommended: number;       // soft target ≈ 2 × slots, capped at tokenCap
   distractorCount: number;
@@ -173,9 +175,12 @@ function summarise(
   const activeSlots = slots.filter(isActive);
   const activeSlotCount = activeSlots.length;
   const tokenCount = tokens.length;
-  const tokenFloor = Math.max(
-    activeSlotCount + DD_TOKEN_POOL_MIN_EXTRA,
-    DD_TOKEN_POOL_ABSOLUTE_MIN,
+  // HARD floor — one token per slot + at least one distractor.
+  const tokenFloor = activeSlotCount + DD_TOKEN_POOL_MIN_EXTRA;
+  // Advisory floor — the NCSBN 4-item norm (nudge only, doesn't block).
+  const tokenRecommendedFloor = Math.max(
+    tokenFloor,
+    DD_TOKEN_POOL_RECOMMENDED_MIN,
   );
   const tokenCap = Math.min(
     activeSlotCount + DD_TOKEN_POOL_MAX_OVER_SLOTS,
@@ -187,6 +192,7 @@ function summarise(
     activeSlotCount,
     tokenCount,
     tokenFloor,
+    tokenRecommendedFloor,
     tokenCap,
     tokenRecommended,
     distractorCount: Math.max(0, tokenCount - activeSlotCount),
@@ -392,7 +398,7 @@ export function DragDropPreview({
             {activeSlots.length === 0 ? (
               <em className="auth-dd-preview-placeholder">
                 Add slots in the editor — at least {MIN_DD_SLOTS} ranked
-                positions.
+                positions ({DD_RECOMMENDED_MIN_SLOTS}+ recommended).
               </em>
             ) : (
               activeSlots.map((s, i) => renderSlotBox(s, i))
@@ -1017,36 +1023,45 @@ export function DragDropEditorBody({
   const activeSlot =
     slots.find((s) => s.id === activeSlotId) ?? slots[0] ?? null;
 
-  // Bounds meter colour states (per pill).
+  // Bounds meter colour states (per pill). Advise > block: 'err' marks a
+  // structural break that blocks Save; 'warn' is a norm nudge that saves fine.
+  // Slot meter:
+  //   err  — outside the structural 2–8 range.
+  //   warn — valid but below the recommended 3 (a norm, not a wall).
   const slotMeterState: ValidityState =
     summary.activeSlotCount < MIN_DD_SLOTS ||
     summary.activeSlotCount > MAX_DD_SLOTS
       ? 'err'
-      : 'ok';
+      : summary.activeSlotCount < DD_RECOMMENDED_MIN_SLOTS
+        ? 'warn'
+        : 'ok';
+  // Slot-count advisory line: in-range but below the recommended count.
+  const slotCountAdvisory =
+    summary.activeSlotCount >= MIN_DD_SLOTS &&
+    summary.activeSlotCount < DD_RECOMMENDED_MIN_SLOTS;
   // Token meter:
-  //   err  — pool below floor (no distractors, or under NCLEX 4) or over cap
+  //   err  — pool below the structural floor (no distractor) or over cap
   //          (or some token has empty text).
-  //   warn — pool valid but below 2× recommendation.
-  //   ok   — meets or exceeds 2× recommendation (capped at NCLEX 10).
+  //   warn — pool valid but below the NCLEX 4-floor norm OR the 2×
+  //          recommendation.
+  //   ok   — meets or exceeds both.
   const tokenMeterState: ValidityState =
     summary.tokenCount < summary.tokenFloor ||
     summary.tokenCount > summary.tokenCap ||
     tokenTextEmpty
       ? 'err'
-      : summary.tokenCount < summary.tokenRecommended
+      : summary.tokenCount < summary.tokenRecommendedFloor ||
+          summary.tokenCount < summary.tokenRecommended
         ? 'warn'
         : 'ok';
-  // Distractor meter mirrors token meter for the distractor count
-  // specifically — < required floor is err; below the recommended
+  // Distractor meter mirrors the token meter for the distractor count
+  // specifically — below the structural ≥1 is err; below the recommended
   // amount is warn; meeting the recommendation is ok.
   const distractorRecommended = Math.max(
     0,
     summary.tokenRecommended - summary.activeSlotCount,
   );
-  const distractorRequired = Math.max(
-    DD_TOKEN_POOL_MIN_EXTRA,
-    DD_TOKEN_POOL_ABSOLUTE_MIN - summary.activeSlotCount,
-  );
+  const distractorRequired = DD_TOKEN_POOL_MIN_EXTRA;
   const distractorMeterState: ValidityState =
     summary.distractorCount < distractorRequired
       ? 'err'
@@ -1186,12 +1201,13 @@ export function DragDropEditorBody({
                   )}
                 </div>
 
-                {/* Bounds meter — token + distractor pills colour-code
-                    against the NCLEX 4–10 pool window and the soft
-                    2× recommendation (see classifications.ts header). */}
+                {/* Bounds meter — slot + token + distractor pills colour-code
+                    against the structural floors (block Save) and the NCLEX
+                    norms (amber nudge only; see classifications.ts header). */}
                 <div className="auth-dd-bounds">
                   <span
                     className={`auth-dd-bounds-item auth-dd-${slotMeterState}`}
+                    title={`Structural range ${MIN_DD_SLOTS}–${MAX_DD_SLOTS}. Most items use ${DD_RECOMMENDED_MIN_SLOTS}+.`}
                   >
                     {summary.activeSlotCount} slot
                     {summary.activeSlotCount === 1 ? '' : 's'} ({MIN_DD_SLOTS}
@@ -1199,7 +1215,7 @@ export function DragDropEditorBody({
                   </span>
                   <span
                     className={`auth-dd-bounds-item auth-dd-${tokenMeterState}`}
-                    title={`NCLEX cap: ${DD_TOKEN_POOL_ABSOLUTE_MAX}. Recommended: ${summary.tokenRecommended} (≈2× slots).`}
+                    title={`At least ${summary.tokenFloor} required, ${summary.tokenCap} max. NCLEX uses ${DD_TOKEN_POOL_RECOMMENDED_MIN}+; recommended ≈${summary.tokenRecommended} (2× slots).`}
                   >
                     {summary.tokenCount} token
                     {summary.tokenCount === 1 ? '' : 's'} (
@@ -1218,6 +1234,16 @@ export function DragDropEditorBody({
                     {summary.unassignedActive} unassigned
                   </span>
                 </div>
+
+                {/* Soft advisory — slot count is saveable but below the
+                    recommended norm. Nudges, never blocks. */}
+                {slotCountAdvisory && (
+                  <p className="auth-dd-advisory">
+                    Most NCLEX drag-drop items use {DD_RECOMMENDED_MIN_SLOTS} or
+                    more slots. This one has {summary.activeSlotCount} — that&apos;s
+                    fine to save, just unusual.
+                  </p>
+                )}
 
                 {/* Tab strip — one tab per slot (actives first, then
                     orphans). Status dot reflects per-slot validity:
@@ -1336,12 +1362,13 @@ export function DragDropEditorBody({
                   </button>
                 </div>
                 <p className="auth-hint">
-                  NCLEX drag-drop pools hold <strong>{DD_TOKEN_POOL_ABSOLUTE_MIN}–
-                  {DD_TOKEN_POOL_ABSOLUTE_MAX}</strong> tokens with at least one
-                  distractor. For this question:{' '}
+                  Every slot needs its token plus at least one distractor. For
+                  this question:{' '}
                   <strong>{summary.tokenFloor} required, {summary.tokenCap} max</strong>.
-                  We recommend ≈ {summary.tokenRecommended} tokens (about 2× slots) so
-                  students can&apos;t solve by elimination.
+                  NCLEX pools typically hold{' '}
+                  <strong>{DD_TOKEN_POOL_RECOMMENDED_MIN}–{DD_TOKEN_POOL_ABSOLUTE_MAX}</strong>{' '}
+                  tokens; we recommend ≈ {summary.tokenRecommended} (about 2× slots)
+                  so students can&apos;t solve by elimination.
                 </p>
                 <div className="auth-dd-tokens-wrap">
                   {tokens.map((t) => (

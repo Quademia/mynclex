@@ -255,23 +255,28 @@ export const HIGHLIGHT_MIN_WRONG   = 1;
 // Advisory floor (editor nudge only — NOT enforced by the parser).
 export const HIGHLIGHT_RECOMMENDED_MIN_CHUNKS = 3;
 
-// Drag-drop bounds (Family B — Slice 1.10)
+// Drag-drop bounds (Family B — Slice 1.10; relaxed 2026-06-30 under advise > block)
 // Two subtypes: ORDERED (ranked positions) and SENTENCE ([N] markers
 // in the stem). Both use the same slot + token shape.
 //
-// Pool sizing matches the actual NCLEX NGN Extended Drag-and-Drop spec:
-// "between 4 and 10 items to drag and drop" with "more response options
-// than answer spaces" (i.e. ≥1 distractor). Slot count itself isn't
-// fixed by NCSBN; we keep 3-8 to give curators flexibility while staying
-// in NGN-shaped territory.
+// What's STRUCTURAL (hard-blocks Save):
+//   - slot count in [MIN_DD_SLOTS, MAX_DD_SLOTS] (2..8). The floor is the
+//     structural minimum of 2 — a 2-item ordering / 2-blank sentence is a
+//     legitimate item. The old 3 was a textbook norm, not a requirement.
+//   - token pool ≥ slots + DD_TOKEN_POOL_MIN_EXTRA (i.e. ≥1 distractor, so
+//     a student can't solve by dropping everything) and ≤ the cap.
 //
-// Soft target (recommended, not enforced): pool ≈ 2 × slots, capped by
-// DD_TOKEN_POOL_ABSOLUTE_MAX. The bounds meter colours flag pools below
-// the recommendation but valid as 'warn', and below the floor as 'err'.
-export const MIN_DD_SLOTS                 = 3;
+// What's a NORM (editor advisory only — amber nudge, never blocks):
+//   - DD_RECOMMENDED_MIN_SLOTS (3): most NGN drag-drop items have 3+ slots.
+//   - DD_TOKEN_POOL_RECOMMENDED_MIN (4): the NCSBN "between 4 and 10 items"
+//     spec floor. Now a recommendation, not a wall — a 2-slot item only
+//     needs 3 tokens structurally.
+//   - Soft target pool ≈ 2 × slots (capped at the NCLEX 10 ceiling).
+export const MIN_DD_SLOTS                 = 2;   // structural floor (was 3 — a norm)
 export const MAX_DD_SLOTS                 = 8;
-export const DEFAULT_DD_SLOTS             = 3;
+export const DEFAULT_DD_SLOTS             = 3;   // new-item seed = the recommended count
+export const DD_RECOMMENDED_MIN_SLOTS     = 3;   // advisory floor (editor nudge only)
 export const DD_TOKEN_POOL_MAX_OVER_SLOTS = 4;   // pool cap = slots + this
-export const DD_TOKEN_POOL_ABSOLUTE_MIN   = 4;   // NCLEX floor — never fewer than 4 tokens
+export const DD_TOKEN_POOL_RECOMMENDED_MIN = 4;  // NCLEX 4-floor — advisory now (was a hard floor)
 export const DD_TOKEN_POOL_ABSOLUTE_MAX   = 10;  // NCLEX ceiling — never more than 10
-export const DD_TOKEN_POOL_MIN_EXTRA      = 1;   // ≥1 distractor — pool > slots
+export const DD_TOKEN_POOL_MIN_EXTRA      = 1;   // ≥1 distractor — the real hard floor (pool > slots)

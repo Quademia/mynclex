@@ -18,8 +18,8 @@
 
 import type { HousekeepingMode } from '@/lib/bank/atoms/housekeeping-fields';
 import {
-  MIN_DD_SLOTS,
-  DD_TOKEN_POOL_ABSOLUTE_MIN,
+  DEFAULT_DD_SLOTS,
+  DD_TOKEN_POOL_RECOMMENDED_MIN,
   DD_TOKEN_POOL_MIN_EXTRA,
 } from '@/lib/bank/classifications';
 import {
@@ -103,20 +103,21 @@ export interface DragDropDbRow extends Omit<McqDbRow, 'content' | 'correct'> {
 export const DRAG_DROP_ROW_COLUMNS = MCQ_ROW_COLUMNS;
 
 // ─────────────────────────────────────────────────────────────
-// Empty initial — pre-seeds an ORDERED scaffold with three slots
-// (the minimum) and three empty tokens. ORDERED is the friendlier
-// default; the curator can flip to SENTENCE via the subtype picker.
-// SENTENCE seeding (with a `[1] [2] [3]` stem) happens inside the
-// editor when the curator switches subtype, not here, so opening a
-// fresh editor doesn't dump square-bracket markers into the stem
-// field unless the curator has chosen SENTENCE.
+// Empty initial — pre-seeds an ORDERED scaffold with the recommended
+// number of slots (DEFAULT_DD_SLOTS = 3, the advisory count, not the
+// structural floor of 2) and enough empty tokens to meet it. ORDERED
+// is the friendlier default; the curator can flip to SENTENCE via the
+// subtype picker. SENTENCE seeding (with a `[1] [2] [3]` stem) happens
+// inside the editor when the curator switches subtype, not here, so
+// opening a fresh editor doesn't dump square-bracket markers into the
+// stem field unless the curator has chosen SENTENCE.
 // ─────────────────────────────────────────────────────────────
 
 export function emptyDragDropInitial(
   surface: 'admin' | 'tutor',
 ): DragDropEditorInitial {
   const seedSlotNumbers = Array.from(
-    { length: MIN_DD_SLOTS },
+    { length: DEFAULT_DD_SLOTS },
     (_, i) => i + 1,
   );
   const slots: DragDropEditorSlot[] = seedSlotNumbers.map((n) => ({
@@ -125,11 +126,11 @@ export function emptyDragDropInitial(
     assigned_token_id: '',
     feedback: { ...EMPTY_RICH_DOC },
   }));
-  // Seed enough tokens to satisfy the NCLEX floor (≥4 in pool + ≥1
-  // distractor) for the default scaffold: 3 slots → 4 seeded tokens.
+  // Seed enough tokens to meet the recommended NCLEX floor (≥4 in pool +
+  // ≥1 distractor) for the default scaffold: 3 slots → 4 seeded tokens.
   const seedTokenCount = Math.max(
-    MIN_DD_SLOTS + DD_TOKEN_POOL_MIN_EXTRA,
-    DD_TOKEN_POOL_ABSOLUTE_MIN,
+    DEFAULT_DD_SLOTS + DD_TOKEN_POOL_MIN_EXTRA,
+    DD_TOKEN_POOL_RECOMMENDED_MIN,
   );
   const tokens: DragDropEditorToken[] = Array.from(
     { length: seedTokenCount },
