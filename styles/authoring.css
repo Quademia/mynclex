@@ -2541,12 +2541,8 @@
   padding: 10px 14px;
 }
 
-.auth-hl-chunk-feedback {
-  width: 100%;
-  font-size: 13px;
-  background: var(--bg);
-  resize: vertical;
-}
+/* Per-chunk feedback is a rich roving field (Slice 6e-ii) — styled by
+   .auth-rrf-option-fb (shared with Cloze choice feedback). */
 
 /* Preview pane — passage with chunks rendered as styled spans. */
 .auth-hl-preview-instruction {

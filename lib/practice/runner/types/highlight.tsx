@@ -41,8 +41,8 @@ import type {
   HighlightChunk,
 } from '@/lib/bank/types';
 import type { HighlightAnswer } from '@/lib/scoring';
-import { parseRichDoc } from '@/lib/authoring/rich-doc';
-import { RichRenderWithSlots } from '@/lib/authoring/rich-render';
+import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
+import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
 
 type HighlightRunnerProps = {
   stem:    string;
@@ -192,7 +192,11 @@ function HighlightFeedbackList({
       {items.map((c) => {
         const isPicked  = studentSet.has(c.id);
         const isCorrect = correctSet.has(c.id);
-        const fb = feedback?.[c.id];
+        // Feedback is a rich doc (Slice 6e-ii), read-coerced so legacy plain
+        // feedback still renders. Chunk label (c.text) stays plain.
+        const fbRaw = feedback?.[c.id];
+        const fbDoc = fbRaw ? parseRichDoc(fbRaw) : null;
+        const hasFb = fbDoc !== null && !isEmptyRichDoc(fbDoc);
 
         let icon: string;
         let iconCls: string;
@@ -205,7 +209,7 @@ function HighlightFeedbackList({
             <span className={`rn-highlight-feedback-icon ${iconCls}`}>{icon}</span>
             <span className="rn-highlight-feedback-text">
               <strong>{c.text}</strong>
-              {fb ? <> — {fb}</> : null}
+              {hasFb ? <> — <RichRender doc={fbDoc} inline /></> : null}
             </span>
           </div>
         );

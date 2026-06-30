@@ -45,6 +45,7 @@ import { EditorAuthorship } from '@/lib/audit/authorship-line';
 import {
   RovingProvider,
   RovingToolbar,
+  RovingRichField,
   useRoving,
 } from '@/lib/authoring/roving-rich';
 import {
@@ -55,8 +56,10 @@ import {
 import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
 import {
   parseRichDoc,
+  serializeRichDoc,
   richTextToPlain,
   isEmptyRichDoc,
+  EMPTY_RICH_DOC,
   type RichDoc,
 } from '@/lib/authoring/rich-doc';
 import {
@@ -239,7 +242,7 @@ interface ChunkCardProps {
   isOrphan: boolean;
   disabled: boolean;
   onDecision: (next: 'correct' | 'wrong') => void;
-  onFeedback: (next: string) => void;
+  onFeedback: (next: RichDoc) => void;
 }
 
 function ChunkCard({
@@ -328,13 +331,21 @@ function ChunkCard({
       )}
 
       <div className="auth-hl-chunk-body">
-        <textarea
-          className="auth-input auth-hl-chunk-feedback"
-          rows={2}
+        {/* Feedback is rich (shows in the review feedback prose). All chunk
+            cards render at once (no paning), but to keep the FormData arrays
+            aligned we let HiddenSerialisers emit every chunk's feedback in
+            lockstep, so this field uses noHiddenInput (the Bow-tie / Cloze
+            pattern). Chunk text itself stays plain. */}
+        <RovingRichField
+          fieldKey={`hl-fb-${chunk.id}`}
+          name="hl_chunk_feedback"
           value={chunk.feedback}
-          onChange={(e) => onFeedback(e.target.value)}
+          onChange={onFeedback}
+          inline
+          noHiddenInput
+          className="auth-rrf-option-fb"
+          ariaLabel="Per-chunk feedback"
           placeholder="Per-chunk feedback (optional)…"
-          disabled={disabled}
         />
       </div>
     </div>
@@ -363,7 +374,7 @@ function HiddenSerialisers({ chunks }: { chunks: HighlightEditorChunk[] }) {
           <input
             type="hidden"
             name="hl_chunk_feedback"
-            value={c.feedback}
+            value={serializeRichDoc(c.feedback)}
           />
           <input
             type="hidden"
@@ -451,9 +462,11 @@ export function HighlightEditorBody({
       return m;
     },
   );
-  const [feedbacks, setFeedbacks] = useState<Record<string, string>>(() => {
-    const m: Record<string, string> = {};
-    for (const c of initial.chunks) if (c.feedback) m[c.text] = c.feedback;
+  const [feedbacks, setFeedbacks] = useState<Record<string, RichDoc>>(() => {
+    const m: Record<string, RichDoc> = {};
+    for (const c of initial.chunks) {
+      if (!isEmptyRichDoc(c.feedback)) m[c.text] = c.feedback;
+    }
     return m;
   });
   const [category, setCategory] = useState(initial.client_needs_category);
@@ -496,7 +509,7 @@ export function HighlightEditorBody({
         id: `h${out.length + 1}`,
         text: t,
         decision: decisions[t] ?? 'undecided',
-        feedback: feedbacks[t] ?? '',
+        feedback: feedbacks[t] ?? EMPTY_RICH_DOC,
         in_passage: true,
       });
     }
@@ -517,7 +530,7 @@ export function HighlightEditorBody({
         id: `orphan-${t}`,
         text: t,
         decision: decisions[t] ?? 'undecided',
-        feedback: feedbacks[t] ?? '',
+        feedback: feedbacks[t] ?? EMPTY_RICH_DOC,
         in_passage: false,
       });
     }
@@ -609,7 +622,7 @@ export function HighlightEditorBody({
     setDecisions((prev) => ({ ...prev, [text]: next }));
   }
 
-  function setFeedback(text: string, next: string) {
+  function setFeedback(text: string, next: RichDoc) {
     setFeedbacks((prev) => ({ ...prev, [text]: next }));
   }
 
