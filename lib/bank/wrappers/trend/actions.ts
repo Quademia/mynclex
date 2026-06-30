@@ -70,6 +70,24 @@ async function nextTrendId(
   surface:  Surface,
 ): Promise<string> {
   const cfg = configFor(surface);
+
+  // Tutor surface: RLS scopes a tutor to their OWN rows
+  // (nclex_tutor_trend_datasets_tutor_own = tutor_id = auth.uid()), so a
+  // client-side max+1 only counts the caller's datasets and collides with
+  // other tutors' ids on the pkey. Defer to a SECURITY DEFINER RPC that scans
+  // the whole table. (Admin/bank curators see all datasets, so the direct scan
+  // below is correct there.) See migration 20260708120000_tutor_wrapper_id_rpcs.
+  if (surface === 'tutor') {
+    const { data, error } = await supabase.rpc('nclex_next_tutor_trend_id', {
+      p_prefix: cfg.idPrefix,
+    });
+    if (error) throw error;
+    if (typeof data !== 'string' || data.length === 0) {
+      throw new Error('nclex_next_tutor_trend_id returned no id');
+    }
+    return data;
+  }
+
   const { data, error } = await supabase
     .from(cfg.table)
     .select('trend_id')
