@@ -45,12 +45,12 @@ export interface DragDropSlotInput {
   id: string;
   target_text: string;
   assigned_token_id: string;
-  feedback: string;
 }
 
 export interface DragDropTokenInput {
   id: string;
   text: string;
+  feedback: string;   // rich-doc JSON (or ''); shown in review, sparse on save
 }
 
 export interface DragDropParseInput {
@@ -208,12 +208,13 @@ export function parseDragDrop(input: DragDropParseInput): DragDropParseResult {
     correctSlots[slot.id] = slot.assigned_token_id.trim();
   }
 
-  // correct.feedback: sparse — only non-empty, only active slots.
+  // correct.feedback: sparse — keyed by TOKEN id, only non-empty. Every
+  // token (correct or distractor) may carry feedback; tokens are never
+  // dropped (unlike orphan slots), so we keep all non-empty entries.
   const feedback: Record<string, string> = {};
-  for (const slot of formSlots) {
-    if (!activeSlotIds.has(slot.id)) continue;
-    const fb = slot.feedback.trim();
-    if (fb !== '') feedback[slot.id] = fb;
+  for (const tok of formTokens) {
+    const fb = tok.feedback.trim();
+    if (fb !== '') feedback[tok.id] = fb;
   }
 
   const correct: DragDropCorrect = {

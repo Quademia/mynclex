@@ -31,26 +31,28 @@ import { type McqDbRow, MCQ_ROW_COLUMNS } from './mcq-row-mapper';
 
 // ─────────────────────────────────────────────────────────────
 // Editor state shapes — what the React component holds in useState.
-// Slot rows carry their assigned token id + per-slot feedback locally
-// so all of the curator's work survives a subtype/marker edit. The
-// parser drops orphan slots on save (SENTENCE only — orphans are
-// slot cards whose marker is no longer in the stem).
+// Slot rows carry their assigned token id locally; tokens carry their
+// rich feedback — so all of the curator's work survives a subtype/marker
+// edit. The parser drops orphan slots on save (SENTENCE only — orphans
+// are slot cards whose marker is no longer in the stem).
 // ─────────────────────────────────────────────────────────────
 
 export type DragDropSubtype = 'ORDERED' | 'SENTENCE';
 
 export interface DragDropEditorSlot {
   id: string;                 // 's1', 's2', …
-  // Slot label/hint stays PLAIN (a short cue; Slice 6f decision). Feedback is
-  // rich: it shows in the review feedback prose, real formatted HTML.
+  // Slot label/hint stays PLAIN (a short cue; Slice 6f decision).
   target_text: string;
   assigned_token_id: string;  // '' = unassigned
-  feedback: RichDoc;
 }
 
 export interface DragDropEditorToken {
   id: string;                 // 't1', 't2', …
+  // Token text stays PLAIN (a short draggable item; Slice 6f decision).
+  // Feedback is rich: it shows in the review feedback prose (at the token's
+  // slot if correct, or in the distractor strip if it's a trap).
   text: string;
+  feedback: RichDoc;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -124,7 +126,6 @@ export function emptyDragDropInitial(
     id: `s${n}`,
     target_text: ordinalLabel(n),
     assigned_token_id: '',
-    feedback: { ...EMPTY_RICH_DOC },
   }));
   // Seed enough tokens to meet the recommended NCLEX floor (≥4 in pool +
   // ≥1 distractor) for the default scaffold: 3 slots → 4 seeded tokens.
@@ -134,7 +135,7 @@ export function emptyDragDropInitial(
   );
   const tokens: DragDropEditorToken[] = Array.from(
     { length: seedTokenCount },
-    (_, i) => ({ id: `t${i + 1}`, text: '' }),
+    (_, i) => ({ id: `t${i + 1}`, text: '', feedback: { ...EMPTY_RICH_DOC } }),
   );
 
   return {
@@ -168,12 +169,13 @@ export function emptyDragDropInitial(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Row → initial. Reads the slot + token arrays from row.content,
-// folds each slot's correct token from row.correct.slots and its
-// per-slot feedback from row.correct.feedback (sparse). Loaded slots
-// are always "active" — the row was saved with all its slots
-// reachable (markers present for SENTENCE; ranked positions for
-// ORDERED), so no orphan reconstruction is needed at load time.
+// Row → initial. Reads the slot + token arrays from row.content, folds
+// each slot's correct token from row.correct.slots, and folds each token's
+// feedback from row.correct.feedback (sparse, token-keyed — with a
+// read-coerce for legacy slot-keyed rows). Loaded slots are always
+// "active" — the row was saved with all its slots reachable (markers
+// present for SENTENCE; ranked positions for ORDERED), so no orphan
+// reconstruction is needed at load time.
 // ─────────────────────────────────────────────────────────────
 
 export function dragDropRowToInitial(
@@ -185,16 +187,30 @@ export function dragDropRowToInitial(
   const correctSlots = row.correct?.slots ?? {};
   const feedbackMap = row.correct?.feedback ?? {};
 
+  // Feedback is keyed by TOKEN id now. Read-coerce legacy rows whose feedback
+  // is keyed by SLOT id (the pre-2026-06-30 format): slot keys start with 's',
+  // token keys with 't'. A legacy slot's feedback maps onto that slot's correct
+  // token (correct.slots[slotId]). No migration — both shapes read cleanly.
+  const tokenFeedback: Record<string, string> = {};
+  for (const [key, val] of Object.entries(feedbackMap)) {
+    if (key.startsWith('t')) {
+      tokenFeedback[key] = val;                 // new format — already token-keyed
+    } else {
+      const tid = correctSlots[key];            // legacy slot-keyed
+      if (tid) tokenFeedback[tid] = val;
+    }
+  }
+
   const slots: DragDropEditorSlot[] = (row.content?.slots ?? []).map((s) => ({
     id: s.id,
     target_text: s.target_text ?? '',
     assigned_token_id: correctSlots[s.id] ?? '',
-    feedback: parseRichDoc(feedbackMap[s.id] ?? ''),
   }));
 
   const tokens: DragDropEditorToken[] = (row.content?.tokens ?? []).map((t) => ({
     id: t.id,
     text: t.text ?? '',
+    feedback: parseRichDoc(tokenFeedback[t.id] ?? ''),
   }));
 
   return {

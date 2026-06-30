@@ -375,18 +375,18 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
         const slotIds        = formData.getAll('dd_slot_id').map(String);
         const slotTargets    = formData.getAll('dd_slot_target_text').map(String);
         const slotAssigned   = formData.getAll('dd_slot_assigned_token_id').map(String);
-        const slotFeedbacks  = formData.getAll('dd_slot_feedback').map(String);
         const tokenIds       = formData.getAll('dd_token_id').map(String);
         const tokenTexts     = formData.getAll('dd_token_text').map(String);
+        const tokenFeedbacks = formData.getAll('dd_token_feedback').map(String);
         const ddSlots: DragDropSlotInput[] = slotIds.map((id, i) => ({
           id,
           target_text: slotTargets[i] ?? '',
           assigned_token_id: slotAssigned[i] ?? '',
-          feedback: slotFeedbacks[i] ?? '',
         }));
         const ddTokens: DragDropTokenInput[] = tokenIds.map((id, i) => ({
           id,
           text: tokenTexts[i] ?? '',
+          feedback: tokenFeedbacks[i] ?? '',
         }));
         // The stem is a rich doc (JSON). For SENTENCE the [N] markers live as
         // plain text inside it (Slice 6f, Option B); normalise (strip any marks

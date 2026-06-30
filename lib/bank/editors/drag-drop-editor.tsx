@@ -35,9 +35,9 @@
 //   dd_slot_id                (parallel array, incl. orphans for SENTENCE)
 //   dd_slot_target_text       (parallel)
 //   dd_slot_assigned_token_id (parallel; '' = unassigned)
-//   dd_slot_feedback          (parallel)
 //   dd_token_id               (parallel, no orphan concept)
 //   dd_token_text             (parallel)
+//   dd_token_feedback         (parallel; rich — every token can be explained)
 
 'use client';
 
@@ -464,7 +464,6 @@ interface SlotCardProps {
   disabled: boolean;
   onTargetText: (next: string) => void;
   onAssignedToken: (next: string) => void;
-  onFeedback: (next: RichDoc) => void;
   onRemove?: () => void;
 }
 
@@ -478,7 +477,6 @@ function SlotCard({
   disabled,
   onTargetText,
   onAssignedToken,
-  onFeedback,
   onRemove,
 }: SlotCardProps) {
   const cardClass =
@@ -560,25 +558,10 @@ function SlotCard({
               </option>
             ))}
           </select>
-        </div>
-
-        <div className="auth-fg">
-          <label className="auth-label">Feedback (optional)</label>
-          {/* Feedback is rich (shows in the review feedback prose). The single
-              HiddenSerialisers below emits every slot's feedback in lockstep,
-              so this field uses noHiddenInput (the Cloze / Bow-tie pattern).
-              Slot label + token text stay plain. */}
-          <RovingRichField
-            fieldKey={`dd-fb-${slot.id}`}
-            name="dd_slot_feedback"
-            value={slot.feedback}
-            onChange={onFeedback}
-            inline
-            noHiddenInput
-            className="auth-rrf-option-fb"
-            ariaLabel="Per-slot feedback"
-            placeholder="Per-slot feedback shown after submit."
-          />
+          <p className="auth-hint auth-dd-slot-fb-note">
+            Add the explanation on the token itself, in the Token pool below —
+            it shows here in review when this token is the answer.
+          </p>
         </div>
       </div>
     </div>
@@ -613,17 +596,17 @@ function HiddenSerialisers({
             name="dd_slot_assigned_token_id"
             value={s.assigned_token_id}
           />
-          <input
-            type="hidden"
-            name="dd_slot_feedback"
-            value={serializeRichDoc(s.feedback)}
-          />
         </Fragment>
       ))}
       {tokens.map((t) => (
         <Fragment key={`hid-tok-${t.id}`}>
           <input type="hidden" name="dd_token_id" value={t.id} />
           <input type="hidden" name="dd_token_text" value={t.text} />
+          <input
+            type="hidden"
+            name="dd_token_feedback"
+            value={serializeRichDoc(t.feedback)}
+          />
         </Fragment>
       ))}
     </>
@@ -752,7 +735,6 @@ export function DragDropEditorBody({
             id,
             target_text: '',
             assigned_token_id: '',
-            feedback: { ...EMPTY_RICH_DOC },
           });
           if (!firstFreshId) firstFreshId = id;
         }
@@ -807,21 +789,24 @@ export function DragDropEditorBody({
       id: `s${n}`,
       target_text: ordinalLabel(n),
       assigned_token_id: '',
-      feedback: { ...EMPTY_RICH_DOC },
     }));
   }
 
   function defaultSeedTokens(): DragDropEditorToken[] {
     // Seed enough tokens to satisfy the NCLEX floor for the default
     // 3-slot scaffold: 4 tokens = 3 correct + 1 distractor.
-    return [1, 2, 3, 4].map((n) => ({ id: `t${n}`, text: '' }));
+    return [1, 2, 3, 4].map((n) => ({
+      id: `t${n}`,
+      text: '',
+      feedback: { ...EMPTY_RICH_DOC },
+    }));
   }
 
   function handleSubtypeChange(next: DragDropSubtype) {
     if (subtype === next) return;
     const hasData =
-      slots.some((s) => s.assigned_token_id || s.target_text || s.feedback) ||
-      tokens.some((t) => t.text);
+      slots.some((s) => s.assigned_token_id || s.target_text) ||
+      tokens.some((t) => t.text || !isEmptyRichDoc(t.feedback));
     if (
       hasData &&
       !window.confirm(
@@ -846,7 +831,6 @@ export function DragDropEditorBody({
           id: `s${n}`,
           target_text: '',
           assigned_token_id: '',
-          feedback: { ...EMPTY_RICH_DOC },
         }));
       setSlots(seedSlots);
       setActiveSlotId(seedSlots[0]?.id ?? null);
@@ -877,7 +861,6 @@ export function DragDropEditorBody({
         id: newId,
         target_text: ordinalLabel(n),
         assigned_token_id: '',
-        feedback: { ...EMPTY_RICH_DOC },
       },
     ]);
     setActiveSlotId(newId);
@@ -953,7 +936,10 @@ export function DragDropEditorBody({
     if (tokens.length >= DD_TOKEN_POOL_ABSOLUTE_MAX) return;
     const used = new Set(tokens.map((t) => t.id));
     const n = nextFreeTokenN(used);
-    setTokens((prev) => [...prev, { id: `t${n}`, text: '' }]);
+    setTokens((prev) => [
+      ...prev,
+      { id: `t${n}`, text: '', feedback: { ...EMPTY_RICH_DOC } },
+    ]);
     onDirty?.();
   }
 
@@ -973,6 +959,13 @@ export function DragDropEditorBody({
     setTokens((prev) =>
       prev.map((t) => (t.id === tokenId ? { ...t, text } : t)),
     );
+  }
+
+  function updateTokenFeedback(tokenId: string, feedback: RichDoc) {
+    setTokens((prev) =>
+      prev.map((t) => (t.id === tokenId ? { ...t, feedback } : t)),
+    );
+    onDirty?.();
   }
 
   // For each slot's <select>: tokens NOT assigned to a different slot
@@ -1332,9 +1325,6 @@ export function DragDropEditorBody({
                       onAssignedToken={(v) =>
                         setSlotField(activeSlot.id, { assigned_token_id: v })
                       }
-                      onFeedback={(v) =>
-                        setSlotField(activeSlot.id, { feedback: v })
-                      }
                       onRemove={
                         subtype === 'ORDERED'
                           ? () => removeOrderedSlot(activeSlot.id)
@@ -1371,28 +1361,66 @@ export function DragDropEditorBody({
                   so students can&apos;t solve by elimination.
                 </p>
                 <div className="auth-dd-tokens-wrap">
-                  {tokens.map((t) => (
-                    <div key={t.id} className="auth-dd-token-row">
-                      <span className="auth-dd-token-id">{t.id}</span>
-                      <input
-                        type="text"
-                        value={t.text}
-                        onChange={(e) => updateTokenText(t.id, e.target.value)}
-                        placeholder="Token text…"
-                        className="auth-input"
-                        disabled={pending}
-                      />
-                      <button
-                        type="button"
-                        className="auth-btn auth-btn-ghost auth-btn-sm"
-                        onClick={() => removeToken(t.id)}
-                        disabled={pending || tokens.length <= 1}
-                        aria-label={`Remove token ${t.id}`}
-                      >
-                        ×
-                      </button>
+                  {tokens.map((t) => {
+                    const isCorrect = slots.some(
+                      (s) => s.assigned_token_id === t.id,
+                    );
+                    return (
+                    <div key={t.id} className="auth-dd-token-card">
+                      <div className="auth-dd-token-row">
+                        <span className="auth-dd-token-id">{t.id}</span>
+                        <input
+                          type="text"
+                          value={t.text}
+                          onChange={(e) => updateTokenText(t.id, e.target.value)}
+                          placeholder="Token text…"
+                          className="auth-input"
+                          disabled={pending}
+                        />
+                        <span
+                          className={
+                            'auth-dd-token-role' +
+                            (isCorrect ? ' is-correct' : ' is-distractor')
+                          }
+                        >
+                          {isCorrect ? 'Answer' : 'Distractor'}
+                        </span>
+                        <button
+                          type="button"
+                          className="auth-btn auth-btn-ghost auth-btn-sm"
+                          onClick={() => removeToken(t.id)}
+                          disabled={pending || tokens.length <= 1}
+                          aria-label={`Remove token ${t.id}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      {/* Feedback is rich (shows in review — at this token's slot
+                          if it's the answer, or in the distractor strip if it's a
+                          trap). The single HiddenSerialisers emits every token's
+                          feedback in lockstep, so noHiddenInput (Cloze/Bow-tie
+                          pattern). Token text stays plain. */}
+                      <div className="auth-fg auth-dd-token-fb">
+                        <label className="auth-label">Feedback (optional)</label>
+                        <RovingRichField
+                          fieldKey={`dd-fb-${t.id}`}
+                          name="dd_token_feedback"
+                          value={t.feedback}
+                          onChange={(v) => updateTokenFeedback(t.id, v)}
+                          inline
+                          noHiddenInput
+                          className="auth-rrf-option-fb"
+                          ariaLabel={`Feedback for token ${t.id}`}
+                          placeholder={
+                            isCorrect
+                              ? 'Why this is the right choice — shown after submit.'
+                              : 'Why this is a trap — shown after submit.'
+                          }
+                        />
+                      </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

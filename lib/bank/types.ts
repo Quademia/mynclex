@@ -185,7 +185,11 @@ export interface HighlightCorrect {
 // to the slot in the student runner). Tokens are the draggable pool;
 // the pool may contain distractors so tokens.length >= slots.length.
 // correct.slots is the rubric (slotId → tokenId, 1:1 for active slots).
-// feedback is sparse — only slots with non-empty feedback appear.
+// feedback is sparse + keyed by TOKEN id — every token (the correct ones
+// AND the distractors) can carry its own explanation. A correct token's
+// feedback surfaces at its slot in review; a distractor's surfaces in the
+// distractor strip. (Moved off slots 2026-06-30 so distractors can be
+// explained, like every other type's per-option feedback.)
 // ─────────────────────────────────────────────────────────────
 
 export interface DragDropSlot {
@@ -206,7 +210,7 @@ export interface DragDropContent {
 
 export interface DragDropCorrect {
   slots: Record<string, string>;              // slotId -> correct tokenId
-  feedback?: Record<string, string>;          // sparse — slotId -> feedback
+  feedback?: Record<string, string>;          // sparse — tokenId -> feedback
 }
 
 // ─────────────────────────────────────────────────────────────

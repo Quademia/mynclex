@@ -38,11 +38,11 @@
 //
 // Review-mode prose mirrors CLOZE: per-slot verdict header
 // (`<num> CORRECT / WRONG / SKIPPED`) coloured by state, then the
-// per-slot rationale prose. Unlike CLOZE we don't have per-token
-// rationales — feedback in the schema is per-slot only — so for
-// wrong/skipped slots we prepend "Correct answer: <token text>." so the
-// answer key reaches the student even when the curator didn't author a
-// rationale string.
+// rationale prose. Feedback is keyed by TOKEN (not slot) since 2026-06-30,
+// so a slot's rationale is the rationale on its CORRECT token, and every
+// distractor carries its own rationale (shown in the distractor strip).
+// For wrong/skipped slots we still prepend "Correct answer: <token text>."
+// so the answer key reaches the student even with no authored rationale.
 
 'use client';
 
@@ -389,9 +389,9 @@ function DragDropFeedbackList({
         {slots.map((s, idx) => {
           const correctTokenId = correct.slots[s.id];
           const correctToken   = correctTokenId ? tokenById.get(correctTokenId) : undefined;
-          // Feedback is a rich doc (Slice 6f-ii), read-coerced so legacy plain
-          // feedback still renders. Slot label + token text stay plain.
-          const fbRaw          = correct.feedback?.[s.id];
+          // Feedback is a rich doc keyed by the correct TOKEN, read-coerced so
+          // legacy plain feedback still renders. Slot label + token text plain.
+          const fbRaw          = correctTokenId ? correct.feedback?.[correctTokenId] : undefined;
           const fbDoc          = fbRaw ? parseRichDoc(fbRaw) : null;
           const hasFb          = fbDoc !== null && !isEmptyRichDoc(fbDoc);
 
@@ -414,7 +414,7 @@ function DragDropFeedbackList({
             </div>
           );
         })}
-        <DistractorStrip distractors={distractors} />
+        <DistractorStrip distractors={distractors} feedback={correct.feedback} />
       </div>
     );
   }
@@ -430,8 +430,8 @@ function DragDropFeedbackList({
         const pickedId   = studentAnswer[s.id];
         const correctId  = correct.slots[s.id];
         const correctTok = correctId ? tokenById.get(correctId) : undefined;
-        // Feedback is a rich doc (Slice 6f-ii), read-coerced. Token text plain.
-        const fbRaw      = correct.feedback?.[s.id];
+        // Feedback is a rich doc keyed by the correct TOKEN, read-coerced.
+        const fbRaw      = correctId ? correct.feedback?.[correctId] : undefined;
         const fbDoc      = fbRaw ? parseRichDoc(fbRaw) : null;
         const hasFb      = fbDoc !== null && !isEmptyRichDoc(fbDoc);
 
@@ -462,13 +462,19 @@ function DragDropFeedbackList({
           </div>
         );
       })}
-      <DistractorStrip distractors={distractors} />
+      <DistractorStrip distractors={distractors} feedback={correct.feedback} />
     </div>
   );
 }
 
 
-function DistractorStrip({ distractors }: { distractors: DragDropToken[] }) {
+function DistractorStrip({
+  distractors,
+  feedback,
+}: {
+  distractors: DragDropToken[];
+  feedback?: Record<string, string>;
+}) {
   if (distractors.length === 0) return null;
   return (
     <div className="rn-dd-feedback-distractors">
@@ -476,11 +482,22 @@ function DistractorStrip({ distractors }: { distractors: DragDropToken[] }) {
         Distractors — not part of the correct answer
       </div>
       <div className="rn-dd-feedback-distractors-tokens">
-        {distractors.map((t) => (
-          <span key={t.id} className="rn-dd-feedback-distractor">
-            {t.text}
-          </span>
-        ))}
+        {distractors.map((t) => {
+          // Per-token rationale (rich, read-coerced). Token text stays plain.
+          const fbRaw = feedback?.[t.id];
+          const fbDoc = fbRaw ? parseRichDoc(fbRaw) : null;
+          const hasFb = fbDoc !== null && !isEmptyRichDoc(fbDoc);
+          return (
+            <div key={t.id} className="rn-dd-feedback-distractor">
+              <span className="rn-dd-feedback-distractor-text">{t.text}</span>
+              {hasFb && (
+                <div className="rn-dd-feedback-distractor-rationale">
+                  <RichRender doc={fbDoc} inline />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
