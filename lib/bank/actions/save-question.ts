@@ -52,6 +52,10 @@ import {
   clozeStemScanText,
   renumberClozeStem,
 } from '@/lib/bank/editors/cloze-stem-doc';
+import {
+  normalizeHighlightStem,
+  highlightStemScanText,
+} from '@/lib/bank/editors/highlight-stem-doc';
 import { computeMarksFromKey } from '@/lib/scoring';
 import {
   parseHighlight,
@@ -344,7 +348,19 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
           feedback: chunkFeedbacks[i] ?? '',
           in_passage: chunkInPassages[i] === 'true',
         }));
-        return parseHighlight({ stem, chunks: hlChunks });
+        // The stem is a rich doc (JSON) with the [[chunk]] markers as plain
+        // text inside it (Slice 6e, Option B). Normalise it (strip any marks
+        // clinging to a bracket + isolate each one — this enforces "chunk text
+        // stays plain"), scan its flattened text for the parser, then store the
+        // doc JSON, not the parser's flattened scan string. No renumber —
+        // Highlight chunk IDs are positional, the prose carries no numbers.
+        const hlStemDoc = normalizeHighlightStem(parseRichDoc(stem));
+        const hlResult = parseHighlight({
+          stem: highlightStemScanText(hlStemDoc),
+          chunks: hlChunks,
+        });
+        if (!hlResult.ok) return hlResult;
+        return { ...hlResult, stem: serializeRichDoc(hlStemDoc) };
       }
       case 'DRAG_DROP': {
         // Parallel slot + token arrays. The parser re-derives "active"

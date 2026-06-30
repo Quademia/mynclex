@@ -1,23 +1,25 @@
 // mynclex/lib/bank/editors/highlight-editor.tsx
 //
-// HIGHLIGHT editor — eighth concrete editor in the rebuild. Passage
-// with [[bracketed]] chunks; the student clicks the right ones to
-// mark findings. Curator marks each chunk Correct or Wrong + adds
-// optional per-chunk feedback.
+// HIGHLIGHT editor — passage with [[bracketed]] clickable chunks; the
+// student clicks the right findings. Curator marks each chunk Correct or
+// Wrong + adds optional per-chunk feedback.
+//
+// Slice 6e (rich content) — the passage (stem) is now a RICH field. The
+// [[chunk]] markers stay as PLAIN TEXT inside the formatted prose (Option B,
+// decoupled — the same rule Cloze {N} follows). A curator can bold an
+// abnormal value, add paragraphs/lists around the findings; the clickable
+// chunk text itself stays plain (it's a clickable token, the runner styles
+// it). The shared RichRenderWithSlots splices the clickable chunks into the
+// formatted passage — one source for the runner AND this preview.
 //
 // Two unique-to-HIGHLIGHT concerns vs the prior editors:
-//   1. Live bracket parsing. The chunks list reflects [[…]] spans
-//      currently in the stem. Removed-bracket cards become orphans
-//      until re-typed or saved (parser drops orphans).
-//   2. Toolbar button "[[ ]] Wrap / Insert" — wraps a text selection
-//      in [[…]] or inserts an empty [[]] at cursor. Speeds up
-//      authoring vs typing the brackets manually.
-//
-// Layout: stacked chunk cards (no paning). HIGHLIGHT cards are
-// simpler than CLOZE blanks (one decision toggle + one feedback
-// textarea per chunk) so up-to-12 stacked cards remains readable.
-// Dual-mode preview ships from day one (slices 8-10 build with the
-// PreviewToggle atom; slice 11 back-fills MCQ/TF/SATA/SELECT_N/MATRIX).
+//   1. Live bracket parsing. The chunks list reflects [[…]] spans currently
+//      in the stem doc (scanned from its flattened text, so stray formatting
+//      on a bracket is tolerated). Removed-bracket cards become orphans until
+//      re-typed or saved (parser drops orphans).
+//   2. Toolbar "[[ ]] Wrap / Insert" — wraps the rich-editor's selection in
+//      [[…]] (or inserts an empty [[]] at the caret). Speeds up authoring vs
+//      typing the brackets manually.
 //
 // FormData contract (must match save-question.ts HIGHLIGHT branch):
 //   hl_chunk_id          (one per card, includes orphans)
@@ -28,7 +30,8 @@
 
 'use client';
 
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Editor } from '@tiptap/react';
 import {
   HIGHLIGHT_MIN_CHUNKS,
   HIGHLIGHT_MAX_CHUNKS,
@@ -39,9 +42,28 @@ import { ModalFrame } from '@/lib/bank/atoms/modal-frame';
 import { EditorActions } from '@/lib/bank/atoms/editor-actions';
 import { EditorTabs, TabPanel } from '@/lib/bank/atoms/editor-tabs';
 import { EditorAuthorship } from '@/lib/audit/authorship-line';
-import { StemField } from '@/lib/bank/atoms/stem-field';
-import { InstructionField } from '@/lib/bank/atoms/instruction-field';
-import { RationaleFields } from '@/lib/bank/atoms/rationale-fields';
+import {
+  RovingProvider,
+  RovingToolbar,
+  useRoving,
+} from '@/lib/authoring/roving-rich';
+import {
+  RichStemField,
+  RichInstructionField,
+  RichRationaleFields,
+} from '@/lib/authoring/rich-atoms';
+import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
+import {
+  parseRichDoc,
+  richTextToPlain,
+  isEmptyRichDoc,
+  type RichDoc,
+} from '@/lib/authoring/rich-doc';
+import {
+  highlightChunkTexts,
+  stripBracketsFromDoc,
+  appendChunkToDoc,
+} from './highlight-stem-doc';
 import { ClassificationFields } from '@/lib/bank/atoms/classification-fields';
 import { HousekeepingFields } from '@/lib/bank/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/bank/atoms/hidden-item-inputs';
@@ -70,10 +92,9 @@ import type {
 
 export type { HighlightEditorInitial };
 
-// Non-greedy: [[foo]]bar[[baz]] must match twice, not once. Shared
-// with the parser at lib/bank/parsers/highlight.ts.
-const BRACKET_RE = /\[\[(.+?)\]\]/g;
-const STEM_DOM_ID = 'bank-stem';
+// Non-greedy: [[foo]]bar[[baz]] must match twice, not once. Shared shape
+// with the parser + highlight-stem-doc.
+const BRACKET_PATTERN = /\[\[(.+?)\]\]/;
 const FORM_ID = 'auth-highlight-form';
 
 type ValidityState = 'ok' | 'warn' | 'err';
@@ -81,12 +102,6 @@ type ValidityState = 'ok' | 'warn' | 'err';
 // ─────────────────────────────────────────────────────────────
 // Helpers (private).
 // ─────────────────────────────────────────────────────────────
-
-function extractPassageTexts(value: string): string[] {
-  const out: string[] = [];
-  for (const m of value.matchAll(BRACKET_RE)) out.push(m[1]);
-  return out;
-}
 
 interface ChunkSummary {
   total: number;
@@ -120,12 +135,13 @@ function contentValidity(s: ChunkSummary): ValidityState {
 // spans, no decision colours. Answer-key view: same passage but
 // correct chunks filled green, wrong chunks visibly distractor-styled.
 // Chunks are NOT interactive in the preview (it's a render preview,
-// not the runner).
+// not the runner). The rich passage's formatting survives verbatim;
+// the clickable chunks are spliced in at each [[…]] marker.
 // ─────────────────────────────────────────────────────────────
 
 interface HighlightPreviewProps {
-  instruction: string;
-  stem: string;
+  instruction: RichDoc;
+  stem: RichDoc;
   chunks: HighlightEditorChunk[];
   viewMode: PreviewViewMode;
   onViewModeChange: (next: PreviewViewMode) => void;
@@ -148,45 +164,22 @@ export function HighlightPreview({
     return m;
   }, [chunks]);
 
-  const parts: React.ReactNode[] = [];
-  let cursor = 0;
-  let key = 0;
-
-  if (stem.trim() === '') {
-    parts.push(
-      <em key="placeholder" className="auth-hl-preview-placeholder">
-        Write the passage above. Wrap any clickable finding with{' '}
-        <code>[[double brackets]]</code>.
-      </em>,
-    );
-  } else {
-    for (const m of stem.matchAll(BRACKET_RE)) {
-      const idx = m.index ?? 0;
-      const text = stem.slice(cursor, idx);
-      if (text) parts.push(<span key={`t${cursor}`}>{text}</span>);
-      const inner = m[1];
-      const decision = decisionByText.get(inner) ?? 'undecided';
-      // In student view, all chunks look the same (clickable). In
-      // answer-key view, decision colours are revealed.
-      const className =
-        'auth-hl-preview-chunk' +
-        (viewMode === 'student'
-          ? ' auth-hl-preview-chunk-neutral'
-          : decision === 'correct'
-            ? ' auth-hl-preview-chunk-correct'
-            : decision === 'wrong'
-              ? ' auth-hl-preview-chunk-wrong'
-              : ' auth-hl-preview-chunk-undecided');
-      parts.push(
-        <span key={`hl${key++}`} className={className}>
-          {inner}
-        </span>,
-      );
-      cursor = idx + m[0].length;
-    }
-    const tail = stem.slice(cursor);
-    if (tail) parts.push(<span key="tail">{tail}</span>);
-  }
+  // Render a non-interactive chunk span at each [[…]] marker. In student
+  // view all chunks look the same (clickable affordance); in answer-key
+  // view decision colours are revealed.
+  const renderSlot = (inner: string): React.ReactNode => {
+    const decision = decisionByText.get(inner) ?? 'undecided';
+    const className =
+      'auth-hl-preview-chunk' +
+      (viewMode === 'student'
+        ? ' auth-hl-preview-chunk-neutral'
+        : decision === 'correct'
+          ? ' auth-hl-preview-chunk-correct'
+          : decision === 'wrong'
+            ? ' auth-hl-preview-chunk-wrong'
+            : ' auth-hl-preview-chunk-undecided');
+    return <span className={className}>{inner}</span>;
+  };
 
   const headerText =
     viewMode === 'answer-key'
@@ -200,10 +193,25 @@ export function HighlightPreview({
         <PreviewToggle value={viewMode} onChange={onViewModeChange} />
       </div>
       <div className="auth-preview-card-body">
-        {instruction.trim() && (
-          <p className="auth-hl-preview-instruction">{instruction}</p>
+        {!isEmptyRichDoc(instruction) && (
+          <div className="auth-hl-preview-instruction">
+            <RichRender doc={instruction} inline />
+          </div>
         )}
-        <div className="auth-hl-preview-passage">{parts}</div>
+        <div className="auth-hl-preview-passage">
+          {isEmptyRichDoc(stem) ? (
+            <em className="auth-hl-preview-placeholder">
+              Write the passage above. Wrap any clickable finding with{' '}
+              <code>[[double brackets]]</code>.
+            </em>
+          ) : (
+            <RichRenderWithSlots
+              doc={stem}
+              pattern={BRACKET_PATTERN}
+              renderSlot={renderSlot}
+            />
+          )}
+        </div>
         {viewMode === 'answer-key' && (
           <div className="auth-hl-preview-legend">
             <span className="auth-hl-preview-chunk auth-hl-preview-chunk-correct">
@@ -369,6 +377,28 @@ function HiddenSerialisers({ chunks }: { chunks: HighlightEditorChunk[] }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// RovingBridge — lifts the roving toolbar's active field + editor up to the
+// editor body (which sits outside the provider) so "Wrap / Insert" can wrap
+// the caret selection / focus the stem. Renders nothing. (The Cloze pattern.)
+// ─────────────────────────────────────────────────────────────
+
+function RovingBridge({
+  onChange,
+}: {
+  onChange: (
+    key: string | null,
+    editor: Editor | null,
+    setActiveKey: (k: string | null) => void,
+  ) => void;
+}) {
+  const { activeKey, activeEditor, setActiveKey } = useRoving();
+  useEffect(() => {
+    onChange(activeKey, activeEditor, setActiveKey);
+  }, [activeKey, activeEditor, setActiveKey, onChange]);
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────
 // HighlightEditorBody — two-pane edit + preview body. Mountable
 // anywhere (modal host or sandbox).
 // ─────────────────────────────────────────────────────────────
@@ -398,74 +428,108 @@ export function HighlightEditorBody({
   // "does the passage read normally with these brackets" first.
   const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
 
-  const [stem, setStem] = useState(initial.stem);
-  const [instruction, setInstruction] = useState(initial.instruction);
-  const [chunks, setChunks] = useState<HighlightEditorChunk[]>(initial.chunks);
+  // Stem / instruction / rationale are rich docs (Slice 6e). Read-coerce via
+  // parseRichDoc (legacy plain text wraps as paragraphs; no migration). The
+  // [[chunk]] markers live as plain text inside the stem doc (Option B).
+  const [stem, setStem] = useState<RichDoc>(() => parseRichDoc(initial.stem));
+  const [instruction, setInstruction] = useState<RichDoc>(() =>
+    parseRichDoc(initial.instruction),
+  );
+  const [rationale, setRationale] = useState<RichDoc>(() =>
+    parseRichDoc(initial.rationale),
+  );
+  // Per-chunk decisions + feedback are keyed by the chunk's TEXT (matching the
+  // parser, which keys decisions by text so duplicate bracketed spans share a
+  // card). Keeping them text-keyed lets us DERIVE the active + orphan card
+  // lists from the passage during render (no setState-in-effect) — and a
+  // removed-then-retyped bracket recovers its decision for free, because the
+  // entry persists in these maps as an orphan in between.
+  const [decisions, setDecisions] = useState<Record<string, HighlightDecision>>(
+    () => {
+      const m: Record<string, HighlightDecision> = {};
+      for (const c of initial.chunks) m[c.text] = c.decision;
+      return m;
+    },
+  );
+  const [feedbacks, setFeedbacks] = useState<Record<string, string>>(() => {
+    const m: Record<string, string> = {};
+    for (const c of initial.chunks) if (c.feedback) m[c.text] = c.feedback;
+    return m;
+  });
   const [category, setCategory] = useState(initial.client_needs_category);
 
-  // Re-flag in_passage on every chunk + auto-create cards for any
-  // bracketed text that doesn't have a card yet. Stem is controlled
-  // state (via <StemField>) so we can derive presence without DOM
-  // listeners.
-  const passageTexts = useMemo(() => extractPassageTexts(stem), [stem]);
+  // Bridge to the roving toolbar's live editor, so "Wrap / Insert" can wrap
+  // the caret selection when the stem is the focused field, and focus the
+  // stem (setActiveKey) on the append fallback (see handleWrapOrInsert below).
+  const rovingRef = useRef<{
+    key: string | null;
+    editor: Editor | null;
+    setActiveKey: ((k: string | null) => void) | null;
+  }>({ key: null, editor: null, setActiveKey: null });
+  const setRoving = useCallback(
+    (
+      key: string | null,
+      editor: Editor | null,
+      setActiveKey: (k: string | null) => void,
+    ) => {
+      rovingRef.current = { key, editor, setActiveKey };
+    },
+    [],
+  );
+
+  // Passage chunk texts in order (with duplicates), scanned from the stem doc's
+  // flattened text (tolerates stray formatting on a bracket).
+  const passageTexts = useMemo(() => highlightChunkTexts(stem), [stem]);
   const passageSet = useMemo(() => new Set(passageTexts), [passageTexts]);
 
-  useEffect(() => {
-    setChunks((prev) => {
-      const updated = prev.map((c) => ({
-        ...c,
-        in_passage: passageSet.has(c.text),
-      }));
-      // Pick the next available h-id from the highest numeric suffix.
-      let nextN = 1;
-      for (const c of prev) {
-        const m = c.id.match(/^h(\d+)$/);
-        if (m) nextN = Math.max(nextN, parseInt(m[1], 10) + 1);
-      }
-      const existingTexts = new Set(prev.map((c) => c.text));
-      const fresh: HighlightEditorChunk[] = [];
-      for (const text of passageTexts) {
-        if (!existingTexts.has(text)) {
-          fresh.push({
-            id: `h${nextN++}`,
-            text,
-            decision: 'undecided',
-            feedback: '',
-            in_passage: true,
-          });
-          existingTexts.add(text);
-        }
-      }
-      // No-op short-circuit: avoid resetting state when nothing changed.
-      const sameInPassage = updated.every(
-        (c, i) => c.in_passage === prev[i]?.in_passage,
-      );
-      if (sameInPassage && fresh.length === 0) return prev;
-      return [...updated, ...fresh];
-    });
-  }, [passageTexts, passageSet]);
-
-  // Order active cards by first appearance in the passage; orphans
-  // tail. Duplicates in the passage map to the same card (keyed by
-  // text), so we only emit each unique card once in the active list.
-  const activeChunks = useMemo(() => {
-    const byText = new Map<string, HighlightEditorChunk>();
-    for (const c of chunks) {
-      if (c.in_passage && !byText.has(c.text)) byText.set(c.text, c);
-    }
-    const ordered: HighlightEditorChunk[] = [];
-    const picked = new Set<string>();
+  // Active cards — unique chunk texts in first-appearance order, each carrying
+  // the decision/feedback from the text-keyed maps (default undecided/empty for
+  // a freshly typed bracket). IDs are positional (h1, h2, …) — cosmetic for the
+  // editor; the parser reassigns its own positional IDs on save.
+  const activeChunks = useMemo<HighlightEditorChunk[]>(() => {
+    const seen = new Set<string>();
+    const out: HighlightEditorChunk[] = [];
     for (const t of passageTexts) {
-      const card = byText.get(t);
-      if (card && !picked.has(card.id)) {
-        ordered.push(card);
-        picked.add(card.id);
-      }
+      if (seen.has(t)) continue;
+      seen.add(t);
+      out.push({
+        id: `h${out.length + 1}`,
+        text: t,
+        decision: decisions[t] ?? 'undecided',
+        feedback: feedbacks[t] ?? '',
+        in_passage: true,
+      });
     }
-    return ordered;
-  }, [chunks, passageTexts]);
+    return out;
+  }, [passageTexts, decisions, feedbacks]);
 
-  const orphanChunks = chunks.filter((c) => !c.in_passage);
+  // Orphan cards — texts with stored decisions/feedback no longer in the
+  // passage (a removed bracket). Kept so re-typing the bracket restores them.
+  const orphanChunks = useMemo<HighlightEditorChunk[]>(() => {
+    const texts = new Set<string>([
+      ...Object.keys(decisions),
+      ...Object.keys(feedbacks),
+    ]);
+    const out: HighlightEditorChunk[] = [];
+    for (const t of texts) {
+      if (passageSet.has(t)) continue;
+      out.push({
+        id: `orphan-${t}`,
+        text: t,
+        decision: decisions[t] ?? 'undecided',
+        feedback: feedbacks[t] ?? '',
+        in_passage: false,
+      });
+    }
+    return out;
+  }, [decisions, feedbacks, passageSet]);
+
+  // Every card (active + orphan) — for the hidden FormData serialisers and the
+  // preview's text-keyed decision lookup. Save filters in_passage=false.
+  const allChunks = useMemo(
+    () => [...activeChunks, ...orphanChunks],
+    [activeChunks, orphanChunks],
+  );
 
   const summary = summarise(activeChunks);
   const validity = contentValidity(summary);
@@ -495,37 +559,30 @@ export function HighlightEditorBody({
   // ─────────────────────────────────────────────────────────────
 
   function handleWrapOrInsert() {
-    const stemEl = document.getElementById(STEM_DOM_ID) as HTMLTextAreaElement | null;
-    if (!stemEl) return;
-
-    const start = stemEl.selectionStart;
-    const end = stemEl.selectionEnd;
-    const hasSelection = start !== end;
-    const before = stem.slice(0, start);
-    const selected = stem.slice(start, end);
-    const after = stem.slice(end);
-
-    let next: string;
-    let cursorAfter: number;
-    if (hasSelection) {
-      // WRAP: surround selection with [[…]]. Cursor sits after the ]].
-      next = `${before}[[${selected}]]${after}`;
-      cursorAfter = end + 4;
+    const roving = rovingRef.current;
+    // When the stem is the live (focused) roving field, wrap its selection in
+    // [[…]] via Tiptap (or insert empty brackets at the caret). Otherwise we
+    // append a placeholder chunk to the stem doc and focus the field — a clean
+    // text marker the curator can edit (the decoupled-marker payoff).
+    if (roving.key === 'stem' && roving.editor && !roving.editor.isDestroyed) {
+      const ed = roving.editor;
+      const { from, to } = ed.state.selection;
+      if (from !== to) {
+        // WRAP: replace the selection with [[<selected text>]]. textBetween
+        // returns plain text (marks dropped) → the chunk text stays plain.
+        const selected = ed.state.doc.textBetween(from, to, ' ');
+        ed.chain().focus().insertContent(`[[${selected}]]`).run();
+      } else {
+        // INSERT: drop [[]] at the caret, place the cursor between the
+        // brackets so the curator types the finding straight away.
+        ed.chain().focus().insertContent('[[]]').run();
+        const pos = ed.state.selection.from;
+        ed.chain().setTextSelection(Math.max(0, pos - 2)).run();
+      }
     } else {
-      // INSERT: drop [[]] at cursor, place caret between the brackets.
-      next = `${before}[[]]${after}`;
-      cursorAfter = start + 2;
+      setStem((prev) => appendChunkToDoc(prev, '[[finding]]'));
+      roving.setActiveKey?.('stem');
     }
-    setStem(next);
-
-    // Restore focus + cursor after React commits.
-    requestAnimationFrame(() => {
-      const el = document.getElementById(STEM_DOM_ID) as HTMLTextAreaElement | null;
-      if (!el) return;
-      el.focus();
-      el.setSelectionRange(cursorAfter, cursorAfter);
-    });
-
     onDirty?.();
   }
 
@@ -537,26 +594,23 @@ export function HighlightEditorBody({
     ) {
       return;
     }
-    // Strip just the brackets, keep the inner text.
-    setStem(stem.replace(BRACKET_RE, '$1'));
-    setChunks([]);
+    // Unwrap the brackets, keep the inner text as plain passage prose.
+    setStem((prev) => stripBracketsFromDoc(prev));
+    setDecisions({});
+    setFeedbacks({});
     onDirty?.();
   }
 
   // ─────────────────────────────────────────────────────────────
-  // Per-chunk mutations
+  // Per-chunk mutations — keyed by chunk text (see the state above).
   // ─────────────────────────────────────────────────────────────
 
-  function setDecision(chunkId: string, next: 'correct' | 'wrong') {
-    setChunks((prev) =>
-      prev.map((c) => (c.id === chunkId ? { ...c, decision: next } : c)),
-    );
+  function setDecision(text: string, next: 'correct' | 'wrong') {
+    setDecisions((prev) => ({ ...prev, [text]: next }));
   }
 
-  function setFeedback(chunkId: string, next: string) {
-    setChunks((prev) =>
-      prev.map((c) => (c.id === chunkId ? { ...c, feedback: next } : c)),
-    );
+  function setFeedback(text: string, next: string) {
+    setFeedbacks((prev) => ({ ...prev, [text]: next }));
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -605,203 +659,213 @@ export function HighlightEditorBody({
         realm={initial.surface}
         entityType={initial.surface === 'tutor' ? 'tutor_question' : 'bank_item'}
         itemId={initial.itemId}
-        title={initial.stem}
+        title={richTextToPlain(initial.stem)}
       />
-      <div className="auth-split">
-        <div className="auth-edit">
-          <EditorTabs
-            tabs={[
-              {
-                id: 'content',
-                label: 'Content',
-                incomplete: contentIncomplete,
-              },
-              {
-                id: 'classification',
-                label: 'Classification',
-                incomplete: classificationIncomplete,
-              },
-              { id: 'housekeeping', label: 'Housekeeping' },
-            ]}
-            active={tab}
-            onChange={(id) => setTab(id as typeof tab)}
-          >
-            <TabPanel id="content">
-              <InstructionField
-                value={instruction}
-                onChange={setInstruction}
-              />
-              <StemField value={stem} onChange={setStem} />
+      <RovingProvider>
+        <RovingBridge onChange={setRoving} />
+        <div className="auth-split">
+          <div className="auth-edit">
+            <EditorTabs
+              tabs={[
+                {
+                  id: 'content',
+                  label: 'Content',
+                  incomplete: contentIncomplete,
+                },
+                {
+                  id: 'classification',
+                  label: 'Classification',
+                  incomplete: classificationIncomplete,
+                },
+                { id: 'housekeeping', label: 'Housekeeping' },
+              ]}
+              active={tab}
+              onChange={(id) => setTab(id as typeof tab)}
+            >
+              <TabPanel id="content">
+                <RovingToolbar hint="Click into a field to format it" />
+                <RichInstructionField
+                  value={instruction}
+                  onChange={(doc) => { setInstruction(doc); onDirty?.(); }}
+                />
+                <RichStemField
+                  value={stem}
+                  onChange={(doc) => { setStem(doc); onDirty?.(); }}
+                />
 
-              <div className="auth-fg">
-                <div className="auth-label-row">
-                  <label className="auth-label">Highlight chunks *</label>
-                </div>
-                <p className="auth-hint">
-                  Wrap each clickable finding with double brackets:{' '}
-                  <code>[[184/96]]</code>. Single brackets like{' '}
-                  <code>[K+]</code> are literal passage text. Select
-                  text and click <strong>Wrap / Insert</strong> to
-                  bracket it; click with no selection to drop an empty{' '}
-                  <code>[[]]</code> at the cursor.
-                </p>
+                <div className="auth-fg">
+                  <div className="auth-label-row">
+                    <label className="auth-label">Highlight chunks *</label>
+                  </div>
+                  <p className="auth-hint">
+                    Click into the passage above to write it. Wrap each
+                    clickable finding with double brackets:{' '}
+                    <code>[[184/96]]</code>. Single brackets like{' '}
+                    <code>[K+]</code> are literal passage text. Select
+                    text and click <strong>Wrap / Insert</strong> to
+                    bracket it; click with no selection to drop an empty{' '}
+                    <code>[[]]</code> at the cursor. Formatting on a chunk
+                    is tidied away on save (the clickable text stays plain).
+                  </p>
 
-                <div className="auth-hl-toolbar">
-                  <button
-                    type="button"
-                    className="auth-btn auth-btn-primary"
-                    onClick={handleWrapOrInsert}
-                    disabled={pending}
-                  >
-                    [[ ]] Wrap / Insert chunk
-                  </button>
-                  <button
-                    type="button"
-                    className="auth-btn auth-btn-ghost"
-                    onClick={handleClearAll}
-                    disabled={
-                      pending ||
-                      (chunks.length === 0 && summary.total === 0)
-                    }
-                  >
-                    Clear all chunks
-                  </button>
-                  <span
-                    className={`auth-hl-chunk-count auth-hl-${counterClass}`}
-                  >
-                    {counterText}
-                  </span>
-                </div>
-
-                {/* Bounds summary */}
-                <div className="auth-hl-bounds">
-                  <span
-                    className={
-                      'auth-hl-bounds-item auth-hl-' +
-                      (summary.total >= HIGHLIGHT_MIN_CHUNKS &&
-                      summary.total <= HIGHLIGHT_MAX_CHUNKS
-                        ? 'ok'
-                        : 'warn')
-                    }
-                  >
-                    {summary.total} chunk{summary.total === 1 ? '' : 's'} ({HIGHLIGHT_MIN_CHUNKS}–{HIGHLIGHT_MAX_CHUNKS})
-                  </span>
-                  <span
-                    className={
-                      'auth-hl-bounds-item auth-hl-' +
-                      (summary.correct >= HIGHLIGHT_MIN_CORRECT
-                        ? 'ok'
-                        : 'warn')
-                    }
-                  >
-                    {summary.correct} correct (≥{HIGHLIGHT_MIN_CORRECT})
-                  </span>
-                  <span
-                    className={
-                      'auth-hl-bounds-item auth-hl-' +
-                      (summary.wrong >= HIGHLIGHT_MIN_WRONG
-                        ? 'ok'
-                        : 'warn')
-                    }
-                  >
-                    {summary.wrong} wrong (≥{HIGHLIGHT_MIN_WRONG})
-                  </span>
-                  <span
-                    className={
-                      'auth-hl-bounds-item auth-hl-' +
-                      (summary.undecided === 0 ? 'ok' : 'warn')
-                    }
-                  >
-                    {summary.undecided} undecided
-                  </span>
-                </div>
-
-                {/* Stacked chunk cards (active first, then orphans). */}
-                <div className="auth-hl-chunks-wrap">
-                  {activeChunks.length === 0 && orphanChunks.length === 0 && (
-                    <div className="auth-hl-chunks-empty">
-                      Wrap text in <code>[[double brackets]]</code> in
-                      the passage to create your first chunk card.
-                    </div>
-                  )}
-                  {activeChunks.map((c, idx) => (
-                    <ChunkCard
-                      key={c.id}
-                      chunk={c}
-                      displayNumber={idx + 1}
-                      isOrphan={false}
+                  <div className="auth-hl-toolbar">
+                    <button
+                      type="button"
+                      className="auth-btn auth-btn-primary"
+                      onClick={handleWrapOrInsert}
                       disabled={pending}
-                      onDecision={(d) => setDecision(c.id, d)}
-                      onFeedback={(f) => setFeedback(c.id, f)}
-                    />
-                  ))}
-                  {orphanChunks.map((c) => (
-                    <ChunkCard
-                      key={c.id}
-                      chunk={c}
-                      displayNumber={null}
-                      isOrphan={true}
-                      disabled={pending}
-                      onDecision={(d) => setDecision(c.id, d)}
-                      onFeedback={(f) => setFeedback(c.id, f)}
-                    />
-                  ))}
+                    >
+                      [[ ]] Wrap / Insert chunk
+                    </button>
+                    <button
+                      type="button"
+                      className="auth-btn auth-btn-ghost"
+                      onClick={handleClearAll}
+                      disabled={
+                        pending ||
+                        (allChunks.length === 0 && summary.total === 0)
+                      }
+                    >
+                      Clear all chunks
+                    </button>
+                    <span
+                      className={`auth-hl-chunk-count auth-hl-${counterClass}`}
+                    >
+                      {counterText}
+                    </span>
+                  </div>
+
+                  {/* Bounds summary */}
+                  <div className="auth-hl-bounds">
+                    <span
+                      className={
+                        'auth-hl-bounds-item auth-hl-' +
+                        (summary.total >= HIGHLIGHT_MIN_CHUNKS &&
+                        summary.total <= HIGHLIGHT_MAX_CHUNKS
+                          ? 'ok'
+                          : 'warn')
+                      }
+                    >
+                      {summary.total} chunk{summary.total === 1 ? '' : 's'} ({HIGHLIGHT_MIN_CHUNKS}–{HIGHLIGHT_MAX_CHUNKS})
+                    </span>
+                    <span
+                      className={
+                        'auth-hl-bounds-item auth-hl-' +
+                        (summary.correct >= HIGHLIGHT_MIN_CORRECT
+                          ? 'ok'
+                          : 'warn')
+                      }
+                    >
+                      {summary.correct} correct (≥{HIGHLIGHT_MIN_CORRECT})
+                    </span>
+                    <span
+                      className={
+                        'auth-hl-bounds-item auth-hl-' +
+                        (summary.wrong >= HIGHLIGHT_MIN_WRONG
+                          ? 'ok'
+                          : 'warn')
+                      }
+                    >
+                      {summary.wrong} wrong (≥{HIGHLIGHT_MIN_WRONG})
+                    </span>
+                    <span
+                      className={
+                        'auth-hl-bounds-item auth-hl-' +
+                        (summary.undecided === 0 ? 'ok' : 'warn')
+                      }
+                    >
+                      {summary.undecided} undecided
+                    </span>
+                  </div>
+
+                  {/* Stacked chunk cards (active first, then orphans). */}
+                  <div className="auth-hl-chunks-wrap">
+                    {activeChunks.length === 0 && orphanChunks.length === 0 && (
+                      <div className="auth-hl-chunks-empty">
+                        Wrap text in <code>[[double brackets]]</code> in
+                        the passage to create your first chunk card.
+                      </div>
+                    )}
+                    {activeChunks.map((c, idx) => (
+                      <ChunkCard
+                        key={c.id}
+                        chunk={c}
+                        displayNumber={idx + 1}
+                        isOrphan={false}
+                        disabled={pending}
+                        onDecision={(d) => setDecision(c.text, d)}
+                        onFeedback={(f) => setFeedback(c.text, f)}
+                      />
+                    ))}
+                    {orphanChunks.map((c) => (
+                      <ChunkCard
+                        key={c.id}
+                        chunk={c}
+                        displayNumber={null}
+                        isOrphan={true}
+                        disabled={pending}
+                        onDecision={(d) => setDecision(c.text, d)}
+                        onFeedback={(f) => setFeedback(c.text, f)}
+                      />
+                    ))}
+                  </div>
+
+                  <HiddenSerialisers chunks={allChunks} />
                 </div>
 
-                <HiddenSerialisers chunks={chunks} />
-              </div>
+                <RichRationaleFields
+                  rationale={rationale}
+                  onRationaleChange={(doc) => { setRationale(doc); onDirty?.(); }}
+                  defaultRationaleImg={initial.rationale_img}
+                />
+              </TabPanel>
 
-              <RationaleFields
-                defaultRationale={initial.rationale}
-                defaultRationaleImg={initial.rationale_img}
-              />
-            </TabPanel>
+              <TabPanel id="classification">
+                <ClassificationFields
+                  category={category}
+                  onCategoryChange={setCategory}
+                  defaults={{
+                    client_needs_subcategory: initial.client_needs_subcategory,
+                    nursing_subject: initial.nursing_subject,
+                    body_system: initial.body_system,
+                    topic: initial.topic,
+                    subtopic: initial.subtopic,
+                    difficulty: initial.difficulty,
+                    bloom_level: initial.bloom_level,
+                    tags: initial.tags,
+                  }}
+                />
+              </TabPanel>
 
-            <TabPanel id="classification">
-              <ClassificationFields
-                category={category}
-                onCategoryChange={setCategory}
-                defaults={{
-                  client_needs_subcategory: initial.client_needs_subcategory,
-                  nursing_subject: initial.nursing_subject,
-                  body_system: initial.body_system,
-                  topic: initial.topic,
-                  subtopic: initial.subtopic,
-                  difficulty: initial.difficulty,
-                  bloom_level: initial.bloom_level,
-                  tags: initial.tags,
-                }}
-              />
-            </TabPanel>
+              <TabPanel id="housekeeping">
+                <HousekeepingFields
+                  mode={initial.mode}
+                  questionType="HIGHLIGHT"
+                  defaults={{
+                    marks: liveMarks,
+                    question_ref: initial.question_ref,
+                    batch_id: initial.batch_id,
+                    is_published: initial.is_published,
+                    is_free_sample: initial.is_free_sample,
+                    is_builder_visible: initial.is_builder_visible,
+                    shuffle_options: initial.shuffle_options,
+                  }}
+                />
+              </TabPanel>
+            </EditorTabs>
+          </div>
 
-            <TabPanel id="housekeeping">
-              <HousekeepingFields
-                mode={initial.mode}
-                questionType="HIGHLIGHT"
-                defaults={{
-                  marks: liveMarks,
-                  question_ref: initial.question_ref,
-                  batch_id: initial.batch_id,
-                  is_published: initial.is_published,
-                  is_free_sample: initial.is_free_sample,
-                  is_builder_visible: initial.is_builder_visible,
-                  shuffle_options: initial.shuffle_options,
-                }}
-              />
-            </TabPanel>
-          </EditorTabs>
+          <div className="auth-preview">
+            <HighlightPreview
+              instruction={instruction}
+              stem={stem}
+              chunks={allChunks}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+          </div>
         </div>
-
-        <div className="auth-preview">
-          <HighlightPreview
-            instruction={instruction}
-            stem={stem}
-            chunks={chunks}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-          />
-        </div>
-      </div>
+      </RovingProvider>
     </form>
   );
 }

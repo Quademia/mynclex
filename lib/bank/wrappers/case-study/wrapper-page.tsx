@@ -1474,8 +1474,8 @@ function ActiveQuestionPreview({
     case 'HIGHLIGHT':
       return (
         <HighlightPreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
           chunks={editor.initial.chunks}
           viewMode={viewMode}
           onViewModeChange={onViewModeChange}
