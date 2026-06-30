@@ -663,6 +663,38 @@ export function ClozeEditorBody({
     onDirty?.();
   }
 
+  // Typing a {N} marker directly into the stem auto-creates its blank card
+  // (mirrors HIGHLIGHT chunks + DRAG_DROP slots — all three marker editors now
+  // reconcile cards from the stem as you type). "+ Add blank" still works (it
+  // inserts the marker AND seeds the card); this just removes the "typed a
+  // marker and nothing appeared" gotcha. Done in the stem-change handler (not
+  // an effect) to avoid the set-state-in-effect anti-pattern. Reconnecting an
+  // orphan (re-typing its marker) is a no-op here — the card already exists,
+  // and blanksWithInStem re-flags it in_stem.
+  function reconcileBlanksToStem(stemDoc: RichDoc) {
+    const markers = clozeMarkerOrder(stemDoc);
+    setBlanks((prev) => {
+      const haveIds = new Set(prev.map((b) => b.id));
+      const fresh: ClozeEditorBlank[] = [];
+      for (const n of markers) {
+        const id = `b${n}`;
+        if (haveIds.has(id)) continue;
+        haveIds.add(id);
+        fresh.push({
+          id,
+          choices: Array.from({ length: CLOZE_MIN_CHOICES }, (_, i) => ({
+            id: `c${i + 1}`,
+            text: '',
+            feedback: { ...EMPTY_RICH_DOC },
+          })),
+          correct_id: 'c1',
+          in_stem: true,
+        });
+      }
+      return fresh.length === 0 ? prev : [...prev, ...fresh];
+    });
+  }
+
   // ─────────────────────────────────────────────────────────────
   // Per-blank mutations
   // ─────────────────────────────────────────────────────────────
@@ -796,7 +828,11 @@ export function ClozeEditorBody({
               />
               <RichStemField
                 value={stem}
-                onChange={(doc) => { setStem(doc); onDirty?.(); }}
+                onChange={(doc) => {
+                  setStem(doc);
+                  reconcileBlanksToStem(doc);
+                  onDirty?.();
+                }}
               />
 
               <div className="auth-fg">
