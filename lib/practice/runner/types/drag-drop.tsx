@@ -54,8 +54,8 @@ import type {
   DragDropToken,
 } from '@/lib/bank/types';
 import type { DragDropAnswer } from '@/lib/scoring';
-import { parseRichDoc } from '@/lib/authoring/rich-doc';
-import { RichRenderWithSlots } from '@/lib/authoring/rich-render';
+import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
+import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
 
 type DragDropRunnerProps = {
   stem:    string;
@@ -389,7 +389,11 @@ function DragDropFeedbackList({
         {slots.map((s, idx) => {
           const correctTokenId = correct.slots[s.id];
           const correctToken   = correctTokenId ? tokenById.get(correctTokenId) : undefined;
-          const fb             = correct.feedback?.[s.id];
+          // Feedback is a rich doc (Slice 6f-ii), read-coerced so legacy plain
+          // feedback still renders. Slot label + token text stay plain.
+          const fbRaw          = correct.feedback?.[s.id];
+          const fbDoc          = fbRaw ? parseRichDoc(fbRaw) : null;
+          const hasFb          = fbDoc !== null && !isEmptyRichDoc(fbDoc);
 
           return (
             <div key={s.id} className="rn-dd-feedback-row-card">
@@ -402,7 +406,11 @@ function DragDropFeedbackList({
                   {correctToken?.text ?? correctTokenId ?? '—'}
                 </span>
               </div>
-              {fb && <p className="rn-dd-feedback-row-rationale">{fb}</p>}
+              {hasFb && (
+                <div className="rn-dd-feedback-row-rationale">
+                  <RichRender doc={fbDoc} inline />
+                </div>
+              )}
             </div>
           );
         })}
@@ -422,7 +430,10 @@ function DragDropFeedbackList({
         const pickedId   = studentAnswer[s.id];
         const correctId  = correct.slots[s.id];
         const correctTok = correctId ? tokenById.get(correctId) : undefined;
-        const fb         = correct.feedback?.[s.id];
+        // Feedback is a rich doc (Slice 6f-ii), read-coerced. Token text plain.
+        const fbRaw      = correct.feedback?.[s.id];
+        const fbDoc      = fbRaw ? parseRichDoc(fbRaw) : null;
+        const hasFb      = fbDoc !== null && !isEmptyRichDoc(fbDoc);
 
         let verdict:    'right' | 'wrong' | 'skipped';
         let verdictTxt: string;
@@ -443,10 +454,10 @@ function DragDropFeedbackList({
                   <span className="rn-dd-feedback-correct-label">
                     {correctTok?.text ?? correctId ?? '—'}
                   </span>
-                  .{fb ? ' ' : ''}
+                  .{hasFb ? ' ' : ''}
                 </>
               )}
-              {fb}
+              {hasFb && <RichRender doc={fbDoc} inline />}
             </p>
           </div>
         );

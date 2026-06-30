@@ -2882,10 +2882,8 @@
   font-size: 14px;
 }
 
-.auth-dd-slot-feedback {
-  font-family: inherit;
-  resize: vertical;
-}
+/* Per-slot feedback is a rich roving field (Slice 6f-ii) — styled by
+   .auth-rrf-option-fb (shared with Cloze choice / Highlight chunk feedback). */
 
 /* Token pool */
 .auth-dd-tokens-wrap {

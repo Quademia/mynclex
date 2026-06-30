@@ -22,6 +22,11 @@ import {
   DD_TOKEN_POOL_ABSOLUTE_MIN,
   DD_TOKEN_POOL_MIN_EXTRA,
 } from '@/lib/bank/classifications';
+import {
+  parseRichDoc,
+  EMPTY_RICH_DOC,
+  type RichDoc,
+} from '@/lib/authoring/rich-doc';
 import { type McqDbRow, MCQ_ROW_COLUMNS } from './mcq-row-mapper';
 
 // ─────────────────────────────────────────────────────────────
@@ -36,9 +41,11 @@ export type DragDropSubtype = 'ORDERED' | 'SENTENCE';
 
 export interface DragDropEditorSlot {
   id: string;                 // 's1', 's2', …
+  // Slot label/hint stays PLAIN (a short cue; Slice 6f decision). Feedback is
+  // rich: it shows in the review feedback prose, real formatted HTML.
   target_text: string;
   assigned_token_id: string;  // '' = unassigned
-  feedback: string;
+  feedback: RichDoc;
 }
 
 export interface DragDropEditorToken {
@@ -116,7 +123,7 @@ export function emptyDragDropInitial(
     id: `s${n}`,
     target_text: ordinalLabel(n),
     assigned_token_id: '',
-    feedback: '',
+    feedback: { ...EMPTY_RICH_DOC },
   }));
   // Seed enough tokens to satisfy the NCLEX floor (≥4 in pool + ≥1
   // distractor) for the default scaffold: 3 slots → 4 seeded tokens.
@@ -181,7 +188,7 @@ export function dragDropRowToInitial(
     id: s.id,
     target_text: s.target_text ?? '',
     assigned_token_id: correctSlots[s.id] ?? '',
-    feedback: feedbackMap[s.id] ?? '',
+    feedback: parseRichDoc(feedbackMap[s.id] ?? ''),
   }));
 
   const tokens: DragDropEditorToken[] = (row.content?.tokens ?? []).map((t) => ({

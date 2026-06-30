@@ -58,6 +58,7 @@ import { EditorAuthorship } from '@/lib/audit/authorship-line';
 import {
   RovingProvider,
   RovingToolbar,
+  RovingRichField,
   useRoving,
 } from '@/lib/authoring/roving-rich';
 import {
@@ -68,8 +69,10 @@ import {
 import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
 import {
   parseRichDoc,
+  serializeRichDoc,
   richTextToPlain,
   isEmptyRichDoc,
+  EMPTY_RICH_DOC,
   type RichDoc,
 } from '@/lib/authoring/rich-doc';
 import {
@@ -455,7 +458,7 @@ interface SlotCardProps {
   disabled: boolean;
   onTargetText: (next: string) => void;
   onAssignedToken: (next: string) => void;
-  onFeedback: (next: string) => void;
+  onFeedback: (next: RichDoc) => void;
   onRemove?: () => void;
 }
 
@@ -555,13 +558,20 @@ function SlotCard({
 
         <div className="auth-fg">
           <label className="auth-label">Feedback (optional)</label>
-          <textarea
+          {/* Feedback is rich (shows in the review feedback prose). The single
+              HiddenSerialisers below emits every slot's feedback in lockstep,
+              so this field uses noHiddenInput (the Cloze / Bow-tie pattern).
+              Slot label + token text stay plain. */}
+          <RovingRichField
+            fieldKey={`dd-fb-${slot.id}`}
+            name="dd_slot_feedback"
             value={slot.feedback}
-            onChange={(e) => onFeedback(e.target.value)}
-            rows={2}
+            onChange={onFeedback}
+            inline
+            noHiddenInput
+            className="auth-rrf-option-fb"
+            ariaLabel="Per-slot feedback"
             placeholder="Per-slot feedback shown after submit."
-            className="auth-input auth-dd-slot-feedback"
-            disabled={disabled || !isActive}
           />
         </div>
       </div>
@@ -597,7 +607,11 @@ function HiddenSerialisers({
             name="dd_slot_assigned_token_id"
             value={s.assigned_token_id}
           />
-          <input type="hidden" name="dd_slot_feedback" value={s.feedback} />
+          <input
+            type="hidden"
+            name="dd_slot_feedback"
+            value={serializeRichDoc(s.feedback)}
+          />
         </Fragment>
       ))}
       {tokens.map((t) => (
@@ -732,7 +746,7 @@ export function DragDropEditorBody({
             id,
             target_text: '',
             assigned_token_id: '',
-            feedback: '',
+            feedback: { ...EMPTY_RICH_DOC },
           });
           if (!firstFreshId) firstFreshId = id;
         }
@@ -787,7 +801,7 @@ export function DragDropEditorBody({
       id: `s${n}`,
       target_text: ordinalLabel(n),
       assigned_token_id: '',
-      feedback: '',
+      feedback: { ...EMPTY_RICH_DOC },
     }));
   }
 
@@ -826,7 +840,7 @@ export function DragDropEditorBody({
           id: `s${n}`,
           target_text: '',
           assigned_token_id: '',
-          feedback: '',
+          feedback: { ...EMPTY_RICH_DOC },
         }));
       setSlots(seedSlots);
       setActiveSlotId(seedSlots[0]?.id ?? null);
@@ -857,7 +871,7 @@ export function DragDropEditorBody({
         id: newId,
         target_text: ordinalLabel(n),
         assigned_token_id: '',
-        feedback: '',
+        feedback: { ...EMPTY_RICH_DOC },
       },
     ]);
     setActiveSlotId(newId);
