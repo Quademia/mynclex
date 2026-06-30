@@ -100,9 +100,27 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   runner styles, kept mark-free by the decoupled rule). Validation reviewed →
 >   no change (2–12 chunks / ≥1 correct / ≥1 wrong are structural). NO migration
 >   (read-coerce).
-> - **⏭ NEXT: 6f Drag-drop** (the last marker-stem type — ORDERED vs SENTENCE;
->   the SENTENCE stem carries `[N]` markers → same "markers stay text, normalize
->   + validate" rule). ⚠ `PAYSTACK_SECRET_KEY` still not on the prod Worker.
+> - **6f — Drag-drop ✅ BUILT + MERGED to `main`** (`cb4bc56` 6f-i + `25147eb`
+>   6f-ii; tsc + eslint + 94 vitest clean; Sam-tested on dev [both subtypes];
+>   NOT yet prod; all app-layer, NO migration). The **last marker-stem type.**
+>   Two subtypes: ORDERED gets a normal rich prompt stem; SENTENCE keeps its
+>   `[N]` slot markers as plain text inside the rich prose (Option B, like
+>   Cloze `{N}`). **6f-i:** new `drag-drop-stem-doc.ts` (Cloze sibling, `[N]`
+>   single-bracket pattern, NO renumber — the parser preserves markers
+>   byte-identical, gaps like `[1] [3]` are intentional); `RichRenderWithSlots`
+>   splices the inline drop-boxes; "Insert slot marker" rewired to the rich
+>   editor caret via a RovingBridge; slot reconciliation reads markers from the
+>   flattened doc; instruction + rationale rich. **6f-ii:** per-slot feedback
+>   rich (both ORDERED + SENTENCE review prose); **token chips + slot labels
+>   stay plain** (Sam's call — short draggable items; the editor assigns the
+>   correct token via a native dropdown that can't format anyway). Validation
+>   reviewed → no change (structural / NCLEX 4–10 token window, already
+>   advisory). NO migration (read-coerce).
+> - **The marker-stem arc (6d Cloze · 6e Highlight · 6f Drag-drop) is complete.**
+>   All nine question types now author + render rich. **⏭ NEXT:** the parked
+>   **Cloze validation relax** (own focused session) and **Slice 7 — media
+>   block** (the final piece). Matrix-MR is a separate TBD type. ⚠
+>   `PAYSTACK_SECRET_KEY` still not on the prod Worker.
 
 > **CURRICULUM — MONTH VIEW (CD "Monthly Curriculum View", Variant B
 > "Programme schedule") — BUILT: Slices 1 + 2 on the session branch

@@ -1418,8 +1418,19 @@ untouched (the Slice-1 scenario bridge).
   reviewed → no change (structural: 2–12 chunks / ≥1 correct / ≥1 wrong). Answer-
   bound highlight ("rung 4") stays closed — this is just rich text, not fusing
   the highlight key into a chart. See the build subsection below.
-- **Slice 6f — Drag-drop.** ORDERED vs SENTENCE; tokens/slot hints rich; the
-  SENTENCE stem carries `[N]` markers → decide treatment when opened.
+- **Slice 6f — Drag-drop. ✅ BUILT + MERGED to `main`** (`cb4bc56` 6f-i +
+  `25147eb` 6f-ii; Sam-tested on dev [both subtypes]; NOT yet prod; app-layer,
+  NO migration). The **last marker-stem type.** ORDERED gets a normal rich
+  prompt stem; SENTENCE keeps its `[N]` markers as plain text inside the rich
+  prose (Option B, like Cloze `{N}`). New `drag-drop-stem-doc.ts` (Cloze
+  sibling, `[N]` pattern, **no renumber** — the parser preserves markers
+  byte-identical). `RichRenderWithSlots` splices the inline drop-boxes; "Insert
+  slot marker" rewired to the rich caret via a RovingBridge. Per-slot feedback
+  rich; **token chips + slot labels stay plain** (Sam's call — short draggable
+  items; the editor assigns the correct token via a native dropdown). Validation
+  reviewed → no change (structural / NCLEX 4–10 token window, already advisory).
+  **This completes the marker-stem arc (6d/6e/6f) — all nine question types now
+  author + render rich.**
 
 ### Slice 6 — blast radius: what's SHARED vs PER-EDITOR
 
