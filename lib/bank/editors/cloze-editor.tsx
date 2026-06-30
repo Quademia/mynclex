@@ -27,7 +27,8 @@
 
 'use client';
 
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Editor } from '@tiptap/react';
 import {
   CLOZE_MIN_BLANKS,
   CLOZE_MAX_BLANKS,
@@ -38,9 +39,28 @@ import { ModalFrame } from '@/lib/bank/atoms/modal-frame';
 import { EditorActions } from '@/lib/bank/atoms/editor-actions';
 import { EditorTabs, TabPanel } from '@/lib/bank/atoms/editor-tabs';
 import { EditorAuthorship } from '@/lib/audit/authorship-line';
-import { StemField } from '@/lib/bank/atoms/stem-field';
-import { InstructionField } from '@/lib/bank/atoms/instruction-field';
-import { RationaleFields } from '@/lib/bank/atoms/rationale-fields';
+import {
+  RovingProvider,
+  RovingToolbar,
+  useRoving,
+} from '@/lib/authoring/roving-rich';
+import {
+  RichStemField,
+  RichInstructionField,
+  RichRationaleFields,
+} from '@/lib/authoring/rich-atoms';
+import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
+import {
+  parseRichDoc,
+  richTextToPlain,
+  isEmptyRichDoc,
+  type RichDoc,
+} from '@/lib/authoring/rich-doc';
+import {
+  clozeMarkerOrder,
+  stripMarkersFromDoc,
+  appendMarkerToDoc,
+} from './cloze-stem-doc';
 import { ClassificationFields } from '@/lib/bank/atoms/classification-fields';
 import { HousekeepingFields } from '@/lib/bank/atoms/housekeeping-fields';
 import { HiddenItemInputs } from '@/lib/bank/atoms/hidden-item-inputs';
@@ -70,7 +90,6 @@ import type {
 export type { ClozeEditorInitial };
 
 const MARKER_RE = /\{(\d+)\}/g;
-const STEM_DOM_ID = 'bank-stem';
 const FORM_ID = 'auth-cloze-form';
 
 type ValidityState = 'ok' | 'warn' | 'err';
@@ -125,8 +144,8 @@ function contentValidity(args: {
 // ─────────────────────────────────────────────────────────────
 
 interface ClozePreviewProps {
-  instruction: string;
-  stem: string;
+  instruction: RichDoc;
+  stemDoc: RichDoc;
   markerOrder: number[];
   blanksById: Map<string, ClozeEditorBlank>;
   viewMode: PreviewViewMode;
@@ -135,76 +154,52 @@ interface ClozePreviewProps {
 
 export function ClozePreview({
   instruction,
-  stem,
+  stemDoc,
   markerOrder,
   blanksById,
   viewMode,
   onViewModeChange,
 }: ClozePreviewProps) {
-  // Split the stem at each {N} into alternating text and select chunks.
-  // matchAll is stateless — never mutates MARKER_RE.lastIndex.
-  const parts: React.ReactNode[] = [];
-  let cursor = 0;
-  let chipKey = 0;
+  // Render the rich stem with a <select> spliced in at each {N} marker. The
+  // doc's formatting (bold / highlight / lists / …) survives verbatim; the
+  // slot renderer drops a dropdown where the marker text sat.
+  const renderSlot = (nStr: string, i: number): React.ReactNode => {
+    const n = parseInt(nStr, 10);
+    const displayN = i + 1; // positional — matches the runner's numbering
+    const card = blanksById.get(`b${n}`);
+    const correctChoice = card?.choices.find((c) => c.id === card.correct_id);
+    const filledChoices = (card?.choices ?? []).filter((c) => c.text.trim());
 
-  if (stem.trim() === '') {
-    parts.push(
-      <em key="placeholder" className="auth-cz-preview-placeholder">
-        Type the sentence above with {'{1}'}, {'{2}'}, … markers. Each
-        marker becomes a dropdown here.
-      </em>,
-    );
-  } else {
-    for (const m of stem.matchAll(MARKER_RE)) {
-      const idx = m.index ?? 0;
-      const text = stem.slice(cursor, idx);
-      if (text) {
-        parts.push(<span key={`t${cursor}`}>{text}</span>);
-      }
-      const n = parseInt(m[1], 10);
-      const positional = markerOrder.indexOf(n);
-      const displayN = positional >= 0 ? positional + 1 : n;
-      const card = blanksById.get(`b${n}`);
-      const correctChoice = card?.choices.find((c) => c.id === card.correct_id);
-      const filledChoices = (card?.choices ?? []).filter((c) => c.text.trim());
-
-      parts.push(
-        <span
-          key={`pill${chipKey++}`}
-          className={
-            'auth-cz-preview-blank' +
-            (viewMode === 'answer-key' ? ' auth-cz-preview-blank-answer' : '')
+    return (
+      <span
+        className={
+          'auth-cz-preview-blank' +
+          (viewMode === 'answer-key' ? ' auth-cz-preview-blank-answer' : '')
+        }
+      >
+        <span className="auth-cz-preview-blank-num">{displayN}</span>
+        <select
+          className="auth-cz-preview-select"
+          value={
+            viewMode === 'answer-key' && correctChoice?.text.trim()
+              ? correctChoice.id
+              : ''
           }
+          onChange={() => undefined /* preview only — not form-bound */}
+          aria-label={`Blank ${displayN}`}
         >
-          <span className="auth-cz-preview-blank-num">{displayN}</span>
-          <select
-            className="auth-cz-preview-select"
-            value={
-              viewMode === 'answer-key' && correctChoice?.text.trim()
-                ? correctChoice.id
-                : ''
-            }
-            onChange={() => undefined /* preview only — not form-bound */}
-            aria-label={`Blank ${displayN}`}
-          >
-            <option value="" disabled>
-              {viewMode === 'student' ? 'Select…' : '(no answer)'}
+          <option value="" disabled>
+            {viewMode === 'student' ? 'Select…' : '(no answer)'}
+          </option>
+          {filledChoices.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.text}
             </option>
-            {filledChoices.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.text}
-              </option>
-            ))}
-          </select>
-        </span>,
-      );
-      cursor = idx + m[0].length;
-    }
-    const tail = stem.slice(cursor);
-    if (tail) {
-      parts.push(<span key="tail">{tail}</span>);
-    }
-  }
+          ))}
+        </select>
+      </span>
+    );
+  };
 
   const headerText =
     viewMode === 'answer-key'
@@ -218,10 +213,25 @@ export function ClozePreview({
         <PreviewToggle value={viewMode} onChange={onViewModeChange} />
       </div>
       <div className="auth-preview-card-body">
-        {instruction.trim() && (
-          <p className="auth-cz-preview-instruction">{instruction}</p>
+        {!isEmptyRichDoc(instruction) && (
+          <div className="auth-cz-preview-instruction">
+            <RichRender doc={instruction} inline />
+          </div>
         )}
-        <div className="auth-cz-preview-sentence">{parts}</div>
+        <div className="auth-cz-preview-sentence">
+          {markerOrder.length === 0 && isEmptyRichDoc(stemDoc) ? (
+            <em className="auth-cz-preview-placeholder">
+              Type the sentence above with {'{1}'}, {'{2}'}, … markers. Each
+              marker becomes a dropdown here.
+            </em>
+          ) : (
+            <RichRenderWithSlots
+              doc={stemDoc}
+              pattern={/\{(\d+)\}/}
+              renderSlot={renderSlot}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -407,6 +417,28 @@ function HiddenSerialisers({ blanks }: { blanks: ClozeEditorBlank[] }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// RovingBridge — lifts the roving toolbar's active field + editor up to the
+// editor body (which sits outside the provider) so "+ Add blank" can insert
+// the marker at the caret / focus the stem. Renders nothing.
+// ─────────────────────────────────────────────────────────────
+
+function RovingBridge({
+  onChange,
+}: {
+  onChange: (
+    key: string | null,
+    editor: Editor | null,
+    setActiveKey: (k: string | null) => void,
+  ) => void;
+}) {
+  const { activeKey, activeEditor, setActiveKey } = useRoving();
+  useEffect(() => {
+    onChange(activeKey, activeEditor, setActiveKey);
+  }, [activeKey, activeEditor, setActiveKey, onChange]);
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────
 // ClozeEditorBody — two-pane edit + preview body. Mountable
 // anywhere (modal host or sandbox).
 // ─────────────────────────────────────────────────────────────
@@ -436,10 +468,37 @@ export function ClozeEditorBody({
   // sentence read right with dropdowns?" before flipping to answer-key.
   const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
 
-  const [stem, setStem] = useState(initial.stem);
-  const [instruction, setInstruction] = useState(initial.instruction);
+  // Stem / instruction / rationale are rich docs (Slice 6d). Read-coerce via
+  // parseRichDoc (legacy plain text wraps as paragraphs; no migration). The
+  // {N} markers live as plain text inside the stem doc (Option B, decoupled).
+  const [stem, setStem] = useState<RichDoc>(() => parseRichDoc(initial.stem));
+  const [instruction, setInstruction] = useState<RichDoc>(() =>
+    parseRichDoc(initial.instruction),
+  );
+  const [rationale, setRationale] = useState<RichDoc>(() =>
+    parseRichDoc(initial.rationale),
+  );
   const [blanks, setBlanks] = useState<ClozeEditorBlank[]>(initial.blanks);
   const [category, setCategory] = useState(initial.client_needs_category);
+
+  // Bridge to the roving toolbar's live editor, so "+ Add blank" can insert
+  // the marker at the caret when the stem is the focused field, and focus the
+  // stem (setActiveKey) on the append fallback (see handleAddBlank below).
+  const rovingRef = useRef<{
+    key: string | null;
+    editor: Editor | null;
+    setActiveKey: ((k: string | null) => void) | null;
+  }>({ key: null, editor: null, setActiveKey: null });
+  const setRoving = useCallback(
+    (
+      key: string | null,
+      editor: Editor | null,
+      setActiveKey: (k: string | null) => void,
+    ) => {
+      rovingRef.current = { key, editor, setActiveKey };
+    },
+    [],
+  );
 
   // The blanks editor is paned: only one blank's choice card renders
   // at a time, with a tab strip above letting the curator switch.
@@ -452,7 +511,7 @@ export function ClozeEditorBody({
 
   // Derive marker order + in_stem mapping from current stem state.
   // Re-flag every blank's in_stem when the stem changes.
-  const markerOrder = useMemo(() => parseStemMarkers(stem), [stem]);
+  const markerOrder = useMemo(() => clozeMarkerOrder(stem), [stem]);
   const presentSet = useMemo(
     () => new Set(markerOrder.map((n) => `b${n}`)),
     [markerOrder],
@@ -469,32 +528,22 @@ export function ClozeEditorBody({
   const activeBlanks = blanksWithInStem.filter((b) => b.in_stem);
   const orphanBlanks = blanksWithInStem.filter((b) => !b.in_stem);
 
-  // Keep activeBlankId pointing at a blank that still exists in
-  // state. When the curator clicks Clear all (blanks goes empty) or
-  // some other path removes the active blank from state entirely,
-  // jump to the first active blank, falling back to first orphan,
-  // falling back to null. We do NOT auto-switch when a blank merely
-  // turns into an orphan — staying on the orphan view makes "your
-  // marker is gone" obvious to the curator.
-  useEffect(() => {
-    if (activeBlankId === null) {
-      if (blanksWithInStem.length > 0) {
-        const first = blanksWithInStem.find((b) => b.in_stem) ?? blanksWithInStem[0];
-        setActiveBlankId(first.id);
-      }
-      return;
-    }
-    const stillExists = blanksWithInStem.some((b) => b.id === activeBlankId);
-    if (!stillExists) {
-      const first = blanksWithInStem.find((b) => b.in_stem) ?? blanksWithInStem[0];
-      setActiveBlankId(first?.id ?? null);
-    }
-  }, [blanksWithInStem, activeBlankId]);
+  // Resolve the displayed blank at render time rather than correcting
+  // activeBlankId in an effect (which causes cascading renders). When the
+  // curator's explicit selection is gone (Clear all emptied the list, or it
+  // was never set), fall back to the first active blank, then first orphan.
+  // A blank that merely turned into an orphan is STILL in blanksWithInStem,
+  // so we stay on its (orphan) view — making "your marker is gone" obvious.
+  const effectiveActiveId =
+    activeBlankId && blanksWithInStem.some((b) => b.id === activeBlankId)
+      ? activeBlankId
+      : (blanksWithInStem.find((b) => b.in_stem) ?? blanksWithInStem[0])?.id ?? null;
 
-  const activeBlank = blanksWithInStem.find((b) => b.id === activeBlankId) ?? null;
+  const activeBlank =
+    blanksWithInStem.find((b) => b.id === effectiveActiveId) ?? null;
 
   const validity = contentValidity({
-    stemEmpty: !stem.trim(),
+    stemEmpty: isEmptyRichDoc(stem),
     markerCount: markerOrder.length,
     activeBlanks,
   });
@@ -532,16 +581,24 @@ export function ClozeEditorBody({
     let nextN = 1;
     while (presentNs.has(nextN)) nextN++;
 
-    // Read cursor position from the DOM textarea (id="bank-stem"
-    // is set on the StemField atom for exactly this).
-    const stemEl = document.getElementById(STEM_DOM_ID) as HTMLTextAreaElement | null;
-    const cursorPos = stemEl?.selectionStart ?? stem.length;
-    const before = stem.slice(0, cursorPos);
-    const after = stem.slice(cursorPos);
-    const needsLeadingSpace = cursorPos > 0 && !/\s$/.test(before);
-    const insert = `${needsLeadingSpace ? ' ' : ''}{${nextN}}`;
-    const nextStem = `${before}${insert}${after}`;
-    setStem(nextStem);
+    // Insert the marker. When the stem is the live (focused) roving field we
+    // splice it at the caret via the Tiptap editor; otherwise we append it to
+    // the end of the stem doc and focus the field (a clean text marker the
+    // curator can drag into place — the decoupled-marker payoff).
+    const marker = `{${nextN}}`;
+    const roving = rovingRef.current;
+    if (roving.key === 'stem' && roving.editor && !roving.editor.isDestroyed) {
+      const ed = roving.editor;
+      const { from } = ed.state.selection;
+      const before = from > 0 ? ed.state.doc.textBetween(Math.max(0, from - 1), from, ' ') : '';
+      const needsSpace = before !== '' && !/\s/.test(before);
+      ed.chain().focus().insertContent(`${needsSpace ? ' ' : ''}${marker}`).run();
+      // setStem fires via the field's onChange.
+    } else {
+      setStem((prev) => appendMarkerToDoc(prev, marker));
+      // Make the stem the live field so the curator lands in the sentence.
+      roving.setActiveKey?.('stem');
+    }
 
     // Reuse an existing card with the same id (orphan) if present,
     // otherwise create a fresh card with CLOZE_MIN_CHOICES empty choices.
@@ -571,15 +628,6 @@ export function ClozeEditorBody({
     // start filling its choices immediately.
     setActiveBlankId(`b${nextN}`);
 
-    // Restore focus + cursor after React commits.
-    requestAnimationFrame(() => {
-      const el = document.getElementById(STEM_DOM_ID) as HTMLTextAreaElement | null;
-      if (!el) return;
-      const newCursor = before.length + insert.length;
-      el.focus();
-      el.setSelectionRange(newCursor, newCursor);
-    });
-
     onDirty?.();
   }
 
@@ -591,8 +639,7 @@ export function ClozeEditorBody({
     ) {
       return;
     }
-    const cleaned = stem.replace(MARKER_RE, '').replace(/ +/g, ' ').trim();
-    setStem(cleaned);
+    setStem((prev) => stripMarkersFromDoc(prev));
     setBlanks([]);
     setActiveBlankId(null);
     onDirty?.();
@@ -697,9 +744,11 @@ export function ClozeEditorBody({
         realm={initial.surface}
         entityType={initial.surface === 'tutor' ? 'tutor_question' : 'bank_item'}
         itemId={initial.itemId}
-        title={initial.stem}
+        title={richTextToPlain(initial.stem)}
       />
-      <div className="auth-split">
+      <RovingProvider>
+        <RovingBridge onChange={setRoving} />
+        <div className="auth-split">
         <div className="auth-edit">
           <EditorTabs
             tabs={[
@@ -719,22 +768,27 @@ export function ClozeEditorBody({
             onChange={(id) => setTab(id as typeof tab)}
           >
             <TabPanel id="content">
-              <InstructionField
+              <RovingToolbar hint="Click into a field to format it" />
+              <RichInstructionField
                 value={instruction}
-                onChange={setInstruction}
+                onChange={(doc) => { setInstruction(doc); onDirty?.(); }}
               />
-              <StemField value={stem} onChange={setStem} />
+              <RichStemField
+                value={stem}
+                onChange={(doc) => { setStem(doc); onDirty?.(); }}
+              />
 
               <div className="auth-fg">
                 <div className="auth-label-row">
                   <label className="auth-label">Cloze blanks *</label>
                 </div>
                 <p className="auth-hint">
-                  Type the sentence above. Use <code>{'{1}'}</code>,{' '}
+                  Click into the stem above to write it. Use <code>{'{1}'}</code>,{' '}
                   <code>{'{2}'}</code>, … markers, or click{' '}
                   <strong>+ Add blank</strong> to insert the next one at
-                  the cursor. Gaps like <code>{'{1} {3}'}</code> are
-                  auto-renumbered to <code>{'{1} {2}'}</code> on save.
+                  the cursor. Formatting on a marker is tidied away on save;
+                  gaps like <code>{'{1} {3}'}</code> are auto-renumbered to{' '}
+                  <code>{'{1} {2}'}</code>.
                 </p>
 
                 <div className="auth-cz-toolbar">
@@ -766,7 +820,7 @@ export function ClozeEditorBody({
                     {activeBlanks.map((b) => {
                       const stemPosition = markerOrder.indexOf(parseInt(b.id.slice(1), 10));
                       const valid = blankValidity(b);
-                      const isActive = b.id === activeBlankId;
+                      const isActive = b.id === effectiveActiveId;
                       return (
                         <button
                           type="button"
@@ -787,7 +841,7 @@ export function ClozeEditorBody({
                     })}
                     {orphanBlanks.map((b) => {
                       const n = parseInt(b.id.slice(1), 10);
-                      const isActive = b.id === activeBlankId;
+                      const isActive = b.id === effectiveActiveId;
                       return (
                         <button
                           type="button"
@@ -848,8 +902,9 @@ export function ClozeEditorBody({
                 <HiddenSerialisers blanks={blanksWithInStem} />
               </div>
 
-              <RationaleFields
-                defaultRationale={initial.rationale}
+              <RichRationaleFields
+                rationale={rationale}
+                onRationaleChange={(doc) => { setRationale(doc); onDirty?.(); }}
                 defaultRationaleImg={initial.rationale_img}
               />
             </TabPanel>
@@ -892,14 +947,15 @@ export function ClozeEditorBody({
         <div className="auth-preview">
           <ClozePreview
             instruction={instruction}
-            stem={stem}
+            stemDoc={stem}
             markerOrder={markerOrder}
             blanksById={blanksById}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
           />
         </div>
-      </div>
+        </div>
+      </RovingProvider>
     </form>
   );
 }

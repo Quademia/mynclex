@@ -52,7 +52,7 @@ interface RovingState {
 
 const RovingCtx = createContext<RovingState | null>(null);
 
-function useRoving(): RovingState {
+export function useRoving(): RovingState {
   const ctx = useContext(RovingCtx);
   if (!ctx) {
     throw new Error('RovingRichField / RovingToolbar must be used inside <RovingProvider>.');

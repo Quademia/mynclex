@@ -88,8 +88,8 @@ import { BowtieEditorBody, BowtiePreview }       from '@/lib/bank/editors/bowtie
 import {
   ClozeEditorBody,
   ClozePreview,
-  parseStemMarkers,
 } from '@/lib/bank/editors/cloze-editor';
+import { clozeMarkerOrder } from '@/lib/bank/editors/cloze-stem-doc';
 import { HighlightEditorBody, HighlightPreview } from '@/lib/bank/editors/highlight-editor';
 import {
   DragDropEditorBody,
@@ -1449,10 +1449,11 @@ function ActiveQuestionPreview({
         />
       );
     case 'CLOZE': {
-      // CLOZE preview needs derived state: markerOrder from the stem
-      // and a Map of blanks keyed by id. Mirrors what ClozeEditorBody
+      // CLOZE preview needs derived state: markerOrder from the rich stem
+      // doc and a Map of blanks keyed by id. Mirrors what ClozeEditorBody
       // does internally before it passes to ClozePreview.
-      const markerOrder = parseStemMarkers(editor.initial.stem);
+      const stemDoc = parseRichDoc(editor.initial.stem);
+      const markerOrder = clozeMarkerOrder(stemDoc);
       const presentSet = new Set(markerOrder.map((n) => `b${n}`));
       const blanksWithInStem = editor.initial.blanks.map((b) => ({
         ...b,
@@ -1461,8 +1462,8 @@ function ActiveQuestionPreview({
       const blanksById = new Map(blanksWithInStem.map((b) => [b.id, b]));
       return (
         <ClozePreview
-          instruction={editor.initial.instruction}
-          stem={editor.initial.stem}
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stemDoc={stemDoc}
           markerOrder={markerOrder}
           blanksById={blanksById}
           viewMode={viewMode}

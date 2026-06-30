@@ -1567,7 +1567,21 @@ snapshot + a new `MATRIX_MR` value in the type registry) — bigger than rich te
 independent of the 6c rich-text work. Sequencing TBD by Sam (next, or after 6d
 Cloze in the alternate-features rotation). Not built yet.
 
-### Slice 6d — Cloze stem treatment (design discussion 2026-06-29 — LEANING decoupled, not yet locked)
+### Slice 6d — Cloze stem treatment (design discussion 2026-06-29 — **LOCKED 2026-06-30: Option B, decoupled**)
+
+**LOCKED (2026-06-30):** Option B (decoupled `{N}`-text + normalize-at-boundary +
+validate) is final. Sam confirmed after re-explaining in plain terms. Sub-question
+raised + settled: *make the in-editor marker look like a box / dropdown chip rather
+than raw `{N}`?* — split into **Flavour 1 (cosmetic "sticker"** = a painted-on
+decoration over the still-plain `{N}` text; storage stays decoupled, real
+protection still the auto-clean + validate net; small editor add-on) vs **Flavour 2
+(a real locked tile** = Option A's custom node by another name — reopens the
+new-tech we chose B to avoid). **Decision: build plain B first; the box-sticker
+(Flavour 1) is PARKED as optional cosmetic polish** — it's pure presentation, safe
+to add at any later time without touching marker logic, so we judge raw `{N}`
+against the real formatted stem before deciding if the sticker is worth it. Flavour
+2 stays rejected.
+
 
 Read the whole Cloze pipeline (editor / parser / runner / preview / row-mapper).
 **How it works today:** the stem is a plain text string with literal `{N}`

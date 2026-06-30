@@ -46,6 +46,12 @@ import {
   parseCloze,
   type ClozeBlankInput,
 } from '@/lib/bank/parsers/cloze';
+import { parseRichDoc, serializeRichDoc } from '@/lib/authoring/rich-doc';
+import {
+  normalizeClozeStem,
+  clozeStemScanText,
+  renumberClozeStem,
+} from '@/lib/bank/editors/cloze-stem-doc';
 import { computeMarksFromKey } from '@/lib/scoring';
 import {
   parseHighlight,
@@ -288,7 +294,17 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
             correct_id: String(formData.get(`cloze_correct_${bid}`) ?? ''),
           });
         }
-        return parseCloze({ stem, blanks });
+        // The stem is a rich doc (JSON) with the {N} markers as plain text
+        // inside it (Slice 6d, Option B). Normalise it (strip any marks
+        // clinging to a marker + isolate each one), scan its flattened text
+        // for the markers, run the existing parser for ordering / validation /
+        // content, then renumber the DOC to match — and store the doc JSON,
+        // not the parser's flattened scan string.
+        const stemDoc = normalizeClozeStem(parseRichDoc(stem));
+        const result = parseCloze({ stem: clozeStemScanText(stemDoc), blanks });
+        if (!result.ok) return result;
+        const renumberedDoc = renumberClozeStem(stemDoc, result.order);
+        return { ...result, stem: serializeRichDoc(renumberedDoc) };
       }
       case 'HIGHLIGHT': {
         // Five parallel arrays per chunk card. Orphans (in_passage !==

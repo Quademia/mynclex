@@ -230,3 +230,208 @@ export function RichRender({
     </div>
   );
 }
+
+// ── Slot splicing (marker-stem types: Cloze {N}, later Highlight / Drag-drop) ──
+//
+// Renders a rich doc but, wherever a marker matching `pattern` appears in the
+// prose, hands that occurrence to `renderSlot` to inject an interactive node
+// (a Cloze dropdown, a review pill, …) in place of the marker text. Block
+// structure + inline marks around the marker are preserved verbatim — the
+// curator's formatting survives, the slot sits inline where the marker was.
+//
+// `pattern` must capture the marker key in group 1 (e.g. /\{(\d+)\}/ → the N).
+// `renderSlot(key, index)` receives that key string plus the running 0-based
+// occurrence index across the whole doc (the positional blank number).
+//
+// Decoupled-marker contract (Slice 6d, Option B): the marker lives as plain
+// text in the doc. Even if a stray mark clings to it, the regex still finds it
+// in the text run and the slot renders clean — so a mangled-format marker can
+// never break the student view; save-time normalisation strips the marks for
+// storage.
+
+type SlotRenderer = (key: string, index: number) => ReactNode;
+
+function renderMarkedText(
+  text: string,
+  marks: RichMark[] | undefined,
+  key: string,
+): ReactNode {
+  let el: ReactNode = text;
+  (marks ?? []).forEach((mark, mi) => {
+    el = applyMark(el, mark, `${key}-m${mi}`);
+  });
+  return <Fragment key={key}>{el}</Fragment>;
+}
+
+function InlineWithSlots({
+  content,
+  pattern,
+  renderSlot,
+  nextIndex,
+}: {
+  content?: RichNode[];
+  pattern: RegExp;
+  renderSlot: SlotRenderer;
+  nextIndex: () => number;
+}): ReactNode {
+  if (!content || content.length === 0) return null;
+  const out: ReactNode[] = [];
+  content.forEach((node, i) => {
+    if (node.type === 'hardBreak') {
+      out.push(<br key={`br${i}`} />);
+      return;
+    }
+    if (typeof node.text !== 'string') return;
+    const text = node.text;
+    const re = new RegExp(pattern.source, 'g');
+    let last = 0;
+    let part = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) {
+        out.push(
+          renderMarkedText(text.slice(last, m.index), node.marks, `t${i}-${part++}`),
+        );
+      }
+      out.push(
+        <Fragment key={`s${i}-${m.index}`}>
+          {renderSlot(m[1], nextIndex())}
+        </Fragment>,
+      );
+      last = m.index + m[0].length;
+      if (m[0].length === 0) re.lastIndex++; // guard against a zero-width match
+    }
+    if (last < text.length) {
+      out.push(renderMarkedText(text.slice(last), node.marks, `t${i}-${part++}`));
+    }
+  });
+  return <>{out}</>;
+}
+
+function BlockWithSlots({
+  node,
+  k,
+  pattern,
+  renderSlot,
+  nextIndex,
+}: {
+  node: RichNode;
+  k: string;
+  pattern: RegExp;
+  renderSlot: SlotRenderer;
+  nextIndex: () => number;
+}): ReactNode {
+  const inline = (
+    <InlineWithSlots
+      content={node.content}
+      pattern={pattern}
+      renderSlot={renderSlot}
+      nextIndex={nextIndex}
+    />
+  );
+  switch (node.type) {
+    case 'paragraph':
+      return (
+        <p key={k} style={alignStyle(node)}>
+          {inline}
+        </p>
+      );
+    case 'heading': {
+      const level = (node.attrs?.level as number | undefined) ?? 2;
+      const Tag = (level === 3 ? 'h3' : 'h2') as 'h2' | 'h3';
+      return (
+        <Tag key={k} style={alignStyle(node)}>
+          {inline}
+        </Tag>
+      );
+    }
+    case 'bulletList':
+      return (
+        <ul key={k}>
+          <BlocksWithSlots nodes={node.content} prefix={k} pattern={pattern} renderSlot={renderSlot} nextIndex={nextIndex} />
+        </ul>
+      );
+    case 'orderedList':
+      return (
+        <ol key={k}>
+          <BlocksWithSlots nodes={node.content} prefix={k} pattern={pattern} renderSlot={renderSlot} nextIndex={nextIndex} />
+        </ol>
+      );
+    case 'listItem':
+      return (
+        <li key={k}>
+          <BlocksWithSlots nodes={node.content} prefix={k} pattern={pattern} renderSlot={renderSlot} nextIndex={nextIndex} />
+        </li>
+      );
+    case 'blockquote':
+      return (
+        <blockquote key={k}>
+          <BlocksWithSlots nodes={node.content} prefix={k} pattern={pattern} renderSlot={renderSlot} nextIndex={nextIndex} />
+        </blockquote>
+      );
+    default:
+      return (
+        <BlocksWithSlots key={k} nodes={node.content} prefix={k} pattern={pattern} renderSlot={renderSlot} nextIndex={nextIndex} />
+      );
+  }
+}
+
+function BlocksWithSlots({
+  nodes,
+  prefix,
+  pattern,
+  renderSlot,
+  nextIndex,
+}: {
+  nodes?: RichNode[];
+  prefix: string;
+  pattern: RegExp;
+  renderSlot: SlotRenderer;
+  nextIndex: () => number;
+}): ReactNode {
+  if (!nodes || nodes.length === 0) return null;
+  return (
+    <>
+      {nodes.map((node, i) => (
+        <BlockWithSlots
+          key={`${prefix}-${i}`}
+          k={`${prefix}-${i}`}
+          node={node}
+          pattern={pattern}
+          renderSlot={renderSlot}
+          nextIndex={nextIndex}
+        />
+      ))}
+    </>
+  );
+}
+
+/**
+ * Render a rich doc with interactive slots spliced in at every `pattern`
+ * marker. See the block comment above for the contract.
+ */
+export function RichRenderWithSlots({
+  doc,
+  pattern,
+  renderSlot,
+  className,
+}: {
+  doc: RichDoc;
+  pattern: RegExp;
+  renderSlot: SlotRenderer;
+  className?: string;
+}) {
+  let n = 0;
+  const nextIndex = () => n++;
+  return (
+    <div className={className ? `auth-rich ${className}` : 'auth-rich'}>
+      <BlocksWithSlots
+        nodes={doc.content}
+        prefix="b"
+        pattern={pattern}
+        renderSlot={renderSlot}
+        nextIndex={nextIndex}
+      />
+    </div>
+  );
+}
