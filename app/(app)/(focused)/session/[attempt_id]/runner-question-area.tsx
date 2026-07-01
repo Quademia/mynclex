@@ -53,6 +53,8 @@ import type {
   SelectNCorrect,
   MatrixContent,
   MatrixCorrect,
+  MatrixMrContent,
+  MatrixMrCorrect,
   HighlightContent,
   HighlightCorrect,
   ClozeContent,
@@ -72,6 +74,7 @@ import type {
   SataAnswer,
   SelectNAnswer,
   MatrixAnswer,
+  MatrixMrAnswer,
   HighlightAnswer,
   ClozeAnswer,
   DragDropAnswer,
@@ -86,6 +89,7 @@ import {
   SataRunner,
   SelectNRunner,
   MatrixRunner,
+  MatrixMrRunner,
   HighlightRunner,
   ClozeRunner,
   DragDropRunner,
@@ -103,6 +107,7 @@ const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   SATA:      'Select all that apply',
   SELECT_N:  'Select N',
   MATRIX:    'Matrix',
+  MATRIX_MR: 'Matrix (multiple response)',
   HIGHLIGHT: 'Highlight',
   CLOZE:     'Cloze',
   DRAG_DROP: 'Drag-drop',
@@ -340,6 +345,30 @@ function PerTypeRunner(props: Props) {
           content={content}
           studentAnswer={(props.answerRow.answer_json as MatrixAnswer | undefined) ?? {}}
           correct={props.unseal.correct as MatrixCorrect}
+        />
+      );
+    }
+
+    case 'MATRIX_MR': {
+      const content = item.content_snapshot_json as unknown as MatrixMrContent;
+
+      if (props.itemMode === 'answering') {
+        return (
+          <MatrixMrRunner
+            mode="answering"
+            content={content}
+            selected={(props.pendingAnswer as MatrixMrAnswer | undefined) ?? {}}
+            onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
+          />
+        );
+      }
+
+      return (
+        <MatrixMrRunner
+          mode="review"
+          content={content}
+          studentAnswer={(props.answerRow.answer_json as MatrixMrAnswer | undefined) ?? {}}
+          correct={props.unseal.correct as MatrixMrCorrect}
         />
       );
     }

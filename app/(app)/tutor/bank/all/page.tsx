@@ -56,6 +56,12 @@ import {
   type MatrixEditorInitial,
 } from '@/lib/bank/editors/matrix-row-mapper';
 import {
+  emptyMatrixMrInitial,
+  matrixMrRowToInitial,
+  type MatrixMrDbRow,
+  type MatrixMrEditorInitial,
+} from '@/lib/bank/editors/matrix-mr-row-mapper';
+import {
   emptyBowtieInitial,
   bowtieRowToInitial,
   type BowtieDbRow,
@@ -235,6 +241,7 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
   const sataInitialsById:      Record<string, SataEditorInitial>      = {};
   const selectNInitialsById:   Record<string, SelectNEditorInitial>   = {};
   const matrixInitialsById:    Record<string, MatrixEditorInitial>    = {};
+  const matrixMrInitialsById:  Record<string, MatrixMrEditorInitial>  = {};
   const bowtieInitialsById:    Record<string, BowtieEditorInitial>    = {};
   const clozeInitialsById:     Record<string, ClozeEditorInitial>     = {};
   const highlightInitialsById: Record<string, HighlightEditorInitial> = {};
@@ -252,6 +259,8 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
       selectNInitialsById[row.item_id] = selectNRowToInitial(row as unknown as SelectNDbRow, 'tutor');
     } else if (row.question_type === 'MATRIX') {
       matrixInitialsById[row.item_id] = matrixRowToInitial(row as unknown as MatrixDbRow, 'tutor');
+    } else if (row.question_type === 'MATRIX_MR') {
+      matrixMrInitialsById[row.item_id] = matrixMrRowToInitial(row as unknown as MatrixMrDbRow, 'tutor');
     } else if (row.question_type === 'BOWTIE') {
       bowtieInitialsById[row.item_id] = bowtieRowToInitial(row as unknown as BowtieDbRow, 'tutor');
     } else if (row.question_type === 'CLOZE') {
@@ -328,6 +337,8 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
           emptySelectNInitial={emptySelectNInitial('tutor')}
           matrixInitialsById={matrixInitialsById}
           emptyMatrixInitial={emptyMatrixInitial('tutor')}
+          matrixMrInitialsById={matrixMrInitialsById}
+          emptyMatrixMrInitial={emptyMatrixMrInitial('tutor')}
           bowtieInitialsById={bowtieInitialsById}
           emptyBowtieInitial={emptyBowtieInitial('tutor')}
           clozeInitialsById={clozeInitialsById}

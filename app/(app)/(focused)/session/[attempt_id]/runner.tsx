@@ -42,13 +42,14 @@ import type {
   SataAnswer,
   SelectNAnswer,
 } from '@/lib/scoring';
-import type { SelectNContent, MatrixContent, ClozeContent, DragDropContent, DragClozeContent, DragOrderContent } from '@/lib/bank/types';
-import type { MatrixAnswer, HighlightAnswer, ClozeAnswer, DragDropAnswer, DragClozeAnswer, DragOrderAnswer, BowtieAnswer } from '@/lib/scoring';
+import type { SelectNContent, MatrixContent, MatrixMrContent, ClozeContent, DragDropContent, DragClozeContent, DragOrderContent } from '@/lib/bank/types';
+import type { MatrixAnswer, MatrixMrAnswer, HighlightAnswer, ClozeAnswer, DragDropAnswer, DragClozeAnswer, DragOrderAnswer, BowtieAnswer } from '@/lib/scoring';
 import {
   isMcqComplete,
   isSataComplete,
   isSelectNComplete,
   isMatrixComplete,
+  isMatrixMrComplete,
   isHighlightComplete,
   isClozeComplete,
   isDragDropComplete,
@@ -1086,6 +1087,23 @@ function getSubmitGate(
         canSubmit:   ok,
         submitValue: ok ? (a as BankItemAnswer) : null,
         hint:        ok ? undefined : `${answered} of ${total} rows answered — finish all to submit`,
+      };
+    }
+
+    case 'MATRIX_MR': {
+      const content = item.content_snapshot_json as unknown as MatrixMrContent;
+      const a = pending as MatrixMrAnswer | undefined;
+      const ok = isMatrixMrComplete(a, content);
+      // Name the rows still missing a pick (Q3 "which rows" cue).
+      const unanswered = content.rows
+        .map((r, i) => ((a?.[r.id]?.length ?? 0) > 0 ? null : i + 1))
+        .filter((n): n is number => n !== null);
+      return {
+        canSubmit:   ok,
+        submitValue: ok ? (a as BankItemAnswer) : null,
+        hint:        ok
+          ? undefined
+          : `Pick at least one in every row — row${unanswered.length > 1 ? 's' : ''} ${unanswered.join(', ')} still empty`,
       };
     }
 

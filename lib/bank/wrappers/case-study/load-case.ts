@@ -46,6 +46,10 @@ import {
   matrixRowToInitial,
 } from '../../editors/matrix-row-mapper';
 import {
+  type MatrixMrDbRow,
+  matrixMrRowToInitial,
+} from '../../editors/matrix-mr-row-mapper';
+import {
   type BowtieDbRow,
   bowtieRowToInitial,
 } from '../../editors/bowtie-row-mapper';
@@ -139,6 +143,8 @@ function rowToSlotEditor(
       return { kind: 'SELECT_N', initial: selectNRowToInitial(row as SelectNDbRow, sf) };
     case 'MATRIX':
       return { kind: 'MATRIX', initial: matrixRowToInitial(row as MatrixDbRow, sf) };
+    case 'MATRIX_MR':
+      return { kind: 'MATRIX_MR', initial: matrixMrRowToInitial(row as MatrixMrDbRow, sf) };
     case 'BOWTIE':
       return { kind: 'BOWTIE', initial: bowtieRowToInitial(row as BowtieDbRow, sf) };
     case 'CLOZE':

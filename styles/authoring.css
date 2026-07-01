@@ -1425,7 +1425,8 @@
   transition: background 0.12s ease;
 }
 .auth-matrix-cell:hover { background: var(--primary-light); }
-.auth-matrix-cell input[type="radio"] {
+.auth-matrix-cell input[type="radio"],
+.auth-matrix-cell input[type="checkbox"] {
   width: 18px;
   height: 18px;
   accent-color: var(--accent);
@@ -1971,6 +1972,11 @@
   vertical-align: middle;
 }
 
+/* MATRIX_MR preview: checkbox affordance — square boxes, not circles. */
+.auth-matrix-preview-table.multi .auth-matrix-preview-radio {
+  border-radius: 4px;
+}
+
 /* ─────────────────────────────────────────────────────
  * CLOZE editor — slice 8.
  * Sentence with {N} markers, per-blank choice list, dual-mode preview.
@@ -2001,7 +2007,8 @@
    count, Highlight chunk count, …). */
 .auth-cz-advisory,
 .auth-hl-advisory,
-.auth-dd-advisory {
+.auth-dd-advisory,
+.auth-mmr-advisory {
   margin: 8px 0 0;
   padding: 8px 12px;
   font-size: 12px;

@@ -84,6 +84,7 @@ import { TfEditorBody, TfPreview }               from '@/lib/bank/editors/tf-edi
 import { SataEditorBody, SataPreview }           from '@/lib/bank/editors/sata-editor';
 import { SelectNEditorBody, SelectNPreview }     from '@/lib/bank/editors/select-n-editor';
 import { MatrixEditorBody, MatrixPreview }       from '@/lib/bank/editors/matrix-editor';
+import { MatrixMrEditorBody, MatrixMrPreview }   from '@/lib/bank/editors/matrix-mr-editor';
 import { BowtieEditorBody, BowtiePreview }       from '@/lib/bank/editors/bowtie-editor';
 import {
   ClozeEditorBody,
@@ -110,6 +111,7 @@ import { emptyTfInitial }        from '@/lib/bank/editors/tf-row-mapper';
 import { emptySataInitial }      from '@/lib/bank/editors/sata-row-mapper';
 import { emptySelectNInitial }   from '@/lib/bank/editors/select-n-row-mapper';
 import { emptyMatrixInitial }    from '@/lib/bank/editors/matrix-row-mapper';
+import { emptyMatrixMrInitial }  from '@/lib/bank/editors/matrix-mr-row-mapper';
 import { emptyBowtieInitial }    from '@/lib/bank/editors/bowtie-row-mapper';
 import { emptyClozeInitial }     from '@/lib/bank/editors/cloze-row-mapper';
 import { emptyHighlightInitial } from '@/lib/bank/editors/highlight-row-mapper';
@@ -129,6 +131,7 @@ const FORM_ID_BY_TYPE: Record<string, string> = {
   SATA:      'auth-sata-form',
   SELECT_N:  'auth-select-n-form',
   MATRIX:    'auth-matrix-form',
+  MATRIX_MR: 'auth-matrix-mr-form',
   BOWTIE:    'auth-bowtie-form',
   CLOZE:     'auth-cloze-form',
   HIGHLIGHT: 'auth-highlight-form',
@@ -459,6 +462,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
       case 'SATA':      return { kind: 'SATA',      initial: emptySataInitial(surface)      };
       case 'SELECT_N':  return { kind: 'SELECT_N',  initial: emptySelectNInitial(surface)   };
       case 'MATRIX':    return { kind: 'MATRIX',    initial: emptyMatrixInitial(surface)    };
+      case 'MATRIX_MR': return { kind: 'MATRIX_MR', initial: emptyMatrixMrInitial(surface)  };
       case 'BOWTIE':    return { kind: 'BOWTIE',    initial: emptyBowtieInitial(surface)    };
       case 'CLOZE':     return { kind: 'CLOZE',     initial: emptyClozeInitial(surface)     };
       case 'HIGHLIGHT': return { kind: 'HIGHLIGHT', initial: emptyHighlightInitial(surface) };
@@ -1330,6 +1334,8 @@ function ActiveQuestionEditorBody({
       return <SelectNEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
     case 'MATRIX':
       return <MatrixEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
+    case 'MATRIX_MR':
+      return <MatrixMrEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
     case 'BOWTIE':
       return <BowtieEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
     case 'CLOZE':
@@ -1435,6 +1441,26 @@ function ActiveQuestionPreview({
     case 'MATRIX':
       return (
         <MatrixPreview
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
+          rowLabel={parseRichDoc(editor.initial.row_label)}
+          rows={editor.initial.rows.map((r) => ({
+            id: r.id,
+            text: parseRichDoc(r.text),
+            feedback: parseRichDoc(r.feedback),
+          }))}
+          columns={editor.initial.columns.map((c) => ({
+            id: c.id,
+            text: parseRichDoc(c.text),
+          }))}
+          correct={editor.initial.correct}
+          viewMode={viewMode}
+          onViewModeChange={onViewModeChange}
+        />
+      );
+    case 'MATRIX_MR':
+      return (
+        <MatrixMrPreview
           instruction={parseRichDoc(editor.initial.instruction)}
           stem={parseRichDoc(editor.initial.stem)}
           rowLabel={parseRichDoc(editor.initial.row_label)}

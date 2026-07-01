@@ -1533,7 +1533,44 @@ use a **soft hint/warning** for the merely-unusual (e.g. "NCLEX SATA usually has
   hard-required is arguably a clarity-aid that could be softened to advice — Sam
   flagged it as "the part we'll discuss further"; no change for now.)*
 
-### Matrix Multiple Response — new item type (planned; surfaced during 6c)
+### Matrix Multiple Response — new item type (✅ BUILT 2026-07-01)
+
+**✅ BUILT + Sam-tested on dev** (session branch off `main`; app-layer + ONE
+additive migration `20260711120000`, dev-applied; tsc + eslint + 98 vitest
+clean; NOT yet merged to `main`, NOT prod). New self-contained `MATRIX_MR`
+type, mirrored from `MATRIX` (legacy `MATRIX` untouched). **The 4 open
+questions were settled one-at-a-time with Sam** (Q1 grounded in a web check of
+the NCSBN spec):
+- **Q1 — correct/row:** require **≥1 correct per row** (surfaced as a clear
+  block, not a silent fail). Decider: NCSBN's real Matrix MR *forces* the
+  student to tick ≥1 box per row to proceed, so an all-false row would be
+  unanswerable — real items always have ≥1 correct per row.
+- **Q2 — scoring:** **SATA-style per row.** New `scorePerRowMulti` scores each
+  row with the existing `scorePlusMinus` (+1 correct / −1 wrong, floored at 0
+  within the row), summed across rows. Max marks = total correct cells across
+  all rows (a row with 2/1/3 correct → 6 marks). `is_correct` (full credit)
+  only when every row is exactly right.
+- **Q3 — submit gate:** **hard gate** — the student must pick ≥1 per row; the
+  runner's submit hint **names the still-empty rows**.
+- **Q4 — bounds:** mirror MATRIX exactly (hard **2–10 rows / 2–6 cols**) + an
+  advise > block amber advisory toward the NGN norm (4–10 rows, 2–3 cols).
+
+**Files (mirror of MATRIX, no stem-doc):** `matrix-mr-editor.tsx` (checkbox
+cells), `matrix-mr-row-mapper.ts`, `parsers/matrix-mr.ts`,
+`runner/types/matrix-mr.tsx` + `scorePerRowMulti` in `lib/scoring/functions.ts`.
+Wire-up followed the checklist below: the 4 runtime whitelists, all tsc-caught
+switches/maps, both bank pages, both wrappers (case-study + trend), the 3-CHECK
+migration. CSS reuses `.auth-matrix-*` / `.rn-matrix-*` with a `.multi`
+modifier (square checkbox glyphs vs the radio circle). Correctly left OUT of
+`EMBED_QUESTION_TYPES` (matrix family isn't note-embeddable — mirrors MATRIX).
+**Operational gotcha this build:** a stale `.next` after the many edits threw
+the opaque "Jest worker" 500 on the session route; wiping `.next` then exposed
+a stray `node_modules/.vite` cache (created by `npx vitest` inside the
+worktree) that broke Turbopack's cold root-inference. Removing both fixed it.
+**⏭ remaining:** Sam-tested ✅ → (with approval) merge to `main`. Original
+design write-up kept below for history.
+
+### Matrix Multiple Response — original plan (superseded by the BUILT note above)
 
 The Matrix per-editor "other work" (2026-06-29) surfaced that **NCLEX Matrix
 comes in two distinct NGN item types, and we've only built one:**

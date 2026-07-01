@@ -66,6 +66,7 @@ const TYPE_PILL: Record<string, { short: string; letter: string; color: string; 
   SATA:      { short: 'SATA',      letter: 'S', color: '#235f56', bg: '#dcefe9' },
   SELECT_N:  { short: 'Select N',  letter: 'N', color: '#0e7490', bg: '#d9eef2' },
   MATRIX:    { short: 'Matrix',    letter: 'G', color: '#4338ca', bg: '#e6e6fb' },
+  MATRIX_MR: { short: 'Matrix MR', letter: 'G', color: '#4f46e5', bg: '#e9e9fc' },
   BOWTIE:    { short: 'Bow-tie',   letter: 'B', color: '#7c3aed', bg: '#efe6fd' },
   CLOZE:     { short: 'Cloze',     letter: 'C', color: '#b45309', bg: '#fbeedb' },
   HIGHLIGHT: { short: 'Highlight', letter: 'H', color: '#be123c', bg: '#fbe2e8' },

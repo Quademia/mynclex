@@ -30,6 +30,7 @@ import { TfEditor, type TfEditorInitial } from '@/lib/bank/editors/tf-editor';
 import { SataEditor, type SataEditorInitial } from '@/lib/bank/editors/sata-editor';
 import { SelectNEditor, type SelectNEditorInitial } from '@/lib/bank/editors/select-n-editor';
 import { MatrixEditor, type MatrixEditorInitial } from '@/lib/bank/editors/matrix-editor';
+import { MatrixMrEditor, type MatrixMrEditorInitial } from '@/lib/bank/editors/matrix-mr-editor';
 import { BowtieEditor, type BowtieEditorInitial } from '@/lib/bank/editors/bowtie-editor';
 import { ClozeEditor, type ClozeEditorInitial } from '@/lib/bank/editors/cloze-editor';
 import { HighlightEditor, type HighlightEditorInitial } from '@/lib/bank/editors/highlight-editor';
@@ -58,6 +59,7 @@ const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set([
   'SATA',
   'SELECT_N',
   'MATRIX',
+  'MATRIX_MR',
   'BOWTIE',
   'CLOZE',
   'HIGHLIGHT',
@@ -150,6 +152,10 @@ export interface BankListClientProps {
   matrixInitialsById: Record<string, MatrixEditorInitial>;
   /** Empty initial used when the curator picks MATRIX in create mode. */
   emptyMatrixInitial: MatrixEditorInitial;
+  /** Map of item_id → full editor initial, MATRIX_MR rows. */
+  matrixMrInitialsById: Record<string, MatrixMrEditorInitial>;
+  /** Empty initial used when the curator picks MATRIX_MR in create mode. */
+  emptyMatrixMrInitial: MatrixMrEditorInitial;
   /** Map of item_id → full editor initial, BOWTIE rows. */
   bowtieInitialsById: Record<string, BowtieEditorInitial>;
   /** Empty initial used when the curator picks BOWTIE in create mode. */
@@ -202,6 +208,8 @@ export function BankListClient({
   emptySelectNInitial,
   matrixInitialsById,
   emptyMatrixInitial,
+  matrixMrInitialsById,
+  emptyMatrixMrInitial,
   bowtieInitialsById,
   emptyBowtieInitial,
   clozeInitialsById,
@@ -574,6 +582,13 @@ export function BankListClient({
           onSaved={handleSaved}
         />
       )}
+      {modal.kind === 'editor-create' && modal.type === 'MATRIX_MR' && (
+        <MatrixMrEditor
+          initial={emptyMatrixMrInitial}
+          onClose={handleClose}
+          onSaved={handleSaved}
+        />
+      )}
       {modal.kind === 'editor-create' && modal.type === 'BOWTIE' && (
         <BowtieEditor
           initial={emptyBowtieInitial}
@@ -664,6 +679,16 @@ export function BankListClient({
         matrixInitialsById[modal.itemId] && (
           <MatrixEditor
             initial={matrixInitialsById[modal.itemId]}
+            onClose={handleClose}
+            onSaved={handleSaved}
+            onDeleted={handleDeleted}
+          />
+        )}
+      {modal.kind === 'editor-edit' &&
+        modal.type === 'MATRIX_MR' &&
+        matrixMrInitialsById[modal.itemId] && (
+          <MatrixMrEditor
+            initial={matrixMrInitialsById[modal.itemId]}
             onClose={handleClose}
             onSaved={handleSaved}
             onDeleted={handleDeleted}

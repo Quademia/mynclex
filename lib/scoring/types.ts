@@ -20,6 +20,10 @@ export type HighlightAnswer = string[];
 // rowId -> columnId; missing rows = skipped (score 0 for that row)
 export type MatrixAnswer = Record<string, string>;
 
+// MATRIX_MR — rowId -> columnId[] (the student's picks for that row);
+// missing or empty rows = skipped (score 0 for that row).
+export type MatrixMrAnswer = Record<string, string[]>;
+
 // blankId -> choiceId; missing blanks = skipped
 export type ClozeAnswer = Record<string, string>;
 
@@ -55,6 +59,7 @@ export type BankItemAnswer =
   | SataAnswer
   | SelectNAnswer
   | MatrixAnswer
+  | MatrixMrAnswer
   | HighlightAnswer
   | ClozeAnswer
   | DragDropAnswer

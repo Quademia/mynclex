@@ -8,6 +8,24 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **MATRIX MULTIPLE RESPONSE (`MATRIX_MR`) — ✅ BUILT + Sam-tested on dev
+> (2026-07-01; session branch off `main`; app-layer + ONE additive migration
+> `20260711120000` [dev-applied]; tsc + eslint + 98 vitest clean; NOT merged to
+> `main`, NOT prod).** New self-contained NGN item type — a matrix grid where
+> each row has **one or more** correct columns (checkbox per cell), scored
+> SATA-style per row. Mirror of `MATRIX` (radio, one-per-row); legacy `MATRIX`
+> untouched. Built via the "Adding a new question type — wiring checklist".
+> **4 design Qs settled with Sam** (Q1 grounded in an NCSBN web check): ≥1
+> correct per row · SATA-per-row scoring (`scorePerRowMulti`, max = total
+> correct cells) · hard ≥1-pick-per-row submit gate that names empty rows ·
+> bounds mirror MATRIX (2–10 rows / 2–6 cols) + NGN-norm advisory. New files:
+> `matrix-mr-{editor,row-mapper}` · `parsers/matrix-mr` ·
+> `runner/types/matrix-mr` · `scorePerRowMulti`. Full write-up:
+> [questions-and-wrappers-rebuild.md](docs/product-plan/questions-and-wrappers-rebuild.md)
+> → "Matrix Multiple Response — new item type". **⏭ NEXT:** (with Sam's
+> approval) merge to `main`; then the trend stimulus rich-content arc → Slice 7
+> media block. ⚠ `PAYSTACK_SECRET_KEY` still not on prod.
+
 > **BANK RICH-CONTENT — SLICE 6: rich text across the QUESTION fields —
 > 🔨 IN PROGRESS (6a + alignment + 6b BUILT + MERGED to `main` 2026-06-29;
 > all app-layer, NO migration; tsc + eslint + 94 vitest clean; Sam-tested on

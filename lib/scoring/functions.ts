@@ -63,6 +63,27 @@ export function scorePerRow(
   return sumPerElement(matches);
 }
 
+// scorePerRowMulti — each row scored SATA-style (+1 correct, −1 wrong,
+// floor 0 within the row), then summed across rows. Max = total number of
+// correct cells across all rows. is_correct only when EVERY row is fully
+// correct (all its correct columns picked, no wrong columns picked).
+// Used by: MATRIX_MR. Mental model: a stack of SATA rows.
+export function scorePerRowMulti(
+  correctCells: Record<string, string[]>,
+  pickedCells: Record<string, string[]>,
+): Result {
+  let score = 0;
+  let max = 0;
+  let allRowsCorrect = true;
+  for (const [rowId, correctIds] of Object.entries(correctCells)) {
+    const r = scorePlusMinus(correctIds, pickedCells[rowId] ?? []);
+    score += r.score_awarded;
+    max += r.max;
+    if (!r.is_correct) allRowsCorrect = false;
+  }
+  return { score_awarded: score, is_correct: allRowsCorrect, max };
+}
+
 // scorePerBlank — 0/1 per blank, summed. Max = number of blanks.
 // Used by: CLOZE (simple drop-down per blank in v1).
 export function scorePerBlank(

@@ -23,6 +23,7 @@ export const QUESTION_TYPES = [
   { value: 'SATA', label: 'SATA — Select All That Apply' },
   { value: 'SELECT_N', label: 'Select N — Select exactly N options' },
   { value: 'MATRIX', label: 'Matrix — Grid, one correct per row' },
+  { value: 'MATRIX_MR', label: 'Matrix Multiple Response — Grid, one or more correct per row' },
   { value: 'BOWTIE', label: 'Bow-tie — 5-slot NGN (2 Left · 1 Centre · 2 Right)' },
   { value: 'CLOZE', label: 'Cloze — Fill-in-the-blank sentence' },
   { value: 'HIGHLIGHT', label: 'Highlight — Click correct findings in a passage' },
@@ -41,6 +42,7 @@ export const ITEM_ID_PREFIX: Record<QuestionType, string> = {
   SATA: 'NCLEX_SATA_',
   SELECT_N: 'NCLEX_SELN_',
   MATRIX: 'NCLEX_MAT_',
+  MATRIX_MR: 'NCLEX_MMR_',
   BOWTIE: 'NCLEX_BT_',
   CLOZE: 'NCLEX_CLZ_',
   HIGHLIGHT: 'NCLEX_HL_',
@@ -58,6 +60,7 @@ export const TUTOR_ITEM_ID_PREFIX: Record<QuestionType, string> = {
   SATA:      'NCLEX_TUT_SATA_',
   SELECT_N:  'NCLEX_TUT_SN_',
   MATRIX:    'NCLEX_TUT_MAT_',
+  MATRIX_MR: 'NCLEX_TUT_MMR_',
   BOWTIE:    'NCLEX_TUT_BT_',
   CLOZE:     'NCLEX_TUT_CLZ_',
   HIGHLIGHT: 'NCLEX_TUT_HL_',
@@ -201,6 +204,24 @@ export const MIN_MATRIX_COLS = 2;
 export const MAX_MATRIX_COLS = 6;
 export const DEFAULT_MATRIX_ROWS = 3;
 export const DEFAULT_MATRIX_COLS = 3;
+
+// Matrix Multiple Response bounds (own self-contained type, 2026-07-01).
+// Hard structural bounds MIRROR plain MATRIX so authoring the two grids
+// feels identical: 2–10 rows, 2–6 columns. The difference is per-row
+// answer cardinality — MR rows allow ONE OR MORE correct columns (vs
+// exactly one for MATRIX). Per Q1: every row must have >= 1 correct; the
+// editor advises rather than silently blocking. RECOMMENDED_* drive an
+// advise > block amber nudge toward the NGN norm (4–10 rows, 2–3 cols);
+// outside the hard bounds blocks save.
+export const MIN_MATRIX_MR_ROWS = 2;
+export const MAX_MATRIX_MR_ROWS = 10;
+export const MIN_MATRIX_MR_COLS = 2;
+export const MAX_MATRIX_MR_COLS = 6;
+export const DEFAULT_MATRIX_MR_ROWS = 3;
+export const DEFAULT_MATRIX_MR_COLS = 3;
+export const RECOMMENDED_MIN_MATRIX_MR_ROWS = 4;
+export const RECOMMENDED_MAX_MATRIX_MR_ROWS = 10;
+export const RECOMMENDED_MAX_MATRIX_MR_COLS = 3;
 
 // Bow-tie bounds (Family B — Slice 1.6)
 // Structural: each wing has a fixed correct-count. Tokens >= correct-count.

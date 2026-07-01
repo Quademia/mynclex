@@ -1042,6 +1042,14 @@
 .rn-matrix-cell.missed::before { content: '✓'; color: #b45309; font-size: 18px; }
 .rn-matrix-cell.locked { cursor: default; }
 
+/* MATRIX_MR (.multi) — checkbox affordance: square glyphs instead of the
+   radio circle. One or more cells per row can be picked. */
+.rn-matrix.multi .rn-matrix-cell::before        { content: '☐'; }
+.rn-matrix.multi .rn-matrix-cell.sel::before    { content: '☑'; color: var(--accent); }
+.rn-matrix.multi .rn-matrix-cell.right::before  { content: '☑'; color: #15803d; }
+.rn-matrix.multi .rn-matrix-cell.wrong::before  { content: '☒'; color: #b91c1c; }
+.rn-matrix.multi .rn-matrix-cell.missed::before { content: '☑'; color: #b45309; }
+
 .rn-matrix-row-foot {
   padding: 4px 12px 8px;
   font-size: 12.5px;

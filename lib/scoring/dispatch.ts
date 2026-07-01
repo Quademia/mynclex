@@ -14,6 +14,7 @@ import type {
   SataCorrect,
   SelectNCorrect,
   MatrixCorrect,
+  MatrixMrCorrect,
   HighlightCorrect,
   ClozeCorrect,
   DragDropCorrect,
@@ -26,6 +27,7 @@ import {
   scoreAllOrNothing,
   scorePlusMinus,
   scorePerRow,
+  scorePerRowMulti,
   scorePerBlank,
   scorePerSlot,
 } from './functions';
@@ -51,6 +53,13 @@ export function computeMarksFromKey(
       return (correct as SelectNCorrect).answers.length;
     case 'MATRIX':
       return Object.keys((correct as MatrixCorrect).cells).length;
+    case 'MATRIX_MR':
+      // Max = total number of correct cells across all rows (each row is
+      // scored SATA-style, so each correct column contributes 1).
+      return Object.values((correct as MatrixMrCorrect).cells).reduce(
+        (sum, cols) => sum + cols.length,
+        0,
+      );
     case 'HIGHLIGHT':
       return (correct as HighlightCorrect).correct_ids.length;
     case 'CLOZE':
@@ -105,6 +114,12 @@ export function scoreAttempt(
     case 'MATRIX': {
       const c = correct as MatrixCorrect;
       const r = scorePerRow(c.cells, answer as Record<string, string>);
+      return { score_awarded: r.score_awarded, is_correct: r.is_correct };
+    }
+
+    case 'MATRIX_MR': {
+      const c = correct as MatrixMrCorrect;
+      const r = scorePerRowMulti(c.cells, answer as Record<string, string[]>);
       return { score_awarded: r.score_awarded, is_correct: r.is_correct };
     }
 

@@ -11,6 +11,7 @@ import type {
   SataCorrect,
   SelectNCorrect,
   MatrixCorrect,
+  MatrixMrCorrect,
   HighlightCorrect,
   ClozeCorrect,
   DragDropCorrect,
@@ -44,6 +45,14 @@ describe('computeMarksFromKey — per-type max derivation (§5.2)', () => {
       feedback: {},
     };
     expect(computeMarksFromKey('MATRIX', c)).toBe(3);
+  });
+
+  it('MATRIX_MR → total correct cells across rows', () => {
+    const c: MatrixMrCorrect = {
+      cells: { r1: ['c1', 'c2'], r2: ['c1'], r3: ['c1', 'c2', 'c3'] },
+      feedback: {},
+    };
+    expect(computeMarksFromKey('MATRIX_MR', c)).toBe(6);
   });
 
   it('HIGHLIGHT → count of correct chunks', () => {
@@ -156,6 +165,42 @@ describe('scoreAttempt — per-type runner scoring', () => {
       feedback: {},
     };
     expect(scoreAttempt('MATRIX', c, { r1: 'c1', r2: 'c3' })).toEqual({
+      score_awarded: 1,
+      is_correct: false,
+    });
+  });
+
+  // ── MATRIX_MR (per-row SATA, +/− floored within each row) ──
+  it('MATRIX_MR — full credit when every row exactly right', () => {
+    const c: MatrixMrCorrect = {
+      cells: { r1: ['c1', 'c2'], r2: ['c3'] },
+      feedback: {},
+    };
+    expect(scoreAttempt('MATRIX_MR', c, { r1: ['c1', 'c2'], r2: ['c3'] })).toEqual({
+      score_awarded: 3,
+      is_correct: true,
+    });
+  });
+
+  it('MATRIX_MR — partial: a wrong pick subtracts within its row, floored at 0', () => {
+    const c: MatrixMrCorrect = {
+      cells: { r1: ['c1', 'c2'], r2: ['c3'] },
+      feedback: {},
+    };
+    // r1: picked c1 (+1) and c3 (−1) → 0; r2: picked c3 (+1) → 1. Total 1.
+    expect(scoreAttempt('MATRIX_MR', c, { r1: ['c1', 'c3'], r2: ['c3'] })).toEqual({
+      score_awarded: 1,
+      is_correct: false,
+    });
+  });
+
+  it('MATRIX_MR — a skipped row scores 0 for that row', () => {
+    const c: MatrixMrCorrect = {
+      cells: { r1: ['c1'], r2: ['c2', 'c3'] },
+      feedback: {},
+    };
+    // r1 right (+1); r2 missing entirely → 0. Total 1 of max 3.
+    expect(scoreAttempt('MATRIX_MR', c, { r1: ['c1'] })).toEqual({
       score_awarded: 1,
       is_correct: false,
     });
