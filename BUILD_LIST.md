@@ -8,6 +8,47 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **TREND RICH MULTI-CHART — 🔨 Slices 1–3 BUILT (2026-07-01; session branch
+> `claude/fervent-shannon-4e168b` off `main`; NOT merged to `main`, NOT prod;
+> app-layer + two additive migrations `20260712120000` [tables] +
+> `20260713120000` [snapshot + RPC], both dev-applied; tsc + eslint + 98
+> vitest clean; Slices 1+2 Sam-tested/DB-verified, Slice 3 built but NOT yet
+> Sam-tested).** The deferred half of the bank rich-content relook — the trend
+> **stimulus** goes rich (trend questions were already rich). Trend **adopts
+> the case-study chart engine** (multi-tab rich charts) **minus progressive
+> disclosure**; the old flat grid is retired (timepoints→columns,
+> ref-range→a column, per-cell flags→author cell highlight — flags were never
+> student-visible). **Two wrappers, one engine — COPY not share** (copy the
+> chart-tab engine into `lib/bank/wrappers/trend/`; keep `lib/authoring/`
+> shared). Storage = **Option A** (`nclex_trend_tabs` child table + tutor twin,
+> mirror of `nclex_case_study_tabs`). Full plan + design pass:
+> [questions-and-wrappers-rebuild.md](docs/product-plan/questions-and-wrappers-rebuild.md)
+> → "Trend wrapper — rich multi-chart".
+> - **Slice 1 — Storage ✅** (`5461592`, mig `20260712120000`): tables + RLS +
+>   loader read; additive.
+> - **Slice 2 — Chart-tab engine in the wrapper ✅** (`bc14cd4` + `47890b8`):
+>   Dataset pane hosts the rich multi-tab editor (**Content | Charts**
+>   sub-tabs). **Shared-editor decoupling (Option A):** `MergeTableEditor` /
+>   `NarrativeTabEditorV2` took injected `saveAction`/`deleteAction` + a neutral
+>   `ChartTabIdentity` (`lib/authoring/chart-tab-types.ts`) + a `hideReveal`
+>   prop; case study injects its own (unchanged). Copied into trend: tab-types
+>   (6 built-ins + 2 customs), tab-rail, tab CRUD (keyed `trend_id`).
+>   Sam-tested `NCLEX_TRD_00002` (3 tabs) in the DB.
+> - **Slice 3 — Runner + preview ✅ built, NOT yet tested** (`147763b`, mig
+>   `20260713120000`): wrapper right-pane combined "as-student" preview + froze
+>   the tabs into the attempt snapshot (`tabs_snapshot_json` +
+>   `nclex_create_attempt` freeze) so the runner shows the tabbed stimulus,
+>   with a fallback to the legacy flat grid.
+> - **Slice 4 — legacy migration ⬜ PENDING:** convert the 2 legacy flat-grid
+>   trends → a seeded "Trend data" tab + retire the dead `timepoints`/`rows`
+>   columns.
+>
+> **⏭ NEXT:** Sam tests Slice 3 (publish `NCLEX_TRD_00002` + its MATRIX
+> question, build a practice quiz, confirm the runner shows the 3 tabs) →
+> build Slice 4. Then this arc + MATRIX_MR + the unreleased stack await a
+> `main` merge + `main → prod` release. ⚠ `PAYSTACK_SECRET_KEY` still not on
+> prod.
+
 > **MATRIX MULTIPLE RESPONSE (`MATRIX_MR`) — ✅ BUILT + Sam-tested on dev
 > (2026-07-01; session branch off `main`; app-layer + ONE additive migration
 > `20260711120000` [dev-applied]; tsc + eslint + 98 vitest clean; NOT merged to

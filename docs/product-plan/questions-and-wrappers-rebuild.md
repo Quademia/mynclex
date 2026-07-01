@@ -944,32 +944,44 @@ and the shared editors confirmed it. Findings:
 
 ### Slice plan
 
-1. **Slice 1 — Storage.** Add `nclex_trend_tabs` + `nclex_tutor_trend_tabs`
-   (mirror `nclex_case_study_tabs`, `trend_id` FK, `entries` JSONB) + RLS
-   (mirror the case tab policies) + the loader read in `load-trend.ts`.
-   **Additive** — the old `timepoints` / `rows` columns are left
-   untouched; nothing renders the new tabs yet.
-2. **Slice 2 — Chart-tab engine in the wrapper (the meat).** Copy the tab
-   rail / registry / dispatch / built-in seeding into
-   `lib/bank/wrappers/trend/`; **swap the Dataset pane's `TrendDataTable`
-   for the multi-tab chart editor**; add the tab CRUD actions
-   (add / remove / reorder / rename) keyed to `trend_id`; add the
-   `hideReveal` prop to the two shared editors and pass it from trend.
-3. **Slice 3 — Preview + runner.** The right-pane combined preview renders
-   the tabbed charts (all shown, no reveal). Copy the case chart renderer
-   into the trend runner panel
-   ([trend-panel.tsx](../../lib/practice/runner/trend/trend-panel.tsx)),
-   replacing the flat table — all tabs visible at once beside the
-   question.
-4. **Slice 4 — (deferred) legacy migration.** Convert the existing
-   flat-grid datasets → one seeded "Trend data" tab (via the case Slice-5
-   `migrate-v1-tabs.ts` converter approach) and retire the dead
-   `timepoints` / `rows` columns. **Own step, later**, once the engine is
-   proven — the same additive playbook as the drag-drop split and
-   MATRIX_MR (build new, migrate legacy once proven). Prod holds only 2
-   trend datasets, so this is small.
+> **STATUS (2026-07-01): Slices 1–3 BUILT on the session branch
+> `claude/fervent-shannon-4e168b` (NOT merged to `main`, NOT prod). Two
+> additive migrations `20260712120000` + `20260713120000`, both dev-applied.
+> tsc + eslint + 98 vitest clean. Slices 1+2 Sam-tested (verified in the DB);
+> Slice 3 built but NOT yet Sam-tested. Slice 4 pending.**
 
-**⏭ NEXT: build Slice 1.**
+1. **Slice 1 — Storage. ✅ BUILT** (`5461592`, mig `20260712120000`). Added
+   `nclex_trend_tabs` + `nclex_tutor_trend_tabs` (mirror `nclex_case_study_tabs`,
+   `trend_id` FK, `entries` JSONB) + RLS (mirror the case tab policies) + the
+   loader read in `load-trend.ts` (new `TrendTabRow` type on `WrapperData`).
+   **Additive** — old `timepoints` / `rows` columns untouched.
+2. **Slice 2 — Chart-tab engine in the wrapper. ✅ BUILT** (`bc14cd4` +
+   `47890b8`). Copied the tab rail / tab-types registry (6 built-ins + 2
+   customs) / dispatch / built-in seeding + tab CRUD actions (keyed to
+   `trend_id`) into `lib/bank/wrappers/trend/`; swapped the Dataset pane's flat
+   grid for the multi-tab chart editor; **Content | Charts sub-tabs**.
+   **Shared-editor decoupling (Option A):** the `lib/authoring` editors
+   (`MergeTableEditor` / `NarrativeTabEditorV2`) took injected
+   `saveAction` / `deleteAction` + a neutral `ChartTabIdentity`
+   (`lib/authoring/chart-tab-types.ts`) + a `hideReveal` prop (drops the
+   reveal gutter) — case study injects its own actions (unchanged), trend its
+   own. Sam-tested `NCLEX_TRD_00002` (3 tabs) in the DB.
+3. **Slice 3 — Preview + runner. ✅ BUILT, not yet Sam-tested** (`147763b`,
+   mig `20260713120000`). **3a:** the wrapper right-pane shows the combined
+   "as student" view (tab bar + selected body, live drafts). **3b:** froze the
+   tabs into the attempt snapshot (new `tabs_snapshot_json` +
+   `nclex_create_attempt` `jsonb_agg` from `nclex_trend_tabs`, mirror of the
+   case freeze); `trend-panel` renders the tabbed stimulus when the snapshot
+   carries tabs, **else falls back to the legacy flat grid** (for legacy
+   trends with no tabs). Freeze verified on dev.
+4. **Slice 4 — legacy migration. ⬜ PENDING.** Convert the existing flat-grid
+   datasets → one seeded "Trend data" tab (via the case Slice-5
+   `migrate-v1-tabs.ts` converter approach) and retire the dead
+   `timepoints` / `rows` columns. Own step, once the engine is proven — the
+   additive playbook (build new, migrate legacy once proven). Prod holds only
+   2 trend datasets.
+
+**⏭ NEXT: Sam tests Slice 3 (runner) → build Slice 4.**
 
 ---
 
